@@ -1,74 +1,55 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 09/19] net: average: Kill off ACCESS_ONCE()
-Date: Tue, 24 Oct 2017 11:34:13 +0200
-Message-ID: <20171024093412.slvps6vmluzmteru@gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 17/19] locking/barriers: Kill lockless_dereference
+Date: Tue, 24 Oct 2017 10:44:35 +0100
+Message-ID: <20171024094435.GC17909@arm.com>
 References: <20171023210408.GA2930@linux.vnet.ibm.com>
- <1508792849-3115-9-git-send-email-paulmck@linux.vnet.ibm.com>
- <1508824691.2639.26.camel@sipsolutions.net>
+ <1508792849-3115-17-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20171024093104.rukpl26fukj7bxvg@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1508824691.2639.26.camel@sipsolutions.net>
+In-Reply-To: <20171024093104.rukpl26fukj7bxvg@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Johannes Berg <johannes@sipsolutions.net>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "snitzer@redhat.com" <snitzer@redhat.com>, "thor.thayer@linux.intel.com" <thor.thayer@linux.intel.com>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "davem@davemloft.net" <davem@davemloft.net>, "shuah@kernel.org" <shuah@kernel.org>, "mpe@ellerman.id.au" <mpe@ellerman.id.au>, "tj@kernel.org" <tj@kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mark.rutland@arm.com, snitzer@redhat.com, thor.thayer@linux.intel.com, viro@zeniv.linux.org.uk, davem@davemloft.net, shuah@kernel.org, mpe@ellerman.id.au, tj@kernel.org, torvalds@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-
-* Johannes Berg <johannes@sipsolutions.net> wrote:
-
-> On Mon, 2017-10-23 at 21:07 +0000, Paul E. McKenney wrote:
-> > From: Mark Rutland <mark.rutland@arm.com>
-> > 
-> > For several reasons, it is desirable to use {READ,WRITE}_ONCE() in
-> > preference to ACCESS_ONCE(), and new code is expected to use one of the
-> > former. So far, there's been no reason to change most existing uses of
-> > ACCESS_ONCE(), as these aren't currently harmful.
-> > 
-> > However, for some features it is necessary to instrument reads and
-> > writes separately, which is not possible with ACCESS_ONCE(). This
-> > distinction is critical to correct operation.
-> > 
-> > It's possible to transform the bulk of kernel code using the Coccinelle
-> > script below. However, this doesn't pick up some uses, including those
-> > in <linux/average.h>. As a preparatory step, this patch converts the
-> > file to use {READ,WRITE}_ONCE() consistently.
-> > 
-> > At the same time, this patch addds missing includes necessary for
-> > {READ,WRITE}_ONCE(), *BUG_ON*(), and ilog2().
-> > 
-> > ----
-> > virtual patch
-> > 
-> > @ depends on patch @
-> > expression E1, E2;
-> > @@
-> > 
-> > - ACCESS_ONCE(E1) = E2
-> > + WRITE_ONCE(E1, E2)
-> > 
-> > @ depends on patch @
-> > expression E;
-> > @@
-> > 
-> > - ACCESS_ONCE(E)
-> > + READ_ONCE(E)
-> > ----
-> > 
-> > Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> > Cc: Johannes Berg <johannes.berg@intel.com>
+On Tue, Oct 24, 2017 at 11:31:04AM +0200, Ingo Molnar wrote:
 > 
-> Reviewed-by: Johannes Berg <johannes@sipsolutions.net>
+> * Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+> 
+> > From: Will Deacon <will.deacon@arm.com>
+> > 
+> > lockless_dereference is a nice idea, but its gained little traction in
+> > kernel code since it's introduction three years ago. This is partly
+> 
+> s/its/it
+> s/it's/its
 
-Thanks!
+Crikey, no idea what happened there!
 
-> Let me know if you want me to apply this, since I seem to be the
-> average.h maintainer :-)
+> > because it's a pain to type, but also because using READ_ONCE instead
+> > will work correctly on all architectures apart from Alpha, which is a
+> > fully supported but somewhat niche architecture these days.
+> > 
+> > This patch moves smp_read_barrier_depends() (a NOP on all architectures
+> > other than Alpha) from lockless_dereference into READ_ONCE, converts
+> > the few actual users over to READ_ONCE and then finally removes
+> > lockless_dereference altogether.
+> 
+> Nit: if we refer to smp_read_barrier_depends() with parentheses (which is the nice 
+> thing to do for function-alike symbols), then we should do the same with 
+> READ_ONCE() and lockless_dereference() as well.
+> 
+> Also, could we please split this into three patches:
+> 
+>  #1: Add smp_read_barrier_depends() to READ_ONCE()
+>  #2: Convert all lockless_dereference() users to READ_ONCE()
+>  #3: Remove the now unused lockless_dereference() API
+> 
+> to make it easier to analyze if bisected to, should any problems arise?
 
-Would be nice to keep these patches together if possible, so that we can remove 
-ACCESS_ONCE() - or at least add a build warning.
+Sure, I'll do that now.
 
-Thanks,
-
-	Ingo
+Will
