@@ -1,62 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0057.outbound.protection.outlook.com ([104.47.37.57]:52352
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932095AbdJYRmG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 25 Oct 2017 13:42:06 -0400
-Date: Wed, 25 Oct 2017 20:41:46 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: Re [PATCH v2] lib: optimize cpumask_next_and()
-Message-ID: <20171025174146.577ar6igqpkcbzin@yury-thinkpad>
-References: <20171025145938.wpr7spsujounqudk@yury-thinkpad>
- <20171025152841.6746-1-courbet@google.com>
- <20171025155014.ppsu6hkwnhh3fjxp@yury-thinkpad>
+Received: from mail.kernel.org ([198.145.29.99]:34678 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751001AbdJZHvs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 26 Oct 2017 03:51:48 -0400
+Received: from mail-it0-f47.google.com (mail-it0-f47.google.com [209.85.214.47])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id A7DBC2192D
+        for <linux-arch@vger.kernel.org>; Thu, 26 Oct 2017 07:51:47 +0000 (UTC)
+Received: by mail-it0-f47.google.com with SMTP id n195so4197604itg.0
+        for <linux-arch@vger.kernel.org>; Thu, 26 Oct 2017 00:51:47 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20171025155014.ppsu6hkwnhh3fjxp@yury-thinkpad>
+In-Reply-To: <1507089272-32733-3-git-send-email-ricardo.neri-calderon@linux.intel.com>
+References: <1507089272-32733-1-git-send-email-ricardo.neri-calderon@linux.intel.com>
+ <1507089272-32733-3-git-send-email-ricardo.neri-calderon@linux.intel.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Thu, 26 Oct 2017 00:51:25 -0700
+Message-ID: <CALCETrUced9TVsMQ=cjFfDuDfLQsZWu0GOoRCmHn4PsSwrfOdw@mail.gmail.com>
+Subject: Re: [PATCH v9 02/29] x86/boot: Relocate definition of the initial
+ state of CR0
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Clement Courbet <courbet@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <mawilcox@microsoft.com>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20171025174146._0UliqjoyFG0bm0DVwSnPaTb-HE55M2g_54RKcz4Q4g@z>
+To: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Liang Z Li <liang.z.li@intel.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shuah Khan <shuah@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, "Neri, Ricardo" <ricardo.neri@intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@intel.com>, Denys Vlasenko <dvlasenk@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Message-ID: <20171026075125.AQ2VvHmJXftsfbQLfSdGbdDBKJBTyEZN0YCyUcJqd_8@z>
 
-On Wed, Oct 25, 2017 at 06:50:14PM +0300, Yury Norov wrote:
-> On Wed, Oct 25, 2017 at 05:28:41PM +0200, Clement Courbet wrote:
-> > Thanks for the comments Yury.
-> > 
-> > > But I'd like also to keep _find_next_bit() consistent with
-> > > _find_next_bit_le()
-> > 
-> > Not sure I understand what you're suggesting here: Do you want a
-> > find_next_and_bit_le() or do you want to make _find_next_bit_le() more
-> > like _find_next_bit() ? In the latter case we might just want to merge
-> > it with _find_next_bit() and end up with an extra is_le parameter :)
-> 
-> Both ways will work, but I think that extra is_le is too much.
-> _find_next_bit_le() should be the copy of _find_next_bit() with the
-> addition of swapping code.
-> 
-> If you don't need find_next_and_bit_le(), don't add it.
-> find_{first,last}_bit() doesn't have LE version, for example.
+On Tue, Oct 3, 2017 at 8:54 PM, Ricardo Neri
+<ricardo.neri-calderon@linux.intel.com> wrote:
+> Both head_32.S and head_64.S utilize the same value to initialize the
+> control register CR0. Also, other parts of the kernel might want to access
+> this initial definition (e.g., emulation code for User-Mode Instruction
+> Prevention uses this state to provide a sane dummy value for CR0 when
+> emulating the smsw instruction). Thus, relocate this definition to a
+> header file from which it can be conveniently accessed.
 
-Few comments more.
+Reviewed-by: Andy Lutomirski <luto@kernel.org>
 
-_find_next_bit is now referenced also by find_next_and_bit(), and
-so it should be added to guard code:
-
-#if !defined(find_next_bit) || !defined(find_next_zero_bit)
-        || !defined(find_next_and_bit)
-static unsigned long _find_next_bit( ... )
-{
-        ...
-}
-#endif
-
-It may be essential at least for arm.
-
-Don't forget to synchronize your changes with
-tools/lib/find_bit.c
-
-Thanks,
-Yury
+with the slight caveat that I think it might be a wee bit better if
+UMIP emulation used a separate define UMIP_REPORTED_CR0.
