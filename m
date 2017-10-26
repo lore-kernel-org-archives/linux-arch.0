@@ -1,40 +1,27 @@
-From: Alexey Dobriyan <adobriyan@gmail.com>
-Subject: Re: [PATCH v3] lib: optimize cpumask_next_and()
-Date: Thu, 26 Oct 2017 14:58:00 +0200
-Message-ID: <CACVxJT9+2wV34iYsQVCeqDi1HnUyJQTc-4Pf2ihW18R0rAmxSA@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Clement Courbet <courbet@google.com>
+Subject: [PATCH v2] lib: optimize cpumask_next_and()
+Date: Thu, 26 Oct 2017 17:52:01 +0200
+Message-ID: <20171026155201.26104-1-courbet@google.com>
+References: <CACVxJT9+2wV34iYsQVCeqDi1HnUyJQTc-4Pf2ihW18R0rAmxSA@mail.gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f193.google.com ([209.85.216.193]:53898 "EHLO
-        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932204AbdJZM6B (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Oct 2017 08:58:01 -0400
+Received: from mail-wm0-f43.google.com ([74.125.82.43]:54824 "EHLO
+        mail-wm0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932446AbdJZPwf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Oct 2017 11:52:35 -0400
+Received: by mail-wm0-f43.google.com with SMTP id r68so9265118wmr.3
+        for <linux-arch@vger.kernel.org>; Thu, 26 Oct 2017 08:52:35 -0700 (PDT)
+In-Reply-To: <CACVxJT9+2wV34iYsQVCeqDi1HnUyJQTc-4Pf2ihW18R0rAmxSA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: courbet@google.com
-Cc: arnd@arndb.de, linux@rasmusvillemoes.dk, akpm@linux-foundation.org, mawilcox@microsoft.com, ynorov@caviumnetworks.com, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <mawilcox@microsoft.com>, Yury Norov <ynorov@caviumnetworks.com>
+Cc: Clement Courbet <courbet@google.com>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
->  - Refactored _find_next_common_bit into _find_next_bit., as suggested
->    by Yury Norov. This has no adverse effects on the performance side,
->    as the compiler successfully inlines the code.
+Hi Alexey,
 
-1)
-Gentoo ships 5.4.0 which doesn't inline this code on x86_64 defconfig
-(which has OPTIMIZE_INLINING).
+> Gentoo ships 5.4.0 which doesn't inline this code on x86_64 defconfig
+> (which has OPTIMIZE_INLINING).
 
-
-ffffffff813556c0 <find_next_bit>:
-ffffffff813556c0:       55                      push   rbp
-ffffffff813556c1:       48 89 d1                mov    rcx,rdx
-ffffffff813556c4:       45 31 c0                xor    r8d,r8d
-ffffffff813556c7:       48 89 f2                mov    rdx,rsi
-ffffffff813556ca:       31 f6                   xor    esi,esi
-ffffffff813556cc:       48 89 e5                mov    rbp,rsp
-ffffffff813556cf:       e8 7c ff ff ff          call
-ffffffff81355650 <_find_next_bit>
-ffffffff813556d4:       5d                      pop    rbp
-ffffffff813556d5:       c3                      ret
-
-2)
-Making "and" operation to be centerpiece of this code is kind of meh
-find_next_or_bit() will be hard to implement.
+I have not actually marked _find_next_bit() inline, it just turns out
+that my compiler inlines it.
+I've tried out marking the function inline and OPTIMIZE_INLINING does
+not un-inline it. I'll send a v4 with an explicit inine.
