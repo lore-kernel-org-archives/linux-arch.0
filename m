@@ -1,42 +1,40 @@
-From: Borislav Petkov <bp@suse.de>
-Subject: Re: [PATCH v9 02/29] x86/boot: Relocate definition of the initial
- state of CR0
-Date: Thu, 26 Oct 2017 14:55:13 +0200
-Message-ID: <20171026125513.GB12068@nazgul.tnic>
-References: <1507089272-32733-1-git-send-email-ricardo.neri-calderon@linux.intel.com>
- <1507089272-32733-3-git-send-email-ricardo.neri-calderon@linux.intel.com>
- <CALCETrUced9TVsMQ=cjFfDuDfLQsZWu0GOoRCmHn4PsSwrfOdw@mail.gmail.com>
- <20171026090045.GA6438@nazgul.tnic>
- <CALCETrXw2r-HD+9SwT0ndRVX2YR-_g6BKEfDd6i0ci5q_Z4S4Q@mail.gmail.com>
+From: Alexey Dobriyan <adobriyan@gmail.com>
+Subject: Re: [PATCH v3] lib: optimize cpumask_next_and()
+Date: Thu, 26 Oct 2017 14:58:00 +0200
+Message-ID: <CACVxJT9+2wV34iYsQVCeqDi1HnUyJQTc-4Pf2ihW18R0rAmxSA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CALCETrXw2r-HD+9SwT0ndRVX2YR-_g6BKEfDd6i0ci5q_Z4S4Q@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shuah Khan <shuah@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, "Neri, Ricardo" <ricardo.neri@inte>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:53898 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932204AbdJZM6B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Oct 2017 08:58:01 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: courbet@google.com
+Cc: arnd@arndb.de, linux@rasmusvillemoes.dk, akpm@linux-foundation.org, mawilcox@microsoft.com, ynorov@caviumnetworks.com, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, Oct 26, 2017 at 02:02:02AM -0700, Andy Lutomirski wrote:
-> I'm assuming that UMIP_REPORTED_CR0 will never change.  If CR0 gets a
-> new field that we set some day, then I assume that CR0_STATE would add
-> that bit but UMIP_REPORTED_CR0 would not.
+>  - Refactored _find_next_common_bit into _find_next_bit., as suggested
+>    by Yury Norov. This has no adverse effects on the performance side,
+>    as the compiler successfully inlines the code.
 
-Yeah, let's do that when it is actually needed.
+1)
+Gentoo ships 5.4.0 which doesn't inline this code on x86_64 defconfig
+(which has OPTIMIZE_INLINING).
 
-Thx.
 
--- 
-Regards/Gruss,
-    Boris.
+ffffffff813556c0 <find_next_bit>:
+ffffffff813556c0:       55                      push   rbp
+ffffffff813556c1:       48 89 d1                mov    rcx,rdx
+ffffffff813556c4:       45 31 c0                xor    r8d,r8d
+ffffffff813556c7:       48 89 f2                mov    rdx,rsi
+ffffffff813556ca:       31 f6                   xor    esi,esi
+ffffffff813556cc:       48 89 e5                mov    rbp,rsp
+ffffffff813556cf:       e8 7c ff ff ff          call
+ffffffff81355650 <_find_next_bit>
+ffffffff813556d4:       5d                      pop    rbp
+ffffffff813556d5:       c3                      ret
 
-SUSE Linux GmbH, GF: Felix Imendörffer, Jane Smithard, Graham Norton, HRB 21284 (AG Nürnberg)
--- 
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+2)
+Making "and" operation to be centerpiece of this code is kind of meh
+find_next_or_bit() will be hard to implement.
