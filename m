@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:56948 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752467AbdJ0Kvx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Oct 2017 06:51:53 -0400
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:56966 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752496AbdJ0Kvz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 27 Oct 2017 06:51:55 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v4 17/28] arm64/sve: Preserve SVE registers around kernel-mode NEON use
-Date: Fri, 27 Oct 2017 11:50:59 +0100
-Message-ID: <1509101470-7881-18-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v4 18/28] arm64/sve: Preserve SVE registers around EFI runtime service calls
+Date: Fri, 27 Oct 2017 11:51:00 +0100
+Message-ID: <1509101470-7881-19-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
 References: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
@@ -16,39 +16,157 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
-Message-ID: <20171027105059.-XBVKCd9XCGMJCGHIgJmLSbTs_V5hGmDl0XmEKafk2w@z>
+Message-ID: <20171027105100.52oKrlHwEIIuOmfWBSZORQzj8fIgWTiWfV8aU4easZY@z>
 
-Kernel-mode NEON will corrupt the SVE vector registers, due to the
-way they alias the FPSIMD vector registers in the hardware.
+The EFI runtime services ABI allows EFI to make free use of the
+FPSIMD registers during EFI runtime service calls, subject to the
+callee-save requirements of the AArch64 procedure call standard.
 
-This patch ensures that any live SVE register content for the task
-is saved by kernel_neon_begin().  The data will be restored in the
-usual way on return to userspace.
+However, the SVE architecture allows upper bits of the SVE vector
+registers to be zeroed as a side-effect of FPSIMD V-register
+writes.  This means that the SVE vector registers must be saved in
+their entirety in order to avoid data loss: non-SVE-aware EFI
+implementations cannot restore them correctly.
+
+The non-IRQ case is already handled gracefully by
+kernel_neon_begin().  For the IRQ case, this patch allocates a
+suitable per-CPU stash buffer for the full SVE register state and
+uses it to preserve the affected registers around EFI calls.  It is
+currently unclear how the EFI runtime services ABI will be
+clarified with respect to SVE, so it safest to assume that the
+predicate registers and FFR must be saved and restored too.
+
+No attempt is made to restore the restore the vector length after
+a call, for now.  It is deemed rather insane for EFI to change it,
+and contemporary EFI implementations certainly won't.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
 Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 ---
- arch/arm64/kernel/fpsimd.c | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ arch/arm64/kernel/fpsimd.c | 67 +++++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 61 insertions(+), 6 deletions(-)
 
 diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index 703e9d7..d5108e8 100644
+index d5108e8..edc27d2 100644
 --- a/arch/arm64/kernel/fpsimd.c
 +++ b/arch/arm64/kernel/fpsimd.c
-@@ -884,8 +884,10 @@ void kernel_neon_begin(void)
- 	__this_cpu_write(kernel_neon_busy, true);
+@@ -121,11 +121,13 @@ static int sve_default_vl = -1;
+ int __ro_after_init sve_max_vl = -1;
+ /* Set of available vector lengths, as vq_to_bit(vq): */
+ static __ro_after_init DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
++static void __percpu *efi_sve_state;
  
- 	/* Save unsaved task fpsimd state, if any: */
--	if (current->mm && !test_and_set_thread_flag(TIF_FOREIGN_FPSTATE))
--		fpsimd_save_state(&current->thread.fpsimd_state);
-+	if (current->mm) {
-+		task_fpsimd_save();
-+		set_thread_flag(TIF_FOREIGN_FPSTATE);
+ #else /* ! CONFIG_ARM64_SVE */
+ 
+ /* Dummy declaration for code that will be optimised out: */
+ extern __ro_after_init DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
++extern void __percpu *efi_sve_state;
+ 
+ #endif /* ! CONFIG_ARM64_SVE */
+ 
+@@ -550,6 +552,30 @@ int sve_verify_vq_map(void)
+ 	return ret;
+ }
+ 
++static void __init sve_efi_setup(void)
++{
++	if (!IS_ENABLED(CONFIG_EFI))
++		return;
++
++	/*
++	 * alloc_percpu() warns and prints a backtrace if this goes wrong.
++	 * This is evidence of a crippled system and we are returning void,
++	 * so no attempt is made to handle this situation here.
++	 */
++	if (!sve_vl_valid(sve_max_vl))
++		goto fail;
++
++	efi_sve_state = __alloc_percpu(
++		SVE_SIG_REGS_SIZE(sve_vq_from_vl(sve_max_vl)), SVE_VQ_BYTES);
++	if (!efi_sve_state)
++		goto fail;
++
++	return;
++
++fail:
++	panic("Cannot allocate percpu memory for EFI SVE save/restore");
++}
++
+ /*
+  * Enable SVE for EL1.
+  * Intended for use by the cpufeatures code during CPU boot.
+@@ -597,6 +623,8 @@ void __init sve_setup(void)
+ 		sve_max_vl);
+ 	pr_info("SVE: default vector length %u bytes per vector\n",
+ 		sve_default_vl);
++
++	sve_efi_setup();
+ }
+ 
+ /*
+@@ -925,6 +953,7 @@ EXPORT_SYMBOL(kernel_neon_end);
+ 
+ static DEFINE_PER_CPU(struct fpsimd_state, efi_fpsimd_state);
+ static DEFINE_PER_CPU(bool, efi_fpsimd_state_used);
++static DEFINE_PER_CPU(bool, efi_sve_state_used);
+ 
+ /*
+  * EFI runtime services support functions
+@@ -950,10 +979,24 @@ void __efi_fpsimd_begin(void)
+ 
+ 	WARN_ON(preemptible());
+ 
+-	if (may_use_simd())
++	if (may_use_simd()) {
+ 		kernel_neon_begin();
+-	else {
+-		fpsimd_save_state(this_cpu_ptr(&efi_fpsimd_state));
++	} else {
++		/*
++		 * If !efi_sve_state, SVE can't be in use yet and doesn't need
++		 * preserving:
++		 */
++		if (system_supports_sve() && likely(efi_sve_state)) {
++			char *sve_state = this_cpu_ptr(efi_sve_state);
++
++			__this_cpu_write(efi_sve_state_used, true);
++
++			sve_save_state(sve_state + sve_ffr_offset(sve_max_vl),
++				       &this_cpu_ptr(&efi_fpsimd_state)->fpsr);
++		} else {
++			fpsimd_save_state(this_cpu_ptr(&efi_fpsimd_state));
++		}
++
+ 		__this_cpu_write(efi_fpsimd_state_used, true);
+ 	}
+ }
+@@ -966,10 +1009,22 @@ void __efi_fpsimd_end(void)
+ 	if (!system_supports_fpsimd())
+ 		return;
+ 
+-	if (__this_cpu_xchg(efi_fpsimd_state_used, false))
+-		fpsimd_load_state(this_cpu_ptr(&efi_fpsimd_state));
+-	else
++	if (!__this_cpu_xchg(efi_fpsimd_state_used, false)) {
+ 		kernel_neon_end();
++	} else {
++		if (system_supports_sve() &&
++		    likely(__this_cpu_read(efi_sve_state_used))) {
++			char const *sve_state = this_cpu_ptr(efi_sve_state);
++
++			sve_load_state(sve_state + sve_ffr_offset(sve_max_vl),
++				       &this_cpu_ptr(&efi_fpsimd_state)->fpsr,
++				       sve_vq_from_vl(sve_get_vl()) - 1);
++
++			__this_cpu_write(efi_sve_state_used, false);
++		} else {
++			fpsimd_load_state(this_cpu_ptr(&efi_fpsimd_state));
++		}
 +	}
+ }
  
- 	/* Invalidate any task state remaining in the fpsimd regs: */
- 	__this_cpu_write(fpsimd_last_state, NULL);
+ #endif /* CONFIG_EFI */
 -- 
 2.1.4
