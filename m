@@ -1,193 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:57112 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752507AbdJ0KwN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Oct 2017 06:52:13 -0400
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH v4 27/28] arm64: signal: Report signal frame size to userspace via auxv
-Date: Fri, 27 Oct 2017 11:51:09 +0100
-Message-ID: <1509101470-7881-28-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
+Received: from foss.arm.com ([217.140.101.70]:58460 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752412AbdJ0Mpz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 27 Oct 2017 08:45:55 -0400
+Date: Fri, 27 Oct 2017 13:45:51 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v4 11/28] arm64/sve: Core task context handling
+Message-ID: <20171027124550.hul2skr5uxxwidbr@armageddon.cambridge.arm.com>
 References: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
+ <1509101470-7881-12-git-send-email-Dave.Martin@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <1509101470-7881-12-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
-Message-ID: <20171027105109.5qbdoa9BLwvNqzwREynpAxGc2wc6AERAqdcpoeU3Rwc@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
+Message-ID: <20171027124551.R13yJMffcZEQrekVpIYKlfyCfIn1giq9z-svps19mc8@z>
 
-Stateful CPU architecture extensions may require the signal frame
-to grow to a size that exceeds the arch's MINSIGSTKSZ #define.
-However, changing this #define is an ABI break.
+On Fri, Oct 27, 2017 at 11:50:53AM +0100, Dave P Martin wrote:
+> This patch adds the core support for switching and managing the SVE
+> architectural state of user tasks.
+> 
+> Calls to the existing FPSIMD low-level save/restore functions are
+> factored out as new functions task_fpsimd_{save,load}(), since SVE
+> now dynamically may or may not need to be handled at these points
+> depending on the kernel configuration, hardware features discovered
+> at boot, and the runtime state of the task.  To make these
+> decisions as fast as possible, const cpucaps are used where
+> feasible, via the system_supports_sve() helper.
+> 
+> The SVE registers are only tracked for threads that have explicitly
+> used SVE, indicated by the new thread flag TIF_SVE.  Otherwise, the
+> FPSIMD view of the architectural state is stored in
+> thread.fpsimd_state as usual.
+> 
+> When in use, the SVE registers are not stored directly in
+> thread_struct due to their potentially large and variable size.
+> Because the task_struct slab allocator must be configured very
+> early during kernel boot, it is also tricky to configure it
+> correctly to match the maximum vector length provided by the
+> hardware, since this depends on examining secondary CPUs as well as
+> the primary.  Instead, a pointer sve_state in thread_struct points
+> to a dynamically allocated buffer containing the SVE register data,
+> and code is added to allocate and free this buffer at appropriate
+> times.
+> 
+> TIF_SVE is set when taking an SVE access trap from userspace, if
+> suitable hardware support has been detected.  This enables SVE for
+> the thread: a subsequent return to userspace will disable the trap
+> accordingly.  If such a trap is taken without sufficient system-
+> wide hardware support, SIGILL is sent to the thread instead as if
+> an undefined instruction had been executed: this may happen if
+> userspace tries to use SVE in a system where not all CPUs support
+> it for example.
+> 
+> The kernel will clear TIF_SVE and disable SVE for the thread
+> whenever an explicit syscall is made by userspace.  For backwards
+> compatibility reasons and conformance with the spirit of the base
+> AArch64 procedure call standard, the subset of the SVE register
+> state that aliases the FPSIMD registers is still preserved across a
+> syscall even if this happens.  The remainder of the SVE register
+> state logically becomes zero at syscall entry, though the actual
+> zeroing work is currently deferred until the thread next tries to
+> use SVE, causing another trap to the kernel.  This implementation
+> is suboptimal: in the future, the fastpath case may be optimised
+> to zero the registers in-place and leave SVE enabled for the task,
+> where beneficial.
+> 
+> TIF_SVE is also cleared in the following slowpath cases, which are
+> taken as reasonable hints that the task may no longer use SVE:
+>  * exec
+>  * fork and clone
+> 
+> Code is added to sync data between thread.fpsimd_state and
+> thread.sve_state whenever enabling/disabling SVE, in a manner
+> consistent with the SVE architectural programmer's model.
+> 
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+> Cc: Alex Bennée <alex.bennee@linaro.org>
 
-To allow userspace the option of determining the signal frame size
-in a more forwards-compatible way, this patch adds a new auxv entry
-tagged with AT_MINSIGSTKSZ, which provides the maximum signal frame
-size that the process can observe during its lifetime.
-
-If AT_MINSIGSTKSZ is absent from the aux vector, the caller can
-assume that the MINSIGSTKSZ #define is sufficient.  This allows for
-a consistent interface with older kernels that do not provide
-AT_MINSIGSTKSZ.
-
-The idea is that libc could expose this via sysconf() or some
-similar mechanism.
-
-There is deliberately no AT_SIGSTKSZ.  The kernel knows nothing
-about userspace's own stack overheads and should not pretend to
-know.
-
-For arm64:
-
-The primary motivation for this interface is the Scalable Vector
-Extension, which can require at least 4KB or so of extra space
-in the signal frame for the largest hardware implementations.
-
-To determine the correct value, a "Christmas tree" mode (via the
-add_all argument) is added to setup_sigframe_layout(), to simulate
-addition of all possible records to the signal frame at maximum
-possible size.
-
-If this procedure goes wrong somehow, resulting in a stupidly large
-frame layout and hence failure of sigframe_alloc() to allocate a
-record to the frame, then this is indicative of a kernel bug: the
-kernel's internal SIGFRAME_MAXSZ is supposed to sanity-check
-against generting frames that we consider _impossibly_ large.  In
-this case, SIGSTKSZ is returned as a "reasonable guess that is at
-least bigger than MINSIGSTKSZ" and we WARN().
-
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
----
- arch/arm64/include/asm/elf.h         |  5 +++++
- arch/arm64/include/asm/processor.h   |  3 +++
- arch/arm64/include/uapi/asm/auxvec.h |  3 ++-
- arch/arm64/kernel/signal.c           | 39 +++++++++++++++++++++++++++++++-----
- 4 files changed, 44 insertions(+), 6 deletions(-)
-
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index fac1c4d..771c7a8 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -24,6 +24,10 @@
- #include <asm/ptrace.h>
- #include <asm/user.h>
- 
-+#ifndef __ASSEMBLY__
-+#include <asm/processor.h> /* for get_minsigstksz(), used by ARCH_DLINFO */
-+#endif
-+
- /*
-  * AArch64 static relocation types.
-  */
-@@ -148,6 +152,7 @@ typedef struct user_fpsimd_state elf_fpregset_t;
- do {									\
- 	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
- 		    (elf_addr_t)current->mm->context.vdso);		\
-+	NEW_AUX_ENT(AT_MINSIGSTKSZ, get_minsigstksz());			\
- } while (0)
- 
- #define ARCH_HAS_SETUP_ADDITIONAL_PAGES
-diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-index 023cacb..055b06d 100644
---- a/arch/arm64/include/asm/processor.h
-+++ b/arch/arm64/include/asm/processor.h
-@@ -217,6 +217,9 @@ static inline void spin_lock_prefetch(const void *ptr)
- int cpu_enable_pan(void *__unused);
- int cpu_enable_cache_maint_trap(void *__unused);
- 
-+/* User signal frame size discovery: */
-+int get_minsigstksz(void);
-+
- /* Userspace interface for PR_SVE_{SET,GET}_VL prctl()s: */
- #define SVE_SET_VL(arg)	sve_set_current_vl(arg)
- #define SVE_GET_VL()	sve_get_current_vl()
-diff --git a/arch/arm64/include/uapi/asm/auxvec.h b/arch/arm64/include/uapi/asm/auxvec.h
-index 4cf0c17..1d45b28 100644
---- a/arch/arm64/include/uapi/asm/auxvec.h
-+++ b/arch/arm64/include/uapi/asm/auxvec.h
-@@ -18,7 +18,8 @@
- 
- /* vDSO location */
- #define AT_SYSINFO_EHDR	33
-+#define AT_MINSIGSTKSZ	34	/* stack needed for signal delivery */
- 
--#define AT_VECTOR_SIZE_ARCH 1 /* entries in ARCH_DLINFO */
-+#define AT_VECTOR_SIZE_ARCH 2 /* entries in ARCH_DLINFO */
- 
- #endif
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 79bc55a..ecae147 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -567,8 +567,15 @@ asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
- 	return 0;
- }
- 
--/* Determine the layout of optional records in the signal frame */
--static int setup_sigframe_layout(struct rt_sigframe_user_layout *user)
-+/*
-+ * Determine the layout of optional records in the signal frame
-+ *
-+ * add_all: if true, lays out the biggest possible signal frame for
-+ *	this task; otherwise, generates a layout for the current state
-+ *	of the task.
-+ */
-+static int setup_sigframe_layout(struct rt_sigframe_user_layout *user,
-+				 bool add_all)
- {
- 	int err;
- 
-@@ -578,7 +585,7 @@ static int setup_sigframe_layout(struct rt_sigframe_user_layout *user)
- 		return err;
- 
- 	/* fault information, if valid */
--	if (current->thread.fault_code) {
-+	if (add_all || current->thread.fault_code) {
- 		err = sigframe_alloc(user, &user->esr_offset,
- 				     sizeof(struct esr_context));
- 		if (err)
-@@ -600,7 +607,6 @@ static int setup_sigframe_layout(struct rt_sigframe_user_layout *user)
- 	return sigframe_alloc_end(user);
- }
- 
--
- static int setup_sigframe(struct rt_sigframe_user_layout *user,
- 			  struct pt_regs *regs, sigset_t *set)
- {
-@@ -698,7 +704,7 @@ static int get_sigframe(struct rt_sigframe_user_layout *user,
- 	int err;
- 
- 	init_user_layout(user);
--	err = setup_sigframe_layout(user);
-+	err = setup_sigframe_layout(user, false);
- 	if (err)
- 		return err;
- 
-@@ -930,3 +936,26 @@ asmlinkage void do_notify_resume(struct pt_regs *regs,
- 		thread_flags = READ_ONCE(current_thread_info()->flags);
- 	} while (thread_flags & _TIF_WORK_MASK);
- }
-+
-+/*
-+ * Determine the stack space required for guaranteed signal devliery.
-+ * This function is used to populate AT_MINSIGSTKSZ at process startup.
-+ */
-+int get_minsigstksz(void)
-+{
-+	struct rt_sigframe_user_layout user;
-+	int err;
-+
-+	init_user_layout(&user);
-+	err = setup_sigframe_layout(&user, true);
-+
-+	if (err) {
-+		WARN_ON(1);
-+
-+		return SIGSTKSZ;
-+	} else {
-+		return sigframe_size(&user) +
-+			round_up(sizeof(struct frame_record), 16) +
-+			16; /* max alignment padding */
-+	}
-+}
--- 
-2.1.4
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
