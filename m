@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:56738 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752239AbdJ0Kv1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Oct 2017 06:51:27 -0400
+Received: from foss.arm.com ([217.140.101.70]:56744 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752311AbdJ0Kva (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 27 Oct 2017 06:51:30 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v4 04/28] arm64: Port deprecated instruction emulation to new sysctl interface
-Date: Fri, 27 Oct 2017 11:50:46 +0100
-Message-ID: <1509101470-7881-5-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v4 05/28] arm64: fpsimd: Simplify uses of {set,clear}_ti_thread_flag()
+Date: Fri, 27 Oct 2017 11:50:47 +0100
+Message-ID: <1509101470-7881-6-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
 References: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
@@ -16,72 +16,41 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
-Message-ID: <20171027105046.AjRQ9zNDFxWS0x5Fcovy85QHwW4w-8nhzmRGpfFG_KY@z>
+Message-ID: <20171027105047.4YjQL9gSFYQmhIWGZ-UWGs-QACL2b2JYAsuSD8ANmF0@z>
 
-Currently, armv8_deprected.c takes charge of the "abi" sysctl
-directory, which makes life difficult for other code that wants to
-register sysctls in the same directory.
+The existing FPSIMD context switch code contains a couple of
+instances of {set,clear}_ti_thread(task_thread_info(task)).  Since
+there are thread flag manipulators that operate directly on
+task_struct, this verbosity isn't strictly needed.
 
-There is a "new" [1] sysctl registration interface that removes the
-need to define ctl_tables for parent directories explicitly, which
-is ideal here.
-
-This patch ports register_insn_emulation_sysctl() over to the
-register_sysctl() interface and removes the redundant ctl_table for
-"abi".
+For consistency, this patch simplifies the affected calls.  This
+should have no impact on behaviour.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
 Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-
-[1] fea478d4101a (sysctl: Add register_sysctl for normal sysctl
-users)
-The commit message notes an intent to port users of the
-pre-existing interfaces over to register_sysctl(), though the
-number of users of the new interface currently appears negligible.
+Acked-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 ---
- arch/arm64/kernel/armv8_deprecated.c | 15 +++------------
- 1 file changed, 3 insertions(+), 12 deletions(-)
+ arch/arm64/kernel/fpsimd.c | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/kernel/armv8_deprecated.c b/arch/arm64/kernel/armv8_deprecated.c
-index a4dc115..c33b5e4 100644
---- a/arch/arm64/kernel/armv8_deprecated.c
-+++ b/arch/arm64/kernel/armv8_deprecated.c
-@@ -228,15 +228,7 @@ static int emulation_proc_handler(struct ctl_table *table, int write,
- 	return ret;
- }
+diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+index 5d547de..7a865c8 100644
+--- a/arch/arm64/kernel/fpsimd.c
++++ b/arch/arm64/kernel/fpsimd.c
+@@ -159,11 +159,9 @@ void fpsimd_thread_switch(struct task_struct *next)
  
--static struct ctl_table ctl_abi[] = {
--	{
--		.procname = "abi",
--		.mode = 0555,
--	},
--	{ }
--};
--
--static void __init register_insn_emulation_sysctl(struct ctl_table *table)
-+static void __init register_insn_emulation_sysctl(void)
- {
- 	unsigned long flags;
- 	int i = 0;
-@@ -262,8 +254,7 @@ static void __init register_insn_emulation_sysctl(struct ctl_table *table)
+ 		if (__this_cpu_read(fpsimd_last_state) == st
+ 		    && st->cpu == smp_processor_id())
+-			clear_ti_thread_flag(task_thread_info(next),
+-					     TIF_FOREIGN_FPSTATE);
++			clear_tsk_thread_flag(next, TIF_FOREIGN_FPSTATE);
+ 		else
+-			set_ti_thread_flag(task_thread_info(next),
+-					   TIF_FOREIGN_FPSTATE);
++			set_tsk_thread_flag(next, TIF_FOREIGN_FPSTATE);
  	}
- 	raw_spin_unlock_irqrestore(&insn_emulation_lock, flags);
- 
--	table->child = insns_sysctl;
--	register_sysctl_table(table);
-+	register_sysctl("abi", insns_sysctl);
  }
  
- /*
-@@ -644,7 +635,7 @@ static int __init armv8_deprecated_init(void)
- 	cpuhp_setup_state_nocalls(CPUHP_AP_ARM64_ISNDEP_STARTING,
- 				  "arm64/isndep:starting",
- 				  run_all_insn_set_hw_mode, NULL);
--	register_insn_emulation_sysctl(ctl_abi);
-+	register_insn_emulation_sysctl();
- 
- 	return 0;
- }
 -- 
 2.1.4
