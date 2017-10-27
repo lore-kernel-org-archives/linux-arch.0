@@ -1,376 +1,456 @@
-From: Clement Courbet <courbet@google.com>
-Subject: [PATCH v4] lib: optimize cpumask_next_and()
-Date: Thu, 26 Oct 2017 18:00:12 +0200
-Message-ID: <20171026160012.10129-1-courbet@google.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:54342 "EHLO
-        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932317AbdJZQAy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Oct 2017 12:00:54 -0400
-Received: by mail-wm0-f65.google.com with SMTP id r68so9315372wmr.3
-        for <linux-arch@vger.kernel.org>; Thu, 26 Oct 2017 09:00:54 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <mawilcox@microsoft.com>, Yury Norov <ynorov@caviumnetworks.com>, Alexey Dobriyan <adobriyan@gmail.com>
-Cc: Clement Courbet <courbet@google.com>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH v4 02/28] arm64: KVM: Hide unsupported AArch64 CPU features
+ from guests
+Date: Fri, 27 Oct 2017 11:50:44 +0100
+Message-ID: <1509101470-7881-3-git-send-email-Dave.Martin@arm.com>
+References: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+In-Reply-To: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, kvmarm@lists.cs.columbia.edu
+List-Id: linux-arch.vger.kernel.org
 
-We've measured that we spend ~0.6% of sys cpu time in cpumask_next_and().
-It's essentially a joined iteration in search for a non-zero bit, which
-is currently implemented as a lookup join (find a nonzero bit on the
-lhs, lookup the rhs to see if it's set there).
+Currently, a guest kernel sees the true CPU feature registers
+(ID_*_EL1) when it reads them using MRS instructions.  This means
+that the guest may observe features that are present in the
+hardware but the host doesn't understand or doesn't provide support
+for.  A guest may legimitately try to use such a feature as per the
+architecture, but use of the feature may trap instead of working
+normally, triggering undef injection into the guest.
 
-Implement a direct join (find a nonzero bit on the incrementally built
-join). Direct benchmarking shows that it's 1.17x to 14x faster with a
-geometric mean of 2.1 on 32 CPUs. No impact on memory usage.
+This is not a problem for the host, but the guest may go wrong when
+running on newer hardware than the host knows about.
 
-Approximate benchmark code:
+This patch hides from guest VMs any AArch64-specific CPU features
+that the host doesn't support, by exposing to the guest the
+sanitised versions of the registers computed by the cpufeatures
+framework, instead of the true hardware registers.  To achieve
+this, HCR_EL2.TID3 is now set for AArch64 guests, and emulation
+code is added to KVM to report the sanitised versions of the
+affected registers in response to MRS and register reads from
+userspace.
 
-```
-  unsigned long src1p[nr_cpumask_longs] = {pattern1};
-  unsigned long src2p[nr_cpumask_longs] = {pattern2};
-  for (/*a bunch of repetitions*/) {
-    for (int n = -1; n <= nr_cpu_ids; ++n) {
-      asm volatile("" : "+rm"(src1p)); // prevent any optimization
-      asm volatile("" : "+rm"(src2p));
-      unsigned long result = cpumask_next_and(n, src1p, src2p);
-      asm volatile("" : "+rm"(result));
-    }
-  }
-```
+The affected registers are removed from invariant_sys_regs[] (since
+the invariant_sys_regs handling is no longer quite correct for
+them) and added to sys_reg_desgs[], with appropriate access(),
+get_user() and set_user() methods.  No runtime vcpu storage is
+allocated for the registers: instead, they are read on demand from
+the cpufeatures framework.  This may need modification in the
+future if there is a need for userspace to customise the features
+visible to the guest.
 
-Results:
-pattern1    pattern2     time_before/time_after
-0x0000ffff  0x0000ffff   1.65
-0x0000ffff  0x00005555   2.24
-0x0000ffff  0x00001111   2.94
-0x0000ffff  0x00000000   14.0
-0x00005555  0x0000ffff   1.67
-0x00005555  0x00005555   1.71
-0x00005555  0x00001111   1.90
-0x00005555  0x00000000   6.58
-0x00001111  0x0000ffff   1.46
-0x00001111  0x00005555   1.49
-0x00001111  0x00001111   1.45
-0x00001111  0x00000000   3.10
-0x00000000  0x0000ffff   1.18
-0x00000000  0x00005555   1.18
-0x00000000  0x00001111   1.17
-0x00000000  0x00000000   1.25
------------------------------
-               geo.mean  2.06
+Attempts by userspace to write the registers are handled similarly
+to the current invariant_sys_regs handling: writes are permitted,
+but only if they don't attempt to change the value.  This is
+sufficient to support VM snapshot/restore from userspace.
 
-Signed-off-by: Clement Courbet <courbet@google.com>
+Because of the additional registers, restoring a VM on an older
+kernel may not work unless userspace knows how to handle the extra
+VM registers exposed to the KVM user ABI by this patch.
+
+Under the principle of least damage, this patch makes no attempt to
+handle any of the other registers currently in
+invariant_sys_regs[], or to emulate registers for AArch32: however,
+these could be handled in a similar way in future, as necessary.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Reviewed-by: Marc Zyngier <marc.zyngier@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Christoffer Dall <christoffer.dall@linaro.org>
 ---
-Changes in v2:
- - Refactored _find_next_common_bit into _find_next_bit., as suggested
-   by Yury Norov. This has no adverse effects on the performance side,
-   as the compiler successfully inlines the code.
+ arch/arm64/include/asm/sysreg.h |   3 +
+ arch/arm64/kvm/hyp/switch.c     |   6 +
+ arch/arm64/kvm/sys_regs.c       | 282 +++++++++++++++++++++++++++++++++-------
+ 3 files changed, 246 insertions(+), 45 deletions(-)
 
-Changes in v3:
- - Fixes find_next_and_bit() declaration.
- - Synchronize _find_next_bit_le() with _find_next_bit()
- - Synchronize the code in tools/lib/find_bit.c
- - Add find_next_and_bit to guard code
- - Fix invert value (bad sync with our internal tree on which I'm doing
-   the testing).
-
-Changes in v4:
- - Mark _find_next_bit() inline.
-
- include/asm-generic/bitops/find.h       | 16 ++++++++++
- include/linux/bitmap.h                  |  2 ++
- lib/cpumask.c                           |  9 +++---
- lib/find_bit.c                          | 55 ++++++++++++++++++++++++---------
- tools/include/asm-generic/bitops/find.h | 16 ++++++++++
- tools/lib/find_bit.c                    | 40 ++++++++++++++++++------
- 6 files changed, 110 insertions(+), 28 deletions(-)
-
-diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-index 998d4d544f18..130962f3a264 100644
---- a/include/asm-generic/bitops/find.h
-+++ b/include/asm-generic/bitops/find.h
-@@ -15,6 +15,22 @@ extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
- 		size, unsigned long offset);
- #endif
+diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
+index 4dceb12..609d59af 100644
+--- a/arch/arm64/include/asm/sysreg.h
++++ b/arch/arm64/include/asm/sysreg.h
+@@ -149,6 +149,9 @@
+ #define SYS_ID_AA64DFR0_EL1		sys_reg(3, 0, 0, 5, 0)
+ #define SYS_ID_AA64DFR1_EL1		sys_reg(3, 0, 0, 5, 1)
  
-+#ifndef find_next_and_bit
-+/**
-+ * find_next_and_bit - find the next set bit in both memory regions
-+ * @addr1: The first address to base the search on
-+ * @addr2: The second address to base the search on
-+ * @offset: The bitnumber to start searching at
-+ * @size: The bitmap size in bits
-+ *
-+ * Returns the bit number for the next set bit
-+ * If no bits are set, returns @size.
-+ */
-+extern unsigned long find_next_and_bit(const unsigned long *addr1,
-+		const unsigned long *addr2, unsigned long size,
-+		unsigned long offset);
-+#endif
++#define SYS_ID_AA64AFR0_EL1		sys_reg(3, 0, 0, 5, 4)
++#define SYS_ID_AA64AFR1_EL1		sys_reg(3, 0, 0, 5, 5)
 +
- #ifndef find_next_zero_bit
- /**
-  * find_next_zero_bit - find the next cleared bit in a memory region
-diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
-index 700cf5f67118..b4606bfda52f 100644
---- a/include/linux/bitmap.h
-+++ b/include/linux/bitmap.h
-@@ -77,6 +77,8 @@
-  * find_first_bit(addr, nbits)		Position first set bit in *addr
-  * find_next_zero_bit(addr, nbits, bit)	Position next zero bit in *addr >= bit
-  * find_next_bit(addr, nbits, bit)	Position next set bit in *addr >= bit
-+ * find_next_and_bit(addr1, addr2, nbits, bit)	Same as find_first_bit, but in
-+ *						(*addr1 & *addr2)
-  */
+ #define SYS_ID_AA64ISAR0_EL1		sys_reg(3, 0, 0, 6, 0)
+ #define SYS_ID_AA64ISAR1_EL1		sys_reg(3, 0, 0, 6, 1)
  
- /*
-diff --git a/lib/cpumask.c b/lib/cpumask.c
-index 8b1a1bd77539..5602223837fa 100644
---- a/lib/cpumask.c
-+++ b/lib/cpumask.c
-@@ -32,10 +32,11 @@ EXPORT_SYMBOL(cpumask_next);
- int cpumask_next_and(int n, const struct cpumask *src1p,
- 		     const struct cpumask *src2p)
- {
--	while ((n = cpumask_next(n, src1p)) < nr_cpu_ids)
--		if (cpumask_test_cpu(n, src2p))
--			break;
--	return n;
-+	/* -1 is a legal arg here. */
-+	if (n != -1)
-+		cpumask_check(n);
-+	return find_next_and_bit(cpumask_bits(src1p), cpumask_bits(src2p),
-+		nr_cpumask_bits, n + 1);
- }
- EXPORT_SYMBOL(cpumask_next_and);
- 
-diff --git a/lib/find_bit.c b/lib/find_bit.c
-index 6ed74f78380c..8d87d6cd2541 100644
---- a/lib/find_bit.c
-+++ b/lib/find_bit.c
-@@ -21,22 +21,29 @@
- #include <linux/export.h>
- #include <linux/kernel.h>
- 
--#if !defined(find_next_bit) || !defined(find_next_zero_bit)
-+#if !defined(find_next_bit) || !defined(find_next_zero_bit) || \
-+		!defined(find_next_and_bit)
- 
- /*
-- * This is a common helper function for find_next_bit and
-- * find_next_zero_bit.  The difference is the "invert" argument, which
-- * is XORed with each fetched word before searching it for one bits.
-+ * This is a common helper function for find_next_bit, find_next_zero_bit, and
-+ * find_next_and_bit. The differences are:
-+ *  - The "invert" argument, which is XORed with each fetched word before
-+ *    searching it for one bits.
-+ *  - The optional "addr2", which is anded with "addr1" if present.
-  */
--static unsigned long _find_next_bit(const unsigned long *addr,
--		unsigned long nbits, unsigned long start, unsigned long invert)
-+static inline unsigned long _find_next_bit(const unsigned long *addr1,
-+		const unsigned long *addr2, unsigned long nbits,
-+		unsigned long start, unsigned long invert)
- {
- 	unsigned long tmp;
- 
- 	if (unlikely(start >= nbits))
- 		return nbits;
- 
--	tmp = addr[start / BITS_PER_LONG] ^ invert;
-+	tmp = addr1[start / BITS_PER_LONG];
-+	if (addr2)
-+		tmp &= addr2[start / BITS_PER_LONG];
-+	tmp ^= invert;
- 
- 	/* Handle 1st word. */
- 	tmp &= BITMAP_FIRST_WORD_MASK(start);
-@@ -47,7 +54,10 @@ static unsigned long _find_next_bit(const unsigned long *addr,
- 		if (start >= nbits)
- 			return nbits;
- 
--		tmp = addr[start / BITS_PER_LONG] ^ invert;
-+		tmp = addr1[start / BITS_PER_LONG];
-+		if (addr2)
-+			tmp &= addr2[start / BITS_PER_LONG];
-+		tmp ^= invert;
+diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
+index 945e79c..35a90b8 100644
+--- a/arch/arm64/kvm/hyp/switch.c
++++ b/arch/arm64/kvm/hyp/switch.c
+@@ -81,11 +81,17 @@ static void __hyp_text __activate_traps(struct kvm_vcpu *vcpu)
+ 	 * it will cause an exception.
+ 	 */
+ 	val = vcpu->arch.hcr_el2;
++
+ 	if (!(val & HCR_RW) && system_supports_fpsimd()) {
+ 		write_sysreg(1 << 30, fpexc32_el2);
+ 		isb();
  	}
- 
- 	return min(start + __ffs(tmp), nbits);
-@@ -61,7 +71,7 @@ static unsigned long _find_next_bit(const unsigned long *addr,
- unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
- 			    unsigned long offset)
- {
--	return _find_next_bit(addr, size, offset, 0UL);
-+	return _find_next_bit(addr, NULL, size, offset, 0UL);
++
++	if (val & HCR_RW) /* for AArch64 only: */
++		val |= HCR_TID3; /* TID3: trap feature register accesses */
++
+ 	write_sysreg(val, hcr_el2);
++
+ 	/* Trap on AArch32 cp15 c15 accesses (EL1 or EL0) */
+ 	write_sysreg(1 << 15, hstr_el2);
+ 	/*
+diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
+index 2e070d3..b1f7552 100644
+--- a/arch/arm64/kvm/sys_regs.c
++++ b/arch/arm64/kvm/sys_regs.c
+@@ -892,6 +892,137 @@ static bool access_cntp_cval(struct kvm_vcpu *vcpu,
+ 	return true;
  }
- EXPORT_SYMBOL(find_next_bit);
- #endif
-@@ -70,11 +80,21 @@ EXPORT_SYMBOL(find_next_bit);
- unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
- 				 unsigned long offset)
- {
--	return _find_next_bit(addr, size, offset, ~0UL);
-+	return _find_next_bit(addr, NULL, size, offset, ~0UL);
- }
- EXPORT_SYMBOL(find_next_zero_bit);
- #endif
  
-+#if !defined(find_next_and_bit)
-+unsigned long find_next_and_bit(const unsigned long *addr1,
-+		const unsigned long *addr2, unsigned long size,
-+		unsigned long offset)
++/* Read a sanitised cpufeature ID register by sys_reg_desc */
++static u64 read_id_reg(struct sys_reg_desc const *r, bool raz)
 +{
-+	return _find_next_bit(addr1, addr2, size, offset, 0UL);
++	u32 id = sys_reg((u32)r->Op0, (u32)r->Op1,
++			 (u32)r->CRn, (u32)r->CRm, (u32)r->Op2);
++
++	return raz ? 0 : read_sanitised_ftr_reg(id);
 +}
-+EXPORT_SYMBOL(find_next_and_bit);
-+#endif
 +
- #ifndef find_first_bit
- /*
-  * Find the first set bit in a memory region.
-@@ -146,15 +166,19 @@ static inline unsigned long ext2_swab(const unsigned long y)
- }
- 
- #if !defined(find_next_bit_le) || !defined(find_next_zero_bit_le)
--static unsigned long _find_next_bit_le(const unsigned long *addr,
--		unsigned long nbits, unsigned long start, unsigned long invert)
-+static unsigned long _find_next_bit_le(const unsigned long *addr1,
-+		const unsigned long *addr2, unsigned long nbits,
-+		unsigned long start, unsigned long invert)
- {
- 	unsigned long tmp;
- 
- 	if (unlikely(start >= nbits))
- 		return nbits;
- 
--	tmp = addr[start / BITS_PER_LONG] ^ invert;
-+	tmp = addr1[start / BITS_PER_LONG];
-+	if (addr2)
-+		tmp &= addr2[start / BITS_PER_LONG];
-+	tmp ^= invert;
- 
- 	/* Handle 1st word. */
- 	tmp &= ext2_swab(BITMAP_FIRST_WORD_MASK(start));
-@@ -165,7 +189,10 @@ static unsigned long _find_next_bit_le(const unsigned long *addr,
- 		if (start >= nbits)
- 			return nbits;
- 
--		tmp = addr[start / BITS_PER_LONG] ^ invert;
-+		tmp = addr1[start / BITS_PER_LONG];
-+		if (addr2)
-+			tmp &= addr2[start / BITS_PER_LONG];
-+		tmp ^= invert;
- 	}
- 
- 	return min(start + __ffs(ext2_swab(tmp)), nbits);
-diff --git a/tools/include/asm-generic/bitops/find.h b/tools/include/asm-generic/bitops/find.h
-index 5538ecdc964a..435c7d002f33 100644
---- a/tools/include/asm-generic/bitops/find.h
-+++ b/tools/include/asm-generic/bitops/find.h
-@@ -15,6 +15,22 @@ extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
- 		size, unsigned long offset);
- #endif
- 
-+#ifndef find_next_and_bit
-+/**
-+ * find_next_and_bit - find the next set bit in both memory regions
-+ * @addr1: The first address to base the search on
-+ * @addr2: The second address to base the search on
-+ * @offset: The bitnumber to start searching at
-+ * @size: The bitmap size in bits
-+ *
-+ * Returns the bit number for the next set bit
-+ * If no bits are set, returns @size.
-+ */
-+extern unsigned long find_next_and_bit(const unsigned long *addr1,
-+		const unsigned long *addr2, unsigned long size,
-+		unsigned long offset);
-+#endif
++/* cpufeature ID register access trap handlers */
 +
- #ifndef find_next_zero_bit
- 
- /**
-diff --git a/tools/lib/find_bit.c b/tools/lib/find_bit.c
-index 42c15f906aac..9474f5856d4e 100644
---- a/tools/lib/find_bit.c
-+++ b/tools/lib/find_bit.c
-@@ -22,22 +22,29 @@
- #include <linux/bitmap.h>
- #include <linux/kernel.h>
- 
--#if !defined(find_next_bit)
-+#if !defined(find_next_bit) || !defined(find_next_zero_bit) || \
-+		!defined(find_next_and_bit)
- 
- /*
-- * This is a common helper function for find_next_bit and
-- * find_next_zero_bit.  The difference is the "invert" argument, which
-- * is XORed with each fetched word before searching it for one bits.
-+ * This is a common helper function for find_next_bit, find_next_zero_bit, and
-+ * find_next_and_bit. The differences are:
-+ *  - The "invert" argument, which is XORed with each fetched word before
-+ *    searching it for one bits.
-+ *  - The optional "addr2", which is anded with "addr1" if present.
-  */
--static unsigned long _find_next_bit(const unsigned long *addr,
--		unsigned long nbits, unsigned long start, unsigned long invert)
-+static inline unsigned long _find_next_bit(const unsigned long *addr1,
-+		const unsigned long *addr2, unsigned long nbits,
-+		unsigned long start, unsigned long invert)
- {
- 	unsigned long tmp;
- 
- 	if (unlikely(start >= nbits))
- 		return nbits;
- 
--	tmp = addr[start / BITS_PER_LONG] ^ invert;
-+	tmp = addr1[start / BITS_PER_LONG];
-+	if (addr2)
-+		tmp &= addr2[start / BITS_PER_LONG];
-+	tmp ^= invert;
- 
- 	/* Handle 1st word. */
- 	tmp &= BITMAP_FIRST_WORD_MASK(start);
-@@ -48,7 +55,10 @@ static unsigned long _find_next_bit(const unsigned long *addr,
- 		if (start >= nbits)
- 			return nbits;
- 
--		tmp = addr[start / BITS_PER_LONG] ^ invert;
-+		tmp = addr1[start / BITS_PER_LONG];
-+		if (addr2)
-+			tmp &= addr2[start / BITS_PER_LONG];
-+		tmp ^= invert;
- 	}
- 
- 	return min(start + __ffs(tmp), nbits);
-@@ -62,7 +72,7 @@ static unsigned long _find_next_bit(const unsigned long *addr,
- unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
- 			    unsigned long offset)
- {
--	return _find_next_bit(addr, size, offset, 0UL);
-+	return _find_next_bit(addr, NULL, size, offset, 0UL);
- }
- #endif
- 
-@@ -104,6 +114,16 @@ unsigned long find_first_zero_bit(const unsigned long *addr, unsigned long size)
- unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
- 				 unsigned long offset)
- {
--	return _find_next_bit(addr, size, offset, ~0UL);
-+	return _find_next_bit(addr, NULL, size, offset, ~0UL);
- }
- #endif
-+
-+#ifndef find_next_and_bit
-+unsigned long find_next_and_bit(const unsigned long *addr1,
-+		const unsigned long *addr2, unsigned long size,
-+		unsigned long offset)
++static bool __access_id_reg(struct kvm_vcpu *vcpu,
++			    struct sys_reg_params *p,
++			    const struct sys_reg_desc *r,
++			    bool raz)
 +{
-+	return _find_next_bit(addr1, addr2, size, offset, 0UL);
-+}
-+#endif
++	if (p->is_write)
++		return write_to_read_only(vcpu, p, r);
 +
++	p->regval = read_id_reg(r, raz);
++	return true;
++}
++
++static bool access_id_reg(struct kvm_vcpu *vcpu,
++			  struct sys_reg_params *p,
++			  const struct sys_reg_desc *r)
++{
++	return __access_id_reg(vcpu, p, r, false);
++}
++
++static bool access_raz_id_reg(struct kvm_vcpu *vcpu,
++			      struct sys_reg_params *p,
++			      const struct sys_reg_desc *r)
++{
++	return __access_id_reg(vcpu, p, r, true);
++}
++
++static int reg_from_user(u64 *val, const void __user *uaddr, u64 id);
++static int reg_to_user(void __user *uaddr, const u64 *val, u64 id);
++static u64 sys_reg_to_index(const struct sys_reg_desc *reg);
++
++/*
++ * cpufeature ID register user accessors
++ *
++ * For now, these registers are immutable for userspace, so no values
++ * are stored, and for set_id_reg() we don't allow the effective value
++ * to be changed.
++ */
++static int __get_id_reg(const struct sys_reg_desc *rd, void __user *uaddr,
++			bool raz)
++{
++	const u64 id = sys_reg_to_index(rd);
++	const u64 val = read_id_reg(rd, raz);
++
++	return reg_to_user(uaddr, &val, id);
++}
++
++static int __set_id_reg(const struct sys_reg_desc *rd, void __user *uaddr,
++			bool raz)
++{
++	const u64 id = sys_reg_to_index(rd);
++	int err;
++	u64 val;
++
++	err = reg_from_user(&val, uaddr, id);
++	if (err)
++		return err;
++
++	/* This is what we mean by invariant: you can't change it. */
++	if (val != read_id_reg(rd, raz))
++		return -EINVAL;
++
++	return 0;
++}
++
++static int get_id_reg(struct kvm_vcpu *vcpu, const struct sys_reg_desc *rd,
++		      const struct kvm_one_reg *reg, void __user *uaddr)
++{
++	return __get_id_reg(rd, uaddr, false);
++}
++
++static int set_id_reg(struct kvm_vcpu *vcpu, const struct sys_reg_desc *rd,
++		      const struct kvm_one_reg *reg, void __user *uaddr)
++{
++	return __set_id_reg(rd, uaddr, false);
++}
++
++static int get_raz_id_reg(struct kvm_vcpu *vcpu, const struct sys_reg_desc *rd,
++			  const struct kvm_one_reg *reg, void __user *uaddr)
++{
++	return __get_id_reg(rd, uaddr, true);
++}
++
++static int set_raz_id_reg(struct kvm_vcpu *vcpu, const struct sys_reg_desc *rd,
++			  const struct kvm_one_reg *reg, void __user *uaddr)
++{
++	return __set_id_reg(rd, uaddr, true);
++}
++
++/* sys_reg_desc initialiser for known cpufeature ID registers */
++#define ID_SANITISED(name) {			\
++	SYS_DESC(SYS_##name),			\
++	.access	= access_id_reg,		\
++	.get_user = get_id_reg,			\
++	.set_user = set_id_reg,			\
++}
++
++/*
++ * sys_reg_desc initialiser for architecturally unallocated cpufeature ID
++ * register with encoding Op0=3, Op1=0, CRn=0, CRm=crm, Op2=op2
++ * (1 <= crm < 8, 0 <= Op2 < 8).
++ */
++#define ID_UNALLOCATED(crm, op2) {			\
++	Op0(3), Op1(0), CRn(0), CRm(crm), Op2(op2),	\
++	.access = access_raz_id_reg,			\
++	.get_user = get_raz_id_reg,			\
++	.set_user = set_raz_id_reg,			\
++}
++
++/*
++ * sys_reg_desc initialiser for known ID registers that we hide from guests.
++ * For now, these are exposed just like unallocated ID regs: they appear
++ * RAZ for the guest.
++ */
++#define ID_HIDDEN(name) {			\
++	SYS_DESC(SYS_##name),			\
++	.access = access_raz_id_reg,		\
++	.get_user = get_raz_id_reg,		\
++	.set_user = set_raz_id_reg,		\
++}
++
+ /*
+  * Architected system registers.
+  * Important: Must be sorted ascending by Op0, Op1, CRn, CRm, Op2
+@@ -944,6 +1075,84 @@ static const struct sys_reg_desc sys_reg_descs[] = {
+ 	{ SYS_DESC(SYS_DBGVCR32_EL2), NULL, reset_val, DBGVCR32_EL2, 0 },
+ 
+ 	{ SYS_DESC(SYS_MPIDR_EL1), NULL, reset_mpidr, MPIDR_EL1 },
++
++	/*
++	 * ID regs: all ID_SANITISED() entries here must have corresponding
++	 * entries in arm64_ftr_regs[].
++	 */
++
++	/* AArch64 mappings of the AArch32 ID registers */
++	/* CRm=1 */
++	ID_SANITISED(ID_PFR0_EL1),
++	ID_SANITISED(ID_PFR1_EL1),
++	ID_SANITISED(ID_DFR0_EL1),
++	ID_HIDDEN(ID_AFR0_EL1),
++	ID_SANITISED(ID_MMFR0_EL1),
++	ID_SANITISED(ID_MMFR1_EL1),
++	ID_SANITISED(ID_MMFR2_EL1),
++	ID_SANITISED(ID_MMFR3_EL1),
++
++	/* CRm=2 */
++	ID_SANITISED(ID_ISAR0_EL1),
++	ID_SANITISED(ID_ISAR1_EL1),
++	ID_SANITISED(ID_ISAR2_EL1),
++	ID_SANITISED(ID_ISAR3_EL1),
++	ID_SANITISED(ID_ISAR4_EL1),
++	ID_SANITISED(ID_ISAR5_EL1),
++	ID_SANITISED(ID_MMFR4_EL1),
++	ID_UNALLOCATED(2,7),
++
++	/* CRm=3 */
++	ID_SANITISED(MVFR0_EL1),
++	ID_SANITISED(MVFR1_EL1),
++	ID_SANITISED(MVFR2_EL1),
++	ID_UNALLOCATED(3,3),
++	ID_UNALLOCATED(3,4),
++	ID_UNALLOCATED(3,5),
++	ID_UNALLOCATED(3,6),
++	ID_UNALLOCATED(3,7),
++
++	/* AArch64 ID registers */
++	/* CRm=4 */
++	ID_SANITISED(ID_AA64PFR0_EL1),
++	ID_SANITISED(ID_AA64PFR1_EL1),
++	ID_UNALLOCATED(4,2),
++	ID_UNALLOCATED(4,3),
++	ID_UNALLOCATED(4,4),
++	ID_UNALLOCATED(4,5),
++	ID_UNALLOCATED(4,6),
++	ID_UNALLOCATED(4,7),
++
++	/* CRm=5 */
++	ID_SANITISED(ID_AA64DFR0_EL1),
++	ID_SANITISED(ID_AA64DFR1_EL1),
++	ID_UNALLOCATED(5,2),
++	ID_UNALLOCATED(5,3),
++	ID_HIDDEN(ID_AA64AFR0_EL1),
++	ID_HIDDEN(ID_AA64AFR1_EL1),
++	ID_UNALLOCATED(5,6),
++	ID_UNALLOCATED(5,7),
++
++	/* CRm=6 */
++	ID_SANITISED(ID_AA64ISAR0_EL1),
++	ID_SANITISED(ID_AA64ISAR1_EL1),
++	ID_UNALLOCATED(6,2),
++	ID_UNALLOCATED(6,3),
++	ID_UNALLOCATED(6,4),
++	ID_UNALLOCATED(6,5),
++	ID_UNALLOCATED(6,6),
++	ID_UNALLOCATED(6,7),
++
++	/* CRm=7 */
++	ID_SANITISED(ID_AA64MMFR0_EL1),
++	ID_SANITISED(ID_AA64MMFR1_EL1),
++	ID_SANITISED(ID_AA64MMFR2_EL1),
++	ID_UNALLOCATED(7,3),
++	ID_UNALLOCATED(7,4),
++	ID_UNALLOCATED(7,5),
++	ID_UNALLOCATED(7,6),
++	ID_UNALLOCATED(7,7),
++
+ 	{ SYS_DESC(SYS_SCTLR_EL1), access_vm_reg, reset_val, SCTLR_EL1, 0x00C50078 },
+ 	{ SYS_DESC(SYS_CPACR_EL1), NULL, reset_val, CPACR_EL1, 0 },
+ 	{ SYS_DESC(SYS_TTBR0_EL1), access_vm_reg, reset_unknown, TTBR0_EL1 },
+@@ -1790,8 +1999,8 @@ static const struct sys_reg_desc *index_to_sys_reg_desc(struct kvm_vcpu *vcpu,
+ 	if (!r)
+ 		r = find_reg(&params, sys_reg_descs, ARRAY_SIZE(sys_reg_descs));
+ 
+-	/* Not saved in the sys_reg array? */
+-	if (r && !r->reg)
++	/* Not saved in the sys_reg array and not otherwise accessible? */
++	if (r && !(r->reg || r->get_user))
+ 		r = NULL;
+ 
+ 	return r;
+@@ -1815,20 +2024,6 @@ static const struct sys_reg_desc *index_to_sys_reg_desc(struct kvm_vcpu *vcpu,
+ FUNCTION_INVARIANT(midr_el1)
+ FUNCTION_INVARIANT(ctr_el0)
+ FUNCTION_INVARIANT(revidr_el1)
+-FUNCTION_INVARIANT(id_pfr0_el1)
+-FUNCTION_INVARIANT(id_pfr1_el1)
+-FUNCTION_INVARIANT(id_dfr0_el1)
+-FUNCTION_INVARIANT(id_afr0_el1)
+-FUNCTION_INVARIANT(id_mmfr0_el1)
+-FUNCTION_INVARIANT(id_mmfr1_el1)
+-FUNCTION_INVARIANT(id_mmfr2_el1)
+-FUNCTION_INVARIANT(id_mmfr3_el1)
+-FUNCTION_INVARIANT(id_isar0_el1)
+-FUNCTION_INVARIANT(id_isar1_el1)
+-FUNCTION_INVARIANT(id_isar2_el1)
+-FUNCTION_INVARIANT(id_isar3_el1)
+-FUNCTION_INVARIANT(id_isar4_el1)
+-FUNCTION_INVARIANT(id_isar5_el1)
+ FUNCTION_INVARIANT(clidr_el1)
+ FUNCTION_INVARIANT(aidr_el1)
+ 
+@@ -1836,20 +2031,6 @@ FUNCTION_INVARIANT(aidr_el1)
+ static struct sys_reg_desc invariant_sys_regs[] = {
+ 	{ SYS_DESC(SYS_MIDR_EL1), NULL, get_midr_el1 },
+ 	{ SYS_DESC(SYS_REVIDR_EL1), NULL, get_revidr_el1 },
+-	{ SYS_DESC(SYS_ID_PFR0_EL1), NULL, get_id_pfr0_el1 },
+-	{ SYS_DESC(SYS_ID_PFR1_EL1), NULL, get_id_pfr1_el1 },
+-	{ SYS_DESC(SYS_ID_DFR0_EL1), NULL, get_id_dfr0_el1 },
+-	{ SYS_DESC(SYS_ID_AFR0_EL1), NULL, get_id_afr0_el1 },
+-	{ SYS_DESC(SYS_ID_MMFR0_EL1), NULL, get_id_mmfr0_el1 },
+-	{ SYS_DESC(SYS_ID_MMFR1_EL1), NULL, get_id_mmfr1_el1 },
+-	{ SYS_DESC(SYS_ID_MMFR2_EL1), NULL, get_id_mmfr2_el1 },
+-	{ SYS_DESC(SYS_ID_MMFR3_EL1), NULL, get_id_mmfr3_el1 },
+-	{ SYS_DESC(SYS_ID_ISAR0_EL1), NULL, get_id_isar0_el1 },
+-	{ SYS_DESC(SYS_ID_ISAR1_EL1), NULL, get_id_isar1_el1 },
+-	{ SYS_DESC(SYS_ID_ISAR2_EL1), NULL, get_id_isar2_el1 },
+-	{ SYS_DESC(SYS_ID_ISAR3_EL1), NULL, get_id_isar3_el1 },
+-	{ SYS_DESC(SYS_ID_ISAR4_EL1), NULL, get_id_isar4_el1 },
+-	{ SYS_DESC(SYS_ID_ISAR5_EL1), NULL, get_id_isar5_el1 },
+ 	{ SYS_DESC(SYS_CLIDR_EL1), NULL, get_clidr_el1 },
+ 	{ SYS_DESC(SYS_AIDR_EL1), NULL, get_aidr_el1 },
+ 	{ SYS_DESC(SYS_CTR_EL0), NULL, get_ctr_el0 },
+@@ -2079,12 +2260,31 @@ static bool copy_reg_to_user(const struct sys_reg_desc *reg, u64 __user **uind)
+ 	return true;
+ }
+ 
++static int walk_one_sys_reg(const struct sys_reg_desc *rd,
++			    u64 __user **uind,
++			    unsigned int *total)
++{
++	/*
++	 * Ignore registers we trap but don't save,
++	 * and for which no custom user accessor is provided.
++	 */
++	if (!(rd->reg || rd->get_user))
++		return 0;
++
++	if (!copy_reg_to_user(rd, uind))
++		return -EFAULT;
++
++	(*total)++;
++	return 0;
++}
++
+ /* Assumed ordered tables, see kvm_sys_reg_table_init. */
+ static int walk_sys_regs(struct kvm_vcpu *vcpu, u64 __user *uind)
+ {
+ 	const struct sys_reg_desc *i1, *i2, *end1, *end2;
+ 	unsigned int total = 0;
+ 	size_t num;
++	int err;
+ 
+ 	/* We check for duplicates here, to allow arch-specific overrides. */
+ 	i1 = get_target_table(vcpu->arch.target, true, &num);
+@@ -2098,21 +2298,13 @@ static int walk_sys_regs(struct kvm_vcpu *vcpu, u64 __user *uind)
+ 	while (i1 || i2) {
+ 		int cmp = cmp_sys_reg(i1, i2);
+ 		/* target-specific overrides generic entry. */
+-		if (cmp <= 0) {
+-			/* Ignore registers we trap but don't save. */
+-			if (i1->reg) {
+-				if (!copy_reg_to_user(i1, &uind))
+-					return -EFAULT;
+-				total++;
+-			}
+-		} else {
+-			/* Ignore registers we trap but don't save. */
+-			if (i2->reg) {
+-				if (!copy_reg_to_user(i2, &uind))
+-					return -EFAULT;
+-				total++;
+-			}
+-		}
++		if (cmp <= 0)
++			err = walk_one_sys_reg(i1, &uind, &total);
++		else
++			err = walk_one_sys_reg(i2, &uind, &total);
++
++		if (err)
++			return err;
+ 
+ 		if (cmp <= 0 && ++i1 == end1)
+ 			i1 = NULL;
 -- 
-2.15.0.rc2.357.g7e34df9404-goog
+2.1.4
