@@ -1,40 +1,92 @@
 From: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
-Subject: Re: [PATCH v9 02/29] x86/boot: Relocate definition of the initial
- state of CR0
-Date: Fri, 27 Oct 2017 12:02:19 -0700
-Message-ID: <20171027190219.GA7057@voyager>
-References: <1507089272-32733-1-git-send-email-ricardo.neri-calderon@linux.intel.com>
- <1507089272-32733-3-git-send-email-ricardo.neri-calderon@linux.intel.com>
- <CALCETrUced9TVsMQ=cjFfDuDfLQsZWu0GOoRCmHn4PsSwrfOdw@mail.gmail.com>
- <20171026090045.GA6438@nazgul.tnic>
- <CALCETrXw2r-HD+9SwT0ndRVX2YR-_g6BKEfDd6i0ci5q_Z4S4Q@mail.gmail.com>
- <20171026125513.GB12068@nazgul.tnic>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:51188 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751145AbdJ0TD3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Oct 2017 15:03:29 -0400
-Content-Disposition: inline
-In-Reply-To: <20171026125513.GB12068@nazgul.tnic>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@suse.de>
-Cc: Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shuah Khan <shuah@kernel.org>, linux-kernel@vg
+Subject: [PATCH v10 02/18] x86/boot: Relocate definition of the initial state of CR0
+Date: Fri, 27 Oct 2017 13:25:29 -0700
+Message-ID: <1509135945-13762-3-git-send-email-ricardo.neri-calderon@linux.intel.com>
+References: <1509135945-13762-1-git-send-email-ricardo.neri-calderon@linux.intel.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1509135945-13762-1-git-send-email-ricardo.neri-calderon@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>
+Cc: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shuah Khan <shuah@kernel.org>, linux-kernel@vger.kernel.org, x86@kernel.org, ricardo.neri@intel.com, Ricardo Neri <ricardo.neri-calderon@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@intel.com>, Denys Vlasenko <dvlasenk@redhat.com>, Josh
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 26, 2017 at 02:55:13PM +0200, Borislav Petkov wrote:
-> On Thu, Oct 26, 2017 at 02:02:02AM -0700, Andy Lutomirski wrote:
-> > I'm assuming that UMIP_REPORTED_CR0 will never change.  If CR0 gets a
-> > new field that we set some day, then I assume that CR0_STATE would add
-> > that bit but UMIP_REPORTED_CR0 would not.
-> 
-> Yeah, let's do that when it is actually needed.
+Both head_32.S and head_64.S utilize the same value to initialize the
+control register CR0. Also, other parts of the kernel might want to access
+this initial definition (e.g., emulation code for User-Mode Instruction
+Prevention uses this state to provide a sane dummy value for CR0 when
+emulating the smsw instruction). Thus, relocate this definition to a
+header file from which it can be conveniently accessed.
 
-Thanks Andy! I reasoned that for UMIP could report CR0_STATE a value that
-is already revealed in the source code. Thus, if CR0 ever changes at run
-time, an attacker could only see what is set programmatically.
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brian Gerst <brgerst@gmail.com>
+Cc: Dave Hansen <dave.hansen@intel.com>
+Cc: Denys Vlasenko <dvlasenk@redhat.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org
+Suggested-by: Borislav Petkov <bp@alien8.de>
+Reviewed-by: Borislav Petkov <bp@suse.de>
+Reviewed-by: Andy Lutomirski <luto@kernel.org>
+Signed-off-by: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+---
+ arch/x86/include/uapi/asm/processor-flags.h | 3 +++
+ arch/x86/kernel/head_32.S                   | 3 ---
+ arch/x86/kernel/head_64.S                   | 3 ---
+ 3 files changed, 3 insertions(+), 6 deletions(-)
 
-BR,
+diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
+index 185f3d1..39946d0 100644
+--- a/arch/x86/include/uapi/asm/processor-flags.h
++++ b/arch/x86/include/uapi/asm/processor-flags.h
+@@ -151,5 +151,8 @@
+ #define CX86_ARR_BASE	0xc4
+ #define CX86_RCR_BASE	0xdc
+ 
++#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
++			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
++			 X86_CR0_PG)
+ 
+ #endif /* _UAPI_ASM_X86_PROCESSOR_FLAGS_H */
+diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
+index 9ed3074..c3cfc65 100644
+--- a/arch/x86/kernel/head_32.S
++++ b/arch/x86/kernel/head_32.S
+@@ -211,9 +211,6 @@ ENTRY(startup_32_smp)
+ #endif
+ 
+ .Ldefault_entry:
+-#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
+-			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
+-			 X86_CR0_PG)
+ 	movl $(CR0_STATE & ~X86_CR0_PG),%eax
+ 	movl %eax,%cr0
+ 
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 99b1262..701f3d9 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -153,9 +153,6 @@ ENTRY(secondary_startup_64)
+ 1:	wrmsr				/* Make changes effective */
+ 
+ 	/* Setup cr0 */
+-#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
+-			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
+-			 X86_CR0_PG)
+ 	movl	$CR0_STATE, %eax
+ 	/* Make changes effective */
+ 	movq	%rax, %cr0
+-- 
+2.7.4
 
-Ricardo
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
