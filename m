@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:56690 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:56878 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751176AbdJ0KvW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Oct 2017 06:51:22 -0400
+        id S1752456AbdJ0Kvp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 27 Oct 2017 06:51:45 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v4 01/28] regset: Add support for dynamically sized regsets
-Date: Fri, 27 Oct 2017 11:50:43 +0100
-Message-ID: <1509101470-7881-2-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v4 13/28] arm64/sve: Signal handling support
+Date: Fri, 27 Oct 2017 11:50:55 +0100
+Message-ID: <1509101470-7881-14-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
 References: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
@@ -15,173 +15,440 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20171027105043.GXDOck4gQDQ3qC6wx3OMYYls7Was6O-makiCUjeDmN8@z>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
+Message-ID: <20171027105055.TQClsX8Pas-wsN1ERo8hGW7dF4xEzk5_Dj0pScBcsiQ@z>
 
-Currently the regset API doesn't allow for the possibility that
-regsets (or at least, the amount of meaningful data in a regset)
-may change in size.
+This patch implements support for saving and restoring the SVE
+registers around signals.
 
-In particular, this results in useless padding being added to
-coredumps if a regset's current size is smaller than its
-theoretical maximum size.
+A fixed-size header struct sve_context is always included in the
+signal frame encoding the thread's vector length at the time of
+signal delivery, optionally followed by a variable-layout structure
+encoding the SVE registers.
 
-This patch adds a get_size() function to struct user_regset.
-Individual regset implementations can implement this function to
-return the current size of the regset data.  A regset_size()
-function is added to provide callers with an abstract interface for
-determining the size of a regset without needing to know whether
-the regset is dynamically sized or not.
+Because of the need to preserve backwards compatibility, the FPSIMD
+view of the SVE registers is always dumped as a struct
+fpsimd_context in the usual way, in addition to any sve_context.
 
-The only affected user of this interface is the ELF coredump code:
-This patch ports ELF coredump to dump regsets with their actual
-size in the coredump.  This has no effect except for new regsets
-that are dynamically sized and provide a get_size() implementation.
+The SVE vector registers are dumped in full, including bits 127:0
+of each register which alias the corresponding FPSIMD vector
+registers in the hardware.  To avoid any ambiguity about which
+alias to restore during sigreturn, the kernel always restores bits
+127:0 of each SVE vector register from the fpsimd_context in the
+signal frame (which must be present): userspace needs to take this
+into account if it wants to modify the SVE vector register contents
+on return from a signal.
+
+FPSR and FPCR, which are used by both FPSIMD and SVE, are not
+included in sve_context because they are always present in
+fpsimd_context anyway.
+
+For signal delivery, a new helper
+fpsimd_signal_preserve_current_state() is added to update _both_
+the FPSIMD and SVE views in the task struct, to make it easier to
+populate this information into the signal frame.  Because of the
+redundancy between the two views of the state, only one is updated
+otherwise.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
----
- fs/binfmt_elf.c        |  6 ++---
- include/linux/regset.h | 67 ++++++++++++++++++++++++++++++++++++++++++++------
- 2 files changed, 63 insertions(+), 10 deletions(-)
+Cc: Alex Bennée <alex.bennee@linaro.org>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 73b01e4..35aa03f 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -1699,7 +1699,7 @@ static int fill_thread_core_info(struct elf_thread_core_info *t,
- 				 long signr, size_t *total)
- {
- 	unsigned int i;
--	unsigned int regset_size = view->regsets[0].n * view->regsets[0].size;
-+	unsigned int size = regset_size(t->task, &view->regsets[0]);
+---
+
+Changes since v3
+----------------
+
+**Dropped** Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+The changes are minor however:
+
+Changes requested by Catalin / Will:
+
+ * ABI change: Zero SVE regs on syscall entry:
+
+   Refactoring since v2 that allowed discard to be explicitly requested
+   has been dropped, since now discard has already happened at syscall
+   entry in the relevant scenarios.
+
+ * Delete a comment that that is no longer appropriate: there can no
+   longer be a pending discard.
+
+   It still makes reasonable sense to write the FPSIMD/SVE state back
+   to thread_struct on the common path though.
+---
+ arch/arm64/include/asm/fpsimd.h |   1 +
+ arch/arm64/kernel/fpsimd.c      |  55 ++++++++++---
+ arch/arm64/kernel/signal.c      | 167 ++++++++++++++++++++++++++++++++++++++--
+ arch/arm64/kernel/signal32.c    |   2 +-
+ 4 files changed, 206 insertions(+), 19 deletions(-)
+
+diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
+index 5655fe1..9bbd74c 100644
+--- a/arch/arm64/include/asm/fpsimd.h
++++ b/arch/arm64/include/asm/fpsimd.h
+@@ -63,6 +63,7 @@ extern void fpsimd_load_state(struct fpsimd_state *state);
+ extern void fpsimd_thread_switch(struct task_struct *next);
+ extern void fpsimd_flush_thread(void);
  
- 	/*
- 	 * NT_PRSTATUS is the one special case, because the regset data
-@@ -1708,7 +1708,7 @@ static int fill_thread_core_info(struct elf_thread_core_info *t,
- 	 * We assume that regset 0 is NT_PRSTATUS.
- 	 */
- 	fill_prstatus(&t->prstatus, t->task, signr);
--	(void) view->regsets[0].get(t->task, &view->regsets[0], 0, regset_size,
-+	(void) view->regsets[0].get(t->task, &view->regsets[0], 0, size,
- 				    &t->prstatus.pr_reg, NULL);
- 
- 	fill_note(&t->notes[0], "CORE", NT_PRSTATUS,
-@@ -1728,7 +1728,7 @@ static int fill_thread_core_info(struct elf_thread_core_info *t,
- 		if (regset->core_note_type && regset->get &&
- 		    (!regset->active || regset->active(t->task, regset))) {
- 			int ret;
--			size_t size = regset->n * regset->size;
-+			size_t size = regset_size(t->task, regset);
- 			void *data = kmalloc(size, GFP_KERNEL);
- 			if (unlikely(!data))
- 				return 0;
-diff --git a/include/linux/regset.h b/include/linux/regset.h
-index 8e0c9fe..494ceda 100644
---- a/include/linux/regset.h
-+++ b/include/linux/regset.h
-@@ -107,6 +107,28 @@ typedef int user_regset_writeback_fn(struct task_struct *target,
- 				     int immediate);
- 
- /**
-+ * user_regset_get_size_fn - type of @get_size function in &struct user_regset
-+ * @target:	thread being examined
-+ * @regset:	regset being examined
-+ *
-+ * This call is optional; usually the pointer is %NULL.
-+ *
-+ * When provided, this function must return the current size of regset
-+ * data, as observed by the @get function in &struct user_regset.  The
-+ * value returned must be a multiple of @size.  The returned size is
-+ * required to be valid only until the next time (if any) @regset is
-+ * modified for @target.
-+ *
-+ * This function is intended for dynamically sized regsets.  A regset
-+ * that is statically sized does not need to implement it.
-+ *
-+ * This function should not be called directly: instead, callers should
-+ * call regset_size() to determine the current size of a regset.
-+ */
-+typedef unsigned int user_regset_get_size_fn(struct task_struct *target,
-+					     const struct user_regset *regset);
-+
-+/**
-  * struct user_regset - accessible thread CPU state
-  * @n:			Number of slots (registers).
-  * @size:		Size in bytes of a slot (register).
-@@ -117,19 +139,33 @@ typedef int user_regset_writeback_fn(struct task_struct *target,
-  * @set:		Function to store values.
-  * @active:		Function to report if regset is active, or %NULL.
-  * @writeback:		Function to write data back to user memory, or %NULL.
-+ * @get_size:		Function to return the regset's size, or %NULL.
-  *
-  * This data structure describes a machine resource we call a register set.
-  * This is part of the state of an individual thread, not necessarily
-  * actual CPU registers per se.  A register set consists of a number of
-  * similar slots, given by @n.  Each slot is @size bytes, and aligned to
-- * @align bytes (which is at least @size).
-+ * @align bytes (which is at least @size).  For dynamically-sized
-+ * regsets, @n must contain the maximum possible number of slots for the
-+ * regset, and @get_size must point to a function that returns the
-+ * current regset size.
-  *
-- * These functions must be called only on the current thread or on a
-- * thread that is in %TASK_STOPPED or %TASK_TRACED state, that we are
-- * guaranteed will not be woken up and return to user mode, and that we
-- * have called wait_task_inactive() on.  (The target thread always might
-- * wake up for SIGKILL while these functions are working, in which case
-- * that thread's user_regset state might be scrambled.)
-+ * Callers that need to know only the current size of the regset and do
-+ * not care about its internal structure should call regset_size()
-+ * instead of inspecting @n or calling @get_size.
-+ *
-+ * For backward compatibility, the @get and @set methods must pad to, or
-+ * accept, @n * @size bytes, even if the current regset size is smaller.
-+ * The precise semantics of these operations depend on the regset being
-+ * accessed.
-+ *
-+ * The functions to which &struct user_regset members point must be
-+ * called only on the current thread or on a thread that is in
-+ * %TASK_STOPPED or %TASK_TRACED state, that we are guaranteed will not
-+ * be woken up and return to user mode, and that we have called
-+ * wait_task_inactive() on.  (The target thread always might wake up for
-+ * SIGKILL while these functions are working, in which case that
-+ * thread's user_regset state might be scrambled.)
-  *
-  * The @pos argument must be aligned according to @align; the @count
-  * argument must be a multiple of @size.  These functions are not
-@@ -156,6 +192,7 @@ struct user_regset {
- 	user_regset_set_fn		*set;
- 	user_regset_active_fn		*active;
- 	user_regset_writeback_fn	*writeback;
-+	user_regset_get_size_fn		*get_size;
- 	unsigned int			n;
- 	unsigned int 			size;
- 	unsigned int 			align;
-@@ -371,5 +408,21 @@ static inline int copy_regset_from_user(struct task_struct *target,
- 	return regset->set(target, regset, offset, size, NULL, data);
++extern void fpsimd_signal_preserve_current_state(void);
+ extern void fpsimd_preserve_current_state(void);
+ extern void fpsimd_restore_current_state(void);
+ extern void fpsimd_update_current_state(struct fpsimd_state *state);
+diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+index 2b691d1..5063476 100644
+--- a/arch/arm64/kernel/fpsimd.c
++++ b/arch/arm64/kernel/fpsimd.c
+@@ -298,6 +298,32 @@ static void fpsimd_to_sve(struct task_struct *task)
+ 		       sizeof(fst->vregs[i]));
  }
  
-+/**
-+ * regset_size - determine the current size of a regset
-+ * @target:	thread to be examined
-+ * @regset:	regset to be examined
++/*
++ * Transfer the SVE state in task->thread.sve_state to
++ * task->thread.fpsimd_state.
 + *
-+ * Note that the returned size is valid only until the next time
-+ * (if any) @regset is modified for @target.
++ * Task can be a non-runnable task, or current.  In the latter case,
++ * softirqs (and preemption) must be disabled.
++ * task->thread.sve_state must point to at least sve_state_size(task)
++ * bytes of allocated kernel memory.
++ * task->thread.sve_state must be up to date before calling this function.
 + */
-+static inline unsigned int regset_size(struct task_struct *target,
-+				       const struct user_regset *regset)
++static void sve_to_fpsimd(struct task_struct *task)
 +{
-+	if (!regset->get_size)
-+		return regset->n * regset->size;
-+	else
-+		return regset->get_size(target, regset);
++	unsigned int vq;
++	void const *sst = task->thread.sve_state;
++	struct fpsimd_state *fst = &task->thread.fpsimd_state;
++	unsigned int i;
++
++	if (!system_supports_sve())
++		return;
++
++	vq = sve_vq_from_vl(task->thread.sve_vl);
++	for (i = 0; i < 32; ++i)
++		memcpy(&fst->vregs[i], ZREG(sst, vq, i),
++		       sizeof(fst->vregs[i]));
 +}
++
+ #ifdef CONFIG_ARM64_SVE
  
- #endif	/* <linux/regset.h> */
+ /*
+@@ -499,9 +525,6 @@ void fpsimd_flush_thread(void)
+ /*
+  * Save the userland FPSIMD state of 'current' to memory, but only if the state
+  * currently held in the registers does in fact belong to 'current'
+- *
+- * Currently, SVE tasks can't exist, so just WARN in that case.
+- * Subsequent patches will add full SVE support here.
+  */
+ void fpsimd_preserve_current_state(void)
+ {
+@@ -509,16 +532,23 @@ void fpsimd_preserve_current_state(void)
+ 		return;
+ 
+ 	local_bh_disable();
+-
+-	if (!test_thread_flag(TIF_FOREIGN_FPSTATE))
+-		fpsimd_save_state(&current->thread.fpsimd_state);
+-
+-	WARN_ON_ONCE(test_and_clear_thread_flag(TIF_SVE));
+-
++	task_fpsimd_save();
+ 	local_bh_enable();
+ }
+ 
+ /*
++ * Like fpsimd_preserve_current_state(), but ensure that
++ * current->thread.fpsimd_state is updated so that it can be copied to
++ * the signal frame.
++ */
++void fpsimd_signal_preserve_current_state(void)
++{
++	fpsimd_preserve_current_state();
++	if (system_supports_sve() && test_thread_flag(TIF_SVE))
++		sve_to_fpsimd(current);
++}
++
++/*
+  * Load the userland FPSIMD state of 'current' from memory, but only if the
+  * FPSIMD state already held in the registers is /not/ the most recent FPSIMD
+  * state of 'current'
+@@ -553,7 +583,12 @@ void fpsimd_update_current_state(struct fpsimd_state *state)
+ 
+ 	local_bh_disable();
+ 
+-	fpsimd_load_state(state);
++	if (system_supports_sve() && test_thread_flag(TIF_SVE)) {
++		current->thread.fpsimd_state = *state;
++		fpsimd_to_sve(current);
++	}
++	task_fpsimd_load();
++
+ 	if (test_and_clear_thread_flag(TIF_FOREIGN_FPSTATE)) {
+ 		struct fpsimd_state *st = &current->thread.fpsimd_state;
+ 
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index 0bdc96c..79bc55a 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -63,6 +63,7 @@ struct rt_sigframe_user_layout {
+ 
+ 	unsigned long fpsimd_offset;
+ 	unsigned long esr_offset;
++	unsigned long sve_offset;
+ 	unsigned long extra_offset;
+ 	unsigned long end_offset;
+ };
+@@ -179,9 +180,6 @@ static int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
+ 	struct fpsimd_state *fpsimd = &current->thread.fpsimd_state;
+ 	int err;
+ 
+-	/* dump the hardware registers to the fpsimd_state structure */
+-	fpsimd_preserve_current_state();
+-
+ 	/* copy the FP and status/control registers */
+ 	err = __copy_to_user(ctx->vregs, fpsimd->vregs, sizeof(fpsimd->vregs));
+ 	__put_user_error(fpsimd->fpsr, &ctx->fpsr, err);
+@@ -214,6 +212,8 @@ static int restore_fpsimd_context(struct fpsimd_context __user *ctx)
+ 	__get_user_error(fpsimd.fpsr, &ctx->fpsr, err);
+ 	__get_user_error(fpsimd.fpcr, &ctx->fpcr, err);
+ 
++	clear_thread_flag(TIF_SVE);
++
+ 	/* load the hardware registers from the fpsimd_state structure */
+ 	if (!err)
+ 		fpsimd_update_current_state(&fpsimd);
+@@ -221,10 +221,118 @@ static int restore_fpsimd_context(struct fpsimd_context __user *ctx)
+ 	return err ? -EFAULT : 0;
+ }
+ 
++
+ struct user_ctxs {
+ 	struct fpsimd_context __user *fpsimd;
++	struct sve_context __user *sve;
+ };
+ 
++#ifdef CONFIG_ARM64_SVE
++
++static int preserve_sve_context(struct sve_context __user *ctx)
++{
++	int err = 0;
++	u16 reserved[ARRAY_SIZE(ctx->__reserved)];
++	unsigned int vl = current->thread.sve_vl;
++	unsigned int vq = 0;
++
++	if (test_thread_flag(TIF_SVE))
++		vq = sve_vq_from_vl(vl);
++
++	memset(reserved, 0, sizeof(reserved));
++
++	__put_user_error(SVE_MAGIC, &ctx->head.magic, err);
++	__put_user_error(round_up(SVE_SIG_CONTEXT_SIZE(vq), 16),
++			 &ctx->head.size, err);
++	__put_user_error(vl, &ctx->vl, err);
++	BUILD_BUG_ON(sizeof(ctx->__reserved) != sizeof(reserved));
++	err |= copy_to_user(&ctx->__reserved, reserved, sizeof(reserved));
++
++	if (vq) {
++		/*
++		 * This assumes that the SVE state has already been saved to
++		 * the task struct by calling preserve_fpsimd_context().
++		 */
++		err |= copy_to_user((char __user *)ctx + SVE_SIG_REGS_OFFSET,
++				    current->thread.sve_state,
++				    SVE_SIG_REGS_SIZE(vq));
++	}
++
++	return err ? -EFAULT : 0;
++}
++
++static int restore_sve_fpsimd_context(struct user_ctxs *user)
++{
++	int err;
++	unsigned int vq;
++	struct fpsimd_state fpsimd;
++	struct sve_context sve;
++
++	if (__copy_from_user(&sve, user->sve, sizeof(sve)))
++		return -EFAULT;
++
++	if (sve.vl != current->thread.sve_vl)
++		return -EINVAL;
++
++	if (sve.head.size <= sizeof(*user->sve)) {
++		clear_thread_flag(TIF_SVE);
++		goto fpsimd_only;
++	}
++
++	vq = sve_vq_from_vl(sve.vl);
++
++	if (sve.head.size < SVE_SIG_CONTEXT_SIZE(vq))
++		return -EINVAL;
++
++	/*
++	 * Careful: we are about __copy_from_user() directly into
++	 * thread.sve_state with preemption enabled, so protection is
++	 * needed to prevent a racing context switch from writing stale
++	 * registers back over the new data.
++	 */
++
++	fpsimd_flush_task_state(current);
++	barrier();
++	/* From now, fpsimd_thread_switch() won't clear TIF_FOREIGN_FPSTATE */
++
++	set_thread_flag(TIF_FOREIGN_FPSTATE);
++	barrier();
++	/* From now, fpsimd_thread_switch() won't touch thread.sve_state */
++
++	sve_alloc(current);
++	err = __copy_from_user(current->thread.sve_state,
++			       (char __user const *)user->sve +
++					SVE_SIG_REGS_OFFSET,
++			       SVE_SIG_REGS_SIZE(vq));
++	if (err)
++		return err;
++
++	set_thread_flag(TIF_SVE);
++
++fpsimd_only:
++	/* copy the FP and status/control registers */
++	/* restore_sigframe() already checked that user->fpsimd != NULL. */
++	err = __copy_from_user(fpsimd.vregs, user->fpsimd->vregs,
++			       sizeof(fpsimd.vregs));
++	__get_user_error(fpsimd.fpsr, &user->fpsimd->fpsr, err);
++	__get_user_error(fpsimd.fpcr, &user->fpsimd->fpcr, err);
++
++	/* load the hardware registers from the fpsimd_state structure */
++	if (!err)
++		fpsimd_update_current_state(&fpsimd);
++
++	return err;
++}
++
++#else /* ! CONFIG_ARM64_SVE */
++
++/* Turn any non-optimised out attempts to use these into a link error: */
++extern int preserve_sve_context(void __user *ctx);
++extern int restore_sve_fpsimd_context(struct user_ctxs *user);
++
++#endif /* ! CONFIG_ARM64_SVE */
++
++
+ static int parse_user_sigframe(struct user_ctxs *user,
+ 			       struct rt_sigframe __user *sf)
+ {
+@@ -237,6 +345,7 @@ static int parse_user_sigframe(struct user_ctxs *user,
+ 	char const __user *const sfp = (char const __user *)sf;
+ 
+ 	user->fpsimd = NULL;
++	user->sve = NULL;
+ 
+ 	if (!IS_ALIGNED((unsigned long)base, 16))
+ 		goto invalid;
+@@ -287,6 +396,19 @@ static int parse_user_sigframe(struct user_ctxs *user,
+ 			/* ignore */
+ 			break;
+ 
++		case SVE_MAGIC:
++			if (!system_supports_sve())
++				goto invalid;
++
++			if (user->sve)
++				goto invalid;
++
++			if (size < sizeof(*user->sve))
++				goto invalid;
++
++			user->sve = (struct sve_context __user *)head;
++			break;
++
+ 		case EXTRA_MAGIC:
+ 			if (have_extra_context)
+ 				goto invalid;
+@@ -359,9 +481,6 @@ static int parse_user_sigframe(struct user_ctxs *user,
+ 	}
+ 
+ done:
+-	if (!user->fpsimd)
+-		goto invalid;
+-
+ 	return 0;
+ 
+ invalid:
+@@ -395,8 +514,19 @@ static int restore_sigframe(struct pt_regs *regs,
+ 	if (err == 0)
+ 		err = parse_user_sigframe(&user, sf);
+ 
+-	if (err == 0)
+-		err = restore_fpsimd_context(user.fpsimd);
++	if (err == 0) {
++		if (!user.fpsimd)
++			return -EINVAL;
++
++		if (user.sve) {
++			if (!system_supports_sve())
++				return -EINVAL;
++
++			err = restore_sve_fpsimd_context(&user);
++		} else {
++			err = restore_fpsimd_context(user.fpsimd);
++		}
++	}
+ 
+ 	return err;
+ }
+@@ -455,6 +585,18 @@ static int setup_sigframe_layout(struct rt_sigframe_user_layout *user)
+ 			return err;
+ 	}
+ 
++	if (system_supports_sve()) {
++		unsigned int vq = 0;
++
++		if (test_thread_flag(TIF_SVE))
++			vq = sve_vq_from_vl(current->thread.sve_vl);
++
++		err = sigframe_alloc(user, &user->sve_offset,
++				     SVE_SIG_CONTEXT_SIZE(vq));
++		if (err)
++			return err;
++	}
++
+ 	return sigframe_alloc_end(user);
+ }
+ 
+@@ -496,6 +638,13 @@ static int setup_sigframe(struct rt_sigframe_user_layout *user,
+ 		__put_user_error(current->thread.fault_code, &esr_ctx->esr, err);
+ 	}
+ 
++	/* Scalable Vector Extension state, if present */
++	if (system_supports_sve() && err == 0 && user->sve_offset) {
++		struct sve_context __user *sve_ctx =
++			apply_user_offset(user, user->sve_offset);
++		err |= preserve_sve_context(sve_ctx);
++	}
++
+ 	if (err == 0 && user->extra_offset) {
+ 		char __user *sfp = (char __user *)user->sigframe;
+ 		char __user *userp =
+@@ -595,6 +744,8 @@ static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
+ 	struct rt_sigframe __user *frame;
+ 	int err = 0;
+ 
++	fpsimd_signal_preserve_current_state();
++
+ 	if (get_sigframe(&user, ksig, regs))
+ 		return 1;
+ 
+diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
+index e09bf5d..22711ee 100644
+--- a/arch/arm64/kernel/signal32.c
++++ b/arch/arm64/kernel/signal32.c
+@@ -239,7 +239,7 @@ static int compat_preserve_vfp_context(struct compat_vfp_sigframe __user *frame)
+ 	 * Note that this also saves V16-31, which aren't visible
+ 	 * in AArch32.
+ 	 */
+-	fpsimd_preserve_current_state();
++	fpsimd_signal_preserve_current_state();
+ 
+ 	/* Place structure header on the stack */
+ 	__put_user_error(magic, &frame->magic, err);
 -- 
 2.1.4
