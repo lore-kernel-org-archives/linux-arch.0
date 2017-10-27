@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:56966 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:56990 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752496AbdJ0Kvz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Oct 2017 06:51:55 -0400
+        id S1752497AbdJ0Kv6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 27 Oct 2017 06:51:58 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v4 18/28] arm64/sve: Preserve SVE registers around EFI runtime service calls
-Date: Fri, 27 Oct 2017 11:51:00 +0100
-Message-ID: <1509101470-7881-19-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v4 20/28] arm64/sve: Add prctl controls for userspace vector length management
+Date: Fri, 27 Oct 2017 11:51:02 +0100
+Message-ID: <1509101470-7881-21-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
 References: <1509101470-7881-1-git-send-email-Dave.Martin@arm.com>
 MIME-Version: 1.0
@@ -16,157 +16,214 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
-Message-ID: <20171027105100.52oKrlHwEIIuOmfWBSZORQzj8fIgWTiWfV8aU4easZY@z>
+Message-ID: <20171027105102.tNvejLudCU1R0uTndLMPPgj2eZi4BNXMrEEtoItVqBI@z>
 
-The EFI runtime services ABI allows EFI to make free use of the
-FPSIMD registers during EFI runtime service calls, subject to the
-callee-save requirements of the AArch64 procedure call standard.
+This patch adds two arm64-specific prctls, to permit userspace to
+control its vector length:
 
-However, the SVE architecture allows upper bits of the SVE vector
-registers to be zeroed as a side-effect of FPSIMD V-register
-writes.  This means that the SVE vector registers must be saved in
-their entirety in order to avoid data loss: non-SVE-aware EFI
-implementations cannot restore them correctly.
+ * PR_SVE_SET_VL: set the thread's SVE vector length and vector
+   length inheritance mode.
 
-The non-IRQ case is already handled gracefully by
-kernel_neon_begin().  For the IRQ case, this patch allocates a
-suitable per-CPU stash buffer for the full SVE register state and
-uses it to preserve the affected registers around EFI calls.  It is
-currently unclear how the EFI runtime services ABI will be
-clarified with respect to SVE, so it safest to assume that the
-predicate registers and FFR must be saved and restored too.
+ * PR_SVE_GET_VL: get the same information.
 
-No attempt is made to restore the restore the vector length after
-a call, for now.  It is deemed rather insane for EFI to change it,
-and contemporary EFI implementations certainly won't.
+Although these prctls resemble instruction set features in the SVE
+architecture, they provide additional control: the vector length
+inheritance mode is Linux-specific and nothing to do with the
+architecture, and the architecture does not permit EL0 to set its
+own vector length directly.  Both can be used in portable tools
+without requiring the use of SVE instructions.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
 Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
----
- arch/arm64/kernel/fpsimd.c | 67 +++++++++++++++++++++++++++++++++++++++++-----
- 1 file changed, 61 insertions(+), 6 deletions(-)
+Cc: Alex Bennée <alex.bennee@linaro.org>
 
-diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index d5108e8..edc27d2 100644
---- a/arch/arm64/kernel/fpsimd.c
-+++ b/arch/arm64/kernel/fpsimd.c
-@@ -121,11 +121,13 @@ static int sve_default_vl = -1;
- int __ro_after_init sve_max_vl = -1;
- /* Set of available vector lengths, as vq_to_bit(vq): */
- static __ro_after_init DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
-+static void __percpu *efi_sve_state;
+---
+
+**Dropped at v3** Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+due to non-trivial changes/fixes after v2.
+
+Changes since v3
+----------------
+
+Requested by Catalin Marinas:
+
+ * Replace static __maybe_unused functions with static inlines.
+
+   (Retaining Catalin's Reviewed-by with his approval.)
+---
+ arch/arm64/include/asm/fpsimd.h    | 14 +++++++++++
+ arch/arm64/include/asm/processor.h |  4 +++
+ arch/arm64/kernel/fpsimd.c         | 50 ++++++++++++++++++++++++++++++++++++++
+ include/uapi/linux/prctl.h         |  4 +++
+ kernel/sys.c                       | 12 +++++++++
+ 5 files changed, 84 insertions(+)
+
+diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
+index d754e5a..b868412 100644
+--- a/arch/arm64/include/asm/fpsimd.h
++++ b/arch/arm64/include/asm/fpsimd.h
+@@ -17,6 +17,7 @@
+ #define __ASM_FP_H
  
- #else /* ! CONFIG_ARM64_SVE */
+ #include <asm/ptrace.h>
++#include <asm/errno.h>
  
- /* Dummy declaration for code that will be optimised out: */
- extern __ro_after_init DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
-+extern void __percpu *efi_sve_state;
+ #ifndef __ASSEMBLY__
  
- #endif /* ! CONFIG_ARM64_SVE */
+@@ -98,6 +99,9 @@ extern void sve_sync_from_fpsimd_zeropad(struct task_struct *task);
+ extern int sve_set_vector_length(struct task_struct *task,
+ 				 unsigned long vl, unsigned long flags);
  
-@@ -550,6 +552,30 @@ int sve_verify_vq_map(void)
- 	return ret;
- }
++extern int sve_set_current_vl(unsigned long arg);
++extern int sve_get_current_vl(void);
++
+ /*
+  * Probing and setup functions.
+  * Calls to these functions must be serialised with one another.
+@@ -114,6 +118,16 @@ static inline void fpsimd_release_task(struct task_struct *task) { }
+ static inline void sve_sync_to_fpsimd(struct task_struct *task) { }
+ static inline void sve_sync_from_fpsimd_zeropad(struct task_struct *task) { }
  
-+static void __init sve_efi_setup(void)
++static inline int sve_set_current_vl(unsigned long arg)
 +{
-+	if (!IS_ENABLED(CONFIG_EFI))
-+		return;
-+
-+	/*
-+	 * alloc_percpu() warns and prints a backtrace if this goes wrong.
-+	 * This is evidence of a crippled system and we are returning void,
-+	 * so no attempt is made to handle this situation here.
-+	 */
-+	if (!sve_vl_valid(sve_max_vl))
-+		goto fail;
-+
-+	efi_sve_state = __alloc_percpu(
-+		SVE_SIG_REGS_SIZE(sve_vq_from_vl(sve_max_vl)), SVE_VQ_BYTES);
-+	if (!efi_sve_state)
-+		goto fail;
-+
-+	return;
-+
-+fail:
-+	panic("Cannot allocate percpu memory for EFI SVE save/restore");
++	return -EINVAL;
 +}
 +
- /*
-  * Enable SVE for EL1.
-  * Intended for use by the cpufeatures code during CPU boot.
-@@ -597,6 +623,8 @@ void __init sve_setup(void)
- 		sve_max_vl);
- 	pr_info("SVE: default vector length %u bytes per vector\n",
- 		sve_default_vl);
++static inline int sve_get_current_vl(void)
++{
++	return -EINVAL;
++}
 +
-+	sve_efi_setup();
+ static inline void sve_init_vq_map(void) { }
+ static inline void sve_update_vq_map(void) { }
+ static inline int sve_verify_vq_map(void) { return 0; }
+diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+index c6fddb0..023cacb 100644
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -217,5 +217,9 @@ static inline void spin_lock_prefetch(const void *ptr)
+ int cpu_enable_pan(void *__unused);
+ int cpu_enable_cache_maint_trap(void *__unused);
+ 
++/* Userspace interface for PR_SVE_{SET,GET}_VL prctl()s: */
++#define SVE_SET_VL(arg)	sve_set_current_vl(arg)
++#define SVE_GET_VL()	sve_get_current_vl()
++
+ #endif /* __ASSEMBLY__ */
+ #endif /* __ASM_PROCESSOR_H */
+diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+index a47ce44..7465622 100644
+--- a/arch/arm64/kernel/fpsimd.c
++++ b/arch/arm64/kernel/fpsimd.c
+@@ -28,6 +28,7 @@
+ #include <linux/irqflags.h>
+ #include <linux/init.h>
+ #include <linux/percpu.h>
++#include <linux/prctl.h>
+ #include <linux/preempt.h>
+ #include <linux/prctl.h>
+ #include <linux/ptrace.h>
+@@ -557,6 +558,55 @@ int sve_set_vector_length(struct task_struct *task,
  }
  
  /*
-@@ -925,6 +953,7 @@ EXPORT_SYMBOL(kernel_neon_end);
++ * Encode the current vector length and flags for return.
++ * This is only required for prctl(): ptrace has separate fields
++ *
++ * flags are as for sve_set_vector_length().
++ */
++static int sve_prctl_status(unsigned long flags)
++{
++	int ret;
++
++	if (flags & PR_SVE_SET_VL_ONEXEC)
++		ret = current->thread.sve_vl_onexec;
++	else
++		ret = current->thread.sve_vl;
++
++	if (test_thread_flag(TIF_SVE_VL_INHERIT))
++		ret |= PR_SVE_VL_INHERIT;
++
++	return ret;
++}
++
++/* PR_SVE_SET_VL */
++int sve_set_current_vl(unsigned long arg)
++{
++	unsigned long vl, flags;
++	int ret;
++
++	vl = arg & PR_SVE_VL_LEN_MASK;
++	flags = arg & ~vl;
++
++	if (!system_supports_sve())
++		return -EINVAL;
++
++	ret = sve_set_vector_length(current, vl, flags);
++	if (ret)
++		return ret;
++
++	return sve_prctl_status(flags);
++}
++
++/* PR_SVE_GET_VL */
++int sve_get_current_vl(void)
++{
++	if (!system_supports_sve())
++		return -EINVAL;
++
++	return sve_prctl_status(0);
++}
++
++/*
+  * Bitmap for temporary storage of the per-CPU set of supported vector lengths
+  * during secondary boot.
+  */
+diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
+index 1b64901..1ef9370 100644
+--- a/include/uapi/linux/prctl.h
++++ b/include/uapi/linux/prctl.h
+@@ -198,7 +198,11 @@ struct prctl_mm_map {
+ # define PR_CAP_AMBIENT_CLEAR_ALL	4
  
- static DEFINE_PER_CPU(struct fpsimd_state, efi_fpsimd_state);
- static DEFINE_PER_CPU(bool, efi_fpsimd_state_used);
-+static DEFINE_PER_CPU(bool, efi_sve_state_used);
+ /* arm64 Scalable Vector Extension controls */
++/* Flag values must be kept in sync with ptrace NT_ARM_SVE interface */
++#define PR_SVE_SET_VL			48	/* set task vector length */
+ # define PR_SVE_SET_VL_ONEXEC		(1 << 18) /* defer effect until exec */
++#define PR_SVE_GET_VL			49	/* get task vector length */
++/* Bits common to PR_SVE_SET_VL and PR_SVE_GET_VL */
+ # define PR_SVE_VL_LEN_MASK		0xffff
+ # define PR_SVE_VL_INHERIT		(1 << 17) /* inherit across exec */
+ 
+diff --git a/kernel/sys.c b/kernel/sys.c
+index 9aebc29..c541916 100644
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -110,6 +110,12 @@
+ #ifndef SET_FP_MODE
+ # define SET_FP_MODE(a,b)	(-EINVAL)
+ #endif
++#ifndef SVE_SET_VL
++# define SVE_SET_VL(a)		(-EINVAL)
++#endif
++#ifndef SVE_GET_VL
++# define SVE_GET_VL()		(-EINVAL)
++#endif
  
  /*
-  * EFI runtime services support functions
-@@ -950,10 +979,24 @@ void __efi_fpsimd_begin(void)
- 
- 	WARN_ON(preemptible());
- 
--	if (may_use_simd())
-+	if (may_use_simd()) {
- 		kernel_neon_begin();
--	else {
--		fpsimd_save_state(this_cpu_ptr(&efi_fpsimd_state));
-+	} else {
-+		/*
-+		 * If !efi_sve_state, SVE can't be in use yet and doesn't need
-+		 * preserving:
-+		 */
-+		if (system_supports_sve() && likely(efi_sve_state)) {
-+			char *sve_state = this_cpu_ptr(efi_sve_state);
-+
-+			__this_cpu_write(efi_sve_state_used, true);
-+
-+			sve_save_state(sve_state + sve_ffr_offset(sve_max_vl),
-+				       &this_cpu_ptr(&efi_fpsimd_state)->fpsr);
-+		} else {
-+			fpsimd_save_state(this_cpu_ptr(&efi_fpsimd_state));
-+		}
-+
- 		__this_cpu_write(efi_fpsimd_state_used, true);
- 	}
- }
-@@ -966,10 +1009,22 @@ void __efi_fpsimd_end(void)
- 	if (!system_supports_fpsimd())
- 		return;
- 
--	if (__this_cpu_xchg(efi_fpsimd_state_used, false))
--		fpsimd_load_state(this_cpu_ptr(&efi_fpsimd_state));
--	else
-+	if (!__this_cpu_xchg(efi_fpsimd_state_used, false)) {
- 		kernel_neon_end();
-+	} else {
-+		if (system_supports_sve() &&
-+		    likely(__this_cpu_read(efi_sve_state_used))) {
-+			char const *sve_state = this_cpu_ptr(efi_sve_state);
-+
-+			sve_load_state(sve_state + sve_ffr_offset(sve_max_vl),
-+				       &this_cpu_ptr(&efi_fpsimd_state)->fpsr,
-+				       sve_vq_from_vl(sve_get_vl()) - 1);
-+
-+			__this_cpu_write(efi_sve_state_used, false);
-+		} else {
-+			fpsimd_load_state(this_cpu_ptr(&efi_fpsimd_state));
-+		}
-+	}
- }
- 
- #endif /* CONFIG_EFI */
+  * this is where the system-wide overflow UID and GID are defined, for
+@@ -2385,6 +2391,12 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+ 	case PR_GET_FP_MODE:
+ 		error = GET_FP_MODE(me);
+ 		break;
++	case PR_SVE_SET_VL:
++		error = SVE_SET_VL(arg2);
++		break;
++	case PR_SVE_GET_VL:
++		error = SVE_GET_VL();
++		break;
+ 	default:
+ 		error = -EINVAL;
+ 		break;
 -- 
 2.1.4
