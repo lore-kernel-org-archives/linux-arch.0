@@ -1,91 +1,387 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:51050 "EHLO mga14.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752768AbdJ0U1a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 27 Oct 2017 16:27:30 -0400
-From: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
-Subject: [PATCH v10 02/18] x86/boot: Relocate definition of the initial state of CR0
-Date: Fri, 27 Oct 2017 13:25:29 -0700
-Message-ID: <1509135945-13762-3-git-send-email-ricardo.neri-calderon@linux.intel.com>
-In-Reply-To: <1509135945-13762-1-git-send-email-ricardo.neri-calderon@linux.intel.com>
-References: <1509135945-13762-1-git-send-email-ricardo.neri-calderon@linux.intel.com>
+Received: from mail-wm0-f51.google.com ([74.125.82.51]:45626 "EHLO
+        mail-wm0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751624AbdJ3Mry (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Oct 2017 08:47:54 -0400
+MIME-Version: 1.0
+Reply-To: mtk.manpages@gmail.com
+In-Reply-To: <20170810184616.22726-1-avagin@openvz.org>
+References: <20170810184616.22726-1-avagin@openvz.org>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Date: Mon, 30 Oct 2017 13:47:31 +0100
+Message-ID: <CAKgNAkiSMhmK7JzVArAUejGPpfvKu0ut-WbFg=r22vk4p78PEg@mail.gmail.com>
+Subject: Re: [PATCH] [RFC] vm: add a syscall to map a process memory into a pipe
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>
-Cc: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Brian Gerst <brgerst@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Dave Hansen <dave.hansen@linux.intel.com>, Paolo Bonzini <pbonzini@redhat.com>, Masami Hiramatsu <mhiramat@kernel.org>, Huang Rui <ray.huang@amd.com>, Jiri Slaby <jslaby@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Michael S. Tsirkin" <mst@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Vlastimil Babka <vbabka@suse.cz>, Chen Yucong <slaoub@gmail.com>, "Ravi V. Shankar" <ravi.v.shankar@intel.com>, Shuah Khan <shuah@kernel.org>, linux-kernel@vger.kernel.org, x86@kernel.org, ricardo.neri@intel.com, Ricardo Neri <ricardo.neri-calderon@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@intel.com>, Denys Vlasenko <dvlasenk@redhat.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20171027202529.ZsKlSUCscJDmE9syOUv5VBCepoHbtfbewc_Bvxge1AM@z>
+To: Andrei Vagin <avagin@openvz.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, criu@openvz.org, Arnd Bergmann <arnd@arndb.de>, Pavel Emelyanov <xemul@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20171030124731.8nq74LSsBfFT_zHIWRBfqtEzJYNPG0_QyGY4Hm7jTLY@z>
 
-Both head_32.S and head_64.S utilize the same value to initialize the
-control register CR0. Also, other parts of the kernel might want to access
-this initial definition (e.g., emulation code for User-Mode Instruction
-Prevention uses this state to provide a sane dummy value for CR0 when
-emulating the smsw instruction). Thus, relocate this definition to a
-header file from which it can be conveniently accessed.
+Hi Andrei,
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andy Lutomirski <luto@amacapital.net>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Brian Gerst <brgerst@gmail.com>
-Cc: Dave Hansen <dave.hansen@intel.com>
-Cc: Denys Vlasenko <dvlasenk@redhat.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
-Suggested-by: Borislav Petkov <bp@alien8.de>
-Reviewed-by: Borislav Petkov <bp@suse.de>
-Reviewed-by: Andy Lutomirski <luto@kernel.org>
-Signed-off-by: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
----
- arch/x86/include/uapi/asm/processor-flags.h | 3 +++
- arch/x86/kernel/head_32.S                   | 3 ---
- arch/x86/kernel/head_64.S                   | 3 ---
- 3 files changed, 3 insertions(+), 6 deletions(-)
+On 10 August 2017 at 20:46, Andrei Vagin <avagin@openvz.org> wrote:
+> It is a hybrid of process_vm_readv() and vmsplice().
+>
+> vmsplice can map memory from a current address space into a pipe.
+> process_vm_readv can read memory of another process.
+>
+> A new system call can map memory of another process into a pipe.
+>
+> ssize_t process_vmsplice(pid_t pid, int fd, const struct iovec *iov,
+>                         unsigned long nr_segs, unsigned int flags)
+>
+> All arguments are identical with vmsplice except pid which specifies a
+> target process.
 
-diff --git a/arch/x86/include/uapi/asm/processor-flags.h b/arch/x86/include/uapi/asm/processor-flags.h
-index 185f3d1..39946d0 100644
---- a/arch/x86/include/uapi/asm/processor-flags.h
-+++ b/arch/x86/include/uapi/asm/processor-flags.h
-@@ -151,5 +151,8 @@
- #define CX86_ARR_BASE	0xc4
- #define CX86_RCR_BASE	0xdc
- 
-+#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
-+			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
-+			 X86_CR0_PG)
- 
- #endif /* _UAPI_ASM_X86_PROCESSOR_FLAGS_H */
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 9ed3074..c3cfc65 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -211,9 +211,6 @@ ENTRY(startup_32_smp)
- #endif
- 
- .Ldefault_entry:
--#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
--			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
--			 X86_CR0_PG)
- 	movl $(CR0_STATE & ~X86_CR0_PG),%eax
- 	movl %eax,%cr0
- 
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 99b1262..701f3d9 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -153,9 +153,6 @@ ENTRY(secondary_startup_64)
- 1:	wrmsr				/* Make changes effective */
- 
- 	/* Setup cr0 */
--#define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
--			 X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
--			 X86_CR0_PG)
- 	movl	$CR0_STATE, %eax
- 	/* Make changes effective */
- 	movq	%rax, %cr0
+Can we have a man page for this new syscall please?
+
+Thanks,
+
+Michael
+
+
+> Currently if we want to dump a process memory to a file or to a socket,
+> we can use process_vm_readv() + write(), but it works slow, because data
+> are copied into a temporary user-space buffer.
+>
+> A second way is to use vmsplice() + splice(). It is more effective,
+> because data are not copied into a temporary buffer, but here is another
+> problem. vmsplice works with the currect address space, so it can be
+> used only if we inject our code into a target process.
+>
+> The second way suffers from a few other issues:
+> * a process has to be stopped to run a parasite code
+> * a number of pipes is limited, so it may be impossible to dump all
+>   memory in one iteration, and we have to stop process and inject our
+>   code a few times.
+> * pages in pipes are unreclaimable, so it isn't good to hold a lot of
+>   memory in pipes.
+>
+> The introduced syscall allows to use a second way without injecting any
+> code into a target process.
+>
+> My experiments shows that process_vmsplice() + splice() works two time
+> faster than process_vm_readv() + write().
+>
+> It is particularly useful on a pre-dump stage. On this stage we enable a
+> memory tracker, and then we are dumping  a process memory while a
+> process continues work. On the first iteration we are dumping all
+> memory, and then we are dumpung only modified memory from a previous
+> iteration.  After a few pre-dump operations, a process is stopped and
+> dumped finally. The pre-dump operations allow to significantly decrease
+> a process downtime, when a process is migrated to another host.
+>
+> Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Pavel Emelyanov <xemul@virtuozzo.com>
+> Cc: Michael Kerrisk <mtk.manpages@gmail.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Signed-off-by: Andrei Vagin <avagin@openvz.org>
+> ---
+>  fs/splice.c                       | 219 ++++++++++++++++++++++++++++++++++++++
+>  include/linux/compat.h            |   3 +
+>  include/linux/syscalls.h          |   4 +
+>  include/uapi/asm-generic/unistd.h |   5 +-
+>  4 files changed, 230 insertions(+), 1 deletion(-)
+>
+> diff --git a/fs/splice.c b/fs/splice.c
+> index ae41201..4b050a4 100644
+> --- a/fs/splice.c
+> +++ b/fs/splice.c
+> @@ -34,6 +34,7 @@
+>  #include <linux/socket.h>
+>  #include <linux/compat.h>
+>  #include <linux/sched/signal.h>
+> +#include <linux/sched/mm.h>
+>
+>  #include "internal.h"
+>
+> @@ -1374,6 +1375,201 @@ SYSCALL_DEFINE4(vmsplice, int, fd, const struct iovec __user *, iov,
+>         return error;
+>  }
+>
+> +/*
+> + * Map pages from a specified task into a pipe
+> + */
+> +static int remote_single_vec_to_pipe(struct task_struct *task,
+> +                       struct mm_struct *mm,
+> +                       const struct iovec *rvec,
+> +                       struct pipe_inode_info *pipe,
+> +                       unsigned int flags,
+> +                       size_t *total)
+> +{
+> +       struct pipe_buffer buf = {
+> +               .ops = &user_page_pipe_buf_ops,
+> +               .flags = flags
+> +       };
+> +       unsigned long addr = (unsigned long) rvec->iov_base;
+> +       unsigned long pa = addr & PAGE_MASK;
+> +       unsigned long start_offset = addr - pa;
+> +       unsigned long nr_pages;
+> +       ssize_t len = rvec->iov_len;
+> +       struct page *process_pages[16];
+> +       bool failed = false;
+> +       int ret = 0;
+> +
+> +       nr_pages = (addr + len - 1) / PAGE_SIZE - addr / PAGE_SIZE + 1;
+> +       while (nr_pages) {
+> +               long pages = min(nr_pages, 16UL);
+> +               int locked = 1, n;
+> +               ssize_t copied;
+> +
+> +               /*
+> +                * Get the pages we're interested in.  We must
+> +                * access remotely because task/mm might not
+> +                * current/current->mm
+> +                */
+> +               down_read(&mm->mmap_sem);
+> +               pages = get_user_pages_remote(task, mm, pa, pages, flags,
+> +                                             process_pages, NULL, &locked);
+> +               if (locked)
+> +                       up_read(&mm->mmap_sem);
+> +               if (pages <= 0) {
+> +                       failed = true;
+> +                       ret = -EFAULT;
+> +                       break;
+> +               }
+> +
+> +               copied = pages * PAGE_SIZE - start_offset;
+> +               if (copied > len)
+> +                       copied = len;
+> +               len -= copied;
+> +
+> +               for (n = 0; copied; n++, start_offset = 0) {
+> +                       int size = min_t(int, copied, PAGE_SIZE - start_offset);
+> +
+> +                       if (!failed) {
+> +                               buf.page = process_pages[n];
+> +                               buf.offset = start_offset;
+> +                               buf.len = size;
+> +                               ret = add_to_pipe(pipe, &buf);
+> +                               if (unlikely(ret < 0))
+> +                                       failed = true;
+> +                               else
+> +                                       *total += ret;
+> +                       } else {
+> +                               put_page(process_pages[n]);
+> +                       }
+> +                       copied -= size;
+> +               }
+> +               if (failed)
+> +                       break;
+> +               start_offset = 0;
+> +               nr_pages -= pages;
+> +               pa += pages * PAGE_SIZE;
+> +       }
+> +       return ret < 0 ? ret : 0;
+> +}
+> +
+> +static ssize_t remote_iovec_to_pipe(struct task_struct *task,
+> +                       struct mm_struct *mm,
+> +                       const struct iovec *rvec,
+> +                       unsigned long riovcnt,
+> +                       struct pipe_inode_info *pipe,
+> +                       unsigned int flags)
+> +{
+> +       size_t total = 0;
+> +       int ret = 0, i;
+> +
+> +       for (i = 0; i < riovcnt; i++) {
+> +               /* Work out address and page range required */
+> +               if (rvec[i].iov_len == 0)
+> +                       continue;
+> +
+> +               ret = remote_single_vec_to_pipe(
+> +                               task, mm, &rvec[i], pipe, flags, &total);
+> +               if (ret < 0)
+> +                       break;
+> +       }
+> +       return total ? total : ret;
+> +}
+> +
+> +static long process_vmsplice_to_pipe(struct task_struct *task,
+> +                               struct mm_struct *mm, struct file *file,
+> +                               const struct iovec __user *uiov,
+> +                               unsigned long nr_segs, unsigned int flags)
+> +{
+> +       struct pipe_inode_info *pipe;
+> +       struct iovec iovstack[UIO_FASTIOV];
+> +       struct iovec *iov = iovstack;
+> +       unsigned int buf_flag = 0;
+> +       long ret;
+> +
+> +       if (flags & SPLICE_F_GIFT)
+> +               buf_flag = PIPE_BUF_FLAG_GIFT;
+> +
+> +       pipe = get_pipe_info(file);
+> +       if (!pipe)
+> +               return -EBADF;
+> +
+> +       ret = rw_copy_check_uvector(CHECK_IOVEC_ONLY, uiov, nr_segs,
+> +                                       UIO_FASTIOV, iovstack, &iov);
+> +       if (ret < 0)
+> +               return ret;
+> +
+> +       pipe_lock(pipe);
+> +       ret = wait_for_space(pipe, flags);
+> +       if (!ret)
+> +               ret = remote_iovec_to_pipe(task, mm, iov,
+> +                                               nr_segs, pipe, buf_flag);
+> +       pipe_unlock(pipe);
+> +       if (ret > 0)
+> +               wakeup_pipe_readers(pipe);
+> +
+> +       if (iov != iovstack)
+> +               kfree(iov);
+> +       return ret;
+> +}
+> +
+> +/* process_vmsplice splices a process address range into a pipe. */
+> +SYSCALL_DEFINE5(process_vmsplice, int, pid, int, fd,
+> +               const struct iovec __user *, iov,
+> +               unsigned long, nr_segs, unsigned int, flags)
+> +{
+> +       struct task_struct *task;
+> +       struct mm_struct *mm;
+> +       struct fd f;
+> +       long ret;
+> +
+> +       if (unlikely(flags & ~SPLICE_F_ALL))
+> +               return -EINVAL;
+> +       if (unlikely(nr_segs > UIO_MAXIOV))
+> +               return -EINVAL;
+> +       else if (unlikely(!nr_segs))
+> +               return 0;
+> +
+> +       f = fdget(fd);
+> +       if (!f.file)
+> +               return -EBADF;
+> +
+> +       /* Get process information */
+> +       rcu_read_lock();
+> +       task = find_task_by_vpid(pid);
+> +       if (task)
+> +               get_task_struct(task);
+> +       rcu_read_unlock();
+> +       if (!task) {
+> +               ret = -ESRCH;
+> +               goto out_fput;
+> +       }
+> +
+> +       mm = mm_access(task, PTRACE_MODE_ATTACH_REALCREDS);
+> +       if (!mm || IS_ERR(mm)) {
+> +               ret = IS_ERR(mm) ? PTR_ERR(mm) : -ESRCH;
+> +               /*
+> +                * Explicitly map EACCES to EPERM as EPERM is a more a
+> +                * appropriate error code for process_vw_readv/writev
+> +                */
+> +               if (ret == -EACCES)
+> +                       ret = -EPERM;
+> +               goto put_task_struct;
+> +       }
+> +
+> +       ret = -EBADF;
+> +       if (f.file->f_mode & FMODE_WRITE)
+> +               ret = process_vmsplice_to_pipe(task, mm, f.file,
+> +                                               iov, nr_segs, flags);
+> +       mmput(mm);
+> +
+> +put_task_struct:
+> +       put_task_struct(task);
+> +
+> +out_fput:
+> +       fdput(f);
+> +
+> +       return ret;
+> +}
+> +
+>  #ifdef CONFIG_COMPAT
+>  COMPAT_SYSCALL_DEFINE4(vmsplice, int, fd, const struct compat_iovec __user *, iov32,
+>                     unsigned int, nr_segs, unsigned int, flags)
+> @@ -1393,6 +1589,29 @@ COMPAT_SYSCALL_DEFINE4(vmsplice, int, fd, const struct compat_iovec __user *, io
+>         }
+>         return sys_vmsplice(fd, iov, nr_segs, flags);
+>  }
+> +
+> +COMPAT_SYSCALL_DEFINE5(process_vmsplice, pid_t, pid, int, fd,
+> +                       const struct compat_iovec __user *, iov32,
+> +                       unsigned int, nr_segs, unsigned int, flags)
+> +{
+> +       struct iovec __user *iov;
+> +       unsigned int i;
+> +
+> +       if (nr_segs > UIO_MAXIOV)
+> +               return -EINVAL;
+> +
+> +       iov = compat_alloc_user_space(nr_segs * sizeof(struct iovec));
+> +       for (i = 0; i < nr_segs; i++) {
+> +               struct compat_iovec v;
+> +
+> +               if (get_user(v.iov_base, &iov32[i].iov_base) ||
+> +                   get_user(v.iov_len, &iov32[i].iov_len) ||
+> +                   put_user(compat_ptr(v.iov_base), &iov[i].iov_base) ||
+> +                   put_user(v.iov_len, &iov[i].iov_len))
+> +                       return -EFAULT;
+> +       }
+> +       return sys_process_vmsplice(pid, fd, iov, nr_segs, flags);
+> +}
+>  #endif
+>
+>  SYSCALL_DEFINE6(splice, int, fd_in, loff_t __user *, off_in,
+> diff --git a/include/linux/compat.h b/include/linux/compat.h
+> index 5a6a109..3590cc7 100644
+> --- a/include/linux/compat.h
+> +++ b/include/linux/compat.h
+> @@ -550,6 +550,9 @@ asmlinkage long compat_sys_getdents(unsigned int fd,
+>                                     unsigned int count);
+>  asmlinkage long compat_sys_vmsplice(int fd, const struct compat_iovec __user *,
+>                                     unsigned int nr_segs, unsigned int flags);
+> +asmlinkage long compat_sys_process_vmsplice(pid_t pid, int fd,
+> +                                   const struct compat_iovec __user *,
+> +                                   unsigned int nr_segs, unsigned int flags);
+>  asmlinkage long compat_sys_open(const char __user *filename, int flags,
+>                                 umode_t mode);
+>  asmlinkage long compat_sys_openat(int dfd, const char __user *filename,
+> diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+> index 3cb15ea..49bdf96 100644
+> --- a/include/linux/syscalls.h
+> +++ b/include/linux/syscalls.h
+> @@ -906,4 +906,8 @@ asmlinkage long sys_pkey_free(int pkey);
+>  asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
+>                           unsigned mask, struct statx __user *buffer);
+>
+> +asmlinkage long sys_process_vmsplice(pid_t pid,
+> +                       int fd, const struct iovec __user *iov,
+> +                       unsigned long nr_segs, unsigned int flags);
+> +
+>  #endif
+> diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+> index 061185a..d18019d 100644
+> --- a/include/uapi/asm-generic/unistd.h
+> +++ b/include/uapi/asm-generic/unistd.h
+> @@ -731,9 +731,12 @@ __SYSCALL(__NR_pkey_alloc,    sys_pkey_alloc)
+>  __SYSCALL(__NR_pkey_free,     sys_pkey_free)
+>  #define __NR_statx 291
+>  __SYSCALL(__NR_statx,     sys_statx)
+> +#define __NR_process_vmsplice 292
+> +__SC_COMP(__NR_process_vmsplice, sys_process_vmsplice,
+> +         compat_sys_process_vmsplice)
+>
+>  #undef __NR_syscalls
+> -#define __NR_syscalls 292
+> +#define __NR_syscalls 293
+>
+>  /*
+>   * All syscalls below here should go away really,
+> --
+> 2.9.4
+>
+
+
+
 -- 
-2.7.4
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
