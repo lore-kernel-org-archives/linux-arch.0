@@ -1,55 +1,67 @@
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v5 07/30] arm64: fpsimd: Simplify uses of {set,clear}_ti_thread_flag()
-Date: Tue, 31 Oct 2017 15:50:59 +0000
-Message-ID: <1509465082-30427-8-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v5 12/30] arm64/sve: Low-level CPU setup
+Date: Tue, 31 Oct 2017 15:51:04 +0000
+Message-ID: <1509465082-30427-13-git-send-email-Dave.Martin@arm.com>
 References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:37572 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753748AbdJaPvp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Oct 2017 11:51:45 -0400
+Received: from foss.arm.com ([217.140.101.70]:37660 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753623AbdJaPvz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 31 Oct 2017 11:51:55 -0400
 In-Reply-To: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
 
-The existing FPSIMD context switch code contains a couple of
-instances of {set,clear}_ti_thread(task_thread_info(task)).  Since
-there are thread flag manipulators that operate directly on
-task_struct, this verbosity isn't strictly needed.
+To enable the kernel to use SVE, SVE traps from EL1 to EL2 must be
+disabled.  To take maximum advantage of the hardware, the full
+available vector length also needs to be enabled for EL1 by
+programming ZCR_EL2.LEN.  (The kernel will program ZCR_EL1.LEN as
+required, but this cannot override the limit set by ZCR_EL2.)
 
-For consistency, this patch simplifies the affected calls.  This
-should have no impact on behaviour.
+This patch makes the appropriate changes to the EL2 early setup
+code.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
 Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Acked-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
----
- arch/arm64/kernel/fpsimd.c | 6 ++----
- 1 file changed, 2 insertions(+), 4 deletions(-)
+Cc: Alex Bennée <alex.bennee@linaro.org>
 
-diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index e851faa19..2baba0d 100644
---- a/arch/arm64/kernel/fpsimd.c
-+++ b/arch/arm64/kernel/fpsimd.c
-@@ -160,11 +160,9 @@ void fpsimd_thread_switch(struct task_struct *next)
+---
+
+**Dropped at v3** Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+(Due to significant changes to the logic.)
+---
+ arch/arm64/kernel/head.S | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
+index cfa90a4..67e86a0 100644
+--- a/arch/arm64/kernel/head.S
++++ b/arch/arm64/kernel/head.S
+@@ -524,8 +524,19 @@ CPU_LE(	movk	x0, #0x30d0, lsl #16	)	// Clear EE and E0E on LE systems
+ 	mov	x0, #0x33ff
+ 	msr	cptr_el2, x0			// Disable copro. traps to EL2
  
- 		if (__this_cpu_read(fpsimd_last_state) == st
- 		    && st->cpu == smp_processor_id())
--			clear_ti_thread_flag(task_thread_info(next),
--					     TIF_FOREIGN_FPSTATE);
-+			clear_tsk_thread_flag(next, TIF_FOREIGN_FPSTATE);
- 		else
--			set_ti_thread_flag(task_thread_info(next),
--					   TIF_FOREIGN_FPSTATE);
-+			set_tsk_thread_flag(next, TIF_FOREIGN_FPSTATE);
- 	}
- }
++	/* SVE register access */
++	mrs	x1, id_aa64pfr0_el1
++	ubfx	x1, x1, #ID_AA64PFR0_SVE_SHIFT, #4
++	cbz	x1, 7f
++
++	bic	x0, x0, #CPTR_EL2_TZ		// Also disable SVE traps
++	msr	cptr_el2, x0			// Disable copro. traps to EL2
++	isb
++	mov	x1, #ZCR_ELx_LEN_MASK		// SVE: Enable full vector
++	msr_s	SYS_ZCR_EL2, x1			// length for EL1.
++
+ 	/* Hypervisor stub */
+-	adr_l	x0, __hyp_stub_vectors
++7:	adr_l	x0, __hyp_stub_vectors
+ 	msr	vbar_el2, x0
  
+ 	/* spsr */
 -- 
 2.1.4
