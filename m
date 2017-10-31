@@ -1,68 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:37514 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:37542 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753542AbdJaPvh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 31 Oct 2017 11:51:37 -0400
+        id S1753650AbdJaPvl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 31 Oct 2017 11:51:41 -0400
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v5 03/30] arm64: signal: Verify extra data is user-readable in sys_rt_sigreturn
-Date: Tue, 31 Oct 2017 15:50:55 +0000
-Message-ID: <1509465082-30427-4-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v5 05/30] arm64: efi: Add missing Kconfig dependency on KERNEL_MODE_NEON
+Date: Tue, 31 Oct 2017 15:50:57 +0000
+Message-ID: <1509465082-30427-6-git-send-email-Dave.Martin@arm.com>
 In-Reply-To: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
 References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, =?UTF-8?q?Alex=20Benn=C3=A9e?= <alex.bennee@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
-Message-ID: <20171031155055.gKDye_J1Nyb4QBs3MzRStqH7LgZsM-ex1X-RNk3bw28@z>
+Message-ID: <20171031155057.dyZaKtMv3bk-Vbul2uFe0SDNkf2qjktbzuCSmFWQjxs@z>
 
-Currently sys_rt_sigreturn() verifies that the base sigframe is
-readable, but no similar check is performed on the extra data to
-which an extra_context record points.
+The EFI runtime services ABI permits calls to EFI to clobber
+certain FPSIMD/NEON registers, as per the AArch64 procedure call
+standard.
 
-This matters because the extra data will be read with the
-unprotected user accessors.  However, this is not a problem at
-present because the extra data base address is required to be
-exactly at the end of the base sigframe.  So, there would need to
-be a non-user-readable kernel address within about 59K
-(SIGFRAME_MAXSZ - sizeof(struct rt_sigframe)) of some address for
-which access_ok(VERIFY_READ) returns true, in order for sigreturn
-to be able to read kernel memory that should be inaccessible to the
-user task.  This is currently impossible due to the untranslatable
-address hole between the TTBR0 and TTBR1 address ranges.
+Saving/restoring the clobbered registers around such calls needs
+KERNEL_MODE_NEON, but the dependency is missing from Kconfig.
 
-Disappearance of the hole between the TTBR0 and TTBR1 mapping
-ranges would require the VA size for TTBR0 and TTBR1 to grow to at
-least 55 bits, and either the disabling of tagged pointers for
-userspace or enabling of tagged pointers for kernel space; none of
-which is currently envisaged.
+This patch adds the missing dependency.
 
-Even so, it is wrong to use the unprotected user accessors without
-an accompanying access_ok() check.
+This will aid bisection of the patches implementing support for the
+ARM Scalable Vector Extension (SVE).
 
-To avoid the potential for future surprises, this patch does an
-explicit access_ok() check on the extra data space when parsing an
-extra_context record.
-
-Fixes: 33f082614c34 ("arm64: signal: Allow expansion of the signal frame")
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
 ---
- arch/arm64/kernel/signal.c | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/arm64/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 0bdc96c..4716729 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -343,6 +343,10 @@ static int parse_user_sigframe(struct user_ctxs *user,
- 			 */
- 			offset = 0;
- 			limit = extra_size;
-+
-+			if (!access_ok(VERIFY_READ, base, limit))
-+				goto invalid;
-+
- 			continue;
- 
- 		default:
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 05aa592..5cfb79d 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -1064,6 +1064,7 @@ config EFI_STUB
+ config EFI
+ 	bool "UEFI runtime support"
+ 	depends on OF && !CPU_BIG_ENDIAN
++	depends on KERNEL_MODE_NEON
+ 	select LIBFDT
+ 	select UCS2_STRING
+ 	select EFI_PARAMS_FROM_FDT
 -- 
 2.1.4
