@@ -1,75 +1,60 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v5 01/30] regset: Add support for dynamically sized
- regsets
-Date: Wed, 1 Nov 2017 13:16:44 +0000
-Message-ID: <20171101131644.GL19485@e103592.cambridge.arm.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v5 15/30] arm64/sve: Signal handling support
+Date: Wed, 1 Nov 2017 14:33:49 +0000
+Message-ID: <20171101143349.emzluowg5k3zmyhn@armageddon.cambridge.arm.com>
 References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
- <1509465082-30427-2-git-send-email-Dave.Martin@arm.com>
- <20171101114228.jm53aj7jx6j4mxhn@armageddon.cambridge.arm.com>
+ <1509465082-30427-16-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: 8bit
-Return-path: <libc-alpha-return-86644-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:47770 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754540AbdKAOdy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 1 Nov 2017 10:33:54 -0400
 Content-Disposition: inline
-In-Reply-To: <20171101114228.jm53aj7jx6j4mxhn@armageddon.cambridge.arm.com>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, "H. J. Lu" <hjl.tools@gmail.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1509465082-30427-16-git-send-email-Dave.Martin@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
 
-On Wed, Nov 01, 2017 at 11:42:29AM +0000, Catalin Marinas wrote:
-> On Tue, Oct 31, 2017 at 03:50:53PM +0000, Dave P Martin wrote:
-> > Currently the regset API doesn't allow for the possibility that
-> > regsets (or at least, the amount of meaningful data in a regset)
-> > may change in size.
-> > 
-> > In particular, this results in useless padding being added to
-> > coredumps if a regset's current size is smaller than its
-> > theoretical maximum size.
-> > 
-> > This patch adds a get_size() function to struct user_regset.
-> > Individual regset implementations can implement this function to
-> > return the current size of the regset data.  A regset_size()
-> > function is added to provide callers with an abstract interface for
-> > determining the size of a regset without needing to know whether
-> > the regset is dynamically sized or not.
-> > 
-> > The only affected user of this interface is the ELF coredump code:
-> > This patch ports ELF coredump to dump regsets with their actual
-> > size in the coredump.  This has no effect except for new regsets
-> > that are dynamically sized and provide a get_size() implementation.
-> > 
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Cc: Oleg Nesterov <oleg@redhat.com>
-> > Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-> > Cc: Thomas Gleixner <tglx@linutronix.de>
-> > Cc: Ingo Molnar <mingo@redhat.com>
-> > Cc: "H. Peter Anvin" <hpa@zytor.com>
-> > Cc: Dmitry Safonov <dsafonov@virtuozzo.com>
-> > Cc: H. J. Lu <hjl.tools@gmail.com>
-> > 
-> > ---
-> > 
-> > **Dropped** Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-> > **Dropped** Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-> > (due to bug fix applied against v4 of this patch.)
+On Tue, Oct 31, 2017 at 03:51:07PM +0000, Dave P Martin wrote:
+> This patch implements support for saving and restoring the SVE
+> registers around signals.
 > 
-> It seems that the Reviewed-by tags are still there ;). Anyway, on the
-
-Oops, looks like that only happened on this patch.  I've removed
-Alex's R-b from my own version in case of repost -- can you also
-do the same?
-
-> new patch:
+> A fixed-size header struct sve_context is always included in the
+> signal frame encoding the thread's vector length at the time of
+> signal delivery, optionally followed by a variable-layout structure
+> encoding the SVE registers.
 > 
-> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> Because of the need to preserve backwards compatibility, the FPSIMD
+> view of the SVE registers is always dumped as a struct
+> fpsimd_context in the usual way, in addition to any sve_context.
+> 
+> The SVE vector registers are dumped in full, including bits 127:0
+> of each register which alias the corresponding FPSIMD vector
+> registers in the hardware.  To avoid any ambiguity about which
+> alias to restore during sigreturn, the kernel always restores bits
+> 127:0 of each SVE vector register from the fpsimd_context in the
+> signal frame (which must be present): userspace needs to take this
+> into account if it wants to modify the SVE vector register contents
+> on return from a signal.
+> 
+> FPSR and FPCR, which are used by both FPSIMD and SVE, are not
+> included in sve_context because they are always present in
+> fpsimd_context anyway.
+> 
+> For signal delivery, a new helper
+> fpsimd_signal_preserve_current_state() is added to update _both_
+> the FPSIMD and SVE views in the task struct, to make it easier to
+> populate this information into the signal frame.  Because of the
+> redundancy between the two views of the state, only one is updated
+> otherwise.
+> 
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Alex Bennée <alex.bennee@linaro.org>
+> Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+> Cc: Will Deacon <will.deacon@arm.com>
 
-Cheers
----Dave
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
