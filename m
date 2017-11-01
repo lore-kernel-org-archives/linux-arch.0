@@ -1,54 +1,75 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v5 03/30] arm64: signal: Verify extra data is
- user-readable in sys_rt_sigreturn
-Date: Wed, 1 Nov 2017 11:43:29 +0000
-Message-ID: <20171101114329.5eaejnxwojvadbex@armageddon.cambridge.arm.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH v5 01/30] regset: Add support for dynamically sized
+ regsets
+Date: Wed, 1 Nov 2017 13:16:44 +0000
+Message-ID: <20171101131644.GL19485@e103592.cambridge.arm.com>
 References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
- <1509465082-30427-4-git-send-email-Dave.Martin@arm.com>
+ <1509465082-30427-2-git-send-email-Dave.Martin@arm.com>
+ <20171101114228.jm53aj7jx6j4mxhn@armageddon.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46272 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754089AbdKALne (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 Nov 2017 07:43:34 -0400
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
+Return-path: <libc-alpha-return-86644-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
 Content-Disposition: inline
-In-Reply-To: <1509465082-30427-4-git-send-email-Dave.Martin@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Will Deacon <will.deacon@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
+In-Reply-To: <20171101114228.jm53aj7jx6j4mxhn@armageddon.cambridge.arm.com>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, "H. J. Lu" <hjl.tools@gmail.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 31, 2017 at 03:50:55PM +0000, Dave P Martin wrote:
-> Currently sys_rt_sigreturn() verifies that the base sigframe is
-> readable, but no similar check is performed on the extra data to
-> which an extra_context record points.
+On Wed, Nov 01, 2017 at 11:42:29AM +0000, Catalin Marinas wrote:
+> On Tue, Oct 31, 2017 at 03:50:53PM +0000, Dave P Martin wrote:
+> > Currently the regset API doesn't allow for the possibility that
+> > regsets (or at least, the amount of meaningful data in a regset)
+> > may change in size.
+> > 
+> > In particular, this results in useless padding being added to
+> > coredumps if a regset's current size is smaller than its
+> > theoretical maximum size.
+> > 
+> > This patch adds a get_size() function to struct user_regset.
+> > Individual regset implementations can implement this function to
+> > return the current size of the regset data.  A regset_size()
+> > function is added to provide callers with an abstract interface for
+> > determining the size of a regset without needing to know whether
+> > the regset is dynamically sized or not.
+> > 
+> > The only affected user of this interface is the ELF coredump code:
+> > This patch ports ELF coredump to dump regsets with their actual
+> > size in the coredump.  This has no effect except for new regsets
+> > that are dynamically sized and provide a get_size() implementation.
+> > 
+> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> > Cc: Oleg Nesterov <oleg@redhat.com>
+> > Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+> > Cc: Thomas Gleixner <tglx@linutronix.de>
+> > Cc: Ingo Molnar <mingo@redhat.com>
+> > Cc: "H. Peter Anvin" <hpa@zytor.com>
+> > Cc: Dmitry Safonov <dsafonov@virtuozzo.com>
+> > Cc: H. J. Lu <hjl.tools@gmail.com>
+> > 
+> > ---
+> > 
+> > **Dropped** Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
+> > **Dropped** Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> > (due to bug fix applied against v4 of this patch.)
 > 
-> This matters because the extra data will be read with the
-> unprotected user accessors.  However, this is not a problem at
-> present because the extra data base address is required to be
-> exactly at the end of the base sigframe.  So, there would need to
-> be a non-user-readable kernel address within about 59K
-> (SIGFRAME_MAXSZ - sizeof(struct rt_sigframe)) of some address for
-> which access_ok(VERIFY_READ) returns true, in order for sigreturn
-> to be able to read kernel memory that should be inaccessible to the
-> user task.  This is currently impossible due to the untranslatable
-> address hole between the TTBR0 and TTBR1 address ranges.
-> 
-> Disappearance of the hole between the TTBR0 and TTBR1 mapping
-> ranges would require the VA size for TTBR0 and TTBR1 to grow to at
-> least 55 bits, and either the disabling of tagged pointers for
-> userspace or enabling of tagged pointers for kernel space; none of
-> which is currently envisaged.
-> 
-> Even so, it is wrong to use the unprotected user accessors without
-> an accompanying access_ok() check.
-> 
-> To avoid the potential for future surprises, this patch does an
-> explicit access_ok() check on the extra data space when parsing an
-> extra_context record.
-> 
-> Fixes: 33f082614c34 ("arm64: signal: Allow expansion of the signal frame")
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> It seems that the Reviewed-by tags are still there ;). Anyway, on the
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Oops, looks like that only happened on this patch.  I've removed
+Alex's R-b from my own version in case of repost -- can you also
+do the same?
+
+> new patch:
+> 
+> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+
+Cheers
+---Dave
