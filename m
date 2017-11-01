@@ -1,75 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46934 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751324AbdKANQu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 Nov 2017 09:16:50 -0400
-Date: Wed, 1 Nov 2017 13:16:44 +0000
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v5 01/30] regset: Add support for dynamically sized
- regsets
-Message-ID: <20171101131644.GL19485@e103592.cambridge.arm.com>
-References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
- <1509465082-30427-2-git-send-email-Dave.Martin@arm.com>
- <20171101114228.jm53aj7jx6j4mxhn@armageddon.cambridge.arm.com>
+Received: from mail-ve1eur01on0131.outbound.protection.outlook.com ([104.47.1.131]:27776
+        "EHLO EUR01-VE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751347AbdKARrZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 1 Nov 2017 13:47:25 -0400
+Date: Wed, 1 Nov 2017 10:47:13 -0700
+From: Andrei Vagin <avagin@virtuozzo.com>
+Subject: Re: [PATCH] [RFC] vm: add a syscall to map a process memory into a
+ pipe
+Message-ID: <20171101174712.GA26700@outlook.office365.com>
+References: <20170810184616.22726-1-avagin@openvz.org>
+ <CAKgNAkiSMhmK7JzVArAUejGPpfvKu0ut-WbFg=r22vk4p78PEg@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: multipart/mixed; boundary="fdj2RfSjLxBAspz7"
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20171101114228.jm53aj7jx6j4mxhn@armageddon.cambridge.arm.com>
+In-Reply-To: <CAKgNAkiSMhmK7JzVArAUejGPpfvKu0ut-WbFg=r22vk4p78PEg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, "H. J. Lu" <hjl.tools@gmail.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20171101131644.EjdJ9sAA4_opgC9IMzVlWuU019BDWbeO9dgHUwWbptg@z>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: Andrei Vagin <avagin@openvz.org>, Alexander Viro <viro@zeniv.linux.org.uk>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, criu@openvz.org, Arnd Bergmann <arnd@arndb.de>, Pavel Emelyanov <xemul@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>
+Message-ID: <20171101174713.H-p27xX_95SkbgaRYh8NqlGjs98aEitvSrU72JDR-2M@z>
 
-On Wed, Nov 01, 2017 at 11:42:29AM +0000, Catalin Marinas wrote:
-> On Tue, Oct 31, 2017 at 03:50:53PM +0000, Dave P Martin wrote:
-> > Currently the regset API doesn't allow for the possibility that
-> > regsets (or at least, the amount of meaningful data in a regset)
-> > may change in size.
-> > 
-> > In particular, this results in useless padding being added to
-> > coredumps if a regset's current size is smaller than its
-> > theoretical maximum size.
-> > 
-> > This patch adds a get_size() function to struct user_regset.
-> > Individual regset implementations can implement this function to
-> > return the current size of the regset data.  A regset_size()
-> > function is added to provide callers with an abstract interface for
-> > determining the size of a regset without needing to know whether
-> > the regset is dynamically sized or not.
-> > 
-> > The only affected user of this interface is the ELF coredump code:
-> > This patch ports ELF coredump to dump regsets with their actual
-> > size in the coredump.  This has no effect except for new regsets
-> > that are dynamically sized and provide a get_size() implementation.
-> > 
-> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Cc: Oleg Nesterov <oleg@redhat.com>
-> > Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-> > Cc: Thomas Gleixner <tglx@linutronix.de>
-> > Cc: Ingo Molnar <mingo@redhat.com>
-> > Cc: "H. Peter Anvin" <hpa@zytor.com>
-> > Cc: Dmitry Safonov <dsafonov@virtuozzo.com>
-> > Cc: H. J. Lu <hjl.tools@gmail.com>
-> > 
-> > ---
-> > 
-> > **Dropped** Reviewed-by: Alex Bennée <alex.bennee@linaro.org>
-> > **Dropped** Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-> > (due to bug fix applied against v4 of this patch.)
+
+--fdj2RfSjLxBAspz7
+Content-Type: text/plain; charset=koi8-r
+Content-Disposition: inline
+
+Hi Michael,
+
+On Mon, Oct 30, 2017 at 01:47:31PM +0100, Michael Kerrisk (man-pages) wrote:
+> On 10 August 2017 at 20:46, Andrei Vagin <avagin@openvz.org> wrote:
+> > It is a hybrid of process_vm_readv() and vmsplice().
+> >
+> > vmsplice can map memory from a current address space into a pipe.
+> > process_vm_readv can read memory of another process.
+> >
+> > A new system call can map memory of another process into a pipe.
+> >
+> > ssize_t process_vmsplice(pid_t pid, int fd, const struct iovec *iov,
+> >                         unsigned long nr_segs, unsigned int flags)
+> >
+> > All arguments are identical with vmsplice except pid which specifies a
+> > target process.
 > 
-> It seems that the Reviewed-by tags are still there ;). Anyway, on the
+> Can we have a man page for this new syscall please?
 
-Oops, looks like that only happened on this patch.  I've removed
-Alex's R-b from my own version in case of repost -- can you also
-do the same?
+I think we can add a description for process_vmsplice into
+man2/vmsplice.2. The patch is attached.
 
-> new patch:
+Thanks,
+Andrei
+
 > 
-> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> Thanks,
+> 
+> Michael
+> 
+> 
 
-Cheers
----Dave
+--fdj2RfSjLxBAspz7
+Content-Type: text/plain; charset=koi8-r
+Content-Disposition: attachment; filename="0001-vmsplice.2-add-description-for-process_vmsplice.patch"
+
+
+--fdj2RfSjLxBAspz7--
