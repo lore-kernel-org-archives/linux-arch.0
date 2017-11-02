@@ -1,8 +1,8 @@
 From: Dave Martin <Dave.Martin@arm.com>
 Subject: Re: [PATCH v5 04/30] arm64: KVM: Hide unsupported AArch64 CPU
  features from guests
-Date: Thu, 2 Nov 2017 09:20:36 +0000
-Message-ID: <20171102092036.GM19485@e103592.cambridge.arm.com>
+Date: Thu, 2 Nov 2017 11:01:37 +0000
+Message-ID: <20171102110137.GN19485@e103592.cambridge.arm.com>
 References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
  <1509465082-30427-5-git-send-email-Dave.Martin@arm.com>
  <20171101044729.GA11166@lvm>
@@ -11,10 +11,10 @@ References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:56634 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:58032 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755295AbdKBJUl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Nov 2017 05:20:41 -0400
+        id S1755467AbdKBLBm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Nov 2017 07:01:42 -0400
 Content-Disposition: inline
 In-Reply-To: <20171102081557.GB20075@cbox>
 Sender: linux-arch-owner@vger.kernel.org
@@ -147,8 +147,8 @@ On Thu, Nov 02, 2017 at 09:15:57AM +0100, Christoffer Dall wrote:
 > Fine with me, just remember to remove the part of the world-switch that
 > was added in this patch, as that's what we want to savoid.
 
-Agreed.  My patch already did that, but I assumed that part of the diff
-was uninteresting...
+To be clear, does this amount to an Ack on the _original_ patch,
+providing I follow up with this optimisation after the merge window?
 
 Cheers
 ---Dave
