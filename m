@@ -1,62 +1,37 @@
-From: <yamada.masahiro@socionext.com>
-Subject: RE: [PATCH v2] kbuild: clean up *.dtb and *.dtb.S patterns from
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2] kbuild: clean up *.dtb and *.dtb.S patterns from
  top-level Makefile
-Date: Thu, 2 Nov 2017 08:48:46 +0000
-Message-ID: <bb7c1a637afa47e8943ce494798f957c@SOC-EX01V.e01.socionext.com>
+Date: Thu, 2 Nov 2017 10:08:58 +0100
+Message-ID: <CAK8P3a0r=un9H8y2AizW3v5KzkTEGgb70hfBx8C88qphDjJksg@mail.gmail.com>
 References: <1509591085-23940-1-git-send-email-yamada.masahiro@socionext.com>
- <CAK8P3a3FoRJeO=TQGMRf6t4-bP8nP6KUEhkCrHP6L8XaF1Ee7g@mail.gmail.com>
+ <CAK8P3a3FoRJeO=TQGMRf6t4-bP8nP6KUEhkCrHP6L8XaF1Ee7g@mail.gmail.com> <bb7c1a637afa47e8943ce494798f957c@SOC-EX01V.e01.socionext.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx.socionext.com ([202.248.49.38]:53041 "EHLO mx.socionext.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752567AbdKBIss (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Nov 2017 04:48:48 -0400
-In-Reply-To: <CAK8P3a3FoRJeO=TQGMRf6t4-bP8nP6KUEhkCrHP6L8XaF1Ee7g@mail.gmail.com>
-Content-Language: ja-JP
+Received: from mail-ot0-f196.google.com ([74.125.82.196]:54770 "EHLO
+        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752237AbdKBJI7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Nov 2017 05:08:59 -0400
+In-Reply-To: <bb7c1a637afa47e8943ce494798f957c@SOC-EX01V.e01.socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: devicetree@vger.kernel.org, robh@kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-kbuild@vger.kernel.org, linux@armlinux.org.uk, ralf@linux-mips.org, pantelis.antoniou@gmail.com, mark.rutland@arm.com, frowand.list@gmail.com, linux-arm-kernel@lists.infradead.org
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: DTML <devicetree@vger.kernel.org>, Rob Herring <robh@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Pantelis Antoniou <pantelis.antoniou@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Frank Rowand <frowand.list@gmail.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>
 
-SGkgQXJuZCwNCg0KDQo+IC0tLS0tT3JpZ2luYWwgTWVzc2FnZS0tLS0tDQo+IEZyb206IGFybmRi
-ZXJnbWFubkBnbWFpbC5jb20gW21haWx0bzphcm5kYmVyZ21hbm5AZ21haWwuY29tXSBPbiBCZWhh
-bGYgT2YNCj4gQXJuZCBCZXJnbWFubg0KPiBTZW50OiBUaHVyc2RheSwgTm92ZW1iZXIgMDIsIDIw
-MTcgNTozOCBQTQ0KPiBUbzogWWFtYWRhLCBNYXNhaGlyby/lsbHnlLAg55yf5byYIDx5YW1hZGEu
-bWFzYWhpcm9Ac29jaW9uZXh0LmNvbT4NCj4gQ2M6IERUTUwgPGRldmljZXRyZWVAdmdlci5rZXJu
-ZWwub3JnPjsgUm9iIEhlcnJpbmcgPHJvYmhAa2VybmVsLm9yZz47DQo+IGxpbnV4LWFyY2ggPGxp
-bnV4LWFyY2hAdmdlci5rZXJuZWwub3JnPjsgb3BlbiBsaXN0OlJBTElOSyBNSVBTDQo+IEFSQ0hJ
-VEVDVFVSRSA8bGludXgtbWlwc0BsaW51eC1taXBzLm9yZz47IExpbnV4IEtidWlsZCBtYWlsaW5n
-IGxpc3QNCj4gPGxpbnV4LWtidWlsZEB2Z2VyLmtlcm5lbC5vcmc+OyBSdXNzZWxsIEtpbmcgPGxp
-bnV4QGFybWxpbnV4Lm9yZy51az47DQo+IFJhbGYgQmFlY2hsZSA8cmFsZkBsaW51eC1taXBzLm9y
-Zz47IFBhbnRlbGlzIEFudG9uaW91DQo+IDxwYW50ZWxpcy5hbnRvbmlvdUBnbWFpbC5jb20+OyBN
-YXJrIFJ1dGxhbmQgPG1hcmsucnV0bGFuZEBhcm0uY29tPjsNCj4gRnJhbmsgUm93YW5kIDxmcm93
-YW5kLmxpc3RAZ21haWwuY29tPjsgTGludXggQVJNDQo+IDxsaW51eC1hcm0ta2VybmVsQGxpc3Rz
-LmluZnJhZGVhZC5vcmc+DQo+IFN1YmplY3Q6IFJlOiBbUEFUQ0ggdjJdIGtidWlsZDogY2xlYW4g
-dXAgKi5kdGIgYW5kICouZHRiLlMgcGF0dGVybnMgZnJvbQ0KPiB0b3AtbGV2ZWwgTWFrZWZpbGUN
-Cj4gDQo+IE9uIFRodSwgTm92IDIsIDIwMTcgYXQgMzo1MSBBTSwgTWFzYWhpcm8gWWFtYWRhDQo+
-IDx5YW1hZGEubWFzYWhpcm9Ac29jaW9uZXh0LmNvbT4gd3JvdGU6DQo+ID4gV2UgbmVlZCB0byBh
-ZGQgImNsZWFuLWZpbGVzIiBpbiBNYWtmaWxlcyB0byBjbGVhbiB1cCBEVCBibG9icywgYnV0IHdl
-DQo+ID4gb2Z0ZW4gbWlzcyB0byBkbyBzby4NCj4gPg0KPiA+IFNpbmNlIHRoZXJlIGFyZSBubyBz
-b3VyY2UgZmlsZXMgdGhhdCBlbmQgd2l0aCAuZHRiIG9yIC5kdGIuUywgc28gd2UNCj4gPiBjYW4g
-Y2xlYW4tdXAgdGhvc2UgZmlsZXMgZnJvbSB0aGUgdG9wLWxldmVsIE1ha2VmaWxlLg0KPiA+DQo+
-ID4gU2lnbmVkLW9mZi1ieTogTWFzYWhpcm8gWWFtYWRhIDx5YW1hZGEubWFzYWhpcm9Ac29jaW9u
-ZXh0LmNvbT4NCj4gDQo+IEFja2VkLWJ5OiBBcm5kIEJlcmdtYW5uIDxhcm5kQGFybmRiLmRlPg0K
-PiANCj4gDQo+IE9uIGEgKGJhcmVseSkgcmVsYXRlZCBub3RlLCBJJ20gc3RydWdnbGluZyB3aXRo
-IGFub3RoZXIgcHJvYmxlbSBpbiB0aGUNCj4gd2F5IHdlIGhhbmRsZQ0KPiB0aGUgLmR0YiBmaWxl
-cyBpbiBhcm02NCB3aGVuIENPTkZJR19PRl9BTExfRFRCUyBpcyBlbmFibGVkOiB3aGVuIGJ1aWxk
-aW5nDQo+IG9uIGEgbG90IG9mIENQVXMsIHdlIHRyeSB0byBidWlsZCB0aGUgc2FtZSBmaWxlcyBm
-cm9tIGJvdGgNCj4gYXJjaC9hcm02NC9ib290L2R0cy9NYWtlZmlsZQ0KPiBhbmQgYXJjaC9hcm02
-NC9ib290L2R0cy8qL01ha2VmaWxlLCB3aGljaCB0aGVuIHJlc3VsdHMgaW4gYSBmYWlsZWQNCj4g
-YnVpbGQgd2hlbiB3cml0aW5nDQo+IHRoZSB0ZW1wb3JhcnkgZmlsZXMuDQo+IA0KPiBJIGhhdmUg
-Y29tZSB1cCB3aXRoIGEgd29ya2Fyb3VuZCB0aGF0IEkgdXNlIGxvY2FsbHksIGJ1dCBpdCBzZWVt
-ZWQgdG9vIHVnbHkNCj4gdG8NCj4gc3VibWl0IHRoYXQgZm9yIGluY2x1c2lvbi4gTWF5YmUgeW91
-IGNhbiBjb21lIHVwIHdpdGggYSBuaWNlciBhIHNvbHV0aW9uDQo+IGZvcg0KPiB0aGlzIGFzIHdl
-bGw/DQo+IA0KPiAgICAgICBBcm5kDQoNClllYWgsIEkgaGFkIGFsc28gbm90aWNlZCB0aGlzIHJh
-Y2UgcHJvYmxlbSBvbiBwYXJhbGxlbCBidWlsZGluZw0Kd2l0aCBDT05GSUdfT0ZfQUxMX0RUQlMu
-DQoNCkkgd2FzIHBsYW5uaW5nIHRvIGRvIGl0DQp3aGVuIEkgY29tZSB1cCB3aXRoIGEgY2xlYW4g
-aW1wbGVtZW50YXRpb24uDQoNCk9uZSBpZGVhIGlzIHRvIGhhbmRsZSBkdGIteSBhbmQgQ09ORklH
-X09GX0FMTF9EVEJTDQpuYXRpdmVseSBpbiBzY3JpcHRzL01ha2VmaWxlLmJ1aWxkIG9yIHNvbWV3
-aGVyZQ0KYXMgc2NyaXB0cy9NYWtlZmlsZS5kdGJpbnN0IGFscmVhZHkgcmVjb2duaXplcyBkdGIt
-eSBhcyBhIHNwZWNpYWwgdmFyaWFibGUuDQoNCg==
+On Thu, Nov 2, 2017 at 9:48 AM,  <yamada.masahiro@socionext.com> wrote:
+
+>>       Arnd
+>
+> Yeah, I had also noticed this race problem on parallel building
+> with CONFIG_OF_ALL_DTBS.
+>
+> I was planning to do it
+> when I come up with a clean implementation.
+>
+> One idea is to handle dtb-y and CONFIG_OF_ALL_DTBS
+> natively in scripts/Makefile.build or somewhere
+> as scripts/Makefile.dtbinst already recognizes dtb-y as a special variable.
+
+Ah, nice, that does sound better, yes.
+
+      Arnd
