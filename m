@@ -1,597 +1,151 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH v2] kbuild: clean up *.dtb and *.dtb.S patterns from top-level
- Makefile
-Date: Thu,  2 Nov 2017 11:51:25 +0900
-Message-ID: <1509591085-23940-1-git-send-email-yamada.masahiro@socionext.com>
+From: Christoffer Dall <cdall@linaro.org>
+Subject: Re: [PATCH v5 04/30] arm64: KVM: Hide unsupported AArch64 CPU
+ features from guests
+Date: Thu, 2 Nov 2017 09:15:57 +0100
+Message-ID: <20171102081557.GB20075@cbox>
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+ <1509465082-30427-5-git-send-email-Dave.Martin@arm.com>
+ <20171101044729.GA11166@lvm>
+ <20171101102601.GK19485@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: devicetree@vger.kernel.org, Rob Herring <robh@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Arnd Bergmann <arnd@arndb.de>, linux-kbuild@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, Pantelis Antoniou <pantelis.antoniou@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Frank Rowand <frowand.list@gmail.com>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:47678 "EHLO
+        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752069AbdKBIPz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Nov 2017 04:15:55 -0400
+Received: by mail-wm0-f65.google.com with SMTP id r196so9132393wmf.2
+        for <linux-arch@vger.kernel.org>; Thu, 02 Nov 2017 01:15:55 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <20171101102601.GK19485@e103592.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
-We need to add "clean-files" in Makfiles to clean up DT blobs, but we
-often miss to do so.
+On Wed, Nov 01, 2017 at 10:26:03AM +0000, Dave Martin wrote:
+> On Wed, Nov 01, 2017 at 05:47:29AM +0100, Christoffer Dall wrote:
+> > On Tue, Oct 31, 2017 at 03:50:56PM +0000, Dave Martin wrote:
+> > > Currently, a guest kernel sees the true CPU feature registers
+> > > (ID_*_EL1) when it reads them using MRS instructions.  This means
+> > > that the guest may observe features that are present in the
+> > > hardware but the host doesn't understand or doesn't provide support
+> > > for.  A guest may legimitately try to use such a feature as per the
+> > > architecture, but use of the feature may trap instead of working
+> > > normally, triggering undef injection into the guest.
+> > > 
+> > > This is not a problem for the host, but the guest may go wrong when
+> > > running on newer hardware than the host knows about.
+> > > 
+> > > This patch hides from guest VMs any AArch64-specific CPU features
+> > > that the host doesn't support, by exposing to the guest the
+> > > sanitised versions of the registers computed by the cpufeatures
+> > > framework, instead of the true hardware registers.  To achieve
+> > > this, HCR_EL2.TID3 is now set for AArch64 guests, and emulation
+> > > code is added to KVM to report the sanitised versions of the
+> > > affected registers in response to MRS and register reads from
+> > > userspace.
+> > > 
+> > > The affected registers are removed from invariant_sys_regs[] (since
+> > > the invariant_sys_regs handling is no longer quite correct for
+> > > them) and added to sys_reg_desgs[], with appropriate access(),
+> > > get_user() and set_user() methods.  No runtime vcpu storage is
+> > > allocated for the registers: instead, they are read on demand from
+> > > the cpufeatures framework.  This may need modification in the
+> > > future if there is a need for userspace to customise the features
+> > > visible to the guest.
+> > > 
+> > > Attempts by userspace to write the registers are handled similarly
+> > > to the current invariant_sys_regs handling: writes are permitted,
+> > > but only if they don't attempt to change the value.  This is
+> > > sufficient to support VM snapshot/restore from userspace.
+> > > 
+> > > Because of the additional registers, restoring a VM on an older
+> > > kernel may not work unless userspace knows how to handle the extra
+> > > VM registers exposed to the KVM user ABI by this patch.
+> > > 
+> > > Under the principle of least damage, this patch makes no attempt to
+> > > handle any of the other registers currently in
+> > > invariant_sys_regs[], or to emulate registers for AArch32: however,
+> > > these could be handled in a similar way in future, as necessary.
+> > > 
+> > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > > Reviewed-by: Marc Zyngier <marc.zyngier@arm.com>
+> > > Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+> > > Cc: Christoffer Dall <christoffer.dall@linaro.org>
+> > > ---
+> > >  arch/arm64/include/asm/sysreg.h |   3 +
+> > >  arch/arm64/kvm/hyp/switch.c     |   6 +
+> > >  arch/arm64/kvm/sys_regs.c       | 282 +++++++++++++++++++++++++++++++++-------
+> > >  3 files changed, 246 insertions(+), 45 deletions(-)
+> > > 
+> > > diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
+> > > index 4dceb12..609d59af 100644
+> > > --- a/arch/arm64/include/asm/sysreg.h
+> > > +++ b/arch/arm64/include/asm/sysreg.h
+> > > @@ -149,6 +149,9 @@
+> > >  #define SYS_ID_AA64DFR0_EL1		sys_reg(3, 0, 0, 5, 0)
+> > >  #define SYS_ID_AA64DFR1_EL1		sys_reg(3, 0, 0, 5, 1)
+> > >  
+> > > +#define SYS_ID_AA64AFR0_EL1		sys_reg(3, 0, 0, 5, 4)
+> > > +#define SYS_ID_AA64AFR1_EL1		sys_reg(3, 0, 0, 5, 5)
+> > > +
+> > >  #define SYS_ID_AA64ISAR0_EL1		sys_reg(3, 0, 0, 6, 0)
+> > >  #define SYS_ID_AA64ISAR1_EL1		sys_reg(3, 0, 0, 6, 1)
+> > >  
+> > > diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
+> > > index 945e79c..35a90b8 100644
+> > > --- a/arch/arm64/kvm/hyp/switch.c
+> > > +++ b/arch/arm64/kvm/hyp/switch.c
+> > > @@ -81,11 +81,17 @@ static void __hyp_text __activate_traps(struct kvm_vcpu *vcpu)
+> > >  	 * it will cause an exception.
+> > >  	 */
+> > >  	val = vcpu->arch.hcr_el2;
+> > > +
+> > >  	if (!(val & HCR_RW) && system_supports_fpsimd()) {
+> > >  		write_sysreg(1 << 30, fpexc32_el2);
+> > >  		isb();
+> > >  	}
+> > > +
+> > > +	if (val & HCR_RW) /* for AArch64 only: */
+> > > +		val |= HCR_TID3; /* TID3: trap feature register accesses */
+> > > +
+> > 
+> > I still think we should set this in vcpu_reset_hcr() and do it once
+> > instead of adding code in every iteration of the critical path.
+> 
+> Dang, I somehow missed this in the last round.
+> 
+> How about:
+> 
+> diff --git a/arch/arm64/include/asm/kvm_emulate.h b/arch/arm64/include/asm/kvm_emulate.h
+> index e5df3fc..c87be0d 100644
+> --- a/arch/arm64/include/asm/kvm_emulate.h
+> +++ b/arch/arm64/include/asm/kvm_emulate.h
+> @@ -49,6 +49,14 @@ static inline void vcpu_reset_hcr(struct kvm_vcpu *vcpu)
+>  		vcpu->arch.hcr_el2 |= HCR_E2H;
+>  	if (test_bit(KVM_ARM_VCPU_EL1_32BIT, vcpu->arch.features))
+>  		vcpu->arch.hcr_el2 &= ~HCR_RW;
+> +
+> +	/*
+> +	 * TID3: trap feature register accesses that we virtualise.
+> +	 * For now this is conditional, since no AArch32 feature regs
+> +	 * are currently virtualised.
+> +	 */
+> +	if (vcpu->arch.hcr_el2 & HCR_RW)
+> +		vcpu->arch.hcr_el2 |= HCR_TID3;
+>  }
+>  
+>  static inline unsigned long vcpu_get_hcr(struct kvm_vcpu *vcpu)
+> > 
+> > Otherwise this patch looks good to me.
+> 
+> I'll probably post this as a separate follow-up patch, unless there's
+> some other reason for a full respin.
+> 
 
-Since there are no source files that end with .dtb or .dtb.S, so we
-can clean-up those files from the top-level Makefile.
+Fine with me, just remember to remove the part of the world-switch that
+was added in this patch, as that's what we want to savoid.
 
-Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
----
-
-Changes in v2:
-  - Remove clean-files
-
- Documentation/kbuild/makefiles.txt               | 1 -
- Makefile                                         | 2 +-
- arch/arc/boot/dts/Makefile                       | 1 -
- arch/arm/boot/dts/Makefile                       | 1 -
- arch/arm64/boot/dts/actions/Makefile             | 1 -
- arch/arm64/boot/dts/al/Makefile                  | 1 -
- arch/arm64/boot/dts/allwinner/Makefile           | 1 -
- arch/arm64/boot/dts/altera/Makefile              | 1 -
- arch/arm64/boot/dts/amd/Makefile                 | 1 -
- arch/arm64/boot/dts/amlogic/Makefile             | 1 -
- arch/arm64/boot/dts/apm/Makefile                 | 1 -
- arch/arm64/boot/dts/arm/Makefile                 | 1 -
- arch/arm64/boot/dts/broadcom/Makefile            | 1 -
- arch/arm64/boot/dts/broadcom/northstar2/Makefile | 1 -
- arch/arm64/boot/dts/broadcom/stingray/Makefile   | 1 -
- arch/arm64/boot/dts/cavium/Makefile              | 1 -
- arch/arm64/boot/dts/exynos/Makefile              | 1 -
- arch/arm64/boot/dts/freescale/Makefile           | 1 -
- arch/arm64/boot/dts/hisilicon/Makefile           | 1 -
- arch/arm64/boot/dts/lg/Makefile                  | 1 -
- arch/arm64/boot/dts/marvell/Makefile             | 1 -
- arch/arm64/boot/dts/mediatek/Makefile            | 1 -
- arch/arm64/boot/dts/nvidia/Makefile              | 1 -
- arch/arm64/boot/dts/qcom/Makefile                | 1 -
- arch/arm64/boot/dts/realtek/Makefile             | 1 -
- arch/arm64/boot/dts/renesas/Makefile             | 1 -
- arch/arm64/boot/dts/rockchip/Makefile            | 1 -
- arch/arm64/boot/dts/socionext/Makefile           | 1 -
- arch/arm64/boot/dts/sprd/Makefile                | 1 -
- arch/arm64/boot/dts/xilinx/Makefile              | 1 -
- arch/arm64/boot/dts/zte/Makefile                 | 1 -
- arch/c6x/boot/dts/Makefile                       | 2 --
- arch/cris/boot/dts/Makefile                      | 2 --
- arch/h8300/boot/dts/Makefile                     | 1 -
- arch/metag/boot/dts/Makefile                     | 1 -
- arch/microblaze/boot/Makefile                    | 2 +-
- arch/mips/boot/dts/Makefile                      | 1 -
- arch/mips/boot/dts/brcm/Makefile                 | 1 -
- arch/mips/boot/dts/cavium-octeon/Makefile        | 1 -
- arch/mips/boot/dts/img/Makefile                  | 1 -
- arch/mips/boot/dts/ingenic/Makefile              | 1 -
- arch/mips/boot/dts/lantiq/Makefile               | 1 -
- arch/mips/boot/dts/mti/Makefile                  | 1 -
- arch/mips/boot/dts/netlogic/Makefile             | 1 -
- arch/mips/boot/dts/ni/Makefile                   | 1 -
- arch/mips/boot/dts/pic32/Makefile                | 1 -
- arch/mips/boot/dts/qca/Makefile                  | 1 -
- arch/mips/boot/dts/ralink/Makefile               | 1 -
- arch/mips/boot/dts/xilfpga/Makefile              | 1 -
- arch/nios2/boot/Makefile                         | 2 --
- arch/openrisc/boot/dts/Makefile                  | 2 --
- arch/powerpc/boot/Makefile                       | 2 +-
- arch/sh/boot/dts/Makefile                        | 2 --
- arch/xtensa/boot/dts/Makefile                    | 2 --
- 54 files changed, 3 insertions(+), 60 deletions(-)
-
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index f6f8038..71e9fee 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -1158,7 +1158,6 @@ When kbuild executes, the following steps are followed (roughly):
- 
- 	Example:
- 		targets += $(dtb-y)
--		clean-files += *.dtb
- 		DTC_FLAGS ?= -p 1024
- 
- --- 6.8 Custom kbuild commands
-diff --git a/Makefile b/Makefile
-index 63a4c0e..c577c63 100644
---- a/Makefile
-+++ b/Makefile
-@@ -1544,7 +1544,7 @@ clean: $(clean-dirs)
- 	$(call cmd,rmfiles)
- 	@find $(if $(KBUILD_EXTMOD), $(KBUILD_EXTMOD), .) $(RCS_FIND_IGNORE) \
- 		\( -name '*.[oas]' -o -name '*.ko' -o -name '.*.cmd' \
--		-o -name '*.ko.*' \
-+		-o -name '*.ko.*' -o -name '*.dtb' -o -name '*.dtb.S' \
- 		-o -name '*.dwo'  \
- 		-o -name '*.su'  \
- 		-o -name '.*.d' -o -name '.*.tmp' -o -name '*.mod.c' \
-diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
-index a09f11b..1257db1 100644
---- a/arch/arc/boot/dts/Makefile
-+++ b/arch/arc/boot/dts/Makefile
-@@ -14,4 +14,3 @@ dtstree		:= $(srctree)/$(src)
- dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(wildcard $(dtstree)/*.dts))
- 
- always := $(dtb-y)
--clean-files := *.dtb  *.dtb.S
-diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index faf46ab..5eeefbc 100644
---- a/arch/arm/boot/dts/Makefile
-+++ b/arch/arm/boot/dts/Makefile
-@@ -1074,4 +1074,3 @@ dtstree		:= $(srctree)/$(src)
- dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(wildcard $(dtstree)/*.dts))
- 
- always		:= $(dtb-y)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/actions/Makefile b/arch/arm64/boot/dts/actions/Makefile
-index 62922d6..89bb1b5 100644
---- a/arch/arm64/boot/dts/actions/Makefile
-+++ b/arch/arm64/boot/dts/actions/Makefile
-@@ -2,4 +2,3 @@ dtb-$(CONFIG_ARCH_ACTIONS) += s900-bubblegum-96.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/al/Makefile b/arch/arm64/boot/dts/al/Makefile
-index 8a6cde4..8606a57 100644
---- a/arch/arm64/boot/dts/al/Makefile
-+++ b/arch/arm64/boot/dts/al/Makefile
-@@ -2,4 +2,3 @@ dtb-$(CONFIG_ARCH_ALPINE)	+= alpine-v2-evp.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/allwinner/Makefile b/arch/arm64/boot/dts/allwinner/Makefile
-index 19c3fbd..871ed768 100644
---- a/arch/arm64/boot/dts/allwinner/Makefile
-+++ b/arch/arm64/boot/dts/allwinner/Makefile
-@@ -11,4 +11,3 @@ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h5-nanopi-neo2.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/altera/Makefile b/arch/arm64/boot/dts/altera/Makefile
-index d7a6416..7511b51 100644
---- a/arch/arm64/boot/dts/altera/Makefile
-+++ b/arch/arm64/boot/dts/altera/Makefile
-@@ -2,4 +2,3 @@ dtb-$(CONFIG_ARCH_STRATIX10) += socfpga_stratix10_socdk.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/amd/Makefile b/arch/arm64/boot/dts/amd/Makefile
-index ba84770..cb1c779 100644
---- a/arch/arm64/boot/dts/amd/Makefile
-+++ b/arch/arm64/boot/dts/amd/Makefile
-@@ -4,4 +4,3 @@ dtb-$(CONFIG_ARCH_SEATTLE) += amd-overdrive.dtb \
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/amlogic/Makefile b/arch/arm64/boot/dts/amlogic/Makefile
-index 7a9f48c..d864403 100644
---- a/arch/arm64/boot/dts/amlogic/Makefile
-+++ b/arch/arm64/boot/dts/amlogic/Makefile
-@@ -22,4 +22,3 @@ dtb-$(CONFIG_ARCH_MESON) += meson-gxm-rbox-pro.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/apm/Makefile b/arch/arm64/boot/dts/apm/Makefile
-index c75f17a4..4334978 100644
---- a/arch/arm64/boot/dts/apm/Makefile
-+++ b/arch/arm64/boot/dts/apm/Makefile
-@@ -3,4 +3,3 @@ dtb-$(CONFIG_ARCH_XGENE) += apm-merlin.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/arm/Makefile b/arch/arm64/boot/dts/arm/Makefile
-index 75cc2aa..01c342f 100644
---- a/arch/arm64/boot/dts/arm/Makefile
-+++ b/arch/arm64/boot/dts/arm/Makefile
-@@ -5,4 +5,3 @@ dtb-$(CONFIG_ARCH_VEXPRESS) += vexpress-v2f-1xv7-ca53x2.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/broadcom/Makefile b/arch/arm64/boot/dts/broadcom/Makefile
-index 3eaef38..d720d0d 100644
---- a/arch/arm64/boot/dts/broadcom/Makefile
-+++ b/arch/arm64/boot/dts/broadcom/Makefile
-@@ -4,4 +4,3 @@ dts-dirs	+= northstar2
- dts-dirs	+= stingray
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/broadcom/northstar2/Makefile b/arch/arm64/boot/dts/broadcom/northstar2/Makefile
-index e01a148..c589b9b 100644
---- a/arch/arm64/boot/dts/broadcom/northstar2/Makefile
-+++ b/arch/arm64/boot/dts/broadcom/northstar2/Makefile
-@@ -3,4 +3,3 @@ dtb-$(CONFIG_ARCH_BCM_IPROC) += ns2-xmc.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/broadcom/stingray/Makefile b/arch/arm64/boot/dts/broadcom/stingray/Makefile
-index f70028e..8edcc52 100644
---- a/arch/arm64/boot/dts/broadcom/stingray/Makefile
-+++ b/arch/arm64/boot/dts/broadcom/stingray/Makefile
-@@ -3,4 +3,3 @@ dtb-$(CONFIG_ARCH_BCM_IPROC) += bcm958742t.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/cavium/Makefile b/arch/arm64/boot/dts/cavium/Makefile
-index 581b2c1..c63145e 100644
---- a/arch/arm64/boot/dts/cavium/Makefile
-+++ b/arch/arm64/boot/dts/cavium/Makefile
-@@ -3,4 +3,3 @@ dtb-$(CONFIG_ARCH_THUNDER2) += thunder2-99xx.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/exynos/Makefile b/arch/arm64/boot/dts/exynos/Makefile
-index 7ddea53..4633adf 100644
---- a/arch/arm64/boot/dts/exynos/Makefile
-+++ b/arch/arm64/boot/dts/exynos/Makefile
-@@ -5,4 +5,3 @@ dtb-$(CONFIG_ARCH_EXYNOS) += \
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
-index 72c4b52..fe18e3d 100644
---- a/arch/arm64/boot/dts/freescale/Makefile
-+++ b/arch/arm64/boot/dts/freescale/Makefile
-@@ -15,4 +15,3 @@ dtb-$(CONFIG_ARCH_LAYERSCAPE) += fsl-ls2088a-rdb.dtb
-  
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/hisilicon/Makefile b/arch/arm64/boot/dts/hisilicon/Makefile
-index 8960eca..cb25d7a 100644
---- a/arch/arm64/boot/dts/hisilicon/Makefile
-+++ b/arch/arm64/boot/dts/hisilicon/Makefile
-@@ -7,4 +7,3 @@ dtb-$(CONFIG_ARCH_HISI) += hip07-d05.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/lg/Makefile b/arch/arm64/boot/dts/lg/Makefile
-index 5c7b54c1..c0bbe06 100644
---- a/arch/arm64/boot/dts/lg/Makefile
-+++ b/arch/arm64/boot/dts/lg/Makefile
-@@ -3,4 +3,3 @@ dtb-$(CONFIG_ARCH_LG1K) += lg1313-ref.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/marvell/Makefile b/arch/arm64/boot/dts/marvell/Makefile
-index 6cff81e..b471235 100644
---- a/arch/arm64/boot/dts/marvell/Makefile
-+++ b/arch/arm64/boot/dts/marvell/Makefile
-@@ -12,4 +12,3 @@ dtb-$(CONFIG_ARCH_MVEBU) += armada-8080-db.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/mediatek/Makefile b/arch/arm64/boot/dts/mediatek/Makefile
-index 151723b..80d1743 100644
---- a/arch/arm64/boot/dts/mediatek/Makefile
-+++ b/arch/arm64/boot/dts/mediatek/Makefile
-@@ -7,4 +7,3 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += mt8173-evb.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/nvidia/Makefile b/arch/arm64/boot/dts/nvidia/Makefile
-index 1894145..a9d5196 100644
---- a/arch/arm64/boot/dts/nvidia/Makefile
-+++ b/arch/arm64/boot/dts/nvidia/Makefile
-@@ -6,4 +6,3 @@ dtb-$(CONFIG_ARCH_TEGRA_210_SOC) += tegra210-smaug.dtb
- dtb-$(CONFIG_ARCH_TEGRA_186_SOC) += tegra186-p2771-0000.dtb
- 
- always		:= $(dtb-y)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/qcom/Makefile b/arch/arm64/boot/dts/qcom/Makefile
-index ff81d7e..65af6f9 100644
---- a/arch/arm64/boot/dts/qcom/Makefile
-+++ b/arch/arm64/boot/dts/qcom/Makefile
-@@ -8,4 +8,3 @@ dtb-$(CONFIG_ARCH_QCOM)	+= msm8996-mtp.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/realtek/Makefile b/arch/arm64/boot/dts/realtek/Makefile
-index 8521e92..88cb515 100644
---- a/arch/arm64/boot/dts/realtek/Makefile
-+++ b/arch/arm64/boot/dts/realtek/Makefile
-@@ -2,4 +2,3 @@ dtb-$(CONFIG_ARCH_REALTEK) += rtd1295-zidoo-x9s.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/renesas/Makefile b/arch/arm64/boot/dts/renesas/Makefile
-index 381928b..960dade 100644
---- a/arch/arm64/boot/dts/renesas/Makefile
-+++ b/arch/arm64/boot/dts/renesas/Makefile
-@@ -5,4 +5,3 @@ dtb-$(CONFIG_ARCH_R8A7796) += r8a7796-salvator-x.dtb r8a7796-m3ulcb.dtb
- dtb-$(CONFIG_ARCH_R8A77995) += r8a77995-draak.dtb
- 
- always		:= $(dtb-y)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/rockchip/Makefile b/arch/arm64/boot/dts/rockchip/Makefile
-index f1c9b13..6b6bb1d 100644
---- a/arch/arm64/boot/dts/rockchip/Makefile
-+++ b/arch/arm64/boot/dts/rockchip/Makefile
-@@ -13,4 +13,3 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-sapphire-excavator.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/socionext/Makefile b/arch/arm64/boot/dts/socionext/Makefile
-index 4bc091b..5eed3ce 100644
---- a/arch/arm64/boot/dts/socionext/Makefile
-+++ b/arch/arm64/boot/dts/socionext/Makefile
-@@ -6,4 +6,3 @@ dtb-$(CONFIG_ARCH_UNIPHIER) += \
- 	uniphier-pxs3-ref.dtb
- 
- always		:= $(dtb-y)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/sprd/Makefile b/arch/arm64/boot/dts/sprd/Makefile
-index f0535e6..c91b62e 100644
---- a/arch/arm64/boot/dts/sprd/Makefile
-+++ b/arch/arm64/boot/dts/sprd/Makefile
-@@ -3,4 +3,3 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/xilinx/Makefile b/arch/arm64/boot/dts/xilinx/Makefile
-index ae16427..74e1956 100644
---- a/arch/arm64/boot/dts/xilinx/Makefile
-+++ b/arch/arm64/boot/dts/xilinx/Makefile
-@@ -2,4 +2,3 @@ dtb-$(CONFIG_ARCH_ZYNQMP) += zynqmp-ep108.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/arm64/boot/dts/zte/Makefile b/arch/arm64/boot/dts/zte/Makefile
-index d86c4de..71e0708 100644
---- a/arch/arm64/boot/dts/zte/Makefile
-+++ b/arch/arm64/boot/dts/zte/Makefile
-@@ -3,4 +3,3 @@ dtb-$(CONFIG_ARCH_ZX) += zx296718-pcbox.dtb
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb
-diff --git a/arch/c6x/boot/dts/Makefile b/arch/c6x/boot/dts/Makefile
-index c7528b0..cb4874c 100644
---- a/arch/c6x/boot/dts/Makefile
-+++ b/arch/c6x/boot/dts/Makefile
-@@ -16,5 +16,3 @@ $(obj)/builtin.dtb: $(obj)/$(DTB).dtb
- 	$(call if_changed,cp)
- 
- $(obj)/linked_dtb.o: $(obj)/builtin.dtb
--
--clean-files := *.dtb
-diff --git a/arch/cris/boot/dts/Makefile b/arch/cris/boot/dts/Makefile
-index faf69fb..4a97c7d 100644
---- a/arch/cris/boot/dts/Makefile
-+++ b/arch/cris/boot/dts/Makefile
-@@ -2,5 +2,3 @@ BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_BUILTIN_DTB)).dtb.o
- ifneq ($(CONFIG_BUILTIN_DTB),"")
- obj-$(CONFIG_OF) += $(BUILTIN_DTB)
- endif
--
--clean-files := *.dtb.S
-diff --git a/arch/h8300/boot/dts/Makefile b/arch/h8300/boot/dts/Makefile
-index 6c08467..6f3fe47 100644
---- a/arch/h8300/boot/dts/Makefile
-+++ b/arch/h8300/boot/dts/Makefile
-@@ -12,4 +12,3 @@ dtstree		:= $(srctree)/$(src)
- dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(wildcard $(dtstree)/*.dts))
- 
- always	    := $(dtb-y)
--clean-files := *.dtb.S *.dtb
-diff --git a/arch/metag/boot/dts/Makefile b/arch/metag/boot/dts/Makefile
-index 097c6da..83d5b88 100644
---- a/arch/metag/boot/dts/Makefile
-+++ b/arch/metag/boot/dts/Makefile
-@@ -18,4 +18,3 @@ dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(wildcard $(dts
- .SECONDARY: $(obj)/$(builtindtb-y).dtb.S
- 
- always += $(dtb-y)
--clean-files += *.dtb *.dtb.S
-diff --git a/arch/microblaze/boot/Makefile b/arch/microblaze/boot/Makefile
-index 91d2068..1cb84cf 100644
---- a/arch/microblaze/boot/Makefile
-+++ b/arch/microblaze/boot/Makefile
-@@ -34,4 +34,4 @@ $(obj)/simpleImage.%: vmlinux FORCE
- 	$(call if_changed,strip)
- 	@echo 'Kernel: $@ is ready' ' (#'`cat .version`')'
- 
--clean-files += simpleImage.*.unstrip linux.bin.ub dts/*.dtb
-+clean-files += simpleImage.*.unstrip linux.bin.ub
-diff --git a/arch/mips/boot/dts/Makefile b/arch/mips/boot/dts/Makefile
-index cbac26c..7891ffa 100644
---- a/arch/mips/boot/dts/Makefile
-+++ b/arch/mips/boot/dts/Makefile
-@@ -18,4 +18,3 @@ dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(foreach d,$(dt
- 
- always		:= $(dtb-y)
- subdir-y	:= $(dts-dirs)
--clean-files	:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/brcm/Makefile b/arch/mips/boot/dts/brcm/Makefile
-index d61bc2a..69a69d1 100644
---- a/arch/mips/boot/dts/brcm/Makefile
-+++ b/arch/mips/boot/dts/brcm/Makefile
-@@ -40,4 +40,3 @@ obj-y				+= $(patsubst %.dtb, %.dtb.o, $(dtb-y))
- obj-				+= dummy.o
- 
- always				:= $(dtb-y)
--clean-files			:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/cavium-octeon/Makefile b/arch/mips/boot/dts/cavium-octeon/Makefile
-index 5b99c40..a6fb331 100644
---- a/arch/mips/boot/dts/cavium-octeon/Makefile
-+++ b/arch/mips/boot/dts/cavium-octeon/Makefile
-@@ -6,4 +6,3 @@ obj-y				+= $(patsubst %.dtb, %.dtb.o, $(dtb-y))
- obj-				+= dummy.o
- 
- always				:= $(dtb-y)
--clean-files			:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/img/Makefile b/arch/mips/boot/dts/img/Makefile
-index 3d70958..135f987 100644
---- a/arch/mips/boot/dts/img/Makefile
-+++ b/arch/mips/boot/dts/img/Makefile
-@@ -7,4 +7,3 @@ obj-$(CONFIG_MACH_PISTACHIO)	+= pistachio_marduk.dtb.o
- obj-				+= dummy.o
- 
- always				:= $(dtb-y)
--clean-files			:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/ingenic/Makefile b/arch/mips/boot/dts/ingenic/Makefile
-index f2b864f..e3d0ec1 100644
---- a/arch/mips/boot/dts/ingenic/Makefile
-+++ b/arch/mips/boot/dts/ingenic/Makefile
-@@ -7,4 +7,3 @@ obj-y				+= $(patsubst %.dtb, %.dtb.o, $(dtb-y))
- obj-				+= dummy.o
- 
- always				:= $(dtb-y)
--clean-files			:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/lantiq/Makefile b/arch/mips/boot/dts/lantiq/Makefile
-index 0906c62..5976f08 100644
---- a/arch/mips/boot/dts/lantiq/Makefile
-+++ b/arch/mips/boot/dts/lantiq/Makefile
-@@ -6,4 +6,3 @@ obj-y				+= $(patsubst %.dtb, %.dtb.o, $(dtb-y))
- obj-				+= dummy.o
- 
- always				:= $(dtb-y)
--clean-files			:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/mti/Makefile b/arch/mips/boot/dts/mti/Makefile
-index fcabd69..9a1a6dc 100644
---- a/arch/mips/boot/dts/mti/Makefile
-+++ b/arch/mips/boot/dts/mti/Makefile
-@@ -7,4 +7,3 @@ obj-y				+= $(patsubst %.dtb, %.dtb.o, $(dtb-y))
- obj-				+= dummy.o
- 
- always				:= $(dtb-y)
--clean-files			:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/netlogic/Makefile b/arch/mips/boot/dts/netlogic/Makefile
-index 9868057..6b2cf49 100644
---- a/arch/mips/boot/dts/netlogic/Makefile
-+++ b/arch/mips/boot/dts/netlogic/Makefile
-@@ -10,4 +10,3 @@ obj-y				+= $(patsubst %.dtb, %.dtb.o, $(dtb-y))
- obj-				+= dummy.o
- 
- always				:= $(dtb-y)
--clean-files			:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/ni/Makefile b/arch/mips/boot/dts/ni/Makefile
-index 66cfdff..094da72 100644
---- a/arch/mips/boot/dts/ni/Makefile
-+++ b/arch/mips/boot/dts/ni/Makefile
-@@ -4,4 +4,3 @@ dtb-$(CONFIG_FIT_IMAGE_FDT_NI169445)	+= 169445.dtb
- obj-					+= dummy.o
- 
- always					:= $(dtb-y)
--clean-files				:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/pic32/Makefile b/arch/mips/boot/dts/pic32/Makefile
-index 7ac7905..0ee591b 100644
---- a/arch/mips/boot/dts/pic32/Makefile
-+++ b/arch/mips/boot/dts/pic32/Makefile
-@@ -9,4 +9,3 @@ obj-y				+= $(patsubst %.dtb, %.dtb.o, $(dtb-y))
- obj-				+= dummy.o
- 
- always				:= $(dtb-y)
--clean-files			:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/qca/Makefile b/arch/mips/boot/dts/qca/Makefile
-index 63a9ddf..87cf351c 100644
---- a/arch/mips/boot/dts/qca/Makefile
-+++ b/arch/mips/boot/dts/qca/Makefile
-@@ -9,4 +9,3 @@ dtb-$(CONFIG_ATH79)			+= ar9331_tl_mr3020.dtb
- obj-				+= dummy.o
- 
- always				:= $(dtb-y)
--clean-files			:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/ralink/Makefile b/arch/mips/boot/dts/ralink/Makefile
-index 55e2937..e0e3a9d 100644
---- a/arch/mips/boot/dts/ralink/Makefile
-+++ b/arch/mips/boot/dts/ralink/Makefile
-@@ -11,4 +11,3 @@ obj-y				+= $(patsubst %.dtb, %.dtb.o, $(dtb-y))
- obj-				+= dummy.o
- 
- always				:= $(dtb-y)
--clean-files			:= *.dtb *.dtb.S
-diff --git a/arch/mips/boot/dts/xilfpga/Makefile b/arch/mips/boot/dts/xilfpga/Makefile
-index 913a752..8b9ea11 100644
---- a/arch/mips/boot/dts/xilfpga/Makefile
-+++ b/arch/mips/boot/dts/xilfpga/Makefile
-@@ -6,4 +6,3 @@ obj-y				+= $(patsubst %.dtb, %.dtb.o, $(dtb-y))
- obj-				+= dummy.o
- 
- always				:= $(dtb-y)
--clean-files	:= *.dtb *.dtb.S
-diff --git a/arch/nios2/boot/Makefile b/arch/nios2/boot/Makefile
-index c899876..2ba23a6 100644
---- a/arch/nios2/boot/Makefile
-+++ b/arch/nios2/boot/Makefile
-@@ -53,7 +53,5 @@ $(obj)/%.dtb: $(src)/dts/%.dts FORCE
- 
- $(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
- 
--clean-files := *.dtb
--
- install:
- 	sh $(srctree)/$(src)/install.sh $(KERNELRELEASE) $(BOOTIMAGE) System.map "$(INSTALL_PATH)"
-diff --git a/arch/openrisc/boot/dts/Makefile b/arch/openrisc/boot/dts/Makefile
-index b092d30..0a5017c 100644
---- a/arch/openrisc/boot/dts/Makefile
-+++ b/arch/openrisc/boot/dts/Makefile
-@@ -5,6 +5,4 @@ BUILTIN_DTB :=
- endif
- obj-y += $(BUILTIN_DTB)
- 
--clean-files := *.dtb.S
--
- #DTC_FLAGS ?= -p 1024
-diff --git a/arch/powerpc/boot/Makefile b/arch/powerpc/boot/Makefile
-index c4e6fe3..c3caa5b 100644
---- a/arch/powerpc/boot/Makefile
-+++ b/arch/powerpc/boot/Makefile
-@@ -439,7 +439,7 @@ zInstall: $(CONFIGURE) $(addprefix $(obj)/, $(image-y))
- clean-files += $(image-) $(initrd-) cuImage.* dtbImage.* treeImage.* \
- 	zImage zImage.initrd zImage.chrp zImage.coff zImage.holly \
- 	zImage.miboot zImage.pmac zImage.pseries \
--	zImage.maple simpleImage.* otheros.bld *.dtb
-+	zImage.maple simpleImage.* otheros.bld
- 
- # clean up files cached by wrapper
- clean-kernel-base := vmlinux.strip vmlinux.bin
-diff --git a/arch/sh/boot/dts/Makefile b/arch/sh/boot/dts/Makefile
-index e5ce3a0..715def0 100644
---- a/arch/sh/boot/dts/Makefile
-+++ b/arch/sh/boot/dts/Makefile
-@@ -1,3 +1 @@
- obj-$(CONFIG_USE_BUILTIN_DTB) += $(patsubst "%",%,$(CONFIG_BUILTIN_DTB_SOURCE)).dtb.o
--
--clean-files := *.dtb.S
-diff --git a/arch/xtensa/boot/dts/Makefile b/arch/xtensa/boot/dts/Makefile
-index a15e241..c62dd6c 100644
---- a/arch/xtensa/boot/dts/Makefile
-+++ b/arch/xtensa/boot/dts/Makefile
-@@ -16,5 +16,3 @@ dtstree := $(srctree)/$(src)
- dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(wildcard $(dtstree)/*.dts))
- 
- always += $(dtb-y)
--clean-files += *.dtb *.dtb.S
--
--- 
-2.7.4
+Thanks,
+-Christoffer
