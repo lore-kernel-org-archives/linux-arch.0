@@ -1,42 +1,159 @@
-From: Dave P Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [PATCH v5 00/30] ARM Scalable Vector Extension (SVE)
-Date: Thu, 2 Nov 2017 17:04:34 +0000
-Message-ID: <20171102170434.GD32200@e103592.cambridge.arm.com>
+From: Christoffer Dall <cdall@linaro.org>
+Subject: Re: [PATCH v5 04/30] arm64: KVM: Hide unsupported AArch64 CPU
+ features from guests
+Date: Thu, 2 Nov 2017 20:18:31 +0100
+Message-ID: <20171102191831.GA14144@cbox>
 References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
- <20171102163248.GB595@arm.com>
+ <1509465082-30427-5-git-send-email-Dave.Martin@arm.com>
+ <20171101044729.GA11166@lvm>
+ <20171101102601.GK19485@e103592.cambridge.arm.com>
+ <20171102081557.GB20075@cbox>
+ <20171102110137.GN19485@e103592.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:56046 "EHLO
+        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932571AbdKBTS3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Nov 2017 15:18:29 -0400
+Received: by mail-wm0-f66.google.com with SMTP id y83so999415wmc.4
+        for <linux-arch@vger.kernel.org>; Thu, 02 Nov 2017 12:18:28 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <20171102163248.GB595-5wv7dgnIgG8@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
-Cc: "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, Catalin Marinas <Catalin.Marinas-5wv7dgnIgG8@public.gmane.org>, Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Szabolcs Nagy <Szabolcs.Nagy-5wv7dgnIgG8@public.gmane.org>, "tokamoto-+CUm20s59erQFUHtdCDX3A@public.gmane.org" <tokamoto-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, "kvmarm-FPEHb7Xf0XXUo1n7N8X6UoWGPAHP3yOg@public.gmane.org" <kvmarm-FPEHb7Xf0XXUo1n7N8X6UoWGPAHP3yOg@public.gmane.org>, "libc-alpha-9JcytcrH/bA+uJoB2kUjGw@public.gmane.org" <libc-alpha-9JcytcrH/bA+uJoB2kUjGw@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Alan Hayward <Alan.Hayward-5wv7dgnIgG8@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Christoffer Dall <christoffer.dall-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <Mark.Rutland-5wv7dgnIgG8@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Dmitry Safonov <dsafonov-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, "H . J . Lu" <hjl.tools-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20171102110137.GN19485@e103592.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, Christoffer Dall <christoffer.dall@linaro.org>
 
-On Thu, Nov 02, 2017 at 04:32:49PM +0000, Will Deacon wrote:
-> On Tue, Oct 31, 2017 at 03:50:52PM +0000, Dave Martin wrote:
-> > This series implements Linux kernel support for the ARM Scalable Vector
-> > Extension (SVE). [1]  It supersedes the previous v3: see [3] for link
-> > and full cover letter.
-> >
-> > This is a minor update to v4, but does contain a couple of important
-> > fixes.
->
-> I've pushed a version of this series out to the arm64 devel branch, with
-> a view to putting it into next.
->
-> git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git devel
->
-> Please kick the tyres and let me know of any issues ASAP.
+On Thu, Nov 02, 2017 at 11:01:37AM +0000, Dave Martin wrote:
+> On Thu, Nov 02, 2017 at 09:15:57AM +0100, Christoffer Dall wrote:
+> > On Wed, Nov 01, 2017 at 10:26:03AM +0000, Dave Martin wrote:
+> > > On Wed, Nov 01, 2017 at 05:47:29AM +0100, Christoffer Dall wrote:
+> > > > On Tue, Oct 31, 2017 at 03:50:56PM +0000, Dave Martin wrote:
+> > > > > Currently, a guest kernel sees the true CPU feature registers
+> > > > > (ID_*_EL1) when it reads them using MRS instructions.  This means
+> > > > > that the guest may observe features that are present in the
+> > > > > hardware but the host doesn't understand or doesn't provide support
+> > > > > for.  A guest may legimitately try to use such a feature as per the
+> > > > > architecture, but use of the feature may trap instead of working
+> > > > > normally, triggering undef injection into the guest.
+> > > > > 
+> > > > > This is not a problem for the host, but the guest may go wrong when
+> > > > > running on newer hardware than the host knows about.
+> > > > > 
+> > > > > This patch hides from guest VMs any AArch64-specific CPU features
+> > > > > that the host doesn't support, by exposing to the guest the
+> > > > > sanitised versions of the registers computed by the cpufeatures
+> > > > > framework, instead of the true hardware registers.  To achieve
+> > > > > this, HCR_EL2.TID3 is now set for AArch64 guests, and emulation
+> > > > > code is added to KVM to report the sanitised versions of the
+> > > > > affected registers in response to MRS and register reads from
+> > > > > userspace.
+> > > > > 
+> > > > > The affected registers are removed from invariant_sys_regs[] (since
+> > > > > the invariant_sys_regs handling is no longer quite correct for
+> > > > > them) and added to sys_reg_desgs[], with appropriate access(),
+> > > > > get_user() and set_user() methods.  No runtime vcpu storage is
+> > > > > allocated for the registers: instead, they are read on demand from
+> > > > > the cpufeatures framework.  This may need modification in the
+> > > > > future if there is a need for userspace to customise the features
+> > > > > visible to the guest.
+> > > > > 
+> > > > > Attempts by userspace to write the registers are handled similarly
+> > > > > to the current invariant_sys_regs handling: writes are permitted,
+> > > > > but only if they don't attempt to change the value.  This is
+> > > > > sufficient to support VM snapshot/restore from userspace.
+> > > > > 
+> > > > > Because of the additional registers, restoring a VM on an older
+> > > > > kernel may not work unless userspace knows how to handle the extra
+> > > > > VM registers exposed to the KVM user ABI by this patch.
+> > > > > 
+> > > > > Under the principle of least damage, this patch makes no attempt to
+> > > > > handle any of the other registers currently in
+> > > > > invariant_sys_regs[], or to emulate registers for AArch32: however,
+> > > > > these could be handled in a similar way in future, as necessary.
+> > > > > 
+> > > > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> > > > > Reviewed-by: Marc Zyngier <marc.zyngier@arm.com>
+> > > > > Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+> > > > > Cc: Christoffer Dall <christoffer.dall@linaro.org>
+> > > > > ---
+> > > > >  arch/arm64/include/asm/sysreg.h |   3 +
+> > > > >  arch/arm64/kvm/hyp/switch.c     |   6 +
+> > > > >  arch/arm64/kvm/sys_regs.c       | 282 +++++++++++++++++++++++++++++++++-------
+> > > > >  3 files changed, 246 insertions(+), 45 deletions(-)
+> > > > > 
+> > > > > diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
+> > > > > index 4dceb12..609d59af 100644
+> > > > > --- a/arch/arm64/include/asm/sysreg.h
+> > > > > +++ b/arch/arm64/include/asm/sysreg.h
+> > > > > @@ -149,6 +149,9 @@
+> > > > >  #define SYS_ID_AA64DFR0_EL1		sys_reg(3, 0, 0, 5, 0)
+> > > > >  #define SYS_ID_AA64DFR1_EL1		sys_reg(3, 0, 0, 5, 1)
+> > > > >  
+> > > > > +#define SYS_ID_AA64AFR0_EL1		sys_reg(3, 0, 0, 5, 4)
+> > > > > +#define SYS_ID_AA64AFR1_EL1		sys_reg(3, 0, 0, 5, 5)
+> > > > > +
+> > > > >  #define SYS_ID_AA64ISAR0_EL1		sys_reg(3, 0, 0, 6, 0)
+> > > > >  #define SYS_ID_AA64ISAR1_EL1		sys_reg(3, 0, 0, 6, 1)
+> > > > >  
+> > > > > diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
+> > > > > index 945e79c..35a90b8 100644
+> > > > > --- a/arch/arm64/kvm/hyp/switch.c
+> > > > > +++ b/arch/arm64/kvm/hyp/switch.c
+> > > > > @@ -81,11 +81,17 @@ static void __hyp_text __activate_traps(struct kvm_vcpu *vcpu)
+> > > > >  	 * it will cause an exception.
+> > > > >  	 */
+> > > > >  	val = vcpu->arch.hcr_el2;
+> > > > > +
+> > > > >  	if (!(val & HCR_RW) && system_supports_fpsimd()) {
+> > > > >  		write_sysreg(1 << 30, fpexc32_el2);
+> > > > >  		isb();
+> > > > >  	}
+> > > > > +
+> > > > > +	if (val & HCR_RW) /* for AArch64 only: */
+> > > > > +		val |= HCR_TID3; /* TID3: trap feature register accesses */
+> > > > > +
+> > > > 
+> > > > I still think we should set this in vcpu_reset_hcr() and do it once
+> > > > instead of adding code in every iteration of the critical path.
+> > > 
+> > > Dang, I somehow missed this in the last round.
+> > > 
+> > > How about:
+> > > 
+> > > diff --git a/arch/arm64/include/asm/kvm_emulate.h b/arch/arm64/include/asm/kvm_emulate.h
+> > > index e5df3fc..c87be0d 100644
+> > > --- a/arch/arm64/include/asm/kvm_emulate.h
+> > > +++ b/arch/arm64/include/asm/kvm_emulate.h
+> > > @@ -49,6 +49,14 @@ static inline void vcpu_reset_hcr(struct kvm_vcpu *vcpu)
+> > >  		vcpu->arch.hcr_el2 |= HCR_E2H;
+> > >  	if (test_bit(KVM_ARM_VCPU_EL1_32BIT, vcpu->arch.features))
+> > >  		vcpu->arch.hcr_el2 &= ~HCR_RW;
+> > > +
+> > > +	/*
+> > > +	 * TID3: trap feature register accesses that we virtualise.
+> > > +	 * For now this is conditional, since no AArch32 feature regs
+> > > +	 * are currently virtualised.
+> > > +	 */
+> > > +	if (vcpu->arch.hcr_el2 & HCR_RW)
+> > > +		vcpu->arch.hcr_el2 |= HCR_TID3;
+> > >  }
+> > >  
+> > >  static inline unsigned long vcpu_get_hcr(struct kvm_vcpu *vcpu)
+> > > > 
+> > > > Otherwise this patch looks good to me.
+> > > 
+> > > I'll probably post this as a separate follow-up patch, unless there's
+> > > some other reason for a full respin.
+> > > 
+> > 
+> > Fine with me, just remember to remove the part of the world-switch that
+> > was added in this patch, as that's what we want to savoid.
+> 
+> To be clear, does this amount to an Ack on the _original_ patch,
+> providing I follow up with this optimisation after the merge window?
+> 
+Yes:
 
-No obvious problems so far.
-
-Cheers
----Dave
-IMPORTANT NOTICE: The contents of this email and any attachments are confid=
-ential and may also be privileged. If you are not the intended recipient, p=
-lease notify the sender immediately and do not disclose the contents to any=
- other person, use it for any purpose, or store or copy the information in =
-any medium. Thank you.
+Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
