@@ -1,159 +1,286 @@
-From: Christoffer Dall <cdall@linaro.org>
-Subject: Re: [PATCH v5 04/30] arm64: KVM: Hide unsupported AArch64 CPU
- features from guests
-Date: Thu, 2 Nov 2017 20:18:31 +0100
-Message-ID: <20171102191831.GA14144@cbox>
-References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
- <1509465082-30427-5-git-send-email-Dave.Martin@arm.com>
- <20171101044729.GA11166@lvm>
- <20171101102601.GK19485@e103592.cambridge.arm.com>
- <20171102081557.GB20075@cbox>
- <20171102110137.GN19485@e103592.cambridge.arm.com>
+From: Tomeu Vizoso <tomeu@tomeuvizoso.net>
+Subject: Re: [PATCH v10 20/38] x86, mpparse: Use memremap to map the mpf and
+ mpc data
+Date: Fri, 3 Nov 2017 16:12:03 +0100
+Message-ID: <CAAObsKDNwxevQVjob9zNwBWR+PjL8VVvCuxRwdGmgNgZ0uhEYw@mail.gmail.com>
+References: <cover.1500319216.git.thomas.lendacky@amd.com> <d9464b0d7c861021ed8f494e4a40d6cd10f1eddd.1500319216.git.thomas.lendacky@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:56046 "EHLO
-        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932571AbdKBTS3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Nov 2017 15:18:29 -0400
-Received: by mail-wm0-f66.google.com with SMTP id y83so999415wmc.4
-        for <linux-arch@vger.kernel.org>; Thu, 02 Nov 2017 12:18:28 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20171102110137.GN19485@e103592.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, Christoffer Dall <christoffer.dall@linaro.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <d9464b0d7c861021ed8f494e4a40d6cd10f1eddd.1500319216.git.thomas.lendacky@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: x86@kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, linux-mm@kvack.org, kvm@vger.kernel.org, kasan-dev@googlegroups.com, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Rik van Riel <riel@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Dave
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 02, 2017 at 11:01:37AM +0000, Dave Martin wrote:
-> On Thu, Nov 02, 2017 at 09:15:57AM +0100, Christoffer Dall wrote:
-> > On Wed, Nov 01, 2017 at 10:26:03AM +0000, Dave Martin wrote:
-> > > On Wed, Nov 01, 2017 at 05:47:29AM +0100, Christoffer Dall wrote:
-> > > > On Tue, Oct 31, 2017 at 03:50:56PM +0000, Dave Martin wrote:
-> > > > > Currently, a guest kernel sees the true CPU feature registers
-> > > > > (ID_*_EL1) when it reads them using MRS instructions.  This means
-> > > > > that the guest may observe features that are present in the
-> > > > > hardware but the host doesn't understand or doesn't provide support
-> > > > > for.  A guest may legimitately try to use such a feature as per the
-> > > > > architecture, but use of the feature may trap instead of working
-> > > > > normally, triggering undef injection into the guest.
-> > > > > 
-> > > > > This is not a problem for the host, but the guest may go wrong when
-> > > > > running on newer hardware than the host knows about.
-> > > > > 
-> > > > > This patch hides from guest VMs any AArch64-specific CPU features
-> > > > > that the host doesn't support, by exposing to the guest the
-> > > > > sanitised versions of the registers computed by the cpufeatures
-> > > > > framework, instead of the true hardware registers.  To achieve
-> > > > > this, HCR_EL2.TID3 is now set for AArch64 guests, and emulation
-> > > > > code is added to KVM to report the sanitised versions of the
-> > > > > affected registers in response to MRS and register reads from
-> > > > > userspace.
-> > > > > 
-> > > > > The affected registers are removed from invariant_sys_regs[] (since
-> > > > > the invariant_sys_regs handling is no longer quite correct for
-> > > > > them) and added to sys_reg_desgs[], with appropriate access(),
-> > > > > get_user() and set_user() methods.  No runtime vcpu storage is
-> > > > > allocated for the registers: instead, they are read on demand from
-> > > > > the cpufeatures framework.  This may need modification in the
-> > > > > future if there is a need for userspace to customise the features
-> > > > > visible to the guest.
-> > > > > 
-> > > > > Attempts by userspace to write the registers are handled similarly
-> > > > > to the current invariant_sys_regs handling: writes are permitted,
-> > > > > but only if they don't attempt to change the value.  This is
-> > > > > sufficient to support VM snapshot/restore from userspace.
-> > > > > 
-> > > > > Because of the additional registers, restoring a VM on an older
-> > > > > kernel may not work unless userspace knows how to handle the extra
-> > > > > VM registers exposed to the KVM user ABI by this patch.
-> > > > > 
-> > > > > Under the principle of least damage, this patch makes no attempt to
-> > > > > handle any of the other registers currently in
-> > > > > invariant_sys_regs[], or to emulate registers for AArch32: however,
-> > > > > these could be handled in a similar way in future, as necessary.
-> > > > > 
-> > > > > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> > > > > Reviewed-by: Marc Zyngier <marc.zyngier@arm.com>
-> > > > > Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-> > > > > Cc: Christoffer Dall <christoffer.dall@linaro.org>
-> > > > > ---
-> > > > >  arch/arm64/include/asm/sysreg.h |   3 +
-> > > > >  arch/arm64/kvm/hyp/switch.c     |   6 +
-> > > > >  arch/arm64/kvm/sys_regs.c       | 282 +++++++++++++++++++++++++++++++++-------
-> > > > >  3 files changed, 246 insertions(+), 45 deletions(-)
-> > > > > 
-> > > > > diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-> > > > > index 4dceb12..609d59af 100644
-> > > > > --- a/arch/arm64/include/asm/sysreg.h
-> > > > > +++ b/arch/arm64/include/asm/sysreg.h
-> > > > > @@ -149,6 +149,9 @@
-> > > > >  #define SYS_ID_AA64DFR0_EL1		sys_reg(3, 0, 0, 5, 0)
-> > > > >  #define SYS_ID_AA64DFR1_EL1		sys_reg(3, 0, 0, 5, 1)
-> > > > >  
-> > > > > +#define SYS_ID_AA64AFR0_EL1		sys_reg(3, 0, 0, 5, 4)
-> > > > > +#define SYS_ID_AA64AFR1_EL1		sys_reg(3, 0, 0, 5, 5)
-> > > > > +
-> > > > >  #define SYS_ID_AA64ISAR0_EL1		sys_reg(3, 0, 0, 6, 0)
-> > > > >  #define SYS_ID_AA64ISAR1_EL1		sys_reg(3, 0, 0, 6, 1)
-> > > > >  
-> > > > > diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
-> > > > > index 945e79c..35a90b8 100644
-> > > > > --- a/arch/arm64/kvm/hyp/switch.c
-> > > > > +++ b/arch/arm64/kvm/hyp/switch.c
-> > > > > @@ -81,11 +81,17 @@ static void __hyp_text __activate_traps(struct kvm_vcpu *vcpu)
-> > > > >  	 * it will cause an exception.
-> > > > >  	 */
-> > > > >  	val = vcpu->arch.hcr_el2;
-> > > > > +
-> > > > >  	if (!(val & HCR_RW) && system_supports_fpsimd()) {
-> > > > >  		write_sysreg(1 << 30, fpexc32_el2);
-> > > > >  		isb();
-> > > > >  	}
-> > > > > +
-> > > > > +	if (val & HCR_RW) /* for AArch64 only: */
-> > > > > +		val |= HCR_TID3; /* TID3: trap feature register accesses */
-> > > > > +
-> > > > 
-> > > > I still think we should set this in vcpu_reset_hcr() and do it once
-> > > > instead of adding code in every iteration of the critical path.
-> > > 
-> > > Dang, I somehow missed this in the last round.
-> > > 
-> > > How about:
-> > > 
-> > > diff --git a/arch/arm64/include/asm/kvm_emulate.h b/arch/arm64/include/asm/kvm_emulate.h
-> > > index e5df3fc..c87be0d 100644
-> > > --- a/arch/arm64/include/asm/kvm_emulate.h
-> > > +++ b/arch/arm64/include/asm/kvm_emulate.h
-> > > @@ -49,6 +49,14 @@ static inline void vcpu_reset_hcr(struct kvm_vcpu *vcpu)
-> > >  		vcpu->arch.hcr_el2 |= HCR_E2H;
-> > >  	if (test_bit(KVM_ARM_VCPU_EL1_32BIT, vcpu->arch.features))
-> > >  		vcpu->arch.hcr_el2 &= ~HCR_RW;
-> > > +
-> > > +	/*
-> > > +	 * TID3: trap feature register accesses that we virtualise.
-> > > +	 * For now this is conditional, since no AArch32 feature regs
-> > > +	 * are currently virtualised.
-> > > +	 */
-> > > +	if (vcpu->arch.hcr_el2 & HCR_RW)
-> > > +		vcpu->arch.hcr_el2 |= HCR_TID3;
-> > >  }
-> > >  
-> > >  static inline unsigned long vcpu_get_hcr(struct kvm_vcpu *vcpu)
-> > > > 
-> > > > Otherwise this patch looks good to me.
-> > > 
-> > > I'll probably post this as a separate follow-up patch, unless there's
-> > > some other reason for a full respin.
-> > > 
-> > 
-> > Fine with me, just remember to remove the part of the world-switch that
-> > was added in this patch, as that's what we want to savoid.
-> 
-> To be clear, does this amount to an Ack on the _original_ patch,
-> providing I follow up with this optimisation after the merge window?
-> 
-Yes:
+On 17 July 2017 at 23:10, Tom Lendacky <thomas.lendacky@amd.com> wrote:
+> The SMP MP-table is built by UEFI and placed in memory in a decrypted
+> state. These tables are accessed using a mix of early_memremap(),
+> early_memunmap(), phys_to_virt() and virt_to_phys(). Change all accesses
+> to use early_memremap()/early_memunmap(). This allows for proper setting
+> of the encryption mask so that the data can be successfully accessed when
+> SME is active.
+>
+> Reviewed-by: Borislav Petkov <bp@suse.de>
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/kernel/mpparse.c | 98 +++++++++++++++++++++++++++++++++--------------
+>  1 file changed, 70 insertions(+), 28 deletions(-)
 
-Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
+Hi there,
+
+today I played a bit with crosvm [0] and noticed that 4.14-rc7 doesn't
+boot. git-bisect pointed to this patch, and reverting it indeed gets
+things working again.
+
+Anybody has an idea of why this could be?
+
+Thanks,
+
+Tomeu
+
+[0] https://chromium.googlesource.com/chromiumos/platform/crosvm
+
+>
+> diff --git a/arch/x86/kernel/mpparse.c b/arch/x86/kernel/mpparse.c
+> index fd37f39..5cbb317 100644
+> --- a/arch/x86/kernel/mpparse.c
+> +++ b/arch/x86/kernel/mpparse.c
+> @@ -429,7 +429,7 @@ static inline void __init construct_default_ISA_mptable(int mpc_default_type)
+>         }
+>  }
+>
+> -static struct mpf_intel *mpf_found;
+> +static unsigned long mpf_base;
+>
+>  static unsigned long __init get_mpc_size(unsigned long physptr)
+>  {
+> @@ -451,6 +451,7 @@ static int __init check_physptr(struct mpf_intel *mpf, unsigned int early)
+>
+>         size = get_mpc_size(mpf->physptr);
+>         mpc = early_memremap(mpf->physptr, size);
+> +
+>         /*
+>          * Read the physical hardware table.  Anything here will
+>          * override the defaults.
+> @@ -497,12 +498,12 @@ static int __init check_physptr(struct mpf_intel *mpf, unsigned int early)
+>   */
+>  void __init default_get_smp_config(unsigned int early)
+>  {
+> -       struct mpf_intel *mpf = mpf_found;
+> +       struct mpf_intel *mpf;
+>
+>         if (!smp_found_config)
+>                 return;
+>
+> -       if (!mpf)
+> +       if (!mpf_base)
+>                 return;
+>
+>         if (acpi_lapic && early)
+> @@ -515,6 +516,12 @@ void __init default_get_smp_config(unsigned int early)
+>         if (acpi_lapic && acpi_ioapic)
+>                 return;
+>
+> +       mpf = early_memremap(mpf_base, sizeof(*mpf));
+> +       if (!mpf) {
+> +               pr_err("MPTABLE: error mapping MP table\n");
+> +               return;
+> +       }
+> +
+>         pr_info("Intel MultiProcessor Specification v1.%d\n",
+>                 mpf->specification);
+>  #if defined(CONFIG_X86_LOCAL_APIC) && defined(CONFIG_X86_32)
+> @@ -529,7 +536,7 @@ void __init default_get_smp_config(unsigned int early)
+>         /*
+>          * Now see if we need to read further.
+>          */
+> -       if (mpf->feature1 != 0) {
+> +       if (mpf->feature1) {
+>                 if (early) {
+>                         /*
+>                          * local APIC has default address
+> @@ -542,8 +549,10 @@ void __init default_get_smp_config(unsigned int early)
+>                 construct_default_ISA_mptable(mpf->feature1);
+>
+>         } else if (mpf->physptr) {
+> -               if (check_physptr(mpf, early))
+> +               if (check_physptr(mpf, early)) {
+> +                       early_memunmap(mpf, sizeof(*mpf));
+>                         return;
+> +               }
+>         } else
+>                 BUG();
+>
+> @@ -552,6 +561,8 @@ void __init default_get_smp_config(unsigned int early)
+>         /*
+>          * Only use the first configuration found.
+>          */
+> +
+> +       early_memunmap(mpf, sizeof(*mpf));
+>  }
+>
+>  static void __init smp_reserve_memory(struct mpf_intel *mpf)
+> @@ -561,15 +572,16 @@ static void __init smp_reserve_memory(struct mpf_intel *mpf)
+>
+>  static int __init smp_scan_config(unsigned long base, unsigned long length)
+>  {
+> -       unsigned int *bp = phys_to_virt(base);
+> +       unsigned int *bp;
+>         struct mpf_intel *mpf;
+> -       unsigned long mem;
+> +       int ret = 0;
+>
+>         apic_printk(APIC_VERBOSE, "Scan for SMP in [mem %#010lx-%#010lx]\n",
+>                     base, base + length - 1);
+>         BUILD_BUG_ON(sizeof(*mpf) != 16);
+>
+>         while (length > 0) {
+> +               bp = early_memremap(base, length);
+>                 mpf = (struct mpf_intel *)bp;
+>                 if ((*bp == SMP_MAGIC_IDENT) &&
+>                     (mpf->length == 1) &&
+> @@ -579,24 +591,26 @@ static int __init smp_scan_config(unsigned long base, unsigned long length)
+>  #ifdef CONFIG_X86_LOCAL_APIC
+>                         smp_found_config = 1;
+>  #endif
+> -                       mpf_found = mpf;
+> +                       mpf_base = base;
+>
+> -                       pr_info("found SMP MP-table at [mem %#010llx-%#010llx] mapped at [%p]\n",
+> -                               (unsigned long long) virt_to_phys(mpf),
+> -                               (unsigned long long) virt_to_phys(mpf) +
+> -                               sizeof(*mpf) - 1, mpf);
+> +                       pr_info("found SMP MP-table at [mem %#010lx-%#010lx] mapped at [%p]\n",
+> +                               base, base + sizeof(*mpf) - 1, mpf);
+>
+> -                       mem = virt_to_phys(mpf);
+> -                       memblock_reserve(mem, sizeof(*mpf));
+> +                       memblock_reserve(base, sizeof(*mpf));
+>                         if (mpf->physptr)
+>                                 smp_reserve_memory(mpf);
+>
+> -                       return 1;
+> +                       ret = 1;
+>                 }
+> -               bp += 4;
+> +               early_memunmap(bp, length);
+> +
+> +               if (ret)
+> +                       break;
+> +
+> +               base += 16;
+>                 length -= 16;
+>         }
+> -       return 0;
+> +       return ret;
+>  }
+>
+>  void __init default_find_smp_config(void)
+> @@ -838,29 +852,40 @@ static int __init update_mp_table(void)
+>         char oem[10];
+>         struct mpf_intel *mpf;
+>         struct mpc_table *mpc, *mpc_new;
+> +       unsigned long size;
+>
+>         if (!enable_update_mptable)
+>                 return 0;
+>
+> -       mpf = mpf_found;
+> -       if (!mpf)
+> +       if (!mpf_base)
+> +               return 0;
+> +
+> +       mpf = early_memremap(mpf_base, sizeof(*mpf));
+> +       if (!mpf) {
+> +               pr_err("MPTABLE: mpf early_memremap() failed\n");
+>                 return 0;
+> +       }
+>
+>         /*
+>          * Now see if we need to go further.
+>          */
+> -       if (mpf->feature1 != 0)
+> -               return 0;
+> +       if (mpf->feature1)
+> +               goto do_unmap_mpf;
+>
+>         if (!mpf->physptr)
+> -               return 0;
+> +               goto do_unmap_mpf;
+>
+> -       mpc = phys_to_virt(mpf->physptr);
+> +       size = get_mpc_size(mpf->physptr);
+> +       mpc = early_memremap(mpf->physptr, size);
+> +       if (!mpc) {
+> +               pr_err("MPTABLE: mpc early_memremap() failed\n");
+> +               goto do_unmap_mpf;
+> +       }
+>
+>         if (!smp_check_mpc(mpc, oem, str))
+> -               return 0;
+> +               goto do_unmap_mpc;
+>
+> -       pr_info("mpf: %llx\n", (u64)virt_to_phys(mpf));
+> +       pr_info("mpf: %llx\n", (u64)mpf_base);
+>         pr_info("physptr: %x\n", mpf->physptr);
+>
+>         if (mpc_new_phys && mpc->length > mpc_new_length) {
+> @@ -878,21 +903,32 @@ static int __init update_mp_table(void)
+>                 new = mpf_checksum((unsigned char *)mpc, mpc->length);
+>                 if (old == new) {
+>                         pr_info("mpc is readonly, please try alloc_mptable instead\n");
+> -                       return 0;
+> +                       goto do_unmap_mpc;
+>                 }
+>                 pr_info("use in-position replacing\n");
+>         } else {
+> +               mpc_new = early_memremap(mpc_new_phys, mpc_new_length);
+> +               if (!mpc_new) {
+> +                       pr_err("MPTABLE: new mpc early_memremap() failed\n");
+> +                       goto do_unmap_mpc;
+> +               }
+>                 mpf->physptr = mpc_new_phys;
+> -               mpc_new = phys_to_virt(mpc_new_phys);
+>                 memcpy(mpc_new, mpc, mpc->length);
+> +               early_memunmap(mpc, size);
+>                 mpc = mpc_new;
+> +               size = mpc_new_length;
+>                 /* check if we can modify that */
+>                 if (mpc_new_phys - mpf->physptr) {
+>                         struct mpf_intel *mpf_new;
+>                         /* steal 16 bytes from [0, 1k) */
+> +                       mpf_new = early_memremap(0x400 - 16, sizeof(*mpf_new));
+> +                       if (!mpf_new) {
+> +                               pr_err("MPTABLE: new mpf early_memremap() failed\n");
+> +                               goto do_unmap_mpc;
+> +                       }
+>                         pr_info("mpf new: %x\n", 0x400 - 16);
+> -                       mpf_new = phys_to_virt(0x400 - 16);
+>                         memcpy(mpf_new, mpf, 16);
+> +                       early_memunmap(mpf, sizeof(*mpf));
+>                         mpf = mpf_new;
+>                         mpf->physptr = mpc_new_phys;
+>                 }
+> @@ -909,6 +945,12 @@ static int __init update_mp_table(void)
+>          */
+>         replace_intsrc_all(mpc, mpc_new_phys, mpc_new_length);
+>
+> +do_unmap_mpc:
+> +       early_memunmap(mpc, size);
+> +
+> +do_unmap_mpf:
+> +       early_memunmap(mpf, sizeof(*mpf));
+> +
+>         return 0;
+>  }
+>
+> --
+> 1.9.1
+>
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
