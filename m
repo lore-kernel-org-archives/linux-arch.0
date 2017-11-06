@@ -1,90 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f194.google.com ([209.85.216.194]:45757 "EHLO
-        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752445AbdKFI7i (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 03:59:38 -0500
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:56792 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752535AbdKFJAC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 04:00:02 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v9 28/51] mm: display pkey in smaps if arch_pkeys_enabled() is true
-Date: Mon,  6 Nov 2017 00:57:20 -0800
-Message-ID: <1509958663-18737-29-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v9 37/51] selftest/vm: fix the wrong assert in pkey_disable_set()
+Date: Mon,  6 Nov 2017 00:57:29 -0800
+Message-ID: <1509958663-18737-38-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
-Message-ID: <20171106085720.WIaMc34czmX_UfKiFhUgr_sIPml9aaDv3JFOebVbB7Q@z>
+Message-ID: <20171106085729.N4Ydox89Q2ZeNvTeliCTZidArB1EQOuYzpUwiI6OzCo@z>
 
-Currently the  architecture  specific code is expected to
-display  the  protection  keys  in  smap  for a given vma.
-This can lead to redundant code and possibly to divergent
-formats in which the key gets displayed.
-
-This  patch  changes  the implementation. It displays the
-pkey only if the architecture support pkeys.
-
-x86 arch_show_smap() function is not needed anymore.
-Delete it.
+If the flag is 0, no bits will be set. Hence we cant expect
+the resulting bitmap to have a higher value than what it
+was earlier.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/x86/kernel/setup.c |    8 --------
- fs/proc/task_mmu.c      |   11 ++++++-----
- 2 files changed, 6 insertions(+), 13 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 0957dd7..b8b8d0e 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -1357,11 +1357,3 @@ static int __init register_kernel_offset_dumper(void)
- 	return 0;
- }
- __initcall(register_kernel_offset_dumper);
--
--void arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
--{
--	if (!boot_cpu_has(X86_FEATURE_OSPKE))
--		return;
--
--	seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
--}
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index fad19a0..5ce3ec0 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -18,6 +18,7 @@
- #include <linux/page_idle.h>
- #include <linux/shmem_fs.h>
- #include <linux/uaccess.h>
-+#include <linux/pkeys.h>
- 
- #include <asm/elf.h>
- #include <asm/tlb.h>
-@@ -731,10 +732,6 @@ static int smaps_hugetlb_range(pte_t *pte, unsigned long hmask,
- }
- #endif /* HUGETLB_PAGE */
- 
--void __weak arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
--{
--}
--
- static int show_smap(struct seq_file *m, void *v, int is_pid)
- {
- 	struct proc_maps_private *priv = m->private;
-@@ -854,9 +851,13 @@ static int show_smap(struct seq_file *m, void *v, int is_pid)
- 			   (unsigned long)(mss->pss >> (10 + PSS_SHIFT)));
- 
- 	if (!rollup_mode) {
--		arch_show_smap(m, vma);
-+#ifdef CONFIG_ARCH_HAS_PKEYS
-+		if (arch_pkeys_enabled())
-+			seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
-+#endif
- 		show_smap_vma_flags(m, vma);
- 	}
-+
- 	m_cache_vma(m, vma);
- 	return ret;
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 8e2e277..5aba137 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -443,7 +443,7 @@ void pkey_disable_set(int pkey, int flags)
+ 	dprintf1("%s(%d) pkey_reg: 0x%lx\n",
+ 		__func__, pkey, rdpkey_reg());
+ 	if (flags)
+-		pkey_assert(rdpkey_reg() > orig_pkey_reg);
++		pkey_assert(rdpkey_reg() >= orig_pkey_reg);
+ 	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
+ 		pkey, flags);
  }
 -- 
 1.7.1
