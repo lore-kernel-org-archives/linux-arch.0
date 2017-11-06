@@ -1,101 +1,66 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v9 16/51] powerpc: helper to validate key-access permissions of a pte
-Date: Mon,  6 Nov 2017 00:57:08 -0800
-Message-ID: <1509958663-18737-17-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v9 24/51] powerpc: sys_pkey_alloc() and sys_pkey_free() system calls
+Date: Mon,  6 Nov 2017 00:57:16 -0800
+Message-ID: <1509958663-18737-25-git-send-email-linuxram@us.ibm.com>
 References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-doc-owner@vger.kernel.org>
 In-Reply-To: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-doc-owner@vger.kernel.org
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-helper function that checks if the read/write/execute is allowed
-on the pte.
+Finally this patch provides the ability for a process to
+allocate and free a protection key.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/pgtable.h |    4 +++
- arch/powerpc/include/asm/pkeys.h             |    9 ++++++++
- arch/powerpc/mm/pkeys.c                      |   28 ++++++++++++++++++++++++++
- 3 files changed, 41 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/systbl.h      |    2 ++
+ arch/powerpc/include/asm/unistd.h      |    4 +---
+ arch/powerpc/include/uapi/asm/unistd.h |    2 ++
+ 3 files changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-index 4c1ee6e..c277a63 100644
---- a/arch/powerpc/include/asm/book3s/64/pgtable.h
-+++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-@@ -462,6 +462,10 @@ static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
- 		pte_update(mm, addr, ptep, 0, _PAGE_PRIVILEGED, 1);
- }
+diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
+index 449912f..dea4a95 100644
+--- a/arch/powerpc/include/asm/systbl.h
++++ b/arch/powerpc/include/asm/systbl.h
+@@ -389,3 +389,5 @@
+ COMPAT_SYS_SPU(pwritev2)
+ SYSCALL(kexec_file_load)
+ SYSCALL(statx)
++SYSCALL(pkey_alloc)
++SYSCALL(pkey_free)
+diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
+index 9ba11db..e0273bc 100644
+--- a/arch/powerpc/include/asm/unistd.h
++++ b/arch/powerpc/include/asm/unistd.h
+@@ -12,13 +12,11 @@
+ #include <uapi/asm/unistd.h>
  
-+#ifdef CONFIG_PPC_MEM_KEYS
-+extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
-+#endif /* CONFIG_PPC_MEM_KEYS */
-+
- #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
- static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
- 				       unsigned long addr, pte_t *ptep)
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 06a58fe..3437a50 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -82,6 +82,15 @@ static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
- 		((pteflags & H_PTE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
- }
  
-+static inline u16 pte_to_pkey_bits(u64 pteflags)
-+{
-+	return (((pteflags & H_PTE_PKEY_BIT0) ? 0x10 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT1) ? 0x8 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT2) ? 0x4 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT3) ? 0x2 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT4) ? 0x1 : 0x0UL));
-+}
-+
- #define pkey_alloc_mask(pkey) (0x1 << pkey)
+-#define NR_syscalls		384
++#define NR_syscalls		386
  
- #define mm_pkey_allocation_map(mm) (mm->context.pkey_allocation_map)
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index f1c6195..13902be 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -347,3 +347,31 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
- 	/* Nothing to override. */
- 	return vma_pkey(vma);
- }
-+
-+static bool pkey_access_permitted(int pkey, bool write, bool execute)
-+{
-+	int pkey_shift;
-+	u64 amr;
-+
-+	if (!pkey)
-+		return true;
-+
-+	if (!is_pkey_enabled(pkey))
-+		return true;
-+
-+	pkey_shift = pkeyshift(pkey);
-+	if (execute && !(read_iamr() & (IAMR_EX_BIT << pkey_shift)))
-+		return true;
-+
-+	amr = read_amr(); /* Delay reading amr until absolutely needed */
-+	return ((!write && !(amr & (AMR_RD_BIT << pkey_shift))) ||
-+		(write &&  !(amr & (AMR_WR_BIT << pkey_shift))));
-+}
-+
-+bool arch_pte_access_permitted(u64 pte, bool write, bool execute)
-+{
-+	if (static_branch_likely(&pkey_disabled))
-+		return true;
-+
-+	return pkey_access_permitted(pte_to_pkey_bits(pte), write, execute);
-+}
+ #define __NR__exit __NR_exit
+ 
+ #define __IGNORE_pkey_mprotect
+-#define __IGNORE_pkey_alloc
+-#define __IGNORE_pkey_free
+ 
+ #ifndef __ASSEMBLY__
+ 
+diff --git a/arch/powerpc/include/uapi/asm/unistd.h b/arch/powerpc/include/uapi/asm/unistd.h
+index df8684f..5db4385 100644
+--- a/arch/powerpc/include/uapi/asm/unistd.h
++++ b/arch/powerpc/include/uapi/asm/unistd.h
+@@ -395,5 +395,7 @@
+ #define __NR_pwritev2		381
+ #define __NR_kexec_file_load	382
+ #define __NR_statx		383
++#define __NR_pkey_alloc		384
++#define __NR_pkey_free		385
+ 
+ #endif /* _UAPI_ASM_POWERPC_UNISTD_H_ */
 -- 
 1.7.1
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
