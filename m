@@ -1,100 +1,134 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:51975 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750888AbdKFI7F (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 03:59:05 -0500
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:56710 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752117AbdKFI67 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 03:58:59 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v9 16/51] powerpc: helper to validate key-access permissions of a pte
-Date: Mon,  6 Nov 2017 00:57:08 -0800
-Message-ID: <1509958663-18737-17-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v9 14/51] powerpc: map vma key-protection bits to pte key bits.
+Date: Mon,  6 Nov 2017 00:57:06 -0800
+Message-ID: <1509958663-18737-15-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
-Message-ID: <20171106085708.nfxdFyiXmOklknBiBNd6Z4DP9KSM6RWoC9obOdpyImk@z>
+Message-ID: <20171106085706.dPuT4JTbYiTvl8WYZoDca9_2ESpmz6MS6BOHfZDMdzs@z>
 
-helper function that checks if the read/write/execute is allowed
-on the pte.
+Map  the  key  protection  bits of the vma to the pkey bits in
+the PTE.
+
+The PTE  bits used  for pkey  are  3,4,5,6  and 57. The  first
+four bits are the same four bits that were freed up  initially
+in this patch series. remember? :-) Without those four bits
+this patch wouldn't be possible.
+
+BUT, on 4k kernel, bit 3, and 4 could not be freed up. remember?
+Hence we have to be satisfied with 5, 6 and 7.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/pgtable.h |    4 +++
- arch/powerpc/include/asm/pkeys.h             |    9 ++++++++
- arch/powerpc/mm/pkeys.c                      |   28 ++++++++++++++++++++++++++
- 3 files changed, 41 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/book3s/64/pgtable.h |   25 ++++++++++++++++++++++++-
+ arch/powerpc/include/asm/mman.h              |    6 ++++++
+ arch/powerpc/include/asm/pkeys.h             |   12 ++++++++++++
+ 3 files changed, 42 insertions(+), 1 deletions(-)
 
 diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
-index 4c1ee6e..c277a63 100644
+index 9a677cd..4c1ee6e 100644
 --- a/arch/powerpc/include/asm/book3s/64/pgtable.h
 +++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-@@ -462,6 +462,10 @@ static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
- 		pte_update(mm, addr, ptep, 0, _PAGE_PRIVILEGED, 1);
- }
+@@ -39,6 +39,7 @@
+ #define _RPAGE_RSV2		0x0800000000000000UL
+ #define _RPAGE_RSV3		0x0400000000000000UL
+ #define _RPAGE_RSV4		0x0200000000000000UL
++#define _RPAGE_RSV5		0x00040UL
+ 
+ #define _PAGE_PTE		0x4000000000000000UL	/* distinguishes PTEs from pointers */
+ #define _PAGE_PRESENT		0x8000000000000000UL	/* pte contains a translation */
+@@ -58,6 +59,25 @@
+ /* Max physical address bit as per radix table */
+ #define _RPAGE_PA_MAX		57
  
 +#ifdef CONFIG_PPC_MEM_KEYS
-+extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
-+#endif /* CONFIG_PPC_MEM_KEYS */
++#ifdef CONFIG_PPC_64K_PAGES
++#define H_PTE_PKEY_BIT0	_RPAGE_RSV1
++#define H_PTE_PKEY_BIT1	_RPAGE_RSV2
++#else /* CONFIG_PPC_64K_PAGES */
++#define H_PTE_PKEY_BIT0	0 /* _RPAGE_RSV1 is not available */
++#define H_PTE_PKEY_BIT1	0 /* _RPAGE_RSV2 is not available */
++#endif /* CONFIG_PPC_64K_PAGES */
++#define H_PTE_PKEY_BIT2	_RPAGE_RSV3
++#define H_PTE_PKEY_BIT3	_RPAGE_RSV4
++#define H_PTE_PKEY_BIT4	_RPAGE_RSV5
++#else /*  CONFIG_PPC_MEM_KEYS */
++#define H_PTE_PKEY_BIT0	0
++#define H_PTE_PKEY_BIT1	0
++#define H_PTE_PKEY_BIT2	0
++#define H_PTE_PKEY_BIT3	0
++#define H_PTE_PKEY_BIT4	0
++#endif /*  CONFIG_PPC_MEM_KEYS */
 +
- #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
- static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
- 				       unsigned long addr, pte_t *ptep)
+ /*
+  * Max physical address bit we will use for now.
+  *
+@@ -121,13 +141,16 @@
+ #define _PAGE_CHG_MASK	(PTE_RPN_MASK | _PAGE_HPTEFLAGS | _PAGE_DIRTY | \
+ 			 _PAGE_ACCESSED | _PAGE_SPECIAL | _PAGE_PTE |	\
+ 			 _PAGE_SOFT_DIRTY)
++
++#define H_PTE_PKEY  (H_PTE_PKEY_BIT0 | H_PTE_PKEY_BIT1 | H_PTE_PKEY_BIT2 | \
++		     H_PTE_PKEY_BIT3 | H_PTE_PKEY_BIT4)
+ /*
+  * Mask of bits returned by pte_pgprot()
+  */
+ #define PAGE_PROT_BITS  (_PAGE_SAO | _PAGE_NON_IDEMPOTENT | _PAGE_TOLERANT | \
+ 			 H_PAGE_4K_PFN | _PAGE_PRIVILEGED | _PAGE_ACCESSED | \
+ 			 _PAGE_READ | _PAGE_WRITE |  _PAGE_DIRTY | _PAGE_EXEC | \
+-			 _PAGE_SOFT_DIRTY)
++			 _PAGE_SOFT_DIRTY | H_PTE_PKEY)
+ /*
+  * We define 2 sets of base prot bits, one for basic pages (ie,
+  * cacheable kernel and user pages) and one for non cacheable
+diff --git a/arch/powerpc/include/asm/mman.h b/arch/powerpc/include/asm/mman.h
+index 2999478..07e3f54 100644
+--- a/arch/powerpc/include/asm/mman.h
++++ b/arch/powerpc/include/asm/mman.h
+@@ -33,7 +33,13 @@ static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
+ 
+ static inline pgprot_t arch_vm_get_page_prot(unsigned long vm_flags)
+ {
++#ifdef CONFIG_PPC_MEM_KEYS
++	return (vm_flags & VM_SAO) ?
++		__pgprot(_PAGE_SAO | vmflag_to_pte_pkey_bits(vm_flags)) :
++		__pgprot(0 | vmflag_to_pte_pkey_bits(vm_flags));
++#else
+ 	return (vm_flags & VM_SAO) ? __pgprot(_PAGE_SAO) : __pgprot(0);
++#endif
+ }
+ #define arch_vm_get_page_prot(vm_flags) arch_vm_get_page_prot(vm_flags)
+ 
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 06a58fe..3437a50 100644
+index 441bbf3..cfe61a9 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -82,6 +82,15 @@ static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
- 		((pteflags & H_PTE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
+@@ -52,6 +52,18 @@ static inline u64 pkey_to_vmflag_bits(u16 pkey)
+ 	return (((u64)pkey << VM_PKEY_SHIFT) & ARCH_VM_PKEY_FLAGS);
  }
  
-+static inline u16 pte_to_pkey_bits(u64 pteflags)
-+{
-+	return (((pteflags & H_PTE_PKEY_BIT0) ? 0x10 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT1) ? 0x8 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT2) ? 0x4 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT3) ? 0x2 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT4) ? 0x1 : 0x0UL));
-+}
-+
- #define pkey_alloc_mask(pkey) (0x1 << pkey)
- 
- #define mm_pkey_allocation_map(mm) (mm->context.pkey_allocation_map)
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index f1c6195..13902be 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -347,3 +347,31 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot,
- 	/* Nothing to override. */
- 	return vma_pkey(vma);
- }
-+
-+static bool pkey_access_permitted(int pkey, bool write, bool execute)
-+{
-+	int pkey_shift;
-+	u64 amr;
-+
-+	if (!pkey)
-+		return true;
-+
-+	if (!is_pkey_enabled(pkey))
-+		return true;
-+
-+	pkey_shift = pkeyshift(pkey);
-+	if (execute && !(read_iamr() & (IAMR_EX_BIT << pkey_shift)))
-+		return true;
-+
-+	amr = read_amr(); /* Delay reading amr until absolutely needed */
-+	return ((!write && !(amr & (AMR_RD_BIT << pkey_shift))) ||
-+		(write &&  !(amr & (AMR_WR_BIT << pkey_shift))));
-+}
-+
-+bool arch_pte_access_permitted(u64 pte, bool write, bool execute)
++static inline u64 vmflag_to_pte_pkey_bits(u64 vm_flags)
 +{
 +	if (static_branch_likely(&pkey_disabled))
-+		return true;
++		return 0x0UL;
 +
-+	return pkey_access_permitted(pte_to_pkey_bits(pte), write, execute);
++	return (((vm_flags & VM_PKEY_BIT0) ? H_PTE_PKEY_BIT4 : 0x0UL) |
++		((vm_flags & VM_PKEY_BIT1) ? H_PTE_PKEY_BIT3 : 0x0UL) |
++		((vm_flags & VM_PKEY_BIT2) ? H_PTE_PKEY_BIT2 : 0x0UL) |
++		((vm_flags & VM_PKEY_BIT3) ? H_PTE_PKEY_BIT1 : 0x0UL) |
++		((vm_flags & VM_PKEY_BIT4) ? H_PTE_PKEY_BIT0 : 0x0UL));
 +}
++
+ static inline int vma_pkey(struct vm_area_struct *vma)
+ {
+ 	if (static_branch_likely(&pkey_disabled))
 -- 
 1.7.1
