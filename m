@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v9 26/51] powerpc: add sys_pkey_modify() system call
-Date: Mon,  6 Nov 2017 00:57:18 -0800
-Message-ID: <1509958663-18737-27-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v9 28/51] mm: display pkey in smaps if arch_pkeys_enabled() is true
+Date: Mon,  6 Nov 2017 00:57:20 -0800
+Message-ID: <1509958663-18737-29-git-send-email-linuxram@us.ibm.com>
 References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
@@ -10,100 +10,76 @@ To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-sys_pkey_modify()  is   powerpc  specific  system  call.  It
-enables  the ability to modify *any* attribute of a key.
+Currently the  architecture  specific code is expected to
+display  the  protection  keys  in  smap  for a given vma.
+This can lead to redundant code and possibly to divergent
+formats in which the key gets displayed.
 
-Since powerpc disallows modification of IAMR from user space
-an application is unable to change a key's execute-attribute.
+This  patch  changes  the implementation. It displays the
+pkey only if the architecture support pkeys.
 
-This system call helps accomplish the above.
+x86 arch_show_smap() function is not needed anymore.
+Delete it.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/systbl.h      |    1 +
- arch/powerpc/include/asm/unistd.h      |    2 +-
- arch/powerpc/include/uapi/asm/unistd.h |    1 +
- arch/powerpc/kernel/entry_64.S         |    9 +++++++++
- arch/powerpc/mm/pkeys.c                |   17 +++++++++++++++++
- 5 files changed, 29 insertions(+), 1 deletions(-)
+ arch/x86/kernel/setup.c |    8 --------
+ fs/proc/task_mmu.c      |   11 ++++++-----
+ 2 files changed, 6 insertions(+), 13 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
-index d61f9c9..533cdc5 100644
---- a/arch/powerpc/include/asm/systbl.h
-+++ b/arch/powerpc/include/asm/systbl.h
-@@ -392,3 +392,4 @@
- SYSCALL(pkey_alloc)
- SYSCALL(pkey_free)
- SYSCALL(pkey_mprotect)
-+PPC64ONLY(pkey_modify)
-diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
-index daf1ba9..1e97086 100644
---- a/arch/powerpc/include/asm/unistd.h
-+++ b/arch/powerpc/include/asm/unistd.h
-@@ -12,7 +12,7 @@
- #include <uapi/asm/unistd.h>
- 
- 
--#define NR_syscalls		387
-+#define NR_syscalls		388
- 
- #define __NR__exit __NR_exit
- 
-diff --git a/arch/powerpc/include/uapi/asm/unistd.h b/arch/powerpc/include/uapi/asm/unistd.h
-index 389c36f..318cd79 100644
---- a/arch/powerpc/include/uapi/asm/unistd.h
-+++ b/arch/powerpc/include/uapi/asm/unistd.h
-@@ -398,5 +398,6 @@
- #define __NR_pkey_alloc		384
- #define __NR_pkey_free		385
- #define __NR_pkey_mprotect	386
-+#define __NR_pkey_modify	387
- 
- #endif /* _UAPI_ASM_POWERPC_UNISTD_H_ */
-diff --git a/arch/powerpc/kernel/entry_64.S b/arch/powerpc/kernel/entry_64.S
-index 4a0fd4f..47c85f9 100644
---- a/arch/powerpc/kernel/entry_64.S
-+++ b/arch/powerpc/kernel/entry_64.S
-@@ -455,6 +455,15 @@ _GLOBAL(ppc_switch_endian)
- 	bl	sys_switch_endian
- 	b	.Lsyscall_exit
- 
-+_GLOBAL(ppc_pkey_modify)
-+	bl	save_nvgprs
-+#ifdef  CONFIG_PPC_MEM_KEYS
-+	bl	sys_pkey_modify
-+#else
-+	bl	sys_ni_syscall
-+#endif
-+	b	.Lsyscall_exit
-+
- _GLOBAL(ret_from_fork)
- 	bl	schedule_tail
- 	REST_NVGPRS(r1)
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 5047371..2612f61 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -420,3 +420,20 @@ bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write,
- 
- 	return pkey_access_permitted(vma_pkey(vma), write, execute);
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 0957dd7..b8b8d0e 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -1357,11 +1357,3 @@ static int __init register_kernel_offset_dumper(void)
+ 	return 0;
  }
+ __initcall(register_kernel_offset_dumper);
+-
+-void arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
+-{
+-	if (!boot_cpu_has(X86_FEATURE_OSPKE))
+-		return;
+-
+-	seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
+-}
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index fad19a0..5ce3ec0 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -18,6 +18,7 @@
+ #include <linux/page_idle.h>
+ #include <linux/shmem_fs.h>
+ #include <linux/uaccess.h>
++#include <linux/pkeys.h>
+ 
+ #include <asm/elf.h>
+ #include <asm/tlb.h>
+@@ -731,10 +732,6 @@ static int smaps_hugetlb_range(pte_t *pte, unsigned long hmask,
+ }
+ #endif /* HUGETLB_PAGE */
+ 
+-void __weak arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
+-{
+-}
+-
+ static int show_smap(struct seq_file *m, void *v, int is_pid)
+ {
+ 	struct proc_maps_private *priv = m->private;
+@@ -854,9 +851,13 @@ static int show_smap(struct seq_file *m, void *v, int is_pid)
+ 			   (unsigned long)(mss->pss >> (10 + PSS_SHIFT)));
+ 
+ 	if (!rollup_mode) {
+-		arch_show_smap(m, vma);
++#ifdef CONFIG_ARCH_HAS_PKEYS
++		if (arch_pkeys_enabled())
++			seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
++#endif
+ 		show_smap_vma_flags(m, vma);
+ 	}
 +
-+long sys_pkey_modify(int pkey, unsigned long new_val)
-+{
-+	bool ret;
-+	/* Check for unsupported init values */
-+	if (new_val & ~PKEY_ACCESS_MASK)
-+		return -EINVAL;
-+
-+	down_write(&current->mm->mmap_sem);
-+	ret = mm_pkey_is_allocated(current->mm, pkey);
-+	up_write(&current->mm->mmap_sem);
-+
-+	if (!ret)
-+		return -EINVAL;
-+
-+	return __arch_set_user_pkey_access(current, pkey, new_val);
-+}
+ 	m_cache_vma(m, vma);
+ 	return ret;
+ }
 -- 
 1.7.1
