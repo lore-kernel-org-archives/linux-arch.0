@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v9 05/51] powerpc: helper function to read,write AMR,IAMR,UAMOR registers
-Date: Mon,  6 Nov 2017 00:56:57 -0800
-Message-ID: <1509958663-18737-6-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v9 07/51] powerpc: cleanup AMR, IAMR when a key is allocated or freed
+Date: Mon,  6 Nov 2017 00:56:59 -0800
+Message-ID: <1509958663-18737-8-git-send-email-linuxram@us.ibm.com>
 References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
@@ -10,64 +10,54 @@ To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-Implements helper functions to read and write the key related
-registers; AMR, IAMR, UAMOR.
+Cleanup the bits corresponding to a key in the AMR, and IAMR
+register, when the key is newly allocated/activated or is freed.
+We dont want some residual bits cause the hardware enforce
+unintended behavior when the key is activated or freed.
 
-AMR register tracks the read,write permission of a key
-IAMR register tracks the execute permission of a key
-UAMOR register enables and disables a key
-
-Acked-by: Balbir Singh <bsingharora@gmail.com>
 Reviewed-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/mm/pkeys.c |   36 ++++++++++++++++++++++++++++++++++++
- 1 files changed, 36 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/pkeys.h |   12 ++++++++++++
+ 1 files changed, 12 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 512bdf2..b6bdfdf 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -61,3 +61,39 @@ void __init pkey_initialize(void)
- 	for (i = 2; i < (pkeys_total - os_reserved); i++)
- 		initial_allocation_mask &= ~(0x1 << i);
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+index e5deac7..0d00a54 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -69,6 +69,8 @@ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
+ 		__mm_pkey_is_allocated(mm, pkey));
  }
+ 
++extern void __arch_activate_pkey(int pkey);
++extern void __arch_deactivate_pkey(int pkey);
+ /*
+  * Returns a positive, 5-bit key on success, or -1 on failure.
+  * Relies on the mmap_sem to protect against concurrency in mm_pkey_alloc() and
+@@ -96,6 +98,12 @@ static inline int mm_pkey_alloc(struct mm_struct *mm)
+ 
+ 	ret = ffz((u32)mm_pkey_allocation_map(mm));
+ 	__mm_pkey_allocated(mm, ret);
 +
-+static inline u64 read_amr(void)
-+{
-+	return mfspr(SPRN_AMR);
-+}
-+
-+static inline void write_amr(u64 value)
-+{
-+	mtspr(SPRN_AMR, value);
-+}
-+
-+static inline u64 read_iamr(void)
-+{
-+	if (!likely(pkey_execute_disable_supported))
-+		return 0x0UL;
-+
-+	return mfspr(SPRN_IAMR);
-+}
-+
-+static inline void write_iamr(u64 value)
-+{
-+	if (!likely(pkey_execute_disable_supported))
-+		return;
-+
-+	mtspr(SPRN_IAMR, value);
-+}
-+
-+static inline u64 read_uamor(void)
-+{
-+	return mfspr(SPRN_UAMOR);
-+}
-+
-+static inline void write_uamor(u64 value)
-+{
-+	mtspr(SPRN_UAMOR, value);
-+}
++	/*
++	 * Enable the key in the hardware
++	 */
++	if (ret > 0)
++		__arch_activate_pkey(ret);
+ 	return ret;
+ }
+ 
+@@ -107,6 +115,10 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
+ 	if (!mm_pkey_is_allocated(mm, pkey))
+ 		return -EINVAL;
+ 
++	/*
++	 * Disable the key in the hardware
++	 */
++	__arch_deactivate_pkey(pkey);
+ 	__mm_pkey_free(mm, pkey);
+ 
+ 	return 0;
 -- 
 1.7.1
 
