@@ -1,325 +1,488 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:50087 "EHLO
+Received: from mail-qk0-f193.google.com ([209.85.220.193]:51042 "EHLO
         mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751140AbdKFI6V (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 03:58:21 -0500
+        with ESMTP id S1752344AbdKFJAr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 04:00:47 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v9 00/51] powerpc, mm: Memory Protection Keys
-Date: Mon,  6 Nov 2017 00:56:52 -0800
-Message-ID: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v9 51/51] selftests/powerpc: Add core file test for Protection Key register
+Date: Mon,  6 Nov 2017 00:57:43 -0800
+Message-ID: <1509958663-18737-52-git-send-email-linuxram@us.ibm.com>
+In-Reply-To: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
+References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
-Message-ID: <20171106085652.o4x3Gxvi8AorVDkzz1qrUDcrU5p6l6UMS2_hCfH7Xpg@z>
+Message-ID: <20171106085743.Pmg_kzcHLIoZkwiQh_GT5pxLPGUuwvy72YfCrm8tmiA@z>
 
-Memory protection keys enable applications to protect its
-address space from inadvertent access from or corruption
-by itself.
+From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 
-These patches along with the pte-bit freeing patch series
-enables the protection key feature on powerpc; 4k and 64k
-hashpage kernels. It also changes the generic and x86
-code to expose memkey features through sysfs. Finally
-testcases and Documentation is updated.
+This test verifies that the AMR is being written to a
+process' core file.
 
-All patches can be found at --
-https://github.com/rampai/memorykeys.git memkey.v9
-
-The overall idea:
------------------
- A process allocates a key and associates it with
- an address range within its address space.
- The process then can dynamically set read/write 
- permissions on the key without involving the 
- kernel. Any code that violates the permissions
- of the address space; as defined by its associated
- key, will receive a segmentation fault.
-
-This patch series enables the feature on PPC64 HPTE
-platform.
-
-ISA3.0 section 5.7.13 describes the detailed
-specifications.
-
-
-Highlevel view of the design:
----------------------------
-When an application associates a key with a address
-address range, program the key in the Linux PTE.
-When the MMU detects a page fault, allocate a hash
-page and program the key into HPTE. And finally
-when the MMU detects a key violation; due to
-invalid application access, invoke the registered
-signal handler and provide the violated key number.
-
-
-Testing:
--------
-This patch series has passed all the protection key
-tests available in the selftest directory.The
-tests are updated to work on both x86 and powerpc.
-The selftests have passed on x86 and powerpc hardware.
-
-History:
--------
-version v9:
-	(1) used jump-labels to optimize code
-		-- Balbir
-	(2) fixed a register initialization bug noted
-		by Balbir
-	(3) fixed inappropriate use of paca to pass
-		siginfo and keys to signal handler
-	(4) Cleanup of comment style not to be right 
-		justified -- mpe
-	(5) restructured the patches to depend on the
-		availability of VM_PKEY_BIT4 in
-		include/linux/mm.h
-	(6) Incorporated comments from Dave Hansen
-		towards changes to selftest and got
-		them tested on x86.
-
-version v8:
-	(1) Contents of the AMR register withdrawn from
-	the siginfo structure. Applications can always
-	read the AMR register.
-	(2) AMR/IAMR/UAMOR are now available through 
-		ptrace system call. -- thanks to Thiago
-	(3) code changes to handle legacy power cpus
-	that do not support execute-disable.
-	(4) incorporates many code improvement
-		suggestions.
-
-version v7:
-	(1) refers to device tree property to enable
-		protection keys.
-	(2) adds 4K PTE support.
-	(3) fixes a couple of bugs noticed by Thiago
-	(4) decouples this patch series from arch-
-	 independent code. This patch series can
-	 now stand by itself, with one kludge
-	patch(2).
-version v7:
-	(1) refers to device tree property to enable
-		protection keys.
-	(2) adds 4K PTE support.
-	(3) fixes a couple of bugs noticed by Thiago
-	(4) decouples this patch series from arch-
-	 independent code. This patch series can
-	 now stand by itself, with one kludge
-	 patch(2).
-
-version v6:
-	(1) selftest changes are broken down into 20
-		incremental patches.
-	(2) A separate key allocation mask that
-		includes PKEY_DISABLE_EXECUTE is 
-		added for powerpc
-	(3) pkey feature is enabled for 64K HPT case
-		only. RPT and 4k HPT is disabled.
-	(4) Documentation is updated to better 
-		capture the semantics.
-	(5) introduced arch_pkeys_enabled() to find
-		if an arch enables pkeys. Correspond-
-		ing change the logic that displays
-		key value in smaps.
-	(6) code rearranged in many places based on
-		comments from Dave Hansen, Balbir,
-		Anshuman.	
-	(7) fixed one bug where a bogus key could be
-		associated successfully in
-		pkey_mprotect().
-
-version v5:
-	(1) reverted back to the old design -- store
-	 the key in the pte, instead of bypassing
-	 it. The v4 design slowed down the hash
-	 page path.
-	(2) detects key violation when kernel is told
-		to access user pages.
-	(3) further refined the patches into smaller
-		consumable units
-	(4) page faults handlers captures the fault-
-		ing key 
-	 from the pte instead of the vma. This
-	 closes a race between where the key 
-	 update in the vma and a key fault caused
-	 by the key programmed in the pte.
-	(5) a key created with access-denied should
-	 also set it up to deny write. Fixed it.
-	(6) protection-key number is displayed in
- 		smaps the x86 way.
-
-version v4:
-	(1) patches no more depend on the pte bits
-		to program the hpte
-			-- comment by Balbir
-	(2) documentation updates
-	(3) fixed a bug in the selftest.
-	(4) unlike x86, powerpc lets signal handler
-		change key permission bits; the
-		change will persist across signal
-		handler boundaries. Earlier we
-		allowed the signal handler to
-		modify a field in the siginfo
-		structure which would than be used
-		by the kernel to program the key
-		protection register (AMR)
-		 -- resolves a issue raised by Ben.
-		"Calls to sys_swapcontext with a
-		made-up context will end up with a
-		crap AMR if done by code who didn't
-		know about that register".
-	(5) these changes enable protection keys on
- 		4k-page kernel aswell.
-
-version v3:
-	(1) split the patches into smaller consumable
-		patches.
-	(2) added the ability to disable execute
-		permission on a key at creation.
-	(3) rename calc_pte_to_hpte_pkey_bits() to
-	pte_to_hpte_pkey_bits()
-		-- suggested by Anshuman
-	(4) some code optimization and clarity in
-		do_page_fault()
-	(5) A bug fix while invalidating a hpte slot
-		in __hash_page_4K()
-		-- noticed by Aneesh
-	
-
-version v2:
-	(1) documentation and selftest added.
- 	(2) fixed a bug in 4k hpte backed 64k pte
-		where page invalidation was not
-		done correctly, and initialization
-		of second-part-of-the-pte was not
-		done correctly if the pte was not
-		yet Hashed with a hpte.
-		--	Reported by Aneesh.
-	(3) Fixed ABI breakage caused in siginfo
-		structure.
-		-- Reported by Anshuman.
-	
-
-version v1: Initial version
-
-Ram Pai (47):
-  mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS
-    is enabled
-  mm, powerpc, x86: introduce an additional vma bit for powerpc pkey
-  powerpc: initial pkey plumbing
-  powerpc: track allocation status of all pkeys
-  powerpc: helper function to read,write AMR,IAMR,UAMOR registers
-  powerpc: helper functions to initialize AMR, IAMR and UAMOR registers
-  powerpc: cleanup AMR, IAMR when a key is allocated or freed
-  powerpc: implementation for arch_set_user_pkey_access()
-  powerpc: ability to create execute-disabled pkeys
-  powerpc: store and restore the pkey state across context switches
-  powerpc: introduce execute-only pkey
-  powerpc: ability to associate pkey to a vma
-  powerpc: implementation for arch_override_mprotect_pkey()
-  powerpc: map vma key-protection bits to pte key bits.
-  powerpc: Program HPTE key protection bits
-  powerpc: helper to validate key-access permissions of a pte
-  powerpc: check key protection for user page access
-  powerpc: implementation for arch_vma_access_permitted()
-  powerpc: Handle exceptions caused by pkey violation
-  powerpc: introduce get_mm_addr_key() helper
-  powerpc: Deliver SEGV signal on pkey violation
-  powerpc: Enable pkey subsystem
-  powerpc: sys_pkey_alloc() and sys_pkey_free() system calls
-  powerpc: sys_pkey_mprotect() system call
-  powerpc: add sys_pkey_modify() system call
-  mm, x86 : introduce arch_pkeys_enabled()
-  mm: display pkey in smaps if arch_pkeys_enabled() is true
-  Documentation/x86: Move protecton key documentation to arch neutral
-    directory
-  Documentation/vm: PowerPC specific updates to memory protection keys
-  selftest/x86: Move protecton key selftest to arch neutral directory
-  selftest/vm: rename all references to pkru to a generic name
-  selftest/vm: move generic definitions to header file
-  selftest/vm: typecast the pkey register
-  selftest/vm: generic function to handle shadow key register
-  selftest/vm: fix the wrong assert in pkey_disable_set()
-  selftest/vm: fixed bugs in pkey_disable_clear()
-  selftest/vm: clear the bits in shadow reg when a pkey is freed.
-  selftest/vm: fix alloc_random_pkey() to make it really random
-  selftest/vm: introduce two arch independent abstraction
-  selftest/vm: pkey register should match shadow pkey
-  selftest/vm: generic cleanup
-  selftest/vm: powerpc implementation for generic abstraction
-  selftest/vm: fix an assertion in test_pkey_alloc_exhaust()
-  selftest/vm: associate key on a mapped page and detect access
-    violation
-  selftest/vm: associate key on a mapped page and detect write
-    violation
-  selftest/vm: detect write violation on a mapped access-denied-key
-    page
-  selftest/vm: sub-page allocator
-
-Thiago Jung Bauermann (4):
-  powerpc/ptrace: Add memory protection key regset
-  mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add sysfs interface
-  selftests/powerpc: Add ptrace tests for Protection Key register
-  selftests/powerpc: Add core file test for Protection Key register
-
- Documentation/vm/protection-keys.txt               |  161 +++
- Documentation/x86/protection-keys.txt              |   85 --
- arch/powerpc/Kconfig                               |   15 +
- arch/powerpc/include/asm/book3s/64/mmu-hash.h      |    5 +
- arch/powerpc/include/asm/book3s/64/mmu.h           |   10 +
- arch/powerpc/include/asm/book3s/64/pgtable.h       |   42 +-
- arch/powerpc/include/asm/bug.h                     |    1 +
- arch/powerpc/include/asm/cputable.h                |   15 +-
- arch/powerpc/include/asm/mman.h                    |   13 +-
- arch/powerpc/include/asm/mmu.h                     |    9 +
- arch/powerpc/include/asm/mmu_context.h             |   24 +
- arch/powerpc/include/asm/pkeys.h                   |  247 ++++
- arch/powerpc/include/asm/processor.h               |    5 +
- arch/powerpc/include/asm/systbl.h                  |    4 +
- arch/powerpc/include/asm/unistd.h                  |    6 +-
- arch/powerpc/include/uapi/asm/elf.h                |    1 +
- arch/powerpc/include/uapi/asm/mman.h               |    6 +
- arch/powerpc/include/uapi/asm/unistd.h             |    4 +
- arch/powerpc/kernel/entry_64.S                     |    9 +
- arch/powerpc/kernel/process.c                      |    7 +
- arch/powerpc/kernel/prom.c                         |   18 +
- arch/powerpc/kernel/ptrace.c                       |   66 +
- arch/powerpc/kernel/traps.c                        |   19 +-
- arch/powerpc/mm/Makefile                           |    1 +
- arch/powerpc/mm/fault.c                            |   49 +-
- arch/powerpc/mm/hash_utils_64.c                    |   29 +
- arch/powerpc/mm/mmu_context_book3s64.c             |    2 +
- arch/powerpc/mm/pkeys.c                            |  463 +++++++
- arch/x86/include/asm/mmu_context.h                 |    4 +-
- arch/x86/include/asm/pkeys.h                       |    2 +
- arch/x86/kernel/fpu/xstate.c                       |    5 +
- arch/x86/kernel/setup.c                            |    8 -
- arch/x86/mm/pkeys.c                                |    9 +
- fs/proc/task_mmu.c                                 |   16 +-
- include/linux/mm.h                                 |   12 +-
- include/linux/pkeys.h                              |    7 +-
- include/uapi/linux/elf.h                           |    1 +
- mm/mprotect.c                                      |   88 ++
- tools/testing/selftests/powerpc/include/reg.h      |    1 +
- tools/testing/selftests/powerpc/ptrace/Makefile    |    5 +-
- tools/testing/selftests/powerpc/ptrace/core-pkey.c |  438 ++++++
- .../testing/selftests/powerpc/ptrace/ptrace-pkey.c |  443 ++++++
- tools/testing/selftests/vm/Makefile                |    1 +
- tools/testing/selftests/vm/pkey-helpers.h          |  405 ++++++
- tools/testing/selftests/vm/protection_keys.c       | 1464 ++++++++++++++++++++
- tools/testing/selftests/x86/Makefile               |    2 +-
- tools/testing/selftests/x86/pkey-helpers.h         |  220 ---
- tools/testing/selftests/x86/protection_keys.c      | 1395 -------------------
- 48 files changed, 4095 insertions(+), 1747 deletions(-)
- create mode 100644 Documentation/vm/protection-keys.txt
- delete mode 100644 Documentation/x86/protection-keys.txt
- create mode 100644 arch/powerpc/include/asm/pkeys.h
- create mode 100644 arch/powerpc/mm/pkeys.c
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+---
+ tools/testing/selftests/powerpc/ptrace/Makefile    |    2 +-
+ tools/testing/selftests/powerpc/ptrace/core-pkey.c |  438 ++++++++++++++++++++
+ 2 files changed, 439 insertions(+), 1 deletions(-)
  create mode 100644 tools/testing/selftests/powerpc/ptrace/core-pkey.c
- create mode 100644 tools/testing/selftests/powerpc/ptrace/ptrace-pkey.c
- create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
- create mode 100644 tools/testing/selftests/vm/protection_keys.c
- delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
- delete mode 100644 tools/testing/selftests/x86/protection_keys.c
+
+diff --git a/tools/testing/selftests/powerpc/ptrace/Makefile b/tools/testing/selftests/powerpc/ptrace/Makefile
+index fd896b2..ca25fda 100644
+--- a/tools/testing/selftests/powerpc/ptrace/Makefile
++++ b/tools/testing/selftests/powerpc/ptrace/Makefile
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0
+ TEST_PROGS := ptrace-gpr ptrace-tm-gpr ptrace-tm-spd-gpr \
+               ptrace-tar ptrace-tm-tar ptrace-tm-spd-tar ptrace-vsx ptrace-tm-vsx \
+-              ptrace-tm-spd-vsx ptrace-tm-spr ptrace-pkey
++              ptrace-tm-spd-vsx ptrace-tm-spr ptrace-pkey core-pkey
+ 
+ include ../../lib.mk
+ 
+diff --git a/tools/testing/selftests/powerpc/ptrace/core-pkey.c b/tools/testing/selftests/powerpc/ptrace/core-pkey.c
+new file mode 100644
+index 0000000..2328f8c
+--- /dev/null
++++ b/tools/testing/selftests/powerpc/ptrace/core-pkey.c
+@@ -0,0 +1,438 @@
++/*
++ * Ptrace test for Memory Protection Key registers
++ *
++ * Copyright (C) 2015 Anshuman Khandual, IBM Corporation.
++ * Copyright (C) 2017 IBM Corporation.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version
++ * 2 of the License, or (at your option) any later version.
++ */
++#include <limits.h>
++#include <semaphore.h>
++#include <linux/kernel.h>
++#include <sys/mman.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <sys/time.h>
++#include <sys/resource.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include "ptrace.h"
++
++#ifndef __NR_pkey_alloc
++#define __NR_pkey_alloc		384
++#endif
++
++#ifndef __NR_pkey_free
++#define __NR_pkey_free		385
++#endif
++
++#ifndef NT_PPC_PKEY
++#define NT_PPC_PKEY		0x110
++#endif
++
++#ifndef PKEY_DISABLE_EXECUTE
++#define PKEY_DISABLE_EXECUTE	0x4
++#endif
++
++#define AMR_BITS_PER_PKEY 2
++#define PKEY_REG_BITS (sizeof(u64) * 8)
++#define pkeyshift(pkey) (PKEY_REG_BITS - ((pkey + 1) * AMR_BITS_PER_PKEY))
++
++#define CORE_FILE_LIMIT	(5 * 1024 * 1024)	/* 5 MB should be enough */
++
++static const char core_pattern_file[] = "/proc/sys/kernel/core_pattern";
++
++static const char user_write[] = "[User Write (Running)]";
++static const char core_read_running[] = "[Core Read (Running)]";
++
++/* Information shared between the parent and the child. */
++struct shared_info {
++	/* AMR value the parent expects to read in the core file. */
++	unsigned long amr;
++
++	/* IAMR value the parent expects to read from the child. */
++	unsigned long iamr;
++
++	/* UAMOR value the parent expects to read from the child. */
++	unsigned long uamor;
++
++	/* When the child crashed. */
++	time_t core_time;
++};
++
++static int sys_pkey_alloc(unsigned long flags, unsigned long init_access_rights)
++{
++	return syscall(__NR_pkey_alloc, flags, init_access_rights);
++}
++
++static int sys_pkey_free(int pkey)
++{
++	return syscall(__NR_pkey_free, pkey);
++}
++
++static int increase_core_file_limit(void)
++{
++	struct rlimit rlim;
++	int ret;
++
++	ret = getrlimit(RLIMIT_CORE, &rlim);
++	FAIL_IF(ret);
++
++	if (rlim.rlim_cur != RLIM_INFINITY && rlim.rlim_cur < CORE_FILE_LIMIT) {
++		rlim.rlim_cur = CORE_FILE_LIMIT;
++
++		if (rlim.rlim_max != RLIM_INFINITY &&
++		    rlim.rlim_max < CORE_FILE_LIMIT)
++			rlim.rlim_max = CORE_FILE_LIMIT;
++
++		ret = setrlimit(RLIMIT_CORE, &rlim);
++		FAIL_IF(ret);
++	}
++
++	ret = getrlimit(RLIMIT_FSIZE, &rlim);
++	FAIL_IF(ret);
++
++	if (rlim.rlim_cur != RLIM_INFINITY && rlim.rlim_cur < CORE_FILE_LIMIT) {
++		rlim.rlim_cur = CORE_FILE_LIMIT;
++
++		if (rlim.rlim_max != RLIM_INFINITY &&
++		    rlim.rlim_max < CORE_FILE_LIMIT)
++			rlim.rlim_max = CORE_FILE_LIMIT;
++
++		ret = setrlimit(RLIMIT_FSIZE, &rlim);
++		FAIL_IF(ret);
++	}
++
++	return TEST_PASS;
++}
++
++static int child(struct shared_info *info)
++{
++	bool disable_execute = true;
++	int pkey1, pkey2, pkey3;
++	int *ptr, ret;
++
++	ret = increase_core_file_limit();
++	FAIL_IF(ret);
++
++	/* Get some pkeys so that we can change their bits in the AMR. */
++	pkey1 = sys_pkey_alloc(0, PKEY_DISABLE_EXECUTE);
++	if (pkey1 < 0) {
++		pkey1 = sys_pkey_alloc(0, 0);
++		FAIL_IF(pkey1 < 0);
++
++		disable_execute = false;
++	}
++
++	pkey2 = sys_pkey_alloc(0, 0);
++	FAIL_IF(pkey2 < 0);
++
++	pkey3 = sys_pkey_alloc(0, 0);
++	FAIL_IF(pkey3 < 0);
++
++	info->amr = 3ul << pkeyshift(pkey1) | 2ul << pkeyshift(pkey2);
++
++	if (disable_execute)
++		info->iamr = 1ul << pkeyshift(pkey1);
++	else
++		info->iamr = 0;
++
++	info->uamor = 3ul << pkeyshift(pkey1) | 3ul << pkeyshift(pkey2);
++
++	printf("%-30s AMR: %016lx pkey1: %d pkey2: %d pkey3: %d\n",
++	       user_write, info->amr, pkey1, pkey2, pkey3);
++
++	mtspr(SPRN_AMR, info->amr);
++
++	/*
++	 * We won't use pkey3. This tests whether the kernel restores the UAMOR
++	 * permissions after a key is freed.
++	 */
++	sys_pkey_free(pkey3);
++
++	info->core_time = time(NULL);
++
++	/* Crash. */
++	ptr = 0;
++	*ptr = 1;
++
++	/* Shouldn't get here. */
++	FAIL_IF(true);
++
++	return TEST_FAIL;
++}
++
++/* Return file size if filename exists and pass sanity check, or zero if not. */
++static off_t try_core_file(const char *filename, struct shared_info *info,
++			   pid_t pid)
++{
++	struct stat buf;
++	int ret;
++
++	ret = stat(filename, &buf);
++	if (ret == -1)
++		return TEST_FAIL;
++
++	/* Make sure we're not using a stale core file. */
++	return buf.st_mtime >= info->core_time ? buf.st_size : TEST_FAIL;
++}
++
++static Elf64_Nhdr *next_note(Elf64_Nhdr *nhdr)
++{
++	return (void *) nhdr + sizeof(*nhdr) +
++		__ALIGN_KERNEL(nhdr->n_namesz, 4) +
++		__ALIGN_KERNEL(nhdr->n_descsz, 4);
++}
++
++static int check_core_file(struct shared_info *info, Elf64_Ehdr *ehdr,
++			   off_t core_size)
++{
++	unsigned long *regs;
++	Elf64_Phdr *phdr;
++	Elf64_Nhdr *nhdr;
++	size_t phdr_size;
++	void *p = ehdr, *note;
++	int ret;
++
++	ret = memcmp(ehdr->e_ident, ELFMAG, SELFMAG);
++	FAIL_IF(ret);
++
++	FAIL_IF(ehdr->e_type != ET_CORE);
++	FAIL_IF(ehdr->e_machine != EM_PPC64);
++	FAIL_IF(ehdr->e_phoff == 0 || ehdr->e_phnum == 0);
++
++	/*
++	 * e_phnum is at most 65535 so calculating the size of the
++	 * program header cannot overflow.
++	 */
++	phdr_size = sizeof(*phdr) * ehdr->e_phnum;
++
++	/* Sanity check the program header table location. */
++	FAIL_IF(ehdr->e_phoff + phdr_size < ehdr->e_phoff);
++	FAIL_IF(ehdr->e_phoff + phdr_size > core_size);
++
++	/* Find the PT_NOTE segment. */
++	for (phdr = p + ehdr->e_phoff;
++	     (void *) phdr < p + ehdr->e_phoff + phdr_size;
++	     phdr += ehdr->e_phentsize)
++		if (phdr->p_type == PT_NOTE)
++			break;
++
++	FAIL_IF((void *) phdr >= p + ehdr->e_phoff + phdr_size);
++
++	/* Find the NT_PPC_PKEY note. */
++	for (nhdr = p + phdr->p_offset;
++	     (void *) nhdr < p + phdr->p_offset + phdr->p_filesz;
++	     nhdr = next_note(nhdr))
++		if (nhdr->n_type == NT_PPC_PKEY)
++			break;
++
++	FAIL_IF((void *) nhdr >= p + phdr->p_offset + phdr->p_filesz);
++	FAIL_IF(nhdr->n_descsz == 0);
++
++	p = nhdr;
++	note = p + sizeof(*nhdr) + __ALIGN_KERNEL(nhdr->n_namesz, 4);
++
++	regs = (unsigned long *) note;
++
++	printf("%-30s AMR: %016lx IAMR: %016lx UAMOR: %016lx\n",
++	       core_read_running, regs[0], regs[1], regs[2]);
++
++	FAIL_IF(regs[0] != info->amr);
++	FAIL_IF(regs[1] != info->iamr);
++	FAIL_IF(regs[2] != info->uamor);
++
++	return TEST_PASS;
++}
++
++static int parent(struct shared_info *info, pid_t pid)
++{
++	char *filenames, *filename[3];
++	int fd, i, ret, status;
++	off_t core_size;
++	void *core;
++
++	ret = wait(&status);
++	if (ret != pid) {
++		printf("Child's exit status not captured\n");
++		return TEST_FAIL;
++	} else if (!WIFSIGNALED(status) || !WCOREDUMP(status)) {
++		printf("Child didn't dump core\n");
++		return TEST_FAIL;
++	}
++
++	/* Construct array of core file names to try. */
++
++	filename[0] = filenames = malloc(PATH_MAX);
++	if (!filenames) {
++		perror("Error allocating memory");
++		return TEST_FAIL;
++	}
++
++	ret = snprintf(filename[0], PATH_MAX, "core-pkey.%d", pid);
++	if (ret < 0 || ret >= PATH_MAX) {
++		ret = TEST_FAIL;
++		goto out;
++	}
++
++	filename[1] = filename[0] + ret + 1;
++	ret = snprintf(filename[1], PATH_MAX - ret - 1, "core.%d", pid);
++	if (ret < 0 || ret >= PATH_MAX - ret - 1) {
++		ret = TEST_FAIL;
++		goto out;
++	}
++	filename[2] = "core";
++
++	for (i = 0; i < 3; i++) {
++		core_size = try_core_file(filename[i], info, pid);
++		if (core_size != TEST_FAIL)
++			break;
++	}
++
++	if (i == 3) {
++		printf("Couldn't find core file\n");
++		ret = TEST_FAIL;
++		goto out;
++	}
++
++	fd = open(filename[i], O_RDONLY);
++	if (fd == -1) {
++		perror("Error opening core file");
++		ret = TEST_FAIL;
++		goto out;
++	}
++
++	core = mmap(NULL, core_size, PROT_READ, MAP_PRIVATE, fd, 0);
++	if (core == (void *) -1) {
++		perror("Error mmaping core file");
++		ret = TEST_FAIL;
++		goto out;
++	}
++
++	ret = check_core_file(info, core, core_size);
++
++	munmap(core, core_size);
++	close(fd);
++	unlink(filename[i]);
++
++ out:
++	free(filenames);
++
++	return ret;
++}
++
++static int write_core_pattern(const char *core_pattern)
++{
++	size_t len = strlen(core_pattern), ret;
++	FILE *f;
++
++	f = fopen(core_pattern_file, "w");
++	if (!f) {
++		perror("Error writing to core_pattern file");
++		return TEST_FAIL;
++	}
++
++	ret = fwrite(core_pattern, 1, len, f);
++	fclose(f);
++	if (ret != len) {
++		perror("Error writing to core_pattern file");
++		return TEST_FAIL;
++	}
++
++	return TEST_PASS;
++}
++
++static int setup_core_pattern(char **core_pattern_, bool *changed_)
++{
++	FILE *f;
++	char *core_pattern;
++	int ret;
++
++	core_pattern = malloc(PATH_MAX);
++	if (!core_pattern) {
++		perror("Error allocating memory");
++		return TEST_FAIL;
++	}
++
++	f = fopen(core_pattern_file, "r");
++	if (!f) {
++		perror("Error opening core_pattern file");
++		ret = TEST_FAIL;
++		goto out;
++	}
++
++	ret = fread(core_pattern, 1, PATH_MAX, f);
++	fclose(f);
++	if (!ret) {
++		perror("Error reading core_pattern file");
++		ret = TEST_FAIL;
++		goto out;
++	}
++
++	/* Check whether we can predict the name of the core file. */
++	if (!strcmp(core_pattern, "core") || !strcmp(core_pattern, "core.%p"))
++		*changed_ = false;
++	else {
++		ret = write_core_pattern("core-pkey.%p");
++		if (ret)
++			goto out;
++
++		*changed_ = true;
++	}
++
++	*core_pattern_ = core_pattern;
++	ret = TEST_PASS;
++
++ out:
++	if (ret)
++		free(core_pattern);
++
++	return ret;
++}
++
++static int core_pkey(void)
++{
++	char *core_pattern;
++	bool changed_core_pattern;
++	struct shared_info *info;
++	int shm_id;
++	int ret;
++	pid_t pid;
++
++	ret = setup_core_pattern(&core_pattern, &changed_core_pattern);
++	if (ret)
++		return ret;
++
++	shm_id = shmget(IPC_PRIVATE, sizeof(*info), 0777 | IPC_CREAT);
++	info = shmat(shm_id, NULL, 0);
++
++	pid = fork();
++	if (pid < 0) {
++		perror("fork() failed");
++		ret = TEST_FAIL;
++	} else if (pid == 0)
++		ret = child(info);
++	else
++		ret = parent(info, pid);
++
++	shmdt(info);
++
++	if (pid) {
++		shmctl(shm_id, IPC_RMID, NULL);
++
++		if (changed_core_pattern)
++			write_core_pattern(core_pattern);
++	}
++
++	free(core_pattern);
++
++	return ret;
++}
++
++int main(int argc, char *argv[])
++{
++	return test_harness(core_pkey, "core_pkey");
++}
+-- 
+1.7.1
