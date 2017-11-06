@@ -1,103 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:43524 "EHLO
+Received: from mail-qt0-f195.google.com ([209.85.216.195]:53541 "EHLO
         mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751676AbdKFI7C (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 03:59:02 -0500
+        with ESMTP id S1752117AbdKFI6n (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 03:58:43 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v9 15/51] powerpc: Program HPTE key protection bits
-Date: Mon,  6 Nov 2017 00:57:07 -0800
-Message-ID: <1509958663-18737-16-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v9 08/51] powerpc: implementation for arch_set_user_pkey_access()
+Date: Mon,  6 Nov 2017 00:57:00 -0800
+Message-ID: <1509958663-18737-9-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
-Message-ID: <20171106085707.7UsRnKFbnzMBwg4QgfYXrf7_Dc33Qd11J-k_d4J0k10@z>
+Message-ID: <20171106085700.ILbzmMMsrR6uJTXL2KxF02VGZAtMSuf7QV9dtPd_RSQ@z>
 
-Map the PTE protection key bits to the HPTE key protection bits,
-while creating HPTE  entries.
+This patch provides the detailed implementation for
+a user to allocate a key and enable it in the hardware.
 
-Acked-by: Balbir Singh <bsingharora@gmail.com>
+It provides the plumbing, but it cannot be used till
+the system call is implemented. The next patch  will
+do so.
+
+Reviewed-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/mmu-hash.h |    5 +++++
- arch/powerpc/include/asm/mmu_context.h        |    6 ++++++
- arch/powerpc/include/asm/pkeys.h              |    9 +++++++++
- arch/powerpc/mm/hash_utils_64.c               |    1 +
- 4 files changed, 21 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/pkeys.h |    6 ++++-
+ arch/powerpc/mm/pkeys.c          |   40 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 45 insertions(+), 1 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-index 508275b..2e22357 100644
---- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-+++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-@@ -90,6 +90,8 @@
- #define HPTE_R_PP0		ASM_CONST(0x8000000000000000)
- #define HPTE_R_TS		ASM_CONST(0x4000000000000000)
- #define HPTE_R_KEY_HI		ASM_CONST(0x3000000000000000)
-+#define HPTE_R_KEY_BIT0		ASM_CONST(0x2000000000000000)
-+#define HPTE_R_KEY_BIT1		ASM_CONST(0x1000000000000000)
- #define HPTE_R_RPN_SHIFT	12
- #define HPTE_R_RPN		ASM_CONST(0x0ffffffffffff000)
- #define HPTE_R_RPN_3_0		ASM_CONST(0x01fffffffffff000)
-@@ -104,6 +106,9 @@
- #define HPTE_R_C		ASM_CONST(0x0000000000000080)
- #define HPTE_R_R		ASM_CONST(0x0000000000000100)
- #define HPTE_R_KEY_LO		ASM_CONST(0x0000000000000e00)
-+#define HPTE_R_KEY_BIT2		ASM_CONST(0x0000000000000800)
-+#define HPTE_R_KEY_BIT3		ASM_CONST(0x0000000000000400)
-+#define HPTE_R_KEY_BIT4		ASM_CONST(0x0000000000000200)
- #define HPTE_R_KEY		(HPTE_R_KEY_LO | HPTE_R_KEY_HI)
- 
- #define HPTE_V_1TB_SEG		ASM_CONST(0x4000000000000000)
-diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-index a83d540..a557735 100644
---- a/arch/powerpc/include/asm/mmu_context.h
-+++ b/arch/powerpc/include/asm/mmu_context.h
-@@ -154,6 +154,12 @@ static inline int vma_pkey(struct vm_area_struct *vma)
- {
- 	return 0;
- }
-+
-+static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
-+{
-+	return 0x0UL;
-+}
-+
- #endif /* CONFIG_PPC_MEM_KEYS */
- 
- #endif /* __KERNEL__ */
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index cfe61a9..06a58fe 100644
+index 0d00a54..652c750 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -73,6 +73,15 @@ static inline int vma_pkey(struct vm_area_struct *vma)
- 
- #define arch_max_pkey() pkeys_total
- 
-+static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
-+{
-+	return (((pteflags & H_PTE_PKEY_BIT0) ? HPTE_R_KEY_BIT0 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT1) ? HPTE_R_KEY_BIT1 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT2) ? HPTE_R_KEY_BIT2 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT3) ? HPTE_R_KEY_BIT3 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
-+}
-+
- #define pkey_alloc_mask(pkey) (0x1 << pkey)
- 
- #define mm_pkey_allocation_map(mm) (mm->context.pkey_allocation_map)
-diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
-index 1e74590..ddfc673 100644
---- a/arch/powerpc/mm/hash_utils_64.c
-+++ b/arch/powerpc/mm/hash_utils_64.c
-@@ -232,6 +232,7 @@ unsigned long htab_convert_pte_flags(unsigned long pteflags)
- 		 */
- 		rflags |= HPTE_R_M;
- 
-+	rflags |= pte_to_hpte_pkey_bits(pteflags);
- 	return rflags;
+@@ -139,10 +139,14 @@ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
+ 	return 0;
  }
  
++extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
++				       unsigned long init_val);
+ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 					    unsigned long init_val)
+ {
+-	return 0;
++	if (static_branch_likely(&pkey_disabled))
++		return -EINVAL;
++	return __arch_set_user_pkey_access(tsk, pkey, init_val);
+ }
+ 
+ static inline void pkey_mm_init(struct mm_struct *mm)
+diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
+index f3bf661..4a01c2f 100644
+--- a/arch/powerpc/mm/pkeys.c
++++ b/arch/powerpc/mm/pkeys.c
+@@ -9,6 +9,7 @@
+  * (at your option) any later version.
+  */
+ 
++#include <asm/mman.h>
+ #include <linux/pkeys.h>
+ 
+ DEFINE_STATIC_KEY_TRUE(pkey_disabled);
+@@ -17,6 +18,9 @@
+ u32  initial_allocation_mask;	/* Bits set for reserved keys */
+ 
+ #define AMR_BITS_PER_PKEY 2
++#define AMR_RD_BIT 0x1UL
++#define AMR_WR_BIT 0x2UL
++#define IAMR_EX_BIT 0x1UL
+ #define PKEY_REG_BITS (sizeof(u64)*8)
+ #define pkeyshift(pkey) (PKEY_REG_BITS - ((pkey+1) * AMR_BITS_PER_PKEY))
+ 
+@@ -102,6 +106,20 @@ static inline void write_uamor(u64 value)
+ 	mtspr(SPRN_UAMOR, value);
+ }
+ 
++static bool is_pkey_enabled(int pkey)
++{
++	u64 uamor = read_uamor();
++	u64 pkey_bits = 0x3ul << pkeyshift(pkey);
++	u64 uamor_pkey_bits = (uamor & pkey_bits);
++
++	/*
++	 * Both the bits in UAMOR corresponding to the key should be set or
++	 * reset.
++	 */
++	WARN_ON(uamor_pkey_bits && (uamor_pkey_bits != pkey_bits));
++	return !!(uamor_pkey_bits);
++}
++
+ static inline void init_amr(int pkey, u8 init_bits)
+ {
+ 	u64 new_amr_bits = (((u64)init_bits & 0x3UL) << pkeyshift(pkey));
+@@ -144,3 +162,25 @@ void __arch_deactivate_pkey(int pkey)
+ {
+ 	pkey_status_change(pkey, false);
+ }
++
++/*
++ * Set the access rights in AMR IAMR and UAMOR registers for @pkey to that
++ * specified in @init_val.
++ */
++int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
++				unsigned long init_val)
++{
++	u64 new_amr_bits = 0x0ul;
++
++	if (!is_pkey_enabled(pkey))
++		return -EINVAL;
++
++	/* Set the bits we need in AMR: */
++	if (init_val & PKEY_DISABLE_ACCESS)
++		new_amr_bits |= AMR_RD_BIT | AMR_WR_BIT;
++	else if (init_val & PKEY_DISABLE_WRITE)
++		new_amr_bits |= AMR_WR_BIT;
++
++	init_amr(pkey, new_amr_bits);
++	return 0;
++}
 -- 
 1.7.1
