@@ -1,290 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f194.google.com ([209.85.220.194]:49170 "EHLO
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:50933 "EHLO
         mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751997AbdKFI7l (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 03:59:41 -0500
+        with ESMTP id S1752419AbdKFI7d (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 03:59:33 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add sysfs interface
-Date: Mon,  6 Nov 2017 00:57:21 -0800
-Message-ID: <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v9 26/51] powerpc: add sys_pkey_modify() system call
+Date: Mon,  6 Nov 2017 00:57:18 -0800
+Message-ID: <1509958663-18737-27-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
-Message-ID: <20171106085721.q7HwpU_8i2zWZ_J58rjgtQ0WPSvG15SyYCaqyefAEYE@z>
+Message-ID: <20171106085718.Wm3Kc1K4NA1G5MiPHr0W9fpRd9FqQZs8TQJXcN1G-44@z>
 
-From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+sys_pkey_modify()  is   powerpc  specific  system  call.  It
+enables  the ability to modify *any* attribute of a key.
 
-Expose useful information for programs using memory protection keys.
-Provide implementation for powerpc and x86.
+Since powerpc disallows modification of IAMR from user space
+an application is unable to change a key's execute-attribute.
 
-On a powerpc system with pkeys support, here is what is shown:
-
-$ head /sys/kernel/mm/protection_keys/*
-==> /sys/kernel/mm/protection_keys/disable_access_supported <==
-true
-
-==> /sys/kernel/mm/protection_keys/disable_execute_supported <==
-true
-
-==> /sys/kernel/mm/protection_keys/disable_write_supported <==
-true
-
-==> /sys/kernel/mm/protection_keys/total_keys <==
-31
-
-==> /sys/kernel/mm/protection_keys/usable_keys <==
-27
-
-And on an x86 without pkeys support:
-
-$ head /sys/kernel/mm/protection_keys/*
-==> /sys/kernel/mm/protection_keys/disable_access_supported <==
-false
-
-==> /sys/kernel/mm/protection_keys/disable_execute_supported <==
-false
-
-==> /sys/kernel/mm/protection_keys/disable_write_supported <==
-false
-
-==> /sys/kernel/mm/protection_keys/total_keys <==
-1
-
-==> /sys/kernel/mm/protection_keys/usable_keys <==
-0
+This system call helps accomplish the above.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 ---
- arch/powerpc/include/asm/pkeys.h   |    2 +
- arch/powerpc/mm/pkeys.c            |   24 ++++++++++
- arch/x86/include/asm/mmu_context.h |    4 +-
- arch/x86/include/asm/pkeys.h       |    1 +
- arch/x86/mm/pkeys.c                |    9 ++++
- include/linux/pkeys.h              |    2 +-
- mm/mprotect.c                      |   88 ++++++++++++++++++++++++++++++++++++
- 7 files changed, 128 insertions(+), 2 deletions(-)
+ arch/powerpc/include/asm/systbl.h      |    1 +
+ arch/powerpc/include/asm/unistd.h      |    2 +-
+ arch/powerpc/include/uapi/asm/unistd.h |    1 +
+ arch/powerpc/kernel/entry_64.S         |    9 +++++++++
+ arch/powerpc/mm/pkeys.c                |   17 +++++++++++++++++
+ 5 files changed, 29 insertions(+), 1 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 333fb28..6d70b1a 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -237,6 +237,8 @@ static inline void pkey_mmu_values(int total_data, int total_execute)
- 	pkeys_total = total_data;
- }
+diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
+index d61f9c9..533cdc5 100644
+--- a/arch/powerpc/include/asm/systbl.h
++++ b/arch/powerpc/include/asm/systbl.h
+@@ -392,3 +392,4 @@
+ SYSCALL(pkey_alloc)
+ SYSCALL(pkey_free)
+ SYSCALL(pkey_mprotect)
++PPC64ONLY(pkey_modify)
+diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
+index daf1ba9..1e97086 100644
+--- a/arch/powerpc/include/asm/unistd.h
++++ b/arch/powerpc/include/asm/unistd.h
+@@ -12,7 +12,7 @@
+ #include <uapi/asm/unistd.h>
  
-+extern bool arch_supports_pkeys(int cap);
-+extern unsigned int arch_usable_pkeys(void);
- extern void thread_pkey_regs_save(struct thread_struct *thread);
- extern void thread_pkey_regs_restore(struct thread_struct *new_thread,
- 				     struct thread_struct *old_thread);
+ 
+-#define NR_syscalls		387
++#define NR_syscalls		388
+ 
+ #define __NR__exit __NR_exit
+ 
+diff --git a/arch/powerpc/include/uapi/asm/unistd.h b/arch/powerpc/include/uapi/asm/unistd.h
+index 389c36f..318cd79 100644
+--- a/arch/powerpc/include/uapi/asm/unistd.h
++++ b/arch/powerpc/include/uapi/asm/unistd.h
+@@ -398,5 +398,6 @@
+ #define __NR_pkey_alloc		384
+ #define __NR_pkey_free		385
+ #define __NR_pkey_mprotect	386
++#define __NR_pkey_modify	387
+ 
+ #endif /* _UAPI_ASM_POWERPC_UNISTD_H_ */
+diff --git a/arch/powerpc/kernel/entry_64.S b/arch/powerpc/kernel/entry_64.S
+index 4a0fd4f..47c85f9 100644
+--- a/arch/powerpc/kernel/entry_64.S
++++ b/arch/powerpc/kernel/entry_64.S
+@@ -455,6 +455,15 @@ _GLOBAL(ppc_switch_endian)
+ 	bl	sys_switch_endian
+ 	b	.Lsyscall_exit
+ 
++_GLOBAL(ppc_pkey_modify)
++	bl	save_nvgprs
++#ifdef  CONFIG_PPC_MEM_KEYS
++	bl	sys_pkey_modify
++#else
++	bl	sys_ni_syscall
++#endif
++	b	.Lsyscall_exit
++
+ _GLOBAL(ret_from_fork)
+ 	bl	schedule_tail
+ 	REST_NVGPRS(r1)
 diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 2612f61..7e8468f 100644
+index 5047371..2612f61 100644
 --- a/arch/powerpc/mm/pkeys.c
 +++ b/arch/powerpc/mm/pkeys.c
-@@ -421,6 +421,30 @@ bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write,
+@@ -420,3 +420,20 @@ bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write,
+ 
  	return pkey_access_permitted(vma_pkey(vma), write, execute);
  }
- 
-+unsigned int arch_usable_pkeys(void)
++
++long sys_pkey_modify(int pkey, unsigned long new_val)
 +{
-+	unsigned int reserved;
++	bool ret;
++	/* Check for unsupported init values */
++	if (new_val & ~PKEY_ACCESS_MASK)
++		return -EINVAL;
 +
-+	if (static_branch_likely(&pkey_disabled))
-+		return 0;
++	down_write(&current->mm->mmap_sem);
++	ret = mm_pkey_is_allocated(current->mm, pkey);
++	up_write(&current->mm->mmap_sem);
 +
-+	/* Reserve one more to account for the execute-only pkey. */
-+	reserved = hweight32(initial_allocation_mask) + 1;
++	if (!ret)
++		return -EINVAL;
 +
-+	return pkeys_total > reserved ? pkeys_total - reserved : 0;
++	return __arch_set_user_pkey_access(current, pkey, new_val);
 +}
-+
-+bool arch_supports_pkeys(int cap)
-+{
-+	if (static_branch_likely(&pkey_disabled))
-+		return false;
-+
-+	if (cap & PKEY_DISABLE_EXECUTE)
-+		return pkey_execute_disable_supported;
-+
-+	return (cap & (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
-+}
-+
- long sys_pkey_modify(int pkey, unsigned long new_val)
- {
- 	bool ret;
-diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
-index 6699fc4..e3efabb 100644
---- a/arch/x86/include/asm/mmu_context.h
-+++ b/arch/x86/include/asm/mmu_context.h
-@@ -129,6 +129,8 @@ static inline void switch_ldt(struct mm_struct *prev, struct mm_struct *next)
- 
- void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk);
- 
-+#define PKEY_INITIAL_ALLOCATION_MAP	1
-+
- static inline int init_new_context(struct task_struct *tsk,
- 				   struct mm_struct *mm)
- {
-@@ -138,7 +140,7 @@ static inline int init_new_context(struct task_struct *tsk,
- 	#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
- 	if (cpu_feature_enabled(X86_FEATURE_OSPKE)) {
- 		/* pkey 0 is the default and always allocated */
--		mm->context.pkey_allocation_map = 0x1;
-+		mm->context.pkey_allocation_map = PKEY_INITIAL_ALLOCATION_MAP;
- 		/* -1 means unallocated or invalid */
- 		mm->context.execute_only_pkey = -1;
- 	}
-diff --git a/arch/x86/include/asm/pkeys.h b/arch/x86/include/asm/pkeys.h
-index f6c287b..6807288 100644
---- a/arch/x86/include/asm/pkeys.h
-+++ b/arch/x86/include/asm/pkeys.h
-@@ -106,5 +106,6 @@ extern int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 		unsigned long init_val);
- extern void copy_init_pkru_to_fpregs(void);
-+extern unsigned int arch_usable_pkeys(void);
- 
- #endif /*_ASM_X86_PKEYS_H */
-diff --git a/arch/x86/mm/pkeys.c b/arch/x86/mm/pkeys.c
-index d7bc0ee..3083a59 100644
---- a/arch/x86/mm/pkeys.c
-+++ b/arch/x86/mm/pkeys.c
-@@ -122,6 +122,15 @@ int __arch_override_mprotect_pkey(struct vm_area_struct *vma, int prot, int pkey
- 	return vma_pkey(vma);
- }
- 
-+unsigned int arch_usable_pkeys(void)
-+{
-+	/* Reserve one more to account for the execute-only pkey. */
-+	unsigned int reserved = (boot_cpu_has(X86_FEATURE_OSPKE) ?
-+			hweight32(PKEY_INITIAL_ALLOCATION_MAP) : 0) + 1;
-+
-+	return arch_max_pkey() > reserved ? arch_max_pkey() - reserved : 0;
-+}
-+
- #define PKRU_AD_KEY(pkey)	(PKRU_AD_BIT << ((pkey) * PKRU_BITS_PER_PKEY))
- 
- /*
-diff --git a/include/linux/pkeys.h b/include/linux/pkeys.h
-index 3ca2e44..0784f20 100644
---- a/include/linux/pkeys.h
-+++ b/include/linux/pkeys.h
-@@ -11,6 +11,7 @@
- #define arch_max_pkey() (1)
- #define execute_only_pkey(mm) (0)
- #define arch_override_mprotect_pkey(vma, prot, pkey) (0)
-+#define arch_usable_pkeys() (0)
- #define PKEY_DEDICATED_EXECUTE_ONLY 0
- #define ARCH_VM_PKEY_FLAGS 0
- 
-@@ -43,7 +44,6 @@ static inline bool arch_pkeys_enabled(void)
- static inline void copy_init_pkru_to_fpregs(void)
- {
- }
--
- #endif /* ! CONFIG_ARCH_HAS_PKEYS */
- 
- #endif /* _LINUX_PKEYS_H */
-diff --git a/mm/mprotect.c b/mm/mprotect.c
-index ec39f73..43a4584 100644
---- a/mm/mprotect.c
-+++ b/mm/mprotect.c
-@@ -568,4 +568,92 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
- 	return ret;
- }
- 
-+#ifdef CONFIG_SYSFS
-+
-+#define PKEYS_ATTR_RO(_name)						\
-+	static struct kobj_attribute _name##_attr = __ATTR_RO(_name)
-+
-+static ssize_t total_keys_show(struct kobject *kobj,
-+			       struct kobj_attribute *attr, char *buf)
-+{
-+	return sprintf(buf, "%u\n", arch_max_pkey());
-+}
-+PKEYS_ATTR_RO(total_keys);
-+
-+static ssize_t usable_keys_show(struct kobject *kobj,
-+				struct kobj_attribute *attr, char *buf)
-+{
-+	return sprintf(buf, "%u\n", arch_usable_pkeys());
-+}
-+PKEYS_ATTR_RO(usable_keys);
-+
-+static ssize_t disable_access_supported_show(struct kobject *kobj,
-+					      struct kobj_attribute *attr,
-+					      char *buf)
-+{
-+	if (arch_pkeys_enabled()) {
-+		strcpy(buf, "true\n");
-+		return sizeof("true\n") - 1;
-+	}
-+
-+	strcpy(buf, "false\n");
-+	return sizeof("false\n") - 1;
-+}
-+PKEYS_ATTR_RO(disable_access_supported);
-+
-+static ssize_t disable_write_supported_show(struct kobject *kobj,
-+					     struct kobj_attribute *attr,
-+					     char *buf)
-+{
-+	if (arch_pkeys_enabled()) {
-+		strcpy(buf, "true\n");
-+		return sizeof("true\n") - 1;
-+	}
-+
-+	strcpy(buf, "false\n");
-+	return sizeof("false\n") - 1;
-+}
-+PKEYS_ATTR_RO(disable_write_supported);
-+
-+static ssize_t disable_execute_supported_show(struct kobject *kobj,
-+					      struct kobj_attribute *attr,
-+					      char *buf)
-+{
-+#ifdef PKEY_DISABLE_EXECUTE
-+	if (arch_supports_pkeys(PKEY_DISABLE_EXECUTE)) {
-+		strcpy(buf, "true\n");
-+		return sizeof("true\n") - 1;
-+	}
-+#endif
-+
-+	strcpy(buf, "false\n");
-+	return sizeof("false\n") - 1;
-+}
-+PKEYS_ATTR_RO(disable_execute_supported);
-+
-+static struct attribute *pkeys_attrs[] = {
-+	&total_keys_attr.attr,
-+	&usable_keys_attr.attr,
-+	&disable_access_supported_attr.attr,
-+	&disable_write_supported_attr.attr,
-+	&disable_execute_supported_attr.attr,
-+	NULL,
-+};
-+
-+static const struct attribute_group pkeys_attr_group = {
-+	.attrs = pkeys_attrs,
-+	.name = "protection_keys",
-+};
-+
-+static int __init pkeys_sysfs_init(void)
-+{
-+	int err;
-+
-+	err = sysfs_create_group(mm_kobj, &pkeys_attr_group);
-+
-+	return err;
-+}
-+late_initcall(pkeys_sysfs_init);
-+#endif /* CONFIG_SYSFS */
-+
- #endif /* CONFIG_ARCH_HAS_PKEYS */
 -- 
 1.7.1
