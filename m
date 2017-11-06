@@ -1,74 +1,52 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v9 40/51] selftest/vm: fix alloc_random_pkey() to make it really random
-Date: Mon,  6 Nov 2017 00:57:32 -0800
-Message-ID: <1509958663-18737-41-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v9 47/51] selftest/vm: associate key on a mapped page and detect write violation
+Date: Mon,  6 Nov 2017 00:57:39 -0800
+Message-ID: <1509958663-18737-48-git-send-email-linuxram@us.ibm.com>
 References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-alloc_random_pkey() was allocating the same pkey every time.
-Not all pkeys were geting tested. fixed it.
+detect write-violation on a page to which write-disabled
+key is associated much after the page is mapped.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |   10 +++++++---
- 1 files changed, 7 insertions(+), 3 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |   12 ++++++++++++
+ 1 files changed, 12 insertions(+), 0 deletions(-)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 2823d4d..1a14027 100644
+index 998a44f..0b7b826 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -24,6 +24,7 @@
- #define _GNU_SOURCE
- #include <errno.h>
- #include <linux/futex.h>
-+#include <time.h>
- #include <sys/time.h>
- #include <sys/syscall.h>
- #include <string.h>
-@@ -602,13 +603,15 @@ int alloc_random_pkey(void)
- 	int alloced_pkeys[NR_PKEYS];
- 	int nr_alloced = 0;
- 	int random_index;
-+
- 	memset(alloced_pkeys, 0, sizeof(alloced_pkeys));
-+	srand((unsigned int)time(NULL));
- 
- 	/* allocate every possible key and make a note of which ones we got */
- 	max_nr_pkey_allocs = NR_PKEYS;
--	max_nr_pkey_allocs = 1;
- 	for (i = 0; i < max_nr_pkey_allocs; i++) {
- 		int new_pkey = alloc_pkey();
-+
- 		if (new_pkey < 0)
- 			break;
- 		alloced_pkeys[nr_alloced++] = new_pkey;
-@@ -624,13 +627,14 @@ int alloc_random_pkey(void)
- 	/* go through the allocated ones that we did not want and free them */
- 	for (i = 0; i < nr_alloced; i++) {
- 		int free_ret;
-+
- 		if (!alloced_pkeys[i])
- 			continue;
- 		free_ret = sys_pkey_free(alloced_pkeys[i]);
- 		pkey_assert(!free_ret);
- 	}
--	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n", __func__,
--			__LINE__, ret, __rdpkey_reg(), shadow_pkey_reg);
-+	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%016lx\n",
-+		__func__, __LINE__, ret, __rdpkey_reg(), shadow_pkey_reg);
- 	return ret;
+@@ -1033,6 +1033,17 @@ void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
+ 	expected_pkey_fault(pkey);
  }
  
++void test_write_of_write_disabled_region_with_page_already_mapped(int *ptr,
++		u16 pkey)
++{
++	*ptr = __LINE__;
++	dprintf1("disabling write access; after accessing the page, "
++		"to PKEY[%02d], doing write\n", pkey);
++	pkey_write_deny(pkey);
++	*ptr = __LINE__;
++	expected_pkey_fault(pkey);
++}
++
+ void test_write_of_write_disabled_region(int *ptr, u16 pkey)
+ {
+ 	dprintf1("disabling write access to PKEY[%02d], doing write\n", pkey);
+@@ -1329,6 +1340,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
+ 	test_read_of_access_disabled_region,
+ 	test_read_of_access_disabled_region_with_page_already_mapped,
+ 	test_write_of_write_disabled_region,
++	test_write_of_write_disabled_region_with_page_already_mapped,
+ 	test_write_of_access_disabled_region,
+ 	test_kernel_write_of_access_disabled_region,
+ 	test_kernel_write_of_write_disabled_region,
 -- 
 1.7.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
