@@ -1,91 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:55310 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752306AbdKFI7M (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 03:59:12 -0500
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:55893 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752117AbdKFI7H (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Nov 2017 03:59:07 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v9 19/51] powerpc: Handle exceptions caused by pkey violation
-Date: Mon,  6 Nov 2017 00:57:11 -0800
-Message-ID: <1509958663-18737-20-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v9 17/51] powerpc: check key protection for user page access
+Date: Mon,  6 Nov 2017 00:57:09 -0800
+Message-ID: <1509958663-18737-18-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
-Message-ID: <20171106085711.ixh9dJGn3g8mXXiUgD7bXeEQ5-PNl-mbK8XoWBhCP5I@z>
+Message-ID: <20171106085709.q9KXaTzW5kTWA_UPcsAPeeJtpYuBF58ODI6ERSs0RKw@z>
 
-Handle Data and  Instruction exceptions caused by memory
-protection-key.
-
-The CPU will detect the key fault if the HPTE is already
-programmed with the key.
-
-However if the HPTE is not  hashed, a key fault will not
-be detected by the hardware. The software will detect
-pkey violation in such a case.
+Make sure that the kernel does not access user pages without
+checking their key-protection.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/mm/fault.c |   32 +++++++++++++++++++++++++++-----
- 1 files changed, 27 insertions(+), 5 deletions(-)
+ arch/powerpc/include/asm/book3s/64/pgtable.h |   13 +++++++++++++
+ 1 files changed, 13 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
-index 4797d08..dfcd0e4 100644
---- a/arch/powerpc/mm/fault.c
-+++ b/arch/powerpc/mm/fault.c
-@@ -145,6 +145,24 @@ static noinline int bad_area(struct pt_regs *regs, unsigned long address)
- 	return __bad_area(regs, address, SEGV_MAPERR);
- }
+diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+index c277a63..5ecb846 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgtable.h
++++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+@@ -464,6 +464,19 @@ static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
  
-+static int bad_page_fault_exception(struct pt_regs *regs, unsigned long address,
-+				    int si_code)
-+{
-+	int sig = SIGBUS;
-+	int code = BUS_OBJERR;
+ #ifdef CONFIG_PPC_MEM_KEYS
+ extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
 +
-+#ifdef CONFIG_PPC_MEM_KEYS
-+	if (si_code & DSISR_KEYFAULT) {
-+		perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
-+		sig = SIGSEGV;
-+		code = SEGV_PKUERR;
-+	}
-+#endif /* CONFIG_PPC_MEM_KEYS */
++#define pte_access_permitted(pte, write) \
++	(pte_present(pte) && \
++	 ((!(write) || pte_write(pte)) && \
++	  arch_pte_access_permitted(pte_val(pte), !!write, 0)))
 +
-+	_exception(sig, regs, code, address);
-+	return 0;
-+}
-+
- static int do_sigbus(struct pt_regs *regs, unsigned long address,
- 		     unsigned int fault)
- {
-@@ -391,11 +409,9 @@ static int __do_page_fault(struct pt_regs *regs, unsigned long address,
- 		return 0;
++/*
++ * We store key in pmd for huge tlb pages. So need to check for key protection.
++ */
++#define pmd_access_permitted(pmd, write) \
++	(pmd_present(pmd) && \
++	 ((!(write) || pmd_write(pmd)) && \
++	  arch_pte_access_permitted(pmd_val(pmd), !!write, 0)))
+ #endif /* CONFIG_PPC_MEM_KEYS */
  
- 	if (unlikely(page_fault_is_bad(error_code))) {
--		if (is_user) {
--			_exception(SIGBUS, regs, BUS_OBJERR, address);
--			return 0;
--		}
--		return SIGBUS;
-+		if (!is_user)
-+			return SIGBUS;
-+		return bad_page_fault_exception(regs, address, error_code);
- 	}
- 
- 	/* Additional sanity check(s) */
-@@ -498,6 +514,12 @@ static int __do_page_fault(struct pt_regs *regs, unsigned long address,
- 	 * the fault.
- 	 */
- 	fault = handle_mm_fault(vma, address, flags);
-+
-+#ifdef CONFIG_PPC_MEM_KEYS
-+	if (unlikely(fault & VM_FAULT_SIGSEGV))
-+		return __bad_area(regs, address, SEGV_PKUERR);
-+#endif /* CONFIG_PPC_MEM_KEYS */
-+
- 	major |= fault & VM_FAULT_MAJOR;
- 
- 	/*
+ #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
 -- 
 1.7.1
