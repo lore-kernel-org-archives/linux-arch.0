@@ -1,152 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:44421 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932631AbdKGNdv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Nov 2017 08:33:51 -0500
-Date: Wed, 8 Nov 2017 00:33:32 +1100
-From: Nicholas Piggin <npiggin@gmail.com>
+Received: from mail-wm0-f48.google.com ([74.125.82.48]:50028 "EHLO
+        mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751045AbdKGOCB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Nov 2017 09:02:01 -0500
+Received: by mail-wm0-f48.google.com with SMTP id b189so3906409wmd.4
+        for <linux-arch@vger.kernel.org>; Tue, 07 Nov 2017 06:02:00 -0800 (PST)
+Date: Tue, 7 Nov 2017 17:01:58 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
 Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
-Message-ID: <20171108002448.6799462e@roar.ozlabs.ibm.com>
-In-Reply-To: <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
-References: <20171105231850.5e313e46@roar.ozlabs.ibm.com>
-        <871slcszfl.fsf@linux.vnet.ibm.com>
-        <20171106174707.19f6c495@roar.ozlabs.ibm.com>
-        <24b93038-76f7-33df-d02e-facb0ce61cd2@redhat.com>
-        <20171106192524.12ea3187@roar.ozlabs.ibm.com>
-        <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
-        <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
-        <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
-        <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
-        <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
-        <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
+Message-ID: <20171107140158.iz4b2lchhrt6eobe@node.shutemov.name>
+References: <24b93038-76f7-33df-d02e-facb0ce61cd2@redhat.com>
+ <20171106192524.12ea3187@roar.ozlabs.ibm.com>
+ <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
+ <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
+ <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
+ <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
+ <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
+ <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
+ <20171108002448.6799462e@roar.ozlabs.ibm.com>
+ <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Florian Weimer <fweimer@redhat.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linuxppc-dev@lists.ozlabs.org, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20171107133332.3D_r6xeZBJyc_s1qX-eg-zH2znmWofx37mPZEr9vA1I@z>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Florian Weimer <fweimer@redhat.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linuxppc-dev@lists.ozlabs.org, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20171107140158.K3pH0W3HT1D6Bx2sR227xjrZN9dKqIhrQJwdU3dG27Y@z>
 
-On Tue, 7 Nov 2017 15:28:25 +0300
-"Kirill A. Shutemov" <kirill@shutemov.name> wrote:
-
-> On Tue, Nov 07, 2017 at 10:56:36PM +1100, Nicholas Piggin wrote:
-> > > No, it won't. You will hit stack first.  
+On Tue, Nov 07, 2017 at 07:15:58PM +0530, Aneesh Kumar K.V wrote:
+> 
 > > 
-> > I guess so. Florian's bug didn't crash there for some reason, okay
-> > but I suppose my point about brk is not exactly where the standard
-> > heap is, but the pattern of allocations. An allocator that uses
-> > mmap for managing its address space might do the same thing, e.g.,
-> > incrementally expand existing mmaps as necessary.  
+> > If it is decided to keep these kind of heuristics, can we get just a
+> > small but reasonably precise description of each change to the
+> > interface and ways for using the new functionality, such that would be
+> > suitable for the man page? I couldn't fix powerpc because nothing
+> > matches and even Aneesh and you differ on some details (MAP_FIXED
+> > behaviour).
 > 
-> With MAP_FIXED? I don't think so.
-
-brk() based allocator effectively usees MAP_FIXED. If you know where
-your addresses are, using MAP_FIXED can be used.
-
-But okay let's ignore MAP_FIXED as a corner case. Then what happens
-with !MAP_FIXED when an allocation ends exactly at 128TB and then next
-one begins at 128TB? Won't that expand the address space? Should we
-ignore that corner case too?
-
 > 
-> > > > Second, the kernel can never completely solve the problem this way.
-> > > > How do we know a malloc library will not ask for > 128TB addresses
-> > > > and pass them to an unknowing application?    
-> > > 
-> > > The idea is that an application can provide hint (mallopt() ?) to malloc
-> > > implementation that it's ready to full address space. In this case, malloc
-> > > can use mmap((void *) -1,...) for its allocations and get full address
-> > > space this way.  
-> > 
-> > Point is, there's nothing stopping an allocator library or runtime
-> > from asking for mmap anywhere and returning it to userspace.  
+> I would consider MAP_FIXED as my mistake. We never discussed this explicitly
+> and I kind of assumed it to behave the same way. ie, we search in lower
+> address space (128TB) if the hint addr is below 128TB.
 > 
-> Right. Nobody would stop it from doing stupid things. There are many
-> things that a library may do that application would not be happy about.
-
-Indeed.
-
+> IIUC we agree on the below.
 > 
-> > Do > 128TB pointers matter so much that we should add this heuristic
-> > to prevent breakage, but little enough that we can accept some rare
-> > cases getting through? Genuine question.  
+> 1) MAP_FIXED allow the addr to be used, even if hint addr is below 128TB but
+> hint_addr + len is > 128TB.
 > 
-> At the end of the day what matters is if heuristic helps prevent breakage
-> of existing userspace and doesn't stay in the way of legitimate use of
-> full address space.
+> 2) For everything else we search in < 128TB space if hint addr is below
+> 128TB
 > 
-> So far, it looks okay to me.
-
-Well that wasn't really the point of my question. Yes of course that
-is important. But the question is how are these heuristics chosen and
-evaluated? Why is this a good change to make?
-
-We've decided there is some benefit from preventing 128TB pointers, but
-also not enough that we have to completely prevent them accidentally
-being returned. Yet it's important enough to make mmap behaviour diverge
-in about 5 ways around 128TB depending on what combination of address
-and length and MAP_FIXED you specify, and introducing this new way to
-use the interface to get an expanded address space?
-
-And we're doing this because we don't want to add a prctl or personality
-or whatever for SAP HANA, because it was decided that would be too complex?
-
+> 3) We don't switch to large address space if hint_addr + len > 128TB. The
+> decision to switch to large address space is primarily based on hint addr
 > 
-> > > The idea was we shouldn't allow to slip above 47-bits by accidentally.
-> > > 
-> > > Correctly functioning program would never request addr+len above 47-bit
-> > > with MAP_FIXED, unless it's ready to handle such addresses. Otherwise the
-> > > request would simply fail on machine that doesn't support large VA.
-> > > 
-> > > In contrast, addr+len above 47-bit without MAP_FIXED will not fail on
-> > > machine that doesn't support large VA, kernel will find another place
-> > > under 47-bit. And I can imagine a reasonable application that does
-> > > something like this.
-> > > 
-> > > So we cannot rely that application is ready to handle large
-> > > addresses if we see addr+len without MAP_FIXED.  
-> > 
-> > By the same logic, a request for addr > 128TB without MAP_FIXED will
-> > not fail, therefore we can't rely on that either.
-> > 
-> > Or an app that links to a library that attempts MAP_FIXED allocation
-> > of addr + len above 128TB might use high bits of pointer returned by
-> > that library because those are never satisfied today and the library
-> > would fall back.  
-> 
-> If you want to point that it's ABI break, yes it is.
-> 
-> But we allow ABI break as long as nobody notices. I think it's reasonable
-> to expect that nobody relies on such corner cases.
+> Is there any other rule we need to outline? Or is any of the above not
+> correct?
 
-I accept the point, but I do worry mmap syscall is very fundamental,
-and that it is used in a lot of ways that are difficult to foresee,
-so there's a lot of room for unintended consequences. Plus the state
-of the code (that's not to pick on x86, powerpc is worse) is worrying.
+That's correct.
 
-> 
-> If we would find any piece of software affect by the change we would need
-> to reconsider.
-> 
-
-Problem is that if there was an issue caused by this, it's unlikely
-to be found until a long time later. By that time, hopefully there
-aren't too many other apps that are now rely on the behaviour if it
-has to be changed.
-
-I just don't see why that's a risk worth taking at all. I can't see how
-the cost benefit is there. I have to confess I could have been more
-involved in discussion, but is any other interface honestly too complex
-to add?
-
-If it is decided to keep these kind of heuristics, can we get just a
-small but reasonably precise description of each change to the
-interface and ways for using the new functionality, such that would be
-suitable for the man page? I couldn't fix powerpc because nothing
-matches and even Aneesh and you differ on some details (MAP_FIXED
-behaviour).
-
-Thanks,
-Nick
+-- 
+ Kirill A. Shutemov
