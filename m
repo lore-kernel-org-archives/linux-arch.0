@@ -1,7 +1,7 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
+From: Florian Weimer <fweimer@redhat.com>
 Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
-Date: Tue, 7 Nov 2017 15:28:25 +0300
-Message-ID: <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
+Date: Tue, 7 Nov 2017 14:05:42 +0100
+Message-ID: <7fc1641b-361c-2ee2-c510-f7c64d173bf8@redhat.com>
 References: <20171105231850.5e313e46@roar.ozlabs.ibm.com>
  <871slcszfl.fsf@linux.vnet.ibm.com>
  <20171106174707.19f6c495@roar.ozlabs.ibm.com>
@@ -11,88 +11,112 @@ References: <20171105231850.5e313e46@roar.ozlabs.ibm.com>
  <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
  <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
  <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
- <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
+ <c5586546-1e7e-0f0f-a8b3-680fadb38dcf@redhat.com>
+ <20171107114422.bgnm5k6w2zqjoazc@node.shutemov.name>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Florian Weimer <fweimer@redhat.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linuxppc-dev@lists.ozlabs.org, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/mixed;
+ boundary="------------381B9005558AE185EB668BF2"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:14123 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932476AbdKGNFr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 7 Nov 2017 08:05:47 -0500
+In-Reply-To: <20171107114422.bgnm5k6w2zqjoazc@node.shutemov.name>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Nicholas Piggin <npiggin@gmail.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linuxppc-dev@lists.ozlabs.org, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-On Tue, Nov 07, 2017 at 10:56:36PM +1100, Nicholas Piggin wrote:
-> > No, it won't. You will hit stack first.
+This is a multi-part message in MIME format.
+--------------381B9005558AE185EB668BF2
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+
+On 11/07/2017 12:44 PM, Kirill A. Shutemov wrote:
+> On Tue, Nov 07, 2017 at 12:26:12PM +0100, Florian Weimer wrote:
+>> On 11/07/2017 12:15 PM, Kirill A. Shutemov wrote:
+>>
+>>>> First of all, using addr and MAP_FIXED to develop our heuristic can
+>>>> never really give unchanged ABI. It's an in-band signal. brk() is a
+>>>> good example that steadily keeps incrementing address, so depending
+>>>> on malloc usage and address space randomization, you will get a brk()
+>>>> that ends exactly at 128T, then the next one will be >
+>>>> DEFAULT_MAP_WINDOW, and it will switch you to 56 bit address space.
+>>>
+>>> No, it won't. You will hit stack first.
+>>
+>> That's not actually true on POWER in some cases.  See the process maps I
+>> posted here:
+>>
+>>    <https://marc.info/?l=linuxppc-embedded&m=150988538106263&w=2>
 > 
-> I guess so. Florian's bug didn't crash there for some reason, okay
-> but I suppose my point about brk is not exactly where the standard
-> heap is, but the pattern of allocations. An allocator that uses
-> mmap for managing its address space might do the same thing, e.g.,
-> incrementally expand existing mmaps as necessary.
+> Hm? I see that in all three cases the [stack] is the last mapping.
+> Do I miss something?
 
-With MAP_FIXED? I don't think so.
+Hah, I had not noticed.  Occasionally, the order of heap and stack is 
+reversed.  This happens in approximately 15% of the runs.
 
-> > > Second, the kernel can never completely solve the problem this way.
-> > > How do we know a malloc library will not ask for > 128TB addresses
-> > > and pass them to an unknowing application?  
-> > 
-> > The idea is that an application can provide hint (mallopt() ?) to malloc
-> > implementation that it's ready to full address space. In this case, malloc
-> > can use mmap((void *) -1,...) for its allocations and get full address
-> > space this way.
-> 
-> Point is, there's nothing stopping an allocator library or runtime
-> from asking for mmap anywhere and returning it to userspace.
+See the attached example.
 
-Right. Nobody would stop it from doing stupid things. There are many
-things that a library may do that application would not be happy about.
+Thanks,
+Florian
 
-> Do > 128TB pointers matter so much that we should add this heuristic
-> to prevent breakage, but little enough that we can accept some rare
-> cases getting through? Genuine question.
+--------------381B9005558AE185EB668BF2
+Content-Type: text/plain; charset=UTF-8;
+ name="maps.txt"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment;
+ filename="maps.txt"
 
-At the end of the day what matters is if heuristic helps prevent breakage
-of existing userspace and doesn't stay in the way of legitimate use of
-full address space.
-
-So far, it looks okay to me.
-
-> > The idea was we shouldn't allow to slip above 47-bits by accidentally.
-> > 
-> > Correctly functioning program would never request addr+len above 47-bit
-> > with MAP_FIXED, unless it's ready to handle such addresses. Otherwise the
-> > request would simply fail on machine that doesn't support large VA.
-> > 
-> > In contrast, addr+len above 47-bit without MAP_FIXED will not fail on
-> > machine that doesn't support large VA, kernel will find another place
-> > under 47-bit. And I can imagine a reasonable application that does
-> > something like this.
-> > 
-> > So we cannot rely that application is ready to handle large
-> > addresses if we see addr+len without MAP_FIXED.
-> 
-> By the same logic, a request for addr > 128TB without MAP_FIXED will
-> not fail, therefore we can't rely on that either.
-> 
-> Or an app that links to a library that attempts MAP_FIXED allocation
-> of addr + len above 128TB might use high bits of pointer returned by
-> that library because those are never satisfied today and the library
-> would fall back.
-
-If you want to point that it's ABI break, yes it is.
-
-But we allow ABI break as long as nobody notices. I think it's reasonable
-to expect that nobody relies on such corner cases.
-
-If we would find any piece of software affect by the change we would need
-to reconsider.
-
--- 
- Kirill A. Shutemov
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+N2ZmZmFjYzUwMDAwLTdmZmZhY2M5MDAwMCBydy1wIDAwMDAwMDAwIDAwOjAwIDAgCjdmZmZh
+Y2M5MDAwMC03ZmZmYWNjZjAwMDAgci0tcCAwMDAwMDAwMCBmZDowMCAyNTE2NzkyNSAgICAg
+ICAgICAgICAgICAgICAvdXNyL2xpYi9sb2NhbGUvZW5fVVMudXRmOC9MQ19DVFlQRQo3ZmZm
+YWNjZjAwMDAtN2ZmZmFjZDAwMDAwIHItLXAgMDAwMDAwMDAgZmQ6MDAgMjUxNjc5MjggICAg
+ICAgICAgICAgICAgICAgL3Vzci9saWIvbG9jYWxlL2VuX1VTLnV0ZjgvTENfTlVNRVJJQwo3
+ZmZmYWNkMDAwMDAtN2ZmZmFjZDEwMDAwIHItLXAgMDAwMDAwMDAgZmQ6MDAgMTY3OTg5Mjkg
+ICAgICAgICAgICAgICAgICAgL3Vzci9saWIvbG9jYWxlL2VuX1VTLnV0ZjgvTENfVElNRQo3
+ZmZmYWNkMTAwMDAtN2ZmZmFjZTQwMDAwIHItLXAgMDAwMDAwMDAgZmQ6MDAgMjUxNjc5MjQg
+ICAgICAgICAgICAgICAgICAgL3Vzci9saWIvbG9jYWxlL2VuX1VTLnV0ZjgvTENfQ09MTEFU
+RQo3ZmZmYWNlNDAwMDAtN2ZmZmFjZTUwMDAwIHItLXAgMDAwMDAwMDAgZmQ6MDAgMTY3OTg5
+MjcgICAgICAgICAgICAgICAgICAgL3Vzci9saWIvbG9jYWxlL2VuX1VTLnV0ZjgvTENfTU9O
+RVRBUlkKN2ZmZmFjZTUwMDAwLTdmZmZhY2U2MDAwMCByLS1wIDAwMDAwMDAwIGZkOjAwIDI1
+MTEgICAgICAgICAgICAgICAgICAgICAgIC91c3IvbGliL2xvY2FsZS9lbl9VUy51dGY4L0xD
+X01FU1NBR0VTL1NZU19MQ19NRVNTQUdFUwo3ZmZmYWNlNjAwMDAtN2ZmZmFjZTcwMDAwIHIt
+LXAgMDAwMDAwMDAgZmQ6MDAgMTY3OTg5NDIgICAgICAgICAgICAgICAgICAgL3Vzci9saWIv
+bG9jYWxlL2VuX1VTLnV0ZjgvTENfUEFQRVIKN2ZmZmFjZTcwMDAwLTdmZmZhY2U4MDAwMCBy
+LS1wIDAwMDAwMDAwIGZkOjAwIDI1MTY3OTI3ICAgICAgICAgICAgICAgICAgIC91c3IvbGli
+L2xvY2FsZS9lbl9VUy51dGY4L0xDX05BTUUKN2ZmZmFjZTgwMDAwLTdmZmZhY2U5MDAwMCBy
+LS1wIDAwMDAwMDAwIGZkOjAwIDE2Nzk4OTI0ICAgICAgICAgICAgICAgICAgIC91c3IvbGli
+L2xvY2FsZS9lbl9VUy51dGY4L0xDX0FERFJFU1MKN2ZmZmFjZTkwMDAwLTdmZmZhY2VhMDAw
+MCByLS1wIDAwMDAwMDAwIGZkOjAwIDE2Nzk4OTI4ICAgICAgICAgICAgICAgICAgIC91c3Iv
+bGliL2xvY2FsZS9lbl9VUy51dGY4L0xDX1RFTEVQSE9ORQo3ZmZmYWNlYTAwMDAtN2ZmZmFj
+ZWIwMDAwIHItLXAgMDAwMDAwMDAgZmQ6MDAgMTY3OTg5MjYgICAgICAgICAgICAgICAgICAg
+L3Vzci9saWIvbG9jYWxlL2VuX1VTLnV0ZjgvTENfTUVBU1VSRU1FTlQKN2ZmZmFjZWIwMDAw
+LTdmZmZhY2VjMDAwMCByLS1zIDAwMDAwMDAwIGZkOjAwIDgzOTA2NTcgICAgICAgICAgICAg
+ICAgICAgIC91c3IvbGliNjQvZ2NvbnYvZ2NvbnYtbW9kdWxlcy5jYWNoZQo3ZmZmYWNlYzAw
+MDAtN2ZmZmFkMGQwMDAwIHIteHAgMDAwMDAwMDAgZmQ6MDAgODM5MDMzNSAgICAgICAgICAg
+ICAgICAgICAgL3Vzci9saWI2NC9saWJjLTIuMjUuc28KN2ZmZmFkMGQwMDAwLTdmZmZhZDBl
+MDAwMCAtLS1wIDAwMjEwMDAwIGZkOjAwIDgzOTAzMzUgICAgICAgICAgICAgICAgICAgIC91
+c3IvbGliNjQvbGliYy0yLjI1LnNvCjdmZmZhZDBlMDAwMC03ZmZmYWQwZjAwMDAgci0tcCAw
+MDIxMDAwMCBmZDowMCA4MzkwMzM1ICAgICAgICAgICAgICAgICAgICAvdXNyL2xpYjY0L2xp
+YmMtMi4yNS5zbwo3ZmZmYWQwZjAwMDAtN2ZmZmFkMTAwMDAwIHJ3LXAgMDAyMjAwMDAgZmQ6
+MDAgODM5MDMzNSAgICAgICAgICAgICAgICAgICAgL3Vzci9saWI2NC9saWJjLTIuMjUuc28K
+N2ZmZmFkMTAwMDAwLTdmZmZhZDExMDAwMCByLS1wIDAwMDAwMDAwIGZkOjAwIDE2Nzk4OTI1
+ICAgICAgICAgICAgICAgICAgIC91c3IvbGliL2xvY2FsZS9lbl9VUy51dGY4L0xDX0lERU5U
+SUZJQ0FUSU9OCjdmZmZhZDExMDAwMC03ZmZmYWQxMjAwMDAgci14cCAwMDAwMDAwMCBmZDow
+MCA2MzU0MyAgICAgICAgICAgICAgICAgICAgICAvdXNyL2Jpbi9jYXQKN2ZmZmFkMTIwMDAw
+LTdmZmZhZDEzMDAwMCByLS1wIDAwMDAwMDAwIGZkOjAwIDYzNTQzICAgICAgICAgICAgICAg
+ICAgICAgIC91c3IvYmluL2NhdAo3ZmZmYWQxMzAwMDAtN2ZmZmFkMTQwMDAwIHJ3LXAgMDAw
+MTAwMDAgZmQ6MDAgNjM1NDMgICAgICAgICAgICAgICAgICAgICAgL3Vzci9iaW4vY2F0Cjdm
+ZmZhZDE0MDAwMC03ZmZmYWQxNjAwMDAgci14cCAwMDAwMDAwMCAwMDowMCAwICAgICAgICAg
+ICAgICAgICAgICAgICAgICBbdmRzb10KN2ZmZmFkMTYwMDAwLTdmZmZhZDFhMDAwMCByLXhw
+IDAwMDAwMDAwIGZkOjAwIDgzOTAzMjggICAgICAgICAgICAgICAgICAgIC91c3IvbGliNjQv
+bGQtMi4yNS5zbwo3ZmZmYWQxYTAwMDAtN2ZmZmFkMWIwMDAwIHItLXAgMDAwMzAwMDAgZmQ6
+MDAgODM5MDMyOCAgICAgICAgICAgICAgICAgICAgL3Vzci9saWI2NC9sZC0yLjI1LnNvCjdm
+ZmZhZDFiMDAwMC03ZmZmYWQxYzAwMDAgcnctcCAwMDA0MDAwMCBmZDowMCA4MzkwMzI4ICAg
+ICAgICAgICAgICAgICAgICAvdXNyL2xpYjY0L2xkLTIuMjUuc28KN2ZmZmMyY2YwMDAwLTdm
+ZmZjMmQyMDAwMCBydy1wIDAwMDAwMDAwIDAwOjAwIDAgICAgICAgICAgICAgICAgICAgICAg
+ICAgIFtzdGFja10KN2ZmZmM4YzEwMDAwLTdmZmZjOGM0MDAwMCBydy1wIDAwMDAwMDAwIDAw
+OjAwIDAgICAgICAgICAgICAgICAgICAgICAgICAgIFtoZWFwXQo=
+--------------381B9005558AE185EB668BF2--
