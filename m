@@ -1,64 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f48.google.com ([74.125.82.48]:50028 "EHLO
-        mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751045AbdKGOCB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Nov 2017 09:02:01 -0500
-Received: by mail-wm0-f48.google.com with SMTP id b189so3906409wmd.4
-        for <linux-arch@vger.kernel.org>; Tue, 07 Nov 2017 06:02:00 -0800 (PST)
-Date: Tue, 7 Nov 2017 17:01:58 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
-Message-ID: <20171107140158.iz4b2lchhrt6eobe@node.shutemov.name>
-References: <24b93038-76f7-33df-d02e-facb0ce61cd2@redhat.com>
- <20171106192524.12ea3187@roar.ozlabs.ibm.com>
- <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
- <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
- <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
- <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
- <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
- <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
- <20171108002448.6799462e@roar.ozlabs.ibm.com>
- <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:58150 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1753070AbdKGWkF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Nov 2017 17:40:05 -0500
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vA7MdbjW073489
+        for <linux-arch@vger.kernel.org>; Tue, 7 Nov 2017 17:40:05 -0500
+Received: from e19.ny.us.ibm.com (e19.ny.us.ibm.com [129.33.205.209])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2e3m26d0nv-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 07 Nov 2017 17:40:04 -0500
+Received: from localhost
+        by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Tue, 7 Nov 2017 17:40:03 -0500
+Date: Tue, 7 Nov 2017 14:39:53 -0800
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [PATCH v9 00/51] powerpc, mm: Memory Protection Keys
+Reply-To: Ram Pai <linuxram@us.ibm.com>
+References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
+ <87efpbm706.fsf@mid.deneb.enyo.de>
+ <20171107012218.GA5546@ram.oc3035372033.ibm.com>
+ <87h8u6lf27.fsf@mid.deneb.enyo.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <87h8u6lf27.fsf@mid.deneb.enyo.de>
+Message-ID: <20171107223953.GB5546@ram.oc3035372033.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Florian Weimer <fweimer@redhat.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linuxppc-dev@lists.ozlabs.org, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20171107140158.K3pH0W3HT1D6Bx2sR227xjrZN9dKqIhrQJwdU3dG27Y@z>
+To: Florian Weimer <fw@deneb.enyo.de>
+Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de, linux-arch@vger.kernel.org, ebiederm@xmission.com, linux-doc@vger.kernel.org, x86@kernel.org, dave.hansen@intel.com, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
+Message-ID: <20171107223953.ExU5fMJhSHD_6aVcigFDMH3v4Vknw-SO9ng5cjMA6IY@z>
 
-On Tue, Nov 07, 2017 at 07:15:58PM +0530, Aneesh Kumar K.V wrote:
+On Tue, Nov 07, 2017 at 08:32:16AM +0100, Florian Weimer wrote:
+> * Ram Pai:
 > 
-> > 
-> > If it is decided to keep these kind of heuristics, can we get just a
-> > small but reasonably precise description of each change to the
-> > interface and ways for using the new functionality, such that would be
-> > suitable for the man page? I couldn't fix powerpc because nothing
-> > matches and even Aneesh and you differ on some details (MAP_FIXED
-> > behaviour).
+> > On Mon, Nov 06, 2017 at 10:28:41PM +0100, Florian Weimer wrote:
+> >> * Ram Pai:
+> >> 
+> >> > Testing:
+> >> > -------
+> >> > This patch series has passed all the protection key
+> >> > tests available in the selftest directory.The
+> >> > tests are updated to work on both x86 and powerpc.
+> >> > The selftests have passed on x86 and powerpc hardware.
+> >> 
+> >> How do you deal with the key reuse problem?  Is it the same as x86-64,
+> >> where it's quite easy to accidentally grant existing threads access to
+> >> a just-allocated key, either due to key reuse or a changed init_pkru
+> >> parameter?
+> >
+> > I am not sure how on x86-64, two threads get allocated the same key
+> > at the same time? the key allocation is guarded under the mmap_sem
+> > semaphore. So there cannot be a race where two threads get allocated
+> > the same key.
 > 
-> 
-> I would consider MAP_FIXED as my mistake. We never discussed this explicitly
-> and I kind of assumed it to behave the same way. ie, we search in lower
-> address space (128TB) if the hint addr is below 128TB.
-> 
-> IIUC we agree on the below.
-> 
-> 1) MAP_FIXED allow the addr to be used, even if hint addr is below 128TB but
-> hint_addr + len is > 128TB.
-> 
-> 2) For everything else we search in < 128TB space if hint addr is below
-> 128TB
-> 
-> 3) We don't switch to large address space if hint_addr + len > 128TB. The
-> decision to switch to large address space is primarily based on hint addr
-> 
-> Is there any other rule we need to outline? Or is any of the above not
-> correct?
+> The problem is a pkey_alloc/pthread_create/pkey_free/pkey_alloc
+> sequence.  The pthread_create call makes the new thread inherit the
+> access rights of the current thread, but then the key is deallocated.
+> Reallocation of the same key will have that thread retain its access
+> rights, which is IMHO not correct.
 
-That's correct.
+(Dave Hansen: please correct me if I miss-speak below)
 
--- 
- Kirill A. Shutemov
+As per the current semantics of sys_pkey_free(); the way I understand it,
+the calling thread is saying disassociate me from this key. Other
+threads continue to be associated with the key and could continue to
+get key-faults, but this calling thread will not get key-faults on that
+key any more.
+
+Also the key should not get reallocated till all the threads in the process
+have disassocated from the key; by calling sys_pkey_free().
