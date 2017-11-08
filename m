@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:53726 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754045AbdKHGUi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 01:20:38 -0500
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:49461 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754045AbdKHGUS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 01:20:18 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH 16/31] nds32: VDSO support
-Date: Wed,  8 Nov 2017 13:55:04 +0800
-Message-ID: <0911917e908c7648d25b33663afc88f5aca6bb4d.1510118606.git.green.hu@gmail.com>
+Subject: [PATCH 08/31] nds32: Cache and TLB routines
+Date: Wed,  8 Nov 2017 13:54:56 +0800
+Message-ID: <220aabe68365f970ed6de79ef88f9598f272dcb9.1510118606.git.green.hu@gmail.com>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
 References: <cover.1510118606.git.green.hu@gmail.com>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
@@ -15,43 +15,45 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171108055504.f0RporB41JuS7oP4tsqOhkH90KcG73MSKDVata3G6bM@z>
+Message-ID: <20171108055456.Zbo7RluW-g8Km7-vtzNMT6Q-voLRvmDQfC2o44t0Uag@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/vdso.h              |   35 ++++
- arch/nds32/include/asm/vdso_datapage.h     |   51 ++++++
- arch/nds32/kernel/vdso.c                   |  243 ++++++++++++++++++++++++++
- arch/nds32/kernel/vdso/Makefile            |   82 +++++++++
- arch/nds32/kernel/vdso/datapage.S          |   34 ++++
- arch/nds32/kernel/vdso/gen_vdso_offsets.sh |   15 ++
- arch/nds32/kernel/vdso/gettimeofday.c      |  260 ++++++++++++++++++++++++++++
- arch/nds32/kernel/vdso/note.S              |   29 ++++
- arch/nds32/kernel/vdso/sigreturn.S         |   32 ++++
- arch/nds32/kernel/vdso/vdso.S              |   33 ++++
- arch/nds32/kernel/vdso/vdso.lds.S          |   87 ++++++++++
- 11 files changed, 901 insertions(+)
- create mode 100644 arch/nds32/include/asm/vdso.h
- create mode 100644 arch/nds32/include/asm/vdso_datapage.h
- create mode 100644 arch/nds32/kernel/vdso.c
- create mode 100644 arch/nds32/kernel/vdso/Makefile
- create mode 100644 arch/nds32/kernel/vdso/datapage.S
- create mode 100755 arch/nds32/kernel/vdso/gen_vdso_offsets.sh
- create mode 100644 arch/nds32/kernel/vdso/gettimeofday.c
- create mode 100644 arch/nds32/kernel/vdso/note.S
- create mode 100644 arch/nds32/kernel/vdso/sigreturn.S
- create mode 100644 arch/nds32/kernel/vdso/vdso.S
- create mode 100644 arch/nds32/kernel/vdso/vdso.lds.S
+ arch/nds32/include/asm/cache.h         |   25 ++
+ arch/nds32/include/asm/cache_info.h    |   26 ++
+ arch/nds32/include/asm/cacheflush.h    |   57 +++
+ arch/nds32/include/asm/mmu_context.h   |   81 +++++
+ arch/nds32/include/asm/proc-fns.h      |   94 +++++
+ arch/nds32/include/asm/tlb.h           |   41 +++
+ arch/nds32/include/asm/tlbflush.h      |   60 ++++
+ arch/nds32/include/uapi/asm/cachectl.h |   19 +
+ arch/nds32/kernel/cacheinfo.c          |   62 ++++
+ arch/nds32/mm/cacheflush.c             |  331 +++++++++++++++++
+ arch/nds32/mm/proc-n13.c               |  608 ++++++++++++++++++++++++++++++++
+ arch/nds32/mm/tlb.c                    |   63 ++++
+ 12 files changed, 1467 insertions(+)
+ create mode 100644 arch/nds32/include/asm/cache.h
+ create mode 100644 arch/nds32/include/asm/cache_info.h
+ create mode 100644 arch/nds32/include/asm/cacheflush.h
+ create mode 100644 arch/nds32/include/asm/mmu_context.h
+ create mode 100644 arch/nds32/include/asm/proc-fns.h
+ create mode 100644 arch/nds32/include/asm/tlb.h
+ create mode 100644 arch/nds32/include/asm/tlbflush.h
+ create mode 100644 arch/nds32/include/uapi/asm/cachectl.h
+ create mode 100644 arch/nds32/kernel/cacheinfo.c
+ create mode 100644 arch/nds32/mm/cacheflush.c
+ create mode 100644 arch/nds32/mm/proc-n13.c
+ create mode 100644 arch/nds32/mm/tlb.c
 
-diff --git a/arch/nds32/include/asm/vdso.h b/arch/nds32/include/asm/vdso.h
+diff --git a/arch/nds32/include/asm/cache.h b/arch/nds32/include/asm/cache.h
 new file mode 100644
-index 0000000..7298c49
+index 0000000..36ec549
 --- /dev/null
-+++ b/arch/nds32/include/asm/vdso.h
-@@ -0,0 +1,35 @@
++++ b/arch/nds32/include/asm/cache.h
+@@ -0,0 +1,25 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -68,35 +70,22 @@ index 0000000..7298c49
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef __ASM_VDSO_H
-+#define __ASM_VDSO_H
++#ifndef __NDS32_CACHE_H__
++#define __NDS32_CACHE_H__
 +
-+#ifdef __KERNEL__
++#define L1_CACHE_BYTES	32
++#define L1_CACHE_SHIFT	5
 +
-+#ifndef __ASSEMBLY__
++#define ARCH_DMA_MINALIGN   L1_CACHE_BYTES
 +
-+#include <generated/vdso-offsets.h>
-+
-+#define VDSO_SYMBOL(base, name)						   \
-+({									   \
-+	(unsigned long)(vdso_offset_##name + (unsigned long)(base)); \
-+})
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __ASM_VDSO_H */
-diff --git a/arch/nds32/include/asm/vdso_datapage.h b/arch/nds32/include/asm/vdso_datapage.h
++#endif /* __NDS32_CACHE_H__ */
+diff --git a/arch/nds32/include/asm/cache_info.h b/arch/nds32/include/asm/cache_info.h
 new file mode 100644
-index 0000000..ffae33c
+index 0000000..a59d73d
 --- /dev/null
-+++ b/arch/nds32/include/asm/vdso_datapage.h
-@@ -0,0 +1,51 @@
++++ b/arch/nds32/include/asm/cache_info.h
+@@ -0,0 +1,26 @@
 +/*
-+ * Adapted from arm64 version.
-+ *
-+ * Copyright (C) 2012 ARM Limited
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -111,49 +100,24 @@ index 0000000..ffae33c
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_VDSO_DATAPAGE_H
-+#define __ASM_VDSO_DATAPAGE_H
 +
-+#ifdef __KERNEL__
-+
-+#ifndef __ASSEMBLY__
-+
-+struct vdso_data {
-+	bool cycle_count_down;	/* timer cyclye counter is decrease with time */
-+	u32 cycle_count_offset;	/* offset of timer cycle counter register */
-+	u32 seq_count;		/* sequence count - odd during updates */
-+	u32 xtime_coarse_sec;	/* coarse time */
-+	u32 xtime_coarse_nsec;
-+
-+	u32 wtm_clock_sec;	/* wall to monotonic offset */
-+	u32 wtm_clock_nsec;
-+	u32 xtime_clock_sec;	/* CLOCK_REALTIME - seconds */
-+	u32 cs_mult;		/* clocksource multiplier */
-+	u32 cs_shift;		/* Cycle to nanosecond divisor (power of two) */
-+
-+	u64 cs_cycle_last;	/* last cycle value */
-+	u64 cs_mask;		/* clocksource mask */
-+
-+	u64 xtime_clock_nsec;	/* CLOCK_REALTIME sub-ns base */
-+	u32 tz_minuteswest;	/* timezone info for gettimeofday(2) */
-+	u32 tz_dsttime;
++struct cache_info {
++	unsigned char ways;
++	unsigned char line_size;
++	unsigned short sets;
++	unsigned short size;
++#if !defined(CONFIG_CPU_CACHE_NONALIASING)
++	unsigned short aliasing_num;
++	unsigned int aliasing_mask;
++#endif
 +};
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __ASM_VDSO_DATAPAGE_H */
-diff --git a/arch/nds32/kernel/vdso.c b/arch/nds32/kernel/vdso.c
+diff --git a/arch/nds32/include/asm/cacheflush.h b/arch/nds32/include/asm/cacheflush.h
 new file mode 100644
-index 0000000..d7ef70c
+index 0000000..0c7c9db
 --- /dev/null
-+++ b/arch/nds32/kernel/vdso.c
-@@ -0,0 +1,243 @@
++++ b/arch/nds32/include/asm/cacheflush.h
+@@ -0,0 +1,57 @@
 +/*
-+ * VDSO implementation for AArch64 and vector page setup for AArch32.
-+ *
-+ * Copyright (C) 2012 ARM Limited
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -167,765 +131,1399 @@ index 0000000..d7ef70c
 + *
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ * Author: Will Deacon <will.deacon@arm.com>
 + */
 +
-+#include <linux/cache.h>
-+#include <linux/clocksource.h>
-+#include <linux/elf.h>
-+#include <linux/err.h>
-+#include <linux/errno.h>
-+#include <linux/gfp.h>
-+#include <linux/kernel.h>
++#ifndef __NDS32_CACHEFLUSH_H__
++#define __NDS32_CACHEFLUSH_H__
++
++#include <linux/mm.h>
++
++#define PG_dcache_dirty PG_arch_1
++
++#ifndef CONFIG_CPU_CACHE_NONALIASING
++void flush_cache_mm(struct mm_struct *mm);
++void flush_cache_dup_mm(struct mm_struct *mm);
++void flush_cache_range(struct vm_area_struct *vma,
++		       unsigned long start, unsigned long end);
++void flush_cache_page(struct vm_area_struct *vma,
++		      unsigned long addr, unsigned long pfn);
++void flush_cache_kmaps(void);
++void flush_cache_vmap(unsigned long start, unsigned long end);
++void flush_cache_vunmap(unsigned long start, unsigned long end);
++
++#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
++void flush_dcache_page(struct page *page);
++void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
++		       unsigned long vaddr, void *dst, void *src, int len);
++void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
++			 unsigned long vaddr, void *dst, void *src, int len);
++
++#define ARCH_HAS_FLUSH_ANON_PAGE
++void flush_anon_page(struct vm_area_struct *vma,
++		     struct page *page, unsigned long vaddr);
++
++#define ARCH_HAS_FLUSH_KERNEL_DCACHE_PAGE
++void flush_kernel_dcache_page(struct page *page);
++void flush_icache_range(unsigned long start, unsigned long end);
++void flush_icache_page(struct vm_area_struct *vma, struct page *page);
++#define flush_dcache_mmap_lock(mapping)   spin_lock_irq(&(mapping)->tree_lock)
++#define flush_dcache_mmap_unlock(mapping) spin_unlock_irq(&(mapping)->tree_lock)
++
++#else
++#include <asm-generic/cacheflush.h>
++#endif
++
++#endif /* __NDS32_CACHEFLUSH_H__ */
+diff --git a/arch/nds32/include/asm/mmu_context.h b/arch/nds32/include/asm/mmu_context.h
+new file mode 100644
+index 0000000..4a59b5d
+--- /dev/null
++++ b/arch/nds32/include/asm/mmu_context.h
+@@ -0,0 +1,81 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef __ASM_NDS32_MMU_CONTEXT_H
++#define __ASM_NDS32_MMU_CONTEXT_H
++
++#include <linux/spinlock.h>
++#include <asm/tlbflush.h>
++#include <asm/proc-fns.h>
++#include <asm-generic/mm_hooks.h>
++
++static inline int
++init_new_context(struct task_struct *tsk, struct mm_struct *mm)
++{
++	mm->context.id = 0;
++	return 0;
++}
++
++#define destroy_context(mm)	do { } while(0)
++
++#define CID_BITS	9
++extern spinlock_t cid_lock;
++extern unsigned int cpu_last_cid;
++
++static inline void __new_context(struct mm_struct *mm)
++{
++	unsigned int cid;
++	unsigned long flags;
++
++	spin_lock_irqsave(&cid_lock, flags);
++	cid = cpu_last_cid;
++	cpu_last_cid += 1 << TLB_MISC_offCID;
++	if (cpu_last_cid == 0)
++		cpu_last_cid = 1 << TLB_MISC_offCID << CID_BITS;
++
++	if ((cid & TLB_MISC_mskCID) == 0)
++		flush_tlb_all();
++	spin_unlock_irqrestore(&cid_lock, flags);
++
++	mm->context.id = cid;
++}
++
++static inline void check_context(struct mm_struct *mm)
++{
++	if (unlikely
++	    ((mm->context.id ^ cpu_last_cid) >> TLB_MISC_offCID >> CID_BITS))
++		__new_context(mm);
++}
++
++static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
++{
++}
++
++static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
++			     struct task_struct *tsk)
++{
++	unsigned int cpu = smp_processor_id();
++
++	if (!cpumask_test_and_set_cpu(cpu, mm_cpumask(next)) || prev != next) {
++		check_context(next);
++		cpu_switch_mm(next);
++	}
++}
++
++#define deactivate_mm(tsk,mm)	do { } while (0)
++#define activate_mm(prev,next)	switch_mm(prev, next, NULL)
++
++#endif
+diff --git a/arch/nds32/include/asm/proc-fns.h b/arch/nds32/include/asm/proc-fns.h
+new file mode 100644
+index 0000000..4321014
+--- /dev/null
++++ b/arch/nds32/include/asm/proc-fns.h
+@@ -0,0 +1,94 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef __NDS32_PROCFNS_H__
++#define __NDS32_PROCFNS_H__
++
++#define CPU_NAME n13
++
++#ifdef __KERNEL__
++
++#ifdef __STDC__
++#define ____cpu_fn(name,fn)       name##fn
++#else
++#define ____cpu_fn(name,fn)       name/**/fn
++#endif
++#define __cpu_fn(name,fn)         ____cpu_fn(name,fn)
++
++#define cpu_proc_init			__cpu_fn( CPU_NAME, _proc_init)
++#define cpu_proc_fin			__cpu_fn( CPU_NAME, _proc_fin)
++#define cpu_do_idle			__cpu_fn( CPU_NAME, _do_idle)
++#define cpu_reset			__cpu_fn( CPU_NAME, _reset)
++#define cpu_switch_mm			__cpu_fn( CPU_NAME, _switch_mm)
++
++#define cpu_dcache_inval_all		__cpu_fn( CPU_NAME, _dcache_inval_all)
++#define cpu_dcache_wbinval_all		__cpu_fn( CPU_NAME, _dcache_wbinval_all)
++#define cpu_dcache_inval_page		__cpu_fn( CPU_NAME, _dcache_inval_page)
++#define cpu_dcache_wb_page		__cpu_fn( CPU_NAME, _dcache_wb_page)
++#define cpu_dcache_wbinval_page		__cpu_fn( CPU_NAME, _dcache_wbinval_page)
++#define cpu_dcache_inval_range		__cpu_fn( CPU_NAME, _dcache_inval_range)
++#define cpu_dcache_wb_range		__cpu_fn( CPU_NAME, _dcache_wb_range)
++#define cpu_dcache_wbinval_range	__cpu_fn( CPU_NAME, _dcache_wbinval_range)
++
++#define cpu_icache_inval_all		__cpu_fn( CPU_NAME, _icache_inval_all)
++#define cpu_icache_inval_page		__cpu_fn( CPU_NAME, _icache_inval_page)
++#define cpu_icache_inval_range		__cpu_fn( CPU_NAME, _icache_inval_range)
++
++#define cpu_cache_wbinval_page		__cpu_fn( CPU_NAME, _cache_wbinval_page)
++#define cpu_cache_wbinval_range		__cpu_fn( CPU_NAME, _cache_wbinval_range)
++#define cpu_cache_wbinval_range_check	__cpu_fn( CPU_NAME, _cache_wbinval_range_check)
++
++#define cpu_dma_wb_range		__cpu_fn( CPU_NAME, _dma_wb_range)
++#define cpu_dma_inval_range		__cpu_fn( CPU_NAME, _dma_inval_range)
++#define cpu_dma_wbinval_range		__cpu_fn( CPU_NAME, _dma_wbinval_range)
++
++#include <asm/page.h>
++
++struct mm_struct;
++struct vm_area_struct;
++extern void cpu_proc_init(void);
++extern void cpu_proc_fin(void);
++extern void cpu_do_idle(void);
++extern void cpu_reset(unsigned long reset);
++extern void cpu_switch_mm(struct mm_struct *mm);
++
++extern void cpu_dcache_inval_all(void);
++extern void cpu_dcache_wbinval_all(void);
++extern void cpu_dcache_inval_page(unsigned long page);
++extern void cpu_dcache_wb_page(unsigned long page);
++extern void cpu_dcache_wbinval_page(unsigned long page);
++extern void cpu_dcache_inval_range(unsigned long start, unsigned long end);
++extern void cpu_dcache_wb_range(unsigned long start, unsigned long end);
++extern void cpu_dcache_wbinval_range(unsigned long start, unsigned long end);
++
++extern void cpu_icache_inval_all(void);
++extern void cpu_icache_inval_page(unsigned long page);
++extern void cpu_icache_inval_range(unsigned long start, unsigned long end);
++
++extern void cpu_cache_wbinval_page(unsigned long page, int flushi);
++extern void cpu_cache_wbinval_range(unsigned long start,
++				    unsigned long end, int flushi);
++extern void cpu_cache_wbinval_range_check(struct vm_area_struct *vma,
++					  unsigned long start,
++					  unsigned long end, bool flushi,
++					  bool wbd);
++
++extern void cpu_dma_wb_range(unsigned long start, unsigned long end);
++extern void cpu_dma_inval_range(unsigned long start, unsigned long end);
++extern void cpu_dma_wbinval_range(unsigned long start, unsigned long end);
++
++#endif /* __KERNEL__ */
++#endif /* __NDS32_PROCFNS_H__ */
+diff --git a/arch/nds32/include/asm/tlb.h b/arch/nds32/include/asm/tlb.h
+new file mode 100644
+index 0000000..c599827
+--- /dev/null
++++ b/arch/nds32/include/asm/tlb.h
+@@ -0,0 +1,41 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef __ASMNDS32_TLB_H
++#define __ASMNDS32_TLB_H
++
++#define tlb_start_vma(tlb,vma)						\
++	do {								\
++		if (!tlb->fullmm)					\
++			flush_cache_range(vma, vma->vm_start, vma->vm_end); \
++	} while (0)
++
++#define tlb_end_vma(tlb,vma)				\
++	do { 						\
++		if(!tlb->fullmm)			\
++			flush_tlb_range(vma, vma->vm_start, vma->vm_end); \
++	} while (0)
++
++#define __tlb_remove_tlb_entry(tlb, pte, addr) do { } while (0)
++
++#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
++
++#include <asm-generic/tlb.h>
++
++#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
++#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tln)->mm, pmd)
++
++#endif
+diff --git a/arch/nds32/include/asm/tlbflush.h b/arch/nds32/include/asm/tlbflush.h
+new file mode 100644
+index 0000000..680aeb3
+--- /dev/null
++++ b/arch/nds32/include/asm/tlbflush.h
+@@ -0,0 +1,60 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef _ASMNDS32_TLBFLUSH_H
++#define _ASMNDS32_TLBFLUSH_H
++
++#include <linux/spinlock.h>
++#include <linux/mm.h>
++#include <nds32_intrinsic.h>
++
++static inline void local_flush_tlb_all(void)
++{
++	__nds32__tlbop_flua();
++	__nds32__isb();
++}
++
++static inline void local_flush_tlb_mm(struct mm_struct *mm)
++{
++	__nds32__tlbop_flua();
++	__nds32__isb();
++}
++
++static inline void local_flush_tlb_kernel_range(unsigned long start,
++						unsigned long end)
++{
++	while (start < end) {
++		__nds32__tlbop_inv(start);
++		__nds32__isb();
++		start += PAGE_SIZE;
++	}
++}
++
++void local_flush_tlb_range(struct vm_area_struct *vma,
++			   unsigned long start, unsigned long end);
++void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long addr);
++
++#define flush_tlb_all		local_flush_tlb_all
++#define flush_tlb_mm		local_flush_tlb_mm
++#define flush_tlb_range		local_flush_tlb_range
++#define flush_tlb_page		local_flush_tlb_page
++#define flush_tlb_kernel_range	local_flush_tlb_kernel_range
++
++void update_mmu_cache(struct vm_area_struct *vma,
++		      unsigned long address, pte_t * pte);
++void tlb_migrate_finish(struct mm_struct *mm);
++
++#endif
+diff --git a/arch/nds32/include/uapi/asm/cachectl.h b/arch/nds32/include/uapi/asm/cachectl.h
+new file mode 100644
+index 0000000..a56a37d
+--- /dev/null
++++ b/arch/nds32/include/uapi/asm/cachectl.h
+@@ -0,0 +1,19 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 1994, 1995, 1996 by Ralf Baechle
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ */
++#ifndef	_ASM_CACHECTL
++#define	_ASM_CACHECTL
++
++/*
++ * Options for cacheflush system call
++ */
++#define	ICACHE	0		/* flush instruction cache        */
++#define	DCACHE	1		/* writeback and flush data cache */
++#define	BCACHE	2		/* flush instruction cache + writeback and flush data cache */
++
++#endif /* _ASM_CACHECTL */
+diff --git a/arch/nds32/kernel/cacheinfo.c b/arch/nds32/kernel/cacheinfo.c
+new file mode 100644
+index 0000000..edc0fda
+--- /dev/null
++++ b/arch/nds32/kernel/cacheinfo.c
+@@ -0,0 +1,62 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/bitops.h>
++#include <linux/cacheinfo.h>
++#include <linux/cpu.h>
++
++static void ci_leaf_init(struct cacheinfo *this_leaf,
++			 enum cache_type type, unsigned int level)
++{
++	char cache_type = (type & CACHE_TYPE_INST ? ICACHE : DCACHE);
++
++	this_leaf->level = level;
++	this_leaf->type = type;
++	this_leaf->coherency_line_size = CACHE_LINE_SIZE(cache_type);
++	this_leaf->number_of_sets = CACHE_SET(cache_type);;
++	this_leaf->ways_of_associativity = CACHE_WAY(cache_type);
++	this_leaf->size = this_leaf->number_of_sets *
++	    this_leaf->coherency_line_size * this_leaf->ways_of_associativity;
++#if defined(CONFIG_CPU_DCACHE_WRITETHROUGH)
++	this_leaf->attributes = CACHE_WRITE_THROUGH;
++#else
++	this_leaf->attributes = CACHE_WRITE_BACK;
++#endif
++}
++
++int init_cache_level(unsigned int cpu)
++{
++	struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
++
++	/* Only 1 level and I/D cache seperate. */
++	this_cpu_ci->num_levels = 1;
++	this_cpu_ci->num_leaves = 2;
++	return 0;
++}
++
++int populate_cache_leaves(unsigned int cpu)
++{
++	unsigned int level, idx;
++	struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
++	struct cacheinfo *this_leaf = this_cpu_ci->info_list;
++
++	for (idx = 0, level = 1; level <= this_cpu_ci->num_levels &&
++	     idx < this_cpu_ci->num_leaves; idx++, level++) {
++		ci_leaf_init(this_leaf++, CACHE_TYPE_DATA, level);
++		ci_leaf_init(this_leaf++, CACHE_TYPE_INST, level);
++	}
++	return 0;
++}
+diff --git a/arch/nds32/mm/cacheflush.c b/arch/nds32/mm/cacheflush.c
+new file mode 100644
+index 0000000..f5917fb
+--- /dev/null
++++ b/arch/nds32/mm/cacheflush.c
+@@ -0,0 +1,331 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
 +#include <linux/mm.h>
 +#include <linux/sched.h>
-+#include <linux/signal.h>
-+#include <linux/slab.h>
-+#include <linux/timekeeper_internal.h>
-+#include <linux/vmalloc.h>
-+
-+#include <linux/platform_device.h>
-+#include <linux/of_address.h>
++#include <linux/fs.h>
++#include <linux/pagemap.h>
++#include <linux/module.h>
 +#include <asm/cacheflush.h>
-+#include <asm/vdso.h>
-+#include <asm/vdso_datapage.h>
-+#include <linux/random.h>
++#include <asm/proc-fns.h>
++#include <asm/shmparam.h>
++#include <asm/cache_info.h>
++
++extern struct cache_info L1_cache_info[2];
++
++#ifdef CONFIG_CPU_CACHE_NONALIASING
++void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
++		      pte_t * pte)
++{
++	struct page *page;
++	unsigned long pfn = pte_pfn(*pte);
++
++	if (!pfn_valid(pfn))
++		return;
++
++	if (vma->vm_mm == current->active_mm) {
++
++		__nds32__mtsr_dsb(addr, NDS32_SR_TLB_VPN);
++		__nds32__tlbop_rwr(*pte);
++		__nds32__isb();
++	}
++	page = pfn_to_page(pfn);
++
++	if ((test_and_clear_bit(PG_dcache_dirty, &page->flags)) ||
++	    (vma->vm_flags & VM_EXEC)) {
++
++		if (!PageHighMem(page)) {
++			cpu_cache_wbinval_page((unsigned long)
++					       page_address(page),
++					       vma->vm_flags & VM_EXEC);
++		} else {
++			unsigned long kaddr = (unsigned long)kmap_atomic(page);
++			cpu_cache_wbinval_page(kaddr, vma->vm_flags & VM_EXEC);
++			kunmap_atomic((void *)kaddr);
++		}
++	}
++}
++#else
++extern pte_t va_present(struct mm_struct *mm, unsigned long addr);
++
++static inline unsigned long aliasing(unsigned long addr, unsigned long page)
++{
++	return ((addr & PAGE_MASK) ^ page) & (REALSHMLBA - 1);
++}
++
++static inline unsigned long kremap0(unsigned long uaddr, unsigned long pa)
++{
++	unsigned long kaddr, pte;
++
++#define BASE_ADDR0 0xffffc000
++	kaddr = BASE_ADDR0 | (uaddr & L1_cache_info[DCACHE].aliasing_mask);
++	pte = (pa | PAGE_KERNEL);
++	__nds32__mtsr_dsb(kaddr, NDS32_SR_TLB_VPN);
++	__nds32__tlbop_rwlk(pte);
++	__nds32__isb();
++	return kaddr;
++}
++
++static inline void kunmap01(unsigned long kaddr)
++{
++	__nds32__tlbop_unlk(kaddr);
++	__nds32__tlbop_inv(kaddr);
++	__nds32__isb();
++}
++
++static inline unsigned long kremap1(unsigned long uaddr, unsigned long pa)
++{
++	unsigned long kaddr, pte;
++
++#define BASE_ADDR1 0xffff8000
++	kaddr = BASE_ADDR1 | (uaddr & L1_cache_info[DCACHE].aliasing_mask);
++	pte = (pa | PAGE_KERNEL);
++	__nds32__mtsr_dsb(kaddr, NDS32_SR_TLB_VPN);
++	__nds32__tlbop_rwlk(pte);
++	__nds32__isb();
++	return kaddr;
++}
++
++void flush_cache_mm(struct mm_struct *mm)
++{
++	unsigned long flags;
++
++	local_irq_save(flags);
++	cpu_dcache_wbinval_all();
++	cpu_icache_inval_all();
++	local_irq_restore(flags);
++}
++
++void flush_cache_dup_mm(struct mm_struct *mm)
++{
++}
++
++void flush_cache_range(struct vm_area_struct *vma,
++		       unsigned long start, unsigned long end)
++{
++	unsigned long flags;
++
++	if ((end - start) > 8 * PAGE_SIZE) {
++		cpu_dcache_wbinval_all();
++		if (vma->vm_flags & VM_EXEC)
++			cpu_icache_inval_all();
++		return;
++	}
++	local_irq_save(flags);
++	while (start < end) {
++		if (va_present(vma->vm_mm, start))
++			cpu_cache_wbinval_page(start, vma->vm_flags & VM_EXEC);
++		start += PAGE_SIZE;
++	}
++	local_irq_restore(flags);
++	return;
++}
++
++void flush_cache_page(struct vm_area_struct *vma,
++		      unsigned long addr, unsigned long pfn)
++{
++	unsigned long vto, flags;
++
++	local_irq_save(flags);
++	vto = kremap0(addr, pfn << PAGE_SHIFT);
++	cpu_cache_wbinval_page(vto, vma->vm_flags & VM_EXEC);
++	kunmap01(vto);
++	local_irq_restore(flags);
++}
++
++void flush_cache_vmap(unsigned long start, unsigned long end)
++{
++	cpu_dcache_wbinval_all();
++	cpu_icache_inval_all();
++}
++
++void flush_cache_vunmap(unsigned long start, unsigned long end)
++{
++	cpu_dcache_wbinval_all();
++	cpu_icache_inval_all();
++}
++
++void copy_user_highpage(struct page *to, struct page *from,
++			unsigned long vaddr, struct vm_area_struct *vma)
++{
++	unsigned long vto, vfrom, flags, kto, kfrom, pfrom, pto;
++	kto = ((unsigned long)page_address(to) & PAGE_MASK);
++	kfrom = ((unsigned long)page_address(from) & PAGE_MASK);
++	pto = page_to_phys(to);
++	pfrom = page_to_phys(from);
++
++	if (aliasing(vaddr, (unsigned long)kfrom))
++		cpu_dcache_wb_page((unsigned long)kfrom);
++	if (aliasing(vaddr, (unsigned long)kto))
++		cpu_dcache_inval_page((unsigned long)kto);
++	local_irq_save(flags);
++	vto = kremap0(vaddr, pto);
++	vfrom = kremap1(vaddr, pfrom);
++	copy_page((void *)vto, (void *)vfrom);
++	kunmap01(vfrom);
++	kunmap01(vto);
++	local_irq_restore(flags);
++}
++
++EXPORT_SYMBOL(copy_user_highpage);
++
++void clear_user_highpage(struct page *page, unsigned long vaddr)
++{
++	unsigned long vto, flags, kto;
++
++	kto = ((unsigned long)page_address(page) & PAGE_MASK);
++
++	local_irq_save(flags);
++	if (aliasing(kto, vaddr) && kto != 0) {
++		cpu_dcache_inval_page(kto);
++		cpu_icache_inval_page(kto);
++	}
++	vto = kremap0(vaddr, page_to_phys(page));
++	clear_page((void *)vto);
++	kunmap01(vto);
++	local_irq_restore(flags);
++}
++
++EXPORT_SYMBOL(clear_user_highpage);
++
++void flush_dcache_page(struct page *page)
++{
++	struct address_space *mapping;
++
++	mapping = page_mapping(page);
++	if (mapping && !mapping_mapped(mapping))
++		set_bit(PG_dcache_dirty, &page->flags);
++	else {
++		int i, pc;
++		unsigned long vto, kaddr, flags;
++		kaddr = (unsigned long)page_address(page);
++		cpu_dcache_wbinval_page(kaddr);
++		pc = CACHE_SET(DCACHE) * CACHE_LINE_SIZE(DCACHE) / PAGE_SIZE;
++		local_irq_save(flags);
++		for (i = 0; i < pc; i++) {
++			vto =
++			    kremap0(kaddr + i * PAGE_SIZE, page_to_phys(page));
++			cpu_dcache_wbinval_page(vto);
++			kunmap01(vto);
++		}
++		local_irq_restore(flags);
++	}
++}
++
++void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
++		       unsigned long vaddr, void *dst, void *src, int len)
++{
++	unsigned long line_size, start, end, vto, flags;
++
++	local_irq_save(flags);
++	vto = kremap0(vaddr, page_to_phys(page));
++	dst = (void *)(vto | (vaddr & (PAGE_SIZE - 1)));
++	memcpy(dst, src, len);
++	if (vma->vm_flags & VM_EXEC) {
++		line_size = L1_cache_info[DCACHE].line_size;
++		start = (unsigned long)dst & ~(line_size - 1);
++		end =
++		    ((unsigned long)dst + len + line_size - 1) & ~(line_size -
++								   1);
++		cpu_cache_wbinval_range(start, end, 1);
++	}
++	kunmap01(vto);
++	local_irq_restore(flags);
++}
++
++void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
++			 unsigned long vaddr, void *dst, void *src, int len)
++{
++	unsigned long vto, flags;
++
++	local_irq_save(flags);
++	vto = kremap0(vaddr, page_to_phys(page));
++	src = (void *)(vto | (vaddr & (PAGE_SIZE - 1)));
++	memcpy(dst, src, len);
++	kunmap01(vto);
++	local_irq_restore(flags);
++}
++
++void flush_anon_page(struct vm_area_struct *vma,
++		     struct page *page, unsigned long vaddr)
++{
++	unsigned long flags;
++	if (!PageAnon(page))
++		return;
++
++	if (vma->vm_mm != current->active_mm)
++		return;
++
++	local_irq_save(flags);
++	if (vma->vm_flags & VM_EXEC)
++		cpu_icache_inval_page(vaddr & PAGE_MASK);
++	cpu_dcache_wbinval_page((unsigned long)page_address(page));
++	local_irq_restore(flags);
++}
++
++void flush_kernel_dcache_page(struct page *page)
++{
++	unsigned long flags;
++	local_irq_save(flags);
++	cpu_dcache_wbinval_page((unsigned long)page_address(page));
++	local_irq_restore(flags);
++}
++
++void flush_icache_range(unsigned long start, unsigned long end)
++{
++	unsigned long line_size, flags;
++	line_size = L1_cache_info[DCACHE].line_size;
++	start = start & ~(line_size - 1);
++	end = (end + line_size - 1) & ~(line_size - 1);
++	local_irq_save(flags);
++	cpu_cache_wbinval_range(start, end, 1);
++	local_irq_restore(flags);
++}
++
++void flush_icache_page(struct vm_area_struct *vma, struct page *page)
++{
++	unsigned long flags;
++	local_irq_save(flags);
++	cpu_cache_wbinval_page((unsigned long)page_address(page),
++			       vma->vm_flags & VM_EXEC);
++	local_irq_restore(flags);
++}
++
++void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
++		      pte_t * pte)
++{
++	struct page *page;
++	unsigned long flags;
++	unsigned long pfn = pte_pfn(*pte);
++
++	if (!pfn_valid(pfn))
++		return;
++
++	if (vma->vm_mm == current->active_mm) {
++		__nds32__mtsr_dsb(addr, NDS32_SR_TLB_VPN);
++		__nds32__tlbop_rwr(*pte);
++		__nds32__isb();
++	}
++
++	page = pfn_to_page(pfn);
++	if (test_and_clear_bit(PG_dcache_dirty, &page->flags) ||
++	    (vma->vm_flags & VM_EXEC)) {
++		local_irq_save(flags);
++		cpu_dcache_wbinval_page((unsigned long)page_address(page));
++		local_irq_restore(flags);
++	}
++}
++#endif
+diff --git a/arch/nds32/mm/proc-n13.c b/arch/nds32/mm/proc-n13.c
+new file mode 100644
+index 0000000..9956785
+--- /dev/null
++++ b/arch/nds32/mm/proc-n13.c
+@@ -0,0 +1,608 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <asm/nds32.h>
++#include <asm/pgtable.h>
++#include <asm/tlbflush.h>
++#include <asm/cacheflush.h>
++#ifdef CONFIG_CACHE_L2
++#include <asm/l2_cache.h>
++#endif
++#include <nds32_intrinsic.h>
++
 +#include <asm/cache_info.h>
 +extern struct cache_info L1_cache_info[2];
-+extern char vdso_start, vdso_end;
-+static unsigned long vdso_pages __ro_after_init;
-+struct resource timer_res;
 +
-+/*
-+ * The vDSO data page.
-+ */
-+static struct page *no_pages[] = { NULL };
-+
-+static union {
-+	struct vdso_data data;
-+	u8 page[PAGE_SIZE];
-+} vdso_data_store __page_aligned_data;
-+struct vdso_data *vdso_data = &vdso_data_store.data;
-+static struct vm_special_mapping vdso_spec[2] __ro_after_init = {
-+	{
-+	 .name = "[vvar]",
-+	 .pages = no_pages,
-+	 },
-+	{
-+	 .name = "[vdso]",
-+	 },
-+};
-+
-+static int grab_timer_node_info(void)
++int va_kernel_present(unsigned long addr)
 +{
-+	struct device_node *timer_node;
++	pmd_t *pmd;
++	pte_t *ptep, pte;
 +
-+	timer_node = of_find_node_by_name(NULL, "timer");
-+	of_property_read_u32(timer_node, "cycle-count-offset",
-+			     &vdso_data->cycle_count_offset);
-+	vdso_data->cycle_count_down =
-+	    of_property_read_bool(timer_node, "cycle-count-down");
-+	return of_address_to_resource(timer_node, 0, &timer_res);
-+}
-+
-+static int __init vdso_init(void)
-+{
-+	int i;
-+	struct page **vdso_pagelist;
-+
-+	if (memcmp(&vdso_start, "\177ELF", 4)) {
-+		pr_err("vDSO is not a valid ELF object!\n");
-+		return -EINVAL;
++	pmd = pmd_offset(pgd_offset_k(addr), addr);
++	if (!pmd_none(*pmd)) {
++		ptep = pte_offset_map(pmd, addr);
++		pte = *ptep;
++		if (pte_present(pte))
++			return pte;
 +	}
-+	/* Creat a timer io mapping to get clock cycles counter */
-+	if (grab_timer_node_info())
-+		return -ENODEV;
-+
-+	vdso_pages = (&vdso_end - &vdso_start) >> PAGE_SHIFT;
-+	pr_info("vdso: %ld pages (%ld code @ %p, %ld data @ %p)\n",
-+		vdso_pages + 1, vdso_pages, &vdso_start, 1L, vdso_data);
-+
-+	/* Allocate the vDSO pagelist */
-+	vdso_pagelist = kcalloc(vdso_pages, sizeof(struct page *), GFP_KERNEL);
-+	if (vdso_pagelist == NULL)
-+		return -ENOMEM;
-+
-+	for (i = 0; i < vdso_pages; i++)
-+		vdso_pagelist[i] = virt_to_page(&vdso_start + i * PAGE_SIZE);
-+	vdso_spec[1].pages = &vdso_pagelist[0];
-+
 +	return 0;
 +}
 +
-+arch_initcall(vdso_init);
-+
-+unsigned long inline vdso_random_addr(unsigned long vdso_mapping_len)
++pte_t va_present(struct mm_struct * mm, unsigned long addr)
 +{
-+	unsigned long start = current->mm->mmap_base, end, offset, addr;
-+	start = PAGE_ALIGN(start);
++	pgd_t *pgd;
++	pud_t *pud;
++	pmd_t *pmd;
++	pte_t *ptep, pte;
 +
-+	/* Round the lowest possible end address up to a PMD boundary. */
-+	end = (start + vdso_mapping_len + PMD_SIZE - 1) & PMD_MASK;
-+	if (end >= TASK_SIZE)
-+		end = TASK_SIZE;
-+	end -= vdso_mapping_len;
-+
-+	if (end > start) {
-+		offset = get_random_int() % (((end - start) >> PAGE_SHIFT) + 1);
-+		addr = start + (offset << PAGE_SHIFT);
-+	} else {
-+		addr = start;
++	pgd = pgd_offset(mm, addr);
++	if (!pgd_none(*pgd)) {
++		pud = pud_offset(pgd, addr);
++		if (!pud_none(*pud)) {
++			pmd = pmd_offset(pud, addr);
++			if (!pmd_none(*pmd)) {
++				ptep = pte_offset_map(pmd, addr);
++				pte = *ptep;
++				if (pte_present(pte))
++					return pte;
++			}
++		}
 +	}
-+	return addr;
++	return 0;
++
 +}
 +
-+int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
++int va_readable(struct pt_regs *regs, unsigned long addr)
 +{
 +	struct mm_struct *mm = current->mm;
-+	unsigned long vdso_base, vdso_text_len, vdso_mapping_len;
-+	struct vm_area_struct *vma;
-+	unsigned long addr = 0;
-+	pgprot_t prot;
-+	int ret;
++	pte_t pte;
++	int ret = 0;
 +
-+	vdso_text_len = vdso_pages << PAGE_SHIFT;
-+	/* Be sure to map the data page */
-+	vdso_mapping_len = vdso_text_len + 2 * PAGE_SIZE;
-+#ifndef CONFIG_CPU_CACHE_NONALIASING
-+	vdso_mapping_len += L1_cache_info[DCACHE].aliasing_num - 1;
++	if (user_mode(regs)) {
++		/* user mode */
++		pte = va_present(mm, addr);
++		if (!pte && pte_read(pte))
++			ret = 1;
++	} else {
++		/* superuser mode is always readable, so we can only
++		 * check it is present or not*/
++		return (! !va_kernel_present(addr));
++	}
++	return ret;
++}
++
++int va_writable(struct pt_regs *regs, unsigned long addr)
++{
++	struct mm_struct *mm = current->mm;
++	pte_t pte;
++	int ret = 0;
++
++	if (user_mode(regs)) {
++		/* user mode */
++		pte = va_present(mm, addr);
++		if (!pte && pte_write(pte))
++			ret = 1;
++	} else {
++		/* superuser mode */
++		pte = va_kernel_present(addr);
++		if (!pte && pte_kernel_write(pte))
++			ret = 1;
++	}
++	return ret;
++}
++
++/*
++ * All
++ */
++void n13_icache_inval_all(void)
++{
++	unsigned long end, line_size;
++
++	line_size = L1_cache_info[ICACHE].line_size;
++	end =
++	    line_size * L1_cache_info[ICACHE].ways * L1_cache_info[ICACHE].sets;
++
++	do {
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_IX_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_IX_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_IX_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_IX_INVAL"::"r" (end));
++	} while (end > 0);
++}
++
++void n13_dcache_inval_all(void)
++{
++	__nds32__cctl_l1d_invalall();
++}
++
++void n13_dcache_wb_all(void)
++{
++#ifdef CONFIG_CACHE_L2
++	if (atl2c_base)
++		__nds32__cctl_l1d_wball_alvl();
++	else
++		__nds32__cctl_l1d_wball_one_lvl();
++#else
++	__nds32__cctl_l1d_wball_one_lvl();
++#endif
++}
++
++void n13_dcache_wbinval_all(void)
++{
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++	unsigned long flags;
 +#endif
 +
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++	local_irq_save(flags);
++#endif
++#ifdef CONFIG_CACHE_L2
++	if (atl2c_base)
++		__nds32__cctl_l1d_wball_alvl();
++	else
++		__nds32__cctl_l1d_wball_one_lvl();
++#else
++	__nds32__cctl_l1d_wball_one_lvl();
++#endif
++	__nds32__cctl_l1d_invalall();
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++	local_irq_restore(flags);
++#endif
++}
 +
-+	addr = vdso_random_addr(vdso_mapping_len);
-+	vdso_base = get_unmapped_area(NULL, addr, vdso_mapping_len, 0, 0);
-+	if (IS_ERR_VALUE(vdso_base)) {
-+		ret = vdso_base;
-+		goto up_fail;
++/*
++ * Page
++ */
++void n13_icache_inval_page(unsigned long start)
++{
++	unsigned long line_size, end;
++
++	line_size = L1_cache_info[ICACHE].line_size;
++	end = start + PAGE_SIZE;
++
++	do {
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_VA_INVAL"::"r" (end));
++	} while (end != start);
++}
++
++void n13_dcache_inval_page(unsigned long start)
++{
++	unsigned long line_size, end;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++	end = start + PAGE_SIZE;
++
++	do {
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++	} while (end != start);
++}
++
++void n13_dcache_wb_page(unsigned long start)
++{
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++	unsigned long line_size, end;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++	end = start + PAGE_SIZE;
++
++	do {
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++	} while (end != start);
++#endif
++}
++
++void n13_dcache_wbinval_page(unsigned long start)
++{
++	unsigned long line_size, end;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++	end = start + PAGE_SIZE;
++
++	do {
++		end -= line_size;
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++#endif
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++#endif
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++#endif
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++#endif
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++	} while (end != start);
++}
++
++void n13_cache_wbinval_page(unsigned long page, int flushi)
++{
++	n13_dcache_wbinval_page(page);
++	if (flushi)
++		n13_icache_inval_page(page);
++}
++
++/*
++ * Range
++ */
++void n13_icache_inval_range(unsigned long start, unsigned long end)
++{
++	unsigned long line_size;
++
++	line_size = L1_cache_info[ICACHE].line_size;
++
++	while (end > start) {
++		__asm__ volatile ("\n\tcctl %0, L1I_VA_INVAL"::"r" (start));
++		start += line_size;
 +	}
-+#ifndef CONFIG_CPU_CACHE_NONALIASING
-+	{
-+		unsigned int aliasing_mask =
-+		    L1_cache_info[DCACHE].aliasing_mask;
-+		unsigned int page_colour_ofs;
-+		page_colour_ofs = ((unsigned int)vdso_data & aliasing_mask) -
-+		    (vdso_base & aliasing_mask);
-+		vdso_base += page_colour_ofs & aliasing_mask;
++}
++
++void n13_dcache_inval_range(unsigned long start, unsigned long end)
++{
++	unsigned long line_size;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++
++	while (end > start) {
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (start));
++		start += line_size;
++	}
++}
++
++void n13_dcache_wb_range(unsigned long start, unsigned long end)
++{
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++	unsigned long line_size;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++
++	while (end > start) {
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (start));
++		start += line_size;
 +	}
 +#endif
-+	vma = _install_special_mapping(mm, vdso_base, 2 * PAGE_SIZE,
-+				       VM_READ | VM_MAYREAD, &vdso_spec[0]);
-+	if (IS_ERR(vma)) {
-+		ret = PTR_ERR(vma);
-+		goto up_fail;
++}
++
++void n13_dcache_wbinval_range(unsigned long start, unsigned long end)
++{
++	unsigned long line_size;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++
++	while (end > start) {
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (start));
++#endif
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (start));
++		start += line_size;
++	}
++}
++
++void n13_cache_wbinval_range(unsigned long start, unsigned long end, int flushi)
++{
++	unsigned long line_size, align_start, align_end;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++	align_start = start & ~(line_size - 1);
++	align_end = (end + line_size - 1) & ~(line_size - 1);
++	n13_dcache_wbinval_range(align_start, align_end);
++
++	if (flushi) {
++		line_size = L1_cache_info[ICACHE].line_size;
++		align_start = start & ~(line_size - 1);
++		align_end = (end + line_size - 1) & ~(line_size - 1);
++		n13_icache_inval_range(align_start, align_end);
++	}
++}
++
++void n13_cache_wbinval_range_check(struct vm_area_struct *vma,
++				   unsigned long start, unsigned long end,
++				   bool flushi, bool wbd)
++{
++	unsigned long line_size, t_start, t_end;
++
++	if (!flushi && !wbd)
++		return;
++	line_size = L1_cache_info[DCACHE].line_size;
++	start = start & ~(line_size - 1);
++	end = (end + line_size - 1) & ~(line_size - 1);
++
++	if ((end - start) > (8 * PAGE_SIZE)) {
++		if (wbd)
++			n13_dcache_wbinval_all();
++		if (flushi)
++			n13_icache_inval_all();
++		return;
 +	}
 +
-+	/*Map vdata to user space */
-+	ret = io_remap_pfn_range(vma, vdso_base,
-+				 virt_to_phys(vdso_data) >> PAGE_SHIFT,
-+				 PAGE_SIZE, vma->vm_page_prot);
-+	if (ret)
-+		goto up_fail;
++	t_start = (start + PAGE_SIZE) & PAGE_MASK;
++	t_end = ((end - 1) & PAGE_MASK);
 +
-+	/*Map timer to user space */
-+	vdso_base += PAGE_SIZE;
-+	prot = __pgprot(_PAGE_V | _PAGE_M_UR_KR | _PAGE_D |
-+			_PAGE_G | _PAGE_C_DEV);
-+	ret = io_remap_pfn_range(vma, vdso_base, timer_res.start >> PAGE_SHIFT,
-+				 PAGE_SIZE, prot);
-+	if (ret)
-+		goto up_fail;
-+
-+	/*Map vdso to user space */
-+	vdso_base += PAGE_SIZE;
-+	mm->context.vdso = (void *)vdso_base;
-+	vma = _install_special_mapping(mm, vdso_base, vdso_text_len,
-+				       VM_READ | VM_EXEC |
-+				       VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC,
-+				       &vdso_spec[1]);
-+	if (IS_ERR(vma)) {
-+		ret = PTR_ERR(vma);
-+		goto up_fail;
++	if ((start & PAGE_MASK) == t_end) {
++		if (va_present(vma->vm_mm, start)) {
++			if (wbd)
++				n13_dcache_wbinval_range(start, end);
++			if (flushi)
++				n13_icache_inval_range(start, end);
++		}
++		return;
 +	}
 +
-+	up_write(&mm->mmap_sem);
-+	return 0;
++	if (va_present(vma->vm_mm, start)) {
++		if (wbd)
++			n13_dcache_wbinval_range(start, end);
++		if (flushi)
++			n13_icache_inval_range(start, end);
++	}
 +
-+up_fail:
-+	mm->context.vdso = NULL;
-+	up_write(&mm->mmap_sem);
-+	return ret;
++	if (va_present(vma->vm_mm, end - 1)) {
++		if (wbd)
++			n13_dcache_wbinval_range(start, end);
++		if (flushi)
++			n13_icache_inval_range(start, end);
++	}
++
++	while (t_start < t_end) {
++		if (va_present(vma->vm_mm, t_start)) {
++			if (wbd)
++				n13_dcache_wbinval_page(t_start);
++			if (flushi)
++				n13_icache_inval_page(t_start);
++		}
++		t_start += PAGE_SIZE;
++	}
 +}
 +
-+static void vdso_write_begin(struct vdso_data *vdata)
-+{
-+	++vdso_data->seq_count;
-+	smp_wmb();		/* Pairs with smp_rmb in vdso_read_retry */
-+}
-+
-+static void vdso_write_end(struct vdso_data *vdata)
-+{
-+	smp_wmb();		/* Pairs with smp_rmb in vdso_read_begin */
-+	++vdso_data->seq_count;
-+}
-+
-+void update_vsyscall(struct timekeeper *tk)
-+{
-+	vdso_write_begin(vdso_data);
-+	vdso_data->cs_mask = tk->tkr_mono.mask;
-+	vdso_data->cs_mult = tk->tkr_mono.mult;
-+	vdso_data->cs_shift = tk->tkr_mono.shift;
-+	vdso_data->cs_cycle_last = tk->tkr_mono.cycle_last;
-+	vdso_data->wtm_clock_sec = tk->wall_to_monotonic.tv_sec;
-+	vdso_data->wtm_clock_nsec = tk->wall_to_monotonic.tv_nsec;
-+	vdso_data->xtime_clock_sec = tk->xtime_sec;
-+	vdso_data->xtime_clock_nsec = tk->tkr_mono.xtime_nsec;
-+	vdso_data->xtime_coarse_sec = tk->xtime_sec;
-+	vdso_data->xtime_coarse_nsec = tk->tkr_mono.xtime_nsec >>
-+	    tk->tkr_mono.shift;
-+	vdso_write_end(vdso_data);
-+}
-+
-+void update_vsyscall_tz(void)
-+{
-+	vdso_data->tz_minuteswest = sys_tz.tz_minuteswest;
-+	vdso_data->tz_dsttime = sys_tz.tz_dsttime;
-+}
-diff --git a/arch/nds32/kernel/vdso/Makefile b/arch/nds32/kernel/vdso/Makefile
-new file mode 100644
-index 0000000..e6c50a7
---- /dev/null
-+++ b/arch/nds32/kernel/vdso/Makefile
-@@ -0,0 +1,82 @@
-+#
-+# Building a vDSO image for AArch64.
-+#
-+# Author: Will Deacon <will.deacon@arm.com>
-+# Heavily based on the vDSO Makefiles for other archs.
-+#
-+
-+obj-vdso := note.o datapage.o sigreturn.o gettimeofday.o
-+
-+# Build rules
-+targets := $(obj-vdso) vdso.so vdso.so.dbg
-+obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
-+
-+ccflags-y := -shared -fno-common -fno-builtin
-+ccflags-y += -nostdlib -Wl,-soname=linux-vdso.so.1 \
-+		$(call cc-ldoption, -Wl$(comma)--hash-style=sysv)
-+ccflags-y += -fPIC -Wl,-shared -g
-+
-+# Disable gcov profiling for VDSO code
-+GCOV_PROFILE := n
-+
-+
-+obj-y += vdso.o
-+extra-y += vdso.lds
-+CPPFLAGS_vdso.lds += -P -C -U$(ARCH)
-+
-+# Force dependency
-+$(obj)/vdso.o : $(obj)/vdso.so
-+
-+# Link rule for the .so file, .lds has to be first
-+$(obj)/vdso.so.dbg: $(src)/vdso.lds $(obj-vdso)
-+	$(call if_changed,vdsold)
-+
-+
-+# Strip rule for the .so file
-+$(obj)/%.so: OBJCOPYFLAGS := -S
-+$(obj)/%.so: $(obj)/%.so.dbg FORCE
-+	$(call if_changed,objcopy)
-+
-+# Generate VDSO offsets using helper script
-+gen-vdsosym := $(srctree)/$(src)/gen_vdso_offsets.sh
-+quiet_cmd_vdsosym = VDSOSYM $@
-+define cmd_vdsosym
-+	$(NM) $< | $(gen-vdsosym) | LC_ALL=C sort > $@
-+endef
-+
-+include/generated/vdso-offsets.h: $(obj)/vdso.so.dbg FORCE
-+	$(call if_changed,vdsosym)
-+
-+
-+
-+# Assembly rules for the .S files
-+
-+sigreturn.o : sigreturn.S
-+	$(call if_changed_dep,vdsoas)
-+
-+note.o : note.S
-+	$(call if_changed_dep,vdsoas)
-+
-+datapage.o : datapage.S
-+	$(call if_changed_dep,vdsoas)
-+
-+gettimeofday.o : gettimeofday.c FORCE
-+	$(call if_changed_dep,vdsocc)
-+
-+# Actual build commands
-+quiet_cmd_vdsold = VDSOL   $@
-+      cmd_vdsold = $(CC) $(c_flags) -Wl,-n -Wl,-T $^ -o $@
-+quiet_cmd_vdsoas = VDSOA   $@
-+      cmd_vdsoas = $(CC) $(a_flags) -c -o $@ $<
-+quiet_cmd_vdsocc = VDSOA   $@
-+      cmd_vdsocc = $(CC) $(c_flags) -c -o $@ $<
-+
-+# Install commands for the unstripped file
-+quiet_cmd_vdso_install = INSTALL $@
-+      cmd_vdso_install = cp $(obj)/$@.dbg $(MODLIB)/vdso/$@
-+
-+vdso.so: $(obj)/vdso.so.dbg
-+	@mkdir -p $(MODLIB)/vdso
-+	$(call cmd,vdso_install)
-+
-+vdso_install: vdso.so
-diff --git a/arch/nds32/kernel/vdso/datapage.S b/arch/nds32/kernel/vdso/datapage.S
-new file mode 100644
-index 0000000..d86af66
---- /dev/null
-+++ b/arch/nds32/kernel/vdso/datapage.S
-@@ -0,0 +1,34 @@
 +/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ * DMA
 + */
-+
-+#include <linux/linkage.h>
-+#include <asm/page.h>
-+
-+ENTRY(__get_timerpage)
-+	sethi	$r0, hi20(. + PAGE_SIZE + 8)
-+	ori	$r0, $r0, lo12(. + PAGE_SIZE + 4)
-+	mfusr	$r1, $pc
-+	sub	$r0, $r1, $r0
-+	ret
-+ENDPROC(__get_timerpage)
-+
-+ENTRY(__get_datapage)
-+	sethi	$r0, hi20(. + 2*PAGE_SIZE + 8)
-+	ori	$r0, $r0, lo12(. + 2*PAGE_SIZE + 4)
-+	mfusr	$r1, $pc
-+	sub	$r0, $r1, $r0
-+	ret
-+ENDPROC(__get_datapage)
-diff --git a/arch/nds32/kernel/vdso/gen_vdso_offsets.sh b/arch/nds32/kernel/vdso/gen_vdso_offsets.sh
-new file mode 100755
-index 0000000..01924ff
---- /dev/null
-+++ b/arch/nds32/kernel/vdso/gen_vdso_offsets.sh
-@@ -0,0 +1,15 @@
-+#!/bin/sh
-+
-+#
-+# Match symbols in the DSO that look like VDSO_*; produce a header file
-+# of constant offsets into the shared object.
-+#
-+# Doing this inside the Makefile will break the $(filter-out) function,
-+# causing Kbuild to rebuild the vdso-offsets header file every time.
-+#
-+# Author: Will Deacon <will.deacon@arm.com
-+#
-+
-+LC_ALL=C
-+sed -n -e 's/^00*/0/' -e \
-+'s/^\([0-9a-fA-F]*\) . VDSO_\([a-zA-Z0-9_]*\)$/\#define vdso_offset_\2\t0x\1/p'
-diff --git a/arch/nds32/kernel/vdso/gettimeofday.c b/arch/nds32/kernel/vdso/gettimeofday.c
-new file mode 100644
-index 0000000..3a93d4e
---- /dev/null
-+++ b/arch/nds32/kernel/vdso/gettimeofday.c
-@@ -0,0 +1,260 @@
-+/*
-+ * Copyright 2015 Mentor Graphics Corporation.
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; version 2 of the
-+ * License.
-+ *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/compiler.h>
-+#include <linux/hrtimer.h>
-+#include <linux/time.h>
-+#include <asm/io.h>
-+#include <asm/barrier.h>
-+#include <asm/bug.h>
-+#include <asm/page.h>
-+#include <asm/unistd.h>
-+#include <asm/vdso_datapage.h>
-+#include <asm/asm-offsets.h>
-+
-+#define X(x) #x
-+#define Y(x) X(x)
-+
-+extern struct vdso_data *__get_datapage(void);
-+extern struct vdso_data *__get_timerpage(void);
-+
-+static notrace unsigned int __vdso_read_begin(const struct vdso_data *vdata)
++void n13_dma_wb_range(unsigned long start, unsigned long end)
 +{
-+	u32 seq;
-+repeat:
-+	seq = ACCESS_ONCE(vdata->seq_count);
-+	if (seq & 1) {
-+		cpu_relax();
-+		goto repeat;
++	unsigned long line_size;
++	unsigned long flags;
++	line_size = L1_cache_info[DCACHE].line_size;
++	start = start & (~(line_size - 1));
++	end = (end + line_size - 1) & (~(line_size - 1));
++	if (unlikely(start == end))
++		return;
++
++	local_irq_save(flags);
++	n13_dcache_wb_range(start, end);
++
++#ifdef CONFIG_CACHE_L2
++	if (atl2c_base) {
++		unsigned long p_start = __pa(start);
++		unsigned long p_end = __pa(end);
++		unsigned long cmd;
++		/* TODO Can Use PAGE Mode to optimize if range large than PAGE_SIZE */
++		line_size = L2_CACHE_LINE_SIZE();
++		p_start = p_start & (~(line_size - 1));
++		p_end = (p_end + line_size - 1) & (~(line_size - 1));
++		cmd =
++		    (p_start & ~(line_size - 1)) | CCTL_CMD_L2_PA_WB |
++		    CCTL_SINGLE_CMD;
++		do {
++			L2_CMD_RDY();
++			L2C_W_REG(L2_CCTL_CMD_OFF, cmd);
++			cmd += line_size;
++			p_start += line_size;
++		} while (p_end > p_start);
++		cmd = CCTL_CMD_L2_SYNC;
++		L2_CMD_RDY();
++		L2C_W_REG(L2_CCTL_CMD_OFF, cmd);
++		L2_CMD_RDY();
++
 +	}
-+	return seq;
++#endif
++	local_irq_restore(flags);
 +}
 +
-+static notrace unsigned int vdso_read_begin(const struct vdso_data *vdata)
++#ifdef CONFIG_CACHE_L2
++void n13_l2dcache_wbinval_range(unsigned long start, unsigned long end)
 +{
-+	unsigned int seq;
++	unsigned long p_start;
++	unsigned long p_end;
++	unsigned long cmd;
++	unsigned long line_size;
 +
-+	seq = __vdso_read_begin(vdata);
-+
-+	smp_rmb();		/* Pairs with smp_wmb in vdso_write_end */
-+	return seq;
-+}
-+
-+static notrace int vdso_read_retry(const struct vdso_data *vdata, u32 start)
-+{
-+	smp_rmb();		/* Pairs with smp_wmb in vdso_write_begin */
-+	return vdata->seq_count != start;
-+}
-+
-+static notrace long clock_gettime_fallback(clockid_t _clkid,
-+					   struct timespec *_ts)
-+{
-+	register struct timespec *ts asm("$r1") = _ts;
-+	register clockid_t clkid asm("$r0") = _clkid;
-+	register long ret asm("$r0");
-+
-+	asm volatile ("	syscall " Y(__NR_clock_gettime) "\n":"=r"(ret)
-+		      :"r"(clkid), "r"(ts)
-+		      :"memory");
-+
-+	return ret;
-+}
-+
-+static notrace int do_realtime_coarse(struct timespec *ts,
-+				      struct vdso_data *vdata)
-+{
-+	u32 seq;
-+
++	p_start = __pa(start);
++	p_end = __pa(end);
++	/* TODO Can Use PAGE Mode to optimize if range large than PAGE_SIZE */
++	line_size = L2_CACHE_LINE_SIZE();
++	p_start = p_start & (~(line_size - 1));
++	p_end = (p_end + line_size - 1) & (~(line_size - 1));
++	cmd =
++	    (p_start & ~(line_size - 1)) | CCTL_CMD_L2_PA_WBINVAL |
++	    CCTL_SINGLE_CMD;
 +	do {
-+		seq = vdso_read_begin(vdata);
++		L2_CMD_RDY();
++		L2C_W_REG(L2_CCTL_CMD_OFF, cmd);
++		cmd += line_size;
++		p_start += line_size;
++	} while (p_end > p_start);
++	cmd = CCTL_CMD_L2_SYNC;
++	L2_CMD_RDY();
++	L2C_W_REG(L2_CCTL_CMD_OFF, cmd);
++	L2_CMD_RDY();
 +
-+		ts->tv_sec = vdata->xtime_coarse_sec;
-+		ts->tv_nsec = vdata->xtime_coarse_nsec;
-+
-+	} while (vdso_read_retry(vdata, seq));
-+	return 0;
 +}
++#endif
 +
-+static notrace int do_monotonic_coarse(struct timespec *ts,
-+				       struct vdso_data *vdata)
++void n13_dma_inval_range(unsigned long start, unsigned long end)
 +{
-+	struct timespec tomono;
-+	u32 seq;
-+
-+	do {
-+		seq = vdso_read_begin(vdata);
-+
-+		ts->tv_sec = vdata->xtime_coarse_sec;
-+		ts->tv_nsec = vdata->xtime_coarse_nsec;
-+
-+		tomono.tv_sec = vdata->wtm_clock_sec;
-+		tomono.tv_nsec = vdata->wtm_clock_nsec;
-+
-+	} while (vdso_read_retry(vdata, seq));
-+
-+	ts->tv_sec += tomono.tv_sec;
-+	timespec_add_ns(ts, tomono.tv_nsec);
-+	return 0;
-+}
-+
-+static inline u64 vgetsns(struct vdso_data *vdso)
-+{
-+	u32 cycle_now;
-+	u32 cycle_delta;
-+	u32 *timer_cycle_base;
-+
-+	timer_cycle_base =
-+	    (u32 *) ((char *)__get_timerpage() + vdso->cycle_count_offset);
-+	cycle_now = readl_relaxed(timer_cycle_base);
-+	if (true == vdso->cycle_count_down)
-+		cycle_now = ~(*timer_cycle_base);
-+	cycle_delta = cycle_now - (u32) vdso->cs_cycle_last;
-+	return ((u64) cycle_delta & vdso->cs_mask) * vdso->cs_mult;
-+}
-+
-+static notrace int do_realtime(struct timespec *ts, struct vdso_data *vdata)
-+{
-+	unsigned count;
-+	u64 ns;
-+	do {
-+		count = vdso_read_begin(vdata);
-+		ts->tv_sec = vdata->xtime_clock_sec;
-+		ns = vdata->xtime_clock_nsec;
-+		ns += vgetsns(vdata);
-+		ns >>= vdata->cs_shift;
-+	} while (vdso_read_retry(vdata, count));
-+
-+	ts->tv_sec += __iter_div_u64_rem(ns, NSEC_PER_SEC, &ns);
-+	ts->tv_nsec = ns;
-+
-+	return 0;
-+}
-+
-+static notrace int do_monotonic(struct timespec *ts, struct vdso_data *vdata)
-+{
-+	struct timespec tomono;
-+	u64 nsecs;
-+	u32 seq;
-+
-+	do {
-+		seq = vdso_read_begin(vdata);
-+
-+		ts->tv_sec = vdata->xtime_clock_sec;
-+		nsecs = vdata->xtime_clock_nsec;
-+		nsecs += vgetsns(vdata);
-+		nsecs >>= vdata->cs_shift;
-+
-+		tomono.tv_sec = vdata->wtm_clock_sec;
-+		tomono.tv_nsec = vdata->wtm_clock_nsec;
-+
-+	} while (vdso_read_retry(vdata, seq));
-+
-+	ts->tv_sec += tomono.tv_sec;
-+	ts->tv_nsec = 0;
-+	timespec_add_ns(ts, nsecs + tomono.tv_nsec);
-+	return 0;
-+}
-+
-+notrace int __vdso_clock_gettime(clockid_t clkid, struct timespec *ts)
-+{
-+	struct vdso_data *vdata;
-+	int ret = -1;
-+
-+	vdata = __get_datapage();
-+
-+	switch (clkid) {
-+	case CLOCK_REALTIME_COARSE:
-+		ret = do_realtime_coarse(ts, vdata);
-+		break;
-+	case CLOCK_MONOTONIC_COARSE:
-+		ret = do_monotonic_coarse(ts, vdata);
-+		break;
-+	case CLOCK_REALTIME:
-+		ret = do_realtime(ts, vdata);
-+		break;
-+	case CLOCK_MONOTONIC:
-+		ret = do_monotonic(ts, vdata);
-+		break;
-+	default:
-+		break;
++	unsigned long line_size;
++	unsigned long old_start = start;
++	unsigned long old_end = end;
++	unsigned long flags;
++	line_size = L1_cache_info[DCACHE].line_size;
++	start = start & (~(line_size - 1));
++	end = (end + line_size - 1) & (~(line_size - 1));
++	if (unlikely(start == end))
++		return;
++	local_irq_save(flags);
++	if (start != old_start) {
++		n13_dcache_wbinval_range(start, start + line_size);
++#ifdef CONFIG_CACHE_L2
++		if (atl2c_base)
++			n13_l2dcache_wbinval_range(start, start + line_size);
++#endif
 +	}
-+
-+	if (ret)
-+		ret = clock_gettime_fallback(clkid, ts);
-+
-+	return ret;
-+}
-+
-+static notrace long clock_getres_fallback(clockid_t _clk_id,
-+					  struct timespec *_res)
-+{
-+	register clockid_t clk_id asm("$r0") = _clk_id;
-+	register struct timespec *res asm("$r1") = _res;
-+	register long ret asm("$r0");
-+
-+	asm volatile ("	syscall " Y(__NR_clock_getres) " \n":"=r"(ret)
-+		      :"r"(clk_id), "r"(res)
-+		      :"memory");
-+
-+	return ret;
-+}
-+
-+notrace int __vdso_clock_getres(clockid_t clk_id, struct timespec *res)
-+{
-+	if (res == NULL)
-+		return -EFAULT;
-+	switch (clk_id) {
-+	case CLOCK_REALTIME:
-+	case CLOCK_MONOTONIC:
-+	case CLOCK_MONOTONIC_RAW:
-+		res->tv_sec = 0;
-+		res->tv_nsec = CLOCK_REALTIME_RES;
-+		break;
-+	case CLOCK_REALTIME_COARSE:
-+	case CLOCK_MONOTONIC_COARSE:
-+		res->tv_sec = 0;
-+		res->tv_nsec = CLOCK_COARSE_RES;
-+		break;
-+	default:
-+		clock_getres_fallback(clk_id, res);
-+		break;
++	if (end != old_end) {
++		n13_dcache_wbinval_range(end - line_size, end);
++#ifdef CONFIG_CACHE_L2
++		if (atl2c_base)
++			n13_l2dcache_wbinval_range(end - line_size, end);
++#endif
 +	}
-+	return 0;
++	n13_dcache_inval_range(start, end);
++#ifdef CONFIG_CACHE_L2
++	if (atl2c_base) {
++		unsigned long p_start = __pa(start);
++		unsigned long p_end = __pa(end);
++		unsigned long cmd;
++		/* TODO Can Use PAGE Mode to optimize if range large than PAGE_SIZE */
++		line_size = L2_CACHE_LINE_SIZE();
++		p_start = p_start & (~(line_size - 1));
++		p_end = (p_end + line_size - 1) & (~(line_size - 1));
++		cmd =
++		    (p_start & ~(line_size - 1)) | CCTL_CMD_L2_PA_INVAL |
++		    CCTL_SINGLE_CMD;
++		do {
++			L2_CMD_RDY();
++			L2C_W_REG(L2_CCTL_CMD_OFF, cmd);
++			cmd += line_size;
++			p_start += line_size;
++		} while (p_end > p_start);
++		cmd = CCTL_CMD_L2_SYNC;
++		L2_CMD_RDY();
++		L2C_W_REG(L2_CCTL_CMD_OFF, cmd);
++		L2_CMD_RDY();
++	}
++#endif
++	local_irq_restore(flags);
++
 +}
 +
-+notrace int __vdso_gettimeofday(struct timeval *tv, struct timezone *tz)
++void n13_dma_wbinval_range(unsigned long start, unsigned long end)
 +{
-+	struct timespec ts;
-+	struct vdso_data *vdata;
-+	int ret;
++	unsigned long line_size;
++	unsigned long flags;
++	line_size = L1_cache_info[DCACHE].line_size;
++	start = start & (~(line_size - 1));
++	end = (end + line_size - 1) & (~(line_size - 1));
++	if (unlikely(start == end))
++		return;
 +
-+	vdata = __get_datapage();
++	local_irq_save(flags);
++	n13_dcache_wbinval_range(start, end);
++#ifdef CONFIG_CACHE_L2
++	if (atl2c_base) {
++		unsigned long p_start = __pa(start);
++		unsigned long p_end = __pa(end);
++		unsigned long cmd;
 +
-+	ret = do_realtime(&ts, vdata);
++		/* TODO Can Use PAGE Mode to optimize if range large than PAGE_SIZE */
++		line_size = L2_CACHE_LINE_SIZE();
++		p_start = p_start & (~(line_size - 1));
++		p_end = (p_end + line_size - 1) & (~(line_size - 1));
++		cmd =
++		    (p_start & ~(line_size - 1)) | CCTL_CMD_L2_PA_WBINVAL |
++		    CCTL_SINGLE_CMD;
++		do {
++			L2_CMD_RDY();
++			L2C_W_REG(L2_CCTL_CMD_OFF, cmd);
++			cmd += line_size;
++			p_start += line_size;
++		} while (p_end > p_start);
++		cmd = CCTL_CMD_L2_SYNC;
++		L2_CMD_RDY();
++		L2C_W_REG(L2_CCTL_CMD_OFF, cmd);
++		L2_CMD_RDY();
 +
-+	if (tv) {
-+		tv->tv_sec = ts.tv_sec;
-+		tv->tv_usec = ts.tv_nsec / 1000;
 +	}
-+	if (tz) {
-+		tz->tz_minuteswest = vdata->tz_minuteswest;
-+		tz->tz_dsttime = vdata->tz_dsttime;
-+	}
-+
-+	return ret;
++#endif
++	local_irq_restore(flags);
 +}
-diff --git a/arch/nds32/kernel/vdso/note.S b/arch/nds32/kernel/vdso/note.S
++
++void n13_proc_init(void)
++{
++}
++
++void n13_proc_fin(void)
++{
++}
++
++void n13_do_idle(void)
++{
++	__nds32__standby_no_wake_grant();
++}
++
++void n13_reset(unsigned long reset)
++{
++	u32 tmp;
++	GIE_DISABLE();
++	tmp = __nds32__mfsr(NDS32_SR_CACHE_CTL);
++	tmp &= ~(CACHE_CTL_mskIC_EN | CACHE_CTL_mskDC_EN);
++	__nds32__mtsr_isb(tmp, NDS32_SR_CACHE_CTL);
++	n13_dcache_wbinval_all();
++	n13_icache_inval_all();
++
++	__asm__ __volatile__("jr.toff %0\n\t"::"r"(reset));
++}
++
++void n13_switch_mm(struct mm_struct *mm)
++{
++	unsigned long cid;
++	cid = __nds32__mfsr(NDS32_SR_TLB_MISC);
++	cid = (cid & ~TLB_MISC_mskCID) | mm->context.id;
++	__nds32__mtsr_dsb(cid, NDS32_SR_TLB_MISC);
++	__nds32__mtsr_isb(__pa(mm->pgd), NDS32_SR_L1_PPTB);
++}
+diff --git a/arch/nds32/mm/tlb.c b/arch/nds32/mm/tlb.c
 new file mode 100644
-index 0000000..59c6397
+index 0000000..b397b9f
 --- /dev/null
-+++ b/arch/nds32/kernel/vdso/note.S
-@@ -0,0 +1,29 @@
-+/*
-+ * Copyright (C) 2012 ARM Limited
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ * Author: Will Deacon <will.deacon@arm.com>
-+ *
-+ * This supplies .note.* sections to go into the PT_NOTE inside the vDSO text.
-+ * Here we can supply some information useful to userland.
-+ */
-+
-+#include <linux/uts.h>
-+#include <linux/version.h>
-+#include <linux/elfnote.h>
-+
-+ELFNOTE_START(Linux, 0, "a")
-+	.long LINUX_VERSION_CODE
-+ELFNOTE_END
-diff --git a/arch/nds32/kernel/vdso/sigreturn.S b/arch/nds32/kernel/vdso/sigreturn.S
-new file mode 100644
-index 0000000..e3cd9d7
---- /dev/null
-+++ b/arch/nds32/kernel/vdso/sigreturn.S
-@@ -0,0 +1,32 @@
-+/*
-+ * Sigreturn trampoline for returning from a signal when the SA_RESTORER
-+ * flag is not set.
-+ *
-+ * Copyright (C) 2012 ARM Limited
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ * Author: Will Deacon <will.deacon@arm.com>
-+ */
-+
-+#include <linux/linkage.h>
-+#include <asm/unistd.h>
-+
-+	.text
-+
-+ENTRY(__kernel_rt_sigreturn)
-+	.cfi_startproc
-+	syscall	#__NR_rt_sigreturn
-+	.cfi_endproc
-+ENDPROC(__kernel_rt_sigreturn)
-diff --git a/arch/nds32/kernel/vdso/vdso.S b/arch/nds32/kernel/vdso/vdso.S
-new file mode 100644
-index 0000000..4444082
---- /dev/null
-+++ b/arch/nds32/kernel/vdso/vdso.S
-@@ -0,0 +1,33 @@
-+/*
-+ * Copyright (C) 2012 ARM Limited
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ * Author: Will Deacon <will.deacon@arm.com>
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/linkage.h>
-+#include <linux/const.h>
-+#include <asm/page.h>
-+
-+	.globl vdso_start, vdso_end
-+	.section .rodata
-+	.balign PAGE_SIZE
-+vdso_start:
-+	.incbin "arch/nds32/kernel/vdso/vdso.so"
-+	.balign PAGE_SIZE
-+vdso_end:
-+
-+	.previous
-diff --git a/arch/nds32/kernel/vdso/vdso.lds.S b/arch/nds32/kernel/vdso/vdso.lds.S
-new file mode 100644
-index 0000000..9842ec7
---- /dev/null
-+++ b/arch/nds32/kernel/vdso/vdso.lds.S
-@@ -0,0 +1,87 @@
++++ b/arch/nds32/mm/tlb.c
+@@ -0,0 +1,63 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -942,76 +1540,52 @@ index 0000000..9842ec7
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
++#include <linux/spinlock_types.h>
++#include <linux/mm.h>
++#include <linux/sched.h>
++#include <asm/nds32.h>
++#include <nds32_intrinsic.h>
 +
-+#include <linux/const.h>
-+#include <asm/page.h>
-+#include <asm/vdso.h>
++unsigned int cpu_last_cid = { TLB_MISC_mskCID + (2 << TLB_MISC_offCID) };
 +
-+OUTPUT_FORMAT("elf32-nds32le-linux", "elf32-nds32be-linux", "elf32-nds32le-linux")
-+OUTPUT_ARCH(nds32)
++DEFINE_SPINLOCK(cid_lock);
 +
-+SECTIONS
++void local_flush_tlb_range(struct vm_area_struct *vma,
++			   unsigned long start, unsigned long end)
 +{
-+	. = SIZEOF_HEADERS;
++	unsigned long flags, ocid, ncid;
 +
-+	.hash		: { *(.hash) }			:text
-+	.gnu.hash	: { *(.gnu.hash) }
-+	.dynsym		: { *(.dynsym) }
-+	.dynstr		: { *(.dynstr) }
-+	.gnu.version	: { *(.gnu.version) }
-+	.gnu.version_d	: { *(.gnu.version_d) }
-+	.gnu.version_r	: { *(.gnu.version_r) }
-+
-+	.note		: { *(.note.*) }		:text	:note
-+
-+
-+	.text		: { *(.text*) }			:text
-+
-+	.eh_frame_hdr	: { *(.eh_frame_hdr) }		:text	:eh_frame_hdr
-+	.eh_frame	: { KEEP (*(.eh_frame)) }	:text
-+
-+	.dynamic	: { *(.dynamic) }		:text	:dynamic
-+
-+	.rodata		: { *(.rodata*) }		:text
-+
-+
-+	/DISCARD/	: {
-+		*(.note.GNU-stack)
-+		*(.data .data.* .gnu.linkonce.d.* .sdata*)
-+		*(.bss .sbss .dynbss .dynsbss)
++	if ((end - start) > 0x400000) {
++		__nds32__tlbop_flua();
++		__nds32__isb();
++		return;
 +	}
++
++	spin_lock_irqsave(&cid_lock, flags);
++	ocid = __nds32__mfsr(NDS32_SR_TLB_MISC);
++	ncid = (ocid & ~TLB_MISC_mskCID) | vma->vm_mm->context.id;
++	__nds32__mtsr_dsb(ncid, NDS32_SR_TLB_MISC);
++	while (start < end) {
++		__nds32__tlbop_inv(start);
++		__nds32__isb();
++		start += PAGE_SIZE;
++	}
++	__nds32__mtsr_dsb(ocid, NDS32_SR_TLB_MISC);
++	spin_unlock_irqrestore(&cid_lock, flags);
 +}
 +
-+/*
-+ * We must supply the ELF program headers explicitly to get just one
-+ * PT_LOAD segment, and set the flags explicitly to make segments read-only.
-+ */
-+PHDRS
++void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long addr)
 +{
-+	text		PT_LOAD		FLAGS(5) FILEHDR PHDRS; /* PF_R|PF_X */
-+	dynamic		PT_DYNAMIC	FLAGS(4);		/* PF_R */
-+	note		PT_NOTE		FLAGS(4);		/* PF_R */
-+	eh_frame_hdr	PT_GNU_EH_FRAME;
-+}
++	unsigned long flags, ocid, ncid;
 +
-+/*
-+ * This controls what symbols we export from the DSO.
-+ */
-+VERSION
-+{
-+	LINUX_2.6 {
-+	global:
-+		__kernel_rt_sigreturn;
-+		__vdso_gettimeofday;
-+		__vdso_clock_getres;
-+		__vdso_clock_gettime;
-+	local: *;
-+	};
++	spin_lock_irqsave(&cid_lock, flags);
++	ocid = __nds32__mfsr(NDS32_SR_TLB_MISC);
++	ncid = (ocid & ~TLB_MISC_mskCID) | vma->vm_mm->context.id;
++	__nds32__mtsr_dsb(ncid, NDS32_SR_TLB_MISC);
++	__nds32__tlbop_inv(addr);
++	__nds32__isb();
++	__nds32__mtsr_dsb(ocid, NDS32_SR_TLB_MISC);
++	spin_unlock_irqrestore(&cid_lock, flags);
 +}
-+
-+/*
-+ * Make the rt_sigreturn code visible to the kernel.
-+ */
-+VDSO_rt_sigtramp	= __kernel_rt_sigreturn;
 -- 
 1.7.9.5
