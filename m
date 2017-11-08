@@ -1,293 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f68.google.com ([209.85.160.68]:43353 "EHLO
-        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754072AbdKHGUc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 01:20:32 -0500
-From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH 14/31] nds32: ELF definitions
-Date: Wed,  8 Nov 2017 13:55:02 +0800
-Message-ID: <2889e83774846be0e914bc16e0d6807c13903eb2.1510118606.git.green.hu@gmail.com>
-In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com>
-In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com>
+Received: from mail-wm0-f45.google.com ([74.125.82.45]:56145 "EHLO
+        mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751013AbdKHIal (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 03:30:41 -0500
+Received: by mail-wm0-f45.google.com with SMTP id y83so8863252wmc.4
+        for <linux-arch@vger.kernel.org>; Wed, 08 Nov 2017 00:30:40 -0800 (PST)
+Date: Wed, 8 Nov 2017 11:30:38 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
+Message-ID: <20171108083038.djj3qdhhnrazkk7b@node.shutemov.name>
+References: <20171106192524.12ea3187@roar.ozlabs.ibm.com>
+ <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
+ <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
+ <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
+ <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
+ <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
+ <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
+ <20171108002448.6799462e@roar.ozlabs.ibm.com>
+ <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
+ <87y3nh2wt5.fsf@concordia.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87y3nh2wt5.fsf@concordia.ellerman.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org
-Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171108055502.h-XDVQ2DEXspfPFs_onwyzCnQtgznUntviWjy8QKTsw@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Florian Weimer <fweimer@redhat.com>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, Thomas Gleixner <tglx@linutronix.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20171108083038.L2oZ1d4oCT1u81qfJid4I2N2sN3WX5e_LN_F6fSgpHk@z>
 
-From: Greentime Hu <greentime@andestech.com>
+On Wed, Nov 08, 2017 at 03:56:06PM +1100, Michael Ellerman wrote:
+> "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> writes:
+> 
+> >> 
+> >> If it is decided to keep these kind of heuristics, can we get just a
+> >> small but reasonably precise description of each change to the
+> >> interface and ways for using the new functionality, such that would be
+> >> suitable for the man page? I couldn't fix powerpc because nothing
+> >> matches and even Aneesh and you differ on some details (MAP_FIXED
+> >> behaviour).
+> >
+> >
+> > I would consider MAP_FIXED as my mistake. We never discussed this 
+> > explicitly and I kind of assumed it to behave the same way. ie, we 
+> > search in lower address space (128TB) if the hint addr is below 128TB.
+> >
+> > IIUC we agree on the below.
+> >
+> > 1) MAP_FIXED allow the addr to be used, even if hint addr is below 128TB 
+> > but hint_addr + len is > 128TB.
+> 
+> So:
+>   mmap(0x7ffffffff000, 0x2000, ..., MAP_FIXED ...) = 0x7ffffffff000
+> 
+> > 2) For everything else we search in < 128TB space if hint addr is below 
+> > 128TB
+> 
+>   mmap((x < 128T), 0x1000, ...) = (y < 128T)
+>   ...
+>   mmap(0x7ffffffff000, 0x1000, ...) = 0x7ffffffff000
+>   mmap(0x800000000000, 0x1000, ...) = 0x800000000000
+>   ...
+>   mmap((x >= 128T), 0x1000, ...) = (y >= 128T)
+> 
+> > 3) We don't switch to large address space if hint_addr + len > 128TB. 
+> > The decision to switch to large address space is primarily based on hint 
+> > addr
+> 
+> But does the mmap succeed in that case or not?
+> 
+> ie:  mmap(0x7ffffffff000, 0x2000, ...) = ?
 
-Signed-off-by: Vincent Chen <vincentc@andestech.com>
-Signed-off-by: Greentime Hu <greentime@andestech.com>
----
- arch/nds32/include/asm/elf.h         |  192 ++++++++++++++++++++++++++++++++++
- arch/nds32/include/uapi/asm/auxvec.h |   25 +++++
- arch/nds32/include/uapi/asm/param.h  |   24 +++++
- 3 files changed, 241 insertions(+)
- create mode 100644 arch/nds32/include/asm/elf.h
- create mode 100644 arch/nds32/include/uapi/asm/auxvec.h
- create mode 100644 arch/nds32/include/uapi/asm/param.h
+It does, but resulting address doesn't match the hint. It's somewhere
+below 47-bit border.
 
-diff --git a/arch/nds32/include/asm/elf.h b/arch/nds32/include/asm/elf.h
-new file mode 100644
-index 0000000..a6e4c56
---- /dev/null
-+++ b/arch/nds32/include/asm/elf.h
-@@ -0,0 +1,192 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#ifndef __ASMNDS32_ELF_H
-+#define __ASMNDS32_ELF_H
-+
-+/*
-+ * ELF register definitions..
-+ */
-+
-+#include <asm/ptrace.h>
-+
-+typedef unsigned long elf_greg_t;
-+typedef unsigned long elf_freg_t[3];
-+
-+extern unsigned int elf_hwcap;
-+
-+#define EM_NDS32			167
-+
-+#define R_NDS32_NONE			0
-+#define R_NDS32_16_RELA			19
-+#define R_NDS32_32_RELA			20
-+#define R_NDS32_9_PCREL_RELA		22
-+#define R_NDS32_15_PCREL_RELA		23
-+#define R_NDS32_17_PCREL_RELA		24
-+#define R_NDS32_25_PCREL_RELA		25
-+#define R_NDS32_HI20_RELA		26
-+#define R_NDS32_LO12S3_RELA		27
-+#define R_NDS32_LO12S2_RELA		28
-+#define R_NDS32_LO12S1_RELA		29
-+#define R_NDS32_LO12S0_RELA		30
-+#define R_NDS32_SDA15S3_RELA    	31
-+#define R_NDS32_SDA15S2_RELA    	32
-+#define R_NDS32_SDA15S1_RELA    	33
-+#define R_NDS32_SDA15S0_RELA    	34
-+#define R_NDS32_GOT20			37
-+#define R_NDS32_25_PLTREL		38
-+#define R_NDS32_COPY			39
-+#define R_NDS32_GLOB_DAT		40
-+#define R_NDS32_JMP_SLOT		41
-+#define R_NDS32_RELATIVE		42
-+#define R_NDS32_GOTOFF			43
-+#define R_NDS32_GOTPC20			44
-+#define R_NDS32_GOT_HI20		45
-+#define R_NDS32_GOT_LO12		46
-+#define R_NDS32_GOTPC_HI20		47
-+#define R_NDS32_GOTPC_LO12		48
-+#define R_NDS32_GOTOFF_HI20		49
-+#define R_NDS32_GOTOFF_LO12		50
-+#define R_NDS32_INSN16			51
-+#define R_NDS32_LABEL			52
-+#define R_NDS32_LONGCALL1		53
-+#define R_NDS32_LONGCALL2		54
-+#define R_NDS32_LONGCALL3		55
-+#define R_NDS32_LONGJUMP1		56
-+#define R_NDS32_LONGJUMP2		57
-+#define R_NDS32_LONGJUMP3		58
-+#define R_NDS32_LOADSTORE		59
-+#define R_NDS32_9_FIXED_RELA		60
-+#define R_NDS32_15_FIXED_RELA		61
-+#define R_NDS32_17_FIXED_RELA		62
-+#define R_NDS32_25_FIXED_RELA		63
-+#define R_NDS32_PLTREL_HI20		64
-+#define R_NDS32_PLTREL_LO12		65
-+#define R_NDS32_PLT_GOTREL_HI20		66
-+#define R_NDS32_PLT_GOTREL_LO12		67
-+#define R_NDS32_LO12S0_ORI_RELA		72
-+#define R_NDS32_DWARF2_OP1_RELA     	77
-+#define R_NDS32_DWARF2_OP2_RELA     	78
-+#define R_NDS32_DWARF2_LEB_RELA     	79
-+#define R_NDS32_WORD_9_PCREL_RELA	94
-+#define R_NDS32_LONGCALL4 		107
-+#define R_NDS32_RELA_NOP_MIX		192
-+#define R_NDS32_RELA_NOP_MAX		255
-+
-+#define ELF_NGREG (sizeof (struct pt_regs) / sizeof(elf_greg_t))
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+/* Core file format: The core file is written in such a way that gdb
-+   can understand it and provide useful information to the user (under
-+   linux we use the 'trad-core' bfd).  There are quite a number of
-+   obstacles to being able to view the contents of the floating point
-+   registers, and until these are solved you will not be able to view the
-+   contents of them.  Actually, you can read in the core file and look at
-+   the contents of the user struct to find out what the floating point
-+   registers contain.
-+   The actual file contents are as follows:
-+   UPAGE: 1 page consisting of a user struct that tells gdb what is present
-+   in the file.  Directly after this is a copy of the task_struct, which
-+   is currently not used by gdb, but it may come in useful at some point.
-+   All of the registers are stored as part of the upage.  The upage should
-+   always be only one page.
-+   DATA: The data area is stored.  We use current->end_text to
-+   current->brk to pick up all of the user variables, plus any memory
-+   that may have been malloced.  No attempt is made to determine if a page
-+   is demand-zero or if a page is totally unused, we just cover the entire
-+   range.  All of the addresses are rounded in such a way that an integral
-+   number of pages is written.
-+   STACK: We need the stack information in order to get a meaningful
-+   backtrace.  We need to write the data from (esp) to
-+   current->start_stack, so we round each of these off in order to be able
-+   to write an integer number of pages.
-+   The minimum core file size is 3 pages, or 12288 bytes.
-+*/
-+
-+struct user_fp {
-+	struct fp_reg {
-+		unsigned int sign1:1;
-+		unsigned int unused:15;
-+		unsigned int sign2:1;
-+		unsigned int exponent:14;
-+		unsigned int j:1;
-+		unsigned int mantissa1:31;
-+		unsigned int mantissa0:32;
-+	} fpregs[8];
-+	unsigned int fpsr:32;
-+	unsigned int fpcr:32;
-+	unsigned char ftype[8];
-+	unsigned int init_flag;
-+};
-+
-+typedef struct user_fp elf_fpregset_t;
-+
-+struct elf32_hdr;
-+#define elf_check_arch(x)		((x)->e_machine == EM_NDS32)
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define ELF_CLASS	ELFCLASS32
-+#ifdef __NDS32_EB__
-+#define ELF_DATA	ELFDATA2MSB;
-+#else
-+#define ELF_DATA	ELFDATA2LSB;
-+#endif
-+#define ELF_ARCH	EM_NDS32
-+#define USE_ELF_CORE_DUMP
-+#define ELF_EXEC_PAGESIZE	PAGE_SIZE
-+
-+/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+   use of this is to invoke "./ld.so someprog" to test out a new version of
-+   the loader.  We need to make sure that it is out of the way of the program
-+   that it will "exec", and that there is sufficient room for the brk.  */
-+
-+#define ELF_ET_DYN_BASE	(2 * TASK_SIZE / 3)
-+
-+/* When the program starts, a1 contains a pointer to a function to be
-+   registered with atexit, as per the SVR4 ABI.  A value of 0 means we
-+   have no such handler.  */
-+#define ELF_PLAT_INIT(_r, load_addr)	(_r)->uregs[0] = 0
-+
-+/* This yields a mask that user programs can use to figure out what
-+   instruction set this cpu supports. */
-+
-+#define ELF_HWCAP	(elf_hwcap)
-+
-+#ifdef __KERNEL__
-+
-+#define ELF_PLATFORM    (NULL)
-+
-+/* Old NetWinder binaries were compiled in such a way that the iBCS
-+   heuristic always trips on them.  Until these binaries become uncommon
-+   enough not to care, don't trust the `ibcs' flag here.  In any case
-+   there is no other ELF system currently supported by iBCS.
-+   @@ Could print a warning message to encourage users to upgrade.  */
-+#define SET_PERSONALITY(ex)	set_personality(PER_LINUX)
-+
-+#endif
-+
-+#define ARCH_DLINFO						\
-+do {								\
-+	NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
-+		    (elf_addr_t)current->mm->context.vdso);	\
-+} while (0)
-+#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
-+struct linux_binprm;
-+int arch_setup_additional_pages(struct linux_binprm *, int);
-+
-+#endif
-diff --git a/arch/nds32/include/uapi/asm/auxvec.h b/arch/nds32/include/uapi/asm/auxvec.h
-new file mode 100644
-index 0000000..02e9757
---- /dev/null
-+++ b/arch/nds32/include/uapi/asm/auxvec.h
-@@ -0,0 +1,25 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#ifndef __ASM_AUXVEC_H
-+#define __ASM_AUXVEC_H
-+
-+/* VDSO location */
-+#define AT_SYSINFO_EHDR	33
-+
-+#define AT_VECTOR_SIZE_ARCH 1
-+
-+#endif
-diff --git a/arch/nds32/include/uapi/asm/param.h b/arch/nds32/include/uapi/asm/param.h
-new file mode 100644
-index 0000000..2e4527f3
---- /dev/null
-+++ b/arch/nds32/include/uapi/asm/param.h
-@@ -0,0 +1,24 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#ifndef __ASM_NDS32_PARAM_H
-+#define __ASM_NDS32_PARAM_H
-+
-+#define EXEC_PAGESIZE	8192
-+
-+#include <asm-generic/param.h>
-+
-+#endif /* __ASM_NDS32_PARAM_H */
 -- 
-1.7.9.5
+ Kirill A. Shutemov
