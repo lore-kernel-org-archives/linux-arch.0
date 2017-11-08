@@ -1,84 +1,166 @@
-From: <vincentc@andestech.com>
-Subject: RE: [PATCH 11/31] nds32: Atomic operations
-Date: Wed, 8 Nov 2017 09:32:36 +0000
-Message-ID: <E26F4CF8B7DDDB4383A6C2D78D5C3CD56B497064@ATCPCS16.andestech.com>
-References: <cover.1510118606.git.green.hu@gmail.com>
- <b13577a068afb71e87e21598f59733f127814f37.1510118606.git.green.hu@gmail.com>
- <CAK8P3a3w4gfO-VMM+L5J5+kSbBD_Kr0iv3BndF_3tt2QTuEFRw@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 26/31] nds32: Build infrastructure
+Date: Wed, 8 Nov 2017 11:16:22 +0100
+Message-ID: <CAK8P3a11Mk3XcmP5Ecbv55TuNRjrrp_43GX8hPDfdLh6JMHE=g@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <7278eca76456b412e02d9baa5dc164e83199cbab.1510118606.git.green.hu@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from exmail.andestech.com ([59.124.169.137]:5615 "EHLO
-        ATCSQR.andestech.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750917AbdKHKIW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 05:08:22 -0500
-Received: from ATCSQR.andestech.com (localhost [127.0.0.2] (may be forged))
-        by ATCSQR.andestech.com with ESMTP id vA89MVF4082770
-        for <linux-arch@vger.kernel.org>; Wed, 8 Nov 2017 17:22:31 +0800 (GMT-8)
-        (envelope-from vincentc@andestech.com)
-In-Reply-To: <CAK8P3a3w4gfO-VMM+L5J5+kSbBD_Kr0iv3BndF_3tt2QTuEFRw@mail.gmail.com>
-Content-Language: zh-TW
+Received: from mail-ot0-f194.google.com ([74.125.82.194]:53073 "EHLO
+        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750760AbdKHKQX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 05:16:23 -0500
+In-Reply-To: <7278eca76456b412e02d9baa5dc164e83199cbab.1510118606.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: greentime@andestech.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, palmer@dabbelt.com
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
 
-PiAtLS0tLU9yaWdpbmFsIE1lc3NhZ2UtLS0tLQ0KPiBGcm9tOiBhcm5kYmVyZ21hbm5AZ21haWwu
-Y29tIFttYWlsdG86YXJuZGJlcmdtYW5uQGdtYWlsLmNvbV0gT24NCj4gQmVoYWxmIE9mIEFybmQg
-QmVyZ21hbm4NCj4gU2VudDogV2VkbmVzZGF5LCBOb3ZlbWJlciAwOCwgMjAxNyA0OjU0IFBNDQo+
-IFRvOiBHcmVlbnRpbWUgSHUNCj4gQ2M6IEdyZWVudGltZSBZaW5nLUhhbiBIdSjog6Hoi7HmvKIp
-OyBMaW51eCBLZXJuZWwgTWFpbGluZyBMaXN0OyBsaW51eC1hcmNoOw0KPiBUaG9tYXMgR2xlaXhu
-ZXI7IEphc29uIENvb3BlcjsgTWFyYyBaeW5naWVyOyBSb2IgSGVycmluZzsgTmV0d29ya2luZzsN
-Cj4gVmluY2VudCBSZW4tV2VpIENoZW4o6Zmz5Lq657atKTsgUGFsbWVyIERhYmJlbHQNCj4gU3Vi
-amVjdDogUmU6IFtQQVRDSCAxMS8zMV0gbmRzMzI6IEF0b21pYyBvcGVyYXRpb25zDQo+DQo+IE9u
-IFdlZCwgTm92IDgsIDIwMTcgYXQgNjo1NCBBTSwgR3JlZW50aW1lIEh1IDxncmVlbi5odUBnbWFp
-bC5jb20+DQo+IHdyb3RlOg0KPiA+IEZyb206IEdyZWVudGltZSBIdSA8Z3JlZW50aW1lQGFuZGVz
-dGVjaC5jb20+DQo+ID4NCj4gPiBTaWduZWQtb2ZmLWJ5OiBWaW5jZW50IENoZW4gPHZpbmNlbnRj
-QGFuZGVzdGVjaC5jb20+DQo+ID4gU2lnbmVkLW9mZi1ieTogR3JlZW50aW1lIEh1IDxncmVlbnRp
-bWVAYW5kZXN0ZWNoLmNvbT4NCj4gPiAtLS0NCj4gPiAgYXJjaC9uZHMzMi9pbmNsdWRlL2FzbS9m
-dXRleC5oICAgIHwgIDExNiArKysrKysrKysrKysrKysrKysrKysrKysNCj4gPiAgYXJjaC9uZHMz
-Mi9pbmNsdWRlL2FzbS9zcGlubG9jay5oIHwgIDE3OA0KPiA+ICsrKysrKysrKysrKysrKysrKysr
-KysrKysrKysrKysrKysrKysNCj4gPiAgMiBmaWxlcyBjaGFuZ2VkLCAyOTQgaW5zZXJ0aW9ucygr
-KQ0KPiA+ICBjcmVhdGUgbW9kZSAxMDA2NDQgYXJjaC9uZHMzMi9pbmNsdWRlL2FzbS9mdXRleC5o
-ICBjcmVhdGUgbW9kZQ0KPiAxMDA2NDQNCj4gPiBhcmNoL25kczMyL2luY2x1ZGUvYXNtL3NwaW5s
-b2NrLmgNCj4NCj4NCj4gPiBkaWZmIC0tZ2l0IGEvYXJjaC9uZHMzMi9pbmNsdWRlL2FzbS9zcGlu
-bG9jay5oDQo+ID4gYi9hcmNoL25kczMyL2luY2x1ZGUvYXNtL3NwaW5sb2NrLmgNCj4gPiBuZXcg
-ZmlsZSBtb2RlIDEwMDY0NA0KPiA+IGluZGV4IDAwMDAwMDAuLmRkNWZjNzENCj4gPiAtLS0gL2Rl
-di9udWxsDQo+ID4gKysrIGIvYXJjaC9uZHMzMi9pbmNsdWRlL2FzbS9zcGlubG9jay5oDQo+ID4g
-QEAgLTAsMCArMSwxNzggQEANCj4gPiArDQo+ID4gKyNkZWZpbmUgYXJjaF9zcGluX3VubG9ja193
-YWl0KGxvY2spIFwNCj4gPiArICAgICAgIGRvIHsgd2hpbGUgKGFyY2hfc3Bpbl9pc19sb2NrZWQo
-bG9jaykpIGNwdV9yZWxheCgpOyB9IHdoaWxlDQo+ID4gKygwKQ0KPg0KPiBUaGlzIHdhcyByZW1v
-dmVkIGZyb20gdGhlIG90aGVyIGFyY2hpdGVjdHVyZXMgaW4gY29tbWl0DQo+IDk1MjExMWQ3ZGIw
-MiAoImFyY2g6IFJlbW92ZSBzcGluX3VubG9ja193YWl0KCkgYXJjaC1zcGVjaWZpYyBkZWZpbml0
-aW9ucyIpDQo+DQo+IFBsZWFzZSByZW1vdmUgdGhpcyBhcyB3ZWxsLg0KPg0KRGVhciBBcm5kOg0K
-DQpJIHdpbGwgcmVtb3ZlIHRoZW0gaW4gdGhlIG5leHQgdmVyc2lvbiBwYXRjaC4NCg0KDQo+IFBh
-bG1lciwgSSBzZWUgcmlzY3YgaGFzIHRoZSBzYW1lIHRoaW5nLCBwbGVhc2UgYWxzbyBhZGQgYSBw
-YXRjaCB0byB5b3VyIHRyZWUgdG8NCj4gcmVtb3ZlIGl0Lg0KPg0KPiA+ICsjZGVmaW5lIGFyY2hf
-c3Bpbl9sb2NrX2ZsYWdzKGxvY2ssIGZsYWdzKSBhcmNoX3NwaW5fbG9jayhsb2NrKQ0KPiA+ICsN
-Cj4gPiArc3RhdGljIGlubGluZSB2b2lkIGFyY2hfc3Bpbl9sb2NrKGFyY2hfc3BpbmxvY2tfdCAq
-IGxvY2spIHsNCj4gPiArICAgICAgIHVuc2lnbmVkIGxvbmcgdG1wOw0KPiA+ICsNCj4gPiArICAg
-ICAgIF9fYXNtX18gX192b2xhdGlsZV9fKCIxOlxuIg0KPiA+ICsgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgIlx0bGx3XHQlMCwgWyUxXVxuIg0KPiA+ICsgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgIlx0Ym5lelx0JTAsIDFiXG4iDQo+ID4gKyAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAiXHRtb3ZpXHQlMCwgIzB4MVxuIg0KPiA+ICsgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-Ilx0c2N3XHQlMCwgWyUxXVxuIg0KPiA+ICsgICAgICAgICAgICAgICAgICAgICAgICAgICAgIlx0
-YmVxelx0JTAsIDFiXG4iDQo+ID4gKyAgICAgICAgICAgICAgICAgICAgICAgICAgICA6Ij0mciIo
-dG1wKQ0KPiA+ICsgICAgICAgICAgICAgICAgICAgICAgICAgICAgOiJyIigmbG9jay0+bG9jaykN
-Cj4gPiArICAgICAgICAgICAgICAgICAgICAgICAgICAgIDoibWVtb3J5Iik7DQo+DQo+IFRoZSBj
-b2Rpbmcgc3R5bGUgc2VlbXMgaW5jb25zaXN0ZW50IGhlcmUsIHRoZSBvdGhlciBpbmxpbmUgYXNt
-IHVzZXMgcmVhbCB0YWJzDQo+IGluc3RlYWQgb2YgXHQsIGFuZCAnYXNtIHZvbGF0aWxlJyBpcyBn
-ZW5lcmFsbHkgcHJlZmVycmVkIG92ZXIgJ19fYXNtX18NCj4gX192b2xhdGlsZV9fJy4NCj4NCj4g
-ICAgICAgIEFybmQNCg0KT0ssIEkgd2lsbCBtb2RpZnkgaXQgaW4gdGhlIG5leHQgdmVyc2lvbiBw
-YXRjaC4NCg0KVGhhbmtzDQoNCkJlc3QgcmVnYXJkcw0KVmluY2VudA0KQ09ORklERU5USUFMSVRZ
-IE5PVElDRToNCg0KVGhpcyBlLW1haWwgKGFuZCBpdHMgYXR0YWNobWVudHMpIG1heSBjb250YWlu
-IGNvbmZpZGVudGlhbCBhbmQgbGVnYWxseSBwcml2aWxlZ2VkIGluZm9ybWF0aW9uIG9yIGluZm9y
-bWF0aW9uIHByb3RlY3RlZCBmcm9tIGRpc2Nsb3N1cmUuIElmIHlvdSBhcmUgbm90IHRoZSBpbnRl
-bmRlZCByZWNpcGllbnQsIHlvdSBhcmUgaGVyZWJ5IG5vdGlmaWVkIHRoYXQgYW55IGRpc2Nsb3N1
-cmUsIGNvcHlpbmcsIGRpc3RyaWJ1dGlvbiwgb3IgdXNlIG9mIHRoZSBpbmZvcm1hdGlvbiBjb250
-YWluZWQgaGVyZWluIGlzIHN0cmljdGx5IHByb2hpYml0ZWQuIEluIHRoaXMgY2FzZSwgcGxlYXNl
-IGltbWVkaWF0ZWx5IG5vdGlmeSB0aGUgc2VuZGVyIGJ5IHJldHVybiBlLW1haWwsIGRlbGV0ZSB0
-aGUgbWVzc2FnZSAoYW5kIGFueSBhY2NvbXBhbnlpbmcgZG9jdW1lbnRzKSBhbmQgZGVzdHJveSBh
-bGwgcHJpbnRlZCBoYXJkIGNvcGllcy4gVGhhbmsgeW91IGZvciB5b3VyIGNvb3BlcmF0aW9uLg0K
-DQpDb3B5cmlnaHQgQU5ERVMgVEVDSE5PTE9HWSBDT1JQT1JBVElPTiAtIEFsbCBSaWdodHMgUmVz
-ZXJ2ZWQuDQo=
+On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+
+> diff --git a/arch/nds32/Kconfig b/arch/nds32/Kconfig
+> new file mode 100644
+> index 0000000..112f470
+> --- /dev/null
+> +++ b/arch/nds32/Kconfig
+> @@ -0,0 +1,107 @@
+> +#
+> +# For a description of the syntax of this configuration file,
+> +# see Documentation/kbuild/kconfig-language.txt.
+> +#
+> +
+> +config NDS32
+> +        def_bool y
+> +       select ARCH_HAS_RAW_COPY_USER
+> +       select ARCH_WANT_FRAME_POINTERS if FTRACE
+> +       select ARCH_WANT_IPC_PARSE_VERSION
+> +       select CLKSRC_MMIO
+> +       select CLONE_BACKWARDS
+> +       select TIMER_OF
+> +       select FRAME_POINTER
+> +       select GENERIC_ATOMIC64
+> +       select GENERIC_CPU_DEVICES
+> +       select GENERIC_CLOCKEVENTS
+> +       select GENERIC_IOMAP
+> +       select GENERIC_IRQ_CHIP
+> +       select GENERIC_IRQ_PROBE
+> +       select GENERIC_IRQ_SHOW
+> +       select GENERIC_STRNCPY_FROM_USER
+> +       select GENERIC_STRNLEN_USER
+> +       select GENERIC_TIME_VSYSCALL
+> +       select HAVE_ARCH_TRACEHOOK
+> +       select HAVE_GENERIC_IOMAP
+
+You normally don't want HAVE_GENERIC_IOMAP, at least unless the CPU
+has special instructions to trigger PCI I/O port access.
+
+> +       select HAVE_DEBUG_KMEMLEAK
+> +       select HAVE_IDE
+
+You certainly don't want HAVE_IDE
+
+> +       select HAVE_MEMBLOCK
+> +       select HAVE_MEMBLOCK_NODE_MAP
+> +       select HAVE_UID16
+
+HAVE_UID16 shouldn't be used on new architectures, as mentioned in the
+comment about asm/posix_types.h
+
+> +       select HAVE_REGS_AND_STACK_ACCESS_API
+> +       select IRQ_DOMAIN
+> +       select LOCKDEP_SUPPORT
+> +       select MODULES_USE_ELF_REL
+> +       select MODULES_USE_ELF_RELA
+
+I would think that you use either MODULES_USE_ELF_REL or
+MODULES_USE_ELF_RELA, but not both.
+
+> +       select OF
+> +       select OF_EARLY_FLATTREE
+> +       select OLD_SIGACTION
+> +       select OLD_SIGSUSPEND3
+
+What are the OLD_SIG* ones for? It sounds like something you shouldn't
+need, although I'm not familiar wiht them.
+
+> +       select NO_IOPORT_MAP
+> +       select RTC_LIB
+> +       select THREAD_INFO_IN_TASK
+> +       select SYS_SUPPORTS_APM_EMULATION
+
+I don't see what SYS_SUPPORTS_APM_EMULATION gains you.
+
+> +config GENERIC_CALIBRATE_DELAY
+> +       def_bool y
+
+It's better to avoid the delay loop completely and skip the calibration,
+if your hardware allows.
+
+> +
+> +config NDS32_BUILTIN_DTB
+> +        string "Builtin DTB"
+> +        default ""
+> +       help
+> +         User can use it to specify the dts of the SoC
+
+Better leave this up to the boot loader.
+
+> +config ALIGNMENT_TRAP
+> +       tristate "Kernel support unaligned access handling"
+> +       default y
+> +       help
+> +         Andes processors cannot fetch/store information which is not
+> +         naturally aligned on the bus, i.e., a 4 byte fetch must start at an
+> +         address divisible by 4. On 32-bit Andes processors, these non-aligned
+> +         fetch/store instructions will be emulated in software if you say
+> +         here, which has a severe performance impact. This is necessary for
+> +         correct operation of some network protocols. With an IP-only
+> +         configuration it is safe to say N, otherwise say Y.
+
+Which network protocols are you referring to?
+
+> +config HIGHMEM
+> +       bool "High Memory Support"
+> +       depends on MMU && CPU_CACHE_NONALIASING
+> +       help
+> +         The address space of Andes processors is only 4 Gigabytes large
+> +         and it has to accommodate user address space, kernel address
+> +         space as well as some memory mapped IO. That means that, if you
+> +         have a large amount of physical memory and/or IO, not all of the
+> +         memory can be "permanently mapped" by the kernel. The physical
+> +         memory that is not permanently mapped is called "high memory".
+> +
+> +         Depending on the selected kernel/user memory split, minimum
+> +         vmalloc space and actual amount of RAM, you may not need this
+> +         option which should result in a slightly faster kernel.
+> +
+> +         If unsure, say N.
+
+Generally speaking, highmem support is a mess, and it's better to avoid it.
+
+I see that the two device tree files you have list 1GB of memory. Do you think
+that is a common configuration for actual products? Do you expect any to
+have more than 1GB (or more than 4GB) in the future, or is that the upper
+end of the scale?
+
+If 1GB is a reasonable upper bound, then you could change the vmsplit
+to give slightly less address space to user space and have 1GB of direct-mapped
+kernel memory plus 256MB of vmalloc space reserved for the kernel,
+and completely avoid highmem.
+
+> +config MEMORY_START
+> +       hex "Physical memory start address"
+> +       default "0x00000000"
+> +       help
+> +         Physical memory start address, you may modify it if it is porting to
+> +         a new SoC with different start address.
+> +endmenu
+
+On ARM, we found options like this to be rather problematic since it prevents
+you from running the same kernel on boards that are otherwise compatible.
+
+If the architecture easily allows the memory to start at address 0, could
+you require this address for all SoCs that want to run Linux, and get
+rid of the compile-time option?
+
+       Arnd
