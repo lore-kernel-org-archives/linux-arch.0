@@ -1,39 +1,118 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 1/3] lkdtm: Include WARN format string
-Date: Tue,  7 Nov 2017 16:27:47 -0800
-Message-ID: <1510100869-73751-2-git-send-email-keescook@chromium.org>
+Subject: [PATCH 3/3] bug: Fix "cut here" location for __WARN_TAINT architectures
+Date: Tue,  7 Nov 2017 16:27:49 -0800
+Message-ID: <1510100869-73751-4-git-send-email-keescook@chromium.org>
 References: <1510100869-73751-1-git-send-email-keescook@chromium.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pl0-f67.google.com ([209.85.160.67]:45944 "EHLO
+        mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933938AbdKHA2B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Nov 2017 19:28:01 -0500
+Received: by mail-pl0-f67.google.com with SMTP id 30so139549pla.2
+        for <linux-arch@vger.kernel.org>; Tue, 07 Nov 2017 16:28:01 -0800 (PST)
 In-Reply-To: <1510100869-73751-1-git-send-email-keescook@chromium.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Joe Perches <joe@perches.com>, Fengguang Wu <fengguang.wu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-am33-list@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Fengguang Wu <fengguang.wu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Joe Perches <joe@perches.com>, linux-am33-list@redhat.com, linux-kernel@vger.kernel.org
 
-In order to test the ordering of WARN format strings, actually include one
-in LKDTM.
+Prior to v4.11, x86 used warn_slowpath_fmt() for handling WARN()s. After
+WARN() was moved to using UD0 on x86, the warning text started appearing
+_before_ the "cut here" line. This appears to have been a long-standing
+bug on architectures that used __WARN_TAINT, but it didn't get fixed.
 
+v4.11 and earlier on x86:
+
+[    7.944142] ------------[ cut here ]------------
+[    7.945631] WARNING: CPU: 0 PID: 2956 at drivers/misc/lkdtm_bugs.c:65 lkdtm_WARNING+0x21/0x30
+[    7.947453] This is a warning message
+[    7.948357] Modules linked in:
+
+v4.12 and later on x86:
+
+[    8.973063] This is a warning message
+[    8.973885] ------------[ cut here ]------------
+[    8.974867] WARNING: CPU: 1 PID: 2982 at drivers/misc/lkdtm_bugs.c:68 lkdtm_WARNING+0x15/0x20
+[    8.976563] Modules linked in:
+
+With this fix:
+
+[    9.157133] ------------[ cut here ]------------
+[    9.158143] This is a warning message
+[    9.159099] WARNING: CPU: 3 PID: 3009 at drivers/misc/lkdtm_bugs.c:67 lkdtm_WARNING+0x15/0x20
+
+Since the __FILE__ reporting happens as part of the UD0 handler, it isn't
+trivial to move the message to after the WARNING line, but at least we can
+fix the position of the "cut here" line so all the various logging tools
+will start including the actual runtime warning message again, when they
+follow the instruction and "cut here".
+
+Fixes: 9a93848fe787 ("x86/debug: Implement __WARN() using UD0")
+Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Fengguang Wu <fengguang.wu@intel.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- drivers/misc/lkdtm_bugs.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ include/asm-generic/bug.h |  5 +++--
+ kernel/panic.c            | 16 +++++++++++++++-
+ 2 files changed, 18 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/misc/lkdtm_bugs.c b/drivers/misc/lkdtm_bugs.c
-index 9e0b4f959987..8523f7dbac99 100644
---- a/drivers/misc/lkdtm_bugs.c
-+++ b/drivers/misc/lkdtm_bugs.c
-@@ -62,9 +62,11 @@ void lkdtm_BUG(void)
- 	BUG();
- }
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 673a79dd3928..30b22e47a7e9 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -91,10 +91,11 @@ extern void warn_slowpath_null(const char *file, const int line);
+ #define __WARN_printf_taint(taint, arg...)				\
+ 	warn_slowpath_fmt_taint(__FILE__, __LINE__, taint, arg)
+ #else
++extern __printf(1, 2) void __warn_printk(const char *fmt, ...);
+ #define __WARN()		__WARN_TAINT(TAINT_WARN)
+-#define __WARN_printf(arg...)	do { printk(arg); __WARN(); } while (0)
++#define __WARN_printf(arg...)	do { __warn_printk(arg); __WARN(); } while (0)
+ #define __WARN_printf_taint(taint, arg...)				\
+-	do { printk(arg); __WARN_TAINT(taint); } while (0)
++	do { __warn_printk(arg); __WARN_TAINT(taint); } while (0)
+ #endif
  
-+static int warn_counter;
-+
- void lkdtm_WARNING(void)
+ /* used internally by panic.c */
+diff --git a/kernel/panic.c b/kernel/panic.c
+index ab210714f2f3..65c9e7b942ea 100644
+--- a/kernel/panic.c
++++ b/kernel/panic.c
+@@ -518,7 +518,8 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
  {
--	WARN_ON(1);
-+	WARN(1, "Warning message trigger count: %d\n", warn_counter++);
- }
+ 	disable_trace_on_warning();
  
- void lkdtm_EXCEPTION(void)
+-	pr_warn(CUT_HERE);
++	if (args)
++		pr_warn(CUT_HERE);
+ 
+ 	if (file)
+ 		pr_warn("WARNING: CPU: %d PID: %d at %s:%d %pS\n",
+@@ -582,9 +583,22 @@ EXPORT_SYMBOL(warn_slowpath_fmt_taint);
+ 
+ void warn_slowpath_null(const char *file, int line)
+ {
++	pr_warn(CUT_HERE);
+ 	__warn(file, line, __builtin_return_address(0), TAINT_WARN, NULL, NULL);
+ }
+ EXPORT_SYMBOL(warn_slowpath_null);
++#else
++void __warn_printk(const char *fmt, ...)
++{
++	va_list args;
++
++	pr_warn(CUT_HERE);
++
++	va_start(args, fmt);
++	vprintk(fmt, args);
++	va_end(args);
++}
++EXPORT_SYMBOL(__warn_printk);
+ #endif
+ 
+ #ifdef CONFIG_CC_STACKPROTECTOR
 -- 
 2.7.4
