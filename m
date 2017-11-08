@@ -1,118 +1,76 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 3/3] bug: Fix "cut here" location for __WARN_TAINT architectures
-Date: Tue,  7 Nov 2017 16:27:49 -0800
-Message-ID: <1510100869-73751-4-git-send-email-keescook@chromium.org>
+Subject: [PATCH 2/3] bug: Define the "cut here" string in a single place
+Date: Tue,  7 Nov 2017 16:27:48 -0800
+Message-ID: <1510100869-73751-3-git-send-email-keescook@chromium.org>
 References: <1510100869-73751-1-git-send-email-keescook@chromium.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f67.google.com ([209.85.160.67]:45944 "EHLO
-        mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933938AbdKHA2B (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Nov 2017 19:28:01 -0500
-Received: by mail-pl0-f67.google.com with SMTP id 30so139549pla.2
-        for <linux-arch@vger.kernel.org>; Tue, 07 Nov 2017 16:28:01 -0800 (PST)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1510100869-73751-1-git-send-email-keescook@chromium.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Fengguang Wu <fengguang.wu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Joe Perches <joe@perches.com>, linux-am33-list@redhat.com, linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Joe Perches <joe@perches.com>, Fengguang Wu <fengguang.wu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-am33-list@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Prior to v4.11, x86 used warn_slowpath_fmt() for handling WARN()s. After
-WARN() was moved to using UD0 on x86, the warning text started appearing
-_before_ the "cut here" line. This appears to have been a long-standing
-bug on architectures that used __WARN_TAINT, but it didn't get fixed.
+The "cut here" string is used in a few paths. Define it in a single place.
 
-v4.11 and earlier on x86:
-
-[    7.944142] ------------[ cut here ]------------
-[    7.945631] WARNING: CPU: 0 PID: 2956 at drivers/misc/lkdtm_bugs.c:65 lkdtm_WARNING+0x21/0x30
-[    7.947453] This is a warning message
-[    7.948357] Modules linked in:
-
-v4.12 and later on x86:
-
-[    8.973063] This is a warning message
-[    8.973885] ------------[ cut here ]------------
-[    8.974867] WARNING: CPU: 1 PID: 2982 at drivers/misc/lkdtm_bugs.c:68 lkdtm_WARNING+0x15/0x20
-[    8.976563] Modules linked in:
-
-With this fix:
-
-[    9.157133] ------------[ cut here ]------------
-[    9.158143] This is a warning message
-[    9.159099] WARNING: CPU: 3 PID: 3009 at drivers/misc/lkdtm_bugs.c:67 lkdtm_WARNING+0x15/0x20
-
-Since the __FILE__ reporting happens as part of the UD0 handler, it isn't
-trivial to move the message to after the WARNING line, but at least we can
-fix the position of the "cut here" line so all the various logging tools
-will start including the actual runtime warning message again, when they
-follow the instruction and "cut here".
-
-Fixes: 9a93848fe787 ("x86/debug: Implement __WARN() using UD0")
-Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Fengguang Wu <fengguang.wu@intel.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- include/asm-generic/bug.h |  5 +++--
- kernel/panic.c            | 16 +++++++++++++++-
- 2 files changed, 18 insertions(+), 3 deletions(-)
+ arch/mn10300/mm/fault.c   | 2 +-
+ include/asm-generic/bug.h | 2 ++
+ kernel/panic.c            | 2 +-
+ lib/bug.c                 | 2 +-
+ 4 files changed, 5 insertions(+), 3 deletions(-)
 
+diff --git a/arch/mn10300/mm/fault.c b/arch/mn10300/mm/fault.c
+index f23781d6bbb3..f0bfa1448744 100644
+--- a/arch/mn10300/mm/fault.c
++++ b/arch/mn10300/mm/fault.c
+@@ -60,7 +60,7 @@ void bust_spinlocks(int yes)
+ void do_BUG(const char *file, int line)
+ {
+ 	bust_spinlocks(1);
+-	printk(KERN_EMERG "------------[ cut here ]------------\n");
++	printk(KERN_EMERG CUT_HERE);
+ 	printk(KERN_EMERG "kernel BUG at %s:%d!\n", file, line);
+ }
+ 
 diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 673a79dd3928..30b22e47a7e9 100644
+index 87191357d303..673a79dd3928 100644
 --- a/include/asm-generic/bug.h
 +++ b/include/asm-generic/bug.h
-@@ -91,10 +91,11 @@ extern void warn_slowpath_null(const char *file, const int line);
- #define __WARN_printf_taint(taint, arg...)				\
- 	warn_slowpath_fmt_taint(__FILE__, __LINE__, taint, arg)
- #else
-+extern __printf(1, 2) void __warn_printk(const char *fmt, ...);
- #define __WARN()		__WARN_TAINT(TAINT_WARN)
--#define __WARN_printf(arg...)	do { printk(arg); __WARN(); } while (0)
-+#define __WARN_printf(arg...)	do { __warn_printk(arg); __WARN(); } while (0)
- #define __WARN_printf_taint(taint, arg...)				\
--	do { printk(arg); __WARN_TAINT(taint); } while (0)
-+	do { __warn_printk(arg); __WARN_TAINT(taint); } while (0)
- #endif
+@@ -3,6 +3,8 @@
  
- /* used internally by panic.c */
+ #include <linux/compiler.h>
+ 
++#define CUT_HERE		"------------[ cut here ]------------\n"
++
+ #ifdef CONFIG_GENERIC_BUG
+ #define BUGFLAG_WARNING		(1 << 0)
+ #define BUGFLAG_ONCE		(1 << 1)
 diff --git a/kernel/panic.c b/kernel/panic.c
-index ab210714f2f3..65c9e7b942ea 100644
+index bdd18afa19a4..ab210714f2f3 100644
 --- a/kernel/panic.c
 +++ b/kernel/panic.c
-@@ -518,7 +518,8 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
+@@ -518,7 +518,7 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
  {
  	disable_trace_on_warning();
  
--	pr_warn(CUT_HERE);
-+	if (args)
-+		pr_warn(CUT_HERE);
+-	pr_warn("------------[ cut here ]------------\n");
++	pr_warn(CUT_HERE);
  
  	if (file)
  		pr_warn("WARNING: CPU: %d PID: %d at %s:%d %pS\n",
-@@ -582,9 +583,22 @@ EXPORT_SYMBOL(warn_slowpath_fmt_taint);
+diff --git a/lib/bug.c b/lib/bug.c
+index a6a1137d06db..2c9e04621638 100644
+--- a/lib/bug.c
++++ b/lib/bug.c
+@@ -185,7 +185,7 @@ enum bug_trap_type report_bug(unsigned long bugaddr, struct pt_regs *regs)
+ 		return BUG_TRAP_TYPE_WARN;
+ 	}
  
- void warn_slowpath_null(const char *file, int line)
- {
-+	pr_warn(CUT_HERE);
- 	__warn(file, line, __builtin_return_address(0), TAINT_WARN, NULL, NULL);
- }
- EXPORT_SYMBOL(warn_slowpath_null);
-+#else
-+void __warn_printk(const char *fmt, ...)
-+{
-+	va_list args;
-+
-+	pr_warn(CUT_HERE);
-+
-+	va_start(args, fmt);
-+	vprintk(fmt, args);
-+	va_end(args);
-+}
-+EXPORT_SYMBOL(__warn_printk);
- #endif
+-	printk(KERN_DEFAULT "------------[ cut here ]------------\n");
++	printk(KERN_DEFAULT CUT_HERE);
  
- #ifdef CONFIG_CC_STACKPROTECTOR
+ 	if (file)
+ 		pr_crit("kernel BUG at %s:%u!\n", file, line);
 -- 
 2.7.4
