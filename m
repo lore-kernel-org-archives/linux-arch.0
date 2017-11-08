@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH 31/31] net: faraday add nds32 support.
-Date: Wed,  8 Nov 2017 13:55:19 +0800
-Message-ID: <20c6d5d39d49397d2e7ba597072495ae1c7a816f.1510118606.git.green.hu@gmail.com>
+Subject: [PATCH 29/31] MAINTAINERS: Add nds32
+Date: Wed,  8 Nov 2017 13:55:17 +0800
+Message-ID: <16035efb78f70411998755693339471032743377.1510118606.git.green.hu@gmail.com>
 References: <cover.1510118606.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
@@ -16,39 +16,28 @@ From: Greentime Hu <greentime@andestech.com>
 
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- drivers/net/ethernet/faraday/Kconfig |    6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ MAINTAINERS |    9 +++++++++
+ 1 file changed, 9 insertions(+)
 
-diff --git a/drivers/net/ethernet/faraday/Kconfig b/drivers/net/ethernet/faraday/Kconfig
-index 040c7f1..0ae6e9a 100644
---- a/drivers/net/ethernet/faraday/Kconfig
-+++ b/drivers/net/ethernet/faraday/Kconfig
-@@ -5,7 +5,7 @@
- config NET_VENDOR_FARADAY
- 	bool "Faraday devices"
- 	default y
--	depends on ARM
-+	depends on ARM || NDS32
- 	---help---
- 	  If you have a network (Ethernet) card belonging to this class, say Y.
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 2f4e462..bce1181 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -857,6 +857,15 @@ X:	drivers/iio/*/adjd*
+ F:	drivers/staging/iio/*/ad*
+ F:	drivers/staging/iio/trigger/iio-trig-bfin-timer.c
  
-@@ -18,7 +18,7 @@ if NET_VENDOR_FARADAY
- 
- config FTMAC100
- 	tristate "Faraday FTMAC100 10/100 Ethernet support"
--	depends on ARM
-+	depends on ARM || NDS32
- 	select MII
- 	---help---
- 	  This driver supports the FTMAC100 10/100 Ethernet controller
-@@ -27,7 +27,7 @@ config FTMAC100
- 
- config FTGMAC100
- 	tristate "Faraday FTGMAC100 Gigabit Ethernet support"
--	depends on ARM
-+	depends on ARM || NDS32
- 	select PHYLIB
- 	---help---
- 	  This driver supports the FTGMAC100 Gigabit Ethernet controller
++ANDES ARCHITECTURE
++M:	Greentime Hu <green.hu@gmail.com>
++M:	Vincent Chen <deanbo422@gmail.com>
++T:	git https://github.com/andestech/linux.git
++S:	Supported
++F:	arch/nds32
++K:	nds32
++N:	nds32
++
+ ANDROID CONFIG FRAGMENTS
+ M:	Rob Herring <robh@kernel.org>
+ S:	Supported
 -- 
 1.7.9.5
