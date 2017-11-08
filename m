@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH 27/31] dt-bindings: interrupt-controller: Andestech Internal Vector Interrupt Controller
-Date: Wed,  8 Nov 2017 13:55:15 +0800
-Message-ID: <a7b9f0a21bf6e0c3325a0d9a28a8503082cafd14.1510118606.git.green.hu@gmail.com>
+Subject: [PATCH 28/31] irqchip: Andestech Internal Vector Interrupt Controller driver
+Date: Wed,  8 Nov 2017 13:55:16 +0800
+Message-ID: <4572b290f40d62876b83328331a17c2343710b20.1510118606.git.green.hu@gmail.com>
 References: <cover.1510118606.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
@@ -17,42 +17,174 @@ From: Greentime Hu <greentime@andestech.com>
 Signed-off-by: Rick Chen <rick@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- .../interrupt-controller/andestech,ativic32.txt    |   27 ++++++++++++++++++++
- 1 file changed, 27 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
+ drivers/irqchip/Makefile       |    1 +
+ drivers/irqchip/irq-ativic32.c |  149 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 150 insertions(+)
+ create mode 100644 drivers/irqchip/irq-ativic32.c
 
-diff --git a/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt b/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
+diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+index b842dfd..201ca9f 100644
+--- a/drivers/irqchip/Makefile
++++ b/drivers/irqchip/Makefile
+@@ -80,3 +80,4 @@ obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o irq-aspeed-i2c-ic.o
+ obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
+ obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
+ obj-$(CONFIG_IRQ_UNIPHIER_AIDET)	+= irq-uniphier-aidet.o
++obj-$(CONFIG_NDS32)			+= irq-ativic32.o
+diff --git a/drivers/irqchip/irq-ativic32.c b/drivers/irqchip/irq-ativic32.c
 new file mode 100644
-index 0000000..6bac908
+index 0000000..d3dae59
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
-@@ -0,0 +1,27 @@
-+* Andestech Internal Vector Interrupt Controller
++++ b/drivers/irqchip/irq-ativic32.c
+@@ -0,0 +1,149 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
 +
-+The Internal Vector Interrupt Controller (IVIC) is a basic interrupt controller
-+suitable for a simpler SoC platform not requiring a more sophisticated and
-+bigger External Vector Interrupt Controller.
++#include <linux/irq.h>
++#include <linux/of.h>
++#include <linux/of_irq.h>
++#include <linux/of_address.h>
++#include <linux/interrupt.h>
++#include <linux/irqdomain.h>
++#include <linux/irqchip.h>
++#include <nds32_intrinsic.h>
 +
++static void ativic32_ack_irq(struct irq_data *data)
++{
++	__nds32__mtsr_dsb(1 << data->hwirq, NDS32_SR_INT_PEND2);
++}
 +
-+Main node required properties:
++static void ativic32_mask_irq(struct irq_data *data)
++{
++	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
++	__nds32__mtsr_dsb(int_mask2 & (~(1 << data->hwirq)), NDS32_SR_INT_MASK2);
++}
 +
-+- compatible : should at least contain  "andestech,ativic32".
-+- interrupt-parent: Empty for the interrupt controller itself
-+- interrupt-controller : Identifies the node as an interrupt controller
-+- #interrupt-cells: The number of cells to define the interrupts. Should be 2.
-+	The first cell is the IRQ number
-+	The second cell is used to specify mode:
-+		1 = low-to-high edge triggered
-+		2 = high-to-low edge triggered
-+		4 = active high level-sensitive
-+		8 = active low level-sensitive
-+		Default for internal sources should be set to 4 (active high).
++static void ativic32_mask_ack_irq(struct irq_data *data)
++{
++	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
++	__nds32__mtsr_dsb(int_mask2 & (~(1 << data->hwirq)), NDS32_SR_INT_MASK2);
++	__nds32__mtsr_dsb((1 << data->hwirq), NDS32_SR_INT_PEND2);
 +
-+Examples:
-+	intc: interrupt-controller {
-+		compatible = "andestech,ativic32";
-+		#interrupt-cells = <2>;
-+		interrupt-controller;
-+	};
++}
++
++static void ativic32_unmask_irq(struct irq_data *data)
++{
++	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
++	__nds32__mtsr_dsb(int_mask2 | (1 << data->hwirq), NDS32_SR_INT_MASK2);
++}
++
++static int ativic32_set_type(struct irq_data *data, unsigned int flow_type)
++{
++	printk(KERN_WARNING "interrupt type is not configurable\n");
++	return 0;
++}
++
++static struct irq_chip ativic32_chip = {
++	.name = "ativic32",
++	.irq_ack = ativic32_ack_irq,
++	.irq_mask = ativic32_mask_irq,
++	.irq_mask_ack = ativic32_mask_ack_irq,
++	.irq_unmask = ativic32_unmask_irq,
++	.irq_set_type = ativic32_set_type,
++};
++
++static unsigned int __initdata nivic_map[6] = { 6, 2, 10, 16, 24, 32 };
++
++struct irq_domain *root_domain;
++static int ativic32_irq_domain_map(struct irq_domain *id, unsigned int virq,
++				  irq_hw_number_t hw)
++{
++
++	unsigned long int_trigger_type;
++	int_trigger_type = __nds32__mfsr(NDS32_SR_INT_TRIGGER);
++	if (int_trigger_type & (1 << hw))
++		irq_set_chip_and_handler(virq, &ativic32_chip, handle_edge_irq);
++	else
++		irq_set_chip_and_handler(virq, &ativic32_chip, handle_level_irq);
++
++	return 0;
++}
++
++static struct irq_domain_ops ativic32_ops = {
++	.map = ativic32_irq_domain_map,
++	.xlate = irq_domain_xlate_onecell
++};
++
++static int get_intr_src(void)
++{
++	return ((__nds32__mfsr(NDS32_SR_ITYPE)&ITYPE_mskVECTOR) >> ITYPE_offVECTOR)
++		- NDS32_VECTOR_offINTERRUPT;
++}
++
++asmlinkage void asm_do_IRQ(struct pt_regs *regs)
++{
++	struct pt_regs *old_regs = set_irq_regs(regs);
++	int virq;
++	int irq = get_intr_src();
++
++	/*
++	 * Some hardware gives randomly wrong interrupts.  Rather
++	 * than crashing, do something sensible.
++	 */
++	if (unlikely(irq >= NR_IRQS)) {
++		pr_emerg( "IRQ exceeds NR_IRQS\n");
++		BUG();
++	}
++
++	irq_enter();
++	virq = irq_find_mapping(root_domain, irq);
++	generic_handle_irq(virq);
++	irq_exit();
++	set_irq_regs(old_regs);
++
++}
++
++int __init ativic32_init_irq(struct device_node *node, struct device_node *parent)
++{
++	unsigned long int_vec_base, nivic, i;
++
++	if (WARN(parent, "non-root ativic32 are not supported"))
++		return -EINVAL;
++
++	int_vec_base = __nds32__mfsr(NDS32_SR_IVB);
++
++	if (((int_vec_base & IVB_mskIVIC_VER) >> IVB_offIVIC_VER) == 0) {
++		panic("Unable to use NOINTC option to boot on this cpu\n");
++	}
++
++	nivic = (int_vec_base & IVB_mskNIVIC) >> IVB_offNIVIC;
++	if (nivic >= (sizeof nivic_map / sizeof nivic_map[0])) {
++		panic
++		    ("The number of input for IVIC Controller is not supported on this cpu\n");
++	}
++	nivic = nivic_map[nivic];
++
++	root_domain = irq_domain_add_linear(node, nivic,
++			&ativic32_ops, NULL);
++
++	if (!root_domain)
++		panic("%s: unable to create IRQ domain\n", node->full_name);
++
++	for(i = 0; i < nivic; i++)
++		irq_create_mapping(root_domain, i);
++
++	return 0;
++
++}
++IRQCHIP_DECLARE(ativic32, "andestech,ativic32", ativic32_init_irq);
 -- 
 1.7.9.5
