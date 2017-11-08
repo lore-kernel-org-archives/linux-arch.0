@@ -1,13 +1,13 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH 20/31] nds32: L2 cache support
-Date: Wed,  8 Nov 2017 13:55:08 +0800
-Message-ID: <b8c4d4dd7b5ce02123300018041923d0dfa97af9.1510118606.git.green.hu@gmail.com>
+Subject: [PATCH 26/31] nds32: Build infrastructure
+Date: Wed,  8 Nov 2017 13:55:14 +0800
+Message-ID: <7278eca76456b412e02d9baa5dc164e83199cbab.1510118606.git.green.hu@gmail.com>
 References: <cover.1510118606.git.green.hu@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
 References: <cover.1510118606.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: netdev-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
@@ -17,18 +17,482 @@ From: Greentime Hu <greentime@andestech.com>
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/l2_cache.h |  158 +++++++++++++++++++++++++++++++++++++
- arch/nds32/kernel/atl2c.c         |   77 ++++++++++++++++++
- 2 files changed, 235 insertions(+)
- create mode 100644 arch/nds32/include/asm/l2_cache.h
- create mode 100644 arch/nds32/kernel/atl2c.c
+ arch/nds32/Kconfig                 |  107 ++++++++++++++++++++++++++++++++++++
+ arch/nds32/Kconfig.cpu             |  100 +++++++++++++++++++++++++++++++++
+ arch/nds32/Kconfig.debug           |   14 +++++
+ arch/nds32/Makefile                |   60 ++++++++++++++++++++
+ arch/nds32/boot/Makefile           |   15 +++++
+ arch/nds32/include/asm/Kbuild      |   54 ++++++++++++++++++
+ arch/nds32/include/uapi/asm/Kbuild |   26 +++++++++
+ arch/nds32/kernel/Makefile         |   24 ++++++++
+ arch/nds32/kernel/vmlinux.lds.S    |   70 +++++++++++++++++++++++
+ arch/nds32/mm/Makefile             |    7 +++
+ 10 files changed, 477 insertions(+)
+ create mode 100644 arch/nds32/Kconfig
+ create mode 100644 arch/nds32/Kconfig.cpu
+ create mode 100644 arch/nds32/Kconfig.debug
+ create mode 100644 arch/nds32/Makefile
+ create mode 100644 arch/nds32/boot/Makefile
+ create mode 100644 arch/nds32/include/asm/Kbuild
+ create mode 100644 arch/nds32/include/uapi/asm/Kbuild
+ create mode 100644 arch/nds32/kernel/Makefile
+ create mode 100644 arch/nds32/kernel/vmlinux.lds.S
+ create mode 100644 arch/nds32/mm/Makefile
 
-diff --git a/arch/nds32/include/asm/l2_cache.h b/arch/nds32/include/asm/l2_cache.h
+diff --git a/arch/nds32/Kconfig b/arch/nds32/Kconfig
 new file mode 100644
-index 0000000..b8530bd
+index 0000000..112f470
 --- /dev/null
-+++ b/arch/nds32/include/asm/l2_cache.h
-@@ -0,0 +1,158 @@
++++ b/arch/nds32/Kconfig
+@@ -0,0 +1,107 @@
++#
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/kconfig-language.txt.
++#
++
++config NDS32
++        def_bool y
++	select ARCH_HAS_RAW_COPY_USER
++	select ARCH_WANT_FRAME_POINTERS if FTRACE
++	select ARCH_WANT_IPC_PARSE_VERSION
++	select CLKSRC_MMIO
++	select CLONE_BACKWARDS
++	select TIMER_OF
++	select FRAME_POINTER
++	select GENERIC_ATOMIC64
++	select GENERIC_CPU_DEVICES
++	select GENERIC_CLOCKEVENTS
++	select GENERIC_IOMAP
++	select GENERIC_IRQ_CHIP
++	select GENERIC_IRQ_PROBE
++	select GENERIC_IRQ_SHOW
++	select GENERIC_STRNCPY_FROM_USER
++	select GENERIC_STRNLEN_USER
++	select GENERIC_TIME_VSYSCALL
++	select HAVE_ARCH_TRACEHOOK
++	select HAVE_GENERIC_IOMAP
++	select HAVE_DEBUG_KMEMLEAK
++	select HAVE_IDE
++	select HAVE_MEMBLOCK
++	select HAVE_MEMBLOCK_NODE_MAP
++	select HAVE_UID16
++	select HAVE_REGS_AND_STACK_ACCESS_API
++	select IRQ_DOMAIN
++	select LOCKDEP_SUPPORT
++	select MODULES_USE_ELF_REL
++	select MODULES_USE_ELF_RELA
++	select OF
++	select OF_EARLY_FLATTREE
++	select OLD_SIGACTION
++	select OLD_SIGSUSPEND3
++	select NO_IOPORT_MAP
++	select RTC_LIB
++	select THREAD_INFO_IN_TASK
++	select SYS_SUPPORTS_APM_EMULATION
++	help
++	  Andes(nds32) Linux support.
++
++config GENERIC_CALIBRATE_DELAY
++	def_bool y
++
++config GENERIC_CSUM
++        def_bool y
++
++config GENERIC_HWEIGHT
++        def_bool y
++
++config GENERIC_LOCKBREAK
++        def_bool y
++	depends on PREEMPT
++
++config RWSEM_GENERIC_SPINLOCK
++	def_bool y
++
++config TRACE_IRQFLAGS_SUPPORT
++	def_bool y
++
++config STACKTRACE_SUPPORT
++        def_bool y
++
++config PGTABLE_LEVELS
++	default 2
++
++source "init/Kconfig"
++
++menu "System Type"
++source "arch/nds32/Kconfig.cpu"
++config NR_CPUS
++	int
++	default 1
++
++config MMU
++        def_bool y
++
++config NDS32_BUILTIN_DTB
++        string "Builtin DTB"
++        default ""
++	help
++	  User can use it to specify the dts of the SoC
++endmenu
++
++menu "Kernel Features"
++source "kernel/Kconfig.preempt"
++source "mm/Kconfig"
++source "kernel/Kconfig.hz"
++endmenu
++
++menu "Executable file formats"
++source "fs/Kconfig.binfmt"
++endmenu
++
++source "net/Kconfig"
++source "drivers/Kconfig"
++source "fs/Kconfig"
++source "arch/nds32/Kconfig.debug"
++source "security/Kconfig"
++source "crypto/Kconfig"
++source "lib/Kconfig"
+diff --git a/arch/nds32/Kconfig.cpu b/arch/nds32/Kconfig.cpu
+new file mode 100644
+index 0000000..40eaa97
+--- /dev/null
++++ b/arch/nds32/Kconfig.cpu
+@@ -0,0 +1,100 @@
++comment "Processor Features"
++config HWZOL
++	bool "hardware zero overhead loop support"
++	default y
++	help
++	  A set of Zero-Overhead Loop mechanism is provided to reduce the
++	  instruction fetch and execution overhead of loop-control instructions.
++	  It will save 3 registers($LB, $LC, $LE) for context saving if say Y.
++	  You don't need to save these registers if you can make sure your user
++	  program doesn't use these registers.
++
++	  If unsure, say N.
++
++config CPU_CACHE_NONALIASING
++	bool "Non-aliasing cache"
++	help
++	  If this CPU is using VIPT data cache and its cache way size is larger
++	  than page size, say N. If it is using PIPT data cache, say Y.
++
++	  If unsure, say Y.
++
++choice
++	prompt "Paging -- page size "
++	default ANDES_PAGE_SIZE_4KB
++config  ANDES_PAGE_SIZE_4KB
++	bool "use 4KB page size"
++config  ANDES_PAGE_SIZE_8KB
++	bool "use 8KB page size"
++endchoice
++
++config CPU_ICACHE_DISABLE
++	bool "Disable I-Cache"
++	help
++	  Say Y here to disable the processor instruction cache. Unless
++	  you have a reason not to or are unsure, say N.
++
++config CPU_DCACHE_DISABLE
++	bool "Disable D-Cache"
++	help
++	  Say Y here to disable the processor data cache. Unless
++	  you have a reason not to or are unsure, say N.
++
++config CPU_DCACHE_WRITETHROUGH
++	bool "Force write through D-cache"
++	depends on !CPU_DCACHE_DISABLE
++	help
++	  Say Y here to use the data cache in writethrough mode. Unless you
++	  specifically require this or are unsure, say N.
++
++config WBNA
++	bool "WBNA"
++	default n
++	help
++	  Say Y here to enable write-back memory with no-write-allocation policy.
++
++config ALIGNMENT_TRAP
++	tristate "Kernel support unaligned access handling"
++	default y
++	help
++	  Andes processors cannot fetch/store information which is not
++	  naturally aligned on the bus, i.e., a 4 byte fetch must start at an
++	  address divisible by 4. On 32-bit Andes processors, these non-aligned
++	  fetch/store instructions will be emulated in software if you say
++	  here, which has a severe performance impact. This is necessary for
++	  correct operation of some network protocols. With an IP-only
++	  configuration it is safe to say N, otherwise say Y.
++
++config HIGHMEM
++	bool "High Memory Support"
++	depends on MMU && CPU_CACHE_NONALIASING
++	help
++	  The address space of Andes processors is only 4 Gigabytes large
++	  and it has to accommodate user address space, kernel address
++	  space as well as some memory mapped IO. That means that, if you
++	  have a large amount of physical memory and/or IO, not all of the
++	  memory can be "permanently mapped" by the kernel. The physical
++	  memory that is not permanently mapped is called "high memory".
++
++	  Depending on the selected kernel/user memory split, minimum
++	  vmalloc space and actual amount of RAM, you may not need this
++	  option which should result in a slightly faster kernel.
++
++	  If unsure, say N.
++
++config CACHE_L2
++	bool "Support L2 cache"
++        default y
++	help
++	  Say Y here to enable L2 cache if your SoC are integrated with L2CC.
++	  If unsure, say N.
++
++menu "Memory configuration"
++
++config MEMORY_START
++	hex "Physical memory start address"
++	default "0x00000000"
++	help
++	  Physical memory start address, you may modify it if it is porting to
++	  a new SoC with different start address.
++endmenu
+diff --git a/arch/nds32/Kconfig.debug b/arch/nds32/Kconfig.debug
+new file mode 100644
+index 0000000..665da0a
+--- /dev/null
++++ b/arch/nds32/Kconfig.debug
+@@ -0,0 +1,14 @@
++menu "Kernel hacking"
++
++source "lib/Kconfig.debug"
++
++config EARLY_PRINTK
++        bool "Early printk support"
++        default y
++        help
++          Say Y here if you want to have an early console using the
++          earlyprintk=<name>[,<addr>][,<options>] kernel parameter. It
++          is assumed that the early console device has been initialised
++          by the boot loader prior to starting the Linux kernel.
++
++endmenu
+diff --git a/arch/nds32/Makefile b/arch/nds32/Makefile
+new file mode 100644
+index 0000000..1bef714
+--- /dev/null
++++ b/arch/nds32/Makefile
+@@ -0,0 +1,60 @@
++LDFLAGS_vmlinux	:= --no-undefined -X
++OBJCOPYFLAGS	:= -O binary -R .note -R .note.gnu.build-id -R .comment -S
++
++KBUILD_DEFCONFIG := ae3xx_defconfig
++
++comma = ,
++
++KBUILD_CFLAGS	+=-mno-sched-prolog-epilog -mcmodel=large
++
++KBUILD_CFLAGS	+=$(arch-y) $(tune-y)
++KBUILD_AFLAGS	+=$(arch-y) $(tune-y)
++
++#Default value
++head-y		 := arch/nds32/kernel/head.o
++textaddr-y	 := 0xc000c000
++
++TEXTADDR := $(textaddr-y)
++
++export	TEXTADDR
++
++
++# If we have a machine-specific directory, then include it in the build.
++core-y				+= arch/nds32/kernel/ arch/nds32/mm/
++libs-y				+= arch/nds32/lib/
++LIBGCC_PATH     		:= \
++  $(shell $(CC) $(KBUILD_CFLAGS) $(KCFLAGS) -print-libgcc-file-name)
++libs-y				+= $(LIBGCC_PATH)
++
++ifneq '$(CONFIG_NDS32_BUILTIN_DTB)' '""'
++BUILTIN_DTB := y
++else
++BUILTIN_DTB := n
++endif
++
++boot := arch/nds32/boot
++core-$(BUILTIN_DTB) += $(boot)/dts/
++
++.PHONY: FORCE
++
++Image: vmlinux
++	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
++
++
++PHONY += vdso_install
++vdso_install:
++	$(Q)$(MAKE) $(build)=arch/nds32/kernel/vdso $@
++
++prepare: vdso_prepare
++vdso_prepare: prepare0
++	$(Q)$(MAKE) $(build)=arch/nds32/kernel/vdso include/generated/vdso-offsets.h
++
++CLEAN_FILES += include/asm-nds32/constants.h*
++
++# We use MRPROPER_FILES and CLEAN_FILES now
++archclean:
++	$(Q)$(MAKE) $(clean)=$(boot)
++
++define archhelp
++  echo  '  Image         - kernel image (arch/$(ARCH)/boot/Image)'
++endef
+diff --git a/arch/nds32/boot/Makefile b/arch/nds32/boot/Makefile
+new file mode 100644
+index 0000000..3f9b86f
+--- /dev/null
++++ b/arch/nds32/boot/Makefile
+@@ -0,0 +1,15 @@
++targets := Image Image.gz
++
++$(obj)/Image: vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/Image.gz: $(obj)/Image FORCE
++	$(call if_changed,gzip)
++
++install: $(obj)/Image
++	$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
++	$(obj)/Image System.map "$(INSTALL_PATH)"
++
++zinstall: $(obj)/Image.gz
++	$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
++	$(obj)/Image.gz System.map "$(INSTALL_PATH)"
+diff --git a/arch/nds32/include/asm/Kbuild b/arch/nds32/include/asm/Kbuild
+new file mode 100644
+index 0000000..414ca9d
+--- /dev/null
++++ b/arch/nds32/include/asm/Kbuild
+@@ -0,0 +1,54 @@
++generic-y += asm-offsets.h
++generic-y += atomic.h
++generic-y += barrier.h
++generic-y += bitops.h
++generic-y += bitsperlong.h
++generic-y += bug.h
++generic-y += bugs.h
++generic-y += checksum.h
++generic-y += clkdev.h
++generic-y += cmpxchg.h
++generic-y += cmpxchg-local.h
++generic-y += cputime.h
++generic-y += device.h
++generic-y += div64.h
++generic-y += dma.h
++generic-y += emergency-restart.h
++generic-y += errno.h
++generic-y += exec.h
++generic-y += fb.h
++generic-y += fcntl.h
++generic-y += ftrace.h
++generic-y += gpio.h
++generic-y += hardirq.h
++generic-y += hw_irq.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += irq.h
++generic-y += irq_regs.h
++generic-y += irq_work.h
++generic-y += kdebug.h
++generic-y += kmap_types.h
++generic-y += kprobes.h
++generic-y += kvm_para.h
++generic-y += limits.h
++generic-y += local.h
++generic-y += mm-arch-hooks.h
++generic-y += mman.h
++generic-y += parport.h
++generic-y += pci.h
++generic-y += percpu.h
++generic-y += preempt.h
++generic-y += sections.h
++generic-y += segment.h
++generic-y += serial.h
++generic-y += shmbuf.h
++generic-y += sizes.h
++generic-y += stat.h
++generic-y += switch_to.h
++generic-y += timex.h
++generic-y += topology.h
++generic-y += trace_clock.h
++generic-y += unaligned.h
++generic-y += user.h
++generic-y += word-at-a-time.h
+diff --git a/arch/nds32/include/uapi/asm/Kbuild b/arch/nds32/include/uapi/asm/Kbuild
+new file mode 100644
+index 0000000..c3911f5
+--- /dev/null
++++ b/arch/nds32/include/uapi/asm/Kbuild
+@@ -0,0 +1,26 @@
++# UAPI Header export list
++include include/uapi/asm-generic/Kbuild.asm
++
++generic-y += errno.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += ipcbuf.h
++generic-y += shmbuf.h
++generic-y += bitsperlong.h
++generic-y += fcntl.h
++generic-y += stat.h
++generic-y += mman.h
++generic-y += msgbuf.h
++generic-y += poll.h
++generic-y += resource.h
++generic-y += sembuf.h
++generic-y += setup.h
++generic-y += siginfo.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += swab.h
++generic-y += statfs.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += types.h
++generic-y += ucontext.h
+diff --git a/arch/nds32/kernel/Makefile b/arch/nds32/kernel/Makefile
+new file mode 100644
+index 0000000..5abcb0d
+--- /dev/null
++++ b/arch/nds32/kernel/Makefile
+@@ -0,0 +1,24 @@
++#
++# Makefile for the linux kernel.
++#
++
++CPPFLAGS_vmlinux.lds	:= -DTEXTADDR=$(TEXTADDR)
++AFLAGS_head.o		:= -DTEXTADDR=$(TEXTADDR)
++
++# Object file lists.
++
++obj-y			:= ex-entry.o ex-exit.o ex-scall.o irq.o \
++			process.o ptrace.o setup.o signal.o \
++			sys_nds32.o time.o traps.o cacheinfo.o \
++			dma.o syscall_table.o vdso.o
++
++obj-$(CONFIG_MODULES)		+= nds32_ksyms.o module.o
++obj-$(CONFIG_STACKTRACE)	+= stacktrace.o
++obj-$(CONFIG_OF)		+= devtree.o
++obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
++obj-$(CONFIG_CACHE_L2)		+= atl2c.o
++
++extra-y := head.o vmlinux.lds
++
++
++obj-y				+= vdso/
+diff --git a/arch/nds32/kernel/vmlinux.lds.S b/arch/nds32/kernel/vmlinux.lds.S
+new file mode 100644
+index 0000000..2b1e55d
+--- /dev/null
++++ b/arch/nds32/kernel/vmlinux.lds.S
+@@ -0,0 +1,70 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -45,230 +509,72 @@ index 0000000..b8530bd
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef L2_CACHE_H
-+#define L2_CACHE_H
++#include <asm/page.h>
++#include <asm/thread_info.h>
++#include <asm/cache.h>
++#include <asm/memory.h>
 +
-+/* This is defined for head.S to use due to device tree is not yet built. */
-+#define L2CC_PA_BASE		0x90F00000
++#define LOAD_OFFSET	(PAGE_OFFSET - PHYS_OFFSET)
++#include <asm-generic/vmlinux.lds.h>
 +
-+/* CCTL_CMD_OP */
-+#define L2_CA_CONF_OFF		0x0
-+#define	L2_IF_CONF_OFF		0x4
-+#define L2CC_SETUP_OFF		0x8
-+#define L2CC_PROT_OFF		0xC
-+#define L2CC_CTRL_OFF		0x10
-+#define L2_INT_EN_OFF           0x20
-+#define L2_STA_OFF              0x24
-+#define RDERR_ADDR_OFF		0x28
-+#define WRERR_ADDR_OFF		0x2c
-+#define EVDPTERR_ADDR_OFF	0x30
-+#define IMPL3ERR_ADDR_OFF	0x34
-+#define L2_CNT0_CTRL_OFF        0x40
-+#define L2_EVNT_CNT0_OFF        0x44
-+#define L2_CNT1_CTRL_OFF        0x48
-+#define L2_EVNT_CNT1_OFF        0x4c
-+#define L2_CCTL_CMD_OFF		0x60
-+#define L2_CCTL_STATUS_OFF	0x64
-+#define L2_LINE_TAG_OFF		0x68
-+#define L2_LINE_DPT_OFF		0x70
++OUTPUT_ARCH(nds32)
++ENTRY(_stext_lma)
++jiffies = jiffies_64;
 +
-+#define CCTL_CMD_L2_IX_INVAL    0x0
-+#define CCTL_CMD_L2_PA_INVAL    0x1
-+#define CCTL_CMD_L2_IX_WB       0x2
-+#define CCTL_CMD_L2_PA_WB       0x3
-+#define CCTL_CMD_L2_PA_WBINVAL  0x5
-+#define CCTL_CMD_L2_SYNC        0xa
-+
-+/* CCTL_CMD_TYPE */
-+#define CCTL_SINGLE_CMD         0
-+#define CCTL_BLOCK_CMD          0x10
-+#define CCTL_ALL_CMD		0x10
-+
-+/******************************************************************************
-+ * L2_CA_CONF (Cache architecture configuration)
-+ *****************************************************************************/
-+#define L2_CA_CONF_offL2SET		0
-+#define L2_CA_CONF_offL2WAY		4
-+#define L2_CA_CONF_offL2CLSZ            8
-+#define L2_CA_CONF_offL2DW		11
-+#define L2_CA_CONF_offL2PT		14
-+#define L2_CA_CONF_offL2VER		16
-+
-+#define L2_CA_CONF_mskL2SET	(0xFUL << L2_CA_CONF_offL2SET)
-+#define L2_CA_CONF_mskL2WAY	(0xFUL << L2_CA_CONF_offL2WAY)
-+#define L2_CA_CONF_mskL2CLSZ    (0x7UL << L2_CA_CONF_offL2CLSZ)
-+#define L2_CA_CONF_mskL2DW	(0x7UL << L2_CA_CONF_offL2DW)
-+#define L2_CA_CONF_mskL2PT	(0x3UL << L2_CA_CONF_offL2PT)
-+#define L2_CA_CONF_mskL2VER	(0xFFFFUL << L2_CA_CONF_offL2VER)
-+
-+/******************************************************************************
-+ * L2CC_SETUP (L2CC Setup register)
-+ *****************************************************************************/
-+#define L2CC_SETUP_offPART              0
-+#define L2CC_SETUP_mskPART              (0x3UL << L2CC_SETUP_offPART)
-+#define L2CC_SETUP_offDDLATC            4
-+#define L2CC_SETUP_mskDDLATC            (0x3UL << L2CC_SETUP_offDDLATC)
-+#define L2CC_SETUP_offTDLATC            8
-+#define L2CC_SETUP_mskTDLATC            (0x3UL << L2CC_SETUP_offTDLATC)
-+
-+/******************************************************************************
-+ * L2CC_PROT (L2CC Protect register)
-+ *****************************************************************************/
-+#define L2CC_PROT_offMRWEN              31
-+#define L2CC_PROT_mskMRWEN      (0x1UL << L2CC_PROT_offMRWEN)
-+
-+/******************************************************************************
-+ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
-+ *****************************************************************************/
-+#define L2CC_CTRL_offEN                 31
-+#define L2CC_CTRL_mskEN                 (0x1UL << L2CC_CTRL_offEN)
-+
-+/******************************************************************************
-+ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
-+ *****************************************************************************/
-+#define L2_CCTL_STATUS_offCMD_COMP      31
-+#define L2_CCTL_STATUS_mskCMD_COMP      (0x1 << L2_CCTL_STATUS_offCMD_COMP)
-+
-+#ifndef __ASSEMBLY__
-+extern void __iomem *atl2c_base;
-+
-+#include <linux/smp.h>
-+#include <asm/io.h>
-+#include <asm/bitfield.h>
-+
-+#define L2C_R_REG(offset)               __raw_readl(atl2c_base + offset)
-+#define L2C_W_REG(offset, value)        __raw_writel(value, atl2c_base + offset)
-+
-+#define L2_CMD_RDY()    \
-+        do{;}while((L2C_R_REG(L2_CCTL_STATUS_OFF) & L2_CCTL_STATUS_mskCMD_COMP) == 0)
-+
-+static inline unsigned long L2_CACHE_SET(void)
++SECTIONS
 +{
-+	return 64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
-+		      L2_CA_CONF_offL2SET);
++	_stext_lma = TEXTADDR - LOAD_OFFSET;
++	. = TEXTADDR;
++	__init_begin = .;
++	HEAD_TEXT_SECTION
++	INIT_TEXT_SECTION(PAGE_SIZE)
++	INIT_DATA_SECTION(16)
++	PERCPU_SECTION(L1_CACHE_BYTES)
++	__init_end = .;
++
++	. = ALIGN(PAGE_SIZE);
++	_stext = .;
++	/* Real text segment */
++	.text : AT(ADDR(.text) - LOAD_OFFSET) {
++		_text = .;		/* Text and read-only data	*/
++		TEXT_TEXT
++		SCHED_TEXT
++		CPUIDLE_TEXT
++		LOCK_TEXT
++		KPROBES_TEXT
++		IRQENTRY_TEXT
++		*(.fixup)
++	}
++
++	_etext = .;			/* End of text and rodata section */
++
++	_sdata = .;
++	RO_DATA_SECTION(PAGE_SIZE)
++	RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_SIZE)
++	_edata  =  .;
++
++	EXCEPTION_TABLE(16)
++	NOTES
++	BSS_SECTION(4, 4, 4)
++	_end = .;
++
++	STABS_DEBUG
++	DWARF_DEBUG
++
++	DISCARDS
 +}
-+
-+static inline unsigned long L2_CACHE_WAY(void)
-+{
-+	return 1 +
-+	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
-+	     L2_CA_CONF_offL2WAY);
-+}
-+
-+static inline unsigned long L2_CACHE_LINE_SIZE(void)
-+{
-+
-+	return 4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
-+		     L2_CA_CONF_offL2CLSZ);
-+}
-+
-+static inline unsigned long GET_L2CC_CTRL_CPU(unsigned long cpu)
-+{
-+	if (cpu == smp_processor_id())
-+		return L2C_R_REG(L2CC_CTRL_OFF);
-+	return L2C_R_REG(L2CC_CTRL_OFF + (cpu << 8));
-+}
-+
-+static inline void SET_L2CC_CTRL_CPU(unsigned long cpu, unsigned long val)
-+{
-+	if (cpu == smp_processor_id())
-+		L2C_W_REG(L2CC_CTRL_OFF, val);
-+	else
-+		L2C_W_REG(L2CC_CTRL_OFF + (cpu << 8), val);
-+}
-+
-+static inline unsigned long GET_L2CC_STATUS_CPU(unsigned long cpu)
-+{
-+	if (cpu == smp_processor_id())
-+		return L2C_R_REG(L2_CCTL_STATUS_OFF);
-+	return L2C_R_REG(L2_CCTL_STATUS_OFF + (cpu << 8));
-+}
-+
-+#endif
-+
-+#endif
-diff --git a/arch/nds32/kernel/atl2c.c b/arch/nds32/kernel/atl2c.c
+diff --git a/arch/nds32/mm/Makefile b/arch/nds32/mm/Makefile
 new file mode 100644
-index 0000000..dd87fc9
+index 0000000..278d28f
 --- /dev/null
-+++ b/arch/nds32/kernel/atl2c.c
-@@ -0,0 +1,77 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
++++ b/arch/nds32/mm/Makefile
+@@ -0,0 +1,7 @@
++obj-y				:= extable.o tlb.o \
++				   fault.o init.o ioremap.o mmap.o \
++                                   mm-nds32.o cacheflush.o proc-n13.o
 +
-+#include <linux/compiler.h>
-+#include <linux/of_address.h>
-+#include <linux/of_fdt.h>
-+#include <linux/of_platform.h>
-+#include <asm/l2_cache.h>
-+
-+void __iomem *atl2c_base;
-+static const struct of_device_id atl2c_ids[] __initconst = {
-+	{.compatible = "andestech,atl2c",}
-+};
-+
-+static int __init atl2c_of_init(void)
-+{
-+	struct device_node *np;
-+	struct resource res;
-+	unsigned long tmp = 0;
-+	unsigned long l2set, l2way, l2clsz;
-+
-+	if (!(__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskL2C))
-+		return -ENODEV;
-+
-+	np = of_find_matching_node(NULL, atl2c_ids);
-+	if (!np)
-+		return -ENODEV;
-+
-+	if (of_address_to_resource(np, 0, &res))
-+		return -ENODEV;
-+
-+	atl2c_base = ioremap(res.start, resource_size(&res));
-+	if (!atl2c_base)
-+		return -ENOMEM;
-+
-+	l2set =
-+	    64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
-+		   L2_CA_CONF_offL2SET);
-+	l2way =
-+	    1 +
-+	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
-+	     L2_CA_CONF_offL2WAY);
-+	l2clsz =
-+	    4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
-+		  L2_CA_CONF_offL2CLSZ);
-+	pr_info("L2:%luKB/%luS/%luW/%luB\n",
-+		l2set * l2way * l2clsz / 1024, l2set, l2way, l2clsz);
-+
-+	tmp = L2C_R_REG(L2CC_PROT_OFF);
-+	tmp &= ~L2CC_PROT_mskMRWEN;
-+	L2C_W_REG(L2CC_PROT_OFF, tmp);
-+
-+	tmp = L2C_R_REG(L2CC_SETUP_OFF);
-+	tmp &= ~L2CC_SETUP_mskPART;
-+	L2C_W_REG(L2CC_SETUP_OFF, tmp);
-+
-+	tmp = L2C_R_REG(L2CC_CTRL_OFF);
-+	tmp |= L2CC_CTRL_mskEN;
-+	L2C_W_REG(L2CC_CTRL_OFF, tmp);
-+
-+	return 0;
-+}
-+
-+subsys_initcall(atl2c_of_init);
++obj-$(CONFIG_ALIGNMENT_TRAP)	+= alignment.o
++obj-$(CONFIG_HIGHMEM)           += highmem.o
++CFLAGS_proc-n13.o		+= -fomit-frame-pointer
 -- 
 1.7.9.5
