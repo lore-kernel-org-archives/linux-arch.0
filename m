@@ -1,31 +1,42 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: Re: [PATCH 16/31] nds32: VDSO support
-Date: Wed, 8 Nov 2017 12:14:12 -0800
-Message-ID: <CABeXuvqvyeXYZMj05bfeKOgBK5i3mK6imsD2iNFfKES1kTjUng@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <0911917e908c7648d25b33663afc88f5aca6bb4d.1510118606.git.green.hu@gmail.com>
- <CAK8P3a2BDfCLg6J5qmAFD86ZoxzXLNrXO8UTfkvScws=R-T5jw@mail.gmail.com>
- <CABeXuvoJyQxXaCGyu-9fw-E32hHMgpZ0x1njbM1O5znCr1audA@mail.gmail.com> <CAK8P3a0HkSx6QsLuKk_7Ht+zDbt4bHv0Wk2SwN+eAo2O+_i+FQ@mail.gmail.com>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Subject: Re: MPK: pkey_free and key reuse
+Date: Wed, 8 Nov 2017 12:41:30 -0800
+Message-ID: <e7d1e622-bbac-2750-2895-cc151458ff2f@linux.intel.com>
+References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f68.google.com ([209.85.214.68]:48119 "EHLO
-        mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752329AbdKHUON (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 15:14:13 -0500
-In-Reply-To: <CAK8P3a0HkSx6QsLuKk_7Ht+zDbt4bHv0Wk2SwN+eAo2O+_i+FQ@mail.gmail.com>
+Received: from mga01.intel.com ([192.55.52.88]:59768 "EHLO mga01.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751728AbdKHUlb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Nov 2017 15:41:31 -0500
+In-Reply-To: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, Palmer Dabbelt <palmer@dabbelt.com>
+To: Florian Weimer <fweimer@redhat.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
 
-> Do applications call into the vdso directly and expect to get a timespec
-> out? If they always go through the C library as an intermediate, then
-> the glibc clock_gettime() could do the conversion.
+On 11/05/2017 02:35 AM, Florian Weimer wrote:
+> I don't think pkey_free, as it is implemented today, is very safe due to
+> key reuse by a subsequent pkey_alloc.  I see two problems:
+> 
+> (A) pkey_free allows reuse for they key while there are still mappings
+> that use it.
 
-It is recommended that applications do not call vdso symbols directly.
-According to manpage:
+I don't agree with this assessment.  Is malloc() unsafe?  If someone
+free()s memory that is still in use, a subsequent malloc() would hand
+the address out again for reuse.
 
-"If you're trying to call the vDSO in your own application rather than
-using the C library, you're most likely doing it wrong."
+> (B) If a key is reused, existing threads retain their access rights,
+> while there is an expectation that pkey_alloc denies access for the
+> threads except the current one.
+Where does this expectation come from?  Using the malloc() analogy, we
+don't expect that free() in one thread actively takes away references to
+the memory held by other threads.
 
--Deepa
+We define free() as only being called on resources to which there are no
+active references.  If you free() things in use, bad things happen.
+pkey_free() is only to be called when there is nothing actively using
+the key.  If you pkey_free() an in-use key, bad things happen.
