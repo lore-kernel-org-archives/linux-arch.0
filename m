@@ -1,81 +1,85 @@
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH v5 01/30] regset: Add support for dynamically sized regsets
-Date: Wed, 08 Nov 2017 11:50:00 +0000
-Message-ID: <87inelq9av.fsf@linaro.org>
-References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com> <1509465082-30427-2-git-send-email-Dave.Martin@arm.com> <20171101114228.jm53aj7jx6j4mxhn@armageddon.cambridge.arm.com> <20171101131644.GL19485@e103592.cambridge.arm.com>
+From: Rob Herring <robh+dt@kernel.org>
+Subject: Re: [PATCH 30/31] dt-bindings: nds32 CPU Bindings
+Date: Wed, 8 Nov 2017 07:18:48 -0600
+Message-ID: <CAL_JsqJAtTSGg=yGvANGdTCWa4tDAicvOvWYr4pK5M1rjPFtfg@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <1a8efba0727437d510d10755f3fcea806833651d.1510118606.git.green.hu@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f196.google.com ([209.85.128.196]:47544 "EHLO
-        mail-wr0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751826AbdKHLuD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 06:50:03 -0500
-Received: by mail-wr0-f196.google.com with SMTP id k61so2158667wrc.4
-        for <linux-arch@vger.kernel.org>; Wed, 08 Nov 2017 03:50:02 -0800 (PST)
-In-reply-to: <20171101131644.GL19485@e103592.cambridge.arm.com>
+Received: from mail.kernel.org ([198.145.29.99]:40694 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751674AbdKHNTK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Nov 2017 08:19:10 -0500
+In-Reply-To: <1a8efba0727437d510d10755f3fcea806833651d.1510118606.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, "H. J. Lu" <hjl.tools@gmail.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
 
+Please Cc the DT list on bindings.
 
-Dave Martin <Dave.Martin@arm.com> writes:
+On Tue, Nov 7, 2017 at 11:55 PM, Greentime Hu <green.hu@gmail.com> wrote:
+> From: Greentime Hu <greentime@andestech.com>
 
-> On Wed, Nov 01, 2017 at 11:42:29AM +0000, Catalin Marinas wrote:
->> On Tue, Oct 31, 2017 at 03:50:53PM +0000, Dave P Martin wrote:
->> > Currently the regset API doesn't allow for the possibility that
->> > regsets (or at least, the amount of meaningful data in a regset)
->> > may change in size.
->> >
->> > In particular, this results in useless padding being added to
->> > coredumps if a regset's current size is smaller than its
->> > theoretical maximum size.
->> >
->> > This patch adds a get_size() function to struct user_regset.
->> > Individual regset implementations can implement this function to
->> > return the current size of the regset data.  A regset_size()
->> > function is added to provide callers with an abstract interface for
->> > determining the size of a regset without needing to know whether
->> > the regset is dynamically sized or not.
->> >
->> > The only affected user of this interface is the ELF coredump code:
->> > This patch ports ELF coredump to dump regsets with their actual
->> > size in the coredump.  This has no effect except for new regsets
->> > that are dynamically sized and provide a get_size() implementation.
->> >
->> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
->> > Reviewed-by: Alex Benn=C3=A9e <alex.bennee@linaro.org>
->> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
->> > Cc: Oleg Nesterov <oleg@redhat.com>
->> > Cc: Alexander Viro <viro@zeniv.linux.org.uk>
->> > Cc: Thomas Gleixner <tglx@linutronix.de>
->> > Cc: Ingo Molnar <mingo@redhat.com>
->> > Cc: "H. Peter Anvin" <hpa@zytor.com>
->> > Cc: Dmitry Safonov <dsafonov@virtuozzo.com>
->> > Cc: H. J. Lu <hjl.tools@gmail.com>
->> >
->> > ---
->> >
->> > **Dropped** Reviewed-by: Alex Benn=C3=A9e <alex.bennee@linaro.org>
->> > **Dropped** Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
->> > (due to bug fix applied against v4 of this patch.)
->>
->> It seems that the Reviewed-by tags are still there ;). Anyway, on the
+Commit message needed.
+
+> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+> Signed-off-by: Rick Chen <rick@andestech.com>
+> Signed-off-by: Zong Li <zong@andestech.com>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> ---
+>  Documentation/devicetree/bindings/nds32/cpus.txt |   33 ++++++++++++++++++++++
+>  1 file changed, 33 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
 >
-> Oops, looks like that only happened on this patch.  I've removed
-> Alex's R-b from my own version in case of repost -- can you also
-> do the same?
+> diff --git a/Documentation/devicetree/bindings/nds32/cpus.txt b/Documentation/devicetree/bindings/nds32/cpus.txt
+> new file mode 100644
+> index 0000000..97394cb
+> --- /dev/null
+> +++ b/Documentation/devicetree/bindings/nds32/cpus.txt
+> @@ -0,0 +1,33 @@
+> +* Andestech Processor Binding
+> +
+> +This binding specifies what properties must be available in the device tree
+> +representation of a Andestech Processor Core, which is the root node in the
+> +tree.
+> +
+> +Required properties:
+> +
+> +       - compatible:
+> +               Usage: required
+> +               Value type: <string>
+> +               Definition: should be one of:
+> +                       "andestech,n13"
+> +                       "andestech,n15"
+> +                       "andestech,d15"
+> +                       "andestech,n10"
+> +                       "andestech,d10"
+
+SMP supported for any of these?
+
+> +
+> +    - device_type
+> +               Usage: required
+> +               Value type: <string>
+> +               Definition: must be "cpu"
+> +
+> +* Examples
+> +
+> +/ {
+> +       cpus {
+> +               cpu@0 {
+
+Needs a reg property or drop the unit address.
+
+> +                       device_type = "cpu";
+> +                       compatible = "andestech,n13", "andestech,n15";
+
+n13 is a superset of n15?
+
+> +               };
+> +       };
+> +};
+> --
+> 1.7.9.5
 >
->> new patch:
->>
->> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-
-You can have my:
-
-Reviewed-by: Alex Benn=C3=A9e <alex.bennee@linaro.org>
-
-
->
-> Cheers
-> ---Dave
