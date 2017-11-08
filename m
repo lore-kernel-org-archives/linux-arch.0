@@ -1,71 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f194.google.com ([74.125.82.194]:50253 "EHLO
-        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750735AbdKHIy1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 03:54:27 -0500
+Received: from mail-ot0-f195.google.com ([74.125.82.195]:53632 "EHLO
+        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751787AbdKHJJd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 04:09:33 -0500
 MIME-Version: 1.0
-In-Reply-To: <b13577a068afb71e87e21598f59733f127814f37.1510118606.git.green.hu@gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <b13577a068afb71e87e21598f59733f127814f37.1510118606.git.green.hu@gmail.com>
+In-Reply-To: <763e6a252de1ad8ccd28344fd0676ae2f92f796d.1510118606.git.green.hu@gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <763e6a252de1ad8ccd28344fd0676ae2f92f796d.1510118606.git.green.hu@gmail.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 8 Nov 2017 09:54:25 +0100
-Message-ID: <CAK8P3a3w4gfO-VMM+L5J5+kSbBD_Kr0iv3BndF_3tt2QTuEFRw@mail.gmail.com>
-Subject: Re: [PATCH 11/31] nds32: Atomic operations
+Date: Wed, 8 Nov 2017 10:09:31 +0100
+Message-ID: <CAK8P3a11a+So5DUZwv+geT2WMYpMG-FPt9=nKZFyYLQ0Gs55qw@mail.gmail.com>
+Subject: Re: [PATCH 13/31] nds32: DMA mapping API
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greentime Hu <green.hu@gmail.com>
-Cc: greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20171108085425.29B8DdS23HSw4gYDpr5o5palu6BYNGEKwxS_nuez-6E@z>
+Cc: greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171108090931.ar_vX2CYJqI3pU0pl4lZmApys_qxZfbSY82H7z1tQxI@z>
 
-On Wed, Nov 8, 2017 at 6:54 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> From: Greentime Hu <greentime@andestech.com>
->
-> Signed-off-by: Vincent Chen <vincentc@andestech.com>
-> Signed-off-by: Greentime Hu <greentime@andestech.com>
-> ---
->  arch/nds32/include/asm/futex.h    |  116 ++++++++++++++++++++++++
->  arch/nds32/include/asm/spinlock.h |  178 +++++++++++++++++++++++++++++++++++++
->  2 files changed, 294 insertions(+)
->  create mode 100644 arch/nds32/include/asm/futex.h
->  create mode 100644 arch/nds32/include/asm/spinlock.h
+On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
 
-
-> diff --git a/arch/nds32/include/asm/spinlock.h b/arch/nds32/include/asm/spinlock.h
-> new file mode 100644
-> index 0000000..dd5fc71
-> --- /dev/null
-> +++ b/arch/nds32/include/asm/spinlock.h
-> @@ -0,0 +1,178 @@
-> +
-> +#define arch_spin_unlock_wait(lock) \
-> +       do { while (arch_spin_is_locked(lock)) cpu_relax(); } while (0)
-
-This was removed from the other architectures in commit
-952111d7db02 ("arch: Remove spin_unlock_wait() arch-specific definitions")
-
-Please remove this as well.
-
-Palmer, I see riscv has the same thing, please also add a patch to your
-tree to remove it.
-
-> +#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
-> +
-> +static inline void arch_spin_lock(arch_spinlock_t * lock)
+> +static void consistent_sync(void *vaddr, size_t size, int direction)
 > +{
-> +       unsigned long tmp;
+> +       unsigned long start = (unsigned long)vaddr;
+> +       unsigned long end = start + size;
 > +
-> +       __asm__ __volatile__("1:\n"
-> +                            "\tllw\t%0, [%1]\n"
-> +                            "\tbnez\t%0, 1b\n"
-> +                            "\tmovi\t%0, #0x1\n"
-> +                            "\tscw\t%0, [%1]\n"
-> +                            "\tbeqz\t%0, 1b\n"
-> +                            :"=&r"(tmp)
-> +                            :"r"(&lock->lock)
-> +                            :"memory");
+> +       switch (direction) {
+> +       case DMA_FROM_DEVICE:   /* invalidate only */
+> +               cpu_dma_inval_range(start, end);
+> +               break;
+> +       case DMA_TO_DEVICE:     /* writeback only */
+> +               cpu_dma_wb_range(start, end);
+> +               break;
+> +       case DMA_BIDIRECTIONAL: /* writeback and invalidate */
+> +               cpu_dma_wbinval_range(start, end);
+> +               break;
+> +       default:
+> +               BUG();
+> +       }
+> +}
 
-The coding style seems inconsistent here, the other inline asm uses real tabs
-instead of \t, and 'asm volatile' is generally preferred over '__asm__
-__volatile__'.
+> +
+> +static void
+> +nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
+> +                             size_t size, enum dma_data_direction dir)
+> +{
+> +       consistent_sync((void *)dma_to_virt(dev, handle), size, dir);
+> +}
+> +
+> +static void
+> +nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
+> +                                size_t size, enum dma_data_direction dir)
+> +{
+> +       consistent_sync((void *)dma_to_virt(dev, handle), size, dir);
+> +}
 
-       Arnd
+You do the same cache operations for _to_cpu and _to_device, which
+usually works,
+but is more expensive than you need. It's better to take the ownership into
+account and only do what you need.
+
+     Arnd
