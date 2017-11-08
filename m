@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH 15/31] nds32: System calls handling
-Date: Wed,  8 Nov 2017 13:55:03 +0800
-Message-ID: <61b5cd5e7f2cf2f485a990cdf238788b817a1d53.1510118606.git.green.hu@gmail.com>
+Subject: [PATCH 20/31] nds32: L2 cache support
+Date: Wed,  8 Nov 2017 13:55:08 +0800
+Message-ID: <b8c4d4dd7b5ce02123300018041923d0dfa97af9.1510118606.git.green.hu@gmail.com>
 References: <cover.1510118606.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
@@ -17,237 +17,18 @@ From: Greentime Hu <greentime@andestech.com>
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/syscall.h     |  203 ++++++++++++++++++++++++++++++++++
- arch/nds32/include/asm/syscalls.h    |   27 +++++
- arch/nds32/include/asm/unistd.h      |   21 ++++
- arch/nds32/include/uapi/asm/unistd.h |   36 ++++++
- arch/nds32/kernel/ex-scall.S         |  146 ++++++++++++++++++++++++
- arch/nds32/kernel/sys_nds32.c        |   63 +++++++++++
- arch/nds32/kernel/syscall_table.c    |   28 +++++
- 7 files changed, 524 insertions(+)
- create mode 100644 arch/nds32/include/asm/syscall.h
- create mode 100644 arch/nds32/include/asm/syscalls.h
- create mode 100644 arch/nds32/include/asm/unistd.h
- create mode 100644 arch/nds32/include/uapi/asm/unistd.h
- create mode 100644 arch/nds32/kernel/ex-scall.S
- create mode 100644 arch/nds32/kernel/sys_nds32.c
- create mode 100644 arch/nds32/kernel/syscall_table.c
+ arch/nds32/include/asm/l2_cache.h |  158 +++++++++++++++++++++++++++++++++++++
+ arch/nds32/kernel/atl2c.c         |   77 ++++++++++++++++++
+ 2 files changed, 235 insertions(+)
+ create mode 100644 arch/nds32/include/asm/l2_cache.h
+ create mode 100644 arch/nds32/kernel/atl2c.c
 
-diff --git a/arch/nds32/include/asm/syscall.h b/arch/nds32/include/asm/syscall.h
+diff --git a/arch/nds32/include/asm/l2_cache.h b/arch/nds32/include/asm/l2_cache.h
 new file mode 100644
-index 0000000..3066bae
+index 0000000..b8530bd
 --- /dev/null
-+++ b/arch/nds32/include/asm/syscall.h
-@@ -0,0 +1,203 @@
-+/*
-+ * Access to user system call parameters and results
-+ *
-+ * Copyright (C) 2008-2009 Red Hat, Inc.  All rights reserved.
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This copyrighted material is made available to anyone wishing to use,
-+ * modify, copy, or redistribute it subject to the terms and conditions
-+ * of the GNU General Public License v.2.
-+ *
-+ * This file is a stub providing documentation for what functions
-+ * asm-ARCH/syscall.h files need to define.  Most arch definitions
-+ * will be simple inlines.
-+ *
-+ * All of these functions expect to be called with no locks,
-+ * and only when the caller is sure that the task of interest
-+ * cannot return to user mode while we are looking at it.
-+ */
-+
-+#ifndef _ASM_NDS32_SYSCALL_H
-+#define _ASM_NDS32_SYSCALL_H	1
-+
-+#include <linux/err.h>
-+struct task_struct;
-+struct pt_regs;
-+
-+/**
-+ * syscall_get_nr - find what system call a task is executing
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * If @task is executing a system call or is at system call
-+ * tracing about to attempt one, returns the system call number.
-+ * If @task is not executing a system call, i.e. it's blocked
-+ * inside the kernel for a fault or signal, returns -1.
-+ *
-+ * Note this returns int even on 64-bit machines.  Only 32 bits of
-+ * system call number can be meaningful.  If the actual arch value
-+ * is 64 bits, this truncates to 32 bits so 0xffffffff means -1.
-+ *
-+ * It's only valid to call this when @task is known to be blocked.
-+ */
-+int syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
-+{
-+	return regs->syscallno;
-+}
-+
-+/**
-+ * syscall_rollback - roll back registers after an aborted system call
-+ * @task:	task of interest, must be in system call exit tracing
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * It's only valid to call this when @task is stopped for system
-+ * call exit tracing (due to TIF_SYSCALL_TRACE or TIF_SYSCALL_AUDIT),
-+ * after tracehook_report_syscall_entry() returned nonzero to prevent
-+ * the system call from taking place.
-+ *
-+ * This rolls back the register state in @regs so it's as if the
-+ * system call instruction was a no-op.  The registers containing
-+ * the system call number and arguments are as they were before the
-+ * system call instruction.  This may not be the same as what the
-+ * register state looked like at system call entry tracing.
-+ */
-+void syscall_rollback(struct task_struct *task, struct pt_regs *regs)
-+{
-+	regs->uregs[0] = regs->orig_r0;
-+}
-+
-+/**
-+ * syscall_get_error - check result of traced system call
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * Returns 0 if the system call succeeded, or -ERRORCODE if it failed.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on exit
-+ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ */
-+long syscall_get_error(struct task_struct *task, struct pt_regs *regs)
-+{
-+	unsigned long error = regs->uregs[0];
-+	return IS_ERR_VALUE(error) ? error : 0;
-+}
-+
-+/**
-+ * syscall_get_return_value - get the return value of a traced system call
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * Returns the return value of the successful system call.
-+ * This value is meaningless if syscall_get_error() returned nonzero.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on exit
-+ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ */
-+long syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
-+{
-+	return regs->uregs[0];
-+}
-+
-+/**
-+ * syscall_set_return_value - change the return value of a traced system call
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ * @error:	negative error code, or zero to indicate success
-+ * @val:	user return value if @error is zero
-+ *
-+ * This changes the results of the system call that user mode will see.
-+ * If @error is zero, the user sees a successful system call with a
-+ * return value of @val.  If @error is nonzero, it's a negated errno
-+ * code; the user sees a failed system call with this errno code.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on exit
-+ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ */
-+void syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
-+			      int error, long val)
-+{
-+	regs->uregs[0] = (long)error ? error : val;
-+}
-+
-+/**
-+ * syscall_get_arguments - extract system call parameter values
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ * @i:		argument index [0,5]
-+ * @n:		number of arguments; n+i must be [1,6].
-+ * @args:	array filled with argument values
-+ *
-+ * Fetches @n arguments to the system call starting with the @i'th argument
-+ * (from 0 through 5).  Argument @i is stored in @args[0], and so on.
-+ * An arch inline version is probably optimal when @i and @n are constants.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on
-+ * entry to a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ * It's invalid to call this with @i + @n > 6; we only support system calls
-+ * taking up to 6 arguments.
-+ */
-+#define SYSCALL_MAX_ARGS 6
-+void syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
-+			   unsigned int i, unsigned int n, unsigned long *args)
-+{
-+	if (n == 0)
-+		return;
-+	if (i + n > SYSCALL_MAX_ARGS) {
-+		unsigned long *args_bad = args + SYSCALL_MAX_ARGS - i;
-+		unsigned int n_bad = n + i - SYSCALL_MAX_ARGS;
-+		pr_warning("%s called with max args %d, handling only %d\n",
-+			   __func__, i + n, SYSCALL_MAX_ARGS);
-+		memset(args_bad, 0, n_bad * sizeof(args[0]));
-+		memset(args_bad, 0, n_bad * sizeof(args[0]));
-+	}
-+
-+	if (i == 0) {
-+		args[0] = regs->orig_r0;
-+		args++;
-+		i++;
-+		n--;
-+	}
-+
-+	memcpy(args, &regs->uregs[0] + i, n * sizeof(args[0]));
-+}
-+
-+/**
-+ * syscall_set_arguments - change system call parameter value
-+ * @task:	task of interest, must be in system call entry tracing
-+ * @regs:	task_pt_regs() of @task
-+ * @i:		argument index [0,5]
-+ * @n:		number of arguments; n+i must be [1,6].
-+ * @args:	array of argument values to store
-+ *
-+ * Changes @n arguments to the system call starting with the @i'th argument.
-+ * Argument @i gets value @args[0], and so on.
-+ * An arch inline version is probably optimal when @i and @n are constants.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on
-+ * entry to a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ * It's invalid to call this with @i + @n > 6; we only support system calls
-+ * taking up to 6 arguments.
-+ */
-+void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
-+			   unsigned int i, unsigned int n,
-+			   const unsigned long *args)
-+{
-+	if (n == 0)
-+		return;
-+
-+	if (i + n > SYSCALL_MAX_ARGS) {
-+		pr_warn("%s called with max args %d, handling only %d\n",
-+			__func__, i + n, SYSCALL_MAX_ARGS);
-+		n = SYSCALL_MAX_ARGS - i;
-+	}
-+
-+	if (i == 0) {
-+		regs->orig_r0 = args[0];
-+		args++;
-+		i++;
-+		n--;
-+	}
-+
-+	memcpy(&regs->uregs[0] + i, args, n * sizeof(args[0]));
-+}
-+#endif /* _ASM_NDS32_SYSCALL_H */
-diff --git a/arch/nds32/include/asm/syscalls.h b/arch/nds32/include/asm/syscalls.h
-new file mode 100644
-index 0000000..741ccdc
---- /dev/null
-+++ b/arch/nds32/include/asm/syscalls.h
-@@ -0,0 +1,27 @@
++++ b/arch/nds32/include/asm/l2_cache.h
+@@ -0,0 +1,158 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -264,340 +45,230 @@ index 0000000..741ccdc
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef __ASM_NDS32_SYSCALLS_H
-+#define __ASM_NDS32_SYSCALLS_H
++#ifndef L2_CACHE_H
++#define L2_CACHE_H
 +
-+int sys_cacheflush(unsigned long addr, unsigned long len, unsigned int op);
-+long sys_fadvise64_64_wrapper(int fd, int advice, loff_t offset, loff_t len);
-+asmlinkage int sys_syscall(void);
-+asmlinkage int sys_rt_sigreturn_wrapper(void);
++/* This is defined for head.S to use due to device tree is not yet built. */
++#define L2CC_PA_BASE		0x90F00000
 +
-+#include <asm-generic/syscalls.h>
++/* CCTL_CMD_OP */
++#define L2_CA_CONF_OFF		0x0
++#define	L2_IF_CONF_OFF		0x4
++#define L2CC_SETUP_OFF		0x8
++#define L2CC_PROT_OFF		0xC
++#define L2CC_CTRL_OFF		0x10
++#define L2_INT_EN_OFF           0x20
++#define L2_STA_OFF              0x24
++#define RDERR_ADDR_OFF		0x28
++#define WRERR_ADDR_OFF		0x2c
++#define EVDPTERR_ADDR_OFF	0x30
++#define IMPL3ERR_ADDR_OFF	0x34
++#define L2_CNT0_CTRL_OFF        0x40
++#define L2_EVNT_CNT0_OFF        0x44
++#define L2_CNT1_CTRL_OFF        0x48
++#define L2_EVNT_CNT1_OFF        0x4c
++#define L2_CCTL_CMD_OFF		0x60
++#define L2_CCTL_STATUS_OFF	0x64
++#define L2_LINE_TAG_OFF		0x68
++#define L2_LINE_DPT_OFF		0x70
 +
-+#endif /* __ASM_NDS32_SYSCALLS_H */
-diff --git a/arch/nds32/include/asm/unistd.h b/arch/nds32/include/asm/unistd.h
-new file mode 100644
-index 0000000..b30adca
---- /dev/null
-+++ b/arch/nds32/include/asm/unistd.h
-@@ -0,0 +1,21 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
++#define CCTL_CMD_L2_IX_INVAL    0x0
++#define CCTL_CMD_L2_PA_INVAL    0x1
++#define CCTL_CMD_L2_IX_WB       0x2
++#define CCTL_CMD_L2_PA_WB       0x3
++#define CCTL_CMD_L2_PA_WBINVAL  0x5
++#define CCTL_CMD_L2_SYNC        0xa
 +
-+#define __ARCH_WANT_SYS_LLSEEK
-+#define __ARCH_WANT_SYS_CLONE
-+#define __ARCH_WANT_SYS_OLD_MMAP
++/* CCTL_CMD_TYPE */
++#define CCTL_SINGLE_CMD         0
++#define CCTL_BLOCK_CMD          0x10
++#define CCTL_ALL_CMD		0x10
 +
-+#include <uapi/asm/unistd.h>
-diff --git a/arch/nds32/include/uapi/asm/unistd.h b/arch/nds32/include/uapi/asm/unistd.h
-new file mode 100644
-index 0000000..01b466d
---- /dev/null
-+++ b/arch/nds32/include/uapi/asm/unistd.h
-@@ -0,0 +1,36 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
++/******************************************************************************
++ * L2_CA_CONF (Cache architecture configuration)
++ *****************************************************************************/
++#define L2_CA_CONF_offL2SET		0
++#define L2_CA_CONF_offL2WAY		4
++#define L2_CA_CONF_offL2CLSZ            8
++#define L2_CA_CONF_offL2DW		11
++#define L2_CA_CONF_offL2PT		14
++#define L2_CA_CONF_offL2VER		16
 +
-+#define __ARCH_WANT_RENAMEAT
-+#define __ARCH_WANT_SYSCALL_OFF_T
++#define L2_CA_CONF_mskL2SET	(0xFUL << L2_CA_CONF_offL2SET)
++#define L2_CA_CONF_mskL2WAY	(0xFUL << L2_CA_CONF_offL2WAY)
++#define L2_CA_CONF_mskL2CLSZ    (0x7UL << L2_CA_CONF_offL2CLSZ)
++#define L2_CA_CONF_mskL2DW	(0x7UL << L2_CA_CONF_offL2DW)
++#define L2_CA_CONF_mskL2PT	(0x3UL << L2_CA_CONF_offL2PT)
++#define L2_CA_CONF_mskL2VER	(0xFFFFUL << L2_CA_CONF_offL2VER)
 +
-+/* Use the standard ABI for syscalls */
-+#include <asm-generic/unistd.h>
++/******************************************************************************
++ * L2CC_SETUP (L2CC Setup register)
++ *****************************************************************************/
++#define L2CC_SETUP_offPART              0
++#define L2CC_SETUP_mskPART              (0x3UL << L2CC_SETUP_offPART)
++#define L2CC_SETUP_offDDLATC            4
++#define L2CC_SETUP_mskDDLATC            (0x3UL << L2CC_SETUP_offDDLATC)
++#define L2CC_SETUP_offTDLATC            8
++#define L2CC_SETUP_mskTDLATC            (0x3UL << L2CC_SETUP_offTDLATC)
 +
-+/* Additional NDS32 specific syscalls. */
-+#define __NR_cacheflush		(__NR_arch_specific_syscall)
-+#define __NR_syscall		(__NR_arch_specific_syscall + 1)
-+#define __NR_ipc		(__NR_arch_specific_syscall + 2)
-+#define __NR_sysfs		(__NR_arch_specific_syscall + 3)
-+#define __NR__llseek             __NR_llseek
-+__SYSCALL(__NR_cacheflush, sys_cacheflush)
-+__SYSCALL(__NR_syscall, sys_syscall)
-+__SYSCALL(__NR_ipc, sys_ipc)
-+__SYSCALL(__NR_sysfs, sys_sysfs)
++/******************************************************************************
++ * L2CC_PROT (L2CC Protect register)
++ *****************************************************************************/
++#define L2CC_PROT_offMRWEN              31
++#define L2CC_PROT_mskMRWEN      (0x1UL << L2CC_PROT_offMRWEN)
 +
-+__SYSCALL(__NR_fadvise64_64, sys_fadvise64_64_wrapper)
-+__SYSCALL(__NR_rt_sigreturn, sys_rt_sigreturn_wrapper)
-+__SYSCALL(__NR_mmap, sys_old_mmap)
-diff --git a/arch/nds32/kernel/ex-scall.S b/arch/nds32/kernel/ex-scall.S
-new file mode 100644
-index 0000000..52691ce
---- /dev/null
-+++ b/arch/nds32/kernel/ex-scall.S
-@@ -0,0 +1,146 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
++/******************************************************************************
++ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
++ *****************************************************************************/
++#define L2CC_CTRL_offEN                 31
++#define L2CC_CTRL_mskEN                 (0x1UL << L2CC_CTRL_offEN)
 +
-+#include <linux/linkage.h>
-+#include <asm/unistd.h>
-+#include <asm/assembler.h>
-+#include <asm/nds32.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/thread_info.h>
-+#include <asm/current.h>
++/******************************************************************************
++ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
++ *****************************************************************************/
++#define L2_CCTL_STATUS_offCMD_COMP      31
++#define L2_CCTL_STATUS_mskCMD_COMP      (0x1 << L2_CCTL_STATUS_offCMD_COMP)
 +
-+/*
-+ * $r0 = previous task_struct,
-+ * $r1 = next task_struct,
-+ * previous and next are guaranteed not to be the same.
-+ */
++#ifndef __ASSEMBLY__
++extern void __iomem *atl2c_base;
 +
-+ENTRY(__switch_to)
++#include <linux/smp.h>
++#include <asm/io.h>
++#include <asm/bitfield.h>
 +
-+	la	$p0, __entry_task
-+	sw	$r1, [$p0]
-+	move	$p1, $r0
-+	addi	$p1, $p1, #THREAD_CPU_CONTEXT
-+	smw.bi 	$r6, [$p1], $r14, #0xb		! push r6~r14, fp, lp, sp
-+	move	$r25, $r1
-+	addi	$r1, $r1, #THREAD_CPU_CONTEXT
-+	lmw.bi 	$r6, [$r1], $r14, #0xb		! pop r6~r14, fp, lp, sp
-+	ret
++#define L2C_R_REG(offset)               __raw_readl(atl2c_base + offset)
++#define L2C_W_REG(offset, value)        __raw_writel(value, atl2c_base + offset)
 +
-+/*
-+ * These are the registers used in the syscall handler, and allow us
-+ * to have in theory up to 6 arguments to a function - $r0 to $r5.
-+ *
-+ * We must set at least "tsk" and "tbl" when calling ret_with_reschedule.
-+ */
-+#define tbl	$r8            //  syscall table pointer
++#define L2_CMD_RDY()    \
++        do{;}while((L2C_R_REG(L2_CCTL_STATUS_OFF) & L2_CCTL_STATUS_mskCMD_COMP) == 0)
 +
-+/*
-+ * $r7 will be writen as syscall nr
-+ * by retrieving from $ITYPE 'SWID' bitfiled
-+ */
-+	.macro	get_scno
-+	mfsr	$r7, $ITYPE
-+	srli	$r7, $r7, #ITYPE_offSWID
-+	swi	$r7, [$sp + SYSCALLNO_OFFSET]
-+	.endm
-+
-+	.macro	updateipc
-+	addi	$r17, $r13, #4				! $r13 is $IPC
-+	swi	$r17, [$sp + IPC_OFFSET]
-+	.endm
-+
-+ENTRY(eh_syscall)
-+	updateipc
-+
-+	get_scno
-+	gie_enable
-+
-+ENTRY(eh_syscall_phase_2)
-+	lwi	$p0, [tsk+#TSK_TI_FLAGS]		! check for syscall tracing
-+
-+	andi	$p1, $p0, #_TIF_WORK_SYSCALL_ENTRY	! are we tracing syscalls?
-+	bnez	$p1, __sys_trace
-+
-+	la	$lp, ret_fast_syscall		! return address
-+jmp_systbl:
-+	addi	$p1, $r7, #-__NR_syscalls	! syscall number of syscall instruction is guarded by addembler
-+	bgez	$p1, _SCNO_EXCEED		! call sys_* routine
-+	la	tbl, sys_call_table		! load syscall table pointer
-+	slli	$p1, $r7, #2
-+	add	$p1, tbl, $p1
-+	lwi	$p1, [$p1]
-+	jr	$p1				! no return
-+
-+_SCNO_EXCEED:
-+	ori	$r0, $r7, #0
-+        ori	$r1, $sp, #0
-+	b	bad_syscall
-+
-+/*
-+ * This is the really slow path.  We're going to be doing
-+ * context switches, and waiting for our parent to respond.
-+ */
-+__sys_trace:
-+	move	$r1, $sp
-+	move	$r0, $r7			! trace entry [IP = 0]
-+	bal	syscall_trace_enter
-+	move	$r7, $r0
-+	la	$lp, __sys_trace_return		! return address
-+
-+	addi    $p1, $r7, #1
-+	beqz    $p1, ret_slow_syscall		! fatal signal is pending
-+
-+	addi	$p1, $sp, #R0_OFFSET		! pointer to regs
-+	lmw.bi	$r0, [$p1], $r5			! have to reload $r0 - $r5
-+	b	jmp_systbl
-+
-+__sys_trace_return:
-+	swi	$r0, [$sp+#R0_OFFSET]		! T: save returned $r0
-+	move	$r0, $sp			! set pt_regs for syscall_trace_leave
-+	bal	syscall_trace_leave
-+	b	ret_slow_syscall
-+
-+/*
-+ * Special system call wrappers
-+ *
-+ * $r0 = syscall number
-+ * $r8 = syscall table
-+ */
-+       .type   sys_syscall, #function
-+ENTRY(sys_syscall)
-+	addi	$p1, $r0, #-__NR_syscalls
-+	bgtz	$p1, 3f
-+	move	$p1, $r0
-+	move	$r0, $r1
-+	move	$r1, $r2
-+	move	$r2, $r3
-+	move	$r3, $r4
-+	move	$r4, $r5
-+! add for syscall 6 args
-+	lwi	$r5, [$sp + #SP_OFFSET ]
-+	lwi	$r5, [$r5]
-+! ~add for syscall 6 args
-+
-+	lw	$p1, [tbl+$p1<<2]
-+	jr	$p1
-+3:	b	sys_ni_syscall
-+ENDPROC(sys_syscall)
-+
-+ENTRY(sys_rt_sigreturn_wrapper)
-+	addi	$r0, $sp, #0
-+	b	sys_rt_sigreturn
-+ENDPROC(sys_rt_sigreturn_wrapper)
-diff --git a/arch/nds32/kernel/sys_nds32.c b/arch/nds32/kernel/sys_nds32.c
-new file mode 100644
-index 0000000..39110fe
---- /dev/null
-+++ b/arch/nds32/kernel/sys_nds32.c
-@@ -0,0 +1,63 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/syscalls.h>
-+
-+#include <asm/uaccess.h>
-+#include <asm/cachectl.h>
-+#include <asm/proc-fns.h>
-+
-+long sys_mmap2(unsigned long addr, unsigned long len,
-+	       unsigned long prot, unsigned long flags,
-+	       unsigned long fd, unsigned long pgoff)
++static inline unsigned long L2_CACHE_SET(void)
 +{
-+	if (pgoff & (~PAGE_MASK >> 12))
-+		return -EINVAL;
-+
-+	return sys_mmap_pgoff(addr, len, prot, flags, fd,
-+			      pgoff >> (PAGE_SHIFT - 12));
++	return 64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
++		      L2_CA_CONF_offL2SET);
 +}
 +
-+asmlinkage long sys_fadvise64_64_wrapper(int fd, int advice, loff_t offset,
-+					 loff_t len)
++static inline unsigned long L2_CACHE_WAY(void)
 +{
-+	return sys_fadvise64_64(fd, offset, len, advice);
++	return 1 +
++	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
++	     L2_CA_CONF_offL2WAY);
 +}
 +
-+int sys_cacheflush(unsigned int start, unsigned int end, int cache)
++static inline unsigned long L2_CACHE_LINE_SIZE(void)
 +{
-+	struct vm_area_struct *vma;
-+	bool flushi = true, wbd = true;
 +
-+	vma = find_vma(current->mm, start);
-+	if (!vma)
-+		return -EFAULT;
-+	switch (cache) {
-+	case ICACHE:
-+		wbd = false;
-+		break;
-+	case DCACHE:
-+		flushi = false;
-+		break;
-+	case BCACHE:
-+		break;
-+	default:
-+		return -EINVAL;
-+	}
-+	cpu_cache_wbinval_range_check(vma, start, end, flushi, wbd);
++	return 4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
++		     L2_CA_CONF_offL2CLSZ);
++}
++
++static inline unsigned long GET_L2CC_CTRL_CPU(unsigned long cpu)
++{
++	if (cpu == smp_processor_id())
++		return L2C_R_REG(L2CC_CTRL_OFF);
++	return L2C_R_REG(L2CC_CTRL_OFF + (cpu << 8));
++}
++
++static inline void SET_L2CC_CTRL_CPU(unsigned long cpu, unsigned long val)
++{
++	if (cpu == smp_processor_id())
++		L2C_W_REG(L2CC_CTRL_OFF, val);
++	else
++		L2C_W_REG(L2CC_CTRL_OFF + (cpu << 8), val);
++}
++
++static inline unsigned long GET_L2CC_STATUS_CPU(unsigned long cpu)
++{
++	if (cpu == smp_processor_id())
++		return L2C_R_REG(L2_CCTL_STATUS_OFF);
++	return L2C_R_REG(L2_CCTL_STATUS_OFF + (cpu << 8));
++}
++
++#endif
++
++#endif
+diff --git a/arch/nds32/kernel/atl2c.c b/arch/nds32/kernel/atl2c.c
+new file mode 100644
+index 0000000..dd87fc9
+--- /dev/null
++++ b/arch/nds32/kernel/atl2c.c
+@@ -0,0 +1,77 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/compiler.h>
++#include <linux/of_address.h>
++#include <linux/of_fdt.h>
++#include <linux/of_platform.h>
++#include <asm/l2_cache.h>
++
++void __iomem *atl2c_base;
++static const struct of_device_id atl2c_ids[] __initconst = {
++	{.compatible = "andestech,atl2c",}
++};
++
++static int __init atl2c_of_init(void)
++{
++	struct device_node *np;
++	struct resource res;
++	unsigned long tmp = 0;
++	unsigned long l2set, l2way, l2clsz;
++
++	if (!(__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskL2C))
++		return -ENODEV;
++
++	np = of_find_matching_node(NULL, atl2c_ids);
++	if (!np)
++		return -ENODEV;
++
++	if (of_address_to_resource(np, 0, &res))
++		return -ENODEV;
++
++	atl2c_base = ioremap(res.start, resource_size(&res));
++	if (!atl2c_base)
++		return -ENOMEM;
++
++	l2set =
++	    64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
++		   L2_CA_CONF_offL2SET);
++	l2way =
++	    1 +
++	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
++	     L2_CA_CONF_offL2WAY);
++	l2clsz =
++	    4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
++		  L2_CA_CONF_offL2CLSZ);
++	pr_info("L2:%luKB/%luS/%luW/%luB\n",
++		l2set * l2way * l2clsz / 1024, l2set, l2way, l2clsz);
++
++	tmp = L2C_R_REG(L2CC_PROT_OFF);
++	tmp &= ~L2CC_PROT_mskMRWEN;
++	L2C_W_REG(L2CC_PROT_OFF, tmp);
++
++	tmp = L2C_R_REG(L2CC_SETUP_OFF);
++	tmp &= ~L2CC_SETUP_mskPART;
++	L2C_W_REG(L2CC_SETUP_OFF, tmp);
++
++	tmp = L2C_R_REG(L2CC_CTRL_OFF);
++	tmp |= L2CC_CTRL_mskEN;
++	L2C_W_REG(L2CC_CTRL_OFF, tmp);
 +
 +	return 0;
 +}
-diff --git a/arch/nds32/kernel/syscall_table.c b/arch/nds32/kernel/syscall_table.c
-new file mode 100644
-index 0000000..bafd896
---- /dev/null
-+++ b/arch/nds32/kernel/syscall_table.c
-@@ -0,0 +1,28 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
 +
-+#include <linux/syscalls.h>
-+#include <linux/signal.h>
-+#include <linux/unistd.h>
-+#include <asm/syscalls.h>
-+
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call) [nr] = (call),
-+
-+void *sys_call_table[__NR_syscalls] __aligned(8192) = {
-+	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
-+#include <asm/unistd.h>
-+};
++subsys_initcall(atl2c_of_init);
 -- 
 1.7.9.5
