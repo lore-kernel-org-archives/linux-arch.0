@@ -1,46 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:44320 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757747AbdKHA17 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Nov 2017 19:27:59 -0500
-Received: by mail-pg0-f68.google.com with SMTP id j3so768775pga.1
-        for <linux-arch@vger.kernel.org>; Tue, 07 Nov 2017 16:27:59 -0800 (PST)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 1/3] lkdtm: Include WARN format string
-Date: Tue,  7 Nov 2017 16:27:47 -0800
-Message-ID: <1510100869-73751-2-git-send-email-keescook@chromium.org>
-In-Reply-To: <1510100869-73751-1-git-send-email-keescook@chromium.org>
-References: <1510100869-73751-1-git-send-email-keescook@chromium.org>
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:50239 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754401AbdKHGVN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 01:21:13 -0500
+From: Greentime Hu <green.hu@gmail.com>
+Subject: [PATCH 30/31] dt-bindings: nds32 CPU Bindings
+Date: Wed,  8 Nov 2017 13:55:18 +0800
+Message-ID: <1a8efba0727437d510d10755f3fcea806833651d.1510118606.git.green.hu@gmail.com>
+In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com>
+In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Joe Perches <joe@perches.com>, Fengguang Wu <fengguang.wu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-am33-list@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20171108002747.Q0PnoE7-l7Yfr-ZSST26u9Gc4FOwwjm9HKwcyOQ7_g4@z>
+To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org
+Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>
+Message-ID: <20171108055518.xzg7TMmgYHb-5QVtNLt9KMxRqIVg8r1-9fQ997MQ5JE@z>
 
-In order to test the ordering of WARN format strings, actually include one
-in LKDTM.
+From: Greentime Hu <greentime@andestech.com>
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Vincent Chen <vincentc@andestech.com>
+Signed-off-by: Rick Chen <rick@andestech.com>
+Signed-off-by: Zong Li <zong@andestech.com>
+Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- drivers/misc/lkdtm_bugs.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ Documentation/devicetree/bindings/nds32/cpus.txt |   33 ++++++++++++++++++++++
+ 1 file changed, 33 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
 
-diff --git a/drivers/misc/lkdtm_bugs.c b/drivers/misc/lkdtm_bugs.c
-index 9e0b4f959987..8523f7dbac99 100644
---- a/drivers/misc/lkdtm_bugs.c
-+++ b/drivers/misc/lkdtm_bugs.c
-@@ -62,9 +62,11 @@ void lkdtm_BUG(void)
- 	BUG();
- }
- 
-+static int warn_counter;
+diff --git a/Documentation/devicetree/bindings/nds32/cpus.txt b/Documentation/devicetree/bindings/nds32/cpus.txt
+new file mode 100644
+index 0000000..97394cb
+--- /dev/null
++++ b/Documentation/devicetree/bindings/nds32/cpus.txt
+@@ -0,0 +1,33 @@
++* Andestech Processor Binding
 +
- void lkdtm_WARNING(void)
- {
--	WARN_ON(1);
-+	WARN(1, "Warning message trigger count: %d\n", warn_counter++);
- }
- 
- void lkdtm_EXCEPTION(void)
++This binding specifies what properties must be available in the device tree
++representation of a Andestech Processor Core, which is the root node in the
++tree.
++
++Required properties:
++
++	- compatible:
++		Usage: required
++		Value type: <string>
++		Definition: should be one of:
++			"andestech,n13"
++			"andestech,n15"
++			"andestech,d15"
++			"andestech,n10"
++			"andestech,d10"
++
++    - device_type
++		Usage: required
++		Value type: <string>
++		Definition: must be "cpu"
++
++* Examples
++
++/ {
++	cpus {
++		cpu@0 {
++			device_type = "cpu";
++			compatible = "andestech,n13", "andestech,n15";
++		};
++	};
++};
 -- 
-2.7.4
+1.7.9.5
