@@ -1,86 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f196.google.com ([209.85.128.196]:47544 "EHLO
-        mail-wr0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751826AbdKHLuD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 06:50:03 -0500
-Received: by mail-wr0-f196.google.com with SMTP id k61so2158667wrc.4
-        for <linux-arch@vger.kernel.org>; Wed, 08 Nov 2017 03:50:02 -0800 (PST)
-References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com> <1509465082-30427-2-git-send-email-Dave.Martin@arm.com> <20171101114228.jm53aj7jx6j4mxhn@armageddon.cambridge.arm.com> <20171101131644.GL19485@e103592.cambridge.arm.com>
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH v5 01/30] regset: Add support for dynamically sized regsets
-In-reply-to: <20171101131644.GL19485@e103592.cambridge.arm.com>
-Date: Wed, 08 Nov 2017 11:50:00 +0000
-Message-ID: <87inelq9av.fsf@linaro.org>
+Received: from mail.kernel.org ([198.145.29.99]:41106 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751598AbdKHNZc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Nov 2017 08:25:32 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <a7b9f0a21bf6e0c3325a0d9a28a8503082cafd14.1510118606.git.green.hu@gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <a7b9f0a21bf6e0c3325a0d9a28a8503082cafd14.1510118606.git.green.hu@gmail.com>
+From: Rob Herring <robh+dt@kernel.org>
+Date: Wed, 8 Nov 2017 07:25:10 -0600
+Message-ID: <CAL_JsqLGQGZq9VYW2By84rf0BHPm4=QvKNts7ETCqVT3g7LA-w@mail.gmail.com>
+Subject: Re: [PATCH 27/31] dt-bindings: interrupt-controller: Andestech
+ Internal Vector Interrupt Controller
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, "H. J. Lu" <hjl.tools@gmail.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20171108115000.n5ouS8AE7Omt0czjPvFjxTRMDpOSDijtdlqZ-IMqDwI@z>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, Rick Chen <rick@andestech.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+Message-ID: <20171108132510.m1Zu5GxM-_uc03TBS7rJRDAVdwRYjfVMRVioyLw7TLw@z>
 
++DT list
 
-Dave Martin <Dave.Martin@arm.com> writes:
+On Tue, Nov 7, 2017 at 11:55 PM, Greentime Hu <green.hu@gmail.com> wrote:
+> From: Greentime Hu <greentime@andestech.com>
 
-> On Wed, Nov 01, 2017 at 11:42:29AM +0000, Catalin Marinas wrote:
->> On Tue, Oct 31, 2017 at 03:50:53PM +0000, Dave P Martin wrote:
->> > Currently the regset API doesn't allow for the possibility that
->> > regsets (or at least, the amount of meaningful data in a regset)
->> > may change in size.
->> >
->> > In particular, this results in useless padding being added to
->> > coredumps if a regset's current size is smaller than its
->> > theoretical maximum size.
->> >
->> > This patch adds a get_size() function to struct user_regset.
->> > Individual regset implementations can implement this function to
->> > return the current size of the regset data.  A regset_size()
->> > function is added to provide callers with an abstract interface for
->> > determining the size of a regset without needing to know whether
->> > the regset is dynamically sized or not.
->> >
->> > The only affected user of this interface is the ELF coredump code:
->> > This patch ports ELF coredump to dump regsets with their actual
->> > size in the coredump.  This has no effect except for new regsets
->> > that are dynamically sized and provide a get_size() implementation.
->> >
->> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
->> > Reviewed-by: Alex Benn=C3=A9e <alex.bennee@linaro.org>
->> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
->> > Cc: Oleg Nesterov <oleg@redhat.com>
->> > Cc: Alexander Viro <viro@zeniv.linux.org.uk>
->> > Cc: Thomas Gleixner <tglx@linutronix.de>
->> > Cc: Ingo Molnar <mingo@redhat.com>
->> > Cc: "H. Peter Anvin" <hpa@zytor.com>
->> > Cc: Dmitry Safonov <dsafonov@virtuozzo.com>
->> > Cc: H. J. Lu <hjl.tools@gmail.com>
->> >
->> > ---
->> >
->> > **Dropped** Reviewed-by: Alex Benn=C3=A9e <alex.bennee@linaro.org>
->> > **Dropped** Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
->> > (due to bug fix applied against v4 of this patch.)
->>
->> It seems that the Reviewed-by tags are still there ;). Anyway, on the
+Commit msg needed.
+
+> Signed-off-by: Rick Chen <rick@andestech.com>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> ---
+>  .../interrupt-controller/andestech,ativic32.txt    |   27 ++++++++++++++++++++
+>  1 file changed, 27 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
 >
-> Oops, looks like that only happened on this patch.  I've removed
-> Alex's R-b from my own version in case of repost -- can you also
-> do the same?
+> diff --git a/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt b/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
+> new file mode 100644
+> index 0000000..6bac908
+> --- /dev/null
+> +++ b/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
+> @@ -0,0 +1,27 @@
+> +* Andestech Internal Vector Interrupt Controller
+> +
+> +The Internal Vector Interrupt Controller (IVIC) is a basic interrupt controller
+> +suitable for a simpler SoC platform not requiring a more sophisticated and
+> +bigger External Vector Interrupt Controller.
+> +
+> +
+> +Main node required properties:
+> +
+> +- compatible : should at least contain  "andestech,ativic32".
+> +- interrupt-parent: Empty for the interrupt controller itself
+
+Drop this.
+
+> +- interrupt-controller : Identifies the node as an interrupt controller
+> +- #interrupt-cells: The number of cells to define the interrupts. Should be 2.
+> +       The first cell is the IRQ number
+> +       The second cell is used to specify mode:
+> +               1 = low-to-high edge triggered
+> +               2 = high-to-low edge triggered
+> +               4 = active high level-sensitive
+> +               8 = active low level-sensitive
+
+Just state 2 cells and refer to interrupt-controller/interrupts.txt.
+
+> +               Default for internal sources should be set to 4 (active high).
+> +
+> +Examples:
+> +       intc: interrupt-controller {
+> +               compatible = "andestech,ativic32";
+> +               #interrupt-cells = <2>;
+> +               interrupt-controller;
+> +       };
+> --
+> 1.7.9.5
 >
->> new patch:
->>
->> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-
-You can have my:
-
-Reviewed-by: Alex Benn=C3=A9e <alex.bennee@linaro.org>
-
-
->
-> Cheers
-> ---Dave
-
-
---
-Alex Benn=C3=A9e
