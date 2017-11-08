@@ -1,85 +1,71 @@
 From: Rob Herring <robh+dt@kernel.org>
-Subject: Re: [PATCH 30/31] dt-bindings: nds32 CPU Bindings
-Date: Wed, 8 Nov 2017 07:18:48 -0600
-Message-ID: <CAL_JsqJAtTSGg=yGvANGdTCWa4tDAicvOvWYr4pK5M1rjPFtfg@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <1a8efba0727437d510d10755f3fcea806833651d.1510118606.git.green.hu@gmail.com>
+Subject: Re: [PATCH 27/31] dt-bindings: interrupt-controller: Andestech
+ Internal Vector Interrupt Controller
+Date: Wed, 8 Nov 2017 07:25:10 -0600
+Message-ID: <CAL_JsqLGQGZq9VYW2By84rf0BHPm4=QvKNts7ETCqVT3g7LA-w@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <a7b9f0a21bf6e0c3325a0d9a28a8503082cafd14.1510118606.git.green.hu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:40694 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751674AbdKHNTK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Nov 2017 08:19:10 -0500
-In-Reply-To: <1a8efba0727437d510d10755f3fcea806833651d.1510118606.git.green.hu@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <a7b9f0a21bf6e0c3325a0d9a28a8503082cafd14.1510118606.git.green.hu@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Greentime Hu <green.hu@gmail.com>
-Cc: greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+Cc: greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, Rick Chen <rick@andestech.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Please Cc the DT list on bindings.
++DT list
 
 On Tue, Nov 7, 2017 at 11:55 PM, Greentime Hu <green.hu@gmail.com> wrote:
 > From: Greentime Hu <greentime@andestech.com>
 
-Commit message needed.
+Commit msg needed.
 
-> Signed-off-by: Vincent Chen <vincentc@andestech.com>
 > Signed-off-by: Rick Chen <rick@andestech.com>
-> Signed-off-by: Zong Li <zong@andestech.com>
 > Signed-off-by: Greentime Hu <greentime@andestech.com>
 > ---
->  Documentation/devicetree/bindings/nds32/cpus.txt |   33 ++++++++++++++++++++++
->  1 file changed, 33 insertions(+)
->  create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
+>  .../interrupt-controller/andestech,ativic32.txt    |   27 ++++++++++++++++++++
+>  1 file changed, 27 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
 >
-> diff --git a/Documentation/devicetree/bindings/nds32/cpus.txt b/Documentation/devicetree/bindings/nds32/cpus.txt
+> diff --git a/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt b/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
 > new file mode 100644
-> index 0000000..97394cb
+> index 0000000..6bac908
 > --- /dev/null
-> +++ b/Documentation/devicetree/bindings/nds32/cpus.txt
-> @@ -0,0 +1,33 @@
-> +* Andestech Processor Binding
+> +++ b/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
+> @@ -0,0 +1,27 @@
+> +* Andestech Internal Vector Interrupt Controller
 > +
-> +This binding specifies what properties must be available in the device tree
-> +representation of a Andestech Processor Core, which is the root node in the
-> +tree.
+> +The Internal Vector Interrupt Controller (IVIC) is a basic interrupt controller
+> +suitable for a simpler SoC platform not requiring a more sophisticated and
+> +bigger External Vector Interrupt Controller.
 > +
-> +Required properties:
 > +
-> +       - compatible:
-> +               Usage: required
-> +               Value type: <string>
-> +               Definition: should be one of:
-> +                       "andestech,n13"
-> +                       "andestech,n15"
-> +                       "andestech,d15"
-> +                       "andestech,n10"
-> +                       "andestech,d10"
-
-SMP supported for any of these?
-
+> +Main node required properties:
 > +
-> +    - device_type
-> +               Usage: required
-> +               Value type: <string>
-> +               Definition: must be "cpu"
+> +- compatible : should at least contain  "andestech,ativic32".
+> +- interrupt-parent: Empty for the interrupt controller itself
+
+Drop this.
+
+> +- interrupt-controller : Identifies the node as an interrupt controller
+> +- #interrupt-cells: The number of cells to define the interrupts. Should be 2.
+> +       The first cell is the IRQ number
+> +       The second cell is used to specify mode:
+> +               1 = low-to-high edge triggered
+> +               2 = high-to-low edge triggered
+> +               4 = active high level-sensitive
+> +               8 = active low level-sensitive
+
+Just state 2 cells and refer to interrupt-controller/interrupts.txt.
+
+> +               Default for internal sources should be set to 4 (active high).
 > +
-> +* Examples
-> +
-> +/ {
-> +       cpus {
-> +               cpu@0 {
-
-Needs a reg property or drop the unit address.
-
-> +                       device_type = "cpu";
-> +                       compatible = "andestech,n13", "andestech,n15";
-
-n13 is a superset of n15?
-
-> +               };
+> +Examples:
+> +       intc: interrupt-controller {
+> +               compatible = "andestech,ativic32";
+> +               #interrupt-cells = <2>;
+> +               interrupt-controller;
 > +       };
-> +};
 > --
 > 1.7.9.5
 >
