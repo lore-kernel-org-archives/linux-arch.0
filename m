@@ -1,76 +1,60 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 2/3] bug: Define the "cut here" string in a single place
-Date: Tue,  7 Nov 2017 16:27:48 -0800
-Message-ID: <1510100869-73751-3-git-send-email-keescook@chromium.org>
-References: <1510100869-73751-1-git-send-email-keescook@chromium.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1510100869-73751-1-git-send-email-keescook@chromium.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Joe Perches <joe@perches.com>, Fengguang Wu <fengguang.wu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-am33-list@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
+Date: Wed, 08 Nov 2017 15:56:06 +1100
+Message-ID: <87y3nh2wt5.fsf@concordia.ellerman.id.au>
+References: <20171105231850.5e313e46@roar.ozlabs.ibm.com> <871slcszfl.fsf@linux.vnet.ibm.com> <20171106174707.19f6c495@roar.ozlabs.ibm.com> <24b93038-76f7-33df-d02e-facb0ce61cd2@redhat.com> <20171106192524.12ea3187@roar.ozlabs.ibm.com> <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com> <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com> <20171107160705.059e0c2b@roar.ozlabs.ibm.com> <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name> <20171107222228.0c8a50ff@roar.ozlabs.ibm.com> <20171107122825.posamr2dmzlzvs2p@node.shutemov.name> <20171108002448.6799462e@roar.ozlabs.ibm.com> <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([103.22.144.67]:56735 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751405AbdKHE4L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 7 Nov 2017 23:56:11 -0500
+In-Reply-To: <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Florian Weimer <fweimer@redhat.com>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, Thomas Gleixner <tglx@linutronix.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 
-The "cut here" string is used in a few paths. Define it in a single place.
+"Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> writes:
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/mn10300/mm/fault.c   | 2 +-
- include/asm-generic/bug.h | 2 ++
- kernel/panic.c            | 2 +-
- lib/bug.c                 | 2 +-
- 4 files changed, 5 insertions(+), 3 deletions(-)
+>> 
+>> If it is decided to keep these kind of heuristics, can we get just a
+>> small but reasonably precise description of each change to the
+>> interface and ways for using the new functionality, such that would be
+>> suitable for the man page? I couldn't fix powerpc because nothing
+>> matches and even Aneesh and you differ on some details (MAP_FIXED
+>> behaviour).
+>
+>
+> I would consider MAP_FIXED as my mistake. We never discussed this 
+> explicitly and I kind of assumed it to behave the same way. ie, we 
+> search in lower address space (128TB) if the hint addr is below 128TB.
+>
+> IIUC we agree on the below.
+>
+> 1) MAP_FIXED allow the addr to be used, even if hint addr is below 128TB 
+> but hint_addr + len is > 128TB.
 
-diff --git a/arch/mn10300/mm/fault.c b/arch/mn10300/mm/fault.c
-index f23781d6bbb3..f0bfa1448744 100644
---- a/arch/mn10300/mm/fault.c
-+++ b/arch/mn10300/mm/fault.c
-@@ -60,7 +60,7 @@ void bust_spinlocks(int yes)
- void do_BUG(const char *file, int line)
- {
- 	bust_spinlocks(1);
--	printk(KERN_EMERG "------------[ cut here ]------------\n");
-+	printk(KERN_EMERG CUT_HERE);
- 	printk(KERN_EMERG "kernel BUG at %s:%d!\n", file, line);
- }
- 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 87191357d303..673a79dd3928 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -3,6 +3,8 @@
- 
- #include <linux/compiler.h>
- 
-+#define CUT_HERE		"------------[ cut here ]------------\n"
-+
- #ifdef CONFIG_GENERIC_BUG
- #define BUGFLAG_WARNING		(1 << 0)
- #define BUGFLAG_ONCE		(1 << 1)
-diff --git a/kernel/panic.c b/kernel/panic.c
-index bdd18afa19a4..ab210714f2f3 100644
---- a/kernel/panic.c
-+++ b/kernel/panic.c
-@@ -518,7 +518,7 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
- {
- 	disable_trace_on_warning();
- 
--	pr_warn("------------[ cut here ]------------\n");
-+	pr_warn(CUT_HERE);
- 
- 	if (file)
- 		pr_warn("WARNING: CPU: %d PID: %d at %s:%d %pS\n",
-diff --git a/lib/bug.c b/lib/bug.c
-index a6a1137d06db..2c9e04621638 100644
---- a/lib/bug.c
-+++ b/lib/bug.c
-@@ -185,7 +185,7 @@ enum bug_trap_type report_bug(unsigned long bugaddr, struct pt_regs *regs)
- 		return BUG_TRAP_TYPE_WARN;
- 	}
- 
--	printk(KERN_DEFAULT "------------[ cut here ]------------\n");
-+	printk(KERN_DEFAULT CUT_HERE);
- 
- 	if (file)
- 		pr_crit("kernel BUG at %s:%u!\n", file, line);
--- 
-2.7.4
+So:
+  mmap(0x7ffffffff000, 0x2000, ..., MAP_FIXED ...) = 0x7ffffffff000
+
+> 2) For everything else we search in < 128TB space if hint addr is below 
+> 128TB
+
+  mmap((x < 128T), 0x1000, ...) = (y < 128T)
+  ...
+  mmap(0x7ffffffff000, 0x1000, ...) = 0x7ffffffff000
+  mmap(0x800000000000, 0x1000, ...) = 0x800000000000
+  ...
+  mmap((x >= 128T), 0x1000, ...) = (y >= 128T)
+
+> 3) We don't switch to large address space if hint_addr + len > 128TB. 
+> The decision to switch to large address space is primarily based on hint 
+> addr
+
+But does the mmap succeed in that case or not?
+
+ie:  mmap(0x7ffffffff000, 0x2000, ...) = ?
+
+cheers
