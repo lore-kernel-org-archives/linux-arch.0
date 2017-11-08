@@ -1,121 +1,84 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 15/31] nds32: System calls handling
-Date: Wed, 8 Nov 2017 10:30:48 +0100
-Message-ID: <CAK8P3a33noF5+QCe8QsDVb+xpCtgSs-HDUTrO-C3NT0M4W4KUg@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <61b5cd5e7f2cf2f485a990cdf238788b817a1d53.1510118606.git.green.hu@gmail.com>
+Subject: Re: [PATCH 16/31] nds32: VDSO support
+Date: Wed, 8 Nov 2017 10:37:52 +0100
+Message-ID: <CAK8P3a2BDfCLg6J5qmAFD86ZoxzXLNrXO8UTfkvScws=R-T5jw@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <0911917e908c7648d25b33663afc88f5aca6bb4d.1510118606.git.green.hu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <61b5cd5e7f2cf2f485a990cdf238788b817a1d53.1510118606.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f66.google.com ([209.85.218.66]:54794 "EHLO
+        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750817AbdKHJhx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 04:37:53 -0500
+In-Reply-To: <0911917e908c7648d25b33663afc88f5aca6bb4d.1510118606.git.green.hu@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Greentime Hu <green.hu@gmail.com>
-Cc: greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, Palmer Dabbelt <palmer@dabbelt.com>, Deepa Dinamani <deepa.kernel@gmail.com>
 
 On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> From: Greentime Hu <greentime@andestech.com>
 
-> +#endif /* __ASM_NDS32_SYSCALLS_H */
-> diff --git a/arch/nds32/include/asm/unistd.h b/arch/nds32/include/asm/unistd.h
-> new file mode 100644
-> index 0000000..b30adca
 > --- /dev/null
-> +++ b/arch/nds32/include/asm/unistd.h
-> @@ -0,0 +1,21 @@
+> +++ b/arch/nds32/include/asm/vdso_datapage.h
+> @@ -0,0 +1,51 @@
 
-> +#define __ARCH_WANT_SYS_LLSEEK
-
-This gets set from include/asm-generic/unistd.h if you include that file.
-
-> +#define __ARCH_WANT_SYS_CLONE
-
-This seems ok, though it would be nice to have the reverse logic and have
-architectures opt-out of the generic version when they need to provide their
-own, rather than having most architectures set it.
-
-> +#define __ARCH_WANT_SYS_OLD_MMAP
-
-I don't see why you need this, can it be dropped?
-
-> diff --git a/arch/nds32/include/uapi/asm/unistd.h b/arch/nds32/include/uapi/asm/unistd.h
-> new file mode 100644
-> index 0000000..01b466d
-> --- /dev/null
-> +++ b/arch/nds32/include/uapi/asm/unistd.h
-
-> +#define __NR_ipc               (__NR_arch_specific_syscall + 2)
-> +#define __NR_sysfs             (__NR_arch_specific_syscall + 3)
-> +#define __NR__llseek             __NR_llseek
-
-
-
-> +__SYSCALL(__NR_cacheflush, sys_cacheflush)
-> +__SYSCALL(__NR_syscall, sys_syscall)
-> +__SYSCALL(__NR_ipc, sys_ipc)
-> +__SYSCALL(__NR_sysfs, sys_sysfs)
+> +#ifndef __ASM_VDSO_DATAPAGE_H
+> +#define __ASM_VDSO_DATAPAGE_H
 > +
-> +__SYSCALL(__NR_fadvise64_64, sys_fadvise64_64_wrapper)
-> +__SYSCALL(__NR_rt_sigreturn, sys_rt_sigreturn_wrapper)
-> +__SYSCALL(__NR_mmap, sys_old_mmap)
+> +#ifdef __KERNEL__
+> +
+> +#ifndef __ASSEMBLY__
+> +
+> +struct vdso_data {
+> +       bool cycle_count_down;  /* timer cyclye counter is decrease with time */
+> +       u32 cycle_count_offset; /* offset of timer cycle counter register */
+> +       u32 seq_count;          /* sequence count - odd during updates */
+> +       u32 xtime_coarse_sec;   /* coarse time */
+> +       u32 xtime_coarse_nsec;
+> +
+> +       u32 wtm_clock_sec;      /* wall to monotonic offset */
+> +       u32 wtm_clock_nsec;
+> +       u32 xtime_clock_sec;    /* CLOCK_REALTIME - seconds */
+> +       u32 cs_mult;            /* clocksource multiplier */
+> +       u32 cs_shift;           /* Cycle to nanosecond divisor (power of two) */
+> +
+> +       u64 cs_cycle_last;      /* last cycle value */
+> +       u64 cs_mask;            /* clocksource mask */
+> +
+> +       u64 xtime_clock_nsec;   /* CLOCK_REALTIME sub-ns base */
+> +       u32 tz_minuteswest;     /* timezone info for gettimeofday(2) */
+> +       u32 tz_dsttime;
+> +};
 
-Usually we handle those overrides by defining the macros in asm/unistd.h
-before including the asm-generic version. Can you do that as well for
-consistency?
+I need some insight from Deepa and Palmer here: to prepare for 64-bit
+time_t in the
+future, would it make sense to define the vdso to use 64-bit seconds numbers
+consistently, and provide vdso symbols that return 64-bit times, having the
+glibc convert that to normal timespec values, or should we leave it for now?
 
-I don't see a reason for sys_ipc, sys_sysfs or sys_old_mmap() here
-in a new architecture. Can you drop those or explain why you need them?
+For the normal syscalls I think we are better off keeping things consistent
+between architectures, but the vdso is architecture specific by definition, so
+we may as well use 64-bit times there now (same for risc-v, which still
+has time to modify this before the 4.15 release and glibc merge).
 
 > +/*
-> + * Special system call wrappers
-> + *
-> + * $r0 = syscall number
-> + * $r8 = syscall table
+> + * This controls what symbols we export from the DSO.
 > + */
-> +       .type   sys_syscall, #function
-> +ENTRY(sys_syscall)
-> +       addi    $p1, $r0, #-__NR_syscalls
-> +       bgtz    $p1, 3f
-> +       move    $p1, $r0
-> +       move    $r0, $r1
-> +       move    $r1, $r2
-> +       move    $r2, $r3
-> +       move    $r3, $r4
-> +       move    $r4, $r5
-> +! add for syscall 6 args
-> +       lwi     $r5, [$sp + #SP_OFFSET ]
-> +       lwi     $r5, [$r5]
-> +! ~add for syscall 6 args
-> +
-> +       lw      $p1, [tbl+$p1<<2]
-> +       jr      $p1
-> +3:     b       sys_ni_syscall
-> +ENDPROC(sys_syscall)
-
-Can you explain what this is used for?
-
-> --- /dev/null
-> +++ b/arch/nds32/kernel/sys_nds32.c
-> +
-> +long sys_mmap2(unsigned long addr, unsigned long len,
-> +              unsigned long prot, unsigned long flags,
-> +              unsigned long fd, unsigned long pgoff)
+> +VERSION
 > +{
-> +       if (pgoff & (~PAGE_MASK >> 12))
-> +               return -EINVAL;
-> +
-> +       return sys_mmap_pgoff(addr, len, prot, flags, fd,
-> +                             pgoff >> (PAGE_SHIFT - 12));
-> +}
-> +
-> +asmlinkage long sys_fadvise64_64_wrapper(int fd, int advice, loff_t offset,
-> +                                        loff_t len)
-> +{
-> +       return sys_fadvise64_64(fd, offset, len, advice);
+> +       LINUX_2.6 {
+> +       global:
+> +               __kernel_rt_sigreturn;
+> +               __vdso_gettimeofday;
+> +               __vdso_clock_getres;
+> +               __vdso_clock_gettime;
+> +       local: *;
+> +       };
 > +}
 
-You should always use SYSCALL_DEFINE*() macros to define entry points
-for your own syscalls in C code for consistency. I also wonder if we should
-just move those two into common code, a lot of architectures need the first
-one in particular.
+I still struggle to understand how symbol versioning is supposed to work
+in a vdso (as opposed to a library you compile against), but I think this should
+use the version from the kernel that you plan to merge into, i.e. LINUX_4
+or LINUX_4_16.
 
-        Arnd
+       Arnd
