@@ -1,69 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:35932 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1755582AbdKGXol (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Nov 2017 18:44:41 -0500
-Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vA7Ni1OB058347
-        for <linux-arch@vger.kernel.org>; Tue, 7 Nov 2017 18:44:41 -0500
-Received: from e33.co.us.ibm.com (e33.co.us.ibm.com [32.97.110.151])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2e3p8g993p-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 07 Nov 2017 18:44:40 -0500
-Received: from localhost
-        by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Tue, 7 Nov 2017 16:44:39 -0700
-Date: Tue, 7 Nov 2017 15:44:27 -0800
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v9 00/51] powerpc, mm: Memory Protection Keys
-Reply-To: Ram Pai <linuxram@us.ibm.com>
-References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
- <87efpbm706.fsf@mid.deneb.enyo.de>
- <20171107012218.GA5546@ram.oc3035372033.ibm.com>
- <87h8u6lf27.fsf@mid.deneb.enyo.de>
- <20171107223953.GB5546@ram.oc3035372033.ibm.com>
- <8b970e5b-50e6-bcc1-e8d3-6e3aa8523f55@intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <8b970e5b-50e6-bcc1-e8d3-6e3aa8523f55@intel.com>
-Message-ID: <20171107234427.GA5659@ram.oc3035372033.ibm.com>
+Received: from mail-pl0-f67.google.com ([209.85.160.67]:45942 "EHLO
+        mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933544AbdKHA2A (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Nov 2017 19:28:00 -0500
+Received: by mail-pl0-f67.google.com with SMTP id 30so139525pla.2
+        for <linux-arch@vger.kernel.org>; Tue, 07 Nov 2017 16:28:00 -0800 (PST)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 2/3] bug: Define the "cut here" string in a single place
+Date: Tue,  7 Nov 2017 16:27:48 -0800
+Message-ID: <1510100869-73751-3-git-send-email-keescook@chromium.org>
+In-Reply-To: <1510100869-73751-1-git-send-email-keescook@chromium.org>
+References: <1510100869-73751-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Florian Weimer <fw@deneb.enyo.de>, linux-arch@vger.kernel.org, x86@kernel.org, arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, paulus@samba.org, ebiederm@xmission.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, akpm@linux-foundation.org, khandual@linux.vnet.ibm.com, linuxppc-dev@lists.ozlabs.org, aneesh.kumar@linux.vnet.ibm.com
-Message-ID: <20171107234427.wI1ZreTmFoxnCdGcYG9JIK9xCFIWul1LdOLz3MvwmB8@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Kees Cook <keescook@chromium.org>, Peter Zijlstra <peterz@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Joe Perches <joe@perches.com>, Fengguang Wu <fengguang.wu@intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-am33-list@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20171108002748.IT8mHOclVaZKgXxwPcYcscA18jY78F0nvJTug5BgMZk@z>
 
-On Tue, Nov 07, 2017 at 02:47:10PM -0800, Dave Hansen wrote:
-> On 11/07/2017 02:39 PM, Ram Pai wrote:
-> > 
-> > As per the current semantics of sys_pkey_free(); the way I understand it,
-> > the calling thread is saying disassociate me from this key.
-> 
-> No.  It is saying: "this *process* no longer has any uses of this key,
-> it can be reused".
+The "cut here" string is used in a few paths. Define it in a single place.
 
-ok, in light of the corrected semantics, I see no bug in the implimentation.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/mn10300/mm/fault.c   | 2 +-
+ include/asm-generic/bug.h | 2 ++
+ kernel/panic.c            | 2 +-
+ lib/bug.c                 | 2 +-
+ 4 files changed, 5 insertions(+), 3 deletions(-)
 
-> On Mon, Nov 06, 2017 at 10:28:41PM +0100, Florian Weimer wrote:
-...
-> The problem is a pkey_alloc/pthread_create/pkey_free/pkey_alloc
-> sequence.  The pthread_create call makes the new thread inherit the
-> access rights of the current thread, but then the key is deallocated.
-> Reallocation of the same key will have that thread retain its access
-> rights, which is IMHO not correct.
-
-Again.. in light of the corrected semantics --
- the child thread or any thread should not free
-a key without cleaning up. 
-(a) disassociate the key from its address space
-(b) reset the permission on the key across all the threads of the
-process.
-
-Because any such uncleaned bits can cause unexpected behavior if the 
-same key gets reallocated on sys_pkey_alloc().
-
-
+diff --git a/arch/mn10300/mm/fault.c b/arch/mn10300/mm/fault.c
+index f23781d6bbb3..f0bfa1448744 100644
+--- a/arch/mn10300/mm/fault.c
++++ b/arch/mn10300/mm/fault.c
+@@ -60,7 +60,7 @@ void bust_spinlocks(int yes)
+ void do_BUG(const char *file, int line)
+ {
+ 	bust_spinlocks(1);
+-	printk(KERN_EMERG "------------[ cut here ]------------\n");
++	printk(KERN_EMERG CUT_HERE);
+ 	printk(KERN_EMERG "kernel BUG at %s:%d!\n", file, line);
+ }
+ 
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 87191357d303..673a79dd3928 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -3,6 +3,8 @@
+ 
+ #include <linux/compiler.h>
+ 
++#define CUT_HERE		"------------[ cut here ]------------\n"
++
+ #ifdef CONFIG_GENERIC_BUG
+ #define BUGFLAG_WARNING		(1 << 0)
+ #define BUGFLAG_ONCE		(1 << 1)
+diff --git a/kernel/panic.c b/kernel/panic.c
+index bdd18afa19a4..ab210714f2f3 100644
+--- a/kernel/panic.c
++++ b/kernel/panic.c
+@@ -518,7 +518,7 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
+ {
+ 	disable_trace_on_warning();
+ 
+-	pr_warn("------------[ cut here ]------------\n");
++	pr_warn(CUT_HERE);
+ 
+ 	if (file)
+ 		pr_warn("WARNING: CPU: %d PID: %d at %s:%d %pS\n",
+diff --git a/lib/bug.c b/lib/bug.c
+index a6a1137d06db..2c9e04621638 100644
+--- a/lib/bug.c
++++ b/lib/bug.c
+@@ -185,7 +185,7 @@ enum bug_trap_type report_bug(unsigned long bugaddr, struct pt_regs *regs)
+ 		return BUG_TRAP_TYPE_WARN;
+ 	}
+ 
+-	printk(KERN_DEFAULT "------------[ cut here ]------------\n");
++	printk(KERN_DEFAULT CUT_HERE);
+ 
+ 	if (file)
+ 		pr_crit("kernel BUG at %s:%u!\n", file, line);
 -- 
-Ram Pai
+2.7.4
