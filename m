@@ -1,40 +1,57 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH 10/31] nds32: IRQ handling
-Date: Wed, 8 Nov 2017 17:06:21 +0800
-Message-ID: <CAEbi=3c+BWiJMQ5=aD8QY1uCZ74QawrYBXL4i4kWcB-QG0VajA@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <9dea9004aa59acc2e02405b192887b8e60449100.1510118606.git.green.hu@gmail.com>
- <CAK8P3a2GPMaYc+Nq3MBrbTYJwNFE5GqYn=ThAHBmFpJoBG+s5A@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 13/31] nds32: DMA mapping API
+Date: Wed, 8 Nov 2017 10:09:31 +0100
+Message-ID: <CAK8P3a11a+So5DUZwv+geT2WMYpMG-FPt9=nKZFyYLQ0Gs55qw@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <763e6a252de1ad8ccd28344fd0676ae2f92f796d.1510118606.git.green.hu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f179.google.com ([209.85.217.179]:45522 "EHLO
-        mail-ua0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750818AbdKHJHC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 04:07:02 -0500
-In-Reply-To: <CAK8P3a2GPMaYc+Nq3MBrbTYJwNFE5GqYn=ThAHBmFpJoBG+s5A@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <763e6a252de1ad8ccd28344fd0676ae2f92f796d.1510118606.git.green.hu@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
+List-Id: linux-arch.vger.kernel.org
 
-2017-11-08 16:49 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
-> On Wed, Nov 8, 2017 at 6:54 AM, Greentime Hu <green.hu@gmail.com> wrote:
->
->> +
->> +#ifdef CONFIG_TRACE_IRQFLAGS
->> +void notrace arch_trace_hardirqs_on(void)
->> +{
->> +       trace_hardirqs_on();
->> +}
->> +
->> +void notrace arch_trace_hardirqs_off(void)
->> +{
->> +       trace_hardirqs_off();
->> +}
->> +#endif
->
-> I don't see those wrappers on other architectures, what do you need them for?
+On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
 
-Thanks.
+> +static void consistent_sync(void *vaddr, size_t size, int direction)
+> +{
+> +       unsigned long start = (unsigned long)vaddr;
+> +       unsigned long end = start + size;
+> +
+> +       switch (direction) {
+> +       case DMA_FROM_DEVICE:   /* invalidate only */
+> +               cpu_dma_inval_range(start, end);
+> +               break;
+> +       case DMA_TO_DEVICE:     /* writeback only */
+> +               cpu_dma_wb_range(start, end);
+> +               break;
+> +       case DMA_BIDIRECTIONAL: /* writeback and invalidate */
+> +               cpu_dma_wbinval_range(start, end);
+> +               break;
+> +       default:
+> +               BUG();
+> +       }
+> +}
 
-I will remove them in the next version patch.
+> +
+> +static void
+> +nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
+> +                             size_t size, enum dma_data_direction dir)
+> +{
+> +       consistent_sync((void *)dma_to_virt(dev, handle), size, dir);
+> +}
+> +
+> +static void
+> +nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
+> +                                size_t size, enum dma_data_direction dir)
+> +{
+> +       consistent_sync((void *)dma_to_virt(dev, handle), size, dir);
+> +}
+
+You do the same cache operations for _to_cpu and _to_device, which
+usually works,
+but is more expensive than you need. It's better to take the ownership into
+account and only do what you need.
+
+     Arnd
