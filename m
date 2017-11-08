@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f67.google.com ([209.85.160.67]:48211 "EHLO
+Received: from mail-pl0-f67.google.com ([209.85.160.67]:45532 "EHLO
         mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754160AbdKHGUr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 01:20:47 -0500
+        with ESMTP id S1754270AbdKHGU6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 01:20:58 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH 20/31] nds32: L2 cache support
-Date: Wed,  8 Nov 2017 13:55:08 +0800
-Message-ID: <b8c4d4dd7b5ce02123300018041923d0dfa97af9.1510118606.git.green.hu@gmail.com>
+Subject: [PATCH 24/31] nds32: Miscellaneous header files
+Date: Wed,  8 Nov 2017 13:55:12 +0800
+Message-ID: <6f3f5675b73bc7fe895c615b0d48f93966499782.1510118606.git.green.hu@gmail.com>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
 References: <cover.1510118606.git.green.hu@gmail.com>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
@@ -15,25 +15,29 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171108055508.Mtaw76iNMwCSzYRmtVpteyDb--rTmc_TsRtfXP8gYc8@z>
+Message-ID: <20171108055512.w0AF8yJKnR0UHz4aqx4DnKm4DJYzX114xeJAcJZzPB8@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/l2_cache.h |  158 +++++++++++++++++++++++++++++++++++++
- arch/nds32/kernel/atl2c.c         |   77 ++++++++++++++++++
- 2 files changed, 235 insertions(+)
- create mode 100644 arch/nds32/include/asm/l2_cache.h
- create mode 100644 arch/nds32/kernel/atl2c.c
+ arch/nds32/include/asm/delay.h            |   51 +++++++++++++++++++++++++++++
+ arch/nds32/include/asm/linkage.h          |   24 ++++++++++++++
+ arch/nds32/include/uapi/asm/byteorder.h   |   26 +++++++++++++++
+ arch/nds32/include/uapi/asm/posix_types.h |   41 +++++++++++++++++++++++
+ 4 files changed, 142 insertions(+)
+ create mode 100644 arch/nds32/include/asm/delay.h
+ create mode 100644 arch/nds32/include/asm/linkage.h
+ create mode 100644 arch/nds32/include/uapi/asm/byteorder.h
+ create mode 100644 arch/nds32/include/uapi/asm/posix_types.h
 
-diff --git a/arch/nds32/include/asm/l2_cache.h b/arch/nds32/include/asm/l2_cache.h
+diff --git a/arch/nds32/include/asm/delay.h b/arch/nds32/include/asm/delay.h
 new file mode 100644
-index 0000000..b8530bd
+index 0000000..bdeeb76
 --- /dev/null
-+++ b/arch/nds32/include/asm/l2_cache.h
-@@ -0,0 +1,158 @@
++++ b/arch/nds32/include/asm/delay.h
+@@ -0,0 +1,51 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -50,154 +54,47 @@ index 0000000..b8530bd
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef L2_CACHE_H
-+#define L2_CACHE_H
++#ifndef __NDS32_DELAY_H__
++#define __NDS32_DELAY_H__
 +
-+/* This is defined for head.S to use due to device tree is not yet built. */
-+#define L2CC_PA_BASE		0x90F00000
++#include <asm/param.h>
 +
-+/* CCTL_CMD_OP */
-+#define L2_CA_CONF_OFF		0x0
-+#define	L2_IF_CONF_OFF		0x4
-+#define L2CC_SETUP_OFF		0x8
-+#define L2CC_PROT_OFF		0xC
-+#define L2CC_CTRL_OFF		0x10
-+#define L2_INT_EN_OFF           0x20
-+#define L2_STA_OFF              0x24
-+#define RDERR_ADDR_OFF		0x28
-+#define WRERR_ADDR_OFF		0x2c
-+#define EVDPTERR_ADDR_OFF	0x30
-+#define IMPL3ERR_ADDR_OFF	0x34
-+#define L2_CNT0_CTRL_OFF        0x40
-+#define L2_EVNT_CNT0_OFF        0x44
-+#define L2_CNT1_CTRL_OFF        0x48
-+#define L2_EVNT_CNT1_OFF        0x4c
-+#define L2_CCTL_CMD_OFF		0x60
-+#define L2_CCTL_STATUS_OFF	0x64
-+#define L2_LINE_TAG_OFF		0x68
-+#define L2_LINE_DPT_OFF		0x70
-+
-+#define CCTL_CMD_L2_IX_INVAL    0x0
-+#define CCTL_CMD_L2_PA_INVAL    0x1
-+#define CCTL_CMD_L2_IX_WB       0x2
-+#define CCTL_CMD_L2_PA_WB       0x3
-+#define CCTL_CMD_L2_PA_WBINVAL  0x5
-+#define CCTL_CMD_L2_SYNC        0xa
-+
-+/* CCTL_CMD_TYPE */
-+#define CCTL_SINGLE_CMD         0
-+#define CCTL_BLOCK_CMD          0x10
-+#define CCTL_ALL_CMD		0x10
-+
-+/******************************************************************************
-+ * L2_CA_CONF (Cache architecture configuration)
-+ *****************************************************************************/
-+#define L2_CA_CONF_offL2SET		0
-+#define L2_CA_CONF_offL2WAY		4
-+#define L2_CA_CONF_offL2CLSZ            8
-+#define L2_CA_CONF_offL2DW		11
-+#define L2_CA_CONF_offL2PT		14
-+#define L2_CA_CONF_offL2VER		16
-+
-+#define L2_CA_CONF_mskL2SET	(0xFUL << L2_CA_CONF_offL2SET)
-+#define L2_CA_CONF_mskL2WAY	(0xFUL << L2_CA_CONF_offL2WAY)
-+#define L2_CA_CONF_mskL2CLSZ    (0x7UL << L2_CA_CONF_offL2CLSZ)
-+#define L2_CA_CONF_mskL2DW	(0x7UL << L2_CA_CONF_offL2DW)
-+#define L2_CA_CONF_mskL2PT	(0x3UL << L2_CA_CONF_offL2PT)
-+#define L2_CA_CONF_mskL2VER	(0xFFFFUL << L2_CA_CONF_offL2VER)
-+
-+/******************************************************************************
-+ * L2CC_SETUP (L2CC Setup register)
-+ *****************************************************************************/
-+#define L2CC_SETUP_offPART              0
-+#define L2CC_SETUP_mskPART              (0x3UL << L2CC_SETUP_offPART)
-+#define L2CC_SETUP_offDDLATC            4
-+#define L2CC_SETUP_mskDDLATC            (0x3UL << L2CC_SETUP_offDDLATC)
-+#define L2CC_SETUP_offTDLATC            8
-+#define L2CC_SETUP_mskTDLATC            (0x3UL << L2CC_SETUP_offTDLATC)
-+
-+/******************************************************************************
-+ * L2CC_PROT (L2CC Protect register)
-+ *****************************************************************************/
-+#define L2CC_PROT_offMRWEN              31
-+#define L2CC_PROT_mskMRWEN      (0x1UL << L2CC_PROT_offMRWEN)
-+
-+/******************************************************************************
-+ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
-+ *****************************************************************************/
-+#define L2CC_CTRL_offEN                 31
-+#define L2CC_CTRL_mskEN                 (0x1UL << L2CC_CTRL_offEN)
-+
-+/******************************************************************************
-+ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
-+ *****************************************************************************/
-+#define L2_CCTL_STATUS_offCMD_COMP      31
-+#define L2_CCTL_STATUS_mskCMD_COMP      (0x1 << L2_CCTL_STATUS_offCMD_COMP)
-+
-+#ifndef __ASSEMBLY__
-+extern void __iomem *atl2c_base;
-+
-+#include <linux/smp.h>
-+#include <asm/io.h>
-+#include <asm/bitfield.h>
-+
-+#define L2C_R_REG(offset)               __raw_readl(atl2c_base + offset)
-+#define L2C_W_REG(offset, value)        __raw_writel(value, atl2c_base + offset)
-+
-+#define L2_CMD_RDY()    \
-+        do{;}while((L2C_R_REG(L2_CCTL_STATUS_OFF) & L2_CCTL_STATUS_mskCMD_COMP) == 0)
-+
-+static inline unsigned long L2_CACHE_SET(void)
++static inline void __delay(unsigned long loops)
 +{
-+	return 64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
-+		      L2_CA_CONF_offL2SET);
++	__asm__ __volatile__(".align 2\n"
++			     "1:\n"
++			     "\taddi\t%0, %0, -1\n"
++			     "\tbgtz\t%0, 1b\n"
++			     :"=r"(loops)
++			     :"0"(loops));
 +}
 +
-+static inline unsigned long L2_CACHE_WAY(void)
++static inline void __udelay(unsigned long usecs, unsigned long lpj)
 +{
-+	return 1 +
-+	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
-+	     L2_CA_CONF_offL2WAY);
++	usecs *= (unsigned long)(((0x8000000000000000ULL / (500000 / HZ)) +
++				  0x80000000ULL) >> 32);
++	usecs = (unsigned long)(((unsigned long long)usecs * lpj) >> 32);
++	__delay(usecs);
 +}
 +
-+static inline unsigned long L2_CACHE_LINE_SIZE(void)
-+{
++#define udelay(usecs) __udelay((usecs), loops_per_jiffy)
 +
-+	return 4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
-+		     L2_CA_CONF_offL2CLSZ);
-+}
-+
-+static inline unsigned long GET_L2CC_CTRL_CPU(unsigned long cpu)
-+{
-+	if (cpu == smp_processor_id())
-+		return L2C_R_REG(L2CC_CTRL_OFF);
-+	return L2C_R_REG(L2CC_CTRL_OFF + (cpu << 8));
-+}
-+
-+static inline void SET_L2CC_CTRL_CPU(unsigned long cpu, unsigned long val)
-+{
-+	if (cpu == smp_processor_id())
-+		L2C_W_REG(L2CC_CTRL_OFF, val);
-+	else
-+		L2C_W_REG(L2CC_CTRL_OFF + (cpu << 8), val);
-+}
-+
-+static inline unsigned long GET_L2CC_STATUS_CPU(unsigned long cpu)
-+{
-+	if (cpu == smp_processor_id())
-+		return L2C_R_REG(L2_CCTL_STATUS_OFF);
-+	return L2C_R_REG(L2_CCTL_STATUS_OFF + (cpu << 8));
-+}
-+
++/* make sure "usecs *= ..." in udelay do not overflow. */
++#if HZ >= 1000
++#define MAX_UDELAY_MS	1
++#elif HZ <= 200
++#define MAX_UDELAY_MS	5
++#else
++#define MAX_UDELAY_MS	(1000 / HZ)
 +#endif
 +
 +#endif
-diff --git a/arch/nds32/kernel/atl2c.c b/arch/nds32/kernel/atl2c.c
+diff --git a/arch/nds32/include/asm/linkage.h b/arch/nds32/include/asm/linkage.h
 new file mode 100644
-index 0000000..dd87fc9
+index 0000000..d17abd8
 --- /dev/null
-+++ b/arch/nds32/kernel/atl2c.c
-@@ -0,0 +1,77 @@
++++ b/arch/nds32/include/asm/linkage.h
+@@ -0,0 +1,24 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -214,66 +111,92 @@ index 0000000..dd87fc9
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/compiler.h>
-+#include <linux/of_address.h>
-+#include <linux/of_fdt.h>
-+#include <linux/of_platform.h>
-+#include <asm/l2_cache.h>
++#ifndef __ASM_LINKAGE_H
++#define __ASM_LINKAGE_H
 +
-+void __iomem *atl2c_base;
-+static const struct of_device_id atl2c_ids[] __initconst = {
-+	{.compatible = "andestech,atl2c",}
-+};
++/* This file is required by include/linux/linkage.h */
++#define __ALIGN .align 2
++#define __ALIGN_STR ".align 2"
 +
-+static int __init atl2c_of_init(void)
-+{
-+	struct device_node *np;
-+	struct resource res;
-+	unsigned long tmp = 0;
-+	unsigned long l2set, l2way, l2clsz;
++#endif
+diff --git a/arch/nds32/include/uapi/asm/byteorder.h b/arch/nds32/include/uapi/asm/byteorder.h
+new file mode 100644
+index 0000000..198e8dd
+--- /dev/null
++++ b/arch/nds32/include/uapi/asm/byteorder.h
+@@ -0,0 +1,26 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
 +
-+	if (!(__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskL2C))
-+		return -ENODEV;
++#ifndef __NDS32_BYTEORDER_H__
++#define __NDS32_BYTEORDER_H__
 +
-+	np = of_find_matching_node(NULL, atl2c_ids);
-+	if (!np)
-+		return -ENODEV;
++#ifdef __NDS32_EB__
++#include <linux/byteorder/big_endian.h>
++#else
++#include <linux/byteorder/little_endian.h>
++#endif
 +
-+	if (of_address_to_resource(np, 0, &res))
-+		return -ENODEV;
++#endif /* __NDS32_BYTEORDER_H__ */
+diff --git a/arch/nds32/include/uapi/asm/posix_types.h b/arch/nds32/include/uapi/asm/posix_types.h
+new file mode 100644
+index 0000000..d0aca66
+--- /dev/null
++++ b/arch/nds32/include/uapi/asm/posix_types.h
+@@ -0,0 +1,41 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
 +
-+	atl2c_base = ioremap(res.start, resource_size(&res));
-+	if (!atl2c_base)
-+		return -ENOMEM;
++#ifndef __ARCH_NDS32_POSIX_TYPES_H
++#define __ARCH_NDS32_POSIX_TYPES_H
 +
-+	l2set =
-+	    64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
-+		   L2_CA_CONF_offL2SET);
-+	l2way =
-+	    1 +
-+	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
-+	     L2_CA_CONF_offL2WAY);
-+	l2clsz =
-+	    4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
-+		  L2_CA_CONF_offL2CLSZ);
-+	pr_info("L2:%luKB/%luS/%luW/%luB\n",
-+		l2set * l2way * l2clsz / 1024, l2set, l2way, l2clsz);
++/*
++ * This file is generally used by user-level software, so you need to
++ * be a little careful about namespace pollution etc.  Also, we cannot
++ * assume GCC is being used.
++ */
 +
-+	tmp = L2C_R_REG(L2CC_PROT_OFF);
-+	tmp &= ~L2CC_PROT_mskMRWEN;
-+	L2C_W_REG(L2CC_PROT_OFF, tmp);
++typedef unsigned short __kernel_mode_t;
++#define __kernel_mode_t __kernel_mode_t
 +
-+	tmp = L2C_R_REG(L2CC_SETUP_OFF);
-+	tmp &= ~L2CC_SETUP_mskPART;
-+	L2C_W_REG(L2CC_SETUP_OFF, tmp);
++typedef unsigned short __kernel_ipc_pid_t;
++#define __kernel_ipc_pid_t __kernel_ipc_pid_t
 +
-+	tmp = L2C_R_REG(L2CC_CTRL_OFF);
-+	tmp |= L2CC_CTRL_mskEN;
-+	L2C_W_REG(L2CC_CTRL_OFF, tmp);
++typedef unsigned short __kernel_uid_t;
++typedef unsigned short __kernel_gid_t;
++#define __kernel_uid_t __kernel_uid_t
 +
-+	return 0;
-+}
++typedef unsigned short __kernel_old_dev_t;
++#define __kernel_old_dev_t __kernel_old_dev_t
 +
-+subsys_initcall(atl2c_of_init);
++#include <asm-generic/posix_types.h>
++
++#endif
 -- 
 1.7.9.5
