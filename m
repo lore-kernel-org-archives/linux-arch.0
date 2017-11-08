@@ -1,206 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:38536 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752161AbdKHSfv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 13:35:51 -0500
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [RFC PATCH for 4.15 1/6] membarrier: selftest: Test private expedited cmd
-Date: Wed,  8 Nov 2017 13:35:09 -0500
-Message-ID: <20171108183514.3306-2-mathieu.desnoyers@efficios.com>
-In-Reply-To: <20171108183514.3306-1-mathieu.desnoyers@efficios.com>
-References: <20171108183514.3306-1-mathieu.desnoyers@efficios.com>
+Received: from mail-ot0-f193.google.com ([74.125.82.193]:55085 "EHLO
+        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752328AbdKHUHA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 15:07:00 -0500
+MIME-Version: 1.0
+In-Reply-To: <CABeXuvoJyQxXaCGyu-9fw-E32hHMgpZ0x1njbM1O5znCr1audA@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <0911917e908c7648d25b33663afc88f5aca6bb4d.1510118606.git.green.hu@gmail.com>
+ <CAK8P3a2BDfCLg6J5qmAFD86ZoxzXLNrXO8UTfkvScws=R-T5jw@mail.gmail.com> <CABeXuvoJyQxXaCGyu-9fw-E32hHMgpZ0x1njbM1O5znCr1audA@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 8 Nov 2017 21:06:58 +0100
+Message-ID: <CAK8P3a0HkSx6QsLuKk_7Ht+zDbt4bHv0Wk2SwN+eAo2O+_i+FQ@mail.gmail.com>
+Subject: Re: [PATCH 16/31] nds32: VDSO support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, gromer@google.com, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Alan Stern <stern@rowland.harvard.edu>, Will Deacon <will.deacon@arm.com>, Alice Ferrazzi <alice.ferrazzi@gmail.com>, Paul Elder <paul.elder@pitt.edu>, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20171108183509._NKlGucTRrp6xFU6-QO4mcRON70UONQOCIc366rOnj0@z>
+To: Deepa Dinamani <deepa.kernel@gmail.com>
+Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, Palmer Dabbelt <palmer@dabbelt.com>
+Message-ID: <20171108200658.q4yshSbOJgoeh7BlGvKTkoQ55FOldypsAFZ2DOllM3o@z>
 
-Test the new MEMBARRIER_CMD_PRIVATE_EXPEDITED and
-MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED commands.
+On Wed, Nov 8, 2017 at 9:00 PM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
+> On Wed, Nov 8, 2017 at 1:37 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>>
 
-Add checks expecting specific error values on system calls expected to
-fail.
+>>
+>> I need some insight from Deepa and Palmer here: to prepare for 64-bit
+>> time_t in the
+>> future, would it make sense to define the vdso to use 64-bit seconds numbers
+>> consistently, and provide vdso symbols that return 64-bit times, having the
+>> glibc convert that to normal timespec values, or should we leave it for now?
+>
+> Other architectures also have a similar way of defining these as u32
+> (eg: x86) I think for performance reasons on 32 bit systems.
+> u32 still works until 2106 as the timekeeping structures are s64. I
+> was planning to leave it that way for x86.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Acked-by: Shuah Khan <shuahkh@osg.samsung.com>
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-CC: Peter Zijlstra <peterz@infradead.org>
-CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-CC: Boqun Feng <boqun.feng@gmail.com>
-CC: Andrew Hunter <ahh@google.com>
-CC: Maged Michael <maged.michael@gmail.com>
-CC: gromer@google.com
-CC: Avi Kivity <avi@scylladb.com>
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-CC: Paul Mackerras <paulus@samba.org>
-CC: Michael Ellerman <mpe@ellerman.id.au>
-CC: Dave Watson <davejwatson@fb.com>
-CC: Alan Stern <stern@rowland.harvard.edu>
-CC: Will Deacon <will.deacon@arm.com>
-CC: Andy Lutomirski <luto@kernel.org>
-CC: Alice Ferrazzi <alice.ferrazzi@gmail.com>
-CC: Paul Elder <paul.elder@pitt.edu>
-CC: linux-kselftest@vger.kernel.org
-CC: linux-arch@vger.kernel.org
----
- .../testing/selftests/membarrier/membarrier_test.c | 109 ++++++++++++++++++---
- 1 file changed, 94 insertions(+), 15 deletions(-)
+Right, good point.
 
-diff --git a/tools/testing/selftests/membarrier/membarrier_test.c b/tools/testing/selftests/membarrier/membarrier_test.c
-index 9e674d9514d1..d7543a6d9030 100644
---- a/tools/testing/selftests/membarrier/membarrier_test.c
-+++ b/tools/testing/selftests/membarrier/membarrier_test.c
-@@ -16,49 +16,119 @@ static int sys_membarrier(int cmd, int flags)
- static int test_membarrier_cmd_fail(void)
- {
- 	int cmd = -1, flags = 0;
-+	const char *test_name = "sys membarrier invalid command";
- 
- 	if (sys_membarrier(cmd, flags) != -1) {
- 		ksft_exit_fail_msg(
--			"sys membarrier invalid command test: command = %d, flags = %d. Should fail, but passed\n",
--			cmd, flags);
-+			"%s test: command = %d, flags = %d. Should fail, but passed\n",
-+			test_name, cmd, flags);
-+	}
-+	if (errno != EINVAL) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
-+			test_name, flags, EINVAL, strerror(EINVAL),
-+			errno, strerror(errno));
- 	}
- 
- 	ksft_test_result_pass(
--		"sys membarrier invalid command test: command = %d, flags = %d. Failed as expected\n",
--		cmd, flags);
-+		"%s test: command = %d, flags = %d, errno = %d. Failed as expected\n",
-+		test_name, cmd, flags, errno);
- 	return 0;
- }
- 
- static int test_membarrier_flags_fail(void)
- {
- 	int cmd = MEMBARRIER_CMD_QUERY, flags = 1;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_QUERY invalid flags";
- 
- 	if (sys_membarrier(cmd, flags) != -1) {
- 		ksft_exit_fail_msg(
--			"sys membarrier MEMBARRIER_CMD_QUERY invalid flags test: flags = %d. Should fail, but passed\n",
--			flags);
-+			"%s test: flags = %d. Should fail, but passed\n",
-+			test_name, flags);
-+	}
-+	if (errno != EINVAL) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
-+			test_name, flags, EINVAL, strerror(EINVAL),
-+			errno, strerror(errno));
- 	}
- 
- 	ksft_test_result_pass(
--		"sys membarrier MEMBARRIER_CMD_QUERY invalid flags test: flags = %d. Failed as expected\n",
--		flags);
-+		"%s test: flags = %d, errno = %d. Failed as expected\n",
-+		test_name, flags, errno);
- 	return 0;
- }
- 
--static int test_membarrier_success(void)
-+static int test_membarrier_shared_success(void)
- {
- 	int cmd = MEMBARRIER_CMD_SHARED, flags = 0;
--	const char *test_name = "sys membarrier MEMBARRIER_CMD_SHARED\n";
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_SHARED";
-+
-+	if (sys_membarrier(cmd, flags) != 0) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d, errno = %d\n",
-+			test_name, flags, errno);
-+	}
-+
-+	ksft_test_result_pass(
-+		"%s test: flags = %d\n", test_name, flags);
-+	return 0;
-+}
-+
-+static int test_membarrier_private_expedited_fail(void)
-+{
-+	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED not registered failure";
-+
-+	if (sys_membarrier(cmd, flags) != -1) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should fail, but passed\n",
-+			test_name, flags);
-+	}
-+	if (errno != EPERM) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
-+			test_name, flags, EPERM, strerror(EPERM),
-+			errno, strerror(errno));
-+	}
-+
-+	ksft_test_result_pass(
-+		"%s test: flags = %d, errno = %d\n",
-+		test_name, flags, errno);
-+	return 0;
-+}
-+
-+static int test_membarrier_register_private_expedited_success(void)
-+{
-+	int cmd = MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED";
- 
- 	if (sys_membarrier(cmd, flags) != 0) {
- 		ksft_exit_fail_msg(
--			"sys membarrier MEMBARRIER_CMD_SHARED test: flags = %d\n",
--			flags);
-+			"%s test: flags = %d, errno = %d\n",
-+			test_name, flags, errno);
- 	}
- 
- 	ksft_test_result_pass(
--		"sys membarrier MEMBARRIER_CMD_SHARED test: flags = %d\n",
--		flags);
-+		"%s test: flags = %d\n",
-+		test_name, flags);
-+	return 0;
-+}
-+
-+static int test_membarrier_private_expedited_success(void)
-+{
-+	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED";
-+
-+	if (sys_membarrier(cmd, flags) != 0) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d, errno = %d\n",
-+			test_name, flags, errno);
-+	}
-+
-+	ksft_test_result_pass(
-+		"%s test: flags = %d\n",
-+		test_name, flags);
- 	return 0;
- }
- 
-@@ -72,7 +142,16 @@ static int test_membarrier(void)
- 	status = test_membarrier_flags_fail();
- 	if (status)
- 		return status;
--	status = test_membarrier_success();
-+	status = test_membarrier_shared_success();
-+	if (status)
-+		return status;
-+	status = test_membarrier_private_expedited_fail();
-+	if (status)
-+		return status;
-+	status = test_membarrier_register_private_expedited_success();
-+	if (status)
-+		return status;
-+	status = test_membarrier_private_expedited_success();
- 	if (status)
- 		return status;
- 	return 0;
--- 
-2.11.0
+> If this architecture can live with u64, then it will be better to use it here.
+
+As long as we don't need a division, using u64 is probably cheap enough,
+we already need the retry loop.
+
+>> For the normal syscalls I think we are better off keeping things consistent
+>> between architectures, but the vdso is architecture specific by definition, so
+>> we may as well use 64-bit times there now (same for risc-v, which still
+>> has time to modify this before the 4.15 release and glibc merge).
+>
+> But, I don't think this vdso can return 64 bit times without syscalls
+> for the architecture also supporting that. The problem is that all
+> fallback paths depend on syscalls directly.
+> Also I couldn't find any arch specific handling of vdso interfaces in
+> glibc. I think they expect the vdso wrappers in the kernel to handle
+> this part.
+
+Do applications call into the vdso directly and expect to get a timespec
+out? If they always go through the C library as an intermediate, then
+the glibc clock_gettime() could do the conversion.
+
+       Arnd
