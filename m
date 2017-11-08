@@ -1,101 +1,71 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 04/31] nds32: Exception handling
-Date: Wed, 8 Nov 2017 09:23:15 +0100
-Message-ID: <CAK8P3a3P1Si7hxXCYAFq-qbW+SbQFC8W3vVbANkz5dp__mJupg@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <9caaf73b79b22357ef957382eb7c0151a2d7d189.1510118606.git.green.hu@gmail.com>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
+Date: Wed, 8 Nov 2017 11:30:38 +0300
+Message-ID: <20171108083038.djj3qdhhnrazkk7b@node.shutemov.name>
+References: <20171106192524.12ea3187@roar.ozlabs.ibm.com>
+ <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
+ <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
+ <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
+ <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
+ <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
+ <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
+ <20171108002448.6799462e@roar.ozlabs.ibm.com>
+ <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
+ <87y3nh2wt5.fsf@concordia.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f66.google.com ([209.85.218.66]:55546 "EHLO
-        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750735AbdKHIXQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 03:23:16 -0500
-In-Reply-To: <9caaf73b79b22357ef957382eb7c0151a2d7d189.1510118606.git.green.hu@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>
-Cc: greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <87y3nh2wt5.fsf@concordia.ellerman.id.au>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Florian Weimer <fweimer@redhat.com>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, Thomas Gleixner <tglx@linutronix.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 8, 2017 at 6:54 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> From: Greentime Hu <greentime@andestech.com>
->
-> Signed-off-by: Vincent Chen <vincentc@andestech.com>
-> Signed-off-by: Greentime Hu <greentime@andestech.com>
->  arch/nds32/mm/alignment.c       |  564 +++++++++++++++++++++++++++++++++++++++
+On Wed, Nov 08, 2017 at 03:56:06PM +1100, Michael Ellerman wrote:
+> "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> writes:
+> 
+> >> 
+> >> If it is decided to keep these kind of heuristics, can we get just a
+> >> small but reasonably precise description of each change to the
+> >> interface and ways for using the new functionality, such that would be
+> >> suitable for the man page? I couldn't fix powerpc because nothing
+> >> matches and even Aneesh and you differ on some details (MAP_FIXED
+> >> behaviour).
+> >
+> >
+> > I would consider MAP_FIXED as my mistake. We never discussed this 
+> > explicitly and I kind of assumed it to behave the same way. ie, we 
+> > search in lower address space (128TB) if the hint addr is below 128TB.
+> >
+> > IIUC we agree on the below.
+> >
+> > 1) MAP_FIXED allow the addr to be used, even if hint addr is below 128TB 
+> > but hint_addr + len is > 128TB.
+> 
+> So:
+>   mmap(0x7ffffffff000, 0x2000, ..., MAP_FIXED ...) = 0x7ffffffff000
+> 
+> > 2) For everything else we search in < 128TB space if hint addr is below 
+> > 128TB
+> 
+>   mmap((x < 128T), 0x1000, ...) = (y < 128T)
+>   ...
+>   mmap(0x7ffffffff000, 0x1000, ...) = 0x7ffffffff000
+>   mmap(0x800000000000, 0x1000, ...) = 0x800000000000
+>   ...
+>   mmap((x >= 128T), 0x1000, ...) = (y >= 128T)
+> 
+> > 3) We don't switch to large address space if hint_addr + len > 128TB. 
+> > The decision to switch to large address space is primarily based on hint 
+> > addr
+> 
+> But does the mmap succeed in that case or not?
+> 
+> ie:  mmap(0x7ffffffff000, 0x2000, ...) = ?
 
-> diff --git a/arch/nds32/mm/alignment.c b/arch/nds32/mm/alignment.c
-> new file mode 100644
-> index 0000000..05589e7
-> --- /dev/null
-> +++ b/arch/nds32/mm/alignment.c
+It does, but resulting address doesn't match the hint. It's somewhere
+below 47-bit border.
 
-> +static int mode = 0x3;
-> +module_param(mode, int, S_IWUSR | S_IRUGO);
-
-It's an interesting question how to best handle alignment faults, both in
-kernel and user mode. While it can help for debugging to have the handler,
-I'd argue that you are better off in the long run not fixing up the faults
-automatically but to modify the code that triggers them instead.
-
-How about making the faults disabled by default?
-
-> +static int _do_unaligned_access(unsigned long entry, unsigned long addr,
-> +                               unsigned long type, struct pt_regs *regs)
-> +{
-> +       unsigned long inst;
-> +       int ret = -EFAULT;
-> +
-> +       if (user_mode(regs)) {
-> +               /* user mode */
-> +               if (!va_present(current->mm, addr))
-> +                       return ret;
-> +       } else {
-> +               /* kernel mode */
-> +               if (!va_kernel_present(addr))
-> +                       return ret;
-> +       }
-
-This looks racy, the address might be present when you get here, but not
-later when you actually access it. I think what you need here is something
-like ARM does with get32_unaligned_check() etc and their fixup tables.
-
-> +       inst = get_inst(regs->ipc);
-> +
-> +       DEBUG(mode & 0x04, 1,
-> +             "Faulting Addr: 0x%08lx, PC: 0x%08lx [ 0x%08lx ]\n", addr,
-> +             regs->ipc, inst);
-> +
-> +       if ((user_mode(regs) && (mode & 0x01))
-> +           || (!user_mode(regs) && (mode & 0x02))) {
-> +
-> +               mm_segment_t seg = get_fs();
-> +
-> +               set_fs(KERNEL_DS);
-> +
-> +               if (inst & 0x80000000)
-> +                       ret = do_16((inst >> 16) & 0xffff, regs);
-> +               else
-> +                       ret = do_32(inst, regs);
-> +
-> +               set_fs(seg);
-> +       }
-> +
-> +       return ret;
-> +}
-
-Doesn't this allow user space to read all of kernel memory simply by
-passing unaligned addresses?
-
-> +static const struct file_operations fops = {
-> +       .open = simple_open,
-> +       .read = proc_alignment_read,
-> +       .write = proc_alignment_write,
-> +};
-
-This should really be a sysctl rather than an open-coded procfs file,
-for consistency with other architectures.
-
-Please have a look at that interface on other architectures and pick
-whatever the majority do.
-
-     Arnd
+-- 
+ Kirill A. Shutemov
