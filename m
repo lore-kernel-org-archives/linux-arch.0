@@ -1,48 +1,81 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 00/31] Andes(nds32) Linux Kernel Port
-Date: Wed, 8 Nov 2017 11:26:37 +0100
-Message-ID: <CAK8P3a0tP4NrOzaHnndp2UO_a9swSrqscPM1h5N=Hit3pX_DxA@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH v5 01/30] regset: Add support for dynamically sized regsets
+Date: Wed, 08 Nov 2017 11:50:00 +0000
+Message-ID: <87inelq9av.fsf@linaro.org>
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com> <1509465082-30427-2-git-send-email-Dave.Martin@arm.com> <20171101114228.jm53aj7jx6j4mxhn@armageddon.cambridge.arm.com> <20171101131644.GL19485@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Greentime Hu <green.hu@gmail.com>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wr0-f196.google.com ([209.85.128.196]:47544 "EHLO
+        mail-wr0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751826AbdKHLuD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 06:50:03 -0500
+Received: by mail-wr0-f196.google.com with SMTP id k61so2158667wrc.4
+        for <linux-arch@vger.kernel.org>; Wed, 08 Nov 2017 03:50:02 -0800 (PST)
+In-reply-to: <20171101131644.GL19485@e103592.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, "H. J. Lu" <hjl.tools@gmail.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
 
-On Wed, Nov 8, 2017 at 6:54 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> This patchset adds core architecture support to Linux for Andestech's
-> N13, N15, D15, N10, D10 processor cores.
+
+Dave Martin <Dave.Martin@arm.com> writes:
+
+> On Wed, Nov 01, 2017 at 11:42:29AM +0000, Catalin Marinas wrote:
+>> On Tue, Oct 31, 2017 at 03:50:53PM +0000, Dave P Martin wrote:
+>> > Currently the regset API doesn't allow for the possibility that
+>> > regsets (or at least, the amount of meaningful data in a regset)
+>> > may change in size.
+>> >
+>> > In particular, this results in useless padding being added to
+>> > coredumps if a regset's current size is smaller than its
+>> > theoretical maximum size.
+>> >
+>> > This patch adds a get_size() function to struct user_regset.
+>> > Individual regset implementations can implement this function to
+>> > return the current size of the regset data.  A regset_size()
+>> > function is added to provide callers with an abstract interface for
+>> > determining the size of a regset without needing to know whether
+>> > the regset is dynamically sized or not.
+>> >
+>> > The only affected user of this interface is the ELF coredump code:
+>> > This patch ports ELF coredump to dump regsets with their actual
+>> > size in the coredump.  This has no effect except for new regsets
+>> > that are dynamically sized and provide a get_size() implementation.
+>> >
+>> > Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+>> > Reviewed-by: Alex Benn=C3=A9e <alex.bennee@linaro.org>
+>> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+>> > Cc: Oleg Nesterov <oleg@redhat.com>
+>> > Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+>> > Cc: Thomas Gleixner <tglx@linutronix.de>
+>> > Cc: Ingo Molnar <mingo@redhat.com>
+>> > Cc: "H. Peter Anvin" <hpa@zytor.com>
+>> > Cc: Dmitry Safonov <dsafonov@virtuozzo.com>
+>> > Cc: H. J. Lu <hjl.tools@gmail.com>
+>> >
+>> > ---
+>> >
+>> > **Dropped** Reviewed-by: Alex Benn=C3=A9e <alex.bennee@linaro.org>
+>> > **Dropped** Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+>> > (due to bug fix applied against v4 of this patch.)
+>>
+>> It seems that the Reviewed-by tags are still there ;). Anyway, on the
 >
-> Based on the 16/32-bit AndeStar RISC-like architecture, we designed the
-> configurable AndesCore series of embedded processor families. AndesCores
-> range from highly performance-efficient small-footprint cores for
-> microcontrollers and deeply-embedded applications to 1GHz+ cores running
-> Linux, covering general-purpose N-series cores for a wide range of computing
-> need, DSP-capable D-series cores for digital signal control,
-> instruction-extensible E-series cores for application-specific acceleration,
-> and secure S-series cores for best protection of the most valuable.
+> Oops, looks like that only happened on this patch.  I've removed
+> Alex's R-b from my own version in case of repost -- can you also
+> do the same?
+>
+>> new patch:
+>>
+>> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 
-I looked at the entire patch series now and commented on anything I noticed
-that could be improved, overall this looks very nice, great work!
+You can have my:
 
-Most of my comments are about tiny details that are easy to address.
+Reviewed-by: Alex Benn=C3=A9e <alex.bennee@linaro.org>
 
-I see two areas that need to be looked at carefully, and that may take a
-few more rounds to get right:
 
-- In the user space ABI, you have a couple of things that differ from the
-  normal asm-generic definitions, i.e. s few syscall entry points and some
-  types in asm/posix-types.h. I guess you did that to remain compatible
-  with an older glibc port, but IMHO this compatibility should be broken
-  in favor of having the standard ABI before the port gets merged.
-
-- For the boot interface, you need to clearly define what can be expected
-  and what cannot. This involves the presence of the l2cc, the physical
-  memory address, the built-in dtb, and probably a few more things I
-  missed. For long-term maintainability, you probably want to ensure that
-  you can build a kernel that runs on as much diverse hardware as possible.
-
-       Arnd
+>
+> Cheers
+> ---Dave
