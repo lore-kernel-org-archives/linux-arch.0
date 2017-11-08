@@ -1,50 +1,234 @@
-From: Rob Herring <robh+dt@kernel.org>
-Subject: Re: [PATCH 02/31] nds32: Kernel booting and initialization
-Date: Wed, 8 Nov 2017 07:38:42 -0600
-Message-ID: <CAL_JsqLG05ha3ApwHJooqqZThH30p=Yu8GbXpg6RyC-2v+K=NA@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <5d06ac8d2a19c78a445b958a1b0a925559bd9f9c.1510118606.git.green.hu@gmail.com>
+From: Marc Zyngier <marc.zyngier@arm.com>
+Subject: Re: [PATCH 28/31] irqchip: Andestech Internal Vector Interrupt
+ Controller driver
+Date: Wed, 8 Nov 2017 14:24:19 +0000
+Message-ID: <ddef1bef-4ca7-0f81-0b2b-3a48c69e199a@arm.com>
+References: <cover.1510118606.git.green.hu@gmail.com>
+ <4572b290f40d62876b83328331a17c2343710b20.1510118606.git.green.hu@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42446 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752608AbdKHNjE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Nov 2017 08:39:04 -0500
-In-Reply-To: <5d06ac8d2a19c78a445b958a1b0a925559bd9f9c.1510118606.git.green.hu@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>
-Cc: greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <4572b290f40d62876b83328331a17c2343710b20.1510118606.git.green.hu@gmail.com>
+Content-Language: en-GB
+Sender: netdev-owner@vger.kernel.org
+To: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, robh+dt@kernel.org, netdev@vger.kernel.org
+Cc: Rick Chen <rick@andestech.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 7, 2017 at 11:54 PM, Greentime Hu <green.hu@gmail.com> wrote:
+On 08/11/17 05:55, Greentime Hu wrote:
 > From: Greentime Hu <greentime@andestech.com>
->
+> 
 
-Commit message needed.
+Please add a commit message, indicating what this does, and potentially
+a pointer to some documentation (if publicly available).
 
-> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+> Signed-off-by: Rick Chen <rick@andestech.com>
 > Signed-off-by: Greentime Hu <greentime@andestech.com>
 > ---
-
-> +       /* it could update max_pfn */
-> +       if (max_pfn - ram_start_pfn <= MAXMEM_PFN)
-> +               max_low_pfn = max_pfn;
-> +       else {
-> +               max_low_pfn = MAXMEM_PFN + ram_start_pfn;
-> +#ifndef CONFIG_HIGHMEM
-
-Use IS_ENABLED here and other ifdef's if possible.
-
-> +               max_pfn = MAXMEM_PFN + ram_start_pfn;
-> +#endif
-> +       }
-
-
-> +static int __init nds32_device_probe(void)
+>  drivers/irqchip/Makefile       |    1 +
+>  drivers/irqchip/irq-ativic32.c |  149 ++++++++++++++++++++++++++++++++++++++++
+>  2 files changed, 150 insertions(+)
+>  create mode 100644 drivers/irqchip/irq-ativic32.c
+> 
+> diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+> index b842dfd..201ca9f 100644
+> --- a/drivers/irqchip/Makefile
+> +++ b/drivers/irqchip/Makefile
+> @@ -80,3 +80,4 @@ obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o irq-aspeed-i2c-ic.o
+>  obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
+>  obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
+>  obj-$(CONFIG_IRQ_UNIPHIER_AIDET)	+= irq-uniphier-aidet.o
+> +obj-$(CONFIG_NDS32)			+= irq-ativic32.o
+> diff --git a/drivers/irqchip/irq-ativic32.c b/drivers/irqchip/irq-ativic32.c
+> new file mode 100644
+> index 0000000..d3dae59
+> --- /dev/null
+> +++ b/drivers/irqchip/irq-ativic32.c
+> @@ -0,0 +1,149 @@
+> +/*
+> + * Copyright (C) 2005-2017 Andes Technology Corporation
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + * GNU General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public License
+> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+> + */
+> +
+> +#include <linux/irq.h>
+> +#include <linux/of.h>
+> +#include <linux/of_irq.h>
+> +#include <linux/of_address.h>
+> +#include <linux/interrupt.h>
+> +#include <linux/irqdomain.h>
+> +#include <linux/irqchip.h>
+> +#include <nds32_intrinsic.h>
+> +
+> +static void ativic32_ack_irq(struct irq_data *data)
 > +{
-> +       return of_platform_populate(NULL, NULL, NULL, NULL);
+> +	__nds32__mtsr_dsb(1 << data->hwirq, NDS32_SR_INT_PEND2);
 > +}
 > +
-> +device_initcall(nds32_device_probe);
+> +static void ativic32_mask_irq(struct irq_data *data)
+> +{
+> +	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
+> +	__nds32__mtsr_dsb(int_mask2 & (~(1 << data->hwirq)), NDS32_SR_INT_MASK2);
+> +}
+> +
+> +static void ativic32_mask_ack_irq(struct irq_data *data)
+> +{
+> +	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
+> +	__nds32__mtsr_dsb(int_mask2 & (~(1 << data->hwirq)), NDS32_SR_INT_MASK2);
+> +	__nds32__mtsr_dsb((1 << data->hwirq), NDS32_SR_INT_PEND2);
+> +
+> +}
+> +
+> +static void ativic32_unmask_irq(struct irq_data *data)
+> +{
+> +	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
+> +	__nds32__mtsr_dsb(int_mask2 | (1 << data->hwirq), NDS32_SR_INT_MASK2);
+> +}
+> +
+> +static int ativic32_set_type(struct irq_data *data, unsigned int flow_type)
+> +{
+> +	printk(KERN_WARNING "interrupt type is not configurable\n");
 
-You can drop this. The core code will call of_platform_populate for you.
+If it is not configurable, what is the point of having each interrupt
+carry a trigger type in DT?
+
+> +	return 0;
+> +}
+> +
+> +static struct irq_chip ativic32_chip = {
+> +	.name = "ativic32",
+> +	.irq_ack = ativic32_ack_irq,
+> +	.irq_mask = ativic32_mask_irq,
+> +	.irq_mask_ack = ativic32_mask_ack_irq,
+> +	.irq_unmask = ativic32_unmask_irq,
+> +	.irq_set_type = ativic32_set_type,
+> +};
+> +
+> +static unsigned int __initdata nivic_map[6] = { 6, 2, 10, 16, 24, 32 };
+> +
+> +struct irq_domain *root_domain;
+
+Why isn't this static? Is there anything accessing it from outside of
+this driver?
+
+> +static int ativic32_irq_domain_map(struct irq_domain *id, unsigned int virq,
+> +				  irq_hw_number_t hw)
+> +{
+> +
+> +	unsigned long int_trigger_type;
+> +	int_trigger_type = __nds32__mfsr(NDS32_SR_INT_TRIGGER);
+> +	if (int_trigger_type & (1 << hw))
+> +		irq_set_chip_and_handler(virq, &ativic32_chip, handle_edge_irq);
+> +	else
+> +		irq_set_chip_and_handler(virq, &ativic32_chip, handle_level_irq);
+> +
+> +	return 0;
+> +}
+> +
+> +static struct irq_domain_ops ativic32_ops = {
+> +	.map = ativic32_irq_domain_map,
+> +	.xlate = irq_domain_xlate_onecell
+
+Huh... Your DT binding insist on two cells, and yet...
+
+> +};
+> +
+> +static int get_intr_src(void)
+> +{
+> +	return ((__nds32__mfsr(NDS32_SR_ITYPE)&ITYPE_mskVECTOR) >> ITYPE_offVECTOR)
+> +		- NDS32_VECTOR_offINTERRUPT;
+> +}
+> +
+> +asmlinkage void asm_do_IRQ(struct pt_regs *regs)
+> +{
+> +	struct pt_regs *old_regs = set_irq_regs(regs);
+> +	int virq;
+> +	int irq = get_intr_src();
+> +
+> +	/*
+> +	 * Some hardware gives randomly wrong interrupts.  Rather
+> +	 * than crashing, do something sensible.
+> +	 */
+> +	if (unlikely(irq >= NR_IRQS)) {
+> +		pr_emerg( "IRQ exceeds NR_IRQS\n");
+> +		BUG();
+
+Given the above comment, I find this hilarious!
+
+> +	}
+> +
+> +	irq_enter();
+> +	virq = irq_find_mapping(root_domain, irq);
+> +	generic_handle_irq(virq);
+> +	irq_exit();
+> +	set_irq_regs(old_regs);
+
+Why can't you use handle_domain_irq() directly instead of what looks
+like a copy of it (this is where the comment comes from...)?
+
+> +
+> +}
+> +
+> +int __init ativic32_init_irq(struct device_node *node, struct device_node *parent)
+> +{
+> +	unsigned long int_vec_base, nivic, i;
+> +
+> +	if (WARN(parent, "non-root ativic32 are not supported"))
+> +		return -EINVAL;
+> +
+> +	int_vec_base = __nds32__mfsr(NDS32_SR_IVB);
+> +
+> +	if (((int_vec_base & IVB_mskIVIC_VER) >> IVB_offIVIC_VER) == 0) {
+> +		panic("Unable to use NOINTC option to boot on this cpu\n");
+> +	}
+> +
+> +	nivic = (int_vec_base & IVB_mskNIVIC) >> IVB_offNIVIC;
+> +	if (nivic >= (sizeof nivic_map / sizeof nivic_map[0])) {
+> +		panic
+> +		    ("The number of input for IVIC Controller is not supported on this cpu\n");
+
+Irk. Please leave this on a single line... Or better yet, get rid of it
+(see below).
+
+> +	}
+> +	nivic = nivic_map[nivic];
+
+If you have multiple configurations, I'd rather they live in DT,
+specially if the IP is easily configurable.
+
+> +
+> +	root_domain = irq_domain_add_linear(node, nivic,
+> +			&ativic32_ops, NULL);
+> +
+> +	if (!root_domain)
+> +		panic("%s: unable to create IRQ domain\n", node->full_name);
+> +
+> +	for(i = 0; i < nivic; i++)
+> +		irq_create_mapping(root_domain, i);
+
+You shouldn't need this, as the core DT code will populate the interrupt
+on demand.
+
+> +
+> +	return 0;
+> +
+> +}
+> +IRQCHIP_DECLARE(ativic32, "andestech,ativic32", ativic32_init_irq);
+> 
+
+Thanks,
+
+	M.
+-- 
+Jazz is not dead. It just smells funny...
