@@ -1,76 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f67.google.com ([209.85.213.67]:43615 "EHLO
-        mail-vk0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750760AbdKHIrH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 03:47:07 -0500
+Received: from mail-ot0-f194.google.com ([74.125.82.194]:50253 "EHLO
+        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750735AbdKHIy1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 03:54:27 -0500
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a0rHbjQw=z1mHoUDWfnzUBH+QE1CFOc4T7-rkOMM-SkLQ@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <e0cf5501a9c31252f9d082ffe191f3e90cd4df6a.1510118606.git.green.hu@gmail.com>
- <CAK8P3a0rHbjQw=z1mHoUDWfnzUBH+QE1CFOc4T7-rkOMM-SkLQ@mail.gmail.com>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Wed, 8 Nov 2017 16:46:26 +0800
-Message-ID: <CAEbi=3eoPPtuu-PFSvj5UZiVer2n4tPSC-f7PDiWU-ZncjAP4A@mail.gmail.com>
-Subject: Re: [PATCH 05/31] nds32: MMU definitions
+In-Reply-To: <b13577a068afb71e87e21598f59733f127814f37.1510118606.git.green.hu@gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <b13577a068afb71e87e21598f59733f127814f37.1510118606.git.green.hu@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 8 Nov 2017 09:54:25 +0100
+Message-ID: <CAK8P3a3w4gfO-VMM+L5J5+kSbBD_Kr0iv3BndF_3tt2QTuEFRw@mail.gmail.com>
+Subject: Re: [PATCH 11/31] nds32: Atomic operations
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171108084626.ZVuRZhay-jF8YHgoZikhkCRVdwRooHKEcwQg6KuSYfc@z>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, Palmer Dabbelt <palmer@dabbelt.com>
+Message-ID: <20171108085425.29B8DdS23HSw4gYDpr5o5palu6BYNGEKwxS_nuez-6E@z>
 
-2017-11-08 16:36 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
-> On Wed, Nov 8, 2017 at 6:54 AM, Greentime Hu <green.hu@gmail.com> wrote:
+On Wed, Nov 8, 2017 at 6:54 AM, Greentime Hu <green.hu@gmail.com> wrote:
+> From: Greentime Hu <greentime@andestech.com>
 >
->> +/*
->> + * The DMA mask corresponding to the maximum bus address allocatable
->> + * using GFP_DMA.  The default here places no restriction on DMA
->> + * allocations.  This must be the smallest DMA mask in the system,
->> + * so a successful GFP_DMA allocation will always satisfy this.
->> + */
->> +#ifndef ISA_DMA_THRESHOLD
->> +#define ISA_DMA_THRESHOLD      (0xffffffffULL)
->> +#endif
->
-> I see this one only in powerpc, I think it can be removed.
+> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> ---
+>  arch/nds32/include/asm/futex.h    |  116 ++++++++++++++++++++++++
+>  arch/nds32/include/asm/spinlock.h |  178 +++++++++++++++++++++++++++++++++++++
+>  2 files changed, 294 insertions(+)
+>  create mode 100644 arch/nds32/include/asm/futex.h
+>  create mode 100644 arch/nds32/include/asm/spinlock.h
 
-Thanks. I will remove it in next version patch.
 
->
->> +
->> +/*
->> + * Optional device DMA address remapping. Do _not_ use directly!
->> + * We should really eliminate virt_to_bus() here - it's deprecated.
->> + */
->> +#define page_to_dma(dev, page)         ((dma_addr_t)__virt_to_phys((unsigned long)page_address(page)))
->> +#define dma_to_virt(dev, addr)         ((void *)__phys_to_virt(addr))
->> +#define virt_to_dma(dev, addr)         ((dma_addr_t)__virt_to_phys((unsigned long)(addr)))
->
-> This looks like an older comment, I think we have eliminated them from the
-> mainline kernel in all drivers, so you should remove them here too.
+> diff --git a/arch/nds32/include/asm/spinlock.h b/arch/nds32/include/asm/spinlock.h
+> new file mode 100644
+> index 0000000..dd5fc71
+> --- /dev/null
+> +++ b/arch/nds32/include/asm/spinlock.h
+> @@ -0,0 +1,178 @@
+> +
+> +#define arch_spin_unlock_wait(lock) \
+> +       do { while (arch_spin_is_locked(lock)) cpu_relax(); } while (0)
 
-Thanks. I will remove it in next version patch.
+This was removed from the other architectures in commit
+952111d7db02 ("arch: Remove spin_unlock_wait() arch-specific definitions")
 
->> diff --git a/arch/nds32/include/asm/shmparam.h b/arch/nds32/include/asm/shmparam.h
->> new file mode 100644
->> index 0000000..5679648
->> --- /dev/null
->> +++ b/arch/nds32/include/asm/shmparam.h
->
->> +
->> +/*
->> + * This should be the size of the virtually indexed cache/ways,
->> + * whichever is greater since the cache aliases every size/ways
->> + * bytes.
->> + */
->> +#define        SHMLBA  (4 * PAGE_SIZE) /* attach addr a multiple of this */
->> +#define        REALSHMLBA      SHMLBA
->
-> I don't see REALSHMLBA anywhere in the kernel, do you need it?
->
-> For SHMLBA, I think it should be defined as an absolute number, using
-> the maximum
-> that you might need for any possible value of PAGE_SIZE. Otherwise user space
-> has a much harder time figuring out what it should use.
+Please remove this as well.
 
-Thanks. I will remove REALSHMLBA. I will consider to use 8KB or larger
-page size in the next version patch.
+Palmer, I see riscv has the same thing, please also add a patch to your
+tree to remove it.
+
+> +#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
+> +
+> +static inline void arch_spin_lock(arch_spinlock_t * lock)
+> +{
+> +       unsigned long tmp;
+> +
+> +       __asm__ __volatile__("1:\n"
+> +                            "\tllw\t%0, [%1]\n"
+> +                            "\tbnez\t%0, 1b\n"
+> +                            "\tmovi\t%0, #0x1\n"
+> +                            "\tscw\t%0, [%1]\n"
+> +                            "\tbeqz\t%0, 1b\n"
+> +                            :"=&r"(tmp)
+> +                            :"r"(&lock->lock)
+> +                            :"memory");
+
+The coding style seems inconsistent here, the other inline asm uses real tabs
+instead of \t, and 'asm volatile' is generally preferred over '__asm__
+__volatile__'.
+
+       Arnd
