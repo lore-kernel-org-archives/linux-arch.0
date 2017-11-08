@@ -1,90 +1,318 @@
-From: Florian Weimer <fweimer@redhat.com>
-Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
-Date: Wed, 8 Nov 2017 07:18:17 +0100
-Message-ID: <9d5c86e9-d011-76b4-6357-b6009a201cdb@redhat.com>
-References: <20171106174707.19f6c495@roar.ozlabs.ibm.com>
- <24b93038-76f7-33df-d02e-facb0ce61cd2@redhat.com>
- <20171106192524.12ea3187@roar.ozlabs.ibm.com>
- <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
- <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
- <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
- <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
- <c5586546-1e7e-0f0f-a8b3-680fadb38dcf@redhat.com>
- <20171107114422.bgnm5k6w2zqjoazc@node.shutemov.name>
- <7fc1641b-361c-2ee2-c510-f7c64d173bf8@redhat.com>
- <20171107131616.342goolaujjsnjge@node.shutemov.name>
- <87vail2tgr.fsf@concordia.ellerman.id.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Greentime Hu <green.hu@gmail.com>
+Subject: [PATCH 00/31] Andes(nds32) Linux Kernel Port
+Date: Wed,  8 Nov 2017 13:54:48 +0800
+Message-ID: <cover.1510118606.git.green.hu@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:33324 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751261AbdKHGSX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Nov 2017 01:18:23 -0500
-In-Reply-To: <87vail2tgr.fsf@concordia.ellerman.id.au>
-Content-Language: en-US
+Received: from mail-pl0-f65.google.com ([209.85.160.65]:48724 "EHLO
+        mail-pl0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751261AbdKHGTz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 01:19:55 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>, "Kirill A. Shutemov" <kirill@shutemov.name>, Kees Cook <keescook@chromium.org>
-Cc: linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Andy Lutomirski <luto@amacapital.net>, linux-mm <linux-mm@kvack.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, Thomas Gleixner <tglx@linutronix.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org
+Cc: Greentime Hu <green.hu@gmail.com>
 
-On 11/08/2017 07:08 AM, Michael Ellerman wrote:
-> "Kirill A. Shutemov" <kirill@shutemov.name> writes:
-> 
->> On Tue, Nov 07, 2017 at 02:05:42PM +0100, Florian Weimer wrote:
->>> On 11/07/2017 12:44 PM, Kirill A. Shutemov wrote:
->>>> On Tue, Nov 07, 2017 at 12:26:12PM +0100, Florian Weimer wrote:
->>>>> On 11/07/2017 12:15 PM, Kirill A. Shutemov wrote:
->>>>>
->>>>>>> First of all, using addr and MAP_FIXED to develop our heuristic can
->>>>>>> never really give unchanged ABI. It's an in-band signal. brk() is a
->>>>>>> good example that steadily keeps incrementing address, so depending
->>>>>>> on malloc usage and address space randomization, you will get a brk()
->>>>>>> that ends exactly at 128T, then the next one will be >
->>>>>>> DEFAULT_MAP_WINDOW, and it will switch you to 56 bit address space.
->>>>>>
->>>>>> No, it won't. You will hit stack first.
->>>>>
->>>>> That's not actually true on POWER in some cases.  See the process maps I
->>>>> posted here:
->>>>>
->>>>>     <https://marc.info/?l=linuxppc-embedded&m=150988538106263&w=2>
->>>>
->>>> Hm? I see that in all three cases the [stack] is the last mapping.
->>>> Do I miss something?
->>>
->>> Hah, I had not noticed.  Occasionally, the order of heap and stack is
->>> reversed.  This happens in approximately 15% of the runs.
->>
->> Heh. I guess ASLR on Power is too fancy :)
-> 
-> Fancy implies we're doing it on purpose :P
-> 
->> That's strange layout. It doesn't give that much (relatively speaking)
->> virtual address space for both stack and heap to grow.
-> 
-> I'm pretty sure it only happens when you're running an ELF interpreter
-> directly, because of Kees patch which changed the logic to load ELF
-> interpreters in the mmap region, vs PIE binaries which go to
-> ELF_ET_DYN_BASE. (eab09532d400 ("binfmt_elf: use ELF_ET_DYN_BASE only
-> for PIE"))
+This patchset adds core architecture support to Linux for Andestech's
+N13, N15, D15, N10, D10 processor cores.
 
- From that commit:
+Based on the 16/32-bit AndeStar RISC-like architecture, we designed the
+configurable AndesCore series of embedded processor families. AndesCores
+range from highly performance-efficient small-footprint cores for
+microcontrollers and deeply-embedded applications to 1GHz+ cores running
+Linux, covering general-purpose N-series cores for a wide range of computing
+need, DSP-capable D-series cores for digital signal control,
+instruction-extensible E-series cores for application-specific acceleration,
+and secure S-series cores for best protection of the most valuable.
 
-+                   * There are effectively two types of ET_DYN
-+                   * binaries: programs (i.e. PIE: ET_DYN with INTERP)
-+                   * and loaders (ET_DYN without INTERP, since they
-+                   * _are_ the ELF interpreter). The loaders must
+The patches are based on v4.14-rc8, and can also be found in the
+following git tree:
+  https://github.com/andestech/linux.git nds32-4.14-rc8
 
-Note that the comment is a bit misleading: statically linked PIE 
-binaries are ET_DYN without INTERP, too.
+The build script and toolchain repositories are able to be found here:
+  https://github.com/andestech/build_script.git
 
-So any oddity which is observable today with an explicitly ld.so 
-invocation only will gain more relevance once we get static PIE support 
-in user space because it will then affect regular applications, too. 
-(Well, statically linked ones.)  In this sense, process layouts which 
-cause premature brk failure or insufficient stack allocations are real bugs.
+Freely available instruction set and architecture overview documents can
+be found on the following page:
+  http://www.andestech.com/product.php?cls=9
 
-Thanks,
-Florian
+
+Vincent Ren-Wei Chen and I will maintain this port. Thanks to everyone who
+helped us and contributed to it. :) Any feedback is welcome.
+
+Greentime Hu (31):
+  nds32: Assembly macros and definitions
+  nds32: Kernel booting and initialization
+  nds32: Support early_printk
+  nds32: Exception handling
+  nds32: MMU definitions
+  nds32: MMU initialization
+  nds32: MMU fault handling and page table management
+  nds32: Cache and TLB routines
+  nds32: Process management
+  nds32: IRQ handling
+  nds32: Atomic operations
+  nds32: Device specific operations
+  nds32: DMA mapping API
+  nds32: ELF definitions
+  nds32: System calls handling
+  nds32: VDSO support
+  nds32: Signal handling support
+  nds32: Library functions
+  nds32: Debugging support
+  nds32: L2 cache support
+  nds32: Loadable modules
+  nds32: Generic timers support
+  nds32: Device tree support
+  nds32: Miscellaneous header files
+  nds32: defconfig
+  nds32: Build infrastructure
+  dt-bindings: interrupt-controller: Andestech Internal Vector
+    Interrupt Controller
+  irqchip: Andestech Internal Vector Interrupt Controller driver
+  MAINTAINERS: Add nds32
+  dt-bindings: nds32 CPU Bindings
+  net: faraday add nds32 support.
+
+ .../interrupt-controller/andestech,ativic32.txt    |   27 +
+ Documentation/devicetree/bindings/nds32/cpus.txt   |   33 +
+ MAINTAINERS                                        |    9 +
+ arch/nds32/Kconfig                                 |  107 +++
+ arch/nds32/Kconfig.cpu                             |  100 ++
+ arch/nds32/Kconfig.debug                           |   14 +
+ arch/nds32/Makefile                                |   60 ++
+ arch/nds32/boot/Makefile                           |   15 +
+ arch/nds32/boot/dts/Makefile                       |    8 +
+ arch/nds32/boot/dts/ae3xx.dts                      |   55 ++
+ arch/nds32/boot/dts/ag101p.dts                     |   60 ++
+ arch/nds32/configs/ae3xx_defconfig                 |  110 +++
+ arch/nds32/configs/ag101p_defconfig                |  109 +++
+ arch/nds32/include/asm/Kbuild                      |   54 ++
+ arch/nds32/include/asm/assembler.h                 |   52 ++
+ arch/nds32/include/asm/bitfield.h                  |  982 ++++++++++++++++++++
+ arch/nds32/include/asm/cache.h                     |   25 +
+ arch/nds32/include/asm/cache_info.h                |   26 +
+ arch/nds32/include/asm/cacheflush.h                |   57 ++
+ arch/nds32/include/asm/current.h                   |   25 +
+ arch/nds32/include/asm/delay.h                     |   51 +
+ arch/nds32/include/asm/dma-mapping.h               |   27 +
+ arch/nds32/include/asm/elf.h                       |  192 ++++
+ arch/nds32/include/asm/fixmap.h                    |   41 +
+ arch/nds32/include/asm/futex.h                     |  116 +++
+ arch/nds32/include/asm/highmem.h                   |   78 ++
+ arch/nds32/include/asm/io.h                        |   33 +
+ arch/nds32/include/asm/irqflags.h                  |   49 +
+ arch/nds32/include/asm/l2_cache.h                  |  158 ++++
+ arch/nds32/include/asm/linkage.h                   |   24 +
+ arch/nds32/include/asm/memory.h                    |  147 +++
+ arch/nds32/include/asm/mmu.h                       |   25 +
+ arch/nds32/include/asm/mmu_context.h               |   81 ++
+ arch/nds32/include/asm/module.h                    |   24 +
+ arch/nds32/include/asm/nds32.h                     |   92 ++
+ arch/nds32/include/asm/page.h                      |   78 ++
+ arch/nds32/include/asm/pgalloc.h                   |  109 +++
+ arch/nds32/include/asm/pgtable.h                   |  426 +++++++++
+ arch/nds32/include/asm/proc-fns.h                  |   94 ++
+ arch/nds32/include/asm/processor.h                 |  116 +++
+ arch/nds32/include/asm/ptrace.h                    |   79 ++
+ arch/nds32/include/asm/shmparam.h                  |   33 +
+ arch/nds32/include/asm/spinlock.h                  |  178 ++++
+ arch/nds32/include/asm/string.h                    |   30 +
+ arch/nds32/include/asm/swab.h                      |   48 +
+ arch/nds32/include/asm/syscall.h                   |  203 ++++
+ arch/nds32/include/asm/syscalls.h                  |   27 +
+ arch/nds32/include/asm/thread_info.h               |   91 ++
+ arch/nds32/include/asm/tlb.h                       |   41 +
+ arch/nds32/include/asm/tlbflush.h                  |   60 ++
+ arch/nds32/include/asm/uaccess.h                   |  385 ++++++++
+ arch/nds32/include/asm/unistd.h                    |   21 +
+ arch/nds32/include/asm/vdso.h                      |   35 +
+ arch/nds32/include/asm/vdso_datapage.h             |   51 +
+ arch/nds32/include/uapi/asm/Kbuild                 |   26 +
+ arch/nds32/include/uapi/asm/auxvec.h               |   25 +
+ arch/nds32/include/uapi/asm/byteorder.h            |   26 +
+ arch/nds32/include/uapi/asm/cachectl.h             |   19 +
+ arch/nds32/include/uapi/asm/param.h                |   24 +
+ arch/nds32/include/uapi/asm/posix_types.h          |   41 +
+ arch/nds32/include/uapi/asm/ptrace.h               |   42 +
+ arch/nds32/include/uapi/asm/sigcontext.h           |   73 ++
+ arch/nds32/include/uapi/asm/signal.h               |   23 +
+ arch/nds32/include/uapi/asm/unistd.h               |   36 +
+ arch/nds32/kernel/Makefile                         |   24 +
+ arch/nds32/kernel/asm-offsets.c                    |   40 +
+ arch/nds32/kernel/atl2c.c                          |   77 ++
+ arch/nds32/kernel/cacheinfo.c                      |   62 ++
+ arch/nds32/kernel/devtree.c                        |   45 +
+ arch/nds32/kernel/dma.c                            |  478 ++++++++++
+ arch/nds32/kernel/early_printk.c                   |  124 +++
+ arch/nds32/kernel/ex-entry.S                       |  169 ++++
+ arch/nds32/kernel/ex-exit.S                        |  207 +++++
+ arch/nds32/kernel/ex-scall.S                       |  146 +++
+ arch/nds32/kernel/head.S                           |  211 +++++
+ arch/nds32/kernel/irq.c                            |   34 +
+ arch/nds32/kernel/module.c                         |  299 ++++++
+ arch/nds32/kernel/nds32_ksyms.c                    |   54 ++
+ arch/nds32/kernel/process.c                        |  219 +++++
+ arch/nds32/kernel/ptrace.c                         |  325 +++++++
+ arch/nds32/kernel/setup.c                          |  406 ++++++++
+ arch/nds32/kernel/signal.c                         |  370 ++++++++
+ arch/nds32/kernel/stacktrace.c                     |   60 ++
+ arch/nds32/kernel/sys_nds32.c                      |   63 ++
+ arch/nds32/kernel/syscall_table.c                  |   28 +
+ arch/nds32/kernel/time.c                           |   22 +
+ arch/nds32/kernel/traps.c                          |  442 +++++++++
+ arch/nds32/kernel/vdso.c                           |  243 +++++
+ arch/nds32/kernel/vdso/Makefile                    |   82 ++
+ arch/nds32/kernel/vdso/datapage.S                  |   34 +
+ arch/nds32/kernel/vdso/gen_vdso_offsets.sh         |   15 +
+ arch/nds32/kernel/vdso/gettimeofday.c              |  260 ++++++
+ arch/nds32/kernel/vdso/note.S                      |   29 +
+ arch/nds32/kernel/vdso/sigreturn.S                 |   32 +
+ arch/nds32/kernel/vdso/vdso.S                      |   33 +
+ arch/nds32/kernel/vdso/vdso.lds.S                  |   87 ++
+ arch/nds32/kernel/vmlinux.lds.S                    |   70 ++
+ arch/nds32/lib/Makefile                            |    4 +
+ arch/nds32/lib/copy_page.S                         |   50 +
+ arch/nds32/lib/getuser.S                           |   57 ++
+ arch/nds32/lib/memcpy.S                            |   93 ++
+ arch/nds32/lib/memmove.S                           |   83 ++
+ arch/nds32/lib/memset.S                            |   46 +
+ arch/nds32/lib/memzero.S                           |   31 +
+ arch/nds32/lib/putuser.S                           |   53 ++
+ arch/nds32/lib/uaccess.S                           |  160 ++++
+ arch/nds32/mm/Makefile                             |    7 +
+ arch/nds32/mm/alignment.c                          |  564 +++++++++++
+ arch/nds32/mm/cacheflush.c                         |  331 +++++++
+ arch/nds32/mm/extable.c                            |   29 +
+ arch/nds32/mm/fault.c                              |  420 +++++++++
+ arch/nds32/mm/highmem.c                            |   92 ++
+ arch/nds32/mm/init.c                               |  328 +++++++
+ arch/nds32/mm/ioremap.c                            |   67 ++
+ arch/nds32/mm/mm-nds32.c                           |  103 ++
+ arch/nds32/mm/mmap.c                               |   88 ++
+ arch/nds32/mm/proc-n13.c                           |  608 ++++++++++++
+ arch/nds32/mm/tlb.c                                |   63 ++
+ drivers/irqchip/Makefile                           |    1 +
+ drivers/irqchip/irq-ativic32.c                     |  149 +++
+ drivers/net/ethernet/faraday/Kconfig               |    6 +-
+ 121 files changed, 13726 insertions(+), 3 deletions(-)
+ create mode 100644 Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
+ create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
+ create mode 100644 arch/nds32/Kconfig
+ create mode 100644 arch/nds32/Kconfig.cpu
+ create mode 100644 arch/nds32/Kconfig.debug
+ create mode 100644 arch/nds32/Makefile
+ create mode 100644 arch/nds32/boot/Makefile
+ create mode 100644 arch/nds32/boot/dts/Makefile
+ create mode 100644 arch/nds32/boot/dts/ae3xx.dts
+ create mode 100644 arch/nds32/boot/dts/ag101p.dts
+ create mode 100644 arch/nds32/configs/ae3xx_defconfig
+ create mode 100644 arch/nds32/configs/ag101p_defconfig
+ create mode 100644 arch/nds32/include/asm/Kbuild
+ create mode 100644 arch/nds32/include/asm/assembler.h
+ create mode 100644 arch/nds32/include/asm/bitfield.h
+ create mode 100644 arch/nds32/include/asm/cache.h
+ create mode 100644 arch/nds32/include/asm/cache_info.h
+ create mode 100644 arch/nds32/include/asm/cacheflush.h
+ create mode 100644 arch/nds32/include/asm/current.h
+ create mode 100644 arch/nds32/include/asm/delay.h
+ create mode 100644 arch/nds32/include/asm/dma-mapping.h
+ create mode 100644 arch/nds32/include/asm/elf.h
+ create mode 100644 arch/nds32/include/asm/fixmap.h
+ create mode 100644 arch/nds32/include/asm/futex.h
+ create mode 100644 arch/nds32/include/asm/highmem.h
+ create mode 100644 arch/nds32/include/asm/io.h
+ create mode 100644 arch/nds32/include/asm/irqflags.h
+ create mode 100644 arch/nds32/include/asm/l2_cache.h
+ create mode 100644 arch/nds32/include/asm/linkage.h
+ create mode 100644 arch/nds32/include/asm/memory.h
+ create mode 100644 arch/nds32/include/asm/mmu.h
+ create mode 100644 arch/nds32/include/asm/mmu_context.h
+ create mode 100644 arch/nds32/include/asm/module.h
+ create mode 100644 arch/nds32/include/asm/nds32.h
+ create mode 100644 arch/nds32/include/asm/page.h
+ create mode 100644 arch/nds32/include/asm/pgalloc.h
+ create mode 100644 arch/nds32/include/asm/pgtable.h
+ create mode 100644 arch/nds32/include/asm/proc-fns.h
+ create mode 100644 arch/nds32/include/asm/processor.h
+ create mode 100644 arch/nds32/include/asm/ptrace.h
+ create mode 100644 arch/nds32/include/asm/shmparam.h
+ create mode 100644 arch/nds32/include/asm/spinlock.h
+ create mode 100644 arch/nds32/include/asm/string.h
+ create mode 100644 arch/nds32/include/asm/swab.h
+ create mode 100644 arch/nds32/include/asm/syscall.h
+ create mode 100644 arch/nds32/include/asm/syscalls.h
+ create mode 100644 arch/nds32/include/asm/thread_info.h
+ create mode 100644 arch/nds32/include/asm/tlb.h
+ create mode 100644 arch/nds32/include/asm/tlbflush.h
+ create mode 100644 arch/nds32/include/asm/uaccess.h
+ create mode 100644 arch/nds32/include/asm/unistd.h
+ create mode 100644 arch/nds32/include/asm/vdso.h
+ create mode 100644 arch/nds32/include/asm/vdso_datapage.h
+ create mode 100644 arch/nds32/include/uapi/asm/Kbuild
+ create mode 100644 arch/nds32/include/uapi/asm/auxvec.h
+ create mode 100644 arch/nds32/include/uapi/asm/byteorder.h
+ create mode 100644 arch/nds32/include/uapi/asm/cachectl.h
+ create mode 100644 arch/nds32/include/uapi/asm/param.h
+ create mode 100644 arch/nds32/include/uapi/asm/posix_types.h
+ create mode 100644 arch/nds32/include/uapi/asm/ptrace.h
+ create mode 100644 arch/nds32/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/nds32/include/uapi/asm/signal.h
+ create mode 100644 arch/nds32/include/uapi/asm/unistd.h
+ create mode 100644 arch/nds32/kernel/Makefile
+ create mode 100644 arch/nds32/kernel/asm-offsets.c
+ create mode 100644 arch/nds32/kernel/atl2c.c
+ create mode 100644 arch/nds32/kernel/cacheinfo.c
+ create mode 100644 arch/nds32/kernel/devtree.c
+ create mode 100644 arch/nds32/kernel/dma.c
+ create mode 100644 arch/nds32/kernel/early_printk.c
+ create mode 100644 arch/nds32/kernel/ex-entry.S
+ create mode 100644 arch/nds32/kernel/ex-exit.S
+ create mode 100644 arch/nds32/kernel/ex-scall.S
+ create mode 100644 arch/nds32/kernel/head.S
+ create mode 100644 arch/nds32/kernel/irq.c
+ create mode 100644 arch/nds32/kernel/module.c
+ create mode 100644 arch/nds32/kernel/nds32_ksyms.c
+ create mode 100644 arch/nds32/kernel/process.c
+ create mode 100644 arch/nds32/kernel/ptrace.c
+ create mode 100644 arch/nds32/kernel/setup.c
+ create mode 100644 arch/nds32/kernel/signal.c
+ create mode 100644 arch/nds32/kernel/stacktrace.c
+ create mode 100644 arch/nds32/kernel/sys_nds32.c
+ create mode 100644 arch/nds32/kernel/syscall_table.c
+ create mode 100644 arch/nds32/kernel/time.c
+ create mode 100644 arch/nds32/kernel/traps.c
+ create mode 100644 arch/nds32/kernel/vdso.c
+ create mode 100644 arch/nds32/kernel/vdso/Makefile
+ create mode 100644 arch/nds32/kernel/vdso/datapage.S
+ create mode 100755 arch/nds32/kernel/vdso/gen_vdso_offsets.sh
+ create mode 100644 arch/nds32/kernel/vdso/gettimeofday.c
+ create mode 100644 arch/nds32/kernel/vdso/note.S
+ create mode 100644 arch/nds32/kernel/vdso/sigreturn.S
+ create mode 100644 arch/nds32/kernel/vdso/vdso.S
+ create mode 100644 arch/nds32/kernel/vdso/vdso.lds.S
+ create mode 100644 arch/nds32/kernel/vmlinux.lds.S
+ create mode 100644 arch/nds32/lib/Makefile
+ create mode 100644 arch/nds32/lib/copy_page.S
+ create mode 100644 arch/nds32/lib/getuser.S
+ create mode 100644 arch/nds32/lib/memcpy.S
+ create mode 100644 arch/nds32/lib/memmove.S
+ create mode 100644 arch/nds32/lib/memset.S
+ create mode 100644 arch/nds32/lib/memzero.S
+ create mode 100644 arch/nds32/lib/putuser.S
+ create mode 100644 arch/nds32/lib/uaccess.S
+ create mode 100644 arch/nds32/mm/Makefile
+ create mode 100644 arch/nds32/mm/alignment.c
+ create mode 100644 arch/nds32/mm/cacheflush.c
+ create mode 100644 arch/nds32/mm/extable.c
+ create mode 100644 arch/nds32/mm/fault.c
+ create mode 100644 arch/nds32/mm/highmem.c
+ create mode 100644 arch/nds32/mm/init.c
+ create mode 100644 arch/nds32/mm/ioremap.c
+ create mode 100644 arch/nds32/mm/mm-nds32.c
+ create mode 100644 arch/nds32/mm/mmap.c
+ create mode 100644 arch/nds32/mm/proc-n13.c
+ create mode 100644 arch/nds32/mm/tlb.c
+ create mode 100644 drivers/irqchip/irq-ativic32.c
+
+-- 
+1.7.9.5
