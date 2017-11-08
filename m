@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH 06/31] nds32: MMU initialization
-Date: Wed,  8 Nov 2017 13:54:54 +0800
-Message-ID: <9ff6624a27139cf00776362856aa07a0f8d35cd4.1510118606.git.green.hu@gmail.com>
+Subject: [PATCH 07/31] nds32: MMU fault handling and page table management
+Date: Wed,  8 Nov 2017 13:54:55 +0800
+Message-ID: <ec715a0b442aa3e19b37617741d0b37076cf346a.1510118606.git.green.hu@gmail.com>
 References: <cover.1510118606.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
@@ -17,20 +17,22 @@ From: Greentime Hu <greentime@andestech.com>
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/mm/highmem.c  |   92 +++++++++++++
- arch/nds32/mm/init.c     |  328 ++++++++++++++++++++++++++++++++++++++++++++++
- arch/nds32/mm/mm-nds32.c |  103 +++++++++++++++
- 3 files changed, 523 insertions(+)
- create mode 100644 arch/nds32/mm/highmem.c
- create mode 100644 arch/nds32/mm/init.c
- create mode 100644 arch/nds32/mm/mm-nds32.c
+ arch/nds32/lib/copy_page.S |   50 ++++++
+ arch/nds32/mm/extable.c    |   29 +++
+ arch/nds32/mm/fault.c      |  420 ++++++++++++++++++++++++++++++++++++++++++++
+ arch/nds32/mm/mmap.c       |   88 ++++++++++
+ 4 files changed, 587 insertions(+)
+ create mode 100644 arch/nds32/lib/copy_page.S
+ create mode 100644 arch/nds32/mm/extable.c
+ create mode 100644 arch/nds32/mm/fault.c
+ create mode 100644 arch/nds32/mm/mmap.c
 
-diff --git a/arch/nds32/mm/highmem.c b/arch/nds32/mm/highmem.c
+diff --git a/arch/nds32/lib/copy_page.S b/arch/nds32/lib/copy_page.S
 new file mode 100644
-index 0000000..d5101bd
+index 0000000..a55a5cc
 --- /dev/null
-+++ b/arch/nds32/mm/highmem.c
-@@ -0,0 +1,92 @@
++++ b/arch/nds32/lib/copy_page.S
+@@ -0,0 +1,50 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -47,422 +49,46 @@ index 0000000..d5101bd
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/export.h>
-+#include <linux/highmem.h>
-+#include <linux/sched.h>
-+#include <linux/smp.h>
-+#include <linux/interrupt.h>
-+#include <linux/bootmem.h>
-+#include <asm/fixmap.h>
-+#include <asm/tlbflush.h>
-+
-+void *kmap(struct page *page)
-+{
-+	unsigned long vaddr;
-+	might_sleep();
-+	if (!PageHighMem(page))
-+		return page_address(page);
-+	vaddr = (unsigned long)kmap_high(page);
-+	return (void *)vaddr;
-+}
-+
-+EXPORT_SYMBOL(kmap);
-+
-+void kunmap(struct page *page)
-+{
-+	BUG_ON(in_interrupt());
-+	if (!PageHighMem(page))
-+		return;
-+	kunmap_high(page);
-+}
-+
-+EXPORT_SYMBOL(kunmap);
-+
-+void *kmap_atomic(struct page *page)
-+{
-+	unsigned int idx;
-+	unsigned long vaddr, pte;
-+	int type;
-+	pte_t *ptep;
-+
-+	preempt_disable();
-+	pagefault_disable();
-+	if (!PageHighMem(page))
-+		return page_address(page);
-+
-+	type = kmap_atomic_idx_push();
-+
-+	idx = type + KM_TYPE_NR * smp_processor_id();
-+	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
-+	pte = (page_to_pfn(page) << PAGE_SHIFT) | (PAGE_KERNEL);
-+	ptep = pte_offset_kernel(pmd_off_k(vaddr), vaddr);
-+	set_pte(ptep, pte);
-+
-+	__nds32__tlbop_inv(vaddr);
-+	__nds32__mtsr_dsb(vaddr, NDS32_SR_TLB_VPN);
-+	__nds32__tlbop_rwr(pte);
-+	__nds32__isb();
-+	return (void *)vaddr;
-+}
-+
-+EXPORT_SYMBOL(kmap_atomic);
-+
-+void __kunmap_atomic(void *kvaddr)
-+{
-+	if (kvaddr >= (void *)FIXADDR_START) {
-+		unsigned long vaddr = (unsigned long)kvaddr;
-+		pte_t *ptep;
-+		kmap_atomic_idx_pop();
-+		__nds32__tlbop_inv(vaddr);
-+		__nds32__isb();
-+		ptep = pte_offset_kernel(pmd_off_k(vaddr), vaddr);
-+		set_pte(ptep, 0);
-+	}
-+	pagefault_enable();
-+	preempt_enable();
-+}
-+
-+EXPORT_SYMBOL(__kunmap_atomic);
-diff --git a/arch/nds32/mm/init.c b/arch/nds32/mm/init.c
-new file mode 100644
-index 0000000..9dee3ee
---- /dev/null
-+++ b/arch/nds32/mm/init.c
-@@ -0,0 +1,328 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/swap.h>
-+#include <linux/init.h>
-+#include <linux/bootmem.h>
-+#include <linux/mman.h>
-+#include <linux/nodemask.h>
-+#include <linux/initrd.h>
-+#include <linux/highmem.h>
-+#include <linux/memblock.h>
-+
-+#include <asm/sections.h>
-+#include <asm/setup.h>
-+#include <asm/tlb.h>
++#include <linux/linkage.h>
 +#include <asm/page.h>
 +
-+DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
-+DEFINE_SPINLOCK(anon_alias_lock);
-+extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
-+extern unsigned long phys_initrd_start;
-+extern unsigned long phys_initrd_size;
++	.text
++ENTRY(copy_page)
++	pushm	$r2, $r10
++	movi	$r2, PAGE_SIZE >> 5
++.Lcopy_loop:
++	lmw.bim	$r3, [$r1], $r10
++	smw.bim	$r3, [$r0], $r10
++	subi45	$r2, #1
++	bnez38	$r2, .Lcopy_loop
++	popm	$r2, $r10
++	ret
++ENDPROC(copy_page)
 +
-+/*
-+ * empty_zero_page is a special page that is used for
-+ * zero-initialized data and COW.
-+ */
-+struct page *empty_zero_page;
-+#ifdef CONFIG_EARLY_PRINTK
-+#include <asm/fixmap.h>
-+
-+/*
-+ * Using tlbop to create an early I/O mapping
-+ */
-+void __iomem *__init early_io_map(phys_addr_t pa)
-+{
-+	unsigned long va;
-+	pa &= PAGE_MASK;
-+	pa += pgprot_val(PAGE_DEVICE);
-+	va = __fix_to_virt(FIX_EARLY_DEBUG);
-+	/* insert and lock this page to tlb entry directly */
-+
-+	__nds32__mtsr_dsb(va, NDS32_SR_TLB_VPN);
-+	__nds32__tlbop_rwlk(pa);
-+	__nds32__isb();
-+	return (void __iomem *)va;
-+}
-+
-+int __init early_io_unmap(void)
-+{
-+	unsigned long va;
-+	va = __fix_to_virt(FIX_EARLY_DEBUG);
-+	__nds32__tlbop_unlk(va);
-+	__nds32__tlbop_inv(va);
-+	__nds32__isb();
-+	return 0;
-+}
-+
-+late_initcall(early_io_unmap);
-+#endif
-+
-+static void __init zone_sizes_init(void)
-+{
-+	unsigned long zones_size[MAX_NR_ZONES];
-+
-+	/* Clear the zone sizes */
-+	memset(zones_size, 0, sizeof(zones_size));
-+
-+	zones_size[ZONE_NORMAL] = max_low_pfn;
-+#ifdef CONFIG_HIGHMEM
-+	zones_size[ZONE_HIGHMEM] = max_pfn;
-+#endif
-+	free_area_init_nodes(zones_size);
-+
-+}
-+
-+/*
-+ * Map all physical memory under high_memory into kernel's address space.
-+ *
-+ * This is explicitly coded for two-level page tables, so if you need
-+ * something else then this needs to change.
-+ */
-+static void __init map_ram(void)
-+{
-+	unsigned long v, p, e;
-+	pgd_t *pge;
-+	pud_t *pue;
-+	pmd_t *pme;
-+	pte_t *pte;
-+	/* These mark extents of read-only kernel pages...
-+	 * ...from vmlinux.lds.S
-+	 */
-+
-+	p = (u32) memblock_start_of_DRAM() & PAGE_MASK;
-+	e = min((u32) memblock_end_of_DRAM(), (u32) __pa(high_memory));
-+
-+	v = (u32) __va(p);
-+	pge = pgd_offset_k(v);
-+
-+	while (p < e) {
-+		int j;
-+		pue = pud_offset(pge, v);
-+		pme = pmd_offset(pue, v);
-+
-+		if ((u32) pue != (u32) pge || (u32) pme != (u32) pge) {
-+			panic("%s: Kernel hardcoded for "
-+			      "two-level page tables", __func__);
-+		}
-+
-+		/* Alloc one page for holding PTE's... */
-+		pte = (pte_t *) alloc_bootmem_low_pages(PAGE_SIZE);
-+		set_pmd(pme, __pmd(__pa(pte) + _PAGE_KERNEL_TABLE));
-+
-+		/* Fill the newly allocated page with PTE'S */
-+		for (j = 0; p < e && j < PTRS_PER_PTE;
-+		     v += PAGE_SIZE, p += PAGE_SIZE, j++, pte++) {
-+			/* Create mapping between p and v. */
-+			/* TODO: more fine grant for page access permission */
-+			set_pte(pte, __pte(p + pgprot_val(PAGE_KERNEL)));
-+		}
-+
-+		pge++;
-+	}
-+}
-+
-+static void __init fixedrange_init(void)
-+{
-+	unsigned long vaddr;
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pmd_t *pmd;
-+	pte_t *pte;
-+
-+	/*
-+	 * Fixed mappings:
-+	 */
-+	vaddr = __fix_to_virt(__end_of_fixed_addresses - 1);
-+	pgd = swapper_pg_dir + pgd_index(vaddr);
-+	pud = pud_offset(pgd, vaddr);
-+	pmd = pmd_offset(pud, vaddr);
-+	pte = (pte_t *) alloc_bootmem_low_pages(PAGE_SIZE);
-+	set_pmd(pmd, __pmd(__pa(pte) + _PAGE_KERNEL_TABLE));
-+
-+#ifdef CONFIG_HIGHMEM
-+	/*
-+	 * Permanent kmaps:
-+	 */
-+	vaddr = PKMAP_BASE;
-+
-+	pgd = swapper_pg_dir + pgd_index(vaddr);
-+	pud = pud_offset(pgd, vaddr);
-+	pmd = pmd_offset(pud, vaddr);
-+	pte = (pte_t *) alloc_bootmem_low_pages(PAGE_SIZE);
-+	set_pmd(pmd, __pmd(__pa(pte) + _PAGE_KERNEL_TABLE));
-+	pkmap_page_table = pte;
-+#endif /* CONFIG_HIGHMEM */
-+}
-+
-+/*
-+ * paging_init() sets up the page tables, initialises the zone memory
-+ * maps, and sets up the zero page, bad page and bad page tables.
-+ */
-+void __init paging_init(void)
-+{
-+	void *zero_page;
-+	int i;
-+
-+	pr_info("Setting up paging and PTEs.\n");
-+	/* clear out the init_mm.pgd that will contain the kernel's mappings */
-+	for (i = 0; i < PTRS_PER_PGD; i++)
-+		swapper_pg_dir[i] = __pgd(1);
-+
-+	map_ram();
-+
-+	fixedrange_init();
-+
-+	/* allocate space for empty_zero_page */
-+	zero_page = alloc_bootmem_low_pages(PAGE_SIZE);
-+	memset(zero_page, 0, PAGE_SIZE);
-+
-+	zone_sizes_init();
-+
-+	empty_zero_page = virt_to_page(zero_page);
-+	flush_dcache_page(empty_zero_page);
-+}
-+
-+static inline int free_area(unsigned long addr, unsigned long end, char *s)
-+{
-+	unsigned int size = (end - addr) >> 10;
-+	int pages = 0;
-+
-+	for (; addr < end; addr += PAGE_SIZE) {
-+		struct page *page = virt_to_page(addr);
-+		ClearPageReserved(page);
-+		init_page_count(page);
-+		free_page(addr);
-+		totalram_pages++;
-+		pages++;
-+	}
-+
-+	if (size && s)
-+		pr_info("free_area: Freeing %s memory: %dK\n", s, size);
-+
-+	return pages;
-+}
-+
-+static inline void __init free_highmem(void)
-+{
-+#ifdef CONFIG_HIGHMEM
-+	unsigned long pfn;
-+	for (pfn = PFN_UP(__pa(high_memory)); pfn < max_pfn; pfn++) {
-+		phys_addr_t paddr = (phys_addr_t) pfn << PAGE_SHIFT;
-+		if (!memblock_is_reserved(paddr))
-+			free_highmem_page(pfn_to_page(pfn));
-+	}
-+#endif
-+}
-+
-+static void __init set_max_mapnr_init(void)
-+{
-+	max_mapnr = max_pfn;
-+}
-+
-+/*
-+ * mem_init() marks the free areas in the mem_map and tells us how much
-+ * memory is free.  This is done after various parts of the system have
-+ * claimed their memory after the kernel image.
-+ */
-+void __init mem_init(void)
-+{
-+	phys_addr_t memory_start = memblock_start_of_DRAM();
-+	BUG_ON(!mem_map);
-+	set_max_mapnr_init();
-+
-+	free_highmem();
-+
-+	/* this will put all low memory onto the freelists */
-+	free_all_bootmem();
-+
-+	pr_info("virtual kernel memory layout:\n"
-+		"    fixmap  : 0x%08lx - 0x%08lx   (%4ld kB)\n"
-+#ifdef CONFIG_HIGHMEM
-+		"    pkmap   : 0x%08lx - 0x%08lx   (%4ld kB)\n"
-+#endif
-+		"    consist : 0x%08lx - 0x%08lx   (%4ld MB)\n"
-+		"    vmalloc : 0x%08lx - 0x%08lx   (%4ld MB)\n"
-+		"    lowmem  : 0x%08lx - 0x%08lx   (%4ld MB)\n"
-+		"      .init : 0x%08lx - 0x%08lx   (%4ld kB)\n"
-+		"      .data : 0x%08lx - 0x%08lx   (%4ld kB)\n"
-+		"      .text : 0x%08lx - 0x%08lx   (%4ld kB)\n",
-+		FIXADDR_START, FIXADDR_TOP, (FIXADDR_TOP - FIXADDR_START) >> 10,
-+#ifdef CONFIG_HIGHMEM
-+		PKMAP_BASE, PKMAP_BASE + LAST_PKMAP * PAGE_SIZE,
-+		(LAST_PKMAP * PAGE_SIZE) >> 10,
-+#endif
-+		CONSISTENT_BASE, CONSISTENT_END,
-+		((CONSISTENT_END) - (CONSISTENT_BASE)) >> 20, VMALLOC_START,
-+		(unsigned long)VMALLOC_END, (VMALLOC_END - VMALLOC_START) >> 20,
-+		(unsigned long)__va(memory_start), (unsigned long)high_memory,
-+		((unsigned long)high_memory -
-+		 (unsigned long)__va(memory_start)) >> 20,
-+		(unsigned long)&__init_begin, (unsigned long)&__init_end,
-+		((unsigned long)&__init_end -
-+		 (unsigned long)&__init_begin) >> 10, (unsigned long)&_etext,
-+		(unsigned long)&_edata,
-+		((unsigned long)&_edata - (unsigned long)&_etext) >> 10,
-+		(unsigned long)&_text, (unsigned long)&_etext,
-+		((unsigned long)&_etext - (unsigned long)&_text) >> 10);
-+
-+	/*
-+	 * Check boundaries twice: Some fundamental inconsistencies can
-+	 * be detected at build time already.
-+	 */
-+#ifdef CONFIG_HIGHMEM
-+	BUILD_BUG_ON(PKMAP_BASE + LAST_PKMAP * PAGE_SIZE > FIXADDR_START);
-+	BUILD_BUG_ON((CONSISTENT_END) > PKMAP_BASE);
-+#endif
-+	BUILD_BUG_ON(VMALLOC_END > CONSISTENT_BASE);
-+	BUILD_BUG_ON(VMALLOC_START >= VMALLOC_END);
-+
-+#ifdef CONFIG_HIGHMEM
-+	BUG_ON(PKMAP_BASE + LAST_PKMAP * PAGE_SIZE > FIXADDR_START);
-+	BUG_ON(CONSISTENT_END > PKMAP_BASE);
-+#endif
-+	BUG_ON(VMALLOC_END > CONSISTENT_BASE);
-+	BUG_ON(VMALLOC_START >= VMALLOC_END);
-+	BUG_ON((unsigned long)high_memory > VMALLOC_START);
-+
-+	return;
-+}
-+
-+void free_initmem(void)
-+{
-+	free_initmem_default(-1);
-+}
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+static int keep_initrd;
-+
-+void free_initrd_mem(unsigned long start, unsigned long end)
-+{
-+	if (!keep_initrd)
-+		free_area(start, end, "initrd");
-+}
-+
-+static int __init keepinitrd_setup(char *__unused)
-+{
-+	keep_initrd = 1;
-+	return 1;
-+}
-+
-+__setup("keepinitrd", keepinitrd_setup);
-+#endif
-diff --git a/arch/nds32/mm/mm-nds32.c b/arch/nds32/mm/mm-nds32.c
++ENTRY(clear_page)
++	pushm	$r1, $r9
++	movi	$r1, PAGE_SIZE >> 5
++	movi55	$r2, #0
++	movi55	$r3, #0
++	movi55	$r4, #0
++	movi55	$r5, #0
++	movi55	$r6, #0
++	movi55	$r7, #0
++	movi55	$r8, #0
++	movi55	$r9, #0
++.Lclear_loop:
++	smw.bim	$r2, [$r0], $r9
++	subi45	$r1, #1
++	bnez38	$r1, .Lclear_loop
++	popm	$r1, $r9
++        ret
++ENDPROC(clear_page)
+diff --git a/arch/nds32/mm/extable.c b/arch/nds32/mm/extable.c
 new file mode 100644
-index 0000000..2801496
+index 0000000..bce62d7
 --- /dev/null
-+++ b/arch/nds32/mm/mm-nds32.c
-@@ -0,0 +1,103 @@
++++ b/arch/nds32/mm/extable.c
+@@ -0,0 +1,29 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -479,92 +105,538 @@ index 0000000..2801496
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/init_task.h>
-+#include <asm/pgalloc.h>
++#include <linux/extable.h>
++#include <asm/uaccess.h>
 +
-+#define FIRST_KERNEL_PGD_NR	(USER_PTRS_PER_PGD)
++int fixup_exception(struct pt_regs *regs)
++{
++	const struct exception_table_entry *fixup;
 +
++	fixup = search_exception_tables(instruction_pointer(regs));
++	if (fixup)
++		regs->ipc = fixup->fixup;
++
++	return fixup != NULL;
++}
+diff --git a/arch/nds32/mm/fault.c b/arch/nds32/mm/fault.c
+new file mode 100644
+index 0000000..e15b2c1
+--- /dev/null
++++ b/arch/nds32/mm/fault.c
+@@ -0,0 +1,420 @@
 +/*
-+ * need to get a page for level 1
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+pgd_t *pgd_alloc(struct mm_struct *mm)
++#include <linux/extable.h>
++#include <linux/module.h>
++#include <linux/signal.h>
++#include <linux/ptrace.h>
++#include <linux/mm.h>
++#include <linux/init.h>
++#include <linux/hardirq.h>
++
++#include <asm/pgtable.h>
++#include <asm/tlbflush.h>
++#include <asm/uaccess.h>
++
++extern void die(const char *str, struct pt_regs *regs, long err);
++
++/*
++ * This is useful to dump out the page tables associated with
++ * 'addr' in mm 'mm'.
++ */
++void show_pte(struct mm_struct *mm, unsigned long addr)
 +{
-+	pgd_t *new_pgd, *init_pgd;
-+	int i;
++	pgd_t *pgd;
++	if (!mm)
++		mm = &init_mm;
 +
-+	new_pgd = (pgd_t *) __get_free_pages(GFP_KERNEL, 0);
-+	if (!new_pgd)
-+		return NULL;
-+	for (i = 0; i < PTRS_PER_PGD; i++) {
-+		(*new_pgd) = 1;
-+		new_pgd++;
-+	}
-+	new_pgd -= PTRS_PER_PGD;
++	pr_alert("pgd = %p\n", mm->pgd);
++	pgd = pgd_offset(mm, addr);
++	pr_alert("[%08lx] *pgd=%08lx", addr, pgd_val(*pgd));
 +
-+	init_pgd = pgd_offset_k(0);
++	do {
++		pmd_t *pmd;
 +
-+	memcpy(new_pgd + FIRST_KERNEL_PGD_NR, init_pgd + FIRST_KERNEL_PGD_NR,
-+	       (PTRS_PER_PGD - FIRST_KERNEL_PGD_NR) * sizeof(pgd_t));
++		if (pgd_none(*pgd))
++			break;
 +
-+	cpu_dcache_wb_range((unsigned long)new_pgd,
-+			    (unsigned long)new_pgd +
-+			    PTRS_PER_PGD * sizeof(pgd_t));
-+	inc_zone_page_state(virt_to_page((unsigned long *)new_pgd),
-+			    NR_PAGETABLE);
++		if (pgd_bad(*pgd)) {
++			pr_alert("(bad)");
++			break;
++		}
 +
-+	return new_pgd;
++		pmd = pmd_offset(pgd, addr);
++#if PTRS_PER_PMD != 1
++		pr_alert(", *pmd=%08lx", pmd_val(*pmd));
++#endif
++
++		if (pmd_none(*pmd))
++			break;
++
++		if (pmd_bad(*pmd)) {
++			pr_alert("(bad)");
++			break;
++		}
++#ifndef CONFIG_HIGHMEM
++		{
++			pte_t *pte;
++			/* We must not map this if we have highmem enabled */
++			pte = pte_offset_map(pmd, addr);
++			pr_alert(", *pte=%08lx", pte_val(*pte));
++			pte_unmap(pte);
++		}
++#endif
++	} while (0);
++
++	pr_alert("\n");
 +}
 +
-+void pgd_free(struct mm_struct *mm, pgd_t * pgd)
++void do_page_fault(unsigned long entry, unsigned long addr,
++		   unsigned int error_code, struct pt_regs *regs)
 +{
-+	pmd_t *pmd;
-+	struct page *pte;
++	struct task_struct *tsk;
++	struct mm_struct *mm;
++	struct vm_area_struct *vma;
++	siginfo_t info;
++	int fault;
++	unsigned int mask = VM_READ | VM_WRITE | VM_EXEC;
++	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
 +
-+	if (!pgd)
++	error_code = error_code & (ITYPE_mskINST | ITYPE_mskETYPE);
++	tsk = current;
++	mm = tsk->mm;
++	info.si_code = SEGV_MAPERR;
++	/*
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
++	 */
++	if (addr >= TASK_SIZE) {
++		if (user_mode(regs))
++			goto bad_area_nosemaphore;
++
++		if (addr >= TASK_SIZE && addr < VMALLOC_END
++		    && (entry == ENTRY_PTE_NOT_PRESENT))
++			goto vmalloc_fault;
++		else
++			goto no_context;
++	}
++
++	/* Send a signal to the task for handling the unalignment access. */
++	if (entry == ENTRY_GENERAL_EXCPETION
++	    && error_code == ETYPE_ALIGNMENT_CHECK) {
++		if (user_mode(regs))
++			goto bad_area_nosemaphore;
++		else
++			goto no_context;
++	}
++
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (unlikely(in_atomic() || !mm))
++		goto no_context;
++
++	/*
++	 * As per x86, we may deadlock here. However, since the kernel only
++	 * validly references user space from well defined areas of the code,
++	 * we can bug out early if this is from code which shouldn't.
++	 */
++	if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
++		if (!user_mode(regs) &&
++		    !search_exception_tables(instruction_pointer(regs)))
++			goto no_context;
++retry:
++		down_read(&mm->mmap_sem);
++	} else {
++		/*
++		 * The above down_read_trylock() might have succeeded in which
++		 * case, we'll have missed the might_sleep() from down_read().
++		 */
++		might_sleep();
++#ifdef CONFIG_DEBUG_VM
++		if (!user_mode(regs) &&
++		    !search_exception_tables(instruction_pointer(regs)))
++			goto no_context;
++#endif
++	}
++
++	vma = find_vma(mm, addr);
++
++	if (unlikely(!vma))
++		goto bad_area;
++
++	if (vma->vm_start <= addr)
++		goto good_area;
++
++	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
++		goto bad_area;
++
++	if (unlikely(expand_stack(vma, addr)))
++		goto bad_area;
++
++	/*
++	 * Ok, we have a good vm_area for this memory access, so
++	 * we can handle it..
++	 */
++
++good_area:
++	info.si_code = SEGV_ACCERR;
++
++	/* first do some preliminary protection checks */
++	if (entry == ENTRY_PTE_NOT_PRESENT) {
++		if (error_code & ITYPE_mskINST)
++			mask = VM_EXEC;
++		else {
++			mask = VM_READ | VM_WRITE;
++			if (vma->vm_flags & VM_WRITE)
++				flags |= FAULT_FLAG_WRITE;
++		}
++	} else if (entry == ENTRY_TLB_MISC) {
++		switch (error_code & ITYPE_mskETYPE) {
++		case RD_PROT:
++			mask = VM_READ;
++			break;
++		case WRT_PROT:
++			mask = VM_WRITE;
++			flags |= FAULT_FLAG_WRITE;
++			break;
++		case NOEXEC:
++			mask = VM_EXEC;
++			break;
++		case PAGE_MODIFY:
++			mask = VM_WRITE;
++			flags |= FAULT_FLAG_WRITE;
++			break;
++		case ACC_BIT:
++			BUG();
++		default:
++			break;
++		}
++
++	}
++	if (!(vma->vm_flags & mask))
++		goto bad_area;
++
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++
++	fault = handle_mm_fault(vma, addr, flags);
++
++	/*
++	 * If we need to retry but a fatal signal is pending, handle the
++	 * signal first. We do not need to release the mmap_sem because it
++	 * would already be released in __lock_page_or_retry in mm/filemap.c.
++	 */
++	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
 +		return;
 +
-+	pmd = (pmd_t *) pgd;
-+	if (pmd_none(*pmd))
-+		goto free;
-+	if (pmd_bad(*pmd)) {
-+		pmd_ERROR(*pmd);
-+		pmd_clear(pmd);
-+		goto free;
++	if (unlikely(fault & VM_FAULT_ERROR)) {
++		if (fault & VM_FAULT_OOM)
++			goto out_of_memory;
++		else if (fault & VM_FAULT_SIGBUS)
++			goto do_sigbus;
++		else
++			goto bad_area;
 +	}
 +
-+	pte = pmd_page(*pmd);
-+	pmd_clear(pmd);
-+	dec_zone_page_state(virt_to_page((unsigned long *)pgd), NR_PAGETABLE);
-+	pte_free(mm, pte);
-+	atomic_long_dec(&mm->nr_ptes);
-+	pmd_free(mm, pmd);
-+free:
-+	free_pages((unsigned long)pgd, 0);
++	/*
++	 * Major/minor page fault accounting is only done on the initial
++	 * attempt. If we go through a retry, it is extremely likely that the
++	 * page will be found in page cache at that point.
++	 */
++	if (flags & FAULT_FLAG_ALLOW_RETRY) {
++		if (fault & VM_FAULT_MAJOR)
++			tsk->maj_flt++;
++		else
++			tsk->min_flt++;
++		if (fault & VM_FAULT_RETRY) {
++			flags &= ~FAULT_FLAG_ALLOW_RETRY;
++			flags |= FAULT_FLAG_TRIED;
++
++			/* No need to up_read(&mm->mmap_sem) as we would
++			 * have already released it in __lock_page_or_retry
++			 * in mm/filemap.c.
++			 */
++			goto retry;
++		}
++	}
++
++	up_read(&mm->mmap_sem);
++	return;
++
++	/*
++	 * Something tried to access memory that isn't in our memory map..
++	 * Fix it, but check if it's kernel or user first..
++	 */
++bad_area:
++	up_read(&mm->mmap_sem);
++
++bad_area_nosemaphore:
++
++	/* User mode accesses just cause a SIGSEGV */
++
++	if (user_mode(regs)) {
++		tsk->thread.address = addr;
++		tsk->thread.error_code = error_code;
++		tsk->thread.trap_no = entry;
++		info.si_signo = SIGSEGV;
++		info.si_errno = 0;
++		/* info.si_code has been set above */
++		info.si_addr = (void *)addr;
++		force_sig_info(SIGSEGV, &info, tsk);
++		return;
++	}
++
++no_context:
++
++	/* Are we prepared to handle this kernel fault?
++	 *
++	 * (The kernel has valid exception-points in the source
++	 *  when it acesses user-memory. When it fails in one
++	 *  of those points, we find it in a table and do a jump
++	 *  to some fixup code that loads an appropriate error
++	 *  code)
++	 */
++
++	{
++		const struct exception_table_entry *entry;
++
++		if ((entry =
++		     search_exception_tables(instruction_pointer(regs))) !=
++		    NULL) {
++			/* Adjust the instruction pointer in the stackframe */
++			instruction_pointer(regs) = entry->fixup;
++			return;
++		}
++	}
++
++	/*
++	 * Oops. The kernel tried to access some bad page. We'll have to
++	 * terminate things with extreme prejudice.
++	 */
++
++	bust_spinlocks(1);
++	pr_alert("Unable to handle kernel %s at virtual address %08lx\n",
++		 (addr < PAGE_SIZE) ? "NULL pointer dereference" :
++		 "paging request", addr);
++
++	show_pte(mm, addr);
++	die("Oops", regs, error_code);
++	bust_spinlocks(0);
++	do_exit(SIGKILL);
++
++	return;
++
++	/*
++	 * We ran out of memory, or some other thing happened to us that made
++	 * us unable to handle the page fault gracefully.
++	 */
++
++out_of_memory:
++	up_read(&mm->mmap_sem);
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
++
++do_sigbus:
++	up_read(&mm->mmap_sem);
++
++	/* Kernel mode? Handle exceptions or die */
++	if (!user_mode(regs))
++		goto no_context;
++
++	/*
++	 * Send a sigbus
++	 */
++	tsk->thread.address = addr;
++	tsk->thread.error_code = error_code;
++	tsk->thread.trap_no = entry;
++	info.si_signo = SIGBUS;
++	info.si_errno = 0;
++	info.si_code = BUS_ADRERR;
++	info.si_addr = (void *)addr;
++	force_sig_info(SIGBUS, &info, tsk);
++
++	return;
++
++vmalloc_fault:
++	{
++		/*
++		 * Synchronize this task's top level page-table
++		 * with the 'reference' page table.
++		 *
++		 * Use current_pgd instead of tsk->active_mm->pgd
++		 * since the latter might be unavailable if this
++		 * code is executed in a misfortunately run irq
++		 * (like inside schedule() between switch_mm and
++		 *  switch_to...).
++		 */
++
++		unsigned int index = pgd_index(addr);
++		pgd_t *pgd, *pgd_k;
++		pud_t *pud, *pud_k;
++		pmd_t *pmd, *pmd_k;
++		pte_t *pte_k;
++
++		pgd = (pgd_t *) __va(__nds32__mfsr(NDS32_SR_L1_PPTB)) + index;
++		pgd_k = init_mm.pgd + index;
++
++		if (!pgd_present(*pgd_k))
++			goto no_context;
++
++		pud = pud_offset(pgd, addr);
++		pud_k = pud_offset(pgd_k, addr);
++		if (!pud_present(*pud_k))
++			goto no_context;
++
++		pmd = pmd_offset(pud, addr);
++		pmd_k = pmd_offset(pud_k, addr);
++		if (!pmd_present(*pmd_k))
++			goto no_context;
++
++		if (!pmd_present(*pmd))
++			set_pmd(pmd, *pmd_k);
++		else
++			BUG_ON(pmd_page(*pmd) != pmd_page(*pmd_k));
++
++		/*
++		 * Since the vmalloc area is global, we don't
++		 * need to copy individual PTE's, it is enough to
++		 * copy the pgd pointer into the pte page of the
++		 * root task. If that is there, we'll find our pte if
++		 * it exists.
++		 */
++
++		/* Make sure the actual PTE exists as well to
++		 * catch kernel vmalloc-area accesses to non-mapped
++		 * addres. If we don't do this, this will just
++		 * silently loop forever.
++		 */
++
++		pte_k = pte_offset_kernel(pmd_k, addr);
++		if (!pte_present(*pte_k))
++			goto no_context;
++
++		return;
++	}
 +}
+diff --git a/arch/nds32/mm/mmap.c b/arch/nds32/mm/mmap.c
+new file mode 100644
+index 0000000..91394f5
+--- /dev/null
++++ b/arch/nds32/mm/mmap.c
+@@ -0,0 +1,88 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/sched.h>
++#include <linux/mman.h>
++#include <linux/shm.h>
++
++#define COLOUR_ALIGN(addr,pgoff)		\
++	((((addr)+REALSHMLBA-1)&~(REALSHMLBA-1)) +	\
++	 (((pgoff)<<PAGE_SHIFT) & (REALSHMLBA-1)))
 +
 +/*
-+ * In order to soft-boot, we need to insert a 1:1 mapping in place of
-+ * the user-mode pages.  This will then ensure that we have predictable
-+ * results when turning the mmu off
++ * We need to ensure that shared mappings are correctly aligned to
++ * avoid aliasing issues with VIPT caches.  We need to ensure that
++ * a specific page of an object is always mapped at a multiple of
++ * SHMLBA bytes.
++ *
++ * We unconditionally provide this function for all cases, however
++ * in the VIVT case, we optimise out the alignment rules.
 + */
-+void setup_mm_for_reboot(char mode)
++unsigned long
++arch_get_unmapped_area(struct file *filp, unsigned long addr,
++		       unsigned long len, unsigned long pgoff,
++		       unsigned long flags)
 +{
-+	unsigned long pmdval;
-+	pgd_t *pgd;
-+	pmd_t *pmd;
-+	int i;
++	struct mm_struct *mm = current->mm;
++	struct vm_area_struct *vma;
++	int do_align = 0;
++#ifdef CONFIG_CPU_CACHE_NONALIASING
++	int aliasing = 0;
++#else
++	int aliasing = 1;
++#endif
++	struct vm_unmapped_area_info info;
 +
-+	if (current->mm && current->mm->pgd)
-+		pgd = current->mm->pgd;
-+	else
-+		pgd = init_mm.pgd;
++	/*
++	 * We only need to do colour alignment if either the I or D
++	 * caches alias.
++	 */
++	if (aliasing)
++		do_align = filp || (flags & MAP_SHARED);
 +
-+	for (i = 0; i < USER_PTRS_PER_PGD; i++) {
-+		pmdval = (i << PGDIR_SHIFT);
-+		pmd = pmd_offset(pgd + i, i << PGDIR_SHIFT);
-+		set_pmd(pmd, __pmd(pmdval));
++	/*
++	 * We enforce the MAP_FIXED case.
++	 */
++	if (flags & MAP_FIXED) {
++		if (aliasing && flags & MAP_SHARED &&
++		    (addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1))
++			return -EINVAL;
++		return addr;
 +	}
++
++	if (len > TASK_SIZE)
++		return -ENOMEM;
++
++	if (addr) {
++		if (do_align)
++			addr = COLOUR_ALIGN(addr, pgoff);
++		else
++			addr = PAGE_ALIGN(addr);
++
++		vma = find_vma(mm, addr);
++		if (TASK_SIZE - len >= addr &&
++		    (!vma || addr + len <= vma->vm_start))
++			return addr;
++	}
++
++	info.flags = 0;
++	info.length = len;
++	info.low_limit = mm->mmap_base;
++	info.high_limit = TASK_SIZE;
++	info.align_mask = do_align ? (PAGE_MASK & (SHMLBA - 1)) : 0;
++	info.align_offset = pgoff << PAGE_SHIFT;
++	return vm_unmapped_area(&info);
 +}
 -- 
 1.7.9.5
