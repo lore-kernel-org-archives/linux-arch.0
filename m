@@ -1,78 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f45.google.com ([74.125.82.45]:56145 "EHLO
-        mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751013AbdKHIal (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 03:30:41 -0500
-Received: by mail-wm0-f45.google.com with SMTP id y83so8863252wmc.4
-        for <linux-arch@vger.kernel.org>; Wed, 08 Nov 2017 00:30:40 -0800 (PST)
-Date: Wed, 8 Nov 2017 11:30:38 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
-Message-ID: <20171108083038.djj3qdhhnrazkk7b@node.shutemov.name>
-References: <20171106192524.12ea3187@roar.ozlabs.ibm.com>
- <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
- <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
- <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
- <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
- <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
- <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
- <20171108002448.6799462e@roar.ozlabs.ibm.com>
- <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
- <87y3nh2wt5.fsf@concordia.ellerman.id.au>
+Received: from mail-ot0-f194.google.com ([74.125.82.194]:48485 "EHLO
+        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750760AbdKHIgT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 03:36:19 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87y3nh2wt5.fsf@concordia.ellerman.id.au>
+In-Reply-To: <e0cf5501a9c31252f9d082ffe191f3e90cd4df6a.1510118606.git.green.hu@gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <e0cf5501a9c31252f9d082ffe191f3e90cd4df6a.1510118606.git.green.hu@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 8 Nov 2017 09:36:18 +0100
+Message-ID: <CAK8P3a0rHbjQw=z1mHoUDWfnzUBH+QE1CFOc4T7-rkOMM-SkLQ@mail.gmail.com>
+Subject: Re: [PATCH 05/31] nds32: MMU definitions
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Nicholas Piggin <npiggin@gmail.com>, Florian Weimer <fweimer@redhat.com>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, Thomas Gleixner <tglx@linutronix.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20171108083038.L2oZ1d4oCT1u81qfJid4I2N2sN3WX5e_LN_F6fSgpHk@z>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171108083618.ysvqDBPJO1fUwBBY-buYB6s0nDrkeyisCn8n3jTNzs8@z>
 
-On Wed, Nov 08, 2017 at 03:56:06PM +1100, Michael Ellerman wrote:
-> "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> writes:
-> 
-> >> 
-> >> If it is decided to keep these kind of heuristics, can we get just a
-> >> small but reasonably precise description of each change to the
-> >> interface and ways for using the new functionality, such that would be
-> >> suitable for the man page? I couldn't fix powerpc because nothing
-> >> matches and even Aneesh and you differ on some details (MAP_FIXED
-> >> behaviour).
-> >
-> >
-> > I would consider MAP_FIXED as my mistake. We never discussed this 
-> > explicitly and I kind of assumed it to behave the same way. ie, we 
-> > search in lower address space (128TB) if the hint addr is below 128TB.
-> >
-> > IIUC we agree on the below.
-> >
-> > 1) MAP_FIXED allow the addr to be used, even if hint addr is below 128TB 
-> > but hint_addr + len is > 128TB.
-> 
-> So:
->   mmap(0x7ffffffff000, 0x2000, ..., MAP_FIXED ...) = 0x7ffffffff000
-> 
-> > 2) For everything else we search in < 128TB space if hint addr is below 
-> > 128TB
-> 
->   mmap((x < 128T), 0x1000, ...) = (y < 128T)
->   ...
->   mmap(0x7ffffffff000, 0x1000, ...) = 0x7ffffffff000
->   mmap(0x800000000000, 0x1000, ...) = 0x800000000000
->   ...
->   mmap((x >= 128T), 0x1000, ...) = (y >= 128T)
-> 
-> > 3) We don't switch to large address space if hint_addr + len > 128TB. 
-> > The decision to switch to large address space is primarily based on hint 
-> > addr
-> 
-> But does the mmap succeed in that case or not?
-> 
-> ie:  mmap(0x7ffffffff000, 0x2000, ...) = ?
+On Wed, Nov 8, 2017 at 6:54 AM, Greentime Hu <green.hu@gmail.com> wrote:
 
-It does, but resulting address doesn't match the hint. It's somewhere
-below 47-bit border.
+> +/*
+> + * The DMA mask corresponding to the maximum bus address allocatable
+> + * using GFP_DMA.  The default here places no restriction on DMA
+> + * allocations.  This must be the smallest DMA mask in the system,
+> + * so a successful GFP_DMA allocation will always satisfy this.
+> + */
+> +#ifndef ISA_DMA_THRESHOLD
+> +#define ISA_DMA_THRESHOLD      (0xffffffffULL)
+> +#endif
 
--- 
- Kirill A. Shutemov
+I see this one only in powerpc, I think it can be removed.
+
+> +
+> +/*
+> + * Optional device DMA address remapping. Do _not_ use directly!
+> + * We should really eliminate virt_to_bus() here - it's deprecated.
+> + */
+> +#define page_to_dma(dev, page)         ((dma_addr_t)__virt_to_phys((unsigned long)page_address(page)))
+> +#define dma_to_virt(dev, addr)         ((void *)__phys_to_virt(addr))
+> +#define virt_to_dma(dev, addr)         ((dma_addr_t)__virt_to_phys((unsigned long)(addr)))
+
+This looks like an older comment, I think we have eliminated them from the
+mainline kernel in all drivers, so you should remove them here too.
+
+> diff --git a/arch/nds32/include/asm/shmparam.h b/arch/nds32/include/asm/shmparam.h
+> new file mode 100644
+> index 0000000..5679648
+> --- /dev/null
+> +++ b/arch/nds32/include/asm/shmparam.h
+
+> +
+> +/*
+> + * This should be the size of the virtually indexed cache/ways,
+> + * whichever is greater since the cache aliases every size/ways
+> + * bytes.
+> + */
+> +#define        SHMLBA  (4 * PAGE_SIZE) /* attach addr a multiple of this */
+> +#define        REALSHMLBA      SHMLBA
+
+I don't see REALSHMLBA anywhere in the kernel, do you need it?
+
+For SHMLBA, I think it should be defined as an absolute number, using
+the maximum
+that you might need for any possible value of PAGE_SIZE. Otherwise user space
+has a much harder time figuring out what it should use.
+
+        Arnd
