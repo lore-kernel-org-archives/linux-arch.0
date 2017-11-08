@@ -1,190 +1,258 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH 28/31] irqchip: Andestech Internal Vector Interrupt Controller driver
-Date: Wed,  8 Nov 2017 13:55:16 +0800
-Message-ID: <4572b290f40d62876b83328331a17c2343710b20.1510118606.git.green.hu@gmail.com>
+Subject: [PATCH 25/31] nds32: defconfig
+Date: Wed,  8 Nov 2017 13:55:13 +0800
+Message-ID: <805f8432979e2707fbc9bf62dc52b8abfbd2cb14.1510118606.git.green.hu@gmail.com>
 References: <cover.1510118606.git.green.hu@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
 References: <cover.1510118606.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: netdev-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org
-Cc: green.hu@gmail.com, Rick Chen <rick@andestech.com>
+Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-Signed-off-by: Rick Chen <rick@andestech.com>
+Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- drivers/irqchip/Makefile       |    1 +
- drivers/irqchip/irq-ativic32.c |  149 ++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 150 insertions(+)
- create mode 100644 drivers/irqchip/irq-ativic32.c
+ arch/nds32/configs/ae3xx_defconfig  |  110 +++++++++++++++++++++++++++++++++++
+ arch/nds32/configs/ag101p_defconfig |  109 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 219 insertions(+)
+ create mode 100644 arch/nds32/configs/ae3xx_defconfig
+ create mode 100644 arch/nds32/configs/ag101p_defconfig
 
-diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
-index b842dfd..201ca9f 100644
---- a/drivers/irqchip/Makefile
-+++ b/drivers/irqchip/Makefile
-@@ -80,3 +80,4 @@ obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o irq-aspeed-i2c-ic.o
- obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
- obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
- obj-$(CONFIG_IRQ_UNIPHIER_AIDET)	+= irq-uniphier-aidet.o
-+obj-$(CONFIG_NDS32)			+= irq-ativic32.o
-diff --git a/drivers/irqchip/irq-ativic32.c b/drivers/irqchip/irq-ativic32.c
+diff --git a/arch/nds32/configs/ae3xx_defconfig b/arch/nds32/configs/ae3xx_defconfig
 new file mode 100644
-index 0000000..d3dae59
+index 0000000..14d49a3
 --- /dev/null
-+++ b/drivers/irqchip/irq-ativic32.c
-@@ -0,0 +1,149 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/irq.h>
-+#include <linux/of.h>
-+#include <linux/of_irq.h>
-+#include <linux/of_address.h>
-+#include <linux/interrupt.h>
-+#include <linux/irqdomain.h>
-+#include <linux/irqchip.h>
-+#include <nds32_intrinsic.h>
-+
-+static void ativic32_ack_irq(struct irq_data *data)
-+{
-+	__nds32__mtsr_dsb(1 << data->hwirq, NDS32_SR_INT_PEND2);
-+}
-+
-+static void ativic32_mask_irq(struct irq_data *data)
-+{
-+	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
-+	__nds32__mtsr_dsb(int_mask2 & (~(1 << data->hwirq)), NDS32_SR_INT_MASK2);
-+}
-+
-+static void ativic32_mask_ack_irq(struct irq_data *data)
-+{
-+	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
-+	__nds32__mtsr_dsb(int_mask2 & (~(1 << data->hwirq)), NDS32_SR_INT_MASK2);
-+	__nds32__mtsr_dsb((1 << data->hwirq), NDS32_SR_INT_PEND2);
-+
-+}
-+
-+static void ativic32_unmask_irq(struct irq_data *data)
-+{
-+	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
-+	__nds32__mtsr_dsb(int_mask2 | (1 << data->hwirq), NDS32_SR_INT_MASK2);
-+}
-+
-+static int ativic32_set_type(struct irq_data *data, unsigned int flow_type)
-+{
-+	printk(KERN_WARNING "interrupt type is not configurable\n");
-+	return 0;
-+}
-+
-+static struct irq_chip ativic32_chip = {
-+	.name = "ativic32",
-+	.irq_ack = ativic32_ack_irq,
-+	.irq_mask = ativic32_mask_irq,
-+	.irq_mask_ack = ativic32_mask_ack_irq,
-+	.irq_unmask = ativic32_unmask_irq,
-+	.irq_set_type = ativic32_set_type,
-+};
-+
-+static unsigned int __initdata nivic_map[6] = { 6, 2, 10, 16, 24, 32 };
-+
-+struct irq_domain *root_domain;
-+static int ativic32_irq_domain_map(struct irq_domain *id, unsigned int virq,
-+				  irq_hw_number_t hw)
-+{
-+
-+	unsigned long int_trigger_type;
-+	int_trigger_type = __nds32__mfsr(NDS32_SR_INT_TRIGGER);
-+	if (int_trigger_type & (1 << hw))
-+		irq_set_chip_and_handler(virq, &ativic32_chip, handle_edge_irq);
-+	else
-+		irq_set_chip_and_handler(virq, &ativic32_chip, handle_level_irq);
-+
-+	return 0;
-+}
-+
-+static struct irq_domain_ops ativic32_ops = {
-+	.map = ativic32_irq_domain_map,
-+	.xlate = irq_domain_xlate_onecell
-+};
-+
-+static int get_intr_src(void)
-+{
-+	return ((__nds32__mfsr(NDS32_SR_ITYPE)&ITYPE_mskVECTOR) >> ITYPE_offVECTOR)
-+		- NDS32_VECTOR_offINTERRUPT;
-+}
-+
-+asmlinkage void asm_do_IRQ(struct pt_regs *regs)
-+{
-+	struct pt_regs *old_regs = set_irq_regs(regs);
-+	int virq;
-+	int irq = get_intr_src();
-+
-+	/*
-+	 * Some hardware gives randomly wrong interrupts.  Rather
-+	 * than crashing, do something sensible.
-+	 */
-+	if (unlikely(irq >= NR_IRQS)) {
-+		pr_emerg( "IRQ exceeds NR_IRQS\n");
-+		BUG();
-+	}
-+
-+	irq_enter();
-+	virq = irq_find_mapping(root_domain, irq);
-+	generic_handle_irq(virq);
-+	irq_exit();
-+	set_irq_regs(old_regs);
-+
-+}
-+
-+int __init ativic32_init_irq(struct device_node *node, struct device_node *parent)
-+{
-+	unsigned long int_vec_base, nivic, i;
-+
-+	if (WARN(parent, "non-root ativic32 are not supported"))
-+		return -EINVAL;
-+
-+	int_vec_base = __nds32__mfsr(NDS32_SR_IVB);
-+
-+	if (((int_vec_base & IVB_mskIVIC_VER) >> IVB_offIVIC_VER) == 0) {
-+		panic("Unable to use NOINTC option to boot on this cpu\n");
-+	}
-+
-+	nivic = (int_vec_base & IVB_mskNIVIC) >> IVB_offNIVIC;
-+	if (nivic >= (sizeof nivic_map / sizeof nivic_map[0])) {
-+		panic
-+		    ("The number of input for IVIC Controller is not supported on this cpu\n");
-+	}
-+	nivic = nivic_map[nivic];
-+
-+	root_domain = irq_domain_add_linear(node, nivic,
-+			&ativic32_ops, NULL);
-+
-+	if (!root_domain)
-+		panic("%s: unable to create IRQ domain\n", node->full_name);
-+
-+	for(i = 0; i < nivic; i++)
-+		irq_create_mapping(root_domain, i);
-+
-+	return 0;
-+
-+}
-+IRQCHIP_DECLARE(ativic32, "andestech,ativic32", ativic32_init_irq);
++++ b/arch/nds32/configs/ae3xx_defconfig
+@@ -0,0 +1,110 @@
++CONFIG_CROSS_COMPILE="nds32le-linux-"
++CONFIG_SYSVIPC=y
++CONFIG_POSIX_MQUEUE=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_BSD_PROCESS_ACCT=y
++CONFIG_BSD_PROCESS_ACCT_V3=y
++CONFIG_IKCONFIG=y
++CONFIG_IKCONFIG_PROC=y
++CONFIG_LOG_BUF_SHIFT=14
++CONFIG_NAMESPACES=y
++CONFIG_USER_NS=y
++CONFIG_RELAY=y
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_SYSCTL_SYSCALL=y
++CONFIG_KALLSYMS_ALL=y
++CONFIG_EMBEDDED=y
++# CONFIG_VM_EVENT_COUNTERS is not set
++# CONFIG_SLUB_DEBUG is not set
++CONFIG_PROFILING=y
++CONFIG_MODULES=y
++CONFIG_MODULE_UNLOAD=y
++# CONFIG_BLK_DEV_BSG is not set
++# CONFIG_HWZOL is not set
++CONFIG_ANDES_PAGE_SIZE_8KB=y
++CONFIG_NDS32_BUILTIN_DTB="ae3xx"
++CONFIG_PREEMPT=y
++# CONFIG_COMPACTION is not set
++CONFIG_HZ_100=y
++# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_NET_KEY=y
++CONFIG_INET=y
++CONFIG_IP_MULTICAST=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_DIAG is not set
++# CONFIG_IPV6 is not set
++CONFIG_BRIDGE=y
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_SIZE=8192
++CONFIG_NETDEVICES=y
++CONFIG_TUN=y
++# CONFIG_NET_CADENCE is not set
++# CONFIG_NET_VENDOR_BROADCOM is not set
++CONFIG_FTMAC100=y
++# CONFIG_NET_VENDOR_INTEL is not set
++# CONFIG_NET_VENDOR_MARVELL is not set
++# CONFIG_NET_VENDOR_MICREL is not set
++# CONFIG_NET_VENDOR_NATSEMI is not set
++# CONFIG_NET_VENDOR_SEEQ is not set
++# CONFIG_NET_VENDOR_STMICRO is not set
++# CONFIG_NET_VENDOR_WIZNET is not set
++CONFIG_INPUT_EVDEV=y
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++CONFIG_INPUT_TOUCHSCREEN=y
++# CONFIG_SERIO is not set
++CONFIG_SERIAL_8250=y
++# CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
++CONFIG_SERIAL_8250_CONSOLE=y
++CONFIG_SERIAL_8250_NR_UARTS=3
++CONFIG_SERIAL_8250_RUNTIME_UARTS=3
++CONFIG_SERIAL_OF_PLATFORM=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++CONFIG_WATCHDOG=y
++CONFIG_FB=y
++# CONFIG_VGA_CONSOLE is not set
++CONFIG_FRAMEBUFFER_CONSOLE=y
++CONFIG_LOGO=y
++CONFIG_SOUND=y
++CONFIG_SND=y
++# CONFIG_SND_SUPPORT_OLD_API is not set
++# CONFIG_SND_VERBOSE_PROCFS is not set
++# CONFIG_USB_SUPPORT is not set
++CONFIG_MMC=y
++CONFIG_RTC_CLASS=y
++# CONFIG_RTC_HCTOSYS is not set
++CONFIG_CLKSRC_ATCPIT100=y
++CONFIG_EXT2_FS=y
++CONFIG_FUSE_FS=y
++CONFIG_MSDOS_FS=y
++CONFIG_VFAT_FS=y
++CONFIG_TMPFS=y
++CONFIG_TMPFS_POSIX_ACL=y
++CONFIG_CONFIGFS_FS=y
++CONFIG_NFS_FS=y
++CONFIG_NFS_V3_ACL=y
++CONFIG_NFS_V4=y
++CONFIG_NFS_V4_1=y
++CONFIG_NFS_USE_LEGACY_DNS=y
++CONFIG_NLS_CODEPAGE_437=y
++CONFIG_NLS_ISO8859_1=y
++CONFIG_DEBUG_INFO=y
++CONFIG_DEBUG_INFO_DWARF4=y
++CONFIG_GDB_SCRIPTS=y
++CONFIG_READABLE_ASM=y
++CONFIG_HEADERS_CHECK=y
++CONFIG_DEBUG_SECTION_MISMATCH=y
++CONFIG_MAGIC_SYSRQ=y
++CONFIG_PANIC_ON_OOPS=y
++# CONFIG_SCHED_DEBUG is not set
++# CONFIG_DEBUG_PREEMPT is not set
++CONFIG_STACKTRACE=y
++CONFIG_RCU_CPU_STALL_TIMEOUT=300
++# CONFIG_CRYPTO_HW is not set
+diff --git a/arch/nds32/configs/ag101p_defconfig b/arch/nds32/configs/ag101p_defconfig
+new file mode 100644
+index 0000000..0641a97
+--- /dev/null
++++ b/arch/nds32/configs/ag101p_defconfig
+@@ -0,0 +1,109 @@
++CONFIG_CROSS_COMPILE="nds32le-linux-"
++CONFIG_SYSVIPC=y
++CONFIG_POSIX_MQUEUE=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_BSD_PROCESS_ACCT=y
++CONFIG_BSD_PROCESS_ACCT_V3=y
++CONFIG_IKCONFIG=y
++CONFIG_IKCONFIG_PROC=y
++CONFIG_LOG_BUF_SHIFT=14
++CONFIG_NAMESPACES=y
++CONFIG_USER_NS=y
++CONFIG_RELAY=y
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_SYSCTL_SYSCALL=y
++CONFIG_KALLSYMS_ALL=y
++CONFIG_EMBEDDED=y
++# CONFIG_VM_EVENT_COUNTERS is not set
++# CONFIG_SLUB_DEBUG is not set
++CONFIG_PROFILING=y
++CONFIG_MODULES=y
++CONFIG_MODULE_UNLOAD=y
++# CONFIG_BLK_DEV_BSG is not set
++# CONFIG_HWZOL is not set
++CONFIG_NDS32_BUILTIN_DTB="ag101p"
++CONFIG_PREEMPT=y
++# CONFIG_COMPACTION is not set
++CONFIG_HZ_100=y
++# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_NET_KEY=y
++CONFIG_INET=y
++CONFIG_IP_MULTICAST=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_DIAG is not set
++# CONFIG_IPV6 is not set
++CONFIG_BRIDGE=y
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_SIZE=8192
++CONFIG_NETDEVICES=y
++CONFIG_TUN=y
++# CONFIG_NET_CADENCE is not set
++# CONFIG_NET_VENDOR_BROADCOM is not set
++CONFIG_FTMAC100=y
++# CONFIG_NET_VENDOR_INTEL is not set
++# CONFIG_NET_VENDOR_MARVELL is not set
++# CONFIG_NET_VENDOR_MICREL is not set
++# CONFIG_NET_VENDOR_NATSEMI is not set
++# CONFIG_NET_VENDOR_SEEQ is not set
++# CONFIG_NET_VENDOR_STMICRO is not set
++# CONFIG_NET_VENDOR_WIZNET is not set
++CONFIG_INPUT_EVDEV=y
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++CONFIG_INPUT_TOUCHSCREEN=y
++# CONFIG_SERIO is not set
++CONFIG_SERIAL_8250=y
++# CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
++CONFIG_SERIAL_8250_CONSOLE=y
++CONFIG_SERIAL_8250_NR_UARTS=3
++CONFIG_SERIAL_8250_RUNTIME_UARTS=3
++CONFIG_SERIAL_OF_PLATFORM=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++CONFIG_WATCHDOG=y
++CONFIG_FB=y
++# CONFIG_VGA_CONSOLE is not set
++CONFIG_FRAMEBUFFER_CONSOLE=y
++CONFIG_LOGO=y
++CONFIG_SOUND=y
++CONFIG_SND=y
++# CONFIG_SND_SUPPORT_OLD_API is not set
++# CONFIG_SND_VERBOSE_PROCFS is not set
++# CONFIG_USB_SUPPORT is not set
++CONFIG_MMC=y
++CONFIG_RTC_CLASS=y
++# CONFIG_RTC_HCTOSYS is not set
++CONFIG_CLKSRC_ATFMR010=y
++CONFIG_EXT2_FS=y
++CONFIG_FUSE_FS=y
++CONFIG_MSDOS_FS=y
++CONFIG_VFAT_FS=y
++CONFIG_TMPFS=y
++CONFIG_TMPFS_POSIX_ACL=y
++CONFIG_CONFIGFS_FS=y
++CONFIG_NFS_FS=y
++CONFIG_NFS_V3_ACL=y
++CONFIG_NFS_V4=y
++CONFIG_NFS_V4_1=y
++CONFIG_NFS_USE_LEGACY_DNS=y
++CONFIG_NLS_CODEPAGE_437=y
++CONFIG_NLS_ISO8859_1=y
++CONFIG_DEBUG_INFO=y
++CONFIG_DEBUG_INFO_DWARF4=y
++CONFIG_GDB_SCRIPTS=y
++CONFIG_READABLE_ASM=y
++CONFIG_HEADERS_CHECK=y
++CONFIG_DEBUG_SECTION_MISMATCH=y
++CONFIG_MAGIC_SYSRQ=y
++CONFIG_PANIC_ON_OOPS=y
++# CONFIG_SCHED_DEBUG is not set
++# CONFIG_DEBUG_PREEMPT is not set
++CONFIG_STACKTRACE=y
++CONFIG_RCU_CPU_STALL_TIMEOUT=300
++# CONFIG_CRYPTO_HW is not set
 -- 
 1.7.9.5
