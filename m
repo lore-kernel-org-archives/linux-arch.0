@@ -1,76 +1,239 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41106 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751598AbdKHNZc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Nov 2017 08:25:32 -0500
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:33770 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752481AbdKHOYX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Nov 2017 09:24:23 -0500
+Subject: Re: [PATCH 28/31] irqchip: Andestech Internal Vector Interrupt
+ Controller driver
+References: <cover.1510118606.git.green.hu@gmail.com>
+ <4572b290f40d62876b83328331a17c2343710b20.1510118606.git.green.hu@gmail.com>
+From: Marc Zyngier <marc.zyngier@arm.com>
+Message-ID: <ddef1bef-4ca7-0f81-0b2b-3a48c69e199a@arm.com>
+Date: Wed, 8 Nov 2017 14:24:19 +0000
 MIME-Version: 1.0
-In-Reply-To: <a7b9f0a21bf6e0c3325a0d9a28a8503082cafd14.1510118606.git.green.hu@gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <a7b9f0a21bf6e0c3325a0d9a28a8503082cafd14.1510118606.git.green.hu@gmail.com>
-From: Rob Herring <robh+dt@kernel.org>
-Date: Wed, 8 Nov 2017 07:25:10 -0600
-Message-ID: <CAL_JsqLGQGZq9VYW2By84rf0BHPm4=QvKNts7ETCqVT3g7LA-w@mail.gmail.com>
-Subject: Re: [PATCH 27/31] dt-bindings: interrupt-controller: Andestech
- Internal Vector Interrupt Controller
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <4572b290f40d62876b83328331a17c2343710b20.1510118606.git.green.hu@gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>
-Cc: greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, Rick Chen <rick@andestech.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
-Message-ID: <20171108132510.m1Zu5GxM-_uc03TBS7rJRDAVdwRYjfVMRVioyLw7TLw@z>
+To: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, robh+dt@kernel.org, netdev@vger.kernel.org
+Cc: Rick Chen <rick@andestech.com>
+Message-ID: <20171108142419.WQKmVt3H1EP2sGW3gNIy54V2aCwuH220CRQ9xOsjedA@z>
 
-+DT list
-
-On Tue, Nov 7, 2017 at 11:55 PM, Greentime Hu <green.hu@gmail.com> wrote:
+On 08/11/17 05:55, Greentime Hu wrote:
 > From: Greentime Hu <greentime@andestech.com>
+> 
 
-Commit msg needed.
+Please add a commit message, indicating what this does, and potentially
+a pointer to some documentation (if publicly available).
 
 > Signed-off-by: Rick Chen <rick@andestech.com>
 > Signed-off-by: Greentime Hu <greentime@andestech.com>
 > ---
->  .../interrupt-controller/andestech,ativic32.txt    |   27 ++++++++++++++++++++
->  1 file changed, 27 insertions(+)
->  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
->
-> diff --git a/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt b/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
+>  drivers/irqchip/Makefile       |    1 +
+>  drivers/irqchip/irq-ativic32.c |  149 ++++++++++++++++++++++++++++++++++++++++
+>  2 files changed, 150 insertions(+)
+>  create mode 100644 drivers/irqchip/irq-ativic32.c
+> 
+> diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+> index b842dfd..201ca9f 100644
+> --- a/drivers/irqchip/Makefile
+> +++ b/drivers/irqchip/Makefile
+> @@ -80,3 +80,4 @@ obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o irq-aspeed-i2c-ic.o
+>  obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
+>  obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
+>  obj-$(CONFIG_IRQ_UNIPHIER_AIDET)	+= irq-uniphier-aidet.o
+> +obj-$(CONFIG_NDS32)			+= irq-ativic32.o
+> diff --git a/drivers/irqchip/irq-ativic32.c b/drivers/irqchip/irq-ativic32.c
 > new file mode 100644
-> index 0000000..6bac908
+> index 0000000..d3dae59
 > --- /dev/null
-> +++ b/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
-> @@ -0,0 +1,27 @@
-> +* Andestech Internal Vector Interrupt Controller
+> +++ b/drivers/irqchip/irq-ativic32.c
+> @@ -0,0 +1,149 @@
+> +/*
+> + * Copyright (C) 2005-2017 Andes Technology Corporation
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + * GNU General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public License
+> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+> + */
 > +
-> +The Internal Vector Interrupt Controller (IVIC) is a basic interrupt controller
-> +suitable for a simpler SoC platform not requiring a more sophisticated and
-> +bigger External Vector Interrupt Controller.
+> +#include <linux/irq.h>
+> +#include <linux/of.h>
+> +#include <linux/of_irq.h>
+> +#include <linux/of_address.h>
+> +#include <linux/interrupt.h>
+> +#include <linux/irqdomain.h>
+> +#include <linux/irqchip.h>
+> +#include <nds32_intrinsic.h>
 > +
+> +static void ativic32_ack_irq(struct irq_data *data)
+> +{
+> +	__nds32__mtsr_dsb(1 << data->hwirq, NDS32_SR_INT_PEND2);
+> +}
 > +
-> +Main node required properties:
+> +static void ativic32_mask_irq(struct irq_data *data)
+> +{
+> +	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
+> +	__nds32__mtsr_dsb(int_mask2 & (~(1 << data->hwirq)), NDS32_SR_INT_MASK2);
+> +}
 > +
-> +- compatible : should at least contain  "andestech,ativic32".
-> +- interrupt-parent: Empty for the interrupt controller itself
+> +static void ativic32_mask_ack_irq(struct irq_data *data)
+> +{
+> +	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
+> +	__nds32__mtsr_dsb(int_mask2 & (~(1 << data->hwirq)), NDS32_SR_INT_MASK2);
+> +	__nds32__mtsr_dsb((1 << data->hwirq), NDS32_SR_INT_PEND2);
+> +
+> +}
+> +
+> +static void ativic32_unmask_irq(struct irq_data *data)
+> +{
+> +	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
+> +	__nds32__mtsr_dsb(int_mask2 | (1 << data->hwirq), NDS32_SR_INT_MASK2);
+> +}
+> +
+> +static int ativic32_set_type(struct irq_data *data, unsigned int flow_type)
+> +{
+> +	printk(KERN_WARNING "interrupt type is not configurable\n");
 
-Drop this.
+If it is not configurable, what is the point of having each interrupt
+carry a trigger type in DT?
 
-> +- interrupt-controller : Identifies the node as an interrupt controller
-> +- #interrupt-cells: The number of cells to define the interrupts. Should be 2.
-> +       The first cell is the IRQ number
-> +       The second cell is used to specify mode:
-> +               1 = low-to-high edge triggered
-> +               2 = high-to-low edge triggered
-> +               4 = active high level-sensitive
-> +               8 = active low level-sensitive
-
-Just state 2 cells and refer to interrupt-controller/interrupts.txt.
-
-> +               Default for internal sources should be set to 4 (active high).
+> +	return 0;
+> +}
 > +
-> +Examples:
-> +       intc: interrupt-controller {
-> +               compatible = "andestech,ativic32";
-> +               #interrupt-cells = <2>;
-> +               interrupt-controller;
-> +       };
-> --
-> 1.7.9.5
->
+> +static struct irq_chip ativic32_chip = {
+> +	.name = "ativic32",
+> +	.irq_ack = ativic32_ack_irq,
+> +	.irq_mask = ativic32_mask_irq,
+> +	.irq_mask_ack = ativic32_mask_ack_irq,
+> +	.irq_unmask = ativic32_unmask_irq,
+> +	.irq_set_type = ativic32_set_type,
+> +};
+> +
+> +static unsigned int __initdata nivic_map[6] = { 6, 2, 10, 16, 24, 32 };
+> +
+> +struct irq_domain *root_domain;
+
+Why isn't this static? Is there anything accessing it from outside of
+this driver?
+
+> +static int ativic32_irq_domain_map(struct irq_domain *id, unsigned int virq,
+> +				  irq_hw_number_t hw)
+> +{
+> +
+> +	unsigned long int_trigger_type;
+> +	int_trigger_type = __nds32__mfsr(NDS32_SR_INT_TRIGGER);
+> +	if (int_trigger_type & (1 << hw))
+> +		irq_set_chip_and_handler(virq, &ativic32_chip, handle_edge_irq);
+> +	else
+> +		irq_set_chip_and_handler(virq, &ativic32_chip, handle_level_irq);
+> +
+> +	return 0;
+> +}
+> +
+> +static struct irq_domain_ops ativic32_ops = {
+> +	.map = ativic32_irq_domain_map,
+> +	.xlate = irq_domain_xlate_onecell
+
+Huh... Your DT binding insist on two cells, and yet...
+
+> +};
+> +
+> +static int get_intr_src(void)
+> +{
+> +	return ((__nds32__mfsr(NDS32_SR_ITYPE)&ITYPE_mskVECTOR) >> ITYPE_offVECTOR)
+> +		- NDS32_VECTOR_offINTERRUPT;
+> +}
+> +
+> +asmlinkage void asm_do_IRQ(struct pt_regs *regs)
+> +{
+> +	struct pt_regs *old_regs = set_irq_regs(regs);
+> +	int virq;
+> +	int irq = get_intr_src();
+> +
+> +	/*
+> +	 * Some hardware gives randomly wrong interrupts.  Rather
+> +	 * than crashing, do something sensible.
+> +	 */
+> +	if (unlikely(irq >= NR_IRQS)) {
+> +		pr_emerg( "IRQ exceeds NR_IRQS\n");
+> +		BUG();
+
+Given the above comment, I find this hilarious!
+
+> +	}
+> +
+> +	irq_enter();
+> +	virq = irq_find_mapping(root_domain, irq);
+> +	generic_handle_irq(virq);
+> +	irq_exit();
+> +	set_irq_regs(old_regs);
+
+Why can't you use handle_domain_irq() directly instead of what looks
+like a copy of it (this is where the comment comes from...)?
+
+> +
+> +}
+> +
+> +int __init ativic32_init_irq(struct device_node *node, struct device_node *parent)
+> +{
+> +	unsigned long int_vec_base, nivic, i;
+> +
+> +	if (WARN(parent, "non-root ativic32 are not supported"))
+> +		return -EINVAL;
+> +
+> +	int_vec_base = __nds32__mfsr(NDS32_SR_IVB);
+> +
+> +	if (((int_vec_base & IVB_mskIVIC_VER) >> IVB_offIVIC_VER) == 0) {
+> +		panic("Unable to use NOINTC option to boot on this cpu\n");
+> +	}
+> +
+> +	nivic = (int_vec_base & IVB_mskNIVIC) >> IVB_offNIVIC;
+> +	if (nivic >= (sizeof nivic_map / sizeof nivic_map[0])) {
+> +		panic
+> +		    ("The number of input for IVIC Controller is not supported on this cpu\n");
+
+Irk. Please leave this on a single line... Or better yet, get rid of it
+(see below).
+
+> +	}
+> +	nivic = nivic_map[nivic];
+
+If you have multiple configurations, I'd rather they live in DT,
+specially if the IP is easily configurable.
+
+> +
+> +	root_domain = irq_domain_add_linear(node, nivic,
+> +			&ativic32_ops, NULL);
+> +
+> +	if (!root_domain)
+> +		panic("%s: unable to create IRQ domain\n", node->full_name);
+> +
+> +	for(i = 0; i < nivic; i++)
+> +		irq_create_mapping(root_domain, i);
+
+You shouldn't need this, as the core DT code will populate the interrupt
+on demand.
+
+> +
+> +	return 0;
+> +
+> +}
+> +IRQCHIP_DECLARE(ativic32, "andestech,ativic32", ativic32_init_irq);
+> 
+
+Thanks,
+
+	M.
+-- 
+Jazz is not dead. It just smells funny...
