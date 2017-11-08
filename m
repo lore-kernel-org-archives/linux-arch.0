@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f68.google.com ([209.85.160.68]:44526 "EHLO
+Received: from mail-pl0-f68.google.com ([209.85.160.68]:53453 "EHLO
         mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754069AbdKHGUa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 01:20:30 -0500
+        with ESMTP id S1753998AbdKHGUG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 01:20:06 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH 13/31] nds32: DMA mapping API
-Date: Wed,  8 Nov 2017 13:55:01 +0800
-Message-ID: <763e6a252de1ad8ccd28344fd0676ae2f92f796d.1510118606.git.green.hu@gmail.com>
+Subject: [PATCH 04/31] nds32: Exception handling
+Date: Wed,  8 Nov 2017 13:54:52 +0800
+Message-ID: <9caaf73b79b22357ef957382eb7c0151a2d7d189.1510118606.git.green.hu@gmail.com>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
 References: <cover.1510118606.git.green.hu@gmail.com>
 In-Reply-To: <cover.1510118606.git.green.hu@gmail.com>
@@ -15,25 +15,33 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171108055501.nVy8LXRh5Ru6dRA0AL0QJ5sU5uGEIxMexNywJdIpWEM@z>
+Message-ID: <20171108055452.j6rpImwf1aWDcXDqXS8rqPf8IVDPa1FywL6b6jDKwnE@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/dma-mapping.h |   27 ++
- arch/nds32/kernel/dma.c              |  478 ++++++++++++++++++++++++++++++++++
- 2 files changed, 505 insertions(+)
- create mode 100644 arch/nds32/include/asm/dma-mapping.h
- create mode 100644 arch/nds32/kernel/dma.c
+ arch/nds32/include/asm/ptrace.h |   79 ++++++
+ arch/nds32/kernel/ex-entry.S    |  169 ++++++++++++
+ arch/nds32/kernel/ex-exit.S     |  207 ++++++++++++++
+ arch/nds32/kernel/stacktrace.c  |   60 +++++
+ arch/nds32/kernel/traps.c       |  442 ++++++++++++++++++++++++++++++
+ arch/nds32/mm/alignment.c       |  564 +++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 1521 insertions(+)
+ create mode 100644 arch/nds32/include/asm/ptrace.h
+ create mode 100644 arch/nds32/kernel/ex-entry.S
+ create mode 100644 arch/nds32/kernel/ex-exit.S
+ create mode 100644 arch/nds32/kernel/stacktrace.c
+ create mode 100644 arch/nds32/kernel/traps.c
+ create mode 100644 arch/nds32/mm/alignment.c
 
-diff --git a/arch/nds32/include/asm/dma-mapping.h b/arch/nds32/include/asm/dma-mapping.h
+diff --git a/arch/nds32/include/asm/ptrace.h b/arch/nds32/include/asm/ptrace.h
 new file mode 100644
-index 0000000..63dbeb7
+index 0000000..2c9c03d
 --- /dev/null
-+++ b/arch/nds32/include/asm/dma-mapping.h
-@@ -0,0 +1,27 @@
++++ b/arch/nds32/include/asm/ptrace.h
+@@ -0,0 +1,79 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -50,23 +58,75 @@ index 0000000..63dbeb7
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef ASMNDS32_DMA_MAPPING_H
-+#define ASMNDS32_DMA_MAPPING_H
++#ifndef __ASM_NDS32_PTRACE_H
++#define __ASM_NDS32_PTRACE_H
 +
-+extern struct dma_map_ops nds32_dma_ops;
++#define PTRACE_GETREGS		12
++#define PTRACE_SETREGS		13
++#define PTRACE_GETFPREGS	14
++#define PTRACE_SETFPREGS	15
 +
-+static inline struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
-+{
-+	return &nds32_dma_ops;
-+}
++#include <uapi/asm/ptrace.h>
 +
++#ifndef __ASSEMBLY__
++
++struct pt_regs {
++	union {
++		struct user_pt_regs user_regs;
++		struct {
++			long uregs[26];
++			long fp;
++			long gp;
++			long lp;
++			long sp;
++			long ipc;
++#if defined(CONFIG_HWZOL)
++			long lb;
++			long le;
++			long lc;
++#else
++			long dummy[3];
 +#endif
-diff --git a/arch/nds32/kernel/dma.c b/arch/nds32/kernel/dma.c
++			long syscallno;
++		};
++	};
++	long orig_r0;
++	long ir0;
++	long ipsw;
++	long pipsw;
++	long pipc;
++	long pp0;
++	long pp1;
++	long fucop_ctl;
++	long osp;
++};
++
++#include <asm/bitfield.h>
++extern void show_regs(struct pt_regs *);
++/* Avoid circular header include via sched.h */
++struct task_struct;
++extern void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
++			 int error_code, int si_code);
++
++#define arch_has_single_step()		(1)
++#define user_mode(regs)			(((regs)->ipsw & PSW_mskPOM) == 0)
++#define interrupts_enabled(regs)	(!!((regs)->ipsw & PSW_mskGIE))
++#define valid_user_regs(regs)		(user_mode(regs) && interrupts_enabled(regs))
++#define regs_return_value(regs)		((regs)->uregs[0])
++#define instruction_pointer(regs)	((regs)->ipc)
++#define user_stack_pointer(regs)        ((regs)->sp)
++#define profile_pc(regs) 		instruction_pointer(regs)
++
++#define ARCH_HAS_USER_SINGLE_STEP_INFO
++
++#endif /* __ASSEMBLY__ */
++#endif
+diff --git a/arch/nds32/kernel/ex-entry.S b/arch/nds32/kernel/ex-entry.S
 new file mode 100644
-index 0000000..939702e
+index 0000000..3e977cf
 --- /dev/null
-+++ b/arch/nds32/kernel/dma.c
-@@ -0,0 +1,478 @@
++++ b/arch/nds32/kernel/ex-entry.S
+@@ -0,0 +1,169 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -83,467 +143,1455 @@ index 0000000..939702e
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/types.h>
-+#include <linux/mm.h>
-+#include <linux/export.h>
-+#include <linux/string.h>
-+#include <linux/scatterlist.h>
-+#include <linux/dma-mapping.h>
-+#include <linux/io.h>
-+#include <linux/cache.h>
-+#include <linux/highmem.h>
-+#include <linux/slab.h>
-+#include <asm/cacheflush.h>
-+#include <asm/tlbflush.h>
-+#include <asm/dma-mapping.h>
-+#include <asm/proc-fns.h>
++#include <linux/linkage.h>
++#include <asm/memory.h>
++#include <asm/nds32.h>
++#include <asm/errno.h>
++#include <asm/asm-offsets.h>
++#include <asm/page.h>
++
++	.macro push_zol
++#ifdef CONFIG_HWZOL
++	mfusr	$r14, $LB
++	mfusr	$r15, $LE
++	mfusr	$r16, $LC
++#endif
++	.endm
++
++	.macro	save_user_regs
++
++	smw.adm $sp, [$sp], $sp, #0x1
++        addi    $sp, $sp, -OSP_OFFSET /* move $SP to the bottom of pt_regs*/
++
++	/*push $r0 ~ $r25*/
++	smw.bim $r0, [$sp], $r25
++	/*push $fp, $gp, $lp*/
++	smw.bim $sp, [$sp], $sp, #0xe
++
++	mfsr	$r12, $SP_USR
++	mfsr	$r13, $IPC
++#ifdef CONFIG_HWZOL
++	push_zol
++#endif
++	movi	$r17, -1
++	move	$r18, $r0
++	mfsr	$r19, $PSW
++	mfsr	$r20, $IPSW
++	mfsr	$r21, $P_IPSW
++	mfsr	$r22, $P_IPC
++	mfsr	$r23, $P_P0
++	mfsr	$r24, $P_P1
++	smw.bim $r12, [$sp], $r24, #0
++	addi	$sp, $sp, -FUCOP_CTL_OFFSET
++
++/*Initialize kernel space $fp*/
++	andi    $p0, $r20, #PSW_mskPOM
++	movi    $p1, #0x0
++	cmovz   $fp, $p1, $p0
++
++	andi	$r16, $r19, #PSW_mskINTL
++	slti	$r17, $r16, #4
++	bnez	$r17, 1f
++	addi	$r17, $r19, #-2
++	mtsr	$r17, $PSW
++	isb
++1:
++	/* If it was superuser mode, we don't need to update $r25*/
++	bnez	$p0, 2f
++	la	$p0, __entry_task
++	lw	$r25, [$p0]
++2:
++	.endm
++
++	.text
 +
 +/*
-+ * This is the page table (2MB) covering uncached, DMA consistent allocations
++ * Exception Vector
 + */
-+static pte_t *consistent_pte;
-+static DEFINE_RAW_SPINLOCK(consistent_lock);
++exception_handlers:
++	.long	unhandled_exceptions	!Reset/NMI
++	.long	unhandled_exceptions	!TLB fill
++	.long	do_page_fault		!PTE not present
++	.long	do_dispatch_tlb_misc	!TLB misc
++	.long	unhandled_exceptions	!TLB VLPT
++	.long	unhandled_exceptions	!Machine Error
++	.long	do_debug_trap		!Debug related
++	.long	do_dispatch_general	!General exception
++	.long	eh_syscall		!Syscall
++	.long	asm_do_IRQ		!IRQ
++
++common_exception_handler:
++	save_user_regs
++	mfsr	$p0, $ITYPE
++	andi	$p0, $p0, #ITYPE_mskVECTOR
++	srli	$p0, $p0, #ITYPE_offVECTOR
++	andi	$p1, $p0, #NDS32_VECTOR_mskNONEXCEPTION
++	bnez	$p1, 1f
++	sethi	$lp, hi20(ret_from_exception)
++	ori	$lp, $lp, lo12(ret_from_exception)
++	sethi	$p1, hi20(exception_handlers)
++	ori	$p1, $p1, lo12(exception_handlers)
++	lw	$p1, [$p1+$p0<<2]
++	move	$r0, $p0
++	mfsr	$r1, $EVA
++	mfsr	$r2, $ITYPE
++	move	$r3, $sp
++	mfsr    $r4, $OIPC
++	/* enable gie if it is enabled in IPSW. */
++	mfsr	$r21, $PSW
++	andi	$r20, $r20, #PSW_mskGIE	/* r20 is $IPSW*/
++	or	$r21, $r21, $r20
++	mtsr	$r21, $PSW
++	dsb
++	jr	$p1
++
++	/* syscall */
++1:
++	addi	$p1, $p0, #-NDS32_VECTOR_offEXCEPTION
++	bnez	$p1, 2f
++	sethi	$lp, hi20(ret_from_exception)
++	ori	$lp, $lp, lo12(ret_from_exception)
++	sethi	$p1, hi20(exception_handlers)
++	ori	$p1, $p1, lo12(exception_handlers)
++	lwi	$p1, [$p1+#NDS32_VECTOR_offEXCEPTION<<2]
++	jr	$p1
++
++	/* interrupt */
++2:
++#ifdef CONFIG_TRACE_IRQFLAGS
++	jal     arch_trace_hardirqs_off
++#endif
++	move	$r0, $sp
++	sethi	$lp, hi20(ret_from_intr)
++	ori	$lp, $lp, lo12(ret_from_intr)
++	sethi	$p0, hi20(exception_handlers)
++	ori	$p0, $p0, lo12(exception_handlers)
++	lwi	$p0, [$p0+#NDS32_VECTOR_offINTERRUPT<<2]
++	jr	$p0
++
++	.macro	EXCEPTION_VECTOR_DEBUG
++	.align 4
++	mfsr     $p0, $EDM_CTL
++	andi     $p0, $p0, EDM_CTL_mskV3_EDM_MODE
++	tnez     $p0, SWID_RAISE_INTERRUPT_LEVEL
++	.endm
++
++	.macro	EXCEPTION_VECTOR
++	.align 4
++	sethi	 $p0, hi20(common_exception_handler)
++	ori	 $p0, $p0, lo12(common_exception_handler)
++	jral.ton $p0, $p0
++	.endm
++
++	.section	".text.init", #alloc, #execinstr
++	.global	exception_vector
++exception_vector:
++.rept 5
++	EXCEPTION_VECTOR
++.endr
++	EXCEPTION_VECTOR_DEBUG
++.rept 122
++	EXCEPTION_VECTOR
++.endr
++	.align 4
++	.global	exception_vector_end
++exception_vector_end:
+diff --git a/arch/nds32/kernel/ex-exit.S b/arch/nds32/kernel/ex-exit.S
+new file mode 100644
+index 0000000..c7cda60
+--- /dev/null
++++ b/arch/nds32/kernel/ex-exit.S
+@@ -0,0 +1,207 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/linkage.h>
++#include <asm/unistd.h>
++#include <asm/assembler.h>
++#include <asm/nds32.h>
++#include <asm/asm-offsets.h>
++#include <asm/thread_info.h>
++#include <asm/current.h>
++
++#define why	$r8
++
++
++	.macro pop_zol
++#ifdef CONFIG_HWZOL
++	mtusr	$r14, $LB
++	mtusr	$r15, $LE
++	mtusr	$r16, $LC
++#endif
++	.endm
++
++	.macro	restore_user_regs_first
++	setgie.d
++	isb
++
++	addi	$sp, $sp, FUCOP_CTL_OFFSET
++
++	lmw.adm $r12, [$sp], $r24, #0x0
++	mtsr	$r12, $SP_USR
++	mtsr	$r13, $IPC
++#ifdef CONFIG_HWZOL
++	pop_zol
++#endif
++	mtsr	$r19, $PSW
++	mtsr	$r20, $IPSW
++	mtsr    $r21, $P_IPSW
++	mtsr	$r22, $P_IPC
++	mtsr	$r23, $P_P0
++	mtsr	$r24, $P_P1
++	lmw.adm $sp, [$sp], $sp, #0xe
++	.endm
++
++	.macro	restore_user_regs_last
++	pop	$p0
++	cmovn	$sp, $p0, $p0
++
++	iret
++	nop
++
++	.endm
++
++	.macro	restore_user_regs
++	restore_user_regs_first
++	lmw.adm $r0, [$sp], $r25, #0x0
++	addi	$sp, $sp, OSP_OFFSET
++	restore_user_regs_last
++	.endm
++
++	.macro	fast_restore_user_regs
++	restore_user_regs_first
++	lmw.adm $r1, [$sp], $r25, #0x0
++	addi	$sp, $sp, OSP_OFFSET-4
++	restore_user_regs_last
++	.endm
++
++#ifdef CONFIG_PREEMPT
++	.macro	preempt_stop
++	.endm
++#else
++	.macro	preempt_stop
++	setgie.d
++	isb
++	.endm
++#define	resume_kernel	no_work_pending
++#endif
++
++ENTRY(ret_from_exception)
++	preempt_stop
++ENTRY(ret_from_intr)
++	move	why, #0				! not system call
 +
 +/*
-+ * VM region handling support.
++ * judge Kernel or user mode
 + *
-+ * This should become something generic, handling VM region allocations for
-+ * vmalloc and similar (ioremap, module space, etc).
-+ *
-+ * I envisage vmalloc()'s supporting vm_struct becoming:
-+ *
-+ *  struct vm_struct {
-+ *    struct vm_region	region;
-+ *    unsigned long	flags;
-+ *    struct page	**pages;
-+ *    unsigned int	nr_pages;
-+ *    unsigned long	phys_addr;
-+ *  };
-+ *
-+ * get_vm_area() would then call vm_region_alloc with an appropriate
-+ * struct vm_region head (eg):
-+ *
-+ *  struct vm_region vmalloc_head = {
-+ *	.vm_list	= LIST_HEAD_INIT(vmalloc_head.vm_list),
-+ *	.vm_start	= VMALLOC_START,
-+ *	.vm_end		= VMALLOC_END,
-+ *  };
-+ *
-+ * However, vmalloc_head.vm_start is variable (typically, it is dependent on
-+ * the amount of RAM found at boot time.)  I would imagine that get_vm_area()
-+ * would have to initialise this each time prior to calling vm_region_alloc().
 + */
-+struct arch_vm_region {
-+	struct list_head vm_list;
-+	unsigned long vm_start;
-+	unsigned long vm_end;
-+	struct page *vm_pages;
-+};
++	lwi	$p0, [$sp+(#IPSW_OFFSET)]	! Check if in nested interrupt
++	andi	$p0, $p0, #PSW_mskINTL
++	bnez	$p0, resume_kernel		! done with iret
++	j	resume_userspace
 +
-+static struct arch_vm_region consistent_head = {
-+	.vm_list = LIST_HEAD_INIT(consistent_head.vm_list),
-+	.vm_start = CONSISTENT_BASE,
-+	.vm_end = CONSISTENT_END,
-+};
 +
-+static struct arch_vm_region *vm_region_alloc(struct arch_vm_region *head,
-+					      size_t size, int gfp)
++/*
++ * This is the fast syscall return path.  We do as little as
++ * possible here, and this includes saving $r0 back into the SVC
++ * stack.
++ * fixed: tsk - $r25, why - $r8, $r7 - syscall #, $r8 - syscall table pointer
++ */
++ENTRY(ret_fast_syscall)
++	gie_disable
++	lwi	$r1, [tsk+#TSK_TI_FLAGS]
++	andi	$p1, $r1, #_TIF_WORK_MASK
++	bnez	$p1, fast_work_pending
++	fast_restore_user_regs			! iret
++
++/*
++ * Ok, we need to do extra processing,
++ * enter the slow path returning from syscall, while pending work.
++ */
++fast_work_pending:
++	swi	$r0, [$sp+(#R0_OFFSET)]		! what is different from ret_from_exception
++	move	why, #1				! come from a syscall
++work_pending:
++	andi	$p1, $r1, #_TIF_NEED_RESCHED
++	bnez	$p1, work_resched
++
++	andi	$p1, $r1, #_TIF_SIGPENDING|#_TIF_NOTIFY_RESUME
++	beqz	$p1, no_work_pending
++
++	move	$r0, $sp			! 'regs'
++	move	$r2, why
++	gie_enable
++	bal	do_notify_resume
++	beqz	$r0, ret_slow_syscall
++	bgtz	$r0, 1f
++	movi	$r7, #__NR_restart_syscall
++1:
++	b	eh_syscall_phase_2
++work_resched:
++	bal	schedule			! path, return to user mode
++
++/*
++ * "slow" syscall return path.
++ * "why" tells us if this was a real syscall.
++ */
++ENTRY(resume_userspace)
++ENTRY(ret_slow_syscall)
++	gie_disable
++	lwi	$p0, [$sp+(#IPSW_OFFSET)]	! Check if in nested interrupt
++	andi	$p0, $p0, #PSW_mskINTL
++	bnez	$p0, no_work_pending		! done with iret
++	lwi	$r1, [tsk+#TSK_TI_FLAGS]
++	andi	$p1, $r1, #_TIF_WORK_MASK
++	bnez	$p1, work_pending		! handle work_resched, sig_pend
++
++no_work_pending:
++#ifdef CONFIG_TRACE_IRQFLAGS
++	lwi	$p0, [$sp+(#IPSW_OFFSET)]
++	andi	$p0, $p0, #0x1
++	la	$r10, arch_trace_hardirqs_off
++	la	$r9, arch_trace_hardirqs_on
++	cmovz	$r9, $p0, $r10
++	jral	$r9
++#endif
++	restore_user_regs			! return from iret
++
++
++/*
++ * preemptive kernel
++ */
++#ifdef CONFIG_PREEMPT
++resume_kernel:
++	gie_disable
++	lwi	$t0, [tsk+#TSK_TI_PREEMPT]
++	bnez	$t0, no_work_pending
++need_resched:
++	lwi	$t0, [tsk+#TSK_TI_FLAGS]
++	andi	$p1, $t0, #_TIF_NEED_RESCHED
++	beqz	$p1, no_work_pending
++
++	lwi	$t0, [$sp+(#IPSW_OFFSET)]	! Interrupts off?
++	andi	$t0, $t0, #1
++	beqz	$t0, no_work_pending
++
++	jal	preempt_schedule_irq
++	b	need_resched
++#endif
++
++/*
++ * This is how we return from a fork.
++ */
++ENTRY(ret_from_fork)
++	bal	schedule_tail
++	beqz	$r6, 1f				! r6 stores fn for kernel thread
++	move	$r0, $r7			! prepare kernel thread arg
++	jral	$r6
++1:
++	lwi	$r1, [tsk+#TSK_TI_FLAGS]		! check for syscall tracing
++	move	why, #1
++	andi	$p1, $r1, #_TIF_WORK_SYSCALL_LEAVE	! are we tracing syscalls?
++	beqz	$p1, ret_slow_syscall
++	move    $r0, $sp
++	bal	syscall_trace_leave
++	b	ret_slow_syscall
+diff --git a/arch/nds32/kernel/stacktrace.c b/arch/nds32/kernel/stacktrace.c
+new file mode 100644
+index 0000000..78e816d
+--- /dev/null
++++ b/arch/nds32/kernel/stacktrace.c
+@@ -0,0 +1,60 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/sched/debug.h>
++#include <linux/sched/task_stack.h>
++#include <linux/stacktrace.h>
++
++void save_stack_trace(struct stack_trace *trace)
 +{
-+	unsigned long addr = head->vm_start, end = head->vm_end - size;
-+	unsigned long flags;
-+	struct arch_vm_region *c, *new;
-+
-+	new = kmalloc(sizeof(struct arch_vm_region), gfp);
-+	if (!new)
-+		goto out;
-+
-+	raw_spin_lock_irqsave(&consistent_lock, flags);
-+
-+	list_for_each_entry(c, &head->vm_list, vm_list) {
-+		if ((addr + size) < addr)
-+			goto nospc;
-+		if ((addr + size) <= c->vm_start)
-+			goto found;
-+		addr = c->vm_end;
-+		if (addr > end)
-+			goto nospc;
-+	}
-+
-+found:
-+	/*
-+	 * Insert this entry _before_ the one we found.
-+	 */
-+	list_add_tail(&new->vm_list, &c->vm_list);
-+	new->vm_start = addr;
-+	new->vm_end = addr + size;
-+
-+	raw_spin_unlock_irqrestore(&consistent_lock, flags);
-+	return new;
-+
-+nospc:
-+	raw_spin_unlock_irqrestore(&consistent_lock, flags);
-+	kfree(new);
-+out:
-+	return NULL;
++	save_stack_trace_tsk(current, trace);
 +}
 +
-+static struct arch_vm_region *vm_region_find(struct arch_vm_region *head,
-+					     unsigned long addr)
++void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
 +{
-+	struct arch_vm_region *c;
++	unsigned long *fpn;
++	int skip = trace->skip;
++	int savesched;
 +
-+	list_for_each_entry(c, &head->vm_list, vm_list) {
-+		if (c->vm_start == addr)
-+			goto out;
-+	}
-+	c = NULL;
-+out:
-+	return c;
-+}
-+
-+/* FIXME: attrs is not used. */
-+static void *nds32_dma_alloc_coherent(struct device *dev, size_t size,
-+				      dma_addr_t * handle, gfp_t gfp,
-+				      unsigned long attrs)
-+{
-+	struct page *page;
-+	struct arch_vm_region *c;
-+	unsigned long order;
-+	u64 mask = ISA_DMA_THRESHOLD, limit;
-+	pgprot_t prot = pgprot_noncached(PAGE_KERNEL);
-+
-+	if (!consistent_pte) {
-+		pr_err("%s: not initialized\n", __func__);
-+		dump_stack();
-+		return NULL;
++	if (tsk == current) {
++		__asm__ __volatile__("\tori\t%0, $fp, #0\n":"=r"(fpn));
++		savesched = 1;
++	} else {
++		fpn = (unsigned long *)thread_saved_fp(tsk);
++		savesched = 0;
 +	}
 +
-+	if (dev) {
-+		mask = dev->coherent_dma_mask;
++	while (!kstack_end(fpn) && !((unsigned long)fpn & 0x3)
++	       && (fpn >= (unsigned long *)TASK_SIZE)) {
++		unsigned long lpp, fpp;
 +
-+		/*
-+		 * Sanity check the DMA mask - it must be non-zero, and
-+		 * must be able to be satisfied by a DMA allocation.
-+		 */
-+		if (mask == 0) {
-+			dev_warn(dev, "coherent DMA mask is unset\n");
-+			goto no_page;
-+		}
++		lpp = fpn[-1];
++		fpp = fpn[FP_OFFSET];
++		if (!__kernel_text_address(lpp))
++			break;
 +
-+		if ((~mask) & ISA_DMA_THRESHOLD) {
-+			dev_warn(dev, "coherent DMA mask %#llx is smaller "
-+				 "than system GFP_DMA mask %#llx\n",
-+				 mask, (unsigned long long)ISA_DMA_THRESHOLD);
-+			goto no_page;
-+		}
-+	}
-+
-+	/*
-+	 * Sanity check the allocation size.
-+	 */
-+	size = PAGE_ALIGN(size);
-+	limit = (mask + 1) & ~mask;
-+	if ((limit && size >= limit) ||
-+	    size >= (CONSISTENT_END - CONSISTENT_BASE)) {
-+		pr_warn("coherent allocation too big "
-+			"(requested %#x mask %#llx)\n", size, mask);
-+		goto no_page;
-+	}
-+
-+	order = get_order(size);
-+
-+	if (mask != 0xffffffff)
-+		gfp |= GFP_DMA;
-+
-+	page = alloc_pages(gfp, order);
-+	if (!page)
-+		goto no_page;
-+
-+	/*
-+	 * Invalidate any data that might be lurking in the
-+	 * kernel direct-mapped region for device DMA.
-+	 */
-+	{
-+		unsigned long kaddr = (unsigned long)page_address(page);
-+		memset(page_address(page), 0, size);
-+		cpu_dma_wbinval_range(kaddr, kaddr + size);
-+	}
-+
-+	/*
-+	 * Allocate a virtual address in the consistent mapping region.
-+	 */
-+	c = vm_region_alloc(&consistent_head, size,
-+			    gfp & ~(__GFP_DMA | __GFP_HIGHMEM));
-+	if (c) {
-+		pte_t *pte = consistent_pte + CONSISTENT_OFFSET(c->vm_start);
-+		struct page *end = page + (1 << order);
-+
-+		c->vm_pages = page;
-+
-+		/*
-+		 * Set the "dma handle"
-+		 */
-+		*handle = page_to_dma(dev, page);
-+
-+		do {
-+			BUG_ON(!pte_none(*pte));
-+
-+			/*
-+			 * x86 does not mark the pages reserved...
-+			 */
-+			SetPageReserved(page);
-+			set_pte(pte, mk_pte(page, prot));
-+			page++;
-+			pte++;
-+		} while (size -= PAGE_SIZE);
-+
-+		/*
-+		 * Free the otherwise unused pages.
-+		 */
-+		while (page < end) {
-+			__free_page(page);
-+			page++;
-+		}
-+
-+		return (void *)c->vm_start;
-+	}
-+
-+	if (page)
-+		__free_pages(page, order);
-+no_page:
-+	*handle = ~0;
-+	return NULL;
-+}
-+
-+static void nds32_dma_free(struct device *dev, size_t size, void *cpu_addr,
-+			   dma_addr_t handle, unsigned long attrs)
-+{
-+	struct arch_vm_region *c;
-+	unsigned long flags, addr;
-+	pte_t *ptep;
-+
-+	size = PAGE_ALIGN(size);
-+
-+	raw_spin_lock_irqsave(&consistent_lock, flags);
-+
-+	c = vm_region_find(&consistent_head, (unsigned long)cpu_addr);
-+	if (!c)
-+		goto no_area;
-+
-+	if ((c->vm_end - c->vm_start) != size) {
-+		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
-+		       __func__, c->vm_end - c->vm_start, size);
-+		dump_stack();
-+		size = c->vm_end - c->vm_start;
-+	}
-+
-+	ptep = consistent_pte + CONSISTENT_OFFSET(c->vm_start);
-+	addr = c->vm_start;
-+	do {
-+		pte_t pte = ptep_get_and_clear(&init_mm, addr, ptep);
-+		unsigned long pfn;
-+
-+		ptep++;
-+		addr += PAGE_SIZE;
-+
-+		if (!pte_none(pte) && pte_present(pte)) {
-+			pfn = pte_pfn(pte);
-+
-+			if (pfn_valid(pfn)) {
-+				struct page *page = pfn_to_page(pfn);
-+
-+				/*
-+				 * x86 does not mark the pages reserved...
-+				 */
-+				ClearPageReserved(page);
-+
-+				__free_page(page);
-+				continue;
++		if (savesched || !in_sched_functions(lpp)) {
++			if (skip) {
++				skip--;
++			} else {
++				trace->entries[trace->nr_entries++] = lpp;
++				if (trace->nr_entries >= trace->max_entries)
++					break;
 +			}
 +		}
-+
-+		pr_crit("%s: bad page in kernel page table\n", __func__);
-+	} while (size -= PAGE_SIZE);
-+
-+	flush_tlb_kernel_range(c->vm_start, c->vm_end);
-+
-+	list_del(&c->vm_list);
-+
-+	raw_spin_unlock_irqrestore(&consistent_lock, flags);
-+
-+	kfree(c);
-+	return;
-+
-+no_area:
-+	raw_spin_unlock_irqrestore(&consistent_lock, flags);
-+	pr_err("%s: trying to free invalid coherent area: %p\n",
-+	       __func__, cpu_addr);
-+	dump_stack();
++		fpn = (unsigned long *)fpp;
++	}
 +}
+diff --git a/arch/nds32/kernel/traps.c b/arch/nds32/kernel/traps.c
+new file mode 100644
+index 0000000..07d8f77
+--- /dev/null
++++ b/arch/nds32/kernel/traps.c
+@@ -0,0 +1,442 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/module.h>
++#include <linux/personality.h>
++#include <linux/kallsyms.h>
++#include <linux/hardirq.h>
++#include <linux/kdebug.h>
++#include <linux/sched/task_stack.h>
++
++#include <asm/cacheflush.h>
++#include <asm/uaccess.h>
++#include <asm/unistd.h>
++
++#include <linux/ptrace.h>
++#include <nds32_intrinsic.h>
++
++extern void show_pte(struct mm_struct *mm, unsigned long addr);
 +
 +/*
-+ * Initialise the consistent memory allocation.
++ * Dump out the contents of some memory nicely...
 + */
-+static int __init consistent_init(void)
++void dump_mem(const char *lvl, unsigned long bottom, unsigned long top)
 +{
-+	pgd_t *pgd;
-+	pmd_t *pmd;
-+	pte_t *pte;
-+	int ret = 0;
++	unsigned long first;
++	mm_segment_t fs;
++	int i;
 +
-+	do {
-+		pgd = pgd_offset(&init_mm, CONSISTENT_BASE);
-+		pmd = pmd_alloc(&init_mm, pgd, CONSISTENT_BASE);
-+		if (!pmd) {
-+			pr_err("%s: no pmd tables\n", __func__);
-+			ret = -ENOMEM;
++	/*
++	 * We need to switch to kernel mode so that we can use __get_user
++	 * to safely read from kernel space.  Note that we now dump the
++	 * code first, just in case the backtrace kills us.
++	 */
++	fs = get_fs();
++	set_fs(KERNEL_DS);
++
++	pr_emerg("%s(0x%08lx to 0x%08lx)\n", lvl, bottom, top);
++
++	for (first = bottom & ~31; first < top; first += 32) {
++		unsigned long p;
++		char str[sizeof(" 12345678") * 8 + 1];
++
++		memset(str, ' ', sizeof(str));
++		str[sizeof(str) - 1] = '\0';
++
++		for (p = first, i = 0; i < 8 && p < top; i++, p += 4) {
++			if (p >= bottom && p < top) {
++				unsigned long val;
++				if (__get_user(val, (unsigned long *)p) == 0)
++					sprintf(str + i * 9, " %08lx", val);
++				else
++					sprintf(str + i * 9, " ????????");
++			}
++		}
++		pr_emerg("%s%04lx:%s\n", lvl, first & 0xffff, str);
++	}
++
++	set_fs(fs);
++}
++
++EXPORT_SYMBOL(dump_mem);
++
++static void dump_instr(struct pt_regs *regs)
++{
++	unsigned long addr = instruction_pointer(regs);
++	mm_segment_t fs;
++	char str[sizeof("00000000 ") * 5 + 2 + 1], *p = str;
++	int i;
++
++	return;
++	/*
++	 * We need to switch to kernel mode so that we can use __get_user
++	 * to safely read from kernel space.  Note that we now dump the
++	 * code first, just in case the backtrace kills us.
++	 */
++	fs = get_fs();
++	set_fs(KERNEL_DS);
++
++	pr_emerg("Code: ");
++	for (i = -4; i < 1; i++) {
++		unsigned int val, bad;
++
++		bad = __get_user(val, &((u32 *) addr)[i]);
++
++		if (!bad) {
++			p += sprintf(p, i == 0 ? "(%08x) " : "%08x ", val);
++		} else {
++			p += sprintf(p, "bad PC value");
 +			break;
 +		}
-+		/* The first level mapping may be created in somewhere.
-+		 * It's not necessary to warn here. */
-+		/* WARN_ON(!pmd_none(*pmd)); */
++	}
++	pr_emerg("Code: %s\n", str);
 +
-+		pte = pte_alloc_kernel(pmd, CONSISTENT_BASE);
-+		if (!pte) {
-+			ret = -ENOMEM;
++	set_fs(fs);
++}
++
++#ifdef CONFIG_FUNCTION_GRAPH_TRACER
++#include <linux/ftrace.h>
++static void
++get_real_ret_addr(unsigned long *addr, struct task_struct *tsk, int *graph)
++{
++	if (*addr == (unsigned long)return_to_handler) {
++		int index = tsk->curr_ret_stack;
++
++		if (tsk->ret_stack && index >= *graph) {
++			index -= *graph;
++			*addr = tsk->ret_stack[index].ret;
++			(*graph)++;
++		}
++	}
++}
++#else
++static inline void
++get_real_ret_addr(unsigned long *addr, struct task_struct *tsk, int *graph)
++{
++}
++#endif
++
++#define LOOP_TIMES (100)
++static void __dump(struct task_struct *tsk, unsigned long *base_reg)
++{
++	unsigned long ret_addr;
++	int cnt = LOOP_TIMES, graph = 0;
++	pr_emerg("Call Trace:\n");
++#ifndef CONFIG_FRAME_POINTER
++	while (!kstack_end(base_reg)) {
++		ret_addr = *base_reg++;
++		if (__kernel_text_address(ret_addr)) {
++			get_real_ret_addr(&ret_addr, tsk, &graph);
++			print_ip_sym(ret_addr);
++		}
++		if (--cnt < 0)
 +			break;
++	}
++#else
++	while (!kstack_end((void *)base_reg) &&
++	       !((unsigned long)base_reg & 0x3) &&
++	       ((unsigned long)base_reg >= TASK_SIZE)) {
++		unsigned long next_fp;
++#if !defined(NDS32_ABI_2)
++		ret_addr = base_reg[0];
++		next_fp = base_reg[1];
++#else
++		ret_addr = base_reg[-1];
++		next_fp = base_reg[FP_OFFSET];
++#endif
++		if (__kernel_text_address(ret_addr)) {
++			get_real_ret_addr(&ret_addr, tsk, &graph);
++			print_ip_sym(ret_addr);
 +		}
 +
-+		consistent_pte = pte;
-+	} while (0);
++		if (--cnt < 0)
++			break;
++
++		base_reg = (unsigned long *)next_fp;
++	}
++#endif
++	pr_emerg("\n");
++}
++
++void dump_stack(void)
++{
++	unsigned long *base_reg;
++#ifndef CONFIG_FRAME_POINTER
++	__asm__ __volatile__("\tori\t%0, $sp, #0\n":"=r"(base_reg));
++#else
++	__asm__ __volatile__("\tori\t%0, $fp, #0\n":"=r"(base_reg));
++#endif
++	__dump(NULL, base_reg);
++}
++
++EXPORT_SYMBOL(dump_stack);
++
++void show_stack(struct task_struct *tsk, unsigned long *sp)
++{
++	unsigned long *base_reg;
++
++	if (!tsk)
++		tsk = current;
++#ifndef CONFIG_FRAME_POINTER
++	if (tsk != current)
++		base_reg = (unsigned long *)(tsk->thread.cpu_context);
++	else
++		__asm__ __volatile__("\tori\t%0, $sp, #0\n":"=r"(base_reg));
++#else
++	if (tsk != current)
++		base_reg = (unsigned long *)(tsk->thread.cpu_context.fp);
++	else
++		__asm__ __volatile__("\tori\t%0, $fp, #0\n":"=r"(base_reg));
++#endif
++	__dump(tsk, base_reg);
++	barrier();
++}
++
++DEFINE_SPINLOCK(die_lock);
++
++/*
++ * This function is protected against re-entrancy.
++ */
++void die(const char *str, struct pt_regs *regs, int err)
++{
++	struct task_struct *tsk = current;
++	static int die_counter;
++
++	console_verbose();
++	spin_lock_irq(&die_lock);
++	bust_spinlocks(1);
++
++	pr_emerg("Internal error: %s: %x [#%d]\n", str, err, ++die_counter);
++	print_modules();
++	pr_emerg("CPU: %i\n", smp_processor_id());
++	show_regs(regs);
++	pr_emerg("Process %s (pid: %d, stack limit = 0x%p)\n",
++		 tsk->comm, tsk->pid, task_thread_info(tsk) + 1);
++
++	if (!user_mode(regs) || in_interrupt()) {
++		dump_mem("Stack: ", regs->sp,
++			 THREAD_SIZE + (unsigned long)task_thread_info(tsk));
++		dump_instr(regs);
++		dump_stack();
++	}
++
++	bust_spinlocks(0);
++	spin_unlock_irq(&die_lock);
++	do_exit(SIGSEGV);
++}
++
++EXPORT_SYMBOL(die);
++
++void die_if_kernel(const char *str, struct pt_regs *regs, int err)
++{
++	if (user_mode(regs))
++		return;
++
++	die(str, regs, err);
++}
++
++int bad_syscall(int n, struct pt_regs *regs)
++{
++	siginfo_t info;
++
++	if (current->personality != PER_LINUX) {
++		send_sig(SIGSEGV, current, 1);
++		return regs->uregs[0];
++	}
++
++	info.si_signo = SIGILL;
++	info.si_errno = 0;
++	info.si_code = ILL_ILLTRP;
++	info.si_addr = (void __user *)instruction_pointer(regs) - 4;
++
++	force_sig_info(SIGILL, &info, current);
++	die_if_kernel("Oops - bad syscall", regs, n);
++	return regs->uregs[0];
++}
++
++void __pte_error(const char *file, int line, unsigned long val)
++{
++	pr_emerg("%s:%d: bad pte %08lx.\n", file, line, val);
++}
++
++void __pmd_error(const char *file, int line, unsigned long val)
++{
++	pr_emerg("%s:%d: bad pmd %08lx.\n", file, line, val);
++}
++
++void __pgd_error(const char *file, int line, unsigned long val)
++{
++	pr_emerg("%s:%d: bad pgd %08lx.\n", file, line, val);
++}
++
++extern char *exception_vector, *exception_vector_end;
++void __init trap_init(void)
++{
++	return;
++}
++
++void __init early_trap_init(void)
++{
++	unsigned long ivb = 0;
++	unsigned long base = PAGE_OFFSET;
++
++	memcpy((unsigned long *)base, (unsigned long *)&exception_vector,
++	       ((unsigned long)&exception_vector_end -
++		(unsigned long)&exception_vector));
++	ivb = __nds32__mfsr(NDS32_SR_IVB);
++	/* Check platform support. */
++	if (((ivb & IVB_mskNIVIC) >> IVB_offNIVIC) < 2)
++		panic
++		    ("IVIC mode is not allowed on the platform with interrupt controller\n");
++	__nds32__mtsr((ivb & ~IVB_mskESZ) | (IVB_valESZ16 << IVB_offESZ) |
++		      IVB_BASE, NDS32_SR_IVB);
++	__nds32__mtsr(INT_MASK_INITAIAL_VAL, NDS32_SR_INT_MASK);
++
++	/*
++	 * 0x800 = 128 vectors * 16byte.
++	 * It should be enough to flush a page.
++	 */
++	flush_icache_range(base, base + PAGE_SIZE);
++}
++
++void do_debug_trap(unsigned long entry, unsigned long addr,
++		   unsigned long type, struct pt_regs *regs)
++{
++	if (notify_die(DIE_OOPS, "Oops", regs, addr, type, SIGTRAP)
++	    == NOTIFY_STOP)
++		return;
++
++	if (user_mode(regs)) {
++		/* trap_signal */
++		send_sigtrap(current, regs, 0, TRAP_BRKPT);
++	} else {
++		/* kernel_trap */
++		if (!fixup_exception(regs))
++			die("unexpected kernel_trap", regs, 0);
++	}
++}
++
++void unhandled_interruption(struct pt_regs *regs)
++{
++	siginfo_t si;
++	pr_emerg("unhandled_interruption\n");
++	show_regs(regs);
++	if (!user_mode(regs))
++		do_exit(SIGKILL);
++	si.si_signo = SIGKILL;
++	si.si_errno = 0;
++	force_sig_info(SIGKILL, &si, current);
++}
++
++void unhandled_exceptions(unsigned long entry, unsigned long addr,
++			  unsigned long type, struct pt_regs *regs)
++{
++	siginfo_t si;
++	pr_emerg("Unhandled Exception: entry: %lx addr:%lx itype:%lx\n", entry,
++		 addr, type);
++	show_regs(regs);
++	if (!user_mode(regs))
++		do_exit(SIGKILL);
++	si.si_signo = SIGKILL;
++	si.si_errno = 0;
++	si.si_addr = (void *)addr;
++	force_sig_info(SIGKILL, &si, current);
++}
++
++extern int do_page_fault(unsigned long entry, unsigned long addr,
++			 unsigned int error_code, struct pt_regs *regs);
++
++/*
++ * 2:DEF dispatch for TLB MISC exception handler
++*/
++
++void do_dispatch_tlb_misc(unsigned long entry, unsigned long addr,
++			  unsigned long type, struct pt_regs *regs)
++{
++	type = type & (ITYPE_mskINST | ITYPE_mskETYPE);
++	if ((type & ITYPE_mskETYPE) < 5) {
++		/* Permission exceptions */
++		do_page_fault(entry, addr, type, regs);
++	} else
++		unhandled_exceptions(entry, addr, type, regs);
++}
++
++int (*do_unaligned_access) (unsigned long entry, unsigned long addr,
++			    unsigned long type, struct pt_regs * regs) = NULL;
++
++EXPORT_SYMBOL(do_unaligned_access);
++
++void do_revinsn(struct pt_regs *regs)
++{
++	siginfo_t si;
++	pr_emerg("Reserved Instruction\n");
++	show_regs(regs);
++	if (!user_mode(regs))
++		do_exit(SIGILL);
++	si.si_signo = SIGILL;
++	si.si_errno = 0;
++	force_sig_info(SIGILL, &si, current);
++}
++
++void do_dispatch_general(unsigned long entry, unsigned long addr,
++			 unsigned long itype, struct pt_regs *regs,
++			 unsigned long oipc)
++{
++	unsigned int swid = itype >> ITYPE_offSWID;
++	unsigned long type = itype & (ITYPE_mskINST | ITYPE_mskETYPE);
++	if (type == ETYPE_ALIGNMENT_CHECK) {
++		/* Alignment check */
++		if (do_unaligned_access) {
++
++			int ret = do_unaligned_access(entry, addr, type, regs);
++
++			if (ret == 0)
++				return;
++
++			if (ret == -EFAULT)
++				pr_emerg
++				    ("Unhandled unaligned access exception\n");
++		}
++		do_page_fault(entry, addr, type, regs);
++	} else if (type == ETYPE_RESERVED_INSTRUCTION) {
++		/* Reserved instruction */
++		do_revinsn(regs);
++	} else if (type == ETYPE_TRAP && swid == SWID_RAISE_INTERRUPT_LEVEL) {
++		/* trap, used on v3 EDM target debugging workaround */
++		/*
++		 * DIPC(OIPC) is passed as parameter before
++		 * interrupt is enabled, so the DIPC will not be corrupted
++		 * even though interrupts are coming in
++		 */
++		/*
++		 * 1. update ipc
++		 * 2. update pt_regs ipc with oipc
++		 * 3. update pt_regs ipsw (clear DEX)
++		 */
++		__asm__ volatile ("mtsr %0, $IPC\n\t"::"r" (oipc));
++		regs->ipc = oipc;
++		if (regs->pipsw & PSW_mskDEX) {
++			pr_emerg
++			    ("Nested Debug exception is possibly happened\n");
++			pr_emerg("ipc:%08x pipc:%08x\n",
++				 (unsigned int)regs->ipc,
++				 (unsigned int)regs->pipc);
++		}
++		do_debug_trap(entry, addr, itype, regs);
++		regs->ipsw &= ~PSW_mskDEX;
++	} else
++		unhandled_exceptions(entry, addr, type, regs);
++}
+diff --git a/arch/nds32/mm/alignment.c b/arch/nds32/mm/alignment.c
+new file mode 100644
+index 0000000..05589e7
+--- /dev/null
++++ b/arch/nds32/mm/alignment.c
+@@ -0,0 +1,564 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/module.h>
++#include <linux/proc_fs.h>
++#include <linux/uaccess.h>
++
++#include <asm/unaligned.h>
++
++#ifdef CONFIG_PROC_FS
++extern struct proc_dir_entry *proc_dir_cpu;
++#endif
++
++#define DEBUG(enable, tagged, ...)				\
++	do{							\
++		if (enable) {					\
++			if (tagged)				\
++			pr_warn("[ %30s() ] ", __func__);	\
++			pr_warn(__VA_ARGS__);			\
++		}						\
++	} while (0)
++
++#define RT(inst)	(((inst) >> 20) & 0x1FUL)
++#define RA(inst)	(((inst) >> 15) & 0x1FUL)
++#define RB(inst)	(((inst) >> 10) & 0x1FUL)
++#define SV(inst)	(((inst) >> 8) & 0x3UL)
++#define IMM(inst)	(((inst) >> 0) & 0x3FFFUL)
++
++#define RA3(inst)	(((inst) >> 3) & 0x7UL)
++#define RT3(inst)	(((inst) >> 6) & 0x7UL)
++#define IMM3U(inst)	(((inst) >> 0) & 0x7UL)
++
++#define RA5(inst)	(((inst) >> 0) & 0x1FUL)
++#define RT4(inst)	(((inst) >> 5) & 0xFUL)
++
++extern int (*do_unaligned_access)
++ (unsigned long entry, unsigned long addr,
++  unsigned long type, struct pt_regs * regs);
++extern pte_t va_present(struct mm_struct *mm, unsigned long addr);
++extern pte_t va_kernel_present(unsigned long addr);
++extern int va_readable(struct pt_regs *regs, unsigned long addr);
++extern int va_writable(struct pt_regs *regs, unsigned long addr);
++
++static int mode = 0x3;
++module_param(mode, int, S_IWUSR | S_IRUGO);
++
++static inline unsigned long *idx_to_addr(struct pt_regs *regs, int idx)
++{
++	/* this should be consistent with ptrace.h */
++	if (idx >= 0 && idx <= 25)	/* R0-R25 */
++		return &regs->uregs[0] + idx;
++	else if (idx >= 28 && idx <= 30)	/* FP, GP, LP */
++		return &regs->fp + (idx - 28);
++	else if (idx == 31)	/* SP */
++		return &regs->sp;
++	else
++		return NULL;	/* cause a segfault */
++}
++
++static inline unsigned long get_inst(unsigned long addr)
++{
++	/* FIXME: consider 16-bit inst. */
++	return be32_to_cpu(get_unaligned((u32 *) addr));
++}
++
++static inline unsigned long get_data(unsigned long addr, int len)
++{
++	if (len == 4)
++		return get_unaligned((u32 *) addr);
++	else
++		return get_unaligned((u16 *) addr);
++}
++
++static inline void set_data(unsigned long addr, unsigned long val, int len)
++{
++	if (len == 4)
++		put_unaligned(val, (u32 *) addr);
++	else
++		put_unaligned(val, (u16 *) addr);
++}
++
++static inline unsigned long sign_extend(unsigned long val, int len)
++{
++	unsigned long ret = 0;
++	unsigned char *s, *t;
++	int i = 0;
++
++	val = cpu_to_le32(val);
++
++	s = (void *)&val;
++	t = (void *)&ret;
++
++	while (i++ < len)
++		*t++ = *s++;
++
++	if (((*(t - 1)) & 0x80) && (i < 4)) {
++
++		while (i++ <= 4)
++			*t++ = 0xff;
++	}
++
++	return le32_to_cpu(ret);
++}
++
++static inline int do_16(unsigned long inst, struct pt_regs *regs)
++{
++	int imm, regular, load, len, addr_mode, idx_mode;
++	unsigned long unaligned_addr, target_val, source_idx, target_idx,
++	    shift = 0;
++	switch ((inst >> 9) & 0x3F) {
++
++	case 0x12:		/* LHI333    */
++		imm = 1;
++		regular = 1;
++		load = 1;
++		len = 2;
++		addr_mode = 3;
++		idx_mode = 3;
++		break;
++	case 0x10:		/* LWI333    */
++		imm = 1;
++		regular = 1;
++		load = 1;
++		len = 4;
++		addr_mode = 3;
++		idx_mode = 3;
++		break;
++	case 0x11:		/* LWI333.bi */
++		imm = 1;
++		regular = 0;
++		load = 1;
++		len = 4;
++		addr_mode = 3;
++		idx_mode = 3;
++		break;
++	case 0x1A:		/* LWI450    */
++		imm = 0;
++		regular = 1;
++		load = 1;
++		len = 4;
++		addr_mode = 5;
++		idx_mode = 4;
++		break;
++	case 0x16:		/* SHI333    */
++		imm = 1;
++		regular = 1;
++		load = 0;
++		len = 2;
++		addr_mode = 3;
++		idx_mode = 3;
++		break;
++	case 0x14:		/* SWI333    */
++		imm = 1;
++		regular = 1;
++		load = 0;
++		len = 4;
++		addr_mode = 3;
++		idx_mode = 3;
++		break;
++	case 0x15:		/* SWI333.bi */
++		imm = 1;
++		regular = 0;
++		load = 0;
++		len = 4;
++		addr_mode = 3;
++		idx_mode = 3;
++		break;
++	case 0x1B:		/* SWI450    */
++		imm = 0;
++		regular = 1;
++		load = 0;
++		len = 4;
++		addr_mode = 5;
++		idx_mode = 4;
++		break;
++
++	default:
++		return -EFAULT;
++	}
++
++	if (addr_mode == 3) {
++		unaligned_addr = *idx_to_addr(regs, RA3(inst));
++		source_idx = RA3(inst);
++	} else {
++		unaligned_addr = *idx_to_addr(regs, RA5(inst));
++		source_idx = RA5(inst);
++	}
++
++	if (idx_mode == 3)
++		target_idx = RT3(inst);
++	else
++		target_idx = RT4(inst);
++
++	if (imm)
++		shift = IMM3U(inst) * len;
++
++	if (regular)
++		unaligned_addr += shift;
++	else
++		*idx_to_addr(regs, source_idx) = unaligned_addr + shift;
++
++	if (load) {
++
++		if (!va_readable(regs, unaligned_addr))
++			return -EACCES;
++
++		if (!access_ok(VERIFY_READ, (void *)unaligned_addr, len))
++			return -EACCES;
++
++		*idx_to_addr(regs, target_idx) = get_data(unaligned_addr, len);
++	} else {
++
++		if (!va_writable(regs, unaligned_addr))
++			return -EACCES;
++
++		if (!access_ok(VERIFY_WRITE, (void *)unaligned_addr, len))
++			return -EACCES;
++
++		target_val = *idx_to_addr(regs, target_idx);
++		set_data(unaligned_addr, target_val, len);
++	}
++
++	regs->ipc += 2;
++
++	return 0;
++}
++
++static inline int do_32(unsigned long inst, struct pt_regs *regs)
++{
++	int imm, regular, load, len, sign_ext;
++	unsigned long unsligned_addr, target_val, shift;
++
++	unsligned_addr = *idx_to_addr(regs, RA(inst));
++
++	switch ((inst >> 25) << 1) {
++
++	case 0x02:		/* LHI       */
++		imm = 1;
++		regular = 1;
++		load = 1;
++		len = 2;
++		sign_ext = 0;
++		break;
++	case 0x0A:		/* LHI.bi    */
++		imm = 1;
++		regular = 0;
++		load = 1;
++		len = 2;
++		sign_ext = 0;
++		break;
++	case 0x22:		/* LHSI      */
++		imm = 1;
++		regular = 1;
++		load = 1;
++		len = 2;
++		sign_ext = 1;
++		break;
++	case 0x2A:		/* LHSI.bi   */
++		imm = 1;
++		regular = 0;
++		load = 1;
++		len = 2;
++		sign_ext = 1;
++		break;
++	case 0x04:		/* LWI       */
++		imm = 1;
++		regular = 1;
++		load = 1;
++		len = 4;
++		sign_ext = 0;
++		break;
++	case 0x0C:		/* LWI.bi    */
++		imm = 1;
++		regular = 0;
++		load = 1;
++		len = 4;
++		sign_ext = 0;
++		break;
++	case 0x12:		/* SHI       */
++		imm = 1;
++		regular = 1;
++		load = 0;
++		len = 2;
++		sign_ext = 0;
++		break;
++	case 0x1A:		/* SHI.bi    */
++		imm = 1;
++		regular = 0;
++		load = 0;
++		len = 2;
++		sign_ext = 0;
++		break;
++	case 0x14:		/* SWI       */
++		imm = 1;
++		regular = 1;
++		load = 0;
++		len = 4;
++		sign_ext = 0;
++		break;
++	case 0x1C:		/* SWI.bi    */
++		imm = 1;
++		regular = 0;
++		load = 0;
++		len = 4;
++		sign_ext = 0;
++		break;
++
++	default:
++		switch (inst & 0xff) {
++
++		case 0x01:	/* LH        */
++			imm = 0;
++			regular = 1;
++			load = 1;
++			len = 2;
++			sign_ext = 0;
++			break;
++		case 0x05:	/* LH.bi     */
++			imm = 0;
++			regular = 0;
++			load = 1;
++			len = 2;
++			sign_ext = 0;
++			break;
++		case 0x11:	/* LHS       */
++			imm = 0;
++			regular = 1;
++			load = 1;
++			len = 2;
++			sign_ext = 1;
++			break;
++		case 0x15:	/* LHS.bi    */
++			imm = 0;
++			regular = 0;
++			load = 1;
++			len = 2;
++			sign_ext = 1;
++			break;
++		case 0x02:	/* LW        */
++			imm = 0;
++			regular = 1;
++			load = 1;
++			len = 4;
++			sign_ext = 0;
++			break;
++		case 0x06:	/* LW.bi     */
++			imm = 0;
++			regular = 0;
++			load = 1;
++			len = 4;
++			sign_ext = 0;
++			break;
++		case 0x09:	/* SH        */
++			imm = 0;
++			regular = 1;
++			load = 0;
++			len = 2;
++			sign_ext = 0;
++			break;
++		case 0x0D:	/* SH.bi     */
++			imm = 0;
++			regular = 0;
++			load = 0;
++			len = 2;
++			sign_ext = 0;
++			break;
++		case 0x0A:	/* SW        */
++			imm = 0;
++			regular = 1;
++			load = 0;
++			len = 4;
++			sign_ext = 0;
++			break;
++		case 0x0E:	/* SW.bi     */
++			imm = 0;
++			regular = 0;
++			load = 0;
++			len = 4;
++			sign_ext = 0;
++			break;
++
++		default:
++			return -EFAULT;
++		}
++	}
++
++	if (imm)
++		shift = IMM(inst) * len;
++	else
++		shift = *idx_to_addr(regs, RB(inst)) << SV(inst);
++
++	if (regular)
++		unsligned_addr += shift;
++	else
++		*idx_to_addr(regs, RA(inst)) = unsligned_addr + shift;
++
++	if (load) {
++
++		if (!va_readable(regs, unsligned_addr))
++			return -EACCES;
++
++		if (!access_ok(VERIFY_READ, (void *)unsligned_addr, len))
++			return -EACCES;
++
++		if (sign_ext)
++			*idx_to_addr(regs, RT(inst)) =
++			    sign_extend(get_data(unsligned_addr, len), len);
++		else
++			*idx_to_addr(regs, RT(inst)) =
++			    get_data(unsligned_addr, len);
++	} else {
++
++		if (!va_writable(regs, unsligned_addr))
++			return -EACCES;
++
++		if (!access_ok(VERIFY_WRITE, (void *)unsligned_addr, len))
++			return -EACCES;
++
++		target_val = *idx_to_addr(regs, RT(inst));
++		set_data(unsligned_addr, target_val, len);
++	}
++
++	regs->ipc += 4;
++
++	return 0;
++}
++
++static int _do_unaligned_access(unsigned long entry, unsigned long addr,
++				unsigned long type, struct pt_regs *regs)
++{
++	unsigned long inst;
++	int ret = -EFAULT;
++
++	if (user_mode(regs)) {
++		/* user mode */
++		if (!va_present(current->mm, addr))
++			return ret;
++	} else {
++		/* kernel mode */
++		if (!va_kernel_present(addr))
++			return ret;
++	}
++
++	inst = get_inst(regs->ipc);
++
++	DEBUG(mode & 0x04, 1,
++	      "Faulting Addr: 0x%08lx, PC: 0x%08lx [ 0x%08lx ]\n", addr,
++	      regs->ipc, inst);
++
++	if ((user_mode(regs) && (mode & 0x01))
++	    || (!user_mode(regs) && (mode & 0x02))) {
++
++		mm_segment_t seg = get_fs();
++
++		set_fs(KERNEL_DS);
++
++		if (inst & 0x80000000)
++			ret = do_16((inst >> 16) & 0xffff, regs);
++		else
++			ret = do_32(inst, regs);
++
++		set_fs(seg);
++	}
 +
 +	return ret;
 +}
 +
-+core_initcall(consistent_init);
-+static void consistent_sync(void *vaddr, size_t size, int direction);
-+static dma_addr_t nds32_dma_map_page(struct device *dev, struct page *page,
-+				     unsigned long offset, size_t size,
-+				     enum dma_data_direction dir,
-+				     unsigned long attrs)
++#ifdef CONFIG_PROC_FS
++
++static int proc_alignment_read(struct file *file, char __user * ubuf,
++			       size_t count, loff_t * ppos)
 +{
-+	consistent_sync((void *)(page_address(page) + offset), size, dir);
-+	return page_to_phys(page) + offset;
++	char p[80];
++	int ret;
++
++	ret = sprintf(p, "(0x01) User Mode: %s\n"
++		      "(0x02) Kernel Mode: %s\n"
++		      "(0x04) Warning: %s\n",
++		      mode & 0x01 ? "on" : "off",
++		      mode & 0x02 ? "on" : "off", mode & 0x04 ? "on" : "off");
++
++	return simple_read_from_buffer(ubuf, count, ppos, p, ret);
 +}
 +
-+static void nds32_dma_unmap_page(struct device *dev, dma_addr_t handle,
-+				 size_t size, enum dma_data_direction dir,
-+				 unsigned long attrs)
++#define INPUTLEN 12		/* '0' + 'x' + 8digit + '\n' + '\0' */
++
++static ssize_t proc_alignment_write(struct file *file,
++				    const char __user * ubuf, size_t count,
++				    loff_t * ppos)
 +{
-+	consistent_sync(phys_to_virt(handle), size, dir);
++	unsigned long en;
++	char *endp;
++	char inbuf[INPUTLEN];
++
++	if (count > INPUTLEN - 1)
++		return -EFAULT;
++
++	if (copy_from_user(inbuf, ubuf, count))
++		return -EFAULT;
++
++	inbuf[count - 1] = '\0';
++
++	en = simple_strtoul(inbuf, &endp, 0);
++	if (en > 0x07)
++		return -EFAULT;
++
++	mode = en & 0x7;
++
++	return count;
 +}
 +
-+/*
-+ * Make an area consistent for devices.
-+ */
-+static void consistent_sync(void *vaddr, size_t size, int direction)
-+{
-+	unsigned long start = (unsigned long)vaddr;
-+	unsigned long end = start + size;
-+
-+	switch (direction) {
-+	case DMA_FROM_DEVICE:	/* invalidate only */
-+		cpu_dma_inval_range(start, end);
-+		break;
-+	case DMA_TO_DEVICE:	/* writeback only */
-+		cpu_dma_wb_range(start, end);
-+		break;
-+	case DMA_BIDIRECTIONAL:	/* writeback and invalidate */
-+		cpu_dma_wbinval_range(start, end);
-+		break;
-+	default:
-+		BUG();
-+	}
-+}
-+
-+static int nds32_dma_map_sg(struct device *dev, struct scatterlist *sg,
-+			    int nents, enum dma_data_direction dir,
-+			    unsigned long attrs)
-+{
-+	int i;
-+
-+	for (i = 0; i < nents; i++, sg++) {
-+		void *virt;
-+		unsigned long pfn;
-+		struct page *page = sg_page(sg);
-+
-+		sg->dma_address = page_to_dma(dev, page) + sg->offset;
-+		pfn = page_to_pfn(page) + sg->offset / PAGE_SIZE;
-+		page = pfn_to_page(pfn);
-+		if (PageHighMem(page)) {
-+			virt = kmap_atomic(page);
-+			consistent_sync(virt, sg->length, dir);
-+			kunmap_atomic(virt);
-+		} else {
-+			if (sg->offset > PAGE_SIZE)
-+				panic("sg->offset:%08x > PAGE_SIZE\n",
-+				      sg->offset);
-+			virt = page_address(page) + sg->offset;
-+			consistent_sync(virt, sg->length, dir);
-+		}
-+	}
-+	return nents;
-+}
-+
-+static void nds32_dma_unmap_sg(struct device *dev, struct scatterlist *sg,
-+			       int nhwentries, enum dma_data_direction dir,
-+			       unsigned long attrs)
-+{
-+}
-+
-+static void
-+nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
-+			      size_t size, enum dma_data_direction dir)
-+{
-+	consistent_sync((void *)dma_to_virt(dev, handle), size, dir);
-+}
-+
-+static void
-+nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
-+				 size_t size, enum dma_data_direction dir)
-+{
-+	consistent_sync((void *)dma_to_virt(dev, handle), size, dir);
-+}
-+
-+static void
-+nds32_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nents,
-+			  enum dma_data_direction dir)
-+{
-+	int i;
-+
-+	for (i = 0; i < nents; i++, sg++) {
-+		char *virt =
-+		    page_address((struct page *)sg->page_link) + sg->offset;
-+		consistent_sync(virt, sg->length, dir);
-+	}
-+}
-+
-+static void
-+nds32_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
-+			     int nents, enum dma_data_direction dir)
-+{
-+	int i;
-+
-+	for (i = 0; i < nents; i++, sg++) {
-+		char *virt =
-+		    page_address((struct page *)sg->page_link) + sg->offset;
-+		consistent_sync(virt, sg->length, dir);
-+	}
-+}
-+
-+struct dma_map_ops nds32_dma_ops = {
-+	.alloc = nds32_dma_alloc_coherent,
-+	.free = nds32_dma_free,
-+	.map_page = nds32_dma_map_page,
-+	.unmap_page = nds32_dma_unmap_page,
-+	.map_sg = nds32_dma_map_sg,
-+	.unmap_sg = nds32_dma_unmap_sg,
-+	.sync_single_for_device = nds32_dma_sync_single_for_device,
-+	.sync_single_for_cpu = nds32_dma_sync_single_for_cpu,
-+	.sync_sg_for_cpu = nds32_dma_sync_sg_for_cpu,
-+	.sync_sg_for_device = nds32_dma_sync_sg_for_device,
++static const struct file_operations fops = {
++	.open = simple_open,
++	.read = proc_alignment_read,
++	.write = proc_alignment_write,
 +};
++#endif /* CONFIG_PROC_FS */
 +
-+EXPORT_SYMBOL(nds32_dma_ops);
++static int __init unaligned_access_init(void)
++{
++#ifdef CONFIG_PROC_FS
++	static struct proc_dir_entry *res_alignment;
++
++	if (!proc_dir_cpu)
++		if (!(proc_dir_cpu = proc_mkdir("cpu", NULL)))
++			return -ENOMEM;
++
++	if (!
++	    (res_alignment =
++	     proc_create("alignment", S_IWUSR | S_IRUGO, proc_dir_cpu, &fops)))
++		return -ENOMEM;
++
++#endif
++	do_unaligned_access = _do_unaligned_access;
++
++	return 0;
++}
++
++static void __exit unaligned_access_exit(void)
++{
++#ifdef CONFIG_PROC_FS
++	remove_proc_entry("alignment", proc_dir_cpu);
++#endif
++	do_unaligned_access = NULL;
++}
++
++MODULE_DESCRIPTION("Unaligned Access Handler");
++MODULE_LICENSE("GPL");
++
++module_init(unaligned_access_init);
++module_exit(unaligned_access_exit);
 -- 
 1.7.9.5
