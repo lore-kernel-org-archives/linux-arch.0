@@ -1,42 +1,130 @@
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Subject: Re: MPK: pkey_free and key reuse
-Date: Wed, 8 Nov 2017 12:41:30 -0800
-Message-ID: <e7d1e622-bbac-2750-2895-cc151458ff2f@linux.intel.com>
-References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:59768 "EHLO mga01.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751728AbdKHUlb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Nov 2017 15:41:31 -0500
-In-Reply-To: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Florian Weimer <fweimer@redhat.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
+From: Anthony Yznaga <anthony.yznaga@oracle.com>
+Subject: Re: [PATCH v9 00/10] Application Data Integrity feature introduced by SPARC M7
+Date: Wed, 8 Nov 2017 12:44:45 -0800
+Message-ID: <CF004B9F-A3B6-4A44-AD9E-EC01D6B740BB@oracle.com>
+References: <cover.1508364660.git.khalid.aziz@oracle.com>
+Mime-Version: 1.0 (Mac OS X Mail 9.3 \(3124\))
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <cover.1508364660.git.khalid.aziz@oracle.com>
+Sender: owner-linux-mm@kvack.org
+To: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: David Miller <davem@davemloft.net>, dave.hansen@linux.intel.com, akpm@linux-foundation.org, 0x7f454c46@gmail.com, aarcange@redhat.com, ak@linux.intel.com, Allen Pais <allen.pais@oracle.com>, aneesh.kumar@linux.vnet.ibm.com, arnd@arndb.de, Atish Patra <atish.patra@oracle.com>, benh@kernel.crashing.org, Bob Picco <bob.picco@oracle.com>, bsingharora@gmail.com, chris.hyser@oracle.com, cmetcalf@mellanox.com, corbet@lwn.net, dan.carpenter@oracle.com, dave.jiang@intel.com, dja@axtens.net, Eric Saint Etienne <eric.saint.etienne@oracle.com>, geert@linux-m68k.org, hannes@cmpxchg.org, heiko.carstens@de.ibm.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jmarchan@redhat.com, jroedel@suse.de, Khalid Aziz <khalid@gonehiking.org>, kirill.shutemov@linux.intel.com
+List-Id: linux-arch.vger.kernel.org
 
-On 11/05/2017 02:35 AM, Florian Weimer wrote:
-> I don't think pkey_free, as it is implemented today, is very safe due to
-> key reuse by a subsequent pkey_alloc.  I see two problems:
+
+> On Oct 20, 2017, at 9:57 AM, Khalid Aziz <khalid.aziz@oracle.com> wrote:
 > 
-> (A) pkey_free allows reuse for they key while there are still mappings
-> that use it.
+> Patch 9/10
+>  When a processor supports additional metadata on memory pages, that
+>  additional metadata needs to be copied to new memory pages when those
+>  pages are moved. This patch allows architecture specific code to
+>  replace the default copy_highpage() routine with arch specific
+>  version that copies the metadata as well besides the data on the page.
+> 
+> Patch 10/10
+>  This patch adds support for a user space task to enable ADI and enable
+>  tag checking for subsets of its address space. As part of enabling
+>  this feature, this patch adds to support manipulation of precise
+>  exception for memory corruption detection, adds code to save and
+>  restore tags on page swap and migration, and adds code to handle ADI
+>  tagged addresses for DMA.
+> 
+> Changelog v9:
+> 
+> 	- Patch 1/10: No changes
+> 	- Patch 2/10: No changes
+> 	- Patch 3/10: No changes
+> 	- Patch 4/10: No changes
+> 	- Patch 5/10: No changes
+> 	- Patch 6/10: No changes
+> 	- Patch 7/10: No changes
+> 	- Patch 8/10: No changes
+> 	- Patch 9/10: New patch
+> 	- Patch 10/10: Patch 9 from v8. Added code to copy ADI tags when
+> 	  pages are migrated. Updated code to detect overflow and underflow
+> 	  of addresses when allocating tag storage.
 
-I don't agree with this assessment.  Is malloc() unsafe?  If someone
-free()s memory that is still in use, a subsequent malloc() would hand
-the address out again for reuse.
+Patch 09/10 wasn't delivered to me, but I reviewed the copy on lkml.org.
 
-> (B) If a key is reused, existing threads retain their access rights,
-> while there is an expectation that pkey_alloc denies access for the
-> threads except the current one.
-Where does this expectation come from?  Using the malloc() analogy, we
-don't expect that free() in one thread actively takes away references to
-the memory held by other threads.
+The changes looks good, but there is one remaining functional issue
+which I've pointed out twice now in previous comments that still has not
+been addressed:
 
-We define free() as only being called on resources to which there are no
-active references.  If you free() things in use, bad things happen.
-pkey_free() is only to be called when there is nothing actively using
-the key.  If you pkey_free() an in-use key, bad things happen.
+The code paths through rtrap that overwrite PSTATE need to also set
+PSTATE.mcde=1 since additional kernel work done after PSTATE is
+overwritten could access ADI-enabled user memory and depend on version
+checking being enabled.  For example, rtrap may call SCHEDULE_USER and
+resume execution in another thread.  Without a fix, the resumed thread
+will run with PSTATE.mcde=0 until it completes a return to user mode or
+is rescheduled on a CPU where PSTATE.mcde is set.  If the thread
+accesses ADI-enabled user memory with a versioned address (e.g. to
+complete some I/O) in that timeframe then the access will fail.
+
+Here is what you need to fix it:
+
+diff --git a/arch/sparc/kernel/rtrap_64.S b/arch/sparc/kernel/rtrap_64.S
+index dff86fa..07c82a7 100644
+--- a/arch/sparc/kernel/rtrap_64.S
++++ b/arch/sparc/kernel/rtrap_64.S
+@@ -24,13 +24,21 @@
+ 		.align			32
+ __handle_preemption:
+ 		call			SCHEDULE_USER
+-		 wrpr			%g0, RTRAP_PSTATE, %pstate
++661:		 wrpr			%g0, RTRAP_PSTATE, %pstate
++		.section		.sun_m7_1insn_patch, "ax"
++		.word			661b
++		wrpr			%g0, RTRAP_PSTATE | PSTATE_MCDE, %pstate
++		.previous
+ 		ba,pt			%xcc, __handle_preemption_continue
+ 		 wrpr			%g0, RTRAP_PSTATE_IRQOFF, %pstate
+ 
+ __handle_user_windows:
+ 		call			fault_in_user_windows
+-		 wrpr			%g0, RTRAP_PSTATE, %pstate
++661:		 wrpr			%g0, RTRAP_PSTATE, %pstate
++		.section		.sun_m7_1insn_patch, "ax"
++		.word			661b
++		wrpr			%g0, RTRAP_PSTATE | PSTATE_MCDE, %pstate
++		.previous
+ 		ba,pt			%xcc, __handle_preemption_continue
+ 		 wrpr			%g0, RTRAP_PSTATE_IRQOFF, %pstate
+ 
+@@ -47,7 +55,11 @@ __handle_signal:
+ 		add			%sp, PTREGS_OFF, %o0
+ 		mov			%l0, %o2
+ 		call			do_notify_resume
+-		 wrpr			%g0, RTRAP_PSTATE, %pstate
++661:		 wrpr			%g0, RTRAP_PSTATE, %pstate
++		.section		.sun_m7_1insn_patch, "ax"
++		.word			661b
++		wrpr			%g0, RTRAP_PSTATE | PSTATE_MCDE, %pstate
++		.previous
+ 		wrpr			%g0, RTRAP_PSTATE_IRQOFF, %pstate
+ 
+ 		/* Signal delivery can modify pt_regs tstate, so we must
+diff --git a/arch/sparc/kernel/urtt_fill.S b/arch/sparc/kernel/urtt_fill.S
+index 364af32..3a7f2d8 100644
+--- a/arch/sparc/kernel/urtt_fill.S
++++ b/arch/sparc/kernel/urtt_fill.S
+@@ -49,7 +49,11 @@ user_rtt_fill_fixup_common:
+ 		SET_GL(0)
+ 		.previous
+ 
+-		wrpr	%g0, RTRAP_PSTATE, %pstate
++661:		wrpr	%g0, RTRAP_PSTATE, %pstate
++		.section		.sun_m7_1insn_patch, "ax"
++		.word			661b
++		wrpr	%g0, RTRAP_PSTATE | PSTATE_MCDE, %pstate
++		.previous
+ 
+ 		mov	%l1, %g6
+ 		ldx	[%g6 + TI_TASK], %g4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
