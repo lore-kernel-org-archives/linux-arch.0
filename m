@@ -1,91 +1,145 @@
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH v2] kbuild: clean up *.dtb and *.dtb.S patterns from
- top-level Makefile
-Date: Wed, 8 Nov 2017 10:46:10 -0600
-Message-ID: <CAL_JsqKLbDWcwcgotnQAO2FeFp55SZRd0z9r2Dr0ZsK0LKZMLw@mail.gmail.com>
-References: <1509591085-23940-1-git-send-email-yamada.masahiro@socionext.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:33042 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752150AbdKHQqd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 8 Nov 2017 11:46:33 -0500
-In-Reply-To: <1509591085-23940-1-git-send-email-yamada.masahiro@socionext.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux-MIPS <linux-mips@linux-mips.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Pantelis Antoniou <pantelis.antoniou@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Frank Rowand <frowand.list@gmail.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: [RFC PATCH for 4.15 6/6] membarrier: selftest: Test private expedited sync core cmd
+Date: Wed,  8 Nov 2017 13:35:14 -0500
+Message-ID: <20171108183514.3306-7-mathieu.desnoyers@efficios.com>
+References: <20171108183514.3306-1-mathieu.desnoyers@efficios.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20171108183514.3306-1-mathieu.desnoyers@efficios.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, gromer@google.com, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Shuah Khan <shuahkh@osg.samsung.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alan
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 1, 2017 at 9:51 PM, Masahiro Yamada
-<yamada.masahiro@socionext.com> wrote:
-> We need to add "clean-files" in Makfiles to clean up DT blobs, but we
-> often miss to do so.
->
-> Since there are no source files that end with .dtb or .dtb.S, so we
-> can clean-up those files from the top-level Makefile.
->
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-> ---
->
-> Changes in v2:
->   - Remove clean-files
+Test the new MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE and
+MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE commands.
 
-Applied this and the 2 prerequisite patches.
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+CC: Shuah Khan <shuahkh@osg.samsung.com>
+CC: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: Andrew Hunter <ahh@google.com>
+CC: Maged Michael <maged.michael@gmail.com>
+CC: gromer@google.com
+CC: Avi Kivity <avi@scylladb.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Paul Mackerras <paulus@samba.org>
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Dave Watson <davejwatson@fb.com>
+CC: Alan Stern <stern@rowland.harvard.edu>
+CC: Will Deacon <will.deacon@arm.com>
+CC: Andy Lutomirski <luto@kernel.org>
+CC: Alice Ferrazzi <alice.ferrazzi@gmail.com>
+CC: Paul Elder <paul.elder@pitt.edu>
+CC: linux-kselftest@vger.kernel.org
+CC: linux-arch@vger.kernel.org
+---
+ .../testing/selftests/membarrier/membarrier_test.c | 77 +++++++++++++++++++++-
+ 1 file changed, 76 insertions(+), 1 deletion(-)
 
->
->  Documentation/kbuild/makefiles.txt               | 1 -
->  Makefile                                         | 2 +-
->  arch/arc/boot/dts/Makefile                       | 1 -
->  arch/arm/boot/dts/Makefile                       | 1 -
->  arch/arm64/boot/dts/actions/Makefile             | 1 -
->  arch/arm64/boot/dts/al/Makefile                  | 1 -
->  arch/arm64/boot/dts/allwinner/Makefile           | 1 -
->  arch/arm64/boot/dts/altera/Makefile              | 1 -
->  arch/arm64/boot/dts/amd/Makefile                 | 1 -
->  arch/arm64/boot/dts/amlogic/Makefile             | 1 -
->  arch/arm64/boot/dts/apm/Makefile                 | 1 -
->  arch/arm64/boot/dts/arm/Makefile                 | 1 -
->  arch/arm64/boot/dts/broadcom/Makefile            | 1 -
->  arch/arm64/boot/dts/broadcom/northstar2/Makefile | 1 -
->  arch/arm64/boot/dts/broadcom/stingray/Makefile   | 1 -
->  arch/arm64/boot/dts/cavium/Makefile              | 1 -
->  arch/arm64/boot/dts/exynos/Makefile              | 1 -
->  arch/arm64/boot/dts/freescale/Makefile           | 1 -
->  arch/arm64/boot/dts/hisilicon/Makefile           | 1 -
->  arch/arm64/boot/dts/lg/Makefile                  | 1 -
->  arch/arm64/boot/dts/marvell/Makefile             | 1 -
->  arch/arm64/boot/dts/mediatek/Makefile            | 1 -
->  arch/arm64/boot/dts/nvidia/Makefile              | 1 -
->  arch/arm64/boot/dts/qcom/Makefile                | 1 -
->  arch/arm64/boot/dts/realtek/Makefile             | 1 -
->  arch/arm64/boot/dts/renesas/Makefile             | 1 -
->  arch/arm64/boot/dts/rockchip/Makefile            | 1 -
->  arch/arm64/boot/dts/socionext/Makefile           | 1 -
->  arch/arm64/boot/dts/sprd/Makefile                | 1 -
->  arch/arm64/boot/dts/xilinx/Makefile              | 1 -
->  arch/arm64/boot/dts/zte/Makefile                 | 1 -
->  arch/c6x/boot/dts/Makefile                       | 2 --
->  arch/cris/boot/dts/Makefile                      | 2 --
->  arch/h8300/boot/dts/Makefile                     | 1 -
->  arch/metag/boot/dts/Makefile                     | 1 -
->  arch/microblaze/boot/Makefile                    | 2 +-
->  arch/mips/boot/dts/Makefile                      | 1 -
->  arch/mips/boot/dts/brcm/Makefile                 | 1 -
->  arch/mips/boot/dts/cavium-octeon/Makefile        | 1 -
->  arch/mips/boot/dts/img/Makefile                  | 1 -
->  arch/mips/boot/dts/ingenic/Makefile              | 1 -
->  arch/mips/boot/dts/lantiq/Makefile               | 1 -
->  arch/mips/boot/dts/mti/Makefile                  | 1 -
->  arch/mips/boot/dts/netlogic/Makefile             | 1 -
->  arch/mips/boot/dts/ni/Makefile                   | 1 -
->  arch/mips/boot/dts/pic32/Makefile                | 1 -
->  arch/mips/boot/dts/qca/Makefile                  | 1 -
->  arch/mips/boot/dts/ralink/Makefile               | 1 -
->  arch/mips/boot/dts/xilfpga/Makefile              | 1 -
->  arch/nios2/boot/Makefile                         | 2 --
->  arch/openrisc/boot/dts/Makefile                  | 2 --
->  arch/powerpc/boot/Makefile                       | 2 +-
->  arch/sh/boot/dts/Makefile                        | 2 --
->  arch/xtensa/boot/dts/Makefile                    | 2 --
->  54 files changed, 3 insertions(+), 60 deletions(-)
+diff --git a/tools/testing/selftests/membarrier/membarrier_test.c b/tools/testing/selftests/membarrier/membarrier_test.c
+index d7543a6d9030..a0eae8d51e72 100644
+--- a/tools/testing/selftests/membarrier/membarrier_test.c
++++ b/tools/testing/selftests/membarrier/membarrier_test.c
+@@ -132,6 +132,63 @@ static int test_membarrier_private_expedited_success(void)
+ 	return 0;
+ }
+ 
++static int test_membarrier_private_expedited_sync_core_fail(void)
++{
++	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE not registered failure";
++
++	if (sys_membarrier(cmd, flags) != -1) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should fail, but passed\n",
++			test_name, flags);
++	}
++	if (errno != EPERM) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
++			test_name, flags, EPERM, strerror(EPERM),
++			errno, strerror(errno));
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d, errno = %d\n",
++		test_name, flags, errno);
++	return 0;
++}
++
++static int test_membarrier_register_private_expedited_sync_core_success(void)
++{
++	int cmd = MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n",
++		test_name, flags);
++	return 0;
++}
++
++static int test_membarrier_private_expedited_sync_core_success(void)
++{
++	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n",
++		test_name, flags);
++	return 0;
++}
++
+ static int test_membarrier(void)
+ {
+ 	int status;
+@@ -154,6 +211,22 @@ static int test_membarrier(void)
+ 	status = test_membarrier_private_expedited_success();
+ 	if (status)
+ 		return status;
++	status = sys_membarrier(MEMBARRIER_CMD_QUERY, 0);
++	if (status < 0) {
++		ksft_test_result_fail("sys_membarrier() failed\n");
++		return status;
++	}
++	if (status & MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE) {
++		status = test_membarrier_private_expedited_sync_core_fail();
++		if (status)
++			return status;
++		status = test_membarrier_register_private_expedited_sync_core_success();
++		if (status)
++			return status;
++		status = test_membarrier_private_expedited_sync_core_success();
++		if (status)
++			return status;
++	}
+ 	return 0;
+ }
+ 
+@@ -173,8 +246,10 @@ static int test_membarrier_query(void)
+ 		}
+ 		ksft_exit_fail_msg("sys_membarrier() failed\n");
+ 	}
+-	if (!(ret & MEMBARRIER_CMD_SHARED))
++	if (!(ret & MEMBARRIER_CMD_SHARED)) {
++		ksft_test_result_fail("sys_membarrier() CMD_SHARED query failed\n");
+ 		ksft_exit_fail_msg("sys_membarrier is not supported.\n");
++	}
+ 
+ 	ksft_test_result_pass("sys_membarrier available\n");
+ 	return 0;
+-- 
+2.11.0
