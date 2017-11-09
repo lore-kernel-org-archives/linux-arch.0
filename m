@@ -1,106 +1,123 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH 18/31] nds32: Library functions
-Date: Thu, 9 Nov 2017 00:40:20 +0000
-Message-ID: <20171109004020.GX21978@ZenIV.linux.org.uk>
+Subject: Re: [PATCH 17/31] nds32: Signal handling support
+Date: Thu, 9 Nov 2017 01:26:20 +0000
+Message-ID: <20171109012620.GY21978@ZenIV.linux.org.uk>
 References: <cover.1510118606.git.green.hu@gmail.com>
- <ea57a25c0aceab45d36951fed44cfbecfe1540b8.1510118606.git.green.hu@gmail.com>
+ <82ac0fc50f8fcdaf423b6ef1a66ee4d1d88d366b.1510118606.git.green.hu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:36306 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:37196 "EHLO
         ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752182AbdKIAk2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 19:40:28 -0500
+        with ESMTP id S1751897AbdKIB0Y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Nov 2017 20:26:24 -0500
 Content-Disposition: inline
-In-Reply-To: <ea57a25c0aceab45d36951fed44cfbecfe1540b8.1510118606.git.green.hu@gmail.com>
+In-Reply-To: <82ac0fc50f8fcdaf423b6ef1a66ee4d1d88d366b.1510118606.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greentime Hu <green.hu@gmail.com>
 Cc: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, Vincent Chen <vincentc@andestech.com>
 
-On Wed, Nov 08, 2017 at 01:55:06PM +0800, Greentime Hu wrote:
+On Wed, Nov 08, 2017 at 01:55:05PM +0800, Greentime Hu wrote:
 
-> +#define __range_ok(addr, size) (size <= get_fs() && addr <= (get_fs() -size))
-> +
-> +#define access_ok(type, addr, size)                 \
-> +	__range_ok((unsigned long)addr, (unsigned long)size)
-
-> +#define __get_user_x(__r2,__p,__e,__s,__i...)				\
-> +	   __asm__ __volatile__ (					\
-> +		__asmeq("%0", "$r0") __asmeq("%1", "$r2")		\
-> +		"bal	__get_user_" #__s				\
-
-... which does not check access_ok() or do any visible equivalents; OK...
-
-> +#define get_user(x,p)							\
-> +	({								\
-> +		const register typeof(*(p)) __user *__p asm("$r0") = (p);\
-> +		register unsigned long __r2 asm("$r2");			\
-> +		register int __e asm("$r0");				\
-> +		switch (sizeof(*(__p))) {				\
-> +		case 1:							\
-> +			__get_user_x(__r2, __p, __e, 1, "$lp");		\
-
-... and neither does this, which is almost certainly *not* OK.
-
-> +#define put_user(x,p)							\
-
-Same here, AFAICS.
-
-> +extern unsigned long __arch_copy_from_user(void *to, const void __user * from,
-> +					   unsigned long n);
-
-> +static inline unsigned long raw_copy_from_user(void *to,
-> +					       const void __user * from,
-> +					       unsigned long n)
+> +static int restore_sigframe(struct pt_regs *regs,
+> +			    struct rt_sigframe __user * sf)
 > +{
-> +	return __arch_copy_from_user(to, from, n);
+
+[snip]
+
+> +	err |= !valid_user_regs(regs);
+
+IDGI...  Where do you modify ->ipsw at all and how can valid_user_regs() come
+to be false here?
+
+> +asmlinkage int sys_rt_sigreturn(struct pt_regs *regs)
+> +{
+> +	struct rt_sigframe __user *frame;
+> +
+> +	/* Always make any pending restarted system calls return -EINTR */
+> +	current->restart_block.fn = do_no_restart_syscall;
+> +
+> +	/*
+> +	 * Since we stacked the signal on a 64-bit boundary,
+> +	 * then 'sp' should be two-word aligned here.  If it's
+> +	 * not, then the user is trying to mess with us.
+> +	 */
+> +	if (regs->sp & 7)
+> +		goto badframe;
+> +
+> +	frame = (struct rt_sigframe __user *)regs->sp;
+> +
+> +	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
+> +		goto badframe;
+> +
+> +	if (restore_sigframe(regs, frame))
+> +		goto badframe;
+> +
+> +	if (restore_altstack(&frame->uc.uc_stack))
+> +		goto badframe;
+> +
+> +	return regs->uregs[0];
+> +
+> +badframe:
+> +	force_sig(SIGSEGV, current);
+> +	return 0;
 > +}
 
-Er...  Why not call your __arch_... raw_... and be done with that?
+AFAICS, you are copying arm; take a good look at sys_rt_sigreturn_wrapper
+there - specifically, the 'mov why, #0' part.  Consider what happens if
+you get an interrupt at the moment when $r0 contains -ERESTARTSYS (for
+example) and signal arrives while we are processing the interrupt.  It
+will be handled on the way out, without any syscall restart crap ('why'
+is 0 on that codepath).  So far, so good, but think what'll happen when
+you are done with the signal handler.  sigreturn() is called, the values
+we had stashed in sigcontext go back into registers (OK, pt_regs on
+kernel stack that will be used to reload the registers on return to
+userland)... and the signals that had been blocked for the duration of
+handlers (see sa_mask in sigaction(2)) get unblocked.  And it turns
+out that you have one of those pending - it had arrived while we'd been
+in the handler.
 
-> +#define INLINE_COPY_FROM_USER
-> +#define INLINE_COPY_TO_USER
+Now we are fucked.  You have TIF_SIGPENDING set, so do_notify_resume()
+is called.  And everything looks exactly as if you had a syscall restart
+situation - regs->uregs[0] being one of -ERESTART... and 'syscall' flag
+being true.  So we go into the second signal handler (as we ought to)
+with saved ->ipc set 4 bytes back from where we were going to return.
+It would've been the right thing to do if it *was* a syscall restart,
+but we were returning to the location where the original interrupt
+had caught us.
 
-Are those actually worth bothering?  IOW, have you compared behaviour
-with and without them?
+Result: with the right timing, an interrupt arriving when userland process
+has $r0 equal -512 may lead to instruction pointer jumping 4 bytes back.
+Pity the poor sod trying to debug that kind of breakage...
 
-> +ENTRY(__arch_copy_to_user)
-> +	push	$r0
-> +	push	$r2
-> +	beqz	$r2, ctu_exit
-> +	srli	$p0, $r2, #2		! $p0 = number of word to clear
-> +	andi	$r2, $r2, #3		! Bytes less than a word to copy
-> +	beqz	$p0, byte_ctu		! Only less than a word to copy
-> +word_ctu:
-> +	lmw.bim	$p1, [$r1], $p1		! Load the next word
-> +USER(	smw.bim,$p1, [$r0], $p1)	! Store the next word
+Restart should *NOT* be triggered upon sigreturn(2).
 
-Umm...  It's that happy with unaligned loads and stores?  Your memcpy seems
-to be trying to avoid those...
+> +static int
+> +setup_return(struct pt_regs *regs, struct ksignal *ksig, void __user * frame)
+> +{
+> +	unsigned long handler = (unsigned long)ksig->ka.sa.sa_handler;
+> +	unsigned long retcode;
+> +
+> +	/*
+> +	 * Maybe we need to deliver a 32-bit signal to a 26-bit task.
 
-> +9001:
-> +	pop	$p1			! Original $r2, n
-> +	pop	$p0			! Original $r0, void *to
-> +	sub	$r1, $r0, $p0		! Bytes copied
-> +	sub	$r2, $p1, $r1		! Bytes left to copy
-> +	push	$lp
-> +	move	$r0, $p0
-> +	bal	memzero			! Clean up the memory
+Deliver to what, again?  That comment made sense (if rather sad one) on arm, but
+what is it doing here?
 
-Just what memory are you zeroing here?  The one you had been
-unable to store into in the first place?
+> +static int do_signal(struct pt_regs *regs, int syscall)
+> +{
+> +	unsigned int retval = 0, continue_addr = 0, restart_addr = 0;
+> +	struct ksignal ksig;
+> +	int restart = 0;
+> +
+> +	/*
+> +	 * We want the common case to go fast, which
+> +	 * is why we may in certain cases get here from
+> +	 * kernel mode. Just return without doing anything
+> +	 * if so.
+> +	 */
+> +	if (!user_mode(regs))
+> +		return 0;
 
-> +ENTRY(__arch_copy_from_user)
-
-> +9001:
-> +	pop	$p1			! Original $r2, n
-> +	pop	$p0			! Original $r0, void *to
-> +	sub	$r1, $r1, $p0		! Bytes copied
-> +	sub	$r2, $p1, $r1		! Bytes left to copy
-> +	push	$lp
-> +	bal	memzero			! Clean up the memory
-
-Ditto, only this one is even worse - instead of just oopsing on
-you, it will quietly destroy data past the area you've copied
-into.  raw_copy_..._user() MUST NOT ZERO ANYTHING.  Ever.
+Which cases would those be?
