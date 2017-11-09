@@ -1,82 +1,44 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH 13/31] nds32: DMA mapping API
-Date: Thu, 9 Nov 2017 15:12:05 +0800
-Message-ID: <CAEbi=3ebX94-eHa56+ktvbp3Obbe_Uwva8tiPrZvQT-x+QnZzQ@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <763e6a252de1ad8ccd28344fd0676ae2f92f796d.1510118606.git.green.hu@gmail.com>
- <CAK8P3a11a+So5DUZwv+geT2WMYpMG-FPt9=nKZFyYLQ0Gs55qw@mail.gmail.com>
+Subject: Re: [PATCH 03/31] nds32: Support early_printk
+Date: Thu, 9 Nov 2017 15:19:57 +0800
+Message-ID: <CAEbi=3e_Sz_VyE0H_VAFW9rJ98VwNgJe36ayFbQsL0UdQMQ7Mw@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <f01f62d9666876052cc37043b605b60355bf54d7.1510118606.git.green.hu@gmail.com>
+ <20171108094705.GK1370@distanz.ch>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f67.google.com ([209.85.213.67]:46184 "EHLO
-        mail-vk0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752549AbdKIHMq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Nov 2017 02:12:46 -0500
-In-Reply-To: <CAK8P3a11a+So5DUZwv+geT2WMYpMG-FPt9=nKZFyYLQ0Gs55qw@mail.gmail.com>
+Received: from mail-vk0-f68.google.com ([209.85.213.68]:53937 "EHLO
+        mail-vk0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751120AbdKIHUj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Nov 2017 02:20:39 -0500
+In-Reply-To: <20171108094705.GK1370@distanz.ch>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, deanbo422@gmail.com
+To: Tobias Klauser <tklauser@distanz.ch>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Rick Chen <rick@andestech.com>
 
-2017-11-08 17:09 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
-> On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+2017-11-08 17:47 GMT+08:00 Tobias Klauser <tklauser@distanz.ch>:
+> On 2017-11-08 at 06:54:51 +0100, Greentime Hu <green.hu@gmail.com> wrote:
+>> From: Greentime Hu <greentime@andestech.com>
+>>
+>> Signed-off-by: Rick Chen <rick@andestech.com>
+>> Signed-off-by: Greentime Hu <greentime@andestech.com>
+>> ---
+>>  arch/nds32/kernel/early_printk.c |  124 ++++++++++++++++++++++++++++++++++++++
+>>  1 file changed, 124 insertions(+)
+>>  create mode 100644 arch/nds32/kernel/early_printk.c
+>>
+>> diff --git a/arch/nds32/kernel/early_printk.c b/arch/nds32/kernel/early_printk.c
+>> new file mode 100644
+>> index 0000000..269c3cd
+>> --- /dev/null
+>> +++ b/arch/nds32/kernel/early_printk.c
 >
->> +static void consistent_sync(void *vaddr, size_t size, int direction)
->> +{
->> +       unsigned long start = (unsigned long)vaddr;
->> +       unsigned long end = start + size;
->> +
->> +       switch (direction) {
->> +       case DMA_FROM_DEVICE:   /* invalidate only */
->> +               cpu_dma_inval_range(start, end);
->> +               break;
->> +       case DMA_TO_DEVICE:     /* writeback only */
->> +               cpu_dma_wb_range(start, end);
->> +               break;
->> +       case DMA_BIDIRECTIONAL: /* writeback and invalidate */
->> +               cpu_dma_wbinval_range(start, end);
->> +               break;
->> +       default:
->> +               BUG();
->> +       }
->> +}
->
->> +
->> +static void
->> +nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
->> +                             size_t size, enum dma_data_direction dir)
->> +{
->> +       consistent_sync((void *)dma_to_virt(dev, handle), size, dir);
->> +}
->> +
->> +static void
->> +nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
->> +                                size_t size, enum dma_data_direction dir)
->> +{
->> +       consistent_sync((void *)dma_to_virt(dev, handle), size, dir);
->> +}
->
-> You do the same cache operations for _to_cpu and _to_device, which
-> usually works,
-> but is more expensive than you need. It's better to take the ownership into
-> account and only do what you need.
->
+> Could be implemented using earlycon (the 8250 drivers already supports
+> it) instead of duplicating functionality in arch/nds32?  See e.g. the
+> nios2 port for how this could be done, specifically commit e118c3fec9c0
+> ("nios2: remove custom early console implementation").
 
 Thanks.
-
-Like this?
-
-static void
-nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
-                              size_t size, enum dma_data_direction dir)
-{
-        consistent_sync((void *)dma_to_virt(dev, handle), size,
-DMA_FROM_DEVICE);
-}
-
-static void
-nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
-                                 size_t size, enum dma_data_direction dir)
-{
-        consistent_sync((void *)dma_to_virt(dev, handle), size,
-DMA_TO_DEVICE);
-}
+I will try to use earlycon in the next version patch.
+I will remove this patch if earlycon is able to be used in nds32.
