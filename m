@@ -1,59 +1,81 @@
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Subject: Re: MPK: pkey_free and key reuse
-Date: Thu, 9 Nov 2017 08:59:56 -0800
-Message-ID: <633b5b03-3481-0da2-9d6c-f5298902e36a@linux.intel.com>
-References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
- <e7d1e622-bbac-2750-2895-cc151458ff2f@linux.intel.com>
- <48ac42c0-4c31-cef8-a75a-8f3beab7cc66@redhat.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
+Date: Fri, 10 Nov 2017 04:15:26 +1100
+Message-ID: <20171110041526.6137bc9a@roar.ozlabs.ibm.com>
+References: <24b93038-76f7-33df-d02e-facb0ce61cd2@redhat.com>
+	<20171106192524.12ea3187@roar.ozlabs.ibm.com>
+	<d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
+	<546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
+	<20171107160705.059e0c2b@roar.ozlabs.ibm.com>
+	<20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
+	<20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
+	<20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
+	<20171108002448.6799462e@roar.ozlabs.ibm.com>
+	<2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
+	<20171107140158.iz4b2lchhrt6eobe@node.shutemov.name>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <48ac42c0-4c31-cef8-a75a-8f3beab7cc66@redhat.com>
-Content-Language: en-US
+In-Reply-To: <20171107140158.iz4b2lchhrt6eobe@node.shutemov.name>
 Sender: owner-linux-mm@kvack.org
-To: Florian Weimer <fweimer@redhat.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Florian Weimer <fweimer@redhat.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linuxppc-dev@lists.ozlabs.org, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 11/09/2017 06:48 AM, Florian Weimer wrote:
-> On 11/08/2017 09:41 PM, Dave Hansen wrote:
->>> (B) If a key is reused, existing threads retain their access rights,
->>> while there is an expectation that pkey_alloc denies access for the
->>> threads except the current one.
->> Where does this expectation come from?
+On Tue, 7 Nov 2017 17:01:58 +0300
+"Kirill A. Shutemov" <kirill@shutemov.name> wrote:
+
+> On Tue, Nov 07, 2017 at 07:15:58PM +0530, Aneesh Kumar K.V wrote:
+> >   
+> > > 
+> > > If it is decided to keep these kind of heuristics, can we get just a
+> > > small but reasonably precise description of each change to the
+> > > interface and ways for using the new functionality, such that would be
+> > > suitable for the man page? I couldn't fix powerpc because nothing
+> > > matches and even Aneesh and you differ on some details (MAP_FIXED
+> > > behaviour).  
+> > 
+> > 
+> > I would consider MAP_FIXED as my mistake. We never discussed this explicitly
+> > and I kind of assumed it to behave the same way. ie, we search in lower
+> > address space (128TB) if the hint addr is below 128TB.
+> > 
+> > IIUC we agree on the below.
+> > 
+> > 1) MAP_FIXED allow the addr to be used, even if hint addr is below 128TB but
+> > hint_addr + len is > 128TB.
+> > 
+> > 2) For everything else we search in < 128TB space if hint addr is below
+> > 128TB
+> > 
+> > 3) We don't switch to large address space if hint_addr + len > 128TB. The
+> > decision to switch to large address space is primarily based on hint addr
+> > 
+> > Is there any other rule we need to outline? Or is any of the above not
+> > correct?  
 > 
-> For me, it was the access_rights argument to pkey_alloc.  What else
-> would it do?  For the current thread, I can already set the rights with
-> a PKRU write, so the existence of the syscall argument is puzzling.
-
-The manpage is pretty bare here.  But the thought was that, in most
-cases, you will want to allocate a key and start using it immediately.
-This was in response to some feedback on one of the earlier reviews of
-the patch set.
-
->> Using the malloc() analogy, we
->> don't expect that free() in one thread actively takes away references to
->> the memory held by other threads.
+> That's correct.
 > 
-> But malloc/free isn't expected to be a partial antidote to random
-> pointer scribbling.
 
-Nor is protection keys intended to be an antidote for use-after-free.
+Thanks guys, I'll send out some powerpc patches to match -- it deviates in
+its MAP_FIXED handling (treats it the same as !MAP_FIXED).
 
-> I think we should either implement revoke on pkey_alloc, with a
-> broadcast to all threads (the pkey_set race can be closed by having a
-> vDSO for that an the revocation code can check %rip to see if the old
-> PKRU value needs to be fixed up).  Or we add the two pkey_alloc flags I
-> mentioned earlier.
+So these semantics are what we're going with? Anything that does mmap() is
+guaranteed of getting a 47-bit pointer and it can use the top 17 bits for
+itself? Is intended to be cross-platform or just x86 and power specific?
 
-That sounds awfully complicated to put in-kernel.  I'd be happy to
-review the patches after you put them together once we see how it looks.
+Also, this may follow from deduction from 1-3, but for explicit
+specification in man page:
 
-You basically want threads to broadcast their PKRU values at pkey_free()
-time.  That's totally doable... in userspace.  You just need a mechanism
-for each thread to periodically check if they need an update.  I don't
-think we need kernel intervention and vDSO magic for that.
+4) To get an unspecified allocation with the largest possible address range,
+we pass in -1 for mmap hint.
+
+Are we allowing 8 bits bits of unused address in this case, or must the
+app not assume anything about number of bits used?
+
+Thanks,
+Nick
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
