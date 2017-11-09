@@ -1,84 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:41924 "EHLO mx1.redhat.com"
+Received: from mga11.intel.com ([192.55.52.93]:23425 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755148AbdKIOse (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 9 Nov 2017 09:48:34 -0500
+        id S1753234AbdKIQ75 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 9 Nov 2017 11:59:57 -0500
 Subject: Re: MPK: pkey_free and key reuse
 References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
  <e7d1e622-bbac-2750-2895-cc151458ff2f@linux.intel.com>
-From: Florian Weimer <fweimer@redhat.com>
-Message-ID: <48ac42c0-4c31-cef8-a75a-8f3beab7cc66@redhat.com>
-Date: Thu, 9 Nov 2017 15:48:26 +0100
+ <48ac42c0-4c31-cef8-a75a-8f3beab7cc66@redhat.com>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <633b5b03-3481-0da2-9d6c-f5298902e36a@linux.intel.com>
+Date: Thu, 9 Nov 2017 08:59:56 -0800
 MIME-Version: 1.0
-In-Reply-To: <e7d1e622-bbac-2750-2895-cc151458ff2f@linux.intel.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
+In-Reply-To: <48ac42c0-4c31-cef8-a75a-8f3beab7cc66@redhat.com>
+Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@linux.intel.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
+To: Florian Weimer <fweimer@redhat.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20171109144826.zungo69bidhOtuzqNgCoZ5_fAeSzFzv79rD48uW4OMk@z>
+Message-ID: <20171109165956.gucQUwgVlB_euMjUJsfqxwAhve4kzI7-aPj9WMsiFss@z>
 
-On 11/08/2017 09:41 PM, Dave Hansen wrote:
-> On 11/05/2017 02:35 AM, Florian Weimer wrote:
->> I don't think pkey_free, as it is implemented today, is very safe due to
->> key reuse by a subsequent pkey_alloc.  I see two problems:
->>
->> (A) pkey_free allows reuse for they key while there are still mappings
->> that use it.
+On 11/09/2017 06:48 AM, Florian Weimer wrote:
+> On 11/08/2017 09:41 PM, Dave Hansen wrote:
+>>> (B) If a key is reused, existing threads retain their access rights,
+>>> while there is an expectation that pkey_alloc denies access for the
+>>> threads except the current one.
+>> Where does this expectation come from?
 > 
-> I don't agree with this assessment.  Is malloc() unsafe?  If someone
-> free()s memory that is still in use, a subsequent malloc() would hand
-> the address out again for reuse.
+> For me, it was the access_rights argument to pkey_alloc.  What else
+> would it do?  For the current thread, I can already set the rights with
+> a PKRU write, so the existence of the syscall argument is puzzling.
 
-I think the disagreement is not about what is considered acceptable 
-behavior as such, but what constitutes “use”.
+The manpage is pretty bare here.  But the thought was that, in most
+cases, you will want to allocate a key and start using it immediately.
+This was in response to some feedback on one of the earlier reviews of
+the patch set.
 
-And even if with concurrent use, the behavior can be well-defined.  We 
-make sure that if munmap is called, we do not return before all threads 
-have observed in principle that the page is gone (at considerable cost, 
-of course, and in most cases, that is total overkill).
+>> Using the malloc() analogy, we
+>> don't expect that free() in one thread actively takes away references to
+>> the memory held by other threads.
+> 
+> But malloc/free isn't expected to be a partial antidote to random
+> pointer scribbling.
 
-I'm pretty sure there is another key reuse scenario which does not even 
-involve pkey_free, but I need to write a test first.
+Nor is protection keys intended to be an antidote for use-after-free.
 
->> (B) If a key is reused, existing threads retain their access rights,
->> while there is an expectation that pkey_alloc denies access for the
->> threads except the current one.
-> Where does this expectation come from?
+> I think we should either implement revoke on pkey_alloc, with a
+> broadcast to all threads (the pkey_set race can be closed by having a
+> vDSO for that an the revocation code can check %rip to see if the old
+> PKRU value needs to be fixed up).  Or we add the two pkey_alloc flags I
+> mentioned earlier.
 
-For me, it was the access_rights argument to pkey_alloc.  What else 
-would it do?  For the current thread, I can already set the rights with 
-a PKRU write, so the existence of the syscall argument is puzzling.
+That sounds awfully complicated to put in-kernel.  I'd be happy to
+review the patches after you put them together once we see how it looks.
 
-> Using the malloc() analogy, we
-> don't expect that free() in one thread actively takes away references to
-> the memory held by other threads.
-
-But malloc/free isn't expected to be a partial antidote to random 
-pointer scribbling.
-
-> We define free() as only being called on resources to which there are no
-> active references.  If you free() things in use, bad things happen.
-> pkey_free() is only to be called when there is nothing actively using
-> the key.  If you pkey_free() an in-use key, bad things happen.
-
-My impression was that MPK was intended as a fallback in case you did 
-that, and unrelated code suddenly writes through a dangling pointer and 
-accidentally hits the DAX-mapped persistent memory of the database.  To 
-prevent that, the those pages are mapped write-disabled on all threads 
-almost all the time, and only if the database needs to write something, 
-it temporarily tweaks PKRU so that it gains access.  All that assumes 
-that you can actually restrict all threads in the process, but with the 
-current implementation, that's not true even if threads never touch keys 
-they don't know.
-
-I think we should either implement revoke on pkey_alloc, with a 
-broadcast to all threads (the pkey_set race can be closed by having a 
-vDSO for that an the revocation code can check %rip to see if the old 
-PKRU value needs to be fixed up).  Or we add the two pkey_alloc flags I 
-mentioned earlier.
-
-Thanks,
-Florian
+You basically want threads to broadcast their PKRU values at pkey_free()
+time.  That's totally doable... in userspace.  You just need a mechanism
+for each thread to periodically check if they need an update.  I don't
+think we need kernel intervention and vDSO magic for that.
