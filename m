@@ -1,64 +1,66 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 13/31] nds32: DMA mapping API
-Date: Thu, 9 Nov 2017 11:14:56 +0100
-Message-ID: <CAK8P3a0BVWgUvHnJwfgUYbc9ZZqmCaG3XVe0thXX6kaaPFpZ_g@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <763e6a252de1ad8ccd28344fd0676ae2f92f796d.1510118606.git.green.hu@gmail.com>
- <CAK8P3a11a+So5DUZwv+geT2WMYpMG-FPt9=nKZFyYLQ0Gs55qw@mail.gmail.com> <CAEbi=3ebX94-eHa56+ktvbp3Obbe_Uwva8tiPrZvQT-x+QnZzQ@mail.gmail.com>
+Subject: Re: [PATCH 25/31] nds32: defconfig
+Date: Thu, 9 Nov 2017 11:20:49 +0100
+Message-ID: <CAK8P3a3_vY1NLtc+Mpimn22qWrnPVSj+QJWkd=_s=evTc=toiw@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <805f8432979e2707fbc9bf62dc52b8abfbd2cb14.1510118606.git.green.hu@gmail.com>
+ <CAK8P3a0XciTazM7OewyRV+92J0JgfbpvXJ5jizNcoL3LV=XOOQ@mail.gmail.com> <CAEbi=3dvkAs8=gpjtaKKBOa2MkQb1bh87q4nEsWxNuWn_1SxUw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CAEbi=3ebX94-eHa56+ktvbp3Obbe_Uwva8tiPrZvQT-x+QnZzQ@mail.gmail.com>
-Sender: netdev-owner@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAEbi=3dvkAs8=gpjtaKKBOa2MkQb1bh87q4nEsWxNuWn_1SxUw@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Greentime Hu <green.hu@gmail.com>
 Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, deanbo422@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 9, 2017 at 8:12 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> 2017-11-08 17:09 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+On Thu, Nov 9, 2017 at 9:00 AM, Greentime Hu <green.hu@gmail.com> wrote:
+> 2017-11-08 18:03 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
 >> On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>>> From: Greentime Hu <greentime@andestech.com>
+>>>
+>>> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+>>> Signed-off-by: Greentime Hu <greentime@andestech.com>
+>>> ---
+>>>  arch/nds32/configs/ae3xx_defconfig  |  110 +++++++++++++++++++++++++++++++++++
+>>>  arch/nds32/configs/ag101p_defconfig |  109 ++++++++++++++++++++++++++++++++++
 >>
+>> Are those two incompatible? I would recommend starting without board
+>> specific defconfig
+>> files, it just gets messy once you get more than a few machines you
+>> want to support.
+>
+> Thanks.
+> These 2 are incompatible.
+> They use different drivers. I may still keep these 2 defconfigs.
 
->> You do the same cache operations for _to_cpu and _to_device, which
->> usually works,
->> but is more expensive than you need. It's better to take the ownership into
->> account and only do what you need.
+Using different drivers doesn't make machines incompatible. For instance, the
+x86 desktop machine has drivers for all kinds of devices, but it uses
+one configuration
+that works on basically any x86 machine.
+
+Similarly, we only have one defconfig file on arm64, and it works across very
+diverse machines (phone, home routers, large servers, etc.).
+
+All drivers should be written in a way to allow being built into the
+kernel without
+doing any harm when you don't have the respective hardware.
+
+>>> +CONFIG_FB=y
+>>> +# CONFIG_VGA_CONSOLE is not set
+>>> +CONFIG_FRAMEBUFFER_CONSOLE=y
 >>
-> Like this?
+>> You have a framebuffer console here, but no framebuffer driver?
 >
-> static void
-> nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
->                               size_t size, enum dma_data_direction dir)
-> {
->         consistent_sync((void *)dma_to_virt(dev, handle), size,
-> DMA_FROM_DEVICE);
-> }
->
-> static void
-> nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
->                                  size_t size, enum dma_data_direction dir)
-> {
->         consistent_sync((void *)dma_to_virt(dev, handle), size,
-> DMA_TO_DEVICE);
-> }
+> Thanks.
+> I shall enable it when I push our framebuffer in the next time.
+> I will disable it in the next version patch.
 
-No, it's more complicated than that. You need to pass both the direction of the
-DMA transaction and the ownership to consistent_sync(), and then do the
-correct cache maintenance operation for each of the six combinations.
+The fbdev subsystem is no longer recommended for new drivers, they
+should be written on top of the DRM framework. You can use
+CONFIG_DRM_FBDEV_EMULATION to get the framebuffer
+console on top of that, but then you don't need to enable CONFIG_FB.
 
-Which operation that is depends on the microarchitecture to some degree,
-e.g. on machines that can load arbitrary cache lines during speculative
-execution, you have to invalidate the caches during both
-_for_device/FROM_DEVICE _for_cpu/FROM_DEVICE, while machines
-without speculative execution can skip the second invalidation, they
-only need to get rid of dirty cache lines before the DMA from device.
-
-Usually you don't have to do a writeback during _for_cpu, since there
-are no dirty cache lines after the _for_device operation.
-
-It's not entirely clear what the correct behavior is for buffers that
-are not cache line aligned, some architectures use wbinval instead
-of inval for the _for_device/_FROM_DEVICE operation, on
-any partial cache line, but you wouldn't want to do that on the
-_for_cpu/_FROM_DEVICE operation.
+Please have a look at drivers/gpu/drm/tinydrm/ to see if you can either
+use that directly, or take it as a skeleton for your own driver.
 
        Arnd
