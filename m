@@ -1,45 +1,85 @@
-From: Rob Herring <robh-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: Re: [PATCH 30/31] dt-bindings: nds32 CPU Bindings
-Date: Thu, 9 Nov 2017 07:57:48 -0600
-Message-ID: <CABGGisw5gi92aM0_tZ0htOzwZTFJpcSNZUJth5TzRXPxzssRxA@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <1a8efba0727437d510d10755f3fcea806833651d.1510118606.git.green.hu@gmail.com>
- <CAL_JsqJAtTSGg=yGvANGdTCWa4tDAicvOvWYr4pK5M1rjPFtfg@mail.gmail.com> <CAEbi=3e-hRbej7EZ68-J1YPNfdxu7O_BAZ1rvZvAhhYzAT09-g@mail.gmail.com>
+From: Florian Weimer <fweimer@redhat.com>
+Subject: Re: MPK: pkey_free and key reuse
+Date: Thu, 9 Nov 2017 15:48:26 +0100
+Message-ID: <48ac42c0-4c31-cef8-a75a-8f3beab7cc66@redhat.com>
+References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
+ <e7d1e622-bbac-2750-2895-cc151458ff2f@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CAEbi=3e-hRbej7EZ68-J1YPNfdxu7O_BAZ1rvZvAhhYzAT09-g-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, netdev <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <vincentc-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Rick Chen <rick-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Zong Li <zong-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <e7d1e622-bbac-2750-2895-cc151458ff2f@linux.intel.com>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave.hansen@linux.intel.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 9, 2017 at 3:39 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
-> 2017-11-08 21:18 GMT+08:00 Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>:
->> Please Cc the DT list on bindings.
->
-> Sorry. I am not sure what you mean.
-> Do you mean add devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org to cc list?
-
-Yes. Use get_maintainers.pl as a guide.
-
->> On Tue, Nov 7, 2017 at 11:55 PM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
->>> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+On 11/08/2017 09:41 PM, Dave Hansen wrote:
+> On 11/05/2017 02:35 AM, Florian Weimer wrote:
+>> I don't think pkey_free, as it is implemented today, is very safe due to
+>> key reuse by a subsequent pkey_alloc.  I see two problems:
 >>
+>> (A) pkey_free allows reuse for they key while there are still mappings
+>> that use it.
+> 
+> I don't agree with this assessment.  Is malloc() unsafe?  If someone
+> free()s memory that is still in use, a subsequent malloc() would hand
+> the address out again for reuse.
 
->>> +                       device_type = "cpu";
->>> +                       compatible = "andestech,n13", "andestech,n15";
->>
->> n13 is a superset of n15?
->
-> No, they are independent ones.
+I think the disagreement is not about what is considered acceptable 
+behavior as such, but what constitutes “use”.
 
-Then having both is not valid. The strings should be in order of best
-match to worst match where worst match is typically either older
-implementations of IP blocks or generic'ish strings such as "ns16550"
-for a UART.
+And even if with concurrent use, the behavior can be well-defined.  We 
+make sure that if munmap is called, we do not return before all threads 
+have observed in principle that the page is gone (at considerable cost, 
+of course, and in most cases, that is total overkill).
 
-Rob
+I'm pretty sure there is another key reuse scenario which does not even 
+involve pkey_free, but I need to write a test first.
+
+>> (B) If a key is reused, existing threads retain their access rights,
+>> while there is an expectation that pkey_alloc denies access for the
+>> threads except the current one.
+> Where does this expectation come from?
+
+For me, it was the access_rights argument to pkey_alloc.  What else 
+would it do?  For the current thread, I can already set the rights with 
+a PKRU write, so the existence of the syscall argument is puzzling.
+
+> Using the malloc() analogy, we
+> don't expect that free() in one thread actively takes away references to
+> the memory held by other threads.
+
+But malloc/free isn't expected to be a partial antidote to random 
+pointer scribbling.
+
+> We define free() as only being called on resources to which there are no
+> active references.  If you free() things in use, bad things happen.
+> pkey_free() is only to be called when there is nothing actively using
+> the key.  If you pkey_free() an in-use key, bad things happen.
+
+My impression was that MPK was intended as a fallback in case you did 
+that, and unrelated code suddenly writes through a dangling pointer and 
+accidentally hits the DAX-mapped persistent memory of the database.  To 
+prevent that, the those pages are mapped write-disabled on all threads 
+almost all the time, and only if the database needs to write something, 
+it temporarily tweaks PKRU so that it gains access.  All that assumes 
+that you can actually restrict all threads in the process, but with the 
+current implementation, that's not true even if threads never touch keys 
+they don't know.
+
+I think we should either implement revoke on pkey_alloc, with a 
+broadcast to all threads (the pkey_set race can be closed by having a 
+vDSO for that an the revocation code can check %rip to see if the old 
+PKRU value needs to be fixed up).  Or we add the two pkey_alloc flags I 
+mentioned earlier.
+
+Thanks,
+Florian
+
 --
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
