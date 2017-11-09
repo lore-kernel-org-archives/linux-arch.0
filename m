@@ -1,55 +1,88 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH 00/31] Andes(nds32) Linux Kernel Port
-Date: Thu, 9 Nov 2017 17:33:13 +0800
-Message-ID: <CAEbi=3ftwdYn8avHOBeDJ4tB+Z0Dnpvce6O3DnBechqKUfvEAQ@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <CAK8P3a0tP4NrOzaHnndp2UO_a9swSrqscPM1h5N=Hit3pX_DxA@mail.gmail.com>
+Subject: Re: [PATCH 30/31] dt-bindings: nds32 CPU Bindings
+Date: Thu, 9 Nov 2017 17:39:28 +0800
+Message-ID: <CAEbi=3e-hRbej7EZ68-J1YPNfdxu7O_BAZ1rvZvAhhYzAT09-g@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <1a8efba0727437d510d10755f3fcea806833651d.1510118606.git.green.hu@gmail.com>
+ <CAL_JsqJAtTSGg=yGvANGdTCWa4tDAicvOvWYr4pK5M1rjPFtfg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f68.google.com ([209.85.213.68]:55850 "EHLO
-        mail-vk0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752675AbdKIJdy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Nov 2017 04:33:54 -0500
-In-Reply-To: <CAK8P3a0tP4NrOzaHnndp2UO_a9swSrqscPM1h5N=Hit3pX_DxA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAL_JsqJAtTSGg=yGvANGdTCWa4tDAicvOvWYr4pK5M1rjPFtfg@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Rob Herring <robh+dt@kernel.org>
+Cc: Greentime <greentime@andestech.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-2017-11-08 18:26 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
-> On Wed, Nov 8, 2017 at 6:54 AM, Greentime Hu <green.hu@gmail.com> wrote:
->> This patchset adds core architecture support to Linux for Andestech's
->> N13, N15, D15, N10, D10 processor cores.
+2017-11-08 21:18 GMT+08:00 Rob Herring <robh+dt@kernel.org>:
+> Please Cc the DT list on bindings.
+
+Sorry. I am not sure what you mean.
+Do you mean add devicetree@vger.kernel.org to cc list?
+
+> On Tue, Nov 7, 2017 at 11:55 PM, Greentime Hu <green.hu@gmail.com> wrote:
+>> From: Greentime Hu <greentime@andestech.com>
+>
+> Commit message needed.
+
+Thanks. I will add more commit messages in the next version patch.
+
+>> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+>> Signed-off-by: Rick Chen <rick@andestech.com>
+>> Signed-off-by: Zong Li <zong@andestech.com>
+>> Signed-off-by: Greentime Hu <greentime@andestech.com>
+>> ---
+>>  Documentation/devicetree/bindings/nds32/cpus.txt |   33 ++++++++++++++++++++++
+>>  1 file changed, 33 insertions(+)
+>>  create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
 >>
->> Based on the 16/32-bit AndeStar RISC-like architecture, we designed the
->> configurable AndesCore series of embedded processor families. AndesCores
->> range from highly performance-efficient small-footprint cores for
->> microcontrollers and deeply-embedded applications to 1GHz+ cores running
->> Linux, covering general-purpose N-series cores for a wide range of computing
->> need, DSP-capable D-series cores for digital signal control,
->> instruction-extensible E-series cores for application-specific acceleration,
->> and secure S-series cores for best protection of the most valuable.
+>> diff --git a/Documentation/devicetree/bindings/nds32/cpus.txt b/Documentation/devicetree/bindings/nds32/cpus.txt
+>> new file mode 100644
+>> index 0000000..97394cb
+>> --- /dev/null
+>> +++ b/Documentation/devicetree/bindings/nds32/cpus.txt
+>> @@ -0,0 +1,33 @@
+>> +* Andestech Processor Binding
+>> +
+>> +This binding specifies what properties must be available in the device tree
+>> +representation of a Andestech Processor Core, which is the root node in the
+>> +tree.
+>> +
+>> +Required properties:
+>> +
+>> +       - compatible:
+>> +               Usage: required
+>> +               Value type: <string>
+>> +               Definition: should be one of:
+>> +                       "andestech,n13"
+>> +                       "andestech,n15"
+>> +                       "andestech,d15"
+>> +                       "andestech,n10"
+>> +                       "andestech,d10"
 >
-> I looked at the entire patch series now and commented on anything I noticed
-> that could be improved, overall this looks very nice, great work!
->
-> Most of my comments are about tiny details that are easy to address.
->
-> I see two areas that need to be looked at carefully, and that may take a
-> few more rounds to get right:
->
-> - In the user space ABI, you have a couple of things that differ from the
->   normal asm-generic definitions, i.e. s few syscall entry points and some
->   types in asm/posix-types.h. I guess you did that to remain compatible
->   with an older glibc port, but IMHO this compatibility should be broken
->   in favor of having the standard ABI before the port gets merged.
->
-> - For the boot interface, you need to clearly define what can be expected
->   and what cannot. This involves the presence of the l2cc, the physical
->   memory address, the built-in dtb, and probably a few more things I
->   missed. For long-term maintainability, you probably want to ensure that
->   you can build a kernel that runs on as much diverse hardware as possible.
->
+> SMP supported for any of these?
 
-Many thanks to all your feedbacks. We will prepare the V2 patch to fix
-them ASAP. :)
+We don't support SMP now.
+
+>> +
+>> +    - device_type
+>> +               Usage: required
+>> +               Value type: <string>
+>> +               Definition: must be "cpu"
+>> +
+>> +* Examples
+>> +
+>> +/ {
+>> +       cpus {
+>> +               cpu@0 {
+>
+> Needs a reg property or drop the unit address.
+
+Thanks.
+I will fix it in the next version patch.
+
+>> +                       device_type = "cpu";
+>> +                       compatible = "andestech,n13", "andestech,n15";
+>
+> n13 is a superset of n15?
+
+No, they are independent ones.
