@@ -1,82 +1,82 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH 12/31] nds32: Device specific operations
-Date: Thu, 9 Nov 2017 15:04:59 +0800
-Message-ID: <CAEbi=3eoTQ+operFB5Oq9VkAjG-Ehs=UQhOOELkeK2eSuuf0=g@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <4e9acf2ec55fb26ddb290ca2d955eeea628e0a77.1510118606.git.green.hu@gmail.com>
- <CAK8P3a04p+GUz3ex=t=CVy8ZcVFFZGwJaaPDoyT74bjieiKHVw@mail.gmail.com>
+Subject: Re: [PATCH 13/31] nds32: DMA mapping API
+Date: Thu, 9 Nov 2017 15:12:05 +0800
+Message-ID: <CAEbi=3ebX94-eHa56+ktvbp3Obbe_Uwva8tiPrZvQT-x+QnZzQ@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <763e6a252de1ad8ccd28344fd0676ae2f92f796d.1510118606.git.green.hu@gmail.com>
+ <CAK8P3a11a+So5DUZwv+geT2WMYpMG-FPt9=nKZFyYLQ0Gs55qw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f195.google.com ([209.85.217.195]:53086 "EHLO
-        mail-ua0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751225AbdKIHFk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Nov 2017 02:05:40 -0500
-In-Reply-To: <CAK8P3a04p+GUz3ex=t=CVy8ZcVFFZGwJaaPDoyT74bjieiKHVw@mail.gmail.com>
+Received: from mail-vk0-f67.google.com ([209.85.213.67]:46184 "EHLO
+        mail-vk0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752549AbdKIHMq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Nov 2017 02:12:46 -0500
+In-Reply-To: <CAK8P3a11a+So5DUZwv+geT2WMYpMG-FPt9=nKZFyYLQ0Gs55qw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, deanbo422@gmail.com
 
-2017-11-08 17:04 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+2017-11-08 17:09 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
 > On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
 >
->> +
->> +#define ioremap(cookie,size)           __ioremap(cookie,size,0,1)
->> +#define ioremap_nocache(cookie,size)   __ioremap(cookie,size,0,1)
->> +#define iounmap(cookie)                        __iounmap(cookie)
->
->> +#include <asm-generic/io.h>
->
-> asm-generic/io.h now provides an ioremap_nocache() helper along with
-> ioremap_uc/ioremap_wc/ioremap_wt, so I think you can remove the
-> ioremap_nocache definition here. You might also be able to remove
-> __ioremap and __iounmap, and only provide ioremap/iounmap, plus
-> the identity macro 'define ioremap ioremap'
-
-Thanks. I will try to use generic ioremap_nocache() helper in the next
-version patch.
-
->> +void __iomem *__ioremap(unsigned long phys_addr, size_t size,
->> +                       unsigned long flags, unsigned long align)
->
-> The 'align' argument is unused here, and not used on other architectures
-> either.
->
-
-Thanks. I will remove this argument in the next version patch.
-
+>> +static void consistent_sync(void *vaddr, size_t size, int direction)
 >> +{
->> +       struct vm_struct *area;
->> +       unsigned long addr, offset, last_addr;
->> +       pgprot_t prot;
+>> +       unsigned long start = (unsigned long)vaddr;
+>> +       unsigned long end = start + size;
 >> +
->> +       /* Don't allow wraparound or zero size */
->> +       last_addr = phys_addr + size - 1;
->> +       if (!size || last_addr < phys_addr)
->> +               return NULL;
->> +
->> +       /*
->> +        * Mappings have to be page-aligned
->> +        */
->> +       offset = phys_addr & ~PAGE_MASK;
->> +       phys_addr &= PAGE_MASK;
->> +       size = PAGE_ALIGN(last_addr + 1) - phys_addr;
->> +
->> +       /*
->> +        * Ok, go for it..
->> +        */
->> +       area = get_vm_area(size, VM_IOREMAP);
+>> +       switch (direction) {
+>> +       case DMA_FROM_DEVICE:   /* invalidate only */
+>> +               cpu_dma_inval_range(start, end);
+>> +               break;
+>> +       case DMA_TO_DEVICE:     /* writeback only */
+>> +               cpu_dma_wb_range(start, end);
+>> +               break;
+>> +       case DMA_BIDIRECTIONAL: /* writeback and invalidate */
+>> +               cpu_dma_wbinval_range(start, end);
+>> +               break;
+>> +       default:
+>> +               BUG();
+>> +       }
+>> +}
 >
-> Better use get_vm_area_caller here to have the ioremap areas show up
-> in a more useful form in /proc/vmallocinfo
+>> +
+>> +static void
+>> +nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
+>> +                             size_t size, enum dma_data_direction dir)
+>> +{
+>> +       consistent_sync((void *)dma_to_virt(dev, handle), size, dir);
+>> +}
+>> +
+>> +static void
+>> +nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
+>> +                                size_t size, enum dma_data_direction dir)
+>> +{
+>> +       consistent_sync((void *)dma_to_virt(dev, handle), size, dir);
+>> +}
+>
+> You do the same cache operations for _to_cpu and _to_device, which
+> usually works,
+> but is more expensive than you need. It's better to take the ownership into
+> account and only do what you need.
+>
 
 Thanks.
-I will use get_vm_area_caller() in the next version patch.
 
-> Please also have a look at what you can do for memremap().
->
-> Since you have no cacheable version of ioremap_wb/wt, it will
-> return an uncached mapping all the time, which is not ideal.
+Like this?
 
-Thanks.
-I will study kernel/memremap.c
+static void
+nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
+                              size_t size, enum dma_data_direction dir)
+{
+        consistent_sync((void *)dma_to_virt(dev, handle), size,
+DMA_FROM_DEVICE);
+}
+
+static void
+nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
+                                 size_t size, enum dma_data_direction dir)
+{
+        consistent_sync((void *)dma_to_virt(dev, handle), size,
+DMA_TO_DEVICE);
+}
