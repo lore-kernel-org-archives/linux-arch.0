@@ -1,90 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f67.google.com ([209.85.213.67]:44890 "EHLO
-        mail-vk0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753157AbdKIIBM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Nov 2017 03:01:12 -0500
+Received: from mail-vk0-f66.google.com ([209.85.213.66]:52357 "EHLO
+        mail-vk0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753870AbdKIJkJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Nov 2017 04:40:09 -0500
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a0XciTazM7OewyRV+92J0JgfbpvXJ5jizNcoL3LV=XOOQ@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <805f8432979e2707fbc9bf62dc52b8abfbd2cb14.1510118606.git.green.hu@gmail.com>
- <CAK8P3a0XciTazM7OewyRV+92J0JgfbpvXJ5jizNcoL3LV=XOOQ@mail.gmail.com>
+In-Reply-To: <CAL_JsqJAtTSGg=yGvANGdTCWa4tDAicvOvWYr4pK5M1rjPFtfg@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <1a8efba0727437d510d10755f3fcea806833651d.1510118606.git.green.hu@gmail.com>
+ <CAL_JsqJAtTSGg=yGvANGdTCWa4tDAicvOvWYr4pK5M1rjPFtfg@mail.gmail.com>
 From: Greentime Hu <green.hu@gmail.com>
-Date: Thu, 9 Nov 2017 16:00:30 +0800
-Message-ID: <CAEbi=3dvkAs8=gpjtaKKBOa2MkQb1bh87q4nEsWxNuWn_1SxUw@mail.gmail.com>
-Subject: Re: [PATCH 25/31] nds32: defconfig
+Date: Thu, 9 Nov 2017 17:39:28 +0800
+Message-ID: <CAEbi=3e-hRbej7EZ68-J1YPNfdxu7O_BAZ1rvZvAhhYzAT09-g@mail.gmail.com>
+Subject: Re: [PATCH 30/31] dt-bindings: nds32 CPU Bindings
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, deanbo422@gmail.com
-Message-ID: <20171109080030.CrkX6VjswhpZr7npBK15cyib0WGonvOliNmPBaYrKMo@z>
+To: Rob Herring <robh+dt@kernel.org>
+Cc: Greentime <greentime@andestech.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+Message-ID: <20171109093928.-_Su4uufKXEMItGxRVx4LQpWlkBnx6aQYSVa0fv-DwY@z>
 
-2017-11-08 18:03 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
-> On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+2017-11-08 21:18 GMT+08:00 Rob Herring <robh+dt@kernel.org>:
+> Please Cc the DT list on bindings.
+
+Sorry. I am not sure what you mean.
+Do you mean add devicetree@vger.kernel.org to cc list?
+
+> On Tue, Nov 7, 2017 at 11:55 PM, Greentime Hu <green.hu@gmail.com> wrote:
 >> From: Greentime Hu <greentime@andestech.com>
->>
+>
+> Commit message needed.
+
+Thanks. I will add more commit messages in the next version patch.
+
 >> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+>> Signed-off-by: Rick Chen <rick@andestech.com>
+>> Signed-off-by: Zong Li <zong@andestech.com>
 >> Signed-off-by: Greentime Hu <greentime@andestech.com>
 >> ---
->>  arch/nds32/configs/ae3xx_defconfig  |  110 +++++++++++++++++++++++++++++++++++
->>  arch/nds32/configs/ag101p_defconfig |  109 ++++++++++++++++++++++++++++++++++
->
-> Are those two incompatible? I would recommend starting without board
-> specific defconfig
-> files, it just gets messy once you get more than a few machines you
-> want to support.
-
-Thanks.
-These 2 are incompatible.
-They use different drivers. I may still keep these 2 defconfigs.
-
->> diff --git a/arch/nds32/configs/ae3xx_defconfig b/arch/nds32/configs/ae3xx_defconfig
+>>  Documentation/devicetree/bindings/nds32/cpus.txt |   33 ++++++++++++++++++++++
+>>  1 file changed, 33 insertions(+)
+>>  create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
+>>
+>> diff --git a/Documentation/devicetree/bindings/nds32/cpus.txt b/Documentation/devicetree/bindings/nds32/cpus.txt
 >> new file mode 100644
->> index 0000000..14d49a3
+>> index 0000000..97394cb
 >> --- /dev/null
->> +++ b/arch/nds32/configs/ae3xx_defconfig
->> @@ -0,0 +1,110 @@
->> +CONFIG_CROSS_COMPILE="nds32le-linux-"
->> +CONFIG_SYSVIPC=y
->> +CONFIG_POSIX_MQUEUE=y
->> +CONFIG_HIGH_RES_TIMERS=y
->> +CONFIG_BSD_PROCESS_ACCT=y
->> +CONFIG_BSD_PROCESS_ACCT_V3=y
->> +CONFIG_IKCONFIG=y
->> +CONFIG_IKCONFIG_PROC=y
->> +CONFIG_LOG_BUF_SHIFT=14
->> +CONFIG_NAMESPACES=y
->> +CONFIG_USER_NS=y
->> +CONFIG_RELAY=y
->> +CONFIG_BLK_DEV_INITRD=y
->> +CONFIG_SYSCTL_SYSCALL=y
->> +CONFIG_KALLSYMS_ALL=y
->> +CONFIG_EMBEDDED=y
+>> +++ b/Documentation/devicetree/bindings/nds32/cpus.txt
+>> @@ -0,0 +1,33 @@
+>> +* Andestech Processor Binding
+>> +
+>> +This binding specifies what properties must be available in the device tree
+>> +representation of a Andestech Processor Core, which is the root node in the
+>> +tree.
+>> +
+>> +Required properties:
+>> +
+>> +       - compatible:
+>> +               Usage: required
+>> +               Value type: <string>
+>> +               Definition: should be one of:
+>> +                       "andestech,n13"
+>> +                       "andestech,n15"
+>> +                       "andestech,d15"
+>> +                       "andestech,n10"
+>> +                       "andestech,d10"
 >
-> You usually don't want to select 'CONFIG_EMBEDDED' for regular
-> builds, it's should only be needed to disable options that are
-> usually considered essential.
+> SMP supported for any of these?
+
+We don't support SMP now.
+
+>> +
+>> +    - device_type
+>> +               Usage: required
+>> +               Value type: <string>
+>> +               Definition: must be "cpu"
+>> +
+>> +* Examples
+>> +
+>> +/ {
+>> +       cpus {
+>> +               cpu@0 {
+>
+> Needs a reg property or drop the unit address.
 
 Thanks.
-I will remove this config in the next version patch.
+I will fix it in the next version patch.
 
->> +CONFIG_FB=y
->> +# CONFIG_VGA_CONSOLE is not set
->> +CONFIG_FRAMEBUFFER_CONSOLE=y
+>> +                       device_type = "cpu";
+>> +                       compatible = "andestech,n13", "andestech,n15";
 >
-> You have a framebuffer console here, but no framebuffer driver?
+> n13 is a superset of n15?
 
-Thanks.
-I shall enable it when I push our framebuffer in the next time.
-I will disable it in the next version patch.
-
->> +CONFIG_MMC=y
->> +CONFIG_RTC_CLASS=y
->> +# CONFIG_RTC_HCTOSYS is not set
->> +CONFIG_CLKSRC_ATCPIT100=y
->> +CONFIG_EXT2_FS=y
->
-> Maybe use EXT4, not EXT2, in the defconfig?
->
-
-Thanks.
-I will enable EXT4 instead of EXT2 in the defconfig.
+No, they are independent ones.
