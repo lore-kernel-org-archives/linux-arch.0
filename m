@@ -1,50 +1,62 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
-Date: Thu, 9 Nov 2017 11:44:21 -0800
-Message-ID: <20171109194421.GA12789@bombadil.infradead.org>
-References: <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
- <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
- <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
- <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
- <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
- <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
- <20171108002448.6799462e@roar.ozlabs.ibm.com>
- <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
- <20171107140158.iz4b2lchhrt6eobe@node.shutemov.name>
- <20171110041526.6137bc9a@roar.ozlabs.ibm.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [PATCH v9 00/51] powerpc, mm: Memory Protection Keys
+Date: Thu, 9 Nov 2017 14:23:29 -0800
+Message-ID: <20171109222329.GB5656@ram.oc3035372033.ibm.com>
+References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
+ <87efpbm706.fsf@mid.deneb.enyo.de>
+ <20171107012218.GA5546@ram.oc3035372033.ibm.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-doc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20171110041526.6137bc9a@roar.ozlabs.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Florian Weimer <fweimer@redhat.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linuxppc-dev@lists.ozlabs.org, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+In-Reply-To: <20171107012218.GA5546@ram.oc3035372033.ibm.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Florian Weimer <fw@deneb.enyo.de>
+Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de, linux-arch@vger.kernel.org, ebiederm@xmission.com, linux-doc@vger.kernel.org, x86@kernel.org, dave.hansen@intel.com, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 10, 2017 at 04:15:26AM +1100, Nicholas Piggin wrote:
-> So these semantics are what we're going with? Anything that does mmap() is
-> guaranteed of getting a 47-bit pointer and it can use the top 17 bits for
-> itself? Is intended to be cross-platform or just x86 and power specific?
+On Mon, Nov 06, 2017 at 05:22:18PM -0800, Ram Pai wrote:
+> On Mon, Nov 06, 2017 at 10:28:41PM +0100, Florian Weimer wrote:
+> > * Ram Pai:
+> > 
+> > > Testing:
+> > > -------
+> > > This patch series has passed all the protection key
+> > > tests available in the selftest directory.The
+> > > tests are updated to work on both x86 and powerpc.
+> > > The selftests have passed on x86 and powerpc hardware.
+> > 
+....snip....
 
-It is x86 and powerpc specific.  The arm64 people have apparently stumbled
-across apps that expect to be able to use bit 48 for their own purposes.
-And their address space is 48 bit by default.  Oops.
-
-> Also, this may follow from deduction from 1-3, but for explicit
-> specification in man page:
+> > What about siglongjmp from a signal handler?
 > 
-> 4) To get an unspecified allocation with the largest possible address range,
-> we pass in -1 for mmap hint.
+> On powerpc there is some relief.  the permissions on a key can be
+> modified from anywhere, including from the signal handler, and the
+> effect will be immediate.  You dont have to wait till the
+> signal handler returns for the key permissions to be restore.
 > 
-> Are we allowing 8 bits bits of unused address in this case, or must the
-> app not assume anything about number of bits used?
+> also after return from the sigsetjmp();
+> possibly caused by siglongjmp(), the program can restore the permission
+> on any key.
+> 
+> Atleast that is my theory. Can you give me a testcase; if you have one
+> handy.
+> 
+> > 
+> >   <https://sourceware.org/bugzilla/show_bug.cgi?id=22396>
+> > 
 
-Maybe document it as: "If the app wants to use the top N bits of addresses
-for its own purposes, pass in (~0UL >> N) as the mmap hint."  ?
+reading through the bug report, you mention that the following
+"The application may not be able to save and restore the protection bits
+for all keys because the kernel API does not actually specify that the
+set of keys is a small, fixed set."
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+What exact kernel API do you need? This patch set exposes the total
+number of keys and  max keys,  through sysfs.
+https://marc.info/?l=linux-kernel&m=150995950219669&w=2
+
+Is this sufficient? or do you need something else?
+
+RP
+
