@@ -1,64 +1,53 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
-Date: Fri, 10 Nov 2017 12:26:25 +1100
-Message-ID: <20171110122625.4ea3c897@roar.ozlabs.ibm.com>
-References: <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
-        <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
-        <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
-        <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
-        <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
-        <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
-        <20171108002448.6799462e@roar.ozlabs.ibm.com>
-        <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
-        <20171107140158.iz4b2lchhrt6eobe@node.shutemov.name>
-        <20171110041526.6137bc9a@roar.ozlabs.ibm.com>
-        <20171109194421.GA12789@bombadil.infradead.org>
+From: Greentime Hu <green.hu@gmail.com>
+Subject: Re: [PATCH 30/31] dt-bindings: nds32 CPU Bindings
+Date: Fri, 10 Nov 2017 14:22:37 +0800
+Message-ID: <CAEbi=3eus0ZEyFaNbS_a8bDOfH3aK_FB2ckATm-ELzPZT0MJ_Q@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <1a8efba0727437d510d10755f3fcea806833651d.1510118606.git.green.hu@gmail.com>
+ <CAL_JsqJAtTSGg=yGvANGdTCWa4tDAicvOvWYr4pK5M1rjPFtfg@mail.gmail.com>
+ <CAEbi=3e-hRbej7EZ68-J1YPNfdxu7O_BAZ1rvZvAhhYzAT09-g@mail.gmail.com> <CABGGisw5gi92aM0_tZ0htOzwZTFJpcSNZUJth5TzRXPxzssRxA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:55329 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755263AbdKJB0o (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Nov 2017 20:26:44 -0500
-In-Reply-To: <20171109194421.GA12789@bombadil.infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Florian Weimer <fweimer@redhat.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linuxppc-dev@lists.ozlabs.org, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <CABGGisw5gi92aM0_tZ0htOzwZTFJpcSNZUJth5TzRXPxzssRxA@mail.gmail.com>
+Sender: netdev-owner@vger.kernel.org
+To: Rob Herring <robh@kernel.org>
+Cc: Rob Herring <robh+dt@kernel.org>, Greentime <greentime@andestech.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 9 Nov 2017 11:44:21 -0800
-Matthew Wilcox <willy@infradead.org> wrote:
+2017-11-09 21:57 GMT+08:00 Rob Herring <robh@kernel.org>:
+> On Thu, Nov 9, 2017 at 3:39 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>> 2017-11-08 21:18 GMT+08:00 Rob Herring <robh+dt@kernel.org>:
+>>> Please Cc the DT list on bindings.
+>>
+>> Sorry. I am not sure what you mean.
+>> Do you mean add devicetree@vger.kernel.org to cc list?
+>
+> Yes. Use get_maintainers.pl as a guide.
 
-> On Fri, Nov 10, 2017 at 04:15:26AM +1100, Nicholas Piggin wrote:
-> > So these semantics are what we're going with? Anything that does mmap() is
-> > guaranteed of getting a 47-bit pointer and it can use the top 17 bits for
-> > itself? Is intended to be cross-platform or just x86 and power specific?  
-> 
-> It is x86 and powerpc specific.  The arm64 people have apparently stumbled
-> across apps that expect to be able to use bit 48 for their own purposes.
-> And their address space is 48 bit by default.  Oops.
+Roger that! Thanks!
 
-Okay, so it's something we should make into an "official" API?
+>>> On Tue, Nov 7, 2017 at 11:55 PM, Greentime Hu <green.hu@gmail.com> wrote:
+>>>> From: Greentime Hu <greentime@andestech.com>
+>>>
+>
+>>>> +                       device_type = "cpu";
+>>>> +                       compatible = "andestech,n13", "andestech,n15";
+>>>
+>>> n13 is a superset of n15?
+>>
+>> No, they are independent ones.
+>
+> Then having both is not valid. The strings should be in order of best
+> match to worst match where worst match is typically either older
+> implementations of IP blocks or generic'ish strings such as "ns16550"
+> for a UART.
 
-> 
-> > Also, this may follow from deduction from 1-3, but for explicit
-> > specification in man page:
-> > 
-> > 4) To get an unspecified allocation with the largest possible address range,
-> > we pass in -1 for mmap hint.
-> > 
-> > Are we allowing 8 bits bits of unused address in this case, or must the
-> > app not assume anything about number of bits used?  
-> 
-> Maybe document it as: "If the app wants to use the top N bits of addresses
-> for its own purposes, pass in (~0UL >> N) as the mmap hint."  ?
-
-Well we don't have code for that yet, but the problem would also be that
-it succeeds, and actually it probably goes over the limit. So you would
-have to map a dummy page there so subsequent hints to fail and fall back.
-Not sure... it would be nice to be able to specify number of bits, but I
-think this gets a bit hairy. -1 to use all bits seems a bit easier.
-
-Thanks,
-Nick
+Thanks.
+I would like to explain it more clearly.
+They are independent ones in implementations.
+They are implemented based on the same nds32 ISA and architecture spec
+with different configurations
+like cache size, page size, cache type(VIPT/PIPT), pipeline stages...
+Most of them are compatible.
+They use the same toolchain to build vmlinux which can run on
+different nds32 cores.
