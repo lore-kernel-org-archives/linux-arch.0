@@ -1,60 +1,41 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: POWER: Unexpected fault when writing to brk-allocated memory
-Date: Fri, 10 Nov 2017 12:08:35 +0000
-Message-ID: <063D6719AE5E284EB5DD2968C1650D6DD00B84EF@AcuExch.aculab.com>
-References: <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
- <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
- <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
- <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
- <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
- <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
- <20171108002448.6799462e@roar.ozlabs.ibm.com>
- <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
- <20171107140158.iz4b2lchhrt6eobe@node.shutemov.name>
- <20171110041526.6137bc9a@roar.ozlabs.ibm.com>
- <20171109194421.GA12789@bombadil.infradead.org>
+From: Greentime Hu <green.hu@gmail.com>
+Subject: Re: [PATCH 12/31] nds32: Device specific operations
+Date: Sat, 11 Nov 2017 00:07:29 +0800
+Message-ID: <CAEbi=3fCjkTSXLe+jP4UTe1W7570aN9LEpM9-v54p8xEW2YnAA@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <4e9acf2ec55fb26ddb290ca2d955eeea628e0a77.1510118606.git.green.hu@gmail.com>
+ <CAK8P3a04p+GUz3ex=t=CVy8ZcVFFZGwJaaPDoyT74bjieiKHVw@mail.gmail.com> <CAEbi=3eoTQ+operFB5Oq9VkAjG-Ehs=UQhOOELkeK2eSuuf0=g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="Windows-1252"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20171109194421.GA12789@bombadil.infradead.org>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: 'Matthew Wilcox' <willy@infradead.org>, Nicholas Piggin <npiggin@gmail.com>
-Cc: Florian Weimer <fweimer@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Peter Zijlstra <peterz@infradead.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Dave Hansen <dave.hansen@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vk0-f66.google.com ([209.85.213.66]:49786 "EHLO
+        mail-vk0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751191AbdKJQIK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Nov 2017 11:08:10 -0500
+In-Reply-To: <CAEbi=3eoTQ+operFB5Oq9VkAjG-Ehs=UQhOOELkeK2eSuuf0=g@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, deanbo422@gmail.com
 
-From: Matthew Wilcox
-> Sent: 09 November 2017 19:44
->=20
-> On Fri, Nov 10, 2017 at 04:15:26AM +1100, Nicholas Piggin wrote:
-> > So these semantics are what we're going with? Anything that does mmap()=
- is
-> > guaranteed of getting a 47-bit pointer and it can use the top 17 bits f=
-or
-> > itself? Is intended to be cross-platform or just x86 and power specific=
-?
->=20
-> It is x86 and powerpc specific.  The arm64 people have apparently stumble=
-d
-> across apps that expect to be able to use bit 48 for their own purposes.
-> And their address space is 48 bit by default.  Oops.
+2017-11-09 15:04 GMT+08:00 Greentime Hu <green.hu@gmail.com>:
+> 2017-11-08 17:04 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+>> On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>>
+>>> +
+>>> +#define ioremap(cookie,size)           __ioremap(cookie,size,0,1)
+>>> +#define ioremap_nocache(cookie,size)   __ioremap(cookie,size,0,1)
+>>> +#define iounmap(cookie)                        __iounmap(cookie)
+>>
+>>> +#include <asm-generic/io.h>
+>>
+>> asm-generic/io.h now provides an ioremap_nocache() helper along with
+>> ioremap_uc/ioremap_wc/ioremap_wt, so I think you can remove the
+>> ioremap_nocache definition here. You might also be able to remove
+>> __ioremap and __iounmap, and only provide ioremap/iounmap, plus
+>> the identity macro 'define ioremap ioremap'
+>
+> Thanks. I will try to use generic ioremap_nocache() helper in the next
+> version patch.
 
-(Do you mean 49bit?)
-
-Aren't such apps just doomed to be broken?
-
-ISTR there is something on (IIRC) sparc64 that does a 'match'
-on the high address bits to make it much harder to overrun
-one area into another.
-
-	David
+I think I can't remove ioremap_nocache definition because it is defined
+in asm-generic/io.h with !CONFIG_MMU.
