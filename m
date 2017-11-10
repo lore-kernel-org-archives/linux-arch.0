@@ -1,47 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:39946 "EHLO
+Received: from mail.efficios.com ([167.114.142.141]:39942 "EHLO
         mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754070AbdKJVNK (ORCPT
+        with ESMTP id S1751057AbdKJVNK (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Nov 2017 16:13:10 -0500
 From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [RFC PATCH 2/2] Fix: x86: Add missing core serializing instruction on migration
-Date: Fri, 10 Nov 2017 16:12:49 -0500
-Message-ID: <20171110211249.10742-3-mathieu.desnoyers@efficios.com>
+Subject: [RFC PATCH 1/2] x86: Introduce sync_core_before_usermode
+Date: Fri, 10 Nov 2017 16:12:48 -0500
+Message-ID: <20171110211249.10742-2-mathieu.desnoyers@efficios.com>
 In-Reply-To: <20171110211249.10742-1-mathieu.desnoyers@efficios.com>
 References: <20171110211249.10742-1-mathieu.desnoyers@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andy Lutomirski <luto@kernel.org>
 Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, linux-arch@vger.kernel.org
-Message-ID: <20171110211249.tYaR7CSav9LvN5Wzs4CRftqhAhJhmz6VOTRtFtZeNJU@z>
+Message-ID: <20171110211248.zFQl0-l3eOfgwkCSw3VPD-a85eIXACSzIuL1VftL0ig@z>
 
-x86 has a missing core serializing instruction in migration scenarios.
+Introduce an architecture function that ensures the current CPU
+issues a core serializing instruction before returning to usermode.
 
-Given that x86-32 can return to user-space with sysexit, and x86-64
-through sysretq and sysexit, which are not core serializing, the
-following user-space self-modifiying code (JIT) scenario can occur:
+This is needed to fix an existing core serialization bug on
+thread migration, and also needed by the membarrier "sync_core" command.
 
-     CPU 0                      CPU 1
-
-User-space self-modify code
-Preempted
- migrated             ->
-                                scheduler selects task
-                                Return to user-space (iret or sysexit)
-                                User-space issues sync_core()
-                      <-        migrated
-scheduler selects task
-Return to user-space (sysexit)
-jump to modified code
-Run modified code without sync_core() -> bug.
-
-This migration pattern can return to user-space through sysexit or
-sysret64, which is not core serializing, and therefore breaks sequential
-consistency expectations from a single-threaded process.
-
-Fix this issue by invoking sync_core_before_usermode() the first
-time a runqueue finishes a task switch after receiving a migrated
-thread.
+Architectures defining the sync_core_before_usermode() static inline
+need to define ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 CC: Peter Zijlstra <peterz@infradead.org>
@@ -67,46 +48,58 @@ CC: Linus Torvalds <torvalds@linux-foundation.org>
 CC: x86@kernel.org
 CC: linux-arch@vger.kernel.org
 ---
- kernel/sched/core.c  | 7 +++++++
- kernel/sched/sched.h | 1 +
- 2 files changed, 8 insertions(+)
+ arch/x86/Kconfig                 |  1 +
+ arch/x86/include/asm/processor.h | 10 ++++++++++
+ include/linux/processor.h        |  6 ++++++
+ 3 files changed, 17 insertions(+)
 
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index c79e94278613..4a1c9782267a 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -927,6 +927,7 @@ static struct rq *move_queued_task(struct rq *rq, struct rq_flags *rf,
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 01f78c1d40b5..54fbb8960d94 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -62,6 +62,7 @@ config X86
+ 	select ARCH_HAS_SG_CHAIN
+ 	select ARCH_HAS_STRICT_KERNEL_RWX
+ 	select ARCH_HAS_STRICT_MODULE_RWX
++	select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
+ 	select ARCH_HAS_UBSAN_SANITIZE_ALL
+ 	select ARCH_HAS_ZONE_DEVICE		if X86_64
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index bdac19ab2488..6ce996a7c730 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -706,6 +706,16 @@ static inline void sync_core(void)
+ #endif
+ }
  
- 	rq_lock(rq, rf);
- 	BUG_ON(task_cpu(p) != new_cpu);
-+	rq->need_sync_core = 1;
- 	enqueue_task(rq, p, 0);
- 	p->on_rq = TASK_ON_RQ_QUEUED;
- 	check_preempt_curr(rq, p, 0);
-@@ -2684,6 +2685,12 @@ static struct rq *finish_task_switch(struct task_struct *prev)
- 	prev_state = prev->state;
- 	vtime_task_switch(prev);
- 	perf_event_task_sched_in(prev, current);
-+#ifdef CONFIG_SMP
-+	if (unlikely(rq->need_sync_core)) {
-+		sync_core_before_usermode();
-+		rq->need_sync_core = 0;
-+	}
++/*
++ * Ensure that a core serializing instruction is issued before returning
++ * to user-mode. x86 implements return to user-space through sysexit and
++ * sysretq, which are not core serializing.
++ */
++static inline void sync_core_before_usermode(void)
++{
++	sync_core();
++}
++
+ extern void select_idle_routine(const struct cpuinfo_x86 *c);
+ extern void amd_e400_c1e_apic_setup(void);
+ 
+diff --git a/include/linux/processor.h b/include/linux/processor.h
+index dbc952eec869..7d12e6fa050e 100644
+--- a/include/linux/processor.h
++++ b/include/linux/processor.h
+@@ -68,4 +68,10 @@ do {								\
+ 
+ #endif
+ 
++#ifndef ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
++static inline sync_core_before_usermode(void)
++{
++}
 +#endif
- 	finish_lock_switch(rq, prev);
- 	finish_arch_post_lock_switch();
- 
-diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
-index cab256c1720a..33e617bc491c 100644
---- a/kernel/sched/sched.h
-+++ b/kernel/sched/sched.h
-@@ -734,6 +734,7 @@ struct rq {
- 	/* For active balancing */
- 	int active_balance;
- 	int push_cpu;
-+	int need_sync_core;
- 	struct cpu_stop_work active_balance_work;
- 	/* cpu of this runqueue: */
- 	int cpu;
++
+ #endif /* _LINUX_PROCESSOR_H */
 -- 
 2.11.0
