@@ -1,49 +1,294 @@
-From: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH 30/31] dt-bindings: nds32 CPU Bindings
-Date: Fri, 10 Nov 2017 16:43:11 +0800
-Message-ID: <CAEbi=3evxbZ-K--fkuZu_ANfiuoChT=AmRUfEyJ0htK3cy9wdQ@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <1a8efba0727437d510d10755f3fcea806833651d.1510118606.git.green.hu@gmail.com>
- <CAL_JsqJAtTSGg=yGvANGdTCWa4tDAicvOvWYr4pK5M1rjPFtfg@mail.gmail.com>
- <CAEbi=3e-hRbej7EZ68-J1YPNfdxu7O_BAZ1rvZvAhhYzAT09-g@mail.gmail.com>
- <CABGGisw5gi92aM0_tZ0htOzwZTFJpcSNZUJth5TzRXPxzssRxA@mail.gmail.com>
- <CAEbi=3eus0ZEyFaNbS_a8bDOfH3aK_FB2ckATm-ELzPZT0MJ_Q@mail.gmail.com> <CAK8P3a1k_zNN6FTRNm5kfun8Nb+3ZLtmCLjHOVZUFB10TqQBFQ@mail.gmail.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH v5 16/30] arm64/sve: Backend logic for setting the vector length
+Date: Fri, 10 Nov 2017 10:27:36 +0000
+Message-ID: <8760aiqvhj.fsf@linaro.org>
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com> <1509465082-30427-17-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CAK8P3a1k_zNN6FTRNm5kfun8Nb+3ZLtmCLjHOVZUFB10TqQBFQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: Rob Herring <robh-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, netdev <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <vincentc-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Rick Chen <rick-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Zong Li <zong-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wr0-f196.google.com ([209.85.128.196]:51953 "EHLO
+        mail-wr0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751063AbdKJK1j (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Nov 2017 05:27:39 -0500
+Received: by mail-wr0-f196.google.com with SMTP id j15so8159259wre.8
+        for <linux-arch@vger.kernel.org>; Fri, 10 Nov 2017 02:27:38 -0800 (PST)
+In-reply-to: <1509465082-30427-17-git-send-email-Dave.Martin@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
 
->>> Then having both is not valid. The strings should be in order of best
->>> match to worst match where worst match is typically either older
->>> implementations of IP blocks or generic'ish strings such as "ns16550"
->>> for a UART.
->>
->> Thanks.
->> I would like to explain it more clearly.
->> They are independent ones in implementations.
->> They are implemented based on the same nds32 ISA and architecture spec
->> with different configurations
->> like cache size, page size, cache type(VIPT/PIPT), pipeline stages...
->> Most of them are compatible.
->> They use the same toolchain to build vmlinux which can run on
->> different nds32 cores.
->
-> Du you have a name for the ISA spec that distinguishes it from other nds32
-> versions that are incompatible? If you do, this could be written like
->
-> compatible = "andestech,n13", "andestech,nds32v3.0";
->
-> to signify that a an 'n13' core implements the 'v3.0' ISA (will it
-> whatever you call the ISA in reality).
->
 
-Thanks. I got you.
-I will use a proper name(maybe 'nds32v3') of ISA in this compatible
-string in the next version patch.
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Dave Martin <Dave.Martin@arm.com> writes:
+
+> This patch implements the core logic for changing a task's vector
+> length on request from userspace.  This will be used by the ptrace
+> and prctl frontends that are implemented in later patches.
+>
+> The SVE architecture permits, but does not require, implementations
+> to support vector lengths that are not a power of two.  To handle
+> this, logic is added to check a requested vector length against a
+> possibly sparse bitmap of available vector lengths at runtime, so
+> that the best supported value can be chosen.
+>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Alex Benn=C3=A9e <alex.bennee@linaro.org>
+
+Reviewed-by: Alex Benn=C3=A9e <alex.bennee@linaro.org>
+
+> ---
+>  arch/arm64/include/asm/fpsimd.h |   8 +++
+>  arch/arm64/kernel/fpsimd.c      | 137 ++++++++++++++++++++++++++++++++++=
++++++-
+>  include/uapi/linux/prctl.h      |   5 ++
+>  3 files changed, 149 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fps=
+imd.h
+> index 9bbd74c..86f550c 100644
+> --- a/arch/arm64/include/asm/fpsimd.h
+> +++ b/arch/arm64/include/asm/fpsimd.h
+> @@ -20,6 +20,7 @@
+>
+>  #ifndef __ASSEMBLY__
+>
+> +#include <linux/cache.h>
+>  #include <linux/stddef.h>
+>
+>  /*
+> @@ -70,17 +71,24 @@ extern void fpsimd_update_current_state(struct fpsimd=
+_state *state);
+>
+>  extern void fpsimd_flush_task_state(struct task_struct *target);
+>
+> +/* Maximum VL that SVE VL-agnostic software can transparently support */
+> +#define SVE_VL_ARCH_MAX 0x100
+> +
+>  extern void sve_save_state(void *state, u32 *pfpsr);
+>  extern void sve_load_state(void const *state, u32 const *pfpsr,
+>  			   unsigned long vq_minus_1);
+>  extern unsigned int sve_get_vl(void);
+>
+> +extern int __ro_after_init sve_max_vl;
+> +
+>  #ifdef CONFIG_ARM64_SVE
+>
+>  extern size_t sve_state_size(struct task_struct const *task);
+>
+>  extern void sve_alloc(struct task_struct *task);
+>  extern void fpsimd_release_task(struct task_struct *task);
+> +extern int sve_set_vector_length(struct task_struct *task,
+> +				 unsigned long vl, unsigned long flags);
+>
+>  #else /* ! CONFIG_ARM64_SVE */
+>
+> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+> index e0b5ef5..1ceb069 100644
+> --- a/arch/arm64/kernel/fpsimd.c
+> +++ b/arch/arm64/kernel/fpsimd.c
+> @@ -17,8 +17,10 @@
+>   * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>   */
+>
+> +#include <linux/bitmap.h>
+>  #include <linux/bottom_half.h>
+>  #include <linux/bug.h>
+> +#include <linux/cache.h>
+>  #include <linux/compat.h>
+>  #include <linux/cpu.h>
+>  #include <linux/cpu_pm.h>
+> @@ -28,6 +30,7 @@
+>  #include <linux/init.h>
+>  #include <linux/percpu.h>
+>  #include <linux/preempt.h>
+> +#include <linux/prctl.h>
+>  #include <linux/ptrace.h>
+>  #include <linux/sched/signal.h>
+>  #include <linux/signal.h>
+> @@ -113,6 +116,20 @@ static DEFINE_PER_CPU(struct fpsimd_state *, fpsimd_=
+last_state);
+>  /* Default VL for tasks that don't set it explicitly: */
+>  static int sve_default_vl =3D SVE_VL_MIN;
+>
+> +#ifdef CONFIG_ARM64_SVE
+> +
+> +/* Maximum supported vector length across all CPUs (initially poisoned) =
+*/
+> +int __ro_after_init sve_max_vl =3D -1;
+> +/* Set of available vector lengths, as vq_to_bit(vq): */
+> +static DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
+> +
+> +#else /* ! CONFIG_ARM64_SVE */
+> +
+> +/* Dummy declaration for code that will be optimised out: */
+> +extern DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
+> +
+> +#endif /* ! CONFIG_ARM64_SVE */
+> +
+>  /*
+>   * Call __sve_free() directly only if you know task can't be scheduled
+>   * or preempted.
+> @@ -270,6 +287,50 @@ static void task_fpsimd_save(void)
+>  	}
+>  }
+>
+> +/*
+> + * Helpers to translate bit indices in sve_vq_map to VQ values (and
+> + * vice versa).  This allows find_next_bit() to be used to find the
+> + * _maximum_ VQ not exceeding a certain value.
+> + */
+> +
+> +static unsigned int vq_to_bit(unsigned int vq)
+> +{
+> +	return SVE_VQ_MAX - vq;
+> +}
+> +
+> +static unsigned int bit_to_vq(unsigned int bit)
+> +{
+> +	if (WARN_ON(bit >=3D SVE_VQ_MAX))
+> +		bit =3D SVE_VQ_MAX - 1;
+> +
+> +	return SVE_VQ_MAX - bit;
+> +}
+> +
+> +/*
+> + * All vector length selection from userspace comes through here.
+> + * We're on a slow path, so some sanity-checks are included.
+> + * If things go wrong there's a bug somewhere, but try to fall back to a
+> + * safe choice.
+> + */
+> +static unsigned int find_supported_vector_length(unsigned int vl)
+> +{
+> +	int bit;
+> +	int max_vl =3D sve_max_vl;
+> +
+> +	if (WARN_ON(!sve_vl_valid(vl)))
+> +		vl =3D SVE_VL_MIN;
+> +
+> +	if (WARN_ON(!sve_vl_valid(max_vl)))
+> +		max_vl =3D SVE_VL_MIN;
+> +
+> +	if (vl > max_vl)
+> +		vl =3D max_vl;
+> +
+> +	bit =3D find_next_bit(sve_vq_map, SVE_VQ_MAX,
+> +			    vq_to_bit(sve_vq_from_vl(vl)));
+> +	return sve_vl_from_vq(bit_to_vq(bit));
+> +}
+> +
+>  #define ZREG(sve_state, vq, n) ((char *)(sve_state) +		\
+>  	(SVE_SIG_ZREG_OFFSET(vq, n) - SVE_SIG_REGS_OFFSET))
+>
+> @@ -364,6 +425,76 @@ void sve_alloc(struct task_struct *task)
+>  	BUG_ON(!task->thread.sve_state);
+>  }
+>
+> +int sve_set_vector_length(struct task_struct *task,
+> +			  unsigned long vl, unsigned long flags)
+> +{
+> +	if (flags & ~(unsigned long)(PR_SVE_VL_INHERIT |
+> +				     PR_SVE_SET_VL_ONEXEC))
+> +		return -EINVAL;
+> +
+> +	if (!sve_vl_valid(vl))
+> +		return -EINVAL;
+> +
+> +	/*
+> +	 * Clamp to the maximum vector length that VL-agnostic SVE code can
+> +	 * work with.  A flag may be assigned in the future to allow setting
+> +	 * of larger vector lengths without confusing older software.
+> +	 */
+> +	if (vl > SVE_VL_ARCH_MAX)
+> +		vl =3D SVE_VL_ARCH_MAX;
+> +
+> +	vl =3D find_supported_vector_length(vl);
+> +
+> +	if (flags & (PR_SVE_VL_INHERIT |
+> +		     PR_SVE_SET_VL_ONEXEC))
+> +		task->thread.sve_vl_onexec =3D vl;
+> +	else
+> +		/* Reset VL to system default on next exec: */
+> +		task->thread.sve_vl_onexec =3D 0;
+> +
+> +	/* Only actually set the VL if not deferred: */
+> +	if (flags & PR_SVE_SET_VL_ONEXEC)
+> +		goto out;
+> +
+> +	if (vl =3D=3D task->thread.sve_vl)
+> +		goto out;
+> +
+> +	/*
+> +	 * To ensure the FPSIMD bits of the SVE vector registers are preserved,
+> +	 * write any live register state back to task_struct, and convert to a
+> +	 * non-SVE thread.
+> +	 */
+> +	if (task =3D=3D current) {
+> +		local_bh_disable();
+> +
+> +		task_fpsimd_save();
+> +		set_thread_flag(TIF_FOREIGN_FPSTATE);
+> +	}
+> +
+> +	fpsimd_flush_task_state(task);
+> +	if (test_and_clear_tsk_thread_flag(task, TIF_SVE))
+> +		sve_to_fpsimd(task);
+> +
+> +	if (task =3D=3D current)
+> +		local_bh_enable();
+> +
+> +	/*
+> +	 * Force reallocation of task SVE state to the correct size
+> +	 * on next use:
+> +	 */
+> +	sve_free(task);
+> +
+> +	task->thread.sve_vl =3D vl;
+> +
+> +out:
+> +	if (flags & PR_SVE_VL_INHERIT)
+> +		set_tsk_thread_flag(task, TIF_SVE_VL_INHERIT);
+> +	else
+> +		clear_tsk_thread_flag(task, TIF_SVE_VL_INHERIT);
+> +
+> +	return 0;
+> +}
+> +
+>  /*
+>   * Called from the put_task_struct() path, which cannot get here
+>   * unless dead_task is really dead and not schedulable.
+> @@ -480,7 +611,7 @@ void fpsimd_thread_switch(struct task_struct *next)
+>
+>  void fpsimd_flush_thread(void)
+>  {
+> -	int vl;
+> +	int vl, supported_vl;
+>
+>  	if (!system_supports_fpsimd())
+>  		return;
+> @@ -508,6 +639,10 @@ void fpsimd_flush_thread(void)
+>  		if (WARN_ON(!sve_vl_valid(vl)))
+>  			vl =3D SVE_VL_MIN;
+>
+> +		supported_vl =3D find_supported_vector_length(vl);
+> +		if (WARN_ON(supported_vl !=3D vl))
+> +			vl =3D supported_vl;
+> +
+>  		current->thread.sve_vl =3D vl;
+>
+>  		/*
+> diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
+> index a8d0759..1b64901 100644
+> --- a/include/uapi/linux/prctl.h
+> +++ b/include/uapi/linux/prctl.h
+> @@ -197,4 +197,9 @@ struct prctl_mm_map {
+>  # define PR_CAP_AMBIENT_LOWER		3
+>  # define PR_CAP_AMBIENT_CLEAR_ALL	4
+>
+> +/* arm64 Scalable Vector Extension controls */
+> +# define PR_SVE_SET_VL_ONEXEC		(1 << 18) /* defer effect until exec */
+> +# define PR_SVE_VL_LEN_MASK		0xffff
+> +# define PR_SVE_VL_INHERIT		(1 << 17) /* inherit across exec */
+> +
+>  #endif /* _LINUX_PRCTL_H */
