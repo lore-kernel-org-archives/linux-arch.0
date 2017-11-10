@@ -1,299 +1,350 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f196.google.com ([209.85.128.196]:51953 "EHLO
-        mail-wr0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751063AbdKJK1j (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Nov 2017 05:27:39 -0500
-Received: by mail-wr0-f196.google.com with SMTP id j15so8159259wre.8
-        for <linux-arch@vger.kernel.org>; Fri, 10 Nov 2017 02:27:38 -0800 (PST)
-References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com> <1509465082-30427-17-git-send-email-Dave.Martin@arm.com>
-From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
-Subject: Re: [PATCH v5 16/30] arm64/sve: Backend logic for setting the vector length
-In-reply-to: <1509465082-30427-17-git-send-email-Dave.Martin@arm.com>
-Date: Fri, 10 Nov 2017 10:27:36 +0000
-Message-ID: <8760aiqvhj.fsf@linaro.org>
+Received: from pegase1.c-s.fr ([93.17.236.30]:44509 "EHLO pegase1.c-s.fr"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750807AbdKJSKe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Nov 2017 13:10:34 -0500
+Subject: Re: [PATCH v9 00/51] powerpc, mm: Memory Protection Keys
+References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
+From: Christophe LEROY <christophe.leroy@c-s.fr>
+Message-ID: <45ca9196-1d7d-d530-45df-4ee41773cace@c-s.fr>
+Date: Fri, 10 Nov 2017 19:10:31 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: fr
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org
-Message-ID: <20171110102736.P3nVQ05itQymRnIVnh_ci-ruSIhv1jEeKb6PsR6eTw8@z>
+To: Ram Pai <linuxram@us.ibm.com>, mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
+Cc: linux-arch@vger.kernel.org, ebiederm@xmission.com, linux-doc@vger.kernel.org, x86@kernel.org, dave.hansen@intel.com, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
+Message-ID: <20171110181031.OmvBfvm1sJEjrUkqVJPIxPbvJWz_UQwHn4BhF3AUfFM@z>
 
+Hi
 
-Dave Martin <Dave.Martin@arm.com> writes:
+Le 06/11/2017 à 09:56, Ram Pai a écrit :
+> Memory protection keys enable applications to protect its
+> address space from inadvertent access from or corruption
+> by itself.
+> 
+> These patches along with the pte-bit freeing patch series
+> enables the protection key feature on powerpc; 4k and 64k
+> hashpage kernels. It also changes the generic and x86
+> code to expose memkey features through sysfs. Finally
+> testcases and Documentation is updated.
+> 
+> All patches can be found at --
+> https://github.com/rampai/memorykeys.git memkey.v9
 
-> This patch implements the core logic for changing a task's vector
-> length on request from userspace.  This will be used by the ptrace
-> and prctl frontends that are implemented in later patches.
->
-> The SVE architecture permits, but does not require, implementations
-> to support vector lengths that are not a power of two.  To handle
-> this, logic is added to check a requested vector length against a
-> possibly sparse bitmap of available vector lengths at runtime, so
-> that the best supported value can be chosen.
->
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Alex Benn=C3=A9e <alex.bennee@linaro.org>
+As far as I can see you are focussing the implementation on 64 bits 
+powerpc. This could also be implemented on 32 bits powerpc, for instance 
+the 8xx has MMU Access Protection Registers which can be used to define 
+16 domains and could I think be used for implementing protection keys.
+Of course the challenge after that would be to find 4 spare PTE bits, 
+I'm sure we can find them on the 8xx, at least when using 16k pages we 
+have 2 bits already available, then by merging PAGE_SHARED and PAGE_USER 
+and by reducing PAGE_RO to only one bit we can get the 4 spare bits.
 
-Reviewed-by: Alex Benn=C3=A9e <alex.bennee@linaro.org>
+Therefore I think it would be great if you could implement a framework 
+common to both PPC32 and PPC64.
 
-> ---
->  arch/arm64/include/asm/fpsimd.h |   8 +++
->  arch/arm64/kernel/fpsimd.c      | 137 ++++++++++++++++++++++++++++++++++=
-+++++-
->  include/uapi/linux/prctl.h      |   5 ++
->  3 files changed, 149 insertions(+), 1 deletion(-)
->
-> diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fps=
-imd.h
-> index 9bbd74c..86f550c 100644
-> --- a/arch/arm64/include/asm/fpsimd.h
-> +++ b/arch/arm64/include/asm/fpsimd.h
-> @@ -20,6 +20,7 @@
->
->  #ifndef __ASSEMBLY__
->
-> +#include <linux/cache.h>
->  #include <linux/stddef.h>
->
->  /*
-> @@ -70,17 +71,24 @@ extern void fpsimd_update_current_state(struct fpsimd=
-_state *state);
->
->  extern void fpsimd_flush_task_state(struct task_struct *target);
->
-> +/* Maximum VL that SVE VL-agnostic software can transparently support */
-> +#define SVE_VL_ARCH_MAX 0x100
-> +
->  extern void sve_save_state(void *state, u32 *pfpsr);
->  extern void sve_load_state(void const *state, u32 const *pfpsr,
->  			   unsigned long vq_minus_1);
->  extern unsigned int sve_get_vl(void);
->
-> +extern int __ro_after_init sve_max_vl;
-> +
->  #ifdef CONFIG_ARM64_SVE
->
->  extern size_t sve_state_size(struct task_struct const *task);
->
->  extern void sve_alloc(struct task_struct *task);
->  extern void fpsimd_release_task(struct task_struct *task);
-> +extern int sve_set_vector_length(struct task_struct *task,
-> +				 unsigned long vl, unsigned long flags);
->
->  #else /* ! CONFIG_ARM64_SVE */
->
-> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-> index e0b5ef5..1ceb069 100644
-> --- a/arch/arm64/kernel/fpsimd.c
-> +++ b/arch/arm64/kernel/fpsimd.c
-> @@ -17,8 +17,10 @@
->   * along with this program.  If not, see <http://www.gnu.org/licenses/>.
->   */
->
-> +#include <linux/bitmap.h>
->  #include <linux/bottom_half.h>
->  #include <linux/bug.h>
-> +#include <linux/cache.h>
->  #include <linux/compat.h>
->  #include <linux/cpu.h>
->  #include <linux/cpu_pm.h>
-> @@ -28,6 +30,7 @@
->  #include <linux/init.h>
->  #include <linux/percpu.h>
->  #include <linux/preempt.h>
-> +#include <linux/prctl.h>
->  #include <linux/ptrace.h>
->  #include <linux/sched/signal.h>
->  #include <linux/signal.h>
-> @@ -113,6 +116,20 @@ static DEFINE_PER_CPU(struct fpsimd_state *, fpsimd_=
-last_state);
->  /* Default VL for tasks that don't set it explicitly: */
->  static int sve_default_vl =3D SVE_VL_MIN;
->
-> +#ifdef CONFIG_ARM64_SVE
-> +
-> +/* Maximum supported vector length across all CPUs (initially poisoned) =
-*/
-> +int __ro_after_init sve_max_vl =3D -1;
-> +/* Set of available vector lengths, as vq_to_bit(vq): */
-> +static DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
-> +
-> +#else /* ! CONFIG_ARM64_SVE */
-> +
-> +/* Dummy declaration for code that will be optimised out: */
-> +extern DECLARE_BITMAP(sve_vq_map, SVE_VQ_MAX);
-> +
-> +#endif /* ! CONFIG_ARM64_SVE */
-> +
->  /*
->   * Call __sve_free() directly only if you know task can't be scheduled
->   * or preempted.
-> @@ -270,6 +287,50 @@ static void task_fpsimd_save(void)
->  	}
->  }
->
-> +/*
-> + * Helpers to translate bit indices in sve_vq_map to VQ values (and
-> + * vice versa).  This allows find_next_bit() to be used to find the
-> + * _maximum_ VQ not exceeding a certain value.
-> + */
-> +
-> +static unsigned int vq_to_bit(unsigned int vq)
-> +{
-> +	return SVE_VQ_MAX - vq;
-> +}
-> +
-> +static unsigned int bit_to_vq(unsigned int bit)
-> +{
-> +	if (WARN_ON(bit >=3D SVE_VQ_MAX))
-> +		bit =3D SVE_VQ_MAX - 1;
-> +
-> +	return SVE_VQ_MAX - bit;
-> +}
-> +
-> +/*
-> + * All vector length selection from userspace comes through here.
-> + * We're on a slow path, so some sanity-checks are included.
-> + * If things go wrong there's a bug somewhere, but try to fall back to a
-> + * safe choice.
-> + */
-> +static unsigned int find_supported_vector_length(unsigned int vl)
-> +{
-> +	int bit;
-> +	int max_vl =3D sve_max_vl;
-> +
-> +	if (WARN_ON(!sve_vl_valid(vl)))
-> +		vl =3D SVE_VL_MIN;
-> +
-> +	if (WARN_ON(!sve_vl_valid(max_vl)))
-> +		max_vl =3D SVE_VL_MIN;
-> +
-> +	if (vl > max_vl)
-> +		vl =3D max_vl;
-> +
-> +	bit =3D find_next_bit(sve_vq_map, SVE_VQ_MAX,
-> +			    vq_to_bit(sve_vq_from_vl(vl)));
-> +	return sve_vl_from_vq(bit_to_vq(bit));
-> +}
-> +
->  #define ZREG(sve_state, vq, n) ((char *)(sve_state) +		\
->  	(SVE_SIG_ZREG_OFFSET(vq, n) - SVE_SIG_REGS_OFFSET))
->
-> @@ -364,6 +425,76 @@ void sve_alloc(struct task_struct *task)
->  	BUG_ON(!task->thread.sve_state);
->  }
->
-> +int sve_set_vector_length(struct task_struct *task,
-> +			  unsigned long vl, unsigned long flags)
-> +{
-> +	if (flags & ~(unsigned long)(PR_SVE_VL_INHERIT |
-> +				     PR_SVE_SET_VL_ONEXEC))
-> +		return -EINVAL;
-> +
-> +	if (!sve_vl_valid(vl))
-> +		return -EINVAL;
-> +
-> +	/*
-> +	 * Clamp to the maximum vector length that VL-agnostic SVE code can
-> +	 * work with.  A flag may be assigned in the future to allow setting
-> +	 * of larger vector lengths without confusing older software.
-> +	 */
-> +	if (vl > SVE_VL_ARCH_MAX)
-> +		vl =3D SVE_VL_ARCH_MAX;
-> +
-> +	vl =3D find_supported_vector_length(vl);
-> +
-> +	if (flags & (PR_SVE_VL_INHERIT |
-> +		     PR_SVE_SET_VL_ONEXEC))
-> +		task->thread.sve_vl_onexec =3D vl;
-> +	else
-> +		/* Reset VL to system default on next exec: */
-> +		task->thread.sve_vl_onexec =3D 0;
-> +
-> +	/* Only actually set the VL if not deferred: */
-> +	if (flags & PR_SVE_SET_VL_ONEXEC)
-> +		goto out;
-> +
-> +	if (vl =3D=3D task->thread.sve_vl)
-> +		goto out;
-> +
-> +	/*
-> +	 * To ensure the FPSIMD bits of the SVE vector registers are preserved,
-> +	 * write any live register state back to task_struct, and convert to a
-> +	 * non-SVE thread.
-> +	 */
-> +	if (task =3D=3D current) {
-> +		local_bh_disable();
-> +
-> +		task_fpsimd_save();
-> +		set_thread_flag(TIF_FOREIGN_FPSTATE);
-> +	}
-> +
-> +	fpsimd_flush_task_state(task);
-> +	if (test_and_clear_tsk_thread_flag(task, TIF_SVE))
-> +		sve_to_fpsimd(task);
-> +
-> +	if (task =3D=3D current)
-> +		local_bh_enable();
-> +
-> +	/*
-> +	 * Force reallocation of task SVE state to the correct size
-> +	 * on next use:
-> +	 */
-> +	sve_free(task);
-> +
-> +	task->thread.sve_vl =3D vl;
-> +
-> +out:
-> +	if (flags & PR_SVE_VL_INHERIT)
-> +		set_tsk_thread_flag(task, TIF_SVE_VL_INHERIT);
-> +	else
-> +		clear_tsk_thread_flag(task, TIF_SVE_VL_INHERIT);
-> +
-> +	return 0;
-> +}
-> +
->  /*
->   * Called from the put_task_struct() path, which cannot get here
->   * unless dead_task is really dead and not schedulable.
-> @@ -480,7 +611,7 @@ void fpsimd_thread_switch(struct task_struct *next)
->
->  void fpsimd_flush_thread(void)
->  {
-> -	int vl;
-> +	int vl, supported_vl;
->
->  	if (!system_supports_fpsimd())
->  		return;
-> @@ -508,6 +639,10 @@ void fpsimd_flush_thread(void)
->  		if (WARN_ON(!sve_vl_valid(vl)))
->  			vl =3D SVE_VL_MIN;
->
-> +		supported_vl =3D find_supported_vector_length(vl);
-> +		if (WARN_ON(supported_vl !=3D vl))
-> +			vl =3D supported_vl;
-> +
->  		current->thread.sve_vl =3D vl;
->
->  		/*
-> diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
-> index a8d0759..1b64901 100644
-> --- a/include/uapi/linux/prctl.h
-> +++ b/include/uapi/linux/prctl.h
-> @@ -197,4 +197,9 @@ struct prctl_mm_map {
->  # define PR_CAP_AMBIENT_LOWER		3
->  # define PR_CAP_AMBIENT_CLEAR_ALL	4
->
-> +/* arm64 Scalable Vector Extension controls */
-> +# define PR_SVE_SET_VL_ONEXEC		(1 << 18) /* defer effect until exec */
-> +# define PR_SVE_VL_LEN_MASK		0xffff
-> +# define PR_SVE_VL_INHERIT		(1 << 17) /* inherit across exec */
-> +
->  #endif /* _LINUX_PRCTL_H */
+Christophe
 
-
---
-Alex Benn=C3=A9e
+> 
+> The overall idea:
+> -----------------
+>   A process allocates a key and associates it with
+>   an address range within its address space.
+>   The process then can dynamically set read/write
+>   permissions on the key without involving the
+>   kernel. Any code that violates the permissions
+>   of the address space; as defined by its associated
+>   key, will receive a segmentation fault.
+> 
+> This patch series enables the feature on PPC64 HPTE
+> platform.
+> 
+> ISA3.0 section 5.7.13 describes the detailed
+> specifications.
+> 
+> 
+> Highlevel view of the design:
+> ---------------------------
+> When an application associates a key with a address
+> address range, program the key in the Linux PTE.
+> When the MMU detects a page fault, allocate a hash
+> page and program the key into HPTE. And finally
+> when the MMU detects a key violation; due to
+> invalid application access, invoke the registered
+> signal handler and provide the violated key number.
+> 
+> 
+> Testing:
+> -------
+> This patch series has passed all the protection key
+> tests available in the selftest directory.The
+> tests are updated to work on both x86 and powerpc.
+> The selftests have passed on x86 and powerpc hardware.
+> 
+> History:
+> -------
+> version v9:
+> 	(1) used jump-labels to optimize code
+> 		-- Balbir
+> 	(2) fixed a register initialization bug noted
+> 		by Balbir
+> 	(3) fixed inappropriate use of paca to pass
+> 		siginfo and keys to signal handler
+> 	(4) Cleanup of comment style not to be right
+> 		justified -- mpe
+> 	(5) restructured the patches to depend on the
+> 		availability of VM_PKEY_BIT4 in
+> 		include/linux/mm.h
+> 	(6) Incorporated comments from Dave Hansen
+> 		towards changes to selftest and got
+> 		them tested on x86.
+> 
+> version v8:
+> 	(1) Contents of the AMR register withdrawn from
+> 	the siginfo structure. Applications can always
+> 	read the AMR register.
+> 	(2) AMR/IAMR/UAMOR are now available through
+> 		ptrace system call. -- thanks to Thiago
+> 	(3) code changes to handle legacy power cpus
+> 	that do not support execute-disable.
+> 	(4) incorporates many code improvement
+> 		suggestions.
+> 
+> version v7:
+> 	(1) refers to device tree property to enable
+> 		protection keys.
+> 	(2) adds 4K PTE support.
+> 	(3) fixes a couple of bugs noticed by Thiago
+> 	(4) decouples this patch series from arch-
+> 	 independent code. This patch series can
+> 	 now stand by itself, with one kludge
+> 	patch(2).
+> version v7:
+> 	(1) refers to device tree property to enable
+> 		protection keys.
+> 	(2) adds 4K PTE support.
+> 	(3) fixes a couple of bugs noticed by Thiago
+> 	(4) decouples this patch series from arch-
+> 	 independent code. This patch series can
+> 	 now stand by itself, with one kludge
+> 	 patch(2).
+> 
+> version v6:
+> 	(1) selftest changes are broken down into 20
+> 		incremental patches.
+> 	(2) A separate key allocation mask that
+> 		includes PKEY_DISABLE_EXECUTE is
+> 		added for powerpc
+> 	(3) pkey feature is enabled for 64K HPT case
+> 		only. RPT and 4k HPT is disabled.
+> 	(4) Documentation is updated to better
+> 		capture the semantics.
+> 	(5) introduced arch_pkeys_enabled() to find
+> 		if an arch enables pkeys. Correspond-
+> 		ing change the logic that displays
+> 		key value in smaps.
+> 	(6) code rearranged in many places based on
+> 		comments from Dave Hansen, Balbir,
+> 		Anshuman.	
+> 	(7) fixed one bug where a bogus key could be
+> 		associated successfully in
+> 		pkey_mprotect().
+> 
+> version v5:
+> 	(1) reverted back to the old design -- store
+> 	 the key in the pte, instead of bypassing
+> 	 it. The v4 design slowed down the hash
+> 	 page path.
+> 	(2) detects key violation when kernel is told
+> 		to access user pages.
+> 	(3) further refined the patches into smaller
+> 		consumable units
+> 	(4) page faults handlers captures the fault-
+> 		ing key
+> 	 from the pte instead of the vma. This
+> 	 closes a race between where the key
+> 	 update in the vma and a key fault caused
+> 	 by the key programmed in the pte.
+> 	(5) a key created with access-denied should
+> 	 also set it up to deny write. Fixed it.
+> 	(6) protection-key number is displayed in
+>   		smaps the x86 way.
+> 
+> version v4:
+> 	(1) patches no more depend on the pte bits
+> 		to program the hpte
+> 			-- comment by Balbir
+> 	(2) documentation updates
+> 	(3) fixed a bug in the selftest.
+> 	(4) unlike x86, powerpc lets signal handler
+> 		change key permission bits; the
+> 		change will persist across signal
+> 		handler boundaries. Earlier we
+> 		allowed the signal handler to
+> 		modify a field in the siginfo
+> 		structure which would than be used
+> 		by the kernel to program the key
+> 		protection register (AMR)
+> 		 -- resolves a issue raised by Ben.
+> 		"Calls to sys_swapcontext with a
+> 		made-up context will end up with a
+> 		crap AMR if done by code who didn't
+> 		know about that register".
+> 	(5) these changes enable protection keys on
+>   		4k-page kernel aswell.
+> 
+> version v3:
+> 	(1) split the patches into smaller consumable
+> 		patches.
+> 	(2) added the ability to disable execute
+> 		permission on a key at creation.
+> 	(3) rename calc_pte_to_hpte_pkey_bits() to
+> 	pte_to_hpte_pkey_bits()
+> 		-- suggested by Anshuman
+> 	(4) some code optimization and clarity in
+> 		do_page_fault()
+> 	(5) A bug fix while invalidating a hpte slot
+> 		in __hash_page_4K()
+> 		-- noticed by Aneesh
+> 	
+> 
+> version v2:
+> 	(1) documentation and selftest added.
+>   	(2) fixed a bug in 4k hpte backed 64k pte
+> 		where page invalidation was not
+> 		done correctly, and initialization
+> 		of second-part-of-the-pte was not
+> 		done correctly if the pte was not
+> 		yet Hashed with a hpte.
+> 		--	Reported by Aneesh.
+> 	(3) Fixed ABI breakage caused in siginfo
+> 		structure.
+> 		-- Reported by Anshuman.
+> 	
+> 
+> version v1: Initial version
+> 
+> Ram Pai (47):
+>    mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS
+>      is enabled
+>    mm, powerpc, x86: introduce an additional vma bit for powerpc pkey
+>    powerpc: initial pkey plumbing
+>    powerpc: track allocation status of all pkeys
+>    powerpc: helper function to read,write AMR,IAMR,UAMOR registers
+>    powerpc: helper functions to initialize AMR, IAMR and UAMOR registers
+>    powerpc: cleanup AMR, IAMR when a key is allocated or freed
+>    powerpc: implementation for arch_set_user_pkey_access()
+>    powerpc: ability to create execute-disabled pkeys
+>    powerpc: store and restore the pkey state across context switches
+>    powerpc: introduce execute-only pkey
+>    powerpc: ability to associate pkey to a vma
+>    powerpc: implementation for arch_override_mprotect_pkey()
+>    powerpc: map vma key-protection bits to pte key bits.
+>    powerpc: Program HPTE key protection bits
+>    powerpc: helper to validate key-access permissions of a pte
+>    powerpc: check key protection for user page access
+>    powerpc: implementation for arch_vma_access_permitted()
+>    powerpc: Handle exceptions caused by pkey violation
+>    powerpc: introduce get_mm_addr_key() helper
+>    powerpc: Deliver SEGV signal on pkey violation
+>    powerpc: Enable pkey subsystem
+>    powerpc: sys_pkey_alloc() and sys_pkey_free() system calls
+>    powerpc: sys_pkey_mprotect() system call
+>    powerpc: add sys_pkey_modify() system call
+>    mm, x86 : introduce arch_pkeys_enabled()
+>    mm: display pkey in smaps if arch_pkeys_enabled() is true
+>    Documentation/x86: Move protecton key documentation to arch neutral
+>      directory
+>    Documentation/vm: PowerPC specific updates to memory protection keys
+>    selftest/x86: Move protecton key selftest to arch neutral directory
+>    selftest/vm: rename all references to pkru to a generic name
+>    selftest/vm: move generic definitions to header file
+>    selftest/vm: typecast the pkey register
+>    selftest/vm: generic function to handle shadow key register
+>    selftest/vm: fix the wrong assert in pkey_disable_set()
+>    selftest/vm: fixed bugs in pkey_disable_clear()
+>    selftest/vm: clear the bits in shadow reg when a pkey is freed.
+>    selftest/vm: fix alloc_random_pkey() to make it really random
+>    selftest/vm: introduce two arch independent abstraction
+>    selftest/vm: pkey register should match shadow pkey
+>    selftest/vm: generic cleanup
+>    selftest/vm: powerpc implementation for generic abstraction
+>    selftest/vm: fix an assertion in test_pkey_alloc_exhaust()
+>    selftest/vm: associate key on a mapped page and detect access
+>      violation
+>    selftest/vm: associate key on a mapped page and detect write
+>      violation
+>    selftest/vm: detect write violation on a mapped access-denied-key
+>      page
+>    selftest/vm: sub-page allocator
+> 
+> Thiago Jung Bauermann (4):
+>    powerpc/ptrace: Add memory protection key regset
+>    mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add sysfs interface
+>    selftests/powerpc: Add ptrace tests for Protection Key register
+>    selftests/powerpc: Add core file test for Protection Key register
+> 
+>   Documentation/vm/protection-keys.txt               |  161 +++
+>   Documentation/x86/protection-keys.txt              |   85 --
+>   arch/powerpc/Kconfig                               |   15 +
+>   arch/powerpc/include/asm/book3s/64/mmu-hash.h      |    5 +
+>   arch/powerpc/include/asm/book3s/64/mmu.h           |   10 +
+>   arch/powerpc/include/asm/book3s/64/pgtable.h       |   42 +-
+>   arch/powerpc/include/asm/bug.h                     |    1 +
+>   arch/powerpc/include/asm/cputable.h                |   15 +-
+>   arch/powerpc/include/asm/mman.h                    |   13 +-
+>   arch/powerpc/include/asm/mmu.h                     |    9 +
+>   arch/powerpc/include/asm/mmu_context.h             |   24 +
+>   arch/powerpc/include/asm/pkeys.h                   |  247 ++++
+>   arch/powerpc/include/asm/processor.h               |    5 +
+>   arch/powerpc/include/asm/systbl.h                  |    4 +
+>   arch/powerpc/include/asm/unistd.h                  |    6 +-
+>   arch/powerpc/include/uapi/asm/elf.h                |    1 +
+>   arch/powerpc/include/uapi/asm/mman.h               |    6 +
+>   arch/powerpc/include/uapi/asm/unistd.h             |    4 +
+>   arch/powerpc/kernel/entry_64.S                     |    9 +
+>   arch/powerpc/kernel/process.c                      |    7 +
+>   arch/powerpc/kernel/prom.c                         |   18 +
+>   arch/powerpc/kernel/ptrace.c                       |   66 +
+>   arch/powerpc/kernel/traps.c                        |   19 +-
+>   arch/powerpc/mm/Makefile                           |    1 +
+>   arch/powerpc/mm/fault.c                            |   49 +-
+>   arch/powerpc/mm/hash_utils_64.c                    |   29 +
+>   arch/powerpc/mm/mmu_context_book3s64.c             |    2 +
+>   arch/powerpc/mm/pkeys.c                            |  463 +++++++
+>   arch/x86/include/asm/mmu_context.h                 |    4 +-
+>   arch/x86/include/asm/pkeys.h                       |    2 +
+>   arch/x86/kernel/fpu/xstate.c                       |    5 +
+>   arch/x86/kernel/setup.c                            |    8 -
+>   arch/x86/mm/pkeys.c                                |    9 +
+>   fs/proc/task_mmu.c                                 |   16 +-
+>   include/linux/mm.h                                 |   12 +-
+>   include/linux/pkeys.h                              |    7 +-
+>   include/uapi/linux/elf.h                           |    1 +
+>   mm/mprotect.c                                      |   88 ++
+>   tools/testing/selftests/powerpc/include/reg.h      |    1 +
+>   tools/testing/selftests/powerpc/ptrace/Makefile    |    5 +-
+>   tools/testing/selftests/powerpc/ptrace/core-pkey.c |  438 ++++++
+>   .../testing/selftests/powerpc/ptrace/ptrace-pkey.c |  443 ++++++
+>   tools/testing/selftests/vm/Makefile                |    1 +
+>   tools/testing/selftests/vm/pkey-helpers.h          |  405 ++++++
+>   tools/testing/selftests/vm/protection_keys.c       | 1464 ++++++++++++++++++++
+>   tools/testing/selftests/x86/Makefile               |    2 +-
+>   tools/testing/selftests/x86/pkey-helpers.h         |  220 ---
+>   tools/testing/selftests/x86/protection_keys.c      | 1395 -------------------
+>   48 files changed, 4095 insertions(+), 1747 deletions(-)
+>   create mode 100644 Documentation/vm/protection-keys.txt
+>   delete mode 100644 Documentation/x86/protection-keys.txt
+>   create mode 100644 arch/powerpc/include/asm/pkeys.h
+>   create mode 100644 arch/powerpc/mm/pkeys.c
+>   create mode 100644 tools/testing/selftests/powerpc/ptrace/core-pkey.c
+>   create mode 100644 tools/testing/selftests/powerpc/ptrace/ptrace-pkey.c
+>   create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
+>   create mode 100644 tools/testing/selftests/vm/protection_keys.c
+>   delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
+>   delete mode 100644 tools/testing/selftests/x86/protection_keys.c
+> 
