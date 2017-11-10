@@ -1,111 +1,147 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: [PATCH 6/9] include: Add new y2038 safe __kernel_timespec
-Date: Fri, 10 Nov 2017 14:42:56 -0800
-Message-ID: <20171110224259.15930-7-deepa.kernel@gmail.com>
-References: <20171110224259.15930-1-deepa.kernel@gmail.com>
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: Re: [RFC PATCH for 4.15 05/10] x86: Introduce
+ sync_core_before_usermode
+Date: Fri, 10 Nov 2017 23:13:50 +0000 (UTC)
+Message-ID: <641795751.13070.1510355630950.JavaMail.zimbra@efficios.com>
+References: <20171110213717.12457-1-mathieu.desnoyers@efficios.com> <20171110213717.12457-6-mathieu.desnoyers@efficios.com> <CALCETrWV+bgUPoS7NqVYhoi7hOyvsfoWw5CnyMrkYz=HYznmXQ@mail.gmail.com> <1007217384.13056.1510352430448.JavaMail.zimbra@efficios.com> <115800448.13060.1510353174125.JavaMail.zimbra@efficios.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:46767 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754807AbdKJWn6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Nov 2017 17:43:58 -0500
-In-Reply-To: <20171110224259.15930-1-deepa.kernel@gmail.com>
+Received: from mail.efficios.com ([167.114.142.141]:41668 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753687AbdKJXNd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Nov 2017 18:13:33 -0500
+In-Reply-To: <115800448.13060.1510353174125.JavaMail.zimbra@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, john.stultz@linaro.org
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, linux-arch@vger.kernel.org
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel <linux-kernel@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, "Russell King, ARM Linux" <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David
 
-The new struct __kernel_timespec is similar to current
-internal kernel struct timespec64 on 64 bit architecture.
-The compat structure however is similar to below on little
-endian systems (padding and tv_nsec are switched for big
-endian systems):
+----- On Nov 10, 2017, at 5:32 PM, Mathieu Desnoyers mathieu.desnoyers@efficios.com wrote:
 
-typedef s32            compat_long_t;
-typedef s64            compat_kernel_time64_t;
+> ----- On Nov 10, 2017, at 5:20 PM, Mathieu Desnoyers
+> mathieu.desnoyers@efficios.com wrote:
+> 
+>> ----- On Nov 10, 2017, at 5:02 PM, Andy Lutomirski luto@kernel.org wrote:
+>> 
+>>> On Fri, Nov 10, 2017 at 1:37 PM, Mathieu Desnoyers
+>>> <mathieu.desnoyers@efficios.com> wrote:
+>>>> Introduce an architecture function that ensures the current CPU
+>>>> issues a core serializing instruction before returning to usermode.
+>>>>
+>>>> This is needed to fix an existing core serialization bug on
+>>>> thread migration, and also needed by the membarrier "sync_core" command.
+>>>>
+>>>> Architectures defining the sync_core_before_usermode() static inline
+>>>> need to define ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
+>>>>
+>>>> Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+>>>> CC: Peter Zijlstra <peterz@infradead.org>
+>>>> CC: Andy Lutomirski <luto@kernel.org>
+>>>> CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+>>>> CC: Boqun Feng <boqun.feng@gmail.com>
+>>>> CC: Andrew Hunter <ahh@google.com>
+>>>> CC: Maged Michael <maged.michael@gmail.com>
+>>>> CC: Avi Kivity <avi@scylladb.com>
+>>>> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+>>>> CC: Paul Mackerras <paulus@samba.org>
+>>>> CC: Michael Ellerman <mpe@ellerman.id.au>
+>>>> CC: Dave Watson <davejwatson@fb.com>
+>>>> CC: Thomas Gleixner <tglx@linutronix.de>
+>>>> CC: Ingo Molnar <mingo@redhat.com>
+>>>> CC: "H. Peter Anvin" <hpa@zytor.com>
+>>>> CC: Andrea Parri <parri.andrea@gmail.com>
+>>>> CC: Russell King <linux@armlinux.org.uk>
+>>>> CC: Greg Hackmann <ghackmann@google.com>
+>>>> CC: Will Deacon <will.deacon@arm.com>
+>>>> CC: David Sehr <sehr@google.com>
+>>>> CC: Linus Torvalds <torvalds@linux-foundation.org>
+>>>> CC: x86@kernel.org
+>>>> CC: linux-arch@vger.kernel.org
+>>>> ---
+>>>>  arch/x86/Kconfig                 |  1 +
+>>>>  arch/x86/include/asm/processor.h | 10 ++++++++++
+>>>>  include/linux/processor.h        |  6 ++++++
+>>>>  3 files changed, 17 insertions(+)
+>>>>
+>>>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+>>>> index 01f78c1d40b5..54fbb8960d94 100644
+>>>> --- a/arch/x86/Kconfig
+>>>> +++ b/arch/x86/Kconfig
+>>>> @@ -62,6 +62,7 @@ config X86
+>>>>         select ARCH_HAS_SG_CHAIN
+>>>>         select ARCH_HAS_STRICT_KERNEL_RWX
+>>>>         select ARCH_HAS_STRICT_MODULE_RWX
+>>>> +       select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
+>>>>         select ARCH_HAS_UBSAN_SANITIZE_ALL
+>>>>         select ARCH_HAS_ZONE_DEVICE             if X86_64
+>>>>         select ARCH_HAVE_NMI_SAFE_CMPXCHG
+>>>> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+>>>> index bdac19ab2488..6ce996a7c730 100644
+>>>> --- a/arch/x86/include/asm/processor.h
+>>>> +++ b/arch/x86/include/asm/processor.h
+>>>> @@ -706,6 +706,16 @@ static inline void sync_core(void)
+>>>>  #endif
+>>>>  }
+>>>>
+>>>> +/*
+>>>> + * Ensure that a core serializing instruction is issued before returning
+>>>> + * to user-mode. x86 implements return to user-space through sysexit and
+>>>> + * sysretq, which are not core serializing.
+>>>> + */
+>>>> +static inline void sync_core_before_usermode(void)
+>>>> +{
+>>>> +       sync_core();
+>>>> +}
+>>> 
+>>> Make this if (!in_interrupt()) sync_core(); please.  We can optimize
+>>> it better later on.
+>> 
+>> Sure, done. It will be part of the next version of that patch.
+> 
+> Of course, using in_interrupt() from linux/interrupt.h from
+> asm/processor.h is not such a good idea (circular dependency).
+> 
+> Any recommendation on where to move that static inline on x86 ?
 
-struct compat_kernel_timespec {
-       compat_kernel_time64_t  tv_sec;
-       compat_long_t           tv_nsec;
-       compat_long_t           padding;
-};
+Actually, for the needs of the fix, I plan on not putting the
+if (!in_interrupt()) check, given that the only caller will
+be the scheduler, not in an interrupt context.
 
-This allows for both the native and compat representations to
-be the same and syscalls using this type as part of their ABI
-can have a single entry point to both.
+We can always revisit this optimization-wise if we end up
+using in interrupt handlers in the future.
 
-Note that the compat define is not included anywhere in the
-kernel explicitly to avoid confusion.
+Is that ok with you ?
 
-These types will be used by the new syscalls that will be
-introduced in the consequent patches.
-Most of the new syscalls are just an update to the existing
-native ones with this new type. Hence, put this new type under
-an ifdef so that the architectures can define CONFIG_64BIT_TIME
-when they are ready to handle this switch.
+Thanks,
 
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
----
- include/linux/time64.h                 | 10 +++++++++-
- include/uapi/asm-generic/posix_types.h |  1 +
- include/uapi/linux/time.h              |  7 +++++++
- 3 files changed, 17 insertions(+), 1 deletion(-)
+Mathieu
 
-diff --git a/include/linux/time64.h b/include/linux/time64.h
-index 93d39499838e..0d96887ba4e0 100644
---- a/include/linux/time64.h
-+++ b/include/linux/time64.h
-@@ -2,12 +2,20 @@
- #ifndef _LINUX_TIME64_H
- #define _LINUX_TIME64_H
- 
--#include <uapi/linux/time.h>
- #include <linux/math64.h>
- 
- typedef __s64 time64_t;
- typedef __u64 timeu64_t;
- 
-+/* CONFIG_64BIT_TIME enables new 64 bit time_t syscalls in the compat path
-+ * and 32-bit emulation.
-+ */
-+#ifndef CONFIG_64BIT_TIME
-+#define __kernel_timespec timespec
-+#endif
-+
-+#include <uapi/linux/time.h>
-+
- #if __BITS_PER_LONG == 64
- /* this trick allows us to optimize out timespec64_to_timespec */
- # define timespec64 timespec
-diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
-index 5e6ea22bd525..f0733a26ebfc 100644
---- a/include/uapi/asm-generic/posix_types.h
-+++ b/include/uapi/asm-generic/posix_types.h
-@@ -87,6 +87,7 @@ typedef struct {
- typedef __kernel_long_t	__kernel_off_t;
- typedef long long	__kernel_loff_t;
- typedef __kernel_long_t	__kernel_time_t;
-+typedef long long __kernel_time64_t;
- typedef __kernel_long_t	__kernel_clock_t;
- typedef int		__kernel_timer_t;
- typedef int		__kernel_clockid_t;
-diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
-index 53f8dd84beb5..0ad4510884b0 100644
---- a/include/uapi/linux/time.h
-+++ b/include/uapi/linux/time.h
-@@ -42,6 +42,13 @@ struct itimerval {
- 	struct timeval it_value;	/* current value */
- };
- 
-+#ifndef __kernel_timespec
-+struct __kernel_timespec {
-+	__kernel_time64_t       tv_sec;                 /* seconds */
-+	long long               tv_nsec;                /* nanoseconds */
-+};
-+#endif
-+
- /*
-  * The IDs of the various system clocks (for POSIX.1b interval timers):
-  */
+
+> 
+> Thanks,
+> 
+> Mathieu
+> 
+> 
+>> 
+>> Thanks!
+>> 
+>> Mathieu
+>> 
+>> 
+>> --
+>> Mathieu Desnoyers
+>> EfficiOS Inc.
+>> http://www.efficios.com
+> 
+> --
+> Mathieu Desnoyers
+> EfficiOS Inc.
+> http://www.efficios.com
+
 -- 
-2.11.0
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
