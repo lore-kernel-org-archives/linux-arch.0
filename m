@@ -1,27 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:40503 "EHLO
+Received: from mail.efficios.com ([167.114.142.141]:40357 "EHLO
         mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754674AbdKJVh5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Nov 2017 16:37:57 -0500
+        with ESMTP id S1754264AbdKJVhn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Nov 2017 16:37:43 -0500
 From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [RFC PATCH for 4.15 08/10] membarrier: selftest: Test private expedited sync core cmd
-Date: Fri, 10 Nov 2017 16:37:15 -0500
-Message-ID: <20171110213717.12457-9-mathieu.desnoyers@efficios.com>
+Subject: [RFC PATCH for 4.15 04/10] membarrier: Provide core serializing command
+Date: Fri, 10 Nov 2017 16:37:11 -0500
+Message-ID: <20171110213717.12457-5-mathieu.desnoyers@efficios.com>
 In-Reply-To: <20171110213717.12457-1-mathieu.desnoyers@efficios.com>
 References: <20171110213717.12457-1-mathieu.desnoyers@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Boqun Feng <boqun.feng@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Shuah Khan <shuahkh@osg.samsung.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alan Stern <stern@rowland.harvard.edu>, Alice Ferrazzi <alice.ferrazzi@gmail.com>, Paul Elder <paul.elder@pitt.edu>, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20171110213715.FlM63ZywuXLc4yFt2YkSa7qbR6UYhYfr_Ic7nXZ3M8I@z>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, linux-arch@vger.kernel.org
+Message-ID: <20171110213711.qvMw6xcRn0wcidgHYoLgWgliJClRAwrjqxGpdkzYEow@z>
 
-Test the new MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE and
-MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE commands.
+Provide core serializing membarrier command to support memory reclaim
+by JIT.
+
+Each architecture needs to explicitly opt into that support by
+documenting in their architecture code how they provide the core
+serializing instructions required when returning from the membarrier
+IPI, and after the scheduler has updated the curr->mm pointer (before
+going back to user-space). They should then define
+ARCH_HAS_MEMBARRIER_SYNC_CORE to enable support for that command on
+their architecture.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-CC: Shuah Khan <shuahkh@osg.samsung.com>
-CC: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 CC: Peter Zijlstra <peterz@infradead.org>
+CC: Andy Lutomirski <luto@kernel.org>
 CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 CC: Boqun Feng <boqun.feng@gmail.com>
 CC: Andrew Hunter <ahh@google.com>
@@ -31,119 +38,230 @@ CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 CC: Paul Mackerras <paulus@samba.org>
 CC: Michael Ellerman <mpe@ellerman.id.au>
 CC: Dave Watson <davejwatson@fb.com>
-CC: Alan Stern <stern@rowland.harvard.edu>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: "H. Peter Anvin" <hpa@zytor.com>
+CC: Andrea Parri <parri.andrea@gmail.com>
+CC: Russell King <linux@armlinux.org.uk>
+CC: Greg Hackmann <ghackmann@google.com>
 CC: Will Deacon <will.deacon@arm.com>
-CC: Andy Lutomirski <luto@kernel.org>
-CC: Alice Ferrazzi <alice.ferrazzi@gmail.com>
-CC: Paul Elder <paul.elder@pitt.edu>
-CC: linux-kselftest@vger.kernel.org
+CC: David Sehr <sehr@google.com>
 CC: linux-arch@vger.kernel.org
 ---
- .../testing/selftests/membarrier/membarrier_test.c | 77 +++++++++++++++++++++-
- 1 file changed, 76 insertions(+), 1 deletion(-)
+ include/linux/sched/mm.h        |  9 +++++--
+ include/uapi/linux/membarrier.h | 40 ++++++++++++++++++++++++++----
+ init/Kconfig                    |  3 +++
+ kernel/sched/membarrier.c       | 54 ++++++++++++++++++++++++++++++-----------
+ 4 files changed, 85 insertions(+), 21 deletions(-)
 
-diff --git a/tools/testing/selftests/membarrier/membarrier_test.c b/tools/testing/selftests/membarrier/membarrier_test.c
-index d7543a6d9030..a0eae8d51e72 100644
---- a/tools/testing/selftests/membarrier/membarrier_test.c
-+++ b/tools/testing/selftests/membarrier/membarrier_test.c
-@@ -132,6 +132,63 @@ static int test_membarrier_private_expedited_success(void)
- 	return 0;
- }
+diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
+index 0f9e1a96b890..49a5b37a215a 100644
+--- a/include/linux/sched/mm.h
++++ b/include/linux/sched/mm.h
+@@ -219,8 +219,13 @@ static inline void memalloc_noreclaim_restore(unsigned int flags)
  
-+static int test_membarrier_private_expedited_sync_core_fail(void)
-+{
-+	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE not registered failure";
+ #ifdef CONFIG_MEMBARRIER
+ enum {
+-	MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY	= (1U << 0),
+-	MEMBARRIER_STATE_PRIVATE_EXPEDITED		= (1U << 1),
++	MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY		= (1U << 0),
++	MEMBARRIER_STATE_PRIVATE_EXPEDITED			= (1U << 1),
++	MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE_READY	= (1U << 2),
++};
 +
-+	if (sys_membarrier(cmd, flags) != -1) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should fail, but passed\n",
-+			test_name, flags);
-+	}
-+	if (errno != EPERM) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
-+			test_name, flags, EPERM, strerror(EPERM),
-+			errno, strerror(errno));
-+	}
++enum {
++	MEMBARRIER_FLAG_SYNC_CORE	= (1U << 0),
+ };
+ 
+ #ifdef CONFIG_ARCH_HAS_MEMBARRIER_HOOKS
+diff --git a/include/uapi/linux/membarrier.h b/include/uapi/linux/membarrier.h
+index 4e01ad7ffe98..dbb5016e93e8 100644
+--- a/include/uapi/linux/membarrier.h
++++ b/include/uapi/linux/membarrier.h
+@@ -51,7 +51,7 @@
+  *                          to and return from the system call
+  *                          (non-running threads are de facto in such a
+  *                          state). This only covers threads from the
+- *                          same processes as the caller thread. This
++ *                          same process as the caller thread. This
+  *                          command returns 0 on success. The
+  *                          "expedited" commands complete faster than
+  *                          the non-expedited ones, they never block,
+@@ -64,18 +64,48 @@
+  *                          Register the process intent to use
+  *                          MEMBARRIER_CMD_PRIVATE_EXPEDITED. Always
+  *                          returns 0.
++ * @MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE:
++ *                          In addition to provide memory ordering
++ *                          guarantees described in
++ *                          MEMBARRIER_CMD_PRIVATE_EXPEDITED, ensure
++ *                          the caller thread, upon return from system
++ *                          call, that all its running threads siblings
++ *                          have executed a core serializing
++ *                          instruction. (architectures are required to
++ *                          guarantee that non-running threads issue
++ *                          core serializing instructions before they
++ *                          resume user-space execution). This only
++ *                          covers threads from the same process as the
++ *                          caller thread. This command returns 0 on
++ *                          success. The "expedited" commands complete
++ *                          faster than the non-expedited ones, they
++ *                          never block, but have the downside of
++ *                          causing extra overhead. If this command is
++ *                          not implemented by an architecture, -EINVAL
++ *                          is returned. A process needs to register its
++ *                          intent to use the private expedited sync
++ *                          core command prior to using it, otherwise
++ *                          this command returns -EPERM.
++ * @MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE:
++ *                          Register the process intent to use
++ *                          MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE.
++ *                          If this command is not implemented by an
++ *                          architecture, -EINVAL is returned.
++ *                          Returns 0 on success.
+  *
+  * Command to be passed to the membarrier system call. The commands need to
+  * be a single bit each, except for MEMBARRIER_CMD_QUERY which is assigned to
+  * the value 0.
+  */
+ enum membarrier_cmd {
+-	MEMBARRIER_CMD_QUERY				= 0,
+-	MEMBARRIER_CMD_SHARED				= (1 << 0),
++	MEMBARRIER_CMD_QUERY					= 0,
++	MEMBARRIER_CMD_SHARED					= (1 << 0),
+ 	/* reserved for MEMBARRIER_CMD_SHARED_EXPEDITED (1 << 1) */
+ 	/* reserved for MEMBARRIER_CMD_PRIVATE (1 << 2) */
+-	MEMBARRIER_CMD_PRIVATE_EXPEDITED		= (1 << 3),
+-	MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED	= (1 << 4),
++	MEMBARRIER_CMD_PRIVATE_EXPEDITED			= (1 << 3),
++	MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED		= (1 << 4),
++	MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE		= (1 << 5),
++	MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE	= (1 << 6),
+ };
+ 
+ #endif /* _UAPI_LINUX_MEMBARRIER_H */
+diff --git a/init/Kconfig b/init/Kconfig
+index 609296e764d6..d3e5440051b8 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1403,6 +1403,9 @@ config MEMBARRIER
+ config ARCH_HAS_MEMBARRIER_HOOKS
+ 	bool
+ 
++config ARCH_HAS_MEMBARRIER_SYNC_CORE
++	bool
 +
-+	ksft_test_result_pass(
-+		"%s test: flags = %d, errno = %d\n",
-+		test_name, flags, errno);
-+	return 0;
-+}
+ config RSEQ
+ 	bool "Enable rseq() system call" if EXPERT
+ 	default y
+diff --git a/kernel/sched/membarrier.c b/kernel/sched/membarrier.c
+index b045974346d0..82efa7c64902 100644
+--- a/kernel/sched/membarrier.c
++++ b/kernel/sched/membarrier.c
+@@ -26,24 +26,41 @@
+  * Bitmask made from a "or" of all commands within enum membarrier_cmd,
+  * except MEMBARRIER_CMD_QUERY.
+  */
++#ifdef CONFIG_ARCH_HAS_MEMBARRIER_SYNC_CORE
++#define MEMBARRIER_PRIVATE_EXPEDITED_SYNC_CORE_BITMASK	\
++	(MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE \
++	| MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE)
++#else
++#define MEMBARRIER_PRIVATE_EXPEDITED_SYNC_CORE_BITMASK	0
++#endif
 +
-+static int test_membarrier_register_private_expedited_sync_core_success(void)
-+{
-+	int cmd = MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE";
-+
-+	if (sys_membarrier(cmd, flags) != 0) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d, errno = %d\n",
-+			test_name, flags, errno);
-+	}
-+
-+	ksft_test_result_pass(
-+		"%s test: flags = %d\n",
-+		test_name, flags);
-+	return 0;
-+}
-+
-+static int test_membarrier_private_expedited_sync_core_success(void)
-+{
-+	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE";
-+
-+	if (sys_membarrier(cmd, flags) != 0) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d, errno = %d\n",
-+			test_name, flags, errno);
-+	}
-+
-+	ksft_test_result_pass(
-+		"%s test: flags = %d\n",
-+		test_name, flags);
-+	return 0;
-+}
-+
- static int test_membarrier(void)
+ #define MEMBARRIER_CMD_BITMASK	\
+ 	(MEMBARRIER_CMD_SHARED | MEMBARRIER_CMD_PRIVATE_EXPEDITED	\
+-	| MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED)
++	| MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED	\
++	| MEMBARRIER_PRIVATE_EXPEDITED_SYNC_CORE_BITMASK)
+ 
+ static void ipi_mb(void *info)
  {
- 	int status;
-@@ -154,6 +211,22 @@ static int test_membarrier(void)
- 	status = test_membarrier_private_expedited_success();
- 	if (status)
- 		return status;
-+	status = sys_membarrier(MEMBARRIER_CMD_QUERY, 0);
-+	if (status < 0) {
-+		ksft_test_result_fail("sys_membarrier() failed\n");
-+		return status;
+ 	smp_mb();	/* IPIs should be serializing but paranoid. */
+ }
+ 
+-static int membarrier_private_expedited(void)
++static int membarrier_private_expedited(int flags)
+ {
+ 	int cpu;
+ 	bool fallback = false;
+ 	cpumask_var_t tmpmask;
+ 
+-	if (!(atomic_read(&current->mm->membarrier_state)
+-			& MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY))
+-		return -EPERM;
++	if (flags & MEMBARRIER_FLAG_SYNC_CORE) {
++		if (!IS_ENABLED(CONFIG_ARCH_HAS_MEMBARRIER_SYNC_CORE))
++			return -EINVAL;
++		if (!(atomic_read(&current->mm->membarrier_state)
++				& MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE_READY))
++			return -EPERM;
++	} else {
++		if (!(atomic_read(&current->mm->membarrier_state)
++				& MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY))
++			return -EPERM;
 +	}
-+	if (status & MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE) {
-+		status = test_membarrier_private_expedited_sync_core_fail();
-+		if (status)
-+			return status;
-+		status = test_membarrier_register_private_expedited_sync_core_success();
-+		if (status)
-+			return status;
-+		status = test_membarrier_private_expedited_sync_core_success();
-+		if (status)
-+			return status;
-+	}
+ 
+ 	if (num_online_cpus() == 1)
+ 		return 0;
+@@ -103,19 +120,25 @@ static int membarrier_private_expedited(void)
  	return 0;
  }
  
-@@ -173,8 +246,10 @@ static int test_membarrier_query(void)
- 		}
- 		ksft_exit_fail_msg("sys_membarrier() failed\n");
- 	}
--	if (!(ret & MEMBARRIER_CMD_SHARED))
-+	if (!(ret & MEMBARRIER_CMD_SHARED)) {
-+		ksft_test_result_fail("sys_membarrier() CMD_SHARED query failed\n");
- 		ksft_exit_fail_msg("sys_membarrier is not supported.\n");
+-static void membarrier_register_private_expedited(void)
++static int membarrier_register_private_expedited(int flags)
+ {
+ 	struct task_struct *p = current;
+ 	struct mm_struct *mm = p->mm;
++	int state = MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY;
++
++	if (flags & MEMBARRIER_FLAG_SYNC_CORE) {
++		if (!IS_ENABLED(CONFIG_ARCH_HAS_MEMBARRIER_SYNC_CORE))
++			return -EINVAL;
++		state = MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE_READY;
 +	}
  
- 	ksft_test_result_pass("sys_membarrier available\n");
- 	return 0;
+ 	/*
+ 	 * We need to consider threads belonging to different thread
+ 	 * groups, which use the same mm. (CLONE_VM but not
+ 	 * CLONE_THREAD).
+ 	 */
+-	if (atomic_read(&mm->membarrier_state)
+-			& MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY)
+-		return;
++	if (atomic_read(&mm->membarrier_state) & state)
++		return 0;
+ 	atomic_or(MEMBARRIER_STATE_PRIVATE_EXPEDITED,
+ 			&mm->membarrier_state);
+ 	if (!(atomic_read(&mm->mm_users) == 1 && get_nr_threads(p) == 1)) {
+@@ -125,8 +148,8 @@ static void membarrier_register_private_expedited(void)
+ 		 */
+ 		synchronize_sched();
+ 	}
+-	atomic_or(MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY,
+-			&mm->membarrier_state);
++	atomic_or(state, &mm->membarrier_state);
++	return 0;
+ }
+ 
+ /**
+@@ -177,10 +200,13 @@ SYSCALL_DEFINE2(membarrier, int, cmd, int, flags)
+ 			synchronize_sched();
+ 		return 0;
+ 	case MEMBARRIER_CMD_PRIVATE_EXPEDITED:
+-		return membarrier_private_expedited();
++		return membarrier_private_expedited(0);
+ 	case MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED:
+-		membarrier_register_private_expedited();
+-		return 0;
++		return membarrier_register_private_expedited(0);
++	case MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE:
++		return membarrier_private_expedited(MEMBARRIER_FLAG_SYNC_CORE);
++	case MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE:
++		return membarrier_register_private_expedited(MEMBARRIER_FLAG_SYNC_CORE);
+ 	default:
+ 		return -EINVAL;
+ 	}
 -- 
 2.11.0
