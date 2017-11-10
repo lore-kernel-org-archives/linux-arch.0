@@ -1,80 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:37606 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1755030AbdKIXh6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Nov 2017 18:37:58 -0500
-Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vA9NZ0iG008342
-        for <linux-arch@vger.kernel.org>; Thu, 9 Nov 2017 18:37:58 -0500
-Received: from e33.co.us.ibm.com (e33.co.us.ibm.com [32.97.110.151])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2e506mhjsw-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 09 Nov 2017 18:37:57 -0500
-Received: from localhost
-        by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Thu, 9 Nov 2017 16:37:56 -0700
-Date: Thu, 9 Nov 2017 15:37:46 -0800
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v9 44/51] selftest/vm: powerpc implementation for generic
- abstraction
-Reply-To: Ram Pai <linuxram@us.ibm.com>
-References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
- <1509958663-18737-45-git-send-email-linuxram@us.ibm.com>
- <20171109184714.xs523k4cvmqghew3@gmail.com>
+Received: from mail-vk0-f68.google.com ([209.85.213.68]:47576 "EHLO
+        mail-vk0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754172AbdKJGXT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Nov 2017 01:23:19 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20171109184714.xs523k4cvmqghew3@gmail.com>
-Message-ID: <20171109233745.GD5546@ram.oc3035372033.ibm.com>
+In-Reply-To: <CABGGisw5gi92aM0_tZ0htOzwZTFJpcSNZUJth5TzRXPxzssRxA@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <1a8efba0727437d510d10755f3fcea806833651d.1510118606.git.green.hu@gmail.com>
+ <CAL_JsqJAtTSGg=yGvANGdTCWa4tDAicvOvWYr4pK5M1rjPFtfg@mail.gmail.com>
+ <CAEbi=3e-hRbej7EZ68-J1YPNfdxu7O_BAZ1rvZvAhhYzAT09-g@mail.gmail.com> <CABGGisw5gi92aM0_tZ0htOzwZTFJpcSNZUJth5TzRXPxzssRxA@mail.gmail.com>
+From: Greentime Hu <green.hu@gmail.com>
+Date: Fri, 10 Nov 2017 14:22:37 +0800
+Message-ID: <CAEbi=3eus0ZEyFaNbS_a8bDOfH3aK_FB2ckATm-ELzPZT0MJ_Q@mail.gmail.com>
+Subject: Re: [PATCH 30/31] dt-bindings: nds32 CPU Bindings
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Breno Leitao <leitao@debian.org>
-Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de, linux-arch@vger.kernel.org, ebiederm@xmission.com, linux-doc@vger.kernel.org, x86@kernel.org, dave.hansen@intel.com, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
-Message-ID: <20171109233746.KAqbW7Vpj241sTWK-eewdUDe79tr0CzJfGcZUw0twMg@z>
+To: Rob Herring <robh@kernel.org>
+Cc: Rob Herring <robh+dt@kernel.org>, Greentime <greentime@andestech.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+Message-ID: <20171110062237.yty_y0s0a6ZiING1Cg7YrJxo4vkJMfCJ5OJ7pDs6aeQ@z>
 
-On Thu, Nov 09, 2017 at 04:47:15PM -0200, Breno Leitao wrote:
-> Hi Ram,
-> 
-> On Mon, Nov 06, 2017 at 12:57:36AM -0800, Ram Pai wrote:
-> > @@ -206,12 +209,14 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
-> >  
-> >  	trapno = uctxt->uc_mcontext.gregs[REG_TRAPNO];
-> >  	ip = uctxt->uc_mcontext.gregs[REG_IP_IDX];
-> > -	fpregset = uctxt->uc_mcontext.fpregs;
-> > -	fpregs = (void *)fpregset;
-> 
-> Since you removed all references for fpregset now, you probably want to
-> remove the declaration of the variable above.
+2017-11-09 21:57 GMT+08:00 Rob Herring <robh@kernel.org>:
+> On Thu, Nov 9, 2017 at 3:39 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>> 2017-11-08 21:18 GMT+08:00 Rob Herring <robh+dt@kernel.org>:
+>>> Please Cc the DT list on bindings.
+>>
+>> Sorry. I am not sure what you mean.
+>> Do you mean add devicetree@vger.kernel.org to cc list?
+>
+> Yes. Use get_maintainers.pl as a guide.
 
-fpregs is still needed.
+Roger that! Thanks!
 
-> 
-> > @@ -219,20 +224,21 @@ void signal_handler(int signum, siginfo_t *si, void *vucontext)
-> >  	 * state.  We just assume that it is here.
-> >  	 */
-> >  	fpregs += 0x70;
-> > -#endif
-> > -	pkey_reg_offset = pkey_reg_xstate_offset();
-> 
-> With this code, you removed all the reference for variable
-> pkey_reg_offset, thus, its declaration could be removed also.
+>>> On Tue, Nov 7, 2017 at 11:55 PM, Greentime Hu <green.hu@gmail.com> wrote:
+>>>> From: Greentime Hu <greentime@andestech.com>
+>>>
+>
+>>>> +                       device_type = "cpu";
+>>>> +                       compatible = "andestech,n13", "andestech,n15";
+>>>
+>>> n13 is a superset of n15?
+>>
+>> No, they are independent ones.
+>
+> Then having both is not valid. The strings should be in order of best
+> match to worst match where worst match is typically either older
+> implementations of IP blocks or generic'ish strings such as "ns16550"
+> for a UART.
 
-yes. will fix it.
-
-> 
-> > -	*(u64 *)pkey_reg_ptr = 0x00000000;
-> > +	dprintf1("si_pkey from siginfo: %lx\n", si_pkey);
-> > +#if defined(__i386__) || defined(__x86_64__) /* arch */
-> > +	dprintf1("signal pkey_reg from xsave: %016lx\n", *pkey_reg_ptr);
-> > +	*(u64 *)pkey_reg_ptr &= reset_bits(si_pkey, PKEY_DISABLE_ACCESS);
-> > +#elif __powerpc64__
-> 
-> Since the variable pkey_reg_ptr is only used for Intel code (inside
-> #ifdefs), you probably want to #ifdef the variable declaration also,
-> avoid triggering "unused variable" warning on non-Intel machines.
-
-yes. Actually it will trigger the warning on intel machines. Fixed it.
-
-Thanks Breno!
-RP
+Thanks.
+I would like to explain it more clearly.
+They are independent ones in implementations.
+They are implemented based on the same nds32 ISA and architecture spec
+with different configurations
+like cache size, page size, cache type(VIPT/PIPT), pipeline stages...
+Most of them are compatible.
+They use the same toolchain to build vmlinux which can run on
+different nds32 cores.
