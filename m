@@ -1,147 +1,69 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [RFC PATCH for 4.15 05/10] x86: Introduce
- sync_core_before_usermode
-Date: Fri, 10 Nov 2017 23:13:50 +0000 (UTC)
-Message-ID: <641795751.13070.1510355630950.JavaMail.zimbra@efficios.com>
-References: <20171110213717.12457-1-mathieu.desnoyers@efficios.com> <20171110213717.12457-6-mathieu.desnoyers@efficios.com> <CALCETrWV+bgUPoS7NqVYhoi7hOyvsfoWw5CnyMrkYz=HYznmXQ@mail.gmail.com> <1007217384.13056.1510352430448.JavaMail.zimbra@efficios.com> <115800448.13060.1510353174125.JavaMail.zimbra@efficios.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: POWER: Unexpected fault when writing to brk-allocated memory
+Date: Sat, 11 Nov 2017 21:30:50 +1100
+Message-ID: <20171111213050.34a4f585@roar.ozlabs.ibm.com>
+References: <d52581f4-8ca4-5421-0862-3098031e29a8@linux.vnet.ibm.com>
+        <546d4155-5b7c-6dba-b642-29c103e336bc@redhat.com>
+        <20171107160705.059e0c2b@roar.ozlabs.ibm.com>
+        <20171107111543.ep57evfxxbwwlhdh@node.shutemov.name>
+        <20171107222228.0c8a50ff@roar.ozlabs.ibm.com>
+        <20171107122825.posamr2dmzlzvs2p@node.shutemov.name>
+        <20171108002448.6799462e@roar.ozlabs.ibm.com>
+        <2ce0a91c-985c-aad8-abfa-e91bc088bb3e@linux.vnet.ibm.com>
+        <20171107140158.iz4b2lchhrt6eobe@node.shutemov.name>
+        <20171110041526.6137bc9a@roar.ozlabs.ibm.com>
+        <20171109194421.GA12789@bombadil.infradead.org>
+        <063D6719AE5E284EB5DD2968C1650D6DD00B84EF@AcuExch.aculab.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:41668 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753687AbdKJXNd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Nov 2017 18:13:33 -0500
-In-Reply-To: <115800448.13060.1510353174125.JavaMail.zimbra@efficios.com>
+Received: from mail-pf0-f179.google.com ([209.85.192.179]:53506 "EHLO
+        mail-pf0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751336AbdKKKbF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 11 Nov 2017 05:31:05 -0500
+In-Reply-To: <063D6719AE5E284EB5DD2968C1650D6DD00B84EF@AcuExch.aculab.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel <linux-kernel@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, "Russell King, ARM Linux" <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: 'Matthew Wilcox' <willy@infradead.org>, Florian Weimer <fweimer@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, linux-mm <linux-mm@kvack.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Andrew Morton <akpm@linux-foundation.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Thomas Gleixner <tglx@linutronix.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 
------ On Nov 10, 2017, at 5:32 PM, Mathieu Desnoyers mathieu.desnoyers@efficios.com wrote:
+On Fri, 10 Nov 2017 12:08:35 +0000
+David Laight <David.Laight@ACULAB.COM> wrote:
 
-> ----- On Nov 10, 2017, at 5:20 PM, Mathieu Desnoyers
-> mathieu.desnoyers@efficios.com wrote:
+> From: Matthew Wilcox
+> > Sent: 09 November 2017 19:44
+> > 
+> > On Fri, Nov 10, 2017 at 04:15:26AM +1100, Nicholas Piggin wrote:  
+> > > So these semantics are what we're going with? Anything that does mmap() is
+> > > guaranteed of getting a 47-bit pointer and it can use the top 17 bits for
+> > > itself? Is intended to be cross-platform or just x86 and power specific?  
+> > 
+> > It is x86 and powerpc specific.  The arm64 people have apparently stumbled
+> > across apps that expect to be able to use bit 48 for their own purposes.
+> > And their address space is 48 bit by default.  Oops.  
 > 
->> ----- On Nov 10, 2017, at 5:02 PM, Andy Lutomirski luto@kernel.org wrote:
->> 
->>> On Fri, Nov 10, 2017 at 1:37 PM, Mathieu Desnoyers
->>> <mathieu.desnoyers@efficios.com> wrote:
->>>> Introduce an architecture function that ensures the current CPU
->>>> issues a core serializing instruction before returning to usermode.
->>>>
->>>> This is needed to fix an existing core serialization bug on
->>>> thread migration, and also needed by the membarrier "sync_core" command.
->>>>
->>>> Architectures defining the sync_core_before_usermode() static inline
->>>> need to define ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
->>>>
->>>> Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
->>>> CC: Peter Zijlstra <peterz@infradead.org>
->>>> CC: Andy Lutomirski <luto@kernel.org>
->>>> CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
->>>> CC: Boqun Feng <boqun.feng@gmail.com>
->>>> CC: Andrew Hunter <ahh@google.com>
->>>> CC: Maged Michael <maged.michael@gmail.com>
->>>> CC: Avi Kivity <avi@scylladb.com>
->>>> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->>>> CC: Paul Mackerras <paulus@samba.org>
->>>> CC: Michael Ellerman <mpe@ellerman.id.au>
->>>> CC: Dave Watson <davejwatson@fb.com>
->>>> CC: Thomas Gleixner <tglx@linutronix.de>
->>>> CC: Ingo Molnar <mingo@redhat.com>
->>>> CC: "H. Peter Anvin" <hpa@zytor.com>
->>>> CC: Andrea Parri <parri.andrea@gmail.com>
->>>> CC: Russell King <linux@armlinux.org.uk>
->>>> CC: Greg Hackmann <ghackmann@google.com>
->>>> CC: Will Deacon <will.deacon@arm.com>
->>>> CC: David Sehr <sehr@google.com>
->>>> CC: Linus Torvalds <torvalds@linux-foundation.org>
->>>> CC: x86@kernel.org
->>>> CC: linux-arch@vger.kernel.org
->>>> ---
->>>>  arch/x86/Kconfig                 |  1 +
->>>>  arch/x86/include/asm/processor.h | 10 ++++++++++
->>>>  include/linux/processor.h        |  6 ++++++
->>>>  3 files changed, 17 insertions(+)
->>>>
->>>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
->>>> index 01f78c1d40b5..54fbb8960d94 100644
->>>> --- a/arch/x86/Kconfig
->>>> +++ b/arch/x86/Kconfig
->>>> @@ -62,6 +62,7 @@ config X86
->>>>         select ARCH_HAS_SG_CHAIN
->>>>         select ARCH_HAS_STRICT_KERNEL_RWX
->>>>         select ARCH_HAS_STRICT_MODULE_RWX
->>>> +       select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
->>>>         select ARCH_HAS_UBSAN_SANITIZE_ALL
->>>>         select ARCH_HAS_ZONE_DEVICE             if X86_64
->>>>         select ARCH_HAVE_NMI_SAFE_CMPXCHG
->>>> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
->>>> index bdac19ab2488..6ce996a7c730 100644
->>>> --- a/arch/x86/include/asm/processor.h
->>>> +++ b/arch/x86/include/asm/processor.h
->>>> @@ -706,6 +706,16 @@ static inline void sync_core(void)
->>>>  #endif
->>>>  }
->>>>
->>>> +/*
->>>> + * Ensure that a core serializing instruction is issued before returning
->>>> + * to user-mode. x86 implements return to user-space through sysexit and
->>>> + * sysretq, which are not core serializing.
->>>> + */
->>>> +static inline void sync_core_before_usermode(void)
->>>> +{
->>>> +       sync_core();
->>>> +}
->>> 
->>> Make this if (!in_interrupt()) sync_core(); please.  We can optimize
->>> it better later on.
->> 
->> Sure, done. It will be part of the next version of that patch.
+> (Do you mean 49bit?)
+
+I think he meant bit 47, which makes sense because they were probably
+ported from x86-64 with 47 bit address. That seems to be why x86-64
+5-level and powerpc decided to limit to a 47 bit address space by
+default.
+
 > 
-> Of course, using in_interrupt() from linux/interrupt.h from
-> asm/processor.h is not such a good idea (circular dependency).
+> Aren't such apps just doomed to be broken?
+
+Well they're not portable but they are not broken if virtual address
+is limited.
+
 > 
-> Any recommendation on where to move that static inline on x86 ?
+> ISTR there is something on (IIRC) sparc64 that does a 'match'
+> on the high address bits to make it much harder to overrun
+> one area into another.
 
-Actually, for the needs of the fix, I plan on not putting the
-if (!in_interrupt()) check, given that the only caller will
-be the scheduler, not in an interrupt context.
-
-We can always revisit this optimization-wise if we end up
-using in interrupt handlers in the future.
-
-Is that ok with you ?
+I'm not sure about that but I think the problem would be the app
+masking out bits from the pointer for its own use before ever
+dereferencing it.
 
 Thanks,
-
-Mathieu
-
-
-> 
-> Thanks,
-> 
-> Mathieu
-> 
-> 
->> 
->> Thanks!
->> 
->> Mathieu
->> 
->> 
->> --
->> Mathieu Desnoyers
->> EfficiOS Inc.
->> http://www.efficios.com
-> 
-> --
-> Mathieu Desnoyers
-> EfficiOS Inc.
-> http://www.efficios.com
-
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+Nick
