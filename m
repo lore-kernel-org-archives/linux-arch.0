@@ -1,35 +1,65 @@
-From: "Herr Kelly Williams" <50275623@mylife.unisa.ac.za>
-Subject: Kreditangebot,
-Date: Mon, 13 Nov 2017 13:01:21 +0530
-Message-ID: <VI1PR0101MB2143254E721EE55BC51DFA0DBD2B0@VI1PR0101MB2143.eurprd01.prod.exchangelabs.com>
-Reply-To: mr.kellyloanfirm12@googlemail.com
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 26/31] nds32: Build infrastructure
+Date: Mon, 13 Nov 2017 11:45:07 +0100
+Message-ID: <CAMuHMdXTNQZSX71E4ds2OeR-5pPKmARqtP0BQbaWzKhpvieC7w@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <7278eca76456b412e02d9baa5dc164e83199cbab.1510118606.git.green.hu@gmail.com>
+ <CAK8P3a11Mk3XcmP5Ecbv55TuNRjrrp_43GX8hPDfdLh6JMHE=g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-he1eur01hn0216.outbound.protection.outlook.com ([104.47.0.216]:6072
-        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751925AbdKMHaB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Nov 2017 02:30:01 -0500
-Content-Description: Mail message body
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:53844 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751464AbdKMKpJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Nov 2017 05:45:09 -0500
+In-Reply-To: <CAK8P3a11Mk3XcmP5Ecbv55TuNRjrrp_43GX8hPDfdLh6JMHE=g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <50275623@mylife.unisa.ac.za>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
 
-Hallo Ben=F6tigen Sie einen Kredit, um Schulden zu bekommen oder Ihre Rechn=
-ungen zu bezahlen? Ben=F6tigen Sie ein Home / Car oder ein Business-Darlehe=
-n? Werden Sie von einer Bank, Freunden oder Partner abgelehnt? Wir bieten a=
-lle Arten von Darlehen zum Zinssatz von 2%, wenn Sie an einem Darlehen inte=
-ressiert sind. Kontaktieren Sie uns einfach mit den unten stehenden Informa=
-tionen und wir werden Ihre Anfrage beantworten, sobald wir Ihre Daten erhal=
-ten haben.
+On Wed, Nov 8, 2017 at 11:16 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>> --- /dev/null
+>> +++ b/arch/nds32/Kconfig
+>> @@ -0,0 +1,107 @@
+>> +#
+>> +# For a description of the syntax of this configuration file,
+>> +# see Documentation/kbuild/kconfig-language.txt.
+>> +#
+>> +
+>> +config NDS32
+>> +        def_bool y
+>> +       select ARCH_HAS_RAW_COPY_USER
+>> +       select ARCH_WANT_FRAME_POINTERS if FTRACE
+>> +       select ARCH_WANT_IPC_PARSE_VERSION
+>> +       select CLKSRC_MMIO
+>> +       select CLONE_BACKWARDS
+>> +       select TIMER_OF
+>> +       select FRAME_POINTER
+>> +       select GENERIC_ATOMIC64
+>> +       select GENERIC_CPU_DEVICES
+>> +       select GENERIC_CLOCKEVENTS
+>> +       select GENERIC_IOMAP
+>> +       select GENERIC_IRQ_CHIP
+>> +       select GENERIC_IRQ_PROBE
+>> +       select GENERIC_IRQ_SHOW
+>> +       select GENERIC_STRNCPY_FROM_USER
+>> +       select GENERIC_STRNLEN_USER
+>> +       select GENERIC_TIME_VSYSCALL
+>> +       select HAVE_ARCH_TRACEHOOK
+>> +       select HAVE_GENERIC_IOMAP
+>
+> You normally don't want HAVE_GENERIC_IOMAP, at least unless the CPU
+> has special instructions to trigger PCI I/O port access.
 
-Vollst=E4ndiger Name:
-Land:
-Darlehensbetrag ben=F6tigt:
-Darlehensdauer:
-Handynummer:
+GENERIC_IOMAP or HAVE_GENERIC_IOMAP?
 
-Freundliche Gr=FC=DFe
-Herr Kelly Williams
+The latter doesn't even exist, except in
+Documentation/kbuild/kconfig-language.txt, so it cannot be selected.
+
+Given the checks for __NDS32_EB__, NDS32 can be either big or little endian,
+so you should have (excatly one of) CPU_BIG_ENDIAN or CPU_LITTLE_ENDIAN set.
+
+Gr{oetje,eeting}s,
+
+                        Geert
