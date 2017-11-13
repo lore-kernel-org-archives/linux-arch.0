@@ -1,113 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:42886 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751243AbdKMAzG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 12 Nov 2017 19:55:06 -0500
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vAD0s1jn113819
-        for <linux-arch@vger.kernel.org>; Sun, 12 Nov 2017 19:55:06 -0500
-Received: from e31.co.us.ibm.com (e31.co.us.ibm.com [32.97.110.149])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2e6fdwu0b8-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Sun, 12 Nov 2017 19:55:05 -0500
-Received: from localhost
-        by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Sun, 12 Nov 2017 17:55:04 -0700
-Date: Sun, 12 Nov 2017 16:54:51 -0800
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v9 23/51] powerpc: Enable pkey subsystem
-Reply-To: Ram Pai <linuxram@us.ibm.com>
-References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
- <1509958663-18737-24-git-send-email-linuxram@us.ibm.com>
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:53844 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751464AbdKMKpJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Nov 2017 05:45:09 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1509958663-18737-24-git-send-email-linuxram@us.ibm.com>
-Message-ID: <20171113005451.GF5546@ram.oc3035372033.ibm.com>
+In-Reply-To: <CAK8P3a11Mk3XcmP5Ecbv55TuNRjrrp_43GX8hPDfdLh6JMHE=g@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <7278eca76456b412e02d9baa5dc164e83199cbab.1510118606.git.green.hu@gmail.com>
+ <CAK8P3a11Mk3XcmP5Ecbv55TuNRjrrp_43GX8hPDfdLh6JMHE=g@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 13 Nov 2017 11:45:07 +0100
+Message-ID: <CAMuHMdXTNQZSX71E4ds2OeR-5pPKmARqtP0BQbaWzKhpvieC7w@mail.gmail.com>
+Subject: Re: [PATCH 26/31] nds32: Build infrastructure
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
-Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
-Message-ID: <20171113005451._WbaQdSznPY9GU2leXJY-xCFTsCVxZ9fw7BY1Xsjgx8@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171113104507.5L7WCM76ckAb2tTjF03knYWlayEVl030NLuHc2Ys-0A@z>
 
-On Mon, Nov 06, 2017 at 12:57:15AM -0800, Ram Pai wrote:
-> PAPR defines 'ibm,processor-storage-keys' property. It exports two
-> values. The first value holds the number of data-access keys and the
-> second holds the number of instruction-access keys.  Due to a bug in
-> the  firmware, instruction-access  keys is  always  reported  as zero.
-> However any key can be configured to disable data-access and/or disable
-> execution-access. The inavailablity of the second value is not a
-> big handicap, though it could have been used to determine if the
-> platform supported disable-execution-access.
-> 
-> Non PAPR platforms do not define this property   in the device tree yet.
-> Here, we   hardcode   CPUs   that   support  pkey by consulting
-> PowerISA3.0
-> 
-> This patch calculates the number of keys supported by the platform.
-> Alsi it determines the platform support for read/write/execution access
-> support for pkeys.
+On Wed, Nov 8, 2017 at 11:16 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>> --- /dev/null
+>> +++ b/arch/nds32/Kconfig
+>> @@ -0,0 +1,107 @@
+>> +#
+>> +# For a description of the syntax of this configuration file,
+>> +# see Documentation/kbuild/kconfig-language.txt.
+>> +#
+>> +
+>> +config NDS32
+>> +        def_bool y
+>> +       select ARCH_HAS_RAW_COPY_USER
+>> +       select ARCH_WANT_FRAME_POINTERS if FTRACE
+>> +       select ARCH_WANT_IPC_PARSE_VERSION
+>> +       select CLKSRC_MMIO
+>> +       select CLONE_BACKWARDS
+>> +       select TIMER_OF
+>> +       select FRAME_POINTER
+>> +       select GENERIC_ATOMIC64
+>> +       select GENERIC_CPU_DEVICES
+>> +       select GENERIC_CLOCKEVENTS
+>> +       select GENERIC_IOMAP
+>> +       select GENERIC_IRQ_CHIP
+>> +       select GENERIC_IRQ_PROBE
+>> +       select GENERIC_IRQ_SHOW
+>> +       select GENERIC_STRNCPY_FROM_USER
+>> +       select GENERIC_STRNLEN_USER
+>> +       select GENERIC_TIME_VSYSCALL
+>> +       select HAVE_ARCH_TRACEHOOK
+>> +       select HAVE_GENERIC_IOMAP
+>
+> You normally don't want HAVE_GENERIC_IOMAP, at least unless the CPU
+> has special instructions to trigger PCI I/O port access.
 
-> 
-> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> ---
-> 
-....snip...
+GENERIC_IOMAP or HAVE_GENERIC_IOMAP?
 
-> +static inline bool pkey_mmu_enabled(void)
-> +{
-> +	if (firmware_has_feature(FW_FEATURE_LPAR))
-> +		return pkeys_total;
-> +	else
-> +		return cpu_has_feature(CPU_FTR_PKEY);
-> +}
-> +
->  void __init pkey_initialize(void)
->  {
->  	int os_reserved, i;
-> @@ -46,14 +54,9 @@ void __init pkey_initialize(void)
->  		     __builtin_popcountl(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT)
->  				!= (sizeof(u64) * BITS_PER_BYTE));
-> 
-> -	/*
-> -	 * Disable the pkey system till everything is in place. A subsequent
-> -	 * patch will enable it.
-> -	 */
-> -	static_branch_enable(&pkey_disabled);
-> -
-> -	/* Lets assume 32 keys */
-> -	pkeys_total = 32;
+The latter doesn't even exist, except in
+Documentation/kbuild/kconfig-language.txt, so it cannot be selected.
 
-vvvvvvvvvvvvvvvvvvvv
-> +	/* Let's assume 32 keys if we are not told the number of pkeys. */
-> +	if (!pkeys_total)
-> +		pkeys_total = 32;
-^^^^^^^^^^^^^^^^^^^^
+Given the checks for __NDS32_EB__, NDS32 can be either big or little endian,
+so you should have (excatly one of) CPU_BIG_ENDIAN or CPU_LITTLE_ENDIAN set.
 
-There is a small bug here. 
+Gr{oetje,eeting}s,
 
-On a KVM guest or a LPAR, if the device tree
-does not expose pkeys, the pkey-subsystem must be disabled.
+                        Geert
 
-Unfortunately, the code above blindly sets the pkeys_total to 32.
-This confuses pkey_mmu_enabled() into returning true. Because of this
-bug the guest errorneously enables pkey-subsystem. 
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-The fix is to delete the code marked above.
-
-> 
->  	/*
->  	 * Adjust the upper limit, based on the number of bits supported by
-> @@ -62,11 +65,19 @@ void __init pkey_initialize(void)
->  	pkeys_total = min_t(int, pkeys_total,
->  			(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT));
-> 
-> +	if (!pkey_mmu_enabled() || radix_enabled() || !pkeys_total)
-> +		static_branch_enable(&pkey_disabled);
-> +	else
-> +		static_branch_disable(&pkey_disabled);
-> +
-
-RP
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
