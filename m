@@ -1,33 +1,97 @@
-From: Benjamin Herrenschmidt <benh-8fk3Idey6ehBDgjK7y7TUQ@public.gmane.org>
-Subject: Re: [RFC PATCH v2] Fix: x86: Add missing core serializing
- instruction on migration
-Date: Mon, 13 Nov 2017 10:51:47 +1100
-Message-ID: <1510530707.12797.42.camel@au1.ibm.com>
-References: <20171111150357.26072-1-mathieu.desnoyers@efficios.com>
-         <1510529164.12797.41.camel@kernel.crashing.org>
-Reply-To: benh-8fk3Idey6ehBDgjK7y7TUQ@public.gmane.org
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [PATCH v9 23/51] powerpc: Enable pkey subsystem
+Date: Sun, 12 Nov 2017 16:54:51 -0800
+Message-ID: <20171113005451.GF5546@ram.oc3035372033.ibm.com>
+References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
+ <1509958663-18737-24-git-send-email-linuxram@us.ibm.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1510529164.12797.41.camel-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Mathieu Desnoyers <mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "Paul E . McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Andrew Hunter <ahh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Maged Michael <maged.michael-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Avi Kivity <avi-VrcmuVmyx1hWk0Htik3J/w@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, Dave Watson <davejwatson-b10kYP2dOMg@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrea Parri <parri.andrea-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Russell King <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, Greg Hackmann <ghackmann-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, David Sehr <sehr-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, stable-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1509958663-18737-24-git-send-email-linuxram@us.ibm.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2017-11-13 at 10:26 +1100, Benjamin Herrenschmidt wrote:
-> On Sat, 2017-11-11 at 10:03 -0500, Mathieu Desnoyers wrote:
-> > x86 has a missing core serializing instruction in migration scenarios.
-> > 
-> > Given that x86-32 can return to user-space with sysexit, and x86-64
-> > through sysretq and sysretl, which are not core serializing, the
-> > following user-space self-modifiying code (JIT) scenario can occur:
+On Mon, Nov 06, 2017 at 12:57:15AM -0800, Ram Pai wrote:
+> PAPR defines 'ibm,processor-storage-keys' property. It exports two
+> values. The first value holds the number of data-access keys and the
+> second holds the number of instruction-access keys.  Due to a bug in
+> the  firmware, instruction-access  keys is  always  reported  as zero.
+> However any key can be configured to disable data-access and/or disable
+> execution-access. The inavailablity of the second value is not a
+> big handicap, though it could have been used to determine if the
+> platform supported disable-execution-access.
 > 
-> Is this about load/store consistency ? In this case, don't you also
-> have problems with get/put_user and not just going to userspace ?
+> Non PAPR platforms do not define this property   in the device tree yet.
+> Here, we   hardcode   CPUs   that   support  pkey by consulting
+> PowerISA3.0
+> 
+> This patch calculates the number of keys supported by the platform.
+> Alsi it determines the platform support for read/write/execution access
+> support for pkeys.
 
-Ah forget it, I saw Linus earlier messages.
+> 
+> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> ---
+> 
+....snip...
 
-Cheers,
-Ben.
+> +static inline bool pkey_mmu_enabled(void)
+> +{
+> +	if (firmware_has_feature(FW_FEATURE_LPAR))
+> +		return pkeys_total;
+> +	else
+> +		return cpu_has_feature(CPU_FTR_PKEY);
+> +}
+> +
+>  void __init pkey_initialize(void)
+>  {
+>  	int os_reserved, i;
+> @@ -46,14 +54,9 @@ void __init pkey_initialize(void)
+>  		     __builtin_popcountl(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT)
+>  				!= (sizeof(u64) * BITS_PER_BYTE));
+> 
+> -	/*
+> -	 * Disable the pkey system till everything is in place. A subsequent
+> -	 * patch will enable it.
+> -	 */
+> -	static_branch_enable(&pkey_disabled);
+> -
+> -	/* Lets assume 32 keys */
+> -	pkeys_total = 32;
+
+vvvvvvvvvvvvvvvvvvvv
+> +	/* Let's assume 32 keys if we are not told the number of pkeys. */
+> +	if (!pkeys_total)
+> +		pkeys_total = 32;
+^^^^^^^^^^^^^^^^^^^^
+
+There is a small bug here. 
+
+On a KVM guest or a LPAR, if the device tree
+does not expose pkeys, the pkey-subsystem must be disabled.
+
+Unfortunately, the code above blindly sets the pkeys_total to 32.
+This confuses pkey_mmu_enabled() into returning true. Because of this
+bug the guest errorneously enables pkey-subsystem. 
+
+The fix is to delete the code marked above.
+
+> 
+>  	/*
+>  	 * Adjust the upper limit, based on the number of bits supported by
+> @@ -62,11 +65,19 @@ void __init pkey_initialize(void)
+>  	pkeys_total = min_t(int, pkeys_total,
+>  			(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT));
+> 
+> +	if (!pkey_mmu_enabled() || radix_enabled() || !pkeys_total)
+> +		static_branch_enable(&pkey_disabled);
+> +	else
+> +		static_branch_disable(&pkey_disabled);
+> +
+
+RP
+
