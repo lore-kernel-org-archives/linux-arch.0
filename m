@@ -1,97 +1,137 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v9 23/51] powerpc: Enable pkey subsystem
-Date: Sun, 12 Nov 2017 16:54:51 -0800
-Message-ID: <20171113005451.GF5546@ram.oc3035372033.ibm.com>
-References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
- <1509958663-18737-24-git-send-email-linuxram@us.ibm.com>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: Vincent Chen <deanbo422@gmail.com>
+Subject: Fwd: FW: [PATCH 17/31] nds32: Signal handling support
+Date: Mon, 13 Nov 2017 10:34:06 +0800
+Message-ID: <CAJsyPhzO=o4Eqc9J8SP0rEvb65tXD11wpPtxhbE4KCRvd-==mA@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <82ac0fc50f8fcdaf423b6ef1a66ee4d1d88d366b.1510118606.git.green.hu@gmail.com>
+ <20171109012620.GY21978@ZenIV.linux.org.uk> <E26F4CF8B7DDDB4383A6C2D78D5C3CD56B497460@ATCPCS16.andestech.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1509958663-18737-24-git-send-email-linuxram@us.ibm.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
-Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-io0-f195.google.com ([209.85.223.195]:43907 "EHLO
+        mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751107AbdKMCeI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 Nov 2017 21:34:08 -0500
+In-Reply-To: <E26F4CF8B7DDDB4383A6C2D78D5C3CD56B497460@ATCPCS16.andestech.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: viro@ftp.linux.org.uk
+Cc: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, vincentc@andestech.com
 
-On Mon, Nov 06, 2017 at 12:57:15AM -0800, Ram Pai wrote:
-> PAPR defines 'ibm,processor-storage-keys' property. It exports two
-> values. The first value holds the number of data-access keys and the
-> second holds the number of instruction-access keys.  Due to a bug in
-> the  firmware, instruction-access  keys is  always  reported  as zero.
-> However any key can be configured to disable data-access and/or disable
-> execution-access. The inavailablity of the second value is not a
-> big handicap, though it could have been used to determine if the
-> platform supported disable-execution-access.
-> 
-> Non PAPR platforms do not define this property   in the device tree yet.
-> Here, we   hardcode   CPUs   that   support  pkey by consulting
-> PowerISA3.0
-> 
-> This patch calculates the number of keys supported by the platform.
-> Alsi it determines the platform support for read/write/execution access
-> support for pkeys.
+>> +static int restore_sigframe(struct pt_regs *regs,
+>> +                         struct rt_sigframe __user * sf) {
+>
+>[snip]
+>
+>> +     err |=3D !valid_user_regs(regs);
+>
+>IDGI...  Where do you modify ->ipsw at all and how can valid_user_regs() c=
+ome to be false here?
+>
+Thanks.
+This code is trivial and I will remove it in the next version patch
 
-> 
-> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> ---
-> 
-....snip...
 
-> +static inline bool pkey_mmu_enabled(void)
-> +{
-> +	if (firmware_has_feature(FW_FEATURE_LPAR))
-> +		return pkeys_total;
-> +	else
-> +		return cpu_has_feature(CPU_FTR_PKEY);
-> +}
-> +
->  void __init pkey_initialize(void)
->  {
->  	int os_reserved, i;
-> @@ -46,14 +54,9 @@ void __init pkey_initialize(void)
->  		     __builtin_popcountl(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT)
->  				!= (sizeof(u64) * BITS_PER_BYTE));
-> 
-> -	/*
-> -	 * Disable the pkey system till everything is in place. A subsequent
-> -	 * patch will enable it.
-> -	 */
-> -	static_branch_enable(&pkey_disabled);
-> -
-> -	/* Lets assume 32 keys */
-> -	pkeys_total = 32;
 
-vvvvvvvvvvvvvvvvvvvv
-> +	/* Let's assume 32 keys if we are not told the number of pkeys. */
-> +	if (!pkeys_total)
-> +		pkeys_total = 32;
-^^^^^^^^^^^^^^^^^^^^
+>> +asmlinkage int sys_rt_sigreturn(struct pt_regs *regs) {
+>> +     struct rt_sigframe __user *frame;
+>> +
+>> +     /* Always make any pending restarted system calls return -EINTR */
+>> +     current->restart_block.fn =3D do_no_restart_syscall;
+>> +
+>> +     /*
+>> +      * Since we stacked the signal on a 64-bit boundary,
+>> +      * then 'sp' should be two-word aligned here.  If it's
+>> +      * not, then the user is trying to mess with us.
+>> +      */
+>> +     if (regs->sp & 7)
+>> +             goto badframe;
+>> +
+>> +     frame =3D (struct rt_sigframe __user *)regs->sp;
+>> +
+>> +     if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
+>> +             goto badframe;
+>> +
+>> +     if (restore_sigframe(regs, frame))
+>> +             goto badframe;
+>> +
+>> +     if (restore_altstack(&frame->uc.uc_stack))
+>> +             goto badframe;
+>> +
+>> +     return regs->uregs[0];
+>> +
+>> +badframe:
+>> +     force_sig(SIGSEGV, current);
+>> +     return 0;
+>> +}\
+>
+>AFAICS, you are copying arm; take a good look at sys_rt_sigreturn_wrapper =
+there - specifically, the 'mov why, #0' part.  Consider what happens if you=
+ get an interrupt at the moment when $r0 contains -ERESTARTSYS (for
+example) and signal arrives while we are processing the interrupt.  It
+will be handled on the way out, without any syscall restart crap
+('why'
+is 0 on that codepath).  So far, so good, but think what'll happen
+when you are done with the signal handler.  sigreturn() is called, the
+values we had stashed in sigcontext go back into registers (OK,
+pt_regs on kernel stack that will be used to reload the registers on
+return to userland)... and the signals that had been blocked for the
+duration of handlers (see sa_mask in sigaction(2)) get unblocked.  And
+it turns out that you have one of those pending - it had arrived while
+we'd been in the handler.
 
-There is a small bug here. 
+>Now we are fucked.  You have TIF_SIGPENDING set, so do_notify_resume() is =
+called.  And everything looks exactly as if you had a syscall restart situa=
+tion - regs->uregs[0] being one of -ERESTART... and 'syscall' flag being tr=
+ue.  So we go into the second signal handler (as we ought to) with saved ->=
+ipc set 4 bytes back from where we were going to return.
+>It would've been the right thing to do if it *was* a syscall restart, but =
+we were returning to the location where the original interrupt had caught u=
+s.
+>
+>Result: with the right timing, an interrupt arriving when userland process=
+ has $r0 equal -512 may lead to instruction pointer jumping 4 bytes back.
+>Pity the poor sod trying to debug that kind of breakage...
+>
+>Restart should *NOT* be triggered upon sigreturn(2).
 
-On a KVM guest or a LPAR, if the device tree
-does not expose pkeys, the pkey-subsystem must be disabled.
+Thanks for your detailed description.
+I got it and I will fix this bug in the next version patch
 
-Unfortunately, the code above blindly sets the pkeys_total to 32.
-This confuses pkey_mmu_enabled() into returning true. Because of this
-bug the guest errorneously enables pkey-subsystem. 
 
-The fix is to delete the code marked above.
+>>
+>> +static int
+>> +setup_return(struct pt_regs *regs, struct ksignal *ksig, void __user
+>> +* frame) {
+>> +     unsigned long handler =3D (unsigned long)ksig->ka.sa.sa_handler;
+>> +     unsigned long retcode;
+>> +
+>> +     /*
+>> +      * Maybe we need to deliver a 32-bit signal to a 26-bit task.
+>>
+>Deliver to what, again?  That comment made sense (if rather sad one) on ar=
+m, but what is it doing here?
+>
+Thanks.
+I will remove it in the next version patch
 
-> 
->  	/*
->  	 * Adjust the upper limit, based on the number of bits supported by
-> @@ -62,11 +65,19 @@ void __init pkey_initialize(void)
->  	pkeys_total = min_t(int, pkeys_total,
->  			(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT));
-> 
-> +	if (!pkey_mmu_enabled() || radix_enabled() || !pkeys_total)
-> +		static_branch_enable(&pkey_disabled);
-> +	else
-> +		static_branch_disable(&pkey_disabled);
-> +
 
-RP
+>> +static int do_signal(struct pt_regs *regs, int syscall) {
+>> +     unsigned int retval =3D 0, continue_addr =3D 0, restart_addr =3D 0=
+;
+>> +     struct ksignal ksig;
+>> +     int restart =3D 0;
+>> +
+>> +     /*
+>> +      * We want the common case to go fast, which
+>> +      * is why we may in certain cases get here from
+>> +      * kernel mode. Just return without doing anything
+>> +      * if so.
+>> +      */
+>> +     if (!user_mode(regs))
+>> +             return 0;
+>
+>Which cases would those be?
 
+Thanks.
+This code is trivial too. I will remove it in the next version patch
