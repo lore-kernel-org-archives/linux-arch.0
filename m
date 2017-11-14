@@ -1,125 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f193.google.com ([209.85.223.193]:50331 "EHLO
-        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753596AbdKNErF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Nov 2017 23:47:05 -0500
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:44576 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752752AbdKNILu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Nov 2017 03:11:50 -0500
 MIME-Version: 1.0
-In-Reply-To: <E26F4CF8B7DDDB4383A6C2D78D5C3CD56B497559@ATCPCS16.andestech.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <ea57a25c0aceab45d36951fed44cfbecfe1540b8.1510118606.git.green.hu@gmail.com>
- <20171109004020.GX21978@ZenIV.linux.org.uk> <E26F4CF8B7DDDB4383A6C2D78D5C3CD56B497559@ATCPCS16.andestech.com>
-From: Vincent Chen <deanbo422@gmail.com>
-Date: Tue, 14 Nov 2017 12:47:04 +0800
-Message-ID: <CAJsyPhx+tRHWrvJg4Dr4QEEHtOy8jXAU2aP2=hHhmTmG3FsO9A@mail.gmail.com>
-Subject: Fwd: FW: [PATCH 18/31] nds32: Library functions
+In-Reply-To: <1510639477-30734-1-git-send-email-gerg@linux-m68k.org>
+References: <1510639477-30734-1-git-send-email-gerg@linux-m68k.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Tue, 14 Nov 2017 09:11:49 +0100
+Message-ID: <CAMuHMdXYcP=rdhxBkCqS4VKvvM_BEq2P=8AdwU+iOaeE54dTrw@mail.gmail.com>
+Subject: Re: [PATCH] m68k: add missing SOFTIRQENTRY_TEXT linker section
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: viro@ftp.linux.org.uk
-Cc: greentime@andestech.com, Green Hu <green.hu@gmail.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, vincentc@andestech.com
-Message-ID: <20171114044704.prMgGPRJzTdaqEcf9bT0d5O3xvp20f3Q2ksoQMpZ9is@z>
+To: Greg Ungerer <gerg@linux-m68k.org>
+Cc: Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>
+Message-ID: <20171114081149.liAOzwQYo0TjoDNTzCPi-axtA6a4Ys4TdMpd_yYs2zQ@z>
 
->>On Wed, Nov 08, 2017 at 01:55:06PM +0800, Greentime Hu wrote:
->
->> +#define __range_ok(addr, size) (size <= get_fs() && addr <= (get_fs()
->> +-size))
->> +
->> +#define access_ok(type, addr, size)                 \
->> +     __range_ok((unsigned long)addr, (unsigned long)size)
->
->> +#define __get_user_x(__r2,__p,__e,__s,__i...)                                \
->> +        __asm__ __volatile__ (                                       \
->> +             __asmeq("%0", "$r0") __asmeq("%1", "$r2")               \
->> +             "bal    __get_user_" #__s                               \
->
->... which does not check access_ok() or do any visible equivalents; OK...
->
->> +#define get_user(x,p)                                                        \
->> +     ({                                                              \
->> +             const register typeof(*(p)) __user *__p asm("$r0") = (p);\
->> +             register unsigned long __r2 asm("$r2");                 \
->> +             register int __e asm("$r0");                            \
->> +             switch (sizeof(*(__p))) {                               \
->> +             case 1:                                                 \
->> +                     __get_user_x(__r2, __p, __e, 1, "$lp");         \
->
->... and neither does this, which is almost certainly *not* OK.
->
->> +#define put_user(x,p)                                                        \
->
->Same here, AFAICS.
+Hi Greg,
 
-Thanks.
-I will add access_ok() in get_user/put_user
+CC mingo, Hiramatsu-san, linux-arch, lkml
 
->> +extern unsigned long __arch_copy_from_user(void *to, const void __user * from,
->> +                                        unsigned long n);
+On Tue, Nov 14, 2017 at 7:04 AM, Greg Ungerer <gerg@linux-m68k.org> wrote:
+> Commit be7635e7287e ("arch, ftrace: for KASAN put hard/soft IRQ entries
+> into separate sections") added a new linker section, SOFTIRQENTRY_TEXT,
+> to the linker scripts for most architectures. It didn't add it to any of
+> the linker scripts for the m68k architecture. This was not really a problem
+> because it is only defined if either of CONFIG_FUNCTION_GRAPH_TRACER or
+> CONFIG_KASAN are enabled - which can never be true for m68k.
 >
->> +static inline unsigned long raw_copy_from_user(void *to,
->> +                                            const void __user * from,
->> +                                            unsigned long n)
->> +{
->> +     return __arch_copy_from_user(to, from, n); }
+> However commit 229a71860547 ("irq: Make the irqentry text section
+> unconditional") means that SOFTIRQENTRY_TEXT is now always defined. So on
+> m68k we now end up with a separate ELF section for .softirqentry.text
+> instead of it being part of the .text section. On some m68k targets in some
+
+Nice catch!
+
++10 other architectures also don't have the section.
+
+> configurations this can also cause a fatal link error:
 >
->Er...  Why not call your __arch_... raw_... and be done with that?
+>   LD      vmlinux
+> /usr/local/bin/../m68k-uclinux/bin/ld.real: section .softirqentry.text loaded at [0000000010de10c0,0000000010de12dd] overlaps section .rodata loaded at [0000000010de10c0,0000000010e0fd67]
 
-Thanks.
-I will modify it in next patch version
+How does it cause the overlap?
 
->> +#define INLINE_COPY_FROM_USER
->> +#define INLINE_COPY_TO_USER
+For me, "readelf -S vmlinux" gives:
+
+There are 21 section headers, starting at offset 0x524850:
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] .text             PROGBITS        00001000 001000 2dacb4 00  AX  0   0  4
+  [ 2] .softirqentry.tex PROGBITS        002dbcb4 2dbcb4 0001a0 00  AX  0   0  2
+  [ 3] __ex_table        PROGBITS        002dbe60 2dbe60 0027f0 00   A  0   0  4
+  [ 4] .rodata           PROGBITS        002df000 2df000 09ee20 00  WA  0   0 16
+  [ 5] __ksymtab         PROGBITS        0037de20 37de20 006538 00   A  0   0  2
+  [ 6] __ksymtab_gpl     PROGBITS        00384358 384358 003f08 00   A  0   0  2
+  [ 7] __ksymtab_strings PROGBITS        00388260 388260 01747d 00   A  0   0  1
+  [ 8] __param           PROGBITS        0039f6e0 39f6e0 000924 00   A  0   0  4
+  [ 9] __modver          PROGBITS        003a0004 3a0004 000ffc 00   A  0   0  2
+  [10] .data             PROGBITS        003a1000 3a1000 021c20 00  WA  0   0 32
+  [11] .bss              NOBITS          003c2c20 3c2c20 02b2fc 00  WA  0   0 16
+  [12] .init.text        PROGBITS        003ee000 3c4000 01a4b2 00  AX  0   0  4
+  [13] .init.data        PROGBITS        004084b4 3de4b4 008180 00  WA  0   0  4
+  [14] .m68k_fixup       PROGBITS        00410634 3e6634 001140 00  WA  0   0  1
+  [15] .notes            NOTE            00411774 3e7774 000024 00   A  0   0  4
+  [16] .init_end         NOBITS          00411798 3e7798 000868 00  WA  0   0  1
+  [17] .comment          PROGBITS        00000000 3e7798 000039 01  MS  0   0  1
+  [18] .shstrtab         STRTAB          00000000 524791 0000bd 00      0   0  1
+  [19] .symtab           SYMTAB          00000000 3e77d4 0a66e0 10
+20 32238  4
+  [20] .strtab           STRTAB          00000000 48deb4 0968dd 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings)
+  I (info), L (link order), G (group), T (TLS), E (exclude), x (unknown)
+  O (extra OS processing required) o (OS specific), p (processor specific)
+
+> To fix add in the missing SOFTIRQENTRY_TEXT section into the m68k linker
+> scripts. I noticed that m68k is also missing the IRQENTRY_TEXT section,
+> so this patch also adds an entry for that too.
 >
->Are those actually worth bothering?  IOW, have you compared behaviour with and without them?
-
-We compared the assembly code of copy_from/to_user's caller function,
-and we think the performance is better by making copy_from/to_user as
-inline
-
-
->> +ENTRY(__arch_copy_to_user)
->> +     push    $r0
->> +     push    $r2
->> +     beqz    $r2, ctu_exit
->> +     srli    $p0, $r2, #2            ! $p0 = number of word to clear
->> +     andi    $r2, $r2, #3            ! Bytes less than a word to copy
->> +     beqz    $p0, byte_ctu           ! Only less than a word to copy
->> +word_ctu:
->> +     lmw.bim $p1, [$r1], $p1         ! Load the next word
->> +USER(        smw.bim,$p1, [$r0], $p1)        ! Store the next word
+> Signed-off-by: Greg Ungerer <gerg@linux-m68k.org>
+> ---
+>  arch/m68k/kernel/vmlinux-nommu.lds | 2 ++
+>  arch/m68k/kernel/vmlinux-std.lds   | 2 ++
+>  arch/m68k/kernel/vmlinux-sun3.lds  | 2 ++
+>  3 files changed, 6 insertions(+)
 >
->Umm...  It's that happy with unaligned loads and stores?  Your memcpy seems to be trying to avoid those...
+> diff --git a/arch/m68k/kernel/vmlinux-nommu.lds b/arch/m68k/kernel/vmlinux-nommu.lds
+> index 3aa571a..cf6edda 100644
+> --- a/arch/m68k/kernel/vmlinux-nommu.lds
+> +++ b/arch/m68k/kernel/vmlinux-nommu.lds
+> @@ -45,6 +45,8 @@ SECTIONS {
+>         .text : {
+>                 HEAD_TEXT
+>                 TEXT_TEXT
+> +               IRQENTRY_TEXT
+> +               SOFTIRQENTRY_TEXT
+>                 SCHED_TEXT
+>                 CPUIDLE_TEXT
+>                 LOCK_TEXT
+> diff --git a/arch/m68k/kernel/vmlinux-std.lds b/arch/m68k/kernel/vmlinux-std.lds
+> index 89172b8..625a578 100644
+> --- a/arch/m68k/kernel/vmlinux-std.lds
+> +++ b/arch/m68k/kernel/vmlinux-std.lds
+> @@ -16,6 +16,8 @@ SECTIONS
+>    .text : {
+>         HEAD_TEXT
+>         TEXT_TEXT
+> +       IRQENTRY_TEXT
+> +       SOFTIRQENTRY_TEXT
+>         SCHED_TEXT
+>         CPUIDLE_TEXT
+>         LOCK_TEXT
+> diff --git a/arch/m68k/kernel/vmlinux-sun3.lds b/arch/m68k/kernel/vmlinux-sun3.lds
+> index 293990e..9868270 100644
+> --- a/arch/m68k/kernel/vmlinux-sun3.lds
+> +++ b/arch/m68k/kernel/vmlinux-sun3.lds
+> @@ -16,6 +16,8 @@ SECTIONS
+>    .text : {
+>         HEAD_TEXT
+>         TEXT_TEXT
+> +       IRQENTRY_TEXT
+> +       SOFTIRQENTRY_TEXT
+>         SCHED_TEXT
+>         CPUIDLE_TEXT
+>         LOCK_TEXT
 
-Thanks.
-This should be aligned loads and stores, too.
-I will modify it in next version patch.
+Gr{oetje,eeting}s,
 
->> +9001:
->> +     pop     $p1                     ! Original $r2, n
->> +     pop     $p0                     ! Original $r0, void *to
->> +     sub     $r1, $r0, $p0           ! Bytes copied
->> +     sub     $r2, $p1, $r1           ! Bytes left to copy
->> +     push    $lp
->> +     move    $r0, $p0
->> +     bal     memzero                 ! Clean up the memory
->
->Just what memory are you zeroing here?  The one you had been unable to store into in the first place?
->
->> +ENTRY(__arch_copy_from_user)
->
->> +9001:
->> +     pop     $p1                     ! Original $r2, n
->> +     pop     $p0                     ! Original $r0, void *to
->> +     sub     $r1, $r1, $p0           ! Bytes copied
->> +     sub     $r2, $p1, $r1           ! Bytes left to copy
->> +     push    $lp
->> +     bal     memzero                 ! Clean up the memory
->
->Ditto, only this one is even worse - instead of just oopsing on you, it will quietly destroy data past the area you've copied into.  raw_copy_..._user() MUST NOT ZERO ANYTHING.  Ever.
+                        Geert
 
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-Thanks
-So, I should keep the area that we've copied into instead of zeroing
-the area even if unpredicted exception is happened. Right?
-
-
-Best regards
-Vincent
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
