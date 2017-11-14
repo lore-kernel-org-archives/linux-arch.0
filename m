@@ -1,27 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:56633 "EHLO
+Received: from mail.efficios.com ([167.114.142.141]:56612 "EHLO
         mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756457AbdKNUFT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Nov 2017 15:05:19 -0500
+        with ESMTP id S1756436AbdKNUFO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Nov 2017 15:05:14 -0500
 From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [RFC PATCH v2 for 4.15 21/24] x86: Introduce sync_core_before_usermode
-Date: Tue, 14 Nov 2017 15:04:11 -0500
-Message-ID: <20171114200414.2188-22-mathieu.desnoyers@efficios.com>
+Subject: [RFC PATCH for 4.15 20/24] membarrier: Provide core serializing command
+Date: Tue, 14 Nov 2017 15:04:10 -0500
+Message-ID: <20171114200414.2188-21-mathieu.desnoyers@efficios.com>
 In-Reply-To: <20171114200414.2188-1-mathieu.desnoyers@efficios.com>
 References: <20171114200414.2188-1-mathieu.desnoyers@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Dave Watson <davejwatson@fb.com>
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Paul Turner <pjt@google.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrew Hunter <ahh@google.com>, Andi Kleen <andi@firstfloor.org>, Chris Lameter <cl@linux.com>, Ben Maurer <bmaurer@fb.com>, Steven Rostedt <rostedt@goodmis.org>, Josh Triplett <josh@joshtriplett.org>, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Andy Lutomirski <luto@kernel.org>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, David Sehr <sehr@google.com>, x86@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20171114200411.MhtPrx8ylFeSYfi0PSn567BiQQbI_vNMGIhM8VbDIqw@z>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Paul Turner <pjt@google.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrew Hunter <ahh@google.com>, Andi Kleen <andi@firstfloor.org>, Chris Lameter <cl@linux.com>, Ben Maurer <bmaurer@fb.com>, Steven Rostedt <rostedt@goodmis.org>, Josh Triplett <josh@joshtriplett.org>, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Andy Lutomirski <luto@kernel.org>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, David Sehr <sehr@google.com>, linux-arch@vger.kernel.org
+Message-ID: <20171114200410.YR8vNFFLuxf2SymAp3lC67YBc5gzHibov8o4AVxjL0Y@z>
 
-Introduce an architecture function that ensures the current CPU
-issues a core serializing instruction before returning to usermode.
+Provide core serializing membarrier command to support memory reclaim
+by JIT.
 
-This is needed for the membarrier "sync_core" command.
-
-Architectures defining the sync_core_before_usermode() static inline
-need to select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
+Each architecture needs to explicitly opt into that support by
+documenting in their architecture code how they provide the core
+serializing instructions required when returning from the membarrier
+IPI, and after the scheduler has updated the curr->mm pointer (before
+going back to user-space). They should then select
+ARCH_HAS_MEMBARRIER_SYNC_CORE to enable support for that command on
+their architecture.
 
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 CC: Peter Zijlstra <peterz@infradead.org>
@@ -43,96 +46,209 @@ CC: Russell King <linux@armlinux.org.uk>
 CC: Greg Hackmann <ghackmann@google.com>
 CC: Will Deacon <will.deacon@arm.com>
 CC: David Sehr <sehr@google.com>
-CC: Linus Torvalds <torvalds@linux-foundation.org>
-CC: x86@kernel.org
 CC: linux-arch@vger.kernel.org
 ---
-Changes since v1:
-- Fix prototype of sync_core_before_usermode in generic code (missing
-  return type).
-- Add linux/processor.h include to sched/core.c.
-- Add ARCH_HAS_SYNC_CORE_BEFORE_USERMODE to init/Kconfig.
-- Fix linux/processor.h ifdef to target
-  CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE rather than
-  ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
----
- arch/x86/Kconfig                 |  1 +
- arch/x86/include/asm/processor.h | 10 ++++++++++
- include/linux/processor.h        |  6 ++++++
- init/Kconfig                     |  3 +++
- kernel/sched/core.c              |  1 +
- 5 files changed, 21 insertions(+)
+ include/linux/sched/mm.h        |  6 +++++
+ include/uapi/linux/membarrier.h | 32 +++++++++++++++++++++++++-
+ init/Kconfig                    |  3 +++
+ kernel/sched/membarrier.c       | 50 +++++++++++++++++++++++++++++++----------
+ 4 files changed, 78 insertions(+), 13 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 01f78c1d40b5..54fbb8960d94 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -62,6 +62,7 @@ config X86
- 	select ARCH_HAS_SG_CHAIN
- 	select ARCH_HAS_STRICT_KERNEL_RWX
- 	select ARCH_HAS_STRICT_MODULE_RWX
-+	select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
- 	select ARCH_HAS_UBSAN_SANITIZE_ALL
- 	select ARCH_HAS_ZONE_DEVICE		if X86_64
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
-diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
-index bdac19ab2488..e47a98a33c2e 100644
---- a/arch/x86/include/asm/processor.h
-+++ b/arch/x86/include/asm/processor.h
-@@ -706,6 +706,16 @@ static inline void sync_core(void)
- #endif
- }
- 
-+/*
-+ * Ensure that a core serializing instruction is issued before returning
-+ * to user-mode. x86 implements return to user-space through sysexit,
-+ * sysrel, and sysretq, which are not core serializing.
-+ */
-+static inline void sync_core_before_usermode(void)
-+{
-+	sync_core();
-+}
+diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
+index c7b0f5970d7c..b7abb7de250f 100644
+--- a/include/linux/sched/mm.h
++++ b/include/linux/sched/mm.h
+@@ -223,6 +223,12 @@ enum {
+ 	MEMBARRIER_STATE_PRIVATE_EXPEDITED			= (1U << 1),
+ 	MEMBARRIER_STATE_SHARED_EXPEDITED_READY			= (1U << 2),
+ 	MEMBARRIER_STATE_SHARED_EXPEDITED			= (1U << 3),
++	MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE_READY	= (1U << 4),
++	MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE		= (1U << 5),
++};
 +
- extern void select_idle_routine(const struct cpuinfo_x86 *c);
- extern void amd_e400_c1e_apic_setup(void);
++enum {
++	MEMBARRIER_FLAG_SYNC_CORE	= (1U << 0),
+ };
  
-diff --git a/include/linux/processor.h b/include/linux/processor.h
-index dbc952eec869..866de5326d34 100644
---- a/include/linux/processor.h
-+++ b/include/linux/processor.h
-@@ -68,4 +68,10 @@ do {								\
+ #ifdef CONFIG_ARCH_HAS_MEMBARRIER_HOOKS
+diff --git a/include/uapi/linux/membarrier.h b/include/uapi/linux/membarrier.h
+index 2de01e595d3b..99a66577bd85 100644
+--- a/include/uapi/linux/membarrier.h
++++ b/include/uapi/linux/membarrier.h
+@@ -73,7 +73,7 @@
+  *                          to and return from the system call
+  *                          (non-running threads are de facto in such a
+  *                          state). This only covers threads from the
+- *                          same processes as the caller thread. This
++ *                          same process as the caller thread. This
+  *                          command returns 0 on success. The
+  *                          "expedited" commands complete faster than
+  *                          the non-expedited ones, they never block,
+@@ -86,6 +86,34 @@
+  *                          Register the process intent to use
+  *                          MEMBARRIER_CMD_PRIVATE_EXPEDITED. Always
+  *                          returns 0.
++ * @MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE:
++ *                          In addition to provide memory ordering
++ *                          guarantees described in
++ *                          MEMBARRIER_CMD_PRIVATE_EXPEDITED, ensure
++ *                          the caller thread, upon return from system
++ *                          call, that all its running threads siblings
++ *                          have executed a core serializing
++ *                          instruction. (architectures are required to
++ *                          guarantee that non-running threads issue
++ *                          core serializing instructions before they
++ *                          resume user-space execution). This only
++ *                          covers threads from the same process as the
++ *                          caller thread. This command returns 0 on
++ *                          success. The "expedited" commands complete
++ *                          faster than the non-expedited ones, they
++ *                          never block, but have the downside of
++ *                          causing extra overhead. If this command is
++ *                          not implemented by an architecture, -EINVAL
++ *                          is returned. A process needs to register its
++ *                          intent to use the private expedited sync
++ *                          core command prior to using it, otherwise
++ *                          this command returns -EPERM.
++ * @MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE:
++ *                          Register the process intent to use
++ *                          MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE.
++ *                          If this command is not implemented by an
++ *                          architecture, -EINVAL is returned.
++ *                          Returns 0 on success.
+  *
+  * Command to be passed to the membarrier system call. The commands need to
+  * be a single bit each, except for MEMBARRIER_CMD_QUERY which is assigned to
+@@ -98,6 +126,8 @@ enum membarrier_cmd {
+ 	MEMBARRIER_CMD_REGISTER_SHARED_EXPEDITED		= (1 << 2),
+ 	MEMBARRIER_CMD_PRIVATE_EXPEDITED			= (1 << 3),
+ 	MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED		= (1 << 4),
++	MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE		= (1 << 5),
++	MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE	= (1 << 6),
+ };
  
- #endif
- 
-+#ifndef CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
-+static inline void sync_core_before_usermode(void)
-+{
-+}
-+#endif
-+
- #endif /* _LINUX_PROCESSOR_H */
+ #endif /* _UAPI_LINUX_MEMBARRIER_H */
 diff --git a/init/Kconfig b/init/Kconfig
-index d3e5440051b8..ab073d436a9a 100644
+index 609296e764d6..d3e5440051b8 100644
 --- a/init/Kconfig
 +++ b/init/Kconfig
-@@ -1943,3 +1943,6 @@ config ASN1
- 	  functions to call on what tags.
+@@ -1403,6 +1403,9 @@ config MEMBARRIER
+ config ARCH_HAS_MEMBARRIER_HOOKS
+ 	bool
  
- source "kernel/Kconfig.locks"
-+
-+config ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
++config ARCH_HAS_MEMBARRIER_SYNC_CORE
 +	bool
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index c79e94278613..688b65c68731 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -26,6 +26,7 @@
- #include <linux/profile.h>
- #include <linux/security.h>
- #include <linux/syscalls.h>
-+#include <linux/processor.h>
++
+ config RSEQ
+ 	bool "Enable rseq() system call" if EXPERT
+ 	default y
+diff --git a/kernel/sched/membarrier.c b/kernel/sched/membarrier.c
+index 76534531098f..72f42eac99ab 100644
+--- a/kernel/sched/membarrier.c
++++ b/kernel/sched/membarrier.c
+@@ -26,11 +26,20 @@
+  * Bitmask made from a "or" of all commands within enum membarrier_cmd,
+  * except MEMBARRIER_CMD_QUERY.
+  */
++#ifdef CONFIG_ARCH_HAS_MEMBARRIER_SYNC_CORE
++#define MEMBARRIER_PRIVATE_EXPEDITED_SYNC_CORE_BITMASK	\
++	(MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE \
++	| MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE)
++#else
++#define MEMBARRIER_PRIVATE_EXPEDITED_SYNC_CORE_BITMASK	0
++#endif
++
+ #define MEMBARRIER_CMD_BITMASK	\
+ 	(MEMBARRIER_CMD_SHARED | MEMBARRIER_CMD_SHARED_EXPEDITED \
+ 	| MEMBARRIER_CMD_REGISTER_SHARED_EXPEDITED \
+ 	| MEMBARRIER_CMD_PRIVATE_EXPEDITED	\
+-	| MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED)
++	| MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED	\
++	| MEMBARRIER_PRIVATE_EXPEDITED_SYNC_CORE_BITMASK)
  
- #include <asm/switch_to.h>
- #include <asm/tlb.h>
+ static void ipi_mb(void *info)
+ {
+@@ -102,15 +111,23 @@ static int membarrier_shared_expedited(void)
+ 	return 0;
+ }
+ 
+-static int membarrier_private_expedited(void)
++static int membarrier_private_expedited(int flags)
+ {
+ 	int cpu;
+ 	bool fallback = false;
+ 	cpumask_var_t tmpmask;
+ 
+-	if (!(atomic_read(&current->mm->membarrier_state)
+-			& MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY))
+-		return -EPERM;
++	if (flags & MEMBARRIER_FLAG_SYNC_CORE) {
++		if (!IS_ENABLED(CONFIG_ARCH_HAS_MEMBARRIER_SYNC_CORE))
++			return -EINVAL;
++		if (!(atomic_read(&current->mm->membarrier_state)
++				& MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE_READY))
++			return -EPERM;
++	} else {
++		if (!(atomic_read(&current->mm->membarrier_state)
++				& MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY))
++			return -EPERM;
++	}
+ 
+ 	if (num_online_cpus() == 1)
+ 		return 0;
+@@ -201,18 +218,24 @@ static int membarrier_register_shared_expedited(void)
+ 	return 0;
+ }
+ 
+-static int membarrier_register_private_expedited(void)
++static int membarrier_register_private_expedited(int flags)
+ {
+ 	struct task_struct *p = current;
+ 	struct mm_struct *mm = p->mm;
++	int state = MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY;
++
++	if (flags & MEMBARRIER_FLAG_SYNC_CORE) {
++		if (!IS_ENABLED(CONFIG_ARCH_HAS_MEMBARRIER_SYNC_CORE))
++			return -EINVAL;
++		state = MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE_READY;
++	}
+ 
+ 	/*
+ 	 * We need to consider threads belonging to different thread
+ 	 * groups, which use the same mm. (CLONE_VM but not
+ 	 * CLONE_THREAD).
+ 	 */
+-	if (atomic_read(&mm->membarrier_state)
+-			& MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY)
++	if (atomic_read(&mm->membarrier_state) & state)
+ 		return 0;
+ 	atomic_or(MEMBARRIER_STATE_PRIVATE_EXPEDITED,
+ 			&mm->membarrier_state);
+@@ -223,8 +246,7 @@ static int membarrier_register_private_expedited(void)
+ 		 */
+ 		synchronize_sched();
+ 	}
+-	atomic_or(MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY,
+-			&mm->membarrier_state);
++	atomic_or(state, &mm->membarrier_state);
+ 	return 0;
+ }
+ 
+@@ -280,9 +302,13 @@ SYSCALL_DEFINE2(membarrier, int, cmd, int, flags)
+ 	case MEMBARRIER_CMD_REGISTER_SHARED_EXPEDITED:
+ 		return membarrier_register_shared_expedited();
+ 	case MEMBARRIER_CMD_PRIVATE_EXPEDITED:
+-		return membarrier_private_expedited();
++		return membarrier_private_expedited(0);
+ 	case MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED:
+-		return membarrier_register_private_expedited();
++		return membarrier_register_private_expedited(0);
++	case MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE:
++		return membarrier_private_expedited(MEMBARRIER_FLAG_SYNC_CORE);
++	case MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE:
++		return membarrier_register_private_expedited(MEMBARRIER_FLAG_SYNC_CORE);
+ 	default:
+ 		return -EINVAL;
+ 	}
 -- 
 2.11.0
