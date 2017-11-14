@@ -1,73 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:53844 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751464AbdKMKpJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Nov 2017 05:45:09 -0500
+Received: from mail-io0-f193.google.com ([209.85.223.193]:50331 "EHLO
+        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753596AbdKNErF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Nov 2017 23:47:05 -0500
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a11Mk3XcmP5Ecbv55TuNRjrrp_43GX8hPDfdLh6JMHE=g@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <7278eca76456b412e02d9baa5dc164e83199cbab.1510118606.git.green.hu@gmail.com>
- <CAK8P3a11Mk3XcmP5Ecbv55TuNRjrrp_43GX8hPDfdLh6JMHE=g@mail.gmail.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 13 Nov 2017 11:45:07 +0100
-Message-ID: <CAMuHMdXTNQZSX71E4ds2OeR-5pPKmARqtP0BQbaWzKhpvieC7w@mail.gmail.com>
-Subject: Re: [PATCH 26/31] nds32: Build infrastructure
+In-Reply-To: <E26F4CF8B7DDDB4383A6C2D78D5C3CD56B497559@ATCPCS16.andestech.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <ea57a25c0aceab45d36951fed44cfbecfe1540b8.1510118606.git.green.hu@gmail.com>
+ <20171109004020.GX21978@ZenIV.linux.org.uk> <E26F4CF8B7DDDB4383A6C2D78D5C3CD56B497559@ATCPCS16.andestech.com>
+From: Vincent Chen <deanbo422@gmail.com>
+Date: Tue, 14 Nov 2017 12:47:04 +0800
+Message-ID: <CAJsyPhx+tRHWrvJg4Dr4QEEHtOy8jXAU2aP2=hHhmTmG3FsO9A@mail.gmail.com>
+Subject: Fwd: FW: [PATCH 18/31] nds32: Library functions
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171113104507.5L7WCM76ckAb2tTjF03knYWlayEVl030NLuHc2Ys-0A@z>
+To: viro@ftp.linux.org.uk
+Cc: greentime@andestech.com, Green Hu <green.hu@gmail.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, vincentc@andestech.com
+Message-ID: <20171114044704.prMgGPRJzTdaqEcf9bT0d5O3xvp20f3Q2ksoQMpZ9is@z>
 
-On Wed, Nov 8, 2017 at 11:16 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
->> --- /dev/null
->> +++ b/arch/nds32/Kconfig
->> @@ -0,0 +1,107 @@
->> +#
->> +# For a description of the syntax of this configuration file,
->> +# see Documentation/kbuild/kconfig-language.txt.
->> +#
->> +
->> +config NDS32
->> +        def_bool y
->> +       select ARCH_HAS_RAW_COPY_USER
->> +       select ARCH_WANT_FRAME_POINTERS if FTRACE
->> +       select ARCH_WANT_IPC_PARSE_VERSION
->> +       select CLKSRC_MMIO
->> +       select CLONE_BACKWARDS
->> +       select TIMER_OF
->> +       select FRAME_POINTER
->> +       select GENERIC_ATOMIC64
->> +       select GENERIC_CPU_DEVICES
->> +       select GENERIC_CLOCKEVENTS
->> +       select GENERIC_IOMAP
->> +       select GENERIC_IRQ_CHIP
->> +       select GENERIC_IRQ_PROBE
->> +       select GENERIC_IRQ_SHOW
->> +       select GENERIC_STRNCPY_FROM_USER
->> +       select GENERIC_STRNLEN_USER
->> +       select GENERIC_TIME_VSYSCALL
->> +       select HAVE_ARCH_TRACEHOOK
->> +       select HAVE_GENERIC_IOMAP
+>>On Wed, Nov 08, 2017 at 01:55:06PM +0800, Greentime Hu wrote:
 >
-> You normally don't want HAVE_GENERIC_IOMAP, at least unless the CPU
-> has special instructions to trigger PCI I/O port access.
+>> +#define __range_ok(addr, size) (size <= get_fs() && addr <= (get_fs()
+>> +-size))
+>> +
+>> +#define access_ok(type, addr, size)                 \
+>> +     __range_ok((unsigned long)addr, (unsigned long)size)
+>
+>> +#define __get_user_x(__r2,__p,__e,__s,__i...)                                \
+>> +        __asm__ __volatile__ (                                       \
+>> +             __asmeq("%0", "$r0") __asmeq("%1", "$r2")               \
+>> +             "bal    __get_user_" #__s                               \
+>
+>... which does not check access_ok() or do any visible equivalents; OK...
+>
+>> +#define get_user(x,p)                                                        \
+>> +     ({                                                              \
+>> +             const register typeof(*(p)) __user *__p asm("$r0") = (p);\
+>> +             register unsigned long __r2 asm("$r2");                 \
+>> +             register int __e asm("$r0");                            \
+>> +             switch (sizeof(*(__p))) {                               \
+>> +             case 1:                                                 \
+>> +                     __get_user_x(__r2, __p, __e, 1, "$lp");         \
+>
+>... and neither does this, which is almost certainly *not* OK.
+>
+>> +#define put_user(x,p)                                                        \
+>
+>Same here, AFAICS.
 
-GENERIC_IOMAP or HAVE_GENERIC_IOMAP?
+Thanks.
+I will add access_ok() in get_user/put_user
 
-The latter doesn't even exist, except in
-Documentation/kbuild/kconfig-language.txt, so it cannot be selected.
+>> +extern unsigned long __arch_copy_from_user(void *to, const void __user * from,
+>> +                                        unsigned long n);
+>
+>> +static inline unsigned long raw_copy_from_user(void *to,
+>> +                                            const void __user * from,
+>> +                                            unsigned long n)
+>> +{
+>> +     return __arch_copy_from_user(to, from, n); }
+>
+>Er...  Why not call your __arch_... raw_... and be done with that?
 
-Given the checks for __NDS32_EB__, NDS32 can be either big or little endian,
-so you should have (excatly one of) CPU_BIG_ENDIAN or CPU_LITTLE_ENDIAN set.
+Thanks.
+I will modify it in next patch version
 
-Gr{oetje,eeting}s,
+>> +#define INLINE_COPY_FROM_USER
+>> +#define INLINE_COPY_TO_USER
+>
+>Are those actually worth bothering?  IOW, have you compared behaviour with and without them?
 
-                        Geert
+We compared the assembly code of copy_from/to_user's caller function,
+and we think the performance is better by making copy_from/to_user as
+inline
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+>> +ENTRY(__arch_copy_to_user)
+>> +     push    $r0
+>> +     push    $r2
+>> +     beqz    $r2, ctu_exit
+>> +     srli    $p0, $r2, #2            ! $p0 = number of word to clear
+>> +     andi    $r2, $r2, #3            ! Bytes less than a word to copy
+>> +     beqz    $p0, byte_ctu           ! Only less than a word to copy
+>> +word_ctu:
+>> +     lmw.bim $p1, [$r1], $p1         ! Load the next word
+>> +USER(        smw.bim,$p1, [$r0], $p1)        ! Store the next word
+>
+>Umm...  It's that happy with unaligned loads and stores?  Your memcpy seems to be trying to avoid those...
+
+Thanks.
+This should be aligned loads and stores, too.
+I will modify it in next version patch.
+
+>> +9001:
+>> +     pop     $p1                     ! Original $r2, n
+>> +     pop     $p0                     ! Original $r0, void *to
+>> +     sub     $r1, $r0, $p0           ! Bytes copied
+>> +     sub     $r2, $p1, $r1           ! Bytes left to copy
+>> +     push    $lp
+>> +     move    $r0, $p0
+>> +     bal     memzero                 ! Clean up the memory
+>
+>Just what memory are you zeroing here?  The one you had been unable to store into in the first place?
+>
+>> +ENTRY(__arch_copy_from_user)
+>
+>> +9001:
+>> +     pop     $p1                     ! Original $r2, n
+>> +     pop     $p0                     ! Original $r0, void *to
+>> +     sub     $r1, $r1, $p0           ! Bytes copied
+>> +     sub     $r2, $p1, $r1           ! Bytes left to copy
+>> +     push    $lp
+>> +     bal     memzero                 ! Clean up the memory
+>
+>Ditto, only this one is even worse - instead of just oopsing on you, it will quietly destroy data past the area you've copied into.  raw_copy_..._user() MUST NOT ZERO ANYTHING.  Ever.
+
+
+Thanks
+So, I should keep the area that we've copied into instead of zeroing
+the area even if unpredicted exception is happened. Right?
+
+
+Best regards
+Vincent
