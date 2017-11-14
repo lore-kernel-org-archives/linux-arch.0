@@ -1,66 +1,136 @@
-From: Joe Perches <joe@perches.com>
-Subject: Re: [PATCH 29/31] MAINTAINERS: Add nds32
-Date: Tue, 14 Nov 2017 07:39:02 -0800
-Message-ID: <1510673942.2006.4.camel@perches.com>
-References: <cover.1510118606.git.green.hu@gmail.com>
-         <16035efb78f70411998755693339471032743377.1510118606.git.green.hu@gmail.com>
-         <CAL_JsqLe847Dhta2vkbaUqRdfaQnsPCncR2bZZNP-_kzvm25wg@mail.gmail.com>
-         <CAEbi=3eSpeOCwpd=6_hcLx1wsWfAjQAPV-hdZ0R-gsznnnVziw@mail.gmail.com>
-         <CAK8P3a0=KNN_GdA=PQfaTU1O2Un1K45FYZZScDZN42mqhEzRHQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a0=KNN_GdA=PQfaTU1O2Un1K45FYZZScDZN42mqhEzRHQ@mail.gmail.com>
-Sender: netdev-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Greentime Hu <green.hu@gmail.com>
-Cc: Rob Herring <robh+dt@kernel.org>, Greentime <greentime@andestech.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: [RFC PATCH for 4.15 23/24] membarrier: selftest: Test private expedited sync core cmd
+Date: Tue, 14 Nov 2017 15:04:13 -0500
+Message-ID: <20171114200414.2188-24-mathieu.desnoyers@efficios.com>
+References: <20171114200414.2188-1-mathieu.desnoyers@efficios.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.efficios.com ([167.114.142.141]:56655 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755979AbdKNUFZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Nov 2017 15:05:25 -0500
+In-Reply-To: <20171114200414.2188-1-mathieu.desnoyers@efficios.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Dave Watson <davejwatson@fb.com>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Paul Turner <pjt@google.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrew Hunter <ahh@google.com>, Andi Kleen <andi@firstfloor.org>, Chris Lameter <cl@linux.com>, Ben Maurer <bmaurer@fb.com>, Steven Rostedt <rostedt@goodmis.org>, Josh Triplett <josh@joshtriplett.org>, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Shuah Khan <shuahkh@osg.samsung.com>, Greg Kroah-Hartman <gregkh>
 
-On Thu, 2017-11-09 at 11:36 +0100, Arnd Bergmann wrote:
-> On Thu, Nov 9, 2017 at 10:46 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> > 2017-11-08 21:31 GMT+08:00 Rob Herring <robh+dt@kernel.org>:
-> > > On Tue, Nov 7, 2017 at 11:55 PM, Greentime Hu <green.hu@gmail.com> wrote:
-> > > > From: Greentime Hu <greentime@andestech.com>
-> > > > 
-> > > > Signed-off-by: Greentime Hu <greentime@andestech.com>
-> > > > ---
-> > > >  MAINTAINERS |    9 +++++++++
-> > > >  1 file changed, 9 insertions(+)
-> > > > 
-> > > > diff --git a/MAINTAINERS b/MAINTAINERS
-> > > > index 2f4e462..bce1181 100644
-> > > > --- a/MAINTAINERS
-> > > > +++ b/MAINTAINERS
-> > > > @@ -857,6 +857,15 @@ X: drivers/iio/*/adjd*
-> > > >  F:     drivers/staging/iio/*/ad*
-> > > >  F:     drivers/staging/iio/trigger/iio-trig-bfin-timer.c
-> > > > 
-> > > > +ANDES ARCHITECTURE
-> > > > +M:     Greentime Hu <green.hu@gmail.com>
-> > > > +M:     Vincent Chen <deanbo422@gmail.com>
-> > > > +T:     git https://github.com/andestech/linux.git
-> > > > +S:     Supported
-> > > > +F:     arch/nds32
-> > > 
-> > > DT binding files?
-> > 
-> > Thanks.
-> > I should add
-> > F:    Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
-> > F:    Documentation/devicetree/bindings/nds32/cpus.txt
-> > 
-> > I will fix it in the next version patch.
-> 
-> Better make the second one the directory, in case you add more files
-> there later.
-> 
-> I would also add a "K: nds32" line to catch all files that have this
-> in their names.
+Test the new MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE and
+MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE commands.
 
-That's probably not what would be desired
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+CC: Shuah Khan <shuahkh@osg.samsung.com>
+CC: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: Andrew Hunter <ahh@google.com>
+CC: Maged Michael <maged.michael@gmail.com>
+CC: Avi Kivity <avi@scylladb.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Paul Mackerras <paulus@samba.org>
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Dave Watson <davejwatson@fb.com>
+CC: Alan Stern <stern@rowland.harvard.edu>
+CC: Will Deacon <will.deacon@arm.com>
+CC: Andy Lutomirski <luto@kernel.org>
+CC: Alice Ferrazzi <alice.ferrazzi@gmail.com>
+CC: Paul Elder <paul.elder@pitt.edu>
+CC: linux-kselftest@vger.kernel.org
+CC: linux-arch@vger.kernel.org
+---
+ .../testing/selftests/membarrier/membarrier_test.c | 73 ++++++++++++++++++++++
+ 1 file changed, 73 insertions(+)
 
-K: looks for keywords inside all file contents
-N: looks for filenames matching a regex pattern
-
-See the header in MAINTAINERS for more details
+diff --git a/tools/testing/selftests/membarrier/membarrier_test.c b/tools/testing/selftests/membarrier/membarrier_test.c
+index bb9c58072c5c..d9ab8b6ee52e 100644
+--- a/tools/testing/selftests/membarrier/membarrier_test.c
++++ b/tools/testing/selftests/membarrier/membarrier_test.c
+@@ -132,6 +132,63 @@ static int test_membarrier_private_expedited_success(void)
+ 	return 0;
+ }
+ 
++static int test_membarrier_private_expedited_sync_core_fail(void)
++{
++	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE not registered failure";
++
++	if (sys_membarrier(cmd, flags) != -1) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should fail, but passed\n",
++			test_name, flags);
++	}
++	if (errno != EPERM) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
++			test_name, flags, EPERM, strerror(EPERM),
++			errno, strerror(errno));
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d, errno = %d\n",
++		test_name, flags, errno);
++	return 0;
++}
++
++static int test_membarrier_register_private_expedited_sync_core_success(void)
++{
++	int cmd = MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n",
++		test_name, flags);
++	return 0;
++}
++
++static int test_membarrier_private_expedited_sync_core_success(void)
++{
++	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n",
++		test_name, flags);
++	return 0;
++}
++
+ static int test_membarrier_register_shared_expedited_success(void)
+ {
+ 	int cmd = MEMBARRIER_CMD_REGISTER_SHARED_EXPEDITED, flags = 0;
+@@ -188,6 +245,22 @@ static int test_membarrier(void)
+ 	status = test_membarrier_private_expedited_success();
+ 	if (status)
+ 		return status;
++	status = sys_membarrier(MEMBARRIER_CMD_QUERY, 0);
++	if (status < 0) {
++		ksft_test_result_fail("sys_membarrier() failed\n");
++		return status;
++	}
++	if (status & MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE) {
++		status = test_membarrier_private_expedited_sync_core_fail();
++		if (status)
++			return status;
++		status = test_membarrier_register_private_expedited_sync_core_success();
++		if (status)
++			return status;
++		status = test_membarrier_private_expedited_sync_core_success();
++		if (status)
++			return status;
++	}
+ 	/*
+ 	 * It is valid to send a shared membarrier from a non-registered
+ 	 * process.
+-- 
+2.11.0
