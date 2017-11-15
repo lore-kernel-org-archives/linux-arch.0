@@ -1,35 +1,73 @@
-From: "Herr Kelly Williams" <62648403@mylife.unisa.ac.za>
-Subject: Kreditangebot,
-Date: Wed, 15 Nov 2017 17:58:00 +0530
-Message-ID: <DB6PR0101MB2374978A17E163528BCFDE4BB6290@DB6PR0101MB2374.eurprd01.prod.exchangelabs.com>
-Reply-To: mr.kellyloanfirm12@googlemail.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: [PATCH v10 01/10] signals, sparc: Add signal codes for ADI violations
+Date: Wed, 15 Nov 2017 15:46:16 -0700
+Message-ID: <b52fbbf0de4a0aaeef31b0e0919eeedf5950cf9f.1510768775.git.khalid.aziz@oracle.com>
+References: <cover.1510768775.git.khalid.aziz@oracle.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-he1eur02hn0205.outbound.protection.outlook.com ([104.47.5.205]:21531
-        "EHLO EUR02-HE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932169AbdKOM0q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 15 Nov 2017 07:26:46 -0500
-Content-Description: Mail message body
+Received: from userp1040.oracle.com ([156.151.31.81]:40310 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1758888AbdKOWrQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Nov 2017 17:47:16 -0500
+In-Reply-To: <cover.1510768775.git.khalid.aziz@oracle.com>
+In-Reply-To: <cover.1510768775.git.khalid.aziz@oracle.com>
+References: <cover.1510768775.git.khalid.aziz@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <62648403@mylife.unisa.ac.za>
+To: arnd@arndb.de, hpa@zytor.com, davem@davemloft.net, dave.hansen@linux.intel.com
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, 0x7f454c46@gmail.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, jroedel@suse.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
 
-Hallo Ben=F6tigen Sie einen Kredit, um Schulden zu bekommen oder Ihre Rechn=
-ungen zu bezahlen? Ben=F6tigen Sie ein Home / Car oder ein Business-Darlehe=
-n? Werden Sie von einer Bank, Freunden oder Partner abgelehnt? Wir bieten a=
-lle Arten von Darlehen zum Zinssatz von 2%, wenn Sie an einem Darlehen inte=
-ressiert sind. Kontaktieren Sie uns einfach mit den unten stehenden Informa=
-tionen und wir werden Ihre Anfrage beantworten, sobald wir Ihre Daten erhal=
-ten haben.
+SPARC M7 processor introduces a new feature - Application Data
+Integrity (ADI). ADI allows MMU to  catch rogue accesses to memory.
+When a rogue access occurs, MMU blocks the access and raises an
+exception. In response to the exception, kernel sends the offending
+task a SIGSEGV with si_code that indicates the nature of exception.
+This patch adds three new signal codes specific to ADI feature:
 
-Vollst=E4ndiger Name:
-Land:
-Darlehensbetrag ben=F6tigt:
-Darlehensdauer:
-Handynummer:
+1. ADI is not enabled for the address and task attempted to access
+   memory using ADI
+2. Task attempted to access memory using wrong ADI tag and caused
+   a deferred exception.
+3. Task attempted to access memory using wrong ADI Ttag and caused
+   a precise exception.
 
-Freundliche Gr=FC=DFe
-Herr Kelly Williams
+Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: Khalid Aziz <khalid@gonehiking.org>
+---
+v10:
+	- Updated si_code definitions to match other definitions
+
+ arch/x86/kernel/signal_compat.c    | 2 +-
+ include/uapi/asm-generic/siginfo.h | 5 ++++-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
+index 8c6da1a643da..20be1bc923f9 100644
+--- a/arch/x86/kernel/signal_compat.c
++++ b/arch/x86/kernel/signal_compat.c
+@@ -27,7 +27,7 @@ static inline void signal_compat_build_tests(void)
+ 	 */
+ 	BUILD_BUG_ON(NSIGILL  != 8);
+ 	BUILD_BUG_ON(NSIGFPE  != 8);
+-	BUILD_BUG_ON(NSIGSEGV != 4);
++	BUILD_BUG_ON(NSIGSEGV != 7);
+ 	BUILD_BUG_ON(NSIGBUS  != 5);
+ 	BUILD_BUG_ON(NSIGTRAP != 4);
+ 	BUILD_BUG_ON(NSIGCHLD != 6);
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index e447283b8f52..279b7c0d2977 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -202,7 +202,10 @@ typedef struct siginfo {
+ #define SEGV_ACCERR	2	/* invalid permissions for mapped object */
+ #define SEGV_BNDERR	3	/* failed address bound checks */
+ #define SEGV_PKUERR	4	/* failed protection key checks */
+-#define NSIGSEGV	4
++#define SEGV_ACCADI	5	/* ADI not enabled for mapped object */
++#define SEGV_ADIDERR	6	/* Disrupting MCD error */
++#define SEGV_ADIPERR	7	/* Precise MCD exception */
++#define NSIGSEGV	7
+ 
+ /*
+  * SIGBUS si_codes
+-- 
+2.11.0
