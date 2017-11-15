@@ -1,55 +1,35 @@
-From: " M,Shakour Rosarita" <hassanamira04@gmail.com>
-Subject: Hello Dear...
-Date: Wed, 15 Nov 2017 11:34:09 +0000
-Message-ID: <CADmkupiA2objgsQxK=03WmWJhZVp3+F-yDxXOLOm2rgTnpKhzw__47859.4255786904$1510745698$gmane$org@mail.gmail.com>
-Reply-To: mshakourrosarita22@gmail.com
+From: "Herr Kelly Williams" <62648403@mylife.unisa.ac.za>
+Subject: Kreditangebot,
+Date: Wed, 15 Nov 2017 17:58:00 +0530
+Message-ID: <DB6PR0101MB2374978A17E163528BCFDE4BB6290@DB6PR0101MB2374.eurprd01.prod.exchangelabs.com>
+Reply-To: mr.kellyloanfirm12@googlemail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="iso-8859-1"
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f193.google.com ([209.85.216.193]:52861 "EHLO
-        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757678AbdKOLeK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Nov 2017 06:34:10 -0500
-Received: by mail-qt0-f193.google.com with SMTP id 31so33520837qtz.9
-        for <linux-arch@vger.kernel.org>; Wed, 15 Nov 2017 03:34:10 -0800 (PST)
+Received: from mail-he1eur02hn0205.outbound.protection.outlook.com ([104.47.5.205]:21531
+        "EHLO EUR02-HE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S932169AbdKOM0q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 15 Nov 2017 07:26:46 -0500
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Recipients <62648403@mylife.unisa.ac.za>
 
-Hello Dear...
+Hallo Ben=F6tigen Sie einen Kredit, um Schulden zu bekommen oder Ihre Rechn=
+ungen zu bezahlen? Ben=F6tigen Sie ein Home / Car oder ein Business-Darlehe=
+n? Werden Sie von einer Bank, Freunden oder Partner abgelehnt? Wir bieten a=
+lle Arten von Darlehen zum Zinssatz von 2%, wenn Sie an einem Darlehen inte=
+ressiert sind. Kontaktieren Sie uns einfach mit den unten stehenden Informa=
+tionen und wir werden Ihre Anfrage beantworten, sobald wir Ihre Daten erhal=
+ten haben.
 
-I know that this message will come to you as a surprise. I hoped that
-you will not expose or betray this trust and confident that I am about
-to repose on you, my name is M, Shakour Rosarita. I am 19 years old
-Girl, female, from Tartu Syria, (never married) 61 kg, white in
-complexion, and I am currently living in the refugee camp here in
-Abidjan Ivory Coast, My late beloved father M,Shakour Hassin was a
-renowned businessman and owner of Natour Petrol Station in Syria, he
-was killed in a stampede riot in Tartu, Syria.
-When I got the news about my parents. I fled to a nearby country
-Jordan before I joined a ferry to Africa and came to Abidjan capital
-city Ivory Coast West Africa find safety here.
-I came in 2015 to Abidjan and I now live in refugee camps here as
-refugees are allowed freely to enter here without, My late father
-deposited (US$6.200.000.00m) My late father kept the money at the bank
-of Africa, I want you to help me transfer the money to your hand so
-that you will help me bring me into your country for my continue
-education.
+Vollst=E4ndiger Name:
+Land:
+Darlehensbetrag ben=F6tigt:
+Darlehensdauer:
+Handynummer:
 
-I sent my pictures here for you to see. Who I am seriously looking for
-a good-person in my life, so I want to hear from you soon and learn
-more about you.
-
-I am an open-minded and friendly girl to share a good time with you
-and have fun and enjoy on the go, bird watching, the rest of our
-lives. My Hobbies, tourism books, dance, music, soccer, tennis,
-swimming and cinema.
-I would just think about you, including your dose and doesn=E2=80=99t .I
-believe we will do well together, and live like one family.
-Thank you and God bless you, for you in your promise to help me here,
-looking forward to your reply by the grace of God and have a good day.
-I hope you send me your photos as well? I await your next reply in
-faith please reply through my private email at
-(mshakourrosarita22@gmail.com):
-Thanks.
-Ms Rosarita
+Freundliche Gr=FC=DFe
+Herr Kelly Williams
