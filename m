@@ -1,68 +1,74 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH 26/31] nds32: Build infrastructure
-Date: Thu, 16 Nov 2017 18:03:25 +0800
-Message-ID: <CAEbi=3d=SNk5gWB=JAB3babeyJn1A=GcDK3RChgKMJC+VA3rZw@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <7278eca76456b412e02d9baa5dc164e83199cbab.1510118606.git.green.hu@gmail.com>
- <CAK8P3a11Mk3XcmP5Ecbv55TuNRjrrp_43GX8hPDfdLh6JMHE=g@mail.gmail.com> <CAMuHMdXTNQZSX71E4ds2OeR-5pPKmARqtP0BQbaWzKhpvieC7w@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f193.google.com ([209.85.217.193]:50045 "EHLO
-        mail-ua0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752910AbdKPKEH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Nov 2017 05:04:07 -0500
-In-Reply-To: <CAMuHMdXTNQZSX71E4ds2OeR-5pPKmARqtP0BQbaWzKhpvieC7w@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: (unknown)
+Date: Thu, 16 Nov 2017 11:18:58 +0100
+Message-ID: <20171116101900.13621-1-mhocko@kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
+Subject: 
+Sender: owner-linux-mm@kvack.org
+To: linux-api@vger.kernel.org
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>, Michal Hocko <mhocko@suse.com>
+List-Id: linux-arch.vger.kernel.org
 
-2017-11-13 18:45 GMT+08:00 Geert Uytterhoeven <geert@linux-m68k.org>:
-> On Wed, Nov 8, 2017 at 11:16 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->> On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
->>> --- /dev/null
->>> +++ b/arch/nds32/Kconfig
->>> @@ -0,0 +1,107 @@
->>> +#
->>> +# For a description of the syntax of this configuration file,
->>> +# see Documentation/kbuild/kconfig-language.txt.
->>> +#
->>> +
->>> +config NDS32
->>> +        def_bool y
->>> +       select ARCH_HAS_RAW_COPY_USER
->>> +       select ARCH_WANT_FRAME_POINTERS if FTRACE
->>> +       select ARCH_WANT_IPC_PARSE_VERSION
->>> +       select CLKSRC_MMIO
->>> +       select CLONE_BACKWARDS
->>> +       select TIMER_OF
->>> +       select FRAME_POINTER
->>> +       select GENERIC_ATOMIC64
->>> +       select GENERIC_CPU_DEVICES
->>> +       select GENERIC_CLOCKEVENTS
->>> +       select GENERIC_IOMAP
->>> +       select GENERIC_IRQ_CHIP
->>> +       select GENERIC_IRQ_PROBE
->>> +       select GENERIC_IRQ_SHOW
->>> +       select GENERIC_STRNCPY_FROM_USER
->>> +       select GENERIC_STRNLEN_USER
->>> +       select GENERIC_TIME_VSYSCALL
->>> +       select HAVE_ARCH_TRACEHOOK
->>> +       select HAVE_GENERIC_IOMAP
->>
->> You normally don't want HAVE_GENERIC_IOMAP, at least unless the CPU
->> has special instructions to trigger PCI I/O port access.
->
-> GENERIC_IOMAP or HAVE_GENERIC_IOMAP?
->
-> The latter doesn't even exist, except in
-> Documentation/kbuild/kconfig-language.txt, so it cannot be selected.
+Hi,
+this has started as a follow up discussion [1][2] resulting in the
+runtime failure caused by hardening patch [3] which removes MAP_FIXED
+from the elf loader because MAP_FIXED is inherently dangerous as it
+might silently clobber and existing underlying mapping (e.g. stack). The
+reason for the failure is that some architectures enforce an alignment
+for the given address hint without MAP_FIXED used (e.g. for shared or
+file backed mappings).
 
-Thanks.
-I will remove HAVE_GENERIC_IOMAP in the next version patch.
+One way around this would be excluding those archs which do alignment
+tricks from the hardening [4]. The patch is really trivial but it has
+been objected, rightfully so, that this screams for a more generic
+solution. We basically want a non-destructive MAP_FIXED.
 
-> Given the checks for __NDS32_EB__, NDS32 can be either big or little endian,
-> so you should have (excatly one of) CPU_BIG_ENDIAN or CPU_LITTLE_ENDIAN set.
+The first patch introduced MAP_FIXED_SAFE which enforces the given
+address but unlike MAP_FIXED it fails with ENOMEM if the given range
+conflicts with an existing one. The flag is introduced as a completely
+new flag rather than a MAP_FIXED extension because of the backward
+compatibility. We really want a never-clobber semantic even on older
+kernels which do not recognize the flag. Unfortunately mmap sucks wrt.
+flags evaluation because we do not EINVAL on unknown flags. On those
+kernels we would simply use the traditional hint based semantic so the
+caller can still get a different address (which sucks) but at least not
+silently corrupt an existing mapping. I do not see a good way around
+that. Except we won't export expose the new semantic to the userspace at
+all. It seems there are users who would like to have something like that
+[5], though. Atomic address range probing in the multithreaded programs
+sounds like an interesting thing to me as well, although I do not have
+any specific usecase in mind.
 
-Thanks.
-I will check if we need this config or not and update in the next version patch.
+The second patch simply replaces MAP_FIXED use in elf loader by
+MAP_FIXED_SAFE. I believe other places which rely on MAP_FIXED should
+follow. Actually real MAP_FIXED usages should be docummented properly
+and they should be more of an exception.
+
+Does anybody see any fundamental reasons why this is a wrong approach?
+
+Diffstat says
+ arch/alpha/include/uapi/asm/mman.h   |  2 ++
+ arch/metag/kernel/process.c          |  6 +++++-
+ arch/mips/include/uapi/asm/mman.h    |  2 ++
+ arch/parisc/include/uapi/asm/mman.h  |  2 ++
+ arch/powerpc/include/uapi/asm/mman.h |  1 +
+ arch/sparc/include/uapi/asm/mman.h   |  1 +
+ arch/tile/include/uapi/asm/mman.h    |  1 +
+ arch/xtensa/include/uapi/asm/mman.h  |  2 ++
+ fs/binfmt_elf.c                      | 12 ++++++++----
+ include/uapi/asm-generic/mman.h      |  1 +
+ mm/mmap.c                            | 11 +++++++++++
+ 11 files changed, 36 insertions(+), 5 deletions(-)
+
+[1] http://lkml.kernel.org/r/20171107162217.382cd754@canb.auug.org.au
+[2] http://lkml.kernel.org/r/1510048229.12079.7.camel@abdul.in.ibm.com
+[3] http://lkml.kernel.org/r/20171023082608.6167-1-mhocko@kernel.org
+[4] http://lkml.kernel.org/r/20171113094203.aofz2e7kueitk55y@dhcp22.suse.cz
+[5] http://lkml.kernel.org/r/87efp1w7vy.fsf@concordia.ellerman.id.au
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
