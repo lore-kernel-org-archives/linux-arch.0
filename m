@@ -1,54 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:44956 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754194AbdKPJFP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Nov 2017 04:05:15 -0500
-Date: Thu, 16 Nov 2017 10:04:00 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 0/9] posix_clocks: Prepare syscalls for 64 bit time_t
- conversion
-In-Reply-To: <CABeXuvpy1jbqjeUFHHX-MrJXQLA2QNYbAa6OX7qOpPp4q-mQYQ@mail.gmail.com>
-Message-ID: <alpine.DEB.2.20.1711160958430.2191@nanos>
-References: <20171110224259.15930-1-deepa.kernel@gmail.com> <CAK8P3a2uD=xV5GKtL+nhVoPckb6uoXztEvXK-iP_OYbct8QvJA@mail.gmail.com> <CABeXuvpy1jbqjeUFHHX-MrJXQLA2QNYbAa6OX7qOpPp4q-mQYQ@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:33503 "EHLO
+        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1757344AbdKPKTU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Nov 2017 05:19:20 -0500
+From: Michal Hocko <mhocko@kernel.org>
+Subject: 
+Date: Thu, 16 Nov 2017 11:18:58 +0100
+Message-ID: <20171116101900.13621-1-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Deepa Dinamani <deepa.kernel@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, cohuck@redhat.com, David Miller <davem@davemloft.net>, Helge Deller <deller@gmx.de>, devel@driverdev.osuosl.org, gerald.schaefer@de.ibm.com, gregkh <gregkh@linuxfoundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jan Hoeppner <hoeppner@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Julian Wiedmann <jwi@linux.vnet.ibm.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Ingo Molnar <mingo@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, oberpar@linux.vnet.ibm.com, oprofile-list@lists.sf.net, Paul Mackerras <paulus@samba.org>, Peter Zijlstra <peterz@infradead.org>, Ralf Baechle <ralf@linux-mips.org>, Steven Rostedt <rostedt@goodmis.org>, Robert Richter <rric@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, sebott@linux.vnet.ibm.com, sparclinux <sparclinux@vger.kernel.org>, Stefan Haberland <sth@linux.vnet.ibm.com>, Ursula Braun <ubraun@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20171116090400.kT1QO2egMSI8yN9TBQxwmGSjV4XqjgkeccV9h_5Qpx8@z>
+To: linux-api@vger.kernel.org
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20171116101858.Dq4nvUhaCDRyvb7WRA9BhCMPwP8t8JFGoJjl5hSxTlU@z>
 
-On Wed, 15 Nov 2017, Deepa Dinamani wrote:
-> > I had on concern about x32, maybe we should check
-> > for "COMPAT_USE_64BIT_TIME" before zeroing out the tv_nsec
-> > bits.
-> 
-> Thanks, I think you are right. I had the check conditional on
-> CONFIG_64BIT_TIME and then removed as I forgot why I added it. :)
-> 
-> > Regarding CONFIG_COMPAT_TIME/CONFIG_64BIT_TIME, would
-> > it help to just leave out that part for now and unconditionally
-> > define '__kernel_timespec' as 'timespec' until we are ready to
-> > convert the architectures?
-> 
-> Another approach would be to use separate configs:
-> 
-> 1. To indicate 64 bit time_t syscall support. This will be dependent
-> on architectures as CONFIG_64BIT_TIME.
-> We can delete this once all architectures have provided support for this.
-> 
-> 2. Another config (maybe COMPAT_32BIT_TIME?) to be introduced later,
-> which will compile out all syscalls/ features that use 32 bit time_t.
-> This can help build a y2038 safe kernel later.
-> 
-> Would this work for everyone?
+Hi,
+this has started as a follow up discussion [1][2] resulting in the
+runtime failure caused by hardening patch [3] which removes MAP_FIXED
+from the elf loader because MAP_FIXED is inherently dangerous as it
+might silently clobber and existing underlying mapping (e.g. stack). The
+reason for the failure is that some architectures enforce an alignment
+for the given address hint without MAP_FIXED used (e.g. for shared or
+file backed mappings).
 
-Having extra config switches which are selectable by architectures and
-removed when everything is converted is definitely the right way to go.
+One way around this would be excluding those archs which do alignment
+tricks from the hardening [4]. The patch is really trivial but it has
+been objected, rightfully so, that this screams for a more generic
+solution. We basically want a non-destructive MAP_FIXED.
 
-That allows you to gradually convert stuff w/o inflicting wreckage all over
-the place.
+The first patch introduced MAP_FIXED_SAFE which enforces the given
+address but unlike MAP_FIXED it fails with ENOMEM if the given range
+conflicts with an existing one. The flag is introduced as a completely
+new flag rather than a MAP_FIXED extension because of the backward
+compatibility. We really want a never-clobber semantic even on older
+kernels which do not recognize the flag. Unfortunately mmap sucks wrt.
+flags evaluation because we do not EINVAL on unknown flags. On those
+kernels we would simply use the traditional hint based semantic so the
+caller can still get a different address (which sucks) but at least not
+silently corrupt an existing mapping. I do not see a good way around
+that. Except we won't export expose the new semantic to the userspace at
+all. It seems there are users who would like to have something like that
+[5], though. Atomic address range probing in the multithreaded programs
+sounds like an interesting thing to me as well, although I do not have
+any specific usecase in mind.
 
-Thanks,
+The second patch simply replaces MAP_FIXED use in elf loader by
+MAP_FIXED_SAFE. I believe other places which rely on MAP_FIXED should
+follow. Actually real MAP_FIXED usages should be docummented properly
+and they should be more of an exception.
 
-	tglx
+Does anybody see any fundamental reasons why this is a wrong approach?
+
+Diffstat says
+ arch/alpha/include/uapi/asm/mman.h   |  2 ++
+ arch/metag/kernel/process.c          |  6 +++++-
+ arch/mips/include/uapi/asm/mman.h    |  2 ++
+ arch/parisc/include/uapi/asm/mman.h  |  2 ++
+ arch/powerpc/include/uapi/asm/mman.h |  1 +
+ arch/sparc/include/uapi/asm/mman.h   |  1 +
+ arch/tile/include/uapi/asm/mman.h    |  1 +
+ arch/xtensa/include/uapi/asm/mman.h  |  2 ++
+ fs/binfmt_elf.c                      | 12 ++++++++----
+ include/uapi/asm-generic/mman.h      |  1 +
+ mm/mmap.c                            | 11 +++++++++++
+ 11 files changed, 36 insertions(+), 5 deletions(-)
+
+[1] http://lkml.kernel.org/r/20171107162217.382cd754@canb.auug.org.au
+[2] http://lkml.kernel.org/r/1510048229.12079.7.camel@abdul.in.ibm.com
+[3] http://lkml.kernel.org/r/20171023082608.6167-1-mhocko@kernel.org
+[4] http://lkml.kernel.org/r/20171113094203.aofz2e7kueitk55y@dhcp22.suse.cz
+[5] http://lkml.kernel.org/r/87efp1w7vy.fsf@concordia.ellerman.id.au
