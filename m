@@ -1,60 +1,68 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 0/9] posix_clocks: Prepare syscalls for 64 bit time_t
- conversion
-Date: Thu, 16 Nov 2017 10:04:00 +0100 (CET)
-Message-ID: <alpine.DEB.2.20.1711160958430.2191@nanos>
-References: <20171110224259.15930-1-deepa.kernel@gmail.com>
- <CAK8P3a2uD=xV5GKtL+nhVoPckb6uoXztEvXK-iP_OYbct8QvJA@mail.gmail.com>
- <CABeXuvpy1jbqjeUFHHX-MrJXQLA2QNYbAa6OX7qOpPp4q-mQYQ@mail.gmail.com>
+From: Greentime Hu <green.hu@gmail.com>
+Subject: Re: [PATCH 26/31] nds32: Build infrastructure
+Date: Thu, 16 Nov 2017 18:03:25 +0800
+Message-ID: <CAEbi=3d=SNk5gWB=JAB3babeyJn1A=GcDK3RChgKMJC+VA3rZw@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <7278eca76456b412e02d9baa5dc164e83199cbab.1510118606.git.green.hu@gmail.com>
+ <CAK8P3a11Mk3XcmP5Ecbv55TuNRjrrp_43GX8hPDfdLh6JMHE=g@mail.gmail.com> <CAMuHMdXTNQZSX71E4ds2OeR-5pPKmARqtP0BQbaWzKhpvieC7w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <CABeXuvpy1jbqjeUFHHX-MrJXQLA2QNYbAa6OX7qOpPp4q-mQYQ@mail.gmail.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Deepa Dinamani <deepa.kernel@gmail.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Peter Zijlstra <peterz@infradead.org>, Stefan Haberland <sth@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux <sparclinux@vger.kernel.org>, devel@driverdev.osuosl.org, linux-s390 <linux-s390@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Helge Deller <deller@gmx.de>, the arch/x86 maintainers <x86@kernel.org>, sebott@linux.vnet.ibm.com, "James E.J. Bottomley" <jejb@parisc-linux.org>, Will Deacon <will.deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, oprofile-list@lists.sf.net, Catalin Marinas <catalin.marinas@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Robert Richter <rric@kernel.org>, Chris Metcalf <cmetc>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ua0-f193.google.com ([209.85.217.193]:50045 "EHLO
+        mail-ua0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752910AbdKPKEH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Nov 2017 05:04:07 -0500
+In-Reply-To: <CAMuHMdXTNQZSX71E4ds2OeR-5pPKmARqtP0BQbaWzKhpvieC7w@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
 
-On Wed, 15 Nov 2017, Deepa Dinamani wrote:
-> > I had on concern about x32, maybe we should check
-> > for "COMPAT_USE_64BIT_TIME" before zeroing out the tv_nsec
-> > bits.
-> 
-> Thanks, I think you are right. I had the check conditional on
-> CONFIG_64BIT_TIME and then removed as I forgot why I added it. :)
-> 
-> > Regarding CONFIG_COMPAT_TIME/CONFIG_64BIT_TIME, would
-> > it help to just leave out that part for now and unconditionally
-> > define '__kernel_timespec' as 'timespec' until we are ready to
-> > convert the architectures?
-> 
-> Another approach would be to use separate configs:
-> 
-> 1. To indicate 64 bit time_t syscall support. This will be dependent
-> on architectures as CONFIG_64BIT_TIME.
-> We can delete this once all architectures have provided support for this.
-> 
-> 2. Another config (maybe COMPAT_32BIT_TIME?) to be introduced later,
-> which will compile out all syscalls/ features that use 32 bit time_t.
-> This can help build a y2038 safe kernel later.
-> 
-> Would this work for everyone?
+2017-11-13 18:45 GMT+08:00 Geert Uytterhoeven <geert@linux-m68k.org>:
+> On Wed, Nov 8, 2017 at 11:16 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>>> --- /dev/null
+>>> +++ b/arch/nds32/Kconfig
+>>> @@ -0,0 +1,107 @@
+>>> +#
+>>> +# For a description of the syntax of this configuration file,
+>>> +# see Documentation/kbuild/kconfig-language.txt.
+>>> +#
+>>> +
+>>> +config NDS32
+>>> +        def_bool y
+>>> +       select ARCH_HAS_RAW_COPY_USER
+>>> +       select ARCH_WANT_FRAME_POINTERS if FTRACE
+>>> +       select ARCH_WANT_IPC_PARSE_VERSION
+>>> +       select CLKSRC_MMIO
+>>> +       select CLONE_BACKWARDS
+>>> +       select TIMER_OF
+>>> +       select FRAME_POINTER
+>>> +       select GENERIC_ATOMIC64
+>>> +       select GENERIC_CPU_DEVICES
+>>> +       select GENERIC_CLOCKEVENTS
+>>> +       select GENERIC_IOMAP
+>>> +       select GENERIC_IRQ_CHIP
+>>> +       select GENERIC_IRQ_PROBE
+>>> +       select GENERIC_IRQ_SHOW
+>>> +       select GENERIC_STRNCPY_FROM_USER
+>>> +       select GENERIC_STRNLEN_USER
+>>> +       select GENERIC_TIME_VSYSCALL
+>>> +       select HAVE_ARCH_TRACEHOOK
+>>> +       select HAVE_GENERIC_IOMAP
+>>
+>> You normally don't want HAVE_GENERIC_IOMAP, at least unless the CPU
+>> has special instructions to trigger PCI I/O port access.
+>
+> GENERIC_IOMAP or HAVE_GENERIC_IOMAP?
+>
+> The latter doesn't even exist, except in
+> Documentation/kbuild/kconfig-language.txt, so it cannot be selected.
 
-Having extra config switches which are selectable by architectures and
-removed when everything is converted is definitely the right way to go.
+Thanks.
+I will remove HAVE_GENERIC_IOMAP in the next version patch.
 
-That allows you to gradually convert stuff w/o inflicting wreckage all over
-the place.
+> Given the checks for __NDS32_EB__, NDS32 can be either big or little endian,
+> so you should have (excatly one of) CPU_BIG_ENDIAN or CPU_LITTLE_ENDIAN set.
 
-Thanks,
-
-	tglx
+Thanks.
+I will check if we need this config or not and update in the next version patch.
