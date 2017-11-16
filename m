@@ -1,71 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:33503 "EHLO
-        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757344AbdKPKTU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Nov 2017 05:19:20 -0500
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:45587 "EHLO
+        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1757688AbdKPKTW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Nov 2017 05:19:22 -0500
 From: Michal Hocko <mhocko@kernel.org>
-Subject: 
-Date: Thu, 16 Nov 2017 11:18:58 +0100
-Message-ID: <20171116101900.13621-1-mhocko@kernel.org>
+Subject: [PATCH 2/2] fs, elf: drop MAP_FIXED usage from elf_map
+Date: Thu, 16 Nov 2017 11:19:00 +0100
+Message-ID: <20171116101900.13621-3-mhocko@kernel.org>
+In-Reply-To: <20171116101900.13621-1-mhocko@kernel.org>
+References: <20171116101900.13621-1-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-api@vger.kernel.org
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20171116101858.Dq4nvUhaCDRyvb7WRA9BhCMPwP8t8JFGoJjl5hSxTlU@z>
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>
+Message-ID: <20171116101900.8c2v5flnN0GFcF42PKbBpL1dgo_96iJePS5w4ubvcQg@z>
 
-Hi,
-this has started as a follow up discussion [1][2] resulting in the
-runtime failure caused by hardening patch [3] which removes MAP_FIXED
-from the elf loader because MAP_FIXED is inherently dangerous as it
-might silently clobber and existing underlying mapping (e.g. stack). The
-reason for the failure is that some architectures enforce an alignment
-for the given address hint without MAP_FIXED used (e.g. for shared or
-file backed mappings).
+From: Michal Hocko <mhocko@suse.com>
 
-One way around this would be excluding those archs which do alignment
-tricks from the hardening [4]. The patch is really trivial but it has
-been objected, rightfully so, that this screams for a more generic
-solution. We basically want a non-destructive MAP_FIXED.
+Both load_elf_interp and load_elf_binary rely on elf_map to map segments
+on a controlled address and they use MAP_FIXED to enforce that. This is
+however dangerous thing prone to silent data corruption which can be
+even exploitable. Let's take CVE-2017-1000253 as an example. At the time
+(before eab09532d400 ("binfmt_elf: use ELF_ET_DYN_BASE only for PIE"))
+ELF_ET_DYN_BASE was at TASK_SIZE / 3 * 2 which is not that far away from
+the stack top on 32b (legacy) memory layout (only 1GB away). Therefore
+we could end up mapping over the existing stack with some luck.
 
-The first patch introduced MAP_FIXED_SAFE which enforces the given
-address but unlike MAP_FIXED it fails with ENOMEM if the given range
-conflicts with an existing one. The flag is introduced as a completely
-new flag rather than a MAP_FIXED extension because of the backward
-compatibility. We really want a never-clobber semantic even on older
-kernels which do not recognize the flag. Unfortunately mmap sucks wrt.
-flags evaluation because we do not EINVAL on unknown flags. On those
-kernels we would simply use the traditional hint based semantic so the
-caller can still get a different address (which sucks) but at least not
-silently corrupt an existing mapping. I do not see a good way around
-that. Except we won't export expose the new semantic to the userspace at
-all. It seems there are users who would like to have something like that
-[5], though. Atomic address range probing in the multithreaded programs
-sounds like an interesting thing to me as well, although I do not have
-any specific usecase in mind.
+The issue has been fixed since then (a87938b2e246 ("fs/binfmt_elf.c:
+fix bug in loading of PIE binaries")), ELF_ET_DYN_BASE moved moved much
+further from the stack (eab09532d400 and later by c715b72c1ba4 ("mm:
+revert x86_64 and arm64 ELF_ET_DYN_BASE base changes")) and excessive
+stack consumption early during execve fully stopped by da029c11e6b1
+("exec: Limit arg stack to at most 75% of _STK_LIM"). So we should be
+safe and any attack should be impractical. On the other hand this is
+just too subtle assumption so it can break quite easily and hard to
+spot.
 
-The second patch simply replaces MAP_FIXED use in elf loader by
-MAP_FIXED_SAFE. I believe other places which rely on MAP_FIXED should
-follow. Actually real MAP_FIXED usages should be docummented properly
-and they should be more of an exception.
+I believe that the MAP_FIXED usage in load_elf_binary (et. al) is still
+fundamentally dangerous. Moreover it shouldn't be even needed. We are
+at the early process stage and so there shouldn't be unrelated mappings
+(except for stack and loader) existing so mmap for a given address
+should succeed even without MAP_FIXED. Something is terribly wrong if
+this is not the case and we should rather fail than silently corrupt the
+underlying mapping.
 
-Does anybody see any fundamental reasons why this is a wrong approach?
+Address this issue by changing MAP_FIXED to the newly added
+MAP_FIXED_SAFE. This will mean that mmap will fail if there is an
+existing mapping clashing with the requested one without clobbering it.
 
-Diffstat says
- arch/alpha/include/uapi/asm/mman.h   |  2 ++
- arch/metag/kernel/process.c          |  6 +++++-
- arch/mips/include/uapi/asm/mman.h    |  2 ++
- arch/parisc/include/uapi/asm/mman.h  |  2 ++
- arch/powerpc/include/uapi/asm/mman.h |  1 +
- arch/sparc/include/uapi/asm/mman.h   |  1 +
- arch/tile/include/uapi/asm/mman.h    |  1 +
- arch/xtensa/include/uapi/asm/mman.h  |  2 ++
- fs/binfmt_elf.c                      | 12 ++++++++----
- include/uapi/asm-generic/mman.h      |  1 +
- mm/mmap.c                            | 11 +++++++++++
- 11 files changed, 36 insertions(+), 5 deletions(-)
+Cc: Abdul Haleem <abdhalee@linux.vnet.ibm.com>
+Cc: Joel Stanley <joel@jms.id.au>
+Cc: Kees Cook <keescook@chromium.org>
+Signed-off-by: Michal Hocko <mhocko@suse.com>
+---
+ arch/metag/kernel/process.c |  6 +++++-
+ fs/binfmt_elf.c             | 12 ++++++++----
+ 2 files changed, 13 insertions(+), 5 deletions(-)
 
-[1] http://lkml.kernel.org/r/20171107162217.382cd754@canb.auug.org.au
-[2] http://lkml.kernel.org/r/1510048229.12079.7.camel@abdul.in.ibm.com
-[3] http://lkml.kernel.org/r/20171023082608.6167-1-mhocko@kernel.org
-[4] http://lkml.kernel.org/r/20171113094203.aofz2e7kueitk55y@dhcp22.suse.cz
-[5] http://lkml.kernel.org/r/87efp1w7vy.fsf@concordia.ellerman.id.au
+diff --git a/arch/metag/kernel/process.c b/arch/metag/kernel/process.c
+index c4606ce743d2..2286140e54e0 100644
+--- a/arch/metag/kernel/process.c
++++ b/arch/metag/kernel/process.c
+@@ -398,7 +398,7 @@ unsigned long __metag_elf_map(struct file *filep, unsigned long addr,
+ 	tcm_tag = tcm_lookup_tag(addr);
+ 
+ 	if (tcm_tag != TCM_INVALID_TAG)
+-		type &= ~MAP_FIXED;
++		type &= ~(MAP_FIXED | MAP_FIXED_SAFE);
+ 
+ 	/*
+ 	* total_size is the size of the ELF (interpreter) image.
+@@ -416,6 +416,10 @@ unsigned long __metag_elf_map(struct file *filep, unsigned long addr,
+ 	} else
+ 		map_addr = vm_mmap(filep, addr, size, prot, type, off);
+ 
++	if ((type & MAP_FIXED_SAFE) && BAD_ADDR(map_addr))
++		pr_info("%d (%s): Uhuuh, elf segement at %p requested but the memory is mapped already\n",
++				task_pid_nr(current), tsk->comm, (void*)addr);
++
+ 	if (!BAD_ADDR(map_addr) && tcm_tag != TCM_INVALID_TAG) {
+ 		struct tcm_allocation *tcm;
+ 		unsigned long tcm_addr;
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 6466153f2bf0..12b21942ccde 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -372,6 +372,10 @@ static unsigned long elf_map(struct file *filep, unsigned long addr,
+ 	} else
+ 		map_addr = vm_mmap(filep, addr, size, prot, type, off);
+ 
++	if ((type & MAP_FIXED_SAFE) && BAD_ADDR(map_addr))
++		pr_info("%d (%s): Uhuuh, elf segement at %p requested but the memory is mapped already\n",
++				task_pid_nr(current), current->comm, (void*)addr);
++
+ 	return(map_addr);
+ }
+ 
+@@ -569,7 +573,7 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
+ 				elf_prot |= PROT_EXEC;
+ 			vaddr = eppnt->p_vaddr;
+ 			if (interp_elf_ex->e_type == ET_EXEC || load_addr_set)
+-				elf_type |= MAP_FIXED;
++				elf_type |= MAP_FIXED_SAFE;
+ 			else if (no_base && interp_elf_ex->e_type == ET_DYN)
+ 				load_addr = -vaddr;
+ 
+@@ -929,7 +933,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 		 * the ET_DYN load_addr calculations, proceed normally.
+ 		 */
+ 		if (loc->elf_ex.e_type == ET_EXEC || load_addr_set) {
+-			elf_flags |= MAP_FIXED;
++			elf_flags |= MAP_FIXED_SAFE;
+ 		} else if (loc->elf_ex.e_type == ET_DYN) {
+ 			/*
+ 			 * This logic is run once for the first LOAD Program
+@@ -965,7 +969,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 				load_bias = ELF_ET_DYN_BASE;
+ 				if (current->flags & PF_RANDOMIZE)
+ 					load_bias += arch_mmap_rnd();
+-				elf_flags |= MAP_FIXED;
++				elf_flags |= MAP_FIXED_SAFE;
+ 			} else
+ 				load_bias = 0;
+ 
+@@ -1220,7 +1224,7 @@ static int load_elf_library(struct file *file)
+ 			(eppnt->p_filesz +
+ 			 ELF_PAGEOFFSET(eppnt->p_vaddr)),
+ 			PROT_READ | PROT_WRITE | PROT_EXEC,
+-			MAP_FIXED | MAP_PRIVATE | MAP_DENYWRITE,
++			MAP_FIXED_SAFE | MAP_PRIVATE | MAP_DENYWRITE,
+ 			(eppnt->p_offset -
+ 			 ELF_PAGEOFFSET(eppnt->p_vaddr)));
+ 	if (error != ELF_PAGESTART(eppnt->p_vaddr))
+-- 
+2.15.0
