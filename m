@@ -1,72 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f196.google.com ([74.125.82.196]:45024 "EHLO
-        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750927AbdKQKqj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Nov 2017 05:46:39 -0500
+Received: from mail-oi0-f42.google.com ([209.85.218.42]:39530 "EHLO
+        mail-oi0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755989AbdKQMuE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Nov 2017 07:50:04 -0500
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.20.1711171138510.7700@nanos>
-References: <20171110224259.15930-1-deepa.kernel@gmail.com>
- <CAK8P3a2uD=xV5GKtL+nhVoPckb6uoXztEvXK-iP_OYbct8QvJA@mail.gmail.com>
- <CABeXuvpy1jbqjeUFHHX-MrJXQLA2QNYbAa6OX7qOpPp4q-mQYQ@mail.gmail.com>
- <alpine.DEB.2.20.1711160958430.2191@nanos> <CAK8P3a0wxs59T1zW4ahbJXeW6QjStm0mbCFoL_RQexAa6dzh_w@mail.gmail.com>
- <alpine.DEB.2.20.1711170954000.1709@nanos> <CAK8P3a3fcVKTwoqN0CxYchzcFqUZPBeko=oYsA9eNxu4bQoYyw@mail.gmail.com>
- <alpine.DEB.2.20.1711171049180.1709@nanos> <CAK8P3a10N42rBO8XBrZWYOCwVB8jayjgZu2oa8FSpHTzszQacQ@mail.gmail.com>
- <alpine.DEB.2.20.1711171138510.7700@nanos>
+In-Reply-To: <CAEbi=3dNwRU0aVqDdHDmmQD=RHCcnOcf2+kik80ZnvrGJ8x-kg@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <7278eca76456b412e02d9baa5dc164e83199cbab.1510118606.git.green.hu@gmail.com>
+ <CAK8P3a11Mk3XcmP5Ecbv55TuNRjrrp_43GX8hPDfdLh6JMHE=g@mail.gmail.com>
+ <CAEbi=3d91XPe0oGFfSB0T4tCU9FN=0SNLk7xKFifrV+-06u8AA@mail.gmail.com>
+ <CAK8P3a3i+_ZRcR9ab=Pf26R+1JKuzz3VKQxA=mL131KDCpobHA@mail.gmail.com>
+ <CAEbi=3c7tduSHQ2HEAfcJF8A3QPD493_gHPK=_WiQGtSr0bc=A@mail.gmail.com> <CAEbi=3dNwRU0aVqDdHDmmQD=RHCcnOcf2+kik80ZnvrGJ8x-kg@mail.gmail.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Fri, 17 Nov 2017 11:46:37 +0100
-Message-ID: <CAK8P3a1J0C5A+SzVWDz52ZkawG1HZYj2cR6oc=DL=QrXgYaiHg@mail.gmail.com>
-Subject: Re: [PATCH 0/9] posix_clocks: Prepare syscalls for 64 bit time_t conversion
+Date: Fri, 17 Nov 2017 13:50:02 +0100
+Message-ID: <CAK8P3a0ZvAMzG2nRm6Lo8DzdCu-=cCvuWX3ExHtYXP9zOsQ_4Q@mail.gmail.com>
+Subject: Re: [PATCH 26/31] nds32: Build infrastructure
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Deepa Dinamani <deepa.kernel@gmail.com>, John Stultz <john.stultz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, cohuck@redhat.com, David Miller <davem@davemloft.net>, Helge Deller <deller@gmx.de>, devel@driverdev.osuosl.org, gerald.schaefer@de.ibm.com, gregkh <gregkh@linuxfoundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jan Hoeppner <hoeppner@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Julian Wiedmann <jwi@linux.vnet.ibm.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Ingo Molnar <mingo@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, oberpar@linux.vnet.ibm.com, oprofile-list@lists.sf.net, Paul Mackerras <paulus@samba.org>, Peter Zijlstra <peterz@infradead.org>, Ralf Baechle <ralf@linux-mips.org>, Steven Rostedt <rostedt@goodmis.org>, Robert Richter <rric@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, sebott@linux.vnet.ibm.com, sparclinux <sparclinux@vger.kernel.org>, Stefan Haberland <sth@linux.vnet.ibm.com>, Ursula Braun <ubraun@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20171117104637.m4rHPDVlBOYXee5w6swHN8MIZVtu71-5CrZxzPStSFA@z>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171117125002.Ydj4iDYBHK2y4HNhNQh8wbq2fXGGwlaaNaggQIuSY-Q@z>
 
-On Fri, Nov 17, 2017 at 11:40 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> On Fri, 17 Nov 2017, Arnd Bergmann wrote:
->> On Fri, Nov 17, 2017 at 10:54 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
->> > On Fri, 17 Nov 2017, Arnd Bergmann wrote:
->> >> On Fri, Nov 17, 2017 at 9:58 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
->> >>
->> >> No, syscall that existing 32-bit user space enters would be handled by
->> >> compat_sys_nanosleep() on both 32-bit and 64-bit kernels at that
->> >> point. The idea here is to make the code path more uniform between
->> >> 32-bit and 64-bit kernels.
->> >
->> > So on a 32bit system compat_sys_nanosleep() would be the legacy
->> > sys_nanosleep() with the existing syscall number, but you don't want to
->> > introduce a new sys_nanosleep64() for 32bit. That makes a lot of sense.
->> >
->> > So back to your original question whether to use #if (MAGIC logic) or a
->> > separate config symbol. Please use the latter, these magic logic constructs
->> > are harder to read and prone to get wrong at some point. Having the
->> > decision logic in one place is always the right thing to do.
+On Fri, Nov 17, 2017 at 1:39 PM, Greentime Hu <green.hu@gmail.com> wrote:
+> 2017-11-10 16:26 GMT+08:00 Greentime Hu <green.hu@gmail.com>:
+>> 2017-11-09 18:33 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+>>> On Thu, Nov 9, 2017 at 10:02 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>>>> 2017-11-08 18:16 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+>>>>> On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>>>
+>>>>>> +config GENERIC_CALIBRATE_DELAY
+>>>>>> +       def_bool y
+>>>>>
+>>>>> It's better to avoid the delay loop completely and skip the calibration,
+>>>>> if your hardware allows.
+>>>>
+>>>> Thanks.
+>>>> Do you mean that this config should be def_bool n?
+>>>> why? Almost all arch enable it.
+>>>
+>>> It depends on what your hardware can do. If you have a way to see how much
+>>> time has passed that is guaranteed to be reliable on all machines, then
+>>> use that instead.
+>>>
+>>> On a lot of architectures, it's not possible, so they have to fall back to using
+>>> the delay loop.
 >>
->> How about this:
->>
->> config LEGACY_TIME_SYSCALLS
->>       def_bool 64BIT || !64BIT_TIME
->>       help
->>         This controls the compilation of the following system calls:
->> time, stime,
->>         gettimeofday, settimeofday, adjtimex, nanosleep, alarm, getitimer,
->>         setitimer, select, utime, utimes, futimesat, and
->> {old,new}{l,f,}stat{,64}.
->>         These all pass 32-bit time_t arguments on 32-bit architectures and
->>         are replaced by other interfaces (e.g. posix timers and clocks, statx).
->>         C libraries implementing 64-bit time_t in 32-bit architectures have to
->>         implement the handles by wrapping around the newer interfaces.
+>> I get it. I will discuss it with our HW colleagues.
+>> We may get these informations in some registers.
 >
-> s/handles/handling/ ????
-
-I meant "handlers".
-
->>         New architectures should not explicitly disable this.
+> Hi, Arnd:
 >
-> New architectures should never enable this, right?
+> I think I can't set it to default n because it will be called in start_kernel.
+>
+> start_kernel() -> calibrate_delay()
+>
+> If I don't enable this config, it will link error because it didn't
+> build init/calibrate.c
 
-Right, I got an extra "not". I guess if Deepa incorporates the new option,
-she can also improve my English ;-)
+You will have to provide an architecture-specific implementation of
+this function, please ahve a look at what others are doing, e.g. tile,
+openrisc or
+h8300.
 
-         Arnd
+          Arnd
