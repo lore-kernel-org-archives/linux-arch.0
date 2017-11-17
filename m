@@ -1,44 +1,38 @@
-From: Anthony Yznaga <anthony.yznaga@oracle.com>
-Subject: Re: [PATCH RESEND v10 00/10] Application Data Integrity feature introduced by SPARC M7
-Date: Thu, 16 Nov 2017 18:14:37 -0800
-Message-ID: <3D32E16F-281B-464B-8F6D-D6A8FE62FAB2@oracle.com>
-References: <cover.1510768775.git.khalid.aziz@oracle.com>
-Mime-Version: 1.0 (Mac OS X Mail 9.3 \(3124\))
-Content-Type: text/plain; charset=us-ascii
+From: Florian Weimer <fweimer@redhat.com>
+Subject: Re: [RFC PATCH 1/2] mm: introduce MAP_FIXED_SAFE
+Date: Fri, 17 Nov 2017 08:30:48 +0100
+Message-ID: <a3f7aed9-0df2-2fd6-cebb-ba569ad66781@redhat.com>
+References: <20171116101900.13621-1-mhocko@kernel.org>
+ <20171116101900.13621-2-mhocko@kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <cover.1510768775.git.khalid.aziz@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: David Miller <davem@davemloft.net>, dave.hansen@linux.intel.com, akpm@linux-foundation.org, 0x7f454c46@gmail.com, aarcange@redhat.com, ak@linux.intel.com, Allen Pais <allen.pais@oracle.com>, aneesh.kumar@linux.vnet.ibm.com, arnd@arndb.de, Atish Patra <atish.patra@oracle.com>, benh@kernel.crashing.org, Bob Picco <bob.picco@oracle.com>, bsingharora@gmail.com, chris.hyser@oracle.com, cmetcalf@mellanox.com, corbet@lwn.net, dan.carpenter@oracle.com, dave.jiang@intel.com, dja@axtens.net, Eric Saint Etienne <eric.saint.etienne@oracle.com>, geert@linux-m68k.org, hannes@cmpxchg.org, heiko.carstens@de.ibm.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jmarchan@redhat.com, jroedel@suse.de, Khalid Aziz <khalid@gonehiking.org>, kirill.shutemov@linux.intel.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:39284 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S933991AbdKQHa5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Nov 2017 02:30:57 -0500
+In-Reply-To: <20171116101900.13621-2-mhocko@kernel.org>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Hocko <mhocko@kernel.org>, linux-api@vger.kernel.org
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
 
+On 11/16/2017 11:18 AM, Michal Hocko wrote:
+> +	if (flags & MAP_FIXED_SAFE) {
+> +		struct vm_area_struct *vma = find_vma(mm, addr);
+> +
+> +		if (vma && vma->vm_start <= addr)
+> +			return -ENOMEM;
+> +	}
 
-> On Nov 16, 2017, at 6:38 AM, Khalid Aziz <khalid.aziz@oracle.com> wrote:
-> 
-> Changelog v10:
-> 
-> 	- Patch 1/10: Updated si_codes definitions for SEGV to match 4.14
-> 	- Patch 2/10: No changes
-> 	- Patch 3/10: Updated copyright
-> 	- Patch 4/10: No changes
-> 	- Patch 5/10: No changes
-> 	- Patch 6/10: Updated copyright
-> 	- Patch 7/10: No changes
-> 	- Patch 8/10: No changes
-> 	- Patch 9/10: No changes
-> 	- Patch 10/10: Added code to return from kernel path to set
-> 	  PSTATE.mcde if kernel continues execution in another thread
-> 	  (Suggested by Anthony)
+Could you pick a different error code which cannot also be caused by a 
+an unrelated, possibly temporary condition?  Maybe EBUSY or EEXIST?
 
-Looks good, Khalid.  Thanks for making the changes.
+This would definitely help with application-based randomization of 
+mappings, and there, actual ENOMEM and this error would have to be 
+handled differently.
 
-For the entire series:
-
-Reviewed-by: Anthony Yznaga <anthony.yznaga@oracle.com>
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks,
+Florian
