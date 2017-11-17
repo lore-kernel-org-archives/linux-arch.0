@@ -1,43 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:39169 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751460AbdKQQRF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Nov 2017 11:17:05 -0500
-Date: Fri, 17 Nov 2017 16:17:56 +0000 (UTC)
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Message-ID: <182547799.17141.1510935476057.JavaMail.zimbra@efficios.com>
-In-Reply-To: <b529c741-dec1-0d02-ad4f-1059203b7b7c@osg.samsung.com>
-References: <20171114200414.2188-1-mathieu.desnoyers@efficios.com> <20171114200414.2188-24-mathieu.desnoyers@efficios.com> <b529c741-dec1-0d02-ad4f-1059203b7b7c@osg.samsung.com>
-Subject: Re: [RFC PATCH for 4.15 23/24] membarrier: selftest: Test private
- expedited sync core cmd
+Received: from bombadil.infradead.org ([65.50.211.133]:33066 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934774AbdKQTMy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Nov 2017 14:12:54 -0500
+Date: Fri, 17 Nov 2017 11:12:51 -0800
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [RFC PATCH 1/2] mm: introduce MAP_FIXED_SAFE
+Message-ID: <20171117191251.GA1601@bombadil.infradead.org>
+References: <20171116101900.13621-1-mhocko@kernel.org>
+ <20171116101900.13621-2-mhocko@kernel.org>
+ <CAGXu5jKssQCcYcZujvQeFy5LTzhXSW=f-a0riB=4+caT1i38BQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jKssQCcYcZujvQeFy5LTzhXSW=f-a0riB=4+caT1i38BQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Shuah Khan <shuahkh@osg.samsung.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Dave Watson <davejwatson@fb.com>, linux-kernel <linux-kernel@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, Paul Turner <pjt@google.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Hunter <ahh@google.com>, Andi Kleen <andi@firstfloor.org>, Chris Lameter <cl@linux.com>, Ben Maurer <bmaurer@fb.com>, rostedt <rostedt@goodmis.org>, Josh Triplett <josh@joshtriplett.org>, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, maged michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Alan Stern <stern@rowland.harvard.edu>, Andy Lutomirski <luto@kernel.org>, Alice Ferrazzi <alice.ferrazzi@gmail.com>, Paul Elder <paul.elder@pitt.edu>, linux-kselftest <linux-kselftest@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, shuah <shuah@kernel.org>
-Message-ID: <20171117161756.4ksLuuWVeUGThrQxCEgH-XWUSqx293zppKm5w_uFuQ4@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Michal Hocko <mhocko@kernel.org>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20171117191251.HX7h-XXcyKe9wG4KW0ow4QZw9wD_rYSnv8WFeTR2wBQ@z>
 
------ On Nov 17, 2017, at 10:09 AM, Shuah Khan shuahkh@osg.samsung.com wrote:
+On Thu, Nov 16, 2017 at 04:27:36PM -0800, Kees Cook wrote:
+> On Thu, Nov 16, 2017 at 2:18 AM, Michal Hocko <mhocko@kernel.org> wrote:
+> > From: Michal Hocko <mhocko@suse.com>
+> >
+> > MAP_FIXED is used quite often to enforce mapping at the particular
+> > range. The main problem of this flag is, however, that it is inherently
+> > dangerous because it unmaps existing mappings covered by the requested
+> > range. This can cause silent memory corruptions. Some of them even with
+> > serious security implications. While the current semantic might be
+> > really desiderable in many cases there are others which would want to
+> > enforce the given range but rather see a failure than a silent memory
+> > corruption on a clashing range. Please note that there is no guarantee
+> > that a given range is obeyed by the mmap even when it is free - e.g.
+> > arch specific code is allowed to apply an alignment.
+> >
+> > Introduce a new MAP_FIXED_SAFE flag for mmap to achieve this behavior.
+> > It has the same semantic as MAP_FIXED wrt. the given address request
+> > with a single exception that it fails with ENOMEM if the requested
+> > address is already covered by an existing mapping. We still do rely on
+> > get_unmaped_area to handle all the arch specific MAP_FIXED treatment and
+> > check for a conflicting vma after it returns.
 > 
-> Looks good to me. I am assuming this patch goes in with the rest of the
-> series. For this patch:
+> I like this much more than special-casing the ELF loader. It is an
+> unusual property that MAP_FIXED does _two_ things, so I like having
+> this split out.
 > 
-> Acked-by: Shuah Khan <shuahkh@osg.samsung.com>
+> Bikeshedding: maybe call this MAP_NO_CLOBBER? It's a modifier to
+> MAP_FIXED, really...
 
-Thanks for the Acked-by. I'll add it to the patch changelog.
-The sync_core membarrier patches are now queued for 4.16 however.
+Way back when, I proposed a new flag called MAP_FIXED_WEAK.  I was
+dissuaded from it when userspace people said it was just as easy for
+them to provide the address hint, then run fixups on their data if the
+address they were assigned wasn't the one they asked for.
 
-Thanks,
+The real problem is that MAP_FIXED should have been called MAP_FORCE.
 
-Mathieu
-
-> 
-> thanks,
-> -- Shuah
-
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+So ... do we really have users that want failure instead of success at
+a different address?  And if so, is it really a hardship for them to
+make a call to unmap on success-at-the-wrong-address?
