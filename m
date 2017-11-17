@@ -1,43 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:20696 "EHLO
-        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932080AbdKQCQv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 16 Nov 2017 21:16:51 -0500
-Subject: Re: [PATCH RESEND v10 00/10] Application Data Integrity feature introduced by SPARC M7
-Mime-Version: 1.0 (Mac OS X Mail 9.3 \(3124\))
-Content-Type: text/plain; charset=us-ascii
-From: Anthony Yznaga <anthony.yznaga@oracle.com>
-In-Reply-To: <cover.1510768775.git.khalid.aziz@oracle.com>
-Date: Thu, 16 Nov 2017 18:14:37 -0800
+Received: from hqemgate16.nvidia.com ([216.228.121.65]:17356 "EHLO
+        hqemgate16.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S965540AbdKQIpu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Nov 2017 03:45:50 -0500
+Subject: Re: [RFC PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+References: <20171116101900.13621-1-mhocko@kernel.org>
+ <20171116121438.6vegs4wiahod3byl@dhcp22.suse.cz>
+From: John Hubbard <jhubbard@nvidia.com>
+Message-ID: <b1848e34-7fcd-8ad8-6a6a-3be3dce3fda7@nvidia.com>
+Date: Fri, 17 Nov 2017 00:45:49 -0800
+MIME-Version: 1.0
+In-Reply-To: <20171116121438.6vegs4wiahod3byl@dhcp22.suse.cz>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
-Message-ID: <3D32E16F-281B-464B-8F6D-D6A8FE62FAB2@oracle.com>
-References: <cover.1510768775.git.khalid.aziz@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: David Miller <davem@davemloft.net>, dave.hansen@linux.intel.com, akpm@linux-foundation.org, 0x7f454c46@gmail.com, aarcange@redhat.com, ak@linux.intel.com, Allen Pais <allen.pais@oracle.com>, aneesh.kumar@linux.vnet.ibm.com, arnd@arndb.de, Atish Patra <atish.patra@oracle.com>, benh@kernel.crashing.org, Bob Picco <bob.picco@oracle.com>, bsingharora@gmail.com, chris.hyser@oracle.com, cmetcalf@mellanox.com, corbet@lwn.net, dan.carpenter@oracle.com, dave.jiang@intel.com, dja@axtens.net, Eric Saint Etienne <eric.saint.etienne@oracle.com>, geert@linux-m68k.org, hannes@cmpxchg.org, heiko.carstens@de.ibm.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jmarchan@redhat.com, jroedel@suse.de, Khalid Aziz <khalid@gonehiking.org>, kirill.shutemov@linux.intel.com, Liam.Howlett@oracle.com, lstoakes@gmail.com, mgorman@suse.de, mhocko@suse.com, Mike Kravetz <mike.kravetz@oracle.com>, minchan@kernel.org, mingo@redhat.com, mpe@ellerman.id.au, nitin.m.gupta@oracle.com, pasha.tatashin@oracle.com, paul.gortmaker@windriver.com, paulus@samba.org, peterz@infradead.org, rientjes@google.com, ross.zwisler@linux.intel.com, shli@fb.com, steven.sistare@oracle.com, tglx@linutronix.de, thomas.tai@oracle.com, tklauser@distanz.ch, tom.hromatka@oracle.com, vegard.nossum@oracle.com, vijay.ac.kumar@oracle.com, viro@zeniv.linux.org.uk, willy@infradead.org, x86@kernel.org, ying.huang@intel.com, zhongjiang@huawei.com, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20171117021437.M0VSSxVruyofjGO3tCtfe4fDyI-T60dIRBptVFz5M68@z>
+To: Michal Hocko <mhocko@kernel.org>, linux-api@vger.kernel.org
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>
+Message-ID: <20171117084549.EbUxeb6gCEncskoshnNVMciXgglT-GDRwxmSBKsVhqE@z>
 
-
-> On Nov 16, 2017, at 6:38 AM, Khalid Aziz <khalid.aziz@oracle.com> wrote:
+On 11/16/2017 04:14 AM, Michal Hocko wrote:
+> [Ups, managed to screw the subject - fix it]
 > 
-> Changelog v10:
-> 
-> 	- Patch 1/10: Updated si_codes definitions for SEGV to match 4.14
-> 	- Patch 2/10: No changes
-> 	- Patch 3/10: Updated copyright
-> 	- Patch 4/10: No changes
-> 	- Patch 5/10: No changes
-> 	- Patch 6/10: Updated copyright
-> 	- Patch 7/10: No changes
-> 	- Patch 8/10: No changes
-> 	- Patch 9/10: No changes
-> 	- Patch 10/10: Added code to return from kernel path to set
-> 	  PSTATE.mcde if kernel continues execution in another thread
-> 	  (Suggested by Anthony)
+> On Thu 16-11-17 11:18:58, Michal Hocko wrote:
+>> Hi,
+>> this has started as a follow up discussion [1][2] resulting in the
+>> runtime failure caused by hardening patch [3] which removes MAP_FIXED
+>> from the elf loader because MAP_FIXED is inherently dangerous as it
+>> might silently clobber and existing underlying mapping (e.g. stack). The
+>> reason for the failure is that some architectures enforce an alignment
+>> for the given address hint without MAP_FIXED used (e.g. for shared or
+>> file backed mappings).
+>>
+>> One way around this would be excluding those archs which do alignment
+>> tricks from the hardening [4]. The patch is really trivial but it has
+>> been objected, rightfully so, that this screams for a more generic
+>> solution. We basically want a non-destructive MAP_FIXED.
+>>
+>> The first patch introduced MAP_FIXED_SAFE which enforces the given
+>> address but unlike MAP_FIXED it fails with ENOMEM if the given range
+>> conflicts with an existing one. The flag is introduced as a completely
+>> new flag rather than a MAP_FIXED extension because of the backward
+>> compatibility. We really want a never-clobber semantic even on older
+>> kernels which do not recognize the flag. Unfortunately mmap sucks wrt.
+>> flags evaluation because we do not EINVAL on unknown flags. On those
+>> kernels we would simply use the traditional hint based semantic so the
+>> caller can still get a different address (which sucks) but at least not
+>> silently corrupt an existing mapping. I do not see a good way around
+>> that. Except we won't export expose the new semantic to the userspace at
+>> all. It seems there are users who would like to have something like that
+>> [5], though. Atomic address range probing in the multithreaded programs
+>> sounds like an interesting thing to me as well, although I do not have
+>> any specific usecase in mind.
 
-Looks good, Khalid.  Thanks for making the changes.
-
-For the entire series:
-
-Reviewed-by: Anthony Yznaga <anthony.yznaga@oracle.com>
+Hi Michal,
