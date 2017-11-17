@@ -1,76 +1,58 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 0/9] posix_clocks: Prepare syscalls for 64 bit
- time_t conversion
-Date: Fri, 17 Nov 2017 10:54:07 +0100 (CET)
-Message-ID: <alpine.DEB.2.20.1711171049180.1709@nanos>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/9] posix_clocks: Prepare syscalls for 64 bit time_t conversion
+Date: Fri, 17 Nov 2017 11:30:57 +0100
+Message-ID: <CAK8P3a10N42rBO8XBrZWYOCwVB8jayjgZu2oa8FSpHTzszQacQ@mail.gmail.com>
 References: <20171110224259.15930-1-deepa.kernel@gmail.com>
  <CAK8P3a2uD=xV5GKtL+nhVoPckb6uoXztEvXK-iP_OYbct8QvJA@mail.gmail.com>
  <CABeXuvpy1jbqjeUFHHX-MrJXQLA2QNYbAa6OX7qOpPp4q-mQYQ@mail.gmail.com>
- <alpine.DEB.2.20.1711160958430.2191@nanos>
- <CAK8P3a0wxs59T1zW4ahbJXeW6QjStm0mbCFoL_RQexAa6dzh_w@mail.gmail.com>
- <alpine.DEB.2.20.1711170954000.1709@nanos>
- <CAK8P3a3fcVKTwoqN0CxYchzcFqUZPBeko=oYsA9eNxu4bQoYyw@mail.gmail.com>
+ <alpine.DEB.2.20.1711160958430.2191@nanos> <CAK8P3a0wxs59T1zW4ahbJXeW6QjStm0mbCFoL_RQexAa6dzh_w@mail.gmail.com>
+ <alpine.DEB.2.20.1711170954000.1709@nanos> <CAK8P3a3fcVKTwoqN0CxYchzcFqUZPBeko=oYsA9eNxu4bQoYyw@mail.gmail.com>
+ <alpine.DEB.2.20.1711171049180.1709@nanos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <CAK8P3a3fcVKTwoqN0CxYchzcFqUZPBeko=oYsA9eNxu4bQoYyw@mail.gmail.com>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Mark Rutland <mark.rutland@arm.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Stefan Haberland <sth@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, Deepa Dinamani <deepa.kernel@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux <sparclinux@vger.kernel.org>, devel@driverdev.osuosl.org, linux-s390 <linux-s390@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, the arch/x86 maintainers <x86@kernel.org>, sebott@linux.vnet.ibm.com, "James E.J. Bottomley" <jejb@parisc-linux.org>, Will Deacon <will.deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, oprofile-list@lists.sf.net, Catali
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f66.google.com ([209.85.218.66]:45128 "EHLO
+        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751365AbdKQKa6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Nov 2017 05:30:58 -0500
+In-Reply-To: <alpine.DEB.2.20.1711171049180.1709@nanos>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Deepa Dinamani <deepa.kernel@gmail.com>, John Stultz <john.stultz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, cohuck@redhat.com, David Miller <davem@davemloft.net>, Helge Deller <deller@gmx.de>, devel@driverdev.osuosl.org, gerald.schaefer@de.ibm.com, gregkh <gregkh@linuxfoundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jan Hoeppner <hoeppner@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Julian
 
-T24gRnJpLCAxNyBOb3YgMjAxNywgQXJuZCBCZXJnbWFubiB3cm90ZToKPiBPbiBGcmksIE5vdiAx
-NywgMjAxNyBhdCA5OjU4IEFNLCBUaG9tYXMgR2xlaXhuZXIgPHRnbHhAbGludXRyb25peC5kZT4g
-d3JvdGU6Cj4gPiBPbiBGcmksIDE3IE5vdiAyMDE3LCBBcm5kIEJlcmdtYW5uIHdyb3RlOgo+ID4+
-IE9uIFRodSwgTm92IDE2LCAyMDE3IGF0IDEwOjA0IEFNLCBUaG9tYXMgR2xlaXhuZXIgPHRnbHhA
-bGludXRyb25peC5kZT4gd3JvdGU6Cj4gPj4gPiBPbiBXZWQsIDE1IE5vdiAyMDE3LCBEZWVwYSBE
-aW5hbWFuaSB3cm90ZToKPiA+PiA+PiBXb3VsZCB0aGlzIHdvcmsgZm9yIGV2ZXJ5b25lPwo+ID4+
-ID4KPiA+PiA+IEhhdmluZyBleHRyYSBjb25maWcgc3dpdGNoZXMgd2hpY2ggYXJlIHNlbGVjdGFi
-bGUgYnkgYXJjaGl0ZWN0dXJlcyBhbmQKPiA+PiA+IHJlbW92ZWQgd2hlbiBldmVyeXRoaW5nIGlz
-IGNvbnZlcnRlZCBpcyBkZWZpbml0ZWx5IHRoZSByaWdodCB3YXkgdG8gZ28uCj4gPj4gPgo+ID4+
-ID4gVGhhdCBhbGxvd3MgeW91IHRvIGdyYWR1YWxseSBjb252ZXJ0IHN0dWZmIHcvbyBpbmZsaWN0
-aW5nIHdyZWNrYWdlIGFsbCBvdmVyCj4gPj4gPiB0aGUgcGxhY2UuCj4gPj4KPiA+PiBUaGUgQ09O
-RklHXzY0QklUX1RJTUUgd291bGQgZG8gdGhhdCBuaWNlbHkgZm9yIHRoZSBuZXcgc3R1ZmYgbGlr
-ZQo+ID4+IHRoZSBjb25kaXRpb25hbCBkZWZpbml0aW9uIG9mIF9fa2VybmVsX3RpbWVzcGVjLCB0
-aGlzIG9uZSB3b3VsZCBnZXQKPiA+PiByZW1vdmVkIGFmdGVyIHdlIGNvbnZlcnQgYWxsIGFyY2hp
-dGVjdHVyZXMuCj4gPj4KPiA+PiBBIHNlY29uZCBpc3N1ZSBpcyBob3cgdG8gY29udHJvbCB0aGUg
-Y29tcGlsYXRpb24gb2YgdGhlIGNvbXBhdCBzeXNjYWxscy4KPiA+PiBDT05GSUdfQ09NUEFUXzMy
-QklUX1RJTUUgaGFuZGxlcyB0aGF0IGFuZCBjb3VsZCBiZSBkZWZpbmVkCj4gPj4gaW4gS2NvbmZp
-ZyBhcyAnZGVmX2Jvb2wgKCE2NEJJVCAmJiBDT05GSUdfNjRCSVRfVElNRSkgfHwgQ09NUEFUJywK
-PiA+PiB0aGlzIGlzIHRoZW4ganVzdCBhIG1vcmUgcmVhZGFibGUgd2F5IG9mIGV4cHJlc3Npbmcg
-ZXhhY3RseSB3aGVuIHRoZQo+ID4+IGZ1bmN0aW9ucyBzaG91bGQgYmUgYnVpbHQuCj4gPj4KPiA+
-PiBGb3IgY29tcGxldGVuZXNzLCB0aGVyZSBtYXkgYmUgYSB0aGlyZCBjYXRlZ29yeSwgZGVwZW5k
-aW5nIG9uIGhvdwo+ID4+IHdlIGhhbmRsZSB0aGluZ3MgbGlrZSBzeXNfbmFub3NsZWVwKCk6IEhl
-cmUsIHdlIHdhbnQgdGhlIG5hdGl2ZQo+ID4+IHN5c19uYW5vc2xlZXAgb24gNjQtYml0IGFyY2hp
-dGVjdHVyZXMsIGFuZCBjb21wYXRfc3lzX25hbm9zbGVlcCgpCj4gPj4gdG8gaGFuZGxlIHRoZSAz
-Mi1iaXQgdGltZV90IHZhcmlhbnQgb24gYm90aCAzMi1iaXQgYW5kIDY0LWJpdCB0YXJnZXRzLAo+
-ID4+IGJ1dCBvdXIgcGxhbiBpcyB0byBub3QgaGF2ZSBhIG5hdGl2ZSAzMi1iaXQgc3lzX25hbm9z
-bGVlcCBvbiAzMi1iaXQKPiA+PiBhcmNoaXRlY3R1cmVzIGFueSBtb3JlLCBhcyBuZXcgZ2xpYmMg
-c2hvdWxkIGNhbGwgY2xvY2tfbmFub3NsZWVwKCkKPiA+PiB3aXRoIGEgbmV3IHN5c2NhbGwgbnVt
-YmVyIGluc3RlYWQuIFNob3VsZCB3ZSB0aGVuIGVuY2xvc2UKPiA+Cj4gPiBJc24ndCB0aGF0IGdv
-aW5nIHRvIGJyZWFrIGV4aXN0aW5nIHVzZXJzcGFjZT8KPiAKPiBObywgc3lzY2FsbCB0aGF0IGV4
-aXN0aW5nIDMyLWJpdCB1c2VyIHNwYWNlIGVudGVycyB3b3VsZCBiZSBoYW5kbGVkIGJ5Cj4gY29t
-cGF0X3N5c19uYW5vc2xlZXAoKSBvbiBib3RoIDMyLWJpdCBhbmQgNjQtYml0IGtlcm5lbHMgYXQg
-dGhhdAo+IHBvaW50LiBUaGUgaWRlYSBoZXJlIGlzIHRvIG1ha2UgdGhlIGNvZGUgcGF0aCBtb3Jl
-IHVuaWZvcm0gYmV0d2Vlbgo+IDMyLWJpdCBhbmQgNjQtYml0IGtlcm5lbHMuCgpTbyBvbiBhIDMy
-Yml0IHN5c3RlbSBjb21wYXRfc3lzX25hbm9zbGVlcCgpIHdvdWxkIGJlIHRoZSBsZWdhY3kKc3lz
-X25hbm9zbGVlcCgpIHdpdGggdGhlIGV4aXN0aW5nIHN5c2NhbGwgbnVtYmVyLCBidXQgeW91IGRv
-bid0IHdhbnQgdG8KaW50cm9kdWNlIGEgbmV3IHN5c19uYW5vc2xlZXA2NCgpIGZvciAzMmJpdC4g
-VGhhdCBtYWtlcyBhIGxvdCBvZiBzZW5zZS4KClNvIGJhY2sgdG8geW91ciBvcmlnaW5hbCBxdWVz
-dGlvbiB3aGV0aGVyIHRvIHVzZSAjaWYgKE1BR0lDIGxvZ2ljKSBvciBhCnNlcGFyYXRlIGNvbmZp
-ZyBzeW1ib2wuIFBsZWFzZSB1c2UgdGhlIGxhdHRlciwgdGhlc2UgbWFnaWMgbG9naWMgY29uc3Ry
-dWN0cwphcmUgaGFyZGVyIHRvIHJlYWQgYW5kIHByb25lIHRvIGdldCB3cm9uZyBhdCBzb21lIHBv
-aW50LiBIYXZpbmcgdGhlCmRlY2lzaW9uIGxvZ2ljIGluIG9uZSBwbGFjZSBpcyBhbHdheXMgdGhl
-IHJpZ2h0IHRoaW5nIHRvIGRvLgoKVGhhbmtzLAoKCXRnbHgKX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3Rz
-LmxpbmFyby5vcmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIw
-MzgK
+On Fri, Nov 17, 2017 at 10:54 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Fri, 17 Nov 2017, Arnd Bergmann wrote:
+>> On Fri, Nov 17, 2017 at 9:58 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+>>
+>> No, syscall that existing 32-bit user space enters would be handled by
+>> compat_sys_nanosleep() on both 32-bit and 64-bit kernels at that
+>> point. The idea here is to make the code path more uniform between
+>> 32-bit and 64-bit kernels.
+>
+> So on a 32bit system compat_sys_nanosleep() would be the legacy
+> sys_nanosleep() with the existing syscall number, but you don't want to
+> introduce a new sys_nanosleep64() for 32bit. That makes a lot of sense.
+>
+> So back to your original question whether to use #if (MAGIC logic) or a
+> separate config symbol. Please use the latter, these magic logic constructs
+> are harder to read and prone to get wrong at some point. Having the
+> decision logic in one place is always the right thing to do.
+
+How about this:
+
+config LEGACY_TIME_SYSCALLS
+      def_bool 64BIT || !64BIT_TIME
+      help
+        This controls the compilation of the following system calls:
+time, stime,
+        gettimeofday, settimeofday, adjtimex, nanosleep, alarm, getitimer,
+        setitimer, select, utime, utimes, futimesat, and
+{old,new}{l,f,}stat{,64}.
+        These all pass 32-bit time_t arguments on 32-bit architectures and
+        are replaced by other interfaces (e.g. posix timers and clocks, statx).
+        C libraries implementing 64-bit time_t in 32-bit architectures have to
+        implement the handles by wrapping around the newer interfaces.
+        New architectures should not explicitly disable this.
+
+       Arnd
