@@ -1,56 +1,54 @@
-From: Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Subject: Re: [RFC PATCH 1/2] mm: introduce MAP_FIXED_SAFE
-Date: Fri, 17 Nov 2017 11:12:51 -0800
-Message-ID: <20171117191251.GA1601@bombadil.infradead.org>
-References: <20171116101900.13621-1-mhocko@kernel.org>
- <20171116101900.13621-2-mhocko@kernel.org>
- <CAGXu5jKssQCcYcZujvQeFy5LTzhXSW=f-a0riB=4+caT1i38BQ@mail.gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: Fwd: FW: [PATCH 18/31] nds32: Library functions
+Date: Sat, 18 Nov 2017 02:44:36 +0000
+Message-ID: <20171118024436.GR21978@ZenIV.linux.org.uk>
+References: <cover.1510118606.git.green.hu@gmail.com>
+ <ea57a25c0aceab45d36951fed44cfbecfe1540b8.1510118606.git.green.hu@gmail.com>
+ <20171109004020.GX21978@ZenIV.linux.org.uk>
+ <E26F4CF8B7DDDB4383A6C2D78D5C3CD56B497559@ATCPCS16.andestech.com>
+ <CAJsyPhx+tRHWrvJg4Dr4QEEHtOy8jXAU2aP2=hHhmTmG3FsO9A@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:42868 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S937367AbdKRCor (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Nov 2017 21:44:47 -0500
 Content-Disposition: inline
-In-Reply-To: <CAGXu5jKssQCcYcZujvQeFy5LTzhXSW=f-a0riB=4+caT1i38BQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>
-Cc: Michal Hocko <mhocko-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Khalid Aziz <khalid.aziz-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Russell King - ARM Linux <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, Andrea Arcangeli <aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Linux-MM <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Michal Hocko <mhocko-IBi9RG/b67k@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <CAJsyPhx+tRHWrvJg4Dr4QEEHtOy8jXAU2aP2=hHhmTmG3FsO9A@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vincent Chen <deanbo422@gmail.com>
+Cc: viro@ftp.linux.org.uk, greentime@andestech.com, Green Hu <green.hu@gmail.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, vincentc@andestech.com
 
-On Thu, Nov 16, 2017 at 04:27:36PM -0800, Kees Cook wrote:
-> On Thu, Nov 16, 2017 at 2:18 AM, Michal Hocko <mhocko-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org> wrote:
-> > From: Michal Hocko <mhocko-IBi9RG/b67k@public.gmane.org>
-> >
-> > MAP_FIXED is used quite often to enforce mapping at the particular
-> > range. The main problem of this flag is, however, that it is inherently
-> > dangerous because it unmaps existing mappings covered by the requested
-> > range. This can cause silent memory corruptions. Some of them even with
-> > serious security implications. While the current semantic might be
-> > really desiderable in many cases there are others which would want to
-> > enforce the given range but rather see a failure than a silent memory
-> > corruption on a clashing range. Please note that there is no guarantee
-> > that a given range is obeyed by the mmap even when it is free - e.g.
-> > arch specific code is allowed to apply an alignment.
-> >
-> > Introduce a new MAP_FIXED_SAFE flag for mmap to achieve this behavior.
-> > It has the same semantic as MAP_FIXED wrt. the given address request
-> > with a single exception that it fails with ENOMEM if the requested
-> > address is already covered by an existing mapping. We still do rely on
-> > get_unmaped_area to handle all the arch specific MAP_FIXED treatment and
-> > check for a conflicting vma after it returns.
-> 
-> I like this much more than special-casing the ELF loader. It is an
-> unusual property that MAP_FIXED does _two_ things, so I like having
-> this split out.
-> 
-> Bikeshedding: maybe call this MAP_NO_CLOBBER? It's a modifier to
-> MAP_FIXED, really...
+On Tue, Nov 14, 2017 at 12:47:04PM +0800, Vincent Chen wrote:
 
-Way back when, I proposed a new flag called MAP_FIXED_WEAK.  I was
-dissuaded from it when userspace people said it was just as easy for
-them to provide the address hint, then run fixups on their data if the
-address they were assigned wasn't the one they asked for.
+> Thanks
+> So, I should keep the area that we've copied into instead of zeroing
+> the area even if unpredicted exception is happened. Right?
 
-The real problem is that MAP_FIXED should have been called MAP_FORCE.
+Yes.  Here's what's required: if raw_copy_{from,to}_user(from, to, size)
+returns n, we want
+	* 0 <= n <= size
+	* no bytes outside of to[0 .. size - n - 1] modified
+	* all bytes in that range replaced with corresponding bytes of range
+from[0 .. size - n - 1]
+	* non-zero return values should happen only when some loads (in case
+of raw_copy_from_user()) or stores (in case of raw_copy_to_user()) had failed.
+If everything could have been read and written, we must copy everything.
+	* return value should be equal to size only if no load or no store
+had been possible.  In all other cases you need to copy at least something.
+You don't have to squeeze all bytes that can be copied (you can, of course,
+but it's not required).
+	* you should not assume that failing load guarantees that subsequent
+loads further into the same page will keep failing; normally they will, but
+relying upon that is asking for trouble.  Several architectures had bugs
+of that sort, with varying amounts of nastiness happening when e.g. write(2)
+raced with mprotect(2) from another thread...
 
-So ... do we really have users that want failure instead of success at
-a different address?  And if so, is it really a hardship for them to
-make a call to unmap on success-at-the-wrong-address?
+For almost any architecture these should be more or less parallel to memcpy();
+the only exception I know of is the situation when cross-address-space copy
+has timing very different from that for normal load+store.  s390 is that
+way - there's considerable overhead of setting such copying, and you really
+want it done in bigger chunks than would be optimal for memcpy().  uml is
+similar.  However, generally it's memcpy tweaked to deal with exceptions.
