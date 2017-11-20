@@ -1,87 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:52598 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:54609 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750790AbdKTIna (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Nov 2017 03:43:30 -0500
-Date: Mon, 20 Nov 2017 09:43:27 +0100
+        id S1751121AbdKTJCl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Nov 2017 04:02:41 -0500
+Date: Mon, 20 Nov 2017 10:02:39 +0100
 From: Michal Hocko <mhocko@kernel.org>
 Subject: Re: [RFC PATCH 1/2] mm: introduce MAP_FIXED_SAFE
-Message-ID: <20171120084327.c2a2wibn6c2yjdfk@dhcp22.suse.cz>
+Message-ID: <20171120090239.zsm5jmgn6bvo62kg@dhcp22.suse.cz>
 References: <20171116101900.13621-1-mhocko@kernel.org>
  <20171116101900.13621-2-mhocko@kernel.org>
- <CAGXu5jKssQCcYcZujvQeFy5LTzhXSW=f-a0riB=4+caT1i38BQ@mail.gmail.com>
- <20171117191251.GA1601@bombadil.infradead.org>
+ <be5c9478-3e03-9a1d-525c-31c904b667d8@nvidia.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20171117191251.GA1601@bombadil.infradead.org>
+In-Reply-To: <be5c9478-3e03-9a1d-525c-31c904b667d8@nvidia.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Kees Cook <keescook@chromium.org>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20171120084327.3tG_UqUOtqSFiExwzWw3RjhQyYEBibu-aJWhtYI7rCc@z>
+To: John Hubbard <jhubbard@nvidia.com>
+Cc: linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20171120090239.4Fbz-XRGXrzCcY_fhzbvPOtEgDIPa7_MBEwRVl_2WN0@z>
 
-On Fri 17-11-17 11:12:51, Matthew Wilcox wrote:
-> On Thu, Nov 16, 2017 at 04:27:36PM -0800, Kees Cook wrote:
-> > On Thu, Nov 16, 2017 at 2:18 AM, Michal Hocko <mhocko@kernel.org> wrote:
-> > > From: Michal Hocko <mhocko@suse.com>
-> > >
-> > > MAP_FIXED is used quite often to enforce mapping at the particular
-> > > range. The main problem of this flag is, however, that it is inherently
-> > > dangerous because it unmaps existing mappings covered by the requested
-> > > range. This can cause silent memory corruptions. Some of them even with
-> > > serious security implications. While the current semantic might be
-> > > really desiderable in many cases there are others which would want to
-> > > enforce the given range but rather see a failure than a silent memory
-> > > corruption on a clashing range. Please note that there is no guarantee
-> > > that a given range is obeyed by the mmap even when it is free - e.g.
-> > > arch specific code is allowed to apply an alignment.
-> > >
-> > > Introduce a new MAP_FIXED_SAFE flag for mmap to achieve this behavior.
-> > > It has the same semantic as MAP_FIXED wrt. the given address request
-> > > with a single exception that it fails with ENOMEM if the requested
-> > > address is already covered by an existing mapping. We still do rely on
-> > > get_unmaped_area to handle all the arch specific MAP_FIXED treatment and
-> > > check for a conflicting vma after it returns.
-> > 
-> > I like this much more than special-casing the ELF loader. It is an
-> > unusual property that MAP_FIXED does _two_ things, so I like having
-> > this split out.
-> > 
-> > Bikeshedding: maybe call this MAP_NO_CLOBBER? It's a modifier to
-> > MAP_FIXED, really...
+On Fri 17-11-17 00:37:18, John Hubbard wrote:
+> On 11/16/2017 02:18 AM, Michal Hocko wrote:
+[...]
+> > diff --git a/arch/powerpc/include/uapi/asm/mman.h b/arch/powerpc/include/uapi/asm/mman.h
+> > index 03c06ba7464f..d97342ca25b1 100644
+> > --- a/arch/powerpc/include/uapi/asm/mman.h
+> > +++ b/arch/powerpc/include/uapi/asm/mman.h
+> > @@ -28,5 +28,6 @@
+> >  #define MAP_NONBLOCK	0x10000		/* do not block on IO */
+> >  #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
+> >  #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
+> > +#define MAP_FIXED_SAFE	0x800000	/* MAP_FIXED which doesn't unmap underlying mapping */
+>  
+> 
+> Hi Michal,
+> 
+> 1. The powerpc change, above, has one too many zeroes. It should be 0x80000, 
+> not 0x800000.
 
-Unfortunatelly doing this as an extension wouldn't work due to backward
-compatibility issues. See [1]
+OK, I will fix it. It shouldn't matter much, because we only care about
+non-clashing address but I agree that we should consume them from bottom
+bits.
+
+> 2. For the one-line comments, if you phrase them like this:
+> 
+> /* Like MAP_FIXED, except that it doesn't unmap pre-existing mappings */
+> 
+> ...I think that would be a little clearer.
+
+I do not have any strong preference here.
+[...]
+> > diff --git a/mm/mmap.c b/mm/mmap.c
+> > index 680506faceae..89af0b5839a5 100644
+> > --- a/mm/mmap.c
+> > +++ b/mm/mmap.c
+> > @@ -1342,6 +1342,10 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
+> >  		if (!(file && path_noexec(&file->f_path)))
+> >  			prot |= PROT_EXEC;
+> >  
+> > +	/* force arch specific MAP_FIXED handling in get_unmapped_area */
+> > +	if (flags & MAP_FIXED_SAFE)
+> > +		flags |= MAP_FIXED;
+> 
+> Hooking in at this point is a nice way to solve the problem. :)
+> 
+> For the naming and implementation, I see a couple of things that might improve
+> it slightly:
+> 
+> a) Change MAP_FIXED_SAFE to MAP_NO_CLOBBER (as per Kees' idea), but keep the
+> new flag independent, by omitting the above two lines. Instead of forcing
+> MAP_FIXED as a result of the new flag, you could simply fail to take any action
+> on MAP_NO_CLOBBER *unless* MAP_FIXED is set.
+> 
+> This is a bit easier to explain and reason about, as compared to a flag that
+> auto-sets another flag. I like this approach best.
+
+As I've exaplained in other email I do not think we can make this a
+modifier.
  
-> Way back when, I proposed a new flag called MAP_FIXED_WEAK.  I was
-> dissuaded from it when userspace people said it was just as easy for
-> them to provide the address hint, then run fixups on their data if the
-> address they were assigned wasn't the one they asked for.
+>   or
 > 
-> The real problem is that MAP_FIXED should have been called MAP_FORCE.
-> 
-> So ... do we really have users that want failure instead of success at
-> a different address?
+> b) Change MAP_FIXED_SAFE to MAP_FIXED_NO_CLOBBER (also a variation on Kees' name
+> idea, but a little longer, a bit uglier, and clearer), and leave the implementation
+> the same.
 
-I am not really sure but Michael has pointed out to jemalloc [2] which
-could probably use it.
+I do not have a _strong_ preference on the name itself. But I think that
+_SAFE reflects the behavior slightly better because _NO_CLOBBER is not
+very specific _when_ and _what_ we do not clobber while _SAFE is clear
+on that it doesn't perform any unsafe operations.
 
-> And if so, is it really a hardship for them to
-> make a call to unmap on success-at-the-wrong-address?
-
-How do you do something like that safely in a multithreaded environment?
-You do not have any safe way to do atomic probe of a memory range.
-
-As I've said, I do not insist on exporting this functionality to the
-userspace. I can make it an internal flag (outside of the map type) and
-use it solely in the kernel but considering how MAP_FIXED is tricky I
-wouldn't be surprised if the userspace can find a use for this. The main
-question is, are there any downsides to do so?
-
-[1] http://lkml.kernel.org/r/20171114092916.ho5mvwc23xnelmod@dhcp22.suse.cz
-[2] http://lkml.kernel.org/r/87efp1w7vy.fsf@concordia.ellerman.id.au
-
+But if the majority think that _NO_CLOBBER is better i will change it.
 -- 
 Michal Hocko
 SUSE Labs
