@@ -1,117 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:43460 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751565AbdKVDCF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Nov 2017 22:02:05 -0500
+Received: from mail-io0-f196.google.com ([209.85.223.196]:44157 "EHLO
+        mail-io0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751079AbdKVFpf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Nov 2017 00:45:35 -0500
 MIME-Version: 1.0
-In-Reply-To: <20171120142925.GC32488@arm.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <b13577a068afb71e87e21598f59733f127814f37.1510118606.git.green.hu@gmail.com>
- <20171120142925.GC32488@arm.com>
+In-Reply-To: <CAJsyPhzbt61Tp2URKqNfOA0Q5epr5FMHZKR7stLvcDqwWoGcrA@mail.gmail.com>
+References: <CAJsyPhzbt61Tp2URKqNfOA0Q5epr5FMHZKR7stLvcDqwWoGcrA@mail.gmail.com>
 From: Vincent Chen <deanbo422@gmail.com>
-Date: Wed, 22 Nov 2017 11:02:03 +0800
-Message-ID: <CAJsyPhz6=HmSaJ-9t8Zwa3sRuL5bHvHgzMS2EA7pqCDfK_1gqA@mail.gmail.com>
-Subject: Re: [PATCH 11/31] nds32: Atomic operations
+Date: Wed, 22 Nov 2017 13:45:34 +0800
+Message-ID: <CAJsyPhw9B_JR+G4-gJG1HnjtykPA6KHRhkkGn2m87FkHYs597w@mail.gmail.com>
+Subject: Re: FW: [PATCH 24/31] nds32: Miscellaneous header files
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, Vincent Chen <vincentc@andestech.com>, peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Message-ID: <20171122030203.UdjuIUBbaIBmVS51MSaemRps2YDy9U44ORi9Pi5hF8U@z>
+To: Arnd Bergmann <arndbergmann@gmail.com>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Green Hu <green.hu@gmail.com>
+Message-ID: <20171122054534.-zDMEEWbhFgqBl--nxIp6DEvE-fFpCjKF7DbGY88Vd4@z>
 
-2017-11-20 22:29 GMT+08:00 Will Deacon <will.deacon@arm.com>:
-> Hi Greentime,
->
-> On Wed, Nov 08, 2017 at 01:54:59PM +0800, Greentime Hu wrote:
->> From: Greentime Hu <greentime@andestech.com>
+2017-11-09 18:42 GMT+08:00 Vincent Chen <deanbo422@gmail.com>:
+>>>On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>>> +
+>>> +static inline void __delay(unsigned long loops) {
+>>> +       __asm__ __volatile__(".align 2\n"
+>>> +                            "1:\n"
+>>> +                            "\taddi\t%0, %0, -1\n"
+>>> +                            "\tbgtz\t%0, 1b\n"
+>>> +                            :"=r"(loops)
+>>> +                            :"0"(loops)); }
 >>
->> Signed-off-by: Vincent Chen <vincentc@andestech.com>
->> Signed-off-by: Greentime Hu <greentime@andestech.com>
->> ---
->>  arch/nds32/include/asm/futex.h    |  116 ++++++++++++++++++++++++
->>  arch/nds32/include/asm/spinlock.h |  178 +++++++++++++++++++++++++++++++++++++
->>  2 files changed, 294 insertions(+)
->>  create mode 100644 arch/nds32/include/asm/futex.h
->>  create mode 100644 arch/nds32/include/asm/spinlock.h
+>> Does the architecture define a high-resolution clock source? If yes, then it's better to use that to get exact timing than to rely on the loop calibration.
+>>
+> Dear Arnd:
 >
-> [...]
+> Thanks.
+> I will modify it in the next version patch.
 >
->> +static inline int
->> +futex_atomic_cmpxchg_inatomic(u32 * uval, u32 __user * uaddr,
->> +                           u32 oldval, u32 newval)
->> +{
->> +     int ret = 0;
->> +     u32 val, tmp, flags;
->> +
->> +     if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
->> +             return -EFAULT;
->> +
->> +     smp_mb();
->> +     asm volatile ("       movi    $ta, #0\n"
->> +                   "1:     llw     %1, [%6 + $ta]\n"
->> +                   "       sub     %3, %1, %4\n"
->> +                   "       cmovz   %2, %5, %3\n"
->> +                   "       cmovn   %2, %1, %3\n"
->> +                   "2:     scw     %2, [%6 + $ta]\n"
->> +                   "       beqz    %2, 1b\n"
->> +                   "3:\n                   " __futex_atomic_ex_table("%7")
->> +                   :"+&r"(ret), "=&r"(val), "=&r"(tmp), "=&r"(flags)
->> +                   :"r"(oldval), "r"(newval), "r"(uaddr), "i"(-EFAULT)
->> +                   :"$ta", "memory");
->> +     smp_mb();
->> +
->> +     *uval = val;
->> +     return ret;
->> +}
->
-> I see you rely on asm-generic/barrier.h for your barrier definitions, which
-> suggests that you only need to prevent reordering by the compiler because
-> you're not SMP. Is that right? If so, using smp_mb() is a little weird.
->
+Sorry.
+Our architecture does not define a high-resolution clock source.
+At that time, I promised you because I thought maybe I can use SOC
+defined clock source to replace it.
+For portability, It is a terrible method.
+ we will keep the original implementation for __delay() in the next
+version patch.
 
-Thanks.
-So, Is it better to replace smp_mb() with mb() for us?
-
-
-> What about DMA transactions? I imagine you might need some extra
-> instructions for the mandatory barriers there.
->
-
-I don't get it. Do you mean before DMA transations?
-
-Data are moved from memory to device, we will writeback data cache
-before DMA transactions.
-
-Data are moved from device to memory, we will invalidate data cache
-after DMA transactions.
-
-
-
-> Also:
->
->> +static inline void arch_spin_lock(arch_spinlock_t * lock)
->> +{
->> +     unsigned long tmp;
->> +
->> +     __asm__ __volatile__("1:\n"
->> +                          "\tllw\t%0, [%1]\n"
->> +                          "\tbnez\t%0, 1b\n"
->> +                          "\tmovi\t%0, #0x1\n"
->> +                          "\tscw\t%0, [%1]\n"
->> +                          "\tbeqz\t%0, 1b\n"
->> +                          :"=&r"(tmp)
->> +                          :"r"(&lock->lock)
->> +                          :"memory");
->> +}
->
-> Here it looks like you're eliding an explicit barrier here because you
-> already have a "memory" clobber. Can't you do the same for the futex code
-> above?
->
-Thanks.
-OK. I will modify it in the next version patch.
-
-> Will
-
-
-Best regards
 Vincent
+>>> +/*
+>>> + * This file is generally used by user-level software, so you need to
+>>> + * be a little careful about namespace pollution etc.  Also, we
+>>> +cannot
+>>> + * assume GCC is being used.
+>>> + */
+>>> +
+>>> +typedef unsigned short __kernel_mode_t; #define __kernel_mode_t
+>>> +__kernel_mode_t
+>>> +
+>>> +typedef unsigned short __kernel_ipc_pid_t; #define __kernel_ipc_pid_t
+>>> +__kernel_ipc_pid_t
+>>> +
+>>> +typedef unsigned short __kernel_uid_t; typedef unsigned short
+>>> +__kernel_gid_t; #define __kernel_uid_t __kernel_uid_t
+>>> +
+>>> +typedef unsigned short __kernel_old_dev_t; #define __kernel_old_dev_t
+>>> +__kernel_old_dev_t
+>>> +
+>>> +#include <asm-generic/posix_types.h>
+>>
+>> I don't understand why you would want to override any of those.
+>> Changing them unfortunately means rebuilding all of your user space, but I think it would be better to do that now than to suffer from this later on.
+>>
+>>     Arnd
+>
+> Thanks.
+> I will remove them in the next version patch.
+>
+> Best regards
+> Vincent
