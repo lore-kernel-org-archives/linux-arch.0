@@ -1,112 +1,135 @@
 From: Vincent Chen <deanbo422@gmail.com>
-Subject: Re: [PATCH 11/31] nds32: Atomic operations
-Date: Wed, 22 Nov 2017 11:02:03 +0800
-Message-ID: <CAJsyPhz6=HmSaJ-9t8Zwa3sRuL5bHvHgzMS2EA7pqCDfK_1gqA@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <b13577a068afb71e87e21598f59733f127814f37.1510118606.git.green.hu@gmail.com>
- <20171120142925.GC32488@arm.com>
+Subject: Re: FW: [PATCH 15/31] nds32: System calls handling
+Date: Wed, 22 Nov 2017 11:13:47 +0800
+Message-ID: <CAJsyPhx49fwmJZmj99ZsqCn7fTemxGB=e=r_-3+rwx_iQux-TA@mail.gmail.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <61b5cd5e7f2cf2f485a990cdf238788b817a1d53.1510118606.git.green.hu@gmail.com>
+ <CAK8P3a33noF5+QCe8QsDVb+xpCtgSs-HDUTrO-C3NT0M4W4KUg@mail.gmail.com>
+ <E26F4CF8B7DDDB4383A6C2D78D5C3CD56B497241@ATCPCS16.andestech.com>
+ <CAJsyPhzVyV43-N4R+ckXVauceCoeXK24P9Swup2_kpbL866naQ@mail.gmail.com> <CAK8P3a0nLTbTE4SuRPVSDKzeOs0TCejfhDA1RccmYVPyWdiHHQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20171120142925.GC32488@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, Vincent Chen <vincentc@andestech.com>, peterz@infradead.org, paulmck@linux.vnet.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-it0-f65.google.com ([209.85.214.65]:34829 "EHLO
+        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751590AbdKVDNt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Nov 2017 22:13:49 -0500
+In-Reply-To: <CAK8P3a0nLTbTE4SuRPVSDKzeOs0TCejfhDA1RccmYVPyWdiHHQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
 
-2017-11-20 22:29 GMT+08:00 Will Deacon <will.deacon@arm.com>:
-> Hi Greentime,
+2017-11-13 19:42 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Mon, Nov 13, 2017 at 3:51 AM, Vincent Chen <deanbo422@gmail.com> wrote:
+>>>>On Wed, Nov 8, 2017 at 6:55 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>>>> From: Greentime Hu <greentime@andestech.com>
 >
-> On Wed, Nov 08, 2017 at 01:54:59PM +0800, Greentime Hu wrote:
->> From: Greentime Hu <greentime@andestech.com>
 >>
->> Signed-off-by: Vincent Chen <vincentc@andestech.com>
->> Signed-off-by: Greentime Hu <greentime@andestech.com>
->> ---
->>  arch/nds32/include/asm/futex.h    |  116 ++++++++++++++++++++++++
->>  arch/nds32/include/asm/spinlock.h |  178 +++++++++++++++++++++++++++++++++++++
->>  2 files changed, 294 insertions(+)
->>  create mode 100644 arch/nds32/include/asm/futex.h
->>  create mode 100644 arch/nds32/include/asm/spinlock.h
+>>>> +#define __ARCH_WANT_SYS_CLONE
+>>>
+>>>This seems ok, though it would be nice to have the reverse logic and have architectures opt-out of the generic version when they need to provide their own, rather than having most architectures set it.
+>>>
+>>
+>> Thanks
+>> I will provide nds32 SYSCALL_DEFINE_5(clone) in the next version patch.
 >
-> [...]
+> That's not what I meant, my suggestion is to create a new patch to remove the
+> __ARCH_WANT_SYS_CLONE symbol from all architectures, and instead use
+> something like __ARCH_HAVE_SYS_CLONE on architectures that do *not*
+> want the generic implementation.
 >
->> +static inline int
->> +futex_atomic_cmpxchg_inatomic(u32 * uval, u32 __user * uaddr,
->> +                           u32 oldval, u32 newval)
->> +{
->> +     int ret = 0;
->> +     u32 val, tmp, flags;
->> +
->> +     if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
->> +             return -EFAULT;
->> +
->> +     smp_mb();
->> +     asm volatile ("       movi    $ta, #0\n"
->> +                   "1:     llw     %1, [%6 + $ta]\n"
->> +                   "       sub     %3, %1, %4\n"
->> +                   "       cmovz   %2, %5, %3\n"
->> +                   "       cmovn   %2, %1, %3\n"
->> +                   "2:     scw     %2, [%6 + $ta]\n"
->> +                   "       beqz    %2, 1b\n"
->> +                   "3:\n                   " __futex_atomic_ex_table("%7")
->> +                   :"+&r"(ret), "=&r"(val), "=&r"(tmp), "=&r"(flags)
->> +                   :"r"(oldval), "r"(newval), "r"(uaddr), "i"(-EFAULT)
->> +                   :"$ta", "memory");
->> +     smp_mb();
->> +
->> +     *uval = val;
->> +     return ret;
->> +}
+> nds32 clearly wants the generic implementation here, it just shouldn't have to
+> select that symbol to get it.
 >
-> I see you rely on asm-generic/barrier.h for your barrier definitions, which
-> suggests that you only need to prevent reordering by the compiler because
-> you're not SMP. Is that right? If so, using smp_mb() is a little weird.
+>>>> +/*
+>>>> + * Special system call wrappers
+>>>> + *
+>>>> + * $r0 = syscall number
+>>>> + * $r8 = syscall table
+>>>> + */
+>>>> +       .type   sys_syscall, #function
+>>>> +ENTRY(sys_syscall)
+>>>> +       addi    $p1, $r0, #-__NR_syscalls
+>>>> +       bgtz    $p1, 3f
+>>>> +       move    $p1, $r0
+>>>> +       move    $r0, $r1
+>>>> +       move    $r1, $r2
+>>>> +       move    $r2, $r3
+>>>> +       move    $r3, $r4
+>>>> +       move    $r4, $r5
+>>>> +! add for syscall 6 args
+>>>> +       lwi     $r5, [$sp + #SP_OFFSET ]
+>>>> +       lwi     $r5, [$r5]
+>>>> +! ~add for syscall 6 args
+>>>> +
+>>>> +       lw      $p1, [tbl+$p1<<2]
+>>>> .+       jr      $p1
+>>>> +3:     b       sys_ni_syscall
+>>>> +ENDPROC(sys_syscall)
+>>>
+>>>Can you explain what this is used for?
+>>>
+>>
+>> This is used to handle syscall(int number, ....).
+>> Unlike other architectures,  the system number shall be determined in
+>> compile time when issuing system call in nds32.
+>> Therefore, we  only can parse the content of syscall(int number, ....)
+>> and distribute it to destination handler in kernel space
+>> (Other architecture can handle it in user space by glibc's syscall wrapper)
+>
+> Hmm, I think other architectures that run into this problem use self-modifying
+> code for syscall(), but that is also ugly as it requires having a page that
+> is both writable and executable.
+>
+> I think your approach can be tricky for things like seccomp(). It's possible
+> that you get all of it right, but if you can come up with a different solution,
+> that might be better.
+>
+> How much would it cost to simply always pass the syscall number
+> in a register, and not use the immediate argument at all?
 >
 
-Thanks.
-So, Is it better to replace smp_mb() with mb() for us?
+After re-evaluating the performance, we decide to use a particular
+register to transfer syscall number
+instead of immediate argument. So, above sys_syscall will be removed
+in the next version patch
+
+Thanks
 
 
-> What about DMA transactions? I imagine you might need some extra
-> instructions for the mandatory barriers there.
+>>>> --- /dev/null
+>>>> +++ b/arch/nds32/kernel/sys_nds32.c
+>>>> +
+>>>> +long sys_mmap2(unsigned long addr, unsigned long len,
+>>>> +              unsigned long prot, unsigned long flags,
+>>>> +              unsigned long fd, unsigned long pgoff) {
+>>>> +       if (pgoff & (~PAGE_MASK >> 12))
+>>>> +               return -EINVAL;
+>>>> +
+>>>> +       return sys_mmap_pgoff(addr, len, prot, flags, fd,
+>>>> +                             pgoff >> (PAGE_SHIFT - 12)); }
+>>>> +
+>>>> +asmlinkage long sys_fadvise64_64_wrapper(int fd, int advice, loff_t offset,
+>>>> +                                        loff_t len) {
+>>>> +       return sys_fadvise64_64(fd, offset, len, advice); }
+>>>
+>>>You should always use SYSCALL_DEFINE*() macros to define entry points for your own syscalls in C code for consistency. I also wonder if we should just move those two into common code, a lot of architectures need the first one in particular.
+>>>
+>>
+>> The sys_fadvise64_64_wrapper is used to reorder the input parameter.
+>>
+>> In order to solve register alignment problem, we adjust the input
+>> parameter order of fadvise64_64 while issuing this syscall.
+>> Therefore, we need this wrapper to reorder the input parameter to fit
+>> sys_fadvise64_64's API in kernel.
 >
-
-I don't get it. Do you mean before DMA transations?
-
-Data are moved from memory to device, we will writeback data cache
-before DMA transactions.
-
-Data are moved from device to memory, we will invalidate data cache
-after DMA transactions.
-
-
-
-> Also:
+> I understand what it's used for, it's just that I would recommend writing it
+> differently, as
 >
->> +static inline void arch_spin_lock(arch_spinlock_t * lock)
->> +{
->> +     unsigned long tmp;
->> +
->> +     __asm__ __volatile__("1:\n"
->> +                          "\tllw\t%0, [%1]\n"
->> +                          "\tbnez\t%0, 1b\n"
->> +                          "\tmovi\t%0, #0x1\n"
->> +                          "\tscw\t%0, [%1]\n"
->> +                          "\tbeqz\t%0, 1b\n"
->> +                          :"=&r"(tmp)
->> +                          :"r"(&lock->lock)
->> +                          :"memory");
->> +}
+> SYSCALL_DEFINE4(fadvise64_64_wrapper, int, fd, int, advice, loff_t,
+> offset, loff_t, len)
+> {
+>        return sys_fadvise64_64(fd, offset, len, advice);
+> }
 >
-> Here it looks like you're eliding an explicit barrier here because you
-> already have a "memory" clobber. Can't you do the same for the futex code
-> above?
->
-Thanks.
-OK. I will modify it in the next version patch.
-
-> Will
-
-
-Best regards
-Vincent
+>       Arnd
