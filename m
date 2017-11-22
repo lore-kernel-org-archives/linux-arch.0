@@ -1,216 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:56588 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751221AbdKUOT4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Nov 2017 09:19:56 -0500
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [RFC PATCH for 4.15 18/22] membarrier: selftest: Test private expedited cmd
-Date: Tue, 21 Nov 2017 09:18:56 -0500
-Message-ID: <20171121141900.18471-19-mathieu.desnoyers@efficios.com>
-In-Reply-To: <20171121141900.18471-1-mathieu.desnoyers@efficios.com>
-References: <20171121141900.18471-1-mathieu.desnoyers@efficios.com>
+Received: from mail-it0-f65.google.com ([209.85.214.65]:43460 "EHLO
+        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751565AbdKVDCF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Nov 2017 22:02:05 -0500
+MIME-Version: 1.0
+In-Reply-To: <20171120142925.GC32488@arm.com>
+References: <cover.1510118606.git.green.hu@gmail.com> <b13577a068afb71e87e21598f59733f127814f37.1510118606.git.green.hu@gmail.com>
+ <20171120142925.GC32488@arm.com>
+From: Vincent Chen <deanbo422@gmail.com>
+Date: Wed, 22 Nov 2017 11:02:03 +0800
+Message-ID: <CAJsyPhz6=HmSaJ-9t8Zwa3sRuL5bHvHgzMS2EA7pqCDfK_1gqA@mail.gmail.com>
+Subject: Re: [PATCH 11/31] nds32: Atomic operations
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Dave Watson <davejwatson@fb.com>
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Paul Turner <pjt@google.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrew Hunter <ahh@google.com>, Andi Kleen <andi@firstfloor.org>, Chris Lameter <cl@linux.com>, Ben Maurer <bmaurer@fb.com>, Steven Rostedt <rostedt@goodmis.org>, Josh Triplett <josh@joshtriplett.org>, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Alan Stern <stern@rowland.harvard.edu>, Andy Lutomirski <luto@kernel.org>, Alice Ferrazzi <alice.ferrazzi@gmail.com>, Paul Elder <paul.elder@pitt.edu>, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20171121141856.tba7jD9qLpaLOJpFFq8bnSd0ovJQzlKEBT_-oS8WZn0@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, Vincent Chen <vincentc@andestech.com>, peterz@infradead.org, paulmck@linux.vnet.ibm.com
+Message-ID: <20171122030203.UdjuIUBbaIBmVS51MSaemRps2YDy9U44ORi9Pi5hF8U@z>
 
-Test the new MEMBARRIER_CMD_PRIVATE_EXPEDITED and
-MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED commands.
+2017-11-20 22:29 GMT+08:00 Will Deacon <will.deacon@arm.com>:
+> Hi Greentime,
+>
+> On Wed, Nov 08, 2017 at 01:54:59PM +0800, Greentime Hu wrote:
+>> From: Greentime Hu <greentime@andestech.com>
+>>
+>> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+>> Signed-off-by: Greentime Hu <greentime@andestech.com>
+>> ---
+>>  arch/nds32/include/asm/futex.h    |  116 ++++++++++++++++++++++++
+>>  arch/nds32/include/asm/spinlock.h |  178 +++++++++++++++++++++++++++++++++++++
+>>  2 files changed, 294 insertions(+)
+>>  create mode 100644 arch/nds32/include/asm/futex.h
+>>  create mode 100644 arch/nds32/include/asm/spinlock.h
+>
+> [...]
+>
+>> +static inline int
+>> +futex_atomic_cmpxchg_inatomic(u32 * uval, u32 __user * uaddr,
+>> +                           u32 oldval, u32 newval)
+>> +{
+>> +     int ret = 0;
+>> +     u32 val, tmp, flags;
+>> +
+>> +     if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
+>> +             return -EFAULT;
+>> +
+>> +     smp_mb();
+>> +     asm volatile ("       movi    $ta, #0\n"
+>> +                   "1:     llw     %1, [%6 + $ta]\n"
+>> +                   "       sub     %3, %1, %4\n"
+>> +                   "       cmovz   %2, %5, %3\n"
+>> +                   "       cmovn   %2, %1, %3\n"
+>> +                   "2:     scw     %2, [%6 + $ta]\n"
+>> +                   "       beqz    %2, 1b\n"
+>> +                   "3:\n                   " __futex_atomic_ex_table("%7")
+>> +                   :"+&r"(ret), "=&r"(val), "=&r"(tmp), "=&r"(flags)
+>> +                   :"r"(oldval), "r"(newval), "r"(uaddr), "i"(-EFAULT)
+>> +                   :"$ta", "memory");
+>> +     smp_mb();
+>> +
+>> +     *uval = val;
+>> +     return ret;
+>> +}
+>
+> I see you rely on asm-generic/barrier.h for your barrier definitions, which
+> suggests that you only need to prevent reordering by the compiler because
+> you're not SMP. Is that right? If so, using smp_mb() is a little weird.
+>
 
-Add checks expecting specific error values on system calls expected to
-fail.
+Thanks.
+So, Is it better to replace smp_mb() with mb() for us?
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Acked-by: Shuah Khan <shuahkh@osg.samsung.com>
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-CC: Peter Zijlstra <peterz@infradead.org>
-CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-CC: Boqun Feng <boqun.feng@gmail.com>
-CC: Andrew Hunter <ahh@google.com>
-CC: Maged Michael <maged.michael@gmail.com>
-CC: Avi Kivity <avi@scylladb.com>
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-CC: Paul Mackerras <paulus@samba.org>
-CC: Michael Ellerman <mpe@ellerman.id.au>
-CC: Dave Watson <davejwatson@fb.com>
-CC: Alan Stern <stern@rowland.harvard.edu>
-CC: Will Deacon <will.deacon@arm.com>
-CC: Andy Lutomirski <luto@kernel.org>
-CC: Alice Ferrazzi <alice.ferrazzi@gmail.com>
-CC: Paul Elder <paul.elder@pitt.edu>
-CC: linux-kselftest@vger.kernel.org
-CC: linux-arch@vger.kernel.org
----
-Changes since v1:
-- return result of ksft_exit_pass from main(), silencing compiler
-  warning about missing return value.
----
- .../testing/selftests/membarrier/membarrier_test.c | 111 ++++++++++++++++++---
- 1 file changed, 95 insertions(+), 16 deletions(-)
 
-diff --git a/tools/testing/selftests/membarrier/membarrier_test.c b/tools/testing/selftests/membarrier/membarrier_test.c
-index 9e674d9514d1..e6ee73d01fa1 100644
---- a/tools/testing/selftests/membarrier/membarrier_test.c
-+++ b/tools/testing/selftests/membarrier/membarrier_test.c
-@@ -16,49 +16,119 @@ static int sys_membarrier(int cmd, int flags)
- static int test_membarrier_cmd_fail(void)
- {
- 	int cmd = -1, flags = 0;
-+	const char *test_name = "sys membarrier invalid command";
- 
- 	if (sys_membarrier(cmd, flags) != -1) {
- 		ksft_exit_fail_msg(
--			"sys membarrier invalid command test: command = %d, flags = %d. Should fail, but passed\n",
--			cmd, flags);
-+			"%s test: command = %d, flags = %d. Should fail, but passed\n",
-+			test_name, cmd, flags);
-+	}
-+	if (errno != EINVAL) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
-+			test_name, flags, EINVAL, strerror(EINVAL),
-+			errno, strerror(errno));
- 	}
- 
- 	ksft_test_result_pass(
--		"sys membarrier invalid command test: command = %d, flags = %d. Failed as expected\n",
--		cmd, flags);
-+		"%s test: command = %d, flags = %d, errno = %d. Failed as expected\n",
-+		test_name, cmd, flags, errno);
- 	return 0;
- }
- 
- static int test_membarrier_flags_fail(void)
- {
- 	int cmd = MEMBARRIER_CMD_QUERY, flags = 1;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_QUERY invalid flags";
- 
- 	if (sys_membarrier(cmd, flags) != -1) {
- 		ksft_exit_fail_msg(
--			"sys membarrier MEMBARRIER_CMD_QUERY invalid flags test: flags = %d. Should fail, but passed\n",
--			flags);
-+			"%s test: flags = %d. Should fail, but passed\n",
-+			test_name, flags);
-+	}
-+	if (errno != EINVAL) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
-+			test_name, flags, EINVAL, strerror(EINVAL),
-+			errno, strerror(errno));
- 	}
- 
- 	ksft_test_result_pass(
--		"sys membarrier MEMBARRIER_CMD_QUERY invalid flags test: flags = %d. Failed as expected\n",
--		flags);
-+		"%s test: flags = %d, errno = %d. Failed as expected\n",
-+		test_name, flags, errno);
- 	return 0;
- }
- 
--static int test_membarrier_success(void)
-+static int test_membarrier_shared_success(void)
- {
- 	int cmd = MEMBARRIER_CMD_SHARED, flags = 0;
--	const char *test_name = "sys membarrier MEMBARRIER_CMD_SHARED\n";
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_SHARED";
-+
-+	if (sys_membarrier(cmd, flags) != 0) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d, errno = %d\n",
-+			test_name, flags, errno);
-+	}
-+
-+	ksft_test_result_pass(
-+		"%s test: flags = %d\n", test_name, flags);
-+	return 0;
-+}
-+
-+static int test_membarrier_private_expedited_fail(void)
-+{
-+	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED not registered failure";
-+
-+	if (sys_membarrier(cmd, flags) != -1) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should fail, but passed\n",
-+			test_name, flags);
-+	}
-+	if (errno != EPERM) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
-+			test_name, flags, EPERM, strerror(EPERM),
-+			errno, strerror(errno));
-+	}
-+
-+	ksft_test_result_pass(
-+		"%s test: flags = %d, errno = %d\n",
-+		test_name, flags, errno);
-+	return 0;
-+}
-+
-+static int test_membarrier_register_private_expedited_success(void)
-+{
-+	int cmd = MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED";
- 
- 	if (sys_membarrier(cmd, flags) != 0) {
- 		ksft_exit_fail_msg(
--			"sys membarrier MEMBARRIER_CMD_SHARED test: flags = %d\n",
--			flags);
-+			"%s test: flags = %d, errno = %d\n",
-+			test_name, flags, errno);
- 	}
- 
- 	ksft_test_result_pass(
--		"sys membarrier MEMBARRIER_CMD_SHARED test: flags = %d\n",
--		flags);
-+		"%s test: flags = %d\n",
-+		test_name, flags);
-+	return 0;
-+}
-+
-+static int test_membarrier_private_expedited_success(void)
-+{
-+	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED";
-+
-+	if (sys_membarrier(cmd, flags) != 0) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d, errno = %d\n",
-+			test_name, flags, errno);
-+	}
-+
-+	ksft_test_result_pass(
-+		"%s test: flags = %d\n",
-+		test_name, flags);
- 	return 0;
- }
- 
-@@ -72,7 +142,16 @@ static int test_membarrier(void)
- 	status = test_membarrier_flags_fail();
- 	if (status)
- 		return status;
--	status = test_membarrier_success();
-+	status = test_membarrier_shared_success();
-+	if (status)
-+		return status;
-+	status = test_membarrier_private_expedited_fail();
-+	if (status)
-+		return status;
-+	status = test_membarrier_register_private_expedited_success();
-+	if (status)
-+		return status;
-+	status = test_membarrier_private_expedited_success();
- 	if (status)
- 		return status;
- 	return 0;
-@@ -108,5 +187,5 @@ int main(int argc, char **argv)
- 	test_membarrier_query();
- 	test_membarrier();
- 
--	ksft_exit_pass();
-+	return ksft_exit_pass();
- }
--- 
-2.11.0
+> What about DMA transactions? I imagine you might need some extra
+> instructions for the mandatory barriers there.
+>
+
+I don't get it. Do you mean before DMA transations?
+
+Data are moved from memory to device, we will writeback data cache
+before DMA transactions.
+
+Data are moved from device to memory, we will invalidate data cache
+after DMA transactions.
+
+
+
+> Also:
+>
+>> +static inline void arch_spin_lock(arch_spinlock_t * lock)
+>> +{
+>> +     unsigned long tmp;
+>> +
+>> +     __asm__ __volatile__("1:\n"
+>> +                          "\tllw\t%0, [%1]\n"
+>> +                          "\tbnez\t%0, 1b\n"
+>> +                          "\tmovi\t%0, #0x1\n"
+>> +                          "\tscw\t%0, [%1]\n"
+>> +                          "\tbeqz\t%0, 1b\n"
+>> +                          :"=&r"(tmp)
+>> +                          :"r"(&lock->lock)
+>> +                          :"memory");
+>> +}
+>
+> Here it looks like you're eliding an explicit barrier here because you
+> already have a "memory" clobber. Can't you do the same for the futex code
+> above?
+>
+Thanks.
+OK. I will modify it in the next version patch.
+
+> Will
+
+
+Best regards
+Vincent
