@@ -1,61 +1,40 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH 12/31] nds32: Device specific operations
-Date: Wed, 22 Nov 2017 18:02:59 +0800
-Message-ID: <CAEbi=3cMgyeGmsWecsvWAV6s8LHROyrF-UH5TDP3VGkk0UO86g@mail.gmail.com>
-References: <cover.1510118606.git.green.hu@gmail.com> <4e9acf2ec55fb26ddb290ca2d955eeea628e0a77.1510118606.git.green.hu@gmail.com>
- <CAK8P3a04p+GUz3ex=t=CVy8ZcVFFZGwJaaPDoyT74bjieiKHVw@mail.gmail.com>
- <CAEbi=3eoTQ+operFB5Oq9VkAjG-Ehs=UQhOOELkeK2eSuuf0=g@mail.gmail.com>
- <CAEbi=3fCjkTSXLe+jP4UTe1W7570aN9LEpM9-v54p8xEW2YnAA@mail.gmail.com> <CAK8P3a3u8JECzVqzfX4pGN3e_UHsZ_o+Q7PpHAoMuj6iR-7uKQ@mail.gmail.com>
+From: Florian Weimer <fweimer@redhat.com>
+Subject: Re: MPK: removing a pkey
+Date: Wed, 22 Nov 2017 13:15:24 +0100
+Message-ID: <813f9736-36dd-b2e5-c850-9f2d5f94514a@redhat.com>
+References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
+ <8741e4d6-6ac0-9c07-99f3-95d8d04940b4@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f54.google.com ([209.85.213.54]:41466 "EHLO
-        mail-vk0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751723AbdKVKDk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Nov 2017 05:03:40 -0500
-In-Reply-To: <CAK8P3a3u8JECzVqzfX4pGN3e_UHsZ_o+Q7PpHAoMuj6iR-7uKQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>, deanbo422@gmail.com
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <8741e4d6-6ac0-9c07-99f3-95d8d04940b4@suse.cz>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Vlastimil Babka <vbabka@suse.cz>, Dave Hansen <dave.hansen@linux.intel.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-2017-11-11 0:14 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
-> Could you move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt
-> out of that #ifdef, or would that break other architectures?
->
+On 11/22/2017 09:18 AM, Vlastimil Babka wrote:
+> And, was the pkey == -1 internal wiring supposed to be exposed to the
+> pkey_mprotect() signal, or should there have been a pre-check returning
+> EINVAL in SYSCALL_DEFINE4(pkey_mprotect), before calling
+> do_mprotect_pkey())? I assume it's too late to change it now anyway (or
+> not?), so should we also document it?
 
-It seems ok. I just tried arm64, x86 and nds32.
+I think the -1 case to the set the default key is useful because it 
+allows you to use a key value of -1 to mean “MPK is not supported”, and 
+still call pkey_mprotect.
 
-#endif /* CONFIG_MMU */
-#ifndef ioremap_nocache
-void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
-#define ioremap_nocache ioremap_nocache
-static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
-{
-        return ioremap(offset, size);
-}
-#endif
+I plan to document this behavior on the glibc side, and glibc will call 
+mprotect (not pkey_mprotect) for key -1, so that you won't get ENOSYS 
+with kernels which do not support pkey_mprotect.
 
-#ifndef ioremap_uc
-#define ioremap_uc ioremap_uc
-static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
-{
-        return ioremap_nocache(offset, size);
-}
-#endif
+Thanks,
+Florian
 
-#ifndef ioremap_wc
-#define ioremap_wc ioremap_wc
-static inline void __iomem *ioremap_wc(phys_addr_t offset, size_t size)
-{
-        return ioremap_nocache(offset, size);
-}
-#endif
-
-#ifndef ioremap_wt
-#define ioremap_wt ioremap_wt
-static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
-{
-        return ioremap_nocache(offset, size);
-}
-#endif
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
