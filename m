@@ -1,32 +1,36 @@
-From: Vlastimil Babka <vbabka@suse.cz>
-Subject: Re: [RFC PATCH 0/2] mm: introduce MAP_FIXED_SAFE
-Date: Wed, 22 Nov 2017 14:20:14 +0100
-Message-ID: <a35c5d6e-b862-8165-04cb-55f76189ebb5@suse.cz>
-References: <20171116101900.13621-1-mhocko@kernel.org>
- <20171116121438.6vegs4wiahod3byl@dhcp22.suse.cz>
- <b1848e34-7fcd-8ad8-6a6a-3be3dce3fda7@nvidia.com>
- <20171120090509.moagbwu7ug3y42gj@dhcp22.suse.cz>
- <9a02b37c-978a-48ef-0b22-b1e4cbb9a704@nvidia.com>
- <20171122131245.fpqtipwdxzuaj6gl@dhcp22.suse.cz>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Subject: Re: MPK: removing a pkey
+Date: Wed, 22 Nov 2017 08:10:10 -0800
+Message-ID: <f42fe774-bdcc-a509-bb7f-fe709fd28fcb@linux.intel.com>
+References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
+ <8741e4d6-6ac0-9c07-99f3-95d8d04940b4@suse.cz>
+ <813f9736-36dd-b2e5-c850-9f2d5f94514a@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:37320 "EHLO mx2.suse.de"
+Received: from mga14.intel.com ([192.55.52.115]:31085 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751244AbdKVNUR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Nov 2017 08:20:17 -0500
-In-Reply-To: <20171122131245.fpqtipwdxzuaj6gl@dhcp22.suse.cz>
+        id S1751617AbdKVQKO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Nov 2017 11:10:14 -0500
+In-Reply-To: <813f9736-36dd-b2e5-c850-9f2d5f94514a@redhat.com>
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>, John Hubbard <jhubbard@nvidia.com>
-Cc: linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>
+To: Florian Weimer <fweimer@redhat.com>, Vlastimil Babka <vbabka@suse.cz>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
 
-On 11/22/2017 02:12 PM, Michal Hocko wrote:
-> I will be probably stubborn and go with a shorter name I have currently.
-> I am not very fond-of-very-long-names.
+On 11/22/2017 04:15 AM, Florian Weimer wrote:
+> On 11/22/2017 09:18 AM, Vlastimil Babka wrote:
+>> And, was the pkey == -1 internal wiring supposed to be exposed to the
+>> pkey_mprotect() signal, or should there have been a pre-check returning
+>> EINVAL in SYSCALL_DEFINE4(pkey_mprotect), before calling
+>> do_mprotect_pkey())? I assume it's too late to change it now anyway (or
+>> not?), so should we also document it?
+> 
+> I think the -1 case to the set the default key is useful because it
+> allows you to use a key value of -1 to mean “MPK is not supported”, and
+> still call pkey_mprotect.
 
-The short synonym for the last word is "German"
-
-SCNR :P
+The behavior to not allow 0 to be set was unintentional and is a bug.
+We should fix that.
