@@ -1,134 +1,144 @@
-From: alexander.levin@verizon.com
-Subject: [PATCH AUTOSEL for 4.14 45/51] locking/refcounts, x86/asm: Use unique
- .text section for refcount exceptions
-Date: Wed, 22 Nov 2017 22:25:47 +0000
-Message-ID: <20171122222526.20021-45-alexander.levin@verizon.com>
-References: <20171122222526.20021-1-alexander.levin@verizon.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH AUTOSEL for 4.14 45/51] locking/refcounts, x86/asm: Use
+ unique .text section for refcount exceptions
+Date: Wed, 22 Nov 2017 15:19:10 -0800
+Message-ID: <CAGXu5jLo+Qi8Opze7U6gaVDa2U7tRj44U9qxaPPW+yP1eOYPJg@mail.gmail.com>
+References: <20171122222526.20021-1-alexander.levin@verizon.com> <20171122222526.20021-45-alexander.levin@verizon.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from omzsmtpe01.verizonbusiness.com ([199.249.25.210]:35893 "EHLO
-        omzsmtpe01.verizonbusiness.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752912AbdKVWi0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Nov 2017 17:38:26 -0500
-In-Reply-To: <20171122222526.20021-1-alexander.levin@verizon.com>
-Content-Language: en-US
+Received: from mail-vk0-f68.google.com ([209.85.213.68]:42165 "EHLO
+        mail-vk0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751578AbdKVXTM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Nov 2017 18:19:12 -0500
+Received: by mail-vk0-f68.google.com with SMTP id o70so10829577vkc.9
+        for <linux-arch@vger.kernel.org>; Wed, 22 Nov 2017 15:19:12 -0800 (PST)
+In-Reply-To: <20171122222526.20021-45-alexander.levin@verizon.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Elena <elena.reshetova@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, alexander.levin@verizon.com
+To: Sasha Levin <alexander.levin@verizon.com>, "stable@vger.kernel.org" <stable@vger.kernel.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Elena <elena.reshetova@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>
 
-From: Kees Cook <keescook@chromium.org>
+Hi,
 
-[ Upstream commit 564c9cc84e2adf8a6671c1937f0a9fe3da2a4b0e ]
+On Wed, Nov 22, 2017 at 2:25 PM,  <alexander.levin@verizon.com> wrote:
+> From: Kees Cook <keescook@chromium.org>
+>
+> [ Upstream commit 564c9cc84e2adf8a6671c1937f0a9fe3da2a4b0e ]
 
-Using .text.unlikely for refcount exceptions isn't safe because gcc may
-move entire functions into .text.unlikely (e.g. in6_dev_dev()), which
-would cause any uses of a protected refcount_t function to stay inline
-with the function, triggering the protection unconditionally:
+Thanks! I was going to recommend this too. Please also add:
 
-        .section        .text.unlikely,"ax",@progbits
-        .type   in6_dev_get, @function
-in6_dev_getx:
-.LFB4673:
-        .loc 2 4128 0
-        .cfi_startproc
-...
-        lock; incl 480(%rbx)
-        js 111f
-        .pushsection .text.unlikely
-111:    lea 480(%rbx), %rcx
-112:    .byte 0x0f, 0xff
-.popsection
-113:
+commit 39208aa7ecb7 ("locking/refcounts, x86/asm: Enable
+CONFIG_ARCH_HAS_REFCOUNT")
 
-This creates a unique .text..refcount section and adds an additional
-test to the exception handler to WARN in the case of having none of OF,
-SF, nor ZF set so we can see things like this more easily in the future.
+-Kees
 
-The double dot for the section name keeps it out of the TEXT_MAIN macro
-namespace, to avoid collisions and so it can be put at the end with
-text.unlikely to keep the cold code together.
+>
+> Using .text.unlikely for refcount exceptions isn't safe because gcc may
+> move entire functions into .text.unlikely (e.g. in6_dev_dev()), which
+> would cause any uses of a protected refcount_t function to stay inline
+> with the function, triggering the protection unconditionally:
+>
+>         .section        .text.unlikely,"ax",@progbits
+>         .type   in6_dev_get, @function
+> in6_dev_getx:
+> .LFB4673:
+>         .loc 2 4128 0
+>         .cfi_startproc
+> ...
+>         lock; incl 480(%rbx)
+>         js 111f
+>         .pushsection .text.unlikely
+> 111:    lea 480(%rbx), %rcx
+> 112:    .byte 0x0f, 0xff
+> .popsection
+> 113:
+>
+> This creates a unique .text..refcount section and adds an additional
+> test to the exception handler to WARN in the case of having none of OF,
+> SF, nor ZF set so we can see things like this more easily in the future.
+>
+> The double dot for the section name keeps it out of the TEXT_MAIN macro
+> namespace, to avoid collisions and so it can be put at the end with
+> text.unlikely to keep the cold code together.
+>
+> See commit:
+>
+>   cb87481ee89db ("kbuild: linker script do not match C names unless LD_DEAD_CODE_DATA_ELIMINATION is configured")
+>
+> ... which matches C names: [a-zA-Z0-9_] but not ".".
+>
+> Reported-by: Mike Galbraith <efault@gmx.de>
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+> Cc: Elena <elena.reshetova@intel.com>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: linux-arch <linux-arch@vger.kernel.org>
+> Fixes: 7a46ec0e2f48 ("locking/refcounts, x86/asm: Implement fast refcount overflow protection")
+> Link: http://lkml.kernel.org/r/1504382986-49301-2-git-send-email-keescook@chromium.org
+> Signed-off-by: Ingo Molnar <mingo@kernel.org>
+> Signed-off-by: Sasha Levin <alexander.levin@verizon.com>
+> ---
+>  arch/x86/include/asm/refcount.h   | 2 +-
+>  arch/x86/mm/extable.c             | 7 ++++++-
+>  include/asm-generic/vmlinux.lds.h | 1 +
+>  3 files changed, 8 insertions(+), 2 deletions(-)
+>
+> diff --git a/arch/x86/include/asm/refcount.h b/arch/x86/include/asm/refcount.h
+> index ff871210b9f2..4e44250e7d0d 100644
+> --- a/arch/x86/include/asm/refcount.h
+> +++ b/arch/x86/include/asm/refcount.h
+> @@ -15,7 +15,7 @@
+>   * back to the regular execution flow in .text.
+>   */
+>  #define _REFCOUNT_EXCEPTION                            \
+> -       ".pushsection .text.unlikely\n"                 \
+> +       ".pushsection .text..refcount\n"                \
+>         "111:\tlea %[counter], %%" _ASM_CX "\n"         \
+>         "112:\t" ASM_UD0 "\n"                           \
+>         ASM_UNREACHABLE                                 \
+> diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
+> index c3521e2be396..3321b446b66c 100644
+> --- a/arch/x86/mm/extable.c
+> +++ b/arch/x86/mm/extable.c
+> @@ -67,12 +67,17 @@ bool ex_handler_refcount(const struct exception_table_entry *fixup,
+>          * wrapped around) will be set. Additionally, seeing the refcount
+>          * reach 0 will set ZF (Zero Flag: result was zero). In each of
+>          * these cases we want a report, since it's a boundary condition.
+> -        *
+> +        * The SF case is not reported since it indicates post-boundary
+> +        * manipulations below zero or above INT_MAX. And if none of the
+> +        * flags are set, something has gone very wrong, so report it.
+>          */
+>         if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_ZF)) {
+>                 bool zero = regs->flags & X86_EFLAGS_ZF;
+>
+>                 refcount_error_report(regs, zero ? "hit zero" : "overflow");
+> +       } else if ((regs->flags & X86_EFLAGS_SF) == 0) {
+> +               /* Report if none of OF, ZF, nor SF are set. */
+> +               refcount_error_report(regs, "unexpected saturation");
+>         }
+>
+>         return true;
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 8acfc1e099e1..e549bff87c5b 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -459,6 +459,7 @@
+>  #define TEXT_TEXT                                                      \
+>                 ALIGN_FUNCTION();                                       \
+>                 *(.text.hot TEXT_MAIN .text.fixup .text.unlikely)       \
+> +               *(.text..refcount)                                      \
+>                 *(.ref.text)                                            \
+>         MEM_KEEP(init.text)                                             \
+>         MEM_KEEP(exit.text)                                             \
+> --
+> 2.11.0
 
-See commit:
 
-  cb87481ee89db ("kbuild: linker script do not match C names unless LD_DEAD=
-_CODE_DATA_ELIMINATION is configured")
 
-... which matches C names: [a-zA-Z0-9_] but not ".".
-
-Reported-by: Mike Galbraith <efault@gmx.de>
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: Elena <elena.reshetova@intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Fixes: 7a46ec0e2f48 ("locking/refcounts, x86/asm: Implement fast refcount o=
-verflow protection")
-Link: http://lkml.kernel.org/r/1504382986-49301-2-git-send-email-keescook@c=
-hromium.org
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Sasha Levin <alexander.levin@verizon.com>
----
- arch/x86/include/asm/refcount.h   | 2 +-
- arch/x86/mm/extable.c             | 7 ++++++-
- include/asm-generic/vmlinux.lds.h | 1 +
- 3 files changed, 8 insertions(+), 2 deletions(-)
-
-diff --git a/arch/x86/include/asm/refcount.h b/arch/x86/include/asm/refcoun=
-t.h
-index ff871210b9f2..4e44250e7d0d 100644
---- a/arch/x86/include/asm/refcount.h
-+++ b/arch/x86/include/asm/refcount.h
-@@ -15,7 +15,7 @@
-  * back to the regular execution flow in .text.
-  */
- #define _REFCOUNT_EXCEPTION				\
--	".pushsection .text.unlikely\n"			\
-+	".pushsection .text..refcount\n"		\
- 	"111:\tlea %[counter], %%" _ASM_CX "\n"		\
- 	"112:\t" ASM_UD0 "\n"				\
- 	ASM_UNREACHABLE					\
-diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
-index c3521e2be396..3321b446b66c 100644
---- a/arch/x86/mm/extable.c
-+++ b/arch/x86/mm/extable.c
-@@ -67,12 +67,17 @@ bool ex_handler_refcount(const struct exception_table_e=
-ntry *fixup,
- 	 * wrapped around) will be set. Additionally, seeing the refcount
- 	 * reach 0 will set ZF (Zero Flag: result was zero). In each of
- 	 * these cases we want a report, since it's a boundary condition.
--	 *
-+	 * The SF case is not reported since it indicates post-boundary
-+	 * manipulations below zero or above INT_MAX. And if none of the
-+	 * flags are set, something has gone very wrong, so report it.
- 	 */
- 	if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_ZF)) {
- 		bool zero =3D regs->flags & X86_EFLAGS_ZF;
-=20
- 		refcount_error_report(regs, zero ? "hit zero" : "overflow");
-+	} else if ((regs->flags & X86_EFLAGS_SF) =3D=3D 0) {
-+		/* Report if none of OF, ZF, nor SF are set. */
-+		refcount_error_report(regs, "unexpected saturation");
- 	}
-=20
- 	return true;
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinu=
-x.lds.h
-index 8acfc1e099e1..e549bff87c5b 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -459,6 +459,7 @@
- #define TEXT_TEXT							\
- 		ALIGN_FUNCTION();					\
- 		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
-+		*(.text..refcount)					\
- 		*(.ref.text)						\
- 	MEM_KEEP(init.text)						\
- 	MEM_KEEP(exit.text)						\
---=20
-2.11.0
+-- 
+Kees Cook
+Pixel Security
