@@ -1,45 +1,134 @@
-From: Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
-Subject: Re: MPK: removing a pkey
-Date: Wed, 22 Nov 2017 08:32:11 -0800
-Message-ID: <d98eb4b8-6e59-513d-fdf8-3395485cb851@linux.intel.com>
-References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
- <8741e4d6-6ac0-9c07-99f3-95d8d04940b4@suse.cz>
- <813f9736-36dd-b2e5-c850-9f2d5f94514a@redhat.com>
- <f42fe774-bdcc-a509-bb7f-fe709fd28fcb@linux.intel.com>
- <9ec19ff3-86f6-7cfe-1a07-1ab1c5d9882c@redhat.com>
+From: alexander.levin@verizon.com
+Subject: [PATCH AUTOSEL for 4.14 45/51] locking/refcounts, x86/asm: Use unique
+ .text section for refcount exceptions
+Date: Wed, 22 Nov 2017 22:25:47 +0000
+Message-ID: <20171122222526.20021-45-alexander.levin@verizon.com>
+References: <20171122222526.20021-1-alexander.levin@verizon.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <9ec19ff3-86f6-7cfe-1a07-1ab1c5d9882c-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from omzsmtpe01.verizonbusiness.com ([199.249.25.210]:35893 "EHLO
+        omzsmtpe01.verizonbusiness.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752912AbdKVWi0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Nov 2017 17:38:26 -0500
+In-Reply-To: <20171122222526.20021-1-alexander.levin@verizon.com>
 Content-Language: en-US
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Vlastimil Babka <vbabka-AlSwsSmVLrQ@public.gmane.org>, linux-x86_64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-mm <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Elena <elena.reshetova@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, alexander.levin@verizon.com
 
-On 11/22/2017 08:21 AM, Florian Weimer wrote:
-> On 11/22/2017 05:10 PM, Dave Hansen wrote:
->> On 11/22/2017 04:15 AM, Florian Weimer wrote:
->>> On 11/22/2017 09:18 AM, Vlastimil Babka wrote:
->>>> And, was the pkey == -1 internal wiring supposed to be exposed to the
->>>> pkey_mprotect() signal, or should there have been a pre-check returning
->>>> EINVAL in SYSCALL_DEFINE4(pkey_mprotect), before calling
->>>> do_mprotect_pkey())? I assume it's too late to change it now anyway (or
->>>> not?), so should we also document it?
->>>
->>> I think the -1 case to the set the default key is useful because it
->>> allows you to use a key value of -1 to mean “MPK is not supported”, and
->>> still call pkey_mprotect.
->>
->> The behavior to not allow 0 to be set was unintentional and is a bug.
->> We should fix that.
-> 
-> On the other hand, x86-64 has no single default protection key due to
-> the PROT_EXEC emulation.
+From: Kees Cook <keescook@chromium.org>
 
-No, the default is clearly 0 and documented to be so.  The PROT_EXEC
-emulation one should be inaccessible in all the APIs so does not even
-show up as *being* a key in the API.  The fact that it's implemented
-with pkeys should be pretty immaterial other than the fact that you
-can't touch the high bits in PKRU.
+[ Upstream commit 564c9cc84e2adf8a6671c1937f0a9fe3da2a4b0e ]
+
+Using .text.unlikely for refcount exceptions isn't safe because gcc may
+move entire functions into .text.unlikely (e.g. in6_dev_dev()), which
+would cause any uses of a protected refcount_t function to stay inline
+with the function, triggering the protection unconditionally:
+
+        .section        .text.unlikely,"ax",@progbits
+        .type   in6_dev_get, @function
+in6_dev_getx:
+.LFB4673:
+        .loc 2 4128 0
+        .cfi_startproc
+...
+        lock; incl 480(%rbx)
+        js 111f
+        .pushsection .text.unlikely
+111:    lea 480(%rbx), %rcx
+112:    .byte 0x0f, 0xff
+.popsection
+113:
+
+This creates a unique .text..refcount section and adds an additional
+test to the exception handler to WARN in the case of having none of OF,
+SF, nor ZF set so we can see things like this more easily in the future.
+
+The double dot for the section name keeps it out of the TEXT_MAIN macro
+namespace, to avoid collisions and so it can be put at the end with
+text.unlikely to keep the cold code together.
+
+See commit:
+
+  cb87481ee89db ("kbuild: linker script do not match C names unless LD_DEAD=
+_CODE_DATA_ELIMINATION is configured")
+
+... which matches C names: [a-zA-Z0-9_] but not ".".
+
+Reported-by: Mike Galbraith <efault@gmx.de>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Elena <elena.reshetova@intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>
+Fixes: 7a46ec0e2f48 ("locking/refcounts, x86/asm: Implement fast refcount o=
+verflow protection")
+Link: http://lkml.kernel.org/r/1504382986-49301-2-git-send-email-keescook@c=
+hromium.org
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Sasha Levin <alexander.levin@verizon.com>
+---
+ arch/x86/include/asm/refcount.h   | 2 +-
+ arch/x86/mm/extable.c             | 7 ++++++-
+ include/asm-generic/vmlinux.lds.h | 1 +
+ 3 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/include/asm/refcount.h b/arch/x86/include/asm/refcoun=
+t.h
+index ff871210b9f2..4e44250e7d0d 100644
+--- a/arch/x86/include/asm/refcount.h
++++ b/arch/x86/include/asm/refcount.h
+@@ -15,7 +15,7 @@
+  * back to the regular execution flow in .text.
+  */
+ #define _REFCOUNT_EXCEPTION				\
+-	".pushsection .text.unlikely\n"			\
++	".pushsection .text..refcount\n"		\
+ 	"111:\tlea %[counter], %%" _ASM_CX "\n"		\
+ 	"112:\t" ASM_UD0 "\n"				\
+ 	ASM_UNREACHABLE					\
+diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
+index c3521e2be396..3321b446b66c 100644
+--- a/arch/x86/mm/extable.c
++++ b/arch/x86/mm/extable.c
+@@ -67,12 +67,17 @@ bool ex_handler_refcount(const struct exception_table_e=
+ntry *fixup,
+ 	 * wrapped around) will be set. Additionally, seeing the refcount
+ 	 * reach 0 will set ZF (Zero Flag: result was zero). In each of
+ 	 * these cases we want a report, since it's a boundary condition.
+-	 *
++	 * The SF case is not reported since it indicates post-boundary
++	 * manipulations below zero or above INT_MAX. And if none of the
++	 * flags are set, something has gone very wrong, so report it.
+ 	 */
+ 	if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_ZF)) {
+ 		bool zero =3D regs->flags & X86_EFLAGS_ZF;
+=20
+ 		refcount_error_report(regs, zero ? "hit zero" : "overflow");
++	} else if ((regs->flags & X86_EFLAGS_SF) =3D=3D 0) {
++		/* Report if none of OF, ZF, nor SF are set. */
++		refcount_error_report(regs, "unexpected saturation");
+ 	}
+=20
+ 	return true;
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinu=
+x.lds.h
+index 8acfc1e099e1..e549bff87c5b 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -459,6 +459,7 @@
+ #define TEXT_TEXT							\
+ 		ALIGN_FUNCTION();					\
+ 		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
++		*(.text..refcount)					\
+ 		*(.ref.text)						\
+ 	MEM_KEEP(init.text)						\
+ 	MEM_KEEP(exit.text)						\
+--=20
+2.11.0
