@@ -1,58 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:59698 "EHLO mx2.suse.de"
+Received: from mx1.redhat.com ([209.132.183.28]:58202 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751516AbdKVISq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 22 Nov 2017 03:18:46 -0500
-Subject: Re: MPK: removing a pkey (was: pkey_free and key reuse)
+        id S1752322AbdKVMP1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Nov 2017 07:15:27 -0500
+Subject: Re: MPK: removing a pkey
 References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
-From: Vlastimil Babka <vbabka@suse.cz>
-Message-ID: <8741e4d6-6ac0-9c07-99f3-95d8d04940b4@suse.cz>
-Date: Wed, 22 Nov 2017 09:18:44 +0100
+ <8741e4d6-6ac0-9c07-99f3-95d8d04940b4@suse.cz>
+From: Florian Weimer <fweimer@redhat.com>
+Message-ID: <813f9736-36dd-b2e5-c850-9f2d5f94514a@redhat.com>
+Date: Wed, 22 Nov 2017 13:15:24 +0100
 MIME-Version: 1.0
-In-Reply-To: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
-Content-Type: text/plain; charset=utf-8
+In-Reply-To: <8741e4d6-6ac0-9c07-99f3-95d8d04940b4@suse.cz>
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Weimer <fweimer@redhat.com>, Dave Hansen <dave.hansen@linux.intel.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
+To: Vlastimil Babka <vbabka@suse.cz>, Dave Hansen <dave.hansen@linux.intel.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20171122081844.7fsWKIaeACunaawp2iFO4EdWpYs5P-IE3efmEJsyc3Q@z>
+Message-ID: <20171122121524.IAYm_dSx2IEg07SJfswKmT-evOdfcSHiQkr6gSTxbM0@z>
 
-On 11/05/2017 11:35 AM, Florian Weimer wrote:
-> I'm working on adding memory protection key support to glibc.
-> 
-> I don't think pkey_free, as it is implemented today, is very safe due to 
-> key reuse by a subsequent pkey_alloc.  I see two problems:
-> 
-> (A) pkey_free allows reuse for they key while there are still mappings 
-> that use it.
-> 
-> (B) If a key is reused, existing threads retain their access rights, 
-> while there is an expectation that pkey_alloc denies access for the 
-> threads except the current one.
+On 11/22/2017 09:18 AM, Vlastimil Babka wrote:
+> And, was the pkey == -1 internal wiring supposed to be exposed to the
+> pkey_mprotect() signal, or should there have been a pre-check returning
+> EINVAL in SYSCALL_DEFINE4(pkey_mprotect), before calling
+> do_mprotect_pkey())? I assume it's too late to change it now anyway (or
+> not?), so should we also document it?
 
-I have a somewhat related question to API/documentation of pkeys, that
-came up from a customer interested in using the feature. The man page of
-mprotect/pkey_mprotect doesn't say how to remove a pkey from a set of
-pages, i.e. reset it to the default 0 (or the exec-only pkey), so
-initially they thought there's no way to do that.
+I think the -1 case to the set the default key is useful because it 
+allows you to use a key value of -1 to mean “MPK is not supported”, and 
+still call pkey_mprotect.
 
-Calling pkey_mprotect() with pkey==0 will fail with EINVAL, because 0
-was not allocated by pkey_alloc(). That's fair I guess.
-
-What seems to work to reset the pkey is either calling plain mprotect(),
-or calling pkey_mprotect() with pkey == -1, as the former is just wired
-to the latter.
-
-So, is plain mprotect() the intended way to reset a pkey and should it
-be explicitly documented in the man page?
-
-And, was the pkey == -1 internal wiring supposed to be exposed to the
-pkey_mprotect() signal, or should there have been a pre-check returning
-EINVAL in SYSCALL_DEFINE4(pkey_mprotect), before calling
-do_mprotect_pkey())? I assume it's too late to change it now anyway (or
-not?), so should we also document it?
+I plan to document this behavior on the glibc side, and glibc will call 
+mprotect (not pkey_mprotect) for key -1, so that you won't get ENOSYS 
+with kernels which do not support pkey_mprotect.
 
 Thanks,
-Vlastimil
+Florian
