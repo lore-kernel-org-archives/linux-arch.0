@@ -1,39 +1,55 @@
-From: alexander.levin@verizon.com
-Subject: Re: [PATCH AUTOSEL for 4.14 45/51] locking/refcounts, x86/asm: Use
- unique .text section for refcount exceptions
-Date: Thu, 23 Nov 2017 01:13:54 +0000
-Message-ID: <20171123011351.qoxpylb4ockkfss7@sasha-lappy>
-References: <20171122222526.20021-1-alexander.levin@verizon.com>
- <20171122222526.20021-45-alexander.levin@verizon.com>
- <CAGXu5jLo+Qi8Opze7U6gaVDa2U7tRj44U9qxaPPW+yP1eOYPJg@mail.gmail.com>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: MPK: removing a pkey
+Date: Thu, 23 Nov 2017 09:11:05 +0100
+Message-ID: <de93997a-7802-96cf-62e2-e59416e745ca@suse.cz>
+References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
+ <8741e4d6-6ac0-9c07-99f3-95d8d04940b4@suse.cz>
+ <813f9736-36dd-b2e5-c850-9f2d5f94514a@redhat.com>
+ <f42fe774-bdcc-a509-bb7f-fe709fd28fcb@linux.intel.com>
+ <9ec19ff3-86f6-7cfe-1a07-1ab1c5d9882c@redhat.com>
+ <d98eb4b8-6e59-513d-fdf8-3395485cb851@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <CAGXu5jLo+Qi8Opze7U6gaVDa2U7tRj44U9qxaPPW+yP1eOYPJg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:51400 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751376AbdKWILH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 23 Nov 2017 03:11:07 -0500
+In-Reply-To: <d98eb4b8-6e59-513d-fdf8-3395485cb851@linux.intel.com>
 Content-Language: en-US
-Content-ID: <43F1D2B84CC9D145BEDF52AF415039F2@vzwcorp.com>
-Sender: stable-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: "stable@vger.kernel.org" <stable@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Elena <elena.reshetova@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Hansen <dave.hansen@linux.intel.com>, Florian Weimer <fweimer@redhat.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
 
-On Wed, Nov 22, 2017 at 03:19:10PM -0800, Kees Cook wrote:
->Hi,
->
->On Wed, Nov 22, 2017 at 2:25 PM,  <alexander.levin@verizon.com> wrote:
->> From: Kees Cook <keescook@chromium.org>
+On 11/22/2017 05:32 PM, Dave Hansen wrote:
+> On 11/22/2017 08:21 AM, Florian Weimer wrote:
+>> On 11/22/2017 05:10 PM, Dave Hansen wrote:
+>>> On 11/22/2017 04:15 AM, Florian Weimer wrote:
+>>>> On 11/22/2017 09:18 AM, Vlastimil Babka wrote:
+>>>>> And, was the pkey == -1 internal wiring supposed to be exposed to the
+>>>>> pkey_mprotect() signal, or should there have been a pre-check returning
+>>>>> EINVAL in SYSCALL_DEFINE4(pkey_mprotect), before calling
+>>>>> do_mprotect_pkey())? I assume it's too late to change it now anyway (or
+>>>>> not?), so should we also document it?
+>>>>
+>>>> I think the -1 case to the set the default key is useful because it
+>>>> allows you to use a key value of -1 to mean “MPK is not supported”, and
+>>>> still call pkey_mprotect.
+>>>
+>>> The behavior to not allow 0 to be set was unintentional and is a bug.
+>>> We should fix that.
 >>
->> [ Upstream commit 564c9cc84e2adf8a6671c1937f0a9fe3da2a4b0e ]
->
->Thanks! I was going to recommend this too. Please also add:
->
->commit 39208aa7ecb7 ("locking/refcounts, x86/asm: Enable
->CONFIG_ARCH_HAS_REFCOUNT")
+>> On the other hand, x86-64 has no single default protection key due to
+>> the PROT_EXEC emulation.
+> 
+> No, the default is clearly 0 and documented to be so.  The PROT_EXEC
+> emulation one should be inaccessible in all the APIs so does not even
+> show up as *being* a key in the API.  The fact that it's implemented
+> with pkeys should be pretty immaterial other than the fact that you
+> can't touch the high bits in PKRU.
 
-Added, thanks!
-
---=20
-
-Thanks,
-Sasha=
+So, just to be sure, if we call pkey_mprotect() with 0, will it blindly
+set 0, or the result of arch_override_mprotect_pkey() (thus equivalent
+to call with -1) ? I assume the latter?
