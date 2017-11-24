@@ -1,101 +1,51 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [RFC PATCH 0/2] mm: introduce MAP_FIXED_SAFE
-Date: Fri, 24 Nov 2017 09:54:05 +0100
-Message-ID: <20171124085405.dwln5k3dk7fdio7e@dhcp22.suse.cz>
-References: <20171116101900.13621-1-mhocko@kernel.org>
- <20171116121438.6vegs4wiahod3byl@dhcp22.suse.cz>
+From: Florian Weimer <fweimer@redhat.com>
+Subject: Re: MPK: pkey_free and key reuse
+Date: Fri, 24 Nov 2017 15:55:28 +0100
+Message-ID: <2e3bfec2-303b-2221-0154-1145af3fffe8@redhat.com>
+References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
+ <e7d1e622-bbac-2750-2895-cc151458ff2f@linux.intel.com>
+ <48ac42c0-4c31-cef8-a75a-8f3beab7cc66@redhat.com>
+ <633b5b03-3481-0da2-9d6c-f5298902e36a@linux.intel.com>
+ <068b89c7-4303-88a7-540a-1491dc8a292d@redhat.com>
+ <04ef6b4a-6d20-d025-0b56-741fd467d445@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:59057 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752863AbdKXIyI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Nov 2017 03:54:08 -0500
-Content-Disposition: inline
-In-Reply-To: <20171116121438.6vegs4wiahod3byl@dhcp22.suse.cz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-api@vger.kernel.org
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <04ef6b4a-6d20-d025-0b56-741fd467d445@linux.intel.com>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave.hansen@linux.intel.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Are there any more concerns? So far the biggest one was the name. The
-other which suggests a flag as a modifier has been sorted out hopefully.
-Is there anymore more before we can consider this for merging? Well
-except for man page update which I will prepare of course. Can we target
-this to 4.16?
+On 11/23/2017 04:25 PM, Dave Hansen wrote:
+> I don't see a way to do a broadcast PKRU update.  But, I'd love to be
+> proven wrong, with code.
 
-On Thu 16-11-17 13:14:38, Michal Hocko wrote:
-> [Ups, managed to screw the subject - fix it]
-> 
-> On Thu 16-11-17 11:18:58, Michal Hocko wrote:
-> > Hi,
-> > this has started as a follow up discussion [1][2] resulting in the
-> > runtime failure caused by hardening patch [3] which removes MAP_FIXED
-> > from the elf loader because MAP_FIXED is inherently dangerous as it
-> > might silently clobber and existing underlying mapping (e.g. stack). The
-> > reason for the failure is that some architectures enforce an alignment
-> > for the given address hint without MAP_FIXED used (e.g. for shared or
-> > file backed mappings).
-> > 
-> > One way around this would be excluding those archs which do alignment
-> > tricks from the hardening [4]. The patch is really trivial but it has
-> > been objected, rightfully so, that this screams for a more generic
-> > solution. We basically want a non-destructive MAP_FIXED.
-> > 
-> > The first patch introduced MAP_FIXED_SAFE which enforces the given
-> > address but unlike MAP_FIXED it fails with ENOMEM if the given range
-> > conflicts with an existing one. The flag is introduced as a completely
-> > new flag rather than a MAP_FIXED extension because of the backward
-> > compatibility. We really want a never-clobber semantic even on older
-> > kernels which do not recognize the flag. Unfortunately mmap sucks wrt.
-> > flags evaluation because we do not EINVAL on unknown flags. On those
-> > kernels we would simply use the traditional hint based semantic so the
-> > caller can still get a different address (which sucks) but at least not
-> > silently corrupt an existing mapping. I do not see a good way around
-> > that. Except we won't export expose the new semantic to the userspace at
-> > all. It seems there are users who would like to have something like that
-> > [5], though. Atomic address range probing in the multithreaded programs
-> > sounds like an interesting thing to me as well, although I do not have
-> > any specific usecase in mind.
-> > 
-> > The second patch simply replaces MAP_FIXED use in elf loader by
-> > MAP_FIXED_SAFE. I believe other places which rely on MAP_FIXED should
-> > follow. Actually real MAP_FIXED usages should be docummented properly
-> > and they should be more of an exception.
-> > 
-> > Does anybody see any fundamental reasons why this is a wrong approach?
-> > 
-> > Diffstat says
-> >  arch/alpha/include/uapi/asm/mman.h   |  2 ++
-> >  arch/metag/kernel/process.c          |  6 +++++-
-> >  arch/mips/include/uapi/asm/mman.h    |  2 ++
-> >  arch/parisc/include/uapi/asm/mman.h  |  2 ++
-> >  arch/powerpc/include/uapi/asm/mman.h |  1 +
-> >  arch/sparc/include/uapi/asm/mman.h   |  1 +
-> >  arch/tile/include/uapi/asm/mman.h    |  1 +
-> >  arch/xtensa/include/uapi/asm/mman.h  |  2 ++
-> >  fs/binfmt_elf.c                      | 12 ++++++++----
-> >  include/uapi/asm-generic/mman.h      |  1 +
-> >  mm/mmap.c                            | 11 +++++++++++
-> >  11 files changed, 36 insertions(+), 5 deletions(-)
-> > 
-> > [1] http://lkml.kernel.org/r/20171107162217.382cd754@canb.auug.org.au
-> > [2] http://lkml.kernel.org/r/1510048229.12079.7.camel@abdul.in.ibm.com
-> > [3] http://lkml.kernel.org/r/20171023082608.6167-1-mhocko@kernel.org
-> > [4] http://lkml.kernel.org/r/20171113094203.aofz2e7kueitk55y@dhcp22.suse.cz
-> > [5] http://lkml.kernel.org/r/87efp1w7vy.fsf@concordia.ellerman.id.au
-> > 
-> > 
-> > --
-> > To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> > the body to majordomo@kvack.org.  For more info on Linux MM,
-> > see: http://www.linux-mm.org/ .
-> > Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
-> 
-> -- 
-> Michal Hocko
-> SUSE Labs
+I could use the existing setxid broadcast code in glibc to update PKRU 
+on all running threads upon a key allocation (before pkey_alloc returns 
+to the application), but this won't work for the implicit protection key 
+used for PROT_EXEC.  I don't see a good way to get its number, and to 
+determine whether a particular mprotect call allocated it.  (We 
+obviously don't want to do the broadcast on every mprotect call with 
+PROT_EXEC, just in case.)
 
--- 
-Michal Hocko
-SUSE Labs
+What's worse, the setxid broadcast is not async-signal-safe, so we can't 
+use it from mprotect, which should better be async-signal-safe (I know 
+that official, it's not, but it would still be problematic to change 
+that IMHO).
+
+(The setxid broadcast mechanism allows us to run a piece of code on all 
+threads of the process.  We could look at %rip and see if the signal 
+arrived during a pkey_set function call, and make sure that this call 
+delivers the right result, by altering the task state before returning.)
+
+Thanks,
+Florian
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
