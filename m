@@ -1,54 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:39278 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:38554 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752926AbdKXIff (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Nov 2017 03:35:35 -0500
-Subject: Re: MPK: removing a pkey
+        id S1753489AbdKXOzb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 24 Nov 2017 09:55:31 -0500
+Subject: Re: MPK: pkey_free and key reuse
 References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
- <8741e4d6-6ac0-9c07-99f3-95d8d04940b4@suse.cz>
- <813f9736-36dd-b2e5-c850-9f2d5f94514a@redhat.com>
- <f42fe774-bdcc-a509-bb7f-fe709fd28fcb@linux.intel.com>
- <9ec19ff3-86f6-7cfe-1a07-1ab1c5d9882c@redhat.com>
- <d98eb4b8-6e59-513d-fdf8-3395485cb851@linux.intel.com>
- <de93997a-7802-96cf-62e2-e59416e745ca@suse.cz>
- <17831167-7142-d42a-c7a0-59bdc8bbb786@linux.intel.com>
- <2d12777f-615a-8101-2156-cf861ec13aa7@suse.cz>
- <8051353f-47d3-37a4-a402-41adc8b6eb88@linux.intel.com>
+ <e7d1e622-bbac-2750-2895-cc151458ff2f@linux.intel.com>
+ <48ac42c0-4c31-cef8-a75a-8f3beab7cc66@redhat.com>
+ <633b5b03-3481-0da2-9d6c-f5298902e36a@linux.intel.com>
+ <068b89c7-4303-88a7-540a-1491dc8a292d@redhat.com>
+ <04ef6b4a-6d20-d025-0b56-741fd467d445@linux.intel.com>
 From: Florian Weimer <fweimer@redhat.com>
-Message-ID: <e97e53a1-ba04-c62e-cc64-054b488d5394@redhat.com>
-Date: Fri, 24 Nov 2017 09:35:31 +0100
+Message-ID: <2e3bfec2-303b-2221-0154-1145af3fffe8@redhat.com>
+Date: Fri, 24 Nov 2017 15:55:28 +0100
 MIME-Version: 1.0
-In-Reply-To: <8051353f-47d3-37a4-a402-41adc8b6eb88@linux.intel.com>
+In-Reply-To: <04ef6b4a-6d20-d025-0b56-741fd467d445@linux.intel.com>
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@linux.intel.com>, Vlastimil Babka <vbabka@suse.cz>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
+To: Dave Hansen <dave.hansen@linux.intel.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20171124083531.pZdhPPVS9tv5FLL7-wPUjR5GbV3L_QCMpYfwefb_JBM@z>
+Message-ID: <20171124145528.rK94aSktiL_UvpK35TUh_A8xpobwE57qz2VNPqPPqdM@z>
 
-On 11/24/2017 12:29 AM, Dave Hansen wrote:
-> Although weird, the thought here was that pkey_mprotect() callers are
-> new and should know about the interactions with PROT_EXEC.  They can
-> also*get*  PROT_EXEC semantics if they want.
-> 
-> The only wart here is if you do:
-> 
-> 	mprotect(..., PROT_EXEC); // key 10 is now the PROT_EXEC key
+On 11/23/2017 04:25 PM, Dave Hansen wrote:
+> I don't see a way to do a broadcast PKRU update.  But, I'd love to be
+> proven wrong, with code.
 
-I thought the PROT_EXEC key is always 1?
+I could use the existing setxid broadcast code in glibc to update PKRU 
+on all running threads upon a key allocation (before pkey_alloc returns 
+to the application), but this won't work for the implicit protection key 
+used for PROT_EXEC.  I don't see a good way to get its number, and to 
+determine whether a particular mprotect call allocated it.  (We 
+obviously don't want to do the broadcast on every mprotect call with 
+PROT_EXEC, just in case.)
 
-> 	pkey_mprotect(..., PROT_EXEC, key=3);
-> 
-> I'm not sure what this does.  We should probably ensure that it returns
-> an error.
+What's worse, the setxid broadcast is not async-signal-safe, so we can't 
+use it from mprotect, which should better be async-signal-safe (I know 
+that official, it's not, but it would still be problematic to change 
+that IMHO).
 
-Without protection key support, PROT_EXEC would imply PROT_READ with an 
-ordinary mprotect.  I think it makes sense to stick to this behavior. 
-It is what I have documented for glibc:
-
-   <https://sourceware.org/ml/libc-alpha/2017-11/msg00841.html>
+(The setxid broadcast mechanism allows us to run a piece of code on all 
+threads of the process.  We could look at %rip and see if the signal 
+arrived during a pkey_set function call, and make sure that this call 
+delivers the right result, by altering the task state before returning.)
 
 Thanks,
 Florian
