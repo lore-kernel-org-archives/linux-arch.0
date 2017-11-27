@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f67.google.com ([209.85.160.67]:40847 "EHLO
-        mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752148AbdK0MzN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:55:13 -0500
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:38670 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752134AbdK0MzG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:55:06 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v2 31/35] earlycon: add reg-offset to physical address before mapping
-Date: Mon, 27 Nov 2017 20:28:18 +0800
-Message-ID: <5b5f07ffd75d509a661398d02d6f1336156554ae.1511785528.git.green.hu@gmail.com>
+Subject: [PATCH v2 29/35] dt-bindings: nds32 CPU Bindings
+Date: Mon, 27 Nov 2017 20:28:16 +0800
+Message-ID: <20a04f4a5b08dcec221e0c511e42ff3df711ae66.1511785528.git.green.hu@gmail.com>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
@@ -14,35 +14,59 @@ References: <cover.1511785528.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org
-Cc: green.hu@gmail.com
-Message-ID: <20171127122818.tzsR6OivegmP63jq-Sx-UgItw_Fhm1DuX5x54qX80Kw@z>
+Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>
+Message-ID: <20171127122816.jTcHi1DSslvXwCPJS6D68fKjOA5OWEtHmRnZUqAjc2E@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-It will get the wrong virtual address because port->mapbase is not added
-the correct reg-offset yet. We have to update it before earlycon_map()
-is called
----
- drivers/tty/serial/earlycon.c |    3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+This patch adds nds32 CPU binding documents.
 
-diff --git a/drivers/tty/serial/earlycon.c b/drivers/tty/serial/earlycon.c
-index 98928f0..17dba0a 100644
---- a/drivers/tty/serial/earlycon.c
-+++ b/drivers/tty/serial/earlycon.c
-@@ -253,11 +253,12 @@ int __init of_setup_earlycon(const struct earlycon_id *match,
- 	}
- 	port->mapbase = addr;
- 	port->uartclk = BASE_BAUD * 16;
--	port->membase = earlycon_map(port->mapbase, SZ_4K);
- 
- 	val = of_get_flat_dt_prop(node, "reg-offset", NULL);
- 	if (val)
- 		port->mapbase += be32_to_cpu(*val);
-+	port->membase = earlycon_map(port->mapbase, SZ_4K);
+Signed-off-by: Vincent Chen <vincentc@andestech.com>
+Signed-off-by: Rick Chen <rick@andestech.com>
+Signed-off-by: Zong Li <zong@andestech.com>
+Signed-off-by: Greentime Hu <greentime@andestech.com>
+---
+ Documentation/devicetree/bindings/nds32/cpus.txt |   32 ++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
+
+diff --git a/Documentation/devicetree/bindings/nds32/cpus.txt b/Documentation/devicetree/bindings/nds32/cpus.txt
+new file mode 100644
+index 0000000..c302c89
+--- /dev/null
++++ b/Documentation/devicetree/bindings/nds32/cpus.txt
+@@ -0,0 +1,32 @@
++* Andestech Processor Binding
 +
- 	val = of_get_flat_dt_prop(node, "reg-shift", NULL);
- 	if (val)
- 		port->regshift = be32_to_cpu(*val);
++This binding specifies what properties must be available in the device tree
++representation of a Andestech Processor Core, which is the root node in the
++tree.
++
++Required properties:
++
++	- compatible:
++		Usage: required
++		Value type: <string>
++		Definition: should be one of:
++			"andestech,n13"
++			"andestech,n15"
++			"andestech,d15"
++			"andestech,n10"
++			"andestech,d10"
++			"andestech,nds32v3"
++	- device_type
++		Usage: required
++		Value type: <string>
++		Definition: must be "cpu"
++	- clock-frequency: Contains the clock frequency for CPU, in Hz.
++
++* Examples
++
++/ {
++	cpu {
++		device_type = "cpu";
++		compatible = "andestech,n13", "andestech,nds32v3";
++	};
++};
 -- 
 1.7.9.5
