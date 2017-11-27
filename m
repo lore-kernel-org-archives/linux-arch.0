@@ -1,153 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40130 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40064 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753650AbdK0Qi5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Nov 2017 11:38:57 -0500
+        id S1752930AbdK0Qi0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Nov 2017 11:38:26 -0500
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCHv2 04/12] arm64/cpufeature: detect pointer authentication
-Date: Mon, 27 Nov 2017 16:37:58 +0000
-Message-ID: <20171127163806.31435-5-mark.rutland@arm.com>
+Subject: [PATCHv2 01/12] asm-generic: mm_hooks: allow hooks to be overridden individually
+Date: Mon, 27 Nov 2017 16:37:55 +0000
+Message-ID: <20171127163806.31435-2-mark.rutland@arm.com>
 In-Reply-To: <20171127163806.31435-1-mark.rutland@arm.com>
 References: <20171127163806.31435-1-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: arnd@arndb.de, catalin.marinas@arm.com, cdall@linaro.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, mark.rutland@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org
-Message-ID: <20171127163758.Fe3MdidAq0mqwjwWZ8nMXPw8rTfURHgsXisJZ7R39LA@z>
+Message-ID: <20171127163755.aNRuefxDhtfFW8lop4ttc-Izu1mHG2bv70LWNjai_4w@z>
 
-So that we can dynamically handle the presence of pointer authentication
-functionality, wire up probing code in cpufeature.c.
+Currently, an architecture must either implement all of the mm hooks
+itself, or use all of those provided by the asm-generic implementation.
+When an architecture only needs to override a single hook, it must copy
+the stub implementations from the asm-generic version.
 
-It is assumed that if all CPUs support an IMP DEF algorithm, the same
-algorithm is used across all CPUs.
+To avoid this repetition, allow each hook to be overridden indiviually,
+by placing each under an #ifndef block. As architectures providing their
+own hooks can't include this file today, this shouldn't adversely affect
+any existing hooks.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
 ---
- arch/arm64/include/asm/cpucaps.h |  8 +++-
- arch/arm64/kernel/cpufeature.c   | 82 ++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 89 insertions(+), 1 deletion(-)
+ include/asm-generic/mm_hooks.h | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-diff --git a/arch/arm64/include/asm/cpucaps.h b/arch/arm64/include/asm/cpucaps.h
-index 2ff7c5e8efab..d2830ce5c1c7 100644
---- a/arch/arm64/include/asm/cpucaps.h
-+++ b/arch/arm64/include/asm/cpucaps.h
-@@ -41,7 +41,13 @@
- #define ARM64_WORKAROUND_CAVIUM_30115		20
- #define ARM64_HAS_DCPOP				21
- #define ARM64_SVE				22
-+#define ARM64_HAS_ADDRESS_AUTH_ARCH		23
-+#define ARM64_HAS_ADDRESS_AUTH_IMP_DEF		24
-+#define ARM64_HAS_ADDRESS_AUTH			25
-+#define ARM64_HAS_GENERIC_AUTH_ARCH		26
-+#define ARM64_HAS_GENERIC_AUTH_IMP_DEF		27
-+#define ARM64_HAS_GENERIC_AUTH			28
+diff --git a/include/asm-generic/mm_hooks.h b/include/asm-generic/mm_hooks.h
+index ea189d88a3cc..34edf0850d49 100644
+--- a/include/asm-generic/mm_hooks.h
++++ b/include/asm-generic/mm_hooks.h
+@@ -7,30 +7,41 @@
+ #ifndef _ASM_GENERIC_MM_HOOKS_H
+ #define _ASM_GENERIC_MM_HOOKS_H
  
--#define ARM64_NCAPS				23
-+#define ARM64_NCAPS				29
- 
- #endif /* __ASM_CPUCAPS_H */
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index 1883cdffcdf7..babd4c173092 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -853,6 +853,36 @@ static bool has_no_fpsimd(const struct arm64_cpu_capabilities *entry, int __unus
- 					ID_AA64PFR0_FP_SHIFT) < 0;
++#ifndef arch_dup_mmap
+ static inline void arch_dup_mmap(struct mm_struct *oldmm,
+ 				 struct mm_struct *mm)
+ {
  }
++#endif
  
-+#ifdef CONFIG_ARM64_POINTER_AUTHENTICATION
-+static bool has_address_auth(const struct arm64_cpu_capabilities *entry,
-+			     int __unused)
-+{
-+	u64 isar1 = read_sanitised_ftr_reg(SYS_ID_AA64ISAR1_EL1);
-+	bool api, apa;
-+
-+	apa = cpuid_feature_extract_unsigned_field(isar1,
-+					ID_AA64ISAR1_APA_SHIFT) > 0;
-+	api = cpuid_feature_extract_unsigned_field(isar1,
-+					ID_AA64ISAR1_API_SHIFT) > 0;
-+
-+	return apa || api;
-+}
-+
-+static bool has_generic_auth(const struct arm64_cpu_capabilities *entry,
-+			     int __unused)
-+{
-+	u64 isar1 = read_sanitised_ftr_reg(SYS_ID_AA64ISAR1_EL1);
-+	bool gpi, gpa;
-+
-+	gpa = cpuid_feature_extract_unsigned_field(isar1,
-+					ID_AA64ISAR1_GPA_SHIFT) > 0;
-+	gpi = cpuid_feature_extract_unsigned_field(isar1,
-+					ID_AA64ISAR1_GPI_SHIFT) > 0;
-+
-+	return gpa || gpi;
-+}
-+#endif /* CONFIG_ARM64_POINTER_AUTHENTICATION */
-+
- static const struct arm64_cpu_capabilities arm64_features[] = {
- 	{
- 		.desc = "GIC system register CPU interface",
-@@ -970,6 +1000,58 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
- 		.enable = sve_kernel_enable,
- 	},
- #endif /* CONFIG_ARM64_SVE */
-+#ifdef CONFIG_ARM64_POINTER_AUTHENTICATION
-+	{
-+		.desc = "Address authentication (architected algorithm)",
-+		.capability = ARM64_HAS_ADDRESS_AUTH_ARCH,
-+		.def_scope = SCOPE_SYSTEM,
-+		.sys_reg = SYS_ID_AA64ISAR1_EL1,
-+		.sign = FTR_UNSIGNED,
-+		.field_pos = ID_AA64ISAR1_APA_SHIFT,
-+		.min_field_value = ID_AA64ISAR1_APA_ARCHITECTED,
-+		.matches = has_cpuid_feature,
-+	},
-+	{
-+		.desc = "Address authentication (IMP DEF algorithm)",
-+		.capability = ARM64_HAS_ADDRESS_AUTH_IMP_DEF,
-+		.def_scope = SCOPE_SYSTEM,
-+		.sys_reg = SYS_ID_AA64ISAR1_EL1,
-+		.sign = FTR_UNSIGNED,
-+		.field_pos = ID_AA64ISAR1_API_SHIFT,
-+		.min_field_value = ID_AA64ISAR1_API_IMP_DEF,
-+		.matches = has_cpuid_feature,
-+	},
-+	{
-+		.capability = ARM64_HAS_ADDRESS_AUTH,
-+		.def_scope = SCOPE_SYSTEM,
-+		.matches = has_address_auth,
-+	},
-+	{
-+		.desc = "Generic authentication (architected algorithm)",
-+		.capability = ARM64_HAS_GENERIC_AUTH_ARCH,
-+		.def_scope = SCOPE_SYSTEM,
-+		.sys_reg = SYS_ID_AA64ISAR1_EL1,
-+		.sign = FTR_UNSIGNED,
-+		.field_pos = ID_AA64ISAR1_GPA_SHIFT,
-+		.min_field_value = ID_AA64ISAR1_GPA_ARCHITECTED,
-+		.matches = has_cpuid_feature
-+	},
-+	{
-+		.desc = "Generic authentication (IMP DEF algorithm)",
-+		.capability = ARM64_HAS_GENERIC_AUTH_IMP_DEF,
-+		.def_scope = SCOPE_SYSTEM,
-+		.sys_reg = SYS_ID_AA64ISAR1_EL1,
-+		.sign = FTR_UNSIGNED,
-+		.field_pos = ID_AA64ISAR1_GPI_SHIFT,
-+		.min_field_value = ID_AA64ISAR1_GPI_IMP_DEF,
-+		.matches = has_cpuid_feature
-+	},
-+	{
-+		.capability = ARM64_HAS_GENERIC_AUTH,
-+		.def_scope = SCOPE_SYSTEM,
-+		.matches = has_generic_auth,
-+	},
-+#endif /* CONFIG_ARM64_POINTER_AUTHENTICATION */
- 	{},
- };
++#ifndef arch_exit_mmap
+ static inline void arch_exit_mmap(struct mm_struct *mm)
+ {
+ }
++#endif
  
++#ifndef arch_unmap
+ static inline void arch_unmap(struct mm_struct *mm,
+ 			struct vm_area_struct *vma,
+ 			unsigned long start, unsigned long end)
+ {
+ }
++#endif
+ 
++#ifndef arch_bprm_mm_init
+ static inline void arch_bprm_mm_init(struct mm_struct *mm,
+ 				     struct vm_area_struct *vma)
+ {
+ }
++#endif
+ 
++#ifndef arch_vma_access_permitted
+ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ 		bool write, bool execute, bool foreign)
+ {
+ 	/* by default, allow everything */
+ 	return true;
+ }
++#endif
++
+ #endif	/* _ASM_GENERIC_MM_HOOKS_H */
 -- 
 2.11.0
