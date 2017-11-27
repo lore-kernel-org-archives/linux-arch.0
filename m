@@ -1,36 +1,38 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v2 18/35] nds32: Debugging support
-Date: Mon, 27 Nov 2017 20:28:05 +0800
-Message-ID: <01fc485408504e6a43b768664f44b9fd42a89503.1511785528.git.green.hu@gmail.com>
+From: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: [PATCH v2 23/35] nds32: Miscellaneous header files
+Date: Mon, 27 Nov 2017 20:28:10 +0800
+Message-ID: <af608fe8dd63a9797d33c0b7cf4bbea5e79038ac.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
-In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org
-Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <cover.1511785528.git.green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+In-Reply-To: <cover.1511785528.git.green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+References: <cover.1511785528.git.green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org, marc.zyngier-5wv7dgnIgG8@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, Vincent Chen <vincentc-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Greentime Hu <greentime@andestech.com>
+From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
 
-This patch adds ptrace support.
+This patch introduces some miscellaneous header files.
 
-Signed-off-by: Vincent Chen <vincentc@andestech.com>
-Signed-off-by: Greentime Hu <greentime@andestech.com>
+Signed-off-by: Vincent Chen <vincentc-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+Signed-off-by: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
 ---
- arch/nds32/include/uapi/asm/ptrace.h |   42 +++++
- arch/nds32/kernel/ptrace.c           |  325 ++++++++++++++++++++++++++++++++++
- 2 files changed, 367 insertions(+)
- create mode 100644 arch/nds32/include/uapi/asm/ptrace.h
- create mode 100644 arch/nds32/kernel/ptrace.c
+ arch/nds32/include/asm/delay.h          |   51 +++++++++++++++++++++++++++++++
+ arch/nds32/include/asm/linkage.h        |   24 +++++++++++++++
+ arch/nds32/include/uapi/asm/byteorder.h |   26 ++++++++++++++++
+ 3 files changed, 101 insertions(+)
+ create mode 100644 arch/nds32/include/asm/delay.h
+ create mode 100644 arch/nds32/include/asm/linkage.h
+ create mode 100644 arch/nds32/include/uapi/asm/byteorder.h
 
-diff --git a/arch/nds32/include/uapi/asm/ptrace.h b/arch/nds32/include/uapi/asm/ptrace.h
+diff --git a/arch/nds32/include/asm/delay.h b/arch/nds32/include/asm/delay.h
 new file mode 100644
-index 0000000..20f9718
+index 0000000..bdeeb76
 --- /dev/null
-+++ b/arch/nds32/include/uapi/asm/ptrace.h
-@@ -0,0 +1,42 @@
++++ b/arch/nds32/include/asm/delay.h
+@@ -0,0 +1,51 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -47,38 +49,47 @@ index 0000000..20f9718
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef __UAPI_ASM_NDS32_PTRACE_H
-+#define __UAPI_ASM_NDS32_PTRACE_H
++#ifndef __NDS32_DELAY_H__
++#define __NDS32_DELAY_H__
 +
-+#ifndef __ASSEMBLY__
++#include <asm/param.h>
 +
-+/*
-+ * User structures for general purpose register.
-+ */
-+struct user_pt_regs {
-+	long uregs[26];
-+	long fp;
-+	long gp;
-+	long lp;
-+	long sp;
-+	long ipc;
-+#if defined(CONFIG_HWZOL)
-+	long lb;
-+	long le;
-+	long lc;
++static inline void __delay(unsigned long loops)
++{
++	__asm__ __volatile__(".align 2\n"
++			     "1:\n"
++			     "\taddi\t%0, %0, -1\n"
++			     "\tbgtz\t%0, 1b\n"
++			     :"=r"(loops)
++			     :"0"(loops));
++}
++
++static inline void __udelay(unsigned long usecs, unsigned long lpj)
++{
++	usecs *= (unsigned long)(((0x8000000000000000ULL / (500000 / HZ)) +
++				  0x80000000ULL) >> 32);
++	usecs = (unsigned long)(((unsigned long long)usecs * lpj) >> 32);
++	__delay(usecs);
++}
++
++#define udelay(usecs) __udelay((usecs), loops_per_jiffy)
++
++/* make sure "usecs *= ..." in udelay do not overflow. */
++#if HZ >= 1000
++#define MAX_UDELAY_MS	1
++#elif HZ <= 200
++#define MAX_UDELAY_MS	5
 +#else
-+	long dummy[3];
++#define MAX_UDELAY_MS	(1000 / HZ)
 +#endif
-+	long syscallno;
-+};
++
 +#endif
-+#endif
-diff --git a/arch/nds32/kernel/ptrace.c b/arch/nds32/kernel/ptrace.c
+diff --git a/arch/nds32/include/asm/linkage.h b/arch/nds32/include/asm/linkage.h
 new file mode 100644
-index 0000000..d91b3b8
+index 0000000..d17abd8
 --- /dev/null
-+++ b/arch/nds32/kernel/ptrace.c
-@@ -0,0 +1,325 @@
++++ b/arch/nds32/include/asm/linkage.h
+@@ -0,0 +1,24 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -95,314 +106,50 @@ index 0000000..d91b3b8
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/ptrace.h>
-+#include <linux/user.h>
-+#include <linux/security.h>
-+#include <linux/init.h>
-+#include <linux/uaccess.h>
-+#include <linux/regset.h>
-+#include <linux/tracehook.h>
-+#include <linux/elf.h>
-+#include <linux/sched/task_stack.h>
++#ifndef __ASM_LINKAGE_H
++#define __ASM_LINKAGE_H
 +
-+#include <asm/uaccess.h>
-+#include <asm/pgtable.h>
++/* This file is required by include/linux/linkage.h */
++#define __ALIGN .align 2
++#define __ALIGN_STR ".align 2"
 +
-+enum nds32_regset {
-+	REGSET_GPR,
-+};
-+
-+static int gpr_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user * ubuf)
-+{
-+	struct user_pt_regs *uregs = &task_pt_regs(target)->user_regs;
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs, 0, -1);
-+}
-+
-+static int gpr_set(struct task_struct *target, const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user * ubuf)
-+{
-+	int err;
-+	struct user_pt_regs newregs = task_pt_regs(target)->user_regs;
-+
-+	err = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newregs, 0, -1);
-+	if (err)
-+		return err;
-+
-+	task_pt_regs(target)->user_regs = newregs;
-+	return 0;
-+}
-+
-+static const struct user_regset nds32_regsets[] = {
-+	[REGSET_GPR] = {
-+			.core_note_type = NT_PRSTATUS,
-+			.n = sizeof(struct user_pt_regs) / sizeof(u32),
-+			.size = sizeof(u32),
-+			.align = sizeof(u32),
-+			.get = gpr_get,
-+			.set = gpr_set}
-+};
-+
-+static const struct user_regset_view nds32_user_view = {
-+	.name = "nds32",.e_machine = EM_NDS32,
-+	.regsets = nds32_regsets,.n = ARRAY_SIZE(nds32_regsets)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &nds32_user_view;
-+}
-+
-+/* get_user_reg()
-+ *
-+ * This routine will get a word off of the processes privileged stack.
-+ * the offset is how far from the base addr as stored in the THREAD.
-+ * this routine assumes that all the privileged stacks are in our
-+ * data space.
-+ */
-+static inline unsigned int get_user_reg(struct task_struct *task, int offset)
-+{
-+	return task_pt_regs(task)->uregs[offset];
-+}
-+
-+/* put_user_reg()
-+ *
-+ * this routine will put a word on the processes privileged stack.
-+ * the offset is how far from the base addr as stored in the THREAD.
-+ * this routine assumes that all the privileged stacks are in our
-+ * data space.
-+ */
-+static inline int put_user_reg(struct task_struct *task, int offset, long data)
-+{
-+	struct pt_regs newregs, *regs = task_pt_regs(task);
-+	int ret = -EINVAL;
-+
-+	newregs = *regs;
-+	newregs.uregs[offset] = data;
-+
-+	if (valid_user_regs(&newregs)) {
-+		regs->uregs[offset] = data;
-+		ret = 0;
-+	}
-+
-+	return ret;
-+}
-+
++#endif
+diff --git a/arch/nds32/include/uapi/asm/byteorder.h b/arch/nds32/include/uapi/asm/byteorder.h
+new file mode 100644
+index 0000000..198e8dd
+--- /dev/null
++++ b/arch/nds32/include/uapi/asm/byteorder.h
+@@ -0,0 +1,26 @@
 +/*
-+ * Called by kernel/ptrace.c when detaching..
++ * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
-+ * Make sure the single step bit is not set.
-+ */
-+void ptrace_disable(struct task_struct *child)
-+{
-+	user_disable_single_step(child);
-+}
-+
-+static void fill_sigtrap_info(struct task_struct *tsk,
-+			      struct pt_regs *regs,
-+			      int error_code, int si_code, struct siginfo *info)
-+{
-+	tsk->thread.trap_no = ENTRY_DEBUG_RELATED;
-+	tsk->thread.error_code = error_code;
-+
-+	memset(info, 0, sizeof(*info));
-+	info->si_signo = SIGTRAP;
-+	info->si_code = si_code;
-+	info->si_addr = (void __user *)instruction_pointer(regs);
-+}
-+
-+void user_single_step_siginfo(struct task_struct *tsk,
-+			      struct pt_regs *regs, struct siginfo *info)
-+{
-+	fill_sigtrap_info(tsk, regs, 0, TRAP_BRKPT, info);
-+}
-+
-+/*
-+ * Handle hitting a breakpoint.
-+ */
-+void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
-+		  int error_code, int si_code)
-+{
-+	struct siginfo info;
-+
-+	fill_sigtrap_info(tsk, regs, error_code, TRAP_BRKPT, &info);
-+	/* Send us the fake SIGTRAP */
-+	force_sig_info(SIGTRAP, &info, tsk);
-+}
-+
-+/* ptrace_read_user()
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + *
-+ * Read the word at offset "off" into the "struct user".  We
-+ * actually access the pt_regs stored on the kernel stack.
-+ */
-+static int
-+ptrace_read_user(struct task_struct *tsk, unsigned long off,
-+		 unsigned long __user * ret)
-+{
-+	unsigned long tmp = 0;
-+
-+	if (off < sizeof(struct pt_regs)) {
-+		if (off & 3)
-+			return -EIO;
-+		tmp = get_user_reg(tsk, off >> 2);
-+		return put_user(tmp, ret);
-+	} else
-+		return -EIO;
-+}
-+
-+/* ptrace_write_user()
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
 + *
-+ * Write the word at offset "off" into "struct user".  We
-+ * actually access the pt_regs stored on the kernel stack.
-+ */
-+static int
-+ptrace_write_user(struct task_struct *tsk, unsigned long off, unsigned long val)
-+{
-+	if (off < sizeof(struct pt_regs)) {
-+		if (off & 3)
-+			return -EIO;
-+		return put_user_reg(tsk, off >> 2, val);
-+	} else
-+		return -EIO;
-+}
-+
-+/* ptrace_getregs()
-+ *
-+ * Get all user integer registers.
-+ */
-+static int ptrace_getregs(struct task_struct *tsk, void __user * uregs)
-+{
-+	struct pt_regs *regs = task_pt_regs(tsk);
-+
-+	return copy_to_user(uregs, regs, sizeof(struct pt_regs)) ? -EFAULT : 0;
-+}
-+
-+/* ptrace_setregs()
-+ *
-+ * Set all user integer registers.
-+ */
-+static int ptrace_setregs(struct task_struct *tsk, void __user * uregs)
-+{
-+	struct pt_regs newregs;
-+	int ret;
-+
-+	ret = -EFAULT;
-+	if (copy_from_user(&newregs, uregs, sizeof(struct pt_regs)) == 0) {
-+		struct pt_regs *regs = task_pt_regs(tsk);
-+
-+		ret = -EINVAL;
-+		if (valid_user_regs(&newregs)) {
-+			*regs = newregs;
-+			ret = 0;
-+		}
-+	}
-+
-+	return ret;
-+}
-+
-+/* ptrace_getfpregs()
-+ *
-+ * Get the child FPU state.
-+ */
-+static int ptrace_getfpregs(struct task_struct *tsk, void __user * ufpregs)
-+{
-+	return -EFAULT;
-+}
-+
-+/*
-+ * Set the child FPU state.
-+ */
-+static int ptrace_setfpregs(struct task_struct *tsk, void __user * ufpregs)
-+{
-+	return -EFAULT;
-+}
-+
-+/* do_ptrace()
-+ *
-+ * Provide ptrace defined service.
-+ */
-+long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-+		 unsigned long data)
-+{
-+	int ret;
-+
-+	switch (request) {
-+	case PTRACE_PEEKUSR:
-+		ret =
-+		    ptrace_read_user(child, addr, (unsigned long __user *)data);
-+		break;
-+
-+	case PTRACE_POKEUSR:
-+		ret = ptrace_write_user(child, addr, data);
-+		break;
-+
-+	case PTRACE_GETREGS:
-+		ret = ptrace_getregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_SETREGS:
-+		ret = ptrace_setregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_GETFPREGS:
-+		ret = ptrace_getfpregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_SETFPREGS:
-+		ret = ptrace_setfpregs(child, (void __user *)data);
-+		break;
-+
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
-+	}
-+
-+	return ret;
-+}
-+
-+void user_enable_single_step(struct task_struct *child)
-+{
-+	struct pt_regs *regs;
-+	regs = task_pt_regs(child);
-+	regs->ipsw |= PSW_mskHSS;
-+	set_tsk_thread_flag(child, TIF_SINGLESTEP);
-+}
-+
-+void user_disable_single_step(struct task_struct *child)
-+{
-+	struct pt_regs *regs;
-+	regs = task_pt_regs(child);
-+	regs->ipsw &= ~PSW_mskHSS;
-+	clear_tsk_thread_flag(child, TIF_SINGLESTEP);
-+}
-+
-+/* sys_trace()
-+ *
-+ * syscall trace handler.
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+asmlinkage int syscall_trace_enter(int syscall, struct pt_regs *regs)
-+{
-+	if (test_thread_flag(TIF_SYSCALL_TRACE)) {
-+		if (tracehook_report_syscall_entry(regs))
-+			return -1;
-+	}
-+	return syscall;
-+}
++#ifndef __NDS32_BYTEORDER_H__
++#define __NDS32_BYTEORDER_H__
 +
-+asmlinkage void syscall_trace_leave(struct pt_regs *regs)
-+{
-+	int step = test_thread_flag(TIF_SINGLESTEP);
-+	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(regs, step);
++#ifdef __NDS32_EB__
++#include <linux/byteorder/big_endian.h>
++#else
++#include <linux/byteorder/little_endian.h>
++#endif
 +
-+}
++#endif /* __NDS32_BYTEORDER_H__ */
 -- 
 1.7.9.5
+
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
