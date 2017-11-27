@@ -1,131 +1,91 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 3/3] y2038: rusage: use __kernel_old_timeval for
-	process times
-Date: Mon, 27 Nov 2017 21:41:54 +0100
-Message-ID: <CAK8P3a1asMLnJtea=JkduiYzr0dF0BTKQzcx5aQVv1zU5dK2FA@mail.gmail.com>
-References: <20171127170121.634826-1-arnd@arndb.de>
- <20171127170121.634826-3-arnd@arndb.de>
- <34369a6e-e0ce-fe7b-65e3-9c4a33e4789a@cs.ucla.edu>
- <87o9nnlfpq.fsf@xmission.com>
+Subject: Re: [PATCH v2 00/10] posix_clocks: Prepare syscalls for 64 bit time_t conversion
+Date: Mon, 27 Nov 2017 22:58:36 +0100
+Message-ID: <CAK8P3a2pcpQqf_TNGVxLBePBSKYhxD90UN-FjBor4d-dKhAwbQ@mail.gmail.com>
+References: <20171127193037.8711-1-deepa.kernel@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <87o9nnlfpq.fsf@xmission.com>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Paul Eggert <eggert@cs.ucla.edu>, GNU C Library <libc-alpha@sourceware.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux API <linux-api@vger.kernel.org>, linux-alpha@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Albert ARIBAUD <albert.aribaud@3adev.fr>, Deepa Dinamani <deepa.kernel@gmail.com>, Kirill Tkhai <ktkhai@virtuozzo.com>, John Stultz <john.stultz@linaro.org>, Al Viro <viro@zeniv.linux.org.uk>, Frederic Weisbecker <fweisbec@gmail.com>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Thomas Gleixner <tglx@linutronix.de>, Matt Turner <mattst88@gmail.com>, Richard Henderson <rth@twiddle.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ot0-f193.google.com ([74.125.82.193]:39229 "EHLO
+        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752051AbdK0V6i (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 16:58:38 -0500
+In-Reply-To: <20171127193037.8711-1-deepa.kernel@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Deepa Dinamani <deepa.kernel@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, John Stultz <john.stultz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, cohuck@redhat.com, David Miller <davem@davemloft.net>, Helge Deller <deller@gmx.de>, devel@driverdev.osuosl.org, gerald.schaefer@de.ibm.com, gregkh <gregkh@linuxfoundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jan Hoeppner <hoeppner@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Julian
 
-T24gTW9uLCBOb3YgMjcsIDIwMTcgYXQgNzo0OSBQTSwgRXJpYyBXLiBCaWVkZXJtYW4KPGViaWVk
-ZXJtQHhtaXNzaW9uLmNvbT4gd3JvdGU6Cj4gUGF1bCBFZ2dlcnQgPGVnZ2VydEBjcy51Y2xhLmVk
-dT4gd3JpdGVzOgo+Cj4+IE9uIDExLzI3LzIwMTcgMDk6MDAgQU0sIEFybmQgQmVyZ21hbm4gd3Jv
-dGU6Cj4+PiBiKSBFeHRlbmQgdGhlIGFwcHJvYWNoIHRha2VuIGJ5IHRoZSB4MzIgQUJJLCBhbmQg
-dXNlIHRoZSA2NC1iaXQKPj4+ICAgICBuYXRpdmUgc3RydWN0dXJlIGxheW91dCBmb3IgcnVzYWdl
-IG9uIGFsbCBhcmNoaXRlY3R1cmVzIHdpdGggbmV3Cj4+PiAgICAgc3lzdGVtIGNhbGxzIHRoYXQg
-aXMgb3RoZXJ3aXNlIGNvbXBhdGlibGUuIEEgcG9zc2libGUgcHJvYmxlbSBoZXJlCj4+PiAgICAg
-aXMgdGhhdCB3ZSBlbmQgdXAgd2l0aCBpbmNvbXBhdGlibGUgZGVmaW5pdGlvbnMgb2YgcnVzYWdl
-IGJldHdlZW4KPj4+ICAgICAvdXNyL2luY2x1ZGUvbGludXgvcmVzb3VyY2UuaCBhbmQgL3Vzci9p
-bmNsdWRlL2JpdHMvcmVzb3VyY2UuaAo+Pj4KPj4+IGMpIENoYW5nZSB0aGUgZGVmaW5pdGlvbiBv
-ZiBzdHJ1Y3QgcnVzYWdlIHRvIGJlIGluZGVwZW5kZW50IG9mCj4+PiAgICAgdGltZV90LiBUaGlz
-IGlzIHRoZSBlYXNpZXN0IGNoYW5nZSwgYXMgaXQgZG9lcyBub3QgaW52b2x2ZSBuZXcgc3lzdGVt
-Cj4+PiAgICAgY2FsbCBlbnRyeSBwb2ludHMsIGJ1dCBpdCBoYXMgdGhlIHJpc2sgb2YgaW50cm9k
-dWNpbmcgY29tcGlsZS10aW1lCj4+PiAgICAgaW5jb21wYXRpYmlsaXRpZXMgd2l0aCB1c2VyIHNw
-YWNlIHNvdXJjZXMgdGhhdCByZWx5IG9uIHRoZSB0eXBlCj4+PiAgICAgb2YgcnVfdXRpbWUgYW5k
-IHJ1X3N0aW1lLgo+Pj4KPj4+IEknbSBwaWNraW5nIGFwcHJvY2ggYykgZm9yIGl0cyBzaW1wbGlj
-aXR5LCBidXQgSSdkIGxpa2UgdG8gaGVhciBmcm9tCj4+PiBvdGhlcnMgd2hldGhlciB0aGV5IHdv
-dWxkIHByZWZlciBhIGRpZmZlcmVudCBhcHByb2FjaC4KPj4KPj4gKGMpIHdvdWxkIGJyZWFrIHBy
-b2dyYW1zIGxpa2UgR05VIEVtYWNzLCB3aGljaCBjb3B5IHJ1X3V0aW1lIGFuZCBydV9zdGltZQo+
-PiBtZW1iZXJzIGludG8gc3RydWN0IHRpbWV2YWwgdmFyaWFibGVzLgoKUmlnaHQuIEkgdGhpbmsg
-SSBvcmlnaW5hbGx5IGhhZCB0aGUgd29ya2Fyb3VuZCB0byBoYXZlIGdsaWJjIGNvbnZlcnQKYmV0
-d2VlbiBpdHMgb3duIHN0cnVjdHVyZSBhbmQgdGhlIGtlcm5lbCBzdHJ1Y3R1cmUgaW4gbWluZCwg
-YnV0IHRoZW4KZW5kZWQgdXAgbm90IGluY2x1ZGluZyB0aGF0IGluIHRoZSB0ZXh0IGFib3ZlLiBJ
-IHdhcyBnb2luZyBiYWNrIGFuZApmb3J0aCBvbiB3aGV0aGVyIGl0IHdvdWxkIGJlIG5lZWRlZCBv
-ciBub3QuCgo+PiBBbGwgaW4gYWxsLCAoYikgc291bmRzIGxpa2UgaXQgd291bGQgYmUgYmV0dGVy
-IGZvciBwcm9ncmFtcyB1c2luZyBnbGliYywgYXMgaXQncwo+PiBtb3JlIGNvbXBhdGlibGUgd2l0
-aCB3aGF0IFBPU0lYIGFwcHMgZXhwZWN0LiBUaG91Z2ggSSdtIG5vdCBzdXJlIHdoYXQgcHJvYmxl
-bXMKPj4gYXJlIG1lYW50IGJ5ICJwb3NzaWJsZSAuLi4gaW5jb21wYXRpYmxlIGRlZmluaXRpb25z
-IjsgcGVyaGFwcyB5b3UgY291bGQKPj4gZWxhYm9yYXRlLgoKSSBtZWFudCB0aGF0IHlvdSBtaWdo
-dCBoYXZlIGFuIGFwcGxpY2F0aW9uIHRoYXQgaW5jbHVkZXMKbGludXgvcmVzb3VyY2UuaCBpbnN0
-ZWFkIG9mIHN5cy9yZXNvdXJjZS5oIGJ1dCBjYWxscyB0aGUgZ2xpYmMKZnVuY3Rpb24sIG9yIG9u
-ZSB0aGF0IGluY2x1ZGVzIHN5cy9yZXNvdXJjZS5oIGFuZCBpbnZva2VzIHRoZQpzeXN0ZW0gY2Fs
-bCBkaXJlY3RseS4KCj4gZ2V0cnVzYWdlIGlzIHBvc2l4IGFuZCBJIGJlbGlldmUgdGhlIHVzZSBv
-ZiBzdHJ1Y3QgdGltZXZhbCBpcyBwb3NpeCBhcwo+IHdlbGwuCj4KPiBTbyBnZXRydXNhZ2UoMykg
-dGhlIGxpYmMgZGVmaW5pdGlvbiBhbmQgdGhhdCBkZWZpbnRpb24gbXVzdCBzdHJ1Y3QKPiB0aW1l
-dmFsIG9yIHRoZSBpbXBsZW1lbnRhdGlvbiB3aWxsIGJlIG5vbi1jb25mb3JtaW5nIGFuZCBpdCB3
-b24ndCBiZQo+IGp1c3QgZW1hY3Mgd2UgbmVlZCB0byB3b3JyeSBhYm91dC4KPgo+IFRoZSBwcmFj
-dGljYWwgcXVlc3Rpb24gaXMgd2hhdCBkbyB3ZSBwcm92aWRlIHRvIHVzZXJzcGFjZSBzbyB0aGF0
-IGl0IGNhbgo+IGltcGxlbWVudCBhIGNvbmZvcm1pbmcgZ2V0cnVzYWdlPwo+Cj4gQSAzMmJpdCB0
-aW1lX3QgYmFzZWQgc3RydWN0IHRpbWV2YWwgaXMgZ29vZCBmb3IgZHVyYXRpb25zIHVwIHRvIDEz
-NiB5ZWFycwo+IG9yIHNvLiAgV2hpY2ggc3Ryb25nbHkgc3VnZ2VzdHMgdGhlIHJhbmdlIGlzIGxh
-cmdlIGVub3VnaCwgZXhjZXB0IGZvcgo+IHNvbWUgY3JhenkgbWFzc2l2ZWx5IG11bHRpLXRocmVh
-ZGVkIGFwcGxpY2F0aW9uLiAgQW5kIGFueXRoaW5nIG9mZiB0aGUKPiBjaGFydHMgY3B1IGh1bmdy
-eSBhdCB0aGlzIHBvaW50IEkgZXhwZWN0IHdpbGwgYmUgNjRiaXQuCj4KPiBJdCBpcyBwb3NzaWJs
-ZSB0byBnZXQgYSAxMjggd2F5IHN5c3RlbSB3aXRoIG9uZSB0aHJlYWQgb24gZWFjaCBjb3JlIGFu
-ZAo+IGNvbnN1bWUgMTAwJSBvZiB0aGUgY29yZSBmb3IgYSBiaXQgb3ZlciBhIHllYXIgdG8gbWF4
-IG91dCBnZXRydXNhZ2UuICBTbwo+IEkgZG8gdGhpbmsgaW4gdGhlIGxvbmcgcnVuIHdlIGNhcmUg
-YWJvdXQgaW5jcmVhc2luZyB0aGUgc2l6ZSBvZiB0aW1lX3QKPiBoZXJlLiAgTGFzdCBJIGNoZWNr
-ZWQgYXBwbGljYXRpb25zIGRvaW5nIHRoaW5ncyBsaWtlIHRoYXQgd2VyZSA2NGJpdCBpbgo+IHRo
-ZSB5ZWFyIDIwMDAuCgpBZ3JlZWQsIHRoaXMgd2FzIGFsc28gYSBjYWxjdWxhdGlvbiBJIGRpZC4K
-Cj4gR2l2ZW4gdGhhdCB1c2Vyc3BhY2UgaXMgZ29pbmcgdG8gYmUgc2VlaW5nIHRoZSBsYXJnZXIg
-c3RydWN0IHJ1c2FnZSBpbgo+IGFueSBldmVudCBteSBpbmNsaW5hdGlvbiBmb3IgbG9uZyB0ZXJt
-IG1haW50YWluYWJpbGl0eSB3b3VsZCBiZSB0bwo+IGludHJvZHVjZSB0aGUgbmV3IHN5c2NhbGwg
-YW5kIGhhdmUgdGhlIGN1cnJlbnQgb25lIGNhbGxlZCBvbGRnZXRydXNhZ2UKPiBvbiAzMmJpdCBh
-cmNoaXRlY3R1cmVzLiAgVGhlbiB3ZSB3b24ndCBoYXZlIHRvIHdvcnJ5IGFib3V0IHdoYXQgd2Vp
-cmQKPiB0aGluZ3MgZ2xpYmMgd2lsbCBkbyB3aGVuIHRyYW5zbGF0aW5nIHRoZSBkYXRhLCBhbmQg
-d2UgY2FuIGhhbmRsZQo+IGFwcGxpY2F0aW9ucyB3aXRoIGNyYXp5IChidXQgcG9zc2libGUpIHJ1
-bnRpbWVzLiAgV2hpY2ggaW5jbGluZXMgbWUgdG8KPiAoYikgYXMgd2VsbC4KClRoaXMgd291bGQg
-YWN0dWFsbHkgYmUgdGhlIHNhbWUgdGhpbmcgd2UgZG8gZm9yIG1vc3Qgb3RoZXIgc3lzY2FsbHMs
-CnJlZ2FyZGluZyB0aGUgbmFtaW5nLCBpdCB3b3VsZCBiZWNvbWUgY29tcGF0X3N5c19nZXRydXNh
-Z2UoKQphbmQgc2hhcmUgdGhlIGltcGxlbWVudGF0aW9uIGJldHdlZW4gbmF0aXZlIDMyLWJpdCBt
-b2RlIGFuZApjb21wYXQgbW9kZSBvbiA2NC1iaXQgYXJjaGl0ZWN0dXJlcywgd2hpbGUgc3lzX2dl
-dHJ1c2FnZSBiZWNvbWVzCnRoZSBmdW5jdGlvbiB0aGF0IGRlYWxzIHdpdGggdGhlIDY0LWJpdCBs
-YXlvdXQsIGFuZCB3b3VsZCBoYXZlIHRoZQpzYW1lIGJpbmFyeSBmb3JtYXQgb24gYm90aCAzMi1i
-aXQgYW5kIDY0LWJpdCBuYXRpdmUgQUJJcy4KClVuZm9ydHVuYXRlbHksIHRoaXMgb3BlbnMgYSBu
-ZXcgcXVlc3Rpb24sIGFzIHRoZSBzdHJ1Y3R1cmUgaXMgY3VycmVudGx5CmRlZmluZWQgYnkgZ2xp
-YmMgYXM6CgovKiBTdHJ1Y3R1cmUgd2hpY2ggc2F5cyBob3cgbXVjaCBvZiBlYWNoIHJlc291cmNl
-IGhhcyBiZWVuIHVzZWQuICAqLwoKLyogVGhlIHB1cnBvc2Ugb2YgYWxsIHRoZSB1bmlvbnMgaXMg
-dG8gaGF2ZSB0aGUga2VybmVsLWNvbXBhdGlibGUgbGF5b3V0CiAgIHdoaWxlIGtlZXBpbmcgdGhl
-IEFQSSB0eXBlIGFzICdsb25nIGludCcsIGFuZCBhbW9uZyBtYWNoaW5lcyB3aGVyZQogICBfX3N5
-c2NhbGxfc2xvbmdfdCBpcyBub3QgJ2xvbmcgaW50JywgdGhpcyBvbmx5IGRvZXMgdGhlIHJpZ2h0
-IHRoaW5nCiAgIGZvciBsaXR0bGUtZW5kaWFuIG9uZXMsIGxpa2UgeDMyLiAgKi8Kc3RydWN0IHJ1
-c2FnZQogIHsKICAgIC8qIFRvdGFsIGFtb3VudCBvZiB1c2VyIHRpbWUgdXNlZC4gICovCiAgICBz
-dHJ1Y3QgdGltZXZhbCBydV91dGltZTsKICAgIC8qIFRvdGFsIGFtb3VudCBvZiBzeXN0ZW0gdGlt
-ZSB1c2VkLiAgKi8KICAgIHN0cnVjdCB0aW1ldmFsIHJ1X3N0aW1lOwogICAgLyogTWF4aW11bSBy
-ZXNpZGVudCBzZXQgc2l6ZSAoaW4ga2lsb2J5dGVzKS4gICovCiAgICBfX2V4dGVuc2lvbl9fIHVu
-aW9uCiAgICAgIHsKICAgICAgICBsb25nIGludCBydV9tYXhyc3M7CiAgICAgICAgX19zeXNjYWxs
-X3Nsb25nX3QgX19ydV9tYXhyc3Nfd29yZDsKICAgICAgfTsKICAgIC8qIEFtb3VudCBvZiBzaGFy
-aW5nIG9mIHRleHQgc2VnbWVudCBtZW1vcnkKICAgICAgIHdpdGggb3RoZXIgcHJvY2Vzc2VzIChr
-aWxvYnl0ZS1zZWNvbmRzKS4gICovCiAgICAvKiBNYXhpbXVtIHJlc2lkZW50IHNldCBzaXplIChp
-biBraWxvYnl0ZXMpLiAgKi8KICAgIF9fZXh0ZW5zaW9uX18gdW5pb24KICAgICAgewogICAgICAg
-IGxvbmcgaW50IHJ1X2l4cnNzOwogICAgICAgIF9fc3lzY2FsbF9zbG9uZ190IF9fcnVfaXhyc3Nf
-d29yZDsKICAgICAgfTsKICAgLi4uCn07CgpIZXJlLCBJIGd1ZXNzIHdlIGhhdmUgdG8gcmVwbGFj
-ZSBfX3N5c2NhbGxfc2xvbmdfdCB3aXRoIGFuICdydXNhZ2UnCnNwZWNpZmljIHR5cGUgdGhhdCBo
-YXMgdGhlIHNhbWUgbGVuZ3RoIGFzIHRpbWVfdCwgYnV0IGlzIGluZGVwZW5kZW50Cm9mIF9fc3lz
-Y2FsbF9zbG9uZ190LCB3aGljaCBpcyBzdGlsbCAzMi1iaXQgZm9yIG1vc3QgMzItYml0IGFyY2hp
-dGVjdHVyZXMuCgpIb3cgd291bGQgd2UgZG8gdGhlIGJpZy1lbmRpYW4gdmVyc2lvbiBvZiB0aGF0
-IHRob3VnaD8KCk9uZSBhcmd1bWVudCBmb3IgdXNpbmcgYykgcGx1cyB0aGUgZW11bGF0aW9uIGlu
-IGdsaWJjIGlzIHRoYXQgZ2xpYmMKaGFzIHRvIGRvIGVtdWxhdGlvbiBhbnl3YXksIHRvIGFsbG93
-IHJ1bm5pbmcgdXNlciBzcGFjZSB3aXRoIDY0LWJpdAp0aW1lX3Qgb24gb2xkZXIga2VybmVscyB0
-aGF0IGRvbid0IGhhdmUgdGhlIG5ldyBnZXRydXNhZ2Ugc3lzdGVtCmNhbGwuCgo+IEFzIGZvciAo
-YSkgZG9lcyBhbnlvbmUgaGF2ZSBhIG5lZWQgZm9yIHByb2Nlc3MgYWNvdW50aW5nIGF0IG5zZWMK
-PiBncmFudWxhcml0eT8gIFVubGVzcyB3ZSBjYW4gZ2V0IHRoYXQgZm9yIGZyZWUgdGhhdCBqdXN0
-IHNlZW1zIGxpa2UKPiBvdmVycHJvbWlzaW5nIGFuZCBhIHdhaXN0IHRvIGhhdmUgc28gbXVjaCBm
-aW5lIGdyYW51bGFyaXR5LgoKVGhlIGtlcm5lbCBkb2VzIGV2ZXJ5dGhpbmcgaW4gbmFub3NlY29u
-ZHMsIHNvIHdlIGFsd2F5cyBzcGVuZAphIGZldyBjeWNsZXMgKGEgbG90IG9mIGN5Y2xlcyBvbiBz
-b21lIG9mIHRoZSB2ZXJ5IGxvdy1lbmQgYXJjaGl0ZWN0dXJlcykKb24gZGl2aWRpbmcgaXQgYnkg
-MTAwMC4gTW92aW5nIHRoZSBkaXZpc2lvbiBvcGVyYXRpb24gdG8gdXNlciBzcGFjZQppcyBlc3Nl
-bnRpYWxseSBmcmVlLCBhbmQgdXNpbmcgdGhlIG5hbm9zZWNvbmRzIGluc3RlYWQgb2YgbWljcm9z
-ZWNvbmRzCm1pZ2h0IGJlIHNsaWdodGx5IGNoZWFwZXIuIEkgZG9uJ3QgdGhpbmsgYW55b25lIHJl
-YWxseSBuZWVkcyBpdCB0aG91Z2guCgogICAgICBBcm5kCl9fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fClkyMDM4IG1haWxpbmcgbGlzdApZMjAzOEBsaXN0cy5s
-aW5hcm8ub3JnCmh0dHBzOi8vbGlzdHMubGluYXJvLm9yZy9tYWlsbWFuL2xpc3RpbmZvL3kyMDM4
-Cg==
+On Mon, Nov 27, 2017 at 8:30 PM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
+> The series is a preparation series for individual architectures
+> to use 64 bit time_t syscalls in compat and 32 bit emulation modes.
+>
+> This is a follow up to the series Arnd Bergmann posted:
+> https://sourceware.org/ml/libc-alpha/2015-05/msg00070.html [1]
+>
+> Big picture is as per the lwn article:
+> https://lwn.net/Articles/643234/ [2]
+>
+> The series is directed at converting posix clock syscalls:
+> clock_gettime, clock_settime, clock_getres and clock_nanosleep
+> to use a new data structure __kernel_timespec at syscall boundaries.
+> __kernel_timespec maintains 64 bit time_t across all execution modes.
+>
+> vdso will be handled as part of each architecture when they enable
+> support for 64 bit time_t.
+>
+> The compat syscalls are repurposed to provide backward compatibility
+> by using them as native syscalls as well for 32 bit architectures.
+> They will continue to use timespec at syscall boundaries.
+>
+> CONFIG_64_BIT_TIME controls whether the syscalls use __kernel_timespec
+> or timespec at syscall boundaries.
+>
+> The series does the following:
+> 1. Enable compat syscalls on 32 bit architectures.
+> 2. Add a new __kernel_timespec type to be used as the data structure
+>    for all the new syscalls.
+> 3. Add new config CONFIG_64BIT_TIME(intead of the CONFIG_COMPAT_TIME in
+>    [1] and [2] to switch to new definition of __kernel_timespec. It is
+>    the same as struct timespec otherwise.
+> 4. Add new CONFIG_32BIT_TIME to conditionally compile compat syscalls.
+>
+> * Changes since v1:
+>  * Introduce CONFIG_32BIT_TIME
+>  * Fixed zeroing out of higher order bits of tv_nsec
+>  * Included Arnd's changes to fix up use of compat headers
+
+Very nice. I think it would be good to get this into linux-next soon so we
+can build on top of this. I have submitted most other y2038 patches today
+that don't depend on either this or one of my other patches.
+
+There is one patch that I want to do but haven't imlpemented yet, to merge
+get_timespec64() and compat_get_timespec() into one function that
+take a bunch of flags (check nanosecond, nano/microsecond,
+zero upper half of nanoseconds, 32-bit or 64-bit wide), since I found
+a few functions that need more than one of these, and they don't
+all need the same combinations. My patch will certainly conflict
+with yours, as your touch the same functions, but that's fine.
+
+If you end up doing another version of the series though, it might
+be better to move the compat accessors into kernel/time/time.c
+along with the native functions, that should make it easier to
+consolidate them later.
+
+> I decided against using LEGACY_TIME_SYSCALLS to conditionally compile
+> legacy time syscalls such as sys_nanosleep because this will need to
+> enclose compat_sys_nanosleep as well. So, defining it as
+>
+> config LEGACY_TIME_SYSCALLS
+>      def_bool 64BIT || !64BIT_TIME
+>
+> will not include compat_sys_nanosleep. We will instead need a new config to
+> exclusively mark legacy syscalls.
+
+Do you mean we would need to do this separately for native and compat
+syscalls, and have yet another option, like LEGACY_TIME_SYSCALLS
+and LEGACY_TIME_COMPAT_SYSCALLS, to cover all cases? I would
+think that CONFIG_COMPAT_32BIT_TIME handles all the compat versions,
+while CONFIG_LEGACY_TIME_SYSCALLS handles all the native ones.
+
+       Arnd
