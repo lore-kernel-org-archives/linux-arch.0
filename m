@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:38445 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752636AbdK0Myl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:54:41 -0500
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:35510 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752128AbdK0Mya (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:54:30 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v2 22/35] nds32: Device tree support
-Date: Mon, 27 Nov 2017 20:28:09 +0800
-Message-ID: <1055af0e8b98571b4461d6f899d043fe7f17408b.1511785528.git.green.hu@gmail.com>
+Subject: [PATCH v2 19/35] nds32: L2 cache support
+Date: Mon, 27 Nov 2017 20:28:06 +0800
+Message-ID: <380808fe9139e2c3800ae76dfa6aa5cbbbc4894f.1511785528.git.green.hu@gmail.com>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
@@ -15,172 +15,27 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171127122809.3DdIjl4NxBAaJbFjZ_kvgD4f9qqXWJlj0k2ISmEH7mk@z>
+Message-ID: <20171127122806.Ot--PoO7p_2ulKPZ_1HXV-n6DU7H5yqzvZimuAYyLRU@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds support for device tree.
+This patch adds L2 cache support.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/boot/dts/Makefile   |    8 ++++++
- arch/nds32/boot/dts/ae3xx.dts  |   55 ++++++++++++++++++++++++++++++++++++
- arch/nds32/boot/dts/ag101p.dts |   60 ++++++++++++++++++++++++++++++++++++++++
- arch/nds32/kernel/devtree.c    |   45 ++++++++++++++++++++++++++++++
- 4 files changed, 168 insertions(+)
- create mode 100644 arch/nds32/boot/dts/Makefile
- create mode 100644 arch/nds32/boot/dts/ae3xx.dts
- create mode 100644 arch/nds32/boot/dts/ag101p.dts
- create mode 100644 arch/nds32/kernel/devtree.c
+ arch/nds32/include/asm/l2_cache.h |  155 +++++++++++++++++++++++++++++++++++++
+ arch/nds32/kernel/atl2c.c         |   77 ++++++++++++++++++
+ 2 files changed, 232 insertions(+)
+ create mode 100644 arch/nds32/include/asm/l2_cache.h
+ create mode 100644 arch/nds32/kernel/atl2c.c
 
-diff --git a/arch/nds32/boot/dts/Makefile b/arch/nds32/boot/dts/Makefile
+diff --git a/arch/nds32/include/asm/l2_cache.h b/arch/nds32/include/asm/l2_cache.h
 new file mode 100644
-index 0000000..d31faa8
+index 0000000..8f3ec79
 --- /dev/null
-+++ b/arch/nds32/boot/dts/Makefile
-@@ -0,0 +1,8 @@
-+ifneq '$(CONFIG_NDS32_BUILTIN_DTB)' '""'
-+BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_NDS32_BUILTIN_DTB)).dtb.o
-+else
-+BUILTIN_DTB :=
-+endif
-+obj-$(CONFIG_OF) += $(BUILTIN_DTB)
-+
-+clean-files := *.dtb *.dtb.S
-diff --git a/arch/nds32/boot/dts/ae3xx.dts b/arch/nds32/boot/dts/ae3xx.dts
-new file mode 100644
-index 0000000..4181060
---- /dev/null
-+++ b/arch/nds32/boot/dts/ae3xx.dts
-@@ -0,0 +1,55 @@
-+/dts-v1/;
-+/ {
-+	compatible = "nds32 ae3xx";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+
-+	chosen {
-+		bootargs = "earlycon console=ttyS0,38400n8 debug loglevel=7";
-+		stdout-path = &serial0;
-+	};
-+
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x00000000 0x40000000>;
-+	};
-+
-+	cpu {
-+		device_type = "cpu";
-+		compatible = "andestech,n13", "andestech,nds32v3";
-+		clock-frequency = <60000000>;
-+	};
-+
-+	intc: interrupt-controller {
-+		compatible = "andestech,ativic32";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
-+
-+	serial0: serial@f0300000 {
-+		compatible = "andestech,uart16550", "ns16550a";
-+		reg = <0xf0300000 0x1000>;
-+		interrupts = <8>;
-+		clock-frequency = <14745600>;
-+		reg-shift = <2>;
-+		reg-offset = <32>;
-+		no-loopback-test = <1>;
-+	};
-+
-+	timer0: timer@f0400000 {
-+		compatible = "andestech,atcpit100";
-+		reg = <0xf0400000 0x1000>;
-+		interrupts = <2>;
-+		clock-frequency = <30000000>;
-+		cycle-count-offset = <0x38>;
-+		cycle-count-down;
-+	};
-+
-+	mac0: mac@e0100000 {
-+		compatible = "andestech,atmac100";
-+		reg = <0xe0100000 0x1000>;
-+		interrupts = <18>;
-+	};
-+
-+};
-diff --git a/arch/nds32/boot/dts/ag101p.dts b/arch/nds32/boot/dts/ag101p.dts
-new file mode 100644
-index 0000000..f1cb540
---- /dev/null
-+++ b/arch/nds32/boot/dts/ag101p.dts
-@@ -0,0 +1,60 @@
-+/dts-v1/;
-+/ {
-+	compatible = "nds32 ag101p";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+
-+	chosen {
-+		bootargs = "earlycon console=ttyS0,38400n8 debug loglevel=7";
-+		stdout-path = &serial0;
-+	};
-+
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x00000000 0x40000000>;
-+	};
-+
-+	cpu@0 {
-+		device_type = "cpu";
-+		compatible = "andestech,n13";
-+		clock-frequency = <60000000>;
-+		next-level-cache = <&L2>;
-+	};
-+
-+	intc: interrupt-controller {
-+		compatible = "andestech,ativic32";
-+		#interrupt-cells = <2>;
-+		interrupt-controller;
-+	};
-+
-+	serial0: serial@99600000 {
-+		compatible = "andestech,uart16550", "ns16550a";
-+		reg = <0x99600000 0x1000>;
-+		interrupts = <7 4>;
-+		clock-frequency = <14745600>;
-+		reg-shift = <2>;
-+		no-loopback-test = <1>;
-+	};
-+
-+	timer0: timer@98400000 {
-+		compatible = "andestech,atftmr010";
-+		reg = <0x98400000 0x1000>;
-+		interrupts = <19 4>;
-+		clock-frequency = <15000000>;
-+		cycle-count-offset = <0x20>;
-+	};
-+
-+	mac0: mac@90900000 {
-+		compatible = "andestech,atmac100";
-+		reg = <0x90900000 0x1000>;
-+		interrupts = <25 4>;
-+	};
-+
-+	L2: l2-cache {
-+		compatible = "andestech,atl2c";
-+		reg = <0x90f00000 0x1000>;
-+		cache-unified;
-+		cache-level = <2>;
-+	};
-+};
-diff --git a/arch/nds32/kernel/devtree.c b/arch/nds32/kernel/devtree.c
-new file mode 100644
-index 0000000..2af0f1c
---- /dev/null
-+++ b/arch/nds32/kernel/devtree.c
-@@ -0,0 +1,45 @@
++++ b/arch/nds32/include/asm/l2_cache.h
+@@ -0,0 +1,155 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -197,34 +52,227 @@ index 0000000..2af0f1c
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/memblock.h>
++#ifndef L2_CACHE_H
++#define L2_CACHE_H
++
++/* CCTL_CMD_OP */
++#define L2_CA_CONF_OFF		0x0
++#define	L2_IF_CONF_OFF		0x4
++#define L2CC_SETUP_OFF		0x8
++#define L2CC_PROT_OFF		0xC
++#define L2CC_CTRL_OFF		0x10
++#define L2_INT_EN_OFF           0x20
++#define L2_STA_OFF              0x24
++#define RDERR_ADDR_OFF		0x28
++#define WRERR_ADDR_OFF		0x2c
++#define EVDPTERR_ADDR_OFF	0x30
++#define IMPL3ERR_ADDR_OFF	0x34
++#define L2_CNT0_CTRL_OFF        0x40
++#define L2_EVNT_CNT0_OFF        0x44
++#define L2_CNT1_CTRL_OFF        0x48
++#define L2_EVNT_CNT1_OFF        0x4c
++#define L2_CCTL_CMD_OFF		0x60
++#define L2_CCTL_STATUS_OFF	0x64
++#define L2_LINE_TAG_OFF		0x68
++#define L2_LINE_DPT_OFF		0x70
++
++#define CCTL_CMD_L2_IX_INVAL    0x0
++#define CCTL_CMD_L2_PA_INVAL    0x1
++#define CCTL_CMD_L2_IX_WB       0x2
++#define CCTL_CMD_L2_PA_WB       0x3
++#define CCTL_CMD_L2_PA_WBINVAL  0x5
++#define CCTL_CMD_L2_SYNC        0xa
++
++/* CCTL_CMD_TYPE */
++#define CCTL_SINGLE_CMD         0
++#define CCTL_BLOCK_CMD          0x10
++#define CCTL_ALL_CMD		0x10
++
++/******************************************************************************
++ * L2_CA_CONF (Cache architecture configuration)
++ *****************************************************************************/
++#define L2_CA_CONF_offL2SET		0
++#define L2_CA_CONF_offL2WAY		4
++#define L2_CA_CONF_offL2CLSZ            8
++#define L2_CA_CONF_offL2DW		11
++#define L2_CA_CONF_offL2PT		14
++#define L2_CA_CONF_offL2VER		16
++
++#define L2_CA_CONF_mskL2SET	(0xFUL << L2_CA_CONF_offL2SET)
++#define L2_CA_CONF_mskL2WAY	(0xFUL << L2_CA_CONF_offL2WAY)
++#define L2_CA_CONF_mskL2CLSZ    (0x7UL << L2_CA_CONF_offL2CLSZ)
++#define L2_CA_CONF_mskL2DW	(0x7UL << L2_CA_CONF_offL2DW)
++#define L2_CA_CONF_mskL2PT	(0x3UL << L2_CA_CONF_offL2PT)
++#define L2_CA_CONF_mskL2VER	(0xFFFFUL << L2_CA_CONF_offL2VER)
++
++/******************************************************************************
++ * L2CC_SETUP (L2CC Setup register)
++ *****************************************************************************/
++#define L2CC_SETUP_offPART              0
++#define L2CC_SETUP_mskPART              (0x3UL << L2CC_SETUP_offPART)
++#define L2CC_SETUP_offDDLATC            4
++#define L2CC_SETUP_mskDDLATC            (0x3UL << L2CC_SETUP_offDDLATC)
++#define L2CC_SETUP_offTDLATC            8
++#define L2CC_SETUP_mskTDLATC            (0x3UL << L2CC_SETUP_offTDLATC)
++
++/******************************************************************************
++ * L2CC_PROT (L2CC Protect register)
++ *****************************************************************************/
++#define L2CC_PROT_offMRWEN              31
++#define L2CC_PROT_mskMRWEN      (0x1UL << L2CC_PROT_offMRWEN)
++
++/******************************************************************************
++ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
++ *****************************************************************************/
++#define L2CC_CTRL_offEN                 31
++#define L2CC_CTRL_mskEN                 (0x1UL << L2CC_CTRL_offEN)
++
++/******************************************************************************
++ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
++ *****************************************************************************/
++#define L2_CCTL_STATUS_offCMD_COMP      31
++#define L2_CCTL_STATUS_mskCMD_COMP      (0x1 << L2_CCTL_STATUS_offCMD_COMP)
++
++#ifndef __ASSEMBLY__
++extern void __iomem *atl2c_base;
++
++#include <linux/smp.h>
++#include <asm/io.h>
++#include <asm/bitfield.h>
++
++#define L2C_R_REG(offset)               __raw_readl(atl2c_base + offset)
++#define L2C_W_REG(offset, value)        __raw_writel(value, atl2c_base + offset)
++
++#define L2_CMD_RDY()    \
++        do{;}while((L2C_R_REG(L2_CCTL_STATUS_OFF) & L2_CCTL_STATUS_mskCMD_COMP) == 0)
++
++static inline unsigned long L2_CACHE_SET(void)
++{
++	return 64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
++		      L2_CA_CONF_offL2SET);
++}
++
++static inline unsigned long L2_CACHE_WAY(void)
++{
++	return 1 +
++	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
++	     L2_CA_CONF_offL2WAY);
++}
++
++static inline unsigned long L2_CACHE_LINE_SIZE(void)
++{
++
++	return 4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
++		     L2_CA_CONF_offL2CLSZ);
++}
++
++static inline unsigned long GET_L2CC_CTRL_CPU(unsigned long cpu)
++{
++	if (cpu == smp_processor_id())
++		return L2C_R_REG(L2CC_CTRL_OFF);
++	return L2C_R_REG(L2CC_CTRL_OFF + (cpu << 8));
++}
++
++static inline void SET_L2CC_CTRL_CPU(unsigned long cpu, unsigned long val)
++{
++	if (cpu == smp_processor_id())
++		L2C_W_REG(L2CC_CTRL_OFF, val);
++	else
++		L2C_W_REG(L2CC_CTRL_OFF + (cpu << 8), val);
++}
++
++static inline unsigned long GET_L2CC_STATUS_CPU(unsigned long cpu)
++{
++	if (cpu == smp_processor_id())
++		return L2C_R_REG(L2_CCTL_STATUS_OFF);
++	return L2C_R_REG(L2_CCTL_STATUS_OFF + (cpu << 8));
++}
++
++#endif
++
++#endif
+diff --git a/arch/nds32/kernel/atl2c.c b/arch/nds32/kernel/atl2c.c
+new file mode 100644
+index 0000000..dd87fc9
+--- /dev/null
++++ b/arch/nds32/kernel/atl2c.c
+@@ -0,0 +1,77 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/compiler.h>
++#include <linux/of_address.h>
 +#include <linux/of_fdt.h>
-+#include <linux/bootmem.h>
++#include <linux/of_platform.h>
++#include <asm/l2_cache.h>
 +
-+void __init early_init_dt_add_memory_arch(u64 base, u64 size)
++void __iomem *atl2c_base;
++static const struct of_device_id atl2c_ids[] __initconst = {
++	{.compatible = "andestech,atl2c",}
++};
++
++static int __init atl2c_of_init(void)
 +{
-+	size &= PAGE_MASK;
-+	memblock_add_node(base, size, 0);
++	struct device_node *np;
++	struct resource res;
++	unsigned long tmp = 0;
++	unsigned long l2set, l2way, l2clsz;
++
++	if (!(__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskL2C))
++		return -ENODEV;
++
++	np = of_find_matching_node(NULL, atl2c_ids);
++	if (!np)
++		return -ENODEV;
++
++	if (of_address_to_resource(np, 0, &res))
++		return -ENODEV;
++
++	atl2c_base = ioremap(res.start, resource_size(&res));
++	if (!atl2c_base)
++		return -ENOMEM;
++
++	l2set =
++	    64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
++		   L2_CA_CONF_offL2SET);
++	l2way =
++	    1 +
++	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
++	     L2_CA_CONF_offL2WAY);
++	l2clsz =
++	    4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
++		  L2_CA_CONF_offL2CLSZ);
++	pr_info("L2:%luKB/%luS/%luW/%luB\n",
++		l2set * l2way * l2clsz / 1024, l2set, l2way, l2clsz);
++
++	tmp = L2C_R_REG(L2CC_PROT_OFF);
++	tmp &= ~L2CC_PROT_mskMRWEN;
++	L2C_W_REG(L2CC_PROT_OFF, tmp);
++
++	tmp = L2C_R_REG(L2CC_SETUP_OFF);
++	tmp &= ~L2CC_SETUP_mskPART;
++	L2C_W_REG(L2CC_SETUP_OFF, tmp);
++
++	tmp = L2C_R_REG(L2CC_CTRL_OFF);
++	tmp |= L2CC_CTRL_mskEN;
++	L2C_W_REG(L2CC_CTRL_OFF, tmp);
++
++	return 0;
 +}
 +
-+void *__init early_init_dt_alloc_memory_arch(u64 size, u64 align)
-+{
-+	return alloc_bootmem_align(size, align);
-+}
-+
-+void __init early_init_devtree(void *params)
-+{
-+	if (!params || !early_init_dt_scan(params)) {
-+		pr_crit("\n"
-+			"Error: invalid device tree blob at (virtual address 0x%p)\n"
-+			"The dtb must be 8-byte aligned and must not exceed 8 KB in size\n"
-+			"\nPlease check your bootloader.", params);
-+
-+		while (true)
-+			cpu_relax();
-+	}
-+
-+	dump_stack_set_arch_desc("%s (DT)", of_flat_dt_get_machine_name());
-+}
++subsys_initcall(atl2c_of_init);
 -- 
 1.7.9.5
