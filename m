@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v2 13/35] nds32: ELF definitions
-Date: Mon, 27 Nov 2017 20:28:00 +0800
-Message-ID: <e3a27eef3f42345455ce28d32ebdeb4d70c57438.1511785528.git.green.hu@gmail.com>
+Subject: [PATCH v2 08/35] nds32: Process management
+Date: Mon, 27 Nov 2017 20:27:55 +0800
+Message-ID: <53789f9af98217d24580479c55e550301651d4a8.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
@@ -14,223 +14,27 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds definitions for the ELF format, relocation types, vdso
-locations and EXEC_PAGESIZE.
+This patch includes copy_thread(), start_thread() implementation and cpu_context
+structure definition. nds32 uses $r25 to get current task_struct.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/elf.h         |  192 ++++++++++++++++++++++++++++++++++
- arch/nds32/include/uapi/asm/auxvec.h |   25 +++++
- arch/nds32/include/uapi/asm/param.h  |   24 +++++
- 3 files changed, 241 insertions(+)
- create mode 100644 arch/nds32/include/asm/elf.h
- create mode 100644 arch/nds32/include/uapi/asm/auxvec.h
- create mode 100644 arch/nds32/include/uapi/asm/param.h
+ arch/nds32/include/asm/current.h     |   25 ++++
+ arch/nds32/include/asm/processor.h   |  116 ++++++++++++++++++
+ arch/nds32/include/asm/thread_info.h |   91 ++++++++++++++
+ arch/nds32/kernel/process.c          |  217 ++++++++++++++++++++++++++++++++++
+ 4 files changed, 449 insertions(+)
+ create mode 100644 arch/nds32/include/asm/current.h
+ create mode 100644 arch/nds32/include/asm/processor.h
+ create mode 100644 arch/nds32/include/asm/thread_info.h
+ create mode 100644 arch/nds32/kernel/process.c
 
-diff --git a/arch/nds32/include/asm/elf.h b/arch/nds32/include/asm/elf.h
+diff --git a/arch/nds32/include/asm/current.h b/arch/nds32/include/asm/current.h
 new file mode 100644
-index 0000000..a6e4c56
+index 0000000..027f7df
 --- /dev/null
-+++ b/arch/nds32/include/asm/elf.h
-@@ -0,0 +1,192 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#ifndef __ASMNDS32_ELF_H
-+#define __ASMNDS32_ELF_H
-+
-+/*
-+ * ELF register definitions..
-+ */
-+
-+#include <asm/ptrace.h>
-+
-+typedef unsigned long elf_greg_t;
-+typedef unsigned long elf_freg_t[3];
-+
-+extern unsigned int elf_hwcap;
-+
-+#define EM_NDS32			167
-+
-+#define R_NDS32_NONE			0
-+#define R_NDS32_16_RELA			19
-+#define R_NDS32_32_RELA			20
-+#define R_NDS32_9_PCREL_RELA		22
-+#define R_NDS32_15_PCREL_RELA		23
-+#define R_NDS32_17_PCREL_RELA		24
-+#define R_NDS32_25_PCREL_RELA		25
-+#define R_NDS32_HI20_RELA		26
-+#define R_NDS32_LO12S3_RELA		27
-+#define R_NDS32_LO12S2_RELA		28
-+#define R_NDS32_LO12S1_RELA		29
-+#define R_NDS32_LO12S0_RELA		30
-+#define R_NDS32_SDA15S3_RELA    	31
-+#define R_NDS32_SDA15S2_RELA    	32
-+#define R_NDS32_SDA15S1_RELA    	33
-+#define R_NDS32_SDA15S0_RELA    	34
-+#define R_NDS32_GOT20			37
-+#define R_NDS32_25_PLTREL		38
-+#define R_NDS32_COPY			39
-+#define R_NDS32_GLOB_DAT		40
-+#define R_NDS32_JMP_SLOT		41
-+#define R_NDS32_RELATIVE		42
-+#define R_NDS32_GOTOFF			43
-+#define R_NDS32_GOTPC20			44
-+#define R_NDS32_GOT_HI20		45
-+#define R_NDS32_GOT_LO12		46
-+#define R_NDS32_GOTPC_HI20		47
-+#define R_NDS32_GOTPC_LO12		48
-+#define R_NDS32_GOTOFF_HI20		49
-+#define R_NDS32_GOTOFF_LO12		50
-+#define R_NDS32_INSN16			51
-+#define R_NDS32_LABEL			52
-+#define R_NDS32_LONGCALL1		53
-+#define R_NDS32_LONGCALL2		54
-+#define R_NDS32_LONGCALL3		55
-+#define R_NDS32_LONGJUMP1		56
-+#define R_NDS32_LONGJUMP2		57
-+#define R_NDS32_LONGJUMP3		58
-+#define R_NDS32_LOADSTORE		59
-+#define R_NDS32_9_FIXED_RELA		60
-+#define R_NDS32_15_FIXED_RELA		61
-+#define R_NDS32_17_FIXED_RELA		62
-+#define R_NDS32_25_FIXED_RELA		63
-+#define R_NDS32_PLTREL_HI20		64
-+#define R_NDS32_PLTREL_LO12		65
-+#define R_NDS32_PLT_GOTREL_HI20		66
-+#define R_NDS32_PLT_GOTREL_LO12		67
-+#define R_NDS32_LO12S0_ORI_RELA		72
-+#define R_NDS32_DWARF2_OP1_RELA     	77
-+#define R_NDS32_DWARF2_OP2_RELA     	78
-+#define R_NDS32_DWARF2_LEB_RELA     	79
-+#define R_NDS32_WORD_9_PCREL_RELA	94
-+#define R_NDS32_LONGCALL4 		107
-+#define R_NDS32_RELA_NOP_MIX		192
-+#define R_NDS32_RELA_NOP_MAX		255
-+
-+#define ELF_NGREG (sizeof (struct pt_regs) / sizeof(elf_greg_t))
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+/* Core file format: The core file is written in such a way that gdb
-+   can understand it and provide useful information to the user (under
-+   linux we use the 'trad-core' bfd).  There are quite a number of
-+   obstacles to being able to view the contents of the floating point
-+   registers, and until these are solved you will not be able to view the
-+   contents of them.  Actually, you can read in the core file and look at
-+   the contents of the user struct to find out what the floating point
-+   registers contain.
-+   The actual file contents are as follows:
-+   UPAGE: 1 page consisting of a user struct that tells gdb what is present
-+   in the file.  Directly after this is a copy of the task_struct, which
-+   is currently not used by gdb, but it may come in useful at some point.
-+   All of the registers are stored as part of the upage.  The upage should
-+   always be only one page.
-+   DATA: The data area is stored.  We use current->end_text to
-+   current->brk to pick up all of the user variables, plus any memory
-+   that may have been malloced.  No attempt is made to determine if a page
-+   is demand-zero or if a page is totally unused, we just cover the entire
-+   range.  All of the addresses are rounded in such a way that an integral
-+   number of pages is written.
-+   STACK: We need the stack information in order to get a meaningful
-+   backtrace.  We need to write the data from (esp) to
-+   current->start_stack, so we round each of these off in order to be able
-+   to write an integer number of pages.
-+   The minimum core file size is 3 pages, or 12288 bytes.
-+*/
-+
-+struct user_fp {
-+	struct fp_reg {
-+		unsigned int sign1:1;
-+		unsigned int unused:15;
-+		unsigned int sign2:1;
-+		unsigned int exponent:14;
-+		unsigned int j:1;
-+		unsigned int mantissa1:31;
-+		unsigned int mantissa0:32;
-+	} fpregs[8];
-+	unsigned int fpsr:32;
-+	unsigned int fpcr:32;
-+	unsigned char ftype[8];
-+	unsigned int init_flag;
-+};
-+
-+typedef struct user_fp elf_fpregset_t;
-+
-+struct elf32_hdr;
-+#define elf_check_arch(x)		((x)->e_machine == EM_NDS32)
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define ELF_CLASS	ELFCLASS32
-+#ifdef __NDS32_EB__
-+#define ELF_DATA	ELFDATA2MSB;
-+#else
-+#define ELF_DATA	ELFDATA2LSB;
-+#endif
-+#define ELF_ARCH	EM_NDS32
-+#define USE_ELF_CORE_DUMP
-+#define ELF_EXEC_PAGESIZE	PAGE_SIZE
-+
-+/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+   use of this is to invoke "./ld.so someprog" to test out a new version of
-+   the loader.  We need to make sure that it is out of the way of the program
-+   that it will "exec", and that there is sufficient room for the brk.  */
-+
-+#define ELF_ET_DYN_BASE	(2 * TASK_SIZE / 3)
-+
-+/* When the program starts, a1 contains a pointer to a function to be
-+   registered with atexit, as per the SVR4 ABI.  A value of 0 means we
-+   have no such handler.  */
-+#define ELF_PLAT_INIT(_r, load_addr)	(_r)->uregs[0] = 0
-+
-+/* This yields a mask that user programs can use to figure out what
-+   instruction set this cpu supports. */
-+
-+#define ELF_HWCAP	(elf_hwcap)
-+
-+#ifdef __KERNEL__
-+
-+#define ELF_PLATFORM    (NULL)
-+
-+/* Old NetWinder binaries were compiled in such a way that the iBCS
-+   heuristic always trips on them.  Until these binaries become uncommon
-+   enough not to care, don't trust the `ibcs' flag here.  In any case
-+   there is no other ELF system currently supported by iBCS.
-+   @@ Could print a warning message to encourage users to upgrade.  */
-+#define SET_PERSONALITY(ex)	set_personality(PER_LINUX)
-+
-+#endif
-+
-+#define ARCH_DLINFO						\
-+do {								\
-+	NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
-+		    (elf_addr_t)current->mm->context.vdso);	\
-+} while (0)
-+#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
-+struct linux_binprm;
-+int arch_setup_additional_pages(struct linux_binprm *, int);
-+
-+#endif
-diff --git a/arch/nds32/include/uapi/asm/auxvec.h b/arch/nds32/include/uapi/asm/auxvec.h
-new file mode 100644
-index 0000000..02e9757
---- /dev/null
-+++ b/arch/nds32/include/uapi/asm/auxvec.h
++++ b/arch/nds32/include/asm/current.h
 @@ -0,0 +1,25 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
@@ -248,21 +52,21 @@ index 0000000..02e9757
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef __ASM_AUXVEC_H
-+#define __ASM_AUXVEC_H
++#ifndef _ASM_NDS32_CURRENT_H
++#define _ASM_NDS32_CURRENT_H
 +
-+/* VDSO location */
-+#define AT_SYSINFO_EHDR	33
++#ifndef __ASSEMBLY__
++register struct task_struct *current asm("$r25");
++#endif /* __ASSEMBLY__ */
++#define tsk $r25
 +
-+#define AT_VECTOR_SIZE_ARCH 1
-+
-+#endif
-diff --git a/arch/nds32/include/uapi/asm/param.h b/arch/nds32/include/uapi/asm/param.h
++#endif /* _ASM_NDS32_CURRENT_H */
+diff --git a/arch/nds32/include/asm/processor.h b/arch/nds32/include/asm/processor.h
 new file mode 100644
-index 0000000..2e4527f3
+index 0000000..03dab61
 --- /dev/null
-+++ b/arch/nds32/include/uapi/asm/param.h
-@@ -0,0 +1,24 @@
++++ b/arch/nds32/include/asm/processor.h
+@@ -0,0 +1,116 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -279,13 +83,425 @@ index 0000000..2e4527f3
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef __ASM_NDS32_PARAM_H
-+#define __ASM_NDS32_PARAM_H
++#ifndef __ASM_NDS32_PROCESSOR_H
++#define __ASM_NDS32_PROCESSOR_H
 +
-+#define EXEC_PAGESIZE	8192
++/*
++ * Default implementation of macro that returns current
++ * instruction pointer ("program counter").
++ */
++#define current_text_addr() ({ __label__ _l; _l: &&_l;})
 +
-+#include <asm-generic/param.h>
++#ifdef __KERNEL__
 +
-+#endif /* __ASM_NDS32_PARAM_H */
++#include <asm/ptrace.h>
++#include <asm/types.h>
++#include <asm/sigcontext.h>
++
++#define KERNEL_STACK_SIZE	PAGE_SIZE
++#define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX   TASK_SIZE
++
++struct cpu_context {
++	unsigned long r6;
++	unsigned long r7;
++	unsigned long r8;
++	unsigned long r9;
++	unsigned long r10;
++	unsigned long r11;
++	unsigned long r12;
++	unsigned long r13;
++	unsigned long r14;
++	unsigned long fp;
++	unsigned long pc;
++	unsigned long sp;
++};
++
++struct thread_struct {
++	struct cpu_context cpu_context;	/* cpu context */
++	/* fault info     */
++	unsigned long address;
++	unsigned long trap_no;
++	unsigned long error_code;
++};
++
++#define INIT_THREAD  {	}
++
++#ifdef __NDS32_EB__
++#define PSW_DE	PSW_mskBE
++#else
++#define PSW_DE	0x0
++#endif
++
++#ifdef CONFIG_WBNA
++#define PSW_valWBNA	PSW_mskWBNA
++#else
++#define PSW_valWBNA	0x0
++#endif
++
++#ifdef CONFIG_HWZOL
++#define	PSW_valINIT (PSW_CPL_ANY | PSW_mskAEN | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
++#else
++#define	PSW_valINIT (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
++#endif
++
++#define start_thread(regs,pc,stack)			\
++({							\
++	set_fs(USER_DS);				\
++	memzero(regs, sizeof(struct pt_regs));		\
++	regs->ipsw = PSW_valINIT;			\
++	regs->ir0 = (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_SYSTEM | PSW_INTL_1);	\
++	regs->ipc = pc;					\
++	regs->sp = stack;				\
++})
++
++/* Forward declaration, a strange C thing */
++struct task_struct;
++
++/* Free all resources held by a thread. */
++#define release_thread(thread) do { } while(0)
++
++/* Prepare to copy thread state - unlazy all lazy status */
++#define prepare_to_copy(tsk)	do { } while (0)
++
++unsigned long get_wchan(struct task_struct *p);
++
++#define cpu_relax()			barrier()
++
++#define task_pt_regs(task) \
++	((struct pt_regs *) (task_stack_page(task) + THREAD_SIZE \
++		- 8) - 1)
++
++/*
++ * Create a new kernel thread
++ */
++extern int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags);
++
++#define KSTK_EIP(tsk)	instruction_pointer(task_pt_regs(tsk))
++#define KSTK_ESP(tsk)	user_stack_pointer(task_pt_regs(tsk))
++
++#endif
++
++#endif /* __ASM_NDS32_PROCESSOR_H */
+diff --git a/arch/nds32/include/asm/thread_info.h b/arch/nds32/include/asm/thread_info.h
+new file mode 100644
+index 0000000..216cc85
+--- /dev/null
++++ b/arch/nds32/include/asm/thread_info.h
+@@ -0,0 +1,91 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef __ASM_NDS32_THREAD_INFO_H
++#define __ASM_NDS32_THREAD_INFO_H
++
++#ifdef __KERNEL__
++
++#define THREAD_SIZE_ORDER 	(1)
++#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
++
++#ifndef __ASSEMBLY__
++
++struct task_struct;
++
++#include <asm/ptrace.h>
++#include <asm/types.h>
++
++typedef unsigned long mm_segment_t;
++
++/*
++ * low level task data that entry.S needs immediate access to.
++ * __switch_to() assumes cpu_context follows immediately after cpu_domain.
++ */
++struct thread_info {
++	unsigned long flags;	/* low level flags */
++	__s32 preempt_count;	/* 0 => preemptable, <0 => bug */
++	mm_segment_t addr_limit;	/* address limit */
++};
++#define INIT_THREAD_INFO(tsk)						\
++{									\
++	.preempt_count	= INIT_PREEMPT_COUNT,				\
++	.addr_limit	= KERNEL_DS,					\
++}
++#define init_thread_info	(init_thread_union.thread_info)
++#define init_stack		(init_thread_union.stack)
++#define thread_saved_pc(tsk) ((unsigned long)(tsk->thread.cpu_context.pc))
++#define thread_saved_fp(tsk) ((unsigned long)(tsk->thread.cpu_context.fp))
++#endif
++
++/*
++ * thread information flags:
++ *  TIF_SYSCALL_TRACE	- syscall trace active
++ *  TIF_SIGPENDING	- signal pending
++ *  TIF_NEED_RESCHED	- rescheduling necessary
++ *  TIF_NOTIFY_RESUME	- callback before returning to user
++ *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
++ *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
++ */
++#define TIF_SIGPENDING		1
++#define TIF_NEED_RESCHED	2
++#define TIF_SINGLESTEP		3
++#define TIF_NOTIFY_RESUME	4	/* callback before returning to user */
++#define TIF_SYSCALL_TRACE	8
++#define TIF_USEDFPU             16
++#define TIF_POLLING_NRFLAG	17
++#define TIF_MEMDIE		18
++#define TIF_FREEZE		19
++#define TIF_RESTORE_SIGMASK	20
++
++#define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
++#define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
++#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
++#define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
++#define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
++#define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
++#define _TIF_FREEZE		(1 << TIF_FREEZE)
++#define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
++
++/*
++ * Change these and you break ASM code in entry-common.S
++ */
++#define _TIF_WORK_MASK		0x000000ff
++#define _TIF_WORK_SYSCALL_ENTRY (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
++#define _TIF_WORK_SYSCALL_LEAVE (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
++
++#endif /* __KERNEL__ */
++#endif /* __ASM_NDS32_THREAD_INFO_H */
+diff --git a/arch/nds32/kernel/process.c b/arch/nds32/kernel/process.c
+new file mode 100644
+index 0000000..6d7163c
+--- /dev/null
++++ b/arch/nds32/kernel/process.c
+@@ -0,0 +1,217 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/sched.h>
++#include <linux/sched/debug.h>
++#include <linux/sched/task_stack.h>
++#include <linux/delay.h>
++#include <linux/kallsyms.h>
++#include <asm/uaccess.h>
++#include <asm/elf.h>
++#include <asm/proc-fns.h>
++#include <linux/ptrace.h>
++
++extern void setup_mm_for_reboot(char mode);
++#ifdef CONFIG_PROC_FS
++struct proc_dir_entry *proc_dir_cpu;
++EXPORT_SYMBOL(proc_dir_cpu);
++#endif
++
++extern inline void arch_reset(char mode)
++{
++	if (mode == 's') {
++		/* Use cpu handler, jump to 0 */
++		cpu_reset(0);
++	}
++}
++
++void (*pm_power_off) (void);
++EXPORT_SYMBOL(pm_power_off);
++
++static char reboot_mode = 'h';
++
++int __init reboot_setup(char *str)
++{
++	reboot_mode = str[0];
++	return 1;
++}
++
++static int cpub_pwroff(void)
++{
++	return 0;
++}
++
++__setup("reboot=", reboot_setup);
++
++void machine_halt(void)
++{
++	cpub_pwroff();
++}
++
++EXPORT_SYMBOL(machine_halt);
++
++void machine_power_off(void)
++{
++	if (pm_power_off)
++		pm_power_off();
++}
++
++EXPORT_SYMBOL(machine_power_off);
++
++void machine_restart(char *__unused)
++{
++	/*
++	 * Clean and disable cache, and turn off interrupts
++	 */
++	cpu_proc_fin();
++
++	/*
++	 * Tell the mm system that we are going to reboot -
++	 * we may need it to insert some 1:1 mappings so that
++	 * soft boot works.
++	 */
++	setup_mm_for_reboot(reboot_mode);
++
++	/*
++	 * Now call the architecture specific reboot code.
++	 */
++	arch_reset(reboot_mode);
++
++	/*
++	 * Whoops - the architecture was unable to reboot.
++	 * Tell the user!
++	 */
++	mdelay(1000);
++	pr_info("Reboot failed -- System halted\n");
++	while (1) ;
++}
++
++EXPORT_SYMBOL(machine_restart);
++
++void show_regs(struct pt_regs *regs)
++{
++	print_symbol("PC is at %s\n", instruction_pointer(regs));
++	print_symbol("LP is at %s\n", regs->lp);
++	pr_info("pc : [<%08lx>]    lp : [<%08lx>]    %s\n"
++		"sp : %08lx  fp : %08lx  gp : %08lx\n",
++		instruction_pointer(regs),
++		regs->lp, print_tainted(), regs->sp, regs->fp, regs->gp);
++	pr_info("r25: %08lx  r24: %08lx\n", regs->uregs[25], regs->uregs[24]);
++
++	pr_info("r23: %08lx  r22: %08lx  r21: %08lx  r20: %08lx\n",
++		regs->uregs[23], regs->uregs[22],
++		regs->uregs[21], regs->uregs[20]);
++	pr_info("r19: %08lx  r18: %08lx  r17: %08lx  r16: %08lx\n",
++		regs->uregs[19], regs->uregs[18],
++		regs->uregs[17], regs->uregs[16]);
++	pr_info("r15: %08lx  r14: %08lx  r13: %08lx  r12: %08lx\n",
++		regs->uregs[15], regs->uregs[14],
++		regs->uregs[13], regs->uregs[12]);
++	pr_info("r11: %08lx  r10: %08lx  r9 : %08lx  r8 : %08lx\n",
++		regs->uregs[11], regs->uregs[10],
++		regs->uregs[9], regs->uregs[8]);
++	pr_info("r7 : %08lx  r6 : %08lx  r5 : %08lx  r4 : %08lx\n",
++		regs->uregs[7], regs->uregs[6], regs->uregs[5], regs->uregs[4]);
++	pr_info("r3 : %08lx  r2 : %08lx  r1 : %08lx  r0 : %08lx\n",
++		regs->uregs[3], regs->uregs[2], regs->uregs[1], regs->uregs[0]);
++	pr_info("  IRQs o%s  Segment %s\n",
++		interrupts_enabled(regs) ? "n" : "ff",
++		segment_eq(get_fs(), get_ds())? "kernel" : "user");
++}
++
++EXPORT_SYMBOL(show_regs);
++
++void flush_thread(void)
++{
++}
++
++DEFINE_PER_CPU(struct task_struct *, __entry_task);
++
++asmlinkage void ret_from_fork(void) __asm__("ret_from_fork");
++int copy_thread(unsigned long clone_flags, unsigned long stack_start,
++	    unsigned long stk_sz, struct task_struct *p)
++{
++	struct pt_regs *childregs = task_pt_regs(p);
++
++	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
++
++	if (unlikely(p->flags & PF_KTHREAD)) {
++		memset(childregs, 0, sizeof(struct pt_regs));
++		/* kernel thread fn */
++		p->thread.cpu_context.r6 = stack_start;
++		/* kernel thread argument */
++		p->thread.cpu_context.r7 = stk_sz;
++	} else {
++		*childregs = *current_pt_regs();
++		if (stack_start)
++			childregs->sp = stack_start;
++		/* child get zero as ret. */
++		childregs->uregs[0] = 0;
++		childregs->osp = 0;
++		if (clone_flags & CLONE_SETTLS)
++			childregs->uregs[25] = childregs->uregs[3];
++	}
++	/* cpu context switching  */
++	p->thread.cpu_context.pc = (unsigned long)ret_from_fork;
++	p->thread.cpu_context.sp = (unsigned long)childregs;
++
++#ifdef CONFIG_HWZOL
++	childregs->lb = 0;
++	childregs->le = 0;
++	childregs->lc = 0;
++#endif
++
++	return 0;
++}
++
++/*
++ * fill in the fpe structure for a core dump...
++ */
++int dump_fpu(struct pt_regs *regs, elf_fpregset_t * fpu)
++{
++	int fpvalid = 0;
++	return fpvalid;
++}
++
++EXPORT_SYMBOL(dump_fpu);
++
++unsigned long get_wchan(struct task_struct *p)
++{
++	unsigned long fp, lr;
++	unsigned long stack_start, stack_end;
++	int count = 0;
++
++	if (!p || p == current || p->state == TASK_RUNNING)
++		return 0;
++
++	if (IS_ENABLED(CONFIG_FRAME_POINTER)) {
++		stack_start = (unsigned long)end_of_stack(p);
++		stack_end = (unsigned long)task_stack_page(p) + THREAD_SIZE;
++
++		fp = thread_saved_fp(p);
++		do {
++			if (fp < stack_start || fp > stack_end)
++				return 0;
++			lr = ((unsigned long *)fp)[0];
++			if (!in_sched_functions(lr))
++				return lr;
++			fp = *(unsigned long *)(fp + 4);
++		} while (count++ < 16);
++	}
++	return 0;
++}
++
++EXPORT_SYMBOL(get_wchan);
 -- 
 1.7.9.5
