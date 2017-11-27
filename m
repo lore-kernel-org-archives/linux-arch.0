@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:41006 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752670AbdK0Myp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:54:45 -0500
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:33908 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752581AbdK0Mye (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:54:34 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v2 23/35] nds32: Miscellaneous header files
-Date: Mon, 27 Nov 2017 20:28:10 +0800
-Message-ID: <af608fe8dd63a9797d33c0b7cf4bbea5e79038ac.1511785528.git.green.hu@gmail.com>
+Subject: [PATCH v2 20/35] nds32: Loadable modules
+Date: Mon, 27 Nov 2017 20:28:07 +0800
+Message-ID: <19a5cb12c90c0fa17b65675a93eea59972adc92d.1511785528.git.green.hu@gmail.com>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
@@ -15,85 +15,26 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171127122810.cSQNXHSQfAgPi8djUof2Qe67udslCdEhAazdcj9O8U4@z>
+Message-ID: <20171127122807.nhfoam53bOtvqDhbuN6H8MFW910G14lRkd6lwSYLRLo@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch introduces some miscellaneous header files.
+This patch adds support for loadable modules.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/delay.h          |   51 +++++++++++++++++++++++++++++++
- arch/nds32/include/asm/linkage.h        |   24 +++++++++++++++
- arch/nds32/include/uapi/asm/byteorder.h |   26 ++++++++++++++++
- 3 files changed, 101 insertions(+)
- create mode 100644 arch/nds32/include/asm/delay.h
- create mode 100644 arch/nds32/include/asm/linkage.h
- create mode 100644 arch/nds32/include/uapi/asm/byteorder.h
+ arch/nds32/include/asm/module.h |   24 ++++
+ arch/nds32/kernel/module.c      |  299 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 323 insertions(+)
+ create mode 100644 arch/nds32/include/asm/module.h
+ create mode 100644 arch/nds32/kernel/module.c
 
-diff --git a/arch/nds32/include/asm/delay.h b/arch/nds32/include/asm/delay.h
+diff --git a/arch/nds32/include/asm/module.h b/arch/nds32/include/asm/module.h
 new file mode 100644
-index 0000000..bdeeb76
+index 0000000..5ed2b75
 --- /dev/null
-+++ b/arch/nds32/include/asm/delay.h
-@@ -0,0 +1,51 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#ifndef __NDS32_DELAY_H__
-+#define __NDS32_DELAY_H__
-+
-+#include <asm/param.h>
-+
-+static inline void __delay(unsigned long loops)
-+{
-+	__asm__ __volatile__(".align 2\n"
-+			     "1:\n"
-+			     "\taddi\t%0, %0, -1\n"
-+			     "\tbgtz\t%0, 1b\n"
-+			     :"=r"(loops)
-+			     :"0"(loops));
-+}
-+
-+static inline void __udelay(unsigned long usecs, unsigned long lpj)
-+{
-+	usecs *= (unsigned long)(((0x8000000000000000ULL / (500000 / HZ)) +
-+				  0x80000000ULL) >> 32);
-+	usecs = (unsigned long)(((unsigned long long)usecs * lpj) >> 32);
-+	__delay(usecs);
-+}
-+
-+#define udelay(usecs) __udelay((usecs), loops_per_jiffy)
-+
-+/* make sure "usecs *= ..." in udelay do not overflow. */
-+#if HZ >= 1000
-+#define MAX_UDELAY_MS	1
-+#elif HZ <= 200
-+#define MAX_UDELAY_MS	5
-+#else
-+#define MAX_UDELAY_MS	(1000 / HZ)
-+#endif
-+
-+#endif
-diff --git a/arch/nds32/include/asm/linkage.h b/arch/nds32/include/asm/linkage.h
-new file mode 100644
-index 0000000..d17abd8
---- /dev/null
-+++ b/arch/nds32/include/asm/linkage.h
++++ b/arch/nds32/include/asm/module.h
 @@ -0,0 +1,24 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
@@ -111,20 +52,20 @@ index 0000000..d17abd8
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef __ASM_LINKAGE_H
-+#define __ASM_LINKAGE_H
++#ifndef _ASM_NDS32_MODULE_H
++#define _ASM_NDS32_MODULE_H
 +
-+/* This file is required by include/linux/linkage.h */
-+#define __ALIGN .align 2
-+#define __ALIGN_STR ".align 2"
++#include <asm-generic/module.h>
 +
-+#endif
-diff --git a/arch/nds32/include/uapi/asm/byteorder.h b/arch/nds32/include/uapi/asm/byteorder.h
++#define MODULE_ARCH_VERMAGIC	"NDS32v3"
++
++#endif /* _ASM_NDS32_MODULE_H */
+diff --git a/arch/nds32/kernel/module.c b/arch/nds32/kernel/module.c
 new file mode 100644
-index 0000000..198e8dd
+index 0000000..bb34e23
 --- /dev/null
-+++ b/arch/nds32/include/uapi/asm/byteorder.h
-@@ -0,0 +1,26 @@
++++ b/arch/nds32/kernel/module.c
+@@ -0,0 +1,299 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -141,15 +82,288 @@ index 0000000..198e8dd
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef __NDS32_BYTEORDER_H__
-+#define __NDS32_BYTEORDER_H__
++#include <linux/module.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
 +
-+#ifdef __NDS32_EB__
-+#include <linux/byteorder/big_endian.h>
++#include <asm/pgtable.h>
++
++void *module_alloc(unsigned long size)
++{
++	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
++				    GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
++				    __builtin_return_address(0));
++}
++
++void module_free(struct module *module, void *region)
++{
++	vfree(region);
++}
++
++int module_frob_arch_sections(Elf_Ehdr * hdr,
++			      Elf_Shdr * sechdrs,
++			      char *secstrings, struct module *mod)
++{
++	return 0;
++}
++
++void do_reloc16(unsigned int val, unsigned int *loc, unsigned int val_mask,
++		unsigned int val_shift, unsigned int loc_mask,
++		unsigned int partial_in_place, unsigned int swap)
++{
++	unsigned int tmp = 0, tmp2 = 0;
++
++	__asm__ __volatile__("\tlhi.bi\t%0, [%2], 0\n"
++			     "\tbeqz\t%3, 1f\n"
++			     "\twsbh\t%0, %1\n"
++			     "1:\n":"=r"(tmp):"0"(tmp), "r"(loc), "r"(swap)
++	    );
++
++	tmp2 = tmp & loc_mask;
++	if (partial_in_place) {
++		tmp &= (!loc_mask);
++		tmp =
++		    tmp2 | ((tmp + ((val & val_mask) >> val_shift)) & val_mask);
++	} else {
++		tmp = tmp2 | ((val & val_mask) >> val_shift);
++	}
++
++	__asm__ __volatile__("\tbeqz\t%3, 2f\n"
++			     "\twsbh\t%0, %1\n"
++			     "2:\n"
++			     "\tshi.bi\t%0, [%2], 0\n":"=r"(tmp):"0"(tmp),
++			     "r"(loc), "r"(swap)
++	    );
++}
++
++void do_reloc32(unsigned int val, unsigned int *loc, unsigned int val_mask,
++		unsigned int val_shift, unsigned int loc_mask,
++		unsigned int partial_in_place, unsigned int swap)
++{
++	unsigned int tmp = 0, tmp2 = 0;
++
++	__asm__ __volatile__("\tlmw.bi\t%0, [%2], %0, 0\n"
++			     "\tbeqz\t%3, 1f\n"
++			     "\twsbh\t%0, %1\n"
++			     "\trotri\t%0, %1, 16\n"
++			     "1:\n":"=r"(tmp):"0"(tmp), "r"(loc), "r"(swap)
++	    );
++
++	tmp2 = tmp & loc_mask;
++	if (partial_in_place) {
++		tmp &= (!loc_mask);
++		tmp =
++		    tmp2 | ((tmp + ((val & val_mask) >> val_shift)) & val_mask);
++	} else {
++		tmp = tmp2 | ((val & val_mask) >> val_shift);
++	}
++
++	__asm__ __volatile__("\tbeqz\t%3, 2f\n"
++			     "\twsbh\t%0, %1\n"
++			     "\trotri\t%0, %1, 16\n"
++			     "2:\n"
++			     "\tsmw.bi\t%0, [%2], %0, 0\n":"=r"(tmp):"0"(tmp),
++			     "r"(loc), "r"(swap)
++	    );
++}
++
++static inline int exceed_limit(int offset, unsigned int val_mask,
++			       struct module *module, Elf32_Rela * rel,
++			       unsigned int relindex, unsigned int reloc_order)
++{
++	int abs_off = offset < 0 ? ~offset : offset;
++
++	if (abs_off & (~val_mask)) {
++		pr_err("\n%s: relocation type %d out of range.\n"
++		       "please rebuild the kernel module with gcc option \"-Wa,-mno-small-text\".\n",
++		       module->name, ELF32_R_TYPE(rel->r_info));
++		pr_err("section %d reloc %d offset 0x%x relative 0x%x.\n",
++		       relindex, reloc_order, rel->r_offset, offset);
++		return true;
++	}
++	return false;
++}
++
++#ifdef __NDS32_EL__
++#define NEED_SWAP 1
 +#else
-+#include <linux/byteorder/little_endian.h>
++#define NEED_SWAP 0
 +#endif
 +
-+#endif /* __NDS32_BYTEORDER_H__ */
++int
++apply_relocate_add(Elf32_Shdr * sechdrs, const char *strtab,
++		   unsigned int symindex, unsigned int relindex,
++		   struct module *module)
++{
++	Elf32_Shdr *symsec = sechdrs + symindex;
++	Elf32_Shdr *relsec = sechdrs + relindex;
++	Elf32_Shdr *dstsec = sechdrs + relsec->sh_info;
++	Elf32_Rela *rel = (void *)relsec->sh_addr;
++	unsigned int i;
++
++	for (i = 0; i < relsec->sh_size / sizeof(Elf32_Rela); i++, rel++) {
++		Elf32_Addr *loc;
++		Elf32_Sym *sym;
++		Elf32_Addr v;
++		s32 offset;
++
++		offset = ELF32_R_SYM(rel->r_info);
++		if (offset < 0
++		    || offset > (symsec->sh_size / sizeof(Elf32_Sym))) {
++			pr_err("%s: bad relocation\n", module->name);
++			pr_err("section %d reloc %d\n", relindex, i);
++			return -ENOEXEC;
++		}
++
++		sym = ((Elf32_Sym *) symsec->sh_addr) + offset;
++
++		if (rel->r_offset < 0
++		    || rel->r_offset > dstsec->sh_size - sizeof(u16)) {
++			pr_err("%s: out of bounds relocation\n", module->name);
++			pr_err("section %d reloc %d offset 0x%0x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
++			return -ENOEXEC;
++		}
++
++		loc = (Elf32_Addr *) (dstsec->sh_addr + rel->r_offset);
++		v = sym->st_value + rel->r_addend;
++
++		switch (ELF32_R_TYPE(rel->r_info)) {
++		case R_NDS32_NONE:
++		case R_NDS32_INSN16:
++		case R_NDS32_LABEL:
++		case R_NDS32_LONGCALL1:
++		case R_NDS32_LONGCALL2:
++		case R_NDS32_LONGCALL3:
++		case R_NDS32_LONGCALL4:
++		case R_NDS32_LONGJUMP1:
++		case R_NDS32_LONGJUMP2:
++		case R_NDS32_LONGJUMP3:
++		case R_NDS32_9_FIXED_RELA:
++		case R_NDS32_15_FIXED_RELA:
++		case R_NDS32_17_FIXED_RELA:
++		case R_NDS32_25_FIXED_RELA:
++		case R_NDS32_LOADSTORE:
++		case R_NDS32_DWARF2_OP1_RELA:
++		case R_NDS32_DWARF2_OP2_RELA:
++		case R_NDS32_DWARF2_LEB_RELA:
++		case R_NDS32_RELA_NOP_MIX ... R_NDS32_RELA_NOP_MAX:
++			break;
++
++		case R_NDS32_32_RELA:
++			do_reloc32(v, loc, 0xffffffff, 0, 0, 0, 0);
++			break;
++
++		case R_NDS32_HI20_RELA:
++			do_reloc32(v, loc, 0xfffff000, 12, 0xfff00000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S3_RELA:
++			do_reloc32(v, loc, 0x00000fff, 3, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S2_RELA:
++			do_reloc32(v, loc, 0x00000fff, 2, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S1_RELA:
++			do_reloc32(v, loc, 0x00000fff, 1, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S0_RELA:
++		case R_NDS32_LO12S0_ORI_RELA:
++			do_reloc32(v, loc, 0x00000fff, 0, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_9_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x000000ff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc16(v - (Elf32_Addr) loc, loc, 0x000001ff, 1,
++				   0xffffff00, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_15_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x00003fff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x00007fff, 1,
++				   0xffffc000, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_17_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x0000ffff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x0001ffff, 1,
++				   0xffff0000, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_25_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x00ffffff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x01ffffff, 1,
++				   0xff000000, 0, NEED_SWAP);
++			break;
++		case R_NDS32_WORD_9_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x000000ff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x000001ff, 1,
++				   0xffffff00, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_SDA15S3_RELA:
++		case R_NDS32_SDA15S2_RELA:
++		case R_NDS32_SDA15S1_RELA:
++		case R_NDS32_SDA15S0_RELA:
++			pr_err("%s: unsupported relocation type %d.\n",
++			       module->name, ELF32_R_TYPE(rel->r_info));
++			pr_err
++			    ("Small data section access doesn't work in the kernel space; "
++			     "please rebuild the kernel module with gcc option -mcmodel=large.\n");
++			pr_err("section %d reloc %d offset 0x%x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
++			break;
++
++		default:
++			pr_err("%s: unsupported relocation type %d.\n",
++			       module->name, ELF32_R_TYPE(rel->r_info));
++			pr_err("section %d reloc %d offset 0x%x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
++		}
++	}
++	return 0;
++}
++
++int
++apply_relocate(Elf32_Shdr * sechdrs, const char *strtab,
++	       unsigned int symindex, unsigned int relsec,
++	       struct module *module)
++{
++	return 0;
++}
++
++int
++module_finalize(const Elf32_Ehdr * hdr, const Elf_Shdr * sechdrs,
++		struct module *module)
++{
++	return 0;
++}
++
++void module_arch_cleanup(struct module *mod)
++{
++}
 -- 
 1.7.9.5
