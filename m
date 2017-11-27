@@ -1,56 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:38192 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752475AbdK0N5b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Nov 2017 08:57:31 -0500
-Date: Mon, 27 Nov 2017 13:57:25 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v2 10/35] nds32: Atomic operations
-Message-ID: <20171127135724.yy2jjjuby3xu74mm@lakrids.cambridge.arm.com>
-References: <cover.1511785528.git.green.hu@gmail.com>
- <56a24fae3cec68f80c41eebd98fcceb9b137ac64.1511785528.git.green.hu@gmail.com>
+Received: from mail-oi0-f66.google.com ([209.85.218.66]:36641 "EHLO
+        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751311AbdK0OLd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 09:11:33 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <56a24fae3cec68f80c41eebd98fcceb9b137ac64.1511785528.git.green.hu@gmail.com>
+In-Reply-To: <1a22db002413ff60851737736a86b40c38877220.1511785528.git.green.hu@gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com> <1a22db002413ff60851737736a86b40c38877220.1511785528.git.green.hu@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 27 Nov 2017 15:11:31 +0100
+Message-ID: <CAK8P3a2ovDuwWCq2HABZaCVGO04TX0VdgnQbK65RvHhsMEzsiw@mail.gmail.com>
+Subject: Re: [PATCH v2 34/35] clocksource/drivers/Kconfig: Support andestech
+ atcpit100 timer
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greentime Hu <green.hu@gmail.com>
-Cc: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171127135725.LobVtP0lK0idlq8LsGDKg2k_bDOiQktH_g1E3f9bnoQ@z>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Rick Chen <rickchen36@gmail.com>
+Message-ID: <20171127141131.P6h-riywIIxIIJSXk5UWRH9Zy40UObfgvGsJ1OApauA@z>
 
-Hi,
+On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
+> From: Rick Chen <rickchen36@gmail.com>
+>
+> Add CLKSRC_ATCPIT100 for Andestech atcpit100 timer selection.
+> It often be used in Andestech AE3XX platform.
+>
+> Signed-off-by: Rick Chen <rickchen36@gmail.com>
+> Signed-off-by: Greentime Hu <green.hu@gmail.com>
 
-On Mon, Nov 27, 2017 at 08:27:57PM +0800, Greentime Hu wrote:
-> +static inline void arch_spin_unlock(arch_spinlock_t * lock)
-> +{
-> +	asm volatile(
-> +		"xor	$r15,  $r15, $r15\n"
-> +		"swi	$r15, [%0]\n"
-> +		:
-> +		:"r"(&lock->lock)
-> +		:"memory");
-> +}
+No need to split out the Makefile patch from the actual driver, they
+clearly belong together.
+The binding change should be a separate patch, as you did.
 
-This looks suspicious. There's no clobber for $r15, so isn't this
-corrupting a GPR behind the back of the compiler?
+It's probably best to separate the driver patches from the
+architecture submission
+in the future, they can simply get merged by the respective subsystem
+maintainers,
+with a smaller Cc list.
 
-Shouldn't there be a tmp variable for the register allocation rather
-than hard-coding $r15?
-
-> +static inline void arch_write_unlock(arch_rwlock_t * rw)
-> +{
-> +	asm volatile(
-> +		"xor	$r15, $r15, $r15\n"
-> +		"swi	$r15, [%0]\n"
-> +		:
-> +		:"r"(&rw->lock)
-> +		:"memory","$r15");
-> +}
-
-This time you have a clobber, but it's still not clear to me why you
-don't use a tmp variable and leave the register allocation to the
-compiler.
-
-Thanks,
-Mark.
+      Arnd
