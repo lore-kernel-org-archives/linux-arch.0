@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:45430 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752701AbdK0Mys (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:54:48 -0500
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:41006 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752670AbdK0Myp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:54:45 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v2 24/35] nds32: defconfig
-Date: Mon, 27 Nov 2017 20:28:11 +0800
-Message-ID: <ba7df99550bdd5c06d01ef8f427d116280b8f52d.1511785528.git.green.hu@gmail.com>
+Subject: [PATCH v2 23/35] nds32: Miscellaneous header files
+Date: Mon, 27 Nov 2017 20:28:10 +0800
+Message-ID: <af608fe8dd63a9797d33c0b7cf4bbea5e79038ac.1511785528.git.green.hu@gmail.com>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
@@ -15,135 +15,141 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171127122811.JJ3mVmD0HEQH-SajqTeUFyxExn6B2UaSGnydKh-DqQE@z>
+Message-ID: <20171127122810.cSQNXHSQfAgPi8djUof2Qe67udslCdEhAazdcj9O8U4@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds nds32 defconfig.
+This patch introduces some miscellaneous header files.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/configs/defconfig |  111 ++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 111 insertions(+)
- create mode 100644 arch/nds32/configs/defconfig
+ arch/nds32/include/asm/delay.h          |   51 +++++++++++++++++++++++++++++++
+ arch/nds32/include/asm/linkage.h        |   24 +++++++++++++++
+ arch/nds32/include/uapi/asm/byteorder.h |   26 ++++++++++++++++
+ 3 files changed, 101 insertions(+)
+ create mode 100644 arch/nds32/include/asm/delay.h
+ create mode 100644 arch/nds32/include/asm/linkage.h
+ create mode 100644 arch/nds32/include/uapi/asm/byteorder.h
 
-diff --git a/arch/nds32/configs/defconfig b/arch/nds32/configs/defconfig
+diff --git a/arch/nds32/include/asm/delay.h b/arch/nds32/include/asm/delay.h
 new file mode 100644
-index 0000000..782768219
+index 0000000..bdeeb76
 --- /dev/null
-+++ b/arch/nds32/configs/defconfig
-@@ -0,0 +1,111 @@
-+CONFIG_CROSS_COMPILE="nds32le-linux-"
-+CONFIG_SYSVIPC=y
-+CONFIG_POSIX_MQUEUE=y
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_BSD_PROCESS_ACCT=y
-+CONFIG_BSD_PROCESS_ACCT_V3=y
-+CONFIG_IKCONFIG=y
-+CONFIG_IKCONFIG_PROC=y
-+CONFIG_LOG_BUF_SHIFT=14
-+CONFIG_NAMESPACES=y
-+CONFIG_USER_NS=y
-+CONFIG_RELAY=y
-+CONFIG_BLK_DEV_INITRD=y
-+CONFIG_EXPERT=y
-+CONFIG_SYSCTL_SYSCALL=y
-+CONFIG_KALLSYMS_ALL=y
-+# CONFIG_VM_EVENT_COUNTERS is not set
-+# CONFIG_SLUB_DEBUG is not set
-+CONFIG_PROFILING=y
-+CONFIG_MODULES=y
-+CONFIG_MODULE_UNLOAD=y
-+# CONFIG_BLK_DEV_BSG is not set
-+# CONFIG_HWZOL is not set
-+CONFIG_ANDES_PAGE_SIZE_8KB=y
-+CONFIG_NDS32_BUILTIN_DTB="ae3xx"
-+CONFIG_PREEMPT=y
-+# CONFIG_COMPACTION is not set
-+CONFIG_HZ_100=y
-+# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_NET_KEY=y
-+CONFIG_INET=y
-+CONFIG_IP_MULTICAST=y
-+# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
-+# CONFIG_INET_XFRM_MODE_TUNNEL is not set
-+# CONFIG_INET_XFRM_MODE_BEET is not set
-+# CONFIG_INET_DIAG is not set
-+# CONFIG_IPV6 is not set
-+CONFIG_BRIDGE=y
-+CONFIG_BLK_DEV_LOOP=y
-+CONFIG_BLK_DEV_RAM=y
-+CONFIG_BLK_DEV_RAM_SIZE=8192
-+CONFIG_NETDEVICES=y
-+CONFIG_TUN=y
-+# CONFIG_NET_CADENCE is not set
-+# CONFIG_NET_VENDOR_BROADCOM is not set
-+CONFIG_FTMAC100=y
-+# CONFIG_NET_VENDOR_INTEL is not set
-+# CONFIG_NET_VENDOR_MARVELL is not set
-+# CONFIG_NET_VENDOR_MICREL is not set
-+# CONFIG_NET_VENDOR_NATSEMI is not set
-+# CONFIG_NET_VENDOR_SEEQ is not set
-+# CONFIG_NET_VENDOR_STMICRO is not set
-+# CONFIG_NET_VENDOR_WIZNET is not set
-+CONFIG_INPUT_EVDEV=y
-+# CONFIG_INPUT_KEYBOARD is not set
-+# CONFIG_INPUT_MOUSE is not set
-+CONFIG_INPUT_TOUCHSCREEN=y
-+# CONFIG_SERIO is not set
-+CONFIG_VT_HW_CONSOLE_BINDING=y
-+CONFIG_SERIAL_8250=y
-+# CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
-+CONFIG_SERIAL_8250_CONSOLE=y
-+CONFIG_SERIAL_8250_NR_UARTS=3
-+CONFIG_SERIAL_8250_RUNTIME_UARTS=3
-+CONFIG_SERIAL_OF_PLATFORM=y
-+# CONFIG_HW_RANDOM is not set
-+# CONFIG_HWMON is not set
-+CONFIG_WATCHDOG=y
-+# CONFIG_VGA_CONSOLE is not set
-+CONFIG_SOUND=y
-+CONFIG_SND=y
-+# CONFIG_SND_SUPPORT_OLD_API is not set
-+# CONFIG_SND_VERBOSE_PROCFS is not set
-+# CONFIG_USB_SUPPORT is not set
-+CONFIG_MMC=y
-+CONFIG_RTC_CLASS=y
-+# CONFIG_RTC_HCTOSYS is not set
-+CONFIG_CLKSRC_ATCPIT100=y
-+CONFIG_EXT4_FS=y
-+CONFIG_EXT4_FS_POSIX_ACL=y
-+CONFIG_EXT4_FS_SECURITY=y
-+CONFIG_EXT4_ENCRYPTION=y
-+CONFIG_FUSE_FS=y
-+CONFIG_MSDOS_FS=y
-+CONFIG_VFAT_FS=y
-+CONFIG_TMPFS=y
-+CONFIG_TMPFS_POSIX_ACL=y
-+CONFIG_CONFIGFS_FS=y
-+CONFIG_NFS_FS=y
-+CONFIG_NFS_V3_ACL=y
-+CONFIG_NFS_V4=y
-+CONFIG_NFS_V4_1=y
-+CONFIG_NFS_USE_LEGACY_DNS=y
-+CONFIG_NLS_CODEPAGE_437=y
-+CONFIG_NLS_ISO8859_1=y
-+CONFIG_DEBUG_INFO=y
-+CONFIG_DEBUG_INFO_DWARF4=y
-+CONFIG_GDB_SCRIPTS=y
-+CONFIG_READABLE_ASM=y
-+CONFIG_HEADERS_CHECK=y
-+CONFIG_DEBUG_SECTION_MISMATCH=y
-+CONFIG_MAGIC_SYSRQ=y
-+CONFIG_PANIC_ON_OOPS=y
-+# CONFIG_SCHED_DEBUG is not set
-+# CONFIG_DEBUG_PREEMPT is not set
-+CONFIG_STACKTRACE=y
-+CONFIG_RCU_CPU_STALL_TIMEOUT=300
-+# CONFIG_CRYPTO_HW is not set
++++ b/arch/nds32/include/asm/delay.h
+@@ -0,0 +1,51 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef __NDS32_DELAY_H__
++#define __NDS32_DELAY_H__
++
++#include <asm/param.h>
++
++static inline void __delay(unsigned long loops)
++{
++	__asm__ __volatile__(".align 2\n"
++			     "1:\n"
++			     "\taddi\t%0, %0, -1\n"
++			     "\tbgtz\t%0, 1b\n"
++			     :"=r"(loops)
++			     :"0"(loops));
++}
++
++static inline void __udelay(unsigned long usecs, unsigned long lpj)
++{
++	usecs *= (unsigned long)(((0x8000000000000000ULL / (500000 / HZ)) +
++				  0x80000000ULL) >> 32);
++	usecs = (unsigned long)(((unsigned long long)usecs * lpj) >> 32);
++	__delay(usecs);
++}
++
++#define udelay(usecs) __udelay((usecs), loops_per_jiffy)
++
++/* make sure "usecs *= ..." in udelay do not overflow. */
++#if HZ >= 1000
++#define MAX_UDELAY_MS	1
++#elif HZ <= 200
++#define MAX_UDELAY_MS	5
++#else
++#define MAX_UDELAY_MS	(1000 / HZ)
++#endif
++
++#endif
+diff --git a/arch/nds32/include/asm/linkage.h b/arch/nds32/include/asm/linkage.h
+new file mode 100644
+index 0000000..d17abd8
+--- /dev/null
++++ b/arch/nds32/include/asm/linkage.h
+@@ -0,0 +1,24 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef __ASM_LINKAGE_H
++#define __ASM_LINKAGE_H
++
++/* This file is required by include/linux/linkage.h */
++#define __ALIGN .align 2
++#define __ALIGN_STR ".align 2"
++
++#endif
+diff --git a/arch/nds32/include/uapi/asm/byteorder.h b/arch/nds32/include/uapi/asm/byteorder.h
+new file mode 100644
+index 0000000..198e8dd
+--- /dev/null
++++ b/arch/nds32/include/uapi/asm/byteorder.h
+@@ -0,0 +1,26 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef __NDS32_BYTEORDER_H__
++#define __NDS32_BYTEORDER_H__
++
++#ifdef __NDS32_EB__
++#include <linux/byteorder/big_endian.h>
++#else
++#include <linux/byteorder/little_endian.h>
++#endif
++
++#endif /* __NDS32_BYTEORDER_H__ */
 -- 
 1.7.9.5
