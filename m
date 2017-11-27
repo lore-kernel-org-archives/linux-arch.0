@@ -1,181 +1,36 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v2 22/35] nds32: Device tree support
-Date: Mon, 27 Nov 2017 20:28:09 +0800
-Message-ID: <1055af0e8b98571b4461d6f899d043fe7f17408b.1511785528.git.green.hu@gmail.com>
+Subject: [PATCH v2 20/35] nds32: Loadable modules
+Date: Mon, 27 Nov 2017 20:28:07 +0800
+Message-ID: <19a5cb12c90c0fa17b65675a93eea59972adc92d.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: netdev-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds support for device tree.
+This patch adds support for loadable modules.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/boot/dts/Makefile   |    8 ++++++
- arch/nds32/boot/dts/ae3xx.dts  |   55 ++++++++++++++++++++++++++++++++++++
- arch/nds32/boot/dts/ag101p.dts |   60 ++++++++++++++++++++++++++++++++++++++++
- arch/nds32/kernel/devtree.c    |   45 ++++++++++++++++++++++++++++++
- 4 files changed, 168 insertions(+)
- create mode 100644 arch/nds32/boot/dts/Makefile
- create mode 100644 arch/nds32/boot/dts/ae3xx.dts
- create mode 100644 arch/nds32/boot/dts/ag101p.dts
- create mode 100644 arch/nds32/kernel/devtree.c
+ arch/nds32/include/asm/module.h |   24 ++++
+ arch/nds32/kernel/module.c      |  299 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 323 insertions(+)
+ create mode 100644 arch/nds32/include/asm/module.h
+ create mode 100644 arch/nds32/kernel/module.c
 
-diff --git a/arch/nds32/boot/dts/Makefile b/arch/nds32/boot/dts/Makefile
+diff --git a/arch/nds32/include/asm/module.h b/arch/nds32/include/asm/module.h
 new file mode 100644
-index 0000000..d31faa8
+index 0000000..5ed2b75
 --- /dev/null
-+++ b/arch/nds32/boot/dts/Makefile
-@@ -0,0 +1,8 @@
-+ifneq '$(CONFIG_NDS32_BUILTIN_DTB)' '""'
-+BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_NDS32_BUILTIN_DTB)).dtb.o
-+else
-+BUILTIN_DTB :=
-+endif
-+obj-$(CONFIG_OF) += $(BUILTIN_DTB)
-+
-+clean-files := *.dtb *.dtb.S
-diff --git a/arch/nds32/boot/dts/ae3xx.dts b/arch/nds32/boot/dts/ae3xx.dts
-new file mode 100644
-index 0000000..4181060
---- /dev/null
-+++ b/arch/nds32/boot/dts/ae3xx.dts
-@@ -0,0 +1,55 @@
-+/dts-v1/;
-+/ {
-+	compatible = "nds32 ae3xx";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+
-+	chosen {
-+		bootargs = "earlycon console=ttyS0,38400n8 debug loglevel=7";
-+		stdout-path = &serial0;
-+	};
-+
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x00000000 0x40000000>;
-+	};
-+
-+	cpu {
-+		device_type = "cpu";
-+		compatible = "andestech,n13", "andestech,nds32v3";
-+		clock-frequency = <60000000>;
-+	};
-+
-+	intc: interrupt-controller {
-+		compatible = "andestech,ativic32";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
-+
-+	serial0: serial@f0300000 {
-+		compatible = "andestech,uart16550", "ns16550a";
-+		reg = <0xf0300000 0x1000>;
-+		interrupts = <8>;
-+		clock-frequency = <14745600>;
-+		reg-shift = <2>;
-+		reg-offset = <32>;
-+		no-loopback-test = <1>;
-+	};
-+
-+	timer0: timer@f0400000 {
-+		compatible = "andestech,atcpit100";
-+		reg = <0xf0400000 0x1000>;
-+		interrupts = <2>;
-+		clock-frequency = <30000000>;
-+		cycle-count-offset = <0x38>;
-+		cycle-count-down;
-+	};
-+
-+	mac0: mac@e0100000 {
-+		compatible = "andestech,atmac100";
-+		reg = <0xe0100000 0x1000>;
-+		interrupts = <18>;
-+	};
-+
-+};
-diff --git a/arch/nds32/boot/dts/ag101p.dts b/arch/nds32/boot/dts/ag101p.dts
-new file mode 100644
-index 0000000..f1cb540
---- /dev/null
-+++ b/arch/nds32/boot/dts/ag101p.dts
-@@ -0,0 +1,60 @@
-+/dts-v1/;
-+/ {
-+	compatible = "nds32 ag101p";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+
-+	chosen {
-+		bootargs = "earlycon console=ttyS0,38400n8 debug loglevel=7";
-+		stdout-path = &serial0;
-+	};
-+
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x00000000 0x40000000>;
-+	};
-+
-+	cpu@0 {
-+		device_type = "cpu";
-+		compatible = "andestech,n13";
-+		clock-frequency = <60000000>;
-+		next-level-cache = <&L2>;
-+	};
-+
-+	intc: interrupt-controller {
-+		compatible = "andestech,ativic32";
-+		#interrupt-cells = <2>;
-+		interrupt-controller;
-+	};
-+
-+	serial0: serial@99600000 {
-+		compatible = "andestech,uart16550", "ns16550a";
-+		reg = <0x99600000 0x1000>;
-+		interrupts = <7 4>;
-+		clock-frequency = <14745600>;
-+		reg-shift = <2>;
-+		no-loopback-test = <1>;
-+	};
-+
-+	timer0: timer@98400000 {
-+		compatible = "andestech,atftmr010";
-+		reg = <0x98400000 0x1000>;
-+		interrupts = <19 4>;
-+		clock-frequency = <15000000>;
-+		cycle-count-offset = <0x20>;
-+	};
-+
-+	mac0: mac@90900000 {
-+		compatible = "andestech,atmac100";
-+		reg = <0x90900000 0x1000>;
-+		interrupts = <25 4>;
-+	};
-+
-+	L2: l2-cache {
-+		compatible = "andestech,atl2c";
-+		reg = <0x90f00000 0x1000>;
-+		cache-unified;
-+		cache-level = <2>;
-+	};
-+};
-diff --git a/arch/nds32/kernel/devtree.c b/arch/nds32/kernel/devtree.c
-new file mode 100644
-index 0000000..2af0f1c
---- /dev/null
-+++ b/arch/nds32/kernel/devtree.c
-@@ -0,0 +1,45 @@
++++ b/arch/nds32/include/asm/module.h
+@@ -0,0 +1,24 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -192,34 +47,318 @@ index 0000000..2af0f1c
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/memblock.h>
-+#include <linux/of_fdt.h>
-+#include <linux/bootmem.h>
++#ifndef _ASM_NDS32_MODULE_H
++#define _ASM_NDS32_MODULE_H
 +
-+void __init early_init_dt_add_memory_arch(u64 base, u64 size)
++#include <asm-generic/module.h>
++
++#define MODULE_ARCH_VERMAGIC	"NDS32v3"
++
++#endif /* _ASM_NDS32_MODULE_H */
+diff --git a/arch/nds32/kernel/module.c b/arch/nds32/kernel/module.c
+new file mode 100644
+index 0000000..bb34e23
+--- /dev/null
++++ b/arch/nds32/kernel/module.c
+@@ -0,0 +1,299 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/module.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
++
++#include <asm/pgtable.h>
++
++void *module_alloc(unsigned long size)
 +{
-+	size &= PAGE_MASK;
-+	memblock_add_node(base, size, 0);
++	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
++				    GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
++				    __builtin_return_address(0));
 +}
 +
-+void *__init early_init_dt_alloc_memory_arch(u64 size, u64 align)
++void module_free(struct module *module, void *region)
 +{
-+	return alloc_bootmem_align(size, align);
++	vfree(region);
 +}
 +
-+void __init early_init_devtree(void *params)
++int module_frob_arch_sections(Elf_Ehdr * hdr,
++			      Elf_Shdr * sechdrs,
++			      char *secstrings, struct module *mod)
 +{
-+	if (!params || !early_init_dt_scan(params)) {
-+		pr_crit("\n"
-+			"Error: invalid device tree blob at (virtual address 0x%p)\n"
-+			"The dtb must be 8-byte aligned and must not exceed 8 KB in size\n"
-+			"\nPlease check your bootloader.", params);
++	return 0;
++}
 +
-+		while (true)
-+			cpu_relax();
++void do_reloc16(unsigned int val, unsigned int *loc, unsigned int val_mask,
++		unsigned int val_shift, unsigned int loc_mask,
++		unsigned int partial_in_place, unsigned int swap)
++{
++	unsigned int tmp = 0, tmp2 = 0;
++
++	__asm__ __volatile__("\tlhi.bi\t%0, [%2], 0\n"
++			     "\tbeqz\t%3, 1f\n"
++			     "\twsbh\t%0, %1\n"
++			     "1:\n":"=r"(tmp):"0"(tmp), "r"(loc), "r"(swap)
++	    );
++
++	tmp2 = tmp & loc_mask;
++	if (partial_in_place) {
++		tmp &= (!loc_mask);
++		tmp =
++		    tmp2 | ((tmp + ((val & val_mask) >> val_shift)) & val_mask);
++	} else {
++		tmp = tmp2 | ((val & val_mask) >> val_shift);
 +	}
 +
-+	dump_stack_set_arch_desc("%s (DT)", of_flat_dt_get_machine_name());
++	__asm__ __volatile__("\tbeqz\t%3, 2f\n"
++			     "\twsbh\t%0, %1\n"
++			     "2:\n"
++			     "\tshi.bi\t%0, [%2], 0\n":"=r"(tmp):"0"(tmp),
++			     "r"(loc), "r"(swap)
++	    );
++}
++
++void do_reloc32(unsigned int val, unsigned int *loc, unsigned int val_mask,
++		unsigned int val_shift, unsigned int loc_mask,
++		unsigned int partial_in_place, unsigned int swap)
++{
++	unsigned int tmp = 0, tmp2 = 0;
++
++	__asm__ __volatile__("\tlmw.bi\t%0, [%2], %0, 0\n"
++			     "\tbeqz\t%3, 1f\n"
++			     "\twsbh\t%0, %1\n"
++			     "\trotri\t%0, %1, 16\n"
++			     "1:\n":"=r"(tmp):"0"(tmp), "r"(loc), "r"(swap)
++	    );
++
++	tmp2 = tmp & loc_mask;
++	if (partial_in_place) {
++		tmp &= (!loc_mask);
++		tmp =
++		    tmp2 | ((tmp + ((val & val_mask) >> val_shift)) & val_mask);
++	} else {
++		tmp = tmp2 | ((val & val_mask) >> val_shift);
++	}
++
++	__asm__ __volatile__("\tbeqz\t%3, 2f\n"
++			     "\twsbh\t%0, %1\n"
++			     "\trotri\t%0, %1, 16\n"
++			     "2:\n"
++			     "\tsmw.bi\t%0, [%2], %0, 0\n":"=r"(tmp):"0"(tmp),
++			     "r"(loc), "r"(swap)
++	    );
++}
++
++static inline int exceed_limit(int offset, unsigned int val_mask,
++			       struct module *module, Elf32_Rela * rel,
++			       unsigned int relindex, unsigned int reloc_order)
++{
++	int abs_off = offset < 0 ? ~offset : offset;
++
++	if (abs_off & (~val_mask)) {
++		pr_err("\n%s: relocation type %d out of range.\n"
++		       "please rebuild the kernel module with gcc option \"-Wa,-mno-small-text\".\n",
++		       module->name, ELF32_R_TYPE(rel->r_info));
++		pr_err("section %d reloc %d offset 0x%x relative 0x%x.\n",
++		       relindex, reloc_order, rel->r_offset, offset);
++		return true;
++	}
++	return false;
++}
++
++#ifdef __NDS32_EL__
++#define NEED_SWAP 1
++#else
++#define NEED_SWAP 0
++#endif
++
++int
++apply_relocate_add(Elf32_Shdr * sechdrs, const char *strtab,
++		   unsigned int symindex, unsigned int relindex,
++		   struct module *module)
++{
++	Elf32_Shdr *symsec = sechdrs + symindex;
++	Elf32_Shdr *relsec = sechdrs + relindex;
++	Elf32_Shdr *dstsec = sechdrs + relsec->sh_info;
++	Elf32_Rela *rel = (void *)relsec->sh_addr;
++	unsigned int i;
++
++	for (i = 0; i < relsec->sh_size / sizeof(Elf32_Rela); i++, rel++) {
++		Elf32_Addr *loc;
++		Elf32_Sym *sym;
++		Elf32_Addr v;
++		s32 offset;
++
++		offset = ELF32_R_SYM(rel->r_info);
++		if (offset < 0
++		    || offset > (symsec->sh_size / sizeof(Elf32_Sym))) {
++			pr_err("%s: bad relocation\n", module->name);
++			pr_err("section %d reloc %d\n", relindex, i);
++			return -ENOEXEC;
++		}
++
++		sym = ((Elf32_Sym *) symsec->sh_addr) + offset;
++
++		if (rel->r_offset < 0
++		    || rel->r_offset > dstsec->sh_size - sizeof(u16)) {
++			pr_err("%s: out of bounds relocation\n", module->name);
++			pr_err("section %d reloc %d offset 0x%0x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
++			return -ENOEXEC;
++		}
++
++		loc = (Elf32_Addr *) (dstsec->sh_addr + rel->r_offset);
++		v = sym->st_value + rel->r_addend;
++
++		switch (ELF32_R_TYPE(rel->r_info)) {
++		case R_NDS32_NONE:
++		case R_NDS32_INSN16:
++		case R_NDS32_LABEL:
++		case R_NDS32_LONGCALL1:
++		case R_NDS32_LONGCALL2:
++		case R_NDS32_LONGCALL3:
++		case R_NDS32_LONGCALL4:
++		case R_NDS32_LONGJUMP1:
++		case R_NDS32_LONGJUMP2:
++		case R_NDS32_LONGJUMP3:
++		case R_NDS32_9_FIXED_RELA:
++		case R_NDS32_15_FIXED_RELA:
++		case R_NDS32_17_FIXED_RELA:
++		case R_NDS32_25_FIXED_RELA:
++		case R_NDS32_LOADSTORE:
++		case R_NDS32_DWARF2_OP1_RELA:
++		case R_NDS32_DWARF2_OP2_RELA:
++		case R_NDS32_DWARF2_LEB_RELA:
++		case R_NDS32_RELA_NOP_MIX ... R_NDS32_RELA_NOP_MAX:
++			break;
++
++		case R_NDS32_32_RELA:
++			do_reloc32(v, loc, 0xffffffff, 0, 0, 0, 0);
++			break;
++
++		case R_NDS32_HI20_RELA:
++			do_reloc32(v, loc, 0xfffff000, 12, 0xfff00000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S3_RELA:
++			do_reloc32(v, loc, 0x00000fff, 3, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S2_RELA:
++			do_reloc32(v, loc, 0x00000fff, 2, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S1_RELA:
++			do_reloc32(v, loc, 0x00000fff, 1, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S0_RELA:
++		case R_NDS32_LO12S0_ORI_RELA:
++			do_reloc32(v, loc, 0x00000fff, 0, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_9_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x000000ff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc16(v - (Elf32_Addr) loc, loc, 0x000001ff, 1,
++				   0xffffff00, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_15_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x00003fff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x00007fff, 1,
++				   0xffffc000, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_17_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x0000ffff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x0001ffff, 1,
++				   0xffff0000, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_25_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x00ffffff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x01ffffff, 1,
++				   0xff000000, 0, NEED_SWAP);
++			break;
++		case R_NDS32_WORD_9_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x000000ff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x000001ff, 1,
++				   0xffffff00, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_SDA15S3_RELA:
++		case R_NDS32_SDA15S2_RELA:
++		case R_NDS32_SDA15S1_RELA:
++		case R_NDS32_SDA15S0_RELA:
++			pr_err("%s: unsupported relocation type %d.\n",
++			       module->name, ELF32_R_TYPE(rel->r_info));
++			pr_err
++			    ("Small data section access doesn't work in the kernel space; "
++			     "please rebuild the kernel module with gcc option -mcmodel=large.\n");
++			pr_err("section %d reloc %d offset 0x%x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
++			break;
++
++		default:
++			pr_err("%s: unsupported relocation type %d.\n",
++			       module->name, ELF32_R_TYPE(rel->r_info));
++			pr_err("section %d reloc %d offset 0x%x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
++		}
++	}
++	return 0;
++}
++
++int
++apply_relocate(Elf32_Shdr * sechdrs, const char *strtab,
++	       unsigned int symindex, unsigned int relsec,
++	       struct module *module)
++{
++	return 0;
++}
++
++int
++module_finalize(const Elf32_Ehdr * hdr, const Elf_Shdr * sechdrs,
++		struct module *module)
++{
++	return 0;
++}
++
++void module_arch_cleanup(struct module *mod)
++{
 +}
 -- 
 1.7.9.5
