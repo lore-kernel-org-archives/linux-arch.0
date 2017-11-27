@@ -1,84 +1,59 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 14/35] nds32: System calls handling
-Date: Mon, 27 Nov 2017 15:46:00 +0100
-Message-ID: <CAK8P3a3V7=4LjT38xT2VBQW4sTgpKergar2KoO8brbMZjR--1w@mail.gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <ee45d9c7b0388c87a93a26484e859001477eb3a2.1511785528.git.green.hu@gmail.com>
+Subject: Re: [PATCH v2 11/35] nds32: Device specific operations
+Date: Mon, 27 Nov 2017 15:51:31 +0100
+Message-ID: <CAK8P3a3aXU6mkffcZbxrgAJupwZZ9zCDjTKGDBCwP_gEP3=HVw@mail.gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com> <ab110d0eaa525b07b1790d67bbb020046fb78792.1511785528.git.green.hu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <ee45d9c7b0388c87a93a26484e859001477eb3a2.1511785528.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f68.google.com ([209.85.218.68]:46556 "EHLO
+        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752599AbdK0Ovd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 09:51:33 -0500
+In-Reply-To: <ab110d0eaa525b07b1790d67bbb020046fb78792.1511785528.git.green.hu@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Greentime Hu <green.hu@gmail.com>
 Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Vincent Chen <vincentc@andestech.com>
-List-Id: linux-arch.vger.kernel.org
 
-On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
-
-> diff --git a/arch/nds32/include/asm/syscalls.h b/arch/nds32/include/asm/syscalls.h
+On Mon, Nov 27, 2017 at 1:27 PM, Greentime Hu <green.hu@gmail.com> wrote:
+> From: Greentime Hu <greentime@andestech.com>
+>
+> This patch introduces ioremap implementations.
+>
+> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> ---
+>  arch/nds32/include/asm/io.h |   25 +++++++++++++++
+>  arch/nds32/mm/ioremap.c     |   75 +++++++++++++++++++++++++++++++++++++++++++
+>  2 files changed, 100 insertions(+)
+>  create mode 100644 arch/nds32/include/asm/io.h
+>  create mode 100644 arch/nds32/mm/ioremap.c
+>
+> diff --git a/arch/nds32/include/asm/io.h b/arch/nds32/include/asm/io.h
 > new file mode 100644
-> index 0000000..741ccdc
+> index 0000000..b83dea1
 > --- /dev/null
-> +++ b/arch/nds32/include/asm/syscalls.h
-> @@ -0,0 +1,27 @@
-> +/*
-> + * Copyright (C) 2005-2017 Andes Technology Corporation
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-> + */
+> +++ b/arch/nds32/include/asm/io.h
+> @@ -0,0 +1,25 @@
+
+> +#ifndef __ASM_NDS32_IO_H
+> +#define __ASM_NDS32_IO_H
 > +
-> +#ifndef __ASM_NDS32_SYSCALLS_H
-> +#define __ASM_NDS32_SYSCALLS_H
+> +#ifdef __KERNEL__
+> +void iounmap(void __iomem * addr);
+> +#include <asm-generic/io.h>
 > +
-> +int sys_cacheflush(unsigned long addr, unsigned long len, unsigned int op);
-> +long sys_fadvise64_64_wrapper(int fd, int advice, loff_t offset, loff_t len);
-> +asmlinkage int sys_syscall(void);
-> +asmlinkage int sys_rt_sigreturn_wrapper(void);
+> +#endif /* __KERNEL__ */
+> +#endif /* __ASM_NDS32_IO_H */
 
-You mentioned that sys_syscall() should be removed in this version.
+Here, you should define a lot of the I/O accessor functions,
+dereferencing a pointer
+is generally not enough to guarantee an atomic MMIO operation. You need to
+force the access to use the correct size to prevent the compiler from issuing
+byte-sized operations when it thinks the pointer might be unaligned, and
+there should be barriers that ensure a memory access is synchronized with
+a DMA that might be triggered by a writel, or claimed to be completed after
+a readl. Please see the risc-v header for this, it has many good explanations.
 
-By convention, all syscall declarations should start with 'asmlinkage long',
-even though this has no effect in your architecture.
-
-> diff --git a/arch/nds32/include/uapi/asm/unistd.h b/arch/nds32/include/uapi/asm/unistd.h
-> new file mode 100644
-> index 0000000..2bad1e7
-> --- /dev/null
-> +++ b/arch/nds32/include/uapi/asm/unistd.h
-
-> +
-> +#define __ARCH_WANT_RENAMEAT
-> +#define __ARCH_WANT_SYSCALL_OFF_T
-
-These two should not be here.
-
-> +#define __ARCH_WANT_SYNC_FILE_RANGE2
-
-This one is fine though
-
-> +/* Use the standard ABI for syscalls */
-> +#include <asm-generic/unistd.h>
-> +
-> +__SYSCALL(__NR_fadvise64_64, sys_fadvise64_64_wrapper)
-> +__SYSCALL(__NR_rt_sigreturn, sys_rt_sigreturn_wrapper)
-
-I think you are overriding the array assignment here, this may cause a
-compiler warning when building with "make C=1 V=1" since you have
-the same index assigned to two pointers. A better way to do this
-is to override the name:
-
-#define sys_rt_sigreturn sys_rt_sigreturn_wrapper
-#define sys_fadvise64_64 sys_fadvise64_64_wrapper
-#include <asm-generic/unistd.h>
-
-
-      Arnd
+        Arnd
