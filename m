@@ -1,136 +1,117 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCHv2 09/12] arm64/kvm: preserve host HCR_EL2 value
-Date: Mon, 27 Nov 2017 16:38:03 +0000
-Message-ID: <20171127163806.31435-10-mark.rutland@arm.com>
-References: <20171127163806.31435-1-mark.rutland@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 1/3] y2038: introduce struct __kernel_old_timeval
+Date: Mon, 27 Nov 2017 18:00:45 +0100
+Message-ID: <20171127170121.634826-1-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20171127163806.31435-1-mark.rutland@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arm-kernel@lists.infradead.org
-Cc: arnd@arndb.de, catalin.marinas@arm.com, cdall@linaro.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, mark.rutland@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org
+To: John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: y2038@lists.linaro.org, libc-alpha@sourceware.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Albert ARIBAUD <albert.aribaud@3adev.fr>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Al Viro <viro@zeniv.linux.org.uk>, Deepa Dinamani <deepa.kernel@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andreas Dilger <adilger@dilger.ca>
 List-Id: linux-arch.vger.kernel.org
 
-When restoring HCR_EL2 for the host, KVM uses HCR_HOST_VHE_FLAGS, which
-is a constant value. This works today, as the host HCR_EL2 value is
-always the same, but this will get in the way of supporting extensions
-that require HCR_EL2 bits to be set conditionally for the host.
+Dealing with 'struct timeval' users in the y2038 series is a bit tricky:
 
-To allow such features to work without KVM having to explicitly handle
-every possible host feature combination, this patch has KVM save/restore
-the host HCR when switching to/from a guest HCR.
+We have two definitions of timeval that are visible to user space,
+one comes from glibc (or some other C library), the other comes from
+linux/time.h. The kernel copy is what we want to be used for a number of
+structures defined by the kernel itself, e.g. elf_prstatus (used it core
+dumps), sysinfo and rusage (used in system calls).  These generally tend
+to be used for passing time intervals rather than absolute (epoch-based)
+times, so they do not suffer from the y2038 overflow. Some of them
+could be changed to use 64-bit timestamps by creating new system calls,
+others like the core files cannot easily be changed.
 
-For __{activate,deactivate}_traps(), the HCR save/restore is made common
-across the !VHE and VHE paths. As the host and guest HCR values must
-have E2H set when VHE is in use, register redirection should always be
-in effect at EL2, and this change should not adversely affect the VHE
-code.
+An application using these interfaces likely also uses gettimeofday()
+or other interfaces that use absolute times, and pass 'struct timeval'
+pointers directly into kernel interfaces, so glibc must redefine their
+timeval based on a 64-bit time_t when they introduce their y2038-safe
+interfaces.
 
-For the hyp TLB maintenance code, __tlb_switch_to_host_vhe() is updated
-to toggle the TGE bit with a RMW sequence, as we already do in
-__tlb_switch_to_guest_vhe().
+The only reasonable way forward I see is to remove the 'timeval'
+definion from the kernel's uapi headers, and change the interfaces that
+we do not want to (or cannot) duplicate for 64-bit times to use a new
+__kernel_old_timeval definition instead. This type should be avoided
+for all new interfaces (those can use 64-bit nanoseconds, or the 64-bit
+version of timespec instead), and should be used with great care when
+converting existing interfaces from timeval, to be sure they don't suffer
+from the y2038 overflow, and only with consensus for the particular user
+that using __kernel_old_timeval is better than moving to a 64-bit based
+interface. The structure name is intentionally chosen to not conflict
+with user space types, and to be ugly enough to discourage its use.
 
-The now unused HCR_HOST_VHE_FLAGS definition is removed.
+Note that ioctl based interfaces that pass a bare 'timeval' pointer
+cannot change to '__kernel_old_timeval' because the user space source
+code refers to 'timeval' instead, and we don't want to modify the user
+space sources if possible. However, any application that relies on a
+structure to contain an embedded 'timeval' (e.g. by passing a pointer
+to the member into a function call that expects a timeval pointer) is
+broken when that structure gets converted to __kernel_old_timeval. I
+don't see any way around that, and we have to rely on the compiler to
+produce a warning or compile failure that will alert users when they
+recompile their sources against a new libc.
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Reviewed-by: Christoffer Dall <cdall@linaro.org>
-Cc: Marc Zyngier <marc.zyngier@arm.com>
-Cc: kvmarm@lists.cs.columbia.edu
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arm64/include/asm/kvm_arm.h  | 1 -
- arch/arm64/include/asm/kvm_host.h | 5 ++++-
- arch/arm64/kvm/hyp/switch.c       | 5 +++--
- arch/arm64/kvm/hyp/tlb.c          | 6 +++++-
- 4 files changed, 12 insertions(+), 5 deletions(-)
+ include/linux/time32.h    |  1 +
+ include/uapi/linux/time.h | 12 ++++++++++++
+ kernel/time/time.c        | 12 ++++++++++++
+ 3 files changed, 25 insertions(+)
 
-diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
-index 62854d5d1d3b..aa02b05430e8 100644
---- a/arch/arm64/include/asm/kvm_arm.h
-+++ b/arch/arm64/include/asm/kvm_arm.h
-@@ -84,7 +84,6 @@
- 			 HCR_AMO | HCR_SWIO | HCR_TIDCP | HCR_RW)
- #define HCR_VIRT_EXCP_MASK (HCR_VSE | HCR_VI | HCR_VF)
- #define HCR_INT_OVERRIDE   (HCR_FMO | HCR_IMO)
--#define HCR_HOST_VHE_FLAGS (HCR_RW | HCR_TGE | HCR_E2H)
+diff --git a/include/linux/time32.h b/include/linux/time32.h
+index 100411c979be..378c75d9a83c 100644
+--- a/include/linux/time32.h
++++ b/include/linux/time32.h
+@@ -205,5 +205,6 @@ static inline s64 timeval_to_ns(const struct timeval *tv)
+  * Returns the timeval representation of the nsec parameter.
+  */
+ extern struct timeval ns_to_timeval(const s64 nsec);
++extern struct __kernel_old_timeval ns_to_kernel_old_timeval(const s64 nsec);
  
- /* TCR_EL2 Registers bits */
- #define TCR_EL2_RES1		((1 << 31) | (1 << 23))
-diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
-index 674912d7a571..39184aa3e2f2 100644
---- a/arch/arm64/include/asm/kvm_host.h
-+++ b/arch/arm64/include/asm/kvm_host.h
-@@ -199,10 +199,13 @@ typedef struct kvm_cpu_context kvm_cpu_context_t;
- struct kvm_vcpu_arch {
- 	struct kvm_cpu_context ctxt;
+ #endif
+diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
+index 0ad4510884b0..30aa734135ad 100644
+--- a/include/uapi/linux/time.h
++++ b/include/uapi/linux/time.h
+@@ -50,6 +50,18 @@ struct __kernel_timespec {
+ #endif
  
--	/* HYP configuration */
-+	/* Guest HYP configuration */
- 	u64 hcr_el2;
- 	u32 mdcr_el2;
- 
-+	/* Host HYP configuration */
-+	u64 host_hcr_el2;
+ /*
++ * legacy timeval structure, only embedded in structures that
++ * traditionally used 'timeval' to pass time intervals (not absolute
++ * times). Do not add new users. If user space fails to compile
++ * here, this is probably because it is not y2038 safe and needs to
++ * be changed to use another interface.
++ */
++struct __kernel_old_timeval {
++	__kernel_long_t tv_sec;			/* seconds */
++	__kernel_long_t tv_usec;		/* seconds */
++};
 +
- 	/* Exception Information */
- 	struct kvm_vcpu_fault_info fault;
++/*
+  * The IDs of the various system clocks (for POSIX.1b interval timers):
+  */
+ #define CLOCK_REALTIME			0
+diff --git a/kernel/time/time.c b/kernel/time/time.c
+index 518b56b17147..92002257f083 100644
+--- a/kernel/time/time.c
++++ b/kernel/time/time.c
+@@ -486,6 +486,18 @@ struct timeval ns_to_timeval(const s64 nsec)
+ }
+ EXPORT_SYMBOL(ns_to_timeval);
  
-diff --git a/arch/arm64/kvm/hyp/switch.c b/arch/arm64/kvm/hyp/switch.c
-index 525c01f48867..2205f0be3ced 100644
---- a/arch/arm64/kvm/hyp/switch.c
-+++ b/arch/arm64/kvm/hyp/switch.c
-@@ -71,6 +71,8 @@ static void __hyp_text __activate_traps(struct kvm_vcpu *vcpu)
- {
- 	u64 val;
- 
-+	vcpu->arch.host_hcr_el2 = read_sysreg(hcr_el2);
++struct __kernel_old_timeval ns_to_kernel_old_timeval(const s64 nsec)
++{
++	struct timespec64 ts = ns_to_timespec64(nsec);
++	struct __kernel_old_timeval tv;
 +
- 	/*
- 	 * We are about to set CPTR_EL2.TFP to trap all floating point
- 	 * register accesses to EL2, however, the ARM ARM clearly states that
-@@ -116,7 +118,6 @@ static void __hyp_text __deactivate_traps_vhe(void)
- 		    MDCR_EL2_TPMS;
- 
- 	write_sysreg(mdcr_el2, mdcr_el2);
--	write_sysreg(HCR_HOST_VHE_FLAGS, hcr_el2);
- 	write_sysreg(CPACR_EL1_DEFAULT, cpacr_el1);
- 	write_sysreg(vectors, vbar_el1);
- }
-@@ -129,7 +130,6 @@ static void __hyp_text __deactivate_traps_nvhe(void)
- 	mdcr_el2 |= MDCR_EL2_E2PB_MASK << MDCR_EL2_E2PB_SHIFT;
- 
- 	write_sysreg(mdcr_el2, mdcr_el2);
--	write_sysreg(HCR_RW, hcr_el2);
- 	write_sysreg(CPTR_EL2_DEFAULT, cptr_el2);
- }
- 
-@@ -151,6 +151,7 @@ static void __hyp_text __deactivate_traps(struct kvm_vcpu *vcpu)
- 	__deactivate_traps_arch()();
- 	write_sysreg(0, hstr_el2);
- 	write_sysreg(0, pmuserenr_el0);
-+	write_sysreg(vcpu->arch.host_hcr_el2, hcr_el2);
- }
- 
- static void __hyp_text __activate_vm(struct kvm_vcpu *vcpu)
-diff --git a/arch/arm64/kvm/hyp/tlb.c b/arch/arm64/kvm/hyp/tlb.c
-index 73464a96c365..c2b0680efa2c 100644
---- a/arch/arm64/kvm/hyp/tlb.c
-+++ b/arch/arm64/kvm/hyp/tlb.c
-@@ -49,12 +49,16 @@ static hyp_alternate_select(__tlb_switch_to_guest,
- 
- static void __hyp_text __tlb_switch_to_host_vhe(struct kvm *kvm)
- {
-+	u64 val;
++	tv.tv_sec = ts.tv_sec;
++	tv.tv_usec = (suseconds_t) ts.tv_nsec / 1000;
 +
- 	/*
- 	 * We're done with the TLB operation, let's restore the host's
- 	 * view of HCR_EL2.
- 	 */
- 	write_sysreg(0, vttbr_el2);
--	write_sysreg(HCR_HOST_VHE_FLAGS, hcr_el2);
-+	val = read_sysreg(hcr_el2);
-+	val |= HCR_TGE;
-+	write_sysreg(val, hcr_el2);
- }
- 
- static void __hyp_text __tlb_switch_to_host_nvhe(struct kvm *kvm)
++	return tv;
++}
++EXPORT_SYMBOL(ns_to_kernel_old_timeval);
++
+ /**
+  * set_normalized_timespec - set timespec sec and nsec parts and normalize
+  *
 -- 
-2.11.0
+2.9.0
