@@ -1,653 +1,372 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f66.google.com ([209.85.160.66]:40651 "EHLO
-        mail-pl0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752187AbdK0Mx3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:53:29 -0500
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:38548 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751727AbdK0MxW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:53:22 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v2 02/35] nds32: Kernel booting and initialization
-Date: Mon, 27 Nov 2017 20:27:49 +0800
-Message-ID: <64cc76336ca437ee3a0bddf7b6c00c4462fdb187.1511785528.git.green.hu@gmail.com>
-In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com>
-In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com>
+Subject: [PATCH v2 00/35] Andes(nds32) Linux Kernel Port
+Date: Mon, 27 Nov 2017 20:27:47 +0800
+Message-ID: <cover.1511785528.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org
-Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171127122749.i52sNpKweHahkOMxlVLV-vMTp3thAMj3u-BM06T_c-A@z>
+Cc: Greentime Hu <green.hu@gmail.com>
+Message-ID: <20171127122747.mIhG6odoI8XNDmR__NgB3KifMbuJ_AaMEbB9_Mz6faA@z>
 
-From: Greentime Hu <greentime@andestech.com>
+This is the 2nd version patchset to add the Linux kernel port for Andes(nds32)
+processors. Almost all of the feedback from v1 patchseries has been addressed.
+Thanks to everyone who provided feedback on the previous version.
 
-This patch includes the kernel startup code. It can get dtb pointer
-passed from bootloader. It will create a temp mapping by tlb
-instructions at beginning and goto start_kernel.
 
-Signed-off-by: Vincent Chen <vincentc@andestech.com>
-Signed-off-by: Greentime Hu <greentime@andestech.com>
----
- arch/nds32/kernel/head.S  |  198 ++++++++++++++++++++++
- arch/nds32/kernel/setup.c |  407 +++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 605 insertions(+)
+This patchset adds core architecture support to Linux for Andestech's
+N13, N15, D15, N10, D10 processor cores.
+
+Based on the 16/32-bit AndeStar RISC-like architecture, we designed the
+configurable AndesCore series of embedded processor families. AndesCores
+range from highly performance-efficient small-footprint cores for
+microcontrollers and deeply-embedded applications to 1GHz+ cores running
+Linux, covering general-purpose N-series cores for a wide range of computing
+need, DSP-capable D-series cores for digital signal control,
+instruction-extensible E-series cores for application-specific acceleration,
+and secure S-series cores for best protection of the most valuable.
+
+The patches are based on v4.14-rc8, and can also be found in the
+following git tree:
+  https://github.com/andestech/linux.git nds32-4.14-rc8-v2
+
+The build script and toolchain repositories are able to be found here:
+  https://github.com/andestech/build_script.git
+
+Freely available instruction set and architecture overview documents can
+be found on the following page:
+  http://www.andestech.com/product.php?cls=9
+
+
+Vincent Ren-Wei Chen and I will maintain this port. Thanks to everyone who
+helped us and contributed to it. :) Any feedback is welcome.
+
+
+Changes in v2:
+ - Set GENERIC_CALIBRATE_DELAY default n
+ - Add earlycon support
+ - Remove earlyprintk
+ - Add CPU_BIG_ENDIAN, CPU_LITTLE_ENDIAN support
+ - Refine unalignment access exception handler
+ - Add VMSPLIT support
+ - Use only one defconfig
+ - Change interrupt-cells from 2 to 1
+ - Refine andestech cpu names in bindings/nds32/cpus.txt
+ - Get clock frequency in dts because fpga bitmap doesn't include this feature
+ - Update MAINTAINERS for bindings
+ - Remove unused configs in Kconfig
+ - Refine device tree scripts
+ - Refine coding style
+ - Use generic ioremap_nocache
+ - Remove L2CC_PA_BASE define and its codes in head.S. It will be moved to bootloader.
+ - Set PHYS_OFFSET to 0x0 instead of CONFIG_MEMORY_START
+ - Remove unused macros
+ - Simplify cpu_cache_* API
+ - Change __asm__ __volatile__ to asm volatile
+ - Refine uaccess.h
+ - Remove unused/deprecated syscall
+ - Use generic posix_types.h
+ - Remove arch_trace_hardirqs_on/arch_trace_hardirqs_off
+ - Fix bug of restart syscall
+ - Refine syscall implementations
+ - Use IS_ENABLED to replace ifdef as possible
+ - Remove device_initcall(nds32_device_probe)
+ - Refine vdso implementations
+ - Refine copy_from_user()/copy_to_user()/clear_user()/get_user()/memmove()/memcpy()
+ - Refine ioremap.c
+ - Refine irq-ativic32.c
+ - Fix a bug of earlycon.c
+ - Export ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt
+ - Add atcpit100 driver
+
+Greentime Hu (32):
+  nds32: Assembly macros and definitions
+  nds32: Kernel booting and initialization
+  nds32: Exception handling
+  nds32: MMU definitions
+  nds32: MMU initialization
+  nds32: MMU fault handling and page table management
+  nds32: Cache and TLB routines
+  nds32: Process management
+  nds32: IRQ handling
+  nds32: Atomic operations
+  nds32: Device specific operations
+  nds32: DMA mapping API
+  nds32: ELF definitions
+  nds32: System calls handling
+  nds32: VDSO support
+  nds32: Signal handling support
+  nds32: Library functions
+  nds32: Debugging support
+  nds32: L2 cache support
+  nds32: Loadable modules
+  nds32: Generic timers support
+  nds32: Device tree support
+  nds32: Miscellaneous header files
+  nds32: defconfig
+  nds32: Build infrastructure
+  dt-bindings: interrupt-controller: Andestech Internal Vector
+    Interrupt Controller
+  irqchip: Andestech Internal Vector Interrupt Controller driver
+  MAINTAINERS: Add nds32
+  dt-bindings: nds32 CPU Bindings
+  net: faraday add nds32 support.
+  earlycon: add reg-offset to physical address before mapping
+  asm-generic/io.h: move
+    ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of     ifndef
+    CONFIG_MMU
+
+Rick Chen (3):
+  clocksource/drivers/atcpit100: Add andestech atcpit100 timer
+  clocksource/drivers/Kconfig: Support andestech atcpit100 timer
+  dt-bindings: timer: Add andestech atcpit100 timer binding doc
+
+ .../interrupt-controller/andestech,ativic32.txt    |   19 +
+ Documentation/devicetree/bindings/nds32/cpus.txt   |   32 +
+ .../bindings/timer/andestech,atcpit100-timer.txt   |   33 +
+ MAINTAINERS                                        |   11 +
+ arch/nds32/Kconfig                                 |  107 +++
+ arch/nds32/Kconfig.cpu                             |  131 +++
+ arch/nds32/Makefile                                |   66 ++
+ arch/nds32/boot/Makefile                           |   15 +
+ arch/nds32/boot/dts/Makefile                       |    8 +
+ arch/nds32/boot/dts/ae3xx.dts                      |   55 ++
+ arch/nds32/boot/dts/ag101p.dts                     |   60 ++
+ arch/nds32/configs/defconfig                       |  111 +++
+ arch/nds32/include/asm/Kbuild                      |   54 ++
+ arch/nds32/include/asm/assembler.h                 |   52 ++
+ arch/nds32/include/asm/bitfield.h                  |  974 ++++++++++++++++++++
+ arch/nds32/include/asm/cache.h                     |   25 +
+ arch/nds32/include/asm/cache_info.h                |   26 +
+ arch/nds32/include/asm/cacheflush.h                |   57 ++
+ arch/nds32/include/asm/current.h                   |   25 +
+ arch/nds32/include/asm/delay.h                     |   51 +
+ arch/nds32/include/asm/dma-mapping.h               |   27 +
+ arch/nds32/include/asm/elf.h                       |  192 ++++
+ arch/nds32/include/asm/fixmap.h                    |   42 +
+ arch/nds32/include/asm/futex.h                     |  116 +++
+ arch/nds32/include/asm/highmem.h                   |   78 ++
+ arch/nds32/include/asm/io.h                        |   25 +
+ arch/nds32/include/asm/irqflags.h                  |   49 +
+ arch/nds32/include/asm/l2_cache.h                  |  155 ++++
+ arch/nds32/include/asm/linkage.h                   |   24 +
+ arch/nds32/include/asm/memory.h                    |  118 +++
+ arch/nds32/include/asm/mmu.h                       |   25 +
+ arch/nds32/include/asm/mmu_context.h               |   81 ++
+ arch/nds32/include/asm/module.h                    |   24 +
+ arch/nds32/include/asm/nds32.h                     |   96 ++
+ arch/nds32/include/asm/page.h                      |   78 ++
+ arch/nds32/include/asm/pgalloc.h                   |  109 +++
+ arch/nds32/include/asm/pgtable.h                   |  426 +++++++++
+ arch/nds32/include/asm/proc-fns.h                  |   57 ++
+ arch/nds32/include/asm/processor.h                 |  116 +++
+ arch/nds32/include/asm/ptrace.h                    |   79 ++
+ arch/nds32/include/asm/shmparam.h                  |   32 +
+ arch/nds32/include/asm/spinlock.h                  |  184 ++++
+ arch/nds32/include/asm/string.h                    |   30 +
+ arch/nds32/include/asm/swab.h                      |   48 +
+ arch/nds32/include/asm/syscall.h                   |  203 ++++
+ arch/nds32/include/asm/syscalls.h                  |   27 +
+ arch/nds32/include/asm/thread_info.h               |   91 ++
+ arch/nds32/include/asm/tlb.h                       |   41 +
+ arch/nds32/include/asm/tlbflush.h                  |   60 ++
+ arch/nds32/include/asm/uaccess.h                   |  296 ++++++
+ arch/nds32/include/asm/unistd.h                    |   19 +
+ arch/nds32/include/asm/vdso.h                      |   35 +
+ arch/nds32/include/asm/vdso_datapage.h             |   51 +
+ arch/nds32/include/uapi/asm/Kbuild                 |   27 +
+ arch/nds32/include/uapi/asm/auxvec.h               |   25 +
+ arch/nds32/include/uapi/asm/byteorder.h            |   26 +
+ arch/nds32/include/uapi/asm/cachectl.h             |   19 +
+ arch/nds32/include/uapi/asm/param.h                |   24 +
+ arch/nds32/include/uapi/asm/ptrace.h               |   42 +
+ arch/nds32/include/uapi/asm/sigcontext.h           |   73 ++
+ arch/nds32/include/uapi/asm/signal.h               |   23 +
+ arch/nds32/include/uapi/asm/unistd.h               |   32 +
+ arch/nds32/kernel/Makefile                         |   23 +
+ arch/nds32/kernel/asm-offsets.c                    |   41 +
+ arch/nds32/kernel/atl2c.c                          |   77 ++
+ arch/nds32/kernel/cacheinfo.c                      |   62 ++
+ arch/nds32/kernel/devtree.c                        |   45 +
+ arch/nds32/kernel/dma.c                            |  472 ++++++++++
+ arch/nds32/kernel/ex-entry.S                       |  170 ++++
+ arch/nds32/kernel/ex-exit.S                        |  206 +++++
+ arch/nds32/kernel/ex-scall.S                       |  145 +++
+ arch/nds32/kernel/head.S                           |  198 ++++
+ arch/nds32/kernel/irq.c                            |   22 +
+ arch/nds32/kernel/module.c                         |  299 ++++++
+ arch/nds32/kernel/nds32_ksyms.c                    |   44 +
+ arch/nds32/kernel/process.c                        |  217 +++++
+ arch/nds32/kernel/ptrace.c                         |  325 +++++++
+ arch/nds32/kernel/setup.c                          |  407 ++++++++
+ arch/nds32/kernel/signal.c                         |  354 +++++++
+ arch/nds32/kernel/stacktrace.c                     |   60 ++
+ arch/nds32/kernel/sys_nds32.c                      |   74 ++
+ arch/nds32/kernel/syscall_table.c                  |   28 +
+ arch/nds32/kernel/time.c                           |   22 +
+ arch/nds32/kernel/traps.c                          |  441 +++++++++
+ arch/nds32/kernel/vdso.c                           |  245 +++++
+ arch/nds32/kernel/vdso/Makefile                    |   82 ++
+ arch/nds32/kernel/vdso/datapage.S                  |   34 +
+ arch/nds32/kernel/vdso/gen_vdso_offsets.sh         |   15 +
+ arch/nds32/kernel/vdso/gettimeofday.c              |  266 ++++++
+ arch/nds32/kernel/vdso/note.S                      |   29 +
+ arch/nds32/kernel/vdso/sigreturn.S                 |   33 +
+ arch/nds32/kernel/vdso/vdso.S                      |   33 +
+ arch/nds32/kernel/vdso/vdso.lds.S                  |   87 ++
+ arch/nds32/kernel/vmlinux.lds.S                    |   70 ++
+ arch/nds32/lib/Makefile                            |    3 +
+ arch/nds32/lib/clear_user.S                        |   55 ++
+ arch/nds32/lib/copy_from_user.S                    |   58 ++
+ arch/nds32/lib/copy_page.S                         |   50 +
+ arch/nds32/lib/copy_template.S                     |   83 ++
+ arch/nds32/lib/copy_to_user.S                      |   58 ++
+ arch/nds32/lib/memcpy.S                            |   43 +
+ arch/nds32/lib/memmove.S                           |   83 ++
+ arch/nds32/lib/memset.S                            |   46 +
+ arch/nds32/lib/memzero.S                           |   31 +
+ arch/nds32/mm/Makefile                             |    7 +
+ arch/nds32/mm/alignment.c                          |  622 +++++++++++++
+ arch/nds32/mm/cacheflush.c                         |  331 +++++++
+ arch/nds32/mm/extable.c                            |   29 +
+ arch/nds32/mm/fault.c                              |  420 +++++++++
+ arch/nds32/mm/highmem.c                            |   92 ++
+ arch/nds32/mm/init.c                               |  318 +++++++
+ arch/nds32/mm/ioremap.c                            |   75 ++
+ arch/nds32/mm/mm-nds32.c                           |  103 +++
+ arch/nds32/mm/mmap.c                               |   86 ++
+ arch/nds32/mm/proc.c                               |  601 ++++++++++++
+ arch/nds32/mm/tlb.c                                |   63 ++
+ drivers/clocksource/Kconfig                        |    6 +
+ drivers/clocksource/Makefile                       |    1 +
+ drivers/clocksource/timer-atcpit100.c              |  247 +++++
+ drivers/irqchip/Makefile                           |    1 +
+ drivers/irqchip/irq-ativic32.c                     |  119 +++
+ drivers/net/ethernet/faraday/Kconfig               |    6 +-
+ drivers/tty/serial/earlycon.c                      |    3 +-
+ include/asm-generic/io.h                           |   18 +-
+ 124 files changed, 13508 insertions(+), 13 deletions(-)
+ create mode 100644 Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
+ create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
+ create mode 100644 Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
+ create mode 100644 arch/nds32/Kconfig
+ create mode 100644 arch/nds32/Kconfig.cpu
+ create mode 100644 arch/nds32/Makefile
+ create mode 100644 arch/nds32/boot/Makefile
+ create mode 100644 arch/nds32/boot/dts/Makefile
+ create mode 100644 arch/nds32/boot/dts/ae3xx.dts
+ create mode 100644 arch/nds32/boot/dts/ag101p.dts
+ create mode 100644 arch/nds32/configs/defconfig
+ create mode 100644 arch/nds32/include/asm/Kbuild
+ create mode 100644 arch/nds32/include/asm/assembler.h
+ create mode 100644 arch/nds32/include/asm/bitfield.h
+ create mode 100644 arch/nds32/include/asm/cache.h
+ create mode 100644 arch/nds32/include/asm/cache_info.h
+ create mode 100644 arch/nds32/include/asm/cacheflush.h
+ create mode 100644 arch/nds32/include/asm/current.h
+ create mode 100644 arch/nds32/include/asm/delay.h
+ create mode 100644 arch/nds32/include/asm/dma-mapping.h
+ create mode 100644 arch/nds32/include/asm/elf.h
+ create mode 100644 arch/nds32/include/asm/fixmap.h
+ create mode 100644 arch/nds32/include/asm/futex.h
+ create mode 100644 arch/nds32/include/asm/highmem.h
+ create mode 100644 arch/nds32/include/asm/io.h
+ create mode 100644 arch/nds32/include/asm/irqflags.h
+ create mode 100644 arch/nds32/include/asm/l2_cache.h
+ create mode 100644 arch/nds32/include/asm/linkage.h
+ create mode 100644 arch/nds32/include/asm/memory.h
+ create mode 100644 arch/nds32/include/asm/mmu.h
+ create mode 100644 arch/nds32/include/asm/mmu_context.h
+ create mode 100644 arch/nds32/include/asm/module.h
+ create mode 100644 arch/nds32/include/asm/nds32.h
+ create mode 100644 arch/nds32/include/asm/page.h
+ create mode 100644 arch/nds32/include/asm/pgalloc.h
+ create mode 100644 arch/nds32/include/asm/pgtable.h
+ create mode 100644 arch/nds32/include/asm/proc-fns.h
+ create mode 100644 arch/nds32/include/asm/processor.h
+ create mode 100644 arch/nds32/include/asm/ptrace.h
+ create mode 100644 arch/nds32/include/asm/shmparam.h
+ create mode 100644 arch/nds32/include/asm/spinlock.h
+ create mode 100644 arch/nds32/include/asm/string.h
+ create mode 100644 arch/nds32/include/asm/swab.h
+ create mode 100644 arch/nds32/include/asm/syscall.h
+ create mode 100644 arch/nds32/include/asm/syscalls.h
+ create mode 100644 arch/nds32/include/asm/thread_info.h
+ create mode 100644 arch/nds32/include/asm/tlb.h
+ create mode 100644 arch/nds32/include/asm/tlbflush.h
+ create mode 100644 arch/nds32/include/asm/uaccess.h
+ create mode 100644 arch/nds32/include/asm/unistd.h
+ create mode 100644 arch/nds32/include/asm/vdso.h
+ create mode 100644 arch/nds32/include/asm/vdso_datapage.h
+ create mode 100644 arch/nds32/include/uapi/asm/Kbuild
+ create mode 100644 arch/nds32/include/uapi/asm/auxvec.h
+ create mode 100644 arch/nds32/include/uapi/asm/byteorder.h
+ create mode 100644 arch/nds32/include/uapi/asm/cachectl.h
+ create mode 100644 arch/nds32/include/uapi/asm/param.h
+ create mode 100644 arch/nds32/include/uapi/asm/ptrace.h
+ create mode 100644 arch/nds32/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/nds32/include/uapi/asm/signal.h
+ create mode 100644 arch/nds32/include/uapi/asm/unistd.h
+ create mode 100644 arch/nds32/kernel/Makefile
+ create mode 100644 arch/nds32/kernel/asm-offsets.c
+ create mode 100644 arch/nds32/kernel/atl2c.c
+ create mode 100644 arch/nds32/kernel/cacheinfo.c
+ create mode 100644 arch/nds32/kernel/devtree.c
+ create mode 100644 arch/nds32/kernel/dma.c
+ create mode 100644 arch/nds32/kernel/ex-entry.S
+ create mode 100644 arch/nds32/kernel/ex-exit.S
+ create mode 100644 arch/nds32/kernel/ex-scall.S
  create mode 100644 arch/nds32/kernel/head.S
+ create mode 100644 arch/nds32/kernel/irq.c
+ create mode 100644 arch/nds32/kernel/module.c
+ create mode 100644 arch/nds32/kernel/nds32_ksyms.c
+ create mode 100644 arch/nds32/kernel/process.c
+ create mode 100644 arch/nds32/kernel/ptrace.c
  create mode 100644 arch/nds32/kernel/setup.c
+ create mode 100644 arch/nds32/kernel/signal.c
+ create mode 100644 arch/nds32/kernel/stacktrace.c
+ create mode 100644 arch/nds32/kernel/sys_nds32.c
+ create mode 100644 arch/nds32/kernel/syscall_table.c
+ create mode 100644 arch/nds32/kernel/time.c
+ create mode 100644 arch/nds32/kernel/traps.c
+ create mode 100644 arch/nds32/kernel/vdso.c
+ create mode 100644 arch/nds32/kernel/vdso/Makefile
+ create mode 100644 arch/nds32/kernel/vdso/datapage.S
+ create mode 100755 arch/nds32/kernel/vdso/gen_vdso_offsets.sh
+ create mode 100644 arch/nds32/kernel/vdso/gettimeofday.c
+ create mode 100644 arch/nds32/kernel/vdso/note.S
+ create mode 100644 arch/nds32/kernel/vdso/sigreturn.S
+ create mode 100644 arch/nds32/kernel/vdso/vdso.S
+ create mode 100644 arch/nds32/kernel/vdso/vdso.lds.S
+ create mode 100644 arch/nds32/kernel/vmlinux.lds.S
+ create mode 100644 arch/nds32/lib/Makefile
+ create mode 100644 arch/nds32/lib/clear_user.S
+ create mode 100644 arch/nds32/lib/copy_from_user.S
+ create mode 100644 arch/nds32/lib/copy_page.S
+ create mode 100644 arch/nds32/lib/copy_template.S
+ create mode 100644 arch/nds32/lib/copy_to_user.S
+ create mode 100644 arch/nds32/lib/memcpy.S
+ create mode 100644 arch/nds32/lib/memmove.S
+ create mode 100644 arch/nds32/lib/memset.S
+ create mode 100644 arch/nds32/lib/memzero.S
+ create mode 100644 arch/nds32/mm/Makefile
+ create mode 100644 arch/nds32/mm/alignment.c
+ create mode 100644 arch/nds32/mm/cacheflush.c
+ create mode 100644 arch/nds32/mm/extable.c
+ create mode 100644 arch/nds32/mm/fault.c
+ create mode 100644 arch/nds32/mm/highmem.c
+ create mode 100644 arch/nds32/mm/init.c
+ create mode 100644 arch/nds32/mm/ioremap.c
+ create mode 100644 arch/nds32/mm/mm-nds32.c
+ create mode 100644 arch/nds32/mm/mmap.c
+ create mode 100644 arch/nds32/mm/proc.c
+ create mode 100644 arch/nds32/mm/tlb.c
+ create mode 100644 drivers/clocksource/timer-atcpit100.c
+ create mode 100644 drivers/irqchip/irq-ativic32.c
 
-diff --git a/arch/nds32/kernel/head.S b/arch/nds32/kernel/head.S
-new file mode 100644
-index 0000000..bdf6a1a
---- /dev/null
-+++ b/arch/nds32/kernel/head.S
-@@ -0,0 +1,198 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/linkage.h>
-+#include <linux/init.h>
-+#include <asm/ptrace.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/l2_cache.h>
-+#include <asm/sizes.h>
-+#include <asm/thread_info.h>
-+
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+#define OF_DT_MAGIC 0xd00dfeed
-+#else
-+#define OF_DT_MAGIC 0xedfe0dd0
-+#endif
-+
-+	.globl  swapper_pg_dir
-+	.equ    swapper_pg_dir, TEXTADDR - 0x4000
-+
-+/*
-+ * Kernel startup entry point.
-+ */
-+	.section ".head.text", "ax"
-+	.type   _stext, %function
-+ENTRY(_stext)
-+	setgie.d                            ! Disable interrupt
-+	isb
-+/*
-+ * Disable I/D-cache and enable it at a proper time
-+ */
-+	mfsr    $r0, $mr8
-+	li      $r1, #~(CACHE_CTL_mskIC_EN|CACHE_CTL_mskDC_EN)
-+	and     $r0, $r0, $r1
-+	mtsr    $r0, $mr8
-+
-+/*
-+ * Process device tree blob
-+ */
-+	andi 	$r0,$r2,#0x3
-+	li	$r10, 0
-+	bne     $r0, $r10, _nodtb
-+	lwi	$r0, [$r2]
-+	li	$r1, OF_DT_MAGIC
-+	bne     $r0, $r1, _nodtb
-+	move	$r10, $r2
-+_nodtb:
-+
-+/*
-+ * Create a temporary mapping area for booting, before start_kernel
-+ */
-+	sethi   $r4, hi20(swapper_pg_dir)
-+	li      $p0, (PAGE_OFFSET - PHYS_OFFSET)
-+	sub     $r4, $r4, $p0
-+	tlbop   FlushAll            ! invalidate TLB\n"
-+	isb
-+	mtsr    $r4, $L1_PPTB       ! load page table pointer\n"
-+
-+/* set NTC0 cacheable/writeback, mutliple page size in use */
-+	mfsr    $r3, $MMU_CTL
-+	li      $r0, #~MMU_CTL_mskNTC0
-+	and     $r3, $r3, $r0
-+#ifdef CONFIG_ANDES_PAGE_SIZE_4KB
-+	ori     $r3, $r3, #(MMU_CTL_mskMPZIU|(MMU_CTL_CACHEABLE_WB << MMU_CTL_offNTC0))
-+#else
-+	ori     $r3, $r3, #(MMU_CTL_mskMPZIU|(MMU_CTL_CACHEABLE_WB << MMU_CTL_offNTC0)|MMU_CTL_mskD)
-+#endif
-+	mtsr    $r3, $MMU_CTL
-+	isb
-+
-+/* set page size and size of kernel image */
-+        mfsr    $r0, $MMU_CFG
-+        srli    $r3, $r0, MMU_CFG_offfEPSZ
-+        zeb     $r3, $r3
-+        bnez    $r3, _extra_page_size_support
-+#ifdef CONFIG_ANDES_PAGE_SIZE_4KB
-+        li      $r5, #SZ_4K                 ! Use 4KB page size
-+#else
-+        li      $r5, #SZ_8K                 ! Use 8KB page size
-+        li      $r3, #1
-+#endif
-+        mtsr    $r3, $TLB_MISC
-+        b       _image_size_check
-+
-+_extra_page_size_support:                    ! Use epzs pages size
-+        clz     $r6, $r3
-+        subri   $r2, $r6, #31
-+        li      $r3, #1
-+        sll     $r3, $r3, $r2
-+        /* MMU_CFG.EPSZ value -> meaning */
-+        mul     $r5, $r3, $r3
-+        slli    $r5, $r5, #14
-+        /* MMU_CFG.EPSZ  -> TLB_MISC.ACC_PSZ */
-+        addi    $r3, $r2, #0x2
-+        mtsr    $r3, $TLB_MISC
-+
-+_image_size_check:
-+        /* calculate the image maximum size accepted by TLB config */
-+        andi    $r6, $r0, MMU_CFG_mskTBW
-+        andi    $r0, $r0, MMU_CFG_mskTBS
-+        srli    $r6, $r6, MMU_CFG_offTBW
-+        srli    $r0, $r0, MMU_CFG_offTBS
-+        /*
-+         * we just map the kernel to the maximum way - 1 of tlb
-+         * reserver one way for UART VA mapping
-+         * it will cause page fault if UART mapping cover the kernel mapping
-+         *
-+         * direct mapping is not supported now.
-+         */
-+        li      $r2, 't'
-+        beqz    $r6, __error                 ! MMU_CFG.TBW = 0 is direct mappin
-+        addi    $r0, $r0, #0x2               ! MMU_CFG.TBS value -> meaning
-+        sll     $r0, $r6, $r0                ! entries = k-way * n-set
-+        mul     $r6, $r0, $r5                ! max size = entries * page size
-+        /* check kernel image size */
-+        la      $r3, (_end - PAGE_OFFSET)
-+        li      $r2, 's'
-+        bgt     $r3, $r6, __error
-+
-+	li      $r2, #(PHYS_OFFSET + TLB_DATA_kernel_text_attr)
-+        li      $r3, PAGE_OFFSET
-+        add     $r6, $r6, $r3
-+
-+_tlb:
-+	mtsr    $r3, $TLB_VPN
-+	dsb
-+	tlbop   $r2, RWR
-+	isb
-+	add     $r3, $r3, $r5
-+	add     $r2, $r2, $r5
-+	bgt     $r6, $r3, _tlb
-+	mfsr    $r3, $TLB_MISC      ! setup access page size
-+	li      $r2, #~0xf
-+	and     $r3, $r3, $r2
-+#ifdef CONFIG_ANDES_PAGE_SIZE_8KB
-+	ori    $r3, $r3, #0x1
-+#endif
-+	mtsr    $r3, $TLB_MISC
-+
-+	mfsr    $r0, $MISC_CTL      ! Enable BTB and RTP and shadow sp
-+	ori     $r0, $r0, #MISC_init
-+	mtsr    $r0, $MISC_CTL
-+
-+	mfsr    $p1, $PSW
-+	li      $r15, #~PSW_clr             ! clear WBNA|DME|IME|DT|IT|POM|INTL|GIE
-+	and     $p1, $p1, $r15
-+	ori     $p1, $p1, #PSW_init
-+	mtsr    $p1, $IPSW                  ! when iret, it will automatically enable MMU
-+	la      $lp, __mmap_switched
-+	mtsr    $lp, $IPC
-+	iret
-+	nop
-+
-+	.type   __switch_data, %object
-+__switch_data:
-+	.long   __bss_start                 ! $r6
-+	.long   _end                        ! $r7
-+	.long	__atags_pointer 	    ! $atag_pointer
-+	.long   init_task                   ! $r9, move to $r25
-+	.long   init_thread_union + THREAD_SIZE    ! $sp
-+
-+
-+/*
-+ * The following fragment of code is executed with the MMU on in MMU mode,
-+ * and uses absolute addresses; this is not position independent.
-+ */
-+	.align
-+	.type   __mmap_switched, %function
-+__mmap_switched:
-+	la  $r3, __switch_data
-+	lmw.bim $r6, [$r3], $r9, #0b0001
-+	move	$r25, $r9
-+	move    $fp, #0             ! Clear  BSS (and zero $fp)
-+	beq $r7, $r6, _RRT
-+1:	swi.bi  $fp, [$r6], #4
-+	bne $r7, $r6, 1b
-+	swi	$r10, [$r8]
-+
-+_RRT:
-+	b   start_kernel
-+
-+__error:
-+	b   __error
-diff --git a/arch/nds32/kernel/setup.c b/arch/nds32/kernel/setup.c
-new file mode 100644
-index 0000000..6253cf2
---- /dev/null
-+++ b/arch/nds32/kernel/setup.c
-@@ -0,0 +1,407 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/cpu.h>
-+#include <linux/bootmem.h>
-+#include <linux/seq_file.h>
-+#include <linux/memblock.h>
-+#include <linux/console.h>
-+#include <linux/screen_info.h>
-+#include <linux/delay.h>
-+#include <linux/dma-mapping.h>
-+#include <linux/of_fdt.h>
-+#include <linux/of_platform.h>
-+#include <asm/setup.h>
-+#include <asm/sections.h>
-+#include <asm/proc-fns.h>
-+#include <asm/cache_info.h>
-+#include <asm/elf.h>
-+#include <nds32_intrinsic.h>
-+
-+#define HWCAP_MFUSR_PC		0x000001
-+#define HWCAP_EXT		0x000002
-+#define HWCAP_EXT2		0x000004
-+#define HWCAP_FPU		0x000008
-+#define HWCAP_AUDIO		0x000010
-+#define HWCAP_BASE16		0x000020
-+#define HWCAP_STRING		0x000040
-+#define HWCAP_REDUCED_REGS	0x000080
-+#define HWCAP_VIDEO		0x000100
-+#define HWCAP_ENCRYPT		0x000200
-+#define HWCAP_EDM		0x000400
-+#define HWCAP_LMDMA		0x000800
-+#define HWCAP_PFM		0x001000
-+#define HWCAP_HSMP		0x002000
-+#define HWCAP_TRACE		0x004000
-+#define HWCAP_DIV		0x008000
-+#define HWCAP_MAC		0x010000
-+#define HWCAP_L2C		0x020000
-+#define HWCAP_FPU_DP		0x040000
-+#define HWCAP_V2		0x080000
-+#define HWCAP_DX_REGS		0x100000
-+
-+extern struct mm_struct init_mm;
-+unsigned long cpu_id, cpu_rev, cpu_cfgid;
-+char cpu_series;
-+char *endianness = NULL;
-+
-+unsigned int __atags_pointer __initdata;
-+unsigned int elf_hwcap;
-+EXPORT_SYMBOL(elf_hwcap);
-+
-+extern void __init early_init_devtree(void *params);
-+extern void __init early_trap_init(void);
-+/*
-+ * The following string table, must sync with HWCAP_xx bitmask,
-+ * which is defined in <asm/procinfo.h>
-+ */
-+static const char *hwcap_str[] = {
-+	"mfusr_pc",
-+	"perf1",
-+	"perf2",
-+	"fpu",
-+	"audio",
-+	"16b",
-+	"string",
-+	"reduced_regs",
-+	"video",
-+	"encrypt",
-+	"edm",
-+	"lmdma",
-+	"pfm",
-+	"hsmp",
-+	"trace",
-+	"div",
-+	"mac",
-+	"l2c",
-+	"dx_regs",
-+	"v2",
-+	NULL,
-+};
-+
-+#ifdef CONFIG_CPU_DCACHE_WRITETHROUGH
-+#define WRITE_METHOD "write through"
-+#else
-+#define WRITE_METHOD "write back"
-+#endif
-+
-+struct cache_info L1_cache_info[2];
-+static void __init dump_cpu_info(int cpu)
-+{
-+	int i, p = 0;
-+	char str[sizeof(hwcap_str) + 16];
-+
-+	for (i = 0; hwcap_str[i]; i++) {
-+		if (elf_hwcap & (1 << i)) {
-+			sprintf(str + p, "%s ", hwcap_str[i]);
-+			p += strlen(hwcap_str[i]) + 1;
-+		}
-+	}
-+
-+	pr_info("CPU%d Featuretures: %s\n", cpu, str);
-+
-+	L1_cache_info[ICACHE].ways = CACHE_WAY(ICACHE);
-+	L1_cache_info[ICACHE].line_size = CACHE_LINE_SIZE(ICACHE);
-+	L1_cache_info[ICACHE].sets = CACHE_SET(ICACHE);
-+	L1_cache_info[ICACHE].size =
-+	    L1_cache_info[ICACHE].ways * L1_cache_info[ICACHE].line_size *
-+	    L1_cache_info[ICACHE].sets / 1024;
-+	pr_info("L1I:%dKB/%dS/%dW/%dB\n", L1_cache_info[ICACHE].size,
-+		L1_cache_info[ICACHE].sets, L1_cache_info[ICACHE].ways,
-+		L1_cache_info[ICACHE].line_size);
-+	L1_cache_info[DCACHE].ways = CACHE_WAY(DCACHE);
-+	L1_cache_info[DCACHE].line_size = CACHE_LINE_SIZE(DCACHE);
-+	L1_cache_info[DCACHE].sets = CACHE_SET(DCACHE);
-+	L1_cache_info[DCACHE].size =
-+	    L1_cache_info[DCACHE].ways * L1_cache_info[DCACHE].line_size *
-+	    L1_cache_info[DCACHE].sets / 1024;
-+	pr_info("L1D:%dKB/%dS/%dW/%dB\n", L1_cache_info[DCACHE].size,
-+		L1_cache_info[DCACHE].sets, L1_cache_info[DCACHE].ways,
-+		L1_cache_info[DCACHE].line_size);
-+	pr_info("L1 D-Cache is %s\n", WRITE_METHOD);
-+	if (L1_cache_info[DCACHE].size != L1_CACHE_BYTES)
-+		pr_crit
-+		    ("The cache line size(%d) of this processor is not the same as L1_CACHE_BYTES(%d).\n",
-+		     L1_cache_info[DCACHE].size, L1_CACHE_BYTES);
-+#ifndef CONFIG_CPU_CACHE_NONALIASING
-+	{
-+		int aliasing_num;
-+		aliasing_num =
-+		    L1_cache_info[ICACHE].size * 1024 / PAGE_SIZE /
-+		    L1_cache_info[ICACHE].ways;
-+		L1_cache_info[ICACHE].aliasing_num = aliasing_num;
-+		L1_cache_info[ICACHE].aliasing_mask =
-+		    (aliasing_num - 1) << PAGE_SHIFT;
-+		aliasing_num =
-+		    L1_cache_info[DCACHE].size * 1024 / PAGE_SIZE /
-+		    L1_cache_info[DCACHE].ways;
-+		L1_cache_info[DCACHE].aliasing_num = aliasing_num;
-+		L1_cache_info[DCACHE].aliasing_mask =
-+		    (aliasing_num - 1) << PAGE_SHIFT;
-+	}
-+#endif
-+}
-+
-+static void __init setup_cpuinfo(void)
-+{
-+	unsigned long tmp = 0, cpu_name;
-+
-+	cpu_dcache_inval_all();
-+	cpu_icache_inval_all();
-+	__nds32__isb();
-+
-+	cpu_id = (__nds32__mfsr(NDS32_SR_CPU_VER) & CPU_VER_mskCPUID) >> CPU_VER_offCPUID;
-+	cpu_name = ((cpu_id) & 0xf0) >> 4;
-+	cpu_series = cpu_name ? cpu_name - 10 + 'A' : 'N';
-+	cpu_id = cpu_id & 0xf;
-+	cpu_rev = (__nds32__mfsr(NDS32_SR_CPU_VER) & CPU_VER_mskREV) >> CPU_VER_offREV;
-+	cpu_cfgid = (__nds32__mfsr(NDS32_SR_CPU_VER) & CPU_VER_mskCFGID) >> CPU_VER_offCFGID;
-+
-+	pr_info("CPU:%c%ld, CPU_VER 0x%08x(id %lu, rev %lu, cfg %lu)\n",
-+		cpu_series, cpu_id, __nds32__mfsr(NDS32_SR_CPU_VER), cpu_id, cpu_rev, cpu_cfgid);
-+
-+	elf_hwcap |= HWCAP_MFUSR_PC;
-+
-+	if (((__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskBASEV) >> MSC_CFG_offBASEV) == 0) {
-+		if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskDIV)
-+			elf_hwcap |= HWCAP_DIV;
-+
-+		if ((__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskMAC)
-+		    || (cpu_id == 12 && cpu_rev < 4))
-+			elf_hwcap |= HWCAP_MAC;
-+	} else {
-+		elf_hwcap |= HWCAP_V2;
-+		elf_hwcap |= HWCAP_DIV;
-+		elf_hwcap |= HWCAP_MAC;
-+	}
-+
-+	if (cpu_cfgid & 0x0001)
-+		elf_hwcap |= HWCAP_EXT;
-+
-+	if (cpu_cfgid & 0x0002)
-+		elf_hwcap |= HWCAP_BASE16;
-+
-+	if (cpu_cfgid & 0x0004)
-+		elf_hwcap |= HWCAP_EXT2;
-+
-+	if (cpu_cfgid & 0x0008)
-+		elf_hwcap |= HWCAP_FPU;
-+
-+	if (cpu_cfgid & 0x0010)
-+		elf_hwcap |= HWCAP_STRING;
-+
-+	if (__nds32__mfsr(NDS32_SR_MMU_CFG) & MMU_CFG_mskDE)
-+		endianness = "MSB";
-+	else
-+		endianness = "LSB";
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskEDM)
-+		elf_hwcap |= HWCAP_EDM;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskLMDMA)
-+		elf_hwcap |= HWCAP_LMDMA;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskPFM)
-+		elf_hwcap |= HWCAP_PFM;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskHSMP)
-+		elf_hwcap |= HWCAP_HSMP;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskTRACE)
-+		elf_hwcap |= HWCAP_TRACE;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskAUDIO)
-+		elf_hwcap |= HWCAP_AUDIO;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskL2C)
-+		elf_hwcap |= HWCAP_L2C;
-+
-+	tmp = __nds32__mfsr(NDS32_SR_CACHE_CTL);
-+	if (!IS_ENABLED(CONFIG_CPU_DCACHE_DISABLE))
-+		tmp |= CACHE_CTL_mskDC_EN;
-+
-+	if (!IS_ENABLED(CONFIG_CPU_ICACHE_DISABLE))
-+		tmp |= CACHE_CTL_mskIC_EN;
-+	__nds32__mtsr_isb(tmp, NDS32_SR_CACHE_CTL);
-+
-+	dump_cpu_info(smp_processor_id());
-+}
-+
-+static unsigned long __init setup_memory(void)
-+{
-+	unsigned long bootmap_size;
-+	unsigned long ram_start_pfn;
-+	unsigned long free_ram_start_pfn;
-+	phys_addr_t memory_start, memory_end;
-+	struct memblock_region *region;
-+
-+	memory_end = memory_start = 0;
-+
-+	/* Find main memory where is the kernel */
-+	for_each_memblock(memory, region) {
-+		memory_start = region->base;
-+		memory_end = region->base + region->size;
-+		pr_info("%s: Memory: 0x%x-0x%x\n", __func__,
-+			memory_start, memory_end);
-+	}
-+
-+	if (!memory_end) {
-+		panic("No memory!");
-+	}
-+
-+	ram_start_pfn = PFN_UP(memblock_start_of_DRAM());
-+	/* free_ram_start_pfn is first page after kernel */
-+	free_ram_start_pfn = PFN_UP(__pa(&_end));
-+	max_pfn = PFN_DOWN(memblock_end_of_DRAM());
-+	/* it could update max_pfn */
-+	if (max_pfn - ram_start_pfn <= MAXMEM_PFN)
-+		max_low_pfn = max_pfn;
-+	else {
-+		max_low_pfn = MAXMEM_PFN + ram_start_pfn;
-+		if (!IS_ENABLED(CONFIG_HIGHMEM))
-+			max_pfn = MAXMEM_PFN + ram_start_pfn;
-+	}
-+	/* high_memory is related with VMALLOC */
-+	high_memory = (void *)__va(max_low_pfn * PAGE_SIZE);
-+	min_low_pfn = free_ram_start_pfn;
-+
-+	/*
-+	 * initialize the boot-time allocator (with low memory only).
-+	 *
-+	 * This makes the memory from the end of the kernel to the end of
-+	 * RAM usable.
-+	 * init_bootmem sets the global values min_low_pfn, max_low_pfn.
-+	 */
-+	bootmap_size = init_bootmem_node(NODE_DATA(0), free_ram_start_pfn,
-+					 ram_start_pfn, max_low_pfn);
-+	free_bootmem(PFN_PHYS(free_ram_start_pfn),
-+		     (max_low_pfn - free_ram_start_pfn) << PAGE_SHIFT);
-+	reserve_bootmem(PFN_PHYS(free_ram_start_pfn), bootmap_size,
-+			BOOTMEM_DEFAULT);
-+
-+	for_each_memblock(reserved, region) {
-+		if (region->size != 0) {
-+			pr_info("Reserved - 0x%08x-0x%08x\n",
-+				(u32) region->base, (u32) region->size);
-+			reserve_bootmem(region->base, region->size,
-+					BOOTMEM_DEFAULT);
-+		}
-+	}
-+	return max_low_pfn;
-+}
-+
-+void __init setup_arch(char **cmdline_p)
-+{
-+	early_init_devtree(__atags_pointer ?
-+			   phys_to_virt(__atags_pointer) : __dtb_start);
-+
-+	setup_cpuinfo();
-+
-+	init_mm.start_code = (unsigned long)&_stext;
-+	init_mm.end_code = (unsigned long)&_etext;
-+	init_mm.end_data = (unsigned long)&_edata;
-+	init_mm.brk = (unsigned long)&_end;
-+
-+	/* setup bootmem allocator */
-+	setup_memory();
-+
-+	/* paging_init() sets up the MMU and marks all pages as reserved */
-+	paging_init();
-+
-+	/* use generic way to parse */
-+	parse_early_param();
-+
-+	unflatten_and_copy_device_tree();
-+
-+	if(IS_ENABLED(CONFIG_VT)) {
-+		if(IS_ENABLED(CONFIG_VGA_CONSOLE))
-+			conswitchp = &vga_con;
-+		else if(IS_ENABLED(CONFIG_DUMMY_CONSOLE))
-+			conswitchp = &dummy_con;
-+	}
-+
-+	*cmdline_p = boot_command_line;
-+	early_trap_init();
-+}
-+
-+void calibrate_delay(void)
-+{
-+	const int *val;
-+	struct device_node *cpu = NULL;
-+	cpu = of_find_compatible_node(NULL, NULL, "andestech,n13");
-+	val = of_get_property(cpu, "clock-frequency", NULL);
-+	if (!val)
-+		panic("no cpu 'clock-frequency' parameter in device tree");
-+	loops_per_jiffy = *val / HZ;
-+	pr_cont("%lu.%02lu BogoMIPS (lpj=%lu)\n",
-+		loops_per_jiffy / (500000 / HZ),
-+		(loops_per_jiffy / (5000 / HZ)) % 100, loops_per_jiffy);
-+}
-+
-+static int c_show(struct seq_file *m, void *v)
-+{
-+	int i;
-+
-+	seq_printf(m, "Processor\t: %c%ld (id %lu, rev %lu, cfg %lu)\n",
-+		   cpu_series, cpu_id, cpu_id, cpu_rev, cpu_cfgid);
-+
-+	seq_printf(m, "L1I\t\t: %luKB/%luS/%luW/%luB\n",
-+		   CACHE_SET(ICACHE) * CACHE_WAY(ICACHE) *
-+		   CACHE_LINE_SIZE(ICACHE) / 1024, CACHE_SET(ICACHE),
-+		   CACHE_WAY(ICACHE), CACHE_LINE_SIZE(ICACHE));
-+
-+	seq_printf(m, "L1D\t\t: %luKB/%luS/%luW/%luB\n",
-+		   CACHE_SET(DCACHE) * CACHE_WAY(DCACHE) *
-+		   CACHE_LINE_SIZE(DCACHE) / 1024, CACHE_SET(DCACHE),
-+		   CACHE_WAY(DCACHE), CACHE_LINE_SIZE(DCACHE));
-+
-+	seq_printf(m, "BogoMIPS\t: %lu.%02lu\n",
-+		   loops_per_jiffy / (500000 / HZ),
-+		   (loops_per_jiffy / (5000 / HZ)) % 100);
-+
-+	/* dump out the processor features */
-+	seq_puts(m, "Features\t: ");
-+
-+	for (i = 0; hwcap_str[i]; i++)
-+		if (elf_hwcap & (1 << i))
-+			seq_printf(m, "%s ", hwcap_str[i]);
-+
-+	seq_puts(m, "\n\n");
-+
-+	return 0;
-+}
-+
-+static void *c_start(struct seq_file *m, loff_t * pos)
-+{
-+	return *pos < 1 ? (void *)1 : NULL;
-+}
-+
-+static void *c_next(struct seq_file *m, void *v, loff_t * pos)
-+{
-+	++*pos;
-+	return NULL;
-+}
-+
-+static void c_stop(struct seq_file *m, void *v)
-+{
-+}
-+
-+struct seq_operations cpuinfo_op = {
-+	.start = c_start,
-+	.next = c_next,
-+	.stop = c_stop,
-+	.show = c_show
-+};
 -- 
 1.7.9.5
