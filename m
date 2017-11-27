@@ -1,119 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:40070 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753068AbdK0Qik (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Nov 2017 11:38:40 -0500
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCHv2 02/12] arm64: add pointer authentication register bits
-Date: Mon, 27 Nov 2017 16:37:56 +0000
-Message-ID: <20171127163806.31435-3-mark.rutland@arm.com>
-In-Reply-To: <20171127163806.31435-1-mark.rutland@arm.com>
-References: <20171127163806.31435-1-mark.rutland@arm.com>
+Received: from mout.kundenserver.de ([217.72.192.75]:53173 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932086AbdK0RBs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 12:01:48 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 1/3] y2038: introduce struct __kernel_old_timeval
+Date: Mon, 27 Nov 2017 18:00:45 +0100
+Message-ID: <20171127170121.634826-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: arnd@arndb.de, catalin.marinas@arm.com, cdall@linaro.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, mark.rutland@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org
-Message-ID: <20171127163756.mIvLOqno7zg_ykdmxU0wGs61obAcMGQVPiavoS2G-To@z>
+To: John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: y2038@lists.linaro.org, libc-alpha@sourceware.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Albert ARIBAUD <albert.aribaud@3adev.fr>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, Al Viro <viro@zeniv.linux.org.uk>, Deepa Dinamani <deepa.kernel@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andreas Dilger <adilger@dilger.ca>
+Message-ID: <20171127170045.LL6LDsXUbSBUMhXFidyOC_dXsaGQ9w-x2dxS5xI7bd4@z>
 
-The ARMv8.3 pointer authentication extension adds:
+Dealing with 'struct timeval' users in the y2038 series is a bit tricky:
 
-* New fields in ID_AA64ISAR1 to report the presence of pointer
-  authentication functionality.
+We have two definitions of timeval that are visible to user space,
+one comes from glibc (or some other C library), the other comes from
+linux/time.h. The kernel copy is what we want to be used for a number of
+structures defined by the kernel itself, e.g. elf_prstatus (used it core
+dumps), sysinfo and rusage (used in system calls).  These generally tend
+to be used for passing time intervals rather than absolute (epoch-based)
+times, so they do not suffer from the y2038 overflow. Some of them
+could be changed to use 64-bit timestamps by creating new system calls,
+others like the core files cannot easily be changed.
 
-* New control bits in SCTLR_ELx to enable this functionality.
+An application using these interfaces likely also uses gettimeofday()
+or other interfaces that use absolute times, and pass 'struct timeval'
+pointers directly into kernel interfaces, so glibc must redefine their
+timeval based on a 64-bit time_t when they introduce their y2038-safe
+interfaces.
 
-* New system registers to hold the keys necessary for this
-  functionality.
+The only reasonable way forward I see is to remove the 'timeval'
+definion from the kernel's uapi headers, and change the interfaces that
+we do not want to (or cannot) duplicate for 64-bit times to use a new
+__kernel_old_timeval definition instead. This type should be avoided
+for all new interfaces (those can use 64-bit nanoseconds, or the 64-bit
+version of timespec instead), and should be used with great care when
+converting existing interfaces from timeval, to be sure they don't suffer
+from the y2038 overflow, and only with consensus for the particular user
+that using __kernel_old_timeval is better than moving to a 64-bit based
+interface. The structure name is intentionally chosen to not conflict
+with user space types, and to be ugly enough to discourage its use.
 
-* A new ESR_ELx.EC code used when the new instructions are affected by
-  configurable traps
+Note that ioctl based interfaces that pass a bare 'timeval' pointer
+cannot change to '__kernel_old_timeval' because the user space source
+code refers to 'timeval' instead, and we don't want to modify the user
+space sources if possible. However, any application that relies on a
+structure to contain an embedded 'timeval' (e.g. by passing a pointer
+to the member into a function call that expects a timeval pointer) is
+broken when that structure gets converted to __kernel_old_timeval. I
+don't see any way around that, and we have to rely on the compiler to
+produce a warning or compile failure that will alert users when they
+recompile their sources against a new libc.
 
-This patch adds the relevant definitions to <asm/sysreg.h> and
-<asm/esr.h> for these, to be used by subsequent patches.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Suzuki K Poulose <suzuki.poulose@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arm64/include/asm/esr.h    |  3 ++-
- arch/arm64/include/asm/sysreg.h | 30 ++++++++++++++++++++++++++++++
- 2 files changed, 32 insertions(+), 1 deletion(-)
+ include/linux/time32.h    |  1 +
+ include/uapi/linux/time.h | 12 ++++++++++++
+ kernel/time/time.c        | 12 ++++++++++++
+ 3 files changed, 25 insertions(+)
 
-diff --git a/arch/arm64/include/asm/esr.h b/arch/arm64/include/asm/esr.h
-index 014d7d8edcf9..5c628fa31cec 100644
---- a/arch/arm64/include/asm/esr.h
-+++ b/arch/arm64/include/asm/esr.h
-@@ -30,7 +30,8 @@
- #define ESR_ELx_EC_CP14_LS	(0x06)
- #define ESR_ELx_EC_FP_ASIMD	(0x07)
- #define ESR_ELx_EC_CP10_ID	(0x08)
--/* Unallocated EC: 0x09 - 0x0B */
-+#define ESR_ELx_EC_PAC		(0x09)
-+/* Unallocated EC: 0x0A - 0x0B */
- #define ESR_ELx_EC_CP14_64	(0x0C)
- /* Unallocated EC: 0x0d */
- #define ESR_ELx_EC_ILL		(0x0E)
-diff --git a/arch/arm64/include/asm/sysreg.h b/arch/arm64/include/asm/sysreg.h
-index 08cc88574659..a67cfedfa3af 100644
---- a/arch/arm64/include/asm/sysreg.h
-+++ b/arch/arm64/include/asm/sysreg.h
-@@ -170,6 +170,19 @@
- #define SYS_TTBR1_EL1			sys_reg(3, 0, 2, 0, 1)
- #define SYS_TCR_EL1			sys_reg(3, 0, 2, 0, 2)
+diff --git a/include/linux/time32.h b/include/linux/time32.h
+index 100411c979be..378c75d9a83c 100644
+--- a/include/linux/time32.h
++++ b/include/linux/time32.h
+@@ -205,5 +205,6 @@ static inline s64 timeval_to_ns(const struct timeval *tv)
+  * Returns the timeval representation of the nsec parameter.
+  */
+ extern struct timeval ns_to_timeval(const s64 nsec);
++extern struct __kernel_old_timeval ns_to_kernel_old_timeval(const s64 nsec);
  
-+#define SYS_APIAKEYLO_EL1		sys_reg(3, 0, 2, 1, 0)
-+#define SYS_APIAKEYHI_EL1		sys_reg(3, 0, 2, 1, 1)
-+#define SYS_APIBKEYLO_EL1		sys_reg(3, 0, 2, 1, 2)
-+#define SYS_APIBKEYHI_EL1		sys_reg(3, 0, 2, 1, 3)
+ #endif
+diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
+index 0ad4510884b0..30aa734135ad 100644
+--- a/include/uapi/linux/time.h
++++ b/include/uapi/linux/time.h
+@@ -50,6 +50,18 @@ struct __kernel_timespec {
+ #endif
+ 
+ /*
++ * legacy timeval structure, only embedded in structures that
++ * traditionally used 'timeval' to pass time intervals (not absolute
++ * times). Do not add new users. If user space fails to compile
++ * here, this is probably because it is not y2038 safe and needs to
++ * be changed to use another interface.
++ */
++struct __kernel_old_timeval {
++	__kernel_long_t tv_sec;			/* seconds */
++	__kernel_long_t tv_usec;		/* seconds */
++};
 +
-+#define SYS_APDAKEYLO_EL1		sys_reg(3, 0, 2, 2, 0)
-+#define SYS_APDAKEYHI_EL1		sys_reg(3, 0, 2, 2, 1)
-+#define SYS_APDBKEYLO_EL1		sys_reg(3, 0, 2, 2, 2)
-+#define SYS_APDBKEYHI_EL1		sys_reg(3, 0, 2, 2, 3)
++/*
+  * The IDs of the various system clocks (for POSIX.1b interval timers):
+  */
+ #define CLOCK_REALTIME			0
+diff --git a/kernel/time/time.c b/kernel/time/time.c
+index 518b56b17147..92002257f083 100644
+--- a/kernel/time/time.c
++++ b/kernel/time/time.c
+@@ -486,6 +486,18 @@ struct timeval ns_to_timeval(const s64 nsec)
+ }
+ EXPORT_SYMBOL(ns_to_timeval);
+ 
++struct __kernel_old_timeval ns_to_kernel_old_timeval(const s64 nsec)
++{
++	struct timespec64 ts = ns_to_timespec64(nsec);
++	struct __kernel_old_timeval tv;
 +
-+#define SYS_APGAKEYLO_EL1		sys_reg(3, 0, 2, 3, 0)
-+#define SYS_APGAKEYHI_EL1		sys_reg(3, 0, 2, 3, 1)
++	tv.tv_sec = ts.tv_sec;
++	tv.tv_usec = (suseconds_t) ts.tv_nsec / 1000;
 +
- #define SYS_ICC_PMR_EL1			sys_reg(3, 0, 4, 6, 0)
- 
- #define SYS_AFSR0_EL1			sys_reg(3, 0, 5, 1, 0)
-@@ -397,7 +410,11 @@
- #define SYS_ICH_LR15_EL2		__SYS__LR8_EL2(7)
- 
- /* Common SCTLR_ELx flags. */
-+#define SCTLR_ELx_ENIA	(1 << 31)
-+#define SCTLR_ELx_ENIB	(1 << 30)
-+#define SCTLR_ELx_ENDA	(1 << 27)
- #define SCTLR_ELx_EE    (1 << 25)
-+#define SCTLR_ELx_ENDB	(1 << 13)
- #define SCTLR_ELx_I	(1 << 12)
- #define SCTLR_ELx_SA	(1 << 3)
- #define SCTLR_ELx_C	(1 << 2)
-@@ -431,11 +448,24 @@
- #define ID_AA64ISAR0_AES_SHIFT		4
- 
- /* id_aa64isar1 */
-+#define ID_AA64ISAR1_GPI_SHIFT		28
-+#define ID_AA64ISAR1_GPA_SHIFT		24
- #define ID_AA64ISAR1_LRCPC_SHIFT	20
- #define ID_AA64ISAR1_FCMA_SHIFT		16
- #define ID_AA64ISAR1_JSCVT_SHIFT	12
-+#define ID_AA64ISAR1_API_SHIFT		8
-+#define ID_AA64ISAR1_APA_SHIFT		4
- #define ID_AA64ISAR1_DPB_SHIFT		0
- 
-+#define ID_AA64ISAR1_APA_NI		0x0
-+#define ID_AA64ISAR1_APA_ARCHITECTED	0x1
-+#define ID_AA64ISAR1_API_NI		0x0
-+#define ID_AA64ISAR1_API_IMP_DEF	0x1
-+#define ID_AA64ISAR1_GPA_NI		0x0
-+#define ID_AA64ISAR1_GPA_ARCHITECTED	0x1
-+#define ID_AA64ISAR1_GPI_NI		0x0
-+#define ID_AA64ISAR1_GPI_IMP_DEF	0x1
++	return tv;
++}
++EXPORT_SYMBOL(ns_to_kernel_old_timeval);
 +
- /* id_aa64pfr0 */
- #define ID_AA64PFR0_SVE_SHIFT		32
- #define ID_AA64PFR0_GIC_SHIFT		24
+ /**
+  * set_normalized_timespec - set timespec sec and nsec parts and normalize
+  *
 -- 
-2.11.0
+2.9.0
