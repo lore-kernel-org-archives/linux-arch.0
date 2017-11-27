@@ -1,50 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:38554 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753489AbdKXOzb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Nov 2017 09:55:31 -0500
-Subject: Re: MPK: pkey_free and key reuse
-References: <0f006ef4-a7b5-c0cf-5f58-d0fd1f911a54@redhat.com>
- <e7d1e622-bbac-2750-2895-cc151458ff2f@linux.intel.com>
- <48ac42c0-4c31-cef8-a75a-8f3beab7cc66@redhat.com>
- <633b5b03-3481-0da2-9d6c-f5298902e36a@linux.intel.com>
- <068b89c7-4303-88a7-540a-1491dc8a292d@redhat.com>
- <04ef6b4a-6d20-d025-0b56-741fd467d445@linux.intel.com>
-From: Florian Weimer <fweimer@redhat.com>
-Message-ID: <2e3bfec2-303b-2221-0154-1145af3fffe8@redhat.com>
-Date: Fri, 24 Nov 2017 15:55:28 +0100
-MIME-Version: 1.0
-In-Reply-To: <04ef6b4a-6d20-d025-0b56-741fd467d445@linux.intel.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:42448 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752868AbdK0Mz1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:55:27 -0500
+From: Greentime Hu <green.hu@gmail.com>
+Subject: [PATCH v2 35/35] dt-bindings: timer: Add andestech atcpit100 timer binding doc
+Date: Mon, 27 Nov 2017 20:28:22 +0800
+Message-ID: <60f23e7fcff11f16b0bca4753a39d098849eeac3.1511785528.git.green.hu@gmail.com>
+In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com>
+In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@linux.intel.com>, linux-x86_64@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-mm <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20171124145528.rK94aSktiL_UvpK35TUh_A8xpobwE57qz2VNPqPPqdM@z>
+To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org
+Cc: Rick Chen <rickchen36@gmail.com>, green.hu@gmail.com
+Message-ID: <20171127122822.saqevWdcBIGcPlLR6HBvxNp-RjhVM7e32vUgUktTDzs@z>
 
-On 11/23/2017 04:25 PM, Dave Hansen wrote:
-> I don't see a way to do a broadcast PKRU update.  But, I'd love to be
-> proven wrong, with code.
+From: Rick Chen <rickchen36@gmail.com>
 
-I could use the existing setxid broadcast code in glibc to update PKRU 
-on all running threads upon a key allocation (before pkey_alloc returns 
-to the application), but this won't work for the implicit protection key 
-used for PROT_EXEC.  I don't see a good way to get its number, and to 
-determine whether a particular mprotect call allocated it.  (We 
-obviously don't want to do the broadcast on every mprotect call with 
-PROT_EXEC, just in case.)
+Add a document to describe Andestech atcpit100 timer and
+binding information.
 
-What's worse, the setxid broadcast is not async-signal-safe, so we can't 
-use it from mprotect, which should better be async-signal-safe (I know 
-that official, it's not, but it would still be problematic to change 
-that IMHO).
+Signed-off-by: Rick Chen <rickchen36@gmail.com>
+Acked-by: Rob Herring <robh@kernel.org>
+Signed-off-by: Greentime Hu <green.hu@gmail.com>
+---
+ .../bindings/timer/andestech,atcpit100-timer.txt   |   33 ++++++++++++++++++++
+ 1 file changed, 33 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
 
-(The setxid broadcast mechanism allows us to run a piece of code on all 
-threads of the process.  We could look at %rip and see if the signal 
-arrived during a pkey_set function call, and make sure that this call 
-delivers the right result, by altering the task state before returning.)
-
-Thanks,
-Florian
+diff --git a/Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt b/Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
+new file mode 100644
+index 0000000..b97ff32
+--- /dev/null
++++ b/Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
+@@ -0,0 +1,33 @@
++Andestech ATCPIT100 timer
++------------------------------------------------------------------
++ATCPIT100 is a generic IP block from Andes Technology, embedded in
++Andestech AE3XX platforms and other designs.
++
++This timer is a set of compact multi-function timers, which can be
++used as pulse width modulators (PWM) as well as simple timers.
++
++It supports up to 4 PIT channels. Each PIT channel is a
++multi-function timer and provide the following usage scenarios:
++One 32-bit timer
++Two 16-bit timers
++Four 8-bit timers
++One 16-bit PWM
++One 16-bit timer and one 8-bit PWM
++Two 8-bit timer and one 8-bit PWM
++
++Required properties:
++- compatible	: Should be "andestech,atcpit100"
++- reg		: Address and length of the register set
++- interrupts	: Reference to the timer interrupt
++- clocks : a clock to provide the tick rate for "andestech,atcpit100"
++- clock-names : should be "PCLK" for the external tick timer.
++
++Examples:
++
++timer0: timer@f0400000 {
++	compatible = "andestech,atcpit100";
++	reg = <0xf0400000 0x1000>;
++	interrupts = <2 4>;
++	clocks = <&clk_pll>;
++	clock-names = "PCLK";
++};
+-- 
+1.7.9.5
