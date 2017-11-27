@@ -1,12 +1,12 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 25/35] nds32: Build infrastructure
-Date: Mon, 27 Nov 2017 15:21:19 +0100
-Message-ID: <CAK8P3a1GuH2tgtC5t834-PNeUVYQxreD7seZH8sjraZFtRUWKw@mail.gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <5e1be9ebc591c6de79b75f726a5a38b2564eaa92.1511785528.git.green.hu@gmail.com>
+Subject: Re: [PATCH v2 24/35] nds32: defconfig
+Date: Mon, 27 Nov 2017 15:27:24 +0100
+Message-ID: <CAK8P3a01n6Buy24JWagJNL+Lauuk-RE=Ee2rxS0Cu33NP+oNEw@mail.gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com> <ba7df99550bdd5c06d01ef8f427d116280b8f52d.1511785528.git.green.hu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <5e1be9ebc591c6de79b75f726a5a38b2564eaa92.1511785528.git.green.hu@gmail.com>
+In-Reply-To: <ba7df99550bdd5c06d01ef8f427d116280b8f52d.1511785528.git.green.hu@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Greentime Hu <green.hu@gmail.com>
 Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Vincent Chen <vincentc@andestech.com>
@@ -14,65 +14,42 @@ List-Id: linux-arch.vger.kernel.org
 
 On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
 
-> diff --git a/arch/nds32/Kconfig.cpu b/arch/nds32/Kconfig.cpu
-> new file mode 100644
-> index 0000000..6b4013f
-> --- /dev/null
-> +++ b/arch/nds32/Kconfig.cpu
-> @@ -0,0 +1,131 @@
-> +comment "Processor Features"
-> +
-> +config CPU_BIG_ENDIAN
-> +       bool "Big endian"
-> +       def_bool n
-> +
-> +config CPU_LITTLE_ENDIAN
-> +       bool "Little endian"
-> +       def_bool y
+> +CONFIG_EXPERT=y
 
-These must be mutually exclusive, you surely get some build error if you try to
-set both here.
+You normally shouldn't need CONFIG_EXPERT in a defconfig file, by definition
+this is needed for unusual configurations only.
 
-You can either make it a 'choice' statement to pick between the two, or you
-can make CPU_LITTLE_ENDIAN a silent option like
+> +CONFIG_NDS32_BUILTIN_DTB="ae3xx"
 
-config CPU_BIG_ENDIAN
-       bool "Big endian"
+Having a built-in DTB also makes no sense for a defconfig, when the idea is that
+it can run on as many machines as possible.
 
-config CPU_LITTLE_ENDIAN
-       def_bool !CPU_BIG_ENDIAN
+> +CONFIG_BLK_DEV_LOOP=y
+> +CONFIG_BLK_DEV_RAM=y
+> +CONFIG_BLK_DEV_RAM_SIZE=8192
 
-> +config CPU_CACHE_NONALIASING
-> +       bool "Non-aliasing cache"
-> +       help
-> +         If this CPU is using VIPT data cache and its cache way size is larger
-> +         than page size, say N. If it is using PIPT data cache, say Y.
-> +
-> +         If unsure, say Y.
+Having ramdisk built-in is rather unusual, most users don't use ramdisks
+any more since we don't need it for booting with the initramfs.
 
-Can you determine this from the CPU type?
+> +CONFIG_BRIDGE=y
+> +CONFIG_TUN=y
 
-> +choice
-> +       prompt "Memory split"
-> +       depends on MMU
-> +       default VMSPLIT_3G
-> +       help
-> +         Select the desired split between kernel and user memory.
-> +
-> +         If you are not absolutely sure what you are doing, leave this
-> +         option alone!
-> +
-> +       config VMSPLIT_3G
-> +               bool "3G/1G user/kernel split"
-> +       config VMSPLIT_3G_OPT
-> +               bool "3G/1G user/kernel split (for full 1G low memory)"
-> +       config VMSPLIT_2G
-> +               bool "2G/2G user/kernel split"
-> +       config VMSPLIT_1G
-> +               bool "1G/3G user/kernel split"
-> +endchoice
+These also look unusual. Would it make sense to have these as loadable
+modules, or do you require having everything built-in for your workflow?
 
-I think you mentioned that the 1GB configuration is quite common, how
-about making VMSPLIT_3G_OPT the default here?
+> +CONFIG_SOUND=y
+> +CONFIG_SND=y
+> +# CONFIG_SND_SUPPORT_OLD_API is not set
+> +# CONFIG_SND_VERBOSE_PROCFS is not set
+
+It seems the sound subsystem is enabled, but no drivers are selected,
+so it won't actually do anything.
+
+> +# CONFIG_USB_SUPPORT is not set
+> +CONFIG_MMC=y
+
+Same for MMC. If you are still trying to get the respective device drivers
+merged, that doesn't need to stop you from enabling the configurations
+here.
 
        Arnd
