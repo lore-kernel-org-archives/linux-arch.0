@@ -1,89 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f196.google.com ([74.125.82.196]:44083 "EHLO
-        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752326AbdK0OqB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 09:46:01 -0500
+Received: from userp1040.oracle.com ([156.151.31.81]:41000 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752652AbdK0Pvy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 10:51:54 -0500
+Subject: Re: [RFC PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+References: <20171116101900.13621-1-mhocko@kernel.org>
+ <20171116121438.6vegs4wiahod3byl@dhcp22.suse.cz>
+ <20171124085405.dwln5k3dk7fdio7e@dhcp22.suse.cz>
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Message-ID: <4f5eb24c-5af2-eebf-d54f-875f4b259793@oracle.com>
+Date: Mon, 27 Nov 2017 08:51:10 -0700
 MIME-Version: 1.0
-In-Reply-To: <ee45d9c7b0388c87a93a26484e859001477eb3a2.1511785528.git.green.hu@gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <ee45d9c7b0388c87a93a26484e859001477eb3a2.1511785528.git.green.hu@gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 27 Nov 2017 15:46:00 +0100
-Message-ID: <CAK8P3a3V7=4LjT38xT2VBQW4sTgpKergar2KoO8brbMZjR--1w@mail.gmail.com>
-Subject: Re: [PATCH v2 14/35] nds32: System calls handling
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20171124085405.dwln5k3dk7fdio7e@dhcp22.suse.cz>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171127144600.xUC6d_pfSB4lL4TrzfqISx-fnTnjuX4-2ezlnSeujaY@z>
+To: Michal Hocko <mhocko@kernel.org>, linux-api@vger.kernel.org
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>
+Message-ID: <20171127155110.2nvajzUHxvVW580jyPNkXoaVlKYIWGnQk9QL2mLQtgo@z>
 
-On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
+On 11/24/2017 01:54 AM, Michal Hocko wrote:
+> Are there any more concerns? So far the biggest one was the name. The
+> other which suggests a flag as a modifier has been sorted out hopefully.
+> Is there anymore more before we can consider this for merging? Well
+> except for man page update which I will prepare of course. Can we target
+> this to 4.16?
 
-> diff --git a/arch/nds32/include/asm/syscalls.h b/arch/nds32/include/asm/syscalls.h
-> new file mode 100644
-> index 0000000..741ccdc
-> --- /dev/null
-> +++ b/arch/nds32/include/asm/syscalls.h
-> @@ -0,0 +1,27 @@
-> +/*
-> + * Copyright (C) 2005-2017 Andes Technology Corporation
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-> + */
-> +
-> +#ifndef __ASM_NDS32_SYSCALLS_H
-> +#define __ASM_NDS32_SYSCALLS_H
-> +
-> +int sys_cacheflush(unsigned long addr, unsigned long len, unsigned int op);
-> +long sys_fadvise64_64_wrapper(int fd, int advice, loff_t offset, loff_t len);
-> +asmlinkage int sys_syscall(void);
-> +asmlinkage int sys_rt_sigreturn_wrapper(void);
+I do not have concerns with this approach. I prefer a new flag as 
+opposed to a modifier and the name is ok by me.
 
-You mentioned that sys_syscall() should be removed in this version.
-
-By convention, all syscall declarations should start with 'asmlinkage long',
-even though this has no effect in your architecture.
-
-> diff --git a/arch/nds32/include/uapi/asm/unistd.h b/arch/nds32/include/uapi/asm/unistd.h
-> new file mode 100644
-> index 0000000..2bad1e7
-> --- /dev/null
-> +++ b/arch/nds32/include/uapi/asm/unistd.h
-
-> +
-> +#define __ARCH_WANT_RENAMEAT
-> +#define __ARCH_WANT_SYSCALL_OFF_T
-
-These two should not be here.
-
-> +#define __ARCH_WANT_SYNC_FILE_RANGE2
-
-This one is fine though
-
-> +/* Use the standard ABI for syscalls */
-> +#include <asm-generic/unistd.h>
-> +
-> +__SYSCALL(__NR_fadvise64_64, sys_fadvise64_64_wrapper)
-> +__SYSCALL(__NR_rt_sigreturn, sys_rt_sigreturn_wrapper)
-
-I think you are overriding the array assignment here, this may cause a
-compiler warning when building with "make C=1 V=1" since you have
-the same index assigned to two pointers. A better way to do this
-is to override the name:
-
-#define sys_rt_sigreturn sys_rt_sigreturn_wrapper
-#define sys_fadvise64_64 sys_fadvise64_64_wrapper
-#include <asm-generic/unistd.h>
-
-
-      Arnd
+Reviewed-by: Khalid Aziz <khalid.aziz@oracle.com>
