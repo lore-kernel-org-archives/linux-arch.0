@@ -1,372 +1,647 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:38548 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751727AbdK0MxW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:53:22 -0500
+Received: from mail-pl0-f67.google.com ([209.85.160.67]:36831 "EHLO
+        mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752291AbdK0Mxn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:53:43 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v2 00/35] Andes(nds32) Linux Kernel Port
-Date: Mon, 27 Nov 2017 20:27:47 +0800
-Message-ID: <cover.1511785528.git.green.hu@gmail.com>
+Subject: [PATCH v2 06/35] nds32: MMU fault handling and page table management
+Date: Mon, 27 Nov 2017 20:27:53 +0800
+Message-ID: <ba92adae5d20d99c7c18e75146642a2ccbd5d047.1511785528.git.green.hu@gmail.com>
+In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com>
+In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org
-Cc: Greentime Hu <green.hu@gmail.com>
-Message-ID: <20171127122747.mIhG6odoI8XNDmR__NgB3KifMbuJ_AaMEbB9_Mz6faA@z>
+Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171127122753.dw4-ec2ukFeHfvqFZwk2cOiLF2Bl7TM-iqDFNu0-5LQ@z>
 
-This is the 2nd version patchset to add the Linux kernel port for Andes(nds32)
-processors. Almost all of the feedback from v1 patchseries has been addressed.
-Thanks to everyone who provided feedback on the previous version.
+From: Greentime Hu <greentime@andestech.com>
 
+This patch includes page fault handler, mmap and fixup implementations.
 
-This patchset adds core architecture support to Linux for Andestech's
-N13, N15, D15, N10, D10 processor cores.
-
-Based on the 16/32-bit AndeStar RISC-like architecture, we designed the
-configurable AndesCore series of embedded processor families. AndesCores
-range from highly performance-efficient small-footprint cores for
-microcontrollers and deeply-embedded applications to 1GHz+ cores running
-Linux, covering general-purpose N-series cores for a wide range of computing
-need, DSP-capable D-series cores for digital signal control,
-instruction-extensible E-series cores for application-specific acceleration,
-and secure S-series cores for best protection of the most valuable.
-
-The patches are based on v4.14-rc8, and can also be found in the
-following git tree:
-  https://github.com/andestech/linux.git nds32-4.14-rc8-v2
-
-The build script and toolchain repositories are able to be found here:
-  https://github.com/andestech/build_script.git
-
-Freely available instruction set and architecture overview documents can
-be found on the following page:
-  http://www.andestech.com/product.php?cls=9
-
-
-Vincent Ren-Wei Chen and I will maintain this port. Thanks to everyone who
-helped us and contributed to it. :) Any feedback is welcome.
-
-
-Changes in v2:
- - Set GENERIC_CALIBRATE_DELAY default n
- - Add earlycon support
- - Remove earlyprintk
- - Add CPU_BIG_ENDIAN, CPU_LITTLE_ENDIAN support
- - Refine unalignment access exception handler
- - Add VMSPLIT support
- - Use only one defconfig
- - Change interrupt-cells from 2 to 1
- - Refine andestech cpu names in bindings/nds32/cpus.txt
- - Get clock frequency in dts because fpga bitmap doesn't include this feature
- - Update MAINTAINERS for bindings
- - Remove unused configs in Kconfig
- - Refine device tree scripts
- - Refine coding style
- - Use generic ioremap_nocache
- - Remove L2CC_PA_BASE define and its codes in head.S. It will be moved to bootloader.
- - Set PHYS_OFFSET to 0x0 instead of CONFIG_MEMORY_START
- - Remove unused macros
- - Simplify cpu_cache_* API
- - Change __asm__ __volatile__ to asm volatile
- - Refine uaccess.h
- - Remove unused/deprecated syscall
- - Use generic posix_types.h
- - Remove arch_trace_hardirqs_on/arch_trace_hardirqs_off
- - Fix bug of restart syscall
- - Refine syscall implementations
- - Use IS_ENABLED to replace ifdef as possible
- - Remove device_initcall(nds32_device_probe)
- - Refine vdso implementations
- - Refine copy_from_user()/copy_to_user()/clear_user()/get_user()/memmove()/memcpy()
- - Refine ioremap.c
- - Refine irq-ativic32.c
- - Fix a bug of earlycon.c
- - Export ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt
- - Add atcpit100 driver
-
-Greentime Hu (32):
-  nds32: Assembly macros and definitions
-  nds32: Kernel booting and initialization
-  nds32: Exception handling
-  nds32: MMU definitions
-  nds32: MMU initialization
-  nds32: MMU fault handling and page table management
-  nds32: Cache and TLB routines
-  nds32: Process management
-  nds32: IRQ handling
-  nds32: Atomic operations
-  nds32: Device specific operations
-  nds32: DMA mapping API
-  nds32: ELF definitions
-  nds32: System calls handling
-  nds32: VDSO support
-  nds32: Signal handling support
-  nds32: Library functions
-  nds32: Debugging support
-  nds32: L2 cache support
-  nds32: Loadable modules
-  nds32: Generic timers support
-  nds32: Device tree support
-  nds32: Miscellaneous header files
-  nds32: defconfig
-  nds32: Build infrastructure
-  dt-bindings: interrupt-controller: Andestech Internal Vector
-    Interrupt Controller
-  irqchip: Andestech Internal Vector Interrupt Controller driver
-  MAINTAINERS: Add nds32
-  dt-bindings: nds32 CPU Bindings
-  net: faraday add nds32 support.
-  earlycon: add reg-offset to physical address before mapping
-  asm-generic/io.h: move
-    ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of     ifndef
-    CONFIG_MMU
-
-Rick Chen (3):
-  clocksource/drivers/atcpit100: Add andestech atcpit100 timer
-  clocksource/drivers/Kconfig: Support andestech atcpit100 timer
-  dt-bindings: timer: Add andestech atcpit100 timer binding doc
-
- .../interrupt-controller/andestech,ativic32.txt    |   19 +
- Documentation/devicetree/bindings/nds32/cpus.txt   |   32 +
- .../bindings/timer/andestech,atcpit100-timer.txt   |   33 +
- MAINTAINERS                                        |   11 +
- arch/nds32/Kconfig                                 |  107 +++
- arch/nds32/Kconfig.cpu                             |  131 +++
- arch/nds32/Makefile                                |   66 ++
- arch/nds32/boot/Makefile                           |   15 +
- arch/nds32/boot/dts/Makefile                       |    8 +
- arch/nds32/boot/dts/ae3xx.dts                      |   55 ++
- arch/nds32/boot/dts/ag101p.dts                     |   60 ++
- arch/nds32/configs/defconfig                       |  111 +++
- arch/nds32/include/asm/Kbuild                      |   54 ++
- arch/nds32/include/asm/assembler.h                 |   52 ++
- arch/nds32/include/asm/bitfield.h                  |  974 ++++++++++++++++++++
- arch/nds32/include/asm/cache.h                     |   25 +
- arch/nds32/include/asm/cache_info.h                |   26 +
- arch/nds32/include/asm/cacheflush.h                |   57 ++
- arch/nds32/include/asm/current.h                   |   25 +
- arch/nds32/include/asm/delay.h                     |   51 +
- arch/nds32/include/asm/dma-mapping.h               |   27 +
- arch/nds32/include/asm/elf.h                       |  192 ++++
- arch/nds32/include/asm/fixmap.h                    |   42 +
- arch/nds32/include/asm/futex.h                     |  116 +++
- arch/nds32/include/asm/highmem.h                   |   78 ++
- arch/nds32/include/asm/io.h                        |   25 +
- arch/nds32/include/asm/irqflags.h                  |   49 +
- arch/nds32/include/asm/l2_cache.h                  |  155 ++++
- arch/nds32/include/asm/linkage.h                   |   24 +
- arch/nds32/include/asm/memory.h                    |  118 +++
- arch/nds32/include/asm/mmu.h                       |   25 +
- arch/nds32/include/asm/mmu_context.h               |   81 ++
- arch/nds32/include/asm/module.h                    |   24 +
- arch/nds32/include/asm/nds32.h                     |   96 ++
- arch/nds32/include/asm/page.h                      |   78 ++
- arch/nds32/include/asm/pgalloc.h                   |  109 +++
- arch/nds32/include/asm/pgtable.h                   |  426 +++++++++
- arch/nds32/include/asm/proc-fns.h                  |   57 ++
- arch/nds32/include/asm/processor.h                 |  116 +++
- arch/nds32/include/asm/ptrace.h                    |   79 ++
- arch/nds32/include/asm/shmparam.h                  |   32 +
- arch/nds32/include/asm/spinlock.h                  |  184 ++++
- arch/nds32/include/asm/string.h                    |   30 +
- arch/nds32/include/asm/swab.h                      |   48 +
- arch/nds32/include/asm/syscall.h                   |  203 ++++
- arch/nds32/include/asm/syscalls.h                  |   27 +
- arch/nds32/include/asm/thread_info.h               |   91 ++
- arch/nds32/include/asm/tlb.h                       |   41 +
- arch/nds32/include/asm/tlbflush.h                  |   60 ++
- arch/nds32/include/asm/uaccess.h                   |  296 ++++++
- arch/nds32/include/asm/unistd.h                    |   19 +
- arch/nds32/include/asm/vdso.h                      |   35 +
- arch/nds32/include/asm/vdso_datapage.h             |   51 +
- arch/nds32/include/uapi/asm/Kbuild                 |   27 +
- arch/nds32/include/uapi/asm/auxvec.h               |   25 +
- arch/nds32/include/uapi/asm/byteorder.h            |   26 +
- arch/nds32/include/uapi/asm/cachectl.h             |   19 +
- arch/nds32/include/uapi/asm/param.h                |   24 +
- arch/nds32/include/uapi/asm/ptrace.h               |   42 +
- arch/nds32/include/uapi/asm/sigcontext.h           |   73 ++
- arch/nds32/include/uapi/asm/signal.h               |   23 +
- arch/nds32/include/uapi/asm/unistd.h               |   32 +
- arch/nds32/kernel/Makefile                         |   23 +
- arch/nds32/kernel/asm-offsets.c                    |   41 +
- arch/nds32/kernel/atl2c.c                          |   77 ++
- arch/nds32/kernel/cacheinfo.c                      |   62 ++
- arch/nds32/kernel/devtree.c                        |   45 +
- arch/nds32/kernel/dma.c                            |  472 ++++++++++
- arch/nds32/kernel/ex-entry.S                       |  170 ++++
- arch/nds32/kernel/ex-exit.S                        |  206 +++++
- arch/nds32/kernel/ex-scall.S                       |  145 +++
- arch/nds32/kernel/head.S                           |  198 ++++
- arch/nds32/kernel/irq.c                            |   22 +
- arch/nds32/kernel/module.c                         |  299 ++++++
- arch/nds32/kernel/nds32_ksyms.c                    |   44 +
- arch/nds32/kernel/process.c                        |  217 +++++
- arch/nds32/kernel/ptrace.c                         |  325 +++++++
- arch/nds32/kernel/setup.c                          |  407 ++++++++
- arch/nds32/kernel/signal.c                         |  354 +++++++
- arch/nds32/kernel/stacktrace.c                     |   60 ++
- arch/nds32/kernel/sys_nds32.c                      |   74 ++
- arch/nds32/kernel/syscall_table.c                  |   28 +
- arch/nds32/kernel/time.c                           |   22 +
- arch/nds32/kernel/traps.c                          |  441 +++++++++
- arch/nds32/kernel/vdso.c                           |  245 +++++
- arch/nds32/kernel/vdso/Makefile                    |   82 ++
- arch/nds32/kernel/vdso/datapage.S                  |   34 +
- arch/nds32/kernel/vdso/gen_vdso_offsets.sh         |   15 +
- arch/nds32/kernel/vdso/gettimeofday.c              |  266 ++++++
- arch/nds32/kernel/vdso/note.S                      |   29 +
- arch/nds32/kernel/vdso/sigreturn.S                 |   33 +
- arch/nds32/kernel/vdso/vdso.S                      |   33 +
- arch/nds32/kernel/vdso/vdso.lds.S                  |   87 ++
- arch/nds32/kernel/vmlinux.lds.S                    |   70 ++
- arch/nds32/lib/Makefile                            |    3 +
- arch/nds32/lib/clear_user.S                        |   55 ++
- arch/nds32/lib/copy_from_user.S                    |   58 ++
- arch/nds32/lib/copy_page.S                         |   50 +
- arch/nds32/lib/copy_template.S                     |   83 ++
- arch/nds32/lib/copy_to_user.S                      |   58 ++
- arch/nds32/lib/memcpy.S                            |   43 +
- arch/nds32/lib/memmove.S                           |   83 ++
- arch/nds32/lib/memset.S                            |   46 +
- arch/nds32/lib/memzero.S                           |   31 +
- arch/nds32/mm/Makefile                             |    7 +
- arch/nds32/mm/alignment.c                          |  622 +++++++++++++
- arch/nds32/mm/cacheflush.c                         |  331 +++++++
- arch/nds32/mm/extable.c                            |   29 +
- arch/nds32/mm/fault.c                              |  420 +++++++++
- arch/nds32/mm/highmem.c                            |   92 ++
- arch/nds32/mm/init.c                               |  318 +++++++
- arch/nds32/mm/ioremap.c                            |   75 ++
- arch/nds32/mm/mm-nds32.c                           |  103 +++
- arch/nds32/mm/mmap.c                               |   86 ++
- arch/nds32/mm/proc.c                               |  601 ++++++++++++
- arch/nds32/mm/tlb.c                                |   63 ++
- drivers/clocksource/Kconfig                        |    6 +
- drivers/clocksource/Makefile                       |    1 +
- drivers/clocksource/timer-atcpit100.c              |  247 +++++
- drivers/irqchip/Makefile                           |    1 +
- drivers/irqchip/irq-ativic32.c                     |  119 +++
- drivers/net/ethernet/faraday/Kconfig               |    6 +-
- drivers/tty/serial/earlycon.c                      |    3 +-
- include/asm-generic/io.h                           |   18 +-
- 124 files changed, 13508 insertions(+), 13 deletions(-)
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
- create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
- create mode 100644 Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
- create mode 100644 arch/nds32/Kconfig
- create mode 100644 arch/nds32/Kconfig.cpu
- create mode 100644 arch/nds32/Makefile
- create mode 100644 arch/nds32/boot/Makefile
- create mode 100644 arch/nds32/boot/dts/Makefile
- create mode 100644 arch/nds32/boot/dts/ae3xx.dts
- create mode 100644 arch/nds32/boot/dts/ag101p.dts
- create mode 100644 arch/nds32/configs/defconfig
- create mode 100644 arch/nds32/include/asm/Kbuild
- create mode 100644 arch/nds32/include/asm/assembler.h
- create mode 100644 arch/nds32/include/asm/bitfield.h
- create mode 100644 arch/nds32/include/asm/cache.h
- create mode 100644 arch/nds32/include/asm/cache_info.h
- create mode 100644 arch/nds32/include/asm/cacheflush.h
- create mode 100644 arch/nds32/include/asm/current.h
- create mode 100644 arch/nds32/include/asm/delay.h
- create mode 100644 arch/nds32/include/asm/dma-mapping.h
- create mode 100644 arch/nds32/include/asm/elf.h
- create mode 100644 arch/nds32/include/asm/fixmap.h
- create mode 100644 arch/nds32/include/asm/futex.h
- create mode 100644 arch/nds32/include/asm/highmem.h
- create mode 100644 arch/nds32/include/asm/io.h
- create mode 100644 arch/nds32/include/asm/irqflags.h
- create mode 100644 arch/nds32/include/asm/l2_cache.h
- create mode 100644 arch/nds32/include/asm/linkage.h
- create mode 100644 arch/nds32/include/asm/memory.h
- create mode 100644 arch/nds32/include/asm/mmu.h
- create mode 100644 arch/nds32/include/asm/mmu_context.h
- create mode 100644 arch/nds32/include/asm/module.h
- create mode 100644 arch/nds32/include/asm/nds32.h
- create mode 100644 arch/nds32/include/asm/page.h
- create mode 100644 arch/nds32/include/asm/pgalloc.h
- create mode 100644 arch/nds32/include/asm/pgtable.h
- create mode 100644 arch/nds32/include/asm/proc-fns.h
- create mode 100644 arch/nds32/include/asm/processor.h
- create mode 100644 arch/nds32/include/asm/ptrace.h
- create mode 100644 arch/nds32/include/asm/shmparam.h
- create mode 100644 arch/nds32/include/asm/spinlock.h
- create mode 100644 arch/nds32/include/asm/string.h
- create mode 100644 arch/nds32/include/asm/swab.h
- create mode 100644 arch/nds32/include/asm/syscall.h
- create mode 100644 arch/nds32/include/asm/syscalls.h
- create mode 100644 arch/nds32/include/asm/thread_info.h
- create mode 100644 arch/nds32/include/asm/tlb.h
- create mode 100644 arch/nds32/include/asm/tlbflush.h
- create mode 100644 arch/nds32/include/asm/uaccess.h
- create mode 100644 arch/nds32/include/asm/unistd.h
- create mode 100644 arch/nds32/include/asm/vdso.h
- create mode 100644 arch/nds32/include/asm/vdso_datapage.h
- create mode 100644 arch/nds32/include/uapi/asm/Kbuild
- create mode 100644 arch/nds32/include/uapi/asm/auxvec.h
- create mode 100644 arch/nds32/include/uapi/asm/byteorder.h
- create mode 100644 arch/nds32/include/uapi/asm/cachectl.h
- create mode 100644 arch/nds32/include/uapi/asm/param.h
- create mode 100644 arch/nds32/include/uapi/asm/ptrace.h
- create mode 100644 arch/nds32/include/uapi/asm/sigcontext.h
- create mode 100644 arch/nds32/include/uapi/asm/signal.h
- create mode 100644 arch/nds32/include/uapi/asm/unistd.h
- create mode 100644 arch/nds32/kernel/Makefile
- create mode 100644 arch/nds32/kernel/asm-offsets.c
- create mode 100644 arch/nds32/kernel/atl2c.c
- create mode 100644 arch/nds32/kernel/cacheinfo.c
- create mode 100644 arch/nds32/kernel/devtree.c
- create mode 100644 arch/nds32/kernel/dma.c
- create mode 100644 arch/nds32/kernel/ex-entry.S
- create mode 100644 arch/nds32/kernel/ex-exit.S
- create mode 100644 arch/nds32/kernel/ex-scall.S
- create mode 100644 arch/nds32/kernel/head.S
- create mode 100644 arch/nds32/kernel/irq.c
- create mode 100644 arch/nds32/kernel/module.c
- create mode 100644 arch/nds32/kernel/nds32_ksyms.c
- create mode 100644 arch/nds32/kernel/process.c
- create mode 100644 arch/nds32/kernel/ptrace.c
- create mode 100644 arch/nds32/kernel/setup.c
- create mode 100644 arch/nds32/kernel/signal.c
- create mode 100644 arch/nds32/kernel/stacktrace.c
- create mode 100644 arch/nds32/kernel/sys_nds32.c
- create mode 100644 arch/nds32/kernel/syscall_table.c
- create mode 100644 arch/nds32/kernel/time.c
- create mode 100644 arch/nds32/kernel/traps.c
- create mode 100644 arch/nds32/kernel/vdso.c
- create mode 100644 arch/nds32/kernel/vdso/Makefile
- create mode 100644 arch/nds32/kernel/vdso/datapage.S
- create mode 100755 arch/nds32/kernel/vdso/gen_vdso_offsets.sh
- create mode 100644 arch/nds32/kernel/vdso/gettimeofday.c
- create mode 100644 arch/nds32/kernel/vdso/note.S
- create mode 100644 arch/nds32/kernel/vdso/sigreturn.S
- create mode 100644 arch/nds32/kernel/vdso/vdso.S
- create mode 100644 arch/nds32/kernel/vdso/vdso.lds.S
- create mode 100644 arch/nds32/kernel/vmlinux.lds.S
- create mode 100644 arch/nds32/lib/Makefile
- create mode 100644 arch/nds32/lib/clear_user.S
- create mode 100644 arch/nds32/lib/copy_from_user.S
+Signed-off-by: Vincent Chen <vincentc@andestech.com>
+Signed-off-by: Greentime Hu <greentime@andestech.com>
+---
+ arch/nds32/lib/copy_page.S |   50 ++++++
+ arch/nds32/mm/extable.c    |   29 +++
+ arch/nds32/mm/fault.c      |  420 ++++++++++++++++++++++++++++++++++++++++++++
+ arch/nds32/mm/mmap.c       |   86 +++++++++
+ 4 files changed, 585 insertions(+)
  create mode 100644 arch/nds32/lib/copy_page.S
- create mode 100644 arch/nds32/lib/copy_template.S
- create mode 100644 arch/nds32/lib/copy_to_user.S
- create mode 100644 arch/nds32/lib/memcpy.S
- create mode 100644 arch/nds32/lib/memmove.S
- create mode 100644 arch/nds32/lib/memset.S
- create mode 100644 arch/nds32/lib/memzero.S
- create mode 100644 arch/nds32/mm/Makefile
- create mode 100644 arch/nds32/mm/alignment.c
- create mode 100644 arch/nds32/mm/cacheflush.c
  create mode 100644 arch/nds32/mm/extable.c
  create mode 100644 arch/nds32/mm/fault.c
- create mode 100644 arch/nds32/mm/highmem.c
- create mode 100644 arch/nds32/mm/init.c
- create mode 100644 arch/nds32/mm/ioremap.c
- create mode 100644 arch/nds32/mm/mm-nds32.c
  create mode 100644 arch/nds32/mm/mmap.c
- create mode 100644 arch/nds32/mm/proc.c
- create mode 100644 arch/nds32/mm/tlb.c
- create mode 100644 drivers/clocksource/timer-atcpit100.c
- create mode 100644 drivers/irqchip/irq-ativic32.c
 
+diff --git a/arch/nds32/lib/copy_page.S b/arch/nds32/lib/copy_page.S
+new file mode 100644
+index 0000000..a55a5cc
+--- /dev/null
++++ b/arch/nds32/lib/copy_page.S
+@@ -0,0 +1,50 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/linkage.h>
++#include <asm/page.h>
++
++	.text
++ENTRY(copy_page)
++	pushm	$r2, $r10
++	movi	$r2, PAGE_SIZE >> 5
++.Lcopy_loop:
++	lmw.bim	$r3, [$r1], $r10
++	smw.bim	$r3, [$r0], $r10
++	subi45	$r2, #1
++	bnez38	$r2, .Lcopy_loop
++	popm	$r2, $r10
++	ret
++ENDPROC(copy_page)
++
++ENTRY(clear_page)
++	pushm	$r1, $r9
++	movi	$r1, PAGE_SIZE >> 5
++	movi55	$r2, #0
++	movi55	$r3, #0
++	movi55	$r4, #0
++	movi55	$r5, #0
++	movi55	$r6, #0
++	movi55	$r7, #0
++	movi55	$r8, #0
++	movi55	$r9, #0
++.Lclear_loop:
++	smw.bim	$r2, [$r0], $r9
++	subi45	$r1, #1
++	bnez38	$r1, .Lclear_loop
++	popm	$r1, $r9
++        ret
++ENDPROC(clear_page)
+diff --git a/arch/nds32/mm/extable.c b/arch/nds32/mm/extable.c
+new file mode 100644
+index 0000000..bce62d7
+--- /dev/null
++++ b/arch/nds32/mm/extable.c
+@@ -0,0 +1,29 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/extable.h>
++#include <asm/uaccess.h>
++
++int fixup_exception(struct pt_regs *regs)
++{
++	const struct exception_table_entry *fixup;
++
++	fixup = search_exception_tables(instruction_pointer(regs));
++	if (fixup)
++		regs->ipc = fixup->fixup;
++
++	return fixup != NULL;
++}
+diff --git a/arch/nds32/mm/fault.c b/arch/nds32/mm/fault.c
+new file mode 100644
+index 0000000..08f582c
+--- /dev/null
++++ b/arch/nds32/mm/fault.c
+@@ -0,0 +1,420 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/extable.h>
++#include <linux/module.h>
++#include <linux/signal.h>
++#include <linux/ptrace.h>
++#include <linux/mm.h>
++#include <linux/init.h>
++#include <linux/hardirq.h>
++
++#include <asm/pgtable.h>
++#include <asm/tlbflush.h>
++#include <asm/uaccess.h>
++
++extern void die(const char *str, struct pt_regs *regs, long err);
++
++/*
++ * This is useful to dump out the page tables associated with
++ * 'addr' in mm 'mm'.
++ */
++void show_pte(struct mm_struct *mm, unsigned long addr)
++{
++	pgd_t *pgd;
++	if (!mm)
++		mm = &init_mm;
++
++	pr_alert("pgd = %p\n", mm->pgd);
++	pgd = pgd_offset(mm, addr);
++	pr_alert("[%08lx] *pgd=%08lx", addr, pgd_val(*pgd));
++
++	do {
++		pmd_t *pmd;
++
++		if (pgd_none(*pgd))
++			break;
++
++		if (pgd_bad(*pgd)) {
++			pr_alert("(bad)");
++			break;
++		}
++
++		pmd = pmd_offset(pgd, addr);
++#if PTRS_PER_PMD != 1
++		pr_alert(", *pmd=%08lx", pmd_val(*pmd));
++#endif
++
++		if (pmd_none(*pmd))
++			break;
++
++		if (pmd_bad(*pmd)) {
++			pr_alert("(bad)");
++			break;
++		}
++
++		if (IS_ENABLED(CONFIG_HIGHMEM))
++		{
++			pte_t *pte;
++			/* We must not map this if we have highmem enabled */
++			pte = pte_offset_map(pmd, addr);
++			pr_alert(", *pte=%08lx", pte_val(*pte));
++			pte_unmap(pte);
++		}
++	} while (0);
++
++	pr_alert("\n");
++}
++
++void do_page_fault(unsigned long entry, unsigned long addr,
++		   unsigned int error_code, struct pt_regs *regs)
++{
++	struct task_struct *tsk;
++	struct mm_struct *mm;
++	struct vm_area_struct *vma;
++	siginfo_t info;
++	int fault;
++	unsigned int mask = VM_READ | VM_WRITE | VM_EXEC;
++	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
++
++	error_code = error_code & (ITYPE_mskINST | ITYPE_mskETYPE);
++	tsk = current;
++	mm = tsk->mm;
++	info.si_code = SEGV_MAPERR;
++	/*
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
++	 */
++	if (addr >= TASK_SIZE) {
++		if (user_mode(regs))
++			goto bad_area_nosemaphore;
++
++		if (addr >= TASK_SIZE && addr < VMALLOC_END
++		    && (entry == ENTRY_PTE_NOT_PRESENT))
++			goto vmalloc_fault;
++		else
++			goto no_context;
++	}
++
++	/* Send a signal to the task for handling the unalignment access. */
++	if (entry == ENTRY_GENERAL_EXCPETION
++	    && error_code == ETYPE_ALIGNMENT_CHECK) {
++		if (user_mode(regs))
++			goto bad_area_nosemaphore;
++		else
++			goto no_context;
++	}
++
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (unlikely(in_atomic() || !mm))
++		goto no_context;
++
++	/*
++	 * As per x86, we may deadlock here. However, since the kernel only
++	 * validly references user space from well defined areas of the code,
++	 * we can bug out early if this is from code which shouldn't.
++	 */
++	if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
++		if (!user_mode(regs) &&
++		    !search_exception_tables(instruction_pointer(regs)))
++			goto no_context;
++retry:
++		down_read(&mm->mmap_sem);
++	} else {
++		/*
++		 * The above down_read_trylock() might have succeeded in which
++		 * case, we'll have missed the might_sleep() from down_read().
++		 */
++		might_sleep();
++		if (IS_ENABLED(CONFIG_DEBUG_VM)) {
++			if (!user_mode(regs) &&
++			    !search_exception_tables(instruction_pointer(regs)))
++				goto no_context;
++		}
++	}
++
++	vma = find_vma(mm, addr);
++
++	if (unlikely(!vma))
++		goto bad_area;
++
++	if (vma->vm_start <= addr)
++		goto good_area;
++
++	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
++		goto bad_area;
++
++	if (unlikely(expand_stack(vma, addr)))
++		goto bad_area;
++
++	/*
++	 * Ok, we have a good vm_area for this memory access, so
++	 * we can handle it..
++	 */
++
++good_area:
++	info.si_code = SEGV_ACCERR;
++
++	/* first do some preliminary protection checks */
++	if (entry == ENTRY_PTE_NOT_PRESENT) {
++		if (error_code & ITYPE_mskINST)
++			mask = VM_EXEC;
++		else {
++			mask = VM_READ | VM_WRITE;
++			if (vma->vm_flags & VM_WRITE)
++				flags |= FAULT_FLAG_WRITE;
++		}
++	} else if (entry == ENTRY_TLB_MISC) {
++		switch (error_code & ITYPE_mskETYPE) {
++		case RD_PROT:
++			mask = VM_READ;
++			break;
++		case WRT_PROT:
++			mask = VM_WRITE;
++			flags |= FAULT_FLAG_WRITE;
++			break;
++		case NOEXEC:
++			mask = VM_EXEC;
++			break;
++		case PAGE_MODIFY:
++			mask = VM_WRITE;
++			flags |= FAULT_FLAG_WRITE;
++			break;
++		case ACC_BIT:
++			BUG();
++		default:
++			break;
++		}
++
++	}
++	if (!(vma->vm_flags & mask))
++		goto bad_area;
++
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++
++	fault = handle_mm_fault(vma, addr, flags);
++
++	/*
++	 * If we need to retry but a fatal signal is pending, handle the
++	 * signal first. We do not need to release the mmap_sem because it
++	 * would already be released in __lock_page_or_retry in mm/filemap.c.
++	 */
++	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
++		return;
++
++	if (unlikely(fault & VM_FAULT_ERROR)) {
++		if (fault & VM_FAULT_OOM)
++			goto out_of_memory;
++		else if (fault & VM_FAULT_SIGBUS)
++			goto do_sigbus;
++		else
++			goto bad_area;
++	}
++
++	/*
++	 * Major/minor page fault accounting is only done on the initial
++	 * attempt. If we go through a retry, it is extremely likely that the
++	 * page will be found in page cache at that point.
++	 */
++	if (flags & FAULT_FLAG_ALLOW_RETRY) {
++		if (fault & VM_FAULT_MAJOR)
++			tsk->maj_flt++;
++		else
++			tsk->min_flt++;
++		if (fault & VM_FAULT_RETRY) {
++			flags &= ~FAULT_FLAG_ALLOW_RETRY;
++			flags |= FAULT_FLAG_TRIED;
++
++			/* No need to up_read(&mm->mmap_sem) as we would
++			 * have already released it in __lock_page_or_retry
++			 * in mm/filemap.c.
++			 */
++			goto retry;
++		}
++	}
++
++	up_read(&mm->mmap_sem);
++	return;
++
++	/*
++	 * Something tried to access memory that isn't in our memory map..
++	 * Fix it, but check if it's kernel or user first..
++	 */
++bad_area:
++	up_read(&mm->mmap_sem);
++
++bad_area_nosemaphore:
++
++	/* User mode accesses just cause a SIGSEGV */
++
++	if (user_mode(regs)) {
++		tsk->thread.address = addr;
++		tsk->thread.error_code = error_code;
++		tsk->thread.trap_no = entry;
++		info.si_signo = SIGSEGV;
++		info.si_errno = 0;
++		/* info.si_code has been set above */
++		info.si_addr = (void *)addr;
++		force_sig_info(SIGSEGV, &info, tsk);
++		return;
++	}
++
++no_context:
++
++	/* Are we prepared to handle this kernel fault?
++	 *
++	 * (The kernel has valid exception-points in the source
++	 *  when it acesses user-memory. When it fails in one
++	 *  of those points, we find it in a table and do a jump
++	 *  to some fixup code that loads an appropriate error
++	 *  code)
++	 */
++
++	{
++		const struct exception_table_entry *entry;
++
++		if ((entry =
++		     search_exception_tables(instruction_pointer(regs))) !=
++		    NULL) {
++			/* Adjust the instruction pointer in the stackframe */
++			instruction_pointer(regs) = entry->fixup;
++			return;
++		}
++	}
++
++	/*
++	 * Oops. The kernel tried to access some bad page. We'll have to
++	 * terminate things with extreme prejudice.
++	 */
++
++	bust_spinlocks(1);
++	pr_alert("Unable to handle kernel %s at virtual address %08lx\n",
++		 (addr < PAGE_SIZE) ? "NULL pointer dereference" :
++		 "paging request", addr);
++
++	show_pte(mm, addr);
++	die("Oops", regs, error_code);
++	bust_spinlocks(0);
++	do_exit(SIGKILL);
++
++	return;
++
++	/*
++	 * We ran out of memory, or some other thing happened to us that made
++	 * us unable to handle the page fault gracefully.
++	 */
++
++out_of_memory:
++	up_read(&mm->mmap_sem);
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
++
++do_sigbus:
++	up_read(&mm->mmap_sem);
++
++	/* Kernel mode? Handle exceptions or die */
++	if (!user_mode(regs))
++		goto no_context;
++
++	/*
++	 * Send a sigbus
++	 */
++	tsk->thread.address = addr;
++	tsk->thread.error_code = error_code;
++	tsk->thread.trap_no = entry;
++	info.si_signo = SIGBUS;
++	info.si_errno = 0;
++	info.si_code = BUS_ADRERR;
++	info.si_addr = (void *)addr;
++	force_sig_info(SIGBUS, &info, tsk);
++
++	return;
++
++vmalloc_fault:
++	{
++		/*
++		 * Synchronize this task's top level page-table
++		 * with the 'reference' page table.
++		 *
++		 * Use current_pgd instead of tsk->active_mm->pgd
++		 * since the latter might be unavailable if this
++		 * code is executed in a misfortunately run irq
++		 * (like inside schedule() between switch_mm and
++		 *  switch_to...).
++		 */
++
++		unsigned int index = pgd_index(addr);
++		pgd_t *pgd, *pgd_k;
++		pud_t *pud, *pud_k;
++		pmd_t *pmd, *pmd_k;
++		pte_t *pte_k;
++
++		pgd = (pgd_t *) __va(__nds32__mfsr(NDS32_SR_L1_PPTB)) + index;
++		pgd_k = init_mm.pgd + index;
++
++		if (!pgd_present(*pgd_k))
++			goto no_context;
++
++		pud = pud_offset(pgd, addr);
++		pud_k = pud_offset(pgd_k, addr);
++		if (!pud_present(*pud_k))
++			goto no_context;
++
++		pmd = pmd_offset(pud, addr);
++		pmd_k = pmd_offset(pud_k, addr);
++		if (!pmd_present(*pmd_k))
++			goto no_context;
++
++		if (!pmd_present(*pmd))
++			set_pmd(pmd, *pmd_k);
++		else
++			BUG_ON(pmd_page(*pmd) != pmd_page(*pmd_k));
++
++		/*
++		 * Since the vmalloc area is global, we don't
++		 * need to copy individual PTE's, it is enough to
++		 * copy the pgd pointer into the pte page of the
++		 * root task. If that is there, we'll find our pte if
++		 * it exists.
++		 */
++
++		/* Make sure the actual PTE exists as well to
++		 * catch kernel vmalloc-area accesses to non-mapped
++		 * addres. If we don't do this, this will just
++		 * silently loop forever.
++		 */
++
++		pte_k = pte_offset_kernel(pmd_k, addr);
++		if (!pte_present(*pte_k))
++			goto no_context;
++
++		return;
++	}
++}
+diff --git a/arch/nds32/mm/mmap.c b/arch/nds32/mm/mmap.c
+new file mode 100644
+index 0000000..fab2fba
+--- /dev/null
++++ b/arch/nds32/mm/mmap.c
+@@ -0,0 +1,86 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/sched.h>
++#include <linux/mman.h>
++#include <linux/shm.h>
++
++#define COLOUR_ALIGN(addr,pgoff)		\
++	((((addr)+SHMLBA-1)&~(SHMLBA-1)) +	\
++	 (((pgoff)<<PAGE_SHIFT) & (SHMLBA-1)))
++
++/*
++ * We need to ensure that shared mappings are correctly aligned to
++ * avoid aliasing issues with VIPT caches.  We need to ensure that
++ * a specific page of an object is always mapped at a multiple of
++ * SHMLBA bytes.
++ *
++ * We unconditionally provide this function for all cases, however
++ * in the VIVT case, we optimise out the alignment rules.
++ */
++unsigned long
++arch_get_unmapped_area(struct file *filp, unsigned long addr,
++		       unsigned long len, unsigned long pgoff,
++		       unsigned long flags)
++{
++	struct mm_struct *mm = current->mm;
++	struct vm_area_struct *vma;
++	int do_align = 0;
++	struct vm_unmapped_area_info info;
++	int aliasing = 1;
++	if(IS_ENABLED(CONFIG_CPU_CACHE_NONALIASING))
++		aliasing = 0;
++
++	/*
++	 * We only need to do colour alignment if either the I or D
++	 * caches alias.
++	 */
++	if (aliasing)
++		do_align = filp || (flags & MAP_SHARED);
++
++	/*
++	 * We enforce the MAP_FIXED case.
++	 */
++	if (flags & MAP_FIXED) {
++		if (aliasing && flags & MAP_SHARED &&
++		    (addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1))
++			return -EINVAL;
++		return addr;
++	}
++
++	if (len > TASK_SIZE)
++		return -ENOMEM;
++
++	if (addr) {
++		if (do_align)
++			addr = COLOUR_ALIGN(addr, pgoff);
++		else
++			addr = PAGE_ALIGN(addr);
++
++		vma = find_vma(mm, addr);
++		if (TASK_SIZE - len >= addr &&
++		    (!vma || addr + len <= vma->vm_start))
++			return addr;
++	}
++
++	info.flags = 0;
++	info.length = len;
++	info.low_limit = mm->mmap_base;
++	info.high_limit = TASK_SIZE;
++	info.align_mask = do_align ? (PAGE_MASK & (SHMLBA - 1)) : 0;
++	info.align_offset = pgoff << PAGE_SHIFT;
++	return vm_unmapped_area(&info);
++}
 -- 
 1.7.9.5
