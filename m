@@ -1,56 +1,43 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v2 34/35] clocksource/drivers/Kconfig: Support andestech atcpit100 timer
-Date: Mon, 27 Nov 2017 20:28:21 +0800
-Message-ID: <1a22db002413ff60851737736a86b40c38877220.1511785528.git.green.hu@gmail.com>
+Subject: [PATCH v2 31/35] earlycon: add reg-offset to physical address before mapping
+Date: Mon, 27 Nov 2017 20:28:18 +0800
+Message-ID: <5b5f07ffd75d509a661398d02d6f1336156554ae.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:44465 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752060AbdK0MzX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:55:23 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org
-Cc: Rick Chen <rickchen36@gmail.com>, green.hu@gmail.com
+Cc: green.hu@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-From: Rick Chen <rickchen36@gmail.com>
+From: Greentime Hu <greentime@andestech.com>
 
-Add CLKSRC_ATCPIT100 for Andestech atcpit100 timer selection.
-It often be used in Andestech AE3XX platform.
-
-Signed-off-by: Rick Chen <rickchen36@gmail.com>
-Signed-off-by: Greentime Hu <green.hu@gmail.com>
+It will get the wrong virtual address because port->mapbase is not added
+the correct reg-offset yet. We have to update it before earlycon_map()
+is called
 ---
- drivers/clocksource/Kconfig  |    6 ++++++
- drivers/clocksource/Makefile |    1 +
- 2 files changed, 7 insertions(+)
+ drivers/tty/serial/earlycon.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
-index cc60620..591362a 100644
---- a/drivers/clocksource/Kconfig
-+++ b/drivers/clocksource/Kconfig
-@@ -615,4 +615,10 @@ config CLKSRC_ST_LPC
- 	  Enable this option to use the Low Power controller timer
- 	  as clocksource.
+diff --git a/drivers/tty/serial/earlycon.c b/drivers/tty/serial/earlycon.c
+index 98928f0..17dba0a 100644
+--- a/drivers/tty/serial/earlycon.c
++++ b/drivers/tty/serial/earlycon.c
+@@ -253,11 +253,12 @@ int __init of_setup_earlycon(const struct earlycon_id *match,
+ 	}
+ 	port->mapbase = addr;
+ 	port->uartclk = BASE_BAUD * 16;
+-	port->membase = earlycon_map(port->mapbase, SZ_4K);
  
-+config CLKSRC_ATCPIT100
-+	bool "Clocksource for AE3XX platform" if COMPILE_TEST
-+	depends on GENERIC_CLOCKEVENTS && HAS_IOMEM
-+	help
-+	  This option enables support for the Andestech AE3XX platform timers.
+ 	val = of_get_flat_dt_prop(node, "reg-offset", NULL);
+ 	if (val)
+ 		port->mapbase += be32_to_cpu(*val);
++	port->membase = earlycon_map(port->mapbase, SZ_4K);
 +
- endmenu
-diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
-index 72711f1..7d072f5 100644
---- a/drivers/clocksource/Makefile
-+++ b/drivers/clocksource/Makefile
-@@ -75,3 +75,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
- obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
- obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
- obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
-+obj-$(CONFIG_CLKSRC_ATCPIT100)		+= timer-atcpit100.o
+ 	val = of_get_flat_dt_prop(node, "reg-shift", NULL);
+ 	if (val)
+ 		port->regshift = be32_to_cpu(*val);
 -- 
 1.7.9.5
