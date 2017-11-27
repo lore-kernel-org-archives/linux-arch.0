@@ -1,68 +1,56 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v2 35/35] dt-bindings: timer: Add andestech atcpit100 timer binding doc
-Date: Mon, 27 Nov 2017 20:28:22 +0800
-Message-ID: <60f23e7fcff11f16b0bca4753a39d098849eeac3.1511785528.git.green.hu@gmail.com>
+Subject: [PATCH v2 34/35] clocksource/drivers/Kconfig: Support andestech atcpit100 timer
+Date: Mon, 27 Nov 2017 20:28:21 +0800
+Message-ID: <1a22db002413ff60851737736a86b40c38877220.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:44465 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752060AbdK0MzX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 07:55:23 -0500
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
 In-Reply-To: <cover.1511785528.git.green.hu@gmail.com>
 References: <cover.1511785528.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org
 Cc: Rick Chen <rickchen36@gmail.com>, green.hu@gmail.com
-List-Id: linux-arch.vger.kernel.org
 
 From: Rick Chen <rickchen36@gmail.com>
 
-Add a document to describe Andestech atcpit100 timer and
-binding information.
+Add CLKSRC_ATCPIT100 for Andestech atcpit100 timer selection.
+It often be used in Andestech AE3XX platform.
 
 Signed-off-by: Rick Chen <rickchen36@gmail.com>
-Acked-by: Rob Herring <robh@kernel.org>
 Signed-off-by: Greentime Hu <green.hu@gmail.com>
 ---
- .../bindings/timer/andestech,atcpit100-timer.txt   |   33 ++++++++++++++++++++
- 1 file changed, 33 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
+ drivers/clocksource/Kconfig  |    6 ++++++
+ drivers/clocksource/Makefile |    1 +
+ 2 files changed, 7 insertions(+)
 
-diff --git a/Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt b/Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
-new file mode 100644
-index 0000000..b97ff32
---- /dev/null
-+++ b/Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
-@@ -0,0 +1,33 @@
-+Andestech ATCPIT100 timer
-+------------------------------------------------------------------
-+ATCPIT100 is a generic IP block from Andes Technology, embedded in
-+Andestech AE3XX platforms and other designs.
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index cc60620..591362a 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -615,4 +615,10 @@ config CLKSRC_ST_LPC
+ 	  Enable this option to use the Low Power controller timer
+ 	  as clocksource.
+ 
++config CLKSRC_ATCPIT100
++	bool "Clocksource for AE3XX platform" if COMPILE_TEST
++	depends on GENERIC_CLOCKEVENTS && HAS_IOMEM
++	help
++	  This option enables support for the Andestech AE3XX platform timers.
 +
-+This timer is a set of compact multi-function timers, which can be
-+used as pulse width modulators (PWM) as well as simple timers.
-+
-+It supports up to 4 PIT channels. Each PIT channel is a
-+multi-function timer and provide the following usage scenarios:
-+One 32-bit timer
-+Two 16-bit timers
-+Four 8-bit timers
-+One 16-bit PWM
-+One 16-bit timer and one 8-bit PWM
-+Two 8-bit timer and one 8-bit PWM
-+
-+Required properties:
-+- compatible	: Should be "andestech,atcpit100"
-+- reg		: Address and length of the register set
-+- interrupts	: Reference to the timer interrupt
-+- clocks : a clock to provide the tick rate for "andestech,atcpit100"
-+- clock-names : should be "PCLK" for the external tick timer.
-+
-+Examples:
-+
-+timer0: timer@f0400000 {
-+	compatible = "andestech,atcpit100";
-+	reg = <0xf0400000 0x1000>;
-+	interrupts = <2 4>;
-+	clocks = <&clk_pll>;
-+	clock-names = "PCLK";
-+};
+ endmenu
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index 72711f1..7d072f5 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -75,3 +75,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
+ obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
+ obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
+ obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
++obj-$(CONFIG_CLKSRC_ATCPIT100)		+= timer-atcpit100.o
 -- 
 1.7.9.5
