@@ -1,112 +1,150 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f194.google.com ([209.85.220.194]:38233 "EHLO
-        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753372AbdK0TcA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 14:32:00 -0500
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: [PATCH v2 07/10] include: Add new y2038 safe __kernel_timespec
-Date: Mon, 27 Nov 2017 11:30:34 -0800
-Message-ID: <20171127193037.8711-8-deepa.kernel@gmail.com>
-In-Reply-To: <20171127193037.8711-1-deepa.kernel@gmail.com>
-References: <20171127193037.8711-1-deepa.kernel@gmail.com>
+Received: from mail-oi0-f67.google.com ([209.85.218.67]:33213 "EHLO
+        mail-oi0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752750AbdK0Ul4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 15:41:56 -0500
+MIME-Version: 1.0
+In-Reply-To: <87o9nnlfpq.fsf@xmission.com>
+References: <20171127170121.634826-1-arnd@arndb.de> <20171127170121.634826-3-arnd@arndb.de>
+ <34369a6e-e0ce-fe7b-65e3-9c4a33e4789a@cs.ucla.edu> <87o9nnlfpq.fsf@xmission.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 27 Nov 2017 21:41:54 +0100
+Message-ID: <CAK8P3a1asMLnJtea=JkduiYzr0dF0BTKQzcx5aQVv1zU5dK2FA@mail.gmail.com>
+Subject: Re: [PATCH 3/3] y2038: rusage: use __kernel_old_timeval for process times
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, john.stultz@linaro.org
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, linux-arch@vger.kernel.org
-Message-ID: <20171127193034.7vMfbsDNv1qX4jHLG-wF_oWLBrGzpccofx2kd_Czk0Y@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Paul Eggert <eggert@cs.ucla.edu>, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, y2038 Mailman List <y2038@lists.linaro.org>, GNU C Library <libc-alpha@sourceware.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Albert ARIBAUD <albert.aribaud@3adev.fr>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Kirill Tkhai <ktkhai@virtuozzo.com>, linux-alpha@vger.kernel.org
+Message-ID: <20171127204154.9_IHyZBgFZx8acuSFk3eM0eGCVK2c-Q2KG8FwnAXLOY@z>
 
-The new struct __kernel_timespec is similar to current
-internal kernel struct timespec64 on 64 bit architecture.
-The compat structure however is similar to below on little
-endian systems (padding and tv_nsec are switched for big
-endian systems):
+On Mon, Nov 27, 2017 at 7:49 PM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
+> Paul Eggert <eggert@cs.ucla.edu> writes:
+>
+>> On 11/27/2017 09:00 AM, Arnd Bergmann wrote:
+>>> b) Extend the approach taken by the x32 ABI, and use the 64-bit
+>>>     native structure layout for rusage on all architectures with new
+>>>     system calls that is otherwise compatible. A possible problem here
+>>>     is that we end up with incompatible definitions of rusage between
+>>>     /usr/include/linux/resource.h and /usr/include/bits/resource.h
+>>>
+>>> c) Change the definition of struct rusage to be independent of
+>>>     time_t. This is the easiest change, as it does not involve new system
+>>>     call entry points, but it has the risk of introducing compile-time
+>>>     incompatibilities with user space sources that rely on the type
+>>>     of ru_utime and ru_stime.
+>>>
+>>> I'm picking approch c) for its simplicity, but I'd like to hear from
+>>> others whether they would prefer a different approach.
+>>
+>> (c) would break programs like GNU Emacs, which copy ru_utime and ru_stime
+>> members into struct timeval variables.
 
-typedef s32            compat_long_t;
-typedef s64            compat_kernel_time64_t;
+Right. I think I originally had the workaround to have glibc convert
+between its own structure and the kernel structure in mind, but then
+ended up not including that in the text above. I was going back and
+forth on whether it would be needed or not.
 
-struct compat_kernel_timespec {
-       compat_kernel_time64_t  tv_sec;
-       compat_long_t           tv_nsec;
-       compat_long_t           padding;
+>> All in all, (b) sounds like it would be better for programs using glibc, as it's
+>> more compatible with what POSIX apps expect. Though I'm not sure what problems
+>> are meant by "possible ... incompatible definitions"; perhaps you could
+>> elaborate.
+
+I meant that you might have an application that includes
+linux/resource.h instead of sys/resource.h but calls the glibc
+function, or one that includes sys/resource.h and invokes the
+system call directly.
+
+> getrusage is posix and I believe the use of struct timeval is posix as
+> well.
+>
+> So getrusage(3) the libc definition and that defintion must struct
+> timeval or the implementation will be non-conforming and it won't be
+> just emacs we need to worry about.
+>
+> The practical question is what do we provide to userspace so that it can
+> implement a conforming getrusage?
+>
+> A 32bit time_t based struct timeval is good for durations up to 136 years
+> or so.  Which strongly suggests the range is large enough, except for
+> some crazy massively multi-threaded application.  And anything off the
+> charts cpu hungry at this point I expect will be 64bit.
+>
+> It is possible to get a 128 way system with one thread on each core and
+> consume 100% of the core for a bit over a year to max out getrusage.  So
+> I do think in the long run we care about increasing the size of time_t
+> here.  Last I checked applications doing things like that were 64bit in
+> the year 2000.
+
+Agreed, this was also a calculation I did.
+
+> Given that userspace is going to be seeing the larger struct rusage in
+> any event my inclination for long term maintainability would be to
+> introduce the new syscall and have the current one called oldgetrusage
+> on 32bit architectures.  Then we won't have to worry about what weird
+> things glibc will do when translating the data, and we can handle
+> applications with crazy (but possible) runtimes.  Which inclines me to
+> (b) as well.
+
+This would actually be the same thing we do for most other syscalls,
+regarding the naming, it would become compat_sys_getrusage()
+and share the implementation between native 32-bit mode and
+compat mode on 64-bit architectures, while sys_getrusage becomes
+the function that deals with the 64-bit layout, and would have the
+same binary format on both 32-bit and 64-bit native ABIs.
+
+Unfortunately, this opens a new question, as the structure is currently
+defined by glibc as:
+
+/* Structure which says how much of each resource has been used.  */
+
+/* The purpose of all the unions is to have the kernel-compatible layout
+   while keeping the API type as 'long int', and among machines where
+   __syscall_slong_t is not 'long int', this only does the right thing
+   for little-endian ones, like x32.  */
+struct rusage
+  {
+    /* Total amount of user time used.  */
+    struct timeval ru_utime;
+    /* Total amount of system time used.  */
+    struct timeval ru_stime;
+    /* Maximum resident set size (in kilobytes).  */
+    __extension__ union
+      {
+        long int ru_maxrss;
+        __syscall_slong_t __ru_maxrss_word;
+      };
+    /* Amount of sharing of text segment memory
+       with other processes (kilobyte-seconds).  */
+    /* Maximum resident set size (in kilobytes).  */
+    __extension__ union
+      {
+        long int ru_ixrss;
+        __syscall_slong_t __ru_ixrss_word;
+      };
+   ...
 };
 
-This allows for both the native and compat representations to
-be the same and syscalls using this type as part of their ABI
-can have a single entry point to both.
+Here, I guess we have to replace __syscall_slong_t with an 'rusage'
+specific type that has the same length as time_t, but is independent
+of __syscall_slong_t, which is still 32-bit for most 32-bit architectures.
 
-Note that the compat define is not included anywhere in the
-kernel explicitly to avoid confusion.
+How would we do the big-endian version of that though?
 
-These types will be used by the new syscalls that will be
-introduced in the consequent patches.
-Most of the new syscalls are just an update to the existing
-native ones with this new type. Hence, put this new type under
-an ifdef so that the architectures can define CONFIG_64BIT_TIME
-when they are ready to handle this switch.
+One argument for using c) plus the emulation in glibc is that glibc
+has to do emulation anyway, to allow running user space with 64-bit
+time_t on older kernels that don't have the new getrusage system
+call.
 
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
----
- include/linux/time64.h                 | 10 +++++++++-
- include/uapi/asm-generic/posix_types.h |  1 +
- include/uapi/linux/time.h              |  7 +++++++
- 3 files changed, 17 insertions(+), 1 deletion(-)
+> As for (a) does anyone have a need for process acounting at nsec
+> granularity?  Unless we can get that for free that just seems like
+> overpromising and a waist to have so much fine granularity.
 
-diff --git a/include/linux/time64.h b/include/linux/time64.h
-index 93d39499838e..0d96887ba4e0 100644
---- a/include/linux/time64.h
-+++ b/include/linux/time64.h
-@@ -2,12 +2,20 @@
- #ifndef _LINUX_TIME64_H
- #define _LINUX_TIME64_H
- 
--#include <uapi/linux/time.h>
- #include <linux/math64.h>
- 
- typedef __s64 time64_t;
- typedef __u64 timeu64_t;
- 
-+/* CONFIG_64BIT_TIME enables new 64 bit time_t syscalls in the compat path
-+ * and 32-bit emulation.
-+ */
-+#ifndef CONFIG_64BIT_TIME
-+#define __kernel_timespec timespec
-+#endif
-+
-+#include <uapi/linux/time.h>
-+
- #if __BITS_PER_LONG == 64
- /* this trick allows us to optimize out timespec64_to_timespec */
- # define timespec64 timespec
-diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
-index 5e6ea22bd525..f0733a26ebfc 100644
---- a/include/uapi/asm-generic/posix_types.h
-+++ b/include/uapi/asm-generic/posix_types.h
-@@ -87,6 +87,7 @@ typedef struct {
- typedef __kernel_long_t	__kernel_off_t;
- typedef long long	__kernel_loff_t;
- typedef __kernel_long_t	__kernel_time_t;
-+typedef long long __kernel_time64_t;
- typedef __kernel_long_t	__kernel_clock_t;
- typedef int		__kernel_timer_t;
- typedef int		__kernel_clockid_t;
-diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
-index 53f8dd84beb5..0ad4510884b0 100644
---- a/include/uapi/linux/time.h
-+++ b/include/uapi/linux/time.h
-@@ -42,6 +42,13 @@ struct itimerval {
- 	struct timeval it_value;	/* current value */
- };
- 
-+#ifndef __kernel_timespec
-+struct __kernel_timespec {
-+	__kernel_time64_t       tv_sec;                 /* seconds */
-+	long long               tv_nsec;                /* nanoseconds */
-+};
-+#endif
-+
- /*
-  * The IDs of the various system clocks (for POSIX.1b interval timers):
-  */
--- 
-2.14.1
+The kernel does everything in nanoseconds, so we always spend
+a few cycles (a lot of cycles on some of the very low-end architectures)
+on dividing it by 1000. Moving the division operation to user space
+is essentially free, and using the nanoseconds instead of microseconds
+might be slightly cheaper. I don't think anyone really needs it though.
+
+      Arnd
