@@ -1,63 +1,108 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: Re: [PATCH v2 00/10] posix_clocks: Prepare syscalls for 64 bit time_t conversion
-Date: Mon, 27 Nov 2017 14:29:59 -0800
-Message-ID: <CABeXuvrBOSVTNSbEZZMKmuTgWeU_VDqjSZkwGAM+bnPh0-72zA@mail.gmail.com>
-References: <20171127193037.8711-1-deepa.kernel@gmail.com> <CAK8P3a2pcpQqf_TNGVxLBePBSKYhxD90UN-FjBor4d-dKhAwbQ@mail.gmail.com>
+From: Vincent Chen <deanbo422@gmail.com>
+Subject: Re: [PATCH v2 14/35] nds32: System calls handling
+Date: Tue, 28 Nov 2017 10:18:21 +0800
+Message-ID: <CAJsyPhyep2xp1tANCUO=p9GwsAFZGcV=EdFnjdem8v3-o--O=Q@mail.gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com> <ee45d9c7b0388c87a93a26484e859001477eb3a2.1511785528.git.green.hu@gmail.com>
+ <CAK8P3a3V7=4LjT38xT2VBQW4sTgpKergar2KoO8brbMZjR--1w@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f66.google.com ([209.85.214.66]:36780 "EHLO
-        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752091AbdK0WaB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Nov 2017 17:30:01 -0500
-In-Reply-To: <CAK8P3a2pcpQqf_TNGVxLBePBSKYhxD90UN-FjBor4d-dKhAwbQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a3V7=4LjT38xT2VBQW4sTgpKergar2KoO8brbMZjR--1w@mail.gmail.com>
+Sender: netdev-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, John Stultz <john.stultz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, cohuck@redhat.com, David Miller <davem@davemloft.net>, Helge Deller <deller@gmx.de>, devel@driverdev.osuosl.org, gerald.schaefer@de.ibm.com, gregkh <gregkh@linuxfoundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jan Hoeppner <hoeppner@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Julian
+Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Vincent Chen <vincentc@andestech.com>
+List-Id: linux-arch.vger.kernel.org
 
->> I decided against using LEGACY_TIME_SYSCALLS to conditionally compile
->> legacy time syscalls such as sys_nanosleep because this will need to
->> enclose compat_sys_nanosleep as well. So, defining it as
->>
->> config LEGACY_TIME_SYSCALLS
->>      def_bool 64BIT || !64BIT_TIME
->>
->> will not include compat_sys_nanosleep. We will instead need a new config to
->> exclusively mark legacy syscalls.
+2017-11-27 22:46 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
 >
-> Do you mean we would need to do this separately for native and compat
-> syscalls, and have yet another option, like LEGACY_TIME_SYSCALLS
-> and LEGACY_TIME_COMPAT_SYSCALLS, to cover all cases? I would
-> think that CONFIG_COMPAT_32BIT_TIME handles all the compat versions,
-> while CONFIG_LEGACY_TIME_SYSCALLS handles all the native ones.
+>> diff --git a/arch/nds32/include/asm/syscalls.h b/arch/nds32/include/asm/syscalls.h
+>> new file mode 100644
+>> index 0000000..741ccdc
+>> --- /dev/null
+>> +++ b/arch/nds32/include/asm/syscalls.h
+>> @@ -0,0 +1,27 @@
+>> +/*
+>> + * Copyright (C) 2005-2017 Andes Technology Corporation
+>> + *
+>> + * This program is free software; you can redistribute it and/or modify
+>> + * it under the terms of the GNU General Public License version 2 as
+>> + * published by the Free Software Foundation.
+>> + *
+>> + * This program is distributed in the hope that it will be useful,
+>> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+>> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+>> + * GNU General Public License for more details.
+>> + *
+>> + * You should have received a copy of the GNU General Public License
+>> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>> + */
+>> +
+>> +#ifndef __ASM_NDS32_SYSCALLS_H
+>> +#define __ASM_NDS32_SYSCALLS_H
+>> +
+>> +int sys_cacheflush(unsigned long addr, unsigned long len, unsigned int op);
+>> +long sys_fadvise64_64_wrapper(int fd, int advice, loff_t offset, loff_t len);
+>> +asmlinkage int sys_syscall(void);
+>> +asmlinkage int sys_rt_sigreturn_wrapper(void);
+>
+> You mentioned that sys_syscall() should be removed in this version.
+>
 
-I meant sys_nanosleep would be covered by LEGACY_TIME_SYSCALLS, but
-compat_sys_nanosleep would be covered by CONFIG_COMPAT_32BIT_TIME
-along with other compat syscalls.
-So, if we define the LEGACY_TIME_SYSCALLS as
+Sorry, I will remove it in next version patch.
+
+> By convention, all syscall declarations should start with 'asmlinkage long',
+> even though this has no effect in your architecture.
+>
+
+Thanks.
+I will modify it  in next version patch.
+
+>> diff --git a/arch/nds32/include/uapi/asm/unistd.h b/arch/nds32/include/uapi/asm/unistd.h
+>> new file mode 100644
+>> index 0000000..2bad1e7
+>> --- /dev/null
+>> +++ b/arch/nds32/include/uapi/asm/unistd.h
+>
+>> +
+>> +#define __ARCH_WANT_RENAMEAT
+>> +#define __ARCH_WANT_SYSCALL_OFF_T
+>
+> These two should not be here.
+>
+
+Thanks.
+But, I don't know I should move these two macro to which file.
+In asm-generic/unistd.h, these two are used to decide whether relative
+syscall number is defined or not.
+Therefore,  I put these two macros here in order that these two
+definitions are available in user space.
 
 
-        "This controls the compilation of the following system calls:
-        time, stime, gettimeofday, settimeofday, adjtimex, nanosleep,
-alarm, getitimer,
-        setitimer, select, utime, utimes, futimesat, and
-{old,new}{l,f,}stat{,64}.
-        These all pass 32-bit time_t arguments on 32-bit architectures and
-        are replaced by other interfaces (e.g. posix timers and clocks, statx).
-        C libraries implementing 64-bit time_t in 32-bit architectures have to
-        implement the handles by wrapping around the newer interfaces.
-        New architectures should not explicitly enable this."
+>> +#define __ARCH_WANT_SYNC_FILE_RANGE2
+>
+> This one is fine though
+>
+>> +/* Use the standard ABI for syscalls */
+>> +#include <asm-generic/unistd.h>
+>> +
+>> +__SYSCALL(__NR_fadvise64_64, sys_fadvise64_64_wrapper)
+>> +__SYSCALL(__NR_rt_sigreturn, sys_rt_sigreturn_wrapper)
+>
+> I think you are overriding the array assignment here, this may cause a
+> compiler warning when building with "make C=1 V=1" since you have
+> the same index assigned to two pointers. A better way to do this
+> is to override the name:
+>
+> #define sys_rt_sigreturn sys_rt_sigreturn_wrapper
+> #define sys_fadvise64_64 sys_fadvise64_64_wrapper
+> #include <asm-generic/unistd.h>
+>
+Thanks,
+I will follow your suggestion to modify it in the next version patch.
 
-This would not be really true as compat interfaces have nothing to do
-with this config.
+>
+>       Arnd
 
-I was proposing that we could have LEGACY_TIME_SYSCALLS config, but
-then have all these "deprecated" syscalls be enclosed within this,
-compat or not.
-This will also mean that we will have to come up representing these
-syscalls in the syscall header files.
-This can be a separate patch and this series can be merged as is if
-everyone agrees.
 
--Deepa
+Vincent
