@@ -1,40 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f194.google.com ([74.125.82.194]:38721 "EHLO
+Received: from mail-ot0-f194.google.com ([74.125.82.194]:45877 "EHLO
         mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751596AbdK1KcH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Nov 2017 05:32:07 -0500
+        with ESMTP id S1752259AbdK1OR2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Nov 2017 09:17:28 -0500
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a1asMLnJtea=JkduiYzr0dF0BTKQzcx5aQVv1zU5dK2FA@mail.gmail.com>
-References: <20171127170121.634826-1-arnd@arndb.de> <20171127170121.634826-3-arnd@arndb.de>
- <34369a6e-e0ce-fe7b-65e3-9c4a33e4789a@cs.ucla.edu> <87o9nnlfpq.fsf@xmission.com>
- <CAK8P3a1asMLnJtea=JkduiYzr0dF0BTKQzcx5aQVv1zU5dK2FA@mail.gmail.com>
+In-Reply-To: <CABeXuvrBOSVTNSbEZZMKmuTgWeU_VDqjSZkwGAM+bnPh0-72zA@mail.gmail.com>
+References: <20171127193037.8711-1-deepa.kernel@gmail.com> <CAK8P3a2pcpQqf_TNGVxLBePBSKYhxD90UN-FjBor4d-dKhAwbQ@mail.gmail.com>
+ <CABeXuvrBOSVTNSbEZZMKmuTgWeU_VDqjSZkwGAM+bnPh0-72zA@mail.gmail.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 28 Nov 2017 11:32:06 +0100
-Message-ID: <CAK8P3a3yMhMPNQS1XQB_kiyL2mV-gCPNVT+Eyr13+dwNqADr7A@mail.gmail.com>
-Subject: Re: [PATCH 3/3] y2038: rusage: use __kernel_old_timeval for process times
+Date: Tue, 28 Nov 2017 15:17:26 +0100
+Message-ID: <CAK8P3a26g74UA5J5uQLwdjK3hq+htzjrdTYRKqfy_MawY7st+g@mail.gmail.com>
+Subject: Re: [PATCH v2 00/10] posix_clocks: Prepare syscalls for 64 bit time_t conversion
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Paul Eggert <eggert@cs.ucla.edu>, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, y2038 Mailman List <y2038@lists.linaro.org>, GNU C Library <libc-alpha@sourceware.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Albert ARIBAUD <albert.aribaud@3adev.fr>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Deepa Dinamani <deepa.kernel@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Kirill Tkhai <ktkhai@virtuozzo.com>, linux-alpha@vger.kernel.org
-Message-ID: <20171128103206.t8KdGU2fn7w8lgGczsoN_rdIf5GXipsiG0isQnutrCc@z>
+To: Deepa Dinamani <deepa.kernel@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, John Stultz <john.stultz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, cohuck@redhat.com, David Miller <davem@davemloft.net>, Helge Deller <deller@gmx.de>, devel@driverdev.osuosl.org, gerald.schaefer@de.ibm.com, gregkh <gregkh@linuxfoundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jan Hoeppner <hoeppner@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Julian Wiedmann <jwi@linux.vnet.ibm.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Ingo Molnar <mingo@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, oberpar@linux.vnet.ibm.com, oprofile-list@lists.sf.net, Paul Mackerras <paulus@samba.org>, Peter Zijlstra <peterz@infradead.org>, Ralf Baechle <ralf@linux-mips.org>, Steven Rostedt <rostedt@goodmis.org>, Robert Richter <rric@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, sebott@linux.vnet.ibm.com, sparclinux <sparclinux@vger.kernel.org>, Stefan Haberland <sth@linux.vnet.ibm.com>, Ursula Braun <ubraun@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, the arch/x86 maintainers <x86@kernel.org>
+Message-ID: <20171128141726.1U-EY7-QgthRcNhDRlfiP3NF7j1LG_1ij7LRI0xXwZs@z>
 
-On Mon, Nov 27, 2017 at 9:41 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+On Mon, Nov 27, 2017 at 11:29 PM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
+>>> I decided against using LEGACY_TIME_SYSCALLS to conditionally compile
+>>> legacy time syscalls such as sys_nanosleep because this will need to
+>>> enclose compat_sys_nanosleep as well. So, defining it as
+>>>
+>>> config LEGACY_TIME_SYSCALLS
+>>>      def_bool 64BIT || !64BIT_TIME
+>>>
+>>> will not include compat_sys_nanosleep. We will instead need a new config to
+>>> exclusively mark legacy syscalls.
+>>
+>> Do you mean we would need to do this separately for native and compat
+>> syscalls, and have yet another option, like LEGACY_TIME_SYSCALLS
+>> and LEGACY_TIME_COMPAT_SYSCALLS, to cover all cases? I would
+>> think that CONFIG_COMPAT_32BIT_TIME handles all the compat versions,
+>> while CONFIG_LEGACY_TIME_SYSCALLS handles all the native ones.
 >
-> One argument for using c) plus the emulation in glibc is that glibc
-> has to do emulation anyway, to allow running user space with 64-bit
-> time_t on older kernels that don't have the new getrusage system
-> call.
+> I meant sys_nanosleep would be covered by LEGACY_TIME_SYSCALLS, but
+> compat_sys_nanosleep would be covered by CONFIG_COMPAT_32BIT_TIME
+> along with other compat syscalls.
+> So, if we define the LEGACY_TIME_SYSCALLS as
+>
+>
+>         "This controls the compilation of the following system calls:
+>         time, stime, gettimeofday, settimeofday, adjtimex, nanosleep,
+> alarm, getitimer,
+>         setitimer, select, utime, utimes, futimesat, and
+> {old,new}{l,f,}stat{,64}.
+>         These all pass 32-bit time_t arguments on 32-bit architectures and
+>         are replaced by other interfaces (e.g. posix timers and clocks, statx).
+>         C libraries implementing 64-bit time_t in 32-bit architectures have to
+>         implement the handles by wrapping around the newer interfaces.
+>         New architectures should not explicitly enable this."
+>
+> This would not be really true as compat interfaces have nothing to do
+> with this config.
+>
+> I was proposing that we could have LEGACY_TIME_SYSCALLS config, but
+> then have all these "deprecated" syscalls be enclosed within this,
+> compat or not.
+> This will also mean that we will have to come up representing these
+> syscalls in the syscall header files.
+> This can be a separate patch and this series can be merged as is if
+> everyone agrees.
 
-To clarify my point here, if we stay with approach c), I think it should work
-directly with the Albert's proposed patch "Y2038: add function
-__getrusage_t64" [1], and we can remove the  "  // TODO: use
-64-bit-time syscall if available" there. If we pick approach b), we
-still need the same glibc patch, but would also implement the
-interface to the new system call. As Eric said, this would be slightly
-cleaner, but not really help us since 32-bit fields in rusage are
-sufficient on the kernel interface side.
+I think doing this separately  would be good, I don't see any interdependency
+with the other patches, we just need to decide what we want in the long
+run.
 
-       Arnd
+I agree my text that you cited doesn't capture the situation correctly,
+as this is really about the obsolete system calls that take 64-bit time_t
+arguments on architectures that are converted to allow 64-bit time_t
+for non-obsolete system calls.
 
-[1] https://patchwork.ozlabs.org/patch/811246/
+Maybe it's better to just reword this to
+
+      "This controls the compilation of the following system calls:
+      time, stime, gettimeofday, settimeofday, adjtimex, nanosleep,
+alarm, getitimer,
+      setitimer, select, utime, utimes, futimesat, and {old,new}{l,f,}stat{,64}.
+      These are all replaced by other interfaces (e.g. posix timers and clocks,
+      statx) on architectures that got converted from 32-bit time_t to
+64-bit time_t.
+      C libraries implementing 64-bit time_t in 32-bit architectures have to
+      implement the handles by wrapping around the newer interfaces.
+      New architectures should not explicitly enable this."
+
+That would clarify that it's not about the compat system calls, while
+also allowing the two options to be set independently.
+
+        Arnd
