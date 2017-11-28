@@ -1,86 +1,75 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 00/10] posix_clocks: Prepare syscalls for 64 bit time_t conversion
-Date: Tue, 28 Nov 2017 15:17:26 +0100
-Message-ID: <CAK8P3a26g74UA5J5uQLwdjK3hq+htzjrdTYRKqfy_MawY7st+g@mail.gmail.com>
-References: <20171127193037.8711-1-deepa.kernel@gmail.com> <CAK8P3a2pcpQqf_TNGVxLBePBSKYhxD90UN-FjBor4d-dKhAwbQ@mail.gmail.com>
- <CABeXuvrBOSVTNSbEZZMKmuTgWeU_VDqjSZkwGAM+bnPh0-72zA@mail.gmail.com>
+From: "U N-Headquarters" <ttt-x013@vir-gor-5k.gq>
+Subject: DIRECTOR IN CHARGE: DR.PATRICE TEME
+Date: Tue, 28 Nov 2017 22:20:00 +0800
+Message-ID: <BY2PR13MB071014E1FB58BF3A650D0CE6983A0__47403.8248685703$1511878825$gmane$org@BY2PR13MB0710.namprd13.prod.outlook.com>
+Reply-To: dr_patrice_teme@info-magnum-bank.ugu.pl
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <CABeXuvrBOSVTNSbEZZMKmuTgWeU_VDqjSZkwGAM+bnPh0-72zA@mail.gmail.com>
-Sender: sparclinux-owner@vger.kernel.org
-To: Deepa Dinamani <deepa.kernel@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, John Stultz <john.stultz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, cohuck@redhat.com, David Miller <davem@davemloft.net>, Helge Deller <deller@gmx.de>, devel@driverdev.osuosl.org, gerald.schaefer@de.ibm.com, gregkh <gregkh@linuxfoundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jan Hoeppner <hoeppner@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Julian
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-sn1nam01hn0204.outbound.protection.outlook.com ([104.47.32.204]:6162
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751355AbdK1OUN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Nov 2017 09:20:13 -0500
+Content-Description: Mail message body
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Recipients <ttt-x013@vir-gor-5k.gq>
 
-On Mon, Nov 27, 2017 at 11:29 PM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
->>> I decided against using LEGACY_TIME_SYSCALLS to conditionally compile
->>> legacy time syscalls such as sys_nanosleep because this will need to
->>> enclose compat_sys_nanosleep as well. So, defining it as
->>>
->>> config LEGACY_TIME_SYSCALLS
->>>      def_bool 64BIT || !64BIT_TIME
->>>
->>> will not include compat_sys_nanosleep. We will instead need a new config to
->>> exclusively mark legacy syscalls.
->>
->> Do you mean we would need to do this separately for native and compat
->> syscalls, and have yet another option, like LEGACY_TIME_SYSCALLS
->> and LEGACY_TIME_COMPAT_SYSCALLS, to cover all cases? I would
->> think that CONFIG_COMPAT_32BIT_TIME handles all the compat versions,
->> while CONFIG_LEGACY_TIME_SYSCALLS handles all the native ones.
->
-> I meant sys_nanosleep would be covered by LEGACY_TIME_SYSCALLS, but
-> compat_sys_nanosleep would be covered by CONFIG_COMPAT_32BIT_TIME
-> along with other compat syscalls.
-> So, if we define the LEGACY_TIME_SYSCALLS as
->
->
->         "This controls the compilation of the following system calls:
->         time, stime, gettimeofday, settimeofday, adjtimex, nanosleep,
-> alarm, getitimer,
->         setitimer, select, utime, utimes, futimesat, and
-> {old,new}{l,f,}stat{,64}.
->         These all pass 32-bit time_t arguments on 32-bit architectures and
->         are replaced by other interfaces (e.g. posix timers and clocks, statx).
->         C libraries implementing 64-bit time_t in 32-bit architectures have to
->         implement the handles by wrapping around the newer interfaces.
->         New architectures should not explicitly enable this."
->
-> This would not be really true as compat interfaces have nothing to do
-> with this config.
->
-> I was proposing that we could have LEGACY_TIME_SYSCALLS config, but
-> then have all these "deprecated" syscalls be enclosed within this,
-> compat or not.
-> This will also mean that we will have to come up representing these
-> syscalls in the syscall header files.
-> This can be a separate patch and this series can be merged as is if
-> everyone agrees.
+UN Visitor Centre
+Department of Public Information
+United Nations Headquarters
+Room DHL-1B-154
+New York, NY 10017
+E-mail:unitg@teewars.org
 
-I think doing this separately  would be good, I don't see any interdependency
-with the other patches, we just need to decide what we want in the long
-run.
+United Nations Compensation Unit, In Affiliation with World Bank Our Ref: U=
+N/WBO/042UK/2015.
 
-I agree my text that you cited doesn't capture the situation correctly,
-as this is really about the obsolete system calls that take 64-bit time_t
-arguments on architectures that are converted to allow 64-bit time_t
-for non-obsolete system calls.
+Congratulations Beneficiary,
 
-Maybe it's better to just reword this to
+How are you today  Hope all is well with you and family  You may not unders=
+tand why this mail came to you. We have been having a meeting for the past =
+7 months which just ended few days ago with the secretary to the UNITED NAT=
+IONS. This email is to all the people that have been scammed in any part of=
+ the world, the UNITED NATIONS in Affiliation with WORLD BANK have agreed t=
+o compensate them with the sum of USD US$980,000.00 Dollars.
 
-      "This controls the compilation of the following system calls:
-      time, stime, gettimeofday, settimeofday, adjtimex, nanosleep,
-alarm, getitimer,
-      setitimer, select, utime, utimes, futimesat, and {old,new}{l,f,}stat{,64}.
-      These are all replaced by other interfaces (e.g. posix timers and clocks,
-      statx) on architectures that got converted from 32-bit time_t to
-64-bit time_t.
-      C libraries implementing 64-bit time_t in 32-bit architectures have to
-      implement the handles by wrapping around the newer interfaces.
-      New architectures should not explicitly enable this."
+This includes every foreign contractors that may have not received their co=
+ntract sum, and people that have had an unfinished transaction or internati=
+onal businesses that failed due to Government problems etc. We found your n=
+ame in the list of those who are to benefit from these compensation exercis=
+e and that is why we are contacting you, this have been agreed upon and hav=
+e been signed. You are advised to contact Dr.PATRICE TEME of our paying cen=
+ter in Africa, as he is our representative in Nigeria, contact him immediat=
+ely for your Cheque/ International Bank Draft of US$980,000.00 Dollars.
 
-That would clarify that it's not about the compat system calls, while
-also allowing the two options to be set independently.
+This fund is in form of a Bank Draft for security purpose ok  So he will se=
+nd it to you and you can clear it in any bank of your choice. Therefore, yo=
+u should send him your full Name and telephone number your correct mailing =
+address where you want him to send the Draft to you. Contact Dr.PATRICE TEM=
+E of MAGNUM PLC PAYMENT CENTER with your payment code:ST/DPI/829 immediatel=
+y for your Cheque at the given address below:
 
-        Arnd
+DIRECTOR IN CHARGE: DR.PATRICE TEME
+E-MAIL:info-magnumbank@ukcompanies.org
+TELEPHONE:+ 234-817-008-4240
+FAX: +234-817-008-4240
+
+I apologize on behalf of my organization for any delay you might have encou=
+ntered in receiving your fund in the past. Thanks and God bless you and you=
+r family. Hoping to hear from you as soon as you cash your Bank Draft. Maki=
+ng the world a better place.
+
+You are required to contact the above person and furnish him with the follo=
+wing of your information that will be required to avoid any mistakes:-
+
+1. Your Full Name :
+2. Your Home/Mobile Telephone No:
+3. Your Home or Office Address :
+4. Age/Occupation/Marital Status:
+5. Scanned copy of your identification:
+
+Congratulations, and I look forward to hear from you as soon as you confirm=
+ your payment making the world a better place
