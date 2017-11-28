@@ -1,35 +1,75 @@
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH v2 26/35] dt-bindings: interrupt-controller: Andestech
- Internal Vector Interrupt Controller
-Date: Tue, 28 Nov 2017 08:05:45 -0600
-Message-ID: <20171128140545.6sicdf6eau66xn75@rob-hp-laptop>
-References: <cover.1511785528.git.green.hu@gmail.com>
- <d2539a0128f8c1cf0b32fd5151fd2f8775e5c511.1511785528.git.green.hu@gmail.com>
+From: "U N-Headquarters" <ttt-x0way11@vir-gor-5k.gq>
+Subject: DIRECTOR IN CHARGE: DR.PATRICE TEME
+Date: Tue, 28 Nov 2017 22:05:37 +0800
+Message-ID: <BN3PR13MB0835A2AEA3E8E863708726DEF53A0__37818.6608585112$1511877971$gmane$org@BN3PR13MB0835.namprd13.prod.outlook.com>
+Reply-To: dr_patrice_teme@info-magnum-bank.ugu.pl
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f194.google.com ([74.125.82.194]:46875 "EHLO
-        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751822AbdK1OFr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Nov 2017 09:05:47 -0500
-Content-Disposition: inline
-In-Reply-To: <d2539a0128f8c1cf0b32fd5151fd2f8775e5c511.1511785528.git.green.hu@gmail.com>
+Received: from mail-bn3nam01hn0247.outbound.protection.outlook.com ([104.47.33.247]:25449
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1752402AbdK1OGB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Nov 2017 09:06:01 -0500
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>
-Cc: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, Rick Chen <rick@andestech.com>
+To: Recipients <ttt-x0way11@vir-gor-5k.gq>
 
-On Mon, Nov 27, 2017 at 08:28:13PM +0800, Greentime Hu wrote:
-> From: Greentime Hu <greentime@andestech.com>
-> 
-> This patch adds an irqchip driver document for the Andestech Internal Vector
-> Interrupt Controller.
-> 
-> Signed-off-by: Rick Chen <rick@andestech.com>
-> Signed-off-by: Greentime Hu <greentime@andestech.com>
-> ---
->  .../interrupt-controller/andestech,ativic32.txt    |   19 +++++++++++++++++++
->  1 file changed, 19 insertions(+)
->  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
+UN Visitor Centre
+Department of Public Information
+United Nations Headquarters
+Room DHL-1B-154
+New York, NY 10017
+E-mail:unitg@teewars.org
 
-Acked-by: Rob Herring <robh@kernel.org>
+United Nations Compensation Unit, In Affiliation with World Bank Our Ref: U=
+N/WBO/042UK/2015.
+
+Congratulations Beneficiary,
+
+How are you today  Hope all is well with you and family  You may not unders=
+tand why this mail came to you. We have been having a meeting for the past =
+7 months which just ended few days ago with the secretary to the UNITED NAT=
+IONS. This email is to all the people that have been scammed in any part of=
+ the world, the UNITED NATIONS in Affiliation with WORLD BANK have agreed t=
+o compensate them with the sum of USD US$980,000.00 Dollars.
+
+This includes every foreign contractors that may have not received their co=
+ntract sum, and people that have had an unfinished transaction or internati=
+onal businesses that failed due to Government problems etc. We found your n=
+ame in the list of those who are to benefit from these compensation exercis=
+e and that is why we are contacting you, this have been agreed upon and hav=
+e been signed. You are advised to contact Dr.PATRICE TEME of our paying cen=
+ter in Africa, as he is our representative in Nigeria, contact him immediat=
+ely for your Cheque/ International Bank Draft of US$980,000.00 Dollars.
+
+This fund is in form of a Bank Draft for security purpose ok  So he will se=
+nd it to you and you can clear it in any bank of your choice. Therefore, yo=
+u should send him your full Name and telephone number your correct mailing =
+address where you want him to send the Draft to you. Contact Dr.PATRICE TEM=
+E of MAGNUM PLC PAYMENT CENTER with your payment code:ST/DPI/829 immediatel=
+y for your Cheque at the given address below:
+
+DIRECTOR IN CHARGE: DR.PATRICE TEME
+E-MAIL:info-magnumbank@ukcompanies.org
+TELEPHONE:+ 234-817-008-4240
+FAX: +234-817-008-4240
+
+I apologize on behalf of my organization for any delay you might have encou=
+ntered in receiving your fund in the past. Thanks and God bless you and you=
+r family. Hoping to hear from you as soon as you cash your Bank Draft. Maki=
+ng the world a better place.
+
+You are required to contact the above person and furnish him with the follo=
+wing of your information that will be required to avoid any mistakes:-
+
+1. Your Full Name :
+2. Your Home/Mobile Telephone No:
+3. Your Home or Office Address :
+4. Age/Occupation/Marital Status:
+5. Scanned copy of your identification:
+
+Congratulations, and I look forward to hear from you as soon as you confirm=
+ your payment making the world a better place
