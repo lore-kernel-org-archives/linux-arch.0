@@ -1,21 +1,21 @@
-From: "U N-Headquarters" <ttt-x021@vir-gor-5k.gq>
+From: "U N-Headquarters" <ttt-x0way43@vir-gor-5k.gq>
 Subject: DIRECTOR IN CHARGE: DR.PATRICE TEME
-Date: Tue, 28 Nov 2017 22:30:24 +0800
-Message-ID: <BN6PR1301MB21000395A1C65FFFC9F40FC2993A0__49458.9860005819$1511879462$gmane$org@BN6PR1301MB2100.namprd13.prod.outlook.com>
+Date: Tue, 28 Nov 2017 22:44:25 +0800
+Message-ID: <DM5PR1301MB188260785522C6F11FEB2DAFF23A0@DM5PR1301MB1882.namprd13.prod.outlook.com>
 Reply-To: dr_patrice_teme@info-magnum-bank.ugu.pl
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03hn0233.outbound.protection.outlook.com ([104.47.41.233]:19340
+Received: from mail-dm3nam03hn0219.outbound.protection.outlook.com ([104.47.41.219]:11520
         "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751781AbdK1Oah (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Nov 2017 09:30:37 -0500
+        id S1751395AbdK1Oof (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Nov 2017 09:44:35 -0500
 Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <ttt-x021@vir-gor-5k.gq>
+To: Recipients <ttt-x0way43@vir-gor-5k.gq>
 
 UN Visitor Centre
 Department of Public Information
