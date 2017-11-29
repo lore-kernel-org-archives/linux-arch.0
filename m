@@ -1,32 +1,54 @@
 From: Kees Cook <keescook@chromium.org>
 Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
-Date: Wed, 29 Nov 2017 14:12:45 -0800
-Message-ID: <CAGXu5jKxgkar3802JYUqrVF==h99hDH9UUdZSgH9T_-n9y22EA@mail.gmail.com>
-References: <20171129144219.22867-1-mhocko@kernel.org>
+Date: Wed, 29 Nov 2017 14:15:22 -0800
+Message-ID: <CAGXu5j+ShPrCuzGpGYap4dgU7=rEXQJtMEtPHWmSGjzysqSezQ@mail.gmail.com>
+References: <20171129144219.22867-1-mhocko@kernel.org> <b154b794-7a8b-995e-0954-9234b9446b31@prevas.dk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20171129144219.22867-1-mhocko@kernel.org>
-Sender: owner-linux-mm@kvack.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Michal Hocko <mhocko@suse.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ua0-f194.google.com ([209.85.217.194]:38614 "EHLO
+        mail-ua0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752248AbdK2WPY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 17:15:24 -0500
+Received: by mail-ua0-f194.google.com with SMTP id i4so4472877uab.5
+        for <linux-arch@vger.kernel.org>; Wed, 29 Nov 2017 14:15:23 -0800 (PST)
+In-Reply-To: <b154b794-7a8b-995e-0954-9234b9446b31@prevas.dk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Rasmus Villemoes <rasmus.villemoes@prevas.dk>
+Cc: Michal Hocko <mhocko@kernel.org>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Michal Hocko <mhocko@suse.com>
 
-On Wed, Nov 29, 2017 at 6:42 AM, Michal Hocko <mhocko@kernel.org> wrote:
-> Except we won't export expose the new semantic to the userspace at all.
+On Wed, Nov 29, 2017 at 7:13 AM, Rasmus Villemoes
+<rasmus.villemoes@prevas.dk> wrote:
+> On 2017-11-29 15:42, Michal Hocko wrote:
+>>
+>> The first patch introduced MAP_FIXED_SAFE which enforces the given
+>> address but unlike MAP_FIXED it fails with ENOMEM if the given range
+>> conflicts with an existing one.
+>
+> [s/ENOMEM/EEXIST/, as it seems you also did in the actual patch and
+> changelog]
+>
+>>The flag is introduced as a completely
+>> new one rather than a MAP_FIXED extension because of the backward
+>> compatibility. We really want a never-clobber semantic even on older
+>> kernels which do not recognize the flag. Unfortunately mmap sucks wrt.
+>> flags evaluation because we do not EINVAL on unknown flags. On those
+>> kernels we would simply use the traditional hint based semantic so the
+>> caller can still get a different address (which sucks) but at least not
+>> silently corrupt an existing mapping. I do not see a good way around
+>> that.
+>
+> I think it would be nice if this rationale was in the 1/2 changelog,
+> along with the hint about what userspace that wants to be compatible
+> with old kernels will have to do (namely, check that it got what it
+> requested) - which I see you did put in the man page.
 
-I'm confused: the changes in patch 1 are explicitly adding
-MAP_FIXED_SAFE to the uapi. If it's not supposed to be exposed,
-shouldn't it go somewhere else?
+Okay, so ignore my other email, I must have misunderstood. It _is_,
+quite intentionally, being exposed to userspace. Cool by me. :)
 
 -Kees
 
 -- 
 Kees Cook
 Pixel Security
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
