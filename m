@@ -1,125 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:38873 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752179AbdK2Omd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 09:42:33 -0500
-From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
-Date: Wed, 29 Nov 2017 15:42:17 +0100
-Message-ID: <20171129144219.22867-1-mhocko@kernel.org>
+Received: from mail-wr0-f181.google.com ([209.85.128.181]:37391 "EHLO
+        mail-wr0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751668AbdK2PEQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 10:04:16 -0500
+Received: by mail-wr0-f181.google.com with SMTP id k61so3678505wrc.4
+        for <linux-arch@vger.kernel.org>; Wed, 29 Nov 2017 07:04:15 -0800 (PST)
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+From: Alex =?utf-8?Q?Benn=C3=A9e?= <alex.bennee@linaro.org>
+Subject: Re: [PATCH v5 00/30] ARM Scalable Vector Extension (SVE)
+In-reply-to: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+Date: Wed, 29 Nov 2017 15:04:12 +0000
+Message-ID: <877eu9dt3n.fsf@linaro.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-api@vger.kernel.org
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20171129144217.NX051u_29T8szC_RMkK_i4GvmHA-7jsvrZYArUledtg@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Alan Hayward <alan.hayward@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Christoffer Dall <christoffer.dall@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Oleg Nesterov <oleg@redhat.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, "H . J . Lu" <hjl.tools@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org
+Message-ID: <20171129150412.ARKW9j9JV6A1GmoAGeTgPN_teWpjOdxrX5GZDU-s5pg@z>
 
-Hi,
-I am resending with RFC dropped and ask for inclusion. There haven't
-been any fundamental objections for the RFC [1]. I have also prepared
-a man page patch which is 0/3 of this series.
 
-This has started as a follow up discussion [2][3] resulting in the
-runtime failure caused by hardening patch [4] which removes MAP_FIXED
-from the elf loader because MAP_FIXED is inherently dangerous as it
-might silently clobber an existing underlying mapping (e.g. stack). The
-reason for the failure is that some architectures enforce an alignment
-for the given address hint without MAP_FIXED used (e.g. for shared or
-file backed mappings).
+Dave Martin <Dave.Martin@arm.com> writes:
 
-One way around this would be excluding those archs which do alignment
-tricks from the hardening [5]. The patch is really trivial but it has
-been objected, rightfully so, that this screams for a more generic
-solution. We basically want a non-destructive MAP_FIXED.
+> This series implements Linux kernel support for the ARM Scalable Vector
+> Extension (SVE). [1]  It supersedes the previous v3: see [3] for link
+> and full cover letter.
+>
+> This is a minor update to v4, but does contain a couple of important
+> fixes.
+<snip>
 
-The first patch introduced MAP_FIXED_SAFE which enforces the given
-address but unlike MAP_FIXED it fails with ENOMEM if the given range
-conflicts with an existing one. The flag is introduced as a completely
-new one rather than a MAP_FIXED extension because of the backward
-compatibility. We really want a never-clobber semantic even on older
-kernels which do not recognize the flag. Unfortunately mmap sucks wrt.
-flags evaluation because we do not EINVAL on unknown flags. On those
-kernels we would simply use the traditional hint based semantic so the
-caller can still get a different address (which sucks) but at least not
-silently corrupt an existing mapping. I do not see a good way around
-that. Except we won't export expose the new semantic to the userspace at
-all. 
+I seem to have run into a regression with normal non-SVE sigcontexts
+while trying to run consecutive RISU runs in the Foundation Model. I'm
+failing to get repeatable results playing back a previous --master run.
+It works OK with the default Debian kernel.
 
-It seems there are users who would like to have something like that.
-Jemalloc has been mentioned by Michael Ellerman [6]
+What is the current status of the tree? I'd like to try an narrow it
+down but I seem to recall it was now in a next tree somewhere?
 
-Florian Weimer has mentioned the following:
-: glibc ld.so currently maps DSOs without hints.  This means that the kernel
-: will map right next to each other, and the offsets between them a completely
-: predictable.  We would like to change that and supply a random address in a
-: window of the address space.  If there is a conflict, we do not want the
-: kernel to pick a non-random address. Instead, we would try again with a
-: random address.
-
-John Hubbard has mentioned CUDA example
-: a) Searches /proc/<pid>/maps for a "suitable" region of available
-: VA space.  "Suitable" generally means it has to have a base address
-: within a certain limited range (a particular device model might
-: have odd limitations, for example), it has to be large enough, and
-: alignment has to be large enough (again, various devices may have
-: constraints that lead us to do this).
-: 
-: This is of course subject to races with other threads in the process.
-: 
-: Let's say it finds a region starting at va.
-: 
-: b) Next it does: 
-:     p = mmap(va, ...) 
-: 
-: *without* setting MAP_FIXED, of course (so va is just a hint), to
-: attempt to safely reserve that region. If p != va, then in most cases,
-: this is a failure (almost certainly due to another thread getting a
-: mapping from that region before we did), and so this layer now has to
-: call munmap(), before returning a "failure: retry" to upper layers.
-: 
-:     IMPROVEMENT: --> if instead, we could call this:
-: 
-:             p = mmap(va, ... MAP_FIXED_SAFE ...)
-: 
-:         , then we could skip the munmap() call upon failure. This
-:         is a small thing, but it is useful here. (Thanks to Piotr
-:         Jaroszynski and Mark Hairgrove for helping me get that detail
-:         exactly right, btw.)
-: 
-: c) After that, CUDA suballocates from p, via: 
-:  
-:      q = mmap(sub_region_start, ... MAP_FIXED ...)
-: 
-: Interestingly enough, "freeing" is also done via MAP_FIXED, and
-: setting PROT_NONE to the subregion. Anyway, I just included (c) for
-: general interest.
-
-Atomic address range probing in the multithreaded programs in general
-sounds like an interesting thing to me.
-
-The second patch simply replaces MAP_FIXED use in elf loader by
-MAP_FIXED_SAFE. I believe other places which rely on MAP_FIXED should
-follow. Actually real MAP_FIXED usages should be docummented properly
-and they should be more of an exception.
-
-Does anybody see any fundamental reasons why this is a wrong approach?
-
-Diffstat says
- arch/alpha/include/uapi/asm/mman.h   |  2 ++
- arch/metag/kernel/process.c          |  6 +++++-
- arch/mips/include/uapi/asm/mman.h    |  2 ++
- arch/parisc/include/uapi/asm/mman.h  |  2 ++
- arch/powerpc/include/uapi/asm/mman.h |  1 +
- arch/sparc/include/uapi/asm/mman.h   |  1 +
- arch/tile/include/uapi/asm/mman.h    |  1 +
- arch/xtensa/include/uapi/asm/mman.h  |  2 ++
- fs/binfmt_elf.c                      | 12 ++++++++----
- include/uapi/asm-generic/mman.h      |  1 +
- mm/mmap.c                            | 11 +++++++++++
- 11 files changed, 36 insertions(+), 5 deletions(-)
-
-[1] http://lkml.kernel.org/r/20171116101900.13621-1-mhocko@kernel.org
-[2] http://lkml.kernel.org/r/20171107162217.382cd754@canb.auug.org.au
-[3] http://lkml.kernel.org/r/1510048229.12079.7.camel@abdul.in.ibm.com
-[4] http://lkml.kernel.org/r/20171023082608.6167-1-mhocko@kernel.org
-[5] http://lkml.kernel.org/r/20171113094203.aofz2e7kueitk55y@dhcp22.suse.cz
-[6] http://lkml.kernel.org/r/87efp1w7vy.fsf@concordia.ellerman.id.au
+--
+Alex Benn=C3=A9e
