@@ -1,54 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail02.prevas.se ([62.95.78.10]:29256 "EHLO mail02.prevas.se"
+Received: from foss.arm.com ([217.140.101.70]:40242 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751172AbdK2PTu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Nov 2017 10:19:50 -0500
-Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
-References: <20171129144219.22867-1-mhocko@kernel.org>
-From: Rasmus Villemoes <rasmus.villemoes@prevas.dk>
-Message-ID: <b154b794-7a8b-995e-0954-9234b9446b31@prevas.dk>
-Date: Wed, 29 Nov 2017 16:13:53 +0100
+        id S932079AbdK2PVi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Nov 2017 10:21:38 -0500
+Date: Wed, 29 Nov 2017 15:21:40 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v5 00/30] ARM Scalable Vector Extension (SVE)
+Message-ID: <20171129152140.GD10650@arm.com>
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+ <877eu9dt3n.fsf@linaro.org>
 MIME-Version: 1.0
-In-Reply-To: <20171129144219.22867-1-mhocko@kernel.org>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <877eu9dt3n.fsf@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>, linux-api@vger.kernel.org
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20171129151353.ICKQm-FVtE_6ldUEwXG7Iia2F_TfSxw9ETfmauzIBiQ@z>
+To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
+Cc: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, kvmarm@lists.cs.columbia.edu, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Alan Hayward <alan.hayward@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Christoffer Dall <christoffer.dall@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Oleg Nesterov <oleg@redhat.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, "H . J . Lu" <hjl.tools@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org
+Message-ID: <20171129152140.NMvJeAtpCIHZ1auwm5p-tLOhNAS_iC2i8xo2R5OoTxM@z>
 
-On 2017-11-29 15:42, Michal Hocko wrote:
+On Wed, Nov 29, 2017 at 03:04:12PM +0000, Alex Bennée wrote:
 > 
-> The first patch introduced MAP_FIXED_SAFE which enforces the given
-> address but unlike MAP_FIXED it fails with ENOMEM if the given range
-> conflicts with an existing one.
+> Dave Martin <Dave.Martin@arm.com> writes:
+> 
+> > This series implements Linux kernel support for the ARM Scalable Vector
+> > Extension (SVE). [1]  It supersedes the previous v3: see [3] for link
+> > and full cover letter.
+> >
+> > This is a minor update to v4, but does contain a couple of important
+> > fixes.
+> <snip>
+> 
+> I seem to have run into a regression with normal non-SVE sigcontexts
+> while trying to run consecutive RISU runs in the Foundation Model. I'm
+> failing to get repeatable results playing back a previous --master run.
+> It works OK with the default Debian kernel.
+> 
+> What is the current status of the tree? I'd like to try an narrow it
+> down but I seem to recall it was now in a next tree somewhere?
 
-[s/ENOMEM/EEXIST/, as it seems you also did in the actual patch and
-changelog]
+This is in mainline now, so please give a 4.15-rc1 build a spin. If there's
+a user-visible regression then we need to get to the bottom of it ASAP.
 
->The flag is introduced as a completely
-> new one rather than a MAP_FIXED extension because of the backward
-> compatibility. We really want a never-clobber semantic even on older
-> kernels which do not recognize the flag. Unfortunately mmap sucks wrt.
-> flags evaluation because we do not EINVAL on unknown flags. On those
-> kernels we would simply use the traditional hint based semantic so the
-> caller can still get a different address (which sucks) but at least not
-> silently corrupt an existing mapping. I do not see a good way around
-> that.
-
-I think it would be nice if this rationale was in the 1/2 changelog,
-along with the hint about what userspace that wants to be compatible
-with old kernels will have to do (namely, check that it got what it
-requested) - which I see you did put in the man page.
-
--- 
-Rasmus Villemoes
-Software Developer
-Prevas A/S
-Hedeager 3
-DK-8200 Aarhus N
-+45 51210274
-rasmus.villemoes@prevas.dk
-www.prevas.dk
+Will
