@@ -1,95 +1,61 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 25/35] nds32: Build infrastructure
-Date: Wed, 29 Nov 2017 21:27:31 +0100
-Message-ID: <CAK8P3a3-CexhRkJB7_8TGShuDQP8w=myhkoB8-7ax3my96PrMw@mail.gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <5e1be9ebc591c6de79b75f726a5a38b2564eaa92.1511785528.git.green.hu@gmail.com>
- <CAK8P3a1GuH2tgtC5t834-PNeUVYQxreD7seZH8sjraZFtRUWKw@mail.gmail.com>
- <CAEbi=3c=hTCcUOPs+Fc10srzTFsB4MnVxgcFydz12-jH0ZXjog@mail.gmail.com>
- <CAK8P3a0kvt52UTtEmE+tWHZuH_rmgTxP7+CiD9Ddwe2cJLwXTQ@mail.gmail.com>
- <CAMuHMdViO=+-kGdXFPSW+9PsPbf3sUa5xdaJ_1C-cX2vE1G35Q@mail.gmail.com>
- <CAK8P3a3yk7ww+LdQdL+wgz2wYrzXLSsj1PTdfK-qx013jdg4SQ@mail.gmail.com>
- <CAEbi=3cc8e__DnFKmTSMm9xQMx7CGu+1v3e55w8UekwnTTkw5Q@mail.gmail.com>
- <CAK8P3a2d2_jxXehE3xP_G9Tzp6jP4hFmS4CJkh=6bePLEDcdGw@mail.gmail.com> <CAEbi=3fmXP=n_tS+-TSFhdht2G=VHOzVCVU=SRy4A6Ym_GToUQ@mail.gmail.com>
+Subject: Re: [PATCH v2 00/10] posix_clocks: Prepare syscalls for 64 bit time_t conversion
+Date: Wed, 29 Nov 2017 22:12:23 +0100
+Message-ID: <CAK8P3a2ho3S3NYp4VL7kOAk-bg3bsUmLaJJVEvNfzPoEue3v3w@mail.gmail.com>
+References: <20171127193037.8711-1-deepa.kernel@gmail.com> <CAK8P3a2pcpQqf_TNGVxLBePBSKYhxD90UN-FjBor4d-dKhAwbQ@mail.gmail.com>
+ <CABeXuvrBOSVTNSbEZZMKmuTgWeU_VDqjSZkwGAM+bnPh0-72zA@mail.gmail.com>
+ <CAK8P3a26g74UA5J5uQLwdjK3hq+htzjrdTYRKqfy_MawY7st+g@mail.gmail.com> <CABeXuvrtQfSsOipGTnfmONXS45Dqxy4_T7MAcfO4VajoSycW4w@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAEbi=3fmXP=n_tS+-TSFhdht2G=VHOzVCVU=SRy4A6Ym_GToUQ@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Greentime Hu <green.hu@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <CABeXuvrtQfSsOipGTnfmONXS45Dqxy4_T7MAcfO4VajoSycW4w@mail.gmail.com>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Deepa Dinamani <deepa.kernel@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, John Stultz <john.stultz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, cohuck@redhat.com, David Miller <davem@davemloft.net>, Helge Deller <deller@gmx.de>, devel@driverdev.osuosl.org, gerald.schaefer@de.ibm.com, gregkh <gregkh@linuxfoundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jan Hoeppner <hoeppner@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Julian
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 29, 2017 at 3:10 PM, Greentime Hu <green.hu@gmail.com> wrote:
-> 2017-11-29 19:57 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->> On Wed, Nov 29, 2017 at 12:39 PM, Greentime Hu <green.hu@gmail.com> wrote:
->>>
->>> How about this?
->>>
->>> choice
->>>         prompt "CPU type"
->>>         default CPU_N13
->>> config CPU_N15
->>>         bool "AndesCore N15"
->>>         select CPU_CACHE_NONALIASING
->>> config CPU_N13
->>>         bool "AndesCore N13"
->>>         select CPU_CACHE_NONALIASING if ANDES_PAGE_SIZE_8KB
->>> config CPU_N10
->>>         bool "AndesCore N10"
->>>         select CPU_CACHE_NONALIASING if ANDES_PAGE_SIZE_8KB
->>> config CPU_D15
->>>         bool "AndesCore D15"
->>>         select CPU_CACHE_NONALIASING
->>>         select HWZOL
->>> config CPU_D10
->>>         bool "AndesCore D10"
->>>         select CPU_CACHE_NONALIASING if ANDES_PAGE_SIZE_8KB
->>> endchoice
->>
->> With a 'choice' statement this works, but I would consider that
->> suboptimal for another reason: now you cannot build a kernel that
->> works on e.g. both N13 and N15.
->>
->> This is what we had on ARM a long time ago and on MIPS not so long
->> ago, but it's really a burden for testing and distribution once you get
->> support for more than a handful of machines supported in the mainline
->> kernel: If each CPU core is mutually incompatible with the other ones,
->> this means you likely end up having one defconfig per CPU core,
->> or even one defconfig per SoC or board.
->>
->> I would always try to get the largest amount of hardware to work
->> in the same kernel concurrently.
->>
->> One way of of this would be to define the "CPU type" as the minimum
->> supported CPU, e.g. selecting D15 would result in a kernel that
->> only works on D15, while selecting N15 would work on both N15 and
->> D15, and selecting D10 would work on both D10 and D15.
->>
+On Wed, Nov 29, 2017 at 12:17 AM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
+> On Tue, Nov 28, 2017 at 6:17 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> On Mon, Nov 27, 2017 at 11:29 PM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
+> Right. There are three options:
 >
-> Hi, Arnd:
+> 1. Use two configs to identify which syscalls need not be supported by
+> new architectures.
+> In this case it makes sense to say LEGACY_TIME_SYSCALLS and
+> COMPAT_32BIT_TIME both need to be disabled for new architectures. And,
+> I can reword the config to what you mention below.
 >
-> Maybe we should keep the original implementation for this reason.
-> The default value of CPU_CACHE_NONALIASING and ANDES_PAGE_SIZE_8KB is
-> available for all CPU types for now.
-> User can use these configs built kernel to boot on almost all nds32 CPUs.
+> 2. Make the LEGACY_TIME_SYSCALLS eliminate non y2038 safe syscalls
+> mentioned below only.
+> In this case only the native and compat functions of the below
+> mentioned syscalls need to be identified by the config. I like this
+> option as this clearly identifies which syscalls are deprecated and do
+> not have a 64 bit counterpart. Not all architectures need to support
+> turning this off.
 >
-> It might be a little bit weird if we config CPU_N10 but run on a N13 CPU.
-> This might confuse our users.
+> 3. If we don't need either 1 or 2, then we could stick with what we
+> have today in the series as CONFIG_64BIT_TIME will be deleted and they
+> only need #ifdef CONFIG_64BIT.
+>
+> Let me know if anyone prefers something else.
 
-I think it really depends on how much flexibility you want to give to users.
-The way I suggested first was to allow selecting an arbitrary combination
-of CPUs, and then let Kconfig derive the correct set of optimization flags
-and other options that work with those. That is probably the easiest for
-the users, but can be tricky to get right for all combinations.
+I think I prefer to have both LEGACY_TIME_SYSCALLS to guard
+the native deprecated syscalls (disabled on 32-bit architectures after
+the conversion, and enabled on 64-bit architectures until
+we merge the next one), and COMPAT_32BIT_TIME to guard the
+compat versions of both the deprecated and the non-deprecated
+syscalls (enabled on all existing 32-bit architectures after the
+conversion, and on 64-bit architectures if they provide a compat
+mode for the former).
 
-When you put them in a sorted list like I mentioned for simplicity, you
-could reduce the confusion by naming them differently, e.g.
-CONFIG_CPU_N10_OR_NEWER.
+Those two are not symmetric, but I think those are the most
+common combinations, and the Kconfig symbol helps document
+what they are.
 
-Having only the CPU_CACHE_NONALIASING option is fine if you
-never need to make any other decisions based on the CPU core
-type, but then the help text should describe specifically which cases
-are affected (N10/N13/D13 with 4K page size), and you can decide to
-hide the option and make it always-on when using 8K page size.
+There is one more category for things like io_getevents() and
+rt_sigtimedwait that also need two separate compat versions,
+one for 32-bit time_t and one for 64-bit time_t, but it seems better
+to deal with those case-by-case rather than introducing another
+Kconfig symbol.
 
-       Arnd
+        Arnd
