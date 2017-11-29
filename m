@@ -1,136 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:46781 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751846AbdK2Omk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 09:42:40 -0500
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:38873 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752179AbdK2Omd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 09:42:33 -0500
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 2/2] fs, elf: drop MAP_FIXED usage from elf_map
-Date: Wed, 29 Nov 2017 15:42:19 +0100
-Message-ID: <20171129144219.22867-3-mhocko@kernel.org>
-In-Reply-To: <20171129144219.22867-1-mhocko@kernel.org>
-References: <20171129144219.22867-1-mhocko@kernel.org>
+Subject: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+Date: Wed, 29 Nov 2017 15:42:17 +0100
+Message-ID: <20171129144219.22867-1-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-api@vger.kernel.org
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Michal Hocko <mhocko@suse.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>
-Message-ID: <20171129144219.YRpLcmTJEj1kyUTEET3WiutFABklwlciIe7LRmEPv3o@z>
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20171129144217.NX051u_29T8szC_RMkK_i4GvmHA-7jsvrZYArUledtg@z>
 
-From: Michal Hocko <mhocko@suse.com>
+Hi,
+I am resending with RFC dropped and ask for inclusion. There haven't
+been any fundamental objections for the RFC [1]. I have also prepared
+a man page patch which is 0/3 of this series.
 
-Both load_elf_interp and load_elf_binary rely on elf_map to map segments
-on a controlled address and they use MAP_FIXED to enforce that. This is
-however dangerous thing prone to silent data corruption which can be
-even exploitable. Let's take CVE-2017-1000253 as an example. At the time
-(before eab09532d400 ("binfmt_elf: use ELF_ET_DYN_BASE only for PIE"))
-ELF_ET_DYN_BASE was at TASK_SIZE / 3 * 2 which is not that far away from
-the stack top on 32b (legacy) memory layout (only 1GB away). Therefore
-we could end up mapping over the existing stack with some luck.
+This has started as a follow up discussion [2][3] resulting in the
+runtime failure caused by hardening patch [4] which removes MAP_FIXED
+from the elf loader because MAP_FIXED is inherently dangerous as it
+might silently clobber an existing underlying mapping (e.g. stack). The
+reason for the failure is that some architectures enforce an alignment
+for the given address hint without MAP_FIXED used (e.g. for shared or
+file backed mappings).
 
-The issue has been fixed since then (a87938b2e246 ("fs/binfmt_elf.c:
-fix bug in loading of PIE binaries")), ELF_ET_DYN_BASE moved moved much
-further from the stack (eab09532d400 and later by c715b72c1ba4 ("mm:
-revert x86_64 and arm64 ELF_ET_DYN_BASE base changes")) and excessive
-stack consumption early during execve fully stopped by da029c11e6b1
-("exec: Limit arg stack to at most 75% of _STK_LIM"). So we should be
-safe and any attack should be impractical. On the other hand this is
-just too subtle assumption so it can break quite easily and hard to
-spot.
+One way around this would be excluding those archs which do alignment
+tricks from the hardening [5]. The patch is really trivial but it has
+been objected, rightfully so, that this screams for a more generic
+solution. We basically want a non-destructive MAP_FIXED.
 
-I believe that the MAP_FIXED usage in load_elf_binary (et. al) is still
-fundamentally dangerous. Moreover it shouldn't be even needed. We are
-at the early process stage and so there shouldn't be unrelated mappings
-(except for stack and loader) existing so mmap for a given address
-should succeed even without MAP_FIXED. Something is terribly wrong if
-this is not the case and we should rather fail than silently corrupt the
-underlying mapping.
+The first patch introduced MAP_FIXED_SAFE which enforces the given
+address but unlike MAP_FIXED it fails with ENOMEM if the given range
+conflicts with an existing one. The flag is introduced as a completely
+new one rather than a MAP_FIXED extension because of the backward
+compatibility. We really want a never-clobber semantic even on older
+kernels which do not recognize the flag. Unfortunately mmap sucks wrt.
+flags evaluation because we do not EINVAL on unknown flags. On those
+kernels we would simply use the traditional hint based semantic so the
+caller can still get a different address (which sucks) but at least not
+silently corrupt an existing mapping. I do not see a good way around
+that. Except we won't export expose the new semantic to the userspace at
+all. 
 
-Address this issue by changing MAP_FIXED to the newly added
-MAP_FIXED_SAFE. This will mean that mmap will fail if there is an
-existing mapping clashing with the requested one without clobbering it.
+It seems there are users who would like to have something like that.
+Jemalloc has been mentioned by Michael Ellerman [6]
 
-Cc: Abdul Haleem <abdhalee@linux.vnet.ibm.com>
-Cc: Joel Stanley <joel@jms.id.au>
-Acked-by: Kees Cook <keescook@chromium.org>
-Signed-off-by: Michal Hocko <mhocko@suse.com>
----
- arch/metag/kernel/process.c |  6 +++++-
- fs/binfmt_elf.c             | 12 ++++++++----
- 2 files changed, 13 insertions(+), 5 deletions(-)
+Florian Weimer has mentioned the following:
+: glibc ld.so currently maps DSOs without hints.  This means that the kernel
+: will map right next to each other, and the offsets between them a completely
+: predictable.  We would like to change that and supply a random address in a
+: window of the address space.  If there is a conflict, we do not want the
+: kernel to pick a non-random address. Instead, we would try again with a
+: random address.
 
-diff --git a/arch/metag/kernel/process.c b/arch/metag/kernel/process.c
-index 0909834c83a7..867c8d0a5fb4 100644
---- a/arch/metag/kernel/process.c
-+++ b/arch/metag/kernel/process.c
-@@ -399,7 +399,7 @@ unsigned long __metag_elf_map(struct file *filep, unsigned long addr,
- 	tcm_tag = tcm_lookup_tag(addr);
- 
- 	if (tcm_tag != TCM_INVALID_TAG)
--		type &= ~MAP_FIXED;
-+		type &= ~(MAP_FIXED | MAP_FIXED_SAFE);
- 
- 	/*
- 	* total_size is the size of the ELF (interpreter) image.
-@@ -417,6 +417,10 @@ unsigned long __metag_elf_map(struct file *filep, unsigned long addr,
- 	} else
- 		map_addr = vm_mmap(filep, addr, size, prot, type, off);
- 
-+	if ((type & MAP_FIXED_SAFE) && BAD_ADDR(map_addr))
-+		pr_info("%d (%s): Uhuuh, elf segement at %p requested but the memory is mapped already\n",
-+				task_pid_nr(current), tsk->comm, (void*)addr);
-+
- 	if (!BAD_ADDR(map_addr) && tcm_tag != TCM_INVALID_TAG) {
- 		struct tcm_allocation *tcm;
- 		unsigned long tcm_addr;
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 73b01e474fdc..5916d45f64a7 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -372,6 +372,10 @@ static unsigned long elf_map(struct file *filep, unsigned long addr,
- 	} else
- 		map_addr = vm_mmap(filep, addr, size, prot, type, off);
- 
-+	if ((type & MAP_FIXED_SAFE) && BAD_ADDR(map_addr))
-+		pr_info("%d (%s): Uhuuh, elf segement at %p requested but the memory is mapped already\n",
-+				task_pid_nr(current), current->comm, (void*)addr);
-+
- 	return(map_addr);
- }
- 
-@@ -569,7 +573,7 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
- 				elf_prot |= PROT_EXEC;
- 			vaddr = eppnt->p_vaddr;
- 			if (interp_elf_ex->e_type == ET_EXEC || load_addr_set)
--				elf_type |= MAP_FIXED;
-+				elf_type |= MAP_FIXED_SAFE;
- 			else if (no_base && interp_elf_ex->e_type == ET_DYN)
- 				load_addr = -vaddr;
- 
-@@ -930,7 +934,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 		 * the ET_DYN load_addr calculations, proceed normally.
- 		 */
- 		if (loc->elf_ex.e_type == ET_EXEC || load_addr_set) {
--			elf_flags |= MAP_FIXED;
-+			elf_flags |= MAP_FIXED_SAFE;
- 		} else if (loc->elf_ex.e_type == ET_DYN) {
- 			/*
- 			 * This logic is run once for the first LOAD Program
-@@ -966,7 +970,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
- 				load_bias = ELF_ET_DYN_BASE;
- 				if (current->flags & PF_RANDOMIZE)
- 					load_bias += arch_mmap_rnd();
--				elf_flags |= MAP_FIXED;
-+				elf_flags |= MAP_FIXED_SAFE;
- 			} else
- 				load_bias = 0;
- 
-@@ -1223,7 +1227,7 @@ static int load_elf_library(struct file *file)
- 			(eppnt->p_filesz +
- 			 ELF_PAGEOFFSET(eppnt->p_vaddr)),
- 			PROT_READ | PROT_WRITE | PROT_EXEC,
--			MAP_FIXED | MAP_PRIVATE | MAP_DENYWRITE,
-+			MAP_FIXED_SAFE | MAP_PRIVATE | MAP_DENYWRITE,
- 			(eppnt->p_offset -
- 			 ELF_PAGEOFFSET(eppnt->p_vaddr)));
- 	if (error != ELF_PAGESTART(eppnt->p_vaddr))
--- 
-2.15.0
+John Hubbard has mentioned CUDA example
+: a) Searches /proc/<pid>/maps for a "suitable" region of available
+: VA space.  "Suitable" generally means it has to have a base address
+: within a certain limited range (a particular device model might
+: have odd limitations, for example), it has to be large enough, and
+: alignment has to be large enough (again, various devices may have
+: constraints that lead us to do this).
+: 
+: This is of course subject to races with other threads in the process.
+: 
+: Let's say it finds a region starting at va.
+: 
+: b) Next it does: 
+:     p = mmap(va, ...) 
+: 
+: *without* setting MAP_FIXED, of course (so va is just a hint), to
+: attempt to safely reserve that region. If p != va, then in most cases,
+: this is a failure (almost certainly due to another thread getting a
+: mapping from that region before we did), and so this layer now has to
+: call munmap(), before returning a "failure: retry" to upper layers.
+: 
+:     IMPROVEMENT: --> if instead, we could call this:
+: 
+:             p = mmap(va, ... MAP_FIXED_SAFE ...)
+: 
+:         , then we could skip the munmap() call upon failure. This
+:         is a small thing, but it is useful here. (Thanks to Piotr
+:         Jaroszynski and Mark Hairgrove for helping me get that detail
+:         exactly right, btw.)
+: 
+: c) After that, CUDA suballocates from p, via: 
+:  
+:      q = mmap(sub_region_start, ... MAP_FIXED ...)
+: 
+: Interestingly enough, "freeing" is also done via MAP_FIXED, and
+: setting PROT_NONE to the subregion. Anyway, I just included (c) for
+: general interest.
+
+Atomic address range probing in the multithreaded programs in general
+sounds like an interesting thing to me.
+
+The second patch simply replaces MAP_FIXED use in elf loader by
+MAP_FIXED_SAFE. I believe other places which rely on MAP_FIXED should
+follow. Actually real MAP_FIXED usages should be docummented properly
+and they should be more of an exception.
+
+Does anybody see any fundamental reasons why this is a wrong approach?
+
+Diffstat says
+ arch/alpha/include/uapi/asm/mman.h   |  2 ++
+ arch/metag/kernel/process.c          |  6 +++++-
+ arch/mips/include/uapi/asm/mman.h    |  2 ++
+ arch/parisc/include/uapi/asm/mman.h  |  2 ++
+ arch/powerpc/include/uapi/asm/mman.h |  1 +
+ arch/sparc/include/uapi/asm/mman.h   |  1 +
+ arch/tile/include/uapi/asm/mman.h    |  1 +
+ arch/xtensa/include/uapi/asm/mman.h  |  2 ++
+ fs/binfmt_elf.c                      | 12 ++++++++----
+ include/uapi/asm-generic/mman.h      |  1 +
+ mm/mmap.c                            | 11 +++++++++++
+ 11 files changed, 36 insertions(+), 5 deletions(-)
+
+[1] http://lkml.kernel.org/r/20171116101900.13621-1-mhocko@kernel.org
+[2] http://lkml.kernel.org/r/20171107162217.382cd754@canb.auug.org.au
+[3] http://lkml.kernel.org/r/1510048229.12079.7.camel@abdul.in.ibm.com
+[4] http://lkml.kernel.org/r/20171023082608.6167-1-mhocko@kernel.org
+[5] http://lkml.kernel.org/r/20171113094203.aofz2e7kueitk55y@dhcp22.suse.cz
+[6] http://lkml.kernel.org/r/87efp1w7vy.fsf@concordia.ellerman.id.au
