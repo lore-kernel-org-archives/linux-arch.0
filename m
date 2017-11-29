@@ -1,66 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f67.google.com ([209.85.218.67]:44579 "EHLO
-        mail-oi0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752607AbdK2VMZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 16:12:25 -0500
+Received: from mail-vk0-f52.google.com ([209.85.213.52]:38000 "EHLO
+        mail-vk0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752217AbdK2WMr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 17:12:47 -0500
+Received: by mail-vk0-f52.google.com with SMTP id l187so2226631vke.5
+        for <linux-arch@vger.kernel.org>; Wed, 29 Nov 2017 14:12:47 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <CABeXuvrtQfSsOipGTnfmONXS45Dqxy4_T7MAcfO4VajoSycW4w@mail.gmail.com>
-References: <20171127193037.8711-1-deepa.kernel@gmail.com> <CAK8P3a2pcpQqf_TNGVxLBePBSKYhxD90UN-FjBor4d-dKhAwbQ@mail.gmail.com>
- <CABeXuvrBOSVTNSbEZZMKmuTgWeU_VDqjSZkwGAM+bnPh0-72zA@mail.gmail.com>
- <CAK8P3a26g74UA5J5uQLwdjK3hq+htzjrdTYRKqfy_MawY7st+g@mail.gmail.com> <CABeXuvrtQfSsOipGTnfmONXS45Dqxy4_T7MAcfO4VajoSycW4w@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 29 Nov 2017 22:12:23 +0100
-Message-ID: <CAK8P3a2ho3S3NYp4VL7kOAk-bg3bsUmLaJJVEvNfzPoEue3v3w@mail.gmail.com>
-Subject: Re: [PATCH v2 00/10] posix_clocks: Prepare syscalls for 64 bit time_t conversion
+In-Reply-To: <20171129144219.22867-1-mhocko@kernel.org>
+References: <20171129144219.22867-1-mhocko@kernel.org>
+From: Kees Cook <keescook@chromium.org>
+Date: Wed, 29 Nov 2017 14:12:45 -0800
+Message-ID: <CAGXu5jKxgkar3802JYUqrVF==h99hDH9UUdZSgH9T_-n9y22EA@mail.gmail.com>
+Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Deepa Dinamani <deepa.kernel@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, John Stultz <john.stultz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, cohuck@redhat.com, David Miller <davem@davemloft.net>, Helge Deller <deller@gmx.de>, devel@driverdev.osuosl.org, gerald.schaefer@de.ibm.com, gregkh <gregkh@linuxfoundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jan Hoeppner <hoeppner@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Julian Wiedmann <jwi@linux.vnet.ibm.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Ingo Molnar <mingo@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, oberpar@linux.vnet.ibm.com, oprofile-list@lists.sf.net, Paul Mackerras <paulus@samba.org>, Peter Zijlstra <peterz@infradead.org>, Ralf Baechle <ralf@linux-mips.org>, Steven Rostedt <rostedt@goodmis.org>, Robert Richter <rric@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, sebott@linux.vnet.ibm.com, sparclinux <sparclinux@vger.kernel.org>, Stefan Haberland <sth@linux.vnet.ibm.com>, Ursula Braun <ubraun@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20171129211223.JbHMJefNag6qocBjNqKYpNevnb0PNksJVXtKL484DsU@z>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20171129221245.-zm8vT4nwn_lkg02XFN-4Wmn0_8ozCUE7BPEa2FdV0Q@z>
 
-On Wed, Nov 29, 2017 at 12:17 AM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
-> On Tue, Nov 28, 2017 at 6:17 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->> On Mon, Nov 27, 2017 at 11:29 PM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
-> Right. There are three options:
->
-> 1. Use two configs to identify which syscalls need not be supported by
-> new architectures.
-> In this case it makes sense to say LEGACY_TIME_SYSCALLS and
-> COMPAT_32BIT_TIME both need to be disabled for new architectures. And,
-> I can reword the config to what you mention below.
->
-> 2. Make the LEGACY_TIME_SYSCALLS eliminate non y2038 safe syscalls
-> mentioned below only.
-> In this case only the native and compat functions of the below
-> mentioned syscalls need to be identified by the config. I like this
-> option as this clearly identifies which syscalls are deprecated and do
-> not have a 64 bit counterpart. Not all architectures need to support
-> turning this off.
->
-> 3. If we don't need either 1 or 2, then we could stick with what we
-> have today in the series as CONFIG_64BIT_TIME will be deleted and they
-> only need #ifdef CONFIG_64BIT.
->
-> Let me know if anyone prefers something else.
+On Wed, Nov 29, 2017 at 6:42 AM, Michal Hocko <mhocko@kernel.org> wrote:
+> Except we won't export expose the new semantic to the userspace at all.
 
-I think I prefer to have both LEGACY_TIME_SYSCALLS to guard
-the native deprecated syscalls (disabled on 32-bit architectures after
-the conversion, and enabled on 64-bit architectures until
-we merge the next one), and COMPAT_32BIT_TIME to guard the
-compat versions of both the deprecated and the non-deprecated
-syscalls (enabled on all existing 32-bit architectures after the
-conversion, and on 64-bit architectures if they provide a compat
-mode for the former).
+I'm confused: the changes in patch 1 are explicitly adding
+MAP_FIXED_SAFE to the uapi. If it's not supposed to be exposed,
+shouldn't it go somewhere else?
 
-Those two are not symmetric, but I think those are the most
-common combinations, and the Kconfig symbol helps document
-what they are.
+-Kees
 
-There is one more category for things like io_getevents() and
-rt_sigtimedwait that also need two separate compat versions,
-one for 32-bit time_t and one for 64-bit time_t, but it seems better
-to deal with those case-by-case rather than introducing another
-Kconfig symbol.
-
-        Arnd
+-- 
+Kees Cook
+Pixel Security
