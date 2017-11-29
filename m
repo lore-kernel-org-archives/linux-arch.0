@@ -1,56 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:40536 "EHLO foss.arm.com"
+Received: from mx2.suse.de ([195.135.220.15]:42647 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933290AbdK2Phi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Nov 2017 10:37:38 -0500
-Date: Wed, 29 Nov 2017 15:37:29 +0000
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v5 00/30] ARM Scalable Vector Extension (SVE)
-Message-ID: <20171129153107.GT12608@e103592.cambridge.arm.com>
-References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
- <877eu9dt3n.fsf@linaro.org>
- <20171129152140.GD10650@arm.com>
+        id S933055AbdK2PuN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Nov 2017 10:50:13 -0500
+Date: Wed, 29 Nov 2017 16:50:09 +0100
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+Message-ID: <20171129155009.i5xai77rrapsyrd2@dhcp22.suse.cz>
+References: <20171129144219.22867-1-mhocko@kernel.org>
+ <b154b794-7a8b-995e-0954-9234b9446b31@prevas.dk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20171129152140.GD10650@arm.com>
+In-Reply-To: <b154b794-7a8b-995e-0954-9234b9446b31@prevas.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>
-Cc: Will Deacon <will.deacon@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, "tokamoto@jp.fujitsu.com" <tokamoto@jp.fujitsu.com>, "kvmarm@lists.cs.columbia.edu" <kvmarm@lists.cs.columbia.edu>, "libc-alpha@sourceware.org" <libc-alpha@sourceware.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alan Hayward <Alan.Hayward@arm.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Christoffer Dall <christoffer.dall@linaro.org>, Mark Rutland <Mark.Rutland@arm.com>, Oleg Nesterov <oleg@redhat.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, "H . J . Lu" <hjl.tools@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Michael Kerrisk <mtk.manpages@gmail.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-Message-ID: <20171129153729.twTDiOB3-UxyagQvfawGWz7PU0wrTmIBp_6U_bIt62I@z>
+To: Rasmus Villemoes <rasmus.villemoes@prevas.dk>
+Cc: linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>
+Message-ID: <20171129155009.i6ICNzBeprxQPBXeHfUXXyGhI_m4AAAwen69FiU44Qg@z>
 
-On Wed, Nov 29, 2017 at 03:21:40PM +0000, Will Deacon wrote:
-> On Wed, Nov 29, 2017 at 03:04:12PM +0000, Alex Bennée wrote:
-> > 
-> > Dave Martin <Dave.Martin@arm.com> writes:
-> > 
-> > > This series implements Linux kernel support for the ARM Scalable Vector
-> > > Extension (SVE). [1]  It supersedes the previous v3: see [3] for link
-> > > and full cover letter.
-> > >
-> > > This is a minor update to v4, but does contain a couple of important
-> > > fixes.
-> > <snip>
-> > 
-> > I seem to have run into a regression with normal non-SVE sigcontexts
-> > while trying to run consecutive RISU runs in the Foundation Model. I'm
-> > failing to get repeatable results playing back a previous --master run.
-> > It works OK with the default Debian kernel.
-> > 
-> > What is the current status of the tree? I'd like to try an narrow it
-> > down but I seem to recall it was now in a next tree somewhere?
+On Wed 29-11-17 16:13:53, Rasmus Villemoes wrote:
+> On 2017-11-29 15:42, Michal Hocko wrote:
+[...]
+> >The flag is introduced as a completely
+> > new one rather than a MAP_FIXED extension because of the backward
+> > compatibility. We really want a never-clobber semantic even on older
+> > kernels which do not recognize the flag. Unfortunately mmap sucks wrt.
+> > flags evaluation because we do not EINVAL on unknown flags. On those
+> > kernels we would simply use the traditional hint based semantic so the
+> > caller can still get a different address (which sucks) but at least not
+> > silently corrupt an existing mapping. I do not see a good way around
+> > that.
 > 
-> This is in mainline now, so please give a 4.15-rc1 build a spin. If there's
-> a user-visible regression then we need to get to the bottom of it ASAP.
-> 
-> Will
+> I think it would be nice if this rationale was in the 1/2 changelog,
+> along with the hint about what userspace that wants to be compatible
+> with old kernels will have to do (namely, check that it got what it
+> requested) - which I see you did put in the man page.
 
-The other significant change was in v4.13, where the signal frame
-parser rework landed.
+OK, I've added there.
 
-What upstream version is your known-good Debian kernel based on?
-
-Cheers
----Dave
+-- 
+Michal Hocko
+SUSE Labs
