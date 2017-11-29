@@ -1,77 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f194.google.com ([74.125.82.194]:44549 "EHLO
-        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753434AbdK2JZz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 04:25:55 -0500
+Received: from mail-vk0-f67.google.com ([209.85.213.67]:45897 "EHLO
+        mail-vk0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752911AbdK2LyT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 06:54:19 -0500
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdViO=+-kGdXFPSW+9PsPbf3sUa5xdaJ_1C-cX2vE1G35Q@mail.gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <5e1be9ebc591c6de79b75f726a5a38b2564eaa92.1511785528.git.green.hu@gmail.com>
- <CAK8P3a1GuH2tgtC5t834-PNeUVYQxreD7seZH8sjraZFtRUWKw@mail.gmail.com>
- <CAEbi=3c=hTCcUOPs+Fc10srzTFsB4MnVxgcFydz12-jH0ZXjog@mail.gmail.com>
- <CAK8P3a0kvt52UTtEmE+tWHZuH_rmgTxP7+CiD9Ddwe2cJLwXTQ@mail.gmail.com> <CAMuHMdViO=+-kGdXFPSW+9PsPbf3sUa5xdaJ_1C-cX2vE1G35Q@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 29 Nov 2017 10:25:54 +0100
-Message-ID: <CAK8P3a3yk7ww+LdQdL+wgz2wYrzXLSsj1PTdfK-qx013jdg4SQ@mail.gmail.com>
-Subject: Re: [PATCH v2 25/35] nds32: Build infrastructure
+In-Reply-To: <CAK8P3a2P+A55TyC_1bCj=sDjLZmpQoMptbZ59yd191fqdUstSA@mail.gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com> <380808fe9139e2c3800ae76dfa6aa5cbbbc4894f.1511785528.git.green.hu@gmail.com>
+ <CAK8P3a2P+A55TyC_1bCj=sDjLZmpQoMptbZ59yd191fqdUstSA@mail.gmail.com>
+From: Greentime Hu <green.hu@gmail.com>
+Date: Wed, 29 Nov 2017 19:53:37 +0800
+Message-ID: <CAEbi=3fpM0gK4-xRPdZ0HYEAriwgspOQtV1aVx586AObQLVBiw@mail.gmail.com>
+Subject: Re: [PATCH v2 19/35] nds32: L2 cache support
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171129092554.xbMD37PniX2cmEa2da9kzPV1SNKmAO7TAl73p6PpyNw@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171129115337.o0QNeZQ36jQ8Cq_uPKaztfvFPsCyTvhHRre3wZYgDAs@z>
 
-On Wed, Nov 29, 2017 at 10:10 AM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> Hi Arnd,
+Hi, Arnd:
+
+2017-11-27 22:33 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
+>> +
+>> +#define L2C_R_REG(offset)               __raw_readl(atl2c_base + offset)
+>> +#define L2C_W_REG(offset, value)        __raw_writel(value, atl2c_base + offset)
 >
-> On Wed, Nov 29, 2017 at 9:58 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->> On Wed, Nov 29, 2017 at 9:39 AM, Greentime Hu <green.hu@gmail.com> wrote:
->>> 2017-11-27 22:21 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->>>> On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
->>>>> diff --git a/arch/nds32/Kconfig.cpu b/arch/nds32/Kconfig.cpu
->>>>> +config CPU_CACHE_NONALIASING
->>>>> +       bool "Non-aliasing cache"
->>>>> +       help
->>>>> +         If this CPU is using VIPT data cache and its cache way size is larger
->>>>> +         than page size, say N. If it is using PIPT data cache, say Y.
->>>>> +
->>>>> +         If unsure, say Y.
->>>>
->>>> Can you determine this from the CPU type?
->>>
->>> There is no cpu register to determine it. It also depeneds on page
->>> size and way size however page size is configurable by software.
->>> These codes are determined at compile time will be benefit to code
->>> size and performance.
->>> IMHO, I think it would be better to be determined here.
->>
->> I meant determining it at compile time from other Kconfig symbols,
->> if that's possible. Do the CPU cores each have a fixed way-size?
->> If they do, it could be done like
->>
->> menu "CPU selection"
->>
->> config CPU_N15
->>       bool "AndesCore N15"
->>       select CPU_CACHE_NONALIASING
->>
->> config CPU_N13
->>       bool "AndesCore N15"
->>       select CPU_CACHE_NONALIASING if PAGE_SIZE_16K
->>
->> ...
->>
->> endmenu
->>
->> and then you can use the same CPU_... symbols to make other decisions
->> as well, e.g. CPU specific compiler optimizations.
+> __raw_readl() is generally not endian-safe, and might  not have the barriers you
+> require here. Could you use readl/writel here, and only fall back to
+> readl_relaxed()/writel_relaxed() when you absolutely must avoid the barriers?
+
+Thanks for your suggestions.
+We will changed it to readl/writel
+
+>> diff --git a/arch/nds32/kernel/atl2c.c b/arch/nds32/kernel/atl2c.c
+>> new file mode 100644
+>> index 0000000..dd87fc9
+>> --- /dev/null
+>> +++ b/arch/nds32/kernel/atl2c.c
+>> +#include <linux/compiler.h>
+>> +#include <linux/of_address.h>
+>> +#include <linux/of_fdt.h>
+>> +#include <linux/of_platform.h>
+>> +#include <asm/l2_cache.h>
 >
-> Do you want to support multiple CPU types in a single kernel image
-> (I see no "choice" statement above)?
-> If yes, you may have a mix of aliasing and non-aliasing caches, so
-> you may want to invert the logic, and select CPU_CACHE_ALIASING
-> instead.
+> If this is the only file that includes asm/l2_cache.h, then I'd simply
+> move the entire
+> contents in here, rather than having a separate file in the global namespace.
+>
 
-Right, my mistake.
-
-         Arnd
+arch/nds32/mm/proc.c also includes this file so I will keep it.
