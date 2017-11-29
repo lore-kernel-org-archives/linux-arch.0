@@ -1,137 +1,190 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f65.google.com ([209.85.213.65]:40713 "EHLO
-        mail-vk0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755026AbdK2OL3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 09:11:29 -0500
-MIME-Version: 1.0
-In-Reply-To: <CAK8P3a2d2_jxXehE3xP_G9Tzp6jP4hFmS4CJkh=6bePLEDcdGw@mail.gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <5e1be9ebc591c6de79b75f726a5a38b2564eaa92.1511785528.git.green.hu@gmail.com>
- <CAK8P3a1GuH2tgtC5t834-PNeUVYQxreD7seZH8sjraZFtRUWKw@mail.gmail.com>
- <CAEbi=3c=hTCcUOPs+Fc10srzTFsB4MnVxgcFydz12-jH0ZXjog@mail.gmail.com>
- <CAK8P3a0kvt52UTtEmE+tWHZuH_rmgTxP7+CiD9Ddwe2cJLwXTQ@mail.gmail.com>
- <CAMuHMdViO=+-kGdXFPSW+9PsPbf3sUa5xdaJ_1C-cX2vE1G35Q@mail.gmail.com>
- <CAK8P3a3yk7ww+LdQdL+wgz2wYrzXLSsj1PTdfK-qx013jdg4SQ@mail.gmail.com>
- <CAEbi=3cc8e__DnFKmTSMm9xQMx7CGu+1v3e55w8UekwnTTkw5Q@mail.gmail.com> <CAK8P3a2d2_jxXehE3xP_G9Tzp6jP4hFmS4CJkh=6bePLEDcdGw@mail.gmail.com>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Wed, 29 Nov 2017 22:10:47 +0800
-Message-ID: <CAEbi=3fmXP=n_tS+-TSFhdht2G=VHOzVCVU=SRy4A6Ym_GToUQ@mail.gmail.com>
-Subject: Re: [PATCH v2 25/35] nds32: Build infrastructure
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:38213 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752179AbdK2Omh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 09:42:37 -0500
+From: Michal Hocko <mhocko@kernel.org>
+Subject: [PATCH 1/2] mm: introduce MAP_FIXED_SAFE
+Date: Wed, 29 Nov 2017 15:42:18 +0100
+Message-ID: <20171129144219.22867-2-mhocko@kernel.org>
+In-Reply-To: <20171129144219.22867-1-mhocko@kernel.org>
+References: <20171129144219.22867-1-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171129141047.jCxfzxGeHCDBgCBQ1OpRAKYtRqbufaq0rgJqIUNVqzk@z>
+To: linux-api@vger.kernel.org
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20171129144218.8i47HPWB54xgABIY3RIYDWYEcQWgO-5SKn3p21VbD8U@z>
 
-2017-11-29 19:57 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
-> On Wed, Nov 29, 2017 at 12:39 PM, Greentime Hu <green.hu@gmail.com> wrote:
->> 2017-11-29 17:25 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->>> On Wed, Nov 29, 2017 at 10:10 AM, Geert Uytterhoeven
->>> <geert@linux-m68k.org> wrote:
->>>> Hi Arnd,
->>>>
->>>> On Wed, Nov 29, 2017 at 9:58 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->>>>> On Wed, Nov 29, 2017 at 9:39 AM, Greentime Hu <green.hu@gmail.com> wrote:
->>>>>> 2017-11-27 22:21 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->>>>>>> On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
->>>>>>>> diff --git a/arch/nds32/Kconfig.cpu b/arch/nds32/Kconfig.cpu
->>>>>>>> +config CPU_CACHE_NONALIASING
->>>>>>>> +       bool "Non-aliasing cache"
->>>>>>>> +       help
->>>>>>>> +         If this CPU is using VIPT data cache and its cache way size is larger
->>>>>>>> +         than page size, say N. If it is using PIPT data cache, say Y.
->>>>>>>> +
->>>>>>>> +         If unsure, say Y.
->>>>>>>
->>>>>>> Can you determine this from the CPU type?
->>>>>>
->>>>>> There is no cpu register to determine it. It also depeneds on page
->>>>>> size and way size however page size is configurable by software.
->>>>>> These codes are determined at compile time will be benefit to code
->>>>>> size and performance.
->>>>>> IMHO, I think it would be better to be determined here.
->>>>>
->>>>> I meant determining it at compile time from other Kconfig symbols,
->>>>> if that's possible. Do the CPU cores each have a fixed way-size?
->>>>> If they do, it could be done like
->>>>>
->>>>> menu "CPU selection"
->>>>>
->>>>> config CPU_N15
->>>>>       bool "AndesCore N15"
->>>>>       select CPU_CACHE_NONALIASING
->>>>>
->>>>> config CPU_N13
->>>>>       bool "AndesCore N15"
->>>>>       select CPU_CACHE_NONALIASING if PAGE_SIZE_16K
->>>>>
->>>>> ...
->>>>>
->>>>> endmenu
->>>>>
->>>>> and then you can use the same CPU_... symbols to make other decisions
->>>>> as well, e.g. CPU specific compiler optimizations.
->>>>
->>>> Do you want to support multiple CPU types in a single kernel image
->>>> (I see no "choice" statement above)?
->>>> If yes, you may have a mix of aliasing and non-aliasing caches, so
->>>> you may want to invert the logic, and select CPU_CACHE_ALIASING
->>>> instead.
->>>
->>> Right, my mistake.
->>>
->>
->> Thanks to Arnd and Geert!
->>
->> How about this?
->>
->> choice
->>         prompt "CPU type"
->>         default CPU_N13
->> config CPU_N15
->>         bool "AndesCore N15"
->>         select CPU_CACHE_NONALIASING
->> config CPU_N13
->>         bool "AndesCore N13"
->>         select CPU_CACHE_NONALIASING if ANDES_PAGE_SIZE_8KB
->> config CPU_N10
->>         bool "AndesCore N10"
->>         select CPU_CACHE_NONALIASING if ANDES_PAGE_SIZE_8KB
->> config CPU_D15
->>         bool "AndesCore D15"
->>         select CPU_CACHE_NONALIASING
->>         select HWZOL
->> config CPU_D10
->>         bool "AndesCore D10"
->>         select CPU_CACHE_NONALIASING if ANDES_PAGE_SIZE_8KB
->> endchoice
->
-> With a 'choice' statement this works, but I would consider that
-> suboptimal for another reason: now you cannot build a kernel that
-> works on e.g. both N13 and N15.
->
-> This is what we had on ARM a long time ago and on MIPS not so long
-> ago, but it's really a burden for testing and distribution once you get
-> support for more than a handful of machines supported in the mainline
-> kernel: If each CPU core is mutually incompatible with the other ones,
-> this means you likely end up having one defconfig per CPU core,
-> or even one defconfig per SoC or board.
->
-> I would always try to get the largest amount of hardware to work
-> in the same kernel concurrently.
->
-> One way of of this would be to define the "CPU type" as the minimum
-> supported CPU, e.g. selecting D15 would result in a kernel that
-> only works on D15, while selecting N15 would work on both N15 and
-> D15, and selecting D10 would work on both D10 and D15.
->
+From: Michal Hocko <mhocko@suse.com>
 
-Hi, Arnd:
+MAP_FIXED is used quite often to enforce mapping at the particular
+range. The main problem of this flag is, however, that it is inherently
+dangerous because it unmaps existing mappings covered by the requested
+range. This can cause silent memory corruptions. Some of them even with
+serious security implications. While the current semantic might be
+really desiderable in many cases there are others which would want to
+enforce the given range but rather see a failure than a silent memory
+corruption on a clashing range. Please note that there is no guarantee
+that a given range is obeyed by the mmap even when it is free - e.g.
+arch specific code is allowed to apply an alignment.
 
-Maybe we should keep the original implementation for this reason.
-The default value of CPU_CACHE_NONALIASING and ANDES_PAGE_SIZE_8KB is
-available for all CPU types for now.
-User can use these configs built kernel to boot on almost all nds32 CPUs.
+Introduce a new MAP_FIXED_SAFE flag for mmap to achieve this behavior.
+It has the same semantic as MAP_FIXED wrt. the given address request
+with a single exception that it fails with EEXIST if the requested
+address is already covered by an existing mapping. We still do rely on
+get_unmaped_area to handle all the arch specific MAP_FIXED treatment and
+check for a conflicting vma after it returns.
 
-It might be a little bit weird if we config CPU_N10 but run on a N13 CPU.
-This might confuse our users.
+[fail on clashing range with EEXIST as per Florian Weimer]
+[set MAP_FIXED before round_hint_to_min as per Khalid Aziz]
+Reviewed-by: Khalid Aziz <khalid.aziz@oracle.com>
+Signed-off-by: Michal Hocko <mhocko@suse.com>
+---
+ arch/alpha/include/uapi/asm/mman.h   |  2 ++
+ arch/mips/include/uapi/asm/mman.h    |  2 ++
+ arch/parisc/include/uapi/asm/mman.h  |  2 ++
+ arch/powerpc/include/uapi/asm/mman.h |  1 +
+ arch/sparc/include/uapi/asm/mman.h   |  1 +
+ arch/tile/include/uapi/asm/mman.h    |  1 +
+ arch/xtensa/include/uapi/asm/mman.h  |  2 ++
+ include/uapi/asm-generic/mman.h      |  1 +
+ mm/mmap.c                            | 11 +++++++++++
+ 9 files changed, 23 insertions(+)
+
+diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
+index 6bf730063e3f..ef3770262925 100644
+--- a/arch/alpha/include/uapi/asm/mman.h
++++ b/arch/alpha/include/uapi/asm/mman.h
+@@ -32,6 +32,8 @@
+ #define MAP_STACK	0x80000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x100000	/* create a huge page mapping */
+ 
++#define MAP_FIXED_SAFE	0x200000	/* MAP_FIXED which doesn't unmap underlying mapping */
++
+ #define MS_ASYNC	1		/* sync memory asynchronously */
+ #define MS_SYNC		2		/* synchronous memory sync */
+ #define MS_INVALIDATE	4		/* invalidate the caches */
+diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
+index 20c3df7a8fdd..f1e15890345c 100644
+--- a/arch/mips/include/uapi/asm/mman.h
++++ b/arch/mips/include/uapi/asm/mman.h
+@@ -50,6 +50,8 @@
+ #define MAP_STACK	0x40000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x80000		/* create a huge page mapping */
+ 
++#define MAP_FIXED_SAFE	0x100000	/* MAP_FIXED which doesn't unmap underlying mapping */
++
+ /*
+  * Flags for msync
+  */
+diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
+index d1af0d74a188..daf0282ac417 100644
+--- a/arch/parisc/include/uapi/asm/mman.h
++++ b/arch/parisc/include/uapi/asm/mman.h
+@@ -26,6 +26,8 @@
+ #define MAP_STACK	0x40000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x80000		/* create a huge page mapping */
+ 
++#define MAP_FIXED_SAFE	0x100000	/* MAP_FIXED which doesn't unmap underlying mapping */
++
+ #define MS_SYNC		1		/* synchronous memory sync */
+ #define MS_ASYNC	2		/* sync memory asynchronously */
+ #define MS_INVALIDATE	4		/* invalidate the caches */
+diff --git a/arch/powerpc/include/uapi/asm/mman.h b/arch/powerpc/include/uapi/asm/mman.h
+index e63bc37e33af..3ffd284e7160 100644
+--- a/arch/powerpc/include/uapi/asm/mman.h
++++ b/arch/powerpc/include/uapi/asm/mman.h
+@@ -29,5 +29,6 @@
+ #define MAP_NONBLOCK	0x10000		/* do not block on IO */
+ #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
++#define MAP_FIXED_SAFE	0x800000	/* MAP_FIXED which doesn't unmap underlying mapping */
+ 
+ #endif /* _UAPI_ASM_POWERPC_MMAN_H */
+diff --git a/arch/sparc/include/uapi/asm/mman.h b/arch/sparc/include/uapi/asm/mman.h
+index 715a2c927e79..0c282c09fae8 100644
+--- a/arch/sparc/include/uapi/asm/mman.h
++++ b/arch/sparc/include/uapi/asm/mman.h
+@@ -24,6 +24,7 @@
+ #define MAP_NONBLOCK	0x10000		/* do not block on IO */
+ #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
++#define MAP_FIXED_SAFE	0x80000		/* MAP_FIXED which doesn't unmap underlying mapping */
+ 
+ 
+ #endif /* _UAPI__SPARC_MMAN_H__ */
+diff --git a/arch/tile/include/uapi/asm/mman.h b/arch/tile/include/uapi/asm/mman.h
+index 9b7add95926b..b212f5fd5345 100644
+--- a/arch/tile/include/uapi/asm/mman.h
++++ b/arch/tile/include/uapi/asm/mman.h
+@@ -30,6 +30,7 @@
+ #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
+ #define MAP_EXECUTABLE	0x1000		/* mark it as an executable */
+ #define MAP_HUGETLB	0x4000		/* create a huge page mapping */
++#define MAP_FIXED_SAFE	0x8000		/* MAP_FIXED which doesn't unmap underlying mapping */
+ 
+ 
+ /*
+diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
+index 2bfe590694fc..0daf199caa57 100644
+--- a/arch/xtensa/include/uapi/asm/mman.h
++++ b/arch/xtensa/include/uapi/asm/mman.h
+@@ -56,6 +56,7 @@
+ #define MAP_NONBLOCK	0x20000		/* do not block on IO */
+ #define MAP_STACK	0x40000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x80000		/* create a huge page mapping */
++#define MAP_FIXED_SAFE	0x100000	/* MAP_FIXED which doesn't unmap underlying mapping */
+ #ifdef CONFIG_MMAP_ALLOW_UNINITIALIZED
+ # define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be
+ 					 * uninitialized */
+@@ -63,6 +64,7 @@
+ # define MAP_UNINITIALIZED 0x0		/* Don't support this flag */
+ #endif
+ 
++
+ /*
+  * Flags for msync
+  */
+diff --git a/include/uapi/asm-generic/mman.h b/include/uapi/asm-generic/mman.h
+index 2dffcbf705b3..56cde132a80a 100644
+--- a/include/uapi/asm-generic/mman.h
++++ b/include/uapi/asm-generic/mman.h
+@@ -13,6 +13,7 @@
+ #define MAP_NONBLOCK	0x10000		/* do not block on IO */
+ #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
++#define MAP_FIXED_SAFE	0x80000		/* MAP_FIXED which doesn't unmap underlying mapping */
+ 
+ /* Bits [26:31] are reserved, see mman-common.h for MAP_HUGETLB usage */
+ 
+diff --git a/mm/mmap.c b/mm/mmap.c
+index 476e810cf100..e84339842bb8 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1342,6 +1342,10 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
+ 		if (!(file && path_noexec(&file->f_path)))
+ 			prot |= PROT_EXEC;
+ 
++	/* force arch specific MAP_FIXED handling in get_unmapped_area */
++	if (flags & MAP_FIXED_SAFE)
++		flags |= MAP_FIXED;
++
+ 	if (!(flags & MAP_FIXED))
+ 		addr = round_hint_to_min(addr);
+ 
+@@ -1365,6 +1369,13 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
+ 	if (offset_in_page(addr))
+ 		return addr;
+ 
++	if (flags & MAP_FIXED_SAFE) {
++		struct vm_area_struct *vma = find_vma(mm, addr);
++
++		if (vma && vma->vm_start <= addr)
++			return -EEXIST;
++	}
++
+ 	if (prot == PROT_EXEC) {
+ 		pkey = execute_only_pkey(mm);
+ 		if (pkey < 0)
+-- 
+2.15.0
