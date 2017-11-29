@@ -1,74 +1,92 @@
-From: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH v2 06/35] nds32: MMU fault handling and page table management
-Date: Wed, 29 Nov 2017 15:24:16 +0800
-Message-ID: <CAEbi=3d8roTJHjsea3Up3uB+fu0fOmMcS7Dh=5-bV1GW4Y4e8Q@mail.gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <ba92adae5d20d99c7c18e75146642a2ccbd5d047.1511785528.git.green.hu@gmail.com>
- <20171127135136.3gnguzaf6d52tcpd@lakrids.cambridge.arm.com>
+From: Greentime Hu <green.hu@gmail.com>
+Subject: Re: [PATCH v2 25/35] nds32: Build infrastructure
+Date: Wed, 29 Nov 2017 16:39:51 +0800
+Message-ID: <CAEbi=3c=hTCcUOPs+Fc10srzTFsB4MnVxgcFydz12-jH0ZXjog@mail.gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com> <5e1be9ebc591c6de79b75f726a5a38b2564eaa92.1511785528.git.green.hu@gmail.com>
+ <CAK8P3a1GuH2tgtC5t834-PNeUVYQxreD7seZH8sjraZFtRUWKw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20171127135136.3gnguzaf6d52tcpd-agMKViyK24J5pKCnmE3YQBJ8xKzm50AiAL8bYrjMMd8@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>
-Cc: Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, netdev <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Vincent Chen <vincentc-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a1GuH2tgtC5t834-PNeUVYQxreD7seZH8sjraZFtRUWKw@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi, Mark:
-
-2017-11-27 21:51 GMT+08:00 Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>:
-> Hi,
+2017-11-27 22:21 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
 >
-> On Mon, Nov 27, 2017 at 08:27:53PM +0800, Greentime Hu wrote:
->> +void do_page_fault(unsigned long entry, unsigned long addr,
->> +                unsigned int error_code, struct pt_regs *regs)
->> +{
->
->> +     /*
->> +      * As per x86, we may deadlock here. However, since the kernel only
->> +      * validly references user space from well defined areas of the code,
->> +      * we can bug out early if this is from code which shouldn't.
->> +      */
->> +     if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
->> +             if (!user_mode(regs) &&
->> +                 !search_exception_tables(instruction_pointer(regs)))
->> +                     goto no_context;
->> +retry:
->> +             down_read(&mm->mmap_sem);
->> +     } else {
->> +             /*
->> +              * The above down_read_trylock() might have succeeded in which
->> +              * case, we'll have missed the might_sleep() from down_read().
->> +              */
->> +             might_sleep();
->> +             if (IS_ENABLED(CONFIG_DEBUG_VM)) {
->> +                     if (!user_mode(regs) &&
->> +                         !search_exception_tables(instruction_pointer(regs)))
->> +                             goto no_context;
->> +             }
->> +     }
->
->> +     fault = handle_mm_fault(vma, addr, flags);
+>> diff --git a/arch/nds32/Kconfig.cpu b/arch/nds32/Kconfig.cpu
+>> new file mode 100644
+>> index 0000000..6b4013f
+>> --- /dev/null
+>> +++ b/arch/nds32/Kconfig.cpu
+>> @@ -0,0 +1,131 @@
+>> +comment "Processor Features"
 >> +
->> +     /*
->> +      * If we need to retry but a fatal signal is pending, handle the
->> +      * signal first. We do not need to release the mmap_sem because it
->> +      * would already be released in __lock_page_or_retry in mm/filemap.c.
->> +      */
->> +     if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
->> +             return;
+>> +config CPU_BIG_ENDIAN
+>> +       bool "Big endian"
+>> +       def_bool n
+>> +
+>> +config CPU_LITTLE_ENDIAN
+>> +       bool "Little endian"
+>> +       def_bool y
 >
-> I believe you can get stuck in a livelock here (with an unkillable
-> task), if a uaccess primitive tries to access a region protected by a
-> userfaultfd. Please see:
+> These must be mutually exclusive, you surely get some build error if you try to
+> set both here.
 >
->   https://lkml.kernel.org/r/1499782590-31366-1-git-send-email-mark.rutland-5wv7dgnIgG8@public.gmane.org
+> You can either make it a 'choice' statement to pick between the two, or you
+> can make CPU_LITTLE_ENDIAN a silent option like
 >
-> ... for details and a test case.
+> config CPU_BIG_ENDIAN
+>        bool "Big endian"
+>
+> config CPU_LITTLE_ENDIAN
+>        def_bool !CPU_BIG_ENDIAN
 >
 
-Thanks for your teatcase and patch. It works.
-I will apply it to the next version patch.
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Thanks. I will fix it in the next version patch.
+
+>> +config CPU_CACHE_NONALIASING
+>> +       bool "Non-aliasing cache"
+>> +       help
+>> +         If this CPU is using VIPT data cache and its cache way size is larger
+>> +         than page size, say N. If it is using PIPT data cache, say Y.
+>> +
+>> +         If unsure, say Y.
+>
+> Can you determine this from the CPU type?
+
+There is no cpu register to determine it. It also depeneds on page
+size and way size however page size is configurable by software.
+These codes are determined at compile time will be benefit to code
+size and performance.
+IMHO, I think it would be better to be determined here.
+
+>> +choice
+>> +       prompt "Memory split"
+>> +       depends on MMU
+>> +       default VMSPLIT_3G
+>> +       help
+>> +         Select the desired split between kernel and user memory.
+>> +
+>> +         If you are not absolutely sure what you are doing, leave this
+>> +         option alone!
+>> +
+>> +       config VMSPLIT_3G
+>> +               bool "3G/1G user/kernel split"
+>> +       config VMSPLIT_3G_OPT
+>> +               bool "3G/1G user/kernel split (for full 1G low memory)"
+>> +       config VMSPLIT_2G
+>> +               bool "2G/2G user/kernel split"
+>> +       config VMSPLIT_1G
+>> +               bool "1G/3G user/kernel split"
+>> +endchoice
+>
+> I think you mentioned that the 1GB configuration is quite common, how
+> about making VMSPLIT_3G_OPT the default here?
+
+We use 1GB in our fpga platform, but I am not sure our customer's
+config and their user space program may use bigger memory space.
+Anyway, we will discuss it to decide the default value.
+Thanks for your suggestion.
