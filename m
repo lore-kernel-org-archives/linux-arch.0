@@ -1,68 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:34316 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752076AbdK2HWO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 29 Nov 2017 02:22:14 -0500
-Date: Wed, 29 Nov 2017 08:22:11 +0100
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [RFC PATCH] arch, mm: introduce arch_tlb_gather_mmu_exit
-Message-ID: <20171129072211.vbjauoqyaj7hcfel@dhcp22.suse.cz>
-References: <20171123090236.18574-1-mhocko@kernel.org>
- <20171128190001.GD8187@arm.com>
+Received: from mail-vk0-f67.google.com ([209.85.213.67]:35170 "EHLO
+        mail-vk0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750818AbdK2HY6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 02:24:58 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20171128190001.GD8187@arm.com>
+In-Reply-To: <20171127135136.3gnguzaf6d52tcpd@lakrids.cambridge.arm.com>
+References: <cover.1511785528.git.green.hu@gmail.com> <ba92adae5d20d99c7c18e75146642a2ccbd5d047.1511785528.git.green.hu@gmail.com>
+ <20171127135136.3gnguzaf6d52tcpd@lakrids.cambridge.arm.com>
+From: Greentime Hu <green.hu@gmail.com>
+Date: Wed, 29 Nov 2017 15:24:16 +0800
+Message-ID: <CAEbi=3d8roTJHjsea3Up3uB+fu0fOmMcS7Dh=5-bV1GW4Y4e8Q@mail.gmail.com>
+Subject: Re: [PATCH v2 06/35] nds32: MMU fault handling and page table management
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-mm@kvack.org, Minchan Kim <minchan@kernel.org>, Andrea Argangeli <andrea@kernel.org>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20171129072211.3ue0OBMyck3oyrw8yuiN78hXP2SdhrosxWEdwyODRgc@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171129072416.hyY4uRaFZAMeJVku2slceCcTrL_bq8r_Pb8fT3yvJqA@z>
 
-On Tue 28-11-17 19:00:01, Will Deacon wrote:
-> On Thu, Nov 23, 2017 at 10:02:36AM +0100, Michal Hocko wrote:
-> > From: Michal Hocko <mhocko@suse.com>
-> > 
-> > 5a7862e83000 ("arm64: tlbflush: avoid flushing when fullmm == 1") has
-> > introduced an optimization to not flush tlb when we are tearing the
-> > whole address space down. Will goes on to explain
-> > 
-> > : Basically, we tag each address space with an ASID (PCID on x86) which
-> > : is resident in the TLB. This means we can elide TLB invalidation when
-> > : pulling down a full mm because we won't ever assign that ASID to
-> > : another mm without doing TLB invalidation elsewhere (which actually
-> > : just nukes the whole TLB).
-> > 
-> > This all is nice but tlb_gather users are not aware of that and this can
-> > actually cause some real problems. E.g. the oom_reaper tries to reap the
-> > whole address space but it might race with threads accessing the memory [1].
-> > It is possible that soft-dirty handling might suffer from the same
-> > problem [2] as soon as it starts supporting the feature.
-> > 
-> > Introduce an explicit exit variant tlb_gather_mmu_exit which allows the
-> > behavior arm64 implements for the fullmm case and replace it by an
-> > explicit exit flag in the mmu_gather structure. exit_mmap path is then
-> > turned into the explicit exit variant. Other architectures simply ignore
-> > the flag.
-> > 
-> > [1] http://lkml.kernel.org/r/20171106033651.172368-1-wangnan0@huawei.com
-> > [2] http://lkml.kernel.org/r/20171110001933.GA12421@bbox
-> > Signed-off-by: Michal Hocko <mhocko@suse.com>
-> > ---
-> > Hi,
-> > I am sending this as an RFC because I am not fully familiar with the tlb
-> > gather arch implications, espacially the semantic of fullmm. Therefore
-> > I might duplicate some of its functionality. I hope people on the CC
-> > list will help me to sort this out.
-> > 
-> > Comments? Objections?
-> 
-> I can't think of a case where we'd have exit set but not be doing the
-> fullmm, in which case I'd be inclined to remove the last two parameters
-> from tlb_gather_mmu_exit.
+Hi, Mark:
 
-Makes sense. Will do!
+2017-11-27 21:51 GMT+08:00 Mark Rutland <mark.rutland@arm.com>:
+> Hi,
+>
+> On Mon, Nov 27, 2017 at 08:27:53PM +0800, Greentime Hu wrote:
+>> +void do_page_fault(unsigned long entry, unsigned long addr,
+>> +                unsigned int error_code, struct pt_regs *regs)
+>> +{
+>
+>> +     /*
+>> +      * As per x86, we may deadlock here. However, since the kernel only
+>> +      * validly references user space from well defined areas of the code,
+>> +      * we can bug out early if this is from code which shouldn't.
+>> +      */
+>> +     if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
+>> +             if (!user_mode(regs) &&
+>> +                 !search_exception_tables(instruction_pointer(regs)))
+>> +                     goto no_context;
+>> +retry:
+>> +             down_read(&mm->mmap_sem);
+>> +     } else {
+>> +             /*
+>> +              * The above down_read_trylock() might have succeeded in which
+>> +              * case, we'll have missed the might_sleep() from down_read().
+>> +              */
+>> +             might_sleep();
+>> +             if (IS_ENABLED(CONFIG_DEBUG_VM)) {
+>> +                     if (!user_mode(regs) &&
+>> +                         !search_exception_tables(instruction_pointer(regs)))
+>> +                             goto no_context;
+>> +             }
+>> +     }
+>
+>> +     fault = handle_mm_fault(vma, addr, flags);
+>> +
+>> +     /*
+>> +      * If we need to retry but a fatal signal is pending, handle the
+>> +      * signal first. We do not need to release the mmap_sem because it
+>> +      * would already be released in __lock_page_or_retry in mm/filemap.c.
+>> +      */
+>> +     if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
+>> +             return;
+>
+> I believe you can get stuck in a livelock here (with an unkillable
+> task), if a uaccess primitive tries to access a region protected by a
+> userfaultfd. Please see:
+>
+>   https://lkml.kernel.org/r/1499782590-31366-1-git-send-email-mark.rutland@arm.com
+>
+> ... for details and a test case.
+>
 
--- 
-Michal Hocko
-SUSE Labs
+Thanks for your teatcase and patch. It works.
+I will apply it to the next version patch.
