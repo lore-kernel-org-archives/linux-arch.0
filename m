@@ -1,38 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f67.google.com ([209.85.213.67]:36856 "EHLO
-        mail-vk0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750783AbdK2Fk5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 00:40:57 -0500
+Received: from mx2.suse.de ([195.135.220.15]:34316 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752076AbdK2HWO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 29 Nov 2017 02:22:14 -0500
+Date: Wed, 29 Nov 2017 08:22:11 +0100
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [RFC PATCH] arch, mm: introduce arch_tlb_gather_mmu_exit
+Message-ID: <20171129072211.vbjauoqyaj7hcfel@dhcp22.suse.cz>
+References: <20171123090236.18574-1-mhocko@kernel.org>
+ <20171128190001.GD8187@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20171128142507.GA17797@kroah.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <5b5f07ffd75d509a661398d02d6f1336156554ae.1511785528.git.green.hu@gmail.com>
- <20171128142507.GA17797@kroah.com>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Wed, 29 Nov 2017 13:40:16 +0800
-Message-ID: <CAEbi=3enx6tyuBmOygo3=gGa0HC+uit+gm3D=Thbyuv2hV=F0g@mail.gmail.com>
-Subject: Re: [PATCH v2 31/35] earlycon: add reg-offset to physical address
- before mapping
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20171128190001.GD8187@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <greg@kroah.com>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org
-Message-ID: <20171129054016.aqoPgQ4qa7jN7QPYOHsOi0uzkMvobAcjXSoE86NNcfI@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-mm@kvack.org, Minchan Kim <minchan@kernel.org>, Andrea Argangeli <andrea@kernel.org>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20171129072211.3ue0OBMyck3oyrw8yuiN78hXP2SdhrosxWEdwyODRgc@z>
 
-2017-11-28 22:25 GMT+08:00 Greg KH <greg@kroah.com>:
-> On Mon, Nov 27, 2017 at 08:28:18PM +0800, Greentime Hu wrote:
->> From: Greentime Hu <greentime@andestech.com>
->>
->> It will get the wrong virtual address because port->mapbase is not added
->> the correct reg-offset yet. We have to update it before earlycon_map()
->> is called
->> ---
->>  drivers/tty/serial/earlycon.c |    3 ++-
->>  1 file changed, 2 insertions(+), 1 deletion(-)
->
-> No signed-off-by line?
+On Tue 28-11-17 19:00:01, Will Deacon wrote:
+> On Thu, Nov 23, 2017 at 10:02:36AM +0100, Michal Hocko wrote:
+> > From: Michal Hocko <mhocko@suse.com>
+> > 
+> > 5a7862e83000 ("arm64: tlbflush: avoid flushing when fullmm == 1") has
+> > introduced an optimization to not flush tlb when we are tearing the
+> > whole address space down. Will goes on to explain
+> > 
+> > : Basically, we tag each address space with an ASID (PCID on x86) which
+> > : is resident in the TLB. This means we can elide TLB invalidation when
+> > : pulling down a full mm because we won't ever assign that ASID to
+> > : another mm without doing TLB invalidation elsewhere (which actually
+> > : just nukes the whole TLB).
+> > 
+> > This all is nice but tlb_gather users are not aware of that and this can
+> > actually cause some real problems. E.g. the oom_reaper tries to reap the
+> > whole address space but it might race with threads accessing the memory [1].
+> > It is possible that soft-dirty handling might suffer from the same
+> > problem [2] as soon as it starts supporting the feature.
+> > 
+> > Introduce an explicit exit variant tlb_gather_mmu_exit which allows the
+> > behavior arm64 implements for the fullmm case and replace it by an
+> > explicit exit flag in the mmu_gather structure. exit_mmap path is then
+> > turned into the explicit exit variant. Other architectures simply ignore
+> > the flag.
+> > 
+> > [1] http://lkml.kernel.org/r/20171106033651.172368-1-wangnan0@huawei.com
+> > [2] http://lkml.kernel.org/r/20171110001933.GA12421@bbox
+> > Signed-off-by: Michal Hocko <mhocko@suse.com>
+> > ---
+> > Hi,
+> > I am sending this as an RFC because I am not fully familiar with the tlb
+> > gather arch implications, espacially the semantic of fullmm. Therefore
+> > I might duplicate some of its functionality. I hope people on the CC
+> > list will help me to sort this out.
+> > 
+> > Comments? Objections?
+> 
+> I can't think of a case where we'd have exit set but not be doing the
+> fullmm, in which case I'd be inclined to remove the last two parameters
+> from tlb_gather_mmu_exit.
 
-Sorry I forget it.
-Signed-off-by: Greentime Hu <greentime@andestech.com>
+Makes sense. Will do!
 
-I will add it in the next version patch.
+-- 
+Michal Hocko
+SUSE Labs
