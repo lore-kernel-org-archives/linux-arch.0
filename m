@@ -1,64 +1,95 @@
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: Re: [PATCH 2/2] fs, elf: drop MAP_FIXED usage from elf_map
-Date: Wed, 29 Nov 2017 10:45:43 -0700
-Message-ID: <93ce964b-e352-1905-c2b6-deedf2ea06f8@oracle.com>
-References: <20171129144219.22867-1-mhocko@kernel.org>
- <20171129144219.22867-3-mhocko@kernel.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 25/35] nds32: Build infrastructure
+Date: Wed, 29 Nov 2017 21:27:31 +0100
+Message-ID: <CAK8P3a3-CexhRkJB7_8TGShuDQP8w=myhkoB8-7ax3my96PrMw@mail.gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com> <5e1be9ebc591c6de79b75f726a5a38b2564eaa92.1511785528.git.green.hu@gmail.com>
+ <CAK8P3a1GuH2tgtC5t834-PNeUVYQxreD7seZH8sjraZFtRUWKw@mail.gmail.com>
+ <CAEbi=3c=hTCcUOPs+Fc10srzTFsB4MnVxgcFydz12-jH0ZXjog@mail.gmail.com>
+ <CAK8P3a0kvt52UTtEmE+tWHZuH_rmgTxP7+CiD9Ddwe2cJLwXTQ@mail.gmail.com>
+ <CAMuHMdViO=+-kGdXFPSW+9PsPbf3sUa5xdaJ_1C-cX2vE1G35Q@mail.gmail.com>
+ <CAK8P3a3yk7ww+LdQdL+wgz2wYrzXLSsj1PTdfK-qx013jdg4SQ@mail.gmail.com>
+ <CAEbi=3cc8e__DnFKmTSMm9xQMx7CGu+1v3e55w8UekwnTTkw5Q@mail.gmail.com>
+ <CAK8P3a2d2_jxXehE3xP_G9Tzp6jP4hFmS4CJkh=6bePLEDcdGw@mail.gmail.com> <CAEbi=3fmXP=n_tS+-TSFhdht2G=VHOzVCVU=SRy4A6Ym_GToUQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20171129144219.22867-3-mhocko@kernel.org>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Michal Hocko <mhocko@kernel.org>, linux-api@vger.kernel.org
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Michal Hocko <mhocko@suse.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAEbi=3fmXP=n_tS+-TSFhdht2G=VHOzVCVU=SRy4A6Ym_GToUQ@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greentime Hu <green.hu@gmail.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 11/29/2017 07:42 AM, Michal Hocko wrote:
-> From: Michal Hocko <mhocko@suse.com>
-> 
-> Both load_elf_interp and load_elf_binary rely on elf_map to map segments
-> on a controlled address and they use MAP_FIXED to enforce that. This is
-> however dangerous thing prone to silent data corruption which can be
-> even exploitable. Let's take CVE-2017-1000253 as an example. At the time
-> (before eab09532d400 ("binfmt_elf: use ELF_ET_DYN_BASE only for PIE"))
-> ELF_ET_DYN_BASE was at TASK_SIZE / 3 * 2 which is not that far away from
-> the stack top on 32b (legacy) memory layout (only 1GB away). Therefore
-> we could end up mapping over the existing stack with some luck.
-> 
-> The issue has been fixed since then (a87938b2e246 ("fs/binfmt_elf.c:
-> fix bug in loading of PIE binaries")), ELF_ET_DYN_BASE moved moved much
-> further from the stack (eab09532d400 and later by c715b72c1ba4 ("mm:
-> revert x86_64 and arm64 ELF_ET_DYN_BASE base changes")) and excessive
-> stack consumption early during execve fully stopped by da029c11e6b1
-> ("exec: Limit arg stack to at most 75% of _STK_LIM"). So we should be
-> safe and any attack should be impractical. On the other hand this is
-> just too subtle assumption so it can break quite easily and hard to
-> spot.
-> 
-> I believe that the MAP_FIXED usage in load_elf_binary (et. al) is still
-> fundamentally dangerous. Moreover it shouldn't be even needed. We are
-> at the early process stage and so there shouldn't be unrelated mappings
-> (except for stack and loader) existing so mmap for a given address
-> should succeed even without MAP_FIXED. Something is terribly wrong if
-> this is not the case and we should rather fail than silently corrupt the
-> underlying mapping.
-> 
-> Address this issue by changing MAP_FIXED to the newly added
-> MAP_FIXED_SAFE. This will mean that mmap will fail if there is an
-> existing mapping clashing with the requested one without clobbering it.
-> 
-> Cc: Abdul Haleem <abdhalee@linux.vnet.ibm.com>
-> Cc: Joel Stanley <joel@jms.id.au>
-> Acked-by: Kees Cook <keescook@chromium.org>
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
-> ---
+On Wed, Nov 29, 2017 at 3:10 PM, Greentime Hu <green.hu@gmail.com> wrote:
+> 2017-11-29 19:57 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+>> On Wed, Nov 29, 2017 at 12:39 PM, Greentime Hu <green.hu@gmail.com> wrote:
+>>>
+>>> How about this?
+>>>
+>>> choice
+>>>         prompt "CPU type"
+>>>         default CPU_N13
+>>> config CPU_N15
+>>>         bool "AndesCore N15"
+>>>         select CPU_CACHE_NONALIASING
+>>> config CPU_N13
+>>>         bool "AndesCore N13"
+>>>         select CPU_CACHE_NONALIASING if ANDES_PAGE_SIZE_8KB
+>>> config CPU_N10
+>>>         bool "AndesCore N10"
+>>>         select CPU_CACHE_NONALIASING if ANDES_PAGE_SIZE_8KB
+>>> config CPU_D15
+>>>         bool "AndesCore D15"
+>>>         select CPU_CACHE_NONALIASING
+>>>         select HWZOL
+>>> config CPU_D10
+>>>         bool "AndesCore D10"
+>>>         select CPU_CACHE_NONALIASING if ANDES_PAGE_SIZE_8KB
+>>> endchoice
+>>
+>> With a 'choice' statement this works, but I would consider that
+>> suboptimal for another reason: now you cannot build a kernel that
+>> works on e.g. both N13 and N15.
+>>
+>> This is what we had on ARM a long time ago and on MIPS not so long
+>> ago, but it's really a burden for testing and distribution once you get
+>> support for more than a handful of machines supported in the mainline
+>> kernel: If each CPU core is mutually incompatible with the other ones,
+>> this means you likely end up having one defconfig per CPU core,
+>> or even one defconfig per SoC or board.
+>>
+>> I would always try to get the largest amount of hardware to work
+>> in the same kernel concurrently.
+>>
+>> One way of of this would be to define the "CPU type" as the minimum
+>> supported CPU, e.g. selecting D15 would result in a kernel that
+>> only works on D15, while selecting N15 would work on both N15 and
+>> D15, and selecting D10 would work on both D10 and D15.
+>>
+>
+> Hi, Arnd:
+>
+> Maybe we should keep the original implementation for this reason.
+> The default value of CPU_CACHE_NONALIASING and ANDES_PAGE_SIZE_8KB is
+> available for all CPU types for now.
+> User can use these configs built kernel to boot on almost all nds32 CPUs.
+>
+> It might be a little bit weird if we config CPU_N10 but run on a N13 CPU.
+> This might confuse our users.
 
-Reviewed-by: Khalid Aziz <khalid.aziz@oracle.com>
+I think it really depends on how much flexibility you want to give to users.
+The way I suggested first was to allow selecting an arbitrary combination
+of CPUs, and then let Kconfig derive the correct set of optimization flags
+and other options that work with those. That is probably the easiest for
+the users, but can be tricky to get right for all combinations.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+When you put them in a sorted list like I mentioned for simplicity, you
+could reduce the confusion by naming them differently, e.g.
+CONFIG_CPU_N10_OR_NEWER.
+
+Having only the CPU_CACHE_NONALIASING option is fine if you
+never need to make any other decisions based on the CPU core
+type, but then the help text should describe specifically which cases
+are affected (N10/N13/D13 with 4K page size), and you can decide to
+hide the option and make it always-on when using 8K page size.
+
+       Arnd
