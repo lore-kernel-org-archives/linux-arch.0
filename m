@@ -1,226 +1,110 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v5 05/27] x86: assembly, annotate local pseudo-functions
-Date: Thu, 30 Nov 2017 15:46:31 +0100
-Message-ID: <20171130144653.23688-6-jslaby@suse.cz>
+Subject: [PATCH v5 02/27] x86: assembly, use SYM_DATA for data
+Date: Thu, 30 Nov 2017 15:46:28 +0100
+Message-ID: <20171130144653.23688-3-jslaby@suse.cz>
 References: <20171130144653.23688-1-jslaby@suse.cz>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20171130144653.23688-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Pavel Machek <pavel@ucw.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Use the newly added SYM_CODE_START_LOCAL* to annotate starts of all
-pseudo-functions (those ending END) which do not have ".globl"
-annotation. This is needed to balance END for tools that are about to
-generate debuginfo. Note that we switch from END to SYM_CODE_END so that
-everybody can see the pairing.
+We make proper use of SYM_DATA on global data instead of marking them as
+ENTRY. ENTRY is intended for functions and shall be paired with ENDPROC.
+ENTRY also aligns symbols which creates unnecessary holes here between
+data.
 
-We are not annotating C-like functions (which handle frame ptr etc.)
-here, hence we use SYM_CODE_* macros here, not SYM_FUNC_*.  Note that
-early_idt_handler_common already had ENDPROC -- switch that to
-SYM_CODE_END for the same reason.
-
-bogus_64_magic, bad_address, bad_get_user*, and bad_put_user are now
-aligned, as they are separate functions. They do not mind to be aligned
--- no need to be compact there.
-
-early_idt_handler_common is aligned now too, as it is after
-early_idt_handler_array, so as well no need to be compact there.
-
-verify_cpu is self-standing and included in other .S files, so align it
-too.
-
-The others have alignment preserved to what it used to be (using the
-_NOALIGN variant of macros).
-
-[v3] annotate more functions
-[v4] describe the alignments changes
+ENTRY from saved_eip in wakeup_32 and many saved_* in wakeup_64 is
+simply dropped, as these symbols are local only.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Len Brown <len.brown@intel.com>
+Cc: Pavel Machek <pavel@ucw.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: <x86@kernel.org>
+Cc: x86@kernel.org
+Cc: linux-pm@vger.kernel.org
 ---
- arch/x86/entry/entry_32.S        | 5 ++---
- arch/x86/entry/entry_64.S        | 3 ++-
- arch/x86/kernel/acpi/wakeup_64.S | 3 ++-
- arch/x86/kernel/head_32.S        | 4 ++--
- arch/x86/kernel/head_64.S        | 4 ++--
- arch/x86/kernel/verify_cpu.S     | 4 ++--
- arch/x86/lib/getuser.S           | 8 ++++----
- arch/x86/lib/putuser.S           | 4 ++--
- 8 files changed, 18 insertions(+), 17 deletions(-)
+ arch/x86/kernel/acpi/wakeup_32.S |  4 ++--
+ arch/x86/kernel/acpi/wakeup_64.S | 14 +++++++-------
+ arch/x86/kernel/head_32.S        |  6 ++----
+ arch/x86/kernel/head_64.S        |  5 ++---
+ 4 files changed, 13 insertions(+), 16 deletions(-)
 
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index 3629bcbf85a2..bd003ed5180f 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -308,8 +308,7 @@ END(ret_from_fork)
-  */
+diff --git a/arch/x86/kernel/acpi/wakeup_32.S b/arch/x86/kernel/acpi/wakeup_32.S
+index 0c26b1b44e51..feac1e5ecba0 100644
+--- a/arch/x86/kernel/acpi/wakeup_32.S
++++ b/arch/x86/kernel/acpi/wakeup_32.S
+@@ -89,8 +89,8 @@ ret_point:
  
- 	# userspace resumption stub bypassing syscall exit tracing
--	ALIGN
--ret_from_exception:
-+SYM_CODE_START_LOCAL(ret_from_exception)
- 	preempt_stop(CLBR_ANY)
- ret_from_intr:
- #ifdef CONFIG_VM86
-@@ -332,7 +331,7 @@ ENTRY(resume_userspace)
- 	movl	%esp, %eax
- 	call	prepare_exit_to_usermode
- 	jmp	restore_all
--END(ret_from_exception)
-+SYM_CODE_END(ret_from_exception)
+ .data
+ ALIGN
+-ENTRY(saved_magic)	.long	0
+-ENTRY(saved_eip)	.long	0
++SYM_DATA(saved_magic,	.long 0)
++saved_eip:		.long 0
  
- #ifdef CONFIG_PREEMPT
- ENTRY(resume_kernel)
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index df0152bee8a8..61acc911c68d 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -1099,7 +1099,7 @@ EXPORT_SYMBOL(native_load_gs_index)
- 	_ASM_EXTABLE(.Lgs_change, bad_gs)
- 	.section .fixup, "ax"
- 	/* running with kernelgs */
--bad_gs:
-+SYM_CODE_START_LOCAL_NOALIGN(bad_gs)
- 	SWAPGS					/* switch back to user gs */
- .macro ZAP_GS
- 	/* This can't be a string because the preprocessor needs to see it. */
-@@ -1110,6 +1110,7 @@ bad_gs:
- 	xorl	%eax, %eax
- 	movl	%eax, %gs
- 	jmp	2b
-+SYM_CODE_END(bad_gs)
- 	.previous
- 
- /* Call softirq on interrupt stack. Interrupts are off. */
+ # saved registers
+ saved_idt:	.long	0,0
 diff --git a/arch/x86/kernel/acpi/wakeup_64.S b/arch/x86/kernel/acpi/wakeup_64.S
-index 551758f48eb7..6c60fe346583 100644
+index 50b8ed0317a3..551758f48eb7 100644
 --- a/arch/x86/kernel/acpi/wakeup_64.S
 +++ b/arch/x86/kernel/acpi/wakeup_64.S
-@@ -36,8 +36,9 @@ ENTRY(wakeup_long64)
- 	jmp	*%rax
- ENDPROC(wakeup_long64)
+@@ -125,12 +125,12 @@ ENTRY(do_suspend_lowlevel)
+ ENDPROC(do_suspend_lowlevel)
  
--bogus_64_magic:
-+SYM_CODE_START_LOCAL(bogus_64_magic)
- 	jmp	bogus_64_magic
-+SYM_CODE_END(bogus_64_magic)
+ .data
+-ENTRY(saved_rbp)	.quad	0
+-ENTRY(saved_rsi)	.quad	0
+-ENTRY(saved_rdi)	.quad	0
+-ENTRY(saved_rbx)	.quad	0
++saved_rbp:		.quad	0
++saved_rsi:		.quad	0
++saved_rdi:		.quad	0
++saved_rbx:		.quad	0
  
- ENTRY(do_suspend_lowlevel)
- 	FRAME_BEGIN
+-ENTRY(saved_rip)	.quad	0
+-ENTRY(saved_rsp)	.quad	0
++saved_rip:		.quad	0
++saved_rsp:		.quad	0
+ 
+-ENTRY(saved_magic)	.quad	0
++SYM_DATA(saved_magic,	.quad	0)
 diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 3bfe12f4a015..a7bbb3c45faa 100644
+index c29020907886..3bfe12f4a015 100644
 --- a/arch/x86/kernel/head_32.S
 +++ b/arch/x86/kernel/head_32.S
-@@ -409,7 +409,7 @@ ENTRY(early_idt_handler_array)
- 	.endr
- ENDPROC(early_idt_handler_array)
- 	
--early_idt_handler_common:
-+SYM_CODE_START_LOCAL(early_idt_handler_common)
- 	/*
- 	 * The stack is the hardware frame, an error code or zero, and the
- 	 * vector number.
-@@ -460,7 +460,7 @@ early_idt_handler_common:
- 	decl	%ss:early_recursion_flag
- 	addl	$4, %esp	/* pop pt_regs->orig_ax */
- 	iret
--ENDPROC(early_idt_handler_common)
-+SYM_CODE_END(early_idt_handler_common)
+@@ -507,10 +507,8 @@ GLOBAL(early_recursion_flag)
  
- /* This is the default interrupt "handler" :-) */
- ENTRY(early_ignore_irq)
+ __REFDATA
+ 	.align 4
+-ENTRY(initial_code)
+-	.long i386_start_kernel
+-ENTRY(setup_once_ref)
+-	.long setup_once
++SYM_DATA(initial_code,		.long i386_start_kernel)
++SYM_DATA(setup_once_ref,	.long setup_once)
+ 
+ /*
+  * BSS section
 diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 3891cc6d62dc..c8aa44e7c7f3 100644
+index 58087ab1782e..3891cc6d62dc 100644
 --- a/arch/x86/kernel/head_64.S
 +++ b/arch/x86/kernel/head_64.S
-@@ -287,7 +287,7 @@ ENTRY(early_idt_handler_array)
- 	UNWIND_HINT_IRET_REGS offset=16
- END(early_idt_handler_array)
+@@ -454,9 +454,8 @@ early_gdt_descr:
+ early_gdt_descr_base:
+ 	.quad	INIT_PER_CPU_VAR(gdt_page)
  
--early_idt_handler_common:
-+SYM_CODE_START_LOCAL(early_idt_handler_common)
- 	/*
- 	 * The stack is the hardware frame, an error code or zero, and the
- 	 * vector number.
-@@ -329,7 +329,7 @@ early_idt_handler_common:
- 20:
- 	decl early_recursion_flag(%rip)
- 	jmp restore_regs_and_return_to_kernel
--END(early_idt_handler_common)
-+SYM_CODE_END(early_idt_handler_common)
+-ENTRY(phys_base)
+-	/* This must match the first entry in level2_kernel_pgt */
+-	.quad   0x0000000000000000
++/* This must match the first entry in level2_kernel_pgt */
++SYM_DATA(phys_base, .quad 0x0000000000000000)
+ EXPORT_SYMBOL(phys_base)
  
- 	__INITDATA
- 
-diff --git a/arch/x86/kernel/verify_cpu.S b/arch/x86/kernel/verify_cpu.S
-index 3d3c2f71f617..fd60f1ac5fec 100644
---- a/arch/x86/kernel/verify_cpu.S
-+++ b/arch/x86/kernel/verify_cpu.S
-@@ -33,7 +33,7 @@
- #include <asm/cpufeatures.h>
- #include <asm/msr-index.h>
- 
--ENTRY(verify_cpu)
-+SYM_FUNC_START_LOCAL(verify_cpu)
- 	pushf				# Save caller passed flags
- 	push	$0			# Kill any dangerous flags
- 	popf
-@@ -139,4 +139,4 @@ ENTRY(verify_cpu)
- 	popf				# Restore caller passed flags
- 	xorl %eax, %eax
- 	ret
--ENDPROC(verify_cpu)
-+SYM_FUNC_END(verify_cpu)
-diff --git a/arch/x86/lib/getuser.S b/arch/x86/lib/getuser.S
-index c97d935a29e8..aa93a8eafc00 100644
---- a/arch/x86/lib/getuser.S
-+++ b/arch/x86/lib/getuser.S
-@@ -105,21 +105,21 @@ ENDPROC(__get_user_8)
- EXPORT_SYMBOL(__get_user_8)
- 
- 
--bad_get_user:
-+SYM_CODE_START_LOCAL(bad_get_user)
- 	xor %edx,%edx
- 	mov $(-EFAULT),%_ASM_AX
- 	ASM_CLAC
- 	ret
--END(bad_get_user)
-+SYM_CODE_END(bad_get_user)
- 
- #ifdef CONFIG_X86_32
--bad_get_user_8:
-+SYM_CODE_START_LOCAL(bad_get_user_8)
- 	xor %edx,%edx
- 	xor %ecx,%ecx
- 	mov $(-EFAULT),%_ASM_AX
- 	ASM_CLAC
- 	ret
--END(bad_get_user_8)
-+SYM_CODE_END(bad_get_user_8)
- #endif
- 
- 	_ASM_EXTABLE(1b,bad_get_user)
-diff --git a/arch/x86/lib/putuser.S b/arch/x86/lib/putuser.S
-index 96dce5fe2a35..8234d8559385 100644
---- a/arch/x86/lib/putuser.S
-+++ b/arch/x86/lib/putuser.S
-@@ -89,10 +89,10 @@ ENTRY(__put_user_8)
- ENDPROC(__put_user_8)
- EXPORT_SYMBOL(__put_user_8)
- 
--bad_put_user:
-+SYM_CODE_START_LOCAL(bad_put_user)
- 	movl $-EFAULT,%eax
- 	EXIT
--END(bad_put_user)
-+SYM_CODE_END(bad_put_user)
- 
- 	_ASM_EXTABLE(1b,bad_put_user)
- 	_ASM_EXTABLE(2b,bad_put_user)
+ #include "../../x86/xen/xen-head.S"
 -- 
 2.15.0
