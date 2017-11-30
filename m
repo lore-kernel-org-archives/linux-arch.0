@@ -1,72 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f178.google.com ([209.85.220.178]:33075 "EHLO
-        mail-qk0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751040AbdK3HxB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Nov 2017 02:53:01 -0500
+Received: from mx2.suse.de ([195.135.220.15]:41562 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751178AbdK3IXS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Nov 2017 03:23:18 -0500
+Date: Thu, 30 Nov 2017 09:23:14 +0100
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH] mmap.2: document new MAP_FIXED_SAFE flag
+Message-ID: <20171130082314.6b4cubakdhwtis7y@dhcp22.suse.cz>
+References: <20171129144219.22867-1-mhocko@kernel.org>
+ <20171129144524.23518-1-mhocko@kernel.org>
+ <593899ff-08ad-6c3f-d69d-346f6bc5d1f6@nvidia.com>
 MIME-Version: 1.0
-In-Reply-To: <CAEbi=3cTkbt9i7XPXMnY1D6qtbebDW1x8sFVsgqhq-nApAx5mA@mail.gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <5e1be9ebc591c6de79b75f726a5a38b2564eaa92.1511785528.git.green.hu@gmail.com>
- <CAK8P3a1GuH2tgtC5t834-PNeUVYQxreD7seZH8sjraZFtRUWKw@mail.gmail.com>
- <CAEbi=3c=hTCcUOPs+Fc10srzTFsB4MnVxgcFydz12-jH0ZXjog@mail.gmail.com>
- <CAK8P3a0kvt52UTtEmE+tWHZuH_rmgTxP7+CiD9Ddwe2cJLwXTQ@mail.gmail.com>
- <CAMuHMdViO=+-kGdXFPSW+9PsPbf3sUa5xdaJ_1C-cX2vE1G35Q@mail.gmail.com>
- <CAK8P3a3yk7ww+LdQdL+wgz2wYrzXLSsj1PTdfK-qx013jdg4SQ@mail.gmail.com>
- <CAEbi=3cc8e__DnFKmTSMm9xQMx7CGu+1v3e55w8UekwnTTkw5Q@mail.gmail.com>
- <CAK8P3a2d2_jxXehE3xP_G9Tzp6jP4hFmS4CJkh=6bePLEDcdGw@mail.gmail.com>
- <CAEbi=3fmXP=n_tS+-TSFhdht2G=VHOzVCVU=SRy4A6Ym_GToUQ@mail.gmail.com>
- <CAK8P3a3-CexhRkJB7_8TGShuDQP8w=myhkoB8-7ax3my96PrMw@mail.gmail.com> <CAEbi=3cTkbt9i7XPXMnY1D6qtbebDW1x8sFVsgqhq-nApAx5mA@mail.gmail.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Thu, 30 Nov 2017 08:52:59 +0100
-Message-ID: <CAMuHMdWXe-1=-98V=AcUzu-MiEaAqPQi2HZ6OTS=8sXY3XNhjw@mail.gmail.com>
-Subject: Re: [PATCH v2 25/35] nds32: Build infrastructure
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <593899ff-08ad-6c3f-d69d-346f6bc5d1f6@nvidia.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171130075259.rS4lL0ohXBa_55aNg_FiZEuArtsLcrb2PVj2pxeFTk8@z>
+To: John Hubbard <jhubbard@nvidia.com>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>
+Message-ID: <20171130082314.9gIXHnUg0aZM13yTM6deZ9pxUu2XD7KRc5tpn8-3ywU@z>
 
-On Thu, Nov 30, 2017 at 6:48 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> 2017-11-30 4:27 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->> On Wed, Nov 29, 2017 at 3:10 PM, Greentime Hu <green.hu@gmail.com> wrote:
->>> 2017-11-29 19:57 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->>>> On Wed, Nov 29, 2017 at 12:39 PM, Greentime Hu <green.hu@gmail.com> wrote:
-> I think I can use this name "CPU_V3" for all nds32 v3 compatible cpu.
-> It will be implemented like this.
->
-> config HWZOL
->         bool "hardware zero overhead loop support"
->         depends on CPU_D10 || CPU_D15
->         default n
->         help
->           A set of Zero-Overhead Loop mechanism is provided to reduce the
->           instruction fetch and execution overhead of loop-control instructions.
->           It will save 3 registers($LB, $LC, $LE) for context saving if say Y.
->           You don't need to save these registers if you can make sure your user
->           program doesn't use these registers.
->
->           If unsure, say N.
->
-> config CPU_CACHE_NONALIASING
->         bool "Non-aliasing cache"
->         depends on !CPU_N10 && !CPU_D10
->         default n
->         help
->           If this CPU is using VIPT data cache and its cache way size is larger
->           than page size, say N. If it is using PIPT data cache, say Y.
->
->           If unsure, say N.
+On Wed 29-11-17 19:16:39, John Hubbard wrote:
+[...]
+> Hi Michal,
+> 
+> I've taken the liberty of mostly rewriting this part, in order to more closely 
+> match the existing paragraphs; to fix minor typos; and to attempt to slightly
+> clarify the paragraph.
+> 
+> +.BR MAP_FIXED_SAFE " (since Linux 4.16)"
+> +Similar to MAP_FIXED with respect to the
+> +.I
+> +addr
+> +enforcement, but different in that MAP_FIXED_SAFE never clobbers a pre-existing
+> +mapped range. If the requested range would collide with an existing
+> +mapping, then this call fails with
+> +.B EEXIST.
+> +This flag can therefore be used as a way to atomically (with respect to other
+> +threads) attempt to map an address range: one thread will succeed; all others
+> +will report failure. Please note that older kernels which do not recognize this
+> +flag will typically (upon detecting a collision with a pre-existing mapping)
+> +fall back a "non-MAP_FIXED" type of behavior: they will return an address that
+> +is different than the requested one. Therefore, backward-compatible software
+> +should check the returned address against the requested address.
+> +.TP
 
-I still think it will be easier to revert the logic, and have
-CPU_CACHE_ALIASING.
+I have taken yours. Thanks a lot!
 
-Gr{oetje,eeting}s,
+> (I'm ignoring the naming, because there is another thread about that,
+> so please just the above as "MAP_FIXED_whatever-is-chosen".)
+> 
+> > @@ -449,6 +461,12 @@ is not a valid file descriptor (and
+> >  .B MAP_ANONYMOUS
+> >  was not set).
+> >  .TP
+> > +.B EEXIST
+> > +range covered by
+> > +.IR addr , 
+> 
+> nit: trailing space on the above line.
 
-                        Geert
+fixed
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> > +.IR length
+> > +is clashing with an existing mapping.
+> > +.TP
+> >  .B EINVAL
+> >  We don't like
+> >  .IR addr ,
+> > 
+> 
+> One other thing: reading through mmap.2, I now want to add this as well:
+> 
+> diff --git a/man2/mmap.2 b/man2/mmap.2
+> index 622a7000d..780cad6d9 100644
+> --- a/man2/mmap.2
+> +++ b/man2/mmap.2
+> @@ -222,20 +222,25 @@ part of the existing mapping(s) will be discarded.
+>  If the specified address cannot be used,
+>  .BR mmap ()
+>  will fail.
+> -Because requiring a fixed address for a mapping is less portable,
+> -the use of this option is discouraged.
+> +Software that aspires to be as portable as possible should use this option with
+> +care, keeping in mind that different kernels and C libraries may set up quite
+> +different mapping ranges.
+> 
+> 
+> ...because that advice is just wrong (it presumes that "less portable" ==
+> "must be discouraged").
+> 
+> Should I send out a separate patch for that, or is it better to glom it together 
+> with this one?
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+yes please
+-- 
+Michal Hocko
+SUSE Labs
