@@ -1,130 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f196.google.com ([74.125.82.196]:33982 "EHLO
-        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752034AbdK3JbA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 30 Nov 2017 04:31:00 -0500
+Received: from foss.arm.com ([217.140.101.70]:50842 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751328AbdK3K5j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Nov 2017 05:57:39 -0500
+From: Marc Zyngier <marc.zyngier@arm.com>
+Subject: Re: [PATCH v2 27/35] irqchip: Andestech Internal Vector Interrupt Controller driver
+In-Reply-To: <CAEbi=3eXP1cfNDhu9YjZbjPghgxm9xmEtjEBO=KVOnWZyPqVbw@mail.gmail.com>
+        (Greentime Hu's message of "Wed, 29 Nov 2017 23:23:34 +0800")
+References: <cover.1511785528.git.green.hu@gmail.com>
+        <e82831165cd9e45a7d03af9c870560a6384e1603.1511785528.git.green.hu@gmail.com>
+        <c7447c93-9905-2840-e2d8-01837b9fdecd@arm.com>
+        <CAEbi=3eXP1cfNDhu9YjZbjPghgxm9xmEtjEBO=KVOnWZyPqVbw@mail.gmail.com>
+Date: Thu, 30 Nov 2017 10:57:24 +0000
+Message-ID: <86vahs2fvv.fsf@unassigned-hostname.unassigned-domain>
 MIME-Version: 1.0
-In-Reply-To: <CAEbi=3cTkbt9i7XPXMnY1D6qtbebDW1x8sFVsgqhq-nApAx5mA@mail.gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <5e1be9ebc591c6de79b75f726a5a38b2564eaa92.1511785528.git.green.hu@gmail.com>
- <CAK8P3a1GuH2tgtC5t834-PNeUVYQxreD7seZH8sjraZFtRUWKw@mail.gmail.com>
- <CAEbi=3c=hTCcUOPs+Fc10srzTFsB4MnVxgcFydz12-jH0ZXjog@mail.gmail.com>
- <CAK8P3a0kvt52UTtEmE+tWHZuH_rmgTxP7+CiD9Ddwe2cJLwXTQ@mail.gmail.com>
- <CAMuHMdViO=+-kGdXFPSW+9PsPbf3sUa5xdaJ_1C-cX2vE1G35Q@mail.gmail.com>
- <CAK8P3a3yk7ww+LdQdL+wgz2wYrzXLSsj1PTdfK-qx013jdg4SQ@mail.gmail.com>
- <CAEbi=3cc8e__DnFKmTSMm9xQMx7CGu+1v3e55w8UekwnTTkw5Q@mail.gmail.com>
- <CAK8P3a2d2_jxXehE3xP_G9Tzp6jP4hFmS4CJkh=6bePLEDcdGw@mail.gmail.com>
- <CAEbi=3fmXP=n_tS+-TSFhdht2G=VHOzVCVU=SRy4A6Ym_GToUQ@mail.gmail.com>
- <CAK8P3a3-CexhRkJB7_8TGShuDQP8w=myhkoB8-7ax3my96PrMw@mail.gmail.com> <CAEbi=3cTkbt9i7XPXMnY1D6qtbebDW1x8sFVsgqhq-nApAx5mA@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 30 Nov 2017 10:30:59 +0100
-Message-ID: <CAK8P3a3-wXAX+bRaDxs8+N5u6d-O6_Uwg7Wzp9m9=tSqQpPrEw@mail.gmail.com>
-Subject: Re: [PATCH v2 25/35] nds32: Build infrastructure
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greentime Hu <green.hu@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171130093059.lQLZuDdT1vbAUtkroQ9grI8Mztu2cMnGpyMrPKGr78A@z>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Rick Chen <rick@andestech.com>
+Message-ID: <20171130105724.PSGWd7LkMGmA8SzTFMIKUDs3j4Y0C6fcKEi_yYp-ur0@z>
 
-On Thu, Nov 30, 2017 at 6:48 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> 2017-11-30 4:27 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->> On Wed, Nov 29, 2017 at 3:10 PM, Greentime Hu <green.hu@gmail.com> wrote:
->>> 2017-11-29 19:57 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+On Wed, Nov 29 2017 at 11:23:34 pm GMT, Greentime Hu <green.hu@gmail.com> wrote:
 
->> When you put them in a sorted list like I mentioned for simplicity, you
->> could reduce the confusion by naming them differently, e.g.
->> CONFIG_CPU_N10_OR_NEWER.
+Hi Greentime,
+
+>>> +}
+>>> +
+>>> +static void ativic32_mask_ack_irq(struct irq_data *data)
+>>> +{
+>>> +     unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
+>>> + __nds32__mtsr_dsb(int_mask2 & (~(1 << data->hwirq)),
+>>> NDS32_SR_INT_MASK2);
+>>> +     __nds32__mtsr_dsb((1 << data->hwirq), NDS32_SR_INT_PEND2);
 >>
->> Having only the CPU_CACHE_NONALIASING option is fine if you
->> never need to make any other decisions based on the CPU core
->> type, but then the help text should describe specifically which cases
->> are affected (N10/N13/D13 with 4K page size), and you can decide to
->> hide the option and make it always-on when using 8K page size.
+>> This is effectively MASK+ACK, so you're better off just writing it as
+>> such. And since there is no advantage in your implementation in having
+>> MASK_ACK over MASK+ACK, I suggest you remove this function completely,
+>> and rely on the core code which will call them in sequence.
+>
+> I think mask_ack is still better than mask + ack because we don't need
+> to do two function call.
+> We can save a prologue and a epilogue. It will benefit interrupt latency.
+
+Can you actually measure this? Your CPU would have to be extremely slow
+if you could see the impact of an extra function call on interrupt
+latency. From a maintenance perspective, this isn't very nice (it is
+effectively code duplication).
+
+I suggest you start with the simplest version of the code, and provide
+an optimisation once you can measurably demonstrate that mask_ack is
+better.
+
+[...]
+
+>>> + irq_set_chip_and_handler(virq, &ativic32_chip, handle_edge_irq);
+>>> +     else
+>>> + irq_set_chip_and_handler(virq, &ativic32_chip, handle_level_irq);
 >>
->>        Arnd
+>> Since you do not express the trigger in DT, you need to tell the core
+>> about it by calling irqd_set_trigger_type() with the right setting.
+>>
 >
+> Since the comments say so, I will add ativic32_set_type() for irq_set_type()
+> in the next version patch.
 >
-> Hi, Arnd:
+> /*
+>  * Must only be called inside irq_chip.irq_set_type() functions.
+>  */
+> static inline void irqd_set_trigger_type(struct irq_data *d, u32 type)
+> {
+>         __irqd_to_state(d) &= ~IRQD_TRIGGER_MASK;
+>         __irqd_to_state(d) |= type & IRQD_TRIGGER_MASK;
+> }
 >
-> I think I can use this name "CPU_V3" for all nds32 v3 compatible cpu.
-> It will be implemented like this.
+> It will be like this.
+> static int ativic32_set_type(struct irq_data *data, unsigned int flow_type)
+> {
+>         irqd_set_trigger_type(data, flow_type);
+>         return IRQ_SET_MASK_OK;
+> }
 
-I think I'm still a bit confused about the relation between CPU cores
-and architecture levels. Is it correct to say that there are orthogonal,
-and that you can have e.g. an N10 core implementing either nds32v2
-or nds32v3?
+This feels wrong. Your interrupt controller doesn't seem to support the
+trigger being changed, so irq_set_type would be a bit pointless. A
+driver trying to set a level trigger on an edge interrupt would succeed,
+and that is as bad as it gets. All you need is to expose the capability
+of the HW when you register the flow handler instead of adding a rather
+misleading callback.
 
-There is nothing wrong with that of course, it's just not what I
-expected from having worked with other architectures.
+Thanks,
 
-I also see that GCC has no pipeline specific optimizations for
-specific cores, it just understands the differences between the
-architecture levels, so at least today there is way to pass e.g.
-"-march=nds32v2 -mtune=d15" to generate code that would
-work on both v2 and v3 but be optimized for d15.
-
-> config HWZOL
->         bool "hardware zero overhead loop support"
->         depends on CPU_D10 || CPU_D15
->         default n
->         help
->           A set of Zero-Overhead Loop mechanism is provided to reduce the
->           instruction fetch and execution overhead of loop-control instructions.
->           It will save 3 registers($LB, $LC, $LE) for context saving if say Y.
->           You don't need to save these registers if you can make sure your user
->           program doesn't use these registers.
->
->           If unsure, say N.
->
-> config CPU_CACHE_NONALIASING
->         bool "Non-aliasing cache"
->         depends on !CPU_N10 && !CPU_D10
->         default n
->         help
->           If this CPU is using VIPT data cache and its cache way size is larger
->           than page size, say N. If it is using PIPT data cache, say Y.
->
->           If unsure, say N.
-
-This looks ok, yes, but as Geert said, it would seem more intuitive to
-write it as
-
-config CPU_CACHE_ALIASING
-         bool "Aliasing VIPT cache"
-         depends on CPU_N10 || CPU_D10
-
-> choice
->         prompt "CPU type"
->         default CPU_V3
-> config CPU_N15
->         bool "AndesCore N15"
->         select CPU_CACHE_NONALIASING
-> config CPU_N13
->         bool "AndesCore N13"
->         select CPU_CACHE_NONALIASING if ANDES_PAGE_SIZE_8KB
-> config CPU_N10
->         bool "AndesCore N10"
-> config CPU_D15
->         bool "AndesCore D15"
->         select CPU_CACHE_NONALIASING
-> config CPU_D10
->         bool "AndesCore D10"
-> config CPU_V3
->         bool "AndesCore v3 compatible"
->         select ANDES_PAGE_SIZE_4KB
-> endchoice
-
-Two points here:
-
-- Generally you should not mix 'select' and 'depends on' like this.
-  Either you make the cache aliasing a user visible option that
-  uses 'depends on' with a combination of CPU cores, or you
-  make it a hidden option (with no string after the "bool" keyword)
-  that always gets selected from the per-cpu options.
-
-- There is a  little-known trick with choice statements that allows
-  you to use 'tristate' instead of 'bool' in the choice. In that case,
-  you can enable multiple options together as long as all of them
-  are 'm'.
-
-         Arnd
+	M.
+-- 
+Jazz is not dead, it just smell funny.
