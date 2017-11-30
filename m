@@ -1,162 +1,206 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v5 14/27] x86: purgatory, start using annotations
-Date: Thu, 30 Nov 2017 15:46:40 +0100
-Message-ID: <20171130144653.23688-15-jslaby@suse.cz>
+Subject: [PATCH v5 16/27] x86: assembly, use SYM_CODE_INNER_LABEL instead of GLOBAL
+Date: Thu, 30 Nov 2017 15:46:42 +0100
+Message-ID: <20171130144653.23688-17-jslaby@suse.cz>
 References: <20171130144653.23688-1-jslaby@suse.cz>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20171130144653.23688-1-jslaby@suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Andy Lutomirski <luto@amacapital.net>
 List-Id: linux-arch.vger.kernel.org
 
-purgatory used no annotations. So include linux/linkage.h and annotate
-everything:
-* code by SYM_CODE_*
-* data by SYM_DATA_*
+GLOBAL had several meanings and is going away. In this patch, convert
+all the inner function labels marked with GLOBAL to use
+SYM_CODE_INNER_LABEL instead.
+
+Note that retint_user needs not be global, perhaps since commit
+2ec67971facc ("x86/entry/64/compat: Remove most of the fast system call
+machinery"), where entry_64_compat's caller was removed. So mark the
+label as LOCAL.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
+Cc: Andy Lutomirski <luto@amacapital.net>
 ---
- arch/x86/purgatory/entry64.S      | 21 ++++++++++++---------
- arch/x86/purgatory/setup-x86_64.S | 14 ++++++++------
- arch/x86/purgatory/stack.S        |  7 ++++---
- 3 files changed, 24 insertions(+), 18 deletions(-)
+ arch/x86/entry/entry_64.S                |  8 ++++----
+ arch/x86/entry/entry_64_compat.S         |  4 ++--
+ arch/x86/entry/vdso/vdso32/system_call.S |  2 +-
+ arch/x86/kernel/ftrace_32.S              |  2 +-
+ arch/x86/kernel/ftrace_64.S              | 16 ++++++++--------
+ arch/x86/realmode/rm/reboot.S            |  2 +-
+ 6 files changed, 17 insertions(+), 17 deletions(-)
 
-diff --git a/arch/x86/purgatory/entry64.S b/arch/x86/purgatory/entry64.S
-index d1a4291d3568..c51e3c999e38 100644
---- a/arch/x86/purgatory/entry64.S
-+++ b/arch/x86/purgatory/entry64.S
-@@ -10,13 +10,13 @@
-  * Version 2.  See the file COPYING for more details.
-  */
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index d1efae953752..c3426184d3c6 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -217,7 +217,7 @@ ENTRY(entry_SYSCALL_64)
+ 	pushq	%r11				/* pt_regs->flags */
+ 	pushq	$__USER_CS			/* pt_regs->cs */
+ 	pushq	%rcx				/* pt_regs->ip */
+-GLOBAL(entry_SYSCALL_64_after_hwframe)
++SYM_CODE_INNER_LABEL(entry_SYSCALL_64_after_hwframe, SYM_L_GLOBAL)
+ 	pushq	%rax				/* pt_regs->orig_ax */
+ 	pushq	%rdi				/* pt_regs->di */
+ 	pushq	%rsi				/* pt_regs->si */
+@@ -696,12 +696,12 @@ ret_from_intr:
+ 	jz	retint_kernel
  
-+#include <linux/linkage.h>
-+
- 	.text
- 	.balign 16
- 	.code64
--	.globl entry64, entry64_regs
--
+ 	/* Interrupt came from user space */
+-GLOBAL(retint_user)
++SYM_CODE_INNER_LABEL(retint_user, SYM_L_LOCAL)
+ 	mov	%rsp,%rdi
+ 	call	prepare_exit_to_usermode
+ 	TRACE_IRQS_IRETQ
  
--entry64:
-+SYM_CODE_START(entry64)
- 	/* Setup a gdt that should be preserved */
- 	lgdt gdt(%rip)
- 
-@@ -56,10 +56,11 @@ new_cs_exit:
- 
- 	/* Jump to the new code... */
- 	jmpq	*rip(%rip)
-+SYM_CODE_END(entry64)
- 
- 	.section ".rodata"
- 	.balign 4
--entry64_regs:
-+SYM_DATA_START(entry64_regs)
- rax:	.quad 0x0
- rcx:	.quad 0x0
- rdx:	.quad 0x0
-@@ -77,12 +78,12 @@ r13:	.quad 0x0
- r14:	.quad 0x0
- r15:	.quad 0x0
- rip:	.quad 0x0
--	.size entry64_regs, . - entry64_regs
-+SYM_DATA_END(entry64_regs)
- 
- 	/* GDT */
- 	.section ".rodata"
- 	.balign 16
--gdt:
-+SYM_DATA_START_LOCAL(gdt)
- 	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as gdt ptr
-@@ -96,6 +97,8 @@ gdt:
- 
- 	/* 0x18 4GB flat data segment */
- 	.word 0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
--stack:	.quad   0, 0
--stack_init:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
-+
-+SYM_DATA_START_LOCAL(stack)
-+	.quad   0, 0
-+SYM_DATA_END_LABEL(stack, SYM_L_LOCAL, stack_init)
-diff --git a/arch/x86/purgatory/setup-x86_64.S b/arch/x86/purgatory/setup-x86_64.S
-index dfae9b9e60b5..f0de104d3f3a 100644
---- a/arch/x86/purgatory/setup-x86_64.S
-+++ b/arch/x86/purgatory/setup-x86_64.S
-@@ -9,14 +9,14 @@
-  * This source code is licensed under the GNU General Public License,
-  * Version 2.  See the file COPYING for more details.
-  */
-+#include <linux/linkage.h>
- #include <asm/purgatory.h>
- 
- 	.text
--	.globl purgatory_start
- 	.balign 16
--purgatory_start:
- 	.code64
- 
-+SYM_CODE_START(purgatory_start)
- 	/* Load a gdt so I know what the segment registers are */
- 	lgdt	gdt(%rip)
- 
-@@ -34,10 +34,12 @@ purgatory_start:
- 	/* Call the C code */
- 	call purgatory
- 	jmp	entry64
-+SYM_CODE_END(purgatory_start)
- 
- 	.section ".rodata"
- 	.balign 16
--gdt:	/* 0x00 unusable segment
-+SYM_DATA_START_LOCAL(gdt)
-+	/* 0x00 unusable segment
- 	 * 0x08 unused
- 	 * so use them as the gdt ptr
+-GLOBAL(swapgs_restore_regs_and_return_to_usermode)
++SYM_CODE_INNER_LABEL(swapgs_restore_regs_and_return_to_usermode, SYM_L_GLOBAL)
+ #ifdef CONFIG_DEBUG_ENTRY
+ 	/* Assert that pt_regs indicates user mode. */
+ 	testb	$3, CS(%rsp)
+@@ -767,7 +767,7 @@ retint_kernel:
  	 */
-@@ -50,10 +52,10 @@ gdt:	/* 0x00 unusable segment
+ 	TRACE_IRQS_IRETQ
  
- 	/* 0x18 4GB flat data segment */
- 	.word	0xFFFF, 0x0000, 0x9200, 0x00CF
--gdt_end:
-+SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
+-GLOBAL(restore_regs_and_return_to_kernel)
++SYM_CODE_INNER_LABEL(restore_regs_and_return_to_kernel, SYM_L_GLOBAL)
+ #ifdef CONFIG_DEBUG_ENTRY
+ 	/* Assert that pt_regs indicates kernel mode. */
+ 	testb	$3, CS(%rsp)
+diff --git a/arch/x86/entry/entry_64_compat.S b/arch/x86/entry/entry_64_compat.S
+index 05238b29895e..d40f6767e7bd 100644
+--- a/arch/x86/entry/entry_64_compat.S
++++ b/arch/x86/entry/entry_64_compat.S
+@@ -136,7 +136,7 @@ ENTRY(entry_SYSENTER_compat)
+ 	pushq	$X86_EFLAGS_FIXED
+ 	popfq
+ 	jmp	.Lsysenter_flags_fixed
+-GLOBAL(__end_entry_SYSENTER_compat)
++SYM_CODE_INNER_LABEL(__end_entry_SYSENTER_compat, SYM_L_GLOBAL)
+ ENDPROC(entry_SYSENTER_compat)
  
- 	.bss
- 	.balign 4096
--lstack:
-+SYM_DATA_START_LOCAL(lstack)
- 	.skip 4096
--lstack_end:
-+SYM_DATA_END_LABEL(lstack, SYM_L_LOCAL, lstack_end)
-diff --git a/arch/x86/purgatory/stack.S b/arch/x86/purgatory/stack.S
-index 50a4147f91fb..987e6510a960 100644
---- a/arch/x86/purgatory/stack.S
-+++ b/arch/x86/purgatory/stack.S
-@@ -7,13 +7,14 @@
-  * Version 2.  See the file COPYING for more details.
-  */
+ /*
+@@ -200,7 +200,7 @@ ENTRY(entry_SYSCALL_compat)
+ 	pushq	%r11			/* pt_regs->flags */
+ 	pushq	$__USER32_CS		/* pt_regs->cs */
+ 	pushq	%rcx			/* pt_regs->ip */
+-GLOBAL(entry_SYSCALL_compat_after_hwframe)
++SYM_CODE_INNER_LABEL(entry_SYSCALL_compat_after_hwframe, SYM_L_GLOBAL)
+ 	movl	%eax, %eax		/* discard orig_ax high bits */
+ 	pushq	%rax			/* pt_regs->orig_ax */
+ 	pushq	%rdi			/* pt_regs->di */
+diff --git a/arch/x86/entry/vdso/vdso32/system_call.S b/arch/x86/entry/vdso/vdso32/system_call.S
+index 263d7433dea8..dbda9c96a303 100644
+--- a/arch/x86/entry/vdso/vdso32/system_call.S
++++ b/arch/x86/entry/vdso/vdso32/system_call.S
+@@ -62,7 +62,7 @@ __kernel_vsyscall:
  
-+#include <linux/linkage.h>
-+
- 	/* A stack for the loaded kernel.
- 	 * Separate and in the data section so it can be prepopulated.
+ 	/* Enter using int $0x80 */
+ 	int	$0x80
+-GLOBAL(int80_landing_pad)
++SYM_CODE_INNER_LABEL(int80_landing_pad, SYM_L_GLOBAL)
+ 
+ 	/*
+ 	 * Restore EDX and ECX in case they were clobbered.  EBP is not
+diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
+index b6c6468e10bc..8ec623798970 100644
+--- a/arch/x86/kernel/ftrace_32.S
++++ b/arch/x86/kernel/ftrace_32.S
+@@ -140,7 +140,7 @@ ENTRY(ftrace_regs_caller)
+ 	movl	function_trace_op, %ecx		/* Save ftrace_pos in 3rd parameter */
+ 	pushl	%esp				/* Save pt_regs as 4th parameter */
+ 
+-GLOBAL(ftrace_regs_call)
++SYM_CODE_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
+ 	call	ftrace_stub
+ 
+ 	addl	$4, %esp			/* Skip pt_regs */
+diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
+index 4ab2e8d3736c..e9af91bcfc05 100644
+--- a/arch/x86/kernel/ftrace_64.S
++++ b/arch/x86/kernel/ftrace_64.S
+@@ -154,14 +154,14 @@ ENTRY(ftrace_caller)
+ 	/* save_mcount_regs fills in first two parameters */
+ 	save_mcount_regs
+ 
+-GLOBAL(ftrace_caller_op_ptr)
++SYM_CODE_INNER_LABEL(ftrace_caller_op_ptr, SYM_L_GLOBAL)
+ 	/* Load the ftrace_ops into the 3rd parameter */
+ 	movq function_trace_op(%rip), %rdx
+ 
+ 	/* regs go into 4th parameter (but make it NULL) */
+ 	movq $0, %rcx
+ 
+-GLOBAL(ftrace_call)
++SYM_CODE_INNER_LABEL(ftrace_call, SYM_L_GLOBAL)
+ 	call ftrace_stub
+ 
+ 	restore_mcount_regs
+@@ -174,10 +174,10 @@ GLOBAL(ftrace_call)
+ 	 * think twice before adding any new code or changing the
+ 	 * layout here.
  	 */
- 	.data
- 	.balign 4096
--	.globl stack, stack_end
+-GLOBAL(ftrace_epilogue)
++SYM_CODE_INNER_LABEL(ftrace_epilogue, SYM_L_GLOBAL)
  
--stack:
-+SYM_DATA_START(stack)
- 	.skip 4096
--stack_end:
-+SYM_DATA_END_LABEL(stack, SYM_L_GLOBAL, stack_end)
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+-GLOBAL(ftrace_graph_call)
++SYM_CODE_INNER_LABEL(ftrace_graph_call, SYM_L_GLOBAL)
+ 	jmp ftrace_stub
+ #endif
+ 
+@@ -194,7 +194,7 @@ ENTRY(ftrace_regs_caller)
+ 	save_mcount_regs 8
+ 	/* save_mcount_regs fills in first two parameters */
+ 
+-GLOBAL(ftrace_regs_caller_op_ptr)
++SYM_CODE_INNER_LABEL(ftrace_regs_caller_op_ptr, SYM_L_GLOBAL)
+ 	/* Load the ftrace_ops into the 3rd parameter */
+ 	movq function_trace_op(%rip), %rdx
+ 
+@@ -221,7 +221,7 @@ GLOBAL(ftrace_regs_caller_op_ptr)
+ 	/* regs go into 4th parameter */
+ 	leaq (%rsp), %rcx
+ 
+-GLOBAL(ftrace_regs_call)
++SYM_CODE_INNER_LABEL(ftrace_regs_call, SYM_L_GLOBAL)
+ 	call ftrace_stub
+ 
+ 	/* Copy flags back to SS, to restore them */
+@@ -251,7 +251,7 @@ GLOBAL(ftrace_regs_call)
+ 	 * The trampoline will add the code to jump
+ 	 * to the return.
+ 	 */
+-GLOBAL(ftrace_regs_caller_end)
++SYM_CODE_INNER_LABEL(ftrace_regs_caller_end, SYM_L_GLOBAL)
+ 
+ 	jmp ftrace_epilogue
+ 
+@@ -273,7 +273,7 @@ fgraph_trace:
+ 	jnz ftrace_graph_caller
+ #endif
+ 
+-GLOBAL(ftrace_stub)
++SYM_CODE_INNER_LABEL(ftrace_stub, SYM_L_GLOBAL)
+ 	retq
+ 
+ trace:
+diff --git a/arch/x86/realmode/rm/reboot.S b/arch/x86/realmode/rm/reboot.S
+index cd2f97b9623b..614e1d21536d 100644
+--- a/arch/x86/realmode/rm/reboot.S
++++ b/arch/x86/realmode/rm/reboot.S
+@@ -33,7 +33,7 @@ ENTRY(machine_real_restart_asm)
+ 	movl	%eax, %cr0
+ 	ljmpl	$__KERNEL32_CS, $pa_machine_real_restart_paging_off
+ 
+-GLOBAL(machine_real_restart_paging_off)
++SYM_CODE_INNER_LABEL(machine_real_restart_paging_off, SYM_L_GLOBAL)
+ 	xorl	%eax, %eax
+ 	xorl	%edx, %edx
+ 	movl	$MSR_EFER, %ecx
 -- 
 2.15.0
