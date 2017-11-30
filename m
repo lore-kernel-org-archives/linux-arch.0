@@ -1,90 +1,174 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v5 27/27] x86: assembly, replace WEAK uses
-Date: Thu, 30 Nov 2017 15:46:53 +0100
-Message-ID: <20171130144653.23688-28-jslaby@suse.cz>
+Subject: [PATCH v5 15/27] x86: assembly, do not annotate functions by GLOBAL
+Date: Thu, 30 Nov 2017 15:46:41 +0100
+Message-ID: <20171130144653.23688-16-jslaby@suse.cz>
 References: <20171130144653.23688-1-jslaby@suse.cz>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:48099 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753095AbdK3OrD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Nov 2017 09:47:03 -0500
 In-Reply-To: <20171130144653.23688-1-jslaby@suse.cz>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org
 
-Use the new SYM_CODE_INNER_LABEL for WEAK entries in the middle of x86
-assembly functions.
+GLOBAL is meant for global symbols, but not functions. Use the new
+macros SYM_FUNC_START* and SYM_CODE_START* (depending on the type of the
+function) which are dedicated for global functions. And since they both
+require a closing by SYM_*_END, we do this here too.
 
-And make sure WEAK is not defined for x86 anymore as these were the last
-users.
+startup_64, which does not use GLOBAL, but uses .globl explicitly, is
+converted too.
+
+in_pm32 should not be global at all as it is used only locally, so
+switch to SYM_FUNC_START_LOCAL_NOALIGN.
+
+Besides all of that, x86's custom GLOBAL macro is going to die very
+soon.
+
+"No alignments" are preserved.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
+Cc: <x86@kernel.org>
 ---
- arch/x86/kernel/ftrace_32.S | 2 +-
- arch/x86/kernel/ftrace_64.S | 2 +-
- arch/x86/kernel/head_32.S   | 2 +-
- include/linux/linkage.h     | 2 +-
- 4 files changed, 4 insertions(+), 4 deletions(-)
+ arch/x86/boot/copy.S        | 16 ++++++++--------
+ arch/x86/boot/pmjump.S      |  8 ++++----
+ arch/x86/kernel/ftrace_64.S |  3 ++-
+ arch/x86/kernel/head_64.S   |  5 +++--
+ 4 files changed, 17 insertions(+), 15 deletions(-)
 
-diff --git a/arch/x86/kernel/ftrace_32.S b/arch/x86/kernel/ftrace_32.S
-index c8c9b0721709..c57a31d0ac2d 100644
---- a/arch/x86/kernel/ftrace_32.S
-+++ b/arch/x86/kernel/ftrace_32.S
-@@ -97,7 +97,7 @@ ftrace_graph_call:
- #endif
+diff --git a/arch/x86/boot/copy.S b/arch/x86/boot/copy.S
+index 15d9f74b0008..73aa8307a10f 100644
+--- a/arch/x86/boot/copy.S
++++ b/arch/x86/boot/copy.S
+@@ -17,7 +17,7 @@
+ 	.code16
+ 	.text
  
- /* This is weak to keep gas from relaxing the jumps */
--WEAK(ftrace_stub)
-+SYM_CODE_INNER_LABEL(ftrace_stub, SYM_L_WEAK)
- 	ret
- SYM_CODE_END(ftrace_caller)
+-GLOBAL(memcpy)
++SYM_FUNC_START_NOALIGN(memcpy)
+ 	pushw	%si
+ 	pushw	%di
+ 	movw	%ax, %di
+@@ -31,9 +31,9 @@ GLOBAL(memcpy)
+ 	popw	%di
+ 	popw	%si
+ 	retl
+-ENDPROC(memcpy)
++SYM_FUNC_END(memcpy)
  
+-GLOBAL(memset)
++SYM_FUNC_START_NOALIGN(memset)
+ 	pushw	%di
+ 	movw	%ax, %di
+ 	movzbl	%dl, %eax
+@@ -46,22 +46,22 @@ GLOBAL(memset)
+ 	rep; stosb
+ 	popw	%di
+ 	retl
+-ENDPROC(memset)
++SYM_FUNC_END(memset)
+ 
+-GLOBAL(copy_from_fs)
++SYM_FUNC_START_NOALIGN(copy_from_fs)
+ 	pushw	%ds
+ 	pushw	%fs
+ 	popw	%ds
+ 	calll	memcpy
+ 	popw	%ds
+ 	retl
+-ENDPROC(copy_from_fs)
++SYM_FUNC_END(copy_from_fs)
+ 
+-GLOBAL(copy_to_fs)
++SYM_FUNC_START_NOALIGN(copy_to_fs)
+ 	pushw	%es
+ 	pushw	%fs
+ 	popw	%es
+ 	calll	memcpy
+ 	popw	%es
+ 	retl
+-ENDPROC(copy_to_fs)
++SYM_FUNC_END(copy_to_fs)
+diff --git a/arch/x86/boot/pmjump.S b/arch/x86/boot/pmjump.S
+index 3e0edc6d2a20..b90e42eb1a62 100644
+--- a/arch/x86/boot/pmjump.S
++++ b/arch/x86/boot/pmjump.S
+@@ -23,7 +23,7 @@
+ /*
+  * void protected_mode_jump(u32 entrypoint, u32 bootparams);
+  */
+-GLOBAL(protected_mode_jump)
++SYM_FUNC_START_NOALIGN(protected_mode_jump)
+ 	movl	%edx, %esi		# Pointer to boot_params table
+ 
+ 	xorl	%ebx, %ebx
+@@ -44,11 +44,11 @@ GLOBAL(protected_mode_jump)
+ 	.byte	0x66, 0xea		# ljmpl opcode
+ 2:	.long	in_pm32			# offset
+ 	.word	__BOOT_CS		# segment
+-ENDPROC(protected_mode_jump)
++SYM_FUNC_END(protected_mode_jump)
+ 
+ 	.code32
+ 	.section ".text32","ax"
+-GLOBAL(in_pm32)
++SYM_FUNC_START_LOCAL_NOALIGN(in_pm32)
+ 	# Set up data segments for flat 32-bit mode
+ 	movl	%ecx, %ds
+ 	movl	%ecx, %es
+@@ -74,4 +74,4 @@ GLOBAL(in_pm32)
+ 	lldt	%cx
+ 
+ 	jmpl	*%eax			# Jump to the 32-bit entrypoint
+-ENDPROC(in_pm32)
++SYM_FUNC_END(in_pm32)
 diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
-index 33e95d785295..64eeb6669054 100644
+index c832291d948a..4ab2e8d3736c 100644
 --- a/arch/x86/kernel/ftrace_64.S
 +++ b/arch/x86/kernel/ftrace_64.S
-@@ -182,7 +182,7 @@ SYM_CODE_INNER_LABEL(ftrace_graph_call, SYM_L_GLOBAL)
- #endif
- 
- /* This is weak to keep gas from relaxing the jumps */
--WEAK(ftrace_stub)
-+SYM_CODE_INNER_LABEL(ftrace_stub, SYM_L_WEAK)
+@@ -315,7 +315,7 @@ ENTRY(ftrace_graph_caller)
  	retq
- SYM_CODE_END(ftrace_caller)
+ END(ftrace_graph_caller)
  
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 629fea9c7794..03718510b53a 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -156,7 +156,7 @@ SYM_CODE_START(startup_32)
- 	jmp *%eax
+-GLOBAL(return_to_handler)
++SYM_CODE_START_NOALIGN(return_to_handler)
+ 	subq  $24, %rsp
  
- .Lbad_subarch:
--WEAK(xen_entry)
-+SYM_CODE_INNER_LABEL(xen_entry, SYM_L_WEAK)
- 	/* Unknown implementation; there's really
- 	   nothing we can do at this point. */
- 	ud2a
-diff --git a/include/linux/linkage.h b/include/linux/linkage.h
-index dc86fd8d4071..20087d252072 100644
---- a/include/linux/linkage.h
-+++ b/include/linux/linkage.h
-@@ -114,13 +114,13 @@
- #endif /* CONFIG_X86 */
- #endif /* LINKER_SCRIPT */
- 
-+#ifndef CONFIG_X86
- #ifndef WEAK
- /* deprecated, use SYM_FUNC_START_WEAK* */
- #define WEAK(name)	   \
- 	SYM_FUNC_START_WEAK_NOALIGN(name)
+ 	/* Save the return values */
+@@ -330,4 +330,5 @@ GLOBAL(return_to_handler)
+ 	movq (%rsp), %rax
+ 	addq $24, %rsp
+ 	jmp *%rdi
++SYM_CODE_END(return_to_handler)
  #endif
- 
--#ifndef CONFIG_X86
- #ifndef END
- /* deprecated, use SYM_FUNC_END, SYM_DATA_END, or SYM_END */
- #define END(name) \
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index 53d9d7f65f55..d12387882702 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -49,8 +49,7 @@ L3_START_KERNEL = pud_index(__START_KERNEL_map)
+ 	.text
+ 	__HEAD
+ 	.code64
+-	.globl startup_64
+-startup_64:
++SYM_CODE_START_NOALIGN(startup_64)
+ 	UNWIND_HINT_EMPTY
+ 	/*
+ 	 * At this point the CPU runs in 64bit mode CS.L = 1 CS.D = 0,
+@@ -90,6 +89,8 @@ startup_64:
+ 	/* Form the CR3 value being sure to include the CR3 modifier */
+ 	addq	$(early_top_pgt - __START_KERNEL_map), %rax
+ 	jmp 1f
++SYM_CODE_END(startup_64)
++
+ ENTRY(secondary_startup_64)
+ 	UNWIND_HINT_EMPTY
+ 	/*
 -- 
 2.15.0
