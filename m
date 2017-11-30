@@ -1,74 +1,157 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:48215 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:48180 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753089AbdK3OrD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Nov 2017 09:47:03 -0500
+        id S1752699AbdK3OrC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Nov 2017 09:47:02 -0500
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v5 13/27] x86: xen-pvh, annotate data appropriatelly
-Date: Thu, 30 Nov 2017 15:46:39 +0100
-Message-ID: <20171130144653.23688-14-jslaby@suse.cz>
+Subject: [PATCH v5 11/27] x86: boot, annotate data appropriatelly
+Date: Thu, 30 Nov 2017 15:46:37 +0100
+Message-ID: <20171130144653.23688-12-jslaby@suse.cz>
 In-Reply-To: <20171130144653.23688-1-jslaby@suse.cz>
 References: <20171130144653.23688-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, xen-devel@lists.xenproject.org
-Message-ID: <20171130144639.CnRDIqtbHhdWRFOhOyWiT3X7plfbNHh-0mRHPnIKkxw@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org
+Message-ID: <20171130144637.32hTikeqg_5-TPBwqzSnuBedbh4WrJhydqMzO69ZOH0@z>
 
-Use the new SYM_DATA_START_LOCAL, and SYM_DATA_END* macros:
-  0000     8 OBJECT  LOCAL  DEFAULT    6 gdt
-  0008    32 OBJECT  LOCAL  DEFAULT    6 gdt_start
-  0028     0 OBJECT  LOCAL  DEFAULT    6 gdt_end
-  0028   256 OBJECT  LOCAL  DEFAULT    6 early_stack
-  0128     0 OBJECT  LOCAL  DEFAULT    6 early_stack
+Use the new SYM_DATA, SYM_DATA_START, and SYM_DATA_END* macros for data.
+
+Now, the data in the object file look sane:
+Value   Size Type    Bind   Vis      Ndx Name
+  0000    10 OBJECT  GLOBAL DEFAULT    3 efi32_boot_gdt
+  000a    10 OBJECT  LOCAL  DEFAULT    3 save_gdt
+  0014     8 OBJECT  LOCAL  DEFAULT    3 func_rt_ptr
+  001c    48 OBJECT  GLOBAL DEFAULT    3 efi_gdt64
+  004c     0 OBJECT  LOCAL  DEFAULT    3 efi_gdt64_end
+
+  0000    48 OBJECT  LOCAL  DEFAULT    3 gdt
+  0030     0 OBJECT  LOCAL  DEFAULT    3 gdt_end
+  0030     8 OBJECT  LOCAL  DEFAULT    3 efi_config
+  0038    49 OBJECT  GLOBAL DEFAULT    3 efi32_config
+  0069    49 OBJECT  GLOBAL DEFAULT    3 efi64_config
+
+All have correct size and type now.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: Juergen Gross <jgross@suse.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: xen-devel@lists.xenproject.org
 ---
- arch/x86/xen/xen-pvh.S | 11 ++++++-----
- 1 file changed, 6 insertions(+), 5 deletions(-)
+ arch/x86/boot/compressed/efi_thunk_64.S | 21 ++++++++++++---------
+ arch/x86/boot/compressed/head_64.S      | 29 +++++++++++++----------------
+ 2 files changed, 25 insertions(+), 25 deletions(-)
 
-diff --git a/arch/x86/xen/xen-pvh.S b/arch/x86/xen/xen-pvh.S
-index e1a5fbeae08d..52b28793a625 100644
---- a/arch/x86/xen/xen-pvh.S
-+++ b/arch/x86/xen/xen-pvh.S
-@@ -137,11 +137,12 @@ END(pvh_start_xen)
+diff --git a/arch/x86/boot/compressed/efi_thunk_64.S b/arch/x86/boot/compressed/efi_thunk_64.S
+index bff9ab7c6317..d66000d23921 100644
+--- a/arch/x86/boot/compressed/efi_thunk_64.S
++++ b/arch/x86/boot/compressed/efi_thunk_64.S
+@@ -176,16 +176,19 @@ ENDPROC(efi_enter32)
  
- 	.section ".init.data","aw"
- 	.balign 8
+ 	.data
+ 	.balign	8
+-	.global	efi32_boot_gdt
+-efi32_boot_gdt:	.word	0
+-		.quad	0
++SYM_DATA_START(efi32_boot_gdt)
++	.word	0
++	.quad	0
++SYM_DATA_END(efi32_boot_gdt)
++
++SYM_DATA_START_LOCAL(save_gdt)
++	.word	0
++	.quad	0
++SYM_DATA_END(save_gdt)
+ 
+-save_gdt:	.word	0
+-		.quad	0
+-func_rt_ptr:	.quad	0
++SYM_DATA_LOCAL(func_rt_ptr, .quad 0)
+ 
+-	.global efi_gdt64
+-efi_gdt64:
++SYM_DATA_START(efi_gdt64)
+ 	.word	efi_gdt64_end - efi_gdt64
+ 	.long	0			/* Filled out by user */
+ 	.word	0
+@@ -194,4 +197,4 @@ efi_gdt64:
+ 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
+ 	.quad	0x0080890000000000	/* TS descriptor */
+ 	.quad   0x0000000000000000	/* TS continued */
+-efi_gdt64_end:
++SYM_DATA_END_LABEL(efi_gdt64, SYM_L_LOCAL, efi_gdt64_end)
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index 7dcbe1ccc0b2..108dbd71ae0b 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -531,7 +531,7 @@ SYM_FUNC_END(no_longmode)
+ #include "../../kernel/verify_cpu.S"
+ 
+ 	.data
 -gdt:
 +SYM_DATA_START_LOCAL(gdt)
- 	.word gdt_end - gdt_start
- 	.long _pa(gdt_start)
- 	.word 0
--gdt_start:
-+SYM_DATA_END(gdt)
-+SYM_DATA_START_LOCAL(gdt_start)
- 	.quad 0x0000000000000000            /* NULL descriptor */
- 	.quad 0x0000000000000000            /* reserved */
- #ifdef CONFIG_X86_64
-@@ -150,12 +151,12 @@ gdt_start:
- 	.quad GDT_ENTRY(0xc09a, 0, 0xfffff) /* __KERNEL_CS */
- #endif
- 	.quad GDT_ENTRY(0xc092, 0, 0xfffff) /* __KERNEL_DS */
+ 	.word	gdt_end - gdt
+ 	.long	gdt
+ 	.word	0
+@@ -540,25 +540,24 @@ gdt:
+ 	.quad	0x00cf92000000ffff	/* __KERNEL_DS */
+ 	.quad	0x0080890000000000	/* TS descriptor */
+ 	.quad   0x0000000000000000	/* TS continued */
 -gdt_end:
-+SYM_DATA_END_LABEL(gdt_start, SYM_L_LOCAL, gdt_end)
++SYM_DATA_END_LABEL(gdt, SYM_L_LOCAL, gdt_end)
  
+ #ifdef CONFIG_EFI_STUB
+-efi_config:
+-	.quad	0
++SYM_DATA_LOCAL(efi_config, .quad 0)
+ 
+ #ifdef CONFIG_EFI_MIXED
+-	.global efi32_config
+-efi32_config:
++SYM_DATA_START(efi32_config)
+ 	.fill	5,8,0
+ 	.quad	efi64_thunk
+ 	.byte	0
++SYM_DATA_END(efi32_config)
+ #endif
+ 
+-	.global efi64_config
+-efi64_config:
++SYM_DATA_START(efi64_config)
+ 	.fill	5,8,0
+ 	.quad	efi_call
+ 	.byte	1
++SYM_DATA_END(efi64_config)
+ #endif /* CONFIG_EFI_STUB */
+ 
+ /*
+@@ -566,20 +565,18 @@ efi64_config:
+  */
+ 	.bss
  	.balign 4
--early_stack:
-+SYM_DATA_START_LOCAL(early_stack)
- 	.fill 256, 1, 0
--early_stack_end:
-+SYM_DATA_END_LABEL(early_stack, SYM_L_LOCAL, early_stack_end)
+-boot_heap:
+-	.fill BOOT_HEAP_SIZE, 1, 0
+-boot_stack:
++SYM_DATA_LOCAL(boot_heap,	.fill BOOT_HEAP_SIZE, 1, 0)
++
++SYM_DATA_START_LOCAL(boot_stack)
+ 	.fill BOOT_STACK_SIZE, 1, 0
+-boot_stack_end:
++SYM_DATA_END_LABEL(boot_stack, SYM_L_LOCAL, boot_stack_end)
  
- 	ELFNOTE(Xen, XEN_ELFNOTE_PHYS32_ENTRY,
- 	             _ASM_PTR (pvh_start_xen - __START_KERNEL_map))
+ /*
+  * Space for page tables (not in .bss so not zeroed)
+  */
+ 	.section ".pgtable","a",@nobits
+ 	.balign 4096
+-pgtable:
+-	.fill BOOT_PGT_SIZE, 1, 0
++SYM_DATA_LOCAL(pgtable,		.fill BOOT_PGT_SIZE, 1, 0)
+ #ifdef CONFIG_X86_5LEVEL
+-lvl5_pgtable:
+-	.fill PAGE_SIZE, 1, 0
++SYM_DATA_LOCAL(lvl5_pgtable,	.fill PAGE_SIZE, 1, 0)
+ #endif
 -- 
 2.15.0
