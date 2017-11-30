@@ -1,84 +1,107 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH v2] mmap.2: document new MAP_FIXED_SAFE flag
-Date: Thu, 30 Nov 2017 09:24:05 +0100
-Message-ID: <20171130082405.b77eknaiblgmpa4s@dhcp22.suse.cz>
-References: <20171129144219.22867-1-mhocko@kernel.org>
- <20171129144524.23518-1-mhocko@kernel.org>
+From: Greentime Hu <green.hu@gmail.com>
+Subject: Re: [PATCH v2 25/35] nds32: Build infrastructure
+Date: Thu, 30 Nov 2017 17:29:27 +0800
+Message-ID: <CAEbi=3dysHV5S=Ez8WJr=FPfQ_LFFiw_KZ6wwCVJmPnh5j5s9g@mail.gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com> <5e1be9ebc591c6de79b75f726a5a38b2564eaa92.1511785528.git.green.hu@gmail.com>
+ <CAK8P3a1GuH2tgtC5t834-PNeUVYQxreD7seZH8sjraZFtRUWKw@mail.gmail.com>
+ <CAEbi=3c=hTCcUOPs+Fc10srzTFsB4MnVxgcFydz12-jH0ZXjog@mail.gmail.com>
+ <CAK8P3a0kvt52UTtEmE+tWHZuH_rmgTxP7+CiD9Ddwe2cJLwXTQ@mail.gmail.com>
+ <CAMuHMdViO=+-kGdXFPSW+9PsPbf3sUa5xdaJ_1C-cX2vE1G35Q@mail.gmail.com>
+ <CAK8P3a3yk7ww+LdQdL+wgz2wYrzXLSsj1PTdfK-qx013jdg4SQ@mail.gmail.com>
+ <CAEbi=3cc8e__DnFKmTSMm9xQMx7CGu+1v3e55w8UekwnTTkw5Q@mail.gmail.com>
+ <CAK8P3a2d2_jxXehE3xP_G9Tzp6jP4hFmS4CJkh=6bePLEDcdGw@mail.gmail.com>
+ <CAEbi=3fmXP=n_tS+-TSFhdht2G=VHOzVCVU=SRy4A6Ym_GToUQ@mail.gmail.com>
+ <CAK8P3a3-CexhRkJB7_8TGShuDQP8w=myhkoB8-7ax3my96PrMw@mail.gmail.com>
+ <CAEbi=3cTkbt9i7XPXMnY1D6qtbebDW1x8sFVsgqhq-nApAx5mA@mail.gmail.com> <CAMuHMdWXe-1=-98V=AcUzu-MiEaAqPQi2HZ6OTS=8sXY3XNhjw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20171129144524.23518-1-mhocko@kernel.org>
-Sender: owner-linux-mm@kvack.org
-To: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdWXe-1=-98V=AcUzu-MiEaAqPQi2HZ6OTS=8sXY3XNhjw@mail.gmail.com>
+Sender: netdev-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
-Updated version based on feedback from John.
----
-From ade1eba229b558431581448e7d7838f0e1fe2c49 Mon Sep 17 00:00:00 2001
-From: Michal Hocko <mhocko@suse.com>
-Date: Wed, 29 Nov 2017 15:32:08 +0100
-Subject: [PATCH] mmap.2: document new MAP_FIXED_SAFE flag
+2017-11-30 15:52 GMT+08:00 Geert Uytterhoeven <geert@linux-m68k.org>:
+> On Thu, Nov 30, 2017 at 6:48 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>> 2017-11-30 4:27 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+>>> On Wed, Nov 29, 2017 at 3:10 PM, Greentime Hu <green.hu@gmail.com> wrote:
+>>>> 2017-11-29 19:57 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+>>>>> On Wed, Nov 29, 2017 at 12:39 PM, Greentime Hu <green.hu@gmail.com> wrote:
+>> I think I can use this name "CPU_V3" for all nds32 v3 compatible cpu.
+>> It will be implemented like this.
+>>
+>> config HWZOL
+>>         bool "hardware zero overhead loop support"
+>>         depends on CPU_D10 || CPU_D15
+>>         default n
+>>         help
+>>           A set of Zero-Overhead Loop mechanism is provided to reduce the
+>>           instruction fetch and execution overhead of loop-control instructions.
+>>           It will save 3 registers($LB, $LC, $LE) for context saving if say Y.
+>>           You don't need to save these registers if you can make sure your user
+>>           program doesn't use these registers.
+>>
+>>           If unsure, say N.
+>>
+>> config CPU_CACHE_NONALIASING
+>>         bool "Non-aliasing cache"
+>>         depends on !CPU_N10 && !CPU_D10
+>>         default n
+>>         help
+>>           If this CPU is using VIPT data cache and its cache way size is larger
+>>           than page size, say N. If it is using PIPT data cache, say Y.
+>>
+>>           If unsure, say N.
+>
+> I still think it will be easier to revert the logic, and have
+> CPU_CACHE_ALIASING.
+>
 
-4.16+ kernels offer a new MAP_FIXED_SAFE flag which allows the caller to
-atomicaly probe for a given address range.
+Thanks Geert
 
-[wording heavily updated by John Hubbard <jhubbard@nvidia.com>]
-Signed-off-by: Michal Hocko <mhocko@suse.com>
----
- man2/mmap.2 | 22 ++++++++++++++++++++++
- 1 file changed, 22 insertions(+)
+I will implement it like this.
 
-diff --git a/man2/mmap.2 b/man2/mmap.2
-index 385f3bfd5393..923bbb290875 100644
---- a/man2/mmap.2
-+++ b/man2/mmap.2
-@@ -225,6 +225,22 @@ will fail.
- Because requiring a fixed address for a mapping is less portable,
- the use of this option is discouraged.
- .TP
-+.BR MAP_FIXED_SAFE " (since Linux 4.16)"
-+Similar to MAP_FIXED with respect to the
-+.I
-+addr
-+enforcement, but different in that MAP_FIXED_SAFE never clobbers a pre-existing
-+mapped range. If the requested range would collide with an existing
-+mapping, then this call fails with
-+.B EEXIST.
-+This flag can therefore be used as a way to atomically (with respect to other
-+threads) attempt to map an address range: one thread will succeed; all others
-+will report failure. Please note that older kernels which do not recognize this
-+flag will typically (upon detecting a collision with a pre-existing mapping)
-+fall back a "non-MAP_FIXED" type of behavior: they will return an address that
-+is different than the requested one. Therefore, backward-compatible software
-+should check the returned address against the requested address.
-+.TP
- .B MAP_GROWSDOWN
- This flag is used for stacks.
- It indicates to the kernel virtual memory system that the mapping
-@@ -449,6 +465,12 @@ is not a valid file descriptor (and
- .B MAP_ANONYMOUS
- was not set).
- .TP
-+.B EEXIST
-+range covered by
-+.IR addr ,
-+.IR length
-+is clashing with an existing mapping.
-+.TP
- .B EINVAL
- We don't like
- .IR addr ,
--- 
-2.15.0
+config HWZOL
+        bool "hardware zero overhead loop support"
+        depends on CPU_D10 || CPU_D15
+        default n
+        help
+          A set of Zero-Overhead Loop mechanism is provided to reduce the
+          instruction fetch and execution overhead of loop-control instructions.
+          It will save 3 registers($LB, $LC, $LE) for context saving if say Y.
+          You don't need to save these registers if you can make sure your user
+          program doesn't use these registers.
 
--- 
-Michal Hocko
-SUSE Labs
+          If unsure, say N.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+config CPU_CACHE_ALIASING
+        bool "Aliasing cache"
+        depends on CPU_N10 || CPU_D10 || CPU_N13 || CPU_V3
+        default y
+        help
+          If this CPU is using VIPT data cache and its cache way size is larger
+          than page size, say Y. If it is using PIPT data cache, say N.
+
+          If unsure, say Y.
+
+choice
+        prompt "CPU type"
+        default CPU_V3
+config CPU_N15
+        bool "AndesCore N15"
+config CPU_N13
+        bool "AndesCore N13"
+        select CPU_CACHE_ALIASING if ANDES_PAGE_SIZE_4KB
+config CPU_N10
+        bool "AndesCore N10"
+        select CPU_CACHE_ALIASING
+config CPU_D15
+        bool "AndesCore D15"
+config CPU_D10
+        bool "AndesCore D10"
+        select CPU_CACHE_ALIASING
+config CPU_V3
+        bool "AndesCore v3 compatible"
+        select ANDES_PAGE_SIZE_8KB
+endchoice
