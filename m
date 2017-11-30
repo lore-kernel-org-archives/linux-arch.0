@@ -1,989 +1,433 @@
-From: Jiri Slaby <jslaby-AlSwsSmVLrQ@public.gmane.org>
-Subject: [PATCH v5 26/27] x86_32: assembly, change all ENTRY+ENDPROC to SYM_FUNC_*
-Date: Thu, 30 Nov 2017 15:46:52 +0100
-Message-ID: <20171130144653.23688-27-jslaby@suse.cz>
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: [PATCH v5 01/27] linkage: new macros for assembler
+	symbols
+Date: Thu, 30 Nov 2017 15:46:27 +0100
+Message-ID: <20171130144653.23688-2-jslaby@suse.cz>
 References: <20171130144653.23688-1-jslaby@suse.cz>
-Return-path: <linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20171130144653.23688-1-jslaby-AlSwsSmVLrQ@public.gmane.org>
-Sender: linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jiri Slaby <jslaby-AlSwsSmVLrQ@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Herbert Xu <herbert-lOAM2aK0SrRLBo1qDEOMRrpzq4S04n8Q@public.gmane.org>, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Bill Metzenthen <billm-GyIjJ2z7gDS3Zbb/xt2tYQ@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-crypto-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xenproject.org>
+In-Reply-To: <20171130144653.23688-1-jslaby@suse.cz>
+List-Unsubscribe: <https://lists.xenproject.org/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xenproject.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xenproject.org>
+List-Help: <mailto:xen-devel-request@lists.xenproject.org?subject=help>
+List-Subscribe: <https://lists.xenproject.org/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xenproject.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xenproject.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xenproject.org>
+To: mingo@redhat.com
+Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, x86@kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, Len Brown <len.brown@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pm@vger.kernel.org, jpoimboe@redhat.com, "Rafael J. Wysocki" <rjw@rjwysocki.net>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Pavel Machek <pavel@ucw.cz>, hpa@zytor.com, xen-devel@lists.xenproject.org, Andrew Morton <akpm@linux-foundation.org>, Jiri Slaby <jslaby@suse.cz>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-These are all functions which are invoked from elsewhere, so we annotate
-them as global using the new SYM_FUNC_START (and their ENDPROC's by
-SYM_FUNC_END.)
-
-Now, we can finally force ENTRY/ENDPROC to be undefined on X86.
-
-Signed-off-by: Jiri Slaby <jslaby-AlSwsSmVLrQ@public.gmane.org>
-Cc: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Cc: Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org
-Cc: Herbert Xu <herbert-lOAM2aK0SrRLBo1qDEOMRrpzq4S04n8Q@public.gmane.org>
-Cc: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
-Cc: Bill Metzenthen <billm-GyIjJ2z7gDS3Zbb/xt2tYQ@public.gmane.org>
-Cc: Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>
-Cc: Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
-Cc: linux-crypto-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
----
- arch/x86/boot/compressed/efi_stub_32.S     |  4 ++--
- arch/x86/boot/compressed/head_32.S         | 12 +++++------
- arch/x86/crypto/salsa20-i586-asm_32.S      | 12 +++++------
- arch/x86/crypto/serpent-sse2-i586-asm_32.S |  8 ++++----
- arch/x86/crypto/twofish-i586-asm_32.S      |  8 ++++----
- arch/x86/entry/entry_32.S                  | 24 +++++++++++-----------
- arch/x86/kernel/head_32.S                  | 16 +++++++--------
- arch/x86/lib/atomic64_386_32.S             |  4 ++--
- arch/x86/lib/atomic64_cx8_32.S             | 32 +++++++++++++++---------------
- arch/x86/lib/checksum_32.S                 |  8 ++++----
- arch/x86/math-emu/div_Xsig.S               |  4 ++--
- arch/x86/math-emu/div_small.S              |  4 ++--
- arch/x86/math-emu/mul_Xsig.S               | 12 +++++------
- arch/x86/math-emu/polynom_Xsig.S           |  4 ++--
- arch/x86/math-emu/reg_norm.S               |  8 ++++----
- arch/x86/math-emu/reg_round.S              |  4 ++--
- arch/x86/math-emu/reg_u_add.S              |  4 ++--
- arch/x86/math-emu/reg_u_div.S              |  4 ++--
- arch/x86/math-emu/reg_u_mul.S              |  4 ++--
- arch/x86/math-emu/reg_u_sub.S              |  4 ++--
- arch/x86/math-emu/round_Xsig.S             |  8 ++++----
- arch/x86/math-emu/shr_Xsig.S               |  4 ++--
- arch/x86/math-emu/wm_shrx.S                |  8 ++++----
- arch/x86/math-emu/wm_sqrt.S                |  4 ++--
- arch/x86/platform/efi/efi_stub_32.S        |  4 ++--
- include/linux/linkage.h                    |  8 +++-----
- 26 files changed, 107 insertions(+), 109 deletions(-)
-
-diff --git a/arch/x86/boot/compressed/efi_stub_32.S b/arch/x86/boot/compressed/efi_stub_32.S
-index 257e341fd2c8..ed6c351d34ed 100644
---- a/arch/x86/boot/compressed/efi_stub_32.S
-+++ b/arch/x86/boot/compressed/efi_stub_32.S
-@@ -24,7 +24,7 @@
-  */
- 
- .text
--ENTRY(efi_call_phys)
-+SYM_FUNC_START(efi_call_phys)
- 	/*
- 	 * 0. The function can only be called in Linux kernel. So CS has been
- 	 * set to 0x0010, DS and SS have been set to 0x0018. In EFI, I found
-@@ -77,7 +77,7 @@ ENTRY(efi_call_phys)
- 	movl	saved_return_addr(%edx), %ecx
- 	pushl	%ecx
- 	ret
--ENDPROC(efi_call_phys)
-+SYM_FUNC_END(efi_call_phys)
- .previous
- 
- .data
-diff --git a/arch/x86/boot/compressed/head_32.S b/arch/x86/boot/compressed/head_32.S
-index 7e8ab0bb6968..3fa36496af12 100644
---- a/arch/x86/boot/compressed/head_32.S
-+++ b/arch/x86/boot/compressed/head_32.S
-@@ -61,7 +61,7 @@
- 	.hidden _egot
- 
- 	__HEAD
--ENTRY(startup_32)
-+SYM_FUNC_START(startup_32)
- 	cld
- 	/*
- 	 * Test KEEP_SEGMENTS flag to see if the bootloader is asking
-@@ -142,14 +142,14 @@ ENTRY(startup_32)
-  */
- 	leal	relocated(%ebx), %eax
- 	jmp	*%eax
--ENDPROC(startup_32)
-+SYM_FUNC_END(startup_32)
- 
- #ifdef CONFIG_EFI_STUB
- /*
-  * We don't need the return address, so set up the stack so efi_main() can find
-  * its arguments.
-  */
--ENTRY(efi_pe_entry)
-+SYM_FUNC_START(efi_pe_entry)
- 	add	$0x4, %esp
- 
- 	call	1f
-@@ -174,9 +174,9 @@ ENTRY(efi_pe_entry)
- 	pushl	%eax
- 	pushl	%ecx
- 	jmp	2f		/* Skip efi_config initialization */
--ENDPROC(efi_pe_entry)
-+SYM_FUNC_END(efi_pe_entry)
- 
--ENTRY(efi32_stub_entry)
-+SYM_FUNC_START(efi32_stub_entry)
- 	add	$0x4, %esp
- 	popl	%ecx
- 	popl	%edx
-@@ -205,7 +205,7 @@ fail:
- 	movl	BP_code32_start(%esi), %eax
- 	leal	startup_32(%eax), %eax
- 	jmp	*%eax
--ENDPROC(efi32_stub_entry)
-+SYM_FUNC_END(efi32_stub_entry)
- #endif
- 
- 	.text
-diff --git a/arch/x86/crypto/salsa20-i586-asm_32.S b/arch/x86/crypto/salsa20-i586-asm_32.S
-index 329452b8f794..e9a6703056fc 100644
---- a/arch/x86/crypto/salsa20-i586-asm_32.S
-+++ b/arch/x86/crypto/salsa20-i586-asm_32.S
-@@ -7,7 +7,7 @@
- .text
- 
- # enter salsa20_encrypt_bytes
--ENTRY(salsa20_encrypt_bytes)
-+SYM_FUNC_START(salsa20_encrypt_bytes)
- 	mov	%esp,%eax
- 	and	$31,%eax
- 	add	$256,%eax
-@@ -934,10 +934,10 @@ ENTRY(salsa20_encrypt_bytes)
- 	add	$64,%esi
- 	# goto bytesatleast1
- 	jmp	._bytesatleast1
--ENDPROC(salsa20_encrypt_bytes)
-+SYM_FUNC_END(salsa20_encrypt_bytes)
- 
- # enter salsa20_keysetup
--ENTRY(salsa20_keysetup)
-+SYM_FUNC_START(salsa20_keysetup)
- 	mov	%esp,%eax
- 	and	$31,%eax
- 	add	$256,%eax
-@@ -1060,10 +1060,10 @@ ENTRY(salsa20_keysetup)
- 	# leave
- 	add	%eax,%esp
- 	ret
--ENDPROC(salsa20_keysetup)
-+SYM_FUNC_END(salsa20_keysetup)
- 
- # enter salsa20_ivsetup
--ENTRY(salsa20_ivsetup)
-+SYM_FUNC_START(salsa20_ivsetup)
- 	mov	%esp,%eax
- 	and	$31,%eax
- 	add	$256,%eax
-@@ -1111,4 +1111,4 @@ ENTRY(salsa20_ivsetup)
- 	# leave
- 	add	%eax,%esp
- 	ret
--ENDPROC(salsa20_ivsetup)
-+SYM_FUNC_END(salsa20_ivsetup)
-diff --git a/arch/x86/crypto/serpent-sse2-i586-asm_32.S b/arch/x86/crypto/serpent-sse2-i586-asm_32.S
-index d348f1553a79..f3cebd3c6739 100644
---- a/arch/x86/crypto/serpent-sse2-i586-asm_32.S
-+++ b/arch/x86/crypto/serpent-sse2-i586-asm_32.S
-@@ -512,7 +512,7 @@
- 	pxor t0,		x3; \
- 	movdqu x3,		(3*4*4)(out);
- 
--ENTRY(__serpent_enc_blk_4way)
-+SYM_FUNC_START(__serpent_enc_blk_4way)
- 	/* input:
- 	 *	arg_ctx(%esp): ctx, CTX
- 	 *	arg_dst(%esp): dst
-@@ -574,9 +574,9 @@ ENTRY(__serpent_enc_blk_4way)
- 	xor_blocks(%eax, RA, RB, RC, RD, RT0, RT1, RE);
- 
- 	ret;
--ENDPROC(__serpent_enc_blk_4way)
-+SYM_FUNC_END(__serpent_enc_blk_4way)
- 
--ENTRY(serpent_dec_blk_4way)
-+SYM_FUNC_START(serpent_dec_blk_4way)
- 	/* input:
- 	 *	arg_ctx(%esp): ctx, CTX
- 	 *	arg_dst(%esp): dst
-@@ -628,4 +628,4 @@ ENTRY(serpent_dec_blk_4way)
- 	write_blocks(%eax, RC, RD, RB, RE, RT0, RT1, RA);
- 
- 	ret;
--ENDPROC(serpent_dec_blk_4way)
-+SYM_FUNC_END(serpent_dec_blk_4way)
-diff --git a/arch/x86/crypto/twofish-i586-asm_32.S b/arch/x86/crypto/twofish-i586-asm_32.S
-index 694ea4587ba7..8ecb5234b2b3 100644
---- a/arch/x86/crypto/twofish-i586-asm_32.S
-+++ b/arch/x86/crypto/twofish-i586-asm_32.S
-@@ -220,7 +220,7 @@
- 	xor	%esi,		d ## D;\
- 	ror	$1,		d ## D;
- 
--ENTRY(twofish_enc_blk)
-+SYM_FUNC_START(twofish_enc_blk)
- 	push	%ebp			/* save registers according to calling convention*/
- 	push    %ebx
- 	push    %esi
-@@ -274,9 +274,9 @@ ENTRY(twofish_enc_blk)
- 	pop	%ebp
- 	mov	$1,	%eax
- 	ret
--ENDPROC(twofish_enc_blk)
-+SYM_FUNC_END(twofish_enc_blk)
- 
--ENTRY(twofish_dec_blk)
-+SYM_FUNC_START(twofish_dec_blk)
- 	push	%ebp			/* save registers according to calling convention*/
- 	push    %ebx
- 	push    %esi
-@@ -331,4 +331,4 @@ ENTRY(twofish_dec_blk)
- 	pop	%ebp
- 	mov	$1,	%eax
- 	ret
--ENDPROC(twofish_dec_blk)
-+SYM_FUNC_END(twofish_dec_blk)
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index 0cd02b22d7d1..7e0c5d64a52f 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -259,7 +259,7 @@ SYM_CODE_END(__switch_to_asm)
-  * asmlinkage function so its argument has to be pushed on the stack.  This
-  * wrapper creates a proper "end of stack" frame header before the call.
-  */
--ENTRY(schedule_tail_wrapper)
-+SYM_FUNC_START(schedule_tail_wrapper)
- 	FRAME_BEGIN
- 
- 	pushl	%eax
-@@ -268,7 +268,7 @@ ENTRY(schedule_tail_wrapper)
- 
- 	FRAME_END
- 	ret
--ENDPROC(schedule_tail_wrapper)
-+SYM_FUNC_END(schedule_tail_wrapper)
- /*
-  * A newly forked process directly context switches into this address.
-  *
-@@ -399,7 +399,7 @@ SYM_CODE_END(xen_sysenter_target)
-  * ebp  user stack
-  * 0(%ebp) arg6
-  */
--ENTRY(entry_SYSENTER_32)
-+SYM_FUNC_START(entry_SYSENTER_32)
- 	movl	TSS_sysenter_sp0(%esp), %esp
- .Lsysenter_past_esp:
- 	pushl	$__USER_DS		/* pt_regs->ss */
-@@ -487,7 +487,7 @@ ENTRY(entry_SYSENTER_32)
- 	popfl
- 	jmp	.Lsysenter_flags_fixed
- SYM_ENTRY(__end_SYSENTER_singlestep_region, SYM_L_GLOBAL, SYM_A_NONE)
--ENDPROC(entry_SYSENTER_32)
-+SYM_FUNC_END(entry_SYSENTER_32)
- 
- /*
-  * 32-bit legacy system call entry.
-@@ -517,7 +517,7 @@ ENDPROC(entry_SYSENTER_32)
-  * edi  arg5
-  * ebp  arg6
-  */
--ENTRY(entry_INT80_32)
-+SYM_FUNC_START(entry_INT80_32)
- 	ASM_CLAC
- 	pushl	%eax			/* pt_regs->orig_ax */
- 	SAVE_ALL pt_regs_ax=$-ENOSYS	/* save rest */
-@@ -596,7 +596,7 @@ SYM_CODE_END(iret_exc)
- 	lss	(%esp), %esp			/* switch to espfix segment */
- 	jmp	.Lrestore_nocheck
- #endif
--ENDPROC(entry_INT80_32)
-+SYM_FUNC_END(entry_INT80_32)
- 
- .macro FIXUP_ESPFIX_STACK
- /*
-@@ -664,7 +664,7 @@ SYM_CODE_START_LOCAL(common_interrupt)
- SYM_CODE_END(common_interrupt)
- 
- #define BUILD_INTERRUPT3(name, nr, fn)	\
--ENTRY(name)				\
-+SYM_FUNC_START(name)				\
- 	ASM_CLAC;			\
- 	pushl	$~(nr);			\
- 	SAVE_ALL;			\
-@@ -673,7 +673,7 @@ ENTRY(name)				\
- 	movl	%esp, %eax;		\
- 	call	fn;			\
- 	jmp	ret_from_intr;		\
--ENDPROC(name)
-+SYM_FUNC_END(name)
- 
- #define BUILD_INTERRUPT(name, nr)		\
- 	BUILD_INTERRUPT3(name, nr, smp_##name);	\
-@@ -792,7 +792,7 @@ SYM_CODE_START(spurious_interrupt_bug)
- SYM_CODE_END(spurious_interrupt_bug)
- 
- #ifdef CONFIG_XEN
--ENTRY(xen_hypervisor_callback)
-+SYM_FUNC_START(xen_hypervisor_callback)
- 	pushl	$-1				/* orig_ax = -1 => not a system call */
- 	SAVE_ALL
- 	ENCODE_FRAME_POINTER
-@@ -820,7 +820,7 @@ SYM_CODE_INNER_LABEL_ALIGN(xen_do_upcall, SYM_L_GLOBAL)
- 	call	xen_maybe_preempt_hcall
- #endif
- 	jmp	ret_from_intr
--ENDPROC(xen_hypervisor_callback)
-+SYM_FUNC_END(xen_hypervisor_callback)
- 
- /*
-  * Hypervisor uses this for application faults while it executes.
-@@ -834,7 +834,7 @@ ENDPROC(xen_hypervisor_callback)
-  * to pop the stack frame we end up in an infinite loop of failsafe callbacks.
-  * We distinguish between categories by maintaining a status value in EAX.
-  */
--ENTRY(xen_failsafe_callback)
-+SYM_FUNC_START(xen_failsafe_callback)
- 	pushl	%eax
- 	movl	$1, %eax
- 1:	mov	4(%esp), %ds
-@@ -871,7 +871,7 @@ ENTRY(xen_failsafe_callback)
- 	_ASM_EXTABLE(2b, 7b)
- 	_ASM_EXTABLE(3b, 8b)
- 	_ASM_EXTABLE(4b, 9b)
--ENDPROC(xen_failsafe_callback)
-+SYM_FUNC_END(xen_failsafe_callback)
- 
- BUILD_INTERRUPT3(xen_hvm_callback_vector, HYPERVISOR_CALLBACK_VECTOR,
- 		 xen_evtchn_do_upcall)
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 0cf8ed275272..629fea9c7794 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -180,12 +180,12 @@ SYM_CODE_END(startup_32)
-  * up already except stack. We just set up stack here. Then call
-  * start_secondary().
-  */
--ENTRY(start_cpu0)
-+SYM_FUNC_START(start_cpu0)
- 	movl initial_stack, %ecx
- 	movl %ecx, %esp
- 	call *(initial_code)
- 1:	jmp 1b
--ENDPROC(start_cpu0)
-+SYM_FUNC_END(start_cpu0)
- #endif
- 
- /*
-@@ -196,7 +196,7 @@ ENDPROC(start_cpu0)
-  * If cpu hotplug is not supported then this code can go in init section
-  * which will be freed later
-  */
--ENTRY(startup_32_smp)
-+SYM_FUNC_START(startup_32_smp)
- 	cld
- 	movl $(__BOOT_DS),%eax
- 	movl %eax,%ds
-@@ -363,7 +363,7 @@ ENTRY(startup_32_smp)
- 
- 	call *(initial_code)
- 1:	jmp 1b
--ENDPROC(startup_32_smp)
-+SYM_FUNC_END(startup_32_smp)
- 
- #include "verify_cpu.S"
- 
-@@ -393,7 +393,7 @@ setup_once:
- 	andl $0,setup_once_ref	/* Once is enough, thanks */
- 	ret
- 
--ENTRY(early_idt_handler_array)
-+SYM_FUNC_START(early_idt_handler_array)
- 	# 36(%esp) %eflags
- 	# 32(%esp) %cs
- 	# 28(%esp) %eip
-@@ -408,7 +408,7 @@ ENTRY(early_idt_handler_array)
- 	i = i + 1
- 	.fill early_idt_handler_array + i*EARLY_IDT_HANDLER_SIZE - ., 1, 0xcc
- 	.endr
--ENDPROC(early_idt_handler_array)
-+SYM_FUNC_END(early_idt_handler_array)
- 	
- SYM_CODE_START_LOCAL(early_idt_handler_common)
- 	/*
-@@ -464,7 +464,7 @@ SYM_CODE_START_LOCAL(early_idt_handler_common)
- SYM_CODE_END(early_idt_handler_common)
- 
- /* This is the default interrupt "handler" :-) */
--ENTRY(early_ignore_irq)
-+SYM_FUNC_START(early_ignore_irq)
- 	cld
- #ifdef CONFIG_PRINTK
- 	pushl %eax
-@@ -499,7 +499,7 @@ ENTRY(early_ignore_irq)
- hlt_loop:
- 	hlt
- 	jmp hlt_loop
--ENDPROC(early_ignore_irq)
-+SYM_FUNC_END(early_ignore_irq)
- 
- __INITDATA
- 	.align 4
-diff --git a/arch/x86/lib/atomic64_386_32.S b/arch/x86/lib/atomic64_386_32.S
-index 9b0ca8fe80fc..9ed71edd9dfe 100644
---- a/arch/x86/lib/atomic64_386_32.S
-+++ b/arch/x86/lib/atomic64_386_32.S
-@@ -24,10 +24,10 @@
- 
- #define BEGIN(op) \
- .macro endp; \
--ENDPROC(atomic64_##op##_386); \
-+SYM_FUNC_END(atomic64_##op##_386); \
- .purgem endp; \
- .endm; \
--ENTRY(atomic64_##op##_386); \
-+SYM_FUNC_START(atomic64_##op##_386); \
- 	LOCK v;
- 
- #define ENDP endp
-diff --git a/arch/x86/lib/atomic64_cx8_32.S b/arch/x86/lib/atomic64_cx8_32.S
-index db3ae85440ff..f02f70890121 100644
---- a/arch/x86/lib/atomic64_cx8_32.S
-+++ b/arch/x86/lib/atomic64_cx8_32.S
-@@ -20,12 +20,12 @@
- 	cmpxchg8b (\reg)
- .endm
- 
--ENTRY(atomic64_read_cx8)
-+SYM_FUNC_START(atomic64_read_cx8)
- 	read64 %ecx
- 	ret
--ENDPROC(atomic64_read_cx8)
-+SYM_FUNC_END(atomic64_read_cx8)
- 
--ENTRY(atomic64_set_cx8)
-+SYM_FUNC_START(atomic64_set_cx8)
- 1:
- /* we don't need LOCK_PREFIX since aligned 64-bit writes
-  * are atomic on 586 and newer */
-@@ -33,19 +33,19 @@ ENTRY(atomic64_set_cx8)
- 	jne 1b
- 
- 	ret
--ENDPROC(atomic64_set_cx8)
-+SYM_FUNC_END(atomic64_set_cx8)
- 
--ENTRY(atomic64_xchg_cx8)
-+SYM_FUNC_START(atomic64_xchg_cx8)
- 1:
- 	LOCK_PREFIX
- 	cmpxchg8b (%esi)
- 	jne 1b
- 
- 	ret
--ENDPROC(atomic64_xchg_cx8)
-+SYM_FUNC_END(atomic64_xchg_cx8)
- 
- .macro addsub_return func ins insc
--ENTRY(atomic64_\func\()_return_cx8)
-+SYM_FUNC_START(atomic64_\func\()_return_cx8)
- 	pushl %ebp
- 	pushl %ebx
- 	pushl %esi
-@@ -73,14 +73,14 @@ ENTRY(atomic64_\func\()_return_cx8)
- 	popl %ebx
- 	popl %ebp
- 	ret
--ENDPROC(atomic64_\func\()_return_cx8)
-+SYM_FUNC_END(atomic64_\func\()_return_cx8)
- .endm
- 
- addsub_return add add adc
- addsub_return sub sub sbb
- 
- .macro incdec_return func ins insc
--ENTRY(atomic64_\func\()_return_cx8)
-+SYM_FUNC_START(atomic64_\func\()_return_cx8)
- 	pushl %ebx
- 
- 	read64 %esi
-@@ -98,13 +98,13 @@ ENTRY(atomic64_\func\()_return_cx8)
- 	movl %ecx, %edx
- 	popl %ebx
- 	ret
--ENDPROC(atomic64_\func\()_return_cx8)
-+SYM_FUNC_END(atomic64_\func\()_return_cx8)
- .endm
- 
- incdec_return inc add adc
- incdec_return dec sub sbb
- 
--ENTRY(atomic64_dec_if_positive_cx8)
-+SYM_FUNC_START(atomic64_dec_if_positive_cx8)
- 	pushl %ebx
- 
- 	read64 %esi
-@@ -123,9 +123,9 @@ ENTRY(atomic64_dec_if_positive_cx8)
- 	movl %ecx, %edx
- 	popl %ebx
- 	ret
--ENDPROC(atomic64_dec_if_positive_cx8)
-+SYM_FUNC_END(atomic64_dec_if_positive_cx8)
- 
--ENTRY(atomic64_add_unless_cx8)
-+SYM_FUNC_START(atomic64_add_unless_cx8)
- 	pushl %ebp
- 	pushl %ebx
- /* these just push these two parameters on the stack */
-@@ -159,9 +159,9 @@ ENTRY(atomic64_add_unless_cx8)
- 	jne 2b
- 	xorl %eax, %eax
- 	jmp 3b
--ENDPROC(atomic64_add_unless_cx8)
-+SYM_FUNC_END(atomic64_add_unless_cx8)
- 
--ENTRY(atomic64_inc_not_zero_cx8)
-+SYM_FUNC_START(atomic64_inc_not_zero_cx8)
- 	pushl %ebx
- 
- 	read64 %esi
-@@ -181,4 +181,4 @@ ENTRY(atomic64_inc_not_zero_cx8)
- 3:
- 	popl %ebx
- 	ret
--ENDPROC(atomic64_inc_not_zero_cx8)
-+SYM_FUNC_END(atomic64_inc_not_zero_cx8)
-diff --git a/arch/x86/lib/checksum_32.S b/arch/x86/lib/checksum_32.S
-index a048436ce3ac..78523e028d88 100644
---- a/arch/x86/lib/checksum_32.S
-+++ b/arch/x86/lib/checksum_32.S
-@@ -49,7 +49,7 @@ unsigned int csum_partial(const unsigned char * buff, int len, unsigned int sum)
- 	   * Fortunately, it is easy to convert 2-byte alignment to 4-byte
- 	   * alignment for the unrolled loop.
- 	   */		
--ENTRY(csum_partial)
-+SYM_FUNC_START(csum_partial)
- 	pushl %esi
- 	pushl %ebx
- 	movl 20(%esp),%eax	# Function arg: unsigned int sum
-@@ -131,13 +131,13 @@ ENTRY(csum_partial)
- 	popl %ebx
- 	popl %esi
- 	ret
--ENDPROC(csum_partial)
-+SYM_FUNC_END(csum_partial)
- 
- #else
- 
- /* Version for PentiumII/PPro */
- 
--ENTRY(csum_partial)
-+SYM_FUNC_START(csum_partial)
- 	pushl %esi
- 	pushl %ebx
- 	movl 20(%esp),%eax	# Function arg: unsigned int sum
-@@ -249,7 +249,7 @@ ENTRY(csum_partial)
- 	popl %ebx
- 	popl %esi
- 	ret
--ENDPROC(csum_partial)
-+SYM_FUNC_END(csum_partial)
- 				
- #endif
- EXPORT_SYMBOL(csum_partial)
-diff --git a/arch/x86/math-emu/div_Xsig.S b/arch/x86/math-emu/div_Xsig.S
-index ee08449d20fd..951da2ad54bb 100644
---- a/arch/x86/math-emu/div_Xsig.S
-+++ b/arch/x86/math-emu/div_Xsig.S
-@@ -75,7 +75,7 @@ FPU_result_1:
- 
- 
- .text
--ENTRY(div_Xsig)
-+SYM_FUNC_START(div_Xsig)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- #ifndef NON_REENTRANT_FPU
-@@ -364,4 +364,4 @@ L_bugged_2:
- 	pop	%ebx
- 	jmp	L_exit
- #endif /* PARANOID */ 
--ENDPROC(div_Xsig)
-+SYM_FUNC_END(div_Xsig)
-diff --git a/arch/x86/math-emu/div_small.S b/arch/x86/math-emu/div_small.S
-index 8f5025c80ee0..d047d1816abe 100644
---- a/arch/x86/math-emu/div_small.S
-+++ b/arch/x86/math-emu/div_small.S
-@@ -19,7 +19,7 @@
- #include "fpu_emu.h"
- 
- .text
--ENTRY(FPU_div_small)
-+SYM_FUNC_START(FPU_div_small)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- 
-@@ -45,4 +45,4 @@ ENTRY(FPU_div_small)
- 
- 	leave
- 	ret
--ENDPROC(FPU_div_small)
-+SYM_FUNC_END(FPU_div_small)
-diff --git a/arch/x86/math-emu/mul_Xsig.S b/arch/x86/math-emu/mul_Xsig.S
-index 3e489122a2b0..4afc7b1fa6e9 100644
---- a/arch/x86/math-emu/mul_Xsig.S
-+++ b/arch/x86/math-emu/mul_Xsig.S
-@@ -25,7 +25,7 @@
- #include "fpu_emu.h"
- 
- .text
--ENTRY(mul32_Xsig)
-+SYM_FUNC_START(mul32_Xsig)
- 	pushl %ebp
- 	movl %esp,%ebp
- 	subl $16,%esp
-@@ -63,10 +63,10 @@ ENTRY(mul32_Xsig)
- 	popl %esi
- 	leave
- 	ret
--ENDPROC(mul32_Xsig)
-+SYM_FUNC_END(mul32_Xsig)
- 
- 
--ENTRY(mul64_Xsig)
-+SYM_FUNC_START(mul64_Xsig)
- 	pushl %ebp
- 	movl %esp,%ebp
- 	subl $16,%esp
-@@ -116,11 +116,11 @@ ENTRY(mul64_Xsig)
- 	popl %esi
- 	leave
- 	ret
--ENDPROC(mul64_Xsig)
-+SYM_FUNC_END(mul64_Xsig)
- 
- 
- 
--ENTRY(mul_Xsig_Xsig)
-+SYM_FUNC_START(mul_Xsig_Xsig)
- 	pushl %ebp
- 	movl %esp,%ebp
- 	subl $16,%esp
-@@ -176,4 +176,4 @@ ENTRY(mul_Xsig_Xsig)
- 	popl %esi
- 	leave
- 	ret
--ENDPROC(mul_Xsig_Xsig)
-+SYM_FUNC_END(mul_Xsig_Xsig)
-diff --git a/arch/x86/math-emu/polynom_Xsig.S b/arch/x86/math-emu/polynom_Xsig.S
-index 604f0b2d17e8..702315eecb86 100644
---- a/arch/x86/math-emu/polynom_Xsig.S
-+++ b/arch/x86/math-emu/polynom_Xsig.S
-@@ -37,7 +37,7 @@
- #define OVERFLOWED      -16(%ebp)	/* addition overflow flag */
- 
- .text
--ENTRY(polynomial_Xsig)
-+SYM_FUNC_START(polynomial_Xsig)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- 	subl	$32,%esp
-@@ -134,4 +134,4 @@ L_accum_done:
- 	popl	%esi
- 	leave
- 	ret
--ENDPROC(polynomial_Xsig)
-+SYM_FUNC_END(polynomial_Xsig)
-diff --git a/arch/x86/math-emu/reg_norm.S b/arch/x86/math-emu/reg_norm.S
-index 7f6b4392a15d..cad1d60b1e84 100644
---- a/arch/x86/math-emu/reg_norm.S
-+++ b/arch/x86/math-emu/reg_norm.S
-@@ -22,7 +22,7 @@
- 
- 
- .text
--ENTRY(FPU_normalize)
-+SYM_FUNC_START(FPU_normalize)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- 	pushl	%ebx
-@@ -95,12 +95,12 @@ L_overflow:
- 	call	arith_overflow
- 	pop	%ebx
- 	jmp	L_exit
--ENDPROC(FPU_normalize)
-+SYM_FUNC_END(FPU_normalize)
- 
- 
- 
- /* Normalise without reporting underflow or overflow */
--ENTRY(FPU_normalize_nuo)
-+SYM_FUNC_START(FPU_normalize_nuo)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- 	pushl	%ebx
-@@ -147,4 +147,4 @@ L_exit_nuo_zero:
- 	popl	%ebx
- 	leave
- 	ret
--ENDPROC(FPU_normalize_nuo)
-+SYM_FUNC_END(FPU_normalize_nuo)
-diff --git a/arch/x86/math-emu/reg_round.S b/arch/x86/math-emu/reg_round.S
-index 04563421ee7d..11a1f798451b 100644
---- a/arch/x86/math-emu/reg_round.S
-+++ b/arch/x86/math-emu/reg_round.S
-@@ -109,7 +109,7 @@ FPU_denormal:
- .globl fpu_Arith_exit
- 
- /* Entry point when called from C */
--ENTRY(FPU_round)
-+SYM_FUNC_START(FPU_round)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- 	pushl	%esi
-@@ -708,4 +708,4 @@ L_exception_exit:
- 	jmp	fpu_reg_round_special_exit
- #endif /* PARANOID */ 
- 
--ENDPROC(FPU_round)
-+SYM_FUNC_END(FPU_round)
-diff --git a/arch/x86/math-emu/reg_u_add.S b/arch/x86/math-emu/reg_u_add.S
-index 50fe9f8c893c..9c9e2c810afe 100644
---- a/arch/x86/math-emu/reg_u_add.S
-+++ b/arch/x86/math-emu/reg_u_add.S
-@@ -32,7 +32,7 @@
- #include "control_w.h"
- 
- .text
--ENTRY(FPU_u_add)
-+SYM_FUNC_START(FPU_u_add)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- 	pushl	%esi
-@@ -166,4 +166,4 @@ L_exit:
- 	leave
- 	ret
- #endif /* PARANOID */
--ENDPROC(FPU_u_add)
-+SYM_FUNC_END(FPU_u_add)
-diff --git a/arch/x86/math-emu/reg_u_div.S b/arch/x86/math-emu/reg_u_div.S
-index 94d545e118e4..e2fb5c2644c5 100644
---- a/arch/x86/math-emu/reg_u_div.S
-+++ b/arch/x86/math-emu/reg_u_div.S
-@@ -75,7 +75,7 @@ FPU_ovfl_flag:
- #define DEST	PARAM3
- 
- .text
--ENTRY(FPU_u_div)
-+SYM_FUNC_START(FPU_u_div)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- #ifndef NON_REENTRANT_FPU
-@@ -471,4 +471,4 @@ L_exit:
- 	ret
- #endif /* PARANOID */ 
- 
--ENDPROC(FPU_u_div)
-+SYM_FUNC_END(FPU_u_div)
-diff --git a/arch/x86/math-emu/reg_u_mul.S b/arch/x86/math-emu/reg_u_mul.S
-index 21cde47fb3e5..0c779c87ac5b 100644
---- a/arch/x86/math-emu/reg_u_mul.S
-+++ b/arch/x86/math-emu/reg_u_mul.S
-@@ -45,7 +45,7 @@ FPU_accum_1:
- 
- 
- .text
--ENTRY(FPU_u_mul)
-+SYM_FUNC_START(FPU_u_mul)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- #ifndef NON_REENTRANT_FPU
-@@ -147,4 +147,4 @@ L_exit:
- 	ret
- #endif /* PARANOID */ 
- 
--ENDPROC(FPU_u_mul)
-+SYM_FUNC_END(FPU_u_mul)
-diff --git a/arch/x86/math-emu/reg_u_sub.S b/arch/x86/math-emu/reg_u_sub.S
-index f05dea7dec38..e9bb7c248649 100644
---- a/arch/x86/math-emu/reg_u_sub.S
-+++ b/arch/x86/math-emu/reg_u_sub.S
-@@ -33,7 +33,7 @@
- #include "control_w.h"
- 
- .text
--ENTRY(FPU_u_sub)
-+SYM_FUNC_START(FPU_u_sub)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- 	pushl	%esi
-@@ -271,4 +271,4 @@ L_exit:
- 	popl	%esi
- 	leave
- 	ret
--ENDPROC(FPU_u_sub)
-+SYM_FUNC_END(FPU_u_sub)
-diff --git a/arch/x86/math-emu/round_Xsig.S b/arch/x86/math-emu/round_Xsig.S
-index 226a51e991f1..d9d7de8dbd7b 100644
---- a/arch/x86/math-emu/round_Xsig.S
-+++ b/arch/x86/math-emu/round_Xsig.S
-@@ -23,7 +23,7 @@
- 
- 
- .text
--ENTRY(round_Xsig)
-+SYM_FUNC_START(round_Xsig)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- 	pushl	%ebx		/* Reserve some space */
-@@ -79,11 +79,11 @@ L_exit:
- 	popl	%ebx
- 	leave
- 	ret
--ENDPROC(round_Xsig)
-+SYM_FUNC_END(round_Xsig)
- 
- 
- 
--ENTRY(norm_Xsig)
-+SYM_FUNC_START(norm_Xsig)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- 	pushl	%ebx		/* Reserve some space */
-@@ -139,4 +139,4 @@ L_n_exit:
- 	popl	%ebx
- 	leave
- 	ret
--ENDPROC(norm_Xsig)
-+SYM_FUNC_END(norm_Xsig)
-diff --git a/arch/x86/math-emu/shr_Xsig.S b/arch/x86/math-emu/shr_Xsig.S
-index 96f4779aa9c1..726af985f758 100644
---- a/arch/x86/math-emu/shr_Xsig.S
-+++ b/arch/x86/math-emu/shr_Xsig.S
-@@ -22,7 +22,7 @@
- #include "fpu_emu.h"
- 
- .text
--ENTRY(shr_Xsig)
-+SYM_FUNC_START(shr_Xsig)
- 	push	%ebp
- 	movl	%esp,%ebp
- 	pushl	%esi
-@@ -86,4 +86,4 @@ L_more_than_95:
- 	popl	%esi
- 	leave
- 	ret
--ENDPROC(shr_Xsig)
-+SYM_FUNC_END(shr_Xsig)
-diff --git a/arch/x86/math-emu/wm_shrx.S b/arch/x86/math-emu/wm_shrx.S
-index d588874eb6fb..4fc89174caf0 100644
---- a/arch/x86/math-emu/wm_shrx.S
-+++ b/arch/x86/math-emu/wm_shrx.S
-@@ -33,7 +33,7 @@
-  |   Results returned in the 64 bit arg and eax.                             |
-  +---------------------------------------------------------------------------*/
- 
--ENTRY(FPU_shrx)
-+SYM_FUNC_START(FPU_shrx)
- 	push	%ebp
- 	movl	%esp,%ebp
- 	pushl	%esi
-@@ -93,7 +93,7 @@ L_more_than_95:
- 	popl	%esi
- 	leave
- 	ret
--ENDPROC(FPU_shrx)
-+SYM_FUNC_END(FPU_shrx)
- 
- 
- /*---------------------------------------------------------------------------+
-@@ -112,7 +112,7 @@ ENDPROC(FPU_shrx)
-  |   part which has been shifted out of the arg.                             |
-  |   Results returned in the 64 bit arg and eax.                             |
-  +---------------------------------------------------------------------------*/
--ENTRY(FPU_shrxs)
-+SYM_FUNC_START(FPU_shrxs)
- 	push	%ebp
- 	movl	%esp,%ebp
- 	pushl	%esi
-@@ -204,4 +204,4 @@ Ls_more_than_95:
- 	popl	%esi
- 	leave
- 	ret
--ENDPROC(FPU_shrxs)
-+SYM_FUNC_END(FPU_shrxs)
-diff --git a/arch/x86/math-emu/wm_sqrt.S b/arch/x86/math-emu/wm_sqrt.S
-index f031c0e19356..3b2b58164ec1 100644
---- a/arch/x86/math-emu/wm_sqrt.S
-+++ b/arch/x86/math-emu/wm_sqrt.S
-@@ -75,7 +75,7 @@ FPU_fsqrt_arg_0:
- 
- 
- .text
--ENTRY(wm_sqrt)
-+SYM_FUNC_START(wm_sqrt)
- 	pushl	%ebp
- 	movl	%esp,%ebp
- #ifndef NON_REENTRANT_FPU
-@@ -469,4 +469,4 @@ sqrt_more_prec_large:
- /* Our estimate is too large */
- 	movl	$0x7fffff00,%eax
- 	jmp	sqrt_round_result
--ENDPROC(wm_sqrt)
-+SYM_FUNC_END(wm_sqrt)
-diff --git a/arch/x86/platform/efi/efi_stub_32.S b/arch/x86/platform/efi/efi_stub_32.S
-index ab2e91e76894..eed8b5b441f8 100644
---- a/arch/x86/platform/efi/efi_stub_32.S
-+++ b/arch/x86/platform/efi/efi_stub_32.S
-@@ -22,7 +22,7 @@
-  */
- 
- .text
--ENTRY(efi_call_phys)
-+SYM_FUNC_START(efi_call_phys)
- 	/*
- 	 * 0. The function can only be called in Linux kernel. So CS has been
- 	 * set to 0x0010, DS and SS have been set to 0x0018. In EFI, I found
-@@ -114,7 +114,7 @@ ENTRY(efi_call_phys)
- 	movl	(%edx), %ecx
- 	pushl	%ecx
- 	ret
--ENDPROC(efi_call_phys)
-+SYM_FUNC_END(efi_call_phys)
- .previous
- 
- .data
-diff --git a/include/linux/linkage.h b/include/linux/linkage.h
-index 7c564c2f8921..dc86fd8d4071 100644
---- a/include/linux/linkage.h
-+++ b/include/linux/linkage.h
-@@ -105,13 +105,13 @@
- 
- /* === DEPRECATED annotations === */
- 
--#ifndef CONFIG_X86_64
-+#ifndef CONFIG_X86
- #ifndef ENTRY
- /* deprecated, use SYM_FUNC_START */
- #define ENTRY(name) \
- 	SYM_FUNC_START(name)
- #endif
--#endif /* CONFIG_X86_64 */
-+#endif /* CONFIG_X86 */
- #endif /* LINKER_SCRIPT */
- 
- #ifndef WEAK
-@@ -126,9 +126,7 @@
- #define END(name) \
- 	.size name, .-name
- #endif
--#endif /* CONFIG_X86 */
- 
--#ifndef CONFIG_X86_64
- /* If symbol 'name' is treated as a subroutine (gets called, and returns)
-  * then please use ENDPROC to mark 'name' as STT_FUNC for the benefit of
-  * static analysis tools such as stack depth analyzer.
-@@ -138,7 +136,7 @@
- #define ENDPROC(name) \
- 	SYM_FUNC_END(name)
- #endif
--#endif /* CONFIG_X86_64 */
-+#endif /* CONFIG_X86 */
- 
- /* === generic annotations === */
- 
--- 
-2.15.0
+SW50cm9kdWNlIG5ldyBDIG1hY3JvcyBmb3IgYW5ub3RhdGlvbnMgb2YgZnVuY3Rpb25zIGFuZCBk
+YXRhIGluCmFzc2VtYmx5LiBUaGVyZSBpcyBhIGxvbmctc3RhbmRpbmcgbWVzcyBpbiBtYWNyb3Mg
+bGlrZSBFTlRSWSwgRU5ELApFTkRQUk9DIGFuZCBzaW1pbGFyLiBUaGV5IGFyZSB1c2VkIGluIGRp
+ZmZlcmVudCBtYW5uZXJzIGFuZCBzb21ldGltZXMKaW5jb3JyZWN0bHkuCgpTbyBpbnRyb2R1Y2Ug
+bWFjcm9zIHdpdGggY2xlYXIgdXNlIHRvIGFubm90YXRlIGFzc2VtYmx5IGFzIGZvbGxvd3M6Cgph
+KSBTdXBwb3J0IG1hY3JvcyBmb3IgdGhlIG9uZXMgYmVsb3cKICAgU1lNX1RfRlVOQyAtLSB0eXBl
+IHVzZWQgYnkgYXNzZW1ibGVyIHRvIG1hcmsgZnVuY3Rpb25zCiAgIFNZTV9UX09CSkVDVCAtLSB0
+eXBlIHVzZWQgYnkgYXNzZW1ibGVyIHRvIG1hcmsgZGF0YQogICBTWU1fVF9OT05FIC0tIHR5cGUg
+dXNlZCBieSBhc3NlbWJsZXIgdG8gbWFyayBlbnRyaWVzIG9mIHVua25vd24gdHlwZQoKICAgVGhl
+eSBhcmUgZGVmaW5lZCBhcyBTVFRfRlVOQywgU1RUX09CSkVDVCwgYW5kIFNUVF9OT1RZUEUKICAg
+cmVzcGVjdGl2ZWx5LiBBY2NvcmRpbmcgdG8gdGhlIGdhcyBtYW51YWwsIHRoaXMgaXMgdGhlIG1v
+c3QgcG9ydGFibGUKICAgd2F5LiBJIGFtIG5vdCBzdXJlIGFib3V0IG90aGVyIGFzc2VtYmxlcnMs
+IHNvIHdlIGNhbiBzd2l0Y2ggdGhpcyBiYWNrCiAgIHRvICVmdW5jdGlvbiBhbmQgJW9iamVjdCBp
+ZiB0aGlzIHR1cm5zIGludG8gYSBwcm9ibGVtLiBBcmNoaXRlY3R1cmVzCiAgIGNhbiBhbHNvIG92
+ZXJyaWRlIHRoZW0gYnkgc29tZXRoaW5nIGxpa2UgIiwgQGZ1bmN0aW9uIiBpZiB0aGV5IG5lZWQu
+CgogICBTWU1fQV9BTElHTiwgU1lNX0FfTk9ORSAtLSBhbGlnbiB0aGUgc3ltYm9sPwogICBTWU1f
+TF9HTE9CQUwsIFNZTV9MX1dFQUssIFNZTV9MX0xPQ0FMIC0tIGxpbmthZ2Ugb2Ygc3ltYm9scwoK
+YikgTW9zdGx5IGludGVybmFsIGFubm90YXRpb25zLCB1c2VkIGJ5IHRoZSBvbmVzIGJlbG93CiAg
+IFNZTV9FTlRSWSAtLSB1c2Ugb25seSBpZiB5b3UgaGF2ZSB0byAoZm9yIG5vbi1wYWlyZWQgc3lt
+Ym9scykKICAgU1lNX1NUQVJUIC0tIHVzZSBvbmx5IGlmIHlvdSBoYXZlIHRvIChmb3IgcGFpcmVk
+IHN5bWJvbHMpCiAgIFNZTV9FTkQgLS0gdXNlIG9ubHkgaWYgeW91IGhhdmUgdG8gKGZvciBwYWly
+ZWQgc3ltYm9scykKCmMpIEFubm90YXRpb25zIGZvciBjb2RlCiAgIFNZTV9GVU5DX1NUQVJUX0xP
+Q0FMX0FMSUFTIC0tIHVzZSB3aGVyZSB0aGVyZSBhcmUgdHdvIGxvY2FsIG5hbWVzIGZvcgoJb25l
+IGZ1bmN0aW9uCiAgIFNZTV9GVU5DX1NUQVJUX0FMSUFTIC0tIHVzZSB3aGVyZSB0aGVyZSBhcmUg
+dHdvIGdsb2JhbCBuYW1lcyBmb3Igb25lCglmdW5jdGlvbgogICBTWU1fRlVOQ19FTkRfQUxJQVMg
+LS0gdGhlIGVuZCBvZiBMT0NBTF9BTElBU2VkIG9yIEFMSUFTZWQgZnVuY3Rpb24KCiAgIFNZTV9G
+VU5DX1NUQVJUIC0tIHVzZSBmb3IgZ2xvYmFsIGZ1bmN0aW9ucwogICBTWU1fRlVOQ19TVEFSVF9O
+T0FMSUdOIC0tIHVzZSBmb3IgZ2xvYmFsIGZ1bmN0aW9ucywgdy9vIGFsaWdubWVudAogICBTWU1f
+RlVOQ19TVEFSVF9MT0NBTCAtLSB1c2UgZm9yIGxvY2FsIGZ1bmN0aW9ucwogICBTWU1fRlVOQ19T
+VEFSVF9MT0NBTF9OT0FMSUdOIC0tIHVzZSBmb3IgbG9jYWwgZnVuY3Rpb25zLCB3L28KCWFsaWdu
+bWVudAogICBTWU1fRlVOQ19TVEFSVF9XRUFLIC0tIHVzZSBmb3Igd2VhayBmdW5jdGlvbnMKICAg
+U1lNX0ZVTkNfU1RBUlRfV0VBS19OT0FMSUdOIC0tIHVzZSBmb3Igd2VhayBmdW5jdGlvbnMsIHcv
+byBhbGlnbm1lbnQKICAgU1lNX0ZVTkNfRU5EIC0tIHRoZSBlbmQgb2YgU1lNX0ZVTkNfU1RBUlRf
+TE9DQUwsIFNZTV9GVU5DX1NUQVJULAoJU1lNX0ZVTkNfU1RBUlRfV0VBSywgLi4uCgogICBTWU1f
+RlVOQ19JTk5FUl9MQUJFTF9BTElHTiAtLSBvbmx5IGZvciBsYWJlbHMgaW4gdGhlIG1pZGRsZSBv
+ZgoJZnVuY3Rpb25zLCB3LyBhbGlnbm1lbnQKICAgU1lNX0ZVTkNfSU5ORVJfTEFCRUwgLS0gb25s
+eSBmb3IgbGFiZWxzIGluIHRoZSBtaWRkbGUgb2YgZnVuY3Rpb25zLAoJdy9vIGFsaWdubWVudAoK
+ICAgRm9yIGZ1bmN0aW9ucyB3aXRoIHNwZWNpYWwgKG5vbi1DKSBjYWxsaW5nIGNvbnZlbnRpb25z
+OgogICBTWU1fQ09ERV9TVEFSVCAtLSB1c2UgZm9yIG5vbi1DIChzcGVjaWFsKSBmdW5jdGlvbnMK
+ICAgU1lNX0NPREVfU1RBUlRfTk9BTElHTiAtLSB1c2UgZm9yIG5vbi1DIChzcGVjaWFsKSBmdW5j
+dGlvbnMsIHcvbwoJYWxpZ25tZW50CiAgIFNZTV9DT0RFX1NUQVJUX0xPQ0FMIC0tIHVzZSBmb3Ig
+bG9jYWwgbm9uLUMgKHNwZWNpYWwpIGZ1bmN0aW9ucwogICBTWU1fQ09ERV9TVEFSVF9MT0NBTF9O
+T0FMSUdOIC0tIHVzZSBmb3IgbG9jYWwgbm9uLUMgKHNwZWNpYWwpCglmdW5jdGlvbnMsIHcvbyBh
+bGlnbm1lbnQKICAgU1lNX0NPREVfRU5EIC0tIHRoZSBlbmQgb2YgU1lNX0NPREVfU1RBUlRfTE9D
+QUwgb3IgU1lNX0NPREVfU1RBUlQKCiAgIFNZTV9DT0RFX0lOTkVSX0xBQkVMX0FMSUdOIC0tIG9u
+bHkgZm9yIGxhYmVscyBpbiB0aGUgbWlkZGxlIG9mIGNvZGUKICAgU1lNX0NPREVfSU5ORVJfTEFC
+RUwgLS0gb25seSBmb3IgbGFiZWxzIGluIHRoZSBtaWRkbGUgb2YgY29kZQoKZCkgRm9yIGRhdGEK
+ICAgU1lNX0RBVEFfU1RBUlQgLS0gZ2xvYmFsIGRhdGEgc3ltYm9sCiAgIFNZTV9EQVRBX1NUQVJU
+X0xPQ0FMIC0tIGxvY2FsIGRhdGEgc3ltYm9sCiAgIFNZTV9EQVRBX0VORCAtLSB0aGUgZW5kIG9m
+IHRoZSBTWU1fREFUQV9TVEFSVCBzeW1ib2wKICAgU1lNX0RBVEFfRU5EX0xBQkVMIC0tIHRoZSBs
+YWJlbGVkIGVuZCBvZiBTWU1fREFUQV9TVEFSVCBzeW1ib2wKICAgU1lNX0RBVEEgLS0gc3RhcnQr
+ZW5kIHdyYXBwZXIgYXJvdW5kIHNpbXBsZSBnbG9iYWwgZGF0YQogICBTWU1fREFUQV9MT0NBTCAt
+LSBzdGFydCtlbmQgd3JhcHBlciBhcm91bmQgc2ltcGxlIGxvY2FsIGRhdGEKCj09PT09PT09PT0K
+ClRoZSBtYWNyb3MgYWxsb3cgdG8gcGFpciBzdGFydHMgYW5kIGVuZHMgb2YgZnVuY3Rpb25zIGFu
+ZCBtYXJrIGZ1bmN0aW9ucwpjb3JyZWN0bHkgaW4gdGhlIG91dHB1dCBFTEYgb2JqZWN0cy4KCkFs
+bCB1c2VycyBvZiB0aGUgb2xkIG1hY3JvcyBpbiB4ODYgYXJlIGNvbnZlcnRlZCB0byB1c2UgdGhl
+c2UgaW4gZnVydGhlcgpwYXRjaGVzLgoKW3YyXQoqIHVzZSBTWU1fIHByZWZpeCBhbmQgc2FuZSBu
+YW1lcwoqIGFkZCBTWU1fU1RBUlQgYW5kIFNZTV9FTkQgYW5kIHBhcmFtZXRyaXplIGFsbCB0aGUg
+bWFjcm9zCgpbdjNdCiogYWRkIFNZTV9EQVRBLCBTWU1fREFUQV9MT0NBTCwgYW5kIFNZTV9EQVRB
+X0VORF9MQUJFTAoKW3Y0XQoqIGFkZCBfTk9BTElHTiB2ZXJzaW9ucyBvZiBzb21lIG1hY3Jvcwoq
+IGFkZCBfQ09ERV8gZGVyaXZhdGVzIG9mIF9GVU5DXyBtYWNyb3MKClt2NV0KKiBkcm9wICJTSU1Q
+TEUiIGZyb20gZGF0YSBhbm5vdGF0aW9ucwoqIHN3aXRjaCBOT0FMSUdOIGFuZCBBTElHTiB2YXJp
+YW50cyBvZiBpbm5lciBsYWJlbHMKKiBzL3Zpc2liaWxpdHkvbGlua2FnZS87IHNAU1lNX1ZfQFNZ
+TV9MX0AKKiBhZGQgRG9jdW1lbnRhdGlvbgoKU2lnbmVkLW9mZi1ieTogSmlyaSBTbGFieSA8anNs
+YWJ5QHN1c2UuY3o+CkNjOiBBbmRyZXcgTW9ydG9uIDxha3BtQGxpbnV4LWZvdW5kYXRpb24ub3Jn
+PgpDYzogQm9yaXMgT3N0cm92c2t5IDxib3Jpcy5vc3Ryb3Zza3lAb3JhY2xlLmNvbT4KQ2M6IGhw
+YUB6eXRvci5jb20KQ2M6IEluZ28gTW9sbmFyIDxtaW5nb0BrZXJuZWwub3JnPgpDYzoganBvaW1i
+b2VAcmVkaGF0LmNvbQpDYzogSnVlcmdlbiBHcm9zcyA8amdyb3NzQHN1c2UuY29tPgpDYzogTGVu
+IEJyb3duIDxsZW4uYnJvd25AaW50ZWwuY29tPgpDYzogTGludXMgVG9ydmFsZHMgPHRvcnZhbGRz
+QGxpbnV4LWZvdW5kYXRpb24ub3JnPgpDYzogbGludXgta2VybmVsQHZnZXIua2VybmVsLm9yZwpD
+YzogbGludXgtcG1Admdlci5rZXJuZWwub3JnCkNjOiBtaW5nb0ByZWRoYXQuY29tCkNjOiBQYXZl
+bCBNYWNoZWsgPHBhdmVsQHVjdy5jej4KQ2M6IFBldGVyIFppamxzdHJhIDxhLnAuemlqbHN0cmFA
+Y2hlbGxvLm5sPgpDYzogIlJhZmFlbCBKLiBXeXNvY2tpIiA8cmp3QHJqd3lzb2NraS5uZXQ+CkNj
+OiBUaG9tYXMgR2xlaXhuZXIgPHRnbHhAbGludXRyb25peC5kZT4KQ2M6IHhlbi1kZXZlbEBsaXN0
+cy54ZW5wcm9qZWN0Lm9yZwpDYzogeDg2QGtlcm5lbC5vcmcKLS0tCiBEb2N1bWVudGF0aW9uL2Fz
+bS1hbm5vdGF0aW9ucy5yc3QgfCAyMTggKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysK
+IGFyY2gveDg2L2luY2x1ZGUvYXNtL2xpbmthZ2UuaCAgICB8ICAxMCArLQogaW5jbHVkZS9saW51
+eC9saW5rYWdlLmggICAgICAgICAgIHwgMjU3ICsrKysrKysrKysrKysrKysrKysrKysrKysrKysr
+KysrKysrKy0tCiAzIGZpbGVzIGNoYW5nZWQsIDQ3NSBpbnNlcnRpb25zKCspLCAxMCBkZWxldGlv
+bnMoLSkKIGNyZWF0ZSBtb2RlIDEwMDY0NCBEb2N1bWVudGF0aW9uL2FzbS1hbm5vdGF0aW9ucy5y
+c3QKCmRpZmYgLS1naXQgYS9Eb2N1bWVudGF0aW9uL2FzbS1hbm5vdGF0aW9ucy5yc3QgYi9Eb2N1
+bWVudGF0aW9uL2FzbS1hbm5vdGF0aW9ucy5yc3QKbmV3IGZpbGUgbW9kZSAxMDA2NDQKaW5kZXgg
+MDAwMDAwMDAwMDAwLi4zZTliNDI2MzQ3ZjAKLS0tIC9kZXYvbnVsbAorKysgYi9Eb2N1bWVudGF0
+aW9uL2FzbS1hbm5vdGF0aW9ucy5yc3QKQEAgLTAsMCArMSwyMTggQEAKK0Fzc2VtYmxlciBBbm5v
+dGF0aW9ucworPT09PT09PT09PT09PT09PT09PT09CisKK0NvcHlyaWdodCAoYykgMjAxNyBKaXJp
+IFNsYWJ5CisKK1RoaXMgZG9jdW1lbnQgZGVzY3JpYmVzIHRoZSBuZXcgbWFjcm9zIGZvciBhbm5v
+dGF0aW9uIG9mIGRhdGEgYW5kIGNvZGUgaW4KK2Fzc2VtYmxlci4gSW4gcGFydGljdWxhciwgaXQg
+Y29udGFpbnMgaW5mb3JtYXRpb24gYWJvdXQgYGBTWU1fRlVOQ19TVEFSVGBgLAorYGBTWU1fRlVO
+Q19FTkRgYCwgYGBTWU1fQ09ERV9TVEFSVGBgLCBhbmQgc2ltaWxhci4KKworUmF0aW9uYWxlCist
+LS0tLS0tLS0KK1NvbWUgY29kZSBsaWtlIGVudHJpZXMsIHRyYW1wb2xpbmVzLCBvciBib290IGNv
+ZGUgbmVlZHMgdG8gYmUgd3JpdHRlbiBpbgorYXNzZW1ibHkuIFRoZSBzYW1lIGFzIGluIEMsIHdl
+IGdyb3VwIHN1Y2ggY29kZSBpbnRvIGZ1bmN0aW9ucyBhbmQgYWNjb21wYW55Cit0aGVtIHdpdGgg
+ZGF0YS4gU3RhbmRhcmQgYXNzZW1ibGVycyBkbyBub3QgZm9yY2UgdXNlcnMgaW50byBwcmVjaXNl
+bHkgbWFya2luZwordGhlc2UgcGllY2VzIGFzIGNvZGUsIGRhdGEsIG9yIGV2ZW4gc3BlY2lmeWlu
+ZyB0aGVpciBsZW5ndGguIE5ldmVydGhlbGVzcywKK2Fzc2VtYmxlcnMgcHJvdmlkZSBkZXZlbG9w
+ZXJzIHdpdGggc3VjaCBtYXJrcyB0byBhaWQgZGVidWdnZXJzIHRocm91Z2hvdXQKK2Fzc2VtYmx5
+LiBPbiB0aGUgdG9wIG9mIHRoYXQsIGRldmVsb3BlcnMgYWxzbyB3YW50IHRvIHN0YW1wIHNvbWUg
+ZnVuY3Rpb25zIGFzCisqZ2xvYmFsKiB0byBiZSB2aXNpYmxlIG91dHNpZGUgb2YgdGhlaXIgdHJh
+bnNsYXRpb24gdW5pdHMuCisKK092ZXIgdGhlIHRpbWUsIHRoZSBMaW51eCBrZXJuZWwgdG9vayBv
+dmVyIG1hY3JvcyBmcm9tIHZhcmlvdXMgcHJvamVjdHMgKGxpa2UKK2BgYmludXRpbHNgYCkgdG8g
+ZWFzZSB0aGVzZSBtYXJraW5ncy4gU28gZm9yIGhpc3RvcmljIHJlYXNvbnMsIHdlIGhhdmUgYmVl
+bgordXNpbmcgYGBFTlRSWWBgLCBgYEVORGBgLCBgYEVORFBST0NgYCwgYW5kIG90aGVyIGFubm90
+YXRpb25zIGluIGFzc2VtYmx5LiBEdWUKK3RvIHRoZSBsYWNrIG9mIHRoZWlyIGRvY3VtZW50YXRp
+b24sIHRoZSBtYWNyb3MgYXJlIHVzZWQgaW4gcmF0aGVyIHdyb25nCitjb250ZXh0cyBhdCBzb21l
+IGxvY2F0aW9ucy4gQ2xlYXJseSwgYGBFTlRSWWBgIHdhcyBpbnRlbmRlZCBmb3Igc3RhcnRzIG9m
+CitnbG9iYWwgc3ltYm9scyAoYmUgaXQgZGF0YSBvciBjb2RlKS4gYGBFTkRgYCB1c2VkIHRvIGJl
+IHRoZSBlbmQgb2YgZGF0YSBvciBlbmQKK29mIHNwZWNpYWwgZnVuY3Rpb25zIHdpdGggKm5vbi1z
+dGFuZGFyZCogY2FsbGluZyBjb252ZW50aW9uLiBJbiBjb250cmFzdCwKK2BgRU5EUFJPQ2BgIHNo
+b3VsZCBhbm5vdGF0ZSBvbmx5IGVuZHMgb2YgKnN0YW5kYXJkKiBmdW5jdGlvbnMuCisKK1doZW4g
+dGhlc2UgbWFjcm9zIGFyZSB1c2VkIGNvcnJlY3RseSwgdGhleSBoZWxwIGFzc2VtYmxlcnMgdG8g
+Z2VuZXJhdGUgYSBuaWNlCitvYmplY3Qgd2l0aCBib3RoIHNpemVzIGFuZCB0eXBlcyBzZXQgY29y
+cmVjdGx5LiBGb3IgZXhhbXBsZSB0aGUgcmVzdWx0IG9mCitgYGFyY2gveDg2L2xpYi9wdXR1c2Vy
+LlNgYDo6CisKKyAgIE51bTogICAgVmFsdWUgICAgICAgICAgU2l6ZSBUeXBlICAgIEJpbmQgICBW
+aXMgICAgICBOZHggTmFtZQorICAgIDI1OiAwMDAwMDAwMDAwMDAwMDAwICAgIDMzIEZVTkMgICAg
+R0xPQkFMIERFRkFVTFQgICAgMSBfX3B1dF91c2VyXzEKKyAgICAyOTogMDAwMDAwMDAwMDAwMDAz
+MCAgICAzNyBGVU5DICAgIEdMT0JBTCBERUZBVUxUICAgIDEgX19wdXRfdXNlcl8yCisgICAgMzI6
+IDAwMDAwMDAwMDAwMDAwNjAgICAgMzYgRlVOQyAgICBHTE9CQUwgREVGQVVMVCAgICAxIF9fcHV0
+X3VzZXJfNAorICAgIDM1OiAwMDAwMDAwMDAwMDAwMDkwICAgIDM3IEZVTkMgICAgR0xPQkFMIERF
+RkFVTFQgICAgMSBfX3B1dF91c2VyXzgKKworVGhpcyBpcyBub3Qgb25seSBpbXBvcnRhbnQgZm9y
+IGRlYnVnZ2luZyBwdXJwb3Nlcy4gV2hlbiB3ZSBoYXZlIHByb3Blcmx5CittYXJrZWQgb2JqZWN0
+cyBsaWtlIHRoaXMsIHdlIGNhbiBydW4gdG9vbHMgb24gdGhlbSBhbmQgbGV0IHRoZSB0b29scyBn
+ZW5lcmF0ZQorbW9yZSB1c2VmdWwgaW5mb3JtYXRpb24uIEluIHBhcnRpY3VsYXIsIG9uIHByb3Bl
+cmx5IG1hcmtlZCBvYmplY3RzLCB3ZSBjYW4gcnVuCitgYG9ianRvb2xgYCBhbmQgbGV0IGl0IGNo
+ZWNrIGFuZCBmaXggdGhlIG9iamVjdCBpZiBuZWVkZWQuIEN1cnJlbnRseSwgaXQgY2FuCityZXBv
+cnQgbWlzc2luZyBmcmFtZSBwb2ludGVyIHNldHVwL2Rlc3RydWN0aW9uIGluIGZ1bmN0aW9ucy4g
+SXQgY2FuIGFsc28KK2F1dG9tYXRpY2FsbHkgZ2VuZXJhdGUgYW5ub3RhdGlvbnMgZm9yICpPUkMg
+dW53aW5kZXIqIChjZi4KKzxEb2N1bWVudGF0aW9uL3g4Ni9vcmMtdW53aW5kZXIudHh0PikgZm9y
+IG1vc3QgY29kZS4gQm90aCBvZiB0aGlzIGlzCitlc3BlY2lhbGx5IGltcG9ydGFudCB0byBzdXBw
+b3J0IHJlbGlhYmxlIHN0YWNrIHRyYWNlcyB3aGljaCBhcmUgaW4gdHVybgorbmVjZXNzYXJ5IGZv
+ciAqS2VybmVsIGxpdmUgcGF0Y2hpbmcqIChzZWUKKzxEb2N1bWVudGF0aW9uL2xpdmVwYXRjaC9s
+aXZlcGF0Y2gudHh0PikuCisKK0NhdmVhdCBhbmQgRGlzY3Vzc2lvbgorLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tCitBcyBvbmUgbWlnaHQgcmVhbGl6ZSwgdGhlcmUgd2VyZSBvbmx5IHRocmVlIG1hY3Jv
+cyBwcmV2aW91c2x5LiBUaGF0IGlzIGluZGVlZAoraW5zdWZmaWNpZW50IHRvIGNvdmVyIGFsbCB0
+aGUgY29tYmluYXRpb25zIG9mIGNhc2VzOgorCisqIHN0YW5kYXJkL25vbi1zdGFuZGFyZCBmdW5j
+dGlvbgorKiBjb2RlL2RhdGEKKyogZ2xvYmFsL2xvY2FsIHN5bWJvbAorCitXZSBoYWQgYSBkaXNj
+dXNzaW9uXyBhbmQgaW5zdGVhZCBvZiBleHRlbmRpbmcgdGhlIGN1cnJlbnQgYGBFTlRSWS9FTkQq
+YGAKK21hY3JvcywgaXQgd2FzIGRlY2lkZWQgdGhhdCB3ZSBzaG9vdWxkIGludHJvZHVjZSBicmFu
+ZCBuZXcgbWFjcm9zIGluc3RlYWQ6OgorCisgICAgU28gaG93IGFib3V0IHVzaW5nIG1hY3JvIG5h
+bWVzIHRoYXQgYWN0dWFsbHkgc2hvdyB0aGUgcHVycG9zZSwgaW5zdGVhZAorICAgIG9mIGltcG9y
+dGluZyBhbGwgdGhlIGNyYXBweSwgaGlzdG9yaWMsIGVzc2VudGlhbGx5IHJhbmRvbWx5IGNob3Nl
+bgorICAgIGRlYnVnIHN5bWJvbCBtYWNybyBuYW1lcyBmcm9tIHRoZSBiaW51dGlscyBhbmQgb2xk
+ZXIga2VybmVscz8KKworLi4gX2Rpc2N1c3Npb246IGh0dHBzOi8vbWFyYy5pbmZvLz9pPTIwMTcw
+MjE3MTA0NzU3LjI4NTg4LTEtanNsYWJ5JTQwc3VzZS5jegorCitNYWNyb3MgRGVzY3JpcHRpb24K
+Ky0tLS0tLS0tLS0tLS0tLS0tLQorCitUaGUgbmV3IG1hY3JvcyBhcmUgcHJlZml4ZWQgd2l0aCB0
+aGUgYGBTWU1fYGAgcHJlZml4IGFuZCBjYW4gYmUgZGl2aWRlZCBpbnRvCit0aHJlZSBtYWluIGdy
+b3VwczoKKworMS4gYGBTWU1fRlVOQ18qYGAgLS0gdG8gYW5ub3RhdGUgQy1saWtlIGZ1bmN0aW9u
+cy4gVGhpcyBtZWFucyBmdW5jdGlvbnMgd2l0aAorICAgc3RhbmRhcmQgQyBjYWxsaW5nIGNvbnZl
+bnRpb25zLCBpLmUuIHRoZSBzdGFjayBjb250YWlucyBhIHJldHVybiBhZGRyZXNzIGF0CisgICB0
+aGUgcHJlZGVmaW5lZCBwbGFjZSBhbmQgYSByZXR1cm4gZnJvbSB0aGUgZnVuY3Rpb24gY2FuIGhh
+cHBlbiBpbiBhCisgICBzdGFuZGFyZCB3YXkuIFdoZW4gZnJhbWUgcG9pbnRlcnMgYXJlIGVuYWJs
+ZWQsIHNhdmUvcmVzdG9yZSBvZiBmcmFtZQorICAgcG9pbnRlciBzaGFsbCBoYXBwZW4gYXQgdGhl
+IHN0YXJ0L2VuZCBvZiBhIGZ1bmN0aW9uLCByZXNwZWN0aXZlbHksIHRvby4KKworICAgQ2hlY2tp
+bmcgdG9vbHMgbGlrZSBgYG9ianRvb2xgYCBzaG91bGQgZW5zdXJlIHN1Y2ggbWFya2VkIGZ1bmN0
+aW9ucyBjb25mb3JtCisgICB0byB0aGVzZSBydWxlcy4gVGhlIHRvb2xzIGNhbiBhbHNvIGVhc2ls
+eSBhbm5vdGF0ZSB0aGVzZSBmdW5jdGlvbnMgd2l0aAorICAgZGVidWdnaW5nIGluZm9ybWF0aW9u
+IChsaWtlICpPUkMgZGF0YSopIGF1dG9tYXRpY2FsbHkuCisKKzIuIGBgU1lNX0NPREVfKmBgIC0t
+IHNwZWNpYWwgZnVuY3Rpb25zIGNhbGxlZCB3aXRoIHNwZWNpYWwgc3RhY2suIEJlIGl0CisgICBp
+bnRlcnJ1cHQgaGFuZGxlcnMgd2l0aCBzcGVjaWFsIHN0YWNrIGNvbnRlbnQsIHRyYW1wb2xpbmVz
+LCBvciBzdGFydHVwCisgICBmdW5jdGlvbnMuCisKKyAgIENoZWNraW5nIHRvb2xzIG1vc3RseSBp
+Z25vcmUgY2hlY2tpbmcgb2YgdGhlc2UgZnVuY3Rpb25zLiBCdXQgc29tZSBkZWJ1ZworICAgaW5m
+b3JtYXRpb24gc3RpbGwgY2FuIGJlIGdlbmVyYXRlZCBhdXRvbWF0aWNhbGx5LiBGb3IgY29ycmVj
+dCBkZWJ1ZyBkYXRhLAorICAgdGhpcyBjb2RlIG5lZWRzIGhpbnRzIGxpa2UgYGBVTldJTkRfSElO
+VF9SRUdTYGAgcHJvdmlkZWQgYnkgZGV2ZWxvcGVycy4KKworMy4gYGBTWU1fREFUQSpgYCAtLSBv
+YnZpb3NseSBkYXRhIGJlbG9uZ2luZyB0byBgYC5kYXRhYGAgc2VjdGlvbnMgYW5kIG5vdCB0bwor
+ICAgYGAudGV4dGBgLiBEYXRhIGRvIG5vdCBjb250YWluIGluc3RydWN0aW9ucywgc28gdGhleSBo
+YXZlIHRvIGJlIHRyZWF0ZWQKKyAgIHNwZWNpYWxseSBieSB0aGUgdG9vbHM6IHRoZXkgc2hvdWxk
+IG5vdCB0cmVhdCB0aGUgYnl0ZXMgYXMgaW5zdHJ1Y3Rpb25zLAorICAgbmVpdGhlciBhc3NpZ24g
+YW55IGRlYnVnIGluZm9ybWF0aW9uIHRvIHRoZW0uCisKK0luc3RydWN0aW9uIE1hY3Jvcworfn5+
+fn5+fn5+fn5+fn5+fn5+CitUaGlzIHNlY3Rpb24gY292ZXJzIGBgU1lNX0ZVTkNfKmBgIGFuZCBg
+YFNZTV9DT0RFXypgYCBlbnVtZXJhdGVkIGFib3ZlLgorCisqIGBgU1lNX0ZVTkNfU1RBUlRgYCBh
+bmQgYGBTWU1fRlVOQ19TVEFSVF9MT0NBTGBgIGFyZSBzdXBwb3NlZCB0byBiZSAqKnRoZQorICBt
+b3N0IGZyZXF1ZW50IG1hcmtpbmdzKiouIFRoZXkgYXJlIHVzZWQgZm9yIGZ1bmN0aW9ucyB3aXRo
+IHN0YW5kYXJkIGNhbGxpbmcKKyAgY29udmVudGlvbnMgLS0gZ2xvYmFsIGFuZCBsb2NhbC4gTGlr
+ZSBpbiBDLCB0aGV5IGJvdGggYWxpZ24gdGhlIGZ1bmN0aW9ucyB0bworICBhcmNoaXRlY3R1cmUg
+c3BlY2lmaWMgYGBfX0FMSUdOYGAgYnl0ZXMuIFRoZXJlIGFyZSBhbHNvIGBgX05PQUxJR05gYCB2
+YXJpYW50cworICBmb3Igc3BlY2lhbCBjYXNlcyB3aGVyZSBkZXZlbG9wZXJzIGRvIG5vdCB3YW50
+IHRoaXMgaW1wbGljaXQgYWxpZ25tZW50LgorCisgIFdlIG9mZmVyIGFsc28gYGBTWU1fRlVOQ19T
+VEFSVF9XRUFLYGAgYW5kIGBgU1lNX0ZVTkNfU1RBUlRfV0VBS19OT0FMSUdOYGAKKyAgbWFya3Mg
+YXMgYW4gYXNzZW1ibGVyIGNvdW50ZXJwYXJ0IG9mIHRoZSAqd2VhayogYXR0cmlidXRlIGtub3du
+IGZyb20gQy4KKworICBBbGwgb2YgdGhlc2UgKipzaGFsbCoqIGJlIGNvdXBsZWQgd2l0aCBgYFNZ
+TV9GVU5DX0VORGBgLiBGaXJzdCwgaXQgbWFya3MKKyAgdGhlIHNlcXVlbmNlIG9mIGluc3RydWN0
+aW9ucyBhcyBhIGZ1bmN0aW9uIGFuZCBjb21wdXRlcyBpdHMgc2l6ZSB0byB0aGUKKyAgZ2VuZXJh
+dGVkIG9iamVjdCBmaWxlLiBTZWNvbmQsIGl0IGFsc28gZWFzZXMgY2hlY2tpbmcgYW5kIHByb2Nl
+c3Npbmcgc3VjaAorICBvYmplY3QgZmlsZXMgYXMgdGhlIHRvb2xzIGNhbiB0cml2aWFsbHkgZmlu
+ZCBleGFjdCBzdGFydCBhbmQgZW5kIG9mIGEKKyAgZnVuY3Rpb24uCisKKyAgU28gaW4gbW9zdCBj
+YXNlcywgZGV2ZWxvcGVycyBzaG91bGQgd3JpdGUgc29tZXRoaW5nIGxpa2UgaW4gdGhlIGZvbGxv
+d2luZworICBleGFtcGxlLCBoYXZpbmcgbW9yZSBpbnN0cnVjdGlvbnMgaW4gYmV0d2VlbiB0aGUg
+bWFjcm9zLCBvZiBjb3Vyc2U6OgorCisgICAgU1lNX0ZVTkNfU1RBUlQoZnVuY3Rpb25faG9vaykK
+KyAgICAgICAgcmV0cQorICAgIFNZTV9GVU5DX0VORChmdW5jdGlvbl9ob29rKQorCisgIEluIGZh
+Y3QsIHRoaXMga2luZCBvZiBhbm5vdGF0aW9uIGNvcnJlc3BvbmRzIHRvIG5vdyBkZXByZWNhdGVk
+IGBgRU5UUllgYCBhbmQKKyAgYGBFTkRQUk9DYGAuCisKKyogYGBTWU1fRlVOQ19TVEFSVF9BTElB
+U2BgIGFuZCBgYFNZTV9GVU5DX1NUQVJUX0xPQ0FMX0FMSUFTYGAgc2VydmUgZm9yIHRob3NlCisg
+IHdobyBkZWNpZGVkIHRvIGhhdmUgdHdvIG9yIG1vcmUgbmFtZXMgZm9yIG9uZSBmdW5jdGlvbi4g
+VGhlIHR5cGljYWwgdXNlIGlzOjoKKworICAgIFNZTV9GVU5DX1NUQVJUX0FMSUFTKF9fbWVtc2V0
+KQorICAgIFNZTV9GVU5DX1NUQVJUKG1lbXNldCkKKyAgICAgICAgLi4uCisgICAgU1lNX0ZVTkNf
+RU5EKG1lbXNldCkKKyAgICBTWU1fRlVOQ19FTkRfQUxJQVMoX19tZW1zZXQpCisKKyAgSW4gdGhp
+cyBleGFtcGxlLCBvbmUgY2FuIGNhbGwgYGBfX21lbXNldGBgIG9yIGBgbWVtc2V0YGAgd2l0aCB0
+aGUgc2FtZQorICByZXN1bHQuIEV4Y2VwdCB0aGUgZGVidWcgaW5mb3JtYXRpb24gZm9yIHRoZSBp
+bnN0cnVjdGlvbnMgaXMgZ2VuZXJhdGVkIHRvCisgIHRoZSBvYmplY3QgZmlsZSBvbmx5IG9uY2Ug
+LS0gZm9yIHRoZSBub24tYGBBTElBU2BgIGNhc2UuCisKKyogYGBTWU1fQ09ERV9TVEFSVGBgIGFu
+ZCBgYFNZTV9DT0RFX1NUQVJUX0xPQ0FMYGAgc2hvdWxkIGJlIHVzZWQgb25seSBpbgorICBzcGVj
+aWFsIGNhc2VzIC0tIGlmIHlvdSBrbm93IHdoYXQgeW91IGFyZSBkb2luZy4gVGhpcyBpcyB1c2Vk
+IGV4Y2x1c2l2ZWx5CisgIGZvciBpbnRlcnJ1cHQgaGFuZGxlcnMgYW5kIHNpbWlsYXIgd2hlcmUg
+dGhlIGNhbGxpbmcgY29udmVudGlvbiBpcyBub3QgdGhlIEMKKyAgb25lLiBgYF9OT0FMSUdOYGAg
+dmFyaWFudHMgZXhpc3QgdG9vLiBUaGUgdXNlIGlzIHRoZSBzYW1lIGFzIGZvciB0aGUgYGBGVU5D
+YGAKKyAgY2F0ZWdvcnkgYWJvdmU6OgorCisgICAgU1lNX0NPREVfU1RBUlRfTE9DQUwoYmFkX3B1
+dF91c2VyKQorICAgICAgICBtb3ZsICQtRUZBVUxULCVlYXgKKyAgICAgICAgRVhJVAorICAgIFNZ
+TV9DT0RFX0VORChiYWRfcHV0X3VzZXIpCisKKyAgQWdhaW4sIGV2ZXJ5IGBgU1lNX0NPREVfU1RB
+UlQqYGAgKipzaGFsbCoqIGJlIGNvdXBsZWQgYnkgYGBTWU1fQ09ERV9FTkRgYC4KKworICBUbyBz
+b21lIGV4dGVudCwgdGhpcyBjYXRlZ29yeSBjb3JyZXNwb25kcyB0byBkZXByZWNhdGVkIGBgRU5U
+UllgYCBhbmQKKyAgYGBFTkRgYC4gRXhjZXB0IGBgRU5EYGAgaGFkIHNldmVyYWwgb3RoZXIgbWVh
+bmluZ3MgdG9vLgorCisqIGBgU1lNX0ZVTkNfSU5ORVJfTEFCRUwqYGAgYW5kIGBgU1lNX0NPREVf
+SU5ORVJfTEFCRUxgYCBhcmUgdXNlZCB0byBkZW5vdGUgYQorICBsYWJlbCBpbnNpZGUgc29tZSBg
+YFNZTV97Q09ERSxGVU5DfV9TVEFSVGBgIGFuZCBgYFNZTV97Q09ERSxGVU5DfV9FTkRgYC4KKyAg
+VGhleSBhcmUgdmVyeSBzaW1pbGFyIHRvIEMgbGFiZWxzLCBleGNlcHQgdGhleSBjYW4gYmUgbWFk
+ZSBnbG9iYWwuIEFuCisgIGV4YW1wbGUgb2YgdXNlOjoKKworICAgIFNZTV9DT0RFX1NUQVJUKGZ0
+cmFjZV9jYWxsZXIpCisgICAgICAgIC8qIHNhdmVfbWNvdW50X3JlZ3MgZmlsbHMgaW4gZmlyc3Qg
+dHdvIHBhcmFtZXRlcnMgKi8KKyAgICAgICAgLi4uCisKKyAgICBTWU1fQ09ERV9JTk5FUl9MQUJF
+TChmdHJhY2VfY2FsbGVyX29wX3B0ciwgU1lNX0xfR0xPQkFMKQorICAgICAgICAvKiBMb2FkIHRo
+ZSBmdHJhY2Vfb3BzIGludG8gdGhlIDNyZCBwYXJhbWV0ZXIgKi8KKyAgICAgICAgLi4uCisKKyAg
+ICBTWU1fQ09ERV9JTk5FUl9MQUJFTChmdHJhY2VfY2FsbCwgU1lNX0xfR0xPQkFMKQorICAgICAg
+ICBjYWxsIGZ0cmFjZV9zdHViCisgICAgICAgIC4uLgorICAgICAgICByZXRxCisgICAgU1lNX0NP
+REVfRU5EKGZ0cmFjZV9jYWxsZXIpCisKK0RhdGEgTWFjcm9zCit+fn5+fn5+fn5+fgorU2ltaWxh
+ciB0byBpbnN0cnVjdGlvbnMsIHdlIGhhdmUgYSBjb3VwbGUgb2YgbWFjcm9zIHRvIGRlc2NyaWJl
+IGRhdGEgaW4gdGhlCithc3NlbWJseS4gQWdhaW4sIHRoZXkgaGVscCBkZWJ1Z2dlcnMgdG8gdW5k
+ZXJzdGFuZCB0aGUgbGF5b3V0IG9mIHRoZSByZXN1bHRpbmcKK29iamVjdCBmaWxlcy4KKworKiBg
+YFNZTV9EQVRBX1NUQVJUYGAgYW5kIGBgU1lNX0RBVEFfU1RBUlRfTE9DQUxgYCBtYXJrIHRoZSBz
+dGFydCBvZiBzb21lIGRhdGEKKyAgYW5kIHNoYWxsIGJlIGluIGNvdXBsZSB3aXRoIGVpdGhlciBg
+YFNZTV9EQVRBX0VORGBgLCBvcgorICBgYFNZTV9EQVRBX0VORF9MQUJFTGBgLiBUaGUgbGF0dGVy
+IGFkZHMgYWxzbyBhIGxhYmVsIHRvIHRoZSBlbmQsIHNvIHRoYXQKKyAgcGVvcGxlIGNhbiB1c2Ug
+YGBsc3RhY2tgYCBhbmQgKGxvY2FsKSBgYGxzdGFja19lbmRgYCBpbiB0aGUgZm9sbG93aW5nCisg
+IGV4YW1wbGU6OgorCisgICAgU1lNX0RBVEFfU1RBUlRfTE9DQUwobHN0YWNrKQorICAgICAgICAu
+c2tpcCA0MDk2CisgICAgU1lNX0RBVEFfRU5EX0xBQkVMKGxzdGFjaywgU1lNX0xfTE9DQUwsIGxz
+dGFja19lbmQpCisKKyogYGBTWU1fREFUQWBgIGFuZCBgYFNZTV9EQVRBX0xPQ0FMYGAgYXJlIHZh
+cmlhbnRzIGZvciBzaW1wbGUsIG1vc3RseSBvbmUtbGluZQorICBkYXRhOjoKKworICAgIFNZTV9E
+QVRBKEhFQVAsICAgICAubG9uZyBybV9oZWFwKQorICAgIFNZTV9EQVRBKGhlYXBfZW5kLCAubG9u
+ZyBybV9zdGFjaykKKworICBJbiB0aGUgZW5kLCB0aGV5IGV4cGFuZCB0byBgYFNZTV9EQVRBX1NU
+QVJUYGAgd2l0aCBgYFNZTV9EQVRBX0VORGBgCisgIGludGVybmFsbHkuCisKK1N1cHBvcnQgTWFj
+cm9zCit+fn5+fn5+fn5+fn5+fgorQWxsIHRoZSBhYm92ZSByZWR1Y2UgdGhlbXNlbHZlcyB0byBz
+b21lIGludm9jYXRpb24gb2YgYGBTWU1fU1RBUlRgYCwKK2BgU1lNX0VORGBgLCBvciBgYFNZTV9F
+TlRSWWBgIGF0IGxhc3QuIE5vcm1hbGx5LCBkZXZlbG9wZXJzIHNob3VsZCBhdm9pZCB1c2luZwor
+dGhlc2UuCisKK0Z1cnRoZXIsIGluIHRoZSBhYm92ZSBleGFtcGxlcywgb25lIGNvdWxkIHNhdyBg
+YFNZTV9MX0xPQ0FMYGAuIFRoZXJlIGFyZSBhbHNvCitgYFNZTV9MX0dMT0JBTGBgIGFuZCBgYFNZ
+TV9MX1dFQUtgYC4gQWxsIGFyZSBkZXNlcnZlZCB0byBkZW5vdGUgbGlua2FnZSBvZiBhCitzeW1i
+b2wgbWFya2VkIGJ5IHRoZW0uIFRoZXkgYXJlIHVzZWQgZWl0aGVyIGluIGBgX0xBQkVMYGAgdmFy
+aWFudHMgb2YgdGhlCitlYXJsaWVyIG1hY3Jvcywgb3IgaW4gYGBTWU1fU1RBUlRgYC4KKworCitP
+dmVycmlkaW5nIE1hY3Jvcworfn5+fn5+fn5+fn5+fn5+fn4KK0FyY2hpdGVjdHVyZSBjYW4gYWxz
+byBvdmVycmlkZSBhbnkgb2YgdGhlIG1hY3JvcyBpbiB0aGVpciBvd24KK2BgYXNtL2xpbmthZ2Uu
+aGBgLiAgSW5jbHVkaW5nIG1hY3JvcyBzcGVjaWZ5aW5nIHRoZSB0eXBlIG9mIGEgc3ltYm9sCiso
+YGBTWU1fVF9GVU5DYGAsIGBgU1lNX1RfT0JKRUNUYGAsIGFuZCBgYFNZTV9UX05PTkVgYCkuICBB
+cyBldmVyeSBtYWNybworZGVzY3JpYmVkIGluIHRoaXMgZmlsZSBpcyBzdXJyb3VuZGVkIGJ5IGBg
+I2lmZGVmYGAgKyBgYCNlbmRpZmBgLCBpdCBpcyBlbm91Z2gKK3RvIGRlZmluZSB0aGUgbWFjcm9z
+IGRpZmZlcmVudGx5IGluIHRoZSBhZm9yZW1lbnRpb25lZCBhcmNoaXRlY3R1cmUtZGVwZW5kZW50
+CitoZWFkZXIuCmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9pbmNsdWRlL2FzbS9saW5rYWdlLmggYi9h
+cmNoL3g4Ni9pbmNsdWRlL2FzbS9saW5rYWdlLmgKaW5kZXggMTRjYWE5ZDlmYjdmLi4zYzIyZTVh
+NDFiYTQgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2luY2x1ZGUvYXNtL2xpbmthZ2UuaAorKysgYi9h
+cmNoL3g4Ni9pbmNsdWRlL2FzbS9saW5rYWdlLmgKQEAgLTEzLDkgKzEzLDEzIEBACiAKICNpZmRl
+ZiBfX0FTU0VNQkxZX18KIAotI2RlZmluZSBHTE9CQUwobmFtZSkJXAotCS5nbG9ibCBuYW1lOwlc
+Ci0JbmFtZToKKy8qCisgKiBHTE9CQUwgaXMgREVQUkVDQVRFRAorICoKKyAqIHVzZSBTWU1fREFU
+QV9TVEFSVCwgU1lNX0ZVTkNfU1RBUlQsIFNZTV9GVU5DX0lOTkVSX0xBQkVMLCBTWU1fQ09ERV9T
+VEFSVCwgb3IKKyAqIHNpbWlsYXIKKyAqLworI2RlZmluZSBHTE9CQUwobmFtZSkJU1lNX0VOVFJZ
+KG5hbWUsIFNZTV9MX0dMT0JBTCwgU1lNX0FfTk9ORSkKIAogI2lmIGRlZmluZWQoQ09ORklHX1g4
+Nl82NCkgfHwgZGVmaW5lZChDT05GSUdfWDg2X0FMSUdOTUVOVF8xNikKICNkZWZpbmUgX19BTElH
+TgkJLnAyYWxpZ24gNCwgMHg5MApkaWZmIC0tZ2l0IGEvaW5jbHVkZS9saW51eC9saW5rYWdlLmgg
+Yi9pbmNsdWRlL2xpbnV4L2xpbmthZ2UuaAppbmRleCBmNjhkYjllNDUwZWIuLjA3N2MxZTcwNjkw
+OCAxMDA2NDQKLS0tIGEvaW5jbHVkZS9saW51eC9saW5rYWdlLmgKKysrIGIvaW5jbHVkZS9saW51
+eC9saW5rYWdlLmgKQEAgLTc1LDI1ICs3NSw1MSBAQAogCiAjaWZkZWYgX19BU1NFTUJMWV9fCiAK
+Ky8qIFNZTV9UX0ZVTkMgLS0gdHlwZSB1c2VkIGJ5IGFzc2VtYmxlciB0byBtYXJrIGZ1bmN0aW9u
+cyAqLworI2lmbmRlZiBTWU1fVF9GVU5DCisjZGVmaW5lIFNZTV9UX0ZVTkMJCQkJU1RUX0ZVTkMK
+KyNlbmRpZgorCisvKiBTWU1fVF9PQkpFQ1QgLS0gdHlwZSB1c2VkIGJ5IGFzc2VtYmxlciB0byBt
+YXJrIGRhdGEgKi8KKyNpZm5kZWYgU1lNX1RfT0JKRUNUCisjZGVmaW5lIFNZTV9UX09CSkVDVAkJ
+CQlTVFRfT0JKRUNUCisjZW5kaWYKKworLyogU1lNX1RfTk9ORSAtLSB0eXBlIHVzZWQgYnkgYXNz
+ZW1ibGVyIHRvIG1hcmsgZW50cmllcyBvZiB1bmtub3duIHR5cGUgKi8KKyNpZm5kZWYgU1lNX1Rf
+Tk9ORQorI2RlZmluZSBTWU1fVF9OT05FCQkJCVNUVF9OT1RZUEUKKyNlbmRpZgorCisvKiBTWU1f
+QV8qIC0tIGFsaWduIHRoZSBzeW1ib2w/ICovCisjZGVmaW5lIFNZTV9BX0FMSUdOCQkJCUFMSUdO
+CisjZGVmaW5lIFNZTV9BX05PTkUJCQkJLyogbm90aGluZyAqLworCisvKiBTWU1fTF8qIC0tIGxp
+bmthZ2Ugb2Ygc3ltYm9scyAqLworI2RlZmluZSBTWU1fTF9HTE9CQUwobmFtZSkJCQkuZ2xvYmwg
+bmFtZQorI2RlZmluZSBTWU1fTF9XRUFLKG5hbWUpCQkJLndlYWsgbmFtZQorI2RlZmluZSBTWU1f
+TF9MT0NBTChuYW1lKQkJCS8qIG5vdGhpbmcgKi8KKwogI2lmbmRlZiBMSU5LRVJfU0NSSVBUCiAj
+ZGVmaW5lIEFMSUdOIF9fQUxJR04KICNkZWZpbmUgQUxJR05fU1RSIF9fQUxJR05fU1RSCiAKKy8q
+ID09PSBERVBSRUNBVEVEIGFubm90YXRpb25zID09PSAqLworCiAjaWZuZGVmIEVOVFJZCisvKiBk
+ZXByZWNhdGVkLCB1c2UgU1lNX0ZVTkNfU1RBUlQgKi8KICNkZWZpbmUgRU5UUlkobmFtZSkgXAot
+CS5nbG9ibCBuYW1lIEFTTV9OTCBcCi0JQUxJR04gQVNNX05MIFwKLQluYW1lOgorCVNZTV9GVU5D
+X1NUQVJUKG5hbWUpCiAjZW5kaWYKICNlbmRpZiAvKiBMSU5LRVJfU0NSSVBUICovCiAKICNpZm5k
+ZWYgV0VBSworLyogZGVwcmVjYXRlZCwgdXNlIFNZTV9GVU5DX1NUQVJUX1dFQUsqICovCiAjZGVm
+aW5lIFdFQUsobmFtZSkJICAgXAotCS53ZWFrIG5hbWUgQVNNX05MICAgXAotCW5hbWU6CisJU1lN
+X0ZVTkNfU1RBUlRfV0VBS19OT0FMSUdOKG5hbWUpCiAjZW5kaWYKIAogI2lmbmRlZiBFTkQKKy8q
+IGRlcHJlY2F0ZWQsIHVzZSBTWU1fRlVOQ19FTkQsIFNZTV9EQVRBX0VORCwgb3IgU1lNX0VORCAq
+LwogI2RlZmluZSBFTkQobmFtZSkgXAogCS5zaXplIG5hbWUsIC4tbmFtZQogI2VuZGlmCkBAIC0x
+MDMsMTEgKzEyOSwyMjggQEAKICAqIHN0YXRpYyBhbmFseXNpcyB0b29scyBzdWNoIGFzIHN0YWNr
+IGRlcHRoIGFuYWx5emVyLgogICovCiAjaWZuZGVmIEVORFBST0MKKy8qIGRlcHJlY2F0ZWQsIHVz
+ZSBTWU1fRlVOQ19FTkQgKi8KICNkZWZpbmUgRU5EUFJPQyhuYW1lKSBcCi0JLnR5cGUgbmFtZSwg
+QGZ1bmN0aW9uIEFTTV9OTCBcCi0JRU5EKG5hbWUpCisJU1lNX0ZVTkNfRU5EKG5hbWUpCiAjZW5k
+aWYKIAorLyogPT09IGdlbmVyaWMgYW5ub3RhdGlvbnMgPT09ICovCisKKy8qIFNZTV9FTlRSWSAt
+LSB1c2Ugb25seSBpZiB5b3UgaGF2ZSB0byBmb3Igbm9uLXBhaXJlZCBzeW1ib2xzICovCisjaWZu
+ZGVmIFNZTV9FTlRSWQorI2RlZmluZSBTWU1fRU5UUlkobmFtZSwgbGlua2FnZSwgYWxpZ24uLi4p
+CQlcCisJbGlua2FnZShuYW1lKSBBU01fTkwJCQkJXAorCWFsaWduIEFTTV9OTAkJCQkJXAorCW5h
+bWU6CisjZW5kaWYKKworLyogU1lNX1NUQVJUIC0tIHVzZSBvbmx5IGlmIHlvdSBoYXZlIHRvICov
+CisjaWZuZGVmIFNZTV9TVEFSVAorI2RlZmluZSBTWU1fU1RBUlQobmFtZSwgbGlua2FnZSwgYWxp
+Z24uLi4pCQlcCisJU1lNX0VOVFJZKG5hbWUsIGxpbmthZ2UsIGFsaWduKQogI2VuZGlmCiAKKy8q
+IFNZTV9FTkQgLS0gdXNlIG9ubHkgaWYgeW91IGhhdmUgdG8gKi8KKyNpZm5kZWYgU1lNX0VORAor
+I2RlZmluZSBTWU1fRU5EKG5hbWUsIHN5bV90eXBlKQkJCQlcCisJLnR5cGUgbmFtZSBzeW1fdHlw
+ZSBBU01fTkwJCQlcCisJLnNpemUgbmFtZSwgLi1uYW1lCiAjZW5kaWYKKworLyogPT09IGNvZGUg
+YW5ub3RhdGlvbnMgPT09ICovCisKKy8qCisgKiBGVU5DIC0tIEMtbGlrZSBmdW5jdGlvbnMgKHBy
+b3BlciBzdGFjayBmcmFtZSBldGMuKQorICogQ09ERSAtLSBub24tQyBjb2RlIChlLmcuIGlycSBo
+YW5kbGVycyB3aXRoIGRpZmZlcmVudCwgc3BlY2lhbCBzdGFjayBldGMuKQorICoKKyAqIE9ianRv
+b2wgdmFsaWRhdGVzIHN0YWNrIGZvciBGVU5DLCBidXQgbm90IGZvciBDT0RFLgorICogT2JqdG9v
+bCBnZW5lcmF0ZXMgZGVidWcgaW5mbyBmb3IgYm90aCBGVU5DICYgQ09ERSwgYnV0IG5lZWRzIHNw
+ZWNpYWwKKyAqIGFubm90YXRpb25zIGZvciBlYWNoIENPREUncyBzdGFydCAodG8gZGVzY3JpYmUg
+dGhlIGFjdHVhbCBzdGFjayBmcmFtZSkuCisgKgorICogQUxJQVMgLS0gZG9lcyBub3QgZ2VuZXJh
+dGUgZGVidWcgaW5mbyAtLSB0aGUgYWxpYXNlZCBmdW5jdGlvbiB3aWxsCisgKi8KKworLyoKKyAq
+IFNZTV9GVU5DX1NUQVJUX0xPQ0FMX0FMSUFTIC0tIHVzZSB3aGVyZSB0aGVyZSBhcmUgdHdvIGxv
+Y2FsIG5hbWVzIGZvciBvbmUKKyAqIGZ1bmN0aW9uCisgKi8KKyNpZm5kZWYgU1lNX0ZVTkNfU1RB
+UlRfTE9DQUxfQUxJQVMKKyNkZWZpbmUgU1lNX0ZVTkNfU1RBUlRfTE9DQUxfQUxJQVMobmFtZSkJ
+CVwKKwlTWU1fU1RBUlQobmFtZSwgU1lNX0xfTE9DQUwsIFNZTV9BX0FMSUdOKQorI2VuZGlmCisK
+Ky8qCisgKiBTWU1fRlVOQ19TVEFSVF9BTElBUyAtLSB1c2Ugd2hlcmUgdGhlcmUgYXJlIHR3byBn
+bG9iYWwgbmFtZXMgZm9yIG9uZQorICogZnVuY3Rpb24KKyAqLworI2lmbmRlZiBTWU1fRlVOQ19T
+VEFSVF9BTElBUworI2RlZmluZSBTWU1fRlVOQ19TVEFSVF9BTElBUyhuYW1lKQkJCVwKKwlTWU1f
+U1RBUlQobmFtZSwgU1lNX0xfR0xPQkFMLCBTWU1fQV9BTElHTikKKyNlbmRpZgorCisvKiBTWU1f
+RlVOQ19TVEFSVCAtLSB1c2UgZm9yIGdsb2JhbCBmdW5jdGlvbnMgKi8KKyNpZm5kZWYgU1lNX0ZV
+TkNfU1RBUlQKKy8qCisgKiBUaGUgc2FtZSBhcyBTWU1fRlVOQ19TVEFSVF9BTElBUywgYnV0IHdl
+IHdpbGwgbmVlZCB0byBkaXN0aW5ndWlzaCB0aGVzZSB0d28KKyAqIGxhdGVyLgorICovCisjZGVm
+aW5lIFNZTV9GVU5DX1NUQVJUKG5hbWUpCQkJCVwKKwlTWU1fU1RBUlQobmFtZSwgU1lNX0xfR0xP
+QkFMLCBTWU1fQV9BTElHTikKKyNlbmRpZgorCisvKiBTWU1fRlVOQ19TVEFSVF9OT0FMSUdOIC0t
+IHVzZSBmb3IgZ2xvYmFsIGZ1bmN0aW9ucywgdy9vIGFsaWdubWVudCAqLworI2lmbmRlZiBTWU1f
+RlVOQ19TVEFSVF9OT0FMSUdOCisjZGVmaW5lIFNZTV9GVU5DX1NUQVJUX05PQUxJR04obmFtZSkJ
+CQlcCisJU1lNX1NUQVJUKG5hbWUsIFNZTV9MX0dMT0JBTCwgU1lNX0FfTk9ORSkKKyNlbmRpZgor
+CisvKiBTWU1fRlVOQ19TVEFSVF9MT0NBTCAtLSB1c2UgZm9yIGxvY2FsIGZ1bmN0aW9ucyAqLwor
+I2lmbmRlZiBTWU1fRlVOQ19TVEFSVF9MT0NBTAorLyogdGhlIHNhbWUgYXMgU1lNX0ZVTkNfU1RB
+UlRfTE9DQUxfQUxJQVMsIHNlZSBjb21tZW50IG5lYXIgU1lNX0ZVTkNfU1RBUlQgKi8KKyNkZWZp
+bmUgU1lNX0ZVTkNfU1RBUlRfTE9DQUwobmFtZSkJCQlcCisJU1lNX1NUQVJUKG5hbWUsIFNZTV9M
+X0xPQ0FMLCBTWU1fQV9BTElHTikKKyNlbmRpZgorCisvKiBTWU1fRlVOQ19TVEFSVF9MT0NBTF9O
+T0FMSUdOIC0tIHVzZSBmb3IgbG9jYWwgZnVuY3Rpb25zLCB3L28gYWxpZ25tZW50ICovCisjaWZu
+ZGVmIFNZTV9GVU5DX1NUQVJUX0xPQ0FMX05PQUxJR04KKyNkZWZpbmUgU1lNX0ZVTkNfU1RBUlRf
+TE9DQUxfTk9BTElHTihuYW1lKQkJXAorCVNZTV9TVEFSVChuYW1lLCBTWU1fTF9MT0NBTCwgU1lN
+X0FfTk9ORSkKKyNlbmRpZgorCisvKiBTWU1fRlVOQ19TVEFSVF9XRUFLIC0tIHVzZSBmb3Igd2Vh
+ayBmdW5jdGlvbnMgKi8KKyNpZm5kZWYgU1lNX0ZVTkNfU1RBUlRfV0VBSworI2RlZmluZSBTWU1f
+RlVOQ19TVEFSVF9XRUFLKG5hbWUpCQkJXAorCVNZTV9TVEFSVChuYW1lLCBTWU1fTF9XRUFLLCBT
+WU1fQV9BTElHTikKKyNlbmRpZgorCisvKiBTWU1fRlVOQ19TVEFSVF9XRUFLX05PQUxJR04gLS0g
+dXNlIGZvciB3ZWFrIGZ1bmN0aW9ucywgdy9vIGFsaWdubWVudCAqLworI2lmbmRlZiBTWU1fRlVO
+Q19TVEFSVF9XRUFLX05PQUxJR04KKyNkZWZpbmUgU1lNX0ZVTkNfU1RBUlRfV0VBS19OT0FMSUdO
+KG5hbWUpCQlcCisJU1lNX1NUQVJUKG5hbWUsIFNZTV9MX1dFQUssIFNZTV9BX05PTkUpCisjZW5k
+aWYKKworLyogU1lNX0ZVTkNfRU5EX0FMSUFTIC0tIHRoZSBlbmQgb2YgTE9DQUxfQUxJQVNlZCBv
+ciBBTElBU2VkIGZ1bmN0aW9uICovCisjaWZuZGVmIFNZTV9GVU5DX0VORF9BTElBUworI2RlZmlu
+ZSBTWU1fRlVOQ19FTkRfQUxJQVMobmFtZSkJCQlcCisJU1lNX0VORChuYW1lLCBTWU1fVF9GVU5D
+KQorI2VuZGlmCisKKy8qCisgKiBTWU1fRlVOQ19FTkQgLS0gdGhlIGVuZCBvZiBTWU1fRlVOQ19T
+VEFSVF9MT0NBTCwgU1lNX0ZVTkNfU1RBUlQsCisgKiBTWU1fRlVOQ19TVEFSVF9XRUFLLCAuLi4K
+KyAqLworI2lmbmRlZiBTWU1fRlVOQ19FTkQKKy8qIHRoZSBzYW1lIGFzIFNZTV9GVU5DX0VORF9B
+TElBUywgc2VlIGNvbW1lbnQgbmVhciBTWU1fRlVOQ19TVEFSVCAqLworI2RlZmluZSBTWU1fRlVO
+Q19FTkQobmFtZSkJCQkJXAorCVNZTV9FTkQobmFtZSwgU1lNX1RfRlVOQykKKyNlbmRpZgorCisv
+KiBTWU1fRlVOQ19JTk5FUl9MQUJFTF9BTElHTiAtLSBvbmx5IGZvciBsYWJlbHMgaW4gdGhlIG1p
+ZGRsZSBvZiBmdW5jdGlvbnMgKi8KKyNpZm5kZWYgU1lNX0ZVTkNfSU5ORVJfTEFCRUxfQUxJR04K
+KyNkZWZpbmUgU1lNX0ZVTkNfSU5ORVJfTEFCRUxfQUxJR04obmFtZSwgbGlua2FnZSkJXAorCS50
+eXBlIG5hbWUgU1lNX1RfRlVOQyBBU01fTkwJCQlcCisJU1lNX0VOVFJZKG5hbWUsIGxpbmthZ2Us
+IFNZTV9BX0FMSUdOKQorI2VuZGlmCisKKy8qIFNZTV9GVU5DX0lOTkVSX0xBQkVMIC0tIG9ubHkg
+Zm9yIGxhYmVscyBpbiB0aGUgbWlkZGxlIG9mIGZ1bmN0aW9ucyAqLworI2lmbmRlZiBTWU1fRlVO
+Q19JTk5FUl9MQUJFTAorI2RlZmluZSBTWU1fRlVOQ19JTk5FUl9MQUJFTChuYW1lLCBsaW5rYWdl
+KQkJXAorCS50eXBlIG5hbWUgU1lNX1RfRlVOQyBBU01fTkwJCQlcCisJU1lNX0VOVFJZKG5hbWUs
+IGxpbmthZ2UsIFNZTV9BX05PTkUpCisjZW5kaWYKKworLyogU1lNX0NPREVfU1RBUlQgLS0gdXNl
+IGZvciBub24tQyAoc3BlY2lhbCkgZnVuY3Rpb25zICovCisjaWZuZGVmIFNZTV9DT0RFX1NUQVJU
+CisjZGVmaW5lIFNZTV9DT0RFX1NUQVJUKG5hbWUpCQkJCVwKKwlTWU1fU1RBUlQobmFtZSwgU1lN
+X0xfR0xPQkFMLCBTWU1fQV9BTElHTikKKyNlbmRpZgorCisvKiBTWU1fQ09ERV9TVEFSVF9OT0FM
+SUdOIC0tIHVzZSBmb3Igbm9uLUMgKHNwZWNpYWwpIGZ1bmN0aW9ucywgdy9vIGFsaWdubWVudCAq
+LworI2lmbmRlZiBTWU1fQ09ERV9TVEFSVF9OT0FMSUdOCisjZGVmaW5lIFNZTV9DT0RFX1NUQVJU
+X05PQUxJR04obmFtZSkJCQlcCisJU1lNX1NUQVJUKG5hbWUsIFNZTV9MX0dMT0JBTCwgU1lNX0Ff
+Tk9ORSkKKyNlbmRpZgorCisvKiBTWU1fQ09ERV9TVEFSVF9MT0NBTCAtLSB1c2UgZm9yIGxvY2Fs
+IG5vbi1DIChzcGVjaWFsKSBmdW5jdGlvbnMgKi8KKyNpZm5kZWYgU1lNX0NPREVfU1RBUlRfTE9D
+QUwKKyNkZWZpbmUgU1lNX0NPREVfU1RBUlRfTE9DQUwobmFtZSkJCQlcCisJU1lNX1NUQVJUKG5h
+bWUsIFNZTV9MX0xPQ0FMLCBTWU1fQV9BTElHTikKKyNlbmRpZgorCisvKgorICogU1lNX0NPREVf
+U1RBUlRfTE9DQUxfTk9BTElHTiAtLSB1c2UgZm9yIGxvY2FsIG5vbi1DIChzcGVjaWFsKSBmdW5j
+dGlvbnMsCisgKiB3L28gYWxpZ25tZW50CisgKi8KKyNpZm5kZWYgU1lNX0NPREVfU1RBUlRfTE9D
+QUxfTk9BTElHTgorI2RlZmluZSBTWU1fQ09ERV9TVEFSVF9MT0NBTF9OT0FMSUdOKG5hbWUpCQlc
+CisJU1lNX1NUQVJUKG5hbWUsIFNZTV9MX0xPQ0FMLCBTWU1fQV9OT05FKQorI2VuZGlmCisKKy8q
+IFNZTV9DT0RFX0VORCAtLSB0aGUgZW5kIG9mIFNZTV9DT0RFX1NUQVJUX0xPQ0FMLCBTWU1fQ09E
+RV9TVEFSVCwgLi4uICovCisjaWZuZGVmIFNZTV9DT0RFX0VORAorI2RlZmluZSBTWU1fQ09ERV9F
+TkQobmFtZSkJCQkJXAorCVNZTV9FTkQobmFtZSwgU1lNX1RfTk9ORSkKKyNlbmRpZgorCisvKiBT
+WU1fQ09ERV9JTk5FUl9MQUJFTF9BTElHTiAtLSBvbmx5IGZvciBsYWJlbHMgaW4gdGhlIG1pZGRs
+ZSBvZiBjb2RlICovCisjaWZuZGVmIFNZTV9DT0RFX0lOTkVSX0xBQkVMX0FMSUdOCisjZGVmaW5l
+IFNZTV9DT0RFX0lOTkVSX0xBQkVMX0FMSUdOKG5hbWUsIGxpbmthZ2UpCVwKKwkudHlwZSBuYW1l
+IFNZTV9UX05PTkUgQVNNX05MCQkJXAorCVNZTV9FTlRSWShuYW1lLCBsaW5rYWdlLCBTWU1fQV9B
+TElHTikKKyNlbmRpZgorCisvKiBTWU1fQ09ERV9JTk5FUl9MQUJFTCAtLSBvbmx5IGZvciBsYWJl
+bHMgaW4gdGhlIG1pZGRsZSBvZiBjb2RlICovCisjaWZuZGVmIFNZTV9DT0RFX0lOTkVSX0xBQkVM
+CisjZGVmaW5lIFNZTV9DT0RFX0lOTkVSX0xBQkVMKG5hbWUsIGxpbmthZ2UpCQlcCisJLnR5cGUg
+bmFtZSBTWU1fVF9OT05FIEFTTV9OTAkJCVwKKwlTWU1fRU5UUlkobmFtZSwgbGlua2FnZSwgU1lN
+X0FfTk9ORSkKKyNlbmRpZgorCisvKiA9PT0gZGF0YSBhbm5vdGF0aW9ucyA9PT0gKi8KKworLyog
+U1lNX0RBVEFfU1RBUlQgLS0gZ2xvYmFsIGRhdGEgc3ltYm9sICovCisjaWZuZGVmIFNZTV9EQVRB
+X1NUQVJUCisjZGVmaW5lIFNZTV9EQVRBX1NUQVJUKG5hbWUpCQkJCVwKKwlTWU1fU1RBUlQobmFt
+ZSwgU1lNX0xfR0xPQkFMLCBTWU1fQV9OT05FKQorI2VuZGlmCisKKy8qIFNZTV9EQVRBX1NUQVJU
+IC0tIGxvY2FsIGRhdGEgc3ltYm9sICovCisjaWZuZGVmIFNZTV9EQVRBX1NUQVJUX0xPQ0FMCisj
+ZGVmaW5lIFNZTV9EQVRBX1NUQVJUX0xPQ0FMKG5hbWUpCQkJXAorCVNZTV9TVEFSVChuYW1lLCBT
+WU1fTF9MT0NBTCwgU1lNX0FfTk9ORSkKKyNlbmRpZgorCisvKiBTWU1fREFUQV9FTkQgLS0gdGhl
+IGVuZCBvZiBTWU1fREFUQV9TVEFSVCBzeW1ib2wgKi8KKyNpZm5kZWYgU1lNX0RBVEFfRU5ECisj
+ZGVmaW5lIFNZTV9EQVRBX0VORChuYW1lKQkJCQlcCisJU1lNX0VORChuYW1lLCBTWU1fVF9PQkpF
+Q1QpCisjZW5kaWYKKworLyogU1lNX0RBVEFfRU5EX0xBQkVMIC0tIHRoZSBsYWJlbGVkIGVuZCBv
+ZiBTWU1fREFUQV9TVEFSVCBzeW1ib2wgKi8KKyNpZm5kZWYgU1lNX0RBVEFfRU5EX0xBQkVMCisj
+ZGVmaW5lIFNZTV9EQVRBX0VORF9MQUJFTChuYW1lLCBsaW5rYWdlLCBsYWJlbCkJXAorCWxpbmth
+Z2UobGFiZWwpIEFTTV9OTAkJCQlcCisJLnR5cGUgbGFiZWwgU1lNX1RfT0JKRUNUIEFTTV9OTAkJ
+CVwKKwlsYWJlbDoJCQkJCQlcCisJU1lNX0VORChuYW1lLCBTWU1fVF9PQkpFQ1QpCisjZW5kaWYK
+KworLyogU1lNX0RBVEEgLS0gc3RhcnQrZW5kIHdyYXBwZXIgYXJvdW5kIHNpbXBsZSBnbG9iYWwg
+ZGF0YSAqLworI2lmbmRlZiBTWU1fREFUQQorI2RlZmluZSBTWU1fREFUQShuYW1lLCBkYXRhKQkJ
+CQlcCisJU1lNX0RBVEFfU1RBUlQobmFtZSkgQVNNX05MCQkJCVwKKwlkYXRhIEFTTV9OTAkJCQkJ
+CVwKKwlTWU1fREFUQV9FTkQobmFtZSkKKyNlbmRpZgorCisvKiBTWU1fREFUQV9MT0NBTCAtLSBz
+dGFydCtlbmQgd3JhcHBlciBhcm91bmQgc2ltcGxlIGxvY2FsIGRhdGEgKi8KKyNpZm5kZWYgU1lN
+X0RBVEFfTE9DQUwKKyNkZWZpbmUgU1lNX0RBVEFfTE9DQUwobmFtZSwgZGF0YS4uLikJCQlcCisJ
+U1lNX0RBVEFfU1RBUlRfTE9DQUwobmFtZSkgQVNNX05MCQkJXAorCWRhdGEgQVNNX05MCQkJCQkJ
+XAorCVNZTV9EQVRBX0VORChuYW1lKQorI2VuZGlmCisKKyNlbmRpZiAvKiBfX0FTU0VNQkxZX18g
+Ki8KKworI2VuZGlmIC8qIF9MSU5VWF9MSU5LQUdFX0ggKi8KLS0gCjIuMTUuMAoKCl9fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClhlbi1kZXZlbCBtYWlsaW5n
+IGxpc3QKWGVuLWRldmVsQGxpc3RzLnhlbnByb2plY3Qub3JnCmh0dHBzOi8vbGlzdHMueGVucHJv
+amVjdC5vcmcvbWFpbG1hbi9saXN0aW5mby94ZW4tZGV2ZWw=
