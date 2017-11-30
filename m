@@ -1,174 +1,228 @@
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v5 15/27] x86: assembly, do not annotate functions by GLOBAL
-Date: Thu, 30 Nov 2017 15:46:41 +0100
-Message-ID: <20171130144653.23688-16-jslaby@suse.cz>
+Subject: [PATCH v5 21/27] x86_64: assembly, add ENDs to some functions and relabel with SYM_CODE_*
+Date: Thu, 30 Nov 2017 15:46:47 +0100
+Message-ID: <20171130144653.23688-22-jslaby@suse.cz>
 References: <20171130144653.23688-1-jslaby@suse.cz>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:48099 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753095AbdK3OrD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Nov 2017 09:47:03 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20171130144653.23688-1-jslaby@suse.cz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, xen-devel@lists.xenproject.org
+List-Id: linux-arch.vger.kernel.org
 
-GLOBAL is meant for global symbols, but not functions. Use the new
-macros SYM_FUNC_START* and SYM_CODE_START* (depending on the type of the
-function) which are dedicated for global functions. And since they both
-require a closing by SYM_*_END, we do this here too.
-
-startup_64, which does not use GLOBAL, but uses .globl explicitly, is
-converted too.
-
-in_pm32 should not be global at all as it is used only locally, so
-switch to SYM_FUNC_START_LOCAL_NOALIGN.
-
-Besides all of that, x86's custom GLOBAL macro is going to die very
-soon.
-
-"No alignments" are preserved.
+All these are functions which are invoked from elsewhere, but they are
+not typical C functions. So we annotate them (as global) using the new
+SYM_CODE_START. All these were not balanced with any END, so mark their
+ends by SYM_CODE_END, appropriatelly.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
+Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com> [xen bits]
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: Juergen Gross <jgross@suse.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: <x86@kernel.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: xen-devel@lists.xenproject.org
 ---
- arch/x86/boot/copy.S        | 16 ++++++++--------
- arch/x86/boot/pmjump.S      |  8 ++++----
- arch/x86/kernel/ftrace_64.S |  3 ++-
- arch/x86/kernel/head_64.S   |  5 +++--
- 4 files changed, 17 insertions(+), 15 deletions(-)
+ arch/x86/boot/compressed/head_64.S   |  3 ++-
+ arch/x86/platform/olpc/xo1-wakeup.S  |  3 ++-
+ arch/x86/power/hibernate_asm_64.S    |  6 ++++--
+ arch/x86/realmode/rm/reboot.S        |  3 ++-
+ arch/x86/realmode/rm/trampoline_64.S | 10 +++++++---
+ arch/x86/realmode/rm/wakeup_asm.S    |  3 ++-
+ arch/x86/xen/xen-asm_64.S            |  6 ++++--
+ 7 files changed, 23 insertions(+), 11 deletions(-)
 
-diff --git a/arch/x86/boot/copy.S b/arch/x86/boot/copy.S
-index 15d9f74b0008..73aa8307a10f 100644
---- a/arch/x86/boot/copy.S
-+++ b/arch/x86/boot/copy.S
-@@ -17,7 +17,7 @@
- 	.code16
- 	.text
+diff --git a/arch/x86/boot/compressed/head_64.S b/arch/x86/boot/compressed/head_64.S
+index 108dbd71ae0b..647be777b5cc 100644
+--- a/arch/x86/boot/compressed/head_64.S
++++ b/arch/x86/boot/compressed/head_64.S
+@@ -249,7 +249,7 @@ ENDPROC(efi32_stub_entry)
  
--GLOBAL(memcpy)
-+SYM_FUNC_START_NOALIGN(memcpy)
- 	pushw	%si
- 	pushw	%di
- 	movw	%ax, %di
-@@ -31,9 +31,9 @@ GLOBAL(memcpy)
- 	popw	%di
- 	popw	%si
- 	retl
--ENDPROC(memcpy)
-+SYM_FUNC_END(memcpy)
- 
--GLOBAL(memset)
-+SYM_FUNC_START_NOALIGN(memset)
- 	pushw	%di
- 	movw	%ax, %di
- 	movzbl	%dl, %eax
-@@ -46,22 +46,22 @@ GLOBAL(memset)
- 	rep; stosb
- 	popw	%di
- 	retl
--ENDPROC(memset)
-+SYM_FUNC_END(memset)
- 
--GLOBAL(copy_from_fs)
-+SYM_FUNC_START_NOALIGN(copy_from_fs)
- 	pushw	%ds
- 	pushw	%fs
- 	popw	%ds
- 	calll	memcpy
- 	popw	%ds
- 	retl
--ENDPROC(copy_from_fs)
-+SYM_FUNC_END(copy_from_fs)
- 
--GLOBAL(copy_to_fs)
-+SYM_FUNC_START_NOALIGN(copy_to_fs)
- 	pushw	%es
- 	pushw	%fs
- 	popw	%es
- 	calll	memcpy
- 	popw	%es
- 	retl
--ENDPROC(copy_to_fs)
-+SYM_FUNC_END(copy_to_fs)
-diff --git a/arch/x86/boot/pmjump.S b/arch/x86/boot/pmjump.S
-index 3e0edc6d2a20..b90e42eb1a62 100644
---- a/arch/x86/boot/pmjump.S
-+++ b/arch/x86/boot/pmjump.S
-@@ -23,7 +23,7 @@
- /*
-  * void protected_mode_jump(u32 entrypoint, u32 bootparams);
-  */
--GLOBAL(protected_mode_jump)
-+SYM_FUNC_START_NOALIGN(protected_mode_jump)
- 	movl	%edx, %esi		# Pointer to boot_params table
- 
- 	xorl	%ebx, %ebx
-@@ -44,11 +44,11 @@ GLOBAL(protected_mode_jump)
- 	.byte	0x66, 0xea		# ljmpl opcode
- 2:	.long	in_pm32			# offset
- 	.word	__BOOT_CS		# segment
--ENDPROC(protected_mode_jump)
-+SYM_FUNC_END(protected_mode_jump)
- 
- 	.code32
- 	.section ".text32","ax"
--GLOBAL(in_pm32)
-+SYM_FUNC_START_LOCAL_NOALIGN(in_pm32)
- 	# Set up data segments for flat 32-bit mode
- 	movl	%ecx, %ds
- 	movl	%ecx, %es
-@@ -74,4 +74,4 @@ GLOBAL(in_pm32)
- 	lldt	%cx
- 
- 	jmpl	*%eax			# Jump to the 32-bit entrypoint
--ENDPROC(in_pm32)
-+SYM_FUNC_END(in_pm32)
-diff --git a/arch/x86/kernel/ftrace_64.S b/arch/x86/kernel/ftrace_64.S
-index c832291d948a..4ab2e8d3736c 100644
---- a/arch/x86/kernel/ftrace_64.S
-+++ b/arch/x86/kernel/ftrace_64.S
-@@ -315,7 +315,7 @@ ENTRY(ftrace_graph_caller)
- 	retq
- END(ftrace_graph_caller)
- 
--GLOBAL(return_to_handler)
-+SYM_CODE_START_NOALIGN(return_to_handler)
- 	subq  $24, %rsp
- 
- 	/* Save the return values */
-@@ -330,4 +330,5 @@ GLOBAL(return_to_handler)
- 	movq (%rsp), %rax
- 	addq $24, %rsp
- 	jmp *%rdi
-+SYM_CODE_END(return_to_handler)
- #endif
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index 53d9d7f65f55..d12387882702 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -49,8 +49,7 @@ L3_START_KERNEL = pud_index(__START_KERNEL_map)
- 	.text
- 	__HEAD
  	.code64
--	.globl startup_64
--startup_64:
-+SYM_CODE_START_NOALIGN(startup_64)
- 	UNWIND_HINT_EMPTY
+ 	.org 0x200
+-ENTRY(startup_64)
++SYM_CODE_START(startup_64)
  	/*
- 	 * At this point the CPU runs in 64bit mode CS.L = 1 CS.D = 0,
-@@ -90,6 +89,8 @@ startup_64:
- 	/* Form the CR3 value being sure to include the CR3 modifier */
- 	addq	$(early_top_pgt - __START_KERNEL_map), %rax
- 	jmp 1f
+ 	 * 64bit entry is 0x200 and it is ABI so immutable!
+ 	 * We come here either from startup_32 or directly from a
+@@ -369,6 +369,7 @@ lvl5:
+  */
+ 	leaq	relocated(%rbx), %rax
+ 	jmp	*%rax
 +SYM_CODE_END(startup_64)
+ 
+ #ifdef CONFIG_EFI_STUB
+ 
+diff --git a/arch/x86/platform/olpc/xo1-wakeup.S b/arch/x86/platform/olpc/xo1-wakeup.S
+index 5fee3a2c2fd4..75f4faff8468 100644
+--- a/arch/x86/platform/olpc/xo1-wakeup.S
++++ b/arch/x86/platform/olpc/xo1-wakeup.S
+@@ -90,7 +90,7 @@ restore_registers:
+ 
+ 	ret
+ 
+-ENTRY(do_olpc_suspend_lowlevel)
++SYM_CODE_START(do_olpc_suspend_lowlevel)
+ 	call	save_processor_state
+ 	call	save_registers
+ 
+@@ -110,6 +110,7 @@ ret_point:
+ 	call	restore_registers
+ 	call	restore_processor_state
+ 	ret
++SYM_CODE_END(do_olpc_suspend_lowlevel)
+ 
+ .data
+ saved_gdt:             .long   0,0
+diff --git a/arch/x86/power/hibernate_asm_64.S b/arch/x86/power/hibernate_asm_64.S
+index ce8da3a0412c..44755a847856 100644
+--- a/arch/x86/power/hibernate_asm_64.S
++++ b/arch/x86/power/hibernate_asm_64.S
+@@ -53,7 +53,7 @@ ENTRY(swsusp_arch_suspend)
+ 	ret
+ ENDPROC(swsusp_arch_suspend)
+ 
+-ENTRY(restore_image)
++SYM_CODE_START(restore_image)
+ 	/* prepare to jump to the image kernel */
+ 	movq	restore_jump_address(%rip), %r8
+ 	movq	restore_cr3(%rip), %r9
+@@ -68,9 +68,10 @@ ENTRY(restore_image)
+ 	/* jump to relocated restore code */
+ 	movq	relocated_restore_code(%rip), %rcx
+ 	jmpq	*%rcx
++SYM_CODE_END(restore_image)
+ 
+ 	/* code below has been relocated to a safe page */
+-ENTRY(core_restore_code)
++SYM_CODE_START(core_restore_code)
+ 	/* switch to temporary page tables */
+ 	movq	%rax, %cr3
+ 	/* flush TLB */
+@@ -98,6 +99,7 @@ ENTRY(core_restore_code)
+ .Ldone:
+ 	/* jump to the restore_registers address from the image header */
+ 	jmpq	*%r8
++SYM_CODE_END(core_restore_code)
+ 
+ 	 /* code below belongs to the image kernel */
+ 	.align PAGE_SIZE
+diff --git a/arch/x86/realmode/rm/reboot.S b/arch/x86/realmode/rm/reboot.S
+index 6e38c13c1873..7db1459d363f 100644
+--- a/arch/x86/realmode/rm/reboot.S
++++ b/arch/x86/realmode/rm/reboot.S
+@@ -19,7 +19,7 @@
+  */
+ 	.section ".text32", "ax"
+ 	.code32
+-ENTRY(machine_real_restart_asm)
++SYM_CODE_START(machine_real_restart_asm)
+ 
+ #ifdef CONFIG_X86_64
+ 	/* Switch to trampoline GDT as it is guaranteed < 4 GiB */
+@@ -63,6 +63,7 @@ SYM_CODE_INNER_LABEL(machine_real_restart_paging_off, SYM_L_GLOBAL)
+ 	movl	%ecx, %gs
+ 	movl	%ecx, %ss
+ 	ljmpw	$8, $1f
++SYM_CODE_END(machine_real_restart_asm)
+ 
+ /*
+  * This is 16-bit protected mode code to disable paging and the cache,
+diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
+index 41d4806d14a5..49f27822c9c1 100644
+--- a/arch/x86/realmode/rm/trampoline_64.S
++++ b/arch/x86/realmode/rm/trampoline_64.S
+@@ -38,7 +38,7 @@
+ 	.code16
+ 
+ 	.balign	PAGE_SIZE
+-ENTRY(trampoline_start)
++SYM_CODE_START(trampoline_start)
+ 	cli			# We should be safe anyway
+ 	wbinvd
+ 
+@@ -81,12 +81,14 @@ ENTRY(trampoline_start)
+ no_longmode:
+ 	hlt
+ 	jmp no_longmode
++SYM_CODE_END(trampoline_start)
 +
- ENTRY(secondary_startup_64)
- 	UNWIND_HINT_EMPTY
+ #include "../kernel/verify_cpu.S"
+ 
+ 	.section ".text32","ax"
+ 	.code32
+ 	.balign 4
+-ENTRY(startup_32)
++SYM_CODE_START(startup_32)
+ 	movl	%edx, %ss
+ 	addl	$pa_real_mode_base, %esp
+ 	movl	%edx, %ds
+@@ -140,13 +142,15 @@ ENTRY(startup_32)
+ 	 * the new gdt/idt that has __KERNEL_CS with CS.L = 1.
+ 	 */
+ 	ljmpl	$__KERNEL_CS, $pa_startup_64
++SYM_CODE_END(startup_32)
+ 
+ 	.section ".text64","ax"
+ 	.code64
+ 	.balign 4
+-ENTRY(startup_64)
++SYM_CODE_START(startup_64)
+ 	# Now jump into the kernel using virtual addresses
+ 	jmpq	*tr_start(%rip)
++SYM_CODE_END(startup_64)
+ 
+ 	.section ".rodata","a"
+ 	# Duplicate the global descriptor table
+diff --git a/arch/x86/realmode/rm/wakeup_asm.S b/arch/x86/realmode/rm/wakeup_asm.S
+index 0af6b30d3c68..7079913adbd2 100644
+--- a/arch/x86/realmode/rm/wakeup_asm.S
++++ b/arch/x86/realmode/rm/wakeup_asm.S
+@@ -37,7 +37,7 @@ SYM_DATA_END(wakeup_header)
+ 	.code16
+ 
+ 	.balign	16
+-ENTRY(wakeup_start)
++SYM_CODE_START(wakeup_start)
+ 	cli
+ 	cld
+ 
+@@ -135,6 +135,7 @@ ENTRY(wakeup_start)
+ #else
+ 	jmp	trampoline_start
+ #endif
++SYM_CODE_END(wakeup_start)
+ 
+ bogus_real_magic:
+ 1:
+diff --git a/arch/x86/xen/xen-asm_64.S b/arch/x86/xen/xen-asm_64.S
+index 0820db159053..1e419040bef1 100644
+--- a/arch/x86/xen/xen-asm_64.S
++++ b/arch/x86/xen/xen-asm_64.S
+@@ -70,11 +70,12 @@ hypercall_iret = hypercall_page + __HYPERVISOR_iret * 32
+  *	r11		}<-- pushed by hypercall page
+  * rsp->rax		}
+  */
+-ENTRY(xen_iret)
++SYM_CODE_START(xen_iret)
+ 	pushq $0
+ 	jmp hypercall_iret
++SYM_CODE_END(xen_iret)
+ 
+-ENTRY(xen_sysret64)
++SYM_CODE_START(xen_sysret64)
  	/*
+ 	 * We're already on the usermode stack at this point, but
+ 	 * still with the kernel gs, so we can easily switch back
+@@ -90,6 +91,7 @@ ENTRY(xen_sysret64)
+ 
+ 	pushq $VGCF_in_syscall
+ 	jmp hypercall_iret
++SYM_CODE_END(xen_sysret64)
+ 
+ /*
+  * Xen handles syscall callbacks much like ordinary exceptions, which
 -- 
 2.15.0
