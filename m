@@ -1,57 +1,155 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:48181 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:48110 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752997AbdK3OrB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Nov 2017 09:47:01 -0500
+        id S1752884AbdK3OrA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Nov 2017 09:47:00 -0500
 From: Jiri Slaby <jslaby@suse.cz>
-Subject: [PATCH v5 12/27] x86: um, annotate data appropriatelly
-Date: Thu, 30 Nov 2017 15:46:38 +0100
-Message-ID: <20171130144653.23688-13-jslaby@suse.cz>
+Subject: [PATCH v5 08/27] x86: assembly, annotate aliases
+Date: Thu, 30 Nov 2017 15:46:34 +0100
+Message-ID: <20171130144653.23688-9-jslaby@suse.cz>
 In-Reply-To: <20171130144653.23688-1-jslaby@suse.cz>
 References: <20171130144653.23688-1-jslaby@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net
-Message-ID: <20171130144638.Ped4CxBkeaPaONS6TQ7QZcdKhSq_WZlCM2Dhy1sfcP8@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, linux-crypto@vger.kernel.org, xen-devel@lists.xenproject.org
+Message-ID: <20171130144634.fV5-gjlzV5RiXmIi4Tbqoo4BwpfUo2PmYaTTm6l9_yU@z>
 
-Use the new SYM_DATA_START and SYM_DATA_END_LABEL macros for vdso_start.
-
-We get:
-  0000  2376 OBJECT  GLOBAL DEFAULT    4 vdso_start
-  0948     0 OBJECT  GLOBAL DEFAULT    4 vdso_end
+_key_expansion_128 is an alias to _key_expansion_256a, __memcpy to
+memcpy, xen_syscall32_target to xen_sysenter_target, and so on. Annotate
+them all using the new SYM_FUNC_START_ALIAS, SYM_FUNC_START_LOCAL_ALIAS,
+and SYM_FUNC_END_ALIAS. This will make the tools generating the
+debuginfo happy.
 
 Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-Cc: Jeff Dike <jdike@addtoit.com>
-Cc: Richard Weinberger <richard@nod.at>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: user-mode-linux-devel@lists.sourceforge.net
-Cc: user-mode-linux-user@lists.sourceforge.net
+Cc: <x86@kernel.org>
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: Juergen Gross <jgross@suse.com>
+Reviewed-by: Juergen Gross <jgross@suse.com> [xen parts]
+Cc: <linux-crypto@vger.kernel.org>
+Cc: <xen-devel@lists.xenproject.org>
 ---
- arch/x86/um/vdso/vdso.S | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/x86/crypto/aesni-intel_asm.S | 5 ++---
+ arch/x86/lib/memcpy_64.S          | 4 ++--
+ arch/x86/lib/memmove_64.S         | 4 ++--
+ arch/x86/lib/memset_64.S          | 4 ++--
+ arch/x86/xen/xen-asm_64.S         | 4 ++--
+ 5 files changed, 10 insertions(+), 11 deletions(-)
 
-diff --git a/arch/x86/um/vdso/vdso.S b/arch/x86/um/vdso/vdso.S
-index a4a3870dc059..a6eaf293a73b 100644
---- a/arch/x86/um/vdso/vdso.S
-+++ b/arch/x86/um/vdso/vdso.S
-@@ -1,11 +1,11 @@
- /* SPDX-License-Identifier: GPL-2.0 */
- #include <linux/init.h>
-+#include <linux/linkage.h>
+diff --git a/arch/x86/crypto/aesni-intel_asm.S b/arch/x86/crypto/aesni-intel_asm.S
+index 1d34d5a14682..426a22192d69 100644
+--- a/arch/x86/crypto/aesni-intel_asm.S
++++ b/arch/x86/crypto/aesni-intel_asm.S
+@@ -1873,8 +1873,7 @@ ENDPROC(aesni_gcm_enc)
+ #endif
  
- __INITDATA
  
--	.globl vdso_start, vdso_end
--vdso_start:
-+SYM_DATA_START(vdso_start)
- 	.incbin "arch/x86/um/vdso/vdso.so"
--vdso_end:
-+SYM_DATA_END_LABEL(vdso_start, SYM_L_GLOBAL, vdso_end)
+-.align 4
+-_key_expansion_128:
++SYM_FUNC_START_LOCAL_ALIAS(_key_expansion_128)
+ SYM_FUNC_START_LOCAL(_key_expansion_256a)
+ 	pshufd $0b11111111, %xmm1, %xmm1
+ 	shufps $0b00010000, %xmm0, %xmm4
+@@ -1885,8 +1884,8 @@ SYM_FUNC_START_LOCAL(_key_expansion_256a)
+ 	movaps %xmm0, (TKEYP)
+ 	add $0x10, TKEYP
+ 	ret
+-ENDPROC(_key_expansion_128)
+ SYM_FUNC_END(_key_expansion_256a)
++SYM_FUNC_END_ALIAS(_key_expansion_128)
  
- __FINIT
+ SYM_FUNC_START_LOCAL(_key_expansion_192a)
+ 	pshufd $0b01010101, %xmm1, %xmm1
+diff --git a/arch/x86/lib/memcpy_64.S b/arch/x86/lib/memcpy_64.S
+index 9a53a06e5a3e..4911b1c61aa8 100644
+--- a/arch/x86/lib/memcpy_64.S
++++ b/arch/x86/lib/memcpy_64.S
+@@ -26,7 +26,7 @@
+  * Output:
+  * rax original destination
+  */
+-ENTRY(__memcpy)
++SYM_FUNC_START_ALIAS(__memcpy)
+ ENTRY(memcpy)
+ 	ALTERNATIVE_2 "jmp memcpy_orig", "", X86_FEATURE_REP_GOOD, \
+ 		      "jmp memcpy_erms", X86_FEATURE_ERMS
+@@ -40,7 +40,7 @@ ENTRY(memcpy)
+ 	rep movsb
+ 	ret
+ ENDPROC(memcpy)
+-ENDPROC(__memcpy)
++SYM_FUNC_END_ALIAS(__memcpy)
+ EXPORT_SYMBOL(memcpy)
+ EXPORT_SYMBOL(__memcpy)
+ 
+diff --git a/arch/x86/lib/memmove_64.S b/arch/x86/lib/memmove_64.S
+index bbec69d8223b..50c1648311b3 100644
+--- a/arch/x86/lib/memmove_64.S
++++ b/arch/x86/lib/memmove_64.S
+@@ -26,7 +26,7 @@
+  */
+ .weak memmove
+ 
+-ENTRY(memmove)
++SYM_FUNC_START_ALIAS(memmove)
+ ENTRY(__memmove)
+ 
+ 	/* Handle more 32 bytes in loop */
+@@ -208,6 +208,6 @@ ENTRY(__memmove)
+ 13:
+ 	retq
+ ENDPROC(__memmove)
+-ENDPROC(memmove)
++SYM_FUNC_END_ALIAS(memmove)
+ EXPORT_SYMBOL(__memmove)
+ EXPORT_SYMBOL(memmove)
+diff --git a/arch/x86/lib/memset_64.S b/arch/x86/lib/memset_64.S
+index 9bc861c71e75..927ac44d34aa 100644
+--- a/arch/x86/lib/memset_64.S
++++ b/arch/x86/lib/memset_64.S
+@@ -19,7 +19,7 @@
+  *
+  * rax   original destination
+  */
+-ENTRY(memset)
++SYM_FUNC_START_ALIAS(memset)
+ ENTRY(__memset)
+ 	/*
+ 	 * Some CPUs support enhanced REP MOVSB/STOSB feature. It is recommended
+@@ -43,8 +43,8 @@ ENTRY(__memset)
+ 	rep stosb
+ 	movq %r9,%rax
+ 	ret
+-ENDPROC(memset)
+ ENDPROC(__memset)
++SYM_FUNC_END_ALIAS(memset)
+ EXPORT_SYMBOL(memset)
+ EXPORT_SYMBOL(__memset)
+ 
+diff --git a/arch/x86/xen/xen-asm_64.S b/arch/x86/xen/xen-asm_64.S
+index 8a10c9a9e2b5..0820db159053 100644
+--- a/arch/x86/xen/xen-asm_64.S
++++ b/arch/x86/xen/xen-asm_64.S
+@@ -150,13 +150,13 @@ ENDPROC(xen_sysenter_target)
+ 
+ #else /* !CONFIG_IA32_EMULATION */
+ 
+-ENTRY(xen_syscall32_target)
++SYM_FUNC_START_ALIAS(xen_syscall32_target)
+ ENTRY(xen_sysenter_target)
+ 	lea 16(%rsp), %rsp	/* strip %rcx, %r11 */
+ 	mov $-ENOSYS, %rax
+ 	pushq $0
+ 	jmp hypercall_iret
+-ENDPROC(xen_syscall32_target)
+ ENDPROC(xen_sysenter_target)
++SYM_FUNC_END_ALIAS(xen_syscall32_target)
+ 
+ #endif	/* CONFIG_IA32_EMULATION */
 -- 
 2.15.0
