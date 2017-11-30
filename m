@@ -1,133 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate15.nvidia.com ([216.228.121.64]:9937 "EHLO
-        hqemgate15.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752756AbdK3DQo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 29 Nov 2017 22:16:44 -0500
-Subject: Re: [PATCH] mmap.2: document new MAP_FIXED_SAFE flag
+Received: from mx2.suse.de ([195.135.220.15]:37826 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751645AbdK3G6j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 30 Nov 2017 01:58:39 -0500
+Date: Thu, 30 Nov 2017 07:58:35 +0100
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+Message-ID: <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz>
 References: <20171129144219.22867-1-mhocko@kernel.org>
- <20171129144524.23518-1-mhocko@kernel.org>
-From: John Hubbard <jhubbard@nvidia.com>
-Message-ID: <593899ff-08ad-6c3f-d69d-346f6bc5d1f6@nvidia.com>
-Date: Wed, 29 Nov 2017 19:16:39 -0800
+ <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20171129144524.23518-1-mhocko@kernel.org>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20171130031639.RzaxKVUBPly1BMBjub3KHzdoMBi44zWeTOKtSTnpvKw@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>
+Message-ID: <20171130065835.-Yy2jIOWyHHn5D75IudjvlJ8yG1Sxiuq7qLjg_7OMlc@z>
 
-On 11/29/2017 06:45 AM, Michal Hocko wrote:
-> From: Michal Hocko <mhocko@suse.com>
+On Wed 29-11-17 14:25:36, Kees Cook wrote:
+> On Wed, Nov 29, 2017 at 6:42 AM, Michal Hocko <mhocko@kernel.org> wrote:
+> > The first patch introduced MAP_FIXED_SAFE which enforces the given
+> > address but unlike MAP_FIXED it fails with ENOMEM if the given range
+> > conflicts with an existing one. The flag is introduced as a completely
 > 
-> 4.16+ kernels offer a new MAP_FIXED_SAFE flag which allows to atomicaly
+> I still think this name should be better. "SAFE" doesn't say what it's
+> safe from...
 
-"allows the caller to atomically"
+It is safe in a sense it doesn't perform any address space dangerous
+operations. mmap is _inherently_ about the address space so the context
+should be kind of clear.
 
-, if you care about polishing the commit message...see the real review,
-below. :)
+> MAP_FIXED_UNIQUE
+> MAP_FIXED_ONCE
+> MAP_FIXED_FRESH
 
-> probe for a given address range.
-> 
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
-> ---
->  man2/mmap.2 | 18 ++++++++++++++++++
->  1 file changed, 18 insertions(+)
-> 
-> diff --git a/man2/mmap.2 b/man2/mmap.2
-> index 385f3bfd5393..622a7000de83 100644
-> --- a/man2/mmap.2
-> +++ b/man2/mmap.2
-> @@ -225,6 +225,18 @@ will fail.
->  Because requiring a fixed address for a mapping is less portable,
->  the use of this option is discouraged.
->  .TP
-> +.B MAP_FIXED_SAFE (since 4.16)
-> +Similar to MAP_FIXED wrt. to the
-> +.I
-> +addr
-> +enforcement except it never clobbers a colliding mapped range and rather fail with
-> +.B EEXIST
-> +in such a case. This flag can therefore be used as a safe and atomic probe for the
-> +the specific address range. Please note that older kernels which do not recognize
-> +this flag can fallback to the hint based implementation and map to a different
-> +location. Any backward compatible software should therefore check the returning
-> +address with the given one.
-> +.TP
->  .B MAP_GROWSDOWN
->  This flag is used for stacks.
->  It indicates to the kernel virtual memory system that the mapping
-
-Hi Michal,
-
-I've taken the liberty of mostly rewriting this part, in order to more closely 
-match the existing paragraphs; to fix minor typos; and to attempt to slightly
-clarify the paragraph.
-
-+.BR MAP_FIXED_SAFE " (since Linux 4.16)"
-+Similar to MAP_FIXED with respect to the
-+.I
-+addr
-+enforcement, but different in that MAP_FIXED_SAFE never clobbers a pre-existing
-+mapped range. If the requested range would collide with an existing
-+mapping, then this call fails with
-+.B EEXIST.
-+This flag can therefore be used as a way to atomically (with respect to other
-+threads) attempt to map an address range: one thread will succeed; all others
-+will report failure. Please note that older kernels which do not recognize this
-+flag will typically (upon detecting a collision with a pre-existing mapping)
-+fall back a "non-MAP_FIXED" type of behavior: they will return an address that
-+is different than the requested one. Therefore, backward-compatible software
-+should check the returned address against the requested address.
-+.TP
-
-(I'm ignoring the naming, because there is another thread about that,
-so please just the above as "MAP_FIXED_whatever-is-chosen".)
-
-> @@ -449,6 +461,12 @@ is not a valid file descriptor (and
->  .B MAP_ANONYMOUS
->  was not set).
->  .TP
-> +.B EEXIST
-> +range covered by
-> +.IR addr , 
-
-nit: trailing space on the above line.
-
-> +.IR length
-> +is clashing with an existing mapping.
-> +.TP
->  .B EINVAL
->  We don't like
->  .IR addr ,
-> 
-
-One other thing: reading through mmap.2, I now want to add this as well:
-
-diff --git a/man2/mmap.2 b/man2/mmap.2
-index 622a7000d..780cad6d9 100644
---- a/man2/mmap.2
-+++ b/man2/mmap.2
-@@ -222,20 +222,25 @@ part of the existing mapping(s) will be discarded.
- If the specified address cannot be used,
- .BR mmap ()
- will fail.
--Because requiring a fixed address for a mapping is less portable,
--the use of this option is discouraged.
-+Software that aspires to be as portable as possible should use this option with
-+care, keeping in mind that different kernels and C libraries may set up quite
-+different mapping ranges.
-
-
-...because that advice is just wrong (it presumes that "less portable" ==
-"must be discouraged").
-
-Should I send out a separate patch for that, or is it better to glom it together 
-with this one?
-
-thanks,
-John Hubbard
-NVIDIA
+Well, I can open a poll for the best name, but none of those you are
+proposing sound much better to me. Yeah, naming sucks...
+-- 
+Michal Hocko
+SUSE Labs
