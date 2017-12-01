@@ -1,74 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:40278 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750735AbdK3SjR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 30 Nov 2017 13:39:17 -0500
-Date: Thu, 30 Nov 2017 19:39:14 +0100
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH v2] mmap.2: document new MAP_FIXED_SAFE flag
-Message-ID: <20171130183914.xknl33pxij62hdhp@dhcp22.suse.cz>
-References: <20171129144219.22867-1-mhocko@kernel.org>
- <20171129144524.23518-1-mhocko@kernel.org>
- <20171130082405.b77eknaiblgmpa4s@dhcp22.suse.cz>
- <1a96e274-a986-12b7-6e47-fc6355cbf637@nvidia.com>
+Received: from mail-it0-f65.google.com ([209.85.214.65]:45105 "EHLO
+        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752385AbdLAMT0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Dec 2017 07:19:26 -0500
+Received: by mail-it0-f65.google.com with SMTP id z6so2223135iti.4
+        for <linux-arch@vger.kernel.org>; Fri, 01 Dec 2017 04:19:26 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1a96e274-a986-12b7-6e47-fc6355cbf637@nvidia.com>
+In-Reply-To: <60f23e7fcff11f16b0bca4753a39d098849eeac3.1511785528.git.green.hu@gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com> <60f23e7fcff11f16b0bca4753a39d098849eeac3.1511785528.git.green.hu@gmail.com>
+From: Linus Walleij <linus.walleij@linaro.org>
+Date: Fri, 1 Dec 2017 13:19:25 +0100
+Message-ID: <CACRpkdYuo88qeEznKxVojYofV4YTGu6AOgan-2GPYS9qZCVxZA@mail.gmail.com>
+Subject: Re: [PATCH v2 35/35] dt-bindings: timer: Add andestech atcpit100
+ timer binding doc
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Hubbard <jhubbard@nvidia.com>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>
-Message-ID: <20171130183914.WEQJr4dPGQt7kHUeauTF4G0YUVU0CvVLYgVxK6fxeCk@z>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev@vger.kernel.org, deanbo422@gmail.com, "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS" <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Rick Chen <rickchen36@gmail.com>
+Message-ID: <20171201121925.47gXKZEbFEY6rUrzuS0WIcNQGUEiRI20PuwTIqGgNjA@z>
 
-On Thu 30-11-17 10:31:12, John Hubbard wrote:
-> On 11/30/2017 12:24 AM, Michal Hocko wrote:
-> > Updated version based on feedback from John.
-> > ---
-> > From ade1eba229b558431581448e7d7838f0e1fe2c49 Mon Sep 17 00:00:00 2001
-> > From: Michal Hocko <mhocko@suse.com>
-> > Date: Wed, 29 Nov 2017 15:32:08 +0100
-> > Subject: [PATCH] mmap.2: document new MAP_FIXED_SAFE flag
-> > 
-> > 4.16+ kernels offer a new MAP_FIXED_SAFE flag which allows the caller to
-> > atomicaly probe for a given address range.
-> > 
-> > [wording heavily updated by John Hubbard <jhubbard@nvidia.com>]
-> > Signed-off-by: Michal Hocko <mhocko@suse.com>
-> > ---
-> >  man2/mmap.2 | 22 ++++++++++++++++++++++
-> >  1 file changed, 22 insertions(+)
-> > 
-> > diff --git a/man2/mmap.2 b/man2/mmap.2
-> > index 385f3bfd5393..923bbb290875 100644
-> > --- a/man2/mmap.2
-> > +++ b/man2/mmap.2
-> > @@ -225,6 +225,22 @@ will fail.
-> >  Because requiring a fixed address for a mapping is less portable,
-> >  the use of this option is discouraged.
-> >  .TP
-> > +.BR MAP_FIXED_SAFE " (since Linux 4.16)"
-> > +Similar to MAP_FIXED with respect to the
-> > +.I
-> > +addr
-> > +enforcement, but different in that MAP_FIXED_SAFE never clobbers a pre-existing
-> > +mapped range. If the requested range would collide with an existing
-> > +mapping, then this call fails with
-> > +.B EEXIST.
-> > +This flag can therefore be used as a way to atomically (with respect to other
-> > +threads) attempt to map an address range: one thread will succeed; all others
-> > +will report failure. Please note that older kernels which do not recognize this
-> > +flag will typically (upon detecting a collision with a pre-existing mapping)
-> > +fall back a "non-MAP_FIXED" type of behavior: they will return an address that
-> 
-> ...and now I've created my own typo: please make that "fall back to a"  (the 
-> "to" was missing).
-> 
-> Sorry about the churn. It turns out that the compiler doesn't catch these. :)
+On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
 
-Fixed. I will resubmit after there is more feedback review.
+> From: Rick Chen <rickchen36@gmail.com>
+>
+> Add a document to describe Andestech atcpit100 timer and
+> binding information.
+>
+> Signed-off-by: Rick Chen <rickchen36@gmail.com>
+> Acked-by: Rob Herring <robh@kernel.org>
+> Signed-off-by: Greentime Hu <green.hu@gmail.com>
 
-Thanks
--- 
-Michal Hocko
-SUSE Labs
+Thanks for submitting this interesting architecture!
+
+(...)
+
+> +Required properties:
+> +- compatible   : Should be "andestech,atcpit100"
+> +- reg          : Address and length of the register set
+> +- interrupts   : Reference to the timer interrupt
+> +- clocks : a clock to provide the tick rate for "andestech,atcpit100"
+> +- clock-names : should be "PCLK" for the external tick timer.
+
+This text seem wrong. PCLK is the internal timer, right? "PCLK" is
+"peripheral clock" (I hope) and that comes from the bus.
+
+Consider also adding an optional "EXTCLK" already now, since it is
+evident from the driver that this is also supported.
+
+Yours,
+Linus Walleij
