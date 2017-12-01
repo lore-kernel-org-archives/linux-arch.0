@@ -1,71 +1,64 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH v2 33/35] clocksource/drivers/atcpit100: Add andestech
- atcpit100 timer
-Date: Fri, 1 Dec 2017 13:30:13 +0100
-Message-ID: <CACRpkdaRq1ZH7EN3RTeLGfUW+xK06fxDDhY6kTQeacdW9MOQYA@mail.gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <672e0b3843953d1ab69bc19baf1a0f217ec1b1fa.1511785528.git.green.hu@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Hendrik Brueckner <brueckner@linux.vnet.ibm.com>
+Subject: [PATCH 3/5] arm64/bpf: correct broken uapi for BPF_PROG_TYPE_PERF_EVENT program type
+Date: Fri,  1 Dec 2017 15:19:06 +0100
+Message-ID: <1512137948-31729-4-git-send-email-brueckner@linux.vnet.ibm.com>
+References: <1512137948-31729-1-git-send-email-brueckner@linux.vnet.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <672e0b3843953d1ab69bc19baf1a0f217ec1b1fa.1511785528.git.green.hu@gmail.com>
+In-Reply-To: <1512137948-31729-1-git-send-email-brueckner@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Greentime Hu <green.hu@gmail.com>
-Cc: greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev@vger.kernel.org, deanbo422@gmail.com, "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS" <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Rick Chen <rickchen36@gmail.com>
+To: Arnaldo Carvalho de Melo <acme@kernel.org>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Namhyung Kim <namhyung@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Shuah Khan <shuah@kernel.org>, Ingo Molnar <mingo@redhat.com>, Jiri Olsa <jolsa@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kselftest@vger.kernel.org, netdev@vger.kernel.org, linux-perf-users@vger.kernel.org, Hendrik Brueckner <brueckner@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
+Correct the broken uapi for the BPF_PROG_TYPE_PERF_EVENT program type
+by exporting the user_pt_regs structure instead of the pt_regs structure
+that is in-kernel only.
 
-> From: Rick Chen <rickchen36@gmail.com>
->
-> ATCPIT100 is often used on the Andes architecture,
-> This timer provide 4 PIT channels. Each PIT channel is a
-> multi-function timer, can be configured as 32,16,8 bit timers
-> or PWM as well.
->
-> For system timer it will set channel 1 32-bit timer0 as clock
-> source and count downwards until underflow and restart again.
->
-> It also set channel 0 32-bit timer0 as clock event and count
-> downwards until condition match. It will generate an interrupt
-> for handling periodically.
->
-> Signed-off-by: Rick Chen <rickchen36@gmail.com>
-> Signed-off-by: Greentime Hu <green.hu@gmail.com>
+Signed-off-by: Hendrik Brueckner <brueckner@linux.vnet.ibm.com>
+Reviewed-by: Thomas Richter <tmricht@linux.vnet.ibm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Mark Rutland <mark.rutland@arm.com>
+Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
+---
+ arch/arm64/include/asm/perf_event.h          | 2 ++
+ arch/arm64/include/uapi/asm/bpf_perf_event.h | 9 +++++++++
+ 2 files changed, 11 insertions(+)
+ create mode 100644 arch/arm64/include/uapi/asm/bpf_perf_event.h
 
-The driver looks nice overall.
-
-> +static struct timer_of to = {
-> +       .flags = TIMER_OF_IRQ | TIMER_OF_CLOCK | TIMER_OF_BASE,
-> +
-> +       .clkevt = {
-> +               .name = "atcpit100_tick",
-> +               .rating = 300,
-> +               .features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
-> +               .set_state_shutdown = atcpit100_clkevt_shutdown,
-> +               .set_state_periodic = atcpit100_clkevt_set_periodic,
-> +               .set_state_oneshot = atcpit100_clkevt_set_oneshot,
-> +               .tick_resume = atcpit100_clkevt_shutdown,
-> +               .set_next_event = atcpit100_clkevt_next_event,
-> +               .cpumask = cpu_all_mask,
-> +       },
-> +
-> +       .of_irq = {
-> +               .handler = atcpit100_timer_interrupt,
-> +               .flags = IRQF_TIMER | IRQF_IRQPOLL,
-> +       },
-
-I would add:
-
-.of_clk = {
-    .name = "PCLK",
-};
-
-To be explicit on what we use.
-
-(I hope I understand this OF timer right.)
-
-Otherwise it looks good!
-Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
-
-Yours,
-Linus Walleij
+diff --git a/arch/arm64/include/asm/perf_event.h b/arch/arm64/include/asm/perf_event.h
+index 8d5cbec..f9ccc36 100644
+--- a/arch/arm64/include/asm/perf_event.h
++++ b/arch/arm64/include/asm/perf_event.h
+@@ -18,6 +18,7 @@
+ #define __ASM_PERF_EVENT_H
+ 
+ #include <asm/stack_pointer.h>
++#include <asm/ptrace.h>
+ 
+ #define	ARMV8_PMU_MAX_COUNTERS	32
+ #define	ARMV8_PMU_COUNTER_MASK	(ARMV8_PMU_MAX_COUNTERS - 1)
+@@ -79,6 +80,7 @@
+ extern unsigned long perf_instruction_pointer(struct pt_regs *regs);
+ extern unsigned long perf_misc_flags(struct pt_regs *regs);
+ #define perf_misc_flags(regs)	perf_misc_flags(regs)
++#define perf_arch_bpf_user_pt_regs(regs) &regs->user_regs
+ #endif
+ 
+ #define perf_arch_fetch_caller_regs(regs, __ip) { \
+diff --git a/arch/arm64/include/uapi/asm/bpf_perf_event.h b/arch/arm64/include/uapi/asm/bpf_perf_event.h
+new file mode 100644
+index 0000000..b551b74
+--- /dev/null
++++ b/arch/arm64/include/uapi/asm/bpf_perf_event.h
+@@ -0,0 +1,9 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _UAPI__ASM_BPF_PERF_EVENT_H__
++#define _UAPI__ASM_BPF_PERF_EVENT_H__
++
++#include <asm/ptrace.h>
++
++typedef struct user_pt_regs bpf_user_pt_regs_t;
++
++#endif /* _UAPI__ASM_BPF_PERF_EVENT_H__ */
+-- 
+1.8.3.1
