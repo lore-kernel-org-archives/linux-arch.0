@@ -1,37 +1,42 @@
-From: Cyril Hrubis <chrubis@suse.cz>
-Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
-Date: Fri, 1 Dec 2017 16:26:40 +0100
-Message-ID: <20171201152640.GA3765@rei>
-References: <20171129144219.22867-1-mhocko@kernel.org>
- <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
- <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz>
-Sender: owner-linux-mm@kvack.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>
-List-Id: linux-arch.vger.kernel.org
+From: Palmer Dabbelt <palmer@sifive.com>
+Subject: [PATCH] audit: Avoid build failures on systems without renameat
+Date: Fri,  1 Dec 2017 12:49:56 -0800
+Message-ID: <20171201204956.8332-1-palmer@sifive.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:47055 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751031AbdLAUxw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Dec 2017 15:53:52 -0500
+Received: by mail-pg0-f67.google.com with SMTP id b11so4969118pgu.13
+        for <linux-arch@vger.kernel.org>; Fri, 01 Dec 2017 12:53:52 -0800 (PST)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Palmer Dabbelt <palmer@sifive.com>, Olof Johansson <olof@lixom.net>
 
-Hi!
-> > MAP_FIXED_UNIQUE
-> > MAP_FIXED_ONCE
-> > MAP_FIXED_FRESH
-> 
-> Well, I can open a poll for the best name, but none of those you are
-> proposing sound much better to me. Yeah, naming sucks...
+renameat has been deprecated in favor of renameat2 for new ports.  This
+allows the audit tests to build on RISC-V.
 
-Given that MAP_FIXED replaces the previous mapping MAP_FIXED_NOREPLACE
-would probably be a best fit.
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+CC: Olof Johansson <olof@lixom.net>
+Signed-off-by: Palmer Dabbelt <palmer@sifive.com>
+---
+ include/asm-generic/audit_dir_write.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
+diff --git a/include/asm-generic/audit_dir_write.h b/include/asm-generic/audit_dir_write.h
+index da09fb986459..dd5a9dd7a102 100644
+--- a/include/asm-generic/audit_dir_write.h
++++ b/include/asm-generic/audit_dir_write.h
+@@ -27,7 +27,9 @@ __NR_mknod,
+ __NR_mkdirat,
+ __NR_mknodat,
+ __NR_unlinkat,
++#ifdef __NR_renameat
+ __NR_renameat,
++#endif
+ __NR_linkat,
+ __NR_symlinkat,
+ #endif
 -- 
-Cyril Hrubis
-chrubis@suse.cz
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+2.13.6
