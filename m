@@ -1,39 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:50658 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754108AbdLDK5F (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 4 Dec 2017 05:57:05 -0500
-Date: Mon, 4 Dec 2017 11:55:49 +0100
-From: Cyril Hrubis <chrubis@suse.cz>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:49556 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752177AbdLDLbZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Dec 2017 06:31:25 -0500
+Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vB4BVLnR086475
+        for <linux-arch@vger.kernel.org>; Mon, 4 Dec 2017 06:31:24 -0500
+Received: from e06smtp13.uk.ibm.com (e06smtp13.uk.ibm.com [195.75.94.109])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2en3ww4kvb-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 04 Dec 2017 06:31:24 -0500
+Received: from localhost
+        by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <rppt@linux.vnet.ibm.com>;
+        Mon, 4 Dec 2017 11:31:21 -0000
+Date: Mon, 4 Dec 2017 13:31:13 +0200
+From: Mike Rapoport <rppt@linux.vnet.ibm.com>
 Subject: Re: [PATCH v2] mmap.2: MAP_FIXED updated documentation
-Message-ID: <20171204105549.GA31332@rei>
 References: <20171204021411.4786-1-jhubbard@nvidia.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 In-Reply-To: <20171204021411.4786-1-jhubbard@nvidia.com>
+Message-ID: <20171204113113.GA13465@rapoport-lnx>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: john.hubbard@gmail.com
 Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@suse.com>, John Hubbard <jhubbard@nvidia.com>
-Message-ID: <20171204105549.VaNe9FYjVrEE3Kr4yhsyuUCBcUIT50QWQL2s8qRK9Jc@z>
+Message-ID: <20171204113113.Sp7VE_u1-vTgOeBkA-x1zexqQ47Lmm9ANKMVd3oPycA@z>
 
-Hi!
-I know that we are not touching the rest of the existing description for
-MAP_FIXED however the second sentence in the manual page says that "addr
-must be a multiple of the page size." Which however is misleading as
-this is not enough on some architectures. Code in the wild seems to
-(mis)use SHMLBA for aligment purposes but I'm not sure that we should
-advise something like that in the manpages.
+On Sun, Dec 03, 2017 at 06:14:11PM -0800, john.hubbard@gmail.com wrote:
+> From: John Hubbard <jhubbard@nvidia.com>
+> 
+> Previously, MAP_FIXED was "discouraged", due to portability
+> issues with the fixed address. In fact, there are other, more
+> serious issues. Also, in some limited cases, this option can
+> be used safely.
+> 
+> Expand the documentation to discuss both the hazards, and how
+> to use it safely.
+> 
+> The "Portability issues" wording is lifted directly from
+> Matthew Wilcox's review. The notes about other libraries
+> creating mappings is also from Matthew (lightly edited).
+> 
+> The suggestion to explain how to use MAP_FIXED safely is
+> from Jann Horn.
+> 
+> Suggested-by: Matthew Wilcox <willy@infradead.org>
+> Suggested-by: Jann Horn <jannh@google.com>
+> Signed-off-by: John Hubbard <jhubbard@nvidia.com>
+> ---
+> 
+> Changed from v1:
+> 
+>     -- Covered topics recommended by Matthew Wilcox
+>        and Jann Horn, in their recent review: the hazards
+>        of overwriting pre-exising mappings, and some notes
+>        about how to use MAP_FIXED safely.
+> 
+>     -- Rewrote the commit description accordingly.
+> 
+>  man2/mmap.2 | 38 ++++++++++++++++++++++++++++++++++++--
+>  1 file changed, 36 insertions(+), 2 deletions(-)
+> 
+> diff --git a/man2/mmap.2 b/man2/mmap.2
+> index 385f3bfd5..9038256d4 100644
+> --- a/man2/mmap.2
+> +++ b/man2/mmap.2
+> @@ -222,8 +222,42 @@ part of the existing mapping(s) will be discarded.
+>  If the specified address cannot be used,
+>  .BR mmap ()
+>  will fail.
+> -Because requiring a fixed address for a mapping is less portable,
+> -the use of this option is discouraged.
+> +.IP
+> +This option is extremely hazardous (when used on its own) and moderately
+> +non-portable.
+> +.IP
+> +Portability issues: a process's memory map may change significantly from one
+> +run to the next, depending on library versions, kernel versions and random
+> +numbers.
+> +.IP
+> +Hazards: this option forcibly removes pre-existing mappings, making it easy
+> +for a multi-threaded process to corrupt its own address space.
+> +.IP
+> +For example, thread A looks through /proc/<pid>/maps and locates an available
+> +address range, while thread B simultaneously acquires part or all of that same
+> +address range. Thread A then calls mmap(MAP_FIXED), effectively overwriting
+> +thread B's mapping.
+> +.IP
+> +Thread B need not create a mapping directly; simply making a library call
+> +that, internally, uses dlopen(3) to load some other shared library, will
+> +suffice. The dlopen(3) call will map the library into the process's address
+> +space. Furthermore, almost any library call may be implemented using this
+> +technique.
+> +Examples include brk(2), malloc(3), pthread_create(3), and the PAM libraries
+> +(http://www.linux-pam.org).
+> +.IP
+> +Given the above limitations, one of the very few ways to use this option
+> +safely is: mmap() a region, without specifying MAP_FIXED. Then, within that
+> +region, call mmap(MAP_FIXED) to suballocate regions. This avoids both the
+> +portability problem (because the first mmap call lets the kernel pick the
+> +address), and the address space corruption problem (because the region being
+> +overwritten is already owned by the calling thread).
 
-So what about something as:
+Maybe "address space corruption problem caused by implicit calls to mmap"?
+The region allocated with the first mmap is not exactly owned by the
+thread and a multi-thread application can still corrupt its memory if
+different threads use mmap(MAP_FIXED) for overlapping regions.
 
-"addr must be suitably aligned, for most architectures multiple of page
-size is sufficient, however some may impose additional restrictions for
-page mapping addresses."
+My 2 cents.
 
-Which should at least hint the reader that this is architecture specific.
+> +.IP
+> +Newer kernels
+> +(Linux 4.16 and later) have a
+> +.B MAP_FIXED_SAFE
+> +option that avoids the corruption problem; if available, MAP_FIXED_SAFE
+> +should be preferred over MAP_FIXED.
+>  .TP
+>  .B MAP_GROWSDOWN
+>  This flag is used for stacks.
+> -- 
+> 2.15.1
+> 
+> --
+> To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> the body to majordomo@kvack.org.  For more info on Linux MM,
+> see: http://www.linux-mm.org/ .
+> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> 
 
 -- 
-Cyril Hrubis
-chrubis@suse.cz
+Sincerely yours,
+Mike.
