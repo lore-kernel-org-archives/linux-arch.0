@@ -1,56 +1,57 @@
-From: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
-Subject: Re: [PATCH] frv: fix build failure
-Date: Sun, 3 Dec 2017 22:32:26 +0000
-Message-ID: <20171203223226.GA3741@sudip-laptop>
-References: <1511302233-5008-1-git-send-email-sudipm.mukherjee@gmail.com>
- <1511457437.32422.6.camel@synopsys.com>
- <3a6fe86e-7a66-56df-3b1d-e2e8cd3e6eae@synopsys.com>
+From: =?UTF-8?B?6Zmz5bu65b+X?= <rickchen36@gmail.com>
+Subject: Re: [PATCH v2 35/35] dt-bindings: timer: Add andestech atcpit100
+ timer binding doc
+Date: Mon, 4 Dec 2017 09:07:20 +0800
+Message-ID: <CAN5B=e+-igkynapqoMhY6TMMNybnPudkL24aYiqJ7nESqxn9Yw@mail.gmail.com>
+References: <cover.1511785528.git.green.hu@gmail.com> <60f23e7fcff11f16b0bca4753a39d098849eeac3.1511785528.git.green.hu@gmail.com>
+ <CACRpkdYuo88qeEznKxVojYofV4YTGu6AOgan-2GPYS9qZCVxZA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f176.google.com ([209.85.128.176]:43777 "EHLO
-        mail-wr0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751885AbdLCWca (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 Dec 2017 17:32:30 -0500
-Content-Disposition: inline
-In-Reply-To: <3a6fe86e-7a66-56df-3b1d-e2e8cd3e6eae@synopsys.com>
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:39296 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751105AbdLDBHV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 Dec 2017 20:07:21 -0500
+In-Reply-To: <CACRpkdYuo88qeEznKxVojYofV4YTGu6AOgan-2GPYS9qZCVxZA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+To: Linus Walleij <linus.walleij@linaro.org>
+Cc: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev@vger.kernel.org, deanbo422@gmail.com, "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS" <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org
 
-On Mon, Nov 27, 2017 at 10:25:16AM -0800, Vineet Gupta wrote:
-> +CC linux-arch, Arnd
-> 
-> On 11/23/2017 09:17 AM, Alexey Brodkin wrote:
-> >Hi Sudip,
-> >
-> >On Tue, 2017-11-21 at 22:10 +0000, Sudip Mukherjee wrote:
+2017-12-01 20:19 GMT+08:00 Linus Walleij <linus.walleij@linaro.org>:
+> On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
+>
+>> From: Rick Chen <rickchen36@gmail.com>
+>>
+>> Add a document to describe Andestech atcpit100 timer and
+>> binding information.
+>>
+>> Signed-off-by: Rick Chen <rickchen36@gmail.com>
+>> Acked-by: Rob Herring <robh@kernel.org>
+>> Signed-off-by: Greentime Hu <green.hu@gmail.com>
+>
+> Thanks for submitting this interesting architecture!
+>
+> (...)
+>
+>> +Required properties:
+>> +- compatible   : Should be "andestech,atcpit100"
+>> +- reg          : Address and length of the register set
+>> +- interrupts   : Reference to the timer interrupt
+>> +- clocks : a clock to provide the tick rate for "andestech,atcpit100"
+>> +- clock-names : should be "PCLK" for the external tick timer.
+>
+> This text seem wrong. PCLK is the internal timer, right? "PCLK" is
+> "peripheral clock" (I hope) and that comes from the bus.
+>
+> Consider also adding an optional "EXTCLK" already now, since it is
+> evident from the driver that this is also supported.
+>
 
-<snip>
+Thank you for reviewing !
+I will modify it in the next patch.
 
-> I understand the case/need for adding a weak/common abort() as a
-> quick fix for handling such cases, but perhaps we should not and
-> instead fix the rootcause. In this specific case, Claudiu mentioned
-> that gcc was generating abort due to something like this (flagging a
-> possible divide by zero due to
-> -fno-isolate-erroneous-paths-dereference.
-> 
-> a;
-> 
-> fn1() {
->   switch (a)
->   case 0:
->   return 1 / a;
-> }
-> 
-> Sudeep can you confirm that removing this hacking FRV build to not
-> have this toggle fixes the abort issue.
-> 
-> So the offending code needs to be fixed as in the end when that code
-> path is taken system is hosed.
+Rick
 
-The above case that you mentioned is indeed the case here.
-mpihelp_divrem() in lib/mpi/mpih-div.c has this same divide by zero case.
-
-So, what should be the actual fix here?
+> Yours,
+> Linus Walleij
