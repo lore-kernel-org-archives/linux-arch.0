@@ -1,7 +1,8 @@
 From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 2/3] arm64: don't override dma_max_pfn
-Date: Mon,  4 Dec 2017 08:36:00 -0800
-Message-ID: <20171204163601.3055-3-hch@lst.de>
+Subject: [PATCH 1/3] dma-mapping: take dma_pfn_offset into account in
+	dma_max_pfn
+Date: Mon,  4 Dec 2017 08:35:59 -0800
+Message-ID: <20171204163601.3055-2-hch@lst.de>
 References: <20171204163601.3055-1-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,32 +22,26 @@ To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-ar
 Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-The generic version now takes dma_pfn_offset into account, so there is no
-more need for an architecture override.
+This makes sure the generic version can be used with architectures /
+devices that have a DMA offset in the direct mapping.
 
 Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 ---
- arch/arm64/include/asm/dma-mapping.h | 9 ---------
- 1 file changed, 9 deletions(-)
+ include/linux/dma-mapping.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/asm/dma-mapping.h b/arch/arm64/include/asm/dma-mapping.h
-index 0df756b24863..eada887a93bf 100644
---- a/arch/arm64/include/asm/dma-mapping.h
-+++ b/arch/arm64/include/asm/dma-mapping.h
-@@ -76,14 +76,5 @@ static inline void dma_mark_clean(void *addr, size_t size)
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index e8f8e8fb244d..86beb9861618 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -692,7 +692,7 @@ static inline int dma_set_seg_boundary(struct device *dev, unsigned long mask)
+ #ifndef dma_max_pfn
+ static inline unsigned long dma_max_pfn(struct device *dev)
  {
+-	return *dev->dma_mask >> PAGE_SHIFT;
++	return (*dev->dma_mask >> PAGE_SHIFT) + dev->dma_pfn_offset;
  }
+ #endif
  
--/* Override for dma_max_pfn() */
--static inline unsigned long dma_max_pfn(struct device *dev)
--{
--	dma_addr_t dma_max = (dma_addr_t)*dev->dma_mask;
--
--	return (ulong)dma_to_phys(dev, dma_max) >> PAGE_SHIFT;
--}
--#define dma_max_pfn(dev) dma_max_pfn(dev)
--
- #endif	/* __KERNEL__ */
- #endif	/* __ASM_DMA_MAPPING_H */
 -- 
 2.14.2
