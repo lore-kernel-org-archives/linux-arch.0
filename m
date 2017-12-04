@@ -1,57 +1,101 @@
-From: =?UTF-8?B?6Zmz5bu65b+X?= <rickchen36@gmail.com>
-Subject: Re: [PATCH v2 35/35] dt-bindings: timer: Add andestech atcpit100
- timer binding doc
-Date: Mon, 4 Dec 2017 09:07:20 +0800
-Message-ID: <CAN5B=e+-igkynapqoMhY6TMMNybnPudkL24aYiqJ7nESqxn9Yw@mail.gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <60f23e7fcff11f16b0bca4753a39d098849eeac3.1511785528.git.green.hu@gmail.com>
- <CACRpkdYuo88qeEznKxVojYofV4YTGu6AOgan-2GPYS9qZCVxZA@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:39296 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751105AbdLDBHV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 Dec 2017 20:07:21 -0500
-In-Reply-To: <CACRpkdYuo88qeEznKxVojYofV4YTGu6AOgan-2GPYS9qZCVxZA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev@vger.kernel.org, deanbo422@gmail.com, "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS" <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org
+From: john.hubbard@gmail.com
+Subject: [PATCH v2] mmap.2: MAP_FIXED updated documentation
+Date: Sun,  3 Dec 2017 18:14:11 -0800
+Message-ID: <20171204021411.4786-1-jhubbard@nvidia.com>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@suse.com>, John Hubbard <jhubbard@nvidia.com>
+List-Id: linux-arch.vger.kernel.org
 
-2017-12-01 20:19 GMT+08:00 Linus Walleij <linus.walleij@linaro.org>:
-> On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
->
->> From: Rick Chen <rickchen36@gmail.com>
->>
->> Add a document to describe Andestech atcpit100 timer and
->> binding information.
->>
->> Signed-off-by: Rick Chen <rickchen36@gmail.com>
->> Acked-by: Rob Herring <robh@kernel.org>
->> Signed-off-by: Greentime Hu <green.hu@gmail.com>
->
-> Thanks for submitting this interesting architecture!
->
-> (...)
->
->> +Required properties:
->> +- compatible   : Should be "andestech,atcpit100"
->> +- reg          : Address and length of the register set
->> +- interrupts   : Reference to the timer interrupt
->> +- clocks : a clock to provide the tick rate for "andestech,atcpit100"
->> +- clock-names : should be "PCLK" for the external tick timer.
->
-> This text seem wrong. PCLK is the internal timer, right? "PCLK" is
-> "peripheral clock" (I hope) and that comes from the bus.
->
-> Consider also adding an optional "EXTCLK" already now, since it is
-> evident from the driver that this is also supported.
->
+From: John Hubbard <jhubbard@nvidia.com>
 
-Thank you for reviewing !
-I will modify it in the next patch.
+Previously, MAP_FIXED was "discouraged", due to portability
+issues with the fixed address. In fact, there are other, more
+serious issues. Also, in some limited cases, this option can
+be used safely.
 
-Rick
+Expand the documentation to discuss both the hazards, and how
+to use it safely.
 
-> Yours,
-> Linus Walleij
+The "Portability issues" wording is lifted directly from
+Matthew Wilcox's review. The notes about other libraries
+creating mappings is also from Matthew (lightly edited).
+
+The suggestion to explain how to use MAP_FIXED safely is
+from Jann Horn.
+
+Suggested-by: Matthew Wilcox <willy@infradead.org>
+Suggested-by: Jann Horn <jannh@google.com>
+Signed-off-by: John Hubbard <jhubbard@nvidia.com>
+---
+
+Changed from v1:
+
+    -- Covered topics recommended by Matthew Wilcox
+       and Jann Horn, in their recent review: the hazards
+       of overwriting pre-exising mappings, and some notes
+       about how to use MAP_FIXED safely.
+
+    -- Rewrote the commit description accordingly.
+
+ man2/mmap.2 | 38 ++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 36 insertions(+), 2 deletions(-)
+
+diff --git a/man2/mmap.2 b/man2/mmap.2
+index 385f3bfd5..9038256d4 100644
+--- a/man2/mmap.2
++++ b/man2/mmap.2
+@@ -222,8 +222,42 @@ part of the existing mapping(s) will be discarded.
+ If the specified address cannot be used,
+ .BR mmap ()
+ will fail.
+-Because requiring a fixed address for a mapping is less portable,
+-the use of this option is discouraged.
++.IP
++This option is extremely hazardous (when used on its own) and moderately
++non-portable.
++.IP
++Portability issues: a process's memory map may change significantly from one
++run to the next, depending on library versions, kernel versions and random
++numbers.
++.IP
++Hazards: this option forcibly removes pre-existing mappings, making it easy
++for a multi-threaded process to corrupt its own address space.
++.IP
++For example, thread A looks through /proc/<pid>/maps and locates an available
++address range, while thread B simultaneously acquires part or all of that same
++address range. Thread A then calls mmap(MAP_FIXED), effectively overwriting
++thread B's mapping.
++.IP
++Thread B need not create a mapping directly; simply making a library call
++that, internally, uses dlopen(3) to load some other shared library, will
++suffice. The dlopen(3) call will map the library into the process's address
++space. Furthermore, almost any library call may be implemented using this
++technique.
++Examples include brk(2), malloc(3), pthread_create(3), and the PAM libraries
++(http://www.linux-pam.org).
++.IP
++Given the above limitations, one of the very few ways to use this option
++safely is: mmap() a region, without specifying MAP_FIXED. Then, within that
++region, call mmap(MAP_FIXED) to suballocate regions. This avoids both the
++portability problem (because the first mmap call lets the kernel pick the
++address), and the address space corruption problem (because the region being
++overwritten is already owned by the calling thread).
++.IP
++Newer kernels
++(Linux 4.16 and later) have a
++.B MAP_FIXED_SAFE
++option that avoids the corruption problem; if available, MAP_FIXED_SAFE
++should be preferred over MAP_FIXED.
+ .TP
+ .B MAP_GROWSDOWN
+ This flag is used for stacks.
+-- 
+2.15.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
