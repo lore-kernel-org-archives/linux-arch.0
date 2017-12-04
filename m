@@ -1,61 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f176.google.com ([209.85.128.176]:43777 "EHLO
-        mail-wr0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751885AbdLCWca (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 Dec 2017 17:32:30 -0500
-Date: Sun, 3 Dec 2017 22:32:26 +0000
-From: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
-Subject: Re: [PATCH] frv: fix build failure
-Message-ID: <20171203223226.GA3741@sudip-laptop>
-References: <1511302233-5008-1-git-send-email-sudipm.mukherjee@gmail.com>
- <1511457437.32422.6.camel@synopsys.com>
- <3a6fe86e-7a66-56df-3b1d-e2e8cd3e6eae@synopsys.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <3a6fe86e-7a66-56df-3b1d-e2e8cd3e6eae@synopsys.com>
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:41745 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752887AbdLDCOS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 3 Dec 2017 21:14:18 -0500
+From: john.hubbard@gmail.com
+Subject: [PATCH v2] mmap.2: MAP_FIXED updated documentation
+Date: Sun,  3 Dec 2017 18:14:11 -0800
+Message-ID: <20171204021411.4786-1-jhubbard@nvidia.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20171203223226.uTI0ywRtbcjzv8eqo_GHuvcp-bva5YatkUuC7FLuy0M@z>
+To: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@suse.com>, John Hubbard <jhubbard@nvidia.com>
+Message-ID: <20171204021411.iW6RrJtTbdgSdC7CY4EF_M7ffp3z9tibIJLUgSpGLnw@z>
 
-On Mon, Nov 27, 2017 at 10:25:16AM -0800, Vineet Gupta wrote:
-> +CC linux-arch, Arnd
-> 
-> On 11/23/2017 09:17 AM, Alexey Brodkin wrote:
-> >Hi Sudip,
-> >
-> >On Tue, 2017-11-21 at 22:10 +0000, Sudip Mukherjee wrote:
+From: John Hubbard <jhubbard@nvidia.com>
 
-<snip>
+Previously, MAP_FIXED was "discouraged", due to portability
+issues with the fixed address. In fact, there are other, more
+serious issues. Also, in some limited cases, this option can
+be used safely.
 
-> I understand the case/need for adding a weak/common abort() as a
-> quick fix for handling such cases, but perhaps we should not and
-> instead fix the rootcause. In this specific case, Claudiu mentioned
-> that gcc was generating abort due to something like this (flagging a
-> possible divide by zero due to
-> -fno-isolate-erroneous-paths-dereference.
-> 
-> a;
-> 
-> fn1() {
->   switch (a)
->   case 0:
->   return 1 / a;
-> }
-> 
-> Sudeep can you confirm that removing this hacking FRV build to not
-> have this toggle fixes the abort issue.
-> 
-> So the offending code needs to be fixed as in the end when that code
-> path is taken system is hosed.
+Expand the documentation to discuss both the hazards, and how
+to use it safely.
 
-The above case that you mentioned is indeed the case here.
-mpihelp_divrem() in lib/mpi/mpih-div.c has this same divide by zero case.
+The "Portability issues" wording is lifted directly from
+Matthew Wilcox's review. The notes about other libraries
+creating mappings is also from Matthew (lightly edited).
 
-So, what should be the actual fix here?
+The suggestion to explain how to use MAP_FIXED safely is
+from Jann Horn.
 
---
-Regards
-Sudip
+Suggested-by: Matthew Wilcox <willy@infradead.org>
+Suggested-by: Jann Horn <jannh@google.com>
+Signed-off-by: John Hubbard <jhubbard@nvidia.com>
+---
+
+Changed from v1:
+
+    -- Covered topics recommended by Matthew Wilcox
+       and Jann Horn, in their recent review: the hazards
+       of overwriting pre-exising mappings, and some notes
+       about how to use MAP_FIXED safely.
+
+    -- Rewrote the commit description accordingly.
+
+ man2/mmap.2 | 38 ++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 36 insertions(+), 2 deletions(-)
+
+diff --git a/man2/mmap.2 b/man2/mmap.2
+index 385f3bfd5..9038256d4 100644
+--- a/man2/mmap.2
++++ b/man2/mmap.2
+@@ -222,8 +222,42 @@ part of the existing mapping(s) will be discarded.
+ If the specified address cannot be used,
+ .BR mmap ()
+ will fail.
+-Because requiring a fixed address for a mapping is less portable,
+-the use of this option is discouraged.
++.IP
++This option is extremely hazardous (when used on its own) and moderately
++non-portable.
++.IP
++Portability issues: a process's memory map may change significantly from one
++run to the next, depending on library versions, kernel versions and random
++numbers.
++.IP
++Hazards: this option forcibly removes pre-existing mappings, making it easy
++for a multi-threaded process to corrupt its own address space.
++.IP
++For example, thread A looks through /proc/<pid>/maps and locates an available
++address range, while thread B simultaneously acquires part or all of that same
++address range. Thread A then calls mmap(MAP_FIXED), effectively overwriting
++thread B's mapping.
++.IP
++Thread B need not create a mapping directly; simply making a library call
++that, internally, uses dlopen(3) to load some other shared library, will
++suffice. The dlopen(3) call will map the library into the process's address
++space. Furthermore, almost any library call may be implemented using this
++technique.
++Examples include brk(2), malloc(3), pthread_create(3), and the PAM libraries
++(http://www.linux-pam.org).
++.IP
++Given the above limitations, one of the very few ways to use this option
++safely is: mmap() a region, without specifying MAP_FIXED. Then, within that
++region, call mmap(MAP_FIXED) to suballocate regions. This avoids both the
++portability problem (because the first mmap call lets the kernel pick the
++address), and the address space corruption problem (because the region being
++overwritten is already owned by the calling thread).
++.IP
++Newer kernels
++(Linux 4.16 and later) have a
++.B MAP_FIXED_SAFE
++option that avoids the corruption problem; if available, MAP_FIXED_SAFE
++should be preferred over MAP_FIXED.
+ .TP
+ .B MAP_GROWSDOWN
+ This flag is used for stacks.
+-- 
+2.15.1
