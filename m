@@ -1,120 +1,104 @@
-From: Mike Rapoport <rppt-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-Subject: Re: [PATCH v2] mmap.2: MAP_FIXED updated documentation
-Date: Mon, 4 Dec 2017 13:31:13 +0200
-Message-ID: <20171204113113.GA13465@rapoport-lnx>
-References: <20171204021411.4786-1-jhubbard@nvidia.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCHv2 12/12] arm64: docs: document pointer authentication
+Date: Mon, 4 Dec 2017 12:39:33 +0000
+Message-ID: <20171204123932.pru4lw753xm7qlwb@lakrids.cambridge.arm.com>
+References: <20171127163806.31435-1-mark.rutland@arm.com>
+ <20171127163806.31435-13-mark.rutland@arm.com>
+ <20171128150726.xui5i23uigvfo52w@kamzik.brq.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:34814 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751711AbdLDMjm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 4 Dec 2017 07:39:42 -0500
 Content-Disposition: inline
-In-Reply-To: <20171204021411.4786-1-jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: john.hubbard-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
-Cc: Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-man <linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Michal Hocko <mhocko-IBi9RG/b67k@public.gmane.org>, John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20171128150726.xui5i23uigvfo52w@kamzik.brq.redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Jones <drjones@redhat.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, cdall@linaro.org, arnd@arndb.de, marc.zyngier@arm.com, catalin.marinas@arm.com, yao.qi@arm.com, kernel-hardening@lists.openwall.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org, kvmarm@lists.cs.columbia.edu
 
-On Sun, Dec 03, 2017 at 06:14:11PM -0800, john.hubbard-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org wrote:
-> From: John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-> 
-> Previously, MAP_FIXED was "discouraged", due to portability
-> issues with the fixed address. In fact, there are other, more
-> serious issues. Also, in some limited cases, this option can
-> be used safely.
-> 
-> Expand the documentation to discuss both the hazards, and how
-> to use it safely.
-> 
-> The "Portability issues" wording is lifted directly from
-> Matthew Wilcox's review. The notes about other libraries
-> creating mappings is also from Matthew (lightly edited).
-> 
-> The suggestion to explain how to use MAP_FIXED safely is
-> from Jann Horn.
-> 
-> Suggested-by: Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-> Suggested-by: Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-> Signed-off-by: John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-> ---
-> 
-> Changed from v1:
-> 
->     -- Covered topics recommended by Matthew Wilcox
->        and Jann Horn, in their recent review: the hazards
->        of overwriting pre-exising mappings, and some notes
->        about how to use MAP_FIXED safely.
-> 
->     -- Rewrote the commit description accordingly.
-> 
->  man2/mmap.2 | 38 ++++++++++++++++++++++++++++++++++++--
->  1 file changed, 36 insertions(+), 2 deletions(-)
-> 
-> diff --git a/man2/mmap.2 b/man2/mmap.2
-> index 385f3bfd5..9038256d4 100644
-> --- a/man2/mmap.2
-> +++ b/man2/mmap.2
-> @@ -222,8 +222,42 @@ part of the existing mapping(s) will be discarded.
->  If the specified address cannot be used,
->  .BR mmap ()
->  will fail.
-> -Because requiring a fixed address for a mapping is less portable,
-> -the use of this option is discouraged.
-> +.IP
-> +This option is extremely hazardous (when used on its own) and moderately
-> +non-portable.
-> +.IP
-> +Portability issues: a process's memory map may change significantly from one
-> +run to the next, depending on library versions, kernel versions and random
-> +numbers.
-> +.IP
-> +Hazards: this option forcibly removes pre-existing mappings, making it easy
-> +for a multi-threaded process to corrupt its own address space.
-> +.IP
-> +For example, thread A looks through /proc/<pid>/maps and locates an available
-> +address range, while thread B simultaneously acquires part or all of that same
-> +address range. Thread A then calls mmap(MAP_FIXED), effectively overwriting
-> +thread B's mapping.
-> +.IP
-> +Thread B need not create a mapping directly; simply making a library call
-> +that, internally, uses dlopen(3) to load some other shared library, will
-> +suffice. The dlopen(3) call will map the library into the process's address
-> +space. Furthermore, almost any library call may be implemented using this
-> +technique.
-> +Examples include brk(2), malloc(3), pthread_create(3), and the PAM libraries
-> +(http://www.linux-pam.org).
-> +.IP
-> +Given the above limitations, one of the very few ways to use this option
-> +safely is: mmap() a region, without specifying MAP_FIXED. Then, within that
-> +region, call mmap(MAP_FIXED) to suballocate regions. This avoids both the
-> +portability problem (because the first mmap call lets the kernel pick the
-> +address), and the address space corruption problem (because the region being
-> +overwritten is already owned by the calling thread).
+On Tue, Nov 28, 2017 at 04:07:26PM +0100, Andrew Jones wrote:
+> Hi Mark,
 
-Maybe "address space corruption problem caused by implicit calls to mmap"?
-The region allocated with the first mmap is not exactly owned by the
-thread and a multi-thread application can still corrupt its memory if
-different threads use mmap(MAP_FIXED) for overlapping regions.
+Hi Drew,
 
-My 2 cents.
-
-> +.IP
-> +Newer kernels
-> +(Linux 4.16 and later) have a
-> +.B MAP_FIXED_SAFE
-> +option that avoids the corruption problem; if available, MAP_FIXED_SAFE
-> +should be preferred over MAP_FIXED.
->  .TP
->  .B MAP_GROWSDOWN
->  This flag is used for stacks.
-> -- 
-> 2.15.1
+> On Mon, Nov 27, 2017 at 04:38:06PM +0000, Mark Rutland wrote:
+> > +Architecture overview
+> > +---------------------
+> > +
+> > +The ARMv8.3 Pointer Authentication extension adds primitives that can be
+> > +used to mitigate certain classes of attack where an attacker can corrupt
+> > +the contents of some memory (e.g. the stack).
+> > +
+> > +The extension uses a Pointer Authentication Code (PAC) to determine
+> > +whether pointers have been modified unexpectedly. A PAC is derived from
+> > +a pointer, another value (such as the stack pointer), and a secret key
+> > +held in system registers.
+> > +
+> > +The extension adds instructions to insert a valid PAC into a pointer,
+> > +and to verify/remove the PAC from a pointer. The PAC occupies a number
+> > +of high-order bits of the pointer, which varies dependent on the
+> > +configured virtual address size and whether pointer tagging is in use.
+> > +
+> > +A subset of these instructions have been allocated from the HINT
+> > +encoding space. In the absence of the extension (or when disabled),
+> > +these instructions behave as NOPs. Applications and libraries using
+> > +these instructions operate correctly regardless of the presence of the
+> > +extension.
 > 
-> --
-> To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> the body to majordomo-Bw31MaZKKs0EbZ0PF+XxCw@public.gmane.org  For more info on Linux MM,
-> see: http://www.linux-mm.org/ .
-> Don't email: <a href=mailto:"dont-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org"> email-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org </a>
-> 
+> Correctly, but obviously without the additional security. So I assume
+> it's expected that applications that demand this security to probe for
+> it themselves, presumably by the checking the HWCAP. Is that correct?
 
--- 
-Sincerely yours,
-Mike.
+Yes. Applications which wish to mandate pointer authentication
+(presumably using instructions outside of the HINT space) must check the
+relevant HWCAP first.
+
+[...]
+
+> > +Virtualization
+> > +--------------
+> > +
+> > +When CONFIG_ARM64_POINTER_AUTHENTICATION is selected, and uniform HW
+> > +support is present, KVM will context switch all keys used by vCPUs.
+> > +Otherwise, the feature is disabled. When disabled, accesses to keys, or
+> > +use of instructions enabled within the guest will trap to EL2, and an
+> > +UNDEFINED exception will be injected into the guest.
+> 
+> If host applications will just run, with the instructions behaving like
+> NOPs, when the extension is either not present or not enabled, then
+> shouldn't guest applications also just run?
+
+The enabled/disabled wording is probably the confusing bit here.
+
+At EL1 we have conditional enables for instructions using
+AP{I,D}{A,B}Key, which behave as NOPs when disabled.
+
+At EL2 we have a single conditional trap for all instructions using
+pointer authentication, that traps to EL2 when instructions are not
+NOP'd by EL1.
+
+So "disabled by EL2" is actually "trapped by EL2", and "disabled by EL1"
+is "NOP'd by EL1".
+
+> I.e. instead of injecting UNDEF, just treat the instructions as NOPs.
+> Or did I misunderstand the trapping?
+
+I think the documentation explained it poorly. Did the above help?
+
+> Does use of the instructions at EL0 trap to EL1 or EL2?
+
+If disabled by EL1, the instructions behave as NOPs (regardless of the
+EL2 traps).
+
+If enabled by EL1, but trapped by EL2, the instructions trap to EL2.
+
+If enabled by EL1, and not trapped by EL2, the instructions work as
+usual.
+
+I'll see if I can document this better.
+
+Thanks,
+Mark.
