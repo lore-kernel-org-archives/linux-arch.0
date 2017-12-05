@@ -1,94 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:34387 "EHLO mx2.suse.de"
+Received: from ale.deltatee.com ([207.54.116.67]:54040 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752911AbdLEIwz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 Dec 2017 03:52:55 -0500
-Date: Tue, 5 Dec 2017 09:52:51 +0100
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH v2] mmap.2: MAP_FIXED updated documentation
-Message-ID: <20171205085251.o5ol7tupoh2xbmb7@dhcp22.suse.cz>
-References: <20171204021411.4786-1-jhubbard@nvidia.com>
- <20171204105549.GA31332@rei>
- <efb6eae4-7f30-42c3-0efe-0ab5fbf0fdb4@nvidia.com>
- <20171205070510.aojohhvixijk3i27@dhcp22.suse.cz>
- <2cff594a-b481-269d-dd91-ff2cc2f4100a@nvidia.com>
+        id S1752622AbdLEXbT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 5 Dec 2017 18:31:19 -0500
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Tue,  5 Dec 2017 16:30:50 -0700
+Message-ID: <20171205233058.5365-1-logang@deltatee.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <2cff594a-b481-269d-dd91-ff2cc2f4100a@nvidia.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Subject: [PATCH v9 0/8] Add io{read|write}64 to io-64-atomic headers
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Hubbard <jhubbard@nvidia.com>
-Cc: Cyril Hrubis <chrubis@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>
-Message-ID: <20171205085251.1AOw7sdwCc15XKKerTu8vazn3o7zagoKWgTlirWQHLY@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <20171205233050.-d_whbGIDS7PPAlO1RyN1kkvxVhSiYmBgmvxCF1kEWU@z>
 
-On Mon 04-12-17 23:42:00, John Hubbard wrote:
-> On 12/04/2017 11:05 PM, Michal Hocko wrote:
-> > On Mon 04-12-17 18:14:18, John Hubbard wrote:
-> >> On 12/04/2017 02:55 AM, Cyril Hrubis wrote:
-> >>> Hi!
-> >>> I know that we are not touching the rest of the existing description for
-> >>> MAP_FIXED however the second sentence in the manual page says that "addr
-> >>> must be a multiple of the page size." Which however is misleading as
-> >>> this is not enough on some architectures. Code in the wild seems to
-> >>> (mis)use SHMLBA for aligment purposes but I'm not sure that we should
-> >>> advise something like that in the manpages.
-> >>>
-> >>> So what about something as:
-> >>>
-> >>> "addr must be suitably aligned, for most architectures multiple of page
-> >>> size is sufficient, however some may impose additional restrictions for
-> >>> page mapping addresses."
-> >>>
-> >>
-> >> Hi Cyril,
-> >>
-> >> Right, so I've been looking into this today, and I think we can go a bit
-> >> further than that, even. The kernel, as far back as the *original* git
-> >> commit in 2005, implements mmap on ARM by requiring that the address is
-> >> aligned to SHMLBA:
-> >>
-> >> arch/arm/mm/mmap.c:50:
-> >>
-> >> 	if (flags & MAP_FIXED) {
-> >> 		if (aliasing && flags & MAP_SHARED &&
-> >> 		    (addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1))
-> >> 			return -EINVAL;
-> >> 		return addr;
-> >> 	}
-> >>
-> >> So, given that this has been the implementation for the last 12+ years (and
-> >> probably the whole time, in fact), I think we can be bold enough to use this
-> >> wording for the second sentence of MAP_FIXED:
-> >>
-> >> "addr must be a multiple of SHMLBA (<sys/shm.h>), which in turn is either
-> >> the system page size (on many architectures) or a multiple of the system
-> >> page size (on some architectures)."
-> >>
-> >> What do you think?
-> > 
-> > I am not sure this is a good idea. This is pulling way too many
-> > implementation details into the man page IMHO. Note that your wording is
-> > even incorrect because this applies only to shared mappings and on some
-> > architectures it even requires special memory regions. We do not want
-> > all that in the man page...
-> > 
-> 
-> Hi Michal,
-> 
-> OK, so it sounds like Cyril's original wording would be just about right,
-> after all, like this?
-> 
-> "addr must be suitably aligned. For most architectures multiple of page
-> size is sufficient; however, some may impose additional restrictions."
-> 
-> (It does seem unfortunate that the man page cannot help the programmer
-> actually write correct code here. He or she is forced to read the kernel
-> implementation, in order to figure out the true alignment rules. I was
-> hoping we could avoid that.)
+This is v9 of my cleanup series to push a number of instances of people
+defining their own io{read|write}64 functions when they don't exist in
+non-64bit systems. This series adds inline functions to the
+io-64-nonatomic headers and then cleans up the drivers that defined their
+own.
 
-I strongly suspect that this is more the architecture than the kernel
-implementation imposed restriction.
--- 
-Michal Hocko
-SUSE Labs
+Changes since v8:
+- Rebased onto v4.15-rc2, as a result rewrote patch 7 seeing someone did
+  some similar cleanup in that area.
+- Added a patch to clean up the Switchtec NTB driver which landed in
+  v4.15-rc1
+
+Changes since v7:
+- Fix minor nits from Andy Shevchenko
+- Rebased onto v4.14-rc1
+
+Changes since v6:
+ ** none **
+
+Changes since v5:
+- Added a fix to the tilcdc driver to ensure it doesn't use the
+  non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
+  defines).
+
+Changes since v4:
+- Add functions so the powerpc implementation of iomap.c compiles. (As
+  noticed by Horia)
+
+Changes since v3:
+
+- I noticed powerpc didn't use the appropriate functions seeing
+  readq/writeq were not defined when iomap.h was included. Thus I've
+  included a patch to adjust this
+- Fixed some mistakes with a couple of the defines in io-64-nonatomic*
+  headers
+- Fixed a typo noticed by Horia.
+
+(earlier versions were drastically different)
+
+Logan Gunthorpe (8):
+  drm/tilcdc: ensure nonatomic iowrite64 is not used
+  powerpc: io.h: move iomap.h include so that it can use readq/writeq
+    defs
+  powerpc: iomap.c: introduce io{read|write}64_{lo_hi|hi_lo}
+  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
+  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
+  ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common
+    header
+
+ arch/powerpc/include/asm/io.h          |   6 +-
+ arch/powerpc/kernel/iomap.c            |  40 ++++++++++
+ drivers/crypto/caam/regs.h             |  26 +------
+ drivers/gpu/drm/tilcdc/tilcdc_regs.h   |   2 +-
+ drivers/ntb/hw/intel/ntb_hw_intel.c    |  30 +-------
+ drivers/ntb/hw/mscc/ntb_hw_switchtec.c |  30 +-------
+ include/asm-generic/iomap.h            |  26 +++++--
+ include/linux/io-64-nonatomic-hi-lo.h  |  64 ++++++++++++++++
+ include/linux/io-64-nonatomic-lo-hi.h  |  64 ++++++++++++++++
+ lib/iomap.c                            | 132 +++++++++++++++++++++++++++++++++
+ 10 files changed, 328 insertions(+), 92 deletions(-)
+
+--
+2.11.0
