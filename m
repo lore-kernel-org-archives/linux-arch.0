@@ -1,122 +1,69 @@
-From: john.hubbard@gmail.com
-Subject: [PATCH v3] mmap.2: MAP_FIXED updated documentation
-Date: Mon,  4 Dec 2017 19:12:57 -0800
-Message-ID: <20171205031257.14407-1-jhubbard@nvidia.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:46661 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750995AbdLEDND (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Dec 2017 22:13:03 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@suse.com>, John Hubbard <jhubbard@nvidia.com>
+From: Michal Hocko <mhocko-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Subject: Re: [PATCH v2] mmap.2: MAP_FIXED updated documentation
+Date: Tue, 5 Dec 2017 08:05:10 +0100
+Message-ID: <20171205070510.aojohhvixijk3i27@dhcp22.suse.cz>
+References: <20171204021411.4786-1-jhubbard@nvidia.com>
+ <20171204105549.GA31332@rei>
+ <efb6eae4-7f30-42c3-0efe-0ab5fbf0fdb4@nvidia.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <efb6eae4-7f30-42c3-0efe-0ab5fbf0fdb4-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
+Cc: Cyril Hrubis <chrubis-AlSwsSmVLrQ@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-man <linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: John Hubbard <jhubbard@nvidia.com>
+On Mon 04-12-17 18:14:18, John Hubbard wrote:
+> On 12/04/2017 02:55 AM, Cyril Hrubis wrote:
+> > Hi!
+> > I know that we are not touching the rest of the existing description for
+> > MAP_FIXED however the second sentence in the manual page says that "addr
+> > must be a multiple of the page size." Which however is misleading as
+> > this is not enough on some architectures. Code in the wild seems to
+> > (mis)use SHMLBA for aligment purposes but I'm not sure that we should
+> > advise something like that in the manpages.
+> > 
+> > So what about something as:
+> > 
+> > "addr must be suitably aligned, for most architectures multiple of page
+> > size is sufficient, however some may impose additional restrictions for
+> > page mapping addresses."
+> > 
+> 
+> Hi Cyril,
+> 
+> Right, so I've been looking into this today, and I think we can go a bit
+> further than that, even. The kernel, as far back as the *original* git
+> commit in 2005, implements mmap on ARM by requiring that the address is
+> aligned to SHMLBA:
+> 
+> arch/arm/mm/mmap.c:50:
+> 
+> 	if (flags & MAP_FIXED) {
+> 		if (aliasing && flags & MAP_SHARED &&
+> 		    (addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1))
+> 			return -EINVAL;
+> 		return addr;
+> 	}
+> 
+> So, given that this has been the implementation for the last 12+ years (and
+> probably the whole time, in fact), I think we can be bold enough to use this
+> wording for the second sentence of MAP_FIXED:
+> 
+> "addr must be a multiple of SHMLBA (<sys/shm.h>), which in turn is either
+> the system page size (on many architectures) or a multiple of the system
+> page size (on some architectures)."
+> 
+> What do you think?
 
-Previously, MAP_FIXED was "discouraged", due to portability
-issues with the fixed address. In fact, there are other, more
-serious issues. Also, in some limited cases, this option can
-be used safely.
+I am not sure this is a good idea. This is pulling way too many
+implementation details into the man page IMHO. Note that your wording is
+even incorrect because this applies only to shared mappings and on some
+architectures it even requires special memory regions. We do not want
+all that in the man page...
 
-Expand the documentation to discuss both the hazards, and how
-to use it safely.
-
-Some of the wording is lifted from Matthew Wilcox's review
-(the "Portability issues" section).
-
-Suggested-by: Matthew Wilcox <willy@infradead.org>
-Suggested-by: Jann Horn <jannh@google.com>
-Signed-off-by: John Hubbard <jhubbard@nvidia.com>
----
-
-Changes since v2:
-
-    -- Fixed up the "how to use safely" example, in response
-       to Mike Rapoport's review.
-
-    -- Changed the alignment requirement from system page
-       size, to SHMLBA. This was inspired by (but not yet
-       recommended by) Cyril Hrubis' review.
-
-    -- Formatting: underlined /proc/<pid>/maps 
-
-Changes since v1:
-
-    -- Covered topics recommended by Matthew Wilcox
-       and Jann Horn, in their recent review: the hazards
-       of overwriting pre-exising mappings, and some notes
-       about how to use MAP_FIXED safely.
-
-    -- Rewrote the commit description accordingly.
-
- man2/mmap.2 | 47 ++++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 44 insertions(+), 3 deletions(-)
-
-diff --git a/man2/mmap.2 b/man2/mmap.2
-index 385f3bfd5..0db8fad80 100644
---- a/man2/mmap.2
-+++ b/man2/mmap.2
-@@ -212,7 +212,9 @@ Don't interpret
- .I addr
- as a hint: place the mapping at exactly that address.
- .I addr
--must be a multiple of the page size.
-+must be a multiple of SHMLBA (<sys/shm.h>), which in turn is either
-+the system page size (on many architectures) or a multiple of the system
-+page size (on some architectures).
- If the memory region specified by
- .I addr
- and
-@@ -222,8 +224,47 @@ part of the existing mapping(s) will be discarded.
- If the specified address cannot be used,
- .BR mmap ()
- will fail.
--Because requiring a fixed address for a mapping is less portable,
--the use of this option is discouraged.
-+.IP
-+This option is extremely hazardous (when used on its own) and moderately
-+non-portable.
-+.IP
-+Portability issues: a process's memory map may change significantly from one
-+run to the next, depending on library versions, kernel versions and random
-+numbers.
-+.IP
-+Hazards: this option forcibly removes pre-existing mappings, making it easy
-+for a multi-threaded process to corrupt its own address space.
-+.IP
-+For example, thread A looks through
-+.I /proc/<pid>/maps
-+and locates an available
-+address range, while thread B simultaneously acquires part or all of that same
-+address range. Thread A then calls mmap(MAP_FIXED), effectively overwriting
-+thread B's mapping.
-+.IP
-+Thread B need not create a mapping directly; simply making a library call
-+that, internally, uses
-+.I dlopen(3)
-+to load some other shared library, will
-+suffice. The dlopen(3) call will map the library into the process's address
-+space. Furthermore, almost any library call may be implemented using this
-+technique.
-+Examples include brk(2), malloc(3), pthread_create(3), and the PAM libraries
-+(http://www.linux-pam.org).
-+.IP
-+Given the above limitations, one of the very few ways to use this option
-+safely is: mmap() an enclosing region, without specifying MAP_FIXED.
-+Then, within that region, call mmap(MAP_FIXED) to suballocate regions
-+within the enclosing region. This avoids both the portability problem
-+(because the first mmap call lets the kernel pick the address), and the
-+address space corruption problem (because implicit calls to mmap will
-+not affect the already-mapped enclosing region).
-+.IP
-+Newer kernels
-+(Linux 4.16 and later) have a
-+.B MAP_FIXED_SAFE
-+option that avoids the corruption problem; if available, MAP_FIXED_SAFE
-+should be preferred over MAP_FIXED.
- .TP
- .B MAP_GROWSDOWN
- This flag is used for stacks.
 -- 
-2.15.1
+Michal Hocko
+SUSE Labs
