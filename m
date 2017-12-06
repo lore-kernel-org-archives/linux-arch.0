@@ -1,78 +1,91 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v9 0/8] Add io{read|write}64 to io-64-atomic headers
-Date: Tue,  5 Dec 2017 16:30:50 -0700
-Message-ID: <20171205233058.5365-1-logang@deltatee.com>
+From: John Hubbard <jhubbard@nvidia.com>
+Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+Date: Wed, 6 Dec 2017 00:06:52 -0800
+Message-ID: <27ee1755-76d8-f086-5760-9c973b31108a@nvidia.com>
+References: <20171129144219.22867-1-mhocko@kernel.org>
+ <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
+ <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz> <20171201152640.GA3765@rei>
+ <87wp20e9wf.fsf@concordia.ellerman.id.au>
+ <20171206045433.GQ26021@bombadil.infradead.org>
+ <20171206070355.GA32044@bombadil.infradead.org>
+ <5f4fc834-274a-b8f1-bda0-5bcddc5902ed@nvidia.com>
+ <b4cc4225-d49c-51b0-dd18-e8038b5136e1@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <b4cc4225-d49c-51b0-dd18-e8038b5136e1@redhat.com>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Florian Weimer <fweimer@redhat.com>, Matthew Wilcox <willy@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>
+Cc: Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@kernel.org>, Kees Cook <keescook@chromium.org>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>
 List-Id: linux-arch.vger.kernel.org
 
-This is v9 of my cleanup series to push a number of instances of people
-defining their own io{read|write}64 functions when they don't exist in
-non-64bit systems. This series adds inline functions to the
-io-64-nonatomic headers and then cleans up the drivers that defined their
-own.
+On 12/05/2017 11:35 PM, Florian Weimer wrote:
+> On 12/06/2017 08:33 AM, John Hubbard wrote:
+>> In that case, maybe:
+>>
+>> =C2=A0=C2=A0=C2=A0=C2=A0 MAP_EXACT
+>>
+>> ? ...because that's the characteristic behavior.
+>=20
+> Is that true?=C2=A0 mmap still silently rounding up the length to the pag=
+e size, I assume, so even that name is misleading.
 
-Changes since v8:
-- Rebased onto v4.15-rc2, as a result rewrote patch 7 seeing someone did
-  some similar cleanup in that area.
-- Added a patch to clean up the Switchtec NTB driver which landed in
-  v4.15-rc1
+Hi Florian,
 
-Changes since v7:
-- Fix minor nits from Andy Shevchenko
-- Rebased onto v4.14-rc1
+Not as far as I can tell, it's not doing that.
 
-Changes since v6:
- ** none **
+For both MAP_FIXED, and this new flag, the documented (and actual)
+behavior is *not* to do any such rounding. Instead, the requested
+input address is required to be page-aligned itself, and mmap()
+should be honoring the exact addr.
 
-Changes since v5:
-- Added a fix to the tilcdc driver to ensure it doesn't use the
-  non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
-  defines).
+From the mmap(2) man page:
 
-Changes since v4:
-- Add functions so the powerpc implementation of iomap.c compiles. (As
-  noticed by Horia)
+   MAP_FIXED
+          Don't  interpret  addr  as  a  hint: place the mapping at
+          exactly that address.  addr must be  a  multiple  of  the
+          page  size.=20
 
-Changes since v3:
 
-- I noticed powerpc didn't use the appropriate functions seeing
-  readq/writeq were not defined when iomap.h was included. Thus I've
-  included a patch to adjust this
-- Fixed some mistakes with a couple of the defines in io-64-nonatomic*
-  headers
-- Fixed a typo noticed by Horia.
+And from what I can see, the do_mmap() implementation leaves addr
+unchanged, in the MAP_FIXED case:
 
-(earlier versions were drastically different)
+do_mmap(...)
+{
+        /* ... */
+	if (!(flags & MAP_FIXED))
+		addr =3D round_hint_to_min(addr);
 
-Logan Gunthorpe (8):
-  drm/tilcdc: ensure nonatomic iowrite64 is not used
-  powerpc: io.h: move iomap.h include so that it can use readq/writeq
-    defs
-  powerpc: iomap.c: introduce io{read|write}64_{lo_hi|hi_lo}
-  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
-  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
-  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
-  ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common
-    header
+...although it does look like device drivers have the opportunity
+to break that:
 
- arch/powerpc/include/asm/io.h          |   6 +-
- arch/powerpc/kernel/iomap.c            |  40 ++++++++++
- drivers/crypto/caam/regs.h             |  26 +------
- drivers/gpu/drm/tilcdc/tilcdc_regs.h   |   2 +-
- drivers/ntb/hw/intel/ntb_hw_intel.c    |  30 +-------
- drivers/ntb/hw/mscc/ntb_hw_switchtec.c |  30 +-------
- include/asm-generic/iomap.h            |  26 +++++--
- include/linux/io-64-nonatomic-hi-lo.h  |  64 ++++++++++++++++
- include/linux/io-64-nonatomic-lo-hi.h  |  64 ++++++++++++++++
- lib/iomap.c                            | 132 +++++++++++++++++++++++++++++++++
- 10 files changed, 328 insertions(+), 92 deletions(-)
+mmap_region(...)
+{
+		/* Can addr have changed??
+		 *
+		 * Answer: Yes, several device drivers can do it in their
+		 *         f_op->mmap method. -DaveM
+		 * Bug: If addr is changed, prev, rb_link, rb_parent should
+		 *      be updated for vma_link()
+		 */
+		WARN_ON_ONCE(addr !=3D vma->vm_start);
+
+		addr =3D vma->vm_start;
+  =20
 
 --
-2.11.0
+thanks,
+John Hubbard
+NVIDIA
+
+>=20
+> Thanks,
+> Florian
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
