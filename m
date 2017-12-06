@@ -1,143 +1,150 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:53703 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:56241 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753656AbdLFJ11 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 6 Dec 2017 04:27:27 -0500
-Date: Wed, 6 Dec 2017 10:27:24 +0100
+        id S1754301AbdLFKCc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 6 Dec 2017 05:02:32 -0500
+Date: Wed, 6 Dec 2017 11:02:29 +0100
 From: Michal Hocko <mhocko@kernel.org>
 Subject: Re: [PATCH 1/2] mm: introduce MAP_FIXED_SAFE
-Message-ID: <20171206092724.GH16386@dhcp22.suse.cz>
+Message-ID: <20171206100229.GI16386@dhcp22.suse.cz>
 References: <20171129144219.22867-1-mhocko@kernel.org>
  <20171129144219.22867-2-mhocko@kernel.org>
  <87tvx4e8sz.fsf@concordia.ellerman.id.au>
+ <20171206092724.GH16386@dhcp22.suse.cz>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <87tvx4e8sz.fsf@concordia.ellerman.id.au>
+In-Reply-To: <20171206092724.GH16386@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michael Ellerman <mpe@ellerman.id.au>
 Cc: linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>
-Message-ID: <20171206092724.jVrN4LTDqBq9rKW9hypRdDEhrPbBM_bKh5V0HItUGto@z>
+Message-ID: <20171206100229.T0LwujsNE8c7ux4G_yy7V6YNx4T7UBiN4rqjVy2gpP8@z>
 
-On Wed 06-12-17 16:15:24, Michael Ellerman wrote:
-> Hi Michal,
+On Wed 06-12-17 10:27:24, Michal Hocko wrote:
+> On Wed 06-12-17 16:15:24, Michael Ellerman wrote:
+[...]
+> > So I think I proved above that all the arches that are using 0x80000 are
+> > also using mman-common.h, and vice-versa.
+> > 
+> > So you can put this in mman-common.h can't your?
 > 
-> Some comments below.
-> 
-> Michal Hocko <mhocko@kernel.org> writes:
-> 
-> > From: Michal Hocko <mhocko@suse.com>
-> >
-> > MAP_FIXED is used quite often to enforce mapping at the particular
-> > range. The main problem of this flag is, however, that it is inherently
-> > dangerous because it unmaps existing mappings covered by the requested
-> > range. This can cause silent memory corruptions. Some of them even with
-> > serious security implications. While the current semantic might be
-> > really desiderable in many cases there are others which would want to
-> > enforce the given range but rather see a failure than a silent memory
-> > corruption on a clashing range. Please note that there is no guarantee
-> > that a given range is obeyed by the mmap even when it is free - e.g.
-> > arch specific code is allowed to apply an alignment.
-> 
-> I don't think this last sentence is correct. Or maybe I don't understand
-> what you're referring to.
-> 
-> If you specifiy MAP_FIXED on a page boundary then the mapping must be
-> made at that address, I don't think arch code is allowed to add any
-> extra alignment.
+> Yes it seems I can. I would have to double check. It is true that
+> defining the new flag closer to MAP_FIXED makes some sense
 
-The last sentence doesn't talk about MAP_FIXED. It talks about a hint
-based mmap without MAP_FIXED ("there are others which would want to
-enforce the given range but rather see a failure").
+OK, so some recap
+those which include generic mman-common.h directly
+arch/sparc/include/uapi/asm/mman.h:#include <asm-generic/mman-common.h>
+arch/powerpc/include/uapi/asm/mman.h:#include <asm-generic/mman-common.h>
+arch/tile/include/uapi/asm/mman.h:#include <asm-generic/mman-common.h>
+
+then we have
+arch/metag/include/asm/mman.h
+which includes uapi/asm/mman.h and that is a generic one
+arch/metag/include/uapi/asm/Kbuild:generic-y += mman.h
+
+others include generic mman.h
+arch/arm/include/uapi/asm/mman.h:#include <asm-generic/mman.h>
+arch/frv/include/uapi/asm/mman.h:#include <asm-generic/mman.h>
+arch/ia64/include/uapi/asm/mman.h:#include <asm-generic/mman.h>
+arch/m32r/include/uapi/asm/mman.h:#include <asm-generic/mman.h>
+arch/mn10300/include/uapi/asm/mman.h:#include <asm-generic/mman.h>
+arch/score/include/uapi/asm/mman.h:#include <asm-generic/mman.h>
+arch/x86/include/uapi/asm/mman.h:#include <asm-generic/mman.h>
+
+which includes mman-common.h as well
+
+and then we are left with
+arch/alpha/include/uapi/asm/mman.h
+arch/mips/include/uapi/asm/mman.h
+arch/parisc/include/uapi/asm/mman.h
+arch/xtensa/include/uapi/asm/mman.h
+
+which do not include anything. So the patch can be indeed simplified.
+I will fold the following into the patch. I hope nothing got left behind
+but my defconfig compile test on all arches which i have a cross
+compiler for succeeded.
+---
+commit 52a9272f419f428cb079d340f64113325516ef9b
+Author: Michal Hocko <mhocko@suse.com>
+Date:   Wed Dec 6 10:46:16 2017 +0100
+
+    - define MAP_FIXED_SAFE in asm-generic/mman-common.h as per Michael
+      Ellerman because all architecture which use this header can share
+      the same value. This will leave us with only 4 arches which need
+      special handling.
+
+diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
+index ef3770262925..7287dbf1e11b 100644
+--- a/arch/alpha/include/uapi/asm/mman.h
++++ b/arch/alpha/include/uapi/asm/mman.h
+@@ -31,7 +31,6 @@
+ #define MAP_NONBLOCK	0x40000		/* do not block on IO */
+ #define MAP_STACK	0x80000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x100000	/* create a huge page mapping */
+-
+ #define MAP_FIXED_SAFE	0x200000	/* MAP_FIXED which doesn't unmap underlying mapping */
  
-[...]
-> > diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
-> > index 6bf730063e3f..ef3770262925 100644
-> > --- a/arch/alpha/include/uapi/asm/mman.h
-> > +++ b/arch/alpha/include/uapi/asm/mman.h
-> > @@ -32,6 +32,8 @@
-> >  #define MAP_STACK	0x80000		/* give out an address that is best suited for process/thread stacks */
-> >  #define MAP_HUGETLB	0x100000	/* create a huge page mapping */
-> >  
-> > +#define MAP_FIXED_SAFE	0x200000	/* MAP_FIXED which doesn't unmap underlying mapping */
-> > +
-> 
-> Why the new line before MAP_FIXED_SAFE? It should sit with the others.
-
-will remove the empty line
-
-> You're using a different value to other arches here, but that's OK, and
-> alpha doesn't use asm-generic/mman.h or mman-common.h
-> 
-> > diff --git a/arch/powerpc/include/uapi/asm/mman.h b/arch/powerpc/include/uapi/asm/mman.h
-> > index e63bc37e33af..3ffd284e7160 100644
-> > --- a/arch/powerpc/include/uapi/asm/mman.h
-> > +++ b/arch/powerpc/include/uapi/asm/mman.h
-> > @@ -29,5 +29,6 @@
-> >  #define MAP_NONBLOCK	0x10000		/* do not block on IO */
-> >  #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
-> >  #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
-> > +#define MAP_FIXED_SAFE	0x800000	/* MAP_FIXED which doesn't unmap underlying mapping */
-> 
-> Why did you pick 0x800000?
-> 
-> I don't see any reason you can't use 0x8000 on powerpc.
-
-Copy&paste I guess, will update it.
-
-[...]
-
-> >  #ifdef CONFIG_MMAP_ALLOW_UNINITIALIZED
-> >  # define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be
-> >  					 * uninitialized */
-> > @@ -63,6 +64,7 @@
-> >  # define MAP_UNINITIALIZED 0x0		/* Don't support this flag */
-> >  #endif
-> >  
-> > +
-> 
-> Stray new line.
-
-will remove
-
-> >  /*
-> >   * Flags for msync
-> >   */
-> > diff --git a/include/uapi/asm-generic/mman.h b/include/uapi/asm-generic/mman.h
-> > index 2dffcbf705b3..56cde132a80a 100644
-> > --- a/include/uapi/asm-generic/mman.h
-> > +++ b/include/uapi/asm-generic/mman.h
-> > @@ -13,6 +13,7 @@
-> >  #define MAP_NONBLOCK	0x10000		/* do not block on IO */
-> >  #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
-> >  #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
-> > +#define MAP_FIXED_SAFE	0x80000		/* MAP_FIXED which doesn't unmap underlying mapping */
-> 
-> So I think I proved above that all the arches that are using 0x80000 are
-> also using mman-common.h, and vice-versa.
-> 
-> So you can put this in mman-common.h can't you?
-
-Yes it seems I can. I would have to double check. It is true that
-defining the new flag closer to MAP_FIXED makes some sense
-
-[...]
-> So it would be more accurate to say something like:
-> 
-> 	/*
-> 	 * Internal to the kernel MAP_FIXED_SAFE is a superset of
-> 	 * MAP_FIXED, so set MAP_FIXED in flags if MAP_FIXED_SAFE was
-> 	 * set by the caller. This avoids all the arch code having to
-> 	 * check for MAP_FIXED and MAP_FIXED_SAFE.
-> 	 */
-> 	if (flags & MAP_FIXED_SAFE)
-> 		flags |= MAP_FIXED;
-
-OK, I will use this wording.
-
-Thanks for your review! Finally something that doesn't try to beat the
-name to death ;)
+ #define MS_ASYNC	1		/* sync memory asynchronously */
+diff --git a/arch/powerpc/include/uapi/asm/mman.h b/arch/powerpc/include/uapi/asm/mman.h
+index 3ffd284e7160..e63bc37e33af 100644
+--- a/arch/powerpc/include/uapi/asm/mman.h
++++ b/arch/powerpc/include/uapi/asm/mman.h
+@@ -29,6 +29,5 @@
+ #define MAP_NONBLOCK	0x10000		/* do not block on IO */
+ #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
+-#define MAP_FIXED_SAFE	0x800000	/* MAP_FIXED which doesn't unmap underlying mapping */
+ 
+ #endif /* _UAPI_ASM_POWERPC_MMAN_H */
+diff --git a/arch/sparc/include/uapi/asm/mman.h b/arch/sparc/include/uapi/asm/mman.h
+index 0c282c09fae8..d21bffd5d3dc 100644
+--- a/arch/sparc/include/uapi/asm/mman.h
++++ b/arch/sparc/include/uapi/asm/mman.h
+@@ -24,7 +24,5 @@
+ #define MAP_NONBLOCK	0x10000		/* do not block on IO */
+ #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
+-#define MAP_FIXED_SAFE	0x80000		/* MAP_FIXED which doesn't unmap underlying mapping */
+-
+ 
+ #endif /* _UAPI__SPARC_MMAN_H__ */
+diff --git a/arch/tile/include/uapi/asm/mman.h b/arch/tile/include/uapi/asm/mman.h
+index b212f5fd5345..9b7add95926b 100644
+--- a/arch/tile/include/uapi/asm/mman.h
++++ b/arch/tile/include/uapi/asm/mman.h
+@@ -30,7 +30,6 @@
+ #define MAP_DENYWRITE	0x0800		/* ETXTBSY */
+ #define MAP_EXECUTABLE	0x1000		/* mark it as an executable */
+ #define MAP_HUGETLB	0x4000		/* create a huge page mapping */
+-#define MAP_FIXED_SAFE	0x8000		/* MAP_FIXED which doesn't unmap underlying mapping */
+ 
+ 
+ /*
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index 6d319c46fd90..1eca2cb10d44 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -25,6 +25,7 @@
+ #else
+ # define MAP_UNINITIALIZED 0x0		/* Don't support this flag */
+ #endif
++#define MAP_FIXED_SAFE	0x80000		/* MAP_FIXED which doesn't unmap underlying mapping */
+ 
+ /*
+  * Flags for mlock
+diff --git a/include/uapi/asm-generic/mman.h b/include/uapi/asm-generic/mman.h
+index 56cde132a80a..2dffcbf705b3 100644
+--- a/include/uapi/asm-generic/mman.h
++++ b/include/uapi/asm-generic/mman.h
+@@ -13,7 +13,6 @@
+ #define MAP_NONBLOCK	0x10000		/* do not block on IO */
+ #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
+-#define MAP_FIXED_SAFE	0x80000		/* MAP_FIXED which doesn't unmap underlying mapping */
+ 
+ /* Bits [26:31] are reserved, see mman-common.h for MAP_HUGETLB usage */
+ 
 -- 
 Michal Hocko
 SUSE Labs
