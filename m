@@ -1,47 +1,66 @@
-From: John Hubbard <jhubbard@nvidia.com>
-Subject: Re: [PATCH v2] mmap.2: MAP_FIXED updated documentation
-Date: Wed, 6 Dec 2017 13:21:25 -0800
-Message-ID: <deb952d9-82bc-e737-8060-8fe7e70f44a1@nvidia.com>
-References: <20171204021411.4786-1-jhubbard@nvidia.com>
- <20171204105549.GA31332@rei>
- <efb6eae4-7f30-42c3-0efe-0ab5fbf0fdb4@nvidia.com>
- <20171205070510.aojohhvixijk3i27@dhcp22.suse.cz>
- <2cff594a-b481-269d-dd91-ff2cc2f4100a@nvidia.com>
- <20171206100118.GA13979@rei>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] frv: fix build failure
+Date: Wed, 6 Dec 2017 14:00:23 -0800
+Message-ID: <817df34a-f471-99d7-aaa1-94e0ee9d5ffa@synopsys.com>
+References: <1511302233-5008-1-git-send-email-sudipm.mukherjee@gmail.com>
+ <1511457437.32422.6.camel@synopsys.com>
+ <3a6fe86e-7a66-56df-3b1d-e2e8cd3e6eae@synopsys.com>
+ <20171203223226.GA3741@sudip-laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset="utf-8"; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate15.nvidia.com ([216.228.121.64]:19614 "EHLO
-        hqemgate15.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751718AbdLFVV0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 16:21:26 -0500
-In-Reply-To: <20171206100118.GA13979@rei>
+Received: from smtprelay.synopsys.com ([198.182.60.111]:45043 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751598AbdLFWAg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 17:00:36 -0500
+In-Reply-To: <20171203223226.GA3741@sudip-laptop>
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Cyril Hrubis <chrubis@suse.cz>
-Cc: Michal Hocko <mhocko@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>
+To: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
 
-On 12/06/2017 02:01 AM, Cyril Hrubis wrote:
-> Hi!
->> (It does seem unfortunate that the man page cannot help the programmer
->> actually write correct code here. He or she is forced to read the kernel
->> implementation, in order to figure out the true alignment rules. I was
->> hoping we could avoid that.)
+On 12/03/2017 02:32 PM, Sudip Mukherjee wrote:
+> On Mon, Nov 27, 2017 at 10:25:16AM -0800, Vineet Gupta wrote:
+>> +CC linux-arch, Arnd
+>>
+>> On 11/23/2017 09:17 AM, Alexey Brodkin wrote:
+>>> Hi Sudip,
+>>>
+>>> On Tue, 2017-11-21 at 22:10 +0000, Sudip Mukherjee wrote:
 > 
-> It would be nice if we had this information exported somehere so that we
-> do not have to rely on per-architecture ifdefs.
+> <snip>
 > 
-> What about adding MapAligment or something similar to the /proc/meminfo?
+>> I understand the case/need for adding a weak/common abort() as a
+>> quick fix for handling such cases, but perhaps we should not and
+>> instead fix the rootcause. In this specific case, Claudiu mentioned
+>> that gcc was generating abort due to something like this (flagging a
+>> possible divide by zero due to
+>> -fno-isolate-erroneous-paths-dereference.
+>>
+>> a;
+>>
+>> fn1() {
+>>    switch (a)
+>>    case 0:
+>>    return 1 / a;
+>> }
+>>
+>> Sudeep can you confirm that removing this hacking FRV build to not
+>> have this toggle fixes the abort issue.
+>>
+>> So the offending code needs to be fixed as in the end when that code
+>> path is taken system is hosed.
 > 
+> The above case that you mentioned is indeed the case here.
+> mpihelp_divrem() in lib/mpi/mpih-div.c has this same divide by zero case.
+> 
+> So, what should be the actual fix here?
 
-What's the use case you envision for that? I don't see how that would be
-better than using SHMLBA, which is available at compiler time. Because 
-unless someone expects to be able to run an app that was compiled for 
-Arch X, on Arch Y (surely that's not requirement here?), I don't see how
-the run-time check is any better.
+To remove the divide by zero.
 
-Or maybe you're thinking that since the SHMLBA cannot be put in the man
-pages, we could instead provide MapAlignment as sort of a different
-way to document the requirement?
+Or atleast have a __weak abort() defined in common code so all arches benefit from 
+it !
+
+-Vineet
