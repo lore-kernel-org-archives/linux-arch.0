@@ -1,128 +1,48 @@
-From: john.hubbard@gmail.com
-Subject: [PATCH v4] mmap.2: MAP_FIXED updated documentation
-Date: Tue,  5 Dec 2017 19:14:34 -0800
-Message-ID: <20171206031434.29087-1-jhubbard@nvidia.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f67.google.com ([209.85.160.67]:38875 "EHLO
-        mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754345AbdLFDOi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Dec 2017 22:14:38 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@kernel.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@suse.com>, John Hubbard <jhubbard@nvidia.com>
+From: Michal Hocko <mhocko-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+Date: Wed, 6 Dec 2017 10:08:03 +0100
+Message-ID: <20171206090803.GG16386@dhcp22.suse.cz>
+References: <20171129144219.22867-1-mhocko@kernel.org>
+ <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
+ <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz>
+ <87zi6we9z2.fsf@concordia.ellerman.id.au>
+ <a3b3129a-2626-a65e-59b0-68aada523723@prevas.dk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <a3b3129a-2626-a65e-59b0-68aada523723-rjjw5hvvQKZaa/9Udqfwiw@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Rasmus Villemoes <rasmus.villemoes-rjjw5hvvQKZaa/9Udqfwiw@public.gmane.org>
+Cc: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Khalid Aziz <khalid.aziz-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Russell King - ARM Linux <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, Andrea Arcangeli <aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Linux-MM <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, Abdul Haleem <abdhalee-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Joel Stanley <joel-U3u1mxZcP9KHXe+LvDLADg@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: John Hubbard <jhubbard@nvidia.com>
+On Wed 06-12-17 08:33:37, Rasmus Villemoes wrote:
+> On 2017-12-06 05:50, Michael Ellerman wrote:
+> > Michal Hocko <mhocko-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org> writes:
+> > 
+> >> On Wed 29-11-17 14:25:36, Kees Cook wrote:
+> >> It is safe in a sense it doesn't perform any address space dangerous
+> >> operations. mmap is _inherently_ about the address space so the context
+> >> should be kind of clear.
+> > 
+> > So now you have to define what "dangerous" means.
+> > 
+> >>> MAP_FIXED_UNIQUE
+> >>> MAP_FIXED_ONCE
+> >>> MAP_FIXED_FRESH
+> >>
+> >> Well, I can open a poll for the best name, but none of those you are
+> >> proposing sound much better to me. Yeah, naming sucks...
+> 
+> I also don't like the _SAFE name - MAP_FIXED in itself isn't unsafe [1],
+> but I do agree that having a way to avoid clobbering (parts of) an
+> existing mapping is quite useful. Since we're bikeshedding names, how
+> about MAP_FIXED_EXCL, in analogy with the O_ flag.
 
-Previously, MAP_FIXED was "discouraged", due to portability
-issues with the fixed address. In fact, there are other, more
-serious issues. Also, alignment requirements were a bit vague.
-So:
-
-    -- Expand the documentation to discuss the hazards in
-       enough detail to allow avoiding them.
-
-    -- Mention the upcoming MAP_FIXED_SAFE flag.
-
-    -- Enhance the alignment requirement slightly.
-
-Some of the wording is lifted from Matthew Wilcox's review
-(the "Portability issues" section). The alignment requirements
-section uses Cyril Hrubis' wording, with light editing applied.
-
-Suggested-by: Matthew Wilcox <willy@infradead.org>
-Suggested-by: Cyril Hrubis <chrubis@suse.cz>
-Signed-off-by: John Hubbard <jhubbard@nvidia.com>
----
-
-Changes since v3:
-
-    -- Removed the "how to use this safely" part, and
-       the SHMLBA part, both as a result of Michal Hocko's
-       review.
-
-    -- A few tiny wording fixes, at the not-quite-typo level.
-
-Changes since v2:
-
-    -- Fixed up the "how to use safely" example, in response
-       to Mike Rapoport's review.
-
-    -- Changed the alignment requirement from system page
-       size, to SHMLBA. This was inspired by (but not yet
-       recommended by) Cyril Hrubis' review.
-
-    -- Formatting: underlined /proc/<pid>/maps 
-
-Changes since v1:
-
-    -- Covered topics recommended by Matthew Wilcox
-       and Jann Horn, in their recent review: the hazards
-       of overwriting pre-exising mappings, and some notes
-       about how to use MAP_FIXED safely.
-
-    -- Rewrote the commit description accordingly.
-
- man2/mmap.2 | 40 ++++++++++++++++++++++++++++++++++++----
- 1 file changed, 36 insertions(+), 4 deletions(-)
-
-diff --git a/man2/mmap.2 b/man2/mmap.2
-index 385f3bfd5..56b05cff1 100644
---- a/man2/mmap.2
-+++ b/man2/mmap.2
-@@ -212,8 +212,9 @@ Don't interpret
- .I addr
- as a hint: place the mapping at exactly that address.
- .I addr
--must be a multiple of the page size.
--If the memory region specified by
-+must be suitably aligned: for most architectures a multiple of page
-+size is sufficient; however, some architectures may impose additional
-+restrictions. If the memory region specified by
- .I addr
- and
- .I len
-@@ -222,8 +223,39 @@ part of the existing mapping(s) will be discarded.
- If the specified address cannot be used,
- .BR mmap ()
- will fail.
--Because requiring a fixed address for a mapping is less portable,
--the use of this option is discouraged.
-+.IP
-+This option is extremely hazardous (when used on its own) and moderately
-+non-portable.
-+.IP
-+Portability issues: a process's memory map may change significantly from one
-+run to the next, depending on library versions, kernel versions and random
-+numbers.
-+.IP
-+Hazards: this option forcibly removes pre-existing mappings, making it easy
-+for a multi-threaded process to corrupt its own address space.
-+.IP
-+For example, thread A looks through
-+.I /proc/<pid>/maps
-+and locates an available
-+address range, while thread B simultaneously acquires part or all of that same
-+address range. Thread A then calls mmap(MAP_FIXED), effectively overwriting
-+the mapping that thread B created.
-+.IP
-+Thread B need not create a mapping directly; simply making a library call
-+that, internally, uses
-+.I dlopen(3)
-+to load some other shared library, will
-+suffice. The dlopen(3) call will map the library into the process's address
-+space. Furthermore, almost any library call may be implemented using this
-+technique.
-+Examples include brk(2), malloc(3), pthread_create(3), and the PAM libraries
-+(http://www.linux-pam.org).
-+.IP
-+Newer kernels
-+(Linux 4.16 and later) have a
-+.B MAP_FIXED_SAFE
-+option that avoids the corruption problem; if available, MAP_FIXED_SAFE
-+should be preferred over MAP_FIXED.
- .TP
- .B MAP_GROWSDOWN
- This flag is used for stacks.
+I really give up on the name discussion. I will take whatever the
+majority comes up with. I just do not want this (useful) funtionality
+get bikeched to death.
 -- 
-2.15.1
+Michal Hocko
+SUSE Labs
