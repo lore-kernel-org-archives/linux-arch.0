@@ -1,76 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:54078 "EHLO ale.deltatee.com"
+Received: from ozlabs.org ([103.22.144.67]:32949 "EHLO ozlabs.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753058AbdLEXbV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 5 Dec 2017 18:31:21 -0500
-From: Logan Gunthorpe <logang@deltatee.com>
-Date: Tue,  5 Dec 2017 16:30:58 -0700
-Message-ID: <20171205233058.5365-9-logang@deltatee.com>
-In-Reply-To: <20171205233058.5365-1-logang@deltatee.com>
-References: <20171205233058.5365-1-logang@deltatee.com>
-Subject: [PATCH v9 8/8] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
+        id S1752197AbdLFEuL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 5 Dec 2017 23:50:11 -0500
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+In-Reply-To: <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz>
+References: <20171129144219.22867-1-mhocko@kernel.org> <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com> <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz>
+Date: Wed, 06 Dec 2017 15:50:09 +1100
+Message-ID: <87zi6we9z2.fsf@concordia.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Jon Mason <jdmason@kudzu.us>
-Message-ID: <20171205233058.kZhRQ0PpC5iPe4ZPu8-b1cROND37ORL8DBPAyo4CltE@z>
+To: Michal Hocko <mhocko@kernel.org>, Kees Cook <keescook@chromium.org>
+Cc: Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>
+Message-ID: <20171206045009.Lv54yh5k3dmKBJwC4V_HqknMiS89ZOedNTBGGU9M-ug@z>
 
-Clean up the ifdefs which conditionally defined the io{read|write}64
-functions in favour of the new common io-64-nonatomic-lo-hi header.
+Michal Hocko <mhocko@kernel.org> writes:
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Cc: Jon Mason <jdmason@kudzu.us>
----
- drivers/ntb/hw/mscc/ntb_hw_switchtec.c | 30 +-----------------------------
- 1 file changed, 1 insertion(+), 29 deletions(-)
+> On Wed 29-11-17 14:25:36, Kees Cook wrote:
+>> On Wed, Nov 29, 2017 at 6:42 AM, Michal Hocko <mhocko@kernel.org> wrote:
+>> > The first patch introduced MAP_FIXED_SAFE which enforces the given
+>> > address but unlike MAP_FIXED it fails with ENOMEM if the given range
+>> > conflicts with an existing one. The flag is introduced as a completely
+>> 
+>> I still think this name should be better. "SAFE" doesn't say what it's
+>> safe from...
 
-diff --git a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-index afe8ed6f3b23..53d3a34cddf3 100644
---- a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-+++ b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-@@ -19,6 +19,7 @@
- #include <linux/kthread.h>
- #include <linux/interrupt.h>
- #include <linux/ntb.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- MODULE_DESCRIPTION("Microsemi Switchtec(tm) NTB Driver");
- MODULE_VERSION("0.1");
-@@ -35,35 +36,6 @@ module_param(use_lut_mws, bool, 0644);
- MODULE_PARM_DESC(use_lut_mws,
- 		 "Enable the use of the LUT based memory windows");
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- #define SWITCHTEC_NTB_MAGIC 0x45CC0001
- #define MAX_MWS     128
- 
--- 
-2.11.0
+Yes exactly.
+
+> It is safe in a sense it doesn't perform any address space dangerous
+> operations. mmap is _inherently_ about the address space so the context
+> should be kind of clear.
+
+So now you have to define what "dangerous" means.
+
+>> MAP_FIXED_UNIQUE
+>> MAP_FIXED_ONCE
+>> MAP_FIXED_FRESH
+>
+> Well, I can open a poll for the best name, but none of those you are
+> proposing sound much better to me. Yeah, naming sucks...
+
+I think Kees and I both previously suggested MAP_NO_CLOBBER for the
+modifier.
+
+So the obvious option for this would be MAP_FIXED_NO_CLOBBER.
+
+Which is a bit longer sure, but says more or less exactly what it does.
+
+cheers
