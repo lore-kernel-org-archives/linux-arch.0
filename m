@@ -1,32 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:53720 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752294AbdLFR0I (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 12:26:08 -0500
-Subject: Patch "locking/refcounts, x86/asm: Use unique .text section for refcount exceptions" has been added to the 4.14-stable tree
-From: <gregkh@linuxfoundation.org>
-Date: Wed, 06 Dec 2017 18:26:02 +0100
-Message-ID: <15125811628183@kroah.com>
+Received: from hqemgate15.nvidia.com ([216.228.121.64]:19614 "EHLO
+        hqemgate15.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751718AbdLFVV0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 16:21:26 -0500
+Subject: Re: [PATCH v2] mmap.2: MAP_FIXED updated documentation
+References: <20171204021411.4786-1-jhubbard@nvidia.com>
+ <20171204105549.GA31332@rei>
+ <efb6eae4-7f30-42c3-0efe-0ab5fbf0fdb4@nvidia.com>
+ <20171205070510.aojohhvixijk3i27@dhcp22.suse.cz>
+ <2cff594a-b481-269d-dd91-ff2cc2f4100a@nvidia.com>
+ <20171206100118.GA13979@rei>
+From: John Hubbard <jhubbard@nvidia.com>
+Message-ID: <deb952d9-82bc-e737-8060-8fe7e70f44a1@nvidia.com>
+Date: Wed, 6 Dec 2017 13:21:25 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=ANSI_X3.4-1968
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20171206100118.GA13979@rei>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: keescook@chromium.org, alexander.levin@verizon.com, ard.biesheuvel@linaro.org, efault@gmx.de, elena.reshetova@intel.com, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, tglx@linutronix.de, torvalds@linux-foundation.org
-Cc: stable@vger.kernel.org, stable-commits@vger.kernel.org
-Message-ID: <20171206172602._n4aKpakI9tgyVrrLXspiduPovk4BNBLZP8jnMquzUA@z>
+To: Cyril Hrubis <chrubis@suse.cz>
+Cc: Michal Hocko <mhocko@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>
+Message-ID: <20171206212125.7tzimsEXi23hafBDISLN-NDX1bKlrEyFGBQwm_9QerA@z>
 
+On 12/06/2017 02:01 AM, Cyril Hrubis wrote:
+> Hi!
+>> (It does seem unfortunate that the man page cannot help the programmer
+>> actually write correct code here. He or she is forced to read the kernel
+>> implementation, in order to figure out the true alignment rules. I was
+>> hoping we could avoid that.)
+> 
+> It would be nice if we had this information exported somehere so that we
+> do not have to rely on per-architecture ifdefs.
+> 
+> What about adding MapAligment or something similar to the /proc/meminfo?
+> 
 
-This is a note to let you know that I've just added the patch titled
+What's the use case you envision for that? I don't see how that would be
+better than using SHMLBA, which is available at compiler time. Because 
+unless someone expects to be able to run an app that was compiled for 
+Arch X, on Arch Y (surely that's not requirement here?), I don't see how
+the run-time check is any better.
 
-    locking/refcounts, x86/asm: Use unique .text section for refcount exceptions
+Or maybe you're thinking that since the SHMLBA cannot be put in the man
+pages, we could instead provide MapAlignment as sort of a different
+way to document the requirement?
 
-to the 4.14-stable tree which can be found at:
-    http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
-
-The filename of the patch is:
-     locking-refcounts-x86-asm-use-unique-.text-section-for-refcount-exceptions.patch
-and it can be found in the queue-4.14 subdirectory.
-
-If you, or anyone else, feels it should not be added to the stable tree,
-please let <stable@vger.kernel.org> know about it.
+--
+thanks,
+John Hubbard
+NVIDIA
