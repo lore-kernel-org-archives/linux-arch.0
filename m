@@ -1,52 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:46892 "EHLO mx1.redhat.com"
+Received: from mx2.suse.de ([195.135.220.15]:51823 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750989AbdLFIyf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 6 Dec 2017 03:54:35 -0500
+        id S1753588AbdLFJIH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 6 Dec 2017 04:08:07 -0500
+Date: Wed, 6 Dec 2017 10:08:03 +0100
+From: Michal Hocko <mhocko@kernel.org>
 Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+Message-ID: <20171206090803.GG16386@dhcp22.suse.cz>
 References: <20171129144219.22867-1-mhocko@kernel.org>
  <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
- <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz> <20171201152640.GA3765@rei>
- <87wp20e9wf.fsf@concordia.ellerman.id.au>
- <20171206045433.GQ26021@bombadil.infradead.org>
- <20171206070355.GA32044@bombadil.infradead.org>
- <5f4fc834-274a-b8f1-bda0-5bcddc5902ed@nvidia.com>
- <b4cc4225-d49c-51b0-dd18-e8038b5136e1@redhat.com>
- <27ee1755-76d8-f086-5760-9c973b31108a@nvidia.com>
-From: Florian Weimer <fweimer@redhat.com>
-Message-ID: <66677640-5c4a-0758-9560-e45de2d5ba06@redhat.com>
-Date: Wed, 6 Dec 2017 09:54:30 +0100
+ <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz>
+ <87zi6we9z2.fsf@concordia.ellerman.id.au>
+ <a3b3129a-2626-a65e-59b0-68aada523723@prevas.dk>
 MIME-Version: 1.0
-In-Reply-To: <27ee1755-76d8-f086-5760-9c973b31108a@nvidia.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <a3b3129a-2626-a65e-59b0-68aada523723@prevas.dk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>
-Cc: Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@kernel.org>, Kees Cook <keescook@chromium.org>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>
-Message-ID: <20171206085430.Po6VjIzV2uBg4rwCm6H85k1QImP-pVfWGBV4ZtX8wAo@z>
+To: Rasmus Villemoes <rasmus.villemoes@prevas.dk>
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Kees Cook <keescook@chromium.org>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>
+Message-ID: <20171206090803.GJ7Wh0smYfsW-csIKWhLxIaFUmLj9T1MfqrdLP-0F6M@z>
 
-On 12/06/2017 09:06 AM, John Hubbard wrote:
-> On 12/05/2017 11:35 PM, Florian Weimer wrote:
->> On 12/06/2017 08:33 AM, John Hubbard wrote:
->>> In that case, maybe:
->>>
->>>       MAP_EXACT
->>>
->>> ? ...because that's the characteristic behavior.
->>
->> Is that true?  mmap still silently rounding up the length to the page size, I assume, so even that name is misleading.
+On Wed 06-12-17 08:33:37, Rasmus Villemoes wrote:
+> On 2017-12-06 05:50, Michael Ellerman wrote:
+> > Michal Hocko <mhocko@kernel.org> writes:
+> > 
+> >> On Wed 29-11-17 14:25:36, Kees Cook wrote:
+> >> It is safe in a sense it doesn't perform any address space dangerous
+> >> operations. mmap is _inherently_ about the address space so the context
+> >> should be kind of clear.
+> > 
+> > So now you have to define what "dangerous" means.
+> > 
+> >>> MAP_FIXED_UNIQUE
+> >>> MAP_FIXED_ONCE
+> >>> MAP_FIXED_FRESH
+> >>
+> >> Well, I can open a poll for the best name, but none of those you are
+> >> proposing sound much better to me. Yeah, naming sucks...
 > 
-> Hi Florian,
-> 
-> Not as far as I can tell, it's not doing that.
-> 
-> For both MAP_FIXED, and this new flag, the documented (and actual)
-> behavior is *not* to do any such rounding. Instead, the requested
-> input address is required to be page-aligned itself, and mmap()
-> should be honoring the exact addr.
+> I also don't like the _SAFE name - MAP_FIXED in itself isn't unsafe [1],
+> but I do agree that having a way to avoid clobbering (parts of) an
+> existing mapping is quite useful. Since we're bikeshedding names, how
+> about MAP_FIXED_EXCL, in analogy with the O_ flag.
 
-I meant the length, not the address.
-
-Florian
+I really give up on the name discussion. I will take whatever the
+majority comes up with. I just do not want this (useful) funtionality
+get bikeched to death.
+-- 
+Michal Hocko
+SUSE Labs
