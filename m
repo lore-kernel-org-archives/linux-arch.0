@@ -1,144 +1,114 @@
-From: <gregkh@linuxfoundation.org>
-Subject: Patch "locking/refcounts, x86/asm: Use unique .text section for refcount exceptions" has been added to the 4.14-stable tree
-Date: Wed, 06 Dec 2017 18:26:02 +0100
-Message-ID: <15125811628183@kroah.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v5 15/30] arm64/sve: Signal handling support
+Date: Wed, 6 Dec 2017 11:56:50 -0800
+Message-ID: <CAGXu5jJgsAg1VBMbx=mV3ep4hzs+1G46Sow4eeFqCK31b_sORA@mail.gmail.com>
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com> <1509465082-30427-16-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ANSI_X3.4-1968
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:53720 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752294AbdLFR0I (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 12:26:08 -0500
+Received: from mail-vk0-f67.google.com ([209.85.213.67]:42513 "EHLO
+        mail-vk0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751610AbdLFT4w (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 14:56:52 -0500
+Received: by mail-vk0-f67.google.com with SMTP id o70so3445251vkc.9
+        for <linux-arch@vger.kernel.org>; Wed, 06 Dec 2017 11:56:51 -0800 (PST)
+In-Reply-To: <1509465082-30427-16-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: keescook@chromium.org, alexander.levin@verizon.com, ard.biesheuvel@linaro.org, efault@gmx.de, elena.reshetova@intel.com, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, tglx@linutronix.de, torvalds@linux-foundation.org
-Cc: stable@vger.kernel.org, stable-commits@vger.kernel.org
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha <libc-alpha@sourceware.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, =?UTF-8?B?QWxleCBCZW5uw6ll?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
 
+On Tue, Oct 31, 2017 at 8:51 AM, Dave Martin <Dave.Martin@arm.com> wrote:
+> This patch implements support for saving and restoring the SVE
+> registers around signals.
+>
+> A fixed-size header struct sve_context is always included in the
+> signal frame encoding the thread's vector length at the time of
+> signal delivery, optionally followed by a variable-layout structure
+> encoding the SVE registers.
+>
+> Because of the need to preserve backwards compatibility, the FPSIMD
+> view of the SVE registers is always dumped as a struct
+> fpsimd_context in the usual way, in addition to any sve_context.
+>
+> The SVE vector registers are dumped in full, including bits 127:0
+> of each register which alias the corresponding FPSIMD vector
+> registers in the hardware.  To avoid any ambiguity about which
+> alias to restore during sigreturn, the kernel always restores bits
+> 127:0 of each SVE vector register from the fpsimd_context in the
+> signal frame (which must be present): userspace needs to take this
+> into account if it wants to modify the SVE vector register contents
+> on return from a signal.
+>
+> FPSR and FPCR, which are used by both FPSIMD and SVE, are not
+> included in sve_context because they are always present in
+> fpsimd_context anyway.
+>
+> For signal delivery, a new helper
+> fpsimd_signal_preserve_current_state() is added to update _both_
+> the FPSIMD and SVE views in the task struct, to make it easier to
+> populate this information into the signal frame.  Because of the
+> redundancy between the two views of the state, only one is updated
+> otherwise.
+>
+> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+> Cc: Alex Benn=C3=A9e <alex.bennee@linaro.org>
+> Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+> Cc: Will Deacon <will.deacon@arm.com>
+>
+> ---
+>
+> **Dropped** Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> (Non-trivial changes.)
+>
+> Changes since v4
+> ----------------
+>
+> Requested by Will Deacon:
+>
+>  * Fix inconsistent return semantics in restore_sve_fpsimd_context().
+>
+>    Currently a nonzero return value from __copy_from_user() is passed
+>    back as-is to the caller or restore_sve_fpsimd_context(), rather than
+>    translating it do an error code as is done elsewhere.
+>
+>    Callers of restore_sve_fpsimd_context() only care whether the return
+>    value is 0 or not, so this isn't a big deal, but it is more
+>    consistent to return proper error codes on failure in case we grow a
+>    use for them later.
+>
+>    This patch returns -EFAULT in the __copy_from_user() error cases
+>    that weren't explicitly handled.
+>
+> Miscellaneous:
+>
+>  * Change inconsistent copy_to_user() calls to __copy_to_user() in
+>    preserve_sve_context().
+>
+>    There are already __put_user_error() calls here.
+>
+>    The whole extended signal frame is already checked for
+>    access_ok(VERIFY_WRITE) in get_sigframe().
 
-This is a note to let you know that I've just added the patch titled
+Verifying all these __copy_to/from_user() calls is rather non-trivial.
+For example, I had to understand that the access_ok() check actually
+spans memory that both user->sigframe and user->next_frame point into.
+And it isn't clear to me that all users of apply_user_offset() are
+within this range too, along with other manually calculated offsets in
+setup_sigframe().
 
-    locking/refcounts, x86/asm: Use unique .text section for refcount exceptions
+And it's not clear if parse_user_sigframe() is safe either. Are
+user->fpsimd and user->sve checked somewhere? It seems like it's
+safely contained by in sf->uc.uc_mcontext.__reserved, but it's hard to
+read, though I do see access_ok() checks against __reserved at the end
+of the while loop.
 
-to the 4.14-stable tree which can be found at:
-    http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
+Can we just drop all the __... calls for the fully checked
+copy_to/from_user() instead?
 
-The filename of the patch is:
-     locking-refcounts-x86-asm-use-unique-.text-section-for-refcount-exceptions.patch
-and it can be found in the queue-4.14 subdirectory.
+-Kees
 
-If you, or anyone else, feels it should not be added to the stable tree,
-please let <stable@vger.kernel.org> know about it.
-
-
-From foo@baz Wed Dec  6 18:04:41 CET 2017
-From: Kees Cook <keescook@chromium.org>
-Date: Sat, 2 Sep 2017 13:09:45 -0700
-Subject: locking/refcounts, x86/asm: Use unique .text section for refcount exceptions
-
-From: Kees Cook <keescook@chromium.org>
-
-
-[ Upstream commit 564c9cc84e2adf8a6671c1937f0a9fe3da2a4b0e ]
-
-Using .text.unlikely for refcount exceptions isn't safe because gcc may
-move entire functions into .text.unlikely (e.g. in6_dev_dev()), which
-would cause any uses of a protected refcount_t function to stay inline
-with the function, triggering the protection unconditionally:
-
-        .section        .text.unlikely,"ax",@progbits
-        .type   in6_dev_get, @function
-in6_dev_getx:
-.LFB4673:
-        .loc 2 4128 0
-        .cfi_startproc
-...
-        lock; incl 480(%rbx)
-        js 111f
-        .pushsection .text.unlikely
-111:    lea 480(%rbx), %rcx
-112:    .byte 0x0f, 0xff
-.popsection
-113:
-
-This creates a unique .text..refcount section and adds an additional
-test to the exception handler to WARN in the case of having none of OF,
-SF, nor ZF set so we can see things like this more easily in the future.
-
-The double dot for the section name keeps it out of the TEXT_MAIN macro
-namespace, to avoid collisions and so it can be put at the end with
-text.unlikely to keep the cold code together.
-
-See commit:
-
-  cb87481ee89db ("kbuild: linker script do not match C names unless LD_DEAD_CODE_DATA_ELIMINATION is configured")
-
-... which matches C names: [a-zA-Z0-9_] but not ".".
-
-Reported-by: Mike Galbraith <efault@gmx.de>
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: Elena <elena.reshetova@intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Fixes: 7a46ec0e2f48 ("locking/refcounts, x86/asm: Implement fast refcount overflow protection")
-Link: http://lkml.kernel.org/r/1504382986-49301-2-git-send-email-keescook@chromium.org
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Sasha Levin <alexander.levin@verizon.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- arch/x86/include/asm/refcount.h   |    2 +-
- arch/x86/mm/extable.c             |    7 ++++++-
- include/asm-generic/vmlinux.lds.h |    1 +
- 3 files changed, 8 insertions(+), 2 deletions(-)
-
---- a/arch/x86/include/asm/refcount.h
-+++ b/arch/x86/include/asm/refcount.h
-@@ -15,7 +15,7 @@
-  * back to the regular execution flow in .text.
-  */
- #define _REFCOUNT_EXCEPTION				\
--	".pushsection .text.unlikely\n"			\
-+	".pushsection .text..refcount\n"		\
- 	"111:\tlea %[counter], %%" _ASM_CX "\n"		\
- 	"112:\t" ASM_UD0 "\n"				\
- 	ASM_UNREACHABLE					\
---- a/arch/x86/mm/extable.c
-+++ b/arch/x86/mm/extable.c
-@@ -67,12 +67,17 @@ bool ex_handler_refcount(const struct ex
- 	 * wrapped around) will be set. Additionally, seeing the refcount
- 	 * reach 0 will set ZF (Zero Flag: result was zero). In each of
- 	 * these cases we want a report, since it's a boundary condition.
--	 *
-+	 * The SF case is not reported since it indicates post-boundary
-+	 * manipulations below zero or above INT_MAX. And if none of the
-+	 * flags are set, something has gone very wrong, so report it.
- 	 */
- 	if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_ZF)) {
- 		bool zero = regs->flags & X86_EFLAGS_ZF;
- 
- 		refcount_error_report(regs, zero ? "hit zero" : "overflow");
-+	} else if ((regs->flags & X86_EFLAGS_SF) == 0) {
-+		/* Report if none of OF, ZF, nor SF are set. */
-+		refcount_error_report(regs, "unexpected saturation");
- 	}
- 
- 	return true;
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -459,6 +459,7 @@
- #define TEXT_TEXT							\
- 		ALIGN_FUNCTION();					\
- 		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
-+		*(.text..refcount)					\
- 		*(.ref.text)						\
- 	MEM_KEEP(init.text)						\
- 	MEM_KEEP(exit.text)						\
-
-
-Patches currently in stable-queue which might be from keescook@chromium.org are
-
-queue-4.14/locking-refcounts-x86-asm-use-unique-.text-section-for-refcount-exceptions.patch
-queue-4.14/locking-refcounts-x86-asm-enable-config_arch_has_refcount.patch
+--=20
+Kees Cook
+Pixel Security
