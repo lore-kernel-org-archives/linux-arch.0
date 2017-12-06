@@ -1,34 +1,79 @@
-From: Florian Weimer <fweimer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
-Date: Wed, 6 Dec 2017 08:35:46 +0100
-Message-ID: <b4cc4225-d49c-51b0-dd18-e8038b5136e1@redhat.com>
-References: <20171129144219.22867-1-mhocko@kernel.org>
- <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
- <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz> <20171201152640.GA3765@rei>
- <87wp20e9wf.fsf@concordia.ellerman.id.au>
- <20171206045433.GQ26021@bombadil.infradead.org>
- <20171206070355.GA32044@bombadil.infradead.org>
- <5f4fc834-274a-b8f1-bda0-5bcddc5902ed@nvidia.com>
+From: <gregkh@linuxfoundation.org>
+Subject: Patch "locking/refcounts, x86/asm: Enable CONFIG_ARCH_HAS_REFCOUNT" has been added to the 4.14-stable tree
+Date: Wed, 06 Dec 2017 18:25:59 +0100
+Message-ID: <151258115912787@kroah.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <5f4fc834-274a-b8f1-bda0-5bcddc5902ed-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-Content-Language: en-US
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
-Cc: Cyril Hrubis <chrubis-AlSwsSmVLrQ@public.gmane.org>, Michal Hocko <mhocko-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Khalid Aziz <khalid.aziz-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Russell King - ARM Linux <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, Andrea Arcangeli <aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Linux-MM <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Abdul Haleem <abdhalee-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Joel Stanley <joel-U3u1mxZcP9KHXe+LvDLADg@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ANSI_X3.4-1968
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:53666 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751815AbdLFR0F (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 12:26:05 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: keescook@chromium.org, alexander.levin@verizon.com, ard.biesheuvel@linaro.org, efault@gmx.de, elena.reshetova@intel.com, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, tglx@linutronix.de, torvalds@linux-foundation.org
+Cc: stable@vger.kernel.org, stable-commits@vger.kernel.org
 
-On 12/06/2017 08:33 AM, John Hubbard wrote:
-> In that case, maybe:
-> 
->      MAP_EXACT
-> 
-> ? ...because that's the characteristic behavior.
 
-Is that true?  mmap still silently rounding up the length to the page 
-size, I assume, so even that name is misleading.
+This is a note to let you know that I've just added the patch titled
 
-Thanks,
-Florian
+    locking/refcounts, x86/asm: Enable CONFIG_ARCH_HAS_REFCOUNT
+
+to the 4.14-stable tree which can be found at:
+    http://www.kernel.org/git/?p=linux/kernel/git/stable/stable-queue.git;a=summary
+
+The filename of the patch is:
+     locking-refcounts-x86-asm-enable-config_arch_has_refcount.patch
+and it can be found in the queue-4.14 subdirectory.
+
+If you, or anyone else, feels it should not be added to the stable tree,
+please let <stable@vger.kernel.org> know about it.
+
+
+From foo@baz Wed Dec  6 18:04:41 CET 2017
+From: Kees Cook <keescook@chromium.org>
+Date: Sat, 2 Sep 2017 13:09:46 -0700
+Subject: locking/refcounts, x86/asm: Enable CONFIG_ARCH_HAS_REFCOUNT
+
+From: Kees Cook <keescook@chromium.org>
+
+
+[ Upstream commit 39208aa7ecb7d9c4e86df782b5693270313cbab1 ]
+
+With the section inlining bug fixed for the x86 refcount protection,
+we can turn the config back on.
+
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Elena <elena.reshetova@intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mike Galbraith <efault@gmx.de>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>
+Link: http://lkml.kernel.org/r/1504382986-49301-3-git-send-email-keescook@chromium.org
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Sasha Levin <alexander.levin@verizon.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/x86/Kconfig |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -56,7 +56,7 @@ config X86
+ 	select ARCH_HAS_KCOV			if X86_64
+ 	select ARCH_HAS_PMEM_API		if X86_64
+ 	# Causing hangs/crashes, see the commit that added this change for details.
+-	select ARCH_HAS_REFCOUNT		if BROKEN
++	select ARCH_HAS_REFCOUNT
+ 	select ARCH_HAS_UACCESS_FLUSHCACHE	if X86_64
+ 	select ARCH_HAS_SET_MEMORY
+ 	select ARCH_HAS_SG_CHAIN
+
+
+Patches currently in stable-queue which might be from keescook@chromium.org are
+
+queue-4.14/locking-refcounts-x86-asm-use-unique-.text-section-for-refcount-exceptions.patch
+queue-4.14/locking-refcounts-x86-asm-enable-config_arch_has_refcount.patch
