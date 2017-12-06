@@ -1,8 +1,8 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:41116 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752915AbdLFHfv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 6 Dec 2017 02:35:51 -0500
+Received: from hqemgate14.nvidia.com ([216.228.121.143]:15084 "EHLO
+        hqemgate14.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751023AbdLFIGx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 03:06:53 -0500
 Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
 References: <20171129144219.22867-1-mhocko@kernel.org>
  <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
@@ -11,29 +11,36 @@ References: <20171129144219.22867-1-mhocko@kernel.org>
  <20171206045433.GQ26021@bombadil.infradead.org>
  <20171206070355.GA32044@bombadil.infradead.org>
  <5f4fc834-274a-b8f1-bda0-5bcddc5902ed@nvidia.com>
-From: Florian Weimer <fweimer@redhat.com>
-Message-ID: <b4cc4225-d49c-51b0-dd18-e8038b5136e1@redhat.com>
-Date: Wed, 6 Dec 2017 08:35:46 +0100
+ <b4cc4225-d49c-51b0-dd18-e8038b5136e1@redhat.com>
+From: John Hubbard <jhubbard@nvidia.com>
+Message-ID: <27ee1755-76d8-f086-5760-9c973b31108a@nvidia.com>
+Date: Wed, 6 Dec 2017 00:06:52 -0800
 MIME-Version: 1.0
-In-Reply-To: <5f4fc834-274a-b8f1-bda0-5bcddc5902ed@nvidia.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
+In-Reply-To: <b4cc4225-d49c-51b0-dd18-e8038b5136e1@redhat.com>
+Content-Type: text/plain; charset="utf-8"
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>
+To: Florian Weimer <fweimer@redhat.com>, Matthew Wilcox <willy@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>
 Cc: Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@kernel.org>, Kees Cook <keescook@chromium.org>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>
-Message-ID: <20171206073546.XmK5ObiUciq5YdqiLjvR0GZGMfhVB8tU-nWJJ8pQ2eM@z>
+Message-ID: <20171206080652.qGL5RsipZYzQDEMX6wS78Am-gDkXxcRtJ2TbEXbkiPE@z>
 
-On 12/06/2017 08:33 AM, John Hubbard wrote:
-> In that case, maybe:
+On 12/05/2017 11:35 PM, Florian Weimer wrote:
+> On 12/06/2017 08:33 AM, John Hubbard wrote:
+>> In that case, maybe:
+>>
+>>      MAP_EXACT
+>>
+>> ? ...because that's the characteristic behavior.
 > 
->      MAP_EXACT
-> 
-> ? ...because that's the characteristic behavior.
+> Is that true?  mmap still silently rounding up the length to the page size, I assume, so even that name is misleading.
 
-Is that true?  mmap still silently rounding up the length to the page 
-size, I assume, so even that name is misleading.
+Hi Florian,
 
-Thanks,
-Florian
+Not as far as I can tell, it's not doing that.
+
+For both MAP_FIXED, and this new flag, the documented (and actual)
+behavior is *not* to do any such rounding. Instead, the requested
+input address is required to be page-aligned itself, and mmap()
+should be honoring the exact addr.
