@@ -1,63 +1,71 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH v2] mmap.2: MAP_FIXED updated documentation
-Date: Thu, 7 Dec 2017 15:02:21 +0100
-Message-ID: <20171207140221.GJ20234@dhcp22.suse.cz>
-References: <20171204021411.4786-1-jhubbard@nvidia.com>
- <20171204105549.GA31332@rei>
- <efb6eae4-7f30-42c3-0efe-0ab5fbf0fdb4@nvidia.com>
- <20171205070510.aojohhvixijk3i27@dhcp22.suse.cz>
- <2cff594a-b481-269d-dd91-ff2cc2f4100a@nvidia.com>
- <20171206100118.GA13979@rei>
- <deb952d9-82bc-e737-8060-8fe7e70f44a1@nvidia.com>
- <20171207125805.GA1210@rei.lan>
+From: Jyri Sarha <jsarha@ti.com>
+Subject: Re: [PATCH v9 1/8] drm/tilcdc: ensure nonatomic iowrite64 is not used
+Date: Thu, 7 Dec 2017 18:15:59 +0200
+Message-ID: <3f3ad132-3b53-0f80-ffe7-3617e3cb78e2@ti.com>
+References: <20171205233058.5365-1-logang@deltatee.com>
+ <20171205233058.5365-2-logang@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20171207125805.GA1210@rei.lan>
-Sender: owner-linux-mm@kvack.org
-To: Cyril Hrubis <chrubis@suse.cz>
-Cc: John Hubbard <jhubbard@nvidia.com>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20171205233058.5365-2-logang@deltatee.com>
+Content-Language: en-GB
+Sender: linux-kernel-owner@vger.kernel.org
+To: Logan Gunthorpe <logang@deltatee.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Tomi Valkeinen <tomi.valkeinen@ti.com>, David Airlie <airlied@linux.ie>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu 07-12-17 13:58:05, Cyril Hrubis wrote:
-> Hi!
-> > >> (It does seem unfortunate that the man page cannot help the programmer
-> > >> actually write correct code here. He or she is forced to read the kernel
-> > >> implementation, in order to figure out the true alignment rules. I was
-> > >> hoping we could avoid that.)
-> > > 
-> > > It would be nice if we had this information exported somehere so that we
-> > > do not have to rely on per-architecture ifdefs.
-> > > 
-> > > What about adding MapAligment or something similar to the /proc/meminfo?
-> > > 
-> > 
-> > What's the use case you envision for that? I don't see how that would be
-> > better than using SHMLBA, which is available at compiler time. Because 
-> > unless someone expects to be able to run an app that was compiled for 
-> > Arch X, on Arch Y (surely that's not requirement here?), I don't see how
-> > the run-time check is any better.
+On 12/06/17 01:30, Logan Gunthorpe wrote:
+> Add a check to ensure iowrite64 is only used if it is atomic.
 > 
-> I guess that some kind of compile time constant in uapi headers will do
-> as well, I'm really open to any solution that would expose this constant
-> as some kind of official API.
+> It was decided in [1] that the tilcdc driver should not be using an
+> atomic operation (so it was left out of this patchset). However, it turns
+> out that through the drm code, a nonatomic header is actually included:
+> 
+> include/linux/io-64-nonatomic-lo-hi.h
+> is included from include/drm/drm_os_linux.h:9:0,
+>             from include/drm/drmP.h:74,
+>             from include/drm/drm_modeset_helper.h:26,
+>             from include/drm/drm_atomic_helper.h:33,
+>             from drivers/gpu/drm/tilcdc/tilcdc_crtc.c:19:
+> 
+> And thus, without this change, this patchset would inadvertantly
+> change the behaviour of the tilcdc driver.
+> 
+> [1] lkml.kernel.org/r/CAK8P3a2HhO_zCnsTzq7hmWSz5La5Thu19FWZpun16iMnyyNreQ@mail.gmail.com
+> 
+> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+> Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+> Cc: Jyri Sarha <jsarha@ti.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Tomi Valkeinen <tomi.valkeinen@ti.com>
+> Cc: David Airlie <airlied@linux.ie>
 
-I am not sure this is really feasible. It is not only a simple alignment
-thing. Look at ppc for example (slice_get_unmapped_area). Other
-architectures might have even more complicated rules e.g. arm and its
-cache_is_vipt_aliasing. Also this applies only on MAP_SHARED || file
-backed mappings.
+I guess it is about time for me to pick this up for the next pull request.
 
-I would really leave dogs sleeping... Trying to document all this in the
-man page has chances to confuse more people than it has chances to help
-those who already know all these nasty details.
+Thanks,
+Jyri
+
+> ---
+>  drivers/gpu/drm/tilcdc/tilcdc_regs.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/drivers/gpu/drm/tilcdc/tilcdc_regs.h b/drivers/gpu/drm/tilcdc/tilcdc_regs.h
+> index 9d528c0a67a4..5048ebb86835 100644
+> --- a/drivers/gpu/drm/tilcdc/tilcdc_regs.h
+> +++ b/drivers/gpu/drm/tilcdc/tilcdc_regs.h
+> @@ -133,7 +133,7 @@ static inline void tilcdc_write64(struct drm_device *dev, u32 reg, u64 data)
+>  	struct tilcdc_drm_private *priv = dev->dev_private;
+>  	volatile void __iomem *addr = priv->mmio + reg;
+>  
+> -#ifdef iowrite64
+> +#if defined(iowrite64) && !defined(iowrite64_is_nonatomic)
+>  	iowrite64(data, addr);
+>  #else
+>  	__iowmb();
+> 
+
+
 -- 
-Michal Hocko
-SUSE Labs
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Texas Instruments Finland Oy, Porkkalankatu 22, 00180 Helsinki.
+Y-tunnus/Business ID: 0615521-4. Kotipaikka/Domicile: Helsinki
