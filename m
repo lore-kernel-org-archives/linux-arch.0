@@ -1,53 +1,63 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 64/75] locking/refcounts, x86/asm: Enable CONFIG_ARCH_HAS_REFCOUNT
-Date: Thu,  7 Dec 2017 14:08:26 +0100
-Message-ID: <20171207130821.402343480@linuxfoundation.org>
-References: <20171207130818.742746317@linuxfoundation.org>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH v2] mmap.2: MAP_FIXED updated documentation
+Date: Thu, 7 Dec 2017 15:02:21 +0100
+Message-ID: <20171207140221.GJ20234@dhcp22.suse.cz>
+References: <20171204021411.4786-1-jhubbard@nvidia.com>
+ <20171204105549.GA31332@rei>
+ <efb6eae4-7f30-42c3-0efe-0ab5fbf0fdb4@nvidia.com>
+ <20171205070510.aojohhvixijk3i27@dhcp22.suse.cz>
+ <2cff594a-b481-269d-dd91-ff2cc2f4100a@nvidia.com>
+ <20171206100118.GA13979@rei>
+ <deb952d9-82bc-e737-8060-8fe7e70f44a1@nvidia.com>
+ <20171207125805.GA1210@rei.lan>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20171207130818.742746317@linuxfoundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Kees Cook <keescook@chromium.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Elena <elena.reshetova@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Mike Galbraith <efault@gmx.de>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Sasha Levin <alexander.levin@verizon.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20171207125805.GA1210@rei.lan>
+Sender: owner-linux-mm@kvack.org
+To: Cyril Hrubis <chrubis@suse.cz>
+Cc: John Hubbard <jhubbard@nvidia.com>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-4.14-stable review patch.  If anyone has any objections, please let me know.
+On Thu 07-12-17 13:58:05, Cyril Hrubis wrote:
+> Hi!
+> > >> (It does seem unfortunate that the man page cannot help the programmer
+> > >> actually write correct code here. He or she is forced to read the kernel
+> > >> implementation, in order to figure out the true alignment rules. I was
+> > >> hoping we could avoid that.)
+> > > 
+> > > It would be nice if we had this information exported somehere so that we
+> > > do not have to rely on per-architecture ifdefs.
+> > > 
+> > > What about adding MapAligment or something similar to the /proc/meminfo?
+> > > 
+> > 
+> > What's the use case you envision for that? I don't see how that would be
+> > better than using SHMLBA, which is available at compiler time. Because 
+> > unless someone expects to be able to run an app that was compiled for 
+> > Arch X, on Arch Y (surely that's not requirement here?), I don't see how
+> > the run-time check is any better.
+> 
+> I guess that some kind of compile time constant in uapi headers will do
+> as well, I'm really open to any solution that would expose this constant
+> as some kind of official API.
 
-------------------
+I am not sure this is really feasible. It is not only a simple alignment
+thing. Look at ppc for example (slice_get_unmapped_area). Other
+architectures might have even more complicated rules e.g. arm and its
+cache_is_vipt_aliasing. Also this applies only on MAP_SHARED || file
+backed mappings.
 
-From: Kees Cook <keescook@chromium.org>
+I would really leave dogs sleeping... Trying to document all this in the
+man page has chances to confuse more people than it has chances to help
+those who already know all these nasty details.
+-- 
+Michal Hocko
+SUSE Labs
 
-
-[ Upstream commit 39208aa7ecb7d9c4e86df782b5693270313cbab1 ]
-
-With the section inlining bug fixed for the x86 refcount protection,
-we can turn the config back on.
-
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: Elena <elena.reshetova@intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mike Galbraith <efault@gmx.de>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Link: http://lkml.kernel.org/r/1504382986-49301-3-git-send-email-keescook@chromium.org
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Sasha Levin <alexander.levin@verizon.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- arch/x86/Kconfig |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -56,7 +56,7 @@ config X86
- 	select ARCH_HAS_KCOV			if X86_64
- 	select ARCH_HAS_PMEM_API		if X86_64
- 	# Causing hangs/crashes, see the commit that added this change for details.
--	select ARCH_HAS_REFCOUNT		if BROKEN
-+	select ARCH_HAS_REFCOUNT
- 	select ARCH_HAS_UACCESS_FLUSHCACHE	if X86_64
- 	select ARCH_HAS_SET_MEMORY
- 	select ARCH_HAS_SG_CHAIN
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
