@@ -1,66 +1,61 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] frv: fix build failure
-Date: Wed, 6 Dec 2017 14:00:23 -0800
-Message-ID: <817df34a-f471-99d7-aaa1-94e0ee9d5ffa@synopsys.com>
-References: <1511302233-5008-1-git-send-email-sudipm.mukherjee@gmail.com>
- <1511457437.32422.6.camel@synopsys.com>
- <3a6fe86e-7a66-56df-3b1d-e2e8cd3e6eae@synopsys.com>
- <20171203223226.GA3741@sudip-laptop>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+Date: Wed, 6 Dec 2017 16:19:52 -0800
+Message-ID: <CAGXu5jKGsAjwF7nE_vjaWPnG0QJRx_qFeiSBLRg_g73iUJ-pwA@mail.gmail.com>
+References: <20171129144219.22867-1-mhocko@kernel.org> <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
+ <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz> <87zi6we9z2.fsf@concordia.ellerman.id.au>
+ <a3b3129a-2626-a65e-59b0-68aada523723@prevas.dk> <20171206090803.GG16386@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:45043 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751598AbdLFWAg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 17:00:36 -0500
-In-Reply-To: <20171203223226.GA3741@sudip-laptop>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20171206090803.GG16386@dhcp22.suse.cz>
+Sender: owner-linux-mm@kvack.org
+To: Michal Hocko <mhocko@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: Rasmus Villemoes <rasmus.villemoes@prevas.dk>, Michael Ellerman <mpe@ellerman.id.au>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Matthew Wilcox <willy@infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 12/03/2017 02:32 PM, Sudip Mukherjee wrote:
-> On Mon, Nov 27, 2017 at 10:25:16AM -0800, Vineet Gupta wrote:
->> +CC linux-arch, Arnd
+On Wed, Dec 6, 2017 at 1:08 AM, Michal Hocko <mhocko@kernel.org> wrote:
+> On Wed 06-12-17 08:33:37, Rasmus Villemoes wrote:
+>> On 2017-12-06 05:50, Michael Ellerman wrote:
+>> > Michal Hocko <mhocko@kernel.org> writes:
+>> >
+>> >> On Wed 29-11-17 14:25:36, Kees Cook wrote:
+>> >> It is safe in a sense it doesn't perform any address space dangerous
+>> >> operations. mmap is _inherently_ about the address space so the context
+>> >> should be kind of clear.
+>> >
+>> > So now you have to define what "dangerous" means.
+>> >
+>> >>> MAP_FIXED_UNIQUE
+>> >>> MAP_FIXED_ONCE
+>> >>> MAP_FIXED_FRESH
+>> >>
+>> >> Well, I can open a poll for the best name, but none of those you are
+>> >> proposing sound much better to me. Yeah, naming sucks...
 >>
->> On 11/23/2017 09:17 AM, Alexey Brodkin wrote:
->>> Hi Sudip,
->>>
->>> On Tue, 2017-11-21 at 22:10 +0000, Sudip Mukherjee wrote:
-> 
-> <snip>
-> 
->> I understand the case/need for adding a weak/common abort() as a
->> quick fix for handling such cases, but perhaps we should not and
->> instead fix the rootcause. In this specific case, Claudiu mentioned
->> that gcc was generating abort due to something like this (flagging a
->> possible divide by zero due to
->> -fno-isolate-erroneous-paths-dereference.
->>
->> a;
->>
->> fn1() {
->>    switch (a)
->>    case 0:
->>    return 1 / a;
->> }
->>
->> Sudeep can you confirm that removing this hacking FRV build to not
->> have this toggle fixes the abort issue.
->>
->> So the offending code needs to be fixed as in the end when that code
->> path is taken system is hosed.
-> 
-> The above case that you mentioned is indeed the case here.
-> mpihelp_divrem() in lib/mpi/mpih-div.c has this same divide by zero case.
-> 
-> So, what should be the actual fix here?
+>> I also don't like the _SAFE name - MAP_FIXED in itself isn't unsafe [1],
+>> but I do agree that having a way to avoid clobbering (parts of) an
+>> existing mapping is quite useful. Since we're bikeshedding names, how
+>> about MAP_FIXED_EXCL, in analogy with the O_ flag.
+>
+> I really give up on the name discussion. I will take whatever the
+> majority comes up with. I just do not want this (useful) funtionality
+> get bikeched to death.
 
-To remove the divide by zero.
+Yup, I really want this to land too. What do people think of Matthew
+Wilcox's MAP_REQUIRED ? MAP_EXACT isn't exact, and dropping "FIXED"
+out of the middle seems sensible to me.
 
-Or atleast have a __weak abort() defined in common code so all arches benefit from 
-it !
+MIchael, any suggestions with your API hat on?
 
--Vineet
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
