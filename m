@@ -1,65 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f193.google.com ([209.85.128.193]:34920 "EHLO
-        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752350AbdLGIkT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2017 03:40:19 -0500
-Received: by mail-wr0-f193.google.com with SMTP id g53so6572627wra.2
-        for <linux-arch@vger.kernel.org>; Thu, 07 Dec 2017 00:40:19 -0800 (PST)
-Subject: Re: [PATCH v2 34/35] clocksource/drivers/Kconfig: Support andestech
- atcpit100 timer
-References: <cover.1511785528.git.green.hu@gmail.com>
- <1a22db002413ff60851737736a86b40c38877220.1511785528.git.green.hu@gmail.com>
- <CAK8P3a2ovDuwWCq2HABZaCVGO04TX0VdgnQbK65RvHhsMEzsiw@mail.gmail.com>
- <CAEbi=3f6YZJySA5A2+y1hiPHwfkq+05cisnRwyhKYDXQdnFzWA@mail.gmail.com>
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Message-ID: <d23fa048-9532-ff06-c2cf-7c95afdef7f4@linaro.org>
-Date: Thu, 7 Dec 2017 09:40:16 +0100
+Received: from mail.linuxfoundation.org ([140.211.169.12]:34646 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755581AbdLGNMn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2017 08:12:43 -0500
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.14 64/75] locking/refcounts, x86/asm: Enable CONFIG_ARCH_HAS_REFCOUNT
+Date: Thu,  7 Dec 2017 14:08:26 +0100
+Message-ID: <20171207130821.402343480@linuxfoundation.org>
+In-Reply-To: <20171207130818.742746317@linuxfoundation.org>
+References: <20171207130818.742746317@linuxfoundation.org>
 MIME-Version: 1.0
-In-Reply-To: <CAEbi=3f6YZJySA5A2+y1hiPHwfkq+05cisnRwyhKYDXQdnFzWA@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-serial@vger.kernel.org, Rick Chen <rickchen36@gmail.com>
-Message-ID: <20171207084016.Dt7haMFUmAyG0SI01zsa0ddwfx1m2TZ9cGhEFSkaJjk@z>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Kees Cook <keescook@chromium.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Elena <elena.reshetova@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Mike Galbraith <efault@gmx.de>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Sasha Levin <alexander.levin@verizon.com>
+Message-ID: <20171207130826.8vF5L50ks0gn_BT7Kfkp1LzegfB4RCJ5AlholO2a1xU@z>
 
-On 28/11/2017 03:53, Greentime Hu wrote:
-> 2017-11-27 22:11 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->> On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
->>> From: Rick Chen <rickchen36@gmail.com>
->>>
->>> Add CLKSRC_ATCPIT100 for Andestech atcpit100 timer selection.
->>> It often be used in Andestech AE3XX platform.
->>>
->>> Signed-off-by: Rick Chen <rickchen36@gmail.com>
->>> Signed-off-by: Greentime Hu <green.hu@gmail.com>
->>
->> No need to split out the Makefile patch from the actual driver, they
->> clearly belong together.
->> The binding change should be a separate patch, as you did.
->>
->> It's probably best to separate the driver patches from the
->> architecture submission
->> in the future, they can simply get merged by the respective subsystem
->> maintainers,
->> with a smaller Cc list.
->>
-> 
-> Hi, Arnd:
-> 
-> Thanks.
-> We will merge these 2 patches together in the next version patch.
-> We will sent to clocksource subsystem with a seperate patchset.
+4.14-stable review patch.  If anyone has any objections, please let me know.
 
-Sounds good.
+------------------
+
+From: Kees Cook <keescook@chromium.org>
 
 
+[ Upstream commit 39208aa7ecb7d9c4e86df782b5693270313cbab1 ]
 
--- 
- <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
+With the section inlining bug fixed for the x86 refcount protection,
+we can turn the config back on.
 
-Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
-<http://twitter.com/#!/linaroorg> Twitter |
-<http://www.linaro.org/linaro-blog/> Blog
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Elena <elena.reshetova@intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mike Galbraith <efault@gmx.de>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>
+Link: http://lkml.kernel.org/r/1504382986-49301-3-git-send-email-keescook@chromium.org
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Sasha Levin <alexander.levin@verizon.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/x86/Kconfig |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -56,7 +56,7 @@ config X86
+ 	select ARCH_HAS_KCOV			if X86_64
+ 	select ARCH_HAS_PMEM_API		if X86_64
+ 	# Causing hangs/crashes, see the commit that added this change for details.
+-	select ARCH_HAS_REFCOUNT		if BROKEN
++	select ARCH_HAS_REFCOUNT
+ 	select ARCH_HAS_UACCESS_FLUSHCACHE	if X86_64
+ 	select ARCH_HAS_SET_MEMORY
+ 	select ARCH_HAS_SG_CHAIN
