@@ -1,53 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate15.nvidia.com ([216.228.121.64]:19614 "EHLO
-        hqemgate15.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751718AbdLFVV0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 16:21:26 -0500
-Subject: Re: [PATCH v2] mmap.2: MAP_FIXED updated documentation
-References: <20171204021411.4786-1-jhubbard@nvidia.com>
- <20171204105549.GA31332@rei>
- <efb6eae4-7f30-42c3-0efe-0ab5fbf0fdb4@nvidia.com>
- <20171205070510.aojohhvixijk3i27@dhcp22.suse.cz>
- <2cff594a-b481-269d-dd91-ff2cc2f4100a@nvidia.com>
- <20171206100118.GA13979@rei>
-From: John Hubbard <jhubbard@nvidia.com>
-Message-ID: <deb952d9-82bc-e737-8060-8fe7e70f44a1@nvidia.com>
-Date: Wed, 6 Dec 2017 13:21:25 -0800
+Received: from mail-vk0-f65.google.com ([209.85.213.65]:39210 "EHLO
+        mail-vk0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751815AbdLGATy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 19:19:54 -0500
+Received: by mail-vk0-f65.google.com with SMTP id h203so3854368vka.6
+        for <linux-arch@vger.kernel.org>; Wed, 06 Dec 2017 16:19:54 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <20171206100118.GA13979@rei>
-Content-Type: text/plain; charset="utf-8"
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20171206090803.GG16386@dhcp22.suse.cz>
+References: <20171129144219.22867-1-mhocko@kernel.org> <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
+ <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz> <87zi6we9z2.fsf@concordia.ellerman.id.au>
+ <a3b3129a-2626-a65e-59b0-68aada523723@prevas.dk> <20171206090803.GG16386@dhcp22.suse.cz>
+From: Kees Cook <keescook@chromium.org>
+Date: Wed, 6 Dec 2017 16:19:52 -0800
+Message-ID: <CAGXu5jKGsAjwF7nE_vjaWPnG0QJRx_qFeiSBLRg_g73iUJ-pwA@mail.gmail.com>
+Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Cyril Hrubis <chrubis@suse.cz>
-Cc: Michal Hocko <mhocko@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>
-Message-ID: <20171206212125.7tzimsEXi23hafBDISLN-NDX1bKlrEyFGBQwm_9QerA@z>
+To: Michal Hocko <mhocko@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: Rasmus Villemoes <rasmus.villemoes@prevas.dk>, Michael Ellerman <mpe@ellerman.id.au>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Matthew Wilcox <willy@infradead.org>
+Message-ID: <20171207001952.dW1VVvQFU2ZsT36vYhAsvDL-JKqHC1gcFC5coOeQA0s@z>
 
-On 12/06/2017 02:01 AM, Cyril Hrubis wrote:
-> Hi!
->> (It does seem unfortunate that the man page cannot help the programmer
->> actually write correct code here. He or she is forced to read the kernel
->> implementation, in order to figure out the true alignment rules. I was
->> hoping we could avoid that.)
-> 
-> It would be nice if we had this information exported somehere so that we
-> do not have to rely on per-architecture ifdefs.
-> 
-> What about adding MapAligment or something similar to the /proc/meminfo?
-> 
+On Wed, Dec 6, 2017 at 1:08 AM, Michal Hocko <mhocko@kernel.org> wrote:
+> On Wed 06-12-17 08:33:37, Rasmus Villemoes wrote:
+>> On 2017-12-06 05:50, Michael Ellerman wrote:
+>> > Michal Hocko <mhocko@kernel.org> writes:
+>> >
+>> >> On Wed 29-11-17 14:25:36, Kees Cook wrote:
+>> >> It is safe in a sense it doesn't perform any address space dangerous
+>> >> operations. mmap is _inherently_ about the address space so the context
+>> >> should be kind of clear.
+>> >
+>> > So now you have to define what "dangerous" means.
+>> >
+>> >>> MAP_FIXED_UNIQUE
+>> >>> MAP_FIXED_ONCE
+>> >>> MAP_FIXED_FRESH
+>> >>
+>> >> Well, I can open a poll for the best name, but none of those you are
+>> >> proposing sound much better to me. Yeah, naming sucks...
+>>
+>> I also don't like the _SAFE name - MAP_FIXED in itself isn't unsafe [1],
+>> but I do agree that having a way to avoid clobbering (parts of) an
+>> existing mapping is quite useful. Since we're bikeshedding names, how
+>> about MAP_FIXED_EXCL, in analogy with the O_ flag.
+>
+> I really give up on the name discussion. I will take whatever the
+> majority comes up with. I just do not want this (useful) funtionality
+> get bikeched to death.
 
-What's the use case you envision for that? I don't see how that would be
-better than using SHMLBA, which is available at compiler time. Because 
-unless someone expects to be able to run an app that was compiled for 
-Arch X, on Arch Y (surely that's not requirement here?), I don't see how
-the run-time check is any better.
+Yup, I really want this to land too. What do people think of Matthew
+Wilcox's MAP_REQUIRED ? MAP_EXACT isn't exact, and dropping "FIXED"
+out of the middle seems sensible to me.
 
-Or maybe you're thinking that since the SHMLBA cannot be put in the man
-pages, we could instead provide MapAlignment as sort of a different
-way to document the requirement?
+MIchael, any suggestions with your API hat on?
 
---
-thanks,
-John Hubbard
-NVIDIA
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
