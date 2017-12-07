@@ -1,59 +1,65 @@
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Subject: Re: [PATCH v2 33/35] clocksource/drivers/atcpit100: Add andestech
- atcpit100 timer
-Date: Thu, 7 Dec 2017 09:44:55 +0100
-Message-ID: <f6e29691-a9eb-2b11-9889-dfba9ff71576@linaro.org>
-References: <cover.1511785528.git.green.hu@gmail.com>
- <672e0b3843953d1ab69bc19baf1a0f217ec1b1fa.1511785528.git.green.hu@gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v5 15/30] arm64/sve: Signal handling support
+Date: Thu, 7 Dec 2017 10:49:48 +0000
+Message-ID: <20171207104948.GE31900@arm.com>
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+ <1509465082-30427-16-git-send-email-Dave.Martin@arm.com>
+ <CAGXu5jJgsAg1VBMbx=mV3ep4hzs+1G46Sow4eeFqCK31b_sORA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:39322 "EHLO
-        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750927AbdLGIo7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2017 03:44:59 -0500
-Received: by mail-wm0-f67.google.com with SMTP id i11so11383730wmf.4
-        for <linux-arch@vger.kernel.org>; Thu, 07 Dec 2017 00:44:58 -0800 (PST)
-In-Reply-To: <672e0b3843953d1ab69bc19baf1a0f217ec1b1fa.1511785528.git.green.hu@gmail.com>
-Content-Language: en-US
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:48906 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752291AbdLGKtn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Dec 2017 05:49:43 -0500
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jJgsAg1VBMbx=mV3ep4hzs+1G46Sow4eeFqCK31b_sORA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, linux-serial@vger.kernel.org
-Cc: Rick Chen <rickchen36@gmail.com>
+To: Kees Cook <keescook@chromium.org>
+Cc: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha <libc-alpha@sourceware.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
 
-On 27/11/2017 13:28, Greentime Hu wrote:
-> From: Rick Chen <rickchen36@gmail.com>
+Hi Kees,
+
+On Wed, Dec 06, 2017 at 11:56:50AM -0800, Kees Cook wrote:
+> On Tue, Oct 31, 2017 at 8:51 AM, Dave Martin <Dave.Martin@arm.com> wrote:
+> > Miscellaneous:
+> >
+> >  * Change inconsistent copy_to_user() calls to __copy_to_user() in
+> >    preserve_sve_context().
+> >
+> >    There are already __put_user_error() calls here.
+> >
+> >    The whole extended signal frame is already checked for
+> >    access_ok(VERIFY_WRITE) in get_sigframe().
 > 
-> ATCPIT100 is often used on the Andes architecture,
-> This timer provide 4 PIT channels. Each PIT channel is a
-> multi-function timer, can be configured as 32,16,8 bit timers
-> or PWM as well.
-> 
-> For system timer it will set channel 1 32-bit timer0 as clock
-> source and count downwards until underflow and restart again.
-> 
-> It also set channel 0 32-bit timer0 as clock event and count
-> downwards until condition match. It will generate an interrupt
-> for handling periodically.
-> 
-> Signed-off-by: Rick Chen <rickchen36@gmail.com>
-> Signed-off-by: Greentime Hu <green.hu@gmail.com>
-> ---
+> Verifying all these __copy_to/from_user() calls is rather non-trivial.
+> For example, I had to understand that the access_ok() check actually
+> spans memory that both user->sigframe and user->next_frame point into.
 
-Looks good.
+I don't think that's particularly difficult -- you just have to read the
+four lines preceding the access_ok.
 
-Please resend this patch folded with the Makefile change and the DT
-binding (fixed) as suggested by Arnd. I will merge them.
+> And it isn't clear to me that all users of apply_user_offset() are
+> within this range too, along with other manually calculated offsets in
+> setup_sigframe().
 
-Thanks
+The offsets passed into apply_user_offset are calculated by
+setup_sigframe_layout as the stack is allocated, so they're correct by
+construction. We could add a size check in apply_user_offset if you like?
 
-  -- Daniel
+> And it's not clear if parse_user_sigframe() is safe either. Are
+> user->fpsimd and user->sve checked somewhere? It seems like it's
+> safely contained by in sf->uc.uc_mcontext.__reserved, but it's hard to
+> read, though I do see access_ok() checks against __reserved at the end
+> of the while loop.
 
+This one is certainly more difficult to follow, mainly because it's spread
+about a bit and we have to check the extra context separately. However, the
+main part of the frame is checked in sys_rt_sigreturn before calling
+restore_sigframe, and the extra context is checked in parse_user_sigframe
+if we find it.
 
--- 
- <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
+Dave, any thoughts on making this easier to understand?
 
-Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
-<http://twitter.com/#!/linaroorg> Twitter |
-<http://www.linaro.org/linaro-blog/> Blog
+Will
