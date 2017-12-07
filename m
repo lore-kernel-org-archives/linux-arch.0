@@ -1,123 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:34514 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755528AbdLGNMU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2017 08:12:20 -0500
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 57/75] locking/refcounts, x86/asm: Use unique .text section for refcount exceptions
-Date: Thu,  7 Dec 2017 14:08:19 +0100
-Message-ID: <20171207130821.101458684@linuxfoundation.org>
-In-Reply-To: <20171207130818.742746317@linuxfoundation.org>
-References: <20171207130818.742746317@linuxfoundation.org>
+Received: from mx2.suse.de ([195.135.220.15]:38573 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754346AbdLGOCZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Dec 2017 09:02:25 -0500
+Date: Thu, 7 Dec 2017 15:02:21 +0100
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH v2] mmap.2: MAP_FIXED updated documentation
+Message-ID: <20171207140221.GJ20234@dhcp22.suse.cz>
+References: <20171204021411.4786-1-jhubbard@nvidia.com>
+ <20171204105549.GA31332@rei>
+ <efb6eae4-7f30-42c3-0efe-0ab5fbf0fdb4@nvidia.com>
+ <20171205070510.aojohhvixijk3i27@dhcp22.suse.cz>
+ <2cff594a-b481-269d-dd91-ff2cc2f4100a@nvidia.com>
+ <20171206100118.GA13979@rei>
+ <deb952d9-82bc-e737-8060-8fe7e70f44a1@nvidia.com>
+ <20171207125805.GA1210@rei.lan>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20171207125805.GA1210@rei.lan>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Mike Galbraith <efault@gmx.de>, Kees Cook <keescook@chromium.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Elena <elena.reshetova@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Sasha Levin <alexander.levin@verizon.com>
-Message-ID: <20171207130819.pPK63COcTVr_8Quy7UJDFhv1zP-RhmwR7lcC1wOBf18@z>
+To: Cyril Hrubis <chrubis@suse.cz>
+Cc: John Hubbard <jhubbard@nvidia.com>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>
+Message-ID: <20171207140221.8Q6TBFCSbq2dM6TZnj47QhnJldr_sZED2lfeDtdUczA@z>
 
-4.14-stable review patch.  If anyone has any objections, please let me know.
+On Thu 07-12-17 13:58:05, Cyril Hrubis wrote:
+> Hi!
+> > >> (It does seem unfortunate that the man page cannot help the programmer
+> > >> actually write correct code here. He or she is forced to read the kernel
+> > >> implementation, in order to figure out the true alignment rules. I was
+> > >> hoping we could avoid that.)
+> > > 
+> > > It would be nice if we had this information exported somehere so that we
+> > > do not have to rely on per-architecture ifdefs.
+> > > 
+> > > What about adding MapAligment or something similar to the /proc/meminfo?
+> > > 
+> > 
+> > What's the use case you envision for that? I don't see how that would be
+> > better than using SHMLBA, which is available at compiler time. Because 
+> > unless someone expects to be able to run an app that was compiled for 
+> > Arch X, on Arch Y (surely that's not requirement here?), I don't see how
+> > the run-time check is any better.
+> 
+> I guess that some kind of compile time constant in uapi headers will do
+> as well, I'm really open to any solution that would expose this constant
+> as some kind of official API.
 
-------------------
+I am not sure this is really feasible. It is not only a simple alignment
+thing. Look at ppc for example (slice_get_unmapped_area). Other
+architectures might have even more complicated rules e.g. arm and its
+cache_is_vipt_aliasing. Also this applies only on MAP_SHARED || file
+backed mappings.
 
-From: Kees Cook <keescook@chromium.org>
-
-
-[ Upstream commit 564c9cc84e2adf8a6671c1937f0a9fe3da2a4b0e ]
-
-Using .text.unlikely for refcount exceptions isn't safe because gcc may
-move entire functions into .text.unlikely (e.g. in6_dev_dev()), which
-would cause any uses of a protected refcount_t function to stay inline
-with the function, triggering the protection unconditionally:
-
-        .section        .text.unlikely,"ax",@progbits
-        .type   in6_dev_get, @function
-in6_dev_getx:
-.LFB4673:
-        .loc 2 4128 0
-        .cfi_startproc
-...
-        lock; incl 480(%rbx)
-        js 111f
-        .pushsection .text.unlikely
-111:    lea 480(%rbx), %rcx
-112:    .byte 0x0f, 0xff
-.popsection
-113:
-
-This creates a unique .text..refcount section and adds an additional
-test to the exception handler to WARN in the case of having none of OF,
-SF, nor ZF set so we can see things like this more easily in the future.
-
-The double dot for the section name keeps it out of the TEXT_MAIN macro
-namespace, to avoid collisions and so it can be put at the end with
-text.unlikely to keep the cold code together.
-
-See commit:
-
-  cb87481ee89db ("kbuild: linker script do not match C names unless LD_DEAD_CODE_DATA_ELIMINATION is configured")
-
-... which matches C names: [a-zA-Z0-9_] but not ".".
-
-Reported-by: Mike Galbraith <efault@gmx.de>
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: Elena <elena.reshetova@intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Fixes: 7a46ec0e2f48 ("locking/refcounts, x86/asm: Implement fast refcount overflow protection")
-Link: http://lkml.kernel.org/r/1504382986-49301-2-git-send-email-keescook@chromium.org
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Sasha Levin <alexander.levin@verizon.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- arch/x86/include/asm/refcount.h   |    2 +-
- arch/x86/mm/extable.c             |    7 ++++++-
- include/asm-generic/vmlinux.lds.h |    1 +
- 3 files changed, 8 insertions(+), 2 deletions(-)
-
---- a/arch/x86/include/asm/refcount.h
-+++ b/arch/x86/include/asm/refcount.h
-@@ -15,7 +15,7 @@
-  * back to the regular execution flow in .text.
-  */
- #define _REFCOUNT_EXCEPTION				\
--	".pushsection .text.unlikely\n"			\
-+	".pushsection .text..refcount\n"		\
- 	"111:\tlea %[counter], %%" _ASM_CX "\n"		\
- 	"112:\t" ASM_UD0 "\n"				\
- 	ASM_UNREACHABLE					\
---- a/arch/x86/mm/extable.c
-+++ b/arch/x86/mm/extable.c
-@@ -67,12 +67,17 @@ bool ex_handler_refcount(const struct ex
- 	 * wrapped around) will be set. Additionally, seeing the refcount
- 	 * reach 0 will set ZF (Zero Flag: result was zero). In each of
- 	 * these cases we want a report, since it's a boundary condition.
--	 *
-+	 * The SF case is not reported since it indicates post-boundary
-+	 * manipulations below zero or above INT_MAX. And if none of the
-+	 * flags are set, something has gone very wrong, so report it.
- 	 */
- 	if (regs->flags & (X86_EFLAGS_OF | X86_EFLAGS_ZF)) {
- 		bool zero = regs->flags & X86_EFLAGS_ZF;
- 
- 		refcount_error_report(regs, zero ? "hit zero" : "overflow");
-+	} else if ((regs->flags & X86_EFLAGS_SF) == 0) {
-+		/* Report if none of OF, ZF, nor SF are set. */
-+		refcount_error_report(regs, "unexpected saturation");
- 	}
- 
- 	return true;
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -459,6 +459,7 @@
- #define TEXT_TEXT							\
- 		ALIGN_FUNCTION();					\
- 		*(.text.hot TEXT_MAIN .text.fixup .text.unlikely)	\
-+		*(.text..refcount)					\
- 		*(.ref.text)						\
- 	MEM_KEEP(init.text)						\
- 	MEM_KEEP(exit.text)						\
+I would really leave dogs sleeping... Trying to document all this in the
+man page has chances to confuse more people than it has chances to help
+those who already know all these nasty details.
+-- 
+Michal Hocko
+SUSE Labs
