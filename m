@@ -1,53 +1,54 @@
 From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Subject: Re: [PATCH v2 34/35] clocksource/drivers/Kconfig: Support andestech
+Subject: Re: [PATCH v2 33/35] clocksource/drivers/atcpit100: Add andestech
  atcpit100 timer
-Date: Thu, 7 Dec 2017 09:40:16 +0100
-Message-ID: <d23fa048-9532-ff06-c2cf-7c95afdef7f4@linaro.org>
+Date: Thu, 7 Dec 2017 09:44:55 +0100
+Message-ID: <f6e29691-a9eb-2b11-9889-dfba9ff71576@linaro.org>
 References: <cover.1511785528.git.green.hu@gmail.com>
- <1a22db002413ff60851737736a86b40c38877220.1511785528.git.green.hu@gmail.com>
- <CAK8P3a2ovDuwWCq2HABZaCVGO04TX0VdgnQbK65RvHhsMEzsiw@mail.gmail.com>
- <CAEbi=3f6YZJySA5A2+y1hiPHwfkq+05cisnRwyhKYDXQdnFzWA@mail.gmail.com>
+ <672e0b3843953d1ab69bc19baf1a0f217ec1b1fa.1511785528.git.green.hu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CAEbi=3f6YZJySA5A2+y1hiPHwfkq+05cisnRwyhKYDXQdnFzWA@mail.gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:39322 "EHLO
+        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750927AbdLGIo7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2017 03:44:59 -0500
+Received: by mail-wm0-f67.google.com with SMTP id i11so11383730wmf.4
+        for <linux-arch@vger.kernel.org>; Thu, 07 Dec 2017 00:44:58 -0800 (PST)
+In-Reply-To: <672e0b3843953d1ab69bc19baf1a0f217ec1b1fa.1511785528.git.green.hu@gmail.com>
 Content-Language: en-US
-Sender: netdev-owner@vger.kernel.org
-To: Greentime Hu <green.hu@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-serial@vger.kernel.org, Rick Chen <rickchen36@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, linux-serial@vger.kernel.org
+Cc: Rick Chen <rickchen36@gmail.com>
 
-On 28/11/2017 03:53, Greentime Hu wrote:
-> 2017-11-27 22:11 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->> On Mon, Nov 27, 2017 at 1:28 PM, Greentime Hu <green.hu@gmail.com> wrote:
->>> From: Rick Chen <rickchen36@gmail.com>
->>>
->>> Add CLKSRC_ATCPIT100 for Andestech atcpit100 timer selection.
->>> It often be used in Andestech AE3XX platform.
->>>
->>> Signed-off-by: Rick Chen <rickchen36@gmail.com>
->>> Signed-off-by: Greentime Hu <green.hu@gmail.com>
->>
->> No need to split out the Makefile patch from the actual driver, they
->> clearly belong together.
->> The binding change should be a separate patch, as you did.
->>
->> It's probably best to separate the driver patches from the
->> architecture submission
->> in the future, they can simply get merged by the respective subsystem
->> maintainers,
->> with a smaller Cc list.
->>
+On 27/11/2017 13:28, Greentime Hu wrote:
+> From: Rick Chen <rickchen36@gmail.com>
 > 
-> Hi, Arnd:
+> ATCPIT100 is often used on the Andes architecture,
+> This timer provide 4 PIT channels. Each PIT channel is a
+> multi-function timer, can be configured as 32,16,8 bit timers
+> or PWM as well.
 > 
-> Thanks.
-> We will merge these 2 patches together in the next version patch.
-> We will sent to clocksource subsystem with a seperate patchset.
+> For system timer it will set channel 1 32-bit timer0 as clock
+> source and count downwards until underflow and restart again.
+> 
+> It also set channel 0 32-bit timer0 as clock event and count
+> downwards until condition match. It will generate an interrupt
+> for handling periodically.
+> 
+> Signed-off-by: Rick Chen <rickchen36@gmail.com>
+> Signed-off-by: Greentime Hu <green.hu@gmail.com>
+> ---
 
-Sounds good.
+Looks good.
 
+Please resend this patch folded with the Makefile change and the DT
+binding (fixed) as suggested by Arnd. I will merge them.
+
+Thanks
+
+  -- Daniel
 
 
 -- 
