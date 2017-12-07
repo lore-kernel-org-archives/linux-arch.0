@@ -1,62 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f65.google.com ([209.85.213.65]:39210 "EHLO
-        mail-vk0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751815AbdLGATy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Dec 2017 19:19:54 -0500
-Received: by mail-vk0-f65.google.com with SMTP id h203so3854368vka.6
-        for <linux-arch@vger.kernel.org>; Wed, 06 Dec 2017 16:19:54 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <20171206090803.GG16386@dhcp22.suse.cz>
-References: <20171129144219.22867-1-mhocko@kernel.org> <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
- <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz> <87zi6we9z2.fsf@concordia.ellerman.id.au>
- <a3b3129a-2626-a65e-59b0-68aada523723@prevas.dk> <20171206090803.GG16386@dhcp22.suse.cz>
-From: Kees Cook <keescook@chromium.org>
-Date: Wed, 6 Dec 2017 16:19:52 -0800
-Message-ID: <CAGXu5jKGsAjwF7nE_vjaWPnG0QJRx_qFeiSBLRg_g73iUJ-pwA@mail.gmail.com>
+Received: from ozlabs.org ([103.22.144.67]:39207 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750716AbdLGFqP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 7 Dec 2017 00:46:15 -0500
+From: Michael Ellerman <mpe@ellerman.id.au>
 Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20171206070355.GA32044@bombadil.infradead.org>
+References: <20171129144219.22867-1-mhocko@kernel.org> <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com> <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz> <20171201152640.GA3765@rei> <87wp20e9wf.fsf@concordia.ellerman.id.au> <20171206045433.GQ26021@bombadil.infradead.org> <20171206070355.GA32044@bombadil.infradead.org>
+Date: Thu, 07 Dec 2017 16:46:11 +1100
+Message-ID: <87bmjbks4c.fsf@concordia.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: Rasmus Villemoes <rasmus.villemoes@prevas.dk>, Michael Ellerman <mpe@ellerman.id.au>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Matthew Wilcox <willy@infradead.org>
-Message-ID: <20171207001952.dW1VVvQFU2ZsT36vYhAsvDL-JKqHC1gcFC5coOeQA0s@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@kernel.org>, Kees Cook <keescook@chromium.org>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>
+Message-ID: <20171207054611.YsASfne74LrRJsA4BkQX9wPsuMX2uYitBftv02JWHO0@z>
 
-On Wed, Dec 6, 2017 at 1:08 AM, Michal Hocko <mhocko@kernel.org> wrote:
-> On Wed 06-12-17 08:33:37, Rasmus Villemoes wrote:
->> On 2017-12-06 05:50, Michael Ellerman wrote:
->> > Michal Hocko <mhocko@kernel.org> writes:
->> >
->> >> On Wed 29-11-17 14:25:36, Kees Cook wrote:
->> >> It is safe in a sense it doesn't perform any address space dangerous
->> >> operations. mmap is _inherently_ about the address space so the context
->> >> should be kind of clear.
->> >
->> > So now you have to define what "dangerous" means.
->> >
->> >>> MAP_FIXED_UNIQUE
->> >>> MAP_FIXED_ONCE
->> >>> MAP_FIXED_FRESH
->> >>
->> >> Well, I can open a poll for the best name, but none of those you are
->> >> proposing sound much better to me. Yeah, naming sucks...
->>
->> I also don't like the _SAFE name - MAP_FIXED in itself isn't unsafe [1],
->> but I do agree that having a way to avoid clobbering (parts of) an
->> existing mapping is quite useful. Since we're bikeshedding names, how
->> about MAP_FIXED_EXCL, in analogy with the O_ flag.
+Matthew Wilcox <willy@infradead.org> writes:
+
+> On Tue, Dec 05, 2017 at 08:54:35PM -0800, Matthew Wilcox wrote:
+>> On Wed, Dec 06, 2017 at 03:51:44PM +1100, Michael Ellerman wrote:
+>> > Cyril Hrubis <chrubis@suse.cz> writes:
+>> > 
+>> > > Hi!
+>> > >> > MAP_FIXED_UNIQUE
+>> > >> > MAP_FIXED_ONCE
+>> > >> > MAP_FIXED_FRESH
+>> > >> 
+>> > >> Well, I can open a poll for the best name, but none of those you are
+>> > >> proposing sound much better to me. Yeah, naming sucks...
+>> > >
+>> > > Given that MAP_FIXED replaces the previous mapping MAP_FIXED_NOREPLACE
+>> > > would probably be a best fit.
+>> > 
+>> > Yeah that could work.
+>> > 
+>> > I prefer "no clobber" as I just suggested, because the existing
+>> > MAP_FIXED doesn't politely "replace" a mapping, it destroys the current
+>> > one - which you or another thread may be using - and clobbers it with
+>> > the new one.
+>> 
+>> It's longer than MAP_FIXED_WEAK :-P
+>> 
+>> You'd have to be pretty darn strong to clobber an existing mapping.
 >
-> I really give up on the name discussion. I will take whatever the
-> majority comes up with. I just do not want this (useful) funtionality
-> get bikeched to death.
+> I think we're thinking about this all wrong.  We shouldn't document it as
+> "This is a variant of MAP_FIXED".  We should document it as "Here's an
+> alternative to MAP_FIXED".
+>
+> So, just like we currently say "exactly one of MAP_SHARED or MAP_PRIVATE",
+> we could add a new paragraph saying "at most one of MAP_FIXED or
+> MAP_REQUIRED" and "any of the following values".
+>
+> Now, we should implement MAP_REQUIRED as having each architecture
+> define _MAP_NOT_A_HINT, and then #define MAP_REQUIRED (MAP_FIXED |
+> _MAP_NOT_A_HINT), but that's not information to confuse users with.
+>
+> Also, that lets us add a third option at some point that is Yet Another
+> Way to interpret the 'addr' argument, by having MAP_FIXED clear and
+> _MAP_NOT_A_HINT set.
+>
+> I'm not set on MAP_REQUIRED.  I came up with some awful names
+> (MAP_TODDLER, MAP_TANTRUM, MAP_ULTIMATUM, MAP_BOSS, MAP_PROGRAM_MANAGER,
+> etc).  But I think we should drop FIXED from the middle of the name.
 
-Yup, I really want this to land too. What do people think of Matthew
-Wilcox's MAP_REQUIRED ? MAP_EXACT isn't exact, and dropping "FIXED"
-out of the middle seems sensible to me.
+MAP_REQUIRED doesn't immediately grab me, but I don't actively dislike
+it either :)
 
-MIchael, any suggestions with your API hat on?
+What about MAP_AT_ADDR ?
 
--Kees
+It's short, and says what it does on the tin. The first argument to mmap
+is actually called "addr" too.
 
--- 
-Kees Cook
-Pixel Security
+cheers
