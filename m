@@ -1,66 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:32781 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753436AbdLGM7X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 7 Dec 2017 07:59:23 -0500
-Date: Thu, 7 Dec 2017 13:58:05 +0100
-From: Cyril Hrubis <chrubis@suse.cz>
-Subject: Re: [PATCH v2] mmap.2: MAP_FIXED updated documentation
-Message-ID: <20171207125805.GA1210@rei.lan>
-References: <20171204021411.4786-1-jhubbard@nvidia.com>
- <20171204105549.GA31332@rei>
- <efb6eae4-7f30-42c3-0efe-0ab5fbf0fdb4@nvidia.com>
- <20171205070510.aojohhvixijk3i27@dhcp22.suse.cz>
- <2cff594a-b481-269d-dd91-ff2cc2f4100a@nvidia.com>
- <20171206100118.GA13979@rei>
- <deb952d9-82bc-e737-8060-8fe7e70f44a1@nvidia.com>
+Received: from lelnx194.ext.ti.com ([198.47.27.80]:24060 "EHLO
+        lelnx194.ext.ti.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752426AbdLGQQS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 7 Dec 2017 11:16:18 -0500
+Subject: Re: [PATCH v9 1/8] drm/tilcdc: ensure nonatomic iowrite64 is not used
+References: <20171205233058.5365-1-logang@deltatee.com>
+ <20171205233058.5365-2-logang@deltatee.com>
+From: Jyri Sarha <jsarha@ti.com>
+Message-ID: <3f3ad132-3b53-0f80-ffe7-3617e3cb78e2@ti.com>
+Date: Thu, 7 Dec 2017 18:15:59 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <deb952d9-82bc-e737-8060-8fe7e70f44a1@nvidia.com>
+In-Reply-To: <20171205233058.5365-2-logang@deltatee.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Hubbard <jhubbard@nvidia.com>
-Cc: Michal Hocko <mhocko@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>
-Message-ID: <20171207125805.IKi1-7vZLpxcnBNJMUyE8zBTuE_ARq5hLV7Xzf0JB6A@z>
+To: Logan Gunthorpe <logang@deltatee.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Tomi Valkeinen <tomi.valkeinen@ti.com>, David Airlie <airlied@linux.ie>
+Message-ID: <20171207161559.XyapEoRfs1nfNHeWviicDDTKgh3srQxmCBhKUK0KYFg@z>
 
-Hi!
-> >> (It does seem unfortunate that the man page cannot help the programmer
-> >> actually write correct code here. He or she is forced to read the kernel
-> >> implementation, in order to figure out the true alignment rules. I was
-> >> hoping we could avoid that.)
-> > 
-> > It would be nice if we had this information exported somehere so that we
-> > do not have to rely on per-architecture ifdefs.
-> > 
-> > What about adding MapAligment or something similar to the /proc/meminfo?
-> > 
+On 12/06/17 01:30, Logan Gunthorpe wrote:
+> Add a check to ensure iowrite64 is only used if it is atomic.
 > 
-> What's the use case you envision for that? I don't see how that would be
-> better than using SHMLBA, which is available at compiler time. Because 
-> unless someone expects to be able to run an app that was compiled for 
-> Arch X, on Arch Y (surely that's not requirement here?), I don't see how
-> the run-time check is any better.
+> It was decided in [1] that the tilcdc driver should not be using an
+> atomic operation (so it was left out of this patchset). However, it turns
+> out that through the drm code, a nonatomic header is actually included:
+> 
+> include/linux/io-64-nonatomic-lo-hi.h
+> is included from include/drm/drm_os_linux.h:9:0,
+>             from include/drm/drmP.h:74,
+>             from include/drm/drm_modeset_helper.h:26,
+>             from include/drm/drm_atomic_helper.h:33,
+>             from drivers/gpu/drm/tilcdc/tilcdc_crtc.c:19:
+> 
+> And thus, without this change, this patchset would inadvertantly
+> change the behaviour of the tilcdc driver.
+> 
+> [1] lkml.kernel.org/r/CAK8P3a2HhO_zCnsTzq7hmWSz5La5Thu19FWZpun16iMnyyNreQ@mail.gmail.com
+> 
+> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+> Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+> Cc: Jyri Sarha <jsarha@ti.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Tomi Valkeinen <tomi.valkeinen@ti.com>
+> Cc: David Airlie <airlied@linux.ie>
 
-I guess that some kind of compile time constant in uapi headers will do
-as well, I'm really open to any solution that would expose this constant
-as some kind of official API.
+I guess it is about time for me to pick this up for the next pull request.
 
-There is one problem with using SHMLBA, there are more than one libc
-implementations and at least two of them (bionic and klibc) does not
-implement the SysV IPC at all. I know that the chances that you are
-writing a program that requires MAP_FIXED, is compiled against
-alternative libc, and expected to run on less common architectures are
-pretty slim. On the other hand I do not see a reason why this cannot be
-done properly, this is just about exporting one simple constant to
-userspace after all.
+Thanks,
+Jyri
 
-> Or maybe you're thinking that since the SHMLBA cannot be put in the man
-> pages, we could instead provide MapAlignment as sort of a different
-> way to document the requirement?
+> ---
+>  drivers/gpu/drm/tilcdc/tilcdc_regs.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/drivers/gpu/drm/tilcdc/tilcdc_regs.h b/drivers/gpu/drm/tilcdc/tilcdc_regs.h
+> index 9d528c0a67a4..5048ebb86835 100644
+> --- a/drivers/gpu/drm/tilcdc/tilcdc_regs.h
+> +++ b/drivers/gpu/drm/tilcdc/tilcdc_regs.h
+> @@ -133,7 +133,7 @@ static inline void tilcdc_write64(struct drm_device *dev, u32 reg, u64 data)
+>  	struct tilcdc_drm_private *priv = dev->dev_private;
+>  	volatile void __iomem *addr = priv->mmio + reg;
+>  
+> -#ifdef iowrite64
+> +#if defined(iowrite64) && !defined(iowrite64_is_nonatomic)
+>  	iowrite64(data, addr);
+>  #else
+>  	__iowmb();
+> 
 
-This is my intention as well.
 
 -- 
-Cyril Hrubis
-chrubis@suse.cz
+Texas Instruments Finland Oy, Porkkalankatu 22, 00180 Helsinki.
+Y-tunnus/Business ID: 0615521-4. Kotipaikka/Domicile: Helsinki
