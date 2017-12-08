@@ -1,54 +1,53 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
-Date: Fri, 8 Dec 2017 14:33:35 +0000
-Message-ID: <0b0bd6862e3a47728c8f658c8a6b3dea@AcuMS.aculab.com>
-References: <20171129144219.22867-1-mhocko@kernel.org>
- <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
- <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz> <20171201152640.GA3765@rei>
- <87wp20e9wf.fsf@concordia.ellerman.id.au>
- <20171206045433.GQ26021@bombadil.infradead.org>
- <20171206070355.GA32044@bombadil.infradead.org>
- <87bmjbks4c.fsf@concordia.ellerman.id.au>
- <CAGXu5jLWRQn6EaXEEvdvXr+4gbiJawwp1EaLMfYisHVfMiqgSA@mail.gmail.com>
- <20171207195727.GA26792@bombadil.infradead.org>
- <87shclh3zc.fsf@concordia.ellerman.id.au>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH v3 05/33] nds32: Exception handling
+Date: Fri, 8 Dec 2017 15:05:06 +0000
+Message-ID: <20171208150506.GL21978@ZenIV.linux.org.uk>
+References: <cover.1512723245.git.green.hu@gmail.com>
+ <8fad3e13c85cd90bd038cac7ead0e97e4438a0e0.1512723245.git.green.hu@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <87shclh3zc.fsf@concordia.ellerman.id.au>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: 'Michael Ellerman' <mpe@ellerman.id.au>, Matthew Wilcox <willy@infradead.org>, Kees Cook <keescook@chromium.org>
-Cc: Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@kernel.org>, Linux
- API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John
- Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Pavel Machek <pavel@ucw.cz>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <8fad3e13c85cd90bd038cac7ead0e97e4438a0e0.1512723245.git.green.hu@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Michael Ellerman
-> Sent: 08 December 2017 11:08
-...
-> If we had a time machine, the right set of flags would be:
->=20
->   - MAP_FIXED:   don't treat addr as a hint, fail if addr is not free
->   - MAP_REPLACE: replace an existing mapping (or force or clobber)
->=20
-> But the two were conflated for some reason in the current MAP_FIXED.
+On Fri, Dec 08, 2017 at 05:11:48PM +0800, Greentime Hu wrote:
 
-Possibly because the original use was loading overlays?
+> diff --git a/arch/nds32/kernel/traps.c b/arch/nds32/kernel/traps.c
+> new file mode 100644
+> index 0000000..30a275d
+> --- /dev/null
+> +++ b/arch/nds32/kernel/traps.c
+> @@ -0,0 +1,441 @@
+> +/*
+> + * Copyright (C) 2005-2017 Andes Technology Corporation
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + * GNU General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public License
+> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+> + */
+> +
+> +#include <linux/module.h>
+> +#include <linux/personality.h>
+> +#include <linux/kallsyms.h>
+> +#include <linux/hardirq.h>
+> +#include <linux/kdebug.h>
+> +#include <linux/sched/task_stack.h>
+> +
+> +#include <asm/proc-fns.h>
+> +#include <asm/uaccess.h>
 
-> Given we can't go back and fix it, the closest we can get is to add a
-> variant of MAP_FIXED which subtracts the "REPLACE" semantic.
->=20
-> ie: MAP_FIXED_NOREPLACE
-
-Much better than _SAFE - which is always bad because it is usually
-one 'safe' for one specific use case.
-
-	David
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+The only include of asm/uaccess.h should be in linux/uaccess.h; everything
+else should include linux/uaccess.h.  The same goes for other patches in
+the series.
