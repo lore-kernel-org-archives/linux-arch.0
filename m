@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:45014 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752840AbdLHJj4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2017 04:39:56 -0500
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:33802 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753616AbdLHJjZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2017 04:39:25 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v3 32/33] irqchip: Andestech Internal Vector Interrupt Controller driver
-Date: Fri,  8 Dec 2017 17:12:15 +0800
-Message-ID: <4fb7bd1cd2619287061fd68a38a774c8aef7dbe9.1512723245.git.green.hu@gmail.com>
+Subject: [PATCH v3 24/33] nds32: Device tree support
+Date: Fri,  8 Dec 2017 17:12:07 +0800
+Message-ID: <c1083b6f603aeeb13c72c501214e82549404fa5c.1512723245.git.green.hu@gmail.com>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
 References: <cover.1512723245.git.green.hu@gmail.com>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
@@ -14,38 +14,195 @@ References: <cover.1512723245.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com
-Cc: green.hu@gmail.com, Rick Chen <rick@andestech.com>
-Message-ID: <20171208091215.3ucyKUlIIPgBhEdvPggjo4Pl61G8F9bOpap_dXE1iHk@z>
+Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171208091207.MMcmRGhihE8v0K_1DMQNtHrPVLB7JizMHU0zJrDvtyk@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds the Andestech Internal Vector Interrupt Controller
-driver. You can find the spec here. Ch4.9 of AndeStar SPA V3 Manual.
-http://www.andestech.com/product.php?cls=9
+This patch adds support for device tree.
 
-Signed-off-by: Rick Chen <rick@andestech.com>
+Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- drivers/irqchip/Makefile       |    1 +
- drivers/irqchip/irq-ativic32.c |  120 ++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 121 insertions(+)
- create mode 100644 drivers/irqchip/irq-ativic32.c
+ arch/nds32/boot/dts/Makefile   |    8 +++++
+ arch/nds32/boot/dts/ae3xx.dts  |   67 ++++++++++++++++++++++++++++++++++++++
+ arch/nds32/boot/dts/ag101p.dts |   70 ++++++++++++++++++++++++++++++++++++++++
+ arch/nds32/kernel/devtree.c    |   32 ++++++++++++++++++
+ 4 files changed, 177 insertions(+)
+ create mode 100644 arch/nds32/boot/dts/Makefile
+ create mode 100644 arch/nds32/boot/dts/ae3xx.dts
+ create mode 100644 arch/nds32/boot/dts/ag101p.dts
+ create mode 100644 arch/nds32/kernel/devtree.c
 
-diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
-index b842dfd..201ca9f 100644
---- a/drivers/irqchip/Makefile
-+++ b/drivers/irqchip/Makefile
-@@ -80,3 +80,4 @@ obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o irq-aspeed-i2c-ic.o
- obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
- obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
- obj-$(CONFIG_IRQ_UNIPHIER_AIDET)	+= irq-uniphier-aidet.o
-+obj-$(CONFIG_NDS32)			+= irq-ativic32.o
-diff --git a/drivers/irqchip/irq-ativic32.c b/drivers/irqchip/irq-ativic32.c
+diff --git a/arch/nds32/boot/dts/Makefile b/arch/nds32/boot/dts/Makefile
 new file mode 100644
-index 0000000..709b65c
+index 0000000..d31faa8
 --- /dev/null
-+++ b/drivers/irqchip/irq-ativic32.c
-@@ -0,0 +1,120 @@
++++ b/arch/nds32/boot/dts/Makefile
+@@ -0,0 +1,8 @@
++ifneq '$(CONFIG_NDS32_BUILTIN_DTB)' '""'
++BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_NDS32_BUILTIN_DTB)).dtb.o
++else
++BUILTIN_DTB :=
++endif
++obj-$(CONFIG_OF) += $(BUILTIN_DTB)
++
++clean-files := *.dtb *.dtb.S
+diff --git a/arch/nds32/boot/dts/ae3xx.dts b/arch/nds32/boot/dts/ae3xx.dts
+new file mode 100644
+index 0000000..ccdb2fc
+--- /dev/null
++++ b/arch/nds32/boot/dts/ae3xx.dts
+@@ -0,0 +1,67 @@
++/dts-v1/;
++/ {
++	compatible = "andestech,ae3xx";
++	#address-cells = <1>;
++	#size-cells = <1>;
++	interrupt-parent = <&intc>;
++
++	chosen {
++		stdout-path = &serial0;
++	};
++
++	memory@0 {
++		device_type = "memory";
++		reg = <0x00000000 0x40000000>;
++	};
++
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		cpu@0 {
++			device_type = "cpu";
++			compatible = "andestech,n13", "andestech,nds32v3";
++			reg = <0>;
++			clock-frequency = <60000000>;
++		};
++	};
++
++	clk_pll: ref_30mhz {
++		#clock-cells = <0>;
++		compatible = "fixed-clock";
++		clock-frequency = <30000000>;
++	};
++
++
++	intc: interrupt-controller {
++		compatible = "andestech,ativic32";
++		#interrupt-cells = <1>;
++		interrupt-controller;
++	};
++
++	serial0: serial@f0300000 {
++		compatible = "andestech,uart16550", "ns16550a";
++		reg = <0xf0300000 0x1000>;
++		interrupts = <8>;
++		clock-frequency = <14745600>;
++		reg-shift = <2>;
++		reg-offset = <32>;
++		no-loopback-test = <1>;
++	};
++
++	timer0: timer@f0400000 {
++		compatible = "andestech,atcpit100";
++		reg = <0xf0400000 0x1000>;
++		interrupts = <2>;
++		clocks = <&clk_pll>;
++		clock-names = "apb_pclk";
++		cycle-count-offset = <0x38>;
++		cycle-count-down;
++	};
++
++	mac0: mac@e0100000 {
++		compatible = "andestech,atmac100";
++		reg = <0xe0100000 0x1000>;
++		interrupts = <18>;
++	};
++
++};
+diff --git a/arch/nds32/boot/dts/ag101p.dts b/arch/nds32/boot/dts/ag101p.dts
+new file mode 100644
+index 0000000..fb9d509
+--- /dev/null
++++ b/arch/nds32/boot/dts/ag101p.dts
+@@ -0,0 +1,70 @@
++/dts-v1/;
++/ {
++	compatible = "andestech,ag101p";
++	#address-cells = <1>;
++	#size-cells = <1>;
++	interrupt-parent = <&intc>;
++
++	chosen {
++		stdout-path = &serial0;
++	};
++
++	memory@0 {
++		device_type = "memory";
++		reg = <0x00000000 0x40000000>;
++	};
++
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		cpu@0 {
++			device_type = "cpu";
++			compatible = "andestech,n13", "andestech,nds32v3";
++			reg = <0x0>;
++			clock-frequency = <60000000>;
++		};
++	};
++
++	clk_pll: ref_30mhz {
++		#clock-cells = <0>;
++		compatible = "fixed-clock";
++		clock-frequency = <30000000>;
++	};
++
++	intc: interrupt-controller {
++		compatible = "andestech,ativic32";
++		#interrupt-cells = <1>;
++		interrupt-controller;
++	};
++
++	serial0: serial@99600000 {
++		compatible = "andestech,uart16550", "ns16550a";
++		reg = <0x99600000 0x1000>;
++		interrupts = <7>;
++		clock-frequency = <14745600>;
++		reg-shift = <2>;
++		no-loopback-test = <1>;
++	};
++
++	timer0: timer@98400000 {
++		compatible = "andestech,atftmr010";
++		reg = <0x98400000 0x1000>;
++		interrupts = <19>;
++		clocks = <&clk_pll>;
++		clock-names = "apb_pclk";
++		cycle-count-offset = <0x20>;
++	};
++
++	mac0: mac@90900000 {
++		compatible = "andestech,atmac100";
++		reg = <0x90900000 0x1000>;
++		interrupts = <25>;
++	};
++
++	L2: l2-cache {
++		compatible = "andestech,atl2c";
++		reg = <0x90f00000 0x1000>;
++		cache-unified;
++		cache-level = <2>;
++	};
++};
+diff --git a/arch/nds32/kernel/devtree.c b/arch/nds32/kernel/devtree.c
+new file mode 100644
+index 0000000..858fe3a
+--- /dev/null
++++ b/arch/nds32/kernel/devtree.c
+@@ -0,0 +1,32 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -62,109 +219,21 @@ index 0000000..709b65c
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/irq.h>
-+#include <linux/of.h>
-+#include <linux/of_irq.h>
-+#include <linux/of_address.h>
-+#include <linux/interrupt.h>
-+#include <linux/irqdomain.h>
-+#include <linux/irqchip.h>
-+#include <nds32_intrinsic.h>
++#include <linux/bug.h>
++#include <linux/printk.h>
++#include <linux/of_fdt.h>
 +
-+static void ativic32_ack_irq(struct irq_data *data)
++void __init early_init_devtree(void *params)
 +{
-+	__nds32__mtsr_dsb(BIT(data->hwirq), NDS32_SR_INT_PEND2);
-+}
++	if (!params || !early_init_dt_scan(params)) {
++		pr_crit("\n"
++			"Error: invalid device tree blob at (virtual address 0x%p)\n"
++			"\nPlease check your bootloader.", params);
 +
-+static void ativic32_mask_irq(struct irq_data *data)
-+{
-+	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
-+	__nds32__mtsr_dsb(int_mask2 & (~(BIT(data->hwirq))), NDS32_SR_INT_MASK2);
-+}
-+
-+static void ativic32_unmask_irq(struct irq_data *data)
-+{
-+	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
-+	__nds32__mtsr_dsb(int_mask2 | (BIT(data->hwirq)), NDS32_SR_INT_MASK2);
-+}
-+
-+static struct irq_chip ativic32_chip = {
-+	.name = "ativic32",
-+	.irq_ack = ativic32_ack_irq,
-+	.irq_mask = ativic32_mask_irq,
-+	.irq_unmask = ativic32_unmask_irq,
-+};
-+
-+static unsigned int __initdata nivic_map[6] = { 6, 2, 10, 16, 24, 32 };
-+
-+static struct irq_domain *root_domain;
-+static int ativic32_irq_domain_map(struct irq_domain *id, unsigned int virq,
-+				  irq_hw_number_t hw)
-+{
-+
-+	unsigned long int_trigger_type;
-+	u32 type;
-+	struct irq_data *irq_data;
-+	int_trigger_type = __nds32__mfsr(NDS32_SR_INT_TRIGGER);
-+	irq_data = irq_get_irq_data(virq);
-+	if (!irq_data)
-+		return -EINVAL;
-+
-+	if (int_trigger_type & (BIT(hw))) {
-+		irq_set_chip_and_handler(virq, &ativic32_chip, handle_edge_irq);
-+		type = IRQ_TYPE_EDGE_RISING;
-+	} else {
-+		irq_set_chip_and_handler(virq, &ativic32_chip, handle_level_irq);
-+		type = IRQ_TYPE_LEVEL_HIGH;
++		BUG_ON(1);
 +	}
 +
-+	irqd_set_trigger_type(irq_data, type);
-+	return 0;
++	dump_stack_set_arch_desc("%s (DT)", of_flat_dt_get_machine_name());
 +}
-+
-+static struct irq_domain_ops ativic32_ops = {
-+	.map = ativic32_irq_domain_map,
-+	.xlate = irq_domain_xlate_onecell
-+};
-+
-+static irq_hw_number_t get_intr_src(void)
-+{
-+	return ((__nds32__mfsr(NDS32_SR_ITYPE) & ITYPE_mskVECTOR) >> ITYPE_offVECTOR)
-+		- NDS32_VECTOR_offINTERRUPT;
-+}
-+
-+asmlinkage void asm_do_IRQ(struct pt_regs *regs)
-+{
-+	irq_hw_number_t hwirq = get_intr_src();
-+	handle_domain_irq(root_domain, hwirq, regs);
-+}
-+
-+int __init ativic32_init_irq(struct device_node *node, struct device_node *parent)
-+{
-+	unsigned long int_vec_base, nivic, nr_ints;
-+
-+	if (WARN(parent, "non-root ativic32 are not supported"))
-+		return -EINVAL;
-+
-+	int_vec_base = __nds32__mfsr(NDS32_SR_IVB);
-+
-+	if (((int_vec_base & IVB_mskIVIC_VER) >> IVB_offIVIC_VER) == 0)
-+		panic("Unable to use atcivic32 for this cpu.\n");
-+
-+	nivic = (int_vec_base & IVB_mskNIVIC) >> IVB_offNIVIC;
-+	if (nivic >= ARRAY_SIZE(nivic_map))
-+		panic("The number of input for ativic32 is not supported.\n");
-+
-+	nr_ints = nivic_map[nivic];
-+
-+	root_domain = irq_domain_add_linear(node, nr_ints,
-+			&ativic32_ops, NULL);
-+
-+	if (!root_domain)
-+		panic("%s: unable to create IRQ domain\n", node->full_name);
-+
-+	return 0;
-+}
-+IRQCHIP_DECLARE(ativic32, "andestech,ativic32", ativic32_init_irq);
 -- 
 1.7.9.5
