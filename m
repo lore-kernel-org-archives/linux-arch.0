@@ -1,40 +1,36 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v3 21/33] nds32: L2 cache support
-Date: Fri,  8 Dec 2017 17:12:04 +0800
-Message-ID: <f5da1e62581b1883de82b417e051b4f1d20d29f3.1512723245.git.green.hu@gmail.com>
+Subject: [PATCH v3 20/33] nds32: Debugging support
+Date: Fri,  8 Dec 2017 17:12:03 +0800
+Message-ID: <f9de949c0dfdb3c4dd29d44e75212b70c0f4f0b0.1512723245.git.green.hu@gmail.com>
 References: <cover.1512723245.git.green.hu@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:39642 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753252AbdLHJjN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2017 04:39:13 -0500
+Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
 References: <cover.1512723245.git.green.hu@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: netdev-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds L2 cache support.
+This patch adds ptrace support.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/l2_cache.h |  155 +++++++++++++++++++++++++++++++++++++
- arch/nds32/kernel/atl2c.c         |   77 ++++++++++++++++++
- 2 files changed, 232 insertions(+)
- create mode 100644 arch/nds32/include/asm/l2_cache.h
- create mode 100644 arch/nds32/kernel/atl2c.c
+ arch/nds32/include/uapi/asm/ptrace.h |   38 ++++
+ arch/nds32/kernel/ptrace.c           |  325 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 363 insertions(+)
+ create mode 100644 arch/nds32/include/uapi/asm/ptrace.h
+ create mode 100644 arch/nds32/kernel/ptrace.c
 
-diff --git a/arch/nds32/include/asm/l2_cache.h b/arch/nds32/include/asm/l2_cache.h
+diff --git a/arch/nds32/include/uapi/asm/ptrace.h b/arch/nds32/include/uapi/asm/ptrace.h
 new file mode 100644
-index 0000000..a12a3fe
+index 0000000..76fe2ae
 --- /dev/null
-+++ b/arch/nds32/include/asm/l2_cache.h
-@@ -0,0 +1,155 @@
++++ b/arch/nds32/include/uapi/asm/ptrace.h
+@@ -0,0 +1,38 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -51,151 +47,34 @@ index 0000000..a12a3fe
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef L2_CACHE_H
-+#define L2_CACHE_H
-+
-+/* CCTL_CMD_OP */
-+#define L2_CA_CONF_OFF		0x0
-+#define L2_IF_CONF_OFF		0x4
-+#define L2CC_SETUP_OFF		0x8
-+#define L2CC_PROT_OFF		0xC
-+#define L2CC_CTRL_OFF		0x10
-+#define L2_INT_EN_OFF           0x20
-+#define L2_STA_OFF              0x24
-+#define RDERR_ADDR_OFF		0x28
-+#define WRERR_ADDR_OFF		0x2c
-+#define EVDPTERR_ADDR_OFF	0x30
-+#define IMPL3ERR_ADDR_OFF	0x34
-+#define L2_CNT0_CTRL_OFF        0x40
-+#define L2_EVNT_CNT0_OFF        0x44
-+#define L2_CNT1_CTRL_OFF        0x48
-+#define L2_EVNT_CNT1_OFF        0x4c
-+#define L2_CCTL_CMD_OFF		0x60
-+#define L2_CCTL_STATUS_OFF	0x64
-+#define L2_LINE_TAG_OFF		0x68
-+#define L2_LINE_DPT_OFF		0x70
-+
-+#define CCTL_CMD_L2_IX_INVAL    0x0
-+#define CCTL_CMD_L2_PA_INVAL    0x1
-+#define CCTL_CMD_L2_IX_WB       0x2
-+#define CCTL_CMD_L2_PA_WB       0x3
-+#define CCTL_CMD_L2_PA_WBINVAL  0x5
-+#define CCTL_CMD_L2_SYNC        0xa
-+
-+/* CCTL_CMD_TYPE */
-+#define CCTL_SINGLE_CMD         0
-+#define CCTL_BLOCK_CMD          0x10
-+#define CCTL_ALL_CMD		0x10
-+
-+/******************************************************************************
-+ * L2_CA_CONF (Cache architecture configuration)
-+ *****************************************************************************/
-+#define L2_CA_CONF_offL2SET		0
-+#define L2_CA_CONF_offL2WAY		4
-+#define L2_CA_CONF_offL2CLSZ            8
-+#define L2_CA_CONF_offL2DW		11
-+#define L2_CA_CONF_offL2PT		14
-+#define L2_CA_CONF_offL2VER		16
-+
-+#define L2_CA_CONF_mskL2SET	(0xFUL << L2_CA_CONF_offL2SET)
-+#define L2_CA_CONF_mskL2WAY	(0xFUL << L2_CA_CONF_offL2WAY)
-+#define L2_CA_CONF_mskL2CLSZ    (0x7UL << L2_CA_CONF_offL2CLSZ)
-+#define L2_CA_CONF_mskL2DW	(0x7UL << L2_CA_CONF_offL2DW)
-+#define L2_CA_CONF_mskL2PT	(0x3UL << L2_CA_CONF_offL2PT)
-+#define L2_CA_CONF_mskL2VER	(0xFFFFUL << L2_CA_CONF_offL2VER)
-+
-+/******************************************************************************
-+ * L2CC_SETUP (L2CC Setup register)
-+ *****************************************************************************/
-+#define L2CC_SETUP_offPART              0
-+#define L2CC_SETUP_mskPART              (0x3UL << L2CC_SETUP_offPART)
-+#define L2CC_SETUP_offDDLATC            4
-+#define L2CC_SETUP_mskDDLATC            (0x3UL << L2CC_SETUP_offDDLATC)
-+#define L2CC_SETUP_offTDLATC            8
-+#define L2CC_SETUP_mskTDLATC            (0x3UL << L2CC_SETUP_offTDLATC)
-+
-+/******************************************************************************
-+ * L2CC_PROT (L2CC Protect register)
-+ *****************************************************************************/
-+#define L2CC_PROT_offMRWEN              31
-+#define L2CC_PROT_mskMRWEN      (0x1UL << L2CC_PROT_offMRWEN)
-+
-+/******************************************************************************
-+ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
-+ *****************************************************************************/
-+#define L2CC_CTRL_offEN                 31
-+#define L2CC_CTRL_mskEN                 (0x1UL << L2CC_CTRL_offEN)
-+
-+/******************************************************************************
-+ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
-+ *****************************************************************************/
-+#define L2_CCTL_STATUS_offCMD_COMP      31
-+#define L2_CCTL_STATUS_mskCMD_COMP      (0x1 << L2_CCTL_STATUS_offCMD_COMP)
++#ifndef __UAPI_ASM_NDS32_PTRACE_H
++#define __UAPI_ASM_NDS32_PTRACE_H
 +
 +#ifndef __ASSEMBLY__
-+extern void __iomem *atl2c_base;
 +
-+#include <linux/smp.h>
-+#include <asm/io.h>
-+#include <asm/bitfield.h>
-+
-+#define L2C_R_REG(offset)               readl(atl2c_base + offset)
-+#define L2C_W_REG(offset, value)        writel(value, atl2c_base + offset)
-+
-+#define L2_CMD_RDY()    \
-+        do{;}while((L2C_R_REG(L2_CCTL_STATUS_OFF) & L2_CCTL_STATUS_mskCMD_COMP) == 0)
-+
-+static inline unsigned long L2_CACHE_SET(void)
-+{
-+	return 64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
-+		      L2_CA_CONF_offL2SET);
-+}
-+
-+static inline unsigned long L2_CACHE_WAY(void)
-+{
-+	return 1 +
-+	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
-+	     L2_CA_CONF_offL2WAY);
-+}
-+
-+static inline unsigned long L2_CACHE_LINE_SIZE(void)
-+{
-+
-+	return 4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
-+		     L2_CA_CONF_offL2CLSZ);
-+}
-+
-+static inline unsigned long GET_L2CC_CTRL_CPU(unsigned long cpu)
-+{
-+	if (cpu == smp_processor_id())
-+		return L2C_R_REG(L2CC_CTRL_OFF);
-+	return L2C_R_REG(L2CC_CTRL_OFF + (cpu << 8));
-+}
-+
-+static inline void SET_L2CC_CTRL_CPU(unsigned long cpu, unsigned long val)
-+{
-+	if (cpu == smp_processor_id())
-+		L2C_W_REG(L2CC_CTRL_OFF, val);
-+	else
-+		L2C_W_REG(L2CC_CTRL_OFF + (cpu << 8), val);
-+}
-+
-+static inline unsigned long GET_L2CC_STATUS_CPU(unsigned long cpu)
-+{
-+	if (cpu == smp_processor_id())
-+		return L2C_R_REG(L2_CCTL_STATUS_OFF);
-+	return L2C_R_REG(L2_CCTL_STATUS_OFF + (cpu << 8));
-+}
-+
++/*
++ * User structures for general purpose register.
++ */
++struct user_pt_regs {
++	long uregs[26];
++	long fp;
++	long gp;
++	long lp;
++	long sp;
++	long ipc;
++	long lb;
++	long le;
++	long lc;
++	long syscallno;
++};
 +#endif
-+
 +#endif
-diff --git a/arch/nds32/kernel/atl2c.c b/arch/nds32/kernel/atl2c.c
+diff --git a/arch/nds32/kernel/ptrace.c b/arch/nds32/kernel/ptrace.c
 new file mode 100644
-index 0000000..dd87fc9
+index 0000000..d91b3b8
 --- /dev/null
-+++ b/arch/nds32/kernel/atl2c.c
-@@ -0,0 +1,77 @@
++++ b/arch/nds32/kernel/ptrace.c
+@@ -0,0 +1,325 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -212,66 +91,314 @@ index 0000000..dd87fc9
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/compiler.h>
-+#include <linux/of_address.h>
-+#include <linux/of_fdt.h>
-+#include <linux/of_platform.h>
-+#include <asm/l2_cache.h>
++#include <linux/kernel.h>
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/smp.h>
++#include <linux/ptrace.h>
++#include <linux/user.h>
++#include <linux/security.h>
++#include <linux/init.h>
++#include <linux/uaccess.h>
++#include <linux/regset.h>
++#include <linux/tracehook.h>
++#include <linux/elf.h>
++#include <linux/sched/task_stack.h>
 +
-+void __iomem *atl2c_base;
-+static const struct of_device_id atl2c_ids[] __initconst = {
-+	{.compatible = "andestech,atl2c",}
++#include <asm/uaccess.h>
++#include <asm/pgtable.h>
++
++enum nds32_regset {
++	REGSET_GPR,
 +};
 +
-+static int __init atl2c_of_init(void)
++static int gpr_get(struct task_struct *target,
++		   const struct user_regset *regset,
++		   unsigned int pos, unsigned int count,
++		   void *kbuf, void __user * ubuf)
 +{
-+	struct device_node *np;
-+	struct resource res;
-+	unsigned long tmp = 0;
-+	unsigned long l2set, l2way, l2clsz;
++	struct user_pt_regs *uregs = &task_pt_regs(target)->user_regs;
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs, 0, -1);
++}
 +
-+	if (!(__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskL2C))
-+		return -ENODEV;
++static int gpr_set(struct task_struct *target, const struct user_regset *regset,
++		   unsigned int pos, unsigned int count,
++		   const void *kbuf, const void __user * ubuf)
++{
++	int err;
++	struct user_pt_regs newregs = task_pt_regs(target)->user_regs;
 +
-+	np = of_find_matching_node(NULL, atl2c_ids);
-+	if (!np)
-+		return -ENODEV;
++	err = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newregs, 0, -1);
++	if (err)
++		return err;
 +
-+	if (of_address_to_resource(np, 0, &res))
-+		return -ENODEV;
-+
-+	atl2c_base = ioremap(res.start, resource_size(&res));
-+	if (!atl2c_base)
-+		return -ENOMEM;
-+
-+	l2set =
-+	    64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
-+		   L2_CA_CONF_offL2SET);
-+	l2way =
-+	    1 +
-+	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
-+	     L2_CA_CONF_offL2WAY);
-+	l2clsz =
-+	    4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
-+		  L2_CA_CONF_offL2CLSZ);
-+	pr_info("L2:%luKB/%luS/%luW/%luB\n",
-+		l2set * l2way * l2clsz / 1024, l2set, l2way, l2clsz);
-+
-+	tmp = L2C_R_REG(L2CC_PROT_OFF);
-+	tmp &= ~L2CC_PROT_mskMRWEN;
-+	L2C_W_REG(L2CC_PROT_OFF, tmp);
-+
-+	tmp = L2C_R_REG(L2CC_SETUP_OFF);
-+	tmp &= ~L2CC_SETUP_mskPART;
-+	L2C_W_REG(L2CC_SETUP_OFF, tmp);
-+
-+	tmp = L2C_R_REG(L2CC_CTRL_OFF);
-+	tmp |= L2CC_CTRL_mskEN;
-+	L2C_W_REG(L2CC_CTRL_OFF, tmp);
-+
++	task_pt_regs(target)->user_regs = newregs;
 +	return 0;
 +}
 +
-+subsys_initcall(atl2c_of_init);
++static const struct user_regset nds32_regsets[] = {
++	[REGSET_GPR] = {
++			.core_note_type = NT_PRSTATUS,
++			.n = sizeof(struct user_pt_regs) / sizeof(u32),
++			.size = sizeof(u32),
++			.align = sizeof(u32),
++			.get = gpr_get,
++			.set = gpr_set}
++};
++
++static const struct user_regset_view nds32_user_view = {
++	.name = "nds32",.e_machine = EM_NDS32,
++	.regsets = nds32_regsets,.n = ARRAY_SIZE(nds32_regsets)
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &nds32_user_view;
++}
++
++/* get_user_reg()
++ *
++ * This routine will get a word off of the processes privileged stack.
++ * the offset is how far from the base addr as stored in the THREAD.
++ * this routine assumes that all the privileged stacks are in our
++ * data space.
++ */
++static inline unsigned int get_user_reg(struct task_struct *task, int offset)
++{
++	return task_pt_regs(task)->uregs[offset];
++}
++
++/* put_user_reg()
++ *
++ * this routine will put a word on the processes privileged stack.
++ * the offset is how far from the base addr as stored in the THREAD.
++ * this routine assumes that all the privileged stacks are in our
++ * data space.
++ */
++static inline int put_user_reg(struct task_struct *task, int offset, long data)
++{
++	struct pt_regs newregs, *regs = task_pt_regs(task);
++	int ret = -EINVAL;
++
++	newregs = *regs;
++	newregs.uregs[offset] = data;
++
++	if (valid_user_regs(&newregs)) {
++		regs->uregs[offset] = data;
++		ret = 0;
++	}
++
++	return ret;
++}
++
++/*
++ * Called by kernel/ptrace.c when detaching..
++ *
++ * Make sure the single step bit is not set.
++ */
++void ptrace_disable(struct task_struct *child)
++{
++	user_disable_single_step(child);
++}
++
++static void fill_sigtrap_info(struct task_struct *tsk,
++			      struct pt_regs *regs,
++			      int error_code, int si_code, struct siginfo *info)
++{
++	tsk->thread.trap_no = ENTRY_DEBUG_RELATED;
++	tsk->thread.error_code = error_code;
++
++	memset(info, 0, sizeof(*info));
++	info->si_signo = SIGTRAP;
++	info->si_code = si_code;
++	info->si_addr = (void __user *)instruction_pointer(regs);
++}
++
++void user_single_step_siginfo(struct task_struct *tsk,
++			      struct pt_regs *regs, struct siginfo *info)
++{
++	fill_sigtrap_info(tsk, regs, 0, TRAP_BRKPT, info);
++}
++
++/*
++ * Handle hitting a breakpoint.
++ */
++void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
++		  int error_code, int si_code)
++{
++	struct siginfo info;
++
++	fill_sigtrap_info(tsk, regs, error_code, TRAP_BRKPT, &info);
++	/* Send us the fake SIGTRAP */
++	force_sig_info(SIGTRAP, &info, tsk);
++}
++
++/* ptrace_read_user()
++ *
++ * Read the word at offset "off" into the "struct user".  We
++ * actually access the pt_regs stored on the kernel stack.
++ */
++static int
++ptrace_read_user(struct task_struct *tsk, unsigned long off,
++		 unsigned long __user * ret)
++{
++	unsigned long tmp = 0;
++
++	if (off < sizeof(struct pt_regs)) {
++		if (off & 3)
++			return -EIO;
++		tmp = get_user_reg(tsk, off >> 2);
++		return put_user(tmp, ret);
++	} else
++		return -EIO;
++}
++
++/* ptrace_write_user()
++ *
++ * Write the word at offset "off" into "struct user".  We
++ * actually access the pt_regs stored on the kernel stack.
++ */
++static int
++ptrace_write_user(struct task_struct *tsk, unsigned long off, unsigned long val)
++{
++	if (off < sizeof(struct pt_regs)) {
++		if (off & 3)
++			return -EIO;
++		return put_user_reg(tsk, off >> 2, val);
++	} else
++		return -EIO;
++}
++
++/* ptrace_getregs()
++ *
++ * Get all user integer registers.
++ */
++static int ptrace_getregs(struct task_struct *tsk, void __user * uregs)
++{
++	struct pt_regs *regs = task_pt_regs(tsk);
++
++	return copy_to_user(uregs, regs, sizeof(struct pt_regs)) ? -EFAULT : 0;
++}
++
++/* ptrace_setregs()
++ *
++ * Set all user integer registers.
++ */
++static int ptrace_setregs(struct task_struct *tsk, void __user * uregs)
++{
++	struct pt_regs newregs;
++	int ret;
++
++	ret = -EFAULT;
++	if (copy_from_user(&newregs, uregs, sizeof(struct pt_regs)) == 0) {
++		struct pt_regs *regs = task_pt_regs(tsk);
++
++		ret = -EINVAL;
++		if (valid_user_regs(&newregs)) {
++			*regs = newregs;
++			ret = 0;
++		}
++	}
++
++	return ret;
++}
++
++/* ptrace_getfpregs()
++ *
++ * Get the child FPU state.
++ */
++static int ptrace_getfpregs(struct task_struct *tsk, void __user * ufpregs)
++{
++	return -EFAULT;
++}
++
++/*
++ * Set the child FPU state.
++ */
++static int ptrace_setfpregs(struct task_struct *tsk, void __user * ufpregs)
++{
++	return -EFAULT;
++}
++
++/* do_ptrace()
++ *
++ * Provide ptrace defined service.
++ */
++long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
++		 unsigned long data)
++{
++	int ret;
++
++	switch (request) {
++	case PTRACE_PEEKUSR:
++		ret =
++		    ptrace_read_user(child, addr, (unsigned long __user *)data);
++		break;
++
++	case PTRACE_POKEUSR:
++		ret = ptrace_write_user(child, addr, data);
++		break;
++
++	case PTRACE_GETREGS:
++		ret = ptrace_getregs(child, (void __user *)data);
++		break;
++
++	case PTRACE_SETREGS:
++		ret = ptrace_setregs(child, (void __user *)data);
++		break;
++
++	case PTRACE_GETFPREGS:
++		ret = ptrace_getfpregs(child, (void __user *)data);
++		break;
++
++	case PTRACE_SETFPREGS:
++		ret = ptrace_setfpregs(child, (void __user *)data);
++		break;
++
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
++	}
++
++	return ret;
++}
++
++void user_enable_single_step(struct task_struct *child)
++{
++	struct pt_regs *regs;
++	regs = task_pt_regs(child);
++	regs->ipsw |= PSW_mskHSS;
++	set_tsk_thread_flag(child, TIF_SINGLESTEP);
++}
++
++void user_disable_single_step(struct task_struct *child)
++{
++	struct pt_regs *regs;
++	regs = task_pt_regs(child);
++	regs->ipsw &= ~PSW_mskHSS;
++	clear_tsk_thread_flag(child, TIF_SINGLESTEP);
++}
++
++/* sys_trace()
++ *
++ * syscall trace handler.
++ */
++
++asmlinkage int syscall_trace_enter(int syscall, struct pt_regs *regs)
++{
++	if (test_thread_flag(TIF_SYSCALL_TRACE)) {
++		if (tracehook_report_syscall_entry(regs))
++			return -1;
++	}
++	return syscall;
++}
++
++asmlinkage void syscall_trace_leave(struct pt_regs *regs)
++{
++	int step = test_thread_flag(TIF_SINGLESTEP);
++	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
++		tracehook_report_syscall_exit(regs, step);
++
++}
 -- 
 1.7.9.5
