@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:33827 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753724AbdLHJjp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2017 04:39:45 -0500
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:45014 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752840AbdLHJj4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2017 04:39:56 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v3 29/33] dt-bindings: nds32 CPU Bindings
-Date: Fri,  8 Dec 2017 17:12:12 +0800
-Message-ID: <b082ead87b647f6f0797e51d3ceeaf6c87038dd1.1512723245.git.green.hu@gmail.com>
+Subject: [PATCH v3 32/33] irqchip: Andestech Internal Vector Interrupt Controller driver
+Date: Fri,  8 Dec 2017 17:12:15 +0800
+Message-ID: <4fb7bd1cd2619287061fd68a38a774c8aef7dbe9.1512723245.git.green.hu@gmail.com>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
 References: <cover.1512723245.git.green.hu@gmail.com>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
@@ -14,64 +14,157 @@ References: <cover.1512723245.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com
-Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>
-Message-ID: <20171208091212.r8qQNWQFzxz6V5GtJygaQFFSOYDefODWJfA5S2G4bAQ@z>
+Cc: green.hu@gmail.com, Rick Chen <rick@andestech.com>
+Message-ID: <20171208091215.3ucyKUlIIPgBhEdvPggjo4Pl61G8F9bOpap_dXE1iHk@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds nds32 CPU binding documents.
+This patch adds the Andestech Internal Vector Interrupt Controller
+driver. You can find the spec here. Ch4.9 of AndeStar SPA V3 Manual.
+http://www.andestech.com/product.php?cls=9
 
-Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Rick Chen <rick@andestech.com>
-Signed-off-by: Zong Li <zong@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- Documentation/devicetree/bindings/nds32/cpus.txt |   37 ++++++++++++++++++++++
- 1 file changed, 37 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
+ drivers/irqchip/Makefile       |    1 +
+ drivers/irqchip/irq-ativic32.c |  120 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 121 insertions(+)
+ create mode 100644 drivers/irqchip/irq-ativic32.c
 
-diff --git a/Documentation/devicetree/bindings/nds32/cpus.txt b/Documentation/devicetree/bindings/nds32/cpus.txt
+diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+index b842dfd..201ca9f 100644
+--- a/drivers/irqchip/Makefile
++++ b/drivers/irqchip/Makefile
+@@ -80,3 +80,4 @@ obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o irq-aspeed-i2c-ic.o
+ obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
+ obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
+ obj-$(CONFIG_IRQ_UNIPHIER_AIDET)	+= irq-uniphier-aidet.o
++obj-$(CONFIG_NDS32)			+= irq-ativic32.o
+diff --git a/drivers/irqchip/irq-ativic32.c b/drivers/irqchip/irq-ativic32.c
 new file mode 100644
-index 0000000..9a52937
+index 0000000..709b65c
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/nds32/cpus.txt
-@@ -0,0 +1,37 @@
-+* Andestech Processor Binding
++++ b/drivers/irqchip/irq-ativic32.c
+@@ -0,0 +1,120 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
 +
-+This binding specifies what properties must be available in the device tree
-+representation of a Andestech Processor Core, which is the root node in the
-+tree.
++#include <linux/irq.h>
++#include <linux/of.h>
++#include <linux/of_irq.h>
++#include <linux/of_address.h>
++#include <linux/interrupt.h>
++#include <linux/irqdomain.h>
++#include <linux/irqchip.h>
++#include <nds32_intrinsic.h>
 +
-+Required properties:
++static void ativic32_ack_irq(struct irq_data *data)
++{
++	__nds32__mtsr_dsb(BIT(data->hwirq), NDS32_SR_INT_PEND2);
++}
 +
-+	- compatible:
-+		Usage: required
-+		Value type: <string>
-+		Definition: should be one of:
-+			"andestech,n13"
-+			"andestech,n15"
-+			"andestech,d15"
-+			"andestech,n10"
-+			"andestech,d10"
-+			"andestech,nds32v3"
-+	- device_type
-+		Usage: required
-+		Value type: <string>
-+		Definition: must be "cpu"
-+	- reg: Contains CPU index.
-+	- clock-frequency: Contains the clock frequency for CPU, in Hz.
++static void ativic32_mask_irq(struct irq_data *data)
++{
++	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
++	__nds32__mtsr_dsb(int_mask2 & (~(BIT(data->hwirq))), NDS32_SR_INT_MASK2);
++}
 +
-+* Examples
++static void ativic32_unmask_irq(struct irq_data *data)
++{
++	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
++	__nds32__mtsr_dsb(int_mask2 | (BIT(data->hwirq)), NDS32_SR_INT_MASK2);
++}
 +
-+/ {
-+	cpus {
-+		cpu@0 {
-+			device_type = "cpu";
-+			compatible = "andestech,n13", "andestech,nds32v3";
-+			reg = <0x0>;
-+			clock-frequency = <60000000>
-+		};
-+	};
++static struct irq_chip ativic32_chip = {
++	.name = "ativic32",
++	.irq_ack = ativic32_ack_irq,
++	.irq_mask = ativic32_mask_irq,
++	.irq_unmask = ativic32_unmask_irq,
 +};
++
++static unsigned int __initdata nivic_map[6] = { 6, 2, 10, 16, 24, 32 };
++
++static struct irq_domain *root_domain;
++static int ativic32_irq_domain_map(struct irq_domain *id, unsigned int virq,
++				  irq_hw_number_t hw)
++{
++
++	unsigned long int_trigger_type;
++	u32 type;
++	struct irq_data *irq_data;
++	int_trigger_type = __nds32__mfsr(NDS32_SR_INT_TRIGGER);
++	irq_data = irq_get_irq_data(virq);
++	if (!irq_data)
++		return -EINVAL;
++
++	if (int_trigger_type & (BIT(hw))) {
++		irq_set_chip_and_handler(virq, &ativic32_chip, handle_edge_irq);
++		type = IRQ_TYPE_EDGE_RISING;
++	} else {
++		irq_set_chip_and_handler(virq, &ativic32_chip, handle_level_irq);
++		type = IRQ_TYPE_LEVEL_HIGH;
++	}
++
++	irqd_set_trigger_type(irq_data, type);
++	return 0;
++}
++
++static struct irq_domain_ops ativic32_ops = {
++	.map = ativic32_irq_domain_map,
++	.xlate = irq_domain_xlate_onecell
++};
++
++static irq_hw_number_t get_intr_src(void)
++{
++	return ((__nds32__mfsr(NDS32_SR_ITYPE) & ITYPE_mskVECTOR) >> ITYPE_offVECTOR)
++		- NDS32_VECTOR_offINTERRUPT;
++}
++
++asmlinkage void asm_do_IRQ(struct pt_regs *regs)
++{
++	irq_hw_number_t hwirq = get_intr_src();
++	handle_domain_irq(root_domain, hwirq, regs);
++}
++
++int __init ativic32_init_irq(struct device_node *node, struct device_node *parent)
++{
++	unsigned long int_vec_base, nivic, nr_ints;
++
++	if (WARN(parent, "non-root ativic32 are not supported"))
++		return -EINVAL;
++
++	int_vec_base = __nds32__mfsr(NDS32_SR_IVB);
++
++	if (((int_vec_base & IVB_mskIVIC_VER) >> IVB_offIVIC_VER) == 0)
++		panic("Unable to use atcivic32 for this cpu.\n");
++
++	nivic = (int_vec_base & IVB_mskNIVIC) >> IVB_offNIVIC;
++	if (nivic >= ARRAY_SIZE(nivic_map))
++		panic("The number of input for ativic32 is not supported.\n");
++
++	nr_ints = nivic_map[nivic];
++
++	root_domain = irq_domain_add_linear(node, nr_ints,
++			&ativic32_ops, NULL);
++
++	if (!root_domain)
++		panic("%s: unable to create IRQ domain\n", node->full_name);
++
++	return 0;
++}
++IRQCHIP_DECLARE(ativic32, "andestech,ativic32", ativic32_init_irq);
 -- 
 1.7.9.5
