@@ -1,119 +1,226 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 0/5] Consolidate init_task handling and expand macros
-Date: Fri, 08 Dec 2017 15:51:22 +0000
-Message-ID: <151274828194.9961.4230316917108602662.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 2/5] Expand INIT_TASK() in init/init_task.c and remove
+Date: Fri, 08 Dec 2017 15:51:37 +0000
+Message-ID: <151274829701.9961.12390203402383079959.stgit@warthog.procyon.org.uk>
+References: <151274828194.9961.4230316917108602662.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60402 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754439AbdLHPvY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 8 Dec 2017 10:51:24 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <151274828194.9961.4230316917108602662.stgit@warthog.procyon.org.uk>
+Sender: linux-ia64-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, x86@kernel.org, linux-ia64@vger.kernel.org
 Cc: dhowells@redhat.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+It's no longer necessary to have an INIT_TASK() macro, and this can be
+expanded into the one place it is now used and removed.
 
-It doesn't seem useful to have the init_task in a header file rather than
-in a normal source file.  We could consolidate init_task handling instead and
-expand out various macros.
-
-Here's a series of patches that consolidate init_task handling:
-
- (1) Alter the INIT_TASK_DATA linker script macro to set init_thread_union
-     and init_stack rather than defining these in C.
-
-     Insert init_task and init_thread_into into the init_stack area in the
-     linker script as appropriate to the configuration, with different
-     section markers so that they end up correctly ordered.
-
-     We can then get merge ia64's init_task.c into the main one.
-
-We then have a bunch of single-use INIT_*() macros that seem only to be
-macros because they used to be used per-arch.  We can then expand these in
-place of the user and get rid of a few lines and a lot of backslashes.
-
- (2) Expand INIT_TASK() in place.
-
- (3) Expand in place various small INIT_*() macros that are defined
-     conditionally.  Expand them and surround them by #if[n]def/#endif in
-     the .c file as it takes fewer lines.
-
- (4) Expand INIT_SIGNALS() and INIT_SIGHAND() in place.
-
- (5) Expand INIT_STRUCT_PID in place.
-
-These macros can then be discarded.
-
-The patches can be found here also:
-
-	http://git.kernel.org/cgit/linux/kernel/git/dhowells/linux-fs.git/log/?h=init_task
-
-David
+Signed-off-by: David Howells <dhowells@redhat.com>
 ---
-David Howells (5):
-      Construct init thread stack in the linker script rather than by union
-      Expand INIT_TASK() in init/init_task.c and remove
-      Expand various INIT_* macros and remove
-      Expand the INIT_SIGNALS and INIT_SIGHAND macros and remove
-      Expand INIT_STRUCT_PID and remove
 
+ include/linux/init_task.h |   87 ++-------------------------------------------
+ init/init_task.c          |   85 +++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 87 insertions(+), 85 deletions(-)
 
- arch/Kconfig                              |    4 
- arch/alpha/include/asm/thread_info.h      |    3 
- arch/arc/include/asm/thread_info.h        |    3 
- arch/arm/include/asm/thread_info.h        |    3 
- arch/arm64/include/asm/thread_info.h      |    2 
- arch/blackfin/include/asm/thread_info.h   |    2 
- arch/c6x/include/asm/thread_info.h        |    3 
- arch/cris/include/asm/processor.h         |    2 
- arch/cris/include/asm/thread_info.h       |    2 
- arch/frv/include/asm/thread_info.h        |    3 
- arch/h8300/include/asm/thread_info.h      |    3 
- arch/hexagon/include/asm/thread_info.h    |    3 
- arch/ia64/Kconfig                         |    2 
- arch/ia64/Makefile                        |    2 
- arch/ia64/include/asm/thread_info.h       |    4 
- arch/ia64/kernel/Makefile                 |    2 
- arch/ia64/kernel/init_task.c              |   44 -----
- arch/ia64/kernel/vmlinux.lds.S            |    1 
- arch/m32r/include/asm/thread_info.h       |    3 
- arch/m68k/include/asm/thread_info.h       |    4 
- arch/metag/include/asm/thread_info.h      |    3 
- arch/microblaze/include/asm/thread_info.h |    3 
- arch/mips/include/asm/thread_info.h       |    3 
- arch/mn10300/include/asm/thread_info.h    |    2 
- arch/nios2/include/asm/thread_info.h      |    3 
- arch/openrisc/include/asm/processor.h     |    2 
- arch/openrisc/include/asm/thread_info.h   |    2 
- arch/parisc/include/asm/thread_info.h     |    3 
- arch/powerpc/include/asm/thread_info.h    |    3 
- arch/s390/include/asm/thread_info.h       |    2 
- arch/score/include/asm/thread_info.h      |    3 
- arch/sh/include/asm/thread_info.h         |    3 
- arch/sparc/include/asm/thread_info_32.h   |    3 
- arch/sparc/include/asm/thread_info_64.h   |    3 
- arch/tile/include/asm/thread_info.h       |    3 
- arch/um/include/asm/processor-generic.h   |    5 -
- arch/um/include/asm/thread_info.h         |    9 -
- arch/um/include/asm/vmlinux.lds.h         |    2 
- arch/um/kernel/dyn.lds.S                  |    3 
- arch/um/kernel/um_arch.c                  |    2 
- arch/um/kernel/uml.lds.S                  |    2 
- arch/unicore32/include/asm/thread_info.h  |    3 
- arch/x86/include/asm/thread_info.h        |    2 
- arch/xtensa/include/asm/thread_info.h     |    3 
- include/asm-generic/vmlinux.lds.h         |    4 
- include/linux/ftrace.h                    |   12 -
- include/linux/init_task.h                 |  258 +----------------------------
- include/linux/irqflags.h                  |    2 
- include/linux/lockdep.h                   |    3 
- include/linux/sched.h                     |    9 +
- init/Makefile                             |    2 
- init/init_task.c                          |  170 ++++++++++++++++++-
- kernel/pid.c                              |   14 +-
- 53 files changed, 219 insertions(+), 422 deletions(-)
- delete mode 100644 arch/ia64/kernel/init_task.c
- create mode 100644 arch/um/include/asm/vmlinux.lds.h
+diff --git a/include/linux/init_task.h b/include/linux/init_task.h
+index 30a89b99a5af..9711611b831d 100644
+--- a/include/linux/init_task.h
++++ b/include/linux/init_task.h
+@@ -218,91 +218,12 @@ extern struct cred init_cred;
+ #define INIT_TASK_SECURITY
+ #endif
+ 
+-/*
+- *  INIT_TASK is used to set up the first task table, touch at
+- * your own risk!. Base=0, limit=0x1fffff (=2MB)
+- */
+-#define INIT_TASK(tsk)	\
+-{									\
+-	INIT_TASK_TI(tsk)						\
+-	.state		= 0,						\
+-	.stack		= init_stack,					\
+-	.usage		= ATOMIC_INIT(2),				\
+-	.flags		= PF_KTHREAD,					\
+-	.prio		= MAX_PRIO-20,					\
+-	.static_prio	= MAX_PRIO-20,					\
+-	.normal_prio	= MAX_PRIO-20,					\
+-	.policy		= SCHED_NORMAL,					\
+-	.cpus_allowed	= CPU_MASK_ALL,					\
+-	.nr_cpus_allowed= NR_CPUS,					\
+-	.mm		= NULL,						\
+-	.active_mm	= &init_mm,					\
+-	.restart_block = {						\
+-		.fn = do_no_restart_syscall,				\
+-	},								\
+-	.se		= {						\
+-		.group_node 	= LIST_HEAD_INIT(tsk.se.group_node),	\
+-	},								\
+-	.rt		= {						\
+-		.run_list	= LIST_HEAD_INIT(tsk.rt.run_list),	\
+-		.time_slice	= RR_TIMESLICE,				\
+-	},								\
+-	.tasks		= LIST_HEAD_INIT(tsk.tasks),			\
+-	INIT_PUSHABLE_TASKS(tsk)					\
+-	INIT_CGROUP_SCHED(tsk)						\
+-	.ptraced	= LIST_HEAD_INIT(tsk.ptraced),			\
+-	.ptrace_entry	= LIST_HEAD_INIT(tsk.ptrace_entry),		\
+-	.real_parent	= &tsk,						\
+-	.parent		= &tsk,						\
+-	.children	= LIST_HEAD_INIT(tsk.children),			\
+-	.sibling	= LIST_HEAD_INIT(tsk.sibling),			\
+-	.group_leader	= &tsk,						\
+-	RCU_POINTER_INITIALIZER(real_cred, &init_cred),			\
+-	RCU_POINTER_INITIALIZER(cred, &init_cred),			\
+-	.comm		= INIT_TASK_COMM,				\
+-	.thread		= INIT_THREAD,					\
+-	.fs		= &init_fs,					\
+-	.files		= &init_files,					\
+-	.signal		= &init_signals,				\
+-	.sighand	= &init_sighand,				\
+-	.nsproxy	= &init_nsproxy,				\
+-	.pending	= {						\
+-		.list = LIST_HEAD_INIT(tsk.pending.list),		\
+-		.signal = {{0}}},					\
+-	.blocked	= {{0}},					\
+-	.alloc_lock	= __SPIN_LOCK_UNLOCKED(tsk.alloc_lock),		\
+-	.journal_info	= NULL,						\
+-	INIT_CPU_TIMERS(tsk)						\
+-	.pi_lock	= __RAW_SPIN_LOCK_UNLOCKED(tsk.pi_lock),	\
+-	.timer_slack_ns = 50000, /* 50 usec default slack */		\
+-	.pids = {							\
+-		[PIDTYPE_PID]  = INIT_PID_LINK(PIDTYPE_PID),		\
+-		[PIDTYPE_PGID] = INIT_PID_LINK(PIDTYPE_PGID),		\
+-		[PIDTYPE_SID]  = INIT_PID_LINK(PIDTYPE_SID),		\
+-	},								\
+-	.thread_group	= LIST_HEAD_INIT(tsk.thread_group),		\
+-	.thread_node	= LIST_HEAD_INIT(init_signals.thread_head),	\
+-	INIT_IDS							\
+-	INIT_PERF_EVENTS(tsk)						\
+-	INIT_TRACE_IRQFLAGS						\
+-	INIT_LOCKDEP							\
+-	INIT_FTRACE_GRAPH						\
+-	INIT_TRACE_RECURSION						\
+-	INIT_TASK_RCU_PREEMPT(tsk)					\
+-	INIT_TASK_RCU_TASKS(tsk)					\
+-	INIT_CPUSET_SEQ(tsk)						\
+-	INIT_RT_MUTEXES(tsk)						\
+-	INIT_PREV_CPUTIME(tsk)						\
+-	INIT_VTIME(tsk)							\
+-	INIT_NUMA_BALANCING(tsk)					\
+-	INIT_KASAN(tsk)							\
+-	INIT_LIVEPATCH(tsk)						\
+-	INIT_TASK_SECURITY						\
+-}
+-
+-
+ /* Attach to the init_task data structure for proper alignment */
++#ifdef CONFIG_ARCH_TASK_STRUCT_ON_STACK
+ #define __init_task_data __attribute__((__section__(".data..init_task")))
++#else
++#define __init_task_data /**/
++#endif
+ 
+ /* Attach to the thread_info data structure for proper alignment */
+ #define __init_thread_info __attribute__((__section__(".data..init_thread_info")))
+diff --git a/init/init_task.c b/init/init_task.c
+index 2285aa42cbe1..7b2436f02dad 100644
+--- a/init/init_task.c
++++ b/init/init_task.c
+@@ -16,12 +16,93 @@
+ static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
+ static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
+ 
+-/* Initial task structure */
++
++/*
++ * Set up the first task table, touch at your own risk!. Base=0,
++ * limit=0x1fffff (=2MB)
++ */
+ struct task_struct init_task
+ #ifdef CONFIG_ARCH_TASK_STRUCT_ON_STACK
+ 	__init_task_data
+ #endif
+-	= INIT_TASK(init_task);
++= {
++	INIT_TASK_TI(init_task)
++	.state		= 0,
++	.stack		= init_stack,
++	.usage		= ATOMIC_INIT(2),
++	.flags		= PF_KTHREAD,
++	.prio		= MAX_PRIO-20,
++	.static_prio	= MAX_PRIO-20,
++	.normal_prio	= MAX_PRIO-20,
++	.policy		= SCHED_NORMAL,
++	.cpus_allowed	= CPU_MASK_ALL,
++	.nr_cpus_allowed= NR_CPUS,
++	.mm		= NULL,
++	.active_mm	= &init_mm,
++	.restart_block = {
++		.fn = do_no_restart_syscall,
++	},
++	.se		= {
++		.group_node 	= LIST_HEAD_INIT(init_task.se.group_node),
++	},
++	.rt		= {
++		.run_list	= LIST_HEAD_INIT(init_task.rt.run_list),
++		.time_slice	= RR_TIMESLICE,
++	},
++	.tasks		= LIST_HEAD_INIT(init_task.tasks),
++	INIT_PUSHABLE_TASKS(init_task)
++	INIT_CGROUP_SCHED(init_task)
++	.ptraced	= LIST_HEAD_INIT(init_task.ptraced),
++	.ptrace_entry	= LIST_HEAD_INIT(init_task.ptrace_entry),
++	.real_parent	= &init_task,
++	.parent		= &init_task,
++	.children	= LIST_HEAD_INIT(init_task.children),
++	.sibling	= LIST_HEAD_INIT(init_task.sibling),
++	.group_leader	= &init_task,
++	RCU_POINTER_INITIALIZER(real_cred, &init_cred),
++	RCU_POINTER_INITIALIZER(cred, &init_cred),
++	.comm		= INIT_TASK_COMM,
++	.thread		= INIT_THREAD,
++	.fs		= &init_fs,
++	.files		= &init_files,
++	.signal		= &init_signals,
++	.sighand	= &init_sighand,
++	.nsproxy	= &init_nsproxy,
++	.pending	= {
++		.list = LIST_HEAD_INIT(init_task.pending.list),
++		.signal = {{0}}
++	},
++	.blocked	= {{0}},
++	.alloc_lock	= __SPIN_LOCK_UNLOCKED(init_task.alloc_lock),
++	.journal_info	= NULL,
++	INIT_CPU_TIMERS(init_task)
++	.pi_lock	= __RAW_SPIN_LOCK_UNLOCKED(init_task.pi_lock),
++	.timer_slack_ns = 50000, /* 50 usec default slack */
++	.pids = {
++		[PIDTYPE_PID]  = INIT_PID_LINK(PIDTYPE_PID),
++		[PIDTYPE_PGID] = INIT_PID_LINK(PIDTYPE_PGID),
++		[PIDTYPE_SID]  = INIT_PID_LINK(PIDTYPE_SID),
++	},
++	.thread_group	= LIST_HEAD_INIT(init_task.thread_group),
++	.thread_node	= LIST_HEAD_INIT(init_signals.thread_head),
++	INIT_IDS
++	INIT_PERF_EVENTS(init_task)
++	INIT_TRACE_IRQFLAGS
++	INIT_LOCKDEP
++	INIT_FTRACE_GRAPH
++	INIT_TRACE_RECURSION
++	INIT_TASK_RCU_PREEMPT(init_task)
++	INIT_TASK_RCU_TASKS(init_task)
++	INIT_CPUSET_SEQ(init_task)
++	INIT_RT_MUTEXES(init_task)
++	INIT_PREV_CPUTIME(init_task)
++	INIT_VTIME(init_task)
++	INIT_NUMA_BALANCING(init_task)
++	INIT_KASAN(init_task)
++	INIT_LIVEPATCH(init_task)
++	INIT_TASK_SECURITY
++};
++
+ EXPORT_SYMBOL(init_task);
+ 
+ /*
+
