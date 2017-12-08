@@ -1,43 +1,37 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v3 15/33] nds32: ELF definitions
-Date: Fri,  8 Dec 2017 17:11:58 +0800
-Message-ID: <830c885c7306b4146f00aaa4f968f1b8bc97bf7f.1512723245.git.green.hu@gmail.com>
+Subject: [PATCH v3 14/33] nds32: DMA mapping API
+Date: Fri,  8 Dec 2017 17:11:57 +0800
+Message-ID: <4d5594841eb43cf48a0f298356246a1681bc3958.1512723245.git.green.hu@gmail.com>
 References: <cover.1512723245.git.green.hu@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:43979 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753494AbdLHJit (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2017 04:38:49 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
 References: <cover.1512723245.git.green.hu@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds definitions for the ELF format, relocation types, vdso
-locations and EXEC_PAGESIZE.
+This patch adds support for the DMA mapping API. It uses dma_map_ops for
+flexibility.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/elf.h         |  192 ++++++++++++++++++++++++++++++++++
- arch/nds32/include/uapi/asm/auxvec.h |   25 +++++
- arch/nds32/include/uapi/asm/param.h  |   24 +++++
- 3 files changed, 241 insertions(+)
- create mode 100644 arch/nds32/include/asm/elf.h
- create mode 100644 arch/nds32/include/uapi/asm/auxvec.h
- create mode 100644 arch/nds32/include/uapi/asm/param.h
+ arch/nds32/include/asm/dma-mapping.h |   27 ++
+ arch/nds32/kernel/dma.c              |  472 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 499 insertions(+)
+ create mode 100644 arch/nds32/include/asm/dma-mapping.h
+ create mode 100644 arch/nds32/kernel/dma.c
 
-diff --git a/arch/nds32/include/asm/elf.h b/arch/nds32/include/asm/elf.h
+diff --git a/arch/nds32/include/asm/dma-mapping.h b/arch/nds32/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..a6e4c56
+index 0000000..63dbeb7
 --- /dev/null
-+++ b/arch/nds32/include/asm/elf.h
-@@ -0,0 +1,192 @@
++++ b/arch/nds32/include/asm/dma-mapping.h
+@@ -0,0 +1,27 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -54,242 +48,494 @@ index 0000000..a6e4c56
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef __ASMNDS32_ELF_H
-+#define __ASMNDS32_ELF_H
++#ifndef ASMNDS32_DMA_MAPPING_H
++#define ASMNDS32_DMA_MAPPING_H
 +
++extern struct dma_map_ops nds32_dma_ops;
++
++static inline struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
++{
++	return &nds32_dma_ops;
++}
++
++#endif
+diff --git a/arch/nds32/kernel/dma.c b/arch/nds32/kernel/dma.c
+new file mode 100644
+index 0000000..9554aee
+--- /dev/null
++++ b/arch/nds32/kernel/dma.c
+@@ -0,0 +1,472 @@
 +/*
-+ * ELF register definitions..
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <asm/ptrace.h>
++#include <linux/types.h>
++#include <linux/mm.h>
++#include <linux/export.h>
++#include <linux/string.h>
++#include <linux/scatterlist.h>
++#include <linux/dma-mapping.h>
++#include <linux/io.h>
++#include <linux/cache.h>
++#include <linux/highmem.h>
++#include <linux/slab.h>
++#include <asm/cacheflush.h>
++#include <asm/tlbflush.h>
++#include <asm/dma-mapping.h>
++#include <asm/proc-fns.h>
 +
-+typedef unsigned long elf_greg_t;
-+typedef unsigned long elf_freg_t[3];
++/*
++ * This is the page table (2MB) covering uncached, DMA consistent allocations
++ */
++static pte_t *consistent_pte;
++static DEFINE_RAW_SPINLOCK(consistent_lock);
 +
-+extern unsigned int elf_hwcap;
-+
-+#define EM_NDS32			167
-+
-+#define R_NDS32_NONE			0
-+#define R_NDS32_16_RELA			19
-+#define R_NDS32_32_RELA			20
-+#define R_NDS32_9_PCREL_RELA		22
-+#define R_NDS32_15_PCREL_RELA		23
-+#define R_NDS32_17_PCREL_RELA		24
-+#define R_NDS32_25_PCREL_RELA		25
-+#define R_NDS32_HI20_RELA		26
-+#define R_NDS32_LO12S3_RELA		27
-+#define R_NDS32_LO12S2_RELA		28
-+#define R_NDS32_LO12S1_RELA		29
-+#define R_NDS32_LO12S0_RELA		30
-+#define R_NDS32_SDA15S3_RELA    	31
-+#define R_NDS32_SDA15S2_RELA    	32
-+#define R_NDS32_SDA15S1_RELA    	33
-+#define R_NDS32_SDA15S0_RELA    	34
-+#define R_NDS32_GOT20			37
-+#define R_NDS32_25_PLTREL		38
-+#define R_NDS32_COPY			39
-+#define R_NDS32_GLOB_DAT		40
-+#define R_NDS32_JMP_SLOT		41
-+#define R_NDS32_RELATIVE		42
-+#define R_NDS32_GOTOFF			43
-+#define R_NDS32_GOTPC20			44
-+#define R_NDS32_GOT_HI20		45
-+#define R_NDS32_GOT_LO12		46
-+#define R_NDS32_GOTPC_HI20		47
-+#define R_NDS32_GOTPC_LO12		48
-+#define R_NDS32_GOTOFF_HI20		49
-+#define R_NDS32_GOTOFF_LO12		50
-+#define R_NDS32_INSN16			51
-+#define R_NDS32_LABEL			52
-+#define R_NDS32_LONGCALL1		53
-+#define R_NDS32_LONGCALL2		54
-+#define R_NDS32_LONGCALL3		55
-+#define R_NDS32_LONGJUMP1		56
-+#define R_NDS32_LONGJUMP2		57
-+#define R_NDS32_LONGJUMP3		58
-+#define R_NDS32_LOADSTORE		59
-+#define R_NDS32_9_FIXED_RELA		60
-+#define R_NDS32_15_FIXED_RELA		61
-+#define R_NDS32_17_FIXED_RELA		62
-+#define R_NDS32_25_FIXED_RELA		63
-+#define R_NDS32_PLTREL_HI20		64
-+#define R_NDS32_PLTREL_LO12		65
-+#define R_NDS32_PLT_GOTREL_HI20		66
-+#define R_NDS32_PLT_GOTREL_LO12		67
-+#define R_NDS32_LO12S0_ORI_RELA		72
-+#define R_NDS32_DWARF2_OP1_RELA     	77
-+#define R_NDS32_DWARF2_OP2_RELA     	78
-+#define R_NDS32_DWARF2_LEB_RELA     	79
-+#define R_NDS32_WORD_9_PCREL_RELA	94
-+#define R_NDS32_LONGCALL4 		107
-+#define R_NDS32_RELA_NOP_MIX		192
-+#define R_NDS32_RELA_NOP_MAX		255
-+
-+#define ELF_NGREG (sizeof (struct pt_regs) / sizeof(elf_greg_t))
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+/* Core file format: The core file is written in such a way that gdb
-+   can understand it and provide useful information to the user (under
-+   linux we use the 'trad-core' bfd).  There are quite a number of
-+   obstacles to being able to view the contents of the floating point
-+   registers, and until these are solved you will not be able to view the
-+   contents of them.  Actually, you can read in the core file and look at
-+   the contents of the user struct to find out what the floating point
-+   registers contain.
-+   The actual file contents are as follows:
-+   UPAGE: 1 page consisting of a user struct that tells gdb what is present
-+   in the file.  Directly after this is a copy of the task_struct, which
-+   is currently not used by gdb, but it may come in useful at some point.
-+   All of the registers are stored as part of the upage.  The upage should
-+   always be only one page.
-+   DATA: The data area is stored.  We use current->end_text to
-+   current->brk to pick up all of the user variables, plus any memory
-+   that may have been malloced.  No attempt is made to determine if a page
-+   is demand-zero or if a page is totally unused, we just cover the entire
-+   range.  All of the addresses are rounded in such a way that an integral
-+   number of pages is written.
-+   STACK: We need the stack information in order to get a meaningful
-+   backtrace.  We need to write the data from (esp) to
-+   current->start_stack, so we round each of these off in order to be able
-+   to write an integer number of pages.
-+   The minimum core file size is 3 pages, or 12288 bytes.
-+*/
-+
-+struct user_fp {
-+	struct fp_reg {
-+		unsigned int sign1:1;
-+		unsigned int unused:15;
-+		unsigned int sign2:1;
-+		unsigned int exponent:14;
-+		unsigned int j:1;
-+		unsigned int mantissa1:31;
-+		unsigned int mantissa0:32;
-+	} fpregs[8];
-+	unsigned int fpsr:32;
-+	unsigned int fpcr:32;
-+	unsigned char ftype[8];
-+	unsigned int init_flag;
++/*
++ * VM region handling support.
++ *
++ * This should become something generic, handling VM region allocations for
++ * vmalloc and similar (ioremap, module space, etc).
++ *
++ * I envisage vmalloc()'s supporting vm_struct becoming:
++ *
++ *  struct vm_struct {
++ *    struct vm_region	region;
++ *    unsigned long	flags;
++ *    struct page	**pages;
++ *    unsigned int	nr_pages;
++ *    unsigned long	phys_addr;
++ *  };
++ *
++ * get_vm_area() would then call vm_region_alloc with an appropriate
++ * struct vm_region head (eg):
++ *
++ *  struct vm_region vmalloc_head = {
++ *	.vm_list	= LIST_HEAD_INIT(vmalloc_head.vm_list),
++ *	.vm_start	= VMALLOC_START,
++ *	.vm_end		= VMALLOC_END,
++ *  };
++ *
++ * However, vmalloc_head.vm_start is variable (typically, it is dependent on
++ * the amount of RAM found at boot time.)  I would imagine that get_vm_area()
++ * would have to initialise this each time prior to calling vm_region_alloc().
++ */
++struct arch_vm_region {
++	struct list_head vm_list;
++	unsigned long vm_start;
++	unsigned long vm_end;
++	struct page *vm_pages;
 +};
 +
-+typedef struct user_fp elf_fpregset_t;
++static struct arch_vm_region consistent_head = {
++	.vm_list = LIST_HEAD_INIT(consistent_head.vm_list),
++	.vm_start = CONSISTENT_BASE,
++	.vm_end = CONSISTENT_END,
++};
 +
-+struct elf32_hdr;
-+#define elf_check_arch(x)		((x)->e_machine == EM_NDS32)
++static struct arch_vm_region *vm_region_alloc(struct arch_vm_region *head,
++					      size_t size, int gfp)
++{
++	unsigned long addr = head->vm_start, end = head->vm_end - size;
++	unsigned long flags;
++	struct arch_vm_region *c, *new;
++
++	new = kmalloc(sizeof(struct arch_vm_region), gfp);
++	if (!new)
++		goto out;
++
++	raw_spin_lock_irqsave(&consistent_lock, flags);
++
++	list_for_each_entry(c, &head->vm_list, vm_list) {
++		if ((addr + size) < addr)
++			goto nospc;
++		if ((addr + size) <= c->vm_start)
++			goto found;
++		addr = c->vm_end;
++		if (addr > end)
++			goto nospc;
++	}
++
++found:
++	/*
++	 * Insert this entry _before_ the one we found.
++	 */
++	list_add_tail(&new->vm_list, &c->vm_list);
++	new->vm_start = addr;
++	new->vm_end = addr + size;
++
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++	return new;
++
++nospc:
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++	kfree(new);
++out:
++	return NULL;
++}
++
++static struct arch_vm_region *vm_region_find(struct arch_vm_region *head,
++					     unsigned long addr)
++{
++	struct arch_vm_region *c;
++
++	list_for_each_entry(c, &head->vm_list, vm_list) {
++		if (c->vm_start == addr)
++			goto out;
++	}
++	c = NULL;
++out:
++	return c;
++}
++
++/* FIXME: attrs is not used. */
++static void *nds32_dma_alloc_coherent(struct device *dev, size_t size,
++				      dma_addr_t * handle, gfp_t gfp,
++				      unsigned long attrs)
++{
++	struct page *page;
++	struct arch_vm_region *c;
++	unsigned long order;
++	u64 mask = ~0ULL, limit;
++	pgprot_t prot = pgprot_noncached(PAGE_KERNEL);
++
++	if (!consistent_pte) {
++		pr_err("%s: not initialized\n", __func__);
++		dump_stack();
++		return NULL;
++	}
++
++	if (dev) {
++		mask = dev->coherent_dma_mask;
++
++		/*
++		 * Sanity check the DMA mask - it must be non-zero, and
++		 * must be able to be satisfied by a DMA allocation.
++		 */
++		if (mask == 0) {
++			dev_warn(dev, "coherent DMA mask is unset\n");
++			goto no_page;
++		}
++
++	}
++
++	/*
++	 * Sanity check the allocation size.
++	 */
++	size = PAGE_ALIGN(size);
++	limit = (mask + 1) & ~mask;
++	if ((limit && size >= limit) ||
++	    size >= (CONSISTENT_END - CONSISTENT_BASE)) {
++		pr_warn("coherent allocation too big "
++			"(requested %#x mask %#llx)\n", size, mask);
++		goto no_page;
++	}
++
++	order = get_order(size);
++
++	if (mask != 0xffffffff)
++		gfp |= GFP_DMA;
++
++	page = alloc_pages(gfp, order);
++	if (!page)
++		goto no_page;
++
++	/*
++	 * Invalidate any data that might be lurking in the
++	 * kernel direct-mapped region for device DMA.
++	 */
++	{
++		unsigned long kaddr = (unsigned long)page_address(page);
++		memset(page_address(page), 0, size);
++		cpu_dma_wbinval_range(kaddr, kaddr + size);
++	}
++
++	/*
++	 * Allocate a virtual address in the consistent mapping region.
++	 */
++	c = vm_region_alloc(&consistent_head, size,
++			    gfp & ~(__GFP_DMA | __GFP_HIGHMEM));
++	if (c) {
++		pte_t *pte = consistent_pte + CONSISTENT_OFFSET(c->vm_start);
++		struct page *end = page + (1 << order);
++
++		c->vm_pages = page;
++
++		/*
++		 * Set the "dma handle"
++		 */
++		*handle = page_to_phys(page);
++
++		do {
++			BUG_ON(!pte_none(*pte));
++
++			/*
++			 * x86 does not mark the pages reserved...
++			 */
++			SetPageReserved(page);
++			set_pte(pte, mk_pte(page, prot));
++			page++;
++			pte++;
++		} while (size -= PAGE_SIZE);
++
++		/*
++		 * Free the otherwise unused pages.
++		 */
++		while (page < end) {
++			__free_page(page);
++			page++;
++		}
++
++		return (void *)c->vm_start;
++	}
++
++	if (page)
++		__free_pages(page, order);
++no_page:
++	*handle = ~0;
++	return NULL;
++}
++
++static void nds32_dma_free(struct device *dev, size_t size, void *cpu_addr,
++			   dma_addr_t handle, unsigned long attrs)
++{
++	struct arch_vm_region *c;
++	unsigned long flags, addr;
++	pte_t *ptep;
++
++	size = PAGE_ALIGN(size);
++
++	raw_spin_lock_irqsave(&consistent_lock, flags);
++
++	c = vm_region_find(&consistent_head, (unsigned long)cpu_addr);
++	if (!c)
++		goto no_area;
++
++	if ((c->vm_end - c->vm_start) != size) {
++		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
++		       __func__, c->vm_end - c->vm_start, size);
++		dump_stack();
++		size = c->vm_end - c->vm_start;
++	}
++
++	ptep = consistent_pte + CONSISTENT_OFFSET(c->vm_start);
++	addr = c->vm_start;
++	do {
++		pte_t pte = ptep_get_and_clear(&init_mm, addr, ptep);
++		unsigned long pfn;
++
++		ptep++;
++		addr += PAGE_SIZE;
++
++		if (!pte_none(pte) && pte_present(pte)) {
++			pfn = pte_pfn(pte);
++
++			if (pfn_valid(pfn)) {
++				struct page *page = pfn_to_page(pfn);
++
++				/*
++				 * x86 does not mark the pages reserved...
++				 */
++				ClearPageReserved(page);
++
++				__free_page(page);
++				continue;
++			}
++		}
++
++		pr_crit("%s: bad page in kernel page table\n", __func__);
++	} while (size -= PAGE_SIZE);
++
++	flush_tlb_kernel_range(c->vm_start, c->vm_end);
++
++	list_del(&c->vm_list);
++
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++
++	kfree(c);
++	return;
++
++no_area:
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++	pr_err("%s: trying to free invalid coherent area: %p\n",
++	       __func__, cpu_addr);
++	dump_stack();
++}
 +
 +/*
-+ * These are used to set parameters in the core dumps.
++ * Initialise the consistent memory allocation.
 + */
-+#define ELF_CLASS	ELFCLASS32
-+#ifdef __NDS32_EB__
-+#define ELF_DATA	ELFDATA2MSB;
-+#else
-+#define ELF_DATA	ELFDATA2LSB;
-+#endif
-+#define ELF_ARCH	EM_NDS32
-+#define USE_ELF_CORE_DUMP
-+#define ELF_EXEC_PAGESIZE	PAGE_SIZE
++static int __init consistent_init(void)
++{
++	pgd_t *pgd;
++	pmd_t *pmd;
++	pte_t *pte;
++	int ret = 0;
 +
-+/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+   use of this is to invoke "./ld.so someprog" to test out a new version of
-+   the loader.  We need to make sure that it is out of the way of the program
-+   that it will "exec", and that there is sufficient room for the brk.  */
++	do {
++		pgd = pgd_offset(&init_mm, CONSISTENT_BASE);
++		pmd = pmd_alloc(&init_mm, pgd, CONSISTENT_BASE);
++		if (!pmd) {
++			pr_err("%s: no pmd tables\n", __func__);
++			ret = -ENOMEM;
++			break;
++		}
++		/* The first level mapping may be created in somewhere.
++		 * It's not necessary to warn here. */
++		/* WARN_ON(!pmd_none(*pmd)); */
 +
-+#define ELF_ET_DYN_BASE	(2 * TASK_SIZE / 3)
++		pte = pte_alloc_kernel(pmd, CONSISTENT_BASE);
++		if (!pte) {
++			ret = -ENOMEM;
++			break;
++		}
 +
-+/* When the program starts, a1 contains a pointer to a function to be
-+   registered with atexit, as per the SVR4 ABI.  A value of 0 means we
-+   have no such handler.  */
-+#define ELF_PLAT_INIT(_r, load_addr)	(_r)->uregs[0] = 0
++		consistent_pte = pte;
++	} while (0);
 +
-+/* This yields a mask that user programs can use to figure out what
-+   instruction set this cpu supports. */
++	return ret;
++}
 +
-+#define ELF_HWCAP	(elf_hwcap)
++core_initcall(consistent_init);
++static void consistent_sync(void *vaddr, size_t size, int direction);
++static dma_addr_t nds32_dma_map_page(struct device *dev, struct page *page,
++				     unsigned long offset, size_t size,
++				     enum dma_data_direction dir,
++				     unsigned long attrs)
++{
++	consistent_sync((void *)(page_address(page) + offset), size, dir);
++	return page_to_phys(page) + offset;
++}
 +
-+#ifdef __KERNEL__
++static void nds32_dma_unmap_page(struct device *dev, dma_addr_t handle,
++				 size_t size, enum dma_data_direction dir,
++				 unsigned long attrs)
++{
++	consistent_sync(phys_to_virt(handle), size, dir);
++}
 +
-+#define ELF_PLATFORM    (NULL)
-+
-+/* Old NetWinder binaries were compiled in such a way that the iBCS
-+   heuristic always trips on them.  Until these binaries become uncommon
-+   enough not to care, don't trust the `ibcs' flag here.  In any case
-+   there is no other ELF system currently supported by iBCS.
-+   @@ Could print a warning message to encourage users to upgrade.  */
-+#define SET_PERSONALITY(ex)	set_personality(PER_LINUX)
-+
-+#endif
-+
-+#define ARCH_DLINFO						\
-+do {								\
-+	NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
-+		    (elf_addr_t)current->mm->context.vdso);	\
-+} while (0)
-+#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
-+struct linux_binprm;
-+int arch_setup_additional_pages(struct linux_binprm *, int);
-+
-+#endif
-diff --git a/arch/nds32/include/uapi/asm/auxvec.h b/arch/nds32/include/uapi/asm/auxvec.h
-new file mode 100644
-index 0000000..02e9757
---- /dev/null
-+++ b/arch/nds32/include/uapi/asm/auxvec.h
-@@ -0,0 +1,25 @@
 +/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ * Make an area consistent for devices.
 + */
++static void consistent_sync(void *vaddr, size_t size, int direction)
++{
++	unsigned long start = (unsigned long)vaddr;
++	unsigned long end = start + size;
 +
-+#ifndef __ASM_AUXVEC_H
-+#define __ASM_AUXVEC_H
++	switch (direction) {
++	case DMA_FROM_DEVICE:	/* invalidate only */
++		cpu_dma_inval_range(start, end);
++		break;
++	case DMA_TO_DEVICE:	/* writeback only */
++		cpu_dma_wb_range(start, end);
++		break;
++	case DMA_BIDIRECTIONAL:	/* writeback and invalidate */
++		cpu_dma_wbinval_range(start, end);
++		break;
++	default:
++		BUG();
++	}
++}
 +
-+/* VDSO location */
-+#define AT_SYSINFO_EHDR	33
++static int nds32_dma_map_sg(struct device *dev, struct scatterlist *sg,
++			    int nents, enum dma_data_direction dir,
++			    unsigned long attrs)
++{
++	int i;
 +
-+#define AT_VECTOR_SIZE_ARCH 1
++	for (i = 0; i < nents; i++, sg++) {
++		void *virt;
++		unsigned long pfn;
++		struct page *page = sg_page(sg);
 +
-+#endif
-diff --git a/arch/nds32/include/uapi/asm/param.h b/arch/nds32/include/uapi/asm/param.h
-new file mode 100644
-index 0000000..2e4527f3
---- /dev/null
-+++ b/arch/nds32/include/uapi/asm/param.h
-@@ -0,0 +1,24 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
++		sg->dma_address = sg_phys(sg);
++		pfn = page_to_pfn(page) + sg->offset / PAGE_SIZE;
++		page = pfn_to_page(pfn);
++		if (PageHighMem(page)) {
++			virt = kmap_atomic(page);
++			consistent_sync(virt, sg->length, dir);
++			kunmap_atomic(virt);
++		} else {
++			if (sg->offset > PAGE_SIZE)
++				panic("sg->offset:%08x > PAGE_SIZE\n",
++				      sg->offset);
++			virt = page_address(page) + sg->offset;
++			consistent_sync(virt, sg->length, dir);
++		}
++	}
++	return nents;
++}
 +
-+#ifndef __ASM_NDS32_PARAM_H
-+#define __ASM_NDS32_PARAM_H
++static void nds32_dma_unmap_sg(struct device *dev, struct scatterlist *sg,
++			       int nhwentries, enum dma_data_direction dir,
++			       unsigned long attrs)
++{
++}
 +
-+#define EXEC_PAGESIZE	8192
++static void
++nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
++			      size_t size, enum dma_data_direction dir)
++{
++	consistent_sync((void *)phys_to_virt(handle), size, dir);
++}
 +
-+#include <asm-generic/param.h>
++static void
++nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
++				 size_t size, enum dma_data_direction dir)
++{
++	consistent_sync((void *)phys_to_virt(handle), size, dir);
++}
 +
-+#endif /* __ASM_NDS32_PARAM_H */
++static void
++nds32_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nents,
++			  enum dma_data_direction dir)
++{
++	int i;
++
++	for (i = 0; i < nents; i++, sg++) {
++		char *virt =
++		    page_address((struct page *)sg->page_link) + sg->offset;
++		consistent_sync(virt, sg->length, dir);
++	}
++}
++
++static void
++nds32_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++			     int nents, enum dma_data_direction dir)
++{
++	int i;
++
++	for (i = 0; i < nents; i++, sg++) {
++		char *virt =
++		    page_address((struct page *)sg->page_link) + sg->offset;
++		consistent_sync(virt, sg->length, dir);
++	}
++}
++
++struct dma_map_ops nds32_dma_ops = {
++	.alloc = nds32_dma_alloc_coherent,
++	.free = nds32_dma_free,
++	.map_page = nds32_dma_map_page,
++	.unmap_page = nds32_dma_unmap_page,
++	.map_sg = nds32_dma_map_sg,
++	.unmap_sg = nds32_dma_unmap_sg,
++	.sync_single_for_device = nds32_dma_sync_single_for_device,
++	.sync_single_for_cpu = nds32_dma_sync_single_for_cpu,
++	.sync_sg_for_cpu = nds32_dma_sync_sg_for_cpu,
++	.sync_sg_for_device = nds32_dma_sync_sg_for_device,
++};
++
++EXPORT_SYMBOL(nds32_dma_ops);
 -- 
 1.7.9.5
