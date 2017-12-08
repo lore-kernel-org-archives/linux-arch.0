@@ -1,7 +1,8 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 3/5] Expand various INIT_* macros and remove
-Date: Fri, 08 Dec 2017 15:51:44 +0000
-Message-ID: <151274830417.9961.12207832666069760085.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 4/5] Expand the INIT_SIGNALS and INIT_SIGHAND macros and
+ remove
+Date: Fri, 08 Dec 2017 15:51:51 +0000
+Message-ID: <151274831156.9961.11214505146256879075.stgit@warthog.procyon.org.uk>
 References: <151274828194.9961.4230316917108602662.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -13,381 +14,131 @@ To: linux-arch@vger.kernel.org, x86@kernel.org, linux-ia64@vger.kernel.org
 Cc: dhowells@redhat.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Expand various INIT_* macros into the single places they're used in
-init/init_task.c and remove them.
+There doesn't seem to be any need to have the INIT_SIGNALS and INIT_SIGHAND
+macros, so expand them in their single places of use and remove them.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- include/linux/ftrace.h    |   12 -----
- include/linux/init_task.h |  112 ---------------------------------------------
- include/linux/irqflags.h  |    2 -
- include/linux/lockdep.h   |    3 -
- init/init_task.c          |   95 +++++++++++++++++++++++++++++---------
- 5 files changed, 71 insertions(+), 153 deletions(-)
+ include/linux/init_task.h |   43 ++++---------------------------------------
+ init/init_task.c          |   30 ++++++++++++++++++++++++++++--
+ 2 files changed, 32 insertions(+), 41 deletions(-)
 
-diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
-index 2bab81951ced..6311f35acbc4 100644
---- a/include/linux/ftrace.h
-+++ b/include/linux/ftrace.h
-@@ -764,9 +764,6 @@ typedef int (*trace_func_graph_ent_t)(struct ftrace_graph_ent *); /* entry */
- 
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
- 
--/* for init task */
--#define INIT_FTRACE_GRAPH		.ret_stack = NULL,
--
- /*
-  * Stack of return addresses for functions
-  * of a thread.
-@@ -844,7 +841,6 @@ static inline void unpause_graph_tracing(void)
- #else /* !CONFIG_FUNCTION_GRAPH_TRACER */
- 
- #define __notrace_funcgraph
--#define INIT_FTRACE_GRAPH
- 
- static inline void ftrace_graph_init_task(struct task_struct *t) { }
- static inline void ftrace_graph_exit_task(struct task_struct *t) { }
-@@ -923,10 +919,6 @@ extern int tracepoint_printk;
- extern void disable_trace_on_warning(void);
- extern int __disable_trace_on_warning;
- 
--#ifdef CONFIG_PREEMPT
--#define INIT_TRACE_RECURSION		.trace_recursion = 0,
--#endif
--
- int tracepoint_printk_sysctl(struct ctl_table *table, int write,
- 			     void __user *buffer, size_t *lenp,
- 			     loff_t *ppos);
-@@ -935,10 +927,6 @@ int tracepoint_printk_sysctl(struct ctl_table *table, int write,
- static inline void  disable_trace_on_warning(void) { }
- #endif /* CONFIG_TRACING */
- 
--#ifndef INIT_TRACE_RECURSION
--#define INIT_TRACE_RECURSION
--#endif
--
- #ifdef CONFIG_FTRACE_SYSCALLS
- 
- unsigned long arch_syscall_addr(int nr);
 diff --git a/include/linux/init_task.h b/include/linux/init_task.h
-index 9711611b831d..b1385e1dca63 100644
+index b1385e1dca63..5b5f41328115 100644
 --- a/include/linux/init_task.h
 +++ b/include/linux/init_task.h
-@@ -21,23 +21,9 @@
+@@ -23,6 +23,9 @@
  
- #include <asm/thread_info.h>
- 
--#ifdef CONFIG_SMP
--# define INIT_PUSHABLE_TASKS(tsk)					\
--	.pushable_tasks = PLIST_NODE_INIT(tsk.pushable_tasks, MAX_PRIO),
--#else
--# define INIT_PUSHABLE_TASKS(tsk)
--#endif
--
  extern struct files_struct init_files;
  extern struct fs_struct init_fs;
++extern struct nsproxy init_nsproxy;
++extern struct group_info init_groups;
++extern struct cred init_cred;
  
--#ifdef CONFIG_CPUSETS
--#define INIT_CPUSET_SEQ(tsk)							\
--	.mems_allowed_seq = SEQCNT_ZERO(tsk.mems_allowed_seq),
--#else
--#define INIT_CPUSET_SEQ(tsk)
--#endif
--
  #ifndef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
  #define INIT_PREV_CPUTIME(x)	.prev_cputime = {			\
- 	.lock = __RAW_SPIN_LOCK_UNLOCKED(x.prev_cputime.lock),		\
-@@ -117,107 +103,10 @@ extern struct group_info init_groups;
+@@ -33,52 +36,16 @@ extern struct fs_struct init_fs;
+ #endif
+ 
+ #ifdef CONFIG_POSIX_TIMERS
+-#define INIT_POSIX_TIMERS(s)						\
+-	.posix_timers = LIST_HEAD_INIT(s.posix_timers),
+ #define INIT_CPU_TIMERS(s)						\
+ 	.cpu_timers = {							\
+ 		LIST_HEAD_INIT(s.cpu_timers[0]),			\
+ 		LIST_HEAD_INIT(s.cpu_timers[1]),			\
+-		LIST_HEAD_INIT(s.cpu_timers[2]),								\
+-	},
+-#define INIT_CPUTIMER(s)						\
+-	.cputimer	= { 						\
+-		.cputime_atomic	= INIT_CPUTIME_ATOMIC,			\
+-		.running	= false,				\
+-		.checking_timer = false,				\
++		LIST_HEAD_INIT(s.cpu_timers[2]),			\
+ 	},
+ #else
+-#define INIT_POSIX_TIMERS(s)
+ #define INIT_CPU_TIMERS(s)
+-#define INIT_CPUTIMER(s)
+ #endif
+ 
+-#define INIT_SIGNALS(sig) {						\
+-	.nr_threads	= 1,						\
+-	.thread_head	= LIST_HEAD_INIT(init_task.thread_node),	\
+-	.wait_chldexit	= __WAIT_QUEUE_HEAD_INITIALIZER(sig.wait_chldexit),\
+-	.shared_pending	= { 						\
+-		.list = LIST_HEAD_INIT(sig.shared_pending.list),	\
+-		.signal =  {{0}}},					\
+-	INIT_POSIX_TIMERS(sig)						\
+-	INIT_CPU_TIMERS(sig)						\
+-	.rlim		= INIT_RLIMITS,					\
+-	INIT_CPUTIMER(sig)						\
+-	INIT_PREV_CPUTIME(sig)						\
+-	.cred_guard_mutex =						\
+-		 __MUTEX_INITIALIZER(sig.cred_guard_mutex),		\
+-}
+-
+-extern struct nsproxy init_nsproxy;
+-
+-#define INIT_SIGHAND(sighand) {						\
+-	.count		= ATOMIC_INIT(1), 				\
+-	.action		= { { { .sa_handler = SIG_DFL, } }, },		\
+-	.siglock	= __SPIN_LOCK_UNLOCKED(sighand.siglock),	\
+-	.signalfd_wqh	= __WAIT_QUEUE_HEAD_INITIALIZER(sighand.signalfd_wqh),	\
+-}
+-
+-extern struct group_info init_groups;
+ 
+ #define INIT_STRUCT_PID {						\
+ 	.count 		= ATOMIC_INIT(1),				\
+@@ -103,8 +70,6 @@ extern struct group_info init_groups;
  	.pid = &init_struct_pid,				\
  }
  
--#ifdef CONFIG_AUDITSYSCALL
--#define INIT_IDS \
--	.loginuid = INVALID_UID, \
--	.sessionid = (unsigned int)-1,
--#else
--#define INIT_IDS
--#endif
--
--#ifdef CONFIG_PREEMPT_RCU
--#define INIT_TASK_RCU_PREEMPT(tsk)					\
--	.rcu_read_lock_nesting = 0,					\
--	.rcu_read_unlock_special.s = 0,					\
--	.rcu_node_entry = LIST_HEAD_INIT(tsk.rcu_node_entry),		\
--	.rcu_blocked_node = NULL,
--#else
--#define INIT_TASK_RCU_PREEMPT(tsk)
--#endif
--#ifdef CONFIG_TASKS_RCU
--#define INIT_TASK_RCU_TASKS(tsk)					\
--	.rcu_tasks_holdout = false,					\
--	.rcu_tasks_holdout_list =					\
--		LIST_HEAD_INIT(tsk.rcu_tasks_holdout_list),		\
--	.rcu_tasks_idle_cpu = -1,
--#else
--#define INIT_TASK_RCU_TASKS(tsk)
--#endif
--
- extern struct cred init_cred;
- 
--#ifdef CONFIG_CGROUP_SCHED
--# define INIT_CGROUP_SCHED(tsk)						\
--	.sched_task_group = &root_task_group,
--#else
--# define INIT_CGROUP_SCHED(tsk)
--#endif
--
--#ifdef CONFIG_PERF_EVENTS
--# define INIT_PERF_EVENTS(tsk)						\
--	.perf_event_mutex = 						\
--		 __MUTEX_INITIALIZER(tsk.perf_event_mutex),		\
--	.perf_event_list = LIST_HEAD_INIT(tsk.perf_event_list),
--#else
--# define INIT_PERF_EVENTS(tsk)
--#endif
--
--#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
--# define INIT_VTIME(tsk)						\
--	.vtime.seqcount = SEQCNT_ZERO(tsk.vtime.seqcount),		\
--	.vtime.starttime = 0,						\
--	.vtime.state = VTIME_SYS,
--#else
--# define INIT_VTIME(tsk)
--#endif
+-extern struct cred init_cred;
 -
  #define INIT_TASK_COMM "swapper"
  
--#ifdef CONFIG_RT_MUTEXES
--# define INIT_RT_MUTEXES(tsk)						\
--	.pi_waiters = RB_ROOT_CACHED,					\
--	.pi_top_task = NULL,
--#else
--# define INIT_RT_MUTEXES(tsk)
--#endif
--
--#ifdef CONFIG_NUMA_BALANCING
--# define INIT_NUMA_BALANCING(tsk)					\
--	.numa_preferred_nid = -1,					\
--	.numa_group = NULL,						\
--	.numa_faults = NULL,
--#else
--# define INIT_NUMA_BALANCING(tsk)
--#endif
--
--#ifdef CONFIG_KASAN
--# define INIT_KASAN(tsk)						\
--	.kasan_depth = 1,
--#else
--# define INIT_KASAN(tsk)
--#endif
--
--#ifdef CONFIG_LIVEPATCH
--# define INIT_LIVEPATCH(tsk)						\
--	.patch_state = KLP_UNDEFINED,
--#else
--# define INIT_LIVEPATCH(tsk)
--#endif
--
--#ifdef CONFIG_THREAD_INFO_IN_TASK
--# define INIT_TASK_TI(tsk)			\
--	.thread_info = INIT_THREAD_INFO(tsk),	\
--	.stack_refcount = ATOMIC_INIT(1),
--#else
--# define INIT_TASK_TI(tsk)
--#endif
--
--#ifdef CONFIG_SECURITY
--#define INIT_TASK_SECURITY .security = NULL,
--#else
--#define INIT_TASK_SECURITY
--#endif
--
  /* Attach to the init_task data structure for proper alignment */
- #ifdef CONFIG_ARCH_TASK_STRUCT_ON_STACK
- #define __init_task_data __attribute__((__section__(".data..init_task")))
-@@ -228,5 +117,4 @@ extern struct cred init_cred;
- /* Attach to the thread_info data structure for proper alignment */
- #define __init_thread_info __attribute__((__section__(".data..init_thread_info")))
- 
--
- #endif
-diff --git a/include/linux/irqflags.h b/include/linux/irqflags.h
-index 46cb57d5eb13..2ec81dc1487e 100644
---- a/include/linux/irqflags.h
-+++ b/include/linux/irqflags.h
-@@ -44,7 +44,6 @@ do {						\
- 	current->softirq_context--;		\
- 	crossrelease_hist_end(XHLOCK_SOFT);	\
- } while (0)
--# define INIT_TRACE_IRQFLAGS	.softirqs_enabled = 1,
- #else
- # define trace_hardirqs_on()		do { } while (0)
- # define trace_hardirqs_off()		do { } while (0)
-@@ -58,7 +57,6 @@ do {						\
- # define trace_hardirq_exit()		do { } while (0)
- # define lockdep_softirq_enter()	do { } while (0)
- # define lockdep_softirq_exit()		do { } while (0)
--# define INIT_TRACE_IRQFLAGS
- #endif
- 
- #if defined(CONFIG_IRQSOFF_TRACER) || \
-diff --git a/include/linux/lockdep.h b/include/linux/lockdep.h
-index a842551fe044..7886bf390812 100644
---- a/include/linux/lockdep.h
-+++ b/include/linux/lockdep.h
-@@ -460,8 +460,6 @@ extern struct pin_cookie lock_pin_lock(struct lockdep_map *lock);
- extern void lock_repin_lock(struct lockdep_map *lock, struct pin_cookie);
- extern void lock_unpin_lock(struct lockdep_map *lock, struct pin_cookie);
- 
--# define INIT_LOCKDEP				.lockdep_recursion = 0,
--
- #define lockdep_depth(tsk)	(debug_locks ? (tsk)->lockdep_depth : 0)
- 
- #define lockdep_assert_held(l)	do {				\
-@@ -519,7 +517,6 @@ static inline void lockdep_on(void)
-  * #ifdef the call himself.
-  */
- 
--# define INIT_LOCKDEP
- # define lockdep_reset()		do { debug_locks = 1; } while (0)
- # define lockdep_free_key_range(start, size)	do { } while (0)
- # define lockdep_sys_exit() 			do { } while (0)
 diff --git a/init/init_task.c b/init/init_task.c
-index 7b2436f02dad..aa4030a939e5 100644
+index aa4030a939e5..3ac6e754cf64 100644
 --- a/init/init_task.c
 +++ b/init/init_task.c
-@@ -16,7 +16,6 @@
- static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
- static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
+@@ -13,8 +13,34 @@
+ #include <asm/pgtable.h>
+ #include <linux/uaccess.h>
  
--
+-static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
+-static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
++static struct signal_struct init_signals = {
++	.nr_threads	= 1,
++	.thread_head	= LIST_HEAD_INIT(init_task.thread_node),
++	.wait_chldexit	= __WAIT_QUEUE_HEAD_INITIALIZER(init_signals.wait_chldexit),
++	.shared_pending	= {
++		.list = LIST_HEAD_INIT(init_signals.shared_pending.list),
++		.signal =  {{0}}
++	},
++	.rlim		= INIT_RLIMITS,
++	.cred_guard_mutex = __MUTEX_INITIALIZER(init_signals.cred_guard_mutex),
++#ifdef CONFIG_POSIX_TIMERS
++	.posix_timers = LIST_HEAD_INIT(init_signals.posix_timers),
++	.cputimer	= {
++		.cputime_atomic	= INIT_CPUTIME_ATOMIC,
++		.running	= false,
++		.checking_timer = false,
++	},
++#endif
++	INIT_CPU_TIMERS(init_signals)
++	INIT_PREV_CPUTIME(init_signals)
++};
++
++static struct sighand_struct init_sighand = {
++	.count		= ATOMIC_INIT(1),
++	.action		= { { { .sa_handler = SIG_DFL, } }, },
++	.siglock	= __SPIN_LOCK_UNLOCKED(init_sighand.siglock),
++	.signalfd_wqh	= __WAIT_QUEUE_HEAD_INITIALIZER(init_sighand.signalfd_wqh),
++};
+ 
  /*
   * Set up the first task table, touch at your own risk!. Base=0,
-  * limit=0x1fffff (=2MB)
-@@ -26,20 +25,23 @@ struct task_struct init_task
- 	__init_task_data
- #endif
- = {
--	INIT_TASK_TI(init_task)
-+#ifdef CONFIG_THREAD_INFO_IN_TASK
-+	.thread_info	= INIT_THREAD_INFO(init_task),
-+	.stack_refcount	= ATOMIC_INIT(1),
-+#endif
- 	.state		= 0,
- 	.stack		= init_stack,
- 	.usage		= ATOMIC_INIT(2),
- 	.flags		= PF_KTHREAD,
--	.prio		= MAX_PRIO-20,
--	.static_prio	= MAX_PRIO-20,
--	.normal_prio	= MAX_PRIO-20,
-+	.prio		= MAX_PRIO - 20,
-+	.static_prio	= MAX_PRIO - 20,
-+	.normal_prio	= MAX_PRIO - 20,
- 	.policy		= SCHED_NORMAL,
- 	.cpus_allowed	= CPU_MASK_ALL,
- 	.nr_cpus_allowed= NR_CPUS,
- 	.mm		= NULL,
- 	.active_mm	= &init_mm,
--	.restart_block = {
-+	.restart_block	= {
- 		.fn = do_no_restart_syscall,
- 	},
- 	.se		= {
-@@ -50,8 +52,12 @@ struct task_struct init_task
- 		.time_slice	= RR_TIMESLICE,
- 	},
- 	.tasks		= LIST_HEAD_INIT(init_task.tasks),
--	INIT_PUSHABLE_TASKS(init_task)
--	INIT_CGROUP_SCHED(init_task)
-+#ifdef CONFIG_SMP
-+	.pushable_tasks	= PLIST_NODE_INIT(init_task.pushable_tasks, MAX_PRIO),
-+#endif
-+#ifdef CONFIG_CGROUP_SCHED
-+	.sched_task_group = &root_task_group,
-+#endif
- 	.ptraced	= LIST_HEAD_INIT(init_task.ptraced),
- 	.ptrace_entry	= LIST_HEAD_INIT(init_task.ptrace_entry),
- 	.real_parent	= &init_task,
-@@ -85,24 +91,65 @@ struct task_struct init_task
- 	},
- 	.thread_group	= LIST_HEAD_INIT(init_task.thread_group),
- 	.thread_node	= LIST_HEAD_INIT(init_signals.thread_head),
--	INIT_IDS
--	INIT_PERF_EVENTS(init_task)
--	INIT_TRACE_IRQFLAGS
--	INIT_LOCKDEP
--	INIT_FTRACE_GRAPH
--	INIT_TRACE_RECURSION
--	INIT_TASK_RCU_PREEMPT(init_task)
--	INIT_TASK_RCU_TASKS(init_task)
--	INIT_CPUSET_SEQ(init_task)
--	INIT_RT_MUTEXES(init_task)
-+#ifdef CONFIG_AUDITSYSCALL
-+	.loginuid	= INVALID_UID,
-+	.sessionid	= (unsigned int)-1,
-+#endif
-+#ifdef CONFIG_PERF_EVENTS
-+	.perf_event_mutex = __MUTEX_INITIALIZER(init_task.perf_event_mutex),
-+	.perf_event_list = LIST_HEAD_INIT(init_task.perf_event_list),
-+#endif
-+#ifdef CONFIG_PREEMPT_RCU
-+	.rcu_read_lock_nesting = 0,
-+	.rcu_read_unlock_special.s = 0,
-+	.rcu_node_entry = LIST_HEAD_INIT(init_task.rcu_node_entry),
-+	.rcu_blocked_node = NULL,
-+#endif
-+#ifdef CONFIG_TASKS_RCU
-+	.rcu_tasks_holdout = false,
-+	.rcu_tasks_holdout_list = LIST_HEAD_INIT(init_task.rcu_tasks_holdout_list),
-+	.rcu_tasks_idle_cpu = -1,
-+#endif
-+#ifdef CONFIG_CPUSETS
-+	.mems_allowed_seq = SEQCNT_ZERO(init_task.mems_allowed_seq),
-+#endif
-+#ifdef CONFIG_RT_MUTEXES
-+	.pi_waiters	= RB_ROOT_CACHED,
-+	.pi_top_task	= NULL,
-+#endif
- 	INIT_PREV_CPUTIME(init_task)
--	INIT_VTIME(init_task)
--	INIT_NUMA_BALANCING(init_task)
--	INIT_KASAN(init_task)
--	INIT_LIVEPATCH(init_task)
--	INIT_TASK_SECURITY
-+#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
-+	.vtime.seqcount	= SEQCNT_ZERO(init_task.vtime_seqcount),
-+	.vtime.starttime = 0,
-+	.vtime.state	= VTIME_SYS,
-+#endif
-+#ifdef CONFIG_NUMA_BALANCING
-+	.numa_preferred_nid = -1,
-+	.numa_group	= NULL,
-+	.numa_faults	= NULL,
-+#endif
-+#ifdef CONFIG_KASAN
-+	.kasan_depth	= 1,
-+#endif
-+#ifdef CONFIG_TRACE_IRQFLAGS
-+	.softirqs_enabled = 1,
-+#endif
-+#ifdef CONFIG_LOCKDEP
-+	.lockdep_recursion = 0,
-+#endif
-+#ifdef CONFIG_FUNCTION_GRAPH_TRACER
-+	.ret_stack	= NULL,
-+#endif
-+#if defined(CONFIG_TRACING) && defined(CONFIG_PREEMPT)
-+	.trace_recursion = 0,
-+#endif
-+#ifdef CONFIG_LIVEPATCH
-+	.patch_state	= KLP_UNDEFINED,
-+#endif
-+#ifdef CONFIG_SECURITY
-+	.security	= NULL,
-+#endif
- };
--
- EXPORT_SYMBOL(init_task);
- 
- /*
