@@ -1,27 +1,90 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH v2 08/35] nds32: Process management
-Date: Fri, 8 Dec 2017 13:27:54 +0800
-Message-ID: <CAEbi=3ecAmu2g_UZCYi8i3NYEVbSfL8dJJh53n97kz8zwCiasA@mail.gmail.com>
-References: <cover.1511785528.git.green.hu@gmail.com> <53789f9af98217d24580479c55e550301651d4a8.1511785528.git.green.hu@gmail.com>
- <20171207164506.GE21978@ZenIV.linux.org.uk>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 0/2] mm: introduce MAP_FIXED_SAFE
+Date: Fri, 8 Dec 2017 09:33:15 +0100
+Message-ID: <20171208083315.GR20234@dhcp22.suse.cz>
+References: <20171129144219.22867-1-mhocko@kernel.org>
+ <CAGXu5jLa=b2HhjWXXTQunaZuz11qUhm5aNXHpS26jVqb=G-gfw@mail.gmail.com>
+ <20171130065835.dbw4ajh5q5whikhf@dhcp22.suse.cz>
+ <20171201152640.GA3765@rei>
+ <87wp20e9wf.fsf@concordia.ellerman.id.au>
+ <20171206045433.GQ26021@bombadil.infradead.org>
+ <20171206070355.GA32044@bombadil.infradead.org>
+ <87bmjbks4c.fsf@concordia.ellerman.id.au>
+ <CAGXu5jLWRQn6EaXEEvdvXr+4gbiJawwp1EaLMfYisHVfMiqgSA@mail.gmail.com>
+ <20171207195727.GA26792@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20171207164506.GE21978@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Vincent Chen <vincentc@andestech.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:37425 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751149AbdLHIdS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 8 Dec 2017 03:33:18 -0500
+Content-Disposition: inline
+In-Reply-To: <20171207195727.GA26792@bombadil.infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Kees Cook <keescook@chromium.org>, Michael Ellerman <mpe@ellerman.id.au>, Cyril Hrubis <chrubis@suse.cz>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Pavel Machek <pavel@ucw.cz>
 
-2017-12-08 0:45 GMT+08:00 Al Viro <viro@zeniv.linux.org.uk>:
-> On Mon, Nov 27, 2017 at 08:27:55PM +0800, Greentime Hu wrote:
->
->> +#define start_thread(regs,pc,stack)                  \
->> +({                                                   \
->> +     set_fs(USER_DS);                                \
->
-> Not the job of start_thread() - its users (->load_binary() methods of
-> assorted binfmt) must (and do) call flush_old_exec() first.  And
-> that will switch to USER_DS just fine.
+On Thu 07-12-17 11:57:27, Matthew Wilcox wrote:
+> On Thu, Dec 07, 2017 at 11:14:27AM -0800, Kees Cook wrote:
+> > On Wed, Dec 6, 2017 at 9:46 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
+> > > Matthew Wilcox <willy@infradead.org> writes:
+> > >> So, just like we currently say "exactly one of MAP_SHARED or MAP_PRIVATE",
+> > >> we could add a new paragraph saying "at most one of MAP_FIXED or
+> > >> MAP_REQUIRED" and "any of the following values".
+> > >
+> > > MAP_REQUIRED doesn't immediately grab me, but I don't actively dislike
+> > > it either :)
+> > >
+> > > What about MAP_AT_ADDR ?
+> > >
+> > > It's short, and says what it does on the tin. The first argument to mmap
+> > > is actually called "addr" too.
+> > 
+> > "FIXED" is supposed to do this too.
+> > 
+> > Pavel suggested:
+> > 
+> > MAP_ADD_FIXED
+> > 
+> > (which is different from "use fixed", and describes why it would fail:
+> > can't add since it already exists.)
+> > 
+> > Perhaps "MAP_FIXED_NEW"?
+> > 
+> > There has been a request to drop "FIXED" from the name, so these:
+> > 
+> > MAP_FIXED_NOCLOBBER
+> > MAP_FIXED_NOREPLACE
+> > MAP_FIXED_ADD
+> > MAP_FIXED_NEW
+> > 
+> > Could be:
+> > 
+> > MAP_NOCLOBBER
+> > MAP_NOREPLACE
+> > MAP_ADD
+> > MAP_NEW
+> > 
+> > and we still have the unloved, but acceptable:
+> > 
+> > MAP_REQUIRED
+> > 
+> > My vote is still for "NOREPLACE" or "NOCLOBBER" since it's very
+> > specific, though "NEW" is pretty clear too.
+> 
+> How about MAP_NOFORCE?
 
-Thanks. I will remove this setting in the next version patch.
+OK, this doesn't seem to lead to anywhere. The more this is discussed
+the more names we are getting. So you know what? I will resubmit and
+keep my original name. If somebody really hates it then feel free to
+nack the patch and push alternative and gain concensus on it.
+
+I will keep MAP_FIXED_SAFE because it is an alternative to MAP_FIXED so
+having that in the name is _useful_ for everybody familiar with
+MAP_FIXED already. And _SAFE suffix tells that the operation doesn't
+cause any silent memory corruptions or other unexpected side effects.
+-- 
+Michal Hocko
+SUSE Labs
