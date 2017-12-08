@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:34675 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753047AbdLHJhx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2017 04:37:53 -0500
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:34643 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753526AbdLHJh6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2017 04:37:58 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v3 01/33] asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU
-Date: Fri,  8 Dec 2017 17:11:44 +0800
-Message-ID: <310ac0fceacec0d312591f8c981f5faec4552867.1512723245.git.green.hu@gmail.com>
+Subject: [PATCH v3 02/33] earlycon: add reg-offset to physical address before mapping
+Date: Fri,  8 Dec 2017 17:11:45 +0800
+Message-ID: <42c89a2606b5deaa926102045065d3befa2ad69c.1512723245.git.green.hu@gmail.com>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
 References: <cover.1512723245.git.green.hu@gmail.com>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
@@ -14,56 +14,37 @@ References: <cover.1512723245.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com
-Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171208091144.ngBTlbrEjNUY_HVvPG04Rv_rJuZp5gjisQion37qwOA@z>
+Cc: green.hu@gmail.com
+Message-ID: <20171208091145.677p-E2-cFjTIqnUaXvstaOYYmeiVk13C372usD7Axc@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-It allows some architectures to use this generic macro instead of
-defining theirs.
+It will get the wrong virtual address because port->mapbase is not added
+the correct reg-offset yet. We have to update it before earlycon_map()
+is called
 
-Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- include/asm-generic/io.h |   18 +++++++++---------
- 1 file changed, 9 insertions(+), 9 deletions(-)
+ drivers/tty/serial/earlycon.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index b4531e3..7c6a39e 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -852,7 +852,16 @@ static inline void __iomem *__ioremap(phys_addr_t offset, size_t size,
- }
- #endif
+diff --git a/drivers/tty/serial/earlycon.c b/drivers/tty/serial/earlycon.c
+index 98928f0..17dba0a 100644
+--- a/drivers/tty/serial/earlycon.c
++++ b/drivers/tty/serial/earlycon.c
+@@ -253,11 +253,12 @@ int __init of_setup_earlycon(const struct earlycon_id *match,
+ 	}
+ 	port->mapbase = addr;
+ 	port->uartclk = BASE_BAUD * 16;
+-	port->membase = earlycon_map(port->mapbase, SZ_4K);
  
-+#ifndef iounmap
-+#define iounmap iounmap
+ 	val = of_get_flat_dt_prop(node, "reg-offset", NULL);
+ 	if (val)
+ 		port->mapbase += be32_to_cpu(*val);
++	port->membase = earlycon_map(port->mapbase, SZ_4K);
 +
-+static inline void iounmap(void __iomem *addr)
-+{
-+}
-+#endif
-+#endif /* CONFIG_MMU */
- #ifndef ioremap_nocache
-+void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
- #define ioremap_nocache ioremap_nocache
- static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
- {
-@@ -884,15 +893,6 @@ static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
- }
- #endif
- 
--#ifndef iounmap
--#define iounmap iounmap
--
--static inline void iounmap(void __iomem *addr)
--{
--}
--#endif
--#endif /* CONFIG_MMU */
--
- #ifdef CONFIG_HAS_IOPORT_MAP
- #ifndef CONFIG_GENERIC_IOMAP
- #ifndef ioport_map
+ 	val = of_get_flat_dt_prop(node, "reg-shift", NULL);
+ 	if (val)
+ 		port->regshift = be32_to_cpu(*val);
 -- 
 1.7.9.5
