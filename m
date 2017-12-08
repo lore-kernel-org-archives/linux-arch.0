@@ -1,45 +1,40 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v3 10/33] nds32: Process management
-Date: Fri,  8 Dec 2017 17:11:53 +0800
-Message-ID: <43c8dd340d59011554530dcbb9589631c027b86d.1512723245.git.green.hu@gmail.com>
+Subject: [PATCH v3 08/33] nds32: MMU fault handling and page table management
+Date: Fri,  8 Dec 2017 17:11:51 +0800
+Message-ID: <fa3936ca0753ffbdc388b1acc2eb8de5d5d1c6d5.1512723245.git.green.hu@gmail.com>
 References: <cover.1512723245.git.green.hu@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:39978 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753292AbdLHJia (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 8 Dec 2017 04:38:30 -0500
+Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
 References: <cover.1512723245.git.green.hu@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: netdev-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch includes copy_thread(), start_thread() implementation and cpu_context
-structure definition. nds32 uses $r25 to get current task_struct.
+This patch includes page fault handler, mmap and fixup implementations.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/current.h     |   25 ++++
- arch/nds32/include/asm/processor.h   |  115 ++++++++++++++++++
- arch/nds32/include/asm/thread_info.h |   91 ++++++++++++++
- arch/nds32/kernel/process.c          |  217 ++++++++++++++++++++++++++++++++++
- 4 files changed, 448 insertions(+)
- create mode 100644 arch/nds32/include/asm/current.h
- create mode 100644 arch/nds32/include/asm/processor.h
- create mode 100644 arch/nds32/include/asm/thread_info.h
- create mode 100644 arch/nds32/kernel/process.c
+ arch/nds32/lib/copy_page.S |   50 ++++++
+ arch/nds32/mm/extable.c    |   29 +++
+ arch/nds32/mm/fault.c      |  424 ++++++++++++++++++++++++++++++++++++++++++++
+ arch/nds32/mm/mmap.c       |   86 +++++++++
+ 4 files changed, 589 insertions(+)
+ create mode 100644 arch/nds32/lib/copy_page.S
+ create mode 100644 arch/nds32/mm/extable.c
+ create mode 100644 arch/nds32/mm/fault.c
+ create mode 100644 arch/nds32/mm/mmap.c
 
-diff --git a/arch/nds32/include/asm/current.h b/arch/nds32/include/asm/current.h
+diff --git a/arch/nds32/lib/copy_page.S b/arch/nds32/lib/copy_page.S
 new file mode 100644
-index 0000000..027f7df
+index 0000000..a55a5cc
 --- /dev/null
-+++ b/arch/nds32/include/asm/current.h
-@@ -0,0 +1,25 @@
++++ b/arch/nds32/lib/copy_page.S
+@@ -0,0 +1,50 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -56,21 +51,46 @@ index 0000000..027f7df
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef _ASM_NDS32_CURRENT_H
-+#define _ASM_NDS32_CURRENT_H
++#include <linux/linkage.h>
++#include <asm/page.h>
 +
-+#ifndef __ASSEMBLY__
-+register struct task_struct *current asm("$r25");
-+#endif /* __ASSEMBLY__ */
-+#define tsk $r25
++	.text
++ENTRY(copy_page)
++	pushm	$r2, $r10
++	movi	$r2, PAGE_SIZE >> 5
++.Lcopy_loop:
++	lmw.bim	$r3, [$r1], $r10
++	smw.bim	$r3, [$r0], $r10
++	subi45	$r2, #1
++	bnez38	$r2, .Lcopy_loop
++	popm	$r2, $r10
++	ret
++ENDPROC(copy_page)
 +
-+#endif /* _ASM_NDS32_CURRENT_H */
-diff --git a/arch/nds32/include/asm/processor.h b/arch/nds32/include/asm/processor.h
++ENTRY(clear_page)
++	pushm	$r1, $r9
++	movi	$r1, PAGE_SIZE >> 5
++	movi55	$r2, #0
++	movi55	$r3, #0
++	movi55	$r4, #0
++	movi55	$r5, #0
++	movi55	$r6, #0
++	movi55	$r7, #0
++	movi55	$r8, #0
++	movi55	$r9, #0
++.Lclear_loop:
++	smw.bim	$r2, [$r0], $r9
++	subi45	$r1, #1
++	bnez38	$r1, .Lclear_loop
++	popm	$r1, $r9
++        ret
++ENDPROC(clear_page)
+diff --git a/arch/nds32/mm/extable.c b/arch/nds32/mm/extable.c
 new file mode 100644
-index 0000000..cadc5e2
+index 0000000..bce62d7
 --- /dev/null
-+++ b/arch/nds32/include/asm/processor.h
-@@ -0,0 +1,115 @@
++++ b/arch/nds32/mm/extable.c
+@@ -0,0 +1,29 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -87,208 +107,455 @@ index 0000000..cadc5e2
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef __ASM_NDS32_PROCESSOR_H
-+#define __ASM_NDS32_PROCESSOR_H
++#include <linux/extable.h>
++#include <asm/uaccess.h>
 +
-+/*
-+ * Default implementation of macro that returns current
-+ * instruction pointer ("program counter").
-+ */
-+#define current_text_addr() ({ __label__ _l; _l: &&_l;})
++int fixup_exception(struct pt_regs *regs)
++{
++	const struct exception_table_entry *fixup;
 +
-+#ifdef __KERNEL__
++	fixup = search_exception_tables(instruction_pointer(regs));
++	if (fixup)
++		regs->ipc = fixup->fixup;
 +
-+#include <asm/ptrace.h>
-+#include <asm/types.h>
-+#include <asm/sigcontext.h>
-+
-+#define KERNEL_STACK_SIZE	PAGE_SIZE
-+#define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX   TASK_SIZE
-+
-+struct cpu_context {
-+	unsigned long r6;
-+	unsigned long r7;
-+	unsigned long r8;
-+	unsigned long r9;
-+	unsigned long r10;
-+	unsigned long r11;
-+	unsigned long r12;
-+	unsigned long r13;
-+	unsigned long r14;
-+	unsigned long fp;
-+	unsigned long pc;
-+	unsigned long sp;
-+};
-+
-+struct thread_struct {
-+	struct cpu_context cpu_context;	/* cpu context */
-+	/* fault info     */
-+	unsigned long address;
-+	unsigned long trap_no;
-+	unsigned long error_code;
-+};
-+
-+#define INIT_THREAD  {	}
-+
-+#ifdef __NDS32_EB__
-+#define PSW_DE	PSW_mskBE
-+#else
-+#define PSW_DE	0x0
-+#endif
-+
-+#ifdef CONFIG_WBNA
-+#define PSW_valWBNA	PSW_mskWBNA
-+#else
-+#define PSW_valWBNA	0x0
-+#endif
-+
-+#ifdef CONFIG_HWZOL
-+#define	PSW_valINIT (PSW_CPL_ANY | PSW_mskAEN | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
-+#else
-+#define	PSW_valINIT (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
-+#endif
-+
-+#define start_thread(regs,pc,stack)			\
-+({							\
-+	memzero(regs, sizeof(struct pt_regs));		\
-+	regs->ipsw = PSW_valINIT;			\
-+	regs->ir0 = (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_SYSTEM | PSW_INTL_1);	\
-+	regs->ipc = pc;					\
-+	regs->sp = stack;				\
-+})
-+
-+/* Forward declaration, a strange C thing */
-+struct task_struct;
-+
-+/* Free all resources held by a thread. */
-+#define release_thread(thread) do { } while(0)
-+
-+/* Prepare to copy thread state - unlazy all lazy status */
-+#define prepare_to_copy(tsk)	do { } while (0)
-+
-+unsigned long get_wchan(struct task_struct *p);
-+
-+#define cpu_relax()			barrier()
-+
-+#define task_pt_regs(task) \
-+	((struct pt_regs *) (task_stack_page(task) + THREAD_SIZE \
-+		- 8) - 1)
-+
-+/*
-+ * Create a new kernel thread
-+ */
-+extern int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags);
-+
-+#define KSTK_EIP(tsk)	instruction_pointer(task_pt_regs(tsk))
-+#define KSTK_ESP(tsk)	user_stack_pointer(task_pt_regs(tsk))
-+
-+#endif
-+
-+#endif /* __ASM_NDS32_PROCESSOR_H */
-diff --git a/arch/nds32/include/asm/thread_info.h b/arch/nds32/include/asm/thread_info.h
-new file mode 100644
-index 0000000..216cc85
---- /dev/null
-+++ b/arch/nds32/include/asm/thread_info.h
-@@ -0,0 +1,91 @@
-+/*
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#ifndef __ASM_NDS32_THREAD_INFO_H
-+#define __ASM_NDS32_THREAD_INFO_H
-+
-+#ifdef __KERNEL__
-+
-+#define THREAD_SIZE_ORDER 	(1)
-+#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
-+
-+#ifndef __ASSEMBLY__
-+
-+struct task_struct;
-+
-+#include <asm/ptrace.h>
-+#include <asm/types.h>
-+
-+typedef unsigned long mm_segment_t;
-+
-+/*
-+ * low level task data that entry.S needs immediate access to.
-+ * __switch_to() assumes cpu_context follows immediately after cpu_domain.
-+ */
-+struct thread_info {
-+	unsigned long flags;	/* low level flags */
-+	__s32 preempt_count;	/* 0 => preemptable, <0 => bug */
-+	mm_segment_t addr_limit;	/* address limit */
-+};
-+#define INIT_THREAD_INFO(tsk)						\
-+{									\
-+	.preempt_count	= INIT_PREEMPT_COUNT,				\
-+	.addr_limit	= KERNEL_DS,					\
++	return fixup != NULL;
 +}
-+#define init_thread_info	(init_thread_union.thread_info)
-+#define init_stack		(init_thread_union.stack)
-+#define thread_saved_pc(tsk) ((unsigned long)(tsk->thread.cpu_context.pc))
-+#define thread_saved_fp(tsk) ((unsigned long)(tsk->thread.cpu_context.fp))
+diff --git a/arch/nds32/mm/fault.c b/arch/nds32/mm/fault.c
+new file mode 100644
+index 0000000..00fa3df
+--- /dev/null
++++ b/arch/nds32/mm/fault.c
+@@ -0,0 +1,424 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/extable.h>
++#include <linux/module.h>
++#include <linux/signal.h>
++#include <linux/ptrace.h>
++#include <linux/mm.h>
++#include <linux/init.h>
++#include <linux/hardirq.h>
++#include <linux/uaccess.h>
++
++#include <asm/pgtable.h>
++#include <asm/tlbflush.h>
++#include <asm/uaccess.h>
++
++extern void die(const char *str, struct pt_regs *regs, long err);
++
++/*
++ * This is useful to dump out the page tables associated with
++ * 'addr' in mm 'mm'.
++ */
++void show_pte(struct mm_struct *mm, unsigned long addr)
++{
++	pgd_t *pgd;
++	if (!mm)
++		mm = &init_mm;
++
++	pr_alert("pgd = %p\n", mm->pgd);
++	pgd = pgd_offset(mm, addr);
++	pr_alert("[%08lx] *pgd=%08lx", addr, pgd_val(*pgd));
++
++	do {
++		pmd_t *pmd;
++
++		if (pgd_none(*pgd))
++			break;
++
++		if (pgd_bad(*pgd)) {
++			pr_alert("(bad)");
++			break;
++		}
++
++		pmd = pmd_offset(pgd, addr);
++#if PTRS_PER_PMD != 1
++		pr_alert(", *pmd=%08lx", pmd_val(*pmd));
 +#endif
 +
-+/*
-+ * thread information flags:
-+ *  TIF_SYSCALL_TRACE	- syscall trace active
-+ *  TIF_SIGPENDING	- signal pending
-+ *  TIF_NEED_RESCHED	- rescheduling necessary
-+ *  TIF_NOTIFY_RESUME	- callback before returning to user
-+ *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
-+ *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
-+ */
-+#define TIF_SIGPENDING		1
-+#define TIF_NEED_RESCHED	2
-+#define TIF_SINGLESTEP		3
-+#define TIF_NOTIFY_RESUME	4	/* callback before returning to user */
-+#define TIF_SYSCALL_TRACE	8
-+#define TIF_USEDFPU             16
-+#define TIF_POLLING_NRFLAG	17
-+#define TIF_MEMDIE		18
-+#define TIF_FREEZE		19
-+#define TIF_RESTORE_SIGMASK	20
++		if (pmd_none(*pmd))
++			break;
 +
-+#define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
-+#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
-+#define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
-+#define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
-+#define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
-+#define _TIF_FREEZE		(1 << TIF_FREEZE)
-+#define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
++		if (pmd_bad(*pmd)) {
++			pr_alert("(bad)");
++			break;
++		}
 +
-+/*
-+ * Change these and you break ASM code in entry-common.S
-+ */
-+#define _TIF_WORK_MASK		0x000000ff
-+#define _TIF_WORK_SYSCALL_ENTRY (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
-+#define _TIF_WORK_SYSCALL_LEAVE (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
++		if (IS_ENABLED(CONFIG_HIGHMEM))
++		{
++			pte_t *pte;
++			/* We must not map this if we have highmem enabled */
++			pte = pte_offset_map(pmd, addr);
++			pr_alert(", *pte=%08lx", pte_val(*pte));
++			pte_unmap(pte);
++		}
++	} while (0);
 +
-+#endif /* __KERNEL__ */
-+#endif /* __ASM_NDS32_THREAD_INFO_H */
-diff --git a/arch/nds32/kernel/process.c b/arch/nds32/kernel/process.c
++	pr_alert("\n");
++}
++
++void do_page_fault(unsigned long entry, unsigned long addr,
++		   unsigned int error_code, struct pt_regs *regs)
++{
++	struct task_struct *tsk;
++	struct mm_struct *mm;
++	struct vm_area_struct *vma;
++	siginfo_t info;
++	int fault;
++	unsigned int mask = VM_READ | VM_WRITE | VM_EXEC;
++	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
++
++	error_code = error_code & (ITYPE_mskINST | ITYPE_mskETYPE);
++	tsk = current;
++	mm = tsk->mm;
++	info.si_code = SEGV_MAPERR;
++	/*
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
++	 */
++	if (addr >= TASK_SIZE) {
++		if (user_mode(regs))
++			goto bad_area_nosemaphore;
++
++		if (addr >= TASK_SIZE && addr < VMALLOC_END
++		    && (entry == ENTRY_PTE_NOT_PRESENT))
++			goto vmalloc_fault;
++		else
++			goto no_context;
++	}
++
++	/* Send a signal to the task for handling the unalignment access. */
++	if (entry == ENTRY_GENERAL_EXCPETION
++	    && error_code == ETYPE_ALIGNMENT_CHECK) {
++		if (user_mode(regs))
++			goto bad_area_nosemaphore;
++		else
++			goto no_context;
++	}
++
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (unlikely(faulthandler_disabled() || !mm))
++		goto no_context;
++
++	/*
++	 * As per x86, we may deadlock here. However, since the kernel only
++	 * validly references user space from well defined areas of the code,
++	 * we can bug out early if this is from code which shouldn't.
++	 */
++	if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
++		if (!user_mode(regs) &&
++		    !search_exception_tables(instruction_pointer(regs)))
++			goto no_context;
++retry:
++		down_read(&mm->mmap_sem);
++	} else {
++		/*
++		 * The above down_read_trylock() might have succeeded in which
++		 * case, we'll have missed the might_sleep() from down_read().
++		 */
++		might_sleep();
++		if (IS_ENABLED(CONFIG_DEBUG_VM)) {
++			if (!user_mode(regs) &&
++			    !search_exception_tables(instruction_pointer(regs)))
++				goto no_context;
++		}
++	}
++
++	vma = find_vma(mm, addr);
++
++	if (unlikely(!vma))
++		goto bad_area;
++
++	if (vma->vm_start <= addr)
++		goto good_area;
++
++	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
++		goto bad_area;
++
++	if (unlikely(expand_stack(vma, addr)))
++		goto bad_area;
++
++	/*
++	 * Ok, we have a good vm_area for this memory access, so
++	 * we can handle it..
++	 */
++
++good_area:
++	info.si_code = SEGV_ACCERR;
++
++	/* first do some preliminary protection checks */
++	if (entry == ENTRY_PTE_NOT_PRESENT) {
++		if (error_code & ITYPE_mskINST)
++			mask = VM_EXEC;
++		else {
++			mask = VM_READ | VM_WRITE;
++			if (vma->vm_flags & VM_WRITE)
++				flags |= FAULT_FLAG_WRITE;
++		}
++	} else if (entry == ENTRY_TLB_MISC) {
++		switch (error_code & ITYPE_mskETYPE) {
++		case RD_PROT:
++			mask = VM_READ;
++			break;
++		case WRT_PROT:
++			mask = VM_WRITE;
++			flags |= FAULT_FLAG_WRITE;
++			break;
++		case NOEXEC:
++			mask = VM_EXEC;
++			break;
++		case PAGE_MODIFY:
++			mask = VM_WRITE;
++			flags |= FAULT_FLAG_WRITE;
++			break;
++		case ACC_BIT:
++			BUG();
++		default:
++			break;
++		}
++
++	}
++	if (!(vma->vm_flags & mask))
++		goto bad_area;
++
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++
++	fault = handle_mm_fault(vma, addr, flags);
++
++	/*
++	 * If we need to retry but a fatal signal is pending, handle the
++	 * signal first. We do not need to release the mmap_sem because it
++	 * would already be released in __lock_page_or_retry in mm/filemap.c.
++	 */
++	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current)) {
++		if (!user_mode(regs))
++			goto no_context;
++		return;
++	}
++
++	if (unlikely(fault & VM_FAULT_ERROR)) {
++		if (fault & VM_FAULT_OOM)
++			goto out_of_memory;
++		else if (fault & VM_FAULT_SIGBUS)
++			goto do_sigbus;
++		else
++			goto bad_area;
++	}
++
++	/*
++	 * Major/minor page fault accounting is only done on the initial
++	 * attempt. If we go through a retry, it is extremely likely that the
++	 * page will be found in page cache at that point.
++	 */
++	if (flags & FAULT_FLAG_ALLOW_RETRY) {
++		if (fault & VM_FAULT_MAJOR)
++			tsk->maj_flt++;
++		else
++			tsk->min_flt++;
++		if (fault & VM_FAULT_RETRY) {
++			flags &= ~FAULT_FLAG_ALLOW_RETRY;
++			flags |= FAULT_FLAG_TRIED;
++
++			/* No need to up_read(&mm->mmap_sem) as we would
++			 * have already released it in __lock_page_or_retry
++			 * in mm/filemap.c.
++			 */
++			goto retry;
++		}
++	}
++
++	up_read(&mm->mmap_sem);
++	return;
++
++	/*
++	 * Something tried to access memory that isn't in our memory map..
++	 * Fix it, but check if it's kernel or user first..
++	 */
++bad_area:
++	up_read(&mm->mmap_sem);
++
++bad_area_nosemaphore:
++
++	/* User mode accesses just cause a SIGSEGV */
++
++	if (user_mode(regs)) {
++		tsk->thread.address = addr;
++		tsk->thread.error_code = error_code;
++		tsk->thread.trap_no = entry;
++		info.si_signo = SIGSEGV;
++		info.si_errno = 0;
++		/* info.si_code has been set above */
++		info.si_addr = (void *)addr;
++		force_sig_info(SIGSEGV, &info, tsk);
++		return;
++	}
++
++no_context:
++
++	/* Are we prepared to handle this kernel fault?
++	 *
++	 * (The kernel has valid exception-points in the source
++	 *  when it acesses user-memory. When it fails in one
++	 *  of those points, we find it in a table and do a jump
++	 *  to some fixup code that loads an appropriate error
++	 *  code)
++	 */
++
++	{
++		const struct exception_table_entry *entry;
++
++		if ((entry =
++		     search_exception_tables(instruction_pointer(regs))) !=
++		    NULL) {
++			/* Adjust the instruction pointer in the stackframe */
++			instruction_pointer(regs) = entry->fixup;
++			return;
++		}
++	}
++
++	/*
++	 * Oops. The kernel tried to access some bad page. We'll have to
++	 * terminate things with extreme prejudice.
++	 */
++
++	bust_spinlocks(1);
++	pr_alert("Unable to handle kernel %s at virtual address %08lx\n",
++		 (addr < PAGE_SIZE) ? "NULL pointer dereference" :
++		 "paging request", addr);
++
++	show_pte(mm, addr);
++	die("Oops", regs, error_code);
++	bust_spinlocks(0);
++	do_exit(SIGKILL);
++
++	return;
++
++	/*
++	 * We ran out of memory, or some other thing happened to us that made
++	 * us unable to handle the page fault gracefully.
++	 */
++
++out_of_memory:
++	up_read(&mm->mmap_sem);
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
++
++do_sigbus:
++	up_read(&mm->mmap_sem);
++
++	/* Kernel mode? Handle exceptions or die */
++	if (!user_mode(regs))
++		goto no_context;
++
++	/*
++	 * Send a sigbus
++	 */
++	tsk->thread.address = addr;
++	tsk->thread.error_code = error_code;
++	tsk->thread.trap_no = entry;
++	info.si_signo = SIGBUS;
++	info.si_errno = 0;
++	info.si_code = BUS_ADRERR;
++	info.si_addr = (void *)addr;
++	force_sig_info(SIGBUS, &info, tsk);
++
++	return;
++
++vmalloc_fault:
++	{
++		/*
++		 * Synchronize this task's top level page-table
++		 * with the 'reference' page table.
++		 *
++		 * Use current_pgd instead of tsk->active_mm->pgd
++		 * since the latter might be unavailable if this
++		 * code is executed in a misfortunately run irq
++		 * (like inside schedule() between switch_mm and
++		 *  switch_to...).
++		 */
++
++		unsigned int index = pgd_index(addr);
++		pgd_t *pgd, *pgd_k;
++		pud_t *pud, *pud_k;
++		pmd_t *pmd, *pmd_k;
++		pte_t *pte_k;
++
++		pgd = (pgd_t *) __va(__nds32__mfsr(NDS32_SR_L1_PPTB)) + index;
++		pgd_k = init_mm.pgd + index;
++
++		if (!pgd_present(*pgd_k))
++			goto no_context;
++
++		pud = pud_offset(pgd, addr);
++		pud_k = pud_offset(pgd_k, addr);
++		if (!pud_present(*pud_k))
++			goto no_context;
++
++		pmd = pmd_offset(pud, addr);
++		pmd_k = pmd_offset(pud_k, addr);
++		if (!pmd_present(*pmd_k))
++			goto no_context;
++
++		if (!pmd_present(*pmd))
++			set_pmd(pmd, *pmd_k);
++		else
++			BUG_ON(pmd_page(*pmd) != pmd_page(*pmd_k));
++
++		/*
++		 * Since the vmalloc area is global, we don't
++		 * need to copy individual PTE's, it is enough to
++		 * copy the pgd pointer into the pte page of the
++		 * root task. If that is there, we'll find our pte if
++		 * it exists.
++		 */
++
++		/* Make sure the actual PTE exists as well to
++		 * catch kernel vmalloc-area accesses to non-mapped
++		 * addres. If we don't do this, this will just
++		 * silently loop forever.
++		 */
++
++		pte_k = pte_offset_kernel(pmd_k, addr);
++		if (!pte_present(*pte_k))
++			goto no_context;
++
++		return;
++	}
++}
+diff --git a/arch/nds32/mm/mmap.c b/arch/nds32/mm/mmap.c
 new file mode 100644
-index 0000000..6d7163c
+index 0000000..9d019235
 --- /dev/null
-+++ b/arch/nds32/kernel/process.c
-@@ -0,0 +1,217 @@
++++ b/arch/nds32/mm/mmap.c
+@@ -0,0 +1,86 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -306,205 +573,74 @@ index 0000000..6d7163c
 + */
 +
 +#include <linux/sched.h>
-+#include <linux/sched/debug.h>
-+#include <linux/sched/task_stack.h>
-+#include <linux/delay.h>
-+#include <linux/kallsyms.h>
-+#include <asm/uaccess.h>
-+#include <asm/elf.h>
-+#include <asm/proc-fns.h>
-+#include <linux/ptrace.h>
++#include <linux/mman.h>
++#include <linux/shm.h>
 +
-+extern void setup_mm_for_reboot(char mode);
-+#ifdef CONFIG_PROC_FS
-+struct proc_dir_entry *proc_dir_cpu;
-+EXPORT_SYMBOL(proc_dir_cpu);
-+#endif
-+
-+extern inline void arch_reset(char mode)
-+{
-+	if (mode == 's') {
-+		/* Use cpu handler, jump to 0 */
-+		cpu_reset(0);
-+	}
-+}
-+
-+void (*pm_power_off) (void);
-+EXPORT_SYMBOL(pm_power_off);
-+
-+static char reboot_mode = 'h';
-+
-+int __init reboot_setup(char *str)
-+{
-+	reboot_mode = str[0];
-+	return 1;
-+}
-+
-+static int cpub_pwroff(void)
-+{
-+	return 0;
-+}
-+
-+__setup("reboot=", reboot_setup);
-+
-+void machine_halt(void)
-+{
-+	cpub_pwroff();
-+}
-+
-+EXPORT_SYMBOL(machine_halt);
-+
-+void machine_power_off(void)
-+{
-+	if (pm_power_off)
-+		pm_power_off();
-+}
-+
-+EXPORT_SYMBOL(machine_power_off);
-+
-+void machine_restart(char *__unused)
-+{
-+	/*
-+	 * Clean and disable cache, and turn off interrupts
-+	 */
-+	cpu_proc_fin();
-+
-+	/*
-+	 * Tell the mm system that we are going to reboot -
-+	 * we may need it to insert some 1:1 mappings so that
-+	 * soft boot works.
-+	 */
-+	setup_mm_for_reboot(reboot_mode);
-+
-+	/*
-+	 * Now call the architecture specific reboot code.
-+	 */
-+	arch_reset(reboot_mode);
-+
-+	/*
-+	 * Whoops - the architecture was unable to reboot.
-+	 * Tell the user!
-+	 */
-+	mdelay(1000);
-+	pr_info("Reboot failed -- System halted\n");
-+	while (1) ;
-+}
-+
-+EXPORT_SYMBOL(machine_restart);
-+
-+void show_regs(struct pt_regs *regs)
-+{
-+	print_symbol("PC is at %s\n", instruction_pointer(regs));
-+	print_symbol("LP is at %s\n", regs->lp);
-+	pr_info("pc : [<%08lx>]    lp : [<%08lx>]    %s\n"
-+		"sp : %08lx  fp : %08lx  gp : %08lx\n",
-+		instruction_pointer(regs),
-+		regs->lp, print_tainted(), regs->sp, regs->fp, regs->gp);
-+	pr_info("r25: %08lx  r24: %08lx\n", regs->uregs[25], regs->uregs[24]);
-+
-+	pr_info("r23: %08lx  r22: %08lx  r21: %08lx  r20: %08lx\n",
-+		regs->uregs[23], regs->uregs[22],
-+		regs->uregs[21], regs->uregs[20]);
-+	pr_info("r19: %08lx  r18: %08lx  r17: %08lx  r16: %08lx\n",
-+		regs->uregs[19], regs->uregs[18],
-+		regs->uregs[17], regs->uregs[16]);
-+	pr_info("r15: %08lx  r14: %08lx  r13: %08lx  r12: %08lx\n",
-+		regs->uregs[15], regs->uregs[14],
-+		regs->uregs[13], regs->uregs[12]);
-+	pr_info("r11: %08lx  r10: %08lx  r9 : %08lx  r8 : %08lx\n",
-+		regs->uregs[11], regs->uregs[10],
-+		regs->uregs[9], regs->uregs[8]);
-+	pr_info("r7 : %08lx  r6 : %08lx  r5 : %08lx  r4 : %08lx\n",
-+		regs->uregs[7], regs->uregs[6], regs->uregs[5], regs->uregs[4]);
-+	pr_info("r3 : %08lx  r2 : %08lx  r1 : %08lx  r0 : %08lx\n",
-+		regs->uregs[3], regs->uregs[2], regs->uregs[1], regs->uregs[0]);
-+	pr_info("  IRQs o%s  Segment %s\n",
-+		interrupts_enabled(regs) ? "n" : "ff",
-+		segment_eq(get_fs(), get_ds())? "kernel" : "user");
-+}
-+
-+EXPORT_SYMBOL(show_regs);
-+
-+void flush_thread(void)
-+{
-+}
-+
-+DEFINE_PER_CPU(struct task_struct *, __entry_task);
-+
-+asmlinkage void ret_from_fork(void) __asm__("ret_from_fork");
-+int copy_thread(unsigned long clone_flags, unsigned long stack_start,
-+	    unsigned long stk_sz, struct task_struct *p)
-+{
-+	struct pt_regs *childregs = task_pt_regs(p);
-+
-+	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
-+
-+	if (unlikely(p->flags & PF_KTHREAD)) {
-+		memset(childregs, 0, sizeof(struct pt_regs));
-+		/* kernel thread fn */
-+		p->thread.cpu_context.r6 = stack_start;
-+		/* kernel thread argument */
-+		p->thread.cpu_context.r7 = stk_sz;
-+	} else {
-+		*childregs = *current_pt_regs();
-+		if (stack_start)
-+			childregs->sp = stack_start;
-+		/* child get zero as ret. */
-+		childregs->uregs[0] = 0;
-+		childregs->osp = 0;
-+		if (clone_flags & CLONE_SETTLS)
-+			childregs->uregs[25] = childregs->uregs[3];
-+	}
-+	/* cpu context switching  */
-+	p->thread.cpu_context.pc = (unsigned long)ret_from_fork;
-+	p->thread.cpu_context.sp = (unsigned long)childregs;
-+
-+#ifdef CONFIG_HWZOL
-+	childregs->lb = 0;
-+	childregs->le = 0;
-+	childregs->lc = 0;
-+#endif
-+
-+	return 0;
-+}
++#define COLOUR_ALIGN(addr,pgoff)		\
++	((((addr)+SHMLBA-1)&~(SHMLBA-1)) +	\
++	 (((pgoff)<<PAGE_SHIFT) & (SHMLBA-1)))
 +
 +/*
-+ * fill in the fpe structure for a core dump...
++ * We need to ensure that shared mappings are correctly aligned to
++ * avoid aliasing issues with VIPT caches.  We need to ensure that
++ * a specific page of an object is always mapped at a multiple of
++ * SHMLBA bytes.
++ *
++ * We unconditionally provide this function for all cases, however
++ * in the VIVT case, we optimise out the alignment rules.
 + */
-+int dump_fpu(struct pt_regs *regs, elf_fpregset_t * fpu)
++unsigned long
++arch_get_unmapped_area(struct file *filp, unsigned long addr,
++		       unsigned long len, unsigned long pgoff,
++		       unsigned long flags)
 +{
-+	int fpvalid = 0;
-+	return fpvalid;
-+}
++	struct mm_struct *mm = current->mm;
++	struct vm_area_struct *vma;
++	int do_align = 0;
++	struct vm_unmapped_area_info info;
++	int aliasing = 0;
++	if(IS_ENABLED(CONFIG_CPU_CACHE_ALIASING))
++		aliasing = 1;
 +
-+EXPORT_SYMBOL(dump_fpu);
++	/*
++	 * We only need to do colour alignment if either the I or D
++	 * caches alias.
++	 */
++	if (aliasing)
++		do_align = filp || (flags & MAP_SHARED);
 +
-+unsigned long get_wchan(struct task_struct *p)
-+{
-+	unsigned long fp, lr;
-+	unsigned long stack_start, stack_end;
-+	int count = 0;
-+
-+	if (!p || p == current || p->state == TASK_RUNNING)
-+		return 0;
-+
-+	if (IS_ENABLED(CONFIG_FRAME_POINTER)) {
-+		stack_start = (unsigned long)end_of_stack(p);
-+		stack_end = (unsigned long)task_stack_page(p) + THREAD_SIZE;
-+
-+		fp = thread_saved_fp(p);
-+		do {
-+			if (fp < stack_start || fp > stack_end)
-+				return 0;
-+			lr = ((unsigned long *)fp)[0];
-+			if (!in_sched_functions(lr))
-+				return lr;
-+			fp = *(unsigned long *)(fp + 4);
-+		} while (count++ < 16);
++	/*
++	 * We enforce the MAP_FIXED case.
++	 */
++	if (flags & MAP_FIXED) {
++		if (aliasing && flags & MAP_SHARED &&
++		    (addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1))
++			return -EINVAL;
++		return addr;
 +	}
-+	return 0;
-+}
 +
-+EXPORT_SYMBOL(get_wchan);
++	if (len > TASK_SIZE)
++		return -ENOMEM;
++
++	if (addr) {
++		if (do_align)
++			addr = COLOUR_ALIGN(addr, pgoff);
++		else
++			addr = PAGE_ALIGN(addr);
++
++		vma = find_vma(mm, addr);
++		if (TASK_SIZE - len >= addr &&
++		    (!vma || addr + len <= vma->vm_start))
++			return addr;
++	}
++
++	info.flags = 0;
++	info.length = len;
++	info.low_limit = mm->mmap_base;
++	info.high_limit = TASK_SIZE;
++	info.align_mask = do_align ? (PAGE_MASK & (SHMLBA - 1)) : 0;
++	info.align_offset = pgoff << PAGE_SHIFT;
++	return vm_unmapped_area(&info);
++}
 -- 
 1.7.9.5
