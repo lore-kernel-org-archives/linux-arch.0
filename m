@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v3 08/33] nds32: MMU fault handling and page table management
-Date: Fri,  8 Dec 2017 17:11:51 +0800
-Message-ID: <fa3936ca0753ffbdc388b1acc2eb8de5d5d1c6d5.1512723245.git.green.hu@gmail.com>
+Subject: [PATCH v3 09/33] nds32: Cache and TLB routines
+Date: Fri,  8 Dec 2017 17:11:52 +0800
+Message-ID: <9d0e976c3e60bf6834dffb6ef798ad2a03e1c9ac.1512723245.git.green.hu@gmail.com>
 References: <cover.1512723245.git.green.hu@gmail.com>
 Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <cover.1512723245.git.green.hu@gmail.com>
@@ -14,27 +14,43 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch includes page fault handler, mmap and fixup implementations.
+This patch contains cache and TLB maintenance functions.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/lib/copy_page.S |   50 ++++++
- arch/nds32/mm/extable.c    |   29 +++
- arch/nds32/mm/fault.c      |  424 ++++++++++++++++++++++++++++++++++++++++++++
- arch/nds32/mm/mmap.c       |   86 +++++++++
- 4 files changed, 589 insertions(+)
- create mode 100644 arch/nds32/lib/copy_page.S
- create mode 100644 arch/nds32/mm/extable.c
- create mode 100644 arch/nds32/mm/fault.c
- create mode 100644 arch/nds32/mm/mmap.c
+ arch/nds32/include/asm/cache.h         |   25 ++
+ arch/nds32/include/asm/cache_info.h    |   26 ++
+ arch/nds32/include/asm/cacheflush.h    |   57 ++++
+ arch/nds32/include/asm/mmu_context.h   |   81 +++++
+ arch/nds32/include/asm/proc-fns.h      |   57 ++++
+ arch/nds32/include/asm/tlb.h           |   41 +++
+ arch/nds32/include/asm/tlbflush.h      |   60 ++++
+ arch/nds32/include/uapi/asm/cachectl.h |   19 ++
+ arch/nds32/kernel/cacheinfo.c          |   62 ++++
+ arch/nds32/mm/cacheflush.c             |  331 ++++++++++++++++++++
+ arch/nds32/mm/proc.c                   |  527 ++++++++++++++++++++++++++++++++
+ arch/nds32/mm/tlb.c                    |   63 ++++
+ 12 files changed, 1349 insertions(+)
+ create mode 100644 arch/nds32/include/asm/cache.h
+ create mode 100644 arch/nds32/include/asm/cache_info.h
+ create mode 100644 arch/nds32/include/asm/cacheflush.h
+ create mode 100644 arch/nds32/include/asm/mmu_context.h
+ create mode 100644 arch/nds32/include/asm/proc-fns.h
+ create mode 100644 arch/nds32/include/asm/tlb.h
+ create mode 100644 arch/nds32/include/asm/tlbflush.h
+ create mode 100644 arch/nds32/include/uapi/asm/cachectl.h
+ create mode 100644 arch/nds32/kernel/cacheinfo.c
+ create mode 100644 arch/nds32/mm/cacheflush.c
+ create mode 100644 arch/nds32/mm/proc.c
+ create mode 100644 arch/nds32/mm/tlb.c
 
-diff --git a/arch/nds32/lib/copy_page.S b/arch/nds32/lib/copy_page.S
+diff --git a/arch/nds32/include/asm/cache.h b/arch/nds32/include/asm/cache.h
 new file mode 100644
-index 0000000..a55a5cc
+index 0000000..36ec549
 --- /dev/null
-+++ b/arch/nds32/lib/copy_page.S
-@@ -0,0 +1,50 @@
++++ b/arch/nds32/include/asm/cache.h
+@@ -0,0 +1,25 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -51,46 +67,21 @@ index 0000000..a55a5cc
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/linkage.h>
-+#include <asm/page.h>
++#ifndef __NDS32_CACHE_H__
++#define __NDS32_CACHE_H__
 +
-+	.text
-+ENTRY(copy_page)
-+	pushm	$r2, $r10
-+	movi	$r2, PAGE_SIZE >> 5
-+.Lcopy_loop:
-+	lmw.bim	$r3, [$r1], $r10
-+	smw.bim	$r3, [$r0], $r10
-+	subi45	$r2, #1
-+	bnez38	$r2, .Lcopy_loop
-+	popm	$r2, $r10
-+	ret
-+ENDPROC(copy_page)
++#define L1_CACHE_BYTES	32
++#define L1_CACHE_SHIFT	5
 +
-+ENTRY(clear_page)
-+	pushm	$r1, $r9
-+	movi	$r1, PAGE_SIZE >> 5
-+	movi55	$r2, #0
-+	movi55	$r3, #0
-+	movi55	$r4, #0
-+	movi55	$r5, #0
-+	movi55	$r6, #0
-+	movi55	$r7, #0
-+	movi55	$r8, #0
-+	movi55	$r9, #0
-+.Lclear_loop:
-+	smw.bim	$r2, [$r0], $r9
-+	subi45	$r1, #1
-+	bnez38	$r1, .Lclear_loop
-+	popm	$r1, $r9
-+        ret
-+ENDPROC(clear_page)
-diff --git a/arch/nds32/mm/extable.c b/arch/nds32/mm/extable.c
++#define ARCH_DMA_MINALIGN   L1_CACHE_BYTES
++
++#endif /* __NDS32_CACHE_H__ */
+diff --git a/arch/nds32/include/asm/cache_info.h b/arch/nds32/include/asm/cache_info.h
 new file mode 100644
-index 0000000..bce62d7
+index 0000000..2b17b7d
 --- /dev/null
-+++ b/arch/nds32/mm/extable.c
-@@ -0,0 +1,29 @@
++++ b/arch/nds32/include/asm/cache_info.h
+@@ -0,0 +1,26 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -107,25 +98,22 @@ index 0000000..bce62d7
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/extable.h>
-+#include <asm/uaccess.h>
-+
-+int fixup_exception(struct pt_regs *regs)
-+{
-+	const struct exception_table_entry *fixup;
-+
-+	fixup = search_exception_tables(instruction_pointer(regs));
-+	if (fixup)
-+		regs->ipc = fixup->fixup;
-+
-+	return fixup != NULL;
-+}
-diff --git a/arch/nds32/mm/fault.c b/arch/nds32/mm/fault.c
++struct cache_info {
++	unsigned char ways;
++	unsigned char line_size;
++	unsigned short sets;
++	unsigned short size;
++#if defined(CONFIG_CPU_CACHE_ALIASING)
++	unsigned short aliasing_num;
++	unsigned int aliasing_mask;
++#endif
++};
+diff --git a/arch/nds32/include/asm/cacheflush.h b/arch/nds32/include/asm/cacheflush.h
 new file mode 100644
-index 0000000..00fa3df
+index 0000000..5b95a6c
 --- /dev/null
-+++ b/arch/nds32/mm/fault.c
-@@ -0,0 +1,424 @@
++++ b/arch/nds32/include/asm/cacheflush.h
+@@ -0,0 +1,57 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -142,420 +130,53 @@ index 0000000..00fa3df
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/extable.h>
-+#include <linux/module.h>
-+#include <linux/signal.h>
-+#include <linux/ptrace.h>
++#ifndef __NDS32_CACHEFLUSH_H__
++#define __NDS32_CACHEFLUSH_H__
++
 +#include <linux/mm.h>
-+#include <linux/init.h>
-+#include <linux/hardirq.h>
-+#include <linux/uaccess.h>
 +
-+#include <asm/pgtable.h>
-+#include <asm/tlbflush.h>
-+#include <asm/uaccess.h>
++#define PG_dcache_dirty PG_arch_1
 +
-+extern void die(const char *str, struct pt_regs *regs, long err);
++#ifdef CONFIG_CPU_CACHE_ALIASING
++void flush_cache_mm(struct mm_struct *mm);
++void flush_cache_dup_mm(struct mm_struct *mm);
++void flush_cache_range(struct vm_area_struct *vma,
++		       unsigned long start, unsigned long end);
++void flush_cache_page(struct vm_area_struct *vma,
++		      unsigned long addr, unsigned long pfn);
++void flush_cache_kmaps(void);
++void flush_cache_vmap(unsigned long start, unsigned long end);
++void flush_cache_vunmap(unsigned long start, unsigned long end);
 +
-+/*
-+ * This is useful to dump out the page tables associated with
-+ * 'addr' in mm 'mm'.
-+ */
-+void show_pte(struct mm_struct *mm, unsigned long addr)
-+{
-+	pgd_t *pgd;
-+	if (!mm)
-+		mm = &init_mm;
++#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
++void flush_dcache_page(struct page *page);
++void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
++		       unsigned long vaddr, void *dst, void *src, int len);
++void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
++			 unsigned long vaddr, void *dst, void *src, int len);
 +
-+	pr_alert("pgd = %p\n", mm->pgd);
-+	pgd = pgd_offset(mm, addr);
-+	pr_alert("[%08lx] *pgd=%08lx", addr, pgd_val(*pgd));
++#define ARCH_HAS_FLUSH_ANON_PAGE
++void flush_anon_page(struct vm_area_struct *vma,
++		     struct page *page, unsigned long vaddr);
 +
-+	do {
-+		pmd_t *pmd;
++#define ARCH_HAS_FLUSH_KERNEL_DCACHE_PAGE
++void flush_kernel_dcache_page(struct page *page);
++void flush_icache_range(unsigned long start, unsigned long end);
++void flush_icache_page(struct vm_area_struct *vma, struct page *page);
++#define flush_dcache_mmap_lock(mapping)   spin_lock_irq(&(mapping)->tree_lock)
++#define flush_dcache_mmap_unlock(mapping) spin_unlock_irq(&(mapping)->tree_lock)
 +
-+		if (pgd_none(*pgd))
-+			break;
-+
-+		if (pgd_bad(*pgd)) {
-+			pr_alert("(bad)");
-+			break;
-+		}
-+
-+		pmd = pmd_offset(pgd, addr);
-+#if PTRS_PER_PMD != 1
-+		pr_alert(", *pmd=%08lx", pmd_val(*pmd));
++#else
++#include <asm-generic/cacheflush.h>
 +#endif
 +
-+		if (pmd_none(*pmd))
-+			break;
-+
-+		if (pmd_bad(*pmd)) {
-+			pr_alert("(bad)");
-+			break;
-+		}
-+
-+		if (IS_ENABLED(CONFIG_HIGHMEM))
-+		{
-+			pte_t *pte;
-+			/* We must not map this if we have highmem enabled */
-+			pte = pte_offset_map(pmd, addr);
-+			pr_alert(", *pte=%08lx", pte_val(*pte));
-+			pte_unmap(pte);
-+		}
-+	} while (0);
-+
-+	pr_alert("\n");
-+}
-+
-+void do_page_fault(unsigned long entry, unsigned long addr,
-+		   unsigned int error_code, struct pt_regs *regs)
-+{
-+	struct task_struct *tsk;
-+	struct mm_struct *mm;
-+	struct vm_area_struct *vma;
-+	siginfo_t info;
-+	int fault;
-+	unsigned int mask = VM_READ | VM_WRITE | VM_EXEC;
-+	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
-+
-+	error_code = error_code & (ITYPE_mskINST | ITYPE_mskETYPE);
-+	tsk = current;
-+	mm = tsk->mm;
-+	info.si_code = SEGV_MAPERR;
-+	/*
-+	 * We fault-in kernel-space virtual memory on-demand. The
-+	 * 'reference' page table is init_mm.pgd.
-+	 *
-+	 * NOTE! We MUST NOT take any locks for this case. We may
-+	 * be in an interrupt or a critical region, and should
-+	 * only copy the information from the master page table,
-+	 * nothing more.
-+	 */
-+	if (addr >= TASK_SIZE) {
-+		if (user_mode(regs))
-+			goto bad_area_nosemaphore;
-+
-+		if (addr >= TASK_SIZE && addr < VMALLOC_END
-+		    && (entry == ENTRY_PTE_NOT_PRESENT))
-+			goto vmalloc_fault;
-+		else
-+			goto no_context;
-+	}
-+
-+	/* Send a signal to the task for handling the unalignment access. */
-+	if (entry == ENTRY_GENERAL_EXCPETION
-+	    && error_code == ETYPE_ALIGNMENT_CHECK) {
-+		if (user_mode(regs))
-+			goto bad_area_nosemaphore;
-+		else
-+			goto no_context;
-+	}
-+
-+	/*
-+	 * If we're in an interrupt or have no user
-+	 * context, we must not take the fault..
-+	 */
-+	if (unlikely(faulthandler_disabled() || !mm))
-+		goto no_context;
-+
-+	/*
-+	 * As per x86, we may deadlock here. However, since the kernel only
-+	 * validly references user space from well defined areas of the code,
-+	 * we can bug out early if this is from code which shouldn't.
-+	 */
-+	if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
-+		if (!user_mode(regs) &&
-+		    !search_exception_tables(instruction_pointer(regs)))
-+			goto no_context;
-+retry:
-+		down_read(&mm->mmap_sem);
-+	} else {
-+		/*
-+		 * The above down_read_trylock() might have succeeded in which
-+		 * case, we'll have missed the might_sleep() from down_read().
-+		 */
-+		might_sleep();
-+		if (IS_ENABLED(CONFIG_DEBUG_VM)) {
-+			if (!user_mode(regs) &&
-+			    !search_exception_tables(instruction_pointer(regs)))
-+				goto no_context;
-+		}
-+	}
-+
-+	vma = find_vma(mm, addr);
-+
-+	if (unlikely(!vma))
-+		goto bad_area;
-+
-+	if (vma->vm_start <= addr)
-+		goto good_area;
-+
-+	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
-+		goto bad_area;
-+
-+	if (unlikely(expand_stack(vma, addr)))
-+		goto bad_area;
-+
-+	/*
-+	 * Ok, we have a good vm_area for this memory access, so
-+	 * we can handle it..
-+	 */
-+
-+good_area:
-+	info.si_code = SEGV_ACCERR;
-+
-+	/* first do some preliminary protection checks */
-+	if (entry == ENTRY_PTE_NOT_PRESENT) {
-+		if (error_code & ITYPE_mskINST)
-+			mask = VM_EXEC;
-+		else {
-+			mask = VM_READ | VM_WRITE;
-+			if (vma->vm_flags & VM_WRITE)
-+				flags |= FAULT_FLAG_WRITE;
-+		}
-+	} else if (entry == ENTRY_TLB_MISC) {
-+		switch (error_code & ITYPE_mskETYPE) {
-+		case RD_PROT:
-+			mask = VM_READ;
-+			break;
-+		case WRT_PROT:
-+			mask = VM_WRITE;
-+			flags |= FAULT_FLAG_WRITE;
-+			break;
-+		case NOEXEC:
-+			mask = VM_EXEC;
-+			break;
-+		case PAGE_MODIFY:
-+			mask = VM_WRITE;
-+			flags |= FAULT_FLAG_WRITE;
-+			break;
-+		case ACC_BIT:
-+			BUG();
-+		default:
-+			break;
-+		}
-+
-+	}
-+	if (!(vma->vm_flags & mask))
-+		goto bad_area;
-+
-+	/*
-+	 * If for any reason at all we couldn't handle the fault,
-+	 * make sure we exit gracefully rather than endlessly redo
-+	 * the fault.
-+	 */
-+
-+	fault = handle_mm_fault(vma, addr, flags);
-+
-+	/*
-+	 * If we need to retry but a fatal signal is pending, handle the
-+	 * signal first. We do not need to release the mmap_sem because it
-+	 * would already be released in __lock_page_or_retry in mm/filemap.c.
-+	 */
-+	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current)) {
-+		if (!user_mode(regs))
-+			goto no_context;
-+		return;
-+	}
-+
-+	if (unlikely(fault & VM_FAULT_ERROR)) {
-+		if (fault & VM_FAULT_OOM)
-+			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGBUS)
-+			goto do_sigbus;
-+		else
-+			goto bad_area;
-+	}
-+
-+	/*
-+	 * Major/minor page fault accounting is only done on the initial
-+	 * attempt. If we go through a retry, it is extremely likely that the
-+	 * page will be found in page cache at that point.
-+	 */
-+	if (flags & FAULT_FLAG_ALLOW_RETRY) {
-+		if (fault & VM_FAULT_MAJOR)
-+			tsk->maj_flt++;
-+		else
-+			tsk->min_flt++;
-+		if (fault & VM_FAULT_RETRY) {
-+			flags &= ~FAULT_FLAG_ALLOW_RETRY;
-+			flags |= FAULT_FLAG_TRIED;
-+
-+			/* No need to up_read(&mm->mmap_sem) as we would
-+			 * have already released it in __lock_page_or_retry
-+			 * in mm/filemap.c.
-+			 */
-+			goto retry;
-+		}
-+	}
-+
-+	up_read(&mm->mmap_sem);
-+	return;
-+
-+	/*
-+	 * Something tried to access memory that isn't in our memory map..
-+	 * Fix it, but check if it's kernel or user first..
-+	 */
-+bad_area:
-+	up_read(&mm->mmap_sem);
-+
-+bad_area_nosemaphore:
-+
-+	/* User mode accesses just cause a SIGSEGV */
-+
-+	if (user_mode(regs)) {
-+		tsk->thread.address = addr;
-+		tsk->thread.error_code = error_code;
-+		tsk->thread.trap_no = entry;
-+		info.si_signo = SIGSEGV;
-+		info.si_errno = 0;
-+		/* info.si_code has been set above */
-+		info.si_addr = (void *)addr;
-+		force_sig_info(SIGSEGV, &info, tsk);
-+		return;
-+	}
-+
-+no_context:
-+
-+	/* Are we prepared to handle this kernel fault?
-+	 *
-+	 * (The kernel has valid exception-points in the source
-+	 *  when it acesses user-memory. When it fails in one
-+	 *  of those points, we find it in a table and do a jump
-+	 *  to some fixup code that loads an appropriate error
-+	 *  code)
-+	 */
-+
-+	{
-+		const struct exception_table_entry *entry;
-+
-+		if ((entry =
-+		     search_exception_tables(instruction_pointer(regs))) !=
-+		    NULL) {
-+			/* Adjust the instruction pointer in the stackframe */
-+			instruction_pointer(regs) = entry->fixup;
-+			return;
-+		}
-+	}
-+
-+	/*
-+	 * Oops. The kernel tried to access some bad page. We'll have to
-+	 * terminate things with extreme prejudice.
-+	 */
-+
-+	bust_spinlocks(1);
-+	pr_alert("Unable to handle kernel %s at virtual address %08lx\n",
-+		 (addr < PAGE_SIZE) ? "NULL pointer dereference" :
-+		 "paging request", addr);
-+
-+	show_pte(mm, addr);
-+	die("Oops", regs, error_code);
-+	bust_spinlocks(0);
-+	do_exit(SIGKILL);
-+
-+	return;
-+
-+	/*
-+	 * We ran out of memory, or some other thing happened to us that made
-+	 * us unable to handle the page fault gracefully.
-+	 */
-+
-+out_of_memory:
-+	up_read(&mm->mmap_sem);
-+	if (!user_mode(regs))
-+		goto no_context;
-+	pagefault_out_of_memory();
-+	return;
-+
-+do_sigbus:
-+	up_read(&mm->mmap_sem);
-+
-+	/* Kernel mode? Handle exceptions or die */
-+	if (!user_mode(regs))
-+		goto no_context;
-+
-+	/*
-+	 * Send a sigbus
-+	 */
-+	tsk->thread.address = addr;
-+	tsk->thread.error_code = error_code;
-+	tsk->thread.trap_no = entry;
-+	info.si_signo = SIGBUS;
-+	info.si_errno = 0;
-+	info.si_code = BUS_ADRERR;
-+	info.si_addr = (void *)addr;
-+	force_sig_info(SIGBUS, &info, tsk);
-+
-+	return;
-+
-+vmalloc_fault:
-+	{
-+		/*
-+		 * Synchronize this task's top level page-table
-+		 * with the 'reference' page table.
-+		 *
-+		 * Use current_pgd instead of tsk->active_mm->pgd
-+		 * since the latter might be unavailable if this
-+		 * code is executed in a misfortunately run irq
-+		 * (like inside schedule() between switch_mm and
-+		 *  switch_to...).
-+		 */
-+
-+		unsigned int index = pgd_index(addr);
-+		pgd_t *pgd, *pgd_k;
-+		pud_t *pud, *pud_k;
-+		pmd_t *pmd, *pmd_k;
-+		pte_t *pte_k;
-+
-+		pgd = (pgd_t *) __va(__nds32__mfsr(NDS32_SR_L1_PPTB)) + index;
-+		pgd_k = init_mm.pgd + index;
-+
-+		if (!pgd_present(*pgd_k))
-+			goto no_context;
-+
-+		pud = pud_offset(pgd, addr);
-+		pud_k = pud_offset(pgd_k, addr);
-+		if (!pud_present(*pud_k))
-+			goto no_context;
-+
-+		pmd = pmd_offset(pud, addr);
-+		pmd_k = pmd_offset(pud_k, addr);
-+		if (!pmd_present(*pmd_k))
-+			goto no_context;
-+
-+		if (!pmd_present(*pmd))
-+			set_pmd(pmd, *pmd_k);
-+		else
-+			BUG_ON(pmd_page(*pmd) != pmd_page(*pmd_k));
-+
-+		/*
-+		 * Since the vmalloc area is global, we don't
-+		 * need to copy individual PTE's, it is enough to
-+		 * copy the pgd pointer into the pte page of the
-+		 * root task. If that is there, we'll find our pte if
-+		 * it exists.
-+		 */
-+
-+		/* Make sure the actual PTE exists as well to
-+		 * catch kernel vmalloc-area accesses to non-mapped
-+		 * addres. If we don't do this, this will just
-+		 * silently loop forever.
-+		 */
-+
-+		pte_k = pte_offset_kernel(pmd_k, addr);
-+		if (!pte_present(*pte_k))
-+			goto no_context;
-+
-+		return;
-+	}
-+}
-diff --git a/arch/nds32/mm/mmap.c b/arch/nds32/mm/mmap.c
++#endif /* __NDS32_CACHEFLUSH_H__ */
+diff --git a/arch/nds32/include/asm/mmu_context.h b/arch/nds32/include/asm/mmu_context.h
 new file mode 100644
-index 0000000..9d019235
+index 0000000..4a59b5d
 --- /dev/null
-+++ b/arch/nds32/mm/mmap.c
-@@ -0,0 +1,86 @@
++++ b/arch/nds32/include/asm/mmu_context.h
+@@ -0,0 +1,81 @@
 +/*
 + * Copyright (C) 2005-2017 Andes Technology Corporation
 + *
@@ -572,75 +193,1278 @@ index 0000000..9d019235
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/sched.h>
-+#include <linux/mman.h>
-+#include <linux/shm.h>
++#ifndef __ASM_NDS32_MMU_CONTEXT_H
++#define __ASM_NDS32_MMU_CONTEXT_H
 +
-+#define COLOUR_ALIGN(addr,pgoff)		\
-+	((((addr)+SHMLBA-1)&~(SHMLBA-1)) +	\
-+	 (((pgoff)<<PAGE_SHIFT) & (SHMLBA-1)))
++#include <linux/spinlock.h>
++#include <asm/tlbflush.h>
++#include <asm/proc-fns.h>
++#include <asm-generic/mm_hooks.h>
++
++static inline int
++init_new_context(struct task_struct *tsk, struct mm_struct *mm)
++{
++	mm->context.id = 0;
++	return 0;
++}
++
++#define destroy_context(mm)	do { } while(0)
++
++#define CID_BITS	9
++extern spinlock_t cid_lock;
++extern unsigned int cpu_last_cid;
++
++static inline void __new_context(struct mm_struct *mm)
++{
++	unsigned int cid;
++	unsigned long flags;
++
++	spin_lock_irqsave(&cid_lock, flags);
++	cid = cpu_last_cid;
++	cpu_last_cid += 1 << TLB_MISC_offCID;
++	if (cpu_last_cid == 0)
++		cpu_last_cid = 1 << TLB_MISC_offCID << CID_BITS;
++
++	if ((cid & TLB_MISC_mskCID) == 0)
++		flush_tlb_all();
++	spin_unlock_irqrestore(&cid_lock, flags);
++
++	mm->context.id = cid;
++}
++
++static inline void check_context(struct mm_struct *mm)
++{
++	if (unlikely
++	    ((mm->context.id ^ cpu_last_cid) >> TLB_MISC_offCID >> CID_BITS))
++		__new_context(mm);
++}
++
++static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
++{
++}
++
++static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
++			     struct task_struct *tsk)
++{
++	unsigned int cpu = smp_processor_id();
++
++	if (!cpumask_test_and_set_cpu(cpu, mm_cpumask(next)) || prev != next) {
++		check_context(next);
++		cpu_switch_mm(next);
++	}
++}
++
++#define deactivate_mm(tsk,mm)	do { } while (0)
++#define activate_mm(prev,next)	switch_mm(prev, next, NULL)
++
++#endif
+diff --git a/arch/nds32/include/asm/proc-fns.h b/arch/nds32/include/asm/proc-fns.h
+new file mode 100644
+index 0000000..b1a56d2
+--- /dev/null
++++ b/arch/nds32/include/asm/proc-fns.h
+@@ -0,0 +1,57 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef __NDS32_PROCFNS_H__
++#define __NDS32_PROCFNS_H__
++
++#ifdef __KERNEL__
++#include <asm/page.h>
++
++struct mm_struct;
++struct vm_area_struct;
++extern void cpu_proc_init(void);
++extern void cpu_proc_fin(void);
++extern void cpu_do_idle(void);
++extern void cpu_reset(unsigned long reset);
++extern void cpu_switch_mm(struct mm_struct *mm);
++
++extern void cpu_dcache_inval_all(void);
++extern void cpu_dcache_wbinval_all(void);
++extern void cpu_dcache_inval_page(unsigned long page);
++extern void cpu_dcache_wb_page(unsigned long page);
++extern void cpu_dcache_wbinval_page(unsigned long page);
++extern void cpu_dcache_inval_range(unsigned long start, unsigned long end);
++extern void cpu_dcache_wb_range(unsigned long start, unsigned long end);
++extern void cpu_dcache_wbinval_range(unsigned long start, unsigned long end);
++
++extern void cpu_icache_inval_all(void);
++extern void cpu_icache_inval_page(unsigned long page);
++extern void cpu_icache_inval_range(unsigned long start, unsigned long end);
++
++extern void cpu_cache_wbinval_page(unsigned long page, int flushi);
++extern void cpu_cache_wbinval_range(unsigned long start,
++				    unsigned long end, int flushi);
++extern void cpu_cache_wbinval_range_check(struct vm_area_struct *vma,
++					  unsigned long start,
++					  unsigned long end, bool flushi,
++					  bool wbd);
++
++extern void cpu_dma_wb_range(unsigned long start, unsigned long end);
++extern void cpu_dma_inval_range(unsigned long start, unsigned long end);
++extern void cpu_dma_wbinval_range(unsigned long start, unsigned long end);
++
++#endif /* __KERNEL__ */
++#endif /* __NDS32_PROCFNS_H__ */
+diff --git a/arch/nds32/include/asm/tlb.h b/arch/nds32/include/asm/tlb.h
+new file mode 100644
+index 0000000..c599827
+--- /dev/null
++++ b/arch/nds32/include/asm/tlb.h
+@@ -0,0 +1,41 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef __ASMNDS32_TLB_H
++#define __ASMNDS32_TLB_H
++
++#define tlb_start_vma(tlb,vma)						\
++	do {								\
++		if (!tlb->fullmm)					\
++			flush_cache_range(vma, vma->vm_start, vma->vm_end); \
++	} while (0)
++
++#define tlb_end_vma(tlb,vma)				\
++	do { 						\
++		if(!tlb->fullmm)			\
++			flush_tlb_range(vma, vma->vm_start, vma->vm_end); \
++	} while (0)
++
++#define __tlb_remove_tlb_entry(tlb, pte, addr) do { } while (0)
++
++#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
++
++#include <asm-generic/tlb.h>
++
++#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
++#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tln)->mm, pmd)
++
++#endif
+diff --git a/arch/nds32/include/asm/tlbflush.h b/arch/nds32/include/asm/tlbflush.h
+new file mode 100644
+index 0000000..680aeb3
+--- /dev/null
++++ b/arch/nds32/include/asm/tlbflush.h
+@@ -0,0 +1,60 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef _ASMNDS32_TLBFLUSH_H
++#define _ASMNDS32_TLBFLUSH_H
++
++#include <linux/spinlock.h>
++#include <linux/mm.h>
++#include <nds32_intrinsic.h>
++
++static inline void local_flush_tlb_all(void)
++{
++	__nds32__tlbop_flua();
++	__nds32__isb();
++}
++
++static inline void local_flush_tlb_mm(struct mm_struct *mm)
++{
++	__nds32__tlbop_flua();
++	__nds32__isb();
++}
++
++static inline void local_flush_tlb_kernel_range(unsigned long start,
++						unsigned long end)
++{
++	while (start < end) {
++		__nds32__tlbop_inv(start);
++		__nds32__isb();
++		start += PAGE_SIZE;
++	}
++}
++
++void local_flush_tlb_range(struct vm_area_struct *vma,
++			   unsigned long start, unsigned long end);
++void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long addr);
++
++#define flush_tlb_all		local_flush_tlb_all
++#define flush_tlb_mm		local_flush_tlb_mm
++#define flush_tlb_range		local_flush_tlb_range
++#define flush_tlb_page		local_flush_tlb_page
++#define flush_tlb_kernel_range	local_flush_tlb_kernel_range
++
++void update_mmu_cache(struct vm_area_struct *vma,
++		      unsigned long address, pte_t * pte);
++void tlb_migrate_finish(struct mm_struct *mm);
++
++#endif
+diff --git a/arch/nds32/include/uapi/asm/cachectl.h b/arch/nds32/include/uapi/asm/cachectl.h
+new file mode 100644
+index 0000000..a56a37d
+--- /dev/null
++++ b/arch/nds32/include/uapi/asm/cachectl.h
+@@ -0,0 +1,19 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 1994, 1995, 1996 by Ralf Baechle
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ */
++#ifndef	_ASM_CACHECTL
++#define	_ASM_CACHECTL
 +
 +/*
-+ * We need to ensure that shared mappings are correctly aligned to
-+ * avoid aliasing issues with VIPT caches.  We need to ensure that
-+ * a specific page of an object is always mapped at a multiple of
-+ * SHMLBA bytes.
-+ *
-+ * We unconditionally provide this function for all cases, however
-+ * in the VIVT case, we optimise out the alignment rules.
++ * Options for cacheflush system call
 + */
-+unsigned long
-+arch_get_unmapped_area(struct file *filp, unsigned long addr,
-+		       unsigned long len, unsigned long pgoff,
-+		       unsigned long flags)
++#define	ICACHE	0		/* flush instruction cache        */
++#define	DCACHE	1		/* writeback and flush data cache */
++#define	BCACHE	2		/* flush instruction cache + writeback and flush data cache */
++
++#endif /* _ASM_CACHECTL */
+diff --git a/arch/nds32/kernel/cacheinfo.c b/arch/nds32/kernel/cacheinfo.c
+new file mode 100644
+index 0000000..edc0fda
+--- /dev/null
++++ b/arch/nds32/kernel/cacheinfo.c
+@@ -0,0 +1,62 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/bitops.h>
++#include <linux/cacheinfo.h>
++#include <linux/cpu.h>
++
++static void ci_leaf_init(struct cacheinfo *this_leaf,
++			 enum cache_type type, unsigned int level)
++{
++	char cache_type = (type & CACHE_TYPE_INST ? ICACHE : DCACHE);
++
++	this_leaf->level = level;
++	this_leaf->type = type;
++	this_leaf->coherency_line_size = CACHE_LINE_SIZE(cache_type);
++	this_leaf->number_of_sets = CACHE_SET(cache_type);;
++	this_leaf->ways_of_associativity = CACHE_WAY(cache_type);
++	this_leaf->size = this_leaf->number_of_sets *
++	    this_leaf->coherency_line_size * this_leaf->ways_of_associativity;
++#if defined(CONFIG_CPU_DCACHE_WRITETHROUGH)
++	this_leaf->attributes = CACHE_WRITE_THROUGH;
++#else
++	this_leaf->attributes = CACHE_WRITE_BACK;
++#endif
++}
++
++int init_cache_level(unsigned int cpu)
++{
++	struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
++
++	/* Only 1 level and I/D cache seperate. */
++	this_cpu_ci->num_levels = 1;
++	this_cpu_ci->num_leaves = 2;
++	return 0;
++}
++
++int populate_cache_leaves(unsigned int cpu)
++{
++	unsigned int level, idx;
++	struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
++	struct cacheinfo *this_leaf = this_cpu_ci->info_list;
++
++	for (idx = 0, level = 1; level <= this_cpu_ci->num_levels &&
++	     idx < this_cpu_ci->num_leaves; idx++, level++) {
++		ci_leaf_init(this_leaf++, CACHE_TYPE_DATA, level);
++		ci_leaf_init(this_leaf++, CACHE_TYPE_INST, level);
++	}
++	return 0;
++}
+diff --git a/arch/nds32/mm/cacheflush.c b/arch/nds32/mm/cacheflush.c
+new file mode 100644
+index 0000000..69a85f7
+--- /dev/null
++++ b/arch/nds32/mm/cacheflush.c
+@@ -0,0 +1,331 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/mm.h>
++#include <linux/sched.h>
++#include <linux/fs.h>
++#include <linux/pagemap.h>
++#include <linux/module.h>
++#include <asm/cacheflush.h>
++#include <asm/proc-fns.h>
++#include <asm/shmparam.h>
++#include <asm/cache_info.h>
++
++extern struct cache_info L1_cache_info[2];
++
++#ifndef CONFIG_CPU_CACHE_ALIASING
++void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
++		      pte_t * pte)
++{
++	struct page *page;
++	unsigned long pfn = pte_pfn(*pte);
++
++	if (!pfn_valid(pfn))
++		return;
++
++	if (vma->vm_mm == current->active_mm) {
++
++		__nds32__mtsr_dsb(addr, NDS32_SR_TLB_VPN);
++		__nds32__tlbop_rwr(*pte);
++		__nds32__isb();
++	}
++	page = pfn_to_page(pfn);
++
++	if ((test_and_clear_bit(PG_dcache_dirty, &page->flags)) ||
++	    (vma->vm_flags & VM_EXEC)) {
++
++		if (!PageHighMem(page)) {
++			cpu_cache_wbinval_page((unsigned long)
++					       page_address(page),
++					       vma->vm_flags & VM_EXEC);
++		} else {
++			unsigned long kaddr = (unsigned long)kmap_atomic(page);
++			cpu_cache_wbinval_page(kaddr, vma->vm_flags & VM_EXEC);
++			kunmap_atomic((void *)kaddr);
++		}
++	}
++}
++#else
++extern pte_t va_present(struct mm_struct *mm, unsigned long addr);
++
++static inline unsigned long aliasing(unsigned long addr, unsigned long page)
++{
++	return ((addr & PAGE_MASK) ^ page) & (SHMLBA - 1);
++}
++
++static inline unsigned long kremap0(unsigned long uaddr, unsigned long pa)
++{
++	unsigned long kaddr, pte;
++
++#define BASE_ADDR0 0xffffc000
++	kaddr = BASE_ADDR0 | (uaddr & L1_cache_info[DCACHE].aliasing_mask);
++	pte = (pa | PAGE_KERNEL);
++	__nds32__mtsr_dsb(kaddr, NDS32_SR_TLB_VPN);
++	__nds32__tlbop_rwlk(pte);
++	__nds32__isb();
++	return kaddr;
++}
++
++static inline void kunmap01(unsigned long kaddr)
++{
++	__nds32__tlbop_unlk(kaddr);
++	__nds32__tlbop_inv(kaddr);
++	__nds32__isb();
++}
++
++static inline unsigned long kremap1(unsigned long uaddr, unsigned long pa)
++{
++	unsigned long kaddr, pte;
++
++#define BASE_ADDR1 0xffff8000
++	kaddr = BASE_ADDR1 | (uaddr & L1_cache_info[DCACHE].aliasing_mask);
++	pte = (pa | PAGE_KERNEL);
++	__nds32__mtsr_dsb(kaddr, NDS32_SR_TLB_VPN);
++	__nds32__tlbop_rwlk(pte);
++	__nds32__isb();
++	return kaddr;
++}
++
++void flush_cache_mm(struct mm_struct *mm)
++{
++	unsigned long flags;
++
++	local_irq_save(flags);
++	cpu_dcache_wbinval_all();
++	cpu_icache_inval_all();
++	local_irq_restore(flags);
++}
++
++void flush_cache_dup_mm(struct mm_struct *mm)
++{
++}
++
++void flush_cache_range(struct vm_area_struct *vma,
++		       unsigned long start, unsigned long end)
++{
++	unsigned long flags;
++
++	if ((end - start) > 8 * PAGE_SIZE) {
++		cpu_dcache_wbinval_all();
++		if (vma->vm_flags & VM_EXEC)
++			cpu_icache_inval_all();
++		return;
++	}
++	local_irq_save(flags);
++	while (start < end) {
++		if (va_present(vma->vm_mm, start))
++			cpu_cache_wbinval_page(start, vma->vm_flags & VM_EXEC);
++		start += PAGE_SIZE;
++	}
++	local_irq_restore(flags);
++	return;
++}
++
++void flush_cache_page(struct vm_area_struct *vma,
++		      unsigned long addr, unsigned long pfn)
++{
++	unsigned long vto, flags;
++
++	local_irq_save(flags);
++	vto = kremap0(addr, pfn << PAGE_SHIFT);
++	cpu_cache_wbinval_page(vto, vma->vm_flags & VM_EXEC);
++	kunmap01(vto);
++	local_irq_restore(flags);
++}
++
++void flush_cache_vmap(unsigned long start, unsigned long end)
++{
++	cpu_dcache_wbinval_all();
++	cpu_icache_inval_all();
++}
++
++void flush_cache_vunmap(unsigned long start, unsigned long end)
++{
++	cpu_dcache_wbinval_all();
++	cpu_icache_inval_all();
++}
++
++void copy_user_highpage(struct page *to, struct page *from,
++			unsigned long vaddr, struct vm_area_struct *vma)
++{
++	unsigned long vto, vfrom, flags, kto, kfrom, pfrom, pto;
++	kto = ((unsigned long)page_address(to) & PAGE_MASK);
++	kfrom = ((unsigned long)page_address(from) & PAGE_MASK);
++	pto = page_to_phys(to);
++	pfrom = page_to_phys(from);
++
++	if (aliasing(vaddr, (unsigned long)kfrom))
++		cpu_dcache_wb_page((unsigned long)kfrom);
++	if (aliasing(vaddr, (unsigned long)kto))
++		cpu_dcache_inval_page((unsigned long)kto);
++	local_irq_save(flags);
++	vto = kremap0(vaddr, pto);
++	vfrom = kremap1(vaddr, pfrom);
++	copy_page((void *)vto, (void *)vfrom);
++	kunmap01(vfrom);
++	kunmap01(vto);
++	local_irq_restore(flags);
++}
++
++EXPORT_SYMBOL(copy_user_highpage);
++
++void clear_user_highpage(struct page *page, unsigned long vaddr)
++{
++	unsigned long vto, flags, kto;
++
++	kto = ((unsigned long)page_address(page) & PAGE_MASK);
++
++	local_irq_save(flags);
++	if (aliasing(kto, vaddr) && kto != 0) {
++		cpu_dcache_inval_page(kto);
++		cpu_icache_inval_page(kto);
++	}
++	vto = kremap0(vaddr, page_to_phys(page));
++	clear_page((void *)vto);
++	kunmap01(vto);
++	local_irq_restore(flags);
++}
++
++EXPORT_SYMBOL(clear_user_highpage);
++
++void flush_dcache_page(struct page *page)
++{
++	struct address_space *mapping;
++
++	mapping = page_mapping(page);
++	if (mapping && !mapping_mapped(mapping))
++		set_bit(PG_dcache_dirty, &page->flags);
++	else {
++		int i, pc;
++		unsigned long vto, kaddr, flags;
++		kaddr = (unsigned long)page_address(page);
++		cpu_dcache_wbinval_page(kaddr);
++		pc = CACHE_SET(DCACHE) * CACHE_LINE_SIZE(DCACHE) / PAGE_SIZE;
++		local_irq_save(flags);
++		for (i = 0; i < pc; i++) {
++			vto =
++			    kremap0(kaddr + i * PAGE_SIZE, page_to_phys(page));
++			cpu_dcache_wbinval_page(vto);
++			kunmap01(vto);
++		}
++		local_irq_restore(flags);
++	}
++}
++
++void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
++		       unsigned long vaddr, void *dst, void *src, int len)
++{
++	unsigned long line_size, start, end, vto, flags;
++
++	local_irq_save(flags);
++	vto = kremap0(vaddr, page_to_phys(page));
++	dst = (void *)(vto | (vaddr & (PAGE_SIZE - 1)));
++	memcpy(dst, src, len);
++	if (vma->vm_flags & VM_EXEC) {
++		line_size = L1_cache_info[DCACHE].line_size;
++		start = (unsigned long)dst & ~(line_size - 1);
++		end =
++		    ((unsigned long)dst + len + line_size - 1) & ~(line_size -
++								   1);
++		cpu_cache_wbinval_range(start, end, 1);
++	}
++	kunmap01(vto);
++	local_irq_restore(flags);
++}
++
++void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
++			 unsigned long vaddr, void *dst, void *src, int len)
++{
++	unsigned long vto, flags;
++
++	local_irq_save(flags);
++	vto = kremap0(vaddr, page_to_phys(page));
++	src = (void *)(vto | (vaddr & (PAGE_SIZE - 1)));
++	memcpy(dst, src, len);
++	kunmap01(vto);
++	local_irq_restore(flags);
++}
++
++void flush_anon_page(struct vm_area_struct *vma,
++		     struct page *page, unsigned long vaddr)
++{
++	unsigned long flags;
++	if (!PageAnon(page))
++		return;
++
++	if (vma->vm_mm != current->active_mm)
++		return;
++
++	local_irq_save(flags);
++	if (vma->vm_flags & VM_EXEC)
++		cpu_icache_inval_page(vaddr & PAGE_MASK);
++	cpu_dcache_wbinval_page((unsigned long)page_address(page));
++	local_irq_restore(flags);
++}
++
++void flush_kernel_dcache_page(struct page *page)
++{
++	unsigned long flags;
++	local_irq_save(flags);
++	cpu_dcache_wbinval_page((unsigned long)page_address(page));
++	local_irq_restore(flags);
++}
++
++void flush_icache_range(unsigned long start, unsigned long end)
++{
++	unsigned long line_size, flags;
++	line_size = L1_cache_info[DCACHE].line_size;
++	start = start & ~(line_size - 1);
++	end = (end + line_size - 1) & ~(line_size - 1);
++	local_irq_save(flags);
++	cpu_cache_wbinval_range(start, end, 1);
++	local_irq_restore(flags);
++}
++
++void flush_icache_page(struct vm_area_struct *vma, struct page *page)
++{
++	unsigned long flags;
++	local_irq_save(flags);
++	cpu_cache_wbinval_page((unsigned long)page_address(page),
++			       vma->vm_flags & VM_EXEC);
++	local_irq_restore(flags);
++}
++
++void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
++		      pte_t * pte)
++{
++	struct page *page;
++	unsigned long flags;
++	unsigned long pfn = pte_pfn(*pte);
++
++	if (!pfn_valid(pfn))
++		return;
++
++	if (vma->vm_mm == current->active_mm) {
++		__nds32__mtsr_dsb(addr, NDS32_SR_TLB_VPN);
++		__nds32__tlbop_rwr(*pte);
++		__nds32__isb();
++	}
++
++	page = pfn_to_page(pfn);
++	if (test_and_clear_bit(PG_dcache_dirty, &page->flags) ||
++	    (vma->vm_flags & VM_EXEC)) {
++		local_irq_save(flags);
++		cpu_dcache_wbinval_page((unsigned long)page_address(page));
++		local_irq_restore(flags);
++	}
++}
++#endif
+diff --git a/arch/nds32/mm/proc.c b/arch/nds32/mm/proc.c
+new file mode 100644
+index 0000000..b78c25a
+--- /dev/null
++++ b/arch/nds32/mm/proc.c
+@@ -0,0 +1,527 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <asm/nds32.h>
++#include <asm/pgtable.h>
++#include <asm/tlbflush.h>
++#include <asm/cacheflush.h>
++#include <asm/l2_cache.h>
++#include <nds32_intrinsic.h>
++
++#include <asm/cache_info.h>
++extern struct cache_info L1_cache_info[2];
++
++int va_kernel_present(unsigned long addr)
++{
++	pmd_t *pmd;
++	pte_t *ptep, pte;
++
++	pmd = pmd_offset(pgd_offset_k(addr), addr);
++	if (!pmd_none(*pmd)) {
++		ptep = pte_offset_map(pmd, addr);
++		pte = *ptep;
++		if (pte_present(pte))
++			return pte;
++	}
++	return 0;
++}
++
++pte_t va_present(struct mm_struct * mm, unsigned long addr)
++{
++	pgd_t *pgd;
++	pud_t *pud;
++	pmd_t *pmd;
++	pte_t *ptep, pte;
++
++	pgd = pgd_offset(mm, addr);
++	if (!pgd_none(*pgd)) {
++		pud = pud_offset(pgd, addr);
++		if (!pud_none(*pud)) {
++			pmd = pmd_offset(pud, addr);
++			if (!pmd_none(*pmd)) {
++				ptep = pte_offset_map(pmd, addr);
++				pte = *ptep;
++				if (pte_present(pte))
++					return pte;
++			}
++		}
++	}
++	return 0;
++
++}
++
++int va_readable(struct pt_regs *regs, unsigned long addr)
 +{
 +	struct mm_struct *mm = current->mm;
-+	struct vm_area_struct *vma;
-+	int do_align = 0;
-+	struct vm_unmapped_area_info info;
-+	int aliasing = 0;
-+	if(IS_ENABLED(CONFIG_CPU_CACHE_ALIASING))
-+		aliasing = 1;
++	pte_t pte;
++	int ret = 0;
 +
-+	/*
-+	 * We only need to do colour alignment if either the I or D
-+	 * caches alias.
-+	 */
-+	if (aliasing)
-+		do_align = filp || (flags & MAP_SHARED);
++	if (user_mode(regs)) {
++		/* user mode */
++		pte = va_present(mm, addr);
++		if (!pte && pte_read(pte))
++			ret = 1;
++	} else {
++		/* superuser mode is always readable, so we can only
++		 * check it is present or not*/
++		return (! !va_kernel_present(addr));
++	}
++	return ret;
++}
 +
-+	/*
-+	 * We enforce the MAP_FIXED case.
-+	 */
-+	if (flags & MAP_FIXED) {
-+		if (aliasing && flags & MAP_SHARED &&
-+		    (addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1))
-+			return -EINVAL;
-+		return addr;
++int va_writable(struct pt_regs *regs, unsigned long addr)
++{
++	struct mm_struct *mm = current->mm;
++	pte_t pte;
++	int ret = 0;
++
++	if (user_mode(regs)) {
++		/* user mode */
++		pte = va_present(mm, addr);
++		if (!pte && pte_write(pte))
++			ret = 1;
++	} else {
++		/* superuser mode */
++		pte = va_kernel_present(addr);
++		if (!pte && pte_kernel_write(pte))
++			ret = 1;
++	}
++	return ret;
++}
++
++/*
++ * All
++ */
++void cpu_icache_inval_all(void)
++{
++	unsigned long end, line_size;
++
++	line_size = L1_cache_info[ICACHE].line_size;
++	end =
++	    line_size * L1_cache_info[ICACHE].ways * L1_cache_info[ICACHE].sets;
++
++	do {
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_IX_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_IX_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_IX_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_IX_INVAL"::"r" (end));
++	} while (end > 0);
++}
++
++void cpu_dcache_inval_all(void)
++{
++	__nds32__cctl_l1d_invalall();
++	__nds32__msync_all();
++}
++
++void cpu_dcache_wb_all(void)
++{
++#ifdef CONFIG_CACHE_L2
++	if (atl2c_base)
++		__nds32__cctl_l1d_wball_alvl();
++	else
++		__nds32__cctl_l1d_wball_one_lvl();
++#else
++	__nds32__cctl_l1d_wball_one_lvl();
++#endif
++	__nds32__msync_all();
++}
++
++void cpu_dcache_wbinval_all(void)
++{
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++	unsigned long flags;
++	local_irq_save(flags);
++#endif
++	cpu_dcache_wb_all();
++	cpu_dcache_inval_all();
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++	local_irq_restore(flags);
++#endif
++}
++
++/*
++ * Page
++ */
++void cpu_icache_inval_page(unsigned long start)
++{
++	unsigned long line_size, end;
++
++	line_size = L1_cache_info[ICACHE].line_size;
++	end = start + PAGE_SIZE;
++
++	do {
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1I_VA_INVAL"::"r" (end));
++	} while (end != start);
++}
++
++void cpu_dcache_inval_page(unsigned long start)
++{
++	unsigned long line_size, end;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++	end = start + PAGE_SIZE;
++
++	do {
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++	} while (end != start);
++	__nds32__msync_all();
++}
++
++void cpu_dcache_wb_page(unsigned long start)
++{
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++	unsigned long line_size, end;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++	end = start + PAGE_SIZE;
++
++	do {
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++		end -= line_size;
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++	} while (end != start);
++	__nds32__msync_all();
++#endif
++}
++
++void cpu_dcache_wbinval_page(unsigned long start)
++{
++	unsigned long line_size, end;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++	end = start + PAGE_SIZE;
++
++	do {
++		end -= line_size;
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++#endif
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++#endif
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++#endif
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++		end -= line_size;
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (end));
++#endif
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (end));
++	} while (end != start);
++	__nds32__msync_all();
++}
++
++void cpu_cache_wbinval_page(unsigned long page, int flushi)
++{
++	cpu_dcache_wbinval_page(page);
++	if (flushi)
++		cpu_icache_inval_page(page);
++}
++
++/*
++ * Range
++ */
++void cpu_icache_inval_range(unsigned long start, unsigned long end)
++{
++	unsigned long line_size;
++
++	line_size = L1_cache_info[ICACHE].line_size;
++
++	while (end > start) {
++		__asm__ volatile ("\n\tcctl %0, L1I_VA_INVAL"::"r" (start));
++		start += line_size;
++	}
++}
++
++void cpu_dcache_inval_range(unsigned long start, unsigned long end)
++{
++	unsigned long line_size;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++
++	while (end > start) {
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (start));
++		start += line_size;
++	}
++	__nds32__msync_all();
++}
++
++void cpu_dcache_wb_range(unsigned long start, unsigned long end)
++{
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++	unsigned long line_size;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++
++	while (end > start) {
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (start));
++		start += line_size;
++	}
++	__nds32__msync_all();
++#endif
++}
++
++void cpu_dcache_wbinval_range(unsigned long start, unsigned long end)
++{
++	unsigned long line_size;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++
++	while (end > start) {
++#ifndef CONFIG_CPU_DCACHE_WRITETHROUGH
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (start));
++#endif
++		__asm__ volatile ("\n\tcctl %0, L1D_VA_INVAL"::"r" (start));
++		start += line_size;
++	}
++	__nds32__msync_all();
++}
++
++void cpu_cache_wbinval_range(unsigned long start, unsigned long end, int flushi)
++{
++	unsigned long line_size, align_start, align_end;
++
++	line_size = L1_cache_info[DCACHE].line_size;
++	align_start = start & ~(line_size - 1);
++	align_end = (end + line_size - 1) & ~(line_size - 1);
++	cpu_dcache_wbinval_range(align_start, align_end);
++
++	if (flushi) {
++		line_size = L1_cache_info[ICACHE].line_size;
++		align_start = start & ~(line_size - 1);
++		align_end = (end + line_size - 1) & ~(line_size - 1);
++		cpu_icache_inval_range(align_start, align_end);
++	}
++}
++
++void cpu_cache_wbinval_range_check(struct vm_area_struct *vma,
++				   unsigned long start, unsigned long end,
++				   bool flushi, bool wbd)
++{
++	unsigned long line_size, t_start, t_end;
++
++	if (!flushi && !wbd)
++		return;
++	line_size = L1_cache_info[DCACHE].line_size;
++	start = start & ~(line_size - 1);
++	end = (end + line_size - 1) & ~(line_size - 1);
++
++	if ((end - start) > (8 * PAGE_SIZE)) {
++		if (wbd)
++			cpu_dcache_wbinval_all();
++		if (flushi)
++			cpu_icache_inval_all();
++		__nds32__msync_all();
++		return;
 +	}
 +
-+	if (len > TASK_SIZE)
-+		return -ENOMEM;
++	t_start = (start + PAGE_SIZE) & PAGE_MASK;
++	t_end = ((end - 1) & PAGE_MASK);
 +
-+	if (addr) {
-+		if (do_align)
-+			addr = COLOUR_ALIGN(addr, pgoff);
-+		else
-+			addr = PAGE_ALIGN(addr);
-+
-+		vma = find_vma(mm, addr);
-+		if (TASK_SIZE - len >= addr &&
-+		    (!vma || addr + len <= vma->vm_start))
-+			return addr;
++	if ((start & PAGE_MASK) == t_end) {
++		if (va_present(vma->vm_mm, start)) {
++			if (wbd)
++				cpu_dcache_wbinval_range(start, end);
++			if (flushi)
++				cpu_icache_inval_range(start, end);
++		}
++		__nds32__msync_all();
++		return;
 +	}
 +
-+	info.flags = 0;
-+	info.length = len;
-+	info.low_limit = mm->mmap_base;
-+	info.high_limit = TASK_SIZE;
-+	info.align_mask = do_align ? (PAGE_MASK & (SHMLBA - 1)) : 0;
-+	info.align_offset = pgoff << PAGE_SHIFT;
-+	return vm_unmapped_area(&info);
++	if (va_present(vma->vm_mm, start)) {
++		if (wbd)
++			cpu_dcache_wbinval_range(start, t_start);
++		if (flushi)
++			cpu_icache_inval_range(start, t_start);
++	}
++
++	if (va_present(vma->vm_mm, end - 1)) {
++		if (wbd)
++			cpu_dcache_wbinval_range(t_end, end);
++		if (flushi)
++			cpu_icache_inval_range(t_end, end);
++	}
++
++	while (t_start < t_end) {
++		if (va_present(vma->vm_mm, t_start)) {
++			if (wbd)
++				cpu_dcache_wbinval_page(t_start);
++			if (flushi)
++				cpu_icache_inval_page(t_start);
++		}
++		t_start += PAGE_SIZE;
++	}
++	__nds32__msync_all();
++}
++static inline void cpu_l2cache_op(unsigned long start, unsigned long end, unsigned long op)
++{
++#ifdef CONFIG_CACHE_L2
++	if (atl2c_base) {
++		unsigned long p_start = __pa(start);
++		unsigned long p_end = __pa(end);
++		unsigned long cmd;
++		unsigned long line_size;
++		/* TODO Can Use PAGE Mode to optimize if range large than PAGE_SIZE */
++		line_size = L2_CACHE_LINE_SIZE();
++		p_start = p_start & (~(line_size - 1));
++		p_end = (p_end + line_size - 1) & (~(line_size - 1));
++		cmd =
++		    (p_start & ~(line_size - 1)) | op |
++		    CCTL_SINGLE_CMD;
++		do {
++			L2_CMD_RDY();
++			L2C_W_REG(L2_CCTL_CMD_OFF, cmd);
++			cmd += line_size;
++			p_start += line_size;
++		} while (p_end > p_start);
++		cmd = CCTL_CMD_L2_SYNC;
++		L2_CMD_RDY();
++		L2C_W_REG(L2_CCTL_CMD_OFF, cmd);
++		L2_CMD_RDY();
++	}
++#endif
++}
++/*
++ * DMA
++ */
++void cpu_dma_wb_range(unsigned long start, unsigned long end)
++{
++	unsigned long line_size;
++	unsigned long flags;
++	line_size = L1_cache_info[DCACHE].line_size;
++	start = start & (~(line_size - 1));
++	end = (end + line_size - 1) & (~(line_size - 1));
++	if (unlikely(start == end))
++		return;
++
++	local_irq_save(flags);
++	cpu_dcache_wb_range(start, end);
++	cpu_l2cache_op(start, end, CCTL_CMD_L2_PA_WB);
++	__nds32__msync_all();
++	local_irq_restore(flags);
++}
++
++void cpu_dma_inval_range(unsigned long start, unsigned long end)
++{
++	unsigned long line_size;
++	unsigned long old_start = start;
++	unsigned long old_end = end;
++	unsigned long flags;
++	line_size = L1_cache_info[DCACHE].line_size;
++	start = start & (~(line_size - 1));
++	end = (end + line_size - 1) & (~(line_size - 1));
++	if (unlikely(start == end))
++		return;
++	local_irq_save(flags);
++	if (start != old_start) {
++		cpu_dcache_wbinval_range(start, start + line_size);
++		cpu_l2cache_op(start, start + line_size, CCTL_CMD_L2_PA_WBINVAL);
++	}
++	if (end != old_end) {
++		cpu_dcache_wbinval_range(end - line_size, end);
++		cpu_l2cache_op(end - line_size, end, CCTL_CMD_L2_PA_WBINVAL);
++	}
++	cpu_dcache_inval_range(start, end);
++	cpu_l2cache_op(start, end, CCTL_CMD_L2_PA_INVAL);
++	__nds32__msync_all();
++	local_irq_restore(flags);
++
++}
++
++void cpu_dma_wbinval_range(unsigned long start, unsigned long end)
++{
++	unsigned long line_size;
++	unsigned long flags;
++	line_size = L1_cache_info[DCACHE].line_size;
++	start = start & (~(line_size - 1));
++	end = (end + line_size - 1) & (~(line_size - 1));
++	if (unlikely(start == end))
++		return;
++
++	local_irq_save(flags);
++	cpu_dcache_wbinval_range(start, end);
++	cpu_l2cache_op(start, end, CCTL_CMD_L2_PA_WBINVAL);
++	__nds32__msync_all();
++	local_irq_restore(flags);
++}
++
++void cpu_proc_init(void)
++{
++}
++
++void cpu_proc_fin(void)
++{
++}
++
++void cpu_do_idle(void)
++{
++	__nds32__standby_no_wake_grant();
++}
++
++void cpu_reset(unsigned long reset)
++{
++	u32 tmp;
++	GIE_DISABLE();
++	tmp = __nds32__mfsr(NDS32_SR_CACHE_CTL);
++	tmp &= ~(CACHE_CTL_mskIC_EN | CACHE_CTL_mskDC_EN);
++	__nds32__mtsr_isb(tmp, NDS32_SR_CACHE_CTL);
++	cpu_dcache_wbinval_all();
++	cpu_icache_inval_all();
++
++	__asm__ __volatile__("jr.toff %0\n\t"::"r"(reset));
++}
++
++void cpu_switch_mm(struct mm_struct *mm)
++{
++	unsigned long cid;
++	cid = __nds32__mfsr(NDS32_SR_TLB_MISC);
++	cid = (cid & ~TLB_MISC_mskCID) | mm->context.id;
++	__nds32__mtsr_dsb(cid, NDS32_SR_TLB_MISC);
++	__nds32__mtsr_isb(__pa(mm->pgd), NDS32_SR_L1_PPTB);
++}
+diff --git a/arch/nds32/mm/tlb.c b/arch/nds32/mm/tlb.c
+new file mode 100644
+index 0000000..b397b9f
+--- /dev/null
++++ b/arch/nds32/mm/tlb.c
+@@ -0,0 +1,63 @@
++/*
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/spinlock_types.h>
++#include <linux/mm.h>
++#include <linux/sched.h>
++#include <asm/nds32.h>
++#include <nds32_intrinsic.h>
++
++unsigned int cpu_last_cid = { TLB_MISC_mskCID + (2 << TLB_MISC_offCID) };
++
++DEFINE_SPINLOCK(cid_lock);
++
++void local_flush_tlb_range(struct vm_area_struct *vma,
++			   unsigned long start, unsigned long end)
++{
++	unsigned long flags, ocid, ncid;
++
++	if ((end - start) > 0x400000) {
++		__nds32__tlbop_flua();
++		__nds32__isb();
++		return;
++	}
++
++	spin_lock_irqsave(&cid_lock, flags);
++	ocid = __nds32__mfsr(NDS32_SR_TLB_MISC);
++	ncid = (ocid & ~TLB_MISC_mskCID) | vma->vm_mm->context.id;
++	__nds32__mtsr_dsb(ncid, NDS32_SR_TLB_MISC);
++	while (start < end) {
++		__nds32__tlbop_inv(start);
++		__nds32__isb();
++		start += PAGE_SIZE;
++	}
++	__nds32__mtsr_dsb(ocid, NDS32_SR_TLB_MISC);
++	spin_unlock_irqrestore(&cid_lock, flags);
++}
++
++void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long addr)
++{
++	unsigned long flags, ocid, ncid;
++
++	spin_lock_irqsave(&cid_lock, flags);
++	ocid = __nds32__mfsr(NDS32_SR_TLB_MISC);
++	ncid = (ocid & ~TLB_MISC_mskCID) | vma->vm_mm->context.id;
++	__nds32__mtsr_dsb(ncid, NDS32_SR_TLB_MISC);
++	__nds32__tlbop_inv(addr);
++	__nds32__isb();
++	__nds32__mtsr_dsb(ocid, NDS32_SR_TLB_MISC);
++	spin_unlock_irqrestore(&cid_lock, flags);
 +}
 -- 
 1.7.9.5
