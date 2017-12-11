@@ -1,43 +1,41 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: pkeys: Support setting access rights for signal handlers
-Date: Mon, 11 Dec 2017 08:13:12 -0800
-Message-ID: <aa4d127f-0315-3ac9-3fdf-1f0a89cf60b8@intel.com>
-References: <5fee976a-42d4-d469-7058-b78ad8897219@redhat.com>
- <c034f693-95d1-65b8-2031-b969c2771fed@intel.com>
- <5965d682-61b2-d7da-c4d7-c223aa396fab@redhat.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v5 15/30] arm64/sve: Signal handling support
+Date: Mon, 11 Dec 2017 11:23:09 -0800
+Message-ID: <CAGXu5j+2MNOnAfstr8RyD0Orrt37ewL8uE2N8e3fL--fNPs3TQ@mail.gmail.com>
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+ <1509465082-30427-16-git-send-email-Dave.Martin@arm.com> <CAGXu5jJgsAg1VBMbx=mV3ep4hzs+1G46Sow4eeFqCK31b_sORA@mail.gmail.com>
+ <20171207104948.GE31900@arm.com> <CAGXu5jLO6tHm-mCPBo-csCw--+_jhLfGD_sHXCkFjmyvdame=g@mail.gmail.com>
+ <20171211140720.GE2141@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <5965d682-61b2-d7da-c4d7-c223aa396fab@redhat.com>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Florian Weimer <fweimer@redhat.com>, linux-mm <linux-mm@kvack.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-x86_64@vger.kernel.org, Linux API <linux-api@vger.kernel.org>, Ram Pai <linuxram@us.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ua0-f195.google.com ([209.85.217.195]:46083 "EHLO
+        mail-ua0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752160AbdLKTXK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Dec 2017 14:23:10 -0500
+Received: by mail-ua0-f195.google.com with SMTP id t24so12733760uaa.13
+        for <linux-arch@vger.kernel.org>; Mon, 11 Dec 2017 11:23:10 -0800 (PST)
+In-Reply-To: <20171211140720.GE2141@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha <libc-alpha@sourceware.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, =?UTF-8?B?QWxleCBCZW5uw6ll?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu
 
-On 12/09/2017 10:42 PM, Florian Weimer wrote:
->> My only nit with this is whether it is the *right* interface.  The 
->> signal vs. XSAVE state thing is pretty x86 specific and I doubt
->> that this will be the last feature that we encounter that needs
->> special signal behavior.
-> 
-> The interface is not specific to XSAVE.  To generic code, only the
-> two signal mask manipulation functions are exposed.  And I expect
-> that we're going to need that for other (non-x86) implementations
-> because they will have the same issue because the signal handler
-> behavior will be identical.
+On Mon, Dec 11, 2017 at 6:07 AM, Will Deacon <will.deacon@arm.com> wrote:
+> On Thu, Dec 07, 2017 at 10:50:38AM -0800, Kees Cook wrote:
+>> My question is mainly: why not just use copy_*() everywhere instead?
+>> Having these things so spread out makes it fragile, and there's very
+>> little performance benefit from using __copy_*() over copy_*().
+>
+> I think that's more of a general question. Why not just remove the __
+> versions from the kernel entirely if they're not worth the perf?
 
-Let's check with the other implementation...
+That has been something Linus has strongly suggested in the past, so
+I've kind of been looking for easy places to drop the __copy_*
+versions. :)
 
-Ram, this is a question about the signal handler behavior on POWER.  I
-thought you ended up having different behavior in signal handlers than x86.
+-Kees
 
-In any case, I think the question still stands: Do we want this to be
-pkeys-only, or build it so that it can be used for MPX and any future
-XSAVE features that need non-init values when entering a signal handler.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Kees Cook
+Pixel Security
