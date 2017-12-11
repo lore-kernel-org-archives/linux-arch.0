@@ -1,44 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:53904 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751622AbdLKJQR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 Dec 2017 04:16:17 -0500
-Subject: Re: [PATCH v3 32/33] irqchip: Andestech Internal Vector Interrupt
- Controller driver
-References: <cover.1512723245.git.green.hu@gmail.com>
- <4fb7bd1cd2619287061fd68a38a774c8aef7dbe9.1512723245.git.green.hu@gmail.com>
-From: Marc Zyngier <marc.zyngier@arm.com>
-Message-ID: <fed9bc8a-4a07-59ca-1e8b-9007d5ce3acd@arm.com>
-Date: Mon, 11 Dec 2017 09:16:11 +0000
+Received: from mga01.intel.com ([192.55.52.88]:23591 "EHLO mga01.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751628AbdLKQNO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 11 Dec 2017 11:13:14 -0500
+Subject: Re: pkeys: Support setting access rights for signal handlers
+References: <5fee976a-42d4-d469-7058-b78ad8897219@redhat.com>
+ <c034f693-95d1-65b8-2031-b969c2771fed@intel.com>
+ <5965d682-61b2-d7da-c4d7-c223aa396fab@redhat.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <aa4d127f-0315-3ac9-3fdf-1f0a89cf60b8@intel.com>
+Date: Mon, 11 Dec 2017 08:13:12 -0800
 MIME-Version: 1.0
-In-Reply-To: <4fb7bd1cd2619287061fd68a38a774c8aef7dbe9.1512723245.git.green.hu@gmail.com>
+In-Reply-To: <5965d682-61b2-d7da-c4d7-c223aa396fab@redhat.com>
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-GB
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com
-Cc: Rick Chen <rick@andestech.com>
-Message-ID: <20171211091611.jOyTHayWMZyh1yDyASaIa66TxAKRtPg_vLQdIoCd-R4@z>
+To: Florian Weimer <fweimer@redhat.com>, linux-mm <linux-mm@kvack.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-x86_64@vger.kernel.org, Linux API <linux-api@vger.kernel.org>, Ram Pai <linuxram@us.ibm.com>
+Message-ID: <20171211161312.RGy-0YvFAjp-o_fZJP19-X4n3a29d0pZfEBXewqDK7M@z>
 
-On 08/12/17 09:12, Greentime Hu wrote:
-> From: Greentime Hu <greentime@andestech.com>
+On 12/09/2017 10:42 PM, Florian Weimer wrote:
+>> My only nit with this is whether it is the *right* interface.  The 
+>> signal vs. XSAVE state thing is pretty x86 specific and I doubt
+>> that this will be the last feature that we encounter that needs
+>> special signal behavior.
 > 
-> This patch adds the Andestech Internal Vector Interrupt Controller
-> driver. You can find the spec here. Ch4.9 of AndeStar SPA V3 Manual.
-> http://www.andestech.com/product.php?cls=9
-> 
-> Signed-off-by: Rick Chen <rick@andestech.com>
-> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> The interface is not specific to XSAVE.  To generic code, only the
+> two signal mask manipulation functions are exposed.  And I expect
+> that we're going to need that for other (non-x86) implementations
+> because they will have the same issue because the signal handler
+> behavior will be identical.
 
-Reviewed-by: Marc Zyngier <marc.zyngier@arm.com>
+Let's check with the other implementation...
 
-Once there is an agreement on this series being fit for mainline, let me
-know how you want to get this merged (either as a whole series, or with
-this driver going through the irq tree).
+Ram, this is a question about the signal handler behavior on POWER.  I
+thought you ended up having different behavior in signal handlers than x86.
 
-Thanks,
-
-	M.
--- 
-Jazz is not dead. It just smells funny...
+In any case, I think the question still stands: Do we want this to be
+pkeys-only, or build it so that it can be used for MPX and any future
+XSAVE features that need non-init values when entering a signal handler.
