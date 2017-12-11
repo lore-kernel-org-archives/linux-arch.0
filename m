@@ -1,65 +1,43 @@
-From: Michal Hocko <mhocko-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: Re: [PATCH v4] mmap.2: MAP_FIXED updated documentation
-Date: Mon, 11 Dec 2017 10:03:03 +0100
-Message-ID: <20171211090303.GG20234@dhcp22.suse.cz>
-References: <20171206031434.29087-1-jhubbard@nvidia.com>
- <20171210103147.GC20234@dhcp22.suse.cz>
- <fba147b0-06b6-fbf9-8194-171a3e146a63@nvidia.com>
+From: Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH v3 32/33] irqchip: Andestech Internal Vector Interrupt
+ Controller driver
+Date: Mon, 11 Dec 2017 09:16:11 +0000
+Message-ID: <fed9bc8a-4a07-59ca-1e8b-9007d5ce3acd@arm.com>
+References: <cover.1512723245.git.green.hu@gmail.com>
+ <4fb7bd1cd2619287061fd68a38a774c8aef7dbe9.1512723245.git.green.hu@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <fba147b0-06b6-fbf9-8194-171a3e146a63-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-Cc: Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-man <linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Mike Rapoport <rppt-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Cyril Hrubis <chrubis-AlSwsSmVLrQ@public.gmane.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <4fb7bd1cd2619287061fd68a38a774c8aef7dbe9.1512723245.git.green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Content-Language: en-GB
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, mark.rutland-5wv7dgnIgG8@public.gmane.org, greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org
+Cc: Rick Chen <rick-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun 10-12-17 18:22:05, John Hubbard wrote:
-> On 12/10/2017 02:31 AM, Michal Hocko wrote:
-> > On Tue 05-12-17 19:14:34, john.hubbard-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org wrote:
-> >> From: John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-> >>
-> >> Previously, MAP_FIXED was "discouraged", due to portability
-> >> issues with the fixed address. In fact, there are other, more
-> >> serious issues. Also, alignment requirements were a bit vague.
-> >> So:
-> >>
-> >>     -- Expand the documentation to discuss the hazards in
-> >>        enough detail to allow avoiding them.
-> >>
-> >>     -- Mention the upcoming MAP_FIXED_SAFE flag.
-> >>
-> >>     -- Enhance the alignment requirement slightly.
-> >>
-> >> Some of the wording is lifted from Matthew Wilcox's review
-> >> (the "Portability issues" section). The alignment requirements
-> >> section uses Cyril Hrubis' wording, with light editing applied.
-> >>
-> >> Suggested-by: Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-> >> Suggested-by: Cyril Hrubis <chrubis-AlSwsSmVLrQ@public.gmane.org>
-> >> Signed-off-by: John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-> > 
-> > Would you mind if I take this patch and resubmit it along with my
-> > MAP_FIXED_SAFE (or whatever name I will end up with) next week?
-> > 
-> > Acked-by: Michal Hocko <mhocko-IBi9RG/b67k@public.gmane.org>
+On 08/12/17 09:12, Greentime Hu wrote:
+> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
 > 
-> Sure, that works for me. A tiny complication: I see that Michael
-> Kerrisk has already applied the much smaller v2 of this patch (the
-> one that "no longer discourages" the option, but that's all), as:
+> This patch adds the Andestech Internal Vector Interrupt Controller
+> driver. You can find the spec here. Ch4.9 of AndeStar SPA V3 Manual.
+> http://www.andestech.com/product.php?cls=9
 > 
->    ffa518803e14 mmap.2: MAP_FIXED is no longer discouraged
-> 
-> so this one here will need to be adjusted slightly to merge
-> gracefully. Let me know if you want me to respin, or if you
-> want to handle the merge.
+> Signed-off-by: Rick Chen <rick-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+> Signed-off-by: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
 
-Yes, please respin.
+Reviewed-by: Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>
+
+Once there is an agreement on this series being fit for mainline, let me
+know how you want to get this merged (either as a whole series, or with
+this driver going through the irq tree).
+
+Thanks,
+
+	M.
 -- 
-Michal Hocko
-SUSE Labs
+Jazz is not dead. It just smells funny...
 --
-To unsubscribe from this list: send the line "unsubscribe linux-man" in
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
 the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 More majordomo info at  http://vger.kernel.org/majordomo-info.html
