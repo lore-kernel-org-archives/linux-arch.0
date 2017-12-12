@@ -1,121 +1,115 @@
-From: john.hubbard-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
-Subject: [PATCH v5] mmap.2: MAP_FIXED updated documentation
-Date: Mon, 11 Dec 2017 16:23:31 -0800
-Message-ID: <20171212002331.6838-1-jhubbard@nvidia.com>
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: linux-man <linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Michal Hocko <mhocko-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Mike Rapoport <rppt-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Cyril Hrubis <chrubis-AlSwsSmVLrQ@public.gmane.org>, Michal Hocko <mhocko-IBi9RG/b67k@public.gmane.org>, Pavel Machek <pavel-+ZI9xUNit7I@public.gmane.org>, John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
+From: Vincent Chen <deanbo422@gmail.com>
+Subject: Re: [PATCH v3 17/33] nds32: VDSO support
+Date: Tue, 12 Dec 2017 09:58:31 +0800
+Message-ID: <CAJsyPhzQvZ1QTPcE=p3cTv2c9BbjRFCnB1ROoEBqZuRzMraeug@mail.gmail.com>
+References: <cover.1512723245.git.green.hu@gmail.com> <921ccfa97c4c13f12c7b22b9554f52dcce51f87e.1512723245.git.green.hu@gmail.com>
+ <20171208102149.iqiieszktwzorkuw@lakrids.cambridge.arm.com>
+ <CAEbi=3e9Ep4_DL4SSwp15as1t7ALvw-s2gqv+NsuRZiebNGFAQ@mail.gmail.com> <20171208121405.dy6raczdlbxtbnfo@lakrids.cambridge.arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20171208121405.dy6raczdlbxtbnfo@lakrids.cambridge.arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Greg KH <greg@kroah.com>, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
+2017-12-08 20:14 GMT+08:00 Mark Rutland <mark.rutland@arm.com>:
+> On Fri, Dec 08, 2017 at 07:54:42PM +0800, Greentime Hu wrote:
+>> 2017-12-08 18:21 GMT+08:00 Mark Rutland <mark.rutland@arm.com>:
+>> > On Fri, Dec 08, 2017 at 05:12:00PM +0800, Greentime Hu wrote:
+>> >> +static int grab_timer_node_info(void)
+>> >> +{
+>> >> +     struct device_node *timer_node;
+>> >> +
+>> >> +     timer_node = of_find_node_by_name(NULL, "timer");
+>> >
+>> > Please use a compatible string, rather than matching the timer by name.
+>> >
+>> > It's plausible that you have multiple nodes called "timer" in the DT,
+>> > under different parent nodes, and this might not be the device you
+>> > think it is. I see your dt in patch 24 has two timer nodes.
+>> >
+>> > It would be best if your clocksource driver exposed some stuct that you
+>> > looked at here, so that you're guaranteed to user the same device.
+>>
+>> We'd like to use "timer" here because there are 2 different timer IPs
+>> and we are sure that they won't be in the same SoC.
+>> We think this implementation in VDSO should be platform independent to
+>> get cycle-count register.
+>> Our customer or other SoC provider who can use "timer" and define
+>> cycle-count-offset or cycle-count-down then we can get the correct
+>> cycle-count.
+>
+> This is not the right way to do things.
+>
+> So from a DT perspective, NAK.
+>
+> You should not add properties to arbitrary DT bindings to handle a Linux
+> implementation detail.
+>
+> Please remove this DT code, and have the drivers for those timer blocks
+> export this information to your vdso code somehow.
+>
 
-    -- Expand the documentation to discuss the hazards in
-       enough detail to allow avoiding them.
+Hi, Mark:
+Based on your suggestion, we define a new sturct timer_info to let
+timer driver record the value
+of cycle-count-offset and cycle-count-down in timer_init function. The
+above code in timer driver
+is validate only when CONFIG_NDS32 is defined.
 
-    -- Mention the upcoming MAP_FIXED_SAFE flag.
+>> We sent atcpit100 patch last time along with our arch, however we'd
+>> like to send it to its sub system this time and my colleague is still
+>> working on it.
+>> He may send the timer patch next week.
+>
+> I think that it would make sense for that patch to be part of the arch
+> port, especially given that (AFAICT) there is no dirver for the other
+> timer IP that you mention.
+>
+> [...]
+>
+>> >> +int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+>> >> +{
+>> >
+>> >> +     /*Map timer to user space */
+>> >> +     vdso_base += PAGE_SIZE;
+>> >> +     prot = __pgprot(_PAGE_V | _PAGE_M_UR_KR | _PAGE_D |
+>> >> +                     _PAGE_G | _PAGE_C_DEV);
+>> >> +     ret = io_remap_pfn_range(vma, vdso_base, timer_res.start >> PAGE_SHIFT,
+>> >> +                              PAGE_SIZE, prot);
+>> >> +     if (ret)
+>> >> +             goto up_fail;
+>> >
+>> > Maybe this is fine, but it looks a bit suspicious.
+>> >
+>> > Is it safe to map IO memory to a userspace process like this?
+>> >
+>> > In general that isn't safe, since userspace could access other registers
+>> > (if those exist), perform accesses that change the state of hardware, or
+>> > make unsupported access types (e.g. unaligned, atomic) that result in
+>> > errors the kernel can't handle.
+>> >
+>> > Does none of that apply here?
+>>
+>> We only provide read permission to this page so hareware state won't
+>> be chagned. It will trigger exception if we try to write.
+>> We will check about the alignment/atomic issue of this region.
+>
 
-    -- Enhance the alignment requirement slightly.
+For alignment issue, we intentionally make an un-alignment read to
+access this region and we
+got "Segmentation fault" as expected.
 
-CC: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
-CC: Jann Horn <jannh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-CC: Matthew Wilcox <willy-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-CC: Michal Hocko <mhocko-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-CC: Mike Rapoport <rppt-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-CC: Cyril Hrubis <chrubis-AlSwsSmVLrQ@public.gmane.org>
-CC: Michal Hocko <mhocko-IBi9RG/b67k@public.gmane.org>
-CC: Pavel Machek <pavel-+ZI9xUNit7I@public.gmane.org>
-Signed-off-by: John Hubbard <jhubbard-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
----
 
-Changes since v4:
+Thanks,
+Vincent
 
-    -- v2 ("mmap.2: MAP_FIXED is no longer discouraged") was applied already,
-       so v5 is a merge, including rewording of the paragraph transitions.
-
-    -- We seem to have consensus about what to say about alignment
-       now, and this includes that new wording.
-
-Changes since v3:
-
-    -- Removed the "how to use this safely" part, and
-       the SHMLBA part, both as a result of Michal Hocko's
-       review.
-
-    -- A few tiny wording fixes, at the not-quite-typo level.
-
-Changes since v2:
-
-    -- Fixed up the "how to use safely" example, in response
-       to Mike Rapoport's review.
-
-    -- Changed the alignment requirement from system page
-       size, to SHMLBA. This was inspired by (but not yet
-       recommended by) Cyril Hrubis' review.
-
-    -- Formatting: underlined /proc/<pid>/maps
-
-Changes since v1:
-
-    -- Covered topics recommended by Matthew Wilcox
-       and Jann Horn, in their recent review: the hazards
-       of overwriting pre-exising mappings, and some notes
-       about how to use MAP_FIXED safely.
-
-    -- Rewrote the commit description accordingly.
-
- man2/mmap.2 | 32 ++++++++++++++++++++++++++++++--
- 1 file changed, 30 insertions(+), 2 deletions(-)
-
-diff --git a/man2/mmap.2 b/man2/mmap.2
-index a5a8eb47a..400cfda2d 100644
---- a/man2/mmap.2
-+++ b/man2/mmap.2
-@@ -212,8 +212,9 @@ Don't interpret
- .I addr
- as a hint: place the mapping at exactly that address.
- .I addr
--must be a multiple of the page size.
--If the memory region specified by
-+must be suitably aligned: for most architectures a multiple of page
-+size is sufficient; however, some architectures may impose additional
-+restrictions. If the memory region specified by
- .I addr
- and
- .I len
-@@ -226,6 +227,33 @@ Software that aspires to be portable should use this option with care, keeping
- in mind that the exact layout of a process' memory map is allowed to change
- significantly between kernel versions, C library versions, and operating system
- releases.
-+.IP
-+Furthermore, this option is extremely hazardous (when used on its own), because
-+it forcibly removes pre-existing mappings, making it easy for a multi-threaded
-+process to corrupt its own address space.
-+.IP
-+For example, thread A looks through
-+.I /proc/<pid>/maps
-+and locates an available
-+address range, while thread B simultaneously acquires part or all of that same
-+address range. Thread A then calls mmap(MAP_FIXED), effectively overwriting
-+the mapping that thread B created.
-+.IP
-+Thread B need not create a mapping directly; simply making a library call
-+that, internally, uses
-+.I dlopen(3)
-+to load some other shared library, will
-+suffice. The dlopen(3) call will map the library into the process's address
-+space. Furthermore, almost any library call may be implemented using this
-+technique.
-+Examples include brk(2), malloc(3), pthread_create(3), and the PAM libraries
-+(http://www.linux-pam.org).
-+.IP
-+Newer kernels
-+(Linux 4.16 and later) have a
-+.B MAP_FIXED_SAFE
-+option that avoids the corruption problem; if available, MAP_FIXED_SAFE
-+should be preferred over MAP_FIXED.
- .TP
- .B MAP_GROWSDOWN
- This flag is used for stacks.
--- 
-2.15.1
+> Ok, thanks.
+>
+> This is another reason to only do this for devices/drivers that we have
+> drivers for, since we can't know that this is safe in general.
+>
+> Thanks,
+> Mark.
