@@ -1,64 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f65.google.com ([209.85.213.65]:43072 "EHLO
-        mail-vk0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752405AbdLLTgU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Dec 2017 14:36:20 -0500
-Received: by mail-vk0-f65.google.com with SMTP id u84so13695664vke.10
-        for <linux-arch@vger.kernel.org>; Tue, 12 Dec 2017 11:36:20 -0800 (PST)
+Received: from mail-oi0-f68.google.com ([209.85.218.68]:45566 "EHLO
+        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752361AbdLLUKo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Dec 2017 15:10:44 -0500
+Date: Tue, 12 Dec 2017 14:10:41 -0600
+From: Rob Herring <robh@kernel.org>
+Subject: Re: [PATCH v3 29/33] dt-bindings: nds32 CPU Bindings
+Message-ID: <20171212201041.zqapomt7kdte2qvt@rob-hp-laptop>
+References: <cover.1512723245.git.green.hu@gmail.com>
+ <b082ead87b647f6f0797e51d3ceeaf6c87038dd1.1512723245.git.green.hu@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20171212111125.GL22781@e103592.cambridge.arm.com>
-References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
- <1509465082-30427-16-git-send-email-Dave.Martin@arm.com> <CAGXu5jJgsAg1VBMbx=mV3ep4hzs+1G46Sow4eeFqCK31b_sORA@mail.gmail.com>
- <20171207104948.GE31900@arm.com> <CAGXu5jLO6tHm-mCPBo-csCw--+_jhLfGD_sHXCkFjmyvdame=g@mail.gmail.com>
- <20171211140720.GE2141@arm.com> <CAGXu5j+2MNOnAfstr8RyD0Orrt37ewL8uE2N8e3fL--fNPs3TQ@mail.gmail.com>
- <20171212104030.GG28301@arm.com> <20171212111125.GL22781@e103592.cambridge.arm.com>
-From: Kees Cook <keescook@chromium.org>
-Date: Tue, 12 Dec 2017 11:36:18 -0800
-Message-ID: <CAGXu5j+Kxd9+QBKmFa0i34Xqygh45pE_zQ00VfW87+20m1pSjg@mail.gmail.com>
-Subject: Re: [PATCH v5 15/30] arm64/sve: Signal handling support
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <b082ead87b647f6f0797e51d3ceeaf6c87038dd1.1512723245.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha <libc-alpha@sourceware.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
-Message-ID: <20171212193618.Diw_UsArbK8WZ-DfpFdVjN34V73owiOImEOYMnICkrY@z>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>
+Message-ID: <20171212201041.KRX8cIyZ7n-Zed46Tbdjw3CcTGcISsSqwJmXuVF__m4@z>
 
-On Tue, Dec 12, 2017 at 3:11 AM, Dave Martin <Dave.Martin@arm.com> wrote:
-> On Tue, Dec 12, 2017 at 10:40:30AM +0000, Will Deacon wrote:
->> On Mon, Dec 11, 2017 at 11:23:09AM -0800, Kees Cook wrote:
->> > On Mon, Dec 11, 2017 at 6:07 AM, Will Deacon <will.deacon@arm.com> wrote:
->> > > On Thu, Dec 07, 2017 at 10:50:38AM -0800, Kees Cook wrote:
->> > >> My question is mainly: why not just use copy_*() everywhere instead?
->> > >> Having these things so spread out makes it fragile, and there's very
->> > >> little performance benefit from using __copy_*() over copy_*().
->> > >
->> > > I think that's more of a general question. Why not just remove the __
->> > > versions from the kernel entirely if they're not worth the perf?
->> >
->> > That has been something Linus has strongly suggested in the past, so
->> > I've kind of been looking for easy places to drop the __copy_*
->> > versions. :)
->>
->> Tell you what then: I'll Ack the arm64 patch if it's part of a series
->> removing the thing entirely :p
->>
->> I guess we'd still want to the validation of the whole sigframe though,
->> so we don't end up pushing half a signal stack before running into an
->> access_ok failure?
->
-> That's an interesting question.  In many cases access_ok() might become
-> redundant, but for syscalls that you don't want to have side-effects
-> on user memory on failure it's still relevant.
->
-> In the signal case we'd still an encompassing access_ok() to prevent
-> stack guard overruns, because the signal frame can be large and isn't
-> written or read contiguously or in a well-defined order.
+On Fri, Dec 08, 2017 at 05:12:12PM +0800, Greentime Hu wrote:
+> From: Greentime Hu <greentime@andestech.com>
+> 
+> This patch adds nds32 CPU binding documents.
+> 
+> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+> Signed-off-by: Rick Chen <rick@andestech.com>
+> Signed-off-by: Zong Li <zong@andestech.com>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> ---
+>  Documentation/devicetree/bindings/nds32/cpus.txt |   37 ++++++++++++++++++++++
+>  1 file changed, 37 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
 
-Yeah, I think bailing early is fine. I think the existing access_ok()
-checks are fine; I wouldn't want to drop those.
-
--Kees
-
--- 
-Kees Cook
-Pixel Security
+Reviewed-by: Rob Herring <robh@kernel.org>                  
