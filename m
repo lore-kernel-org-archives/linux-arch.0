@@ -1,59 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:32867 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750749AbdLLGMC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Dec 2017 01:12:02 -0500
-From: Rick Chen <rickchen36@gmail.com>
-Subject: [PATCH v5 0/3] Add andestech atcpit100 timer
-Date: Tue, 12 Dec 2017 13:46:58 +0800
-Message-ID: <1513057621-19084-1-git-send-email-rickchen36@gmail.com>
+Received: from mx2.suse.de ([195.135.220.15]:39383 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750731AbdLLHzy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 12 Dec 2017 02:55:54 -0500
+Date: Tue, 12 Dec 2017 08:55:50 +0100
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH v5] mmap.2: MAP_FIXED updated documentation
+Message-ID: <20171212075550.GI4779@dhcp22.suse.cz>
+References: <20171212002331.6838-1-jhubbard@nvidia.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20171212002331.6838-1-jhubbard@nvidia.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: rickchen36@gmail.com, rick@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linus.walleij@linaro.org, daniel.lezcano@linaro.org, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, linux-serial@vger.kernel.org
-Message-ID: <20171212054658.mgZfpO4DgCttvNGDnWjicfOhdfbWa_auPah4xE1W4wY@z>
+To: john.hubbard@gmail.com
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>, Pavel Machek <pavel@ucw.cz>, John Hubbard <jhubbard@nvidia.com>
+Message-ID: <20171212075550.r5ZQTE48dYHIUmYDkcHCMXv7WYexPml5rCAi_DvL1Vs@z>
 
-Changelog v5:
- - Patch 1/3: Changes
- - Patch 2/3: New
- - Patch 3/3: Changes
+On Mon 11-12-17 16:23:31, john.hubbard@gmail.com wrote:
+> From: John Hubbard <jhubbard@nvidia.com>
+> 
+>     -- Expand the documentation to discuss the hazards in
+>        enough detail to allow avoiding them.
+> 
+>     -- Mention the upcoming MAP_FIXED_SAFE flag.
+> 
+>     -- Enhance the alignment requirement slightly.
+> 
+> CC: Michael Ellerman <mpe@ellerman.id.au>
+> CC: Jann Horn <jannh@google.com>
+> CC: Matthew Wilcox <willy@infradead.org>
+> CC: Michal Hocko <mhocko@kernel.org>
+> CC: Mike Rapoport <rppt@linux.vnet.ibm.com>
+> CC: Cyril Hrubis <chrubis@suse.cz>
+> CC: Michal Hocko <mhocko@suse.com>
+> CC: Pavel Machek <pavel@ucw.cz>
+> Signed-off-by: John Hubbard <jhubbard@nvidia.com>
 
-[Patch 1/3] clocksource/drivers/atcpit100: Add andestech atcpit100 timer
- 1 No need to split out the Makefile patch from the actual driver.
- 	 Suggested by Arnd Bergmann
- 2 Add of_clk.name = "PCLK" to be explicit on what we use.
-   Suggested by Linus Walleij
- 3 Remove the GENERIC_CLOCKEVENTS from Kconfig.
-   Suggested by Daniel Lezcano
- 4 Add depends on NDS32 || COMPILE_TEST in Kconfig
-   Suggested by Greentime Hu
+Acked-by: Michal Hocko <mhocko@suse.com>
 
-[Patch 2/3] clocksource/drivers/atcpit100: VDSO support
-	 Why implemented in timer driver, please see details from
-	 https://lkml.org/lkml/2017/12/8/362
-	 [PATCH v3 17/33] nds32: VDSO support.
-	 Suggested by Mark Rutland
-	 Here Mark Rutlan suggested as below:
-	 You should not add properties to arbitrary DT bindings to
-	 handle a Linux implementation detail.
-	 Please remove this DT code, and have the drivers for those
-	 timer blocks export this information to your vdso code somehow.
+Thanks! I plan to submit my MAP_FIXED_FOO today and will send this
+together with my mman update.
 
-[Patch 3/3] dt-bindings: timer: Add andestech atcpit100 timer binding doc
-   Fix incorrect description about PCLK.
-	 Suggested by Linus Walleij
-
-Rick Chen (3):
-  clocksource/drivers/atcpit100: Add andestech atcpit100 timer
-  clocksource/drivers/atcpit100: VDSO support
-  dt-bindings: timer: Add andestech atcpit100 timer binding doc
-
- .../bindings/timer/andestech,atcpit100-timer.txt   |  33 +++
- drivers/clocksource/Kconfig                        |   7 +
- drivers/clocksource/Makefile                       |   1 +
- drivers/clocksource/timer-atcpit100.c              | 270 +++++++++++++++++++++
- 4 files changed, 311 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
- create mode 100644 drivers/clocksource/timer-atcpit100.c
+> ---
+> 
+> Changes since v4:
+> 
+>     -- v2 ("mmap.2: MAP_FIXED is no longer discouraged") was applied already,
+>        so v5 is a merge, including rewording of the paragraph transitions.
+> 
+>     -- We seem to have consensus about what to say about alignment
+>        now, and this includes that new wording.
+> 
+> Changes since v3:
+> 
+>     -- Removed the "how to use this safely" part, and
+>        the SHMLBA part, both as a result of Michal Hocko's
+>        review.
+> 
+>     -- A few tiny wording fixes, at the not-quite-typo level.
+> 
+> Changes since v2:
+> 
+>     -- Fixed up the "how to use safely" example, in response
+>        to Mike Rapoport's review.
+> 
+>     -- Changed the alignment requirement from system page
+>        size, to SHMLBA. This was inspired by (but not yet
+>        recommended by) Cyril Hrubis' review.
+> 
+>     -- Formatting: underlined /proc/<pid>/maps
+> 
+> Changes since v1:
+> 
+>     -- Covered topics recommended by Matthew Wilcox
+>        and Jann Horn, in their recent review: the hazards
+>        of overwriting pre-exising mappings, and some notes
+>        about how to use MAP_FIXED safely.
+> 
+>     -- Rewrote the commit description accordingly.
+> 
+>  man2/mmap.2 | 32 ++++++++++++++++++++++++++++++--
+>  1 file changed, 30 insertions(+), 2 deletions(-)
+> 
+> diff --git a/man2/mmap.2 b/man2/mmap.2
+> index a5a8eb47a..400cfda2d 100644
+> --- a/man2/mmap.2
+> +++ b/man2/mmap.2
+> @@ -212,8 +212,9 @@ Don't interpret
+>  .I addr
+>  as a hint: place the mapping at exactly that address.
+>  .I addr
+> -must be a multiple of the page size.
+> -If the memory region specified by
+> +must be suitably aligned: for most architectures a multiple of page
+> +size is sufficient; however, some architectures may impose additional
+> +restrictions. If the memory region specified by
+>  .I addr
+>  and
+>  .I len
+> @@ -226,6 +227,33 @@ Software that aspires to be portable should use this option with care, keeping
+>  in mind that the exact layout of a process' memory map is allowed to change
+>  significantly between kernel versions, C library versions, and operating system
+>  releases.
+> +.IP
+> +Furthermore, this option is extremely hazardous (when used on its own), because
+> +it forcibly removes pre-existing mappings, making it easy for a multi-threaded
+> +process to corrupt its own address space.
+> +.IP
+> +For example, thread A looks through
+> +.I /proc/<pid>/maps
+> +and locates an available
+> +address range, while thread B simultaneously acquires part or all of that same
+> +address range. Thread A then calls mmap(MAP_FIXED), effectively overwriting
+> +the mapping that thread B created.
+> +.IP
+> +Thread B need not create a mapping directly; simply making a library call
+> +that, internally, uses
+> +.I dlopen(3)
+> +to load some other shared library, will
+> +suffice. The dlopen(3) call will map the library into the process's address
+> +space. Furthermore, almost any library call may be implemented using this
+> +technique.
+> +Examples include brk(2), malloc(3), pthread_create(3), and the PAM libraries
+> +(http://www.linux-pam.org).
+> +.IP
+> +Newer kernels
+> +(Linux 4.16 and later) have a
+> +.B MAP_FIXED_SAFE
+> +option that avoids the corruption problem; if available, MAP_FIXED_SAFE
+> +should be preferred over MAP_FIXED.
+>  .TP
+>  .B MAP_GROWSDOWN
+>  This flag is used for stacks.
+> -- 
+> 2.15.1
+> 
 
 -- 
-2.7.4
+Michal Hocko
+SUSE Labs
