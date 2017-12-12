@@ -1,58 +1,37 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH v5 15/30] arm64/sve: Signal handling support
-Date: Tue, 12 Dec 2017 11:11:27 +0000
-Message-ID: <20171212111125.GL22781@e103592.cambridge.arm.com>
-References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
- <1509465082-30427-16-git-send-email-Dave.Martin@arm.com>
- <CAGXu5jJgsAg1VBMbx=mV3ep4hzs+1G46Sow4eeFqCK31b_sORA@mail.gmail.com>
- <20171207104948.GE31900@arm.com>
- <CAGXu5jLO6tHm-mCPBo-csCw--+_jhLfGD_sHXCkFjmyvdame=g@mail.gmail.com>
- <20171211140720.GE2141@arm.com>
- <CAGXu5j+2MNOnAfstr8RyD0Orrt37ewL8uE2N8e3fL--fNPs3TQ@mail.gmail.com>
- <20171212104030.GG28301@arm.com>
+From: Rob Herring <robh-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Subject: Re: [PATCH v3 31/33] dt-bindings: interrupt-controller: Andestech
+ Internal Vector Interrupt Controller
+Date: Tue, 12 Dec 2017 11:33:50 -0600
+Message-ID: <20171212173350.2skxihbzzzpdenwf@rob-hp-laptop>
+References: <cover.1512723245.git.green.hu@gmail.com>
+ <a0bb0a384a74bc180c0d4e9aa5741bb52653211b.1512723245.git.green.hu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:42354 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750731AbdLLLLc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 12 Dec 2017 06:11:32 -0500
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <20171212104030.GG28301@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha <libc-alpha@sourceware.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <a0bb0a384a74bc180c0d4e9aa5741bb52653211b.1512723245.git.green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org, marc.zyngier-5wv7dgnIgG8@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, mark.rutland-5wv7dgnIgG8@public.gmane.org, greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org, Rick Chen <rick-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Dec 12, 2017 at 10:40:30AM +0000, Will Deacon wrote:
-> On Mon, Dec 11, 2017 at 11:23:09AM -0800, Kees Cook wrote:
-> > On Mon, Dec 11, 2017 at 6:07 AM, Will Deacon <will.deacon@arm.com> wrote:
-> > > On Thu, Dec 07, 2017 at 10:50:38AM -0800, Kees Cook wrote:
-> > >> My question is mainly: why not just use copy_*() everywhere instead?
-> > >> Having these things so spread out makes it fragile, and there's very
-> > >> little performance benefit from using __copy_*() over copy_*().
-> > >
-> > > I think that's more of a general question. Why not just remove the __
-> > > versions from the kernel entirely if they're not worth the perf?
-> > 
-> > That has been something Linus has strongly suggested in the past, so
-> > I've kind of been looking for easy places to drop the __copy_*
-> > versions. :)
+On Fri, Dec 08, 2017 at 05:12:14PM +0800, Greentime Hu wrote:
+> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
 > 
-> Tell you what then: I'll Ack the arm64 patch if it's part of a series
-> removing the thing entirely :p
+> This patch adds an irqchip driver document for the Andestech Internal Vector
+> Interrupt Controller.
 > 
-> I guess we'd still want to the validation of the whole sigframe though,
-> so we don't end up pushing half a signal stack before running into an
-> access_ok failure?
+> Signed-off-by: Rick Chen <rick-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+> Signed-off-by: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+> ---
+>  .../interrupt-controller/andestech,ativic32.txt    |   19 +++++++++++++++++++
+>  1 file changed, 19 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
 
-That's an interesting question.  In many cases access_ok() might become
-redundant, but for syscalls that you don't want to have side-effects
-on user memory on failure it's still relevant.
+I acked v2. Please add acks when posting new versions.
 
-In the signal case we'd still an encompassing access_ok() to prevent
-stack guard overruns, because the signal frame can be large and isn't
-written or read contiguously or in a well-defined order.
-
-Cheers
----Dave
+Rob
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
