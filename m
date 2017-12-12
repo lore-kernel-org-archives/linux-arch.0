@@ -1,42 +1,126 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:23591 "EHLO mga01.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751628AbdLKQNO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 11 Dec 2017 11:13:14 -0500
-Subject: Re: pkeys: Support setting access rights for signal handlers
-References: <5fee976a-42d4-d469-7058-b78ad8897219@redhat.com>
- <c034f693-95d1-65b8-2031-b969c2771fed@intel.com>
- <5965d682-61b2-d7da-c4d7-c223aa396fab@redhat.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <aa4d127f-0315-3ac9-3fdf-1f0a89cf60b8@intel.com>
-Date: Mon, 11 Dec 2017 08:13:12 -0800
-MIME-Version: 1.0
-In-Reply-To: <5965d682-61b2-d7da-c4d7-c223aa396fab@redhat.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:44863 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752048AbdLLAXg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Dec 2017 19:23:36 -0500
+From: john.hubbard@gmail.com
+Subject: [PATCH v5] mmap.2: MAP_FIXED updated documentation
+Date: Mon, 11 Dec 2017 16:23:31 -0800
+Message-ID: <20171212002331.6838-1-jhubbard@nvidia.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Weimer <fweimer@redhat.com>, linux-mm <linux-mm@kvack.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-x86_64@vger.kernel.org, Linux API <linux-api@vger.kernel.org>, Ram Pai <linuxram@us.ibm.com>
-Message-ID: <20171211161312.RGy-0YvFAjp-o_fZJP19-X4n3a29d0pZfEBXewqDK7M@z>
+To: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@kernel.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@suse.com>, Pavel Machek <pavel@ucw.cz>, John Hubbard <jhubbard@nvidia.com>
+Message-ID: <20171212002331.sswvabVnFWoXfZseP6tFeTQPOiL9PNuiMk35HFstU9A@z>
 
-On 12/09/2017 10:42 PM, Florian Weimer wrote:
->> My only nit with this is whether it is the *right* interface.  The 
->> signal vs. XSAVE state thing is pretty x86 specific and I doubt
->> that this will be the last feature that we encounter that needs
->> special signal behavior.
-> 
-> The interface is not specific to XSAVE.  To generic code, only the
-> two signal mask manipulation functions are exposed.  And I expect
-> that we're going to need that for other (non-x86) implementations
-> because they will have the same issue because the signal handler
-> behavior will be identical.
+From: John Hubbard <jhubbard@nvidia.com>
 
-Let's check with the other implementation...
+    -- Expand the documentation to discuss the hazards in
+       enough detail to allow avoiding them.
 
-Ram, this is a question about the signal handler behavior on POWER.  I
-thought you ended up having different behavior in signal handlers than x86.
+    -- Mention the upcoming MAP_FIXED_SAFE flag.
 
-In any case, I think the question still stands: Do we want this to be
-pkeys-only, or build it so that it can be used for MPX and any future
-XSAVE features that need non-init values when entering a signal handler.
+    -- Enhance the alignment requirement slightly.
+
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Jann Horn <jannh@google.com>
+CC: Matthew Wilcox <willy@infradead.org>
+CC: Michal Hocko <mhocko@kernel.org>
+CC: Mike Rapoport <rppt@linux.vnet.ibm.com>
+CC: Cyril Hrubis <chrubis@suse.cz>
+CC: Michal Hocko <mhocko@suse.com>
+CC: Pavel Machek <pavel@ucw.cz>
+Signed-off-by: John Hubbard <jhubbard@nvidia.com>
+---
+
+Changes since v4:
+
+    -- v2 ("mmap.2: MAP_FIXED is no longer discouraged") was applied already,
+       so v5 is a merge, including rewording of the paragraph transitions.
+
+    -- We seem to have consensus about what to say about alignment
+       now, and this includes that new wording.
+
+Changes since v3:
+
+    -- Removed the "how to use this safely" part, and
+       the SHMLBA part, both as a result of Michal Hocko's
+       review.
+
+    -- A few tiny wording fixes, at the not-quite-typo level.
+
+Changes since v2:
+
+    -- Fixed up the "how to use safely" example, in response
+       to Mike Rapoport's review.
+
+    -- Changed the alignment requirement from system page
+       size, to SHMLBA. This was inspired by (but not yet
+       recommended by) Cyril Hrubis' review.
+
+    -- Formatting: underlined /proc/<pid>/maps
+
+Changes since v1:
+
+    -- Covered topics recommended by Matthew Wilcox
+       and Jann Horn, in their recent review: the hazards
+       of overwriting pre-exising mappings, and some notes
+       about how to use MAP_FIXED safely.
+
+    -- Rewrote the commit description accordingly.
+
+ man2/mmap.2 | 32 ++++++++++++++++++++++++++++++--
+ 1 file changed, 30 insertions(+), 2 deletions(-)
+
+diff --git a/man2/mmap.2 b/man2/mmap.2
+index a5a8eb47a..400cfda2d 100644
+--- a/man2/mmap.2
++++ b/man2/mmap.2
+@@ -212,8 +212,9 @@ Don't interpret
+ .I addr
+ as a hint: place the mapping at exactly that address.
+ .I addr
+-must be a multiple of the page size.
+-If the memory region specified by
++must be suitably aligned: for most architectures a multiple of page
++size is sufficient; however, some architectures may impose additional
++restrictions. If the memory region specified by
+ .I addr
+ and
+ .I len
+@@ -226,6 +227,33 @@ Software that aspires to be portable should use this option with care, keeping
+ in mind that the exact layout of a process' memory map is allowed to change
+ significantly between kernel versions, C library versions, and operating system
+ releases.
++.IP
++Furthermore, this option is extremely hazardous (when used on its own), because
++it forcibly removes pre-existing mappings, making it easy for a multi-threaded
++process to corrupt its own address space.
++.IP
++For example, thread A looks through
++.I /proc/<pid>/maps
++and locates an available
++address range, while thread B simultaneously acquires part or all of that same
++address range. Thread A then calls mmap(MAP_FIXED), effectively overwriting
++the mapping that thread B created.
++.IP
++Thread B need not create a mapping directly; simply making a library call
++that, internally, uses
++.I dlopen(3)
++to load some other shared library, will
++suffice. The dlopen(3) call will map the library into the process's address
++space. Furthermore, almost any library call may be implemented using this
++technique.
++Examples include brk(2), malloc(3), pthread_create(3), and the PAM libraries
++(http://www.linux-pam.org).
++.IP
++Newer kernels
++(Linux 4.16 and later) have a
++.B MAP_FIXED_SAFE
++option that avoids the corruption problem; if available, MAP_FIXED_SAFE
++should be preferred over MAP_FIXED.
+ .TP
+ .B MAP_GROWSDOWN
+ This flag is used for stacks.
+-- 
+2.15.1
