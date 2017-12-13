@@ -1,70 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f65.google.com ([209.85.160.65]:42107 "EHLO
-        mail-pl0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752291AbdLMJbY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Dec 2017 04:31:24 -0500
-From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 1/2] mmap.2: document new MAP_FIXED_SAFE flag
-Date: Wed, 13 Dec 2017 10:31:09 +0100
-Message-ID: <20171213093110.3550-1-mhocko@kernel.org>
-In-Reply-To: <20171213092550.2774-1-mhocko@kernel.org>
-References: <20171213092550.2774-1-mhocko@kernel.org>
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:54446 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752563AbdLMJqI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Dec 2017 04:46:08 -0500
+Date: Wed, 13 Dec 2017 17:45:48 +0800
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH v3 09/33] nds32: Cache and TLB routines
+Message-ID: <20171213094548.GA23563@gary-OptiPlex-3050>
+References: <cover.1512723245.git.green.hu@gmail.com>
+ <9d0e976c3e60bf6834dffb6ef798ad2a03e1c9ac.1512723245.git.green.hu@gmail.com>
+ <20171213021619.GA6254@gary-OptiPlex-3050>
+ <CAEbi=3dtcnUNbd4SoueUnoYvRWot9fA1n62t0b4PWx1UYs2jZA@mail.gmail.com>
+ <20171213081949.GA18840@gary-OptiPlex-3050>
+ <CAEbi=3eKH5JESwtadq4LKF3ZvmBi1QwUWpCTb0btierBST_cRQ@mail.gmail.com>
+ <20171213085334.GA21382@gary-OptiPlex-3050>
+ <CAEbi=3fvdWMExreVsSu3TJqXUr5Zpt4k_q=cXXB3miJCvY-+1g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAEbi=3fvdWMExreVsSu3TJqXUr5Zpt4k_q=cXXB3miJCvY-+1g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20171213093109.ebQW8s1S3ZhNLP8oP_LuNsN6IU-qwjOfvvBJbor9tvc@z>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171213094548.xmaOc_L98GGfVryjq42C11ipBkNU4yFWQowu-V3Yda8@z>
 
-From: Michal Hocko <mhocko@suse.com>
+Hello,
 
-4.16+ kernels offer a new MAP_FIXED_SAFE flag which allows the caller to
-atomicaly probe for a given address range.
+CPU team could improve the tlbop_*. Eg: Design a hardware
+internal flag bit for SR_TLB_VPN, tlbop_* will invalid it and mtsr
+SR_TLB_VPN will valid it.
 
-[wording heavily updated by John Hubbard <jhubbard@nvidia.com>]
-Signed-off-by: Michal Hocko <mhocko@suse.com>
----
- man2/mmap.2 | 22 ++++++++++++++++++++++
- 1 file changed, 22 insertions(+)
+So:
+On Wed, Dec 13, 2017 at 05:03:33PM +0800, Greentime Hu wrote:
+> mtsr addr1 NDS32_SR_TLB_VPN
+>     interrupt coming
+>         mtsr addr2 NDS32_SR_TLB_VPN <- TLB_VPN has been set to addr2 
+	mtsr SR_TLB_VPN will valid the flag bit
+>         tlbop_rwr(*pte);
+	tlbop_rwr will invalid SR_TLB_VPN flag bit
+>     interrupt finish
+> tlbop_rwr(*pte); <- it will use the wrong TLB_VPN
+Because SR_TLB_VPN is in a invalid state, no operation happen on
+tlbop_rwr.
 
-diff --git a/man2/mmap.2 b/man2/mmap.2
-index a5a8eb47a263..02d391697ce6 100644
---- a/man2/mmap.2
-+++ b/man2/mmap.2
-@@ -227,6 +227,22 @@ in mind that the exact layout of a process' memory map is allowed to change
- significantly between kernel versions, C library versions, and operating system
- releases.
- .TP
-+.BR MAP_FIXED_SAFE " (since Linux 4.16)"
-+Similar to MAP_FIXED with respect to the
-+.I
-+addr
-+enforcement, but different in that MAP_FIXED_SAFE never clobbers a pre-existing
-+mapped range. If the requested range would collide with an existing
-+mapping, then this call fails with
-+.B EEXIST.
-+This flag can therefore be used as a way to atomically (with respect to other
-+threads) attempt to map an address range: one thread will succeed; all others
-+will report failure. Please note that older kernels which do not recognize this
-+flag will typically (upon detecting a collision with a pre-existing mapping)
-+fall back to a "non-MAP_FIXED" type of behavior: they will return an address that
-+is different than the requested one. Therefore, backward-compatible software
-+should check the returned address against the requested address.
-+.TP
- .B MAP_GROWSDOWN
- This flag is used for stacks.
- It indicates to the kernel virtual memory system that the mapping
-@@ -451,6 +467,12 @@ is not a valid file descriptor (and
- .B MAP_ANONYMOUS
- was not set).
- .TP
-+.B EEXIST
-+range covered by
-+.IR addr ,
-+.IR length
-+is clashing with an existing mapping.
-+.TP
- .B EINVAL
- We don't like
- .IR addr ,
--- 
-2.15.0
+Then they are atomic safe ,no spin_lock_irq need.
+:)
+
+ Guo Ren
