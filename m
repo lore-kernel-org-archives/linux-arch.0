@@ -1,49 +1,41 @@
-From: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH v3 09/33] nds32: Cache and TLB routines
-Date: Wed, 13 Dec 2017 18:04:44 +0800
-Message-ID: <CAEbi=3eo9WqpzaVK_KoGE3JnvwjYGG8bOnbCQTd5RpvrQ_ySTA@mail.gmail.com>
-References: <cover.1512723245.git.green.hu@gmail.com> <9d0e976c3e60bf6834dffb6ef798ad2a03e1c9ac.1512723245.git.green.hu@gmail.com>
- <20171213021619.GA6254@gary-OptiPlex-3050> <CAEbi=3dtcnUNbd4SoueUnoYvRWot9fA1n62t0b4PWx1UYs2jZA@mail.gmail.com>
- <20171213081949.GA18840@gary-OptiPlex-3050> <CAEbi=3eKH5JESwtadq4LKF3ZvmBi1QwUWpCTb0btierBST_cRQ@mail.gmail.com>
- <20171213085334.GA21382@gary-OptiPlex-3050> <CAEbi=3fvdWMExreVsSu3TJqXUr5Zpt4k_q=cXXB3miJCvY-+1g@mail.gmail.com>
- <20171213094548.GA23563@gary-OptiPlex-3050>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: Re: [PATCHv3 11/11] mm: Use updated pmdp_invalidate() interface to
+ track dirty/accessed bits
+Date: Wed, 13 Dec 2017 13:13:36 +0300
+Message-ID: <20171213101336.np2tin32o5ppvion@black.fi.intel.com>
+References: <20170912153941.47012-1-kirill.shutemov@linux.intel.com>
+ <20170912153941.47012-12-kirill.shutemov@linux.intel.com>
+ <87tw07uz7p.fsf@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20171213094548.GA23563@gary-OptiPlex-3050>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Guo Ren <ren_guo-Y+KPrCd2zL4AvxtiuMwx3w@public.gmane.org>
-Cc: Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, netdev <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <87tw07uz7p.fsf@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-2017-12-13 17:45 GMT+08:00 Guo Ren <ren_guo-Y+KPrCd2zL4AvxtiuMwx3w@public.gmane.org>:
-> Hello,
->
-> CPU team could improve the tlbop_*. Eg: Design a hardware
-> internal flag bit for SR_TLB_VPN, tlbop_* will invalid it and mtsr
-> SR_TLB_VPN will valid it.
->
-> So:
-> On Wed, Dec 13, 2017 at 05:03:33PM +0800, Greentime Hu wrote:
->> mtsr addr1 NDS32_SR_TLB_VPN
->>     interrupt coming
->>         mtsr addr2 NDS32_SR_TLB_VPN <- TLB_VPN has been set to addr2
->         mtsr SR_TLB_VPN will valid the flag bit
->>         tlbop_rwr(*pte);
->         tlbop_rwr will invalid SR_TLB_VPN flag bit
->>     interrupt finish
->> tlbop_rwr(*pte); <- it will use the wrong TLB_VPN
-> Because SR_TLB_VPN is in a invalid state, no operation happen on
-> tlbop_rwr.
->
-> Then they are atomic safe ,no spin_lock_irq need.
-> :)
->
+On Wed, Sep 13, 2017 at 02:08:58AM +0000, Aneesh Kumar K.V wrote:
+> @@ -2011,6 +2036,8 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+>  			if (soft_dirty)
+>  				entry = pte_mksoft_dirty(entry);
+>  		}
+> +		if (dirty)
+> +			SetPageDirty(page + i);
+>  		pte = pte_offset_map(&_pmd, addr);
+>  		BUG_ON(!pte_none(*pte));
+>  		set_pte_at(mm, addr, pte, entry);
 
-Oh, I see. I may propose this idea to our ARCH colleagues for the next
-version design.
-Many thanks.
+The patch is fine. But we don't need to set every 4k dirty. We have single
+dirty bit for whole THP. I'll change this part and sent the patch as part
+of the series.
+
+-- 
+ Kirill A. Shutemov
+
 --
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
