@@ -1,44 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:37265 "EHLO mga06.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:37271 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752723AbdLMK6M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 Dec 2017 05:58:12 -0500
+        id S1752733AbdLMK6P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Dec 2017 05:58:15 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 05/12] mips: Use generic_pmdp_establish as pmdp_establish
-Date: Wed, 13 Dec 2017 13:57:49 +0300
-Message-ID: <20171213105756.69879-6-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 09/12] x86/mm: Provide pmdp_establish() helper
+Date: Wed, 13 Dec 2017 13:57:53 +0300
+Message-ID: <20171213105756.69879-10-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20171213105756.69879-1-kirill.shutemov@linux.intel.com>
 References: <20171213105756.69879-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Vlastimil Babka <vbabka@suse.cz>, Andrea Arcangeli <aarcange@redhat.com>, Michal Hocko <mhocko@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ralf Baechle <ralf@linux-mips.org>, David Daney <david.daney@cavium.com>, linux-mips@linux-mips.org
-Message-ID: <20171213105749.7JRp8NqgpP2xnjwS8qv_u48mwe9lN72tD6U3oumTS8s@z>
+Cc: Vlastimil Babka <vbabka@suse.cz>, Andrea Arcangeli <aarcange@redhat.com>, Michal Hocko <mhocko@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20171213105753.Hmm5PTOj2D_YWsm_fchYQz6nk6GXxeq0VsQUJsHDd9w@z>
 
-MIPS doesn't support hardware dirty/accessed bits.
-generic_pmdp_establish() is suitable in this case.
+We need an atomic way to setup pmd page table entry, avoiding races with
+CPU setting dirty/accessed bits. This is required to implement
+pmdp_invalidate() that doesn't lose these bits.
+
+On PAE we can avoid expensive cmpxchg8b for cases when new page table
+entry is not present. If it's present, fallback to cpmxchg loop.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: David Daney <david.daney@cavium.com>
-Cc: linux-mips@linux-mips.org
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/mips/include/asm/pgtable.h | 3 +++
- 1 file changed, 3 insertions(+)
+ arch/x86/include/asm/pgtable-3level.h | 37 ++++++++++++++++++++++++++++++++++-
+ arch/x86/include/asm/pgtable.h        | 15 ++++++++++++++
+ 2 files changed, 51 insertions(+), 1 deletion(-)
 
-diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
-index 1a508a74d48d..129e0328367f 100644
---- a/arch/mips/include/asm/pgtable.h
-+++ b/arch/mips/include/asm/pgtable.h
-@@ -534,6 +534,9 @@ static inline int io_remap_pfn_range(struct vm_area_struct *vma,
+diff --git a/arch/x86/include/asm/pgtable-3level.h b/arch/x86/include/asm/pgtable-3level.h
+index bc4af5453802..2c874cfc7789 100644
+--- a/arch/x86/include/asm/pgtable-3level.h
++++ b/arch/x86/include/asm/pgtable-3level.h
+@@ -158,7 +158,6 @@ static inline pte_t native_ptep_get_and_clear(pte_t *ptep)
+ #define native_ptep_get_and_clear(xp) native_local_ptep_get_and_clear(xp)
+ #endif
  
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- 
-+/* We don't have hardware dirty/accessed bits, generic_pmdp_establish is fine.*/
-+#define pmdp_establish generic_pmdp_establish
+-#ifdef CONFIG_SMP
+ union split_pmd {
+ 	struct {
+ 		u32 pmd_low;
+@@ -166,6 +165,8 @@ union split_pmd {
+ 	};
+ 	pmd_t pmd;
+ };
 +
- #define has_transparent_hugepage has_transparent_hugepage
- extern int has_transparent_hugepage(void);
++#ifdef CONFIG_SMP
+ static inline pmd_t native_pmdp_get_and_clear(pmd_t *pmdp)
+ {
+ 	union split_pmd res, *orig = (union split_pmd *)pmdp;
+@@ -181,6 +182,40 @@ static inline pmd_t native_pmdp_get_and_clear(pmd_t *pmdp)
+ #define native_pmdp_get_and_clear(xp) native_local_pmdp_get_and_clear(xp)
+ #endif
  
++#ifndef pmdp_establish
++#define pmdp_establish pmdp_establish
++static inline pmd_t pmdp_establish(struct vm_area_struct *vma,
++		unsigned long address, pmd_t *pmdp, pmd_t pmd)
++{
++	pmd_t old;
++
++	/*
++	 * If pmd has present bit cleared we can get away without expensive
++	 * cmpxchg64: we can update pmdp half-by-half without racing with
++	 * anybody.
++	 */
++	if (!(pmd_val(pmd) & _PAGE_PRESENT)) {
++		union split_pmd old, new, *ptr;
++
++		ptr = (union split_pmd *)pmdp;
++
++		new.pmd = pmd;
++
++		/* xchg acts as a barrier before setting of the high bits */
++		old.pmd_low = xchg(&ptr->pmd_low, new.pmd_low);
++		old.pmd_high = ptr->pmd_high;
++		ptr->pmd_high = new.pmd_high;
++		return old.pmd;
++	}
++
++	{
++		old = *pmdp;
++	} while (cmpxchg64(&pmdp->pmd, old.pmd, pmd.pmd) != old.pmd);
++
++	return old;
++}
++#endif
++
+ #ifdef CONFIG_SMP
+ union split_pud {
+ 	struct {
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 95e2dfd75521..099ebe0053c3 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -1094,6 +1094,21 @@ static inline int pud_write(pud_t pud)
+ 	return pud_flags(pud) & _PAGE_RW;
+ }
+ 
++#ifndef pmdp_establish
++#define pmdp_establish pmdp_establish
++static inline pmd_t pmdp_establish(struct vm_area_struct *vma,
++		unsigned long address, pmd_t *pmdp, pmd_t pmd)
++{
++	if (IS_ENABLED(CONFIG_SMP)) {
++		return xchg(pmdp, pmd);
++	} else {
++		pmd_t old = *pmdp;
++		*pmdp = pmd;
++		return old;
++	}
++}
++#endif
++
+ /*
+  * clone_pgd_range(pgd_t *dst, pgd_t *src, int count);
+  *
 -- 
 2.15.0
