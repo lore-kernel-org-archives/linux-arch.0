@@ -1,49 +1,91 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 07/12] s390/mm: Modify pmdp_invalidate to return old value.
-Date: Wed, 13 Dec 2017 13:57:51 +0300
-Message-ID: <20171213105756.69879-8-kirill.shutemov@linux.intel.com>
-References: <20171213105756.69879-1-kirill.shutemov@linux.intel.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20171213105756.69879-1-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Vlastimil Babka <vbabka@suse.cz>, Andrea Arcangeli <aarcange@redhat.com>, Michal Hocko <mhocko@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: pkeys: Support setting access rights for signal handlers
+Date: Wed, 13 Dec 2017 03:35:44 -0800
+Message-ID: <20171213113544.GG5460@ram.oc3035372033.ibm.com>
+References: <5fee976a-42d4-d469-7058-b78ad8897219@redhat.com>
+ <c034f693-95d1-65b8-2031-b969c2771fed@intel.com>
+ <5965d682-61b2-d7da-c4d7-c223aa396fab@redhat.com>
+ <aa4d127f-0315-3ac9-3fdf-1f0a89cf60b8@intel.com>
+ <20171212231324.GE5460@ram.oc3035372033.ibm.com>
+ <9dc13a32-b1a6-8462-7e19-cfcf9e2c151e@redhat.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:35330 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752668AbdLMLfx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Dec 2017 06:35:53 -0500
+Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vBDBZOmO084662
+        for <linux-arch@vger.kernel.org>; Wed, 13 Dec 2017 06:35:53 -0500
+Received: from e32.co.us.ibm.com (e32.co.us.ibm.com [32.97.110.150])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2eu2wkskts-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 13 Dec 2017 06:35:52 -0500
+Received: from localhost
+        by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Wed, 13 Dec 2017 04:35:52 -0700
+Content-Disposition: inline
+In-Reply-To: <9dc13a32-b1a6-8462-7e19-cfcf9e2c151e@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Florian Weimer <fweimer@redhat.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, linux-mm <linux-mm@kvack.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-x86_64@vger.kernel.org, Linux API <linux-api@vger.kernel.org>
 
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+On Wed, Dec 13, 2017 at 03:14:36AM +0100, Florian Weimer wrote:
+> On 12/13/2017 12:13 AM, Ram Pai wrote:
+> 
+> >On POWER, the value of the pkey_read() i.e contents the AMR
+> >register(pkru equivalent), is always the same regardless of its
+> >context; signal handler or not.
+> >
+> >In other words, the permission of any allocated key will not
+> >reset in a signal handler context.
+> 
+> That's certainly the simpler semantics, but I don't like how they
+> differ from x86.
+> 
+> Is the AMR register reset to the original value upon (regular)
+> return from the signal handler?
 
-It's required to avoid losing dirty and accessed bits.
+The AMR bits are not touched upon (regular) return from the signal
+handler.
 
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/s390/include/asm/pgtable.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+If the signal handler changes the bits in the AMR, they will continue
+to be so, even after return from the signal handler.
 
-diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
-index 57d7bc92e0b8..4c72c55828c1 100644
---- a/arch/s390/include/asm/pgtable.h
-+++ b/arch/s390/include/asm/pgtable.h
-@@ -1511,12 +1511,12 @@ static inline pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma,
- }
- 
- #define __HAVE_ARCH_PMDP_INVALIDATE
--static inline void pmdp_invalidate(struct vm_area_struct *vma,
-+static inline pmd_t pmdp_invalidate(struct vm_area_struct *vma,
- 				   unsigned long addr, pmd_t *pmdp)
- {
- 	pmd_t pmd = __pmd(pmd_val(*pmdp) | _SEGMENT_ENTRY_INVALID);
- 
--	pmdp_xchg_direct(vma->vm_mm, addr, pmdp, pmd);
-+	return pmdp_xchg_direct(vma->vm_mm, addr, pmdp, pmd);
- }
- 
- #define __HAVE_ARCH_PMDP_SET_WRPROTECT
+To illustrate with an example, lets say AMR value is 'x' and signal
+handler is invoked.  The value of AMR will be 'x' in the context of the
+signal handler.  On return from the signal handler the value of AMR will
+continue to be 'x'. However if signal handler changes the value of AMR
+to 'y', the value of AMR will be 'y' on return from the signal handler.
+
+
+> 
+> >I was not aware that x86 would reset the key permissions in signal
+> >handler.  I think, the proposed behavior for PKEY_ALLOC_SETSIGNAL should
+> >actually be the default behavior.
+> 
+> Note that PKEY_ALLOC_SETSIGNAL does something different: It requests
+> that the kernel sets the access rights for the key to the bits
+> specified at pkey_alloc time when the signal handler is invoked.  So
+> there is still a reset with PKEY_ALLOC_SETSIGNAL, but to a different
+> value.  It did not occur to me that it might be desirable to avoid
+> resetting the value on a per-key basis.
+
+Ah. ok i see the subtle difference proposed by your semantics.
+
+Will the following behavior work?
+
+'No bits will be reset to its initial value unless the key has been
+allocated with PKEY_ALLOC_*RE*SETSIGNAL flag'.
+
+> 
+> Thanks,
+> Florian
+
 -- 
-2.15.0
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Ram Pai
