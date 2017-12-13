@@ -1,70 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:34998 "EHLO
-        atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752847AbdLMNJC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Dec 2017 08:09:02 -0500
-Date: Wed, 13 Dec 2017 14:09:00 +0100
-From: Pavel Machek <pavel@ucw.cz>
+Received: from mx2.suse.de ([195.135.220.15]:53909 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751910AbdLMNQm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Dec 2017 08:16:42 -0500
+Date: Wed, 13 Dec 2017 14:16:40 +0100
+From: Michal Hocko <mhocko@kernel.org>
 Subject: Re: [PATCH 2/2] mmap.2: MAP_FIXED updated documentation
-Message-ID: <20171213130900.GA19932@amd>
+Message-ID: <20171213131640.GJ25185@dhcp22.suse.cz>
 References: <20171213092550.2774-1-mhocko@kernel.org>
  <20171213093110.3550-1-mhocko@kernel.org>
  <20171213093110.3550-2-mhocko@kernel.org>
  <20171213125540.GA18897@amd>
  <20171213130458.GI25185@dhcp22.suse.cz>
+ <20171213130900.GA19932@amd>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="d6Gm4EdcadzBjdND"
-Content-Disposition: inline
-In-Reply-To: <20171213130458.GI25185@dhcp22.suse.cz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Jann Horn <jannh@google.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>
-Message-ID: <20171213130900.EQmB2HlNQ2WmyZW9J26VXnE6Cj4agd-6NlziOUDSHVY@z>
-
-
---d6Gm4EdcadzBjdND
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <20171213130900.GA19932@amd>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Pavel Machek <pavel@ucw.cz>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Jann Horn <jannh@google.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>
+Message-ID: <20171213131640.8p1z3nTOFmBbW1OtpYNDAeoXgi6NMZWXcjB_S9pbvTw@z>
 
-On Wed 2017-12-13 14:04:58, Michal Hocko wrote:
-> On Wed 13-12-17 13:55:40, Pavel Machek wrote:
-> > On Wed 2017-12-13 10:31:10, Michal Hocko wrote:
-> > > From: John Hubbard <jhubbard@nvidia.com>
-> > >=20
-> > >     -- Expand the documentation to discuss the hazards in
-> > >        enough detail to allow avoiding them.
-> > >=20
-> > >     -- Mention the upcoming MAP_FIXED_SAFE flag.
-> >=20
-> > Pretty map everyone agreed MAP_FIXED_SAFE was a bad
-> > name. MAP_FIXED_NOREPLACE (IIRC) was best replacement.
->=20
-> Please read http://lkml.kernel.org/r/20171213092550.2774-1-mhocko@kernel.=
-org
+On Wed 13-12-17 14:09:00, Pavel Machek wrote:
+> On Wed 2017-12-13 14:04:58, Michal Hocko wrote:
+> > On Wed 13-12-17 13:55:40, Pavel Machek wrote:
+> > > On Wed 2017-12-13 10:31:10, Michal Hocko wrote:
+> > > > From: John Hubbard <jhubbard@nvidia.com>
+> > > > 
+> > > >     -- Expand the documentation to discuss the hazards in
+> > > >        enough detail to allow avoiding them.
+> > > > 
+> > > >     -- Mention the upcoming MAP_FIXED_SAFE flag.
+> > > 
+> > > Pretty map everyone agreed MAP_FIXED_SAFE was a bad
+> > > name. MAP_FIXED_NOREPLACE (IIRC) was best replacement.
+> > 
+> > Please read http://lkml.kernel.org/r/20171213092550.2774-1-mhocko@kernel.org
+> 
+> Please fix your patches according to the feedback...
+> 
+> NACCKED-by: Pavel Machek <pavel@ucw.cz>
 
-Please fix your patches according to the feedback...
-
-NACCKED-by: Pavel Machek <pavel@ucw.cz>
-
-									Pavel
---=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
-g.html
-
---d6Gm4EdcadzBjdND
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iEYEARECAAYFAloxJmwACgkQMOfwapXb+vJVYwCgiSl46pqmhEGrK0Mt2KJ+T+B0
-YEQAoJVN3o5wbyRIYmj458ThYbuQifj1
-=wV5t
------END PGP SIGNATURE-----
-
---d6Gm4EdcadzBjdND--
+Good luck pursuing this further then. I am not going to spend time on
+naming bikeheds. I have more pressing stuff to work on.
+-- 
+Michal Hocko
+SUSE Labs
