@@ -1,81 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:37265 "EHLO mga06.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751933AbdLMK6J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 Dec 2017 05:58:09 -0500
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 00/12]  Do not lose dirty bit on THP pages
-Date: Wed, 13 Dec 2017 13:57:44 +0300
-Message-ID: <20171213105756.69879-1-kirill.shutemov@linux.intel.com>
+Received: from bombadil.infradead.org ([65.50.211.133]:55526 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752772AbdLMMZe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Dec 2017 07:25:34 -0500
+Date: Wed, 13 Dec 2017 04:25:33 -0800
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [PATCH v2 0/2] mm: introduce MAP_FIXED_SAFE
+Message-ID: <20171213122533.GA2384@bombadil.infradead.org>
+References: <20171213092550.2774-1-mhocko@kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20171213092550.2774-1-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Vlastimil Babka <vbabka@suse.cz>, Andrea Arcangeli <aarcange@redhat.com>, Michal Hocko <mhocko@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20171213105744.0CEjiCM0_ZihwurKiZFvc28NkF0u9EPsMoGePXa30lY@z>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20171213122533.1d5iu3-Q7-IRN9AP7i4rYMQTGTffS8iQcvy9MjTr0eI@z>
 
-Vlastimil noted that pmdp_invalidate() is not atomic and we can lose
-dirty and access bits if CPU sets them after pmdp dereference, but
-before set_pmd_at().
+On Wed, Dec 13, 2017 at 10:25:48AM +0100, Michal Hocko wrote:
+> I am afraid we can bikeshed this to death and there will still be
+> somebody finding yet another better name. Therefore I've decided to
+> stick with my original MAP_FIXED_SAFE. Why? Well, because it keeps the
+> MAP_FIXED prefix which should be recognized by developers and _SAFE
+> suffix should also be clear that all dangerous side effects of the old
+> MAP_FIXED are gone.
 
-The bug can lead to data loss, but the race window is tiny and I haven't
-seen any reports that suggested that it happens in reality. So I don't
-think it worth sending it to stable.
+I liked basically every other name suggested more than MAP_FIXED_SAFE.
+"Safe against what?" was an important question.
 
-Unfortunately, there's no way to address the issue in a generic way. We need to
-fix all architectures that support THP one-by-one.
-
-All architectures that have THP supported have to provide atomic
-pmdp_invalidate() that returns previous value.
-
-If generic implementation of pmdp_invalidate() is used, architecture needs to
-provide atomic pmdp_estabish().
-
-pmdp_estabish() is not used out-side generic implementation of
-pmdp_invalidate() so far, but I think this can change in the future.
-
-Aneesh Kumar K.V (2):
-  powerpc/mm: update pmdp_invalidate to return old pmd value
-  mm/thp: Remove pmd_huge_split_prepare
-
-Catalin Marinas (1):
-  arm64: Provide pmdp_establish() helper
-
-Kirill A. Shutemov (7):
-  asm-generic: Provide generic_pmdp_establish()
-  arc: Use generic_pmdp_establish as pmdp_establish
-  arm/mm: Provide pmdp_establish() helper
-  mips: Use generic_pmdp_establish as pmdp_establish
-  x86/mm: Provide pmdp_establish() helper
-  mm: Do not lose dirty and access bits in pmdp_invalidate()
-  mm: Use updated pmdp_invalidate() interface to track dirty/accessed
-    bits
-
-Martin Schwidefsky (1):
-  s390/mm: Modify pmdp_invalidate to return old value.
-
-Nitin Gupta (1):
-  sparc64: Update pmdp_invalidate() to return old pmd value
-
- arch/arc/include/asm/hugepage.h               |  3 +
- arch/arm/include/asm/pgtable-3level.h         |  3 +
- arch/arm64/include/asm/pgtable.h              |  7 +++
- arch/mips/include/asm/pgtable.h               |  3 +
- arch/powerpc/include/asm/book3s/64/hash-4k.h  |  2 -
- arch/powerpc/include/asm/book3s/64/hash-64k.h |  2 -
- arch/powerpc/include/asm/book3s/64/pgtable.h  | 13 +----
- arch/powerpc/include/asm/book3s/64/radix.h    |  6 --
- arch/powerpc/mm/pgtable-book3s64.c            |  7 ++-
- arch/powerpc/mm/pgtable-hash64.c              | 22 -------
- arch/s390/include/asm/pgtable.h               |  4 +-
- arch/sparc/include/asm/pgtable_64.h           |  2 +-
- arch/sparc/mm/tlb.c                           | 23 ++++++--
- arch/x86/include/asm/pgtable-3level.h         | 37 +++++++++++-
- arch/x86/include/asm/pgtable.h                | 15 +++++
- fs/proc/task_mmu.c                            |  8 +--
- include/asm-generic/pgtable.h                 | 25 +++++---
- mm/huge_memory.c                              | 83 ++++++++++++---------------
- mm/pgtable-generic.c                          |  6 +-
- 19 files changed, 156 insertions(+), 115 deletions(-)
-
--- 
-2.15.0
+MAP_AT_ADDR was the best suggestion I saw that wasn't one of mine.  Of
+my suggestions, I liked MAP_STATIC the best.
