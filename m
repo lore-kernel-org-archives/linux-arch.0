@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:55011 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:60667 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752751AbdLMNfv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 Dec 2017 08:35:51 -0500
-Date: Wed, 13 Dec 2017 14:35:47 +0100
-From: Michal Hocko <mhocko@kernel.org>
+        id S1752749AbdLMOmQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Dec 2017 09:42:16 -0500
+Date: Wed, 13 Dec 2017 15:40:50 +0100
+From: Cyril Hrubis <chrubis@suse.cz>
 Subject: Re: [PATCH 2/2] mmap.2: MAP_FIXED updated documentation
-Message-ID: <20171213133547.GK25185@dhcp22.suse.cz>
+Message-ID: <20171213144050.GG11493@rei>
 References: <20171213092550.2774-1-mhocko@kernel.org>
  <20171213093110.3550-1-mhocko@kernel.org>
  <20171213093110.3550-2-mhocko@kernel.org>
@@ -22,47 +22,26 @@ In-Reply-To: <20171213132105.GA20517@amd>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Pavel Machek <pavel@ucw.cz>
-Cc: Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Jann Horn <jannh@google.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>
-Message-ID: <20171213133547.ideuW9kKApw4k16J_ALAIVSRZH4Eeh68PWrJOuBKdBA@z>
+Cc: Michal Hocko <mhocko@kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Jann Horn <jannh@google.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>
+Message-ID: <20171213144050.rgAOu_3wUzAaB4qzHLxyjxALgegQ8c7N_vaOlyNMr8E@z>
 
-On Wed 13-12-17 14:21:05, Pavel Machek wrote:
-> On Wed 2017-12-13 14:16:40, Michal Hocko wrote:
-> > On Wed 13-12-17 14:09:00, Pavel Machek wrote:
-> > > On Wed 2017-12-13 14:04:58, Michal Hocko wrote:
-> > > > On Wed 13-12-17 13:55:40, Pavel Machek wrote:
-> > > > > On Wed 2017-12-13 10:31:10, Michal Hocko wrote:
-> > > > > > From: John Hubbard <jhubbard@nvidia.com>
-> > > > > > 
-> > > > > >     -- Expand the documentation to discuss the hazards in
-> > > > > >        enough detail to allow avoiding them.
-> > > > > > 
-> > > > > >     -- Mention the upcoming MAP_FIXED_SAFE flag.
-> > > > > 
-> > > > > Pretty map everyone agreed MAP_FIXED_SAFE was a bad
-> > > > > name. MAP_FIXED_NOREPLACE (IIRC) was best replacement.
-> > > > 
-> > > > Please read http://lkml.kernel.org/r/20171213092550.2774-1-mhocko@kernel.org
-> > > 
-> > > Please fix your patches according to the feedback...
-> > > 
-> > > NACCKED-by: Pavel Machek <pavel@ucw.cz>
-> > 
-> > Good luck pursuing this further then. I am not going to spend time on
-> > naming bikeheds. I have more pressing stuff to work on.
-> 
+Hi!
 > You selected stupid name for a flag. Everyone and their dog agrees
-> with that.
+> with that. There's even consensus on better name (and everyone agrees
+> it is better than .._SAFE). Of course, we could have debate if it is
+> NOREPLACE or NOREMOVE or ... and that would be bikeshed. This was just
+> poor naming on your part.
 
-Not sure about your dog but mine says that a flag which fixes an
-_unsafe_ aspects of MAP_FIXED can be called MAP_FIXED_SAFE just fine.
+Well while everybody agrees that the name is so bad that basically
+anything else would be better, there does not seem to be consensus on
+which one to pick. I do understand that this frustrating and fruitless.
 
-Anyway, I am not going to argue about this further. I've implemented the
-code, gathered uscases and fortified an in-kernel user which already led
-to a security issue in the past. I consider my part done here. I do not
-agree that MAP_FIXED_NOREPLACE would be so much better to respin and
-then deal with what about this MAP_$FOO. If there are really stong
-feelings about this then feel free to take these patches, do
-s@MAP_FIXED_SAFE@MAP_$FOO@ and try to upstream them yourself.
+So what do we do now, roll a dice to choose new name?
+
+Or do we ask BFDL[1] to choose the name?
+
+[1] https://en.wikipedia.org/wiki/Benevolent_dictator_for_life
+
 -- 
-Michal Hocko
-SUSE Labs
+Cyril Hrubis
+chrubis@suse.cz
