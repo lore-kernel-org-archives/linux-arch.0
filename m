@@ -1,94 +1,50 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 2/2] mmap.2: MAP_FIXED updated documentation
-Date: Wed, 13 Dec 2017 10:31:10 +0100
-Message-ID: <20171213093110.3550-2-mhocko@kernel.org>
-References: <20171213092550.2774-1-mhocko@kernel.org>
- <20171213093110.3550-1-mhocko@kernel.org>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20171213093110.3550-1-mhocko@kernel.org>
-Sender: owner-linux-mm@kvack.org
-To: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Jann Horn <jannh@google.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>, Pavel Machek <pavel@ucw.cz>, Michal Hocko <mhocko@suse.com>
+From: Guo Ren <ren_guo-Y+KPrCd2zL4AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH v3 09/33] nds32: Cache and TLB routines
+Date: Wed, 13 Dec 2017 17:45:48 +0800
+Message-ID: <20171213094548.GA23563@gary-OptiPlex-3050>
+References: <cover.1512723245.git.green.hu@gmail.com>
+ <9d0e976c3e60bf6834dffb6ef798ad2a03e1c9ac.1512723245.git.green.hu@gmail.com>
+ <20171213021619.GA6254@gary-OptiPlex-3050>
+ <CAEbi=3dtcnUNbd4SoueUnoYvRWot9fA1n62t0b4PWx1UYs2jZA@mail.gmail.com>
+ <20171213081949.GA18840@gary-OptiPlex-3050>
+ <CAEbi=3eKH5JESwtadq4LKF3ZvmBi1QwUWpCTb0btierBST_cRQ@mail.gmail.com>
+ <20171213085334.GA21382@gary-OptiPlex-3050>
+ <CAEbi=3fvdWMExreVsSu3TJqXUr5Zpt4k_q=cXXB3miJCvY-+1g@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <CAEbi=3fvdWMExreVsSu3TJqXUr5Zpt4k_q=cXXB3miJCvY-+1g-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, netdev <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: John Hubbard <jhubbard@nvidia.com>
+Hello,
 
-    -- Expand the documentation to discuss the hazards in
-       enough detail to allow avoiding them.
+CPU team could improve the tlbop_*. Eg: Design a hardware
+internal flag bit for SR_TLB_VPN, tlbop_* will invalid it and mtsr
+SR_TLB_VPN will valid it.
 
-    -- Mention the upcoming MAP_FIXED_SAFE flag.
+So:
+On Wed, Dec 13, 2017 at 05:03:33PM +0800, Greentime Hu wrote:
+> mtsr addr1 NDS32_SR_TLB_VPN
+>     interrupt coming
+>         mtsr addr2 NDS32_SR_TLB_VPN <- TLB_VPN has been set to addr2 
+	mtsr SR_TLB_VPN will valid the flag bit
+>         tlbop_rwr(*pte);
+	tlbop_rwr will invalid SR_TLB_VPN flag bit
+>     interrupt finish
+> tlbop_rwr(*pte); <- it will use the wrong TLB_VPN
+Because SR_TLB_VPN is in a invalid state, no operation happen on
+tlbop_rwr.
 
-    -- Enhance the alignment requirement slightly.
+Then they are atomic safe ,no spin_lock_irq need.
+:)
 
-CC: Michael Ellerman <mpe@ellerman.id.au>
-CC: Jann Horn <jannh@google.com>
-CC: Matthew Wilcox <willy@infradead.org>
-CC: Michal Hocko <mhocko@kernel.org>
-CC: Mike Rapoport <rppt@linux.vnet.ibm.com>
-CC: Cyril Hrubis <chrubis@suse.cz>
-CC: Pavel Machek <pavel@ucw.cz>
-Acked-by: Michal Hocko <mhocko@suse.com>
-Signed-off-by: John Hubbard <jhubbard@nvidia.com>
-Signed-off-by: Michal Hocko <mhocko@suse.com>
----
- man2/mmap.2 | 32 ++++++++++++++++++++++++++++++--
- 1 file changed, 30 insertions(+), 2 deletions(-)
-
-diff --git a/man2/mmap.2 b/man2/mmap.2
-index 02d391697ce6..cb8789daec2d 100644
---- a/man2/mmap.2
-+++ b/man2/mmap.2
-@@ -212,8 +212,9 @@ Don't interpret
- .I addr
- as a hint: place the mapping at exactly that address.
- .I addr
--must be a multiple of the page size.
--If the memory region specified by
-+must be suitably aligned: for most architectures a multiple of page
-+size is sufficient; however, some architectures may impose additional
-+restrictions. If the memory region specified by
- .I addr
- and
- .I len
-@@ -226,6 +227,33 @@ Software that aspires to be portable should use this option with care, keeping
- in mind that the exact layout of a process' memory map is allowed to change
- significantly between kernel versions, C library versions, and operating system
- releases.
-+.IP
-+Furthermore, this option is extremely hazardous (when used on its own), because
-+it forcibly removes pre-existing mappings, making it easy for a multi-threaded
-+process to corrupt its own address space.
-+.IP
-+For example, thread A looks through
-+.I /proc/<pid>/maps
-+and locates an available
-+address range, while thread B simultaneously acquires part or all of that same
-+address range. Thread A then calls mmap(MAP_FIXED), effectively overwriting
-+the mapping that thread B created.
-+.IP
-+Thread B need not create a mapping directly; simply making a library call
-+that, internally, uses
-+.I dlopen(3)
-+to load some other shared library, will
-+suffice. The dlopen(3) call will map the library into the process's address
-+space. Furthermore, almost any library call may be implemented using this
-+technique.
-+Examples include brk(2), malloc(3), pthread_create(3), and the PAM libraries
-+(http://www.linux-pam.org).
-+.IP
-+Newer kernels
-+(Linux 4.16 and later) have a
-+.B MAP_FIXED_SAFE
-+option that avoids the corruption problem; if available, MAP_FIXED_SAFE
-+should be preferred over MAP_FIXED.
- .TP
- .BR MAP_FIXED_SAFE " (since Linux 4.16)"
- Similar to MAP_FIXED with respect to the
--- 
-2.15.0
+ Guo Ren
 
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
