@@ -1,44 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:65398 "EHLO mga01.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:37299 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752647AbdLMK7J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 13 Dec 2017 05:59:09 -0500
+        id S1752600AbdLMK7I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Dec 2017 05:59:08 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 03/12] arm/mm: Provide pmdp_establish() helper
-Date: Wed, 13 Dec 2017 13:57:47 +0300
-Message-ID: <20171213105756.69879-4-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 01/12] asm-generic: Provide generic_pmdp_establish()
+Date: Wed, 13 Dec 2017 13:57:45 +0300
+Message-ID: <20171213105756.69879-2-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20171213105756.69879-1-kirill.shutemov@linux.intel.com>
 References: <20171213105756.69879-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Vlastimil Babka <vbabka@suse.cz>, Andrea Arcangeli <aarcange@redhat.com>, Michal Hocko <mhocko@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Catalin Marinas <catalin.marinas@arm.com>
-Message-ID: <20171213105747.IqLEvYg_33YXt5MzqpXPikeSWAL_4DMDI08FpHEV2ps@z>
+Cc: Vlastimil Babka <vbabka@suse.cz>, Andrea Arcangeli <aarcange@redhat.com>, Michal Hocko <mhocko@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20171213105745.wLw5-Gy2jEpQ0nMiCRq2uU3GcpmK3_43zhFmUV4h9ws@z>
 
-ARM LPAE doesn't have hardware dirty/accessed bits.
-
-generic_pmdp_establish() is the right implementation of pmdp_establish
-for this case.
+This is an implementation of pmdp_establish() that is only suitable for
+an architecture that doesn't have hardware dirty/accessed bits. In this
+case we can't race with CPU which sets these bits and non-atomic
+approach is fine.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm/include/asm/pgtable-3level.h | 3 +++
- 1 file changed, 3 insertions(+)
+ include/asm-generic/pgtable.h | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
 
-diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/pgtable-3level.h
-index 1a7a17b2a1ba..2a4836087358 100644
---- a/arch/arm/include/asm/pgtable-3level.h
-+++ b/arch/arm/include/asm/pgtable-3level.h
-@@ -249,6 +249,9 @@ PMD_BIT_FUNC(mkyoung,   |= PMD_SECT_AF);
- #define pfn_pmd(pfn,prot)	(__pmd(((phys_addr_t)(pfn) << PAGE_SHIFT) | pgprot_val(prot)))
- #define mk_pmd(page,prot)	pfn_pmd(page_to_pfn(page),prot)
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index b234d54f2cb6..ae83b14200b8 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -309,6 +309,21 @@ extern void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
+ extern pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp);
+ #endif
  
-+/* No hardware dirty/accessed bits -- generic_pmdp_establish() fits */
-+#define pmdp_establish generic_pmdp_establish
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++/*
++ * This is an implementation of pmdp_establish() that is only suitable for an
++ * architecture that doesn't have hardware dirty/accessed bits. In this case we
++ * can't race with CPU which sets these bits and non-atomic aproach is fine.
++ */
++static inline pmd_t generic_pmdp_establish(struct vm_area_struct *vma,
++		unsigned long address, pmd_t *pmdp, pmd_t pmd)
++{
++	pmd_t old_pmd = *pmdp;
++	set_pmd_at(vma->vm_mm, address, pmdp, pmd);
++	return old_pmd;
++}
++#endif
 +
- /* represent a notpresent pmd by faulting entry, this is used by pmdp_invalidate */
- static inline pmd_t pmd_mknotpresent(pmd_t pmd)
- {
+ #ifndef __HAVE_ARCH_PMDP_INVALIDATE
+ extern void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
+ 			    pmd_t *pmdp);
 -- 
 2.15.0
