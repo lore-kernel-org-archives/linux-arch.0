@@ -1,67 +1,133 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH v3 09/33] nds32: Cache and TLB routines
-Date: Wed, 13 Dec 2017 13:45:02 +0800
-Message-ID: <CAEbi=3dtcnUNbd4SoueUnoYvRWot9fA1n62t0b4PWx1UYs2jZA@mail.gmail.com>
-References: <cover.1512723245.git.green.hu@gmail.com> <9d0e976c3e60bf6834dffb6ef798ad2a03e1c9ac.1512723245.git.green.hu@gmail.com>
- <20171213021619.GA6254@gary-OptiPlex-3050>
+Subject: Re: [PATCH v5 1/3] clocksource/drivers/atcpit100: Add andestech
+ atcpit100 timer
+Date: Wed, 13 Dec 2017 14:06:07 +0800
+Message-ID: <CAEbi=3cEEtLQRiv-cyUwEmcBNOC2Sz7AhzZkpznQWYb9VUojug@mail.gmail.com>
+References: <1513057621-19084-1-git-send-email-rickchen36@gmail.com>
+ <1513057621-19084-2-git-send-email-rickchen36@gmail.com> <bb7383ba-bb8e-3cbd-4ce0-faaefa8ed114@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f49.google.com ([209.85.213.49]:39771 "EHLO
-        mail-vk0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750880AbdLMFpo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Dec 2017 00:45:44 -0500
-In-Reply-To: <20171213021619.GA6254@gary-OptiPlex-3050>
+Received: from mail-vk0-f67.google.com ([209.85.213.67]:45367 "EHLO
+        mail-vk0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750751AbdLMGGt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Dec 2017 01:06:49 -0500
+In-Reply-To: <bb7383ba-bb8e-3cbd-4ce0-faaefa8ed114@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>
+To: Daniel Lezcano <daniel.lezcano@linaro.org>, Greentime <greentime@andestech.com>
+Cc: Rick Chen <rickchen36@gmail.com>, Rick Chen <rick@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linus Walleij <linus.walleij@linaro.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-serial@vger.kernel.org
 
-2017-12-13 10:16 GMT+08:00 Guo Ren <ren_guo@c-sky.com>:
-> On Fri, Dec 08, 2017 at 05:11:52PM +0800, Greentime Hu wrote:
->> From: Greentime Hu <greentime@andestech.com>
->  [...]
->> diff --git a/arch/nds32/mm/cacheflush.c b/arch/nds32/mm/cacheflush.c
->  [...]
->> +#ifndef CONFIG_CPU_CACHE_ALIASING
->> +void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
->> +                   pte_t * pte)
->  [...]
->> +     if (vma->vm_mm == current->active_mm) {
+Hi, Daniel:
+
+2017-12-12 18:05 GMT+08:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
+> On 12/12/2017 06:46, Rick Chen wrote:
+>> ATCPIT100 is often used on the Andes architecture,
+>> This timer provide 4 PIT channels. Each PIT channel is a
+>> multi-function timer, can be configured as 32,16,8 bit timers
+>> or PWM as well.
+>>
+>> For system timer it will set channel 1 32-bit timer0 as clock
+>> source and count downwards until underflow and restart again.
+>
+> [ ... ]
+>
+>> +config CLKSRC_ATCPIT100
+>> +     bool "Clocksource for AE3XX platform"
+>> +     depends on NDS32 || COMPILE_TEST
+>> +     depends on HAS_IOMEM
+>> +     help
+>> +       This option enables support for the Andestech AE3XX platform timers.
+>
+> Hi Rick,
+>
+> the general rule for the Kconfig is:
+>
+> bool "Clocksource for AE3XX platform" if COMPILE_TEST
+>
+> and no deps on the platform.
+>
+> It is up to the platform Kconfig to select the option.
+>
+> We want here a silent option but make it selectable in case of
+> compilation test coverage.
+
+
+The way we like to use it is because
+1. This timer is a basic component to boot an nds32 CPU and it should
+be able to select without COMPILE_TEST for nds32 architecture.
+2. It seems conflict with debug info. I am not sure if there is
+another way to debug kernel(with debug info) with COMPILE_TEST and
+DEBUG_INFO because we need this driver for nds32 architecture.
+
+Symbol: DEBUG_INFO [=n]
+Type  : boolean
+Prompt: Compile the kernel with debug info
+  Location:
+    -> Kernel hacking
+      -> Compile-time checks and compiler options
+  Defined at lib/Kconfig.debug:140
+  Depends on: DEBUG_KERNEL [=y] && !COMPILE_TEST [=n]
+
+
+> Also, this driver is not a CLKSRC but a TIMER. Rename CLKSRC_ATCPIT100
+> to TIMER_ATCPIT100.
+
+Thanks. We will rename it in the next version patch.
+
 >> +
->> +             __nds32__mtsr_dsb(addr, NDS32_SR_TLB_VPN);
->> +             __nds32__tlbop_rwr(*pte);
->> +             __nds32__isb();
-> If there is an interruption between "mtsr_dsb" and "tlbop_rwr" and a
-> update_mmu_cache() is invoked again, then an error page mapping is
-> set up in your tlb-buffer when tlbop_rwr is excuted from interrupt.
-> Because it's another addr in NDS32_SR_TLB_VPN.
+>>  endmenu
+>> diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+>> index 72711f1..7d072f5 100644
+>> --- a/drivers/clocksource/Makefile
+>> +++ b/drivers/clocksource/Makefile
+>> @@ -75,3 +75,4 @@ obj-$(CONFIG_H8300_TMR16)           += h8300_timer16.o
+>>  obj-$(CONFIG_H8300_TPU)                      += h8300_tpu.o
+>>  obj-$(CONFIG_CLKSRC_ST_LPC)          += clksrc_st_lpc.o
+>>  obj-$(CONFIG_X86_NUMACHIP)           += numachip.o
+>> +obj-$(CONFIG_CLKSRC_ATCPIT100)               += timer-atcpit100.o
 >
-> It seems that tlb-hardrefill can help build tlb-buffer mapping, why you
-> update it in this software way?
+> [ ... ]
 >
+>> +static struct timer_of to = {
+>> +     .flags = TIMER_OF_IRQ | TIMER_OF_CLOCK | TIMER_OF_BASE,
+>> +
+>> +     .clkevt = {
+>> +             .name = "atcpit100_tick",
+>> +             .rating = 300,
+>> +             .features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
+>> +             .set_state_shutdown = atcpit100_clkevt_shutdown,
+>> +             .set_state_periodic = atcpit100_clkevt_set_periodic,
+>> +             .set_state_oneshot = atcpit100_clkevt_set_oneshot,
+>> +             .tick_resume = atcpit100_clkevt_shutdown,
+>> +             .set_next_event = atcpit100_clkevt_next_event,
+>> +             .cpumask = cpu_all_mask,
+>
+> You may consider CLOCK_EVT_DYN_IRQ
+> https://lwn.net/Articles/540160/
 
-Hi, Guo Ren:
+Thanks.
+We will consider to implement this feature once we support SMP or our
+CPU has local timer.
 
-I think it should be fine if an interruption between mtsr_dsb and
-tlbop_rwr because this is a optimization by sw.
-The page mapping has been created and it is just not in TLB yet.
-What we did is to insert this mapping to TLB by SW thus it can prevent
-TLB miss one time.
-It will be fine even if TLB miss. HW will walk through page table and
-insert this mapping to TLB anyway.
+>> +     },
+>> +
+>> +     .of_irq = {
+>> +             .handler = atcpit100_timer_interrupt,
+>> +             .flags = IRQF_TIMER | IRQF_IRQPOLL,
+>> +     },
+>> +
+>> +     /*
+>> +      * FIXME: we currently only support clocking using PCLK
+>> +      * and using EXTCLK is not supported in the driver.
+>> +      */
+>> +     .of_clk = {
+>> +             .name = "PCLK",
+>> +     }
+>
+> What do you mean ? We can't specify several clock names with timer-of?
 
-Based on Documentation/cachetlb.txt
-5) ``void update_mmu_cache(struct vm_area_struct *vma,
-   unsigned long address, pte_t *ptep)``
+It means we currently support PCLK only.
+https://lkml.org/lkml/2017/12/1/316
 
-        At the end of every page fault, this routine is invoked to
-        tell the architecture specific code that a translation
-        now exists at virtual address "address" for address space
-        "vma->vm_mm", in the software page tables.
-
-        A port may use this information in any way it so chooses.
-        For example, it could use this event to pre-load TLB
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        translations for software managed TLB configurations.
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Thanks.
