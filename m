@@ -1,81 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.samsung.com ([203.254.224.34]:31679 "EHLO
-        mailout4.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753272AbdLNWAl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Dec 2017 17:00:41 -0500
+Received: from mailout3.samsung.com ([203.254.224.33]:19252 "EHLO
+        mailout3.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753277AbdLNWAt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Dec 2017 17:00:49 -0500
 From: Krzysztof Opasiak <k.opasiak@samsung.com>
-Subject: [RFC PATCH v2 1/4] sched: Allow to get() and put() signal struct
-Date: Thu, 14 Dec 2017 23:00:09 +0100
-Message-ID: <20171214220012.10103-2-k.opasiak@samsung.com>
+Subject: [RFC PATCH v2 3/4] Connect rlimit-events with process life cycle
+Date: Thu, 14 Dec 2017 23:00:11 +0100
+Message-ID: <20171214220012.10103-4-k.opasiak@samsung.com>
 In-reply-to: <20171214220012.10103-1-k.opasiak@samsung.com>
 References: <20171214220012.10103-1-k.opasiak@samsung.com>
-        <CGME20171214220038epcas2p1542bea506839523d0c657907665c6036@epcas2p1.samsung.com>
+        <CGME20171214220046epcas2p476226b86cbf0f6dc94666912bfd1cfbb@epcas2p4.samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: gregkh@linuxfoundation.org, viro@zeniv.linux.org.uk, arnd@arndb.de
 Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, k.lewandowsk@samsung.com, l.stelmach@samsung.com, p.szewczyk@samsung.com, Krzysztof Opasiak <k.opasiak@samsung.com>
-Message-ID: <20171214220009.P3f_zBQRYDp8tSb9c7_lyk9ELwev-L637tjdkFAy0cE@z>
+Message-ID: <20171214220011.NZLHhBfjmq2SGQhGG8GbSirogz9hkM58pu3Zsgpitto@z>
 
-Allow to get() and put() signal struct from different
-parts of kernel core, not only from signal.c.
-
-This is useful when you place inside signal struct additional
-resources that has to be accessed after process dies.
+Add rlimit-events call to process lifecycle to ensure that
+we get notified whenever process dies (to cleanup our watch
+levels) or forks (to implement watch levels inheritance).
 
 Signed-off-by: Krzysztof Opasiak <k.opasiak@samsung.com>
 ---
- include/linux/sched/signal.h | 13 +++++++++++++
- kernel/fork.c                |  9 ++-------
- 2 files changed, 15 insertions(+), 7 deletions(-)
+ kernel/exit.c |  3 +++
+ kernel/fork.c | 11 ++++++++++-
+ 2 files changed, 13 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
-index 0aa4548fb492..78c0c337c130 100644
---- a/include/linux/sched/signal.h
-+++ b/include/linux/sched/signal.h
-@@ -610,4 +610,17 @@ static inline unsigned long rlimit_max(unsigned int limit)
- 	return task_rlimit_max(current, limit);
- }
+diff --git a/kernel/exit.c b/kernel/exit.c
+index f6cad39f35df..d3b9e1b854a3 100644
+--- a/kernel/exit.c
++++ b/kernel/exit.c
+@@ -62,6 +62,7 @@
+ #include <linux/random.h>
+ #include <linux/rcuwait.h>
+ #include <linux/compat.h>
++#include <linux/rlimit_noti.h>
  
-+void free_signal_struct(struct signal_struct *sig);
+ #include <linux/uaccess.h>
+ #include <asm/unistd.h>
+@@ -846,6 +847,8 @@ void __noreturn do_exit(long code)
+ 		tty_audit_exit();
+ 	audit_free(tsk);
+ 
++	rlimit_noti_task_exit(tsk);
 +
-+static inline void put_signal_struct(struct signal_struct *sig)
-+{
-+	if (atomic_dec_and_test(&sig->sigcnt))
-+		free_signal_struct(sig);
-+}
-+
-+static inline void get_signal_struct(struct signal_struct *sig)
-+{
-+	atomic_inc(&sig->sigcnt);
-+}
-+
- #endif /* _LINUX_SCHED_SIGNAL_H */
+ 	tsk->exit_code = code;
+ 	taskstats_exit(tsk, group_dead);
+ 
 diff --git a/kernel/fork.c b/kernel/fork.c
-index 07cc743698d3..e54684b63c08 100644
+index e54684b63c08..77bbac0bdfe9 100644
 --- a/kernel/fork.c
 +++ b/kernel/fork.c
-@@ -390,7 +390,7 @@ void free_task(struct task_struct *tsk)
- }
- EXPORT_SYMBOL(free_task);
+@@ -100,6 +100,8 @@
  
--static inline void free_signal_struct(struct signal_struct *sig)
-+void free_signal_struct(struct signal_struct *sig)
- {
- 	taskstats_tgid_free(sig);
- 	sched_autogroup_exit(sig);
-@@ -402,12 +402,7 @@ static inline void free_signal_struct(struct signal_struct *sig)
- 		mmdrop_async(sig->oom_mm);
- 	kmem_cache_free(signal_cachep, sig);
- }
--
--static inline void put_signal_struct(struct signal_struct *sig)
--{
--	if (atomic_dec_and_test(&sig->sigcnt))
--		free_signal_struct(sig);
--}
-+EXPORT_SYMBOL_GPL(free_signal_struct);
+ #include <trace/events/sched.h>
  
- void __put_task_struct(struct task_struct *tsk)
++#include <linux/rlimit_noti.h>
++
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/task.h>
+ 
+@@ -1389,6 +1391,7 @@ static inline void posix_cpu_timers_init_group(struct signal_struct *sig) { }
+ static int copy_signal(unsigned long clone_flags, struct task_struct *tsk)
  {
+ 	struct signal_struct *sig;
++	int ret;
+ 
+ 	if (clone_flags & CLONE_THREAD)
+ 		return 0;
+@@ -1419,9 +1422,15 @@ static int copy_signal(unsigned long clone_flags, struct task_struct *tsk)
+ #endif
+ 
+ 	task_lock(current->group_leader);
+-	memcpy(sig->rlim, current->signal->rlim, sizeof sig->rlim);
++	memcpy(sig->rlim, current->signal->rlim, sizeof(sig->rlim));
+ 	task_unlock(current->group_leader);
+ 
++	ret = rlimit_noti_task_fork(current->group_leader, tsk);
++	if (ret) {
++		kmem_cache_free(signal_cachep, sig);
++		return ret;
++	}
++
+ 	posix_cpu_timers_init_group(sig);
+ 
+ 	tty_audit_fork(sig);
 -- 
 2.9.3
