@@ -1,49 +1,28 @@
-From: Edward Napierala <trasz@freebsd.org>
-Subject: Re: [PATCH v2 0/2] mm: introduce MAP_FIXED_SAFE
-Date: Thu, 14 Dec 2017 14:54:43 +0000
-Message-ID: <20171214145443.GA2202@brick>
-References: <20171213092550.2774-1-mhocko@kernel.org>
- <20171213163210.6a16ccf8753b74a6982ef5b6@linux-foundation.org>
- <CAFLM3-oANXKEU=tuurSJx9rdzfWGfym-0FUEWnfBq8mOaVMzOA@mail.gmail.com>
- <20171214131526.GM16951@dhcp22.suse.cz>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: Adding init_task consolidation patches to linux-next
+Date: Thu, 14 Dec 2017 18:21:16 +0000
+Message-ID: <18931.1513275676@warthog.procyon.org.uk>
+References: <20171211070805.07adcb43@canb.auug.org.au> <151274828194.9961.4230316917108602662.stgit@warthog.procyon.org.uk> <10228.1512748600@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20171214131526.GM16951@dhcp22.suse.cz>
-Sender: owner-linux-mm@kvack.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-api@vger.kernel.org, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>, jasone@google.com, davidtgoldblatt@gmail.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20171211070805.07adcb43@canb.auug.org.au>
+Content-ID: <18930.1513275676.1@warthog.procyon.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, x86@kernel.org, linux-ia64@vger.kernel.org, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 1214T1415, Michal Hocko wrote:
-> On Thu 14-12-17 12:44:17, Edward Napierala wrote:
-> > Regarding the name - how about adopting MAP_EXCL?  It was introduced in
-> > FreeBSD,
-> > and seems to do exactly this; quoting mmap(2):
-> > 
-> > MAP_FIXED    Do not permit the system to select a different address
-> >                         than the one specified.  If the specified address
-> >                         cannot be used, mmap() will fail.  If MAP_FIXED is
-> >                         specified, addr must be a multiple of the page size.
-> >                         If MAP_EXCL is not specified, a successful MAP_FIXED
-> >                         request replaces any previous mappings for the
-> >                         process' pages in the range from addr to addr + len.
-> >                         In contrast, if MAP_EXCL is specified, the request
-> >                         will fail if a mapping already exists within the
-> >                         range.
-> 
-> I am not familiar with the FreeBSD implementation but from the above it
-> looks like MAP_EXCL is a MAP_FIXED mofifier which is not how we are
-> going to implement it in linux due to reasons mentioned in this cover
-> letter. Using the same name would be more confusing than helpful I am
-> afraid.
+Stephen Rothwell <sfr@canb.auug.org.au> wrote:
 
-Sorry, missed that.  Indeed, reusing a name with a different semantics
-would be a bad idea.
+> I'd be much happier if these patches had any Reviewd-by or Tested-by tags ...
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+They've now got:
+
+	Tested-by: Tony Luck <tony.luck@intel.com>
+	Tested-by: Will Deacon <will.deacon@arm.com> (arm64)
+
+attached.  I've also added riscv support.
+
+David
