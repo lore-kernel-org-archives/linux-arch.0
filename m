@@ -1,89 +1,72 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCHv4 09/12] x86/mm: Provide pmdp_establish() helper
-Date: Wed, 13 Dec 2017 16:09:51 -0800
-Message-ID: <20171213160951.249071f2aecdccb38b6bb646@linux-foundation.org>
-References: <20171213105756.69879-1-kirill.shutemov@linux.intel.com>
-        <20171213105756.69879-10-kirill.shutemov@linux.intel.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: pkeys: Support setting access rights for signal handlers
+Date: Wed, 13 Dec 2017 16:17:56 -0800
+Message-ID: <20171214001756.GA5471@ram.oc3035372033.ibm.com>
+References: <5fee976a-42d4-d469-7058-b78ad8897219@redhat.com>
+ <c034f693-95d1-65b8-2031-b969c2771fed@intel.com>
+ <5965d682-61b2-d7da-c4d7-c223aa396fab@redhat.com>
+ <aa4d127f-0315-3ac9-3fdf-1f0a89cf60b8@intel.com>
+ <20171212231324.GE5460@ram.oc3035372033.ibm.com>
+ <9dc13a32-b1a6-8462-7e19-cfcf9e2c151e@redhat.com>
+ <20171213113544.GG5460@ram.oc3035372033.ibm.com>
+ <9f86d79e-165a-1b8e-32dd-7e4e8579da59@redhat.com>
+ <c220f36f-c04a-50ae-3fd7-2c6245e27057@intel.com>
+ <93153ac4-70f0-9d17-37f1-97b80e468922@redhat.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:56774 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750795AbdLNAJx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 13 Dec 2017 19:09:53 -0500
-In-Reply-To: <20171213105756.69879-10-kirill.shutemov@linux.intel.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:53372 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751588AbdLNASE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 13 Dec 2017 19:18:04 -0500
+Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vBE0GHdD096006
+        for <linux-arch@vger.kernel.org>; Wed, 13 Dec 2017 19:18:04 -0500
+Received: from e18.ny.us.ibm.com (e18.ny.us.ibm.com [129.33.205.208])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2eub3tymqx-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 13 Dec 2017 19:18:03 -0500
+Received: from localhost
+        by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Wed, 13 Dec 2017 19:18:02 -0500
+Content-Disposition: inline
+In-Reply-To: <93153ac4-70f0-9d17-37f1-97b80e468922@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Vlastimil Babka <vbabka@suse.cz>, Andrea Arcangeli <aarcange@redhat.com>, Michal Hocko <mhocko@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+To: Florian Weimer <fweimer@redhat.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, linux-mm <linux-mm@kvack.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-x86_64@vger.kernel.org, Linux API <linux-api@vger.kernel.org>
 
-On Wed, 13 Dec 2017 13:57:53 +0300 "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
-
-> We need an atomic way to setup pmd page table entry, avoiding races with
-> CPU setting dirty/accessed bits. This is required to implement
-> pmdp_invalidate() that doesn't lose these bits.
+On Wed, Dec 13, 2017 at 04:40:11PM +0100, Florian Weimer wrote:
+> On 12/13/2017 04:22 PM, Dave Hansen wrote:
+> >On 12/13/2017 07:08 AM, Florian Weimer wrote:
+> >>Okay, this model is really quite different from x86.  Is there a
+> >>good reason for the difference?
+> >
+> >Yes, both implementations are simple and take the "natural" behavior.
+> >x86 changes XSAVE-controlled register values on entering a signal, so we
+> >let them be changed (including PKRU).  POWER hardware does not do this
+> >to its PKRU-equivalent, so we do not force it to.
 > 
-> On PAE we can avoid expensive cmpxchg8b for cases when new page table
-> entry is not present. If it's present, fallback to cpmxchg loop.
-> 
-> ...
->
-> --- a/arch/x86/include/asm/pgtable-3level.h
-> +++ b/arch/x86/include/asm/pgtable-3level.h
-> @@ -158,7 +158,6 @@ static inline pte_t native_ptep_get_and_clear(pte_t *ptep)
->  #define native_ptep_get_and_clear(xp) native_local_ptep_get_and_clear(xp)
->  #endif
->  
-> -#ifdef CONFIG_SMP
->  union split_pmd {
->  	struct {
->  		u32 pmd_low;
-> @@ -166,6 +165,8 @@ union split_pmd {
->  	};
->  	pmd_t pmd;
->  };
-> +
-> +#ifdef CONFIG_SMP
->  static inline pmd_t native_pmdp_get_and_clear(pmd_t *pmdp)
->  {
->  	union split_pmd res, *orig = (union split_pmd *)pmdp;
-> @@ -181,6 +182,40 @@ static inline pmd_t native_pmdp_get_and_clear(pmd_t *pmdp)
->  #define native_pmdp_get_and_clear(xp) native_local_pmdp_get_and_clear(xp)
->  #endif
->  
-> +#ifndef pmdp_establish
-> +#define pmdp_establish pmdp_establish
-> +static inline pmd_t pmdp_establish(struct vm_area_struct *vma,
-> +		unsigned long address, pmd_t *pmdp, pmd_t pmd)
-> +{
-> +	pmd_t old;
-> +
-> +	/*
-> +	 * If pmd has present bit cleared we can get away without expensive
-> +	 * cmpxchg64: we can update pmdp half-by-half without racing with
-> +	 * anybody.
-> +	 */
-> +	if (!(pmd_val(pmd) & _PAGE_PRESENT)) {
-> +		union split_pmd old, new, *ptr;
-> +
-> +		ptr = (union split_pmd *)pmdp;
-> +
-> +		new.pmd = pmd;
-> +
-> +		/* xchg acts as a barrier before setting of the high bits */
-> +		old.pmd_low = xchg(&ptr->pmd_low, new.pmd_low);
-> +		old.pmd_high = ptr->pmd_high;
-> +		ptr->pmd_high = new.pmd_high;
-> +		return old.pmd;
-> +	}
-> +
-> +	{
-> +		old = *pmdp;
-> +	} while (cmpxchg64(&pmdp->pmd, old.pmd, pmd.pmd) != old.pmd);
+> Whuy?  Is there a technical reason not have fully-aligned behavior?
+> Can POWER at least implement the original PKEY_ALLOC_SETSIGNAL
+> semantics (reset the access rights for certain keys before switching
+> to the signal handler) in a reasonably efficient manner?
 
-um, what happened here?
+This can be done on POWER. I can also change the behavior on POWER
+to exactly match x86; i.e reset the value to init value before
+calling the signal handler.
 
-> +	return old;
-> +}
-> +#endif
+But I think, we should clearly define the default behavior, the behavior
+when no flag is specified. Applications tend to rely on default behavior
+and expect the most intuitive behavior to be the default behavior.
+
+I tend to think; keeping my biases aside, that the most intuitive
+behavior is to preserve access/write permissions of any key, i.e not
+reset to the init value.  If the application has set the permissions of
+a key to some value, it would'nt expect anyone to change them,
+irrespective of which context it is in.
+
+RP
