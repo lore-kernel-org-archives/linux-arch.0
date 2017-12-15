@@ -1,22 +1,48 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: Adding init_task consolidation patches to linux-next
-Date: Fri, 15 Dec 2017 08:36:37 +0000
-Message-ID: <27011.1513326997@warthog.procyon.org.uk>
-References: <mhng-2979f9fd-a2ce-4e9c-902c-5f4afb2fb8bb@palmer-si-x1c4>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v2 0/2] mm: introduce MAP_FIXED_SAFE
+Date: Fri, 15 Dec 2017 20:02:04 +1100
+Message-ID: <876098ictv.fsf@concordia.ellerman.id.au>
+References: <20171213092550.2774-1-mhocko@kernel.org> <CAGXu5jKjjsyYJTWTqzO0mQKM+9mCH=jY_x90wJpoXbsDcLSv+Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <mhng-2979f9fd-a2ce-4e9c-902c-5f4afb2fb8bb@palmer-si-x1c4>
-Content-ID: <27010.1513326997.1@warthog.procyon.org.uk>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Palmer Dabbelt <palmer@sifive.com>
-Cc: dhowells@redhat.com, Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, x86@kernel.org, linux-ia64@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CAGXu5jKjjsyYJTWTqzO0mQKM+9mCH=jY_x90wJpoXbsDcLSv+Q@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Kees Cook <keescook@chromium.org>, Michal Hocko <mhocko@kernel.org>
+Cc: Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Michal Hocko <mhocko@suse.com>
 List-Id: linux-arch.vger.kernel.org
 
-Palmer Dabbelt <palmer@sifive.com> wrote:
+Kees Cook <keescook@chromium.org> writes:
 
-> Thanks!  It works for me.
+> On Wed, Dec 13, 2017 at 1:25 AM, Michal Hocko <mhocko@kernel.org> wrote:
+>>
+>> Hi,
+>> I am resending with some minor updates based on Michael's review and
+>> ask for inclusion. There haven't been any fundamental objections for
+>> the RFC [1] nor the previous version [2].  The biggest discussion
+>> revolved around the naming. There were many suggestions flowing
+>> around MAP_REQUIRED, MAP_EXACT, MAP_FIXED_NOCLOBBER, MAP_AT_ADDR,
+>> MAP_FIXED_NOREPLACE etc...
+>
+> With this named MAP_FIXED_NOREPLACE (the best consensus we've got on a
+> name), please consider this series:
+>
+> Acked-by: Kees Cook <keescook@chromium.org>
 
-Excellent, thanks!  Can I put you down as a Tested-by for riscv?
+I don't feel like I'm actually qualified to ack the mm and binfmt
+changes, but everything *looks* correct to me, and you've fixed the flag
+numbering such that it can go in mman-common.h as I suggested.
 
-David
+So if the name was MAP_FIXED_NOREPLACE I would also be happy with it.
+
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
+
+I can resubmit with the name changed if that's what it takes.
+
+cheers
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
