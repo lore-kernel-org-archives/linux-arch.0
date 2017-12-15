@@ -1,54 +1,165 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 07/10] include: Add new y2038 safe
-	__kernel_timespec
-Date: Fri, 15 Dec 2017 11:36:01 +0100
-Message-ID: <CAK8P3a29Nh6bK4tgNM8PxUCj_XnzU71vZR992=E5MUUFkSjPNg@mail.gmail.com>
-References: <20171127193037.8711-1-deepa.kernel@gmail.com>
- <20171127193037.8711-8-deepa.kernel@gmail.com>
- <1513296698.18523.291.camel@codethink.co.uk>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCHv4 09/12] x86/mm: Provide pmdp_establish() helper
+Date: Fri, 15 Dec 2017 16:49:38 +0300
+Message-ID: <20171215134938.q7cvpy2a2tkgka7n@node.shutemov.name>
+References: <20171213105756.69879-1-kirill.shutemov@linux.intel.com>
+ <20171213105756.69879-10-kirill.shutemov@linux.intel.com>
+ <20171213160951.249071f2aecdccb38b6bb646@linux-foundation.org>
+ <20171214003318.xli42qgybplln754@node.shutemov.name>
+ <20171213163639.7e1fb5c4082888d2e399b310@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <1513296698.18523.291.camel@codethink.co.uk>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: Ben Hutchings <ben.hutchings@codethink.co.uk>
-Cc: linux-arch <linux-arch@vger.kernel.org>, GNU C Library <libc-alpha@sourceware.org>, y2038 Mailman List <y2038@lists.linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Albert ARIBAUD <albert.aribaud@3adev.fr>, John Stultz <john.stultz@linaro.org>, Deepa Dinamani <deepa.kernel@gmail.com>, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:33963 "EHLO
+        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755957AbdLONtm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Dec 2017 08:49:42 -0500
+Received: by mail-wm0-f65.google.com with SMTP id y82so30696841wmg.1
+        for <linux-arch@vger.kernel.org>; Fri, 15 Dec 2017 05:49:41 -0800 (PST)
+Content-Disposition: inline
+In-Reply-To: <20171213163639.7e1fb5c4082888d2e399b310@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Vlastimil Babka <vbabka@suse.cz>, Andrea Arcangeli <aarcange@redhat.com>, Michal Hocko <mhocko@kernel.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
 
-T24gRnJpLCBEZWMgMTUsIDIwMTcgYXQgMToxMSBBTSwgQmVuIEh1dGNoaW5ncwo8YmVuLmh1dGNo
-aW5nc0Bjb2RldGhpbmsuY28udWs+IHdyb3RlOgo+IE9uIE1vbiwgMjAxNy0xMS0yNyBhdCAxMToz
-MCAtMDgwMCwgRGVlcGEgRGluYW1hbmkgd3JvdGU6Cj4+IC0tLSBhL2luY2x1ZGUvdWFwaS9saW51
-eC90aW1lLmgKPj4gKysrIGIvaW5jbHVkZS91YXBpL2xpbnV4L3RpbWUuaAo+PiBAQCAtNDIsNiAr
-NDIsMTMgQEAgc3RydWN0IGl0aW1lcnZhbCB7Cj4+ID4gPiAgIHN0cnVjdCB0aW1ldmFsIGl0X3Zh
-bHVlOyAgICAgICAgLyogY3VycmVudCB2YWx1ZSAqLwo+PiAgfTsKPj4KPj4gKyNpZm5kZWYgX19r
-ZXJuZWxfdGltZXNwZWMKPj4gK3N0cnVjdCBfX2tlcm5lbF90aW1lc3BlYyB7Cj4+ICsgICAgIF9f
-a2VybmVsX3RpbWU2NF90ICAgICAgIHR2X3NlYzsgICAgICAgICAgICAgICAgIC8qIHNlY29uZHMg
-Ki8KPj4gKyAgICAgbG9uZyBsb25nICAgICAgICAgICAgICAgdHZfbnNlYzsgICAgICAgICAgICAg
-ICAgLyogbmFub3NlY29uZHMgKi8KPj4gK307Cj4+ICsjZW5kaWYKPgo+IEkgd29uZGVyIGlmIGl0
-IG1ha2VzIHNlbnNlIHRvIG92ZXJyaWRlIHRoZSBhbGlnbm1lbnQgb2YgdGhpcyBzdHJ1Y3R1cmU/
-Cj4gICg2NC1iaXQgdHlwZXMgYXJlIGFsaWduZWQgZGlmZmVyZW50bHkgb24gMzItYml0IHZzIDY0
-LWJpdCB4ODYsIGJ1dCBub3QKPiBvdGhlciBjb21wYXQgY2FzZXMuKSAgSXQgbWlnaHQgcmVkdWNl
-IHRoZSBuZWVkIGZvciBjb252ZXJzaW9ucyBpbgo+IGNvbXBhdCBjb2RlIGVsc2V3aGVyZSBsYXRl
-ci4KCkkgdGhpbmsgdGhlIGFsaWdubWVudCBoZXJlIHNob3VsZCBiZSBhZ3JlZWQgd2l0aCBnbGli
-YyBzbyB0aGV5IHVzZSB0aGUKc2FtZSBhbGlnbm1lbnQgZm9yIHRoZWlyIG5ldyB0aW1lc3BlYy4g
-SSBkb24ndCBzZWUgYSBzcGVjaWZpYyBtZW50aW9uCm9mIHRoaXMgYXQKaHR0cHM6Ly9zb3VyY2V3
-YXJlLm9yZy9nbGliYy93aWtpL1kyMDM4UHJvb2ZuZXNzRGVzaWduI3N0cnVjdF9fX3RpbWVzcGVj
-NjQKc28gSSdtIGFkZGluZyBBbGJlcnQgYW5kIGxpYmMtYWxwaGEgdG8gQ2MgZm9yIGNsYXJpZmlj
-YXRpb24uCgpJIGFncmVlIGl0IHdvdWxkIHNpbXBsaWZ5IHRoaW5ncyBhIGJpdCB0byBlbnN1cmUg
-dGhhdCB0aW1lNjRfdCBhbmQKX190aW1lc3BlYzY0L19fa2VybmVsX3RpbWVzcGVjIGhhdmUgYSA2
-NC1iaXQgYWxpZ25tZW50IGV2ZW4gb24KeDg2LTMyLCBidXQgSSBkb24ndCBrbm93IGlmIHRoZXJl
-IGlzIHByZWNlZGVudCBmb3IgdXNpbmcgZ2NjCl9fYXR0cmlidXRlX18oKGFsaWduZWQoOCkpIG9u
-IFBPU0lYIGRhdGEgdHlwZXMsIG9mIGlmIHRoYXQgbWlnaHQKY2F1c2UgcHJvYmxlbXMgZS5nLiBm
-b3Igbm9uLWdudSBjb21waWxlcnMuCgogICAgICAgQXJuZApfX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fXwpZMjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMu
-bGluYXJvLm9yZwpodHRwczovL2xpc3RzLmxpbmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAz
-OAo=
+On Wed, Dec 13, 2017 at 04:36:39PM -0800, Andrew Morton wrote:
+> On Thu, 14 Dec 2017 03:33:18 +0300 "Kirill A. Shutemov" <kirill@shutemov.name> wrote:
+> 
+> > On Wed, Dec 13, 2017 at 04:09:51PM -0800, Andrew Morton wrote:
+> > > > @@ -181,6 +182,40 @@ static inline pmd_t native_pmdp_get_and_clear(pmd_t *pmdp)
+> > > >  #define native_pmdp_get_and_clear(xp) native_local_pmdp_get_and_clear(xp)
+> > > >  #endif
+> > > >  
+> > > > +#ifndef pmdp_establish
+> > > > +#define pmdp_establish pmdp_establish
+> > > > +static inline pmd_t pmdp_establish(struct vm_area_struct *vma,
+> > > > +		unsigned long address, pmd_t *pmdp, pmd_t pmd)
+> > > > +{
+> > > > +	pmd_t old;
+> > > > +
+> > > > +	/*
+> > > > +	 * If pmd has present bit cleared we can get away without expensive
+> > > > +	 * cmpxchg64: we can update pmdp half-by-half without racing with
+> > > > +	 * anybody.
+> > > > +	 */
+> > > > +	if (!(pmd_val(pmd) & _PAGE_PRESENT)) {
+> > > > +		union split_pmd old, new, *ptr;
+> > > > +
+> > > > +		ptr = (union split_pmd *)pmdp;
+> > > > +
+> > > > +		new.pmd = pmd;
+> > > > +
+> > > > +		/* xchg acts as a barrier before setting of the high bits */
+> > > > +		old.pmd_low = xchg(&ptr->pmd_low, new.pmd_low);
+> > > > +		old.pmd_high = ptr->pmd_high;
+> > > > +		ptr->pmd_high = new.pmd_high;
+> > > > +		return old.pmd;
+> > > > +	}
+> > > > +
+> > > > +	{
+> > > > +		old = *pmdp;
+> > > > +	} while (cmpxchg64(&pmdp->pmd, old.pmd, pmd.pmd) != old.pmd);
+> > > 
+> > > um, what happened here?
+> > 
+> > Ouch.. Yeah, we need 'do' here. :-/
+> > 
+> > Apparently, it's a valid C code that would run the body once and it worked for
+> > me because I didn't hit the race condition.
+> 
+> So how the heck do we test this?  Add an artificial delay on the other
+> side to open the race window?
+
+Okay, here's a testcase I've come up with:
+
+	#include <pthread.h>
+	#include <sys/mman.h>
+
+	#define MAP_BASE        ((void *)0x200000)
+	#define MAP_SIZE        (0x200000)
+
+	void *thread(void *p)
+	{
+		*(char *)p = 1;
+		return NULL;
+	}
+
+	int main(void)
+	{
+		pthread_t t;
+		char *p;
+
+		p = mmap(MAP_BASE, MAP_SIZE, PROT_READ | PROT_WRITE,
+				MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+
+		/* Allocate THP */
+		*p = 1;
+
+		/* Make page and PMD clean  */
+		madvise(p, MAP_SIZE, MADV_FREE);
+
+		/* New thread would make the PMD dirty again */
+		pthread_create(&t, NULL, thread, p);
+
+		/* Trigger split_huge_pmd(). It may lose dirty bit. */
+		mprotect(p, 4096, PROT_READ | PROT_WRITE | PROT_EXEC);
+
+		/*
+		 * Wait thread to complete.
+		 *
+		 * Page or PTE by MAP_BASE address *must* be dirty here. If it's not we
+		 * can lose data if the page is reclaimed.
+		 */
+		pthread_join(t, NULL);
+
+		return 0;
+	}
+
+To make the bug triggered, I had to make race window larger.
+See patch below.
+
+I also check if the page is dirty on exit on kernel side. It's just easier
+than make the page reclaimed from userspace and check if data is still
+there.
+
+With this patch, the testcase can trigger the race condition within 10 or
+so runs in my KVM box.
+
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 2f2f5e774902..06f6a74ac36d 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -33,6 +33,7 @@
+ #include <linux/page_idle.h>
+ #include <linux/shmem_fs.h>
+ #include <linux/oom.h>
++#include <linux/delay.h>
+ 
+ #include <asm/tlb.h>
+ #include <asm/pgalloc.h>
+@@ -2131,6 +2132,7 @@ static void __split_huge_pmd_locked(struct vm_area_struct *vma, pmd_t *pmd,
+ 	write = pmd_write(*pmd);
+ 	young = pmd_young(*pmd);
+ 	dirty = pmd_dirty(*pmd);
++	mdelay(100);
+ 	soft_dirty = pmd_soft_dirty(*pmd);
+ 
+ 	pmdp_huge_split_prepare(vma, haddr, pmd);
+diff --git a/mm/memory.c b/mm/memory.c
+index 5eb3d2524bdc..69a207bea1da 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -1305,6 +1305,10 @@ static unsigned long zap_pte_range(struct mmu_gather *tlb,
+ 			struct page *page;
+ 
+ 			page = _vm_normal_page(vma, addr, ptent, true);
++
++			if (addr == 0x200000)
++				BUG_ON(!(PageDirty(page) || pte_dirty(*pte)));
++
+ 			if (unlikely(details) && page) {
+ 				/*
+ 				 * unmap_shared_mapping_pages() wants to
+-- 
+ Kirill A. Shutemov
