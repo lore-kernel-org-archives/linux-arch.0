@@ -1,91 +1,76 @@
-From: Andreas Dilger <adilger@dilger.ca>
-Subject: Re: [RFC PATCH v2 4/4] Allow to trace fd usage with rlimit-events
-Date: Thu, 14 Dec 2017 16:59:23 -0700
-Message-ID: <BD3E2B25-B09B-497B-A017-C95C59BDEB83@dilger.ca>
-References: <20171214220012.10103-1-k.opasiak@samsung.com>
- <CGME20171214220049epcas2p222a0a63c7aa70908ae316644e121100b@epcas2p2.samsung.com>
- <20171214220012.10103-5-k.opasiak@samsung.com>
-Mime-Version: 1.0 (Mac OS X Mail 10.3 \(3273\))
-Content-Type: multipart/signed;
- boundary="Apple-Mail=_D4D046B6-A0DF-45FA-8CB1-C07A3D813374";
- protocol="application/pgp-signature"; micalg=pgp-sha1
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-In-Reply-To: <20171214220012.10103-5-k.opasiak@samsung.com>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: Krzysztof Opasiak <k.opasiak@samsung.com>
-Cc: Greg KH <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, k.lewandowsk@samsung.com, l.stelmach@samsung.com, p.szewczyk@samsung.com
-List-Id: linux-arch.vger.kernel.org
+From: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Subject: Re: [Y2038] [PATCH v2 07/10] include: Add new y2038 safe
+ __kernel_timespec
+Date: Fri, 15 Dec 2017 00:11:38 +0000
+Message-ID: <1513296698.18523.291.camel@codethink.co.uk>
+References: <20171127193037.8711-1-deepa.kernel@gmail.com>
+         <20171127193037.8711-8-deepa.kernel@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from imap1.codethink.co.uk ([176.9.8.82]:35458 "EHLO
+        imap1.codethink.co.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754490AbdLOALo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Dec 2017 19:11:44 -0500
+In-Reply-To: <20171127193037.8711-8-deepa.kernel@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Deepa Dinamani <deepa.kernel@gmail.com>, tglx@linutronix.de, john.stultz@linaro.org
+Cc: y2038@lists.linaro.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
 
-
---Apple-Mail=_D4D046B6-A0DF-45FA-8CB1-C07A3D813374
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain;
-	charset=us-ascii
-
-On Dec 14, 2017, at 3:00 PM, Krzysztof Opasiak <k.opasiak@samsung.com> wrote:
+On Mon, 2017-11-27 at 11:30 -0800, Deepa Dinamani wrote:
+> The new struct __kernel_timespec is similar to current
+> internal kernel struct timespec64 on 64 bit architecture.
+> The compat structure however is similar to below on little
+> endian systems (padding and tv_nsec are switched for big
+> endian systems):
 > 
-> Add rlimit-events calls to file descriptors management
-> code to allow tracing of FD usage.
+> typedef s32            compat_long_t;
+> typedef s64            compat_kernel_time64_t;
 > 
-> This allows userspace process (monitor) to get notification when
-> other process (subject) uses given amount of file descriptors.
+> struct compat_kernel_timespec {
+>        compat_kernel_time64_t  tv_sec;
+>        compat_long_t           tv_nsec;
+>        compat_long_t           padding;
+> };
 > 
-> This can be used to for example asynchronously monitor number
-> of open FD's in system services instead of polling with
-> predefined interval.
+> This allows for both the native and compat representations to
+> be the same and syscalls using this type as part of their ABI
+> can have a single entry point to both.
+> 
+> Note that the compat define is not included anywhere in the
+> kernel explicitly to avoid confusion.
 
-I'm not involved in this area of code, but one optimization question:
+If I understand correctly, the intent here is that C libraries will be
+allowed to define struct timespec like that when appropriate feature
+macros are enabled.  Could you spell that out in the commit message,
+and also the need to clear padding on the kernel side?
 
-> +static unsigned int count_open_fds(struct fdtable *fdt)
-> +{
-> +	unsigned int maxfd = fdt->max_fds;
-> +	unsigned int maxbit = maxfd / BITS_PER_LONG;
-> +	unsigned int count = 0;
-> +	int i;
-> +
-> +	i = find_next_zero_bit(fdt->full_fds_bits, maxbit, 0);
-> +	/* If there is no free fds */
-> +	if (i > maxbit)
-> +		return maxfd;
-> +#if BITS_PER_LONG == 32
-> +#define HWEIGHT_LONG hweight32
-> +#else
-> +#define HWEIGHT_LONG hweight64
+[...]
+> --- a/include/uapi/linux/time.h
+> +++ b/include/uapi/linux/time.h
+> @@ -42,6 +42,13 @@ struct itimerval {
+> > >  	struct timeval it_value;	/* current value */
+>  };
+>  
+> +#ifndef __kernel_timespec
+> +struct __kernel_timespec {
+> +	__kernel_time64_t       tv_sec;                 /* seconds */
+> +	long long               tv_nsec;                /* nanoseconds */
+> +};
 > +#endif
-> +
-> +	count += i * BITS_PER_LONG;
-> +	for (; i < maxbit; ++i)
-> +		count += HWEIGHT_LONG(fdt->open_fds[i]);
-> +
-> +#undef HWEIGHT_LONG
-> +	return count;
-> +}
 
-Since find_next_zero_bit() needs to process all of the words anyway
-as well as lots of extra operations that add overhead, it looks more
-efficient to just compute HWEIGHT_LONG(open_fds[]) for the whole array.
+I wonder if it makes sense to override the alignment of this structure?
+ (64-bit types are aligned differently on 32-bit vs 64-bit x86, but not
+other compat cases.)  It might reduce the need for conversions in
+compat code elsewhere later.
 
-Cheers, Andreas
+Ben.
 
-
-
-
-
-
---Apple-Mail=_D4D046B6-A0DF-45FA-8CB1-C07A3D813374
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment;
-	filename=signature.asc
-Content-Type: application/pgp-signature;
-	name=signature.asc
-Content-Description: Message signed with OpenPGP
-
------BEGIN PGP SIGNATURE-----
-Comment: GPGTools - http://gpgtools.org
-
-iD8DBQFaMxBdpIg59Q01vtYRAvzFAKCNiNo3+ZVkwMsWLzeY9Deo2m19BwCg6ijg
-VkoTljFFE3m5OqHmmcWLgVg=
-=sGGo
------END PGP SIGNATURE-----
-
---Apple-Mail=_D4D046B6-A0DF-45FA-8CB1-C07A3D813374--
+>  /*
+>   * The IDs of the various system clocks (for POSIX.1b interval timers):
+>   */
+-- 
+Ben Hutchings
+Software Developer, Codethink Ltd.
