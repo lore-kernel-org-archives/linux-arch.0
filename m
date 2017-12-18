@@ -1,851 +1,942 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v4 19/36] nds32: Library functions
-Date: Mon, 18 Dec 2017 14:46:31 +0800
-Message-ID: <a66bb2e78daf9971295aeb6a2c31e60d40e74c4a.1513577007.git.green.hu@gmail.com>
+Subject: [PATCH v4 17/36] nds32: VDSO support
+Date: Mon, 18 Dec 2017 14:46:29 +0800
+Message-ID: <625dfc5346b2f59b59348a6ffe53ae90642d7cef.1513577007.git.green.hu@gmail.com>
 References: <cover.1513577007.git.green.hu@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <cover.1513577007.git.green.hu@gmail.com>
 In-Reply-To: <cover.1513577007.git.green.hu@gmail.com>
 References: <cover.1513577007.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: netdev-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, pombredanne@nexb.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch add support for various library functions.
+This patch adds VDSO support. The VDSO code is currently used for
+sys_rt_sigreturn() and optimised gettimeofday() (using the SoC timer counter).
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/string.h  |   17 +++
- arch/nds32/include/asm/swab.h    |   35 +++++
- arch/nds32/include/asm/uaccess.h |  283 ++++++++++++++++++++++++++++++++++++++
- arch/nds32/kernel/nds32_ksyms.c  |   31 +++++
- arch/nds32/lib/Makefile          |    3 +
- arch/nds32/lib/clear_user.S      |   42 ++++++
- arch/nds32/lib/copy_from_user.S  |   45 ++++++
- arch/nds32/lib/copy_template.S   |   70 ++++++++++
- arch/nds32/lib/copy_to_user.S    |   45 ++++++
- arch/nds32/lib/memcpy.S          |   30 ++++
- arch/nds32/lib/memmove.S         |   70 ++++++++++
- arch/nds32/lib/memset.S          |   33 +++++
- arch/nds32/lib/memzero.S         |   18 +++
- 13 files changed, 722 insertions(+)
- create mode 100644 arch/nds32/include/asm/string.h
- create mode 100644 arch/nds32/include/asm/swab.h
- create mode 100644 arch/nds32/include/asm/uaccess.h
- create mode 100644 arch/nds32/kernel/nds32_ksyms.c
- create mode 100644 arch/nds32/lib/Makefile
- create mode 100644 arch/nds32/lib/clear_user.S
- create mode 100644 arch/nds32/lib/copy_from_user.S
- create mode 100644 arch/nds32/lib/copy_template.S
- create mode 100644 arch/nds32/lib/copy_to_user.S
- create mode 100644 arch/nds32/lib/memcpy.S
- create mode 100644 arch/nds32/lib/memmove.S
- create mode 100644 arch/nds32/lib/memset.S
- create mode 100644 arch/nds32/lib/memzero.S
+ arch/nds32/include/asm/vdso.h              |   24 +++
+ arch/nds32/include/asm/vdso_datapage.h     |   36 ++++
+ arch/nds32/include/asm/vdso_timer_info.h   |   14 ++
+ arch/nds32/kernel/vdso.c                   |  233 ++++++++++++++++++++++++
+ arch/nds32/kernel/vdso/Makefile            |   82 +++++++++
+ arch/nds32/kernel/vdso/datapage.S          |   21 +++
+ arch/nds32/kernel/vdso/gen_vdso_offsets.sh |   15 ++
+ arch/nds32/kernel/vdso/gettimeofday.c      |  271 ++++++++++++++++++++++++++++
+ arch/nds32/kernel/vdso/note.S              |   11 ++
+ arch/nds32/kernel/vdso/sigreturn.S         |   19 ++
+ arch/nds32/kernel/vdso/vdso.S              |   18 ++
+ arch/nds32/kernel/vdso/vdso.lds.S          |   76 ++++++++
+ 12 files changed, 820 insertions(+)
+ create mode 100644 arch/nds32/include/asm/vdso.h
+ create mode 100644 arch/nds32/include/asm/vdso_datapage.h
+ create mode 100644 arch/nds32/include/asm/vdso_timer_info.h
+ create mode 100644 arch/nds32/kernel/vdso.c
+ create mode 100644 arch/nds32/kernel/vdso/Makefile
+ create mode 100644 arch/nds32/kernel/vdso/datapage.S
+ create mode 100755 arch/nds32/kernel/vdso/gen_vdso_offsets.sh
+ create mode 100644 arch/nds32/kernel/vdso/gettimeofday.c
+ create mode 100644 arch/nds32/kernel/vdso/note.S
+ create mode 100644 arch/nds32/kernel/vdso/sigreturn.S
+ create mode 100644 arch/nds32/kernel/vdso/vdso.S
+ create mode 100644 arch/nds32/kernel/vdso/vdso.lds.S
 
-diff --git a/arch/nds32/include/asm/string.h b/arch/nds32/include/asm/string.h
+diff --git a/arch/nds32/include/asm/vdso.h b/arch/nds32/include/asm/vdso.h
 new file mode 100644
-index 0000000..179272c
+index 0000000..af2c6af
 --- /dev/null
-+++ b/arch/nds32/include/asm/string.h
-@@ -0,0 +1,17 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef __ASM_NDS32_STRING_H
-+#define __ASM_NDS32_STRING_H
-+
-+#define __HAVE_ARCH_MEMCPY
-+extern void *memcpy(void *, const void *, __kernel_size_t);
-+
-+#define __HAVE_ARCH_MEMMOVE
-+extern void *memmove(void *, const void *, __kernel_size_t);
-+
-+#define __HAVE_ARCH_MEMSET
-+extern void *memset(void *, int, __kernel_size_t);
-+
-+extern void *memzero(void *ptr, __kernel_size_t n);
-+#endif
-diff --git a/arch/nds32/include/asm/swab.h b/arch/nds32/include/asm/swab.h
-new file mode 100644
-index 0000000..e01a755
---- /dev/null
-+++ b/arch/nds32/include/asm/swab.h
-@@ -0,0 +1,35 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef __NDS32_SWAB_H__
-+#define __NDS32_SWAB_H__
-+
-+#include <linux/types.h>
-+#include <linux/compiler.h>
-+
-+static __inline__ __attribute_const__ __u32 ___arch__swab32(__u32 x)
-+{
-+	__asm__("wsbh   %0, %0\n\t"	/* word swap byte within halfword */
-+		"rotri  %0, %0, #16\n"
-+		:"=r"(x)
-+		:"0"(x));
-+	return x;
-+}
-+
-+static __inline__ __attribute_const__ __u16 ___arch__swab16(__u16 x)
-+{
-+	__asm__("wsbh   %0, %0\n"	/* word swap byte within halfword */
-+		:"=r"(x)
-+		:"0"(x));
-+	return x;
-+}
-+
-+#define __arch_swab32(x) ___arch__swab32(x)
-+#define __arch_swab16(x) ___arch__swab16(x)
-+
-+#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
-+#define __BYTEORDER_HAS_U64__
-+#define __SWAB_64_THRU_32__
-+#endif
-+
-+#endif /* __NDS32_SWAB_H__ */
-diff --git a/arch/nds32/include/asm/uaccess.h b/arch/nds32/include/asm/uaccess.h
-new file mode 100644
-index 0000000..18a009f
---- /dev/null
-+++ b/arch/nds32/include/asm/uaccess.h
-@@ -0,0 +1,283 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef _ASMANDES_UACCESS_H
-+#define _ASMANDES_UACCESS_H
-+
++++ b/arch/nds32/include/asm/vdso.h
+@@ -0,0 +1,24 @@
 +/*
-+ * User space memory access functions
-+ */
-+#include <linux/sched.h>
-+#include <asm/errno.h>
-+#include <asm/memory.h>
-+#include <asm/types.h>
-+#include <linux/mm.h>
-+
-+#define VERIFY_READ	0
-+#define VERIFY_WRITE	1
-+
-+#define __asmeq(x, y)  ".ifnc " x "," y " ; .err ; .endif\n\t"
-+
-+/*
-+ * The exception table consists of pairs of addresses: the first is the
-+ * address of an instruction that is allowed to fault, and the second is
-+ * the address at which the program should continue.  No registers are
-+ * modified, so it is entirely up to the continuation code to figure out
-+ * what to do.
-+ *
-+ * All the routines below use bits of fixup code that are out of line
-+ * with the main instruction path.  This means when everything is well,
-+ * we don't even have to jump over them.  Further, they do not intrude
-+ * on our cache or tlb entries.
++ * SPDX-License-Identifier: GPL-2.0
++ * Copyright (C) 2005-2017 Andes Technology Corporation
 + */
 +
-+struct exception_table_entry {
-+	unsigned long insn, fixup;
++#ifndef __ASM_VDSO_H
++#define __ASM_VDSO_H
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++#include <generated/vdso-offsets.h>
++
++#define VDSO_SYMBOL(base, name)						   \
++({									   \
++	(unsigned long)(vdso_offset_##name + (unsigned long)(base)); \
++})
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __KERNEL__ */
++
++#endif /* __ASM_VDSO_H */
+diff --git a/arch/nds32/include/asm/vdso_datapage.h b/arch/nds32/include/asm/vdso_datapage.h
+new file mode 100644
+index 0000000..79db5a1
+--- /dev/null
++++ b/arch/nds32/include/asm/vdso_datapage.h
+@@ -0,0 +1,36 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2012 ARM Limited
++// Copyright (C) 2005-2017 Andes Technology Corporation
++#ifndef __ASM_VDSO_DATAPAGE_H
++#define __ASM_VDSO_DATAPAGE_H
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++struct vdso_data {
++	bool cycle_count_down;	/* timer cyclye counter is decrease with time */
++	u32 cycle_count_offset;	/* offset of timer cycle counter register */
++	u32 seq_count;		/* sequence count - odd during updates */
++	u32 xtime_coarse_sec;	/* coarse time */
++	u32 xtime_coarse_nsec;
++
++	u32 wtm_clock_sec;	/* wall to monotonic offset */
++	u32 wtm_clock_nsec;
++	u32 xtime_clock_sec;	/* CLOCK_REALTIME - seconds */
++	u32 cs_mult;		/* clocksource multiplier */
++	u32 cs_shift;		/* Cycle to nanosecond divisor (power of two) */
++
++	u64 cs_cycle_last;	/* last cycle value */
++	u64 cs_mask;		/* clocksource mask */
++
++	u64 xtime_clock_nsec;	/* CLOCK_REALTIME sub-ns base */
++	u32 tz_minuteswest;	/* timezone info for gettimeofday(2) */
++	u32 tz_dsttime;
 +};
 +
-+extern int fixup_exception(struct pt_regs *regs);
++#endif /* !__ASSEMBLY__ */
 +
-+#define KERNEL_DS 	((mm_segment_t) { ~0UL })
-+#define USER_DS     	((mm_segment_t) {TASK_SIZE - 1})
++#endif /* __KERNEL__ */
 +
-+#define get_ds()	(KERNEL_DS)
-+#define get_fs()	(current_thread_info()->addr_limit)
-+#define user_addr_max	get_fs
-+
-+static inline void set_fs(mm_segment_t fs)
-+{
-+	current_thread_info()->addr_limit = fs;
-+}
-+
-+#define segment_eq(a, b)    ((a) == (b))
-+
-+#define __range_ok(addr, size) (size <= get_fs() && addr <= (get_fs() -size))
-+
-+#define access_ok(type, addr, size)                 \
-+	__range_ok((unsigned long)addr, (unsigned long)size)
-+/*
-+ * Single-value transfer routines.  They automatically use the right
-+ * size if we just have the right pointer type.  Note that the functions
-+ * which read from user space (*get_*) need to take care not to leak
-+ * kernel data even if the calling code is buggy and fails to check
-+ * the return value.  This means zeroing out the destination variable
-+ * or buffer on error.  Normally this is done out of line by the
-+ * fixup code, but there are a few places where it intrudes on the
-+ * main code path.  When we only write to user space, there is no
-+ * problem.
-+ *
-+ * The "__xxx" versions of the user access functions do not verify the
-+ * address space - it must have been done previously with a separate
-+ * "access_ok()" call.
-+ *
-+ * The "xxx_error" versions set the third argument to EFAULT if an
-+ * error occurs, and leave it unchanged on success.  Note that these
-+ * versions are void (ie, don't return a value as such).
-+ */
-+
-+#define get_user(x,p)							\
-+({									\
-+	long __e = -EFAULT;						\
-+	if(likely(access_ok(VERIFY_READ,  p, sizeof(*p)))) {		\
-+		__e = __get_user(x,p);					\
-+	} else								\
-+		x = 0;							\
-+	__e;								\
-+})
-+#define __get_user(x,ptr)						\
-+({									\
-+	long __gu_err = 0;						\
-+	__get_user_err((x),(ptr),__gu_err);				\
-+	__gu_err;							\
-+})
-+
-+#define __get_user_error(x,ptr,err)					\
-+({									\
-+	__get_user_err((x),(ptr),err);					\
-+	(void) 0;							\
-+})
-+
-+#define __get_user_err(x,ptr,err)					\
-+do {									\
-+	unsigned long __gu_addr = (unsigned long)(ptr);			\
-+	unsigned long __gu_val;						\
-+	__chk_user_ptr(ptr);						\
-+	switch (sizeof(*(ptr))) {					\
-+	case 1:								\
-+		__get_user_asm("lbi",__gu_val,__gu_addr,err);		\
-+		break;							\
-+	case 2:								\
-+		__get_user_asm("lhi",__gu_val,__gu_addr,err);		\
-+		break;							\
-+	case 4:								\
-+		__get_user_asm("lwi",__gu_val,__gu_addr,err);		\
-+		break;							\
-+	case 8:								\
-+		__get_user_asm_dword(__gu_val,__gu_addr,err);		\
-+		break;							\
-+	default:							\
-+		BUILD_BUG(); 						\
-+		break;							\
-+	}								\
-+	(x) = (__typeof__(*(ptr)))__gu_val;				\
-+} while (0)
-+
-+#define __get_user_asm(inst,x,addr,err)					\
-+	asm volatile(							\
-+	"1:	"inst"	%1,[%2]\n"					\
-+	"2:\n"								\
-+	"	.section .fixup,\"ax\"\n"				\
-+	"	.align	2\n"						\
-+	"3:	move %0, %3\n"						\
-+	"	move %1, #0\n"						\
-+	"	b	2b\n"						\
-+	"	.previous\n"						\
-+	"	.section __ex_table,\"a\"\n"				\
-+	"	.align	3\n"						\
-+	"	.long	1b, 3b\n"					\
-+	"	.previous"						\
-+	: "+r" (err), "=&r" (x)						\
-+	: "r" (addr), "i" (-EFAULT)					\
-+	: "cc")
-+
-+#ifdef __NDS32_EB__
-+#define __gu_reg_oper0 "%H1"
-+#define __gu_reg_oper1 "%L1"
-+#else
-+#define __gu_reg_oper0 "%L1"
-+#define __gu_reg_oper1 "%H1"
-+#endif
-+
-+#define __get_user_asm_dword(x, addr, err) 				\
-+	asm volatile(			    				\
-+	"\n1:\tlwi " __gu_reg_oper0 ",[%2]\n"				\
-+	"\n2:\tlwi " __gu_reg_oper1 ",[%2+4]\n"				\
-+	"3:\n"								\
-+	"	.section .fixup,\"ax\"\n"				\
-+	"	.align	2\n"						\
-+	"4:	move	%0, %3\n"					\
-+	"	b	3b\n"						\
-+	"	.previous\n"						\
-+	"	.section __ex_table,\"a\"\n"				\
-+	"	.align	3\n"						\
-+	"	.long	1b, 4b\n"					\
-+	"	.long	2b, 4b\n"					\
-+	"	.previous"						\
-+	: "+r"(err), "=&r"(x)                				\
-+	: "r"(addr), "i"(-EFAULT) 					\
-+	: "cc")
-+#define put_user(x,p)							\
-+({									\
-+	long __e = -EFAULT;						\
-+	if(likely(access_ok(VERIFY_WRITE,  p, sizeof(*p)))) {		\
-+		__e = __put_user(x,p);					\
-+	}								\
-+	__e;								\
-+})
-+#define __put_user(x,ptr)						\
-+({									\
-+	long __pu_err = 0;						\
-+	__put_user_err((x),(ptr),__pu_err);				\
-+	__pu_err;							\
-+})
-+
-+#define __put_user_error(x,ptr,err)					\
-+({									\
-+	__put_user_err((x),(ptr),err);					\
-+	(void) 0;							\
-+})
-+
-+#define __put_user_err(x,ptr,err)					\
-+do {									\
-+	unsigned long __pu_addr = (unsigned long)(ptr);			\
-+	__typeof__(*(ptr)) __pu_val = (x);				\
-+	__chk_user_ptr(ptr);						\
-+	switch (sizeof(*(ptr))) {					\
-+	case 1:								\
-+		__put_user_asm("sbi",__pu_val,__pu_addr,err);		\
-+		break;							\
-+	case 2: 							\
-+		__put_user_asm("shi",__pu_val,__pu_addr,err);		\
-+		break;							\
-+	case 4: 							\
-+		__put_user_asm("swi",__pu_val,__pu_addr,err);		\
-+		break;							\
-+	case 8:								\
-+		__put_user_asm_dword(__pu_val,__pu_addr,err);		\
-+		break;							\
-+	default:							\
-+		BUILD_BUG(); 						\
-+		break;							\
-+	}								\
-+} while (0)
-+
-+#define __put_user_asm(inst,x,addr,err)					\
-+	asm volatile(							\
-+	"1:	"inst"	%1,[%2]\n"					\
-+	"2:\n"								\
-+	"	.section .fixup,\"ax\"\n"				\
-+	"	.align	2\n"						\
-+	"3:	move	%0, %3\n"					\
-+	"	b	2b\n"						\
-+	"	.previous\n"						\
-+	"	.section __ex_table,\"a\"\n"				\
-+	"	.align	3\n"						\
-+	"	.long	1b, 3b\n"					\
-+	"	.previous"						\
-+	: "+r" (err)							\
-+	: "r" (x), "r" (addr), "i" (-EFAULT)				\
-+	: "cc")
-+
-+#ifdef __NDS32_EB__
-+#define __pu_reg_oper0 "%H2"
-+#define __pu_reg_oper1 "%L2"
-+#else
-+#define __pu_reg_oper0 "%L2"
-+#define __pu_reg_oper1 "%H2"
-+#endif
-+
-+#define __put_user_asm_dword(x, addr, err) 				\
-+	asm volatile(			    				\
-+	"\n1:\tswi " __pu_reg_oper0 ",[%1]\n"				\
-+	"\n2:\tswi " __pu_reg_oper1 ",[%1+4]\n"				\
-+	"3:\n"								\
-+	"	.section .fixup,\"ax\"\n"				\
-+	"	.align	2\n"						\
-+	"4:	move	%0, %3\n"					\
-+	"	b	3b\n"						\
-+	"	.previous\n"						\
-+	"	.section __ex_table,\"a\"\n"				\
-+	"	.align	3\n"						\
-+	"	.long	1b, 4b\n"					\
-+	"	.long	2b, 4b\n"					\
-+	"	.previous"						\
-+	: "+r"(err)                					\
-+	: "r"(addr), "r"(x), "i"(-EFAULT) 				\
-+	: "cc")
-+extern unsigned long __arch_clear_user(void __user * addr, unsigned long n);
-+extern long strncpy_from_user(char *dest, const char __user * src, long count);
-+extern __must_check long strlen_user(const char __user * str);
-+extern __must_check long strnlen_user(const char __user * str, long n);
-+extern unsigned long __arch_copy_from_user(void *to, const void __user * from,
-+                                           unsigned long n);
-+extern unsigned long __arch_copy_to_user(void __user * to, const void *from,
-+                                         unsigned long n);
-+
-+#define raw_copy_from_user __arch_copy_from_user
-+#define raw_copy_to_user __arch_copy_to_user
-+
-+#define INLINE_COPY_FROM_USER
-+#define INLINE_COPY_TO_USER
-+static inline unsigned long clear_user(void __user * to, unsigned long n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n))
-+		n = __arch_clear_user(to, n);
-+	return n;
-+}
-+
-+static inline unsigned long __clear_user(void __user * to, unsigned long n)
-+{
-+	return __arch_clear_user(to, n);
-+}
-+
-+#endif /* _ASMNDS32_UACCESS_H */
-diff --git a/arch/nds32/kernel/nds32_ksyms.c b/arch/nds32/kernel/nds32_ksyms.c
++#endif /* __ASM_VDSO_DATAPAGE_H */
+diff --git a/arch/nds32/include/asm/vdso_timer_info.h b/arch/nds32/include/asm/vdso_timer_info.h
 new file mode 100644
-index 0000000..5ecebd0
+index 0000000..50ba117
 --- /dev/null
-+++ b/arch/nds32/kernel/nds32_ksyms.c
-@@ -0,0 +1,31 @@
++++ b/arch/nds32/include/asm/vdso_timer_info.h
+@@ -0,0 +1,14 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/module.h>
-+#include <linux/string.h>
-+#include <linux/delay.h>
-+#include <linux/in6.h>
-+#include <linux/syscalls.h>
-+#include <linux/uaccess.h>
++extern struct timer_info_t timer_info;
++#define EMPTY_VALUE ~(0UL)
++#define EMPTY_TIMER_MAPPING EMPTY_VALUE
++#define EMPTY_REG_OFFSET EMPTY_VALUE
 +
-+#include <asm/checksum.h>
++struct timer_info_t
++{
++	bool cycle_count_down;
++	unsigned long mapping_base;
++	unsigned long cycle_count_reg_offset;
++};
+diff --git a/arch/nds32/kernel/vdso.c b/arch/nds32/kernel/vdso.c
+new file mode 100644
+index 0000000..2eb01f4
+--- /dev/null
++++ b/arch/nds32/kernel/vdso.c
+@@ -0,0 +1,233 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2012 ARM Limited
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#include <linux/cache.h>
++#include <linux/clocksource.h>
++#include <linux/elf.h>
++#include <linux/err.h>
++#include <linux/errno.h>
++#include <linux/gfp.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/sched.h>
++#include <linux/signal.h>
++#include <linux/slab.h>
++#include <linux/timekeeper_internal.h>
++#include <linux/vmalloc.h>
++
++#include <linux/platform_device.h>
++#include <linux/of_address.h>
++#include <asm/cacheflush.h>
++#include <asm/vdso.h>
++#include <asm/vdso_datapage.h>
++#include <asm/vdso_timer_info.h>
++#include <linux/random.h>
++#include <asm/cache_info.h>
++extern struct cache_info L1_cache_info[2];
++extern char vdso_start, vdso_end;
++static unsigned long vdso_pages __ro_after_init;
++static unsigned long timer_mapping_base;
++
++struct timer_info_t timer_info = {
++	.cycle_count_down = true,
++	.mapping_base = EMPTY_TIMER_MAPPING,
++	.cycle_count_reg_offset = EMPTY_REG_OFFSET
++};
++/*
++ * The vDSO data page.
++ */
++static struct page *no_pages[] = { NULL };
++
++static union {
++	struct vdso_data data;
++	u8 page[PAGE_SIZE];
++} vdso_data_store __page_aligned_data;
++struct vdso_data *vdso_data = &vdso_data_store.data;
++static struct vm_special_mapping vdso_spec[2] __ro_after_init = {
++	{
++	 .name = "[vvar]",
++	 .pages = no_pages,
++	 },
++	{
++	 .name = "[vdso]",
++	 },
++};
++
++static void get_timer_node_info(void)
++{
++	timer_mapping_base = timer_info.mapping_base;
++	vdso_data->cycle_count_offset =
++		timer_info.cycle_count_reg_offset;
++	vdso_data->cycle_count_down =
++		timer_info.cycle_count_down;
++}
++
++static int __init vdso_init(void)
++{
++	int i;
++	struct page **vdso_pagelist;
++
++	if (memcmp(&vdso_start, "\177ELF", 4)) {
++		pr_err("vDSO is not a valid ELF object!\n");
++		return -EINVAL;
++	}
++	/* Creat a timer io mapping to get clock cycles counter */
++	get_timer_node_info();
++
++	vdso_pages = (&vdso_end - &vdso_start) >> PAGE_SHIFT;
++	pr_info("vdso: %ld pages (%ld code @ %p, %ld data @ %p)\n",
++		vdso_pages + 1, vdso_pages, &vdso_start, 1L, vdso_data);
++
++	/* Allocate the vDSO pagelist */
++	vdso_pagelist = kcalloc(vdso_pages, sizeof(struct page *), GFP_KERNEL);
++	if (vdso_pagelist == NULL)
++		return -ENOMEM;
++
++	for (i = 0; i < vdso_pages; i++)
++		vdso_pagelist[i] = virt_to_page(&vdso_start + i * PAGE_SIZE);
++	vdso_spec[1].pages = &vdso_pagelist[0];
++
++	return 0;
++}
++
++arch_initcall(vdso_init);
++
++unsigned long inline vdso_random_addr(unsigned long vdso_mapping_len)
++{
++	unsigned long start = current->mm->mmap_base, end, offset, addr;
++	start = PAGE_ALIGN(start);
++
++	/* Round the lowest possible end address up to a PMD boundary. */
++	end = (start + vdso_mapping_len + PMD_SIZE - 1) & PMD_MASK;
++	if (end >= TASK_SIZE)
++		end = TASK_SIZE;
++	end -= vdso_mapping_len;
++
++	if (end > start) {
++		offset = get_random_int() % (((end - start) >> PAGE_SHIFT) + 1);
++		addr = start + (offset << PAGE_SHIFT);
++	} else {
++		addr = start;
++	}
++	return addr;
++}
++
++int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
++{
++	struct mm_struct *mm = current->mm;
++	unsigned long vdso_base, vdso_text_len, vdso_mapping_len;
++	struct vm_area_struct *vma;
++	unsigned long addr = 0;
++	pgprot_t prot;
++	int ret, vvar_page_num = 2;
++
++	vdso_text_len = vdso_pages << PAGE_SHIFT;
++
++	if(timer_mapping_base == EMPTY_VALUE)
++		vvar_page_num = 1;
++	/* Be sure to map the data page */
++	vdso_mapping_len = vdso_text_len + vvar_page_num * PAGE_SIZE;
++#ifdef CONFIG_CPU_CACHE_ALIASING
++	vdso_mapping_len += L1_cache_info[DCACHE].aliasing_num - 1;
++#endif
++
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
++
++	addr = vdso_random_addr(vdso_mapping_len);
++	vdso_base = get_unmapped_area(NULL, addr, vdso_mapping_len, 0, 0);
++	if (IS_ERR_VALUE(vdso_base)) {
++		ret = vdso_base;
++		goto up_fail;
++	}
++
++#ifdef CONFIG_CPU_CACHE_ALIASING
++	{
++		unsigned int aliasing_mask =
++		    L1_cache_info[DCACHE].aliasing_mask;
++		unsigned int page_colour_ofs;
++		page_colour_ofs = ((unsigned int)vdso_data & aliasing_mask) -
++		    (vdso_base & aliasing_mask);
++		vdso_base += page_colour_ofs & aliasing_mask;
++	}
++#endif
++
++	vma = _install_special_mapping(mm, vdso_base, vvar_page_num * PAGE_SIZE,
++				       VM_READ | VM_MAYREAD, &vdso_spec[0]);
++	if (IS_ERR(vma)) {
++		ret = PTR_ERR(vma);
++		goto up_fail;
++	}
++
++	/*Map vdata to user space */
++	ret = io_remap_pfn_range(vma, vdso_base,
++				 virt_to_phys(vdso_data) >> PAGE_SHIFT,
++				 PAGE_SIZE, vma->vm_page_prot);
++	if (ret)
++		goto up_fail;
++
++	/*Map timer to user space */
++	vdso_base += PAGE_SIZE;
++	prot = __pgprot(_PAGE_V | _PAGE_M_UR_KR | _PAGE_D |
++			_PAGE_G | _PAGE_C_DEV);
++	ret = io_remap_pfn_range(vma, vdso_base, timer_mapping_base >> PAGE_SHIFT,
++				 PAGE_SIZE, prot);
++	if (ret)
++		goto up_fail;
++
++	/*Map vdso to user space */
++	vdso_base += PAGE_SIZE;
++	mm->context.vdso = (void *)vdso_base;
++	vma = _install_special_mapping(mm, vdso_base, vdso_text_len,
++				       VM_READ | VM_EXEC |
++				       VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC,
++				       &vdso_spec[1]);
++	if (IS_ERR(vma)) {
++		ret = PTR_ERR(vma);
++		goto up_fail;
++	}
++
++	up_write(&mm->mmap_sem);
++	return 0;
++
++up_fail:
++	mm->context.vdso = NULL;
++	up_write(&mm->mmap_sem);
++	return ret;
++}
++
++static void vdso_write_begin(struct vdso_data *vdata)
++{
++	++vdso_data->seq_count;
++	smp_wmb();		/* Pairs with smp_rmb in vdso_read_retry */
++}
++
++static void vdso_write_end(struct vdso_data *vdata)
++{
++	smp_wmb();		/* Pairs with smp_rmb in vdso_read_begin */
++	++vdso_data->seq_count;
++}
++
++void update_vsyscall(struct timekeeper *tk)
++{
++	vdso_write_begin(vdso_data);
++	vdso_data->cs_mask = tk->tkr_mono.mask;
++	vdso_data->cs_mult = tk->tkr_mono.mult;
++	vdso_data->cs_shift = tk->tkr_mono.shift;
++	vdso_data->cs_cycle_last = tk->tkr_mono.cycle_last;
++	vdso_data->wtm_clock_sec = tk->wall_to_monotonic.tv_sec;
++	vdso_data->wtm_clock_nsec = tk->wall_to_monotonic.tv_nsec;
++	vdso_data->xtime_clock_sec = tk->xtime_sec;
++	vdso_data->xtime_clock_nsec = tk->tkr_mono.xtime_nsec;
++	vdso_data->xtime_coarse_sec = tk->xtime_sec;
++	vdso_data->xtime_coarse_nsec = tk->tkr_mono.xtime_nsec >>
++	    tk->tkr_mono.shift;
++	vdso_write_end(vdso_data);
++}
++
++void update_vsyscall_tz(void)
++{
++	vdso_data->tz_minuteswest = sys_tz.tz_minuteswest;
++	vdso_data->tz_dsttime = sys_tz.tz_dsttime;
++}
+diff --git a/arch/nds32/kernel/vdso/Makefile b/arch/nds32/kernel/vdso/Makefile
+new file mode 100644
+index 0000000..e6c50a7
+--- /dev/null
++++ b/arch/nds32/kernel/vdso/Makefile
+@@ -0,0 +1,82 @@
++#
++# Building a vDSO image for AArch64.
++#
++# Author: Will Deacon <will.deacon@arm.com>
++# Heavily based on the vDSO Makefiles for other archs.
++#
++
++obj-vdso := note.o datapage.o sigreturn.o gettimeofday.o
++
++# Build rules
++targets := $(obj-vdso) vdso.so vdso.so.dbg
++obj-vdso := $(addprefix $(obj)/, $(obj-vdso))
++
++ccflags-y := -shared -fno-common -fno-builtin
++ccflags-y += -nostdlib -Wl,-soname=linux-vdso.so.1 \
++		$(call cc-ldoption, -Wl$(comma)--hash-style=sysv)
++ccflags-y += -fPIC -Wl,-shared -g
++
++# Disable gcov profiling for VDSO code
++GCOV_PROFILE := n
++
++
++obj-y += vdso.o
++extra-y += vdso.lds
++CPPFLAGS_vdso.lds += -P -C -U$(ARCH)
++
++# Force dependency
++$(obj)/vdso.o : $(obj)/vdso.so
++
++# Link rule for the .so file, .lds has to be first
++$(obj)/vdso.so.dbg: $(src)/vdso.lds $(obj-vdso)
++	$(call if_changed,vdsold)
++
++
++# Strip rule for the .so file
++$(obj)/%.so: OBJCOPYFLAGS := -S
++$(obj)/%.so: $(obj)/%.so.dbg FORCE
++	$(call if_changed,objcopy)
++
++# Generate VDSO offsets using helper script
++gen-vdsosym := $(srctree)/$(src)/gen_vdso_offsets.sh
++quiet_cmd_vdsosym = VDSOSYM $@
++define cmd_vdsosym
++	$(NM) $< | $(gen-vdsosym) | LC_ALL=C sort > $@
++endef
++
++include/generated/vdso-offsets.h: $(obj)/vdso.so.dbg FORCE
++	$(call if_changed,vdsosym)
++
++
++
++# Assembly rules for the .S files
++
++sigreturn.o : sigreturn.S
++	$(call if_changed_dep,vdsoas)
++
++note.o : note.S
++	$(call if_changed_dep,vdsoas)
++
++datapage.o : datapage.S
++	$(call if_changed_dep,vdsoas)
++
++gettimeofday.o : gettimeofday.c FORCE
++	$(call if_changed_dep,vdsocc)
++
++# Actual build commands
++quiet_cmd_vdsold = VDSOL   $@
++      cmd_vdsold = $(CC) $(c_flags) -Wl,-n -Wl,-T $^ -o $@
++quiet_cmd_vdsoas = VDSOA   $@
++      cmd_vdsoas = $(CC) $(a_flags) -c -o $@ $<
++quiet_cmd_vdsocc = VDSOA   $@
++      cmd_vdsocc = $(CC) $(c_flags) -c -o $@ $<
++
++# Install commands for the unstripped file
++quiet_cmd_vdso_install = INSTALL $@
++      cmd_vdso_install = cp $(obj)/$@.dbg $(MODLIB)/vdso/$@
++
++vdso.so: $(obj)/vdso.so.dbg
++	@mkdir -p $(MODLIB)/vdso
++	$(call cmd,vdso_install)
++
++vdso_install: vdso.so
+diff --git a/arch/nds32/kernel/vdso/datapage.S b/arch/nds32/kernel/vdso/datapage.S
+new file mode 100644
+index 0000000..4a62c3c
+--- /dev/null
++++ b/arch/nds32/kernel/vdso/datapage.S
+@@ -0,0 +1,21 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#include <linux/linkage.h>
++#include <asm/page.h>
++
++ENTRY(__get_timerpage)
++	sethi	$r0, hi20(. + PAGE_SIZE + 8)
++	ori	$r0, $r0, lo12(. + PAGE_SIZE + 4)
++	mfusr	$r1, $pc
++	sub	$r0, $r1, $r0
++	ret
++ENDPROC(__get_timerpage)
++
++ENTRY(__get_datapage)
++	sethi	$r0, hi20(. + 2*PAGE_SIZE + 8)
++	ori	$r0, $r0, lo12(. + 2*PAGE_SIZE + 4)
++	mfusr	$r1, $pc
++	sub	$r0, $r1, $r0
++	ret
++ENDPROC(__get_datapage)
+diff --git a/arch/nds32/kernel/vdso/gen_vdso_offsets.sh b/arch/nds32/kernel/vdso/gen_vdso_offsets.sh
+new file mode 100755
+index 0000000..01924ff
+--- /dev/null
++++ b/arch/nds32/kernel/vdso/gen_vdso_offsets.sh
+@@ -0,0 +1,15 @@
++#!/bin/sh
++
++#
++# Match symbols in the DSO that look like VDSO_*; produce a header file
++# of constant offsets into the shared object.
++#
++# Doing this inside the Makefile will break the $(filter-out) function,
++# causing Kbuild to rebuild the vdso-offsets header file every time.
++#
++# Author: Will Deacon <will.deacon@arm.com
++#
++
++LC_ALL=C
++sed -n -e 's/^00*/0/' -e \
++'s/^\([0-9a-fA-F]*\) . VDSO_\([a-zA-Z0-9_]*\)$/\#define vdso_offset_\2\t0x\1/p'
+diff --git a/arch/nds32/kernel/vdso/gettimeofday.c b/arch/nds32/kernel/vdso/gettimeofday.c
+new file mode 100644
+index 0000000..3274736
+--- /dev/null
++++ b/arch/nds32/kernel/vdso/gettimeofday.c
+@@ -0,0 +1,271 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#include <linux/compiler.h>
++#include <linux/hrtimer.h>
++#include <linux/time.h>
 +#include <asm/io.h>
-+#include <asm/ftrace.h>
-+#include <asm/proc-fns.h>
++#include <asm/barrier.h>
++#include <asm/bug.h>
++#include <asm/page.h>
++#include <asm/unistd.h>
++#include <asm/vdso_datapage.h>
++#include <asm/vdso_timer_info.h>
++#include <asm/asm-offsets.h>
 +
-+/* mem functions */
-+EXPORT_SYMBOL(memset);
-+EXPORT_SYMBOL(memcpy);
-+EXPORT_SYMBOL(memmove);
-+EXPORT_SYMBOL(memzero);
++#define X(x) #x
++#define Y(x) X(x)
 +
-+/* user mem (segment) */
-+EXPORT_SYMBOL(__arch_copy_from_user);
-+EXPORT_SYMBOL(__arch_copy_to_user);
-+EXPORT_SYMBOL(__arch_clear_user);
++extern struct vdso_data *__get_datapage(void);
++extern struct vdso_data *__get_timerpage(void);
 +
-+/* cache handling */
-+EXPORT_SYMBOL(cpu_icache_inval_all);
-+EXPORT_SYMBOL(cpu_dcache_wbinval_all);
-+EXPORT_SYMBOL(cpu_dma_inval_range);
-+EXPORT_SYMBOL(cpu_dma_wb_range);
-diff --git a/arch/nds32/lib/Makefile b/arch/nds32/lib/Makefile
++static notrace unsigned int __vdso_read_begin(const struct vdso_data *vdata)
++{
++	u32 seq;
++repeat:
++	seq = ACCESS_ONCE(vdata->seq_count);
++	if (seq & 1) {
++		cpu_relax();
++		goto repeat;
++	}
++	return seq;
++}
++
++static notrace unsigned int vdso_read_begin(const struct vdso_data *vdata)
++{
++	unsigned int seq;
++
++	seq = __vdso_read_begin(vdata);
++
++	smp_rmb();		/* Pairs with smp_wmb in vdso_write_end */
++	return seq;
++}
++
++static notrace int vdso_read_retry(const struct vdso_data *vdata, u32 start)
++{
++	smp_rmb();		/* Pairs with smp_wmb in vdso_write_begin */
++	return vdata->seq_count != start;
++}
++
++static notrace long clock_gettime_fallback(clockid_t _clkid,
++					   struct timespec *_ts)
++{
++	register struct timespec *ts asm("$r1") = _ts;
++	register clockid_t clkid asm("$r0") = _clkid;
++	register long ret asm("$r0");
++
++	asm volatile ("movi	$r15, %3\n"
++		      "syscall 	0x0\n"
++		      :"=r" (ret)
++		      :"r"(clkid), "r"(ts), "i"(__NR_clock_gettime)
++		      :"$r15", "memory");
++
++	return ret;
++}
++
++static notrace int do_realtime_coarse(struct timespec *ts,
++				      struct vdso_data *vdata)
++{
++	u32 seq;
++
++	do {
++		seq = vdso_read_begin(vdata);
++
++		ts->tv_sec = vdata->xtime_coarse_sec;
++		ts->tv_nsec = vdata->xtime_coarse_nsec;
++
++	} while (vdso_read_retry(vdata, seq));
++	return 0;
++}
++
++static notrace int do_monotonic_coarse(struct timespec *ts,
++				       struct vdso_data *vdata)
++{
++	struct timespec tomono;
++	u32 seq;
++
++	do {
++		seq = vdso_read_begin(vdata);
++
++		ts->tv_sec = vdata->xtime_coarse_sec;
++		ts->tv_nsec = vdata->xtime_coarse_nsec;
++
++		tomono.tv_sec = vdata->wtm_clock_sec;
++		tomono.tv_nsec = vdata->wtm_clock_nsec;
++
++	} while (vdso_read_retry(vdata, seq));
++
++	ts->tv_sec += tomono.tv_sec;
++	timespec_add_ns(ts, tomono.tv_nsec);
++	return 0;
++}
++
++static notrace inline u64 vgetsns(struct vdso_data *vdso)
++{
++	u32 cycle_now;
++	u32 cycle_delta;
++	u32 *timer_cycle_base;
++
++	timer_cycle_base =
++	    (u32 *) ((char *)__get_timerpage() + vdso->cycle_count_offset);
++	cycle_now = readl_relaxed(timer_cycle_base);
++	if (true == vdso->cycle_count_down)
++		cycle_now = ~(*timer_cycle_base);
++	cycle_delta = cycle_now - (u32) vdso->cs_cycle_last;
++	return ((u64) cycle_delta & vdso->cs_mask) * vdso->cs_mult;
++}
++
++static notrace int do_realtime(struct timespec *ts, struct vdso_data *vdata)
++{
++	unsigned count;
++	u64 ns;
++	do {
++		count = vdso_read_begin(vdata);
++		ts->tv_sec = vdata->xtime_clock_sec;
++		ns = vdata->xtime_clock_nsec;
++		ns += vgetsns(vdata);
++		ns >>= vdata->cs_shift;
++	} while (vdso_read_retry(vdata, count));
++
++	ts->tv_sec += __iter_div_u64_rem(ns, NSEC_PER_SEC, &ns);
++	ts->tv_nsec = ns;
++
++	return 0;
++}
++
++static notrace int do_monotonic(struct timespec *ts, struct vdso_data *vdata)
++{
++	struct timespec tomono;
++	u64 nsecs;
++	u32 seq;
++
++	do {
++		seq = vdso_read_begin(vdata);
++
++		ts->tv_sec = vdata->xtime_clock_sec;
++		nsecs = vdata->xtime_clock_nsec;
++		nsecs += vgetsns(vdata);
++		nsecs >>= vdata->cs_shift;
++
++		tomono.tv_sec = vdata->wtm_clock_sec;
++		tomono.tv_nsec = vdata->wtm_clock_nsec;
++
++	} while (vdso_read_retry(vdata, seq));
++
++	ts->tv_sec += tomono.tv_sec;
++	ts->tv_nsec = 0;
++	timespec_add_ns(ts, nsecs + tomono.tv_nsec);
++	return 0;
++}
++
++notrace int __vdso_clock_gettime(clockid_t clkid, struct timespec *ts)
++{
++	struct vdso_data *vdata;
++	int ret = -1;
++
++	vdata = __get_datapage();
++	if (vdata->cycle_count_offset == EMPTY_REG_OFFSET)
++		return clock_gettime_fallback(clkid, ts);
++
++	switch (clkid) {
++	case CLOCK_REALTIME_COARSE:
++		ret = do_realtime_coarse(ts, vdata);
++		break;
++	case CLOCK_MONOTONIC_COARSE:
++		ret = do_monotonic_coarse(ts, vdata);
++		break;
++	case CLOCK_REALTIME:
++		ret = do_realtime(ts, vdata);
++		break;
++	case CLOCK_MONOTONIC:
++		ret = do_monotonic(ts, vdata);
++		break;
++	default:
++		break;
++	}
++
++	if (ret)
++		ret = clock_gettime_fallback(clkid, ts);
++
++	return ret;
++}
++
++static notrace long clock_getres_fallback(clockid_t _clk_id,
++					  struct timespec *_res)
++{
++	register clockid_t clk_id asm("$r0") = _clk_id;
++	register struct timespec *res asm("$r1") = _res;
++	register long ret asm("$r0");
++
++	asm volatile ("movi	$r15, %3\n"
++		      "syscall	0x0\n"
++		      :"=r" (ret)
++		      :"r"(clk_id), "r"(res), "i"(__NR_clock_getres)
++		      :"$r15", "memory");
++
++	return ret;
++}
++
++notrace int __vdso_clock_getres(clockid_t clk_id, struct timespec *res)
++{
++	if (res == NULL)
++		return -EFAULT;
++	switch (clk_id) {
++	case CLOCK_REALTIME:
++	case CLOCK_MONOTONIC:
++	case CLOCK_MONOTONIC_RAW:
++		res->tv_sec = 0;
++		res->tv_nsec = CLOCK_REALTIME_RES;
++		break;
++	case CLOCK_REALTIME_COARSE:
++	case CLOCK_MONOTONIC_COARSE:
++		res->tv_sec = 0;
++		res->tv_nsec = CLOCK_COARSE_RES;
++		break;
++	default:
++		clock_getres_fallback(clk_id, res);
++		break;
++	}
++	return 0;
++}
++
++static notrace inline int gettimeofday_fallback(struct timeval *_tv,
++						struct timezone *_tz)
++{
++	register struct timeval *tv asm("$r0") = _tv;
++	register struct timezone *tz asm("$r1") = _tz;
++	register int ret asm("$r0");
++
++	asm volatile ("movi	$r15, %3\n"
++		      "syscall	0x0\n"
++		      :"=r" (ret)
++		      :"r"(tv), "r"(tz), "i"(__NR_gettimeofday)
++		      :"$r15", "memory");
++
++	return ret;
++}
++
++notrace int __vdso_gettimeofday(struct timeval *tv, struct timezone *tz)
++{
++	struct timespec ts;
++	struct vdso_data *vdata;
++	int ret;
++
++	vdata = __get_datapage();
++
++	if (vdata->cycle_count_offset == EMPTY_REG_OFFSET)
++		return gettimeofday_fallback(tv, tz);
++
++	ret = do_realtime(&ts, vdata);
++
++	if (tv) {
++		tv->tv_sec = ts.tv_sec;
++		tv->tv_usec = ts.tv_nsec / 1000;
++	}
++	if (tz) {
++		tz->tz_minuteswest = vdata->tz_minuteswest;
++		tz->tz_dsttime = vdata->tz_dsttime;
++	}
++
++	return ret;
++}
+diff --git a/arch/nds32/kernel/vdso/note.S b/arch/nds32/kernel/vdso/note.S
 new file mode 100644
-index 0000000..0f98401
+index 0000000..0aeaa19
 --- /dev/null
-+++ b/arch/nds32/lib/Makefile
-@@ -0,0 +1,3 @@
-+lib-y		:= copy_page.o memcpy.o memmove.o   \
-+		   memset.o memzero.o \
-+		   copy_from_user.o copy_to_user.o clear_user.o
-diff --git a/arch/nds32/lib/clear_user.S b/arch/nds32/lib/clear_user.S
-new file mode 100644
-index 0000000..805dfcd
---- /dev/null
-+++ b/arch/nds32/lib/clear_user.S
-@@ -0,0 +1,42 @@
++++ b/arch/nds32/kernel/vdso/note.S
+@@ -0,0 +1,11 @@
 +// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2012 ARM Limited
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#include <linux/uts.h>
++#include <linux/version.h>
++#include <linux/elfnote.h>
++
++ELFNOTE_START(Linux, 0, "a")
++	.long LINUX_VERSION_CODE
++ELFNOTE_END
+diff --git a/arch/nds32/kernel/vdso/sigreturn.S b/arch/nds32/kernel/vdso/sigreturn.S
+new file mode 100644
+index 0000000..67e4d1d
+--- /dev/null
++++ b/arch/nds32/kernel/vdso/sigreturn.S
+@@ -0,0 +1,19 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2012 ARM Limited
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
 +#include <linux/linkage.h>
-+#include <asm/assembler.h>
-+#include <asm/errno.h>
++#include <asm/unistd.h>
 +
-+/* Prototype: int __arch_clear_user(void *addr, size_t sz)
-+ * Purpose  : clear some user memory
-+ * Params   : addr - user memory address to clear
-+ *          : sz   - number of bytes to clear
-+ * Returns  : number of bytes NOT cleared
-+ */
-+	.text
-+	.align	5
-+ENTRY(__arch_clear_user)
-+	add	$r5, $r0, $r1
-+	beqz	$r1, clear_exit
-+	xor	$p1, $p1, $p1		! Use $p1=0 to clear mem
-+	srli	$p0, $r1, #2		! $p0 = number of word to clear
-+	andi	$r1, $r1, #3		! Bytes less than a word to copy
-+	beqz	$p0, byte_clear		! Only less than a word to clear
-+word_clear:
-+USER(	smw.bim,$p1, [$r0], $p1)	! Clear the word
-+	addi	$p0, $p0, #-1		! Decrease word count
-+	bnez	$p0, word_clear		! Continue looping to clear all words
-+	beqz	$r1, clear_exit		! No left bytes to copy
-+byte_clear:
-+USER(	sbi.bi,	$p1, [$r0], #1)		! Clear the byte
-+	addi	$r1, $r1, #-1		! Decrease byte count
-+	bnez	$r1, byte_clear		! Continue looping to clear all left bytes
-+clear_exit:
-+	move	$r0, $r1		! Set return value
-+	ret
-+
-+	.section .fixup,"ax"
-+	.align	0
-+9001:
-+	sub	$r0, $r5, $r0		! Bytes left to copy
-+	ret
-+	.previous
-+ENDPROC(__arch_clear_user)
-diff --git a/arch/nds32/lib/copy_from_user.S b/arch/nds32/lib/copy_from_user.S
-new file mode 100644
-index 0000000..ad1857b
---- /dev/null
-+++ b/arch/nds32/lib/copy_from_user.S
-@@ -0,0 +1,45 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/linkage.h>
-+#include <asm/assembler.h>
-+#include <asm/errno.h>
-+
-+.macro 	lbi1 dst, addr, adj
-+USER( lbi.bi, \dst, [\addr], \adj)
-+.endm
-+
-+.macro 	sbi1 src, addr, adj
-+sbi.bi	\src, [\addr], \adj
-+.endm
-+
-+.macro	lmw1 start_reg, addr, end_reg
-+USER( lmw.bim, \start_reg, [\addr], \end_reg)
-+.endm
-+
-+.macro	smw1 start_reg, addr, end_reg
-+smw.bim \start_reg, [\addr], \end_reg
-+.endm
-+
-+
-+/* Prototype: int __arch_copy_from_user(void *to, const char *from, size_t n)
-+ * Purpose  : copy a block from user memory to kernel memory
-+ * Params   : to   - kernel memory
-+ *          : from - user memory
-+ *          : n    - number of bytes to copy
-+ * Returns  : Number of bytes NOT copied.
-+ */
-+
-+.text
-+ENTRY(__arch_copy_from_user)
-+	add	$r5, $r0, $r2
-+#include "copy_template.S"
-+	move	$r0, $r2
-+	ret
-+.section .fixup,"ax"
-+.align  2
-+9001:
-+	sub	$r0, $r5, $r0
-+	ret
-+.previous
-+ENDPROC(__arch_copy_from_user)
-diff --git a/arch/nds32/lib/copy_template.S b/arch/nds32/lib/copy_template.S
-new file mode 100644
-index 0000000..b5621fb
---- /dev/null
-+++ b/arch/nds32/lib/copy_template.S
-@@ -0,0 +1,70 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+
-+	beq	$r1, $r0, quit_memcpy
-+	beqz	$r2, quit_memcpy
-+	srli    $r3, $r2, #5	! check if len < cache-line size 32
-+	beqz	$r3, word_copy_entry
-+	andi	$r4, $r0, #0x3	! check byte-align
-+	beqz	$r4, unalign_word_copy_entry
-+
-+	addi	$r4, $r4,#-4
-+	abs	$r4, $r4	! check how many un-align byte to copy
-+	sub	$r2, $r2, $r4	! update $R2
-+
-+unalign_byte_copy:
-+	lbi1	$r3, $r1, #1
-+	addi	$r4, $r4, #-1
-+	sbi1	$r3, $r0, #1
-+	bnez	$r4, unalign_byte_copy
-+	beqz	$r2, quit_memcpy
-+
-+unalign_word_copy_entry:
-+	andi	$r3, $r0, 0x1f	! check cache-line unaligncount
-+	beqz	$r3, cache_copy
-+
-+	addi	$r3, $r3, #-32
-+	abs	$r3, $r3
-+	sub	$r2, $r2, $r3	! update $R2
-+
-+unalign_word_copy:
-+	lmw1	$r4, $r1, $r4
-+	addi	$r3, $r3, #-4
-+	smw1	$r4, $r0, $r4
-+	bnez	$r3, unalign_word_copy
-+	beqz	$r2, quit_memcpy
-+
-+	addi	$r3, $r2, #-32	! to check $r2< cache_line , than go to word_copy
-+	bltz	$r3, word_copy_entry
-+cache_copy:
-+	srli	$r3, $r2, #5
-+	beqz	$r3, word_copy_entry
-+3:
-+	lmw1	$r17, $r1, $r24
-+	addi	$r3, $r3, #-1
-+	smw1	$r17, $r0, $r24
-+	bnez	$r3, 3b
-+
-+word_copy_entry:
-+	andi	$r2, $r2, #31
-+
-+	beqz	$r2, quit_memcpy
-+5:
-+	srli	$r3, $r2, #2
-+	beqz	$r3, byte_copy
-+word_copy:
-+	lmw1	$r4, $r1, $r4
-+	addi	$r3, $r3, #-1
-+	smw1	$r4, $r0, $r4
-+	bnez	$r3, word_copy
-+	andi	$r2, $r2, #3
-+	beqz	$r2, quit_memcpy
-+byte_copy:
-+	lbi1	$r3, $r1, #1
-+	addi	$r2, $r2, #-1
-+
-+	sbi1	$r3, $r0, #1
-+	bnez	$r2, byte_copy
-+quit_memcpy:
-+
-diff --git a/arch/nds32/lib/copy_to_user.S b/arch/nds32/lib/copy_to_user.S
-new file mode 100644
-index 0000000..3230044
---- /dev/null
-+++ b/arch/nds32/lib/copy_to_user.S
-@@ -0,0 +1,45 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/linkage.h>
-+#include <asm/assembler.h>
-+#include <asm/errno.h>
-+
-+.macro 	lbi1 dst, addr, adj
-+lbi.bi	\dst, [\addr], \adj
-+.endm
-+
-+.macro 	sbi1 src, addr, adj
-+USER( sbi.bi, \src, [\addr], \adj)
-+.endm
-+
-+.macro	lmw1 start_reg, addr, end_reg
-+lmw.bim \start_reg, [\addr], \end_reg
-+.endm
-+
-+.macro	smw1 start_reg, addr, end_reg
-+USER( smw.bim, \start_reg, [\addr], \end_reg)
-+.endm
-+
-+
-+/* Prototype: int __arch_copy_to_user(void *to, const char *from, size_t n)
-+ * Purpose  : copy a block to user memory from kernel memory
-+ * Params   : to   - user memory
-+ *          : from - kernel memory
-+ *          : n    - number of bytes to copy
-+ * Returns  : Number of bytes NOT copied.
-+ */
-+
-+.text
-+ENTRY(__arch_copy_to_user)
-+	add	$r5, $r0, $r2
-+#include "copy_template.S"
-+	move	$r0, $r2
-+	ret
-+.section .fixup,"ax"
-+.align  2
-+9001:
-+	sub	$r0, $r5, $r0
-+	ret
-+.previous
-+ENDPROC(__arch_copy_to_user)
-diff --git a/arch/nds32/lib/memcpy.S b/arch/nds32/lib/memcpy.S
-new file mode 100644
-index 0000000..a2345ea
---- /dev/null
-+++ b/arch/nds32/lib/memcpy.S
-@@ -0,0 +1,30 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/linkage.h>
-+
-+
-+.macro 	lbi1 dst, addr, adj
-+lbi.bi	\dst, [\addr], \adj
-+.endm
-+
-+.macro 	sbi1 src, addr, adj
-+sbi.bi	\src, [\addr], \adj
-+.endm
-+
-+.macro	lmw1 start_reg, addr, end_reg
-+lmw.bim \start_reg, [\addr], \end_reg
-+.endm
-+
-+.macro	smw1 start_reg, addr, end_reg
-+smw.bim \start_reg, [\addr], \end_reg
-+.endm
-+
-+.text
-+ENTRY(memcpy)
-+	move	$r5, $r0
-+#include "copy_template.S"
-+	move	$r0, $r5
-+	ret
-+
-+ENDPROC(memcpy)
-diff --git a/arch/nds32/lib/memmove.S b/arch/nds32/lib/memmove.S
-new file mode 100644
-index 0000000..c823aad
---- /dev/null
-+++ b/arch/nds32/lib/memmove.S
-@@ -0,0 +1,70 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/linkage.h>
-+
-+/*
-+  void *memmove(void *dst, const void *src, int n);
-+
-+  dst: $r0
-+  src: $r1
-+  n  : $r2
-+  ret: $r0 - pointer to the memory area dst.
-+*/
 +	.text
 +
-+ENTRY(memmove)
-+	move	$r5, $r0		! Set return value = det
-+	beq	$r0, $r1, exit_memcpy	! Exit when det = src
-+	beqz	$r2, exit_memcpy	! Exit when n = 0
-+	pushm	$t0, $t1		! Save reg
-+	srli	$p1, $r2, #2		! $p1 is how many words to copy
-+
-+	! Avoid data lost when memory overlap
-+	! Copy data reversely when src < dst
-+	slt	$p0, $r0, $r1		! check if $r0 < $r1
-+	beqz	$p0, do_reverse		! branch if dst > src
-+
-+	! No reverse, dst < src
-+	andi	$r2, $r2, #3		! How many bytes are less than a word
-+	li	$t0, #1			! Determining copy direction in byte_cpy
-+	beqz	$p1, byte_cpy		! When n is less than a word
-+
-+word_cpy:
-+	lmw.bim	$p0, [$r1], $p0		! Read a word from src
-+	addi	$p1, $p1, #-1		! How many words left to copy
-+	smw.bim	$p0, [$r0], $p0		! Copy the word to det
-+	bnez	$p1, word_cpy		! If remained words > 0
-+	beqz	$r2, end_memcpy		! No left bytes to copy
-+	b	byte_cpy
-+
-+do_reverse:
-+	add	$r0, $r0, $r2		! Start with the end of $r0
-+	add	$r1, $r1, $r2		! Start with the end of $r1
-+	andi	$r2, $r2, #3		! How many bytes are less than a word
-+	li	$t0, #-1		! Determining copy direction in byte_cpy
-+	beqz	$p1, reverse_byte_cpy	! When n is less than a word
-+
-+reverse_word_cpy:
-+	lmw.adm	$p0, [$r1], $p0		! Read a word from src
-+	addi	$p1, $p1, #-1		! How many words left to copy
-+	smw.adm	$p0, [$r0], $p0		! Copy the word to det
-+	bnez	$p1, reverse_word_cpy	! If remained words > 0
-+	beqz	$r2, end_memcpy		! No left bytes to copy
-+
-+reverse_byte_cpy:
-+	addi	$r0, $r0, #-1
-+	addi	$r1, $r1, #-1
-+byte_cpy:				! Less than 4 bytes to copy now
-+	lb.bi	$p0, [$r1], $t0		! Read a byte from src
-+	addi	$r2, $r2, #-1		! How many bytes left to copy
-+	sb.bi	$p0, [$r0], $t0		! copy the byte to det
-+	bnez	$r2, byte_cpy		! If remained bytes > 0
-+
-+end_memcpy:
-+	popm	$t0, $t1
-+exit_memcpy:
-+	move	$r0, $r5
-+	ret
-+
-+ENDPROC(memmove)
-diff --git a/arch/nds32/lib/memset.S b/arch/nds32/lib/memset.S
++ENTRY(__kernel_rt_sigreturn)
++	.cfi_startproc
++	movi $r15, __NR_rt_sigreturn
++	/*
++	 * The SWID of syscall should be __NR_rt_sigreturn to synchronize
++	 * the unwinding scheme in gcc
++	 */
++	syscall	__NR_rt_sigreturn
++	.cfi_endproc
++ENDPROC(__kernel_rt_sigreturn)
+diff --git a/arch/nds32/kernel/vdso/vdso.S b/arch/nds32/kernel/vdso/vdso.S
 new file mode 100644
-index 0000000..193cb6c
+index 0000000..16737c1
 --- /dev/null
-+++ b/arch/nds32/lib/memset.S
-@@ -0,0 +1,33 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/linkage.h>
-+
-+	.text
-+ENTRY(memset)
-+	move	$r5, $r0		! Return value
-+	beqz	$r2, end_memset		! Exit when len = 0
-+	srli	$p1, $r2, 2		! $p1 is how many words to copy
-+	andi	$r2, $r2, 3		! How many bytes are less than a word
-+	beqz	$p1, byte_set		! When n is less than a word
-+
-+	! set $r1 from ??????ab to abababab
-+	andi	$r1, $r1, #0x00ff	! $r1 = 000000ab
-+	slli	$p0, $r1, #8		! $p0 = 0000ab00
-+	or	$r1, $r1, $p0		! $r1 = 0000abab
-+	slli	$p0, $r1, #16		! $p0 = abab0000
-+	or	$r1, $r1, $p0		! $r1 = abababab
-+word_set:
-+	addi	$p1, $p1, #-1		! How many words left to copy
-+	smw.bim	$r1, [$r0], $r1		! Copy the word to det
-+	bnez	$p1, word_set		! Still words to set, continue looping
-+	beqz	$r2, end_memset		! No left byte to set
-+byte_set:				! Less than 4 bytes left to set
-+	addi	$r2, $r2, #-1		! Decrease len by 1
-+	sbi.bi	$r1, [$r0], #1		! Set data of the next byte to $r1
-+	bnez	$r2, byte_set		! Still bytes left to set
-+end_memset:
-+	move	$r0, $r5
-+	ret
-+
-+ENDPROC(memset)
-diff --git a/arch/nds32/lib/memzero.S b/arch/nds32/lib/memzero.S
-new file mode 100644
-index 0000000..f055972
---- /dev/null
-+++ b/arch/nds32/lib/memzero.S
++++ b/arch/nds32/kernel/vdso/vdso.S
 @@ -0,0 +1,18 @@
 +// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2012 ARM Limited
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
++#include <linux/init.h>
 +#include <linux/linkage.h>
++#include <linux/const.h>
++#include <asm/page.h>
 +
-+	.text
-+ENTRY(memzero)
-+	beqz	$r1, 1f
-+	push	$lp
-+	move    $r2, $r1
-+	move    $r1, #0
-+	push	$r0
-+	bal     memset
-+	pop	$r0
-+	pop	$lp
-+1:
-+        ret
-+ENDPROC(memzero)
++	.globl vdso_start, vdso_end
++	.section .rodata
++	.balign PAGE_SIZE
++vdso_start:
++	.incbin "arch/nds32/kernel/vdso/vdso.so"
++	.balign PAGE_SIZE
++vdso_end:
++
++	.previous
+diff --git a/arch/nds32/kernel/vdso/vdso.lds.S b/arch/nds32/kernel/vdso/vdso.lds.S
+new file mode 100644
+index 0000000..3663035
+--- /dev/null
++++ b/arch/nds32/kernel/vdso/vdso.lds.S
+@@ -0,0 +1,76 @@
++/*
++ * SPDX-License-Identifier: GPL-2.0
++ * Copyright (C) 2005-2017 Andes Technology Corporation
++ */
++
++
++#include <linux/const.h>
++#include <asm/page.h>
++#include <asm/vdso.h>
++
++OUTPUT_FORMAT("elf32-nds32le-linux", "elf32-nds32be-linux", "elf32-nds32le-linux")
++OUTPUT_ARCH(nds32)
++
++SECTIONS
++{
++	. = SIZEOF_HEADERS;
++
++	.hash		: { *(.hash) }			:text
++	.gnu.hash	: { *(.gnu.hash) }
++	.dynsym		: { *(.dynsym) }
++	.dynstr		: { *(.dynstr) }
++	.gnu.version	: { *(.gnu.version) }
++	.gnu.version_d	: { *(.gnu.version_d) }
++	.gnu.version_r	: { *(.gnu.version_r) }
++
++	.note		: { *(.note.*) }		:text	:note
++
++
++	.text		: { *(.text*) }			:text
++
++	.eh_frame_hdr	: { *(.eh_frame_hdr) }		:text	:eh_frame_hdr
++	.eh_frame	: { KEEP (*(.eh_frame)) }	:text
++
++	.dynamic	: { *(.dynamic) }		:text	:dynamic
++
++	.rodata		: { *(.rodata*) }		:text
++
++
++	/DISCARD/	: {
++		*(.note.GNU-stack)
++		*(.data .data.* .gnu.linkonce.d.* .sdata*)
++		*(.bss .sbss .dynbss .dynsbss)
++	}
++}
++
++/*
++ * We must supply the ELF program headers explicitly to get just one
++ * PT_LOAD segment, and set the flags explicitly to make segments read-only.
++ */
++PHDRS
++{
++	text		PT_LOAD		FLAGS(5) FILEHDR PHDRS; /* PF_R|PF_X */
++	dynamic		PT_DYNAMIC	FLAGS(4);		/* PF_R */
++	note		PT_NOTE		FLAGS(4);		/* PF_R */
++	eh_frame_hdr	PT_GNU_EH_FRAME;
++}
++
++/*
++ * This controls what symbols we export from the DSO.
++ */
++VERSION
++{
++	LINUX_4 {
++	global:
++		__kernel_rt_sigreturn;
++		__vdso_gettimeofday;
++		__vdso_clock_getres;
++		__vdso_clock_gettime;
++	local: *;
++	};
++}
++
++/*
++ * Make the rt_sigreturn code visible to the kernel.
++ */
++VDSO_rt_sigtramp	= __kernel_rt_sigreturn;
 -- 
 1.7.9.5
