@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v4 12/36] nds32: Atomic operations
-Date: Mon, 18 Dec 2017 14:46:24 +0800
-Message-ID: <1b20a94533577f0c3f0269a808d5bac6b31810d6.1513577007.git.green.hu@gmail.com>
+Subject: [PATCH v4 13/36] nds32: Device specific operations
+Date: Mon, 18 Dec 2017 14:46:25 +0800
+Message-ID: <ec54d5ac8067e2ff542f69fc2967182922870b83.1513577007.git.green.hu@gmail.com>
 References: <cover.1513577007.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1513577007.git.green.hu@gmail.com>
@@ -14,147 +14,173 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch includes the atomic and futex operations. Many atomic operations use
-the load-lock word(llw) and store-condition word(scw) operations.
+This patch introduces ioremap implementations.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/barrier.h |   15 ++++++
- arch/nds32/include/asm/futex.h   |  103 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 118 insertions(+)
- create mode 100644 arch/nds32/include/asm/barrier.h
- create mode 100644 arch/nds32/include/asm/futex.h
+ arch/nds32/include/asm/io.h |   83 +++++++++++++++++++++++++++++++++++++++++++
+ arch/nds32/mm/ioremap.c     |   62 ++++++++++++++++++++++++++++++++
+ 2 files changed, 145 insertions(+)
+ create mode 100644 arch/nds32/include/asm/io.h
+ create mode 100644 arch/nds32/mm/ioremap.c
 
-diff --git a/arch/nds32/include/asm/barrier.h b/arch/nds32/include/asm/barrier.h
+diff --git a/arch/nds32/include/asm/io.h b/arch/nds32/include/asm/io.h
 new file mode 100644
-index 0000000..faafc37
+index 0000000..81b4616
 --- /dev/null
-+++ b/arch/nds32/include/asm/barrier.h
-@@ -0,0 +1,15 @@
++++ b/arch/nds32/include/asm/io.h
+@@ -0,0 +1,83 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __NDS32_ASM_BARRIER_H
-+#define __NDS32_ASM_BARRIER_H
++#ifndef __ASM_NDS32_IO_H
++#define __ASM_NDS32_IO_H
 +
-+#ifndef __ASSEMBLY__
-+#define mb()		asm volatile("msync all":::"memory")
-+#define rmb()		asm volatile("msync all":::"memory")
-+#define wmb()		asm volatile("msync store":::"memory")
-+#include <asm-generic/barrier.h>
-+
-+#endif	/* __ASSEMBLY__ */
-+
-+#endif	/* __NDS32_ASM_BARRIER_H */
-diff --git a/arch/nds32/include/asm/futex.h b/arch/nds32/include/asm/futex.h
-new file mode 100644
-index 0000000..eab5e84
---- /dev/null
-+++ b/arch/nds32/include/asm/futex.h
-@@ -0,0 +1,103 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef __NDS32_FUTEX_H__
-+#define __NDS32_FUTEX_H__
-+
-+#include <linux/futex.h>
-+#include <linux/uaccess.h>
-+#include <asm/errno.h>
-+
-+#define __futex_atomic_ex_table(err_reg)			\
-+	"	.pushsection __ex_table,\"a\"\n"		\
-+	"	.align	3\n"					\
-+	"	.long	1b, 4f\n"				\
-+	"	.long	2b, 4f\n"				\
-+	"	.popsection\n"					\
-+	"	.pushsection .fixup,\"ax\"\n"			\
-+	"4:	move	%0, " err_reg "\n"			\
-+	"	j	3b\n"					\
-+	"	.popsection"
-+
-+#define __futex_atomic_op(insn, ret, oldval, tmp, uaddr, oparg)	\
-+	smp_mb();						\
-+	asm volatile(					\
-+	"	movi	$ta, #0\n"				\
-+	"1:	llw	%1, [%2+$ta]\n"				\
-+	"	" insn "\n"					\
-+	"2:	scw	%0, [%2+$ta]\n"				\
-+	"	beqz	%0, 1b\n"				\
-+	"	movi	%0, #0\n"				\
-+	"3:\n"							\
-+	__futex_atomic_ex_table("%4")				\
-+	: "=&r" (ret), "=&r" (oldval)				\
-+	: "r" (uaddr), "r" (oparg), "i" (-EFAULT)		\
-+	: "cc", "memory")
-+static inline int
-+futex_atomic_cmpxchg_inatomic(u32 * uval, u32 __user * uaddr,
-+			      u32 oldval, u32 newval)
++extern void iounmap(void __iomem *addr);
++#define __raw_writeb __raw_writeb
++static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
 +{
-+	int ret = 0;
-+	u32 val, tmp, flags;
-+
-+	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
-+		return -EFAULT;
-+
-+	smp_mb();
-+	asm volatile ("       movi    $ta, #0\n"
-+		      "1:     llw     %1, [%6 + $ta]\n"
-+		      "       sub     %3, %1, %4\n"
-+		      "       cmovz   %2, %5, %3\n"
-+		      "       cmovn   %2, %1, %3\n"
-+		      "2:     scw     %2, [%6 + $ta]\n"
-+		      "       beqz    %2, 1b\n"
-+		      "3:\n                   " __futex_atomic_ex_table("%7")
-+		      :"+&r"(ret), "=&r"(val), "=&r"(tmp), "=&r"(flags)
-+		      :"r"(oldval), "r"(newval), "r"(uaddr), "i"(-EFAULT)
-+		      :"$ta", "memory");
-+	smp_mb();
-+
-+	*uval = val;
-+	return ret;
++	asm volatile("sbi %0, [%1]" : : "r" (val), "r" (addr));
 +}
 +
-+static inline int
-+arch_futex_atomic_op_inuser(int op, int oparg, int *oval, u32 __user *uaddr)
++#define __raw_writew __raw_writew
++static inline void __raw_writew(u16 val, volatile void __iomem *addr)
 +{
-+	int oldval = 0, ret;
++	asm volatile("shi %0, [%1]" : : "r" (val), "r" (addr));
++}
 +
++#define __raw_writel __raw_writel
++static inline void __raw_writel(u32 val, volatile void __iomem *addr)
++{
++	asm volatile("swi %0, [%1]" : : "r" (val), "r" (addr));
++}
 +
-+	pagefault_disable();
-+	switch (op) {
-+	case FUTEX_OP_SET:
-+		__futex_atomic_op("move	%0, %3", ret, oldval, tmp, uaddr,
-+				  oparg);
-+		break;
-+	case FUTEX_OP_ADD:
-+		__futex_atomic_op("add	%0, %1, %3", ret, oldval, tmp, uaddr,
-+				  oparg);
-+		break;
-+	case FUTEX_OP_OR:
-+		__futex_atomic_op("or	%0, %1, %3", ret, oldval, tmp, uaddr,
-+				  oparg);
-+		break;
-+	case FUTEX_OP_ANDN:
-+		__futex_atomic_op("and	%0, %1, %3", ret, oldval, tmp, uaddr,
-+				  ~oparg);
-+		break;
-+	case FUTEX_OP_XOR:
-+		__futex_atomic_op("xor	%0, %1, %3", ret, oldval, tmp, uaddr,
-+				  oparg);
-+		break;
-+	default:
-+		ret = -ENOSYS;
++#define __raw_readb __raw_readb
++static inline u8 __raw_readb(const volatile void __iomem *addr)
++{
++	u8 val;
++
++	asm volatile("lbi %0, [%1]" : "=r" (val) : "r" (addr));
++	return val;
++}
++
++#define __raw_readw __raw_readw
++static inline u16 __raw_readw(const volatile void __iomem *addr)
++{
++	u16 val;
++
++	asm volatile("lhi %0, [%1]" : "=r" (val) : "r" (addr));
++	return val;
++}
++
++#define __raw_readl __raw_readl
++static inline u32 __raw_readl(const volatile void __iomem *addr)
++{
++	u32 val;
++
++	asm volatile("lwi %0, [%1]" : "=r" (val) : "r" (addr));
++	return val;
++}
++
++#define __iormb()               rmb()
++#define __iowmb()               wmb()
++
++#define mmiowb()        __asm__ __volatile__ ("msync all" : : : "memory");
++
++/*
++ * {read,write}{b,w,l,q}_relaxed() are like the regular version, but
++ * are not guaranteed to provide ordering against spinlocks or memory
++ * accesses.
++ */
++
++#define readb_relaxed(c)	({ u8  __v = __raw_readb(c); __v; })
++#define readw_relaxed(c)	({ u16 __v = le16_to_cpu((__force __le16)__raw_readw(c)); __v; })
++#define readl_relaxed(c)	({ u32 __v = le32_to_cpu((__force __le32)__raw_readl(c)); __v; })
++#define writeb_relaxed(v,c)	((void)__raw_writeb((v),(c)))
++#define writew_relaxed(v,c)	((void)__raw_writew((__force u16)cpu_to_le16(v),(c)))
++#define writel_relaxed(v,c)	((void)__raw_writel((__force u32)cpu_to_le32(v),(c)))
++
++/*
++ * {read,write}{b,w,l,q}() access little endian memory and return result in
++ * native endianness.
++ */
++#define readb(c)	({ u8  __v = readb_relaxed(c); __iormb(); __v; })
++#define readw(c)	({ u16 __v = readw_relaxed(c); __iormb(); __v; })
++#define readl(c)	({ u32 __v = readl_relaxed(c); __iormb(); __v; })
++
++#define writeb(v,c)	({ __iowmb(); writeb_relaxed((v),(c)); })
++#define writew(v,c)	({ __iowmb(); writew_relaxed((v),(c)); })
++#define writel(v,c)	({ __iowmb(); writel_relaxed((v),(c)); })
++#include <asm-generic/io.h>
++#endif /* __ASM_NDS32_IO_H */
+diff --git a/arch/nds32/mm/ioremap.c b/arch/nds32/mm/ioremap.c
+new file mode 100644
+index 0000000..2f6741c
+--- /dev/null
++++ b/arch/nds32/mm/ioremap.c
+@@ -0,0 +1,62 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#include <linux/vmalloc.h>
++#include <linux/io.h>
++#include <linux/mm.h>
++#include <asm/pgtable.h>
++
++void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
++
++static void __iomem *__ioremap_caller(phys_addr_t phys_addr, size_t size,
++				      void *caller)
++{
++	struct vm_struct *area;
++	unsigned long addr, offset, last_addr;
++	pgprot_t prot;
++
++	/* Don't allow wraparound or zero size */
++	last_addr = phys_addr + size - 1;
++	if (!size || last_addr < phys_addr)
++		return NULL;
++
++	/*
++	 * Mappings have to be page-aligned
++	 */
++	offset = phys_addr & ~PAGE_MASK;
++	phys_addr &= PAGE_MASK;
++	size = PAGE_ALIGN(last_addr + 1) - phys_addr;
++
++	/*
++	 * Ok, go for it..
++	 */
++	area = get_vm_area_caller(size, VM_IOREMAP, caller);
++	if (!area)
++		return NULL;
++
++	area->phys_addr = phys_addr;
++	addr = (unsigned long)area->addr;
++	prot = __pgprot(_PAGE_V | _PAGE_M_KRW | _PAGE_D |
++			_PAGE_G | _PAGE_C_DEV);
++	if (ioremap_page_range(addr, addr + size, phys_addr, prot)) {
++		vunmap((void *)addr);
++		return NULL;
 +	}
++	return (__force void __iomem *)(offset + (char *)addr);
 +
-+	pagefault_enable();
-+
-+	if (!ret)
-+		*oval = oldval;
-+
-+	return ret;
 +}
-+#endif /* __NDS32_FUTEX_H__ */
++
++void __iomem *ioremap(phys_addr_t phys_addr, size_t size)
++{
++	return __ioremap_caller(phys_addr, size,
++				__builtin_return_address(0));
++}
++
++EXPORT_SYMBOL(ioremap);
++
++void iounmap(void __iomem * addr)
++{
++	vunmap((void *)(PAGE_MASK & (unsigned long)addr));
++}
++
++EXPORT_SYMBOL(iounmap);
 -- 
 1.7.9.5
