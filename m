@@ -1,21 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:44796 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:53918 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S964920AbdLRWTD (ORCPT
+        by vger.kernel.org with ESMTP id S1758771AbdLRXQE (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 Dec 2017 17:19:03 -0500
-Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vBIMCXqA103887
-        for <linux-arch@vger.kernel.org>; Mon, 18 Dec 2017 17:19:02 -0500
-Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2exhukbe0t-1
+        Mon, 18 Dec 2017 18:16:04 -0500
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vBINFRZx125462
+        for <linux-arch@vger.kernel.org>; Mon, 18 Dec 2017 18:16:03 -0500
+Received: from e34.co.us.ibm.com (e34.co.us.ibm.com [32.97.110.152])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2exk7dh3hw-1
         (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 18 Dec 2017 17:19:02 -0500
+        for <linux-arch@vger.kernel.org>; Mon, 18 Dec 2017 18:16:03 -0500
 Received: from localhost
-        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Mon, 18 Dec 2017 17:19:01 -0500
-Date: Mon, 18 Dec 2017 14:18:50 -0800
+        Mon, 18 Dec 2017 16:16:02 -0700
+Date: Mon, 18 Dec 2017 15:15:51 -0800
 From: Ram Pai <linuxram@us.ibm.com>
 Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys:
  Add sysfs interface
@@ -23,96 +23,75 @@ Reply-To: Ram Pai <linuxram@us.ibm.com>
 References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
  <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
  <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
+ <20171218221850.GD5461@ram.oc3035372033.ibm.com>
+ <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
-Message-ID: <20171218221850.GD5461@ram.oc3035372033.ibm.com>
+In-Reply-To: <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
+Message-ID: <20171218231551.GA5481@ram.oc3035372033.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Dave Hansen <dave.hansen@intel.com>
-Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
-Message-ID: <20171218221850.2dUdeVEUG8XZHSeMb2mbik6fe4FpD8o_8Rx65R8iR30@z>
+Cc: linux-arch@vger.kernel.org, ebiederm@xmission.com, arnd@arndb.de, corbet@lwn.net, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
+Message-ID: <20171218231551.9GFy_qoBVl1Aqx-XUr0_0UxPl1Xt5ksetSADJprRVgo@z>
 
-On Mon, Dec 18, 2017 at 10:54:26AM -0800, Dave Hansen wrote:
-> On 11/06/2017 12:57 AM, Ram Pai wrote:
-> > Expose useful information for programs using memory protection keys.
-> > Provide implementation for powerpc and x86.
-> > 
-> > On a powerpc system with pkeys support, here is what is shown:
-> > 
-> > $ head /sys/kernel/mm/protection_keys/*
-
-> > ==> /sys/kernel/mm/protection_keys/disable_access_supported <==
-> > true
+On Mon, Dec 18, 2017 at 02:28:14PM -0800, Dave Hansen wrote:
+> On 12/18/2017 02:18 PM, Ram Pai wrote:
+> > b) minimum number of keys available to the application.
+> > 	if libraries consumes a few, they could provide a library
+> > 	interface to the application informing the number available to
+> > 	the application.  The library interface can leverage (b) to
+> > 	provide the information.
 > 
-> This is cute, but I don't think it should be part of the ABI.  Put it in
+> OK, let's see a real user of this including a few libraries.  Then we'll
+> put it in the kernel.
+> 
+> > c) types of disable-rights supported by keys.
+> > 	Helps the application to determine the types of disable-features
+> > 	available. This is helpful, otherwise the app has to 
+> > 	make pkey_alloc() call with the corresponding parameter set
+> > 	and see if it suceeds or fails. Painful from an application
+> > 	point of view, in my opinion.
+> 
+> Again, let's see a real-world use of this.  How does it look?  How does
+> an app "fall back" if it can't set a restriction the way it wants to?
+> 
+> Are we *sure* that such an interface makes sense?  For instance, will it
+> be possible for some keys to be execute-disable while other are only
+> write-disable?
 
-thanks :)
+Can it be on x86?
 
-> debugfs if you want it for cute tests.  The stuff that this tells you
-> can and should come from pkey_alloc() for the ABI.
+its not possible on ppc. the keys can *all* be  the-same-attributes-disable all the
+time.
 
-Applications can make system calls with different parameters and on
-failure determine indirectly that such a feature may not be available in
-the kernel/hardware.  But from an application point of view, I think, it
-is a very clumsy/difficult way to determine that.
+However you are right. Its conceivable that some arch could provide a
+feature where it can be x-attribute-disable for key 'a' and
+y-attribute-disable for key 'b'.  But than its a bit of a headache
+for an application to consume such a feature.
 
-For example, an application can keep making pkey_alloc() calls and count
-till the call fails, to determine the number of keys supported by the
-system. And then the application has to release those keys too.  Too
-much side-effect just to determine a simple thing. Do we want the
-application to endure this pain?
-
-I think we should aim to provide sufficient API/ABI for the application
-to consume the feature efficiently, and not any more.
-
-I do not claim that the ABI exposed by this patch is sufficiently
-optimal. But I do believe it is tending towards it.
-
-currently the following ABI is  exposed.
-
-a) total number of keys available in the system. This information may
-	not be useful and can possibly be dropped.
-
-b) minimum number of keys available to the application.
-	if libraries consumes a few, they could provide a library
-	interface to the application informing the number available to
-	the application.  The library interface can leverage (b) to
-	provide the information.
-
-c) types of disable-rights supported by keys.
-	Helps the application to determine the types of disable-features
-	available. This is helpful, otherwise the app has to 
-	make pkey_alloc() call with the corresponding parameter set
-	and see if it suceeds or fails. Painful from an application
-	point of view, in my opinion.
+Ben: I recall you requesting this feature.  Thoughts?
 
 > 
-> http://man7.org/linux/man-pages/man7/pkeys.7.html
+> > I think on x86 you look for some hardware registers to determine
+> > which hardware features are enabled by the kernel.
 > 
-> >        Any application wanting to use protection keys needs to be able to
-> >        function without them.  They might be unavailable because the
-> >        hardware that the application runs on does not support them, the
-> >        kernel code does not contain support, the kernel support has been
-> >        disabled, or because the keys have all been allocated, perhaps by a
-> >        library the application is using.  It is recommended that
-> >        applications wanting to use protection keys should simply call
-> >        pkey_alloc(2) and test whether the call succeeds, instead of
-> >        attempting to detect support for the feature in any other way.
+> No, we use CPUID.  It's a part of the ISA that's designed for
+> enumerating CPU and (sometimes) OS support for CPU features.
 > 
-> Do you really not have standard way on ppc to say whether hardware
-> features are supported by the kernel?  For instance, how do you know if
-> a given set of registers are known to and are being context-switched by
-> the kernel?
+> > We do not have generic support for something like that on ppc.  The
+> > kernel looks at the device tree to determine what hardware features
+> > are available. But does not have mechanism to tell the hardware to
+> > track which of its features are currently enabled/used by the
+> > kernel; atleast not for the memory-key feature.
+> 
+> Bummer.  You're missing out.
+> 
+> But, you could still do this with a syscall.  "Hey, kernel, do you
+> support this feature?"
 
-I think on x86 you look for some hardware registers to determine which
-hardware features are enabled by the kernel.
-
-We do not have generic support for something like that on ppc.
-The kernel looks at the device tree to determine what hardware features
-are available. But does not have mechanism to tell the hardware to track
-which of its features are currently enabled/used by the kernel; atleast
-not for the memory-key feature.
+or do powerpc specific sysfs interface.
+or a debugfs interface.
 
 RP
