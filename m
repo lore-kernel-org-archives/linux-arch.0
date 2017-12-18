@@ -1,48 +1,74 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add
- sysfs interface
-Date: Mon, 18 Dec 2017 10:54:26 -0800
-Message-ID: <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
-References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
- <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Subject: Re: [PATCH 2/2] mmap.2: MAP_FIXED updated documentation
+Date: Mon, 18 Dec 2017 20:12:41 +0100
+Message-ID: <c7c7a30e-a122-1bbf-88a2-3349d755c62d@gmail.com>
+References: <20171213092550.2774-1-mhocko@kernel.org>
+ <20171213093110.3550-1-mhocko@kernel.org>
+ <20171213093110.3550-2-mhocko@kernel.org> <20171213125540.GA18897@amd>
+ <20171213130458.GI25185@dhcp22.suse.cz> <20171213130900.GA19932@amd>
+ <20171213131640.GJ25185@dhcp22.suse.cz> <20171213132105.GA20517@amd>
+ <20171213144050.GG11493@rei>
+ <CAGXu5jLqE6cUxk-Girx6PG7upEzz8jmu1OH_3LVC26iJc2vTxQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CAGXu5jLqE6cUxk-Girx6PG7upEzz8jmu1OH_3LVC26iJc2vTxQ@mail.gmail.com>
 Content-Language: en-US
-Sender: linux-doc-owner@vger.kernel.org
-To: Ram Pai <linuxram@us.ibm.com>, mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
-Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
+Sender: owner-linux-mm@kvack.org
+To: Kees Cook <keescook@chromium.org>, Cyril Hrubis <chrubis@suse.cz>
+Cc: mtk.manpages@gmail.com, Pavel Machek <pavel@ucw.cz>, Michal Hocko <mhocko@kernel.org>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Jann Horn <jannh@google.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 11/06/2017 12:57 AM, Ram Pai wrote:
-> Expose useful information for programs using memory protection keys.
-> Provide implementation for powerpc and x86.
+Hello Kees,
+
+I'm late to the party, and only just caught up with the fuss :-).
+
+On 12/14/2017 12:19 AM, Kees Cook wrote:
+> On Wed, Dec 13, 2017 at 6:40 AM, Cyril Hrubis <chrubis@suse.cz> wrote:
+>> Hi!
+>>> You selected stupid name for a flag. Everyone and their dog agrees
+>>> with that. There's even consensus on better name (and everyone agrees
+>>> it is better than .._SAFE). Of course, we could have debate if it is
+>>> NOREPLACE or NOREMOVE or ... and that would be bikeshed. This was just
+>>> poor naming on your part.
+>>
+>> Well while everybody agrees that the name is so bad that basically
+>> anything else would be better, there does not seem to be consensus on
+>> which one to pick. I do understand that this frustrating and fruitless.
 > 
-> On a powerpc system with pkeys support, here is what is shown:
+> Based on the earlier threads where I tried to end the bikeshedding, it
+> seemed like MAP_FIXED_NOREPLACE was the least bad option.
 > 
-> $ head /sys/kernel/mm/protection_keys/*
-> ==> /sys/kernel/mm/protection_keys/disable_access_supported <==
-> true
+>> So what do we do now, roll a dice to choose new name?
+>>
+>> Or do we ask BFDL[1] to choose the name?
+> 
+> I'd like to hear feedback from Michael Kerrisk, as he's had to deal
+> with these kinds of choices in the past. I'm fine to ask Linus too. I
+> just want to get past the name since the feature is quite valuable.
+> 
+> And if Michal doesn't want to touch this patch any more, I'm happy to
+> do the search/replace/resend. :P
 
-This is cute, but I don't think it should be part of the ABI.  Put it in
-debugfs if you want it for cute tests.  The stuff that this tells you
-can and should come from pkey_alloc() for the ABI.
+Something with the prefix MAP_FIXED_ seems to me obviously desirable,
+both to suggest that the function is similar, and also for easy
+grepping of the source code to look for instances of both.
+MAP_FIXED_SAFE didn't really bother me as a name, but 
+MAP_FIXED_NOREPLACE (or MAP_FIXED_NOCLOBBER) seem slightly more 
+descriptive of what the flag actually does, so a little better.
 
-http://man7.org/linux/man-pages/man7/pkeys.7.html
+Cheers,
 
->        Any application wanting to use protection keys needs to be able to
->        function without them.  They might be unavailable because the
->        hardware that the application runs on does not support them, the
->        kernel code does not contain support, the kernel support has been
->        disabled, or because the keys have all been allocated, perhaps by a
->        library the application is using.  It is recommended that
->        applications wanting to use protection keys should simply call
->        pkey_alloc(2) and test whether the call succeeds, instead of
->        attempting to detect support for the feature in any other way.
+Michael
 
-Do you really not have standard way on ppc to say whether hardware
-features are supported by the kernel?  For instance, how do you know if
-a given set of registers are known to and are being context-switched by
-the kernel?
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
