@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v4 20/36] nds32: Debugging support
-Date: Mon, 18 Dec 2017 14:46:32 +0800
-Message-ID: <c7448f8d9c818329272a627d14c630cf67d3bb21.1513577007.git.green.hu@gmail.com>
+Subject: [PATCH v4 22/36] nds32: Loadable modules
+Date: Mon, 18 Dec 2017 14:46:34 +0800
+Message-ID: <15da583d6ce554d676ffa28d1094674998d57e5d.1513577007.git.green.hu@gmail.com>
 References: <cover.1513577007.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1513577007.git.green.hu@gmail.com>
@@ -14,364 +14,325 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds ptrace support.
+This patch adds support for loadable modules.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/uapi/asm/ptrace.h |   25 +++
- arch/nds32/kernel/ptrace.c           |  311 ++++++++++++++++++++++++++++++++++
- 2 files changed, 336 insertions(+)
- create mode 100644 arch/nds32/include/uapi/asm/ptrace.h
- create mode 100644 arch/nds32/kernel/ptrace.c
+ arch/nds32/include/asm/module.h |   11 ++
+ arch/nds32/kernel/module.c      |  286 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 297 insertions(+)
+ create mode 100644 arch/nds32/include/asm/module.h
+ create mode 100644 arch/nds32/kernel/module.c
 
-diff --git a/arch/nds32/include/uapi/asm/ptrace.h b/arch/nds32/include/uapi/asm/ptrace.h
+diff --git a/arch/nds32/include/asm/module.h b/arch/nds32/include/asm/module.h
 new file mode 100644
-index 0000000..358c99e
+index 0000000..16cf9c7
 --- /dev/null
-+++ b/arch/nds32/include/uapi/asm/ptrace.h
-@@ -0,0 +1,25 @@
++++ b/arch/nds32/include/asm/module.h
+@@ -0,0 +1,11 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __UAPI_ASM_NDS32_PTRACE_H
-+#define __UAPI_ASM_NDS32_PTRACE_H
++#ifndef _ASM_NDS32_MODULE_H
++#define _ASM_NDS32_MODULE_H
 +
-+#ifndef __ASSEMBLY__
++#include <asm-generic/module.h>
 +
-+/*
-+ * User structures for general purpose register.
-+ */
-+struct user_pt_regs {
-+	long uregs[26];
-+	long fp;
-+	long gp;
-+	long lp;
-+	long sp;
-+	long ipc;
-+	long lb;
-+	long le;
-+	long lc;
-+	long syscallno;
-+};
-+#endif
-+#endif
-diff --git a/arch/nds32/kernel/ptrace.c b/arch/nds32/kernel/ptrace.c
++#define MODULE_ARCH_VERMAGIC	"NDS32v3"
++
++#endif /* _ASM_NDS32_MODULE_H */
+diff --git a/arch/nds32/kernel/module.c b/arch/nds32/kernel/module.c
 new file mode 100644
-index 0000000..0e18564
+index 0000000..714a6d6
 --- /dev/null
-+++ b/arch/nds32/kernel/ptrace.c
-@@ -0,0 +1,311 @@
++++ b/arch/nds32/kernel/module.c
+@@ -0,0 +1,286 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/ptrace.h>
-+#include <linux/user.h>
-+#include <linux/security.h>
-+#include <linux/init.h>
-+#include <linux/uaccess.h>
-+#include <linux/regset.h>
-+#include <linux/tracehook.h>
++#include <linux/module.h>
 +#include <linux/elf.h>
-+#include <linux/sched/task_stack.h>
++#include <linux/vmalloc.h>
 +
 +#include <asm/pgtable.h>
 +
-+enum nds32_regset {
-+	REGSET_GPR,
-+};
-+
-+static int gpr_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user * ubuf)
++void *module_alloc(unsigned long size)
 +{
-+	struct user_pt_regs *uregs = &task_pt_regs(target)->user_regs;
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs, 0, -1);
++	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
++				    GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
++				    __builtin_return_address(0));
 +}
 +
-+static int gpr_set(struct task_struct *target, const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user * ubuf)
++void module_free(struct module *module, void *region)
 +{
-+	int err;
-+	struct user_pt_regs newregs = task_pt_regs(target)->user_regs;
++	vfree(region);
++}
 +
-+	err = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newregs, 0, -1);
-+	if (err)
-+		return err;
-+
-+	task_pt_regs(target)->user_regs = newregs;
++int module_frob_arch_sections(Elf_Ehdr * hdr,
++			      Elf_Shdr * sechdrs,
++			      char *secstrings, struct module *mod)
++{
 +	return 0;
 +}
 +
-+static const struct user_regset nds32_regsets[] = {
-+	[REGSET_GPR] = {
-+			.core_note_type = NT_PRSTATUS,
-+			.n = sizeof(struct user_pt_regs) / sizeof(u32),
-+			.size = sizeof(u32),
-+			.align = sizeof(u32),
-+			.get = gpr_get,
-+			.set = gpr_set}
-+};
-+
-+static const struct user_regset_view nds32_user_view = {
-+	.name = "nds32",.e_machine = EM_NDS32,
-+	.regsets = nds32_regsets,.n = ARRAY_SIZE(nds32_regsets)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++void do_reloc16(unsigned int val, unsigned int *loc, unsigned int val_mask,
++		unsigned int val_shift, unsigned int loc_mask,
++		unsigned int partial_in_place, unsigned int swap)
 +{
-+	return &nds32_user_view;
-+}
++	unsigned int tmp = 0, tmp2 = 0;
 +
-+/* get_user_reg()
-+ *
-+ * This routine will get a word off of the processes privileged stack.
-+ * the offset is how far from the base addr as stored in the THREAD.
-+ * this routine assumes that all the privileged stacks are in our
-+ * data space.
-+ */
-+static inline unsigned int get_user_reg(struct task_struct *task, int offset)
-+{
-+	return task_pt_regs(task)->uregs[offset];
-+}
++	__asm__ __volatile__("\tlhi.bi\t%0, [%2], 0\n"
++			     "\tbeqz\t%3, 1f\n"
++			     "\twsbh\t%0, %1\n"
++			     "1:\n":"=r"(tmp):"0"(tmp), "r"(loc), "r"(swap)
++	    );
 +
-+/* put_user_reg()
-+ *
-+ * this routine will put a word on the processes privileged stack.
-+ * the offset is how far from the base addr as stored in the THREAD.
-+ * this routine assumes that all the privileged stacks are in our
-+ * data space.
-+ */
-+static inline int put_user_reg(struct task_struct *task, int offset, long data)
-+{
-+	struct pt_regs newregs, *regs = task_pt_regs(task);
-+	int ret = -EINVAL;
-+
-+	newregs = *regs;
-+	newregs.uregs[offset] = data;
-+
-+	if (valid_user_regs(&newregs)) {
-+		regs->uregs[offset] = data;
-+		ret = 0;
++	tmp2 = tmp & loc_mask;
++	if (partial_in_place) {
++		tmp &= (!loc_mask);
++		tmp =
++		    tmp2 | ((tmp + ((val & val_mask) >> val_shift)) & val_mask);
++	} else {
++		tmp = tmp2 | ((val & val_mask) >> val_shift);
 +	}
 +
-+	return ret;
++	__asm__ __volatile__("\tbeqz\t%3, 2f\n"
++			     "\twsbh\t%0, %1\n"
++			     "2:\n"
++			     "\tshi.bi\t%0, [%2], 0\n":"=r"(tmp):"0"(tmp),
++			     "r"(loc), "r"(swap)
++	    );
 +}
 +
-+/*
-+ * Called by kernel/ptrace.c when detaching..
-+ *
-+ * Make sure the single step bit is not set.
-+ */
-+void ptrace_disable(struct task_struct *child)
++void do_reloc32(unsigned int val, unsigned int *loc, unsigned int val_mask,
++		unsigned int val_shift, unsigned int loc_mask,
++		unsigned int partial_in_place, unsigned int swap)
 +{
-+	user_disable_single_step(child);
++	unsigned int tmp = 0, tmp2 = 0;
++
++	__asm__ __volatile__("\tlmw.bi\t%0, [%2], %0, 0\n"
++			     "\tbeqz\t%3, 1f\n"
++			     "\twsbh\t%0, %1\n"
++			     "\trotri\t%0, %1, 16\n"
++			     "1:\n":"=r"(tmp):"0"(tmp), "r"(loc), "r"(swap)
++	    );
++
++	tmp2 = tmp & loc_mask;
++	if (partial_in_place) {
++		tmp &= (!loc_mask);
++		tmp =
++		    tmp2 | ((tmp + ((val & val_mask) >> val_shift)) & val_mask);
++	} else {
++		tmp = tmp2 | ((val & val_mask) >> val_shift);
++	}
++
++	__asm__ __volatile__("\tbeqz\t%3, 2f\n"
++			     "\twsbh\t%0, %1\n"
++			     "\trotri\t%0, %1, 16\n"
++			     "2:\n"
++			     "\tsmw.bi\t%0, [%2], %0, 0\n":"=r"(tmp):"0"(tmp),
++			     "r"(loc), "r"(swap)
++	    );
 +}
 +
-+static void fill_sigtrap_info(struct task_struct *tsk,
-+			      struct pt_regs *regs,
-+			      int error_code, int si_code, struct siginfo *info)
++static inline int exceed_limit(int offset, unsigned int val_mask,
++			       struct module *module, Elf32_Rela * rel,
++			       unsigned int relindex, unsigned int reloc_order)
 +{
-+	tsk->thread.trap_no = ENTRY_DEBUG_RELATED;
-+	tsk->thread.error_code = error_code;
++	int abs_off = offset < 0 ? ~offset : offset;
 +
-+	memset(info, 0, sizeof(*info));
-+	info->si_signo = SIGTRAP;
-+	info->si_code = si_code;
-+	info->si_addr = (void __user *)instruction_pointer(regs);
++	if (abs_off & (~val_mask)) {
++		pr_err("\n%s: relocation type %d out of range.\n"
++		       "please rebuild the kernel module with gcc option \"-Wa,-mno-small-text\".\n",
++		       module->name, ELF32_R_TYPE(rel->r_info));
++		pr_err("section %d reloc %d offset 0x%x relative 0x%x.\n",
++		       relindex, reloc_order, rel->r_offset, offset);
++		return true;
++	}
++	return false;
 +}
 +
-+void user_single_step_siginfo(struct task_struct *tsk,
-+			      struct pt_regs *regs, struct siginfo *info)
++#ifdef __NDS32_EL__
++#define NEED_SWAP 1
++#else
++#define NEED_SWAP 0
++#endif
++
++int
++apply_relocate_add(Elf32_Shdr * sechdrs, const char *strtab,
++		   unsigned int symindex, unsigned int relindex,
++		   struct module *module)
 +{
-+	fill_sigtrap_info(tsk, regs, 0, TRAP_BRKPT, info);
-+}
++	Elf32_Shdr *symsec = sechdrs + symindex;
++	Elf32_Shdr *relsec = sechdrs + relindex;
++	Elf32_Shdr *dstsec = sechdrs + relsec->sh_info;
++	Elf32_Rela *rel = (void *)relsec->sh_addr;
++	unsigned int i;
 +
-+/*
-+ * Handle hitting a breakpoint.
-+ */
-+void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
-+		  int error_code, int si_code)
-+{
-+	struct siginfo info;
++	for (i = 0; i < relsec->sh_size / sizeof(Elf32_Rela); i++, rel++) {
++		Elf32_Addr *loc;
++		Elf32_Sym *sym;
++		Elf32_Addr v;
++		s32 offset;
 +
-+	fill_sigtrap_info(tsk, regs, error_code, TRAP_BRKPT, &info);
-+	/* Send us the fake SIGTRAP */
-+	force_sig_info(SIGTRAP, &info, tsk);
-+}
++		offset = ELF32_R_SYM(rel->r_info);
++		if (offset < 0
++		    || offset > (symsec->sh_size / sizeof(Elf32_Sym))) {
++			pr_err("%s: bad relocation\n", module->name);
++			pr_err("section %d reloc %d\n", relindex, i);
++			return -ENOEXEC;
++		}
 +
-+/* ptrace_read_user()
-+ *
-+ * Read the word at offset "off" into the "struct user".  We
-+ * actually access the pt_regs stored on the kernel stack.
-+ */
-+static int
-+ptrace_read_user(struct task_struct *tsk, unsigned long off,
-+		 unsigned long __user * ret)
-+{
-+	unsigned long tmp = 0;
++		sym = ((Elf32_Sym *) symsec->sh_addr) + offset;
 +
-+	if (off < sizeof(struct pt_regs)) {
-+		if (off & 3)
-+			return -EIO;
-+		tmp = get_user_reg(tsk, off >> 2);
-+		return put_user(tmp, ret);
-+	} else
-+		return -EIO;
-+}
++		if (rel->r_offset < 0
++		    || rel->r_offset > dstsec->sh_size - sizeof(u16)) {
++			pr_err("%s: out of bounds relocation\n", module->name);
++			pr_err("section %d reloc %d offset 0x%0x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
++			return -ENOEXEC;
++		}
 +
-+/* ptrace_write_user()
-+ *
-+ * Write the word at offset "off" into "struct user".  We
-+ * actually access the pt_regs stored on the kernel stack.
-+ */
-+static int
-+ptrace_write_user(struct task_struct *tsk, unsigned long off, unsigned long val)
-+{
-+	if (off < sizeof(struct pt_regs)) {
-+		if (off & 3)
-+			return -EIO;
-+		return put_user_reg(tsk, off >> 2, val);
-+	} else
-+		return -EIO;
-+}
++		loc = (Elf32_Addr *) (dstsec->sh_addr + rel->r_offset);
++		v = sym->st_value + rel->r_addend;
 +
-+/* ptrace_getregs()
-+ *
-+ * Get all user integer registers.
-+ */
-+static int ptrace_getregs(struct task_struct *tsk, void __user * uregs)
-+{
-+	struct pt_regs *regs = task_pt_regs(tsk);
++		switch (ELF32_R_TYPE(rel->r_info)) {
++		case R_NDS32_NONE:
++		case R_NDS32_INSN16:
++		case R_NDS32_LABEL:
++		case R_NDS32_LONGCALL1:
++		case R_NDS32_LONGCALL2:
++		case R_NDS32_LONGCALL3:
++		case R_NDS32_LONGCALL4:
++		case R_NDS32_LONGJUMP1:
++		case R_NDS32_LONGJUMP2:
++		case R_NDS32_LONGJUMP3:
++		case R_NDS32_9_FIXED_RELA:
++		case R_NDS32_15_FIXED_RELA:
++		case R_NDS32_17_FIXED_RELA:
++		case R_NDS32_25_FIXED_RELA:
++		case R_NDS32_LOADSTORE:
++		case R_NDS32_DWARF2_OP1_RELA:
++		case R_NDS32_DWARF2_OP2_RELA:
++		case R_NDS32_DWARF2_LEB_RELA:
++		case R_NDS32_RELA_NOP_MIX ... R_NDS32_RELA_NOP_MAX:
++			break;
 +
-+	return copy_to_user(uregs, regs, sizeof(struct pt_regs)) ? -EFAULT : 0;
-+}
++		case R_NDS32_32_RELA:
++			do_reloc32(v, loc, 0xffffffff, 0, 0, 0, 0);
++			break;
 +
-+/* ptrace_setregs()
-+ *
-+ * Set all user integer registers.
-+ */
-+static int ptrace_setregs(struct task_struct *tsk, void __user * uregs)
-+{
-+	struct pt_regs newregs;
-+	int ret;
++		case R_NDS32_HI20_RELA:
++			do_reloc32(v, loc, 0xfffff000, 12, 0xfff00000, 0,
++				   NEED_SWAP);
++			break;
 +
-+	ret = -EFAULT;
-+	if (copy_from_user(&newregs, uregs, sizeof(struct pt_regs)) == 0) {
-+		struct pt_regs *regs = task_pt_regs(tsk);
++		case R_NDS32_LO12S3_RELA:
++			do_reloc32(v, loc, 0x00000fff, 3, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
 +
-+		ret = -EINVAL;
-+		if (valid_user_regs(&newregs)) {
-+			*regs = newregs;
-+			ret = 0;
++		case R_NDS32_LO12S2_RELA:
++			do_reloc32(v, loc, 0x00000fff, 2, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S1_RELA:
++			do_reloc32(v, loc, 0x00000fff, 1, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S0_RELA:
++		case R_NDS32_LO12S0_ORI_RELA:
++			do_reloc32(v, loc, 0x00000fff, 0, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_9_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x000000ff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc16(v - (Elf32_Addr) loc, loc, 0x000001ff, 1,
++				   0xffffff00, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_15_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x00003fff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x00007fff, 1,
++				   0xffffc000, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_17_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x0000ffff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x0001ffff, 1,
++				   0xffff0000, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_25_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x00ffffff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x01ffffff, 1,
++				   0xff000000, 0, NEED_SWAP);
++			break;
++		case R_NDS32_WORD_9_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x000000ff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x000001ff, 1,
++				   0xffffff00, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_SDA15S3_RELA:
++		case R_NDS32_SDA15S2_RELA:
++		case R_NDS32_SDA15S1_RELA:
++		case R_NDS32_SDA15S0_RELA:
++			pr_err("%s: unsupported relocation type %d.\n",
++			       module->name, ELF32_R_TYPE(rel->r_info));
++			pr_err
++			    ("Small data section access doesn't work in the kernel space; "
++			     "please rebuild the kernel module with gcc option -mcmodel=large.\n");
++			pr_err("section %d reloc %d offset 0x%x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
++			break;
++
++		default:
++			pr_err("%s: unsupported relocation type %d.\n",
++			       module->name, ELF32_R_TYPE(rel->r_info));
++			pr_err("section %d reloc %d offset 0x%x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
 +		}
 +	}
-+
-+	return ret;
++	return 0;
 +}
 +
-+/* ptrace_getfpregs()
-+ *
-+ * Get the child FPU state.
-+ */
-+static int ptrace_getfpregs(struct task_struct *tsk, void __user * ufpregs)
++int
++apply_relocate(Elf32_Shdr * sechdrs, const char *strtab,
++	       unsigned int symindex, unsigned int relsec,
++	       struct module *module)
 +{
-+	return -EFAULT;
++	return 0;
 +}
 +
-+/*
-+ * Set the child FPU state.
-+ */
-+static int ptrace_setfpregs(struct task_struct *tsk, void __user * ufpregs)
++int
++module_finalize(const Elf32_Ehdr * hdr, const Elf_Shdr * sechdrs,
++		struct module *module)
 +{
-+	return -EFAULT;
++	return 0;
 +}
 +
-+/* do_ptrace()
-+ *
-+ * Provide ptrace defined service.
-+ */
-+long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-+		 unsigned long data)
++void module_arch_cleanup(struct module *mod)
 +{
-+	int ret;
-+
-+	switch (request) {
-+	case PTRACE_PEEKUSR:
-+		ret =
-+		    ptrace_read_user(child, addr, (unsigned long __user *)data);
-+		break;
-+
-+	case PTRACE_POKEUSR:
-+		ret = ptrace_write_user(child, addr, data);
-+		break;
-+
-+	case PTRACE_GETREGS:
-+		ret = ptrace_getregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_SETREGS:
-+		ret = ptrace_setregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_GETFPREGS:
-+		ret = ptrace_getfpregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_SETFPREGS:
-+		ret = ptrace_setfpregs(child, (void __user *)data);
-+		break;
-+
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
-+	}
-+
-+	return ret;
-+}
-+
-+void user_enable_single_step(struct task_struct *child)
-+{
-+	struct pt_regs *regs;
-+	regs = task_pt_regs(child);
-+	regs->ipsw |= PSW_mskHSS;
-+	set_tsk_thread_flag(child, TIF_SINGLESTEP);
-+}
-+
-+void user_disable_single_step(struct task_struct *child)
-+{
-+	struct pt_regs *regs;
-+	regs = task_pt_regs(child);
-+	regs->ipsw &= ~PSW_mskHSS;
-+	clear_tsk_thread_flag(child, TIF_SINGLESTEP);
-+}
-+
-+/* sys_trace()
-+ *
-+ * syscall trace handler.
-+ */
-+
-+asmlinkage int syscall_trace_enter(int syscall, struct pt_regs *regs)
-+{
-+	if (test_thread_flag(TIF_SYSCALL_TRACE)) {
-+		if (tracehook_report_syscall_entry(regs))
-+			return -1;
-+	}
-+	return syscall;
-+}
-+
-+asmlinkage void syscall_trace_leave(struct pt_regs *regs)
-+{
-+	int step = test_thread_flag(TIF_SINGLESTEP);
-+	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(regs, step);
-+
 +}
 -- 
 1.7.9.5
