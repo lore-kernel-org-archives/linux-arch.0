@@ -1,55 +1,47 @@
-From: Florian Weimer <fweimer@redhat.com>
-Subject: Re: pkeys: Support setting access rights for signal handlers
-Date: Mon, 18 Dec 2017 12:00:30 +0100
-Message-ID: <7ab875c5-dc7c-b36e-8612-3d4aaf86a15c@redhat.com>
-References: <20171212231324.GE5460@ram.oc3035372033.ibm.com>
- <9dc13a32-b1a6-8462-7e19-cfcf9e2c151e@redhat.com>
- <20171213113544.GG5460@ram.oc3035372033.ibm.com>
- <9f86d79e-165a-1b8e-32dd-7e4e8579da59@redhat.com>
- <c220f36f-c04a-50ae-3fd7-2c6245e27057@intel.com>
- <93153ac4-70f0-9d17-37f1-97b80e468922@redhat.com>
- <20171214001756.GA5471@ram.oc3035372033.ibm.com>
- <cf13f6e0-2405-4c58-4cf1-266e8baae825@redhat.com>
- <20171216150910.GA5461@ram.oc3035372033.ibm.com>
- <2eba29f4-804d-b211-1293-52a567739cad@redhat.com>
- <20171216172026.GC5461@ram.oc3035372033.ibm.com>
+From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Subject: Re: [PATCH v4 25/36] nds32: Miscellaneous header files
+Date: Mon, 18 Dec 2017 12:13:39 +0100
+Message-ID: <CAK8P3a1EOD3WB=c4JybBD5bazhVJ5reuegyA1Hyoj-nPHpsW6g@mail.gmail.com>
+References: <cover.1513577007.git.green.hu@gmail.com> <a5dc2090640500d88aa3af2f6fe9e4c73f0634f2.1513577007.git.green.hu@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52338 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750916AbdLRLAd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 Dec 2017 06:00:33 -0500
-In-Reply-To: <20171216172026.GC5461@ram.oc3035372033.ibm.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, linux-mm <linux-mm@kvack.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-x86_64@vger.kernel.org, Linux API <linux-api@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <a5dc2090640500d88aa3af2f6fe9e4c73f0634f2.1513577007.git.green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Networking <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, ren_guo-Y+KPrCd2zL4AvxtiuMwx3w@public.gmane.org, Philip
+List-Id: linux-arch.vger.kernel.org
 
-On 12/16/2017 06:20 PM, Ram Pai wrote:
-> Ok. Sounds like I do not have much to do. My patches in its current form
-> will continue to work and provide the semantics you envision.
+On Mon, Dec 18, 2017 at 7:46 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
+> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+>
+> This patch introduces some miscellaneous header files.
 
-Thanks for confirming.
+> +static inline void __delay(unsigned long loops)
+> +{
+> +       __asm__ __volatile__(".align 2\n"
+> +                            "1:\n"
+> +                            "\taddi\t%0, %0, -1\n"
+> +                            "\tbgtz\t%0, 1b\n"
+> +                            :"=r"(loops)
+> +                            :"0"(loops));
+> +}
+> +
+> +static inline void __udelay(unsigned long usecs, unsigned long lpj)
+> +{
+> +       usecs *= (unsigned long)(((0x8000000000000000ULL / (500000 / HZ)) +
+> +                                 0x80000000ULL) >> 32);
+> +       usecs = (unsigned long)(((unsigned long long)usecs * lpj) >> 32);
+> +       __delay(usecs);
+> +}
 
->> I'm open to a different way towards conveying this information to
->> userspace.  I don't want to probe for the behavior by sending a
->> signal because that is quite involved and would also be visible in
->> debuggers, confusing programmers.
+Do you have a reliable clocksource that you can read here instead of doing the
+loop? It's generally preferred to have an accurate delay if at all possible, the
+delay loop calibration is only for those architectures that don't have any
+way to observe how much time has passed accurately.
 
-> I am fine with your proposal.
-
-So how can we move this forward?  Should I submit a single new patch 
-with the new flag with a more appropriate name (PKEY_ALLOC_SIGNALINHERIT 
-comes to my mind) and the signal inheritance change?
-
-Dave, do you still want to wait for feedback from the x86 maintainer 
-regarding a general interface?  Is this really feasible without detailed 
-knowledge of the XSAVE output structure?  Otherwise, there probably 
-isn't a way around code which explicitly copies the bits we want to 
-preserve from the interrupted CPU context to the signal handler context.
-
-Thanks,
-Florian
+       Arnd
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
