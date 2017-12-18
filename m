@@ -1,33 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f178.google.com ([209.85.217.178]:39253 "EHLO
-        mail-ua0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757935AbdLRLpb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Dec 2017 06:45:31 -0500
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:47183 "EHLO
+        smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1758680AbdLRMXS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 18 Dec 2017 07:23:18 -0500
+Date: Mon, 18 Dec 2017 20:22:54 +0800
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH v3 07/33] nds32: MMU initialization
+Message-ID: <20171218122253.GA19382@gary-OptiPlex-3050>
+References: <cover.1512723245.git.green.hu@gmail.com>
+ <0964714c3dcac46ac700085717b0f414b7978112.1512723245.git.green.hu@gmail.com>
+ <20171218090848.GA5823@gary-OptiPlex-3050>
+ <CAEbi=3dy+KGgftWOrbBpVPDZURiYVYwAyGWzd9z4T7RQYAk2FA@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a0xQ4mYnkxjWTTEcvpJg6SfcA4WZKNkopa93_6Mz_YOGw@mail.gmail.com>
-References: <cover.1513577007.git.green.hu@gmail.com> <ec54d5ac8067e2ff542f69fc2967182922870b83.1513577007.git.green.hu@gmail.com>
- <CAK8P3a0xQ4mYnkxjWTTEcvpJg6SfcA4WZKNkopa93_6Mz_YOGw@mail.gmail.com>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Mon, 18 Dec 2017 19:44:49 +0800
-Message-ID: <CAEbi=3cAoP85hc-0rMwPoJ8=BjfG=4HaD89rqbEdiA7saUx7yQ@mail.gmail.com>
-Subject: Re: [PATCH v4 13/36] nds32: Device specific operations
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAEbi=3dy+KGgftWOrbBpVPDZURiYVYwAyGWzd9z4T7RQYAk2FA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Philippe Ombredanne <pombredanne@nexb.com>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171218114449.Jgu0yplETrTQk3JzuE6HEZRuasIOMkUk_eSWSlt9aC0@z>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171218122254.dfdscdZsP7stu7VpYEZlwFxggvuAdPVvzx0G4-unXgc@z>
 
-2017-12-18 19:26 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
-> On Mon, Dec 18, 2017 at 7:46 AM, Greentime Hu <green.hu@gmail.com> wrote:
->
->> +#define __ASM_NDS32_IO_H
->> +
->> +extern void iounmap(void __iomem *addr);
->
-> The prototype here should probably include 'volatile' to avoid warnings in an
-> allmodconfig build.
->
+On Mon, Dec 18, 2017 at 07:21:30PM +0800, Greentime Hu wrote:
+> Hi, Guo Ren:
+> 
+> 2017-12-18 17:08 GMT+08:00 Guo Ren <ren_guo@c-sky.com>:
+> > Hi Greentime,
+> >
+> > On Fri, Dec 08, 2017 at 05:11:50PM +0800, Greentime Hu wrote:
+> > [...]
+> >>
+> >> diff --git a/arch/nds32/mm/highmem.c b/arch/nds32/mm/highmem.c
+> > [...]
+> >> +void *kmap(struct page *page)
+> >> +{
+> >> +     unsigned long vaddr;
+> >> +     might_sleep();
+> >> +     if (!PageHighMem(page))
+> >> +             return page_address(page);
+> >> +     vaddr = (unsigned long)kmap_high(page);
+> > Here should invalid the cpu_mmu_tlb's entry, Or invalid it in the
+> > set_pte().
+> >
+> > eg:
+> > vaddr0 = kmap(page0)
+> > *vaddr0 = val0 //It will cause tlb-miss, and hard-refill to MMU-tlb
+> > kunmap(page0)
+> > vaddr1 = kmap(page1) // Mostly vaddr1 = vaddr0
+> > val = vaddr1; //No tlb-miss and it will get page0's val not page1, because
+> >                 last expired vaddr0's entry is left in CPU-MMU-tlb.
+> >
+> 
+> Thanks.
+> I will add __nds32__tlbop_inv(vaddr); to invalidate this mapping
+> before retrun vaddr.
 
-Thanks. I will update it like this.
-extern void iounmap(volatile void __iomem *addr);
+Sorry, perhaps I'm wrong. See
+kmap->kmap_high->map_new_virtual->get_next_pkmap_nr(color).
+
+Seems pkmap will return the vaddr by vaddr + 1 until
+no_more_pkmaps(), and then flush_all_zero_pkmaps.
+Just kmap_atomic need it, and you've done.
+
+But I don't know why mips need flush_tlb_one in
+arch/mips/mm/highmem.c:kmap(). VIPT? but kmap give the get_pkmap_color
+for aliasing.
+
+Best Regards
+ Guo Ren
