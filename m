@@ -1,73 +1,45 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v4 30/36] dt-bindings: nds32 SoC Bindings
-Date: Mon, 18 Dec 2017 14:46:42 +0800
-Message-ID: <d4cbf5fd90f5a846558f00ad48bc12b64532daf8.1513577007.git.green.hu@gmail.com>
+Subject: [PATCH v4 28/36] MAINTAINERS: Add nds32
+Date: Mon, 18 Dec 2017 14:46:40 +0800
+Message-ID: <e41cdc34957b266a647af2e836b1e0e202035d5a.1513577007.git.green.hu@gmail.com>
 References: <cover.1513577007.git.green.hu@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <cover.1513577007.git.green.hu@gmail.com>
 In-Reply-To: <cover.1513577007.git.green.hu@gmail.com>
 References: <cover.1513577007.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: netdev-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, pombredanne@nexb.com
 Cc: green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds nds32 SoC(AE3XX and AG101P) binding documents.
-
 Signed-off-by: Greentime Hu <greentime@andestech.com>
-Reviewed-by: Rob Herring <robh@kernel.org>
 ---
- .../devicetree/bindings/nds32/andestech-boards     |   40 ++++++++++++++++++++
- 1 file changed, 40 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/nds32/andestech-boards
+ MAINTAINERS |   11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-diff --git a/Documentation/devicetree/bindings/nds32/andestech-boards b/Documentation/devicetree/bindings/nds32/andestech-boards
-new file mode 100644
-index 0000000..f5d7569
---- /dev/null
-+++ b/Documentation/devicetree/bindings/nds32/andestech-boards
-@@ -0,0 +1,40 @@
-+Andestech(nds32) AE3XX Platform
-+-----------------------------------------------------------------------------
-+The AE3XX prototype demonstrates the AE3XX example platform on the FPGA. It
-+is composed of one Andestech(nds32) processor and AE3XX.
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 2f4e462..20284c8 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -857,6 +857,17 @@ X:	drivers/iio/*/adjd*
+ F:	drivers/staging/iio/*/ad*
+ F:	drivers/staging/iio/trigger/iio-trig-bfin-timer.c
+ 
++ANDES ARCHITECTURE
++M:	Greentime Hu <green.hu@gmail.com>
++M:	Vincent Chen <deanbo422@gmail.com>
++T:	git https://github.com/andestech/linux.git
++S:	Supported
++F:	arch/nds32
++F:	Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
++F:	Documentation/devicetree/bindings/nds32
++K:	nds32
++N:	nds32
 +
-+Required properties (in root node):
-+- compatible = "andestech,ae3xx";
-+
-+Example:
-+/dts-v1/;
-+/ {
-+	compatible = "andestech,ae3xx";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+};
-+
-+Andestech(nds32) AG101P Platform
-+-----------------------------------------------------------------------------
-+AG101P is a generic SoC Platform IP that works with any of Andestech(nds32)
-+processors to provide a cost-effective and high performance solution for
-+majority of embedded systems in variety of application domains. Users may
-+simply attach their IP on one of the system buses together with certain glue
-+logics to complete a SoC solution for a specific application. With
-+comprehensive simulation and design environments, users may evaluate the
-+system performance of their applications and track bugs of their designs
-+efficiently. The optional hardware development platform further provides real
-+system environment for early prototyping and software/hardware co-development.
-+
-+Required properties (in root node):
-+	compatible = "andestech,ag101p";
-+
-+Example:
-+/dts-v1/;
-+/ {
-+	compatible = "andestech,ag101p";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+};
+ ANDROID CONFIG FRAGMENTS
+ M:	Rob Herring <robh@kernel.org>
+ S:	Supported
 -- 
 1.7.9.5
