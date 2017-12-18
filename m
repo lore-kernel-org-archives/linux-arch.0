@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v4 10/36] nds32: Process management
-Date: Mon, 18 Dec 2017 14:46:22 +0800
-Message-ID: <6f26e83869ba69d0a47d92c17eb0dcb4c8e9bb1d.1513577007.git.green.hu@gmail.com>
+Subject: [PATCH v4 14/36] nds32: DMA mapping API
+Date: Mon, 18 Dec 2017 14:46:26 +0800
+Message-ID: <d1c252cb74ab772d514ba88bec3d1a49b1b0b5ae.1513577007.git.green.hu@gmail.com>
 References: <cover.1513577007.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1513577007.git.green.hu@gmail.com>
@@ -14,441 +14,502 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch includes copy_thread(), start_thread() implementation and cpu_context
-structure definition. nds32 uses $r25 to get current task_struct.
+This patch adds support for the DMA mapping API. It uses dma_map_ops for
+flexibility.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/current.h     |   12 ++
- arch/nds32/include/asm/processor.h   |  102 +++++++++++++++++
- arch/nds32/include/asm/thread_info.h |   78 +++++++++++++
- arch/nds32/kernel/process.c          |  204 ++++++++++++++++++++++++++++++++++
- 4 files changed, 396 insertions(+)
- create mode 100644 arch/nds32/include/asm/current.h
- create mode 100644 arch/nds32/include/asm/processor.h
- create mode 100644 arch/nds32/include/asm/thread_info.h
- create mode 100644 arch/nds32/kernel/process.c
+ arch/nds32/include/asm/dma-mapping.h |   14 ++
+ arch/nds32/kernel/dma.c              |  459 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 473 insertions(+)
+ create mode 100644 arch/nds32/include/asm/dma-mapping.h
+ create mode 100644 arch/nds32/kernel/dma.c
 
-diff --git a/arch/nds32/include/asm/current.h b/arch/nds32/include/asm/current.h
+diff --git a/arch/nds32/include/asm/dma-mapping.h b/arch/nds32/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..b4dcd22
+index 0000000..2dd47d24
 --- /dev/null
-+++ b/arch/nds32/include/asm/current.h
-@@ -0,0 +1,12 @@
++++ b/arch/nds32/include/asm/dma-mapping.h
+@@ -0,0 +1,14 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef _ASM_NDS32_CURRENT_H
-+#define _ASM_NDS32_CURRENT_H
++#ifndef ASMNDS32_DMA_MAPPING_H
++#define ASMNDS32_DMA_MAPPING_H
 +
-+#ifndef __ASSEMBLY__
-+register struct task_struct *current asm("$r25");
-+#endif /* __ASSEMBLY__ */
-+#define tsk $r25
++extern struct dma_map_ops nds32_dma_ops;
 +
-+#endif /* _ASM_NDS32_CURRENT_H */
-diff --git a/arch/nds32/include/asm/processor.h b/arch/nds32/include/asm/processor.h
-new file mode 100644
-index 0000000..cad9b8c
---- /dev/null
-+++ b/arch/nds32/include/asm/processor.h
-@@ -0,0 +1,102 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef __ASM_NDS32_PROCESSOR_H
-+#define __ASM_NDS32_PROCESSOR_H
-+
-+/*
-+ * Default implementation of macro that returns current
-+ * instruction pointer ("program counter").
-+ */
-+#define current_text_addr() ({ __label__ _l; _l: &&_l;})
-+
-+#ifdef __KERNEL__
-+
-+#include <asm/ptrace.h>
-+#include <asm/types.h>
-+#include <asm/sigcontext.h>
-+
-+#define KERNEL_STACK_SIZE	PAGE_SIZE
-+#define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX   TASK_SIZE
-+
-+struct cpu_context {
-+	unsigned long r6;
-+	unsigned long r7;
-+	unsigned long r8;
-+	unsigned long r9;
-+	unsigned long r10;
-+	unsigned long r11;
-+	unsigned long r12;
-+	unsigned long r13;
-+	unsigned long r14;
-+	unsigned long fp;
-+	unsigned long pc;
-+	unsigned long sp;
-+};
-+
-+struct thread_struct {
-+	struct cpu_context cpu_context;	/* cpu context */
-+	/* fault info     */
-+	unsigned long address;
-+	unsigned long trap_no;
-+	unsigned long error_code;
-+};
-+
-+#define INIT_THREAD  {	}
-+
-+#ifdef __NDS32_EB__
-+#define PSW_DE	PSW_mskBE
-+#else
-+#define PSW_DE	0x0
-+#endif
-+
-+#ifdef CONFIG_WBNA
-+#define PSW_valWBNA	PSW_mskWBNA
-+#else
-+#define PSW_valWBNA	0x0
-+#endif
-+
-+#ifdef CONFIG_HWZOL
-+#define	PSW_valINIT (PSW_CPL_ANY | PSW_mskAEN | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
-+#else
-+#define	PSW_valINIT (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
-+#endif
-+
-+#define start_thread(regs,pc,stack)			\
-+({							\
-+	memzero(regs, sizeof(struct pt_regs));		\
-+	regs->ipsw = PSW_valINIT;			\
-+	regs->ir0 = (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_SYSTEM | PSW_INTL_1);	\
-+	regs->ipc = pc;					\
-+	regs->sp = stack;				\
-+})
-+
-+/* Forward declaration, a strange C thing */
-+struct task_struct;
-+
-+/* Free all resources held by a thread. */
-+#define release_thread(thread) do { } while(0)
-+
-+/* Prepare to copy thread state - unlazy all lazy status */
-+#define prepare_to_copy(tsk)	do { } while (0)
-+
-+unsigned long get_wchan(struct task_struct *p);
-+
-+#define cpu_relax()			barrier()
-+
-+#define task_pt_regs(task) \
-+	((struct pt_regs *) (task_stack_page(task) + THREAD_SIZE \
-+		- 8) - 1)
-+
-+/*
-+ * Create a new kernel thread
-+ */
-+extern int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags);
-+
-+#define KSTK_EIP(tsk)	instruction_pointer(task_pt_regs(tsk))
-+#define KSTK_ESP(tsk)	user_stack_pointer(task_pt_regs(tsk))
-+
-+#endif
-+
-+#endif /* __ASM_NDS32_PROCESSOR_H */
-diff --git a/arch/nds32/include/asm/thread_info.h b/arch/nds32/include/asm/thread_info.h
-new file mode 100644
-index 0000000..818e769
---- /dev/null
-+++ b/arch/nds32/include/asm/thread_info.h
-@@ -0,0 +1,78 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef __ASM_NDS32_THREAD_INFO_H
-+#define __ASM_NDS32_THREAD_INFO_H
-+
-+#ifdef __KERNEL__
-+
-+#define THREAD_SIZE_ORDER 	(1)
-+#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
-+
-+#ifndef __ASSEMBLY__
-+
-+struct task_struct;
-+
-+#include <asm/ptrace.h>
-+#include <asm/types.h>
-+
-+typedef unsigned long mm_segment_t;
-+
-+/*
-+ * low level task data that entry.S needs immediate access to.
-+ * __switch_to() assumes cpu_context follows immediately after cpu_domain.
-+ */
-+struct thread_info {
-+	unsigned long flags;	/* low level flags */
-+	__s32 preempt_count;	/* 0 => preemptable, <0 => bug */
-+	mm_segment_t addr_limit;	/* address limit */
-+};
-+#define INIT_THREAD_INFO(tsk)						\
-+{									\
-+	.preempt_count	= INIT_PREEMPT_COUNT,				\
-+	.addr_limit	= KERNEL_DS,					\
++static inline struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
++{
++	return &nds32_dma_ops;
 +}
-+#define init_thread_info	(init_thread_union.thread_info)
-+#define init_stack		(init_thread_union.stack)
-+#define thread_saved_pc(tsk) ((unsigned long)(tsk->thread.cpu_context.pc))
-+#define thread_saved_fp(tsk) ((unsigned long)(tsk->thread.cpu_context.fp))
++
 +#endif
-+
-+/*
-+ * thread information flags:
-+ *  TIF_SYSCALL_TRACE	- syscall trace active
-+ *  TIF_SIGPENDING	- signal pending
-+ *  TIF_NEED_RESCHED	- rescheduling necessary
-+ *  TIF_NOTIFY_RESUME	- callback before returning to user
-+ *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
-+ *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
-+ */
-+#define TIF_SIGPENDING		1
-+#define TIF_NEED_RESCHED	2
-+#define TIF_SINGLESTEP		3
-+#define TIF_NOTIFY_RESUME	4	/* callback before returning to user */
-+#define TIF_SYSCALL_TRACE	8
-+#define TIF_USEDFPU             16
-+#define TIF_POLLING_NRFLAG	17
-+#define TIF_MEMDIE		18
-+#define TIF_FREEZE		19
-+#define TIF_RESTORE_SIGMASK	20
-+
-+#define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
-+#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
-+#define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
-+#define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
-+#define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
-+#define _TIF_FREEZE		(1 << TIF_FREEZE)
-+#define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
-+
-+/*
-+ * Change these and you break ASM code in entry-common.S
-+ */
-+#define _TIF_WORK_MASK		0x000000ff
-+#define _TIF_WORK_SYSCALL_ENTRY (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
-+#define _TIF_WORK_SYSCALL_LEAVE (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
-+
-+#endif /* __KERNEL__ */
-+#endif /* __ASM_NDS32_THREAD_INFO_H */
-diff --git a/arch/nds32/kernel/process.c b/arch/nds32/kernel/process.c
+diff --git a/arch/nds32/kernel/dma.c b/arch/nds32/kernel/dma.c
 new file mode 100644
-index 0000000..b68cfc4
+index 0000000..9bd1dc7
 --- /dev/null
-+++ b/arch/nds32/kernel/process.c
-@@ -0,0 +1,204 @@
++++ b/arch/nds32/kernel/dma.c
+@@ -0,0 +1,459 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/sched.h>
-+#include <linux/sched/debug.h>
-+#include <linux/sched/task_stack.h>
-+#include <linux/delay.h>
-+#include <linux/kallsyms.h>
-+#include <linux/uaccess.h>
-+#include <asm/elf.h>
++#include <linux/types.h>
++#include <linux/mm.h>
++#include <linux/export.h>
++#include <linux/string.h>
++#include <linux/scatterlist.h>
++#include <linux/dma-mapping.h>
++#include <linux/io.h>
++#include <linux/cache.h>
++#include <linux/highmem.h>
++#include <linux/slab.h>
++#include <asm/cacheflush.h>
++#include <asm/tlbflush.h>
++#include <asm/dma-mapping.h>
 +#include <asm/proc-fns.h>
-+#include <linux/ptrace.h>
 +
-+extern void setup_mm_for_reboot(char mode);
-+#ifdef CONFIG_PROC_FS
-+struct proc_dir_entry *proc_dir_cpu;
-+EXPORT_SYMBOL(proc_dir_cpu);
-+#endif
++/*
++ * This is the page table (2MB) covering uncached, DMA consistent allocations
++ */
++static pte_t *consistent_pte;
++static DEFINE_RAW_SPINLOCK(consistent_lock);
 +
-+extern inline void arch_reset(char mode)
++/*
++ * VM region handling support.
++ *
++ * This should become something generic, handling VM region allocations for
++ * vmalloc and similar (ioremap, module space, etc).
++ *
++ * I envisage vmalloc()'s supporting vm_struct becoming:
++ *
++ *  struct vm_struct {
++ *    struct vm_region	region;
++ *    unsigned long	flags;
++ *    struct page	**pages;
++ *    unsigned int	nr_pages;
++ *    unsigned long	phys_addr;
++ *  };
++ *
++ * get_vm_area() would then call vm_region_alloc with an appropriate
++ * struct vm_region head (eg):
++ *
++ *  struct vm_region vmalloc_head = {
++ *	.vm_list	= LIST_HEAD_INIT(vmalloc_head.vm_list),
++ *	.vm_start	= VMALLOC_START,
++ *	.vm_end		= VMALLOC_END,
++ *  };
++ *
++ * However, vmalloc_head.vm_start is variable (typically, it is dependent on
++ * the amount of RAM found at boot time.)  I would imagine that get_vm_area()
++ * would have to initialise this each time prior to calling vm_region_alloc().
++ */
++struct arch_vm_region {
++	struct list_head vm_list;
++	unsigned long vm_start;
++	unsigned long vm_end;
++	struct page *vm_pages;
++};
++
++static struct arch_vm_region consistent_head = {
++	.vm_list = LIST_HEAD_INIT(consistent_head.vm_list),
++	.vm_start = CONSISTENT_BASE,
++	.vm_end = CONSISTENT_END,
++};
++
++static struct arch_vm_region *vm_region_alloc(struct arch_vm_region *head,
++					      size_t size, int gfp)
 +{
-+	if (mode == 's') {
-+		/* Use cpu handler, jump to 0 */
-+		cpu_reset(0);
++	unsigned long addr = head->vm_start, end = head->vm_end - size;
++	unsigned long flags;
++	struct arch_vm_region *c, *new;
++
++	new = kmalloc(sizeof(struct arch_vm_region), gfp);
++	if (!new)
++		goto out;
++
++	raw_spin_lock_irqsave(&consistent_lock, flags);
++
++	list_for_each_entry(c, &head->vm_list, vm_list) {
++		if ((addr + size) < addr)
++			goto nospc;
++		if ((addr + size) <= c->vm_start)
++			goto found;
++		addr = c->vm_end;
++		if (addr > end)
++			goto nospc;
 +	}
-+}
 +
-+void (*pm_power_off) (void);
-+EXPORT_SYMBOL(pm_power_off);
-+
-+static char reboot_mode = 'h';
-+
-+int __init reboot_setup(char *str)
-+{
-+	reboot_mode = str[0];
-+	return 1;
-+}
-+
-+static int cpub_pwroff(void)
-+{
-+	return 0;
-+}
-+
-+__setup("reboot=", reboot_setup);
-+
-+void machine_halt(void)
-+{
-+	cpub_pwroff();
-+}
-+
-+EXPORT_SYMBOL(machine_halt);
-+
-+void machine_power_off(void)
-+{
-+	if (pm_power_off)
-+		pm_power_off();
-+}
-+
-+EXPORT_SYMBOL(machine_power_off);
-+
-+void machine_restart(char *__unused)
-+{
++found:
 +	/*
-+	 * Clean and disable cache, and turn off interrupts
++	 * Insert this entry _before_ the one we found.
 +	 */
-+	cpu_proc_fin();
++	list_add_tail(&new->vm_list, &c->vm_list);
++	new->vm_start = addr;
++	new->vm_end = addr + size;
 +
-+	/*
-+	 * Tell the mm system that we are going to reboot -
-+	 * we may need it to insert some 1:1 mappings so that
-+	 * soft boot works.
-+	 */
-+	setup_mm_for_reboot(reboot_mode);
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++	return new;
 +
-+	/*
-+	 * Now call the architecture specific reboot code.
-+	 */
-+	arch_reset(reboot_mode);
-+
-+	/*
-+	 * Whoops - the architecture was unable to reboot.
-+	 * Tell the user!
-+	 */
-+	mdelay(1000);
-+	pr_info("Reboot failed -- System halted\n");
-+	while (1) ;
++nospc:
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++	kfree(new);
++out:
++	return NULL;
 +}
 +
-+EXPORT_SYMBOL(machine_restart);
-+
-+void show_regs(struct pt_regs *regs)
++static struct arch_vm_region *vm_region_find(struct arch_vm_region *head,
++					     unsigned long addr)
 +{
-+	print_symbol("PC is at %s\n", instruction_pointer(regs));
-+	print_symbol("LP is at %s\n", regs->lp);
-+	pr_info("pc : [<%08lx>]    lp : [<%08lx>]    %s\n"
-+		"sp : %08lx  fp : %08lx  gp : %08lx\n",
-+		instruction_pointer(regs),
-+		regs->lp, print_tainted(), regs->sp, regs->fp, regs->gp);
-+	pr_info("r25: %08lx  r24: %08lx\n", regs->uregs[25], regs->uregs[24]);
++	struct arch_vm_region *c;
 +
-+	pr_info("r23: %08lx  r22: %08lx  r21: %08lx  r20: %08lx\n",
-+		regs->uregs[23], regs->uregs[22],
-+		regs->uregs[21], regs->uregs[20]);
-+	pr_info("r19: %08lx  r18: %08lx  r17: %08lx  r16: %08lx\n",
-+		regs->uregs[19], regs->uregs[18],
-+		regs->uregs[17], regs->uregs[16]);
-+	pr_info("r15: %08lx  r14: %08lx  r13: %08lx  r12: %08lx\n",
-+		regs->uregs[15], regs->uregs[14],
-+		regs->uregs[13], regs->uregs[12]);
-+	pr_info("r11: %08lx  r10: %08lx  r9 : %08lx  r8 : %08lx\n",
-+		regs->uregs[11], regs->uregs[10],
-+		regs->uregs[9], regs->uregs[8]);
-+	pr_info("r7 : %08lx  r6 : %08lx  r5 : %08lx  r4 : %08lx\n",
-+		regs->uregs[7], regs->uregs[6], regs->uregs[5], regs->uregs[4]);
-+	pr_info("r3 : %08lx  r2 : %08lx  r1 : %08lx  r0 : %08lx\n",
-+		regs->uregs[3], regs->uregs[2], regs->uregs[1], regs->uregs[0]);
-+	pr_info("  IRQs o%s  Segment %s\n",
-+		interrupts_enabled(regs) ? "n" : "ff",
-+		segment_eq(get_fs(), get_ds())? "kernel" : "user");
-+}
-+
-+EXPORT_SYMBOL(show_regs);
-+
-+void flush_thread(void)
-+{
-+}
-+
-+DEFINE_PER_CPU(struct task_struct *, __entry_task);
-+
-+asmlinkage void ret_from_fork(void) __asm__("ret_from_fork");
-+int copy_thread(unsigned long clone_flags, unsigned long stack_start,
-+	    unsigned long stk_sz, struct task_struct *p)
-+{
-+	struct pt_regs *childregs = task_pt_regs(p);
-+
-+	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
-+
-+	if (unlikely(p->flags & PF_KTHREAD)) {
-+		memset(childregs, 0, sizeof(struct pt_regs));
-+		/* kernel thread fn */
-+		p->thread.cpu_context.r6 = stack_start;
-+		/* kernel thread argument */
-+		p->thread.cpu_context.r7 = stk_sz;
-+	} else {
-+		*childregs = *current_pt_regs();
-+		if (stack_start)
-+			childregs->sp = stack_start;
-+		/* child get zero as ret. */
-+		childregs->uregs[0] = 0;
-+		childregs->osp = 0;
-+		if (clone_flags & CLONE_SETTLS)
-+			childregs->uregs[25] = childregs->uregs[3];
++	list_for_each_entry(c, &head->vm_list, vm_list) {
++		if (c->vm_start == addr)
++			goto out;
 +	}
-+	/* cpu context switching  */
-+	p->thread.cpu_context.pc = (unsigned long)ret_from_fork;
-+	p->thread.cpu_context.sp = (unsigned long)childregs;
++	c = NULL;
++out:
++	return c;
++}
 +
-+#ifdef CONFIG_HWZOL
-+	childregs->lb = 0;
-+	childregs->le = 0;
-+	childregs->lc = 0;
-+#endif
++/* FIXME: attrs is not used. */
++static void *nds32_dma_alloc_coherent(struct device *dev, size_t size,
++				      dma_addr_t * handle, gfp_t gfp,
++				      unsigned long attrs)
++{
++	struct page *page;
++	struct arch_vm_region *c;
++	unsigned long order;
++	u64 mask = ~0ULL, limit;
++	pgprot_t prot = pgprot_noncached(PAGE_KERNEL);
 +
-+	return 0;
++	if (!consistent_pte) {
++		pr_err("%s: not initialized\n", __func__);
++		dump_stack();
++		return NULL;
++	}
++
++	if (dev) {
++		mask = dev->coherent_dma_mask;
++
++		/*
++		 * Sanity check the DMA mask - it must be non-zero, and
++		 * must be able to be satisfied by a DMA allocation.
++		 */
++		if (mask == 0) {
++			dev_warn(dev, "coherent DMA mask is unset\n");
++			goto no_page;
++		}
++
++	}
++
++	/*
++	 * Sanity check the allocation size.
++	 */
++	size = PAGE_ALIGN(size);
++	limit = (mask + 1) & ~mask;
++	if ((limit && size >= limit) ||
++	    size >= (CONSISTENT_END - CONSISTENT_BASE)) {
++		pr_warn("coherent allocation too big "
++			"(requested %#x mask %#llx)\n", size, mask);
++		goto no_page;
++	}
++
++	order = get_order(size);
++
++	if (mask != 0xffffffff)
++		gfp |= GFP_DMA;
++
++	page = alloc_pages(gfp, order);
++	if (!page)
++		goto no_page;
++
++	/*
++	 * Invalidate any data that might be lurking in the
++	 * kernel direct-mapped region for device DMA.
++	 */
++	{
++		unsigned long kaddr = (unsigned long)page_address(page);
++		memset(page_address(page), 0, size);
++		cpu_dma_wbinval_range(kaddr, kaddr + size);
++	}
++
++	/*
++	 * Allocate a virtual address in the consistent mapping region.
++	 */
++	c = vm_region_alloc(&consistent_head, size,
++			    gfp & ~(__GFP_DMA | __GFP_HIGHMEM));
++	if (c) {
++		pte_t *pte = consistent_pte + CONSISTENT_OFFSET(c->vm_start);
++		struct page *end = page + (1 << order);
++
++		c->vm_pages = page;
++
++		/*
++		 * Set the "dma handle"
++		 */
++		*handle = page_to_phys(page);
++
++		do {
++			BUG_ON(!pte_none(*pte));
++
++			/*
++			 * x86 does not mark the pages reserved...
++			 */
++			SetPageReserved(page);
++			set_pte(pte, mk_pte(page, prot));
++			page++;
++			pte++;
++		} while (size -= PAGE_SIZE);
++
++		/*
++		 * Free the otherwise unused pages.
++		 */
++		while (page < end) {
++			__free_page(page);
++			page++;
++		}
++
++		return (void *)c->vm_start;
++	}
++
++	if (page)
++		__free_pages(page, order);
++no_page:
++	*handle = ~0;
++	return NULL;
++}
++
++static void nds32_dma_free(struct device *dev, size_t size, void *cpu_addr,
++			   dma_addr_t handle, unsigned long attrs)
++{
++	struct arch_vm_region *c;
++	unsigned long flags, addr;
++	pte_t *ptep;
++
++	size = PAGE_ALIGN(size);
++
++	raw_spin_lock_irqsave(&consistent_lock, flags);
++
++	c = vm_region_find(&consistent_head, (unsigned long)cpu_addr);
++	if (!c)
++		goto no_area;
++
++	if ((c->vm_end - c->vm_start) != size) {
++		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
++		       __func__, c->vm_end - c->vm_start, size);
++		dump_stack();
++		size = c->vm_end - c->vm_start;
++	}
++
++	ptep = consistent_pte + CONSISTENT_OFFSET(c->vm_start);
++	addr = c->vm_start;
++	do {
++		pte_t pte = ptep_get_and_clear(&init_mm, addr, ptep);
++		unsigned long pfn;
++
++		ptep++;
++		addr += PAGE_SIZE;
++
++		if (!pte_none(pte) && pte_present(pte)) {
++			pfn = pte_pfn(pte);
++
++			if (pfn_valid(pfn)) {
++				struct page *page = pfn_to_page(pfn);
++
++				/*
++				 * x86 does not mark the pages reserved...
++				 */
++				ClearPageReserved(page);
++
++				__free_page(page);
++				continue;
++			}
++		}
++
++		pr_crit("%s: bad page in kernel page table\n", __func__);
++	} while (size -= PAGE_SIZE);
++
++	flush_tlb_kernel_range(c->vm_start, c->vm_end);
++
++	list_del(&c->vm_list);
++
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++
++	kfree(c);
++	return;
++
++no_area:
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++	pr_err("%s: trying to free invalid coherent area: %p\n",
++	       __func__, cpu_addr);
++	dump_stack();
 +}
 +
 +/*
-+ * fill in the fpe structure for a core dump...
++ * Initialise the consistent memory allocation.
 + */
-+int dump_fpu(struct pt_regs *regs, elf_fpregset_t * fpu)
++static int __init consistent_init(void)
 +{
-+	int fpvalid = 0;
-+	return fpvalid;
++	pgd_t *pgd;
++	pmd_t *pmd;
++	pte_t *pte;
++	int ret = 0;
++
++	do {
++		pgd = pgd_offset(&init_mm, CONSISTENT_BASE);
++		pmd = pmd_alloc(&init_mm, pgd, CONSISTENT_BASE);
++		if (!pmd) {
++			pr_err("%s: no pmd tables\n", __func__);
++			ret = -ENOMEM;
++			break;
++		}
++		/* The first level mapping may be created in somewhere.
++		 * It's not necessary to warn here. */
++		/* WARN_ON(!pmd_none(*pmd)); */
++
++		pte = pte_alloc_kernel(pmd, CONSISTENT_BASE);
++		if (!pte) {
++			ret = -ENOMEM;
++			break;
++		}
++
++		consistent_pte = pte;
++	} while (0);
++
++	return ret;
 +}
 +
-+EXPORT_SYMBOL(dump_fpu);
-+
-+unsigned long get_wchan(struct task_struct *p)
++core_initcall(consistent_init);
++static void consistent_sync(void *vaddr, size_t size, int direction);
++static dma_addr_t nds32_dma_map_page(struct device *dev, struct page *page,
++				     unsigned long offset, size_t size,
++				     enum dma_data_direction dir,
++				     unsigned long attrs)
 +{
-+	unsigned long fp, lr;
-+	unsigned long stack_start, stack_end;
-+	int count = 0;
++	consistent_sync((void *)(page_address(page) + offset), size, dir);
++	return page_to_phys(page) + offset;
++}
 +
-+	if (!p || p == current || p->state == TASK_RUNNING)
-+		return 0;
++static void nds32_dma_unmap_page(struct device *dev, dma_addr_t handle,
++				 size_t size, enum dma_data_direction dir,
++				 unsigned long attrs)
++{
++	consistent_sync(phys_to_virt(handle), size, dir);
++}
 +
-+	if (IS_ENABLED(CONFIG_FRAME_POINTER)) {
-+		stack_start = (unsigned long)end_of_stack(p);
-+		stack_end = (unsigned long)task_stack_page(p) + THREAD_SIZE;
++/*
++ * Make an area consistent for devices.
++ */
++static void consistent_sync(void *vaddr, size_t size, int direction)
++{
++	unsigned long start = (unsigned long)vaddr;
++	unsigned long end = start + size;
 +
-+		fp = thread_saved_fp(p);
-+		do {
-+			if (fp < stack_start || fp > stack_end)
-+				return 0;
-+			lr = ((unsigned long *)fp)[0];
-+			if (!in_sched_functions(lr))
-+				return lr;
-+			fp = *(unsigned long *)(fp + 4);
-+		} while (count++ < 16);
++	switch (direction) {
++	case DMA_FROM_DEVICE:	/* invalidate only */
++		cpu_dma_inval_range(start, end);
++		break;
++	case DMA_TO_DEVICE:	/* writeback only */
++		cpu_dma_wb_range(start, end);
++		break;
++	case DMA_BIDIRECTIONAL:	/* writeback and invalidate */
++		cpu_dma_wbinval_range(start, end);
++		break;
++	default:
++		BUG();
 +	}
-+	return 0;
 +}
 +
-+EXPORT_SYMBOL(get_wchan);
++static int nds32_dma_map_sg(struct device *dev, struct scatterlist *sg,
++			    int nents, enum dma_data_direction dir,
++			    unsigned long attrs)
++{
++	int i;
++
++	for (i = 0; i < nents; i++, sg++) {
++		void *virt;
++		unsigned long pfn;
++		struct page *page = sg_page(sg);
++
++		sg->dma_address = sg_phys(sg);
++		pfn = page_to_pfn(page) + sg->offset / PAGE_SIZE;
++		page = pfn_to_page(pfn);
++		if (PageHighMem(page)) {
++			virt = kmap_atomic(page);
++			consistent_sync(virt, sg->length, dir);
++			kunmap_atomic(virt);
++		} else {
++			if (sg->offset > PAGE_SIZE)
++				panic("sg->offset:%08x > PAGE_SIZE\n",
++				      sg->offset);
++			virt = page_address(page) + sg->offset;
++			consistent_sync(virt, sg->length, dir);
++		}
++	}
++	return nents;
++}
++
++static void nds32_dma_unmap_sg(struct device *dev, struct scatterlist *sg,
++			       int nhwentries, enum dma_data_direction dir,
++			       unsigned long attrs)
++{
++}
++
++static void
++nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
++			      size_t size, enum dma_data_direction dir)
++{
++	consistent_sync((void *)phys_to_virt(handle), size, dir);
++}
++
++static void
++nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
++				 size_t size, enum dma_data_direction dir)
++{
++	consistent_sync((void *)phys_to_virt(handle), size, dir);
++}
++
++static void
++nds32_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nents,
++			  enum dma_data_direction dir)
++{
++	int i;
++
++	for (i = 0; i < nents; i++, sg++) {
++		char *virt =
++		    page_address((struct page *)sg->page_link) + sg->offset;
++		consistent_sync(virt, sg->length, dir);
++	}
++}
++
++static void
++nds32_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++			     int nents, enum dma_data_direction dir)
++{
++	int i;
++
++	for (i = 0; i < nents; i++, sg++) {
++		char *virt =
++		    page_address((struct page *)sg->page_link) + sg->offset;
++		consistent_sync(virt, sg->length, dir);
++	}
++}
++
++struct dma_map_ops nds32_dma_ops = {
++	.alloc = nds32_dma_alloc_coherent,
++	.free = nds32_dma_free,
++	.map_page = nds32_dma_map_page,
++	.unmap_page = nds32_dma_unmap_page,
++	.map_sg = nds32_dma_map_sg,
++	.unmap_sg = nds32_dma_unmap_sg,
++	.sync_single_for_device = nds32_dma_sync_single_for_device,
++	.sync_single_for_cpu = nds32_dma_sync_single_for_cpu,
++	.sync_sg_for_cpu = nds32_dma_sync_sg_for_cpu,
++	.sync_sg_for_device = nds32_dma_sync_sg_for_device,
++};
++
++EXPORT_SYMBOL(nds32_dma_ops);
 -- 
 1.7.9.5
