@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f66.google.com ([209.85.160.66]:34914 "EHLO
+Received: from mail-pl0-f66.google.com ([209.85.160.66]:44293 "EHLO
         mail-pl0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932879AbdLRHNl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Dec 2017 02:13:41 -0500
+        with ESMTP id S932886AbdLRHNg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Dec 2017 02:13:36 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v4 24/36] nds32: Device tree support
-Date: Mon, 18 Dec 2017 14:46:36 +0800
-Message-ID: <8e4350bd85cada3eec445568d95bab06a9cbe9ef.1513577007.git.green.hu@gmail.com>
+Subject: [PATCH v4 23/36] nds32: Generic timers support
+Date: Mon, 18 Dec 2017 14:46:35 +0800
+Message-ID: <7b0f7bd08ce930e671bd409cee49782121563fb7.1513577007.git.green.hu@gmail.com>
 In-Reply-To: <cover.1513577007.git.green.hu@gmail.com>
 References: <cover.1513577007.git.green.hu@gmail.com>
 In-Reply-To: <cover.1513577007.git.green.hu@gmail.com>
@@ -15,132 +15,36 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, pombredanne@nexb.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171218064636.e1CxtDzy_27FU_1GYWngWyNWXJ8YeqX3W5JTIFAX_TA@z>
+Message-ID: <20171218064635.O7BceXOvXUTKOEVTcXD_Y504C3SuTo1awpGl0v0ngxw@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds support for device tree.
+This patch adds support for timer.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
+Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 ---
- arch/nds32/boot/dts/Makefile  |    8 +++++
- arch/nds32/boot/dts/ae3xx.dts |   65 +++++++++++++++++++++++++++++++++++++++++
- arch/nds32/kernel/devtree.c   |   19 ++++++++++++
- 3 files changed, 92 insertions(+)
- create mode 100644 arch/nds32/boot/dts/Makefile
- create mode 100644 arch/nds32/boot/dts/ae3xx.dts
- create mode 100644 arch/nds32/kernel/devtree.c
+ arch/nds32/kernel/time.c |   11 +++++++++++
+ 1 file changed, 11 insertions(+)
+ create mode 100644 arch/nds32/kernel/time.c
 
-diff --git a/arch/nds32/boot/dts/Makefile b/arch/nds32/boot/dts/Makefile
+diff --git a/arch/nds32/kernel/time.c b/arch/nds32/kernel/time.c
 new file mode 100644
-index 0000000..d31faa8
+index 0000000..ac9d78c
 --- /dev/null
-+++ b/arch/nds32/boot/dts/Makefile
-@@ -0,0 +1,8 @@
-+ifneq '$(CONFIG_NDS32_BUILTIN_DTB)' '""'
-+BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_NDS32_BUILTIN_DTB)).dtb.o
-+else
-+BUILTIN_DTB :=
-+endif
-+obj-$(CONFIG_OF) += $(BUILTIN_DTB)
-+
-+clean-files := *.dtb *.dtb.S
-diff --git a/arch/nds32/boot/dts/ae3xx.dts b/arch/nds32/boot/dts/ae3xx.dts
-new file mode 100644
-index 0000000..0ef2c44
---- /dev/null
-+++ b/arch/nds32/boot/dts/ae3xx.dts
-@@ -0,0 +1,65 @@
-+/dts-v1/;
-+/ {
-+	compatible = "andestech,ae3xx";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+
-+	chosen {
-+		stdout-path = &serial0;
-+	};
-+
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x00000000 0x40000000>;
-+	};
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		cpu@0 {
-+			device_type = "cpu";
-+			compatible = "andestech,n13", "andestech,nds32v3";
-+			reg = <0>;
-+			clock-frequency = <60000000>;
-+		};
-+	};
-+
-+	apb: clk@0 {
-+		#clock-cells = <0>;
-+		compatible = "fixed-clock";
-+		clock-frequency = <30000000>;
-+	};
-+
-+
-+	intc: interrupt-controller {
-+		compatible = "andestech,ativic32";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
-+
-+	serial0: serial@f0300000 {
-+		compatible = "andestech,uart16550", "ns16550a";
-+		reg = <0xf0300000 0x1000>;
-+		interrupts = <8>;
-+		clock-frequency = <14745600>;
-+		reg-shift = <2>;
-+		reg-offset = <32>;
-+		no-loopback-test = <1>;
-+	};
-+
-+	timer0: timer@f0400000 {
-+		compatible = "andestech,atcpit100";
-+		reg = <0xf0400000 0x1000>;
-+		interrupts = <2>;
-+		clocks = <&apb>;
-+		clock-names = "PCLK";
-+	};
-+
-+	mac0: mac@e0100000 {
-+		compatible = "andestech,atmac100";
-+		reg = <0xe0100000 0x1000>;
-+		interrupts = <18>;
-+	};
-+
-+};
-diff --git a/arch/nds32/kernel/devtree.c b/arch/nds32/kernel/devtree.c
-new file mode 100644
-index 0000000..bdce0fe
---- /dev/null
-+++ b/arch/nds32/kernel/devtree.c
-@@ -0,0 +1,19 @@
++++ b/arch/nds32/kernel/time.c
+@@ -0,0 +1,11 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/bug.h>
-+#include <linux/printk.h>
-+#include <linux/of_fdt.h>
++#include <linux/clocksource.h>
++#include <linux/clk-provider.h>
 +
-+void __init early_init_devtree(void *params)
++void __init time_init(void)
 +{
-+	if (!params || !early_init_dt_scan(params)) {
-+		pr_crit("\n"
-+			"Error: invalid device tree blob at (virtual address 0x%p)\n"
-+			"\nPlease check your bootloader.", params);
-+
-+		BUG_ON(1);
-+	}
-+
-+	dump_stack_set_arch_desc("%s (DT)", of_flat_dt_get_machine_name());
++	of_clk_init(NULL);
++	timer_probe();
 +}
 -- 
 1.7.9.5
