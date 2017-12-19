@@ -1,97 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:53918 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1758771AbdLRXQE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 18 Dec 2017 18:16:04 -0500
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vBINFRZx125462
-        for <linux-arch@vger.kernel.org>; Mon, 18 Dec 2017 18:16:03 -0500
-Received: from e34.co.us.ibm.com (e34.co.us.ibm.com [32.97.110.152])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2exk7dh3hw-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 18 Dec 2017 18:16:03 -0500
-Received: from localhost
-        by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Mon, 18 Dec 2017 16:16:02 -0700
-Date: Mon, 18 Dec 2017 15:15:51 -0800
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys:
- Add sysfs interface
-Reply-To: Ram Pai <linuxram@us.ibm.com>
-References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
- <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
- <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
- <20171218221850.GD5461@ram.oc3035372033.ibm.com>
- <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
+Received: from mail-it0-f68.google.com ([209.85.214.68]:39885 "EHLO
+        mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S935236AbdLSCKK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Dec 2017 21:10:10 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
-Message-ID: <20171218231551.GA5481@ram.oc3035372033.ibm.com>
+In-Reply-To: <CAK8P3a2Yas3rWdx_qYx48PECundOzRSKOsqkJnUTzGW86OjJVg@mail.gmail.com>
+References: <cover.1513577007.git.green.hu@gmail.com> <9663cb7c21011cdb4f278c1fad081d1df296daa8.1513577007.git.green.hu@gmail.com>
+ <CAK8P3a2Yas3rWdx_qYx48PECundOzRSKOsqkJnUTzGW86OjJVg@mail.gmail.com>
+From: Vincent Chen <deanbo422@gmail.com>
+Date: Tue, 19 Dec 2017 10:10:09 +0800
+Message-ID: <CAJsyPhwtFz14agh05OHpSnGDTZmBZr22=tOgV9vsZ2nSuaZ4fQ@mail.gmail.com>
+Subject: Re: [PATCH v4 16/36] nds32: System calls handling
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: linux-arch@vger.kernel.org, ebiederm@xmission.com, arnd@arndb.de, corbet@lwn.net, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
-Message-ID: <20171218231551.9GFy_qoBVl1Aqx-XUr0_0UxPl1Xt5ksetSADJprRVgo@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, ren_guo@c-sky.com, Philippe Ombredanne <pombredanne@nexb.com>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171219021009.B42iSBUEvxY3nFfaYrSTmyzFrwwOKB0tNRPht8I7J90@z>
 
-On Mon, Dec 18, 2017 at 02:28:14PM -0800, Dave Hansen wrote:
-> On 12/18/2017 02:18 PM, Ram Pai wrote:
-> > b) minimum number of keys available to the application.
-> > 	if libraries consumes a few, they could provide a library
-> > 	interface to the application informing the number available to
-> > 	the application.  The library interface can leverage (b) to
-> > 	provide the information.
-> 
-> OK, let's see a real user of this including a few libraries.  Then we'll
-> put it in the kernel.
-> 
-> > c) types of disable-rights supported by keys.
-> > 	Helps the application to determine the types of disable-features
-> > 	available. This is helpful, otherwise the app has to 
-> > 	make pkey_alloc() call with the corresponding parameter set
-> > 	and see if it suceeds or fails. Painful from an application
-> > 	point of view, in my opinion.
-> 
-> Again, let's see a real-world use of this.  How does it look?  How does
-> an app "fall back" if it can't set a restriction the way it wants to?
-> 
-> Are we *sure* that such an interface makes sense?  For instance, will it
-> be possible for some keys to be execute-disable while other are only
-> write-disable?
+2017-12-18 19:19 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Mon, Dec 18, 2017 at 7:46 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>
+>
+>> new file mode 100644
+>> index 0000000..90da745
+>> --- /dev/null
+>> +++ b/arch/nds32/include/uapi/asm/unistd.h
+>> @@ -0,0 +1,12 @@
+>> +// SPDX-License-Identifier: GPL-2.0
+>> +// Copyright (C) 2005-2017 Andes Technology Corporation
+>> +
+>> +#define __ARCH_WANT_SYNC_FILE_RANGE2
+>> +
+>> +/* Use the standard ABI for syscalls */
+>> +#include <asm-generic/unistd.h>
+>> +
+>> +/* Additional NDS32 specific syscalls. */
+>> +#define __NR_cacheflush                (__NR_arch_specific_syscall)
+>> +#define __NR__llseek             __NR_llseek
+>> +__SYSCALL(__NR_cacheflush, sys_cacheflush)
+>
+> I'm still confused by __NR__llseek here, why do you need that one?
+>
 
-Can it be on x86?
+Dear Arnd:
+We hoped to solve  ABI register alignment problem for llseek in glibc
+by __NR__llseek.
+After checking glibc again, I find glibc has same __NR__llseek macro
+and It's better to solve this problem.
+So, I will remove this definition in the next version patch.
 
-its not possible on ppc. the keys can *all* be  the-same-attributes-disable all the
-time.
 
-However you are right. Its conceivable that some arch could provide a
-feature where it can be x-attribute-disable for key 'a' and
-y-attribute-disable for key 'b'.  But than its a bit of a headache
-for an application to consume such a feature.
+>> +SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
+>> +              unsigned long, prot, unsigned long, flags,
+>> +              unsigned long, fd, unsigned long, pgoff)
+>> +{
+>> +       if (pgoff & (~PAGE_MASK >> 12))
+>> +               return -EINVAL;
+>> +
+>> +       return sys_mmap_pgoff(addr, len, prot, flags, fd,
+>> +                             pgoff >> (PAGE_SHIFT - 12));
+>> +}
+>> +
+>> +SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
+>> +              unsigned long, prot, unsigned long, flags,
+>> +              unsigned long, fd, unsigned long, pgoff)
+>> +{
+>> +       if (unlikely(pgoff & ~PAGE_MASK))
+>> +               return -EINVAL;
+>> +
+>> +       return sys_mmap_pgoff(addr, len, prot, flags, fd,
+>> +                             pgoff >> PAGE_SHIFT);
+>> +}
+>
+> And I don't see why you define sys_mmap() in addition to sys_mmap2().
+>
+This is my mistake. I will remove it in the next version patch.
 
-Ben: I recall you requesting this feature.  Thoughts?
+> The rest of the syscall handling looks good now.
+>
+>          Arnd
 
-> 
-> > I think on x86 you look for some hardware registers to determine
-> > which hardware features are enabled by the kernel.
-> 
-> No, we use CPUID.  It's a part of the ISA that's designed for
-> enumerating CPU and (sometimes) OS support for CPU features.
-> 
-> > We do not have generic support for something like that on ppc.  The
-> > kernel looks at the device tree to determine what hardware features
-> > are available. But does not have mechanism to tell the hardware to
-> > track which of its features are currently enabled/used by the
-> > kernel; atleast not for the memory-key feature.
-> 
-> Bummer.  You're missing out.
-> 
-> But, you could still do this with a syscall.  "Hey, kernel, do you
-> support this feature?"
 
-or do powerpc specific sysfs interface.
-or a debugfs interface.
-
-RP
+Thanks
+Vincent
