@@ -1,58 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out4.electric.net ([192.162.216.187]:64488 "EHLO
-        smtp-out4.electric.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S966109AbdLSMrS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 07:47:18 -0500
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH v2 0/2] mm: introduce MAP_FIXED_SAFE
-Date: Tue, 19 Dec 2017 12:40:16 +0000
-Message-ID: <0ca2620ce7534c5491e69416621ac41b@AcuMS.aculab.com>
-References: <20171213092550.2774-1-mhocko@kernel.org>
- <20171213163210.6a16ccf8753b74a6982ef5b6@linux-foundation.org>
- <CAFLM3-oANXKEU=tuurSJx9rdzfWGfym-0FUEWnfBq8mOaVMzOA@mail.gmail.com>
- <20171214131526.GM16951@dhcp22.suse.cz> <20171214145443.GA2202@brick>
-In-Reply-To: <20171214145443.GA2202@brick>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48182 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751128AbdLSQWd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Dec 2017 11:22:33 -0500
+Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vBJGLPtJ095943
+        for <linux-arch@vger.kernel.org>; Tue, 19 Dec 2017 11:22:33 -0500
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2ey63rgdp3-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 19 Dec 2017 11:22:33 -0500
+Received: from localhost
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
+        Tue, 19 Dec 2017 11:22:31 -0500
+Date: Tue, 19 Dec 2017 08:22:21 -0800
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys:
+ Add sysfs interface
+Reply-To: Ram Pai <linuxram@us.ibm.com>
+References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
+ <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
+ <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
+ <20171218221850.GD5461@ram.oc3035372033.ibm.com>
+ <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
+ <20171218231551.GA5481@ram.oc3035372033.ibm.com>
+ <20171219083122.q7ycxg2dfspgzw7z@lt-gp.iram.es>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20171219083122.q7ycxg2dfspgzw7z@lt-gp.iram.es>
+Message-ID: <20171219162221.GB5481@ram.oc3035372033.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Edward Napierala' <trasz@freebsd.org>, Michal Hocko <mhocko@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>, "jasone@google.com" <jasone@google.com>, "davidtgoldblatt@gmail.com" <davidtgoldblatt@gmail.com>
-Message-ID: <20171219124016.MeZzf44nUNDBs9X3v31fAmmvTgM9UbToHkRx-ivH6Wg@z>
+To: Gabriel Paubert <paubert@iram.es>
+Cc: linux-arch@vger.kernel.org, corbet@lwn.net, arnd@arndb.de, linux-doc@vger.kernel.org, aneesh.kumar@linux.vnet.ibm.com, x86@kernel.org, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, Dave Hansen <dave.hansen@intel.com>, mingo@redhat.com, paulus@samba.org, ebiederm@xmission.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
+Message-ID: <20171219162221.I7oF7p2SaGTS6yDqO5oz6zI-2QFxWu2Fp9jR7gDPSxo@z>
 
-From: Edward Napierala
-> Sent: 14 December 2017 14:55
->
-> On 1214T1415, Michal Hocko wrote:
-> > On Thu 14-12-17 12:44:17, Edward Napierala wrote:
-> > > Regarding the name - how about adopting MAP_EXCL?  It was introduced in
-> > > FreeBSD,
-> > > and seems to do exactly this; quoting mmap(2):
-> > >
-> > > MAP_FIXED    Do not permit the system to select a different address
-> > >                         than the one specified.  If the specified address
-> > >                         cannot be used, mmap() will fail.  If MAP_FIXED is
-> > >                         specified, addr must be a multiple of the page size.
-> > >                         If MAP_EXCL is not specified, a successful MAP_FIXED
-> > >                         request replaces any previous mappings for the
-> > >                         process' pages in the range from addr to addr + len.
-> > >                         In contrast, if MAP_EXCL is specified, the request
-> > >                         will fail if a mapping already exists within the
-> > >                         range.
-> >
-> > I am not familiar with the FreeBSD implementation but from the above it
-> > looks like MAP_EXCL is a MAP_FIXED mofifier which is not how we are
-> > going to implement it in linux due to reasons mentioned in this cover
-> > letter. Using the same name would be more confusing than helpful I am
-> > afraid.
+On Tue, Dec 19, 2017 at 09:31:22AM +0100, Gabriel Paubert wrote:
+> On Mon, Dec 18, 2017 at 03:15:51PM -0800, Ram Pai wrote:
+> > On Mon, Dec 18, 2017 at 02:28:14PM -0800, Dave Hansen wrote:
+> > > On 12/18/2017 02:18 PM, Ram Pai wrote:
+> > > 
+....snip...
+> > > > I think on x86 you look for some hardware registers to determine
+> > > > which hardware features are enabled by the kernel.
+> > > 
+> > > No, we use CPUID.  It's a part of the ISA that's designed for
+> > > enumerating CPU and (sometimes) OS support for CPU features.
+> > > 
+> > > > We do not have generic support for something like that on ppc.  The
+> > > > kernel looks at the device tree to determine what hardware features
+> > > > are available. But does not have mechanism to tell the hardware to
+> > > > track which of its features are currently enabled/used by the
+> > > > kernel; atleast not for the memory-key feature.
+> > > 
+> > > Bummer.  You're missing out.
+> > > 
+> > > But, you could still do this with a syscall.  "Hey, kernel, do you
+> > > support this feature?"
+> > 
+> > or do powerpc specific sysfs interface.
+> > or a debugfs interface.
 > 
-> Sorry, missed that.  Indeed, reusing a name with a different semantics
-> would be a bad idea.
+> getauxval(3) ?
+> 
+> With AT_HWCAP or HWCAP2 as parameter already gives information about
+> features supported by the hardware and the kernel.
+> 
+> Taking one bit to expose the availability of protection keys to
+> applications does not look impossible.
+> 
+> Do I miss something obvious?
 
-I don't remember any discussion about using MAP_FIXED | MAP_EXCL ?
+No. I am told this is possible aswell.
 
-Why not match the prior art??
-
-	David
+RP
