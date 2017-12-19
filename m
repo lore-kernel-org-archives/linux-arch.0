@@ -1,66 +1,97 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH v3 07/33] nds32: MMU initialization
-Date: Tue, 19 Dec 2017 14:56:48 +0800
-Message-ID: <CAEbi=3e+KpAvS1fTbwou=hGKE_zoXx=DVntCAB_Fbj5KVuib7w@mail.gmail.com>
-References: <cover.1512723245.git.green.hu@gmail.com> <0964714c3dcac46ac700085717b0f414b7978112.1512723245.git.green.hu@gmail.com>
- <20171218090848.GA5823@gary-OptiPlex-3050> <CAEbi=3dy+KGgftWOrbBpVPDZURiYVYwAyGWzd9z4T7RQYAk2FA@mail.gmail.com>
- <20171218122253.GA19382@gary-OptiPlex-3050>
+From: Gabriel Paubert <paubert@iram.es>
+Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys:
+ Add sysfs interface
+Date: Tue, 19 Dec 2017 09:31:22 +0100
+Message-ID: <20171219083122.q7ycxg2dfspgzw7z@lt-gp.iram.es>
+References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
+ <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
+ <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
+ <20171218221850.GD5461@ram.oc3035372033.ibm.com>
+ <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
+ <20171218231551.GA5481@ram.oc3035372033.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f65.google.com ([209.85.213.65]:42311 "EHLO
-        mail-vk0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932857AbdLSG53 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 01:57:29 -0500
-In-Reply-To: <20171218122253.GA19382@gary-OptiPlex-3050>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20171218231551.GA5481@ram.oc3035372033.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, linux-arch@vger.kernel.org, corbet@lwn.net, arnd@arndb.de, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, paulus@samba.org, ebiederm@xmission.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, akpm@linux-foundation.org, khandual@linux.vnet.ibm.com, linuxppc-dev@lists.ozlabs.org, aneesh.kumar@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-Hi, Guo Ren:
+On Mon, Dec 18, 2017 at 03:15:51PM -0800, Ram Pai wrote:
+> On Mon, Dec 18, 2017 at 02:28:14PM -0800, Dave Hansen wrote:
+> > On 12/18/2017 02:18 PM, Ram Pai wrote:
+> > > b) minimum number of keys available to the application.
+> > > 	if libraries consumes a few, they could provide a library
+> > > 	interface to the application informing the number available to
+> > > 	the application.  The library interface can leverage (b) to
+> > > 	provide the information.
+> > 
+> > OK, let's see a real user of this including a few libraries.  Then we'll
+> > put it in the kernel.
+> > 
+> > > c) types of disable-rights supported by keys.
+> > > 	Helps the application to determine the types of disable-features
+> > > 	available. This is helpful, otherwise the app has to 
+> > > 	make pkey_alloc() call with the corresponding parameter set
+> > > 	and see if it suceeds or fails. Painful from an application
+> > > 	point of view, in my opinion.
+> > 
+> > Again, let's see a real-world use of this.  How does it look?  How does
+> > an app "fall back" if it can't set a restriction the way it wants to?
+> > 
+> > Are we *sure* that such an interface makes sense?  For instance, will it
+> > be possible for some keys to be execute-disable while other are only
+> > write-disable?
+> 
+> Can it be on x86?
+> 
+> its not possible on ppc. the keys can *all* be  the-same-attributes-disable all the
+> time.
+> 
+> However you are right. Its conceivable that some arch could provide a
+> feature where it can be x-attribute-disable for key 'a' and
+> y-attribute-disable for key 'b'.  But than its a bit of a headache
+> for an application to consume such a feature.
+> 
+> Ben: I recall you requesting this feature.  Thoughts?
+> 
+> > 
+> > > I think on x86 you look for some hardware registers to determine
+> > > which hardware features are enabled by the kernel.
+> > 
+> > No, we use CPUID.  It's a part of the ISA that's designed for
+> > enumerating CPU and (sometimes) OS support for CPU features.
+> > 
+> > > We do not have generic support for something like that on ppc.  The
+> > > kernel looks at the device tree to determine what hardware features
+> > > are available. But does not have mechanism to tell the hardware to
+> > > track which of its features are currently enabled/used by the
+> > > kernel; atleast not for the memory-key feature.
+> > 
+> > Bummer.  You're missing out.
+> > 
+> > But, you could still do this with a syscall.  "Hey, kernel, do you
+> > support this feature?"
+> 
+> or do powerpc specific sysfs interface.
+> or a debugfs interface.
 
-2017-12-18 20:22 GMT+08:00 Guo Ren <ren_guo@c-sky.com>:
-> On Mon, Dec 18, 2017 at 07:21:30PM +0800, Greentime Hu wrote:
->> Hi, Guo Ren:
->>
->> 2017-12-18 17:08 GMT+08:00 Guo Ren <ren_guo@c-sky.com>:
->> > Hi Greentime,
->> >
->> > On Fri, Dec 08, 2017 at 05:11:50PM +0800, Greentime Hu wrote:
->> > [...]
->> >>
->> >> diff --git a/arch/nds32/mm/highmem.c b/arch/nds32/mm/highmem.c
->> > [...]
->> >> +void *kmap(struct page *page)
->> >> +{
->> >> +     unsigned long vaddr;
->> >> +     might_sleep();
->> >> +     if (!PageHighMem(page))
->> >> +             return page_address(page);
->> >> +     vaddr = (unsigned long)kmap_high(page);
->> > Here should invalid the cpu_mmu_tlb's entry, Or invalid it in the
->> > set_pte().
->> >
->> > eg:
->> > vaddr0 = kmap(page0)
->> > *vaddr0 = val0 //It will cause tlb-miss, and hard-refill to MMU-tlb
->> > kunmap(page0)
->> > vaddr1 = kmap(page1) // Mostly vaddr1 = vaddr0
->> > val = vaddr1; //No tlb-miss and it will get page0's val not page1, because
->> >                 last expired vaddr0's entry is left in CPU-MMU-tlb.
->> >
->>
->> Thanks.
->> I will add __nds32__tlbop_inv(vaddr); to invalidate this mapping
->> before retrun vaddr.
->
-> Sorry, perhaps I'm wrong. See
-> kmap->kmap_high->map_new_virtual->get_next_pkmap_nr(color).
->
-> Seems pkmap will return the vaddr by vaddr + 1 until
-> no_more_pkmaps(), and then flush_all_zero_pkmaps.
-> Just kmap_atomic need it, and you've done.
+getauxval(3) ?
 
-Thanks for double checking this case. :)
-As you said, it will flush tlb in the generic code flow.
+With AT_HWCAP or HWCAP2 as parameter already gives information about
+features supported by the hardware and the kernel.
+
+Taking one bit to expose the availability of protection keys to
+applications does not look impossible.
+
+Do I miss something obvious?
+
+	Gabriel
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
