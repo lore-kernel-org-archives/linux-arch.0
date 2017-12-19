@@ -1,42 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f193.google.com ([209.85.216.193]:45188 "EHLO
-        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1762416AbdLSLtZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 06:49:25 -0500
+Received: from mx2.suse.de ([195.135.220.15]:36078 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S966054AbdLSMqt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Dec 2017 07:46:49 -0500
+Date: Tue, 19 Dec 2017 13:46:46 +0100
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH v2 0/2] mm: introduce MAP_FIXED_SAFE
+Message-ID: <20171219124646.GR2787@dhcp22.suse.cz>
+References: <20171213092550.2774-1-mhocko@kernel.org>
+ <20171213163210.6a16ccf8753b74a6982ef5b6@linux-foundation.org>
+ <CAFLM3-oANXKEU=tuurSJx9rdzfWGfym-0FUEWnfBq8mOaVMzOA@mail.gmail.com>
+ <20171214131526.GM16951@dhcp22.suse.cz>
+ <20171214145443.GA2202@brick>
+ <0ca2620ce7534c5491e69416621ac41b@AcuMS.aculab.com>
 MIME-Version: 1.0
-In-Reply-To: <20171219114112.939391-1-arnd@arndb.de>
-References: <20171219114112.939391-1-arnd@arndb.de>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Tue, 19 Dec 2017 12:49:24 +0100
-Message-ID: <CAMuHMdV3x6jqWj3S=U-rK4HB9oYSEO1fES0bKWjouu7QqapF3w@mail.gmail.com>
-Subject: Re: [PATCH] bug.h: Work around GCC PR82365 in BUG()
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <0ca2620ce7534c5491e69416621ac41b@AcuMS.aculab.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, Christopher Li <sparse@chrisli.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Will Deacon <will.deacon@arm.com>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Mark Rutland <mark.rutland@arm.com>, arcml <linux-snps-arc@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Cris <linux-cris-kernel@axis.com>, linux-ia64@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, sparclinux <sparclinux@vger.kernel.org>, linux-sparse@vger.kernel.org
-Message-ID: <20171219114924.rtwCHlDbREUKGO_MUEeMHMX6u7bT_WCECRZFjeHkKb8@z>
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: 'Edward Napierala' <trasz@freebsd.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Abdul Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees Cook <keescook@chromium.org>, "jasone@google.com" <jasone@google.com>, "davidtgoldblatt@gmail.com" <davidtgoldblatt@gmail.com>
+Message-ID: <20171219124646.LjaZFC4gE2cyQvohp8_gl4P5q3VfQ6vDqStFL4zObxE@z>
 
-Hi Arnd,
+On Tue 19-12-17 12:40:16, David Laight wrote:
+> From: Edward Napierala
+> > Sent: 14 December 2017 14:55
+> >
+> > On 1214T1415, Michal Hocko wrote:
+> > > On Thu 14-12-17 12:44:17, Edward Napierala wrote:
+> > > > Regarding the name - how about adopting MAP_EXCL?  It was introduced in
+> > > > FreeBSD,
+> > > > and seems to do exactly this; quoting mmap(2):
+> > > >
+> > > > MAP_FIXED    Do not permit the system to select a different address
+> > > >                         than the one specified.  If the specified address
+> > > >                         cannot be used, mmap() will fail.  If MAP_FIXED is
+> > > >                         specified, addr must be a multiple of the page size.
+> > > >                         If MAP_EXCL is not specified, a successful MAP_FIXED
+> > > >                         request replaces any previous mappings for the
+> > > >                         process' pages in the range from addr to addr + len.
+> > > >                         In contrast, if MAP_EXCL is specified, the request
+> > > >                         will fail if a mapping already exists within the
+> > > >                         range.
+> > >
+> > > I am not familiar with the FreeBSD implementation but from the above it
+> > > looks like MAP_EXCL is a MAP_FIXED mofifier which is not how we are
+> > > going to implement it in linux due to reasons mentioned in this cover
+> > > letter. Using the same name would be more confusing than helpful I am
+> > > afraid.
+> > 
+> > Sorry, missed that.  Indeed, reusing a name with a different semantics
+> > would be a bad idea.
+> 
+> I don't remember any discussion about using MAP_FIXED | MAP_EXCL ?
+> 
+> Why not match the prior art??
 
-On Tue, Dec 19, 2017 at 12:39 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> The name barrier_before_unreachable() is a bit suboptimal here,
-> as it fails to describe the fact that it is needed for both
-> __builtin_unreachable() and for calling noreturn functions.  Any other
-> suggestions would be welcome here.
-
-/me joins bikeshedding...
-
-barrier_before_noreturn()?
-barrier_before_dead_end()?
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+See the cover letter which explains why an extension is not backward
+compatible.
+-- 
+Michal Hocko
+SUSE Labs
