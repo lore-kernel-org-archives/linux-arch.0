@@ -1,100 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:37133 "EHLO
-        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1760082AbdLSFfT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 00:35:19 -0500
-Subject: Re: [PATCH v5] mmap.2: MAP_FIXED updated documentation
-References: <20171212002331.6838-1-jhubbard@nvidia.com>
- <3a07ef4d-7435-7b8d-d5c7-3bce80042577@gmail.com>
- <fb49f293-2048-e64f-51da-ff039929c7ac@nvidia.com>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <fb834f23-bbae-ea1b-1a55-a20e1cc88c0f@gmail.com>
-Date: Tue, 19 Dec 2017 06:35:12 +0100
+Received: from mail-ua0-f170.google.com ([209.85.217.170]:40861 "EHLO
+        mail-ua0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1760748AbdLSFf3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 00:35:29 -0500
 MIME-Version: 1.0
-In-Reply-To: <fb49f293-2048-e64f-51da-ff039929c7ac@nvidia.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <CAK8P3a1EOD3WB=c4JybBD5bazhVJ5reuegyA1Hyoj-nPHpsW6g@mail.gmail.com>
+References: <cover.1513577007.git.green.hu@gmail.com> <a5dc2090640500d88aa3af2f6fe9e4c73f0634f2.1513577007.git.green.hu@gmail.com>
+ <CAK8P3a1EOD3WB=c4JybBD5bazhVJ5reuegyA1Hyoj-nPHpsW6g@mail.gmail.com>
+From: Greentime Hu <green.hu@gmail.com>
+Date: Tue, 19 Dec 2017 13:34:47 +0800
+Message-ID: <CAEbi=3fWvrvdqUYOWdmbAHDmMpLiUaTaL_-jUjqg=p4aZiMLrA@mail.gmail.com>
+Subject: Re: [PATCH v4 25/36] nds32: Miscellaneous header files
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Hubbard <jhubbard@nvidia.com>
-Cc: mtk.manpages@gmail.com, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@kernel.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@suse.com>, Pavel Machek <pavel@ucw.cz>
-Message-ID: <20171219053512.AkyIauB0UAUC6eugnItmTAV0V2z4WF9NKa-rK_TqGJo@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Philippe Ombredanne <pombredanne@nexb.com>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171219053447.AcrJz3gAuqgg_H3tlYll1tJpYXpiuzaxsVk5SGkTwRM@z>
 
-Hi John,
+Hi, Arnd:
 
-On 12/18/2017 10:27 PM, John Hubbard wrote:
-> On 12/18/2017 11:15 AM, Michael Kerrisk (man-pages) wrote:
->> On 12/12/2017 01:23 AM, john.hubbard@gmail.com wrote:
->>> From: John Hubbard <jhubbard@nvidia.com>
->>>
->>>     -- Expand the documentation to discuss the hazards in
->>>        enough detail to allow avoiding them.
->>>
->>>     -- Mention the upcoming MAP_FIXED_SAFE flag.
->>>
->>>     -- Enhance the alignment requirement slightly.
->>>
->>> CC: Michael Ellerman <mpe@ellerman.id.au>
->>> CC: Jann Horn <jannh@google.com>
->>> CC: Matthew Wilcox <willy@infradead.org>
->>> CC: Michal Hocko <mhocko@kernel.org>
->>> CC: Mike Rapoport <rppt@linux.vnet.ibm.com>
->>> CC: Cyril Hrubis <chrubis@suse.cz>
->>> CC: Michal Hocko <mhocko@suse.com>
->>> CC: Pavel Machek <pavel@ucw.cz>
->>> Signed-off-by: John Hubbard <jhubbard@nvidia.com>
+2017-12-18 19:13 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Mon, Dec 18, 2017 at 7:46 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>> From: Greentime Hu <greentime@andestech.com>
 >>
->> John,
->>
->> Thanks for the patch. I think you win the prize for the 
->> most iterations ever on a man-pages patch! (And Michal,
->> thanks for helping out.) I've applied your patch, made 
->> some minor tweaks, and removed the mention of 
->> MAP_FIXED_SAFE, since I don't like to document stuff
->> that hasn't yet been merged. (I only later noticed the
->> fuss about the naming...)
->>
-> 
-> Hi Michael,
-> 
-> The final result looks nice, thanks for all the editing fixes.
-> 
-> One last thing: reading through this, I think it might need a wording
-> fix (this is my fault), in order to avoid implying that brk() or
-> malloc() use dlopen().
-> 
-> Something approximately like this:
-> 
-> diff --git a/man2/mmap.2 b/man2/mmap.2
-> index 79681b31e..1c0bd80de 100644
-> --- a/man2/mmap.2
-> +++ b/man2/mmap.2
-> @@ -250,8 +250,9 @@ suffice.
->  The
->  .BR dlopen (3)
->  call will map the library into the process's address space.
-> -Furthermore, almost any library call may be implemented using this technique.
-> -Examples include
-> +Furthermore, almost any library call may be implemented in a way that
-> +adds memory mappings to the address space, either with this technique,
-> +or by simply allocating memory. Examples include
->  .BR brk (2),
->  .BR malloc (3),
->  .BR pthread_create (3),
-> 
-> 
-> ...or does the current version seem OK to other people?
+>> This patch introduces some miscellaneous header files.
+>
+>> +static inline void __delay(unsigned long loops)
+>> +{
+>> +       __asm__ __volatile__(".align 2\n"
+>> +                            "1:\n"
+>> +                            "\taddi\t%0, %0, -1\n"
+>> +                            "\tbgtz\t%0, 1b\n"
+>> +                            :"=r"(loops)
+>> +                            :"0"(loops));
+>> +}
+>> +
+>> +static inline void __udelay(unsigned long usecs, unsigned long lpj)
+>> +{
+>> +       usecs *= (unsigned long)(((0x8000000000000000ULL / (500000 / HZ)) +
+>> +                                 0x80000000ULL) >> 32);
+>> +       usecs = (unsigned long)(((unsigned long long)usecs * lpj) >> 32);
+>> +       __delay(usecs);
+>> +}
+>
+> Do you have a reliable clocksource that you can read here instead of doing the
+> loop? It's generally preferred to have an accurate delay if at all possible, the
+> delay loop calibration is only for those architectures that don't have any
+> way to observe how much time has passed accurately.
+>
 
-Thanks. Looks good to me. Applied.
-
-Cheers,
-
-Michael
-
-
-
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+We currently only have atcpit100 as clocksource but it is an IP of  SoC.
+These delay API will be unavailable if we changed to another SoC
+unless all these timer driver provided the same APIs.
+It may suffer our customers if they forget to port these APIs in their
+timer drivers when they try to use nds32 in the first beginning.
+Or maybe I can use a CONFIG_USE_ACCURATE_DELAY to keep these 2
+implementions for these purposes?
