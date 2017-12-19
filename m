@@ -1,85 +1,101 @@
-From: Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH v4 16/36] nds32: System calls handling
-Date: Tue, 19 Dec 2017 10:10:09 +0800
-Message-ID: <CAJsyPhwtFz14agh05OHpSnGDTZmBZr22=tOgV9vsZ2nSuaZ4fQ@mail.gmail.com>
-References: <cover.1513577007.git.green.hu@gmail.com> <9663cb7c21011cdb4f278c1fad081d1df296daa8.1513577007.git.green.hu@gmail.com>
- <CAK8P3a2Yas3rWdx_qYx48PECundOzRSKOsqkJnUTzGW86OjJVg@mail.gmail.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Subject: Re: [PATCH v5] mmap.2: MAP_FIXED updated documentation
+Date: Tue, 19 Dec 2017 06:35:12 +0100
+Message-ID: <fb834f23-bbae-ea1b-1a55-a20e1cc88c0f@gmail.com>
+References: <20171212002331.6838-1-jhubbard@nvidia.com>
+ <3a07ef4d-7435-7b8d-d5c7-3bce80042577@gmail.com>
+ <fb49f293-2048-e64f-51da-ff039929c7ac@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CAK8P3a2Yas3rWdx_qYx48PECundOzRSKOsqkJnUTzGW86OjJVg-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Networking <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, ren_guo-Y+KPrCd2zL4AvxtiuMwx3w@public.gmane.org, Philipp
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <fb49f293-2048-e64f-51da-ff039929c7ac@nvidia.com>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: John Hubbard <jhubbard@nvidia.com>
+Cc: mtk.manpages@gmail.com, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@kernel.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@suse.com>, Pavel Machek <pavel@ucw.cz>
 List-Id: linux-arch.vger.kernel.org
 
-2017-12-18 19:19 GMT+08:00 Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>:
-> On Mon, Dec 18, 2017 at 7:46 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
->
->
->> new file mode 100644
->> index 0000000..90da745
->> --- /dev/null
->> +++ b/arch/nds32/include/uapi/asm/unistd.h
->> @@ -0,0 +1,12 @@
->> +// SPDX-License-Identifier: GPL-2.0
->> +// Copyright (C) 2005-2017 Andes Technology Corporation
->> +
->> +#define __ARCH_WANT_SYNC_FILE_RANGE2
->> +
->> +/* Use the standard ABI for syscalls */
->> +#include <asm-generic/unistd.h>
->> +
->> +/* Additional NDS32 specific syscalls. */
->> +#define __NR_cacheflush                (__NR_arch_specific_syscall)
->> +#define __NR__llseek             __NR_llseek
->> +__SYSCALL(__NR_cacheflush, sys_cacheflush)
->
-> I'm still confused by __NR__llseek here, why do you need that one?
->
+Hi John,
 
-Dear Arnd:
-We hoped to solve  ABI register alignment problem for llseek in glibc
-by __NR__llseek.
-After checking glibc again, I find glibc has same __NR__llseek macro
-and It's better to solve this problem.
-So, I will remove this definition in the next version patch.
+On 12/18/2017 10:27 PM, John Hubbard wrote:
+> On 12/18/2017 11:15 AM, Michael Kerrisk (man-pages) wrote:
+>> On 12/12/2017 01:23 AM, john.hubbard@gmail.com wrote:
+>>> From: John Hubbard <jhubbard@nvidia.com>
+>>>
+>>>     -- Expand the documentation to discuss the hazards in
+>>>        enough detail to allow avoiding them.
+>>>
+>>>     -- Mention the upcoming MAP_FIXED_SAFE flag.
+>>>
+>>>     -- Enhance the alignment requirement slightly.
+>>>
+>>> CC: Michael Ellerman <mpe@ellerman.id.au>
+>>> CC: Jann Horn <jannh@google.com>
+>>> CC: Matthew Wilcox <willy@infradead.org>
+>>> CC: Michal Hocko <mhocko@kernel.org>
+>>> CC: Mike Rapoport <rppt@linux.vnet.ibm.com>
+>>> CC: Cyril Hrubis <chrubis@suse.cz>
+>>> CC: Michal Hocko <mhocko@suse.com>
+>>> CC: Pavel Machek <pavel@ucw.cz>
+>>> Signed-off-by: John Hubbard <jhubbard@nvidia.com>
+>>
+>> John,
+>>
+>> Thanks for the patch. I think you win the prize for the 
+>> most iterations ever on a man-pages patch! (And Michal,
+>> thanks for helping out.) I've applied your patch, made 
+>> some minor tweaks, and removed the mention of 
+>> MAP_FIXED_SAFE, since I don't like to document stuff
+>> that hasn't yet been merged. (I only later noticed the
+>> fuss about the naming...)
+>>
+> 
+> Hi Michael,
+> 
+> The final result looks nice, thanks for all the editing fixes.
+> 
+> One last thing: reading through this, I think it might need a wording
+> fix (this is my fault), in order to avoid implying that brk() or
+> malloc() use dlopen().
+> 
+> Something approximately like this:
+> 
+> diff --git a/man2/mmap.2 b/man2/mmap.2
+> index 79681b31e..1c0bd80de 100644
+> --- a/man2/mmap.2
+> +++ b/man2/mmap.2
+> @@ -250,8 +250,9 @@ suffice.
+>  The
+>  .BR dlopen (3)
+>  call will map the library into the process's address space.
+> -Furthermore, almost any library call may be implemented using this technique.
+> -Examples include
+> +Furthermore, almost any library call may be implemented in a way that
+> +adds memory mappings to the address space, either with this technique,
+> +or by simply allocating memory. Examples include
+>  .BR brk (2),
+>  .BR malloc (3),
+>  .BR pthread_create (3),
+> 
+> 
+> ...or does the current version seem OK to other people?
+
+Thanks. Looks good to me. Applied.
+
+Cheers,
+
+Michael
 
 
->> +SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
->> +              unsigned long, prot, unsigned long, flags,
->> +              unsigned long, fd, unsigned long, pgoff)
->> +{
->> +       if (pgoff & (~PAGE_MASK >> 12))
->> +               return -EINVAL;
->> +
->> +       return sys_mmap_pgoff(addr, len, prot, flags, fd,
->> +                             pgoff >> (PAGE_SHIFT - 12));
->> +}
->> +
->> +SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
->> +              unsigned long, prot, unsigned long, flags,
->> +              unsigned long, fd, unsigned long, pgoff)
->> +{
->> +       if (unlikely(pgoff & ~PAGE_MASK))
->> +               return -EINVAL;
->> +
->> +       return sys_mmap_pgoff(addr, len, prot, flags, fd,
->> +                             pgoff >> PAGE_SHIFT);
->> +}
->
-> And I don't see why you define sys_mmap() in addition to sys_mmap2().
->
-This is my mistake. I will remove it in the next version patch.
 
-> The rest of the syscall handling looks good now.
->
->          Arnd
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
 
-
-Thanks
-Vincent
 --
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
