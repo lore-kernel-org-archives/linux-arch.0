@@ -1,67 +1,66 @@
-From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: Re: [PATCH v4 25/36] nds32: Miscellaneous header files
-Date: Tue, 19 Dec 2017 10:54:59 +0100
-Message-ID: <CAK8P3a3Ofczq1DrQEcEcP1fZrgyeOLpFDwgd7uMZ4H0NpHs+wg@mail.gmail.com>
-References: <cover.1513577007.git.green.hu@gmail.com> <a5dc2090640500d88aa3af2f6fe9e4c73f0634f2.1513577007.git.green.hu@gmail.com>
- <CAK8P3a1EOD3WB=c4JybBD5bazhVJ5reuegyA1Hyoj-nPHpsW6g@mail.gmail.com> <CAEbi=3fWvrvdqUYOWdmbAHDmMpLiUaTaL_-jUjqg=p4aZiMLrA@mail.gmail.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys: Add sysfs interface
+Date: Tue, 19 Dec 2017 21:50:24 +1100
+Message-ID: <877etj9ekv.fsf@concordia.ellerman.id.au>
+References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com> <1509958663-18737-30-git-send-email-linuxram@us.ibm.com> <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CAEbi=3fWvrvdqUYOWdmbAHDmMpLiUaTaL_-jUjqg=p4aZiMLrA-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Networking <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, Guo Ren <ren_guo-Y+KPrCd2zL4@public.gmane.org>
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave.hansen@intel.com>, Ram Pai <linuxram@us.ibm.com>, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Dec 19, 2017 at 6:34 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
-> Hi, Arnd:
+Dave Hansen <dave.hansen@intel.com> writes:
+
+> On 11/06/2017 12:57 AM, Ram Pai wrote:
+>> Expose useful information for programs using memory protection keys.
+>> Provide implementation for powerpc and x86.
+>> 
+>> On a powerpc system with pkeys support, here is what is shown:
+>> 
+>> $ head /sys/kernel/mm/protection_keys/*
+>> ==> /sys/kernel/mm/protection_keys/disable_access_supported <==
+>> true
 >
-> 2017-12-18 19:13 GMT+08:00 Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>:
->> On Mon, Dec 18, 2017 at 7:46 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
->>> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
->>>
->>> This patch introduces some miscellaneous header files.
->>
->>> +static inline void __delay(unsigned long loops)
->>> +{
->>> +       __asm__ __volatile__(".align 2\n"
->>> +                            "1:\n"
->>> +                            "\taddi\t%0, %0, -1\n"
->>> +                            "\tbgtz\t%0, 1b\n"
->>> +                            :"=r"(loops)
->>> +                            :"0"(loops));
->>> +}
->>> +
->>> +static inline void __udelay(unsigned long usecs, unsigned long lpj)
->>> +{
->>> +       usecs *= (unsigned long)(((0x8000000000000000ULL / (500000 / HZ)) +
->>> +                                 0x80000000ULL) >> 32);
->>> +       usecs = (unsigned long)(((unsigned long long)usecs * lpj) >> 32);
->>> +       __delay(usecs);
->>> +}
->>
->> Do you have a reliable clocksource that you can read here instead of doing the
->> loop? It's generally preferred to have an accurate delay if at all possible, the
->> delay loop calibration is only for those architectures that don't have any
->> way to observe how much time has passed accurately.
->>
+> This is cute, but I don't think it should be part of the ABI.  Put it in
+> debugfs if you want it for cute tests.  The stuff that this tells you
+> can and should come from pkey_alloc() for the ABI.
+
+Yeah I agree this is not sysfs material.
+
+In particular the total/usable numbers are completely useless vs other
+threads allocating pkeys out from under you.
+
+> http://man7.org/linux/man-pages/man7/pkeys.7.html
 >
-> We currently only have atcpit100 as clocksource but it is an IP of  SoC.
-> These delay API will be unavailable if we changed to another SoC
-> unless all these timer driver provided the same APIs.
-> It may suffer our customers if they forget to port these APIs in their
-> timer drivers when they try to use nds32 in the first beginning.
+>>        Any application wanting to use protection keys needs to be able to
+>>        function without them.  They might be unavailable because the
+>>        hardware that the application runs on does not support them, the
+>>        kernel code does not contain support, the kernel support has been
+>>        disabled, or because the keys have all been allocated, perhaps by a
+>>        library the application is using.  It is recommended that
+>>        applications wanting to use protection keys should simply call
+>>        pkey_alloc(2) and test whether the call succeeds, instead of
+>>        attempting to detect support for the feature in any other way.
+>
+> Do you really not have standard way on ppc to say whether hardware
+> features are supported by the kernel?  For instance, how do you know if
+> a given set of registers are known to and are being context-switched by
+> the kernel?
 
-Ok, thanks for the clarification.
+Yes we do, we emit feature bits in the AT_HWCAP entry of the aux vector,
+same as some other architectures.
 
-> Or maybe I can use a CONFIG_USE_ACCURATE_DELAY to keep these 2
-> implementions for these purposes?
+But I don't see the need to use a feature bit for pkeys. If they're not
+supported then pkey_alloc() will just always fail. Apps have to handle
+that anyway because keys are a finite resource.
 
-I'd just add a one-line comment in delay.h to explain that there is no
-cycle counter in the CPU.
+cheers
 
-       Arnd
 --
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
