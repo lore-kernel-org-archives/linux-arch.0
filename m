@@ -1,41 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:45485 "EHLO gate.crashing.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753484AbdLSVfu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 19 Dec 2017 16:35:50 -0500
-Message-ID: <1513719296.2743.12.camel@kernel.crashing.org>
-Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys:
- Add sysfs interface
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 20 Dec 2017 08:34:56 +1100
-In-Reply-To: <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
-References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
-         <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
-         <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
-         <20171218221850.GD5461@ram.oc3035372033.ibm.com>
-         <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
+Received: from merlin.infradead.org ([205.233.59.134]:37644 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750859AbdLSWC3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 17:02:29 -0500
+Subject: Re: [PATCH v4 04/36] nds32: Kernel booting and initialization
+References: <cover.1513577007.git.green.hu@gmail.com>
+ <935ff034982f077b2e6f5eeccd6fe2110614fc9c.1513577007.git.green.hu@gmail.com>
+From: Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <78afd442-4482-f104-746e-5984214658ee@infradead.org>
+Date: Tue, 19 Dec 2017 14:01:40 -0800
+MIME-Version: 1.0
+In-Reply-To: <935ff034982f077b2e6f5eeccd6fe2110614fc9c.1513577007.git.green.hu@gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>, Ram Pai <linuxram@us.ibm.com>
-Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
-Message-ID: <20171219213456.ghAas7P2MNWJO0AHwG646FH-XMNm_LHoUrtJrLmV4Yo@z>
+To: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, pombredanne@nexb.com
+Cc: Vincent Chen <vincentc@andestech.com>
+Message-ID: <20171219220140.nHUlLE3AcMvCCzdTCWBx9FFOXMyW66MCn7msCW-CT3M@z>
 
-On Mon, 2017-12-18 at 14:28 -0800, Dave Hansen wrote:
-> > We do not have generic support for something like that on ppc.
-> > The kernel looks at the device tree to determine what hardware features
-> > are available. But does not have mechanism to tell the hardware to track
-> > which of its features are currently enabled/used by the kernel; atleast
-> > not for the memory-key feature.
+On 12/17/2017 10:46 PM, Greentime Hu wrote:
+> From: Greentime Hu <greentime@andestech.com>
 > 
-> Bummer.  You're missing out.
+> This patch includes the kernel startup code. It can get dtb pointer
+> passed from bootloader. It will create a temp mapping by tlb
+> instructions at beginning and goto start_kernel.
 > 
-> But, you could still do this with a syscall.  "Hey, kernel, do you
-> support this feature?"
+> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> ---
+>  arch/nds32/kernel/head.S  |  189 ++++++++++++++++++++++
+>  arch/nds32/kernel/setup.c |  383 +++++++++++++++++++++++++++++++++++++++++++++
+>  2 files changed, 572 insertions(+)
+>  create mode 100644 arch/nds32/kernel/head.S
+>  create mode 100644 arch/nds32/kernel/setup.c
+> 
 
-I'm not sure I understand Ram's original (quoted) point, but informing
-userspace of CPU features is what AT_HWCAP's are about.
+> diff --git a/arch/nds32/kernel/setup.c b/arch/nds32/kernel/setup.c
+> new file mode 100644
+> index 0000000..7718c58
+> --- /dev/null
+> +++ b/arch/nds32/kernel/setup.c
+> @@ -0,0 +1,383 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +// Copyright (C) 2005-2017 Andes Technology Corporation
+> +
 
-Ben.
+[snip]
+
+> +struct cache_info L1_cache_info[2];
+> +static void __init dump_cpu_info(int cpu)
+> +{
+> +	int i, p = 0;
+> +	char str[sizeof(hwcap_str) + 16];
+> +
+> +	for (i = 0; hwcap_str[i]; i++) {
+> +		if (elf_hwcap & (1 << i)) {
+> +			sprintf(str + p, "%s ", hwcap_str[i]);
+> +			p += strlen(hwcap_str[i]) + 1;
+> +		}
+> +	}
+> +
+> +	pr_info("CPU%d Featuretures: %s\n", cpu, str);
+
+	               Features:
+
+
+-- 
+~Randy
