@@ -1,86 +1,85 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys:
- Add sysfs interface
-Date: Mon, 18 Dec 2017 15:15:51 -0800
-Message-ID: <20171218231551.GA5481@ram.oc3035372033.ibm.com>
-References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
- <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
- <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
- <20171218221850.GD5461@ram.oc3035372033.ibm.com>
- <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH v4 16/36] nds32: System calls handling
+Date: Tue, 19 Dec 2017 10:10:09 +0800
+Message-ID: <CAJsyPhwtFz14agh05OHpSnGDTZmBZr22=tOgV9vsZ2nSuaZ4fQ@mail.gmail.com>
+References: <cover.1513577007.git.green.hu@gmail.com> <9663cb7c21011cdb4f278c1fad081d1df296daa8.1513577007.git.green.hu@gmail.com>
+ <CAK8P3a2Yas3rWdx_qYx48PECundOzRSKOsqkJnUTzGW86OjJVg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: linux-arch@vger.kernel.org, ebiederm@xmission.com, arnd@arndb.de, corbet@lwn.net, x86@kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <CAK8P3a2Yas3rWdx_qYx48PECundOzRSKOsqkJnUTzGW86OjJVg-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Networking <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, ren_guo-Y+KPrCd2zL4AvxtiuMwx3w@public.gmane.org, Philipp
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Dec 18, 2017 at 02:28:14PM -0800, Dave Hansen wrote:
-> On 12/18/2017 02:18 PM, Ram Pai wrote:
-> > b) minimum number of keys available to the application.
-> > 	if libraries consumes a few, they could provide a library
-> > 	interface to the application informing the number available to
-> > 	the application.  The library interface can leverage (b) to
-> > 	provide the information.
-> 
-> OK, let's see a real user of this including a few libraries.  Then we'll
-> put it in the kernel.
-> 
-> > c) types of disable-rights supported by keys.
-> > 	Helps the application to determine the types of disable-features
-> > 	available. This is helpful, otherwise the app has to 
-> > 	make pkey_alloc() call with the corresponding parameter set
-> > 	and see if it suceeds or fails. Painful from an application
-> > 	point of view, in my opinion.
-> 
-> Again, let's see a real-world use of this.  How does it look?  How does
-> an app "fall back" if it can't set a restriction the way it wants to?
-> 
-> Are we *sure* that such an interface makes sense?  For instance, will it
-> be possible for some keys to be execute-disable while other are only
-> write-disable?
+2017-12-18 19:19 GMT+08:00 Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>:
+> On Mon, Dec 18, 2017 at 7:46 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
+>
+>
+>> new file mode 100644
+>> index 0000000..90da745
+>> --- /dev/null
+>> +++ b/arch/nds32/include/uapi/asm/unistd.h
+>> @@ -0,0 +1,12 @@
+>> +// SPDX-License-Identifier: GPL-2.0
+>> +// Copyright (C) 2005-2017 Andes Technology Corporation
+>> +
+>> +#define __ARCH_WANT_SYNC_FILE_RANGE2
+>> +
+>> +/* Use the standard ABI for syscalls */
+>> +#include <asm-generic/unistd.h>
+>> +
+>> +/* Additional NDS32 specific syscalls. */
+>> +#define __NR_cacheflush                (__NR_arch_specific_syscall)
+>> +#define __NR__llseek             __NR_llseek
+>> +__SYSCALL(__NR_cacheflush, sys_cacheflush)
+>
+> I'm still confused by __NR__llseek here, why do you need that one?
+>
 
-Can it be on x86?
+Dear Arnd:
+We hoped to solve  ABI register alignment problem for llseek in glibc
+by __NR__llseek.
+After checking glibc again, I find glibc has same __NR__llseek macro
+and It's better to solve this problem.
+So, I will remove this definition in the next version patch.
 
-its not possible on ppc. the keys can *all* be  the-same-attributes-disable all the
-time.
 
-However you are right. Its conceivable that some arch could provide a
-feature where it can be x-attribute-disable for key 'a' and
-y-attribute-disable for key 'b'.  But than its a bit of a headache
-for an application to consume such a feature.
+>> +SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
+>> +              unsigned long, prot, unsigned long, flags,
+>> +              unsigned long, fd, unsigned long, pgoff)
+>> +{
+>> +       if (pgoff & (~PAGE_MASK >> 12))
+>> +               return -EINVAL;
+>> +
+>> +       return sys_mmap_pgoff(addr, len, prot, flags, fd,
+>> +                             pgoff >> (PAGE_SHIFT - 12));
+>> +}
+>> +
+>> +SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
+>> +              unsigned long, prot, unsigned long, flags,
+>> +              unsigned long, fd, unsigned long, pgoff)
+>> +{
+>> +       if (unlikely(pgoff & ~PAGE_MASK))
+>> +               return -EINVAL;
+>> +
+>> +       return sys_mmap_pgoff(addr, len, prot, flags, fd,
+>> +                             pgoff >> PAGE_SHIFT);
+>> +}
+>
+> And I don't see why you define sys_mmap() in addition to sys_mmap2().
+>
+This is my mistake. I will remove it in the next version patch.
 
-Ben: I recall you requesting this feature.  Thoughts?
+> The rest of the syscall handling looks good now.
+>
+>          Arnd
 
-> 
-> > I think on x86 you look for some hardware registers to determine
-> > which hardware features are enabled by the kernel.
-> 
-> No, we use CPUID.  It's a part of the ISA that's designed for
-> enumerating CPU and (sometimes) OS support for CPU features.
-> 
-> > We do not have generic support for something like that on ppc.  The
-> > kernel looks at the device tree to determine what hardware features
-> > are available. But does not have mechanism to tell the hardware to
-> > track which of its features are currently enabled/used by the
-> > kernel; atleast not for the memory-key feature.
-> 
-> Bummer.  You're missing out.
-> 
-> But, you could still do this with a syscall.  "Hey, kernel, do you
-> support this feature?"
 
-or do powerpc specific sysfs interface.
-or a debugfs interface.
-
-RP
-
+Thanks
+Vincent
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
