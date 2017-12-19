@@ -1,66 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f195.google.com ([74.125.82.195]:37040 "EHLO
-        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751072AbdLSUNO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 15:13:14 -0500
-MIME-Version: 1.0
-In-Reply-To: <8e42a1de-f619-7a4e-6d58-f90f53f5f38f@synopsys.com>
-References: <20171219114112.939391-1-arnd@arndb.de> <8e42a1de-f619-7a4e-6d58-f90f53f5f38f@synopsys.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 19 Dec 2017 21:13:12 +0100
-Message-ID: <CAK8P3a2fXQHCN7gqNL9j7AeZqy7NXAMW1bqyFJs3G1M_M4BQ4A@mail.gmail.com>
-Subject: Re: [PATCH] bug.h: Work around GCC PR82365 in BUG()
+Received: from gate.crashing.org ([63.228.1.57]:45485 "EHLO gate.crashing.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753484AbdLSVfu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 19 Dec 2017 16:35:50 -0500
+Message-ID: <1513719296.2743.12.camel@kernel.crashing.org>
+Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys:
+ Add sysfs interface
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Wed, 20 Dec 2017 08:34:56 +1100
+In-Reply-To: <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
+References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
+         <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
+         <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
+         <20171218221850.GD5461@ram.oc3035372033.ibm.com>
+         <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
 Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Christopher Li <sparse@chrisli.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Will Deacon <will.deacon@arm.com>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Mark Rutland <mark.rutland@arm.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-cris-kernel@axis.com" <linux-cris-kernel@axis.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "linux-sparse@vger.kernel.org" <linux-sparse@vger.kernel.org>
-Message-ID: <20171219201312.Aza5USOMugq1Rnr9lKfbg3tqFz4IsrbkQ_hUGh3JemQ@z>
+To: Dave Hansen <dave.hansen@intel.com>, Ram Pai <linuxram@us.ibm.com>
+Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
+Message-ID: <20171219213456.ghAas7P2MNWJO0AHwG646FH-XMNm_LHoUrtJrLmV4Yo@z>
 
-On Tue, Dec 19, 2017 at 5:57 PM, Vineet Gupta
-<Vineet.Gupta1@synopsys.com> wrote:
-> On 12/19/2017 03:41 AM, Arnd Bergmann wrote:
+On Mon, 2017-12-18 at 14:28 -0800, Dave Hansen wrote:
+> > We do not have generic support for something like that on ppc.
+> > The kernel looks at the device tree to determine what hardware features
+> > are available. But does not have mechanism to tell the hardware to track
+> > which of its features are currently enabled/used by the kernel; atleast
+> > not for the memory-key feature.
+> 
+> Bummer.  You're missing out.
+> 
+> But, you could still do this with a syscall.  "Hey, kernel, do you
+> support this feature?"
 
->> In case of ARC and CRIS, it turns out that the BUG() implementation
->> actually does return (or at least the compiler thinks it does), resulting
->> in lots of warnings about uninitialized variable use and leaving noreturn
->> functions, such as:
->>
->> block/cfq-iosched.c: In function 'cfq_async_queue_prio':
->> block/cfq-iosched.c:3804:1: error: control reaches end of non-void
->> function [-Werror=return-type]
->> include/linux/dmaengine.h: In function 'dma_maxpq':
->> include/linux/dmaengine.h:1123:1: error: control reaches end of non-void
->> function [-Werror=return-type]
+I'm not sure I understand Ram's original (quoted) point, but informing
+userspace of CPU features is what AT_HWCAP's are about.
 
->> diff --git a/arch/arc/include/asm/bug.h b/arch/arc/include/asm/bug.h
->> index ea022d47896c..21ec82466d62 100644
->> --- a/arch/arc/include/asm/bug.h
->> +++ b/arch/arc/include/asm/bug.h
->> @@ -23,7 +23,8 @@ void die(const char *str, struct pt_regs *regs, unsigned
->> long address);
->>     #define BUG()       do {
->> \
->>         pr_warn("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__,
->> __func__); \
->> -       dump_stack();
->> \
->> +       barrier_before_unreachable();
->> \
->> +       __builtin_trap();
->> \
->>   } while (0)
->>     #define HAVE_ARCH_BUG
->
->
-> I suppose BUG() implies "dead end" like semantics - which ARC was lacking
-> before ?
-
-Correct. Using __builtin_trap() here avoids the 'control reaches end of non-void
-function' warnings, but then makes us run into the stack size problem that
-I work around with the barrier_before_unreachable().
-
-It would be good if you could give this a quick test to see if you get sensible
-output from the __builtin_trap();
-
-         Arnd
+Ben.
