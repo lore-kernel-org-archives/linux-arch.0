@@ -1,101 +1,58 @@
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Subject: Re: [PATCH v5] mmap.2: MAP_FIXED updated documentation
-Date: Tue, 19 Dec 2017 06:35:12 +0100
-Message-ID: <fb834f23-bbae-ea1b-1a55-a20e1cc88c0f@gmail.com>
-References: <20171212002331.6838-1-jhubbard@nvidia.com>
- <3a07ef4d-7435-7b8d-d5c7-3bce80042577@gmail.com>
- <fb49f293-2048-e64f-51da-ff039929c7ac@nvidia.com>
+From: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH v4 25/36] nds32: Miscellaneous header files
+Date: Tue, 19 Dec 2017 13:34:47 +0800
+Message-ID: <CAEbi=3fWvrvdqUYOWdmbAHDmMpLiUaTaL_-jUjqg=p4aZiMLrA@mail.gmail.com>
+References: <cover.1513577007.git.green.hu@gmail.com> <a5dc2090640500d88aa3af2f6fe9e4c73f0634f2.1513577007.git.green.hu@gmail.com>
+ <CAK8P3a1EOD3WB=c4JybBD5bazhVJ5reuegyA1Hyoj-nPHpsW6g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <fb49f293-2048-e64f-51da-ff039929c7ac@nvidia.com>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: John Hubbard <jhubbard@nvidia.com>
-Cc: mtk.manpages@gmail.com, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@kernel.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@suse.com>, Pavel Machek <pavel@ucw.cz>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <CAK8P3a1EOD3WB=c4JybBD5bazhVJ5reuegyA1Hyoj-nPHpsW6g-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Networking <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, Guo Ren <ren_guo-Y+KPrCd2zL4@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi John,
+Hi, Arnd:
 
-On 12/18/2017 10:27 PM, John Hubbard wrote:
-> On 12/18/2017 11:15 AM, Michael Kerrisk (man-pages) wrote:
->> On 12/12/2017 01:23 AM, john.hubbard@gmail.com wrote:
->>> From: John Hubbard <jhubbard@nvidia.com>
->>>
->>>     -- Expand the documentation to discuss the hazards in
->>>        enough detail to allow avoiding them.
->>>
->>>     -- Mention the upcoming MAP_FIXED_SAFE flag.
->>>
->>>     -- Enhance the alignment requirement slightly.
->>>
->>> CC: Michael Ellerman <mpe@ellerman.id.au>
->>> CC: Jann Horn <jannh@google.com>
->>> CC: Matthew Wilcox <willy@infradead.org>
->>> CC: Michal Hocko <mhocko@kernel.org>
->>> CC: Mike Rapoport <rppt@linux.vnet.ibm.com>
->>> CC: Cyril Hrubis <chrubis@suse.cz>
->>> CC: Michal Hocko <mhocko@suse.com>
->>> CC: Pavel Machek <pavel@ucw.cz>
->>> Signed-off-by: John Hubbard <jhubbard@nvidia.com>
+2017-12-18 19:13 GMT+08:00 Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>:
+> On Mon, Dec 18, 2017 at 7:46 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
+>> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
 >>
->> John,
->>
->> Thanks for the patch. I think you win the prize for the 
->> most iterations ever on a man-pages patch! (And Michal,
->> thanks for helping out.) I've applied your patch, made 
->> some minor tweaks, and removed the mention of 
->> MAP_FIXED_SAFE, since I don't like to document stuff
->> that hasn't yet been merged. (I only later noticed the
->> fuss about the naming...)
->>
-> 
-> Hi Michael,
-> 
-> The final result looks nice, thanks for all the editing fixes.
-> 
-> One last thing: reading through this, I think it might need a wording
-> fix (this is my fault), in order to avoid implying that brk() or
-> malloc() use dlopen().
-> 
-> Something approximately like this:
-> 
-> diff --git a/man2/mmap.2 b/man2/mmap.2
-> index 79681b31e..1c0bd80de 100644
-> --- a/man2/mmap.2
-> +++ b/man2/mmap.2
-> @@ -250,8 +250,9 @@ suffice.
->  The
->  .BR dlopen (3)
->  call will map the library into the process's address space.
-> -Furthermore, almost any library call may be implemented using this technique.
-> -Examples include
-> +Furthermore, almost any library call may be implemented in a way that
-> +adds memory mappings to the address space, either with this technique,
-> +or by simply allocating memory. Examples include
->  .BR brk (2),
->  .BR malloc (3),
->  .BR pthread_create (3),
-> 
-> 
-> ...or does the current version seem OK to other people?
+>> This patch introduces some miscellaneous header files.
+>
+>> +static inline void __delay(unsigned long loops)
+>> +{
+>> +       __asm__ __volatile__(".align 2\n"
+>> +                            "1:\n"
+>> +                            "\taddi\t%0, %0, -1\n"
+>> +                            "\tbgtz\t%0, 1b\n"
+>> +                            :"=r"(loops)
+>> +                            :"0"(loops));
+>> +}
+>> +
+>> +static inline void __udelay(unsigned long usecs, unsigned long lpj)
+>> +{
+>> +       usecs *= (unsigned long)(((0x8000000000000000ULL / (500000 / HZ)) +
+>> +                                 0x80000000ULL) >> 32);
+>> +       usecs = (unsigned long)(((unsigned long long)usecs * lpj) >> 32);
+>> +       __delay(usecs);
+>> +}
+>
+> Do you have a reliable clocksource that you can read here instead of doing the
+> loop? It's generally preferred to have an accurate delay if at all possible, the
+> delay loop calibration is only for those architectures that don't have any
+> way to observe how much time has passed accurately.
+>
 
-Thanks. Looks good to me. Applied.
-
-Cheers,
-
-Michael
-
-
-
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
-
+We currently only have atcpit100 as clocksource but it is an IP of  SoC.
+These delay API will be unavailable if we changed to another SoC
+unless all these timer driver provided the same APIs.
+It may suffer our customers if they forget to port these APIs in their
+timer drivers when they try to use nds32 in the first beginning.
+Or maybe I can use a CONFIG_USE_ACCURATE_DELAY to keep these 2
+implementions for these purposes?
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
