@@ -1,71 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:37644 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750859AbdLSWC3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 17:02:29 -0500
-Subject: Re: [PATCH v4 04/36] nds32: Kernel booting and initialization
-References: <cover.1513577007.git.green.hu@gmail.com>
- <935ff034982f077b2e6f5eeccd6fe2110614fc9c.1513577007.git.green.hu@gmail.com>
-From: Randy Dunlap <rdunlap@infradead.org>
-Message-ID: <78afd442-4482-f104-746e-5984214658ee@infradead.org>
-Date: Tue, 19 Dec 2017 14:01:40 -0800
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:52633 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753401AbdLSWii (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 17:38:38 -0500
+Subject: Re: [PATCH] bug.h: Work around GCC PR82365 in BUG()
+References: <20171219114112.939391-1-arnd@arndb.de>
+ <8e42a1de-f619-7a4e-6d58-f90f53f5f38f@synopsys.com>
+ <CAK8P3a2fXQHCN7gqNL9j7AeZqy7NXAMW1bqyFJs3G1M_M4BQ4A@mail.gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <f31caa9b-89f0-4168-04bf-14a98595865e@synopsys.com>
+Date: Tue, 19 Dec 2017 14:38:21 -0800
 MIME-Version: 1.0
-In-Reply-To: <935ff034982f077b2e6f5eeccd6fe2110614fc9c.1513577007.git.green.hu@gmail.com>
-Content-Type: text/plain; charset=utf-8
+In-Reply-To: <CAK8P3a2fXQHCN7gqNL9j7AeZqy7NXAMW1bqyFJs3G1M_M4BQ4A@mail.gmail.com>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 8bit
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, pombredanne@nexb.com
-Cc: Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171219220140.nHUlLE3AcMvCCzdTCWBx9FFOXMyW66MCn7msCW-CT3M@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Christopher Li <sparse@chrisli.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Will Deacon <will.deacon@arm.com>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Mark Rutland <mark.rutland@arm.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-cris-kernel@axis.com" <linux-cris-kernel@axis.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "linux-sparse@vger.kernel.org" <linux-sparse@vger.kernel.org>
+Message-ID: <20171219223821.WNHogR8l7l_kM28f78J7rdbVHyzvqjkH01w7TvEpt4s@z>
 
-On 12/17/2017 10:46 PM, Greentime Hu wrote:
-> From: Greentime Hu <greentime@andestech.com>
-> 
-> This patch includes the kernel startup code. It can get dtb pointer
-> passed from bootloader. It will create a temp mapping by tlb
-> instructions at beginning and goto start_kernel.
-> 
-> Signed-off-by: Vincent Chen <vincentc@andestech.com>
-> Signed-off-by: Greentime Hu <greentime@andestech.com>
-> ---
->  arch/nds32/kernel/head.S  |  189 ++++++++++++++++++++++
->  arch/nds32/kernel/setup.c |  383 +++++++++++++++++++++++++++++++++++++++++++++
->  2 files changed, 572 insertions(+)
->  create mode 100644 arch/nds32/kernel/head.S
->  create mode 100644 arch/nds32/kernel/setup.c
-> 
+On 12/19/2017 12:13 PM, Arnd Bergmann wrote:
+>
+>> I suppose BUG() implies "dead end" like semantics - which ARC was lacking
+>> before ?
+> Correct. Using __builtin_trap() here avoids the 'control reaches end of non-void
+> function' warnings, but then makes us run into the stack size problem that
+> I work around with the barrier_before_unreachable().
+>
+> It would be good if you could give this a quick test to see if you get sensible
+> output from the __builtin_trap();
 
-> diff --git a/arch/nds32/kernel/setup.c b/arch/nds32/kernel/setup.c
-> new file mode 100644
-> index 0000000..7718c58
-> --- /dev/null
-> +++ b/arch/nds32/kernel/setup.c
-> @@ -0,0 +1,383 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// Copyright (C) 2005-2017 Andes Technology Corporation
-> +
+It does, added a BUG() arbit, hits an abort()
 
-[snip]
-
-> +struct cache_info L1_cache_info[2];
-> +static void __init dump_cpu_info(int cpu)
-> +{
-> +	int i, p = 0;
-> +	char str[sizeof(hwcap_str) + 16];
-> +
-> +	for (i = 0; hwcap_str[i]; i++) {
-> +		if (elf_hwcap & (1 << i)) {
-> +			sprintf(str + p, "%s ", hwcap_str[i]);
-> +			p += strlen(hwcap_str[i]) + 1;
-> +		}
-> +	}
-> +
-> +	pr_info("CPU%d Featuretures: %s\n", cpu, str);
-
-	               Features:
+...
+ISA Extn    : atomic ll64 unalign (not used)
+         : mpy[opt 9] div_rem norm barrel-shift swap minmax swape
+BPU        : partial match, cache:2048, Predict Table:16384
+BUG: failure at ../arch/arc/mm/tlb.c:827/arc_mmu_init()!
 
 
--- 
-~Randy
+Tested-by: Vineet Gupta <vgupta@synopsys.com>
+
+FWIW newer ARC gcc actually implements the builtin so we get a trap 5 instruction 
+now, vs., abort() calls before.
+
+BTW I missed reading the hunk of your changelog where this addresses the long 
+standing mystery with ARC builds and numerous -Wreturn-type warnings. I always 
+wondered why they were not fixed upstream already, being too lazy to investigate 
+myself, and turns out this was due to this BUG() thingy. phew !
+
+-Vineet
