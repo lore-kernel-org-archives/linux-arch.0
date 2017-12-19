@@ -1,86 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f68.google.com ([209.85.214.68]:39885 "EHLO
-        mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S935236AbdLSCKK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Dec 2017 21:10:10 -0500
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:37133 "EHLO
+        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1760082AbdLSFfT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 00:35:19 -0500
+Subject: Re: [PATCH v5] mmap.2: MAP_FIXED updated documentation
+References: <20171212002331.6838-1-jhubbard@nvidia.com>
+ <3a07ef4d-7435-7b8d-d5c7-3bce80042577@gmail.com>
+ <fb49f293-2048-e64f-51da-ff039929c7ac@nvidia.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <fb834f23-bbae-ea1b-1a55-a20e1cc88c0f@gmail.com>
+Date: Tue, 19 Dec 2017 06:35:12 +0100
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a2Yas3rWdx_qYx48PECundOzRSKOsqkJnUTzGW86OjJVg@mail.gmail.com>
-References: <cover.1513577007.git.green.hu@gmail.com> <9663cb7c21011cdb4f278c1fad081d1df296daa8.1513577007.git.green.hu@gmail.com>
- <CAK8P3a2Yas3rWdx_qYx48PECundOzRSKOsqkJnUTzGW86OjJVg@mail.gmail.com>
-From: Vincent Chen <deanbo422@gmail.com>
-Date: Tue, 19 Dec 2017 10:10:09 +0800
-Message-ID: <CAJsyPhwtFz14agh05OHpSnGDTZmBZr22=tOgV9vsZ2nSuaZ4fQ@mail.gmail.com>
-Subject: Re: [PATCH v4 16/36] nds32: System calls handling
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <fb49f293-2048-e64f-51da-ff039929c7ac@nvidia.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, ren_guo@c-sky.com, Philippe Ombredanne <pombredanne@nexb.com>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171219021009.B42iSBUEvxY3nFfaYrSTmyzFrwwOKB0tNRPht8I7J90@z>
+To: John Hubbard <jhubbard@nvidia.com>
+Cc: mtk.manpages@gmail.com, linux-man <linux-man@vger.kernel.org>, linux-api@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jann Horn <jannh@google.com>, Matthew Wilcox <willy@infradead.org>, Michal Hocko <mhocko@kernel.org>, Mike Rapoport <rppt@linux.vnet.ibm.com>, Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@suse.com>, Pavel Machek <pavel@ucw.cz>
+Message-ID: <20171219053512.AkyIauB0UAUC6eugnItmTAV0V2z4WF9NKa-rK_TqGJo@z>
 
-2017-12-18 19:19 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
-> On Mon, Dec 18, 2017 at 7:46 AM, Greentime Hu <green.hu@gmail.com> wrote:
->
->
->> new file mode 100644
->> index 0000000..90da745
->> --- /dev/null
->> +++ b/arch/nds32/include/uapi/asm/unistd.h
->> @@ -0,0 +1,12 @@
->> +// SPDX-License-Identifier: GPL-2.0
->> +// Copyright (C) 2005-2017 Andes Technology Corporation
->> +
->> +#define __ARCH_WANT_SYNC_FILE_RANGE2
->> +
->> +/* Use the standard ABI for syscalls */
->> +#include <asm-generic/unistd.h>
->> +
->> +/* Additional NDS32 specific syscalls. */
->> +#define __NR_cacheflush                (__NR_arch_specific_syscall)
->> +#define __NR__llseek             __NR_llseek
->> +__SYSCALL(__NR_cacheflush, sys_cacheflush)
->
-> I'm still confused by __NR__llseek here, why do you need that one?
->
+Hi John,
 
-Dear Arnd:
-We hoped to solve  ABI register alignment problem for llseek in glibc
-by __NR__llseek.
-After checking glibc again, I find glibc has same __NR__llseek macro
-and It's better to solve this problem.
-So, I will remove this definition in the next version patch.
+On 12/18/2017 10:27 PM, John Hubbard wrote:
+> On 12/18/2017 11:15 AM, Michael Kerrisk (man-pages) wrote:
+>> On 12/12/2017 01:23 AM, john.hubbard@gmail.com wrote:
+>>> From: John Hubbard <jhubbard@nvidia.com>
+>>>
+>>>     -- Expand the documentation to discuss the hazards in
+>>>        enough detail to allow avoiding them.
+>>>
+>>>     -- Mention the upcoming MAP_FIXED_SAFE flag.
+>>>
+>>>     -- Enhance the alignment requirement slightly.
+>>>
+>>> CC: Michael Ellerman <mpe@ellerman.id.au>
+>>> CC: Jann Horn <jannh@google.com>
+>>> CC: Matthew Wilcox <willy@infradead.org>
+>>> CC: Michal Hocko <mhocko@kernel.org>
+>>> CC: Mike Rapoport <rppt@linux.vnet.ibm.com>
+>>> CC: Cyril Hrubis <chrubis@suse.cz>
+>>> CC: Michal Hocko <mhocko@suse.com>
+>>> CC: Pavel Machek <pavel@ucw.cz>
+>>> Signed-off-by: John Hubbard <jhubbard@nvidia.com>
+>>
+>> John,
+>>
+>> Thanks for the patch. I think you win the prize for the 
+>> most iterations ever on a man-pages patch! (And Michal,
+>> thanks for helping out.) I've applied your patch, made 
+>> some minor tweaks, and removed the mention of 
+>> MAP_FIXED_SAFE, since I don't like to document stuff
+>> that hasn't yet been merged. (I only later noticed the
+>> fuss about the naming...)
+>>
+> 
+> Hi Michael,
+> 
+> The final result looks nice, thanks for all the editing fixes.
+> 
+> One last thing: reading through this, I think it might need a wording
+> fix (this is my fault), in order to avoid implying that brk() or
+> malloc() use dlopen().
+> 
+> Something approximately like this:
+> 
+> diff --git a/man2/mmap.2 b/man2/mmap.2
+> index 79681b31e..1c0bd80de 100644
+> --- a/man2/mmap.2
+> +++ b/man2/mmap.2
+> @@ -250,8 +250,9 @@ suffice.
+>  The
+>  .BR dlopen (3)
+>  call will map the library into the process's address space.
+> -Furthermore, almost any library call may be implemented using this technique.
+> -Examples include
+> +Furthermore, almost any library call may be implemented in a way that
+> +adds memory mappings to the address space, either with this technique,
+> +or by simply allocating memory. Examples include
+>  .BR brk (2),
+>  .BR malloc (3),
+>  .BR pthread_create (3),
+> 
+> 
+> ...or does the current version seem OK to other people?
+
+Thanks. Looks good to me. Applied.
+
+Cheers,
+
+Michael
 
 
->> +SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
->> +              unsigned long, prot, unsigned long, flags,
->> +              unsigned long, fd, unsigned long, pgoff)
->> +{
->> +       if (pgoff & (~PAGE_MASK >> 12))
->> +               return -EINVAL;
->> +
->> +       return sys_mmap_pgoff(addr, len, prot, flags, fd,
->> +                             pgoff >> (PAGE_SHIFT - 12));
->> +}
->> +
->> +SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
->> +              unsigned long, prot, unsigned long, flags,
->> +              unsigned long, fd, unsigned long, pgoff)
->> +{
->> +       if (unlikely(pgoff & ~PAGE_MASK))
->> +               return -EINVAL;
->> +
->> +       return sys_mmap_pgoff(addr, len, prot, flags, fd,
->> +                             pgoff >> PAGE_SHIFT);
->> +}
->
-> And I don't see why you define sys_mmap() in addition to sys_mmap2().
->
-This is my mistake. I will remove it in the next version patch.
 
-> The rest of the syscall handling looks good now.
->
->          Arnd
-
-
-Thanks
-Vincent
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
