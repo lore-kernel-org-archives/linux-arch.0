@@ -1,42 +1,70 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys:
- Add sysfs interface
-Date: Wed, 20 Dec 2017 08:34:56 +1100
-Message-ID: <1513719296.2743.12.camel@kernel.crashing.org>
-References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
-	 <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
-	 <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
-	 <20171218221850.GD5461@ram.oc3035372033.ibm.com>
-	 <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
+From: Randy Dunlap <rdunlap-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Subject: Re: [PATCH v4 04/36] nds32: Kernel booting and initialization
+Date: Tue, 19 Dec 2017 14:01:40 -0800
+Message-ID: <78afd442-4482-f104-746e-5984214658ee@infradead.org>
+References: <cover.1513577007.git.green.hu@gmail.com>
+ <935ff034982f077b2e6f5eeccd6fe2110614fc9c.1513577007.git.green.hu@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@intel.com>, Ram Pai <linuxram@us.ibm.com>
-Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <935ff034982f077b2e6f5eeccd6fe2110614fc9c.1513577007.git.green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Content-Language: en-US
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org, marc.zyngier-5wv7dgnIgG8@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, mark.rutland-5wv7dgnIgG8@public.gmane.org, greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org, ren_guo-Y+KPrCd2zL4AvxtiuMwx3w@public.gmane.org, pombredanne-od1rfyK75/E@public.gmane.org
+Cc: Vincent Chen <vincentc-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2017-12-18 at 14:28 -0800, Dave Hansen wrote:
-> > We do not have generic support for something like that on ppc.
-> > The kernel looks at the device tree to determine what hardware features
-> > are available. But does not have mechanism to tell the hardware to track
-> > which of its features are currently enabled/used by the kernel; atleast
-> > not for the memory-key feature.
+On 12/17/2017 10:46 PM, Greentime Hu wrote:
+> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
 > 
-> Bummer.  You're missing out.
+> This patch includes the kernel startup code. It can get dtb pointer
+> passed from bootloader. It will create a temp mapping by tlb
+> instructions at beginning and goto start_kernel.
 > 
-> But, you could still do this with a syscall.  "Hey, kernel, do you
-> support this feature?"
+> Signed-off-by: Vincent Chen <vincentc-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+> Signed-off-by: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+> ---
+>  arch/nds32/kernel/head.S  |  189 ++++++++++++++++++++++
+>  arch/nds32/kernel/setup.c |  383 +++++++++++++++++++++++++++++++++++++++++++++
+>  2 files changed, 572 insertions(+)
+>  create mode 100644 arch/nds32/kernel/head.S
+>  create mode 100644 arch/nds32/kernel/setup.c
+> 
 
-I'm not sure I understand Ram's original (quoted) point, but informing
-userspace of CPU features is what AT_HWCAP's are about.
+> diff --git a/arch/nds32/kernel/setup.c b/arch/nds32/kernel/setup.c
+> new file mode 100644
+> index 0000000..7718c58
+> --- /dev/null
+> +++ b/arch/nds32/kernel/setup.c
+> @@ -0,0 +1,383 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +// Copyright (C) 2005-2017 Andes Technology Corporation
+> +
 
-Ben.
+[snip]
 
+> +struct cache_info L1_cache_info[2];
+> +static void __init dump_cpu_info(int cpu)
+> +{
+> +	int i, p = 0;
+> +	char str[sizeof(hwcap_str) + 16];
+> +
+> +	for (i = 0; hwcap_str[i]; i++) {
+> +		if (elf_hwcap & (1 << i)) {
+> +			sprintf(str + p, "%s ", hwcap_str[i]);
+> +			p += strlen(hwcap_str[i]) + 1;
+> +		}
+> +	}
+> +
+> +	pr_info("CPU%d Featuretures: %s\n", cpu, str);
+
+	               Features:
+
+
+-- 
+~Randy
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
