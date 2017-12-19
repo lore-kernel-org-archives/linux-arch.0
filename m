@@ -1,78 +1,254 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys:
- Add sysfs interface
-Date: Tue, 19 Dec 2017 08:32:25 -0800
-Message-ID: <20171219163225.GC5481@ram.oc3035372033.ibm.com>
-References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
- <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
- <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
- <877etj9ekv.fsf@concordia.ellerman.id.au>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] bug.h: Work around GCC PR82365 in BUG()
+Date: Tue, 19 Dec 2017 08:57:10 -0800
+Message-ID: <8e42a1de-f619-7a4e-6d58-f90f53f5f38f@synopsys.com>
+References: <20171219114112.939391-1-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <877etj9ekv.fsf@concordia.ellerman.id.au>
-Sender: owner-linux-mm@kvack.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Dave Hansen <dave.hansen@intel.com>, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de, linux-arch@vger.kernel.org, ebiederm@xmission.com, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtprelay4.synopsys.com ([198.182.47.9]:46900 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751589AbdLSQ52 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 11:57:28 -0500
+In-Reply-To: <20171219114112.939391-1-arnd@arndb.de>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Christopher Li <sparse@chrisli.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Will Deacon <will.deacon@arm.com>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Mark Rutland <mark.rutland@arm.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infrade>
 
-On Tue, Dec 19, 2017 at 09:50:24PM +1100, Michael Ellerman wrote:
-> Dave Hansen <dave.hansen@intel.com> writes:
-> 
-> > On 11/06/2017 12:57 AM, Ram Pai wrote:
-> >> Expose useful information for programs using memory protection keys.
-> >> Provide implementation for powerpc and x86.
-> >> 
-> >> On a powerpc system with pkeys support, here is what is shown:
-> >> 
-> >> $ head /sys/kernel/mm/protection_keys/*
-> >> ==> /sys/kernel/mm/protection_keys/disable_access_supported <==
-> >> true
-> >
-> > This is cute, but I don't think it should be part of the ABI.  Put it in
-> > debugfs if you want it for cute tests.  The stuff that this tells you
-> > can and should come from pkey_alloc() for the ABI.
-> 
-> Yeah I agree this is not sysfs material.
-> 
-> In particular the total/usable numbers are completely useless vs other
-> threads allocating pkeys out from under you.
+On 12/19/2017 03:41 AM, Arnd Bergmann wrote:
+> Looking at functions with large stack frames across all architectures
+> led me discovering that BUG() suffers from the same problem as
+> fortify_panic(), which I've added a workaround for already. In short,
+> variables that go out of scope by calling a noreturn function or
+> __builtin_unreachable() keep using stack space in functions afterwards.
+>
+> A workaround that was identified is to insert an empty assembler statement
+> just before calling the function that doesn't return.  I'm adding a macro
+> "barrier_before_unreachable()" to document this, and insert calls to
+> that in all instances of BUG() that currently suffer from this problem.
+>
+> The files that saw the largest change from this had these frame sizes
+> before, and much less with my patch:
+>
+> fs/ext4/inode.c:82:1: warning: the frame size of 1672 bytes is larger than 800 bytes [-Wframe-larger-than=]
+> fs/ext4/namei.c:434:1: warning: the frame size of 904 bytes is larger than 800 bytes [-Wframe-larger-than=]
+> fs/ext4/super.c:2279:1: warning: the frame size of 1160 bytes is larger than 800 bytes [-Wframe-larger-than=]
+> fs/ext4/xattr.c:146:1: warning: the frame size of 1168 bytes is larger than 800 bytes [-Wframe-larger-than=]
+> fs/f2fs/inode.c:152:1: warning: the frame size of 1424 bytes is larger than 800 bytes [-Wframe-larger-than=]
+> net/netfilter/ipvs/ip_vs_core.c:1195:1: warning: the frame size of 1068 bytes is larger than 800 bytes [-Wframe-larger-than=]
+> net/netfilter/ipvs/ip_vs_core.c:395:1: warning: the frame size of 1084 bytes is larger than 800 bytes [-Wframe-larger-than=]
+> net/netfilter/ipvs/ip_vs_ftp.c:298:1: warning: the frame size of 928 bytes is larger than 800 bytes [-Wframe-larger-than=]
+> net/netfilter/ipvs/ip_vs_ftp.c:418:1: warning: the frame size of 908 bytes is larger than 800 bytes [-Wframe-larger-than=]
+> net/netfilter/ipvs/ip_vs_lblcr.c:718:1: warning: the frame size of 960 bytes is larger than 800 bytes [-Wframe-larger-than=]
+> drivers/net/xen-netback/netback.c:1500:1: warning: the frame size of 1088 bytes is larger than 800 bytes [-Wframe-larger-than=]
+>
+> In case of ARC and CRIS, it turns out that the BUG() implementation
+> actually does return (or at least the compiler thinks it does), resulting
+> in lots of warnings about uninitialized variable use and leaving noreturn
+> functions, such as:
+>
+> block/cfq-iosched.c: In function 'cfq_async_queue_prio':
+> block/cfq-iosched.c:3804:1: error: control reaches end of non-void function [-Werror=return-type]
+> include/linux/dmaengine.h: In function 'dma_maxpq':
+> include/linux/dmaengine.h:1123:1: error: control reaches end of non-void function [-Werror=return-type]
+>
+> This makes them call __builtin_trap() instead, which should normally
+> dump the stack and kill the current process, like some of the other
+> architectures already do.
+>
+> I tried adding barrier_before_unreachable() to panic() and fortify_panic()
+> as well, but that had very little effect, so I'm not submitting that
+> patch.
+>
+> Link: https://urldefense.proofpoint.com/v2/url?u=https-3A__gcc.gnu.org_bugzilla_show-5Fbug.cgi-3Fid-3D82365&d=DwIBAg&c=DPL6_X_6JkXFx7AXWqB0tg&r=c14YS-cH-kdhTOW89KozFhBtBJgs1zXscZojEZQ0THs&m=3Iu4HWDn1cXkYBpSFh5I80IzDKJi33hs5DbfGM-b3mI&s=sTrcyN5ej_ION8hJvF9eGLUZYwdlwI50vXUp3MK-XWY&e=
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+> The name barrier_before_unreachable() is a bit suboptimal here,
+> as it fails to describe the fact that it is needed for both
+> __builtin_unreachable() and for calling noreturn functions.  Any other
+> suggestions would be welcome here.
+> ---
+>   arch/arc/include/asm/bug.h            |  3 ++-
+>   arch/cris/include/arch-v10/arch/bug.h | 11 +++++++++--
+>   arch/ia64/include/asm/bug.h           |  6 +++++-
+>   arch/m68k/include/asm/bug.h           |  3 +++
+>   arch/sparc/include/asm/bug.h          |  6 +++++-
+>   include/asm-generic/bug.h             |  1 +
+>   include/linux/compiler-gcc.h          | 15 ++++++++++++++-
+>   include/linux/compiler.h              |  5 +++++
+>   8 files changed, 44 insertions(+), 6 deletions(-)
+>
+> diff --git a/arch/arc/include/asm/bug.h b/arch/arc/include/asm/bug.h
+> index ea022d47896c..21ec82466d62 100644
+> --- a/arch/arc/include/asm/bug.h
+> +++ b/arch/arc/include/asm/bug.h
+> @@ -23,7 +23,8 @@ void die(const char *str, struct pt_regs *regs, unsigned long address);
+>   
+>   #define BUG()	do {								\
+>   	pr_warn("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
+> -	dump_stack();								\
+> +	barrier_before_unreachable();						\
+> +	__builtin_trap();							\
+>   } while (0)
+>   
+>   #define HAVE_ARCH_BUG
+> diff --git a/arch/cris/include/arch-v10/arch/bug.h b/arch/cris/include/arch-v10/arch/bug.h
+> index 905afeacfedf..06da9d49152a 100644
+> --- a/arch/cris/include/arch-v10/arch/bug.h
+> +++ b/arch/cris/include/arch-v10/arch/bug.h
+> @@ -44,18 +44,25 @@ struct bug_frame {
+>    * not be used like this with newer versions of gcc.
+>    */
+>   #define BUG()								\
+> +do {									\
+>   	__asm__ __volatile__ ("clear.d [" __stringify(BUG_MAGIC) "]\n\t"\
+>   			      "movu.w " __stringify(__LINE__) ",$r0\n\t"\
+>   			      "jump 0f\n\t"				\
+>   			      ".section .rodata\n"			\
+>   			      "0:\t.string \"" __FILE__ "\"\n\t"	\
+> -			      ".previous")
+> +			      ".previous");				\
+> +	unreachable();							\
+> +} while (0)
+>   #endif
+>   
+>   #else
+>   
+>   /* This just causes an oops. */
+> -#define BUG() (*(int *)0 = 0)
+> +#define BUG()								\
+> +do {									\
+> +	barrier_before_unreachable();					\
+> +	__builtin_trap();						\
 
-The usable number is the minimum number of keys available for use by the
-application, not the number of keys **currently** available.  Its a
-static number.
+I suppose BUG() implies "dead end" like semantics - which ARC was lacking before ?
 
-I am dropping this patch. We can revisit this when a clear request for
-such a feature emerges.
-
-> 
-> >
-> >>        Any application wanting to use protection keys needs to be able to
-> >>        function without them.  They might be unavailable because the
-> >>        hardware that the application runs on does not support them, the
-> >>        kernel code does not contain support, the kernel support has been
-> >>        disabled, or because the keys have all been allocated, perhaps by a
-> >>        library the application is using.  It is recommended that
-> >>        applications wanting to use protection keys should simply call
-> >>        pkey_alloc(2) and test whether the call succeeds, instead of
-> >>        attempting to detect support for the feature in any other way.
-> >
-> > Do you really not have standard way on ppc to say whether hardware
-> > features are supported by the kernel?  For instance, how do you know if
-> > a given set of registers are known to and are being context-switched by
-> > the kernel?
-> 
-> Yes we do, we emit feature bits in the AT_HWCAP entry of the aux vector,
-> same as some other architectures.
-
-Ah. I was not aware of this.
-Thanks,
-RP
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> +} while (0)
+>   
+>   #endif
+>   
+> diff --git a/arch/ia64/include/asm/bug.h b/arch/ia64/include/asm/bug.h
+> index bd3eeb8d1cfa..66b37a532765 100644
+> --- a/arch/ia64/include/asm/bug.h
+> +++ b/arch/ia64/include/asm/bug.h
+> @@ -4,7 +4,11 @@
+>   
+>   #ifdef CONFIG_BUG
+>   #define ia64_abort()	__builtin_trap()
+> -#define BUG() do { printk("kernel BUG at %s:%d!\n", __FILE__, __LINE__); ia64_abort(); } while (0)
+> +#define BUG() do {						\
+> +	printk("kernel BUG at %s:%d!\n", __FILE__, __LINE__);	\
+> +	barrier_before_unreachable();				\
+> +	ia64_abort();						\
+> +} while (0)
+>   
+>   /* should this BUG be made generic? */
+>   #define HAVE_ARCH_BUG
+> diff --git a/arch/m68k/include/asm/bug.h b/arch/m68k/include/asm/bug.h
+> index b7e2bf1ba4a6..275dca1435bf 100644
+> --- a/arch/m68k/include/asm/bug.h
+> +++ b/arch/m68k/include/asm/bug.h
+> @@ -8,16 +8,19 @@
+>   #ifndef CONFIG_SUN3
+>   #define BUG() do { \
+>   	pr_crit("kernel BUG at %s:%d!\n", __FILE__, __LINE__); \
+> +	barrier_before_unreachable(); \
+>   	__builtin_trap(); \
+>   } while (0)
+>   #else
+>   #define BUG() do { \
+>   	pr_crit("kernel BUG at %s:%d!\n", __FILE__, __LINE__); \
+> +	barrier_before_unreachable(); \
+>   	panic("BUG!"); \
+>   } while (0)
+>   #endif
+>   #else
+>   #define BUG() do { \
+> +	barrier_before_unreachable(); \
+>   	__builtin_trap(); \
+>   } while (0)
+>   #endif
+> diff --git a/arch/sparc/include/asm/bug.h b/arch/sparc/include/asm/bug.h
+> index 6f17528356b2..ea53e418f6c0 100644
+> --- a/arch/sparc/include/asm/bug.h
+> +++ b/arch/sparc/include/asm/bug.h
+> @@ -9,10 +9,14 @@
+>   void do_BUG(const char *file, int line);
+>   #define BUG() do {					\
+>   	do_BUG(__FILE__, __LINE__);			\
+> +	barrier_before_unreachable();			\
+>   	__builtin_trap();				\
+>   } while (0)
+>   #else
+> -#define BUG()		__builtin_trap()
+> +#define BUG() do {					\
+> +	barrier_before_unreachable();			\
+> +	__builtin_trap();				\
+> +} while (0)
+>   #endif
+>   
+>   #define HAVE_ARCH_BUG
+> diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+> index 963b755d19b0..a7613e1b0c87 100644
+> --- a/include/asm-generic/bug.h
+> +++ b/include/asm-generic/bug.h
+> @@ -52,6 +52,7 @@ struct bug_entry {
+>   #ifndef HAVE_ARCH_BUG
+>   #define BUG() do { \
+>   	printk("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
+> +	barrier_before_unreachable(); \
+>   	panic("BUG!"); \
+>   } while (0)
+>   #endif
+> diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+> index 5d595cfdb2c4..66cfdad68f7e 100644
+> --- a/include/linux/compiler-gcc.h
+> +++ b/include/linux/compiler-gcc.h
+> @@ -205,6 +205,15 @@
+>   #endif
+>   
+>   /*
+> + * calling noreturn functions, __builtin_unreachable() and __builtin_trap()
+> + * confuse the stack allocation in gcc, leading to overly large stack
+> + * frames, see https://urldefense.proofpoint.com/v2/url?u=https-3A__gcc.gnu.org_bugzilla_show-5Fbug.cgi-3Fid-3D82365&d=DwIBAg&c=DPL6_X_6JkXFx7AXWqB0tg&r=c14YS-cH-kdhTOW89KozFhBtBJgs1zXscZojEZQ0THs&m=3Iu4HWDn1cXkYBpSFh5I80IzDKJi33hs5DbfGM-b3mI&s=sTrcyN5ej_ION8hJvF9eGLUZYwdlwI50vXUp3MK-XWY&e=
+> + *
+> + * Adding an empty inline assembly before it works around the problem
+> + */
+> +#define barrier_before_unreachable() asm volatile("")
+> +
+> +/*
+>    * Mark a position in code as unreachable.  This can be used to
+>    * suppress control flow warnings after asm blocks that transfer
+>    * control elsewhere.
+> @@ -214,7 +223,11 @@
+>    * unreleased.  Really, we need to have autoconf for the kernel.
+>    */
+>   #define unreachable() \
+> -	do { annotate_unreachable(); __builtin_unreachable(); } while (0)
+> +	do {					\
+> +		annotate_unreachable();		\
+> +		barrier_before_unreachable();	\
+> +		__builtin_unreachable();	\
+> +	} while (0)
+>   
+>   /* Mark a function definition as prohibited from being cloned. */
+>   #define __noclone	__attribute__((__noclone__, __optimize__("no-tracer")))
+> diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+> index 52e611ab9a6c..97847f2f86cf 100644
+> --- a/include/linux/compiler.h
+> +++ b/include/linux/compiler.h
+> @@ -86,6 +86,11 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
+>   # define barrier_data(ptr) barrier()
+>   #endif
+>   
+> +/* workaround for GCC PR82365 if needed */
+> +#ifndef barrier_before_unreachable
+> +# define barrier_before_unreachable() do { } while (0)
+> +#endif
+> +
+>   /* Unreachable code */
+>   #ifdef CONFIG_STACK_VALIDATION
+>   /*
