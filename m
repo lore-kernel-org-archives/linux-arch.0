@@ -1,37 +1,72 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] bug.h: Work around GCC PR82365 in BUG()
-Date: Tue, 19 Dec 2017 12:49:24 +0100
-Message-ID: <CAMuHMdV3x6jqWj3S=U-rK4HB9oYSEO1fES0bKWjouu7QqapF3w@mail.gmail.com>
-References: <20171219114112.939391-1-arnd@arndb.de>
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH v2 0/2] mm: introduce MAP_FIXED_SAFE
+Date: Tue, 19 Dec 2017 12:40:16 +0000
+Message-ID: <0ca2620ce7534c5491e69416621ac41b@AcuMS.aculab.com>
+References: <20171213092550.2774-1-mhocko@kernel.org>
+ <20171213163210.6a16ccf8753b74a6982ef5b6@linux-foundation.org>
+ <CAFLM3-oANXKEU=tuurSJx9rdzfWGfym-0FUEWnfBq8mOaVMzOA@mail.gmail.com>
+ <20171214131526.GM16951@dhcp22.suse.cz> <20171214145443.GA2202@brick>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <20171219114112.939391-1-arnd@arndb.de>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, Christopher Li <sparse@chrisli.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Will Deacon <will.deacon@arm.com>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Mark Rutland <mark.rutland@arm.com>, arcml <linux-snps-arc@lists.infradead.org>Linux
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20171214145443.GA2202@brick>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: 'Edward Napierala' <trasz@freebsd.org>, Michal Hocko <mhocko@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Michael
+ Ellerman <mpe@ellerman.id.au>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John
+ Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Abdul
+ Haleem <abdhalee@linux.vnet.ibm.com>, Joel Stanley <joel@jms.id.au>, Kees
+ Cook <keescook@chromium.org>, "jasone@google.com" <jasone@google.com>, "davidtgoldblatt@gmail.com" <davidtgoldblatt@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
+From: Edward Napierala
+> Sent: 14 December 2017 14:55
+>
+> On 1214T1415, Michal Hocko wrote:
+> > On Thu 14-12-17 12:44:17, Edward Napierala wrote:
+> > > Regarding the name - how about adopting MAP_EXCL?  It was introduced =
+in
+> > > FreeBSD,
+> > > and seems to do exactly this; quoting mmap(2):
+> > >
+> > > MAP_FIXED    Do not permit the system to select a different address
+> > >                         than the one specified.  If the specified add=
+ress
+> > >                         cannot be used, mmap() will fail.  If MAP_FIX=
+ED is
+> > >                         specified, addr must be a multiple of the pag=
+e size.
+> > >                         If MAP_EXCL is not specified, a successful MA=
+P_FIXED
+> > >                         request replaces any previous mappings for th=
+e
+> > >                         process' pages in the range from addr to addr=
+ + len.
+> > >                         In contrast, if MAP_EXCL is specified, the re=
+quest
+> > >                         will fail if a mapping already exists within =
+the
+> > >                         range.
+> >
+> > I am not familiar with the FreeBSD implementation but from the above it
+> > looks like MAP_EXCL is a MAP_FIXED mofifier which is not how we are
+> > going to implement it in linux due to reasons mentioned in this cover
+> > letter. Using the same name would be more confusing than helpful I am
+> > afraid.
+>=20
+> Sorry, missed that.  Indeed, reusing a name with a different semantics
+> would be a bad idea.
 
-On Tue, Dec 19, 2017 at 12:39 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> The name barrier_before_unreachable() is a bit suboptimal here,
-> as it fails to describe the fact that it is needed for both
-> __builtin_unreachable() and for calling noreturn functions.  Any other
-> suggestions would be welcome here.
+I don't remember any discussion about using MAP_FIXED | MAP_EXCL ?
 
-/me joins bikeshedding...
+Why not match the prior art??
 
-barrier_before_noreturn()?
-barrier_before_dead_end()?
-
-Gr{oetje,eeting}s,
-
-                        Geert
+	David
 
 --
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
