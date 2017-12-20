@@ -1,86 +1,83 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v9 29/51] mm/mprotect, powerpc/mm/pkeys, x86/mm/pkeys:
- Add sysfs interface
-Date: Wed, 20 Dec 2017 09:50:22 -0800
-Message-ID: <20171220175022.GB5619@ram.oc3035372033.ibm.com>
-References: <1509958663-18737-1-git-send-email-linuxram@us.ibm.com>
- <1509958663-18737-30-git-send-email-linuxram@us.ibm.com>
- <bbc5593e-31ec-183a-01a5-1a253dc0c275@intel.com>
- <20171218221850.GD5461@ram.oc3035372033.ibm.com>
- <e7971d03-6ad1-40d5-9b79-f01242db5293@intel.com>
- <1513719296.2743.12.camel@kernel.crashing.org>
-Reply-To: Ram Pai <linuxram@us.ibm.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] bug.h: Work around GCC PR82365 in BUG()
+Date: Wed, 20 Dec 2017 10:52:27 -0800
+Message-ID: <27bfdc23-1774-cf07-dab4-ab253a41d2f7@synopsys.com>
+References: <20171219114112.939391-1-arnd@arndb.de>
+ <8e42a1de-f619-7a4e-6d58-f90f53f5f38f@synopsys.com>
+ <CAK8P3a2fXQHCN7gqNL9j7AeZqy7NXAMW1bqyFJs3G1M_M4BQ4A@mail.gmail.com>
+ <f31caa9b-89f0-4168-04bf-14a98595865e@synopsys.com>
+ <CAK8P3a25RgC0qPCrGfutSnLHr77NqK74dW2g0m7fcMnm5Ou8yg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:53130 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1755453AbdLTRuf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 20 Dec 2017 12:50:35 -0500
-Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.21/8.16.0.21) with SMTP id vBKHn5U8102801
-        for <linux-arch@vger.kernel.org>; Wed, 20 Dec 2017 12:50:34 -0500
-Received: from e34.co.us.ibm.com (e34.co.us.ibm.com [32.97.110.152])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2eyuc2bnga-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 20 Dec 2017 12:50:34 -0500
-Received: from localhost
-        by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Wed, 20 Dec 2017 10:50:33 -0700
-Content-Disposition: inline
-In-Reply-To: <1513719296.2743.12.camel@kernel.crashing.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Dave Hansen <dave.hansen@intel.com>, mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a25RgC0qPCrGfutSnLHr77NqK74dW2g0m7fcMnm5Ou8yg@mail.gmail.com>
+Content-Language: en-US
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Christopher Li <sparse@chrisli.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Will Deacon <will.deacon@arm.com>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Mark Rutland <mark.rutland@arm.com>arcml <l>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 20, 2017 at 08:34:56AM +1100, Benjamin Herrenschmidt wrote:
-> On Mon, 2017-12-18 at 14:28 -0800, Dave Hansen wrote:
-> > > We do not have generic support for something like that on ppc.
-> > > The kernel looks at the device tree to determine what hardware features
-> > > are available. But does not have mechanism to tell the hardware to track
-> > > which of its features are currently enabled/used by the kernel; atleast
-> > > not for the memory-key feature.
-> > 
-> > Bummer.  You're missing out.
-> > 
-> > But, you could still do this with a syscall.  "Hey, kernel, do you
-> > support this feature?"
+On 12/20/2017 01:01 AM, Arnd Bergmann wrote:
+> On Tue, Dec 19, 2017 at 11:38 PM, Vineet Gupta
+> <Vineet.Gupta1@synopsys.com> wrote:
+>> On 12/19/2017 12:13 PM, Arnd Bergmann wrote:
+>>>
+>>>
+>>>> I suppose BUG() implies "dead end" like semantics - which ARC was lacking
+>>>> before ?
+>>>
+>>> Correct. Using __builtin_trap() here avoids the 'control reaches end of
+>>> non-void
+>>> function' warnings, but then makes us run into the stack size problem that
+>>> I work around with the barrier_before_unreachable().
+>>>
+>>> It would be good if you could give this a quick test to see if you get
+>>> sensible
+>>> output from the __builtin_trap();
+>>
+>>
+>> It does, added a BUG() arbit, hits an abort()
+>>
+>> ...
+>> ISA Extn    : atomic ll64 unalign (not used)
+>>          : mpy[opt 9] div_rem norm barrel-shift swap minmax swape
+>> BPU        : partial match, cache:2048, Predict Table:16384
+>> BUG: failure at ../arch/arc/mm/tlb.c:827/arc_mmu_init()!
+>>
+>>
+>> Tested-by: Vineet Gupta <vgupta@synopsys.com>
 > 
-> I'm not sure I understand Ram's original (quoted) point, but informing
-> userspace of CPU features is what AT_HWCAP's are about.
+> I meant whether it prints the right registers and stack trace, but I
+> assume you tested that and just did not list it above.
 
-Ben, my original point was -- we developed this patch to satisfy a concern
-you raised back on July 11th;  cut-n-pasted below.
+Sorry, I didn't realize we are missing the stack trace now which you removed from 
+the patch - why ? Did u intend to reduce inline generated code for the stack dump 
+calls - which sounds like a great idea. But it would only work for the synchronous 
+abort() but not when builtin translates to actual trap inducing instruction.
 
--------------------------------------------------------------------
-That leads to the question... How do you tell userspace.
+> Hmm, so with the new definition of abort(),
+> 
+> +__weak void abort(void)
+> +{
+> +   BUG();
+> +
+> +   /* if that doesn't kill us, halt */
+> +   panic("Oops failed to kill thread");
+> +}
+> 
+> won't that run into an endless recursion? Or do you then override abort()
+> for ARC?
 
-(apologies if I missed that in an existing patch in the series)
+Indeed so. I didn't run into this in my testing as my for-curr has an ARC specific 
+version (predating Sudip's generic version- because of build failures in our 
+internal regression jobs etc). That version only calls panic.
 
-How do we inform userspace of the key capabilities ? There are
-at least two things userspace may want to know already:
-
-	 - What protection bits are supported for a key
-
-	 - How many keys exist
-
-	 - Which keys are available for use by userspace. On PowerPC,
-	 the kernel can reserve some keys for itself, so can the
-	 hypervisor. In fact, they do.
---------------------------------------------------------------------
+abort() is only likely to be called due to __builtin_trap() for arches where gcc 
+doesn't have a target specific defn of it. And thus adding the call from BUG() 
+will cause the recursion as you found out with Sudip's generic version and thus 
+needs a fixup.
 
 
-The argument against this patch is --  it should not be baked into
-the ABI as yet, since we do not have clarity on what applications need.
-
-As it stands today the only way to figure out the information from
-userspace is by probing the kernel through calls to sys_pkey_alloc().
-
-AT_HWCAP can be used, but that will certainly not be capable of
-providing all the information that userspace might expect.
-
-Your thoughts?
-RP
+Thx,
+-Vineet
