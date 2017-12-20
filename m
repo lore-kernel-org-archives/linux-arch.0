@@ -1,69 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f193.google.com ([209.85.217.193]:40218 "EHLO
-        mail-ua0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752867AbdLTCgM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Dec 2017 21:36:12 -0500
+Received: from mail-ot0-f193.google.com ([74.125.82.193]:33538 "EHLO
+        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752128AbdLTJBb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Dec 2017 04:01:31 -0500
 MIME-Version: 1.0
-In-Reply-To: <78afd442-4482-f104-746e-5984214658ee@infradead.org>
-References: <cover.1513577007.git.green.hu@gmail.com> <935ff034982f077b2e6f5eeccd6fe2110614fc9c.1513577007.git.green.hu@gmail.com>
- <78afd442-4482-f104-746e-5984214658ee@infradead.org>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Wed, 20 Dec 2017 10:35:30 +0800
-Message-ID: <CAEbi=3cyccwHNurEmXFC1nfVzEc9FZMp5bxNi8un4c3w4xA7Sg@mail.gmail.com>
-Subject: Re: [PATCH v4 04/36] nds32: Kernel booting and initialization
+In-Reply-To: <f31caa9b-89f0-4168-04bf-14a98595865e@synopsys.com>
+References: <20171219114112.939391-1-arnd@arndb.de> <8e42a1de-f619-7a4e-6d58-f90f53f5f38f@synopsys.com>
+ <CAK8P3a2fXQHCN7gqNL9j7AeZqy7NXAMW1bqyFJs3G1M_M4BQ4A@mail.gmail.com> <f31caa9b-89f0-4168-04bf-14a98595865e@synopsys.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 20 Dec 2017 10:01:27 +0100
+Message-ID: <CAK8P3a25RgC0qPCrGfutSnLHr77NqK74dW2g0m7fcMnm5Ou8yg@mail.gmail.com>
+Subject: Re: [PATCH] bug.h: Work around GCC PR82365 in BUG()
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <rdunlap@infradead.org>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Philippe Ombredanne <pombredanne@nexb.com>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20171220023530.z9NwNJefqmFvzixpKEpUDyn5rPrNp5U0t09F3en96c4@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Christopher Li <sparse@chrisli.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Will Deacon <will.deacon@arm.com>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Mark Rutland <mark.rutland@arm.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-cris-kernel@axis.com" <linux-cris-kernel@axis.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, "linux-sparse@vger.kernel.org" <linux-sparse@vger.kernel.org>
+Message-ID: <20171220090127.cFIrSWoBtJto9ClZOz3uHOzRM9GPhxpuRdioJ3lUBpo@z>
 
-2017-12-20 6:01 GMT+08:00 Randy Dunlap <rdunlap@infradead.org>:
-> On 12/17/2017 10:46 PM, Greentime Hu wrote:
->> From: Greentime Hu <greentime@andestech.com>
+On Tue, Dec 19, 2017 at 11:38 PM, Vineet Gupta
+<Vineet.Gupta1@synopsys.com> wrote:
+> On 12/19/2017 12:13 PM, Arnd Bergmann wrote:
 >>
->> This patch includes the kernel startup code. It can get dtb pointer
->> passed from bootloader. It will create a temp mapping by tlb
->> instructions at beginning and goto start_kernel.
 >>
->> Signed-off-by: Vincent Chen <vincentc@andestech.com>
->> Signed-off-by: Greentime Hu <greentime@andestech.com>
->> ---
->>  arch/nds32/kernel/head.S  |  189 ++++++++++++++++++++++
->>  arch/nds32/kernel/setup.c |  383 +++++++++++++++++++++++++++++++++++++++++++++
->>  2 files changed, 572 insertions(+)
->>  create mode 100644 arch/nds32/kernel/head.S
->>  create mode 100644 arch/nds32/kernel/setup.c
+>>> I suppose BUG() implies "dead end" like semantics - which ARC was lacking
+>>> before ?
 >>
+>> Correct. Using __builtin_trap() here avoids the 'control reaches end of
+>> non-void
+>> function' warnings, but then makes us run into the stack size problem that
+>> I work around with the barrier_before_unreachable().
+>>
+>> It would be good if you could give this a quick test to see if you get
+>> sensible
+>> output from the __builtin_trap();
 >
->> diff --git a/arch/nds32/kernel/setup.c b/arch/nds32/kernel/setup.c
->> new file mode 100644
->> index 0000000..7718c58
->> --- /dev/null
->> +++ b/arch/nds32/kernel/setup.c
->> @@ -0,0 +1,383 @@
->> +// SPDX-License-Identifier: GPL-2.0
->> +// Copyright (C) 2005-2017 Andes Technology Corporation
->> +
 >
-> [snip]
+> It does, added a BUG() arbit, hits an abort()
 >
->> +struct cache_info L1_cache_info[2];
->> +static void __init dump_cpu_info(int cpu)
->> +{
->> +     int i, p = 0;
->> +     char str[sizeof(hwcap_str) + 16];
->> +
->> +     for (i = 0; hwcap_str[i]; i++) {
->> +             if (elf_hwcap & (1 << i)) {
->> +                     sprintf(str + p, "%s ", hwcap_str[i]);
->> +                     p += strlen(hwcap_str[i]) + 1;
->> +             }
->> +     }
->> +
->> +     pr_info("CPU%d Featuretures: %s\n", cpu, str);
+> ...
+> ISA Extn    : atomic ll64 unalign (not used)
+>         : mpy[opt 9] div_rem norm barrel-shift swap minmax swape
+> BPU        : partial match, cache:2048, Predict Table:16384
+> BUG: failure at ../arch/arc/mm/tlb.c:827/arc_mmu_init()!
 >
->                        Features:
 >
+> Tested-by: Vineet Gupta <vgupta@synopsys.com>
 
-Thanks Randy. I will fix this typo.
+I meant whether it prints the right registers and stack trace, but I
+assume you tested that and just did not list it above.
+
+> FWIW newer ARC gcc actually implements the builtin so we get a trap 5
+> instruction now, vs., abort() calls before.
+>
+> BTW I missed reading the hunk of your changelog where this addresses the
+> long standing mystery with ARC builds and numerous -Wreturn-type warnings. I
+> always wondered why they were not fixed upstream already, being too lazy to
+> investigate myself, and turns out this was due to this BUG() thingy. phew !
+
+Hmm, so with the new definition of abort(),
+
++__weak void abort(void)
++{
++   BUG();
++
++   /* if that doesn't kill us, halt */
++   panic("Oops failed to kill thread");
++}
+
+won't that run into an endless recursion? Or do you then override abort()
+for ARC?
+
+         Arnd
