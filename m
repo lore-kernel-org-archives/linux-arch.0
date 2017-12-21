@@ -1,34 +1,84 @@
-From: "Sandra Younes" <mamg7610885@angel.ocn.ne.jp>
-Subject: Re: Distress Call Please don't ignore
-Date: Thu, 21 Dec 2017 14:35:45 +0200
-Message-ID: <1513859750.S04gezQUQFoeWS04keH2gi__4230.28036389059$1513859946$gmane$org@mf-smf-ucb019c2>
-Reply-To: <tdavalvse@gmail.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: known bad patch in -mm tree was Re: [PATCH 2/2] mmap.2: MAP_FIXED
+ updated documentation
+Date: Thu, 21 Dec 2017 15:59:07 +0100
+Message-ID: <20171221145907.GA7604@amd>
+References: <20171213125540.GA18897@amd>
+ <20171213130458.GI25185@dhcp22.suse.cz>
+ <20171213130900.GA19932@amd>
+ <20171213131640.GJ25185@dhcp22.suse.cz>
+ <20171213132105.GA20517@amd>
+ <20171213144050.GG11493@rei>
+ <CAGXu5jLqE6cUxk-Girx6PG7upEzz8jmu1OH_3LVC26iJc2vTxQ@mail.gmail.com>
+ <c7c7a30e-a122-1bbf-88a2-3349d755c62d@gmail.com>
+ <CAGXu5jJ289R9koVoHmxcvUWr6XHSZR2p0qq3WtpNyN-iNSvrNQ@mail.gmail.com>
+ <87po78fe7m.fsf@concordia.ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain;
-        charset="Windows-1251"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mbkd0101.ocn.ad.jp ([153.149.230.2]:50630 "EHLO
-        mbkd0101.ocn.ad.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750768AbdLUMk5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Dec 2017 07:40:57 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="pf9I7BMVVzbSWLtt"
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <87po78fe7m.fsf@concordia.ellerman.id.au>
+Sender: owner-linux-mm@kvack.org
+To: Michael Ellerman <mpe@ellerman.id.au>, vojtech@suse.cz, jikos@suse.cz
+Cc: Kees Cook <keescook@chromium.org>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Cyril Hrubis <chrubis@suse.cz>, Michal Hocko <mhocko@kernel.org>, Linux API <linux-api@vger.kernel.org>, Khalid Aziz <khalid.aziz@oracle.com>, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Linux-MM <linux-mm@kvack.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, John Hubbard <jhubbard@nvidia.com>, Matthew Wilcox <willy@infradead.org>, Jann Horn <jannh@google.com>, Mike Rapoport <rppt@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Good Day,
 
-Forgive my indignation if this message comes to you as a surprise and may offend your personality for contacting you without your prior consent and writing through this channel.
+--pf9I7BMVVzbSWLtt
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-I came across your name and contact on the course of my personal searching when i was searching for a foreign reliable partner. I was assured of your capability and reliability after going true your profile.
+Hi!
 
-I'm (Miss. Sandra) from Benghazi libya, My father of blessed memory by name late General Abdel Fattah Younes who was shot death by Islamist-linked militia within the anti-Gaddafi forces on 28th July, 2011 and after two days later my mother with my two brothers was killed one early morning by the rebels as result of civil war that is going on in my country Libya, then after the burial of my parents, my uncles conspired and sold my father's properties and left nothing for me. On a faithful morning, I opened my father's briefcase and discover a document which he has deposited ($6.250M USD) in a bank in a Turkish Bank which has a small branch in Canada with my name as the legitimate/next of kin. Meanwhile i have located the bank,and have also discussed the possiblity of transfering the fund. M
- y father left a clause to the bank that i must introduce a trusted foreign partner who would be my trustee to help me invest this fund; hence the need for your assistance,i request that you be my t
-rustee and assist me in e
+> >>> And if Michal doesn't want to touch this patch any more, I'm happy to
+> >>> do the search/replace/resend. :P
+> >>
+> >> Something with the prefix MAP_FIXED_ seems to me obviously desirable,
+> >> both to suggest that the function is similar, and also for easy
+> >> grepping of the source code to look for instances of both.
+> >> MAP_FIXED_SAFE didn't really bother me as a name, but
+> >> MAP_FIXED_NOREPLACE (or MAP_FIXED_NOCLOBBER) seem slightly more
+> >> descriptive of what the flag actually does, so a little better.
+> >
+> > Great, thanks!
+> >
+> > Andrew, can you s/MAP_FIXED_SAFE/MAP_FIXED_NOREPLACE/g in the series?
+>=20
+> This seems to have not happened. Presumably Andrew just missed the mail
+> in the flood. And will probably miss this one too ... :)
 
-You will also be responsible for the investment and management of the fund for me and also you will help me get a good school where i will further my education.
-I agreed to give you 40% of the $6.250M once the transfer is done. this is my true life story, I will be glad to receive your respond soonest for more details to enable us start and champion the transfer less than 14 banking days as i was informed by the bank manager.
+Nice way to mess up kernel development, Michal. Thank you! :-(.
 
-Thanks for giving me your attention,
+Andrew, everyone and their dog agrees MAP_FIXED_SAFE is stupid name,
+but Michal decided to just go ahead, ignoring feedback...
 
-Yours sincerely,
-Miss. Sandra Younes
+Can you either s/MAP_FIXED_SAFE/MAP_FIXED_NOREPLACE/g or drop the patches?
+
+Thanks,
+									Pavel
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--pf9I7BMVVzbSWLtt
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAlo7zDsACgkQMOfwapXb+vJPWgCbBfYtq66FI5JTa2xsFDGf0za9
+djIAoJx/7xt2XwUfdzK545naG/32MRDV
+=vmt7
+-----END PGP SIGNATURE-----
+
+--pf9I7BMVVzbSWLtt--
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
