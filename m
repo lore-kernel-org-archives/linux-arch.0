@@ -1,127 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f65.google.com ([209.85.213.65]:42005 "EHLO
-        mail-vk0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752485AbdLVOlI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Dec 2017 09:41:08 -0500
-MIME-Version: 1.0
-In-Reply-To: <201712201748.C4nCizdE%fengguang.wu@intel.com>
-References: <d25ea659bc370a6bb24c4d42416f890a34051df1.1513577007.git.green.hu@gmail.com>
- <201712201748.C4nCizdE%fengguang.wu@intel.com>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Fri, 22 Dec 2017 22:40:27 +0800
-Message-ID: <CAEbi=3fR=vHhEPME4ZFM3kcvVCeDQLJHOyhOC-EBdTQyhvXkiQ@mail.gmail.com>
-Subject: Re: [PATCH v4 01/36] asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt
- out of ifndef CONFIG_MMU
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail.efficios.com ([167.114.142.141]:57914 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756927AbdLVUQQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Dec 2017 15:16:16 -0500
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: [RFC PATCH for 4.16 11/11] membarrier: selftest: Test private expedited sync core cmd
+Date: Fri, 22 Dec 2017 15:15:36 -0500
+Message-ID: <20171222201536.29809-12-mathieu.desnoyers@efficios.com>
+In-Reply-To: <20171222201536.29809-1-mathieu.desnoyers@efficios.com>
+References: <20171222201536.29809-1-mathieu.desnoyers@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kbuild test robot <lkp@intel.com>
-Cc: kbuild-all@01.org, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Philippe Ombredanne <pombredanne@nexb.com>, Vincent Chen <vincentc@andestech.com>, jonas@southpole.se
-Message-ID: <20171222144027.7u8ZBQNn54vjLJPXc-TdBgF76PYVkStQexjGHcNjrwU@z>
+To: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Alan Stern <stern@rowland.harvard.edu>, Alice Ferrazzi <alice.ferrazzi@gmail.com>, Paul Elder <paul.elder@pitt.edu>, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20171222201536.WoM2VILz3tZMQh56OCOYWqzqtlPZlN63rRZvM7Cus1I@z>
 
-2017-12-20 18:10 GMT+08:00 kbuild test robot <lkp@intel.com>:
-> Hi Greentime,
->
-> Thank you for the patch! Yet something to improve:
->
-> [auto build test ERROR on tip/timers/core]
-> [also build test ERROR on v4.15-rc4 next-20171220]
-> [cannot apply to linus/master]
-> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
->
-> url:    https://github.com/0day-ci/linux/commits/Greentime-Hu/Andes-nds32-Linux-Kernel/20171220-155937
-> config: openrisc-or1ksim_defconfig (attached as .config)
-> compiler: or1k-linux-gcc (GCC) 6.0.0 20160327 (experimental)
-> reproduce:
->         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
->         chmod +x ~/bin/make.cross
->         # save the attached .config to linux build tree
->         make.cross ARCH=openrisc
->
-> All error/warnings (new ones prefixed by >>):
->
->    In file included from include/linux/io.h:25:0,
->                     from arch/openrisc/kernel/asm-offsets.c:35:
->>> arch/openrisc/include/asm/io.h:38:29: error: conflicting types for 'ioremap'
->     static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
->                                 ^~~~~~~
->    In file included from arch/openrisc/include/asm/io.h:32:0,
->                     from include/linux/io.h:25,
->                     from arch/openrisc/kernel/asm-offsets.c:35:
->    include/asm-generic/io.h:864:15: note: previous declaration of 'ioremap' was here
->     void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
->                   ^~~~~~~
->    include/asm-generic/io.h:865:25: error: conflicting types for 'ioremap_nocache'
->     #define ioremap_nocache ioremap_nocache
->                             ^
->>> arch/openrisc/include/asm/io.h:44:29: note: in expansion of macro 'ioremap_nocache'
->     static inline void __iomem *ioremap_nocache(phys_addr_t offset,
->                                 ^~~~~~~~~~~~~~~
->    include/asm-generic/io.h:865:25: note: previous definition of 'ioremap_nocache' was here
->     #define ioremap_nocache ioremap_nocache
->                             ^
->    include/asm-generic/io.h:866:29: note: in expansion of macro 'ioremap_nocache'
->     static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
->                                 ^~~~~~~~~~~~~~~
->    make[2]: *** [arch/openrisc/kernel/asm-offsets.s] Error 1
->    make[2]: Target '__build' not remade because of errors.
->    make[1]: *** [prepare0] Error 2
->    make[1]: Target 'prepare' not remade because of errors.
->    make: *** [sub-make] Error 2
->
-> vim +/ioremap +38 arch/openrisc/include/asm/io.h
->
-> 58e0166a Jonas Bonn  2011-06-04  31
-> 58e0166a Jonas Bonn  2011-06-04 @32  #include <asm-generic/io.h>
-> 9b04ebd1 James Hogan 2012-10-23  33  #include <asm/pgtable.h>
-> 58e0166a Jonas Bonn  2011-06-04  34
-> 58e0166a Jonas Bonn  2011-06-04  35  extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
-> 58e0166a Jonas Bonn  2011-06-04  36                             pgprot_t prot);
-> 58e0166a Jonas Bonn  2011-06-04  37
-> 58e0166a Jonas Bonn  2011-06-04 @38  static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
-> 58e0166a Jonas Bonn  2011-06-04  39  {
-> 58e0166a Jonas Bonn  2011-06-04  40     return __ioremap(offset, size, PAGE_KERNEL);
-> 58e0166a Jonas Bonn  2011-06-04  41  }
-> 58e0166a Jonas Bonn  2011-06-04  42
-> 58e0166a Jonas Bonn  2011-06-04  43  /* #define _PAGE_CI       0x002 */
-> 58e0166a Jonas Bonn  2011-06-04 @44  static inline void __iomem *ioremap_nocache(phys_addr_t offset,
-> 58e0166a Jonas Bonn  2011-06-04  45                                          unsigned long size)
-> 58e0166a Jonas Bonn  2011-06-04  46  {
-> 58e0166a Jonas Bonn  2011-06-04  47     return __ioremap(offset, size,
-> 58e0166a Jonas Bonn  2011-06-04  48                      __pgprot(pgprot_val(PAGE_KERNEL) | _PAGE_CI));
-> 58e0166a Jonas Bonn  2011-06-04  49  }
-> 58e0166a Jonas Bonn  2011-06-04  50
->
-> :::::: The code at line 38 was first introduced by commit
-> :::::: 58e0166a4772aaeb10c9b0f6d59f19099d2047df OpenRISC: Headers
->
-> :::::: TO: Jonas Bonn <jonas@southpole.se>
-> :::::: CC: Jonas Bonn <jonas@southpole.se>
->
-> ---
-> 0-DAY kernel test infrastructure                Open Source Technology Center
-> https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
+Test the new MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE and
+MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE commands.
 
-Hi, all:
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Acked-by: Shuah Khan <shuahkh@osg.samsung.com>
+CC: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: Andrew Hunter <ahh@google.com>
+CC: Maged Michael <maged.michael@gmail.com>
+CC: Avi Kivity <avi@scylladb.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Paul Mackerras <paulus@samba.org>
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Dave Watson <davejwatson@fb.com>
+CC: Alan Stern <stern@rowland.harvard.edu>
+CC: Will Deacon <will.deacon@arm.com>
+CC: Andy Lutomirski <luto@kernel.org>
+CC: Alice Ferrazzi <alice.ferrazzi@gmail.com>
+CC: Paul Elder <paul.elder@pitt.edu>
+CC: linux-kselftest@vger.kernel.org
+CC: linux-arch@vger.kernel.org
+---
+ .../testing/selftests/membarrier/membarrier_test.c | 73 ++++++++++++++++++++++
+ 1 file changed, 73 insertions(+)
 
-I just tried to fix this build error.
-Should I send this patch next time with nds32 patchset?
-
---- a/arch/openrisc/include/asm/io.h
-+++ b/arch/openrisc/include/asm/io.h
-@@ -29,13 +29,14 @@
- #define PIO_OFFSET             0
- #define PIO_MASK               0
-
-+#define ioremap_nocache ioremap_nocache
- #include <asm-generic/io.h>
- #include <asm/pgtable.h>
-
- extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
-                                pgprot_t prot);
-
--static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
-+static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
- {
-        return __ioremap(offset, size, PAGE_KERNEL);
+diff --git a/tools/testing/selftests/membarrier/membarrier_test.c b/tools/testing/selftests/membarrier/membarrier_test.c
+index bb9c58072c5c..d9ab8b6ee52e 100644
+--- a/tools/testing/selftests/membarrier/membarrier_test.c
++++ b/tools/testing/selftests/membarrier/membarrier_test.c
+@@ -132,6 +132,63 @@ static int test_membarrier_private_expedited_success(void)
+ 	return 0;
  }
+ 
++static int test_membarrier_private_expedited_sync_core_fail(void)
++{
++	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE not registered failure";
++
++	if (sys_membarrier(cmd, flags) != -1) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should fail, but passed\n",
++			test_name, flags);
++	}
++	if (errno != EPERM) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
++			test_name, flags, EPERM, strerror(EPERM),
++			errno, strerror(errno));
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d, errno = %d\n",
++		test_name, flags, errno);
++	return 0;
++}
++
++static int test_membarrier_register_private_expedited_sync_core_success(void)
++{
++	int cmd = MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n",
++		test_name, flags);
++	return 0;
++}
++
++static int test_membarrier_private_expedited_sync_core_success(void)
++{
++	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n",
++		test_name, flags);
++	return 0;
++}
++
+ static int test_membarrier_register_shared_expedited_success(void)
+ {
+ 	int cmd = MEMBARRIER_CMD_REGISTER_SHARED_EXPEDITED, flags = 0;
+@@ -188,6 +245,22 @@ static int test_membarrier(void)
+ 	status = test_membarrier_private_expedited_success();
+ 	if (status)
+ 		return status;
++	status = sys_membarrier(MEMBARRIER_CMD_QUERY, 0);
++	if (status < 0) {
++		ksft_test_result_fail("sys_membarrier() failed\n");
++		return status;
++	}
++	if (status & MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE) {
++		status = test_membarrier_private_expedited_sync_core_fail();
++		if (status)
++			return status;
++		status = test_membarrier_register_private_expedited_sync_core_success();
++		if (status)
++			return status;
++		status = test_membarrier_private_expedited_sync_core_success();
++		if (status)
++			return status;
++	}
+ 	/*
+ 	 * It is valid to send a shared membarrier from a non-registered
+ 	 * process.
+-- 
+2.11.0
