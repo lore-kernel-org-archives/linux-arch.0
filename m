@@ -1,122 +1,120 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH v4 01/36] asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt
- out of ifndef CONFIG_MMU
-Date: Fri, 22 Dec 2017 22:40:27 +0800
-Message-ID: <CAEbi=3fR=vHhEPME4ZFM3kcvVCeDQLJHOyhOC-EBdTQyhvXkiQ@mail.gmail.com>
-References: <d25ea659bc370a6bb24c4d42416f890a34051df1.1513577007.git.green.hu@gmail.com>
- <201712201748.C4nCizdE%fengguang.wu@intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <201712201748.C4nCizdE%fengguang.wu@intel.com>
-Sender: netdev-owner@vger.kernel.org
-To: kbuild test robot <lkp@intel.com>
-Cc: kbuild-all@01.org, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: [RFC PATCH for 4.16 08/11] x86: Introduce sync_core_before_usermode (v2)
+Date: Fri, 22 Dec 2017 15:15:33 -0500
+Message-ID: <20171222201536.29809-9-mathieu.desnoyers@efficios.com>
+References: <20171222201536.29809-1-mathieu.desnoyers@efficios.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20171222201536.29809-1-mathieu.desnoyers@efficios.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@kernel.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-2017-12-20 18:10 GMT+08:00 kbuild test robot <lkp@intel.com>:
-> Hi Greentime,
->
-> Thank you for the patch! Yet something to improve:
->
-> [auto build test ERROR on tip/timers/core]
-> [also build test ERROR on v4.15-rc4 next-20171220]
-> [cannot apply to linus/master]
-> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
->
-> url:    https://github.com/0day-ci/linux/commits/Greentime-Hu/Andes-nds32-Linux-Kernel/20171220-155937
-> config: openrisc-or1ksim_defconfig (attached as .config)
-> compiler: or1k-linux-gcc (GCC) 6.0.0 20160327 (experimental)
-> reproduce:
->         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
->         chmod +x ~/bin/make.cross
->         # save the attached .config to linux build tree
->         make.cross ARCH=openrisc
->
-> All error/warnings (new ones prefixed by >>):
->
->    In file included from include/linux/io.h:25:0,
->                     from arch/openrisc/kernel/asm-offsets.c:35:
->>> arch/openrisc/include/asm/io.h:38:29: error: conflicting types for 'ioremap'
->     static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
->                                 ^~~~~~~
->    In file included from arch/openrisc/include/asm/io.h:32:0,
->                     from include/linux/io.h:25,
->                     from arch/openrisc/kernel/asm-offsets.c:35:
->    include/asm-generic/io.h:864:15: note: previous declaration of 'ioremap' was here
->     void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
->                   ^~~~~~~
->    include/asm-generic/io.h:865:25: error: conflicting types for 'ioremap_nocache'
->     #define ioremap_nocache ioremap_nocache
->                             ^
->>> arch/openrisc/include/asm/io.h:44:29: note: in expansion of macro 'ioremap_nocache'
->     static inline void __iomem *ioremap_nocache(phys_addr_t offset,
->                                 ^~~~~~~~~~~~~~~
->    include/asm-generic/io.h:865:25: note: previous definition of 'ioremap_nocache' was here
->     #define ioremap_nocache ioremap_nocache
->                             ^
->    include/asm-generic/io.h:866:29: note: in expansion of macro 'ioremap_nocache'
->     static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
->                                 ^~~~~~~~~~~~~~~
->    make[2]: *** [arch/openrisc/kernel/asm-offsets.s] Error 1
->    make[2]: Target '__build' not remade because of errors.
->    make[1]: *** [prepare0] Error 2
->    make[1]: Target 'prepare' not remade because of errors.
->    make: *** [sub-make] Error 2
->
-> vim +/ioremap +38 arch/openrisc/include/asm/io.h
->
-> 58e0166a Jonas Bonn  2011-06-04  31
-> 58e0166a Jonas Bonn  2011-06-04 @32  #include <asm-generic/io.h>
-> 9b04ebd1 James Hogan 2012-10-23  33  #include <asm/pgtable.h>
-> 58e0166a Jonas Bonn  2011-06-04  34
-> 58e0166a Jonas Bonn  2011-06-04  35  extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
-> 58e0166a Jonas Bonn  2011-06-04  36                             pgprot_t prot);
-> 58e0166a Jonas Bonn  2011-06-04  37
-> 58e0166a Jonas Bonn  2011-06-04 @38  static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
-> 58e0166a Jonas Bonn  2011-06-04  39  {
-> 58e0166a Jonas Bonn  2011-06-04  40     return __ioremap(offset, size, PAGE_KERNEL);
-> 58e0166a Jonas Bonn  2011-06-04  41  }
-> 58e0166a Jonas Bonn  2011-06-04  42
-> 58e0166a Jonas Bonn  2011-06-04  43  /* #define _PAGE_CI       0x002 */
-> 58e0166a Jonas Bonn  2011-06-04 @44  static inline void __iomem *ioremap_nocache(phys_addr_t offset,
-> 58e0166a Jonas Bonn  2011-06-04  45                                          unsigned long size)
-> 58e0166a Jonas Bonn  2011-06-04  46  {
-> 58e0166a Jonas Bonn  2011-06-04  47     return __ioremap(offset, size,
-> 58e0166a Jonas Bonn  2011-06-04  48                      __pgprot(pgprot_val(PAGE_KERNEL) | _PAGE_CI));
-> 58e0166a Jonas Bonn  2011-06-04  49  }
-> 58e0166a Jonas Bonn  2011-06-04  50
->
-> :::::: The code at line 38 was first introduced by commit
-> :::::: 58e0166a4772aaeb10c9b0f6d59f19099d2047df OpenRISC: Headers
->
-> :::::: TO: Jonas Bonn <jonas@southpole.se>
-> :::::: CC: Jonas Bonn <jonas@southpole.se>
->
-> ---
-> 0-DAY kernel test infrastructure                Open Source Technology Center
-> https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
+Introduce an architecture function that ensures the current CPU
+issues a core serializing instruction before returning to usermode.
 
-Hi, all:
+This is needed for the membarrier "sync_core" command.
 
-I just tried to fix this build error.
-Should I send this patch next time with nds32 patchset?
+Architectures defining the sync_core_before_usermode() static inline
+need to select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
 
---- a/arch/openrisc/include/asm/io.h
-+++ b/arch/openrisc/include/asm/io.h
-@@ -29,13 +29,14 @@
- #define PIO_OFFSET             0
- #define PIO_MASK               0
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Andy Lutomirski <luto@kernel.org>
+CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: Andrew Hunter <ahh@google.com>
+CC: Maged Michael <maged.michael@gmail.com>
+CC: Avi Kivity <avi@scylladb.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Paul Mackerras <paulus@samba.org>
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Dave Watson <davejwatson@fb.com>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: "H. Peter Anvin" <hpa@zytor.com>
+CC: Andrea Parri <parri.andrea@gmail.com>
+CC: Russell King <linux@armlinux.org.uk>
+CC: Greg Hackmann <ghackmann@google.com>
+CC: Will Deacon <will.deacon@arm.com>
+CC: David Sehr <sehr@google.com>
+CC: Linus Torvalds <torvalds@linux-foundation.org>
+CC: x86@kernel.org
+CC: linux-arch@vger.kernel.org
+---
+Changes since v1:
+- Fix prototype of sync_core_before_usermode in generic code (missing
+  return type).
+- Add linux/processor.h include to sched/core.c.
+- Add ARCH_HAS_SYNC_CORE_BEFORE_USERMODE to init/Kconfig.
+- Fix linux/processor.h ifdef to target
+  CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE rather than
+  ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
+---
+ arch/x86/Kconfig                 |  1 +
+ arch/x86/include/asm/processor.h | 10 ++++++++++
+ include/linux/processor.h        |  6 ++++++
+ init/Kconfig                     |  3 +++
+ 4 files changed, 20 insertions(+)
 
-+#define ioremap_nocache ioremap_nocache
- #include <asm-generic/io.h>
- #include <asm/pgtable.h>
-
- extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
-                                pgprot_t prot);
-
--static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
-+static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
- {
-        return __ioremap(offset, size, PAGE_KERNEL);
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 8eed3f94bfc7..fbf05a880603 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -62,6 +62,7 @@ config X86
+ 	select ARCH_HAS_SG_CHAIN
+ 	select ARCH_HAS_STRICT_KERNEL_RWX
+ 	select ARCH_HAS_STRICT_MODULE_RWX
++	select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
+ 	select ARCH_HAS_UBSAN_SANITIZE_ALL
+ 	select ARCH_HAS_ZONE_DEVICE		if X86_64
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index cc16fa882e3e..6dee02118207 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -707,6 +707,16 @@ static inline void sync_core(void)
+ #endif
  }
+ 
++/*
++ * Ensure that a core serializing instruction is issued before returning
++ * to user-mode. x86 implements return to user-space through sysexit,
++ * sysrel, and sysretq, which are not core serializing.
++ */
++static inline void sync_core_before_usermode(void)
++{
++	sync_core();
++}
++
+ extern void select_idle_routine(const struct cpuinfo_x86 *c);
+ extern void amd_e400_c1e_apic_setup(void);
+ 
+diff --git a/include/linux/processor.h b/include/linux/processor.h
+index dbc952eec869..866de5326d34 100644
+--- a/include/linux/processor.h
++++ b/include/linux/processor.h
+@@ -68,4 +68,10 @@ do {								\
+ 
+ #endif
+ 
++#ifndef CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
++static inline void sync_core_before_usermode(void)
++{
++}
++#endif
++
+ #endif /* _LINUX_PROCESSOR_H */
+diff --git a/init/Kconfig b/init/Kconfig
+index 92b4a07aa56d..178659a91090 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1909,3 +1909,6 @@ config ASN1
+ 	  functions to call on what tags.
+ 
+ source "kernel/Kconfig.locks"
++
++config ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
++	bool
+-- 
+2.11.0
