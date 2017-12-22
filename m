@@ -1,58 +1,458 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: Function pointer alignment
-Date: Fri, 22 Dec 2017 14:58:37 +0100
-Message-ID: <CAMuHMdUzDc0POByhGZCAf8j07KAcVCAX74XvJ_kN_tZC2Xf4Cg@mail.gmail.com>
-References: <20171222035518.GC23624@bombadil.infradead.org>
- <CAMuHMdVNF66QSnRvJxkNowMuVKeSoc7PHa+Ep-ojYmA2ywPRxQ@mail.gmail.com>
- <CAMuHMdWM-1VepP2fDxAwG6m+WC33UqPWN=DL7JEYVwSbtU8Xkg@mail.gmail.com> <20171222130936.GC6401@bombadil.infradead.org>
+From: Greentime Hu <green.hu@gmail.com>
+Subject: Re: [PATCH v4 01/36] asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt
+ out of ifndef CONFIG_MMU
+Date: Fri, 22 Dec 2017 22:38:54 +0800
+Message-ID: <CAEbi=3dvLKVOtU+oZN5rLhHcyZUy2V2-a=-u5PjgUmasF-Jpgw@mail.gmail.com>
+References: <d25ea659bc370a6bb24c4d42416f890a34051df1.1513577007.git.green.hu@gmail.com>
+ <201712201836.XDtv2JdK%fengguang.wu@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:35434 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755887AbdLVN6j (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Dec 2017 08:58:39 -0500
-Received: by mail-qt0-f195.google.com with SMTP id u10so36372997qtg.2
-        for <linux-arch@vger.kernel.org>; Fri, 22 Dec 2017 05:58:39 -0800 (PST)
-In-Reply-To: <20171222130936.GC6401@bombadil.infradead.org>
+Received: from mail-ua0-f193.google.com ([209.85.217.193]:41318 "EHLO
+        mail-ua0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752594AbdLVOjh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Dec 2017 09:39:37 -0500
+In-Reply-To: <201712201836.XDtv2JdK%fengguang.wu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>
+To: kbuild test robot <lkp@intel.com>
+Cc: kbuild-all@01.org, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg
 
-Hi Willy,
-
-On Fri, Dec 22, 2017 at 2:09 PM, Matthew Wilcox <willy@infradead.org> wrote:
-> On Fri, Dec 22, 2017 at 01:30:51PM +0100, Geert Uytterhoeven wrote:
->> On Fri, Dec 22, 2017 at 1:28 PM, Geert Uytterhoeven
->> <geert@linux-m68k.org> wrote:
->> > On Fri, Dec 22, 2017 at 4:55 AM, Matthew Wilcox <willy@infradead.org> wrote:
->> >> What alignment can we rely on for function pointers?
->> >
->> > Only one bit to steal on m68k...
->>
->> Same on SH.
+2017-12-20 18:09 GMT+08:00 kbuild test robot <lkp@intel.com>:
+> Hi Greentime,
 >
-> How much damage would we do by adding -falign-functions=4 to CFLAGS
-> on m68k?  Can you measure that for me?
+> Thank you for the patch! Yet something to improve:
+>
+> [auto build test ERROR on tip/timers/core]
+> [also build test ERROR on v4.15-rc4 next-20171220]
+> [cannot apply to linus/master]
+> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+>
+> url:    https://github.com/0day-ci/linux/commits/Greentime-Hu/Andes-nds32-Linux-Kernel/20171220-155937
+> config: sparc-defconfig (attached as .config)
+> compiler: sparc-linux-gcc (GCC) 7.2.0
+> reproduce:
+>         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
+>         chmod +x ~/bin/make.cross
+>         # save the attached .config to linux build tree
+>         make.cross ARCH=sparc
+>
+> All error/warnings (new ones prefixed by >>):
+>
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from arch/sparc/kernel/kernel.h:4,
+>                     from arch/sparc/kernel/traps_32.c:30:
+>>> arch/sparc/include/asm/io_32.h:129:15: error: conflicting types for 'ioremap'
+>     void __iomem *ioremap(unsigned long offset, unsigned long size);
+>                   ^~~~~~~
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from arch/sparc/kernel/kernel.h:4,
+>                     from arch/sparc/kernel/traps_32.c:30:
+>    include/asm-generic/io.h:864:15: note: previous declaration of 'ioremap' was here
+>     void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+>                   ^~~~~~~
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from arch/sparc/kernel/kernel.h:4,
+>                     from arch/sparc/kernel/traps_32.c:30:
+>    arch/sparc/include/asm/io_32.h:130:0: error: "ioremap_nocache" redefined [-Werror]
+>     #define ioremap_nocache(X,Y) ioremap((X),(Y))
+>
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from arch/sparc/kernel/kernel.h:4,
+>                     from arch/sparc/kernel/traps_32.c:30:
+>    include/asm-generic/io.h:865:0: note: this is the location of the previous definition
+>     #define ioremap_nocache ioremap_nocache
+>
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from arch/sparc/kernel/kernel.h:4,
+>                     from arch/sparc/kernel/traps_32.c:30:
+>    arch/sparc/include/asm/io_32.h:131:0: error: "ioremap_wc" redefined [-Werror]
+>     #define ioremap_wc(X,Y)  ioremap((X),(Y))
+>
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from arch/sparc/kernel/kernel.h:4,
+>                     from arch/sparc/kernel/traps_32.c:30:
+>    include/asm-generic/io.h:881:0: note: this is the location of the previous definition
+>     #define ioremap_wc ioremap_wc
+>
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from arch/sparc/kernel/kernel.h:4,
+>                     from arch/sparc/kernel/traps_32.c:30:
+>    arch/sparc/include/asm/io_32.h:132:0: error: "ioremap_wt" redefined [-Werror]
+>     #define ioremap_wt(X,Y)  ioremap((X),(Y))
+>
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from arch/sparc/kernel/kernel.h:4,
+>                     from arch/sparc/kernel/traps_32.c:30:
+>    include/asm-generic/io.h:889:0: note: this is the location of the previous definition
+>     #define ioremap_wt ioremap_wt
+>
+>    cc1: all warnings being treated as errors
+> --
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc/kernel/ioport.c:36:
+>>> arch/sparc/include/asm/io_32.h:129:15: error: conflicting types for 'ioremap'
+>     void __iomem *ioremap(unsigned long offset, unsigned long size);
+>                   ^~~~~~~
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc/kernel/ioport.c:36:
+>    include/asm-generic/io.h:864:15: note: previous declaration of 'ioremap' was here
+>     void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+>                   ^~~~~~~
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc/kernel/ioport.c:36:
+>    arch/sparc/include/asm/io_32.h:130:0: error: "ioremap_nocache" redefined [-Werror]
+>     #define ioremap_nocache(X,Y) ioremap((X),(Y))
+>
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc/kernel/ioport.c:36:
+>    include/asm-generic/io.h:865:0: note: this is the location of the previous definition
+>     #define ioremap_nocache ioremap_nocache
+>
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc/kernel/ioport.c:36:
+>    arch/sparc/include/asm/io_32.h:131:0: error: "ioremap_wc" redefined [-Werror]
+>     #define ioremap_wc(X,Y)  ioremap((X),(Y))
+>
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc/kernel/ioport.c:36:
+>    include/asm-generic/io.h:881:0: note: this is the location of the previous definition
+>     #define ioremap_wc ioremap_wc
+>
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc/kernel/ioport.c:36:
+>    arch/sparc/include/asm/io_32.h:132:0: error: "ioremap_wt" redefined [-Werror]
+>     #define ioremap_wt(X,Y)  ioremap((X),(Y))
+>
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc/kernel/ioport.c:36:
+>    include/asm-generic/io.h:889:0: note: this is the location of the previous definition
+>     #define ioremap_wt ioremap_wt
+>
+>>> arch/sparc/kernel/ioport.c:124:15: error: conflicting types for 'ioremap'
+>     void __iomem *ioremap(unsigned long offset, unsigned long size)
+>                   ^~~~~~~
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc/kernel/ioport.c:36:
+>    include/asm-generic/io.h:864:15: note: previous declaration of 'ioremap' was here
+>     void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+>                   ^~~~~~~
+>    In file included from include/linux/linkage.h:6:0,
+>                     from include/linux/kernel.h:6,
+>                     from include/linux/list.h:8,
+>                     from include/linux/module.h:9,
+>                     from arch/sparc/kernel/ioport.c:28:
+>    arch/sparc/kernel/ioport.c:131:15: error: conflicting types for 'ioremap'
+>     EXPORT_SYMBOL(ioremap);
+>                   ^
+>    include/linux/export.h:65:21: note: in definition of macro '___EXPORT_SYMBOL'
+>      extern typeof(sym) sym;      \
+>                         ^~~
+>>> arch/sparc/kernel/ioport.c:131:1: note: in expansion of macro 'EXPORT_SYMBOL'
+>     EXPORT_SYMBOL(ioremap);
+>     ^~~~~~~~~~~~~
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc/kernel/ioport.c:36:
+>    include/asm-generic/io.h:864:15: note: previous declaration of 'ioremap' was here
+>     void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+>                   ^~~~~~~
+>    cc1: all warnings being treated as errors
+> --
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc//kernel/ioport.c:36:
+>>> arch/sparc/include/asm/io_32.h:129:15: error: conflicting types for 'ioremap'
+>     void __iomem *ioremap(unsigned long offset, unsigned long size);
+>                   ^~~~~~~
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc//kernel/ioport.c:36:
+>    include/asm-generic/io.h:864:15: note: previous declaration of 'ioremap' was here
+>     void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+>                   ^~~~~~~
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc//kernel/ioport.c:36:
+>    arch/sparc/include/asm/io_32.h:130:0: error: "ioremap_nocache" redefined [-Werror]
+>     #define ioremap_nocache(X,Y) ioremap((X),(Y))
+>
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc//kernel/ioport.c:36:
+>    include/asm-generic/io.h:865:0: note: this is the location of the previous definition
+>     #define ioremap_nocache ioremap_nocache
+>
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc//kernel/ioport.c:36:
+>    arch/sparc/include/asm/io_32.h:131:0: error: "ioremap_wc" redefined [-Werror]
+>     #define ioremap_wc(X,Y)  ioremap((X),(Y))
+>
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc//kernel/ioport.c:36:
+>    include/asm-generic/io.h:881:0: note: this is the location of the previous definition
+>     #define ioremap_wc ioremap_wc
+>
+>    In file included from arch/sparc/include/asm/io.h:6:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc//kernel/ioport.c:36:
+>    arch/sparc/include/asm/io_32.h:132:0: error: "ioremap_wt" redefined [-Werror]
+>     #define ioremap_wt(X,Y)  ioremap((X),(Y))
+>
+>    In file included from arch/sparc/include/asm/io_32.h:13:0,
+>                     from arch/sparc/include/asm/io.h:6,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:24,
+>                     from include/asm-generic/hardirq.h:12,
+>                     from arch/sparc/include/asm/hardirq_32.h:10,
+>                     from arch/sparc/include/asm/hardirq.h:6,
+>                     from include/linux/hardirq.h:8,
+>                     from include/linux/interrupt.h:12,
+>                     from include/linux/pci.h:31,
+>                     from arch/sparc//kernel/ioport.c:36:
+>    include/asm-generic/io.h:889:0: note: this is the location of the previous definition
+>     #define ioremap_wt ioremap_wt
+>
+>    arch/sparc//kernel/ioport.c:124:15: error: conflicting types for 'ioremap'
+>     void __iomem *ioremap(unsigned long offset, unsigned long size)
+>                   ^~~~~~~
+>
 
-With defconfig (aka multi_defconfig) and gcc 4.1.2:
+Hi, all:
 
-   text    data     bss     dec     hex filename
-3594487 959460 186492 4740439 485557 vmlinux.old
-3611159 959484 185724 4756367 48938f vmlinux
+I just tried to fix this build error.
+Should I send this patch next time with nds32 patchset?
 
-text +16672
-data +24
-bss -768 (why?)
-total +15928
+--- a/arch/sparc/include/asm/io_32.h
++++ b/arch/sparc/include/asm/io_32.h
+@@ -126,12 +126,7 @@ static inline void sbus_memcpy_toio(volatile void
+__iomem *dst,
+  * Bus number may be embedded in the higher bits of the physical address.
+  * This is why we have no bus number argument to ioremap().
+  */
+-void __iomem *ioremap(unsigned long offset, unsigned long size);
+-#define ioremap_nocache(X,Y)   ioremap((X),(Y))
+-#define ioremap_wc(X,Y)                ioremap((X),(Y))
+-#define ioremap_wt(X,Y)                ioremap((X),(Y))
+ void iounmap(volatile void __iomem *addr);
+-
+ /* Create a virtual mapping cookie for an IO port range */
+ void __iomem *ioport_map(unsigned long port, unsigned int nr);
+ void ioport_unmap(void __iomem *);
+diff --git a/arch/sparc/kernel/ioport.c b/arch/sparc/kernel/ioport.c
+index 12894f2..9cdeb54 100644
+--- a/arch/sparc/kernel/ioport.c
++++ b/arch/sparc/kernel/ioport.c
+@@ -121,12 +121,12 @@ static void xres_free(struct xresource *xrp) {
+  *
+  * Bus type is always zero on IIep.
+  */
+-void __iomem *ioremap(unsigned long offset, unsigned long size)
++void __iomem *ioremap(phys_addr_t offset, size_t size)
+ {
+        char name[14];
 
-Given kernel size increased on average almost 50 KiB between
-v4.x and v4.(x+1), the damage wouldn't be that bad ;-)
-
-Note that this aligned C functions only.  Assembler code (incl. the '040 and
-'060 integer/floating point support packages) still has to be fixed.
-
-Gr{oetje,eeting}s,
-
-                        Geert
+        sprintf(name, "phys_%08x", (u32)offset);
+-       return _sparc_alloc_io(0, offset, size, name);
++       return _sparc_alloc_io(0, (unsigned long)offset, size, name);
+ }
+ EXPORT_SYMBOL(ioremap);
