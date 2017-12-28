@@ -1,32 +1,28 @@
-From: "Sra. Angel Rania" <sra.angelrania83@gmail.com>
-Subject: Re: You will definetely be interested...
-Date: Wed, 27 Dec 2017 10:17:06 +0000
-Message-ID: <CAKx+QTtL6hVN3Sv0baZHHBnMxgEeMprK=PALd6GuhxU+MNPauw__41453.2040748329$1514369762$gmane$org@mail.gmail.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 4/5] Expand the INIT_SIGNALS and INIT_SIGHAND macros and
+ remove
+Date: Thu, 28 Dec 2017 16:04:31 +0100 (CET)
+Message-ID: <alpine.DEB.2.20.1712281559410.1899@nanos>
+References: <151274828194.9961.4230316917108602662.stgit@warthog.procyon.org.uk> <151274831156.9961.11214505146256879075.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f196.google.com ([209.85.220.196]:39706 "EHLO
-        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751933AbdL0KRJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Dec 2017 05:17:09 -0500
-Received: by mail-qk0-f196.google.com with SMTP id u184so45930865qkd.6
-        for <linux-arch@vger.kernel.org>; Wed, 27 Dec 2017 02:17:08 -0800 (PST)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <151274831156.9961.11214505146256879075.stgit@warthog.procyon.org.uk>
+Sender: linux-ia64-owner@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-ia64@vger.kernel.org, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Dear,
+On Fri, 8 Dec 2017, David Howells wrote:
+>  #define INIT_CPU_TIMERS(s)						\
+>  	.cpu_timers = {							\
+>  		LIST_HEAD_INIT(s.cpu_timers[0]),			\
+>  		LIST_HEAD_INIT(s.cpu_timers[1]),			\
 
-Reading your profile has given me courage in search of a reasponsable
-and trust worthy Fellow. The past has treated me so awfully but now I
-am ready to move on despite of my health condition. I will like to
-have a sincere and important discussion with you that will be in your
-favor likewise to you and your environment especially to your close
-family. Endeavor to reply me and I have attached my picture in case
-you long to know who emailed you. I will be waiting to hear from you
-as soon as possble.
-Thanks for paying attention to my mail and will appreciate so much if
-I receive a reply from you for understable details.
+That macro is only used in init_task.c Why not moving it there and get rid
+of the whole macro maze in the header file?
 
 Thanks,
 
-Mrs. Rania Hassan
+	tglx
+
