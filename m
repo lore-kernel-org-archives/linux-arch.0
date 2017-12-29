@@ -1,156 +1,84 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 35/67] h8300: use dma-direct
-Date: Fri, 29 Dec 2017 09:18:39 +0100
-Message-ID: <20171229081911.2802-36-hch@lst.de>
+Subject: [PATCH 39/67] iommu/amd_iommu: use dma_direct_* helpers for the direct mapping case
+Date: Fri, 29 Dec 2017 09:18:43 +0100
+Message-ID: <20171229081911.2802-40-hch@lst.de>
 References: <20171229081911.2802-1-hch@lst.de>
-Return-path: <linux-m68k-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20171229081911.2802-1-hch@lst.de>
-Sender: linux-m68k-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: iommu@lists.linux-foundation.org
 Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Replace the bare-bones h8300 direct dma mapping implementation with
-the fully featured generic dma-direct one.
+This adds support for CMA allocations, but is otherwise identical.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/h8300/Kconfig                   |  1 +
- arch/h8300/include/asm/Kbuild        |  1 +
- arch/h8300/include/asm/dma-mapping.h | 12 -------
- arch/h8300/kernel/Makefile           |  2 +-
- arch/h8300/kernel/dma.c              | 67 ------------------------------------
- 5 files changed, 3 insertions(+), 80 deletions(-)
- delete mode 100644 arch/h8300/include/asm/dma-mapping.h
- delete mode 100644 arch/h8300/kernel/dma.c
+ drivers/iommu/Kconfig     |  1 +
+ drivers/iommu/amd_iommu.c | 27 +++++++++------------------
+ 2 files changed, 10 insertions(+), 18 deletions(-)
 
-diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
-index f8d3fde08190..091d6d04b5e5 100644
---- a/arch/h8300/Kconfig
-+++ b/arch/h8300/Kconfig
-@@ -23,6 +23,7 @@ config H8300
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_HASH
- 	select CPU_NO_EFFICIENT_FFS
+diff --git a/drivers/iommu/Kconfig b/drivers/iommu/Kconfig
+index f3a21343e636..dc7c1914645d 100644
+--- a/drivers/iommu/Kconfig
++++ b/drivers/iommu/Kconfig
+@@ -107,6 +107,7 @@ config IOMMU_PGTABLES_L2
+ # AMD IOMMU support
+ config AMD_IOMMU
+ 	bool "AMD IOMMU support"
 +	select DMA_DIRECT_OPS
+ 	select SWIOTLB
+ 	select PCI_MSI
+ 	select PCI_ATS
+diff --git a/drivers/iommu/amd_iommu.c b/drivers/iommu/amd_iommu.c
+index ea4734de5357..a2ad149ab0bf 100644
+--- a/drivers/iommu/amd_iommu.c
++++ b/drivers/iommu/amd_iommu.c
+@@ -2592,11 +2592,9 @@ static void *alloc_coherent(struct device *dev, size_t size,
+ 	struct page *page;
  
- config CPU_BIG_ENDIAN
- 	def_bool y
-diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
-index bc077491d299..642752c94306 100644
---- a/arch/h8300/include/asm/Kbuild
-+++ b/arch/h8300/include/asm/Kbuild
-@@ -9,6 +9,7 @@ generic-y += delay.h
- generic-y += device.h
- generic-y += div64.h
- generic-y += dma.h
-+generic-y += dma-mapping.h
- generic-y += emergency-restart.h
- generic-y += exec.h
- generic-y += extable.h
-diff --git a/arch/h8300/include/asm/dma-mapping.h b/arch/h8300/include/asm/dma-mapping.h
-deleted file mode 100644
-index 21bb1fc3a6f1..000000000000
---- a/arch/h8300/include/asm/dma-mapping.h
-+++ /dev/null
-@@ -1,12 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef _H8300_DMA_MAPPING_H
--#define _H8300_DMA_MAPPING_H
--
--extern const struct dma_map_ops h8300_dma_map_ops;
--
--static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
--{
--	return &h8300_dma_map_ops;
--}
--
--#endif
-diff --git a/arch/h8300/kernel/Makefile b/arch/h8300/kernel/Makefile
-index b62e830525c6..307aa51576dd 100644
---- a/arch/h8300/kernel/Makefile
-+++ b/arch/h8300/kernel/Makefile
-@@ -7,7 +7,7 @@ extra-y := vmlinux.lds
+ 	domain = get_domain(dev);
+-	if (PTR_ERR(domain) == -EINVAL) {
+-		page = alloc_pages(flag, get_order(size));
+-		*dma_addr = page_to_phys(page);
+-		return page_address(page);
+-	} else if (IS_ERR(domain))
++	if (PTR_ERR(domain) == -EINVAL)
++		return dma_direct_alloc(dev, size, dma_addr, flag, attrs);
++	else if (IS_ERR(domain))
+ 		return NULL;
  
- obj-y := process.o traps.o ptrace.o \
- 	 signal.o setup.o syscalls.o \
--	 irq.o entry.o dma.o
-+	 irq.o entry.o
+ 	dma_dom   = to_dma_ops_domain(domain);
+@@ -2642,24 +2640,17 @@ static void free_coherent(struct device *dev, size_t size,
+ 			  void *virt_addr, dma_addr_t dma_addr,
+ 			  unsigned long attrs)
+ {
+-	struct protection_domain *domain;
+-	struct dma_ops_domain *dma_dom;
+-	struct page *page;
++	struct protection_domain *domain = get_domain(dev);
  
- obj-$(CONFIG_ROMKERNEL) += head_rom.o
- obj-$(CONFIG_RAMKERNEL) += head_ram.o
-diff --git a/arch/h8300/kernel/dma.c b/arch/h8300/kernel/dma.c
-deleted file mode 100644
-index 4e27b74df973..000000000000
---- a/arch/h8300/kernel/dma.c
-+++ /dev/null
-@@ -1,67 +0,0 @@
--/*
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file COPYING in the main directory of this archive
-- * for more details.
-- */
+-	page = virt_to_page(virt_addr);
+ 	size = PAGE_ALIGN(size);
+ 
+-	domain = get_domain(dev);
+-	if (IS_ERR(domain))
+-		goto free_mem;
 -
--#include <linux/dma-mapping.h>
--#include <linux/kernel.h>
--#include <linux/scatterlist.h>
--#include <linux/module.h>
--#include <asm/pgalloc.h>
--
--static void *dma_alloc(struct device *dev, size_t size,
--		       dma_addr_t *dma_handle, gfp_t gfp,
--		       unsigned long attrs)
--{
--	void *ret;
--
--	if (dev == NULL || (*dev->dma_mask < 0xffffffff))
--		gfp |= GFP_DMA;
--	ret = (void *)__get_free_pages(gfp, get_order(size));
--
--	if (ret != NULL) {
--		memset(ret, 0, size);
--		*dma_handle = virt_to_phys(ret);
--	}
--	return ret;
--}
--
--static void dma_free(struct device *dev, size_t size,
--		     void *vaddr, dma_addr_t dma_handle,
--		     unsigned long attrs)
--
--{
--	free_pages((unsigned long)vaddr, get_order(size));
--}
--
--static dma_addr_t map_page(struct device *dev, struct page *page,
--				  unsigned long offset, size_t size,
--				  enum dma_data_direction direction,
--				  unsigned long attrs)
--{
--	return page_to_phys(page) + offset;
--}
--
--static int map_sg(struct device *dev, struct scatterlist *sgl,
--		  int nents, enum dma_data_direction direction,
--		  unsigned long attrs)
--{
--	struct scatterlist *sg;
--	int i;
--
--	for_each_sg(sgl, sg, nents, i) {
--		sg->dma_address = sg_phys(sg);
--	}
--
--	return nents;
--}
--
--const struct dma_map_ops h8300_dma_map_ops = {
--	.alloc = dma_alloc,
--	.free = dma_free,
--	.map_page = map_page,
--	.map_sg = map_sg,
--	.is_phys = true,
--};
--EXPORT_SYMBOL(h8300_dma_map_ops);
+-	dma_dom = to_dma_ops_domain(domain);
++	if (!IS_ERR(domain)) {
++		struct dma_ops_domain *dma_dom = to_dma_ops_domain(domain);
+ 
+-	__unmap_single(dma_dom, dma_addr, size, DMA_BIDIRECTIONAL);
++		__unmap_single(dma_dom, dma_addr, size, DMA_BIDIRECTIONAL);
++	}
+ 
+-free_mem:
+-	if (!dma_release_from_contiguous(dev, page, size >> PAGE_SHIFT))
+-		__free_pages(page, get_order(size));
++	dma_direct_free(dev, size, virt_addr, dma_addr, attrs);
+ }
+ 
+ /*
 -- 
 2.14.2
