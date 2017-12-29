@@ -1,79 +1,90 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 45/67] swiotlb: rename swiotlb_free to swiotlb_exit
-Date: Fri, 29 Dec 2017 09:18:49 +0100
-Message-ID: <20171229081911.2802-46-hch@lst.de>
+Subject: [PATCH 40/67] iommu/intel-iommu: use dma_direct_* helpers for the
+ direct mapping case
+Date: Fri, 29 Dec 2017 09:18:44 +0100
+Message-ID: <20171229081911.2802-41-hch@lst.de>
 References: <20171229081911.2802-1-hch@lst.de>
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20171229081911.2802-1-hch@lst.de>
-Sender: linux-alpha-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
 To: iommu@lists.linux-foundation.org
-Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, linux-snps-arc@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
+
+This simplifies the code a bit, and prepares for future cleanups.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/kernel/dma-swiotlb.c | 2 +-
- arch/x86/kernel/pci-swiotlb.c     | 2 +-
- include/linux/swiotlb.h           | 4 ++--
- lib/swiotlb.c                     | 2 +-
- 4 files changed, 5 insertions(+), 5 deletions(-)
+ drivers/iommu/Kconfig       |  1 +
+ drivers/iommu/intel-iommu.c | 17 ++++++++---------
+ 2 files changed, 9 insertions(+), 9 deletions(-)
 
-diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
-index 506ac4fafac5..88f3963ca30f 100644
---- a/arch/powerpc/kernel/dma-swiotlb.c
-+++ b/arch/powerpc/kernel/dma-swiotlb.c
-@@ -121,7 +121,7 @@ static int __init check_swiotlb_enabled(void)
- 	if (ppc_swiotlb_enable)
- 		swiotlb_print_info();
- 	else
--		swiotlb_free();
-+		swiotlb_exit();
+diff --git a/drivers/iommu/Kconfig b/drivers/iommu/Kconfig
+index dc7c1914645d..df171cb85822 100644
+--- a/drivers/iommu/Kconfig
++++ b/drivers/iommu/Kconfig
+@@ -143,6 +143,7 @@ config DMAR_TABLE
+ config INTEL_IOMMU
+ 	bool "Support for Intel IOMMU using DMA Remapping Devices"
+ 	depends on PCI_MSI && ACPI && (X86 || IA64_GENERIC)
++	select DMA_DIRECT_OPS
+ 	select IOMMU_API
+ 	select IOMMU_IOVA
+ 	select DMAR_TABLE
+diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
+index 921caf4f0c3e..0de8bfe89061 100644
+--- a/drivers/iommu/intel-iommu.c
++++ b/drivers/iommu/intel-iommu.c
+@@ -31,6 +31,7 @@
+ #include <linux/pci.h>
+ #include <linux/dmar.h>
+ #include <linux/dma-mapping.h>
++#include <linux/dma-direct.h>
+ #include <linux/mempool.h>
+ #include <linux/memory.h>
+ #include <linux/cpu.h>
+@@ -3712,17 +3713,12 @@ static void *intel_alloc_coherent(struct device *dev, size_t size,
+ 	struct page *page = NULL;
+ 	int order;
  
- 	return 0;
- }
-diff --git a/arch/x86/kernel/pci-swiotlb.c b/arch/x86/kernel/pci-swiotlb.c
-index 7a11a3e4f697..57dea60c2473 100644
---- a/arch/x86/kernel/pci-swiotlb.c
-+++ b/arch/x86/kernel/pci-swiotlb.c
-@@ -119,7 +119,7 @@ void __init pci_swiotlb_late_init(void)
- {
- 	/* An IOMMU turned us off. */
- 	if (!swiotlb)
--		swiotlb_free();
-+		swiotlb_exit();
- 	else {
- 		printk(KERN_INFO "PCI-DMA: "
- 		       "Using software bounce buffering for IO (SWIOTLB)\n");
-diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
-index 24ed817082ee..606375e35d87 100644
---- a/include/linux/swiotlb.h
-+++ b/include/linux/swiotlb.h
-@@ -115,10 +115,10 @@ extern int
- swiotlb_dma_supported(struct device *hwdev, u64 mask);
++	if (iommu_no_mapping(dev))
++		return dma_direct_alloc(dev, size, dma_handle, flags, attrs);
++
+ 	size = PAGE_ALIGN(size);
+ 	order = get_order(size);
+-
+-	if (!iommu_no_mapping(dev))
+-		flags &= ~(GFP_DMA | GFP_DMA32);
+-	else if (dev->coherent_dma_mask < dma_get_required_mask(dev)) {
+-		if (dev->coherent_dma_mask < DMA_BIT_MASK(32))
+-			flags |= GFP_DMA;
+-		else
+-			flags |= GFP_DMA32;
+-	}
++	flags &= ~(GFP_DMA | GFP_DMA32);
  
- #ifdef CONFIG_SWIOTLB
--extern void __init swiotlb_free(void);
-+extern void __init swiotlb_exit(void);
- unsigned int swiotlb_max_segment(void);
- #else
--static inline void swiotlb_free(void) { }
-+static inline void swiotlb_exit(void) { }
- static inline unsigned int swiotlb_max_segment(void) { return 0; }
- #endif
+ 	if (gfpflags_allow_blocking(flags)) {
+ 		unsigned int count = size >> PAGE_SHIFT;
+@@ -3758,6 +3754,9 @@ static void intel_free_coherent(struct device *dev, size_t size, void *vaddr,
+ 	int order;
+ 	struct page *page = virt_to_page(vaddr);
  
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index 6583f3512386..c1fcd3a32d07 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -417,7 +417,7 @@ swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs)
- 	return -ENOMEM;
- }
++	if (iommu_no_mapping(dev))
++		return dma_direct_free(dev, size, vaddr, dma_handle, attrs);
++
+ 	size = PAGE_ALIGN(size);
+ 	order = get_order(size);
  
--void __init swiotlb_free(void)
-+void __init swiotlb_exit(void)
- {
- 	if (!io_tlb_orig_addr)
- 		return;
 -- 
 2.14.2
-
