@@ -1,121 +1,107 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 64/67] arm64: replace ZONE_DMA with ZONE_DMA32
-Date: Fri, 29 Dec 2017 09:19:08 +0100
-Message-ID: <20171229081911.2802-65-hch@lst.de>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: [PATCH 66/67] swiotlb: remove swiotlb_{alloc,free}_coherent
+Date: Fri, 29 Dec 2017 09:19:10 +0100
+Message-ID: <20171229081911.2802-67-hch@lst.de>
 References: <20171229081911.2802-1-hch@lst.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20171229081911.2802-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: iommu@lists.linux-foundation.org
-Cc: linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20171229081911.2802-1-hch-jcswGhMUV9g@public.gmane.org>
+Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-cris-kernel-VrBV9hrLPhE@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-arm64 uses ZONE_DMA for allocations below 32-bits.  These days we
-name the zone for that ZONE_DMA32, which will allow to use the
-dma-direct and generic swiotlb code as-is, so rename it.
+Unused now that everyone uses swiotlb_{alloc,free}.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 ---
- arch/arm64/Kconfig          |  2 +-
- arch/arm64/mm/dma-mapping.c |  6 +++---
- arch/arm64/mm/init.c        | 16 ++++++++--------
- 3 files changed, 12 insertions(+), 12 deletions(-)
+ include/linux/swiotlb.h |  8 --------
+ lib/swiotlb.c           | 41 -----------------------------------------
+ 2 files changed, 49 deletions(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index c9a7e9e1414f..6b6985f15d02 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -227,7 +227,7 @@ config GENERIC_CSUM
- config GENERIC_CALIBRATE_DELAY
- 	def_bool y
+diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
+index 5b1f2a00491c..965be92c33b5 100644
+--- a/include/linux/swiotlb.h
++++ b/include/linux/swiotlb.h
+@@ -72,14 +72,6 @@ void *swiotlb_alloc(struct device *hwdev, size_t size, dma_addr_t *dma_handle,
+ void swiotlb_free(struct device *dev, size_t size, void *vaddr,
+ 		dma_addr_t dma_addr, unsigned long attrs);
  
--config ZONE_DMA
-+config ZONE_DMA32
- 	def_bool y
- 
- config HAVE_GENERIC_GUP
-diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
-index 6840426bbe77..0d641875b20e 100644
---- a/arch/arm64/mm/dma-mapping.c
-+++ b/arch/arm64/mm/dma-mapping.c
-@@ -95,9 +95,9 @@ static void *__dma_alloc_coherent(struct device *dev, size_t size,
- 				  dma_addr_t *dma_handle, gfp_t flags,
- 				  unsigned long attrs)
- {
--	if (IS_ENABLED(CONFIG_ZONE_DMA) &&
-+	if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
- 	    dev->coherent_dma_mask <= DMA_BIT_MASK(32))
--		flags |= GFP_DMA;
-+		flags |= GFP_DMA32;
- 	if (dev_get_cma_area(dev) && gfpflags_allow_blocking(flags)) {
- 		struct page *page;
- 		void *addr;
-@@ -397,7 +397,7 @@ static int __init atomic_pool_init(void)
- 		page = dma_alloc_from_contiguous(NULL, nr_pages,
- 						 pool_size_order, GFP_KERNEL);
- 	else
--		page = alloc_pages(GFP_DMA, pool_size_order);
-+		page = alloc_pages(GFP_DMA32, pool_size_order);
- 
- 	if (page) {
- 		int ret;
-diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
-index 00e7b900ca41..8f03276443c9 100644
---- a/arch/arm64/mm/init.c
-+++ b/arch/arm64/mm/init.c
-@@ -217,7 +217,7 @@ static void __init reserve_elfcorehdr(void)
+-extern void
+-*swiotlb_alloc_coherent(struct device *hwdev, size_t size,
+-			dma_addr_t *dma_handle, gfp_t flags);
+-
+-extern void
+-swiotlb_free_coherent(struct device *hwdev, size_t size,
+-		      void *vaddr, dma_addr_t dma_handle);
+-
+ extern dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
+ 				   unsigned long offset, size_t size,
+ 				   enum dma_data_direction dir,
+diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+index 4ea0b5710618..77a40b508db8 100644
+--- a/lib/swiotlb.c
++++ b/lib/swiotlb.c
+@@ -157,13 +157,6 @@ unsigned long swiotlb_size_or_default(void)
+ 	return size ? size : (IO_TLB_DEFAULT_SIZE);
  }
- #endif /* CONFIG_CRASH_DUMP */
- /*
-- * Return the maximum physical address for ZONE_DMA (DMA_BIT_MASK(32)). It
-+ * Return the maximum physical address for ZONE_DMA32 (DMA_BIT_MASK(32)). It
-  * currently assumes that for memory starting above 4G, 32-bit devices will
-  * use a DMA offset.
-  */
-@@ -233,8 +233,8 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
+ 
+-/* Note that this doesn't work with highmem page */
+-static dma_addr_t swiotlb_virt_to_bus(struct device *hwdev,
+-				      volatile void *address)
+-{
+-	return phys_to_dma(hwdev, virt_to_phys(address));
+-}
+-
+ static bool no_iotlb_memory;
+ 
+ void swiotlb_print_info(void)
+@@ -743,31 +736,6 @@ swiotlb_alloc_buffer(struct device *dev, size_t size, dma_addr_t *dma_handle)
+ 	return NULL;
+ }
+ 
+-void *
+-swiotlb_alloc_coherent(struct device *hwdev, size_t size,
+-		       dma_addr_t *dma_handle, gfp_t flags)
+-{
+-	int order = get_order(size);
+-	void *ret;
+-
+-	ret = (void *)__get_free_pages(flags, order);
+-	if (ret) {
+-		*dma_handle = swiotlb_virt_to_bus(hwdev, ret);
+-		if (*dma_handle  + size - 1 <= hwdev->coherent_dma_mask) {
+-			memset(ret, 0, size);
+-			return ret;
+-		}
+-
+-		/*
+-		 * The allocated memory isn't reachable by the device.
+-		 */
+-		free_pages((unsigned long) ret, order);
+-	}
+-
+-	return swiotlb_alloc_buffer(hwdev, size, dma_handle);
+-}
+-EXPORT_SYMBOL(swiotlb_alloc_coherent);
+-
+ static bool swiotlb_free_buffer(struct device *dev, size_t size,
+ 		dma_addr_t dma_addr)
  {
- 	unsigned long max_zone_pfns[MAX_NR_ZONES]  = {0};
+@@ -787,15 +755,6 @@ static bool swiotlb_free_buffer(struct device *dev, size_t size,
+ 	return true;
+ }
  
--	if (IS_ENABLED(CONFIG_ZONE_DMA))
--		max_zone_pfns[ZONE_DMA] = PFN_DOWN(max_zone_dma_phys());
-+	if (IS_ENABLED(CONFIG_ZONE_DMA32))
-+		max_zone_pfns[ZONE_DMA32] = PFN_DOWN(max_zone_dma_phys());
- 	max_zone_pfns[ZONE_NORMAL] = max;
- 
- 	free_area_init_nodes(max_zone_pfns);
-@@ -251,9 +251,9 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
- 	memset(zone_size, 0, sizeof(zone_size));
- 
- 	/* 4GB maximum for 32-bit only capable devices */
--#ifdef CONFIG_ZONE_DMA
-+#ifdef CONFIG_ZONE_DMA32
- 	max_dma = PFN_DOWN(arm64_dma_phys_limit);
--	zone_size[ZONE_DMA] = max_dma - min;
-+	zone_size[ZONE_DMA32] = max_dma - min;
- #endif
- 	zone_size[ZONE_NORMAL] = max - max_dma;
- 
-@@ -266,10 +266,10 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
- 		if (start >= max)
- 			continue;
- 
--#ifdef CONFIG_ZONE_DMA
-+#ifdef CONFIG_ZONE_DMA32
- 		if (start < max_dma) {
- 			unsigned long dma_end = min(end, max_dma);
--			zhole_size[ZONE_DMA] -= dma_end - start;
-+			zhole_size[ZONE_DMA32] -= dma_end - start;
- 		}
- #endif
- 		if (end > max_dma) {
-@@ -467,7 +467,7 @@ void __init arm64_memblock_init(void)
- 	early_init_fdt_scan_reserved_mem();
- 
- 	/* 4GB maximum for 32-bit only capable devices */
--	if (IS_ENABLED(CONFIG_ZONE_DMA))
-+	if (IS_ENABLED(CONFIG_ZONE_DMA32))
- 		arm64_dma_phys_limit = max_zone_dma_phys();
- 	else
- 		arm64_dma_phys_limit = PHYS_MASK + 1;
+-void
+-swiotlb_free_coherent(struct device *hwdev, size_t size, void *vaddr,
+-		      dma_addr_t dev_addr)
+-{
+-	if (!swiotlb_free_buffer(hwdev, size, dev_addr))
+-		free_pages((unsigned long)vaddr, get_order(size));
+-}
+-EXPORT_SYMBOL(swiotlb_free_coherent);
+-
+ static void
+ swiotlb_full(struct device *dev, size_t size, enum dma_data_direction dir,
+ 	     int do_panic)
 -- 
 2.14.2
