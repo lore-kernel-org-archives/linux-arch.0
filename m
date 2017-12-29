@@ -1,28 +1,38 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 4/5] Expand the INIT_SIGNALS and INIT_SIGHAND macros and
- remove
-Date: Thu, 28 Dec 2017 16:04:31 +0100 (CET)
-Message-ID: <alpine.DEB.2.20.1712281559410.1899@nanos>
-References: <151274828194.9961.4230316917108602662.stgit@warthog.procyon.org.uk> <151274831156.9961.11214505146256879075.stgit@warthog.procyon.org.uk>
+From: Christoph Hellwig <hch@lst.de>
+Subject: consolidate direct dma mapping and swiotlb support
+Date: Fri, 29 Dec 2017 09:18:04 +0100
+Message-ID: <20171229081911.2802-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <151274831156.9961.11214505146256879075.stgit@warthog.procyon.org.uk>
-Sender: linux-ia64-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-ia64@vger.kernel.org, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: iommu@lists.linux-foundation.org
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, linux-snps-arc@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 8 Dec 2017, David Howells wrote:
->  #define INIT_CPU_TIMERS(s)						\
->  	.cpu_timers = {							\
->  		LIST_HEAD_INIT(s.cpu_timers[0]),			\
->  		LIST_HEAD_INIT(s.cpu_timers[1]),			\
+Almost every architecture supports a direct dma mapping implementation,
+where no iommu is used and the device dma address is a 1:1 mapping to
+the physical address or has a simple linear offset.  Currently the
+code for this implementation is most duplicated over the architectures,
+and the duplicated again in the swiotlb code, and then duplicated again
+for special cases like the x86 memory encryption DMA ops.
 
-That macro is only used in init_task.c Why not moving it there and get rid
-of the whole macro maze in the header file?
+This series takes the existing very simple dma-noop dma mapping
+implementation, enhances it with all the x86 features and quirks, and
+creates a common set of architecture hooks for it and the swiotlb code.
 
-Thanks,
+It then switches a large number of architectures to this generic
+direct map implement and the new generic swiotlb dma_map ops.
 
-	tglx
-
+Note that for now this only handles architectures that do cache coherent
+DMA, but a similar consolidation for non-coherent architectures is in the
+work for later merge windows.
