@@ -1,61 +1,27 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 27/67] dma-direct: add dma address sanity checks
-Date: Fri, 29 Dec 2017 15:12:25 +0100
-Message-ID: <CAMuHMdWg3PnTXezMCcr3oGf-83-cjvcj4wGiPk7j2pY1Tgzo9Q@mail.gmail.com>
-References: <20171229081911.2802-1-hch@lst.de> <20171229081911.2802-28-hch@lst.de>
+From: Loretta Robles <Loretta.Robles@hci.utah.edu>
+Subject: RE: ATTENTION!!!
+Date: Sat, 30 Dec 2017 00:28:56 +0000
+Message-ID: <35D4F79A8B8138489F38DE5CF6200454E572AB2F__9315.23627737096$1514594373$gmane$org@HCI-EX-MB2.hci.utah.edu>
+References: <35D4F79A8B8138489F38DE5CF6200454E570015C@HCI-EX-MB2.hci.utah.edu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <20171229081911.2802-28-hch@lst.de>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: iommu@lists.linux-foundation.org, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-ia64@vger.kernel.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, adi-buildroot-devel@lists.sourceforge.net, linux-m68k <linux-m68k@lists.linux-m68k.org>, patches@groups.riscv.org, "open list:METAG ARCHITECTURE" <linux-metag@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, Parisc
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ipo7.cc.utah.edu ([155.97.144.42]:56546 "EHLO ipo7.cc.utah.edu"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750801AbdL3AlE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 29 Dec 2017 19:41:04 -0500
+In-Reply-To: <35D4F79A8B8138489F38DE5CF6200454E570015C@HCI-EX-MB2.hci.utah.edu>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Loretta Robles <Loretta.Robles@hci.utah.edu>
 
-Hi Christoph,
 
-On Fri, Dec 29, 2017 at 9:18 AM, Christoph Hellwig <hch@lst.de> wrote:
-> Roughly based on the x86 pci-nommu implementation.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+________________________________
+From: Loretta Robles
+Sent: Friday, December 29, 2017 1:01 PM
+To: Loretta Robles
+Subject: ATTENTION!!!
 
-Thanks for your patch!
-
-> --- a/lib/dma-direct.c
-> +++ b/lib/dma-direct.c
-> @@ -9,6 +9,24 @@
->  #include <linux/scatterlist.h>
->  #include <linux/pfn.h>
->
-> +#define DIRECT_MAPPING_ERROR           0
-> +
-> +static bool
-> +check_addr(struct device *dev, dma_addr_t dma_addr, size_t size,
-> +               const char *caller)
-> +{
-> +       if (unlikely(dev && !dma_capable(dev, dma_addr, size))) {
-> +               if (*dev->dma_mask >= DMA_BIT_MASK(32)) {
-> +                       dev_err(dev,
-> +                               "%s: overflow %llx+%zu of device mask %llx\n",
-
-Please use "%pad" to format dma_addr_t ...
-
-> +                               caller, (long long)dma_addr, size,
-
-... and use &dma_addr.
-
-> +                               (long long)*dev->dma_mask);
-
-This cast is not needed, as u64 is unsigned long long in kernelspace on
-all architectures.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+You have been randomly selected for a donation. Contact soriz4040@gmail.com for claims.
