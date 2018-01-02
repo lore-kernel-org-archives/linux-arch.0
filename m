@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 33/39] dt-bindings: nds32 SoC Bindings
-Date: Tue,  2 Jan 2018 16:25:05 +0800
-Message-ID: <51d9e9f0a85437742ed8e6770a9e91defd92e5d0.1514874858.git.green.hu@gmail.com>
+Subject: [PATCH v5 32/39] dt-bindings: nds32 L2 cache controller Bindings
+Date: Tue,  2 Jan 2018 16:25:04 +0800
+Message-ID: <fc1f58a97003b4bedfbb8b6e3d29b1628ff61f9a.1514874858.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
@@ -14,60 +14,48 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds nds32 SoC(AE3XX and AG101P) binding documents.
+This patch adds nds32 L2 cache controller binding documents.
 
 Signed-off-by: Greentime Hu <greentime@andestech.com>
-Reviewed-by: Rob Herring <robh@kernel.org>
 ---
- .../devicetree/bindings/nds32/andestech-boards     |   40 ++++++++++++++++++++
- 1 file changed, 40 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/nds32/andestech-boards
+ Documentation/devicetree/bindings/nds32/atl2c.txt |   29 +++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/nds32/atl2c.txt
 
-diff --git a/Documentation/devicetree/bindings/nds32/andestech-boards b/Documentation/devicetree/bindings/nds32/andestech-boards
+diff --git a/Documentation/devicetree/bindings/nds32/atl2c.txt b/Documentation/devicetree/bindings/nds32/atl2c.txt
 new file mode 100644
-index 0000000..f5d7569
+index 0000000..db9f7ec
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/nds32/andestech-boards
-@@ -0,0 +1,40 @@
-+Andestech(nds32) AE3XX Platform
-+-----------------------------------------------------------------------------
-+The AE3XX prototype demonstrates the AE3XX example platform on the FPGA. It
-+is composed of one Andestech(nds32) processor and AE3XX.
++++ b/Documentation/devicetree/bindings/nds32/atl2c.txt
+@@ -0,0 +1,29 @@
++* Andestech L2 cache Controller
 +
-+Required properties (in root node):
-+- compatible = "andestech,ae3xx";
++The level-2 cache controller plays an important role in reducing memory latency
++for high performance systems, such as thoese designs with AndesCore processors.
++Level-2 cache controller in general enhances overall system performance
++signigicantly and the system power consumption might be reduced as well by
++reducing DRAM accesses.
 +
-+Example:
-+/dts-v1/;
-+/ {
-+	compatible = "andestech,ae3xx";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+};
++This binding specifies what properties must be available in the device tree
++representation of an Andestech L2 cache controller.
 +
-+Andestech(nds32) AG101P Platform
-+-----------------------------------------------------------------------------
-+AG101P is a generic SoC Platform IP that works with any of Andestech(nds32)
-+processors to provide a cost-effective and high performance solution for
-+majority of embedded systems in variety of application domains. Users may
-+simply attach their IP on one of the system buses together with certain glue
-+logics to complete a SoC solution for a specific application. With
-+comprehensive simulation and design environments, users may evaluate the
-+system performance of their applications and track bugs of their designs
-+efficiently. The optional hardware development platform further provides real
-+system environment for early prototyping and software/hardware co-development.
++Required properties:
++	- compatible:
++		Usage: required
++		Value type: <string>
++		Definition: "andestech,atl2c"
++	- reg : Physical base address and size of cache controller's memory mapped
++	- cache-unified : Specifies the cache is a unified cache.
++	- cache-level : Should be set to 2 for a level 2 cache.
 +
-+Required properties (in root node):
-+	compatible = "andestech,ag101p";
++* Example
 +
-+Example:
-+/dts-v1/;
-+/ {
-+	compatible = "andestech,ag101p";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+};
++	L2: l2-cache@e0500000 {
++		compatible = "andestech,atl2c";
++		reg = <0xe0500000 0x1000>;
++		cache-unified;
++		cache-level = <2>;
++	};
++
 -- 
 1.7.9.5
