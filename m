@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:33555 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752520AbeABI2V (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:21 -0500
+Received: from mail-pl0-f66.google.com ([209.85.160.66]:38442 "EHLO
+        mail-pl0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752636AbeABI2Q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:16 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 31/39] dt-bindings: nds32 CPU Bindings
-Date: Tue,  2 Jan 2018 16:25:03 +0800
-Message-ID: <a947876a96899f6059c945fbfb2d80eb6ce4a79b.1514874858.git.green.hu@gmail.com>
+Subject: [PATCH v5 30/39] MAINTAINERS: Add nds32
+Date: Tue,  2 Jan 2018 16:25:02 +0800
+Message-ID: <34355c67d25b2172503fdecbed07c2547ce51ab8.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
@@ -14,65 +14,37 @@ References: <cover.1514874857.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>
-Message-ID: <20180102082503.T-4mfikqdS0IDxyRi8jSCNSp1DdksOC9D2qOz7Q0jhs@z>
+Cc: green.hu@gmail.com
+Message-ID: <20180102082502.3x8iD2S-9HLz-1RLTSrFj7s10ABPu_LHdCffkiycHow@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds nds32 CPU binding documents.
-
-Signed-off-by: Vincent Chen <vincentc@andestech.com>
-Signed-off-by: Rick Chen <rick@andestech.com>
-Signed-off-by: Zong Li <zong@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
-Reviewed-by: Rob Herring <robh@kernel.org>
 ---
- Documentation/devicetree/bindings/nds32/cpus.txt |   37 ++++++++++++++++++++++
- 1 file changed, 37 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
+ MAINTAINERS |   11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-diff --git a/Documentation/devicetree/bindings/nds32/cpus.txt b/Documentation/devicetree/bindings/nds32/cpus.txt
-new file mode 100644
-index 0000000..9a52937
---- /dev/null
-+++ b/Documentation/devicetree/bindings/nds32/cpus.txt
-@@ -0,0 +1,37 @@
-+* Andestech Processor Binding
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 2f4e462..20284c8 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -857,6 +857,17 @@ X:	drivers/iio/*/adjd*
+ F:	drivers/staging/iio/*/ad*
+ F:	drivers/staging/iio/trigger/iio-trig-bfin-timer.c
+ 
++ANDES ARCHITECTURE
++M:	Greentime Hu <green.hu@gmail.com>
++M:	Vincent Chen <deanbo422@gmail.com>
++T:	git https://github.com/andestech/linux.git
++S:	Supported
++F:	arch/nds32
++F:	Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
++F:	Documentation/devicetree/bindings/nds32
++K:	nds32
++N:	nds32
 +
-+This binding specifies what properties must be available in the device tree
-+representation of a Andestech Processor Core, which is the root node in the
-+tree.
-+
-+Required properties:
-+
-+	- compatible:
-+		Usage: required
-+		Value type: <string>
-+		Definition: should be one of:
-+			"andestech,n13"
-+			"andestech,n15"
-+			"andestech,d15"
-+			"andestech,n10"
-+			"andestech,d10"
-+			"andestech,nds32v3"
-+	- device_type
-+		Usage: required
-+		Value type: <string>
-+		Definition: must be "cpu"
-+	- reg: Contains CPU index.
-+	- clock-frequency: Contains the clock frequency for CPU, in Hz.
-+
-+* Examples
-+
-+/ {
-+	cpus {
-+		cpu@0 {
-+			device_type = "cpu";
-+			compatible = "andestech,n13", "andestech,nds32v3";
-+			reg = <0x0>;
-+			clock-frequency = <60000000>
-+		};
-+	};
-+};
+ ANDROID CONFIG FRAGMENTS
+ M:	Rob Herring <robh@kernel.org>
+ S:	Supported
 -- 
 1.7.9.5
