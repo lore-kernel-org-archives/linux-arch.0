@@ -1,51 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:38089 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752599AbeABKgC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 05:36:02 -0500
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:42918 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752117AbeABKiJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 05:38:09 -0500
 MIME-Version: 1.0
-In-Reply-To: <20171229081911.2802-3-hch@lst.de>
-References: <20171229081911.2802-1-hch@lst.de> <20171229081911.2802-3-hch@lst.de>
+In-Reply-To: <20171229081911.2802-23-hch@lst.de>
+References: <20171229081911.2802-1-hch@lst.de> <20171229081911.2802-23-hch@lst.de>
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Tue, 2 Jan 2018 11:36:00 +0100
-Message-ID: <CAMuHMdUXSMuQ=RoZp86CODVk5Ubd3R+jtqOur_Uqnu+7h_m9AA@mail.gmail.com>
-Subject: Re: [PATCH 02/67] alpha: mark jensen as broken
+Date: Tue, 2 Jan 2018 11:38:07 +0100
+Message-ID: <CAMuHMdX6+E0tN-qxybQ27DoygpUsWngi8J+Fz6K2WZ=FCCuO_A@mail.gmail.com>
+Subject: Re: [PATCH 22/67] dma-mapping: clear harmful GFP_* flags in common code
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@lst.de>
-Cc: iommu@lists.linux-foundation.org, alpha <linux-alpha@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-c6x-dev@linux-c6x.org, Cris <linux-cris-kernel@axis.com>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, "open list:METAG ARCHITECTURE" <linux-metag@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, the arch/x86 maintainers <x86@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20180102103600.L1CS7wOQ6c-CBQVEs6EOeKTUo8b4cXJLESWYSlsrOF0@z>
-
-Hi Christoph,
+Cc: iommu@lists.linux-foundation.org, alpha <linux-alpha@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-c6x-dev@linux-c6x.org, Cris <linux-cris-kernel@axis.com>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-m68k <linux-m68k@lists.linux-m68k.org>, "open list:METAG ARCHITECTURE" <linux-metag@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, the arch/x86 maintainers <x86@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20180102103807.9XMA-UWpcTZQFrzdxTooXbS1WXxBXAxOumu6kfCv0GA@z>
 
 On Fri, Dec 29, 2017 at 9:18 AM, Christoph Hellwig <hch@lst.de> wrote:
-> CONFIG_ALPHA_JENSEN has failed to compile since commit aca05038
-> ("alpha/dma: use common noop dma ops"), so mark it as broken.
-
-unknown revision or path not in the working tree.
-Ah, you dropped the leading "6":
-6aca0503847f6329460b15b3ab2b0e30bb752793
-is less than 2 years old, though.
-
+> Life the code from x86 so that we behave consistently.  In the future we
+> should probably warn if any of these is set.
 >
 > Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/alpha/Kconfig | 1 +
->  1 file changed, 1 insertion(+)
->
-> diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-> index b31b974a03cb..e96adcbcab41 100644
-> --- a/arch/alpha/Kconfig
-> +++ b/arch/alpha/Kconfig
-> @@ -209,6 +209,7 @@ config ALPHA_EIGER
->
->  config ALPHA_JENSEN
->         bool "Jensen"
-> +       depends on BROKEN
->         help
->           DEC PC 150 AXP (aka Jensen): This is a very old Digital system - one
->           of the first-generation Alpha systems. A number of these systems
+
+For m68k:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
 Gr{oetje,eeting}s,
 
