@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:33840 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751981AbeABI0j (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:26:39 -0500
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:41231 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751728AbeABI0x (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:26:53 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 09/39] nds32: MMU initialization
-Date: Tue,  2 Jan 2018 16:24:41 +0800
-Message-ID: <f27b75af63adeb7f543151fdc248dceea85ef0c4.1514874857.git.green.hu@gmail.com>
+Subject: [PATCH v5 12/39] nds32: Process management
+Date: Tue,  2 Jan 2018 16:24:44 +0800
+Message-ID: <10820926f3c1a4757acc8f58b8e07dd0191ffd30.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
@@ -15,486 +15,445 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180102082441.RgnfR5u_UZJ6mfZW67Q32bh6Y5JThE96Mp5bqCMt-c4@z>
+Message-ID: <20180102082444.SjW62f6uEsmGDj4BAo296SBP9qndyk1Q1p8PaagDnzY@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch includes memory initializations and highmem supporting.
+This patch includes copy_thread(), start_thread() implementation and cpu_context
+structure definition. nds32 uses $r25 to get current task_struct.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/mm/highmem.c  |   79 +++++++++++++
- arch/nds32/mm/init.c     |  277 ++++++++++++++++++++++++++++++++++++++++++++++
- arch/nds32/mm/mm-nds32.c |   90 +++++++++++++++
- 3 files changed, 446 insertions(+)
- create mode 100644 arch/nds32/mm/highmem.c
- create mode 100644 arch/nds32/mm/init.c
- create mode 100644 arch/nds32/mm/mm-nds32.c
+ arch/nds32/include/asm/current.h     |   12 ++
+ arch/nds32/include/asm/processor.h   |  102 +++++++++++++++++
+ arch/nds32/include/asm/thread_info.h |   78 +++++++++++++
+ arch/nds32/kernel/process.c          |  204 ++++++++++++++++++++++++++++++++++
+ 4 files changed, 396 insertions(+)
+ create mode 100644 arch/nds32/include/asm/current.h
+ create mode 100644 arch/nds32/include/asm/processor.h
+ create mode 100644 arch/nds32/include/asm/thread_info.h
+ create mode 100644 arch/nds32/kernel/process.c
 
-diff --git a/arch/nds32/mm/highmem.c b/arch/nds32/mm/highmem.c
+diff --git a/arch/nds32/include/asm/current.h b/arch/nds32/include/asm/current.h
 new file mode 100644
-index 0000000..e17cb8a
+index 0000000..b4dcd22
 --- /dev/null
-+++ b/arch/nds32/mm/highmem.c
-@@ -0,0 +1,79 @@
++++ b/arch/nds32/include/asm/current.h
+@@ -0,0 +1,12 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/export.h>
-+#include <linux/highmem.h>
++#ifndef _ASM_NDS32_CURRENT_H
++#define _ASM_NDS32_CURRENT_H
++
++#ifndef __ASSEMBLY__
++register struct task_struct *current asm("$r25");
++#endif /* __ASSEMBLY__ */
++#define tsk $r25
++
++#endif /* _ASM_NDS32_CURRENT_H */
+diff --git a/arch/nds32/include/asm/processor.h b/arch/nds32/include/asm/processor.h
+new file mode 100644
+index 0000000..cad9b8c
+--- /dev/null
++++ b/arch/nds32/include/asm/processor.h
+@@ -0,0 +1,102 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#ifndef __ASM_NDS32_PROCESSOR_H
++#define __ASM_NDS32_PROCESSOR_H
++
++/*
++ * Default implementation of macro that returns current
++ * instruction pointer ("program counter").
++ */
++#define current_text_addr() ({ __label__ _l; _l: &&_l;})
++
++#ifdef __KERNEL__
++
++#include <asm/ptrace.h>
++#include <asm/types.h>
++#include <asm/sigcontext.h>
++
++#define KERNEL_STACK_SIZE	PAGE_SIZE
++#define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX   TASK_SIZE
++
++struct cpu_context {
++	unsigned long r6;
++	unsigned long r7;
++	unsigned long r8;
++	unsigned long r9;
++	unsigned long r10;
++	unsigned long r11;
++	unsigned long r12;
++	unsigned long r13;
++	unsigned long r14;
++	unsigned long fp;
++	unsigned long pc;
++	unsigned long sp;
++};
++
++struct thread_struct {
++	struct cpu_context cpu_context;	/* cpu context */
++	/* fault info     */
++	unsigned long address;
++	unsigned long trap_no;
++	unsigned long error_code;
++};
++
++#define INIT_THREAD  {	}
++
++#ifdef __NDS32_EB__
++#define PSW_DE	PSW_mskBE
++#else
++#define PSW_DE	0x0
++#endif
++
++#ifdef CONFIG_WBNA
++#define PSW_valWBNA	PSW_mskWBNA
++#else
++#define PSW_valWBNA	0x0
++#endif
++
++#ifdef CONFIG_HWZOL
++#define	PSW_valINIT (PSW_CPL_ANY | PSW_mskAEN | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
++#else
++#define	PSW_valINIT (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
++#endif
++
++#define start_thread(regs,pc,stack)			\
++({							\
++	memzero(regs, sizeof(struct pt_regs));		\
++	regs->ipsw = PSW_valINIT;			\
++	regs->ir0 = (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_SYSTEM | PSW_INTL_1);	\
++	regs->ipc = pc;					\
++	regs->sp = stack;				\
++})
++
++/* Forward declaration, a strange C thing */
++struct task_struct;
++
++/* Free all resources held by a thread. */
++#define release_thread(thread) do { } while(0)
++
++/* Prepare to copy thread state - unlazy all lazy status */
++#define prepare_to_copy(tsk)	do { } while (0)
++
++unsigned long get_wchan(struct task_struct *p);
++
++#define cpu_relax()			barrier()
++
++#define task_pt_regs(task) \
++	((struct pt_regs *) (task_stack_page(task) + THREAD_SIZE \
++		- 8) - 1)
++
++/*
++ * Create a new kernel thread
++ */
++extern int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags);
++
++#define KSTK_EIP(tsk)	instruction_pointer(task_pt_regs(tsk))
++#define KSTK_ESP(tsk)	user_stack_pointer(task_pt_regs(tsk))
++
++#endif
++
++#endif /* __ASM_NDS32_PROCESSOR_H */
+diff --git a/arch/nds32/include/asm/thread_info.h b/arch/nds32/include/asm/thread_info.h
+new file mode 100644
+index 0000000..818e769
+--- /dev/null
++++ b/arch/nds32/include/asm/thread_info.h
+@@ -0,0 +1,78 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#ifndef __ASM_NDS32_THREAD_INFO_H
++#define __ASM_NDS32_THREAD_INFO_H
++
++#ifdef __KERNEL__
++
++#define THREAD_SIZE_ORDER 	(1)
++#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
++
++#ifndef __ASSEMBLY__
++
++struct task_struct;
++
++#include <asm/ptrace.h>
++#include <asm/types.h>
++
++typedef unsigned long mm_segment_t;
++
++/*
++ * low level task data that entry.S needs immediate access to.
++ * __switch_to() assumes cpu_context follows immediately after cpu_domain.
++ */
++struct thread_info {
++	unsigned long flags;	/* low level flags */
++	__s32 preempt_count;	/* 0 => preemptable, <0 => bug */
++	mm_segment_t addr_limit;	/* address limit */
++};
++#define INIT_THREAD_INFO(tsk)						\
++{									\
++	.preempt_count	= INIT_PREEMPT_COUNT,				\
++	.addr_limit	= KERNEL_DS,					\
++}
++#define init_thread_info	(init_thread_union.thread_info)
++#define init_stack		(init_thread_union.stack)
++#define thread_saved_pc(tsk) ((unsigned long)(tsk->thread.cpu_context.pc))
++#define thread_saved_fp(tsk) ((unsigned long)(tsk->thread.cpu_context.fp))
++#endif
++
++/*
++ * thread information flags:
++ *  TIF_SYSCALL_TRACE	- syscall trace active
++ *  TIF_SIGPENDING	- signal pending
++ *  TIF_NEED_RESCHED	- rescheduling necessary
++ *  TIF_NOTIFY_RESUME	- callback before returning to user
++ *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
++ *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
++ */
++#define TIF_SIGPENDING		1
++#define TIF_NEED_RESCHED	2
++#define TIF_SINGLESTEP		3
++#define TIF_NOTIFY_RESUME	4	/* callback before returning to user */
++#define TIF_SYSCALL_TRACE	8
++#define TIF_USEDFPU             16
++#define TIF_POLLING_NRFLAG	17
++#define TIF_MEMDIE		18
++#define TIF_FREEZE		19
++#define TIF_RESTORE_SIGMASK	20
++
++#define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
++#define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
++#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
++#define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
++#define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
++#define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
++#define _TIF_FREEZE		(1 << TIF_FREEZE)
++#define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
++
++/*
++ * Change these and you break ASM code in entry-common.S
++ */
++#define _TIF_WORK_MASK		0x000000ff
++#define _TIF_WORK_SYSCALL_ENTRY (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
++#define _TIF_WORK_SYSCALL_LEAVE (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
++
++#endif /* __KERNEL__ */
++#endif /* __ASM_NDS32_THREAD_INFO_H */
+diff --git a/arch/nds32/kernel/process.c b/arch/nds32/kernel/process.c
+new file mode 100644
+index 0000000..b68cfc4
+--- /dev/null
++++ b/arch/nds32/kernel/process.c
+@@ -0,0 +1,204 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
 +#include <linux/sched.h>
-+#include <linux/smp.h>
-+#include <linux/interrupt.h>
-+#include <linux/bootmem.h>
-+#include <asm/fixmap.h>
-+#include <asm/tlbflush.h>
++#include <linux/sched/debug.h>
++#include <linux/sched/task_stack.h>
++#include <linux/delay.h>
++#include <linux/kallsyms.h>
++#include <linux/uaccess.h>
++#include <asm/elf.h>
++#include <asm/proc-fns.h>
++#include <linux/ptrace.h>
 +
-+void *kmap(struct page *page)
-+{
-+	unsigned long vaddr;
-+	might_sleep();
-+	if (!PageHighMem(page))
-+		return page_address(page);
-+	vaddr = (unsigned long)kmap_high(page);
-+	return (void *)vaddr;
-+}
-+
-+EXPORT_SYMBOL(kmap);
-+
-+void kunmap(struct page *page)
-+{
-+	BUG_ON(in_interrupt());
-+	if (!PageHighMem(page))
-+		return;
-+	kunmap_high(page);
-+}
-+
-+EXPORT_SYMBOL(kunmap);
-+
-+void *kmap_atomic(struct page *page)
-+{
-+	unsigned int idx;
-+	unsigned long vaddr, pte;
-+	int type;
-+	pte_t *ptep;
-+
-+	preempt_disable();
-+	pagefault_disable();
-+	if (!PageHighMem(page))
-+		return page_address(page);
-+
-+	type = kmap_atomic_idx_push();
-+
-+	idx = type + KM_TYPE_NR * smp_processor_id();
-+	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
-+	pte = (page_to_pfn(page) << PAGE_SHIFT) | (PAGE_KERNEL);
-+	ptep = pte_offset_kernel(pmd_off_k(vaddr), vaddr);
-+	set_pte(ptep, pte);
-+
-+	__nds32__tlbop_inv(vaddr);
-+	__nds32__mtsr_dsb(vaddr, NDS32_SR_TLB_VPN);
-+	__nds32__tlbop_rwr(pte);
-+	__nds32__isb();
-+	return (void *)vaddr;
-+}
-+
-+EXPORT_SYMBOL(kmap_atomic);
-+
-+void __kunmap_atomic(void *kvaddr)
-+{
-+	if (kvaddr >= (void *)FIXADDR_START) {
-+		unsigned long vaddr = (unsigned long)kvaddr;
-+		pte_t *ptep;
-+		kmap_atomic_idx_pop();
-+		__nds32__tlbop_inv(vaddr);
-+		__nds32__isb();
-+		ptep = pte_offset_kernel(pmd_off_k(vaddr), vaddr);
-+		set_pte(ptep, 0);
-+	}
-+	pagefault_enable();
-+	preempt_enable();
-+}
-+
-+EXPORT_SYMBOL(__kunmap_atomic);
-diff --git a/arch/nds32/mm/init.c b/arch/nds32/mm/init.c
-new file mode 100644
-index 0000000..93ee016
---- /dev/null
-+++ b/arch/nds32/mm/init.c
-@@ -0,0 +1,277 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 1995-2005 Russell King
-+// Copyright (C) 2012 ARM Ltd.
-+// Copyright (C) 2013-2017 Andes Technology Corporation
-+
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/swap.h>
-+#include <linux/init.h>
-+#include <linux/bootmem.h>
-+#include <linux/mman.h>
-+#include <linux/nodemask.h>
-+#include <linux/initrd.h>
-+#include <linux/highmem.h>
-+#include <linux/memblock.h>
-+
-+#include <asm/sections.h>
-+#include <asm/setup.h>
-+#include <asm/tlb.h>
-+#include <asm/page.h>
-+
-+DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
-+DEFINE_SPINLOCK(anon_alias_lock);
-+extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
-+extern unsigned long phys_initrd_start;
-+extern unsigned long phys_initrd_size;
-+
-+/*
-+ * empty_zero_page is a special page that is used for
-+ * zero-initialized data and COW.
-+ */
-+struct page *empty_zero_page;
-+
-+static void __init zone_sizes_init(void)
-+{
-+	unsigned long zones_size[MAX_NR_ZONES];
-+
-+	/* Clear the zone sizes */
-+	memset(zones_size, 0, sizeof(zones_size));
-+
-+	zones_size[ZONE_NORMAL] = max_low_pfn;
-+#ifdef CONFIG_HIGHMEM
-+	zones_size[ZONE_HIGHMEM] = max_pfn;
++extern void setup_mm_for_reboot(char mode);
++#ifdef CONFIG_PROC_FS
++struct proc_dir_entry *proc_dir_cpu;
++EXPORT_SYMBOL(proc_dir_cpu);
 +#endif
-+	free_area_init(zones_size);
 +
-+}
-+
-+/*
-+ * Map all physical memory under high_memory into kernel's address space.
-+ *
-+ * This is explicitly coded for two-level page tables, so if you need
-+ * something else then this needs to change.
-+ */
-+static void __init map_ram(void)
++extern inline void arch_reset(char mode)
 +{
-+	unsigned long v, p, e;
-+	pgd_t *pge;
-+	pud_t *pue;
-+	pmd_t *pme;
-+	pte_t *pte;
-+	/* These mark extents of read-only kernel pages...
-+	 * ...from vmlinux.lds.S
-+	 */
-+
-+	p = (u32) memblock_start_of_DRAM() & PAGE_MASK;
-+	e = min((u32) memblock_end_of_DRAM(), (u32) __pa(high_memory));
-+
-+	v = (u32) __va(p);
-+	pge = pgd_offset_k(v);
-+
-+	while (p < e) {
-+		int j;
-+		pue = pud_offset(pge, v);
-+		pme = pmd_offset(pue, v);
-+
-+		if ((u32) pue != (u32) pge || (u32) pme != (u32) pge) {
-+			panic("%s: Kernel hardcoded for "
-+			      "two-level page tables", __func__);
-+		}
-+
-+		/* Alloc one page for holding PTE's... */
-+		pte = (pte_t *) __va(memblock_alloc(PAGE_SIZE, PAGE_SIZE));
-+		memset(pte, 0, PAGE_SIZE);
-+		set_pmd(pme, __pmd(__pa(pte) + _PAGE_KERNEL_TABLE));
-+
-+		/* Fill the newly allocated page with PTE'S */
-+		for (j = 0; p < e && j < PTRS_PER_PTE;
-+		     v += PAGE_SIZE, p += PAGE_SIZE, j++, pte++) {
-+			/* Create mapping between p and v. */
-+			/* TODO: more fine grant for page access permission */
-+			set_pte(pte, __pte(p + pgprot_val(PAGE_KERNEL)));
-+		}
-+
-+		pge++;
++	if (mode == 's') {
++		/* Use cpu handler, jump to 0 */
++		cpu_reset(0);
 +	}
 +}
-+static pmd_t *fixmap_pmd_p;
-+static void __init fixedrange_init(void)
++
++void (*pm_power_off) (void);
++EXPORT_SYMBOL(pm_power_off);
++
++static char reboot_mode = 'h';
++
++int __init reboot_setup(char *str)
 +{
-+	unsigned long vaddr;
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pmd_t *pmd;
-+#ifdef CONFIG_HIGHMEM
-+	pte_t *pte;
-+#endif /* CONFIG_HIGHMEM */
++	reboot_mode = str[0];
++	return 1;
++}
++
++static int cpub_pwroff(void)
++{
++	return 0;
++}
++
++__setup("reboot=", reboot_setup);
++
++void machine_halt(void)
++{
++	cpub_pwroff();
++}
++
++EXPORT_SYMBOL(machine_halt);
++
++void machine_power_off(void)
++{
++	if (pm_power_off)
++		pm_power_off();
++}
++
++EXPORT_SYMBOL(machine_power_off);
++
++void machine_restart(char *__unused)
++{
++	/*
++	 * Clean and disable cache, and turn off interrupts
++	 */
++	cpu_proc_fin();
 +
 +	/*
-+	 * Fixed mappings:
++	 * Tell the mm system that we are going to reboot -
++	 * we may need it to insert some 1:1 mappings so that
++	 * soft boot works.
 +	 */
-+	vaddr = __fix_to_virt(__end_of_fixed_addresses - 1);
-+	pgd = swapper_pg_dir + pgd_index(vaddr);
-+	pud = pud_offset(pgd, vaddr);
-+	pmd = pmd_offset(pud, vaddr);
-+	fixmap_pmd_p = (pmd_t *) __va(memblock_alloc(PAGE_SIZE, PAGE_SIZE));
-+	memset(fixmap_pmd_p, 0, PAGE_SIZE);
-+	set_pmd(pmd, __pmd(__pa(fixmap_pmd_p) + _PAGE_KERNEL_TABLE));
-+
-+#ifdef CONFIG_HIGHMEM
-+	/*
-+	 * Permanent kmaps:
-+	 */
-+	vaddr = PKMAP_BASE;
-+
-+	pgd = swapper_pg_dir + pgd_index(vaddr);
-+	pud = pud_offset(pgd, vaddr);
-+	pmd = pmd_offset(pud, vaddr);
-+	pte = (pte_t *) __va(memblock_alloc(PAGE_SIZE, PAGE_SIZE));
-+	memset(pte, 0, PAGE_SIZE);
-+	set_pmd(pmd, __pmd(__pa(pte) + _PAGE_KERNEL_TABLE));
-+	pkmap_page_table = pte;
-+#endif /* CONFIG_HIGHMEM */
-+}
-+
-+/*
-+ * paging_init() sets up the page tables, initialises the zone memory
-+ * maps, and sets up the zero page, bad page and bad page tables.
-+ */
-+void __init paging_init(void)
-+{
-+	int i;
-+	void *zero_page;
-+
-+	pr_info("Setting up paging and PTEs.\n");
-+	/* clear out the init_mm.pgd that will contain the kernel's mappings */
-+	for (i = 0; i < PTRS_PER_PGD; i++)
-+		swapper_pg_dir[i] = __pgd(1);
-+
-+	map_ram();
-+
-+	fixedrange_init();
-+
-+	/* allocate space for empty_zero_page */
-+	zero_page = __va(memblock_alloc(PAGE_SIZE, PAGE_SIZE));
-+	memset(zero_page, 0, PAGE_SIZE);
-+	zone_sizes_init();
-+
-+	empty_zero_page = virt_to_page(zero_page);
-+	flush_dcache_page(empty_zero_page);
-+}
-+
-+static inline void __init free_highmem(void)
-+{
-+#ifdef CONFIG_HIGHMEM
-+	unsigned long pfn;
-+	for (pfn = PFN_UP(__pa(high_memory)); pfn < max_pfn; pfn++) {
-+		phys_addr_t paddr = (phys_addr_t) pfn << PAGE_SHIFT;
-+		if (!memblock_is_reserved(paddr))
-+			free_highmem_page(pfn_to_page(pfn));
-+	}
-+#endif
-+}
-+
-+static void __init set_max_mapnr_init(void)
-+{
-+	max_mapnr = max_pfn;
-+}
-+
-+/*
-+ * mem_init() marks the free areas in the mem_map and tells us how much
-+ * memory is free.  This is done after various parts of the system have
-+ * claimed their memory after the kernel image.
-+ */
-+void __init mem_init(void)
-+{
-+	phys_addr_t memory_start = memblock_start_of_DRAM();
-+	BUG_ON(!mem_map);
-+	set_max_mapnr_init();
-+
-+	free_highmem();
-+
-+	/* this will put all low memory onto the freelists */
-+	free_all_bootmem();
-+	mem_init_print_info(NULL);
-+
-+	pr_info("virtual kernel memory layout:\n"
-+		"    fixmap  : 0x%08lx - 0x%08lx   (%4ld kB)\n"
-+#ifdef CONFIG_HIGHMEM
-+		"    pkmap   : 0x%08lx - 0x%08lx   (%4ld kB)\n"
-+#endif
-+		"    consist : 0x%08lx - 0x%08lx   (%4ld MB)\n"
-+		"    vmalloc : 0x%08lx - 0x%08lx   (%4ld MB)\n"
-+		"    lowmem  : 0x%08lx - 0x%08lx   (%4ld MB)\n"
-+		"      .init : 0x%08lx - 0x%08lx   (%4ld kB)\n"
-+		"      .data : 0x%08lx - 0x%08lx   (%4ld kB)\n"
-+		"      .text : 0x%08lx - 0x%08lx   (%4ld kB)\n",
-+		FIXADDR_START, FIXADDR_TOP, (FIXADDR_TOP - FIXADDR_START) >> 10,
-+#ifdef CONFIG_HIGHMEM
-+		PKMAP_BASE, PKMAP_BASE + LAST_PKMAP * PAGE_SIZE,
-+		(LAST_PKMAP * PAGE_SIZE) >> 10,
-+#endif
-+		CONSISTENT_BASE, CONSISTENT_END,
-+		((CONSISTENT_END) - (CONSISTENT_BASE)) >> 20, VMALLOC_START,
-+		(unsigned long)VMALLOC_END, (VMALLOC_END - VMALLOC_START) >> 20,
-+		(unsigned long)__va(memory_start), (unsigned long)high_memory,
-+		((unsigned long)high_memory -
-+		 (unsigned long)__va(memory_start)) >> 20,
-+		(unsigned long)&__init_begin, (unsigned long)&__init_end,
-+		((unsigned long)&__init_end -
-+		 (unsigned long)&__init_begin) >> 10, (unsigned long)&_etext,
-+		(unsigned long)&_edata,
-+		((unsigned long)&_edata - (unsigned long)&_etext) >> 10,
-+		(unsigned long)&_text, (unsigned long)&_etext,
-+		((unsigned long)&_etext - (unsigned long)&_text) >> 10);
++	setup_mm_for_reboot(reboot_mode);
 +
 +	/*
-+	 * Check boundaries twice: Some fundamental inconsistencies can
-+	 * be detected at build time already.
++	 * Now call the architecture specific reboot code.
 +	 */
-+#ifdef CONFIG_HIGHMEM
-+	BUILD_BUG_ON(PKMAP_BASE + LAST_PKMAP * PAGE_SIZE > FIXADDR_START);
-+	BUILD_BUG_ON((CONSISTENT_END) > PKMAP_BASE);
-+#endif
-+	BUILD_BUG_ON(VMALLOC_END > CONSISTENT_BASE);
-+	BUILD_BUG_ON(VMALLOC_START >= VMALLOC_END);
++	arch_reset(reboot_mode);
 +
-+#ifdef CONFIG_HIGHMEM
-+	BUG_ON(PKMAP_BASE + LAST_PKMAP * PAGE_SIZE > FIXADDR_START);
-+	BUG_ON(CONSISTENT_END > PKMAP_BASE);
-+#endif
-+	BUG_ON(VMALLOC_END > CONSISTENT_BASE);
-+	BUG_ON(VMALLOC_START >= VMALLOC_END);
-+	BUG_ON((unsigned long)high_memory > VMALLOC_START);
-+
-+	return;
++	/*
++	 * Whoops - the architecture was unable to reboot.
++	 * Tell the user!
++	 */
++	mdelay(1000);
++	pr_info("Reboot failed -- System halted\n");
++	while (1) ;
 +}
 +
-+void free_initmem(void)
++EXPORT_SYMBOL(machine_restart);
++
++void show_regs(struct pt_regs *regs)
 +{
-+	free_initmem_default(-1);
++	print_symbol("PC is at %s\n", instruction_pointer(regs));
++	print_symbol("LP is at %s\n", regs->lp);
++	pr_info("pc : [<%08lx>]    lp : [<%08lx>]    %s\n"
++		"sp : %08lx  fp : %08lx  gp : %08lx\n",
++		instruction_pointer(regs),
++		regs->lp, print_tainted(), regs->sp, regs->fp, regs->gp);
++	pr_info("r25: %08lx  r24: %08lx\n", regs->uregs[25], regs->uregs[24]);
++
++	pr_info("r23: %08lx  r22: %08lx  r21: %08lx  r20: %08lx\n",
++		regs->uregs[23], regs->uregs[22],
++		regs->uregs[21], regs->uregs[20]);
++	pr_info("r19: %08lx  r18: %08lx  r17: %08lx  r16: %08lx\n",
++		regs->uregs[19], regs->uregs[18],
++		regs->uregs[17], regs->uregs[16]);
++	pr_info("r15: %08lx  r14: %08lx  r13: %08lx  r12: %08lx\n",
++		regs->uregs[15], regs->uregs[14],
++		regs->uregs[13], regs->uregs[12]);
++	pr_info("r11: %08lx  r10: %08lx  r9 : %08lx  r8 : %08lx\n",
++		regs->uregs[11], regs->uregs[10],
++		regs->uregs[9], regs->uregs[8]);
++	pr_info("r7 : %08lx  r6 : %08lx  r5 : %08lx  r4 : %08lx\n",
++		regs->uregs[7], regs->uregs[6], regs->uregs[5], regs->uregs[4]);
++	pr_info("r3 : %08lx  r2 : %08lx  r1 : %08lx  r0 : %08lx\n",
++		regs->uregs[3], regs->uregs[2], regs->uregs[1], regs->uregs[0]);
++	pr_info("  IRQs o%s  Segment %s\n",
++		interrupts_enabled(regs) ? "n" : "ff",
++		segment_eq(get_fs(), get_ds())? "kernel" : "user");
 +}
 +
-+#ifdef CONFIG_BLK_DEV_INITRD
-+void free_initrd_mem(unsigned long start, unsigned long end)
++EXPORT_SYMBOL(show_regs);
++
++void flush_thread(void)
 +{
-+	free_reserved_area((void *)start, (void *)end, -1, "initrd");
 +}
-+#endif
 +
-+void __set_fixmap(enum fixed_addresses idx,
-+			       phys_addr_t phys, pgprot_t flags)
++DEFINE_PER_CPU(struct task_struct *, __entry_task);
++
++asmlinkage void ret_from_fork(void) __asm__("ret_from_fork");
++int copy_thread(unsigned long clone_flags, unsigned long stack_start,
++	    unsigned long stk_sz, struct task_struct *p)
 +{
-+	unsigned long addr = __fix_to_virt(idx);
-+	pte_t *pte;
++	struct pt_regs *childregs = task_pt_regs(p);
 +
-+	BUG_ON(idx <= FIX_HOLE || idx >= __end_of_fixed_addresses);
++	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
 +
-+	pte = (pte_t *)&fixmap_pmd_p[pte_index(addr)];;
-+
-+	if (pgprot_val(flags)) {
-+		set_pte(pte, pfn_pte(phys >> PAGE_SHIFT, flags));
++	if (unlikely(p->flags & PF_KTHREAD)) {
++		memset(childregs, 0, sizeof(struct pt_regs));
++		/* kernel thread fn */
++		p->thread.cpu_context.r6 = stack_start;
++		/* kernel thread argument */
++		p->thread.cpu_context.r7 = stk_sz;
 +	} else {
-+		pte_clear(&init_mm, addr, pte);
-+		flush_tlb_kernel_range(addr, addr + PAGE_SIZE);
++		*childregs = *current_pt_regs();
++		if (stack_start)
++			childregs->sp = stack_start;
++		/* child get zero as ret. */
++		childregs->uregs[0] = 0;
++		childregs->osp = 0;
++		if (clone_flags & CLONE_SETTLS)
++			childregs->uregs[25] = childregs->uregs[3];
 +	}
-+}
-diff --git a/arch/nds32/mm/mm-nds32.c b/arch/nds32/mm/mm-nds32.c
-new file mode 100644
-index 0000000..7f7d4b36
---- /dev/null
-+++ b/arch/nds32/mm/mm-nds32.c
-@@ -0,0 +1,90 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
++	/* cpu context switching  */
++	p->thread.cpu_context.pc = (unsigned long)ret_from_fork;
++	p->thread.cpu_context.sp = (unsigned long)childregs;
 +
-+#include <linux/init_task.h>
-+#include <asm/pgalloc.h>
++#ifdef CONFIG_HWZOL
++	childregs->lb = 0;
++	childregs->le = 0;
++	childregs->lc = 0;
++#endif
 +
-+#define FIRST_KERNEL_PGD_NR	(USER_PTRS_PER_PGD)
-+
-+/*
-+ * need to get a page for level 1
-+ */
-+
-+pgd_t *pgd_alloc(struct mm_struct *mm)
-+{
-+	pgd_t *new_pgd, *init_pgd;
-+	int i;
-+
-+	new_pgd = (pgd_t *) __get_free_pages(GFP_KERNEL, 0);
-+	if (!new_pgd)
-+		return NULL;
-+	for (i = 0; i < PTRS_PER_PGD; i++) {
-+		(*new_pgd) = 1;
-+		new_pgd++;
-+	}
-+	new_pgd -= PTRS_PER_PGD;
-+
-+	init_pgd = pgd_offset_k(0);
-+
-+	memcpy(new_pgd + FIRST_KERNEL_PGD_NR, init_pgd + FIRST_KERNEL_PGD_NR,
-+	       (PTRS_PER_PGD - FIRST_KERNEL_PGD_NR) * sizeof(pgd_t));
-+
-+	cpu_dcache_wb_range((unsigned long)new_pgd,
-+			    (unsigned long)new_pgd +
-+			    PTRS_PER_PGD * sizeof(pgd_t));
-+	inc_zone_page_state(virt_to_page((unsigned long *)new_pgd),
-+			    NR_PAGETABLE);
-+
-+	return new_pgd;
-+}
-+
-+void pgd_free(struct mm_struct *mm, pgd_t * pgd)
-+{
-+	pmd_t *pmd;
-+	struct page *pte;
-+
-+	if (!pgd)
-+		return;
-+
-+	pmd = (pmd_t *) pgd;
-+	if (pmd_none(*pmd))
-+		goto free;
-+	if (pmd_bad(*pmd)) {
-+		pmd_ERROR(*pmd);
-+		pmd_clear(pmd);
-+		goto free;
-+	}
-+
-+	pte = pmd_page(*pmd);
-+	pmd_clear(pmd);
-+	dec_zone_page_state(virt_to_page((unsigned long *)pgd), NR_PAGETABLE);
-+	pte_free(mm, pte);
-+	atomic_long_dec(&mm->nr_ptes);
-+	pmd_free(mm, pmd);
-+free:
-+	free_pages((unsigned long)pgd, 0);
++	return 0;
 +}
 +
 +/*
-+ * In order to soft-boot, we need to insert a 1:1 mapping in place of
-+ * the user-mode pages.  This will then ensure that we have predictable
-+ * results when turning the mmu off
++ * fill in the fpe structure for a core dump...
 + */
-+void setup_mm_for_reboot(char mode)
++int dump_fpu(struct pt_regs *regs, elf_fpregset_t * fpu)
 +{
-+	unsigned long pmdval;
-+	pgd_t *pgd;
-+	pmd_t *pmd;
-+	int i;
-+
-+	if (current->mm && current->mm->pgd)
-+		pgd = current->mm->pgd;
-+	else
-+		pgd = init_mm.pgd;
-+
-+	for (i = 0; i < USER_PTRS_PER_PGD; i++) {
-+		pmdval = (i << PGDIR_SHIFT);
-+		pmd = pmd_offset(pgd + i, i << PGDIR_SHIFT);
-+		set_pmd(pmd, __pmd(pmdval));
-+	}
++	int fpvalid = 0;
++	return fpvalid;
 +}
++
++EXPORT_SYMBOL(dump_fpu);
++
++unsigned long get_wchan(struct task_struct *p)
++{
++	unsigned long fp, lr;
++	unsigned long stack_start, stack_end;
++	int count = 0;
++
++	if (!p || p == current || p->state == TASK_RUNNING)
++		return 0;
++
++	if (IS_ENABLED(CONFIG_FRAME_POINTER)) {
++		stack_start = (unsigned long)end_of_stack(p);
++		stack_end = (unsigned long)task_stack_page(p) + THREAD_SIZE;
++
++		fp = thread_saved_fp(p);
++		do {
++			if (fp < stack_start || fp > stack_end)
++				return 0;
++			lr = ((unsigned long *)fp)[0];
++			if (!in_sched_functions(lr))
++				return lr;
++			fp = *(unsigned long *)(fp + 4);
++		} while (count++ < 16);
++	}
++	return 0;
++}
++
++EXPORT_SYMBOL(get_wchan);
 -- 
 1.7.9.5
