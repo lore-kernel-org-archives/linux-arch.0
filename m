@@ -1,61 +1,51 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 1/2] microblaze: fix endian handling
-Date: Tue,  2 Jan 2018 12:47:19 +0100
-Message-ID: <20180102114720.3408356-1-arnd@arndb.de>
+Subject: [PATCH 2/2] microblaze: fix iounmap prototype
+Date: Tue,  2 Jan 2018 12:47:20 +0100
+Message-ID: <20180102114720.3408356-2-arnd@arndb.de>
+References: <20180102114720.3408356-1-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180102114720.3408356-1-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Michal Simek <monstr@monstr.eu>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Babu Moger <babu.moger@oracle.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-Building an allmodconfig kernel fails horribly because of
-endian mismatch. It turns out that the -mlittle-endian
-switch was not honored at all as we were using the wrong
-Kconfig symbol and failing to apply CPUFLAGS to the CFLAGS.
-Finally, the linker flags did not get set right.
+The missing 'volatile' keyword on the iounmap argument leads to lots of
+harmless warnings in an allmodconfig build:
 
-This addresses all three of those issues, which now lets
-me build both big-endian and little-endian kernels for
-testing.
+sound/pci/echoaudio/echoaudio.c:1879:10: warning: passing argument 1 of 'iounmap' discards 'volatile' qualifier from pointer target type [-Wdiscarded-qualifiers]
 
-Fixes: 428dbf156cc5 ("arch: change default endian for microblaze")
-Fixes: 206d3642d8ee ("arch/microblaze: add choice for endianness and update Makefile")
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/microblaze/Makefile | 17 +++++++++++------
- 1 file changed, 11 insertions(+), 6 deletions(-)
+ arch/microblaze/include/asm/io.h | 2 +-
+ arch/microblaze/mm/pgtable.c     | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
-index 830ee7d42fa0..d269dd4b8279 100644
---- a/arch/microblaze/Makefile
-+++ b/arch/microblaze/Makefile
-@@ -36,16 +36,21 @@ endif
- CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_DIV) += -mno-xl-soft-div
- CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_BARREL) += -mxl-barrel-shift
- CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_PCMP_INSTR) += -mxl-pattern-compare
--CPUFLAGS-$(CONFIG_BIG_ENDIAN) += -mbig-endian
--CPUFLAGS-$(CONFIG_LITTLE_ENDIAN) += -mlittle-endian
-+
-+ifdef CONFIG_CPU_BIG_ENDIAN
-+KBUILD_CFLAGS += -mbig-endian
-+KBUILD_AFLAGS += -mbig-endian
-+LD += -EB
-+else
-+KBUILD_CFLAGS += -mlittle-endian
-+KBUILD_AFLAGS += -mlittle-endian
-+LD += -EL
-+endif
+diff --git a/arch/microblaze/include/asm/io.h b/arch/microblaze/include/asm/io.h
+index 39b6315db82e..c7968139486f 100644
+--- a/arch/microblaze/include/asm/io.h
++++ b/arch/microblaze/include/asm/io.h
+@@ -36,7 +36,7 @@ extern resource_size_t isa_mem_base;
+ #ifdef CONFIG_MMU
+ #define page_to_bus(page)	(page_to_phys(page))
  
- CPUFLAGS-1 += $(call cc-option,-mcpu=v$(CPU_VER))
+-extern void iounmap(void __iomem *addr);
++extern void iounmap(volatile void __iomem *addr);
  
- # r31 holds current when in kernel mode
--KBUILD_CFLAGS += -ffixed-r31 $(CPUFLAGS-1) $(CPUFLAGS-2)
--
--LDFLAGS		:=
--LDFLAGS_vmlinux	:=
-+KBUILD_CFLAGS += -ffixed-r31 $(CPUFLAGS-y) $(CPUFLAGS-1) $(CPUFLAGS-2)
+ extern void __iomem *ioremap(phys_addr_t address, unsigned long size);
+ #define ioremap_nocache(addr, size)		ioremap((addr), (size))
+diff --git a/arch/microblaze/mm/pgtable.c b/arch/microblaze/mm/pgtable.c
+index 4c0599239915..7f525962cdfa 100644
+--- a/arch/microblaze/mm/pgtable.c
++++ b/arch/microblaze/mm/pgtable.c
+@@ -127,7 +127,7 @@ void __iomem *ioremap(phys_addr_t addr, unsigned long size)
+ }
+ EXPORT_SYMBOL(ioremap);
  
- head-y := arch/microblaze/kernel/head.o
- libs-y += arch/microblaze/lib/
+-void iounmap(void __iomem *addr)
++void iounmap(volatile void __iomem *addr)
+ {
+ 	if ((__force void *)addr > high_memory &&
+ 					(unsigned long) addr < ioremap_bot)
 -- 
 2.9.0
