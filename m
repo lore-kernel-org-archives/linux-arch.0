@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 18/39] nds32: System calls handling
-Date: Tue,  2 Jan 2018 16:24:50 +0800
-Message-ID: <42b0ffde24b083866139c150972722702973bb3d.1514874857.git.green.hu@gmail.com>
+Subject: [PATCH v5 20/39] nds32: Signal handling support
+Date: Tue,  2 Jan 2018 16:24:52 +0800
+Message-ID: <99f983247924a0a0e86b3b440b7ad38399f34017.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
@@ -14,459 +14,425 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds support for system calls.
+This patch adds support for signal handling.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/syscall.h     |  188 ++++++++++++++++++++++++++++++++++
- arch/nds32/include/asm/syscalls.h    |   13 +++
- arch/nds32/include/asm/unistd.h      |    6 ++
- arch/nds32/include/uapi/asm/unistd.h |   11 ++
- arch/nds32/kernel/ex-scall.S         |  106 +++++++++++++++++++
- arch/nds32/kernel/sys_nds32.c        |   50 +++++++++
- arch/nds32/kernel/syscall_table.c    |   17 +++
- 7 files changed, 391 insertions(+)
- create mode 100644 arch/nds32/include/asm/syscall.h
- create mode 100644 arch/nds32/include/asm/syscalls.h
- create mode 100644 arch/nds32/include/asm/unistd.h
- create mode 100644 arch/nds32/include/uapi/asm/unistd.h
- create mode 100644 arch/nds32/kernel/ex-scall.S
- create mode 100644 arch/nds32/kernel/sys_nds32.c
- create mode 100644 arch/nds32/kernel/syscall_table.c
+ arch/nds32/include/uapi/asm/sigcontext.h |   60 ++++++
+ arch/nds32/kernel/signal.c               |  337 ++++++++++++++++++++++++++++++
+ 2 files changed, 397 insertions(+)
+ create mode 100644 arch/nds32/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/nds32/kernel/signal.c
 
-diff --git a/arch/nds32/include/asm/syscall.h b/arch/nds32/include/asm/syscall.h
+diff --git a/arch/nds32/include/uapi/asm/sigcontext.h b/arch/nds32/include/uapi/asm/sigcontext.h
 new file mode 100644
-index 0000000..f7e5e86
+index 0000000..00567b2
 --- /dev/null
-+++ b/arch/nds32/include/asm/syscall.h
-@@ -0,0 +1,188 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2008-2009 Red Hat, Inc.  All rights reserved.
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef _ASM_NDS32_SYSCALL_H
-+#define _ASM_NDS32_SYSCALL_H	1
-+
-+#include <linux/err.h>
-+struct task_struct;
-+struct pt_regs;
-+
-+/**
-+ * syscall_get_nr - find what system call a task is executing
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * If @task is executing a system call or is at system call
-+ * tracing about to attempt one, returns the system call number.
-+ * If @task is not executing a system call, i.e. it's blocked
-+ * inside the kernel for a fault or signal, returns -1.
-+ *
-+ * Note this returns int even on 64-bit machines.  Only 32 bits of
-+ * system call number can be meaningful.  If the actual arch value
-+ * is 64 bits, this truncates to 32 bits so 0xffffffff means -1.
-+ *
-+ * It's only valid to call this when @task is known to be blocked.
-+ */
-+int syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
-+{
-+	return regs->syscallno;
-+}
-+
-+/**
-+ * syscall_rollback - roll back registers after an aborted system call
-+ * @task:	task of interest, must be in system call exit tracing
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * It's only valid to call this when @task is stopped for system
-+ * call exit tracing (due to TIF_SYSCALL_TRACE or TIF_SYSCALL_AUDIT),
-+ * after tracehook_report_syscall_entry() returned nonzero to prevent
-+ * the system call from taking place.
-+ *
-+ * This rolls back the register state in @regs so it's as if the
-+ * system call instruction was a no-op.  The registers containing
-+ * the system call number and arguments are as they were before the
-+ * system call instruction.  This may not be the same as what the
-+ * register state looked like at system call entry tracing.
-+ */
-+void syscall_rollback(struct task_struct *task, struct pt_regs *regs)
-+{
-+	regs->uregs[0] = regs->orig_r0;
-+}
-+
-+/**
-+ * syscall_get_error - check result of traced system call
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * Returns 0 if the system call succeeded, or -ERRORCODE if it failed.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on exit
-+ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ */
-+long syscall_get_error(struct task_struct *task, struct pt_regs *regs)
-+{
-+	unsigned long error = regs->uregs[0];
-+	return IS_ERR_VALUE(error) ? error : 0;
-+}
-+
-+/**
-+ * syscall_get_return_value - get the return value of a traced system call
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * Returns the return value of the successful system call.
-+ * This value is meaningless if syscall_get_error() returned nonzero.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on exit
-+ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ */
-+long syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
-+{
-+	return regs->uregs[0];
-+}
-+
-+/**
-+ * syscall_set_return_value - change the return value of a traced system call
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ * @error:	negative error code, or zero to indicate success
-+ * @val:	user return value if @error is zero
-+ *
-+ * This changes the results of the system call that user mode will see.
-+ * If @error is zero, the user sees a successful system call with a
-+ * return value of @val.  If @error is nonzero, it's a negated errno
-+ * code; the user sees a failed system call with this errno code.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on exit
-+ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ */
-+void syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
-+			      int error, long val)
-+{
-+	regs->uregs[0] = (long)error ? error : val;
-+}
-+
-+/**
-+ * syscall_get_arguments - extract system call parameter values
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ * @i:		argument index [0,5]
-+ * @n:		number of arguments; n+i must be [1,6].
-+ * @args:	array filled with argument values
-+ *
-+ * Fetches @n arguments to the system call starting with the @i'th argument
-+ * (from 0 through 5).  Argument @i is stored in @args[0], and so on.
-+ * An arch inline version is probably optimal when @i and @n are constants.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on
-+ * entry to a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ * It's invalid to call this with @i + @n > 6; we only support system calls
-+ * taking up to 6 arguments.
-+ */
-+#define SYSCALL_MAX_ARGS 6
-+void syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
-+			   unsigned int i, unsigned int n, unsigned long *args)
-+{
-+	if (n == 0)
-+		return;
-+	if (i + n > SYSCALL_MAX_ARGS) {
-+		unsigned long *args_bad = args + SYSCALL_MAX_ARGS - i;
-+		unsigned int n_bad = n + i - SYSCALL_MAX_ARGS;
-+		pr_warning("%s called with max args %d, handling only %d\n",
-+			   __func__, i + n, SYSCALL_MAX_ARGS);
-+		memset(args_bad, 0, n_bad * sizeof(args[0]));
-+		memset(args_bad, 0, n_bad * sizeof(args[0]));
-+	}
-+
-+	if (i == 0) {
-+		args[0] = regs->orig_r0;
-+		args++;
-+		i++;
-+		n--;
-+	}
-+
-+	memcpy(args, &regs->uregs[0] + i, n * sizeof(args[0]));
-+}
-+
-+/**
-+ * syscall_set_arguments - change system call parameter value
-+ * @task:	task of interest, must be in system call entry tracing
-+ * @regs:	task_pt_regs() of @task
-+ * @i:		argument index [0,5]
-+ * @n:		number of arguments; n+i must be [1,6].
-+ * @args:	array of argument values to store
-+ *
-+ * Changes @n arguments to the system call starting with the @i'th argument.
-+ * Argument @i gets value @args[0], and so on.
-+ * An arch inline version is probably optimal when @i and @n are constants.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on
-+ * entry to a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ * It's invalid to call this with @i + @n > 6; we only support system calls
-+ * taking up to 6 arguments.
-+ */
-+void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
-+			   unsigned int i, unsigned int n,
-+			   const unsigned long *args)
-+{
-+	if (n == 0)
-+		return;
-+
-+	if (i + n > SYSCALL_MAX_ARGS) {
-+		pr_warn("%s called with max args %d, handling only %d\n",
-+			__func__, i + n, SYSCALL_MAX_ARGS);
-+		n = SYSCALL_MAX_ARGS - i;
-+	}
-+
-+	if (i == 0) {
-+		regs->orig_r0 = args[0];
-+		args++;
-+		i++;
-+		n--;
-+	}
-+
-+	memcpy(&regs->uregs[0] + i, args, n * sizeof(args[0]));
-+}
-+#endif /* _ASM_NDS32_SYSCALL_H */
-diff --git a/arch/nds32/include/asm/syscalls.h b/arch/nds32/include/asm/syscalls.h
-new file mode 100644
-index 0000000..78778ec
---- /dev/null
-+++ b/arch/nds32/include/asm/syscalls.h
-@@ -0,0 +1,13 @@
++++ b/arch/nds32/include/uapi/asm/sigcontext.h
+@@ -0,0 +1,60 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __ASM_NDS32_SYSCALLS_H
-+#define __ASM_NDS32_SYSCALLS_H
-+
-+asmlinkage long sys_cacheflush(unsigned long addr, unsigned long len, unsigned int op);
-+asmlinkage long sys_fadvise64_64_wrapper(int fd, int advice, loff_t offset, loff_t len);
-+asmlinkage long sys_rt_sigreturn_wrapper(void);
-+
-+#include <asm-generic/syscalls.h>
-+
-+#endif /* __ASM_NDS32_SYSCALLS_H */
-diff --git a/arch/nds32/include/asm/unistd.h b/arch/nds32/include/asm/unistd.h
-new file mode 100644
-index 0000000..b586a28
---- /dev/null
-+++ b/arch/nds32/include/asm/unistd.h
-@@ -0,0 +1,6 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#define __ARCH_WANT_SYS_CLONE
-+
-+#include <uapi/asm/unistd.h>
-diff --git a/arch/nds32/include/uapi/asm/unistd.h b/arch/nds32/include/uapi/asm/unistd.h
-new file mode 100644
-index 0000000..6e95901
---- /dev/null
-+++ b/arch/nds32/include/uapi/asm/unistd.h
-@@ -0,0 +1,11 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#define __ARCH_WANT_SYNC_FILE_RANGE2
-+
-+/* Use the standard ABI for syscalls */
-+#include <asm-generic/unistd.h>
-+
-+/* Additional NDS32 specific syscalls. */
-+#define __NR_cacheflush		(__NR_arch_specific_syscall)
-+__SYSCALL(__NR_cacheflush, sys_cacheflush)
-diff --git a/arch/nds32/kernel/ex-scall.S b/arch/nds32/kernel/ex-scall.S
-new file mode 100644
-index 0000000..3b6b035
---- /dev/null
-+++ b/arch/nds32/kernel/ex-scall.S
-@@ -0,0 +1,106 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/linkage.h>
-+#include <asm/unistd.h>
-+#include <asm/assembler.h>
-+#include <asm/nds32.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/thread_info.h>
-+#include <asm/current.h>
++#ifndef _ASMNDS32_SIGCONTEXT_H
++#define _ASMNDS32_SIGCONTEXT_H
 +
 +/*
-+ * $r0 = previous task_struct,
-+ * $r1 = next task_struct,
-+ * previous and next are guaranteed not to be the same.
++ * Signal context structure - contains all info to do with the state
++ * before the signal handler was invoked.  Note: only add new entries
++ * to the end of the structure.
 + */
 +
-+ENTRY(__switch_to)
++struct zol_struct {
++	unsigned long nds32_lc;	/* $LC */
++	unsigned long nds32_le;	/* $LE */
++	unsigned long nds32_lb;	/* $LB */
++};
 +
-+	la	$p0, __entry_task
-+	sw	$r1, [$p0]
-+	move	$p1, $r0
-+	addi	$p1, $p1, #THREAD_CPU_CONTEXT
-+	smw.bi 	$r6, [$p1], $r14, #0xb		! push r6~r14, fp, lp, sp
-+	move	$r25, $r1
-+	addi	$r1, $r1, #THREAD_CPU_CONTEXT
-+	lmw.bi 	$r6, [$r1], $r14, #0xb		! pop r6~r14, fp, lp, sp
-+	ret
++struct sigcontext {
++	unsigned long trap_no;
++	unsigned long error_code;
++	unsigned long oldmask;
++	unsigned long nds32_r0;
++	unsigned long nds32_r1;
++	unsigned long nds32_r2;
++	unsigned long nds32_r3;
++	unsigned long nds32_r4;
++	unsigned long nds32_r5;
++	unsigned long nds32_r6;
++	unsigned long nds32_r7;
++	unsigned long nds32_r8;
++	unsigned long nds32_r9;
++	unsigned long nds32_r10;
++	unsigned long nds32_r11;
++	unsigned long nds32_r12;
++	unsigned long nds32_r13;
++	unsigned long nds32_r14;
++	unsigned long nds32_r15;
++	unsigned long nds32_r16;
++	unsigned long nds32_r17;
++	unsigned long nds32_r18;
++	unsigned long nds32_r19;
++	unsigned long nds32_r20;
++	unsigned long nds32_r21;
++	unsigned long nds32_r22;
++	unsigned long nds32_r23;
++	unsigned long nds32_r24;
++	unsigned long nds32_r25;
++	unsigned long nds32_fp;	/* $r28 */
++	unsigned long nds32_gp;	/* $r29 */
++	unsigned long nds32_lp;	/* $r30 */
++	unsigned long nds32_sp;	/* $r31 */
++	unsigned long nds32_ipc;
++	unsigned long fault_address;
++	unsigned long used_math_flag;
++	/* FPU Registers */
++	struct zol_struct zol;
++};
 +
-+/*
-+ * These are the registers used in the syscall handler, and allow us
-+ * to have in theory up to 6 arguments to a function - $r0 to $r5.
-+ *
-+ * We must set at least "tsk" and "tbl" when calling ret_with_reschedule.
-+ */
-+
-+/*
-+ * $r7 will be writen as syscall nr
-+ * by retrieving from $ITYPE 'SWID' bitfiled
-+ */
-+	.macro	get_scno
-+	lwi	$r7, [$sp + R15_OFFSET]
-+	swi	$r7, [$sp + SYSCALLNO_OFFSET]
-+	.endm
-+
-+	.macro	updateipc
-+	addi	$r17, $r13, #4				! $r13 is $IPC
-+	swi	$r17, [$sp + IPC_OFFSET]
-+	.endm
-+
-+ENTRY(eh_syscall)
-+	updateipc
-+
-+	get_scno
-+	gie_enable
-+
-+ENTRY(eh_syscall_phase_2)
-+	lwi	$p0, [tsk+#TSK_TI_FLAGS]		! check for syscall tracing
-+
-+	andi	$p1, $p0, #_TIF_WORK_SYSCALL_ENTRY	! are we tracing syscalls?
-+	bnez	$p1, __sys_trace
-+
-+	la	$lp, ret_fast_syscall		! return address
-+jmp_systbl:
-+	addi	$p1, $r7, #-__NR_syscalls	! syscall number of syscall instruction is guarded by addembler
-+	bgez	$p1, _SCNO_EXCEED		! call sys_* routine
-+	la	tbl, sys_call_table		! load syscall table pointer
-+	slli	$p1, $r7, #2
-+	add	$p1, tbl, $p1
-+	lwi	$p1, [$p1]
-+	jr	$p1				! no return
-+
-+_SCNO_EXCEED:
-+	movi	why, 0
-+	ori	$r0, $r7, #0
-+        ori	$r1, $sp, #0
-+	b	bad_syscall
-+
-+/*
-+ * This is the really slow path.  We're going to be doing
-+ * context switches, and waiting for our parent to respond.
-+ */
-+__sys_trace:
-+	move	$r1, $sp
-+	move	$r0, $r7			! trace entry [IP = 0]
-+	bal	syscall_trace_enter
-+	move	$r7, $r0
-+	la	$lp, __sys_trace_return		! return address
-+
-+	addi    $p1, $r7, #1
-+	beqz    $p1, ret_slow_syscall		! fatal signal is pending
-+
-+	addi	$p1, $sp, #R0_OFFSET		! pointer to regs
-+	lmw.bi	$r0, [$p1], $r5			! have to reload $r0 - $r5
-+	b	jmp_systbl
-+
-+__sys_trace_return:
-+	swi	$r0, [$sp+#R0_OFFSET]		! T: save returned $r0
-+	move	$r0, $sp			! set pt_regs for syscall_trace_leave
-+	bal	syscall_trace_leave
-+	b	ret_slow_syscall
-+
-+ENTRY(sys_rt_sigreturn_wrapper)
-+	addi	$r0, $sp, #0
-+	b	sys_rt_sigreturn
-+ENDPROC(sys_rt_sigreturn_wrapper)
-diff --git a/arch/nds32/kernel/sys_nds32.c b/arch/nds32/kernel/sys_nds32.c
++#endif
+diff --git a/arch/nds32/kernel/signal.c b/arch/nds32/kernel/signal.c
 new file mode 100644
-index 0000000..9de93ab
+index 0000000..b6313dd
 --- /dev/null
-+++ b/arch/nds32/kernel/sys_nds32.c
-@@ -0,0 +1,50 @@
++++ b/arch/nds32/kernel/signal.c
+@@ -0,0 +1,337 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/syscalls.h>
++#include <linux/errno.h>
++#include <linux/signal.h>
++#include <linux/ptrace.h>
++#include <linux/personality.h>
++#include <linux/freezer.h>
++#include <linux/tracehook.h>
 +#include <linux/uaccess.h>
 +
-+#include <asm/cachectl.h>
-+#include <asm/proc-fns.h>
++#include <asm/cacheflush.h>
++#include <asm/ucontext.h>
++#include <asm/unistd.h>
 +
-+SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
-+	       unsigned long, prot, unsigned long, flags,
-+	       unsigned long, fd, unsigned long, pgoff)
++#include <asm/ptrace.h>
++#include <asm/vdso.h>
++
++struct rt_sigframe {
++	struct siginfo info;
++	struct ucontext uc;
++};
++
++static int restore_sigframe(struct pt_regs *regs,
++			    struct rt_sigframe __user * sf)
 +{
-+	if (pgoff & (~PAGE_MASK >> 12))
-+		return -EINVAL;
++	sigset_t set;
++	int err;
 +
-+	return sys_mmap_pgoff(addr, len, prot, flags, fd,
-+			      pgoff >> (PAGE_SHIFT - 12));
-+}
-+
-+SYSCALL_DEFINE4(fadvise64_64_wrapper,int, fd, int, advice, loff_t, offset,
-+					 loff_t, len)
-+{
-+	return sys_fadvise64_64(fd, offset, len, advice);
-+}
-+
-+SYSCALL_DEFINE3(cacheflush, unsigned int, start, unsigned int, end, int, cache)
-+{
-+	struct vm_area_struct *vma;
-+	bool flushi = true, wbd = true;
-+
-+	vma = find_vma(current->mm, start);
-+	if (!vma)
-+		return -EFAULT;
-+	switch (cache) {
-+	case ICACHE:
-+		wbd = false;
-+		break;
-+	case DCACHE:
-+		flushi = false;
-+		break;
-+	case BCACHE:
-+		break;
-+	default:
-+		return -EINVAL;
++	err = __copy_from_user(&set, &sf->uc.uc_sigmask, sizeof(set));
++	if (err == 0) {
++		set_current_blocked(&set);
 +	}
-+	cpu_cache_wbinval_range_check(vma, start, end, flushi, wbd);
++
++	__get_user_error(regs->uregs[0], &sf->uc.uc_mcontext.nds32_r0, err);
++	__get_user_error(regs->uregs[1], &sf->uc.uc_mcontext.nds32_r1, err);
++	__get_user_error(regs->uregs[2], &sf->uc.uc_mcontext.nds32_r2, err);
++	__get_user_error(regs->uregs[3], &sf->uc.uc_mcontext.nds32_r3, err);
++	__get_user_error(regs->uregs[4], &sf->uc.uc_mcontext.nds32_r4, err);
++	__get_user_error(regs->uregs[5], &sf->uc.uc_mcontext.nds32_r5, err);
++	__get_user_error(regs->uregs[6], &sf->uc.uc_mcontext.nds32_r6, err);
++	__get_user_error(regs->uregs[7], &sf->uc.uc_mcontext.nds32_r7, err);
++	__get_user_error(regs->uregs[8], &sf->uc.uc_mcontext.nds32_r8, err);
++	__get_user_error(regs->uregs[9], &sf->uc.uc_mcontext.nds32_r9, err);
++	__get_user_error(regs->uregs[10], &sf->uc.uc_mcontext.nds32_r10, err);
++	__get_user_error(regs->uregs[11], &sf->uc.uc_mcontext.nds32_r11, err);
++	__get_user_error(regs->uregs[12], &sf->uc.uc_mcontext.nds32_r12, err);
++	__get_user_error(regs->uregs[13], &sf->uc.uc_mcontext.nds32_r13, err);
++	__get_user_error(regs->uregs[14], &sf->uc.uc_mcontext.nds32_r14, err);
++	__get_user_error(regs->uregs[15], &sf->uc.uc_mcontext.nds32_r15, err);
++	__get_user_error(regs->uregs[16], &sf->uc.uc_mcontext.nds32_r16, err);
++	__get_user_error(regs->uregs[17], &sf->uc.uc_mcontext.nds32_r17, err);
++	__get_user_error(regs->uregs[18], &sf->uc.uc_mcontext.nds32_r18, err);
++	__get_user_error(regs->uregs[19], &sf->uc.uc_mcontext.nds32_r19, err);
++	__get_user_error(regs->uregs[20], &sf->uc.uc_mcontext.nds32_r20, err);
++	__get_user_error(regs->uregs[21], &sf->uc.uc_mcontext.nds32_r21, err);
++	__get_user_error(regs->uregs[22], &sf->uc.uc_mcontext.nds32_r22, err);
++	__get_user_error(regs->uregs[23], &sf->uc.uc_mcontext.nds32_r23, err);
++	__get_user_error(regs->uregs[24], &sf->uc.uc_mcontext.nds32_r24, err);
++	__get_user_error(regs->uregs[25], &sf->uc.uc_mcontext.nds32_r25, err);
++
++	__get_user_error(regs->fp, &sf->uc.uc_mcontext.nds32_fp, err);
++	__get_user_error(regs->gp, &sf->uc.uc_mcontext.nds32_gp, err);
++	__get_user_error(regs->lp, &sf->uc.uc_mcontext.nds32_lp, err);
++	__get_user_error(regs->sp, &sf->uc.uc_mcontext.nds32_sp, err);
++	__get_user_error(regs->ipc, &sf->uc.uc_mcontext.nds32_ipc, err);
++#if defined(CONFIG_HWZOL)
++	__get_user_error(regs->lc, &sf->uc.uc_mcontext.zol.nds32_lc, err);
++	__get_user_error(regs->le, &sf->uc.uc_mcontext.zol.nds32_le, err);
++	__get_user_error(regs->lb, &sf->uc.uc_mcontext.zol.nds32_lb, err);
++#endif
++
++	return err;
++}
++
++asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
++{
++	struct rt_sigframe __user *frame;
++
++	/* Always make any pending restarted system calls return -EINTR */
++	current->restart_block.fn = do_no_restart_syscall;
++
++	/*
++	 * Since we stacked the signal on a 64-bit boundary,
++	 * then 'sp' should be two-word aligned here.  If it's
++	 * not, then the user is trying to mess with us.
++	 */
++	if (regs->sp & 7)
++		goto badframe;
++
++	frame = (struct rt_sigframe __user *)regs->sp;
++
++	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
++		goto badframe;
++
++	if (restore_sigframe(regs, frame))
++		goto badframe;
++
++	if (restore_altstack(&frame->uc.uc_stack))
++		goto badframe;
++
++	return regs->uregs[0];
++
++badframe:
++	force_sig(SIGSEGV, current);
++	return 0;
++}
++
++static int
++setup_sigframe(struct rt_sigframe __user * sf, struct pt_regs *regs,
++	       sigset_t * set)
++{
++	int err = 0;
++
++
++	__put_user_error(regs->uregs[0], &sf->uc.uc_mcontext.nds32_r0, err);
++	__put_user_error(regs->uregs[1], &sf->uc.uc_mcontext.nds32_r1, err);
++	__put_user_error(regs->uregs[2], &sf->uc.uc_mcontext.nds32_r2, err);
++	__put_user_error(regs->uregs[3], &sf->uc.uc_mcontext.nds32_r3, err);
++	__put_user_error(regs->uregs[4], &sf->uc.uc_mcontext.nds32_r4, err);
++	__put_user_error(regs->uregs[5], &sf->uc.uc_mcontext.nds32_r5, err);
++	__put_user_error(regs->uregs[6], &sf->uc.uc_mcontext.nds32_r6, err);
++	__put_user_error(regs->uregs[7], &sf->uc.uc_mcontext.nds32_r7, err);
++	__put_user_error(regs->uregs[8], &sf->uc.uc_mcontext.nds32_r8, err);
++	__put_user_error(regs->uregs[9], &sf->uc.uc_mcontext.nds32_r9, err);
++	__put_user_error(regs->uregs[10], &sf->uc.uc_mcontext.nds32_r10, err);
++	__put_user_error(regs->uregs[11], &sf->uc.uc_mcontext.nds32_r11, err);
++	__put_user_error(regs->uregs[12], &sf->uc.uc_mcontext.nds32_r12, err);
++	__put_user_error(regs->uregs[13], &sf->uc.uc_mcontext.nds32_r13, err);
++	__put_user_error(regs->uregs[14], &sf->uc.uc_mcontext.nds32_r14, err);
++	__put_user_error(regs->uregs[15], &sf->uc.uc_mcontext.nds32_r15, err);
++	__put_user_error(regs->uregs[16], &sf->uc.uc_mcontext.nds32_r16, err);
++	__put_user_error(regs->uregs[17], &sf->uc.uc_mcontext.nds32_r17, err);
++	__put_user_error(regs->uregs[18], &sf->uc.uc_mcontext.nds32_r18, err);
++	__put_user_error(regs->uregs[19], &sf->uc.uc_mcontext.nds32_r19, err);
++	__put_user_error(regs->uregs[20], &sf->uc.uc_mcontext.nds32_r20, err);
++
++	__put_user_error(regs->uregs[21], &sf->uc.uc_mcontext.nds32_r21, err);
++	__put_user_error(regs->uregs[22], &sf->uc.uc_mcontext.nds32_r22, err);
++	__put_user_error(regs->uregs[23], &sf->uc.uc_mcontext.nds32_r23, err);
++	__put_user_error(regs->uregs[24], &sf->uc.uc_mcontext.nds32_r24, err);
++	__put_user_error(regs->uregs[25], &sf->uc.uc_mcontext.nds32_r25, err);
++	__put_user_error(regs->fp, &sf->uc.uc_mcontext.nds32_fp, err);
++	__put_user_error(regs->gp, &sf->uc.uc_mcontext.nds32_gp, err);
++	__put_user_error(regs->lp, &sf->uc.uc_mcontext.nds32_lp, err);
++	__put_user_error(regs->sp, &sf->uc.uc_mcontext.nds32_sp, err);
++	__put_user_error(regs->ipc, &sf->uc.uc_mcontext.nds32_ipc, err);
++#if defined(CONFIG_HWZOL)
++	__put_user_error(regs->lc, &sf->uc.uc_mcontext.zol.nds32_lc, err);
++	__put_user_error(regs->le, &sf->uc.uc_mcontext.zol.nds32_le, err);
++	__put_user_error(regs->lb, &sf->uc.uc_mcontext.zol.nds32_lb, err);
++#endif
++
++	__put_user_error(current->thread.trap_no, &sf->uc.uc_mcontext.trap_no,
++			 err);
++	__put_user_error(current->thread.error_code,
++			 &sf->uc.uc_mcontext.error_code, err);
++	__put_user_error(current->thread.address,
++			 &sf->uc.uc_mcontext.fault_address, err);
++	__put_user_error(set->sig[0], &sf->uc.uc_mcontext.oldmask, err);
++
++	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(*set));
++
++	return err;
++}
++
++static inline void __user *get_sigframe(struct ksignal *ksig,
++					struct pt_regs *regs, int framesize)
++{
++	unsigned long sp = sigsp(regs->sp, ksig);
++	void __user *frame;
++
++	/*
++	 * nds32 mandates 8-byte alignment
++	 */
++	frame = (void __user *)((sp - framesize) & ~7);
++
++	/*
++	 * Check that we can actually write to the signal frame.
++	 */
++	if (!access_ok(VERIFY_WRITE, frame, framesize))
++		frame = NULL;
++
++	return frame;
++}
++
++static int
++setup_return(struct pt_regs *regs, struct ksignal *ksig, void __user * frame)
++{
++	unsigned long handler = (unsigned long)ksig->ka.sa.sa_handler;
++	unsigned long retcode;
++
++	retcode = VDSO_SYMBOL(current->mm->context.vdso, rt_sigtramp);
++	regs->uregs[0] = ksig->sig;
++	regs->sp = (unsigned long)frame;
++	regs->lp = retcode;
++	regs->ipc = handler;
 +
 +	return 0;
 +}
-diff --git a/arch/nds32/kernel/syscall_table.c b/arch/nds32/kernel/syscall_table.c
-new file mode 100644
-index 0000000..7879c06
---- /dev/null
-+++ b/arch/nds32/kernel/syscall_table.c
-@@ -0,0 +1,17 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/syscalls.h>
-+#include <linux/signal.h>
-+#include <linux/unistd.h>
-+#include <asm/syscalls.h>
++static int
++setup_rt_frame(struct ksignal *ksig, sigset_t * set, struct pt_regs *regs)
++{
++	struct rt_sigframe __user *frame =
++	    get_sigframe(ksig, regs, sizeof(*frame));
++	int err = 0;
 +
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call) [nr] = (call),
++	if (!frame)
++		return 1;
 +
-+#define sys_rt_sigreturn sys_rt_sigreturn_wrapper
-+#define sys_fadvise64_64 sys_fadvise64_64_wrapper
-+void *sys_call_table[__NR_syscalls] __aligned(8192) = {
-+	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
-+#include <asm/unistd.h>
-+};
++	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
++
++	__put_user_error(0, &frame->uc.uc_flags, err);
++	__put_user_error(NULL, &frame->uc.uc_link, err);
++
++	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
++	err |= setup_sigframe(frame, regs, set);
++	if (err == 0) {
++		setup_return(regs, ksig, frame);
++
++		if (err == 0) {
++			/*
++			 * For realtime signals we must also set the second and third
++			 * arguments for the signal handler.
++			 *   -- Peter Maydell <pmaydell@chiark.greenend.org.uk> 2000-12-06
++			 */
++			regs->uregs[1] = (unsigned long)&frame->info;
++			regs->uregs[2] = (unsigned long)&frame->uc;
++		}
++	}
++	return err;
++}
++
++/*
++ * OK, we're invoking a handler
++ */
++static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
++{
++	int ret;
++	sigset_t *oldset = sigmask_to_save();
++
++	/*
++	 * Set up the stack frame
++	 */
++	ret = setup_rt_frame(ksig, oldset, regs);
++
++	/*
++	 * Check that the resulting registers are actually sane.
++	 */
++	ret |= !valid_user_regs(regs);
++
++	signal_setup_done(ret, ksig, 0);
++}
++
++/*
++ * Note that 'init' is a special process: it doesn't get signals it doesn't
++ * want to handle. Thus you cannot kill init even with a SIGKILL even by
++ * mistake.
++ *
++ * Note that we go through the signals twice: once to check the signals that
++ * the kernel can handle, and then we build all the user-level signal handling
++ * stack-frames in one go after that.
++ */
++static int do_signal(struct pt_regs *regs, int syscall)
++{
++	unsigned int retval = 0, continue_addr = 0, restart_addr = 0;
++	struct ksignal ksig;
++	int restart = 0;
++
++	/*
++	 * If we were from a system call, check for system call restarting...
++	 */
++	if (syscall) {
++		continue_addr = regs->ipc;
++		restart_addr = continue_addr - 4;
++		retval = regs->uregs[0];
++
++		/*
++		 * Prepare for system call restart.  We do this here so that a
++		 * debugger will see the already changed PSW.
++		 */
++		switch (retval) {
++		case -ERESTART_RESTARTBLOCK:
++			restart -= 2;
++		case -ERESTARTNOHAND:
++		case -ERESTARTSYS:
++		case -ERESTARTNOINTR:
++			restart++;
++			regs->uregs[0] = regs->orig_r0;
++			regs->ipc = restart_addr;
++			break;
++		}
++	}
++
++	/*
++	 * Get the signal to deliver.  When running under ptrace, at this
++	 * point the debugger may change all our registers ...
++	 */
++	/*
++	 * Depending on the signal settings we may need to revert the
++	 * decision to restart the system call.  But skip this if a
++	 * debugger has chosen to restart at a different PC.
++	 */
++	if (get_signal(&ksig)) {
++		if (unlikely(restart) && regs->ipc == restart_addr) {
++			if (retval == -ERESTARTNOHAND ||
++			    retval == -ERESTART_RESTARTBLOCK
++			    || (retval == -ERESTARTSYS
++				&& !(ksig.ka.sa.sa_flags & SA_RESTART))) {
++				regs->uregs[0] = -EINTR;
++				regs->ipc = continue_addr;
++			}
++		}
++		handle_signal(&ksig, regs);
++	} else {
++		restore_saved_sigmask();
++		if (unlikely(restart) && regs->ipc == restart_addr) {
++			regs->ipc = continue_addr;
++			return restart;
++		}
++	}
++	return 0;
++}
++
++asmlinkage int
++do_notify_resume(struct pt_regs *regs, unsigned int thread_flags, int syscall)
++{
++	if (thread_flags & _TIF_SIGPENDING)
++		return do_signal(regs, syscall);
++
++	if (thread_flags & _TIF_NOTIFY_RESUME) {
++		clear_thread_flag(TIF_NOTIFY_RESUME);
++		tracehook_notify_resume(regs);
++	}
++	return 0;
++}
 -- 
 1.7.9.5
