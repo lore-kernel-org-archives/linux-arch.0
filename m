@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:40251 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752634AbeABI2k (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:40 -0500
+Received: from mail-pl0-f68.google.com ([209.85.160.68]:46640 "EHLO
+        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752781AbeABI2o (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:44 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 35/39] irqchip: Andestech Internal Vector Interrupt Controller driver
-Date: Tue,  2 Jan 2018 16:25:07 +0800
-Message-ID: <581c4ffe657f2dd388c49991a20a3f4bc838208a.1514874858.git.green.hu@gmail.com>
+Subject: [PATCH v5 36/39] net: faraday add nds32 support.
+Date: Tue,  2 Jan 2018 16:25:08 +0800
+Message-ID: <22f8b24d5528a5c938012489ee6cfae193676b80.1514874858.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
@@ -14,145 +14,51 @@ References: <cover.1514874857.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com, Rick Chen <rick@andestech.com>
-Message-ID: <20180102082507.D1Xm_memfp3wGjVBaMBwF4HRQgcbIfmHDC4USgFTekc@z>
+Cc: green.hu@gmail.com
+Message-ID: <20180102082508.BS8uKiUk6tHi1ZbtQAmWs7hVfOglvdvhEYYULeBnW-c@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds the Andestech Internal Vector Interrupt Controller
-driver. You can find the spec here. Ch4.9 of AndeStar SPA V3 Manual.
-http://www.andestech.com/product.php?cls=9
+This patch is used to support nds32 architecture to use these faraday
+mac IP.
 
-Signed-off-by: Rick Chen <rick@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
-Reviewed-by: Marc Zyngier <marc.zyngier@arm.com>
 ---
- drivers/irqchip/Makefile       |    1 +
- drivers/irqchip/irq-ativic32.c |  107 ++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 108 insertions(+)
- create mode 100644 drivers/irqchip/irq-ativic32.c
+ drivers/net/ethernet/faraday/Kconfig |    8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
-index b842dfd..201ca9f 100644
---- a/drivers/irqchip/Makefile
-+++ b/drivers/irqchip/Makefile
-@@ -80,3 +80,4 @@ obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o irq-aspeed-i2c-ic.o
- obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
- obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
- obj-$(CONFIG_IRQ_UNIPHIER_AIDET)	+= irq-uniphier-aidet.o
-+obj-$(CONFIG_NDS32)			+= irq-ativic32.o
-diff --git a/drivers/irqchip/irq-ativic32.c b/drivers/irqchip/irq-ativic32.c
-new file mode 100644
-index 0000000..f69a858
---- /dev/null
-+++ b/drivers/irqchip/irq-ativic32.c
-@@ -0,0 +1,107 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/irq.h>
-+#include <linux/of.h>
-+#include <linux/of_irq.h>
-+#include <linux/of_address.h>
-+#include <linux/interrupt.h>
-+#include <linux/irqdomain.h>
-+#include <linux/irqchip.h>
-+#include <nds32_intrinsic.h>
-+
-+static void ativic32_ack_irq(struct irq_data *data)
-+{
-+	__nds32__mtsr_dsb(BIT(data->hwirq), NDS32_SR_INT_PEND2);
-+}
-+
-+static void ativic32_mask_irq(struct irq_data *data)
-+{
-+	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
-+	__nds32__mtsr_dsb(int_mask2 & (~(BIT(data->hwirq))), NDS32_SR_INT_MASK2);
-+}
-+
-+static void ativic32_unmask_irq(struct irq_data *data)
-+{
-+	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
-+	__nds32__mtsr_dsb(int_mask2 | (BIT(data->hwirq)), NDS32_SR_INT_MASK2);
-+}
-+
-+static struct irq_chip ativic32_chip = {
-+	.name = "ativic32",
-+	.irq_ack = ativic32_ack_irq,
-+	.irq_mask = ativic32_mask_irq,
-+	.irq_unmask = ativic32_unmask_irq,
-+};
-+
-+static unsigned int __initdata nivic_map[6] = { 6, 2, 10, 16, 24, 32 };
-+
-+static struct irq_domain *root_domain;
-+static int ativic32_irq_domain_map(struct irq_domain *id, unsigned int virq,
-+				  irq_hw_number_t hw)
-+{
-+
-+	unsigned long int_trigger_type;
-+	u32 type;
-+	struct irq_data *irq_data;
-+	int_trigger_type = __nds32__mfsr(NDS32_SR_INT_TRIGGER);
-+	irq_data = irq_get_irq_data(virq);
-+	if (!irq_data)
-+		return -EINVAL;
-+
-+	if (int_trigger_type & (BIT(hw))) {
-+		irq_set_chip_and_handler(virq, &ativic32_chip, handle_edge_irq);
-+		type = IRQ_TYPE_EDGE_RISING;
-+	} else {
-+		irq_set_chip_and_handler(virq, &ativic32_chip, handle_level_irq);
-+		type = IRQ_TYPE_LEVEL_HIGH;
-+	}
-+
-+	irqd_set_trigger_type(irq_data, type);
-+	return 0;
-+}
-+
-+static struct irq_domain_ops ativic32_ops = {
-+	.map = ativic32_irq_domain_map,
-+	.xlate = irq_domain_xlate_onecell
-+};
-+
-+static irq_hw_number_t get_intr_src(void)
-+{
-+	return ((__nds32__mfsr(NDS32_SR_ITYPE) & ITYPE_mskVECTOR) >> ITYPE_offVECTOR)
-+		- NDS32_VECTOR_offINTERRUPT;
-+}
-+
-+asmlinkage void asm_do_IRQ(struct pt_regs *regs)
-+{
-+	irq_hw_number_t hwirq = get_intr_src();
-+	handle_domain_irq(root_domain, hwirq, regs);
-+}
-+
-+int __init ativic32_init_irq(struct device_node *node, struct device_node *parent)
-+{
-+	unsigned long int_vec_base, nivic, nr_ints;
-+
-+	if (WARN(parent, "non-root ativic32 are not supported"))
-+		return -EINVAL;
-+
-+	int_vec_base = __nds32__mfsr(NDS32_SR_IVB);
-+
-+	if (((int_vec_base & IVB_mskIVIC_VER) >> IVB_offIVIC_VER) == 0)
-+		panic("Unable to use atcivic32 for this cpu.\n");
-+
-+	nivic = (int_vec_base & IVB_mskNIVIC) >> IVB_offNIVIC;
-+	if (nivic >= ARRAY_SIZE(nivic_map))
-+		panic("The number of input for ativic32 is not supported.\n");
-+
-+	nr_ints = nivic_map[nivic];
-+
-+	root_domain = irq_domain_add_linear(node, nr_ints,
-+			&ativic32_ops, NULL);
-+
-+	if (!root_domain)
-+		panic("%s: unable to create IRQ domain\n", node->full_name);
-+
-+	return 0;
-+}
-+IRQCHIP_DECLARE(ativic32, "andestech,ativic32", ativic32_init_irq);
+diff --git a/drivers/net/ethernet/faraday/Kconfig b/drivers/net/ethernet/faraday/Kconfig
+index 040c7f1..0fb8df6 100644
+--- a/drivers/net/ethernet/faraday/Kconfig
++++ b/drivers/net/ethernet/faraday/Kconfig
+@@ -5,7 +5,7 @@
+ config NET_VENDOR_FARADAY
+ 	bool "Faraday devices"
+ 	default y
+-	depends on ARM
++	depends on ARM || NDS32 || COMPILE_TEST
+ 	---help---
+ 	  If you have a network (Ethernet) card belonging to this class, say Y.
+ 
+@@ -18,7 +18,8 @@ if NET_VENDOR_FARADAY
+ 
+ config FTMAC100
+ 	tristate "Faraday FTMAC100 10/100 Ethernet support"
+-	depends on ARM
++	depends on ARM || NDS32 || COMPILE_TEST
++	depends on !64BIT || BROKEN
+ 	select MII
+ 	---help---
+ 	  This driver supports the FTMAC100 10/100 Ethernet controller
+@@ -27,7 +28,8 @@ config FTMAC100
+ 
+ config FTGMAC100
+ 	tristate "Faraday FTGMAC100 Gigabit Ethernet support"
+-	depends on ARM
++	depends on ARM || NDS32 || COMPILE_TEST
++	depends on !64BIT || BROKEN
+ 	select PHYLIB
+ 	---help---
+ 	  This driver supports the FTGMAC100 Gigabit Ethernet controller
 -- 
 1.7.9.5
