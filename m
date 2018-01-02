@@ -1,146 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:35434 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752572AbeABI2H (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:07 -0500
-From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 28/39] nds32: defconfig
-Date: Tue,  2 Jan 2018 16:25:00 +0800
-Message-ID: <60be9b6552601942c0e3662361f0e2934e2840e7.1514874857.git.green.hu@gmail.com>
-In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
-References: <cover.1514874857.git.green.hu@gmail.com>
-In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
-References: <cover.1514874857.git.green.hu@gmail.com>
+Received: from ozlabs.org ([103.22.144.67]:53693 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753345AbeABJpf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 2 Jan 2018 04:45:35 -0500
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 16/67] powerpc: rename dma_direct_ to dma_nommu_
+In-Reply-To: <20171229081911.2802-17-hch@lst.de>
+References: <20171229081911.2802-1-hch@lst.de> <20171229081911.2802-17-hch@lst.de>
+Date: Tue, 02 Jan 2018 20:45:30 +1100
+Message-ID: <878tdgtwzp.fsf@concordia.ellerman.id.au>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180102082500.64b6K-terRdgAF5lTIVGa0j7yainF74KMOWc7HKtU44@z>
+To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, linux-snps-arc@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20180102094530.d1htZTJI9oRIYViqk29ZleDRewqX0fB-0mjGytkL1qQ@z>
 
-From: Greentime Hu <greentime@andestech.com>
+Christoph Hellwig <hch@lst.de> writes:
 
-This patch adds nds32 defconfig.
+> We want to use the dma_direct_ namespace for a generic implementation,
+> so rename powerpc to the second best choice: dma_nommu_.
 
-Signed-off-by: Vincent Chen <vincentc@andestech.com>
-Signed-off-by: Greentime Hu <greentime@andestech.com>
----
- arch/nds32/configs/defconfig |  108 ++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 108 insertions(+)
- create mode 100644 arch/nds32/configs/defconfig
+I'm not a fan of "nommu". Some of the users of direct ops *are* using an
+IOMMU, they're just setting up a 1:1 mapping once at init time, rather
+than mapping dynamically.
 
-diff --git a/arch/nds32/configs/defconfig b/arch/nds32/configs/defconfig
-new file mode 100644
-index 0000000..4d79d2db
---- /dev/null
-+++ b/arch/nds32/configs/defconfig
-@@ -0,0 +1,108 @@
-+CONFIG_CROSS_COMPILE="nds32le-linux-"
-+CONFIG_SYSVIPC=y
-+CONFIG_POSIX_MQUEUE=y
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_BSD_PROCESS_ACCT=y
-+CONFIG_BSD_PROCESS_ACCT_V3=y
-+CONFIG_IKCONFIG=y
-+CONFIG_IKCONFIG_PROC=y
-+CONFIG_LOG_BUF_SHIFT=14
-+CONFIG_USER_NS=y
-+CONFIG_RELAY=y
-+CONFIG_BLK_DEV_INITRD=y
-+CONFIG_KALLSYMS_ALL=y
-+CONFIG_PROFILING=y
-+CONFIG_MODULES=y
-+CONFIG_MODULE_UNLOAD=y
-+# CONFIG_BLK_DEV_BSG is not set
-+# CONFIG_CACHE_L2 is not set
-+CONFIG_VMSPLIT_3G_OPT=y
-+CONFIG_PREEMPT=y
-+# CONFIG_COMPACTION is not set
-+CONFIG_HZ_100=y
-+# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_NET_KEY=y
-+CONFIG_INET=y
-+CONFIG_IP_MULTICAST=y
-+# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
-+# CONFIG_INET_XFRM_MODE_TUNNEL is not set
-+# CONFIG_INET_XFRM_MODE_BEET is not set
-+# CONFIG_INET_DIAG is not set
-+# CONFIG_IPV6 is not set
-+# CONFIG_BLK_DEV is not set
-+CONFIG_NETDEVICES=y
-+# CONFIG_NET_CADENCE is not set
-+# CONFIG_NET_VENDOR_BROADCOM is not set
-+CONFIG_FTMAC100=y
-+# CONFIG_NET_VENDOR_INTEL is not set
-+# CONFIG_NET_VENDOR_MARVELL is not set
-+# CONFIG_NET_VENDOR_MICREL is not set
-+# CONFIG_NET_VENDOR_NATSEMI is not set
-+# CONFIG_NET_VENDOR_SEEQ is not set
-+# CONFIG_NET_VENDOR_STMICRO is not set
-+# CONFIG_NET_VENDOR_WIZNET is not set
-+CONFIG_INPUT_EVDEV=y
-+# CONFIG_INPUT_KEYBOARD is not set
-+# CONFIG_INPUT_MOUSE is not set
-+CONFIG_INPUT_TOUCHSCREEN=y
-+# CONFIG_SERIO is not set
-+CONFIG_VT_HW_CONSOLE_BINDING=y
-+CONFIG_SERIAL_8250=y
-+# CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
-+CONFIG_SERIAL_8250_CONSOLE=y
-+CONFIG_SERIAL_8250_NR_UARTS=3
-+CONFIG_SERIAL_8250_RUNTIME_UARTS=3
-+CONFIG_SERIAL_OF_PLATFORM=y
-+# CONFIG_HW_RANDOM is not set
-+# CONFIG_HWMON is not set
-+# CONFIG_RC_CORE is not set
-+# CONFIG_VGA_CONSOLE is not set
-+# CONFIG_HID_A4TECH is not set
-+# CONFIG_HID_APPLE is not set
-+# CONFIG_HID_BELKIN is not set
-+# CONFIG_HID_CHERRY is not set
-+# CONFIG_HID_CHICONY is not set
-+# CONFIG_HID_CYPRESS is not set
-+# CONFIG_HID_EZKEY is not set
-+# CONFIG_HID_ITE is not set
-+# CONFIG_HID_KENSINGTON is not set
-+# CONFIG_HID_LOGITECH is not set
-+# CONFIG_HID_MICROSOFT is not set
-+# CONFIG_HID_MONTEREY is not set
-+# CONFIG_USB_SUPPORT is not set
-+CONFIG_TIMER_ATCPIT100=y
-+CONFIG_GENERIC_PHY=y
-+CONFIG_EXT4_FS=y
-+CONFIG_EXT4_FS_POSIX_ACL=y
-+CONFIG_EXT4_FS_SECURITY=y
-+CONFIG_EXT4_ENCRYPTION=y
-+CONFIG_FUSE_FS=y
-+CONFIG_MSDOS_FS=y
-+CONFIG_VFAT_FS=y
-+CONFIG_TMPFS=y
-+CONFIG_TMPFS_POSIX_ACL=y
-+CONFIG_CONFIGFS_FS=y
-+CONFIG_NFS_FS=y
-+CONFIG_NFS_V3_ACL=y
-+CONFIG_NFS_V4=y
-+CONFIG_NFS_V4_1=y
-+CONFIG_NFS_USE_LEGACY_DNS=y
-+CONFIG_NLS_CODEPAGE_437=y
-+CONFIG_NLS_ISO8859_1=y
-+CONFIG_DEBUG_INFO=y
-+CONFIG_DEBUG_INFO_DWARF4=y
-+CONFIG_GDB_SCRIPTS=y
-+CONFIG_READABLE_ASM=y
-+CONFIG_HEADERS_CHECK=y
-+CONFIG_DEBUG_SECTION_MISMATCH=y
-+CONFIG_MAGIC_SYSRQ=y
-+CONFIG_DEBUG_KERNEL=y
-+CONFIG_PANIC_ON_OOPS=y
-+# CONFIG_SCHED_DEBUG is not set
-+# CONFIG_DEBUG_PREEMPT is not set
-+CONFIG_STACKTRACE=y
-+CONFIG_RCU_CPU_STALL_TIMEOUT=300
-+# CONFIG_CRYPTO_HW is not set
--- 
-1.7.9.5
+Though I don't have a good idea for a better name, maybe "1to1",
+"linear", "premapped" ?
+
+cheers
