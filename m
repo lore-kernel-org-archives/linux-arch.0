@@ -1,35 +1,61 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCH] xtensa: shut up gcc-8 warnings
-Date: Tue, 2 Jan 2018 03:29:17 -0800
-Message-ID: <CAMo8BfL8xqpjQ-LuFZG5J_RbaqiLLpBcQTuE55XkCTvw=+zhrg@mail.gmail.com>
-References: <20180102110035.1806925-1-arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb0-f194.google.com ([209.85.213.194]:40110 "EHLO
-        mail-yb0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751471AbeABL3S (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 06:29:18 -0500
-In-Reply-To: <20180102110035.1806925-1-arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 1/2] microblaze: fix endian handling
+Date: Tue,  2 Jan 2018 12:47:19 +0100
+Message-ID: <20180102114720.3408356-1-arnd@arndb.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michal Simek <monstr@monstr.eu>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Babu Moger <babu.moger@oracle.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 2, 2018 at 3:00 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> Many uses of strncpy() on xtensa causes  a warning like
->
-> arch/xtensa/include/asm/string.h:56:42: warning: array subscript is above array bounds [-Warray-bounds]
->    : "0" (__dest), "1" (__src), "r" (__src+__n)
->
-> This avoids the warning by turning the pointer arithmetic into an
-> integer operation that does not get checked the same way.
->
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> ---
->  arch/xtensa/include/asm/string.h | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
+Building an allmodconfig kernel fails horribly because of
+endian mismatch. It turns out that the -mlittle-endian
+switch was not honored at all as we were using the wrong
+Kconfig symbol and failing to apply CPUFLAGS to the CFLAGS.
+Finally, the linker flags did not get set right.
 
-Thanks, applied to my xtensa tree.
+This addresses all three of those issues, which now lets
+me build both big-endian and little-endian kernels for
+testing.
 
--- Max
+Fixes: 428dbf156cc5 ("arch: change default endian for microblaze")
+Fixes: 206d3642d8ee ("arch/microblaze: add choice for endianness and update Makefile")
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/microblaze/Makefile | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
+index 830ee7d42fa0..d269dd4b8279 100644
+--- a/arch/microblaze/Makefile
++++ b/arch/microblaze/Makefile
+@@ -36,16 +36,21 @@ endif
+ CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_DIV) += -mno-xl-soft-div
+ CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_BARREL) += -mxl-barrel-shift
+ CPUFLAGS-$(CONFIG_XILINX_MICROBLAZE0_USE_PCMP_INSTR) += -mxl-pattern-compare
+-CPUFLAGS-$(CONFIG_BIG_ENDIAN) += -mbig-endian
+-CPUFLAGS-$(CONFIG_LITTLE_ENDIAN) += -mlittle-endian
++
++ifdef CONFIG_CPU_BIG_ENDIAN
++KBUILD_CFLAGS += -mbig-endian
++KBUILD_AFLAGS += -mbig-endian
++LD += -EB
++else
++KBUILD_CFLAGS += -mlittle-endian
++KBUILD_AFLAGS += -mlittle-endian
++LD += -EL
++endif
+ 
+ CPUFLAGS-1 += $(call cc-option,-mcpu=v$(CPU_VER))
+ 
+ # r31 holds current when in kernel mode
+-KBUILD_CFLAGS += -ffixed-r31 $(CPUFLAGS-1) $(CPUFLAGS-2)
+-
+-LDFLAGS		:=
+-LDFLAGS_vmlinux	:=
++KBUILD_CFLAGS += -ffixed-r31 $(CPUFLAGS-y) $(CPUFLAGS-1) $(CPUFLAGS-2)
+ 
+ head-y := arch/microblaze/kernel/head.o
+ libs-y += arch/microblaze/lib/
+-- 
+2.9.0
