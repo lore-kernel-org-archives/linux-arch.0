@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:41231 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751728AbeABI0x (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:26:53 -0500
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:33932 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752071AbeABI00 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:26:26 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 12/39] nds32: Process management
-Date: Tue,  2 Jan 2018 16:24:44 +0800
-Message-ID: <10820926f3c1a4757acc8f58b8e07dd0191ffd30.1514874857.git.green.hu@gmail.com>
+Subject: [PATCH v5 06/39] nds32: Kernel booting and initialization
+Date: Tue,  2 Jan 2018 16:24:38 +0800
+Message-ID: <5930d2df872116555cc553284b6c111dce29e298.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
@@ -15,445 +15,609 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180102082444.SjW62f6uEsmGDj4BAo296SBP9qndyk1Q1p8PaagDnzY@z>
+Message-ID: <20180102082438.xSUupeYUTXNSmnOc-nYcRo5hvVT22m5QOweeTF18CyA@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch includes copy_thread(), start_thread() implementation and cpu_context
-structure definition. nds32 uses $r25 to get current task_struct.
+This patch includes the kernel startup code. It can get dtb pointer
+passed from bootloader. It will create a temp mapping by tlb
+instructions at beginning and goto start_kernel.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/current.h     |   12 ++
- arch/nds32/include/asm/processor.h   |  102 +++++++++++++++++
- arch/nds32/include/asm/thread_info.h |   78 +++++++++++++
- arch/nds32/kernel/process.c          |  204 ++++++++++++++++++++++++++++++++++
- 4 files changed, 396 insertions(+)
- create mode 100644 arch/nds32/include/asm/current.h
- create mode 100644 arch/nds32/include/asm/processor.h
- create mode 100644 arch/nds32/include/asm/thread_info.h
- create mode 100644 arch/nds32/kernel/process.c
+ arch/nds32/kernel/head.S  |  188 ++++++++++++++++++++++
+ arch/nds32/kernel/setup.c |  387 +++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 575 insertions(+)
+ create mode 100644 arch/nds32/kernel/head.S
+ create mode 100644 arch/nds32/kernel/setup.c
 
-diff --git a/arch/nds32/include/asm/current.h b/arch/nds32/include/asm/current.h
+diff --git a/arch/nds32/kernel/head.S b/arch/nds32/kernel/head.S
 new file mode 100644
-index 0000000..b4dcd22
+index 0000000..71f57bd
 --- /dev/null
-+++ b/arch/nds32/include/asm/current.h
-@@ -0,0 +1,12 @@
++++ b/arch/nds32/kernel/head.S
+@@ -0,0 +1,188 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef _ASM_NDS32_CURRENT_H
-+#define _ASM_NDS32_CURRENT_H
-+
-+#ifndef __ASSEMBLY__
-+register struct task_struct *current asm("$r25");
-+#endif /* __ASSEMBLY__ */
-+#define tsk $r25
-+
-+#endif /* _ASM_NDS32_CURRENT_H */
-diff --git a/arch/nds32/include/asm/processor.h b/arch/nds32/include/asm/processor.h
-new file mode 100644
-index 0000000..cad9b8c
---- /dev/null
-+++ b/arch/nds32/include/asm/processor.h
-@@ -0,0 +1,102 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef __ASM_NDS32_PROCESSOR_H
-+#define __ASM_NDS32_PROCESSOR_H
-+
-+/*
-+ * Default implementation of macro that returns current
-+ * instruction pointer ("program counter").
-+ */
-+#define current_text_addr() ({ __label__ _l; _l: &&_l;})
-+
-+#ifdef __KERNEL__
-+
++#include <linux/linkage.h>
++#include <linux/init.h>
 +#include <asm/ptrace.h>
-+#include <asm/types.h>
-+#include <asm/sigcontext.h>
++#include <asm/asm-offsets.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/sizes.h>
++#include <asm/thread_info.h>
 +
-+#define KERNEL_STACK_SIZE	PAGE_SIZE
-+#define STACK_TOP	TASK_SIZE
-+#define STACK_TOP_MAX   TASK_SIZE
-+
-+struct cpu_context {
-+	unsigned long r6;
-+	unsigned long r7;
-+	unsigned long r8;
-+	unsigned long r9;
-+	unsigned long r10;
-+	unsigned long r11;
-+	unsigned long r12;
-+	unsigned long r13;
-+	unsigned long r14;
-+	unsigned long fp;
-+	unsigned long pc;
-+	unsigned long sp;
-+};
-+
-+struct thread_struct {
-+	struct cpu_context cpu_context;	/* cpu context */
-+	/* fault info     */
-+	unsigned long address;
-+	unsigned long trap_no;
-+	unsigned long error_code;
-+};
-+
-+#define INIT_THREAD  {	}
-+
-+#ifdef __NDS32_EB__
-+#define PSW_DE	PSW_mskBE
++#ifdef CONFIG_CPU_BIG_ENDIAN
++#define OF_DT_MAGIC 0xd00dfeed
 +#else
-+#define PSW_DE	0x0
++#define OF_DT_MAGIC 0xedfe0dd0
 +#endif
 +
-+#ifdef CONFIG_WBNA
-+#define PSW_valWBNA	PSW_mskWBNA
-+#else
-+#define PSW_valWBNA	0x0
-+#endif
-+
-+#ifdef CONFIG_HWZOL
-+#define	PSW_valINIT (PSW_CPL_ANY | PSW_mskAEN | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
-+#else
-+#define	PSW_valINIT (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
-+#endif
-+
-+#define start_thread(regs,pc,stack)			\
-+({							\
-+	memzero(regs, sizeof(struct pt_regs));		\
-+	regs->ipsw = PSW_valINIT;			\
-+	regs->ir0 = (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_SYSTEM | PSW_INTL_1);	\
-+	regs->ipc = pc;					\
-+	regs->sp = stack;				\
-+})
-+
-+/* Forward declaration, a strange C thing */
-+struct task_struct;
-+
-+/* Free all resources held by a thread. */
-+#define release_thread(thread) do { } while(0)
-+
-+/* Prepare to copy thread state - unlazy all lazy status */
-+#define prepare_to_copy(tsk)	do { } while (0)
-+
-+unsigned long get_wchan(struct task_struct *p);
-+
-+#define cpu_relax()			barrier()
-+
-+#define task_pt_regs(task) \
-+	((struct pt_regs *) (task_stack_page(task) + THREAD_SIZE \
-+		- 8) - 1)
++	.globl  swapper_pg_dir
++	.equ    swapper_pg_dir, TEXTADDR - 0x4000
 +
 +/*
-+ * Create a new kernel thread
++ * Kernel startup entry point.
 + */
-+extern int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags);
++	.section ".head.text", "ax"
++	.type   _stext, %function
++ENTRY(_stext)
++	setgie.d                            ! Disable interrupt
++	isb
++/*
++ * Disable I/D-cache and enable it at a proper time
++ */
++	mfsr    $r0, $mr8
++	li      $r1, #~(CACHE_CTL_mskIC_EN|CACHE_CTL_mskDC_EN)
++	and     $r0, $r0, $r1
++	mtsr    $r0, $mr8
 +
-+#define KSTK_EIP(tsk)	instruction_pointer(task_pt_regs(tsk))
-+#define KSTK_ESP(tsk)	user_stack_pointer(task_pt_regs(tsk))
++/*
++ * Process device tree blob
++ */
++	andi 	$r0,$r2,#0x3
++	li	$r10, 0
++	bne     $r0, $r10, _nodtb
++	lwi	$r0, [$r2]
++	li	$r1, OF_DT_MAGIC
++	bne     $r0, $r1, _nodtb
++	move	$r10, $r2
++_nodtb:
 +
++/*
++ * Create a temporary mapping area for booting, before start_kernel
++ */
++	sethi   $r4, hi20(swapper_pg_dir)
++	li      $p0, (PAGE_OFFSET - PHYS_OFFSET)
++	sub     $r4, $r4, $p0
++	tlbop   FlushAll            ! invalidate TLB\n"
++	isb
++	mtsr    $r4, $L1_PPTB       ! load page table pointer\n"
++
++/* set NTC0 cacheable/writeback, mutliple page size in use */
++	mfsr    $r3, $MMU_CTL
++	li      $r0, #~MMU_CTL_mskNTC0
++	and     $r3, $r3, $r0
++#ifdef CONFIG_ANDES_PAGE_SIZE_4KB
++	ori     $r3, $r3, #(MMU_CTL_mskMPZIU|(MMU_CTL_CACHEABLE_WB << MMU_CTL_offNTC0))
++#else
++	ori     $r3, $r3, #(MMU_CTL_mskMPZIU|(MMU_CTL_CACHEABLE_WB << MMU_CTL_offNTC0)|MMU_CTL_D8KB)
 +#endif
++#ifdef CONFIG_HW_SUPPORT_UNALIGNMENT_ACCESS
++	li      $r0, #MMU_CTL_UNA
++	or      $r3, $r3, $r0
++#endif
++	mtsr    $r3, $MMU_CTL
++	isb
 +
-+#endif /* __ASM_NDS32_PROCESSOR_H */
-diff --git a/arch/nds32/include/asm/thread_info.h b/arch/nds32/include/asm/thread_info.h
++/* set page size and size of kernel image */
++        mfsr    $r0, $MMU_CFG
++        srli    $r3, $r0, MMU_CFG_offfEPSZ
++        zeb     $r3, $r3
++        bnez    $r3, _extra_page_size_support
++#ifdef CONFIG_ANDES_PAGE_SIZE_4KB
++        li      $r5, #SZ_4K                 ! Use 4KB page size
++#else
++        li      $r5, #SZ_8K                 ! Use 8KB page size
++        li      $r3, #1
++#endif
++        mtsr    $r3, $TLB_MISC
++        b       _image_size_check
++
++_extra_page_size_support:                    ! Use epzs pages size
++        clz     $r6, $r3
++        subri   $r2, $r6, #31
++        li      $r3, #1
++        sll     $r3, $r3, $r2
++        /* MMU_CFG.EPSZ value -> meaning */
++        mul     $r5, $r3, $r3
++        slli    $r5, $r5, #14
++        /* MMU_CFG.EPSZ  -> TLB_MISC.ACC_PSZ */
++        addi    $r3, $r2, #0x2
++        mtsr    $r3, $TLB_MISC
++
++_image_size_check:
++        /* calculate the image maximum size accepted by TLB config */
++        andi    $r6, $r0, MMU_CFG_mskTBW
++        andi    $r0, $r0, MMU_CFG_mskTBS
++        srli    $r6, $r6, MMU_CFG_offTBW
++        srli    $r0, $r0, MMU_CFG_offTBS
++        /*
++         * we just map the kernel to the maximum way - 1 of tlb
++         * reserver one way for UART VA mapping
++         * it will cause page fault if UART mapping cover the kernel mapping
++         *
++         * direct mapping is not supported now.
++         */
++        li      $r2, 't'
++        beqz    $r6, __error                 ! MMU_CFG.TBW = 0 is direct mappin
++        addi    $r0, $r0, #0x2               ! MMU_CFG.TBS value -> meaning
++        sll     $r0, $r6, $r0                ! entries = k-way * n-set
++        mul     $r6, $r0, $r5                ! max size = entries * page size
++        /* check kernel image size */
++        la      $r3, (_end - PAGE_OFFSET)
++        li      $r2, 's'
++        bgt     $r3, $r6, __error
++
++	li      $r2, #(PHYS_OFFSET + TLB_DATA_kernel_text_attr)
++        li      $r3, PAGE_OFFSET
++        add     $r6, $r6, $r3
++
++_tlb:
++	mtsr    $r3, $TLB_VPN
++	dsb
++	tlbop   $r2, RWR
++	isb
++	add     $r3, $r3, $r5
++	add     $r2, $r2, $r5
++	bgt     $r6, $r3, _tlb
++	mfsr    $r3, $TLB_MISC      ! setup access page size
++	li      $r2, #~0xf
++	and     $r3, $r3, $r2
++#ifdef CONFIG_ANDES_PAGE_SIZE_8KB
++	ori    $r3, $r3, #0x1
++#endif
++	mtsr    $r3, $TLB_MISC
++
++	mfsr    $r0, $MISC_CTL      ! Enable BTB and RTP and shadow sp
++	ori     $r0, $r0, #MISC_init
++	mtsr    $r0, $MISC_CTL
++
++	mfsr    $p1, $PSW
++	li      $r15, #~PSW_clr             ! clear WBNA|DME|IME|DT|IT|POM|INTL|GIE
++	and     $p1, $p1, $r15
++	ori     $p1, $p1, #PSW_init
++	mtsr    $p1, $IPSW                  ! when iret, it will automatically enable MMU
++	la      $lp, __mmap_switched
++	mtsr    $lp, $IPC
++	iret
++	nop
++
++	.type   __switch_data, %object
++__switch_data:
++	.long   __bss_start                 ! $r6
++	.long   _end                        ! $r7
++	.long	__atags_pointer 	    ! $atag_pointer
++	.long   init_task                   ! $r9, move to $r25
++	.long   init_thread_union + THREAD_SIZE    ! $sp
++
++
++/*
++ * The following fragment of code is executed with the MMU on in MMU mode,
++ * and uses absolute addresses; this is not position independent.
++ */
++	.align
++	.type   __mmap_switched, %function
++__mmap_switched:
++	la  $r3, __switch_data
++	lmw.bim $r6, [$r3], $r9, #0b0001
++	move	$r25, $r9
++	move    $fp, #0             ! Clear  BSS (and zero $fp)
++	beq $r7, $r6, _RRT
++1:	swi.bi  $fp, [$r6], #4
++	bne $r7, $r6, 1b
++	swi	$r10, [$r8]
++
++_RRT:
++	b   start_kernel
++
++__error:
++	b   __error
+diff --git a/arch/nds32/kernel/setup.c b/arch/nds32/kernel/setup.c
 new file mode 100644
-index 0000000..818e769
+index 0000000..01f2654d7
 --- /dev/null
-+++ b/arch/nds32/include/asm/thread_info.h
-@@ -0,0 +1,78 @@
++++ b/arch/nds32/kernel/setup.c
+@@ -0,0 +1,387 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __ASM_NDS32_THREAD_INFO_H
-+#define __ASM_NDS32_THREAD_INFO_H
-+
-+#ifdef __KERNEL__
-+
-+#define THREAD_SIZE_ORDER 	(1)
-+#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
-+
-+#ifndef __ASSEMBLY__
-+
-+struct task_struct;
-+
-+#include <asm/ptrace.h>
-+#include <asm/types.h>
-+
-+typedef unsigned long mm_segment_t;
-+
-+/*
-+ * low level task data that entry.S needs immediate access to.
-+ * __switch_to() assumes cpu_context follows immediately after cpu_domain.
-+ */
-+struct thread_info {
-+	unsigned long flags;	/* low level flags */
-+	__s32 preempt_count;	/* 0 => preemptable, <0 => bug */
-+	mm_segment_t addr_limit;	/* address limit */
-+};
-+#define INIT_THREAD_INFO(tsk)						\
-+{									\
-+	.preempt_count	= INIT_PREEMPT_COUNT,				\
-+	.addr_limit	= KERNEL_DS,					\
-+}
-+#define init_thread_info	(init_thread_union.thread_info)
-+#define init_stack		(init_thread_union.stack)
-+#define thread_saved_pc(tsk) ((unsigned long)(tsk->thread.cpu_context.pc))
-+#define thread_saved_fp(tsk) ((unsigned long)(tsk->thread.cpu_context.fp))
-+#endif
-+
-+/*
-+ * thread information flags:
-+ *  TIF_SYSCALL_TRACE	- syscall trace active
-+ *  TIF_SIGPENDING	- signal pending
-+ *  TIF_NEED_RESCHED	- rescheduling necessary
-+ *  TIF_NOTIFY_RESUME	- callback before returning to user
-+ *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
-+ *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
-+ */
-+#define TIF_SIGPENDING		1
-+#define TIF_NEED_RESCHED	2
-+#define TIF_SINGLESTEP		3
-+#define TIF_NOTIFY_RESUME	4	/* callback before returning to user */
-+#define TIF_SYSCALL_TRACE	8
-+#define TIF_USEDFPU             16
-+#define TIF_POLLING_NRFLAG	17
-+#define TIF_MEMDIE		18
-+#define TIF_FREEZE		19
-+#define TIF_RESTORE_SIGMASK	20
-+
-+#define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
-+#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
-+#define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
-+#define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
-+#define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
-+#define _TIF_FREEZE		(1 << TIF_FREEZE)
-+#define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
-+
-+/*
-+ * Change these and you break ASM code in entry-common.S
-+ */
-+#define _TIF_WORK_MASK		0x000000ff
-+#define _TIF_WORK_SYSCALL_ENTRY (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
-+#define _TIF_WORK_SYSCALL_LEAVE (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
-+
-+#endif /* __KERNEL__ */
-+#endif /* __ASM_NDS32_THREAD_INFO_H */
-diff --git a/arch/nds32/kernel/process.c b/arch/nds32/kernel/process.c
-new file mode 100644
-index 0000000..b68cfc4
---- /dev/null
-+++ b/arch/nds32/kernel/process.c
-@@ -0,0 +1,204 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/sched.h>
-+#include <linux/sched/debug.h>
-+#include <linux/sched/task_stack.h>
++#include <linux/cpu.h>
++#include <linux/bootmem.h>
++#include <linux/seq_file.h>
++#include <linux/memblock.h>
++#include <linux/console.h>
++#include <linux/screen_info.h>
 +#include <linux/delay.h>
-+#include <linux/kallsyms.h>
-+#include <linux/uaccess.h>
-+#include <asm/elf.h>
++#include <linux/dma-mapping.h>
++#include <linux/of_fdt.h>
++#include <linux/of_platform.h>
++#include <asm/setup.h>
++#include <asm/sections.h>
 +#include <asm/proc-fns.h>
-+#include <linux/ptrace.h>
++#include <asm/cache_info.h>
++#include <asm/elf.h>
++#include <nds32_intrinsic.h>
 +
-+extern void setup_mm_for_reboot(char mode);
-+#ifdef CONFIG_PROC_FS
-+struct proc_dir_entry *proc_dir_cpu;
-+EXPORT_SYMBOL(proc_dir_cpu);
++#define HWCAP_MFUSR_PC		0x000001
++#define HWCAP_EXT		0x000002
++#define HWCAP_EXT2		0x000004
++#define HWCAP_FPU		0x000008
++#define HWCAP_AUDIO		0x000010
++#define HWCAP_BASE16		0x000020
++#define HWCAP_STRING		0x000040
++#define HWCAP_REDUCED_REGS	0x000080
++#define HWCAP_VIDEO		0x000100
++#define HWCAP_ENCRYPT		0x000200
++#define HWCAP_EDM		0x000400
++#define HWCAP_LMDMA		0x000800
++#define HWCAP_PFM		0x001000
++#define HWCAP_HSMP		0x002000
++#define HWCAP_TRACE		0x004000
++#define HWCAP_DIV		0x008000
++#define HWCAP_MAC		0x010000
++#define HWCAP_L2C		0x020000
++#define HWCAP_FPU_DP		0x040000
++#define HWCAP_V2		0x080000
++#define HWCAP_DX_REGS		0x100000
++
++#ifdef CONFIG_VGA_CONSOLE
++struct screen_info screen_info;
 +#endif
 +
-+extern inline void arch_reset(char mode)
-+{
-+	if (mode == 's') {
-+		/* Use cpu handler, jump to 0 */
-+		cpu_reset(0);
-+	}
-+}
++extern struct mm_struct init_mm;
++unsigned long cpu_id, cpu_rev, cpu_cfgid;
++char cpu_series;
++char *endianness = NULL;
 +
-+void (*pm_power_off) (void);
-+EXPORT_SYMBOL(pm_power_off);
++unsigned int __atags_pointer __initdata;
++unsigned int elf_hwcap;
++EXPORT_SYMBOL(elf_hwcap);
 +
-+static char reboot_mode = 'h';
-+
-+int __init reboot_setup(char *str)
-+{
-+	reboot_mode = str[0];
-+	return 1;
-+}
-+
-+static int cpub_pwroff(void)
-+{
-+	return 0;
-+}
-+
-+__setup("reboot=", reboot_setup);
-+
-+void machine_halt(void)
-+{
-+	cpub_pwroff();
-+}
-+
-+EXPORT_SYMBOL(machine_halt);
-+
-+void machine_power_off(void)
-+{
-+	if (pm_power_off)
-+		pm_power_off();
-+}
-+
-+EXPORT_SYMBOL(machine_power_off);
-+
-+void machine_restart(char *__unused)
-+{
-+	/*
-+	 * Clean and disable cache, and turn off interrupts
-+	 */
-+	cpu_proc_fin();
-+
-+	/*
-+	 * Tell the mm system that we are going to reboot -
-+	 * we may need it to insert some 1:1 mappings so that
-+	 * soft boot works.
-+	 */
-+	setup_mm_for_reboot(reboot_mode);
-+
-+	/*
-+	 * Now call the architecture specific reboot code.
-+	 */
-+	arch_reset(reboot_mode);
-+
-+	/*
-+	 * Whoops - the architecture was unable to reboot.
-+	 * Tell the user!
-+	 */
-+	mdelay(1000);
-+	pr_info("Reboot failed -- System halted\n");
-+	while (1) ;
-+}
-+
-+EXPORT_SYMBOL(machine_restart);
-+
-+void show_regs(struct pt_regs *regs)
-+{
-+	print_symbol("PC is at %s\n", instruction_pointer(regs));
-+	print_symbol("LP is at %s\n", regs->lp);
-+	pr_info("pc : [<%08lx>]    lp : [<%08lx>]    %s\n"
-+		"sp : %08lx  fp : %08lx  gp : %08lx\n",
-+		instruction_pointer(regs),
-+		regs->lp, print_tainted(), regs->sp, regs->fp, regs->gp);
-+	pr_info("r25: %08lx  r24: %08lx\n", regs->uregs[25], regs->uregs[24]);
-+
-+	pr_info("r23: %08lx  r22: %08lx  r21: %08lx  r20: %08lx\n",
-+		regs->uregs[23], regs->uregs[22],
-+		regs->uregs[21], regs->uregs[20]);
-+	pr_info("r19: %08lx  r18: %08lx  r17: %08lx  r16: %08lx\n",
-+		regs->uregs[19], regs->uregs[18],
-+		regs->uregs[17], regs->uregs[16]);
-+	pr_info("r15: %08lx  r14: %08lx  r13: %08lx  r12: %08lx\n",
-+		regs->uregs[15], regs->uregs[14],
-+		regs->uregs[13], regs->uregs[12]);
-+	pr_info("r11: %08lx  r10: %08lx  r9 : %08lx  r8 : %08lx\n",
-+		regs->uregs[11], regs->uregs[10],
-+		regs->uregs[9], regs->uregs[8]);
-+	pr_info("r7 : %08lx  r6 : %08lx  r5 : %08lx  r4 : %08lx\n",
-+		regs->uregs[7], regs->uregs[6], regs->uregs[5], regs->uregs[4]);
-+	pr_info("r3 : %08lx  r2 : %08lx  r1 : %08lx  r0 : %08lx\n",
-+		regs->uregs[3], regs->uregs[2], regs->uregs[1], regs->uregs[0]);
-+	pr_info("  IRQs o%s  Segment %s\n",
-+		interrupts_enabled(regs) ? "n" : "ff",
-+		segment_eq(get_fs(), get_ds())? "kernel" : "user");
-+}
-+
-+EXPORT_SYMBOL(show_regs);
-+
-+void flush_thread(void)
-+{
-+}
-+
-+DEFINE_PER_CPU(struct task_struct *, __entry_task);
-+
-+asmlinkage void ret_from_fork(void) __asm__("ret_from_fork");
-+int copy_thread(unsigned long clone_flags, unsigned long stack_start,
-+	    unsigned long stk_sz, struct task_struct *p)
-+{
-+	struct pt_regs *childregs = task_pt_regs(p);
-+
-+	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
-+
-+	if (unlikely(p->flags & PF_KTHREAD)) {
-+		memset(childregs, 0, sizeof(struct pt_regs));
-+		/* kernel thread fn */
-+		p->thread.cpu_context.r6 = stack_start;
-+		/* kernel thread argument */
-+		p->thread.cpu_context.r7 = stk_sz;
-+	} else {
-+		*childregs = *current_pt_regs();
-+		if (stack_start)
-+			childregs->sp = stack_start;
-+		/* child get zero as ret. */
-+		childregs->uregs[0] = 0;
-+		childregs->osp = 0;
-+		if (clone_flags & CLONE_SETTLS)
-+			childregs->uregs[25] = childregs->uregs[3];
-+	}
-+	/* cpu context switching  */
-+	p->thread.cpu_context.pc = (unsigned long)ret_from_fork;
-+	p->thread.cpu_context.sp = (unsigned long)childregs;
-+
-+#ifdef CONFIG_HWZOL
-+	childregs->lb = 0;
-+	childregs->le = 0;
-+	childregs->lc = 0;
-+#endif
-+
-+	return 0;
-+}
-+
++extern void __init early_init_devtree(void *params);
++extern void __init early_trap_init(void);
 +/*
-+ * fill in the fpe structure for a core dump...
++ * The following string table, must sync with HWCAP_xx bitmask,
++ * which is defined in <asm/procinfo.h>
 + */
-+int dump_fpu(struct pt_regs *regs, elf_fpregset_t * fpu)
++static const char *hwcap_str[] = {
++	"mfusr_pc",
++	"perf1",
++	"perf2",
++	"fpu",
++	"audio",
++	"16b",
++	"string",
++	"reduced_regs",
++	"video",
++	"encrypt",
++	"edm",
++	"lmdma",
++	"pfm",
++	"hsmp",
++	"trace",
++	"div",
++	"mac",
++	"l2c",
++	"dx_regs",
++	"v2",
++	NULL,
++};
++
++#ifdef CONFIG_CPU_DCACHE_WRITETHROUGH
++#define WRITE_METHOD "write through"
++#else
++#define WRITE_METHOD "write back"
++#endif
++
++struct cache_info L1_cache_info[2];
++static void __init dump_cpu_info(int cpu)
 +{
-+	int fpvalid = 0;
-+	return fpvalid;
++	int i, p = 0;
++	char str[sizeof(hwcap_str) + 16];
++
++	for (i = 0; hwcap_str[i]; i++) {
++		if (elf_hwcap & (1 << i)) {
++			sprintf(str + p, "%s ", hwcap_str[i]);
++			p += strlen(hwcap_str[i]) + 1;
++		}
++	}
++
++	pr_info("CPU%d Features: %s\n", cpu, str);
++
++	L1_cache_info[ICACHE].ways = CACHE_WAY(ICACHE);
++	L1_cache_info[ICACHE].line_size = CACHE_LINE_SIZE(ICACHE);
++	L1_cache_info[ICACHE].sets = CACHE_SET(ICACHE);
++	L1_cache_info[ICACHE].size =
++	    L1_cache_info[ICACHE].ways * L1_cache_info[ICACHE].line_size *
++	    L1_cache_info[ICACHE].sets / 1024;
++	pr_info("L1I:%dKB/%dS/%dW/%dB\n", L1_cache_info[ICACHE].size,
++		L1_cache_info[ICACHE].sets, L1_cache_info[ICACHE].ways,
++		L1_cache_info[ICACHE].line_size);
++	L1_cache_info[DCACHE].ways = CACHE_WAY(DCACHE);
++	L1_cache_info[DCACHE].line_size = CACHE_LINE_SIZE(DCACHE);
++	L1_cache_info[DCACHE].sets = CACHE_SET(DCACHE);
++	L1_cache_info[DCACHE].size =
++	    L1_cache_info[DCACHE].ways * L1_cache_info[DCACHE].line_size *
++	    L1_cache_info[DCACHE].sets / 1024;
++	pr_info("L1D:%dKB/%dS/%dW/%dB\n", L1_cache_info[DCACHE].size,
++		L1_cache_info[DCACHE].sets, L1_cache_info[DCACHE].ways,
++		L1_cache_info[DCACHE].line_size);
++	pr_info("L1 D-Cache is %s\n", WRITE_METHOD);
++	if (L1_cache_info[DCACHE].size != L1_CACHE_BYTES)
++		pr_crit
++		    ("The cache line size(%d) of this processor is not the same as L1_CACHE_BYTES(%d).\n",
++		     L1_cache_info[DCACHE].size, L1_CACHE_BYTES);
++#ifdef CONFIG_CPU_CACHE_ALIASING
++	{
++		int aliasing_num;
++		aliasing_num =
++		    L1_cache_info[ICACHE].size * 1024 / PAGE_SIZE /
++		    L1_cache_info[ICACHE].ways;
++		L1_cache_info[ICACHE].aliasing_num = aliasing_num;
++		L1_cache_info[ICACHE].aliasing_mask =
++		    (aliasing_num - 1) << PAGE_SHIFT;
++		aliasing_num =
++		    L1_cache_info[DCACHE].size * 1024 / PAGE_SIZE /
++		    L1_cache_info[DCACHE].ways;
++		L1_cache_info[DCACHE].aliasing_num = aliasing_num;
++		L1_cache_info[DCACHE].aliasing_mask =
++		    (aliasing_num - 1) << PAGE_SHIFT;
++	}
++#endif
 +}
 +
-+EXPORT_SYMBOL(dump_fpu);
-+
-+unsigned long get_wchan(struct task_struct *p)
++static void __init setup_cpuinfo(void)
 +{
-+	unsigned long fp, lr;
-+	unsigned long stack_start, stack_end;
-+	int count = 0;
++	unsigned long tmp = 0, cpu_name;
 +
-+	if (!p || p == current || p->state == TASK_RUNNING)
-+		return 0;
++	cpu_dcache_inval_all();
++	cpu_icache_inval_all();
++	__nds32__isb();
 +
-+	if (IS_ENABLED(CONFIG_FRAME_POINTER)) {
-+		stack_start = (unsigned long)end_of_stack(p);
-+		stack_end = (unsigned long)task_stack_page(p) + THREAD_SIZE;
++	cpu_id = (__nds32__mfsr(NDS32_SR_CPU_VER) & CPU_VER_mskCPUID) >> CPU_VER_offCPUID;
++	cpu_name = ((cpu_id) & 0xf0) >> 4;
++	cpu_series = cpu_name ? cpu_name - 10 + 'A' : 'N';
++	cpu_id = cpu_id & 0xf;
++	cpu_rev = (__nds32__mfsr(NDS32_SR_CPU_VER) & CPU_VER_mskREV) >> CPU_VER_offREV;
++	cpu_cfgid = (__nds32__mfsr(NDS32_SR_CPU_VER) & CPU_VER_mskCFGID) >> CPU_VER_offCFGID;
 +
-+		fp = thread_saved_fp(p);
-+		do {
-+			if (fp < stack_start || fp > stack_end)
-+				return 0;
-+			lr = ((unsigned long *)fp)[0];
-+			if (!in_sched_functions(lr))
-+				return lr;
-+			fp = *(unsigned long *)(fp + 4);
-+		} while (count++ < 16);
++	pr_info("CPU:%c%ld, CPU_VER 0x%08x(id %lu, rev %lu, cfg %lu)\n",
++		cpu_series, cpu_id, __nds32__mfsr(NDS32_SR_CPU_VER), cpu_id, cpu_rev, cpu_cfgid);
++
++	elf_hwcap |= HWCAP_MFUSR_PC;
++
++	if (((__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskBASEV) >> MSC_CFG_offBASEV) == 0) {
++		if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskDIV)
++			elf_hwcap |= HWCAP_DIV;
++
++		if ((__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskMAC)
++		    || (cpu_id == 12 && cpu_rev < 4))
++			elf_hwcap |= HWCAP_MAC;
++	} else {
++		elf_hwcap |= HWCAP_V2;
++		elf_hwcap |= HWCAP_DIV;
++		elf_hwcap |= HWCAP_MAC;
 +	}
++
++	if (cpu_cfgid & 0x0001)
++		elf_hwcap |= HWCAP_EXT;
++
++	if (cpu_cfgid & 0x0002)
++		elf_hwcap |= HWCAP_BASE16;
++
++	if (cpu_cfgid & 0x0004)
++		elf_hwcap |= HWCAP_EXT2;
++
++	if (cpu_cfgid & 0x0008)
++		elf_hwcap |= HWCAP_FPU;
++
++	if (cpu_cfgid & 0x0010)
++		elf_hwcap |= HWCAP_STRING;
++
++	if (__nds32__mfsr(NDS32_SR_MMU_CFG) & MMU_CFG_mskDE)
++		endianness = "MSB";
++	else
++		endianness = "LSB";
++
++	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskEDM)
++		elf_hwcap |= HWCAP_EDM;
++
++	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskLMDMA)
++		elf_hwcap |= HWCAP_LMDMA;
++
++	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskPFM)
++		elf_hwcap |= HWCAP_PFM;
++
++	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskHSMP)
++		elf_hwcap |= HWCAP_HSMP;
++
++	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskTRACE)
++		elf_hwcap |= HWCAP_TRACE;
++
++	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskAUDIO)
++		elf_hwcap |= HWCAP_AUDIO;
++
++	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskL2C)
++		elf_hwcap |= HWCAP_L2C;
++
++	tmp = __nds32__mfsr(NDS32_SR_CACHE_CTL);
++	if (!IS_ENABLED(CONFIG_CPU_DCACHE_DISABLE))
++		tmp |= CACHE_CTL_mskDC_EN;
++
++	if (!IS_ENABLED(CONFIG_CPU_ICACHE_DISABLE))
++		tmp |= CACHE_CTL_mskIC_EN;
++	__nds32__mtsr_isb(tmp, NDS32_SR_CACHE_CTL);
++
++	dump_cpu_info(smp_processor_id());
++}
++
++static void __init setup_memory(void)
++{
++	unsigned long ram_start_pfn;
++	unsigned long free_ram_start_pfn;
++	phys_addr_t memory_start, memory_end;
++	struct memblock_region *region;
++
++	memory_end = memory_start = 0;
++
++	/* Find main memory where is the kernel */
++	for_each_memblock(memory, region) {
++		memory_start = region->base;
++		memory_end = region->base + region->size;
++		pr_info("%s: Memory: 0x%x-0x%x\n", __func__,
++			memory_start, memory_end);
++	}
++
++	if (!memory_end) {
++		panic("No memory!");
++	}
++
++	ram_start_pfn = PFN_UP(memblock_start_of_DRAM());
++	/* free_ram_start_pfn is first page after kernel */
++	free_ram_start_pfn = PFN_UP(__pa(&_end));
++	max_pfn = PFN_DOWN(memblock_end_of_DRAM());
++	/* it could update max_pfn */
++	if (max_pfn - ram_start_pfn <= MAXMEM_PFN)
++		max_low_pfn = max_pfn;
++	else {
++		max_low_pfn = MAXMEM_PFN + ram_start_pfn;
++		if (!IS_ENABLED(CONFIG_HIGHMEM))
++			max_pfn = MAXMEM_PFN + ram_start_pfn;
++	}
++	/* high_memory is related with VMALLOC */
++	high_memory = (void *)__va(max_low_pfn * PAGE_SIZE);
++	min_low_pfn = free_ram_start_pfn;
++
++	/*
++	 * initialize the boot-time allocator (with low memory only).
++	 *
++	 * This makes the memory from the end of the kernel to the end of
++	 * RAM usable.
++	 */
++	memblock_set_bottom_up(true);
++	memblock_reserve(PFN_PHYS(ram_start_pfn), PFN_PHYS(free_ram_start_pfn - ram_start_pfn));
++
++	early_init_fdt_reserve_self();
++	early_init_fdt_scan_reserved_mem();
++
++	memblock_dump_all();
++}
++
++void __init setup_arch(char **cmdline_p)
++{
++	early_init_devtree(__atags_pointer ?
++			   phys_to_virt(__atags_pointer) : __dtb_start);
++
++	setup_cpuinfo();
++
++	init_mm.start_code = (unsigned long)&_stext;
++	init_mm.end_code = (unsigned long)&_etext;
++	init_mm.end_data = (unsigned long)&_edata;
++	init_mm.brk = (unsigned long)&_end;
++
++	/* setup bootmem allocator */
++	setup_memory();
++
++	/* paging_init() sets up the MMU and marks all pages as reserved */
++	paging_init();
++
++	/* use generic way to parse */
++	parse_early_param();
++
++	unflatten_and_copy_device_tree();
++
++	if(IS_ENABLED(CONFIG_VT)) {
++		if(IS_ENABLED(CONFIG_VGA_CONSOLE))
++			conswitchp = &vga_con;
++		else if(IS_ENABLED(CONFIG_DUMMY_CONSOLE))
++			conswitchp = &dummy_con;
++	}
++
++	*cmdline_p = boot_command_line;
++	early_trap_init();
++}
++
++void calibrate_delay(void)
++{
++	const int *val;
++	struct device_node *cpu = NULL;
++	cpu = of_find_compatible_node(NULL, NULL, "andestech,nds32v3");
++	val = of_get_property(cpu, "clock-frequency", NULL);
++	if (!val || !*val)
++		panic("no cpu 'clock-frequency' parameter in device tree");
++	loops_per_jiffy = be32_to_cpup(val) / HZ;
++	pr_cont("%lu.%02lu BogoMIPS (lpj=%lu)\n",
++		loops_per_jiffy / (500000 / HZ),
++		(loops_per_jiffy / (5000 / HZ)) % 100, loops_per_jiffy);
++}
++
++static int c_show(struct seq_file *m, void *v)
++{
++	int i;
++
++	seq_printf(m, "Processor\t: %c%ld (id %lu, rev %lu, cfg %lu)\n",
++		   cpu_series, cpu_id, cpu_id, cpu_rev, cpu_cfgid);
++
++	seq_printf(m, "L1I\t\t: %luKB/%luS/%luW/%luB\n",
++		   CACHE_SET(ICACHE) * CACHE_WAY(ICACHE) *
++		   CACHE_LINE_SIZE(ICACHE) / 1024, CACHE_SET(ICACHE),
++		   CACHE_WAY(ICACHE), CACHE_LINE_SIZE(ICACHE));
++
++	seq_printf(m, "L1D\t\t: %luKB/%luS/%luW/%luB\n",
++		   CACHE_SET(DCACHE) * CACHE_WAY(DCACHE) *
++		   CACHE_LINE_SIZE(DCACHE) / 1024, CACHE_SET(DCACHE),
++		   CACHE_WAY(DCACHE), CACHE_LINE_SIZE(DCACHE));
++
++	seq_printf(m, "BogoMIPS\t: %lu.%02lu\n",
++		   loops_per_jiffy / (500000 / HZ),
++		   (loops_per_jiffy / (5000 / HZ)) % 100);
++
++	/* dump out the processor features */
++	seq_puts(m, "Features\t: ");
++
++	for (i = 0; hwcap_str[i]; i++)
++		if (elf_hwcap & (1 << i))
++			seq_printf(m, "%s ", hwcap_str[i]);
++
++	seq_puts(m, "\n\n");
++
 +	return 0;
 +}
 +
-+EXPORT_SYMBOL(get_wchan);
++static void *c_start(struct seq_file *m, loff_t * pos)
++{
++	return *pos < 1 ? (void *)1 : NULL;
++}
++
++static void *c_next(struct seq_file *m, void *v, loff_t * pos)
++{
++	++*pos;
++	return NULL;
++}
++
++static void c_stop(struct seq_file *m, void *v)
++{
++}
++
++struct seq_operations cpuinfo_op = {
++	.start = c_start,
++	.next = c_next,
++	.stop = c_stop,
++	.show = c_show
++};
 -- 
 1.7.9.5
