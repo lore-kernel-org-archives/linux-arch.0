@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:39129 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751759AbeABI1u (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:27:50 -0500
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:46584 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752333AbeABI1V (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:27:21 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 24/39] nds32: Loadable modules
-Date: Tue,  2 Jan 2018 16:24:56 +0800
-Message-ID: <e05cc9719e229b5282267b08e255df3893168ddf.1514874857.git.green.hu@gmail.com>
+Subject: [PATCH v5 18/39] nds32: System calls handling
+Date: Tue,  2 Jan 2018 16:24:50 +0800
+Message-ID: <42b0ffde24b083866139c150972722702973bb3d.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
@@ -15,329 +15,463 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180102082456.d61rvgTvdQewaDubG--TbCZaeSX5cZh6NCip3a7VtAM@z>
+Message-ID: <20180102082450.2wnpQuip9BKRn6jwxKRaLW2l52TTxhUTRy4ZtjNqVZQ@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds support for loadable modules.
+This patch adds support for system calls.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/module.h |   11 ++
- arch/nds32/kernel/module.c      |  286 +++++++++++++++++++++++++++++++++++++++
- 2 files changed, 297 insertions(+)
- create mode 100644 arch/nds32/include/asm/module.h
- create mode 100644 arch/nds32/kernel/module.c
+ arch/nds32/include/asm/syscall.h     |  188 ++++++++++++++++++++++++++++++++++
+ arch/nds32/include/asm/syscalls.h    |   13 +++
+ arch/nds32/include/asm/unistd.h      |    6 ++
+ arch/nds32/include/uapi/asm/unistd.h |   11 ++
+ arch/nds32/kernel/ex-scall.S         |  106 +++++++++++++++++++
+ arch/nds32/kernel/sys_nds32.c        |   50 +++++++++
+ arch/nds32/kernel/syscall_table.c    |   17 +++
+ 7 files changed, 391 insertions(+)
+ create mode 100644 arch/nds32/include/asm/syscall.h
+ create mode 100644 arch/nds32/include/asm/syscalls.h
+ create mode 100644 arch/nds32/include/asm/unistd.h
+ create mode 100644 arch/nds32/include/uapi/asm/unistd.h
+ create mode 100644 arch/nds32/kernel/ex-scall.S
+ create mode 100644 arch/nds32/kernel/sys_nds32.c
+ create mode 100644 arch/nds32/kernel/syscall_table.c
 
-diff --git a/arch/nds32/include/asm/module.h b/arch/nds32/include/asm/module.h
+diff --git a/arch/nds32/include/asm/syscall.h b/arch/nds32/include/asm/syscall.h
 new file mode 100644
-index 0000000..16cf9c7
+index 0000000..f7e5e86
 --- /dev/null
-+++ b/arch/nds32/include/asm/module.h
++++ b/arch/nds32/include/asm/syscall.h
+@@ -0,0 +1,188 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2008-2009 Red Hat, Inc.  All rights reserved.
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#ifndef _ASM_NDS32_SYSCALL_H
++#define _ASM_NDS32_SYSCALL_H	1
++
++#include <linux/err.h>
++struct task_struct;
++struct pt_regs;
++
++/**
++ * syscall_get_nr - find what system call a task is executing
++ * @task:	task of interest, must be blocked
++ * @regs:	task_pt_regs() of @task
++ *
++ * If @task is executing a system call or is at system call
++ * tracing about to attempt one, returns the system call number.
++ * If @task is not executing a system call, i.e. it's blocked
++ * inside the kernel for a fault or signal, returns -1.
++ *
++ * Note this returns int even on 64-bit machines.  Only 32 bits of
++ * system call number can be meaningful.  If the actual arch value
++ * is 64 bits, this truncates to 32 bits so 0xffffffff means -1.
++ *
++ * It's only valid to call this when @task is known to be blocked.
++ */
++int syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
++{
++	return regs->syscallno;
++}
++
++/**
++ * syscall_rollback - roll back registers after an aborted system call
++ * @task:	task of interest, must be in system call exit tracing
++ * @regs:	task_pt_regs() of @task
++ *
++ * It's only valid to call this when @task is stopped for system
++ * call exit tracing (due to TIF_SYSCALL_TRACE or TIF_SYSCALL_AUDIT),
++ * after tracehook_report_syscall_entry() returned nonzero to prevent
++ * the system call from taking place.
++ *
++ * This rolls back the register state in @regs so it's as if the
++ * system call instruction was a no-op.  The registers containing
++ * the system call number and arguments are as they were before the
++ * system call instruction.  This may not be the same as what the
++ * register state looked like at system call entry tracing.
++ */
++void syscall_rollback(struct task_struct *task, struct pt_regs *regs)
++{
++	regs->uregs[0] = regs->orig_r0;
++}
++
++/**
++ * syscall_get_error - check result of traced system call
++ * @task:	task of interest, must be blocked
++ * @regs:	task_pt_regs() of @task
++ *
++ * Returns 0 if the system call succeeded, or -ERRORCODE if it failed.
++ *
++ * It's only valid to call this when @task is stopped for tracing on exit
++ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
++ */
++long syscall_get_error(struct task_struct *task, struct pt_regs *regs)
++{
++	unsigned long error = regs->uregs[0];
++	return IS_ERR_VALUE(error) ? error : 0;
++}
++
++/**
++ * syscall_get_return_value - get the return value of a traced system call
++ * @task:	task of interest, must be blocked
++ * @regs:	task_pt_regs() of @task
++ *
++ * Returns the return value of the successful system call.
++ * This value is meaningless if syscall_get_error() returned nonzero.
++ *
++ * It's only valid to call this when @task is stopped for tracing on exit
++ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
++ */
++long syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
++{
++	return regs->uregs[0];
++}
++
++/**
++ * syscall_set_return_value - change the return value of a traced system call
++ * @task:	task of interest, must be blocked
++ * @regs:	task_pt_regs() of @task
++ * @error:	negative error code, or zero to indicate success
++ * @val:	user return value if @error is zero
++ *
++ * This changes the results of the system call that user mode will see.
++ * If @error is zero, the user sees a successful system call with a
++ * return value of @val.  If @error is nonzero, it's a negated errno
++ * code; the user sees a failed system call with this errno code.
++ *
++ * It's only valid to call this when @task is stopped for tracing on exit
++ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
++ */
++void syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
++			      int error, long val)
++{
++	regs->uregs[0] = (long)error ? error : val;
++}
++
++/**
++ * syscall_get_arguments - extract system call parameter values
++ * @task:	task of interest, must be blocked
++ * @regs:	task_pt_regs() of @task
++ * @i:		argument index [0,5]
++ * @n:		number of arguments; n+i must be [1,6].
++ * @args:	array filled with argument values
++ *
++ * Fetches @n arguments to the system call starting with the @i'th argument
++ * (from 0 through 5).  Argument @i is stored in @args[0], and so on.
++ * An arch inline version is probably optimal when @i and @n are constants.
++ *
++ * It's only valid to call this when @task is stopped for tracing on
++ * entry to a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
++ * It's invalid to call this with @i + @n > 6; we only support system calls
++ * taking up to 6 arguments.
++ */
++#define SYSCALL_MAX_ARGS 6
++void syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
++			   unsigned int i, unsigned int n, unsigned long *args)
++{
++	if (n == 0)
++		return;
++	if (i + n > SYSCALL_MAX_ARGS) {
++		unsigned long *args_bad = args + SYSCALL_MAX_ARGS - i;
++		unsigned int n_bad = n + i - SYSCALL_MAX_ARGS;
++		pr_warning("%s called with max args %d, handling only %d\n",
++			   __func__, i + n, SYSCALL_MAX_ARGS);
++		memset(args_bad, 0, n_bad * sizeof(args[0]));
++		memset(args_bad, 0, n_bad * sizeof(args[0]));
++	}
++
++	if (i == 0) {
++		args[0] = regs->orig_r0;
++		args++;
++		i++;
++		n--;
++	}
++
++	memcpy(args, &regs->uregs[0] + i, n * sizeof(args[0]));
++}
++
++/**
++ * syscall_set_arguments - change system call parameter value
++ * @task:	task of interest, must be in system call entry tracing
++ * @regs:	task_pt_regs() of @task
++ * @i:		argument index [0,5]
++ * @n:		number of arguments; n+i must be [1,6].
++ * @args:	array of argument values to store
++ *
++ * Changes @n arguments to the system call starting with the @i'th argument.
++ * Argument @i gets value @args[0], and so on.
++ * An arch inline version is probably optimal when @i and @n are constants.
++ *
++ * It's only valid to call this when @task is stopped for tracing on
++ * entry to a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
++ * It's invalid to call this with @i + @n > 6; we only support system calls
++ * taking up to 6 arguments.
++ */
++void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
++			   unsigned int i, unsigned int n,
++			   const unsigned long *args)
++{
++	if (n == 0)
++		return;
++
++	if (i + n > SYSCALL_MAX_ARGS) {
++		pr_warn("%s called with max args %d, handling only %d\n",
++			__func__, i + n, SYSCALL_MAX_ARGS);
++		n = SYSCALL_MAX_ARGS - i;
++	}
++
++	if (i == 0) {
++		regs->orig_r0 = args[0];
++		args++;
++		i++;
++		n--;
++	}
++
++	memcpy(&regs->uregs[0] + i, args, n * sizeof(args[0]));
++}
++#endif /* _ASM_NDS32_SYSCALL_H */
+diff --git a/arch/nds32/include/asm/syscalls.h b/arch/nds32/include/asm/syscalls.h
+new file mode 100644
+index 0000000..78778ec
+--- /dev/null
++++ b/arch/nds32/include/asm/syscalls.h
+@@ -0,0 +1,13 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#ifndef __ASM_NDS32_SYSCALLS_H
++#define __ASM_NDS32_SYSCALLS_H
++
++asmlinkage long sys_cacheflush(unsigned long addr, unsigned long len, unsigned int op);
++asmlinkage long sys_fadvise64_64_wrapper(int fd, int advice, loff_t offset, loff_t len);
++asmlinkage long sys_rt_sigreturn_wrapper(void);
++
++#include <asm-generic/syscalls.h>
++
++#endif /* __ASM_NDS32_SYSCALLS_H */
+diff --git a/arch/nds32/include/asm/unistd.h b/arch/nds32/include/asm/unistd.h
+new file mode 100644
+index 0000000..b586a28
+--- /dev/null
++++ b/arch/nds32/include/asm/unistd.h
+@@ -0,0 +1,6 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#define __ARCH_WANT_SYS_CLONE
++
++#include <uapi/asm/unistd.h>
+diff --git a/arch/nds32/include/uapi/asm/unistd.h b/arch/nds32/include/uapi/asm/unistd.h
+new file mode 100644
+index 0000000..6e95901
+--- /dev/null
++++ b/arch/nds32/include/uapi/asm/unistd.h
 @@ -0,0 +1,11 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef _ASM_NDS32_MODULE_H
-+#define _ASM_NDS32_MODULE_H
++#define __ARCH_WANT_SYNC_FILE_RANGE2
 +
-+#include <asm-generic/module.h>
++/* Use the standard ABI for syscalls */
++#include <asm-generic/unistd.h>
 +
-+#define MODULE_ARCH_VERMAGIC	"NDS32v3"
-+
-+#endif /* _ASM_NDS32_MODULE_H */
-diff --git a/arch/nds32/kernel/module.c b/arch/nds32/kernel/module.c
++/* Additional NDS32 specific syscalls. */
++#define __NR_cacheflush		(__NR_arch_specific_syscall)
++__SYSCALL(__NR_cacheflush, sys_cacheflush)
+diff --git a/arch/nds32/kernel/ex-scall.S b/arch/nds32/kernel/ex-scall.S
 new file mode 100644
-index 0000000..714a6d6
+index 0000000..3b6b035
 --- /dev/null
-+++ b/arch/nds32/kernel/module.c
-@@ -0,0 +1,286 @@
++++ b/arch/nds32/kernel/ex-scall.S
+@@ -0,0 +1,106 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/module.h>
-+#include <linux/elf.h>
-+#include <linux/vmalloc.h>
++#include <linux/linkage.h>
++#include <asm/unistd.h>
++#include <asm/assembler.h>
++#include <asm/nds32.h>
++#include <asm/asm-offsets.h>
++#include <asm/thread_info.h>
++#include <asm/current.h>
 +
-+#include <asm/pgtable.h>
++/*
++ * $r0 = previous task_struct,
++ * $r1 = next task_struct,
++ * previous and next are guaranteed not to be the same.
++ */
 +
-+void *module_alloc(unsigned long size)
++ENTRY(__switch_to)
++
++	la	$p0, __entry_task
++	sw	$r1, [$p0]
++	move	$p1, $r0
++	addi	$p1, $p1, #THREAD_CPU_CONTEXT
++	smw.bi 	$r6, [$p1], $r14, #0xb		! push r6~r14, fp, lp, sp
++	move	$r25, $r1
++	addi	$r1, $r1, #THREAD_CPU_CONTEXT
++	lmw.bi 	$r6, [$r1], $r14, #0xb		! pop r6~r14, fp, lp, sp
++	ret
++
++/*
++ * These are the registers used in the syscall handler, and allow us
++ * to have in theory up to 6 arguments to a function - $r0 to $r5.
++ *
++ * We must set at least "tsk" and "tbl" when calling ret_with_reschedule.
++ */
++
++/*
++ * $r7 will be writen as syscall nr
++ * by retrieving from $ITYPE 'SWID' bitfiled
++ */
++	.macro	get_scno
++	lwi	$r7, [$sp + R15_OFFSET]
++	swi	$r7, [$sp + SYSCALLNO_OFFSET]
++	.endm
++
++	.macro	updateipc
++	addi	$r17, $r13, #4				! $r13 is $IPC
++	swi	$r17, [$sp + IPC_OFFSET]
++	.endm
++
++ENTRY(eh_syscall)
++	updateipc
++
++	get_scno
++	gie_enable
++
++ENTRY(eh_syscall_phase_2)
++	lwi	$p0, [tsk+#TSK_TI_FLAGS]		! check for syscall tracing
++
++	andi	$p1, $p0, #_TIF_WORK_SYSCALL_ENTRY	! are we tracing syscalls?
++	bnez	$p1, __sys_trace
++
++	la	$lp, ret_fast_syscall		! return address
++jmp_systbl:
++	addi	$p1, $r7, #-__NR_syscalls	! syscall number of syscall instruction is guarded by addembler
++	bgez	$p1, _SCNO_EXCEED		! call sys_* routine
++	la	tbl, sys_call_table		! load syscall table pointer
++	slli	$p1, $r7, #2
++	add	$p1, tbl, $p1
++	lwi	$p1, [$p1]
++	jr	$p1				! no return
++
++_SCNO_EXCEED:
++	movi	why, 0
++	ori	$r0, $r7, #0
++        ori	$r1, $sp, #0
++	b	bad_syscall
++
++/*
++ * This is the really slow path.  We're going to be doing
++ * context switches, and waiting for our parent to respond.
++ */
++__sys_trace:
++	move	$r1, $sp
++	move	$r0, $r7			! trace entry [IP = 0]
++	bal	syscall_trace_enter
++	move	$r7, $r0
++	la	$lp, __sys_trace_return		! return address
++
++	addi    $p1, $r7, #1
++	beqz    $p1, ret_slow_syscall		! fatal signal is pending
++
++	addi	$p1, $sp, #R0_OFFSET		! pointer to regs
++	lmw.bi	$r0, [$p1], $r5			! have to reload $r0 - $r5
++	b	jmp_systbl
++
++__sys_trace_return:
++	swi	$r0, [$sp+#R0_OFFSET]		! T: save returned $r0
++	move	$r0, $sp			! set pt_regs for syscall_trace_leave
++	bal	syscall_trace_leave
++	b	ret_slow_syscall
++
++ENTRY(sys_rt_sigreturn_wrapper)
++	addi	$r0, $sp, #0
++	b	sys_rt_sigreturn
++ENDPROC(sys_rt_sigreturn_wrapper)
+diff --git a/arch/nds32/kernel/sys_nds32.c b/arch/nds32/kernel/sys_nds32.c
+new file mode 100644
+index 0000000..9de93ab
+--- /dev/null
++++ b/arch/nds32/kernel/sys_nds32.c
+@@ -0,0 +1,50 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#include <linux/syscalls.h>
++#include <linux/uaccess.h>
++
++#include <asm/cachectl.h>
++#include <asm/proc-fns.h>
++
++SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
++	       unsigned long, prot, unsigned long, flags,
++	       unsigned long, fd, unsigned long, pgoff)
 +{
-+	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
-+				    GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
-+				    __builtin_return_address(0));
++	if (pgoff & (~PAGE_MASK >> 12))
++		return -EINVAL;
++
++	return sys_mmap_pgoff(addr, len, prot, flags, fd,
++			      pgoff >> (PAGE_SHIFT - 12));
 +}
 +
-+void module_free(struct module *module, void *region)
++SYSCALL_DEFINE4(fadvise64_64_wrapper,int, fd, int, advice, loff_t, offset,
++					 loff_t, len)
 +{
-+	vfree(region);
++	return sys_fadvise64_64(fd, offset, len, advice);
 +}
 +
-+int module_frob_arch_sections(Elf_Ehdr * hdr,
-+			      Elf_Shdr * sechdrs,
-+			      char *secstrings, struct module *mod)
++SYSCALL_DEFINE3(cacheflush, unsigned int, start, unsigned int, end, int, cache)
 +{
++	struct vm_area_struct *vma;
++	bool flushi = true, wbd = true;
++
++	vma = find_vma(current->mm, start);
++	if (!vma)
++		return -EFAULT;
++	switch (cache) {
++	case ICACHE:
++		wbd = false;
++		break;
++	case DCACHE:
++		flushi = false;
++		break;
++	case BCACHE:
++		break;
++	default:
++		return -EINVAL;
++	}
++	cpu_cache_wbinval_range_check(vma, start, end, flushi, wbd);
++
 +	return 0;
 +}
+diff --git a/arch/nds32/kernel/syscall_table.c b/arch/nds32/kernel/syscall_table.c
+new file mode 100644
+index 0000000..7879c06
+--- /dev/null
++++ b/arch/nds32/kernel/syscall_table.c
+@@ -0,0 +1,17 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+void do_reloc16(unsigned int val, unsigned int *loc, unsigned int val_mask,
-+		unsigned int val_shift, unsigned int loc_mask,
-+		unsigned int partial_in_place, unsigned int swap)
-+{
-+	unsigned int tmp = 0, tmp2 = 0;
++#include <linux/syscalls.h>
++#include <linux/signal.h>
++#include <linux/unistd.h>
++#include <asm/syscalls.h>
 +
-+	__asm__ __volatile__("\tlhi.bi\t%0, [%2], 0\n"
-+			     "\tbeqz\t%3, 1f\n"
-+			     "\twsbh\t%0, %1\n"
-+			     "1:\n":"=r"(tmp):"0"(tmp), "r"(loc), "r"(swap)
-+	    );
++#undef __SYSCALL
++#define __SYSCALL(nr, call) [nr] = (call),
 +
-+	tmp2 = tmp & loc_mask;
-+	if (partial_in_place) {
-+		tmp &= (!loc_mask);
-+		tmp =
-+		    tmp2 | ((tmp + ((val & val_mask) >> val_shift)) & val_mask);
-+	} else {
-+		tmp = tmp2 | ((val & val_mask) >> val_shift);
-+	}
-+
-+	__asm__ __volatile__("\tbeqz\t%3, 2f\n"
-+			     "\twsbh\t%0, %1\n"
-+			     "2:\n"
-+			     "\tshi.bi\t%0, [%2], 0\n":"=r"(tmp):"0"(tmp),
-+			     "r"(loc), "r"(swap)
-+	    );
-+}
-+
-+void do_reloc32(unsigned int val, unsigned int *loc, unsigned int val_mask,
-+		unsigned int val_shift, unsigned int loc_mask,
-+		unsigned int partial_in_place, unsigned int swap)
-+{
-+	unsigned int tmp = 0, tmp2 = 0;
-+
-+	__asm__ __volatile__("\tlmw.bi\t%0, [%2], %0, 0\n"
-+			     "\tbeqz\t%3, 1f\n"
-+			     "\twsbh\t%0, %1\n"
-+			     "\trotri\t%0, %1, 16\n"
-+			     "1:\n":"=r"(tmp):"0"(tmp), "r"(loc), "r"(swap)
-+	    );
-+
-+	tmp2 = tmp & loc_mask;
-+	if (partial_in_place) {
-+		tmp &= (!loc_mask);
-+		tmp =
-+		    tmp2 | ((tmp + ((val & val_mask) >> val_shift)) & val_mask);
-+	} else {
-+		tmp = tmp2 | ((val & val_mask) >> val_shift);
-+	}
-+
-+	__asm__ __volatile__("\tbeqz\t%3, 2f\n"
-+			     "\twsbh\t%0, %1\n"
-+			     "\trotri\t%0, %1, 16\n"
-+			     "2:\n"
-+			     "\tsmw.bi\t%0, [%2], %0, 0\n":"=r"(tmp):"0"(tmp),
-+			     "r"(loc), "r"(swap)
-+	    );
-+}
-+
-+static inline int exceed_limit(int offset, unsigned int val_mask,
-+			       struct module *module, Elf32_Rela * rel,
-+			       unsigned int relindex, unsigned int reloc_order)
-+{
-+	int abs_off = offset < 0 ? ~offset : offset;
-+
-+	if (abs_off & (~val_mask)) {
-+		pr_err("\n%s: relocation type %d out of range.\n"
-+		       "please rebuild the kernel module with gcc option \"-Wa,-mno-small-text\".\n",
-+		       module->name, ELF32_R_TYPE(rel->r_info));
-+		pr_err("section %d reloc %d offset 0x%x relative 0x%x.\n",
-+		       relindex, reloc_order, rel->r_offset, offset);
-+		return true;
-+	}
-+	return false;
-+}
-+
-+#ifdef __NDS32_EL__
-+#define NEED_SWAP 1
-+#else
-+#define NEED_SWAP 0
-+#endif
-+
-+int
-+apply_relocate_add(Elf32_Shdr * sechdrs, const char *strtab,
-+		   unsigned int symindex, unsigned int relindex,
-+		   struct module *module)
-+{
-+	Elf32_Shdr *symsec = sechdrs + symindex;
-+	Elf32_Shdr *relsec = sechdrs + relindex;
-+	Elf32_Shdr *dstsec = sechdrs + relsec->sh_info;
-+	Elf32_Rela *rel = (void *)relsec->sh_addr;
-+	unsigned int i;
-+
-+	for (i = 0; i < relsec->sh_size / sizeof(Elf32_Rela); i++, rel++) {
-+		Elf32_Addr *loc;
-+		Elf32_Sym *sym;
-+		Elf32_Addr v;
-+		s32 offset;
-+
-+		offset = ELF32_R_SYM(rel->r_info);
-+		if (offset < 0
-+		    || offset > (symsec->sh_size / sizeof(Elf32_Sym))) {
-+			pr_err("%s: bad relocation\n", module->name);
-+			pr_err("section %d reloc %d\n", relindex, i);
-+			return -ENOEXEC;
-+		}
-+
-+		sym = ((Elf32_Sym *) symsec->sh_addr) + offset;
-+
-+		if (rel->r_offset < 0
-+		    || rel->r_offset > dstsec->sh_size - sizeof(u16)) {
-+			pr_err("%s: out of bounds relocation\n", module->name);
-+			pr_err("section %d reloc %d offset 0x%0x size %d\n",
-+			       relindex, i, rel->r_offset, dstsec->sh_size);
-+			return -ENOEXEC;
-+		}
-+
-+		loc = (Elf32_Addr *) (dstsec->sh_addr + rel->r_offset);
-+		v = sym->st_value + rel->r_addend;
-+
-+		switch (ELF32_R_TYPE(rel->r_info)) {
-+		case R_NDS32_NONE:
-+		case R_NDS32_INSN16:
-+		case R_NDS32_LABEL:
-+		case R_NDS32_LONGCALL1:
-+		case R_NDS32_LONGCALL2:
-+		case R_NDS32_LONGCALL3:
-+		case R_NDS32_LONGCALL4:
-+		case R_NDS32_LONGJUMP1:
-+		case R_NDS32_LONGJUMP2:
-+		case R_NDS32_LONGJUMP3:
-+		case R_NDS32_9_FIXED_RELA:
-+		case R_NDS32_15_FIXED_RELA:
-+		case R_NDS32_17_FIXED_RELA:
-+		case R_NDS32_25_FIXED_RELA:
-+		case R_NDS32_LOADSTORE:
-+		case R_NDS32_DWARF2_OP1_RELA:
-+		case R_NDS32_DWARF2_OP2_RELA:
-+		case R_NDS32_DWARF2_LEB_RELA:
-+		case R_NDS32_RELA_NOP_MIX ... R_NDS32_RELA_NOP_MAX:
-+			break;
-+
-+		case R_NDS32_32_RELA:
-+			do_reloc32(v, loc, 0xffffffff, 0, 0, 0, 0);
-+			break;
-+
-+		case R_NDS32_HI20_RELA:
-+			do_reloc32(v, loc, 0xfffff000, 12, 0xfff00000, 0,
-+				   NEED_SWAP);
-+			break;
-+
-+		case R_NDS32_LO12S3_RELA:
-+			do_reloc32(v, loc, 0x00000fff, 3, 0xfffff000, 0,
-+				   NEED_SWAP);
-+			break;
-+
-+		case R_NDS32_LO12S2_RELA:
-+			do_reloc32(v, loc, 0x00000fff, 2, 0xfffff000, 0,
-+				   NEED_SWAP);
-+			break;
-+
-+		case R_NDS32_LO12S1_RELA:
-+			do_reloc32(v, loc, 0x00000fff, 1, 0xfffff000, 0,
-+				   NEED_SWAP);
-+			break;
-+
-+		case R_NDS32_LO12S0_RELA:
-+		case R_NDS32_LO12S0_ORI_RELA:
-+			do_reloc32(v, loc, 0x00000fff, 0, 0xfffff000, 0,
-+				   NEED_SWAP);
-+			break;
-+
-+		case R_NDS32_9_PCREL_RELA:
-+			if (exceed_limit
-+			    ((v - (Elf32_Addr) loc), 0x000000ff, module, rel,
-+			     relindex, i))
-+				return -ENOEXEC;
-+			do_reloc16(v - (Elf32_Addr) loc, loc, 0x000001ff, 1,
-+				   0xffffff00, 0, NEED_SWAP);
-+			break;
-+
-+		case R_NDS32_15_PCREL_RELA:
-+			if (exceed_limit
-+			    ((v - (Elf32_Addr) loc), 0x00003fff, module, rel,
-+			     relindex, i))
-+				return -ENOEXEC;
-+			do_reloc32(v - (Elf32_Addr) loc, loc, 0x00007fff, 1,
-+				   0xffffc000, 0, NEED_SWAP);
-+			break;
-+
-+		case R_NDS32_17_PCREL_RELA:
-+			if (exceed_limit
-+			    ((v - (Elf32_Addr) loc), 0x0000ffff, module, rel,
-+			     relindex, i))
-+				return -ENOEXEC;
-+			do_reloc32(v - (Elf32_Addr) loc, loc, 0x0001ffff, 1,
-+				   0xffff0000, 0, NEED_SWAP);
-+			break;
-+
-+		case R_NDS32_25_PCREL_RELA:
-+			if (exceed_limit
-+			    ((v - (Elf32_Addr) loc), 0x00ffffff, module, rel,
-+			     relindex, i))
-+				return -ENOEXEC;
-+			do_reloc32(v - (Elf32_Addr) loc, loc, 0x01ffffff, 1,
-+				   0xff000000, 0, NEED_SWAP);
-+			break;
-+		case R_NDS32_WORD_9_PCREL_RELA:
-+			if (exceed_limit
-+			    ((v - (Elf32_Addr) loc), 0x000000ff, module, rel,
-+			     relindex, i))
-+				return -ENOEXEC;
-+			do_reloc32(v - (Elf32_Addr) loc, loc, 0x000001ff, 1,
-+				   0xffffff00, 0, NEED_SWAP);
-+			break;
-+
-+		case R_NDS32_SDA15S3_RELA:
-+		case R_NDS32_SDA15S2_RELA:
-+		case R_NDS32_SDA15S1_RELA:
-+		case R_NDS32_SDA15S0_RELA:
-+			pr_err("%s: unsupported relocation type %d.\n",
-+			       module->name, ELF32_R_TYPE(rel->r_info));
-+			pr_err
-+			    ("Small data section access doesn't work in the kernel space; "
-+			     "please rebuild the kernel module with gcc option -mcmodel=large.\n");
-+			pr_err("section %d reloc %d offset 0x%x size %d\n",
-+			       relindex, i, rel->r_offset, dstsec->sh_size);
-+			break;
-+
-+		default:
-+			pr_err("%s: unsupported relocation type %d.\n",
-+			       module->name, ELF32_R_TYPE(rel->r_info));
-+			pr_err("section %d reloc %d offset 0x%x size %d\n",
-+			       relindex, i, rel->r_offset, dstsec->sh_size);
-+		}
-+	}
-+	return 0;
-+}
-+
-+int
-+apply_relocate(Elf32_Shdr * sechdrs, const char *strtab,
-+	       unsigned int symindex, unsigned int relsec,
-+	       struct module *module)
-+{
-+	return 0;
-+}
-+
-+int
-+module_finalize(const Elf32_Ehdr * hdr, const Elf_Shdr * sechdrs,
-+		struct module *module)
-+{
-+	return 0;
-+}
-+
-+void module_arch_cleanup(struct module *mod)
-+{
-+}
++#define sys_rt_sigreturn sys_rt_sigreturn_wrapper
++#define sys_fadvise64_64 sys_fadvise64_64_wrapper
++void *sys_call_table[__NR_syscalls] __aligned(8192) = {
++	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
++#include <asm/unistd.h>
++};
 -- 
 1.7.9.5
