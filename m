@@ -1,51 +1,58 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH] xtensa: shut up gcc-8 warnings
-Date: Tue,  2 Jan 2018 12:00:22 +0100
-Message-ID: <20180102110035.1806925-1-arnd@arndb.de>
+Subject: [PATCH] arc: fix iounmap prototype
+Date: Tue,  2 Jan 2018 12:01:24 +0100
+Message-ID: <20180102110141.1853608-1-arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:55181 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.134]:55971 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751390AbeABLAj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 06:00:39 -0500
+        with ESMTP id S1751444AbeABLCJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 06:02:09 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <vgupta@synopsys.com>, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org
 
-Many uses of strncpy() on xtensa causes  a warning like
+The missing 'volatile' keyword on the iounmap argument leads to lots of
+harmless warnings in an allmodconfig build:
 
-arch/xtensa/include/asm/string.h:56:42: warning: array subscript is above array bounds [-Warray-bounds]
-   : "0" (__dest), "1" (__src), "r" (__src+__n)
-
-This avoids the warning by turning the pointer arithmetic into an
-integer operation that does not get checked the same way.
+sound/pci/echoaudio/echoaudio.c:1879:10: warning: passing argument 1 of 'iounmap' discards 'volatile' qualifier f
+pointer target type [-Wdiscarded-qualifiers]
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/xtensa/include/asm/string.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/arc/include/asm/io.h | 4 ++--
+ arch/arc/mm/ioremap.c     | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/string.h b/arch/xtensa/include/asm/string.h
-index 586bad9fe187..89b51a0c752f 100644
---- a/arch/xtensa/include/asm/string.h
-+++ b/arch/xtensa/include/asm/string.h
-@@ -53,7 +53,7 @@ static inline char *strncpy(char *__dest, const char *__src, size_t __n)
- 		"bne	%1, %5, 1b\n"
- 		"2:"
- 		: "=r" (__dest), "=r" (__src), "=&r" (__dummy)
--		: "0" (__dest), "1" (__src), "r" (__src+__n)
-+		: "0" (__dest), "1" (__src), "r" ((uintptr_t)__src+__n)
- 		: "memory");
- 
- 	return __xdest;
-@@ -101,7 +101,7 @@ static inline int strncmp(const char *__cs, const char *__ct, size_t __n)
- 		"2:\n\t"
- 		"sub	%2, %2, %3"
- 		: "=r" (__cs), "=r" (__ct), "=&r" (__res), "=&r" (__dummy)
--		: "0" (__cs), "1" (__ct), "r" (__cs+__n));
-+		: "0" (__cs), "1" (__ct), "r" ((uintptr_t)__cs+__n));
- 
- 	return __res;
+diff --git a/arch/arc/include/asm/io.h b/arch/arc/include/asm/io.h
+index c22b181e8206..2c9b98fabf82 100644
+--- a/arch/arc/include/asm/io.h
++++ b/arch/arc/include/asm/io.h
+@@ -30,11 +30,11 @@ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+ 	return (void __iomem *)port;
  }
+ 
+-static inline void ioport_unmap(void __iomem *addr)
++static inline void ioport_unmap(volatile void __iomem *addr)
+ {
+ }
+ 
+-extern void iounmap(const void __iomem *addr);
++extern void iounmap(const volatile void __iomem *addr);
+ 
+ #define ioremap_nocache(phy, sz)	ioremap(phy, sz)
+ #define ioremap_wc(phy, sz)		ioremap(phy, sz)
+diff --git a/arch/arc/mm/ioremap.c b/arch/arc/mm/ioremap.c
+index 9881bd740ccc..94d0116063a8 100644
+--- a/arch/arc/mm/ioremap.c
++++ b/arch/arc/mm/ioremap.c
+@@ -95,7 +95,7 @@ void __iomem *ioremap_prot(phys_addr_t paddr, unsigned long size,
+ EXPORT_SYMBOL(ioremap_prot);
+ 
+ 
+-void iounmap(const void __iomem *addr)
++void iounmap(volatile const void __iomem *addr)
+ {
+ 	/* weird double cast to handle phys_addr_t > 32 bits */
+ 	if (arc_uncached_addr_space((phys_addr_t)(u32)addr))
 -- 
 2.9.0
