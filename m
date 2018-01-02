@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f66.google.com ([209.85.160.66]:38442 "EHLO
+Received: from mail-pl0-f66.google.com ([209.85.160.66]:40944 "EHLO
         mail-pl0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752636AbeABI2Q (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:16 -0500
+        with ESMTP id S1751759AbeABI2D (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:03 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 30/39] MAINTAINERS: Add nds32
-Date: Tue,  2 Jan 2018 16:25:02 +0800
-Message-ID: <34355c67d25b2172503fdecbed07c2547ce51ab8.1514874857.git.green.hu@gmail.com>
+Subject: [PATCH v5 27/39] nds32: Miscellaneous header files
+Date: Tue,  2 Jan 2018 16:24:59 +0800
+Message-ID: <e854b46e5a792cbb02fc66cac68117230716b87e.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
@@ -14,37 +14,104 @@ References: <cover.1514874857.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com
-Message-ID: <20180102082502.3x8iD2S-9HLz-1RLTSrFj7s10ABPu_LHdCffkiycHow@z>
+Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20180102082459.8F29_gF0aMIqf5z7VQeFT2x57BDHoCKM_NjUX-WW_E4@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
+This patch introduces some miscellaneous header files.
+
+Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- MAINTAINERS |   11 +++++++++++
- 1 file changed, 11 insertions(+)
+ arch/nds32/include/asm/delay.h          |   39 +++++++++++++++++++++++++++++++
+ arch/nds32/include/asm/linkage.h        |   11 +++++++++
+ arch/nds32/include/uapi/asm/byteorder.h |   13 +++++++++++
+ 3 files changed, 63 insertions(+)
+ create mode 100644 arch/nds32/include/asm/delay.h
+ create mode 100644 arch/nds32/include/asm/linkage.h
+ create mode 100644 arch/nds32/include/uapi/asm/byteorder.h
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 2f4e462..20284c8 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -857,6 +857,17 @@ X:	drivers/iio/*/adjd*
- F:	drivers/staging/iio/*/ad*
- F:	drivers/staging/iio/trigger/iio-trig-bfin-timer.c
- 
-+ANDES ARCHITECTURE
-+M:	Greentime Hu <green.hu@gmail.com>
-+M:	Vincent Chen <deanbo422@gmail.com>
-+T:	git https://github.com/andestech/linux.git
-+S:	Supported
-+F:	arch/nds32
-+F:	Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
-+F:	Documentation/devicetree/bindings/nds32
-+K:	nds32
-+N:	nds32
+diff --git a/arch/nds32/include/asm/delay.h b/arch/nds32/include/asm/delay.h
+new file mode 100644
+index 0000000..519ba97
+--- /dev/null
++++ b/arch/nds32/include/asm/delay.h
+@@ -0,0 +1,39 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
 +
- ANDROID CONFIG FRAGMENTS
- M:	Rob Herring <robh@kernel.org>
- S:	Supported
++#ifndef __NDS32_DELAY_H__
++#define __NDS32_DELAY_H__
++
++#include <asm/param.h>
++
++/* There is no clocksource cycle counter in the CPU. */
++static inline void __delay(unsigned long loops)
++{
++	__asm__ __volatile__(".align 2\n"
++			     "1:\n"
++			     "\taddi\t%0, %0, -1\n"
++			     "\tbgtz\t%0, 1b\n"
++			     :"=r"(loops)
++			     :"0"(loops));
++}
++
++static inline void __udelay(unsigned long usecs, unsigned long lpj)
++{
++	usecs *= (unsigned long)(((0x8000000000000000ULL / (500000 / HZ)) +
++				  0x80000000ULL) >> 32);
++	usecs = (unsigned long)(((unsigned long long)usecs * lpj) >> 32);
++	__delay(usecs);
++}
++
++#define udelay(usecs) __udelay((usecs), loops_per_jiffy)
++
++/* make sure "usecs *= ..." in udelay do not overflow. */
++#if HZ >= 1000
++#define MAX_UDELAY_MS	1
++#elif HZ <= 200
++#define MAX_UDELAY_MS	5
++#else
++#define MAX_UDELAY_MS	(1000 / HZ)
++#endif
++
++#endif
+diff --git a/arch/nds32/include/asm/linkage.h b/arch/nds32/include/asm/linkage.h
+new file mode 100644
+index 0000000..e708c8b
+--- /dev/null
++++ b/arch/nds32/include/asm/linkage.h
+@@ -0,0 +1,11 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#ifndef __ASM_LINKAGE_H
++#define __ASM_LINKAGE_H
++
++/* This file is required by include/linux/linkage.h */
++#define __ALIGN .align 2
++#define __ALIGN_STR ".align 2"
++
++#endif
+diff --git a/arch/nds32/include/uapi/asm/byteorder.h b/arch/nds32/include/uapi/asm/byteorder.h
+new file mode 100644
+index 0000000..a23f6f3a
+--- /dev/null
++++ b/arch/nds32/include/uapi/asm/byteorder.h
+@@ -0,0 +1,13 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#ifndef __NDS32_BYTEORDER_H__
++#define __NDS32_BYTEORDER_H__
++
++#ifdef __NDS32_EB__
++#include <linux/byteorder/big_endian.h>
++#else
++#include <linux/byteorder/little_endian.h>
++#endif
++
++#endif /* __NDS32_BYTEORDER_H__ */
 -- 
 1.7.9.5
