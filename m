@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f68.google.com ([209.85.160.68]:46640 "EHLO
-        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752781AbeABI2o (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:44 -0500
+Received: from mail-pl0-f67.google.com ([209.85.160.67]:37606 "EHLO
+        mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752735AbeABI2f (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:35 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 36/39] net: faraday add nds32 support.
-Date: Tue,  2 Jan 2018 16:25:08 +0800
-Message-ID: <22f8b24d5528a5c938012489ee6cfae193676b80.1514874858.git.green.hu@gmail.com>
+Subject: [PATCH v5 34/39] dt-bindings: interrupt-controller: Andestech Internal Vector Interrupt Controller
+Date: Tue,  2 Jan 2018 16:25:06 +0800
+Message-ID: <1aa1392243c67936f68d0b9ccb57c814223b5614.1514874858.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
@@ -14,51 +14,46 @@ References: <cover.1514874857.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com
-Message-ID: <20180102082508.BS8uKiUk6tHi1ZbtQAmWs7hVfOglvdvhEYYULeBnW-c@z>
+Cc: green.hu@gmail.com, Rick Chen <rick@andestech.com>
+Message-ID: <20180102082506.9FKMBQJA0pJHUhT4vm8QU9QTnaWKYrsjz7QQ44GLcW0@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch is used to support nds32 architecture to use these faraday
-mac IP.
+This patch adds an irqchip driver document for the Andestech Internal Vector
+Interrupt Controller.
 
+Signed-off-by: Rick Chen <rick@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
+Reviewed-by: Rob Herring <robh@kernel.org>
 ---
- drivers/net/ethernet/faraday/Kconfig |    8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
+ .../interrupt-controller/andestech,ativic32.txt    |   19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
 
-diff --git a/drivers/net/ethernet/faraday/Kconfig b/drivers/net/ethernet/faraday/Kconfig
-index 040c7f1..0fb8df6 100644
---- a/drivers/net/ethernet/faraday/Kconfig
-+++ b/drivers/net/ethernet/faraday/Kconfig
-@@ -5,7 +5,7 @@
- config NET_VENDOR_FARADAY
- 	bool "Faraday devices"
- 	default y
--	depends on ARM
-+	depends on ARM || NDS32 || COMPILE_TEST
- 	---help---
- 	  If you have a network (Ethernet) card belonging to this class, say Y.
- 
-@@ -18,7 +18,8 @@ if NET_VENDOR_FARADAY
- 
- config FTMAC100
- 	tristate "Faraday FTMAC100 10/100 Ethernet support"
--	depends on ARM
-+	depends on ARM || NDS32 || COMPILE_TEST
-+	depends on !64BIT || BROKEN
- 	select MII
- 	---help---
- 	  This driver supports the FTMAC100 10/100 Ethernet controller
-@@ -27,7 +28,8 @@ config FTMAC100
- 
- config FTGMAC100
- 	tristate "Faraday FTGMAC100 Gigabit Ethernet support"
--	depends on ARM
-+	depends on ARM || NDS32 || COMPILE_TEST
-+	depends on !64BIT || BROKEN
- 	select PHYLIB
- 	---help---
- 	  This driver supports the FTGMAC100 Gigabit Ethernet controller
+diff --git a/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt b/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
+new file mode 100644
+index 0000000..f4b4193
+--- /dev/null
++++ b/Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
+@@ -0,0 +1,19 @@
++* Andestech Internal Vector Interrupt Controller
++
++The Internal Vector Interrupt Controller (IVIC) is a basic interrupt controller
++suitable for a simpler SoC platform not requiring a more sophisticated and
++bigger External Vector Interrupt Controller.
++
++
++Main node required properties:
++
++- compatible : should at least contain  "andestech,ativic32".
++- interrupt-controller : Identifies the node as an interrupt controller
++- #interrupt-cells: 1 cells and refer to interrupt-controller/interrupts
++
++Examples:
++	intc: interrupt-controller {
++		compatible = "andestech,ativic32";
++		#interrupt-cells = <1>;
++		interrupt-controller;
++	};
 -- 
 1.7.9.5
