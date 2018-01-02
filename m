@@ -1,149 +1,141 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 26/39] nds32: Device tree support
-Date: Tue,  2 Jan 2018 16:24:58 +0800
-Message-ID: <7fe1190a9cf8e30f1b8af52dd382ba1176997786.1514874857.git.green.hu@gmail.com>
+Subject: [PATCH v5 28/39] nds32: defconfig
+Date: Tue,  2 Jan 2018 16:25:00 +0800
+Message-ID: <60be9b6552601942c0e3662361f0e2934e2840e7.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
-Return-path: <netdev-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
-Sender: netdev-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds support for device tree.
+This patch adds nds32 defconfig.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/boot/dts/Makefile  |    8 +++++
- arch/nds32/boot/dts/ae3xx.dts |   73 +++++++++++++++++++++++++++++++++++++++++
- arch/nds32/kernel/devtree.c   |   19 +++++++++++
- 3 files changed, 100 insertions(+)
- create mode 100644 arch/nds32/boot/dts/Makefile
- create mode 100644 arch/nds32/boot/dts/ae3xx.dts
- create mode 100644 arch/nds32/kernel/devtree.c
+ arch/nds32/configs/defconfig |  108 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 108 insertions(+)
+ create mode 100644 arch/nds32/configs/defconfig
 
-diff --git a/arch/nds32/boot/dts/Makefile b/arch/nds32/boot/dts/Makefile
+diff --git a/arch/nds32/configs/defconfig b/arch/nds32/configs/defconfig
 new file mode 100644
-index 0000000..d31faa8
+index 0000000..4d79d2db
 --- /dev/null
-+++ b/arch/nds32/boot/dts/Makefile
-@@ -0,0 +1,8 @@
-+ifneq '$(CONFIG_NDS32_BUILTIN_DTB)' '""'
-+BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_NDS32_BUILTIN_DTB)).dtb.o
-+else
-+BUILTIN_DTB :=
-+endif
-+obj-$(CONFIG_OF) += $(BUILTIN_DTB)
-+
-+clean-files := *.dtb *.dtb.S
-diff --git a/arch/nds32/boot/dts/ae3xx.dts b/arch/nds32/boot/dts/ae3xx.dts
-new file mode 100644
-index 0000000..6b23d60
---- /dev/null
-+++ b/arch/nds32/boot/dts/ae3xx.dts
-@@ -0,0 +1,73 @@
-+/dts-v1/;
-+/ {
-+	compatible = "andestech,ae3xx";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+
-+	chosen {
-+		stdout-path = &serial0;
-+	};
-+
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x00000000 0x40000000>;
-+	};
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		cpu@0 {
-+			device_type = "cpu";
-+			compatible = "andestech,n13", "andestech,nds32v3";
-+			reg = <0>;
-+			clock-frequency = <60000000>;
-+			next-level-cache = <&L2>;
-+		};
-+	};
-+
-+	L2: l2-cache@e0500000 {
-+		compatible = "andestech,atl2c";
-+		reg = <0xe0500000 0x1000>;
-+		cache-unified;
-+		cache-level = <2>;
-+	};
-+
-+	apb: clk@0 {
-+		#clock-cells = <0>;
-+		compatible = "fixed-clock";
-+		clock-frequency = <30000000>;
-+	};
-+
-+
-+	intc: interrupt-controller {
-+		compatible = "andestech,ativic32";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
-+
-+	serial0: serial@f0300000 {
-+		compatible = "andestech,uart16550", "ns16550a";
-+		reg = <0xf0300000 0x1000>;
-+		interrupts = <8>;
-+		clock-frequency = <14745600>;
-+		reg-shift = <2>;
-+		reg-offset = <32>;
-+		no-loopback-test = <1>;
-+	};
-+
-+	timer0: timer@f0400000 {
-+		compatible = "andestech,atcpit100";
-+		reg = <0xf0400000 0x1000>;
-+		interrupts = <2>;
-+		clocks = <&apb>;
-+		clock-names = "PCLK";
-+	};
-+
-+	mac0: mac@e0100000 {
-+		compatible = "andestech,atmac100";
-+		reg = <0xe0100000 0x1000>;
-+		interrupts = <18>;
-+	};
-+
-+};
-diff --git a/arch/nds32/kernel/devtree.c b/arch/nds32/kernel/devtree.c
-new file mode 100644
-index 0000000..bdce0fe
---- /dev/null
-+++ b/arch/nds32/kernel/devtree.c
-@@ -0,0 +1,19 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/bug.h>
-+#include <linux/printk.h>
-+#include <linux/of_fdt.h>
-+
-+void __init early_init_devtree(void *params)
-+{
-+	if (!params || !early_init_dt_scan(params)) {
-+		pr_crit("\n"
-+			"Error: invalid device tree blob at (virtual address 0x%p)\n"
-+			"\nPlease check your bootloader.", params);
-+
-+		BUG_ON(1);
-+	}
-+
-+	dump_stack_set_arch_desc("%s (DT)", of_flat_dt_get_machine_name());
-+}
++++ b/arch/nds32/configs/defconfig
+@@ -0,0 +1,108 @@
++CONFIG_CROSS_COMPILE="nds32le-linux-"
++CONFIG_SYSVIPC=y
++CONFIG_POSIX_MQUEUE=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_BSD_PROCESS_ACCT=y
++CONFIG_BSD_PROCESS_ACCT_V3=y
++CONFIG_IKCONFIG=y
++CONFIG_IKCONFIG_PROC=y
++CONFIG_LOG_BUF_SHIFT=14
++CONFIG_USER_NS=y
++CONFIG_RELAY=y
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_KALLSYMS_ALL=y
++CONFIG_PROFILING=y
++CONFIG_MODULES=y
++CONFIG_MODULE_UNLOAD=y
++# CONFIG_BLK_DEV_BSG is not set
++# CONFIG_CACHE_L2 is not set
++CONFIG_VMSPLIT_3G_OPT=y
++CONFIG_PREEMPT=y
++# CONFIG_COMPACTION is not set
++CONFIG_HZ_100=y
++# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_NET_KEY=y
++CONFIG_INET=y
++CONFIG_IP_MULTICAST=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_DIAG is not set
++# CONFIG_IPV6 is not set
++# CONFIG_BLK_DEV is not set
++CONFIG_NETDEVICES=y
++# CONFIG_NET_CADENCE is not set
++# CONFIG_NET_VENDOR_BROADCOM is not set
++CONFIG_FTMAC100=y
++# CONFIG_NET_VENDOR_INTEL is not set
++# CONFIG_NET_VENDOR_MARVELL is not set
++# CONFIG_NET_VENDOR_MICREL is not set
++# CONFIG_NET_VENDOR_NATSEMI is not set
++# CONFIG_NET_VENDOR_SEEQ is not set
++# CONFIG_NET_VENDOR_STMICRO is not set
++# CONFIG_NET_VENDOR_WIZNET is not set
++CONFIG_INPUT_EVDEV=y
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++CONFIG_INPUT_TOUCHSCREEN=y
++# CONFIG_SERIO is not set
++CONFIG_VT_HW_CONSOLE_BINDING=y
++CONFIG_SERIAL_8250=y
++# CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
++CONFIG_SERIAL_8250_CONSOLE=y
++CONFIG_SERIAL_8250_NR_UARTS=3
++CONFIG_SERIAL_8250_RUNTIME_UARTS=3
++CONFIG_SERIAL_OF_PLATFORM=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++# CONFIG_RC_CORE is not set
++# CONFIG_VGA_CONSOLE is not set
++# CONFIG_HID_A4TECH is not set
++# CONFIG_HID_APPLE is not set
++# CONFIG_HID_BELKIN is not set
++# CONFIG_HID_CHERRY is not set
++# CONFIG_HID_CHICONY is not set
++# CONFIG_HID_CYPRESS is not set
++# CONFIG_HID_EZKEY is not set
++# CONFIG_HID_ITE is not set
++# CONFIG_HID_KENSINGTON is not set
++# CONFIG_HID_LOGITECH is not set
++# CONFIG_HID_MICROSOFT is not set
++# CONFIG_HID_MONTEREY is not set
++# CONFIG_USB_SUPPORT is not set
++CONFIG_TIMER_ATCPIT100=y
++CONFIG_GENERIC_PHY=y
++CONFIG_EXT4_FS=y
++CONFIG_EXT4_FS_POSIX_ACL=y
++CONFIG_EXT4_FS_SECURITY=y
++CONFIG_EXT4_ENCRYPTION=y
++CONFIG_FUSE_FS=y
++CONFIG_MSDOS_FS=y
++CONFIG_VFAT_FS=y
++CONFIG_TMPFS=y
++CONFIG_TMPFS_POSIX_ACL=y
++CONFIG_CONFIGFS_FS=y
++CONFIG_NFS_FS=y
++CONFIG_NFS_V3_ACL=y
++CONFIG_NFS_V4=y
++CONFIG_NFS_V4_1=y
++CONFIG_NFS_USE_LEGACY_DNS=y
++CONFIG_NLS_CODEPAGE_437=y
++CONFIG_NLS_ISO8859_1=y
++CONFIG_DEBUG_INFO=y
++CONFIG_DEBUG_INFO_DWARF4=y
++CONFIG_GDB_SCRIPTS=y
++CONFIG_READABLE_ASM=y
++CONFIG_HEADERS_CHECK=y
++CONFIG_DEBUG_SECTION_MISMATCH=y
++CONFIG_MAGIC_SYSRQ=y
++CONFIG_DEBUG_KERNEL=y
++CONFIG_PANIC_ON_OOPS=y
++# CONFIG_SCHED_DEBUG is not set
++# CONFIG_DEBUG_PREEMPT is not set
++CONFIG_STACKTRACE=y
++CONFIG_RCU_CPU_STALL_TIMEOUT=300
++# CONFIG_CRYPTO_HW is not set
 -- 
 1.7.9.5
