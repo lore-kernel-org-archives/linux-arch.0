@@ -1,50 +1,57 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 05/67] dma-mapping: replace PCI_DMA_BUS_IS_PHYS with a
- flag in struct dma_map_ops
-Date: Tue, 2 Jan 2018 11:39:49 +0100
-Message-ID: <CAMuHMdV2oT9G3yOjx-oaw06nw27zF_Y34quYf--u13xjKs3dJQ@mail.gmail.com>
-References: <20171229081911.2802-1-hch@lst.de> <20171229081911.2802-6-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <20171229081911.2802-6-hch@lst.de>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: iommu@lists.linux-foundation.org, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-ia64@vger.kernel.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, adi-buildroot-devel@lists.sourceforge.net, linux-m68k <linux-m68k@lists.linux-m68k.org>, patches@groups.riscv.org, "open list:METAG ARCHITECTURE" <linux-metag@vger.kernel.org>, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, Parisc
-List-Id: linux-arch.vger.kernel.org
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH] m32r: fix readl/writel prototypes
+Date: Tue,  2 Jan 2018 11:56:41 +0100
+Message-ID: <20180102105653.1645748-1-arnd@arndb.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.134]:54063 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751503AbeABK46 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 05:56:58 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
 
-On Fri, Dec 29, 2017 at 9:18 AM, Christoph Hellwig <hch@lst.de> wrote:
-> The current PCI_DMA_BUS_IS_PHYS decided if a dma implementation is bound
-> by the dma mask in the device because it directly maps to a physical
-> address range (modulo an offset in the device), or if it is virtualized
-> by an iommu and can map any address (that includes virtual iommus like
-> swiotlb).  The problem with this scheme is that it is per-architecture and
-> not per dma_ops instance, and we are growing more and more setups that
-> have multiple different dma operations in use on a single system, for
-> which this scheme can't provide a correct answer.  Depending on the
-> architecture that means we either get a false positive or false negative
-> at the moment.
->
-> This patch instead extents the is_phys flag in struct dma_map_ops that
-> is currently only used by a few architectures to be used tree wide.
->
-> Note that this means that we now need a struct device parent in the
-> Scsi_Host or netdevice.  Every modern driver has these, but there might
-> still be a few outdated legacy drivers out there, which now won't make
-> an intelligent decision.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+All other architectures use 'unsigned int' as the data in readl/write,
+but m32r uses 'unsigned long', leading to lots of harmless build warnings
+like:
 
-For m68k:
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+drivers/mmc/host/dw_mmc.c: In function 'dw_mci_regs_show':
+drivers/mmc/host/dw_mmc.c:168:31: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'long unsigned int' [-Wformat=]
+  seq_printf(s, "STATUS:\t0x%08x\n", mci_readl(host, STATUS));
 
-Gr{oetje,eeting}s,
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/m32r/include/asm/io.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+diff --git a/arch/m32r/include/asm/io.h b/arch/m32r/include/asm/io.h
+index 1b653bb16f9a..093486b5b931 100644
+--- a/arch/m32r/include/asm/io.h
++++ b/arch/m32r/include/asm/io.h
+@@ -108,9 +108,9 @@ static inline unsigned short _readw(unsigned long addr)
+ 	return *(volatile unsigned short __force *)addr;
+ }
+ 
+-static inline unsigned long _readl(unsigned long addr)
++static inline unsigned int _readl(unsigned long addr)
+ {
+-	return *(volatile unsigned long __force *)addr;
++	return *(volatile unsigned int __force *)addr;
+ }
+ 
+ static inline void _writeb(unsigned char b, unsigned long addr)
+@@ -123,9 +123,9 @@ static inline void _writew(unsigned short w, unsigned long addr)
+ 	*(volatile unsigned short __force *)addr = w;
+ }
+ 
+-static inline void _writel(unsigned long l, unsigned long addr)
++static inline void _writel(unsigned long l, unsigned int addr)
+ {
+-	*(volatile unsigned long __force *)addr = l;
++	*(volatile unsigned int __force *)addr = l;
+ }
+ 
+ #define inb     _inb
+-- 
+2.9.0
