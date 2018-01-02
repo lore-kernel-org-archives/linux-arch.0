@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f65.google.com ([74.125.83.65]:46632 "EHLO
-        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752709AbeABI2b (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:31 -0500
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:33555 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752520AbeABI2V (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:21 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 33/39] dt-bindings: nds32 SoC Bindings
-Date: Tue,  2 Jan 2018 16:25:05 +0800
-Message-ID: <51d9e9f0a85437742ed8e6770a9e91defd92e5d0.1514874858.git.green.hu@gmail.com>
+Subject: [PATCH v5 31/39] dt-bindings: nds32 CPU Bindings
+Date: Tue,  2 Jan 2018 16:25:03 +0800
+Message-ID: <a947876a96899f6059c945fbfb2d80eb6ce4a79b.1514874858.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
@@ -14,65 +14,65 @@ References: <cover.1514874857.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com
-Message-ID: <20180102082505.Cp0q27_HEiPy-ABZopZVwlEGPFoflxMHrIjffDvimVU@z>
+Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>, Rick Chen <rick@andestech.com>, Zong Li <zong@andestech.com>
+Message-ID: <20180102082503.T-4mfikqdS0IDxyRi8jSCNSp1DdksOC9D2qOz7Q0jhs@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds nds32 SoC(AE3XX and AG101P) binding documents.
+This patch adds nds32 CPU binding documents.
 
+Signed-off-by: Vincent Chen <vincentc@andestech.com>
+Signed-off-by: Rick Chen <rick@andestech.com>
+Signed-off-by: Zong Li <zong@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 Reviewed-by: Rob Herring <robh@kernel.org>
 ---
- .../devicetree/bindings/nds32/andestech-boards     |   40 ++++++++++++++++++++
- 1 file changed, 40 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/nds32/andestech-boards
+ Documentation/devicetree/bindings/nds32/cpus.txt |   37 ++++++++++++++++++++++
+ 1 file changed, 37 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/nds32/cpus.txt
 
-diff --git a/Documentation/devicetree/bindings/nds32/andestech-boards b/Documentation/devicetree/bindings/nds32/andestech-boards
+diff --git a/Documentation/devicetree/bindings/nds32/cpus.txt b/Documentation/devicetree/bindings/nds32/cpus.txt
 new file mode 100644
-index 0000000..f5d7569
+index 0000000..9a52937
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/nds32/andestech-boards
-@@ -0,0 +1,40 @@
-+Andestech(nds32) AE3XX Platform
-+-----------------------------------------------------------------------------
-+The AE3XX prototype demonstrates the AE3XX example platform on the FPGA. It
-+is composed of one Andestech(nds32) processor and AE3XX.
++++ b/Documentation/devicetree/bindings/nds32/cpus.txt
+@@ -0,0 +1,37 @@
++* Andestech Processor Binding
 +
-+Required properties (in root node):
-+- compatible = "andestech,ae3xx";
++This binding specifies what properties must be available in the device tree
++representation of a Andestech Processor Core, which is the root node in the
++tree.
 +
-+Example:
-+/dts-v1/;
++Required properties:
++
++	- compatible:
++		Usage: required
++		Value type: <string>
++		Definition: should be one of:
++			"andestech,n13"
++			"andestech,n15"
++			"andestech,d15"
++			"andestech,n10"
++			"andestech,d10"
++			"andestech,nds32v3"
++	- device_type
++		Usage: required
++		Value type: <string>
++		Definition: must be "cpu"
++	- reg: Contains CPU index.
++	- clock-frequency: Contains the clock frequency for CPU, in Hz.
++
++* Examples
++
 +/ {
-+	compatible = "andestech,ae3xx";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+};
-+
-+Andestech(nds32) AG101P Platform
-+-----------------------------------------------------------------------------
-+AG101P is a generic SoC Platform IP that works with any of Andestech(nds32)
-+processors to provide a cost-effective and high performance solution for
-+majority of embedded systems in variety of application domains. Users may
-+simply attach their IP on one of the system buses together with certain glue
-+logics to complete a SoC solution for a specific application. With
-+comprehensive simulation and design environments, users may evaluate the
-+system performance of their applications and track bugs of their designs
-+efficiently. The optional hardware development platform further provides real
-+system environment for early prototyping and software/hardware co-development.
-+
-+Required properties (in root node):
-+	compatible = "andestech,ag101p";
-+
-+Example:
-+/dts-v1/;
-+/ {
-+	compatible = "andestech,ag101p";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
++	cpus {
++		cpu@0 {
++			device_type = "cpu";
++			compatible = "andestech,n13", "andestech,nds32v3";
++			reg = <0x0>;
++			clock-frequency = <60000000>
++		};
++	};
 +};
 -- 
 1.7.9.5
