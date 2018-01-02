@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f66.google.com ([209.85.160.66]:40944 "EHLO
-        mail-pl0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751759AbeABI2D (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:28:03 -0500
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:39138 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752572AbeABI16 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jan 2018 03:27:58 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v5 27/39] nds32: Miscellaneous header files
-Date: Tue,  2 Jan 2018 16:24:59 +0800
-Message-ID: <e854b46e5a792cbb02fc66cac68117230716b87e.1514874857.git.green.hu@gmail.com>
+Subject: [PATCH v5 26/39] nds32: Device tree support
+Date: Tue,  2 Jan 2018 16:24:58 +0800
+Message-ID: <7fe1190a9cf8e30f1b8af52dd382ba1176997786.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
 References: <cover.1514874857.git.green.hu@gmail.com>
 In-Reply-To: <cover.1514874857.git.green.hu@gmail.com>
@@ -15,103 +15,140 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180102082459.8F29_gF0aMIqf5z7VQeFT2x57BDHoCKM_NjUX-WW_E4@z>
+Message-ID: <20180102082458.ODMmFK_fQPr83ERaxoPjlFTX8iKhB7fLjxUd8r5VYug@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch introduces some miscellaneous header files.
+This patch adds support for device tree.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/delay.h          |   39 +++++++++++++++++++++++++++++++
- arch/nds32/include/asm/linkage.h        |   11 +++++++++
- arch/nds32/include/uapi/asm/byteorder.h |   13 +++++++++++
- 3 files changed, 63 insertions(+)
- create mode 100644 arch/nds32/include/asm/delay.h
- create mode 100644 arch/nds32/include/asm/linkage.h
- create mode 100644 arch/nds32/include/uapi/asm/byteorder.h
+ arch/nds32/boot/dts/Makefile  |    8 +++++
+ arch/nds32/boot/dts/ae3xx.dts |   73 +++++++++++++++++++++++++++++++++++++++++
+ arch/nds32/kernel/devtree.c   |   19 +++++++++++
+ 3 files changed, 100 insertions(+)
+ create mode 100644 arch/nds32/boot/dts/Makefile
+ create mode 100644 arch/nds32/boot/dts/ae3xx.dts
+ create mode 100644 arch/nds32/kernel/devtree.c
 
-diff --git a/arch/nds32/include/asm/delay.h b/arch/nds32/include/asm/delay.h
+diff --git a/arch/nds32/boot/dts/Makefile b/arch/nds32/boot/dts/Makefile
 new file mode 100644
-index 0000000..519ba97
+index 0000000..d31faa8
 --- /dev/null
-+++ b/arch/nds32/include/asm/delay.h
-@@ -0,0 +1,39 @@
++++ b/arch/nds32/boot/dts/Makefile
+@@ -0,0 +1,8 @@
++ifneq '$(CONFIG_NDS32_BUILTIN_DTB)' '""'
++BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_NDS32_BUILTIN_DTB)).dtb.o
++else
++BUILTIN_DTB :=
++endif
++obj-$(CONFIG_OF) += $(BUILTIN_DTB)
++
++clean-files := *.dtb *.dtb.S
+diff --git a/arch/nds32/boot/dts/ae3xx.dts b/arch/nds32/boot/dts/ae3xx.dts
+new file mode 100644
+index 0000000..6b23d60
+--- /dev/null
++++ b/arch/nds32/boot/dts/ae3xx.dts
+@@ -0,0 +1,73 @@
++/dts-v1/;
++/ {
++	compatible = "andestech,ae3xx";
++	#address-cells = <1>;
++	#size-cells = <1>;
++	interrupt-parent = <&intc>;
++
++	chosen {
++		stdout-path = &serial0;
++	};
++
++	memory@0 {
++		device_type = "memory";
++		reg = <0x00000000 0x40000000>;
++	};
++
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		cpu@0 {
++			device_type = "cpu";
++			compatible = "andestech,n13", "andestech,nds32v3";
++			reg = <0>;
++			clock-frequency = <60000000>;
++			next-level-cache = <&L2>;
++		};
++	};
++
++	L2: l2-cache@e0500000 {
++		compatible = "andestech,atl2c";
++		reg = <0xe0500000 0x1000>;
++		cache-unified;
++		cache-level = <2>;
++	};
++
++	apb: clk@0 {
++		#clock-cells = <0>;
++		compatible = "fixed-clock";
++		clock-frequency = <30000000>;
++	};
++
++
++	intc: interrupt-controller {
++		compatible = "andestech,ativic32";
++		#interrupt-cells = <1>;
++		interrupt-controller;
++	};
++
++	serial0: serial@f0300000 {
++		compatible = "andestech,uart16550", "ns16550a";
++		reg = <0xf0300000 0x1000>;
++		interrupts = <8>;
++		clock-frequency = <14745600>;
++		reg-shift = <2>;
++		reg-offset = <32>;
++		no-loopback-test = <1>;
++	};
++
++	timer0: timer@f0400000 {
++		compatible = "andestech,atcpit100";
++		reg = <0xf0400000 0x1000>;
++		interrupts = <2>;
++		clocks = <&apb>;
++		clock-names = "PCLK";
++	};
++
++	mac0: mac@e0100000 {
++		compatible = "andestech,atmac100";
++		reg = <0xe0100000 0x1000>;
++		interrupts = <18>;
++	};
++
++};
+diff --git a/arch/nds32/kernel/devtree.c b/arch/nds32/kernel/devtree.c
+new file mode 100644
+index 0000000..bdce0fe
+--- /dev/null
++++ b/arch/nds32/kernel/devtree.c
+@@ -0,0 +1,19 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __NDS32_DELAY_H__
-+#define __NDS32_DELAY_H__
++#include <linux/bug.h>
++#include <linux/printk.h>
++#include <linux/of_fdt.h>
 +
-+#include <asm/param.h>
-+
-+/* There is no clocksource cycle counter in the CPU. */
-+static inline void __delay(unsigned long loops)
++void __init early_init_devtree(void *params)
 +{
-+	__asm__ __volatile__(".align 2\n"
-+			     "1:\n"
-+			     "\taddi\t%0, %0, -1\n"
-+			     "\tbgtz\t%0, 1b\n"
-+			     :"=r"(loops)
-+			     :"0"(loops));
++	if (!params || !early_init_dt_scan(params)) {
++		pr_crit("\n"
++			"Error: invalid device tree blob at (virtual address 0x%p)\n"
++			"\nPlease check your bootloader.", params);
++
++		BUG_ON(1);
++	}
++
++	dump_stack_set_arch_desc("%s (DT)", of_flat_dt_get_machine_name());
 +}
-+
-+static inline void __udelay(unsigned long usecs, unsigned long lpj)
-+{
-+	usecs *= (unsigned long)(((0x8000000000000000ULL / (500000 / HZ)) +
-+				  0x80000000ULL) >> 32);
-+	usecs = (unsigned long)(((unsigned long long)usecs * lpj) >> 32);
-+	__delay(usecs);
-+}
-+
-+#define udelay(usecs) __udelay((usecs), loops_per_jiffy)
-+
-+/* make sure "usecs *= ..." in udelay do not overflow. */
-+#if HZ >= 1000
-+#define MAX_UDELAY_MS	1
-+#elif HZ <= 200
-+#define MAX_UDELAY_MS	5
-+#else
-+#define MAX_UDELAY_MS	(1000 / HZ)
-+#endif
-+
-+#endif
-diff --git a/arch/nds32/include/asm/linkage.h b/arch/nds32/include/asm/linkage.h
-new file mode 100644
-index 0000000..e708c8b
---- /dev/null
-+++ b/arch/nds32/include/asm/linkage.h
-@@ -0,0 +1,11 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef __ASM_LINKAGE_H
-+#define __ASM_LINKAGE_H
-+
-+/* This file is required by include/linux/linkage.h */
-+#define __ALIGN .align 2
-+#define __ALIGN_STR ".align 2"
-+
-+#endif
-diff --git a/arch/nds32/include/uapi/asm/byteorder.h b/arch/nds32/include/uapi/asm/byteorder.h
-new file mode 100644
-index 0000000..a23f6f3a
---- /dev/null
-+++ b/arch/nds32/include/uapi/asm/byteorder.h
-@@ -0,0 +1,13 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef __NDS32_BYTEORDER_H__
-+#define __NDS32_BYTEORDER_H__
-+
-+#ifdef __NDS32_EB__
-+#include <linux/byteorder/big_endian.h>
-+#else
-+#include <linux/byteorder/little_endian.h>
-+#endif
-+
-+#endif /* __NDS32_BYTEORDER_H__ */
 -- 
 1.7.9.5
