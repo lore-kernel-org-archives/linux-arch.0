@@ -1,30 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f194.google.com ([209.85.220.194]:43348 "EHLO
-        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751195AbeACPhd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jan 2018 10:37:33 -0500
+Received: from ale.deltatee.com ([207.54.116.67]:60088 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751380AbeACSG7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Jan 2018 13:06:59 -0500
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Wed,  3 Jan 2018 11:06:17 -0700
+Message-ID: <20180103180618.18401-8-logang@deltatee.com>
+In-Reply-To: <20180103180618.18401-1-logang@deltatee.com>
+References: <20180103180618.18401-1-logang@deltatee.com>
 MIME-Version: 1.0
-In-Reply-To: <20180103013516.18844-4-sboyd@codeaurora.org>
-References: <20180103013516.18844-1-sboyd@codeaurora.org> <20180103013516.18844-4-sboyd@codeaurora.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 3 Jan 2018 16:37:32 +0100
-Message-ID: <CAK8P3a1L4Z4S41RkV3h6BbGMmUSLEHBc3a0-xSX61nuUkmE8eQ@mail.gmail.com>
-Subject: Re: [PATCH 3/5] arch: Remove clkdev.h asm-generic from Kbuild
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Subject: [PATCH v9 7/8] crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Boyd <sboyd@codeaurora.org>
-Cc: Michael Turquette <mturquette@baylibre.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-clk <linux-clk@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Russell King <linux@armlinux.org.uk>
-Message-ID: <20180103153732.HbUtiWfbYXBrqUmxZ7LDxSUkG8rhSN-20Chpyh_vIww@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20180103180617.LKMzyKAWZHCZj7jtKMi3ikRXunsLvg4dKcBLZvw92Bg@z>
 
-On Wed, Jan 3, 2018 at 2:35 AM, Stephen Boyd <sboyd@codeaurora.org> wrote:
-> Now that every architecture is using the generic clkdev.h file
-> and we no longer include asm/clkdev.h anywhere in the tree, we
-> can remove it.
->
-> Cc: Russell King <linux@armlinux.org.uk>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: <linux-arch@vger.kernel.org>
-> Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
+Clean up the extra ifdefs which defined the wr_reg64 and rd_reg64
+functions in non-64bit cases in favour of the new common
+io-64-nonatomic-lo-hi header.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Cc: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Horia Geantă <horia.geanta@nxp.com>
+Cc: Dan Douglass <dan.douglass@nxp.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: "David S. Miller" <davem@davemloft.net>
+---
+ drivers/crypto/caam/regs.h | 26 +-------------------------
+ 1 file changed, 1 insertion(+), 25 deletions(-)
+
+diff --git a/drivers/crypto/caam/regs.h b/drivers/crypto/caam/regs.h
+index fee363865d88..ec6528e5ce9d 100644
+--- a/drivers/crypto/caam/regs.h
++++ b/drivers/crypto/caam/regs.h
+@@ -10,7 +10,7 @@
+ 
+ #include <linux/types.h>
+ #include <linux/bitops.h>
+-#include <linux/io.h>
++#include <linux/io-64-nonatomic-hi-lo.h>
+ 
+ /*
+  * Architecture-specific register access methods
+@@ -136,7 +136,6 @@ static inline void clrsetbits_32(void __iomem *reg, u32 clear, u32 set)
+  *    base + 0x0000 : least-significant 32 bits
+  *    base + 0x0004 : most-significant 32 bits
+  */
+-#ifdef CONFIG_64BIT
+ static inline void wr_reg64(void __iomem *reg, u64 data)
+ {
+ 	if (caam_little_end)
+@@ -153,29 +152,6 @@ static inline u64 rd_reg64(void __iomem *reg)
+ 		return ioread64be(reg);
+ }
+ 
+-#else /* CONFIG_64BIT */
+-static inline void wr_reg64(void __iomem *reg, u64 data)
+-{
+-	if (!caam_imx && caam_little_end) {
+-		wr_reg32((u32 __iomem *)(reg) + 1, data >> 32);
+-		wr_reg32((u32 __iomem *)(reg), data);
+-	} else {
+-		wr_reg32((u32 __iomem *)(reg), data >> 32);
+-		wr_reg32((u32 __iomem *)(reg) + 1, data);
+-	}
+-}
+-
+-static inline u64 rd_reg64(void __iomem *reg)
+-{
+-	if (!caam_imx && caam_little_end)
+-		return ((u64)rd_reg32((u32 __iomem *)(reg) + 1) << 32 |
+-			(u64)rd_reg32((u32 __iomem *)(reg)));
+-
+-	return ((u64)rd_reg32((u32 __iomem *)(reg)) << 32 |
+-		(u64)rd_reg32((u32 __iomem *)(reg) + 1));
+-}
+-#endif /* CONFIG_64BIT  */
+-
+ static inline u64 cpu_to_caam_dma64(dma_addr_t value)
+ {
+ 	if (caam_imx)
+-- 
+2.11.0
