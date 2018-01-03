@@ -1,74 +1,59 @@
-From: Stephen Boyd <sboyd@codeaurora.org>
-Subject: Re: [PATCH 4/5] clk: sunxi: Use CLK_IS_CRITICAL flag for critical
- clks
-Date: Wed, 3 Jan 2018 09:01:30 -0800
-Message-ID: <20180103170130.GW7997@codeaurora.org>
-References: <20180103013516.18844-1-sboyd@codeaurora.org>
- <20180103013516.18844-5-sboyd@codeaurora.org>
- <CAGb2v67s6JR87nvZ4s1MQ0jG7xj7y0s4C257YWB66xaVCR3c0Q@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: [PATCH v9 1/8] drm/tilcdc: ensure nonatomic iowrite64 is not used
+Date: Wed,  3 Jan 2018 11:06:11 -0700
+Message-ID: <20180103180618.18401-2-logang@deltatee.com>
+References: <20180103180618.18401-1-logang@deltatee.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:53162 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750864AbeACRBc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jan 2018 12:01:32 -0500
-Content-Disposition: inline
-In-Reply-To: <CAGb2v67s6JR87nvZ4s1MQ0jG7xj7y0s4C257YWB66xaVCR3c0Q@mail.gmail.com>
+Received: from ale.deltatee.com ([207.54.116.67]:60036 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751348AbeACSG4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Jan 2018 13:06:56 -0500
+In-Reply-To: <20180103180618.18401-1-logang@deltatee.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen-Yu Tsai <wens@csie.org>
-Cc: Michael Turquette <mturquette@baylibre.com>, linux-kernel <linux-kernel@vger.kernel.org>, linux-clk <linux-clk@vger.kernel.org>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Maxime Ripard <maxime.ripard@free-electrons.com>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Jyri Sarha <jsarha@ti.com>, Tomi Valkeinen <tomi.valkeinen@ti.com>, David Airlie <airlied@linux.ie>
 
-On 01/03, Chen-Yu Tsai wrote:
-> On Wed, Jan 3, 2018 at 9:35 AM, Stephen Boyd <sboyd@codeaurora.org> wrote:
-> > We'd like to privatize __clk_get(), but the sunxi clk driver is
-> > calling this function to keep a reference held on the clk and
-> > call clk_prepare_enable() on it. We support this design in the
-> > clk core now with the CLK_IS_CRITICAL flag, so let's just use
-> > that instead.
-> >
-> > Cc: Maxime Ripard <maxime.ripard@free-electrons.com>
-> > Cc: Chen-Yu Tsai <wens@csie.org>
-> > Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
-> > ---
-> >  drivers/clk/sunxi/clk-factors.c    | 26 +++++++++++++++++++++-----
-> >  drivers/clk/sunxi/clk-factors.h    |  4 ++++
-> >  drivers/clk/sunxi/clk-mod0.c       |  9 ++-------
-> >  drivers/clk/sunxi/clk-sun8i-mbus.c |  7 ++-----
-> >  drivers/clk/sunxi/clk-sun9i-core.c |  9 ++-------
-> >  drivers/clk/sunxi/clk-sunxi.c      | 36 +++++++++++++-----------------------
-> >  6 files changed, 44 insertions(+), 47 deletions(-)
-> >
-> > diff --git a/drivers/clk/sunxi/clk-factors.c b/drivers/clk/sunxi/clk-factors.c
-> > index 856fef65433b..f6f4757d2dd1 100644
-> > --- a/drivers/clk/sunxi/clk-factors.c
-> > +++ b/drivers/clk/sunxi/clk-factors.c
-> > @@ -176,10 +176,10 @@ static const struct clk_ops clk_factors_ops = {
-> >         .set_rate = clk_factors_set_rate,
-> >  };
-> >
-> > -struct clk *sunxi_factors_register(struct device_node *node,
-> > -                                  const struct factors_data *data,
-> > -                                  spinlock_t *lock,
-> > -                                  void __iomem *reg)
-> > +struct clk *__sunxi_factors_register(struct device_node *node,
-> 
-> This looks like it's only used within the file by the two wrapper
-> functions. Mark it static?
+Add a check to ensure iowrite64 is only used if it is atomic.
 
-Ah thanks. I hadn't run sparse yet.
+It was decided in [1] that the tilcdc driver should not be using an
+atomic operation (so it was left out of this patchset). However, it turns
+out that through the drm code, a nonatomic header is actually included:
 
-> 
-> Otherwise
-> 
-> Reviewed-by: Chen-Yu Tsai <wens@csie.org>
-> 
-> Looks like you picked the easiest (least code changes) for each type
-> of clock?
+include/linux/io-64-nonatomic-lo-hi.h
+is included from include/drm/drm_os_linux.h:9:0,
+            from include/drm/drmP.h:74,
+            from include/drm/drm_modeset_helper.h:26,
+            from include/drm/drm_atomic_helper.h:33,
+            from drivers/gpu/drm/tilcdc/tilcdc_crtc.c:19:
 
-Yep.
+And thus, without this change, this patchset would inadvertantly
+change the behaviour of the tilcdc driver.
 
+[1] lkml.kernel.org/r/CAK8P3a2HhO_zCnsTzq7hmWSz5La5Thu19FWZpun16iMnyyNreQ@mail.gmail.com
+
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Jyri Sarha <jsarha@ti.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Tomi Valkeinen <tomi.valkeinen@ti.com>
+Cc: David Airlie <airlied@linux.ie>
+---
+ drivers/gpu/drm/tilcdc/tilcdc_regs.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/tilcdc/tilcdc_regs.h b/drivers/gpu/drm/tilcdc/tilcdc_regs.h
+index 9d528c0a67a4..5048ebb86835 100644
+--- a/drivers/gpu/drm/tilcdc/tilcdc_regs.h
++++ b/drivers/gpu/drm/tilcdc/tilcdc_regs.h
+@@ -133,7 +133,7 @@ static inline void tilcdc_write64(struct drm_device *dev, u32 reg, u64 data)
+ 	struct tilcdc_drm_private *priv = dev->dev_private;
+ 	volatile void __iomem *addr = priv->mmio + reg;
+ 
+-#ifdef iowrite64
++#if defined(iowrite64) && !defined(iowrite64_is_nonatomic)
+ 	iowrite64(data, addr);
+ #else
+ 	__iowmb();
 -- 
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-a Linux Foundation Collaborative Project
+2.11.0
