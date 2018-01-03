@@ -1,7 +1,7 @@
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [RFC PATCH 2/4] Documentation: document nospec helpers
-Date: Wed,  3 Jan 2018 22:38:25 +0000
-Message-ID: <20180103223827.39601-3-mark.rutland@arm.com>
+Subject: [RFC PATCH 3/4] arm64: implement nospec_{load,ptr}()
+Date: Wed,  3 Jan 2018 22:38:26 +0000
+Message-ID: <20180103223827.39601-4-mark.rutland@arm.com>
 References: <20180103223827.39601-1-mark.rutland@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180103223827.39601-1-mark.rutland@arm.com>
@@ -10,119 +10,86 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Document the rationale and usage of the new nospec*() helpers.
+This patch implements nospec_load() and nospec_ptr() for arm64,
+following the recommended architectural sequence.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- Documentation/speculation.txt | 99 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 99 insertions(+)
- create mode 100644 Documentation/speculation.txt
+ arch/arm64/include/asm/barrier.h | 61 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 61 insertions(+)
 
-diff --git a/Documentation/speculation.txt b/Documentation/speculation.txt
-new file mode 100644
-index 000000000000..0bec4ed5ac29
---- /dev/null
-+++ b/Documentation/speculation.txt
-@@ -0,0 +1,99 @@
-+This document explains potential effects of speculation, and how undesirable
-+effects can be mitigated portably using common APIs.
+diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
+index 77651c49ef44..5d17919e2688 100644
+--- a/arch/arm64/include/asm/barrier.h
++++ b/arch/arm64/include/asm/barrier.h
+@@ -40,6 +40,67 @@
+ #define dma_rmb()	dmb(oshld)
+ #define dma_wmb()	dmb(oshst)
+ 
++#define __load_no_speculate_n(ptr, lo, hi, failval, cmpptr, w, sz)	\
++({									\
++	typeof(*ptr)	__nln_val;					\
++	typeof(*ptr)	__failval = 					\
++		(typeof(*ptr))(unsigned long)(failval);			\
++									\
++	asm volatile (							\
++	"	cmp	%[c], %[l]\n"					\
++	"	ccmp	%[c], %[h], 2, cs\n"				\
++	"	b.cs	1f\n"						\
++	"	ldr" #sz " %" #w "[v], %[p]\n"				\
++	"1:	csel	%" #w "[v], %" #w "[v], %" #w "[f], cc\n"	\
++	"	hint	#0x14 // CSDB\n"				\
++	: [v] "=&r" (__nln_val)						\
++	: [p] "m" (*(ptr)), [l] "r" (lo), [h] "r" (hi),			\
++	  [f] "rZ" (__failval), [c] "r" (cmpptr)			\
++	: "cc");							\
++									\
++	__nln_val;							\
++})
 +
-+===========
-+Speculation
-+===========
++#define __load_no_speculate(ptr, lo, hi, failval, cmpptr)		\
++({									\
++	typeof(*(ptr)) __nl_val;					\
++									\
++	switch (sizeof(__nl_val)) {					\
++	case 1:								\
++		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
++						 cmpptr, w, b);		\
++		break;							\
++	case 2:								\
++		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
++						 cmpptr, w, h);		\
++		break;							\
++	case 4:								\
++		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
++						 cmpptr, w, );		\
++		break;							\
++	case 8:								\
++		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
++						 cmpptr, x, );		\
++		break;							\
++	default:							\
++		BUILD_BUG();						\
++	}								\
++									\
++	__nl_val;							\
++})
 +
-+To improve performance and minimize average latencies, many contemporary CPUs
-+employ speculative execution techniques such as branch prediction, performing
-+work which may be discarded at a later stage.
++#define nospec_load(ptr, lo, hi)					\
++({									\
++	typeof(ptr) __nl_ptr = (ptr);					\
++	__load_no_speculate(__nl_ptr, lo, hi, 0, __nl_ptr);		\
++})
 +
-+Typically speculative execution cannot be observed from architectural state,
-+such as the contents of registers. However, in some cases it is possible to
-+observe its impact on microarchitectural state, such as the presence or
-+absence of data in caches. Such state may form side-channels which can be
-+observed to extract secret information.
++#define nospec_ptr(ptr, lo, hi)						\
++({									\
++	typeof(ptr) __np_ptr = (ptr);					\
++	__load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);		\
++})
 +
-+For example, in the presence of branch prediction, it is possible for bounds
-+checks to be ignored by code which is speculatively executed. Consider the
-+following code:
-+
-+	int load_array(int *array, unsigned int idx) {
-+		if (idx >= MAX_ARRAY_ELEMS)
-+			return 0;
-+		else
-+			return array[idx];
-+	}
-+
-+Which, on arm64, may be compiled to an assembly sequence such as:
-+
-+	CMP	<idx>, #MAX_ARRAY_ELEMS
-+	B.LT	less
-+	MOV	<returnval>, #0
-+	RET
-+  less:
-+	LDR	<returnval>, [<array>, <idx>]
-+	RET
-+
-+It is possible that a CPU mis-predicts the conditional branch, and
-+speculatively loads array[idx], even if idx >= MAX_ARRAY_ELEMS. This value
-+will subsequently be discarded, but the speculated load may affect
-+microarchitectural state which can be subsequently measured.
-+
-+More complex sequences involving multiple dependent memory accesses may result
-+in sensitive information being leaked. Consider the following code, building on
-+the prior example:
-+
-+	int load_dependent_arrays(int *arr1, int *arr2, int idx) {
-+		int val1, val2,
-+
-+		val1 = load_array(arr1, idx);
-+		val2 = load_array(arr2, val1);
-+
-+		return val2;
-+	}
-+
-+Under speculation, the first call to load_array() may return the value of an
-+out-of-bounds address, while the second call will influence microarchitectural
-+state dependent on this value. This may provide an arbitrary read primitive.
-+
-+====================================
-+Mitigating speculation side-channels
-+====================================
-+
-+The kernel provides a generic API to ensure that bounds checks are respected
-+even under speculation. Architectures which are affected by speculation-based
-+side-channels are expected to implement these primitives.
-+
-+The following helpers found in <asm/barrier.h> can be used to prevent
-+information from being leaked via side-channels.
-+
-+* nospec_load(ptr, lo, hi)
-+
-+  Returns the data at *ptr only if ptr falls in the [lo, hi) interval. When
-+  ptr < lo or ptr >= hi, typeof(*ptr)0 is returned, even under speculation.
-+
-+  This does not prevent an out-of-bounds load from being speculated, but does
-+  prevent its value from influencing code which is subsequently speculated,
-+  preventing the value from being leaked.
-+
-+* nospec_array_load(arr, idx, sz)
-+
-+  Returns the data at arr[idx] only if idx falls in the [0, sz) interval. When
-+  idx < 0 or idx > sz, typeof(*arr)0 is returned, even under speculation.
-+
-+  This is a wrapper around nospec_load() provided for convenience.
-+
-+* nospec_ptr(ptr, lo, hi)
-+
-+  Returns a sanitized pointer that is bounded by the [lo, hi) interval, even
-+  under speculation. If ptr < lo, or ptr >= hi, NULL is returned.
-+
-+  This is expected to be used by code which computes a pointer to an element
-+  of a data structure, or where multiple fields of a data structure will be
-+  accessed.
-+
-+  Note that it is not safe to compare the returned value to the original
-+  pointer, as compiler optimizations may infer that the original unsanitized
-+  pointer is safe to use when the two compare equal.
+ #define __smp_mb()	dmb(ish)
+ #define __smp_rmb()	dmb(ishld)
+ #define __smp_wmb()	dmb(ishst)
 -- 
 2.11.0
