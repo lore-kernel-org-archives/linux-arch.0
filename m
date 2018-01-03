@@ -1,51 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:39298 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751526AbeACMb3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Jan 2018 07:31:29 -0500
-From: Florian Weimer <fweimer@redhat.com>
-Subject: [PATCH] mm, x86: pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
- signal semantics
-Message-ID: <360ef254-48bc-aee6-70f9-858f773b8693@redhat.com>
-Date: Wed, 3 Jan 2018 13:31:25 +0100
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:39527 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751596AbeACOiH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jan 2018 09:38:07 -0500
+Date: Wed, 3 Jan 2018 23:38:03 +0900
+From: Stafford Horne <shorne@gmail.com>
+Subject: Re: [PATCH v5 02/39] openrisc: add ioremap_nocache declaration
+ before include asm-generic/io.h and sync ioremap prototype with it.
+Message-ID: <20180103143803.GI32243@lianli.shorne-pla.net>
+References: <cover.1514874857.git.green.hu@gmail.com>
+ <3e5ba33674a883b56e20b35ea9ae34990ea838c8.1514874857.git.green.hu@gmail.com>
 MIME-Version: 1.0
-Content-Type: multipart/mixed;
- boundary="------------63FE4E7AB35B75B5A148D63E"
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <3e5ba33674a883b56e20b35ea9ae34990ea838c8.1514874857.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, linux-x86_64@vger.kernel.org, Linux API <linux-api@vger.kernel.org>, x86@kernel.org, Dave Hansen <dave.hansen@intel.com>, Ram Pai <linuxram@us.ibm.com>
-Message-ID: <20180103123125.zTUzEmJAvZWV6FpFK5xHMQqAYgQIBIIBYx4TXW4lvgo@z>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi
+Message-ID: <20180103143803.Rzfgcg-A_3EMvHOFQ-h3m18sQ2nqzRSAUccfqT01XuM@z>
 
-This is a multi-part message in MIME format.
---------------63FE4E7AB35B75B5A148D63E
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Hello,
 
-This patch is based on the previous discussion (pkeys: Support setting 
-access rights for signal handlers):
+On Tue, Jan 02, 2018 at 04:24:34PM +0800, Greentime Hu wrote:
+> From: Greentime Hu <greentime@andestech.com>
+> 
+> It will be built failed if commit id: d25ea659 is selected. This patch can fix this
+> build error.
 
-   https://marc.info/?t=151285426000001
+Ideally you would mention the commit description since the id is not yet
+usptream.  I found it here (its 1 in this series):
 
-It aligns the signal semantics of the x86 implementation with the 
-upcoming POWER implementation, and defines a new flag, so that 
-applications can detect which semantics the kernel uses.
+  https://github.com/andestech/linux/commit/d25ea659
+  asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_...
 
-A change in this area is needed to make memory protection keys usable 
-for protecting the GOT in the dynamic linker.
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> ---
+>  arch/openrisc/include/asm/io.h |    3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
+> index 7c69139..6709b28 100644
+> --- a/arch/openrisc/include/asm/io.h
+> +++ b/arch/openrisc/include/asm/io.h
+> @@ -29,13 +29,14 @@
+>  #define PIO_OFFSET		0
+>  #define PIO_MASK		0
+>  
+> +#define ioremap_nocache ioremap_nocache
+>  #include <asm-generic/io.h>
 
-(Feel free to replace the trigraphs in the commit message before 
-committing, or to remove the program altogether.)
+Ideally we could move <asm-generic/io.h> include down to the bottom of the file
+and not have to do the defines like like this, it seems clumsy to me.  In
+'cris', 'nios2' and other architectures I can see they have the generic include
+at the bottom of the file and not need for #define's.
 
-Thanks,
-Florian
+I tried that but I get a lot of errors.  Does your patch to asm-generic/io.h
+cause build issues for those architectures as well?
 
---------------63FE4E7AB35B75B5A148D63E
-Content-Type: text/x-patch;
- name="pkeys-signalinherit.patch"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment;
- filename="pkeys-signalinherit.patch"
+-Stafford
 
-
---------------63FE4E7AB35B75B5A148D63E--
+>  #include <asm/pgtable.h>
+>  
+>  extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
+>  				pgprot_t prot);
+>  
+> -static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+> +static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
+>  {
+>  	return __ioremap(offset, size, PAGE_KERNEL);
+>  }
+> -- 
+> 1.7.9.5
+> 
