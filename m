@@ -1,98 +1,165 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:59992 "EHLO ale.deltatee.com"
+Received: from mail.kernel.org ([198.145.29.99]:45224 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751024AbeACSGx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Jan 2018 13:06:53 -0500
-From: Logan Gunthorpe <logang@deltatee.com>
-Date: Wed,  3 Jan 2018 11:06:16 -0700
-Message-ID: <20180103180618.18401-7-logang@deltatee.com>
-In-Reply-To: <20180103180618.18401-1-logang@deltatee.com>
-References: <20180103180618.18401-1-logang@deltatee.com>
-Subject: [PATCH v9 6/8] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+        id S1750819AbeACTO5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Jan 2018 14:14:57 -0500
+MIME-Version: 1.0
+In-Reply-To: <7fe1190a9cf8e30f1b8af52dd382ba1176997786.1514874857.git.green.hu@gmail.com>
+References: <cover.1514874857.git.green.hu@gmail.com> <7fe1190a9cf8e30f1b8af52dd382ba1176997786.1514874857.git.green.hu@gmail.com>
+From: Rob Herring <robh+dt@kernel.org>
+Date: Wed, 3 Jan 2018 13:14:35 -0600
+Message-ID: <CAL_Jsq+CC-3w8BVcUP77__ZR8aYMhxiXDYJ--HZwA=ezHG548g@mail.gmail.com>
+Subject: Re: [PATCH v5 26/39] nds32: Device tree support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <20180103180616.rxzxGvR7RfLrKQwaY_HNVtqtLsqNtZ4gHTmMbVmxRa4@z>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, deanbo422@gmail.com, "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS" <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, ren_guo@c-sky.com, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20180103191435.fVoWEBqxvrVk2Jvv2Pr2usg7q7SDdUs_4dNsBgneu6U@z>
 
-Now that ioread64 and iowrite64 are available in io-64-nonatomic,
-we can remove the hack at the top of ntb_hw_intel.c and replace it
-with an include.
+On Tue, Jan 2, 2018 at 2:24 AM, Greentime Hu <green.hu@gmail.com> wrote:
+> From: Greentime Hu <greentime@andestech.com>
+>
+> This patch adds support for device tree.
+>
+> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> ---
+>  arch/nds32/boot/dts/Makefile  |    8 +++++
+>  arch/nds32/boot/dts/ae3xx.dts |   73 +++++++++++++++++++++++++++++++++++++++++
+>  arch/nds32/kernel/devtree.c   |   19 +++++++++++
+>  3 files changed, 100 insertions(+)
+>  create mode 100644 arch/nds32/boot/dts/Makefile
+>  create mode 100644 arch/nds32/boot/dts/ae3xx.dts
+>  create mode 100644 arch/nds32/kernel/devtree.c
+>
+> diff --git a/arch/nds32/boot/dts/Makefile b/arch/nds32/boot/dts/Makefile
+> new file mode 100644
+> index 0000000..d31faa8
+> --- /dev/null
+> +++ b/arch/nds32/boot/dts/Makefile
+> @@ -0,0 +1,8 @@
+> +ifneq '$(CONFIG_NDS32_BUILTIN_DTB)' '""'
+> +BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_NDS32_BUILTIN_DTB)).dtb.o
+> +else
+> +BUILTIN_DTB :=
+> +endif
+> +obj-$(CONFIG_OF) += $(BUILTIN_DTB)
+> +
+> +clean-files := *.dtb *.dtb.S
+> diff --git a/arch/nds32/boot/dts/ae3xx.dts b/arch/nds32/boot/dts/ae3xx.dts
+> new file mode 100644
+> index 0000000..6b23d60
+> --- /dev/null
+> +++ b/arch/nds32/boot/dts/ae3xx.dts
+> @@ -0,0 +1,73 @@
+> +/dts-v1/;
+> +/ {
+> +       compatible = "andestech,ae3xx";
+> +       #address-cells = <1>;
+> +       #size-cells = <1>;
+> +       interrupt-parent = <&intc>;
+> +
+> +       chosen {
+> +               stdout-path = &serial0;
+> +       };
+> +
+> +       memory@0 {
+> +               device_type = "memory";
+> +               reg = <0x00000000 0x40000000>;
+> +       };
+> +
+> +       cpus {
+> +               #address-cells = <1>;
+> +               #size-cells = <0>;
+> +               cpu@0 {
+> +                       device_type = "cpu";
+> +                       compatible = "andestech,n13", "andestech,nds32v3";
+> +                       reg = <0>;
+> +                       clock-frequency = <60000000>;
+> +                       next-level-cache = <&L2>;
+> +               };
+> +       };
+> +
+> +       L2: l2-cache@e0500000 {
+> +               compatible = "andestech,atl2c";
+> +               reg = <0xe0500000 0x1000>;
+> +               cache-unified;
+> +               cache-level = <2>;
+> +       };
+> +
+> +       apb: clk@0 {
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Acked-by: Dave Jiang <dave.jiang@intel.com>
-Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
-Acked-by: Jon Mason <jdmason@kudzu.us>
+unit address without reg is not valid. Drop the "@0".
 
-# Please enter the commit message for your changes. Lines starting
-# with '#' will be ignored, and an empty message aborts the commit.
-#
-# Date:      Mon Jun 19 12:18:31 2017 -0600
-#
-# interactive rebase in progress; onto ae64f9bd1d36
-# Last commands done (6 commands done):
-#    pick cf3e4dab2173 io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
-#    r 79b4c4b8490c ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-# Next commands to do (2 remaining commands):
-#    r 19b6c1f3b15d crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
-#    r f3c8723446ef ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
-# You are currently editing a commit while rebasing branch 'io64_v9' on 'ae64f9bd1d36'.
-#
-# Changes to be committed:
-#	modified:   drivers/ntb/hw/intel/ntb_hw_intel.c
-#
----
- drivers/ntb/hw/intel/ntb_hw_intel.c | 30 +-----------------------------
- 1 file changed, 1 insertion(+), 29 deletions(-)
+> +               #clock-cells = <0>;
+> +               compatible = "fixed-clock";
+> +               clock-frequency = <30000000>;
+> +       };
+> +
+> +
+> +       intc: interrupt-controller {
+> +               compatible = "andestech,ativic32";
+> +               #interrupt-cells = <1>;
+> +               interrupt-controller;
+> +       };
+> +
+> +       serial0: serial@f0300000 {
 
-diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.c b/drivers/ntb/hw/intel/ntb_hw_intel.c
-index 4de074a86073..119cfc45617e 100644
---- a/drivers/ntb/hw/intel/ntb_hw_intel.c
-+++ b/drivers/ntb/hw/intel/ntb_hw_intel.c
-@@ -59,6 +59,7 @@
- #include <linux/random.h>
- #include <linux/slab.h>
- #include <linux/ntb.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- #include "ntb_hw_intel.h"
- 
-@@ -155,35 +156,6 @@ MODULE_PARM_DESC(xeon_b2b_dsd_bar5_addr32,
- static inline enum ntb_topo xeon_ppd_topo(struct intel_ntb_dev *ndev, u8 ppd);
- static int xeon_init_isr(struct intel_ntb_dev *ndev);
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- static inline int pdev_is_atom(struct pci_dev *pdev)
- {
- 	switch (pdev->device) {
--- 
-2.11.0
+All the memory mapped peripherals should be under at least one simple-bus node.
+
+> +               compatible = "andestech,uart16550", "ns16550a";
+> +               reg = <0xf0300000 0x1000>;
+> +               interrupts = <8>;
+> +               clock-frequency = <14745600>;
+> +               reg-shift = <2>;
+> +               reg-offset = <32>;
+> +               no-loopback-test = <1>;
+> +       };
+> +
+> +       timer0: timer@f0400000 {
+> +               compatible = "andestech,atcpit100";
+> +               reg = <0xf0400000 0x1000>;
+> +               interrupts = <2>;
+> +               clocks = <&apb>;
+> +               clock-names = "PCLK";
+> +       };
+> +
+> +       mac0: mac@e0100000 {
+
+ethernet@...
+
+> +               compatible = "andestech,atmac100";
+> +               reg = <0xe0100000 0x1000>;
+> +               interrupts = <18>;
+> +       };
+> +
+> +};
+> diff --git a/arch/nds32/kernel/devtree.c b/arch/nds32/kernel/devtree.c
+> new file mode 100644
+> index 0000000..bdce0fe
+> --- /dev/null
+> +++ b/arch/nds32/kernel/devtree.c
+> @@ -0,0 +1,19 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +// Copyright (C) 2005-2017 Andes Technology Corporation
+> +
+> +#include <linux/bug.h>
+> +#include <linux/printk.h>
+> +#include <linux/of_fdt.h>
+> +
+> +void __init early_init_devtree(void *params)
+> +{
+> +       if (!params || !early_init_dt_scan(params)) {
+> +               pr_crit("\n"
+> +                       "Error: invalid device tree blob at (virtual address 0x%p)\n"
+> +                       "\nPlease check your bootloader.", params);
+> +
+> +               BUG_ON(1);
+> +       }
+> +
+> +       dump_stack_set_arch_desc("%s (DT)", of_flat_dt_get_machine_name());
+> +}
+> --
+> 1.7.9.5
+>
