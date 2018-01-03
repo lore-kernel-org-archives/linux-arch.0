@@ -1,64 +1,34 @@
-From: Julian Calaby <julian.calaby@gmail.com>
-Subject: Re: [PATCH 16/67] powerpc: rename dma_direct_ to dma_nommu_
-Date: Wed, 3 Jan 2018 19:19:46 +1100
-Message-ID: <CAGRGNgV+DnZAAtiE5oe8rxp4=_JHJrtSQc8F5jrgN0rgYKfwjA@mail.gmail.com>
-References: <20171229081911.2802-1-hch@lst.de> <20171229081911.2802-17-hch@lst.de>
- <878tdgtwzp.fsf@concordia.ellerman.id.au> <CAMuHMdWWus2kNSOzS94k-3678826W1YjKwCWTquu3hBLZ80cvw@mail.gmail.com>
- <87h8s3cvel.fsf@concordia.ellerman.id.au> <CAMuHMdWYDz_jHNxQ-B8944520R-myzHkjkL1rKWUjA38inU7cw@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 3/5] arch: Remove clkdev.h asm-generic from Kbuild
+Date: Wed, 3 Jan 2018 09:43:37 +0100
+Message-ID: <CAMuHMdX7m8Wx994pfJpsg-CR_O+uORLMfU0PuvQsSDt=L+3yQQ@mail.gmail.com>
+References: <20180103013516.18844-1-sboyd@codeaurora.org> <20180103013516.18844-4-sboyd@codeaurora.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdWYDz_jHNxQ-B8944520R-myzHkjkL1rKWUjA38inU7cw@mail.gmail.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-ia64@vger.kernel.org, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, adi-buildroot-devel@lists.sourceforge.net, linux-m68k <linux-m68k@lists.linux-m68k.org>, patches@groups.riscv.org, "open list:METAG ARCHITECTURE" <linux-metag@vger.kernel.org>Maili
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:37141 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751298AbeACIni (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jan 2018 03:43:38 -0500
+In-Reply-To: <20180103013516.18844-4-sboyd@codeaurora.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Stephen Boyd <sboyd@codeaurora.org>
+Cc: Michael Turquette <mturquette@baylibre.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-clk <linux-clk@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Russell King <linux@armlinux.org.uk>, Arnd Bergmann <arnd@arndb.de>
 
-Hi All,
-
-On Wed, Jan 3, 2018 at 6:49 PM, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-> Hi Michael,
+On Wed, Jan 3, 2018 at 2:35 AM, Stephen Boyd <sboyd@codeaurora.org> wrote:
+> Now that every architecture is using the generic clkdev.h file
+> and we no longer include asm/clkdev.h anywhere in the tree, we
+> can remove it.
 >
-> On Wed, Jan 3, 2018 at 7:24 AM, Michael Ellerman <mpe@ellerman.id.au> wrote:
->> Geert Uytterhoeven <geert@linux-m68k.org> writes:
->>
->>> On Tue, Jan 2, 2018 at 10:45 AM, Michael Ellerman <mpe@ellerman.id.au> wrote:
->>>> Christoph Hellwig <hch@lst.de> writes:
->>>>
->>>>> We want to use the dma_direct_ namespace for a generic implementation,
->>>>> so rename powerpc to the second best choice: dma_nommu_.
->>>>
->>>> I'm not a fan of "nommu". Some of the users of direct ops *are* using an
->>>> IOMMU, they're just setting up a 1:1 mapping once at init time, rather
->>>> than mapping dynamically.
->>>>
->>>> Though I don't have a good idea for a better name, maybe "1to1",
->>>> "linear", "premapped" ?
->>>
->>> "identity"?
->>
->> I think that would be wrong, but thanks for trying to help :)
->>
->> The address on the device side is sometimes (often?) offset from the CPU
->> address. So eg. the device can DMA to RAM address 0x0 using address
->> 0x800000000000000.
->>
->> Identity would imply 0 == 0 etc.
->>
->> I think "bijective" is the correct term, but that's probably a bit
->> esoteric.
->
-> OK, didn't know about the offset.
-> Then "linear" is what we tend to use, right?
+> Cc: Russell King <linux@armlinux.org.uk>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: <linux-arch@vger.kernel.org>
+> Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
 
-If this is indeed a linear mapping, can we just remove this and
-replace it with the new "generic" mapping being introduced by this
-patchset?
+For m68k part:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Thanks,
+Gr{oetje,eeting}s,
 
--- 
-Julian Calaby
-
-Email: julian.calaby@gmail.com
-Profile: http://www.google.com/profiles/julian.calaby/
+                        Geert
