@@ -1,7 +1,7 @@
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [RFC PATCH 3/4] arm64: implement nospec_{load,ptr}()
-Date: Wed,  3 Jan 2018 22:38:26 +0000
-Message-ID: <20180103223827.39601-4-mark.rutland@arm.com>
+Subject: [RFC PATCH 1/4] asm-generic/barrier: add generic nospec helpers
+Date: Wed,  3 Jan 2018 22:38:24 +0000
+Message-ID: <20180103223827.39601-2-mark.rutland@arm.com>
 References: <20180103223827.39601-1-mark.rutland@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180103223827.39601-1-mark.rutland@arm.com>
@@ -10,86 +10,109 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch implements nospec_load() and nospec_ptr() for arm64,
-following the recommended architectural sequence.
+Under speculation, CPUs may mis-predict branches in bounds checks. Thus,
+memory accesses under a bounds check may be speculated even if the
+bounds check fails, providing a primitive for building a side channel.
+
+This patch adds helpers which can be used to inhibit the use of
+out-of-bounds pointers and/or valeus read from these under speculation.
+
+A generic implementation is provided for compatibility, but does not
+guarantee safety under speculation. Architectures are expected to
+override these helpers as necessary.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/arm64/include/asm/barrier.h | 61 ++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 61 insertions(+)
+ include/asm-generic/barrier.h | 76 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 76 insertions(+)
 
-diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
-index 77651c49ef44..5d17919e2688 100644
---- a/arch/arm64/include/asm/barrier.h
-+++ b/arch/arm64/include/asm/barrier.h
-@@ -40,6 +40,67 @@
- #define dma_rmb()	dmb(oshld)
- #define dma_wmb()	dmb(oshst)
+diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+index fe297b599b0a..5eba6ae0c34e 100644
+--- a/include/asm-generic/barrier.h
++++ b/include/asm-generic/barrier.h
+@@ -54,6 +54,82 @@
+ #define read_barrier_depends()		do { } while (0)
+ #endif
  
-+#define __load_no_speculate_n(ptr, lo, hi, failval, cmpptr, w, sz)	\
-+({									\
-+	typeof(*ptr)	__nln_val;					\
-+	typeof(*ptr)	__failval = 					\
-+		(typeof(*ptr))(unsigned long)(failval);			\
-+									\
-+	asm volatile (							\
-+	"	cmp	%[c], %[l]\n"					\
-+	"	ccmp	%[c], %[h], 2, cs\n"				\
-+	"	b.cs	1f\n"						\
-+	"	ldr" #sz " %" #w "[v], %[p]\n"				\
-+	"1:	csel	%" #w "[v], %" #w "[v], %" #w "[f], cc\n"	\
-+	"	hint	#0x14 // CSDB\n"				\
-+	: [v] "=&r" (__nln_val)						\
-+	: [p] "m" (*(ptr)), [l] "r" (lo), [h] "r" (hi),			\
-+	  [f] "rZ" (__failval), [c] "r" (cmpptr)			\
-+	: "cc");							\
-+									\
-+	__nln_val;							\
-+})
-+
-+#define __load_no_speculate(ptr, lo, hi, failval, cmpptr)		\
-+({									\
-+	typeof(*(ptr)) __nl_val;					\
-+									\
-+	switch (sizeof(__nl_val)) {					\
-+	case 1:								\
-+		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
-+						 cmpptr, w, b);		\
-+		break;							\
-+	case 2:								\
-+		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
-+						 cmpptr, w, h);		\
-+		break;							\
-+	case 4:								\
-+		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
-+						 cmpptr, w, );		\
-+		break;							\
-+	case 8:								\
-+		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
-+						 cmpptr, x, );		\
-+		break;							\
-+	default:							\
-+		BUILD_BUG();						\
-+	}								\
-+									\
-+	__nl_val;							\
-+})
-+
-+#define nospec_load(ptr, lo, hi)					\
-+({									\
-+	typeof(ptr) __nl_ptr = (ptr);					\
-+	__load_no_speculate(__nl_ptr, lo, hi, 0, __nl_ptr);		\
-+})
-+
++/**
++ * nospec_ptr() - Ensure a  pointer is bounded, even under speculation.
++ *
++ * @ptr: the pointer to test
++ * @lo: the lower valid bound for @ptr, inclusive
++ * @hi: the upper valid bound for @ptr, exclusive
++ *
++ * If @ptr falls in the interval [@lo, @i), returns @ptr, otherwise returns
++ * NULL.
++ *
++ * Architectures should override this to ensure that ptr falls in the [lo, hi)
++ * interval both under architectural execution and under speculation,
++ * preventing propagation of an out-of-bounds pointer to code which is
++ * speculatively executed.
++ */
++#ifndef nospec_ptr
 +#define nospec_ptr(ptr, lo, hi)						\
 +({									\
-+	typeof(ptr) __np_ptr = (ptr);					\
-+	__load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);		\
++	typeof (ptr) __ptr = (ptr);					\
++	typeof (ptr) __lo = (lo);					\
++	typeof (ptr) __hi = (hi);					\
++									\
++	(__lo <= __ptr && __ptr < __hi) ? __ptr : NULL;			\
++})
++#endif
++
++/**
++ * nospec_load() - Load a pointer, respecting bounds under speculation
++ *
++ * @ptr: the pointer to load
++ * @lo: the lower valid bound for @ptr, inclusive
++ * @hi: the upper valid bound for @ptr, exclusive
++ *
++ * If @ptr falls in the interval [@lo, @hi), returns the value at @ptr,
++ * otherwise returns (typeof(*ptr))0.
++ *
++ * Architectures should override this to ensure that ptr falls in the [lo, hi)
++ * interval both under architectural execution and under speculation,
++ * preventing speculative out-of-bounds reads.
++ */
++#ifndef nospec_load
++#define nospec_load(ptr, lo, hi)					\
++({									\
++	typeof (ptr) __ptr = (ptr);					\
++	typeof (ptr) __lo = (lo);					\
++	typeof (ptr) __hi = (hi);					\
++									\
++	(__lo <= __ptr && __ptr <= __hi) ?				\
++		*__ptr : 						\
++		(typeof(*__ptr))(unsigned long)0;			\
++})
++#endif
++
++/**
++ * nospec_array_load - Load an array entry, respecting bounds under speculation
++ *
++ * @arr: the base of the array
++ * @idx: the index of the element to load
++ * @sz: the number of elements in the array
++ *
++ * If @idx falls in the interval [0, @sz), returns the value at @arr[@idx],
++ * otherwise returns (typeof(*ptr))0.
++ *
++ * This is a wrapper around nospec_load(), provided for convenience.
++ * Architectures should implement nospec_load() to ensure this is the case
++ * under speculation.
++ */
++#define nospec_array_load(arr, idx, sz)					\
++({									\
++	typeof(*(arr)) *__arr = arr;					\
++	typeof(idx) __idx = idx;					\
++	typeof(sz) __sz = __sz;						\
++									\
++	nospec_load(__arr + __idx, __arr, __arr + __sz);		\
 +})
 +
- #define __smp_mb()	dmb(ish)
- #define __smp_rmb()	dmb(ishld)
- #define __smp_wmb()	dmb(ishst)
+ #ifndef __smp_mb
+ #define __smp_mb()	mb()
+ #endif
 -- 
 2.11.0
