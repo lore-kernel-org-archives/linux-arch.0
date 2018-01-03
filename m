@@ -1,164 +1,191 @@
-From: Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: Re: [PATCH v5 26/39] nds32: Device tree support
-Date: Wed, 3 Jan 2018 13:14:35 -0600
-Message-ID: <CAL_Jsq+CC-3w8BVcUP77__ZR8aYMhxiXDYJ--HZwA=ezHG548g@mail.gmail.com>
-References: <cover.1514874857.git.green.hu@gmail.com> <7fe1190a9cf8e30f1b8af52dd382ba1176997786.1514874857.git.green.hu@gmail.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.4 01/37] x86/boot: Add early cmdline parsing for options with arguments
+Date: Wed,  3 Jan 2018 21:11:07 +0100
+Message-ID: <20180103195056.919290887@linuxfoundation.org>
+References: <20180103195056.837404126@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <7fe1190a9cf8e30f1b8af52dd382ba1176997786.1514874857.git.green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, netdev <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, ren_guo-Y+KPrCd2zL4AvxtiuMwx3w@public.gmane.org, Randy
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20180103195056.837404126@linuxfoundation.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Thomas Gleixner <tglx@linutronix.de>, Alexander Potapenko <glider@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Brijesh Singh <brijesh.singh@amd.com>, Dave Young <dyoung@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Jonathan Corbet <corbet@lwn.net>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Larry Woodman <lwoodman@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Rik van Riel <riel@redhat.com>, Toshimitsu
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 2, 2018 at 2:24 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
-> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
->
-> This patch adds support for device tree.
->
-> Signed-off-by: Vincent Chen <vincentc-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
-> Signed-off-by: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
-> ---
->  arch/nds32/boot/dts/Makefile  |    8 +++++
->  arch/nds32/boot/dts/ae3xx.dts |   73 +++++++++++++++++++++++++++++++++++++++++
->  arch/nds32/kernel/devtree.c   |   19 +++++++++++
->  3 files changed, 100 insertions(+)
->  create mode 100644 arch/nds32/boot/dts/Makefile
->  create mode 100644 arch/nds32/boot/dts/ae3xx.dts
->  create mode 100644 arch/nds32/kernel/devtree.c
->
-> diff --git a/arch/nds32/boot/dts/Makefile b/arch/nds32/boot/dts/Makefile
-> new file mode 100644
-> index 0000000..d31faa8
-> --- /dev/null
-> +++ b/arch/nds32/boot/dts/Makefile
-> @@ -0,0 +1,8 @@
-> +ifneq '$(CONFIG_NDS32_BUILTIN_DTB)' '""'
-> +BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_NDS32_BUILTIN_DTB)).dtb.o
-> +else
-> +BUILTIN_DTB :=
-> +endif
-> +obj-$(CONFIG_OF) += $(BUILTIN_DTB)
-> +
-> +clean-files := *.dtb *.dtb.S
-> diff --git a/arch/nds32/boot/dts/ae3xx.dts b/arch/nds32/boot/dts/ae3xx.dts
-> new file mode 100644
-> index 0000000..6b23d60
-> --- /dev/null
-> +++ b/arch/nds32/boot/dts/ae3xx.dts
-> @@ -0,0 +1,73 @@
-> +/dts-v1/;
-> +/ {
-> +       compatible = "andestech,ae3xx";
-> +       #address-cells = <1>;
-> +       #size-cells = <1>;
-> +       interrupt-parent = <&intc>;
-> +
-> +       chosen {
-> +               stdout-path = &serial0;
-> +       };
-> +
-> +       memory@0 {
-> +               device_type = "memory";
-> +               reg = <0x00000000 0x40000000>;
-> +       };
-> +
-> +       cpus {
-> +               #address-cells = <1>;
-> +               #size-cells = <0>;
-> +               cpu@0 {
-> +                       device_type = "cpu";
-> +                       compatible = "andestech,n13", "andestech,nds32v3";
-> +                       reg = <0>;
-> +                       clock-frequency = <60000000>;
-> +                       next-level-cache = <&L2>;
-> +               };
-> +       };
-> +
-> +       L2: l2-cache@e0500000 {
-> +               compatible = "andestech,atl2c";
-> +               reg = <0xe0500000 0x1000>;
-> +               cache-unified;
-> +               cache-level = <2>;
-> +       };
-> +
-> +       apb: clk@0 {
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
-unit address without reg is not valid. Drop the "@0".
+------------------
 
-> +               #clock-cells = <0>;
-> +               compatible = "fixed-clock";
-> +               clock-frequency = <30000000>;
-> +       };
-> +
-> +
-> +       intc: interrupt-controller {
-> +               compatible = "andestech,ativic32";
-> +               #interrupt-cells = <1>;
-> +               interrupt-controller;
-> +       };
-> +
-> +       serial0: serial@f0300000 {
+From: Tom Lendacky <thomas.lendacky@amd.com>
 
-All the memory mapped peripherals should be under at least one simple-bus node.
+commit e505371dd83963caae1a37ead9524e8d997341be upstream.
 
-> +               compatible = "andestech,uart16550", "ns16550a";
-> +               reg = <0xf0300000 0x1000>;
-> +               interrupts = <8>;
-> +               clock-frequency = <14745600>;
-> +               reg-shift = <2>;
-> +               reg-offset = <32>;
-> +               no-loopback-test = <1>;
-> +       };
-> +
-> +       timer0: timer@f0400000 {
-> +               compatible = "andestech,atcpit100";
-> +               reg = <0xf0400000 0x1000>;
-> +               interrupts = <2>;
-> +               clocks = <&apb>;
-> +               clock-names = "PCLK";
-> +       };
-> +
-> +       mac0: mac@e0100000 {
+Add a cmdline_find_option() function to look for cmdline options that
+take arguments. The argument is returned in a supplied buffer and the
+argument length (regardless of whether it fits in the supplied buffer)
+is returned, with -1 indicating not found.
 
-ethernet@...
+Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Alexander Potapenko <glider@google.com>
+Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brijesh Singh <brijesh.singh@amd.com>
+Cc: Dave Young <dyoung@redhat.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Larry Woodman <lwoodman@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Matt Fleming <matt@codeblueprint.co.uk>
+Cc: Michael S. Tsirkin <mst@redhat.com>
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Radim Krčmář <rkrcmar@redhat.com>
+Cc: Rik van Riel <riel@redhat.com>
+Cc: Toshimitsu Kani <toshi.kani@hpe.com>
+Cc: kasan-dev@googlegroups.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-doc@vger.kernel.org
+Cc: linux-efi@vger.kernel.org
+Cc: linux-mm@kvack.org
+Link: http://lkml.kernel.org/r/36b5f97492a9745dce27682305f990fc20e5cf8a.1500319216.git.thomas.lendacky@amd.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
-> +               compatible = "andestech,atmac100";
-> +               reg = <0xe0100000 0x1000>;
-> +               interrupts = <18>;
-> +       };
-> +
-> +};
-> diff --git a/arch/nds32/kernel/devtree.c b/arch/nds32/kernel/devtree.c
-> new file mode 100644
-> index 0000000..bdce0fe
-> --- /dev/null
-> +++ b/arch/nds32/kernel/devtree.c
-> @@ -0,0 +1,19 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// Copyright (C) 2005-2017 Andes Technology Corporation
-> +
-> +#include <linux/bug.h>
-> +#include <linux/printk.h>
-> +#include <linux/of_fdt.h>
-> +
-> +void __init early_init_devtree(void *params)
-> +{
-> +       if (!params || !early_init_dt_scan(params)) {
-> +               pr_crit("\n"
-> +                       "Error: invalid device tree blob at (virtual address 0x%p)\n"
-> +                       "\nPlease check your bootloader.", params);
-> +
-> +               BUG_ON(1);
-> +       }
-> +
-> +       dump_stack_set_arch_desc("%s (DT)", of_flat_dt_get_machine_name());
-> +}
-> --
-> 1.7.9.5
->
+---
+ arch/x86/include/asm/cmdline.h |    2 
+ arch/x86/lib/cmdline.c         |  105 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 107 insertions(+)
+
+--- a/arch/x86/include/asm/cmdline.h
++++ b/arch/x86/include/asm/cmdline.h
+@@ -2,5 +2,7 @@
+ #define _ASM_X86_CMDLINE_H
+ 
+ int cmdline_find_option_bool(const char *cmdline_ptr, const char *option);
++int cmdline_find_option(const char *cmdline_ptr, const char *option,
++			char *buffer, int bufsize);
+ 
+ #endif /* _ASM_X86_CMDLINE_H */
+--- a/arch/x86/lib/cmdline.c
++++ b/arch/x86/lib/cmdline.c
+@@ -82,3 +82,108 @@ int cmdline_find_option_bool(const char
+ 
+ 	return 0;	/* Buffer overrun */
+ }
++
++/*
++ * Find a non-boolean option (i.e. option=argument). In accordance with
++ * standard Linux practice, if this option is repeated, this returns the
++ * last instance on the command line.
++ *
++ * @cmdline: the cmdline string
++ * @max_cmdline_size: the maximum size of cmdline
++ * @option: option string to look for
++ * @buffer: memory buffer to return the option argument
++ * @bufsize: size of the supplied memory buffer
++ *
++ * Returns the length of the argument (regardless of if it was
++ * truncated to fit in the buffer), or -1 on not found.
++ */
++static int
++__cmdline_find_option(const char *cmdline, int max_cmdline_size,
++		      const char *option, char *buffer, int bufsize)
++{
++	char c;
++	int pos = 0, len = -1;
++	const char *opptr = NULL;
++	char *bufptr = buffer;
++	enum {
++		st_wordstart = 0,	/* Start of word/after whitespace */
++		st_wordcmp,	/* Comparing this word */
++		st_wordskip,	/* Miscompare, skip */
++		st_bufcpy,	/* Copying this to buffer */
++	} state = st_wordstart;
++
++	if (!cmdline)
++		return -1;      /* No command line */
++
++	/*
++	 * This 'pos' check ensures we do not overrun
++	 * a non-NULL-terminated 'cmdline'
++	 */
++	while (pos++ < max_cmdline_size) {
++		c = *(char *)cmdline++;
++		if (!c)
++			break;
++
++		switch (state) {
++		case st_wordstart:
++			if (myisspace(c))
++				break;
++
++			state = st_wordcmp;
++			opptr = option;
++			/* fall through */
++
++		case st_wordcmp:
++			if ((c == '=') && !*opptr) {
++				/*
++				 * We matched all the way to the end of the
++				 * option we were looking for, prepare to
++				 * copy the argument.
++				 */
++				len = 0;
++				bufptr = buffer;
++				state = st_bufcpy;
++				break;
++			} else if (c == *opptr++) {
++				/*
++				 * We are currently matching, so continue
++				 * to the next character on the cmdline.
++				 */
++				break;
++			}
++			state = st_wordskip;
++			/* fall through */
++
++		case st_wordskip:
++			if (myisspace(c))
++				state = st_wordstart;
++			break;
++
++		case st_bufcpy:
++			if (myisspace(c)) {
++				state = st_wordstart;
++			} else {
++				/*
++				 * Increment len, but don't overrun the
++				 * supplied buffer and leave room for the
++				 * NULL terminator.
++				 */
++				if (++len < bufsize)
++					*bufptr++ = c;
++			}
++			break;
++		}
++	}
++
++	if (bufsize)
++		*bufptr = '\0';
++
++	return len;
++}
++
++int cmdline_find_option(const char *cmdline, const char *option, char *buffer,
++			int bufsize)
++{
++	return __cmdline_find_option(cmdline, COMMAND_LINE_SIZE, option,
++				     buffer, bufsize);
++}
+
+
 --
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
