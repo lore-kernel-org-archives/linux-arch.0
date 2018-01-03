@@ -1,195 +1,76 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 03/39] x86/boot: Add early cmdline parsing for options with arguments
-Date: Wed,  3 Jan 2018 21:11:17 +0100
-Message-ID: <20180103195104.204429981@linuxfoundation.org>
-References: <20180103195104.066528044@linuxfoundation.org>
+From: Rob Herring <robh-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Subject: Re: [PATCH v5 32/39] dt-bindings: nds32 L2 cache controller Bindings
+Date: Wed, 3 Jan 2018 15:10:13 -0600
+Message-ID: <20180103211013.daryfidm7hdbrsjc@rob-hp-laptop>
+References: <cover.1514874857.git.green.hu@gmail.com>
+ <fc1f58a97003b4bedfbb8b6e3d29b1628ff61f9a.1514874858.git.green.hu@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20180103195104.066528044@linuxfoundation.org>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Thomas Gleixner <tglx@linutronix.de>, Alexander Potapenko <glider@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Andy Lutomirski <luto@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>, Brijesh Singh <brijesh.singh@amd.com>, Dave Young <dyoung@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Jonathan Corbet <corbet@lwn.net>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Larry Woodman <lwoodman@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, Peter Zijlstra <peterz@infradead.org>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Rik van Riel <riel@redhat.com>, Toshimitsu
+Content-Type: text/plain; charset=us-ascii
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <fc1f58a97003b4bedfbb8b6e3d29b1628ff61f9a.1514874858.git.green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org, marc.zyngier-5wv7dgnIgG8@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, mark.rutland-5wv7dgnIgG8@public.gmane.org, greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org, ren_guo-Y+KPrCd2zL4AvxtiuMwx3w@public.gmane.org, rdunlap-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org, jonas-A9uVI2HLR7kOP4wsBPIw7w@public.gmane.org, stefan.kristiansson-MbMCFXIvDHJFcC0YU169RA@public.gmane.org, shorne-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-4.9-stable review patch.  If anyone has any objections, please let me know.
+On Tue, Jan 02, 2018 at 04:25:04PM +0800, Greentime Hu wrote:
+> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+> 
+> This patch adds nds32 L2 cache controller binding documents.
+> 
+> Signed-off-by: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+> ---
+>  Documentation/devicetree/bindings/nds32/atl2c.txt |   29 +++++++++++++++++++++
+>  1 file changed, 29 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/nds32/atl2c.txt
+> 
+> diff --git a/Documentation/devicetree/bindings/nds32/atl2c.txt b/Documentation/devicetree/bindings/nds32/atl2c.txt
+> new file mode 100644
+> index 0000000..db9f7ec
+> --- /dev/null
+> +++ b/Documentation/devicetree/bindings/nds32/atl2c.txt
+> @@ -0,0 +1,29 @@
+> +* Andestech L2 cache Controller
+> +
+> +The level-2 cache controller plays an important role in reducing memory latency
+> +for high performance systems, such as thoese designs with AndesCore processors.
+> +Level-2 cache controller in general enhances overall system performance
+> +signigicantly and the system power consumption might be reduced as well by
+> +reducing DRAM accesses.
+> +
+> +This binding specifies what properties must be available in the device tree
+> +representation of an Andestech L2 cache controller.
+> +
+> +Required properties:
+> +	- compatible:
+> +		Usage: required
+> +		Value type: <string>
+> +		Definition: "andestech,atl2c"
+> +	- reg : Physical base address and size of cache controller's memory mapped
+> +	- cache-unified : Specifies the cache is a unified cache.
+> +	- cache-level : Should be set to 2 for a level 2 cache.
+> +
+> +* Example
+> +
+> +	L2: l2-cache@e0500000 {
 
-------------------
+cache-controller@...
 
-From: Tom Lendacky <thomas.lendacky@amd.com>
+With that,
 
-commit e505371dd83963caae1a37ead9524e8d997341be upstream.
+Reviewed-by: Rob Herring <robh-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
 
-Add a cmdline_find_option() function to look for cmdline options that
-take arguments. The argument is returned in a supplied buffer and the
-argument length (regardless of whether it fits in the supplied buffer)
-is returned, with -1 indicating not found.
-
-Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Alexander Potapenko <glider@google.com>
-Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Brijesh Singh <brijesh.singh@amd.com>
-Cc: Dave Young <dyoung@redhat.com>
-Cc: Dmitry Vyukov <dvyukov@google.com>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Larry Woodman <lwoodman@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Matt Fleming <matt@codeblueprint.co.uk>
-Cc: Michael S. Tsirkin <mst@redhat.com>
-Cc: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Radim Krčmář <rkrcmar@redhat.com>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Toshimitsu Kani <toshi.kani@hpe.com>
-Cc: kasan-dev@googlegroups.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-doc@vger.kernel.org
-Cc: linux-efi@vger.kernel.org
-Cc: linux-mm@kvack.org
-Link: http://lkml.kernel.org/r/36b5f97492a9745dce27682305f990fc20e5cf8a.1500319216.git.thomas.lendacky@amd.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
----
- arch/x86/include/asm/cmdline.h |    2 
- arch/x86/lib/cmdline.c         |  105 +++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 107 insertions(+)
-
---- a/arch/x86/include/asm/cmdline.h
-+++ b/arch/x86/include/asm/cmdline.h
-@@ -2,5 +2,7 @@
- #define _ASM_X86_CMDLINE_H
- 
- int cmdline_find_option_bool(const char *cmdline_ptr, const char *option);
-+int cmdline_find_option(const char *cmdline_ptr, const char *option,
-+			char *buffer, int bufsize);
- 
- #endif /* _ASM_X86_CMDLINE_H */
---- a/arch/x86/lib/cmdline.c
-+++ b/arch/x86/lib/cmdline.c
-@@ -104,7 +104,112 @@ __cmdline_find_option_bool(const char *c
- 	return 0;	/* Buffer overrun */
- }
- 
-+/*
-+ * Find a non-boolean option (i.e. option=argument). In accordance with
-+ * standard Linux practice, if this option is repeated, this returns the
-+ * last instance on the command line.
-+ *
-+ * @cmdline: the cmdline string
-+ * @max_cmdline_size: the maximum size of cmdline
-+ * @option: option string to look for
-+ * @buffer: memory buffer to return the option argument
-+ * @bufsize: size of the supplied memory buffer
-+ *
-+ * Returns the length of the argument (regardless of if it was
-+ * truncated to fit in the buffer), or -1 on not found.
-+ */
-+static int
-+__cmdline_find_option(const char *cmdline, int max_cmdline_size,
-+		      const char *option, char *buffer, int bufsize)
-+{
-+	char c;
-+	int pos = 0, len = -1;
-+	const char *opptr = NULL;
-+	char *bufptr = buffer;
-+	enum {
-+		st_wordstart = 0,	/* Start of word/after whitespace */
-+		st_wordcmp,	/* Comparing this word */
-+		st_wordskip,	/* Miscompare, skip */
-+		st_bufcpy,	/* Copying this to buffer */
-+	} state = st_wordstart;
-+
-+	if (!cmdline)
-+		return -1;      /* No command line */
-+
-+	/*
-+	 * This 'pos' check ensures we do not overrun
-+	 * a non-NULL-terminated 'cmdline'
-+	 */
-+	while (pos++ < max_cmdline_size) {
-+		c = *(char *)cmdline++;
-+		if (!c)
-+			break;
-+
-+		switch (state) {
-+		case st_wordstart:
-+			if (myisspace(c))
-+				break;
-+
-+			state = st_wordcmp;
-+			opptr = option;
-+			/* fall through */
-+
-+		case st_wordcmp:
-+			if ((c == '=') && !*opptr) {
-+				/*
-+				 * We matched all the way to the end of the
-+				 * option we were looking for, prepare to
-+				 * copy the argument.
-+				 */
-+				len = 0;
-+				bufptr = buffer;
-+				state = st_bufcpy;
-+				break;
-+			} else if (c == *opptr++) {
-+				/*
-+				 * We are currently matching, so continue
-+				 * to the next character on the cmdline.
-+				 */
-+				break;
-+			}
-+			state = st_wordskip;
-+			/* fall through */
-+
-+		case st_wordskip:
-+			if (myisspace(c))
-+				state = st_wordstart;
-+			break;
-+
-+		case st_bufcpy:
-+			if (myisspace(c)) {
-+				state = st_wordstart;
-+			} else {
-+				/*
-+				 * Increment len, but don't overrun the
-+				 * supplied buffer and leave room for the
-+				 * NULL terminator.
-+				 */
-+				if (++len < bufsize)
-+					*bufptr++ = c;
-+			}
-+			break;
-+		}
-+	}
-+
-+	if (bufsize)
-+		*bufptr = '\0';
-+
-+	return len;
-+}
-+
- int cmdline_find_option_bool(const char *cmdline, const char *option)
- {
- 	return __cmdline_find_option_bool(cmdline, COMMAND_LINE_SIZE, option);
- }
-+
-+int cmdline_find_option(const char *cmdline, const char *option, char *buffer,
-+			int bufsize)
-+{
-+	return __cmdline_find_option(cmdline, COMMAND_LINE_SIZE, option,
-+				     buffer, bufsize);
-+}
-
-
+> +		compatible = "andestech,atl2c";
+> +		reg = <0xe0500000 0x1000>;
+> +		cache-unified;
+> +		cache-level = <2>;
+> +	};
+> +
+> -- 
+> 1.7.9.5
+> 
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
