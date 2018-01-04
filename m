@@ -1,115 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f66.google.com ([209.85.213.66]:37769 "EHLO
-        mail-vk0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752553AbeADOHU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 09:07:20 -0500
+Received: from ale.deltatee.com ([207.54.116.67]:38280 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751408AbeADRFl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 4 Jan 2018 12:05:41 -0500
+References: <20180103180618.18401-1-logang@deltatee.com>
+ <20180103180618.18401-8-logang@deltatee.com>
+ <VI1PR0402MB3342D07D8173696E94B38C54981F0@VI1PR0402MB3342.eurprd04.prod.outlook.com>
+From: Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <27d6c265-c176-f769-6181-5c772e346953@deltatee.com>
+Date: Thu, 4 Jan 2018 10:05:33 -0700
 MIME-Version: 1.0
-In-Reply-To: <ff51fff7-e963-f9fd-10d6-9b90a64d7aac@linaro.org>
-References: <1513057621-19084-1-git-send-email-rickchen36@gmail.com>
- <1513057621-19084-2-git-send-email-rickchen36@gmail.com> <bb7383ba-bb8e-3cbd-4ce0-faaefa8ed114@linaro.org>
- <CAEbi=3cEEtLQRiv-cyUwEmcBNOC2Sz7AhzZkpznQWYb9VUojug@mail.gmail.com> <ff51fff7-e963-f9fd-10d6-9b90a64d7aac@linaro.org>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Thu, 4 Jan 2018 22:06:38 +0800
-Message-ID: <CAEbi=3c4yAx7Tejz8aPw3-3vj89t8cg-zNEY-vbF7KaMo8OM0Q@mail.gmail.com>
-Subject: Re: [PATCH v5 1/3] clocksource/drivers/atcpit100: Add andestech
- atcpit100 timer
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <VI1PR0402MB3342D07D8173696E94B38C54981F0@VI1PR0402MB3342.eurprd04.prod.outlook.com>
+Content-Type: text/plain; charset=iso-8859-2; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Subject: Re: [PATCH v9 7/8] crypto: caam: cleanup CONFIG_64BIT ifdefs when
+ using io{read|write}64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: Greentime <greentime@andestech.com>, Rick Chen <rickchen36@gmail.com>, Rick Chen <rick@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linus Walleij <linus.walleij@linaro.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-serial@vger.kernel.org
-Message-ID: <20180104140638.V4J587WNXBAl2fdYfuIK20QEF2UcMr8m5B0GJBtI0Vw@z>
+To: =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, Aymen Sghaier <aymen.sghaier@nxp.com>
+Message-ID: <20180104170533.ud8HSq3obgzZqDJj0Vmcocee8YFsxklWOJ0tFlcn6Co@z>
 
-Hi, Daniel:
 
-2018-01-04 21:50 GMT+08:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
->
-> Hi,
->
-> sorry I missed your answer. Comments below.
->
-> On 13/12/2017 07:06, Greentime Hu wrote:
->> Hi, Daniel:
->>
->> 2017-12-12 18:05 GMT+08:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
->>> On 12/12/2017 06:46, Rick Chen wrote:
->>>> ATCPIT100 is often used on the Andes architecture,
->>>> This timer provide 4 PIT channels. Each PIT channel is a
->>>> multi-function timer, can be configured as 32,16,8 bit timers
->>>> or PWM as well.
->>>>
->>>> For system timer it will set channel 1 32-bit timer0 as clock
->>>> source and count downwards until underflow and restart again.
->>>
->>> [ ... ]
->>>
->>>> +config CLKSRC_ATCPIT100
->>>> +     bool "Clocksource for AE3XX platform"
->>>> +     depends on NDS32 || COMPILE_TEST
->>>> +     depends on HAS_IOMEM
->>>> +     help
->>>> +       This option enables support for the Andestech AE3XX platform timers.
->>>
->>> Hi Rick,
->>>
->>> the general rule for the Kconfig is:
->>>
->>> bool "Clocksource for AE3XX platform" if COMPILE_TEST
->>>
->>> and no deps on the platform.
->>>
->>> It is up to the platform Kconfig to select the option.
->>>
->>> We want here a silent option but make it selectable in case of
->>> compilation test coverage.
->>
->>
->> The way we like to use it is because
->> 1. This timer is a basic component to boot an nds32 CPU and it should
->> be able to select without COMPILE_TEST for nds32 architecture.
->
-> Yes, so you don't need it to be selectable, you must select it from the
-> platform's Kconfig.
 
-I am not sure that I get your point or not.
-We don't have a CONFIG_PLAT_AE3XX.
-Do you mean we should create one and select CLKSRC_ATCPIT100 under
-CONFIG_PLAT_AE3XX?
+On 04/01/18 12:25 AM, Horia Geantã wrote:
+>> +#include <linux/io-64-nonatomic-hi-lo.h>
+> Typo: lo-hi should be used instead (see previous patch versions).
+> 
+> Please add in the commit message the explanation (which was there in v8 but
+> removed in v9):
+> To be consistent with CAAM engine HW spec: in case of 64-bit registers,
+> irrespective of device endianness, the lower address should be read from
+> / written to first, followed by the upper address. Indeed the I/O
+> accessors in CAAM driver currently don't follow the spec, however this
+> is a good opportunity to fix the code.
 
->> 2. It seems conflict with debug info. I am not sure if there is
->> another way to debug kernel(with debug info) with COMPILE_TEST and
->> DEBUG_INFO because we need this driver for nds32 architecture.
->>
->> Symbol: DEBUG_INFO [=n]
->> Type  : boolean
->> Prompt: Compile the kernel with debug info
->>   Location:
->>     -> Kernel hacking
->>       -> Compile-time checks and compiler options
->>   Defined at lib/Kconfig.debug:140
->>   Depends on: DEBUG_KERNEL [=y] && !COMPILE_TEST [=n]
->
-> The COMPILE_TEST option is only there to allow cross-compilation test
-> coverage, it does not select or unselect the driver in usual way.
->
-> If the COMPILE_TEST is enabled, then the option will appear in the
-> menuconfig, so that gives the opportunity to select/unselect it.
->
-> Otherwise, the Kconfig's platform selects automatically the driver and
-> the user *can't* unselect it from the menuconfig as it is a silent
-> option and that is certainly what you want.
->
->>> Also, this driver is not a CLKSRC but a TIMER. Rename CLKSRC_ATCPIT100
->>> to TIMER_ATCPIT100.
->>
->> Thanks. We will rename it in the next version patch.
->
-> You just resend an entire series V5 for the architecture. I'm confused,
-> what is the merging path ?
+Ok, well I just copied what the latest code did. I assumed that seeing 
+it was cleaned up very recently that they would have done it correctly.
 
-Sorry. I didn't get your point.
-We sent the timer patch and the architecture patch together because it
-would be easier for reviewer to check the vdso implementations.
-What do you mean about the merging path?
+>>   
+>>   /*
+>>    * Architecture-specific register access methods
+>> @@ -136,7 +136,6 @@ static inline void clrsetbits_32(void __iomem *reg, u32 clear, u32 set)
+>>    *    base + 0x0000 : least-significant 32 bits
+>>    *    base + 0x0004 : most-significant 32 bits
+>>    */
+>> -#ifdef CONFIG_64BIT
+>>   static inline void wr_reg64(void __iomem *reg, u64 data)
+>>   {
+>>   	if (caam_little_end)
+> Since the 2 cases (32/64-bit) are merged, caam_imx should be accounted for the
+> logic to stay the same.
 
-Thanks.
+Oops, my mistake. I'll fix this and the above and send a revised set.
+
+Logan
