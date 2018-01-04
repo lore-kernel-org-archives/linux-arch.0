@@ -1,49 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.llwyncelyn.cymru ([82.70.14.225]:47492 "EHLO fuzix.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752659AbeADVY1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 4 Jan 2018 16:24:27 -0500
-Date: Thu, 4 Jan 2018 21:23:59 +0000
-From: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
-Message-ID: <20180104212359.0b520868@alans-desktop>
-In-Reply-To: <nycvar.YFH.7.76.1801042137560.11852@cbobk.fhfr.pm>
-References: <20180103223827.39601-1-mark.rutland@arm.com>
-        <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
-        <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
-        <20180104010754.22ca6a74@alans-desktop>
-        <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
-        <20180104014100.3786e686@alans-desktop>
-        <nycvar.YFH.7.76.1801040243300.11852@cbobk.fhfr.pm>
-        <20180104193936.GB10427@amd>
-        <20180104203246.5ff65328@alans-desktop>
-        <nycvar.YFH.7.76.1801042137560.11852@cbobk.fhfr.pm>
+Received: from mail-ot0-f180.google.com ([74.125.82.180]:35808 "EHLO
+        mail-ot0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751091AbeADXMB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 18:12:01 -0500
+Received: by mail-ot0-f180.google.com with SMTP id q5so2638388oth.2
+        for <linux-arch@vger.kernel.org>; Thu, 04 Jan 2018 15:12:01 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20180104224455.GA22369@amd>
+References: <20180103223827.39601-1-mark.rutland@arm.com> <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
+ <20180104010754.22ca6a74@alans-desktop> <CAPcyv4ge14OPyfoQvXHLyXwqX7cjWvm4DouUOc=WrNo1Lr9Qyw@mail.gmail.com>
+ <alpine.DEB.2.20.1801040728140.2148@hadrien> <CAPcyv4gLcC7vsxLUCEJdEvDRf4AhgF0x1fpTEcH7AOe=kuNfoQ@mail.gmail.com>
+ <20180104192648.GA10427@amd> <CAPcyv4g0ZEP_LuXwsf1rJGaG65UHn5sj=DMyMdCnzKD9T-vnyg@mail.gmail.com>
+ <20180104224455.GA22369@amd>
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Thu, 4 Jan 2018 15:12:00 -0800
+Message-ID: <CAPcyv4gVq=F-+8YX6ALUiL61MtOVtDzPrEo18WVsFodZ1YY20A@mail.gmail.com>
+Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Kosina <jikos@kernel.org>
-Cc: Pavel Machek <pavel@ucw.cz>, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>
-Message-ID: <20180104212359.OkbQJe8oJ1cZ4lWZKfsaUYTwnvaDPPYMAMJ8B0JESxs@z>
+To: Pavel Machek <pavel@ucw.cz>
+Cc: Julia Lawall <julia.lawall@lip6.fr>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>, Dan Carpenter <dan.carpenter@oracle.com>
+Message-ID: <20180104231200.U-q8TE2rz9uCJYUejJ_Yf1g5tgpxk1IQK3b3SSq-wo0@z>
 
-On Thu, 4 Jan 2018 21:39:24 +0100 (CET)
-Jiri Kosina <jikos@kernel.org> wrote:
+On Thu, Jan 4, 2018 at 2:44 PM, Pavel Machek <pavel@ucw.cz> wrote:
+> Hi!
+>
+>> >> > What should one be looking for.  Do you have a typical example?
+>> >> >
+>> >>
+>> >> See "Exploiting Conditional Branch Misprediction" from the paper [1].
+>> >>
+>> >> The typical example is an attacker controlled index used to trigger a
+>> >> dependent read near a branch. Where an example of "near" from the
+>> >> paper is "up to 188 simple instructions inserted in the source code
+>> >> between the =E2=80=98if=E2=80=99 statement and the line accessing arr=
+ay...".
+>> >>
+>> >> if (attacker_controlled_index < bound)
+>> >>      val =3D array[attacker_controlled_index];
+>> >> else
+>> >>     return error;
+>> >>
+>> >> ...when the cpu speculates that the 'index < bound' branch is taken i=
+t
+>> >> reads index and uses that value to read array[index]. The result of a=
+n
+>> >> 'array' relative read is potentially observable in the cache.
+>> >
+>> > You still need
+>> >
+>> >         (void) array2[val];
+>> >
+>> > after that to get something observable, right?
+>>
+>> As far as I understand the presence of array2[val] discloses more
+>> information, but in terms of the cpu taking an action that it is
+>> observable in the cache that's already occurred when "val =3D
+>> array[attacker_controlled_index];" is speculated. Lets err on the
+>
+> Well yes, attacker can observe val =3D
+> array[attacker_controlled_index]; . But that's not something he's
+> interested in. So the CPU cheats and attacker has a proof. But he knew
+> that before.
+>
+>>side
+>> of caution and shut down all the observable actions that are already
+>> explicitly gated by an input validation check. In other words, a low
+>> bandwidth information leak is still a leak.
+>
+> What did it leak? Nothing. Attacker had to know
+> array+attacker_controlled_index, and he now knows
+> (array+attacker_controlled_index)%CACHELINE_SIZE.
+>
+> With (void) array2[val];, the attack gets interesting -- I now know
+> *(array+attacker_controlled_index) % CACHELINE_SIZE ... allowing me to
+> get information from arbitrary place in memory -- which is useful for
+> .. reading ssh keys, for example.
 
-> On Thu, 4 Jan 2018, Alan Cox wrote:
-> 
-> > You never go from one user process to another except via the kernel. We
-> > have no hardware scheduling going on. That means that if the kernel
-> > and/or CPU imposes the correct speculation barriers you can't attack
-> > anyone but yourself.  
-> 
-> So how does this work on HT with the shared BTB? There is no context 
-> switch (and hence no IBPB) happening between the threads sharing it.
-> 
-
-If you are paranoid in that case you either need to schedule things that
-trust each other together or disable the speculation while that situation
-occurs. However the kernel is always in the position to make that
-decision.
-
-Alan
+Right, but how far away from "val =3D array[attacker_controlled_index];"
+in the instruction stream do you need to look before you're
+comfortable there's no 'val' dependent reads in the speculation window
+on all possible architectures. Until we have variable annotations and
+compiler help my guess is that static analysis has an easier time
+pointing us to the first potentially bad speculative access.
