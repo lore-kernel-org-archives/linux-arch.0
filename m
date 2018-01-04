@@ -1,70 +1,114 @@
-From: Maxime Ripard <maxime.ripard@free-electrons.com>
-Subject: Re: [PATCH 4/5] clk: sunxi: Use CLK_IS_CRITICAL flag for critical
- clks
-Date: Thu, 4 Jan 2018 14:13:32 +0100
-Message-ID: <20180104131332.rhzyuigd2gfivq7k@flea.lan>
-References: <20180103013516.18844-1-sboyd@codeaurora.org>
- <20180103013516.18844-5-sboyd@codeaurora.org>
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Subject: Re: [PATCH v5 1/3] clocksource/drivers/atcpit100: Add andestech
+ atcpit100 timer
+Date: Thu, 4 Jan 2018 14:50:09 +0100
+Message-ID: <ff51fff7-e963-f9fd-10d6-9b90a64d7aac@linaro.org>
+References: <1513057621-19084-1-git-send-email-rickchen36@gmail.com>
+ <1513057621-19084-2-git-send-email-rickchen36@gmail.com>
+ <bb7383ba-bb8e-3cbd-4ce0-faaefa8ed114@linaro.org>
+ <CAEbi=3cEEtLQRiv-cyUwEmcBNOC2Sz7AhzZkpznQWYb9VUojug@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="etinat53jc4ove2b"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.free-electrons.com ([62.4.15.54]:45851 "EHLO
-        mail.free-electrons.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751827AbeADNNe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 08:13:34 -0500
-Content-Disposition: inline
-In-Reply-To: <20180103013516.18844-5-sboyd@codeaurora.org>
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:45416 "EHLO
+        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752432AbeADNuN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 08:50:13 -0500
+Received: by mail-wm0-f67.google.com with SMTP id 9so3594011wme.4
+        for <linux-arch@vger.kernel.org>; Thu, 04 Jan 2018 05:50:13 -0800 (PST)
+In-Reply-To: <CAEbi=3cEEtLQRiv-cyUwEmcBNOC2Sz7AhzZkpznQWYb9VUojug@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Boyd <sboyd@codeaurora.org>
-Cc: Michael Turquette <mturquette@baylibre.com>, linux-kernel@vger.kernel.org, linux-clk@vger.kernel.org, linux-arch@vger.kernel.org, Chen-Yu Tsai <wens@csie.org>
+To: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>
+Cc: Rick Chen <rickchen36@gmail.com>, Rick Chen <rick@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linus Walleij <linus.walleij@linaro.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-serial@vger.kernel.org
 
 
---etinat53jc4ove2b
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Hi,
 
-On Tue, Jan 02, 2018 at 05:35:15PM -0800, Stephen Boyd wrote:
-> We'd like to privatize __clk_get(), but the sunxi clk driver is
-> calling this function to keep a reference held on the clk and
-> call clk_prepare_enable() on it. We support this design in the
-> clk core now with the CLK_IS_CRITICAL flag, so let's just use
-> that instead.
->=20
-> Cc: Maxime Ripard <maxime.ripard@free-electrons.com>
-> Cc: Chen-Yu Tsai <wens@csie.org>
-> Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
+sorry I missed your answer. Comments below.
 
-Acked-by: Maxime Ripard <maxime.ripard@free-electrons.com>
+On 13/12/2017 07:06, Greentime Hu wrote:
+> Hi, Daniel:
+> 
+> 2017-12-12 18:05 GMT+08:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
+>> On 12/12/2017 06:46, Rick Chen wrote:
+>>> ATCPIT100 is often used on the Andes architecture,
+>>> This timer provide 4 PIT channels. Each PIT channel is a
+>>> multi-function timer, can be configured as 32,16,8 bit timers
+>>> or PWM as well.
+>>>
+>>> For system timer it will set channel 1 32-bit timer0 as clock
+>>> source and count downwards until underflow and restart again.
+>>
+>> [ ... ]
+>>
+>>> +config CLKSRC_ATCPIT100
+>>> +     bool "Clocksource for AE3XX platform"
+>>> +     depends on NDS32 || COMPILE_TEST
+>>> +     depends on HAS_IOMEM
+>>> +     help
+>>> +       This option enables support for the Andestech AE3XX platform timers.
+>>
+>> Hi Rick,
+>>
+>> the general rule for the Kconfig is:
+>>
+>> bool "Clocksource for AE3XX platform" if COMPILE_TEST
+>>
+>> and no deps on the platform.
+>>
+>> It is up to the platform Kconfig to select the option.
+>>
+>> We want here a silent option but make it selectable in case of
+>> compilation test coverage.
+> 
+> 
+> The way we like to use it is because
+> 1. This timer is a basic component to boot an nds32 CPU and it should
+> be able to select without COMPILE_TEST for nds32 architecture.
 
-Thanks!
-Maxime
+Yes, so you don't need it to be selectable, you must select it from the
+platform's Kconfig.
 
---=20
-Maxime Ripard, Free Electrons
-Embedded Linux and Kernel engineering
-http://free-electrons.com
+> 2. It seems conflict with debug info. I am not sure if there is
+> another way to debug kernel(with debug info) with COMPILE_TEST and
+> DEBUG_INFO because we need this driver for nds32 architecture.
+> 
+> Symbol: DEBUG_INFO [=n]
+> Type  : boolean
+> Prompt: Compile the kernel with debug info
+>   Location:
+>     -> Kernel hacking
+>       -> Compile-time checks and compiler options
+>   Defined at lib/Kconfig.debug:140
+>   Depends on: DEBUG_KERNEL [=y] && !COMPILE_TEST [=n]
 
---etinat53jc4ove2b
-Content-Type: application/pgp-signature; name="signature.asc"
+The COMPILE_TEST option is only there to allow cross-compilation test
+coverage, it does not select or unselect the driver in usual way.
 
------BEGIN PGP SIGNATURE-----
+If the COMPILE_TEST is enabled, then the option will appear in the
+menuconfig, so that gives the opportunity to select/unselect it.
 
-iQIzBAABCAAdFiEE0VqZU19dR2zEVaqr0rTAlCFNr3QFAlpOKHwACgkQ0rTAlCFN
-r3QDCA//SmCXHtbuMQfMJWmbDbKCx+5LEax6Fq4LsTRHOF4DO7ako/6erlnbZHtX
-PEFXesLyaegqn5eJKX4cNn7bM0+ar1LP4m27q+lCbkk8QdAWJnCSMqPUmy+ab/Xa
-Ao7HwCrnrPEi51oVzJOvIGBVVaH4gYk6XcufmSWmCk1bynPi/Pl4x09fO5LXNbto
-uQlaE+P3gYXb2UD4XM+HZVyCXROQrw3YF02m2O1vIBYf6fWXVQVki9e27qHxCTP0
-JDmUZ/eGX1zSeGgNSot3iClnBT0+Rz6QSw3+pSkCYR0B7XI91xJ91Ev2RqyQWB1F
-SkSGIquu4WET1JYacjqDIyhSqxfytpglLzWyUCkeNWEFMtL6gh1BEiNekVaonrem
-murJxA6TlFRE8txpY/CEBufkmQ/jH2mCkrBH7WVVHnejBPtrnESSZSI42JLjofEy
-B6ypUFgjXKpk7b05eN1c5LVAWScb/FzpvwEGxGfHSIrm1KfHtAv93jd6Fnp47wA8
-BeckKghEJiHjwEne+7BXusT3mDkCtmtrxXHA+Fe6TZEgbu51Paq4f3Uuipx4sAtK
-YD/+7P2llXHCsY3Q3372j9NrG7MnzeWLJ9A+ahBmBHO95q3fZQg4SY5gZQmW5azL
-Nc0paUf7Y/NBxgt3gku3hi47TRT5fU9pFBoIfk+htgUR0CbLo5I=
-=BvUP
------END PGP SIGNATURE-----
+Otherwise, the Kconfig's platform selects automatically the driver and
+the user *can't* unselect it from the menuconfig as it is a silent
+option and that is certainly what you want.
 
---etinat53jc4ove2b--
+>> Also, this driver is not a CLKSRC but a TIMER. Rename CLKSRC_ATCPIT100
+>> to TIMER_ATCPIT100.
+> 
+> Thanks. We will rename it in the next version patch.
+
+You just resend an entire series V5 for the architecture. I'm confused,
+what is the merging path ?
+
+Thanks.
+  -- Daniel
+
+-- 
+ <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
+
+Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+<http://twitter.com/#!/linaroorg> Twitter |
+<http://www.linaro.org/linaro-blog/> Blog
