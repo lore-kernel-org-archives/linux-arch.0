@@ -1,38 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from twin.jikos.cz ([91.219.245.39]:41985 "EHLO twin.jikos.cz"
+Received: from mga14.intel.com ([192.55.52.115]:1978 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751931AbeADCCh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Jan 2018 21:02:37 -0500
-Date: Thu, 4 Jan 2018 02:27:54 +0100 (CET)
-From: Jiri Kosina <jikos@kernel.org>
-Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and
- nospec_barrier
-In-Reply-To: <20180104010754.22ca6a74@alans-desktop>
-Message-ID: <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
-References: <20180103223827.39601-1-mark.rutland@arm.com>        <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>        <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
+        id S1751054AbeADFtf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 4 Jan 2018 00:49:35 -0500
+Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
+References: <20180103223827.39601-1-mark.rutland@arm.com>
+ <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
  <20180104010754.22ca6a74@alans-desktop>
+ <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
+ <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
+ <CA+55aFx7eJqRA8EWwSCrC+Lr1ZjUvRXSuhrxo+af_Dx3YWKbOQ@mail.gmail.com>
+ <1515035438.20588.4.camel@intel.com>
+ <20180104044424.GC21978@ZenIV.linux.org.uk>
+ <CAPcyv4gKQD68dCCD-Nz78ZQ9ttung5yMzG3f+JRmGUxuKhK4Pw@mail.gmail.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <a558bbf3-cdc5-e95d-3954-b6f5d769c64e@intel.com>
+Date: Wed, 3 Jan 2018 21:49:33 -0800
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-Reply-To: <CAPcyv4gKQD68dCCD-Nz78ZQ9ttung5yMzG3f+JRmGUxuKhK4Pw@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180104012754._Um7CU7rz364-86_QzgcO1sajRC9WrSkZNCbtp_Ptr0@z>
+To: Dan Williams <dan.j.williams@intel.com>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "alan@linux.intel.com" <alan@linux.intel.com>, "Reshetova, Elena" <elena.reshetova@intel.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "jikos@kernel.org" <jikos@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20180104054933.jhbgRfHN0UBwzQ4wSLlA6v3RdaYCJNZSVdbXTHQ4EAQ@z>
 
-On Thu, 4 Jan 2018, Alan Cox wrote:
+On 01/03/2018 09:44 PM, Dan Williams wrote:
+> No, the concern is that an fd value >= fdt->max_fds may cause the cpu
+> to read arbitrary memory addresses relative to files->fdt and
+> userspace can observe that it got loaded.
 
-> There are people trying to tune coverity and other tool rules to identify
-> cases, 
+Yep, it potentially tells you someting about memory after fdt->fd[].
+For instance, you might be able to observe if some random bit of memory
+after the actual fd[] array had 'mask' set because the CPU is running
+this code with a 'file' that actually fails the "fd < fdt->max_fds" check:
 
-Yeah, but that (and *especially* Coverity) is so inconvenient to be 
-applied to each and every patch ... that this is not the way to go.
-
-If the CPU speculation can cause these kinds of side-effects, it just must 
-not happen, full stop. OS trying to work it around is just a whack-a-mole 
-(which we can apply for old silicon, sure ... but not something that 
-becomes a new standard) that's never going to lead to any ultimate 
-solution.
-
--- 
-Jiri Kosina
-SUSE Labs
+                file = __fcheck_files(files, fd);
+                if (!file || unlikely(file->f_mode & mask))
+                        return 0;
+                return (unsigned long)file;
