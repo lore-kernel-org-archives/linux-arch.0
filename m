@@ -1,45 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from twin.jikos.cz ([91.219.245.39]:41904 "EHLO twin.jikos.cz"
+Received: from twin.jikos.cz ([91.219.245.39]:41985 "EHLO twin.jikos.cz"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751842AbeADCAi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 3 Jan 2018 21:00:38 -0500
-Date: Thu, 4 Jan 2018 02:59:47 +0100 (CET)
+        id S1751931AbeADCCh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 3 Jan 2018 21:02:37 -0500
+Date: Thu, 4 Jan 2018 02:27:54 +0100 (CET)
 From: Jiri Kosina <jikos@kernel.org>
 Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and
  nospec_barrier
-In-Reply-To: <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
-Message-ID: <alpine.LRH.2.00.1801040253410.27010@gjva.wvxbf.pm>
-References: <20180103223827.39601-1-mark.rutland@arm.com> <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com> <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com> <20180104010754.22ca6a74@alans-desktop>
- <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm> <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
+In-Reply-To: <20180104010754.22ca6a74@alans-desktop>
+Message-ID: <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
+References: <20180103223827.39601-1-mark.rutland@arm.com>        <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>        <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
+ <20180104010754.22ca6a74@alans-desktop>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Jiri Kosina <jikos@kernel.org>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180104015947.aNeemNUnj23oGGyv6cbRvJNkp8mB1FALTBTCe_9IAhM@z>
+To: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180104012754._Um7CU7rz364-86_QzgcO1sajRC9WrSkZNCbtp_Ptr0@z>
 
-On Wed, 3 Jan 2018, Dan Williams wrote:
+On Thu, 4 Jan 2018, Alan Cox wrote:
 
-> Speaking from a purely Linux kernel maintenance process perspective we
-> play wack-a-mole with missed endian conversions and other bugs that
-> coccinelle, sparse, etc help us catch. 
+> There are people trying to tune coverity and other tool rules to identify
+> cases, 
 
-Fully agreed.
+Yeah, but that (and *especially* Coverity) is so inconvenient to be 
+applied to each and every patch ... that this is not the way to go.
 
-> So this is in that same category, but yes, it's inconvenient.
-
-Disagreed, violently. CPU has to execute the instructions I ask it to 
-execute, and if it executes *anything* else that reveals any information 
-about the instructions that have *not* been executed, it's flawed.
-
-> Elena has done the work of auditing static analysis reports to a dozen
-> or so locations that need some 'nospec' handling.
-
-How exactly is that related (especially in longer-term support terms) to 
-BPF anyway?
-
-Thanks,
+If the CPU speculation can cause these kinds of side-effects, it just must 
+not happen, full stop. OS trying to work it around is just a whack-a-mole 
+(which we can apply for old silicon, sure ... but not something that 
+becomes a new standard) that's never going to lead to any ultimate 
+solution.
 
 -- 
 Jiri Kosina
