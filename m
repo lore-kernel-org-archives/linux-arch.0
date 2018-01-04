@@ -1,69 +1,127 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: Re: [PATCH 30/67] dma-direct: retry allocations using GFP_DMA for
-	small masks
-Date: Thu, 4 Jan 2018 10:02:51 +0100
-Message-ID: <20180104090251.GE3251@lst.de>
-References: <20171229081911.2802-1-hch@lst.de>
-	<20171229081911.2802-31-hch@lst.de>
-	<f6139b03-0a4a-a9fe-4818-9b0bccf419e4@arm.com>
+From: "Reshetova, Elena" <elena.reshetova@intel.com>
+Subject: RE: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
+Date: Thu, 4 Jan 2018 09:16:25 +0000
+Message-ID: <2236FBA76BA1254E88B949DDB74E612B802D25BE@IRSMSX102.ger.corp.intel.com>
+References: <20180103223827.39601-1-mark.rutland@arm.com>
+ <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
+ <20180104010754.22ca6a74@alans-desktop>
+ <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
+ <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
+ <alpine.LRH.2.00.1801040253410.27010@gjva.wvxbf.pm>
+ <20180104021553.32084de3@alans-desktop>
+ <20180104031239.f2sat4ozqvqxaatr@ast-mbp.dhcp.thefacebook.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <f6139b03-0a4a-a9fe-4818-9b0bccf419e4-5wv7dgnIgG8@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Vladimir Murzin <vladimir.murzin-5wv7dgnIgG8@public.gmane.org>
-Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-cris-kernel-VrBV9hrLPhE@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180104031239.f2sat4ozqvqxaatr@ast-mbp.dhcp.thefacebook.com>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alexei Starovoitov <alexei.starovoitov@gmail.com>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>
+Cc: Jiri Kosina <jikos@kernel.org>, "Williams, Dan J" <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 02, 2018 at 04:43:15PM +0000, Vladimir Murzin wrote:
-> On 29/12/17 08:18, Christoph Hellwig wrote:
-> > If we got back an allocation that wasn't inside the support coherent mask,
-> > retry the allocation using GFP_DMA.
-> > 
-> > Based on the x86 code.
-> > 
-> > Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-> > ---
-> >  lib/dma-direct.c | 25 ++++++++++++++++++++++++-
-> >  1 file changed, 24 insertions(+), 1 deletion(-)
-> > 
-> > diff --git a/lib/dma-direct.c b/lib/dma-direct.c
-> > index ab81de3ac1d3..f8467cb3d89a 100644
-> > --- a/lib/dma-direct.c
-> > +++ b/lib/dma-direct.c
-> > @@ -28,6 +28,11 @@ check_addr(struct device *dev, dma_addr_t dma_addr, size_t size,
-> >  	return true;
-> >  }
-> >  
-> > +static bool dma_coherent_ok(struct device *dev, phys_addr_t phys, size_t size)
-> > +{
-> > +	return phys_to_dma(dev, phys) + size <= dev->coherent_dma_mask;
+> On Thu, Jan 04, 2018 at 02:15:53AM +0000, Alan Cox wrote:
+> >
+> > > > Elena has done the work of auditing static analysis reports to a dozen
+> > > > or so locations that need some 'nospec' handling.
+> > >
+> > > How exactly is that related (especially in longer-term support terms) to
+> > > BPF anyway?
+> >
+> > If you read the papers you need a very specific construct in order to not
+> > only cause a speculative load of an address you choose but also to then
+> > manage to cause a second operation that in some way reveals bits of data
+> > or allows you to ask questions.
+> >
+> > BPF allows you to construct those sequences relatively easily and it's
+> > the one case where a user space application can fairly easily place code
+> > it wants to execute in the kernel. Without BPF you have to find the right
+> > construct in the kernel, prime all the right predictions and measure the
+> > result without getting killed off. There are places you can do that but
+> > they are not so easy and we don't (at this point) think there are that
+> > many.
 > 
-> Shouldn't it be: phys_to_dma(dev, phys) + size - 1 <= dev->coherent_dma_mask ?
+> for BPF in particular we're thinking to do a different fix.
+> Instead of killing speculation we can let cpu speculate.
+> The fix will include rounding up bpf maps to nearest power of 2 and
+> inserting bpf_and operation on the index after bounds check,
+> so cpu can continue speculate beyond bounds check, but it will
+> load from zero-ed memory.
+> So this nospec arch dependent hack won't be necessary for bpf side,
+> but may still be needed in other parts of the kernel.
 
-Yes, I think it should.  The existing code was blindly copy and pasted
-from x86.
+I think this is a much better approach than what we have been doing internally so
+far. My initial fix back in August for this was to insert a minimal set of lfence
+barriers (osb() barrier below) that prevent speculation just based on how attack was using constants
+to index eBPF maps:
 
-> > +	if (page && !dma_coherent_ok(dev, page_to_phys(page), size)) {
-> > +		__free_pages(page, page_order);
-> > +		page = NULL;
-> > +
-> > +		if (dev->coherent_dma_mask < DMA_BIT_MASK(32) &&
-> > +		    !(gfp & GFP_DMA)) {
-> > +			gfp = (gfp & ~GFP_DMA32) | GFP_DMA;
-> > +			goto again;
+diff --git a/kernel/bpf/core.c b/kernel/bpf/core.c
+#define BPF_R0	regs[BPF_REG_0]
+@@ -939,6 +940,7 @@ static unsigned int ___bpf_prog_run(u64 *regs, const struct bpf_insn *insn,
+ 		DST = IMM;
+ 		CONT;
+ 	LD_IMM_DW:
++		osb();
+ 		DST = (u64) (u32) insn[0].imm | ((u64) (u32) insn[1].imm) << 32;
+ 		insn++;
+ 		CONT;
+@@ -1200,6 +1202,7 @@ static unsigned int ___bpf_prog_run(u64 *regs, const struct bpf_insn *insn,
+ 		*(SIZE *)(unsigned long) (DST + insn->off) = IMM;	\
+ 		CONT;							\
+ 	LDX_MEM_##SIZEOP:						\
++		osb();							\
+ 		DST = *(SIZE *)(unsigned long) (SRC + insn->off);	\
+ 		CONT;
+ 
+
+
+And similar stuff also for x86 JIT (blinding dependent):
+
+@@ -400,7 +413,7 @@ static int do_jit(struct bpf_prog *bpf_prog, int *addrs, u8 *image,
+ 			case BPF_ADD: b2 = 0x01; break;
+ 			case BPF_SUB: b2 = 0x29; break;
+ 			case BPF_AND: b2 = 0x21; break;
+-			case BPF_OR: b2 = 0x09; break;
++			case BPF_OR: b2 = 0x09; emit_memory_barrier(&prog); break;
+ 			case BPF_XOR: b2 = 0x31; break;
+ 			}
+ 			if (BPF_CLASS(insn->code) == BPF_ALU64)
+@@ -647,6 +660,16 @@ static int do_jit(struct bpf_prog *bpf_prog, int *addrs, u8 *image,
+ 		case BPF_ALU64 | BPF_RSH | BPF_X:
+ 		case BPF_ALU64 | BPF_ARSH | BPF_X:
+ 
++			/* If blinding is enabled, each
++			 * BPF_LD | BPF_IMM | BPF_DW instruction
++			 * is converted to 4 eBPF instructions with
++			 * BPF_ALU64_IMM(BPF_LSH, BPF_REG_AX, 32)
++			 * always present(number 3). Detect such cases
++			 * and insert memory barriers. */
++			if ((BPF_CLASS(insn->code) == BPF_ALU64)
++				&& (BPF_OP(insn->code) == BPF_LSH)
++				&& (src_reg == BPF_REG_AX))
++				emit_memory_barrier(&prog);
+ 			/* check for bad case when dst_reg == rcx */
+ 			if (dst_reg == BPF_REG_4) {
+ 				/* mov r11, dst_reg */
+
+But this is really ugly fix IMO to prevent speculation from happen, so with your
+approach I think it is really much better. 
+
+If you need help in testing the fixes, I can do it unless you already have the
+attack code yourself. 
+
 > 
-> Shouldn't we limit number of attempts?
+> Also note that variant 1 is talking about exploiting prog_array
+> bpf feature which had 64-bit access prior to
+> commit 90caccdd8cc0 ("bpf: fix bpf_tail_call() x64 JIT")
+> That was a fix for JIT and not related to this cpu issue, but
+> I believe it breaks the existing exploit.
 
-We only retty once anyway, due to the !GFP_DMA check first and then
-ORing in GFP_DMA.
+Actually I could not get existing exploit working on anything past 4.11
+but at that time I could not see any fundamental change in eBPF that
+would prevent it. 
+
+Best Regards,
+Elena.
