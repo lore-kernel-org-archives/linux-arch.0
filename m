@@ -1,75 +1,96 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v10 8/8] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
-Date: Thu,  4 Jan 2018 12:16:45 -0700
-Message-ID: <20180104191645.10006-9-logang@deltatee.com>
-References: <20180104191645.10006-1-logang@deltatee.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:39622 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751899AbeADTQu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 4 Jan 2018 14:16:50 -0500
-In-Reply-To: <20180104191645.10006-1-logang@deltatee.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Jon Mason <jdmason@kudzu.us>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
+Date: Thu, 4 Jan 2018 20:26:49 +0100
+Message-ID: <20180104192648.GA10427@amd>
+References: <20180103223827.39601-1-mark.rutland@arm.com>
+ <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
+ <20180104010754.22ca6a74@alans-desktop>
+ <CAPcyv4ge14OPyfoQvXHLyXwqX7cjWvm4DouUOc=WrNo1Lr9Qyw@mail.gmail.com>
+ <alpine.DEB.2.20.1801040728140.2148@hadrien>
+ <CAPcyv4gLcC7vsxLUCEJdEvDRf4AhgF0x1fpTEcH7AOe=kuNfoQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha1;
+        protocol="application/pgp-signature"; boundary="PEIAKu/WMn1b1Hv9"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4gLcC7vsxLUCEJdEvDRf4AhgF0x1fpTEcH7AOe=kuNfoQ@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Julia Lawall <julia.lawall@lip6.fr>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>, Dan Carpenter <dan.carpenter@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-Clean up the ifdefs which conditionally defined the io{read|write}64
-functions in favour of the new common io-64-nonatomic-lo-hi header.
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Cc: Jon Mason <jdmason@kudzu.us>
----
- drivers/ntb/hw/mscc/ntb_hw_switchtec.c | 30 +-----------------------------
- 1 file changed, 1 insertion(+), 29 deletions(-)
+--PEIAKu/WMn1b1Hv9
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-diff --git a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-index afe8ed6f3b23..53d3a34cddf3 100644
---- a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-+++ b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-@@ -19,6 +19,7 @@
- #include <linux/kthread.h>
- #include <linux/interrupt.h>
- #include <linux/ntb.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- MODULE_DESCRIPTION("Microsemi Switchtec(tm) NTB Driver");
- MODULE_VERSION("0.1");
-@@ -35,35 +36,6 @@ module_param(use_lut_mws, bool, 0644);
- MODULE_PARM_DESC(use_lut_mws,
- 		 "Enable the use of the LUT based memory windows");
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- #define SWITCHTEC_NTB_MAGIC 0x45CC0001
- #define MAX_MWS     128
- 
--- 
-2.11.0
+Hi!
+
+> >> > What remains to be seen is if there are other patterns that affect
+> >> > different processors.
+> >> >
+> >> > In the longer term the compiler itself needs to know what is and isn=
+'t
+> >> > safe (ie you need to be able to write things like
+> >> >
+> >> > void foo(tainted __user int *x)
+> >> >
+> >> > and have the compiler figure out what level of speculation it can do=
+ and
+> >> > (on processors with those features like IA64) when it can and can't =
+do
+> >> > various kinds of non-trapping loads.
+> >> >
+> >>
+> >> It would be great if coccinelle and/or smatch could be taught to catch
+> >> some of these case at least as a first pass "please audit this code
+> >> block" type of notification.
+> >>
+> >
+> > What should one be looking for.  Do you have a typical example?
+> >
+>=20
+> See "Exploiting Conditional Branch Misprediction" from the paper [1].
+>=20
+> The typical example is an attacker controlled index used to trigger a
+> dependent read near a branch. Where an example of "near" from the
+> paper is "up to 188 simple instructions inserted in the source code
+> between the =E2=80=98if=E2=80=99 statement and the line accessing array..=
+=2E".
+>=20
+> if (attacker_controlled_index < bound)
+>      val =3D array[attacker_controlled_index];
+> else
+>     return error;
+>=20
+> ...when the cpu speculates that the 'index < bound' branch is taken it
+> reads index and uses that value to read array[index]. The result of an
+> 'array' relative read is potentially observable in the cache.
+
+You still need
+
+	(void) array2[val];
+
+after that to get something observable, right?
+
+									Pavel
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--PEIAKu/WMn1b1Hv9
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAlpOf/gACgkQMOfwapXb+vKUyACcDb5n6C009TeXz8Jx0xywDG+/
+qowAnR3otDZD619thkpd2jUaL0yAHwNs
+=wRl0
+-----END PGP SIGNATURE-----
+
+--PEIAKu/WMn1b1Hv9--
