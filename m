@@ -1,61 +1,72 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
-Date: Thu, 4 Jan 2018 05:55:25 +0000
-Message-ID: <20180104055524.GE21978@ZenIV.linux.org.uk>
-References: <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
- <20180104010754.22ca6a74@alans-desktop>
- <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
- <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
- <CA+55aFx7eJqRA8EWwSCrC+Lr1ZjUvRXSuhrxo+af_Dx3YWKbOQ@mail.gmail.com>
- <1515035438.20588.4.camel@intel.com>
- <20180104044424.GC21978@ZenIV.linux.org.uk>
- <CAPcyv4gKQD68dCCD-Nz78ZQ9ttung5yMzG3f+JRmGUxuKhK4Pw@mail.gmail.com>
- <20180104055012.GD21978@ZenIV.linux.org.uk>
+From: Julia Lawall <julia.lawall@lip6.fr>
+Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and
+ nospec_barrier
+Date: Thu, 4 Jan 2018 07:28:41 +0100 (CET)
+Message-ID: <alpine.DEB.2.20.1801040728140.2148@hadrien>
+References: <20180103223827.39601-1-mark.rutland@arm.com> <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com> <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com> <20180104010754.22ca6a74@alans-desktop>
+ <CAPcyv4ge14OPyfoQvXHLyXwqX7cjWvm4DouUOc=WrNo1Lr9Qyw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:51478 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752011AbeADFz2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 00:55:28 -0500
-Content-Disposition: inline
-In-Reply-To: <20180104055012.GD21978@ZenIV.linux.org.uk>
+Received: from mail3-relais-sop.national.inria.fr ([192.134.164.104]:42714
+        "EHLO mail3-relais-sop.national.inria.fr" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752303AbeADG2n (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 01:28:43 -0500
+In-Reply-To: <CAPcyv4ge14OPyfoQvXHLyXwqX7cjWvm4DouUOc=WrNo1Lr9Qyw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Dan Williams <dan.j.williams@intel.com>
-Cc: "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "alan@linux.intel.com" <alan@linux.intel.com>, "Reshetova, Elena" <elena.reshetova@intel.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "jikos@kernel.org" <jikos@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>, Dan Carpenter <dan.carpenter@oracle.com>
 
-On Thu, Jan 04, 2018 at 05:50:12AM +0000, Al Viro wrote:
-> On Wed, Jan 03, 2018 at 09:44:33PM -0800, Dan Williams wrote:
-> > On Wed, Jan 3, 2018 at 8:44 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> > > On Thu, Jan 04, 2018 at 03:10:51AM +0000, Williams, Dan J wrote:
-> > >
-> > >> diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
-> > >> index 1c65817673db..dbc12007da51 100644
-> > >> --- a/include/linux/fdtable.h
-> > >> +++ b/include/linux/fdtable.h
-> > >> @@ -82,8 +82,10 @@ static inline struct file *__fcheck_files(struct files_struct *files, unsigned i
-> > >>  {
-> > >>       struct fdtable *fdt = rcu_dereference_raw(files->fdt);
-> > >>
-> > >> -     if (fd < fdt->max_fds)
-> > >> +     if (fd < fdt->max_fds) {
-> > >> +             osb();
-> > >>               return rcu_dereference_raw(fdt->fd[fd]);
-> > >> +     }
-> > >>       return NULL;
-> > >>  }
-> > >
-> > > ... and the point of that would be?  Possibly revealing the value of files->fdt?
-> > > Why would that be a threat, assuming you manage to extract the information in
-> > > question in the first place?
-> > 
-> > No, the concern is that an fd value >= fdt->max_fds may cause the cpu
-> > to read arbitrary memory addresses relative to files->fdt and
-> > userspace can observe that it got loaded.
-> 
-> Yes.  And all that might reveal is the value of files->fdt.  Who cares?
 
-Sorry, s/files->fdt/files->fdt->fd/.  Still the same question - what information
-would that extract and how would attacker use that?
+
+On Wed, 3 Jan 2018, Dan Williams wrote:
+
+> [ adding Julia and Dan ]
+>
+> On Wed, Jan 3, 2018 at 5:07 PM, Alan Cox <gnomes@lxorguk.ukuu.org.uk> wrote:
+> > On Wed, 3 Jan 2018 16:39:31 -0800
+> > Linus Torvalds <torvalds@linux-foundation.org> wrote:
+> >
+> >> On Wed, Jan 3, 2018 at 4:15 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> >> > The 'if_nospec' primitive marks locations where the kernel is disabling
+> >> > speculative execution that could potentially access privileged data. It
+> >> > is expected to be paired with a 'nospec_{ptr,load}' where the user
+> >> > controlled value is actually consumed.
+> >>
+> >> I'm much less worried about these "nospec_load/if" macros, than I am
+> >> about having a sane way to determine when they should be needed.
+> >>
+> >> Is there such a sane model right now, or are we talking "people will
+> >> randomly add these based on strong feelings"?
+> >
+> > There are people trying to tune coverity and other tool rules to identify
+> > cases, and some of the work so far was done that way. For x86 we didn't
+> > find too many so far so either the needed pattern is uncommon or ....  8)
+> >
+> > Given you can execute over a hundred basic instructions in a speculation
+> > window it does need to be a tool that can explore not just in function
+> > but across functions. That's really tough for the compiler itself to do
+> > without help.
+> >
+> > What remains to be seen is if there are other patterns that affect
+> > different processors.
+> >
+> > In the longer term the compiler itself needs to know what is and isn't
+> > safe (ie you need to be able to write things like
+> >
+> > void foo(tainted __user int *x)
+> >
+> > and have the compiler figure out what level of speculation it can do and
+> > (on processors with those features like IA64) when it can and can't do
+> > various kinds of non-trapping loads.
+> >
+>
+> It would be great if coccinelle and/or smatch could be taught to catch
+> some of these case at least as a first pass "please audit this code
+> block" type of notification.
+>
+
+What should one be looking for.  Do you have a typical example?
+
+julia
