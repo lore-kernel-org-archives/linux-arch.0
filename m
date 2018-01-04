@@ -1,77 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59700 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752949AbeADLrh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 4 Jan 2018 06:47:37 -0500
-Date: Thu, 4 Jan 2018 11:47:32 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
-Message-ID: <20180104114732.utkixumxt7rfuf3g@salmiak>
-References: <20180103223827.39601-1-mark.rutland@arm.com>
- <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
- <20180104010754.22ca6a74@alans-desktop>
- <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
- <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
- <CA+55aFx7eJqRA8EWwSCrC+Lr1ZjUvRXSuhrxo+af_Dx3YWKbOQ@mail.gmail.com>
- <1515035438.20588.4.camel@intel.com>
+Received: from mail-vk0-f66.google.com ([209.85.213.66]:37769 "EHLO
+        mail-vk0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752553AbeADOHU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 09:07:20 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1515035438.20588.4.camel@intel.com>
+In-Reply-To: <ff51fff7-e963-f9fd-10d6-9b90a64d7aac@linaro.org>
+References: <1513057621-19084-1-git-send-email-rickchen36@gmail.com>
+ <1513057621-19084-2-git-send-email-rickchen36@gmail.com> <bb7383ba-bb8e-3cbd-4ce0-faaefa8ed114@linaro.org>
+ <CAEbi=3cEEtLQRiv-cyUwEmcBNOC2Sz7AhzZkpznQWYb9VUojug@mail.gmail.com> <ff51fff7-e963-f9fd-10d6-9b90a64d7aac@linaro.org>
+From: Greentime Hu <green.hu@gmail.com>
+Date: Thu, 4 Jan 2018 22:06:38 +0800
+Message-ID: <CAEbi=3c4yAx7Tejz8aPw3-3vj89t8cg-zNEY-vbF7KaMo8OM0Q@mail.gmail.com>
+Subject: Re: [PATCH v5 1/3] clocksource/drivers/atcpit100: Add andestech
+ atcpit100 timer
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Williams, Dan J" <dan.j.williams@intel.com>
-Cc: "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "alan@linux.intel.com" <alan@linux.intel.com>, "Reshetova, Elena" <elena.reshetova@intel.com>, "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "jikos@kernel.org" <jikos@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180104114732.4cUHfB-h53Ba1adcUTPO8wG5-zxSjAnlWxiRLcYY6Nk@z>
+To: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: Greentime <greentime@andestech.com>, Rick Chen <rickchen36@gmail.com>, Rick Chen <rick@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linus Walleij <linus.walleij@linaro.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-serial@vger.kernel.org
+Message-ID: <20180104140638.V4J587WNXBAl2fdYfuIK20QEF2UcMr8m5B0GJBtI0Vw@z>
 
-Hi Dan,
+Hi, Daniel:
 
-Thanks for these examples.
+2018-01-04 21:50 GMT+08:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
+>
+> Hi,
+>
+> sorry I missed your answer. Comments below.
+>
+> On 13/12/2017 07:06, Greentime Hu wrote:
+>> Hi, Daniel:
+>>
+>> 2017-12-12 18:05 GMT+08:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
+>>> On 12/12/2017 06:46, Rick Chen wrote:
+>>>> ATCPIT100 is often used on the Andes architecture,
+>>>> This timer provide 4 PIT channels. Each PIT channel is a
+>>>> multi-function timer, can be configured as 32,16,8 bit timers
+>>>> or PWM as well.
+>>>>
+>>>> For system timer it will set channel 1 32-bit timer0 as clock
+>>>> source and count downwards until underflow and restart again.
+>>>
+>>> [ ... ]
+>>>
+>>>> +config CLKSRC_ATCPIT100
+>>>> +     bool "Clocksource for AE3XX platform"
+>>>> +     depends on NDS32 || COMPILE_TEST
+>>>> +     depends on HAS_IOMEM
+>>>> +     help
+>>>> +       This option enables support for the Andestech AE3XX platform timers.
+>>>
+>>> Hi Rick,
+>>>
+>>> the general rule for the Kconfig is:
+>>>
+>>> bool "Clocksource for AE3XX platform" if COMPILE_TEST
+>>>
+>>> and no deps on the platform.
+>>>
+>>> It is up to the platform Kconfig to select the option.
+>>>
+>>> We want here a silent option but make it selectable in case of
+>>> compilation test coverage.
+>>
+>>
+>> The way we like to use it is because
+>> 1. This timer is a basic component to boot an nds32 CPU and it should
+>> be able to select without COMPILE_TEST for nds32 architecture.
+>
+> Yes, so you don't need it to be selectable, you must select it from the
+> platform's Kconfig.
 
-On Thu, Jan 04, 2018 at 03:10:51AM +0000, Williams, Dan J wrote:
-> Note, the following is Elena's work, I'm just helping poke the upstream
-> discussion along while she's offline.
-> 
-> Elena audited the static analysis reports down to the following
-> locations where userspace provides a value for a conditional branch and
-> then later creates a dependent load on that same userspace controlled
-> value.
-> 
-> 'osb()', observable memory barrier, resolves to an lfence on x86. My
-> concern with these changes is that it is not clear what content within
-> the branch block is of concern. Peter's 'if_nospec' proposal combined
-> with Mark's 'nospec_load' would seem to clear that up, from a self
-> documenting code perspective, and let archs optionally protect entire
-> conditional blocks or individual loads within those blocks.
+I am not sure that I get your point or not.
+We don't have a CONFIG_PLAT_AE3XX.
+Do you mean we should create one and select CLKSRC_ATCPIT100 under
+CONFIG_PLAT_AE3XX?
 
-I'm a little concerned by having to use two helpers that need to be paired. It
-means that we have to duplicate the bounds information, and I suspect in
-practice that they'll often be paired improperly.
+>> 2. It seems conflict with debug info. I am not sure if there is
+>> another way to debug kernel(with debug info) with COMPILE_TEST and
+>> DEBUG_INFO because we need this driver for nds32 architecture.
+>>
+>> Symbol: DEBUG_INFO [=n]
+>> Type  : boolean
+>> Prompt: Compile the kernel with debug info
+>>   Location:
+>>     -> Kernel hacking
+>>       -> Compile-time checks and compiler options
+>>   Defined at lib/Kconfig.debug:140
+>>   Depends on: DEBUG_KERNEL [=y] && !COMPILE_TEST [=n]
+>
+> The COMPILE_TEST option is only there to allow cross-compilation test
+> coverage, it does not select or unselect the driver in usual way.
+>
+> If the COMPILE_TEST is enabled, then the option will appear in the
+> menuconfig, so that gives the opportunity to select/unselect it.
+>
+> Otherwise, the Kconfig's platform selects automatically the driver and
+> the user *can't* unselect it from the menuconfig as it is a silent
+> option and that is certainly what you want.
+>
+>>> Also, this driver is not a CLKSRC but a TIMER. Rename CLKSRC_ATCPIT100
+>>> to TIMER_ATCPIT100.
+>>
+>> Thanks. We will rename it in the next version patch.
+>
+> You just resend an entire series V5 for the architecture. I'm confused,
+> what is the merging path ?
 
-I think that we can avoid those problems if we use nospec_ptr() on its own. It
-returns NULL if the pointer would be out-of-bounds, so we can use it in the
-if-statement.
+Sorry. I didn't get your point.
+We sent the timer patch and the architecture patch together because it
+would be easier for reviewer to check the vdso implementations.
+What do you mean about the merging path?
 
-On x86, that can contain the bounds checks followed be an OSB / lfence, like
-if_nospec(). On arm we can use our architected sequence. In either case,
-nospec_ptr() returns NULL if the pointer would be out-of-bounds.
-
-Then, rather than sequences like:
-
-	if_nospec(idx < max) {
-		val = nospec_array_load(array, idx, max);
-		...
-	}
-
-... we could have:
-
-	if ((elem_ptr = nospec_array_ptr(array, idx, max)) {
-		val = *elem_ptr;
-		...
-	}
-
-... which also means we don't have to annotate every single load in the branch
-if the element is a structure with multiple fields.
-
-Does that sound workable to you?
+Thanks.
