@@ -1,52 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.llwyncelyn.cymru ([82.70.14.225]:47256 "EHLO fuzix.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751829AbeADUdS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 4 Jan 2018 15:33:18 -0500
-Date: Thu, 4 Jan 2018 20:32:46 +0000
-From: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
+Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:45436 "EHLO
+        atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752552AbeADU44 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 15:56:56 -0500
+Date: Thu, 4 Jan 2018 21:56:54 +0100
+From: Pavel Machek <pavel@ucw.cz>
 Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
-Message-ID: <20180104203246.5ff65328@alans-desktop>
-In-Reply-To: <20180104193936.GB10427@amd>
-References: <20180103223827.39601-1-mark.rutland@arm.com>
-        <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
-        <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
-        <20180104010754.22ca6a74@alans-desktop>
-        <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
-        <20180104014100.3786e686@alans-desktop>
-        <nycvar.YFH.7.76.1801040243300.11852@cbobk.fhfr.pm>
-        <20180104193936.GB10427@amd>
+Message-ID: <20180104205654.GE10427@amd>
+References: <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
+ <20180104010754.22ca6a74@alans-desktop>
+ <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
+ <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
+ <CA+55aFx7eJqRA8EWwSCrC+Lr1ZjUvRXSuhrxo+af_Dx3YWKbOQ@mail.gmail.com>
+ <1515035438.20588.4.camel@intel.com>
+ <87vagiusj1.fsf@xmission.com>
+ <CAPcyv4hOtk3QsCWOhECs7=UCh-iO+TKSJvRmqVq+Xhjx9OTiew@mail.gmail.com>
+ <87wp0xu12k.fsf@xmission.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; micalg=pgp-sha1;
+        protocol="application/pgp-signature"; boundary="ryJZkp9/svQ58syV"
+Content-Disposition: inline
+In-Reply-To: <87wp0xu12k.fsf@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pavel Machek <pavel@ucw.cz>
-Cc: Jiri Kosina <jikos@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>
-Message-ID: <20180104203246.Ib02DMcpjl-3xQC5Wf_peAioSbf4gRoiq0gaIwCOSSc@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Dan Williams <dan.j.williams@intel.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "alan@linux.intel.com" <alan@linux.intel.com>, "Reshetova, Elena" <elena.reshetova@intel.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "jikos@kernel.org" <jikos@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20180104205654.Rl5KlKRQfy2rU5Ko-9rGy_0q26Xec4z5xPzlvhVw2Xc@z>
 
-> For kernel, we may be able to annonate "tainted" pointers. But then
-> there's quite a lot of code in userspace... What will need to be
-> modified? Just JITs? Setuid programs?
 
-You never go from one user process to another except via the kernel. We
-have no hardware scheduling going on. That means that if the kernel
-and/or CPU imposes the correct speculation barriers you can't attack
-anyone but yourself.
+--ryJZkp9/svQ58syV
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Sandboxes and JITs are the critical components where the issue matters.
-That IMHO is also an argument for why once the basics are in place there
-is a good argument for a prctl and maybe cgroup support to run some
-groups of processes with different trust levels.
+Hi!
 
-For example there's not much point protecting a user process from root,
-or a process from another process that could use ptrace on it instead.
 
-> And we can get part of the performance back by adding more of
-> SMT... AFAICT.
+> > It falls there so that the cpu only issues reads with known good 'index=
+' values.
+> >
+> >> I suspect it would be better to have those barriers in the tun/tap
+> >> interfaces where userspace can inject packets and thus time them.  Then
+> >> the code could still speculate and go fast for remote packets.
+> >>
+> >> Or does the speculation stomping have to be immediately at the place
+> >> where we use data from userspace to perform a table lookup?
+> >
+> > The speculation stomping barrier has to be between where we validate
+> > the input and when we may speculate on invalid input.
+>=20
+> So a serializing instruction at the kernel/user boundary (like say
+> loading cr3) is not enough?  That would seem to break any chance of a
+> controlled timing.
 
-The current evidence is not because most workloads are not sufficiently
-parallelisable. Likewise doing the speculation in the compiler doesn't
-appear to have been the success people hoped for (IA64).
+Timing attack is not as straightforward as this.
 
-Alan
+You can assume cache snooping from second CPU _while_ kernel is
+executing. Yes, that will mean timing, but....
+
+Best regards,
+									Pavel
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--ryJZkp9/svQ58syV
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAlpOlRYACgkQMOfwapXb+vLb6wCfWYgmH4BO9HC99ipYpXHfO5kv
+X9sAoLAEQQmL1/ovZVnhlAtm+IlQa5Rl
+=09LP
+-----END PGP SIGNATURE-----
+
+--ryJZkp9/svQ58syV--
