@@ -1,66 +1,58 @@
 From: Pavel Machek <pavel@ucw.cz>
 Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
-Date: Thu, 4 Jan 2018 21:40:00 +0100
-Message-ID: <20180104204000.GD10427@amd>
-References: <20180103223827.39601-1-mark.rutland@arm.com>
- <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 4 Jan 2018 21:56:54 +0100
+Message-ID: <20180104205654.GE10427@amd>
+References: <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
  <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
  <20180104010754.22ca6a74@alans-desktop>
  <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
  <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
- <alpine.LRH.2.00.1801040253410.27010@gjva.wvxbf.pm>
+ <CA+55aFx7eJqRA8EWwSCrC+Lr1ZjUvRXSuhrxo+af_Dx3YWKbOQ@mail.gmail.com>
+ <1515035438.20588.4.camel@intel.com>
+ <87vagiusj1.fsf@xmission.com>
+ <CAPcyv4hOtk3QsCWOhECs7=UCh-iO+TKSJvRmqVq+Xhjx9OTiew@mail.gmail.com>
+ <87wp0xu12k.fsf@xmission.com>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="cHMo6Wbp1wrKhbfi"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:44975 "EHLO
-        atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751946AbeADUkC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 15:40:02 -0500
+        protocol="application/pgp-signature"; boundary="ryJZkp9/svQ58syV"
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <alpine.LRH.2.00.1801040253410.27010@gjva.wvxbf.pm>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Kosina <jikos@kernel.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+In-Reply-To: <87wp0xu12k.fsf@xmission.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Dan Williams <dan.j.williams@intel.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "alan@linux.intel.com" <alan@linux.intel.com>, "Reshetova, Elena" <elena.reshetova@intel.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "jikos@kernel.org" <jikos@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
 
---cHMo6Wbp1wrKhbfi
+--ryJZkp9/svQ58syV
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
 Hi!
 
-> > So this is in that same category, but yes, it's inconvenient.
+
+> > It falls there so that the cpu only issues reads with known good 'index=
+' values.
+> >
+> >> I suspect it would be better to have those barriers in the tun/tap
+> >> interfaces where userspace can inject packets and thus time them.  Then
+> >> the code could still speculate and go fast for remote packets.
+> >>
+> >> Or does the speculation stomping have to be immediately at the place
+> >> where we use data from userspace to perform a table lookup?
+> >
+> > The speculation stomping barrier has to be between where we validate
+> > the input and when we may speculate on invalid input.
 >=20
-> Disagreed, violently. CPU has to execute the instructions I ask it to=20
-> execute, and if it executes *anything* else that reveals any information=
-=20
-> about the instructions that have *not* been executed, it's flawed.
+> So a serializing instruction at the kernel/user boundary (like say
+> loading cr3) is not enough?  That would seem to break any chance of a
+> controlled timing.
 
-I agree that's a flaw. Unfortunately... CPUs do execute instructions
-you did not ask them to execute all the time.
+Timing attack is not as straightforward as this.
 
-Plus CPU designers forgot that cache state (and active row in DRAM) is
-actually observable side-effect. ....and that's where we are today.
-
-If you want, I have two systems with AMD Geode. One is PC. Neither is
-very fast.
-
-All the other general purpose CPUs I have -- and that includes
-smartphones -- are likely out-of-order, and that means flawed.
-
-So... situation is bad.
-
-CPUs do execute intruction you did not ask them to execute. I don't
-think that's reasonable to change.
-
-I believe "right" fix would be for CPUs to treat even DRAM read as
-side-effects, and adjust speculation accordingly. I'm not sure Intel/AMD
-is going to do the right thing here.
-
-Oh, I have an FPGA, too, if you want to play with RISC-V :-).
+You can assume cache snooping from second CPU _while_ kernel is
+executing. Yes, that will mean timing, but....
 
 Best regards,
 									Pavel
@@ -69,16 +61,16 @@ Best regards,
 (cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
 g.html
 
---cHMo6Wbp1wrKhbfi
+--ryJZkp9/svQ58syV
 Content-Type: application/pgp-signature; name="signature.asc"
 Content-Description: Digital signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1
 
-iEYEARECAAYFAlpOkSAACgkQMOfwapXb+vJPRgCgp2tylF7Soatf4W/Qefzl60dG
-UIgAoI0XKcoFtyat3mY+/wQudW/E6G11
-=lJ95
+iEYEARECAAYFAlpOlRYACgkQMOfwapXb+vLb6wCfWYgmH4BO9HC99ipYpXHfO5kv
+X9sAoLAEQQmL1/ovZVnhlAtm+IlQa5Rl
+=09LP
 -----END PGP SIGNATURE-----
 
---cHMo6Wbp1wrKhbfi--
+--ryJZkp9/svQ58syV--
