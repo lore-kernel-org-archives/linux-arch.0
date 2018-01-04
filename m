@@ -1,105 +1,104 @@
-From: Dan Williams <dan.j.williams@intel.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
-Date: Thu, 4 Jan 2018 14:09:52 -0800
-Message-ID: <CAPcyv4iPg0y0+QNO9h9qkfuDZ2xo769hfzOqTOcrjPi2mFS3Jw@mail.gmail.com>
+Date: Thu, 4 Jan 2018 14:20:49 -0800
+Message-ID: <CA+55aFwRh++2cyfi1ZXnWCwGv=kuSjft-RcSCDW89T5g=0RB2Q@mail.gmail.com>
 References: <20180103223827.39601-1-mark.rutland@arm.com> <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
  <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
- <20180104010754.22ca6a74@alans-desktop> <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
- <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
- <CA+55aFx7eJqRA8EWwSCrC+Lr1ZjUvRXSuhrxo+af_Dx3YWKbOQ@mail.gmail.com>
- <1515035438.20588.4.camel@intel.com> <20180104114732.utkixumxt7rfuf3g@salmiak>
+ <20180104010754.22ca6a74@alans-desktop> <CAPcyv4ge14OPyfoQvXHLyXwqX7cjWvm4DouUOc=WrNo1Lr9Qyw@mail.gmail.com>
+ <alpine.DEB.2.20.1801040728140.2148@hadrien> <CAPcyv4gLcC7vsxLUCEJdEvDRf4AhgF0x1fpTEcH7AOe=kuNfoQ@mail.gmail.com>
+ <20180104192648.GA10427@amd> <CAPcyv4g0ZEP_LuXwsf1rJGaG65UHn5sj=DMyMdCnzKD9T-vnyg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f45.google.com ([209.85.218.45]:42293 "EHLO
-        mail-oi0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752617AbeADWJy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 17:09:54 -0500
-Received: by mail-oi0-f45.google.com with SMTP id o64so1975796oia.9
-        for <linux-arch@vger.kernel.org>; Thu, 04 Jan 2018 14:09:53 -0800 (PST)
-In-Reply-To: <20180104114732.utkixumxt7rfuf3g@salmiak>
+Received: from mail-io0-f181.google.com ([209.85.223.181]:42272 "EHLO
+        mail-io0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752550AbeADWUv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 17:20:51 -0500
+In-Reply-To: <CAPcyv4g0ZEP_LuXwsf1rJGaG65UHn5sj=DMyMdCnzKD9T-vnyg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "alan@linux.intel.com" <alan@linux.intel.com>, "Reshetova, Elena" <elena.reshetova@intel.com>, "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "jikos@kernel.org" <jikos@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Pavel Machek <pavel@ucw.cz>, Julia Lawall <julia.lawall@lip6.fr>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>, Dan Carpenter <dan.carpenter@oracle.com>
 
-On Thu, Jan 4, 2018 at 3:47 AM, Mark Rutland <mark.rutland@arm.com> wrote:
-> Hi Dan,
+On Thu, Jan 4, 2018 at 1:43 PM, Dan Williams <dan.j.williams@intel.com> wrote:
 >
-> Thanks for these examples.
->
-> On Thu, Jan 04, 2018 at 03:10:51AM +0000, Williams, Dan J wrote:
->> Note, the following is Elena's work, I'm just helping poke the upstream
->> discussion along while she's offline.
->>
->> Elena audited the static analysis reports down to the following
->> locations where userspace provides a value for a conditional branch and
->> then later creates a dependent load on that same userspace controlled
->> value.
->>
->> 'osb()', observable memory barrier, resolves to an lfence on x86. My
->> concern with these changes is that it is not clear what content within
->> the branch block is of concern. Peter's 'if_nospec' proposal combined
->> with Mark's 'nospec_load' would seem to clear that up, from a self
->> documenting code perspective, and let archs optionally protect entire
->> conditional blocks or individual loads within those blocks.
->
-> I'm a little concerned by having to use two helpers that need to be paired. It
-> means that we have to duplicate the bounds information, and I suspect in
-> practice that they'll often be paired improperly.
+> As far as I understand the presence of array2[val] discloses more
+> information, but in terms of the cpu taking an action that it is
+> observable in the cache that's already occurred when "val =
+> array[attacker_controlled_index];" is speculated. Lets err on the side
+> of caution and shut down all the observable actions that are already
+> explicitly gated by an input validation check. In other words, a low
+> bandwidth information leak is still a leak.
 
-Hmm, will they be often mispaired? All of the examples to date the
-load occurs in the same code block as the bound checking if()
-statement.
+I do think that the change to __fcheck_files() is interesting, because
+that one is potentially rather performance-sensitive.
 
-> I think that we can avoid those problems if we use nospec_ptr() on its own. It
-> returns NULL if the pointer would be out-of-bounds, so we can use it in the
-> if-statement.
->
-> On x86, that can contain the bounds checks followed be an OSB / lfence, like
-> if_nospec(). On arm we can use our architected sequence. In either case,
-> nospec_ptr() returns NULL if the pointer would be out-of-bounds.
->
-> Then, rather than sequences like:
->
->         if_nospec(idx < max) {
->                 val = nospec_array_load(array, idx, max);
->                 ...
->         }
->
-> ... we could have:
->
->         if ((elem_ptr = nospec_array_ptr(array, idx, max)) {
->                 val = *elem_ptr;
->                 ...
->         }
->
-> ... which also means we don't have to annotate every single load in the branch
-> if the element is a structure with multiple fields.
+And the data access speculation annotations we presumably won't be
+able to get rid of eventually with newer hardware, so to some degree
+this is a bigger deal than the random hacks that affect _current_
+hardware but hopefully hw designers will fix in the future.
 
-We wouldn't need to annotate each load in that case, right? Just the
-instance that uses idx to calculate an address.
+That does make me think that we should strive to perhaps use the same
+model that the BPF people are looking at: making the address
+generation part of the computation, rather than using a barrier. I'm
+not sure how expensive lfence is, but from every single time ever in
+the history of man, barriers have been a bad idea. Which makes me
+suspect that lfence is a bad idea too.
 
-if_nospec (idx < max_idx) {
-   elem_ptr = nospec_array_ptr(array, idx, max);
-   val = elem_ptr->val;
-   val2 = elem_ptr->val2;
-}
+If one common pattern is going to be bounces checking array accesses
+like this, then we probably should strive to turn
 
-> Does that sound workable to you?
+    if (index < bound)
+       val = array[index];
 
-Relative to the urgency of getting fixes upstream I'm ok with whatever
-approach generates the least debate from sub-system maintainers.
+into making sure we actually have that data dependency on the address
+instead. Whether that is done with a "select" instruction or by using
+an "and" with -1/0 is then a small detail.
 
-One concern is that on x86 the:
+I wonder if we can make the interface be something really straightforward:
 
-    if ((elem_ptr = nospec_array_ptr(array, idx, max)) {
+ - specify a special
 
-...approach produces two conditional branches whereas:
+        array_access(array, index, max)
 
-    if_nospec (idx < max_idx) {
-        elem_ptr = nospec_array_ptr(array, idx, max);
+    operation, and say that the access is guaranteed to not
+speculatively access outside the array, and return 0 (of the type
+"array entry") if outside the range.
 
-....can be optimized to one conditional with the barrier.
+ - further specify that it's safe as READ_ONCE() and/or RCU access
+(and only defined for native data types)
 
-Is that convincing enough to proceed with if_nospec + nospec_* combination?
+That would turn that existing __fcheck_files() from
+
+        if (fd < fdt->max_fds)
+                return rcu_dereference_raw(fdt->fd[fd]);
+        return NULL;
+
+into just
+
+        return array_access(fdt->fd, fd, ft->max_fds);
+
+and the *implementation* might be architecture-specific, but one
+particular implementation would be something like simply
+
+#define array_access(base, idx, max) ({                         \
+        union { typeof(base[0]) _val; unsigned long _bit; } __u;\
+        unsigned long _i = (idx);                               \
+        unsigned long _m = (max);                               \
+        unsigned long _mask = _i < _m ? ~0 : 0;                 \
+        OPTIMIZER_HIDE_VAR(_mask);                              \
+        __u._val = base[_i & _mask];                            \
+        __u._bit &= _mask;                                      \
+        __u._val; })
+
+(Ok, the above is not exhaustively tested, but you get the idea, and
+gcc doesn't seem to mess it up *too* badly).
+
+No barriers anywhere, except for the compiler barrier to make sure the
+compiler doesn't see how it all depends on that comparison, and
+actually uses two "and" instructions to fix the address and the data.
+
+How slow is lfence? Maybe it's not slow, but the above looks like it
+*might* be better..
+
+                     Linus
