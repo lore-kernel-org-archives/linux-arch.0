@@ -1,81 +1,105 @@
-From: Pavel Machek <pavel@ucw.cz>
+From: Dan Williams <dan.j.williams@intel.com>
 Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
-Date: Thu, 4 Jan 2018 22:48:09 +0100
-Message-ID: <20180104214809.GB18699@amd>
-References: <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 4 Jan 2018 14:09:52 -0800
+Message-ID: <CAPcyv4iPg0y0+QNO9h9qkfuDZ2xo769hfzOqTOcrjPi2mFS3Jw@mail.gmail.com>
+References: <20180103223827.39601-1-mark.rutland@arm.com> <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
  <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
- <20180104010754.22ca6a74@alans-desktop>
- <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
- <20180104014100.3786e686@alans-desktop>
- <nycvar.YFH.7.76.1801040243300.11852@cbobk.fhfr.pm>
- <20180104193936.GB10427@amd>
- <20180104203246.5ff65328@alans-desktop>
- <nycvar.YFH.7.76.1801042137560.11852@cbobk.fhfr.pm>
- <20180104212359.0b520868@alans-desktop>
+ <20180104010754.22ca6a74@alans-desktop> <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
+ <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
+ <CA+55aFx7eJqRA8EWwSCrC+Lr1ZjUvRXSuhrxo+af_Dx3YWKbOQ@mail.gmail.com>
+ <1515035438.20588.4.camel@intel.com> <20180104114732.utkixumxt7rfuf3g@salmiak>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="ftEhullJWpWg/VHq"
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:47123 "EHLO
-        atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751952AbeADVsL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 16:48:11 -0500
-Content-Disposition: inline
-In-Reply-To: <20180104212359.0b520868@alans-desktop>
+Received: from mail-oi0-f45.google.com ([209.85.218.45]:42293 "EHLO
+        mail-oi0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752617AbeADWJy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jan 2018 17:09:54 -0500
+Received: by mail-oi0-f45.google.com with SMTP id o64so1975796oia.9
+        for <linux-arch@vger.kernel.org>; Thu, 04 Jan 2018 14:09:53 -0800 (PST)
+In-Reply-To: <20180104114732.utkixumxt7rfuf3g@salmiak>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-Cc: Jiri Kosina <jikos@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "alan@linux.intel.com" <alan@linux.intel.com>, "Reshetova, Elena" <elena.reshetova@intel.com>, "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "jikos@kernel.org" <jikos@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
+On Thu, Jan 4, 2018 at 3:47 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+> Hi Dan,
+>
+> Thanks for these examples.
+>
+> On Thu, Jan 04, 2018 at 03:10:51AM +0000, Williams, Dan J wrote:
+>> Note, the following is Elena's work, I'm just helping poke the upstream
+>> discussion along while she's offline.
+>>
+>> Elena audited the static analysis reports down to the following
+>> locations where userspace provides a value for a conditional branch and
+>> then later creates a dependent load on that same userspace controlled
+>> value.
+>>
+>> 'osb()', observable memory barrier, resolves to an lfence on x86. My
+>> concern with these changes is that it is not clear what content within
+>> the branch block is of concern. Peter's 'if_nospec' proposal combined
+>> with Mark's 'nospec_load' would seem to clear that up, from a self
+>> documenting code perspective, and let archs optionally protect entire
+>> conditional blocks or individual loads within those blocks.
+>
+> I'm a little concerned by having to use two helpers that need to be paired. It
+> means that we have to duplicate the bounds information, and I suspect in
+> practice that they'll often be paired improperly.
 
---ftEhullJWpWg/VHq
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Hmm, will they be often mispaired? All of the examples to date the
+load occurs in the same code block as the bound checking if()
+statement.
 
-On Thu 2018-01-04 21:23:59, Alan Cox wrote:
-> On Thu, 4 Jan 2018 21:39:24 +0100 (CET)
-> Jiri Kosina <jikos@kernel.org> wrote:
->=20
-> > On Thu, 4 Jan 2018, Alan Cox wrote:
-> >=20
-> > > You never go from one user process to another except via the kernel. =
-We
-> > > have no hardware scheduling going on. That means that if the kernel
-> > > and/or CPU imposes the correct speculation barriers you can't attack
-> > > anyone but yourself. =20
-> >=20
-> > So how does this work on HT with the shared BTB? There is no context=20
-> > switch (and hence no IBPB) happening between the threads sharing it.
-> >=20
->=20
-> If you are paranoid in that case you either need to schedule things that
-> trust each other together or disable the speculation while that situation
-> occurs. However the kernel is always in the position to make that
-> decision.
+> I think that we can avoid those problems if we use nospec_ptr() on its own. It
+> returns NULL if the pointer would be out-of-bounds, so we can use it in the
+> if-statement.
+>
+> On x86, that can contain the bounds checks followed be an OSB / lfence, like
+> if_nospec(). On arm we can use our architected sequence. In either case,
+> nospec_ptr() returns NULL if the pointer would be out-of-bounds.
+>
+> Then, rather than sequences like:
+>
+>         if_nospec(idx < max) {
+>                 val = nospec_array_load(array, idx, max);
+>                 ...
+>         }
+>
+> ... we could have:
+>
+>         if ((elem_ptr = nospec_array_ptr(array, idx, max)) {
+>                 val = *elem_ptr;
+>                 ...
+>         }
+>
+> ... which also means we don't have to annotate every single load in the branch
+> if the element is a structure with multiple fields.
 
-Actually... I'm not paranoid but would like to run flightgear on one
-core (smt cpu #0), with smt cpu#1 being idle, while running
-compilations on second core (smt cpus #2 and #3).
+We wouldn't need to annotate each load in that case, right? Just the
+instance that uses idx to calculate an address.
 
-Is there easy way to do that?
-									Pavel
+if_nospec (idx < max_idx) {
+   elem_ptr = nospec_array_ptr(array, idx, max);
+   val = elem_ptr->val;
+   val2 = elem_ptr->val2;
+}
 
---=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
-g.html
+> Does that sound workable to you?
 
---ftEhullJWpWg/VHq
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+Relative to the urgency of getting fixes upstream I'm ok with whatever
+approach generates the least debate from sub-system maintainers.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
+One concern is that on x86 the:
 
-iEYEARECAAYFAlpOoRkACgkQMOfwapXb+vJbtQCfa+hZh65GyyHcY2AkRMt8QT/t
-uRIAnAnZYhAYR0Myd35supYa7hjpYnJd
-=R9tF
------END PGP SIGNATURE-----
+    if ((elem_ptr = nospec_array_ptr(array, idx, max)) {
 
---ftEhullJWpWg/VHq--
+...approach produces two conditional branches whereas:
+
+    if_nospec (idx < max_idx) {
+        elem_ptr = nospec_array_ptr(array, idx, max);
+
+....can be optimized to one conditional with the barrier.
+
+Is that convincing enough to proceed with if_nospec + nospec_* combination?
