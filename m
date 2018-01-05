@@ -1,41 +1,34 @@
-From: =?iso-8859-2?Q?Horia_Geant=E3?= <horia.geanta@nxp.com>
-Subject: Re: [PATCH v10 7/8] crypto: caam: cleanup CONFIG_64BIT ifdefs when
- using io{read|write}64
-Date: Fri, 5 Jan 2018 08:01:13 +0000
-Message-ID: <VI1PR0402MB334282217BC0AE1F8DA8BFC3981C0@VI1PR0402MB3342.eurprd04.prod.outlook.com>
-References: <20180104191645.10006-1-logang@deltatee.com>
- <20180104191645.10006-8-logang@deltatee.com>
+From: Julia Lawall <julia.lawall@lip6.fr>
+Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and
+ nospec_barrier
+Date: Fri, 5 Jan 2018 09:11:59 +0100 (CET)
+Message-ID: <alpine.DEB.2.20.1801050906140.4515@hadrien>
+References: <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com> <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com> <20180104010754.22ca6a74@alans-desktop> <CAPcyv4ge14OPyfoQvXHLyXwqX7cjWvm4DouUOc=WrNo1Lr9Qyw@mail.gmail.com>
+ <alpine.DEB.2.20.1801040728140.2148@hadrien> <CAPcyv4gLcC7vsxLUCEJdEvDRf4AhgF0x1fpTEcH7AOe=kuNfoQ@mail.gmail.com> <20180104192648.GA10427@amd> <CAPcyv4g0ZEP_LuXwsf1rJGaG65UHn5sj=DMyMdCnzKD9T-vnyg@mail.gmail.com> <20180104224455.GA22369@amd>
+ <CAPcyv4gVq=F-+8YX6ALUiL61MtOVtDzPrEo18WVsFodZ1YY20A@mail.gmail.com> <20180104233259.GA24680@amd>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-2"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-crypto-owner@vger.kernel.org>
-Content-Language: en-US
-Sender: linux-crypto-owner@vger.kernel.org
-To: Logan Gunthorpe <logang@deltatee.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail2-relais-roc.national.inria.fr ([192.134.164.83]:64880 "EHLO
+        mail2-relais-roc.national.inria.fr" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751284AbeAEIMB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jan 2018 03:12:01 -0500
+In-Reply-To: <20180104233259.GA24680@amd>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Pavel Machek <pavel@ucw.cz>
+Cc: Dan Williams <dan.j.williams@intel.com>, Julia Lawall <julia.lawall@lip6.fr>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>, Dan Carpenter <dan.carpenter@oracle.com>
 
-On 1/4/2018 9:16 PM, Logan Gunthorpe wrote:=0A=
-> Clean up the extra ifdefs which defined the wr_reg64 and rd_reg64=0A=
-> functions in non-64bit cases in favour of the new common=0A=
-> io-64-nonatomic-lo-hi header.=0A=
-> =0A=
-> To be consistent with CAAM engine HW spec: in case of 64-bit registers,=
-=0A=
-> irrespective of device endianness, the lower address should be read from=
-=0A=
-> / written to first, followed by the upper address. Indeed the I/O=0A=
-> accessors in CAAM driver currently don't follow the spec, however this=0A=
-> is a good opportunity to fix the code.=0A=
-> =0A=
-> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>=0A=
-> Cc: Andy Shevchenko <andy.shevchenko@gmail.com>=0A=
-> Cc: Horia Geant=E3 <horia.geanta@nxp.com>=0A=
-> Cc: Dan Douglass <dan.douglass@nxp.com>=0A=
-> Cc: Herbert Xu <herbert@gondor.apana.org.au>=0A=
-> Cc: "David S. Miller" <davem@davemloft.net>=0A=
-Reviewed-by: Horia Geant=E3 <horia.geanta@nxp.com>=0A=
-=0A=
-Thanks,=0A=
-Horia=0A=
-=0A=
+It looks like the problem in terms of detection is to find values that
+should be annotated as __user.  Poking around a bit, it seems like this
+tool is doing just that:
+
+http://www.cs.umd.edu/~jfoster/cqual/
+
+It dates from 2004, but perhaps the developer could be motivated to pick
+it up again.
+
+I don't think Coccinelle would be good for doing this (ie implementing
+taint analysis) because the dataflow is too complicated.
+
+julia
