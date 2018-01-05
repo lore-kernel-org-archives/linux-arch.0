@@ -1,148 +1,161 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:41168 "EHLO
-        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751302AbeAEJbh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jan 2018 04:31:37 -0500
-Received: by mail-wm0-f66.google.com with SMTP id g75so1309441wme.0
-        for <linux-arch@vger.kernel.org>; Fri, 05 Jan 2018 01:31:37 -0800 (PST)
-Subject: Re: [PATCH v5 1/3] clocksource/drivers/atcpit100: Add andestech
- atcpit100 timer
-References: <1513057621-19084-1-git-send-email-rickchen36@gmail.com>
- <1513057621-19084-2-git-send-email-rickchen36@gmail.com>
- <bb7383ba-bb8e-3cbd-4ce0-faaefa8ed114@linaro.org>
- <CAEbi=3cEEtLQRiv-cyUwEmcBNOC2Sz7AhzZkpznQWYb9VUojug@mail.gmail.com>
- <ff51fff7-e963-f9fd-10d6-9b90a64d7aac@linaro.org>
- <CAEbi=3c4yAx7Tejz8aPw3-3vj89t8cg-zNEY-vbF7KaMo8OM0Q@mail.gmail.com>
- <efdb249a-8dc0-e076-a1db-20cecdbf4c13@linaro.org>
- <CAEbi=3frQYZHb0yiMvNk_JUiUCy6ca0tbrsM_pt49LtkMy47mw@mail.gmail.com>
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Message-ID: <1e75edb3-8f7b-796c-6871-1612b027050e@linaro.org>
-Date: Fri, 5 Jan 2018 10:31:32 +0100
-MIME-Version: 1.0
-In-Reply-To: <CAEbi=3frQYZHb0yiMvNk_JUiUCy6ca0tbrsM_pt49LtkMy47mw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+Received: from foss.arm.com ([217.140.101.70]:46092 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752214AbeAEO6M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Jan 2018 09:58:12 -0500
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [RFCv2 4/4] bpf: inhibit speculated out-of-bounds pointers
+Date: Fri,  5 Jan 2018 14:57:50 +0000
+Message-ID: <20180105145750.53294-5-mark.rutland@arm.com>
+In-Reply-To: <20180105145750.53294-1-mark.rutland@arm.com>
+References: <20180105145750.53294-1-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>
-Cc: Greentime <greentime@andestech.com>, Rick Chen <rickchen36@gmail.com>, Rick Chen <rick@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linus Walleij <linus.walleij@linaro.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-serial@vger.kernel.org
-Message-ID: <20180105093132.YYMllEyGwg8XLdE7c9FPpnSke-AubEiCZA-bX1AI5Go@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: dan.j.williams@intel.com, elena.reshetova@intel.com, corbet@lwn.net, alan@linux.intel.com, peterz@infradead.org, will.deacon@arm.com, gregkh@linuxfoundation.org, tglx@linutronix.de, Mark Rutland <mark.rutland@arm.com>
+Message-ID: <20180105145750.kIAAe7RtlVrixACUXNx4ODkYtd0d2LtidjeZzSsP8L0@z>
 
-On 05/01/2018 09:45, Greentime Hu wrote:
-> Hi, Daniel:
+Note: this patch is an *example* use of the nospec API. It is understood
+that this is incomplete, etc.
 
-[ ... ]
+Under speculation, CPUs may mis-predict branches in bounds checks. Thus,
+memory accesses under a bounds check may be speculated even if the
+bounds check fails, providing a primitive for building a side channel.
 
->>>>>> [ ... ]
->>>>>>
->>>>>>> +config CLKSRC_ATCPIT100
->>>>>>> +     bool "Clocksource for AE3XX platform"
->>>>>>> +     depends on NDS32 || COMPILE_TEST
->>>>>>> +     depends on HAS_IOMEM
->>>>>>> +     help
->>>>>>> +       This option enables support for the Andestech AE3XX platform timers.
->>>>>>
->>>>>> Hi Rick,
->>>>>>
->>>>>> the general rule for the Kconfig is:
->>>>>>
->>>>>> bool "Clocksource for AE3XX platform" if COMPILE_TEST
->>
->> BTW, select TIMER_OF is missing.
-> 
-> We don't select here because we select TIMER_OF in arch/nds32/Kconfig
-> I am not sure if I still need to select TIMER_OF here?
+The EBPF map code has a number of such bounds-checks accesses in
+map_lookup_elem implementations. This patch modifies these to use the
+nospec helpers to inhibit such side channels.
 
-Actually, I want the drivers/clocksource/Kconfig to be consistent across
-all entries. As TIMER_OF is needed by the driver and nothing else, it
-must be selected in the TIMER entry.
+The JITted lookup_elem implementations remain potentially vulnerable,
+and are disabled (with JITted code falling back to the C
+implementations).
 
-As there are a lot of timers and we do the changes little by little,
-there are still entries with different format.
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+---
+ kernel/bpf/arraymap.c | 20 +++++++++++++-------
+ kernel/bpf/cpumap.c   |  5 ++---
+ kernel/bpf/devmap.c   |  3 ++-
+ kernel/bpf/sockmap.c  |  3 ++-
+ 4 files changed, 19 insertions(+), 12 deletions(-)
 
-It should be something like that:
-
-config ASM9260_TIMER
-        bool "ASM9260 timer driver" if COMPILE_TEST
-        select CLKSRC_MMIO
-        select TIMER_OF
-        help
-          Enables support for the ASM9260 timer.
-
-Move the select TIMER_OF to the timer option entry.
-
->>>>>> and no deps on the platform.
->>>>>>
->>>>>> It is up to the platform Kconfig to select the option.
->>>>>>
->>>>>> We want here a silent option but make it selectable in case of
->>>>>> compilation test coverage.
->>>>>
->>>>>
->>>>> The way we like to use it is because
->>>>> 1. This timer is a basic component to boot an nds32 CPU and it should
->>>>> be able to select without COMPILE_TEST for nds32 architecture.
->>>>
->>>> Yes, so you don't need it to be selectable, you must select it from the
->>>> platform's Kconfig.
->>>
->>> I am not sure that I get your point or not.
->>> We don't have a CONFIG_PLAT_AE3XX.
->>> Do you mean we should create one and select CLKSRC_ATCPIT100 under
->>> CONFIG_PLAT_AE3XX?
->>
->> No. Can't you add in arch/ndis32/Kconfig ?
->>
->> +select TIMER_ATCPIT100
->>
->> Like:
->>
->> https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/arm64/Kconfig#n50
-> 
-> IMHO, it might be a little bit wierd if we select TIMER_ATCPIT100 in
-> arch/nds32/Kconfig because it is part of SoC instead of CPU.
-> If we change to another SoC with another timer, we need to select
-> another TIMER in arch/nds32/Kconfig and delete TIMER_ATCPIT100.
-> It seems more flexible to be selected in driver layer.
-> 
-> It seems to be the timer is part of the arch to be selected in arch's Kconfig.
-> arch/arc/Kconfig:       select ARC_TIMERS
-> arch/arc/Kconfig:       select ARC_TIMERS_64BIT
-> arch/arm/Kconfig:       select ARM_ARCH_TIMER
-> arch/arm64/Kconfig:     select ARM_ARCH_TIMER
-> arch/blackfin/Kconfig:  select BFIN_GPTIMERS
-
-No, the timer must be selected from the arch/soc's or whatever Kconfig.
-Not in the clocksource's Kconfig.
-
-eg.
-
-on ARM:
-
-arch/arm/mach-vt8500/Kconfig:   select VT8500_TIMER
-arch/arm/mach-bcm/Kconfig:      select BCM_KONA_TIMER
-arch/arm/mach-actions/Kconfig:  select OWL_TIMER
-arch/arm/mach-digicolor/Kconfig:        select DIGICOLOR_TIMER
-
-etc ...
-
-on ARM64:
-
-arch/arm64/Kconfig.platforms:   select OWL_TIMER
-arch/arm64/Kconfig.platforms:       select ARM_TIMER_SP804
-arch/arm64/Kconfig.platforms:       select MTK_TIMER
-
-etc ...
-
-Thanks.
-
-  -- Daniel
-
-
+diff --git a/kernel/bpf/arraymap.c b/kernel/bpf/arraymap.c
+index 7c25426d3cf5..deaad334a100 100644
+--- a/kernel/bpf/arraymap.c
++++ b/kernel/bpf/arraymap.c
+@@ -117,15 +117,20 @@ static void *array_map_lookup_elem(struct bpf_map *map, void *key)
+ {
+ 	struct bpf_array *array = container_of(map, struct bpf_array, map);
+ 	u32 index = *(u32 *)key;
++	void *ptr, *high;
+ 
+ 	if (unlikely(index >= array->map.max_entries))
+ 		return NULL;
+ 
+-	return array->value + array->elem_size * index;
++	ptr = array->value + array->elem_size * index;
++	high = array->value + array->elem_size * array->map.max_entries;
++
++	return nospec_ptr(ptr, array->value, high);
+ }
+ 
+ /* emit BPF instructions equivalent to C code of array_map_lookup_elem() */
+-static u32 array_map_gen_lookup(struct bpf_map *map, struct bpf_insn *insn_buf)
++static u32 __maybe_unused array_map_gen_lookup(struct bpf_map *map,
++					       struct bpf_insn *insn_buf)
+ {
+ 	struct bpf_insn *insn = insn_buf;
+ 	u32 elem_size = round_up(map->value_size, 8);
+@@ -153,11 +158,14 @@ static void *percpu_array_map_lookup_elem(struct bpf_map *map, void *key)
+ {
+ 	struct bpf_array *array = container_of(map, struct bpf_array, map);
+ 	u32 index = *(u32 *)key;
++	void __percpu *pptr;
+ 
+ 	if (unlikely(index >= array->map.max_entries))
+ 		return NULL;
+ 
+-	return this_cpu_ptr(array->pptrs[index]);
++	pptr = nospec_array_ptr(array->pptrs, index, array->map.max_entries);
++
++	return this_cpu_ptr(pptr);
+ }
+ 
+ int bpf_percpu_array_copy(struct bpf_map *map, void *key, void *value)
+@@ -302,7 +310,6 @@ const struct bpf_map_ops array_map_ops = {
+ 	.map_lookup_elem = array_map_lookup_elem,
+ 	.map_update_elem = array_map_update_elem,
+ 	.map_delete_elem = array_map_delete_elem,
+-	.map_gen_lookup = array_map_gen_lookup,
+ };
+ 
+ const struct bpf_map_ops percpu_array_map_ops = {
+@@ -610,8 +617,8 @@ static void *array_of_map_lookup_elem(struct bpf_map *map, void *key)
+ 	return READ_ONCE(*inner_map);
+ }
+ 
+-static u32 array_of_map_gen_lookup(struct bpf_map *map,
+-				   struct bpf_insn *insn_buf)
++static u32 __maybe_unused array_of_map_gen_lookup(struct bpf_map *map,
++						  struct bpf_insn *insn_buf)
+ {
+ 	u32 elem_size = round_up(map->value_size, 8);
+ 	struct bpf_insn *insn = insn_buf;
+@@ -644,5 +651,4 @@ const struct bpf_map_ops array_of_maps_map_ops = {
+ 	.map_fd_get_ptr = bpf_map_fd_get_ptr,
+ 	.map_fd_put_ptr = bpf_map_fd_put_ptr,
+ 	.map_fd_sys_lookup_elem = bpf_map_fd_sys_lookup_elem,
+-	.map_gen_lookup = array_of_map_gen_lookup,
+ };
+diff --git a/kernel/bpf/cpumap.c b/kernel/bpf/cpumap.c
+index ce5b669003b2..6769a0e30c8c 100644
+--- a/kernel/bpf/cpumap.c
++++ b/kernel/bpf/cpumap.c
+@@ -551,13 +551,12 @@ void cpu_map_free(struct bpf_map *map)
+ struct bpf_cpu_map_entry *__cpu_map_lookup_elem(struct bpf_map *map, u32 key)
+ {
+ 	struct bpf_cpu_map *cmap = container_of(map, struct bpf_cpu_map, map);
+-	struct bpf_cpu_map_entry *rcpu;
+ 
+ 	if (key >= map->max_entries)
+ 		return NULL;
+ 
+-	rcpu = READ_ONCE(cmap->cpu_map[key]);
+-	return rcpu;
++	return READ_ONCE(*nospec_array_ptr(cmap->cpu_map, key,
++					   map->max_entries));
+ }
+ 
+ static void *cpu_map_lookup_elem(struct bpf_map *map, void *key)
+diff --git a/kernel/bpf/devmap.c b/kernel/bpf/devmap.c
+index ebdef54bf7df..5a1050d270a0 100644
+--- a/kernel/bpf/devmap.c
++++ b/kernel/bpf/devmap.c
+@@ -254,7 +254,8 @@ struct net_device  *__dev_map_lookup_elem(struct bpf_map *map, u32 key)
+ 	if (key >= map->max_entries)
+ 		return NULL;
+ 
+-	dev = READ_ONCE(dtab->netdev_map[key]);
++	dev = READ_ONCE(*nospec_array_ptr(dtab->netdev_map, key,
++					  map->max_entries));
+ 	return dev ? dev->dev : NULL;
+ }
+ 
+diff --git a/kernel/bpf/sockmap.c b/kernel/bpf/sockmap.c
+index 5ee2e41893d9..e912de3cd4ce 100644
+--- a/kernel/bpf/sockmap.c
++++ b/kernel/bpf/sockmap.c
+@@ -630,7 +630,8 @@ struct sock  *__sock_map_lookup_elem(struct bpf_map *map, u32 key)
+ 	if (key >= map->max_entries)
+ 		return NULL;
+ 
+-	return READ_ONCE(stab->sock_map[key]);
++	return READ_ONCE(*nospec_array_ptr(stab->sock_map, key,
++					   map->max_entries));
+ }
+ 
+ static int sock_map_delete_elem(struct bpf_map *map, void *key)
 -- 
- <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
-
-Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
-<http://twitter.com/#!/linaroorg> Twitter |
-<http://www.linaro.org/linaro-blog/> Blog
+2.11.0
