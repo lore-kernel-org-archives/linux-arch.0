@@ -1,132 +1,141 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
-Date: Fri, 5 Jan 2018 10:05:31 -0800
-Message-ID: <CAPcyv4j1UHE5WGGjtUAQqtkU17=MCAq5+OdHZFmiOTtD81Ja2g@mail.gmail.com>
-References: <20180103223827.39601-1-mark.rutland@arm.com> <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
- <20180104010754.22ca6a74@alans-desktop> <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
- <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
- <CA+55aFx7eJqRA8EWwSCrC+Lr1ZjUvRXSuhrxo+af_Dx3YWKbOQ@mail.gmail.com>
- <1515035438.20588.4.camel@intel.com> <20180104114732.utkixumxt7rfuf3g@salmiak>
- <CAPcyv4iPg0y0+QNO9h9qkfuDZ2xo769hfzOqTOcrjPi2mFS3Jw@mail.gmail.com>
- <20180105144035.4hjrshigosb6s4zx@lakrids.cambridge.arm.com> <CAPcyv4hQvPAwWqOd_OJs0A5CawXkjuec=KhkbWtCqgEgOorqDg@mail.gmail.com>
+From: Vineet Gupta <Vineet.Gupta1-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
+Subject: Re: [PATCH 09/67] arc: remove CONFIG_ARC_PLAT_NEEDS_PHYS_TO_DMA
+Date: Fri, 5 Jan 2018 11:45:16 -0800
+Message-ID: <2c24bfd1-5f54-4b82-444e-833dc53b6efd@synopsys.com>
+References: <20171229081911.2802-1-hch@lst.de>
+	<20171229081911.2802-10-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f46.google.com ([209.85.218.46]:42152 "EHLO
-        mail-oi0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752087AbeAESFc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jan 2018 13:05:32 -0500
-Received: by mail-oi0-f46.google.com with SMTP id o64so3600827oia.9
-        for <linux-arch@vger.kernel.org>; Fri, 05 Jan 2018 10:05:32 -0800 (PST)
-In-Reply-To: <CAPcyv4hQvPAwWqOd_OJs0A5CawXkjuec=KhkbWtCqgEgOorqDg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "alan@linux.intel.com" <alan@linux.intel.com>, "Reshetova, Elena" <elena.reshetova@intel.com>, "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "jikos@kernel.org" <jikos@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20171229081911.2802-10-hch-jcswGhMUV9g@public.gmane.org>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, "iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org" <iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Cc: "linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org" <linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, "linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org" <linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org>, "linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org" <adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>, "linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org" <linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org>, "patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org" <patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org>, "linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-metag@vger.k>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 5, 2018 at 8:44 AM, Dan Williams <dan.j.williams@intel.com> wrote:
-> On Fri, Jan 5, 2018 at 6:40 AM, Mark Rutland <mark.rutland@arm.com> wrote:
->> On Thu, Jan 04, 2018 at 02:09:52PM -0800, Dan Williams wrote:
->>> On Thu, Jan 4, 2018 at 3:47 AM, Mark Rutland <mark.rutland@arm.com> wrote:
->>> > Hi Dan,
->>> >
->>> > Thanks for these examples.
->>> >
->>> > On Thu, Jan 04, 2018 at 03:10:51AM +0000, Williams, Dan J wrote:
->>> >> Note, the following is Elena's work, I'm just helping poke the upstream
->>> >> discussion along while she's offline.
->>> >>
->>> >> Elena audited the static analysis reports down to the following
->>> >> locations where userspace provides a value for a conditional branch and
->>> >> then later creates a dependent load on that same userspace controlled
->>> >> value.
->>> >>
->>> >> 'osb()', observable memory barrier, resolves to an lfence on x86. My
->>> >> concern with these changes is that it is not clear what content within
->>> >> the branch block is of concern. Peter's 'if_nospec' proposal combined
->>> >> with Mark's 'nospec_load' would seem to clear that up, from a self
->>> >> documenting code perspective, and let archs optionally protect entire
->>> >> conditional blocks or individual loads within those blocks.
->>> >
->>> > I'm a little concerned by having to use two helpers that need to be paired. It
->>> > means that we have to duplicate the bounds information, and I suspect in
->>> > practice that they'll often be paired improperly.
->>>
->>> Hmm, will they be often mispaired? All of the examples to date the
->>> load occurs in the same code block as the bound checking if()
->>> statement.
->>
->> Practically speaking, barriers get misused all the time, and having a
->> single helper minimizes the risk or misuse.
+On 12/29/2017 12:25 AM, Christoph Hellwig wrote:
+> We always use the stub definitions, so remove the unused other code.
 >
-> I agree, but this is why if_nospec hides the barrier / makes it implicit.
->
->>
->>> > I think that we can avoid those problems if we use nospec_ptr() on its own. It
->>> > returns NULL if the pointer would be out-of-bounds, so we can use it in the
->>> > if-statement.
->>> >
->>> > On x86, that can contain the bounds checks followed be an OSB / lfence, like
->>> > if_nospec(). On arm we can use our architected sequence. In either case,
->>> > nospec_ptr() returns NULL if the pointer would be out-of-bounds.
->>> >
->>> > Then, rather than sequences like:
->>> >
->>> >         if_nospec(idx < max) {
->>> >                 val = nospec_array_load(array, idx, max);
->>> >                 ...
->>> >         }
->>> >
->>> > ... we could have:
->>> >
->>> >         if ((elem_ptr = nospec_array_ptr(array, idx, max)) {
->>> >                 val = *elem_ptr;
->>> >                 ...
->>> >         }
->>> >
->>> > ... which also means we don't have to annotate every single load in the branch
->>> > if the element is a structure with multiple fields.
->>>
->>> We wouldn't need to annotate each load in that case, right? Just the
->>> instance that uses idx to calculate an address.
->>
->> Correct.
->>
->>> if_nospec (idx < max_idx) {
->>>    elem_ptr = nospec_array_ptr(array, idx, max);
->>>    val = elem_ptr->val;
->>>    val2 = elem_ptr->val2;
->>> }
->>>
->>> > Does that sound workable to you?
->>>
->>> Relative to the urgency of getting fixes upstream I'm ok with whatever
->>> approach generates the least debate from sub-system maintainers.
->>>
->>> One concern is that on x86 the:
->>>
->>>     if ((elem_ptr = nospec_array_ptr(array, idx, max)) {
->>>
->>> ...approach produces two conditional branches whereas:
->>>
->>>     if_nospec (idx < max_idx) {
->>>         elem_ptr = nospec_array_ptr(array, idx, max);
->>>
->>> ....can be optimized to one conditional with the barrier.
->>
->> Do you mean because the NULL check is redundant? I was hoping that the
->> compiler would have the necessary visibility to fold that with the
->> bounds check (on the assumption that the array base must not be NULL).
->
-> ...but there's legitimately 2 conditionals one to control the
-> non-speculative flow, and one to sink the speculation ala the
-> array_access() approach from Linus. Keeping those separate seems to
-> lead to less change in the suspected areas. In any event I'll post the
-> reworked patches and we can iterate from there.
+> Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 
-Disregard this, I'm going ahead with your new nospec_array_ptr()
-helper as it falls out nicely and seems to be equally self documenting
-as 'if_nospec'. Since I was already done with the if_nospec +
-nospec_array_load conversions it's not much more work to go back and
-roll the nospec_array_ptr conversion on top.
+Acked-by: Vineet Gupta <vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
+
+FWIW, it was removed and reintroduced as one of the customers wanted it, which is 
+not relevant now !
+
+Thx,
+-Vineet
+
+> ---
+>   arch/arc/Kconfig                   |  3 ---
+>   arch/arc/include/asm/dma-mapping.h |  7 -------
+>   arch/arc/mm/dma.c                  | 14 +++++++-------
+>   3 files changed, 7 insertions(+), 17 deletions(-)
+>
+> diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+> index 9d5fd00d9e91..f3a80cf164cc 100644
+> --- a/arch/arc/Kconfig
+> +++ b/arch/arc/Kconfig
+> @@ -463,9 +463,6 @@ config ARCH_PHYS_ADDR_T_64BIT
+>   config ARCH_DMA_ADDR_T_64BIT
+>   	bool
+>   
+> -config ARC_PLAT_NEEDS_PHYS_TO_DMA
+> -	bool
+> -
+>   config ARC_KVADDR_SIZE
+>   	int "Kernel Virtual Address Space size (MB)"
+>   	range 0 512
+> diff --git a/arch/arc/include/asm/dma-mapping.h b/arch/arc/include/asm/dma-mapping.h
+> index 94285031c4fb..7a16824bfe98 100644
+> --- a/arch/arc/include/asm/dma-mapping.h
+> +++ b/arch/arc/include/asm/dma-mapping.h
+> @@ -11,13 +11,6 @@
+>   #ifndef ASM_ARC_DMA_MAPPING_H
+>   #define ASM_ARC_DMA_MAPPING_H
+>   
+> -#ifndef CONFIG_ARC_PLAT_NEEDS_PHYS_TO_DMA
+> -#define plat_dma_to_phys(dev, dma_handle) ((phys_addr_t)(dma_handle))
+> -#define plat_phys_to_dma(dev, paddr) ((dma_addr_t)(paddr))
+> -#else
+> -#include <plat/dma.h>
+> -#endif
+> -
+>   extern const struct dma_map_ops arc_dma_ops;
+>   
+>   static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+> diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c
+> index fad18261ef6a..1d405b86250c 100644
+> --- a/arch/arc/mm/dma.c
+> +++ b/arch/arc/mm/dma.c
+> @@ -60,7 +60,7 @@ static void *arc_dma_alloc(struct device *dev, size_t size,
+>   	/* This is linear addr (0x8000_0000 based) */
+>   	paddr = page_to_phys(page);
+>   
+> -	*dma_handle = plat_phys_to_dma(dev, paddr);
+> +	*dma_handle = paddr;
+>   
+>   	/* This is kernel Virtual address (0x7000_0000 based) */
+>   	if (need_kvaddr) {
+> @@ -92,7 +92,7 @@ static void *arc_dma_alloc(struct device *dev, size_t size,
+>   static void arc_dma_free(struct device *dev, size_t size, void *vaddr,
+>   		dma_addr_t dma_handle, unsigned long attrs)
+>   {
+> -	phys_addr_t paddr = plat_dma_to_phys(dev, dma_handle);
+> +	phys_addr_t paddr = dma_handle;
+>   	struct page *page = virt_to_page(paddr);
+>   	int is_non_coh = 1;
+>   
+> @@ -111,7 +111,7 @@ static int arc_dma_mmap(struct device *dev, struct vm_area_struct *vma,
+>   {
+>   	unsigned long user_count = vma_pages(vma);
+>   	unsigned long count = PAGE_ALIGN(size) >> PAGE_SHIFT;
+> -	unsigned long pfn = __phys_to_pfn(plat_dma_to_phys(dev, dma_addr));
+> +	unsigned long pfn = __phys_to_pfn(dma_addr);
+>   	unsigned long off = vma->vm_pgoff;
+>   	int ret = -ENXIO;
+>   
+> @@ -175,7 +175,7 @@ static dma_addr_t arc_dma_map_page(struct device *dev, struct page *page,
+>   	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+>   		_dma_cache_sync(paddr, size, dir);
+>   
+> -	return plat_phys_to_dma(dev, paddr);
+> +	return paddr;
+>   }
+>   
+>   /*
+> @@ -190,7 +190,7 @@ static void arc_dma_unmap_page(struct device *dev, dma_addr_t handle,
+>   			       size_t size, enum dma_data_direction dir,
+>   			       unsigned long attrs)
+>   {
+> -	phys_addr_t paddr = plat_dma_to_phys(dev, handle);
+> +	phys_addr_t paddr = handle;
+>   
+>   	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
+>   		_dma_cache_sync(paddr, size, dir);
+> @@ -224,13 +224,13 @@ static void arc_dma_unmap_sg(struct device *dev, struct scatterlist *sg,
+>   static void arc_dma_sync_single_for_cpu(struct device *dev,
+>   		dma_addr_t dma_handle, size_t size, enum dma_data_direction dir)
+>   {
+> -	_dma_cache_sync(plat_dma_to_phys(dev, dma_handle), size, DMA_FROM_DEVICE);
+> +	_dma_cache_sync(dma_handle, size, DMA_FROM_DEVICE);
+>   }
+>   
+>   static void arc_dma_sync_single_for_device(struct device *dev,
+>   		dma_addr_t dma_handle, size_t size, enum dma_data_direction dir)
+>   {
+> -	_dma_cache_sync(plat_dma_to_phys(dev, dma_handle), size, DMA_TO_DEVICE);
+> +	_dma_cache_sync(dma_handle, size, DMA_TO_DEVICE);
+>   }
+>   
+>   static void arc_dma_sync_sg_for_cpu(struct device *dev,
