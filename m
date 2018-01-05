@@ -1,7 +1,7 @@
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [RFCv2 2/4] Documentation: document nospec helpers
-Date: Fri,  5 Jan 2018 14:57:48 +0000
-Message-ID: <20180105145750.53294-3-mark.rutland@arm.com>
+Subject: [RFCv2 4/4] bpf: inhibit speculated out-of-bounds pointers
+Date: Fri,  5 Jan 2018 14:57:50 +0000
+Message-ID: <20180105145750.53294-5-mark.rutland@arm.com>
 References: <20180105145750.53294-1-mark.rutland@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180105145750.53294-1-mark.rutland@arm.com>
@@ -10,189 +10,147 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: dan.j.williams@intel.com, elena.reshetova@intel.com, corbet@lwn.net, alan@linux.intel.com, peterz@infradead.org, will.deacon@arm.com, gregkh@linuxfoundation.org, tglx@linutronix.de, Mark Rutland <mark.rutland@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Document the rationale and usage of the new nospec*() helpers.
+Note: this patch is an *example* use of the nospec API. It is understood
+that this is incomplete, etc.
+
+Under speculation, CPUs may mis-predict branches in bounds checks. Thus,
+memory accesses under a bounds check may be speculated even if the
+bounds check fails, providing a primitive for building a side channel.
+
+The EBPF map code has a number of such bounds-checks accesses in
+map_lookup_elem implementations. This patch modifies these to use the
+nospec helpers to inhibit such side channels.
+
+The JITted lookup_elem implementations remain potentially vulnerable,
+and are disabled (with JITted code falling back to the C
+implementations).
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Jonathan Corbet <corbet@lwn.net>
 Cc: Peter Zijlstra <peterz@infradead.org>
 ---
- Documentation/speculation.txt | 166 ++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 166 insertions(+)
- create mode 100644 Documentation/speculation.txt
+ kernel/bpf/arraymap.c | 20 +++++++++++++-------
+ kernel/bpf/cpumap.c   |  5 ++---
+ kernel/bpf/devmap.c   |  3 ++-
+ kernel/bpf/sockmap.c  |  3 ++-
+ 4 files changed, 19 insertions(+), 12 deletions(-)
 
-diff --git a/Documentation/speculation.txt b/Documentation/speculation.txt
-new file mode 100644
-index 000000000000..748fcd4dcda4
---- /dev/null
-+++ b/Documentation/speculation.txt
-@@ -0,0 +1,166 @@
-+This document explains potential effects of speculation, and how undesirable
-+effects can be mitigated portably using common APIs.
+diff --git a/kernel/bpf/arraymap.c b/kernel/bpf/arraymap.c
+index 7c25426d3cf5..deaad334a100 100644
+--- a/kernel/bpf/arraymap.c
++++ b/kernel/bpf/arraymap.c
+@@ -117,15 +117,20 @@ static void *array_map_lookup_elem(struct bpf_map *map, void *key)
+ {
+ 	struct bpf_array *array = container_of(map, struct bpf_array, map);
+ 	u32 index = *(u32 *)key;
++	void *ptr, *high;
+ 
+ 	if (unlikely(index >= array->map.max_entries))
+ 		return NULL;
+ 
+-	return array->value + array->elem_size * index;
++	ptr = array->value + array->elem_size * index;
++	high = array->value + array->elem_size * array->map.max_entries;
 +
-+===========
-+Speculation
-+===========
++	return nospec_ptr(ptr, array->value, high);
+ }
+ 
+ /* emit BPF instructions equivalent to C code of array_map_lookup_elem() */
+-static u32 array_map_gen_lookup(struct bpf_map *map, struct bpf_insn *insn_buf)
++static u32 __maybe_unused array_map_gen_lookup(struct bpf_map *map,
++					       struct bpf_insn *insn_buf)
+ {
+ 	struct bpf_insn *insn = insn_buf;
+ 	u32 elem_size = round_up(map->value_size, 8);
+@@ -153,11 +158,14 @@ static void *percpu_array_map_lookup_elem(struct bpf_map *map, void *key)
+ {
+ 	struct bpf_array *array = container_of(map, struct bpf_array, map);
+ 	u32 index = *(u32 *)key;
++	void __percpu *pptr;
+ 
+ 	if (unlikely(index >= array->map.max_entries))
+ 		return NULL;
+ 
+-	return this_cpu_ptr(array->pptrs[index]);
++	pptr = nospec_array_ptr(array->pptrs, index, array->map.max_entries);
 +
-+To improve performance and minimize average latencies, many contemporary CPUs
-+employ speculative execution techniques such as branch prediction, performing
-+work which may be discarded at a later stage.
-+
-+Typically speculative execution cannot be observed from architectural state,
-+such as the contents of registers. However, in some cases it is possible to
-+observe its impact on microarchitectural state, such as the presence or
-+absence of data in caches. Such state may form side-channels which can be
-+observed to extract secret information.
-+
-+For example, in the presence of branch prediction, it is possible for bounds
-+checks to be ignored by code which is speculatively executed. Consider the
-+following code:
-+
-+	int load_array(int *array, unsigned int idx) {
-+		if (idx >= MAX_ARRAY_ELEMS)
-+			return 0;
-+		else
-+			return array[idx];
-+	}
-+
-+Which, on arm64, may be compiled to an assembly sequence such as:
-+
-+	CMP	<idx>, #MAX_ARRAY_ELEMS
-+	B.LT	less
-+	MOV	<returnval>, #0
-+	RET
-+  less:
-+	LDR	<returnval>, [<array>, <idx>]
-+	RET
-+
-+It is possible that a CPU mis-predicts the conditional branch, and
-+speculatively loads array[idx], even if idx >= MAX_ARRAY_ELEMS. This value
-+will subsequently be discarded, but the speculated load may affect
-+microarchitectural state which can be subsequently measured.
-+
-+More complex sequences involving multiple dependent memory accesses may result
-+in sensitive information being leaked. Consider the following code, building on
-+the prior example:
-+
-+	int load_dependent_arrays(int *arr1, int *arr2, int idx) {
-+		int val1, val2,
-+
-+		val1 = load_array(arr1, idx);
-+		val2 = load_array(arr2, val1);
-+
-+		return val2;
-+	}
-+
-+Under speculation, the first call to load_array() may return the value of an
-+out-of-bounds address, while the second call will influence microarchitectural
-+state dependent on this value. This may provide an arbitrary read primitive.
-+
-+====================================
-+Mitigating speculation side-channels
-+====================================
-+
-+The kernel provides a generic API to ensure that bounds checks are respected
-+even under speculation. Architectures which are affected by speculation-based
-+side-channels are expected to implement these primitives.
-+
-+The following helpers found in <asm/barrier.h> can be used to prevent
-+information from being leaked via side-channels.
-+
-+* nospec_ptr(ptr, lo, hi)
-+
-+  Returns a sanitized pointer that is bounded by the [lo, hi) interval. When
-+  ptr < lo, or ptr >= hi, NULL is returned. Prevents an out-of-bounds pointer
-+  being propagated to code which is speculatively executed.
-+
-+  This is expected to be used by code which computes pointers to data
-+  structures, where part of the address (such as an array index) may be
-+  user-controlled.
-+
-+  This can be used to protect the earlier load_array() example:
-+
-+  int load_array(int *array, unsigned int idx)
-+  {
-+	int *elem;
-+
-+	if ((elem = nospec_ptr(array + idx, array, array + MAX_ARRAY_ELEMS)))
-+		return *elem;
-+	else
-+		return 0;
-+  }
-+
-+  This can also be used in situations where multiple fields on a structure are
-+  accessed:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		struct foo *elem;
-+
-+		if ((elem = nospec_ptr(array + idx, array, array + SIZE)) {
-+			a = elem->field_a;
-+			b = elem->field_b;
-+		}
-+	}
-+
-+  It is imperative that the returned pointer is used. Pointers which are
-+  generated separately are subject to a number of potential CPU and compiler
-+  optimizations, and may still be used speculatively. For example, this means
-+  that the following sequence is unsafe:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		if (nospec_ptr(array + idx, array, array + SIZE) != NULL) {
-+			// unsafe as wrong pointer is used
-+			a = array[idx].field_a;
-+			b = array[idx].field_b;
-+		}
-+	}
-+
-+  Similarly, it is unsafe to compare the returned pointer with other pointers,
-+  as this may permit the compiler to substitute one pointer with another,
-+  permitting speculation. For example, the following sequence is unsafe:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		struct foo *elem = nospec_ptr(array + idx, array, array + size);
-+
-+		// unsafe due to pointer substitution
-+		if (elem == &array[idx]) {
-+			a = elem->field_a;
-+			b = elem->field_b;
-+		}
-+	}
-+
-+* nospec_array_ptr(arr, idx, sz)
-+
-+  Returns a sanitized pointer to arr[idx] only if idx falls in the [0, sz)
-+  interval. When idx < 0 or idx > sz, NULL is returned. Prevents an
-+  out-of-bounds pointer being propagated to code which is speculatively
-+  executed.
-+
-+  This is a convenience function which wraps nospec_ptr(), and has the same
-+  caveats w.r.t. the use of the returned pointer.
-+
-+  For example, this may be used as follows:
-+
-+  int load_array(int *array, unsigned int idx)
-+  {
-+	int *elem;
-+
-+	if ((elem = nospec_array_ptr(array, idx, MAX_ARRAY_ELEMS)))
-+		return *elem;
-+	else
-+		return 0;
-+  }
-+
++	return this_cpu_ptr(pptr);
+ }
+ 
+ int bpf_percpu_array_copy(struct bpf_map *map, void *key, void *value)
+@@ -302,7 +310,6 @@ const struct bpf_map_ops array_map_ops = {
+ 	.map_lookup_elem = array_map_lookup_elem,
+ 	.map_update_elem = array_map_update_elem,
+ 	.map_delete_elem = array_map_delete_elem,
+-	.map_gen_lookup = array_map_gen_lookup,
+ };
+ 
+ const struct bpf_map_ops percpu_array_map_ops = {
+@@ -610,8 +617,8 @@ static void *array_of_map_lookup_elem(struct bpf_map *map, void *key)
+ 	return READ_ONCE(*inner_map);
+ }
+ 
+-static u32 array_of_map_gen_lookup(struct bpf_map *map,
+-				   struct bpf_insn *insn_buf)
++static u32 __maybe_unused array_of_map_gen_lookup(struct bpf_map *map,
++						  struct bpf_insn *insn_buf)
+ {
+ 	u32 elem_size = round_up(map->value_size, 8);
+ 	struct bpf_insn *insn = insn_buf;
+@@ -644,5 +651,4 @@ const struct bpf_map_ops array_of_maps_map_ops = {
+ 	.map_fd_get_ptr = bpf_map_fd_get_ptr,
+ 	.map_fd_put_ptr = bpf_map_fd_put_ptr,
+ 	.map_fd_sys_lookup_elem = bpf_map_fd_sys_lookup_elem,
+-	.map_gen_lookup = array_of_map_gen_lookup,
+ };
+diff --git a/kernel/bpf/cpumap.c b/kernel/bpf/cpumap.c
+index ce5b669003b2..6769a0e30c8c 100644
+--- a/kernel/bpf/cpumap.c
++++ b/kernel/bpf/cpumap.c
+@@ -551,13 +551,12 @@ void cpu_map_free(struct bpf_map *map)
+ struct bpf_cpu_map_entry *__cpu_map_lookup_elem(struct bpf_map *map, u32 key)
+ {
+ 	struct bpf_cpu_map *cmap = container_of(map, struct bpf_cpu_map, map);
+-	struct bpf_cpu_map_entry *rcpu;
+ 
+ 	if (key >= map->max_entries)
+ 		return NULL;
+ 
+-	rcpu = READ_ONCE(cmap->cpu_map[key]);
+-	return rcpu;
++	return READ_ONCE(*nospec_array_ptr(cmap->cpu_map, key,
++					   map->max_entries));
+ }
+ 
+ static void *cpu_map_lookup_elem(struct bpf_map *map, void *key)
+diff --git a/kernel/bpf/devmap.c b/kernel/bpf/devmap.c
+index ebdef54bf7df..5a1050d270a0 100644
+--- a/kernel/bpf/devmap.c
++++ b/kernel/bpf/devmap.c
+@@ -254,7 +254,8 @@ struct net_device  *__dev_map_lookup_elem(struct bpf_map *map, u32 key)
+ 	if (key >= map->max_entries)
+ 		return NULL;
+ 
+-	dev = READ_ONCE(dtab->netdev_map[key]);
++	dev = READ_ONCE(*nospec_array_ptr(dtab->netdev_map, key,
++					  map->max_entries));
+ 	return dev ? dev->dev : NULL;
+ }
+ 
+diff --git a/kernel/bpf/sockmap.c b/kernel/bpf/sockmap.c
+index 5ee2e41893d9..e912de3cd4ce 100644
+--- a/kernel/bpf/sockmap.c
++++ b/kernel/bpf/sockmap.c
+@@ -630,7 +630,8 @@ struct sock  *__sock_map_lookup_elem(struct bpf_map *map, u32 key)
+ 	if (key >= map->max_entries)
+ 		return NULL;
+ 
+-	return READ_ONCE(stab->sock_map[key]);
++	return READ_ONCE(*nospec_array_ptr(stab->sock_map, key,
++					   map->max_entries));
+ }
+ 
+ static int sock_map_delete_elem(struct bpf_map *map, void *key)
 -- 
 2.11.0
