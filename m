@@ -1,141 +1,119 @@
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Subject: Re: [PATCH v5 1/3] clocksource/drivers/atcpit100: Add andestech
- atcpit100 timer
-Date: Fri, 5 Jan 2018 10:31:32 +0100
-Message-ID: <1e75edb3-8f7b-796c-6871-1612b027050e@linaro.org>
-References: <1513057621-19084-1-git-send-email-rickchen36@gmail.com>
- <1513057621-19084-2-git-send-email-rickchen36@gmail.com>
- <bb7383ba-bb8e-3cbd-4ce0-faaefa8ed114@linaro.org>
- <CAEbi=3cEEtLQRiv-cyUwEmcBNOC2Sz7AhzZkpznQWYb9VUojug@mail.gmail.com>
- <ff51fff7-e963-f9fd-10d6-9b90a64d7aac@linaro.org>
- <CAEbi=3c4yAx7Tejz8aPw3-3vj89t8cg-zNEY-vbF7KaMo8OM0Q@mail.gmail.com>
- <efdb249a-8dc0-e076-a1db-20cecdbf4c13@linaro.org>
- <CAEbi=3frQYZHb0yiMvNk_JUiUCy6ca0tbrsM_pt49LtkMy47mw@mail.gmail.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
+Date: Fri, 5 Jan 2018 14:40:35 +0000
+Message-ID: <20180105144035.4hjrshigosb6s4zx@lakrids.cambridge.arm.com>
+References: <20180103223827.39601-1-mark.rutland@arm.com>
+ <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
+ <20180104010754.22ca6a74@alans-desktop>
+ <alpine.LRH.2.00.1801040221070.27010@gjva.wvxbf.pm>
+ <CAPcyv4ic=X3nMz7deg9NMyvj994+SM9XYoP0u7WvgKaAFSGAYw@mail.gmail.com>
+ <CA+55aFx7eJqRA8EWwSCrC+Lr1ZjUvRXSuhrxo+af_Dx3YWKbOQ@mail.gmail.com>
+ <1515035438.20588.4.camel@intel.com>
+ <20180104114732.utkixumxt7rfuf3g@salmiak>
+ <CAPcyv4iPg0y0+QNO9h9qkfuDZ2xo769hfzOqTOcrjPi2mFS3Jw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CAEbi=3frQYZHb0yiMvNk_JUiUCy6ca0tbrsM_pt49LtkMy47mw@mail.gmail.com>
-Content-Language: en-US
-Sender: netdev-owner@vger.kernel.org
-To: Greentime Hu <green.hu@gmail.com>
-Cc: Greentime <greentime@andestech.com>, Rick Chen <rickchen36@gmail.com>, Rick Chen <rick@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linus Walleij <linus.walleij@linaro.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-serial@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:45810 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751514AbeAEOkk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Jan 2018 09:40:40 -0500
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4iPg0y0+QNO9h9qkfuDZ2xo769hfzOqTOcrjPi2mFS3Jw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "alan@linux.intel.com" <alan@linux.intel.com>, "Reshetova, Elena" <elena.reshetova@intel.com>, "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "jikos@kernel.org" <jikos@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On 05/01/2018 09:45, Greentime Hu wrote:
-> Hi, Daniel:
-
-[ ... ]
-
->>>>>> [ ... ]
->>>>>>
->>>>>>> +config CLKSRC_ATCPIT100
->>>>>>> +     bool "Clocksource for AE3XX platform"
->>>>>>> +     depends on NDS32 || COMPILE_TEST
->>>>>>> +     depends on HAS_IOMEM
->>>>>>> +     help
->>>>>>> +       This option enables support for the Andestech AE3XX platform timers.
->>>>>>
->>>>>> Hi Rick,
->>>>>>
->>>>>> the general rule for the Kconfig is:
->>>>>>
->>>>>> bool "Clocksource for AE3XX platform" if COMPILE_TEST
->>
->> BTW, select TIMER_OF is missing.
+On Thu, Jan 04, 2018 at 02:09:52PM -0800, Dan Williams wrote:
+> On Thu, Jan 4, 2018 at 3:47 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+> > Hi Dan,
+> >
+> > Thanks for these examples.
+> >
+> > On Thu, Jan 04, 2018 at 03:10:51AM +0000, Williams, Dan J wrote:
+> >> Note, the following is Elena's work, I'm just helping poke the upstream
+> >> discussion along while she's offline.
+> >>
+> >> Elena audited the static analysis reports down to the following
+> >> locations where userspace provides a value for a conditional branch and
+> >> then later creates a dependent load on that same userspace controlled
+> >> value.
+> >>
+> >> 'osb()', observable memory barrier, resolves to an lfence on x86. My
+> >> concern with these changes is that it is not clear what content within
+> >> the branch block is of concern. Peter's 'if_nospec' proposal combined
+> >> with Mark's 'nospec_load' would seem to clear that up, from a self
+> >> documenting code perspective, and let archs optionally protect entire
+> >> conditional blocks or individual loads within those blocks.
+> >
+> > I'm a little concerned by having to use two helpers that need to be paired. It
+> > means that we have to duplicate the bounds information, and I suspect in
+> > practice that they'll often be paired improperly.
 > 
-> We don't select here because we select TIMER_OF in arch/nds32/Kconfig
-> I am not sure if I still need to select TIMER_OF here?
+> Hmm, will they be often mispaired? All of the examples to date the
+> load occurs in the same code block as the bound checking if()
+> statement.
 
-Actually, I want the drivers/clocksource/Kconfig to be consistent across
-all entries. As TIMER_OF is needed by the driver and nothing else, it
-must be selected in the TIMER entry.
+Practically speaking, barriers get misused all the time, and having a
+single helper minimizes the risk or misuse.
 
-As there are a lot of timers and we do the changes little by little,
-there are still entries with different format.
-
-It should be something like that:
-
-config ASM9260_TIMER
-        bool "ASM9260 timer driver" if COMPILE_TEST
-        select CLKSRC_MMIO
-        select TIMER_OF
-        help
-          Enables support for the ASM9260 timer.
-
-Move the select TIMER_OF to the timer option entry.
-
->>>>>> and no deps on the platform.
->>>>>>
->>>>>> It is up to the platform Kconfig to select the option.
->>>>>>
->>>>>> We want here a silent option but make it selectable in case of
->>>>>> compilation test coverage.
->>>>>
->>>>>
->>>>> The way we like to use it is because
->>>>> 1. This timer is a basic component to boot an nds32 CPU and it should
->>>>> be able to select without COMPILE_TEST for nds32 architecture.
->>>>
->>>> Yes, so you don't need it to be selectable, you must select it from the
->>>> platform's Kconfig.
->>>
->>> I am not sure that I get your point or not.
->>> We don't have a CONFIG_PLAT_AE3XX.
->>> Do you mean we should create one and select CLKSRC_ATCPIT100 under
->>> CONFIG_PLAT_AE3XX?
->>
->> No. Can't you add in arch/ndis32/Kconfig ?
->>
->> +select TIMER_ATCPIT100
->>
->> Like:
->>
->> https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/arm64/Kconfig#n50
+> > I think that we can avoid those problems if we use nospec_ptr() on its own. It
+> > returns NULL if the pointer would be out-of-bounds, so we can use it in the
+> > if-statement.
+> >
+> > On x86, that can contain the bounds checks followed be an OSB / lfence, like
+> > if_nospec(). On arm we can use our architected sequence. In either case,
+> > nospec_ptr() returns NULL if the pointer would be out-of-bounds.
+> >
+> > Then, rather than sequences like:
+> >
+> >         if_nospec(idx < max) {
+> >                 val = nospec_array_load(array, idx, max);
+> >                 ...
+> >         }
+> >
+> > ... we could have:
+> >
+> >         if ((elem_ptr = nospec_array_ptr(array, idx, max)) {
+> >                 val = *elem_ptr;
+> >                 ...
+> >         }
+> >
+> > ... which also means we don't have to annotate every single load in the branch
+> > if the element is a structure with multiple fields.
 > 
-> IMHO, it might be a little bit wierd if we select TIMER_ATCPIT100 in
-> arch/nds32/Kconfig because it is part of SoC instead of CPU.
-> If we change to another SoC with another timer, we need to select
-> another TIMER in arch/nds32/Kconfig and delete TIMER_ATCPIT100.
-> It seems more flexible to be selected in driver layer.
+> We wouldn't need to annotate each load in that case, right? Just the
+> instance that uses idx to calculate an address.
+
+Correct.
+
+> if_nospec (idx < max_idx) {
+>    elem_ptr = nospec_array_ptr(array, idx, max);
+>    val = elem_ptr->val;
+>    val2 = elem_ptr->val2;
+> }
 > 
-> It seems to be the timer is part of the arch to be selected in arch's Kconfig.
-> arch/arc/Kconfig:       select ARC_TIMERS
-> arch/arc/Kconfig:       select ARC_TIMERS_64BIT
-> arch/arm/Kconfig:       select ARM_ARCH_TIMER
-> arch/arm64/Kconfig:     select ARM_ARCH_TIMER
-> arch/blackfin/Kconfig:  select BFIN_GPTIMERS
+> > Does that sound workable to you?
+> 
+> Relative to the urgency of getting fixes upstream I'm ok with whatever
+> approach generates the least debate from sub-system maintainers.
+> 
+> One concern is that on x86 the:
+> 
+>     if ((elem_ptr = nospec_array_ptr(array, idx, max)) {
+> 
+> ...approach produces two conditional branches whereas:
+> 
+>     if_nospec (idx < max_idx) {
+>         elem_ptr = nospec_array_ptr(array, idx, max);
+> 
+> ....can be optimized to one conditional with the barrier.
 
-No, the timer must be selected from the arch/soc's or whatever Kconfig.
-Not in the clocksource's Kconfig.
+Do you mean because the NULL check is redundant? I was hoping that the
+compiler would have the necessary visibility to fold that with the
+bounds check (on the assumption that the array base must not be NULL).
 
-eg.
-
-on ARM:
-
-arch/arm/mach-vt8500/Kconfig:   select VT8500_TIMER
-arch/arm/mach-bcm/Kconfig:      select BCM_KONA_TIMER
-arch/arm/mach-actions/Kconfig:  select OWL_TIMER
-arch/arm/mach-digicolor/Kconfig:        select DIGICOLOR_TIMER
-
-etc ...
-
-on ARM64:
-
-arch/arm64/Kconfig.platforms:   select OWL_TIMER
-arch/arm64/Kconfig.platforms:       select ARM_TIMER_SP804
-arch/arm64/Kconfig.platforms:       select MTK_TIMER
-
-etc ...
-
-Thanks.
-
-  -- Daniel
-
-
--- 
- <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
-
-Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
-<http://twitter.com/#!/linaroorg> Twitter |
-<http://www.linaro.org/linaro-blog/> Blog
+Thanks,
+Mark.
