@@ -1,123 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46054 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46026 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751961AbeAEO6D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Jan 2018 09:58:03 -0500
+        id S1751961AbeAEO6A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Jan 2018 09:58:00 -0500
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [RFCv2 1/4] asm-generic/barrier: add generic nospec helpers
-Date: Fri,  5 Jan 2018 14:57:47 +0000
-Message-ID: <20180105145750.53294-2-mark.rutland@arm.com>
-In-Reply-To: <20180105145750.53294-1-mark.rutland@arm.com>
-References: <20180105145750.53294-1-mark.rutland@arm.com>
+Subject: [RFCv2 0/4] API for inhibiting speculative arbitrary read primitives
+Date: Fri,  5 Jan 2018 14:57:46 +0000
+Message-ID: <20180105145750.53294-1-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: dan.j.williams@intel.com, elena.reshetova@intel.com, corbet@lwn.net, alan@linux.intel.com, peterz@infradead.org, will.deacon@arm.com, gregkh@linuxfoundation.org, tglx@linutronix.de, Mark Rutland <mark.rutland@arm.com>
-Message-ID: <20180105145747.atEohTwVPMWa-fgRhBg-wlYsTa2jv4yqUdUKqYBiAbg@z>
+Message-ID: <20180105145746.GUXMpbk55tTkszpZy4W3xJ7olNXnZP4JoEY2RV4ATcE@z>
 
-Under speculation, CPUs may mis-predict branches in bounds checks. Thus,
-memory accesses under a bounds check may be speculated even if the
-bounds check fails, providing a primitive for building a side channel.
+Recently, Google Project Zero discovered several classes of attack
+against speculative execution. One of these, known as variant-1, allows
+explicit bounds checks to be bypassed under speculation, providing an
+arbitrary read gadget. Further details can be found on the GPZ blog [1]
+and the Documentation patch in this series.
 
-This patch adds helpers which can be used to inhibit the use of
-out-of-bounds pointers under speculation.
+There are a number of potential gadgets in the Linux codebase, and
+mitigations for these are architecture-specific.
 
-A generic implementation is provided for compatibility, but does not
-guarantee safety under speculation. Architectures are expected to
-override these helpers as necessary.
+This RFC attempts to provide a cross-architecture API for inhibiting
+these primitives. Hopefully, architecture-specific mitigations can be
+unified behind this. An arm64 implementation is provided following the
+architecturally recommended sequence laid out in the Arm whitepaper [2].
+The API is based on a proposed compiler intrinsic [3].
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
-Cc: Daniel Willams <dan.j.williams@intel.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
----
- include/asm-generic/barrier.h | 68 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 68 insertions(+)
+I've provided a patch to BPF as an example use of the API. I know that
+this is incomplete and less than optimal. I'd appreciate feedback from
+other affected architectures as to whether this API is suitable for
+their required mitigation.
 
-Dan, I've reworked this so that nospec_ptr() can take an arch-specific barrier
-sequence. I believe that for x86 you just need to implement __nospec_barrier()
-as osb().
+I've pushed the series to my kernel.org repo [4].
 
+Since v1 [5]:
+* Remove the nospec_*load helpers
+* Added nospec_array_ptr()
+* Rework asm-generic implementation to fit other architectures
+* Improve documentation
+
+[1] https://googleprojectzero.blogspot.co.uk/2018/01/reading-privileged-memory-with-side.html
+[2] https://developer.arm.com/support/security-update
+[3] https://developer.arm.com/support/security-update/compiler-support-for-mitigations
+[4] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git core/nospec
+[5] https://lkml.kernel.org/r/20180103223827.39601-1-mark.rutland@arm.com
+
+Thanks,
 Mark.
 
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index fe297b599b0a..91c3071f49e5 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -54,6 +54,74 @@
- #define read_barrier_depends()		do { } while (0)
- #endif
- 
-+/*
-+ * Inhibit subsequent speculative memory accesses.
-+ *
-+ * Architectures with a suitable memory barrier should provide an
-+ * implementation. This is non-portable, and generic code should use
-+ * nospec_ptr().
-+ */
-+#ifndef __nospec_barrier
-+#define __nospec_barrier()		do { } while (0)
-+#endif
-+
-+/**
-+ * nospec_ptr() - Ensure a  pointer is bounded, even under speculation.
-+ *
-+ * @ptr: the pointer to test
-+ * @lo: the lower valid bound for @ptr, inclusive
-+ * @hi: the upper valid bound for @ptr, exclusive
-+ *
-+ * If @ptr falls in the interval [@lo, @i), returns @ptr, otherwise returns
-+ * NULL.
-+ *
-+ * Architectures which do not provide __nospec_barrier() should override this
-+ * to ensure that ptr falls in the [lo, hi) interval both under architectural
-+ * execution and under speculation, preventing propagation of an out-of-bounds
-+ * pointer to code which is speculatively executed.
-+ */
-+#ifndef nospec_ptr
-+#define nospec_ptr(ptr, lo, hi)						\
-+({									\
-+	typeof (ptr) __ret;						\
-+	typeof (ptr) __ptr = (ptr);					\
-+	typeof (ptr) __lo = (lo);					\
-+	typeof (ptr) __hi = (hi);					\
-+									\
-+	__ret = (__lo <= __ptr && __ptr < __hi) ? __ptr : NULL;		\
-+									\
-+	__nospec_barrier();						\
-+									\
-+	__ret;								\
-+})
-+#endif
-+
-+/**
-+ * nospec_array_ptr - Generate a pointer to an array element, ensuring the
-+ * pointer is bounded under speculation.
-+ *
-+ * @arr: the base of the array
-+ * @idx: the index of the element
-+ * @sz: the number of elements in the array
-+ *
-+ * If @idx falls in the interval [0, @sz), returns the pointer to @arr[@idx],
-+ * otherwise returns NULL.
-+ *
-+ * This is a wrapper around nospec_ptr(), provided for convenience.
-+ * Architectures should implement nospec_ptr() to ensure this is the case
-+ * under speculation.
-+ */
-+#define nospec_array_ptr(arr, idx, sz)					\
-+({									\
-+	typeof(*(arr)) *__arr = (arr);					\
-+	typeof(idx) __idx = (idx);					\
-+	typeof(sz) __sz = (sz);						\
-+									\
-+	nospec_ptr(__arr + __idx, __arr, __arr + __sz);			\
-+})
-+
-+#undef __nospec_barrier
-+
- #ifndef __smp_mb
- #define __smp_mb()	mb()
- #endif
+Mark Rutland (4):
+  asm-generic/barrier: add generic nospec helpers
+  Documentation: document nospec helpers
+  arm64: implement nospec_{load,ptr}()
+  bpf: inhibit speculated out-of-bounds pointers
+
+ Documentation/speculation.txt    | 166 +++++++++++++++++++++++++++++++++++++++
+ arch/arm64/include/asm/barrier.h |  55 +++++++++++++
+ include/asm-generic/barrier.h    |  68 ++++++++++++++++
+ kernel/bpf/arraymap.c            |  20 +++--
+ kernel/bpf/cpumap.c              |   5 +-
+ kernel/bpf/devmap.c              |   3 +-
+ kernel/bpf/sockmap.c             |   3 +-
+ 7 files changed, 308 insertions(+), 12 deletions(-)
+ create mode 100644 Documentation/speculation.txt
+
 -- 
 2.11.0
