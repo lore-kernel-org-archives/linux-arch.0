@@ -1,47 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve1eur01on0049.outbound.protection.outlook.com ([104.47.1.49]:4128
-        "EHLO EUR01-VE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751235AbeAEIBU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Jan 2018 03:01:20 -0500
-From: =?iso-8859-2?Q?Horia_Geant=E3?= <horia.geanta@nxp.com>
-Subject: Re: [PATCH v10 7/8] crypto: caam: cleanup CONFIG_64BIT ifdefs when
- using io{read|write}64
-Date: Fri, 5 Jan 2018 08:01:13 +0000
-Message-ID: <VI1PR0402MB334282217BC0AE1F8DA8BFC3981C0@VI1PR0402MB3342.eurprd04.prod.outlook.com>
-References: <20180104191645.10006-1-logang@deltatee.com>
- <20180104191645.10006-8-logang@deltatee.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="iso-8859-2"
-Content-Transfer-Encoding: quoted-printable
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:41168 "EHLO
+        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751302AbeAEJbh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jan 2018 04:31:37 -0500
+Received: by mail-wm0-f66.google.com with SMTP id g75so1309441wme.0
+        for <linux-arch@vger.kernel.org>; Fri, 05 Jan 2018 01:31:37 -0800 (PST)
+Subject: Re: [PATCH v5 1/3] clocksource/drivers/atcpit100: Add andestech
+ atcpit100 timer
+References: <1513057621-19084-1-git-send-email-rickchen36@gmail.com>
+ <1513057621-19084-2-git-send-email-rickchen36@gmail.com>
+ <bb7383ba-bb8e-3cbd-4ce0-faaefa8ed114@linaro.org>
+ <CAEbi=3cEEtLQRiv-cyUwEmcBNOC2Sz7AhzZkpznQWYb9VUojug@mail.gmail.com>
+ <ff51fff7-e963-f9fd-10d6-9b90a64d7aac@linaro.org>
+ <CAEbi=3c4yAx7Tejz8aPw3-3vj89t8cg-zNEY-vbF7KaMo8OM0Q@mail.gmail.com>
+ <efdb249a-8dc0-e076-a1db-20cecdbf4c13@linaro.org>
+ <CAEbi=3frQYZHb0yiMvNk_JUiUCy6ca0tbrsM_pt49LtkMy47mw@mail.gmail.com>
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Message-ID: <1e75edb3-8f7b-796c-6871-1612b027050e@linaro.org>
+Date: Fri, 5 Jan 2018 10:31:32 +0100
 MIME-Version: 1.0
+In-Reply-To: <CAEbi=3frQYZHb0yiMvNk_JUiUCy6ca0tbrsM_pt49LtkMy47mw@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Logan Gunthorpe <logang@deltatee.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20180105080113.YzxqgmjcljiXsi8AogKHgXCHv23bcUoeUleUqpqMrx8@z>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: Greentime <greentime@andestech.com>, Rick Chen <rickchen36@gmail.com>, Rick Chen <rick@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linus Walleij <linus.walleij@linaro.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-serial@vger.kernel.org
+Message-ID: <20180105093132.YYMllEyGwg8XLdE7c9FPpnSke-AubEiCZA-bX1AI5Go@z>
 
-On 1/4/2018 9:16 PM, Logan Gunthorpe wrote:=0A=
-> Clean up the extra ifdefs which defined the wr_reg64 and rd_reg64=0A=
-> functions in non-64bit cases in favour of the new common=0A=
-> io-64-nonatomic-lo-hi header.=0A=
-> =0A=
-> To be consistent with CAAM engine HW spec: in case of 64-bit registers,=
-=0A=
-> irrespective of device endianness, the lower address should be read from=
-=0A=
-> / written to first, followed by the upper address. Indeed the I/O=0A=
-> accessors in CAAM driver currently don't follow the spec, however this=0A=
-> is a good opportunity to fix the code.=0A=
-> =0A=
-> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>=0A=
-> Cc: Andy Shevchenko <andy.shevchenko@gmail.com>=0A=
-> Cc: Horia Geant=E3 <horia.geanta@nxp.com>=0A=
-> Cc: Dan Douglass <dan.douglass@nxp.com>=0A=
-> Cc: Herbert Xu <herbert@gondor.apana.org.au>=0A=
-> Cc: "David S. Miller" <davem@davemloft.net>=0A=
-Reviewed-by: Horia Geant=E3 <horia.geanta@nxp.com>=0A=
-=0A=
-Thanks,=0A=
-Horia=0A=
-=0A=
+On 05/01/2018 09:45, Greentime Hu wrote:
+> Hi, Daniel:
+
+[ ... ]
+
+>>>>>> [ ... ]
+>>>>>>
+>>>>>>> +config CLKSRC_ATCPIT100
+>>>>>>> +     bool "Clocksource for AE3XX platform"
+>>>>>>> +     depends on NDS32 || COMPILE_TEST
+>>>>>>> +     depends on HAS_IOMEM
+>>>>>>> +     help
+>>>>>>> +       This option enables support for the Andestech AE3XX platform timers.
+>>>>>>
+>>>>>> Hi Rick,
+>>>>>>
+>>>>>> the general rule for the Kconfig is:
+>>>>>>
+>>>>>> bool "Clocksource for AE3XX platform" if COMPILE_TEST
+>>
+>> BTW, select TIMER_OF is missing.
+> 
+> We don't select here because we select TIMER_OF in arch/nds32/Kconfig
+> I am not sure if I still need to select TIMER_OF here?
+
+Actually, I want the drivers/clocksource/Kconfig to be consistent across
+all entries. As TIMER_OF is needed by the driver and nothing else, it
+must be selected in the TIMER entry.
+
+As there are a lot of timers and we do the changes little by little,
+there are still entries with different format.
+
+It should be something like that:
+
+config ASM9260_TIMER
+        bool "ASM9260 timer driver" if COMPILE_TEST
+        select CLKSRC_MMIO
+        select TIMER_OF
+        help
+          Enables support for the ASM9260 timer.
+
+Move the select TIMER_OF to the timer option entry.
+
+>>>>>> and no deps on the platform.
+>>>>>>
+>>>>>> It is up to the platform Kconfig to select the option.
+>>>>>>
+>>>>>> We want here a silent option but make it selectable in case of
+>>>>>> compilation test coverage.
+>>>>>
+>>>>>
+>>>>> The way we like to use it is because
+>>>>> 1. This timer is a basic component to boot an nds32 CPU and it should
+>>>>> be able to select without COMPILE_TEST for nds32 architecture.
+>>>>
+>>>> Yes, so you don't need it to be selectable, you must select it from the
+>>>> platform's Kconfig.
+>>>
+>>> I am not sure that I get your point or not.
+>>> We don't have a CONFIG_PLAT_AE3XX.
+>>> Do you mean we should create one and select CLKSRC_ATCPIT100 under
+>>> CONFIG_PLAT_AE3XX?
+>>
+>> No. Can't you add in arch/ndis32/Kconfig ?
+>>
+>> +select TIMER_ATCPIT100
+>>
+>> Like:
+>>
+>> https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/arm64/Kconfig#n50
+> 
+> IMHO, it might be a little bit wierd if we select TIMER_ATCPIT100 in
+> arch/nds32/Kconfig because it is part of SoC instead of CPU.
+> If we change to another SoC with another timer, we need to select
+> another TIMER in arch/nds32/Kconfig and delete TIMER_ATCPIT100.
+> It seems more flexible to be selected in driver layer.
+> 
+> It seems to be the timer is part of the arch to be selected in arch's Kconfig.
+> arch/arc/Kconfig:       select ARC_TIMERS
+> arch/arc/Kconfig:       select ARC_TIMERS_64BIT
+> arch/arm/Kconfig:       select ARM_ARCH_TIMER
+> arch/arm64/Kconfig:     select ARM_ARCH_TIMER
+> arch/blackfin/Kconfig:  select BFIN_GPTIMERS
+
+No, the timer must be selected from the arch/soc's or whatever Kconfig.
+Not in the clocksource's Kconfig.
+
+eg.
+
+on ARM:
+
+arch/arm/mach-vt8500/Kconfig:   select VT8500_TIMER
+arch/arm/mach-bcm/Kconfig:      select BCM_KONA_TIMER
+arch/arm/mach-actions/Kconfig:  select OWL_TIMER
+arch/arm/mach-digicolor/Kconfig:        select DIGICOLOR_TIMER
+
+etc ...
+
+on ARM64:
+
+arch/arm64/Kconfig.platforms:   select OWL_TIMER
+arch/arm64/Kconfig.platforms:       select ARM_TIMER_SP804
+arch/arm64/Kconfig.platforms:       select MTK_TIMER
+
+etc ...
+
+Thanks.
+
+  -- Daniel
+
+
+-- 
+ <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
+
+Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+<http://twitter.com/#!/linaroorg> Twitter |
+<http://www.linaro.org/linaro-blog/> Blog
