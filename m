@@ -1,37 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.llwyncelyn.cymru ([82.70.14.225]:47990 "EHLO fuzix.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751029AbeADXMQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 4 Jan 2018 18:12:16 -0500
-Date: Thu, 4 Jan 2018 23:11:37 +0000
-From: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-Subject: Re: [RFC PATCH] asm/generic: introduce if_nospec and nospec_barrier
-Message-ID: <20180104231137.0c09a674@alans-desktop>
-In-Reply-To: <CA+55aFxNqWQcMQmpbsRhhfb7M8ch30627AkEsswaNk-=MvZo5w@mail.gmail.com>
-References: <20180103223827.39601-1-mark.rutland@arm.com>
-        <151502463248.33513.5960736946233335087.stgit@dwillia2-desk3.amr.corp.intel.com>
-        <CA+55aFzSYExr33w849=3o+2XGr9pUKpFucc5p-kKbEy20VVLPA@mail.gmail.com>
-        <20180104010754.22ca6a74@alans-desktop>
-        <CAPcyv4ge14OPyfoQvXHLyXwqX7cjWvm4DouUOc=WrNo1Lr9Qyw@mail.gmail.com>
-        <alpine.DEB.2.20.1801040728140.2148@hadrien>
-        <CAPcyv4gLcC7vsxLUCEJdEvDRf4AhgF0x1fpTEcH7AOe=kuNfoQ@mail.gmail.com>
-        <20180104192648.GA10427@amd>
-        <CAPcyv4g0ZEP_LuXwsf1rJGaG65UHn5sj=DMyMdCnzKD9T-vnyg@mail.gmail.com>
-        <CA+55aFwRh++2cyfi1ZXnWCwGv=kuSjft-RcSCDW89T5g=0RB2Q@mail.gmail.com>
-        <20180104225515.13a40f0f@alans-desktop>
-        <CA+55aFxNqWQcMQmpbsRhhfb7M8ch30627AkEsswaNk-=MvZo5w@mail.gmail.com>
+Received: from mail-ve1eur01on0049.outbound.protection.outlook.com ([104.47.1.49]:4128
+        "EHLO EUR01-VE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751235AbeAEIBU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Jan 2018 03:01:20 -0500
+From: =?iso-8859-2?Q?Horia_Geant=E3?= <horia.geanta@nxp.com>
+Subject: Re: [PATCH v10 7/8] crypto: caam: cleanup CONFIG_64BIT ifdefs when
+ using io{read|write}64
+Date: Fri, 5 Jan 2018 08:01:13 +0000
+Message-ID: <VI1PR0402MB334282217BC0AE1F8DA8BFC3981C0@VI1PR0402MB3342.eurprd04.prod.outlook.com>
+References: <20180104191645.10006-1-logang@deltatee.com>
+ <20180104191645.10006-8-logang@deltatee.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="iso-8859-2"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, Pavel Machek <pavel@ucw.cz>, Julia Lawall <julia.lawall@lip6.fr>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>, Dan Carpenter <dan.carpenter@oracle.com>
-Message-ID: <20180104231137.fBH1S_bK_yunYQnmFO5C7p4Rl_sy9Abey2RcUfyySpE@z>
+To: Logan Gunthorpe <logang@deltatee.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20180105080113.YzxqgmjcljiXsi8AogKHgXCHv23bcUoeUleUqpqMrx8@z>
 
-> It's also possible that x86 'lfence' really is so fast that it doesn't
-> make sense to try to do this.
-
-If you've got a lot going on it's not 1 cycle.
-
-Alan
+On 1/4/2018 9:16 PM, Logan Gunthorpe wrote:=0A=
+> Clean up the extra ifdefs which defined the wr_reg64 and rd_reg64=0A=
+> functions in non-64bit cases in favour of the new common=0A=
+> io-64-nonatomic-lo-hi header.=0A=
+> =0A=
+> To be consistent with CAAM engine HW spec: in case of 64-bit registers,=
+=0A=
+> irrespective of device endianness, the lower address should be read from=
+=0A=
+> / written to first, followed by the upper address. Indeed the I/O=0A=
+> accessors in CAAM driver currently don't follow the spec, however this=0A=
+> is a good opportunity to fix the code.=0A=
+> =0A=
+> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>=0A=
+> Cc: Andy Shevchenko <andy.shevchenko@gmail.com>=0A=
+> Cc: Horia Geant=E3 <horia.geanta@nxp.com>=0A=
+> Cc: Dan Douglass <dan.douglass@nxp.com>=0A=
+> Cc: Herbert Xu <herbert@gondor.apana.org.au>=0A=
+> Cc: "David S. Miller" <davem@davemloft.net>=0A=
+Reviewed-by: Horia Geant=E3 <horia.geanta@nxp.com>=0A=
+=0A=
+Thanks,=0A=
+Horia=0A=
+=0A=
