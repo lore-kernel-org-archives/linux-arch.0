@@ -1,48 +1,41 @@
-From: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-Subject: Re: [PATCH 08/18] carl9170: prevent bounds-check bypass via
- speculative execution
-Date: Sat, 6 Jan 2018 15:06:21 +0000
-Message-ID: <20180106150621.2221a646@alans-desktop>
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH 14/18] ipv4: prevent bounds-check bypass via speculative
+ execution
+Date: Sat, 6 Jan 2018 16:14:24 +0100
+Message-ID: <20180106151424.GA17924@kroah.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
-        <151520103755.32271.6819511294540882298.stgit@dwillia2-desk3.amr.corp.intel.com>
-        <3586343.KJymplWpZW@debian64>
+ <151520107001.32271.12149241186695668220.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180106090154.GE4380@kroah.com>
+ <20180106122347.7a5c8ee6@alans-desktop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <3586343.KJymplWpZW@debian64>
+Content-Disposition: inline
+In-Reply-To: <20180106122347.7a5c8ee6@alans-desktop>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Lamparter <chunkeey@gmail.com>
-Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, linux-wireless@vger.kernel.org, Elena Reshetova <elena.reshetova@intel.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com
+To: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
+Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, peterz@infradead.org, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, tglx@linutronix.de, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-> The only way a user can set this in any meaningful way would be via
-> a NL80211_CMD_SET_WIPHY netlink message. However, the value will get
-> vetted there by cfg80211's parse_txq_params [0]. This is long before
-
-Far more than a couple of hundred instructions ? The problem is that the
-processor will speculate that the parameter is valid and continue on that
-basis until the speculation resolves or it hits some other limit that
-stops it speculating further. That can be quite a distance on a modern
-x86 processor, and for all we know could be even more on some of the
-other CPUs involved.
-
-> it reaches any of the *_op_conf_tx functions.
+On Sat, Jan 06, 2018 at 12:23:47PM +0000, Alan Cox wrote:
+> On Sat, 6 Jan 2018 10:01:54 +0100
+> Greg KH <gregkh@linuxfoundation.org> wrote:
 > 
-> And Furthermore a invalid queue (param->ac) would cause a crash in 
-> this line in mac80211 before it even reaches the driver [1]:
-> |	sdata->tx_conf[params->ac] = p;
-> |                   ^^^^^^^^
+> > On Fri, Jan 05, 2018 at 05:11:10PM -0800, Dan Williams wrote:
+> > > Static analysis reports that 'offset' may be a user controlled value  
+> > 
+> > Can I see the rule that determined that?  It does not feel like that is
+> > correct, given the 3+ levels deep that this function gets this value
+> > from...
+> 
+> On a current x86 you can execute something upwards of 150 instructions in
+> a speculation window.
 
-Firstly it might not because the address you get as a result could be
-valid kernel memory. In fact your attackers wants it to be valid kernel
-memory since they are trying to find the value of a piece of that memory.
+Yeah, I agree, it's deep :(
 
-Secondly the processor is doing this speculatively so it won't fault. It
-will eventually decide it went the wrong way and throw all the
-speculative work away - leaving footprints. It won't fault unless the
-speculative resolves that was the real path the code took.
+But for this patch, I thought the prior review determined that it was
+not a problem.  Was that somehow proven incorrect?
 
-If it's not a performance critical path then it's better to be safe.
+thanks,
 
-Alan
+greg k-h
