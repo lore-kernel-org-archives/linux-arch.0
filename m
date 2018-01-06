@@ -1,8 +1,8 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH 07/18] [media] uvcvideo: prevent bounds-check bypass via
- speculative execution
-Date: Fri, 05 Jan 2018 17:10:32 -0800
-Message-ID: <151520103240.32271.14706852449205864676.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH 09/18] p54: prevent bounds-check bypass via speculative
+ execution
+Date: Fri, 05 Jan 2018 17:10:43 -0800
+Message-ID: <151520104323.32271.6614158873750932410.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,55 +11,53 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, alan@linux.intel.com, peterz@infradead.org, netdev@vger.kernel.org, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, linux-media@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, linux-wireless@vger.kernel.org, Elena Reshetova <elena.reshetova@intel.com>, gregkh@linuxfoundation.org, Christian Lamparter <chunkeey@googlemail.com>, tglx@linutronix.de, torvalds@linux-foundation.org, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-Static analysis reports that 'index' may be a user controlled value that
-is used as a data dependency to read 'pin' from the
-'selector->baSourceID' array. In order to avoid potential leaks of
-kernel memory values, block speculative execution of the instruction
-stream that could issue reads based on an invalid value of 'pin'.
+Static analysis reports that 'queue' may be a user controlled value that
+is used as a data dependency to read from the 'priv->qos_params' array.
+In order to avoid potential leaks of kernel memory values, block
+speculative execution of the instruction stream that could issue reads
+based on an invalid result of 'priv->qos_params[queue]'.
 
 Based on an original patch by Elena Reshetova.
 
-Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Cc: Mauro Carvalho Chehab <mchehab@kernel.org>
-Cc: linux-media@vger.kernel.org
+Cc: Christian Lamparter <chunkeey@googlemail.com>
+Cc: Kalle Valo <kvalo@codeaurora.org>
+Cc: linux-wireless@vger.kernel.org
+Cc: netdev@vger.kernel.org
 Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/media/usb/uvc/uvc_v4l2.c |    7 +++++--
- 1 file changed, 5 insertions(+), 2 deletions(-)
+ drivers/net/wireless/intersil/p54/main.c |    8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/media/usb/uvc/uvc_v4l2.c b/drivers/media/usb/uvc/uvc_v4l2.c
-index 3e7e283a44a8..7442626dc20e 100644
---- a/drivers/media/usb/uvc/uvc_v4l2.c
-+++ b/drivers/media/usb/uvc/uvc_v4l2.c
-@@ -22,6 +22,7 @@
- #include <linux/mm.h>
- #include <linux/wait.h>
- #include <linux/atomic.h>
+diff --git a/drivers/net/wireless/intersil/p54/main.c b/drivers/net/wireless/intersil/p54/main.c
+index ab6d39e12069..85c9cbee35fc 100644
+--- a/drivers/net/wireless/intersil/p54/main.c
++++ b/drivers/net/wireless/intersil/p54/main.c
+@@ -20,6 +20,7 @@
+ #include <linux/firmware.h>
+ #include <linux/etherdevice.h>
+ #include <linux/module.h>
 +#include <linux/compiler.h>
  
- #include <media/v4l2-common.h>
- #include <media/v4l2-ctrls.h>
-@@ -810,6 +811,7 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
- 	struct uvc_entity *iterm = NULL;
- 	u32 index = input->index;
- 	int pin = 0;
-+	__u8 *elem;
+ #include <net/mac80211.h>
  
- 	if (selector == NULL ||
- 	    (chain->dev->quirks & UVC_QUIRK_IGNORE_SELECTOR_UNIT)) {
-@@ -820,8 +822,9 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
- 				break;
- 		}
- 		pin = iterm->id;
--	} else if (index < selector->bNrInPins) {
--		pin = selector->baSourceID[index];
-+	} else if ((elem = nospec_array_ptr(selector->baSourceID, index,
-+					selector->bNrInPins))) {
-+		pin = *elem;
- 		list_for_each_entry(iterm, &chain->entities, chain) {
- 			if (!UVC_ENTITY_IS_ITERM(iterm))
- 				continue;
+@@ -411,12 +412,13 @@ static int p54_conf_tx(struct ieee80211_hw *dev,
+ 		       const struct ieee80211_tx_queue_params *params)
+ {
+ 	struct p54_common *priv = dev->priv;
++	struct p54_edcf_queue_param *p54_q;
+ 	int ret;
+ 
+ 	mutex_lock(&priv->conf_mutex);
+-	if (queue < dev->queues) {
+-		P54_SET_QUEUE(priv->qos_params[queue], params->aifs,
+-			params->cw_min, params->cw_max, params->txop);
++	if ((p54_q = nospec_array_ptr(priv->qos_params, queue, dev->queues))) {
++		P54_SET_QUEUE(p54_q[0], params->aifs, params->cw_min,
++				params->cw_max, params->txop);
+ 		ret = p54_set_edcf(priv);
+ 	} else
+ 		ret = -EINVAL;
