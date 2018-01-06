@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.llwyncelyn.cymru ([82.70.14.225]:56244 "EHLO fuzix.org"
+Received: from www.llwyncelyn.cymru ([82.70.14.225]:56588 "EHLO fuzix.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752864AbeAFUYl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 6 Jan 2018 15:24:41 -0500
-Date: Sat, 6 Jan 2018 20:22:13 +0000
+        id S1752176AbeAFXFi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 6 Jan 2018 18:05:38 -0500
+Date: Sat, 6 Jan 2018 23:05:07 +0000
 From: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
 Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed
  access_ok
-Message-ID: <20180106202213.23e553fb@alans-desktop>
-In-Reply-To: <20180106200912.zhzdt4qmfrojeeqe@ast-mbp>
+Message-ID: <20180106230507.3547c9a0@alans-desktop>
+In-Reply-To: <20180106211729.cp5oet3at3hyce4o@ast-mbp>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
         <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
         <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
@@ -18,6 +18,8 @@ References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.cor
         <20180106185134.dzn2en4vw2hj3p6h@ast-mbp>
         <20180106195551.3207f75d@alans-desktop>
         <20180106200912.zhzdt4qmfrojeeqe@ast-mbp>
+        <20180106202213.23e553fb@alans-desktop>
+        <20180106211729.cp5oet3at3hyce4o@ast-mbp>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
@@ -25,57 +27,52 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Alexei Starovoitov <alexei.starovoitov@gmail.com>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, netdev@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20180106202213.ueNeVVKNRimli2-iugV9LvQRgvgAxQGSzrJZ6IxNZ7Q@z>
+Message-ID: <20180106230507.2LUB5qzkGVeo6CLFEUqYlyMfC11W1rwu9h84IWgIuP4@z>
 
-> "Value prediction consists of predicting entire 32- and 64-bit register values
-> based  on  previously-seen values"
+> Even if it would be practical the speed probably going to be in bytes per second,
+> so to read anything meaningful an attack detection techniques (that people
+> are actively working on) will be able to catch it.
+> At the end security cannot be absolute.
+> The current level of paranoia shouldn't force us to make hastily decisions.
 
-For their implementation yes
+I think there are at least three overlapping problem spaces here
 
-> 
-> > In other words there are at least two problems with Linus proposal
-> > 
-> > 1. The ffff/0000 mask has to be generated and that has to involve
-> > speculative flows.  
-> 
-> to answer above and Thomas's
-> "For one particular architecture and that's not a solution for generic code."
-> 
-> The following:
-> #define array_access(base, idx, max) ({                         \
->         union { typeof(base[0]) _val; unsigned long _bit; } __u;\
->         unsigned long _i = (idx);                               \
->         unsigned long _m = (max);                               \
->         unsigned long _mask = ~(long)(_m - 1 - _i) >> 63;       \
->         __u._val = base[_i & _mask];                            \
->         __u._bit &= _mask;                                      \
->         __u._val; })
-> 
-> is generic and no speculative flows.
+1.	This is a new field. That could mean that it turns out to be
+really hard and everyone discovers that eBPF was pretty much the only
+interesting attack. It could also mean we are going to see several years
+or refinement by evil geniuses all over the world and what we see now is
+tip of iceberg in cleverness.
 
-In the value speculation case imagine it's been called 1000 times for
-process A which as a limit of say 16 so that file->priv->max is 16, and
-then is run for process B which is different.
+2.	It is very very complicated to answer a question like "is
+sequence x safe on all of vendor's microprocessors" even for the vendor
 
-A value speculating processor waiting for file->priv->max which has been
-pushed out of cache by an attacker is at liberty to say 'I've no idea
-what max is but hey it was 16 last time so lets plug 16 in and keep going"
+3.	A lot of people outside of the professional security space are
+very new to the concept of security economics and risk management as
+opposed to seeing the fake binary nice green tick that says their
+computers are secure that they can pass to their senior management or
+show to audit.
 
-So while the change in the mask computation is clever and (subject to
-compiler cleverness) safe against guesses of which path will be taken I
-don't think it's generically safe.
+> So how about we do array_access() macro similar to above by default
+> with extra CONFIG_ to convert it to lfence ?
 
-Unfortunately a lot of things we index are of different sizes as seen by
-different tasks, or when passed different other index values so this does
-matter.
+We don't have to decide today. Intel's current position is 'lfence'. Over
+time we may see vendors provide more sequences. We will see vendors add
+new instruction hints and the like (See the ARM whitepaper for example)
+and the array access code will change and change again for the better.
 
-> Even if 'mask' in 'index & mask' example is a stall the educated
-> guess will come from the prior value (according to the quoted paper)
+The important thing is that there is something clean, all architecture
+that can be used today that doesn't keep forcing everyone to change
+drivers when new/better ways to do the speculation management appear.
 
-Which might be for a different set of variables when the table is say per
-process like file handles, or the value is different each call.
+> Why default to AND approach instead of lfence ?
+> Because the kernel should still be usable. If security
+> sacrifices performance so much such security will be turned off.
+> Ex: kpti suppose to add 5-30%. If it means 10% on production workload
+> and the datacenter capacity cannot grow 10% overnight, kpti will be off.
 
-If we have single array of fixed size then I suspect you are right but
-usually we don't.
+The differences involved on the "lfence" versus "and" versus before are
+not likely to be anywhere in that order of magnitude. As I said I want to
+take a hard look at the IPv4/6 ones but most of them are not in places
+where you'd expect a lot of data to be in flight in a perf critical path.
 
 Alan
