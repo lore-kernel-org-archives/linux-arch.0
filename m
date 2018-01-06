@@ -1,61 +1,51 @@
-From: Christian Lamparter <chunkeey@gmail.com>
-Subject: Re: [PATCH 08/18] carl9170: prevent bounds-check bypass via speculative execution
-Date: Sat, 06 Jan 2018 17:38:34 +0100
-Message-ID: <2038096.RuDH0FGIcm@debian64>
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com> <3586343.KJymplWpZW@debian64> <20180106150621.2221a646@alans-desktop>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 01/18] asm-generic/barrier: add generic nospec helpers
+Date: Sat, 6 Jan 2018 17:08:58 +0000
+Message-ID: <20180106170855.y44vu3bkiqwliykx@salmiak>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151520099810.32271.11023910901471332353.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFxoU1B7VECQ3T9CRkX07Y8sw=fGg6Miry1GniqJOd68sA@mail.gmail.com>
+ <CAPcyv4jAt5HTc5iB7603tnvDqdFZ1+JhpekekcZwuVR3g6jjVw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f54.google.com ([74.125.82.54]:46666 "EHLO
-        mail-wm0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753500AbeAFQii (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 11:38:38 -0500
-In-Reply-To: <20180106150621.2221a646@alans-desktop>
+Received: from foss.arm.com ([217.140.101.70]:54332 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753689AbeAFRJG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 6 Jan 2018 12:09:06 -0500
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4jAt5HTc5iB7603tnvDqdFZ1+JhpekekcZwuVR3g6jjVw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, linux-wireless@vger.kernel.org, Elena Reshetova <elena.reshetova@intel.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Alan Cox <alan@linux.intel.com>
 
-On Saturday, January 6, 2018 4:06:21 PM CET Alan Cox wrote:
-> > The only way a user can set this in any meaningful way would be via
-> > a NL80211_CMD_SET_WIPHY netlink message. However, the value will get
-> > vetted there by cfg80211's parse_txq_params [0]. This is long before
+On Fri, Jan 05, 2018 at 09:23:06PM -0800, Dan Williams wrote:
+> On Fri, Jan 5, 2018 at 6:55 PM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> > On Fri, Jan 5, 2018 at 5:09 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> >> +#ifndef nospec_ptr
+> >> +#define nospec_ptr(ptr, lo, hi)                                                \
+> >
+> > Do we actually want this horrible interface?
+> >
+> > It just causes the compiler - or inline asm - to generate worse code,
+> > because it needs to compare against both high and low limits.
+> >
+> > Basically all users are arrays that are zero-based, and where a
+> > comparison against the high _index_ limit would be sufficient.
+> >
+> > But the way this is all designed, it's literally designed for bad code
+> > generation for the unusual case, and the usual array case is written
+> > in the form of the unusual and wrong non-array case. That really seems
+> > excessively stupid.
 > 
-> Far more than a couple of hundred instructions ?
-Well, the user would have to send a netlink message each time. So
-cfg80211 can parse it (this is where the initial "if queue >= 4 " check
-happen). So the CPU would have to continue through and into 
-rdev_set_txq_params() to get to mac80211's ieee80211_set_txq_params().
-Then pass through that before gets to the driver's op_tx_conf. Once
-there the driver code aquires a mutex_lock too before it gets to
-check the queue value again.
+> Yes, it appears we can kill nospec_ptr() and move nospec_array_ptr()
+> to assume 0 based arrays rather than use nospec_ptr.
 
-Is this enough and how would the mutex_lock fit in there? Or can
-the CPU skip past this as well? 
-> The problem is that the processor will speculate that the parameter
-> is valid and continue on that basis until the speculation resolves
-> or it hits some other limit that stops it speculating further.
-> That can be quite a distance on a modern x86 processor, and for all
-> we know could be even more on some of the other CPUs involved.
- 
-> > it reaches any of the *_op_conf_tx functions.
-> > 
-> > And Furthermore a invalid queue (param->ac) would cause a crash in 
-> > this line in mac80211 before it even reaches the driver [1]:
-> > |	sdata->tx_conf[params->ac] = p;
-> > |                   ^^^^^^^^
-> 
-> Firstly it might not because the address you get as a result could be
-> valid kernel memory. In fact your attackers wants it to be valid kernel
-> memory since they are trying to find the value of a piece of that memory.
-> 
-> Secondly the processor is doing this speculatively so it won't fault. It
-> will eventually decide it went the wrong way and throw all the
-> speculative work away - leaving footprints. It won't fault unless the
-> speculative resolves that was the real path the code took.
-> 
-> If it's not a performance critical path then it's better to be safe.
-Thank you for reading the canary too.
+Sounds good to me; I can respin the arm/arm64 implementations accordingly.
 
-Christian
+We can always revisit that if we have non-array cases that need to be covered.
+
+Thanks,
+Mark.
