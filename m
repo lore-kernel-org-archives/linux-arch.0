@@ -1,8 +1,8 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH 09/18] p54: prevent bounds-check bypass via speculative
+Subject: [PATCH 08/18] carl9170: prevent bounds-check bypass via speculative
  execution
-Date: Fri, 05 Jan 2018 17:10:43 -0800
-Message-ID: <151520104323.32271.6614158873750932410.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 05 Jan 2018 17:10:37 -0800
+Message-ID: <151520103755.32271.6819511294540882298.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -15,10 +15,12 @@ Cc: linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, li
 List-Id: linux-arch.vger.kernel.org
 
 Static analysis reports that 'queue' may be a user controlled value that
-is used as a data dependency to read from the 'priv->qos_params' array.
-In order to avoid potential leaks of kernel memory values, block
+is used as a data dependency to read from the 'ar9170_qmap' array. In
+order to avoid potential leaks of kernel memory values, block
 speculative execution of the instruction stream that could issue reads
-based on an invalid result of 'priv->qos_params[queue]'.
+based on an invalid result of 'ar9170_qmap[queue]'. In this case the
+value of 'ar9170_qmap[queue]' is immediately reused as an index to the
+'ar->edcf' array.
 
 Based on an original patch by Elena Reshetova.
 
@@ -29,35 +31,33 @@ Cc: netdev@vger.kernel.org
 Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/net/wireless/intersil/p54/main.c |    8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
+ drivers/net/wireless/ath/carl9170/main.c |    6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/net/wireless/intersil/p54/main.c b/drivers/net/wireless/intersil/p54/main.c
-index ab6d39e12069..85c9cbee35fc 100644
---- a/drivers/net/wireless/intersil/p54/main.c
-+++ b/drivers/net/wireless/intersil/p54/main.c
-@@ -20,6 +20,7 @@
- #include <linux/firmware.h>
- #include <linux/etherdevice.h>
+diff --git a/drivers/net/wireless/ath/carl9170/main.c b/drivers/net/wireless/ath/carl9170/main.c
+index 988c8857d78c..0ff34cbe2b62 100644
+--- a/drivers/net/wireless/ath/carl9170/main.c
++++ b/drivers/net/wireless/ath/carl9170/main.c
+@@ -41,6 +41,7 @@
  #include <linux/module.h>
+ #include <linux/etherdevice.h>
+ #include <linux/random.h>
 +#include <linux/compiler.h>
- 
  #include <net/mac80211.h>
- 
-@@ -411,12 +412,13 @@ static int p54_conf_tx(struct ieee80211_hw *dev,
- 		       const struct ieee80211_tx_queue_params *params)
+ #include <net/cfg80211.h>
+ #include "hw.h"
+@@ -1384,11 +1385,12 @@ static int carl9170_op_conf_tx(struct ieee80211_hw *hw,
+ 			       const struct ieee80211_tx_queue_params *param)
  {
- 	struct p54_common *priv = dev->priv;
-+	struct p54_edcf_queue_param *p54_q;
+ 	struct ar9170 *ar = hw->priv;
++	const u8 *elem;
  	int ret;
  
- 	mutex_lock(&priv->conf_mutex);
--	if (queue < dev->queues) {
--		P54_SET_QUEUE(priv->qos_params[queue], params->aifs,
--			params->cw_min, params->cw_max, params->txop);
-+	if ((p54_q = nospec_array_ptr(priv->qos_params, queue, dev->queues))) {
-+		P54_SET_QUEUE(p54_q[0], params->aifs, params->cw_min,
-+				params->cw_max, params->txop);
- 		ret = p54_set_edcf(priv);
- 	} else
+ 	mutex_lock(&ar->mutex);
+-	if (queue < ar->hw->queues) {
+-		memcpy(&ar->edcf[ar9170_qmap[queue]], param, sizeof(*param));
++	if ((elem = nospec_array_ptr(ar9170_qmap, queue, ar->hw->queues))) {
++		memcpy(&ar->edcf[*elem], param, sizeof(*param));
+ 		ret = carl9170_set_qos(ar);
+ 	} else {
  		ret = -EINVAL;
