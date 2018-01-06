@@ -1,60 +1,134 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH 12/18] Thermal/int340x: prevent bounds-check bypass via
- speculative execution
-Date: Fri, 5 Jan 2018 17:57:18 -0800
-Message-ID: <CAPcyv4iNJrcKBiN+3=ZZ1MHU1PYbt4rLDLgWZY5Kc+O8regDYw@mail.gmail.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [PATCH 00/18] prevent bounds-check bypass via speculative execution
+Date: Fri, 05 Jan 2018 20:22:02 -0600
+Message-ID: <87y3lbpvzp.fsf@xmission.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520105920.32271.1091443154687576996.stgit@dwillia2-desk3.amr.corp.intel.com>
- <1515203635.26317.78.camel@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f52.google.com ([209.85.218.52]:43616 "EHLO
-        mail-oi0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753494AbeAFB5T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jan 2018 20:57:19 -0500
-Received: by mail-oi0-f52.google.com with SMTP id f69so4242838oig.10
-        for <linux-arch@vger.kernel.org>; Fri, 05 Jan 2018 17:57:19 -0800 (PST)
-In-Reply-To: <1515203635.26317.78.camel@linux.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Greg KH <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Eduardo Valentin <edubezval@gmail.com>, Zhang Rui <rui.zhang@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+Content-Type: text/plain
+Return-path: <linux-media-owner@vger.kernel.org>
+In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+        (Dan Williams's message of "Fri, 05 Jan 2018 17:09:53 -0800")
+Sender: linux-media-owner@vger.kernel.org
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, peterz@infradead.org, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Zhang Rui <rui.zhang@intel.com>, linux-media@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jan Kara <jack@suse.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 5, 2018 at 5:53 PM, Srinivas Pandruvada
-<srinivas.pandruvada@linux.intel.com> wrote:
-> On Fri, 2018-01-05 at 17:10 -0800, Dan Williams wrote:
->> Static analysis reports that 'trip' may be a user controlled value
->> that
->> is used as a data dependency to read '*temp' from the 'd->aux_trips'
->> array.  In order to avoid potential leaks of kernel memory values,
->> block
->> speculative execution of the instruction stream that could issue
->> reads
->> based on an invalid value of '*temp'.
->
-> Not against the change as this is in a very slow path. But the trip is
-> not an arbitrary value which user can enter.
->
-> This trip value is the one of the sysfs attribute in thermal zone. For
-> example
->
-> # cd /sys/class/thermal/thermal_zone1
-> # ls trip_point_?_temp
-> trip_point_0_temp  trip_point_1_temp  trip_point_2_temp  trip_point_3_t
-> emp  trip_point_4_temp  trip_point_5_temp  trip_point_6_temp
->
-> Here the "trip" is one of the above trip_point_*_temp. So in this case
-> it can be from 0 to 6 as user can't do
-> # cat trip_point_7_temp
-> as there is no sysfs attribute for trip_point_7_temp.
->
-> The actual "trip" was obtained in thermal core via
->
->       if (sscanf(attr->attr.name, "trip_point_%d_temp", &trip) != 1)
->                 return -EINVAL;
->
-> Thanks,
-> Srinivas
+Dan Williams <dan.j.williams@intel.com> writes:
 
-Ah, great, thanks. So do we even need the bounds check at that point?
+> Quoting Mark's original RFC:
+>
+> "Recently, Google Project Zero discovered several classes of attack
+> against speculative execution. One of these, known as variant-1, allows
+> explicit bounds checks to be bypassed under speculation, providing an
+> arbitrary read gadget. Further details can be found on the GPZ blog [1]
+> and the Documentation patch in this series."
+>
+> This series incorporates Mark Rutland's latest api and adds the x86
+> specific implementation of nospec_barrier. The
+> nospec_{array_ptr,ptr,barrier} helpers are then combined with a kernel
+> wide analysis performed by Elena Reshetova to address static analysis
+> reports where speculative execution on a userspace controlled value
+> could bypass a bounds check. The patches address a precondition for the
+> attack discussed in the Spectre paper [2].
+
+Please expand this.
+
+It is not clear what the static analysis is looking for.  Have a clear
+description of what is being fixed is crucial for allowing any of these
+changes.
+
+For the details given in the change description what I read is magic
+changes because a magic process says this code is vunlerable.
+
+Given the similarities in the code that is being patched to many other
+places in the kernel it is not at all clear that this small set of
+changes is sufficient for any purpose.
+
+> A consideration worth noting for reviewing these patches is to weigh the
+> dramatic cost of being wrong about whether a given report is exploitable
+> vs the overhead nospec_{array_ptr,ptr} may introduce. In other words,
+> lets make the bar for applying these patches be "can you prove that the
+> bounds check bypass is *not* exploitable". Consider that the Spectre
+> paper reports one example of a speculation window being ~180 cycles.
+
+
+> Note that there is also a proposal from Linus, array_access [3], that
+> attempts to quash speculative execution past a bounds check without
+> introducing an lfence instruction. That may be a future optimization
+> possibility that is compatible with this api, but it would appear to
+> need guarantees from the compiler that it is not clear the kernel can
+> rely on at this point. It is also not clear that it would be a
+> significant performance win vs lfence.
+
+It is also not clear that these changes fix anything, or are in any
+sense correct for the problem they are trying to fix as the problem
+is not clearly described.
+
+In at least one place (mpls) you are patching a fast path.  Compile out
+or don't load mpls by all means.  But it is not acceptable to change the
+fast path without even considering performance.
+
+So because the description sucks, and the due diligence is not there.
+
+Nacked-by: "Eric W. Biederman" <ebiederm@xmission.com>
+
+to the series.
+
+
+>
+> These patches also will also be available via the 'nospec' git branch
+> here:
+>
+>     git://git.kernel.org/pub/scm/linux/kernel/git/djbw/linux nospec
+>
+> [1]: https://googleprojectzero.blogspot.co.uk/2018/01/reading-privileged-memory-with-side.html
+> [2]: https://spectreattack.com/spectre.pdf
+> [3]: https://marc.info/?l=linux-kernel&m=151510446027625&w=2
+>
+> ---
+>
+> Andi Kleen (1):
+>       x86, barrier: stop speculation for failed access_ok
+>
+> Dan Williams (13):
+>       x86: implement nospec_barrier()
+>       [media] uvcvideo: prevent bounds-check bypass via speculative execution
+>       carl9170: prevent bounds-check bypass via speculative execution
+>       p54: prevent bounds-check bypass via speculative execution
+>       qla2xxx: prevent bounds-check bypass via speculative execution
+>       cw1200: prevent bounds-check bypass via speculative execution
+>       Thermal/int340x: prevent bounds-check bypass via speculative execution
+>       ipv6: prevent bounds-check bypass via speculative execution
+>       ipv4: prevent bounds-check bypass via speculative execution
+>       vfs, fdtable: prevent bounds-check bypass via speculative execution
+>       net: mpls: prevent bounds-check bypass via speculative execution
+>       udf: prevent bounds-check bypass via speculative execution
+>       userns: prevent bounds-check bypass via speculative execution
+>
+> Mark Rutland (4):
+>       asm-generic/barrier: add generic nospec helpers
+>       Documentation: document nospec helpers
+>       arm64: implement nospec_ptr()
+>       arm: implement nospec_ptr()
+>
+>  Documentation/speculation.txt                      |  166 ++++++++++++++++++++
+>  arch/arm/include/asm/barrier.h                     |   75 +++++++++
+>  arch/arm64/include/asm/barrier.h                   |   55 +++++++
+>  arch/x86/include/asm/barrier.h                     |    6 +
+>  arch/x86/include/asm/uaccess.h                     |   17 ++
+>  drivers/media/usb/uvc/uvc_v4l2.c                   |    7 +
+>  drivers/net/wireless/ath/carl9170/main.c           |    6 -
+>  drivers/net/wireless/intersil/p54/main.c           |    8 +
+>  drivers/net/wireless/st/cw1200/sta.c               |   10 +
+>  drivers/net/wireless/st/cw1200/wsm.h               |    4 
+>  drivers/scsi/qla2xxx/qla_mr.c                      |   15 +-
+>  .../thermal/int340x_thermal/int340x_thermal_zone.c |   14 +-
+>  fs/udf/misc.c                                      |   39 +++--
+>  include/asm-generic/barrier.h                      |   68 ++++++++
+>  include/linux/fdtable.h                            |    5 -
+>  kernel/user_namespace.c                            |   10 -
+>  net/ipv4/raw.c                                     |    9 +
+>  net/ipv6/raw.c                                     |    9 +
+>  net/mpls/af_mpls.c                                 |   12 +
+>  19 files changed, 466 insertions(+), 69 deletions(-)
+>  create mode 100644 Documentation/speculation.txt
