@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:30832 "EHLO mga02.intel.com"
+Received: from mga05.intel.com ([192.55.52.43]:34280 "EHLO mga05.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753439AbeAFBTD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Jan 2018 20:19:03 -0500
-Subject: [PATCH 10/18] qla2xxx: prevent bounds-check bypass via speculative
- execution
+        id S1753763AbeAFBSr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Jan 2018 20:18:47 -0500
+Subject: [PATCH 07/18] [media] uvcvideo: prevent bounds-check bypass via
+ speculative execution
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 05 Jan 2018 17:10:48 -0800
-Message-ID: <151520104838.32271.7038801336240727574.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 05 Jan 2018 17:10:32 -0800
+Message-ID: <151520103240.32271.14706852449205864676.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,79 +16,55 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi@vger.kernel.org, gregkh@linuxfoundation.org, peterz@infradead.org, netdev@vger.kernel.org, qla2xxx-upstream@qlogic.com, tglx@linutronix.de, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
-Message-ID: <20180106011048.otZ58ZNuGb-7S6ZhuZetE3cqIS9bpBku-Bydr401J0E@z>
+Cc: linux-arch@vger.kernel.org, alan@linux.intel.com, peterz@infradead.org, netdev@vger.kernel.org, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, linux-media@vger.kernel.org
+Message-ID: <20180106011032.6fAzdWCOXtY5IZzO8x2eeKsNN-x_oecnSgwr4hD2ZwQ@z>
 
-Static analysis reports that 'handle' may be a user controlled value
-that is used as a data dependency to read 'sp' from the
-'req->outstanding_cmds' array.  In order to avoid potential leaks of
+Static analysis reports that 'index' may be a user controlled value that
+is used as a data dependency to read 'pin' from the
+'selector->baSourceID' array. In order to avoid potential leaks of
 kernel memory values, block speculative execution of the instruction
-stream that could issue reads based on an invalid value of 'sp'. In this
-case 'sp' is directly dereferenced later in the function.
+stream that could issue reads based on an invalid value of 'pin'.
 
 Based on an original patch by Elena Reshetova.
 
-Cc: qla2xxx-upstream@qlogic.com
-Cc: "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>
-Cc: "Martin K. Petersen" <martin.petersen@oracle.com>
-Cc: linux-scsi@vger.kernel.org
+Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Cc: Mauro Carvalho Chehab <mchehab@kernel.org>
+Cc: linux-media@vger.kernel.org
 Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/scsi/qla2xxx/qla_mr.c |   15 +++++++++------
- 1 file changed, 9 insertions(+), 6 deletions(-)
+ drivers/media/usb/uvc/uvc_v4l2.c |    7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/scsi/qla2xxx/qla_mr.c b/drivers/scsi/qla2xxx/qla_mr.c
-index d5da3981cefe..128b41de3784 100644
---- a/drivers/scsi/qla2xxx/qla_mr.c
-+++ b/drivers/scsi/qla2xxx/qla_mr.c
-@@ -9,6 +9,7 @@
- #include <linux/ktime.h>
- #include <linux/pci.h>
- #include <linux/ratelimit.h>
+diff --git a/drivers/media/usb/uvc/uvc_v4l2.c b/drivers/media/usb/uvc/uvc_v4l2.c
+index 3e7e283a44a8..7442626dc20e 100644
+--- a/drivers/media/usb/uvc/uvc_v4l2.c
++++ b/drivers/media/usb/uvc/uvc_v4l2.c
+@@ -22,6 +22,7 @@
+ #include <linux/mm.h>
+ #include <linux/wait.h>
+ #include <linux/atomic.h>
 +#include <linux/compiler.h>
- #include <linux/vmalloc.h>
- #include <linux/bsg-lib.h>
- #include <scsi/scsi_tcq.h>
-@@ -2275,7 +2276,7 @@ qlafx00_ioctl_iosb_entry(scsi_qla_host_t *vha, struct req_que *req,
- static void
- qlafx00_status_entry(scsi_qla_host_t *vha, struct rsp_que *rsp, void *pkt)
- {
--	srb_t		*sp;
-+	srb_t		*sp, **elem;
- 	fc_port_t	*fcport;
- 	struct scsi_cmnd *cp;
- 	struct sts_entry_fx00 *sts;
-@@ -2304,8 +2305,9 @@ qlafx00_status_entry(scsi_qla_host_t *vha, struct rsp_que *rsp, void *pkt)
- 	req = ha->req_q_map[que];
  
- 	/* Validate handle. */
--	if (handle < req->num_outstanding_cmds)
--		sp = req->outstanding_cmds[handle];
-+	if ((elem = nospec_array_ptr(req->outstanding_cmds, handle,
-+					req->num_outstanding_cmds)))
-+		sp = *elem;
- 	else
- 		sp = NULL;
+ #include <media/v4l2-common.h>
+ #include <media/v4l2-ctrls.h>
+@@ -810,6 +811,7 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
+ 	struct uvc_entity *iterm = NULL;
+ 	u32 index = input->index;
+ 	int pin = 0;
++	__u8 *elem;
  
-@@ -2626,7 +2628,7 @@ static void
- qlafx00_multistatus_entry(struct scsi_qla_host *vha,
- 	struct rsp_que *rsp, void *pkt)
- {
--	srb_t		*sp;
-+	srb_t		*sp, **elem;
- 	struct multi_sts_entry_fx00 *stsmfx;
- 	struct qla_hw_data *ha = vha->hw;
- 	uint32_t handle, hindex, handle_count, i;
-@@ -2655,8 +2657,9 @@ qlafx00_multistatus_entry(struct scsi_qla_host *vha,
- 		req = ha->req_q_map[que];
- 
- 		/* Validate handle. */
--		if (handle < req->num_outstanding_cmds)
--			sp = req->outstanding_cmds[handle];
-+		if ((elem = nospec_array_ptr(req->outstanding_cmds, handle,
-+						req->num_outstanding_cmds)))
-+			sp = *elem;
- 		else
- 			sp = NULL;
- 
+ 	if (selector == NULL ||
+ 	    (chain->dev->quirks & UVC_QUIRK_IGNORE_SELECTOR_UNIT)) {
+@@ -820,8 +822,9 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
+ 				break;
+ 		}
+ 		pin = iterm->id;
+-	} else if (index < selector->bNrInPins) {
+-		pin = selector->baSourceID[index];
++	} else if ((elem = nospec_array_ptr(selector->baSourceID, index,
++					selector->bNrInPins))) {
++		pin = *elem;
+ 		list_for_each_entry(iterm, &chain->entities, chain) {
+ 			if (!UVC_ENTITY_IS_ITERM(iterm))
+ 				continue;
