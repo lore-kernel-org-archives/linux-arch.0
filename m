@@ -1,77 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f68.google.com ([209.85.215.68]:41171 "EHLO
-        mail-lf0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752826AbeAFKEH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 05:04:07 -0500
-Received: by mail-lf0-f68.google.com with SMTP id h137so7505771lfe.8
-        for <linux-arch@vger.kernel.org>; Sat, 06 Jan 2018 02:04:07 -0800 (PST)
-Subject: Re: [PATCH 13/18] ipv6: prevent bounds-check bypass via speculative
- execution
+Received: from www.llwyncelyn.cymru ([82.70.14.225]:55358 "EHLO fuzix.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753340AbeAFPGx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 6 Jan 2018 10:06:53 -0500
+Date: Sat, 6 Jan 2018 15:06:21 +0000
+From: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
+Subject: Re: [PATCH 08/18] carl9170: prevent bounds-check bypass via
+ speculative execution
+Message-ID: <20180106150621.2221a646@alans-desktop>
+In-Reply-To: <3586343.KJymplWpZW@debian64>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520106487.32271.6013001625427346680.stgit@dwillia2-desk3.amr.corp.intel.com>
-From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
-Message-ID: <9df738f5-65d9-4560-4b8b-120813a203ce@cogentembedded.com>
-Date: Sat, 6 Jan 2018 13:04:05 +0300
+        <151520103755.32271.6819511294540882298.stgit@dwillia2-desk3.amr.corp.intel.com>
+        <3586343.KJymplWpZW@debian64>
 MIME-Version: 1.0
-In-Reply-To: <151520106487.32271.6013001625427346680.stgit@dwillia2-desk3.amr.corp.intel.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, peterz@infradead.org, gregkh@linuxfoundation.org, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, tglx@linutronix.de, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
-Message-ID: <20180106100405.rGsRbpYCP16w_clTL1bYUDeEzzyLf_gJVAOYCRB6LPw@z>
+To: Christian Lamparter <chunkeey@gmail.com>
+Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, linux-wireless@vger.kernel.org, Elena Reshetova <elena.reshetova@intel.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com
+Message-ID: <20180106150621.e265E5Otni6B1h36zy6vkEiTrMKHsGnyoRw7HlOdPt8@z>
 
-On 1/6/2018 4:11 AM, Dan Williams wrote:
+> The only way a user can set this in any meaningful way would be via
+> a NL80211_CMD_SET_WIPHY netlink message. However, the value will get
+> vetted there by cfg80211's parse_txq_params [0]. This is long before
 
-> Static analysis reports that 'offset' may be a user controlled value
-> that is used as a data dependency reading from a raw6_frag_vec buffer.
-> In order to avoid potential leaks of kernel memory values, block
-> speculative execution of the instruction stream that could issue further
-> reads based on an invalid '*(rfv->c + offset)' value.
+Far more than a couple of hundred instructions ? The problem is that the
+processor will speculate that the parameter is valid and continue on that
+basis until the speculation resolves or it hits some other limit that
+stops it speculating further. That can be quite a distance on a modern
+x86 processor, and for all we know could be even more on some of the
+other CPUs involved.
+
+> it reaches any of the *_op_conf_tx functions.
 > 
-> Based on an original patch by Elena Reshetova.
-> 
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Cc: Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
-> Cc: Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>
-> Cc: netdev@vger.kernel.org
-> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> ---
->   net/ipv6/raw.c |    9 +++++----
->   1 file changed, 5 insertions(+), 4 deletions(-)
-> 
-> diff --git a/net/ipv6/raw.c b/net/ipv6/raw.c
-> index 761a473a07c5..384e3d59d148 100644
-> --- a/net/ipv6/raw.c
-> +++ b/net/ipv6/raw.c
-[...]
-> @@ -725,17 +726,17 @@ static int raw6_getfrag(void *from, char *to, int offset, int len, int odd,
->   		       struct sk_buff *skb)
->   {
->   	struct raw6_frag_vec *rfv = from;
-> +	char *rfv_buf;
->   
-> -	if (offset < rfv->hlen) {
-> +	if ((rfv_buf = nospec_array_ptr(rfv->c, offset, rfv->hlen))) {
+> And Furthermore a invalid queue (param->ac) would cause a crash in 
+> this line in mac80211 before it even reaches the driver [1]:
+> |	sdata->tx_conf[params->ac] = p;
+> |                   ^^^^^^^^
 
-    And here...
+Firstly it might not because the address you get as a result could be
+valid kernel memory. In fact your attackers wants it to be valid kernel
+memory since they are trying to find the value of a piece of that memory.
 
->   		int copy = min(rfv->hlen - offset, len);
->   
->   		if (skb->ip_summed == CHECKSUM_PARTIAL)
-> -			memcpy(to, rfv->c + offset, copy);
-> +			memcpy(to, rfv_buf, copy);
->   		else
->   			skb->csum = csum_block_add(
->   				skb->csum,
-> -				csum_partial_copy_nocheck(rfv->c + offset,
-> -							  to, copy, 0),
-> +				csum_partial_copy_nocheck(rfv_buf, to, copy, 0),
->   				odd);
->   
->   		odd = 0;
+Secondly the processor is doing this speculatively so it won't fault. It
+will eventually decide it went the wrong way and throw all the
+speculative work away - leaving footprints. It won't fault unless the
+speculative resolves that was the real path the code took.
 
-MBR, Sergei
+If it's not a performance critical path then it's better to be safe.
+
+Alan
