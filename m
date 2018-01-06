@@ -1,27 +1,52 @@
-From: Arjan van de Ven <arjan@linux.intel.com>
-Subject: Re: [PATCH 00/18] prevent bounds-check bypass via speculative
- execution
-Date: Sat, 6 Jan 2018 10:59:06 -0800
-Message-ID: <e567c704-e141-63db-5d59-7294e0c78e26@linux.intel.com>
+From: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
+Date: Sat, 6 Jan 2018 11:25:19 -0800
+Message-ID: <20180106192517.ykvlcq4564cqy4u6@ast-mbp>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <ca6f24c0-d6cf-e309-aa68-92f1378ee75a@gmail.com>
+ <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
+ <20180106123242.77f4d860@alans-desktop>
+ <20180106181331.mmrqwwbu2jcjj2si@ast-mbp>
+ <CAPcyv4jqKmnkL1CfHVccHvocmSD4PamqOy4bPsO1789D+107FQ@mail.gmail.com>
+ <20180106183937.vkseldf4arkdlkum@ast-mbp>
+ <CAPcyv4hyRfPhnnS=aDf=jMMP+-EJM3ojPC0gX9ChawT3vidkJQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <ca6f24c0-d6cf-e309-aa68-92f1378ee75a@gmail.com>
-Content-Language: en-US
-Sender: netdev-owner@vger.kernel.org
-To: Florian Fainelli <f.fainelli@gmail.com>, Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, peterz@infradead.org, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Zhang Rui <rui.zhang@intel.com>, linux-media@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jan Kara <jack@suse.com>, Eduardo Valentin <edubezval@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:35940 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751718AbeAFTZW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 14:25:22 -0500
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4hyRfPhnnS=aDf=jMMP+-EJM3ojPC0gX9ChawT3vidkJQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
 
-> It sounds like Coverity was used to produce these patches? If so, is
-> there a plan to have smatch (hey Dan) or other open source static
-> analysis tool be possibly enhanced to do a similar type of work?
+On Sat, Jan 06, 2018 at 10:54:27AM -0800, Dan Williams wrote:
+> On Sat, Jan 6, 2018 at 10:39 AM, Alexei Starovoitov
+> <alexei.starovoitov@gmail.com> wrote:
+> [..]
+> >> retpoline is variant-2, this patch series is about variant-1.
+> >
+> > that's exactly the point. Don't slow down the kernel with lfences
+> > to solve variant 1. retpoline for 2 is ok from long term kernel
+> > viability perspective.
+> >
+> 
+> Setting aside that we still need to measure the impact of these
+> changes the end result will still be nospec_array_ptr() sprinkled in
+> various locations. So can we save the debate about what's inside that
+> macro on various architectures and at least proceed with annotating
+> the problematic locations? Perhaps we can go a step further and have a
+> config option to switch between the clever array_access() approach
+> from Linus that might be fine depending on the compiler, and the
+> cpu-vendor-recommended not to speculate implementation of
+> nospec_array_ptr().
 
-I'd love for that to happen; the tricky part is being able to have even a
-sort of sensible concept of "trusted" vs "untrusted" value...
-
-if you look at a very small window of code, that does not work well;
-you likely need to even look (as tool) across .c file boundaries
+recommended by panicing vendors who had no better ideas?
+Ohh, speculation is exploitable, let's stop speculation.
+Instead of fighting it we can safely steer it where it doesn't leak
+kernel data. AND approach is doing exactly that.
+It probably can be made independent of compiler choice to use setbe-like insn.
