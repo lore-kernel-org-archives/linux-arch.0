@@ -1,47 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f66.google.com ([209.85.214.66]:37025 "EHLO
-        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750940AbeAFR4N (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 12:56:13 -0500
+Received: from mail-ot0-f194.google.com ([74.125.82.194]:35111 "EHLO
+        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752826AbeAFSKj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 13:10:39 -0500
+Received: by mail-ot0-f194.google.com with SMTP id q5so6370972oth.2
+        for <linux-arch@vger.kernel.org>; Sat, 06 Jan 2018 10:10:39 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <20180106123242.77f4d860@alans-desktop>
+In-Reply-To: <CAPcyv4jsbwaBy29-L3rV__9AiMuZk7aO-0CguH6RNLYKgWWoYw@mail.gmail.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com> <20180106123242.77f4d860@alans-desktop>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Sat, 6 Jan 2018 09:56:12 -0800
-Message-ID: <CA+55aFxBYfbShsPKj1rJjB4TQXxcd+-hYG7y7gq0RF7gdfv_Uw@mail.gmail.com>
-Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
+ <151520107001.32271.12149241186695668220.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180106090154.GE4380@kroah.com> <20180106122347.7a5c8ee6@alans-desktop>
+ <20180106151424.GA17924@kroah.com> <CAPcyv4jsbwaBy29-L3rV__9AiMuZk7aO-0CguH6RNLYKgWWoYw@mail.gmail.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Sat, 6 Jan 2018 10:10:38 -0800
+Message-ID: <CAPcyv4iagGa+Mj9VJcc604N_JYadB7nci7fF=GuzhtOhR5HH2w@mail.gmail.com>
+Subject: Re: [PATCH 14/18] ipv4: prevent bounds-check bypass via speculative execution
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20180106175612.lXwAzNN1xk4RgM_Q7NnErX33u3HlQMWeTKk9Yc7P61Y@z>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Netdev <netdev@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180106181038.YgFNJ_FvFrtuyQ74_anIp5aLn1cpAZjDEIQP60HY0yI@z>
 
-On Sat, Jan 6, 2018 at 4:32 AM, Alan Cox <gnomes@lxorguk.ukuu.org.uk> wrote:
+On Sat, Jan 6, 2018 at 8:29 AM, Dan Williams <dan.j.williams@intel.com> wrote:
+> On Sat, Jan 6, 2018 at 7:14 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
+>> On Sat, Jan 06, 2018 at 12:23:47PM +0000, Alan Cox wrote:
+>>> On Sat, 6 Jan 2018 10:01:54 +0100
+>>> Greg KH <gregkh@linuxfoundation.org> wrote:
+>>>
+>>> > On Fri, Jan 05, 2018 at 05:11:10PM -0800, Dan Williams wrote:
+>>> > > Static analysis reports that 'offset' may be a user controlled value
+>>> >
+>>> > Can I see the rule that determined that?  It does not feel like that is
+>>> > correct, given the 3+ levels deep that this function gets this value
+>>> > from...
+>>>
+>>> On a current x86 you can execute something upwards of 150 instructions in
+>>> a speculation window.
+>>
+>> Yeah, I agree, it's deep :(
+>>
+>> But for this patch, I thought the prior review determined that it was
+>> not a problem.  Was that somehow proven incorrect?
 >
-> Also for x86-64 if we are trusting that an AND with a constant won't get
-> speculated into something else surely we can just and the address with ~(1
-> << 63) before copying from/to user space ? The user will then just
-> speculatively steal their own memory.
+> I kept it in the series to get a re-review with the wider netdev
+> because I missed the discussion leading up to that 'drop the patch'
+> decision. Sorry, I should have noted that in the changelog or cover
+> letter.
 
-User accesses *may* go to the kernel too, with set_fs(KERNEL_DS).
-We've been getting rid of those, but they still exist.
-
-We historically perhaps have 'and'ed the address with
-current->thread.addr_limit, but it's no longer a power-of-two mask, so
-that doesn't work. We'd have to play tricks there, but it might work
-to do something like
-
-     addr &= current->thread.addr_limit | 0xfff;
-
-or similar.
-
-But this is one area where the 'lfence' is probably not too bad. The
-cost of the existing 'stac' instruction is much higher, and in fact
-depending on how lfence works (and how stac affects the memory unit
-pipeline, it might even _help_ to serialize the stac with the actual
-address.
-
-            Linus
+Is there a microbenchmark that can stress this path. If the cost is
+negligible why play games with it being "probably ok"? Unless someone
+can say 100% 'offset' is always bounded to something safe by the time
+we get here just use nospec_array_ptr().
