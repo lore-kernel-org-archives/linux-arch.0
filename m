@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:15544 "EHLO mga06.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:7066 "EHLO mga03.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753389AbeAFBSM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Jan 2018 20:18:12 -0500
-Subject: [PATCH 01/18] asm-generic/barrier: add generic nospec helpers
+        id S1753794AbeAFBSw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Jan 2018 20:18:52 -0500
+Subject: [PATCH 08/18] carl9170: prevent bounds-check bypass via speculative
+ execution
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 05 Jan 2018 17:09:58 -0800
-Message-ID: <151520099810.32271.11023910901471332353.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 05 Jan 2018 17:10:37 -0800
+Message-ID: <151520103755.32271.6819511294540882298.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,107 +16,53 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, Will Deacon <will.deacon@arm.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180106010958.RI4EeuaJ6PeclMwiN2gOdk4BzR9gljtDMl8K1MbNrgQ@z>
+Cc: linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, linux-wireless@vger.kernel.org, Elena Reshetova <elena.reshetova@intel.com>, gregkh@linuxfoundation.org, Christian Lamparter <chunkeey@googlemail.com>, tglx@linutronix.de, torvalds@linux-foundation.org, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com
+Message-ID: <20180106011037.Vc_MCs8kzaIu7d8jPbTpONT9BHx3UXpzLYXB_TXKMbY@z>
 
-From: Mark Rutland <mark.rutland@arm.com>
+Static analysis reports that 'queue' may be a user controlled value that
+is used as a data dependency to read from the 'ar9170_qmap' array. In
+order to avoid potential leaks of kernel memory values, block
+speculative execution of the instruction stream that could issue reads
+based on an invalid result of 'ar9170_qmap[queue]'. In this case the
+value of 'ar9170_qmap[queue]' is immediately reused as an index to the
+'ar->edcf' array.
 
-Under speculation, CPUs may mis-predict branches in bounds checks. Thus,
-memory accesses under a bounds check may be speculated even if the
-bounds check fails, providing a primitive for building a side channel.
+Based on an original patch by Elena Reshetova.
 
-This patch adds helpers which can be used to inhibit the use of
-out-of-bounds pointers under speculation.
-
-A generic implementation is provided for compatibility, but does not
-guarantee safety under speculation. Architectures are expected to
-override these helpers as necessary.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
-Cc: Daniel Willams <dan.j.williams@intel.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Christian Lamparter <chunkeey@googlemail.com>
+Cc: Kalle Valo <kvalo@codeaurora.org>
+Cc: linux-wireless@vger.kernel.org
+Cc: netdev@vger.kernel.org
+Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- include/asm-generic/barrier.h |   68 +++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 68 insertions(+)
+ drivers/net/wireless/ath/carl9170/main.c |    6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index fe297b599b0a..91c3071f49e5 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -54,6 +54,74 @@
- #define read_barrier_depends()		do { } while (0)
- #endif
+diff --git a/drivers/net/wireless/ath/carl9170/main.c b/drivers/net/wireless/ath/carl9170/main.c
+index 988c8857d78c..0ff34cbe2b62 100644
+--- a/drivers/net/wireless/ath/carl9170/main.c
++++ b/drivers/net/wireless/ath/carl9170/main.c
+@@ -41,6 +41,7 @@
+ #include <linux/module.h>
+ #include <linux/etherdevice.h>
+ #include <linux/random.h>
++#include <linux/compiler.h>
+ #include <net/mac80211.h>
+ #include <net/cfg80211.h>
+ #include "hw.h"
+@@ -1384,11 +1385,12 @@ static int carl9170_op_conf_tx(struct ieee80211_hw *hw,
+ 			       const struct ieee80211_tx_queue_params *param)
+ {
+ 	struct ar9170 *ar = hw->priv;
++	const u8 *elem;
+ 	int ret;
  
-+/*
-+ * Inhibit subsequent speculative memory accesses.
-+ *
-+ * Architectures with a suitable memory barrier should provide an
-+ * implementation. This is non-portable, and generic code should use
-+ * nospec_ptr().
-+ */
-+#ifndef __nospec_barrier
-+#define __nospec_barrier()		do { } while (0)
-+#endif
-+
-+/**
-+ * nospec_ptr() - Ensure a  pointer is bounded, even under speculation.
-+ *
-+ * @ptr: the pointer to test
-+ * @lo: the lower valid bound for @ptr, inclusive
-+ * @hi: the upper valid bound for @ptr, exclusive
-+ *
-+ * If @ptr falls in the interval [@lo, @i), returns @ptr, otherwise returns
-+ * NULL.
-+ *
-+ * Architectures which do not provide __nospec_barrier() should override this
-+ * to ensure that ptr falls in the [lo, hi) interval both under architectural
-+ * execution and under speculation, preventing propagation of an out-of-bounds
-+ * pointer to code which is speculatively executed.
-+ */
-+#ifndef nospec_ptr
-+#define nospec_ptr(ptr, lo, hi)						\
-+({									\
-+	typeof (ptr) __ret;						\
-+	typeof (ptr) __ptr = (ptr);					\
-+	typeof (ptr) __lo = (lo);					\
-+	typeof (ptr) __hi = (hi);					\
-+									\
-+	__ret = (__lo <= __ptr && __ptr < __hi) ? __ptr : NULL;		\
-+									\
-+	__nospec_barrier();						\
-+									\
-+	__ret;								\
-+})
-+#endif
-+
-+/**
-+ * nospec_array_ptr - Generate a pointer to an array element, ensuring the
-+ * pointer is bounded under speculation.
-+ *
-+ * @arr: the base of the array
-+ * @idx: the index of the element
-+ * @sz: the number of elements in the array
-+ *
-+ * If @idx falls in the interval [0, @sz), returns the pointer to @arr[@idx],
-+ * otherwise returns NULL.
-+ *
-+ * This is a wrapper around nospec_ptr(), provided for convenience.
-+ * Architectures should implement nospec_ptr() to ensure this is the case
-+ * under speculation.
-+ */
-+#define nospec_array_ptr(arr, idx, sz)					\
-+({									\
-+	typeof(*(arr)) *__arr = (arr);					\
-+	typeof(idx) __idx = (idx);					\
-+	typeof(sz) __sz = (sz);						\
-+									\
-+	nospec_ptr(__arr + __idx, __arr, __arr + __sz);			\
-+})
-+
-+#undef __nospec_barrier
-+
- #ifndef __smp_mb
- #define __smp_mb()	mb()
- #endif
+ 	mutex_lock(&ar->mutex);
+-	if (queue < ar->hw->queues) {
+-		memcpy(&ar->edcf[ar9170_qmap[queue]], param, sizeof(*param));
++	if ((elem = nospec_array_ptr(ar9170_qmap, queue, ar->hw->queues))) {
++		memcpy(&ar->edcf[*elem], param, sizeof(*param));
+ 		ret = carl9170_set_qos(ar);
+ 	} else {
+ 		ret = -EINVAL;
