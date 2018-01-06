@@ -1,8 +1,8 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH 10/18] qla2xxx: prevent bounds-check bypass via speculative
+Subject: [PATCH 11/18] cw1200: prevent bounds-check bypass via speculative
  execution
-Date: Fri, 05 Jan 2018 17:10:48 -0800
-Message-ID: <151520104838.32271.7038801336240727574.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 05 Jan 2018 17:10:53 -0800
+Message-ID: <151520105352.32271.1167586482542492342.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,79 +11,78 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi@vger.kernel.org, gregkh@linuxfoundation.org, peterz@infradead.org, netdev@vger.kernel.org, qla2xxx-upstream@qlogic.com, tglx@linutronix.de, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
+Cc: linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, linux-wireless@vger.kernel.org, Elena Reshetova <elena.reshetova@intel.com>, Solomon Peachy <pizza@shaftnet.org>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-Static analysis reports that 'handle' may be a user controlled value
-that is used as a data dependency to read 'sp' from the
-'req->outstanding_cmds' array.  In order to avoid potential leaks of
-kernel memory values, block speculative execution of the instruction
-stream that could issue reads based on an invalid value of 'sp'. In this
-case 'sp' is directly dereferenced later in the function.
+Static analysis reports that 'queue' may be a user controlled value that
+is used as a data dependency to read 'txq_params' from the
+'priv->tx_queue_params.params' array.  In order to avoid potential leaks
+of kernel memory values, block speculative execution of the instruction
+stream that could issue reads based on an invalid value of 'txq_params'.
+In this case 'txq_params' is referenced later in the function.
 
 Based on an original patch by Elena Reshetova.
 
-Cc: qla2xxx-upstream@qlogic.com
-Cc: "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>
-Cc: "Martin K. Petersen" <martin.petersen@oracle.com>
-Cc: linux-scsi@vger.kernel.org
+Cc: Solomon Peachy <pizza@shaftnet.org>
+Cc: Kalle Valo <kvalo@codeaurora.org>
+Cc: linux-wireless@vger.kernel.org
+Cc: netdev@vger.kernel.org
 Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/scsi/qla2xxx/qla_mr.c |   15 +++++++++------
- 1 file changed, 9 insertions(+), 6 deletions(-)
+ drivers/net/wireless/st/cw1200/sta.c |   10 ++++++----
+ drivers/net/wireless/st/cw1200/wsm.h |    4 +---
+ 2 files changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/drivers/scsi/qla2xxx/qla_mr.c b/drivers/scsi/qla2xxx/qla_mr.c
-index d5da3981cefe..128b41de3784 100644
---- a/drivers/scsi/qla2xxx/qla_mr.c
-+++ b/drivers/scsi/qla2xxx/qla_mr.c
-@@ -9,6 +9,7 @@
- #include <linux/ktime.h>
- #include <linux/pci.h>
- #include <linux/ratelimit.h>
+diff --git a/drivers/net/wireless/st/cw1200/sta.c b/drivers/net/wireless/st/cw1200/sta.c
+index 38678e9a0562..886942617f14 100644
+--- a/drivers/net/wireless/st/cw1200/sta.c
++++ b/drivers/net/wireless/st/cw1200/sta.c
+@@ -14,6 +14,7 @@
+ #include <linux/firmware.h>
+ #include <linux/module.h>
+ #include <linux/etherdevice.h>
 +#include <linux/compiler.h>
- #include <linux/vmalloc.h>
- #include <linux/bsg-lib.h>
- #include <scsi/scsi_tcq.h>
-@@ -2275,7 +2276,7 @@ qlafx00_ioctl_iosb_entry(scsi_qla_host_t *vha, struct req_que *req,
- static void
- qlafx00_status_entry(scsi_qla_host_t *vha, struct rsp_que *rsp, void *pkt)
+ 
+ #include "cw1200.h"
+ #include "sta.h"
+@@ -612,18 +613,19 @@ int cw1200_conf_tx(struct ieee80211_hw *dev, struct ieee80211_vif *vif,
+ 		   u16 queue, const struct ieee80211_tx_queue_params *params)
  {
--	srb_t		*sp;
-+	srb_t		*sp, **elem;
- 	fc_port_t	*fcport;
- 	struct scsi_cmnd *cp;
- 	struct sts_entry_fx00 *sts;
-@@ -2304,8 +2305,9 @@ qlafx00_status_entry(scsi_qla_host_t *vha, struct rsp_que *rsp, void *pkt)
- 	req = ha->req_q_map[que];
+ 	struct cw1200_common *priv = dev->priv;
++	struct wsm_set_tx_queue_params *txq_params;
+ 	int ret = 0;
+ 	/* To prevent re-applying PM request OID again and again*/
+ 	bool old_uapsd_flags;
  
- 	/* Validate handle. */
--	if (handle < req->num_outstanding_cmds)
--		sp = req->outstanding_cmds[handle];
-+	if ((elem = nospec_array_ptr(req->outstanding_cmds, handle,
-+					req->num_outstanding_cmds)))
-+		sp = *elem;
- 	else
- 		sp = NULL;
+ 	mutex_lock(&priv->conf_mutex);
  
-@@ -2626,7 +2628,7 @@ static void
- qlafx00_multistatus_entry(struct scsi_qla_host *vha,
- 	struct rsp_que *rsp, void *pkt)
- {
--	srb_t		*sp;
-+	srb_t		*sp, **elem;
- 	struct multi_sts_entry_fx00 *stsmfx;
- 	struct qla_hw_data *ha = vha->hw;
- 	uint32_t handle, hindex, handle_count, i;
-@@ -2655,8 +2657,9 @@ qlafx00_multistatus_entry(struct scsi_qla_host *vha,
- 		req = ha->req_q_map[que];
+-	if (queue < dev->queues) {
++	if ((txq_params = nospec_array_ptr(priv->tx_queue_params.params,
++					queue, dev->queues))) {
+ 		old_uapsd_flags = le16_to_cpu(priv->uapsd_info.uapsd_flags);
  
- 		/* Validate handle. */
--		if (handle < req->num_outstanding_cmds)
--			sp = req->outstanding_cmds[handle];
-+		if ((elem = nospec_array_ptr(req->outstanding_cmds, handle,
-+						req->num_outstanding_cmds)))
-+			sp = *elem;
- 		else
- 			sp = NULL;
+-		WSM_TX_QUEUE_SET(&priv->tx_queue_params, queue, 0, 0, 0);
+-		ret = wsm_set_tx_queue_params(priv,
+-					      &priv->tx_queue_params.params[queue], queue);
++		WSM_TX_QUEUE_SET(txq_params, 0, 0, 0);
++		ret = wsm_set_tx_queue_params(priv, txq_params, queue);
+ 		if (ret) {
+ 			ret = -EINVAL;
+ 			goto out;
+diff --git a/drivers/net/wireless/st/cw1200/wsm.h b/drivers/net/wireless/st/cw1200/wsm.h
+index 48086e849515..8c8d9191e233 100644
+--- a/drivers/net/wireless/st/cw1200/wsm.h
++++ b/drivers/net/wireless/st/cw1200/wsm.h
+@@ -1099,10 +1099,8 @@ struct wsm_tx_queue_params {
+ };
  
+ 
+-#define WSM_TX_QUEUE_SET(queue_params, queue, ack_policy, allowed_time,\
+-		max_life_time)	\
++#define WSM_TX_QUEUE_SET(p, ack_policy, allowed_time, max_life_time)	\
+ do {							\
+-	struct wsm_set_tx_queue_params *p = &(queue_params)->params[queue]; \
+ 	p->ackPolicy = (ack_policy);				\
+ 	p->allowedMediumTime = (allowed_time);				\
+ 	p->maxTransmitLifetime = (max_life_time);			\
