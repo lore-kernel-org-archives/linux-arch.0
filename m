@@ -1,8 +1,8 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH 11/18] cw1200: prevent bounds-check bypass via speculative
- execution
-Date: Fri, 05 Jan 2018 17:10:53 -0800
-Message-ID: <151520105352.32271.1167586482542492342.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH 12/18] Thermal/int340x: prevent bounds-check bypass via
+ speculative execution
+Date: Fri, 05 Jan 2018 17:10:59 -0800
+Message-ID: <151520105920.32271.1091443154687576996.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,78 +11,63 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, linux-wireless@vger.kernel.org, Elena Reshetova <elena.reshetova@intel.com>, Solomon Peachy <pizza@shaftnet.org>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com
+Cc: linux-arch@vger.kernel.org, gregkh@linuxfoundation.org, peterz@infradead.org, netdev@vger.kernel.org, Eduardo Valentin <edubezval@gmail.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Zhang Rui <rui.zhang@intel.com>, torvalds@linux-foundation.org, tglx@linutronix.de, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-Static analysis reports that 'queue' may be a user controlled value that
-is used as a data dependency to read 'txq_params' from the
-'priv->tx_queue_params.params' array.  In order to avoid potential leaks
-of kernel memory values, block speculative execution of the instruction
-stream that could issue reads based on an invalid value of 'txq_params'.
-In this case 'txq_params' is referenced later in the function.
+Static analysis reports that 'trip' may be a user controlled value that
+is used as a data dependency to read '*temp' from the 'd->aux_trips'
+array.  In order to avoid potential leaks of kernel memory values, block
+speculative execution of the instruction stream that could issue reads
+based on an invalid value of '*temp'.
 
 Based on an original patch by Elena Reshetova.
 
-Cc: Solomon Peachy <pizza@shaftnet.org>
-Cc: Kalle Valo <kvalo@codeaurora.org>
-Cc: linux-wireless@vger.kernel.org
-Cc: netdev@vger.kernel.org
+Cc: Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
+Cc: Zhang Rui <rui.zhang@intel.com>
+Cc: Eduardo Valentin <edubezval@gmail.com>
 Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/net/wireless/st/cw1200/sta.c |   10 ++++++----
- drivers/net/wireless/st/cw1200/wsm.h |    4 +---
- 2 files changed, 7 insertions(+), 7 deletions(-)
+ .../thermal/int340x_thermal/int340x_thermal_zone.c |   14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
 
-diff --git a/drivers/net/wireless/st/cw1200/sta.c b/drivers/net/wireless/st/cw1200/sta.c
-index 38678e9a0562..886942617f14 100644
---- a/drivers/net/wireless/st/cw1200/sta.c
-+++ b/drivers/net/wireless/st/cw1200/sta.c
-@@ -14,6 +14,7 @@
- #include <linux/firmware.h>
- #include <linux/module.h>
- #include <linux/etherdevice.h>
+diff --git a/drivers/thermal/int340x_thermal/int340x_thermal_zone.c b/drivers/thermal/int340x_thermal/int340x_thermal_zone.c
+index 145a5c53ff5c..442a1d9bf7ad 100644
+--- a/drivers/thermal/int340x_thermal/int340x_thermal_zone.c
++++ b/drivers/thermal/int340x_thermal/int340x_thermal_zone.c
+@@ -17,6 +17,7 @@
+ #include <linux/init.h>
+ #include <linux/acpi.h>
+ #include <linux/thermal.h>
 +#include <linux/compiler.h>
+ #include "int340x_thermal_zone.h"
  
- #include "cw1200.h"
- #include "sta.h"
-@@ -612,18 +613,19 @@ int cw1200_conf_tx(struct ieee80211_hw *dev, struct ieee80211_vif *vif,
- 		   u16 queue, const struct ieee80211_tx_queue_params *params)
+ static int int340x_thermal_get_zone_temp(struct thermal_zone_device *zone,
+@@ -52,20 +53,21 @@ static int int340x_thermal_get_trip_temp(struct thermal_zone_device *zone,
+ 					 int trip, int *temp)
  {
- 	struct cw1200_common *priv = dev->priv;
-+	struct wsm_set_tx_queue_params *txq_params;
- 	int ret = 0;
- 	/* To prevent re-applying PM request OID again and again*/
- 	bool old_uapsd_flags;
+ 	struct int34x_thermal_zone *d = zone->devdata;
++	unsigned long *elem;
+ 	int i;
  
- 	mutex_lock(&priv->conf_mutex);
+ 	if (d->override_ops && d->override_ops->get_trip_temp)
+ 		return d->override_ops->get_trip_temp(zone, trip, temp);
  
--	if (queue < dev->queues) {
-+	if ((txq_params = nospec_array_ptr(priv->tx_queue_params.params,
-+					queue, dev->queues))) {
- 		old_uapsd_flags = le16_to_cpu(priv->uapsd_info.uapsd_flags);
- 
--		WSM_TX_QUEUE_SET(&priv->tx_queue_params, queue, 0, 0, 0);
--		ret = wsm_set_tx_queue_params(priv,
--					      &priv->tx_queue_params.params[queue], queue);
-+		WSM_TX_QUEUE_SET(txq_params, 0, 0, 0);
-+		ret = wsm_set_tx_queue_params(priv, txq_params, queue);
- 		if (ret) {
- 			ret = -EINVAL;
- 			goto out;
-diff --git a/drivers/net/wireless/st/cw1200/wsm.h b/drivers/net/wireless/st/cw1200/wsm.h
-index 48086e849515..8c8d9191e233 100644
---- a/drivers/net/wireless/st/cw1200/wsm.h
-+++ b/drivers/net/wireless/st/cw1200/wsm.h
-@@ -1099,10 +1099,8 @@ struct wsm_tx_queue_params {
- };
- 
- 
--#define WSM_TX_QUEUE_SET(queue_params, queue, ack_policy, allowed_time,\
--		max_life_time)	\
-+#define WSM_TX_QUEUE_SET(p, ack_policy, allowed_time, max_life_time)	\
- do {							\
--	struct wsm_set_tx_queue_params *p = &(queue_params)->params[queue]; \
- 	p->ackPolicy = (ack_policy);				\
- 	p->allowedMediumTime = (allowed_time);				\
- 	p->maxTransmitLifetime = (max_life_time);			\
+-	if (trip < d->aux_trip_nr)
+-		*temp = d->aux_trips[trip];
+-	else if (trip == d->crt_trip_id)
++	if ((elem = nospec_array_ptr(d->aux_trips, trip, d->aux_trip_nr))) {
++		*temp = *elem;
++	} else if (trip == d->crt_trip_id) {
+ 		*temp = d->crt_temp;
+-	else if (trip == d->psv_trip_id)
++	} else if (trip == d->psv_trip_id) {
+ 		*temp = d->psv_temp;
+-	else if (trip == d->hot_trip_id)
++	} else if (trip == d->hot_trip_id) {
+ 		*temp = d->hot_temp;
+-	else {
++	} else {
+ 		for (i = 0; i < INT340X_THERMAL_MAX_ACT_TRIP_COUNT; i++) {
+ 			if (d->act_trips[i].valid &&
+ 			    d->act_trips[i].id == trip) {
