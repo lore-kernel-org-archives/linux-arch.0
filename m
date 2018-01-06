@@ -1,141 +1,100 @@
-From: Vineet Gupta <Vineet.Gupta1-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
-Subject: Re: [PATCH 09/67] arc: remove CONFIG_ARC_PLAT_NEEDS_PHYS_TO_DMA
-Date: Fri, 5 Jan 2018 11:45:16 -0800
-Message-ID: <2c24bfd1-5f54-4b82-444e-833dc53b6efd@synopsys.com>
-References: <20171229081911.2802-1-hch@lst.de>
-	<20171229081911.2802-10-hch@lst.de>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: [PATCH 00/18] prevent bounds-check bypass via speculative execution
+Date: Fri, 05 Jan 2018 17:09:53 -0800
+Message-ID: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20171229081911.2802-10-hch-jcswGhMUV9g@public.gmane.org>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, "iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org" <iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Cc: "linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org" <linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, "linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org" <linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org>, "linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org" <adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>, "linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org" <linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org>, "patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org" <patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org>, "linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-metag@vger.k>
+Return-path: <linux-media-owner@vger.kernel.org>
+Sender: linux-media-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Mark Rutland <mark.rutland@arm.com>, peterz@infradead.org, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Zhang Rui <rui.zhang@intel.com>, linux-media@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jan Kara <jack@suse.com>, Eduardo Valentin <edubezval@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 12/29/2017 12:25 AM, Christoph Hellwig wrote:
-> We always use the stub definitions, so remove the unused other code.
->
-> Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Quoting Mark's original RFC:
 
-Acked-by: Vineet Gupta <vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
+"Recently, Google Project Zero discovered several classes of attack
+against speculative execution. One of these, known as variant-1, allows
+explicit bounds checks to be bypassed under speculation, providing an
+arbitrary read gadget. Further details can be found on the GPZ blog [1]
+and the Documentation patch in this series."
 
-FWIW, it was removed and reintroduced as one of the customers wanted it, which is 
-not relevant now !
+This series incorporates Mark Rutland's latest api and adds the x86
+specific implementation of nospec_barrier. The
+nospec_{array_ptr,ptr,barrier} helpers are then combined with a kernel
+wide analysis performed by Elena Reshetova to address static analysis
+reports where speculative execution on a userspace controlled value
+could bypass a bounds check. The patches address a precondition for the
+attack discussed in the Spectre paper [2].
 
-Thx,
--Vineet
+A consideration worth noting for reviewing these patches is to weigh the
+dramatic cost of being wrong about whether a given report is exploitable
+vs the overhead nospec_{array_ptr,ptr} may introduce. In other words,
+lets make the bar for applying these patches be "can you prove that the
+bounds check bypass is *not* exploitable". Consider that the Spectre
+paper reports one example of a speculation window being ~180 cycles.
 
-> ---
->   arch/arc/Kconfig                   |  3 ---
->   arch/arc/include/asm/dma-mapping.h |  7 -------
->   arch/arc/mm/dma.c                  | 14 +++++++-------
->   3 files changed, 7 insertions(+), 17 deletions(-)
->
-> diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-> index 9d5fd00d9e91..f3a80cf164cc 100644
-> --- a/arch/arc/Kconfig
-> +++ b/arch/arc/Kconfig
-> @@ -463,9 +463,6 @@ config ARCH_PHYS_ADDR_T_64BIT
->   config ARCH_DMA_ADDR_T_64BIT
->   	bool
->   
-> -config ARC_PLAT_NEEDS_PHYS_TO_DMA
-> -	bool
-> -
->   config ARC_KVADDR_SIZE
->   	int "Kernel Virtual Address Space size (MB)"
->   	range 0 512
-> diff --git a/arch/arc/include/asm/dma-mapping.h b/arch/arc/include/asm/dma-mapping.h
-> index 94285031c4fb..7a16824bfe98 100644
-> --- a/arch/arc/include/asm/dma-mapping.h
-> +++ b/arch/arc/include/asm/dma-mapping.h
-> @@ -11,13 +11,6 @@
->   #ifndef ASM_ARC_DMA_MAPPING_H
->   #define ASM_ARC_DMA_MAPPING_H
->   
-> -#ifndef CONFIG_ARC_PLAT_NEEDS_PHYS_TO_DMA
-> -#define plat_dma_to_phys(dev, dma_handle) ((phys_addr_t)(dma_handle))
-> -#define plat_phys_to_dma(dev, paddr) ((dma_addr_t)(paddr))
-> -#else
-> -#include <plat/dma.h>
-> -#endif
-> -
->   extern const struct dma_map_ops arc_dma_ops;
->   
->   static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
-> diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c
-> index fad18261ef6a..1d405b86250c 100644
-> --- a/arch/arc/mm/dma.c
-> +++ b/arch/arc/mm/dma.c
-> @@ -60,7 +60,7 @@ static void *arc_dma_alloc(struct device *dev, size_t size,
->   	/* This is linear addr (0x8000_0000 based) */
->   	paddr = page_to_phys(page);
->   
-> -	*dma_handle = plat_phys_to_dma(dev, paddr);
-> +	*dma_handle = paddr;
->   
->   	/* This is kernel Virtual address (0x7000_0000 based) */
->   	if (need_kvaddr) {
-> @@ -92,7 +92,7 @@ static void *arc_dma_alloc(struct device *dev, size_t size,
->   static void arc_dma_free(struct device *dev, size_t size, void *vaddr,
->   		dma_addr_t dma_handle, unsigned long attrs)
->   {
-> -	phys_addr_t paddr = plat_dma_to_phys(dev, dma_handle);
-> +	phys_addr_t paddr = dma_handle;
->   	struct page *page = virt_to_page(paddr);
->   	int is_non_coh = 1;
->   
-> @@ -111,7 +111,7 @@ static int arc_dma_mmap(struct device *dev, struct vm_area_struct *vma,
->   {
->   	unsigned long user_count = vma_pages(vma);
->   	unsigned long count = PAGE_ALIGN(size) >> PAGE_SHIFT;
-> -	unsigned long pfn = __phys_to_pfn(plat_dma_to_phys(dev, dma_addr));
-> +	unsigned long pfn = __phys_to_pfn(dma_addr);
->   	unsigned long off = vma->vm_pgoff;
->   	int ret = -ENXIO;
->   
-> @@ -175,7 +175,7 @@ static dma_addr_t arc_dma_map_page(struct device *dev, struct page *page,
->   	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
->   		_dma_cache_sync(paddr, size, dir);
->   
-> -	return plat_phys_to_dma(dev, paddr);
-> +	return paddr;
->   }
->   
->   /*
-> @@ -190,7 +190,7 @@ static void arc_dma_unmap_page(struct device *dev, dma_addr_t handle,
->   			       size_t size, enum dma_data_direction dir,
->   			       unsigned long attrs)
->   {
-> -	phys_addr_t paddr = plat_dma_to_phys(dev, handle);
-> +	phys_addr_t paddr = handle;
->   
->   	if (!(attrs & DMA_ATTR_SKIP_CPU_SYNC))
->   		_dma_cache_sync(paddr, size, dir);
-> @@ -224,13 +224,13 @@ static void arc_dma_unmap_sg(struct device *dev, struct scatterlist *sg,
->   static void arc_dma_sync_single_for_cpu(struct device *dev,
->   		dma_addr_t dma_handle, size_t size, enum dma_data_direction dir)
->   {
-> -	_dma_cache_sync(plat_dma_to_phys(dev, dma_handle), size, DMA_FROM_DEVICE);
-> +	_dma_cache_sync(dma_handle, size, DMA_FROM_DEVICE);
->   }
->   
->   static void arc_dma_sync_single_for_device(struct device *dev,
->   		dma_addr_t dma_handle, size_t size, enum dma_data_direction dir)
->   {
-> -	_dma_cache_sync(plat_dma_to_phys(dev, dma_handle), size, DMA_TO_DEVICE);
-> +	_dma_cache_sync(dma_handle, size, DMA_TO_DEVICE);
->   }
->   
->   static void arc_dma_sync_sg_for_cpu(struct device *dev,
+Note that there is also a proposal from Linus, array_access [3], that
+attempts to quash speculative execution past a bounds check without
+introducing an lfence instruction. That may be a future optimization
+possibility that is compatible with this api, but it would appear to
+need guarantees from the compiler that it is not clear the kernel can
+rely on at this point. It is also not clear that it would be a
+significant performance win vs lfence.
+
+These patches also will also be available via the 'nospec' git branch
+here:
+
+    git://git.kernel.org/pub/scm/linux/kernel/git/djbw/linux nospec
+
+[1]: https://googleprojectzero.blogspot.co.uk/2018/01/reading-privileged-memory-with-side.html
+[2]: https://spectreattack.com/spectre.pdf
+[3]: https://marc.info/?l=linux-kernel&m=151510446027625&w=2
+
+---
+
+Andi Kleen (1):
+      x86, barrier: stop speculation for failed access_ok
+
+Dan Williams (13):
+      x86: implement nospec_barrier()
+      [media] uvcvideo: prevent bounds-check bypass via speculative execution
+      carl9170: prevent bounds-check bypass via speculative execution
+      p54: prevent bounds-check bypass via speculative execution
+      qla2xxx: prevent bounds-check bypass via speculative execution
+      cw1200: prevent bounds-check bypass via speculative execution
+      Thermal/int340x: prevent bounds-check bypass via speculative execution
+      ipv6: prevent bounds-check bypass via speculative execution
+      ipv4: prevent bounds-check bypass via speculative execution
+      vfs, fdtable: prevent bounds-check bypass via speculative execution
+      net: mpls: prevent bounds-check bypass via speculative execution
+      udf: prevent bounds-check bypass via speculative execution
+      userns: prevent bounds-check bypass via speculative execution
+
+Mark Rutland (4):
+      asm-generic/barrier: add generic nospec helpers
+      Documentation: document nospec helpers
+      arm64: implement nospec_ptr()
+      arm: implement nospec_ptr()
+
+ Documentation/speculation.txt                      |  166 ++++++++++++++++++++
+ arch/arm/include/asm/barrier.h                     |   75 +++++++++
+ arch/arm64/include/asm/barrier.h                   |   55 +++++++
+ arch/x86/include/asm/barrier.h                     |    6 +
+ arch/x86/include/asm/uaccess.h                     |   17 ++
+ drivers/media/usb/uvc/uvc_v4l2.c                   |    7 +
+ drivers/net/wireless/ath/carl9170/main.c           |    6 -
+ drivers/net/wireless/intersil/p54/main.c           |    8 +
+ drivers/net/wireless/st/cw1200/sta.c               |   10 +
+ drivers/net/wireless/st/cw1200/wsm.h               |    4 
+ drivers/scsi/qla2xxx/qla_mr.c                      |   15 +-
+ .../thermal/int340x_thermal/int340x_thermal_zone.c |   14 +-
+ fs/udf/misc.c                                      |   39 +++--
+ include/asm-generic/barrier.h                      |   68 ++++++++
+ include/linux/fdtable.h                            |    5 -
+ kernel/user_namespace.c                            |   10 -
+ net/ipv4/raw.c                                     |    9 +
+ net/ipv6/raw.c                                     |    9 +
+ net/mpls/af_mpls.c                                 |   12 +
+ 19 files changed, 466 insertions(+), 69 deletions(-)
+ create mode 100644 Documentation/speculation.txt
