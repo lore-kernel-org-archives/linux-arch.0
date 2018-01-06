@@ -1,82 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f68.google.com ([209.85.215.68]:33797 "EHLO
+Received: from mail-lf0-f68.google.com ([209.85.215.68]:38031 "EHLO
         mail-lf0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753107AbeAFKDZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 05:03:25 -0500
-Received: by mail-lf0-f68.google.com with SMTP id h140so7508927lfg.1
-        for <linux-arch@vger.kernel.org>; Sat, 06 Jan 2018 02:03:24 -0800 (PST)
-Subject: Re: [PATCH 12/18] Thermal/int340x: prevent bounds-check bypass via
+        with ESMTP id S1752906AbeAFKGb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 05:06:31 -0500
+Received: by mail-lf0-f68.google.com with SMTP id w196so7508541lff.5
+        for <linux-arch@vger.kernel.org>; Sat, 06 Jan 2018 02:06:30 -0800 (PST)
+Subject: Re: [PATCH 16/18] net: mpls: prevent bounds-check bypass via
  speculative execution
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520105920.32271.1091443154687576996.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151520108080.32271.16420298348259030860.stgit@dwillia2-desk3.amr.corp.intel.com>
 From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
-Message-ID: <b1d114af-c0ba-63f5-0905-86128d3c0b3a@cogentembedded.com>
-Date: Sat, 6 Jan 2018 13:03:22 +0300
+Message-ID: <0b4d9292-cf0a-170e-a85a-527d1481ae51@cogentembedded.com>
+Date: Sat, 6 Jan 2018 13:06:28 +0300
 MIME-Version: 1.0
-In-Reply-To: <151520105920.32271.1091443154687576996.stgit@dwillia2-desk3.amr.corp.intel.com>
+In-Reply-To: <151520108080.32271.16420298348259030860.stgit@dwillia2-desk3.amr.corp.intel.com>
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, gregkh@linuxfoundation.org, peterz@infradead.org, netdev@vger.kernel.org, Eduardo Valentin <edubezval@gmail.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Zhang Rui <rui.zhang@intel.com>, torvalds@linux-foundation.org, tglx@linutronix.de, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
-Message-ID: <20180106100322.0BsWXpLQS7MSnDbMicZAlTd1thCLJbGe0javDNcbvAg@z>
+Cc: linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
+Message-ID: <20180106100628.abgeawhKejwVgwIXkljQCNE35i7-HlDHOdvkBpFg2xg@z>
 
-On 1/6/2018 4:10 AM, Dan Williams wrote:
+On 1/6/2018 4:11 AM, Dan Williams wrote:
 
-> Static analysis reports that 'trip' may be a user controlled value that
-> is used as a data dependency to read '*temp' from the 'd->aux_trips'
+> Static analysis reports that 'index' may be a user controlled value that
+> is used as a data dependency reading 'rt' from the 'platform_label'
 > array.  In order to avoid potential leaks of kernel memory values, block
-> speculative execution of the instruction stream that could issue reads
-> based on an invalid value of '*temp'.
+> speculative execution of the instruction stream that could issue further
+> reads based on an invalid 'rt' value.
 > 
 > Based on an original patch by Elena Reshetova.
 > 
-> Cc: Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
-> Cc: Zhang Rui <rui.zhang@intel.com>
-> Cc: Eduardo Valentin <edubezval@gmail.com>
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: Eric W. Biederman <ebiederm@xmission.com>
+> Cc: netdev@vger.kernel.org
 > Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 > Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 > ---
->   .../thermal/int340x_thermal/int340x_thermal_zone.c |   14 ++++++++------
->   1 file changed, 8 insertions(+), 6 deletions(-)
+>   net/mpls/af_mpls.c |   12 +++++++-----
+>   1 file changed, 7 insertions(+), 5 deletions(-)
 > 
-> diff --git a/drivers/thermal/int340x_thermal/int340x_thermal_zone.c b/drivers/thermal/int340x_thermal/int340x_thermal_zone.c
-> index 145a5c53ff5c..442a1d9bf7ad 100644
-> --- a/drivers/thermal/int340x_thermal/int340x_thermal_zone.c
-> +++ b/drivers/thermal/int340x_thermal/int340x_thermal_zone.c
+> diff --git a/net/mpls/af_mpls.c b/net/mpls/af_mpls.c
+> index 8ca9915befc8..ebcf0e246cfe 100644
+> --- a/net/mpls/af_mpls.c
+> +++ b/net/mpls/af_mpls.c
 [...]
-> @@ -52,20 +53,21 @@ static int int340x_thermal_get_trip_temp(struct thermal_zone_device *zone,
->   					 int trip, int *temp)
+> @@ -77,12 +78,13 @@ static void rtmsg_lfib(int event, u32 label, struct mpls_route *rt,
+>   static struct mpls_route *mpls_route_input_rcu(struct net *net, unsigned index)
 >   {
->   	struct int34x_thermal_zone *d = zone->devdata;
-> +	unsigned long *elem;
->   	int i;
+>   	struct mpls_route *rt = NULL;
+> +	struct mpls_route __rcu **platform_label =
+> +		rcu_dereference(net->mpls.platform_label);
+> +	struct mpls_route __rcu **rtp;
 >   
->   	if (d->override_ops && d->override_ops->get_trip_temp)
->   		return d->override_ops->get_trip_temp(zone, trip, temp);
->   
-> -	if (trip < d->aux_trip_nr)
-> -		*temp = d->aux_trips[trip];
-> -	else if (trip == d->crt_trip_id)
-> +	if ((elem = nospec_array_ptr(d->aux_trips, trip, d->aux_trip_nr))) {
+> -	if (index < net->mpls.platform_labels) {
+> -		struct mpls_route __rcu **platform_label =
+> -			rcu_dereference(net->mpls.platform_label);
+> -		rt = rcu_dereference(platform_label[index]);
+> -	}
+> +	if ((rtp = nospec_array_ptr(platform_label, index,
+
 
     And here...
 
-> +		*temp = *elem;
-> +	} else if (trip == d->crt_trip_id) {
->   		*temp = d->crt_temp;
-> -	else if (trip == d->psv_trip_id)
-> +	} else if (trip == d->psv_trip_id) {
->   		*temp = d->psv_temp;
-> -	else if (trip == d->hot_trip_id)
-> +	} else if (trip == d->hot_trip_id) {
->   		*temp = d->hot_temp;
-> -	else {
-> +	} else {
->   		for (i = 0; i < INT340X_THERMAL_MAX_ACT_TRIP_COUNT; i++) {
->   			if (d->act_trips[i].valid &&
->   			    d->act_trips[i].id == trip) {
+> +					net->mpls.platform_labels)))
+> +		rt = rcu_dereference(*rtp);
+>   	return rt;
+>   }
+>   
 
 MBR, Sergei
