@@ -1,40 +1,87 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH 14/18] ipv4: prevent bounds-check bypass via speculative execution
-Date: Sat, 6 Jan 2018 08:29:22 -0800
-Message-ID: <CAPcyv4jsbwaBy29-L3rV__9AiMuZk7aO-0CguH6RNLYKgWWoYw@mail.gmail.com>
+Subject: Re: [PATCH 08/18] carl9170: prevent bounds-check bypass via
+ speculative execution
+Date: Sat, 6 Jan 2018 08:34:03 -0800
+Message-ID: <CAPcyv4jR2za11fDEzcS3vq1xtcDj-uH8Uykg+uecn7Bk-9Cu1w@mail.gmail.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520107001.32271.12149241186695668220.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180106090154.GE4380@kroah.com> <20180106122347.7a5c8ee6@alans-desktop> <20180106151424.GA17924@kroah.com>
+ <151520103755.32271.6819511294540882298.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <3586343.KJymplWpZW@debian64>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <20180106151424.GA17924@kroah.com>
-Sender: netdev-owner@vger.kernel.org
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Netdev <netdev@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <3586343.KJymplWpZW@debian64>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christian Lamparter <chunkeey@gmail.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, linux-wireless@vger.kernel.org, Elena Reshetova <elena.reshetova@intel.com>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Kalle Valo <kvalo@codeaurora.org>, Alan Cox <alan@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jan 6, 2018 at 7:14 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
-> On Sat, Jan 06, 2018 at 12:23:47PM +0000, Alan Cox wrote:
->> On Sat, 6 Jan 2018 10:01:54 +0100
->> Greg KH <gregkh@linuxfoundation.org> wrote:
+On Sat, Jan 6, 2018 at 6:23 AM, Christian Lamparter <chunkeey@gmail.com> wrote:
+> On Saturday, January 6, 2018 2:10:37 AM CET Dan Williams wrote:
+>> Static analysis reports that 'queue' may be a user controlled value that
+>> is used as a data dependency to read from the 'ar9170_qmap' array. In
+>> order to avoid potential leaks of kernel memory values, block
+>> speculative execution of the instruction stream that could issue reads
+>> based on an invalid result of 'ar9170_qmap[queue]'. In this case the
+>> value of 'ar9170_qmap[queue]' is immediately reused as an index to the
+>> 'ar->edcf' array.
 >>
->> > On Fri, Jan 05, 2018 at 05:11:10PM -0800, Dan Williams wrote:
->> > > Static analysis reports that 'offset' may be a user controlled value
->> >
->> > Can I see the rule that determined that?  It does not feel like that is
->> > correct, given the 3+ levels deep that this function gets this value
->> > from...
+>> Based on an original patch by Elena Reshetova.
 >>
->> On a current x86 you can execute something upwards of 150 instructions in
->> a speculation window.
+>> Cc: Christian Lamparter <chunkeey@googlemail.com>
+>> Cc: Kalle Valo <kvalo@codeaurora.org>
+>> Cc: linux-wireless@vger.kernel.org
+>> Cc: netdev@vger.kernel.org
+>> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
+>> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+>> ---
+>>  drivers/net/wireless/ath/carl9170/main.c |    6 ++++--
+>>  1 file changed, 4 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/drivers/net/wireless/ath/carl9170/main.c b/drivers/net/wireless/ath/carl9170/main.c
+>> index 988c8857d78c..0ff34cbe2b62 100644
+>> --- a/drivers/net/wireless/ath/carl9170/main.c
+>> +++ b/drivers/net/wireless/ath/carl9170/main.c
+>> @@ -41,6 +41,7 @@
+>>  #include <linux/module.h>
+>>  #include <linux/etherdevice.h>
+>>  #include <linux/random.h>
+>> +#include <linux/compiler.h>
+>>  #include <net/mac80211.h>
+>>  #include <net/cfg80211.h>
+>>  #include "hw.h"
+>> @@ -1384,11 +1385,12 @@ static int carl9170_op_conf_tx(struct ieee80211_hw *hw,
+>>                              const struct ieee80211_tx_queue_params *param)
+>>  {
+>>       struct ar9170 *ar = hw->priv;
+>> +     const u8 *elem;
+>>       int ret;
+>>
+>>       mutex_lock(&ar->mutex);
+>> -     if (queue < ar->hw->queues) {
+>> -             memcpy(&ar->edcf[ar9170_qmap[queue]], param, sizeof(*param));
+>> +     if ((elem = nospec_array_ptr(ar9170_qmap, queue, ar->hw->queues))) {
+>> +             memcpy(&ar->edcf[*elem], param, sizeof(*param));
+>>               ret = carl9170_set_qos(ar);
+>>       } else {
+>>               ret = -EINVAL;
+>>
+>>
+> About the "queue" in carl9170_op_conf_tx, p54_conf_tx and cw1200_conf_tx:
 >
-> Yeah, I agree, it's deep :(
+> The only way a user can set this in any meaningful way would be via
+> a NL80211_CMD_SET_WIPHY netlink message. However, the value will get
+> vetted there by cfg80211's parse_txq_params [0]. This is long before
+> it reaches any of the *_op_conf_tx functions.
 >
-> But for this patch, I thought the prior review determined that it was
-> not a problem.  Was that somehow proven incorrect?
+> And Furthermore a invalid queue (param->ac) would cause a crash in
+> this line in mac80211 before it even reaches the driver [1]:
+> |       sdata->tx_conf[params->ac] = p;
+> |                   ^^^^^^^^
+> |       if (drv_conf_tx(local, sdata, >>>> params->ac <<<<, &p)) {
+> |        ^^ (this is a wrapper for the *_op_conf_tx)
+>
+> I don't think these chin-up exercises are needed.
 
-I kept it in the series to get a re-review with the wider netdev
-because I missed the discussion leading up to that 'drop the patch'
-decision. Sorry, I should have noted that in the changelog or cover
-letter.
+Quite the contrary, you've identified a better place in the call stack
+to sanitize the input and disable speculation. Then we can kill the
+whole class of the wireless driver reports at once it seems.
