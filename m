@@ -1,37 +1,44 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH 01/18] asm-generic/barrier: add generic nospec helpers
-Date: Fri, 5 Jan 2018 21:23:06 -0800
-Message-ID: <CAPcyv4jAt5HTc5iB7603tnvDqdFZ1+JhpekekcZwuVR3g6jjVw@mail.gmail.com>
+Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
+Date: Fri, 5 Jan 2018 21:47:02 -0800
+Message-ID: <CAPcyv4jLbbASjcfu2dvxXbY8+Q_=wLO6zKGhCBdzRGXHBNuL1w@mail.gmail.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520099810.32271.11023910901471332353.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFxoU1B7VECQ3T9CRkX07Y8sw=fGg6Miry1GniqJOd68sA@mail.gmail.com>
+ <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFxoU1B7VECQ3T9CRkX07Y8sw=fGg6Miry1GniqJOd68sA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f41.google.com ([209.85.218.41]:43443 "EHLO
+        mail-oi0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750859AbeAFFrF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 00:47:05 -0500
+Received: by mail-oi0-f41.google.com with SMTP id f69so4418064oig.10
+        for <linux-arch@vger.kernel.org>; Fri, 05 Jan 2018 21:47:03 -0800 (PST)
+In-Reply-To: <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Alan Cox <alan@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Alan Cox <alan@linux.intel.com>
 
-On Fri, Jan 5, 2018 at 6:55 PM, Linus Torvalds
+On Fri, Jan 5, 2018 at 6:52 PM, Linus Torvalds
 <torvalds@linux-foundation.org> wrote:
-> On Fri, Jan 5, 2018 at 5:09 PM, Dan Williams <dan.j.williams@intel.com> wrote:
->> +#ifndef nospec_ptr
->> +#define nospec_ptr(ptr, lo, hi)                                                \
+> On Fri, Jan 5, 2018 at 5:10 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+>> From: Andi Kleen <ak@linux.intel.com>
+>>
+>> When access_ok fails we should always stop speculating.
+>> Add the required barriers to the x86 access_ok macro.
 >
-> Do we actually want this horrible interface?
+> Honestly, this seems completely bogus.
 >
-> It just causes the compiler - or inline asm - to generate worse code,
-> because it needs to compare against both high and low limits.
+> The description is pure garbage afaik.
 >
-> Basically all users are arrays that are zero-based, and where a
-> comparison against the high _index_ limit would be sufficient.
+> The fact is, we have to stop speculating when access_ok() does *not*
+> fail - because that's when we'll actually do the access. And it's that
+> access that needs to be non-speculative.
 >
-> But the way this is all designed, it's literally designed for bad code
-> generation for the unusual case, and the usual array case is written
-> in the form of the unusual and wrong non-array case. That really seems
-> excessively stupid.
+> That actually seems to be what the code does (it stops speculation
+> when __range_not_ok() returns false, but access_ok() is
+> !__range_not_ok()). But the explanation is crap, and dangerous.
 
-Yes, it appears we can kill nospec_ptr() and move nospec_array_ptr()
-to assume 0 based arrays rather than use nospec_ptr.
+Oh, bother, yes, good catch. It's been a long week.  I'll take a look
+at moving this to uaccess_begin().
