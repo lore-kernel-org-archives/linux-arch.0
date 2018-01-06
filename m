@@ -1,54 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f194.google.com ([74.125.82.194]:35111 "EHLO
-        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752826AbeAFSKj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 13:10:39 -0500
-Received: by mail-ot0-f194.google.com with SMTP id q5so6370972oth.2
-        for <linux-arch@vger.kernel.org>; Sat, 06 Jan 2018 10:10:39 -0800 (PST)
+Received: from mail-oi0-f66.google.com ([209.85.218.66]:45824 "EHLO
+        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752653AbeAFS3u (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 13:29:50 -0500
+Received: by mail-oi0-f66.google.com with SMTP id x20so5062773oix.12
+        for <linux-arch@vger.kernel.org>; Sat, 06 Jan 2018 10:29:50 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <CAPcyv4jsbwaBy29-L3rV__9AiMuZk7aO-0CguH6RNLYKgWWoYw@mail.gmail.com>
+In-Reply-To: <20180106181331.mmrqwwbu2jcjj2si@ast-mbp>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520107001.32271.12149241186695668220.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180106090154.GE4380@kroah.com> <20180106122347.7a5c8ee6@alans-desktop>
- <20180106151424.GA17924@kroah.com> <CAPcyv4jsbwaBy29-L3rV__9AiMuZk7aO-0CguH6RNLYKgWWoYw@mail.gmail.com>
+ <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
+ <20180106123242.77f4d860@alans-desktop> <20180106181331.mmrqwwbu2jcjj2si@ast-mbp>
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Sat, 6 Jan 2018 10:10:38 -0800
-Message-ID: <CAPcyv4iagGa+Mj9VJcc604N_JYadB7nci7fF=GuzhtOhR5HH2w@mail.gmail.com>
-Subject: Re: [PATCH 14/18] ipv4: prevent bounds-check bypass via speculative execution
+Date: Sat, 6 Jan 2018 10:29:49 -0800
+Message-ID: <CAPcyv4jqKmnkL1CfHVccHvocmSD4PamqOy4bPsO1789D+107FQ@mail.gmail.com>
+Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Netdev <netdev@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180106181038.YgFNJ_FvFrtuyQ74_anIp5aLn1cpAZjDEIQP60HY0yI@z>
+To: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20180106182949.CE-YkHw4lBapiZQl_MzGX5_hV1LE94zZGR_UBsKTklM@z>
 
-On Sat, Jan 6, 2018 at 8:29 AM, Dan Williams <dan.j.williams@intel.com> wrote:
-> On Sat, Jan 6, 2018 at 7:14 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
->> On Sat, Jan 06, 2018 at 12:23:47PM +0000, Alan Cox wrote:
->>> On Sat, 6 Jan 2018 10:01:54 +0100
->>> Greg KH <gregkh@linuxfoundation.org> wrote:
->>>
->>> > On Fri, Jan 05, 2018 at 05:11:10PM -0800, Dan Williams wrote:
->>> > > Static analysis reports that 'offset' may be a user controlled value
->>> >
->>> > Can I see the rule that determined that?  It does not feel like that is
->>> > correct, given the 3+ levels deep that this function gets this value
->>> > from...
->>>
->>> On a current x86 you can execute something upwards of 150 instructions in
->>> a speculation window.
+On Sat, Jan 6, 2018 at 10:13 AM, Alexei Starovoitov
+<alexei.starovoitov@gmail.com> wrote:
+> On Sat, Jan 06, 2018 at 12:32:42PM +0000, Alan Cox wrote:
+>> On Fri, 5 Jan 2018 18:52:07 -0800
+>> Linus Torvalds <torvalds@linux-foundation.org> wrote:
 >>
->> Yeah, I agree, it's deep :(
+>> > On Fri, Jan 5, 2018 at 5:10 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+>> > > From: Andi Kleen <ak@linux.intel.com>
+>> > >
+>> > > When access_ok fails we should always stop speculating.
+>> > > Add the required barriers to the x86 access_ok macro.
+>> >
+>> > Honestly, this seems completely bogus.
 >>
->> But for this patch, I thought the prior review determined that it was
->> not a problem.  Was that somehow proven incorrect?
+>> Also for x86-64 if we are trusting that an AND with a constant won't get
+>> speculated into something else surely we can just and the address with ~(1
+>> << 63) before copying from/to user space ? The user will then just
+>> speculatively steal their own memory.
 >
-> I kept it in the series to get a re-review with the wider netdev
-> because I missed the discussion leading up to that 'drop the patch'
-> decision. Sorry, I should have noted that in the changelog or cover
-> letter.
+> +1
+>
+> Any type of straight line code can address variant 1.
+> Like changing:
+>   array[index]
+> into
+>   array[index & mask]
+> works even when 'mask' is a variable.
+> To proceed with speculative load from array cpu has to speculatively
+> load 'mask' from memory and speculatively do '&' alu.
+> If attacker cannot influence 'mask' the speculative value of it
+> will bound 'index & mask' value to be within array limits.
+>
+> I think "lets sprinkle lfence everywhere" approach is going to
+> cause serious performance degradation. Yet people pushing for lfence
+> didn't present any numbers.
+> Last time lfence was removed from the networking drivers via dma_rmb()
+> packet-per-second metric jumped 10-30%. lfence forces all outstanding loads
+> to complete. If any prior load is waiting on L3 or memory,
+> lfence will cause 100+ ns stall and overall kernel performance will tank.
 
-Is there a microbenchmark that can stress this path. If the cost is
-negligible why play games with it being "probably ok"? Unless someone
-can say 100% 'offset' is always bounded to something safe by the time
-we get here just use nospec_array_ptr().
+You are conflating dma_rmb() with the limited cases where
+nospec_array_ptr() is used. I need help determining what the
+performance impact of those limited places are.
+
+> If kernel adopts this "lfence everywhere" approach it will be
+> the end of the kernel as we know it. All high performance operations
+> will move into user space. Networking and IO will be first.
+> Since it will takes years to design new cpus and even longer
+> to upgrade all servers the industry will have no choice,
+> but to move as much logic as possible from the kernel.
+>
+> kpti already made crossing user/kernel boundary slower, but
+> kernel itself is still fast. If kernel will have lfence everywhere
+> the kernel itself will be slow.
+>
+> In that sense retpolining the kernel is not as horrible as it sounds,
+> since both user space and kernel has to be retpolined.
+
+retpoline is variant-2, this patch series is about variant-1.
