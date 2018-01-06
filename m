@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:27052 "EHLO mga04.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:40067 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753938AbeAFBT3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Jan 2018 20:19:29 -0500
-Subject: [PATCH 15/18] vfs,
- fdtable: prevent bounds-check bypass via speculative execution
+        id S1753938AbeAFBTq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Jan 2018 20:19:46 -0500
+Subject: [PATCH 18/18] userns: prevent bounds-check bypass via speculative
+ execution
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 05 Jan 2018 17:11:15 -0800
-Message-ID: <151520107515.32271.4902355030043648595.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 05 Jan 2018 17:11:32 -0800
+Message-ID: <151520109193.32271.1578212450835287742.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,38 +16,45 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
-Message-ID: <20180106011115.pmW4tt2uMG3B5U44B2QtA0vgBeOQXI6oIfbYqRMZBqg@z>
+Cc: linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
+Message-ID: <20180106011132.vxgtvfHcCXyJvDzUs0D0XofFWzUIDlp36ExWpU1gm4E@z>
 
-Expectedly, static analysis reports that 'fd' is a user controlled value
-that is used as a data dependency to read from the 'fdt->fd' array.  In
-order to avoid potential leaks of kernel memory values, block
-speculative execution of the instruction stream that could issue reads
-based on an invalid 'file *' returned from __fcheck_files.
+Static analysis reports that 'pos' may be a user controlled value that
+is used as a data dependency determining which extent to return out of
+'map'. In order to avoid potential leaks of kernel memory values, block
+speculative execution of the instruction stream that could issue further
+reads based on an invalid speculative result from 'm_start()'.
 
 Based on an original patch by Elena Reshetova.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>
 Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- include/linux/fdtable.h |    5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ kernel/user_namespace.c |   10 ++++------
+ 1 file changed, 4 insertions(+), 6 deletions(-)
 
-diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
-index 1c65817673db..4a147c5c2533 100644
---- a/include/linux/fdtable.h
-+++ b/include/linux/fdtable.h
-@@ -81,9 +81,10 @@ struct dentry;
- static inline struct file *__fcheck_files(struct files_struct *files, unsigned int fd)
+diff --git a/kernel/user_namespace.c b/kernel/user_namespace.c
+index 246d4d4ce5c7..e958f2e5c061 100644
+--- a/kernel/user_namespace.c
++++ b/kernel/user_namespace.c
+@@ -648,15 +648,13 @@ static void *m_start(struct seq_file *seq, loff_t *ppos,
  {
- 	struct fdtable *fdt = rcu_dereference_raw(files->fdt);
-+	struct file __rcu **fdp;
+ 	loff_t pos = *ppos;
+ 	unsigned extents = map->nr_extents;
+-	smp_rmb();
  
--	if (fd < fdt->max_fds)
--		return rcu_dereference_raw(fdt->fd[fd]);
-+	if ((fdp = nospec_array_ptr(fdt->fd, fd, fdt->max_fds)))
-+		return rcu_dereference_raw(*fdp);
- 	return NULL;
+-	if (pos >= extents)
+-		return NULL;
++	/* paired with smp_wmb in map_write */
++	smp_rmb();
+ 
+ 	if (extents <= UID_GID_MAP_MAX_BASE_EXTENTS)
+-		return &map->extent[pos];
+-
+-	return &map->forward[pos];
++		return nospec_array_ptr(map->extent, pos, extents);
++	return nospec_array_ptr(map->forward, pos, extents);
  }
  
+ static void *uid_m_start(struct seq_file *seq, loff_t *ppos)
