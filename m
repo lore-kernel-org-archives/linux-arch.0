@@ -1,43 +1,82 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH 10/18] qla2xxx: prevent bounds-check bypass via
+From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
+Subject: Re: [PATCH 08/18] carl9170: prevent bounds-check bypass via
  speculative execution
-Date: Sat, 6 Jan 2018 10:42:09 +0100
-Message-ID: <20180106094209.GB11525@kroah.com>
+Date: Sat, 6 Jan 2018 13:01:15 +0300
+Message-ID: <113c7f80-265b-4da2-3eba-727c8f64a2b0@cogentembedded.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520104838.32271.7038801336240727574.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180106090322.GF4380@kroah.com>
+ <151520103755.32271.6819511294540882298.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:46706 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752805AbeAFJmG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 04:42:06 -0500
-Content-Disposition: inline
-In-Reply-To: <20180106090322.GF4380@kroah.com>
+Received: from mail-lf0-f65.google.com ([209.85.215.65]:42398 "EHLO
+        mail-lf0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752708AbeAFKBS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 05:01:18 -0500
+Received: by mail-lf0-f65.google.com with SMTP id e27so7480787lfb.9
+        for <linux-arch@vger.kernel.org>; Sat, 06 Jan 2018 02:01:17 -0800 (PST)
+In-Reply-To: <151520103755.32271.6819511294540882298.stgit@dwillia2-desk3.amr.corp.intel.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, qla2xxx-upstream@qlogic.com, tglx@linutronix.de, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
+To: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, linux-wireless@vger.kernel.org, Elena Reshetova <elena.reshetova@intel.com>, gregkh@linuxfoundation.org, Christian Lamparter <chunkeey@googlemail.com>, tglx@linutronix.de, torvalds@linux-foundation.org, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com
 
-On Sat, Jan 06, 2018 at 10:03:22AM +0100, Greg KH wrote:
-> On Fri, Jan 05, 2018 at 05:10:48PM -0800, Dan Williams wrote:
-> > Static analysis reports that 'handle' may be a user controlled value
-> > that is used as a data dependency to read 'sp' from the
-> > 'req->outstanding_cmds' array.  In order to avoid potential leaks of
-> > kernel memory values, block speculative execution of the instruction
-> > stream that could issue reads based on an invalid value of 'sp'. In this
-> > case 'sp' is directly dereferenced later in the function.
+Hello!
+
+On 1/6/2018 4:10 AM, Dan Williams wrote:
+
+> Static analysis reports that 'queue' may be a user controlled value that
+> is used as a data dependency to read from the 'ar9170_qmap' array. In
+> order to avoid potential leaks of kernel memory values, block
+> speculative execution of the instruction stream that could issue reads
+> based on an invalid result of 'ar9170_qmap[queue]'. In this case the
+> value of 'ar9170_qmap[queue]' is immediately reused as an index to the
+> 'ar->edcf' array.
 > 
-> I'm pretty sure that 'handle' comes from the hardware, not from
-> userspace, from what I can tell here.  If we want to start auditing
-> __iomem data sources, great!  But that's a bigger task, and one I don't
-> think we are ready to tackle...
+> Based on an original patch by Elena Reshetova.
+> 
+> Cc: Christian Lamparter <chunkeey@googlemail.com>
+> Cc: Kalle Valo <kvalo@codeaurora.org>
+> Cc: linux-wireless@vger.kernel.org
+> Cc: netdev@vger.kernel.org
+> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+> ---
+>   drivers/net/wireless/ath/carl9170/main.c |    6 ++++--
+>   1 file changed, 4 insertions(+), 2 deletions(-)
+> 
+> diff --git a/drivers/net/wireless/ath/carl9170/main.c b/drivers/net/wireless/ath/carl9170/main.c
+> index 988c8857d78c..0ff34cbe2b62 100644
+> --- a/drivers/net/wireless/ath/carl9170/main.c
+> +++ b/drivers/net/wireless/ath/carl9170/main.c
+> @@ -41,6 +41,7 @@
+>   #include <linux/module.h>
+>   #include <linux/etherdevice.h>
+>   #include <linux/random.h>
+> +#include <linux/compiler.h>
+>   #include <net/mac80211.h>
+>   #include <net/cfg80211.h>
+>   #include "hw.h"
+> @@ -1384,11 +1385,12 @@ static int carl9170_op_conf_tx(struct ieee80211_hw *hw,
+>   			       const struct ieee80211_tx_queue_params *param)
+>   {
+>   	struct ar9170 *ar = hw->priv;
+> +	const u8 *elem;
+>   	int ret;
+>   
+>   	mutex_lock(&ar->mutex);
+> -	if (queue < ar->hw->queues) {
+> -		memcpy(&ar->edcf[ar9170_qmap[queue]], param, sizeof(*param));
+> +	if ((elem = nospec_array_ptr(ar9170_qmap, queue, ar->hw->queues))) {
 
-And as Peter Zijlstra has already mentioned, if we have to look at those
-codepaths, USB drivers are the first up for that mess, so having access
-to the coverity rules would be a great help in starting that effort.
+    I bet this causes checkpatch.pl to complain. I don't see a dire need to 
+upset it here, the assignment may well precede *if*...
 
-thanks,
+> +		memcpy(&ar->edcf[*elem], param, sizeof(*param));
+>   		ret = carl9170_set_qos(ar);
+>   	} else {
+>   		ret = -EINVAL;
+> 
 
-greg k-h
+MBR, Sergei
