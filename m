@@ -1,42 +1,78 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
-Date: Sat, 6 Jan 2018 09:56:12 -0800
-Message-ID: <CA+55aFxBYfbShsPKj1rJjB4TQXxcd+-hYG7y7gq0RF7gdfv_Uw@mail.gmail.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH 13/18] ipv6: prevent bounds-check bypass via speculative execution
+Date: Sat, 6 Jan 2018 10:05:44 -0800
+Message-ID: <CAPcyv4h_7T_g52R6nL6p=Pcd3en1opPRV4GdN1n9M23hN69xjA@mail.gmail.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com> <20180106123242.77f4d860@alans-desktop>
+ <151520106487.32271.6013001625427346680.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180106064852.187637ad@xeon-e3>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180106123242.77f4d860@alans-desktop>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ot0-f196.google.com ([74.125.82.196]:33695 "EHLO
+        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750940AbeAFSFp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 13:05:45 -0500
+Received: by mail-ot0-f196.google.com with SMTP id x15so6365362ote.0
+        for <linux-arch@vger.kernel.org>; Sat, 06 Jan 2018 10:05:45 -0800 (PST)
+In-Reply-To: <20180106064852.187637ad@xeon-e3>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Stephen Hemminger <stephen@networkplumber.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Netdev <netdev@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Greg KH <gregkh@linuxfoundation.org>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
 
-On Sat, Jan 6, 2018 at 4:32 AM, Alan Cox <gnomes@lxorguk.ukuu.org.uk> wrote:
+On Sat, Jan 6, 2018 at 6:48 AM, Stephen Hemminger
+<stephen@networkplumber.org> wrote:
+> On Fri, 05 Jan 2018 17:11:04 -0800
+> Dan Williams <dan.j.williams@intel.com> wrote:
 >
-> Also for x86-64 if we are trusting that an AND with a constant won't get
-> speculated into something else surely we can just and the address with ~(1
-> << 63) before copying from/to user space ? The user will then just
-> speculatively steal their own memory.
+>> Static analysis reports that 'offset' may be a user controlled value
+>> that is used as a data dependency reading from a raw6_frag_vec buffer.
+>> In order to avoid potential leaks of kernel memory values, block
+>> speculative execution of the instruction stream that could issue further
+>> reads based on an invalid '*(rfv->c + offset)' value.
+>>
+>> Based on an original patch by Elena Reshetova.
+>>
+>> Cc: "David S. Miller" <davem@davemloft.net>
+>> Cc: Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
+>> Cc: Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>
+>> Cc: netdev@vger.kernel.org
+>> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
+>> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+>> ---
+>>  net/ipv6/raw.c |    9 +++++----
+>>  1 file changed, 5 insertions(+), 4 deletions(-)
+>>
+>> diff --git a/net/ipv6/raw.c b/net/ipv6/raw.c
+>> index 761a473a07c5..384e3d59d148 100644
+>> --- a/net/ipv6/raw.c
+>> +++ b/net/ipv6/raw.c
+>> @@ -33,6 +33,7 @@
+>>  #include <linux/skbuff.h>
+>>  #include <linux/compat.h>
+>>  #include <linux/uaccess.h>
+>> +#include <linux/compiler.h>
+>>  #include <asm/ioctls.h>
+>>
+>>  #include <net/net_namespace.h>
+>> @@ -725,17 +726,17 @@ static int raw6_getfrag(void *from, char *to, int offset, int len, int odd,
+>>                      struct sk_buff *skb)
+>>  {
+>>       struct raw6_frag_vec *rfv = from;
+>> +     char *rfv_buf;
+>>
+>> -     if (offset < rfv->hlen) {
+>> +     if ((rfv_buf = nospec_array_ptr(rfv->c, offset, rfv->hlen))) {
+>>               int copy = min(rfv->hlen - offset, len);
+>
+> Minor nit.
+>
+> Please don't do assignment in condition test here.
+> Instead.
+>         rfv_buf = nospec_array_ptr(rfv->c, offset, rfv->hlen);
+>         if (rfv_buf) {
 
-User accesses *may* go to the kernel too, with set_fs(KERNEL_DS).
-We've been getting rid of those, but they still exist.
-
-We historically perhaps have 'and'ed the address with
-current->thread.addr_limit, but it's no longer a power-of-two mask, so
-that doesn't work. We'd have to play tricks there, but it might work
-to do something like
-
-     addr &= current->thread.addr_limit | 0xfff;
-
-or similar.
-
-But this is one area where the 'lfence' is probably not too bad. The
-cost of the existing 'stac' instruction is much higher, and in fact
-depending on how lfence works (and how stac affects the memory unit
-pipeline, it might even _help_ to serialize the stac with the actual
-address.
-
-            Linus
+Yeah, sorry about that. This was a hold over from an earlier version
+where nospec_array_ptr() did not include the necessary barrier and we
+relied on a new if_nospec helper, but now that if_nospec is no longer
+being proposed I can go back and clean this up.
