@@ -1,70 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f68.google.com ([209.85.218.68]:42801 "EHLO
-        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752108AbeAFS4d (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 13:56:33 -0500
-Subject: Re: [PATCH 00/18] prevent bounds-check bypass via speculative
- execution
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
-From: Florian Fainelli <f.fainelli@gmail.com>
-Message-ID: <ca6f24c0-d6cf-e309-aa68-92f1378ee75a@gmail.com>
-Date: Sat, 6 Jan 2018 10:56:25 -0800
+Received: from mail-ot0-f195.google.com ([74.125.82.195]:44686 "EHLO
+        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752583AbeAFTgG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 14:36:06 -0500
+Received: by mail-ot0-f195.google.com with SMTP id g59so6462743otg.11
+        for <linux-arch@vger.kernel.org>; Sat, 06 Jan 2018 11:36:05 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20180106192517.ykvlcq4564cqy4u6@ast-mbp>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
+ <20180106123242.77f4d860@alans-desktop> <20180106181331.mmrqwwbu2jcjj2si@ast-mbp>
+ <CAPcyv4jqKmnkL1CfHVccHvocmSD4PamqOy4bPsO1789D+107FQ@mail.gmail.com>
+ <20180106183937.vkseldf4arkdlkum@ast-mbp> <CAPcyv4hyRfPhnnS=aDf=jMMP+-EJM3ojPC0gX9ChawT3vidkJQ@mail.gmail.com>
+ <20180106192517.ykvlcq4564cqy4u6@ast-mbp>
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Sat, 6 Jan 2018 11:36:04 -0800
+Message-ID: <CAPcyv4jLGwCTVQAxHH5gob_6CSeXkbNDdWCV3t-KHKGXVPjBCQ@mail.gmail.com>
+Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, peterz@infradead.org, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Zhang Rui <rui.zhang@intel.com>, linux-media@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jan Kara <jack@suse.com>, Eduardo Valentin <edubezval@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, gregkh@linuxfoundation.org, linux-wireless@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, netdev@vger.kernel.org, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, dan.carpenter@oracle.com
-Message-ID: <20180106185625.QtLR1uOf45F99MzjUJrxnsVazMBBkz7Kx45D1DxntD4@z>
+To: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20180106193604.owAohGKJOetKft0cz5r4LlN5dCCtQVsync-D-mC_WVU@z>
 
-Le 01/05/18 à 17:09, Dan Williams a écrit :
-> Quoting Mark's original RFC:
-> 
-> "Recently, Google Project Zero discovered several classes of attack
-> against speculative execution. One of these, known as variant-1, allows
-> explicit bounds checks to be bypassed under speculation, providing an
-> arbitrary read gadget. Further details can be found on the GPZ blog [1]
-> and the Documentation patch in this series."
-> 
-> This series incorporates Mark Rutland's latest api and adds the x86
-> specific implementation of nospec_barrier. The
-> nospec_{array_ptr,ptr,barrier} helpers are then combined with a kernel
-> wide analysis performed by Elena Reshetova to address static analysis
-> reports where speculative execution on a userspace controlled value
-> could bypass a bounds check. The patches address a precondition for the
-> attack discussed in the Spectre paper [2].
-> 
-> A consideration worth noting for reviewing these patches is to weigh the
-> dramatic cost of being wrong about whether a given report is exploitable
-> vs the overhead nospec_{array_ptr,ptr} may introduce. In other words,
-> lets make the bar for applying these patches be "can you prove that the
-> bounds check bypass is *not* exploitable". Consider that the Spectre
-> paper reports one example of a speculation window being ~180 cycles.
-> 
-> Note that there is also a proposal from Linus, array_access [3], that
-> attempts to quash speculative execution past a bounds check without
-> introducing an lfence instruction. That may be a future optimization
-> possibility that is compatible with this api, but it would appear to
-> need guarantees from the compiler that it is not clear the kernel can
-> rely on at this point. It is also not clear that it would be a
-> significant performance win vs lfence.
-> 
-> These patches also will also be available via the 'nospec' git branch
-> here:
-> 
->     git://git.kernel.org/pub/scm/linux/kernel/git/djbw/linux nospec
+On Sat, Jan 6, 2018 at 11:25 AM, Alexei Starovoitov
+<alexei.starovoitov@gmail.com> wrote:
+> On Sat, Jan 06, 2018 at 10:54:27AM -0800, Dan Williams wrote:
+>> On Sat, Jan 6, 2018 at 10:39 AM, Alexei Starovoitov
+>> <alexei.starovoitov@gmail.com> wrote:
+>> [..]
+>> >> retpoline is variant-2, this patch series is about variant-1.
+>> >
+>> > that's exactly the point. Don't slow down the kernel with lfences
+>> > to solve variant 1. retpoline for 2 is ok from long term kernel
+>> > viability perspective.
+>> >
+>>
+>> Setting aside that we still need to measure the impact of these
+>> changes the end result will still be nospec_array_ptr() sprinkled in
+>> various locations. So can we save the debate about what's inside that
+>> macro on various architectures and at least proceed with annotating
+>> the problematic locations? Perhaps we can go a step further and have a
+>> config option to switch between the clever array_access() approach
+>> from Linus that might be fine depending on the compiler, and the
+>> cpu-vendor-recommended not to speculate implementation of
+>> nospec_array_ptr().
+>
+> recommended by panicing vendors who had no better ideas?
+> Ohh, speculation is exploitable, let's stop speculation.
+> Instead of fighting it we can safely steer it where it doesn't leak
+> kernel data. AND approach is doing exactly that.
+> It probably can be made independent of compiler choice to use setbe-like insn.
 
-Although I suppose -stable and distribution maintainers will keep a
-close eye on these patches, is there a particular reason why they don't
-include the relevant CVE number in their commit messages?
-
-It sounds like Coverity was used to produce these patches? If so, is
-there a plan to have smatch (hey Dan) or other open source static
-analysis tool be possibly enhanced to do a similar type of work?
-
-Thanks!
--- 
-Florian
+Right, when that 'probably' is 'certainly' for the architecture you
+care about just update the nospec_array_ptr() definition at that
+point.
