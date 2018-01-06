@@ -1,7 +1,8 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
-Date: Fri, 05 Jan 2018 17:10:26 -0800
-Message-ID: <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH 07/18] [media] uvcvideo: prevent bounds-check bypass via
+ speculative execution
+Date: Fri, 05 Jan 2018 17:10:32 -0800
+Message-ID: <151520103240.32271.14706852449205864676.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,93 +11,55 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, gregkh@linuxfoundation.org, peterz@infradead.org, netdev@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, tglx@linutronix.de, torvalds@linux-foundation.org, alan@linux.intel.com
+Cc: linux-arch@vger.kernel.org, alan@linux.intel.com, peterz@infradead.org, netdev@vger.kernel.org, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Andi Kleen <ak@linux.intel.com>
+Static analysis reports that 'index' may be a user controlled value that
+is used as a data dependency to read 'pin' from the
+'selector->baSourceID' array. In order to avoid potential leaks of
+kernel memory values, block speculative execution of the instruction
+stream that could issue reads based on an invalid value of 'pin'.
 
-When access_ok fails we should always stop speculating.
-Add the required barriers to the x86 access_ok macro.
+Based on an original patch by Elena Reshetova.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: x86@kernel.org
-Signed-off-by: Andi Kleen <ak@linux.intel.com>
+Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Cc: Mauro Carvalho Chehab <mchehab@kernel.org>
+Cc: linux-media@vger.kernel.org
+Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/x86/include/asm/uaccess.h |   17 +++++++++++++----
- include/asm-generic/barrier.h  |    6 +++---
- 2 files changed, 16 insertions(+), 7 deletions(-)
+ drivers/media/usb/uvc/uvc_v4l2.c |    7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index 574dff4d2913..9b6f20cfaeb9 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -43,6 +43,8 @@ static inline void set_fs(mm_segment_t fs)
- /*
-  * Test whether a block of memory is a valid user space address.
-  * Returns 0 if the range is valid, nonzero otherwise.
-+ *
-+ * We also disable speculation when a check fails.
-  */
- static inline bool __chk_range_not_ok(unsigned long addr, unsigned long size, unsigned long limit)
- {
-@@ -53,14 +55,19 @@ static inline bool __chk_range_not_ok(unsigned long addr, unsigned long size, un
- 	 * important to subtract the size from the
- 	 * limit, not add it to the address).
- 	 */
--	if (__builtin_constant_p(size))
--		return unlikely(addr > limit - size);
-+	if (__builtin_constant_p(size)) {
-+		if (unlikely(addr > limit - size))
-+			return true;
-+		nospec_barrier();
-+		return false;
-+	}
+diff --git a/drivers/media/usb/uvc/uvc_v4l2.c b/drivers/media/usb/uvc/uvc_v4l2.c
+index 3e7e283a44a8..7442626dc20e 100644
+--- a/drivers/media/usb/uvc/uvc_v4l2.c
++++ b/drivers/media/usb/uvc/uvc_v4l2.c
+@@ -22,6 +22,7 @@
+ #include <linux/mm.h>
+ #include <linux/wait.h>
+ #include <linux/atomic.h>
++#include <linux/compiler.h>
  
- 	/* Arbitrary sizes? Be careful about overflow */
- 	addr += size;
--	if (unlikely(addr < size))
-+	if (unlikely(addr < size || addr > limit))
- 		return true;
--	return unlikely(addr > limit);
-+	nospec_barrier();
-+	return false;
- }
+ #include <media/v4l2-common.h>
+ #include <media/v4l2-ctrls.h>
+@@ -810,6 +811,7 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
+ 	struct uvc_entity *iterm = NULL;
+ 	u32 index = input->index;
+ 	int pin = 0;
++	__u8 *elem;
  
- #define __range_not_ok(addr, size, limit)				\
-@@ -94,6 +101,8 @@ static inline bool __chk_range_not_ok(unsigned long addr, unsigned long size, un
-  * Note that, depending on architecture, this function probably just
-  * checks that the pointer is in the user space range - after calling
-  * this function, memory access functions may still return -EFAULT.
-+ *
-+ * Stops speculation automatically
-  */
- #define access_ok(type, addr, size)					\
- ({									\
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index 91c3071f49e5..a11765eba860 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -59,7 +59,9 @@
-  *
-  * Architectures with a suitable memory barrier should provide an
-  * implementation. This is non-portable, and generic code should use
-- * nospec_ptr().
-+ * nospec_{array_ptr,ptr}. Arch-specific code should define and use
-+ * nospec_barrier() for usages where nospec_{array_ptr,ptr} is
-+ * unsuitable.
-  */
- #ifndef __nospec_barrier
- #define __nospec_barrier()		do { } while (0)
-@@ -120,8 +122,6 @@
- 	nospec_ptr(__arr + __idx, __arr, __arr + __sz);			\
- })
- 
--#undef __nospec_barrier
--
- #ifndef __smp_mb
- #define __smp_mb()	mb()
- #endif
+ 	if (selector == NULL ||
+ 	    (chain->dev->quirks & UVC_QUIRK_IGNORE_SELECTOR_UNIT)) {
+@@ -820,8 +822,9 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
+ 				break;
+ 		}
+ 		pin = iterm->id;
+-	} else if (index < selector->bNrInPins) {
+-		pin = selector->baSourceID[index];
++	} else if ((elem = nospec_array_ptr(selector->baSourceID, index,
++					selector->bNrInPins))) {
++		pin = *elem;
+ 		list_for_each_entry(iterm, &chain->entities, chain) {
+ 			if (!UVC_ENTITY_IS_ITERM(iterm))
+ 				continue;
