@@ -1,36 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f54.google.com ([209.85.214.54]:37321 "EHLO
-        mail-it0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753533AbeAFDJD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jan 2018 22:09:03 -0500
+Received: from mail-oi0-f66.google.com ([209.85.218.66]:42209 "EHLO
+        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751082AbeAFFXH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Jan 2018 00:23:07 -0500
+Received: by mail-oi0-f66.google.com with SMTP id o64so4398811oia.9
+        for <linux-arch@vger.kernel.org>; Fri, 05 Jan 2018 21:23:07 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
+In-Reply-To: <CA+55aFxoU1B7VECQ3T9CRkX07Y8sw=fGg6Miry1GniqJOd68sA@mail.gmail.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 5 Jan 2018 19:09:01 -0800
-Message-ID: <CA+55aFzJgyk7peXyuNO8wgm0ZfSY2K-52XA9z=R6JGKcD6hQYw@mail.gmail.com>
-Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
+ <151520099810.32271.11023910901471332353.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFxoU1B7VECQ3T9CRkX07Y8sw=fGg6Miry1GniqJOd68sA@mail.gmail.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Fri, 5 Jan 2018 21:23:06 -0800
+Message-ID: <CAPcyv4jAt5HTc5iB7603tnvDqdFZ1+JhpekekcZwuVR3g6jjVw@mail.gmail.com>
+Subject: Re: [PATCH 01/18] asm-generic/barrier: add generic nospec helpers
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180106030901.9_ntJcledioQ5IfUpf_MJVzd78yyG-ns1JLrGM2HXik@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180106052306.Cvb_-HY8y4VrEZJ78CqHFYVQRbajcRAB6mnLbMNmHC4@z>
 
-On Fri, Jan 5, 2018 at 6:52 PM, Linus Torvalds
+On Fri, Jan 5, 2018 at 6:55 PM, Linus Torvalds
 <torvalds@linux-foundation.org> wrote:
+> On Fri, Jan 5, 2018 at 5:09 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+>> +#ifndef nospec_ptr
+>> +#define nospec_ptr(ptr, lo, hi)                                                \
 >
-> The fact is, we have to stop speculating when access_ok() does *not*
-> fail - because that's when we'll actually do the access. And it's that
-> access that needs to be non-speculative.
+> Do we actually want this horrible interface?
+>
+> It just causes the compiler - or inline asm - to generate worse code,
+> because it needs to compare against both high and low limits.
+>
+> Basically all users are arrays that are zero-based, and where a
+> comparison against the high _index_ limit would be sufficient.
+>
+> But the way this is all designed, it's literally designed for bad code
+> generation for the unusual case, and the usual array case is written
+> in the form of the unusual and wrong non-array case. That really seems
+> excessively stupid.
 
-I also suspect we should probably do this entirely differently.
-
-Maybe the whole lfence can be part of uaccess_begin() instead (ie
-currently 'stac()'). That would fit the existing structure better, I
-think. And it would avoid any confusion about the whole "when to stop
-speculation".
-
-                 Linus
+Yes, it appears we can kill nospec_ptr() and move nospec_array_ptr()
+to assume 0 based arrays rather than use nospec_ptr.
