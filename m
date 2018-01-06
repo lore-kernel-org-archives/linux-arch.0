@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:7023 "EHLO mga03.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:15560 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753608AbeAFBSS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 5 Jan 2018 20:18:18 -0500
-Subject: [PATCH 02/18] Documentation: document nospec helpers
+        id S1753640AbeAFBSY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 5 Jan 2018 20:18:24 -0500
+Subject: [PATCH 03/18] arm64: implement nospec_ptr()
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 05 Jan 2018 17:10:03 -0800
-Message-ID: <151520100323.32271.8384226462583945132.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 05 Jan 2018 17:10:09 -0800
+Message-ID: <151520100890.32271.10501551400360324504.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,193 +15,86 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, peterz@infradead.org, netdev@vger.kernel.org, Will Deacon <will.deacon@arm.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180106011003.s3RYafF7dYFHpavx6bcxyRlij0x25d9Pc2LjXSdOSgk@z>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, Will Deacon <will.deacon@arm.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, alan@linux.intel.com
+Message-ID: <20180106011009.5TwuqwvB3Khd7z4Zc9PWnkDElhhf5FtzDQhATktPjgA@z>
 
 From: Mark Rutland <mark.rutland@arm.com>
 
-Document the rationale and usage of the new nospec*() helpers.
+This patch implements nospec_ptr() for arm64, following the recommended
+architectural sequence.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Jonathan Corbet <corbet@lwn.net>
 Cc: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- Documentation/speculation.txt |  166 +++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 166 insertions(+)
- create mode 100644 Documentation/speculation.txt
+ arch/arm64/include/asm/barrier.h |   55 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 55 insertions(+)
 
-diff --git a/Documentation/speculation.txt b/Documentation/speculation.txt
-new file mode 100644
-index 000000000000..748fcd4dcda4
---- /dev/null
-+++ b/Documentation/speculation.txt
-@@ -0,0 +1,166 @@
-+This document explains potential effects of speculation, and how undesirable
-+effects can be mitigated portably using common APIs.
+diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
+index 77651c49ef44..b4819f6a0e5c 100644
+--- a/arch/arm64/include/asm/barrier.h
++++ b/arch/arm64/include/asm/barrier.h
+@@ -40,6 +40,61 @@
+ #define dma_rmb()	dmb(oshld)
+ #define dma_wmb()	dmb(oshst)
+ 
++#define __load_no_speculate_n(ptr, lo, hi, failval, cmpptr, w, sz)	\
++({									\
++	typeof(*ptr)	__nln_val;					\
++	typeof(*ptr)	__failval = 					\
++		(typeof(*ptr))(unsigned long)(failval);			\
++									\
++	asm volatile (							\
++	"	cmp	%[c], %[l]\n"					\
++	"	ccmp	%[c], %[h], 2, cs\n"				\
++	"	b.cs	1f\n"						\
++	"	ldr" #sz " %" #w "[v], %[p]\n"				\
++	"1:	csel	%" #w "[v], %" #w "[v], %" #w "[f], cc\n"	\
++	"	hint	#0x14 // CSDB\n"				\
++	: [v] "=&r" (__nln_val)						\
++	: [p] "m" (*(ptr)), [l] "r" (lo), [h] "r" (hi),			\
++	  [f] "rZ" (__failval), [c] "r" (cmpptr)			\
++	: "cc");							\
++									\
++	__nln_val;							\
++})
 +
-+===========
-+Speculation
-+===========
++#define __load_no_speculate(ptr, lo, hi, failval, cmpptr)		\
++({									\
++	typeof(*(ptr)) __nl_val;					\
++									\
++	switch (sizeof(__nl_val)) {					\
++	case 1:								\
++		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
++						 cmpptr, w, b);		\
++		break;							\
++	case 2:								\
++		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
++						 cmpptr, w, h);		\
++		break;							\
++	case 4:								\
++		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
++						 cmpptr, w, );		\
++		break;							\
++	case 8:								\
++		__nl_val = __load_no_speculate_n(ptr, lo, hi, failval,	\
++						 cmpptr, x, );		\
++		break;							\
++	default:							\
++		BUILD_BUG();						\
++	}								\
++									\
++	__nl_val;							\
++})
 +
-+To improve performance and minimize average latencies, many contemporary CPUs
-+employ speculative execution techniques such as branch prediction, performing
-+work which may be discarded at a later stage.
++#define nospec_ptr(ptr, lo, hi)						\
++({									\
++	typeof(ptr) __np_ptr = (ptr);					\
++	__load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);		\
++})
 +
-+Typically speculative execution cannot be observed from architectural state,
-+such as the contents of registers. However, in some cases it is possible to
-+observe its impact on microarchitectural state, such as the presence or
-+absence of data in caches. Such state may form side-channels which can be
-+observed to extract secret information.
-+
-+For example, in the presence of branch prediction, it is possible for bounds
-+checks to be ignored by code which is speculatively executed. Consider the
-+following code:
-+
-+	int load_array(int *array, unsigned int idx) {
-+		if (idx >= MAX_ARRAY_ELEMS)
-+			return 0;
-+		else
-+			return array[idx];
-+	}
-+
-+Which, on arm64, may be compiled to an assembly sequence such as:
-+
-+	CMP	<idx>, #MAX_ARRAY_ELEMS
-+	B.LT	less
-+	MOV	<returnval>, #0
-+	RET
-+  less:
-+	LDR	<returnval>, [<array>, <idx>]
-+	RET
-+
-+It is possible that a CPU mis-predicts the conditional branch, and
-+speculatively loads array[idx], even if idx >= MAX_ARRAY_ELEMS. This value
-+will subsequently be discarded, but the speculated load may affect
-+microarchitectural state which can be subsequently measured.
-+
-+More complex sequences involving multiple dependent memory accesses may result
-+in sensitive information being leaked. Consider the following code, building on
-+the prior example:
-+
-+	int load_dependent_arrays(int *arr1, int *arr2, int idx) {
-+		int val1, val2,
-+
-+		val1 = load_array(arr1, idx);
-+		val2 = load_array(arr2, val1);
-+
-+		return val2;
-+	}
-+
-+Under speculation, the first call to load_array() may return the value of an
-+out-of-bounds address, while the second call will influence microarchitectural
-+state dependent on this value. This may provide an arbitrary read primitive.
-+
-+====================================
-+Mitigating speculation side-channels
-+====================================
-+
-+The kernel provides a generic API to ensure that bounds checks are respected
-+even under speculation. Architectures which are affected by speculation-based
-+side-channels are expected to implement these primitives.
-+
-+The following helpers found in <asm/barrier.h> can be used to prevent
-+information from being leaked via side-channels.
-+
-+* nospec_ptr(ptr, lo, hi)
-+
-+  Returns a sanitized pointer that is bounded by the [lo, hi) interval. When
-+  ptr < lo, or ptr >= hi, NULL is returned. Prevents an out-of-bounds pointer
-+  being propagated to code which is speculatively executed.
-+
-+  This is expected to be used by code which computes pointers to data
-+  structures, where part of the address (such as an array index) may be
-+  user-controlled.
-+
-+  This can be used to protect the earlier load_array() example:
-+
-+  int load_array(int *array, unsigned int idx)
-+  {
-+	int *elem;
-+
-+	if ((elem = nospec_ptr(array + idx, array, array + MAX_ARRAY_ELEMS)))
-+		return *elem;
-+	else
-+		return 0;
-+  }
-+
-+  This can also be used in situations where multiple fields on a structure are
-+  accessed:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		struct foo *elem;
-+
-+		if ((elem = nospec_ptr(array + idx, array, array + SIZE)) {
-+			a = elem->field_a;
-+			b = elem->field_b;
-+		}
-+	}
-+
-+  It is imperative that the returned pointer is used. Pointers which are
-+  generated separately are subject to a number of potential CPU and compiler
-+  optimizations, and may still be used speculatively. For example, this means
-+  that the following sequence is unsafe:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		if (nospec_ptr(array + idx, array, array + SIZE) != NULL) {
-+			// unsafe as wrong pointer is used
-+			a = array[idx].field_a;
-+			b = array[idx].field_b;
-+		}
-+	}
-+
-+  Similarly, it is unsafe to compare the returned pointer with other pointers,
-+  as this may permit the compiler to substitute one pointer with another,
-+  permitting speculation. For example, the following sequence is unsafe:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		struct foo *elem = nospec_ptr(array + idx, array, array + size);
-+
-+		// unsafe due to pointer substitution
-+		if (elem == &array[idx]) {
-+			a = elem->field_a;
-+			b = elem->field_b;
-+		}
-+	}
-+
-+* nospec_array_ptr(arr, idx, sz)
-+
-+  Returns a sanitized pointer to arr[idx] only if idx falls in the [0, sz)
-+  interval. When idx < 0 or idx > sz, NULL is returned. Prevents an
-+  out-of-bounds pointer being propagated to code which is speculatively
-+  executed.
-+
-+  This is a convenience function which wraps nospec_ptr(), and has the same
-+  caveats w.r.t. the use of the returned pointer.
-+
-+  For example, this may be used as follows:
-+
-+  int load_array(int *array, unsigned int idx)
-+  {
-+	int *elem;
-+
-+	if ((elem = nospec_array_ptr(array, idx, MAX_ARRAY_ELEMS)))
-+		return *elem;
-+	else
-+		return 0;
-+  }
-+
+ #define __smp_mb()	dmb(ish)
+ #define __smp_rmb()	dmb(ishld)
+ #define __smp_wmb()	dmb(ishst)
