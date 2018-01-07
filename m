@@ -1,81 +1,35 @@
-From: Thomas Gleixner <tglx@linutronix.de>
+From: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
 Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed
  access_ok
-Date: Sun, 7 Jan 2018 19:31:41 +0100 (CET)
-Message-ID: <alpine.DEB.2.20.1801071925090.2094@nanos>
-References: <20180106181331.mmrqwwbu2jcjj2si@ast-mbp>  <20180106183859.1ad9ae37@alans-desktop> <20180106204229.GD9075@1wt.eu>  <20180106.203654.731754766847198456.davem@davemloft.net> <1515345560.3075.7.camel@HansenPartnership.com>
+Date: Sun, 7 Jan 2018 19:24:18 +0000
+Message-ID: <20180107192418.0f0b66a8@alans-desktop>
+References: <20180106181331.mmrqwwbu2jcjj2si@ast-mbp>
+        <20180106183859.1ad9ae37@alans-desktop>
+        <20180106204229.GD9075@1wt.eu>
+        <20180106.203654.731754766847198456.davem@davemloft.net>
+        <1515345560.3075.7.camel@HansenPartnership.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; BOUNDARY="8323329-1529939690-1515349901=:2094"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1515345560.3075.7.camel@HansenPartnership.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: David Miller <davem@davemloft.net>, w@1wt.eu, gnomes@lxorguk.ukuu.org.uk, alexei.starovoitov@gmail.com, torvalds@linux-foundation.org, dan.j.williams@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ak@linux.intel.com, arnd@arndb.de, gregkh@linuxfoundation.org, peterz@infradead.org, netdev@vger.kernel.org, mingo@redhat.com, hpa@zytor.com
-List-Id: linux-arch.vger.kernel.org
-
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
-
---8323329-1529939690-1515349901=:2094
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.llwyncelyn.cymru ([82.70.14.225]:58550 "EHLO fuzix.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754312AbeAGTZT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 7 Jan 2018 14:25:19 -0500
+In-Reply-To: <1515345560.3075.7.camel@HansenPartnership.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: David Miller <davem@davemloft.net>, w@1wt.eu, alexei.starovoitov@gmail.com, torvalds@linux-foundation.org, dan.j.williams@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ak@linux.intel.com, arnd@arndb.de, gregkh@linuxfoundation.org, peterz@infradead.org, netdev@vger.kernel.org, mingo@redhat.com, hpa@zytor.com, tglx@linutronix.de
 
-On Sun, 7 Jan 2018, James Bottomley wrote:
-
-> On Sat, 2018-01-06 at 20:36 -0500, David Miller wrote:
-> > From: Willy Tarreau <w@1wt.eu>
-> > Date: Sat, 6 Jan 2018 21:42:29 +0100
-> > 
-> > > On Sat, Jan 06, 2018 at 06:38:59PM +0000, Alan Cox wrote:
-> > >> Normally people who propose security fixes don't have to argue
-> > about the
-> > >> fact they added 30 clocks to avoid your box being 0wned.
-> > > 
-> > > In fact it depends, because if a fix makes the system unusable for
-> > its
-> > > initial purpose, this fix will simply not be deployed at all, which
-> > is
-> > > the worst that can happen.
-> > 
-> > +1
-> > 
-> > I completely agree with Willy and Alexei.
-> > 
-> > And the scale isn't even accurate, we're talking about at least
-> > hundreds upon hundreds of clocks, not 30, if we add an operation
-> > whose side effect is to wait for all pending loads to complete.  So
-> > yeah this is going to be heavily scrutinized.
-> 
-> Plus this is the standard kernel code review MO: we've never blindly
-> accepted code just because *security* (otherwise we'd have grsec in by
-> now).  We use the pushback to get better and more performant code.
->  What often happens is it turns out that the "either security or
-> performance" position was a false dichotomy and there is a way of
-> fixing stuff that's acceptable (although not usually perfect) for
 > everyone.  I'm not saying this always happens, but it is reasonable to
 > let the iterative pushback see if we can get to better code in this
 > case rather than trying to cut it of with the "because *security*"
 > argument.
+> 
 
-In principle I agree, though there are a few things to consider:
+I'm not arguing otherwise - I'd just prefer most users machines are
+secure while we have the discussion and while we see what other
+architectural tricks people can come up with
 
-1) We have not the time to discuss that for the next 6 month
-
-2) Alexei's analyis is purely based on the public information of the google
-   zero folks. If it would be complete and the only attack vector all fine.
-
-   If not and I doubt it is, we're going to regret this decision faster
-   than we made it and this is not the kind of play field where we can
-   afford that.
-
-The whole 'we know better and performance is key' attitude is what led to
-this disaster in the first place. We should finaly start to learn.
-
-Can we please stop that and live with the extra cycles for a few month up
-to the point where we get more informed answers to all these questions?
-
-Thanks,
-
-	tglx
-
---8323329-1529939690-1515349901=:2094--
+Alan
