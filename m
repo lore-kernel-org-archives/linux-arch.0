@@ -1,91 +1,133 @@
-From: Willy Tarreau <w@1wt.eu>
-Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
-Date: Sun, 7 Jan 2018 07:33:56 +0100
-Message-ID: <20180107063356.GA9425@1wt.eu>
-References: <20180106123242.77f4d860@alans-desktop>
- <20180106181331.mmrqwwbu2jcjj2si@ast-mbp>
- <20180106183859.1ad9ae37@alans-desktop>
- <20180106185134.dzn2en4vw2hj3p6h@ast-mbp>
- <20180106195551.3207f75d@alans-desktop>
- <20180106200912.zhzdt4qmfrojeeqe@ast-mbp>
- <20180106202213.23e553fb@alans-desktop>
- <20180106211729.cp5oet3at3hyce4o@ast-mbp>
- <20180106230507.3547c9a0@alans-desktop>
- <20180107033812.awq3vz4gdkps7tix@ast-mbp>
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH 07/18] [media] uvcvideo: prevent bounds-check bypass via
+ speculative execution
+Date: Sun, 7 Jan 2018 10:09:18 +0100
+Message-ID: <20180107090918.GA29329@kroah.com>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151520103240.32271.14706852449205864676.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180106090907.GG4380@kroah.com>
+ <20180106094026.GA11525@kroah.com>
+ <CAPcyv4je-agqvmNSJf7v-1VBOrfhOvcs_qASNPJiBzgTt70dPA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180107033812.awq3vz4gdkps7tix@ast-mbp>
+In-Reply-To: <CAPcyv4je-agqvmNSJf7v-1VBOrfhOvcs_qASNPJiBzgTt70dPA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alexei Starovoitov <alexei.starovoitov@gmail.com>
-Cc: Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, netdev@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Alan Cox <alan@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, "Linux-media@vger.kernel.org" <linux-media@vger.kernel.org>, dsj@fb.com
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jan 06, 2018 at 07:38:14PM -0800, Alexei Starovoitov wrote:
-> yep. plenty of unknowns and what's happening now is an overreaction.
-
-To be fair there's overreaction on both sides. The vast majority of
-users need to get a 100% safe system and will never notice  any
-difference. A few of us are more concerned by the risk of performance
-loss brought by these fixes. We do all need to run tests on the
-patchsets to bring numbers on the table.
-
-> What is the rush to push half baked patches into upstream
-> that don't even address the variant 1 ?
-
-You probably need to trust the CPU vendors a bit for having had all
-the details about the risks for a few months now and accept that if
-they're destroying their product's performance compared to their main
-competitor, they probably studied a number of other alternatives first.
-It doesn't mean they thought about everything of course, and maybe they
-need to study your proposal as a better solution to reduce criticism.
-
-> which clearly states that bpf_tail_call() was used in the attack.
-> Yet none of the intel nor arm patches address speculation in
-> this bpf helper!
-> It means that:
-> - gpz didn't share neither exploit nor the detailed description
->   of the POC with cpu vendors until now
-
-Or it was considered less urgent to fix compared to the rest. It's
-also possible that the scariest details were not written in the GPZ
-article.
-
-> Now the attack is well described, yet cpu vendors still pushing
-> for lfence patches that don't make sense. Why?
-
-Imagine if you were in their position and were pushing a solution which
-would later be found to be inefficient and to be vulnerable again. Your
-name would appear twice in the press in a few months, this would be
-terrible. It makes sense in their position to find the safest fix first
-given that those like you or me really concerned about the performance
-impact know how to add an option to a boot loader or revert a patch that
-causes trouble.
-
-> What I think is important is to understand vulnerability first.
-> I don't think it was done.
-
-I suspect it was clearly done by those how had no other option but
-working on this painful series over the last few months :-/
-
-> > The differences involved on the "lfence" versus "and" versus before are
-> > not likely to be anywhere in that order of magnitude.
+On Sat, Jan 06, 2018 at 09:41:17AM -0800, Dan Williams wrote:
+> On Sat, Jan 6, 2018 at 1:40 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
+> > On Sat, Jan 06, 2018 at 10:09:07AM +0100, Greg KH wrote:
+> >> On Fri, Jan 05, 2018 at 05:10:32PM -0800, Dan Williams wrote:
+> >> > Static analysis reports that 'index' may be a user controlled value that
+> >> > is used as a data dependency to read 'pin' from the
+> >> > 'selector->baSourceID' array. In order to avoid potential leaks of
+> >> > kernel memory values, block speculative execution of the instruction
+> >> > stream that could issue reads based on an invalid value of 'pin'.
+> >> >
+> >> > Based on an original patch by Elena Reshetova.
+> >> >
+> >> > Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+> >> > Cc: Mauro Carvalho Chehab <mchehab@kernel.org>
+> >> > Cc: linux-media@vger.kernel.org
+> >> > Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
+> >> > Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+> >> > ---
+> >> >  drivers/media/usb/uvc/uvc_v4l2.c |    7 +++++--
+> >> >  1 file changed, 5 insertions(+), 2 deletions(-)
+> >> >
+> >> > diff --git a/drivers/media/usb/uvc/uvc_v4l2.c b/drivers/media/usb/uvc/uvc_v4l2.c
+> >> > index 3e7e283a44a8..7442626dc20e 100644
+> >> > --- a/drivers/media/usb/uvc/uvc_v4l2.c
+> >> > +++ b/drivers/media/usb/uvc/uvc_v4l2.c
+> >> > @@ -22,6 +22,7 @@
+> >> >  #include <linux/mm.h>
+> >> >  #include <linux/wait.h>
+> >> >  #include <linux/atomic.h>
+> >> > +#include <linux/compiler.h>
+> >> >
+> >> >  #include <media/v4l2-common.h>
+> >> >  #include <media/v4l2-ctrls.h>
+> >> > @@ -810,6 +811,7 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
+> >> >     struct uvc_entity *iterm = NULL;
+> >> >     u32 index = input->index;
+> >> >     int pin = 0;
+> >> > +   __u8 *elem;
+> >> >
+> >> >     if (selector == NULL ||
+> >> >         (chain->dev->quirks & UVC_QUIRK_IGNORE_SELECTOR_UNIT)) {
+> >> > @@ -820,8 +822,9 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
+> >> >                             break;
+> >> >             }
+> >> >             pin = iterm->id;
+> >> > -   } else if (index < selector->bNrInPins) {
+> >> > -           pin = selector->baSourceID[index];
+> >> > +   } else if ((elem = nospec_array_ptr(selector->baSourceID, index,
+> >> > +                                   selector->bNrInPins))) {
+> >> > +           pin = *elem;
+> >>
+> >> I dug through this before, and I couldn't find where index came from
+> >> userspace, I think seeing the coverity rule would be nice.
+> >
+> > Ok, I take it back, this looks correct.  Ugh, the v4l ioctl api is
+> > crazy complex (rightfully so), it's amazing that coverity could navigate
+> > that whole thing :)
+> >
+> > While I'm all for fixing this type of thing, I feel like we need to do
+> > something "else" for this as playing whack-a-mole for this pattern is
+> > going to be a never-ending battle for all drivers for forever.  Either
+> > we need some way to mark this data path to make it easy for tools like
+> > sparse to flag easily, or we need to catch the issue in the driver
+> > subsystems, which unfortunatly, would harm the drivers that don't have
+> > this type of issue (like here.)
+> >
+> > I'm guessing that other operating systems, which don't have the luxury
+> > of auditing all of their drivers are going for the "big hammer in the
+> > subsystem" type of fix, right?
+> >
+> > I don't have a good answer for this, but if there was some better way to
+> > rewrite these types of patterns to just prevent the need for the
+> > nospec_array_ptr() type thing, that might be the best overall for
+> > everyone.  Much like ebpf did with their changes.  That way a simple
+> > coccinelle rule would be able to catch the pattern and rewrite it.
+> >
+> > Or am I just dreaming?
 > 
-> we clearly disagree here. Both intel and arm patches proposed
-> to add lfence in bpf_map_lookup() which is the hottest function
-> we have and we do run it at 40+Gbps speeds where every nanosecond
-> counts, so no, lfence is not a solution.
+> At least on the coccinelle front you're dreaming. Julia already took a
+> look and said:
+> 
+> "I don't think Coccinelle would be good for doing this (ie
+> implementing taint analysis) because the dataflow is too complicated."
 
-Please help here by testing the patch series and reporting numbers
-before, with the fix, and with your proposal. That's the best way to
-catch their attention and to get your proposal considered as a viable
-alternative (or as a partial one for certain environments). I did the
-same when I believed it could be sufficient to add noise to RDTSC and
-found it totally inefficient after testing. But it's better for
-everyone that research and testing is done rather than criticizing the
-proposed fixes (which is not fair to the people who work hard on them
-for everyone else).
+Sorry for the confusion, no, I don't mean the "taint tracking", I mean
+the generic pattern of "speculative out of bounds access" that we are
+fixing here.
 
-Cheers,
-Willy
+Yes, as you mentioned before, there are tons of false-positives in the
+tree, as to find the real problems you have to show that userspace
+controls the access index.  But if we have a generic pattern that can
+rewrite that type of logic into one where it does not matter at all
+(i.e. like the ebpf proposed changes), then it would not be an issue if
+they are false or not, we just rewrite them all to be safe.
+
+We need to find some way not only to fix these issues now (like you are
+doing with this series), but to prevent them from every coming back into
+the codebase again.  It's that second part that we need to keep in the
+back of our minds here, while doing the first portion of this work.
+
+> Perhaps the Coverity instance Dave mentioned at Ksummit 2012 has a
+> role to play here?
+
+We have a coverity instance that all kernel developers have access to
+(just sign up and we grant it.)  We have at least one person working
+full time on fixing up errors that this instance reports.  So if we
+could get those rules added (which is why I asked for them), it would be
+a great first line of defense to prevent the "adding new problems" issue
+from happening right now for the 4.16-rc1 merge window.
+
+thanks,
+
+greg k-h
