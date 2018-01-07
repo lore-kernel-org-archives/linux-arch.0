@@ -1,69 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f42.google.com ([209.85.218.42]:41974 "EHLO
-        mail-oi0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754529AbeAGThf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jan 2018 14:37:35 -0500
-Received: by mail-oi0-f42.google.com with SMTP id n81so2371222oig.8
-        for <linux-arch@vger.kernel.org>; Sun, 07 Jan 2018 11:37:34 -0800 (PST)
+Received: from mail-io0-f181.google.com ([209.85.223.181]:40589 "EHLO
+        mail-io0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754497AbeAGURM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jan 2018 15:17:12 -0500
 MIME-Version: 1.0
-In-Reply-To: <20180107090918.GA29329@kroah.com>
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520103240.32271.14706852449205864676.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180106090907.GG4380@kroah.com> <20180106094026.GA11525@kroah.com>
- <CAPcyv4je-agqvmNSJf7v-1VBOrfhOvcs_qASNPJiBzgTt70dPA@mail.gmail.com> <20180107090918.GA29329@kroah.com>
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Sun, 7 Jan 2018 11:37:33 -0800
-Message-ID: <CAPcyv4gzbB-xESmmmpQ9+rt0swA+5y5pEOVNOYvroYQaP1kCfQ@mail.gmail.com>
-Subject: Re: [PATCH 07/18] [media] uvcvideo: prevent bounds-check bypass via
- speculative execution
+In-Reply-To: <20180107201211.GA9996@1wt.eu>
+References: <20180106183859.1ad9ae37@alans-desktop> <20180106185134.dzn2en4vw2hj3p6h@ast-mbp>
+ <20180106195551.3207f75d@alans-desktop> <20180106200912.zhzdt4qmfrojeeqe@ast-mbp>
+ <20180106202213.23e553fb@alans-desktop> <20180106211729.cp5oet3at3hyce4o@ast-mbp>
+ <20180106230507.3547c9a0@alans-desktop> <20180107033812.awq3vz4gdkps7tix@ast-mbp>
+ <20180107063356.GA9425@1wt.eu> <CA+55aFzqb-p_Ng2nsXvFsibtNC2rH5fwrefwnwA3TTFVtzM3FA@mail.gmail.com>
+ <20180107201211.GA9996@1wt.eu>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sun, 7 Jan 2018 12:17:11 -0800
+Message-ID: <CA+55aFwYEr-x3teixCh5QtyMzXZKdNUkoF4xiw+1zg08PSsvpw@mail.gmail.com>
+Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Alan Cox <alan@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, "Linux-media@vger.kernel.org" <linux-media@vger.kernel.org>, dsj@fb.com
-Message-ID: <20180107193733.aNRGO2xXjMPKfGmupjf9VVb1PD7ft5byk_TYDXSC2eI@z>
+To: Willy Tarreau <w@1wt.eu>
+Cc: Alexei Starovoitov <alexei.starovoitov@gmail.com>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20180107201711.OZL5PJtqgtOrqoGLTidV5qTGLB9j4oW2iTk4E4x8jRs@z>
 
-On Sun, Jan 7, 2018 at 1:09 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
-[..]
-> Sorry for the confusion, no, I don't mean the "taint tracking", I mean
-> the generic pattern of "speculative out of bounds access" that we are
-> fixing here.
+On Sun, Jan 7, 2018 at 12:12 PM, Willy Tarreau <w@1wt.eu> wrote:
 >
-> Yes, as you mentioned before, there are tons of false-positives in the
-> tree, as to find the real problems you have to show that userspace
-> controls the access index.  But if we have a generic pattern that can
-> rewrite that type of logic into one where it does not matter at all
-> (i.e. like the ebpf proposed changes), then it would not be an issue if
-> they are false or not, we just rewrite them all to be safe.
->
-> We need to find some way not only to fix these issues now (like you are
-> doing with this series), but to prevent them from every coming back into
-> the codebase again.  It's that second part that we need to keep in the
-> back of our minds here, while doing the first portion of this work.
+> Linus, no need to explain that to me, I'm precisely trying to see how
+> to disable PTI for a specific process because I face up to 45% loss in
+> certain circumstances, making it a no-go. But while a few of us have
+> very specific workloads emphasizing this impact, others have very
+> different ones and will not notice. For example my laptop did boot
+> pretty fine and I didn't notice anything until I fire a network
+> benchmark.
 
-I understand the goal, but I'm not sure any of our current annotation
-mechanisms are suitable. We have:
+Sure, most people have hardware where the bottleneck is entirely
+elsewhere (slow network, rotating disk, whatever).
 
-    __attribute__((noderef, address_space(x)))
+But this whole "normal people won't notice" is dangerous thinking.
+They may well notice very much, we simply don't know what they are
+doing.
 
-...for the '__user' annotation and other pointers that must not be
-de-referenced without a specific accessor. We also have:
+Quite honesty, it's equally correct to say "normal people won't be
+affected by the security issue in the first place".
 
-    __attribute__((bitwise))
+That laptop that you didn't have any issues with? Likely it never had
+an exploit running on it either!
 
-...for values that should not be consumed directly without a specific
-conversion like endian swapping.
+So the whole "normal people" argument is pure and utter garbage. It's
+wrong. It's pure shit when it comes to performance, but it's also pure
+shit when it comes to the security issue.
 
-The problem is that we need to see if a value derived from a userspace
-controlled input is used to trigger a chain of dependent reads. As far
-as I can see the annotation would need to be guided by taint analysis
-to be useful, at which point we can just "annotate" the problem spot
-with nospec_array_ptr(). Otherwise it seems the scope of a
-"__nospec_array_index" annotation would have a low signal to noise
-ratio.
+Don't use it.
 
-Stopping speculation past a uacess_begin() boundary appears to handle
-a wide swath of potential problems, and the rest likely needs taint
-analysis, at least for now.
+We need to fix the security problem, but we need to do it *without*
+these braindead arguments that performance is somehow secondary.
 
-All that to say, yes, we need better tooling and infrastructure going forward.
+               Linus
