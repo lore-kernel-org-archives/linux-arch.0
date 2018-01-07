@@ -1,86 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:47660 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754494AbeAGScV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jan 2018 13:32:21 -0500
-Date: Sun, 7 Jan 2018 19:31:41 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed
- access_ok
-In-Reply-To: <1515345560.3075.7.camel@HansenPartnership.com>
-Message-ID: <alpine.DEB.2.20.1801071925090.2094@nanos>
-References: <20180106181331.mmrqwwbu2jcjj2si@ast-mbp>  <20180106183859.1ad9ae37@alans-desktop> <20180106204229.GD9075@1wt.eu>  <20180106.203654.731754766847198456.davem@davemloft.net> <1515345560.3075.7.camel@HansenPartnership.com>
+Received: from mail-oi0-f42.google.com ([209.85.218.42]:41974 "EHLO
+        mail-oi0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754529AbeAGThf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jan 2018 14:37:35 -0500
+Received: by mail-oi0-f42.google.com with SMTP id n81so2371222oig.8
+        for <linux-arch@vger.kernel.org>; Sun, 07 Jan 2018 11:37:34 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: multipart/mixed; BOUNDARY="8323329-1529939690-1515349901=:2094"
+In-Reply-To: <20180107090918.GA29329@kroah.com>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151520103240.32271.14706852449205864676.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180106090907.GG4380@kroah.com> <20180106094026.GA11525@kroah.com>
+ <CAPcyv4je-agqvmNSJf7v-1VBOrfhOvcs_qASNPJiBzgTt70dPA@mail.gmail.com> <20180107090918.GA29329@kroah.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Sun, 7 Jan 2018 11:37:33 -0800
+Message-ID: <CAPcyv4gzbB-xESmmmpQ9+rt0swA+5y5pEOVNOYvroYQaP1kCfQ@mail.gmail.com>
+Subject: Re: [PATCH 07/18] [media] uvcvideo: prevent bounds-check bypass via
+ speculative execution
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: David Miller <davem@davemloft.net>, w@1wt.eu, gnomes@lxorguk.ukuu.org.uk, alexei.starovoitov@gmail.com, torvalds@linux-foundation.org, dan.j.williams@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ak@linux.intel.com, arnd@arndb.de, gregkh@linuxfoundation.org, peterz@infradead.org, netdev@vger.kernel.org, mingo@redhat.com, hpa@zytor.com
-Message-ID: <20180107183141.dSm3p_0m5f9paWMl-1me1AKyB9JbVUcNUGbA0wNKSyI@z>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Alan Cox <alan@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, "Linux-media@vger.kernel.org" <linux-media@vger.kernel.org>, dsj@fb.com
+Message-ID: <20180107193733.aNRGO2xXjMPKfGmupjf9VVb1PD7ft5byk_TYDXSC2eI@z>
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+On Sun, Jan 7, 2018 at 1:09 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
+[..]
+> Sorry for the confusion, no, I don't mean the "taint tracking", I mean
+> the generic pattern of "speculative out of bounds access" that we are
+> fixing here.
+>
+> Yes, as you mentioned before, there are tons of false-positives in the
+> tree, as to find the real problems you have to show that userspace
+> controls the access index.  But if we have a generic pattern that can
+> rewrite that type of logic into one where it does not matter at all
+> (i.e. like the ebpf proposed changes), then it would not be an issue if
+> they are false or not, we just rewrite them all to be safe.
+>
+> We need to find some way not only to fix these issues now (like you are
+> doing with this series), but to prevent them from every coming back into
+> the codebase again.  It's that second part that we need to keep in the
+> back of our minds here, while doing the first portion of this work.
 
---8323329-1529939690-1515349901=:2094
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+I understand the goal, but I'm not sure any of our current annotation
+mechanisms are suitable. We have:
 
-On Sun, 7 Jan 2018, James Bottomley wrote:
+    __attribute__((noderef, address_space(x)))
 
-> On Sat, 2018-01-06 at 20:36 -0500, David Miller wrote:
-> > From: Willy Tarreau <w@1wt.eu>
-> > Date: Sat, 6 Jan 2018 21:42:29 +0100
-> > 
-> > > On Sat, Jan 06, 2018 at 06:38:59PM +0000, Alan Cox wrote:
-> > >> Normally people who propose security fixes don't have to argue
-> > about the
-> > >> fact they added 30 clocks to avoid your box being 0wned.
-> > > 
-> > > In fact it depends, because if a fix makes the system unusable for
-> > its
-> > > initial purpose, this fix will simply not be deployed at all, which
-> > is
-> > > the worst that can happen.
-> > 
-> > +1
-> > 
-> > I completely agree with Willy and Alexei.
-> > 
-> > And the scale isn't even accurate, we're talking about at least
-> > hundreds upon hundreds of clocks, not 30, if we add an operation
-> > whose side effect is to wait for all pending loads to complete.  So
-> > yeah this is going to be heavily scrutinized.
-> 
-> Plus this is the standard kernel code review MO: we've never blindly
-> accepted code just because *security* (otherwise we'd have grsec in by
-> now).  We use the pushback to get better and more performant code.
->  What often happens is it turns out that the "either security or
-> performance" position was a false dichotomy and there is a way of
-> fixing stuff that's acceptable (although not usually perfect) for
-> everyone.  I'm not saying this always happens, but it is reasonable to
-> let the iterative pushback see if we can get to better code in this
-> case rather than trying to cut it of with the "because *security*"
-> argument.
+...for the '__user' annotation and other pointers that must not be
+de-referenced without a specific accessor. We also have:
 
-In principle I agree, though there are a few things to consider:
+    __attribute__((bitwise))
 
-1) We have not the time to discuss that for the next 6 month
+...for values that should not be consumed directly without a specific
+conversion like endian swapping.
 
-2) Alexei's analyis is purely based on the public information of the google
-   zero folks. If it would be complete and the only attack vector all fine.
+The problem is that we need to see if a value derived from a userspace
+controlled input is used to trigger a chain of dependent reads. As far
+as I can see the annotation would need to be guided by taint analysis
+to be useful, at which point we can just "annotate" the problem spot
+with nospec_array_ptr(). Otherwise it seems the scope of a
+"__nospec_array_index" annotation would have a low signal to noise
+ratio.
 
-   If not and I doubt it is, we're going to regret this decision faster
-   than we made it and this is not the kind of play field where we can
-   afford that.
+Stopping speculation past a uacess_begin() boundary appears to handle
+a wide swath of potential problems, and the rest likely needs taint
+analysis, at least for now.
 
-The whole 'we know better and performance is key' attitude is what led to
-this disaster in the first place. We should finaly start to learn.
-
-Can we please stop that and live with the extra cycles for a few month up
-to the point where we get more informed answers to all these questions?
-
-Thanks,
-
-	tglx
-
---8323329-1529939690-1515349901=:2094--
+All that to say, yes, we need better tooling and infrastructure going forward.
