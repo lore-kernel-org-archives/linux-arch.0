@@ -1,161 +1,91 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH v5 00/30] ARM Scalable Vector Extension (SVE)
-Date: Mon, 8 Jan 2018 17:49:05 +0300
-Message-ID: <20180108144905.qu5qbmaaglcgwvwq@yury-thinkpad>
-References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v5 1/3] clocksource/drivers/atcpit100: Add andestech
+ atcpit100 timer
+Date: Mon, 8 Jan 2018 16:26:30 +0100
+Message-ID: <CAK8P3a2NVj_M5eHT92fJYNBG3x9juVnHW6uV32p3-ytfqjARxg@mail.gmail.com>
+References: <1513057621-19084-1-git-send-email-rickchen36@gmail.com>
+ <1513057621-19084-2-git-send-email-rickchen36@gmail.com> <bb7383ba-bb8e-3cbd-4ce0-faaefa8ed114@linaro.org>
+ <CAEbi=3cEEtLQRiv-cyUwEmcBNOC2Sz7AhzZkpznQWYb9VUojug@mail.gmail.com>
+ <ff51fff7-e963-f9fd-10d6-9b90a64d7aac@linaro.org> <CAEbi=3c4yAx7Tejz8aPw3-3vj89t8cg-zNEY-vbF7KaMo8OM0Q@mail.gmail.com>
+ <efdb249a-8dc0-e076-a1db-20cecdbf4c13@linaro.org> <CAEbi=3frQYZHb0yiMvNk_JUiUCy6ca0tbrsM_pt49LtkMy47mw@mail.gmail.com>
+ <1e75edb3-8f7b-796c-6871-1612b027050e@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
-Content-Disposition: inline
-In-Reply-To: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
-List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
-List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
-List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
-List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
-List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
- <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
-Errors-To: kvmarm-bounces@lists.cs.columbia.edu
-Sender: kvmarm-bounces@lists.cs.columbia.edu
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: Okamoto Takayuki <tokamoto@jp.fujitsu.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Alan Hayward <alan.hayward@arm.com>, "H . J . Lu" <hjl.tools@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Dmitry Safonov <dsafonov@virtuozzo.com>, Oleg Nesterov <oleg@redhat.com>, linux-api@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f65.google.com ([209.85.218.65]:44216 "EHLO
+        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933081AbeAHP0c (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jan 2018 10:26:32 -0500
+In-Reply-To: <1e75edb3-8f7b-796c-6871-1612b027050e@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Rick Chen <rickchen36@gmail.com>, Rick Chen <rick@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-serial@vger.kernel.org
 
-On Tue, Oct 31, 2017 at 03:50:52PM +0000, Dave Martin wrote:
-> This series implements Linux kernel support for the ARM Scalable Vector
-> Extension (SVE). [1]  It supersedes the previous v3: see [3] for link
-> and full cover letter.
-> 
-> This is a minor update to v4, but does contain a couple of important
-> fixes.
-> 
-> As in previous postings, the last two patches (here 29-30) are still
-> RFC and not proposed for merging at this time.
-> 
-> The patches apply on
-> git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git
-> for-next/core
-> d7b1d22d3821 ("arm64: uapi: Remove PSR_Q_BIT")
-> 
-> To reduce spam, some people may not been copied on the entire series.
-> For those who did not receive the whole series, it can be found in the
-> linux-arm-kernel archive. [2]
-> 
-> See the individual patches for details of changes.
-> 
-> For reviewer convenience, a git tree is available. [4]
-> 
-> Since there are some changes against already-reviewed patches, I've also
-> pushed an unsquashed fixes tree for people to take a look at if it
-> helps. [5]
-> 
-> 
-> Summary:
-> 
->  * "regset: Add support for dynamically sized regsets" fixed to avoid
->    x86 breakage;
-> 
->  * one trival arm64 patch added to add asmlinkage annotations, and a
->    corresponding minor change to the Core task context handling patch;
-> 
->  * one new arm64 fix ("signal: Verify extra data is user-readable in
->    sys_rt_sigreturn") to ensure that access_ok() checks are done for the
->    whole extended signal frame, not just the base frame;
-> 
->  * one minor fix to the SVE sigreturn code to return consistent
->    intermediate error values (semantic correctness, non-functional
->    change);
-> 
->  * one minor change to call __copy_from_user() instead of
->    copy_from_user() in a situation where there is already an access_ok()
->    check;
-> 
-> 
-> [1] ARM Scalable Vector Extension
-> https://community.arm.com/groups/processors/blog/2016/08/22/technology-update-the-scalable-vector-extension-sve-for-the-armv8-a-architecture
-> 
-> [2] linux-arm-kernel October 2017 Archives by thread
-> http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/thread.html
-> 
-> [3] [PATCH v4 00/28] ARM Scalable Vector Extension (SVE)
-> http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/539414.html
-> 
-> [4] For review and testing only -- **do not pull**
->     (This branch has review changelogs which should not form part of
->     the final commits.)
-> 
->     v5 series (this posting)
-> 
->     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v5
->     git://linux-arm.org/linux-dm.git sve/v5
-> 
-> [5] For review and testing only -- **do not pull**
->     (This branch has review changelogs which should not form part of
->     the final commits.)
-> 
->     v4 with unsquashed fixes
-> 
->     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v4%2Bfixes
->     git://linux-arm.org/linux-dm.git sve/v4+fixes
+On Fri, Jan 5, 2018 at 10:31 AM, Daniel Lezcano
+<daniel.lezcano@linaro.org> wrote:
+>>> No. Can't you add in arch/ndis32/Kconfig ?
+>>>
+>>> +select TIMER_ATCPIT100
+>>>
+>>> Like:
+>>>
+>>> https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/arm64/Kconfig#n50
+>>
+>> IMHO, it might be a little bit wierd if we select TIMER_ATCPIT100 in
+>> arch/nds32/Kconfig because it is part of SoC instead of CPU.
+>> If we change to another SoC with another timer, we need to select
+>> another TIMER in arch/nds32/Kconfig and delete TIMER_ATCPIT100.
+>> It seems more flexible to be selected in driver layer.
+>>
+>> It seems to be the timer is part of the arch to be selected in arch's Kconfig.
+>> arch/arc/Kconfig:       select ARC_TIMERS
+>> arch/arc/Kconfig:       select ARC_TIMERS_64BIT
+>> arch/arm/Kconfig:       select ARM_ARCH_TIMER
+>> arch/arm64/Kconfig:     select ARM_ARCH_TIMER
+>> arch/blackfin/Kconfig:  select BFIN_GPTIMERS
+>
+> No, the timer must be selected from the arch/soc's or whatever Kconfig.
+> Not in the clocksource's Kconfig.
+>
+> eg.
+>
+> on ARM:
+>
+> arch/arm/mach-vt8500/Kconfig:   select VT8500_TIMER
+> arch/arm/mach-bcm/Kconfig:      select BCM_KONA_TIMER
+> arch/arm/mach-actions/Kconfig:  select OWL_TIMER
+> arch/arm/mach-digicolor/Kconfig:        select DIGICOLOR_TIMER
+>
+> etc ...
+>
+> on ARM64:
+>
+> arch/arm64/Kconfig.platforms:   select OWL_TIMER
+> arch/arm64/Kconfig.platforms:       select ARM_TIMER_SP804
+> arch/arm64/Kconfig.platforms:       select MTK_TIMER
+>
+> etc ...
 
-Hi Dave,
+I'd actually prefer to not do it for ARM either: Most other subsystems
+don't do that, and I don't see a strong reason why clocksource should
+be special here.
 
-During rebase of my ILP32 series on 4.15 kernel I found that 
-ILP32 needs to be enabled with SVE support, like you do for 
-LP64 in this series.
+Selecting 'TIMER_OF' from the individual drivers that need it (as you
+suggest) makes sense, but I think for ARM we treat SoC families
+as a bit too special, in the end they are for the most part collections
+of individual hardware blocks that may or may not be present on
+some chip.
 
-I did all rebase work on this draft branch:
-https://github.com/norov/linux/tree/ilp32-4.15-rc7
+In case of risc-v and nds32, I expect that the separation will be
+even less visibile in the hardware, as a typical model here is
+that one company designs SoCs for multiple customers that each
+have different requirements. Some of them may have one
+timer and some have another timer or multiple timers, but there
+is no strict separation between SoC families as I understand.
+Here we'd be better off not having a per-SoC Kconfig option at
+all, just a generic defconfig that enables all the drivers that might
+be used, and integrators can have a defconfig file that only
+enables the stuff they actually use on a given chip.
 
-But any ILP32 program I tried crash, and the message in dmesg looks
-like this:
-[   39.510667] CPU: 0 PID: 1857 Comm: mytime Not tainted 4.15.0-rc7-00028-g45e0659df4d9 #41
-[   39.510712] Hardware name: linux,dummy-virt (DT)
-[   39.510829] pstate: 00000000 (nzcv daif -PAN -UAO)
-[   39.511101] pc : 0x33488e28
-[   39.511125] lr : 0x33488e28
-[   39.511138] sp : 00000000fffef670
-[   39.511158] x29: 000000005a536c33 x28: 0000000000000000 
-[   39.511211] x27: 0000000000000000 x26: 0000000000000000 
-[   39.511235] x25: 0000000000000000 x24: 0000000000000000 
-[   39.511257] x23: 0000000000466000 x22: 0000000000000000 
-[   39.511278] x21: 0000000000000000 x20: 000000000047f2a8 
-[   39.511300] x19: 0000000000000000 x18: 0000000000000001 
-[   39.511321] x17: 0000000000001000 x16: 0000000000001030 
-[   39.511342] x15: 0000000000554e47 x14: 0000000000000001 
-[   39.511364] x13: 0000000000000004 x12: 000000000000003c 
-[   39.511385] x11: 0000100000000000 x10: 0800000000000000 
-[   39.511406] x9 : 0fffffffffffffff x8 : 000000000000007c 
-[   39.511427] x7 : 0000000000000077 x6 : 0000000000000041 
-[   39.511448] x5 : 0000000000000411 x4 : 00000000fbad2488 
-[   39.511468] x3 : 0000000000000001 x2 : 0000000000497950 
-[   39.511489] x1 : 0000000000497550 x0 : 0000000000000001
-
-(PC, LR and other registers may differ depending on test)
-
-I'm pretty sure that this is SVE-related issue because if I disable
-ARM64_SVE in config, everything becomes working.
-
-I didn't get deep enough into this yet, and most probably there's
-some stupid reason for crashing apps on my side, but in mail list
-I found some sve-related patches that I cannot apply both on 4.15-rc
-and next-20180108. And according to patch names, it is important
-fixes, like this one:
-https://www.spinics.net/lists/arm-kernel/msg619548.html
-
-ILP32 code may spit some kernel issues from time to time, so there's
-minor chance that the problem is not in ILP32 itself - that's why I
-write this email to you.
-
-What I want to ask you, do you have some branch with the most recent
-SVE code that includes all fixes? Better if it would be 4.15-based
-series, because we don't support ILP32 on next-* kernels now.
-
-Also, if you have few minutes to take look at my series, I would
-kindly ask you do this, because I still think that this is my
-misunderstanding of how SVE should work for ILP32, and you as author
-may just catch the bug at a glance.
-
-Thanks,
-Yury
+      Arnd
