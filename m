@@ -1,50 +1,63 @@
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
-Date: Mon, 8 Jan 2018 12:33:19 +0000
-Message-ID: <f1fd4ae6fe284d9489ae5e2ceb344403@AcuMS.aculab.com>
-References: <20180106123242.77f4d860@alans-desktop>
-        <20180106181331.mmrqwwbu2jcjj2si@ast-mbp>
-        <20180106183859.1ad9ae37@alans-desktop>
-        <20180106185134.dzn2en4vw2hj3p6h@ast-mbp>
-        <20180106195551.3207f75d@alans-desktop>
-        <20180106200912.zhzdt4qmfrojeeqe@ast-mbp>
-        <20180106202213.23e553fb@alans-desktop>
-        <20180106211729.cp5oet3at3hyce4o@ast-mbp>
-        <20180106230507.3547c9a0@alans-desktop>
-        <20180107033812.awq3vz4gdkps7tix@ast-mbp>       <20180107063356.GA9425@1wt.eu>
-        <CA+55aFzqb-p_Ng2nsXvFsibtNC2rH5fwrefwnwA3TTFVtzM3FA@mail.gmail.com>
-        <138620e379794e98b606ed675da6d04d@AcuMS.aculab.com>
- <20180108121245.194360d4@alans-desktop>
+From: "Reshetova, Elena" <elena.reshetova@intel.com>
+Subject: RE: [RFCv2 4/4] bpf: inhibit speculated out-of-bounds pointers
+Date: Mon, 8 Jan 2018 12:59:25 +0000
+Message-ID: <2236FBA76BA1254E88B949DDB74E612B802D72C7@IRSMSX102.ger.corp.intel.com>
+References: <20180105145750.53294-1-mark.rutland@arm.com>
+ <20180105145750.53294-5-mark.rutland@arm.com>
+ <20180105170450.4trcy6qxr44nqglf@ast-mbp>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out4.electric.net ([192.162.216.195]:62307 "EHLO
-        smtp-out4.electric.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757044AbeAHMck (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jan 2018 07:32:40 -0500
-In-Reply-To: <20180108121245.194360d4@alans-desktop>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180105170450.4trcy6qxr44nqglf@ast-mbp>
 Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: 'Alan Cox' <gnomes@lxorguk.ukuu.org.uk>
-Cc: 'Linus Torvalds' <torvalds@linux-foundation.org>, Willy Tarreau <w@1wt.eu>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alexei Starovoitov <alexei.starovoitov@gmail.com>, Mark Rutland <mark.rutland@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Williams, Dan J" <dan.j.williams@intel.com>, "corbet@lwn.net" <corbet@lwn.net>, "alan@linux.intel.com" <alan@linux.intel.com>, "peterz@infradead.org" <peterz@infradead.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "tglx@linutronix.de" <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Alan Cox
-> Sent: 08 January 2018 12:13
-...
-> > Try over 35% slowdown....
-> > Given that AWS instance runs known code (user and kernel) why do we
-> > need to worry about any of these sideband attacks?
+> On Fri, Jan 05, 2018 at 02:57:50PM +0000, Mark Rutland wrote:
+> > Note: this patch is an *example* use of the nospec API. It is understood
+> > that this is incomplete, etc.
+> >
+> > Under speculation, CPUs may mis-predict branches in bounds checks. Thus,
+> > memory accesses under a bounds check may be speculated even if the
+> > bounds check fails, providing a primitive for building a side channel.
+> >
+> > The EBPF map code has a number of such bounds-checks accesses in
+> > map_lookup_elem implementations. This patch modifies these to use the
+> > nospec helpers to inhibit such side channels.
+> >
+> > The JITted lookup_elem implementations remain potentially vulnerable,
+> > and are disabled (with JITted code falling back to the C
+> > implementations).
+> >
+> > Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > Cc: Dan Williams <dan.j.williams@intel.com>
+> > Cc: Peter Zijlstra <peterz@infradead.org>
+> > ---
+> >  kernel/bpf/arraymap.c | 20 +++++++++++++-------
+> >  kernel/bpf/cpumap.c   |  5 ++---
+> >  kernel/bpf/devmap.c   |  3 ++-
+> >  kernel/bpf/sockmap.c  |  3 ++-
+> >  4 files changed, 19 insertions(+), 12 deletions(-)
 > 
-> You may not need to. Amazon themselves obviously need to worry that no
-> other VM steals your data (or vice versa) but above that (and with raw
-> hardware appliances) if you control all the code you run then the nopti
-> and other disables may be useful (At the end of the day as with anything
-> else you do your own risk assessment).
+> Mark, did you see my email with this patch yesterday ?
+> https://patchwork.ozlabs.org/patch/855911/
+> 
+> btw your patch does not fix the variant 1 exploit.
+> 
+> Also all of the pre-embargo patches from Elena that add lfence
+> in the bpf interpreter and x64 JIT also do not fix it.
+> 
+> The exploit works via bpf_tail_call and not via map_lookup.
 
-I believe AWS allows VM kernels to load user-written device drivers
-so the security of other VMs cannot rely on whether a VM is booted
-with PTI=yes or PTI=no.
+Could you please clarify this part? The actual jump
+to the out-of-bounds index is indeed made by bpf_tail_call, 
+but the "speculation" bypassing step happens when it does map_lookup_elem
+on the out-of-bound index.  
 
-	David
+
+Best Regards,
+Elena.
