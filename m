@@ -1,35 +1,38 @@
-From: Willy Tarreau <w@1wt.eu>
-Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
-Date: Sun, 7 Jan 2018 23:15:43 +0100
-Message-ID: <20180107221543.GC9996@1wt.eu>
-References: <20180106195551.3207f75d@alans-desktop>
- <20180106200912.zhzdt4qmfrojeeqe@ast-mbp>
- <20180106202213.23e553fb@alans-desktop>
- <20180106211729.cp5oet3at3hyce4o@ast-mbp>
- <20180106230507.3547c9a0@alans-desktop>
- <20180107033812.awq3vz4gdkps7tix@ast-mbp>
- <20180107063356.GA9425@1wt.eu>
- <CA+55aFzqb-p_Ng2nsXvFsibtNC2rH5fwrefwnwA3TTFVtzM3FA@mail.gmail.com>
- <20180107201211.GA9996@1wt.eu>
- <CA+55aFwYEr-x3teixCh5QtyMzXZKdNUkoF4xiw+1zg08PSsvpw@mail.gmail.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed
+ access_ok
+Date: Sun, 07 Jan 2018 21:04:47 -0500 (EST)
+Message-ID: <20180107.210447.857032573629357172.davem@davemloft.net>
+References: <20180106.203654.731754766847198456.davem@davemloft.net>
+        <1515345560.3075.7.camel@HansenPartnership.com>
+        <alpine.DEB.2.20.1801071925090.2094@nanos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFwYEr-x3teixCh5QtyMzXZKdNUkoF4xiw+1zg08PSsvpw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Alexei Starovoitov <alexei.starovoitov@gmail.com>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([184.105.139.130]:35142 "EHLO
+        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754870AbeAHCEv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jan 2018 21:04:51 -0500
+In-Reply-To: <alpine.DEB.2.20.1801071925090.2094@nanos>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: tglx@linutronix.de
+Cc: James.Bottomley@HansenPartnership.com, w@1wt.eu, gnomes@lxorguk.ukuu.org.uk, alexei.starovoitov@gmail.com, torvalds@linux-foundation.org, dan.j.williams@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ak@linux.intel.com, arnd@arndb.de, gregkh@linuxfoundation.org, peterz@infradead.org, netdev@vger.kernel.org, mingo@redhat.com, hpa@zytor.com
 
-On Sun, Jan 07, 2018 at 12:17:11PM -0800, Linus Torvalds wrote:
-> We need to fix the security problem, but we need to do it *without*
-> these braindead arguments that performance is somehow secondary.
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Sun, 7 Jan 2018 19:31:41 +0100 (CET)
 
-OK OK. At least we should have security by default and let people trade
-it against performance if they want and understand the risk. People
-never know when they're secure enough (security doesn't measure) but
-they know fairly well when they're not performant enough to take action
-(most often changing the machine).
+> 2) Alexei's analyis is purely based on the public information of the google
+>    zero folks. If it would be complete and the only attack vector all fine.
+> 
+>    If not and I doubt it is, we're going to regret this decision faster
+>    than we made it and this is not the kind of play field where we can
+>    afford that.
 
-Willy
+Please state this more clearly.
+
+Do you know about other attack vectors and just are not allowed to
+talk about them?
+
+Or is this, ironically, speculation?
