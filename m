@@ -1,45 +1,61 @@
 From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
-Date: Mon, 8 Jan 2018 19:21:38 +0100
-Message-ID: <20180108182138.kzdwkdwmhc3564s2@gmail.com>
-References: <20180106200912.zhzdt4qmfrojeeqe@ast-mbp>
- <20180106202213.23e553fb@alans-desktop>
- <20180106211729.cp5oet3at3hyce4o@ast-mbp>
- <20180106230507.3547c9a0@alans-desktop>
- <20180107033812.awq3vz4gdkps7tix@ast-mbp>
- <20180107063356.GA9425@1wt.eu>
- <CA+55aFzqb-p_Ng2nsXvFsibtNC2rH5fwrefwnwA3TTFVtzM3FA@mail.gmail.com>
- <CAPcyv4gm0tAbLHHyMvsbghV+SpnbaTCmJd6N8imwUnRZ9k2xUA@mail.gmail.com>
- <20180108022409.q2riz6wzbcm3dkx6@ast-mbp>
- <20180108095154.GD3040@hirez.programming.kicks-ass.net>
+Subject: Re: [PATCH 00/18] prevent bounds-check bypass via speculative
+ execution
+Date: Mon, 8 Jan 2018 19:33:37 +0100
+Message-ID: <20180108183337.iq7xjxf2dkbkzig6@gmail.com>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <87y3lbpvzp.fsf@xmission.com>
+ <CAPcyv4hVisGeXbTH985Hb6dkYKA9Sr8wwZHudNF-CtH0=ADFug@mail.gmail.com>
+ <20180108100836.GF3040@hirez.programming.kicks-ass.net>
+ <20180108114342.3b2d99fb@alans-desktop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f193.google.com ([209.85.128.193]:43428 "EHLO
-        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754862AbeAHSVm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jan 2018 13:21:42 -0500
+Return-path: <netdev-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180108095154.GD3040@hirez.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Alexei Starovoitov <alexei.starovoitov@gmail.com>, Dan Williams <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Willy Tarreau <w@1wt.eu>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Network Development <netdev@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+In-Reply-To: <20180108114342.3b2d99fb@alans-desktop>
+Sender: netdev-owner@vger.kernel.org
+To: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
+Cc: Peter Zijlstra <peterz@infradead.org>, Dan Williams <dan.j.williams@intel.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexey
+List-Id: linux-arch.vger.kernel.org
 
 
-* Peter Zijlstra <peterz@infradead.org> wrote:
+* Alan Cox <gnomes@lxorguk.ukuu.org.uk> wrote:
 
-> On Sun, Jan 07, 2018 at 06:24:11PM -0800, Alexei Starovoitov wrote:
-> > How about:
-> > CONFIG_SPECTRE1_WORKAROUND_INDEX_MASK
-> > CONFIG_SPECTRE1_WORKAROUND_LOAD_FENCE
+> On Mon, 8 Jan 2018 11:08:36 +0100
+> Peter Zijlstra <peterz@infradead.org> wrote:
 > 
-> INSTRUCTION_FENCE if anything. LFENCE for Intel (and now also for AMD as
-> per 0592b0bce169) is a misnomer, IFENCE would be a better name for it.
+> > On Fri, Jan 05, 2018 at 10:30:16PM -0800, Dan Williams wrote:
+> > > On Fri, Jan 5, 2018 at 6:22 PM, Eric W. Biederman <ebiederm@xmission.com> wrote:  
+> > > > In at least one place (mpls) you are patching a fast path.  Compile out
+> > > > or don't load mpls by all means.  But it is not acceptable to change the
+> > > > fast path without even considering performance.  
+> > > 
+> > > Performance matters greatly, but I need help to identify a workload
+> > > that is representative for this fast path to see what, if any, impact
+> > > is incurred. Even better is a review that says "nope, 'index' is not
+> > > subject to arbitrary userspace control at this point, drop the patch."  
+> > 
+> > I think we're focussing a little too much on pure userspace. That is, we
+> > should be saying under the attackers control. Inbound network packets
+> > could equally be under the attackers control.
+> 
+> Inbound network packets don't come with a facility to read back and do
+> cache timimg. [...]
 
-Btw., we should probably propagate that naming to most places and only point it 
-out in comments/documentation that Intel/AMD calls this CPU functionality 'LFENCE' 
-for historic reasons and that the opcode got stolen for the Spectre fixes.
+But the reply packets can be measured on the sending side, and the total delay 
+timing would thus carry the timing information.
+
+Yes, a lot of noise gets added that way if we think 'packet goes through the 
+Internet' - but with gigabit local network access or even through localhost
+access a lot of noise can be removed as well.
+
+It's not as dangerous as a near instantaneous local attack, but 'needs a day of 
+runtime to brute-force through localhost or 10GigE' is still worrying in many 
+real-world security contexts.
+
+So I concur with Peter that we should generally consider making all of our 
+responses to external data (maybe with the exception of pigeon post messages) 
+Spectre-safe.
 
 Thanks,
 
