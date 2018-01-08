@@ -1,40 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wtarreau.pck.nerim.net ([62.212.114.60]:38777 "EHLO 1wt.eu"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754703AbeAGWW2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 7 Jan 2018 17:22:28 -0500
-Date: Sun, 7 Jan 2018 23:15:43 +0100
-From: Willy Tarreau <w@1wt.eu>
-Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
-Message-ID: <20180107221543.GC9996@1wt.eu>
-References: <20180106195551.3207f75d@alans-desktop>
- <20180106200912.zhzdt4qmfrojeeqe@ast-mbp>
- <20180106202213.23e553fb@alans-desktop>
- <20180106211729.cp5oet3at3hyce4o@ast-mbp>
- <20180106230507.3547c9a0@alans-desktop>
- <20180107033812.awq3vz4gdkps7tix@ast-mbp>
- <20180107063356.GA9425@1wt.eu>
- <CA+55aFzqb-p_Ng2nsXvFsibtNC2rH5fwrefwnwA3TTFVtzM3FA@mail.gmail.com>
- <20180107201211.GA9996@1wt.eu>
- <CA+55aFwYEr-x3teixCh5QtyMzXZKdNUkoF4xiw+1zg08PSsvpw@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+55aFwYEr-x3teixCh5QtyMzXZKdNUkoF4xiw+1zg08PSsvpw@mail.gmail.com>
+Received: from shards.monkeyblade.net ([184.105.139.130]:35410 "EHLO
+        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754888AbeAHCXu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jan 2018 21:23:50 -0500
+Date: Sun, 07 Jan 2018 21:23:47 -0500 (EST)
+Message-ID: <20180107.212347.315015145942081238.davem@davemloft.net>
+Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed
+ access_ok
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <alpine.DEB.2.20.1801072143370.2094@nanos>
+References: <20180107201211.GA9996@1wt.eu>
+        <CA+55aFwYEr-x3teixCh5QtyMzXZKdNUkoF4xiw+1zg08PSsvpw@mail.gmail.com>
+        <alpine.DEB.2.20.1801072143370.2094@nanos>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Alexei Starovoitov <alexei.starovoitov@gmail.com>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20180107221543.hycQ4z0aB-pS4vKb1ro0-VHOwxbG0CRIMedenlt50a0@z>
+To: tglx@linutronix.de
+Cc: torvalds@linux-foundation.org, w@1wt.eu, alexei.starovoitov@gmail.com, gnomes@lxorguk.ukuu.org.uk, dan.j.williams@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ak@linux.intel.com, arnd@arndb.de, gregkh@linuxfoundation.org, peterz@infradead.org, netdev@vger.kernel.org, mingo@redhat.com, hpa@zytor.com
+Message-ID: <20180108022347.cPpsep28SA0cLZYjhBc2Q9lxDkbn2bnBiN3PznXWHNQ@z>
 
-On Sun, Jan 07, 2018 at 12:17:11PM -0800, Linus Torvalds wrote:
-> We need to fix the security problem, but we need to do it *without*
-> these braindead arguments that performance is somehow secondary.
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Sun, 7 Jan 2018 21:56:39 +0100 (CET)
 
-OK OK. At least we should have security by default and let people trade
-it against performance if they want and understand the risk. People
-never know when they're secure enough (security doesn't measure) but
-they know fairly well when they're not performant enough to take action
-(most often changing the machine).
+> I surely agree, but we have gone the way of PTI without the ability of
+> exempting individual processes exactly for one reason:
+> 
+>   Lack of time
+> 
+> It can be done on top of the PTI implementation and it won't take ages.
+> 
+> For spectre_v1/2 we face the same problem simply because we got informed so
+> much ahead of time and we were all twiddling thumbs, enjoying our christmas
+> vacation and having a good time.
 
-Willy
+I just want to point out that this should be noted in history as a
+case where all of this controlled disclosure stuff seems to have made
+things worse rather than better.
+
+Why is there so much haste and paranoia if supposedly some group of
+people had all this extra time to think about and deal with this bug?
