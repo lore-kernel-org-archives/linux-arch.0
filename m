@@ -1,63 +1,161 @@
-From: "Reshetova, Elena" <elena.reshetova@intel.com>
-Subject: RE: [RFCv2 4/4] bpf: inhibit speculated out-of-bounds pointers
-Date: Mon, 8 Jan 2018 12:59:25 +0000
-Message-ID: <2236FBA76BA1254E88B949DDB74E612B802D72C7@IRSMSX102.ger.corp.intel.com>
-References: <20180105145750.53294-1-mark.rutland@arm.com>
- <20180105145750.53294-5-mark.rutland@arm.com>
- <20180105170450.4trcy6qxr44nqglf@ast-mbp>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH v5 00/30] ARM Scalable Vector Extension (SVE)
+Date: Mon, 8 Jan 2018 17:49:05 +0300
+Message-ID: <20180108144905.qu5qbmaaglcgwvwq@yury-thinkpad>
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180105170450.4trcy6qxr44nqglf@ast-mbp>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alexei Starovoitov <alexei.starovoitov@gmail.com>, Mark Rutland <mark.rutland@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Williams, Dan J" <dan.j.williams@intel.com>, "corbet@lwn.net" <corbet@lwn.net>, "alan@linux.intel.com" <alan@linux.intel.com>, "peterz@infradead.org" <peterz@infradead.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "tglx@linutronix.de" <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <kvmarm-bounces@lists.cs.columbia.edu>
+Content-Disposition: inline
+In-Reply-To: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+List-Unsubscribe: <https://lists.cs.columbia.edu/mailman/options/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=unsubscribe>
+List-Archive: <https://lists.cs.columbia.edu/pipermail/kvmarm>
+List-Post: <mailto:kvmarm@lists.cs.columbia.edu>
+List-Help: <mailto:kvmarm-request@lists.cs.columbia.edu?subject=help>
+List-Subscribe: <https://lists.cs.columbia.edu/mailman/listinfo/kvmarm>,
+ <mailto:kvmarm-request@lists.cs.columbia.edu?subject=subscribe>
+Errors-To: kvmarm-bounces@lists.cs.columbia.edu
+Sender: kvmarm-bounces@lists.cs.columbia.edu
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Okamoto Takayuki <tokamoto@jp.fujitsu.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Alan Hayward <alan.hayward@arm.com>, "H . J . Lu" <hjl.tools@gmail.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Dmitry Safonov <dsafonov@virtuozzo.com>, Oleg Nesterov <oleg@redhat.com>, linux-api@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-> On Fri, Jan 05, 2018 at 02:57:50PM +0000, Mark Rutland wrote:
-> > Note: this patch is an *example* use of the nospec API. It is understood
-> > that this is incomplete, etc.
-> >
-> > Under speculation, CPUs may mis-predict branches in bounds checks. Thus,
-> > memory accesses under a bounds check may be speculated even if the
-> > bounds check fails, providing a primitive for building a side channel.
-> >
-> > The EBPF map code has a number of such bounds-checks accesses in
-> > map_lookup_elem implementations. This patch modifies these to use the
-> > nospec helpers to inhibit such side channels.
-> >
-> > The JITted lookup_elem implementations remain potentially vulnerable,
-> > and are disabled (with JITted code falling back to the C
-> > implementations).
-> >
-> > Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> > Signed-off-by: Will Deacon <will.deacon@arm.com>
-> > Cc: Dan Williams <dan.j.williams@intel.com>
-> > Cc: Peter Zijlstra <peterz@infradead.org>
-> > ---
-> >  kernel/bpf/arraymap.c | 20 +++++++++++++-------
-> >  kernel/bpf/cpumap.c   |  5 ++---
-> >  kernel/bpf/devmap.c   |  3 ++-
-> >  kernel/bpf/sockmap.c  |  3 ++-
-> >  4 files changed, 19 insertions(+), 12 deletions(-)
+On Tue, Oct 31, 2017 at 03:50:52PM +0000, Dave Martin wrote:
+> This series implements Linux kernel support for the ARM Scalable Vector
+> Extension (SVE). [1]  It supersedes the previous v3: see [3] for link
+> and full cover letter.
 > 
-> Mark, did you see my email with this patch yesterday ?
-> https://patchwork.ozlabs.org/patch/855911/
+> This is a minor update to v4, but does contain a couple of important
+> fixes.
 > 
-> btw your patch does not fix the variant 1 exploit.
+> As in previous postings, the last two patches (here 29-30) are still
+> RFC and not proposed for merging at this time.
 > 
-> Also all of the pre-embargo patches from Elena that add lfence
-> in the bpf interpreter and x64 JIT also do not fix it.
+> The patches apply on
+> git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git
+> for-next/core
+> d7b1d22d3821 ("arm64: uapi: Remove PSR_Q_BIT")
 > 
-> The exploit works via bpf_tail_call and not via map_lookup.
+> To reduce spam, some people may not been copied on the entire series.
+> For those who did not receive the whole series, it can be found in the
+> linux-arm-kernel archive. [2]
+> 
+> See the individual patches for details of changes.
+> 
+> For reviewer convenience, a git tree is available. [4]
+> 
+> Since there are some changes against already-reviewed patches, I've also
+> pushed an unsquashed fixes tree for people to take a look at if it
+> helps. [5]
+> 
+> 
+> Summary:
+> 
+>  * "regset: Add support for dynamically sized regsets" fixed to avoid
+>    x86 breakage;
+> 
+>  * one trival arm64 patch added to add asmlinkage annotations, and a
+>    corresponding minor change to the Core task context handling patch;
+> 
+>  * one new arm64 fix ("signal: Verify extra data is user-readable in
+>    sys_rt_sigreturn") to ensure that access_ok() checks are done for the
+>    whole extended signal frame, not just the base frame;
+> 
+>  * one minor fix to the SVE sigreturn code to return consistent
+>    intermediate error values (semantic correctness, non-functional
+>    change);
+> 
+>  * one minor change to call __copy_from_user() instead of
+>    copy_from_user() in a situation where there is already an access_ok()
+>    check;
+> 
+> 
+> [1] ARM Scalable Vector Extension
+> https://community.arm.com/groups/processors/blog/2016/08/22/technology-update-the-scalable-vector-extension-sve-for-the-armv8-a-architecture
+> 
+> [2] linux-arm-kernel October 2017 Archives by thread
+> http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/thread.html
+> 
+> [3] [PATCH v4 00/28] ARM Scalable Vector Extension (SVE)
+> http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/539414.html
+> 
+> [4] For review and testing only -- **do not pull**
+>     (This branch has review changelogs which should not form part of
+>     the final commits.)
+> 
+>     v5 series (this posting)
+> 
+>     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v5
+>     git://linux-arm.org/linux-dm.git sve/v5
+> 
+> [5] For review and testing only -- **do not pull**
+>     (This branch has review changelogs which should not form part of
+>     the final commits.)
+> 
+>     v4 with unsquashed fixes
+> 
+>     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v4%2Bfixes
+>     git://linux-arm.org/linux-dm.git sve/v4+fixes
 
-Could you please clarify this part? The actual jump
-to the out-of-bounds index is indeed made by bpf_tail_call, 
-but the "speculation" bypassing step happens when it does map_lookup_elem
-on the out-of-bound index.  
+Hi Dave,
 
+During rebase of my ILP32 series on 4.15 kernel I found that 
+ILP32 needs to be enabled with SVE support, like you do for 
+LP64 in this series.
 
-Best Regards,
-Elena.
+I did all rebase work on this draft branch:
+https://github.com/norov/linux/tree/ilp32-4.15-rc7
+
+But any ILP32 program I tried crash, and the message in dmesg looks
+like this:
+[   39.510667] CPU: 0 PID: 1857 Comm: mytime Not tainted 4.15.0-rc7-00028-g45e0659df4d9 #41
+[   39.510712] Hardware name: linux,dummy-virt (DT)
+[   39.510829] pstate: 00000000 (nzcv daif -PAN -UAO)
+[   39.511101] pc : 0x33488e28
+[   39.511125] lr : 0x33488e28
+[   39.511138] sp : 00000000fffef670
+[   39.511158] x29: 000000005a536c33 x28: 0000000000000000 
+[   39.511211] x27: 0000000000000000 x26: 0000000000000000 
+[   39.511235] x25: 0000000000000000 x24: 0000000000000000 
+[   39.511257] x23: 0000000000466000 x22: 0000000000000000 
+[   39.511278] x21: 0000000000000000 x20: 000000000047f2a8 
+[   39.511300] x19: 0000000000000000 x18: 0000000000000001 
+[   39.511321] x17: 0000000000001000 x16: 0000000000001030 
+[   39.511342] x15: 0000000000554e47 x14: 0000000000000001 
+[   39.511364] x13: 0000000000000004 x12: 000000000000003c 
+[   39.511385] x11: 0000100000000000 x10: 0800000000000000 
+[   39.511406] x9 : 0fffffffffffffff x8 : 000000000000007c 
+[   39.511427] x7 : 0000000000000077 x6 : 0000000000000041 
+[   39.511448] x5 : 0000000000000411 x4 : 00000000fbad2488 
+[   39.511468] x3 : 0000000000000001 x2 : 0000000000497950 
+[   39.511489] x1 : 0000000000497550 x0 : 0000000000000001
+
+(PC, LR and other registers may differ depending on test)
+
+I'm pretty sure that this is SVE-related issue because if I disable
+ARM64_SVE in config, everything becomes working.
+
+I didn't get deep enough into this yet, and most probably there's
+some stupid reason for crashing apps on my side, but in mail list
+I found some sve-related patches that I cannot apply both on 4.15-rc
+and next-20180108. And according to patch names, it is important
+fixes, like this one:
+https://www.spinics.net/lists/arm-kernel/msg619548.html
+
+ILP32 code may spit some kernel issues from time to time, so there's
+minor chance that the problem is not in ILP32 itself - that's why I
+write this email to you.
+
+What I want to ask you, do you have some branch with the most recent
+SVE code that includes all fixes? Better if it would be 4.15-based
+series, because we don't support ILP32 on next-* kernels now.
+
+Also, if you have few minutes to take look at my series, I would
+kindly ask you do this, because I still think that this is my
+misunderstanding of how SVE should work for ILP32, and you as author
+may just catch the bug at a glance.
+
+Thanks,
+Yury
