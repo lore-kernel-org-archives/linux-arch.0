@@ -1,47 +1,66 @@
-From: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+From: Greg KH <gregkh@linuxfoundation.org>
 Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
-Date: Sun, 7 Jan 2018 18:57:35 -0800
-Message-ID: <20180108025732.2mnqgqivnh5u5mfb@ast-mbp>
-References: <20180106181331.mmrqwwbu2jcjj2si@ast-mbp>
- <20180106183859.1ad9ae37@alans-desktop>
- <20180106185134.dzn2en4vw2hj3p6h@ast-mbp>
- <20180106195551.3207f75d@alans-desktop>
- <20180106200912.zhzdt4qmfrojeeqe@ast-mbp>
- <20180106202213.23e553fb@alans-desktop>
- <20180106211729.cp5oet3at3hyce4o@ast-mbp>
- <20180106230507.3547c9a0@alans-desktop>
- <20180107033812.awq3vz4gdkps7tix@ast-mbp>
- <20180107135935.6ecfabd5@alans-desktop>
+Date: Mon, 8 Jan 2018 08:38:33 +0100
+Message-ID: <20180108073833.GA19819@kroah.com>
+References: <20180107201211.GA9996@1wt.eu>
+ <CA+55aFwYEr-x3teixCh5QtyMzXZKdNUkoF4xiw+1zg08PSsvpw@mail.gmail.com>
+ <alpine.DEB.2.20.1801072143370.2094@nanos>
+ <20180107.212347.315015145942081238.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180107135935.6ecfabd5@alans-desktop>
+In-Reply-To: <20180107.212347.315015145942081238.davem@davemloft.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, netdev@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
+To: David Miller <davem@davemloft.net>
+Cc: tglx@linutronix.de, torvalds@linux-foundation.org, w@1wt.eu, alexei.starovoitov@gmail.com, gnomes@lxorguk.ukuu.org.uk, dan.j.williams@intel.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ak@linux.intel.com, arnd@arndb.de, peterz@infradead.org, netdev@vger.kernel.org, mingo@redhat.com, hpa@zytor.com
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jan 07, 2018 at 01:59:35PM +0000, Alan Cox wrote:
-> > which means that POC is relying 64-bit address speculation.
-> > In the places coverity found the user supplied value is 32-bit,
+On Sun, Jan 07, 2018 at 09:23:47PM -0500, David Miller wrote:
+> From: Thomas Gleixner <tglx@linutronix.de>
+> Date: Sun, 7 Jan 2018 21:56:39 +0100 (CET)
 > 
-> People have 32bit computers as well as 64bit and in some cases 32bit is
-> fine for an attack depending where your target is relative to the object.
+> > I surely agree, but we have gone the way of PTI without the ability of
+> > exempting individual processes exactly for one reason:
+> > 
+> >   Lack of time
+> > 
+> > It can be done on top of the PTI implementation and it won't take ages.
+> > 
+> > For spectre_v1/2 we face the same problem simply because we got informed so
+> > much ahead of time and we were all twiddling thumbs, enjoying our christmas
+> > vacation and having a good time.
+> 
+> I just want to point out that this should be noted in history as a
+> case where all of this controlled disclosure stuff seems to have made
+> things worse rather than better.
 
-right. absolutely correct on 32-bit archs.
-The question whether truncation to 32-bit is enough to workaround
-spectre1 on 64-bit archs.
-I hope the researchers can clarify.
+I will note that the "controlled disclosure" for this thing was a total
+and complete mess, and unlike any that I have ever seen in the past.
+The people involved in running it had no idea how to do it at all, and
+because of that, it failed miserably, despite being warned about it
+numerous times by numerous people.
 
-> lfence timing is also heavily dependent upon what work has to be done to
-> retire previous live instructions. 
-> BPF does not normally do a lot of writing so you'd expect the cost to be low.
+> Why is there so much haste and paranoia if supposedly some group of
+> people had all this extra time to think about and deal with this bug?
 
-right. to retire previous loads. Not sure what 'not a lot of writing'
-has to do with lfence.
+Because that group was so small and isolated that they did not actually
+talk to anyone who could actually provide input to help deal with the
+bug.
 
-Our XDP based DDOS mostly does reads with few writes for stats into maps,
-whereas XDP based load balancer modifies every packet.
-XDP is root only, so not relevant in the spectre context. Just clarifying
-read vs writes in BPF.
+So we are stuck now with dealing with this "properly", which is fine,
+but please don't think that this is an excuse to blame "controlled
+disclosure".  We know how to do that correctly, it did not happen in
+this case at all because of the people driving the problem refused to do
+it.
+
+> Think I'm nuts?  Ok, then how did we fare any better by keeping this
+> junk under wraps for weeks if not months?  (seriously, did responsible
+> people really know about this as far back as... June 2017?)
+
+Some "people" did, just not some "responsible people" :)
+
+Oh well, time for the kernel to fix hardware bugs again, that's what we
+are here for, you would think we would be used to it by now...
+
+greg k-h
