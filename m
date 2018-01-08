@@ -1,51 +1,46 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 02/18] Documentation: document nospec helpers
-Date: Mon, 8 Jan 2018 17:09:59 +0000
-Message-ID: <20180108170959.pmwkgbosfv2oiuvc@lakrids.cambridge.arm.com>
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520100323.32271.8384226462583945132.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180108092917.591359aa@lwn.net>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
+Date: Mon, 8 Jan 2018 19:21:38 +0100
+Message-ID: <20180108182138.kzdwkdwmhc3564s2@gmail.com>
+References: <20180106200912.zhzdt4qmfrojeeqe@ast-mbp>
+ <20180106202213.23e553fb@alans-desktop>
+ <20180106211729.cp5oet3at3hyce4o@ast-mbp>
+ <20180106230507.3547c9a0@alans-desktop>
+ <20180107033812.awq3vz4gdkps7tix@ast-mbp>
+ <20180107063356.GA9425@1wt.eu>
+ <CA+55aFzqb-p_Ng2nsXvFsibtNC2rH5fwrefwnwA3TTFVtzM3FA@mail.gmail.com>
+ <CAPcyv4gm0tAbLHHyMvsbghV+SpnbaTCmJd6N8imwUnRZ9k2xUA@mail.gmail.com>
+ <20180108022409.q2riz6wzbcm3dkx6@ast-mbp>
+ <20180108095154.GD3040@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wr0-f193.google.com ([209.85.128.193]:43428 "EHLO
+        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754862AbeAHSVm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jan 2018 13:21:42 -0500
 Content-Disposition: inline
-In-Reply-To: <20180108092917.591359aa@lwn.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jonathan Corbet <corbet@lwn.net>
-Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, Will Deacon <will.deacon@arm.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, alan@linux.intel.com
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20180108095154.GD3040@hirez.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Alexei Starovoitov <alexei.starovoitov@gmail.com>, Dan Williams <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Willy Tarreau <w@1wt.eu>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Network Development <netdev@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>
 
-Hi Jon,
 
-On Mon, Jan 08, 2018 at 09:29:17AM -0700, Jonathan Corbet wrote:
-> On Fri, 05 Jan 2018 17:10:03 -0800
-> Dan Williams <dan.j.williams@intel.com> wrote:
+* Peter Zijlstra <peterz@infradead.org> wrote:
+
+> On Sun, Jan 07, 2018 at 06:24:11PM -0800, Alexei Starovoitov wrote:
+> > How about:
+> > CONFIG_SPECTRE1_WORKAROUND_INDEX_MASK
+> > CONFIG_SPECTRE1_WORKAROUND_LOAD_FENCE
 > 
-> > Document the rationale and usage of the new nospec*() helpers.
-> 
-> I have just a couple of overall comments.
-> 
->  - It would be nice if the document were done in RST and placed in the
->    core-API manual, perhaps using kerneldoc comments for the macros
->    themselves.  It's already 99.9% RST now, so the changes required would
->    be minimal.
+> INSTRUCTION_FENCE if anything. LFENCE for Intel (and now also for AMD as
+> per 0592b0bce169) is a misnomer, IFENCE would be a better name for it.
 
-Is there any quickstart guide to RST that you can recommend?
-
-I'm happy to clean up the documentation; I'm just not familiar with RST.
-
->  - More importantly: is there any way at all to give guidance to
->    developers wondering *when* they should use these primitives?  I think
->    it would be easy to create a situation where they don't get used where
->    they are really needed; meanwhile, there may well be a flood of
->    "helpful" patches adding them where they make no sense at all.
-
-This is on my TODO list.
-
-The unfortunate truth is that it's likely to be a subjective judgement
-call in many cases, depending on how likely it is that the user can
-influence the code in question, so it's difficult to provide
-hard-and-fast rules.
+Btw., we should probably propagate that naming to most places and only point it 
+out in comments/documentation that Intel/AMD calls this CPU functionality 'LFENCE' 
+for historic reasons and that the opcode got stolen for the Spectre fixes.
 
 Thanks,
-Mark.
+
+	Ingo
