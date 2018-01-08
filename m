@@ -1,137 +1,80 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: [RFCv2 1/4] asm-generic/barrier: add generic nospec helpers
-Date: Mon, 08 Jan 2018 16:47:37 -0500
-Message-ID: <1515448057.15297.34.camel@redhat.com>
-References: <20180105145750.53294-1-mark.rutland@arm.com>
-         <20180105145750.53294-2-mark.rutland@arm.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
+Date: Mon, 8 Jan 2018 15:44:55 -0800
+Message-ID: <CA+55aFwU4nxo7yMN9bUmCK_f-yp2f3KQ=ot_epW7yuKwwZ8uCQ@mail.gmail.com>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
+ <CA+55aFzJgyk7peXyuNO8wgm0ZfSY2K-52XA9z=R6JGKcD6hQYw@mail.gmail.com>
+ <CAPcyv4gx+2Dh6HS8e+TKNKP00+rYUkzGnEwdpZ_P6hFiOHKHNg@mail.gmail.com>
+ <CA+55aFwa+1HiQo3aX9SZb21s7zQRqc5B40wgMMdsrYG0MJLknQ@mail.gmail.com> <CAPcyv4hVX4h9j-Uf=Ja5_0p3+qiWOiPd4cUaxoJD9en5TiVGPw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:54281 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751960AbeAHVrj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 8 Jan 2018 16:47:39 -0500
-In-Reply-To: <20180105145750.53294-2-mark.rutland@arm.com>
+Received: from mail-io0-f195.google.com ([209.85.223.195]:41531 "EHLO
+        mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756213AbeAHXo5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jan 2018 18:44:57 -0500
+In-Reply-To: <CAPcyv4hVX4h9j-Uf=Ja5_0p3+qiWOiPd4cUaxoJD9en5TiVGPw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: dan.j.williams@intel.com, elena.reshetova@intel.com, corbet@lwn.net, alan@linux.intel.com, peterz@infradead.org, will.deacon@arm.com, gregkh@linuxfoundation.org, tglx@linutronix.de
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Alan Cox <alan@linux.intel.com>
 
-On Fri, 2018-01-05 at 14:57 +0000, Mark Rutland wrote:
-> Under speculation, CPUs may mis-predict branches in bounds checks. Thus,
-> memory accesses under a bounds check may be speculated even if the
-> bounds check fails, providing a primitive for building a side channel.
-> 
-> This patch adds helpers which can be used to inhibit the use of
-> out-of-bounds pointers under speculation.
-> 
-> A generic implementation is provided for compatibility, but does not
-> guarantee safety under speculation. Architectures are expected to
-> override these helpers as necessary.
-> 
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> Cc: Daniel Willams <dan.j.williams@intel.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> ---
->  include/asm-generic/barrier.h | 68 +++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 68 insertions(+)
-> 
-> Dan, I've reworked this so that nospec_ptr() can take an arch-specific barrier
-> sequence. I believe that for x86 you just need to implement __nospec_barrier()
-> as osb().
-> 
-> Mark.
-> 
-> diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-> index fe297b599b0a..91c3071f49e5 100644
-> --- a/include/asm-generic/barrier.h
-> +++ b/include/asm-generic/barrier.h
-> @@ -54,6 +54,74 @@
->  #define read_barrier_depends()		do { } while (0)
->  #endif
->  
-> +/*
-> + * Inhibit subsequent speculative memory accesses.
-> + *
-> + * Architectures with a suitable memory barrier should provide an
-> + * implementation. This is non-portable, and generic code should use
-> + * nospec_ptr().
-> + */
-> +#ifndef __nospec_barrier
-> +#define __nospec_barrier()		do { } while (0)
-> +#endif
-> +
-> +/**
-> + * nospec_ptr() - Ensure a  pointer is bounded, even under speculation.
-> + *
-> + * @ptr: the pointer to test
-> + * @lo: the lower valid bound for @ptr, inclusive
-> + * @hi: the upper valid bound for @ptr, exclusive
-> + *
-> + * If @ptr falls in the interval [@lo, @i), returns @ptr, otherwise returns
-> + * NULL.
-> + *
-> + * Architectures which do not provide __nospec_barrier() should override this
-> + * to ensure that ptr falls in the [lo, hi) interval both under architectural
-> + * execution and under speculation, preventing propagation of an out-of-bounds
-> + * pointer to code which is speculatively executed.
-> + */
-> +#ifndef nospec_ptr
-> +#define nospec_ptr(ptr, lo, hi)						\
-> +({									\
-> +	typeof (ptr) __ret;						\
-> +	typeof (ptr) __ptr = (ptr);					\
-> +	typeof (ptr) __lo = (lo);					\
-> +	typeof (ptr) __hi = (hi);					\
-> +									\
-> +	__ret = (__lo <= __ptr && __ptr < __hi) ? __ptr : NULL;		\
-> +									\
-> +	__nospec_barrier();						\
-> +									\
-> +	__ret;								\
-> +})
-> +#endif
-> +
-> +/**
-> + * nospec_array_ptr - Generate a pointer to an array element, ensuring the
-> + * pointer is bounded under speculation.
-> + *
-> + * @arr: the base of the array
-> + * @idx: the index of the element
-> + * @sz: the number of elements in the array
-> + *
-> + * If @idx falls in the interval [0, @sz), returns the pointer to @arr[@idx],
-> + * otherwise returns NULL.
-> + *
-> + * This is a wrapper around nospec_ptr(), provided for convenience.
-> + * Architectures should implement nospec_ptr() to ensure this is the case
-> + * under speculation.
-> + */
-> +#define nospec_array_ptr(arr, idx, sz)					\
-> +({									\
-> +	typeof(*(arr)) *__arr = (arr);					\
-> +	typeof(idx) __idx = (idx);					\
-> +	typeof(sz) __sz = (sz);						\
-> +									\
-> +	nospec_ptr(__arr + __idx, __arr, __arr + __sz);			\
-> +})
-> +
-> +#undef __nospec_barrier
+On Mon, Jan 8, 2018 at 1:09 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> On Sat, Jan 6, 2018 at 5:20 PM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+>> On Sat, Jan 6, 2018 at 3:31 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+>>>
+>>> I assume if we put this in uaccess_begin() we also need audit for
+>>> paths that use access_ok but don't do on to call uaccess_begin()? A
+>>> quick glance shows a few places where we are open coding the stac().
+>>> Perhaps land the lfence in stac() directly?
+>>
+>> Yeah, we should put it in uaccess_begin(), and in the actual user
+>> accessor helpers that do stac. Some of them probably should be changed
+>> to use uaccess_begin() instead while at it.
+>>
+>> One question for the CPU people: do we actually care and need to do
+>> this for things that might *write* to something? The speculative write
+>> obviously is killed, but does it perhaps bring in a cacheline even
+>> when killed?
+>
+> As far as I understand a write could trigger a request-for-ownership
+> read for the target cacheline.
 
-I see:
+Oh, absolutely.
 
-kernel/bpf/arraymap.c: In function 'array_map_lookup_elem':
-kernel/bpf/arraymap.c:124:2: error: implicit declaration of function '__nospec_barrier' [-Werror=implicit-function-declaration]
-  return nospec_ptr(ptr, array->value, high);
-  ^
-cc1: all warnings being treated as errors
+I just wonder at what point that happens.
 
-when building using a 4.8ish gcc. Removing the above #undef avoids that
-error. I don't get the build error on fedora with gcc7
+Honestly, trying to get exclusive access to a cacheline can be _very_
+expensive (not just for the local thread), so I would actually expect
+that doing so for speculative writes is actually bad for performance.
 
-> +
->  #ifndef __smp_mb
->  #define __smp_mb()	mb()
->  #endif
+That's doubly true because - unlike reads - there is no critical
+latency issue, so trying to get the cache access started as early as
+possible simply isn't all that important.
+
+So I suspect that a write won't actually try to allocate the cacheline
+until the write has actually retired.
+
+End result: writes - unlike reads - *probably* will not speculatively
+perturb the cache with speculative write addresses.
+
+> Even though writes can trigger reads, as far as I can see the write
+> needs to be dependent on the first out-of-bounds read
+
+Yeah. A write on its own wouldn't matter, even if it were to perturb
+the cache state, because the address already comes from user space, so
+there's no new information in the cache perturbation for the attacker.
+
+But that all implies that we shouldn't need the lfence for the
+"put_user()" case, only for the get_user() (where the value we read
+would then perhaps be used to do another access).
+
+So we want to add the lfence (or "and") to get_user(), but not
+necessarily put_user().
+
+Agreed?
+
+                  Linus
