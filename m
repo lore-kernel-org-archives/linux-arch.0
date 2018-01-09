@@ -1,139 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0063.outbound.protection.outlook.com ([104.47.37.63]:36671
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1759619AbeAIQvf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 9 Jan 2018 11:51:35 -0500
-Date: Tue, 9 Jan 2018 19:51:20 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH v5 00/30] ARM Scalable Vector Extension (SVE)
-Message-ID: <20180109165120.6ravt4stp3654374@yury-thinkpad>
-References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
- <20180108144905.qu5qbmaaglcgwvwq@yury-thinkpad>
+Received: from twin.jikos.cz ([91.219.245.39]:36730 "EHLO twin.jikos.cz"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754145AbeAITh4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 9 Jan 2018 14:37:56 -0500
+Date: Tue, 9 Jan 2018 20:34:37 +0100 (CET)
+From: Jiri Kosina <jikos@kernel.org>
+Subject: Re: [PATCH 00/18] prevent bounds-check bypass via speculative
+ execution
+In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+Message-ID: <alpine.LRH.2.00.1801092017330.27010@gjva.wvxbf.pm>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180108144905.qu5qbmaaglcgwvwq@yury-thinkpad>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, "H . J . Lu" <hjl.tools@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Alan Hayward <alan.hayward@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, Christoffer Dall <christoffer.dall@linaro.org>, Michael Kerrisk <mtk.manpages@gmail.com>
-Message-ID: <20180109165120.WNnLlUQwtryX--QNR6hSYLzFbTtm5ADdm_DKo60VlkQ@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, peterz@infradead.org, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Zhang Rui <rui.zhang@intel.com>, linux-media@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jan Kara <jack@suse.com>, Eduardo Valentin <edubezval@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, gregkh@linuxfoundation.org, linux-wireless@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, netdev@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Message-ID: <20180109193437.vB8Fp0v8I3ij8pB_-ZnTfmdtD4f3cTIuUxgPmg0k8SA@z>
 
-On Mon, Jan 08, 2018 at 05:49:05PM +0300, Yury Norov wrote:
-> On Tue, Oct 31, 2017 at 03:50:52PM +0000, Dave Martin wrote:
-> > This series implements Linux kernel support for the ARM Scalable Vector
-> > Extension (SVE). [1]  It supersedes the previous v3: see [3] for link
-> > and full cover letter.
-> > 
-> > This is a minor update to v4, but does contain a couple of important
-> > fixes.
-> > 
-> > As in previous postings, the last two patches (here 29-30) are still
-> > RFC and not proposed for merging at this time.
-> > 
-> > The patches apply on
-> > git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git
-> > for-next/core
-> > d7b1d22d3821 ("arm64: uapi: Remove PSR_Q_BIT")
-> > 
-> > To reduce spam, some people may not been copied on the entire series.
-> > For those who did not receive the whole series, it can be found in the
-> > linux-arm-kernel archive. [2]
-> > 
-> > See the individual patches for details of changes.
-> > 
-> > For reviewer convenience, a git tree is available. [4]
-> > 
-> > Since there are some changes against already-reviewed patches, I've also
-> > pushed an unsquashed fixes tree for people to take a look at if it
-> > helps. [5]
-> > 
-> > 
-> > Summary:
-> > 
-> >  * "regset: Add support for dynamically sized regsets" fixed to avoid
-> >    x86 breakage;
-> > 
-> >  * one trival arm64 patch added to add asmlinkage annotations, and a
-> >    corresponding minor change to the Core task context handling patch;
-> > 
-> >  * one new arm64 fix ("signal: Verify extra data is user-readable in
-> >    sys_rt_sigreturn") to ensure that access_ok() checks are done for the
-> >    whole extended signal frame, not just the base frame;
-> > 
-> >  * one minor fix to the SVE sigreturn code to return consistent
-> >    intermediate error values (semantic correctness, non-functional
-> >    change);
-> > 
-> >  * one minor change to call __copy_from_user() instead of
-> >    copy_from_user() in a situation where there is already an access_ok()
-> >    check;
-> > 
-> > 
-> > [1] ARM Scalable Vector Extension
-> > https://community.arm.com/groups/processors/blog/2016/08/22/technology-update-the-scalable-vector-extension-sve-for-the-armv8-a-architecture
-> > 
-> > [2] linux-arm-kernel October 2017 Archives by thread
-> > http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/thread.html
-> > 
-> > [3] [PATCH v4 00/28] ARM Scalable Vector Extension (SVE)
-> > http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/539414.html
-> > 
-> > [4] For review and testing only -- **do not pull**
-> >     (This branch has review changelogs which should not form part of
-> >     the final commits.)
-> > 
-> >     v5 series (this posting)
-> > 
-> >     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v5
-> >     git://linux-arm.org/linux-dm.git sve/v5
-> > 
-> > [5] For review and testing only -- **do not pull**
-> >     (This branch has review changelogs which should not form part of
-> >     the final commits.)
-> > 
-> >     v4 with unsquashed fixes
-> > 
-> >     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v4%2Bfixes
-> >     git://linux-arm.org/linux-dm.git sve/v4+fixes
-> 
-> Hi Dave,
-> 
-> During rebase of my ILP32 series on 4.15 kernel I found that 
-> ILP32 needs to be enabled with SVE support, like you do for 
-> LP64 in this series.
-> 
-> I did all rebase work on this draft branch:
-> https://github.com/norov/linux/tree/ilp32-4.15-rc7
-> 
-> But any ILP32 program I tried crash, and the message in dmesg looks
-> like this:
-> [   39.510667] CPU: 0 PID: 1857 Comm: mytime Not tainted 4.15.0-rc7-00028-g45e0659df4d9 #41
-> [   39.510712] Hardware name: linux,dummy-virt (DT)
-> [   39.510829] pstate: 00000000 (nzcv daif -PAN -UAO)
-> [   39.511101] pc : 0x33488e28
-> [   39.511125] lr : 0x33488e28
-> [   39.511138] sp : 00000000fffef670
-> [   39.511158] x29: 000000005a536c33 x28: 0000000000000000 
-> [   39.511211] x27: 0000000000000000 x26: 0000000000000000 
-> [   39.511235] x25: 0000000000000000 x24: 0000000000000000 
-> [   39.511257] x23: 0000000000466000 x22: 0000000000000000 
-> [   39.511278] x21: 0000000000000000 x20: 000000000047f2a8 
-> [   39.511300] x19: 0000000000000000 x18: 0000000000000001 
-> [   39.511321] x17: 0000000000001000 x16: 0000000000001030 
-> [   39.511342] x15: 0000000000554e47 x14: 0000000000000001 
-> [   39.511364] x13: 0000000000000004 x12: 000000000000003c 
-> [   39.511385] x11: 0000100000000000 x10: 0800000000000000 
-> [   39.511406] x9 : 0fffffffffffffff x8 : 000000000000007c 
-> [   39.511427] x7 : 0000000000000077 x6 : 0000000000000041 
-> [   39.511448] x5 : 0000000000000411 x4 : 00000000fbad2488 
-> [   39.511468] x3 : 0000000000000001 x2 : 0000000000497950 
-> [   39.511489] x1 : 0000000000497550 x0 : 0000000000000001
+On Fri, 5 Jan 2018, Dan Williams wrote:
 
-Hi Dave,
+[ ... snip ... ]
+> Andi Kleen (1):
+>       x86, barrier: stop speculation for failed access_ok
+> 
+> Dan Williams (13):
+>       x86: implement nospec_barrier()
+>       [media] uvcvideo: prevent bounds-check bypass via speculative execution
+>       carl9170: prevent bounds-check bypass via speculative execution
+>       p54: prevent bounds-check bypass via speculative execution
+>       qla2xxx: prevent bounds-check bypass via speculative execution
+>       cw1200: prevent bounds-check bypass via speculative execution
+>       Thermal/int340x: prevent bounds-check bypass via speculative execution
+>       ipv6: prevent bounds-check bypass via speculative execution
+>       ipv4: prevent bounds-check bypass via speculative execution
+>       vfs, fdtable: prevent bounds-check bypass via speculative execution
+>       net: mpls: prevent bounds-check bypass via speculative execution
+>       udf: prevent bounds-check bypass via speculative execution
+>       userns: prevent bounds-check bypass via speculative execution
+> 
+> Mark Rutland (4):
+>       asm-generic/barrier: add generic nospec helpers
+>       Documentation: document nospec helpers
+>       arm64: implement nospec_ptr()
+>       arm: implement nospec_ptr()
 
-I fixed the crash. It was my local problem.
+So considering the recent publication of [1], how come we all of a sudden 
+don't need the barriers in ___bpf_prog_run(), namely for LD_IMM_DW and 
+LDX_MEM_##SIZEOP, and something comparable for eBPF JIT?
 
-Thanks,
-Yury
+Is this going to be handled in eBPF in some other way?
+
+Without that in place, and considering Jann Horn's paper, it would seem 
+like PTI doesn't really lock it down fully, right?
+
+[1] https://bugs.chromium.org/p/project-zero/issues/attachmentText?aid=287305
+
+-- 
+Jiri Kosina
+SUSE Labs
