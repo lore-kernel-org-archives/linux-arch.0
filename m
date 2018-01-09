@@ -1,78 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:37259 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757932AbeAIU4u (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:56:50 -0500
-Received: by mail-pf0-f196.google.com with SMTP id n6so9427317pfa.4
-        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:56:50 -0800 (PST)
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:42857 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1758179AbeAIU5C (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:57:02 -0500
+Received: by mail-pg0-f68.google.com with SMTP id q67so8812038pga.9
+        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:57:02 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 03/36] lkdtm/usercopy: Adjust test to include an offset to check reporting
-Date: Tue,  9 Jan 2018 12:55:32 -0800
-Message-ID: <1515531365-37423-4-git-send-email-keescook@chromium.org>
+Subject: [PATCH 13/36] befs: Define usercopy region in befs_inode_cache slab cache
+Date: Tue,  9 Jan 2018 12:55:42 -0800
+Message-ID: <1515531365-37423-14-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180109205532.efn0QCwd64wHEac4rR7WYAvJckxA-mkuQnUGajoMeWM@z>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Luis de Bethencourt <luisbg@kernel.org>, Salah Triki <salah.triki@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180109205542.sQf1uv2_uKvhWBg3aKghcO9UrpCgNo0uEyIqeNlnVRU@z>
 
-Instead of doubling the size, push the start position up by 16 bytes to
-still trigger an overflow. This allows to verify that offset reporting
-is working correctly.
+From: David Windsor <dave@nullcore.net>
 
+befs symlink pathnames, stored in struct befs_inode_info.i_data.symlink
+and therefore contained in the befs_inode_cache slab cache, need to be
+copied to/from userspace.
+
+cache object allocation:
+    fs/befs/linuxvfs.c:
+        befs_alloc_inode(...):
+            ...
+            bi = kmem_cache_alloc(befs_inode_cachep, GFP_KERNEL);
+            ...
+            return &bi->vfs_inode;
+
+        befs_iget(...):
+            ...
+            strlcpy(befs_ino->i_data.symlink, raw_inode->data.symlink,
+                    BEFS_SYMLINK_LEN);
+            ...
+            inode->i_link = befs_ino->i_data.symlink;
+
+example usage trace:
+    readlink_copy+0x43/0x70
+    vfs_readlink+0x62/0x110
+    SyS_readlinkat+0x100/0x130
+
+    fs/namei.c:
+        readlink_copy(..., link):
+            ...
+            copy_to_user(..., link, len);
+
+        (inlined in vfs_readlink)
+        generic_readlink(dentry, ...):
+            struct inode *inode = d_inode(dentry);
+            const char *link = inode->i_link;
+            ...
+            readlink_copy(..., link);
+
+In support of usercopy hardening, this patch defines a region in the
+befs_inode_cache slab cache in which userspace copy operations are
+allowed.
+
+This region is known as the slab cache's usercopy region. Slab caches
+can now check that each dynamically sized copy operation involving
+cache-managed memory falls entirely within the slab's usercopy region.
+
+This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
+whitelisting code in the last public patch of grsecurity/PaX based on my
+understanding of the code. Changes or omissions from the original code are
+mine and don't reflect the original grsecurity/PaX code.
+
+Signed-off-by: David Windsor <dave@nullcore.net>
+[kees: adjust commit log, provide usage trace]
+Cc: Luis de Bethencourt <luisbg@kernel.org>
+Cc: Salah Triki <salah.triki@gmail.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Luis de Bethencourt <luisbg@kernel.org>
 ---
- drivers/misc/lkdtm_usercopy.c | 13 +++++++++----
- 1 file changed, 9 insertions(+), 4 deletions(-)
+ fs/befs/linuxvfs.c | 14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/misc/lkdtm_usercopy.c b/drivers/misc/lkdtm_usercopy.c
-index a64372cc148d..9ebbb031e5e3 100644
---- a/drivers/misc/lkdtm_usercopy.c
-+++ b/drivers/misc/lkdtm_usercopy.c
-@@ -119,6 +119,8 @@ static void do_usercopy_heap_size(bool to_user)
+diff --git a/fs/befs/linuxvfs.c b/fs/befs/linuxvfs.c
+index ee236231cafa..af2832aaeec5 100644
+--- a/fs/befs/linuxvfs.c
++++ b/fs/befs/linuxvfs.c
+@@ -444,11 +444,15 @@ static struct inode *befs_iget(struct super_block *sb, unsigned long ino)
+ static int __init
+ befs_init_inodecache(void)
  {
- 	unsigned long user_addr;
- 	unsigned char *one, *two;
-+	void __user *test_user_addr;
-+	void *test_kern_addr;
- 	size_t size = unconst + 1024;
+-	befs_inode_cachep = kmem_cache_create("befs_inode_cache",
+-					      sizeof (struct befs_inode_info),
+-					      0, (SLAB_RECLAIM_ACCOUNT|
+-						SLAB_MEM_SPREAD|SLAB_ACCOUNT),
+-					      init_once);
++	befs_inode_cachep = kmem_cache_create_usercopy("befs_inode_cache",
++				sizeof(struct befs_inode_info), 0,
++				(SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|
++					SLAB_ACCOUNT),
++				offsetof(struct befs_inode_info,
++					i_data.symlink),
++				sizeof_field(struct befs_inode_info,
++					i_data.symlink),
++				init_once);
+ 	if (befs_inode_cachep == NULL)
+ 		return -ENOMEM;
  
- 	one = kmalloc(size, GFP_KERNEL);
-@@ -139,27 +141,30 @@ static void do_usercopy_heap_size(bool to_user)
- 	memset(one, 'A', size);
- 	memset(two, 'B', size);
- 
-+	test_user_addr = (void __user *)(user_addr + 16);
-+	test_kern_addr = one + 16;
-+
- 	if (to_user) {
- 		pr_info("attempting good copy_to_user of correct size\n");
--		if (copy_to_user((void __user *)user_addr, one, size)) {
-+		if (copy_to_user(test_user_addr, test_kern_addr, size / 2)) {
- 			pr_warn("copy_to_user failed unexpectedly?!\n");
- 			goto free_user;
- 		}
- 
- 		pr_info("attempting bad copy_to_user of too large size\n");
--		if (copy_to_user((void __user *)user_addr, one, 2 * size)) {
-+		if (copy_to_user(test_user_addr, test_kern_addr, size)) {
- 			pr_warn("copy_to_user failed, but lacked Oops\n");
- 			goto free_user;
- 		}
- 	} else {
- 		pr_info("attempting good copy_from_user of correct size\n");
--		if (copy_from_user(one, (void __user *)user_addr, size)) {
-+		if (copy_from_user(test_kern_addr, test_user_addr, size / 2)) {
- 			pr_warn("copy_from_user failed unexpectedly?!\n");
- 			goto free_user;
- 		}
- 
- 		pr_info("attempting bad copy_from_user of too large size\n");
--		if (copy_from_user(one, (void __user *)user_addr, 2 * size)) {
-+		if (copy_from_user(test_kern_addr, test_user_addr, size)) {
- 			pr_warn("copy_from_user failed, but lacked Oops\n");
- 			goto free_user;
- 		}
 -- 
 2.7.4
