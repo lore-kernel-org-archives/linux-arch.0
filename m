@@ -1,107 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:42857 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1758179AbeAIU5C (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:57:02 -0500
-Received: by mail-pg0-f68.google.com with SMTP id q67so8812038pga.9
-        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:57:02 -0800 (PST)
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:38416 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1759846AbeAIU5V (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:57:21 -0500
+Received: by mail-pg0-f65.google.com with SMTP id t67so8809268pgc.5
+        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:57:20 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 13/36] befs: Define usercopy region in befs_inode_cache slab cache
-Date: Tue,  9 Jan 2018 12:55:42 -0800
-Message-ID: <1515531365-37423-14-git-send-email-keescook@chromium.org>
+Subject: [PATCH 08/36] vfs: Define usercopy region in names_cache slab caches
+Date: Tue,  9 Jan 2018 12:55:37 -0800
+Message-ID: <1515531365-37423-9-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Luis de Bethencourt <luisbg@kernel.org>, Salah Triki <salah.triki@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180109205542.sQf1uv2_uKvhWBg3aKghcO9UrpCgNo0uEyIqeNlnVRU@z>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180109205537.4Jqp07Vb7C-dhFXEkuBo4uurxAJmhq2kn4WdWmXnKHA@z>
 
 From: David Windsor <dave@nullcore.net>
 
-befs symlink pathnames, stored in struct befs_inode_info.i_data.symlink
-and therefore contained in the befs_inode_cache slab cache, need to be
-copied to/from userspace.
+VFS pathnames are stored in the names_cache slab cache, either inline
+or across an entire allocation entry (when approaching PATH_MAX). These
+are copied to/from userspace, so they must be entirely whitelisted.
 
 cache object allocation:
-    fs/befs/linuxvfs.c:
-        befs_alloc_inode(...):
-            ...
-            bi = kmem_cache_alloc(befs_inode_cachep, GFP_KERNEL);
-            ...
-            return &bi->vfs_inode;
-
-        befs_iget(...):
-            ...
-            strlcpy(befs_ino->i_data.symlink, raw_inode->data.symlink,
-                    BEFS_SYMLINK_LEN);
-            ...
-            inode->i_link = befs_ino->i_data.symlink;
+    include/linux/fs.h:
+        #define __getname()    kmem_cache_alloc(names_cachep, GFP_KERNEL)
 
 example usage trace:
-    readlink_copy+0x43/0x70
-    vfs_readlink+0x62/0x110
-    SyS_readlinkat+0x100/0x130
+    strncpy_from_user+0x4d/0x170
+    getname_flags+0x6f/0x1f0
+    user_path_at_empty+0x23/0x40
+    do_mount+0x69/0xda0
+    SyS_mount+0x83/0xd0
 
     fs/namei.c:
-        readlink_copy(..., link):
+        getname_flags(...):
             ...
-            copy_to_user(..., link, len);
-
-        (inlined in vfs_readlink)
-        generic_readlink(dentry, ...):
-            struct inode *inode = d_inode(dentry);
-            const char *link = inode->i_link;
+            result = __getname();
             ...
-            readlink_copy(..., link);
+            kname = (char *)result->iname;
+            result->name = kname;
+            len = strncpy_from_user(kname, filename, EMBEDDED_NAME_MAX);
+            ...
+            if (unlikely(len == EMBEDDED_NAME_MAX)) {
+                const size_t size = offsetof(struct filename, iname[1]);
+                kname = (char *)result;
 
-In support of usercopy hardening, this patch defines a region in the
-befs_inode_cache slab cache in which userspace copy operations are
-allowed.
+                result = kzalloc(size, GFP_KERNEL);
+                ...
+                result->name = kname;
+                len = strncpy_from_user(kname, filename, PATH_MAX);
 
-This region is known as the slab cache's usercopy region. Slab caches
-can now check that each dynamically sized copy operation involving
-cache-managed memory falls entirely within the slab's usercopy region.
+In support of usercopy hardening, this patch defines the entire cache
+object in the names_cache slab cache as whitelisted, since it may entirely
+hold name strings to be copied to/from userspace.
 
-This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
+This patch is verbatim from Brad Spengler/PaX Team's PAX_USERCOPY
 whitelisting code in the last public patch of grsecurity/PaX based on my
 understanding of the code. Changes or omissions from the original code are
 mine and don't reflect the original grsecurity/PaX code.
 
 Signed-off-by: David Windsor <dave@nullcore.net>
-[kees: adjust commit log, provide usage trace]
-Cc: Luis de Bethencourt <luisbg@kernel.org>
-Cc: Salah Triki <salah.triki@gmail.com>
+[kees: adjust commit log, add usage trace]
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Luis de Bethencourt <luisbg@kernel.org>
 ---
- fs/befs/linuxvfs.c | 14 +++++++++-----
- 1 file changed, 9 insertions(+), 5 deletions(-)
+ fs/dcache.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/fs/befs/linuxvfs.c b/fs/befs/linuxvfs.c
-index ee236231cafa..af2832aaeec5 100644
---- a/fs/befs/linuxvfs.c
-+++ b/fs/befs/linuxvfs.c
-@@ -444,11 +444,15 @@ static struct inode *befs_iget(struct super_block *sb, unsigned long ino)
- static int __init
- befs_init_inodecache(void)
- {
--	befs_inode_cachep = kmem_cache_create("befs_inode_cache",
--					      sizeof (struct befs_inode_info),
--					      0, (SLAB_RECLAIM_ACCOUNT|
--						SLAB_MEM_SPREAD|SLAB_ACCOUNT),
--					      init_once);
-+	befs_inode_cachep = kmem_cache_create_usercopy("befs_inode_cache",
-+				sizeof(struct befs_inode_info), 0,
-+				(SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|
-+					SLAB_ACCOUNT),
-+				offsetof(struct befs_inode_info,
-+					i_data.symlink),
-+				sizeof_field(struct befs_inode_info,
-+					i_data.symlink),
-+				init_once);
- 	if (befs_inode_cachep == NULL)
- 		return -ENOMEM;
+diff --git a/fs/dcache.c b/fs/dcache.c
+index 92ad7a2168e1..9d7ee2de682c 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
+@@ -3640,8 +3640,8 @@ void __init vfs_caches_init_early(void)
  
+ void __init vfs_caches_init(void)
+ {
+-	names_cachep = kmem_cache_create("names_cache", PATH_MAX, 0,
+-			SLAB_HWCACHE_ALIGN|SLAB_PANIC, NULL);
++	names_cachep = kmem_cache_create_usercopy("names_cache", PATH_MAX, 0,
++			SLAB_HWCACHE_ALIGN|SLAB_PANIC, 0, PATH_MAX, NULL);
+ 
+ 	dcache_init();
+ 	inode_init();
 -- 
 2.7.4
