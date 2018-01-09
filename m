@@ -1,83 +1,120 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 08/36] vfs: Define usercopy region in names_cache slab caches
-Date: Tue,  9 Jan 2018 12:55:37 -0800
-Message-ID: <1515531365-37423-9-git-send-email-keescook@chromium.org>
+Subject: [PATCH 34/36] usercopy: Allow strict enforcement of whitelists
+Date: Tue,  9 Jan 2018 12:56:03 -0800
+Message-ID: <1515531365-37423-35-git-send-email-keescook@chromium.org>
 References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Sender: owner-linux-mm@kvack.org
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-arch@vger.kernel
+Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel
 List-Id: linux-arch.vger.kernel.org
 
-From: David Windsor <dave@nullcore.net>
+This introduces CONFIG_HARDENED_USERCOPY_FALLBACK to control the
+behavior of hardened usercopy whitelist violations. By default, whitelist
+violations will continue to WARN() so that any bad or missing usercopy
+whitelists can be discovered without being too disruptive.
 
-VFS pathnames are stored in the names_cache slab cache, either inline
-or across an entire allocation entry (when approaching PATH_MAX). These
-are copied to/from userspace, so they must be entirely whitelisted.
+If this config is disabled at build time or a system is booted with
+"slab_common.usercopy_fallback=0", usercopy whitelists will BUG() instead
+of WARN(). This is useful for admins that want to use usercopy whitelists
+immediately.
 
-cache object allocation:
-    include/linux/fs.h:
-        #define __getname()    kmem_cache_alloc(names_cachep, GFP_KERNEL)
-
-example usage trace:
-    strncpy_from_user+0x4d/0x170
-    getname_flags+0x6f/0x1f0
-    user_path_at_empty+0x23/0x40
-    do_mount+0x69/0xda0
-    SyS_mount+0x83/0xd0
-
-    fs/namei.c:
-        getname_flags(...):
-            ...
-            result = __getname();
-            ...
-            kname = (char *)result->iname;
-            result->name = kname;
-            len = strncpy_from_user(kname, filename, EMBEDDED_NAME_MAX);
-            ...
-            if (unlikely(len == EMBEDDED_NAME_MAX)) {
-                const size_t size = offsetof(struct filename, iname[1]);
-                kname = (char *)result;
-
-                result = kzalloc(size, GFP_KERNEL);
-                ...
-                result->name = kname;
-                len = strncpy_from_user(kname, filename, PATH_MAX);
-
-In support of usercopy hardening, this patch defines the entire cache
-object in the names_cache slab cache as whitelisted, since it may entirely
-hold name strings to be copied to/from userspace.
-
-This patch is verbatim from Brad Spengler/PaX Team's PAX_USERCOPY
-whitelisting code in the last public patch of grsecurity/PaX based on my
-understanding of the code. Changes or omissions from the original code are
-mine and don't reflect the original grsecurity/PaX code.
-
-Signed-off-by: David Windsor <dave@nullcore.net>
-[kees: adjust commit log, add usage trace]
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: linux-fsdevel@vger.kernel.org
+Suggested-by: Matthew Garrett <mjg59@google.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- fs/dcache.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ include/linux/slab.h |  2 ++
+ mm/slab.c            |  3 ++-
+ mm/slab_common.c     |  8 ++++++++
+ mm/slub.c            |  3 ++-
+ security/Kconfig     | 14 ++++++++++++++
+ 5 files changed, 28 insertions(+), 2 deletions(-)
 
-diff --git a/fs/dcache.c b/fs/dcache.c
-index 92ad7a2168e1..9d7ee2de682c 100644
---- a/fs/dcache.c
-+++ b/fs/dcache.c
-@@ -3640,8 +3640,8 @@ void __init vfs_caches_init_early(void)
+diff --git a/include/linux/slab.h b/include/linux/slab.h
+index 518f72bf565e..4bef1ed1daa1 100644
+--- a/include/linux/slab.h
++++ b/include/linux/slab.h
+@@ -135,6 +135,8 @@ struct mem_cgroup;
+ void __init kmem_cache_init(void);
+ bool slab_is_available(void);
  
- void __init vfs_caches_init(void)
- {
--	names_cachep = kmem_cache_create("names_cache", PATH_MAX, 0,
--			SLAB_HWCACHE_ALIGN|SLAB_PANIC, NULL);
-+	names_cachep = kmem_cache_create_usercopy("names_cache", PATH_MAX, 0,
-+			SLAB_HWCACHE_ALIGN|SLAB_PANIC, 0, PATH_MAX, NULL);
++extern bool usercopy_fallback;
++
+ struct kmem_cache *kmem_cache_create(const char *name, size_t size,
+ 			size_t align, slab_flags_t flags,
+ 			void (*ctor)(void *));
+diff --git a/mm/slab.c b/mm/slab.c
+index 6488066e718a..50539a76a46a 100644
+--- a/mm/slab.c
++++ b/mm/slab.c
+@@ -4425,7 +4425,8 @@ int __check_heap_object(const void *ptr, unsigned long n, struct page *page,
+ 		 * to be a temporary method to find any missing usercopy
+ 		 * whitelists.
+ 		 */
+-		if (offset <= cachep->object_size &&
++		if (usercopy_fallback &&
++		    offset <= cachep->object_size &&
+ 		    n <= cachep->object_size - offset) {
+ 			WARN_ONCE(1, "unexpected usercopy %s with bad or missing whitelist with SLAB object '%s' (offset %lu, size %lu)",
+ 				  to_user ? "exposure" : "overwrite",
+diff --git a/mm/slab_common.c b/mm/slab_common.c
+index 6c9e945907b6..8ac2a6320a6c 100644
+--- a/mm/slab_common.c
++++ b/mm/slab_common.c
+@@ -31,6 +31,14 @@ LIST_HEAD(slab_caches);
+ DEFINE_MUTEX(slab_mutex);
+ struct kmem_cache *kmem_cache;
  
- 	dcache_init();
- 	inode_init();
++#ifdef CONFIG_HARDENED_USERCOPY
++bool usercopy_fallback __ro_after_init =
++		IS_ENABLED(CONFIG_HARDENED_USERCOPY_FALLBACK);
++module_param(usercopy_fallback, bool, 0400);
++MODULE_PARM_DESC(usercopy_fallback,
++		"WARN instead of reject usercopy whitelist violations");
++#endif
++
+ static LIST_HEAD(slab_caches_to_rcu_destroy);
+ static void slab_caches_to_rcu_destroy_workfn(struct work_struct *work);
+ static DECLARE_WORK(slab_caches_to_rcu_destroy_work,
+diff --git a/mm/slub.c b/mm/slub.c
+index 2aa4972a2058..1c0ff635d408 100644
+--- a/mm/slub.c
++++ b/mm/slub.c
+@@ -3858,7 +3858,8 @@ int __check_heap_object(const void *ptr, unsigned long n, struct page *page,
+ 		 * whitelists.
+ 		 */
+ 		object_size = slab_ksize(s);
+-		if ((offset <= object_size && n <= object_size - offset)) {
++		if (usercopy_fallback &&
++		    (offset <= object_size && n <= object_size - offset)) {
+ 			WARN_ONCE(1, "unexpected usercopy %s with bad or missing whitelist with SLUB object '%s' (offset %lu size %lu)",
+ 				  to_user ? "exposure" : "overwrite",
+ 				  s->name, offset, n);
+diff --git a/security/Kconfig b/security/Kconfig
+index e8e449444e65..ae457b018da5 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -152,6 +152,20 @@ config HARDENED_USERCOPY
+ 	  or are part of the kernel text. This kills entire classes
+ 	  of heap overflow exploits and similar kernel memory exposures.
+ 
++config HARDENED_USERCOPY_FALLBACK
++	bool "Allow usercopy whitelist violations to fallback to object size"
++	depends on HARDENED_USERCOPY
++	default y
++	help
++	  This is a temporary option that allows missing usercopy whitelists
++	  to be discovered via a WARN() to the kernel log, instead of
++	  rejecting the copy, falling back to non-whitelisted hardened
++	  usercopy that checks the slab allocation size instead of the
++	  whitelist size. This option will be removed once it seems like
++	  all missing usercopy whitelists have been identified and fixed.
++	  Booting with "slab_common.usercopy_fallback=Y/N" can change
++	  this setting.
++
+ config HARDENED_USERCOPY_PAGESPAN
+ 	bool "Refuse to copy allocations that span multiple pages"
+ 	depends on HARDENED_USERCOPY
 -- 
 2.7.4
 
