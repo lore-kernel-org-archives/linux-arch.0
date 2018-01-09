@@ -1,93 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f65.google.com ([74.125.83.65]:36349 "EHLO
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:34799 "EHLO
         mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756306AbeAIU5V (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:57:21 -0500
-Received: by mail-pg0-f65.google.com with SMTP id j2so7608856pgv.3
-        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:57:21 -0800 (PST)
+        with ESMTP id S1759723AbeAIU5M (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:57:12 -0500
+Received: by mail-pg0-f65.google.com with SMTP id j4so8822984pgp.1
+        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:57:12 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 07/36] dcache: Define usercopy region in dentry_cache slab cache
-Date: Tue,  9 Jan 2018 12:55:36 -0800
-Message-ID: <1515531365-37423-8-git-send-email-keescook@chromium.org>
+Subject: [PATCH 31/36] arm: Implement thread_struct whitelist for hardened usercopy
+Date: Tue,  9 Jan 2018 12:56:00 -0800
+Message-ID: <1515531365-37423-32-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180109205536.QC9NUxBGVJXvobcW2ii1HvsodatbxLrrJ-t8k_whMgw@z>
+Cc: Kees Cook <keescook@chromium.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, linux-arm-kernel@lists.infradead.org, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180109205600.--446cwrPQCz_6yAK5wrMLD84TjlYjrZ6emHfawctBM@z>
 
-From: David Windsor <dave@nullcore.net>
+ARM does not carry FPU state in the thread structure, so it can declare
+no usercopy whitelist at all.
 
-When a dentry name is short enough, it can be stored directly in the
-dentry itself (instead in a separate kmalloc allocation). These dentry
-short names, stored in struct dentry.d_iname and therefore contained in
-the dentry_cache slab cache, need to be coped to userspace.
-
-cache object allocation:
-    fs/dcache.c:
-        __d_alloc(...):
-            ...
-            dentry = kmem_cache_alloc(dentry_cache, ...);
-            ...
-            dentry->d_name.name = dentry->d_iname;
-
-example usage trace:
-    filldir+0xb0/0x140
-    dcache_readdir+0x82/0x170
-    iterate_dir+0x142/0x1b0
-    SyS_getdents+0xb5/0x160
-
-    fs/readdir.c:
-        (called via ctx.actor by dir_emit)
-        filldir(..., const char *name, ...):
-            ...
-            copy_to_user(..., name, namlen)
-
-    fs/libfs.c:
-        dcache_readdir(...):
-            ...
-            next = next_positive(dentry, p, 1)
-            ...
-            dir_emit(..., next->d_name.name, ...)
-
-In support of usercopy hardening, this patch defines a region in the
-dentry_cache slab cache in which userspace copy operations are allowed.
-
-This region is known as the slab cache's usercopy region. Slab caches can
-now check that each dynamic copy operation involving cache-managed memory
-falls entirely within the slab's usercopy region.
-
-This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
-whitelisting code in the last public patch of grsecurity/PaX based on my
-understanding of the code. Changes or omissions from the original code are
-mine and don't reflect the original grsecurity/PaX code.
-
-Signed-off-by: David Windsor <dave@nullcore.net>
-[kees: adjust hunks for kmalloc-specific things moved later]
-[kees: adjust commit log, provide usage trace]
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: linux-fsdevel@vger.kernel.org
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>
+Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- fs/dcache.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ arch/arm/Kconfig                 | 1 +
+ arch/arm/include/asm/processor.h | 7 +++++++
+ 2 files changed, 8 insertions(+)
 
-diff --git a/fs/dcache.c b/fs/dcache.c
-index 5c7df1df81ff..92ad7a2168e1 100644
---- a/fs/dcache.c
-+++ b/fs/dcache.c
-@@ -3601,8 +3601,9 @@ static void __init dcache_init(void)
- 	 * but it is probably not worth it because of the cache nature
- 	 * of the dcache.
- 	 */
--	dentry_cache = KMEM_CACHE(dentry,
--		SLAB_RECLAIM_ACCOUNT|SLAB_PANIC|SLAB_MEM_SPREAD|SLAB_ACCOUNT);
-+	dentry_cache = KMEM_CACHE_USERCOPY(dentry,
-+		SLAB_RECLAIM_ACCOUNT|SLAB_PANIC|SLAB_MEM_SPREAD|SLAB_ACCOUNT,
-+		d_iname);
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 51c8df561077..3ea00d65f35d 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -50,6 +50,7 @@ config ARM
+ 	select HAVE_ARCH_KGDB if !CPU_ENDIAN_BE32 && MMU
+ 	select HAVE_ARCH_MMAP_RND_BITS if MMU
+ 	select HAVE_ARCH_SECCOMP_FILTER if (AEABI && !OABI_COMPAT)
++	select HAVE_ARCH_THREAD_STRUCT_WHITELIST
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARM_SMCCC if CPU_V7
+ 	select HAVE_EBPF_JIT if !CPU_ENDIAN_BE32
+diff --git a/arch/arm/include/asm/processor.h b/arch/arm/include/asm/processor.h
+index 338cbe0a18ef..01a41be58d43 100644
+--- a/arch/arm/include/asm/processor.h
++++ b/arch/arm/include/asm/processor.h
+@@ -45,6 +45,13 @@ struct thread_struct {
+ 	struct debug_info	debug;
+ };
  
- 	/* Hash may have been set up in dcache_init_early */
- 	if (!hashdist)
++/* Nothing needs to be usercopy-whitelisted from thread_struct. */
++static inline void arch_thread_struct_whitelist(unsigned long *offset,
++						unsigned long *size)
++{
++	*offset = *size = 0;
++}
++
+ #define INIT_THREAD  {	}
+ 
+ #define start_thread(regs,pc,sp)					\
 -- 
 2.7.4
