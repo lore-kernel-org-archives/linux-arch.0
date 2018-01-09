@@ -1,89 +1,63 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 21/36] ip: Define usercopy region in IP proto slab cache
-Date: Tue,  9 Jan 2018 12:55:50 -0800
-Message-ID: <1515531365-37423-22-git-send-email-keescook@chromium.org>
+Subject: [PATCH 29/36] x86: Implement thread_struct whitelist for hardened usercopy
+Date: Tue,  9 Jan 2018 12:55:58 -0800
+Message-ID: <1515531365-37423-30-git-send-email-keescook@chromium.org>
 References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Sender: owner-linux-mm@kvack.org
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, "David S. Miller" <davem@davemloft.net>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik
+Cc: Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Borislav Petkov <bp@suse.de>, Andy Lutomirski <luto@kernel.org>, Mathias Krause <minipli@googlemail.com>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis
 List-Id: linux-arch.vger.kernel.org
 
-From: David Windsor <dave@nullcore.net>
+This whitelists the FPU register state portion of the thread_struct for
+copying to userspace, instead of the default entire struct.
 
-The ICMP filters for IPv4 and IPv6 raw sockets need to be copied to/from
-userspace. In support of usercopy hardening, this patch defines a region
-in the struct proto slab cache in which userspace copy operations are
-allowed.
-
-example usage trace:
-
-    net/ipv4/raw.c:
-        raw_seticmpfilter(...):
-            ...
-            copy_from_user(&raw_sk(sk)->filter, ..., optlen)
-
-        raw_geticmpfilter(...):
-            ...
-            copy_to_user(..., &raw_sk(sk)->filter, len)
-
-    net/ipv6/raw.c:
-        rawv6_seticmpfilter(...):
-            ...
-            copy_from_user(&raw6_sk(sk)->filter, ..., optlen)
-
-        rawv6_geticmpfilter(...):
-            ...
-            copy_to_user(..., &raw6_sk(sk)->filter, len)
-
-This region is known as the slab cache's usercopy region. Slab caches
-can now check that each dynamically sized copy operation involving
-cache-managed memory falls entirely within the slab's usercopy region.
-
-This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
-whitelisting code in the last public patch of grsecurity/PaX based on my
-understanding of the code. Changes or omissions from the original code are
-mine and don't reflect the original grsecurity/PaX code.
-
-Signed-off-by: David Windsor <dave@nullcore.net>
-[kees: split from network patch, provide usage trace]
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
-Cc: Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>
-Cc: netdev@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: Borislav Petkov <bp@suse.de>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Mathias Krause <minipli@googlemail.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Rik van Riel <riel@redhat.com>
 ---
- net/ipv4/raw.c | 2 ++
- net/ipv6/raw.c | 2 ++
- 2 files changed, 4 insertions(+)
+ arch/x86/Kconfig                 | 1 +
+ arch/x86/include/asm/processor.h | 8 ++++++++
+ 2 files changed, 9 insertions(+)
 
-diff --git a/net/ipv4/raw.c b/net/ipv4/raw.c
-index 33b70bfd1122..1b6fa4195ac9 100644
---- a/net/ipv4/raw.c
-+++ b/net/ipv4/raw.c
-@@ -970,6 +970,8 @@ struct proto raw_prot = {
- 	.hash		   = raw_hash_sk,
- 	.unhash		   = raw_unhash_sk,
- 	.obj_size	   = sizeof(struct raw_sock),
-+	.useroffset	   = offsetof(struct raw_sock, filter),
-+	.usersize	   = sizeof_field(struct raw_sock, filter),
- 	.h.raw_hash	   = &raw_v4_hashinfo,
- #ifdef CONFIG_COMPAT
- 	.compat_setsockopt = compat_raw_setsockopt,
-diff --git a/net/ipv6/raw.c b/net/ipv6/raw.c
-index 761a473a07c5..08a85fabdfd1 100644
---- a/net/ipv6/raw.c
-+++ b/net/ipv6/raw.c
-@@ -1272,6 +1272,8 @@ struct proto rawv6_prot = {
- 	.hash		   = raw_hash_sk,
- 	.unhash		   = raw_unhash_sk,
- 	.obj_size	   = sizeof(struct raw6_sock),
-+	.useroffset	   = offsetof(struct raw6_sock, filter),
-+	.usersize	   = sizeof_field(struct raw6_sock, filter),
- 	.h.raw_hash	   = &raw_v6_hashinfo,
- #ifdef CONFIG_COMPAT
- 	.compat_setsockopt = compat_rawv6_setsockopt,
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 8eed3f94bfc7..9ac4ac1a856b 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -116,6 +116,7 @@ config X86
+ 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS	if MMU && COMPAT
+ 	select HAVE_ARCH_COMPAT_MMAP_BASES	if MMU && COMPAT
+ 	select HAVE_ARCH_SECCOMP_FILTER
++	select HAVE_ARCH_THREAD_STRUCT_WHITELIST
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD if X86_64
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index cc16fa882e3e..2b037b7fe0eb 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -492,6 +492,14 @@ struct thread_struct {
+ 	 */
+ };
+ 
++/* Whitelist the FPU state from the task_struct for hardened usercopy. */
++static inline void arch_thread_struct_whitelist(unsigned long *offset,
++						unsigned long *size)
++{
++	*offset = offsetof(struct thread_struct, fpu.state);
++	*size = fpu_kernel_xstate_size;
++}
++
+ /*
+  * Thread-synchronous status.
+  *
 -- 
 2.7.4
 
