@@ -1,58 +1,111 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH 00/18] prevent bounds-check bypass via speculative execution
-Date: Tue, 9 Jan 2018 11:44:05 -0800
-Message-ID: <CAPcyv4gccDQYx9urpagnBo-TqNLoQ00gEoE7kp+JXNKsmFxcHw@mail.gmail.com>
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <alpine.LRH.2.00.1801092017330.27010@gjva.wvxbf.pm>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.LRH.2.00.1801092017330.27010@gjva.wvxbf.pm>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jiri Kosina <jikos@kernel.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Zhang Rui <rui.zhang@intel.com>, Linux-media@vger.ker
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 2/3] exec: Introduce finalize_exec() before start_thread()
+Date: Tue,  9 Jan 2018 12:23:02 -0800
+Message-ID: <1515529383-35695-3-git-send-email-keescook@chromium.org>
+References: <1515529383-35695-1-git-send-email-keescook@chromium.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1515529383-35695-1-git-send-email-keescook@chromium.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, Michal Hocko <mhocko@kernel.org>, Ben Hutchings <ben@decadent.org.uk>, Willy Tarreau <w@1wt.eu>, Hugh Dickins <hughd@google.com>, Oleg Nesterov <oleg@redhat.com>, "Jason A. Donenfeld" <Jason@zx2c4.com>, Rik van Riel <riel@redhat.com>, Laura Abbott <labbott@redhat.com>, Greg KH <greg@kroah.com>, Andy Lutomirski <luto@kernel.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 9, 2018 at 11:34 AM, Jiri Kosina <jikos@kernel.org> wrote:
-> On Fri, 5 Jan 2018, Dan Williams wrote:
->
-> [ ... snip ... ]
->> Andi Kleen (1):
->>       x86, barrier: stop speculation for failed access_ok
->>
->> Dan Williams (13):
->>       x86: implement nospec_barrier()
->>       [media] uvcvideo: prevent bounds-check bypass via speculative execution
->>       carl9170: prevent bounds-check bypass via speculative execution
->>       p54: prevent bounds-check bypass via speculative execution
->>       qla2xxx: prevent bounds-check bypass via speculative execution
->>       cw1200: prevent bounds-check bypass via speculative execution
->>       Thermal/int340x: prevent bounds-check bypass via speculative execution
->>       ipv6: prevent bounds-check bypass via speculative execution
->>       ipv4: prevent bounds-check bypass via speculative execution
->>       vfs, fdtable: prevent bounds-check bypass via speculative execution
->>       net: mpls: prevent bounds-check bypass via speculative execution
->>       udf: prevent bounds-check bypass via speculative execution
->>       userns: prevent bounds-check bypass via speculative execution
->>
->> Mark Rutland (4):
->>       asm-generic/barrier: add generic nospec helpers
->>       Documentation: document nospec helpers
->>       arm64: implement nospec_ptr()
->>       arm: implement nospec_ptr()
->
-> So considering the recent publication of [1], how come we all of a sudden
-> don't need the barriers in ___bpf_prog_run(), namely for LD_IMM_DW and
-> LDX_MEM_##SIZEOP, and something comparable for eBPF JIT?
->
-> Is this going to be handled in eBPF in some other way?
->
-> Without that in place, and considering Jann Horn's paper, it would seem
-> like PTI doesn't really lock it down fully, right?
+Provide a final call back into fs/exec.c before start_thread() takes
+over, to handle any last-minute changes, like the coming restoration of
+the stack limit.
 
-Here is the latest (v3) bpf fix:
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ fs/binfmt_aout.c        | 1 +
+ fs/binfmt_elf.c         | 1 +
+ fs/binfmt_elf_fdpic.c   | 1 +
+ fs/binfmt_flat.c        | 1 +
+ fs/exec.c               | 6 ++++++
+ include/linux/binfmts.h | 1 +
+ 6 files changed, 11 insertions(+)
 
-https://patchwork.ozlabs.org/patch/856645/
+diff --git a/fs/binfmt_aout.c b/fs/binfmt_aout.c
+index ce1824f47ba6..c3deb2e35f20 100644
+--- a/fs/binfmt_aout.c
++++ b/fs/binfmt_aout.c
+@@ -330,6 +330,7 @@ static int load_aout_binary(struct linux_binprm * bprm)
+ #ifdef __alpha__
+ 	regs->gp = ex.a_gpvalue;
+ #endif
++	finalize_exec(bprm);
+ 	start_thread(regs, ex.a_entry, current->mm->start_stack);
+ 	return 0;
+ }
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 83732fef510d..b9055ff1c70e 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -1155,6 +1155,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	ELF_PLAT_INIT(regs, reloc_func_desc);
+ #endif
+ 
++	finalize_exec(bprm);
+ 	start_thread(regs, elf_entry, bprm->p);
+ 	retval = 0;
+ out:
+diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
+index 429326b6e2e7..d90993adeffa 100644
+--- a/fs/binfmt_elf_fdpic.c
++++ b/fs/binfmt_elf_fdpic.c
+@@ -463,6 +463,7 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm)
+ 			    dynaddr);
+ #endif
+ 
++	finalize_exec(bprm);
+ 	/* everything is now ready... get the userspace context ready to roll */
+ 	entryaddr = interp_params.entry_addr ?: exec_params.entry_addr;
+ 	start_thread(regs, entryaddr, current->mm->start_stack);
+diff --git a/fs/binfmt_flat.c b/fs/binfmt_flat.c
+index 5d6b94475f27..82a48e830018 100644
+--- a/fs/binfmt_flat.c
++++ b/fs/binfmt_flat.c
+@@ -994,6 +994,7 @@ static int load_flat_binary(struct linux_binprm *bprm)
+ 	FLAT_PLAT_INIT(regs);
+ #endif
+ 
++	finalize_exec(bprm);
+ 	pr_debug("start_thread(regs=0x%p, entry=0x%lx, start_stack=0x%lx)\n",
+ 		 regs, start_addr, current->mm->start_stack);
+ 	start_thread(regs, start_addr, current->mm->start_stack);
+diff --git a/fs/exec.c b/fs/exec.c
+index 7074913ad2e7..e4ae20ff6278 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1384,6 +1384,12 @@ void setup_new_exec(struct linux_binprm * bprm)
+ }
+ EXPORT_SYMBOL(setup_new_exec);
+ 
++/* Runs immediately before start_thread() takes over. */
++void finalize_exec(struct linux_binprm *bprm)
++{
++}
++EXPORT_SYMBOL(finalize_exec);
++
+ /*
+  * Prepare credentials and lock ->cred_guard_mutex.
+  * install_exec_creds() commits the new creds and drops the lock.
+diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
+index b0abe21d6cc9..40e52afbb2b0 100644
+--- a/include/linux/binfmts.h
++++ b/include/linux/binfmts.h
+@@ -118,6 +118,7 @@ extern int __must_check remove_arg_zero(struct linux_binprm *);
+ extern int search_binary_handler(struct linux_binprm *);
+ extern int flush_old_exec(struct linux_binprm * bprm);
+ extern void setup_new_exec(struct linux_binprm * bprm);
++extern void finalize_exec(struct linux_binprm *bprm);
+ extern void would_dump(struct linux_binprm *, struct file *);
+ 
+ extern int suid_dumpable;
+-- 
+2.7.4
 
-I currently have v2 on my 'nospec' branch and will move that to v3 for
-the next update, unless it goes upstream before then.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
