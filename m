@@ -1,74 +1,376 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53224 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751384AbeAIU4J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 9 Jan 2018 15:56:09 -0500
-Date: Tue, 9 Jan 2018 14:55:49 -0600
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH 00/18] prevent bounds-check bypass via speculative
- execution
-Message-ID: <20180109205549.osb25c4r2h2n2wqx@treble>
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <alpine.LRH.2.00.1801092017330.27010@gjva.wvxbf.pm>
- <CAPcyv4gccDQYx9urpagnBo-TqNLoQ00gEoE7kp+JXNKsmFxcHw@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <CAPcyv4gccDQYx9urpagnBo-TqNLoQ00gEoE7kp+JXNKsmFxcHw@mail.gmail.com>
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:43318 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1757870AbeAIU4u (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:56:50 -0500
+Received: by mail-pg0-f68.google.com with SMTP id f14so6242838pga.10
+        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:56:50 -0800 (PST)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 02/36] usercopy: Include offset in overflow report
+Date: Tue,  9 Jan 2018 12:55:31 -0800
+Message-ID: <1515531365-37423-3-git-send-email-keescook@chromium.org>
+In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
+References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Jiri Kosina <jikos@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Zhang Rui <rui.zhang@intel.com>, "Linux-media@vger.kernel.org" <linux-media@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Jan Kara <jack@suse.com>, Eduardo Valentin <edubezval@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Kalle Valo <kvalo@codeaurora.org>, Alan Cox <alan@linux.intel.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Greg KH <gregkh@linuxfoundation.org>, linux-wireless@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Netdev <netdev@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Message-ID: <20180109205549.l5KG99ndhkolJ2Cj19xd6PtoQqLSTJPH6O8YFzg4Qlg@z>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180109205531.Y5bSwYgQFFOIY0oJ4guYLrSfQUS1tJuqV6v4xoFRIYs@z>
 
-On Tue, Jan 09, 2018 at 11:44:05AM -0800, Dan Williams wrote:
-> On Tue, Jan 9, 2018 at 11:34 AM, Jiri Kosina <jikos@kernel.org> wrote:
-> > On Fri, 5 Jan 2018, Dan Williams wrote:
-> >
-> > [ ... snip ... ]
-> >> Andi Kleen (1):
-> >>       x86, barrier: stop speculation for failed access_ok
-> >>
-> >> Dan Williams (13):
-> >>       x86: implement nospec_barrier()
-> >>       [media] uvcvideo: prevent bounds-check bypass via speculative execution
-> >>       carl9170: prevent bounds-check bypass via speculative execution
-> >>       p54: prevent bounds-check bypass via speculative execution
-> >>       qla2xxx: prevent bounds-check bypass via speculative execution
-> >>       cw1200: prevent bounds-check bypass via speculative execution
-> >>       Thermal/int340x: prevent bounds-check bypass via speculative execution
-> >>       ipv6: prevent bounds-check bypass via speculative execution
-> >>       ipv4: prevent bounds-check bypass via speculative execution
-> >>       vfs, fdtable: prevent bounds-check bypass via speculative execution
-> >>       net: mpls: prevent bounds-check bypass via speculative execution
-> >>       udf: prevent bounds-check bypass via speculative execution
-> >>       userns: prevent bounds-check bypass via speculative execution
-> >>
-> >> Mark Rutland (4):
-> >>       asm-generic/barrier: add generic nospec helpers
-> >>       Documentation: document nospec helpers
-> >>       arm64: implement nospec_ptr()
-> >>       arm: implement nospec_ptr()
-> >
-> > So considering the recent publication of [1], how come we all of a sudden
-> > don't need the barriers in ___bpf_prog_run(), namely for LD_IMM_DW and
-> > LDX_MEM_##SIZEOP, and something comparable for eBPF JIT?
-> >
-> > Is this going to be handled in eBPF in some other way?
-> >
-> > Without that in place, and considering Jann Horn's paper, it would seem
-> > like PTI doesn't really lock it down fully, right?
-> 
-> Here is the latest (v3) bpf fix:
-> 
-> https://patchwork.ozlabs.org/patch/856645/
-> 
-> I currently have v2 on my 'nospec' branch and will move that to v3 for
-> the next update, unless it goes upstream before then.
+This refactors the hardened usercopy reporting code so that the object
+offset can be included in the report. Having the offset can be much more
+helpful in understanding usercopy bugs.
 
-That patch seems specific to CONFIG_BPF_SYSCALL.  Is the bpf() syscall
-the only attack vector?  Or are there other ways to run bpf programs
-that we should be worried about?
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ include/linux/slab.h        |  11 +++--
+ include/linux/thread_info.h |   2 +
+ mm/slab.c                   |   8 ++--
+ mm/slub.c                   |  14 +++---
+ mm/usercopy.c               | 101 +++++++++++++++++++++++---------------------
+ 5 files changed, 72 insertions(+), 64 deletions(-)
 
+diff --git a/include/linux/slab.h b/include/linux/slab.h
+index 50697a1d6621..ca11d5affacf 100644
+--- a/include/linux/slab.h
++++ b/include/linux/slab.h
+@@ -167,14 +167,13 @@ void kzfree(const void *);
+ size_t ksize(const void *);
+ 
+ #ifdef CONFIG_HAVE_HARDENED_USERCOPY_ALLOCATOR
+-const char *__check_heap_object(const void *ptr, unsigned long n,
+-				struct page *page);
++int __check_heap_object(const void *ptr, unsigned long n, struct page *page,
++			bool to_user);
+ #else
+-static inline const char *__check_heap_object(const void *ptr,
+-					      unsigned long n,
+-					      struct page *page)
++static inline int __check_heap_object(const void *ptr, unsigned long n,
++				      struct page *page, bool to_user)
+ {
+-	return NULL;
++	return 0;
+ }
+ #endif
+ 
+diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+index 34f053a150a9..2ae26d138ac9 100644
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -111,6 +111,8 @@ static __always_inline void check_object_size(const void *ptr, unsigned long n,
+ 	if (!__builtin_constant_p(n))
+ 		__check_object_size(ptr, n, to_user);
+ }
++int report_usercopy(const char *name, const char *detail, bool to_user,
++		    unsigned long offset, unsigned long len);
+ #else
+ static inline void check_object_size(const void *ptr, unsigned long n,
+ 				     bool to_user)
+diff --git a/mm/slab.c b/mm/slab.c
+index 183e996dde5f..1a33ba68df3d 100644
+--- a/mm/slab.c
++++ b/mm/slab.c
+@@ -4397,8 +4397,8 @@ module_init(slab_proc_init);
+  * Returns NULL if check passes, otherwise const char * to name of cache
+  * to indicate an error.
+  */
+-const char *__check_heap_object(const void *ptr, unsigned long n,
+-				struct page *page)
++int __check_heap_object(const void *ptr, unsigned long n, struct page *page,
++			bool to_user)
+ {
+ 	struct kmem_cache *cachep;
+ 	unsigned int objnr;
+@@ -4414,9 +4414,9 @@ const char *__check_heap_object(const void *ptr, unsigned long n,
+ 
+ 	/* Allow address range falling entirely within object size. */
+ 	if (offset <= cachep->object_size && n <= cachep->object_size - offset)
+-		return NULL;
++		return 0;
+ 
+-	return cachep->name;
++	return report_usercopy("SLAB object", cachep->name, to_user, offset, n);
+ }
+ #endif /* CONFIG_HARDENED_USERCOPY */
+ 
+diff --git a/mm/slub.c b/mm/slub.c
+index cfd56e5a35fb..8c82872cc8ef 100644
+--- a/mm/slub.c
++++ b/mm/slub.c
+@@ -3818,8 +3818,8 @@ EXPORT_SYMBOL(__kmalloc_node);
+  * Returns NULL if check passes, otherwise const char * to name of cache
+  * to indicate an error.
+  */
+-const char *__check_heap_object(const void *ptr, unsigned long n,
+-				struct page *page)
++int __check_heap_object(const void *ptr, unsigned long n, struct page *page,
++			bool to_user)
+ {
+ 	struct kmem_cache *s;
+ 	unsigned long offset;
+@@ -3831,7 +3831,8 @@ const char *__check_heap_object(const void *ptr, unsigned long n,
+ 
+ 	/* Reject impossible pointers. */
+ 	if (ptr < page_address(page))
+-		return s->name;
++		return report_usercopy("SLUB object not in SLUB page?!", NULL,
++				       to_user, 0, n);
+ 
+ 	/* Find offset within object. */
+ 	offset = (ptr - page_address(page)) % s->size;
+@@ -3839,15 +3840,16 @@ const char *__check_heap_object(const void *ptr, unsigned long n,
+ 	/* Adjust for redzone and reject if within the redzone. */
+ 	if (kmem_cache_debug(s) && s->flags & SLAB_RED_ZONE) {
+ 		if (offset < s->red_left_pad)
+-			return s->name;
++			return report_usercopy("SLUB object in left red zone",
++					       s->name, to_user, offset, n);
+ 		offset -= s->red_left_pad;
+ 	}
+ 
+ 	/* Allow address range falling entirely within object size. */
+ 	if (offset <= object_size && n <= object_size - offset)
+-		return NULL;
++		return 0;
+ 
+-	return s->name;
++	return report_usercopy("SLUB object", s->name, to_user, offset, n);
+ }
+ #endif /* CONFIG_HARDENED_USERCOPY */
+ 
+diff --git a/mm/usercopy.c b/mm/usercopy.c
+index 5df1e68d4585..a8426a502136 100644
+--- a/mm/usercopy.c
++++ b/mm/usercopy.c
+@@ -58,24 +58,30 @@ static noinline int check_stack_object(const void *obj, unsigned long len)
+ 	return GOOD_STACK;
+ }
+ 
+-static void report_usercopy(unsigned long len, bool to_user, const char *type)
++int report_usercopy(const char *name, const char *detail, bool to_user,
++		    unsigned long offset, unsigned long len)
+ {
+-	pr_emerg("kernel memory %s attempt detected %s '%s' (%lu bytes)\n",
++	pr_emerg("kernel memory %s attempt detected %s %s%s%s%s (offset %lu, size %lu)\n",
+ 		to_user ? "exposure" : "overwrite",
+-		to_user ? "from" : "to", type ? : "unknown", len);
++		to_user ? "from" : "to",
++		name ? : "unknown?!",
++		detail ? " '" : "", detail ? : "", detail ? "'" : "",
++		offset, len);
+ 	/*
+ 	 * For greater effect, it would be nice to do do_group_exit(),
+ 	 * but BUG() actually hooks all the lock-breaking and per-arch
+ 	 * Oops code, so that is used here instead.
+ 	 */
+ 	BUG();
++
++	return -1;
+ }
+ 
+ /* Returns true if any portion of [ptr,ptr+n) over laps with [low,high). */
+-static bool overlaps(const void *ptr, unsigned long n, unsigned long low,
+-		     unsigned long high)
++static bool overlaps(const unsigned long ptr, unsigned long n,
++		     unsigned long low, unsigned long high)
+ {
+-	unsigned long check_low = (uintptr_t)ptr;
++	const unsigned long check_low = ptr;
+ 	unsigned long check_high = check_low + n;
+ 
+ 	/* Does not overlap if entirely above or entirely below. */
+@@ -86,15 +92,16 @@ static bool overlaps(const void *ptr, unsigned long n, unsigned long low,
+ }
+ 
+ /* Is this address range in the kernel text area? */
+-static inline const char *check_kernel_text_object(const void *ptr,
+-						   unsigned long n)
++static inline int check_kernel_text_object(const unsigned long ptr,
++					   unsigned long n, bool to_user)
+ {
+ 	unsigned long textlow = (unsigned long)_stext;
+ 	unsigned long texthigh = (unsigned long)_etext;
+ 	unsigned long textlow_linear, texthigh_linear;
+ 
+ 	if (overlaps(ptr, n, textlow, texthigh))
+-		return "<kernel text>";
++		return report_usercopy("kernel text", NULL, to_user,
++				       ptr - textlow, n);
+ 
+ 	/*
+ 	 * Some architectures have virtual memory mappings with a secondary
+@@ -107,32 +114,35 @@ static inline const char *check_kernel_text_object(const void *ptr,
+ 	textlow_linear = (unsigned long)lm_alias(textlow);
+ 	/* No different mapping: we're done. */
+ 	if (textlow_linear == textlow)
+-		return NULL;
++		return 0;
+ 
+ 	/* Check the secondary mapping... */
+ 	texthigh_linear = (unsigned long)lm_alias(texthigh);
+ 	if (overlaps(ptr, n, textlow_linear, texthigh_linear))
+-		return "<linear kernel text>";
++		return report_usercopy("linear kernel text", NULL, to_user,
++				       ptr - textlow_linear, n);
+ 
+-	return NULL;
++	return 0;
+ }
+ 
+-static inline const char *check_bogus_address(const void *ptr, unsigned long n)
++static inline int check_bogus_address(const unsigned long ptr, unsigned long n,
++				      bool to_user)
+ {
+ 	/* Reject if object wraps past end of memory. */
+-	if ((unsigned long)ptr + n < (unsigned long)ptr)
+-		return "<wrapped address>";
++	if (ptr + n < ptr)
++		return report_usercopy("wrapped address", NULL, to_user,
++				       0, ptr + n);
+ 
+ 	/* Reject if NULL or ZERO-allocation. */
+ 	if (ZERO_OR_NULL_PTR(ptr))
+-		return "<null>";
++		return report_usercopy("null address", NULL, to_user, ptr, n);
+ 
+-	return NULL;
++	return 0;
+ }
+ 
+ /* Checks for allocs that are marked in some way as spanning multiple pages. */
+-static inline const char *check_page_span(const void *ptr, unsigned long n,
+-					  struct page *page, bool to_user)
++static inline int check_page_span(const void *ptr, unsigned long n,
++				  struct page *page, bool to_user)
+ {
+ #ifdef CONFIG_HARDENED_USERCOPY_PAGESPAN
+ 	const void *end = ptr + n - 1;
+@@ -149,28 +159,28 @@ static inline const char *check_page_span(const void *ptr, unsigned long n,
+ 	if (ptr >= (const void *)__start_rodata &&
+ 	    end <= (const void *)__end_rodata) {
+ 		if (!to_user)
+-			return "<rodata>";
+-		return NULL;
++			return report_usercopy("rodata", NULL, to_user, 0, n);
++		return 0;
+ 	}
+ 
+ 	/* Allow kernel data region (if not marked as Reserved). */
+ 	if (ptr >= (const void *)_sdata && end <= (const void *)_edata)
+-		return NULL;
++		return 0;
+ 
+ 	/* Allow kernel bss region (if not marked as Reserved). */
+ 	if (ptr >= (const void *)__bss_start &&
+ 	    end <= (const void *)__bss_stop)
+-		return NULL;
++		return 0;
+ 
+ 	/* Is the object wholly within one base page? */
+ 	if (likely(((unsigned long)ptr & (unsigned long)PAGE_MASK) ==
+ 		   ((unsigned long)end & (unsigned long)PAGE_MASK)))
+-		return NULL;
++		return 0;
+ 
+ 	/* Allow if fully inside the same compound (__GFP_COMP) page. */
+ 	endpage = virt_to_head_page(end);
+ 	if (likely(endpage == page))
+-		return NULL;
++		return 0;
+ 
+ 	/*
+ 	 * Reject if range is entirely either Reserved (i.e. special or
+@@ -180,33 +190,36 @@ static inline const char *check_page_span(const void *ptr, unsigned long n,
+ 	is_reserved = PageReserved(page);
+ 	is_cma = is_migrate_cma_page(page);
+ 	if (!is_reserved && !is_cma)
+-		return "<spans multiple pages>";
++		return report_usercopy("spans multiple pages", NULL, to_user,
++				       0, n);
+ 
+ 	for (ptr += PAGE_SIZE; ptr <= end; ptr += PAGE_SIZE) {
+ 		page = virt_to_head_page(ptr);
+ 		if (is_reserved && !PageReserved(page))
+-			return "<spans Reserved and non-Reserved pages>";
++			return report_usercopy("spans Reserved and non-Reserved pages",
++					       NULL, to_user, 0, n);
+ 		if (is_cma && !is_migrate_cma_page(page))
+-			return "<spans CMA and non-CMA pages>";
++			return report_usercopy("spans CMA and non-CMA pages",
++					       NULL, to_user, 0, n);
+ 	}
+ #endif
+ 
+-	return NULL;
++	return 0;
+ }
+ 
+-static inline const char *check_heap_object(const void *ptr, unsigned long n,
+-					    bool to_user)
++static inline int check_heap_object(const void *ptr, unsigned long n,
++				    bool to_user)
+ {
+ 	struct page *page;
+ 
+ 	if (!virt_addr_valid(ptr))
+-		return NULL;
++		return 0;
+ 
+ 	page = virt_to_head_page(ptr);
+ 
+ 	/* Check slab allocator for flags and size. */
+ 	if (PageSlab(page))
+-		return __check_heap_object(ptr, n, page);
++		return __check_heap_object(ptr, n, page, to_user);
+ 
+ 	/* Verify object does not incorrectly span multiple pages. */
+ 	return check_page_span(ptr, n, page, to_user);
+@@ -220,21 +233,17 @@ static inline const char *check_heap_object(const void *ptr, unsigned long n,
+  */
+ void __check_object_size(const void *ptr, unsigned long n, bool to_user)
+ {
+-	const char *err;
+-
+ 	/* Skip all tests if size is zero. */
+ 	if (!n)
+ 		return;
+ 
+ 	/* Check for invalid addresses. */
+-	err = check_bogus_address(ptr, n);
+-	if (err)
+-		goto report;
++	if (check_bogus_address((const unsigned long)ptr, n, to_user))
++		return;
+ 
+ 	/* Check for bad heap object. */
+-	err = check_heap_object(ptr, n, to_user);
+-	if (err)
+-		goto report;
++	if (check_heap_object(ptr, n, to_user))
++		return;
+ 
+ 	/* Check for bad stack object. */
+ 	switch (check_stack_object(ptr, n)) {
+@@ -250,16 +259,12 @@ void __check_object_size(const void *ptr, unsigned long n, bool to_user)
+ 		 */
+ 		return;
+ 	default:
+-		err = "<process stack>";
+-		goto report;
++		report_usercopy("process stack", NULL, to_user, 0, n);
++		return;
+ 	}
+ 
+ 	/* Check for object in kernel to avoid text exposure. */
+-	err = check_kernel_text_object(ptr, n);
+-	if (!err)
++	if (check_kernel_text_object((const unsigned long)ptr, n, to_user))
+ 		return;
+-
+-report:
+-	report_usercopy(n, to_user, err);
+ }
+ EXPORT_SYMBOL(__check_object_size);
 -- 
-Josh
+2.7.4
