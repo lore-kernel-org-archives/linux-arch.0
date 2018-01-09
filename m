@@ -1,106 +1,38 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH 07/18] [media] uvcvideo: prevent bounds-check bypass via
- speculative execution
-Date: Tue, 9 Jan 2018 15:47:54 +0100
-Message-ID: <20180109144754.GB13228@kroah.com>
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <7187306.jmXyF4vJKt@avalon>
- <20180109100410.GA11968@kroah.com>
- <2835808.JOrOUjDU6l@avalon>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 16/67] powerpc: rename dma_direct_ to dma_nommu_
+Date: Tue, 9 Jan 2018 16:38:26 +0100
+Message-ID: <20180109153826.GA10086@lst.de>
+References: <20171229081911.2802-1-hch@lst.de> <20171229081911.2802-17-hch@lst.de> <878tdgtwzp.fsf@concordia.ellerman.id.au> <20180104084930.GB3251@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <2835808.JOrOUjDU6l@avalon>
+In-Reply-To: <20180104084930.GB3251@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, alan@linux.intel.com, peterz@infradead.org, netdev@vger.kernel.org, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, linux-media@vger.kernel.org
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, linux-snps-arc@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 09, 2018 at 04:26:28PM +0200, Laurent Pinchart wrote:
-> Hi Greg,
-> 
-> On Tuesday, 9 January 2018 12:04:10 EET Greg KH wrote:
-> > On Tue, Jan 09, 2018 at 10:40:21AM +0200, Laurent Pinchart wrote:
-> > > On Saturday, 6 January 2018 11:40:26 EET Greg KH wrote:
-> > >> On Sat, Jan 06, 2018 at 10:09:07AM +0100, Greg KH wrote:
-> > >> 
-> > >> While I'm all for fixing this type of thing, I feel like we need to do
-> > >> something "else" for this as playing whack-a-mole for this pattern is
-> > >> going to be a never-ending battle for all drivers for forever.
-> > > 
-> > > That's my concern too, as even if we managed to find and fix all the
-> > > occurrences of the problematic patterns (and we won't), new ones will keep
-> > > being merged all the time.
+On Thu, Jan 04, 2018 at 09:49:30AM +0100, Christoph Hellwig wrote:
+> On Tue, Jan 02, 2018 at 08:45:30PM +1100, Michael Ellerman wrote:
+> > Christoph Hellwig <hch@lst.de> writes:
 > > 
-> > And what about the millions of lines of out-of-tree drivers that we all
-> > rely on every day in our devices?  What about the distro kernels that
-> > add random new drivers?
-> 
-> Of course, even though the out-of-tree drivers probably come with lots of 
-> security issues worse than this one.
-
-Sure, but I have worked with some teams that have used coverity to find
-and fix all of the reported bugs it founds.  So some companies are
-trying to fix their problems here, let's not make it impossible for them :)
-
-> > We need some sort of automated way to scan for this.
-> 
-> Is there any initiative to implement such a scan in an open-source tool ?
-
-Sure, if you want to, but I have no such initiative...
-
-> We also need to educate developers. An automatic scanner could help there, but 
-> in the end the information has to spread to all our brains. It won't be easy, 
-> and is likely not fully feasible, but it's no different than how developers 
-> have to be educated about race conditions and locking for instance. It's a 
-> mind set.
-
-Agreed.
-
-> > Intel, any chance we can get your coverity rules?  Given that the date
-> > of this original patchset was from last August, has anyone looked at
-> > what is now in Linus's tree?  What about linux-next?  I just added 3
-> > brand-new driver subsystems to the kernel tree there, how do we know
-> > there isn't problems in them?
+> > > We want to use the dma_direct_ namespace for a generic implementation,
+> > > so rename powerpc to the second best choice: dma_nommu_.
 > > 
-> > And what about all of the other ways user-data can be affected?  Again,
-> > as Peter pointed out, USB devices.  I want some chance to be able to at
-> > least audit the codebase we have to see if that path is an issue.
-> > Without any hint of how to do this in an automated manner, we are all
-> > in deep shit for forever.
-> 
-> Or at least until the hardware architecture evolves. Let's drop the x86 
-> instruction set, expose the µops, and have gcc handle the scheduling. Sure, it 
-> will mean recompiling everything for every x86 CPU model out there, but we 
-> have source-based distros to the rescue :-D
-
-Then we are back at the itanium mess, where all of the hardware issues
-were supposed be fixed by the compiler writers.  We all remember how
-well that worked out...
-
-> > >> Either we need some way to mark this data path to make it easy for tools
-> > >> like sparse to flag easily, or we need to catch the issue in the driver
-> > >> subsystems, which unfortunatly, would harm the drivers that don't have
-> > >> this type of issue (like here.)
-> > > 
-> > > But how would you do so ?
+> > I'm not a fan of "nommu". Some of the users of direct ops *are* using an
+> > IOMMU, they're just setting up a 1:1 mapping once at init time, rather
+> > than mapping dynamically.
 > > 
-> > I do not know, it all depends on the access pattern, right?
+> > Though I don't have a good idea for a better name, maybe "1to1",
+> > "linear", "premapped" ?
 > 
-> Any data coming from userspace could trigger such accesses. If we want 
-> complete coverage the only way I can think of is starting from syscalls and 
-> tainting data down the call stacks (__user could help to some extend), but 
-> we'll likely be drowned in false positives. I don't see how we could mark 
-> paths manually.
+> It seems like a nice counter part to the dma_iommu_ops used just about
+> anywhere else in ppc.
+> 
+> But I'll happily take any maintainer bike shed decision for the next
+> series.  Remember that in a merge window or two it will hopefully
+> go away in favor of the new generic dma_direct ops.
 
-I agree, which is why I want to see how someone did this work
-originally.  We have no idea as no one is telling us anything :(
-
-How do we "know" that these are the only problem areas?  When was the
-last scan run?  On what tree?  And so on...
-
-thanks,
-
-greg k-h
+Michael, please suggest what name you want for the next iteration,
+I don't want to hold up the series on a naming bikeshed.
