@@ -1,44 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:43336 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1758216AbeAIU5D (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:57:03 -0500
-Received: by mail-pg0-f68.google.com with SMTP id f14so6243226pga.10
-        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:57:03 -0800 (PST)
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:46201 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1758198AbeAIU5C (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:57:02 -0500
+Received: by mail-pf0-f195.google.com with SMTP id y5so5531417pff.13
+        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:57:02 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 16/36] ufs: Define usercopy region in ufs_inode_cache slab cache
-Date: Tue,  9 Jan 2018 12:55:45 -0800
-Message-ID: <1515531365-37423-17-git-send-email-keescook@chromium.org>
+Subject: [PATCH 14/36] exofs: Define usercopy region in exofs_inode_cache slab cache
+Date: Tue,  9 Jan 2018 12:55:43 -0800
+Message-ID: <1515531365-37423-15-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Evgeniy Dushistov <dushistov@mail.ru>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180109205545.YTgBzMef1VwLmgxtKYC_XB3j1OhrCbj36bm0y259qn4@z>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Boaz Harrosh <ooo@electrozaur.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180109205543.MvpQK1wJuJjOcOTTy2mWqmQ-n48w3ajIWB5FcYmZ4Dc@z>
 
 From: David Windsor <dave@nullcore.net>
 
-The ufs symlink pathnames, stored in struct ufs_inode_info.i_u1.i_symlink
-and therefore contained in the ufs_inode_cache slab cache, need to be
-copied to/from userspace.
+The exofs short symlink names, stored in struct exofs_i_info.i_data and
+therefore contained in the exofs_inode_cache slab cache, need to be copied
+to/from userspace.
 
 cache object allocation:
-    fs/ufs/super.c:
-        ufs_alloc_inode(...):
+    fs/exofs/super.c:
+        exofs_alloc_inode(...):
             ...
-            ei = kmem_cache_alloc(ufs_inode_cachep, GFP_NOFS);
+            oi = kmem_cache_alloc(exofs_inode_cachep, GFP_KERNEL);
             ...
-            return &ei->vfs_inode;
+            return &oi->vfs_inode;
 
-    fs/ufs/ufs.h:
-        UFS_I(struct inode *inode):
-            return container_of(inode, struct ufs_inode_info, vfs_inode);
-
-    fs/ufs/namei.c:
-        ufs_symlink(...):
+    fs/exofs/namei.c:
+        exofs_symlink(...):
             ...
-            inode->i_link = (char *)UFS_I(inode)->i_u1.i_symlink;
+            inode->i_link = (char *)oi->i_data;
 
 example usage trace:
     readlink_copy+0x43/0x70
@@ -58,7 +54,8 @@ example usage trace:
             readlink_copy(..., link);
 
 In support of usercopy hardening, this patch defines a region in the
-ufs_inode_cache slab cache in which userspace copy operations are allowed.
+exofs_inode_cache slab cache in which userspace copy operations are
+allowed.
 
 This region is known as the slab cache's usercopy region. Slab caches
 can now check that each dynamically sized copy operation involving
@@ -71,34 +68,30 @@ mine and don't reflect the original grsecurity/PaX code.
 
 Signed-off-by: David Windsor <dave@nullcore.net>
 [kees: adjust commit log, provide usage trace]
-Cc: Evgeniy Dushistov <dushistov@mail.ru>
+Cc: Boaz Harrosh <ooo@electrozaur.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- fs/ufs/super.c | 13 ++++++++-----
- 1 file changed, 8 insertions(+), 5 deletions(-)
+ fs/exofs/super.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ufs/super.c b/fs/ufs/super.c
-index 4d497e9c6883..652a77702aec 100644
---- a/fs/ufs/super.c
-+++ b/fs/ufs/super.c
-@@ -1466,11 +1466,14 @@ static void init_once(void *foo)
- 
- static int __init init_inodecache(void)
+diff --git a/fs/exofs/super.c b/fs/exofs/super.c
+index 819624cfc8da..e5c532875bb7 100644
+--- a/fs/exofs/super.c
++++ b/fs/exofs/super.c
+@@ -192,10 +192,13 @@ static void exofs_init_once(void *foo)
+  */
+ static int init_inodecache(void)
  {
--	ufs_inode_cachep = kmem_cache_create("ufs_inode_cache",
--					     sizeof(struct ufs_inode_info),
--					     0, (SLAB_RECLAIM_ACCOUNT|
--						SLAB_MEM_SPREAD|SLAB_ACCOUNT),
--					     init_once);
-+	ufs_inode_cachep = kmem_cache_create_usercopy("ufs_inode_cache",
-+				sizeof(struct ufs_inode_info), 0,
-+				(SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|
-+					SLAB_ACCOUNT),
-+				offsetof(struct ufs_inode_info, i_u1.i_symlink),
-+				sizeof_field(struct ufs_inode_info,
-+					i_u1.i_symlink),
-+				init_once);
- 	if (ufs_inode_cachep == NULL)
+-	exofs_inode_cachep = kmem_cache_create("exofs_inode_cache",
++	exofs_inode_cachep = kmem_cache_create_usercopy("exofs_inode_cache",
+ 				sizeof(struct exofs_i_info), 0,
+ 				SLAB_RECLAIM_ACCOUNT | SLAB_MEM_SPREAD |
+-				SLAB_ACCOUNT, exofs_init_once);
++				SLAB_ACCOUNT,
++				offsetof(struct exofs_i_info, i_data),
++				sizeof_field(struct exofs_i_info, i_data),
++				exofs_init_once);
+ 	if (exofs_inode_cachep == NULL)
  		return -ENOMEM;
  	return 0;
 -- 
