@@ -1,55 +1,54 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 35/36] usercopy: Restrict non-usercopy caches to size 0
-Date: Tue,  9 Jan 2018 12:56:04 -0800
-Message-ID: <1515531365-37423-36-git-send-email-keescook@chromium.org>
-References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@>
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
+Date: Tue, 9 Jan 2018 15:41:49 -0600
+Message-ID: <20180109214149.yo3tnjesezgz63x4@treble>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Alan Cox <alan@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-With all known usercopied cache whitelists now defined in the
-kernel, switch the default usercopy region of kmem_cache_create()
-to size 0. Any new caches with usercopy regions will now need to use
-kmem_cache_create_usercopy() instead of kmem_cache_create().
+On Fri, Jan 05, 2018 at 06:52:07PM -0800, Linus Torvalds wrote:
+> On Fri, Jan 5, 2018 at 5:10 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> > From: Andi Kleen <ak@linux.intel.com>
+> >
+> > When access_ok fails we should always stop speculating.
+> > Add the required barriers to the x86 access_ok macro.
+> 
+> Honestly, this seems completely bogus.
+> 
+> The description is pure garbage afaik.
+> 
+> The fact is, we have to stop speculating when access_ok() does *not*
+> fail - because that's when we'll actually do the access. And it's that
+> access that needs to be non-speculative.
+> 
+> That actually seems to be what the code does (it stops speculation
+> when __range_not_ok() returns false, but access_ok() is
+> !__range_not_ok()). But the explanation is crap, and dangerous.
 
-This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
-whitelisting code in the last public patch of grsecurity/PaX based on my
-understanding of the code. Changes or omissions from the original code are
-mine and don't reflect the original grsecurity/PaX code.
+The description also seems to be missing the "why", as it's not
+self-evident (to me, at least).
 
-Cc: David Windsor <dave@nullcore.net>
-Cc: Christoph Lameter <cl@linux.com>
-Cc: Pekka Enberg <penberg@kernel.org>
-Cc: David Rientjes <rientjes@google.com>
-Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- mm/slab_common.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Isn't this (access_ok/uaccess_begin/ASM_STAC) too early for the lfence?
 
-diff --git a/mm/slab_common.c b/mm/slab_common.c
-index 8ac2a6320a6c..d00cd3f0f8ac 100644
---- a/mm/slab_common.c
-+++ b/mm/slab_common.c
-@@ -532,7 +532,7 @@ struct kmem_cache *
- kmem_cache_create(const char *name, size_t size, size_t align,
- 		slab_flags_t flags, void (*ctor)(void *))
- {
--	return kmem_cache_create_usercopy(name, size, align, flags, 0, size,
-+	return kmem_cache_create_usercopy(name, size, align, flags, 0, 0,
- 					  ctor);
- }
- EXPORT_SYMBOL(kmem_cache_create);
+i.e., wouldn't the pattern be:
+
+	get_user(uval, uptr);
+	if (uval < array_size) {
+		lfence();
+		foo = a2[a1[uval] * 256];
+	}
+
+Shouldn't the lfence come much later, *after* reading the variable and
+comparing it and branching accordingly?
+
 -- 
-2.7.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Josh
