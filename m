@@ -1,42 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ms.lwn.net ([45.79.88.28]:42680 "EHLO ms.lwn.net"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752704AbeAHVTb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 8 Jan 2018 16:19:31 -0500
-Date: Mon, 8 Jan 2018 14:19:27 -0700
-From: Jonathan Corbet <corbet@lwn.net>
-Subject: Re: [PATCH 02/18] Documentation: document nospec helpers
-Message-ID: <20180108141927.61427ad9@lwn.net>
-In-Reply-To: <20180108170959.pmwkgbosfv2oiuvc@lakrids.cambridge.arm.com>
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
-        <151520100323.32271.8384226462583945132.stgit@dwillia2-desk3.amr.corp.intel.com>
-        <20180108092917.591359aa@lwn.net>
-        <20180108170959.pmwkgbosfv2oiuvc@lakrids.cambridge.arm.com>
+Received: from mail-it0-f46.google.com ([209.85.214.46]:41091 "EHLO
+        mail-it0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752011AbeAIAMo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jan 2018 19:12:44 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8bit
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 8 Jan 2018 16:12:42 -0800
+Message-ID: <CA+55aFz9RkEBVSq_zaRim73tC+R7q0g-ygVuXBv-a-U8GnhK0A@mail.gmail.com>
+Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, Will Deacon <will.deacon@arm.com>, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180108211927.1d-lKp2wgE-qeq8ZruEW1ZfyTtbKgjuLibLjRKAErf8@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180109001242.40T3AperrDpLAv8lafOmhD9EEcFOlHO9he4KNA-z2Lc@z>
 
-On Mon, 8 Jan 2018 17:09:59 +0000
-Mark Rutland <mark.rutland@arm.com> wrote:
+On Mon, Jan 8, 2018 at 3:53 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+>
+> I've been thinking the "and" is only suitable for the array bounds
+> check, for get_user() we're trying to block speculation past
+> access_ok() at which point we can only do the lfence?
 
-> > I have just a couple of overall comments.
-> > 
-> >  - It would be nice if the document were done in RST and placed in the
-> >    core-API manual, perhaps using kerneldoc comments for the macros
-> >    themselves.  It's already 99.9% RST now, so the changes required would
-> >    be minimal.  
-> 
-> Is there any quickstart guide to RST that you can recommend?
+Well, we *could* do the "and", at least for the simple cases (ie the
+true "get_user()" that integrates the access_ok with the access).
 
-http://docutils.sourceforge.net/docs/user/rst/quickref.html works
-reasonably well.  We have some info in the kernel documentation as well,
-see http://static.lwn.net/kerneldoc/doc-guide/sphinx.html
+IOW, mainly the code in arch/x86/lib/getuser.S.
 
-Thanks,
+But it probably is a lot simpler to just add the "lfence" to ASM_STAC,
+because by definition those cases don't tend to be the truly critical
+ones - people who use those functions tend to do one or two accesses,
+and the real cost is likely the I$ misses and the D$ miss to get
+current->addr_limit. Not to mention the "stac" itself, which is much
+more expensive than the access on current microarchitectures.
 
-jon
+But something like this *might* work:
+
+   index c97d935a29e8..7fa3d293beaf 100644
+   --- a/arch/x86/lib/getuser.S
+   +++ b/arch/x86/lib/getuser.S
+   @@ -38,8 +38,11 @@
+           .text
+    ENTRY(__get_user_1)
+           mov PER_CPU_VAR(current_task), %_ASM_DX
+   -       cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
+   +       mov TASK_addr_limit(%_ASM_DX),%_ASM_DX
+   +       cmp %_ASM_DX,%_ASM_AX
+           jae bad_get_user
+   +       or $0xfff,%_ASM_DX
+   +       and %_ASM_DX,%_ASM_AX
+           ASM_STAC
+    1:     movzbl (%_ASM_AX),%edx
+           xor %eax,%eax
+
+(this only does the one-byte case - the 2/4/8 byte cases are exactly the same).
+
+The above is completely untested and might have some stupid
+thinko/typo, so take it purely as a "example patch" to show the
+concept, rather than actually do it.
+
+But just adding "lfence" to the existing ASM_STAC is a hell of a lot
+easier, and the performance difference between that trivial patch and
+the above "let's be clever with 'and'" might not be measurable.
+
+I really have no idea how expensive lfence might actually end up being
+in practice. It's possible that lfence is actually fairly cheap in
+kernel code, since we tend to not have very high IPC anyway.
+
+                 Linus
