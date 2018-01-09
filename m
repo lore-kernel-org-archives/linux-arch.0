@@ -1,69 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f171.google.com ([209.85.223.171]:38591 "EHLO
-        mail-io0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753658AbeAIENX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jan 2018 23:13:23 -0500
-MIME-Version: 1.0
-In-Reply-To: <CAPcyv4iErvcOOSkaQbMa=9OJCmxNO7sDqi3qzg2ODvKqCApULQ@mail.gmail.com>
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520108080.32271.16420298348259030860.stgit@dwillia2-desk3.amr.corp.intel.com>
- <87lgh7n2tf.fsf@xmission.com> <CAPcyv4iErvcOOSkaQbMa=9OJCmxNO7sDqi3qzg2ODvKqCApULQ@mail.gmail.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 8 Jan 2018 20:13:20 -0800
-Message-ID: <CA+55aFwDZ_K1uzuTq95hUXUVLFsCPCqGAMHpwa4PLCRvszmqkQ@mail.gmail.com>
-Subject: Re: [PATCH 16/18] net: mpls: prevent bounds-check bypass via
+Received: from mail.linuxfoundation.org ([140.211.169.12]:32924 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753390AbeAIKEI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 05:04:08 -0500
+Date: Tue, 9 Jan 2018 11:04:10 +0100
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH 07/18] [media] uvcvideo: prevent bounds-check bypass via
  speculative execution
-Content-Type: text/plain; charset="UTF-8"
+Message-ID: <20180109100410.GA11968@kroah.com>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180106090907.GG4380@kroah.com>
+ <20180106094026.GA11525@kroah.com>
+ <7187306.jmXyF4vJKt@avalon>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <7187306.jmXyF4vJKt@avalon>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180109041320.PWcNOVS_HDY89I0Xu8qobj0nx8aqn6Dcm3zntYDJllc@z>
+To: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, alan@linux.intel.com, peterz@infradead.org, netdev@vger.kernel.org, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, linux-media@vger.kernel.org
+Message-ID: <20180109100410.5VDmpt_Ep_y_5J4WHNM133I5ST3VINS9eJyyQor30go@z>
 
-On Mon, Jan 8, 2018 at 7:42 PM, Dan Williams <dan.j.williams@intel.com> wrote:
->
-> originally from Linus and tweaked by Alexei and I:
+On Tue, Jan 09, 2018 at 10:40:21AM +0200, Laurent Pinchart wrote:
+> On Saturday, 6 January 2018 11:40:26 EET Greg KH wrote:
+> > On Sat, Jan 06, 2018 at 10:09:07AM +0100, Greg KH wrote:
+> > 
+> > While I'm all for fixing this type of thing, I feel like we need to do
+> > something "else" for this as playing whack-a-mole for this pattern is
+> > going to be a never-ending battle for all drivers for forever.
+> 
+> That's my concern too, as even if we managed to find and fix all the 
+> occurrences of the problematic patterns (and we won't), new ones will keep 
+> being merged all the time.
 
-Sadly, that tweak - while clever - is wrong.
+And what about the millions of lines of out-of-tree drivers that we all
+rely on every day in our devices?  What about the distro kernels that
+add random new drivers?
 
->         unsigned long _mask = ~(long)(_m - 1 - _i) >> BITS_PER_LONG - 1;\
+We need some sort of automated way to scan for this.
 
-Why?
+Intel, any chance we can get your coverity rules?  Given that the date
+of this original patchset was from last August, has anyone looked at
+what is now in Linus's tree?  What about linux-next?  I just added 3
+brand-new driver subsystems to the kernel tree there, how do we know
+there isn't problems in them?
 
-Because "(long)(_m-1-_i)" is not negative just because "i >= m". It
-can still be positive.
+And what about all of the other ways user-data can be affected?  Again,
+as Peter pointed out, USB devices.  I want some chance to be able to at
+least audit the codebase we have to see if that path is an issue.
+Without any hint of how to do this in an automated manner, we are all
+in deep shit for forever.
 
-Think "m = 100", "i=bignum". The subtraction will overflow and become
-positive again, the shift will shift to zero, and then the mask will
-become ~0.
+> > Either we need some way to mark this data path to make it easy for tools
+> > like sparse to flag easily, or we need to catch the issue in the driver
+> > subsystems, which unfortunatly, would harm the drivers that don't have
+> > this type of issue (like here.)
+> 
+> But how would you do so ?
 
-Now, you can fix it, but you need to be a tiny bit more clever.  In
-particular, just make sure that you retain the high bit of "_i",
-basically making the rule be that a negative index is not ever valid.
+I do not know, it all depends on the access pattern, right?
 
-And then instead of "(_m - 1 - _i)", you use "(_i | (_m - 1 - _i))".
-Now the sign bit is set if _i had it set, _or_ if the subtraction
-turned negative, and you don't have to worry about the overflow
-situation.
+> > I'm guessing that other operating systems, which don't have the luxury
+> > of auditing all of their drivers are going for the "big hammer in the
+> > subsystem" type of fix, right?
+> 
+> Other operating systems that ship closed-source drivers authored by hardware 
+> vendors and not reviewed by third parties will likely stay vulnerable forever. 
+> That's a small concern though as I expect those drivers to contain much large 
+> security holes anyway.
 
-But it does require that extra step to be trustworthy. Still purely
-cheap arithmetic operations, although there is possibly some
-additional register pressure there.
+Well yes, but odds are those operating systems are doing something to
+mitigate this, right?  Slowing down all user/kernel data paths?
+Targeted code analysis tools?  Something else?  I doubt they just don't
+care at all about it.  At the least, I would think Coverity would be
+trying to sell licenses for this :(
 
-Somebody might be able to come up with something even more minimal (or
-find a fault in my fix of your tweak).
+thanks,
 
-Obviously, with architecture-specific code, you may well be able to do
-better, using the carry flag of the subtraction.
-
-For example, on x86, I think you could do it with just two instructions:
-
-    # carry will be clear if idx >= max
-    cmpq %idx,%max
-
-    # mask will be clear if carry was clear, ~0 otherwise
-    sbbq %mask,%mask
-
-to generate mask directly. I might have screwed that up. Worth perhaps trying?
-
-               Linus
+greg k-h
