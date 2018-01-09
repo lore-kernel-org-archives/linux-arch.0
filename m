@@ -1,143 +1,138 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 16/18] net: mpls: prevent bounds-check bypass via speculative execution
-Date: Tue, 09 Jan 2018 10:17:08 -0600
-Message-ID: <87373fj9bv.fsf@xmission.com>
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
-        <151520108080.32271.16420298348259030860.stgit@dwillia2-desk3.amr.corp.intel.com>
-        <87lgh7n2tf.fsf@xmission.com>
-        <CAPcyv4iErvcOOSkaQbMa=9OJCmxNO7sDqi3qzg2ODvKqCApULQ@mail.gmail.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH v5 00/30] ARM Scalable Vector Extension (SVE)
+Date: Tue, 9 Jan 2018 19:51:20 +0300
+Message-ID: <20180109165120.6ravt4stp3654374@yury-thinkpad>
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+ <20180108144905.qu5qbmaaglcgwvwq@yury-thinkpad>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAPcyv4iErvcOOSkaQbMa=9OJCmxNO7sDqi3qzg2ODvKqCApULQ@mail.gmail.com>
-        (Dan Williams's message of "Mon, 8 Jan 2018 19:42:14 -0800")
-Sender: linux-kernel-owner@vger.kernel.org
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-cys01nam02on0063.outbound.protection.outlook.com ([104.47.37.63]:36671
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1759619AbeAIQvf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 9 Jan 2018 11:51:35 -0500
+Content-Disposition: inline
+In-Reply-To: <20180108144905.qu5qbmaaglcgwvwq@yury-thinkpad>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, "H . J . Lu" <hjl.tools@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Alan Hayward <alan.hayward@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, Ch
 
-Dan Williams <dan.j.williams@intel.com> writes:
+On Mon, Jan 08, 2018 at 05:49:05PM +0300, Yury Norov wrote:
+> On Tue, Oct 31, 2017 at 03:50:52PM +0000, Dave Martin wrote:
+> > This series implements Linux kernel support for the ARM Scalable Vector
+> > Extension (SVE). [1]  It supersedes the previous v3: see [3] for link
+> > and full cover letter.
+> > 
+> > This is a minor update to v4, but does contain a couple of important
+> > fixes.
+> > 
+> > As in previous postings, the last two patches (here 29-30) are still
+> > RFC and not proposed for merging at this time.
+> > 
+> > The patches apply on
+> > git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git
+> > for-next/core
+> > d7b1d22d3821 ("arm64: uapi: Remove PSR_Q_BIT")
+> > 
+> > To reduce spam, some people may not been copied on the entire series.
+> > For those who did not receive the whole series, it can be found in the
+> > linux-arm-kernel archive. [2]
+> > 
+> > See the individual patches for details of changes.
+> > 
+> > For reviewer convenience, a git tree is available. [4]
+> > 
+> > Since there are some changes against already-reviewed patches, I've also
+> > pushed an unsquashed fixes tree for people to take a look at if it
+> > helps. [5]
+> > 
+> > 
+> > Summary:
+> > 
+> >  * "regset: Add support for dynamically sized regsets" fixed to avoid
+> >    x86 breakage;
+> > 
+> >  * one trival arm64 patch added to add asmlinkage annotations, and a
+> >    corresponding minor change to the Core task context handling patch;
+> > 
+> >  * one new arm64 fix ("signal: Verify extra data is user-readable in
+> >    sys_rt_sigreturn") to ensure that access_ok() checks are done for the
+> >    whole extended signal frame, not just the base frame;
+> > 
+> >  * one minor fix to the SVE sigreturn code to return consistent
+> >    intermediate error values (semantic correctness, non-functional
+> >    change);
+> > 
+> >  * one minor change to call __copy_from_user() instead of
+> >    copy_from_user() in a situation where there is already an access_ok()
+> >    check;
+> > 
+> > 
+> > [1] ARM Scalable Vector Extension
+> > https://community.arm.com/groups/processors/blog/2016/08/22/technology-update-the-scalable-vector-extension-sve-for-the-armv8-a-architecture
+> > 
+> > [2] linux-arm-kernel October 2017 Archives by thread
+> > http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/thread.html
+> > 
+> > [3] [PATCH v4 00/28] ARM Scalable Vector Extension (SVE)
+> > http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/539414.html
+> > 
+> > [4] For review and testing only -- **do not pull**
+> >     (This branch has review changelogs which should not form part of
+> >     the final commits.)
+> > 
+> >     v5 series (this posting)
+> > 
+> >     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v5
+> >     git://linux-arm.org/linux-dm.git sve/v5
+> > 
+> > [5] For review and testing only -- **do not pull**
+> >     (This branch has review changelogs which should not form part of
+> >     the final commits.)
+> > 
+> >     v4 with unsquashed fixes
+> > 
+> >     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v4%2Bfixes
+> >     git://linux-arm.org/linux-dm.git sve/v4+fixes
+> 
+> Hi Dave,
+> 
+> During rebase of my ILP32 series on 4.15 kernel I found that 
+> ILP32 needs to be enabled with SVE support, like you do for 
+> LP64 in this series.
+> 
+> I did all rebase work on this draft branch:
+> https://github.com/norov/linux/tree/ilp32-4.15-rc7
+> 
+> But any ILP32 program I tried crash, and the message in dmesg looks
+> like this:
+> [   39.510667] CPU: 0 PID: 1857 Comm: mytime Not tainted 4.15.0-rc7-00028-g45e0659df4d9 #41
+> [   39.510712] Hardware name: linux,dummy-virt (DT)
+> [   39.510829] pstate: 00000000 (nzcv daif -PAN -UAO)
+> [   39.511101] pc : 0x33488e28
+> [   39.511125] lr : 0x33488e28
+> [   39.511138] sp : 00000000fffef670
+> [   39.511158] x29: 000000005a536c33 x28: 0000000000000000 
+> [   39.511211] x27: 0000000000000000 x26: 0000000000000000 
+> [   39.511235] x25: 0000000000000000 x24: 0000000000000000 
+> [   39.511257] x23: 0000000000466000 x22: 0000000000000000 
+> [   39.511278] x21: 0000000000000000 x20: 000000000047f2a8 
+> [   39.511300] x19: 0000000000000000 x18: 0000000000000001 
+> [   39.511321] x17: 0000000000001000 x16: 0000000000001030 
+> [   39.511342] x15: 0000000000554e47 x14: 0000000000000001 
+> [   39.511364] x13: 0000000000000004 x12: 000000000000003c 
+> [   39.511385] x11: 0000100000000000 x10: 0800000000000000 
+> [   39.511406] x9 : 0fffffffffffffff x8 : 000000000000007c 
+> [   39.511427] x7 : 0000000000000077 x6 : 0000000000000041 
+> [   39.511448] x5 : 0000000000000411 x4 : 00000000fbad2488 
+> [   39.511468] x3 : 0000000000000001 x2 : 0000000000497950 
+> [   39.511489] x1 : 0000000000497550 x0 : 0000000000000001
 
-> On Mon, Jan 8, 2018 at 7:11 PM, Eric W. Biederman <ebiederm@xmission.com> wrote:
->> Dan Williams <dan.j.williams@intel.com> writes:
->>
->>> Static analysis reports that 'index' may be a user controlled value that
->>> is used as a data dependency reading 'rt' from the 'platform_label'
->>> array.  In order to avoid potential leaks of kernel memory values, block
->>> speculative execution of the instruction stream that could issue further
->>> reads based on an invalid 'rt' value.
->>
->>
->> In detail.
->> a) This code is fast path packet forwarding code.  Introducing an
->>    unconditional pipeline stall is not ok.
->>
->>    AKA either there is no speculation and so this is invulnerable
->>    or there is speculation and you are creating an unconditional
->>    pipeline stall here.
->>
->>    My back of the napkin caluculations say that a pipeline stall
->>    is about 20 cycles.  Which is about the same length of time
->>    as a modern cache miss.
->>
->>    On a good day this code will perform with 0 cache misses. On a less
->>    good day 1 cache miss.  Which means you are quite possibly doubling
->>    the runtime of mpls_forward.
->>
->> b) The array is dynamically allocated which should provide some
->>    protection, as it will be more difficult to predict the address
->>    of the array which is needed to craft an malicious userspace value.
->>
->> c) The code can be trivially modified to say:
->>
->> static struct mpls_route *mpls_route_input_rcu(struct net *net, unsigned index)
->> {
->>         struct mpls_route *rt = NULL;
->>
->>         if (index < net->mpls.platform_labels) {
->>                 struct mpls_route __rcu **platform_label =
->>                         rcu_dereference(net->mpls.platform_label);
->>                 rt = rcu_dereference(platform_label[index & ((1 << 20) - 1)]);
->>         }
->>         return rt;
->> }
->>
->> AKA a static mask will ensure that there is not a primitive that can be
->> used to access all of memory.  That is max a 1 cycle slowdown in the
->> code, which is a much better trade off.
->>
->> d) If we care more it is straight forward to modify
->>    resize_platform_label_table() to ensure that the size of the array
->>    is always a power of 2.
->>
->> e) The fact that a pointer is returned from the array and it is treated
->>    like a pointer would seem to provide a defense against the
->>    exfiltration technique of using the value read as an index into
->>    a small array, that user space code can probe aliased cached
->>    lines of, to see which value was dereferenced.
->>
->>
->> So to this patch in particular.
->> Nacked-by: "Eric W. Biederman" <ebiederm@xmission.com>
->>
->> This code path will be difficult to exploit.  This change messes with
->> performance.  There are ways to make this code path useless while
->> preserving the performance of the code.
->>
->
-> Thanks, Eric understood. The discussion over the weekend  came to the
-> conclusion that using a mask will be the default approach. The
-> nospec_array_ptr() will be defined to something similar to the
-> following, originally from Linus and tweaked by Alexei and I:
->
-> #define __nospec_array_ptr(base, idx, sz)                               \
-> ({                                                                      \
->         union { typeof(&base[0]) _ptr; unsigned long _bit; } __u;       \
->         unsigned long _i = (idx);                                       \
->         unsigned long _m = (max);                                       \
->         unsigned long _mask = ~(long)(_m - 1 - _i) >> BITS_PER_LONG - 1;\
->         OPTIMIZER_HIDE_VAR(_mask);                                      \
->         __u._ptr = &base[_i & _mask];                                   \
->         __u._bit &= _mask;                                              \
->         __u._ptr;                                                       \
-> })
->
-> Does that address your performance concerns?
+Hi Dave,
 
-The user controlled value condition of your patchset implies that you
-assume indirect branch predictor poisoning is handled in other ways.
+I fixed the crash. It was my local problem.
 
-Which means that we can assume speculation will take some variation of
-the static call chain.
-
-Further you are worrying about array accesses.  Which means you
-are worried about attacks that are the equivalent of meltdown that
-can give you reading of all memory available to the kernel.
-
-
-The mpls code in question reads a pointer from memory.
-
-
-The only thing the code does with that pointer is verify it is not NULL
-and dereference it.
-
-That does not make it possible to extricate the pointer bits via a cache
-side-channel as a pointer is 64bits wide.
-
-There might maybe be a timing attack where it is timed how long the
-packet takes to deliver.  If you can find the base address of the array,
-at best such a timeing attack will tell you is if some arbitrary cache
-line is already cached in the kernel.  Which is not the class of attack
-your patchset is worried about.  Further there are more direct ways
-to probe the cache from a local process.
-
-So I submit to you that the mpls code is not vulnerable to the class of
-attack you are addressing.
-
-Further I would argue that anything that reads a pointer from memory is
-a very strong clue that it falls outside the class of code that you are
-addressing.
-
-Show me where I am wrong and I will consider patches.
-
-Eric
+Thanks,
+Yury
