@@ -1,95 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:46206 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1758329AbeAIU5F (ORCPT
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:43905 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1758272AbeAIU5F (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:57:05 -0500
-Received: by mail-pf0-f193.google.com with SMTP id y5so5531509pff.13
+Received: by mail-pf0-f194.google.com with SMTP id e3so9431981pfi.10
         for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:57:05 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 19/36] scsi: Define usercopy region in scsi_sense_cache slab cache
-Date: Tue,  9 Jan 2018 12:55:48 -0800
-Message-ID: <1515531365-37423-20-git-send-email-keescook@chromium.org>
+Subject: [PATCH 18/36] cifs: Define usercopy region in cifs_request slab cache
+Date: Tue,  9 Jan 2018 12:55:47 -0800
+Message-ID: <1515531365-37423-19-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180109205548.4DVbnUjKJAKROP4iOBl_cG2CVmWOQVAjh_fY5KUAxO0@z>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Steve French <sfrench@samba.org>, linux-cifs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180109205547.9B0F9_qIn7ZyNF50bF5cYLntInfTKem0li-whqZRzLM@z>
 
 From: David Windsor <dave@nullcore.net>
 
-SCSI sense buffers, stored in struct scsi_cmnd.sense and therefore
-contained in the scsi_sense_cache slab cache, need to be copied to/from
-userspace.
+CIFS request buffers, stored in the cifs_request slab cache, need to be
+copied to/from userspace.
 
 cache object allocation:
-    drivers/scsi/scsi_lib.c:
-        scsi_select_sense_cache(...):
-            return ... ? scsi_sense_isadma_cache : scsi_sense_cache
-
-        scsi_alloc_sense_buffer(...):
-            return kmem_cache_alloc_node(scsi_select_sense_cache(), ...);
-
-        scsi_init_request(...):
+    fs/cifs/cifsfs.c:
+        cifs_init_request_bufs():
             ...
-            cmd->sense_buffer = scsi_alloc_sense_buffer(...);
+            cifs_req_poolp = mempool_create_slab_pool(cifs_min_rcv,
+                                                      cifs_req_cachep);
+
+    fs/cifs/misc.c:
+        cifs_buf_get():
             ...
-            cmd->req.sense = cmd->sense_buffer
-
-example usage trace:
-
-    block/scsi_ioctl.c:
-        (inline from sg_io)
-        blk_complete_sghdr_rq(...):
-            struct scsi_request *req = scsi_req(rq);
+            ret_buf = mempool_alloc(cifs_req_poolp, GFP_NOFS);
             ...
-            copy_to_user(..., req->sense, len)
+            return ret_buf;
 
-        scsi_cmd_ioctl(...):
-            sg_io(...);
-
-In support of usercopy hardening, this patch defines a region in
-the scsi_sense_cache slab cache in which userspace copy operations
-are allowed.
+In support of usercopy hardening, this patch defines a region in the
+cifs_request slab cache in which userspace copy operations are allowed.
 
 This region is known as the slab cache's usercopy region. Slab caches
 can now check that each dynamically sized copy operation involving
 cache-managed memory falls entirely within the slab's usercopy region.
 
+This patch is verbatim from Brad Spengler/PaX Team's PAX_USERCOPY
+whitelisting code in the last public patch of grsecurity/PaX based on my
+understanding of the code. Changes or omissions from the original code are
+mine and don't reflect the original grsecurity/PaX code.
+
 Signed-off-by: David Windsor <dave@nullcore.net>
 [kees: adjust commit log, provide usage trace]
-Cc: "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>
-Cc: "Martin K. Petersen" <martin.petersen@oracle.com>
-Cc: linux-scsi@vger.kernel.org
+Cc: Steve French <sfrench@samba.org>
+Cc: linux-cifs@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- drivers/scsi/scsi_lib.c | 9 +++++----
- 1 file changed, 5 insertions(+), 4 deletions(-)
+ fs/cifs/cifsfs.c | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
-index 1cbc497e00bd..164d062c4d94 100644
---- a/drivers/scsi/scsi_lib.c
-+++ b/drivers/scsi/scsi_lib.c
-@@ -79,14 +79,15 @@ int scsi_init_sense_cache(struct Scsi_Host *shost)
- 	if (shost->unchecked_isa_dma) {
- 		scsi_sense_isadma_cache =
- 			kmem_cache_create("scsi_sense_cache(DMA)",
--			SCSI_SENSE_BUFFERSIZE, 0,
--			SLAB_HWCACHE_ALIGN | SLAB_CACHE_DMA, NULL);
-+				SCSI_SENSE_BUFFERSIZE, 0,
-+				SLAB_HWCACHE_ALIGN | SLAB_CACHE_DMA, NULL);
- 		if (!scsi_sense_isadma_cache)
- 			ret = -ENOMEM;
- 	} else {
- 		scsi_sense_cache =
--			kmem_cache_create("scsi_sense_cache",
--			SCSI_SENSE_BUFFERSIZE, 0, SLAB_HWCACHE_ALIGN, NULL);
-+			kmem_cache_create_usercopy("scsi_sense_cache",
-+				SCSI_SENSE_BUFFERSIZE, 0, SLAB_HWCACHE_ALIGN,
-+				0, SCSI_SENSE_BUFFERSIZE, NULL);
- 		if (!scsi_sense_cache)
- 			ret = -ENOMEM;
- 	}
+diff --git a/fs/cifs/cifsfs.c b/fs/cifs/cifsfs.c
+index 31b7565b1617..29f4b0290fbd 100644
+--- a/fs/cifs/cifsfs.c
++++ b/fs/cifs/cifsfs.c
+@@ -1231,9 +1231,11 @@ cifs_init_request_bufs(void)
+ 	cifs_dbg(VFS, "CIFSMaxBufSize %d 0x%x\n",
+ 		 CIFSMaxBufSize, CIFSMaxBufSize);
+ */
+-	cifs_req_cachep = kmem_cache_create("cifs_request",
++	cifs_req_cachep = kmem_cache_create_usercopy("cifs_request",
+ 					    CIFSMaxBufSize + max_hdr_size, 0,
+-					    SLAB_HWCACHE_ALIGN, NULL);
++					    SLAB_HWCACHE_ALIGN, 0,
++					    CIFSMaxBufSize + max_hdr_size,
++					    NULL);
+ 	if (cifs_req_cachep == NULL)
+ 		return -ENOMEM;
+ 
+@@ -1259,9 +1261,9 @@ cifs_init_request_bufs(void)
+ 	more SMBs to use small buffer alloc and is still much more
+ 	efficient to alloc 1 per page off the slab compared to 17K (5page)
+ 	alloc of large cifs buffers even when page debugging is on */
+-	cifs_sm_req_cachep = kmem_cache_create("cifs_small_rq",
++	cifs_sm_req_cachep = kmem_cache_create_usercopy("cifs_small_rq",
+ 			MAX_CIFS_SMALL_BUFFER_SIZE, 0, SLAB_HWCACHE_ALIGN,
+-			NULL);
++			0, MAX_CIFS_SMALL_BUFFER_SIZE, NULL);
+ 	if (cifs_sm_req_cachep == NULL) {
+ 		mempool_destroy(cifs_req_poolp);
+ 		kmem_cache_destroy(cifs_req_cachep);
 -- 
 2.7.4
