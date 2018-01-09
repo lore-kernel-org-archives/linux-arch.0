@@ -1,75 +1,85 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 30/36] arm64: Implement thread_struct whitelist for hardened
- usercopy
-Date: Tue,  9 Jan 2018 12:55:59 -0800
-Message-ID: <1515531365-37423-31-git-send-email-keescook@chromium.org>
+Subject: [PATCH 20/36] net: Define usercopy region in struct proto slab cache
+Date: Tue,  9 Jan 2018 12:55:49 -0800
+Message-ID: <1515531365-37423-21-git-send-email-keescook@chromium.org>
 References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: owner-linux-mm@kvack.org
 To: linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, Jan Kara <jack@suse.cz>, kernel-hardening@lists.openwall.com, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Rik van Riel <riel@redhat.com>, linux-mm@kvack.org, Christoph Lameter <cl@linux.com>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Laura Abbott <labbott@redhat.com>, Dave Martin <Dave.Martin@arm.com>, David Windsor <dave@nullcore.net>, Kees Cook <keescook@chromium.org>, Marc Zyngier <marc.zyngier@arm.com>, Dave Kleikamp <dave.kleikamp@oracle.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, linux-arm-kernel@lists.infradead.org, Luis de Bethencourt <luisbg@kernel.org>, Martin K. Peters
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, Paolo Abeni <pabeni@redhat.com>, David Howells <dhowells@redhat.com>, netdev@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@a>
 List-Id: linux-arch.vger.kernel.org
 
-This whitelists the FPU register state portion of the thread_struct for
-copying to userspace, instead of the default entire structure.
+From: David Windsor <dave@nullcore.net>
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: James Morse <james.morse@arm.com>
-Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>
-Cc: Dave Martin <Dave.Martin@arm.com>
-Cc: zijun_hu <zijun_hu@htc.com>
-Cc: linux-arm-kernel@lists.infradead.org
+In support of usercopy hardening, this patch defines a region in the
+struct proto slab cache in which userspace copy operations are allowed.
+Some protocols need to copy objects to/from userspace, and they can
+declare the region via their proto structure with the new usersize and
+useroffset fields. Initially, if no region is specified (usersize ==
+0), the entire field is marked as whitelisted. This allows protocols
+to be whitelisted in subsequent patches. Once all protocols have been
+annotated, the full-whitelist default can be removed.
+
+This region is known as the slab cache's usercopy region. Slab caches
+can now check that each dynamically sized copy operation involving
+cache-managed memory falls entirely within the slab's usercopy region.
+
+This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
+whitelisting code in the last public patch of grsecurity/PaX based on my
+understanding of the code. Changes or omissions from the original code are
+mine and don't reflect the original grsecurity/PaX code.
+
+Signed-off-by: David Windsor <dave@nullcore.net>
+[kees: adjust commit log, split off per-proto patches]
+[kees: add logic for by-default full-whitelist]
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Eric Dumazet <edumazet@google.com>
+Cc: Paolo Abeni <pabeni@redhat.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm64/Kconfig                 | 1 +
- arch/arm64/include/asm/processor.h | 8 ++++++++
- 2 files changed, 9 insertions(+)
+ include/net/sock.h | 2 ++
+ net/core/sock.c    | 6 +++++-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index a93339f5178f..c84477e6a884 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -90,6 +90,7 @@ config ARM64
- 	select HAVE_ARCH_MMAP_RND_BITS
- 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
- 	select HAVE_ARCH_SECCOMP_FILTER
-+	select HAVE_ARCH_THREAD_STRUCT_WHITELIST
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select HAVE_ARCH_VMAP_STACK
-diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-index 023cacb946c3..e58a5864ec89 100644
---- a/arch/arm64/include/asm/processor.h
-+++ b/arch/arm64/include/asm/processor.h
-@@ -113,6 +113,14 @@ struct thread_struct {
- 	struct debug_info	debug;		/* debugging */
- };
+diff --git a/include/net/sock.h b/include/net/sock.h
+index 79e1a2c7912c..b77a710ee831 100644
+--- a/include/net/sock.h
++++ b/include/net/sock.h
+@@ -1112,6 +1112,8 @@ struct proto {
+ 	struct kmem_cache	*slab;
+ 	unsigned int		obj_size;
+ 	slab_flags_t		slab_flags;
++	size_t			useroffset;	/* Usercopy region offset */
++	size_t			usersize;	/* Usercopy region size */
  
-+/* Whitelist the fpsimd_state for copying to userspace. */
-+static inline void arch_thread_struct_whitelist(unsigned long *offset,
-+						unsigned long *size)
-+{
-+	*offset = offsetof(struct thread_struct, fpsimd_state);
-+	*size = sizeof(struct fpsimd_state);
-+}
-+
- #ifdef CONFIG_COMPAT
- #define task_user_tls(t)						\
- ({									\
+ 	struct percpu_counter	*orphan_count;
+ 
+diff --git a/net/core/sock.c b/net/core/sock.c
+index c0b5b2f17412..261e6dbf0259 100644
+--- a/net/core/sock.c
++++ b/net/core/sock.c
+@@ -3151,8 +3151,12 @@ static int req_prot_init(const struct proto *prot)
+ int proto_register(struct proto *prot, int alloc_slab)
+ {
+ 	if (alloc_slab) {
+-		prot->slab = kmem_cache_create(prot->name, prot->obj_size, 0,
++		prot->slab = kmem_cache_create_usercopy(prot->name,
++					prot->obj_size, 0,
+ 					SLAB_HWCACHE_ALIGN | prot->slab_flags,
++					prot->usersize ? prot->useroffset : 0,
++					prot->usersize ? prot->usersize
++						       : prot->obj_size,
+ 					NULL);
+ 
+ 		if (prot->slab == NULL) {
 -- 
 2.7.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
