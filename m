@@ -1,186 +1,95 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 05/36] usercopy: WARN() on slab cache usercopy region violations
-Date: Tue,  9 Jan 2018 12:55:34 -0800
-Message-ID: <1515531365-37423-6-git-send-email-keescook@chromium.org>
+Subject: [PATCH 12/36] jfs: Define usercopy region in jfs_ip slab cache
+Date: Tue,  9 Jan 2018 12:55:41 -0800
+Message-ID: <1515531365-37423-13-git-send-email-keescook@chromium.org>
 References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Laura Abbott <labbott@redhat.com>, Ingo Molnar <mingo@kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
 From: David Windsor <dave@nullcore.net>
 
-This patch adds checking of usercopy cache whitelisting, and is modified
-from Brad Spengler/PaX Team's PAX_USERCOPY whitelisting code in the
-last public patch of grsecurity/PaX based on my understanding of the
-code. Changes or omissions from the original code are mine and don't
-reflect the original grsecurity/PaX code.
+The jfs symlink pathnames, stored in struct jfs_inode_info.i_inline and
+therefore contained in the jfs_ip slab cache, need to be copied to/from
+userspace.
 
-The SLAB and SLUB allocators are modified to WARN() on all copy operations
-in which the kernel heap memory being modified falls outside of the cache's
-defined usercopy region.
+cache object allocation:
+    fs/jfs/super.c:
+        jfs_alloc_inode(...):
+            ...
+            jfs_inode = kmem_cache_alloc(jfs_inode_cachep, GFP_NOFS);
+            ...
+            return &jfs_inode->vfs_inode;
+
+    fs/jfs/jfs_incore.h:
+        JFS_IP(struct inode *inode):
+            return container_of(inode, struct jfs_inode_info, vfs_inode);
+
+    fs/jfs/inode.c:
+        jfs_iget(...):
+            ...
+            inode->i_link = JFS_IP(inode)->i_inline;
+
+example usage trace:
+    readlink_copy+0x43/0x70
+    vfs_readlink+0x62/0x110
+    SyS_readlinkat+0x100/0x130
+
+    fs/namei.c:
+        readlink_copy(..., link):
+            ...
+            copy_to_user(..., link, len);
+
+        (inlined in vfs_readlink)
+        generic_readlink(dentry, ...):
+            struct inode *inode = d_inode(dentry);
+            const char *link = inode->i_link;
+            ...
+            readlink_copy(..., link);
+
+In support of usercopy hardening, this patch defines a region in the
+jfs_ip slab cache in which userspace copy operations are allowed.
+
+This region is known as the slab cache's usercopy region. Slab caches
+can now check that each dynamically sized copy operation involving
+cache-managed memory falls entirely within the slab's usercopy region.
+
+This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
+whitelisting code in the last public patch of grsecurity/PaX based on my
+understanding of the code. Changes or omissions from the original code are
+mine and don't reflect the original grsecurity/PaX code.
 
 Signed-off-by: David Windsor <dave@nullcore.net>
-[kees: adjust commit log and comments, switch to WARN-by-default]
-Cc: Christoph Lameter <cl@linux.com>
-Cc: Pekka Enberg <penberg@kernel.org>
-Cc: David Rientjes <rientjes@google.com>
-Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Laura Abbott <labbott@redhat.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-mm@kvack.org
-Cc: linux-xfs@vger.kernel.org
+[kees: adjust commit log, provide usage trace]
+Cc: Dave Kleikamp <shaggy@kernel.org>
+Cc: jfs-discussion@lists.sourceforge.net
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Dave Kleikamp <dave.kleikamp@oracle.com>
 ---
- mm/slab.c     | 30 +++++++++++++++++++++++++-----
- mm/slub.c     | 34 +++++++++++++++++++++++++++-------
- mm/usercopy.c | 12 ++++++++++++
- 3 files changed, 64 insertions(+), 12 deletions(-)
+ fs/jfs/super.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/mm/slab.c b/mm/slab.c
-index f1ead7b7909d..d9939828f8e4 100644
---- a/mm/slab.c
-+++ b/mm/slab.c
-@@ -4392,7 +4392,9 @@ module_init(slab_proc_init);
+diff --git a/fs/jfs/super.c b/fs/jfs/super.c
+index 90373aebfdca..1b9264fd54b6 100644
+--- a/fs/jfs/super.c
++++ b/fs/jfs/super.c
+@@ -965,9 +965,11 @@ static int __init init_jfs_fs(void)
+ 	int rc;
  
- #ifdef CONFIG_HARDENED_USERCOPY
- /*
-- * Rejects objects that are incorrectly sized.
-+ * Rejects incorrectly sized objects and objects that are to be copied
-+ * to/from userspace but do not fall entirely within the containing slab
-+ * cache's usercopy region.
-  *
-  * Returns NULL if check passes, otherwise const char * to name of cache
-  * to indicate an error.
-@@ -4412,11 +4414,29 @@ int __check_heap_object(const void *ptr, unsigned long n, struct page *page,
- 	/* Find offset within object. */
- 	offset = ptr - index_to_obj(cachep, page, objnr) - obj_offset(cachep);
+ 	jfs_inode_cachep =
+-	    kmem_cache_create("jfs_ip", sizeof(struct jfs_inode_info), 0,
+-			    SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|SLAB_ACCOUNT,
+-			    init_once);
++	    kmem_cache_create_usercopy("jfs_ip", sizeof(struct jfs_inode_info),
++			0, SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|SLAB_ACCOUNT,
++			offsetof(struct jfs_inode_info, i_inline),
++			sizeof_field(struct jfs_inode_info, i_inline),
++			init_once);
+ 	if (jfs_inode_cachep == NULL)
+ 		return -ENOMEM;
  
--	/* Allow address range falling entirely within object size. */
--	if (offset <= cachep->object_size && n <= cachep->object_size - offset)
--		return 0;
-+	/* Make sure object falls entirely within cache's usercopy region. */
-+	if (offset < cachep->useroffset ||
-+	    offset - cachep->useroffset > cachep->usersize ||
-+	    n > cachep->useroffset - offset + cachep->usersize) {
-+		/*
-+		 * If the copy is still within the allocated object, produce
-+		 * a warning instead of rejecting the copy. This is intended
-+		 * to be a temporary method to find any missing usercopy
-+		 * whitelists.
-+		 */
-+		if (offset <= cachep->object_size &&
-+		    n <= cachep->object_size - offset) {
-+			WARN_ONCE(1, "unexpected usercopy %s with bad or missing whitelist with SLAB object '%s' (offset %lu, size %lu)",
-+				  to_user ? "exposure" : "overwrite",
-+				  cachep->name, offset, n);
-+			return 0;
-+		}
- 
--	return report_usercopy("SLAB object", cachep->name, to_user, offset, n);
-+		return report_usercopy("SLAB object", cachep->name, to_user,
-+				       offset, n);
-+	}
-+
-+	return 0;
- }
- #endif /* CONFIG_HARDENED_USERCOPY */
- 
-diff --git a/mm/slub.c b/mm/slub.c
-index 8738a8d8bf8e..2aa4972a2058 100644
---- a/mm/slub.c
-+++ b/mm/slub.c
-@@ -3813,7 +3813,9 @@ EXPORT_SYMBOL(__kmalloc_node);
- 
- #ifdef CONFIG_HARDENED_USERCOPY
- /*
-- * Rejects objects that are incorrectly sized.
-+ * Rejects incorrectly sized objects and objects that are to be copied
-+ * to/from userspace but do not fall entirely within the containing slab
-+ * cache's usercopy region.
-  *
-  * Returns NULL if check passes, otherwise const char * to name of cache
-  * to indicate an error.
-@@ -3823,11 +3825,9 @@ int __check_heap_object(const void *ptr, unsigned long n, struct page *page,
- {
- 	struct kmem_cache *s;
- 	unsigned long offset;
--	size_t object_size;
- 
- 	/* Find object and usable object size. */
- 	s = page->slab_cache;
--	object_size = slab_ksize(s);
- 
- 	/* Reject impossible pointers. */
- 	if (ptr < page_address(page))
-@@ -3845,11 +3845,31 @@ int __check_heap_object(const void *ptr, unsigned long n, struct page *page,
- 		offset -= s->red_left_pad;
- 	}
- 
--	/* Allow address range falling entirely within object size. */
--	if (offset <= object_size && n <= object_size - offset)
--		return 0;
-+	/* Make sure object falls entirely within cache's usercopy region. */
-+	if (offset < s->useroffset ||
-+	    offset - s->useroffset > s->usersize ||
-+	    n > s->useroffset - offset + s->usersize) {
-+		size_t object_size;
- 
--	return report_usercopy("SLUB object", s->name, to_user, offset, n);
-+		/*
-+		 * If the copy is still within the allocated object, produce
-+		 * a warning instead of rejecting the copy. This is intended
-+		 * to be a temporary method to find any missing usercopy
-+		 * whitelists.
-+		 */
-+		object_size = slab_ksize(s);
-+		if ((offset <= object_size && n <= object_size - offset)) {
-+			WARN_ONCE(1, "unexpected usercopy %s with bad or missing whitelist with SLUB object '%s' (offset %lu size %lu)",
-+				  to_user ? "exposure" : "overwrite",
-+				  s->name, offset, n);
-+			return 0;
-+		}
-+
-+		return report_usercopy("SLUB object", s->name, to_user,
-+				       offset, n);
-+	}
-+
-+	return 0;
- }
- #endif /* CONFIG_HARDENED_USERCOPY */
- 
-diff --git a/mm/usercopy.c b/mm/usercopy.c
-index a8426a502136..4ed615d4efc8 100644
---- a/mm/usercopy.c
-+++ b/mm/usercopy.c
-@@ -58,6 +58,18 @@ static noinline int check_stack_object(const void *obj, unsigned long len)
- 	return GOOD_STACK;
- }
- 
-+/*
-+ * If this function is reached, then CONFIG_HARDENED_USERCOPY has found an
-+ * unexpected state during a copy_from_user() or copy_to_user() call.
-+ * There are several checks being performed on the buffer by the
-+ * __check_object_size() function. Normal stack buffer usage should never
-+ * trip the checks, and kernel text addressing will always trip the check.
-+ * For cache objects, it is checking that only the whitelisted range of
-+ * bytes for a given cache is being accessed (via the cache's usersize and
-+ * useroffset fields). To adjust a cache whitelist, use the usercopy-aware
-+ * kmem_cache_create_usercopy() function to create the cache (and
-+ * carefully audit the whitelist range).
-+ */
- int report_usercopy(const char *name, const char *detail, bool to_user,
- 		    unsigned long offset, unsigned long len)
- {
 -- 
 2.7.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
