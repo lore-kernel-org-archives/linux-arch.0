@@ -1,134 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:43088 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753393AbeAIUXV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:23:21 -0500
-Received: by mail-pg0-f67.google.com with SMTP id f14so6183390pga.10
-        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:23:21 -0800 (PST)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 3/3] exec: Pin stack limit during exec
-Date: Tue,  9 Jan 2018 12:23:03 -0800
-Message-ID: <1515529383-35695-4-git-send-email-keescook@chromium.org>
-In-Reply-To: <1515529383-35695-1-git-send-email-keescook@chromium.org>
-References: <1515529383-35695-1-git-send-email-keescook@chromium.org>
+Received: from mx1.redhat.com ([209.132.183.28]:53224 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751384AbeAIU4J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 9 Jan 2018 15:56:09 -0500
+Date: Tue, 9 Jan 2018 14:55:49 -0600
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH 00/18] prevent bounds-check bypass via speculative
+ execution
+Message-ID: <20180109205549.osb25c4r2h2n2wqx@treble>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <alpine.LRH.2.00.1801092017330.27010@gjva.wvxbf.pm>
+ <CAPcyv4gccDQYx9urpagnBo-TqNLoQ00gEoE7kp+JXNKsmFxcHw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4gccDQYx9urpagnBo-TqNLoQ00gEoE7kp+JXNKsmFxcHw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, Michal Hocko <mhocko@kernel.org>, Ben Hutchings <ben@decadent.org.uk>, Willy Tarreau <w@1wt.eu>, Hugh Dickins <hughd@google.com>, Oleg Nesterov <oleg@redhat.com>, "Jason A. Donenfeld" <Jason@zx2c4.com>, Rik van Riel <riel@redhat.com>, Laura Abbott <labbott@redhat.com>, Greg KH <greg@kroah.com>, Andy Lutomirski <luto@kernel.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180109202303.tAUtV6oq9xU8wrk_mZElF8SeD9rigJzYaY6p-eqYBDk@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Jiri Kosina <jikos@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Zhang Rui <rui.zhang@intel.com>, "Linux-media@vger.kernel.org" <linux-media@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Jan Kara <jack@suse.com>, Eduardo Valentin <edubezval@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Kalle Valo <kvalo@codeaurora.org>, Alan Cox <alan@linux.intel.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Greg KH <gregkh@linuxfoundation.org>, linux-wireless@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Netdev <netdev@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Message-ID: <20180109205549.l5KG99ndhkolJ2Cj19xd6PtoQqLSTJPH6O8YFzg4Qlg@z>
 
-Since the stack rlimit is used in multiple places during exec and
-it can be changed via other threads (via setrlimit()) or processes
-(via prlimit()), the assumption that the value doesn't change cannot
-be made. This leads to races with mm layout selection and argument size
-calculations. This changes the exec path to use the rlimit stored in bprm
-instead of in current. Before starting the thread, the bprm stack rlimit
-is stored back to current.
+On Tue, Jan 09, 2018 at 11:44:05AM -0800, Dan Williams wrote:
+> On Tue, Jan 9, 2018 at 11:34 AM, Jiri Kosina <jikos@kernel.org> wrote:
+> > On Fri, 5 Jan 2018, Dan Williams wrote:
+> >
+> > [ ... snip ... ]
+> >> Andi Kleen (1):
+> >>       x86, barrier: stop speculation for failed access_ok
+> >>
+> >> Dan Williams (13):
+> >>       x86: implement nospec_barrier()
+> >>       [media] uvcvideo: prevent bounds-check bypass via speculative execution
+> >>       carl9170: prevent bounds-check bypass via speculative execution
+> >>       p54: prevent bounds-check bypass via speculative execution
+> >>       qla2xxx: prevent bounds-check bypass via speculative execution
+> >>       cw1200: prevent bounds-check bypass via speculative execution
+> >>       Thermal/int340x: prevent bounds-check bypass via speculative execution
+> >>       ipv6: prevent bounds-check bypass via speculative execution
+> >>       ipv4: prevent bounds-check bypass via speculative execution
+> >>       vfs, fdtable: prevent bounds-check bypass via speculative execution
+> >>       net: mpls: prevent bounds-check bypass via speculative execution
+> >>       udf: prevent bounds-check bypass via speculative execution
+> >>       userns: prevent bounds-check bypass via speculative execution
+> >>
+> >> Mark Rutland (4):
+> >>       asm-generic/barrier: add generic nospec helpers
+> >>       Documentation: document nospec helpers
+> >>       arm64: implement nospec_ptr()
+> >>       arm: implement nospec_ptr()
+> >
+> > So considering the recent publication of [1], how come we all of a sudden
+> > don't need the barriers in ___bpf_prog_run(), namely for LD_IMM_DW and
+> > LDX_MEM_##SIZEOP, and something comparable for eBPF JIT?
+> >
+> > Is this going to be handled in eBPF in some other way?
+> >
+> > Without that in place, and considering Jann Horn's paper, it would seem
+> > like PTI doesn't really lock it down fully, right?
+> 
+> Here is the latest (v3) bpf fix:
+> 
+> https://patchwork.ozlabs.org/patch/856645/
+> 
+> I currently have v2 on my 'nospec' branch and will move that to v3 for
+> the next update, unless it goes upstream before then.
 
-Reported-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
-Reported-by: Andy Lutomirski <luto@kernel.org>
-Reported-by: Brad Spengler <spender@grsecurity.net>
-Fixes: 64701dee4178e ("exec: Use sane stack rlimit under secureexec")
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- fs/exec.c               | 27 +++++++++++++++------------
- include/linux/binfmts.h |  2 ++
- 2 files changed, 17 insertions(+), 12 deletions(-)
+That patch seems specific to CONFIG_BPF_SYSCALL.  Is the bpf() syscall
+the only attack vector?  Or are there other ways to run bpf programs
+that we should be worried about?
 
-diff --git a/fs/exec.c b/fs/exec.c
-index e4ae20ff6278..806936ad9387 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -257,7 +257,7 @@ static struct page *get_arg_page(struct linux_binprm *bprm, unsigned long pos,
- 		 *    to work from.
- 		 */
- 		limit = _STK_LIM / 4 * 3;
--		limit = min(limit, rlimit(RLIMIT_STACK) / 4);
-+		limit = min(limit, bprm->rlim_stack.rlim_cur / 4);
- 		if (size > limit)
- 			goto fail;
- 	}
-@@ -411,6 +411,11 @@ static int bprm_mm_init(struct linux_binprm *bprm)
- 	if (!mm)
- 		goto err;
- 
-+	/* Save current stack limit for all calculations made during exec. */
-+	task_lock(current->group_leader);
-+	bprm->rlim_stack = current->signal->rlim[RLIMIT_STACK];
-+	task_unlock(current->group_leader);
-+
- 	err = __bprm_mm_init(bprm);
- 	if (err)
- 		goto err;
-@@ -697,7 +702,7 @@ int setup_arg_pages(struct linux_binprm *bprm,
- 
- #ifdef CONFIG_STACK_GROWSUP
- 	/* Limit stack size */
--	stack_base = rlimit_max(RLIMIT_STACK);
-+	stack_base = bprm->rlim_stack.rlim_max;
- 	if (stack_base > STACK_SIZE_MAX)
- 		stack_base = STACK_SIZE_MAX;
- 
-@@ -770,7 +775,7 @@ int setup_arg_pages(struct linux_binprm *bprm,
- 	 * Align this down to a page boundary as expand_stack
- 	 * will align it up.
- 	 */
--	rlim_stack = rlimit(RLIMIT_STACK) & PAGE_MASK;
-+	rlim_stack = bprm->rlim_stack.rlim_cur & PAGE_MASK;
- #ifdef CONFIG_STACK_GROWSUP
- 	if (stack_size + stack_expand > rlim_stack)
- 		stack_base = vma->vm_start + rlim_stack;
-@@ -1323,8 +1328,6 @@ EXPORT_SYMBOL(would_dump);
- 
- void setup_new_exec(struct linux_binprm * bprm)
- {
--	struct rlimit rlim_stack;
--
- 	/*
- 	 * Once here, prepare_binrpm() will not be called any more, so
- 	 * the final state of setuid/setgid/fscaps can be merged into the
-@@ -1343,15 +1346,11 @@ void setup_new_exec(struct linux_binprm * bprm)
- 		 * RLIMIT_STACK, but after the point of no return to avoid
- 		 * needing to clean up the change on failure.
- 		 */
--		if (current->signal->rlim[RLIMIT_STACK].rlim_cur > _STK_LIM)
--			current->signal->rlim[RLIMIT_STACK].rlim_cur = _STK_LIM;
-+		if (bprm->rlim_stack.rlim_cur > _STK_LIM)
-+			bprm->rlim_stack.rlim_cur = _STK_LIM;
- 	}
- 
--	task_lock(current->group_leader);
--	rlim_stack = current->signal->rlim[RLIMIT_STACK];
--	task_unlock(current->group_leader);
--
--	arch_pick_mmap_layout(current->mm, &rlim_stack);
-+	arch_pick_mmap_layout(current->mm, &bprm->rlim_stack);
- 
- 	current->sas_ss_sp = current->sas_ss_size = 0;
- 
-@@ -1387,6 +1386,10 @@ EXPORT_SYMBOL(setup_new_exec);
- /* Runs immediately before start_thread() takes over. */
- void finalize_exec(struct linux_binprm *bprm)
- {
-+	/* Store any stack rlimit changes before starting thread. */
-+	task_lock(current->group_leader);
-+	current->signal->rlim[RLIMIT_STACK] = bprm->rlim_stack;
-+	task_unlock(current->group_leader);
- }
- EXPORT_SYMBOL(finalize_exec);
- 
-diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
-index 40e52afbb2b0..4955e0863b83 100644
---- a/include/linux/binfmts.h
-+++ b/include/linux/binfmts.h
-@@ -61,6 +61,8 @@ struct linux_binprm {
- 	unsigned interp_flags;
- 	unsigned interp_data;
- 	unsigned long loader, exec;
-+
-+	struct rlimit rlim_stack; /* Saved RLIMIT_STACK used during exec. */
- } __randomize_layout;
- 
- #define BINPRM_FLAGS_ENFORCE_NONDUMP_BIT 0
 -- 
-2.7.4
+Josh
