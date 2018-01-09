@@ -1,59 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f65.google.com ([74.125.83.65]:33201 "EHLO
-        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1758159AbeAIU5A (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:57:00 -0500
-Received: by mail-pg0-f65.google.com with SMTP id i196so8819730pgd.0
-        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:57:00 -0800 (PST)
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:35857 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1759553AbeAIU5K (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:57:10 -0500
+Received: by mail-pf0-f195.google.com with SMTP id 23so6754626pfp.3
+        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:57:10 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 01/36] usercopy: Remove pointer from overflow report
-Date: Tue,  9 Jan 2018 12:55:30 -0800
-Message-ID: <1515531365-37423-2-git-send-email-keescook@chromium.org>
+Subject: [PATCH 27/36] fork: Define usercopy region in thread_stack slab caches
+Date: Tue,  9 Jan 2018 12:55:56 -0800
+Message-ID: <1515531365-37423-28-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180109205530.543m9P6TNtKepu7rwWb0zgWSluCp5SdUDnI_LzXk6-A@z>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180109205556.Yqecr0RrDVcB4dBufRIpxABsbxwcs_LDaXzMr9djS5I@z>
 
-Using %p was already mostly useless in the usercopy overflow reports,
-so this removes it entirely to avoid confusion now that %p-hashing
-is enabled.
+From: David Windsor <dave@nullcore.net>
 
-Fixes: ad67b74d2469d9b8 ("printk: hash addresses printed with %p")
+In support of usercopy hardening, this patch defines a region in the
+thread_stack slab caches in which userspace copy operations are allowed.
+Since the entire thread_stack needs to be available to userspace, the
+entire slab contents are whitelisted. Note that the slab-based thread
+stack is only present on systems with THREAD_SIZE < PAGE_SIZE and
+!CONFIG_VMAP_STACK.
+
+cache object allocation:
+    kernel/fork.c:
+        alloc_thread_stack_node(...):
+            return kmem_cache_alloc_node(thread_stack_cache, ...)
+
+        dup_task_struct(...):
+            ...
+            stack = alloc_thread_stack_node(...)
+            ...
+            tsk->stack = stack;
+
+        copy_process(...):
+            ...
+            dup_task_struct(...)
+
+        _do_fork(...):
+            ...
+            copy_process(...)
+
+This region is known as the slab cache's usercopy region. Slab caches
+can now check that each dynamically sized copy operation involving
+cache-managed memory falls entirely within the slab's usercopy region.
+
+This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
+whitelisting code in the last public patch of grsecurity/PaX based on my
+understanding of the code. Changes or omissions from the original code are
+mine and don't reflect the original grsecurity/PaX code.
+
+Signed-off-by: David Windsor <dave@nullcore.net>
+[kees: adjust commit log, split patch, provide usage trace]
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andy Lutomirski <luto@kernel.org>
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Rik van Riel <riel@redhat.com>
 ---
- mm/usercopy.c | 9 ++++-----
- 1 file changed, 4 insertions(+), 5 deletions(-)
+ kernel/fork.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/mm/usercopy.c b/mm/usercopy.c
-index a9852b24715d..5df1e68d4585 100644
---- a/mm/usercopy.c
-+++ b/mm/usercopy.c
-@@ -58,12 +58,11 @@ static noinline int check_stack_object(const void *obj, unsigned long len)
- 	return GOOD_STACK;
- }
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 82f2a0441d3b..0e086af148f2 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -282,8 +282,9 @@ static void free_thread_stack(struct task_struct *tsk)
  
--static void report_usercopy(const void *ptr, unsigned long len,
--			    bool to_user, const char *type)
-+static void report_usercopy(unsigned long len, bool to_user, const char *type)
+ void thread_stack_cache_init(void)
  {
--	pr_emerg("kernel memory %s attempt detected %s %p (%s) (%lu bytes)\n",
-+	pr_emerg("kernel memory %s attempt detected %s '%s' (%lu bytes)\n",
- 		to_user ? "exposure" : "overwrite",
--		to_user ? "from" : "to", ptr, type ? : "unknown", len);
-+		to_user ? "from" : "to", type ? : "unknown", len);
- 	/*
- 	 * For greater effect, it would be nice to do do_group_exit(),
- 	 * but BUG() actually hooks all the lock-breaking and per-arch
-@@ -261,6 +260,6 @@ void __check_object_size(const void *ptr, unsigned long n, bool to_user)
- 		return;
- 
- report:
--	report_usercopy(ptr, n, to_user, err);
-+	report_usercopy(n, to_user, err);
+-	thread_stack_cache = kmem_cache_create("thread_stack", THREAD_SIZE,
+-					      THREAD_SIZE, 0, NULL);
++	thread_stack_cache = kmem_cache_create_usercopy("thread_stack",
++					THREAD_SIZE, THREAD_SIZE, 0, 0,
++					THREAD_SIZE, NULL);
+ 	BUG_ON(thread_stack_cache == NULL);
  }
- EXPORT_SYMBOL(__check_object_size);
+ # endif
 -- 
 2.7.4
