@@ -1,82 +1,56 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH 16/18] net: mpls: prevent bounds-check bypass via
- speculative execution
-Date: Tue, 9 Jan 2018 10:01:47 -0800
-Message-ID: <CAPcyv4jQ=2s25keWbk-6bHK=xqeKbvbd0wX5319Csgg+iM+b2w@mail.gmail.com>
+From: Jiri Kosina <jikos@kernel.org>
+Subject: Re: [PATCH 00/18] prevent bounds-check bypass via speculative
+ execution
+Date: Tue, 9 Jan 2018 20:34:37 +0100 (CET)
+Message-ID: <alpine.LRH.2.00.1801092017330.27010@gjva.wvxbf.pm>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520108080.32271.16420298348259030860.stgit@dwillia2-desk3.amr.corp.intel.com>
- <87lgh7n2tf.fsf@xmission.com> <CAPcyv4iErvcOOSkaQbMa=9OJCmxNO7sDqi3qzg2ODvKqCApULQ@mail.gmail.com>
- <87373fj9bv.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f196.google.com ([74.125.82.196]:41121 "EHLO
-        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755932AbeAISBs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 13:01:48 -0500
-Received: by mail-ot0-f196.google.com with SMTP id 5so4089150oth.8
-        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 10:01:48 -0800 (PST)
-In-Reply-To: <87373fj9bv.fsf@xmission.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, peterz@infradead.org, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Zhang Rui <rui.zhang@intel.com>, linux-media@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jan Kara <jack@suse.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 9, 2018 at 8:17 AM, Eric W. Biederman <ebiederm@xmission.com> wrote:
-> Dan Williams <dan.j.williams@intel.com> writes:
-[..]
-> The user controlled value condition of your patchset implies that you
-> assume indirect branch predictor poisoning is handled in other ways.
->
-> Which means that we can assume speculation will take some variation of
-> the static call chain.
->
-> Further you are worrying about array accesses.  Which means you
-> are worried about attacks that are the equivalent of meltdown that
-> can give you reading of all memory available to the kernel.
->
->
-> The mpls code in question reads a pointer from memory.
->
->
-> The only thing the code does with that pointer is verify it is not NULL
-> and dereference it.
->
-> That does not make it possible to extricate the pointer bits via a cache
-> side-channel as a pointer is 64bits wide.
->
-> There might maybe be a timing attack where it is timed how long the
-> packet takes to deliver.  If you can find the base address of the array,
-> at best such a timeing attack will tell you is if some arbitrary cache
-> line is already cached in the kernel.  Which is not the class of attack
-> your patchset is worried about.  Further there are more direct ways
-> to probe the cache from a local process.
->
-> So I submit to you that the mpls code is not vulnerable to the class of
-> attack you are addressing.
->
-> Further I would argue that anything that reads a pointer from memory is
-> a very strong clue that it falls outside the class of code that you are
-> addressing.
->
-> Show me where I am wrong and I will consider patches.
+On Fri, 5 Jan 2018, Dan Williams wrote:
 
-No, the concern is a second dependent read (or write) within the
-speculation window after this first bounds-checked dependent read.
-I.e. this mpls code path appears to have the setup condition:
+[ ... snip ... ]
+> Andi Kleen (1):
+>       x86, barrier: stop speculation for failed access_ok
+> 
+> Dan Williams (13):
+>       x86: implement nospec_barrier()
+>       [media] uvcvideo: prevent bounds-check bypass via speculative execution
+>       carl9170: prevent bounds-check bypass via speculative execution
+>       p54: prevent bounds-check bypass via speculative execution
+>       qla2xxx: prevent bounds-check bypass via speculative execution
+>       cw1200: prevent bounds-check bypass via speculative execution
+>       Thermal/int340x: prevent bounds-check bypass via speculative execution
+>       ipv6: prevent bounds-check bypass via speculative execution
+>       ipv4: prevent bounds-check bypass via speculative execution
+>       vfs, fdtable: prevent bounds-check bypass via speculative execution
+>       net: mpls: prevent bounds-check bypass via speculative execution
+>       udf: prevent bounds-check bypass via speculative execution
+>       userns: prevent bounds-check bypass via speculative execution
+> 
+> Mark Rutland (4):
+>       asm-generic/barrier: add generic nospec helpers
+>       Documentation: document nospec helpers
+>       arm64: implement nospec_ptr()
+>       arm: implement nospec_ptr()
 
-    if (x < max)
-        val = array1[x];
+So considering the recent publication of [1], how come we all of a sudden 
+don't need the barriers in ___bpf_prog_run(), namely for LD_IMM_DW and 
+LDX_MEM_##SIZEOP, and something comparable for eBPF JIT?
 
-...but it's not clear that there is an exploit condition later on in
-the instruction stream:
+Is this going to be handled in eBPF in some other way?
 
-        array2[val] = y;
-        /* or */
-        y = array2[val];
+Without that in place, and considering Jann Horn's paper, it would seem 
+like PTI doesn't really lock it down fully, right?
 
-My personal paranoia says submit the patch and not worry about finding
-that later exploit condition, if DaveM wants to drop the patch that's
-his prerogative. In general, with the performance conscious version of
-nospec_array_ptr() being the default, why worry about what is / is not
-in the speculation window?
+[1] https://bugs.chromium.org/p/project-zero/issues/attachmentText?aid=287305
+
+-- 
+Jiri Kosina
+SUSE Labs
