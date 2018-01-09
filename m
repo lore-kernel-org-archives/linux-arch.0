@@ -1,98 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:36326 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1758681AbeAIU5J (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 15:57:09 -0500
-Received: by mail-pg0-f66.google.com with SMTP id j2so7608479pgv.3
-        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 12:57:09 -0800 (PST)
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:35065 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1759588AbeAIVEW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 16:04:22 -0500
+Received: by mail-pf0-f196.google.com with SMTP id t12so6613041pfg.2
+        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 13:04:22 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 26/36] fork: Define usercopy region in mm_struct slab caches
-Date: Tue,  9 Jan 2018 12:55:55 -0800
-Message-ID: <1515531365-37423-27-git-send-email-keescook@chromium.org>
+Subject: [PATCH 35/36] usercopy: Restrict non-usercopy caches to size 0
+Date: Tue,  9 Jan 2018 12:56:04 -0800
+Message-ID: <1515531365-37423-36-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180109205555.beGeBhdKUvAOu_JgIdnyiBSJUjoqeH98fJfDm70tif0@z>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180109205604.XnPHyAUYUjgqkXvbkbwu2z89QruK9Ift5mjQ5n0pSbI@z>
 
-From: David Windsor <dave@nullcore.net>
-
-In support of usercopy hardening, this patch defines a region in the
-mm_struct slab caches in which userspace copy operations are allowed.
-Only the auxv field is copied to userspace.
-
-cache object allocation:
-    kernel/fork.c:
-        #define allocate_mm()     (kmem_cache_alloc(mm_cachep, GFP_KERNEL))
-
-        dup_mm():
-            ...
-            mm = allocate_mm();
-
-        copy_mm(...):
-            ...
-            dup_mm();
-
-        copy_process(...):
-            ...
-            copy_mm(...)
-
-        _do_fork(...):
-            ...
-            copy_process(...)
-
-example usage trace:
-
-    fs/binfmt_elf.c:
-        create_elf_tables(...):
-            ...
-            elf_info = (elf_addr_t *)current->mm->saved_auxv;
-            ...
-            copy_to_user(..., elf_info, ei_index * sizeof(elf_addr_t))
-
-        load_elf_binary(...):
-            ...
-            create_elf_tables(...);
-
-This region is known as the slab cache's usercopy region. Slab caches
-can now check that each dynamically sized copy operation involving
-cache-managed memory falls entirely within the slab's usercopy region.
+With all known usercopied cache whitelists now defined in the
+kernel, switch the default usercopy region of kmem_cache_create()
+to size 0. Any new caches with usercopy regions will now need to use
+kmem_cache_create_usercopy() instead of kmem_cache_create().
 
 This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
 whitelisting code in the last public patch of grsecurity/PaX based on my
 understanding of the code. Changes or omissions from the original code are
 mine and don't reflect the original grsecurity/PaX code.
 
-Signed-off-by: David Windsor <dave@nullcore.net>
-[kees: adjust commit log, split patch, provide usage trace]
-Cc: Ingo Molnar <mingo@kernel.org>
+Cc: David Windsor <dave@nullcore.net>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: Pekka Enberg <penberg@kernel.org>
+Cc: David Rientjes <rientjes@google.com>
+Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andy Lutomirski <luto@kernel.org>
+Cc: linux-mm@kvack.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Rik van Riel <riel@redhat.com>
 ---
- kernel/fork.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ mm/slab_common.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 432eadf6b58c..82f2a0441d3b 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -2225,9 +2225,11 @@ void __init proc_caches_init(void)
- 	 * maximum number of CPU's we can ever have.  The cpumask_allocation
- 	 * is at the end of the structure, exactly for that reason.
- 	 */
--	mm_cachep = kmem_cache_create("mm_struct",
-+	mm_cachep = kmem_cache_create_usercopy("mm_struct",
- 			sizeof(struct mm_struct), ARCH_MIN_MMSTRUCT_ALIGN,
- 			SLAB_HWCACHE_ALIGN|SLAB_PANIC|SLAB_ACCOUNT,
-+			offsetof(struct mm_struct, saved_auxv),
-+			sizeof_field(struct mm_struct, saved_auxv),
- 			NULL);
- 	vm_area_cachep = KMEM_CACHE(vm_area_struct, SLAB_PANIC|SLAB_ACCOUNT);
- 	mmap_init();
+diff --git a/mm/slab_common.c b/mm/slab_common.c
+index 8ac2a6320a6c..d00cd3f0f8ac 100644
+--- a/mm/slab_common.c
++++ b/mm/slab_common.c
+@@ -532,7 +532,7 @@ struct kmem_cache *
+ kmem_cache_create(const char *name, size_t size, size_t align,
+ 		slab_flags_t flags, void (*ctor)(void *))
+ {
+-	return kmem_cache_create_usercopy(name, size, align, flags, 0, size,
++	return kmem_cache_create_usercopy(name, size, align, flags, 0, 0,
+ 					  ctor);
+ }
+ EXPORT_SYMBOL(kmem_cache_create);
 -- 
 2.7.4
