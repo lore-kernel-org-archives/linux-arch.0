@@ -1,116 +1,45 @@
-From: Laura Abbott <labbott@redhat.com>
-Subject: Re: [PATCH 04/18] arm: implement nospec_ptr()
-Date: Wed, 10 Jan 2018 09:24:48 -0800
-Message-ID: <2db9ae03-833a-e9de-e95a-bb23b3c89e4a@redhat.com>
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520101463.32271.9320376934909324865.stgit@dwillia2-desk3.amr.corp.intel.com>
- <32f6f9de-1f8f-f459-d9e4-c9a7044cf8af@redhat.com>
- <ad81ad1b-b960-4b24-e916-38459479e7f0@huawei.com>
+From: Christopher Lameter <cl@linux.com>
+Subject: Re: [PATCH 04/36] usercopy: Prepare for usercopy whitelisting
+Date: Wed, 10 Jan 2018 12:28:23 -0600 (CST)
+Message-ID: <alpine.DEB.2.20.1801101219390.7926@nuc-kabylake>
+References: <1515531365-37423-1-git-send-email-keescook@chromium.org> <1515531365-37423-5-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f193.google.com ([74.125.82.193]:37151 "EHLO
-        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752054AbeAJRYx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 12:24:53 -0500
-Received: by mail-ot0-f193.google.com with SMTP id a24so482248otd.4
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 09:24:52 -0800 (PST)
-In-Reply-To: <ad81ad1b-b960-4b24-e916-38459479e7f0@huawei.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Hanjun Guo <guohanjun@huawei.com>, Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, alan@linux.intel.com, Justin Forbes <jforbes@redhat.com>
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1515531365-37423-5-git-send-email-keescook@chromium.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@orac>
+List-Id: linux-arch.vger.kernel.org
 
-On 01/09/2018 11:40 PM, Hanjun Guo wrote:
-> On 2018/1/10 10:04, Laura Abbott wrote:
->> On 01/05/2018 05:10 PM, Dan Williams wrote:
->>> From: Mark Rutland <mark.rutland@arm.com>
->>>
->>> This patch implements nospec_ptr() for arm, following the recommended
->>> architectural sequences for the arm and thumb instruction sets.
->>>
->> Fedora picked up the series and it fails on arm:
->>
->> In file included from ./include/linux/compiler.h:242:0,
->>                   from ./include/uapi/linux/swab.h:6,
->>                   from ./include/linux/swab.h:5,
->>                   from ./arch/arm/include/asm/opcodes.h:89,
->>                   from ./arch/arm/include/asm/bug.h:7,
->>                   from ./include/linux/bug.h:5,
->>                   from ./include/linux/mmdebug.h:5,
->>                   from ./include/linux/gfp.h:5,
->>                   from ./include/linux/slab.h:15,
->>                   from kernel/fork.c:14:
->> ./include/linux/fdtable.h: In function '__fcheck_files':
->> ./arch/arm/include/asm/barrier.h:112:41: error: expected declaration specifiers or '...' before numeric constant
->>    __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->>                                           ^
->> ./arch/arm/include/asm/barrier.h:68:32: note: in definition of macro '__load_no_speculate_n'
->>     (typeof(*ptr)(unsigned long)(failval));  \
->>                                  ^~~~~~~
->> ./arch/arm/include/asm/barrier.h:112:2: note: in expansion of macro '__load_no_speculate'
->>    __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->>    ^~~~~~~~~~~~~~~~~~~
->> ./include/asm-generic/barrier.h:122:2: note: in expansion of macro 'nospec_ptr'
->>    nospec_ptr(__arr + __idx, __arr, __arr + __sz);   \
->>    ^~~~~~~~~~
->> ./include/linux/fdtable.h:86:13: note: in expansion of macro 'nospec_array_ptr'
->>    if ((fdp = nospec_array_ptr(fdt->fd, fd, fdt->max_fds)))
->>               ^~~~~~~~~~~~~~~~
->> ./arch/arm/include/asm/barrier.h:112:41: error: expected declaration specifiers or '...' before numeric constant
->>    __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->>                                           ^
->> ./arch/arm/include/asm/barrier.h:68:32: note: in definition of macro '__load_no_speculate_n'
->>     (typeof(*ptr)(unsigned long)(failval));  \
->>                                  ^~~~~~~
->> ./arch/arm/include/asm/barrier.h:112:2: note: in expansion of macro '__load_no_speculate'
->>    __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->>    ^~~~~~~~~~~~~~~~~~~
->> ./include/asm-generic/barrier.h:122:2: note: in expansion of macro 'nospec_ptr'
->>    nospec_ptr(__arr + __idx, __arr, __arr + __sz);   \
->>    ^~~~~~~~~~
->> ./include/linux/fdtable.h:86:13: note: in expansion of macro 'nospec_array_ptr'
->>    if ((fdp = nospec_array_ptr(fdt->fd, fd, fdt->max_fds)))
->>               ^~~~~~~~~~~~~~~~
->> ./arch/arm/include/asm/barrier.h:112:41: error: expected declaration specifiers or '...' before numeric constant
->>    __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->>                                           ^
->> ./arch/arm/include/asm/barrier.h:68:32: note: in definition of macro '__load_no_speculate_n'
->>     (typeof(*ptr)(unsigned long)(failval));  \
->>                                  ^~~~~~~
->> ./arch/arm/include/asm/barrier.h:112:2: note: in expansion of macro '__load_no_speculate'
->>    __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->>    ^~~~~~~~~~~~~~~~~~~
->> ./include/asm-generic/barrier.h:122:2: note: in expansion of macro 'nospec_ptr'
->>    nospec_ptr(__arr + __idx, __arr, __arr + __sz);   \
->>    ^~~~~~~~~~
->> ./include/linux/fdtable.h:86:13: note: in expansion of macro 'nospec_array_ptr'
->>    if ((fdp = nospec_array_ptr(fdt->fd, fd, fdt->max_fds)))
->>
->> I can't puzzle out what exactly is the problem here, except that it really
->> does not seem to like that failval. Does the arm compiler not like doing
->> the typeof with the __arr + __idx?
-> 
->>> +#define __load_no_speculate_n(ptr, lo, hi, failval, cmpptr, sz)    \
->>> +({                                \
->>> +    typeof(*ptr) __nln_val;                    \
->>> +    typeof(*ptr) __failval =                \
->>> +        (typeof(*ptr)(unsigned long)(failval));        \
-> 
-> Just typo,
-> 
-> -         (typeof(*ptr)(unsigned long)(failval));         \
-> +         (typeof(*ptr))(unsigned long)(failval);             \
-> 
-> Please try it.
-> 
-> Thanks
-> Hanjun
-> 
+On Tue, 9 Jan 2018, Kees Cook wrote:
 
-Ah yeah, that's exactly it. I really missed the obvious.
+> +struct kmem_cache *kmem_cache_create_usercopy(const char *name,
+> +			size_t size, size_t align, slab_flags_t flags,
+> +			size_t useroffset, size_t usersize,
+> +			void (*ctor)(void *));
 
-Thanks,
-Laura
+Hmmm... At some point we should switch kmem_cache_create to pass a struct
+containing all the parameters. Otherwise the API will blow up with
+additional functions.
+
+> index 2181719fd907..70c4b4bb4d1f 100644
+> --- a/include/linux/stddef.h
+> +++ b/include/linux/stddef.h
+> @@ -19,6 +19,8 @@ enum {
+>  #define offsetof(TYPE, MEMBER)	((size_t)&((TYPE *)0)->MEMBER)
+>  #endif
+>
+> +#define sizeof_field(structure, field) sizeof((((structure *)0)->field))
+> +
+>  /**
+>   * offsetofend(TYPE, MEMBER)
+>   *
+
+Have a separate patch for adding this functionality? Its not a slab
+maintainer
+file.
+
+Rest looks ok.
+
+Acked-by: Christoph Lameter <cl@linux.com>
