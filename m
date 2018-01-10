@@ -1,23 +1,44 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 11/33] dma-mapping: move swiotlb arch helpers to a new
-        header
-Date: Wed, 10 Jan 2018 16:22:15 +0100
-Message-ID: <20180110152215.GA17790@lst.de>
-References: <20180110080027.13879-1-hch@lst.de> <20180110080027.13879-12-hch@lst.de> <b2bd6f4b-a932-5251-517b-83bbccfe7c53@arm.com>
+From: Christopher Lameter <cl@linux.com>
+Subject: Re: [PATCH 02/36] usercopy: Include offset in overflow report
+Date: Wed, 10 Jan 2018 09:25:20 -0600 (CST)
+Message-ID: <alpine.DEB.2.20.1801100921000.7926@nuc-kabylake>
+References: <1515531365-37423-1-git-send-email-keescook@chromium.org> <1515531365-37423-3-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <b2bd6f4b-a932-5251-517b-83bbccfe7c53@arm.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Vladimir Murzin <vladimir.murzin@arm.com>
-Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1515531365-37423-3-git-send-email-keescook@chromium.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 10, 2018 at 09:31:45AM +0000, Vladimir Murzin wrote:
-> I know it is copy&paste, but it seems it has off by one error and it should be
-> 
-> return addr + size - 1 <= *dev->dma_mask;
+On Tue, 9 Jan 2018, Kees Cook wrote:
 
-I've added a new patch to fix the mips dma_capable() definition,
-thanks.
+> -static void report_usercopy(unsigned long len, bool to_user, const char *type)
+> +int report_usercopy(const char *name, const char *detail, bool to_user,
+> +		    unsigned long offset, unsigned long len)
+>  {
+> -	pr_emerg("kernel memory %s attempt detected %s '%s' (%lu bytes)\n",
+> +	pr_emerg("kernel memory %s attempt detected %s %s%s%s%s (offset %lu, size %lu)\n",
+>  		to_user ? "exposure" : "overwrite",
+> -		to_user ? "from" : "to", type ? : "unknown", len);
+> +		to_user ? "from" : "to",
+> +		name ? : "unknown?!",
+> +		detail ? " '" : "", detail ? : "", detail ? "'" : "",
+> +		offset, len);
+>  	/*
+>  	 * For greater effect, it would be nice to do do_group_exit(),
+>  	 * but BUG() actually hooks all the lock-breaking and per-arch
+>  	 * Oops code, so that is used here instead.
+>  	 */
+>  	BUG();
+
+Should this be a WARN() or so? Or some configuration that changes
+BUG() behavior? Otherwise
+
+> +
+> +	return -1;
+
+This return code will never be returned.
+
+Why a return code at all? Maybe I will see that in the following patches?
