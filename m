@@ -1,102 +1,55 @@
-From: Hanjun Guo <guohanjun@huawei.com>
-Subject: Re: [PATCH 04/18] arm: implement nospec_ptr()
-Date: Wed, 10 Jan 2018 15:40:20 +0800
-Message-ID: <ad81ad1b-b960-4b24-e916-38459479e7f0@huawei.com>
-References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520101463.32271.9320376934909324865.stgit@dwillia2-desk3.amr.corp.intel.com>
- <32f6f9de-1f8f-f459-d9e4-c9a7044cf8af@redhat.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: consolidate direct dma mapping V3
+Date: Wed, 10 Jan 2018 08:59:54 +0100
+Message-ID: <20180110080027.13879-1-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <32f6f9de-1f8f-f459-d9e4-c9a7044cf8af@redhat.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Laura Abbott <labbott@redhat.com>, Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arch@vger.kernel.org, peterz@infradead.org, netdev@vger.kernel.org, gregkh@linuxfoundation.org, tglx@linutronix.de, torvalds@linux-foundation.org, alan@linux.intel.com, Justin Forbes <jforbes@redhat.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: iommu@lists.linux-foundation.org
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2018/1/10 10:04, Laura Abbott wrote:
-> On 01/05/2018 05:10 PM, Dan Williams wrote:
->> From: Mark Rutland <mark.rutland@arm.com>
->>
->> This patch implements nospec_ptr() for arm, following the recommended
->> architectural sequences for the arm and thumb instruction sets.
->>
-> Fedora picked up the series and it fails on arm:
-> 
-> In file included from ./include/linux/compiler.h:242:0,
->                  from ./include/uapi/linux/swab.h:6,
->                  from ./include/linux/swab.h:5,
->                  from ./arch/arm/include/asm/opcodes.h:89,
->                  from ./arch/arm/include/asm/bug.h:7,
->                  from ./include/linux/bug.h:5,
->                  from ./include/linux/mmdebug.h:5,
->                  from ./include/linux/gfp.h:5,
->                  from ./include/linux/slab.h:15,
->                  from kernel/fork.c:14:
-> ./include/linux/fdtable.h: In function '__fcheck_files':
-> ./arch/arm/include/asm/barrier.h:112:41: error: expected declaration specifiers or '...' before numeric constant
->   __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->                                          ^
-> ./arch/arm/include/asm/barrier.h:68:32: note: in definition of macro '__load_no_speculate_n'
->    (typeof(*ptr)(unsigned long)(failval));  \
->                                 ^~~~~~~
-> ./arch/arm/include/asm/barrier.h:112:2: note: in expansion of macro '__load_no_speculate'
->   __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->   ^~~~~~~~~~~~~~~~~~~
-> ./include/asm-generic/barrier.h:122:2: note: in expansion of macro 'nospec_ptr'
->   nospec_ptr(__arr + __idx, __arr, __arr + __sz);   \
->   ^~~~~~~~~~
-> ./include/linux/fdtable.h:86:13: note: in expansion of macro 'nospec_array_ptr'
->   if ((fdp = nospec_array_ptr(fdt->fd, fd, fdt->max_fds)))
->              ^~~~~~~~~~~~~~~~
-> ./arch/arm/include/asm/barrier.h:112:41: error: expected declaration specifiers or '...' before numeric constant
->   __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->                                          ^
-> ./arch/arm/include/asm/barrier.h:68:32: note: in definition of macro '__load_no_speculate_n'
->    (typeof(*ptr)(unsigned long)(failval));  \
->                                 ^~~~~~~
-> ./arch/arm/include/asm/barrier.h:112:2: note: in expansion of macro '__load_no_speculate'
->   __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->   ^~~~~~~~~~~~~~~~~~~
-> ./include/asm-generic/barrier.h:122:2: note: in expansion of macro 'nospec_ptr'
->   nospec_ptr(__arr + __idx, __arr, __arr + __sz);   \
->   ^~~~~~~~~~
-> ./include/linux/fdtable.h:86:13: note: in expansion of macro 'nospec_array_ptr'
->   if ((fdp = nospec_array_ptr(fdt->fd, fd, fdt->max_fds)))
->              ^~~~~~~~~~~~~~~~
-> ./arch/arm/include/asm/barrier.h:112:41: error: expected declaration specifiers or '...' before numeric constant
->   __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->                                          ^
-> ./arch/arm/include/asm/barrier.h:68:32: note: in definition of macro '__load_no_speculate_n'
->    (typeof(*ptr)(unsigned long)(failval));  \
->                                 ^~~~~~~
-> ./arch/arm/include/asm/barrier.h:112:2: note: in expansion of macro '__load_no_speculate'
->   __load_no_speculate(&__np_ptr, lo, hi, 0, __np_ptr);  \
->   ^~~~~~~~~~~~~~~~~~~
-> ./include/asm-generic/barrier.h:122:2: note: in expansion of macro 'nospec_ptr'
->   nospec_ptr(__arr + __idx, __arr, __arr + __sz);   \
->   ^~~~~~~~~~
-> ./include/linux/fdtable.h:86:13: note: in expansion of macro 'nospec_array_ptr'
->   if ((fdp = nospec_array_ptr(fdt->fd, fd, fdt->max_fds)))
-> 
-> I can't puzzle out what exactly is the problem here, except that it really
-> does not seem to like that failval. Does the arm compiler not like doing
-> the typeof with the __arr + __idx?
+Almost every architecture supports a direct dma mapping implementation,
+where no iommu is used and the device dma address is a 1:1 mapping to
+the physical address or has a simple linear offset.  Currently the
+code for this implementation is most duplicated over the architectures,
+and the duplicated again in the swiotlb code, and then duplicated again
+for special cases like the x86 memory encryption DMA ops.
 
->> +#define __load_no_speculate_n(ptr, lo, hi, failval, cmpptr, sz)    \
->> +({                                \
->> +    typeof(*ptr) __nln_val;                    \
->> +    typeof(*ptr) __failval =                \
->> +        (typeof(*ptr)(unsigned long)(failval));        \
+This series takes the existing very simple dma-noop dma mapping
+implementation, enhances it with all the x86 features and quirks, and
+creates a common set of architecture hooks for it and the swiotlb code.
 
-Just typo,
+It then switches a number of architectures to this generic
+direct map implemention.
 
--         (typeof(*ptr)(unsigned long)(failval));         \
-+         (typeof(*ptr))(unsigned long)(failval);             \
+Note that for now this only handles architectures that do cache coherent
+DMA, but a similar consolidation for non-coherent architectures is in the
+work for later merge windows.
 
-Please try it.
+A git tree is also available:
 
-Thanks
-Hanjun
+   git://git.infradead.org/users/hch/misc.git dma-direct.3
+
+Gitweb:
+
+   http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/dma-direct.3
+
+Changes since V1:
+ - fixed a few patch description typos
+ - fixed a few printk formats
+ - fixed an off by one in dma_coherent_ok
+ - add a few Reviewed-by/Acked-by tags.
+ - moved the swiotlb consolidation to a new series
+ - dropped a few patches for now to not overwhelem the x86
+   maintainers.  They will be resubmitted in the next merge window
