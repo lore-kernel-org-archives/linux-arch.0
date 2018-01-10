@@ -1,44 +1,44 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 08/22] swiotlb: wire up ->dma_supported in swiotlb_dma_ops
-Date: Wed, 10 Jan 2018 09:09:18 +0100
-Message-ID: <20180110080932.14157-9-hch@lst.de>
+Subject: [PATCH 15/22] ia64: remove an ifdef around the content of pci-dma.c
+Date: Wed, 10 Jan 2018 09:09:25 +0100
+Message-ID: <20180110080932.14157-16-hch@lst.de>
 References: <20180110080932.14157-1-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180110080932.14157-1-hch@lst.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: iommu@lists.linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-To properly reject too small DMA masks based on the addressability of the
-bounce buffer.
+The file is only compiled if CONFIG_INTEL_IOMMU is set to start with.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- lib/swiotlb.c | 1 +
- 1 file changed, 1 insertion(+)
+ arch/ia64/kernel/pci-dma.c | 7 -------
+ 1 file changed, 7 deletions(-)
 
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index 0fae2f45c3c0..539fd1099ba9 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -1128,5 +1128,6 @@ const struct dma_map_ops swiotlb_dma_ops = {
- 	.unmap_sg		= swiotlb_unmap_sg_attrs,
- 	.map_page		= swiotlb_map_page,
- 	.unmap_page		= swiotlb_unmap_page,
-+	.dma_supported		= swiotlb_dma_supported,
- };
- #endif /* CONFIG_DMA_DIRECT_OPS */
+diff --git a/arch/ia64/kernel/pci-dma.c b/arch/ia64/kernel/pci-dma.c
+index 35e0cad33b7d..b5df084c0af4 100644
+--- a/arch/ia64/kernel/pci-dma.c
++++ b/arch/ia64/kernel/pci-dma.c
+@@ -12,12 +12,7 @@
+ #include <asm/iommu.h>
+ #include <asm/machvec.h>
+ #include <linux/dma-mapping.h>
+-
+-
+-#ifdef CONFIG_INTEL_IOMMU
+-
+ #include <linux/kernel.h>
+-
+ #include <asm/page.h>
+ 
+ dma_addr_t bad_dma_address __read_mostly;
+@@ -115,5 +110,3 @@ void __init pci_iommu_alloc(void)
+ 	}
+ #endif /* CONFIG_SWIOTLB */
+ }
+-
+-#endif
 -- 
 2.14.2
