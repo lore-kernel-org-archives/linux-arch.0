@@ -1,49 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:35114 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S965004AbeAJIKY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:10:24 -0500
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 15/22] ia64: remove an ifdef around the content of pci-dma.c
-Date: Wed, 10 Jan 2018 09:09:25 +0100
-Message-ID: <20180110080932.14157-16-hch@lst.de>
-In-Reply-To: <20180110080932.14157-1-hch@lst.de>
-References: <20180110080932.14157-1-hch@lst.de>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:38626 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753843AbeAJJb7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Jan 2018 04:31:59 -0500
+Subject: Re: [PATCH 11/33] dma-mapping: move swiotlb arch helpers to a new
+ header
+References: <20180110080027.13879-1-hch@lst.de>
+ <20180110080027.13879-12-hch@lst.de>
+From: Vladimir Murzin <vladimir.murzin@arm.com>
+Message-ID: <b2bd6f4b-a932-5251-517b-83bbccfe7c53@arm.com>
+Date: Wed, 10 Jan 2018 09:31:45 +0000
+MIME-Version: 1.0
+In-Reply-To: <20180110080027.13879-12-hch@lst.de>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: iommu@lists.linux-foundation.org
-Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180110080925.er6JMg_JzFp-cjWJbt3-PBE8wZA6ne5EzYOwnVGS0IM@z>
+To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20180110093145.kN7Q9sGLmW8qc9mlArDSUhgUrkgHaApCbGPkgMoBVf0@z>
 
-The file is only compiled if CONFIG_INTEL_IOMMU is set to start with.
+On 10/01/18 08:00, Christoph Hellwig wrote:
+> index 9110988b92a1..f00833acb626 100644
+> --- a/arch/mips/include/asm/mach-cavium-octeon/dma-coherence.h
+> +++ b/arch/mips/include/asm/mach-cavium-octeon/dma-coherence.h
+> @@ -61,6 +61,14 @@ static inline void plat_post_dma_flush(struct device *dev)
+>  {
+>  }
+>  
+> +static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+> +{
+> +	if (!dev->dma_mask)
+> +		return false;
+> +
+> +	return addr + size <= *dev->dma_mask;
+> +}
+> +
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/ia64/kernel/pci-dma.c | 7 -------
- 1 file changed, 7 deletions(-)
+I know it is copy&paste, but it seems it has off by one error and it should be
 
-diff --git a/arch/ia64/kernel/pci-dma.c b/arch/ia64/kernel/pci-dma.c
-index 35e0cad33b7d..b5df084c0af4 100644
---- a/arch/ia64/kernel/pci-dma.c
-+++ b/arch/ia64/kernel/pci-dma.c
-@@ -12,12 +12,7 @@
- #include <asm/iommu.h>
- #include <asm/machvec.h>
- #include <linux/dma-mapping.h>
--
--
--#ifdef CONFIG_INTEL_IOMMU
--
- #include <linux/kernel.h>
--
- #include <asm/page.h>
- 
- dma_addr_t bad_dma_address __read_mostly;
-@@ -115,5 +110,3 @@ void __init pci_iommu_alloc(void)
- 	}
- #endif /* CONFIG_SWIOTLB */
- }
--
--#endif
--- 
-2.14.2
+return addr + size - 1 <= *dev->dma_mask;
+
+
+>  dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr);
+>  phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr);
+>  
+
+snip...
+
+> diff --git a/arch/mips/include/asm/mach-loongson64/dma-coherence.h b/arch/mips/include/asm/mach-loongson64/dma-coherence.h
+> index 1602a9e9e8c2..5cfda8f893e9 100644
+> --- a/arch/mips/include/asm/mach-loongson64/dma-coherence.h
+> +++ b/arch/mips/include/asm/mach-loongson64/dma-coherence.h
+> @@ -17,6 +17,14 @@
+>  
+>  struct device;
+>  
+> +static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+> +{
+> +	if (!dev->dma_mask)
+> +		return false;
+> +
+> +	return addr + size <= *dev->dma_mask;
+
+
+ditto
+
+Cheers
+Vladimir
