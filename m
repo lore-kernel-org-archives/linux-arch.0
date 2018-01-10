@@ -1,87 +1,169 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:41391 "EHLO
+Received: from bombadil.infradead.org ([65.50.211.133]:56175 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753134AbeAJIJo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:09:44 -0500
+        with ESMTP id S965260AbeAJIBO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:01:14 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 01/22] swiotlb: suppress warning when __GFP_NOWARN is set
-Date: Wed, 10 Jan 2018 09:09:11 +0100
-Message-ID: <20180110080932.14157-2-hch@lst.de>
-In-Reply-To: <20180110080932.14157-1-hch@lst.de>
-References: <20180110080932.14157-1-hch@lst.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Subject: [PATCH 12/33] dma-mapping: move dma_mark_clean to dma-direct.h
+Date: Wed, 10 Jan 2018 09:00:06 +0100
+Message-ID: <20180110080027.13879-13-hch@lst.de>
+In-Reply-To: <20180110080027.13879-1-hch@lst.de>
+References: <20180110080027.13879-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
-Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, stable@vger.kernel.org
-Message-ID: <20180110080911.k6MSvw4LpWHcm6phAk1IFyBaoL8c-wvLKFBc_R3jffA@z>
+Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180110080006.MTsxI1aDMh9vBcilC2izpKByUL8RuY-zdCQ8TluBJw0@z>
 
-From: Christian König <ckoenig.leichtzumerken@gmail.com>
+And unlike the other helpers we don't require a <asm/dma-direct.h> as
+this helper is a special case for ia64 only, and this keeps it as
+simple as possible.
 
-TTM tries to allocate coherent memory in chunks of 2MB first to improve
-TLB efficiency and falls back to allocating 4K pages if that fails.
-
-Suppress the warning when the 2MB allocations fails since there is a
-valid fall back path.
-
-Signed-off-by: Christian König <christian.koenig@amd.com>
-Reported-by: Mike Galbraith <efault@gmx.de>
-Acked-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Bug: https://bugs.freedesktop.org/show_bug.cgi?id=104082
-CC: stable@vger.kernel.org
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- lib/swiotlb.c | 15 +++++++++------
- 1 file changed, 9 insertions(+), 6 deletions(-)
+ arch/arm/include/asm/dma-mapping.h       | 2 --
+ arch/arm64/include/asm/dma-mapping.h     | 4 ----
+ arch/ia64/Kconfig                        | 1 +
+ arch/ia64/include/asm/dma.h              | 2 --
+ arch/mips/include/asm/dma-mapping.h      | 2 --
+ arch/powerpc/include/asm/swiotlb.h       | 2 --
+ arch/tile/include/asm/dma-mapping.h      | 2 --
+ arch/unicore32/include/asm/dma-mapping.h | 2 --
+ arch/x86/include/asm/swiotlb.h           | 2 --
+ include/linux/dma-direct.h               | 9 +++++++++
+ 10 files changed, 10 insertions(+), 18 deletions(-)
 
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index 6583f3512386..125c1062119f 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -586,7 +586,7 @@ phys_addr_t swiotlb_tbl_map_single(struct device *hwdev,
- 
- not_found:
- 	spin_unlock_irqrestore(&io_tlb_lock, flags);
--	if (printk_ratelimit())
-+	if (!(attrs & DMA_ATTR_NO_WARN) && printk_ratelimit())
- 		dev_warn(hwdev, "swiotlb buffer is full (sz: %zd bytes)\n", size);
- 	return SWIOTLB_MAP_ERROR;
- found:
-@@ -713,6 +713,7 @@ void *
- swiotlb_alloc_coherent(struct device *hwdev, size_t size,
- 		       dma_addr_t *dma_handle, gfp_t flags)
- {
-+	bool warn = !(flags & __GFP_NOWARN);
- 	dma_addr_t dev_addr;
- 	void *ret;
- 	int order = get_order(size);
-@@ -738,8 +739,8 @@ swiotlb_alloc_coherent(struct device *hwdev, size_t size,
- 		 * GFP_DMA memory; fall back on map_single(), which
- 		 * will grab memory from the lowest available address range.
- 		 */
--		phys_addr_t paddr = map_single(hwdev, 0, size,
--					       DMA_FROM_DEVICE, 0);
-+		phys_addr_t paddr = map_single(hwdev, 0, size, DMA_FROM_DEVICE,
-+					       warn ? 0 : DMA_ATTR_NO_WARN);
- 		if (paddr == SWIOTLB_MAP_ERROR)
- 			goto err_warn;
- 
-@@ -769,9 +770,11 @@ swiotlb_alloc_coherent(struct device *hwdev, size_t size,
- 	return ret;
- 
- err_warn:
--	pr_warn("swiotlb: coherent allocation failed for device %s size=%zu\n",
--		dev_name(hwdev), size);
--	dump_stack();
-+	if (warn && printk_ratelimit()) {
-+		pr_warn("swiotlb: coherent allocation failed for device %s size=%zu\n",
-+			dev_name(hwdev), size);
-+		dump_stack();
-+	}
- 
- 	return NULL;
+diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
+index 5fb1b7fbdfbe..e5d9020c9ee1 100644
+--- a/arch/arm/include/asm/dma-mapping.h
++++ b/arch/arm/include/asm/dma-mapping.h
+@@ -109,8 +109,6 @@ static inline bool is_device_dma_coherent(struct device *dev)
+ 	return dev->archdata.dma_coherent;
  }
+ 
+-static inline void dma_mark_clean(void *addr, size_t size) { }
+-
+ /**
+  * arm_dma_alloc - allocate consistent memory for DMA
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+diff --git a/arch/arm64/include/asm/dma-mapping.h b/arch/arm64/include/asm/dma-mapping.h
+index 400fa67d3b5a..b7847eb8a7bb 100644
+--- a/arch/arm64/include/asm/dma-mapping.h
++++ b/arch/arm64/include/asm/dma-mapping.h
+@@ -50,9 +50,5 @@ static inline bool is_device_dma_coherent(struct device *dev)
+ 	return dev->archdata.dma_coherent;
+ }
+ 
+-static inline void dma_mark_clean(void *addr, size_t size)
+-{
+-}
+-
+ #endif	/* __KERNEL__ */
+ #endif	/* __ASM_DMA_MAPPING_H */
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 49583c5a5d44..4d18fca885ee 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -33,6 +33,7 @@ config IA64
+ 	select HAVE_MEMBLOCK
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_VIRT_CPU_ACCOUNTING
++	select ARCH_HAS_DMA_MARK_CLEAN
+ 	select ARCH_HAS_SG_CHAIN
+ 	select VIRT_TO_BUS
+ 	select ARCH_DISCARD_MEMBLOCK
+diff --git a/arch/ia64/include/asm/dma.h b/arch/ia64/include/asm/dma.h
+index 186850eec934..23604d6a2cb2 100644
+--- a/arch/ia64/include/asm/dma.h
++++ b/arch/ia64/include/asm/dma.h
+@@ -20,6 +20,4 @@ extern unsigned long MAX_DMA_ADDRESS;
+ 
+ #define free_dma(x)
+ 
+-void dma_mark_clean(void *addr, size_t size);
+-
+ #endif /* _ASM_IA64_DMA_H */
+diff --git a/arch/mips/include/asm/dma-mapping.h b/arch/mips/include/asm/dma-mapping.h
+index 676c14cfc580..886e75a383f2 100644
+--- a/arch/mips/include/asm/dma-mapping.h
++++ b/arch/mips/include/asm/dma-mapping.h
+@@ -17,8 +17,6 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+ 	return mips_dma_map_ops;
+ }
+ 
+-static inline void dma_mark_clean(void *addr, size_t size) {}
+-
+ #define arch_setup_dma_ops arch_setup_dma_ops
+ static inline void arch_setup_dma_ops(struct device *dev, u64 dma_base,
+ 				      u64 size, const struct iommu_ops *iommu,
+diff --git a/arch/powerpc/include/asm/swiotlb.h b/arch/powerpc/include/asm/swiotlb.h
+index 01d45a5fd00b..9341ee804d19 100644
+--- a/arch/powerpc/include/asm/swiotlb.h
++++ b/arch/powerpc/include/asm/swiotlb.h
+@@ -15,8 +15,6 @@
+ 
+ extern const struct dma_map_ops swiotlb_dma_ops;
+ 
+-static inline void dma_mark_clean(void *addr, size_t size) {}
+-
+ extern unsigned int ppc_swiotlb_enable;
+ int __init swiotlb_setup_bus_notifier(void);
+ 
+diff --git a/arch/tile/include/asm/dma-mapping.h b/arch/tile/include/asm/dma-mapping.h
+index 75b8aaa4e70b..d25fce101fc0 100644
+--- a/arch/tile/include/asm/dma-mapping.h
++++ b/arch/tile/include/asm/dma-mapping.h
+@@ -44,8 +44,6 @@ static inline void set_dma_offset(struct device *dev, dma_addr_t off)
+ 	dev->archdata.dma_offset = off;
+ }
+ 
+-static inline void dma_mark_clean(void *addr, size_t size) {}
+-
+ #define HAVE_ARCH_DMA_SET_MASK 1
+ int dma_set_mask(struct device *dev, u64 mask);
+ 
+diff --git a/arch/unicore32/include/asm/dma-mapping.h b/arch/unicore32/include/asm/dma-mapping.h
+index 5cb250bf2d8c..f2bfec273aa7 100644
+--- a/arch/unicore32/include/asm/dma-mapping.h
++++ b/arch/unicore32/include/asm/dma-mapping.h
+@@ -25,7 +25,5 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+ 	return &swiotlb_dma_map_ops;
+ }
+ 
+-static inline void dma_mark_clean(void *addr, size_t size) {}
+-
+ #endif /* __KERNEL__ */
+ #endif
+diff --git a/arch/x86/include/asm/swiotlb.h b/arch/x86/include/asm/swiotlb.h
+index bdf9aed40403..1c6a6cb230ff 100644
+--- a/arch/x86/include/asm/swiotlb.h
++++ b/arch/x86/include/asm/swiotlb.h
+@@ -28,8 +28,6 @@ static inline void pci_swiotlb_late_init(void)
+ }
+ #endif
+ 
+-static inline void dma_mark_clean(void *addr, size_t size) {}
+-
+ extern void *x86_swiotlb_alloc_coherent(struct device *hwdev, size_t size,
+ 					dma_addr_t *dma_handle, gfp_t flags,
+ 					unsigned long attrs);
+diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
+index 2cc1b6558944..10e924b7cba7 100644
+--- a/include/linux/dma-direct.h
++++ b/include/linux/dma-direct.h
+@@ -29,4 +29,13 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+ 	return addr + size - 1 <= *dev->dma_mask;
+ }
+ #endif /* !CONFIG_ARCH_HAS_PHYS_TO_DMA */
++
++#ifdef CONFIG_ARCH_HAS_DMA_MARK_CLEAN
++void dma_mark_clean(void *addr, size_t size);
++#else
++static inline void dma_mark_clean(void *addr, size_t size)
++{
++}
++#endif /* CONFIG_ARCH_HAS_DMA_MARK_CLEAN */
++
+ #endif /* _LINUX_DMA_DIRECT_H */
 -- 
 2.14.2
