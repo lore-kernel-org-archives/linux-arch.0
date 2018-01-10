@@ -1,46 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:46344 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751829AbeAJRXM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Jan 2018 12:23:12 -0500
-Subject: Re: [PATCH 08/22] swiotlb: wire up ->dma_supported in swiotlb_dma_ops
-References: <20180110080932.14157-1-hch@lst.de>
- <20180110080932.14157-9-hch@lst.de>
- <7a058876-08fc-7323-7cb3-fe85116e2ea8@arm.com>
- <20180110153517.GF17790@lst.de>
-From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <5b14af5b-e6e9-17c5-d433-f50ccb466f90@arm.com>
-Date: Wed, 10 Jan 2018 17:23:08 +0000
+Received: from resqmta-po-06v.sys.comcast.net ([96.114.154.165]:45018 "EHLO
+        resqmta-po-06v.sys.comcast.net" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1751665AbeAJSeV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Jan 2018 13:34:21 -0500
+Date: Wed, 10 Jan 2018 12:31:47 -0600 (CST)
+From: Christopher Lameter <cl@linux.com>
+Subject: Re: [PATCH 05/36] usercopy: WARN() on slab cache usercopy region
+ violations
+In-Reply-To: <1515531365-37423-6-git-send-email-keescook@chromium.org>
+Message-ID: <alpine.DEB.2.20.1801101229380.7926@nuc-kabylake>
+References: <1515531365-37423-1-git-send-email-keescook@chromium.org> <1515531365-37423-6-git-send-email-keescook@chromium.org>
 MIME-Version: 1.0
-In-Reply-To: <20180110153517.GF17790@lst.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-GB
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, =?UTF-8?Q?Christian_K=c3=b6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180110172308.73fiFHM7i1-CZIMwSxJyBff_MlZDybQpmPlOTWc-Z44@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Laura Abbott <labbott@redhat.com>, Ingo Molnar <mingo@kernel.org>, Mark Rutland <mark.rutland@arm.com>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180110183147.tJlv1ljkfE9wAFNT1CYbYbAANheMDj_1gBpQjN8kS9A@z>
 
-On 10/01/18 15:35, Christoph Hellwig wrote:
-> On Wed, Jan 10, 2018 at 12:16:15PM +0000, Robin Murphy wrote:
->> On 10/01/18 08:09, Christoph Hellwig wrote:
->>> To properly reject too small DMA masks based on the addressability of the
->>> bounce buffer.
->>
->> I reckon this is self-evident enough that it should simply be squashed into
->> the previous patch.
-> 
-> x86 didn't wire it up before, so I want a clear blaimpoint for this
-> change instead of mixing it up.
-That almost makes sense, if x86 were using this generic swiotlb_dma_ops 
-already. AFAICS it's only ia64, unicore and tile who end up using it, 
-and they all had swiotlb_dma_supported hooked up to begin with. Am I 
-missing something?
+On Tue, 9 Jan 2018, Kees Cook wrote:
 
-If regressions are going to happen, they'll surely point at whichever 
-commit pulls the ops into the relevant arch code - there doesn't seem to 
-be a great deal of value in having a piecemeal history of said ops 
-*before* that point.
+> @@ -3823,11 +3825,9 @@ int __check_heap_object(const void *ptr, unsigned long n, struct page *page,
 
-Robin.
+Could we do the check in mm_slab_common.c for all allocators and just have
+a small function in each allocators that give you the metadata needed for
+the object?
+
+> + * carefully audit the whitelist range).
+> + */
+>  int report_usercopy(const char *name, const char *detail, bool to_user,
+>  		    unsigned long offset, unsigned long len)
+>  {
+
+Should this not be added earlier?
