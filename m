@@ -1,166 +1,118 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 19/22] mips/netlogic: remove swiotlb support
-Date: Wed, 10 Jan 2018 09:09:29 +0100
-Message-ID: <20180110080932.14157-20-hch@lst.de>
+Subject: [PATCH 03/22] ia64: rename swiotlb_dma_ops
+Date: Wed, 10 Jan 2018 09:09:13 +0100
+Message-ID: <20180110080932.14157-4-hch@lst.de>
 References: <20180110080932.14157-1-hch@lst.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20180110080932.14157-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: iommu@lists.linux-foundation.org
-Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-nlm_swiotlb_dma_ops is unused code, so the whole swiotlb support is dead.
-If it gets resurrected at some point it should use the generic
-swiotlb_dma_ops instead.
+We'll need that name for a generic implementation soon.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/mips/include/asm/netlogic/common.h |  3 --
- arch/mips/netlogic/Kconfig              |  5 --
- arch/mips/netlogic/common/Makefile      |  1 -
- arch/mips/netlogic/common/nlm-dma.c     | 94 ---------------------------------
- 4 files changed, 103 deletions(-)
- delete mode 100644 arch/mips/netlogic/common/nlm-dma.c
+ arch/ia64/hp/common/hwsw_iommu.c | 4 ++--
+ arch/ia64/hp/common/sba_iommu.c  | 6 +++---
+ arch/ia64/kernel/pci-swiotlb.c   | 6 +++---
+ 3 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/arch/mips/include/asm/netlogic/common.h b/arch/mips/include/asm/netlogic/common.h
-index a6e6cbebe046..57616649b4f3 100644
---- a/arch/mips/include/asm/netlogic/common.h
-+++ b/arch/mips/include/asm/netlogic/common.h
-@@ -87,9 +87,6 @@ unsigned int nlm_get_cpu_frequency(void);
- extern const struct plat_smp_ops nlm_smp_ops;
- extern char nlm_reset_entry[], nlm_reset_entry_end[];
+diff --git a/arch/ia64/hp/common/hwsw_iommu.c b/arch/ia64/hp/common/hwsw_iommu.c
+index 63d8e1d2477f..41279f0442bd 100644
+--- a/arch/ia64/hp/common/hwsw_iommu.c
++++ b/arch/ia64/hp/common/hwsw_iommu.c
+@@ -19,7 +19,7 @@
+ #include <linux/export.h>
+ #include <asm/machvec.h>
  
--/* SWIOTLB */
--extern const struct dma_map_ops nlm_swiotlb_dma_ops;
--
- extern unsigned int nlm_threads_per_core;
- extern cpumask_t nlm_cpumask;
+-extern const struct dma_map_ops sba_dma_ops, swiotlb_dma_ops;
++extern const struct dma_map_ops sba_dma_ops, ia64_swiotlb_dma_ops;
  
-diff --git a/arch/mips/netlogic/Kconfig b/arch/mips/netlogic/Kconfig
-index 8296b13affd2..7fcfc7fe9f14 100644
---- a/arch/mips/netlogic/Kconfig
-+++ b/arch/mips/netlogic/Kconfig
-@@ -89,9 +89,4 @@ config IOMMU_HELPER
- config NEED_SG_DMA_LENGTH
- 	bool
+ /* swiotlb declarations & definitions: */
+ extern int swiotlb_late_init_with_default_size (size_t size);
+@@ -38,7 +38,7 @@ static inline int use_swiotlb(struct device *dev)
+ const struct dma_map_ops *hwsw_dma_get_ops(struct device *dev)
+ {
+ 	if (use_swiotlb(dev))
+-		return &swiotlb_dma_ops;
++		return &ia64_swiotlb_dma_ops;
+ 	return &sba_dma_ops;
+ }
+ EXPORT_SYMBOL(hwsw_dma_get_ops);
+diff --git a/arch/ia64/hp/common/sba_iommu.c b/arch/ia64/hp/common/sba_iommu.c
+index aec4a3354abe..8c0a9ae6afec 100644
+--- a/arch/ia64/hp/common/sba_iommu.c
++++ b/arch/ia64/hp/common/sba_iommu.c
+@@ -2096,7 +2096,7 @@ static int __init acpi_sba_ioc_init_acpi(void)
+ /* This has to run before acpi_scan_init(). */
+ arch_initcall(acpi_sba_ioc_init_acpi);
  
--config SWIOTLB
--	def_bool y
--	select NEED_SG_DMA_LENGTH
--	select IOMMU_HELPER
--
- endif
-diff --git a/arch/mips/netlogic/common/Makefile b/arch/mips/netlogic/common/Makefile
-index 60d00b5d748e..89f6e3f39fed 100644
---- a/arch/mips/netlogic/common/Makefile
-+++ b/arch/mips/netlogic/common/Makefile
-@@ -1,6 +1,5 @@
- # SPDX-License-Identifier: GPL-2.0
- obj-y				+= irq.o time.o
--obj-y				+= nlm-dma.o
- obj-y				+= reset.o
- obj-$(CONFIG_SMP)		+= smp.o smpboot.o
- obj-$(CONFIG_EARLY_PRINTK)	+= earlycons.o
-diff --git a/arch/mips/netlogic/common/nlm-dma.c b/arch/mips/netlogic/common/nlm-dma.c
-deleted file mode 100644
-index 49c975b6aa28..000000000000
---- a/arch/mips/netlogic/common/nlm-dma.c
-+++ /dev/null
-@@ -1,94 +0,0 @@
--/*
--*  Copyright (C) 2003-2013 Broadcom Corporation
--*  All Rights Reserved
-- *
-- * This software is available to you under a choice of one of two
-- * licenses.  You may choose to be licensed under the terms of the GNU
-- * General Public License (GPL) Version 2, available from the file
-- * COPYING in the main directory of this source tree, or the Broadcom
-- * license below:
-- *
-- * Redistribution and use in source and binary forms, with or without
-- * modification, are permitted provided that the following conditions
-- * are met:
-- *
-- * 1. Redistributions of source code must retain the above copyright
-- *    notice, this list of conditions and the following disclaimer.
-- * 2. Redistributions in binary form must reproduce the above copyright
-- *    notice, this list of conditions and the following disclaimer in
-- *    the documentation and/or other materials provided with the
-- *    distribution.
-- *
-- * THIS SOFTWARE IS PROVIDED BY BROADCOM ``AS IS'' AND ANY EXPRESS OR
-- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-- * ARE DISCLAIMED. IN NO EVENT SHALL BROADCOM OR CONTRIBUTORS BE LIABLE
-- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-- * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-- * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-- */
--#include <linux/dma-mapping.h>
--#include <linux/scatterlist.h>
--#include <linux/bootmem.h>
--#include <linux/export.h>
--#include <linux/swiotlb.h>
--#include <linux/types.h>
--#include <linux/init.h>
--#include <linux/mm.h>
--
--#include <asm/bootinfo.h>
--
--static char *nlm_swiotlb;
--
--static void *nlm_dma_alloc_coherent(struct device *dev, size_t size,
--	dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
--{
--#ifdef CONFIG_ZONE_DMA32
--	if (dev->coherent_dma_mask <= DMA_BIT_MASK(32))
--		gfp |= __GFP_DMA32;
--#endif
--
--	/* Don't invoke OOM killer */
--	gfp |= __GFP_NORETRY;
--
--	return swiotlb_alloc_coherent(dev, size, dma_handle, gfp);
--}
--
--static void nlm_dma_free_coherent(struct device *dev, size_t size,
--	void *vaddr, dma_addr_t dma_handle, unsigned long attrs)
--{
--	swiotlb_free_coherent(dev, size, vaddr, dma_handle);
--}
--
--const struct dma_map_ops nlm_swiotlb_dma_ops = {
--	.alloc = nlm_dma_alloc_coherent,
--	.free = nlm_dma_free_coherent,
--	.map_page = swiotlb_map_page,
--	.unmap_page = swiotlb_unmap_page,
--	.map_sg = swiotlb_map_sg_attrs,
--	.unmap_sg = swiotlb_unmap_sg_attrs,
--	.sync_single_for_cpu = swiotlb_sync_single_for_cpu,
--	.sync_single_for_device = swiotlb_sync_single_for_device,
--	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
--	.sync_sg_for_device = swiotlb_sync_sg_for_device,
--	.mapping_error = swiotlb_dma_mapping_error,
--	.dma_supported = swiotlb_dma_supported
--};
--
--void __init plat_swiotlb_setup(void)
--{
--	size_t swiotlbsize;
--	unsigned long swiotlb_nslabs;
--
--	swiotlbsize = 1 << 20; /* 1 MB for now */
--	swiotlb_nslabs = swiotlbsize >> IO_TLB_SHIFT;
--	swiotlb_nslabs = ALIGN(swiotlb_nslabs, IO_TLB_SEGSIZE);
--	swiotlbsize = swiotlb_nslabs << IO_TLB_SHIFT;
--
--	nlm_swiotlb = alloc_bootmem_low_pages(swiotlbsize);
--	swiotlb_init_with_tbl(nlm_swiotlb, swiotlb_nslabs, 1);
--}
+-extern const struct dma_map_ops swiotlb_dma_ops;
++extern const struct dma_map_ops ia64_swiotlb_dma_ops;
+ 
+ static int __init
+ sba_init(void)
+@@ -2111,7 +2111,7 @@ sba_init(void)
+ 	 * a successful kdump kernel boot is to use the swiotlb.
+ 	 */
+ 	if (is_kdump_kernel()) {
+-		dma_ops = &swiotlb_dma_ops;
++		dma_ops = &ia64_swiotlb_dma_ops;
+ 		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
+ 			panic("Unable to initialize software I/O TLB:"
+ 				  " Try machvec=dig boot option");
+@@ -2133,7 +2133,7 @@ sba_init(void)
+ 		 * If we didn't find something sba_iommu can claim, we
+ 		 * need to setup the swiotlb and switch to the dig machvec.
+ 		 */
+-		dma_ops = &swiotlb_dma_ops;
++		dma_ops = &ia64_swiotlb_dma_ops;
+ 		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
+ 			panic("Unable to find SBA IOMMU or initialize "
+ 			      "software I/O TLB: Try machvec=dig boot option");
+diff --git a/arch/ia64/kernel/pci-swiotlb.c b/arch/ia64/kernel/pci-swiotlb.c
+index 5e50939aa03e..f1ae873a8c35 100644
+--- a/arch/ia64/kernel/pci-swiotlb.c
++++ b/arch/ia64/kernel/pci-swiotlb.c
+@@ -31,7 +31,7 @@ static void ia64_swiotlb_free_coherent(struct device *dev, size_t size,
+ 	swiotlb_free_coherent(dev, size, vaddr, dma_addr);
+ }
+ 
+-const struct dma_map_ops swiotlb_dma_ops = {
++const struct dma_map_ops ia64_swiotlb_dma_ops = {
+ 	.alloc = ia64_swiotlb_alloc_coherent,
+ 	.free = ia64_swiotlb_free_coherent,
+ 	.map_page = swiotlb_map_page,
+@@ -48,7 +48,7 @@ const struct dma_map_ops swiotlb_dma_ops = {
+ 
+ void __init swiotlb_dma_init(void)
+ {
+-	dma_ops = &swiotlb_dma_ops;
++	dma_ops = &ia64_swiotlb_dma_ops;
+ 	swiotlb_init(1);
+ }
+ 
+@@ -60,7 +60,7 @@ void __init pci_swiotlb_init(void)
+ 		printk(KERN_INFO "PCI-DMA: Re-initialize machine vector.\n");
+ 		machvec_init("dig");
+ 		swiotlb_init(1);
+-		dma_ops = &swiotlb_dma_ops;
++		dma_ops = &ia64_swiotlb_dma_ops;
+ #else
+ 		panic("Unable to find Intel IOMMU");
+ #endif
 -- 
 2.14.2
