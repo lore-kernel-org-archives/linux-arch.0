@@ -1,89 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:38682 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754096AbeAJJcW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Jan 2018 04:32:22 -0500
-Subject: Re: [PATCH 29/33] dma-direct: retry allocations using GFP_DMA for
- small masks
-References: <20180110080027.13879-1-hch@lst.de>
- <20180110080027.13879-30-hch@lst.de>
-From: Vladimir Murzin <vladimir.murzin@arm.com>
-Message-ID: <93966313-cc79-8173-48e6-157caa443322@arm.com>
-Date: Wed, 10 Jan 2018 09:32:16 +0000
+Received: from out3-smtp.messagingengine.com ([66.111.4.27]:40947 "EHLO
+        out3-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752897AbeAJKxe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Jan 2018 05:53:34 -0500
+Subject: Re: [PATCH 13/36] befs: Define usercopy region in befs_inode_cache
+ slab cache
+References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
+ <1515531365-37423-14-git-send-email-keescook@chromium.org>
+From: Luis de Bethencourt <luisbg@kernel.org>
+Message-ID: <490acc77-1198-e53e-c965-aef9c1ebf5fd@kernel.org>
+Date: Wed, 10 Jan 2018 10:53:23 +0000
 MIME-Version: 1.0
-In-Reply-To: <20180110080027.13879-30-hch@lst.de>
+In-Reply-To: <1515531365-37423-14-git-send-email-keescook@chromium.org>
 Content-Type: text/plain; charset=utf-8
-Content-Language: en-GB
+Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20180110093216.xAs3a-taANKhWXrMnfOqu1pyo8vpvUVecrDjO2EQMkU@z>
+To: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org
+Cc: David Windsor <dave@nullcore.net>, Salah Triki <salah.triki@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180110105323.LT6-bmCoxI-fVmYZNYWI8OldIzw8-Gm1QDJx6kbflZ4@z>
 
-On 10/01/18 08:00, Christoph Hellwig wrote:
-> If an attempt to allocate memory succeeded, but isn't inside the
-> supported DMA mask, retry the allocation with GFP_DMA set as a
-> last resort.
+On 01/09/2018 08:55 PM, Kees Cook wrote:
+> From: David Windsor <dave@nullcore.net>
 > 
-> Based on the x86 code, but an off by one error in what is now
-> dma_coherent_ok has been fixed vs the x86 code.
+> befs symlink pathnames, stored in struct befs_inode_info.i_data.symlink
+> and therefore contained in the befs_inode_cache slab cache, need to be
+> copied to/from userspace.
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> cache object allocation:
+>     fs/befs/linuxvfs.c:
+>         befs_alloc_inode(...):
+>             ...
+>             bi = kmem_cache_alloc(befs_inode_cachep, GFP_KERNEL);
+>             ...
+>             return &bi->vfs_inode;
+> 
+>         befs_iget(...):
+>             ...
+>             strlcpy(befs_ino->i_data.symlink, raw_inode->data.symlink,
+>                     BEFS_SYMLINK_LEN);
+>             ...
+>             inode->i_link = befs_ino->i_data.symlink;
+> 
+> example usage trace:
+>     readlink_copy+0x43/0x70
+>     vfs_readlink+0x62/0x110
+>     SyS_readlinkat+0x100/0x130
+> 
+>     fs/namei.c:
+>         readlink_copy(..., link):
+>             ...
+>             copy_to_user(..., link, len);
+> 
+>         (inlined in vfs_readlink)
+>         generic_readlink(dentry, ...):
+>             struct inode *inode = d_inode(dentry);
+>             const char *link = inode->i_link;
+>             ...
+>             readlink_copy(..., link);
+> 
+> In support of usercopy hardening, this patch defines a region in the
+> befs_inode_cache slab cache in which userspace copy operations are
+> allowed.
+> 
+> This region is known as the slab cache's usercopy region. Slab caches
+> can now check that each dynamically sized copy operation involving
+> cache-managed memory falls entirely within the slab's usercopy region.
+> 
+> This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
+> whitelisting code in the last public patch of grsecurity/PaX based on my
+> understanding of the code. Changes or omissions from the original code are
+> mine and don't reflect the original grsecurity/PaX code.
+> 
+> Signed-off-by: David Windsor <dave@nullcore.net>
+> [kees: adjust commit log, provide usage trace]
+> Cc: Luis de Bethencourt <luisbg@kernel.org>
+> Cc: Salah Triki <salah.triki@gmail.com>
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> Acked-by: Luis de Bethencourt <luisbg@kernel.org>
 > ---
->  lib/dma-direct.c | 25 ++++++++++++++++++++++++-
->  1 file changed, 24 insertions(+), 1 deletion(-)
+>  fs/befs/linuxvfs.c | 14 +++++++++-----
+>  1 file changed, 9 insertions(+), 5 deletions(-)
 > 
-> diff --git a/lib/dma-direct.c b/lib/dma-direct.c
-> index 8f76032ebc3c..4e43c2bb7f5f 100644
-> --- a/lib/dma-direct.c
-> +++ b/lib/dma-direct.c
-> @@ -35,6 +35,11 @@ check_addr(struct device *dev, dma_addr_t dma_addr, size_t size,
->  	return true;
->  }
->  
-> +static bool dma_coherent_ok(struct device *dev, phys_addr_t phys, size_t size)
-> +{
-> +	return phys_to_dma(dev, phys) + size - 1 <= dev->coherent_dma_mask;
-> +}
-> +
->  static void *dma_direct_alloc(struct device *dev, size_t size,
->  		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
+> diff --git a/fs/befs/linuxvfs.c b/fs/befs/linuxvfs.c
+> index ee236231cafa..af2832aaeec5 100644
+> --- a/fs/befs/linuxvfs.c
+> +++ b/fs/befs/linuxvfs.c
+> @@ -444,11 +444,15 @@ static struct inode *befs_iget(struct super_block *sb, unsigned long ino)
+>  static int __init
+>  befs_init_inodecache(void)
 >  {
-> @@ -48,11 +53,29 @@ static void *dma_direct_alloc(struct device *dev, size_t size,
->  	if (dev->coherent_dma_mask <= DMA_BIT_MASK(32) && !(gfp & GFP_DMA))
->  		gfp |= GFP_DMA32;
->  
-> +again:
->  	/* CMA can be used only in the context which permits sleeping */
-> -	if (gfpflags_allow_blocking(gfp))
-> +	if (gfpflags_allow_blocking(gfp)) {
->  		page = dma_alloc_from_contiguous(dev, count, page_order, gfp);
-> +		if (page && !dma_coherent_ok(dev, page_to_phys(page), size)) {
-> +			dma_release_from_contiguous(dev, page, count);
-> +			page = NULL;
-> +		}
-> +	}
->  	if (!page)
->  		page = alloc_pages_node(dev_to_node(dev), gfp, page_order);
-> +
-> +	if (page && !dma_coherent_ok(dev, page_to_phys(page), size)) {
-> +		__free_pages(page, page_order);
-> +		page = NULL;
-> +
-> +		if (dev->coherent_dma_mask < DMA_BIT_MASK(32) &&
-> +		    !(gfp & GFP_DMA)) {
-> +			gfp = (gfp & ~GFP_DMA32) | GFP_DMA;
-> +			goto again;
-> +		}
-> +	}
-> +
->  	if (!page)
->  		return NULL;
+> -	befs_inode_cachep = kmem_cache_create("befs_inode_cache",
+> -					      sizeof (struct befs_inode_info),
+> -					      0, (SLAB_RECLAIM_ACCOUNT|
+> -						SLAB_MEM_SPREAD|SLAB_ACCOUNT),
+> -					      init_once);
+> +	befs_inode_cachep = kmem_cache_create_usercopy("befs_inode_cache",
+> +				sizeof(struct befs_inode_info), 0,
+> +				(SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|
+> +					SLAB_ACCOUNT),
+> +				offsetof(struct befs_inode_info,
+> +					i_data.symlink),
+> +				sizeof_field(struct befs_inode_info,
+> +					i_data.symlink),
+> +				init_once);
+>  	if (befs_inode_cachep == NULL)
+>  		return -ENOMEM;
 >  
 > 
 
-Reviewed-by: Vladimir Murzin <vladimir.murzin@arm.com>
+Hi Kees,
 
-Cheers
-Vladimir
+I've tested this and it works well.
+
+You can have me as:
+Signed-off-by, Tested-by, or the current Acked-by. Whatever you think is better.
+
+Thanks for the great work. Your rock!
+
+Luis
