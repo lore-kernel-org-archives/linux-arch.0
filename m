@@ -1,65 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f194.google.com ([209.85.217.194]:45464 "EHLO
-        mail-ua0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752700AbeAJVPQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 16:15:16 -0500
-Received: by mail-ua0-f194.google.com with SMTP id e39so253965uae.12
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 13:15:16 -0800 (PST)
+Received: from smtp.codeaurora.org ([198.145.29.96]:43924 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752724AbeAJVUY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 16:20:24 -0500
+Date: Wed, 10 Jan 2018 13:20:17 -0800
+From: Stephen Boyd <sboyd@codeaurora.org>
+Subject: Re: [PATCH 1/5] blackfin: Use generic clkdev.h header
+Message-ID: <20180110212017.GO21040@codeaurora.org>
+References: <20180103013516.18844-1-sboyd@codeaurora.org>
+ <20180103013516.18844-2-sboyd@codeaurora.org>
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.20.1801100921000.7926@nuc-kabylake>
-References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
- <1515531365-37423-3-git-send-email-keescook@chromium.org> <alpine.DEB.2.20.1801100921000.7926@nuc-kabylake>
-From: Kees Cook <keescook@chromium.org>
-Date: Wed, 10 Jan 2018 13:15:14 -0800
-Message-ID: <CAGXu5jLdtLQhkcujTjMwKCwbV6kVb7-2mqz4ki-B9NtPTrDQ9A@mail.gmail.com>
-Subject: Re: [PATCH 02/36] usercopy: Include offset in overflow report
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180103013516.18844-2-sboyd@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christopher Lameter <cl@linux.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, kernel-hardening@lists.openwall.com
-Message-ID: <20180110211514.9Kx6e5ePcpLrd9mHY5ohAZiI_mTAUOk_xk8Iy6bdex8@z>
+To: Michael Turquette <mturquette@baylibre.com>
+Cc: linux-kernel@vger.kernel.org, linux-clk@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180110212017.7_70_c4ly6dizwNOs_GiAi5tqGf475xEsSYnZp87F4Q@z>
 
-On Wed, Jan 10, 2018 at 7:25 AM, Christopher Lameter <cl@linux.com> wrote:
-> On Tue, 9 Jan 2018, Kees Cook wrote:
->
->> -static void report_usercopy(unsigned long len, bool to_user, const char *type)
->> +int report_usercopy(const char *name, const char *detail, bool to_user,
->> +                 unsigned long offset, unsigned long len)
->>  {
->> -     pr_emerg("kernel memory %s attempt detected %s '%s' (%lu bytes)\n",
->> +     pr_emerg("kernel memory %s attempt detected %s %s%s%s%s (offset %lu, size %lu)\n",
->>               to_user ? "exposure" : "overwrite",
->> -             to_user ? "from" : "to", type ? : "unknown", len);
->> +             to_user ? "from" : "to",
->> +             name ? : "unknown?!",
->> +             detail ? " '" : "", detail ? : "", detail ? "'" : "",
->> +             offset, len);
->>       /*
->>        * For greater effect, it would be nice to do do_group_exit(),
->>        * but BUG() actually hooks all the lock-breaking and per-arch
->>        * Oops code, so that is used here instead.
->>        */
->>       BUG();
->
-> Should this be a WARN() or so? Or some configuration that changes
-> BUG() behavior? Otherwise
+On 01/02, Stephen Boyd wrote:
+> The generic header file is equivalent to the blackfin version, so
+> just use the generic one.
+> 
+> Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
+> ---
 
-This BUG() is the existing behavior, with the new behavior taking the
-WARN() route in a following patch.
-
->> +
->> +     return -1;
->
-> This return code will never be returned.
->
-> Why a return code at all? Maybe I will see that in the following patches?
-
-I was trying to simplify the callers, but I agree, the result is
-rather ugly. I'll see if I can fix this up.
-
--Kees
+Applied to clk-next
 
 -- 
-Kees Cook
-Pixel Security
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+a Linux Foundation Collaborative Project
