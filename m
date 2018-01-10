@@ -1,34 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:44182 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:44030 "EHLO
         smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753151AbeAJVUk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 16:20:40 -0500
-Date: Wed, 10 Jan 2018 13:20:38 -0800
+        with ESMTP id S1753288AbeAJVUa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 16:20:30 -0500
+Date: Wed, 10 Jan 2018 13:20:28 -0800
 From: Stephen Boyd <sboyd@codeaurora.org>
-Subject: Re: [PATCH 4/5] clk: sunxi: Use CLK_IS_CRITICAL flag for critical
- clks
-Message-ID: <20180110212038.GR21040@codeaurora.org>
+Subject: Re: [PATCH 2/5] clk: Prepare to remove asm-generic/clkdev.h
+Message-ID: <20180110212028.GP21040@codeaurora.org>
 References: <20180103013516.18844-1-sboyd@codeaurora.org>
- <20180103013516.18844-5-sboyd@codeaurora.org>
+ <20180103013516.18844-3-sboyd@codeaurora.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180103013516.18844-5-sboyd@codeaurora.org>
+In-Reply-To: <20180103013516.18844-3-sboyd@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michael Turquette <mturquette@baylibre.com>
-Cc: linux-kernel@vger.kernel.org, linux-clk@vger.kernel.org, linux-arch@vger.kernel.org, Maxime Ripard <maxime.ripard@free-electrons.com>, Chen-Yu Tsai <wens@csie.org>
-Message-ID: <20180110212038.zOEa_7Y6fMvf5KId6S_XWl0SoL9gb3ApywSN8KG-8bY@z>
+Cc: linux-kernel@vger.kernel.org, linux-clk@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@armlinux.org.uk>
+Message-ID: <20180110212028.946EcxGjIs2u-fdPz7mx9VNzXQNre6LpdoiuUlDwwYQ@z>
 
 On 01/02, Stephen Boyd wrote:
-> We'd like to privatize __clk_get(), but the sunxi clk driver is
-> calling this function to keep a reference held on the clk and
-> call clk_prepare_enable() on it. We support this design in the
-> clk core now with the CLK_IS_CRITICAL flag, so let's just use
-> that instead.
+> Now that all the users of asm/clkdev.h have been replaced with
+> the generic file we can get rid of the asm-generic file as well
+> and implement that code directly where it's used.
 > 
-> Cc: Maxime Ripard <maxime.ripard@free-electrons.com>
-> Cc: Chen-Yu Tsai <wens@csie.org>
+> We only have one caller of __clkdev_alloc(), in clkdev.c so we
+> can easily remove that and drop the include of asm/clkdev.h in
+> linux/clkdev.h by putting the __clk_get/__clk_put inlines in
+> their respective location.
+> 
+> Cc: Russell King <linux@armlinux.org.uk>
 > Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
 > ---
 
