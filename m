@@ -1,92 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f195.google.com ([74.125.82.195]:46608 "EHLO
-        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S964781AbeAJCWK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 21:22:10 -0500
-Received: by mail-ot0-f195.google.com with SMTP id f6so5244902oti.13
-        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 18:22:10 -0800 (PST)
+Received: from mail-io0-f194.google.com ([209.85.223.194]:45162 "EHLO
+        mail-io0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S965079AbeAJD16 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 22:27:58 -0500
 MIME-Version: 1.0
-In-Reply-To: <20180110015713.im4atka6sahz7ucx@ast-mbp>
+In-Reply-To: <CAPcyv4it+Nasf1mp-+ydGP6rjHkyNKJXDTMyPrERk4V5g4yP7A@mail.gmail.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
  <151520108080.32271.16420298348259030860.stgit@dwillia2-desk3.amr.corp.intel.com>
  <87lgh7n2tf.fsf@xmission.com> <CAPcyv4iErvcOOSkaQbMa=9OJCmxNO7sDqi3qzg2ODvKqCApULQ@mail.gmail.com>
- <CA+55aFwDZ_K1uzuTq95hUXUVLFsCPCqGAMHpwa4PLCRvszmqkQ@mail.gmail.com>
- <CAPcyv4it+Nasf1mp-+ydGP6rjHkyNKJXDTMyPrERk4V5g4yP7A@mail.gmail.com> <20180110015713.im4atka6sahz7ucx@ast-mbp>
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Tue, 9 Jan 2018 18:22:09 -0800
-Message-ID: <CAPcyv4h1Uvke8d8JThHMLuci5HMKLf3hHgtkpcch1QSpq35M+Q@mail.gmail.com>
+ <CA+55aFwDZ_K1uzuTq95hUXUVLFsCPCqGAMHpwa4PLCRvszmqkQ@mail.gmail.com> <CAPcyv4it+Nasf1mp-+ydGP6rjHkyNKJXDTMyPrERk4V5g4yP7A@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 9 Jan 2018 19:27:56 -0800
+Message-ID: <CA+55aFzHNQjPojSEwWfLfSXkhjvCBddT-bY2kj8Fk=vVzZ5V8g@mail.gmail.com>
 Subject: Re: [PATCH 16/18] net: mpls: prevent bounds-check bypass via
  speculative execution
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexei Starovoitov <alexei.starovoitov@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180110022209.ofr0OKlVtEh6Hh_4mmi2wUdrYOPkLVSXb2Luy2MecS4@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180110032756._OGKkCPADvk0AVy_e5I-S-pq-DwvNOaHQOBkqd7KjwM@z>
 
-On Tue, Jan 9, 2018 at 5:57 PM, Alexei Starovoitov
-<alexei.starovoitov@gmail.com> wrote:
-> On Tue, Jan 09, 2018 at 04:48:24PM -0800, Dan Williams wrote:
->>
->> #define __nospec_array_ptr(base, idx, sz)                               \
->> ({                                                                      \
->>         union { typeof(&base[0]) _ptr; unsigned long _bit; } __u;       \
->>         unsigned long _i = (idx);                                       \
->>         unsigned long _s = (sz);                                        \
->>         unsigned long _v = (long)(_i | _s - 1 - _i)                     \
->>                                         >> BITS_PER_LONG - 1;           \
->>         unsigned long _mask = _v * ~0UL;                                 \
->>         OPTIMIZER_HIDE_VAR(_mask);                                      \
->>         __u._ptr = &base[_i & _mask];                                   \
->>         __u._bit &= _mask;                                              \
->>         __u._ptr;                                                       \
->> })
+On Tue, Jan 9, 2018 at 4:48 PM, Dan Williams <dan.j.williams@intel.com> wrote:
 >
-> _v * ~0UL doesn't seem right and non intuitive.
-> What's wrong with:
->   unsigned long _mask = ~(long)(_i | _s - 1 - _i) >> BITS_PER_LONG - 1;
+> I looks like there is another problem, or I'm misreading the
+> cleverness.
 
-Yeah, I noticed it was ok immediately after I sent that.
+I think you were misreading it.
 
-> and why OPTIMIZER_HIDE_VAR ?
+I was basically saying that this:
 
-It was in Linus' original. but that was when it had the ternary
-conditional, I'll drop it. It does not change the generated assembly.
+        unsigned long _mask = ~(long)(_m - 1 - _i) >> BITS_PER_LONG - 1;\
 
-> Could you remove '&' ?
+doesn't work, and that the "_m -1 - _i" needs to be replaced by "_i |
+_m -1 -_i".
 
-Yes, that should be __u.ptr = base + (i & _mask)
+So you have
 
-> since in doesn't work for:
-> struct {
->   int fd[4];
->   ...
-> } *fdt;
-> it cannot be used as array_acces(fdt->fd, ...);
->
-> Could you please drop nospec_ prefix since it is misleading ?
+        unsigned long _mask = ~(long)(_i (_m - 1 - _i)) >> BITS_PER_LONG - 1;\
 
-When you came up with that tweak you noted:
+which should give the right result. No?
 
-"The following:
-[..]
-is generic and no speculative flows."
+But as mentioned, I think you can do it with two instructions if you
+do an architecture-specific inline asm:
 
-> This macro doesn't prevent speculation.
+        unsigned long mask;
 
-It masks dangerous speculation. At least, I read nospec as "No
-Spectre" and it is a prefix used in the Spectre-v2 patches.
+        asm("cmpq %1,%2; sbbq %0,%0"
+                :"=r" (mask)
+                :"g" (max),"r" (idx));
 
-I also want to include the option, with a static branch, to switch it
-to the hard "no speculation" version with an ifence if worse comes to
-worse and we find a compiler / cpu where it doesn't work. The default
-will be the fast and practical implementation.
+which is likely much faster, and has much better register usage ("max"
+can be a constant or loaded directly from memory, and "mask" could be
+assigned the same register as idx).
 
-> I think array_access() was the best name so far.
+But once again, I didn't really test it.
 
-For other usages I need the pointer to the array element, also
-array_access() by itself is unsuitable for __fcheck_files because we
-still need rcu_dereference_raw() on the element de-reference. So, I
-think it's better to get a sanitized array element pointer which can
-be used with rcu, READ_ONCE(), etc... directly rather than try to do
-the access in the same macro.
+Note that the "cmpq/sbbq" version works regardless of max/idx values,
+since it literally does the math in BITS_ION_LONG+1 bits.
+
+In contrast, the "binary or with idx" version only works if the high
+bit set in idx cannot be valid (put another way: 'max' must not be
+bigger than MAXLONG+1).
+
+           Linus
