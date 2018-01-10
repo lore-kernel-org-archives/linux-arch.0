@@ -1,50 +1,66 @@
-From: =?UTF-8?Q?Christian_K=c3=b6nig?= <ckoenig.leichtzumerken@gmail.com>
-Subject: Re: consolidate swiotlb dma_map implementations
-Date: Wed, 10 Jan 2018 09:23:08 +0100
-Message-ID: <5ef96935-f781-96e1-37cc-528d399f0150@gmail.com>
-References: <20180110080932.14157-1-hch@lst.de>
-Reply-To: christian.koenig@amd.com
+From: Vladimir Murzin <vladimir.murzin@arm.com>
+Subject: Re: [PATCH 11/33] dma-mapping: move swiotlb arch helpers to a new
+ header
+Date: Wed, 10 Jan 2018 09:31:45 +0000
+Message-ID: <b2bd6f4b-a932-5251-517b-83bbccfe7c53@arm.com>
+References: <20180110080027.13879-1-hch@lst.de>
+ <20180110080027.13879-12-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f47.google.com ([74.125.82.47]:38267 "EHLO
-        mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755445AbeAJIXL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:23:11 -0500
-In-Reply-To: <20180110080932.14157-1-hch@lst.de>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <20180110080027.13879-12-hch@lst.de>
+Content-Language: en-GB
+Sender: linux-alpha-owner@vger.kernel.org
 To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
-Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-Acked-by: Christian König <christian.koenig@amd.com> for the whole series.
+On 10/01/18 08:00, Christoph Hellwig wrote:
+> index 9110988b92a1..f00833acb626 100644
+> --- a/arch/mips/include/asm/mach-cavium-octeon/dma-coherence.h
+> +++ b/arch/mips/include/asm/mach-cavium-octeon/dma-coherence.h
+> @@ -61,6 +61,14 @@ static inline void plat_post_dma_flush(struct device *dev)
+>  {
+>  }
+>  
+> +static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+> +{
+> +	if (!dev->dma_mask)
+> +		return false;
+> +
+> +	return addr + size <= *dev->dma_mask;
+> +}
+> +
 
-Regards,
-Christian.
+I know it is copy&paste, but it seems it has off by one error and it should be
 
-Am 10.01.2018 um 09:09 schrieb Christoph Hellwig:
-> A lot of architectures have essentially identical dma_map_ops
-> implementations to use swiotlb.  This series adds new generic
-> swiotlb_alloc/free helpers that take the attrs argument exposed
-> in dma_map_ops, and which do an enhanced direct allocation
-> modelled after x86 and reused from the dma-direct code, and
-> then switches most architectures over to it.  The only exceptions
-> are mips, which requires additional cache flushing which will
-> need a new abstraction, and x86 itself which will be handled in
-> a later series with other x86 dma mapping changes.
->
-> To support the generic code a few architectures that currently
-> use ZONE_DMA/GFP_DMA for <= 32-bit allocations are switched to
-> implement ZONE_DMA32 instead.
->
-> This series is based on the previously sent series to consolidate
-> the direct dma mapping implementation.  A git tree with this
-> series as well as the prerequisites is available here:
->
->     git://git.infradead.org/users/hch/misc.git swiotlb
->
-> Gitweb:
->
->     http://git.infradead.org/users/hch/misc.git/shortlog/refs/heads/swiotlb
+return addr + size - 1 <= *dev->dma_mask;
+
+
+>  dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr);
+>  phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr);
+>  
+
+snip...
+
+> diff --git a/arch/mips/include/asm/mach-loongson64/dma-coherence.h b/arch/mips/include/asm/mach-loongson64/dma-coherence.h
+> index 1602a9e9e8c2..5cfda8f893e9 100644
+> --- a/arch/mips/include/asm/mach-loongson64/dma-coherence.h
+> +++ b/arch/mips/include/asm/mach-loongson64/dma-coherence.h
+> @@ -17,6 +17,14 @@
+>  
+>  struct device;
+>  
+> +static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+> +{
+> +	if (!dev->dma_mask)
+> +		return false;
+> +
+> +	return addr + size <= *dev->dma_mask;
+
+
+ditto
+
+Cheers
+Vladimir
