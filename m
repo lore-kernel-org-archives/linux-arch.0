@@ -1,223 +1,184 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 20/33] dma-mapping: clear harmful GFP_* flags in common code
-Date: Wed, 10 Jan 2018 09:00:14 +0100
-Message-ID: <20180110080027.13879-21-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 32/33] cris: use dma-direct
+Date: Wed, 10 Jan 2018 09:00:26 +0100
+Message-ID: <20180110080027.13879-33-hch@lst.de>
 References: <20180110080027.13879-1-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20180110080027.13879-1-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Konrad Rzeszutek Wilk <konrad-Gq0aWv8utHQdnm+yROfE0A@public.gmane.org>, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cris-kernel-VrBV9hrLPhE@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <20180110080027.13879-1-hch@lst.de>
+Sender: linux-sh-owner@vger.kernel.org
+To: iommu@lists.linux-foundation.org
+Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Lift the code from x86 so that we behave consistently.  In the future we
-should probably warn if any of these is set.
+cris currently has an incomplete direct mapping dma_map_ops implementation
+is PCI support is enabled.  Replace it with the fully feature generic
+dma-direct implementation.
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Acked-by: Jesper Nilsson <jesper.nilsson-VrBV9hrLPhE@public.gmane.org>
-Acked-by: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org> [m68k]
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 ---
- arch/cris/arch-v32/drivers/pci/dma.c      | 3 ---
- arch/h8300/kernel/dma.c                   | 3 ---
- arch/m68k/kernel/dma.c                    | 2 --
- arch/mips/cavium-octeon/dma-octeon.c      | 3 ---
- arch/mips/loongson64/common/dma-swiotlb.c | 3 ---
- arch/mips/mm/dma-default.c                | 3 ---
- arch/mips/netlogic/common/nlm-dma.c       | 3 ---
- arch/mn10300/mm/dma-alloc.c               | 3 ---
- arch/nios2/mm/dma-mapping.c               | 3 ---
- arch/powerpc/kernel/dma.c                 | 3 ---
- arch/x86/kernel/pci-dma.c                 | 2 --
- include/linux/dma-mapping.h               | 7 +++++++
- 12 files changed, 7 insertions(+), 31 deletions(-)
+ arch/cris/Kconfig                       |  4 ++
+ arch/cris/arch-v32/drivers/pci/Makefile |  2 +-
+ arch/cris/arch-v32/drivers/pci/dma.c    | 77 ---------------------------------
+ arch/cris/include/asm/Kbuild            |  1 +
+ arch/cris/include/asm/dma-mapping.h     | 20 ---------
+ 5 files changed, 6 insertions(+), 98 deletions(-)
+ delete mode 100644 arch/cris/arch-v32/drivers/pci/dma.c
+ delete mode 100644 arch/cris/include/asm/dma-mapping.h
 
-diff --git a/arch/cris/arch-v32/drivers/pci/dma.c b/arch/cris/arch-v32/drivers/pci/dma.c
-index dbbd3816cc0b..8c3802244ef3 100644
---- a/arch/cris/arch-v32/drivers/pci/dma.c
-+++ b/arch/cris/arch-v32/drivers/pci/dma.c
-@@ -22,9 +22,6 @@ static void *v32_dma_alloc(struct device *dev, size_t size,
- {
- 	void *ret;
+diff --git a/arch/cris/Kconfig b/arch/cris/Kconfig
+index 54d3f426763b..cd5a0865c97f 100644
+--- a/arch/cris/Kconfig
++++ b/arch/cris/Kconfig
+@@ -33,6 +33,9 @@ config GENERIC_CALIBRATE_DELAY
+ config NO_IOPORT_MAP
+ 	def_bool y if !PCI
  
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
--
- 	if (dev == NULL || (dev->coherent_dma_mask < 0xffffffff))
- 		gfp |= GFP_DMA;
- 
-diff --git a/arch/h8300/kernel/dma.c b/arch/h8300/kernel/dma.c
-index 225dd0a188dc..d44ba5db4ac3 100644
---- a/arch/h8300/kernel/dma.c
-+++ b/arch/h8300/kernel/dma.c
-@@ -16,9 +16,6 @@ static void *dma_alloc(struct device *dev, size_t size,
- {
- 	void *ret;
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
--
- 	if (dev == NULL || (*dev->dma_mask < 0xffffffff))
- 		gfp |= GFP_DMA;
- 	ret = (void *)__get_free_pages(gfp, get_order(size));
-diff --git a/arch/m68k/kernel/dma.c b/arch/m68k/kernel/dma.c
-index 87ef73a93856..c01b9b8f97bf 100644
---- a/arch/m68k/kernel/dma.c
-+++ b/arch/m68k/kernel/dma.c
-@@ -76,8 +76,6 @@ static void *m68k_dma_alloc(struct device *dev, size_t size,
- 		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
- {
- 	void *ret;
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
- 
- 	if (dev == NULL || (*dev->dma_mask < 0xffffffff))
- 		gfp |= GFP_DMA;
-diff --git a/arch/mips/cavium-octeon/dma-octeon.c b/arch/mips/cavium-octeon/dma-octeon.c
-index c64bd87f0b6e..5baf79fce643 100644
---- a/arch/mips/cavium-octeon/dma-octeon.c
-+++ b/arch/mips/cavium-octeon/dma-octeon.c
-@@ -161,9 +161,6 @@ static void *octeon_dma_alloc_coherent(struct device *dev, size_t size,
- {
- 	void *ret;
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM);
--
- 	if (IS_ENABLED(CONFIG_ZONE_DMA) && dev == NULL)
- 		gfp |= __GFP_DMA;
- 	else if (IS_ENABLED(CONFIG_ZONE_DMA) &&
-diff --git a/arch/mips/loongson64/common/dma-swiotlb.c b/arch/mips/loongson64/common/dma-swiotlb.c
-index ef07740cee61..15388c24a504 100644
---- a/arch/mips/loongson64/common/dma-swiotlb.c
-+++ b/arch/mips/loongson64/common/dma-swiotlb.c
-@@ -15,9 +15,6 @@ static void *loongson_dma_alloc_coherent(struct device *dev, size_t size,
- {
- 	void *ret;
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM);
--
- 	if ((IS_ENABLED(CONFIG_ISA) && dev == NULL) ||
- 	    (IS_ENABLED(CONFIG_ZONE_DMA) &&
- 	     dev->coherent_dma_mask < DMA_BIT_MASK(32)))
-diff --git a/arch/mips/mm/dma-default.c b/arch/mips/mm/dma-default.c
-index e3e94d05f0fd..237532e89919 100644
---- a/arch/mips/mm/dma-default.c
-+++ b/arch/mips/mm/dma-default.c
-@@ -93,9 +93,6 @@ static gfp_t massage_gfp_flags(const struct device *dev, gfp_t gfp)
- {
- 	gfp_t dma_flag;
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM);
--
- #ifdef CONFIG_ISA
- 	if (dev == NULL)
- 		dma_flag = __GFP_DMA;
-diff --git a/arch/mips/netlogic/common/nlm-dma.c b/arch/mips/netlogic/common/nlm-dma.c
-index 0ec9d9da6d51..49c975b6aa28 100644
---- a/arch/mips/netlogic/common/nlm-dma.c
-+++ b/arch/mips/netlogic/common/nlm-dma.c
-@@ -47,9 +47,6 @@ static char *nlm_swiotlb;
- static void *nlm_dma_alloc_coherent(struct device *dev, size_t size,
- 	dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
- {
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM);
--
- #ifdef CONFIG_ZONE_DMA32
- 	if (dev->coherent_dma_mask <= DMA_BIT_MASK(32))
- 		gfp |= __GFP_DMA32;
-diff --git a/arch/mn10300/mm/dma-alloc.c b/arch/mn10300/mm/dma-alloc.c
-index 86108d2496b3..e3910d4db102 100644
---- a/arch/mn10300/mm/dma-alloc.c
-+++ b/arch/mn10300/mm/dma-alloc.c
-@@ -37,9 +37,6 @@ static void *mn10300_dma_alloc(struct device *dev, size_t size,
- 		goto done;
- 	}
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
--
- 	if (dev == NULL || dev->coherent_dma_mask < 0xffffffff)
- 		gfp |= GFP_DMA;
- 
-diff --git a/arch/nios2/mm/dma-mapping.c b/arch/nios2/mm/dma-mapping.c
-index 7040c1adbb5e..4be815519dd4 100644
---- a/arch/nios2/mm/dma-mapping.c
-+++ b/arch/nios2/mm/dma-mapping.c
-@@ -63,9 +63,6 @@ static void *nios2_dma_alloc(struct device *dev, size_t size,
- {
- 	void *ret;
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
--
- 	/* optimized page clearing */
- 	gfp |= __GFP_ZERO;
- 
-diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
-index 6d5d04ccf3b4..76079841d3d0 100644
---- a/arch/powerpc/kernel/dma.c
-+++ b/arch/powerpc/kernel/dma.c
-@@ -105,9 +105,6 @@ void *__dma_nommu_alloc_coherent(struct device *dev, size_t size,
- 	};
- #endif /* CONFIG_FSL_SOC */
- 
--	/* ignore region specifiers */
--	flag  &= ~(__GFP_HIGHMEM);
--
- 	page = alloc_pages_node(node, flag, get_order(size));
- 	if (page == NULL)
- 		return NULL;
-diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
-index 8439e6de6156..61a8f1cb3829 100644
---- a/arch/x86/kernel/pci-dma.c
-+++ b/arch/x86/kernel/pci-dma.c
-@@ -87,7 +87,6 @@ void *dma_generic_alloc_coherent(struct device *dev, size_t size,
- 
- 	dma_mask = dma_alloc_coherent_mask(dev, flag);
- 
--	flag &= ~__GFP_ZERO;
- again:
- 	page = NULL;
- 	/* CMA can be used only in the context which permits sleeping */
-@@ -139,7 +138,6 @@ bool arch_dma_alloc_attrs(struct device **dev, gfp_t *gfp)
- 	if (!*dev)
- 		*dev = &x86_dma_fallback_dev;
- 
--	*gfp &= ~(__GFP_DMA | __GFP_HIGHMEM | __GFP_DMA32);
- 	*gfp = dma_alloc_coherent_gfp_flags(*dev, *gfp);
- 
- 	if (!is_device_dma_capable(*dev))
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 9f28b2fa329e..88bcb1a8211d 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -518,6 +518,13 @@ static inline void *dma_alloc_attrs(struct device *dev, size_t size,
- 	if (dma_alloc_from_dev_coherent(dev, size, dma_handle, &cpu_addr))
- 		return cpu_addr;
- 
-+	/*
-+	 * Let the implementation decide on the zone to allocate from, and
-+	 * decide on the way of zeroing the memory given that the memory
-+	 * returned should always be zeroed.
-+	 */
-+	flag &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM | __GFP_ZERO);
++config NO_DMA
++	def_bool y if !PCI
 +
- 	if (!arch_dma_alloc_attrs(&dev, &flag))
- 		return NULL;
- 	if (!ops->alloc)
+ config FORCE_MAX_ZONEORDER
+ 	int
+ 	default 6
+@@ -72,6 +75,7 @@ config CRIS
+ 	select GENERIC_SCHED_CLOCK if ETRAX_ARCH_V32
+ 	select HAVE_DEBUG_BUGVERBOSE if ETRAX_ARCH_V32
+ 	select HAVE_NMI
++	select DMA_DIRECT_OPS if PCI
+ 
+ config HZ
+ 	int
+diff --git a/arch/cris/arch-v32/drivers/pci/Makefile b/arch/cris/arch-v32/drivers/pci/Makefile
+index bff7482f2444..93c8be6170b1 100644
+--- a/arch/cris/arch-v32/drivers/pci/Makefile
++++ b/arch/cris/arch-v32/drivers/pci/Makefile
+@@ -2,4 +2,4 @@
+ # Makefile for Etrax cardbus driver
+ #
+ 
+-obj-$(CONFIG_ETRAX_CARDBUS)        += bios.o dma.o
++obj-$(CONFIG_ETRAX_CARDBUS)        += bios.o
+diff --git a/arch/cris/arch-v32/drivers/pci/dma.c b/arch/cris/arch-v32/drivers/pci/dma.c
+deleted file mode 100644
+index 8c3802244ef3..000000000000
+--- a/arch/cris/arch-v32/drivers/pci/dma.c
++++ /dev/null
+@@ -1,77 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-/*
+- * Dynamic DMA mapping support.
+- *
+- * On cris there is no hardware dynamic DMA address translation,
+- * so consistent alloc/free are merely page allocation/freeing.
+- * The rest of the dynamic DMA mapping interface is implemented
+- * in asm/pci.h.
+- *
+- * Borrowed from i386.
+- */
+-
+-#include <linux/types.h>
+-#include <linux/mm.h>
+-#include <linux/string.h>
+-#include <linux/pci.h>
+-#include <linux/gfp.h>
+-#include <asm/io.h>
+-
+-static void *v32_dma_alloc(struct device *dev, size_t size,
+-		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
+-{
+-	void *ret;
+-
+-	if (dev == NULL || (dev->coherent_dma_mask < 0xffffffff))
+-		gfp |= GFP_DMA;
+-
+-	ret = (void *)__get_free_pages(gfp,  get_order(size));
+-
+-	if (ret != NULL) {
+-		memset(ret, 0, size);
+-		*dma_handle = virt_to_phys(ret);
+-	}
+-	return ret;
+-}
+-
+-static void v32_dma_free(struct device *dev, size_t size, void *vaddr,
+-		dma_addr_t dma_handle, unsigned long attrs)
+-{
+-	free_pages((unsigned long)vaddr, get_order(size));
+-}
+-
+-static inline dma_addr_t v32_dma_map_page(struct device *dev,
+-		struct page *page, unsigned long offset, size_t size,
+-		enum dma_data_direction direction, unsigned long attrs)
+-{
+-	return page_to_phys(page) + offset;
+-}
+-
+-static inline int v32_dma_map_sg(struct device *dev, struct scatterlist *sg,
+-		int nents, enum dma_data_direction direction,
+-		unsigned long attrs)
+-{
+-	printk("Map sg\n");
+-	return nents;
+-}
+-
+-static inline int v32_dma_supported(struct device *dev, u64 mask)
+-{
+-        /*
+-         * we fall back to GFP_DMA when the mask isn't all 1s,
+-         * so we can't guarantee allocations that must be
+-         * within a tighter range than GFP_DMA..
+-         */
+-        if (mask < 0x00ffffff)
+-                return 0;
+-	return 1;
+-}
+-
+-const struct dma_map_ops v32_dma_ops = {
+-	.alloc			= v32_dma_alloc,
+-	.free			= v32_dma_free,
+-	.map_page		= v32_dma_map_page,
+-	.map_sg                 = v32_dma_map_sg,
+-	.dma_supported		= v32_dma_supported,
+-};
+-EXPORT_SYMBOL(v32_dma_ops);
+diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
+index 460349cb147f..8cf45ac30c1b 100644
+--- a/arch/cris/include/asm/Kbuild
++++ b/arch/cris/include/asm/Kbuild
+@@ -5,6 +5,7 @@ generic-y += cmpxchg.h
+ generic-y += current.h
+ generic-y += device.h
+ generic-y += div64.h
++generic-y += dma-mapping.h
+ generic-y += emergency-restart.h
+ generic-y += exec.h
+ generic-y += extable.h
+diff --git a/arch/cris/include/asm/dma-mapping.h b/arch/cris/include/asm/dma-mapping.h
+deleted file mode 100644
+index 1553bdb30a0c..000000000000
+--- a/arch/cris/include/asm/dma-mapping.h
++++ /dev/null
+@@ -1,20 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#ifndef _ASM_CRIS_DMA_MAPPING_H
+-#define _ASM_CRIS_DMA_MAPPING_H
+-
+-#ifdef CONFIG_PCI
+-extern const struct dma_map_ops v32_dma_ops;
+-
+-static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+-{
+-	return &v32_dma_ops;
+-}
+-#else
+-static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+-{
+-	BUG();
+-	return NULL;
+-}
+-#endif
+-
+-#endif
 -- 
 2.14.2
+
