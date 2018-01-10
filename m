@@ -1,41 +1,84 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH 06/18] x86, barrier: stop speculation for failed access_ok
-Date: Tue, 9 Jan 2018 14:35:48 -0800
-Message-ID: <CAPcyv4g502B4DK9ZVT0m3T-CRAMnZ3+R6v_hPga6mQAtQAGM_A@mail.gmail.com>
+Subject: Re: [PATCH 16/18] net: mpls: prevent bounds-check bypass via
+ speculative execution
+Date: Tue, 9 Jan 2018 16:48:24 -0800
+Message-ID: <CAPcyv4it+Nasf1mp-+ydGP6rjHkyNKJXDTMyPrERk4V5g4yP7A@mail.gmail.com>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151520102670.32271.8447983009852138826.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzeCHgAtz4vCR9YaUxkuesCNEht56dKJmpytx2A-JmJkg@mail.gmail.com>
- <20180109214149.yo3tnjesezgz63x4@treble> <CAPcyv4iUOWivipi1vjwm691dANBFq+H5Ztgtt-dzDjchbaDT-g@mail.gmail.com>
- <20180109214902.2d4ptkld2bof3js7@treble> <CAPcyv4iit=mESt2Mh0Wbvag3=tV6vEZt=NsHPUnj3ksgRzQKiQ@mail.gmail.com>
- <20180109222348.twmw62qwfhefqpoe@treble>
+ <151520108080.32271.16420298348259030860.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <87lgh7n2tf.fsf@xmission.com> <CAPcyv4iErvcOOSkaQbMa=9OJCmxNO7sDqi3qzg2ODvKqCApULQ@mail.gmail.com>
+ <CA+55aFwDZ_K1uzuTq95hUXUVLFsCPCqGAMHpwa4PLCRvszmqkQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180109222348.twmw62qwfhefqpoe@treble>
+In-Reply-To: <CA+55aFwDZ_K1uzuTq95hUXUVLFsCPCqGAMHpwa4PLCRvszmqkQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Network Development <netdev@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Alan Cox <alan@linux.intel.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 9, 2018 at 2:23 PM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
-> On Tue, Jan 09, 2018 at 01:59:04PM -0800, Dan Williams wrote:
->> > Right, but what's the purpose of preventing speculation past
->> > access_ok()?
->>
->> Caution. It's the same rationale for the nospec_array_ptr() patches.
->> If we, kernel community, can identify any possible speculation past a
->> bounds check we should inject a speculation mitigation. Unless there's
->> a way to be 100% certain that the first unwanted speculation can be
->> turned into a gadget later on in the instruction stream, err on the
->> side of shutting it down early.
+On Mon, Jan 8, 2018 at 8:13 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
 >
-> I'm all for being cautious.  The nospec_array_ptr() patches are fine,
-> and they make sense in light of the variant 1 CVE.
+> On Mon, Jan 8, 2018 at 7:42 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> >
+> > originally from Linus and tweaked by Alexei and I:
 >
-> But that still doesn't answer my question.  I haven't seen *any*
-> rationale for this patch.  It would be helpful to at least describe
-> what's being protected against, even if it's hypothetical.  How can we
-> review it if the commit log doesn't describe its purpose?
+> Sadly, that tweak - while clever - is wrong.
+>
+> >         unsigned long _mask = ~(long)(_m - 1 - _i) >> BITS_PER_LONG - 1;\
+>
+> Why?
+>
+> Because "(long)(_m-1-_i)" is not negative just because "i >= m". It
+> can still be positive.
+>
+> Think "m = 100", "i=bignum". The subtraction will overflow and become
+> positive again, the shift will shift to zero, and then the mask will
+> become ~0.
+>
+> Now, you can fix it, but you need to be a tiny bit more clever.  In
+> particular, just make sure that you retain the high bit of "_i",
+> basically making the rule be that a negative index is not ever valid.
+>
+> And then instead of "(_m - 1 - _i)", you use "(_i | (_m - 1 - _i))".
+> Now the sign bit is set if _i had it set, _or_ if the subtraction
+> turned negative, and you don't have to worry about the overflow
+> situation.
+>
+> But it does require that extra step to be trustworthy. Still purely
+> cheap arithmetic operations, although there is possibly some
+> additional register pressure there.
+>
+> Somebody might be able to come up with something even more minimal (or
+> find a fault in my fix of your tweak).
 
-Certainly the changelog needs improvement, I'll roll these concerns
-into v2 and we can go from there.
+I looks like there is another problem, or I'm misreading the
+cleverness. We want the mask to be ~0 in the ok case and 0 in the
+out-of-bounds case. As far as I can see we end up with ~0 in the ok
+case, and ~1 in the bad case. Don't we need to do something like the
+following, at which point are we getting out of the realm of "cheap
+ALU instructions"?
+
+#define __nospec_array_ptr(base, idx, sz)                               \
+({                                                                      \
+        union { typeof(&base[0]) _ptr; unsigned long _bit; } __u;       \
+        unsigned long _i = (idx);                                       \
+        unsigned long _s = (sz);                                        \
+        unsigned long _v = (long)(_i | _s - 1 - _i)                     \
+                                        >> BITS_PER_LONG - 1;           \
+        unsigned long _mask = _v * ~0UL;                                 \
+        OPTIMIZER_HIDE_VAR(_mask);                                      \
+        __u._ptr = &base[_i & _mask];                                   \
+        __u._bit &= _mask;                                              \
+        __u._ptr;                                                       \
+})
+
+        elem = nospec_array_ptr(array, idx, 3);
+ 106:   b8 02 00 00 00          mov    $0x2,%eax
+ 10b:   48 63 ff                movslq %edi,%rdi
+ 10e:   48 29 f8                sub    %rdi,%rax
+ 111:   48 09 f8                or     %rdi,%rax
+ 114:   48 c1 e8 3f             shr    $0x3f,%rax
+ 118:   48 21 c7                and    %rax,%rdi
+ 11b:   48 8d 54 bc 04          lea    0x4(%rsp,%rdi,4),%rdx
+ 120:   48 21 d0                and    %rdx,%rax
