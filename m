@@ -1,57 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:47735 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932166AbeAJPqv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Jan 2018 10:46:51 -0500
-Date: Wed, 10 Jan 2018 16:46:49 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 10/22] swiotlb: refactor coherent buffer allocation
-Message-ID: <20180110154649.GA18529@lst.de>
-References: <20180110080932.14157-1-hch@lst.de> <20180110080932.14157-11-hch@lst.de> <cecc98cf-2e6a-a7bc-7390-d6dcced038c4@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <cecc98cf-2e6a-a7bc-7390-d6dcced038c4@arm.com>
+Received: from mail.efficios.com ([167.114.142.141]:43427 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S965715AbeAJPsC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 10:48:02 -0500
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: [PATCH for 4.16 10/11] membarrier: arm64: Provide core serializing command
+Date: Wed, 10 Jan 2018 10:46:24 -0500
+Message-ID: <20180110154625.4319-11-mathieu.desnoyers@efficios.com>
+In-Reply-To: <20180110154625.4319-1-mathieu.desnoyers@efficios.com>
+References: <20180110154625.4319-1-mathieu.desnoyers@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robin Murphy <robin.murphy@arm.com>
-Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, Christian =?iso-8859-1?Q?K=F6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180110154649.KgveZ2VDCtWDFJtGfYr0454-cgJ7Jp_DGAAHCcKgw7s@z>
+To: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Thomas Gleixner <tglx@linutronix.de>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, linux-arch@vger.kernel.org
+Message-ID: <20180110154624.G9RWrf3MnWWbWuRw2E85hvL9GhfA9AyFmyWpugrtefo@z>
 
-On Wed, Jan 10, 2018 at 12:22:18PM +0000, Robin Murphy wrote:
->> +	if (phys_addr == SWIOTLB_MAP_ERROR)
->> +		goto out_warn;
->>   -		/* Confirm address can be DMA'd by device */
->> -		if (dev_addr + size - 1 > dma_mask) {
->> -			printk("hwdev DMA mask = 0x%016Lx, dev_addr = 0x%016Lx\n",
->> -			       (unsigned long long)dma_mask,
->> -			       (unsigned long long)dev_addr);
->> +	*dma_handle = swiotlb_phys_to_dma(dev, phys_addr);
->
-> nit: this should probably go after the dma_coherent_ok() check (as with the 
-> original logic).
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Andy Lutomirski <luto@kernel.org>
+CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: Andrew Hunter <ahh@google.com>
+CC: Maged Michael <maged.michael@gmail.com>
+CC: Avi Kivity <avi@scylladb.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Paul Mackerras <paulus@samba.org>
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Dave Watson <davejwatson@fb.com>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: "H. Peter Anvin" <hpa@zytor.com>
+CC: Andrea Parri <parri.andrea@gmail.com>
+CC: Russell King <linux@armlinux.org.uk>
+CC: Greg Hackmann <ghackmann@google.com>
+CC: Will Deacon <will.deacon@arm.com>
+CC: David Sehr <sehr@google.com>
+CC: x86@kernel.org
+CC: linux-arch@vger.kernel.org
+---
+ arch/arm64/Kconfig        | 1 +
+ arch/arm64/kernel/entry.S | 4 ++++
+ 2 files changed, 5 insertions(+)
 
-But the originall logic also needs the dma_addr_t for the
-dma_coherent_ok check:
-
-		dev_addr = swiotlb_phys_to_dma(hwdev, paddr);
-		/* Confirm address can be DMA'd by device */
-		if (dev_addr + size - 1 > dma_mask) {
-			...
-			goto err_warn;
-		}
-
-or do you mean assining to *dma_handle?  The dma_handle is not
-valid for a failure return, so I don't think this should matter.
-
->> +	if (ret) {
->> +		*dma_handle = swiotlb_virt_to_bus(hwdev, ret);
->> +		if (dma_coherent_ok(hwdev, *dma_handle, size)) {
->> +			memset(ret, 0, size);
->> +			return ret;
->> +		}
->
-> Aren't we leaking the pages here?
-
-Yes, that free_pages got lost somewhere in the rebases, I've added
-it back.
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index c9a7e9e1414f..5b0c06d8dbbe 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -16,6 +16,7 @@ config ARM64
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_HAS_GIGANTIC_PAGE if (MEMORY_ISOLATION && COMPACTION) || CMA
+ 	select ARCH_HAS_KCOV
++	select ARCH_HAS_MEMBARRIER_SYNC_CORE
+ 	select ARCH_HAS_SET_MEMORY
+ 	select ARCH_HAS_SG_CHAIN
+ 	select ARCH_HAS_STRICT_KERNEL_RWX
+diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
+index 6d14b8f29b5f..5edde1c2e93e 100644
+--- a/arch/arm64/kernel/entry.S
++++ b/arch/arm64/kernel/entry.S
+@@ -302,6 +302,10 @@ alternative_else_nop_endif
+ 	ldp	x28, x29, [sp, #16 * 14]
+ 	ldr	lr, [sp, #S_LR]
+ 	add	sp, sp, #S_FRAME_SIZE		// restore sp
++	/*
++	 * ARCH_HAS_MEMBARRIER_SYNC_CORE rely on eret context synchronization
++	 * when returning from IPI handler, and when returning to user-space.
++	 */
+ 	eret					// return to kernel
+ 	.endm
+ 
+-- 
+2.11.0
