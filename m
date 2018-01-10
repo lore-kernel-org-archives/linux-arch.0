@@ -1,46 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:47628 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752835AbeAJPc3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Jan 2018 10:32:29 -0500
-Date: Wed, 10 Jan 2018 16:32:26 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 31/33] dma-direct: reject too small dma masks
-Message-ID: <20180110153226.GE17790@lst.de>
-References: <20180110080027.13879-1-hch@lst.de> <20180110080027.13879-32-hch@lst.de> <0bcca030-a8da-c34a-a905-707986689f33@arm.com>
+Received: from resqmta-ch2-02v.sys.comcast.net ([69.252.207.34]:35558 "EHLO
+        resqmta-ch2-02v.sys.comcast.net" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S934008AbeAJPdc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Jan 2018 10:33:32 -0500
+Date: Wed, 10 Jan 2018 09:25:20 -0600 (CST)
+From: Christopher Lameter <cl@linux.com>
+Subject: Re: [PATCH 02/36] usercopy: Include offset in overflow report
+In-Reply-To: <1515531365-37423-3-git-send-email-keescook@chromium.org>
+Message-ID: <alpine.DEB.2.20.1801100921000.7926@nuc-kabylake>
+References: <1515531365-37423-1-git-send-email-keescook@chromium.org> <1515531365-37423-3-git-send-email-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <0bcca030-a8da-c34a-a905-707986689f33@arm.com>
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robin Murphy <robin.murphy@arm.com>
-Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20180110153226.QDwgVYE8arRayu0hKtNuTdfVI6oLs4SxmEdJIBnxjLs@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180110152520.QaAaOjL_c1zqErqE_4kzTEeLEFTBJSom1NZcY6zqZFE@z>
 
-On Wed, Jan 10, 2018 at 11:49:34AM +0000, Robin Murphy wrote:
->> +#ifdef CONFIG_ZONE_DMA
->> +	if (mask < DMA_BIT_MASK(ARCH_ZONE_DMA_BITS))
->> +		return 0;
->> +#else
->> +	/*
->> +	 * Because 32-bit DMA masks are so common we expect every architecture
->> +	 * to be able to satisfy them - either by not supporting more physical
->> +	 * memory, or by providing a ZONE_DMA32.  If neither is the case, the
->> +	 * architecture needs to use an IOMMU instead of the direct mapping.
->> +	 */
->> +	if (mask < DMA_BIT_MASK(32))
->> +		return 0;
->
-> Do you think it's worth the effort to be a little more accommodating here? 
-> i.e.:
->
-> 		return dma_max_pfn(dev) >= max_pfn;
->
-> We seem to have a fair few 28-31 bit masks for older hardware which 
-> probably associates with host systems packing equivalently small amounts of 
-> RAM.
+On Tue, 9 Jan 2018, Kees Cook wrote:
 
-And those devices don't have a ZONE_DMA?  I think we could do something
-like that, but I'd rather have it as a separate commit with a good
-explanation.  Maybe you can just send on on top of the series?
+> -static void report_usercopy(unsigned long len, bool to_user, const char *type)
+> +int report_usercopy(const char *name, const char *detail, bool to_user,
+> +		    unsigned long offset, unsigned long len)
+>  {
+> -	pr_emerg("kernel memory %s attempt detected %s '%s' (%lu bytes)\n",
+> +	pr_emerg("kernel memory %s attempt detected %s %s%s%s%s (offset %lu, size %lu)\n",
+>  		to_user ? "exposure" : "overwrite",
+> -		to_user ? "from" : "to", type ? : "unknown", len);
+> +		to_user ? "from" : "to",
+> +		name ? : "unknown?!",
+> +		detail ? " '" : "", detail ? : "", detail ? "'" : "",
+> +		offset, len);
+>  	/*
+>  	 * For greater effect, it would be nice to do do_group_exit(),
+>  	 * but BUG() actually hooks all the lock-breaking and per-arch
+>  	 * Oops code, so that is used here instead.
+>  	 */
+>  	BUG();
+
+Should this be a WARN() or so? Or some configuration that changes
+BUG() behavior? Otherwise
+
+> +
+> +	return -1;
+
+This return code will never be returned.
+
+Why a return code at all? Maybe I will see that in the following patches?
