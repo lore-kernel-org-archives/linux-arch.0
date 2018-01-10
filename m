@@ -1,58 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:46588 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933256AbeAJB5R (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 20:57:17 -0500
-Date: Tue, 9 Jan 2018 17:57:14 -0800
-From: Alexei Starovoitov <alexei.starovoitov@gmail.com>
-Subject: Re: [PATCH 16/18] net: mpls: prevent bounds-check bypass via
- speculative execution
-Message-ID: <20180110015713.im4atka6sahz7ucx@ast-mbp>
+Received: from mail-ot0-f195.google.com ([74.125.82.195]:46608 "EHLO
+        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S964781AbeAJCWK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jan 2018 21:22:10 -0500
+Received: by mail-ot0-f195.google.com with SMTP id f6so5244902oti.13
+        for <linux-arch@vger.kernel.org>; Tue, 09 Jan 2018 18:22:10 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <20180110015713.im4atka6sahz7ucx@ast-mbp>
 References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
  <151520108080.32271.16420298348259030860.stgit@dwillia2-desk3.amr.corp.intel.com>
- <87lgh7n2tf.fsf@xmission.com>
- <CAPcyv4iErvcOOSkaQbMa=9OJCmxNO7sDqi3qzg2ODvKqCApULQ@mail.gmail.com>
+ <87lgh7n2tf.fsf@xmission.com> <CAPcyv4iErvcOOSkaQbMa=9OJCmxNO7sDqi3qzg2ODvKqCApULQ@mail.gmail.com>
  <CA+55aFwDZ_K1uzuTq95hUXUVLFsCPCqGAMHpwa4PLCRvszmqkQ@mail.gmail.com>
- <CAPcyv4it+Nasf1mp-+ydGP6rjHkyNKJXDTMyPrERk4V5g4yP7A@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAPcyv4it+Nasf1mp-+ydGP6rjHkyNKJXDTMyPrERk4V5g4yP7A@mail.gmail.com>
+ <CAPcyv4it+Nasf1mp-+ydGP6rjHkyNKJXDTMyPrERk4V5g4yP7A@mail.gmail.com> <20180110015713.im4atka6sahz7ucx@ast-mbp>
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Tue, 9 Jan 2018 18:22:09 -0800
+Message-ID: <CAPcyv4h1Uvke8d8JThHMLuci5HMKLf3hHgtkpcch1QSpq35M+Q@mail.gmail.com>
+Subject: Re: [PATCH 16/18] net: mpls: prevent bounds-check bypass via
+ speculative execution
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
+To: Alexei Starovoitov <alexei.starovoitov@gmail.com>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180110015714.aJ2KcCI64Fqv7AUgTrBudgx-itSJbPGaLzvE2U0iCT8@z>
+Message-ID: <20180110022209.ofr0OKlVtEh6Hh_4mmi2wUdrYOPkLVSXb2Luy2MecS4@z>
 
-On Tue, Jan 09, 2018 at 04:48:24PM -0800, Dan Williams wrote:
-> 
-> #define __nospec_array_ptr(base, idx, sz)                               \
-> ({                                                                      \
->         union { typeof(&base[0]) _ptr; unsigned long _bit; } __u;       \
->         unsigned long _i = (idx);                                       \
->         unsigned long _s = (sz);                                        \
->         unsigned long _v = (long)(_i | _s - 1 - _i)                     \
->                                         >> BITS_PER_LONG - 1;           \
->         unsigned long _mask = _v * ~0UL;                                 \
->         OPTIMIZER_HIDE_VAR(_mask);                                      \
->         __u._ptr = &base[_i & _mask];                                   \
->         __u._bit &= _mask;                                              \
->         __u._ptr;                                                       \
-> })
+On Tue, Jan 9, 2018 at 5:57 PM, Alexei Starovoitov
+<alexei.starovoitov@gmail.com> wrote:
+> On Tue, Jan 09, 2018 at 04:48:24PM -0800, Dan Williams wrote:
+>>
+>> #define __nospec_array_ptr(base, idx, sz)                               \
+>> ({                                                                      \
+>>         union { typeof(&base[0]) _ptr; unsigned long _bit; } __u;       \
+>>         unsigned long _i = (idx);                                       \
+>>         unsigned long _s = (sz);                                        \
+>>         unsigned long _v = (long)(_i | _s - 1 - _i)                     \
+>>                                         >> BITS_PER_LONG - 1;           \
+>>         unsigned long _mask = _v * ~0UL;                                 \
+>>         OPTIMIZER_HIDE_VAR(_mask);                                      \
+>>         __u._ptr = &base[_i & _mask];                                   \
+>>         __u._bit &= _mask;                                              \
+>>         __u._ptr;                                                       \
+>> })
+>
+> _v * ~0UL doesn't seem right and non intuitive.
+> What's wrong with:
+>   unsigned long _mask = ~(long)(_i | _s - 1 - _i) >> BITS_PER_LONG - 1;
 
-_v * ~0UL doesn't seem right and non intuitive.
-What's wrong with:
-  unsigned long _mask = ~(long)(_i | _s - 1 - _i) >> BITS_PER_LONG - 1;
+Yeah, I noticed it was ok immediately after I sent that.
 
-and why OPTIMIZER_HIDE_VAR ?
-Could you remove '&' ?
-since in doesn't work for:
-struct {
-  int fd[4];
-  ...
-} *fdt;
-it cannot be used as array_acces(fdt->fd, ...);
+> and why OPTIMIZER_HIDE_VAR ?
 
-Could you please drop nospec_ prefix since it is misleading ?
-This macro doesn't prevent speculation.
-I think array_access() was the best name so far.
+It was in Linus' original. but that was when it had the ternary
+conditional, I'll drop it. It does not change the generated assembly.
+
+> Could you remove '&' ?
+
+Yes, that should be __u.ptr = base + (i & _mask)
+
+> since in doesn't work for:
+> struct {
+>   int fd[4];
+>   ...
+> } *fdt;
+> it cannot be used as array_acces(fdt->fd, ...);
+>
+> Could you please drop nospec_ prefix since it is misleading ?
+
+When you came up with that tweak you noted:
+
+"The following:
+[..]
+is generic and no speculative flows."
+
+> This macro doesn't prevent speculation.
+
+It masks dangerous speculation. At least, I read nospec as "No
+Spectre" and it is a prefix used in the Spectre-v2 patches.
+
+I also want to include the option, with a static branch, to switch it
+to the hard "no speculation" version with an ifence if worse comes to
+worse and we find a compiler / cpu where it doesn't work. The default
+will be the fast and practical implementation.
+
+> I think array_access() was the best name so far.
+
+For other usages I need the pointer to the array element, also
+array_access() by itself is unsuitable for __fcheck_files because we
+still need rcu_dereference_raw() on the element de-reference. So, I
+think it's better to get a sanitized array element pointer which can
+be used with rcu, READ_ONCE(), etc... directly rather than try to do
+the access in the same macro.
