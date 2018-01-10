@@ -1,118 +1,114 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 03/22] ia64: rename swiotlb_dma_ops
-Date: Wed, 10 Jan 2018 09:09:13 +0100
-Message-ID: <20180110080932.14157-4-hch@lst.de>
+Subject: [PATCH 22/22] arm64: use swiotlb_alloc and swiotlb_free
+Date: Wed, 10 Jan 2018 09:09:32 +0100
+Message-ID: <20180110080932.14157-23-hch@lst.de>
 References: <20180110080932.14157-1-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180110080932.14157-1-hch@lst.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: iommu@lists.linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-We'll need that name for a generic implementation soon.
+The generic swiotlb_alloc and swiotlb_free routines already take care
+of CMA allocations and adding GFP_DMA32 where needed, so use them
+instead of the arm specific helpers.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/ia64/hp/common/hwsw_iommu.c | 4 ++--
- arch/ia64/hp/common/sba_iommu.c  | 6 +++---
- arch/ia64/kernel/pci-swiotlb.c   | 6 +++---
- 3 files changed, 8 insertions(+), 8 deletions(-)
+ arch/arm64/Kconfig          |  1 +
+ arch/arm64/mm/dma-mapping.c | 46 +++------------------------------------------
+ 2 files changed, 4 insertions(+), 43 deletions(-)
 
-diff --git a/arch/ia64/hp/common/hwsw_iommu.c b/arch/ia64/hp/common/hwsw_iommu.c
-index 63d8e1d2477f..41279f0442bd 100644
---- a/arch/ia64/hp/common/hwsw_iommu.c
-+++ b/arch/ia64/hp/common/hwsw_iommu.c
-@@ -19,7 +19,7 @@
- #include <linux/export.h>
- #include <asm/machvec.h>
- 
--extern const struct dma_map_ops sba_dma_ops, swiotlb_dma_ops;
-+extern const struct dma_map_ops sba_dma_ops, ia64_swiotlb_dma_ops;
- 
- /* swiotlb declarations & definitions: */
- extern int swiotlb_late_init_with_default_size (size_t size);
-@@ -38,7 +38,7 @@ static inline int use_swiotlb(struct device *dev)
- const struct dma_map_ops *hwsw_dma_get_ops(struct device *dev)
- {
- 	if (use_swiotlb(dev))
--		return &swiotlb_dma_ops;
-+		return &ia64_swiotlb_dma_ops;
- 	return &sba_dma_ops;
- }
- EXPORT_SYMBOL(hwsw_dma_get_ops);
-diff --git a/arch/ia64/hp/common/sba_iommu.c b/arch/ia64/hp/common/sba_iommu.c
-index aec4a3354abe..8c0a9ae6afec 100644
---- a/arch/ia64/hp/common/sba_iommu.c
-+++ b/arch/ia64/hp/common/sba_iommu.c
-@@ -2096,7 +2096,7 @@ static int __init acpi_sba_ioc_init_acpi(void)
- /* This has to run before acpi_scan_init(). */
- arch_initcall(acpi_sba_ioc_init_acpi);
- 
--extern const struct dma_map_ops swiotlb_dma_ops;
-+extern const struct dma_map_ops ia64_swiotlb_dma_ops;
- 
- static int __init
- sba_init(void)
-@@ -2111,7 +2111,7 @@ sba_init(void)
- 	 * a successful kdump kernel boot is to use the swiotlb.
- 	 */
- 	if (is_kdump_kernel()) {
--		dma_ops = &swiotlb_dma_ops;
-+		dma_ops = &ia64_swiotlb_dma_ops;
- 		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
- 			panic("Unable to initialize software I/O TLB:"
- 				  " Try machvec=dig boot option");
-@@ -2133,7 +2133,7 @@ sba_init(void)
- 		 * If we didn't find something sba_iommu can claim, we
- 		 * need to setup the swiotlb and switch to the dig machvec.
- 		 */
--		dma_ops = &swiotlb_dma_ops;
-+		dma_ops = &ia64_swiotlb_dma_ops;
- 		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
- 			panic("Unable to find SBA IOMMU or initialize "
- 			      "software I/O TLB: Try machvec=dig boot option");
-diff --git a/arch/ia64/kernel/pci-swiotlb.c b/arch/ia64/kernel/pci-swiotlb.c
-index 5e50939aa03e..f1ae873a8c35 100644
---- a/arch/ia64/kernel/pci-swiotlb.c
-+++ b/arch/ia64/kernel/pci-swiotlb.c
-@@ -31,7 +31,7 @@ static void ia64_swiotlb_free_coherent(struct device *dev, size_t size,
- 	swiotlb_free_coherent(dev, size, vaddr, dma_addr);
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 6b6985f15d02..53205c02b18a 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -59,6 +59,7 @@ config ARM64
+ 	select COMMON_CLK
+ 	select CPU_PM if (SUSPEND || CPU_IDLE)
+ 	select DCACHE_WORD_ACCESS
++	select DMA_DIRECT_OPS
+ 	select EDAC_SUPPORT
+ 	select FRAME_POINTER
+ 	select GENERIC_ALLOCATOR
+diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
+index 0d641875b20e..a96ec0181818 100644
+--- a/arch/arm64/mm/dma-mapping.c
++++ b/arch/arm64/mm/dma-mapping.c
+@@ -91,46 +91,6 @@ static int __free_from_pool(void *start, size_t size)
+ 	return 1;
  }
  
--const struct dma_map_ops swiotlb_dma_ops = {
-+const struct dma_map_ops ia64_swiotlb_dma_ops = {
- 	.alloc = ia64_swiotlb_alloc_coherent,
- 	.free = ia64_swiotlb_free_coherent,
- 	.map_page = swiotlb_map_page,
-@@ -48,7 +48,7 @@ const struct dma_map_ops swiotlb_dma_ops = {
+-static void *__dma_alloc_coherent(struct device *dev, size_t size,
+-				  dma_addr_t *dma_handle, gfp_t flags,
+-				  unsigned long attrs)
+-{
+-	if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
+-	    dev->coherent_dma_mask <= DMA_BIT_MASK(32))
+-		flags |= GFP_DMA32;
+-	if (dev_get_cma_area(dev) && gfpflags_allow_blocking(flags)) {
+-		struct page *page;
+-		void *addr;
+-
+-		page = dma_alloc_from_contiguous(dev, size >> PAGE_SHIFT,
+-						 get_order(size), flags);
+-		if (!page)
+-			return NULL;
+-
+-		*dma_handle = phys_to_dma(dev, page_to_phys(page));
+-		addr = page_address(page);
+-		memset(addr, 0, size);
+-		return addr;
+-	} else {
+-		return swiotlb_alloc_coherent(dev, size, dma_handle, flags);
+-	}
+-}
+-
+-static void __dma_free_coherent(struct device *dev, size_t size,
+-				void *vaddr, dma_addr_t dma_handle,
+-				unsigned long attrs)
+-{
+-	bool freed;
+-	phys_addr_t paddr = dma_to_phys(dev, dma_handle);
+-
+-
+-	freed = dma_release_from_contiguous(dev,
+-					phys_to_page(paddr),
+-					size >> PAGE_SHIFT);
+-	if (!freed)
+-		swiotlb_free_coherent(dev, size, vaddr, dma_handle);
+-}
+-
+ static void *__dma_alloc(struct device *dev, size_t size,
+ 			 dma_addr_t *dma_handle, gfp_t flags,
+ 			 unsigned long attrs)
+@@ -152,7 +112,7 @@ static void *__dma_alloc(struct device *dev, size_t size,
+ 		return addr;
+ 	}
  
- void __init swiotlb_dma_init(void)
- {
--	dma_ops = &swiotlb_dma_ops;
-+	dma_ops = &ia64_swiotlb_dma_ops;
- 	swiotlb_init(1);
+-	ptr = __dma_alloc_coherent(dev, size, dma_handle, flags, attrs);
++	ptr = swiotlb_alloc(dev, size, dma_handle, flags, attrs);
+ 	if (!ptr)
+ 		goto no_mem;
+ 
+@@ -173,7 +133,7 @@ static void *__dma_alloc(struct device *dev, size_t size,
+ 	return coherent_ptr;
+ 
+ no_map:
+-	__dma_free_coherent(dev, size, ptr, *dma_handle, attrs);
++	swiotlb_free(dev, size, ptr, *dma_handle, attrs);
+ no_mem:
+ 	return NULL;
+ }
+@@ -191,7 +151,7 @@ static void __dma_free(struct device *dev, size_t size,
+ 			return;
+ 		vunmap(vaddr);
+ 	}
+-	__dma_free_coherent(dev, size, swiotlb_addr, dma_handle, attrs);
++	swiotlb_free(dev, size, swiotlb_addr, dma_handle, attrs);
  }
  
-@@ -60,7 +60,7 @@ void __init pci_swiotlb_init(void)
- 		printk(KERN_INFO "PCI-DMA: Re-initialize machine vector.\n");
- 		machvec_init("dig");
- 		swiotlb_init(1);
--		dma_ops = &swiotlb_dma_ops;
-+		dma_ops = &ia64_swiotlb_dma_ops;
- #else
- 		panic("Unable to find Intel IOMMU");
- #endif
+ static dma_addr_t __swiotlb_map_page(struct device *dev, struct page *page,
 -- 
 2.14.2
