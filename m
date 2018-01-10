@@ -1,46 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:47831 "EHLO newverein.lst.de"
+Received: from foss.arm.com ([217.140.101.70]:45534 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S964902AbeAJPzr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Jan 2018 10:55:47 -0500
-Date: Wed, 10 Jan 2018 16:55:46 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 21/22] arm64: replace ZONE_DMA with ZONE_DMA32
-Message-ID: <20180110155546.GB18903@lst.de>
-References: <20180110080932.14157-1-hch@lst.de> <20180110080932.14157-22-hch@lst.de> <0371cef8-d980-96da-9cb5-3609c39be18a@arm.com> <20180110155517.GA18774@lst.de>
+        id S965668AbeAJQuE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Jan 2018 11:50:04 -0500
+Subject: Re: [PATCH 27/33] dma-direct: use node local allocations for coherent
+ memory
+References: <20180110080027.13879-1-hch@lst.de>
+ <20180110080027.13879-28-hch@lst.de>
+ <3672aa56-b85c-5d2c-0c0e-709031b0c0a0@arm.com>
+ <20180110153017.GD17790@lst.de>
+From: Robin Murphy <robin.murphy@arm.com>
+Message-ID: <3f37ba8d-66fa-80e2-bbe1-77c2a4323d6b@arm.com>
+Date: Wed, 10 Jan 2018 16:49:58 +0000
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180110155517.GA18774@lst.de>
+In-Reply-To: <20180110153017.GD17790@lst.de>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-GB
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robin Murphy <robin.murphy@arm.com>
-Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, Christian =?iso-8859-1?Q?K=F6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180110155546.A9K6AQrOyJaiMRX7MLq6iSNFsemq06LCCzmVMfgVLhs@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20180110164958.FOm4aPEOnpTLntERA7KBIMcs8CaKpO_jU6ym4irxpcc@z>
 
-On Wed, Jan 10, 2018 at 04:55:17PM +0100, Christoph Hellwig wrote:
-> On Wed, Jan 10, 2018 at 12:58:14PM +0000, Robin Murphy wrote:
-> > On 10/01/18 08:09, Christoph Hellwig wrote:
-> >> arm64 uses ZONE_DMA for allocations below 32-bits.  These days we
-> >> name the zone for that ZONE_DMA32, which will allow to use the
-> >> dma-direct and generic swiotlb code as-is, so rename it.
-> >
-> > I do wonder if we could also "upgrade" GFP_DMA to GFP_DMA32 somehow when 
-> > !ZONE_DMA - there are almost certainly arm64 drivers out there using a 
-> > combination of GFP_DMA and streaming mappings which will no longer get the 
-> > guaranteed 32-bit addresses they expect after this. I'm not sure quite how 
-> > feasible that is, though :/
+On 10/01/18 15:30, Christoph Hellwig wrote:
+> On Wed, Jan 10, 2018 at 12:06:22PM +0000, Robin Murphy wrote:
+>> On 10/01/18 08:00, Christoph Hellwig wrote:
+>>> To preserve the x86 behavior.
+>>
+>> And combined with patch 10/22 of the SWIOTLB refactoring, this means
+>> SWIOTLB allocations will also end up NUMA-aware, right? Great, that's what
+>> we want on arm64 too :)
 > 
-> I can't find anything obvious in the tree. The alternative would be
-> to keep ZONE_DMA and set ARCH_ZONE_DMA_BITS.
-> 
-> > That said, I do agree that this is an appropriate change (the legacy of 
-> > GFP_DMA is obviously horrible), so, provided we get plenty of time to find 
-> > and fix the fallout when it lands:
-> >
-> > Reviewed-by: Robin Murphy <robin.murphy@arm.com>
-> 
-> I was hoping to get this into 4.15.  What would be proper time to
-> fix the fallout?
+> Well, only for swiotlb allocations that can be satisfied by
+> dma_direct_alloc.  If we actually have to fall back to the swiotlb
+> buffers there is not node affinity yet.
 
-Err, 4.16 of course.
+Yeah, when I looked into it I reached the conclusion that per-node 
+bounce buffers probably weren't worth it - if you have to bounce you've 
+already pretty much lost the performance game, and if the CPU doing the 
+bouncing happens to be on a different node from the device you've 
+certainly lost either way. Per-node CMA zones we definitely *would* 
+like, but that's a future problem (it looks technically feasible without 
+huge infrastructure changes, but fiddly).
+
+Robin.
