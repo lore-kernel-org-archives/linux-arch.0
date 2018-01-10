@@ -1,95 +1,126 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:45444 "EHLO
+Received: from bombadil.infradead.org ([65.50.211.133]:43756 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754175AbeAJIKd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:10:33 -0500
+        with ESMTP id S1754545AbeAJIKq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:10:46 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 18/22] tile: use generic swiotlb_ops
-Date: Wed, 10 Jan 2018 09:09:28 +0100
-Message-ID: <20180110080932.14157-19-hch@lst.de>
+Subject: [PATCH 21/22] arm64: replace ZONE_DMA with ZONE_DMA32
+Date: Wed, 10 Jan 2018 09:09:31 +0100
+Message-ID: <20180110080932.14157-22-hch@lst.de>
 In-Reply-To: <20180110080932.14157-1-hch@lst.de>
 References: <20180110080932.14157-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180110080928.CwcQrDT-WNrLuDc9GTO5lQHJWxiTx2l5lFefWJ2YfZk@z>
+Message-ID: <20180110080931.ZXZIcB26XEXrAEhfOtYrw3LkKita-BOJwDgBRsxvfgM@z>
 
-These are identical to the tile ops, and would also support CMA
-if enabled on tile.
+arm64 uses ZONE_DMA for allocations below 32-bits.  These days we
+name the zone for that ZONE_DMA32, which will allow to use the
+dma-direct and generic swiotlb code as-is, so rename it.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/tile/Kconfig          |  1 +
- arch/tile/kernel/pci-dma.c | 36 +++---------------------------------
- 2 files changed, 4 insertions(+), 33 deletions(-)
+ arch/arm64/Kconfig          |  2 +-
+ arch/arm64/mm/dma-mapping.c |  6 +++---
+ arch/arm64/mm/init.c        | 16 ++++++++--------
+ 3 files changed, 12 insertions(+), 12 deletions(-)
 
-diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index 30c586686f29..ef9d403cbbe4 100644
---- a/arch/tile/Kconfig
-+++ b/arch/tile/Kconfig
-@@ -261,6 +261,7 @@ config NEED_SG_DMA_LENGTH
- config SWIOTLB
- 	bool
- 	default TILEGX
-+	select DMA_DIRECT_OPS
- 	select IOMMU_HELPER
- 	select NEED_SG_DMA_LENGTH
- 	select ARCH_HAS_DMA_SET_COHERENT_MASK
-diff --git a/arch/tile/kernel/pci-dma.c b/arch/tile/kernel/pci-dma.c
-index a267fa740048..6a1efe5543fa 100644
---- a/arch/tile/kernel/pci-dma.c
-+++ b/arch/tile/kernel/pci-dma.c
-@@ -509,39 +509,9 @@ EXPORT_SYMBOL(gx_pci_dma_map_ops);
- /* PCI DMA mapping functions for legacy PCI devices */
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index c9a7e9e1414f..6b6985f15d02 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -227,7 +227,7 @@ config GENERIC_CSUM
+ config GENERIC_CALIBRATE_DELAY
+ 	def_bool y
  
- #ifdef CONFIG_SWIOTLB
--static void *tile_swiotlb_alloc_coherent(struct device *dev, size_t size,
--					 dma_addr_t *dma_handle, gfp_t gfp,
--					 unsigned long attrs)
--{
--	gfp |= GFP_DMA32;
--	return swiotlb_alloc_coherent(dev, size, dma_handle, gfp);
--}
--
--static void tile_swiotlb_free_coherent(struct device *dev, size_t size,
--				       void *vaddr, dma_addr_t dma_addr,
--				       unsigned long attrs)
--{
--	swiotlb_free_coherent(dev, size, vaddr, dma_addr);
--}
--
--static const struct dma_map_ops pci_swiotlb_dma_ops = {
--	.alloc = tile_swiotlb_alloc_coherent,
--	.free = tile_swiotlb_free_coherent,
--	.map_page = swiotlb_map_page,
--	.unmap_page = swiotlb_unmap_page,
--	.map_sg = swiotlb_map_sg_attrs,
--	.unmap_sg = swiotlb_unmap_sg_attrs,
--	.sync_single_for_cpu = swiotlb_sync_single_for_cpu,
--	.sync_single_for_device = swiotlb_sync_single_for_device,
--	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
--	.sync_sg_for_device = swiotlb_sync_sg_for_device,
--	.dma_supported = swiotlb_dma_supported,
--	.mapping_error = swiotlb_dma_mapping_error,
--};
--
- static const struct dma_map_ops pci_hybrid_dma_ops = {
--	.alloc = tile_swiotlb_alloc_coherent,
--	.free = tile_swiotlb_free_coherent,
-+	.alloc = swiotlb_alloc,
-+	.free = swiotlb_free,
- 	.map_page = tile_pci_dma_map_page,
- 	.unmap_page = tile_pci_dma_unmap_page,
- 	.map_sg = tile_pci_dma_map_sg,
-@@ -552,7 +522,7 @@ static const struct dma_map_ops pci_hybrid_dma_ops = {
- 	.sync_sg_for_device = tile_pci_dma_sync_sg_for_device,
- };
+-config ZONE_DMA
++config ZONE_DMA32
+ 	def_bool y
  
--const struct dma_map_ops *gx_legacy_pci_dma_map_ops = &pci_swiotlb_dma_ops;
-+const struct dma_map_ops *gx_legacy_pci_dma_map_ops = &swiotlb_dma_ops;
- const struct dma_map_ops *gx_hybrid_pci_dma_map_ops = &pci_hybrid_dma_ops;
- #else
- const struct dma_map_ops *gx_legacy_pci_dma_map_ops;
+ config HAVE_GENERIC_GUP
+diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
+index 6840426bbe77..0d641875b20e 100644
+--- a/arch/arm64/mm/dma-mapping.c
++++ b/arch/arm64/mm/dma-mapping.c
+@@ -95,9 +95,9 @@ static void *__dma_alloc_coherent(struct device *dev, size_t size,
+ 				  dma_addr_t *dma_handle, gfp_t flags,
+ 				  unsigned long attrs)
+ {
+-	if (IS_ENABLED(CONFIG_ZONE_DMA) &&
++	if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
+ 	    dev->coherent_dma_mask <= DMA_BIT_MASK(32))
+-		flags |= GFP_DMA;
++		flags |= GFP_DMA32;
+ 	if (dev_get_cma_area(dev) && gfpflags_allow_blocking(flags)) {
+ 		struct page *page;
+ 		void *addr;
+@@ -397,7 +397,7 @@ static int __init atomic_pool_init(void)
+ 		page = dma_alloc_from_contiguous(NULL, nr_pages,
+ 						 pool_size_order, GFP_KERNEL);
+ 	else
+-		page = alloc_pages(GFP_DMA, pool_size_order);
++		page = alloc_pages(GFP_DMA32, pool_size_order);
+ 
+ 	if (page) {
+ 		int ret;
+diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+index 00e7b900ca41..8f03276443c9 100644
+--- a/arch/arm64/mm/init.c
++++ b/arch/arm64/mm/init.c
+@@ -217,7 +217,7 @@ static void __init reserve_elfcorehdr(void)
+ }
+ #endif /* CONFIG_CRASH_DUMP */
+ /*
+- * Return the maximum physical address for ZONE_DMA (DMA_BIT_MASK(32)). It
++ * Return the maximum physical address for ZONE_DMA32 (DMA_BIT_MASK(32)). It
+  * currently assumes that for memory starting above 4G, 32-bit devices will
+  * use a DMA offset.
+  */
+@@ -233,8 +233,8 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
+ {
+ 	unsigned long max_zone_pfns[MAX_NR_ZONES]  = {0};
+ 
+-	if (IS_ENABLED(CONFIG_ZONE_DMA))
+-		max_zone_pfns[ZONE_DMA] = PFN_DOWN(max_zone_dma_phys());
++	if (IS_ENABLED(CONFIG_ZONE_DMA32))
++		max_zone_pfns[ZONE_DMA32] = PFN_DOWN(max_zone_dma_phys());
+ 	max_zone_pfns[ZONE_NORMAL] = max;
+ 
+ 	free_area_init_nodes(max_zone_pfns);
+@@ -251,9 +251,9 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
+ 	memset(zone_size, 0, sizeof(zone_size));
+ 
+ 	/* 4GB maximum for 32-bit only capable devices */
+-#ifdef CONFIG_ZONE_DMA
++#ifdef CONFIG_ZONE_DMA32
+ 	max_dma = PFN_DOWN(arm64_dma_phys_limit);
+-	zone_size[ZONE_DMA] = max_dma - min;
++	zone_size[ZONE_DMA32] = max_dma - min;
+ #endif
+ 	zone_size[ZONE_NORMAL] = max - max_dma;
+ 
+@@ -266,10 +266,10 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
+ 		if (start >= max)
+ 			continue;
+ 
+-#ifdef CONFIG_ZONE_DMA
++#ifdef CONFIG_ZONE_DMA32
+ 		if (start < max_dma) {
+ 			unsigned long dma_end = min(end, max_dma);
+-			zhole_size[ZONE_DMA] -= dma_end - start;
++			zhole_size[ZONE_DMA32] -= dma_end - start;
+ 		}
+ #endif
+ 		if (end > max_dma) {
+@@ -467,7 +467,7 @@ void __init arm64_memblock_init(void)
+ 	early_init_fdt_scan_reserved_mem();
+ 
+ 	/* 4GB maximum for 32-bit only capable devices */
+-	if (IS_ENABLED(CONFIG_ZONE_DMA))
++	if (IS_ENABLED(CONFIG_ZONE_DMA32))
+ 		arm64_dma_phys_limit = max_zone_dma_phys();
+ 	else
+ 		arm64_dma_phys_limit = PHYS_MASK + 1;
 -- 
 2.14.2
