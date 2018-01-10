@@ -1,77 +1,179 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 24/33] dma-direct: use phys_to_dma
-Date: Wed, 10 Jan 2018 09:00:18 +0100
-Message-ID: <20180110080027.13879-25-hch@lst.de>
+Subject: [PATCH 22/33] dma-mapping: provide a generic asm/dma-mapping.h
+Date: Wed, 10 Jan 2018 09:00:16 +0100
+Message-ID: <20180110080027.13879-23-hch@lst.de>
 References: <20180110080027.13879-1-hch@lst.de>
-Return-path: <sparclinux-owner@vger.kernel.org>
+Return-path: <linux-sh-owner@vger.kernel.org>
 In-Reply-To: <20180110080027.13879-1-hch@lst.de>
-Sender: sparclinux-owner@vger.kernel.org
+Sender: linux-sh-owner@vger.kernel.org
 To: iommu@lists.linux-foundation.org
 Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This means it uses whatever linear remapping scheme that the architecture
-provides is used in the generic dma_direct ops.
+For architectures that just use the generic dma_noop_ops we can provide
+a generic version of dma-mapping.h.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Vladimir Murzin <vladimir.murzin@arm.com>
 ---
- lib/dma-direct.c | 18 +++++++-----------
- 1 file changed, 7 insertions(+), 11 deletions(-)
+ MAINTAINERS                          |  1 +
+ arch/m32r/include/asm/Kbuild         |  1 +
+ arch/m32r/include/asm/dma-mapping.h  | 17 -----------------
+ arch/riscv/include/asm/Kbuild        |  1 +
+ arch/riscv/include/asm/dma-mapping.h | 30 ------------------------------
+ arch/s390/include/asm/Kbuild         |  1 +
+ arch/s390/include/asm/dma-mapping.h  | 17 -----------------
+ include/asm-generic/dma-mapping.h    | 10 ++++++++++
+ 8 files changed, 14 insertions(+), 64 deletions(-)
+ delete mode 100644 arch/m32r/include/asm/dma-mapping.h
+ delete mode 100644 arch/riscv/include/asm/dma-mapping.h
+ delete mode 100644 arch/s390/include/asm/dma-mapping.h
+ create mode 100644 include/asm-generic/dma-mapping.h
 
-diff --git a/lib/dma-direct.c b/lib/dma-direct.c
-index 0ec3262a3148..12ea9653781b 100644
---- a/lib/dma-direct.c
-+++ b/lib/dma-direct.c
-@@ -1,12 +1,11 @@
- // SPDX-License-Identifier: GPL-2.0
- /*
-- *	lib/dma-noop.c
-- *
-- * DMA operations that map to physical addresses without flushing memory.
-+ * DMA operations that map physical memory directly without using an IOMMU or
-+ * flushing caches.
-  */
- #include <linux/export.h>
- #include <linux/mm.h>
--#include <linux/dma-mapping.h>
-+#include <linux/dma-direct.h>
- #include <linux/scatterlist.h>
- #include <linux/pfn.h>
+diff --git a/MAINTAINERS b/MAINTAINERS
+index d2cfdcce1db5..234e642e7149 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -4338,6 +4338,7 @@ F:	lib/dma-noop.c
+ F:	lib/dma-virt.c
+ F:	drivers/base/dma-mapping.c
+ F:	drivers/base/dma-coherent.c
++F:	include/asm-generic/dma-mapping.h
+ F:	include/linux/dma-direct.h
+ F:	include/linux/dma-mapping.h
  
-@@ -17,7 +16,7 @@ static void *dma_direct_alloc(struct device *dev, size_t size,
- 
- 	ret = (void *)__get_free_pages(gfp, get_order(size));
- 	if (ret)
--		*dma_handle = virt_to_phys(ret) - PFN_PHYS(dev->dma_pfn_offset);
-+		*dma_handle = phys_to_dma(dev, virt_to_phys(ret));
- 
- 	return ret;
- }
-@@ -32,7 +31,7 @@ static dma_addr_t dma_direct_map_page(struct device *dev, struct page *page,
- 		unsigned long offset, size_t size, enum dma_data_direction dir,
- 		unsigned long attrs)
- {
--	return page_to_phys(page) + offset - PFN_PHYS(dev->dma_pfn_offset);
-+	return phys_to_dma(dev, page_to_phys(page)) + offset;
- }
- 
- static int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl,
-@@ -42,12 +41,9 @@ static int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl,
- 	struct scatterlist *sg;
- 
- 	for_each_sg(sgl, sg, nents, i) {
--		dma_addr_t offset = PFN_PHYS(dev->dma_pfn_offset);
--		void *va;
+diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
+index 7e11b125c35e..ca83fda8177b 100644
+--- a/arch/m32r/include/asm/Kbuild
++++ b/arch/m32r/include/asm/Kbuild
+@@ -1,5 +1,6 @@
+ generic-y += clkdev.h
+ generic-y += current.h
++generic-y += dma-mapping.h
+ generic-y += exec.h
+ generic-y += extable.h
+ generic-y += irq_work.h
+diff --git a/arch/m32r/include/asm/dma-mapping.h b/arch/m32r/include/asm/dma-mapping.h
+deleted file mode 100644
+index 8967fb659691..000000000000
+--- a/arch/m32r/include/asm/dma-mapping.h
++++ /dev/null
+@@ -1,17 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#ifndef _ASM_M32R_DMA_MAPPING_H
+-#define _ASM_M32R_DMA_MAPPING_H
 -
- 		BUG_ON(!sg_page(sg));
--		va = sg_virt(sg);
--		sg_dma_address(sg) = (dma_addr_t)virt_to_phys(va) - offset;
+-#include <linux/kernel.h>
+-#include <linux/types.h>
+-#include <linux/mm.h>
+-#include <linux/scatterlist.h>
+-#include <linux/dma-debug.h>
+-#include <linux/io.h>
+-
+-static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+-{
+-	return &dma_noop_ops;
+-}
+-
+-#endif /* _ASM_M32R_DMA_MAPPING_H */
+diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
+index 970460a0b492..197460ccbf21 100644
+--- a/arch/riscv/include/asm/Kbuild
++++ b/arch/riscv/include/asm/Kbuild
+@@ -7,6 +7,7 @@ generic-y += device.h
+ generic-y += div64.h
+ generic-y += dma.h
+ generic-y += dma-contiguous.h
++generic-y += dma-mapping.h
+ generic-y += emergency-restart.h
+ generic-y += errno.h
+ generic-y += exec.h
+diff --git a/arch/riscv/include/asm/dma-mapping.h b/arch/riscv/include/asm/dma-mapping.h
+deleted file mode 100644
+index 73849e2cc761..000000000000
+--- a/arch/riscv/include/asm/dma-mapping.h
++++ /dev/null
+@@ -1,30 +0,0 @@
+-/*
+- * Copyright (C) 2003-2004 Hewlett-Packard Co
+- *	David Mosberger-Tang <davidm@hpl.hp.com>
+- * Copyright (C) 2012 ARM Ltd.
+- * Copyright (C) 2016 SiFive, Inc.
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+- */
+-#ifndef __ASM_RISCV_DMA_MAPPING_H
+-#define __ASM_RISCV_DMA_MAPPING_H
+-
+-/* Use ops->dma_mapping_error (if it exists) or assume success */
+-// #undef DMA_ERROR_CODE
+-
+-static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+-{
+-	return &dma_noop_ops;
+-}
+-
+-#endif	/* __ASM_RISCV_DMA_MAPPING_H */
+diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
+index 048450869328..dade72be127b 100644
+--- a/arch/s390/include/asm/Kbuild
++++ b/arch/s390/include/asm/Kbuild
+@@ -4,6 +4,7 @@ generic-y += cacheflush.h
+ generic-y += clkdev.h
+ generic-y += device.h
+ generic-y += dma-contiguous.h
++generic-y += dma-mapping.h
+ generic-y += div64.h
+ generic-y += emergency-restart.h
+ generic-y += export.h
+diff --git a/arch/s390/include/asm/dma-mapping.h b/arch/s390/include/asm/dma-mapping.h
+deleted file mode 100644
+index bdc2455483f6..000000000000
+--- a/arch/s390/include/asm/dma-mapping.h
++++ /dev/null
+@@ -1,17 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#ifndef _ASM_S390_DMA_MAPPING_H
+-#define _ASM_S390_DMA_MAPPING_H
+-
+-#include <linux/kernel.h>
+-#include <linux/types.h>
+-#include <linux/mm.h>
+-#include <linux/scatterlist.h>
+-#include <linux/dma-debug.h>
+-#include <linux/io.h>
+-
+-static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+-{
+-	return &dma_noop_ops;
+-}
+-
+-#endif /* _ASM_S390_DMA_MAPPING_H */
+diff --git a/include/asm-generic/dma-mapping.h b/include/asm-generic/dma-mapping.h
+new file mode 100644
+index 000000000000..164031531d85
+--- /dev/null
++++ b/include/asm-generic/dma-mapping.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_GENERIC_DMA_MAPPING_H
++#define _ASM_GENERIC_DMA_MAPPING_H
 +
-+		sg_dma_address(sg) = phys_to_dma(dev, sg_phys(sg));
- 		sg_dma_len(sg) = sg->length;
- 	}
- 
++static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
++{
++	return &dma_noop_ops;
++}
++
++#endif /* _ASM_GENERIC_DMA_MAPPING_H */
 -- 
 2.14.2
 
