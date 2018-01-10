@@ -1,28 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:47683 "EHLO newverein.lst.de"
+Received: from verein.lst.de ([213.95.11.211]:47735 "EHLO newverein.lst.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933757AbeAJPkx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Jan 2018 10:40:53 -0500
-Date: Wed, 10 Jan 2018 16:40:50 +0100
+        id S932166AbeAJPqv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Jan 2018 10:46:51 -0500
+Date: Wed, 10 Jan 2018 16:46:49 +0100
 From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 11/33] dma-mapping: move swiotlb arch helpers to a new
-        header
-Message-ID: <20180110154050.GA18428@lst.de>
-References: <20180110080027.13879-1-hch@lst.de> <20180110080027.13879-12-hch@lst.de> <3721b4ba-0685-255e-06b9-6e60678a1a92@arm.com> <20180110152617.GB17790@lst.de> <b0f90ed0-989f-4dc2-6f86-de8b4e486b55@arm.com>
+Subject: Re: [PATCH 10/22] swiotlb: refactor coherent buffer allocation
+Message-ID: <20180110154649.GA18529@lst.de>
+References: <20180110080932.14157-1-hch@lst.de> <20180110080932.14157-11-hch@lst.de> <cecc98cf-2e6a-a7bc-7390-d6dcced038c4@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <b0f90ed0-989f-4dc2-6f86-de8b4e486b55@arm.com>
+In-Reply-To: <cecc98cf-2e6a-a7bc-7390-d6dcced038c4@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Robin Murphy <robin.murphy@arm.com>
-Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20180110154050.BFmCHQfSMs5spxP6gVBnzDTJagjITUPk_JFZrds3km4@z>
+Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, Christian =?iso-8859-1?Q?K=F6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20180110154649.KgveZ2VDCtWDFJtGfYr0454-cgJ7Jp_DGAAHCcKgw7s@z>
 
-On Wed, Jan 10, 2018 at 03:31:08PM +0000, Robin Murphy wrote:
-> Yes indeed, modulo Vladimir's comments - it does seem prudent to fix the 
-> obvious off-by-ones as we touch them. I've wanted to do something like this 
-> for ages, but never got around to it myself.
+On Wed, Jan 10, 2018 at 12:22:18PM +0000, Robin Murphy wrote:
+>> +	if (phys_addr == SWIOTLB_MAP_ERROR)
+>> +		goto out_warn;
+>>   -		/* Confirm address can be DMA'd by device */
+>> -		if (dev_addr + size - 1 > dma_mask) {
+>> -			printk("hwdev DMA mask = 0x%016Lx, dev_addr = 0x%016Lx\n",
+>> -			       (unsigned long long)dma_mask,
+>> -			       (unsigned long long)dev_addr);
+>> +	*dma_handle = swiotlb_phys_to_dma(dev, phys_addr);
+>
+> nit: this should probably go after the dma_coherent_ok() check (as with the 
+> original logic).
 
-I've fixed these now in a separate patch.  I'm taking this as an
-Acked-by.
+But the originall logic also needs the dma_addr_t for the
+dma_coherent_ok check:
+
+		dev_addr = swiotlb_phys_to_dma(hwdev, paddr);
+		/* Confirm address can be DMA'd by device */
+		if (dev_addr + size - 1 > dma_mask) {
+			...
+			goto err_warn;
+		}
+
+or do you mean assining to *dma_handle?  The dma_handle is not
+valid for a failure return, so I don't think this should matter.
+
+>> +	if (ret) {
+>> +		*dma_handle = swiotlb_virt_to_bus(hwdev, ret);
+>> +		if (dma_coherent_ok(hwdev, *dma_handle, size)) {
+>> +			memset(ret, 0, size);
+>> +			return ret;
+>> +		}
+>
+> Aren't we leaking the pages here?
+
+Yes, that free_pages got lost somewhere in the rebases, I've added
+it back.
