@@ -1,41 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:37615 "EHLO
+Received: from bombadil.infradead.org ([65.50.211.133]:44064 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S965159AbeAJIA5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:00:57 -0500
+        with ESMTP id S933432AbeAJIAp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:00:45 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 07/33] riscv: remove the unused dma_capable helper
-Date: Wed, 10 Jan 2018 09:00:01 +0100
-Message-ID: <20180110080027.13879-8-hch@lst.de>
+Subject: [PATCH 03/33] m32r: remove unused flush_write_buffers definition
+Date: Wed, 10 Jan 2018 08:59:57 +0100
+Message-ID: <20180110080027.13879-4-hch@lst.de>
 In-Reply-To: <20180110080027.13879-1-hch@lst.de>
 References: <20180110080027.13879-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180110080001.i0or7pFxqgscebJEezkpOFwBLaBX6WLM4BzpgMoSGZM@z>
+Message-ID: <20180110075957.ZqzRe0YJoOX3-r_M1InpJF-fkUFqxM4XPxeIu4hv5V4@z>
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/riscv/include/asm/dma-mapping.h | 8 --------
- 1 file changed, 8 deletions(-)
+ arch/m32r/include/asm/io.h | 2 --
+ 1 file changed, 2 deletions(-)
 
-diff --git a/arch/riscv/include/asm/dma-mapping.h b/arch/riscv/include/asm/dma-mapping.h
-index 3eec1000196d..73849e2cc761 100644
---- a/arch/riscv/include/asm/dma-mapping.h
-+++ b/arch/riscv/include/asm/dma-mapping.h
-@@ -27,12 +27,4 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
- 	return &dma_noop_ops;
- }
+diff --git a/arch/m32r/include/asm/io.h b/arch/m32r/include/asm/io.h
+index 1b653bb16f9a..a4272d8f0d9c 100644
+--- a/arch/m32r/include/asm/io.h
++++ b/arch/m32r/include/asm/io.h
+@@ -191,8 +191,6 @@ static inline void _writel(unsigned long l, unsigned long addr)
  
--static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
--{
--	if (!dev->dma_mask)
--		return false;
+ #define mmiowb()
+ 
+-#define flush_write_buffers() do { } while (0)  /* M32R_FIXME */
 -
--	return addr + size - 1 <= *dev->dma_mask;
--}
--
- #endif	/* __ASM_RISCV_DMA_MAPPING_H */
+ static inline void
+ memset_io(volatile void __iomem *addr, unsigned char val, int count)
+ {
 -- 
 2.14.2
