@@ -1,88 +1,112 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 17/22] tile: replace ZONE_DMA with ZONE_DMA32
-Date: Wed, 10 Jan 2018 09:09:27 +0100
-Message-ID: <20180110080932.14157-18-hch@lst.de>
+Subject: [PATCH 12/22] ia64: replace ZONE_DMA with ZONE_DMA32
+Date: Wed, 10 Jan 2018 09:09:22 +0100
+Message-ID: <20180110080932.14157-13-hch@lst.de>
 References: <20180110080932.14157-1-hch@lst.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20180110080932.14157-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: iommu@lists.linux-foundation.org
-Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-tile uses ZONE_DMA for allocations below 32-bits.  These days we
+ia64 uses ZONE_DMA for allocations below 32-bits.  These days we
 name the zone for that ZONE_DMA32, which will allow to use the
 dma-direct and generic swiotlb code as-is, so rename it.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/tile/Kconfig          | 2 +-
- arch/tile/kernel/pci-dma.c | 4 ++--
- arch/tile/kernel/setup.c   | 8 ++++----
- 3 files changed, 7 insertions(+), 7 deletions(-)
+ arch/ia64/Kconfig              | 2 +-
+ arch/ia64/kernel/pci-swiotlb.c | 2 +-
+ arch/ia64/mm/contig.c          | 4 ++--
+ arch/ia64/mm/discontig.c       | 8 ++++----
+ 4 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index 02f269cfa538..30c586686f29 100644
---- a/arch/tile/Kconfig
-+++ b/arch/tile/Kconfig
-@@ -249,7 +249,7 @@ config HIGHMEM
- 
- 	  If unsure, say "true".
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 4d18fca885ee..888acdb163cb 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -66,7 +66,7 @@ config 64BIT
+ 	select ATA_NONSTANDARD if ATA
+ 	default y
  
 -config ZONE_DMA
 +config ZONE_DMA32
  	def_bool y
+ 	depends on !IA64_SGI_SN2
  
- config IOMMU_HELPER
-diff --git a/arch/tile/kernel/pci-dma.c b/arch/tile/kernel/pci-dma.c
-index f2abedc8a080..a267fa740048 100644
---- a/arch/tile/kernel/pci-dma.c
-+++ b/arch/tile/kernel/pci-dma.c
-@@ -54,7 +54,7 @@ static void *tile_dma_alloc_coherent(struct device *dev, size_t size,
- 	 * which case we will return NULL.  But such devices are uncommon.
- 	 */
- 	if (dma_mask <= DMA_BIT_MASK(32)) {
--		gfp |= GFP_DMA;
-+		gfp |= GFP_DMA32;
- 		node = 0;
- 	}
- 
-@@ -513,7 +513,7 @@ static void *tile_swiotlb_alloc_coherent(struct device *dev, size_t size,
- 					 dma_addr_t *dma_handle, gfp_t gfp,
+diff --git a/arch/ia64/kernel/pci-swiotlb.c b/arch/ia64/kernel/pci-swiotlb.c
+index f1ae873a8c35..4a9a6e58ad6a 100644
+--- a/arch/ia64/kernel/pci-swiotlb.c
++++ b/arch/ia64/kernel/pci-swiotlb.c
+@@ -20,7 +20,7 @@ static void *ia64_swiotlb_alloc_coherent(struct device *dev, size_t size,
  					 unsigned long attrs)
  {
--	gfp |= GFP_DMA;
-+	gfp |= GFP_DMA32;
+ 	if (dev->coherent_dma_mask != DMA_BIT_MASK(64))
+-		gfp |= GFP_DMA;
++		gfp |= GFP_DMA32;
  	return swiotlb_alloc_coherent(dev, size, dma_handle, gfp);
  }
  
-diff --git a/arch/tile/kernel/setup.c b/arch/tile/kernel/setup.c
-index ad83c1e66dbd..eb4e198f6f93 100644
---- a/arch/tile/kernel/setup.c
-+++ b/arch/tile/kernel/setup.c
-@@ -814,11 +814,11 @@ static void __init zone_sizes_init(void)
+diff --git a/arch/ia64/mm/contig.c b/arch/ia64/mm/contig.c
+index 52715a71aede..7d64b30913d1 100644
+--- a/arch/ia64/mm/contig.c
++++ b/arch/ia64/mm/contig.c
+@@ -237,9 +237,9 @@ paging_init (void)
+ 	unsigned long max_zone_pfns[MAX_NR_ZONES];
+ 
+ 	memset(max_zone_pfns, 0, sizeof(max_zone_pfns));
+-#ifdef CONFIG_ZONE_DMA
++#ifdef CONFIG_ZONE_DMA32
+ 	max_dma = virt_to_phys((void *) MAX_DMA_ADDRESS) >> PAGE_SHIFT;
+-	max_zone_pfns[ZONE_DMA] = max_dma;
++	max_zone_pfns[ZONE_DMA32] = max_dma;
  #endif
+ 	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
  
- 		if (start < dma_end) {
--			zones_size[ZONE_DMA] = min(zones_size[ZONE_NORMAL],
-+			zones_size[ZONE_DMA32] = min(zones_size[ZONE_NORMAL],
- 						   dma_end - start);
--			zones_size[ZONE_NORMAL] -= zones_size[ZONE_DMA];
-+			zones_size[ZONE_NORMAL] -= zones_size[ZONE_DMA32];
- 		} else {
--			zones_size[ZONE_DMA] = 0;
-+			zones_size[ZONE_DMA32] = 0;
- 		}
+diff --git a/arch/ia64/mm/discontig.c b/arch/ia64/mm/discontig.c
+index 9b2d994cddf6..ac46f0d60b66 100644
+--- a/arch/ia64/mm/discontig.c
++++ b/arch/ia64/mm/discontig.c
+@@ -38,7 +38,7 @@ struct early_node_data {
+ 	struct ia64_node_data *node_data;
+ 	unsigned long pernode_addr;
+ 	unsigned long pernode_size;
+-#ifdef CONFIG_ZONE_DMA
++#ifdef CONFIG_ZONE_DMA32
+ 	unsigned long num_dma_physpages;
+ #endif
+ 	unsigned long min_pfn;
+@@ -669,7 +669,7 @@ static __init int count_node_pages(unsigned long start, unsigned long len, int n
+ {
+ 	unsigned long end = start + len;
  
- 		/* Take zone metadata from controller 0 if we're isolnode. */
-@@ -830,7 +830,7 @@ static void __init zone_sizes_init(void)
- 		       PFN_UP(node_percpu[i]));
+-#ifdef CONFIG_ZONE_DMA
++#ifdef CONFIG_ZONE_DMA32
+ 	if (start <= __pa(MAX_DMA_ADDRESS))
+ 		mem_data[node].num_dma_physpages +=
+ 			(min(end, __pa(MAX_DMA_ADDRESS)) - start) >>PAGE_SHIFT;
+@@ -724,8 +724,8 @@ void __init paging_init(void)
+ 	}
  
- 		/* Track the type of memory on each node */
--		if (zones_size[ZONE_NORMAL] || zones_size[ZONE_DMA])
-+		if (zones_size[ZONE_NORMAL] || zones_size[ZONE_DMA32])
- 			node_set_state(i, N_NORMAL_MEMORY);
- #ifdef CONFIG_HIGHMEM
- 		if (end != start)
+ 	memset(max_zone_pfns, 0, sizeof(max_zone_pfns));
+-#ifdef CONFIG_ZONE_DMA
+-	max_zone_pfns[ZONE_DMA] = max_dma;
++#ifdef CONFIG_ZONE_DMA32
++	max_zone_pfns[ZONE_DMA32] = max_dma;
+ #endif
+ 	max_zone_pfns[ZONE_NORMAL] = max_pfn;
+ 	free_area_init_nodes(max_zone_pfns);
 -- 
 2.14.2
