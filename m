@@ -1,155 +1,171 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:49398 "EHLO
+Received: from bombadil.infradead.org ([65.50.211.133]:37557 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754418AbeAJIKk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:10:40 -0500
+        with ESMTP id S932099AbeAJIKV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:10:21 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 20/22] mips: use swiotlb_{alloc,free}
-Date: Wed, 10 Jan 2018 09:09:30 +0100
-Message-ID: <20180110080932.14157-21-hch@lst.de>
+Subject: [PATCH 14/22] ia64: clean up swiotlb support
+Date: Wed, 10 Jan 2018 09:09:24 +0100
+Message-ID: <20180110080932.14157-15-hch@lst.de>
 In-Reply-To: <20180110080932.14157-1-hch@lst.de>
 References: <20180110080932.14157-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180110080930.CUjTdqkyVOu4EXO_3q_ZsZ9cnLYi5PrVGiYLw4G3QJs@z>
+Message-ID: <20180110080924.x5YwOQdjDS4qVgadlCUko6RL2tWyneExAuwTgAcMYGQ@z>
 
-These already include the GFP_DMA/GFP_DMA32 usage, and will use CMA
-memory if enabled, thus avoiding the GFP_NORETRY hack.
+Move the few remaining bits of swiotlb glue towards their callers,
+and remove the pointless on ia64 swiotlb variable.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/mips/cavium-octeon/Kconfig           |  1 +
- arch/mips/cavium-octeon/dma-octeon.c      | 26 +++-----------------------
- arch/mips/loongson64/Kconfig              |  1 +
- arch/mips/loongson64/common/dma-swiotlb.c | 21 ++-------------------
- 4 files changed, 7 insertions(+), 42 deletions(-)
+ arch/ia64/include/asm/dma-mapping.h |  1 -
+ arch/ia64/include/asm/swiotlb.h     | 18 ------------------
+ arch/ia64/kernel/dma-mapping.c      |  9 +++++++++
+ arch/ia64/kernel/pci-dma.c          | 12 ++++++++++--
+ arch/ia64/kernel/pci-swiotlb.c      | 36 ------------------------------------
+ drivers/iommu/intel-iommu.c         |  2 +-
+ 6 files changed, 20 insertions(+), 58 deletions(-)
+ delete mode 100644 arch/ia64/include/asm/swiotlb.h
+ delete mode 100644 arch/ia64/kernel/pci-swiotlb.c
 
-diff --git a/arch/mips/cavium-octeon/Kconfig b/arch/mips/cavium-octeon/Kconfig
-index 204a1670fd9b..b5eee1a57d6c 100644
---- a/arch/mips/cavium-octeon/Kconfig
-+++ b/arch/mips/cavium-octeon/Kconfig
-@@ -75,6 +75,7 @@ config NEED_SG_DMA_LENGTH
+diff --git a/arch/ia64/include/asm/dma-mapping.h b/arch/ia64/include/asm/dma-mapping.h
+index eabee56d995c..76e4d6632d68 100644
+--- a/arch/ia64/include/asm/dma-mapping.h
++++ b/arch/ia64/include/asm/dma-mapping.h
+@@ -8,7 +8,6 @@
+  */
+ #include <asm/machvec.h>
+ #include <linux/scatterlist.h>
+-#include <asm/swiotlb.h>
+ #include <linux/dma-debug.h>
  
- config SWIOTLB
- 	def_bool y
-+	select DMA_DIRECT_OPS
- 	select IOMMU_HELPER
- 	select NEED_SG_DMA_LENGTH
- 
-diff --git a/arch/mips/cavium-octeon/dma-octeon.c b/arch/mips/cavium-octeon/dma-octeon.c
-index 5baf79fce643..c7bb8a407041 100644
---- a/arch/mips/cavium-octeon/dma-octeon.c
-+++ b/arch/mips/cavium-octeon/dma-octeon.c
-@@ -159,33 +159,13 @@ static void octeon_dma_sync_sg_for_device(struct device *dev,
- static void *octeon_dma_alloc_coherent(struct device *dev, size_t size,
- 	dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
- {
--	void *ret;
+ #define ARCH_HAS_DMA_GET_REQUIRED_MASK
+diff --git a/arch/ia64/include/asm/swiotlb.h b/arch/ia64/include/asm/swiotlb.h
+deleted file mode 100644
+index 841e2c7d0b21..000000000000
+--- a/arch/ia64/include/asm/swiotlb.h
++++ /dev/null
+@@ -1,18 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#ifndef ASM_IA64__SWIOTLB_H
+-#define ASM_IA64__SWIOTLB_H
 -
--	if (IS_ENABLED(CONFIG_ZONE_DMA) && dev == NULL)
--		gfp |= __GFP_DMA;
--	else if (IS_ENABLED(CONFIG_ZONE_DMA) &&
--		 dev->coherent_dma_mask <= DMA_BIT_MASK(24))
--		gfp |= __GFP_DMA;
--	else if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
--		 dev->coherent_dma_mask <= DMA_BIT_MASK(32))
--		gfp |= __GFP_DMA32;
+-#include <linux/dma-mapping.h>
+-#include <linux/swiotlb.h>
 -
--	/* Don't invoke OOM killer */
--	gfp |= __GFP_NORETRY;
+-#ifdef CONFIG_SWIOTLB
+-extern int swiotlb;
+-extern void pci_swiotlb_init(void);
+-#else
+-#define swiotlb 0
+-static inline void pci_swiotlb_init(void)
+-{
+-}
+-#endif
 -
--	ret = swiotlb_alloc_coherent(dev, size, dma_handle, gfp);
-+	void *ret = swiotlb_alloc(dev, size, dma_handle, gfp, attrs);
+-#endif /* ASM_IA64__SWIOTLB_H */
+diff --git a/arch/ia64/kernel/dma-mapping.c b/arch/ia64/kernel/dma-mapping.c
+index 7a82c9259609..f2d57e66fd86 100644
+--- a/arch/ia64/kernel/dma-mapping.c
++++ b/arch/ia64/kernel/dma-mapping.c
+@@ -1,5 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0
+ #include <linux/dma-mapping.h>
++#include <linux/swiotlb.h>
+ #include <linux/export.h>
  
- 	mb();
+ /* Set this to 1 if there is a HW IOMMU in the system */
+@@ -23,3 +24,11 @@ const struct dma_map_ops *dma_get_ops(struct device *dev)
+ 	return dma_ops;
+ }
+ EXPORT_SYMBOL(dma_get_ops);
++
++#ifdef CONFIG_SWIOTLB
++void __init swiotlb_dma_init(void)
++{
++	dma_ops = &swiotlb_dma_ops;
++	swiotlb_init(1);
++}
++#endif
+diff --git a/arch/ia64/kernel/pci-dma.c b/arch/ia64/kernel/pci-dma.c
+index 3ba87c22dfbc..35e0cad33b7d 100644
+--- a/arch/ia64/kernel/pci-dma.c
++++ b/arch/ia64/kernel/pci-dma.c
+@@ -104,8 +104,16 @@ void __init pci_iommu_alloc(void)
+ 	detect_intel_iommu();
  
- 	return ret;
+ #ifdef CONFIG_SWIOTLB
+-	pci_swiotlb_init();
+-#endif
++	if (!iommu_detected) {
++#ifdef CONFIG_IA64_GENERIC
++		printk(KERN_INFO "PCI-DMA: Re-initialize machine vector.\n");
++		machvec_init("dig");
++		swiotlb_dma_init();
++#else
++		panic("Unable to find Intel IOMMU");
++#endif /* CONFIG_IA64_GENERIC */
++	}
++#endif /* CONFIG_SWIOTLB */
  }
  
--static void octeon_dma_free_coherent(struct device *dev, size_t size,
--	void *vaddr, dma_addr_t dma_handle, unsigned long attrs)
+ #endif
+diff --git a/arch/ia64/kernel/pci-swiotlb.c b/arch/ia64/kernel/pci-swiotlb.c
+deleted file mode 100644
+index 0f8d5fbd86bd..000000000000
+--- a/arch/ia64/kernel/pci-swiotlb.c
++++ /dev/null
+@@ -1,36 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-/* Glue code to lib/swiotlb.c */
+-
+-#include <linux/pci.h>
+-#include <linux/gfp.h>
+-#include <linux/cache.h>
+-#include <linux/module.h>
+-#include <linux/dma-mapping.h>
+-#include <linux/swiotlb.h>
+-#include <asm/dma.h>
+-#include <asm/iommu.h>
+-#include <asm/machvec.h>
+-
+-int swiotlb __read_mostly;
+-EXPORT_SYMBOL(swiotlb);
+-
+-void __init swiotlb_dma_init(void)
 -{
--	swiotlb_free_coherent(dev, size, vaddr, dma_handle);
+-	dma_ops = &swiotlb_dma_ops;
+-	swiotlb_init(1);
 -}
 -
- static dma_addr_t octeon_unity_phys_to_dma(struct device *dev, phys_addr_t paddr)
- {
- 	return paddr;
-@@ -225,7 +205,7 @@ EXPORT_SYMBOL(dma_to_phys);
- static struct octeon_dma_map_ops octeon_linear_dma_map_ops = {
- 	.dma_map_ops = {
- 		.alloc = octeon_dma_alloc_coherent,
--		.free = octeon_dma_free_coherent,
-+		.free = swiotlb_free,
- 		.map_page = octeon_dma_map_page,
- 		.unmap_page = swiotlb_unmap_page,
- 		.map_sg = octeon_dma_map_sg,
-@@ -311,7 +291,7 @@ void __init plat_swiotlb_setup(void)
- static struct octeon_dma_map_ops _octeon_pci_dma_map_ops = {
- 	.dma_map_ops = {
- 		.alloc = octeon_dma_alloc_coherent,
--		.free = octeon_dma_free_coherent,
-+		.free = swiotlb_free,
- 		.map_page = octeon_dma_map_page,
- 		.unmap_page = swiotlb_unmap_page,
- 		.map_sg = octeon_dma_map_sg,
-diff --git a/arch/mips/loongson64/Kconfig b/arch/mips/loongson64/Kconfig
-index 0d249fc3cfe9..6f109bb54cdb 100644
---- a/arch/mips/loongson64/Kconfig
-+++ b/arch/mips/loongson64/Kconfig
-@@ -136,6 +136,7 @@ config SWIOTLB
- 	bool "Soft IOMMU Support for All-Memory DMA"
- 	default y
- 	depends on CPU_LOONGSON3
-+	select DMA_DIRECT_OPS
- 	select IOMMU_HELPER
- 	select NEED_SG_DMA_LENGTH
- 	select NEED_DMA_MAP_STATE
-diff --git a/arch/mips/loongson64/common/dma-swiotlb.c b/arch/mips/loongson64/common/dma-swiotlb.c
-index 15388c24a504..7bbcf89475f3 100644
---- a/arch/mips/loongson64/common/dma-swiotlb.c
-+++ b/arch/mips/loongson64/common/dma-swiotlb.c
-@@ -13,29 +13,12 @@
- static void *loongson_dma_alloc_coherent(struct device *dev, size_t size,
- 		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
- {
--	void *ret;
-+	void *ret = swiotlb_alloc(dev, size, dma_handle, gfp, attrs);
- 
--	if ((IS_ENABLED(CONFIG_ISA) && dev == NULL) ||
--	    (IS_ENABLED(CONFIG_ZONE_DMA) &&
--	     dev->coherent_dma_mask < DMA_BIT_MASK(32)))
--		gfp |= __GFP_DMA;
--	else if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
--		 dev->coherent_dma_mask < DMA_BIT_MASK(40))
--		gfp |= __GFP_DMA32;
--
--	gfp |= __GFP_NORETRY;
--
--	ret = swiotlb_alloc_coherent(dev, size, dma_handle, gfp);
- 	mb();
- 	return ret;
- }
- 
--static void loongson_dma_free_coherent(struct device *dev, size_t size,
--		void *vaddr, dma_addr_t dma_handle, unsigned long attrs)
+-void __init pci_swiotlb_init(void)
 -{
--	swiotlb_free_coherent(dev, size, vaddr, dma_handle);
+-	if (!iommu_detected) {
+-#ifdef CONFIG_IA64_GENERIC
+-		swiotlb = 1;
+-		printk(KERN_INFO "PCI-DMA: Re-initialize machine vector.\n");
+-		machvec_init("dig");
+-		swiotlb_init(1);
+-		dma_ops = &swiotlb_dma_ops;
+-#else
+-		panic("Unable to find Intel IOMMU");
+-#endif
+-	}
 -}
--
- static dma_addr_t loongson_dma_map_page(struct device *dev, struct page *page,
- 				unsigned long offset, size_t size,
- 				enum dma_data_direction dir,
-@@ -106,7 +89,7 @@ phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr)
+diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
+index 4a2de34895ec..a1373cf34326 100644
+--- a/drivers/iommu/intel-iommu.c
++++ b/drivers/iommu/intel-iommu.c
+@@ -4808,7 +4808,7 @@ int __init intel_iommu_init(void)
+ 	up_write(&dmar_global_lock);
+ 	pr_info("Intel(R) Virtualization Technology for Directed I/O\n");
  
- static const struct dma_map_ops loongson_dma_map_ops = {
- 	.alloc = loongson_dma_alloc_coherent,
--	.free = loongson_dma_free_coherent,
-+	.free = swiotlb_free,
- 	.map_page = loongson_dma_map_page,
- 	.unmap_page = swiotlb_unmap_page,
- 	.map_sg = loongson_dma_map_sg,
+-#ifdef CONFIG_SWIOTLB
++#if defined(CONFIG_X86) && defined(CONFIG_SWIOTLB)
+ 	swiotlb = 0;
+ #endif
+ 	dma_ops = &intel_dma_ops;
 -- 
 2.14.2
