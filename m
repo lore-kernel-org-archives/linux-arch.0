@@ -1,50 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from resqmta-ch2-02v.sys.comcast.net ([69.252.207.34]:35558 "EHLO
-        resqmta-ch2-02v.sys.comcast.net" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S934008AbeAJPdc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 10 Jan 2018 10:33:32 -0500
-Date: Wed, 10 Jan 2018 09:25:20 -0600 (CST)
-From: Christopher Lameter <cl@linux.com>
-Subject: Re: [PATCH 02/36] usercopy: Include offset in overflow report
-In-Reply-To: <1515531365-37423-3-git-send-email-keescook@chromium.org>
-Message-ID: <alpine.DEB.2.20.1801100921000.7926@nuc-kabylake>
-References: <1515531365-37423-1-git-send-email-keescook@chromium.org> <1515531365-37423-3-git-send-email-keescook@chromium.org>
+Received: from verein.lst.de ([213.95.11.211]:47652 "EHLO newverein.lst.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S933196AbeAJPfT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 10 Jan 2018 10:35:19 -0500
+Date: Wed, 10 Jan 2018 16:35:17 +0100
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 08/22] swiotlb: wire up ->dma_supported in
+        swiotlb_dma_ops
+Message-ID: <20180110153517.GF17790@lst.de>
+References: <20180110080932.14157-1-hch@lst.de> <20180110080932.14157-9-hch@lst.de> <7a058876-08fc-7323-7cb3-fe85116e2ea8@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <7a058876-08fc-7323-7cb3-fe85116e2ea8@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180110152520.QaAaOjL_c1zqErqE_4kzTEeLEFTBJSom1NZcY6zqZFE@z>
+To: Robin Murphy <robin.murphy@arm.com>
+Cc: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, Christian =?iso-8859-1?Q?K=F6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20180110153517.pA6dDOV6l1YVSoh81OqMo2VxCM5_9ESd337LdGsdnEc@z>
 
-On Tue, 9 Jan 2018, Kees Cook wrote:
+On Wed, Jan 10, 2018 at 12:16:15PM +0000, Robin Murphy wrote:
+> On 10/01/18 08:09, Christoph Hellwig wrote:
+>> To properly reject too small DMA masks based on the addressability of the
+>> bounce buffer.
+>
+> I reckon this is self-evident enough that it should simply be squashed into 
+> the previous patch.
 
-> -static void report_usercopy(unsigned long len, bool to_user, const char *type)
-> +int report_usercopy(const char *name, const char *detail, bool to_user,
-> +		    unsigned long offset, unsigned long len)
->  {
-> -	pr_emerg("kernel memory %s attempt detected %s '%s' (%lu bytes)\n",
-> +	pr_emerg("kernel memory %s attempt detected %s %s%s%s%s (offset %lu, size %lu)\n",
->  		to_user ? "exposure" : "overwrite",
-> -		to_user ? "from" : "to", type ? : "unknown", len);
-> +		to_user ? "from" : "to",
-> +		name ? : "unknown?!",
-> +		detail ? " '" : "", detail ? : "", detail ? "'" : "",
-> +		offset, len);
->  	/*
->  	 * For greater effect, it would be nice to do do_group_exit(),
->  	 * but BUG() actually hooks all the lock-breaking and per-arch
->  	 * Oops code, so that is used here instead.
->  	 */
->  	BUG();
-
-Should this be a WARN() or so? Or some configuration that changes
-BUG() behavior? Otherwise
-
-> +
-> +	return -1;
-
-This return code will never be returned.
-
-Why a return code at all? Maybe I will see that in the following patches?
+x86 didn't wire it up before, so I want a clear blaimpoint for this
+change instead of mixing it up.
