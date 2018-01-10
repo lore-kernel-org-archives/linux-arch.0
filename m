@@ -1,156 +1,58 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 33/33] h8300: use dma-direct
-Date: Wed, 10 Jan 2018 09:00:27 +0100
-Message-ID: <20180110080027.13879-34-hch@lst.de>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: [PATCH 18/33] s390: move s390_pci_dma_ops to asm/pci_dma.h
+Date: Wed, 10 Jan 2018 09:00:12 +0100
+Message-ID: <20180110080027.13879-19-hch@lst.de>
 References: <20180110080027.13879-1-hch@lst.de>
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <20180110080027.13879-1-hch@lst.de>
-Sender: linux-alpha-owner@vger.kernel.org
-To: iommu@lists.linux-foundation.org
-Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20180110080027.13879-1-hch-jcswGhMUV9g@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Konrad Rzeszutek Wilk <konrad-Gq0aWv8utHQdnm+yROfE0A@public.gmane.org>, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cris-kernel-VrBV9hrLPhE@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Replace the bare-bones h8300 direct dma mapping implementation with
-the fully featured generic dma-direct one.
+This is not needed in drivers, so move it to a private header.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 ---
- arch/h8300/Kconfig                   |  1 +
- arch/h8300/include/asm/Kbuild        |  1 +
- arch/h8300/include/asm/dma-mapping.h | 12 -------
- arch/h8300/kernel/Makefile           |  2 +-
- arch/h8300/kernel/dma.c              | 66 ------------------------------------
- 5 files changed, 3 insertions(+), 79 deletions(-)
- delete mode 100644 arch/h8300/include/asm/dma-mapping.h
- delete mode 100644 arch/h8300/kernel/dma.c
+ arch/s390/include/asm/dma-mapping.h | 2 --
+ arch/s390/include/asm/pci_dma.h     | 3 +++
+ 2 files changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
-index f8d3fde08190..091d6d04b5e5 100644
---- a/arch/h8300/Kconfig
-+++ b/arch/h8300/Kconfig
-@@ -23,6 +23,7 @@ config H8300
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_HASH
- 	select CPU_NO_EFFICIENT_FFS
-+	select DMA_DIRECT_OPS
+diff --git a/arch/s390/include/asm/dma-mapping.h b/arch/s390/include/asm/dma-mapping.h
+index 2ec7240c1ada..bdc2455483f6 100644
+--- a/arch/s390/include/asm/dma-mapping.h
++++ b/arch/s390/include/asm/dma-mapping.h
+@@ -9,8 +9,6 @@
+ #include <linux/dma-debug.h>
+ #include <linux/io.h>
  
- config CPU_BIG_ENDIAN
- 	def_bool y
-diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
-index bc077491d299..642752c94306 100644
---- a/arch/h8300/include/asm/Kbuild
-+++ b/arch/h8300/include/asm/Kbuild
-@@ -9,6 +9,7 @@ generic-y += delay.h
- generic-y += device.h
- generic-y += div64.h
- generic-y += dma.h
-+generic-y += dma-mapping.h
- generic-y += emergency-restart.h
- generic-y += exec.h
- generic-y += extable.h
-diff --git a/arch/h8300/include/asm/dma-mapping.h b/arch/h8300/include/asm/dma-mapping.h
-deleted file mode 100644
-index 21bb1fc3a6f1..000000000000
---- a/arch/h8300/include/asm/dma-mapping.h
-+++ /dev/null
-@@ -1,12 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef _H8300_DMA_MAPPING_H
--#define _H8300_DMA_MAPPING_H
+-extern const struct dma_map_ops s390_pci_dma_ops;
 -
--extern const struct dma_map_ops h8300_dma_map_ops;
--
--static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
--{
--	return &h8300_dma_map_ops;
--}
--
--#endif
-diff --git a/arch/h8300/kernel/Makefile b/arch/h8300/kernel/Makefile
-index b62e830525c6..307aa51576dd 100644
---- a/arch/h8300/kernel/Makefile
-+++ b/arch/h8300/kernel/Makefile
-@@ -7,7 +7,7 @@ extra-y := vmlinux.lds
+ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+ {
+ 	return &dma_noop_ops;
+diff --git a/arch/s390/include/asm/pci_dma.h b/arch/s390/include/asm/pci_dma.h
+index e8d9161fa17a..419fac7a62c0 100644
+--- a/arch/s390/include/asm/pci_dma.h
++++ b/arch/s390/include/asm/pci_dma.h
+@@ -201,4 +201,7 @@ void dma_cleanup_tables(unsigned long *);
+ unsigned long *dma_walk_cpu_trans(unsigned long *rto, dma_addr_t dma_addr);
+ void dma_update_cpu_trans(unsigned long *entry, void *page_addr, int flags);
  
- obj-y := process.o traps.o ptrace.o \
- 	 signal.o setup.o syscalls.o \
--	 irq.o entry.o dma.o
-+	 irq.o entry.o
- 
- obj-$(CONFIG_ROMKERNEL) += head_rom.o
- obj-$(CONFIG_RAMKERNEL) += head_ram.o
-diff --git a/arch/h8300/kernel/dma.c b/arch/h8300/kernel/dma.c
-deleted file mode 100644
-index d44ba5db4ac3..000000000000
---- a/arch/h8300/kernel/dma.c
-+++ /dev/null
-@@ -1,66 +0,0 @@
--/*
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file COPYING in the main directory of this archive
-- * for more details.
-- */
--
--#include <linux/dma-mapping.h>
--#include <linux/kernel.h>
--#include <linux/scatterlist.h>
--#include <linux/module.h>
--#include <asm/pgalloc.h>
--
--static void *dma_alloc(struct device *dev, size_t size,
--		       dma_addr_t *dma_handle, gfp_t gfp,
--		       unsigned long attrs)
--{
--	void *ret;
--
--	if (dev == NULL || (*dev->dma_mask < 0xffffffff))
--		gfp |= GFP_DMA;
--	ret = (void *)__get_free_pages(gfp, get_order(size));
--
--	if (ret != NULL) {
--		memset(ret, 0, size);
--		*dma_handle = virt_to_phys(ret);
--	}
--	return ret;
--}
--
--static void dma_free(struct device *dev, size_t size,
--		     void *vaddr, dma_addr_t dma_handle,
--		     unsigned long attrs)
--
--{
--	free_pages((unsigned long)vaddr, get_order(size));
--}
--
--static dma_addr_t map_page(struct device *dev, struct page *page,
--				  unsigned long offset, size_t size,
--				  enum dma_data_direction direction,
--				  unsigned long attrs)
--{
--	return page_to_phys(page) + offset;
--}
--
--static int map_sg(struct device *dev, struct scatterlist *sgl,
--		  int nents, enum dma_data_direction direction,
--		  unsigned long attrs)
--{
--	struct scatterlist *sg;
--	int i;
--
--	for_each_sg(sgl, sg, nents, i) {
--		sg->dma_address = sg_phys(sg);
--	}
--
--	return nents;
--}
--
--const struct dma_map_ops h8300_dma_map_ops = {
--	.alloc = dma_alloc,
--	.free = dma_free,
--	.map_page = map_page,
--	.map_sg = map_sg,
--};
--EXPORT_SYMBOL(h8300_dma_map_ops);
++extern const struct dma_map_ops s390_pci_dma_ops;
++
++
+ #endif
 -- 
 2.14.2
-
