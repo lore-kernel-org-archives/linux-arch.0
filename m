@@ -1,129 +1,44 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 16/22] unicore32: use generic swiotlb_ops
-Date: Wed, 10 Jan 2018 09:09:26 +0100
-Message-ID: <20180110080932.14157-17-hch@lst.de>
+Subject: [PATCH 08/22] swiotlb: wire up ->dma_supported in swiotlb_dma_ops
+Date: Wed, 10 Jan 2018 09:09:18 +0100
+Message-ID: <20180110080932.14157-9-hch@lst.de>
 References: <20180110080932.14157-1-hch@lst.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20180110080932.14157-1-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: iommu@lists.linux-foundation.org
-Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-These are identical to the unicore32 ops, and would also support CMA
-if enabled on unicore32.
+To properly reject too small DMA masks based on the addressability of the
+bounce buffer.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/unicore32/include/asm/dma-mapping.h |  9 +-----
- arch/unicore32/mm/Kconfig                |  1 +
- arch/unicore32/mm/Makefile               |  2 --
- arch/unicore32/mm/dma-swiotlb.c          | 48 --------------------------------
- 4 files changed, 2 insertions(+), 58 deletions(-)
- delete mode 100644 arch/unicore32/mm/dma-swiotlb.c
+ lib/swiotlb.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/unicore32/include/asm/dma-mapping.h b/arch/unicore32/include/asm/dma-mapping.h
-index f2bfec273aa7..790bc2ef4af2 100644
---- a/arch/unicore32/include/asm/dma-mapping.h
-+++ b/arch/unicore32/include/asm/dma-mapping.h
-@@ -12,18 +12,11 @@
- #ifndef __UNICORE_DMA_MAPPING_H__
- #define __UNICORE_DMA_MAPPING_H__
- 
--#ifdef __KERNEL__
--
--#include <linux/mm_types.h>
--#include <linux/scatterlist.h>
- #include <linux/swiotlb.h>
- 
--extern const struct dma_map_ops swiotlb_dma_map_ops;
--
- static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
- {
--	return &swiotlb_dma_map_ops;
-+	return &swiotlb_dma_ops;
- }
- 
--#endif /* __KERNEL__ */
- #endif
-diff --git a/arch/unicore32/mm/Kconfig b/arch/unicore32/mm/Kconfig
-index c256460cd363..e9154a59d561 100644
---- a/arch/unicore32/mm/Kconfig
-+++ b/arch/unicore32/mm/Kconfig
-@@ -42,6 +42,7 @@ config CPU_TLB_SINGLE_ENTRY_DISABLE
- 
- config SWIOTLB
- 	def_bool y
-+	select DMA_DIRECT_OPS
- 
- config IOMMU_HELPER
- 	def_bool SWIOTLB
-diff --git a/arch/unicore32/mm/Makefile b/arch/unicore32/mm/Makefile
-index 681c0ef5ec9e..8106260583ab 100644
---- a/arch/unicore32/mm/Makefile
-+++ b/arch/unicore32/mm/Makefile
-@@ -6,8 +6,6 @@
- obj-y				:= extable.o fault.o init.o pgd.o mmu.o
- obj-y				+= flush.o ioremap.o
- 
--obj-$(CONFIG_SWIOTLB)		+= dma-swiotlb.o
--
- obj-$(CONFIG_MODULES)		+= proc-syms.o
- 
- obj-$(CONFIG_ALIGNMENT_TRAP)	+= alignment.o
-diff --git a/arch/unicore32/mm/dma-swiotlb.c b/arch/unicore32/mm/dma-swiotlb.c
-deleted file mode 100644
-index 525413d6690e..000000000000
---- a/arch/unicore32/mm/dma-swiotlb.c
-+++ /dev/null
-@@ -1,48 +0,0 @@
--/*
-- * Contains routines needed to support swiotlb for UniCore32.
-- *
-- * Copyright (C) 2010 Guan Xuetao
-- *
-- * This program is free software; you can redistribute  it and/or modify it
-- * under  the terms of  the GNU General  Public License as published by the
-- * Free Software Foundation;  either version 2 of the  License, or (at your
-- * option) any later version.
-- */
--#include <linux/pci.h>
--#include <linux/cache.h>
--#include <linux/module.h>
--#include <linux/dma-mapping.h>
--#include <linux/swiotlb.h>
--#include <linux/bootmem.h>
--
--#include <asm/dma.h>
--
--static void *unicore_swiotlb_alloc_coherent(struct device *dev, size_t size,
--					    dma_addr_t *dma_handle, gfp_t flags,
--					    unsigned long attrs)
--{
--	return swiotlb_alloc_coherent(dev, size, dma_handle, flags);
--}
--
--static void unicore_swiotlb_free_coherent(struct device *dev, size_t size,
--					  void *vaddr, dma_addr_t dma_addr,
--					  unsigned long attrs)
--{
--	swiotlb_free_coherent(dev, size, vaddr, dma_addr);
--}
--
--const struct dma_map_ops swiotlb_dma_map_ops = {
--	.alloc = unicore_swiotlb_alloc_coherent,
--	.free = unicore_swiotlb_free_coherent,
--	.map_sg = swiotlb_map_sg_attrs,
--	.unmap_sg = swiotlb_unmap_sg_attrs,
--	.dma_supported = swiotlb_dma_supported,
--	.map_page = swiotlb_map_page,
--	.unmap_page = swiotlb_unmap_page,
--	.sync_single_for_cpu = swiotlb_sync_single_for_cpu,
--	.sync_single_for_device = swiotlb_sync_single_for_device,
--	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
--	.sync_sg_for_device = swiotlb_sync_sg_for_device,
--	.mapping_error = swiotlb_dma_mapping_error,
--};
--EXPORT_SYMBOL(swiotlb_dma_map_ops);
+diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+index 0fae2f45c3c0..539fd1099ba9 100644
+--- a/lib/swiotlb.c
++++ b/lib/swiotlb.c
+@@ -1128,5 +1128,6 @@ const struct dma_map_ops swiotlb_dma_ops = {
+ 	.unmap_sg		= swiotlb_unmap_sg_attrs,
+ 	.map_page		= swiotlb_map_page,
+ 	.unmap_page		= swiotlb_unmap_page,
++	.dma_supported		= swiotlb_dma_supported,
+ };
+ #endif /* CONFIG_DMA_DIRECT_OPS */
 -- 
 2.14.2
