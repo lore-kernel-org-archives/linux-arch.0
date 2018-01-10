@@ -1,89 +1,55 @@
-From: Robin Murphy <robin.murphy@arm.com>
-Subject: Re: [PATCH 31/33] dma-direct: reject too small dma masks
-Date: Wed, 10 Jan 2018 11:49:34 +0000
-Message-ID: <0bcca030-a8da-c34a-a905-707986689f33@arm.com>
+From: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH 20/33] dma-mapping: clear harmful GFP_* flags in common
+	code
+Date: Wed, 10 Jan 2018 11:59:30 +0000
+Message-ID: <27b90341-f9d0-356f-0194-1c7203a3f93e@arm.com>
 References: <20180110080027.13879-1-hch@lst.de>
- <20180110080027.13879-32-hch@lst.de>
+	<20180110080027.13879-21-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <20180110080027.13879-32-hch@lst.de>
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20180110080027.13879-21-hch-jcswGhMUV9g@public.gmane.org>
 Content-Language: en-GB
-Sender: linux-m68k-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Konrad Rzeszutek Wilk <konrad-Gq0aWv8utHQdnm+yROfE0A@public.gmane.org>, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-cris-kernel-VrBV9hrLPhE@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
 On 10/01/18 08:00, Christoph Hellwig wrote:
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->   include/linux/dma-direct.h |  1 +
->   lib/dma-direct.c           | 19 +++++++++++++++++++
->   2 files changed, 20 insertions(+)
-> 
-> diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
-> index 4788bf0bf683..bcdb1a3e4b1f 100644
-> --- a/include/linux/dma-direct.h
-> +++ b/include/linux/dma-direct.h
-> @@ -42,5 +42,6 @@ void *dma_direct_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
->   		gfp_t gfp, unsigned long attrs);
->   void dma_direct_free(struct device *dev, size_t size, void *cpu_addr,
->   		dma_addr_t dma_addr, unsigned long attrs);
-> +int dma_direct_supported(struct device *dev, u64 mask);
+[...]
+> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+> index 9f28b2fa329e..88bcb1a8211d 100644
+> --- a/include/linux/dma-mapping.h
+> +++ b/include/linux/dma-mapping.h
+> @@ -518,6 +518,13 @@ static inline void *dma_alloc_attrs(struct device *dev, size_t size,
+>   	if (dma_alloc_from_dev_coherent(dev, size, dma_handle, &cpu_addr))
+>   		return cpu_addr;
 >   
->   #endif /* _LINUX_DMA_DIRECT_H */
-> diff --git a/lib/dma-direct.c b/lib/dma-direct.c
-> index 784a68dfdbe3..40b1f92f2214 100644
-> --- a/lib/dma-direct.c
-> +++ b/lib/dma-direct.c
-> @@ -122,6 +122,24 @@ static int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl,
->   	return nents;
->   }
->   
-> +int dma_direct_supported(struct device *dev, u64 mask)
-> +{
-> +#ifdef CONFIG_ZONE_DMA
-> +	if (mask < DMA_BIT_MASK(ARCH_ZONE_DMA_BITS))
-> +		return 0;
-> +#else
 > +	/*
-> +	 * Because 32-bit DMA masks are so common we expect every architecture
-> +	 * to be able to satisfy them - either by not supporting more physical
-> +	 * memory, or by providing a ZONE_DMA32.  If neither is the case, the
-> +	 * architecture needs to use an IOMMU instead of the direct mapping.
+> +	 * Let the implementation decide on the zone to allocate from, and
+> +	 * decide on the way of zeroing the memory given that the memory
+> +	 * returned should always be zeroed.
 > +	 */
-> +	if (mask < DMA_BIT_MASK(32))
-> +		return 0;
 
-Do you think it's worth the effort to be a little more accommodating 
-here? i.e.:
-
-		return dma_max_pfn(dev) >= max_pfn;
-
-We seem to have a fair few 28-31 bit masks for older hardware which 
-probably associates with host systems packing equivalently small amounts 
-of RAM.
-
-Otherwise though,
-
-Reviewed-by: Robin Murphy <robin.murphy@arm.com>
+Just a note that if we're all happy to enshrine the "allocations are 
+always zeroed" behaviour in the API (I am too, for the record), we 
+should remember to follow up once the dust settles to update the docs 
+and I guess just #define dma_zalloc_coherent dma_alloc_coherent.
 
 Robin.
 
-> +#endif
-> +	return 1;
-> +}
+> +	flag &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM | __GFP_ZERO);
 > +
->   static int dma_direct_mapping_error(struct device *dev, dma_addr_t dma_addr)
->   {
->   	return dma_addr == DIRECT_MAPPING_ERROR;
-> @@ -132,6 +150,7 @@ const struct dma_map_ops dma_direct_ops = {
->   	.free			= dma_direct_free,
->   	.map_page		= dma_direct_map_page,
->   	.map_sg			= dma_direct_map_sg,
-> +	.dma_supported		= dma_direct_supported,
->   	.mapping_error		= dma_direct_mapping_error,
->   };
->   EXPORT_SYMBOL(dma_direct_ops);
+>   	if (!arch_dma_alloc_attrs(&dev, &flag))
+>   		return NULL;
+>   	if (!ops->alloc)
 > 
