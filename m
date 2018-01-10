@@ -1,89 +1,151 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 06/22] swiotlb: rename swiotlb_free to swiotlb_exit
-Date: Wed, 10 Jan 2018 09:09:16 +0100
-Message-ID: <20180110080932.14157-7-hch@lst.de>
+Subject: [PATCH 20/22] mips: use swiotlb_{alloc,free}
+Date: Wed, 10 Jan 2018 09:09:30 +0100
+Message-ID: <20180110080932.14157-21-hch@lst.de>
 References: <20180110080932.14157-1-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-ia64-owner@vger.kernel.org>
 In-Reply-To: <20180110080932.14157-1-hch@lst.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-ia64-owner@vger.kernel.org
 To: iommu@lists.linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
+
+These already include the GFP_DMA/GFP_DMA32 usage, and will use CMA
+memory if enabled, thus avoiding the GFP_NORETRY hack.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/powerpc/kernel/dma-swiotlb.c | 2 +-
- arch/x86/kernel/pci-swiotlb.c     | 2 +-
- include/linux/swiotlb.h           | 4 ++--
- lib/swiotlb.c                     | 2 +-
- 4 files changed, 5 insertions(+), 5 deletions(-)
+ arch/mips/cavium-octeon/Kconfig           |  1 +
+ arch/mips/cavium-octeon/dma-octeon.c      | 26 +++-----------------------
+ arch/mips/loongson64/Kconfig              |  1 +
+ arch/mips/loongson64/common/dma-swiotlb.c | 21 ++-------------------
+ 4 files changed, 7 insertions(+), 42 deletions(-)
 
-diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
-index 506ac4fafac5..88f3963ca30f 100644
---- a/arch/powerpc/kernel/dma-swiotlb.c
-+++ b/arch/powerpc/kernel/dma-swiotlb.c
-@@ -121,7 +121,7 @@ static int __init check_swiotlb_enabled(void)
- 	if (ppc_swiotlb_enable)
- 		swiotlb_print_info();
- 	else
--		swiotlb_free();
-+		swiotlb_exit();
+diff --git a/arch/mips/cavium-octeon/Kconfig b/arch/mips/cavium-octeon/Kconfig
+index 204a1670fd9b..b5eee1a57d6c 100644
+--- a/arch/mips/cavium-octeon/Kconfig
++++ b/arch/mips/cavium-octeon/Kconfig
+@@ -75,6 +75,7 @@ config NEED_SG_DMA_LENGTH
  
- 	return 0;
- }
-diff --git a/arch/x86/kernel/pci-swiotlb.c b/arch/x86/kernel/pci-swiotlb.c
-index 0d77603c2f50..0ee0f8f34251 100644
---- a/arch/x86/kernel/pci-swiotlb.c
-+++ b/arch/x86/kernel/pci-swiotlb.c
-@@ -120,7 +120,7 @@ void __init pci_swiotlb_late_init(void)
+ config SWIOTLB
+ 	def_bool y
++	select DMA_DIRECT_OPS
+ 	select IOMMU_HELPER
+ 	select NEED_SG_DMA_LENGTH
+ 
+diff --git a/arch/mips/cavium-octeon/dma-octeon.c b/arch/mips/cavium-octeon/dma-octeon.c
+index 5baf79fce643..c7bb8a407041 100644
+--- a/arch/mips/cavium-octeon/dma-octeon.c
++++ b/arch/mips/cavium-octeon/dma-octeon.c
+@@ -159,33 +159,13 @@ static void octeon_dma_sync_sg_for_device(struct device *dev,
+ static void *octeon_dma_alloc_coherent(struct device *dev, size_t size,
+ 	dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
  {
- 	/* An IOMMU turned us off. */
- 	if (!swiotlb)
--		swiotlb_free();
-+		swiotlb_exit();
- 	else {
- 		printk(KERN_INFO "PCI-DMA: "
- 		       "Using software bounce buffering for IO (SWIOTLB)\n");
-diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
-index 24ed817082ee..606375e35d87 100644
---- a/include/linux/swiotlb.h
-+++ b/include/linux/swiotlb.h
-@@ -115,10 +115,10 @@ extern int
- swiotlb_dma_supported(struct device *hwdev, u64 mask);
+-	void *ret;
+-
+-	if (IS_ENABLED(CONFIG_ZONE_DMA) && dev == NULL)
+-		gfp |= __GFP_DMA;
+-	else if (IS_ENABLED(CONFIG_ZONE_DMA) &&
+-		 dev->coherent_dma_mask <= DMA_BIT_MASK(24))
+-		gfp |= __GFP_DMA;
+-	else if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
+-		 dev->coherent_dma_mask <= DMA_BIT_MASK(32))
+-		gfp |= __GFP_DMA32;
+-
+-	/* Don't invoke OOM killer */
+-	gfp |= __GFP_NORETRY;
+-
+-	ret = swiotlb_alloc_coherent(dev, size, dma_handle, gfp);
++	void *ret = swiotlb_alloc(dev, size, dma_handle, gfp, attrs);
  
- #ifdef CONFIG_SWIOTLB
--extern void __init swiotlb_free(void);
-+extern void __init swiotlb_exit(void);
- unsigned int swiotlb_max_segment(void);
- #else
--static inline void swiotlb_free(void) { }
-+static inline void swiotlb_exit(void) { }
- static inline unsigned int swiotlb_max_segment(void) { return 0; }
- #endif
+ 	mb();
  
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index 125c1062119f..cf5311908fa9 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -417,7 +417,7 @@ swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs)
- 	return -ENOMEM;
+ 	return ret;
  }
  
--void __init swiotlb_free(void)
-+void __init swiotlb_exit(void)
+-static void octeon_dma_free_coherent(struct device *dev, size_t size,
+-	void *vaddr, dma_addr_t dma_handle, unsigned long attrs)
+-{
+-	swiotlb_free_coherent(dev, size, vaddr, dma_handle);
+-}
+-
+ static dma_addr_t octeon_unity_phys_to_dma(struct device *dev, phys_addr_t paddr)
  {
- 	if (!io_tlb_orig_addr)
- 		return;
+ 	return paddr;
+@@ -225,7 +205,7 @@ EXPORT_SYMBOL(dma_to_phys);
+ static struct octeon_dma_map_ops octeon_linear_dma_map_ops = {
+ 	.dma_map_ops = {
+ 		.alloc = octeon_dma_alloc_coherent,
+-		.free = octeon_dma_free_coherent,
++		.free = swiotlb_free,
+ 		.map_page = octeon_dma_map_page,
+ 		.unmap_page = swiotlb_unmap_page,
+ 		.map_sg = octeon_dma_map_sg,
+@@ -311,7 +291,7 @@ void __init plat_swiotlb_setup(void)
+ static struct octeon_dma_map_ops _octeon_pci_dma_map_ops = {
+ 	.dma_map_ops = {
+ 		.alloc = octeon_dma_alloc_coherent,
+-		.free = octeon_dma_free_coherent,
++		.free = swiotlb_free,
+ 		.map_page = octeon_dma_map_page,
+ 		.unmap_page = swiotlb_unmap_page,
+ 		.map_sg = octeon_dma_map_sg,
+diff --git a/arch/mips/loongson64/Kconfig b/arch/mips/loongson64/Kconfig
+index 0d249fc3cfe9..6f109bb54cdb 100644
+--- a/arch/mips/loongson64/Kconfig
++++ b/arch/mips/loongson64/Kconfig
+@@ -136,6 +136,7 @@ config SWIOTLB
+ 	bool "Soft IOMMU Support for All-Memory DMA"
+ 	default y
+ 	depends on CPU_LOONGSON3
++	select DMA_DIRECT_OPS
+ 	select IOMMU_HELPER
+ 	select NEED_SG_DMA_LENGTH
+ 	select NEED_DMA_MAP_STATE
+diff --git a/arch/mips/loongson64/common/dma-swiotlb.c b/arch/mips/loongson64/common/dma-swiotlb.c
+index 15388c24a504..7bbcf89475f3 100644
+--- a/arch/mips/loongson64/common/dma-swiotlb.c
++++ b/arch/mips/loongson64/common/dma-swiotlb.c
+@@ -13,29 +13,12 @@
+ static void *loongson_dma_alloc_coherent(struct device *dev, size_t size,
+ 		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
+ {
+-	void *ret;
++	void *ret = swiotlb_alloc(dev, size, dma_handle, gfp, attrs);
+ 
+-	if ((IS_ENABLED(CONFIG_ISA) && dev == NULL) ||
+-	    (IS_ENABLED(CONFIG_ZONE_DMA) &&
+-	     dev->coherent_dma_mask < DMA_BIT_MASK(32)))
+-		gfp |= __GFP_DMA;
+-	else if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
+-		 dev->coherent_dma_mask < DMA_BIT_MASK(40))
+-		gfp |= __GFP_DMA32;
+-
+-	gfp |= __GFP_NORETRY;
+-
+-	ret = swiotlb_alloc_coherent(dev, size, dma_handle, gfp);
+ 	mb();
+ 	return ret;
+ }
+ 
+-static void loongson_dma_free_coherent(struct device *dev, size_t size,
+-		void *vaddr, dma_addr_t dma_handle, unsigned long attrs)
+-{
+-	swiotlb_free_coherent(dev, size, vaddr, dma_handle);
+-}
+-
+ static dma_addr_t loongson_dma_map_page(struct device *dev, struct page *page,
+ 				unsigned long offset, size_t size,
+ 				enum dma_data_direction dir,
+@@ -106,7 +89,7 @@ phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr)
+ 
+ static const struct dma_map_ops loongson_dma_map_ops = {
+ 	.alloc = loongson_dma_alloc_coherent,
+-	.free = loongson_dma_free_coherent,
++	.free = swiotlb_free,
+ 	.map_page = loongson_dma_map_page,
+ 	.unmap_page = swiotlb_unmap_page,
+ 	.map_sg = loongson_dma_map_sg,
 -- 
 2.14.2
+
