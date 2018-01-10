@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 22/22] arm64: use swiotlb_alloc and swiotlb_free
-Date: Wed, 10 Jan 2018 09:09:32 +0100
-Message-ID: <20180110080932.14157-23-hch@lst.de>
+Subject: [PATCH 21/22] arm64: replace ZONE_DMA with ZONE_DMA32
+Date: Wed, 10 Jan 2018 09:09:31 +0100
+Message-ID: <20180110080932.14157-22-hch@lst.de>
 References: <20180110080932.14157-1-hch@lst.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180110080932.14157-1-hch@lst.de>
@@ -10,105 +10,112 @@ To: iommu@lists.linux-foundation.org
 Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The generic swiotlb_alloc and swiotlb_free routines already take care
-of CMA allocations and adding GFP_DMA32 where needed, so use them
-instead of the arm specific helpers.
+arm64 uses ZONE_DMA for allocations below 32-bits.  These days we
+name the zone for that ZONE_DMA32, which will allow to use the
+dma-direct and generic swiotlb code as-is, so rename it.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/arm64/Kconfig          |  1 +
- arch/arm64/mm/dma-mapping.c | 46 +++------------------------------------------
- 2 files changed, 4 insertions(+), 43 deletions(-)
+ arch/arm64/Kconfig          |  2 +-
+ arch/arm64/mm/dma-mapping.c |  6 +++---
+ arch/arm64/mm/init.c        | 16 ++++++++--------
+ 3 files changed, 12 insertions(+), 12 deletions(-)
 
 diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 6b6985f15d02..53205c02b18a 100644
+index c9a7e9e1414f..6b6985f15d02 100644
 --- a/arch/arm64/Kconfig
 +++ b/arch/arm64/Kconfig
-@@ -59,6 +59,7 @@ config ARM64
- 	select COMMON_CLK
- 	select CPU_PM if (SUSPEND || CPU_IDLE)
- 	select DCACHE_WORD_ACCESS
-+	select DMA_DIRECT_OPS
- 	select EDAC_SUPPORT
- 	select FRAME_POINTER
- 	select GENERIC_ALLOCATOR
+@@ -227,7 +227,7 @@ config GENERIC_CSUM
+ config GENERIC_CALIBRATE_DELAY
+ 	def_bool y
+ 
+-config ZONE_DMA
++config ZONE_DMA32
+ 	def_bool y
+ 
+ config HAVE_GENERIC_GUP
 diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
-index 0d641875b20e..a96ec0181818 100644
+index 6840426bbe77..0d641875b20e 100644
 --- a/arch/arm64/mm/dma-mapping.c
 +++ b/arch/arm64/mm/dma-mapping.c
-@@ -91,46 +91,6 @@ static int __free_from_pool(void *start, size_t size)
- 	return 1;
+@@ -95,9 +95,9 @@ static void *__dma_alloc_coherent(struct device *dev, size_t size,
+ 				  dma_addr_t *dma_handle, gfp_t flags,
+ 				  unsigned long attrs)
+ {
+-	if (IS_ENABLED(CONFIG_ZONE_DMA) &&
++	if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
+ 	    dev->coherent_dma_mask <= DMA_BIT_MASK(32))
+-		flags |= GFP_DMA;
++		flags |= GFP_DMA32;
+ 	if (dev_get_cma_area(dev) && gfpflags_allow_blocking(flags)) {
+ 		struct page *page;
+ 		void *addr;
+@@ -397,7 +397,7 @@ static int __init atomic_pool_init(void)
+ 		page = dma_alloc_from_contiguous(NULL, nr_pages,
+ 						 pool_size_order, GFP_KERNEL);
+ 	else
+-		page = alloc_pages(GFP_DMA, pool_size_order);
++		page = alloc_pages(GFP_DMA32, pool_size_order);
+ 
+ 	if (page) {
+ 		int ret;
+diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+index 00e7b900ca41..8f03276443c9 100644
+--- a/arch/arm64/mm/init.c
++++ b/arch/arm64/mm/init.c
+@@ -217,7 +217,7 @@ static void __init reserve_elfcorehdr(void)
  }
+ #endif /* CONFIG_CRASH_DUMP */
+ /*
+- * Return the maximum physical address for ZONE_DMA (DMA_BIT_MASK(32)). It
++ * Return the maximum physical address for ZONE_DMA32 (DMA_BIT_MASK(32)). It
+  * currently assumes that for memory starting above 4G, 32-bit devices will
+  * use a DMA offset.
+  */
+@@ -233,8 +233,8 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
+ {
+ 	unsigned long max_zone_pfns[MAX_NR_ZONES]  = {0};
  
--static void *__dma_alloc_coherent(struct device *dev, size_t size,
--				  dma_addr_t *dma_handle, gfp_t flags,
--				  unsigned long attrs)
--{
--	if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
--	    dev->coherent_dma_mask <= DMA_BIT_MASK(32))
--		flags |= GFP_DMA32;
--	if (dev_get_cma_area(dev) && gfpflags_allow_blocking(flags)) {
--		struct page *page;
--		void *addr;
--
--		page = dma_alloc_from_contiguous(dev, size >> PAGE_SHIFT,
--						 get_order(size), flags);
--		if (!page)
--			return NULL;
--
--		*dma_handle = phys_to_dma(dev, page_to_phys(page));
--		addr = page_address(page);
--		memset(addr, 0, size);
--		return addr;
--	} else {
--		return swiotlb_alloc_coherent(dev, size, dma_handle, flags);
--	}
--}
--
--static void __dma_free_coherent(struct device *dev, size_t size,
--				void *vaddr, dma_addr_t dma_handle,
--				unsigned long attrs)
--{
--	bool freed;
--	phys_addr_t paddr = dma_to_phys(dev, dma_handle);
--
--
--	freed = dma_release_from_contiguous(dev,
--					phys_to_page(paddr),
--					size >> PAGE_SHIFT);
--	if (!freed)
--		swiotlb_free_coherent(dev, size, vaddr, dma_handle);
--}
--
- static void *__dma_alloc(struct device *dev, size_t size,
- 			 dma_addr_t *dma_handle, gfp_t flags,
- 			 unsigned long attrs)
-@@ -152,7 +112,7 @@ static void *__dma_alloc(struct device *dev, size_t size,
- 		return addr;
- 	}
+-	if (IS_ENABLED(CONFIG_ZONE_DMA))
+-		max_zone_pfns[ZONE_DMA] = PFN_DOWN(max_zone_dma_phys());
++	if (IS_ENABLED(CONFIG_ZONE_DMA32))
++		max_zone_pfns[ZONE_DMA32] = PFN_DOWN(max_zone_dma_phys());
+ 	max_zone_pfns[ZONE_NORMAL] = max;
  
--	ptr = __dma_alloc_coherent(dev, size, dma_handle, flags, attrs);
-+	ptr = swiotlb_alloc(dev, size, dma_handle, flags, attrs);
- 	if (!ptr)
- 		goto no_mem;
+ 	free_area_init_nodes(max_zone_pfns);
+@@ -251,9 +251,9 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
+ 	memset(zone_size, 0, sizeof(zone_size));
  
-@@ -173,7 +133,7 @@ static void *__dma_alloc(struct device *dev, size_t size,
- 	return coherent_ptr;
+ 	/* 4GB maximum for 32-bit only capable devices */
+-#ifdef CONFIG_ZONE_DMA
++#ifdef CONFIG_ZONE_DMA32
+ 	max_dma = PFN_DOWN(arm64_dma_phys_limit);
+-	zone_size[ZONE_DMA] = max_dma - min;
++	zone_size[ZONE_DMA32] = max_dma - min;
+ #endif
+ 	zone_size[ZONE_NORMAL] = max - max_dma;
  
- no_map:
--	__dma_free_coherent(dev, size, ptr, *dma_handle, attrs);
-+	swiotlb_free(dev, size, ptr, *dma_handle, attrs);
- no_mem:
- 	return NULL;
- }
-@@ -191,7 +151,7 @@ static void __dma_free(struct device *dev, size_t size,
- 			return;
- 		vunmap(vaddr);
- 	}
--	__dma_free_coherent(dev, size, swiotlb_addr, dma_handle, attrs);
-+	swiotlb_free(dev, size, swiotlb_addr, dma_handle, attrs);
- }
+@@ -266,10 +266,10 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
+ 		if (start >= max)
+ 			continue;
  
- static dma_addr_t __swiotlb_map_page(struct device *dev, struct page *page,
+-#ifdef CONFIG_ZONE_DMA
++#ifdef CONFIG_ZONE_DMA32
+ 		if (start < max_dma) {
+ 			unsigned long dma_end = min(end, max_dma);
+-			zhole_size[ZONE_DMA] -= dma_end - start;
++			zhole_size[ZONE_DMA32] -= dma_end - start;
+ 		}
+ #endif
+ 		if (end > max_dma) {
+@@ -467,7 +467,7 @@ void __init arm64_memblock_init(void)
+ 	early_init_fdt_scan_reserved_mem();
+ 
+ 	/* 4GB maximum for 32-bit only capable devices */
+-	if (IS_ENABLED(CONFIG_ZONE_DMA))
++	if (IS_ENABLED(CONFIG_ZONE_DMA32))
+ 		arm64_dma_phys_limit = max_zone_dma_phys();
+ 	else
+ 		arm64_dma_phys_limit = PHYS_MASK + 1;
 -- 
 2.14.2
