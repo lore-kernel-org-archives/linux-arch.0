@@ -1,123 +1,43 @@
-From: Luis de Bethencourt <luisbg@kernel.org>
-Subject: Re: [PATCH 13/36] befs: Define usercopy region in befs_inode_cache
- slab cache
-Date: Wed, 10 Jan 2018 10:53:23 +0000
-Message-ID: <490acc77-1198-e53e-c965-aef9c1ebf5fd@kernel.org>
-References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
- <1515531365-37423-14-git-send-email-keescook@chromium.org>
+From: Robin Murphy <robin.murphy@arm.com>
+Subject: Re: [PATCH 09/33] dma-mapping: take dma_pfn_offset into account in
+ dma_max_pfn
+Date: Wed, 10 Jan 2018 11:07:55 +0000
+Message-ID: <6e4732eb-9eaf-7e5b-863c-d3faa47bb513@arm.com>
+References: <20180110080027.13879-1-hch@lst.de>
+ <20180110080027.13879-10-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1515531365-37423-14-git-send-email-keescook@chromium.org>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org
-Cc: David Windsor <dave@nullcore.net>, Salah Triki <salah.triki@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.or
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <20180110080027.13879-10-hch@lst.de>
+Content-Language: en-GB
+Sender: linux-m68k-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On 01/09/2018 08:55 PM, Kees Cook wrote:
-> From: David Windsor <dave@nullcore.net>
-> 
-> befs symlink pathnames, stored in struct befs_inode_info.i_data.symlink
-> and therefore contained in the befs_inode_cache slab cache, need to be
-> copied to/from userspace.
-> 
-> cache object allocation:
->     fs/befs/linuxvfs.c:
->         befs_alloc_inode(...):
->             ...
->             bi = kmem_cache_alloc(befs_inode_cachep, GFP_KERNEL);
->             ...
->             return &bi->vfs_inode;
-> 
->         befs_iget(...):
->             ...
->             strlcpy(befs_ino->i_data.symlink, raw_inode->data.symlink,
->                     BEFS_SYMLINK_LEN);
->             ...
->             inode->i_link = befs_ino->i_data.symlink;
-> 
-> example usage trace:
->     readlink_copy+0x43/0x70
->     vfs_readlink+0x62/0x110
->     SyS_readlinkat+0x100/0x130
-> 
->     fs/namei.c:
->         readlink_copy(..., link):
->             ...
->             copy_to_user(..., link, len);
-> 
->         (inlined in vfs_readlink)
->         generic_readlink(dentry, ...):
->             struct inode *inode = d_inode(dentry);
->             const char *link = inode->i_link;
->             ...
->             readlink_copy(..., link);
-> 
-> In support of usercopy hardening, this patch defines a region in the
-> befs_inode_cache slab cache in which userspace copy operations are
-> allowed.
-> 
-> This region is known as the slab cache's usercopy region. Slab caches
-> can now check that each dynamically sized copy operation involving
-> cache-managed memory falls entirely within the slab's usercopy region.
-> 
-> This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
-> whitelisting code in the last public patch of grsecurity/PaX based on my
-> understanding of the code. Changes or omissions from the original code are
-> mine and don't reflect the original grsecurity/PaX code.
-> 
-> Signed-off-by: David Windsor <dave@nullcore.net>
-> [kees: adjust commit log, provide usage trace]
-> Cc: Luis de Bethencourt <luisbg@kernel.org>
-> Cc: Salah Triki <salah.triki@gmail.com>
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> Acked-by: Luis de Bethencourt <luisbg@kernel.org>
+On 10/01/18 08:00, Christoph Hellwig wrote:
+> This makes sure the generic version can be used with architectures /
+> devices that have a DMA offset in the direct mapping.
+
+Reviewed-by: Robin Murphy <robin.murphy@arm.com>
+
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 > ---
->  fs/befs/linuxvfs.c | 14 +++++++++-----
->  1 file changed, 9 insertions(+), 5 deletions(-)
+>   include/linux/dma-mapping.h | 2 +-
+>   1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/fs/befs/linuxvfs.c b/fs/befs/linuxvfs.c
-> index ee236231cafa..af2832aaeec5 100644
-> --- a/fs/befs/linuxvfs.c
-> +++ b/fs/befs/linuxvfs.c
-> @@ -444,11 +444,15 @@ static struct inode *befs_iget(struct super_block *sb, unsigned long ino)
->  static int __init
->  befs_init_inodecache(void)
->  {
-> -	befs_inode_cachep = kmem_cache_create("befs_inode_cache",
-> -					      sizeof (struct befs_inode_info),
-> -					      0, (SLAB_RECLAIM_ACCOUNT|
-> -						SLAB_MEM_SPREAD|SLAB_ACCOUNT),
-> -					      init_once);
-> +	befs_inode_cachep = kmem_cache_create_usercopy("befs_inode_cache",
-> +				sizeof(struct befs_inode_info), 0,
-> +				(SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|
-> +					SLAB_ACCOUNT),
-> +				offsetof(struct befs_inode_info,
-> +					i_data.symlink),
-> +				sizeof_field(struct befs_inode_info,
-> +					i_data.symlink),
-> +				init_once);
->  	if (befs_inode_cachep == NULL)
->  		return -ENOMEM;
->  
+> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+> index 81ed9b2d84dc..d84951865be7 100644
+> --- a/include/linux/dma-mapping.h
+> +++ b/include/linux/dma-mapping.h
+> @@ -692,7 +692,7 @@ static inline int dma_set_seg_boundary(struct device *dev, unsigned long mask)
+>   #ifndef dma_max_pfn
+>   static inline unsigned long dma_max_pfn(struct device *dev)
+>   {
+> -	return *dev->dma_mask >> PAGE_SHIFT;
+> +	return (*dev->dma_mask >> PAGE_SHIFT) + dev->dma_pfn_offset;
+>   }
+>   #endif
+>   
 > 
-
-Hi Kees,
-
-I've tested this and it works well.
-
-You can have me as:
-Signed-off-by, Tested-by, or the current Acked-by. Whatever you think is better.
-
-Thanks for the great work. Your rock!
-
-Luis
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
