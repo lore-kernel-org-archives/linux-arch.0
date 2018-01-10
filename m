@@ -1,46 +1,58 @@
-From: Robin Murphy <robin.murphy@arm.com>
-Subject: Re: [PATCH 27/33] dma-direct: use node local allocations for coherent
- memory
-Date: Wed, 10 Jan 2018 12:06:22 +0000
-Message-ID: <3672aa56-b85c-5d2c-0c0e-709031b0c0a0@arm.com>
-References: <20180110080027.13879-1-hch@lst.de>
- <20180110080027.13879-28-hch@lst.de>
+From: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH 02/22] arm64: rename swiotlb_dma_ops
+Date: Wed, 10 Jan 2018 12:13:39 +0000
+Message-ID: <4564e50d-7e52-7b72-7c95-d4acda92da0c@arm.com>
+References: <20180110080932.14157-1-hch@lst.de>
+	<20180110080932.14157-3-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <20180110080027.13879-28-hch@lst.de>
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20180110080932.14157-3-hch-jcswGhMUV9g@public.gmane.org>
 Content-Language: en-GB
-Sender: linux-m68k-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?Q?Christian_K=c3=b6nig?= <ckoenig.leichtzumerken-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Konrad Rzeszutek Wilk <konrad-Gq0aWv8utHQdnm+yROfE0A@public.gmane.org>, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On 10/01/18 08:00, Christoph Hellwig wrote:
-> To preserve the x86 behavior.
+On 10/01/18 08:09, Christoph Hellwig wrote:
+> We'll need that name for a generic implementation soon.
 
-And combined with patch 10/22 of the SWIOTLB refactoring, this means 
-SWIOTLB allocations will also end up NUMA-aware, right? Great, that's 
-what we want on arm64 too :)
+Reviewed-by: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
 
-Reviewed-by: Robin Murphy <robin.murphy@arm.com>
-
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 > ---
->   lib/dma-direct.c | 2 +-
->   1 file changed, 1 insertion(+), 1 deletion(-)
+>   arch/arm64/mm/dma-mapping.c | 4 ++--
+>   1 file changed, 2 insertions(+), 2 deletions(-)
 > 
-> diff --git a/lib/dma-direct.c b/lib/dma-direct.c
-> index a9ae98be7af3..f04a424f91fa 100644
-> --- a/lib/dma-direct.c
-> +++ b/lib/dma-direct.c
-> @@ -38,7 +38,7 @@ static void *dma_direct_alloc(struct device *dev, size_t size,
->   	if (gfpflags_allow_blocking(gfp))
->   		page = dma_alloc_from_contiguous(dev, count, page_order, gfp);
->   	if (!page)
-> -		page = alloc_pages(gfp, page_order);
-> +		page = alloc_pages_node(dev_to_node(dev), gfp, page_order);
->   	if (!page)
->   		return NULL;
+> diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
+> index f3a637b98487..6840426bbe77 100644
+> --- a/arch/arm64/mm/dma-mapping.c
+> +++ b/arch/arm64/mm/dma-mapping.c
+> @@ -368,7 +368,7 @@ static int __swiotlb_dma_mapping_error(struct device *hwdev, dma_addr_t addr)
+>   	return 0;
+>   }
 >   
+> -static const struct dma_map_ops swiotlb_dma_ops = {
+> +static const struct dma_map_ops arm64_swiotlb_dma_ops = {
+>   	.alloc = __dma_alloc,
+>   	.free = __dma_free,
+>   	.mmap = __swiotlb_mmap,
+> @@ -923,7 +923,7 @@ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
+>   			const struct iommu_ops *iommu, bool coherent)
+>   {
+>   	if (!dev->dma_ops)
+> -		dev->dma_ops = &swiotlb_dma_ops;
+> +		dev->dma_ops = &arm64_swiotlb_dma_ops;
+>   
+>   	dev->archdata.dma_coherent = coherent;
+>   	__iommu_setup_dma_ops(dev, dma_base, size, iommu);
 > 
