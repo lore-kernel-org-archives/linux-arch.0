@@ -1,7 +1,7 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 11/22] swiotlb: remove various exports
-Date: Wed, 10 Jan 2018 09:09:21 +0100
-Message-ID: <20180110080932.14157-12-hch@lst.de>
+Subject: [PATCH 13/22] ia64: use generic swiotlb_ops
+Date: Wed, 10 Jan 2018 09:09:23 +0100
+Message-ID: <20180110080932.14157-14-hch@lst.de>
 References: <20180110080932.14157-1-hch@lst.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180110080932.14157-1-hch@lst.de>
@@ -10,120 +10,178 @@ To: iommu@lists.linux-foundation.org
 Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-All these symbols are only used by arch dma_ops implementations or
-xen-swiotlb.  None of which can be modular.
+These are identical to the ia64 ops, and would also support CMA
+if enabled on ia64.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- lib/swiotlb.c | 13 -------------
- 1 file changed, 13 deletions(-)
+ arch/ia64/Kconfig                |  5 +++++
+ arch/ia64/hp/common/hwsw_iommu.c |  4 ++--
+ arch/ia64/hp/common/sba_iommu.c  |  6 +++---
+ arch/ia64/kernel/pci-swiotlb.c   | 38 +++-----------------------------------
+ 4 files changed, 13 insertions(+), 40 deletions(-)
 
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index bf2d19ee91c1..1eac51ff77a4 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -605,7 +605,6 @@ phys_addr_t swiotlb_tbl_map_single(struct device *hwdev,
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 888acdb163cb..29148fe4bf5a 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -146,6 +146,7 @@ config IA64_GENERIC
+ 	bool "generic"
+ 	select NUMA
+ 	select ACPI_NUMA
++	select DMA_DIRECT_OPS
+ 	select SWIOTLB
+ 	select PCI_MSI
+ 	help
+@@ -166,6 +167,7 @@ config IA64_GENERIC
  
- 	return tlb_addr;
- }
--EXPORT_SYMBOL_GPL(swiotlb_tbl_map_single);
+ config IA64_DIG
+ 	bool "DIG-compliant"
++	select DMA_DIRECT_OPS
+ 	select SWIOTLB
  
- /*
-  * Allocates bounce buffer and returns its kernel virtual address.
-@@ -675,7 +674,6 @@ void swiotlb_tbl_unmap_single(struct device *hwdev, phys_addr_t tlb_addr,
- 	}
- 	spin_unlock_irqrestore(&io_tlb_lock, flags);
- }
--EXPORT_SYMBOL_GPL(swiotlb_tbl_unmap_single);
+ config IA64_DIG_VTD
+@@ -181,6 +183,7 @@ config IA64_HP_ZX1
  
- void swiotlb_tbl_sync_single(struct device *hwdev, phys_addr_t tlb_addr,
- 			     size_t size, enum dma_data_direction dir,
-@@ -707,7 +705,6 @@ void swiotlb_tbl_sync_single(struct device *hwdev, phys_addr_t tlb_addr,
- 		BUG();
- 	}
- }
--EXPORT_SYMBOL_GPL(swiotlb_tbl_sync_single);
+ config IA64_HP_ZX1_SWIOTLB
+ 	bool "HP-zx1/sx1000 with software I/O TLB"
++	select DMA_DIRECT_OPS
+ 	select SWIOTLB
+ 	help
+ 	  Build a kernel that runs on HP zx1 and sx1000 systems even when they
+@@ -204,6 +207,7 @@ config IA64_SGI_UV
+ 	bool "SGI-UV"
+ 	select NUMA
+ 	select ACPI_NUMA
++	select DMA_DIRECT_OPS
+ 	select SWIOTLB
+ 	help
+ 	  Selecting this option will optimize the kernel for use on UV based
+@@ -214,6 +218,7 @@ config IA64_SGI_UV
  
- static inline bool dma_coherent_ok(struct device *dev, dma_addr_t addr,
- 		size_t size)
-@@ -884,7 +881,6 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
+ config IA64_HP_SIM
+ 	bool "Ski-simulator"
++	select DMA_DIRECT_OPS
+ 	select SWIOTLB
+ 	depends on !PM
  
- 	return swiotlb_phys_to_dma(dev, io_tlb_overflow_buffer);
- }
--EXPORT_SYMBOL_GPL(swiotlb_map_page);
+diff --git a/arch/ia64/hp/common/hwsw_iommu.c b/arch/ia64/hp/common/hwsw_iommu.c
+index 41279f0442bd..58969039bed2 100644
+--- a/arch/ia64/hp/common/hwsw_iommu.c
++++ b/arch/ia64/hp/common/hwsw_iommu.c
+@@ -19,7 +19,7 @@
+ #include <linux/export.h>
+ #include <asm/machvec.h>
  
- /*
-  * Unmap a single streaming mode DMA translation.  The dma_addr and size must
-@@ -925,7 +921,6 @@ void swiotlb_unmap_page(struct device *hwdev, dma_addr_t dev_addr,
+-extern const struct dma_map_ops sba_dma_ops, ia64_swiotlb_dma_ops;
++extern const struct dma_map_ops sba_dma_ops;
+ 
+ /* swiotlb declarations & definitions: */
+ extern int swiotlb_late_init_with_default_size (size_t size);
+@@ -38,7 +38,7 @@ static inline int use_swiotlb(struct device *dev)
+ const struct dma_map_ops *hwsw_dma_get_ops(struct device *dev)
  {
- 	unmap_single(hwdev, dev_addr, size, dir, attrs);
+ 	if (use_swiotlb(dev))
+-		return &ia64_swiotlb_dma_ops;
++		return &swiotlb_dma_ops;
+ 	return &sba_dma_ops;
  }
--EXPORT_SYMBOL_GPL(swiotlb_unmap_page);
+ EXPORT_SYMBOL(hwsw_dma_get_ops);
+diff --git a/arch/ia64/hp/common/sba_iommu.c b/arch/ia64/hp/common/sba_iommu.c
+index 8c0a9ae6afec..aec4a3354abe 100644
+--- a/arch/ia64/hp/common/sba_iommu.c
++++ b/arch/ia64/hp/common/sba_iommu.c
+@@ -2096,7 +2096,7 @@ static int __init acpi_sba_ioc_init_acpi(void)
+ /* This has to run before acpi_scan_init(). */
+ arch_initcall(acpi_sba_ioc_init_acpi);
  
- /*
-  * Make physical memory consistent for a single streaming mode DMA translation
-@@ -963,7 +958,6 @@ swiotlb_sync_single_for_cpu(struct device *hwdev, dma_addr_t dev_addr,
+-extern const struct dma_map_ops ia64_swiotlb_dma_ops;
++extern const struct dma_map_ops swiotlb_dma_ops;
+ 
+ static int __init
+ sba_init(void)
+@@ -2111,7 +2111,7 @@ sba_init(void)
+ 	 * a successful kdump kernel boot is to use the swiotlb.
+ 	 */
+ 	if (is_kdump_kernel()) {
+-		dma_ops = &ia64_swiotlb_dma_ops;
++		dma_ops = &swiotlb_dma_ops;
+ 		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
+ 			panic("Unable to initialize software I/O TLB:"
+ 				  " Try machvec=dig boot option");
+@@ -2133,7 +2133,7 @@ sba_init(void)
+ 		 * If we didn't find something sba_iommu can claim, we
+ 		 * need to setup the swiotlb and switch to the dig machvec.
+ 		 */
+-		dma_ops = &ia64_swiotlb_dma_ops;
++		dma_ops = &swiotlb_dma_ops;
+ 		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
+ 			panic("Unable to find SBA IOMMU or initialize "
+ 			      "software I/O TLB: Try machvec=dig boot option");
+diff --git a/arch/ia64/kernel/pci-swiotlb.c b/arch/ia64/kernel/pci-swiotlb.c
+index 4a9a6e58ad6a..0f8d5fbd86bd 100644
+--- a/arch/ia64/kernel/pci-swiotlb.c
++++ b/arch/ia64/kernel/pci-swiotlb.c
+@@ -6,8 +6,7 @@
+ #include <linux/cache.h>
+ #include <linux/module.h>
+ #include <linux/dma-mapping.h>
+-
+-#include <asm/swiotlb.h>
++#include <linux/swiotlb.h>
+ #include <asm/dma.h>
+ #include <asm/iommu.h>
+ #include <asm/machvec.h>
+@@ -15,40 +14,9 @@
+ int swiotlb __read_mostly;
+ EXPORT_SYMBOL(swiotlb);
+ 
+-static void *ia64_swiotlb_alloc_coherent(struct device *dev, size_t size,
+-					 dma_addr_t *dma_handle, gfp_t gfp,
+-					 unsigned long attrs)
+-{
+-	if (dev->coherent_dma_mask != DMA_BIT_MASK(64))
+-		gfp |= GFP_DMA32;
+-	return swiotlb_alloc_coherent(dev, size, dma_handle, gfp);
+-}
+-
+-static void ia64_swiotlb_free_coherent(struct device *dev, size_t size,
+-				       void *vaddr, dma_addr_t dma_addr,
+-				       unsigned long attrs)
+-{
+-	swiotlb_free_coherent(dev, size, vaddr, dma_addr);
+-}
+-
+-const struct dma_map_ops ia64_swiotlb_dma_ops = {
+-	.alloc = ia64_swiotlb_alloc_coherent,
+-	.free = ia64_swiotlb_free_coherent,
+-	.map_page = swiotlb_map_page,
+-	.unmap_page = swiotlb_unmap_page,
+-	.map_sg = swiotlb_map_sg_attrs,
+-	.unmap_sg = swiotlb_unmap_sg_attrs,
+-	.sync_single_for_cpu = swiotlb_sync_single_for_cpu,
+-	.sync_single_for_device = swiotlb_sync_single_for_device,
+-	.sync_sg_for_cpu = swiotlb_sync_sg_for_cpu,
+-	.sync_sg_for_device = swiotlb_sync_sg_for_device,
+-	.dma_supported = swiotlb_dma_supported,
+-	.mapping_error = swiotlb_dma_mapping_error,
+-};
+-
+ void __init swiotlb_dma_init(void)
  {
- 	swiotlb_sync_single(hwdev, dev_addr, size, dir, SYNC_FOR_CPU);
+-	dma_ops = &ia64_swiotlb_dma_ops;
++	dma_ops = &swiotlb_dma_ops;
+ 	swiotlb_init(1);
  }
--EXPORT_SYMBOL(swiotlb_sync_single_for_cpu);
  
- void
- swiotlb_sync_single_for_device(struct device *hwdev, dma_addr_t dev_addr,
-@@ -971,7 +965,6 @@ swiotlb_sync_single_for_device(struct device *hwdev, dma_addr_t dev_addr,
- {
- 	swiotlb_sync_single(hwdev, dev_addr, size, dir, SYNC_FOR_DEVICE);
- }
--EXPORT_SYMBOL(swiotlb_sync_single_for_device);
- 
- /*
-  * Map a set of buffers described by scatterlist in streaming mode for DMA.
-@@ -1023,7 +1016,6 @@ swiotlb_map_sg_attrs(struct device *hwdev, struct scatterlist *sgl, int nelems,
- 	}
- 	return nelems;
- }
--EXPORT_SYMBOL(swiotlb_map_sg_attrs);
- 
- /*
-  * Unmap a set of streaming mode DMA translations.  Again, cpu read rules
-@@ -1043,7 +1035,6 @@ swiotlb_unmap_sg_attrs(struct device *hwdev, struct scatterlist *sgl,
- 		unmap_single(hwdev, sg->dma_address, sg_dma_len(sg), dir,
- 			     attrs);
- }
--EXPORT_SYMBOL(swiotlb_unmap_sg_attrs);
- 
- /*
-  * Make physical memory consistent for a set of streaming mode DMA translations
-@@ -1071,7 +1062,6 @@ swiotlb_sync_sg_for_cpu(struct device *hwdev, struct scatterlist *sg,
- {
- 	swiotlb_sync_sg(hwdev, sg, nelems, dir, SYNC_FOR_CPU);
- }
--EXPORT_SYMBOL(swiotlb_sync_sg_for_cpu);
- 
- void
- swiotlb_sync_sg_for_device(struct device *hwdev, struct scatterlist *sg,
-@@ -1079,14 +1069,12 @@ swiotlb_sync_sg_for_device(struct device *hwdev, struct scatterlist *sg,
- {
- 	swiotlb_sync_sg(hwdev, sg, nelems, dir, SYNC_FOR_DEVICE);
- }
--EXPORT_SYMBOL(swiotlb_sync_sg_for_device);
- 
- int
- swiotlb_dma_mapping_error(struct device *hwdev, dma_addr_t dma_addr)
- {
- 	return (dma_addr == swiotlb_phys_to_dma(hwdev, io_tlb_overflow_buffer));
- }
--EXPORT_SYMBOL(swiotlb_dma_mapping_error);
- 
- /*
-  * Return whether the given device DMA address mask can be supported
-@@ -1099,7 +1087,6 @@ swiotlb_dma_supported(struct device *hwdev, u64 mask)
- {
- 	return swiotlb_phys_to_dma(hwdev, io_tlb_end - 1) <= mask;
- }
--EXPORT_SYMBOL(swiotlb_dma_supported);
- 
- #ifdef CONFIG_DMA_DIRECT_OPS
- void *swiotlb_alloc(struct device *dev, size_t size, dma_addr_t *dma_handle,
+@@ -60,7 +28,7 @@ void __init pci_swiotlb_init(void)
+ 		printk(KERN_INFO "PCI-DMA: Re-initialize machine vector.\n");
+ 		machvec_init("dig");
+ 		swiotlb_init(1);
+-		dma_ops = &ia64_swiotlb_dma_ops;
++		dma_ops = &swiotlb_dma_ops;
+ #else
+ 		panic("Unable to find Intel IOMMU");
+ #endif
 -- 
 2.14.2
