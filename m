@@ -1,37 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:44064 "EHLO
+Received: from bombadil.infradead.org ([65.50.211.133]:35114 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933432AbeAJIAp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:00:45 -0500
+        with ESMTP id S965004AbeAJIKY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 03:10:24 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 03/33] m32r: remove unused flush_write_buffers definition
-Date: Wed, 10 Jan 2018 08:59:57 +0100
-Message-ID: <20180110080027.13879-4-hch@lst.de>
-In-Reply-To: <20180110080027.13879-1-hch@lst.de>
-References: <20180110080027.13879-1-hch@lst.de>
+Subject: [PATCH 15/22] ia64: remove an ifdef around the content of pci-dma.c
+Date: Wed, 10 Jan 2018 09:09:25 +0100
+Message-ID: <20180110080932.14157-16-hch@lst.de>
+In-Reply-To: <20180110080932.14157-1-hch@lst.de>
+References: <20180110080932.14157-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
-Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180110075957.ZqzRe0YJoOX3-r_M1InpJF-fkUFqxM4XPxeIu4hv5V4@z>
+Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, =?UTF-8?q?Christian=20K=C3=B6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180110080925.er6JMg_JzFp-cjWJbt3-PBE8wZA6ne5EzYOwnVGS0IM@z>
+
+The file is only compiled if CONFIG_INTEL_IOMMU is set to start with.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/m32r/include/asm/io.h | 2 --
- 1 file changed, 2 deletions(-)
+ arch/ia64/kernel/pci-dma.c | 7 -------
+ 1 file changed, 7 deletions(-)
 
-diff --git a/arch/m32r/include/asm/io.h b/arch/m32r/include/asm/io.h
-index 1b653bb16f9a..a4272d8f0d9c 100644
---- a/arch/m32r/include/asm/io.h
-+++ b/arch/m32r/include/asm/io.h
-@@ -191,8 +191,6 @@ static inline void _writel(unsigned long l, unsigned long addr)
- 
- #define mmiowb()
- 
--#define flush_write_buffers() do { } while (0)  /* M32R_FIXME */
+diff --git a/arch/ia64/kernel/pci-dma.c b/arch/ia64/kernel/pci-dma.c
+index 35e0cad33b7d..b5df084c0af4 100644
+--- a/arch/ia64/kernel/pci-dma.c
++++ b/arch/ia64/kernel/pci-dma.c
+@@ -12,12 +12,7 @@
+ #include <asm/iommu.h>
+ #include <asm/machvec.h>
+ #include <linux/dma-mapping.h>
 -
- static inline void
- memset_io(volatile void __iomem *addr, unsigned char val, int count)
- {
+-
+-#ifdef CONFIG_INTEL_IOMMU
+-
+ #include <linux/kernel.h>
+-
+ #include <asm/page.h>
+ 
+ dma_addr_t bad_dma_address __read_mostly;
+@@ -115,5 +110,3 @@ void __init pci_iommu_alloc(void)
+ 	}
+ #endif /* CONFIG_SWIOTLB */
+ }
+-
+-#endif
 -- 
 2.14.2
