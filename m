@@ -1,22 +1,63 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 09/38] usercopy: Mark kmalloc caches as usercopy caches
-Date: Wed, 10 Jan 2018 18:02:41 -0800
-Message-ID: <1515636190-24061-10-git-send-email-keescook@chromium.org>
+Subject: [PATCH 13/38] ext4: Define usercopy region in ext4_inode_cache slab cache
+Date: Wed, 10 Jan 2018 18:02:45 -0800
+Message-ID: <1515636190-24061-14-git-send-email-keescook@chromium.org>
 References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 Sender: owner-linux-mm@kvack.org
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-ext4@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <rie>
 List-Id: linux-arch.vger.kernel.org
 
 From: David Windsor <dave@nullcore.net>
 
-Mark the kmalloc slab caches as entirely whitelisted. These caches
-are frequently used to fulfill kernel allocations that contain data
-to be copied to/from userspace. Internal-only uses are also common,
-but are scattered in the kernel. For now, mark all the kmalloc caches
-as whitelisted.
+The ext4 symlink pathnames, stored in struct ext4_inode_info.i_data
+and therefore contained in the ext4_inode_cache slab cache, need
+to be copied to/from userspace.
+
+cache object allocation:
+    fs/ext4/super.c:
+        ext4_alloc_inode(...):
+            struct ext4_inode_info *ei;
+            ...
+            ei = kmem_cache_alloc(ext4_inode_cachep, GFP_NOFS);
+            ...
+            return &ei->vfs_inode;
+
+    include/trace/events/ext4.h:
+            #define EXT4_I(inode) \
+                (container_of(inode, struct ext4_inode_info, vfs_inode))
+
+    fs/ext4/namei.c:
+        ext4_symlink(...):
+            ...
+            inode->i_link = (char *)&EXT4_I(inode)->i_data;
+
+example usage trace:
+    readlink_copy+0x43/0x70
+    vfs_readlink+0x62/0x110
+    SyS_readlinkat+0x100/0x130
+
+    fs/namei.c:
+        readlink_copy(..., link):
+            ...
+            copy_to_user(..., link, len)
+
+        (inlined into vfs_readlink)
+        generic_readlink(dentry, ...):
+            struct inode *inode = d_inode(dentry);
+            const char *link = inode->i_link;
+            ...
+            readlink_copy(..., link);
+
+In support of usercopy hardening, this patch defines a region in the
+ext4_inode_cache slab cache in which userspace copy operations are
+allowed.
+
+This region is known as the slab cache's usercopy region. Slab caches
+can now check that each dynamically sized copy operation involving
+cache-managed memory falls entirely within the slab's usercopy region.
 
 This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
 whitelisting code in the last public patch of grsecurity/PaX based on my
@@ -24,90 +65,38 @@ understanding of the code. Changes or omissions from the original code are
 mine and don't reflect the original grsecurity/PaX code.
 
 Signed-off-by: David Windsor <dave@nullcore.net>
-[kees: merged in moved kmalloc hunks, adjust commit log]
-Cc: Pekka Enberg <penberg@kernel.org>
-Cc: David Rientjes <rientjes@google.com>
-Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org
-Cc: linux-xfs@vger.kernel.org
+[kees: adjust commit log, provide usage trace]
+Cc: "Theodore Ts'o" <tytso@mit.edu>
+Cc: Andreas Dilger <adilger.kernel@dilger.ca>
+Cc: linux-ext4@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Christoph Lameter <cl@linux.com>
 ---
- mm/slab.c        |  3 ++-
- mm/slab.h        |  3 ++-
- mm/slab_common.c | 10 ++++++----
- 3 files changed, 10 insertions(+), 6 deletions(-)
+ fs/ext4/super.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/mm/slab.c b/mm/slab.c
-index b9b0df620bb9..dd367fe17a4e 100644
---- a/mm/slab.c
-+++ b/mm/slab.c
-@@ -1291,7 +1291,8 @@ void __init kmem_cache_init(void)
- 	 */
- 	kmalloc_caches[INDEX_NODE] = create_kmalloc_cache(
- 				kmalloc_info[INDEX_NODE].name,
--				kmalloc_size(INDEX_NODE), ARCH_KMALLOC_FLAGS);
-+				kmalloc_size(INDEX_NODE), ARCH_KMALLOC_FLAGS,
-+				0, kmalloc_size(INDEX_NODE));
- 	slab_state = PARTIAL_NODE;
- 	setup_kmalloc_cache_index_table();
+diff --git a/fs/ext4/super.c b/fs/ext4/super.c
+index 7c46693a14d7..57a8fa451d3e 100644
+--- a/fs/ext4/super.c
++++ b/fs/ext4/super.c
+@@ -1036,11 +1036,13 @@ static void init_once(void *foo)
  
-diff --git a/mm/slab.h b/mm/slab.h
-index b476c435680f..98c5bcc45d8b 100644
---- a/mm/slab.h
-+++ b/mm/slab.h
-@@ -97,7 +97,8 @@ struct kmem_cache *kmalloc_slab(size_t, gfp_t);
- int __kmem_cache_create(struct kmem_cache *, slab_flags_t flags);
- 
- extern struct kmem_cache *create_kmalloc_cache(const char *name, size_t size,
--			slab_flags_t flags);
-+			slab_flags_t flags, size_t useroffset,
-+			size_t usersize);
- extern void create_boot_cache(struct kmem_cache *, const char *name,
- 			size_t size, slab_flags_t flags, size_t useroffset,
- 			size_t usersize);
-diff --git a/mm/slab_common.c b/mm/slab_common.c
-index a51f65408637..8ac2a6320a6c 100644
---- a/mm/slab_common.c
-+++ b/mm/slab_common.c
-@@ -937,14 +937,15 @@ void __init create_boot_cache(struct kmem_cache *s, const char *name, size_t siz
- }
- 
- struct kmem_cache *__init create_kmalloc_cache(const char *name, size_t size,
--				slab_flags_t flags)
-+				slab_flags_t flags, size_t useroffset,
-+				size_t usersize)
+ static int __init init_inodecache(void)
  {
- 	struct kmem_cache *s = kmem_cache_zalloc(kmem_cache, GFP_NOWAIT);
- 
- 	if (!s)
- 		panic("Out of memory when creating slab %s\n", name);
- 
--	create_boot_cache(s, name, size, flags, 0, size);
-+	create_boot_cache(s, name, size, flags, useroffset, usersize);
- 	list_add(&s->list, &slab_caches);
- 	memcg_link_cache(s);
- 	s->refcount = 1;
-@@ -1098,7 +1099,8 @@ void __init setup_kmalloc_cache_index_table(void)
- static void __init new_kmalloc_cache(int idx, slab_flags_t flags)
- {
- 	kmalloc_caches[idx] = create_kmalloc_cache(kmalloc_info[idx].name,
--					kmalloc_info[idx].size, flags);
-+					kmalloc_info[idx].size, flags, 0,
-+					kmalloc_info[idx].size);
- }
- 
- /*
-@@ -1139,7 +1141,7 @@ void __init create_kmalloc_caches(slab_flags_t flags)
- 
- 			BUG_ON(!n);
- 			kmalloc_dma_caches[i] = create_kmalloc_cache(n,
--				size, SLAB_CACHE_DMA | flags);
-+				size, SLAB_CACHE_DMA | flags, 0, 0);
- 		}
- 	}
- #endif
+-	ext4_inode_cachep = kmem_cache_create("ext4_inode_cache",
+-					     sizeof(struct ext4_inode_info),
+-					     0, (SLAB_RECLAIM_ACCOUNT|
+-						SLAB_MEM_SPREAD|SLAB_ACCOUNT),
+-					     init_once);
++	ext4_inode_cachep = kmem_cache_create_usercopy("ext4_inode_cache",
++				sizeof(struct ext4_inode_info), 0,
++				(SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|
++					SLAB_ACCOUNT),
++				offsetof(struct ext4_inode_info, i_data),
++				sizeof_field(struct ext4_inode_info, i_data),
++				init_once);
+ 	if (ext4_inode_cachep == NULL)
+ 		return -ENOMEM;
+ 	return 0;
 -- 
 2.7.4
 
