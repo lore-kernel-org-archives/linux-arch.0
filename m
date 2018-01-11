@@ -1,90 +1,78 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH 34/38] arm: Implement thread_struct whitelist for
- hardened usercopy
-Date: Thu, 11 Jan 2018 10:24:00 +0000
-Message-ID: <20180111102400.GT17719@n2100.armlinux.org.uk>
-References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
- <1515636190-24061-35-git-send-email-keescook@chromium.org>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH 00/18] prevent bounds-check bypass via speculative execution
+Date: Thu, 11 Jan 2018 07:58:55 -0800
+Message-ID: <CAPcyv4jRbHZH9OWD_6DmeA=MGr+2cy83LGqMCjK_nj79Pug4NQ@mail.gmail.com>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <alpine.LRH.2.00.1801092017330.27010@gjva.wvxbf.pm> <CAPcyv4gccDQYx9urpagnBo-TqNLoQ00gEoE7kp+JXNKsmFxcHw@mail.gmail.com>
+ <20180109205549.osb25c4r2h2n2wqx@treble> <nycvar.YFH.7.76.1801111052310.11852@cbobk.fhfr.pm>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1515636190-24061-35-git-send-email-keescook@chromium.org>
-Sender: owner-linux-mm@kvack.org
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, linux-arm-kernel@lists.infradead.org, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <nycvar.YFH.7.76.1801111052310.11852@cbobk.fhfr.pm>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Jiri Kosina <jikos@kernel.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Zhang Rui <rui.z>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 10, 2018 at 06:03:06PM -0800, Kees Cook wrote:
-> ARM does not carry FPU state in the thread structure, so it can declare
-> no usercopy whitelist at all.
+On Thu, Jan 11, 2018 at 1:54 AM, Jiri Kosina <jikos@kernel.org> wrote:
+> On Tue, 9 Jan 2018, Josh Poimboeuf wrote:
+>
+>> On Tue, Jan 09, 2018 at 11:44:05AM -0800, Dan Williams wrote:
+>> > On Tue, Jan 9, 2018 at 11:34 AM, Jiri Kosina <jikos@kernel.org> wrote:
+>> > > On Fri, 5 Jan 2018, Dan Williams wrote:
+>> > >
+>> > > [ ... snip ... ]
+>> > >> Andi Kleen (1):
+>> > >>       x86, barrier: stop speculation for failed access_ok
+>> > >>
+>> > >> Dan Williams (13):
+>> > >>       x86: implement nospec_barrier()
+>> > >>       [media] uvcvideo: prevent bounds-check bypass via speculative execution
+>> > >>       carl9170: prevent bounds-check bypass via speculative execution
+>> > >>       p54: prevent bounds-check bypass via speculative execution
+>> > >>       qla2xxx: prevent bounds-check bypass via speculative execution
+>> > >>       cw1200: prevent bounds-check bypass via speculative execution
+>> > >>       Thermal/int340x: prevent bounds-check bypass via speculative execution
+>> > >>       ipv6: prevent bounds-check bypass via speculative execution
+>> > >>       ipv4: prevent bounds-check bypass via speculative execution
+>> > >>       vfs, fdtable: prevent bounds-check bypass via speculative execution
+>> > >>       net: mpls: prevent bounds-check bypass via speculative execution
+>> > >>       udf: prevent bounds-check bypass via speculative execution
+>> > >>       userns: prevent bounds-check bypass via speculative execution
+>> > >>
+>> > >> Mark Rutland (4):
+>> > >>       asm-generic/barrier: add generic nospec helpers
+>> > >>       Documentation: document nospec helpers
+>> > >>       arm64: implement nospec_ptr()
+>> > >>       arm: implement nospec_ptr()
+>> > >
+>> > > So considering the recent publication of [1], how come we all of a sudden
+>> > > don't need the barriers in ___bpf_prog_run(), namely for LD_IMM_DW and
+>> > > LDX_MEM_##SIZEOP, and something comparable for eBPF JIT?
+>> > >
+>> > > Is this going to be handled in eBPF in some other way?
+>> > >
+>> > > Without that in place, and considering Jann Horn's paper, it would seem
+>> > > like PTI doesn't really lock it down fully, right?
+>> >
+>> > Here is the latest (v3) bpf fix:
+>> >
+>> > https://patchwork.ozlabs.org/patch/856645/
+>> >
+>> > I currently have v2 on my 'nospec' branch and will move that to v3 for
+>> > the next update, unless it goes upstream before then.
+>
+> Daniel, I guess you're planning to send this still for 4.15?
 
-This comment seems to be misleading.  We have stored FP state in the
-thread structure for a long time - for example, VFP state is stored
-in thread->vfpstate.hard, so we _do_ have floating point state in
-the thread structure.
+It's pending in the bpf.git tree:
 
-What I think this commit message needs to describe is why we don't
-need a whitelist _despite_ having FP state in the thread structure.
+    https://git.kernel.org/pub/scm/linux/kernel/git/bpf/bpf.git/commit/?id=b2157399cc9
 
-At the moment, the commit message is making me think that this patch
-is wrong and will introduce a regression.
+>> That patch seems specific to CONFIG_BPF_SYSCALL.  Is the bpf() syscall
+>> the only attack vector?  Or are there other ways to run bpf programs
+>> that we should be worried about?
+>
+> Seems like Alexei is probably the only person in the whole universe who
+> isn't CCed here ... let's fix that.
 
-Thanks.
-
-> 
-> Cc: Russell King <linux@armlinux.org.uk>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-> Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>
-> Cc: linux-arm-kernel@lists.infradead.org
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  arch/arm/Kconfig                 | 1 +
->  arch/arm/include/asm/processor.h | 7 +++++++
->  2 files changed, 8 insertions(+)
-> 
-> diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-> index 51c8df561077..3ea00d65f35d 100644
-> --- a/arch/arm/Kconfig
-> +++ b/arch/arm/Kconfig
-> @@ -50,6 +50,7 @@ config ARM
->  	select HAVE_ARCH_KGDB if !CPU_ENDIAN_BE32 && MMU
->  	select HAVE_ARCH_MMAP_RND_BITS if MMU
->  	select HAVE_ARCH_SECCOMP_FILTER if (AEABI && !OABI_COMPAT)
-> +	select HAVE_ARCH_THREAD_STRUCT_WHITELIST
->  	select HAVE_ARCH_TRACEHOOK
->  	select HAVE_ARM_SMCCC if CPU_V7
->  	select HAVE_EBPF_JIT if !CPU_ENDIAN_BE32
-> diff --git a/arch/arm/include/asm/processor.h b/arch/arm/include/asm/processor.h
-> index 338cbe0a18ef..01a41be58d43 100644
-> --- a/arch/arm/include/asm/processor.h
-> +++ b/arch/arm/include/asm/processor.h
-> @@ -45,6 +45,13 @@ struct thread_struct {
->  	struct debug_info	debug;
->  };
->  
-> +/* Nothing needs to be usercopy-whitelisted from thread_struct. */
-> +static inline void arch_thread_struct_whitelist(unsigned long *offset,
-> +						unsigned long *size)
-> +{
-> +	*offset = *size = 0;
-> +}
-> +
->  #define INIT_THREAD  {	}
->  
->  #define start_thread(regs,pc,sp)					\
-> -- 
-> 2.7.4
-> 
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 8.8Mbps down 630kbps up
-According to speedtest.net: 8.21Mbps down 510kbps up
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+He will be cc'd on v2 of this series which will be available later today.
