@@ -1,82 +1,62 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 11/38] vfs: Define usercopy region in names_cache slab caches
-Date: Wed, 10 Jan 2018 18:02:43 -0800
-Message-ID: <1515636190-24061-12-git-send-email-keescook@chromium.org>
+Subject: [PATCH 05/38] stddef.h: Introduce sizeof_field()
+Date: Wed, 10 Jan 2018 18:02:37 -0800
+Message-ID: <1515636190-24061-6-git-send-email-keescook@chromium.org>
 References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
-Return-path: <netdev-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
-Sender: netdev-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel
 List-Id: linux-arch.vger.kernel.org
 
-From: David Windsor <dave@nullcore.net>
+The size of fields within a structure is needed in a few places in the
+kernel already, and will be needed for the usercopy whitelisting when
+declaring whitelist regions within structures. This creates a dedicated
+macro and redefines offsetofend() to use it.
 
-VFS pathnames are stored in the names_cache slab cache, either inline
-or across an entire allocation entry (when approaching PATH_MAX). These
-are copied to/from userspace, so they must be entirely whitelisted.
+Existing usage, ignoring the 1200+ lustre assert uses:
 
-cache object allocation:
-    include/linux/fs.h:
-        #define __getname()    kmem_cache_alloc(names_cachep, GFP_KERNEL)
+$ git grep -E 'sizeof\(\(\((struct )?[a-zA-Z_]+ \*\)0\)->' | \
+	grep -v staging/lustre | wc -l
+65
 
-example usage trace:
-    strncpy_from_user+0x4d/0x170
-    getname_flags+0x6f/0x1f0
-    user_path_at_empty+0x23/0x40
-    do_mount+0x69/0xda0
-    SyS_mount+0x83/0xd0
-
-    fs/namei.c:
-        getname_flags(...):
-            ...
-            result = __getname();
-            ...
-            kname = (char *)result->iname;
-            result->name = kname;
-            len = strncpy_from_user(kname, filename, EMBEDDED_NAME_MAX);
-            ...
-            if (unlikely(len == EMBEDDED_NAME_MAX)) {
-                const size_t size = offsetof(struct filename, iname[1]);
-                kname = (char *)result;
-
-                result = kzalloc(size, GFP_KERNEL);
-                ...
-                result->name = kname;
-                len = strncpy_from_user(kname, filename, PATH_MAX);
-
-In support of usercopy hardening, this patch defines the entire cache
-object in the names_cache slab cache as whitelisted, since it may entirely
-hold name strings to be copied to/from userspace.
-
-This patch is verbatim from Brad Spengler/PaX Team's PAX_USERCOPY
-whitelisting code in the last public patch of grsecurity/PaX based on my
-understanding of the code. Changes or omissions from the original code are
-mine and don't reflect the original grsecurity/PaX code.
-
-Signed-off-by: David Windsor <dave@nullcore.net>
-[kees: adjust commit log, add usage trace]
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: linux-fsdevel@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- fs/dcache.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ include/linux/stddef.h | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
 
-diff --git a/fs/dcache.c b/fs/dcache.c
-index 92ad7a2168e1..9d7ee2de682c 100644
---- a/fs/dcache.c
-+++ b/fs/dcache.c
-@@ -3640,8 +3640,8 @@ void __init vfs_caches_init_early(void)
+diff --git a/include/linux/stddef.h b/include/linux/stddef.h
+index 2181719fd907..998a4ba28eba 100644
+--- a/include/linux/stddef.h
++++ b/include/linux/stddef.h
+@@ -20,12 +20,20 @@ enum {
+ #endif
  
- void __init vfs_caches_init(void)
- {
--	names_cachep = kmem_cache_create("names_cache", PATH_MAX, 0,
--			SLAB_HWCACHE_ALIGN|SLAB_PANIC, NULL);
-+	names_cachep = kmem_cache_create_usercopy("names_cache", PATH_MAX, 0,
-+			SLAB_HWCACHE_ALIGN|SLAB_PANIC, 0, PATH_MAX, NULL);
+ /**
++ * sizeof_field(TYPE, MEMBER)
++ *
++ * @TYPE: The structure containing the field of interest
++ * @MEMBER: The field to return the size of
++ */
++#define sizeof_field(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
++
++/**
+  * offsetofend(TYPE, MEMBER)
+  *
+  * @TYPE: The type of the structure
+  * @MEMBER: The member within the structure to get the end offset of
+  */
+ #define offsetofend(TYPE, MEMBER) \
+-	(offsetof(TYPE, MEMBER)	+ sizeof(((TYPE *)0)->MEMBER))
++	(offsetof(TYPE, MEMBER)	+ sizeof_field(TYPE, MEMBER))
  
- 	dcache_init();
- 	inode_init();
+ #endif
 -- 
 2.7.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
