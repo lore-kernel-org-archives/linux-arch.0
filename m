@@ -1,103 +1,92 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 02/38] usercopy: Enhance and rename report_usercopy()
-Date: Wed, 10 Jan 2018 18:02:34 -0800
-Message-ID: <1515636190-24061-3-git-send-email-keescook@chromium.org>
+Subject: [PATCH 10/38] dcache: Define usercopy region in dentry_cache slab cache
+Date: Wed, 10 Jan 2018 18:02:42 -0800
+Message-ID: <1515636190-24061-11-git-send-email-keescook@chromium.org>
 References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:44493 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753580AbeAKCD1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:03:27 -0500
+Received: by mail-pg0-f68.google.com with SMTP id m20so1581111pgc.11
+        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:03:27 -0800 (PST)
 In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel
-List-Id: linux-arch.vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>
 
-In preparation for refactoring the usercopy checks to pass offset to
-the hardened usercopy report, this renames report_usercopy() to the
-more accurate usercopy_abort(), marks it as noreturn because it is,
-adds a hopefully helpful comment for anyone investigating such reports,
-makes the function available to the slab allocators, and adds new "detail"
-and "offset" arguments.
+From: David Windsor <dave@nullcore.net>
 
+When a dentry name is short enough, it can be stored directly in the
+dentry itself (instead in a separate kmalloc allocation). These dentry
+short names, stored in struct dentry.d_iname and therefore contained in
+the dentry_cache slab cache, need to be coped to userspace.
+
+cache object allocation:
+    fs/dcache.c:
+        __d_alloc(...):
+            ...
+            dentry = kmem_cache_alloc(dentry_cache, ...);
+            ...
+            dentry->d_name.name = dentry->d_iname;
+
+example usage trace:
+    filldir+0xb0/0x140
+    dcache_readdir+0x82/0x170
+    iterate_dir+0x142/0x1b0
+    SyS_getdents+0xb5/0x160
+
+    fs/readdir.c:
+        (called via ctx.actor by dir_emit)
+        filldir(..., const char *name, ...):
+            ...
+            copy_to_user(..., name, namlen)
+
+    fs/libfs.c:
+        dcache_readdir(...):
+            ...
+            next = next_positive(dentry, p, 1)
+            ...
+            dir_emit(..., next->d_name.name, ...)
+
+In support of usercopy hardening, this patch defines a region in the
+dentry_cache slab cache in which userspace copy operations are allowed.
+
+This region is known as the slab cache's usercopy region. Slab caches can
+now check that each dynamic copy operation involving cache-managed memory
+falls entirely within the slab's usercopy region.
+
+This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
+whitelisting code in the last public patch of grsecurity/PaX based on my
+understanding of the code. Changes or omissions from the original code are
+mine and don't reflect the original grsecurity/PaX code.
+
+Signed-off-by: David Windsor <dave@nullcore.net>
+[kees: adjust hunks for kmalloc-specific things moved later]
+[kees: adjust commit log, provide usage trace]
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- mm/slab.h             |  6 ++++++
- mm/usercopy.c         | 24 +++++++++++++++++++-----
- tools/objtool/check.c |  1 +
- 3 files changed, 26 insertions(+), 5 deletions(-)
+ fs/dcache.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/mm/slab.h b/mm/slab.h
-index ad657ffa44e5..7d29e69ac310 100644
---- a/mm/slab.h
-+++ b/mm/slab.h
-@@ -526,4 +526,10 @@ static inline int cache_random_seq_create(struct kmem_cache *cachep,
- static inline void cache_random_seq_destroy(struct kmem_cache *cachep) { }
- #endif /* CONFIG_SLAB_FREELIST_RANDOM */
+diff --git a/fs/dcache.c b/fs/dcache.c
+index 5c7df1df81ff..92ad7a2168e1 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
+@@ -3601,8 +3601,9 @@ static void __init dcache_init(void)
+ 	 * but it is probably not worth it because of the cache nature
+ 	 * of the dcache.
+ 	 */
+-	dentry_cache = KMEM_CACHE(dentry,
+-		SLAB_RECLAIM_ACCOUNT|SLAB_PANIC|SLAB_MEM_SPREAD|SLAB_ACCOUNT);
++	dentry_cache = KMEM_CACHE_USERCOPY(dentry,
++		SLAB_RECLAIM_ACCOUNT|SLAB_PANIC|SLAB_MEM_SPREAD|SLAB_ACCOUNT,
++		d_iname);
  
-+#ifdef CONFIG_HARDENED_USERCOPY
-+void __noreturn usercopy_abort(const char *name, const char *detail,
-+			       bool to_user, unsigned long offset,
-+			       unsigned long len);
-+#endif
-+
- #endif /* MM_SLAB_H */
-diff --git a/mm/usercopy.c b/mm/usercopy.c
-index 5df1e68d4585..8006baa4caac 100644
---- a/mm/usercopy.c
-+++ b/mm/usercopy.c
-@@ -58,11 +58,25 @@ static noinline int check_stack_object(const void *obj, unsigned long len)
- 	return GOOD_STACK;
- }
- 
--static void report_usercopy(unsigned long len, bool to_user, const char *type)
-+/*
-+ * If this function is reached, then CONFIG_HARDENED_USERCOPY has found an
-+ * unexpected state during a copy_from_user() or copy_to_user() call.
-+ * There are several checks being performed on the buffer by the
-+ * __check_object_size() function. Normal stack buffer usage should never
-+ * trip the checks, and kernel text addressing will always trip the check.
-+ * For cache objects, copies must be within the object size.
-+ */
-+void __noreturn usercopy_abort(const char *name, const char *detail,
-+			       bool to_user, unsigned long offset,
-+			       unsigned long len)
- {
--	pr_emerg("kernel memory %s attempt detected %s '%s' (%lu bytes)\n",
--		to_user ? "exposure" : "overwrite",
--		to_user ? "from" : "to", type ? : "unknown", len);
-+	pr_emerg("Kernel memory %s attempt detected %s %s%s%s%s (offset %lu, size %lu)!\n",
-+		 to_user ? "exposure" : "overwrite",
-+		 to_user ? "from" : "to",
-+		 name ? : "unknown?!",
-+		 detail ? " '" : "", detail ? : "", detail ? "'" : "",
-+		 offset, len);
-+
- 	/*
- 	 * For greater effect, it would be nice to do do_group_exit(),
- 	 * but BUG() actually hooks all the lock-breaking and per-arch
-@@ -260,6 +274,6 @@ void __check_object_size(const void *ptr, unsigned long n, bool to_user)
- 		return;
- 
- report:
--	report_usercopy(n, to_user, err);
-+	usercopy_abort(err, NULL, to_user, 0, n);
- }
- EXPORT_SYMBOL(__check_object_size);
-diff --git a/tools/objtool/check.c b/tools/objtool/check.c
-index 9b341584eb1b..ae39444896d4 100644
---- a/tools/objtool/check.c
-+++ b/tools/objtool/check.c
-@@ -138,6 +138,7 @@ static int __dead_end_function(struct objtool_file *file, struct symbol *func,
- 		"__reiserfs_panic",
- 		"lbug_with_loc",
- 		"fortify_panic",
-+		"usercopy_abort",
- 	};
- 
- 	if (func->bind == STB_WEAK)
+ 	/* Hash may have been set up in dcache_init_early */
+ 	if (!hashdist)
 -- 
 2.7.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
