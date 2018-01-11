@@ -1,34 +1,58 @@
-From: Stephen Boyd <sboyd@codeaurora.org>
-Subject: Re: [PATCH 4/5] clk: sunxi: Use CLK_IS_CRITICAL flag for critical
- clks
-Date: Wed, 10 Jan 2018 13:20:38 -0800
-Message-ID: <20180110212038.GR21040@codeaurora.org>
-References: <20180103013516.18844-1-sboyd@codeaurora.org>
- <20180103013516.18844-5-sboyd@codeaurora.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-clk-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180103013516.18844-5-sboyd@codeaurora.org>
-Sender: linux-clk-owner@vger.kernel.org
-To: Michael Turquette <mturquette@baylibre.com>
-Cc: linux-kernel@vger.kernel.org, linux-clk@vger.kernel.org, linux-arch@vger.kernel.org, Maxime Ripard <maxime.ripard@free-electrons.com>, Chen-Yu Tsai <wens@csie.org>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 01/38] usercopy: Remove pointer from overflow report
+Date: Wed, 10 Jan 2018 18:02:33 -0800
+Message-ID: <1515636190-24061-2-git-send-email-keescook@chromium.org>
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel
 List-Id: linux-arch.vger.kernel.org
 
-On 01/02, Stephen Boyd wrote:
-> We'd like to privatize __clk_get(), but the sunxi clk driver is
-> calling this function to keep a reference held on the clk and
-> call clk_prepare_enable() on it. We support this design in the
-> clk core now with the CLK_IS_CRITICAL flag, so let's just use
-> that instead.
-> 
-> Cc: Maxime Ripard <maxime.ripard@free-electrons.com>
-> Cc: Chen-Yu Tsai <wens@csie.org>
-> Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
-> ---
+Using %p was already mostly useless in the usercopy overflow reports,
+so this removes it entirely to avoid confusion now that %p-hashing
+is enabled.
 
-Applied to clk-next
+Fixes: ad67b74d2469d9b8 ("printk: hash addresses printed with %p")
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ mm/usercopy.c | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
 
+diff --git a/mm/usercopy.c b/mm/usercopy.c
+index a9852b24715d..5df1e68d4585 100644
+--- a/mm/usercopy.c
++++ b/mm/usercopy.c
+@@ -58,12 +58,11 @@ static noinline int check_stack_object(const void *obj, unsigned long len)
+ 	return GOOD_STACK;
+ }
+ 
+-static void report_usercopy(const void *ptr, unsigned long len,
+-			    bool to_user, const char *type)
++static void report_usercopy(unsigned long len, bool to_user, const char *type)
+ {
+-	pr_emerg("kernel memory %s attempt detected %s %p (%s) (%lu bytes)\n",
++	pr_emerg("kernel memory %s attempt detected %s '%s' (%lu bytes)\n",
+ 		to_user ? "exposure" : "overwrite",
+-		to_user ? "from" : "to", ptr, type ? : "unknown", len);
++		to_user ? "from" : "to", type ? : "unknown", len);
+ 	/*
+ 	 * For greater effect, it would be nice to do do_group_exit(),
+ 	 * but BUG() actually hooks all the lock-breaking and per-arch
+@@ -261,6 +260,6 @@ void __check_object_size(const void *ptr, unsigned long n, bool to_user)
+ 		return;
+ 
+ report:
+-	report_usercopy(ptr, n, to_user, err);
++	report_usercopy(n, to_user, err);
+ }
+ EXPORT_SYMBOL(__check_object_size);
 -- 
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-a Linux Foundation Collaborative Project
+2.7.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
