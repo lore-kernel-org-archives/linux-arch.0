@@ -1,43 +1,38 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 15/38] jfs: Define usercopy region in jfs_ip slab cache
-Date: Wed, 10 Jan 2018 18:02:47 -0800
-Message-ID: <1515636190-24061-16-git-send-email-keescook@chromium.org>
+Subject: [PATCH 14/38] ext2: Define usercopy region in ext2_inode_cache slab cache
+Date: Wed, 10 Jan 2018 18:02:46 -0800
+Message-ID: <1515636190-24061-15-git-send-email-keescook@chromium.org>
 References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:33649 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753873AbeAKCDh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:03:37 -0500
-Received: by mail-pg0-f66.google.com with SMTP id i196so1622744pgd.0
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:03:37 -0800 (PST)
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Jan Kara <jack@suse.com>, linux-ext4@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: David Windsor <dave@nullcore.net>
 
-The jfs symlink pathnames, stored in struct jfs_inode_info.i_inline and
-therefore contained in the jfs_ip slab cache, need to be copied to/from
-userspace.
+The ext2 symlink pathnames, stored in struct ext2_inode_info.i_data and
+therefore contained in the ext2_inode_cache slab cache, need to be copied
+to/from userspace.
 
 cache object allocation:
-    fs/jfs/super.c:
-        jfs_alloc_inode(...):
+    fs/ext2/super.c:
+        ext2_alloc_inode(...):
+            struct ext2_inode_info *ei;
             ...
-            jfs_inode = kmem_cache_alloc(jfs_inode_cachep, GFP_NOFS);
+            ei = kmem_cache_alloc(ext2_inode_cachep, GFP_NOFS);
             ...
-            return &jfs_inode->vfs_inode;
+            return &ei->vfs_inode;
 
-    fs/jfs/jfs_incore.h:
-        JFS_IP(struct inode *inode):
-            return container_of(inode, struct jfs_inode_info, vfs_inode);
+    fs/ext2/ext2.h:
+        EXT2_I(struct inode *inode):
+            return container_of(inode, struct ext2_inode_info, vfs_inode);
 
-    fs/jfs/inode.c:
-        jfs_iget(...):
+    fs/ext2/namei.c:
+        ext2_symlink(...):
             ...
-            inode->i_link = JFS_IP(inode)->i_inline;
+            inode->i_link = (char *)&EXT2_I(inode)->i_data;
 
 example usage trace:
     readlink_copy+0x43/0x70
@@ -49,7 +44,7 @@ example usage trace:
             ...
             copy_to_user(..., link, len);
 
-        (inlined in vfs_readlink)
+        (inlined into vfs_readlink)
         generic_readlink(dentry, ...):
             struct inode *inode = d_inode(dentry);
             const char *link = inode->i_link;
@@ -57,7 +52,8 @@ example usage trace:
             readlink_copy(..., link);
 
 In support of usercopy hardening, this patch defines a region in the
-jfs_ip slab cache in which userspace copy operations are allowed.
+ext2_inode_cache slab cache in which userspace copy operations are
+allowed.
 
 This region is known as the slab cache's usercopy region. Slab caches
 can now check that each dynamically sized copy operation involving
@@ -70,32 +66,42 @@ mine and don't reflect the original grsecurity/PaX code.
 
 Signed-off-by: David Windsor <dave@nullcore.net>
 [kees: adjust commit log, provide usage trace]
-Cc: Dave Kleikamp <shaggy@kernel.org>
-Cc: jfs-discussion@lists.sourceforge.net
+Cc: Jan Kara <jack@suse.com>
+Cc: linux-ext4@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Dave Kleikamp <dave.kleikamp@oracle.com>
+Acked-by: Jan Kara <jack@suse.cz>
 ---
- fs/jfs/super.c | 8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
+ fs/ext2/super.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/fs/jfs/super.c b/fs/jfs/super.c
-index 90373aebfdca..1b9264fd54b6 100644
---- a/fs/jfs/super.c
-+++ b/fs/jfs/super.c
-@@ -965,9 +965,11 @@ static int __init init_jfs_fs(void)
- 	int rc;
+diff --git a/fs/ext2/super.c b/fs/ext2/super.c
+index 7646818ab266..50b8946c3d1a 100644
+--- a/fs/ext2/super.c
++++ b/fs/ext2/super.c
+@@ -220,11 +220,13 @@ static void init_once(void *foo)
  
- 	jfs_inode_cachep =
--	    kmem_cache_create("jfs_ip", sizeof(struct jfs_inode_info), 0,
--			    SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|SLAB_ACCOUNT,
--			    init_once);
-+	    kmem_cache_create_usercopy("jfs_ip", sizeof(struct jfs_inode_info),
-+			0, SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|SLAB_ACCOUNT,
-+			offsetof(struct jfs_inode_info, i_inline),
-+			sizeof_field(struct jfs_inode_info, i_inline),
-+			init_once);
- 	if (jfs_inode_cachep == NULL)
+ static int __init init_inodecache(void)
+ {
+-	ext2_inode_cachep = kmem_cache_create("ext2_inode_cache",
+-					     sizeof(struct ext2_inode_info),
+-					     0, (SLAB_RECLAIM_ACCOUNT|
+-						SLAB_MEM_SPREAD|SLAB_ACCOUNT),
+-					     init_once);
++	ext2_inode_cachep = kmem_cache_create_usercopy("ext2_inode_cache",
++				sizeof(struct ext2_inode_info), 0,
++				(SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|
++					SLAB_ACCOUNT),
++				offsetof(struct ext2_inode_info, i_data),
++				sizeof_field(struct ext2_inode_info, i_data),
++				init_once);
+ 	if (ext2_inode_cachep == NULL)
  		return -ENOMEM;
- 
+ 	return 0;
 -- 
 2.7.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
