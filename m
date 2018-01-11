@@ -1,68 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f65.google.com ([74.125.83.65]:39164 "EHLO
-        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753948AbeAKCJm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:09:42 -0500
-Received: by mail-pg0-f65.google.com with SMTP id z20so1620814pgv.6
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:09:42 -0800 (PST)
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:39158 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754038AbeAKCJl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:09:41 -0500
+Received: by mail-pg0-f67.google.com with SMTP id z20so1620669pgv.6
+        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:09:40 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 36/38] kvm: x86: fix KVM_XEN_HVM_CONFIG ioctl
-Date: Wed, 10 Jan 2018 18:03:08 -0800
-Message-ID: <1515636190-24061-37-git-send-email-keescook@chromium.org>
+Subject: [PATCH 25/38] caif: Define usercopy region in caif proto slab cache
+Date: Wed, 10 Jan 2018 18:02:57 -0800
+Message-ID: <1515636190-24061-26-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Paolo Bonzini <pbonzini@redhat.com>, kernel-hardening@lists.openwall.com, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20180111020308.STKIgDahugNoAcH01X1YQHEudc9Otr7teJ4LAm6P45Y@z>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, "David S. Miller" <davem@davemloft.net>, netdev@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180111020257.-kUFX7jiV6AwTnN30bpbxJYXTg56EngcjMCPIPkt_3U@z>
 
-From: Paolo Bonzini <pbonzini@redhat.com>
+From: David Windsor <dave@nullcore.net>
 
-This ioctl is obsolete (it was used by Xenner as far as I know) but
-still let's not break it gratuitously...  Its handler is copying
-directly into struct kvm.  Go through a bounce buffer instead, with
-the added benefit that we can actually do something useful with the
-flags argument---the previous code was exiting with -EINVAL but still
-doing the copy.
+The CAIF channel connection request parameters need to be copied to/from
+userspace. In support of usercopy hardening, this patch defines a region
+in the struct proto slab cache in which userspace copy operations are
+allowed.
 
-This technically is a userspace ABI breakage, but since no one should be
-using the ioctl, it's a good occasion to see if someone actually
-complains.
+example usage trace:
 
-Cc: kernel-hardening@lists.openwall.com
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Radim Krčmář <rkrcmar@redhat.com>
-Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+    net/caif/caif_socket.c:
+        setsockopt(...):
+            ...
+            copy_from_user(&cf_sk->conn_req.param.data, ..., ol)
+
+This region is known as the slab cache's usercopy region. Slab caches
+can now check that each dynamically sized copy operation involving
+cache-managed memory falls entirely within the slab's usercopy region.
+
+This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
+whitelisting code in the last public patch of grsecurity/PaX based on my
+understanding of the code. Changes or omissions from the original code are
+mine and don't reflect the original grsecurity/PaX code.
+
+Signed-off-by: David Windsor <dave@nullcore.net>
+[kees: split from network patch, provide usage trace]
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/kvm/x86.c | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+ net/caif/caif_socket.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-index eee8e7faf1af..6c16461e3a86 100644
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -4238,13 +4238,14 @@ long kvm_arch_vm_ioctl(struct file *filp,
- 		mutex_unlock(&kvm->lock);
- 		break;
- 	case KVM_XEN_HVM_CONFIG: {
-+		struct kvm_xen_hvm_config xhc;
- 		r = -EFAULT;
--		if (copy_from_user(&kvm->arch.xen_hvm_config, argp,
--				   sizeof(struct kvm_xen_hvm_config)))
-+		if (copy_from_user(&xhc, argp, sizeof(xhc)))
- 			goto out;
- 		r = -EINVAL;
--		if (kvm->arch.xen_hvm_config.flags)
-+		if (xhc.flags)
- 			goto out;
-+		memcpy(&kvm->arch.xen_hvm_config, &xhc, sizeof(xhc));
- 		r = 0;
- 		break;
- 	}
+diff --git a/net/caif/caif_socket.c b/net/caif/caif_socket.c
+index 632d5a416d97..c76d513b9a7a 100644
+--- a/net/caif/caif_socket.c
++++ b/net/caif/caif_socket.c
+@@ -1032,6 +1032,8 @@ static int caif_create(struct net *net, struct socket *sock, int protocol,
+ 	static struct proto prot = {.name = "PF_CAIF",
+ 		.owner = THIS_MODULE,
+ 		.obj_size = sizeof(struct caifsock),
++		.useroffset = offsetof(struct caifsock, conn_req.param),
++		.usersize = sizeof_field(struct caifsock, conn_req.param)
+ 	};
+ 
+ 	if (!capable(CAP_SYS_ADMIN) && !capable(CAP_NET_ADMIN))
 -- 
 2.7.4
