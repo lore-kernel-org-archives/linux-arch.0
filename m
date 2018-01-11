@@ -1,89 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f65.google.com ([74.125.83.65]:43761 "EHLO
-        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753764AbeAKCDb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:03:31 -0500
-Received: by mail-pg0-f65.google.com with SMTP id f14so1584075pga.10
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:03:31 -0800 (PST)
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:33649 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753873AbeAKCDh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:03:37 -0500
+Received: by mail-pg0-f66.google.com with SMTP id i196so1622744pgd.0
+        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:03:37 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 11/38] vfs: Define usercopy region in names_cache slab caches
-Date: Wed, 10 Jan 2018 18:02:43 -0800
-Message-ID: <1515636190-24061-12-git-send-email-keescook@chromium.org>
+Subject: [PATCH 15/38] jfs: Define usercopy region in jfs_ip slab cache
+Date: Wed, 10 Jan 2018 18:02:47 -0800
+Message-ID: <1515636190-24061-16-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180111020243.QFovpEea_caihahegGmkSz3_PLTt0508GmH3Slewv6w@z>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180111020247.X-2s4yXyOlhrpOn_J0y7ybesapB2RLj73_3dbHmJ6aQ@z>
 
 From: David Windsor <dave@nullcore.net>
 
-VFS pathnames are stored in the names_cache slab cache, either inline
-or across an entire allocation entry (when approaching PATH_MAX). These
-are copied to/from userspace, so they must be entirely whitelisted.
+The jfs symlink pathnames, stored in struct jfs_inode_info.i_inline and
+therefore contained in the jfs_ip slab cache, need to be copied to/from
+userspace.
 
 cache object allocation:
-    include/linux/fs.h:
-        #define __getname()    kmem_cache_alloc(names_cachep, GFP_KERNEL)
+    fs/jfs/super.c:
+        jfs_alloc_inode(...):
+            ...
+            jfs_inode = kmem_cache_alloc(jfs_inode_cachep, GFP_NOFS);
+            ...
+            return &jfs_inode->vfs_inode;
+
+    fs/jfs/jfs_incore.h:
+        JFS_IP(struct inode *inode):
+            return container_of(inode, struct jfs_inode_info, vfs_inode);
+
+    fs/jfs/inode.c:
+        jfs_iget(...):
+            ...
+            inode->i_link = JFS_IP(inode)->i_inline;
 
 example usage trace:
-    strncpy_from_user+0x4d/0x170
-    getname_flags+0x6f/0x1f0
-    user_path_at_empty+0x23/0x40
-    do_mount+0x69/0xda0
-    SyS_mount+0x83/0xd0
+    readlink_copy+0x43/0x70
+    vfs_readlink+0x62/0x110
+    SyS_readlinkat+0x100/0x130
 
     fs/namei.c:
-        getname_flags(...):
+        readlink_copy(..., link):
             ...
-            result = __getname();
+            copy_to_user(..., link, len);
+
+        (inlined in vfs_readlink)
+        generic_readlink(dentry, ...):
+            struct inode *inode = d_inode(dentry);
+            const char *link = inode->i_link;
             ...
-            kname = (char *)result->iname;
-            result->name = kname;
-            len = strncpy_from_user(kname, filename, EMBEDDED_NAME_MAX);
-            ...
-            if (unlikely(len == EMBEDDED_NAME_MAX)) {
-                const size_t size = offsetof(struct filename, iname[1]);
-                kname = (char *)result;
+            readlink_copy(..., link);
 
-                result = kzalloc(size, GFP_KERNEL);
-                ...
-                result->name = kname;
-                len = strncpy_from_user(kname, filename, PATH_MAX);
+In support of usercopy hardening, this patch defines a region in the
+jfs_ip slab cache in which userspace copy operations are allowed.
 
-In support of usercopy hardening, this patch defines the entire cache
-object in the names_cache slab cache as whitelisted, since it may entirely
-hold name strings to be copied to/from userspace.
+This region is known as the slab cache's usercopy region. Slab caches
+can now check that each dynamically sized copy operation involving
+cache-managed memory falls entirely within the slab's usercopy region.
 
-This patch is verbatim from Brad Spengler/PaX Team's PAX_USERCOPY
+This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
 whitelisting code in the last public patch of grsecurity/PaX based on my
 understanding of the code. Changes or omissions from the original code are
 mine and don't reflect the original grsecurity/PaX code.
 
 Signed-off-by: David Windsor <dave@nullcore.net>
-[kees: adjust commit log, add usage trace]
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: linux-fsdevel@vger.kernel.org
+[kees: adjust commit log, provide usage trace]
+Cc: Dave Kleikamp <shaggy@kernel.org>
+Cc: jfs-discussion@lists.sourceforge.net
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Dave Kleikamp <dave.kleikamp@oracle.com>
 ---
- fs/dcache.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ fs/jfs/super.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/fs/dcache.c b/fs/dcache.c
-index 92ad7a2168e1..9d7ee2de682c 100644
---- a/fs/dcache.c
-+++ b/fs/dcache.c
-@@ -3640,8 +3640,8 @@ void __init vfs_caches_init_early(void)
+diff --git a/fs/jfs/super.c b/fs/jfs/super.c
+index 90373aebfdca..1b9264fd54b6 100644
+--- a/fs/jfs/super.c
++++ b/fs/jfs/super.c
+@@ -965,9 +965,11 @@ static int __init init_jfs_fs(void)
+ 	int rc;
  
- void __init vfs_caches_init(void)
- {
--	names_cachep = kmem_cache_create("names_cache", PATH_MAX, 0,
--			SLAB_HWCACHE_ALIGN|SLAB_PANIC, NULL);
-+	names_cachep = kmem_cache_create_usercopy("names_cache", PATH_MAX, 0,
-+			SLAB_HWCACHE_ALIGN|SLAB_PANIC, 0, PATH_MAX, NULL);
+ 	jfs_inode_cachep =
+-	    kmem_cache_create("jfs_ip", sizeof(struct jfs_inode_info), 0,
+-			    SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|SLAB_ACCOUNT,
+-			    init_once);
++	    kmem_cache_create_usercopy("jfs_ip", sizeof(struct jfs_inode_info),
++			0, SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|SLAB_ACCOUNT,
++			offsetof(struct jfs_inode_info, i_inline),
++			sizeof_field(struct jfs_inode_info, i_inline),
++			init_once);
+ 	if (jfs_inode_cachep == NULL)
+ 		return -ENOMEM;
  
- 	dcache_init();
- 	inode_init();
 -- 
 2.7.4
