@@ -1,106 +1,80 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 16/38] befs: Define usercopy region in befs_inode_cache slab cache
-Date: Wed, 10 Jan 2018 18:02:48 -0800
-Message-ID: <1515636190-24061-17-git-send-email-keescook@chromium.org>
-References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Luis de Bethencourt <luisbg@kernel.org>, Salah Triki <salah.triki@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vg
-List-Id: linux-arch.vger.kernel.org
+From: Jiri Kosina <jikos@kernel.org>
+Subject: Re: [PATCH 00/18] prevent bounds-check bypass via speculative
+ execution
+Date: Thu, 11 Jan 2018 10:54:55 +0100 (CET)
+Message-ID: <nycvar.YFH.7.76.1801111052310.11852@cbobk.fhfr.pm>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com> <alpine.LRH.2.00.1801092017330.27010@gjva.wvxbf.pm> <CAPcyv4gccDQYx9urpagnBo-TqNLoQ00gEoE7kp+JXNKsmFxcHw@mail.gmail.com> <20180109205549.osb25c4r2h2n2wqx@treble>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:33264 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754388AbeAKJzI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Jan 2018 04:55:08 -0500
+In-Reply-To: <20180109205549.osb25c4r2h2n2wqx@treble>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>Zhang Rui <ru>
 
-From: David Windsor <dave@nullcore.net>
+On Tue, 9 Jan 2018, Josh Poimboeuf wrote:
 
-befs symlink pathnames, stored in struct befs_inode_info.i_data.symlink
-and therefore contained in the befs_inode_cache slab cache, need to be
-copied to/from userspace.
+> On Tue, Jan 09, 2018 at 11:44:05AM -0800, Dan Williams wrote:
+> > On Tue, Jan 9, 2018 at 11:34 AM, Jiri Kosina <jikos@kernel.org> wrote:
+> > > On Fri, 5 Jan 2018, Dan Williams wrote:
+> > >
+> > > [ ... snip ... ]
+> > >> Andi Kleen (1):
+> > >>       x86, barrier: stop speculation for failed access_ok
+> > >>
+> > >> Dan Williams (13):
+> > >>       x86: implement nospec_barrier()
+> > >>       [media] uvcvideo: prevent bounds-check bypass via speculative execution
+> > >>       carl9170: prevent bounds-check bypass via speculative execution
+> > >>       p54: prevent bounds-check bypass via speculative execution
+> > >>       qla2xxx: prevent bounds-check bypass via speculative execution
+> > >>       cw1200: prevent bounds-check bypass via speculative execution
+> > >>       Thermal/int340x: prevent bounds-check bypass via speculative execution
+> > >>       ipv6: prevent bounds-check bypass via speculative execution
+> > >>       ipv4: prevent bounds-check bypass via speculative execution
+> > >>       vfs, fdtable: prevent bounds-check bypass via speculative execution
+> > >>       net: mpls: prevent bounds-check bypass via speculative execution
+> > >>       udf: prevent bounds-check bypass via speculative execution
+> > >>       userns: prevent bounds-check bypass via speculative execution
+> > >>
+> > >> Mark Rutland (4):
+> > >>       asm-generic/barrier: add generic nospec helpers
+> > >>       Documentation: document nospec helpers
+> > >>       arm64: implement nospec_ptr()
+> > >>       arm: implement nospec_ptr()
+> > >
+> > > So considering the recent publication of [1], how come we all of a sudden
+> > > don't need the barriers in ___bpf_prog_run(), namely for LD_IMM_DW and
+> > > LDX_MEM_##SIZEOP, and something comparable for eBPF JIT?
+> > >
+> > > Is this going to be handled in eBPF in some other way?
+> > >
+> > > Without that in place, and considering Jann Horn's paper, it would seem
+> > > like PTI doesn't really lock it down fully, right?
+> > 
+> > Here is the latest (v3) bpf fix:
+> > 
+> > https://patchwork.ozlabs.org/patch/856645/
+> > 
+> > I currently have v2 on my 'nospec' branch and will move that to v3 for
+> > the next update, unless it goes upstream before then.
 
-cache object allocation:
-    fs/befs/linuxvfs.c:
-        befs_alloc_inode(...):
-            ...
-            bi = kmem_cache_alloc(befs_inode_cachep, GFP_KERNEL);
-            ...
-            return &bi->vfs_inode;
+Daniel, I guess you're planning to send this still for 4.15?
 
-        befs_iget(...):
-            ...
-            strlcpy(befs_ino->i_data.symlink, raw_inode->data.symlink,
-                    BEFS_SYMLINK_LEN);
-            ...
-            inode->i_link = befs_ino->i_data.symlink;
+> That patch seems specific to CONFIG_BPF_SYSCALL.  Is the bpf() syscall
+> the only attack vector?  Or are there other ways to run bpf programs
+> that we should be worried about?
 
-example usage trace:
-    readlink_copy+0x43/0x70
-    vfs_readlink+0x62/0x110
-    SyS_readlinkat+0x100/0x130
+Seems like Alexei is probably the only person in the whole universe who 
+isn't CCed here ... let's fix that.
 
-    fs/namei.c:
-        readlink_copy(..., link):
-            ...
-            copy_to_user(..., link, len);
+Thanks,
 
-        (inlined in vfs_readlink)
-        generic_readlink(dentry, ...):
-            struct inode *inode = d_inode(dentry);
-            const char *link = inode->i_link;
-            ...
-            readlink_copy(..., link);
-
-In support of usercopy hardening, this patch defines a region in the
-befs_inode_cache slab cache in which userspace copy operations are
-allowed.
-
-This region is known as the slab cache's usercopy region. Slab caches
-can now check that each dynamically sized copy operation involving
-cache-managed memory falls entirely within the slab's usercopy region.
-
-This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
-whitelisting code in the last public patch of grsecurity/PaX based on my
-understanding of the code. Changes or omissions from the original code are
-mine and don't reflect the original grsecurity/PaX code.
-
-Signed-off-by: David Windsor <dave@nullcore.net>
-[kees: adjust commit log, provide usage trace]
-Cc: Luis de Bethencourt <luisbg@kernel.org>
-Cc: Salah Triki <salah.triki@gmail.com>
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Luis de Bethencourt <luisbg@kernel.org>
----
- fs/befs/linuxvfs.c | 14 +++++++++-----
- 1 file changed, 9 insertions(+), 5 deletions(-)
-
-diff --git a/fs/befs/linuxvfs.c b/fs/befs/linuxvfs.c
-index ee236231cafa..af2832aaeec5 100644
---- a/fs/befs/linuxvfs.c
-+++ b/fs/befs/linuxvfs.c
-@@ -444,11 +444,15 @@ static struct inode *befs_iget(struct super_block *sb, unsigned long ino)
- static int __init
- befs_init_inodecache(void)
- {
--	befs_inode_cachep = kmem_cache_create("befs_inode_cache",
--					      sizeof (struct befs_inode_info),
--					      0, (SLAB_RECLAIM_ACCOUNT|
--						SLAB_MEM_SPREAD|SLAB_ACCOUNT),
--					      init_once);
-+	befs_inode_cachep = kmem_cache_create_usercopy("befs_inode_cache",
-+				sizeof(struct befs_inode_info), 0,
-+				(SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|
-+					SLAB_ACCOUNT),
-+				offsetof(struct befs_inode_info,
-+					i_data.symlink),
-+				sizeof_field(struct befs_inode_info,
-+					i_data.symlink),
-+				init_once);
- 	if (befs_inode_cachep == NULL)
- 		return -ENOMEM;
- 
 -- 
-2.7.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Jiri Kosina
+SUSE Labs
