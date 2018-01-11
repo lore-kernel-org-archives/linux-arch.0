@@ -1,32 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:45384 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753956AbeAKCJj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:09:39 -0500
-Received: by mail-pg0-f68.google.com with SMTP id c194so1602732pga.12
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:09:38 -0800 (PST)
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:32832 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753778AbeAKCJl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:09:41 -0500
+Received: by mail-pg0-f66.google.com with SMTP id i196so1646300pgd.0
+        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:09:41 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 23/38] net: Define usercopy region in struct proto slab cache
-Date: Wed, 10 Jan 2018 18:02:55 -0800
-Message-ID: <1515636190-24061-24-git-send-email-keescook@chromium.org>
+Subject: [PATCH 26/38] sctp: Define usercopy region in SCTP proto slab cache
+Date: Wed, 10 Jan 2018 18:02:58 -0800
+Message-ID: <1515636190-24061-27-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, Paolo Abeni <pabeni@redhat.com>, David Howells <dhowells@redhat.com>, netdev@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180111020255.r3DPQvSeqZeQ6cpYHYqAL0jmgn5Gjw5yXNEIJpAcvEE@z>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, "David S. Miller" <davem@davemloft.net>, linux-sctp@vger.kernel.org, netdev@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180111020258.L_5DIPqWlFf-jxP9X_5MZPStN49Qvox8rA3o9O20yIw@z>
 
 From: David Windsor <dave@nullcore.net>
 
-In support of usercopy hardening, this patch defines a region in the
-struct proto slab cache in which userspace copy operations are allowed.
-Some protocols need to copy objects to/from userspace, and they can
-declare the region via their proto structure with the new usersize and
-useroffset fields. Initially, if no region is specified (usersize ==
-0), the entire field is marked as whitelisted. This allows protocols
-to be whitelisted in subsequent patches. Once all protocols have been
-annotated, the full-whitelist default can be removed.
+The SCTP socket event notification subscription information need to be
+copied to/from userspace. In support of usercopy hardening, this patch
+defines a region in the struct proto slab cache in which userspace copy
+operations are allowed. Additionally moves the usercopy fields to be
+adjacent for the region to cover both.
+
+example usage trace:
+
+    net/sctp/socket.c:
+        sctp_getsockopt_events(...):
+            ...
+            copy_to_user(..., &sctp_sk(sk)->subscribe, len)
+
+        sctp_setsockopt_events(...):
+            ...
+            copy_from_user(&sctp_sk(sk)->subscribe, ..., optlen)
+
+        sctp_getsockopt_initmsg(...):
+            ...
+            copy_to_user(..., &sctp_sk(sk)->initmsg, len)
 
 This region is known as the slab cache's usercopy region. Slab caches
 can now check that each dynamically sized copy operation involving
@@ -38,49 +50,68 @@ understanding of the code. Changes or omissions from the original code are
 mine and don't reflect the original grsecurity/PaX code.
 
 Signed-off-by: David Windsor <dave@nullcore.net>
-[kees: adjust commit log, split off per-proto patches]
-[kees: add logic for by-default full-whitelist]
+[kees: split from network patch, move struct members adjacent]
+[kees: add SCTPv6 struct whitelist, provide usage trace]
+Cc: Vlad Yasevich <vyasevich@gmail.com>
+Cc: Neil Horman <nhorman@tuxdriver.com>
 Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Eric Dumazet <edumazet@google.com>
-Cc: Paolo Abeni <pabeni@redhat.com>
-Cc: David Howells <dhowells@redhat.com>
+Cc: linux-sctp@vger.kernel.org
 Cc: netdev@vger.kernel.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- include/net/sock.h | 2 ++
- net/core/sock.c    | 6 +++++-
- 2 files changed, 7 insertions(+), 1 deletion(-)
+ include/net/sctp/structs.h | 9 +++++++--
+ net/sctp/socket.c          | 8 ++++++++
+ 2 files changed, 15 insertions(+), 2 deletions(-)
 
-diff --git a/include/net/sock.h b/include/net/sock.h
-index 79e1a2c7912c..b77a710ee831 100644
---- a/include/net/sock.h
-+++ b/include/net/sock.h
-@@ -1112,6 +1112,8 @@ struct proto {
- 	struct kmem_cache	*slab;
- 	unsigned int		obj_size;
- 	slab_flags_t		slab_flags;
-+	size_t			useroffset;	/* Usercopy region offset */
-+	size_t			usersize;	/* Usercopy region size */
+diff --git a/include/net/sctp/structs.h b/include/net/sctp/structs.h
+index 16f949eef52f..6168e3449131 100644
+--- a/include/net/sctp/structs.h
++++ b/include/net/sctp/structs.h
+@@ -202,12 +202,17 @@ struct sctp_sock {
+ 	/* Flags controlling Heartbeat, SACK delay, and Path MTU Discovery. */
+ 	__u32 param_flags;
  
- 	struct percpu_counter	*orphan_count;
+-	struct sctp_initmsg initmsg;
+ 	struct sctp_rtoinfo rtoinfo;
+ 	struct sctp_paddrparams paddrparam;
+-	struct sctp_event_subscribe subscribe;
+ 	struct sctp_assocparams assocparams;
  
-diff --git a/net/core/sock.c b/net/core/sock.c
-index c0b5b2f17412..261e6dbf0259 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -3151,8 +3151,12 @@ static int req_prot_init(const struct proto *prot)
- int proto_register(struct proto *prot, int alloc_slab)
- {
- 	if (alloc_slab) {
--		prot->slab = kmem_cache_create(prot->name, prot->obj_size, 0,
-+		prot->slab = kmem_cache_create_usercopy(prot->name,
-+					prot->obj_size, 0,
- 					SLAB_HWCACHE_ALIGN | prot->slab_flags,
-+					prot->usersize ? prot->useroffset : 0,
-+					prot->usersize ? prot->usersize
-+						       : prot->obj_size,
- 					NULL);
++	/*
++	 * These two structures must be grouped together for the usercopy
++	 * whitelist region.
++	 */
++	struct sctp_event_subscribe subscribe;
++	struct sctp_initmsg initmsg;
++
+ 	int user_frag;
  
- 		if (prot->slab == NULL) {
+ 	__u32 autoclose;
+diff --git a/net/sctp/socket.c b/net/sctp/socket.c
+index 014847e25648..efbc8f52c531 100644
+--- a/net/sctp/socket.c
++++ b/net/sctp/socket.c
+@@ -8470,6 +8470,10 @@ struct proto sctp_prot = {
+ 	.unhash      =	sctp_unhash,
+ 	.get_port    =	sctp_get_port,
+ 	.obj_size    =  sizeof(struct sctp_sock),
++	.useroffset  =  offsetof(struct sctp_sock, subscribe),
++	.usersize    =  offsetof(struct sctp_sock, initmsg) -
++				offsetof(struct sctp_sock, subscribe) +
++				sizeof_field(struct sctp_sock, initmsg),
+ 	.sysctl_mem  =  sysctl_sctp_mem,
+ 	.sysctl_rmem =  sysctl_sctp_rmem,
+ 	.sysctl_wmem =  sysctl_sctp_wmem,
+@@ -8509,6 +8513,10 @@ struct proto sctpv6_prot = {
+ 	.unhash		= sctp_unhash,
+ 	.get_port	= sctp_get_port,
+ 	.obj_size	= sizeof(struct sctp6_sock),
++	.useroffset	= offsetof(struct sctp6_sock, sctp.subscribe),
++	.usersize	= offsetof(struct sctp6_sock, sctp.initmsg) -
++				offsetof(struct sctp6_sock, sctp.subscribe) +
++				sizeof_field(struct sctp6_sock, sctp.initmsg),
+ 	.sysctl_mem	= sysctl_sctp_mem,
+ 	.sysctl_rmem	= sysctl_sctp_rmem,
+ 	.sysctl_wmem	= sysctl_sctp_wmem,
 -- 
 2.7.4
