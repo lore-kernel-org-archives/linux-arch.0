@@ -1,70 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:32864 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753955AbeAKCJu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:09:50 -0500
-Received: by mail-pg0-f67.google.com with SMTP id i196so1646838pgd.0
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:09:49 -0800 (PST)
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:34272 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754365AbeAKCJv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:09:51 -0500
+Received: by mail-pg0-f68.google.com with SMTP id j4so1647814pgp.1
+        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:09:51 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 28/38] net: Restrict unwhitelisted proto caches to size 0
-Date: Wed, 10 Jan 2018 18:03:00 -0800
-Message-ID: <1515636190-24061-29-git-send-email-keescook@chromium.org>
+Subject: [PATCH 18/38] orangefs: Define usercopy region in orangefs_inode_cache slab cache
+Date: Wed, 10 Jan 2018 18:02:50 -0800
+Message-ID: <1515636190-24061-19-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, Paolo Abeni <pabeni@redhat.com>, David Howells <dhowells@redhat.com>, netdev@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180111020300.pBiweFjfReHNxukXOsQRUMQo0vbjN39fSpoQiUZwofA@z>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Mike Marshall <hubcap@omnibond.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180111020250.x1e5NNCc1f8vxXSY8JSOF0xtJDRz8Nb0bCppFUuwAFs@z>
 
-Now that protocols have been annotated (the copy of icsk_ca_ops->name
-is of an ops field from outside the slab cache):
+From: David Windsor <dave@nullcore.net>
 
-$ git grep 'copy_.*_user.*sk.*->'
-caif/caif_socket.c: copy_from_user(&cf_sk->conn_req.param.data, ov, ol)) {
-ipv4/raw.c:   if (copy_from_user(&raw_sk(sk)->filter, optval, optlen))
-ipv4/raw.c:       copy_to_user(optval, &raw_sk(sk)->filter, len))
-ipv4/tcp.c:       if (copy_to_user(optval, icsk->icsk_ca_ops->name, len))
-ipv4/tcp.c:       if (copy_to_user(optval, icsk->icsk_ulp_ops->name, len))
-ipv6/raw.c:       if (copy_from_user(&raw6_sk(sk)->filter, optval, optlen))
-ipv6/raw.c:           if (copy_to_user(optval, &raw6_sk(sk)->filter, len))
-sctp/socket.c: if (copy_from_user(&sctp_sk(sk)->subscribe, optval, optlen))
-sctp/socket.c: if (copy_to_user(optval, &sctp_sk(sk)->subscribe, len))
-sctp/socket.c: if (copy_to_user(optval, &sctp_sk(sk)->initmsg, len))
+orangefs symlink pathnames, stored in struct orangefs_inode_s.link_target
+and therefore contained in the orangefs_inode_cache, need to be copied
+to/from userspace.
 
-we can switch the default proto usercopy region to size 0. Any protocols
-needing to add whitelisted regions must annotate the fields with the
-useroffset and usersize fields of struct proto.
+cache object allocation:
+    fs/orangefs/super.c:
+        orangefs_alloc_inode(...):
+            ...
+            orangefs_inode = kmem_cache_alloc(orangefs_inode_cache, ...);
+            ...
+            return &orangefs_inode->vfs_inode;
+
+    fs/orangefs/orangefs-utils.c:
+        exofs_symlink(...):
+            ...
+            inode->i_link = orangefs_inode->link_target;
+
+example usage trace:
+    readlink_copy+0x43/0x70
+    vfs_readlink+0x62/0x110
+    SyS_readlinkat+0x100/0x130
+
+    fs/namei.c:
+        readlink_copy(..., link):
+            ...
+            copy_to_user(..., link, len);
+
+        (inlined in vfs_readlink)
+        generic_readlink(dentry, ...):
+            struct inode *inode = d_inode(dentry);
+            const char *link = inode->i_link;
+            ...
+            readlink_copy(..., link);
+
+In support of usercopy hardening, this patch defines a region in the
+orangefs_inode_cache slab cache in which userspace copy operations are
+allowed.
+
+This region is known as the slab cache's usercopy region. Slab caches
+can now check that each dynamically sized copy operation involving
+cache-managed memory falls entirely within the slab's usercopy region.
 
 This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
 whitelisting code in the last public patch of grsecurity/PaX based on my
 understanding of the code. Changes or omissions from the original code are
 mine and don't reflect the original grsecurity/PaX code.
 
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Eric Dumazet <edumazet@google.com>
-Cc: Paolo Abeni <pabeni@redhat.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: netdev@vger.kernel.org
+Signed-off-by: David Windsor <dave@nullcore.net>
+[kees: adjust commit log, provide usage trace]
+Cc: Mike Marshall <hubcap@omnibond.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- net/core/sock.c | 4 +---
- 1 file changed, 1 insertion(+), 3 deletions(-)
+ fs/orangefs/super.c | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
 
-diff --git a/net/core/sock.c b/net/core/sock.c
-index 261e6dbf0259..f39206b41b32 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -3154,9 +3154,7 @@ int proto_register(struct proto *prot, int alloc_slab)
- 		prot->slab = kmem_cache_create_usercopy(prot->name,
- 					prot->obj_size, 0,
- 					SLAB_HWCACHE_ALIGN | prot->slab_flags,
--					prot->usersize ? prot->useroffset : 0,
--					prot->usersize ? prot->usersize
--						       : prot->obj_size,
-+					prot->useroffset, prot->usersize,
- 					NULL);
+diff --git a/fs/orangefs/super.c b/fs/orangefs/super.c
+index 36f1390b5ed7..62d49e53061c 100644
+--- a/fs/orangefs/super.c
++++ b/fs/orangefs/super.c
+@@ -610,11 +610,16 @@ void orangefs_kill_sb(struct super_block *sb)
  
- 		if (prot->slab == NULL) {
+ int orangefs_inode_cache_initialize(void)
+ {
+-	orangefs_inode_cache = kmem_cache_create("orangefs_inode_cache",
+-					      sizeof(struct orangefs_inode_s),
+-					      0,
+-					      ORANGEFS_CACHE_CREATE_FLAGS,
+-					      orangefs_inode_cache_ctor);
++	orangefs_inode_cache = kmem_cache_create_usercopy(
++					"orangefs_inode_cache",
++					sizeof(struct orangefs_inode_s),
++					0,
++					ORANGEFS_CACHE_CREATE_FLAGS,
++					offsetof(struct orangefs_inode_s,
++						link_target),
++					sizeof_field(struct orangefs_inode_s,
++						link_target),
++					orangefs_inode_cache_ctor);
+ 
+ 	if (!orangefs_inode_cache) {
+ 		gossip_err("Cannot create orangefs_inode_cache\n");
 -- 
 2.7.4
