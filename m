@@ -1,69 +1,68 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 28/38] net: Restrict unwhitelisted proto caches to size 0
-Date: Wed, 10 Jan 2018 18:03:00 -0800
-Message-ID: <1515636190-24061-29-git-send-email-keescook@chromium.org>
+Subject: [PATCH 32/38] x86: Implement thread_struct whitelist for hardened usercopy
+Date: Wed, 10 Jan 2018 18:03:04 -0800
+Message-ID: <1515636190-24061-33-git-send-email-keescook@chromium.org>
 References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:32864 "EHLO
-        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753955AbeAKCJu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:09:50 -0500
-Received: by mail-pg0-f67.google.com with SMTP id i196so1646838pgd.0
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:09:49 -0800 (PST)
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, Paolo Abeni <pabeni@redhat.com>, David Howells <dhowells@redhat.com>, netdev@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave
+Cc: Kees Cook <keescook@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Borislav Petkov <bp@suse.de>, Andy Lutomirski <luto@kernel.org>, Mathias Krause <minipli@googlemail.com>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis
+List-Id: linux-arch.vger.kernel.org
 
-Now that protocols have been annotated (the copy of icsk_ca_ops->name
-is of an ops field from outside the slab cache):
+This whitelists the FPU register state portion of the thread_struct for
+copying to userspace, instead of the default entire struct.
 
-$ git grep 'copy_.*_user.*sk.*->'
-caif/caif_socket.c: copy_from_user(&cf_sk->conn_req.param.data, ov, ol)) {
-ipv4/raw.c:   if (copy_from_user(&raw_sk(sk)->filter, optval, optlen))
-ipv4/raw.c:       copy_to_user(optval, &raw_sk(sk)->filter, len))
-ipv4/tcp.c:       if (copy_to_user(optval, icsk->icsk_ca_ops->name, len))
-ipv4/tcp.c:       if (copy_to_user(optval, icsk->icsk_ulp_ops->name, len))
-ipv6/raw.c:       if (copy_from_user(&raw6_sk(sk)->filter, optval, optlen))
-ipv6/raw.c:           if (copy_to_user(optval, &raw6_sk(sk)->filter, len))
-sctp/socket.c: if (copy_from_user(&sctp_sk(sk)->subscribe, optval, optlen))
-sctp/socket.c: if (copy_to_user(optval, &sctp_sk(sk)->subscribe, len))
-sctp/socket.c: if (copy_to_user(optval, &sctp_sk(sk)->initmsg, len))
-
-we can switch the default proto usercopy region to size 0. Any protocols
-needing to add whitelisted regions must annotate the fields with the
-useroffset and usersize fields of struct proto.
-
-This patch is modified from Brad Spengler/PaX Team's PAX_USERCOPY
-whitelisting code in the last public patch of grsecurity/PaX based on my
-understanding of the code. Changes or omissions from the original code are
-mine and don't reflect the original grsecurity/PaX code.
-
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Eric Dumazet <edumazet@google.com>
-Cc: Paolo Abeni <pabeni@redhat.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: netdev@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: Borislav Petkov <bp@suse.de>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Mathias Krause <minipli@googlemail.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Rik van Riel <riel@redhat.com>
 ---
- net/core/sock.c | 4 +---
- 1 file changed, 1 insertion(+), 3 deletions(-)
+ arch/x86/Kconfig                 | 1 +
+ arch/x86/include/asm/processor.h | 8 ++++++++
+ 2 files changed, 9 insertions(+)
 
-diff --git a/net/core/sock.c b/net/core/sock.c
-index 261e6dbf0259..f39206b41b32 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -3154,9 +3154,7 @@ int proto_register(struct proto *prot, int alloc_slab)
- 		prot->slab = kmem_cache_create_usercopy(prot->name,
- 					prot->obj_size, 0,
- 					SLAB_HWCACHE_ALIGN | prot->slab_flags,
--					prot->usersize ? prot->useroffset : 0,
--					prot->usersize ? prot->usersize
--						       : prot->obj_size,
-+					prot->useroffset, prot->usersize,
- 					NULL);
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 8eed3f94bfc7..9ac4ac1a856b 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -116,6 +116,7 @@ config X86
+ 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS	if MMU && COMPAT
+ 	select HAVE_ARCH_COMPAT_MMAP_BASES	if MMU && COMPAT
+ 	select HAVE_ARCH_SECCOMP_FILTER
++	select HAVE_ARCH_THREAD_STRUCT_WHITELIST
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD if X86_64
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index cc16fa882e3e..2b037b7fe0eb 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -492,6 +492,14 @@ struct thread_struct {
+ 	 */
+ };
  
- 		if (prot->slab == NULL) {
++/* Whitelist the FPU state from the task_struct for hardened usercopy. */
++static inline void arch_thread_struct_whitelist(unsigned long *offset,
++						unsigned long *size)
++{
++	*offset = offsetof(struct thread_struct, fpu.state);
++	*size = fpu_kernel_xstate_size;
++}
++
+ /*
+  * Thread-synchronous status.
+  *
 -- 
 2.7.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
