@@ -1,70 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:45496 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754111AbeAKCTh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:19:37 -0500
-Received: by mail-pf0-f196.google.com with SMTP id u19so8885pfa.12
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:19:36 -0800 (PST)
+Received: from mail-pg0-f66.google.com ([74.125.83.66]:45122 "EHLO
+        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752567AbeAKCDU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:03:20 -0500
+Received: by mail-pg0-f66.google.com with SMTP id c194so1577797pga.12
+        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:03:20 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 33/38] arm64: Implement thread_struct whitelist for hardened usercopy
-Date: Wed, 10 Jan 2018 18:03:05 -0800
-Message-ID: <1515636190-24061-34-git-send-email-keescook@chromium.org>
+Subject: [PATCH 04/38] lkdtm/usercopy: Adjust test to include an offset to check reporting
+Date: Wed, 10 Jan 2018 18:02:36 -0800
+Message-ID: <1515636190-24061-5-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, James Morse <james.morse@arm.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Dave Martin <Dave.Martin@arm.com>, zijun_hu <zijun_hu@htc.com>, linux-arm-kernel@lists.infradead.org, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180111020305.JWjU0UWUAYdOBrMTEkyK_YdlIjeomodEpUNqDL1VeGU@z>
+Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180111020236.bebpQVvjqr2qNWyCwKYnNZoJARU2b9d-smIhjFPqjOM@z>
 
-This whitelists the FPU register state portion of the thread_struct for
-copying to userspace, instead of the default entire structure.
+Instead of doubling the size, push the start position up by 16 bytes to
+still trigger an overflow. This allows to verify that offset reporting
+is working correctly.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: James Morse <james.morse@arm.com>
-Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>
-Cc: Dave Martin <Dave.Martin@arm.com>
-Cc: zijun_hu <zijun_hu@htc.com>
-Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm64/Kconfig                 | 1 +
- arch/arm64/include/asm/processor.h | 8 ++++++++
- 2 files changed, 9 insertions(+)
+ drivers/misc/lkdtm_usercopy.c | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index a93339f5178f..c84477e6a884 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -90,6 +90,7 @@ config ARM64
- 	select HAVE_ARCH_MMAP_RND_BITS
- 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
- 	select HAVE_ARCH_SECCOMP_FILTER
-+	select HAVE_ARCH_THREAD_STRUCT_WHITELIST
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select HAVE_ARCH_VMAP_STACK
-diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-index 023cacb946c3..e58a5864ec89 100644
---- a/arch/arm64/include/asm/processor.h
-+++ b/arch/arm64/include/asm/processor.h
-@@ -113,6 +113,14 @@ struct thread_struct {
- 	struct debug_info	debug;		/* debugging */
- };
+diff --git a/drivers/misc/lkdtm_usercopy.c b/drivers/misc/lkdtm_usercopy.c
+index a64372cc148d..9ebbb031e5e3 100644
+--- a/drivers/misc/lkdtm_usercopy.c
++++ b/drivers/misc/lkdtm_usercopy.c
+@@ -119,6 +119,8 @@ static void do_usercopy_heap_size(bool to_user)
+ {
+ 	unsigned long user_addr;
+ 	unsigned char *one, *two;
++	void __user *test_user_addr;
++	void *test_kern_addr;
+ 	size_t size = unconst + 1024;
  
-+/* Whitelist the fpsimd_state for copying to userspace. */
-+static inline void arch_thread_struct_whitelist(unsigned long *offset,
-+						unsigned long *size)
-+{
-+	*offset = offsetof(struct thread_struct, fpsimd_state);
-+	*size = sizeof(struct fpsimd_state);
-+}
+ 	one = kmalloc(size, GFP_KERNEL);
+@@ -139,27 +141,30 @@ static void do_usercopy_heap_size(bool to_user)
+ 	memset(one, 'A', size);
+ 	memset(two, 'B', size);
+ 
++	test_user_addr = (void __user *)(user_addr + 16);
++	test_kern_addr = one + 16;
 +
- #ifdef CONFIG_COMPAT
- #define task_user_tls(t)						\
- ({									\
+ 	if (to_user) {
+ 		pr_info("attempting good copy_to_user of correct size\n");
+-		if (copy_to_user((void __user *)user_addr, one, size)) {
++		if (copy_to_user(test_user_addr, test_kern_addr, size / 2)) {
+ 			pr_warn("copy_to_user failed unexpectedly?!\n");
+ 			goto free_user;
+ 		}
+ 
+ 		pr_info("attempting bad copy_to_user of too large size\n");
+-		if (copy_to_user((void __user *)user_addr, one, 2 * size)) {
++		if (copy_to_user(test_user_addr, test_kern_addr, size)) {
+ 			pr_warn("copy_to_user failed, but lacked Oops\n");
+ 			goto free_user;
+ 		}
+ 	} else {
+ 		pr_info("attempting good copy_from_user of correct size\n");
+-		if (copy_from_user(one, (void __user *)user_addr, size)) {
++		if (copy_from_user(test_kern_addr, test_user_addr, size / 2)) {
+ 			pr_warn("copy_from_user failed unexpectedly?!\n");
+ 			goto free_user;
+ 		}
+ 
+ 		pr_info("attempting bad copy_from_user of too large size\n");
+-		if (copy_from_user(one, (void __user *)user_addr, 2 * size)) {
++		if (copy_from_user(test_kern_addr, test_user_addr, size)) {
+ 			pr_warn("copy_from_user failed, but lacked Oops\n");
+ 			goto free_user;
+ 		}
 -- 
 2.7.4
