@@ -1,40 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:42163 "EHLO
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:43921 "EHLO
         mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753771AbeAKCJg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:09:36 -0500
-Received: by mail-pg0-f67.google.com with SMTP id q67so1620032pga.9
-        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:09:36 -0800 (PST)
+        with ESMTP id S1753757AbeAKCJf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jan 2018 21:09:35 -0500
+Received: by mail-pg0-f67.google.com with SMTP id f14so1608199pga.10
+        for <linux-arch@vger.kernel.org>; Wed, 10 Jan 2018 18:09:35 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 20/38] vxfs: Define usercopy region in vxfs_inode slab cache
-Date: Wed, 10 Jan 2018 18:02:52 -0800
-Message-ID: <1515636190-24061-21-git-send-email-keescook@chromium.org>
+Subject: [PATCH 19/38] ufs: Define usercopy region in ufs_inode_cache slab cache
+Date: Wed, 10 Jan 2018 18:02:51 -0800
+Message-ID: <1515636190-24061-20-git-send-email-keescook@chromium.org>
 In-Reply-To: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Christoph Hellwig <hch@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180111020252.KMqkA5peqgOCIVBXJBkDtlaDT5dgb8h5c20LEegl9xE@z>
+Cc: Kees Cook <keescook@chromium.org>, David Windsor <dave@nullcore.net>, Evgeniy Dushistov <dushistov@mail.ru>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180111020251.J2824jYwOnQIxiutNO54JxlzoAQ2uQ_yET624nlemlc@z>
 
 From: David Windsor <dave@nullcore.net>
 
-vxfs symlink pathnames, stored in struct vxfs_inode_info field
-vii_immed.vi_immed and therefore contained in the vxfs_inode slab cache,
-need to be copied to/from userspace.
+The ufs symlink pathnames, stored in struct ufs_inode_info.i_u1.i_symlink
+and therefore contained in the ufs_inode_cache slab cache, need to be
+copied to/from userspace.
 
 cache object allocation:
-    fs/freevxfs/vxfs_super.c:
-        vxfs_alloc_inode(...):
+    fs/ufs/super.c:
+        ufs_alloc_inode(...):
             ...
-            vi = kmem_cache_alloc(vxfs_inode_cachep, GFP_KERNEL);
+            ei = kmem_cache_alloc(ufs_inode_cachep, GFP_NOFS);
             ...
-            return &vi->vfs_inode;
+            return &ei->vfs_inode;
 
-    fs/freevxfs/vxfs_inode.c:
-        cxfs_iget(...):
+    fs/ufs/ufs.h:
+        UFS_I(struct inode *inode):
+            return container_of(inode, struct ufs_inode_info, vfs_inode);
+
+    fs/ufs/namei.c:
+        ufs_symlink(...):
             ...
-            inode->i_link = vip->vii_immed.vi_immed;
+            inode->i_link = (char *)UFS_I(inode)->i_u1.i_symlink;
 
 example usage trace:
     readlink_copy+0x43/0x70
@@ -54,7 +58,7 @@ example usage trace:
             readlink_copy(..., link);
 
 In support of usercopy hardening, this patch defines a region in the
-vxfs_inode slab cache in which userspace copy operations are allowed.
+ufs_inode_cache slab cache in which userspace copy operations are allowed.
 
 This region is known as the slab cache's usercopy region. Slab caches
 can now check that each dynamically sized copy operation involving
@@ -67,31 +71,35 @@ mine and don't reflect the original grsecurity/PaX code.
 
 Signed-off-by: David Windsor <dave@nullcore.net>
 [kees: adjust commit log, provide usage trace]
-Cc: Christoph Hellwig <hch@infradead.org>
+Cc: Evgeniy Dushistov <dushistov@mail.ru>
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- fs/freevxfs/vxfs_super.c | 8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
+ fs/ufs/super.c | 13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
 
-diff --git a/fs/freevxfs/vxfs_super.c b/fs/freevxfs/vxfs_super.c
-index f989efa051a0..48b24bb50d02 100644
---- a/fs/freevxfs/vxfs_super.c
-+++ b/fs/freevxfs/vxfs_super.c
-@@ -332,9 +332,13 @@ vxfs_init(void)
- {
- 	int rv;
+diff --git a/fs/ufs/super.c b/fs/ufs/super.c
+index 4d497e9c6883..652a77702aec 100644
+--- a/fs/ufs/super.c
++++ b/fs/ufs/super.c
+@@ -1466,11 +1466,14 @@ static void init_once(void *foo)
  
--	vxfs_inode_cachep = kmem_cache_create("vxfs_inode",
-+	vxfs_inode_cachep = kmem_cache_create_usercopy("vxfs_inode",
- 			sizeof(struct vxfs_inode_info), 0,
--			SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD, NULL);
-+			SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD,
-+			offsetof(struct vxfs_inode_info, vii_immed.vi_immed),
-+			sizeof_field(struct vxfs_inode_info,
-+				vii_immed.vi_immed),
-+			NULL);
- 	if (!vxfs_inode_cachep)
+ static int __init init_inodecache(void)
+ {
+-	ufs_inode_cachep = kmem_cache_create("ufs_inode_cache",
+-					     sizeof(struct ufs_inode_info),
+-					     0, (SLAB_RECLAIM_ACCOUNT|
+-						SLAB_MEM_SPREAD|SLAB_ACCOUNT),
+-					     init_once);
++	ufs_inode_cachep = kmem_cache_create_usercopy("ufs_inode_cache",
++				sizeof(struct ufs_inode_info), 0,
++				(SLAB_RECLAIM_ACCOUNT|SLAB_MEM_SPREAD|
++					SLAB_ACCOUNT),
++				offsetof(struct ufs_inode_info, i_u1.i_symlink),
++				sizeof_field(struct ufs_inode_info,
++					i_u1.i_symlink),
++				init_once);
+ 	if (ufs_inode_cachep == NULL)
  		return -ENOMEM;
- 	rv = register_filesystem(&vxfs_fs_type);
+ 	return 0;
 -- 
 2.7.4
