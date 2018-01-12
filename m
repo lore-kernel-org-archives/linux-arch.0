@@ -1,69 +1,66 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v2 10/19] ipv4: prevent bounds-check bypass via speculative
- execution
-Date: Thu, 11 Jan 2018 16:47:18 -0800
-Message-ID: <151571803884.27429.7578279171286065970.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v2 03/19] arm: implement ifence_array_ptr()
+Date: Thu, 11 Jan 2018 16:46:40 -0800
+Message-ID: <151571800075.27429.5000616446434113763.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga01.intel.com ([192.55.52.88]:23328 "EHLO mga01.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932685AbeALAyz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Jan 2018 19:54:55 -0500
 In-Reply-To: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, kernel-hardening@lists.openwall.com, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, tglx@linutronix.de, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
-List-Id: linux-arch.vger.kernel.org
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
 
-Static analysis reports that 'offset' may be a user controlled value
-that is used as a data dependency reading from a raw_frag_vec buffer.
-In order to avoid potential leaks of kernel memory values, block
-speculative execution of the instruction stream that could issue further
-reads based on an invalid '*(rfv->c + offset)' value.
+From: Mark Rutland <mark.rutland@arm.com>
 
-Based on an original patch by Elena Reshetova.
+This patch implements ifence_array_ptr() for arm, using an
+LDR+MOVCS+CSDB sequence to inhibit speculative use of the returned
+value.
 
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
-Cc: Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>
-Cc: netdev@vger.kernel.org
-Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- net/ipv4/raw.c |   10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+ arch/arm/include/asm/barrier.h |   24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
-diff --git a/net/ipv4/raw.c b/net/ipv4/raw.c
-index 125c1eab3eaa..91091a10294f 100644
---- a/net/ipv4/raw.c
-+++ b/net/ipv4/raw.c
-@@ -57,6 +57,7 @@
- #include <linux/in_route.h>
- #include <linux/route.h>
- #include <linux/skbuff.h>
-+#include <linux/nospec.h>
- #include <linux/igmp.h>
- #include <net/net_namespace.h>
- #include <net/dst.h>
-@@ -472,17 +473,18 @@ static int raw_getfrag(void *from, char *to, int offset, int len, int odd,
- 		       struct sk_buff *skb)
- {
- 	struct raw_frag_vec *rfv = from;
-+	char *rfv_buf;
+diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
+index 40f5c410fd8c..919235ed6e68 100644
+--- a/arch/arm/include/asm/barrier.h
++++ b/arch/arm/include/asm/barrier.h
+@@ -59,6 +59,30 @@ extern void arm_heavy_mb(void);
+ #define dma_wmb()	barrier()
+ #endif
  
--	if (offset < rfv->hlen) {
-+	rfv_buf = array_ptr(rfv->hdr.c, offset, rfv->hlen);
-+	if (rfv_buf) {
- 		int copy = min(rfv->hlen - offset, len);
- 
- 		if (skb->ip_summed == CHECKSUM_PARTIAL)
--			memcpy(to, rfv->hdr.c + offset, copy);
-+			memcpy(to, rfv_buf, copy);
- 		else
- 			skb->csum = csum_block_add(
- 				skb->csum,
--				csum_partial_copy_nocheck(rfv->hdr.c + offset,
--							  to, copy, 0),
-+				csum_partial_copy_nocheck(rfv_buf, to, copy, 0),
- 				odd);
- 
- 		odd = 0;
++#define ifence_array_ptr(arr, idx, sz)					\
++({									\
++	typeof(&(arr)[0]) __nap_arr = (arr);				\
++	typeof(idx) __nap_idx = (idx);					\
++	typeof(sz) __nap_sz = (sz);					\
++									\
++	unsigned long __nap_ptr = (unsigned long)__nap_arr +		\
++				  sizeof(__nap_arr[0]) * idx;		\
++									\
++	asm volatile(							\
++	"	cmp	%[i], %[s]\n"					\
++	"	bcs	1f\n"						\
++	"	ldr	%[p], %[pp]\n"					\
++	"1:	movcs	%[p], #0\n"					\
++	"	.inst	0xe320f018 @ CSDB\n"				\
++	: [p] "=&r" (__nap_ptr)						\
++	: [pp] "m" (__nap_ptr),						\
++	  [i] "r" ((unsigned long)__nap_idx),				\
++	  [s] "r" ((unsigned long)__nap_sz)				\
++	: "cc");							\
++									\
++	(typeof(&(__nap_arr)[0]))__nap_ptr;				\
++})
++
+ #define __smp_mb()	dmb(ish)
+ #define __smp_rmb()	__smp_mb()
+ #define __smp_wmb()	dmb(ishst)
