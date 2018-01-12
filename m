@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:16071 "EHLO mga07.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:28893 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932465AbeALAzz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Jan 2018 19:55:55 -0500
-Subject: [PATCH v2 14/19] [media] uvcvideo: prevent bounds-check bypass via
- speculative execution
+        id S932148AbeALAzd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Jan 2018 19:55:33 -0500
+Subject: [PATCH v2 10/19] ipv4: prevent bounds-check bypass via speculative
+ execution
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 11 Jan 2018 16:47:40 -0800
-Message-ID: <151571806069.27429.6683179525235570687.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 11 Jan 2018 16:47:18 -0800
+Message-ID: <151571803884.27429.7578279171286065970.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,64 +16,59 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, alan@linux.intel.com, kernel-hardening@lists.openwall.com, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, linux-media@vger.kernel.org
-Message-ID: <20180112004740.5jiAoo4GALHoC2AECS2MkVvBwFt7slfQrjqPq941e8Y@z>
+Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, kernel-hardening@lists.openwall.com, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, tglx@linutronix.de, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
+Message-ID: <20180112004718.nnhNRxOPkb9q63VpDL2czgxnRbqG2SWFbSVW8Jg12rg@z>
 
-Static analysis reports that 'index' may be a user controlled value that
-is used as a data dependency to read 'pin' from the
-'selector->baSourceID' array. In order to avoid potential leaks of
-kernel memory values, block speculative execution of the instruction
-stream that could issue reads based on an invalid value of 'pin'.
+Static analysis reports that 'offset' may be a user controlled value
+that is used as a data dependency reading from a raw_frag_vec buffer.
+In order to avoid potential leaks of kernel memory values, block
+speculative execution of the instruction stream that could issue further
+reads based on an invalid '*(rfv->c + offset)' value.
 
 Based on an original patch by Elena Reshetova.
 
-Laurent notes:
-
-    "...as this is nowhere close to being a fast path, I think we can close
-    this potential hole as proposed in the patch"
-
-Cc: Mauro Carvalho Chehab <mchehab@kernel.org>
-Cc: linux-media@vger.kernel.org
-Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
+Cc: Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/media/usb/uvc/uvc_v4l2.c |    9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
+ net/ipv4/raw.c |   10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/media/usb/uvc/uvc_v4l2.c b/drivers/media/usb/uvc/uvc_v4l2.c
-index 3e7e283a44a8..30ee200206ee 100644
---- a/drivers/media/usb/uvc/uvc_v4l2.c
-+++ b/drivers/media/usb/uvc/uvc_v4l2.c
-@@ -22,6 +22,7 @@
- #include <linux/mm.h>
- #include <linux/wait.h>
- #include <linux/atomic.h>
+diff --git a/net/ipv4/raw.c b/net/ipv4/raw.c
+index 125c1eab3eaa..91091a10294f 100644
+--- a/net/ipv4/raw.c
++++ b/net/ipv4/raw.c
+@@ -57,6 +57,7 @@
+ #include <linux/in_route.h>
+ #include <linux/route.h>
+ #include <linux/skbuff.h>
 +#include <linux/nospec.h>
+ #include <linux/igmp.h>
+ #include <net/net_namespace.h>
+ #include <net/dst.h>
+@@ -472,17 +473,18 @@ static int raw_getfrag(void *from, char *to, int offset, int len, int odd,
+ 		       struct sk_buff *skb)
+ {
+ 	struct raw_frag_vec *rfv = from;
++	char *rfv_buf;
  
- #include <media/v4l2-common.h>
- #include <media/v4l2-ctrls.h>
-@@ -809,8 +810,12 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
- 	const struct uvc_entity *selector = chain->selector;
- 	struct uvc_entity *iterm = NULL;
- 	u32 index = input->index;
-+	__u8 *elem = NULL;
- 	int pin = 0;
+-	if (offset < rfv->hlen) {
++	rfv_buf = array_ptr(rfv->hdr.c, offset, rfv->hlen);
++	if (rfv_buf) {
+ 		int copy = min(rfv->hlen - offset, len);
  
-+	if (selector)
-+		elem = array_ptr(selector->baSourceID, index,
-+				selector->bNrInPins);
- 	if (selector == NULL ||
- 	    (chain->dev->quirks & UVC_QUIRK_IGNORE_SELECTOR_UNIT)) {
- 		if (index != 0)
-@@ -820,8 +825,8 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
- 				break;
- 		}
- 		pin = iterm->id;
--	} else if (index < selector->bNrInPins) {
--		pin = selector->baSourceID[index];
-+	} else if (elem) {
-+		pin = *elem;
- 		list_for_each_entry(iterm, &chain->entities, chain) {
- 			if (!UVC_ENTITY_IS_ITERM(iterm))
- 				continue;
+ 		if (skb->ip_summed == CHECKSUM_PARTIAL)
+-			memcpy(to, rfv->hdr.c + offset, copy);
++			memcpy(to, rfv_buf, copy);
+ 		else
+ 			skb->csum = csum_block_add(
+ 				skb->csum,
+-				csum_partial_copy_nocheck(rfv->hdr.c + offset,
+-							  to, copy, 0),
++				csum_partial_copy_nocheck(rfv_buf, to, copy, 0),
+ 				odd);
+ 
+ 		odd = 0;
