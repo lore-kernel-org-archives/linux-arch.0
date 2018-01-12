@@ -1,45 +1,45 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Dan Williams <dan.j.williams@intel.com>
 Subject: Re: [PATCH v2 08/19] x86: use __uaccess_begin_nospec and ASM_IFENCE
  in get_user paths
-Date: Thu, 11 Jan 2018 17:11:20 -0800
-Message-ID: <CA+55aFwu2L+YK-DtfCbtsZL+DopgksfnpazA8ja=FW9_4MNeyg@mail.gmail.com>
+Date: Thu, 11 Jan 2018 17:14:29 -0800
+Message-ID: <CAPcyv4jVtGCmCdpE_coHYYhCqArFozsq=oX+AdtH2Ems7biPFg@mail.gmail.com>
 References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
  <151571802814.27429.12886210130791656117.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFwu2L+YK-DtfCbtsZL+DopgksfnpazA8ja=FW9_4MNeyg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:46354 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754016AbeALBLV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:11:21 -0500
-In-Reply-To: <151571802814.27429.12886210130791656117.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CA+55aFwu2L+YK-DtfCbtsZL+DopgksfnpazA8ja=FW9_4MNeyg@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-This patch doesn't affect arch/x86/lib/getuser.S, which I find surprising.
+On Thu, Jan 11, 2018 at 5:11 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> This patch doesn't affect arch/x86/lib/getuser.S, which I find surprising.
+>
+> Of all the user access functions, I actually think that get_user() is
+> the one most likely to have the result then used speculatively as an
+> index (the required second dependent read to actually leak data).
+>
+> I do *not* see people doing "copy_from_user()" and then somehow using
+> the thing as an index to another array. I mean, it can happen (copy a
+> structure, use a member in that structure), but it doesn't seem to be
+> the most likely thing.
+>
+> The most likely thing would seem to be some random ioctl() do a
+> "get_user()" to get an index, and then using that index. That would
+> seem to be one of the easier ways to perhaps get that kind of kernel
+> spectre attack.
+>
+> Adding the ASM_IFENCE to __get_user_X() in arch/x86/lib/getuser.S
+> would seem to go naturally together with the copy_user_64.S changes in
+> this patch.
+>
+> Is there some reason __get_user_X() was overlooked? Those are _the_
+> most common user accessor functions that do the address limit
+> checking.
 
-Of all the user access functions, I actually think that get_user() is
-the one most likely to have the result then used speculatively as an
-index (the required second dependent read to actually leak data).
-
-I do *not* see people doing "copy_from_user()" and then somehow using
-the thing as an index to another array. I mean, it can happen (copy a
-structure, use a member in that structure), but it doesn't seem to be
-the most likely thing.
-
-The most likely thing would seem to be some random ioctl() do a
-"get_user()" to get an index, and then using that index. That would
-seem to be one of the easier ways to perhaps get that kind of kernel
-spectre attack.
-
-Adding the ASM_IFENCE to __get_user_X() in arch/x86/lib/getuser.S
-would seem to go naturally together with the copy_user_64.S changes in
-this patch.
-
-Is there some reason __get_user_X() was overlooked? Those are _the_
-most common user accessor functions that do the address limit
-checking.
-
-            Linus
+Oversight, I was focused on the uaccess_begin conversions. Yes, let me
+go add ASM_IFENCE after the ASM_STAC in those paths.
