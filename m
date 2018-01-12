@@ -1,86 +1,72 @@
-From: Christian Lamparter <chunkeey@gmail.com>
-Subject: Re: [PATCH v2 15/19] carl9170: prevent bounds-check bypass via speculative execution
-Date: Fri, 12 Jan 2018 15:42:28 +0100
-Message-ID: <1648304.tjl4HeBnOe@debian64>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com> <151571806633.27429.1504260808341642890.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: James Bottomley <jejb@linux.vnet.ibm.com>
+Subject: Re: [PATCH 10/18] qla2xxx: prevent bounds-check bypass via
+ speculative execution
+Date: Fri, 12 Jan 2018 07:25:11 -0800
+Message-ID: <1515770711.3922.5.camel@linux.vnet.ibm.com>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+         <151520104838.32271.7038801336240727574.stgit@dwillia2-desk3.amr.corp.intel.com>
+         <20180106090322.GF4380@kroah.com>
+         <CAPcyv4jQjwa5X6ctO7bU1Z3hfRGRTa6gDO3pSSo_HQHkjg4MFg@mail.gmail.com>
+         <20180112072758.GD25517@kroah.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <151571806633.27429.1504260808341642890.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, linux-wireless@vger.kernel.org, Elena Reshetova <elena.reshetova@intel.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:53642 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S933926AbeALPZW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 12 Jan 2018 10:25:22 -0500
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w0CFOpH6106505
+        for <linux-arch@vger.kernel.org>; Fri, 12 Jan 2018 10:25:20 -0500
+Received: from e35.co.us.ibm.com (e35.co.us.ibm.com [32.97.110.153])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2fewbqs49c-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Fri, 12 Jan 2018 10:25:20 -0500
+Received: from localhost
+        by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <jejb@linux.vnet.ibm.com>;
+        Fri, 12 Jan 2018 08:25:19 -0700
+In-Reply-To: <20180112072758.GD25517@kroah.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Greg KH <gregkh@linuxfoundation.org>, Dan Williams <dan.j.williams@intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi <linux-scsi@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
 
-On Friday, January 12, 2018 1:47:46 AM CET Dan Williams wrote:
-> Static analysis reports that 'queue' may be a user controlled value that
-> is used as a data dependency to read from the 'ar9170_qmap' array. In
-> order to avoid potential leaks of kernel memory values, block
-> speculative execution of the instruction stream that could issue reads
-> based on an invalid result of 'ar9170_qmap[queue]'. In this case the
-> value of 'ar9170_qmap[queue]' is immediately reused as an index to the
-> 'ar->edcf' array.
+On Fri, 2018-01-12 at 08:27 +0100, Greg KH wrote:
+> On Thu, Jan 11, 2018 at 02:15:12PM -0800, Dan Williams wrote:
+> > 
+> > On Sat, Jan 6, 2018 at 1:03 AM, Greg KH <gregkh@linuxfoundation.org
+> > > wrote:
+> > > 
+> > > On Fri, Jan 05, 2018 at 05:10:48PM -0800, Dan Williams wrote:
+> > > > 
+> > > > Static analysis reports that 'handle' may be a user controlled
+> > > > value that is used as a data dependency to read 'sp' from the
+> > > > 'req->outstanding_cmds' array.  In order to avoid potential
+> > > > leaks of kernel memory values, block speculative execution of
+> > > > the instruction stream that could issue reads based on an
+> > > > invalid value of 'sp'. In this case 'sp' is directly
+> > > > dereferenced later in the function.
+> > > 
+> > > I'm pretty sure that 'handle' comes from the hardware, not from
+> > > userspace, from what I can tell here.  If we want to start
+> > > auditing __iomem data sources, great!  But that's a bigger task,
+> > > and one I don't think we are ready to tackle...
+> > 
+> > I think it falls in the hygiene bucket of shutting off an array
+> > index from a source that could be under attacker control. Should we
+> > leave this one un-patched while we decide if we generally have a
+> > problem with trusting completion 'tags' from hardware? My vote is
+> > patch it for now.
 > 
-> Based on an original patch by Elena Reshetova.
-> 
-> Cc: Christian Lamparter <chunkeey@googlemail.com>
-> Cc: Kalle Valo <kvalo@codeaurora.org>
-> Cc: linux-wireless@vger.kernel.org
-> Cc: netdev@vger.kernel.org
-> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> ---
-This patch (and p54, cw1200) look like the same patch?! 
-Can you tell me what happend to:
+> Hah, if you are worried about "tags" from hardware, we have a lot
+> more auditing to do, right? 
 
-On Saturday, January 6, 2018 5:34:03 PM CET Dan Williams wrote:
-> On Sat, Jan 6, 2018 at 6:23 AM, Christian Lamparter <chunkeey@gmail.com> wrote:
-> > And Furthermore a invalid queue (param->ac) would cause a crash in
-> > this line in mac80211 before it even reaches the driver [1]:
-> > |       sdata->tx_conf[params->ac] = p;
-> > |                   ^^^^^^^^
-> > |       if (drv_conf_tx(local, sdata, >>>> params->ac <<<<, &p)) {
-> > |        ^^ (this is a wrapper for the *_op_conf_tx)
-> >
-> > I don't think these chin-up exercises are needed.
-> 
-> Quite the contrary, you've identified a better place in the call stack
-> to sanitize the input and disable speculation. Then we can kill the
-> whole class of the wireless driver reports at once it seems.
-<https://www.spinics.net/lists/netdev/msg476353.html>
+We'd also have a lot more to do: the assumption would have to be
+malicious hardware and most hardware has access to fairly vital stuff
+directly.  I really don't think we have to worry about side channel
+attacks from hardware until the direct attack vector is closed.
 
-Anyway, I think there's an easy way to solve this: remove the 
-"if (queue < ar->hw->queues)" check altogether. It's no longer needed
-anymore as the "queue" value is validated long before the driver code
-gets called. And from my understanding, this will fix the "In this case
-the value of 'ar9170_qmap[queue]' is immediately reused as an index to
-the 'ar->edcf' array." gripe your tool complains about.
-
-This is here's a quick test-case for carl9170.:
----
-diff --git a/drivers/net/wireless/ath/carl9170/main.c b/drivers/net/wireless/ath/carl9170/main.c
-index 988c8857d78c..2d3afb15bb62 100644
---- a/drivers/net/wireless/ath/carl9170/main.c
-+++ b/drivers/net/wireless/ath/carl9170/main.c
-@@ -1387,13 +1387,8 @@ static int carl9170_op_conf_tx(struct ieee80211_hw *hw,
- 	int ret;
- 
- 	mutex_lock(&ar->mutex);
--	if (queue < ar->hw->queues) {
--		memcpy(&ar->edcf[ar9170_qmap[queue]], param, sizeof(*param));
--		ret = carl9170_set_qos(ar);
--	} else {
--		ret = -EINVAL;
--	}
--
-+	memcpy(&ar->edcf[ar9170_qmap[queue]], param, sizeof(*param));
-+	ret = carl9170_set_qos(ar);
- 	mutex_unlock(&ar->mutex);
- 	return ret;
- }
----
-What does your tool say about this? 
-
-(If necessary, the "queue" value could be even sanitized with a
-queue %= ARRAY_SIZE(ar9170_qmap); before the mutex_lock.)
+James
