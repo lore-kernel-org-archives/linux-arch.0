@@ -1,46 +1,100 @@
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v2 07/19] x86: introduce __uaccess_begin_nospec and
- ASM_IFENCE
-Date: Fri, 12 Jan 2018 14:41:26 -0600
-Message-ID: <20180112204126.257jubn2hccgtzdt@treble>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151571802258.27429.932636277047687877.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180112175109.yoz4jaaipztdj34k@treble>
- <CAPcyv4heW2FqxpCa0NZeTsa5V7pgpzA-MdHYJA+y9C5L2GTP9w@mail.gmail.com>
- <20180112185815.meiwnnb5vmnrbsdt@treble>
- <CAPcyv4jm7S+8ezntAo2LeOGshPdpt616RNOambOL6espzBYUvg@mail.gmail.com>
- <CA+55aFwhU110nyGerakLf-LHgfZDmJ6snTyQJqAHRbnxQoqbHg@mail.gmail.com>
+From: Helge Deller <deller@gmx.de>
+Subject: Re: [PATCH 04/11] signal/parisc: Document a conflict with SI_USER
+ with SIGFPE
+Date: Fri, 12 Jan 2018 23:29:44 +0100
+Message-ID: <20180112222944.GA22642@ls3530.fritz.box>
+References: <87373b6ghs.fsf@xmission.com>
+ <20180112005940.23279-4-ebiederm@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CA+55aFwhU110nyGerakLf-LHgfZDmJ6snTyQJqAHRbnxQoqbHg@mail.gmail.com>
+In-Reply-To: <20180112005940.23279-4-ebiederm@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, linux-parisc@vger.kernel.org, James Bottomley <James.Bottomley@HansenPartnership.com>, John David Anglin <dave.anglin@bell.net>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 12, 2018 at 12:01:04PM -0800, Linus Torvalds wrote:
-> On Fri, Jan 12, 2018 at 11:26 AM, Dan Williams <dan.j.williams@intel.com> wrote:
-> >
-> > By the time we get to de-reference uptr we know it is not pointing at
-> > kernel memory, because access_ok would have failed and the cpu would
-> > have waited for that failure result before doing anything else.
+* Eric W. Biederman <ebiederm@xmission.com>:
+> Setting si_code to 0 results in a userspace seeing an si_code of 0.
+> This is the same si_code as SI_USER.  Posix and common sense requires
+> that SI_USER not be a signal specific si_code.  As such this use of 0
+> for the si_code is a pretty horribly broken ABI.
 > 
-> I'm not actually convinced that's right in the original patches,
-> exactly because of the issue that Josh pointed out: even if there is a
-> comparison inside access_ok() that will be properly serialized, then
-> that comparison can (and sometimes does) just cause a truth value to
-> be generated, and then there  might be *another* comparison of that
-> return value after the lfence. And while the return value is table,
-> the conditional branch on that comparison isn't.
+> Further use of si_code == 0 guaranteed that copy_siginfo_to_user saw a
+> value of __SI_KILL and now sees a value of SIL_KILL with the result
+> that uid and pid fields are copied and which might copying the si_addr
+> field by accident but certainly not by design.  Making this a very
+> flakey implementation.
 > 
-> The new model of just doing it together with the STAC should be fine, though.
+> Utilizing FPE_FIXME siginfo_layout will now return SIL_FAULT and the
+> appropriate fields will reliably be copied.
+> 
+> This bug is 13 years old and parsic machines are no longer being built
+> so I don't know if it possible or worth fixing it.  But it is at least
+> worth documenting this so other architectures don't make the same
+> mistake.
 
-Aha, that clears it up for me, thanks.  I was still thinking about the
-previous version of the patch which had the barrier in access_ok().  I
-didn't realize the new version moved the barrier to after the
-access_ok() checks.
 
--- 
-Josh
+I think we should fix it, even if we now break the ABI.
+
+It's about a "conditional trap" which needs to be handled by userspace.
+I doubt there is any Linux code out which is utilizing this
+parisc-specific trap.
+
+I'd suggest to add a new FPE trap si_code (e.g. FPE_CONDTRAP).
+While at it, maybe we should include the already existing FPE_MDAOVF
+from the frv architecture, so that arch/frv/include/uapi/asm/siginfo.h
+can go completely.
+
+Suggested patch is below.
+
+I'm willing to test the patch below on the parisc architecture for a few
+weeks. And it will break arch/x86/kernel/signal_compat.c which needs
+looking at then too.
+
+Thoughts?
+
+Helge
+
+
+
+[PATCH] parisc: Add FPE_CONDTRAP for conditional trap handling
+
+Posix and common sense requires that SI_USER not be a signal specific
+si_code.  Thus add a new FPE_CONDTRAP si_code for conditional traps.
+
+Signed-off-by: Helge Deller <deller@gmx.de>
+
+diff --git a/arch/parisc/kernel/traps.c b/arch/parisc/kernel/traps.c
+index 8453724b8009..13702f0f5ba1 100644
+--- a/arch/parisc/kernel/traps.c
++++ b/arch/parisc/kernel/traps.c
+@@ -627,9 +627,9 @@ void notrace handle_interruption(int code, struct pt_regs *regs)
+ 		   on condition  */
+ 		if(user_mode(regs)){
+ 			si.si_signo = SIGFPE;
+-			/* Set to zero, and let the userspace app figure it out from
+-			   the insn pointed to by si_addr */
+-			si.si_code = 0;
++			/* Let userspace app figure out from the insn pointed
++			 * to by si_addr */
++			si.si_code = FPE_CONDTRAP;
+ 			si.si_addr = (void __user *) regs->iaoq[0];
+ 			force_sig_info(SIGFPE, &si, current);
+ 			return;
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index e447283b8f52..2b759fe42142 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -193,7 +193,9 @@ typedef struct siginfo {
+ #define FPE_FLTRES	6	/* floating point inexact result */
+ #define FPE_FLTINV	7	/* floating point invalid operation */
+ #define FPE_FLTSUB	8	/* subscript out of range */
+-#define NSIGFPE		8
++#define FPE_MDAOVF	9       /* media overflow */
++#define FPE_CONDTRAP	10      /* trap on condition */
++#define NSIGFPE		10
+ 
+ /*
+  * SIGSEGV si_codes
