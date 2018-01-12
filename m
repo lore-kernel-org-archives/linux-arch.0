@@ -1,66 +1,41 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v2 03/19] arm: implement ifence_array_ptr()
-Date: Thu, 11 Jan 2018 16:46:40 -0800
-Message-ID: <151571800075.27429.5000616446434113763.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:23328 "EHLO mga01.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932685AbeALAyz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Jan 2018 19:54:55 -0500
-In-Reply-To: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Subject: [PATCH 02/11] signal/sh: Ensure si_signo is initialized in do_divide_error
+Date: Thu, 11 Jan 2018 18:59:31 -0600
+Message-ID: <20180112005940.23279-2-ebiederm@xmission.com>
+References: <87373b6ghs.fsf@xmission.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <87373b6ghs.fsf@xmission.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, stable@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-From: Mark Rutland <mark.rutland@arm.com>
+Set si_signo.
 
-This patch implements ifence_array_ptr() for arm, using an
-LDR+MOVCS+CSDB sequence to inhibit speculative use of the returned
-value.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: linux-sh@vger.kernel.org
+Cc: stable@vger.kernel.org
+Fixes: 0983b31849bb ("sh: Wire up division and address error exceptions on SH-2A.")
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/arm/include/asm/barrier.h |   24 ++++++++++++++++++++++++
- 1 file changed, 24 insertions(+)
+ arch/sh/kernel/traps_32.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
-index 40f5c410fd8c..919235ed6e68 100644
---- a/arch/arm/include/asm/barrier.h
-+++ b/arch/arm/include/asm/barrier.h
-@@ -59,6 +59,30 @@ extern void arm_heavy_mb(void);
- #define dma_wmb()	barrier()
+diff --git a/arch/sh/kernel/traps_32.c b/arch/sh/kernel/traps_32.c
+index 57cff00cad17..b3770bb26211 100644
+--- a/arch/sh/kernel/traps_32.c
++++ b/arch/sh/kernel/traps_32.c
+@@ -609,7 +609,8 @@ asmlinkage void do_divide_error(unsigned long r4)
+ 		break;
+ 	}
+ 
+-	force_sig_info(SIGFPE, &info, current);
++	info.si_signo = SIGFPE;
++	force_sig_info(info.si_signo, &info, current);
+ }
  #endif
  
-+#define ifence_array_ptr(arr, idx, sz)					\
-+({									\
-+	typeof(&(arr)[0]) __nap_arr = (arr);				\
-+	typeof(idx) __nap_idx = (idx);					\
-+	typeof(sz) __nap_sz = (sz);					\
-+									\
-+	unsigned long __nap_ptr = (unsigned long)__nap_arr +		\
-+				  sizeof(__nap_arr[0]) * idx;		\
-+									\
-+	asm volatile(							\
-+	"	cmp	%[i], %[s]\n"					\
-+	"	bcs	1f\n"						\
-+	"	ldr	%[p], %[pp]\n"					\
-+	"1:	movcs	%[p], #0\n"					\
-+	"	.inst	0xe320f018 @ CSDB\n"				\
-+	: [p] "=&r" (__nap_ptr)						\
-+	: [pp] "m" (__nap_ptr),						\
-+	  [i] "r" ((unsigned long)__nap_idx),				\
-+	  [s] "r" ((unsigned long)__nap_sz)				\
-+	: "cc");							\
-+									\
-+	(typeof(&(__nap_arr)[0]))__nap_ptr;				\
-+})
-+
- #define __smp_mb()	dmb(ish)
- #define __smp_rmb()	__smp_mb()
- #define __smp_wmb()	dmb(ishst)
+-- 
+2.14.1
