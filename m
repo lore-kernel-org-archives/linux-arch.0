@@ -1,66 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:48182 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933497AbeALBB2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:01:28 -0500
+Received: from out03.mta.xmission.com ([166.70.13.233]:53229 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932312AbeALBGR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:06:17 -0500
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Thu, 11 Jan 2018 18:59:32 -0600
-Message-ID: <20180112005940.23279-3-ebiederm@xmission.com>
+Date: Thu, 11 Jan 2018 18:59:40 -0600
+Message-ID: <20180112005940.23279-11-ebiederm@xmission.com>
 In-Reply-To: <87373b6ghs.fsf@xmission.com>
 References: <87373b6ghs.fsf@xmission.com>
-Subject: [PATCH 03/11] signal/openrisc: Fix do_unaligned_access to send the proper signal
+Subject: [PATCH 11/11] signal: Ensure generic siginfos the kernel sends have all bits initialized
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, stable@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Arnd Bergmann <arnd@arndb.de>, openrisc@lists.librecores.org
-Message-ID: <20180112005932.8YZ7AVN06lCDYgcFDCAo-a5Wx_iqEj9a6aB-y9yi-f8@z>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20180112005940.4JV0hf9NX7G2_64lEK3KuTxF69oqtv_a-41zbyqri7w@z>
 
-While reviewing the signal sending on openrisc the do_unaligned_access
-function stood out because it is obviously wrong.  A comment about an
-si_code set above when actually si_code is never set.  Leading to a
-random si_code being sent to userspace in the event of an unaligned
-access.
+Call clear_siginfo to ensure stack allocated siginfos are fully
+initialized before being passed to the signal sending functions.
 
-Looking further SIGBUS BUS_ADRALN is the proper pair of signal and
-si_code to send for an unaligned access. That is what other
-architectures do and what is required by posix.
+This ensures that if there is the kind of confusion documented by
+TRAP_FIXME, FPE_FIXME, or BUS_FIXME the kernel won't send unitialized
+data to userspace when the kernel generates a signal with SI_USER but
+the copy to userspace assumes it is a different kind of signal, and
+different fields are initialized.
 
-Given that do_unaligned_access is broken in a way that no one can be
-relying on it on openrisc fix the code to just do the right thing.
+This also prepares the way for turning copy_siginfo_to_user
+into a copy_to_user, by removing the need in many cases to perform
+a field by field copy simply to skip the uninitialized fields.
 
-Cc: stable@vger.kernel.org
-Fixes: 769a8a96229e ("OpenRISC: Traps")
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-Cc: Stafford Horne <shorne@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: openrisc@lists.librecores.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/openrisc/kernel/traps.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ fs/fcntl.c      | 1 +
+ ipc/mqueue.c    | 1 +
+ kernel/signal.c | 9 ++++++++-
+ 3 files changed, 10 insertions(+), 1 deletion(-)
 
-diff --git a/arch/openrisc/kernel/traps.c b/arch/openrisc/kernel/traps.c
-index 4085d72fa5ae..9e38dc66c9e4 100644
---- a/arch/openrisc/kernel/traps.c
-+++ b/arch/openrisc/kernel/traps.c
-@@ -266,12 +266,12 @@ asmlinkage void do_unaligned_access(struct pt_regs *regs, unsigned long address)
+diff --git a/fs/fcntl.c b/fs/fcntl.c
+index 0522e283a4f4..c17369659f4a 100644
+--- a/fs/fcntl.c
++++ b/fs/fcntl.c
+@@ -737,6 +737,7 @@ static void send_sigio_to_task(struct task_struct *p,
+ 			   delivered even if we can't queue.  Failure to
+ 			   queue in this case _should_ be reported; we fall
+ 			   back to SIGIO in that case. --sct */
++			clear_siginfo(&si);
+ 			si.si_signo = signum;
+ 			si.si_errno = 0;
+ 		        si.si_code  = reason;
+diff --git a/ipc/mqueue.c b/ipc/mqueue.c
+index 9649ecd8a73a..17bc8b874d92 100644
+--- a/ipc/mqueue.c
++++ b/ipc/mqueue.c
+@@ -639,6 +639,7 @@ static void __do_notify(struct mqueue_inode_info *info)
+ 		case SIGEV_SIGNAL:
+ 			/* sends signal */
+ 
++			clear_siginfo(&sig_i);
+ 			sig_i.si_signo = info->notify.sigev_signo;
+ 			sig_i.si_errno = 0;
+ 			sig_i.si_code = SI_MESGQ;
+diff --git a/kernel/signal.c b/kernel/signal.c
+index fd182a845490..241d54958bbb 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -549,6 +549,7 @@ static void collect_signal(int sig, struct sigpending *list, siginfo_t *info,
+ 		 * a fast-pathed signal or we must have been
+ 		 * out of queue space.  So zero out the info.
+ 		 */
++		clear_siginfo(info);
+ 		info->si_signo = sig;
+ 		info->si_errno = 0;
+ 		info->si_code = SI_USER;
+@@ -1043,6 +1044,7 @@ static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
+ 		list_add_tail(&q->list, &pending->list);
+ 		switch ((unsigned long) info) {
+ 		case (unsigned long) SEND_SIG_NOINFO:
++			clear_siginfo(&q->info);
+ 			q->info.si_signo = sig;
+ 			q->info.si_errno = 0;
+ 			q->info.si_code = SI_USER;
+@@ -1051,6 +1053,7 @@ static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
+ 			q->info.si_uid = from_kuid_munged(current_user_ns(), current_uid());
+ 			break;
+ 		case (unsigned long) SEND_SIG_PRIV:
++			clear_siginfo(&q->info);
+ 			q->info.si_signo = sig;
+ 			q->info.si_errno = 0;
+ 			q->info.si_code = SI_KERNEL;
+@@ -1623,6 +1626,7 @@ bool do_notify_parent(struct task_struct *tsk, int sig)
+ 			sig = SIGCHLD;
+ 	}
+ 
++	clear_siginfo(&info);
+ 	info.si_signo = sig;
+ 	info.si_errno = 0;
+ 	/*
+@@ -1717,6 +1721,7 @@ static void do_notify_parent_cldstop(struct task_struct *tsk,
+ 		parent = tsk->real_parent;
+ 	}
+ 
++	clear_siginfo(&info);
+ 	info.si_signo = SIGCHLD;
+ 	info.si_errno = 0;
+ 	/*
+@@ -1929,7 +1934,7 @@ static void ptrace_do_notify(int signr, int exit_code, int why)
+ {
  	siginfo_t info;
  
- 	if (user_mode(regs)) {
--		/* Send a SIGSEGV */
--		info.si_signo = SIGSEGV;
-+		/* Send a SIGBUS */
-+		info.si_signo = SIGBUS;
- 		info.si_errno = 0;
--		/* info.si_code has been set above */
--		info.si_addr = (void *)address;
--		force_sig_info(SIGSEGV, &info, current);
-+		info.si_code = BUS_ADRALN;
-+		info.si_addr = (void __user *)address;
-+		force_sig_info(SIGBUS, &info, current);
- 	} else {
- 		printk("KERNEL: Unaligned Access 0x%.8lx\n", address);
- 		show_registers(regs);
+-	memset(&info, 0, sizeof info);
++	clear_siginfo(&info);
+ 	info.si_signo = signr;
+ 	info.si_code = exit_code;
+ 	info.si_pid = task_pid_vnr(current);
+@@ -2136,6 +2141,7 @@ static int ptrace_signal(int signr, siginfo_t *info)
+ 	 * have updated *info via PTRACE_SETSIGINFO.
+ 	 */
+ 	if (signr != info->si_signo) {
++		clear_siginfo(info);
+ 		info->si_signo = signr;
+ 		info->si_errno = 0;
+ 		info->si_code = SI_USER;
+@@ -2941,6 +2947,7 @@ SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
+ {
+ 	struct siginfo info;
+ 
++	clear_siginfo(&info);
+ 	info.si_signo = sig;
+ 	info.si_errno = 0;
+ 	info.si_code = SI_USER;
 -- 
 2.14.1
