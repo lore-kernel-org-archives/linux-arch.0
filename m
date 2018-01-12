@@ -1,88 +1,55 @@
-From: Konrad Rzeszutek Wilk <konrad@darnok.org>
-Subject: Re: [PATCH 06/22] swiotlb: rename swiotlb_free to swiotlb_exit
-Date: Fri, 12 Jan 2018 08:39:41 -0500
-Message-ID: <20180112133939.GF26900@localhost.localdomain>
-References: <20180110080932.14157-1-hch@lst.de>
- <20180110080932.14157-7-hch@lst.de>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [REGRESSION] testing/selftests/x86/ pkeys build failures (was:
+ Re: [PATCH] mm, x86: pkeys: Introduce PKEY_ALLOC_SIGNALINHERIT and change
+ signal semantics)
+Date: Fri, 12 Jan 2018 15:14:49 +0100
+Message-ID: <20180112141449.5gmn3nxvosk6y6qs@gmail.com>
+References: <360ef254-48bc-aee6-70f9-858f773b8693@redhat.com>
+ <20180112125537.bdl376ziiaqp664o@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20180110080932.14157-7-hch@lst.de>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: iommu@lists.linux-foundation.org, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Christian =?iso-8859-1?Q?K=F6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20180112125537.bdl376ziiaqp664o@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Florian Weimer <fweimer@redhat.com>, Shuah Khan <shuahkh@osg.samsung.com>, Dave Hansen <dave.hansen@linux.intel.com>
+Cc: linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, linux-x86_64@vger.kernel.org, Linux API <linux-api@vger.kernel.org>, x86@kernel.org, Dave Hansen <dave.hansen@intel.com>, Ram Pai <linuxram@us.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 10, 2018 at 09:09:16AM +0100, Christoph Hellwig wrote:
 
-OK?
+* Ingo Molnar <mingo@kernel.org> wrote:
 
-Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/powerpc/kernel/dma-swiotlb.c | 2 +-
->  arch/x86/kernel/pci-swiotlb.c     | 2 +-
->  include/linux/swiotlb.h           | 4 ++--
->  lib/swiotlb.c                     | 2 +-
->  4 files changed, 5 insertions(+), 5 deletions(-)
+> Also, the protection keys testcase first need to be fixed, before we complicate 
+> them - for example on a pretty regular Ubuntu x86-64 installation they fail to 
+> build with the build errors attached further below.
 > 
-> diff --git a/arch/powerpc/kernel/dma-swiotlb.c b/arch/powerpc/kernel/dma-swiotlb.c
-> index 506ac4fafac5..88f3963ca30f 100644
-> --- a/arch/powerpc/kernel/dma-swiotlb.c
-> +++ b/arch/powerpc/kernel/dma-swiotlb.c
-> @@ -121,7 +121,7 @@ static int __init check_swiotlb_enabled(void)
->  	if (ppc_swiotlb_enable)
->  		swiotlb_print_info();
->  	else
-> -		swiotlb_free();
-> +		swiotlb_exit();
->  
->  	return 0;
->  }
-> diff --git a/arch/x86/kernel/pci-swiotlb.c b/arch/x86/kernel/pci-swiotlb.c
-> index 0d77603c2f50..0ee0f8f34251 100644
-> --- a/arch/x86/kernel/pci-swiotlb.c
-> +++ b/arch/x86/kernel/pci-swiotlb.c
-> @@ -120,7 +120,7 @@ void __init pci_swiotlb_late_init(void)
->  {
->  	/* An IOMMU turned us off. */
->  	if (!swiotlb)
-> -		swiotlb_free();
-> +		swiotlb_exit();
->  	else {
->  		printk(KERN_INFO "PCI-DMA: "
->  		       "Using software bounce buffering for IO (SWIOTLB)\n");
-> diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
-> index 24ed817082ee..606375e35d87 100644
-> --- a/include/linux/swiotlb.h
-> +++ b/include/linux/swiotlb.h
-> @@ -115,10 +115,10 @@ extern int
->  swiotlb_dma_supported(struct device *hwdev, u64 mask);
->  
->  #ifdef CONFIG_SWIOTLB
-> -extern void __init swiotlb_free(void);
-> +extern void __init swiotlb_exit(void);
->  unsigned int swiotlb_max_segment(void);
->  #else
-> -static inline void swiotlb_free(void) { }
-> +static inline void swiotlb_exit(void) { }
->  static inline unsigned int swiotlb_max_segment(void) { return 0; }
->  #endif
->  
-> diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-> index 125c1062119f..cf5311908fa9 100644
-> --- a/lib/swiotlb.c
-> +++ b/lib/swiotlb.c
-> @@ -417,7 +417,7 @@ swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs)
->  	return -ENOMEM;
->  }
->  
-> -void __init swiotlb_free(void)
-> +void __init swiotlb_exit(void)
->  {
->  	if (!io_tlb_orig_addr)
->  		return;
-> -- 
-> 2.14.2
-> 
+> On an older Fedora 23 installation, the testcases themselves don't build at all:
+
+The Ubuntu build failure seems to have gone away after a 'make clean', what 
+remains is an ugly build warning:
+
+triton:~/tip/tools/testing/selftests/x86> make
+gcc -m32 -o /home/mingo/tip/tools/testing/selftests/x86/protection_keys_32 -O2 -g -std=gnu99 -pthread -Wall -no-pie  protection_keys.c -lrt -ldl -lm
+protection_keys.c: In function ‘dumpit’:
+protection_keys.c:419:3: warning: ignoring return value of ‘write’, declared with attribute warn_unused_result [-Wunused-result]
+   write(1, buf, nr_read);
+   ^~~~~~~~~~~~~~~~~~~~~~
+gcc -m64 -o /home/mingo/tip/tools/testing/selftests/x86/protection_keys_64 -O2 -g -std=gnu99 -pthread -Wall -no-pie  protection_keys.c -lrt -ldl
+protection_keys.c: In function ‘dumpit’:
+protection_keys.c:419:3: warning: ignoring return value of ‘write’, declared with attribute warn_unused_result [-Wunused-result]
+   write(1, buf, nr_read);
+   ^~~~~~~~~~~~~~~~~~~~~~
+
+If this build warning and the Fedora build failure is fixed we can apply your 
+patch too I think.
+
+Thanks,
+
+	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
