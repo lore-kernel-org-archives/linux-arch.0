@@ -1,132 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:53229 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932312AbeALBGR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:06:17 -0500
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Thu, 11 Jan 2018 18:59:40 -0600
-Message-ID: <20180112005940.23279-11-ebiederm@xmission.com>
-In-Reply-To: <87373b6ghs.fsf@xmission.com>
-References: <87373b6ghs.fsf@xmission.com>
-Subject: [PATCH 11/11] signal: Ensure generic siginfos the kernel sends have all bits initialized
+Received: from mga01.intel.com ([192.55.52.88]:23328 "EHLO mga01.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932148AbeALAyv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Jan 2018 19:54:51 -0500
+Subject: [PATCH v2 02/19] arm64: implement ifence_array_ptr()
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Thu, 11 Jan 2018 16:46:35 -0800
+Message-ID: <151571799562.27429.4130452417520177349.stgit@dwillia2-desk3.amr.corp.intel.com>
+In-Reply-To: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180112005940.4JV0hf9NX7G2_64lEK3KuTxF69oqtv_a-41zbyqri7w@z>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
+Message-ID: <20180112004635.GAWDXVosyYn0P0z1QIqrQjpA7_UiPrR26HBJOiWenNA@z>
 
-Call clear_siginfo to ensure stack allocated siginfos are fully
-initialized before being passed to the signal sending functions.
+From: Mark Rutland <mark.rutland@arm.com>
 
-This ensures that if there is the kind of confusion documented by
-TRAP_FIXME, FPE_FIXME, or BUS_FIXME the kernel won't send unitialized
-data to userspace when the kernel generates a signal with SI_USER but
-the copy to userspace assumes it is a different kind of signal, and
-different fields are initialized.
+This patch implements ifence_array_ptr() for arm64, using an
+LDR+CSEL+CSDB sequence to inhibit speculative use of the returned value.
 
-This also prepares the way for turning copy_siginfo_to_user
-into a copy_to_user, by removing the need in many cases to perform
-a field by field copy simply to skip the uninitialized fields.
-
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- fs/fcntl.c      | 1 +
- ipc/mqueue.c    | 1 +
- kernel/signal.c | 9 ++++++++-
- 3 files changed, 10 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/barrier.h |   24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
-diff --git a/fs/fcntl.c b/fs/fcntl.c
-index 0522e283a4f4..c17369659f4a 100644
---- a/fs/fcntl.c
-+++ b/fs/fcntl.c
-@@ -737,6 +737,7 @@ static void send_sigio_to_task(struct task_struct *p,
- 			   delivered even if we can't queue.  Failure to
- 			   queue in this case _should_ be reported; we fall
- 			   back to SIGIO in that case. --sct */
-+			clear_siginfo(&si);
- 			si.si_signo = signum;
- 			si.si_errno = 0;
- 		        si.si_code  = reason;
-diff --git a/ipc/mqueue.c b/ipc/mqueue.c
-index 9649ecd8a73a..17bc8b874d92 100644
---- a/ipc/mqueue.c
-+++ b/ipc/mqueue.c
-@@ -639,6 +639,7 @@ static void __do_notify(struct mqueue_inode_info *info)
- 		case SIGEV_SIGNAL:
- 			/* sends signal */
+diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
+index 77651c49ef44..74ffcddb26e6 100644
+--- a/arch/arm64/include/asm/barrier.h
++++ b/arch/arm64/include/asm/barrier.h
+@@ -40,6 +40,30 @@
+ #define dma_rmb()	dmb(oshld)
+ #define dma_wmb()	dmb(oshst)
  
-+			clear_siginfo(&sig_i);
- 			sig_i.si_signo = info->notify.sigev_signo;
- 			sig_i.si_errno = 0;
- 			sig_i.si_code = SI_MESGQ;
-diff --git a/kernel/signal.c b/kernel/signal.c
-index fd182a845490..241d54958bbb 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -549,6 +549,7 @@ static void collect_signal(int sig, struct sigpending *list, siginfo_t *info,
- 		 * a fast-pathed signal or we must have been
- 		 * out of queue space.  So zero out the info.
- 		 */
-+		clear_siginfo(info);
- 		info->si_signo = sig;
- 		info->si_errno = 0;
- 		info->si_code = SI_USER;
-@@ -1043,6 +1044,7 @@ static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
- 		list_add_tail(&q->list, &pending->list);
- 		switch ((unsigned long) info) {
- 		case (unsigned long) SEND_SIG_NOINFO:
-+			clear_siginfo(&q->info);
- 			q->info.si_signo = sig;
- 			q->info.si_errno = 0;
- 			q->info.si_code = SI_USER;
-@@ -1051,6 +1053,7 @@ static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
- 			q->info.si_uid = from_kuid_munged(current_user_ns(), current_uid());
- 			break;
- 		case (unsigned long) SEND_SIG_PRIV:
-+			clear_siginfo(&q->info);
- 			q->info.si_signo = sig;
- 			q->info.si_errno = 0;
- 			q->info.si_code = SI_KERNEL;
-@@ -1623,6 +1626,7 @@ bool do_notify_parent(struct task_struct *tsk, int sig)
- 			sig = SIGCHLD;
- 	}
- 
-+	clear_siginfo(&info);
- 	info.si_signo = sig;
- 	info.si_errno = 0;
- 	/*
-@@ -1717,6 +1721,7 @@ static void do_notify_parent_cldstop(struct task_struct *tsk,
- 		parent = tsk->real_parent;
- 	}
- 
-+	clear_siginfo(&info);
- 	info.si_signo = SIGCHLD;
- 	info.si_errno = 0;
- 	/*
-@@ -1929,7 +1934,7 @@ static void ptrace_do_notify(int signr, int exit_code, int why)
- {
- 	siginfo_t info;
- 
--	memset(&info, 0, sizeof info);
-+	clear_siginfo(&info);
- 	info.si_signo = signr;
- 	info.si_code = exit_code;
- 	info.si_pid = task_pid_vnr(current);
-@@ -2136,6 +2141,7 @@ static int ptrace_signal(int signr, siginfo_t *info)
- 	 * have updated *info via PTRACE_SETSIGINFO.
- 	 */
- 	if (signr != info->si_signo) {
-+		clear_siginfo(info);
- 		info->si_signo = signr;
- 		info->si_errno = 0;
- 		info->si_code = SI_USER;
-@@ -2941,6 +2947,7 @@ SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
- {
- 	struct siginfo info;
- 
-+	clear_siginfo(&info);
- 	info.si_signo = sig;
- 	info.si_errno = 0;
- 	info.si_code = SI_USER;
--- 
-2.14.1
++#define ifence_array_ptr(arr, idx, sz)					\
++({									\
++	typeof(&(arr)[0]) __nap_arr = (arr);				\
++	typeof(idx) __nap_idx = (idx);					\
++	typeof(sz) __nap_sz = (sz);					\
++									\
++	unsigned long __nap_ptr = (unsigned long)__nap_arr +		\
++				  sizeof(__nap_arr[0]) * idx;		\
++									\
++	asm volatile(							\
++	"	cmp	%[i], %[s]\n"					\
++	"	b.cs	1f\n"						\
++	"	ldr	%[p], %[pp]\n"					\
++	"1:	csel	%[p], %[p], xzr, cc\n"				\
++	"	hint	#0x14 // CSDB\n"				\
++	: [p] "=&r" (__nap_ptr)						\
++	: [pp] "m" (__nap_ptr),						\
++	  [i] "r" ((unsigned long)__nap_idx),				\
++	  [s] "r" ((unsigned long)__nap_sz)				\
++	: "cc");							\
++									\
++	(typeof(&(__nap_arr)[0]))__nap_ptr;				\
++})
++
+ #define __smp_mb()	dmb(ish)
+ #define __smp_rmb()	dmb(ishld)
+ #define __smp_wmb()	dmb(ishst)
