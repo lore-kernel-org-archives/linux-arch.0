@@ -1,57 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:39084 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S932422AbeALBVr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Jan 2018 20:21:47 -0500
-Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w0C1Ljg8014046
-        for <linux-arch@vger.kernel.org>; Thu, 11 Jan 2018 20:21:46 -0500
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2feh5rw72e-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 11 Jan 2018 20:21:45 -0500
-Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <jejb@linux.vnet.ibm.com>;
-        Thu, 11 Jan 2018 20:19:24 -0500
-Subject: Re: [PATCH v2 17/19] qla2xxx: prevent bounds-check bypass via
- speculative execution
-From: James Bottomley <jejb@linux.vnet.ibm.com>
-Date: Thu, 11 Jan 2018 17:19:16 -0800
-In-Reply-To: <151571807774.27429.7382333750792304971.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from mail-ot0-f196.google.com ([74.125.82.196]:34115 "EHLO
+        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932709AbeALBlJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:41:09 -0500
+Received: by mail-ot0-f196.google.com with SMTP id p16so3860098otf.1
+        for <linux-arch@vger.kernel.org>; Thu, 11 Jan 2018 17:41:09 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com>
 References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
-         <151571807774.27429.7382333750792304971.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Thu, 11 Jan 2018 17:41:08 -0800
+Message-ID: <CAPcyv4gPcV7MRumSJNz6nDw=HhKO4MK2QqKbj4uc_6APsSFr+g@mail.gmail.com>
+Subject: Re: [PATCH v2 00/19] prevent bounds-check bypass via speculative execution
 Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Message-ID: <1515719956.3056.37.camel@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi@vger.kernel.org, kernel-hardening@lists.openwall.com, qla2xxx-upstream@qlogic.com, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
-Message-ID: <20180112011916.DlH76mT6ZUH2h_SaOv1MKqFsDJxQOzdOjJrIjo5qVQI@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, Linux SCSI List <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, the arch/x86 maintainers <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Linux Media Mailing List <linux-media@vger.kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Jan Kara <jack@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, Alan Cox <alan@linux.intel.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Greg KH <gregkh@linuxfoundation.org>, Linux Wireless List <linux-wireless@vger.kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Network Development <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Message-ID: <20180112014108.r5v8qLqvJ5aH2KYwxR4x67CGu7jLiBRQLU9XLp97JZQ@z>
 
-On Thu, 2018-01-11 at 16:47 -0800, Dan Williams wrote:
-> Static analysis reports that 'handle' may be a user controlled value
-> that is used as a data dependency to read 'sp' from the
-> 'req->outstanding_cmds' array.
+On Thu, Jan 11, 2018 at 5:19 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Thu, Jan 11, 2018 at 4:46 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+>>
+>> This series incorporates Mark Rutland's latest ARM changes and adds
+>> the x86 specific implementation of 'ifence_array_ptr'. That ifence
+>> based approach is provided as an opt-in fallback, but the default
+>> mitigation, '__array_ptr', uses a 'mask' approach that removes
+>> conditional branches instructions, and otherwise aims to redirect
+>> speculation to use a NULL pointer rather than a user controlled value.
+>
+> Do you have any performance numbers and perhaps example code
+> generation? Is this noticeable? Are there any microbenchmarks showing
+> the difference between lfence use and the masking model?
 
-Greg already told you it comes from hardware, specifically the hardware
-response queue.  If you don't believe him, I can confirm it's quite
-definitely all copied from the iomem where the mailbox response is, so
-it can't be a user controlled value (well, unless the user has some
-influence over the firmware of the qla2xxx  controller, which probably
-means you have other things to worry about than speculative information
-leaks).
+I don't have performance numbers, but here's a sample code generation
+from __fcheck_files, where the 'and; lea; and' sequence is portion of
+array_ptr() after the mask generation with 'sbb'.
 
-I think what it actually is is a handle returned in the mailbox that's
-used to find other mailbox entries in different queues (the packet
-handle actually contains an entry in the lower 16 bits and a queue
-designation in the upper).  Perhaps the qla2xxx people should comment
-on this because the code seems to check and print an error if there's a
-problem with the handle being too big, but we don't check the que value
-and use it blindly to read into the req_q_map: if handle could be
-wrong, couldn't que?
+        fdp = array_ptr(fdt->fd, fd, fdt->max_fds);
+     8e7:       8b 02                   mov    (%rdx),%eax
+     8e9:       48 39 c7                cmp    %rax,%rdi
+     8ec:       48 19 c9                sbb    %rcx,%rcx
+     8ef:       48 8b 42 08             mov    0x8(%rdx),%rax
+     8f3:       48 89 fe                mov    %rdi,%rsi
+     8f6:       48 21 ce                and    %rcx,%rsi
+     8f9:       48 8d 04 f0             lea    (%rax,%rsi,8),%rax
+     8fd:       48 21 c8                and    %rcx,%rax
 
-James
+
+> Having both seems good for testing, but wouldn't we want to pick one in the end?
+
+I was thinking we'd keep it as a 'just in case' sort of thing, at
+least until the 'probably safe' assumption of the 'mask' approach has
+more time to settle out.
+
+>
+> Also, I do think that there is one particular array load that would
+> seem to be pretty obvious: the system call function pointer array.
+>
+> Yes, yes, the actual call is now behind a retpoline, but that protects
+> against a speculative BTB access, it's not obvious that it  protects
+> against the mispredict of the __NR_syscall_max comparison in
+> arch/x86/entry/entry_64.S.
+>
+> The act of fetching code is a kind of read too. And retpoline protects
+> against BTB stuffing etc, but what if the _actual_ system call
+> function address is wrong (due to mis-prediction of the system call
+> index check)?
+>
+> Should the array access in entry_SYSCALL_64_fastpath be made to use
+> the masking approach?
+
+I'll take a look. I'm firmly in the 'patch first / worry later' stance
+on these investigations.
