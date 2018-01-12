@@ -1,96 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:42450 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932500AbeALC2i (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 21:28:38 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
-        <151571800589.27429.13615996439124092232.stgit@dwillia2-desk3.amr.corp.intel.com>
-Date: Thu, 11 Jan 2018 20:27:45 -0600
-In-Reply-To: <151571800589.27429.13615996439124092232.stgit@dwillia2-desk3.amr.corp.intel.com>
-        (Dan Williams's message of "Thu, 11 Jan 2018 16:46:45 -0800")
-Message-ID: <87efmv4xr2.fsf@xmission.com>
+Received: from mail-ot0-f175.google.com ([74.125.82.175]:37278 "EHLO
+        mail-ot0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750807AbeALFiT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 00:38:19 -0500
+Received: by mail-ot0-f175.google.com with SMTP id a24so4179482otd.4
+        for <linux-arch@vger.kernel.org>; Thu, 11 Jan 2018 21:38:19 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH v2 04/19] x86: implement ifence()
+In-Reply-To: <1515719956.3056.37.camel@linux.vnet.ibm.com>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151571807774.27429.7382333750792304971.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <1515719956.3056.37.camel@linux.vnet.ibm.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Thu, 11 Jan 2018 21:38:18 -0800
+Message-ID: <CAPcyv4gb8SpBEYnuc3hULLZdiuUM1Lhc33CBirmXtckD0CsLww@mail.gmail.com>
+Subject: Re: [PATCH v2 17/19] qla2xxx: prevent bounds-check bypass via
+ speculative execution
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, Greg KH <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, kernel-hardening@lists.openwall.com, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
-Message-ID: <20180112022745.sZzllNJX3bMNdK_QDMng5SzVfcfdu4GzJW5fPhSmmrI@z>
+To: James Bottomley <jejb@linux.vnet.ibm.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi <linux-scsi@vger.kernel.org>, kernel-hardening@lists.openwall.com, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180112053818.ibrj1Lm0SxXoqKbnPz81fYiGXZYoA55xTXDqkzJIR7c@z>
 
-Dan Williams <dan.j.williams@intel.com> writes:
-
-> The new barrier, 'ifence', ensures that no instructions past the
-> boundary are speculatively executed.
-
-This needs a much better description.
-
-If that description was valid we could add ifence in the syscall
-entry path and not have any speculative execution to worry about in the
-kernel.
-
-Perhaps:
-'ifence', ensures that no speculative execution that reaches the 'ifence'
-boundary continues past the 'ifence' boundary.
-
-> Previously the kernel only needed this fence in 'rdtsc_ordered', but it
-> can also be used as a mitigation against Spectre variant1 attacks that
-> speculative access memory past an array bounds check.
+On Thu, Jan 11, 2018 at 5:19 PM, James Bottomley
+<jejb@linux.vnet.ibm.com> wrote:
+> On Thu, 2018-01-11 at 16:47 -0800, Dan Williams wrote:
+>> Static analysis reports that 'handle' may be a user controlled value
+>> that is used as a data dependency to read 'sp' from the
+>> 'req->outstanding_cmds' array.
 >
-> 'ifence', via 'ifence_array_ptr', is an opt-in fallback to the default
-> mitigation provided by '__array_ptr'. It is also proposed for blocking
-> speculation in the 'get_user' path to bypass 'access_ok' checks. For
-> now, just provide the common definition for later patches to build
-> upon.
+> Greg already told you it comes from hardware, specifically the hardware
+> response queue.  If you don't believe him, I can confirm it's quite
+> definitely all copied from the iomem where the mailbox response is, so
+> it can't be a user controlled value (well, unless the user has some
+> influence over the firmware of the qla2xxx  controller, which probably
+> means you have other things to worry about than speculative information
+> leaks).
 
-This part of the description is probably unnecessary.
-
-Eric
-
->
-> Suggested-by: Peter Zijlstra <peterz@infradead.org>
-> Suggested-by: Alan Cox <alan.cox@intel.com>
-> Cc: Tom Lendacky <thomas.lendacky@amd.com>
-> Cc: Mark Rutland <mark.rutland@arm.com>
-> Cc: Greg KH <gregkh@linuxfoundation.org>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: x86@kernel.org
-> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> ---
->  arch/x86/include/asm/barrier.h |    4 ++++
->  arch/x86/include/asm/msr.h     |    3 +--
->  2 files changed, 5 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
-> index 7fb336210e1b..b04f572d6d97 100644
-> --- a/arch/x86/include/asm/barrier.h
-> +++ b/arch/x86/include/asm/barrier.h
-> @@ -24,6 +24,10 @@
->  #define wmb()	asm volatile("sfence" ::: "memory")
->  #endif
->  
-> +/* prevent speculative execution past this barrier */
-> +#define ifence() alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC, \
-> +				   "lfence", X86_FEATURE_LFENCE_RDTSC)
-> +
->  #ifdef CONFIG_X86_PPRO_FENCE
->  #define dma_rmb()	rmb()
->  #else
-> diff --git a/arch/x86/include/asm/msr.h b/arch/x86/include/asm/msr.h
-> index 07962f5f6fba..e426d2a33ff3 100644
-> --- a/arch/x86/include/asm/msr.h
-> +++ b/arch/x86/include/asm/msr.h
-> @@ -214,8 +214,7 @@ static __always_inline unsigned long long rdtsc_ordered(void)
->  	 * that some other imaginary CPU is updating continuously with a
->  	 * time stamp.
->  	 */
-> -	alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC,
-> -			  "lfence", X86_FEATURE_LFENCE_RDTSC);
-> +	ifence();
->  	return rdtsc();
->  }
->  
+I do believe him, and I still submitted this. I'm trying to probe at
+the meta question of where do we draw the line with these especially
+when it costs us relatively little to apply a few line patch? We fix
+theoretical lockdep races, why not theoretical data leak paths?
