@@ -1,98 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:35067 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933769AbeALNZZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 08:25:25 -0500
-Date: Fri, 12 Jan 2018 22:25:21 +0900
-From: Stafford Horne <shorne@gmail.com>
-Subject: Re: [PATCH 03/11] signal/openrisc: Fix do_unaligned_access to send
- the proper signal
-Message-ID: <20180112132521.GF13019@lianli.shorne-pla.net>
-References: <87373b6ghs.fsf@xmission.com>
- <20180112005940.23279-3-ebiederm@xmission.com>
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:38791 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933498AbeALNZj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 08:25:39 -0500
+Date: Fri, 12 Jan 2018 08:25:34 -0500
+From: Konrad Rzeszutek Wilk <konrad@darnok.org>
+Subject: Re: [PATCH 05/22] x86: rename swiotlb_dma_ops
+Message-ID: <20180112132534.GE26900@localhost.localdomain>
+References: <20180110080932.14157-1-hch@lst.de>
+ <20180110080932.14157-6-hch@lst.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180112005940.23279-3-ebiederm@xmission.com>
+In-Reply-To: <20180110080932.14157-6-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, stable@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Arnd Bergmann <arnd@arndb.de>, openrisc@lists.librecores.org
-Message-ID: <20180112132521.-Lh-rsKUwHwsFsY8I6dCnfYdT-tXc0952n-v_YXkNnw@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: iommu@lists.linux-foundation.org, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Christian =?iso-8859-1?Q?K=F6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180112132534.w4UgaEi5i-HqbX38VpdQfrRO5k1MEkzhCiJ7Wkx6eEE@z>
 
-On Thu, Jan 11, 2018 at 06:59:32PM -0600, Eric W. Biederman wrote:
-> While reviewing the signal sending on openrisc the do_unaligned_access
-> function stood out because it is obviously wrong.  A comment about an
-> si_code set above when actually si_code is never set.  Leading to a
-> random si_code being sent to userspace in the event of an unaligned
-> access.
+On Wed, Jan 10, 2018 at 09:09:15AM +0100, Christoph Hellwig wrote:
+> We'll need that name for a generic implementation soon.
 > 
-> Looking further SIGBUS BUS_ADRALN is the proper pair of signal and
-> si_code to send for an unaligned access. That is what other
-> architectures do and what is required by posix.
-> 
-> Given that do_unaligned_access is broken in a way that no one can be
-> relying on it on openrisc fix the code to just do the right thing.
-
-Thanks, this looks good to me.
-
-Acked-by: Stafford Horne <shorne@gmail.com>
-
-I see you have a series of related issues, so I guess you want to get them
-merged together.  Let me know if I should put this patch onto my queue
-seperately.
-
-Trivia: this looks to have been copied from the mm page fault handling code,
-hence the strange comment.
-
-  $ grep -r "info.si_code has been set above" arch/
-  arch/cris/mm/fault.c:           /* info.si_code has been set above */
-  arch/m32r/mm/fault.c:           /* info.si_code has been set above */
-  arch/mn10300/mm/fault.c:                /* info.si_code has been set above */
-  arch/openrisc/mm/fault.c:               /* info.si_code has been set above */
-  arch/openrisc/kernel/traps.c:           /* info.si_code has been set above */
-  arch/arc/mm/fault.c:            /* info.si_code has been set above */
-  arch/xtensa/mm/fault.c:         /* info.si_code has been set above */
-  arch/mips/mm/fault.c:           /* info.si_code has been set above */
-  arch/score/mm/fault.c:          /* info.si_code has been set above */
-  arch/frv/mm/fault.c:            /* info.si_code has been set above */
-
--Stafford
-
-> Cc: stable@vger.kernel.org
-> Fixes: 769a8a96229e ("OpenRISC: Traps")
-> Cc: Jonas Bonn <jonas@southpole.se>
-> Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-> Cc: Stafford Horne <shorne@gmail.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: openrisc@lists.librecores.org
-> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 > ---
->  arch/openrisc/kernel/traps.c | 10 +++++-----
->  1 file changed, 5 insertions(+), 5 deletions(-)
+>  arch/x86/kernel/pci-swiotlb.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 > 
-> diff --git a/arch/openrisc/kernel/traps.c b/arch/openrisc/kernel/traps.c
-> index 4085d72fa5ae..9e38dc66c9e4 100644
-> --- a/arch/openrisc/kernel/traps.c
-> +++ b/arch/openrisc/kernel/traps.c
-> @@ -266,12 +266,12 @@ asmlinkage void do_unaligned_access(struct pt_regs *regs, unsigned long address)
->  	siginfo_t info;
+> diff --git a/arch/x86/kernel/pci-swiotlb.c b/arch/x86/kernel/pci-swiotlb.c
+> index 9d3e35c33d94..0d77603c2f50 100644
+> --- a/arch/x86/kernel/pci-swiotlb.c
+> +++ b/arch/x86/kernel/pci-swiotlb.c
+> @@ -48,7 +48,7 @@ void x86_swiotlb_free_coherent(struct device *dev, size_t size,
+>  		dma_generic_free_coherent(dev, size, vaddr, dma_addr, attrs);
+>  }
 >  
->  	if (user_mode(regs)) {
-> -		/* Send a SIGSEGV */
-> -		info.si_signo = SIGSEGV;
-> +		/* Send a SIGBUS */
-> +		info.si_signo = SIGBUS;
->  		info.si_errno = 0;
-> -		/* info.si_code has been set above */
-> -		info.si_addr = (void *)address;
-> -		force_sig_info(SIGSEGV, &info, current);
-> +		info.si_code = BUS_ADRALN;
-> +		info.si_addr = (void __user *)address;
-> +		force_sig_info(SIGBUS, &info, current);
->  	} else {
->  		printk("KERNEL: Unaligned Access 0x%.8lx\n", address);
->  		show_registers(regs);
+> -static const struct dma_map_ops swiotlb_dma_ops = {
+> +static const struct dma_map_ops x86_swiotlb_dma_ops = {
+>  	.mapping_error = swiotlb_dma_mapping_error,
+>  	.alloc = x86_swiotlb_alloc_coherent,
+>  	.free = x86_swiotlb_free_coherent,
+> @@ -112,7 +112,7 @@ void __init pci_swiotlb_init(void)
+>  {
+>  	if (swiotlb) {
+>  		swiotlb_init(0);
+> -		dma_ops = &swiotlb_dma_ops;
+> +		dma_ops = &x86_swiotlb_dma_ops;
+>  	}
+>  }
+>  
 > -- 
-> 2.14.1
+> 2.14.2
 > 
