@@ -1,41 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:51667 "EHLO
+Received: from bombadil.infradead.org ([65.50.211.133]:59151 "EHLO
         bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932446AbeALInJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 03:43:09 -0500
+        with ESMTP id S933055AbeALInH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 03:43:07 -0500
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 09/34] dma-mapping: take dma_pfn_offset into account in dma_max_pfn
-Date: Fri, 12 Jan 2018 09:42:07 +0100
-Message-ID: <20180112084232.2857-10-hch@lst.de>
+Subject: [PATCH 08/34] s390: remove the unused dma_capable helper
+Date: Fri, 12 Jan 2018 09:42:06 +0100
+Message-ID: <20180112084232.2857-9-hch@lst.de>
 In-Reply-To: <20180112084232.2857-1-hch@lst.de>
 References: <20180112084232.2857-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: iommu@lists.linux-foundation.org
 Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180112084207.U7docaKzaf64x2P2em38y7S3-iTtINgUFa275LRWSJY@z>
-
-This makes sure the generic version can be used with architectures /
-devices that have a DMA offset in the direct mapping.
+Message-ID: <20180112084206.2o23mNGOaINlCnV-83dmrhm2u0Zevj5PhRin2zq7T78@z>
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Robin Murphy <robin.murphy@arm.com>
 ---
- include/linux/dma-mapping.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/s390/include/asm/dma-mapping.h | 7 -------
+ 1 file changed, 7 deletions(-)
 
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 81ed9b2d84dc..d84951865be7 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -692,7 +692,7 @@ static inline int dma_set_seg_boundary(struct device *dev, unsigned long mask)
- #ifndef dma_max_pfn
- static inline unsigned long dma_max_pfn(struct device *dev)
- {
--	return *dev->dma_mask >> PAGE_SHIFT;
-+	return (*dev->dma_mask >> PAGE_SHIFT) + dev->dma_pfn_offset;
+diff --git a/arch/s390/include/asm/dma-mapping.h b/arch/s390/include/asm/dma-mapping.h
+index eaf490f9c5bc..2ec7240c1ada 100644
+--- a/arch/s390/include/asm/dma-mapping.h
++++ b/arch/s390/include/asm/dma-mapping.h
+@@ -16,11 +16,4 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+ 	return &dma_noop_ops;
  }
- #endif
  
+-static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+-{
+-	if (!dev->dma_mask)
+-		return false;
+-	return addr + size - 1 <= *dev->dma_mask;
+-}
+-
+ #endif /* _ASM_S390_DMA_MAPPING_H */
 -- 
 2.14.2
