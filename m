@@ -1,8 +1,8 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v2 12/19] userns: prevent bounds-check bypass via
+Subject: [PATCH v2 14/19] [media] uvcvideo: prevent bounds-check bypass via
  speculative execution
-Date: Thu, 11 Jan 2018 16:47:29 -0800
-Message-ID: <151571804955.27429.6378685761369089453.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 11 Jan 2018 16:47:40 -0800
+Message-ID: <151571806069.27429.6683179525235570687.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,53 +11,64 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, "Eric W. Biederman" <ebiederm@xmission.com>, akpm@linux-foundation.org, torvalds@linux-foundation.org, tglx@linutronix.de, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
+Cc: linux-arch@vger.kernel.org, alan@linux.intel.com, kernel-hardening@lists.openwall.com, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, torvalds@linux-foundation.org, akpm@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Static analysis reports that 'pos' may be a user controlled value that
-is used as a data dependency determining which extent to return out of
-'map'. In order to avoid potential leaks of kernel memory values, block
-speculative execution of the instruction stream that could issue further
-reads based on an invalid speculative result from 'm_start()'.
+Static analysis reports that 'index' may be a user controlled value that
+is used as a data dependency to read 'pin' from the
+'selector->baSourceID' array. In order to avoid potential leaks of
+kernel memory values, block speculative execution of the instruction
+stream that could issue reads based on an invalid value of 'pin'.
 
 Based on an original patch by Elena Reshetova.
 
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>
+Laurent notes:
+
+    "...as this is nowhere close to being a fast path, I think we can close
+    this potential hole as proposed in the patch"
+
+Cc: Mauro Carvalho Chehab <mchehab@kernel.org>
+Cc: linux-media@vger.kernel.org
+Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
 Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- kernel/user_namespace.c |   11 +++++------
- 1 file changed, 5 insertions(+), 6 deletions(-)
+ drivers/media/usb/uvc/uvc_v4l2.c |    9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/user_namespace.c b/kernel/user_namespace.c
-index 246d4d4ce5c7..8c803eae186f 100644
---- a/kernel/user_namespace.c
-+++ b/kernel/user_namespace.c
-@@ -20,6 +20,7 @@
- #include <linux/seq_file.h>
- #include <linux/fs.h>
- #include <linux/uaccess.h>
+diff --git a/drivers/media/usb/uvc/uvc_v4l2.c b/drivers/media/usb/uvc/uvc_v4l2.c
+index 3e7e283a44a8..30ee200206ee 100644
+--- a/drivers/media/usb/uvc/uvc_v4l2.c
++++ b/drivers/media/usb/uvc/uvc_v4l2.c
+@@ -22,6 +22,7 @@
+ #include <linux/mm.h>
+ #include <linux/wait.h>
+ #include <linux/atomic.h>
 +#include <linux/nospec.h>
- #include <linux/ctype.h>
- #include <linux/projid.h>
- #include <linux/fs_struct.h>
-@@ -648,15 +649,13 @@ static void *m_start(struct seq_file *seq, loff_t *ppos,
- {
- 	loff_t pos = *ppos;
- 	unsigned extents = map->nr_extents;
--	smp_rmb();
  
--	if (pos >= extents)
--		return NULL;
-+	/* paired with smp_wmb in map_write */
-+	smp_rmb();
+ #include <media/v4l2-common.h>
+ #include <media/v4l2-ctrls.h>
+@@ -809,8 +810,12 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
+ 	const struct uvc_entity *selector = chain->selector;
+ 	struct uvc_entity *iterm = NULL;
+ 	u32 index = input->index;
++	__u8 *elem = NULL;
+ 	int pin = 0;
  
- 	if (extents <= UID_GID_MAP_MAX_BASE_EXTENTS)
--		return &map->extent[pos];
--
--	return &map->forward[pos];
-+		return array_ptr(map->extent, pos, extents);
-+	return array_ptr(map->forward, pos, extents);
- }
- 
- static void *uid_m_start(struct seq_file *seq, loff_t *ppos)
++	if (selector)
++		elem = array_ptr(selector->baSourceID, index,
++				selector->bNrInPins);
+ 	if (selector == NULL ||
+ 	    (chain->dev->quirks & UVC_QUIRK_IGNORE_SELECTOR_UNIT)) {
+ 		if (index != 0)
+@@ -820,8 +825,8 @@ static int uvc_ioctl_enum_input(struct file *file, void *fh,
+ 				break;
+ 		}
+ 		pin = iterm->id;
+-	} else if (index < selector->bNrInPins) {
+-		pin = selector->baSourceID[index];
++	} else if (elem) {
++		pin = *elem;
+ 		list_for_each_entry(iterm, &chain->entities, chain) {
+ 			if (!UVC_ENTITY_IS_ITERM(iterm))
+ 				continue;
