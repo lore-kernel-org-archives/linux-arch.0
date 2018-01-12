@@ -1,121 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f193.google.com ([209.85.220.193]:43851 "EHLO
-        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933478AbeALNYl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 08:24:41 -0500
-Date: Fri, 12 Jan 2018 08:24:36 -0500
-From: Konrad Rzeszutek Wilk <konrad@darnok.org>
-Subject: Re: [PATCH 03/22] ia64: rename swiotlb_dma_ops
-Message-ID: <20180112132435.GC26900@localhost.localdomain>
-References: <20180110080932.14157-1-hch@lst.de>
- <20180110080932.14157-4-hch@lst.de>
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:35067 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933769AbeALNZZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 08:25:25 -0500
+Date: Fri, 12 Jan 2018 22:25:21 +0900
+From: Stafford Horne <shorne@gmail.com>
+Subject: Re: [PATCH 03/11] signal/openrisc: Fix do_unaligned_access to send
+ the proper signal
+Message-ID: <20180112132521.GF13019@lianli.shorne-pla.net>
+References: <87373b6ghs.fsf@xmission.com>
+ <20180112005940.23279-3-ebiederm@xmission.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180110080932.14157-4-hch@lst.de>
+In-Reply-To: <20180112005940.23279-3-ebiederm@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: iommu@lists.linux-foundation.org, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Christian =?iso-8859-1?Q?K=F6nig?= <ckoenig.leichtzumerken@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180112132436.mZG-Y4Lix8Fe7Dh7vik0iW-9QeDPMHlTN2xK96FQGpA@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, stable@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Arnd Bergmann <arnd@arndb.de>, openrisc@lists.librecores.org
+Message-ID: <20180112132521.-Lh-rsKUwHwsFsY8I6dCnfYdT-tXc0952n-v_YXkNnw@z>
 
-On Wed, Jan 10, 2018 at 09:09:13AM +0100, Christoph Hellwig wrote:
-> We'll need that name for a generic implementation soon.
+On Thu, Jan 11, 2018 at 06:59:32PM -0600, Eric W. Biederman wrote:
+> While reviewing the signal sending on openrisc the do_unaligned_access
+> function stood out because it is obviously wrong.  A comment about an
+> si_code set above when actually si_code is never set.  Leading to a
+> random si_code being sent to userspace in the event of an unaligned
+> access.
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> Looking further SIGBUS BUS_ADRALN is the proper pair of signal and
+> si_code to send for an unaligned access. That is what other
+> architectures do and what is required by posix.
+> 
+> Given that do_unaligned_access is broken in a way that no one can be
+> relying on it on openrisc fix the code to just do the right thing.
 
+Thanks, this looks good to me.
 
-Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Acked-by: Stafford Horne <shorne@gmail.com>
+
+I see you have a series of related issues, so I guess you want to get them
+merged together.  Let me know if I should put this patch onto my queue
+seperately.
+
+Trivia: this looks to have been copied from the mm page fault handling code,
+hence the strange comment.
+
+  $ grep -r "info.si_code has been set above" arch/
+  arch/cris/mm/fault.c:           /* info.si_code has been set above */
+  arch/m32r/mm/fault.c:           /* info.si_code has been set above */
+  arch/mn10300/mm/fault.c:                /* info.si_code has been set above */
+  arch/openrisc/mm/fault.c:               /* info.si_code has been set above */
+  arch/openrisc/kernel/traps.c:           /* info.si_code has been set above */
+  arch/arc/mm/fault.c:            /* info.si_code has been set above */
+  arch/xtensa/mm/fault.c:         /* info.si_code has been set above */
+  arch/mips/mm/fault.c:           /* info.si_code has been set above */
+  arch/score/mm/fault.c:          /* info.si_code has been set above */
+  arch/frv/mm/fault.c:            /* info.si_code has been set above */
+
+-Stafford
+
+> Cc: stable@vger.kernel.org
+> Fixes: 769a8a96229e ("OpenRISC: Traps")
+> Cc: Jonas Bonn <jonas@southpole.se>
+> Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
+> Cc: Stafford Horne <shorne@gmail.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: openrisc@lists.librecores.org
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 > ---
->  arch/ia64/hp/common/hwsw_iommu.c | 4 ++--
->  arch/ia64/hp/common/sba_iommu.c  | 6 +++---
->  arch/ia64/kernel/pci-swiotlb.c   | 6 +++---
->  3 files changed, 8 insertions(+), 8 deletions(-)
+>  arch/openrisc/kernel/traps.c | 10 +++++-----
+>  1 file changed, 5 insertions(+), 5 deletions(-)
 > 
-> diff --git a/arch/ia64/hp/common/hwsw_iommu.c b/arch/ia64/hp/common/hwsw_iommu.c
-> index 63d8e1d2477f..41279f0442bd 100644
-> --- a/arch/ia64/hp/common/hwsw_iommu.c
-> +++ b/arch/ia64/hp/common/hwsw_iommu.c
-> @@ -19,7 +19,7 @@
->  #include <linux/export.h>
->  #include <asm/machvec.h>
+> diff --git a/arch/openrisc/kernel/traps.c b/arch/openrisc/kernel/traps.c
+> index 4085d72fa5ae..9e38dc66c9e4 100644
+> --- a/arch/openrisc/kernel/traps.c
+> +++ b/arch/openrisc/kernel/traps.c
+> @@ -266,12 +266,12 @@ asmlinkage void do_unaligned_access(struct pt_regs *regs, unsigned long address)
+>  	siginfo_t info;
 >  
-> -extern const struct dma_map_ops sba_dma_ops, swiotlb_dma_ops;
-> +extern const struct dma_map_ops sba_dma_ops, ia64_swiotlb_dma_ops;
->  
->  /* swiotlb declarations & definitions: */
->  extern int swiotlb_late_init_with_default_size (size_t size);
-> @@ -38,7 +38,7 @@ static inline int use_swiotlb(struct device *dev)
->  const struct dma_map_ops *hwsw_dma_get_ops(struct device *dev)
->  {
->  	if (use_swiotlb(dev))
-> -		return &swiotlb_dma_ops;
-> +		return &ia64_swiotlb_dma_ops;
->  	return &sba_dma_ops;
->  }
->  EXPORT_SYMBOL(hwsw_dma_get_ops);
-> diff --git a/arch/ia64/hp/common/sba_iommu.c b/arch/ia64/hp/common/sba_iommu.c
-> index aec4a3354abe..8c0a9ae6afec 100644
-> --- a/arch/ia64/hp/common/sba_iommu.c
-> +++ b/arch/ia64/hp/common/sba_iommu.c
-> @@ -2096,7 +2096,7 @@ static int __init acpi_sba_ioc_init_acpi(void)
->  /* This has to run before acpi_scan_init(). */
->  arch_initcall(acpi_sba_ioc_init_acpi);
->  
-> -extern const struct dma_map_ops swiotlb_dma_ops;
-> +extern const struct dma_map_ops ia64_swiotlb_dma_ops;
->  
->  static int __init
->  sba_init(void)
-> @@ -2111,7 +2111,7 @@ sba_init(void)
->  	 * a successful kdump kernel boot is to use the swiotlb.
->  	 */
->  	if (is_kdump_kernel()) {
-> -		dma_ops = &swiotlb_dma_ops;
-> +		dma_ops = &ia64_swiotlb_dma_ops;
->  		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
->  			panic("Unable to initialize software I/O TLB:"
->  				  " Try machvec=dig boot option");
-> @@ -2133,7 +2133,7 @@ sba_init(void)
->  		 * If we didn't find something sba_iommu can claim, we
->  		 * need to setup the swiotlb and switch to the dig machvec.
->  		 */
-> -		dma_ops = &swiotlb_dma_ops;
-> +		dma_ops = &ia64_swiotlb_dma_ops;
->  		if (swiotlb_late_init_with_default_size(64 * (1<<20)) != 0)
->  			panic("Unable to find SBA IOMMU or initialize "
->  			      "software I/O TLB: Try machvec=dig boot option");
-> diff --git a/arch/ia64/kernel/pci-swiotlb.c b/arch/ia64/kernel/pci-swiotlb.c
-> index 5e50939aa03e..f1ae873a8c35 100644
-> --- a/arch/ia64/kernel/pci-swiotlb.c
-> +++ b/arch/ia64/kernel/pci-swiotlb.c
-> @@ -31,7 +31,7 @@ static void ia64_swiotlb_free_coherent(struct device *dev, size_t size,
->  	swiotlb_free_coherent(dev, size, vaddr, dma_addr);
->  }
->  
-> -const struct dma_map_ops swiotlb_dma_ops = {
-> +const struct dma_map_ops ia64_swiotlb_dma_ops = {
->  	.alloc = ia64_swiotlb_alloc_coherent,
->  	.free = ia64_swiotlb_free_coherent,
->  	.map_page = swiotlb_map_page,
-> @@ -48,7 +48,7 @@ const struct dma_map_ops swiotlb_dma_ops = {
->  
->  void __init swiotlb_dma_init(void)
->  {
-> -	dma_ops = &swiotlb_dma_ops;
-> +	dma_ops = &ia64_swiotlb_dma_ops;
->  	swiotlb_init(1);
->  }
->  
-> @@ -60,7 +60,7 @@ void __init pci_swiotlb_init(void)
->  		printk(KERN_INFO "PCI-DMA: Re-initialize machine vector.\n");
->  		machvec_init("dig");
->  		swiotlb_init(1);
-> -		dma_ops = &swiotlb_dma_ops;
-> +		dma_ops = &ia64_swiotlb_dma_ops;
->  #else
->  		panic("Unable to find Intel IOMMU");
->  #endif
+>  	if (user_mode(regs)) {
+> -		/* Send a SIGSEGV */
+> -		info.si_signo = SIGSEGV;
+> +		/* Send a SIGBUS */
+> +		info.si_signo = SIGBUS;
+>  		info.si_errno = 0;
+> -		/* info.si_code has been set above */
+> -		info.si_addr = (void *)address;
+> -		force_sig_info(SIGSEGV, &info, current);
+> +		info.si_code = BUS_ADRALN;
+> +		info.si_addr = (void __user *)address;
+> +		force_sig_info(SIGBUS, &info, current);
+>  	} else {
+>  		printk("KERNEL: Unaligned Access 0x%.8lx\n", address);
+>  		show_registers(regs);
 > -- 
-> 2.14.2
+> 2.14.1
 > 
