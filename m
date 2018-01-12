@@ -1,54 +1,88 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 09/11] signal: Reduce copy_siginfo to just a memcpy
-Date: Thu, 11 Jan 2018 18:59:38 -0600
-Message-ID: <20180112005940.23279-9-ebiederm@xmission.com>
+Subject: [PATCH 08/11] signal/arm: Document conflicts with SI_USER and SIGFPE
+Date: Thu, 11 Jan 2018 18:59:37 -0600
+Message-ID: <20180112005940.23279-8-ebiederm@xmission.com>
 References: <87373b6ghs.fsf@xmission.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:35564 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933784AbeALBBk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:01:40 -0500
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <87373b6ghs.fsf@xmission.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, Russell King <rmk@flint.arm.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, "Eric W. Biederman" <ebiederm@xmission.com>, linux-arm-kernel@lists.infradead.org, Al Viro <viro@zeniv.linux.org.uk>
+List-Id: linux-arch.vger.kernel.org
 
-The savings for copying just part of struct siginfo appears to be in the
-noise on modern machines.  So remove this ``optimization'' and simplify the code.
+Setting si_code to 0 results in a userspace seeing an si_code of 0.
+This is the same si_code as SI_USER.  Posix and common sense requires
+that SI_USER not be a signal specific si_code.  As such this use of 0
+for the si_code is a pretty horribly broken ABI.
 
-At the same time mark the second parameter as constant so there is no confusion
-as to which direction the copy will go.
+Further use of si_code == 0 guaranteed that copy_siginfo_to_user saw a
+value of __SI_KILL and now sees a value of SIL_KILL with the result
+that uid and pid fields are copied and which might copying the si_addr
+field by accident but certainly not by design.  Making this a very
+flakey implementation.
 
-This ensures that a fully initialized siginfo that is sent ends up as
-a fully initialized siginfo on the signal queue.  This full initialization
-ensures even confused code won't copy unitialized data to userspace, and
-it prepares for turning copy_siginfo_to_user into a simple copy_to_user.
+Utilizing FPE_FIXME, siginfo_layout will now return SIL_FAULT and the
+appropriate fields will be reliably copied.
 
+Possible ABI fixes includee:
+- Send the signal without siginfo
+- Don't generate a signal
+- Possibly assign and use an appropriate si_code
+- Don't handle cases which can't happen
+
+Cc: Russell King <rmk@flint.arm.linux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org
+Ref: 451436b7bbb2 ("[ARM] Add support code for ARM hardware vector floating point")
+History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- include/linux/signal.h | 8 ++------
- 1 file changed, 2 insertions(+), 6 deletions(-)
+ arch/arm/include/uapi/asm/siginfo.h | 13 +++++++++++++
+ arch/arm/vfp/vfpmodule.c            |  2 +-
+ 2 files changed, 14 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm/include/uapi/asm/siginfo.h
 
-diff --git a/include/linux/signal.h b/include/linux/signal.h
-index 042968dd98f0..8037b503ce91 100644
---- a/include/linux/signal.h
-+++ b/include/linux/signal.h
-@@ -11,13 +11,9 @@ struct task_struct;
- /* for sysctl */
- extern int print_fatal_signals;
+diff --git a/arch/arm/include/uapi/asm/siginfo.h b/arch/arm/include/uapi/asm/siginfo.h
+new file mode 100644
+index 000000000000..d0513880be21
+--- /dev/null
++++ b/arch/arm/include/uapi/asm/siginfo.h
+@@ -0,0 +1,13 @@
++#ifndef __ASM_SIGINFO_H
++#define __ASM_SIGINFO_H
++
++#include <asm-generic/siginfo.h>
++
++/*
++ * SIGFPE si_codes
++ */
++#ifdef __KERNEL__
++#define FPE_FIXME	0	/* Broken dup of SI_USER */
++#endif /* __KERNEL__ */
++
++#endif
+diff --git a/arch/arm/vfp/vfpmodule.c b/arch/arm/vfp/vfpmodule.c
+index a71a48e71fff..03c6a3c72f9c 100644
+--- a/arch/arm/vfp/vfpmodule.c
++++ b/arch/arm/vfp/vfpmodule.c
+@@ -257,7 +257,7 @@ static void vfp_raise_exceptions(u32 exceptions, u32 inst, u32 fpscr, struct pt_
  
--static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
-+static inline void copy_siginfo(struct siginfo *to, const struct siginfo *from)
- {
--	if (from->si_code < 0)
--		memcpy(to, from, sizeof(*to));
--	else
--		/* _sigchld is currently the largest know union member */
--		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
-+	memcpy(to, from, sizeof(*to));
- }
+ 	if (exceptions == VFP_EXCEPTION_ERROR) {
+ 		vfp_panic("unhandled bounce", inst);
+-		vfp_raise_sigfpe(0, regs);
++		vfp_raise_sigfpe(FPE_FIXME, regs);
+ 		return;
+ 	}
  
- int copy_siginfo_to_user(struct siginfo __user *to, const struct siginfo *from);
 -- 
 2.14.1
