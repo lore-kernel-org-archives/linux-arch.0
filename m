@@ -1,24 +1,13 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 08/11] signal/arm: Document conflicts with SI_USER and SIGFPE
-Date: Thu, 11 Jan 2018 18:59:37 -0600
-Message-ID: <20180112005940.23279-8-ebiederm@xmission.com>
+Subject: [PATCH 06/11] signal/powerpc: Document conflicts with SI_USER and SIGFPE and SIGTRAP
+Date: Thu, 11 Jan 2018 18:59:35 -0600
+Message-ID: <20180112005940.23279-6-ebiederm@xmission.com>
 References: <87373b6ghs.fsf@xmission.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87373b6ghs.fsf@xmission.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Russell King <rmk@flint.arm.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, "Eric W. Biederman" <ebiederm@xmission.com>, linux-arm-kernel@lists.infradead.org, Al Viro <viro@zeniv.linux.org.uk>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Paul Mackerras <paulus@samba.org>, Kumar Gala <kumar.gala@freescale.com>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
 Setting si_code to 0 results in a userspace seeing an si_code of 0.
@@ -32,37 +21,36 @@ that uid and pid fields are copied and which might copying the si_addr
 field by accident but certainly not by design.  Making this a very
 flakey implementation.
 
-Utilizing FPE_FIXME, siginfo_layout will now return SIL_FAULT and the
-appropriate fields will be reliably copied.
+Utilizing FPE_FIXME and TRAP_FIXME, siginfo_layout() will now return
+SIL_FAULT and the appropriate fields will be reliably copied.
 
 Possible ABI fixes includee:
 - Send the signal without siginfo
 - Don't generate a signal
 - Possibly assign and use an appropriate si_code
 - Don't handle cases which can't happen
-
-Cc: Russell King <rmk@flint.arm.linux.org.uk>
-Cc: linux-arm-kernel@lists.infradead.org
-Ref: 451436b7bbb2 ("[ARM] Add support code for ARM hardware vector floating point")
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Kumar Gala <kumar.gala@freescale.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc:  linuxppc-dev@lists.ozlabs.org
+Ref: 9bad068c24d7 ("[PATCH] ppc32: support for e500 and 85xx")
+Ref: 0ed70f6105ef ("PPC32: Provide proper siginfo information on various exceptions.")
 History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/arm/include/uapi/asm/siginfo.h | 13 +++++++++++++
- arch/arm/vfp/vfpmodule.c            |  2 +-
- 2 files changed, 14 insertions(+), 1 deletion(-)
- create mode 100644 arch/arm/include/uapi/asm/siginfo.h
+ arch/powerpc/include/uapi/asm/siginfo.h | 15 +++++++++++++++
+ arch/powerpc/kernel/traps.c             | 10 +++++-----
+ 2 files changed, 20 insertions(+), 5 deletions(-)
 
-diff --git a/arch/arm/include/uapi/asm/siginfo.h b/arch/arm/include/uapi/asm/siginfo.h
-new file mode 100644
-index 000000000000..d0513880be21
---- /dev/null
-+++ b/arch/arm/include/uapi/asm/siginfo.h
-@@ -0,0 +1,13 @@
-+#ifndef __ASM_SIGINFO_H
-+#define __ASM_SIGINFO_H
-+
-+#include <asm-generic/siginfo.h>
-+
+diff --git a/arch/powerpc/include/uapi/asm/siginfo.h b/arch/powerpc/include/uapi/asm/siginfo.h
+index 1a691141e49f..444ca6c9989a 100644
+--- a/arch/powerpc/include/uapi/asm/siginfo.h
++++ b/arch/powerpc/include/uapi/asm/siginfo.h
+@@ -18,4 +18,19 @@
+ #undef NSIGTRAP
+ #define NSIGTRAP	4
+ 
 +/*
 + * SIGFPE si_codes
 + */
@@ -70,19 +58,63 @@ index 000000000000..d0513880be21
 +#define FPE_FIXME	0	/* Broken dup of SI_USER */
 +#endif /* __KERNEL__ */
 +
-+#endif
-diff --git a/arch/arm/vfp/vfpmodule.c b/arch/arm/vfp/vfpmodule.c
-index a71a48e71fff..03c6a3c72f9c 100644
---- a/arch/arm/vfp/vfpmodule.c
-+++ b/arch/arm/vfp/vfpmodule.c
-@@ -257,7 +257,7 @@ static void vfp_raise_exceptions(u32 exceptions, u32 inst, u32 fpscr, struct pt_
++/*
++ * SIGTRAP si_codes
++ */
++#ifdef __KERNEL__
++#define TRAP_FIXME	0	/* Broken dup of SI_USER */
++#endif /* __KERNEL__ */
++
++
+ #endif	/* _ASM_POWERPC_SIGINFO_H */
+diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
+index f3eb61be0d30..f2e6e1838952 100644
+--- a/arch/powerpc/kernel/traps.c
++++ b/arch/powerpc/kernel/traps.c
+@@ -917,7 +917,7 @@ void unknown_exception(struct pt_regs *regs)
+ 	printk("Bad trap at PC: %lx, SR: %lx, vector=%lx\n",
+ 	       regs->nip, regs->msr, regs->trap);
  
- 	if (exceptions == VFP_EXCEPTION_ERROR) {
- 		vfp_panic("unhandled bounce", inst);
--		vfp_raise_sigfpe(0, regs);
-+		vfp_raise_sigfpe(FPE_FIXME, regs);
+-	_exception(SIGTRAP, regs, 0, 0);
++	_exception(SIGTRAP, regs, TRAP_FIXME, 0);
+ 
+ 	exception_exit(prev_state);
+ }
+@@ -939,7 +939,7 @@ void instruction_breakpoint_exception(struct pt_regs *regs)
+ 
+ void RunModeException(struct pt_regs *regs)
+ {
+-	_exception(SIGTRAP, regs, 0, 0);
++	_exception(SIGTRAP, regs, TRAP_FIXME, 0);
+ }
+ 
+ void single_step_exception(struct pt_regs *regs)
+@@ -978,7 +978,7 @@ static void emulate_single_step(struct pt_regs *regs)
+ 
+ static inline int __parse_fpscr(unsigned long fpscr)
+ {
+-	int ret = 0;
++	int ret = FPE_FIXME;
+ 
+ 	/* Invalid operation */
+ 	if ((fpscr & FPSCR_VE) && (fpscr & FPSCR_VX))
+@@ -1929,7 +1929,7 @@ void SPEFloatingPointException(struct pt_regs *regs)
+ 	extern int do_spe_mathemu(struct pt_regs *regs);
+ 	unsigned long spefscr;
+ 	int fpexc_mode;
+-	int code = 0;
++	int code = FPE_FIXME;
+ 	int err;
+ 
+ 	flush_spe_to_thread(current);
+@@ -1998,7 +1998,7 @@ void SPEFloatingPointRoundException(struct pt_regs *regs)
+ 		printk(KERN_ERR "unrecognized spe instruction "
+ 		       "in %s at %lx\n", current->comm, regs->nip);
+ 	} else {
+-		_exception(SIGFPE, regs, 0, regs->nip);
++		_exception(SIGFPE, regs, FPE_FIXME, regs->nip);
  		return;
  	}
- 
+ }
 -- 
 2.14.1
