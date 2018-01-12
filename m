@@ -1,175 +1,155 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 13/34] dma-mapping: move dma_mark_clean to dma-direct.h
-Date: Fri, 12 Jan 2018 09:42:11 +0100
-Message-ID: <20180112084232.2857-14-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 34/34] h8300: use dma-direct
+Date: Fri, 12 Jan 2018 09:42:32 +0100
+Message-ID: <20180112084232.2857-35-hch@lst.de>
 References: <20180112084232.2857-1-hch@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20180112084232.2857-1-hch-jcswGhMUV9g@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Konrad Rzeszutek Wilk <konrad-Gq0aWv8utHQdnm+yROfE0A@public.gmane.org>, linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, patches-q3qR2WxjNRFS9aJRtSZj7A@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cris-kernel-VrBV9hrLPhE@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180112084232.2857-1-hch@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: iommu@lists.linux-foundation.org
+Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-And unlike the other helpers we don't require a <asm/dma-direct.h> as
-this helper is a special case for ia64 only, and this keeps it as
-simple as possible.
+Replace the bare-bones h8300 direct dma mapping implementation with
+the fully featured generic dma-direct one.
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/arm/include/asm/dma-mapping.h       | 2 --
- arch/arm64/include/asm/dma-mapping.h     | 4 ----
- arch/ia64/Kconfig                        | 1 +
- arch/ia64/include/asm/dma.h              | 2 --
- arch/mips/include/asm/dma-mapping.h      | 2 --
- arch/powerpc/include/asm/swiotlb.h       | 2 --
- arch/tile/include/asm/dma-mapping.h      | 2 --
- arch/unicore32/include/asm/dma-mapping.h | 2 --
- arch/x86/include/asm/swiotlb.h           | 2 --
- include/linux/dma-direct.h               | 9 +++++++++
- 10 files changed, 10 insertions(+), 18 deletions(-)
+ arch/h8300/Kconfig                   |  1 +
+ arch/h8300/include/asm/Kbuild        |  1 +
+ arch/h8300/include/asm/dma-mapping.h | 12 -------
+ arch/h8300/kernel/Makefile           |  2 +-
+ arch/h8300/kernel/dma.c              | 66 ------------------------------------
+ 5 files changed, 3 insertions(+), 79 deletions(-)
+ delete mode 100644 arch/h8300/include/asm/dma-mapping.h
+ delete mode 100644 arch/h8300/kernel/dma.c
 
-diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
-index 5fb1b7fbdfbe..e5d9020c9ee1 100644
---- a/arch/arm/include/asm/dma-mapping.h
-+++ b/arch/arm/include/asm/dma-mapping.h
-@@ -109,8 +109,6 @@ static inline bool is_device_dma_coherent(struct device *dev)
- 	return dev->archdata.dma_coherent;
- }
+diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
+index f8d3fde08190..091d6d04b5e5 100644
+--- a/arch/h8300/Kconfig
++++ b/arch/h8300/Kconfig
+@@ -23,6 +23,7 @@ config H8300
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_HASH
+ 	select CPU_NO_EFFICIENT_FFS
++	select DMA_DIRECT_OPS
  
--static inline void dma_mark_clean(void *addr, size_t size) { }
+ config CPU_BIG_ENDIAN
+ 	def_bool y
+diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
+index bc077491d299..642752c94306 100644
+--- a/arch/h8300/include/asm/Kbuild
++++ b/arch/h8300/include/asm/Kbuild
+@@ -9,6 +9,7 @@ generic-y += delay.h
+ generic-y += device.h
+ generic-y += div64.h
+ generic-y += dma.h
++generic-y += dma-mapping.h
+ generic-y += emergency-restart.h
+ generic-y += exec.h
+ generic-y += extable.h
+diff --git a/arch/h8300/include/asm/dma-mapping.h b/arch/h8300/include/asm/dma-mapping.h
+deleted file mode 100644
+index 21bb1fc3a6f1..000000000000
+--- a/arch/h8300/include/asm/dma-mapping.h
++++ /dev/null
+@@ -1,12 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#ifndef _H8300_DMA_MAPPING_H
+-#define _H8300_DMA_MAPPING_H
 -
- /**
-  * arm_dma_alloc - allocate consistent memory for DMA
-  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-diff --git a/arch/arm64/include/asm/dma-mapping.h b/arch/arm64/include/asm/dma-mapping.h
-index 400fa67d3b5a..b7847eb8a7bb 100644
---- a/arch/arm64/include/asm/dma-mapping.h
-+++ b/arch/arm64/include/asm/dma-mapping.h
-@@ -50,9 +50,5 @@ static inline bool is_device_dma_coherent(struct device *dev)
- 	return dev->archdata.dma_coherent;
- }
- 
--static inline void dma_mark_clean(void *addr, size_t size)
+-extern const struct dma_map_ops h8300_dma_map_ops;
+-
+-static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 -{
+-	return &h8300_dma_map_ops;
 -}
 -
- #endif	/* __KERNEL__ */
- #endif	/* __ASM_DMA_MAPPING_H */
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 49583c5a5d44..4d18fca885ee 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -33,6 +33,7 @@ config IA64
- 	select HAVE_MEMBLOCK
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_VIRT_CPU_ACCOUNTING
-+	select ARCH_HAS_DMA_MARK_CLEAN
- 	select ARCH_HAS_SG_CHAIN
- 	select VIRT_TO_BUS
- 	select ARCH_DISCARD_MEMBLOCK
-diff --git a/arch/ia64/include/asm/dma.h b/arch/ia64/include/asm/dma.h
-index 186850eec934..23604d6a2cb2 100644
---- a/arch/ia64/include/asm/dma.h
-+++ b/arch/ia64/include/asm/dma.h
-@@ -20,6 +20,4 @@ extern unsigned long MAX_DMA_ADDRESS;
+-#endif
+diff --git a/arch/h8300/kernel/Makefile b/arch/h8300/kernel/Makefile
+index b62e830525c6..307aa51576dd 100644
+--- a/arch/h8300/kernel/Makefile
++++ b/arch/h8300/kernel/Makefile
+@@ -7,7 +7,7 @@ extra-y := vmlinux.lds
  
- #define free_dma(x)
+ obj-y := process.o traps.o ptrace.o \
+ 	 signal.o setup.o syscalls.o \
+-	 irq.o entry.o dma.o
++	 irq.o entry.o
  
--void dma_mark_clean(void *addr, size_t size);
+ obj-$(CONFIG_ROMKERNEL) += head_rom.o
+ obj-$(CONFIG_RAMKERNEL) += head_ram.o
+diff --git a/arch/h8300/kernel/dma.c b/arch/h8300/kernel/dma.c
+deleted file mode 100644
+index d44ba5db4ac3..000000000000
+--- a/arch/h8300/kernel/dma.c
++++ /dev/null
+@@ -1,66 +0,0 @@
+-/*
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License.  See the file COPYING in the main directory of this archive
+- * for more details.
+- */
 -
- #endif /* _ASM_IA64_DMA_H */
-diff --git a/arch/mips/include/asm/dma-mapping.h b/arch/mips/include/asm/dma-mapping.h
-index 676c14cfc580..886e75a383f2 100644
---- a/arch/mips/include/asm/dma-mapping.h
-+++ b/arch/mips/include/asm/dma-mapping.h
-@@ -17,8 +17,6 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
- 	return mips_dma_map_ops;
- }
- 
--static inline void dma_mark_clean(void *addr, size_t size) {}
+-#include <linux/dma-mapping.h>
+-#include <linux/kernel.h>
+-#include <linux/scatterlist.h>
+-#include <linux/module.h>
+-#include <asm/pgalloc.h>
 -
- #define arch_setup_dma_ops arch_setup_dma_ops
- static inline void arch_setup_dma_ops(struct device *dev, u64 dma_base,
- 				      u64 size, const struct iommu_ops *iommu,
-diff --git a/arch/powerpc/include/asm/swiotlb.h b/arch/powerpc/include/asm/swiotlb.h
-index 01d45a5fd00b..9341ee804d19 100644
---- a/arch/powerpc/include/asm/swiotlb.h
-+++ b/arch/powerpc/include/asm/swiotlb.h
-@@ -15,8 +15,6 @@
- 
- extern const struct dma_map_ops swiotlb_dma_ops;
- 
--static inline void dma_mark_clean(void *addr, size_t size) {}
+-static void *dma_alloc(struct device *dev, size_t size,
+-		       dma_addr_t *dma_handle, gfp_t gfp,
+-		       unsigned long attrs)
+-{
+-	void *ret;
 -
- extern unsigned int ppc_swiotlb_enable;
- int __init swiotlb_setup_bus_notifier(void);
- 
-diff --git a/arch/tile/include/asm/dma-mapping.h b/arch/tile/include/asm/dma-mapping.h
-index 75b8aaa4e70b..d25fce101fc0 100644
---- a/arch/tile/include/asm/dma-mapping.h
-+++ b/arch/tile/include/asm/dma-mapping.h
-@@ -44,8 +44,6 @@ static inline void set_dma_offset(struct device *dev, dma_addr_t off)
- 	dev->archdata.dma_offset = off;
- }
- 
--static inline void dma_mark_clean(void *addr, size_t size) {}
+-	if (dev == NULL || (*dev->dma_mask < 0xffffffff))
+-		gfp |= GFP_DMA;
+-	ret = (void *)__get_free_pages(gfp, get_order(size));
 -
- #define HAVE_ARCH_DMA_SET_MASK 1
- int dma_set_mask(struct device *dev, u64 mask);
- 
-diff --git a/arch/unicore32/include/asm/dma-mapping.h b/arch/unicore32/include/asm/dma-mapping.h
-index 5cb250bf2d8c..f2bfec273aa7 100644
---- a/arch/unicore32/include/asm/dma-mapping.h
-+++ b/arch/unicore32/include/asm/dma-mapping.h
-@@ -25,7 +25,5 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
- 	return &swiotlb_dma_map_ops;
- }
- 
--static inline void dma_mark_clean(void *addr, size_t size) {}
+-	if (ret != NULL) {
+-		memset(ret, 0, size);
+-		*dma_handle = virt_to_phys(ret);
+-	}
+-	return ret;
+-}
 -
- #endif /* __KERNEL__ */
- #endif
-diff --git a/arch/x86/include/asm/swiotlb.h b/arch/x86/include/asm/swiotlb.h
-index bdf9aed40403..1c6a6cb230ff 100644
---- a/arch/x86/include/asm/swiotlb.h
-+++ b/arch/x86/include/asm/swiotlb.h
-@@ -28,8 +28,6 @@ static inline void pci_swiotlb_late_init(void)
- }
- #endif
- 
--static inline void dma_mark_clean(void *addr, size_t size) {}
+-static void dma_free(struct device *dev, size_t size,
+-		     void *vaddr, dma_addr_t dma_handle,
+-		     unsigned long attrs)
 -
- extern void *x86_swiotlb_alloc_coherent(struct device *hwdev, size_t size,
- 					dma_addr_t *dma_handle, gfp_t flags,
- 					unsigned long attrs);
-diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
-index 2cc1b6558944..10e924b7cba7 100644
---- a/include/linux/dma-direct.h
-+++ b/include/linux/dma-direct.h
-@@ -29,4 +29,13 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
- 	return addr + size - 1 <= *dev->dma_mask;
- }
- #endif /* !CONFIG_ARCH_HAS_PHYS_TO_DMA */
-+
-+#ifdef CONFIG_ARCH_HAS_DMA_MARK_CLEAN
-+void dma_mark_clean(void *addr, size_t size);
-+#else
-+static inline void dma_mark_clean(void *addr, size_t size)
-+{
-+}
-+#endif /* CONFIG_ARCH_HAS_DMA_MARK_CLEAN */
-+
- #endif /* _LINUX_DMA_DIRECT_H */
+-{
+-	free_pages((unsigned long)vaddr, get_order(size));
+-}
+-
+-static dma_addr_t map_page(struct device *dev, struct page *page,
+-				  unsigned long offset, size_t size,
+-				  enum dma_data_direction direction,
+-				  unsigned long attrs)
+-{
+-	return page_to_phys(page) + offset;
+-}
+-
+-static int map_sg(struct device *dev, struct scatterlist *sgl,
+-		  int nents, enum dma_data_direction direction,
+-		  unsigned long attrs)
+-{
+-	struct scatterlist *sg;
+-	int i;
+-
+-	for_each_sg(sgl, sg, nents, i) {
+-		sg->dma_address = sg_phys(sg);
+-	}
+-
+-	return nents;
+-}
+-
+-const struct dma_map_ops h8300_dma_map_ops = {
+-	.alloc = dma_alloc,
+-	.free = dma_free,
+-	.map_page = map_page,
+-	.map_sg = map_sg,
+-};
+-EXPORT_SYMBOL(h8300_dma_map_ops);
 -- 
 2.14.2
