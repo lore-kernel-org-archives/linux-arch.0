@@ -1,183 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:16015 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932148AbeALAyp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Jan 2018 19:54:45 -0500
-Subject: [PATCH v2 01/19] Documentation: document array_ptr
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 11 Jan 2018 16:46:30 -0800
-Message-ID: <151571799008.27429.12325141216769795517.stgit@dwillia2-desk3.amr.corp.intel.com>
-In-Reply-To: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Received: from out01.mta.xmission.com ([166.70.13.231]:35575 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933808AbeALBBm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:01:42 -0500
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Date: Thu, 11 Jan 2018 18:59:39 -0600
+Message-ID: <20180112005940.23279-10-ebiederm@xmission.com>
+In-Reply-To: <87373b6ghs.fsf@xmission.com>
+References: <87373b6ghs.fsf@xmission.com>
+Subject: [PATCH 10/11] signal: Introduce clear_siginfo
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Jonathan Corbet <corbet@lwn.net>, Will Deacon <will.deacon@arm.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180112004630.wtRSgE9twf5BjmU9VE2HwCZkcso7d9pVZpwK28lisRM@z>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20180112005939.PTz9SqVKrX_UZR_qpv3I8LY0Ytmo3147VrH-s6vHhTI@z>
 
-From: Mark Rutland <mark.rutland@arm.com>
+Unfortunately struct siginfo has holes both in the common part of the
+structure, in the union members, and in the lack of padding of the
+union members.  The result of those wholes is that the C standard does
+not guarantee those bits will be initialized.  As struct siginfo is
+for communication between the kernel and userspace that is a problem.
 
-Document the rationale and usage of the new array_ptr() helper.
+Add the helper function clear_siginfo that is guaranteed to clear all of
+the bits in struct siginfo so when the structure is copied there is no danger
+of copying old kernel data and causing a leak of information from kernel
+space to userspace.
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- Documentation/speculation.txt |  142 +++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 142 insertions(+)
- create mode 100644 Documentation/speculation.txt
+ include/linux/signal.h | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/Documentation/speculation.txt b/Documentation/speculation.txt
-new file mode 100644
-index 000000000000..a4d465fd42cd
---- /dev/null
-+++ b/Documentation/speculation.txt
-@@ -0,0 +1,142 @@
-+This document explains potential effects of speculation, and how undesirable
-+effects can be mitigated portably using common APIs.
+diff --git a/include/linux/signal.h b/include/linux/signal.h
+index 8037b503ce91..87abf0c29ed7 100644
+--- a/include/linux/signal.h
++++ b/include/linux/signal.h
+@@ -16,6 +16,11 @@ static inline void copy_siginfo(struct siginfo *to, const struct siginfo *from)
+ 	memcpy(to, from, sizeof(*to));
+ }
+ 
++static inline void clear_siginfo(struct siginfo *info)
++{
++	memset(info, 0, sizeof(*info));
++}
 +
-+===========
-+Speculation
-+===========
-+
-+To improve performance and minimize average latencies, many contemporary CPUs
-+employ speculative execution techniques such as branch prediction, performing
-+work which may be discarded at a later stage.
-+
-+Typically speculative execution cannot be observed from architectural state,
-+such as the contents of registers. However, in some cases it is possible to
-+observe its impact on microarchitectural state, such as the presence or
-+absence of data in caches. Such state may form side-channels which can be
-+observed to extract secret information.
-+
-+For example, in the presence of branch prediction, it is possible for bounds
-+checks to be ignored by code which is speculatively executed. Consider the
-+following code:
-+
-+	int load_array(int *array, unsigned int idx) {
-+		if (idx >= MAX_ARRAY_ELEMS)
-+			return 0;
-+		else
-+			return array[idx];
-+	}
-+
-+Which, on arm64, may be compiled to an assembly sequence such as:
-+
-+	CMP	<idx>, #MAX_ARRAY_ELEMS
-+	B.LT	less
-+	MOV	<returnval>, #0
-+	RET
-+  less:
-+	LDR	<returnval>, [<array>, <idx>]
-+	RET
-+
-+It is possible that a CPU mis-predicts the conditional branch, and
-+speculatively loads array[idx], even if idx >= MAX_ARRAY_ELEMS. This value
-+will subsequently be discarded, but the speculated load may affect
-+microarchitectural state which can be subsequently measured.
-+
-+More complex sequences involving multiple dependent memory accesses may result
-+in sensitive information being leaked. Consider the following code, building
-+on the prior example:
-+
-+	int load_dependent_arrays(int *arr1, int *arr2, int idx)
-+	{
-+		int val1, val2,
-+
-+		val1 = load_array(arr1, idx);
-+		val2 = load_array(arr2, val1);
-+
-+		return val2;
-+	}
-+
-+Under speculation, the first call to load_array() may return the value of an
-+out-of-bounds address, while the second call will influence microarchitectural
-+state dependent on this value. This may provide an arbitrary read primitive.
-+
-+====================================
-+Mitigating speculation side-channels
-+====================================
-+
-+The kernel provides a generic API to ensure that bounds checks are respected
-+even under speculation. Architectures which are affected by speculation-based
-+side-channels are expected to implement these primitives.
-+
-+The array_ptr() helper in <asm/barrier.h> can be used to prevent
-+information from being leaked via side-channels.
-+
-+A call to array_ptr(arr, idx, sz) returns a sanitized pointer to
-+arr[idx] only if idx falls in the [0, sz) interval. When idx < 0 or idx > sz,
-+NULL is returned. Additionally, array_ptr() an out-of-bounds poitner is
-+not propagated to code which is speculatively executed.
-+
-+This can be used to protect the earlier load_array() example:
-+
-+	int load_array(int *array, unsigned int idx)
-+	{
-+		int *elem;
-+
-+		elem = array_ptr(array, idx, MAX_ARRAY_ELEMS);
-+		if (elem)
-+			return *elem;
-+		else
-+			return 0;
-+	}
-+
-+This can also be used in situations where multiple fields on a structure are
-+accessed:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		struct foo *elem;
-+
-+		elem = array_ptr(array, idx, SIZE);
-+		if (elem) {
-+			a = elem->field_a;
-+			b = elem->field_b;
-+		}
-+	}
-+
-+It is imperative that the returned pointer is used. Pointers which are
-+generated separately are subject to a number of potential CPU and compiler
-+optimizations, and may still be used speculatively. For example, this means
-+that the following sequence is unsafe:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		if (array_ptr(array, idx, SIZE) != NULL) {
-+			// unsafe as wrong pointer is used
-+			a = array[idx].field_a;
-+			b = array[idx].field_b;
-+		}
-+	}
-+
-+Similarly, it is unsafe to compare the returned pointer with other pointers,
-+as this may permit the compiler to substitute one pointer with another,
-+permitting speculation. For example, the following sequence is unsafe:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		struct foo *elem = array_ptr(array, idx, size);
-+
-+		// unsafe due to pointer substitution
-+		if (elem == &array[idx]) {
-+			a = elem->field_a;
-+			b = elem->field_b;
-+		}
-+	}
-+
+ int copy_siginfo_to_user(struct siginfo __user *to, const struct siginfo *from);
+ 
+ enum siginfo_layout {
+-- 
+2.14.1
