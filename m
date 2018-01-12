@@ -1,76 +1,67 @@
-From: James Bottomley <jejb@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 17/19] qla2xxx: prevent bounds-check bypass via
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH 10/18] qla2xxx: prevent bounds-check bypass via
  speculative execution
-Date: Thu, 11 Jan 2018 22:05:55 -0800
-Message-ID: <1515737155.3056.48.camel@linux.vnet.ibm.com>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
-         <151571807774.27429.7382333750792304971.stgit@dwillia2-desk3.amr.corp.intel.com>
-         <1515719956.3056.37.camel@linux.vnet.ibm.com>
-         <CAPcyv4gb8SpBEYnuc3hULLZdiuUM1Lhc33CBirmXtckD0CsLww@mail.gmail.com>
+Date: Fri, 12 Jan 2018 08:27:58 +0100
+Message-ID: <20180112072758.GD25517@kroah.com>
+References: <151520099201.32271.4677179499894422956.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151520104838.32271.7038801336240727574.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180106090322.GF4380@kroah.com>
+ <CAPcyv4jQjwa5X6ctO7bU1Z3hfRGRTa6gDO3pSSo_HQHkjg4MFg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:35486 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1754293AbeALGGG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 12 Jan 2018 01:06:06 -0500
-Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w0C65IUm072248
-        for <linux-arch@vger.kernel.org>; Fri, 12 Jan 2018 01:06:06 -0500
-Received: from e31.co.us.ibm.com (e31.co.us.ibm.com [32.97.110.149])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2fep31k35x-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 12 Jan 2018 01:06:05 -0500
-Received: from localhost
-        by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <jejb@linux.vnet.ibm.com>;
-        Thu, 11 Jan 2018 23:06:05 -0700
-In-Reply-To: <CAPcyv4gb8SpBEYnuc3hULLZdiuUM1Lhc33CBirmXtckD0CsLww@mail.gmail.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:53016 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750714AbeALH17 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 02:27:59 -0500
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4jQjwa5X6ctO7bU1Z3hfRGRTa6gDO3pSSo_HQHkjg4MFg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Dan Williams <dan.j.williams@intel.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi <linux-scsi@vger.kernel.org>, kernel-hardening@lists.openwall.com, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi <linux-scsi@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Netdev <netdev@vger.kernel.org>, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
 
-On Thu, 2018-01-11 at 21:38 -0800, Dan Williams wrote:
-> On Thu, Jan 11, 2018 at 5:19 PM, James Bottomley
-> <jejb@linux.vnet.ibm.com> wrote:
-> > 
-> > On Thu, 2018-01-11 at 16:47 -0800, Dan Williams wrote:
-> > > 
-> > > Static analysis reports that 'handle' may be a user controlled
-> > > value that is used as a data dependency to read 'sp' from the
-> > > 'req->outstanding_cmds' array.
-> > 
-> > Greg already told you it comes from hardware, specifically the
-> > hardware response queue.  If you don't believe him, I can confirm
-> > it's quite definitely all copied from the iomem where the mailbox
-> > response is, so it can't be a user controlled value (well, unless
-> > the user has some influence over the firmware of the
-> > qla2xxx  controller, which probably means you have other things to
-> > worry about than speculative information leaks).
+On Thu, Jan 11, 2018 at 02:15:12PM -0800, Dan Williams wrote:
+> On Sat, Jan 6, 2018 at 1:03 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
+> > On Fri, Jan 05, 2018 at 05:10:48PM -0800, Dan Williams wrote:
+> >> Static analysis reports that 'handle' may be a user controlled value
+> >> that is used as a data dependency to read 'sp' from the
+> >> 'req->outstanding_cmds' array.  In order to avoid potential leaks of
+> >> kernel memory values, block speculative execution of the instruction
+> >> stream that could issue reads based on an invalid value of 'sp'. In this
+> >> case 'sp' is directly dereferenced later in the function.
+> >
+> > I'm pretty sure that 'handle' comes from the hardware, not from
+> > userspace, from what I can tell here.  If we want to start auditing
+> > __iomem data sources, great!  But that's a bigger task, and one I don't
+> > think we are ready to tackle...
 > 
-> I do believe him, and I still submitted this. I'm trying to probe at
-> the meta question of where do we draw the line with these especially
-> when it costs us relatively little to apply a few line patch? We fix
-> theoretical lockdep races, why not theoretical data leak paths?
+> I think it falls in the hygiene bucket of shutting off an array index
+> from a source that could be under attacker control. Should we leave
+> this one un-patched while we decide if we generally have a problem
+> with trusting completion 'tags' from hardware? My vote is patch it for
+> now.
 
-I think I've lost the thread of what you're after.  I thought you were
-asking for the domain experts to look and see if there is the potential
-for attack; if there's no theoretical way for a user to influence the
-value what's the point of killing speculation?  Furthermore, if the
-user could affect that 32 bit value, what they'd actually do is extract
-information via the que variable which you didn't fix and which could
-be used to compromise the kernel without resorting to side channel
-attacks.
+Hah, if you are worried about "tags" from hardware, we have a lot more
+auditing to do, right?  I don't think anyone has looked into just basic
+"bounds checking" for that type of information.  For USB devices we have
+_just_ started doing that over the past year, the odds of anyone looking
+at PCI devices for this same problem is slim-to-none.
 
-What's most puzzling to me is the inconsistency of the positions: if it
-doesn't cost that much to turn off speculation, just do it on kernel
-entry as Jiří suggested; we can make it a dynamic option and the cloud
-providers can do it and the rest of us don't need to bother.  If it
-does cost a lot to turn it off as Alan said, then you need us to
-identify the cases above where there's no need to disrupt the
-speculation pipeline and not turn it off there.  Which is it?
+Again, here are my questions/objections right now to this series:
+	- How can we audit this stuff?
+	- How did you audit this stuff to find these usages?
+	- How do you know that this series fixes all of the issues?
+	- What exact tree/date did you run your audit against?
+	- How do you know that linux-next does not contain a boatload
+	  more problems that we need to go back and fix after 4.16-rc1
+	  is out?
+	- How can we prevent this type of pattern showing up again?
+	- How can we audit the data coming from hardware correctly?
 
-James
+I'm all for merging this series, but if anyone things that somehow the
+whole problem is now "solved" in this area, they are sorely mistaken.
+
+thanks,
+
+greg k-h
