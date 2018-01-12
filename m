@@ -1,59 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:33916 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933357AbeALNPl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 12 Jan 2018 08:15:41 -0500
-Subject: Re: [REGRESSION] testing/selftests/x86/ pkeys build failures
-References: <360ef254-48bc-aee6-70f9-858f773b8693@redhat.com>
- <20180112125537.bdl376ziiaqp664o@gmail.com>
-From: Florian Weimer <fweimer@redhat.com>
-Message-ID: <063ba398-88e6-8650-2905-c378ee1fb8b2@redhat.com>
-Date: Fri, 12 Jan 2018 14:15:32 +0100
+Received: from mail-qt0-f195.google.com ([209.85.216.195]:46619 "EHLO
+        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933462AbeALNQy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 08:16:54 -0500
+Date: Fri, 12 Jan 2018 08:16:48 -0500
+From: Konrad Rzeszutek Wilk <konrad@darnok.org>
+Subject: Re: [PATCH 19/33] dma-mapping: warn when there is no
+ coherent_dma_mask
+Message-ID: <20180112131646.GA26900@localhost.localdomain>
+References: <20180110080027.13879-1-hch@lst.de>
+ <20180110080027.13879-20-hch@lst.de>
 MIME-Version: 1.0
-In-Reply-To: <20180112125537.bdl376ziiaqp664o@gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180110080027.13879-20-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>, Shuah Khan <shuahkh@osg.samsung.com>, Dave Hansen <dave.hansen@linux.intel.com>
-Cc: linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, linux-x86_64@vger.kernel.org, Linux API <linux-api@vger.kernel.org>, x86@kernel.org, Dave Hansen <dave.hansen@intel.com>, Ram Pai <linuxram@us.ibm.com>
-Message-ID: <20180112131532.p0qPSX7uIA_loBeLCtnfaQYHODzdbOoMrnEjkli84EM@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: iommu@lists.linux-foundation.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180112131648.lKbIYew1wtDyjZ00f_73R0yyXdxUZvEaTKcOKQcPNwI@z>
 
-On 01/12/2018 01:55 PM, Ingo Molnar wrote:
+On Wed, Jan 10, 2018 at 09:00:13AM +0100, Christoph Hellwig wrote:
+> These days all devices should have a DMA coherent mask, and most dma_ops
+> implementations rely on that fact.  But just to be sure add an assert to
+> ring the warning bell if that is not the case.
 > 
-> * Florian Weimer <fweimer@redhat.com> wrote:
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+
+Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+> ---
+>  include/linux/dma-mapping.h | 1 +
+>  1 file changed, 1 insertion(+)
 > 
->> This patch is based on the previous discussion (pkeys: Support setting
->> access rights for signal handlers):
->>
->>    https://marc.info/?t=151285426000001
->>
->> It aligns the signal semantics of the x86 implementation with the upcoming
->> POWER implementation, and defines a new flag, so that applications can
->> detect which semantics the kernel uses.
->>
->> A change in this area is needed to make memory protection keys usable for
->> protecting the GOT in the dynamic linker.
->>
->> (Feel free to replace the trigraphs in the commit message before committing,
->> or to remove the program altogether.)
+> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+> index d84951865be7..9f28b2fa329e 100644
+> --- a/include/linux/dma-mapping.h
+> +++ b/include/linux/dma-mapping.h
+> @@ -513,6 +513,7 @@ static inline void *dma_alloc_attrs(struct device *dev, size_t size,
+>  	void *cpu_addr;
+>  
+>  	BUG_ON(!ops);
+> +	WARN_ON_ONCE(!dev->coherent_dma_mask);
+>  
+>  	if (dma_alloc_from_dev_coherent(dev, size, dma_handle, &cpu_addr))
+>  		return cpu_addr;
+> -- 
+> 2.14.2
 > 
-> Could you please send patches not as MIME attachments?
-
-My mail infrastructure corrupts patches not sent as attachments, sorry.
-
-> Also, the protection keys testcase first need to be fixed, before we complicate
-> them - for example on a pretty regular Ubuntu x86-64 installation they fail to
-> build with the build errors attached further below.
-
-I can fix things up so that they build on Fedora 26, Debian stretch, and 
-Red Hat Enterprise Linux 7.  Would that be sufficient?
-
-Fedora 23 is out of support and I'd prefer not invest any work into it.
-
-Note that I find it strange to make this a precondition for even looking 
-at the patch.
-
-Thanks,
-Florian
