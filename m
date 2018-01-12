@@ -1,36 +1,33 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 11/34] mips: fix an off-by-one in dma_capable
-Date: Fri, 12 Jan 2018 09:42:09 +0100
-Message-ID: <20180112084232.2857-12-hch@lst.de>
+Subject: [PATCH 14/34] hexagon: use the generic dma_capable helper
+Date: Fri, 12 Jan 2018 09:42:12 +0100
+Message-ID: <20180112084232.2857-15-hch@lst.de>
 References: <20180112084232.2857-1-hch@lst.de>
-Return-path: <linux-sh-owner@vger.kernel.org>
+Return-path: <linux-parisc-owner@vger.kernel.org>
 In-Reply-To: <20180112084232.2857-1-hch@lst.de>
-Sender: linux-sh-owner@vger.kernel.org
+Sender: linux-parisc-owner@vger.kernel.org
 To: iommu@lists.linux-foundation.org
 Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This makes it match the generic version.
-
-Reported-by: Vladimir Murzin <vladimir.murzin@arm.com>
 Signed-off-by: Christoph Hellwig <hch@lst.de>
+Acked-by: Richard Kuo <rkuo@codeaurora.org>
 ---
- arch/mips/include/asm/dma-mapping.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/hexagon/include/asm/dma-mapping.h | 7 -------
+ arch/hexagon/kernel/dma.c              | 1 +
+ 2 files changed, 1 insertion(+), 7 deletions(-)
 
-diff --git a/arch/mips/include/asm/dma-mapping.h b/arch/mips/include/asm/dma-mapping.h
-index 0d9418d264f9..5c334ac15945 100644
---- a/arch/mips/include/asm/dma-mapping.h
-+++ b/arch/mips/include/asm/dma-mapping.h
-@@ -22,7 +22,7 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
- 	if (!dev->dma_mask)
- 		return false;
- 
--	return addr + size <= *dev->dma_mask;
-+	return addr + size - 1 <= *dev->dma_mask;
+diff --git a/arch/hexagon/include/asm/dma-mapping.h b/arch/hexagon/include/asm/dma-mapping.h
+index 5208de242e79..263f6acbfb0f 100644
+--- a/arch/hexagon/include/asm/dma-mapping.h
++++ b/arch/hexagon/include/asm/dma-mapping.h
+@@ -37,11 +37,4 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+ 	return dma_ops;
  }
  
- static inline void dma_mark_clean(void *addr, size_t size) {}
--- 
-2.14.2
-
+-static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+-{
+-	if (!dev->dma_mask)
+-		return 0;
+-	return addr + size - 1 <= *dev->dma_mask;
+-}
