@@ -1,67 +1,46 @@
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 2/2] x86/mm/pkeys: Fix fill_sig_info_pkey
-Date: Fri, 12 Jan 2018 14:31:35 -0600
-Message-ID: <20180112203135.4669-2-ebiederm@xmission.com>
-References: <87vag6zupo.fsf@xmission.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:36092 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754506AbeALUcz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 15:32:55 -0500
-In-Reply-To: <87vag6zupo.fsf@xmission.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Dave Hansen <dave.hansen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH v2 07/19] x86: introduce __uaccess_begin_nospec and
+ ASM_IFENCE
+Date: Fri, 12 Jan 2018 14:41:26 -0600
+Message-ID: <20180112204126.257jubn2hccgtzdt@treble>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151571802258.27429.932636277047687877.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180112175109.yoz4jaaipztdj34k@treble>
+ <CAPcyv4heW2FqxpCa0NZeTsa5V7pgpzA-MdHYJA+y9C5L2GTP9w@mail.gmail.com>
+ <20180112185815.meiwnnb5vmnrbsdt@treble>
+ <CAPcyv4jm7S+8ezntAo2LeOGshPdpt616RNOambOL6espzBYUvg@mail.gmail.com>
+ <CA+55aFwhU110nyGerakLf-LHgfZDmJ6snTyQJqAHRbnxQoqbHg@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CA+55aFwhU110nyGerakLf-LHgfZDmJ6snTyQJqAHRbnxQoqbHg@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-SEGV_PKUERR is a signal specific si_code which happens to have the
-same numeric value as several others: BUS_MCEERR_AR, ILL_ILLTRP,
-FPE_FLTOVF, TRAP_HWBKPT, CLD_TRAPPED, POLL_ERR, SEGV_THREAD_ID,
-as such it is not safe to just test the si_code the signal number
-must also be tested to prevent a false positive in fill_sig_info_pkey.
+On Fri, Jan 12, 2018 at 12:01:04PM -0800, Linus Torvalds wrote:
+> On Fri, Jan 12, 2018 at 11:26 AM, Dan Williams <dan.j.williams@intel.com> wrote:
+> >
+> > By the time we get to de-reference uptr we know it is not pointing at
+> > kernel memory, because access_ok would have failed and the cpu would
+> > have waited for that failure result before doing anything else.
+> 
+> I'm not actually convinced that's right in the original patches,
+> exactly because of the issue that Josh pointed out: even if there is a
+> comparison inside access_ok() that will be properly serialized, then
+> that comparison can (and sometimes does) just cause a truth value to
+> be generated, and then there  might be *another* comparison of that
+> return value after the lfence. And while the return value is table,
+> the conditional branch on that comparison isn't.
+> 
+> The new model of just doing it together with the STAC should be fine, though.
 
-I found this error by inspection, and BUS_MCEERR_AR appears to
-be a real candidate for confusion.  So pass in si_signo and fix it.
+Aha, that clears it up for me, thanks.  I was still thinking about the
+previous version of the patch which had the barrier in access_ok().  I
+didn't realize the new version moved the barrier to after the
+access_ok() checks.
 
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@kernel.org>
-Fixes: 019132ff3daf ("x86/mm/pkeys: Fill in pkey field in siginfo")
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- arch/x86/mm/fault.c | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
-
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 06fe3d51d385..b3e40773dce0 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -172,14 +172,15 @@ is_prefetch(struct pt_regs *regs, unsigned long error_code, unsigned long addr)
-  * 6. T1   : reaches here, sees vma_pkey(vma)=5, when we really
-  *	     faulted on a pte with its pkey=4.
-  */
--static void fill_sig_info_pkey(int si_code, siginfo_t *info, u32 *pkey)
-+static void fill_sig_info_pkey(int si_signo, int si_code, siginfo_t *info,
-+		u32 *pkey)
- {
- 	/* This is effectively an #ifdef */
- 	if (!boot_cpu_has(X86_FEATURE_OSPKE))
- 		return;
- 
- 	/* Fault not from Protection Keys: nothing to do */
--	if (si_code != SEGV_PKUERR)
-+	if ((si_code != SEGV_PKUERR) || (si_signo != SIGSEGV))
- 		return;
- 	/*
- 	 * force_sig_info_fault() is called from a number of
-@@ -218,7 +219,7 @@ force_sig_info_fault(int si_signo, int si_code, unsigned long address,
- 		lsb = PAGE_SHIFT;
- 	info.si_addr_lsb = lsb;
- 
--	fill_sig_info_pkey(si_code, &info, pkey);
-+	fill_sig_info_pkey(si_signo, si_code, &info, pkey);
- 
- 	force_sig_info(si_signo, &info, tsk);
- }
 -- 
-2.14.1
+Josh
