@@ -1,223 +1,166 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 21/34] dma-mapping: clear harmful GFP_* flags in common code
-Date: Fri, 12 Jan 2018 09:42:19 +0100
-Message-ID: <20180112084232.2857-22-hch@lst.de>
-References: <20180112084232.2857-1-hch@lst.de>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 06/19] asm-generic/barrier: mask speculative execution
+ flows
+Date: Fri, 12 Jan 2018 10:12:46 +0100
+Message-ID: <20180112091246.GP32035@hirez.programming.kicks-ass.net>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151571801681.27429.15417813964230837664.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20180112084232.2857-1-hch@lst.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: iommu@lists.linux-foundation.org
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-hexagon@vger.kernel.org, x86@kernel.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-snps-arc@lists.infradead.org, linux-m68k@lists.linux-m68k.org, patches@groups.riscv.org, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:47482 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754377AbeALJNX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 04:13:23 -0500
+Content-Disposition: inline
+In-Reply-To: <151571801681.27429.15417813964230837664.stgit@dwillia2-desk3.amr.corp.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
 
-Lift the code from x86 so that we behave consistently.  In the future we
-should probably warn if any of these is set.
+On Thu, Jan 11, 2018 at 04:46:56PM -0800, Dan Williams wrote:
+> diff --git a/include/linux/nospec.h b/include/linux/nospec.h
+> new file mode 100644
+> index 000000000000..5c66fc30f919
+> --- /dev/null
+> +++ b/include/linux/nospec.h
+> @@ -0,0 +1,71 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +// Copyright(c) 2018 Intel Corporation. All rights reserved.
+> +
+> +#ifndef __NOSPEC_H__
+> +#define __NOSPEC_H__
+> +
+> +#include <linux/jump_label.h>
+> +#include <asm/barrier.h>
+> +
+> +#ifndef array_ptr_mask
+> +#define array_ptr_mask(idx, sz)						\
+> +({									\
+> +	unsigned long mask;						\
+> +	unsigned long _i = (idx);					\
+> +	unsigned long _s = (sz);					\
+> +									\
+> +	mask = ~(long)(_i | (_s - 1 - _i)) >> (BITS_PER_LONG - 1);	\
+> +	mask;								\
+> +})
+> +#endif
+> +
+> +/**
+> + * __array_ptr - Generate a pointer to an array element, ensuring
+> + * the pointer is bounded under speculation to NULL.
+> + *
+> + * @base: the base of the array
+> + * @idx: the index of the element, must be less than LONG_MAX
+> + * @sz: the number of elements in the array, must be less than LONG_MAX
+> + *
+> + * If @idx falls in the interval [0, @sz), returns the pointer to
+> + * @arr[@idx], otherwise returns NULL.
+> + */
+> +#define __array_ptr(base, idx, sz)					\
+> +({									\
+> +	union { typeof(*(base)) *_ptr; unsigned long _bit; } __u;	\
+> +	typeof(*(base)) *_arr = (base);					\
+> +	unsigned long _i = (idx);					\
+> +	unsigned long _mask = array_ptr_mask(_i, (sz));			\
+> +									\
+> +	__u._ptr = _arr + (_i & _mask);					\
+> +	__u._bit &= _mask;						\
+> +	__u._ptr;							\
+> +})
+> +
+> +#ifdef CONFIG_SPECTRE1_IFENCE
+> +DECLARE_STATIC_KEY_TRUE(nospec_key);
+> +#else
+> +DECLARE_STATIC_KEY_FALSE(nospec_key);
+> +#endif
+> +
+> +#ifdef ifence_array_ptr
+> +/*
+> + * The expectation is that no compiler or cpu will mishandle __array_ptr
+> + * leading to problematic speculative execution. Bypass the ifence
+> + * based implementation by default.
+> + */
+> +#define array_ptr(base, idx, sz)				\
+> +({								\
+> +	typeof(*(base)) *__ret;					\
+> +								\
+> +	if (static_branch_unlikely(&nospec_key))		\
+> +		__ret = ifence_array_ptr(base, idx, sz);	\
+> +	else							\
+> +		__ret = __array_ptr(base, idx, sz);		\
+> +	__ret;							\
+> +})
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org> [m68k]
----
- arch/cris/arch-v32/drivers/pci/dma.c      | 3 ---
- arch/h8300/kernel/dma.c                   | 3 ---
- arch/m68k/kernel/dma.c                    | 2 --
- arch/mips/cavium-octeon/dma-octeon.c      | 3 ---
- arch/mips/loongson64/common/dma-swiotlb.c | 3 ---
- arch/mips/mm/dma-default.c                | 3 ---
- arch/mips/netlogic/common/nlm-dma.c       | 3 ---
- arch/mn10300/mm/dma-alloc.c               | 3 ---
- arch/nios2/mm/dma-mapping.c               | 3 ---
- arch/powerpc/kernel/dma.c                 | 3 ---
- arch/x86/kernel/pci-dma.c                 | 2 --
- include/linux/dma-mapping.h               | 7 +++++++
- 12 files changed, 7 insertions(+), 31 deletions(-)
 
-diff --git a/arch/cris/arch-v32/drivers/pci/dma.c b/arch/cris/arch-v32/drivers/pci/dma.c
-index dbbd3816cc0b..8c3802244ef3 100644
---- a/arch/cris/arch-v32/drivers/pci/dma.c
-+++ b/arch/cris/arch-v32/drivers/pci/dma.c
-@@ -22,9 +22,6 @@ static void *v32_dma_alloc(struct device *dev, size_t size,
- {
- 	void *ret;
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
--
- 	if (dev == NULL || (dev->coherent_dma_mask < 0xffffffff))
- 		gfp |= GFP_DMA;
- 
-diff --git a/arch/h8300/kernel/dma.c b/arch/h8300/kernel/dma.c
-index 225dd0a188dc..d44ba5db4ac3 100644
---- a/arch/h8300/kernel/dma.c
-+++ b/arch/h8300/kernel/dma.c
-@@ -16,9 +16,6 @@ static void *dma_alloc(struct device *dev, size_t size,
- {
- 	void *ret;
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
--
- 	if (dev == NULL || (*dev->dma_mask < 0xffffffff))
- 		gfp |= GFP_DMA;
- 	ret = (void *)__get_free_pages(gfp, get_order(size));
-diff --git a/arch/m68k/kernel/dma.c b/arch/m68k/kernel/dma.c
-index 87ef73a93856..c01b9b8f97bf 100644
---- a/arch/m68k/kernel/dma.c
-+++ b/arch/m68k/kernel/dma.c
-@@ -76,8 +76,6 @@ static void *m68k_dma_alloc(struct device *dev, size_t size,
- 		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
- {
- 	void *ret;
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
- 
- 	if (dev == NULL || (*dev->dma_mask < 0xffffffff))
- 		gfp |= GFP_DMA;
-diff --git a/arch/mips/cavium-octeon/dma-octeon.c b/arch/mips/cavium-octeon/dma-octeon.c
-index c64bd87f0b6e..5baf79fce643 100644
---- a/arch/mips/cavium-octeon/dma-octeon.c
-+++ b/arch/mips/cavium-octeon/dma-octeon.c
-@@ -161,9 +161,6 @@ static void *octeon_dma_alloc_coherent(struct device *dev, size_t size,
- {
- 	void *ret;
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM);
--
- 	if (IS_ENABLED(CONFIG_ZONE_DMA) && dev == NULL)
- 		gfp |= __GFP_DMA;
- 	else if (IS_ENABLED(CONFIG_ZONE_DMA) &&
-diff --git a/arch/mips/loongson64/common/dma-swiotlb.c b/arch/mips/loongson64/common/dma-swiotlb.c
-index ef07740cee61..15388c24a504 100644
---- a/arch/mips/loongson64/common/dma-swiotlb.c
-+++ b/arch/mips/loongson64/common/dma-swiotlb.c
-@@ -15,9 +15,6 @@ static void *loongson_dma_alloc_coherent(struct device *dev, size_t size,
- {
- 	void *ret;
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM);
--
- 	if ((IS_ENABLED(CONFIG_ISA) && dev == NULL) ||
- 	    (IS_ENABLED(CONFIG_ZONE_DMA) &&
- 	     dev->coherent_dma_mask < DMA_BIT_MASK(32)))
-diff --git a/arch/mips/mm/dma-default.c b/arch/mips/mm/dma-default.c
-index e3e94d05f0fd..237532e89919 100644
---- a/arch/mips/mm/dma-default.c
-+++ b/arch/mips/mm/dma-default.c
-@@ -93,9 +93,6 @@ static gfp_t massage_gfp_flags(const struct device *dev, gfp_t gfp)
- {
- 	gfp_t dma_flag;
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM);
--
- #ifdef CONFIG_ISA
- 	if (dev == NULL)
- 		dma_flag = __GFP_DMA;
-diff --git a/arch/mips/netlogic/common/nlm-dma.c b/arch/mips/netlogic/common/nlm-dma.c
-index 0ec9d9da6d51..49c975b6aa28 100644
---- a/arch/mips/netlogic/common/nlm-dma.c
-+++ b/arch/mips/netlogic/common/nlm-dma.c
-@@ -47,9 +47,6 @@ static char *nlm_swiotlb;
- static void *nlm_dma_alloc_coherent(struct device *dev, size_t size,
- 	dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
- {
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM);
--
- #ifdef CONFIG_ZONE_DMA32
- 	if (dev->coherent_dma_mask <= DMA_BIT_MASK(32))
- 		gfp |= __GFP_DMA32;
-diff --git a/arch/mn10300/mm/dma-alloc.c b/arch/mn10300/mm/dma-alloc.c
-index 86108d2496b3..e3910d4db102 100644
---- a/arch/mn10300/mm/dma-alloc.c
-+++ b/arch/mn10300/mm/dma-alloc.c
-@@ -37,9 +37,6 @@ static void *mn10300_dma_alloc(struct device *dev, size_t size,
- 		goto done;
- 	}
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
--
- 	if (dev == NULL || dev->coherent_dma_mask < 0xffffffff)
- 		gfp |= GFP_DMA;
- 
-diff --git a/arch/nios2/mm/dma-mapping.c b/arch/nios2/mm/dma-mapping.c
-index 7040c1adbb5e..4be815519dd4 100644
---- a/arch/nios2/mm/dma-mapping.c
-+++ b/arch/nios2/mm/dma-mapping.c
-@@ -63,9 +63,6 @@ static void *nios2_dma_alloc(struct device *dev, size_t size,
- {
- 	void *ret;
- 
--	/* ignore region specifiers */
--	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
--
- 	/* optimized page clearing */
- 	gfp |= __GFP_ZERO;
- 
-diff --git a/arch/powerpc/kernel/dma.c b/arch/powerpc/kernel/dma.c
-index 6d5d04ccf3b4..76079841d3d0 100644
---- a/arch/powerpc/kernel/dma.c
-+++ b/arch/powerpc/kernel/dma.c
-@@ -105,9 +105,6 @@ void *__dma_nommu_alloc_coherent(struct device *dev, size_t size,
- 	};
- #endif /* CONFIG_FSL_SOC */
- 
--	/* ignore region specifiers */
--	flag  &= ~(__GFP_HIGHMEM);
--
- 	page = alloc_pages_node(node, flag, get_order(size));
- 	if (page == NULL)
- 		return NULL;
-diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
-index 8439e6de6156..61a8f1cb3829 100644
---- a/arch/x86/kernel/pci-dma.c
-+++ b/arch/x86/kernel/pci-dma.c
-@@ -87,7 +87,6 @@ void *dma_generic_alloc_coherent(struct device *dev, size_t size,
- 
- 	dma_mask = dma_alloc_coherent_mask(dev, flag);
- 
--	flag &= ~__GFP_ZERO;
- again:
- 	page = NULL;
- 	/* CMA can be used only in the context which permits sleeping */
-@@ -139,7 +138,6 @@ bool arch_dma_alloc_attrs(struct device **dev, gfp_t *gfp)
- 	if (!*dev)
- 		*dev = &x86_dma_fallback_dev;
- 
--	*gfp &= ~(__GFP_DMA | __GFP_HIGHMEM | __GFP_DMA32);
- 	*gfp = dma_alloc_coherent_gfp_flags(*dev, *gfp);
- 
- 	if (!is_device_dma_capable(*dev))
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 9f28b2fa329e..88bcb1a8211d 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -518,6 +518,13 @@ static inline void *dma_alloc_attrs(struct device *dev, size_t size,
- 	if (dma_alloc_from_dev_coherent(dev, size, dma_handle, &cpu_addr))
- 		return cpu_addr;
- 
-+	/*
-+	 * Let the implementation decide on the zone to allocate from, and
-+	 * decide on the way of zeroing the memory given that the memory
-+	 * returned should always be zeroed.
-+	 */
-+	flag &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM | __GFP_ZERO);
-+
- 	if (!arch_dma_alloc_attrs(&dev, &flag))
- 		return NULL;
- 	if (!ops->alloc)
--- 
-2.14.2
+So I think this wants:
+
+#ifndef HAVE_JUMP_LABEL
+#error Compiler lacks asm-goto, can generate unsafe code
+#endif
+
+Suppose the generic array_ptr_mask() is unsafe on some arch and they
+only implement ifence_array_ptr() and they compile without asm-goto,
+then the above reverts to a dynamic condition, which can be speculated.
+If we then speculate into the 'bad' __array_ptr we're screwed.
+
+> +#else
+> +#define array_ptr __array_ptr
+> +#endif
+> +
+> +#endif /* __NOSPEC_H__ */
+
+
+In general I think I would write all this in a form like:
+
+#define __array_ptr(base, idx, sz)					\
+({									\
+	union { typeof(*(base)) *_ptr; unsigned long _bit; } __u;	\
+	typeof(*(base)) *_arr = (base);					\
+	unsigned long _i = (idx);					\
+	unsigned long _mask = array_ptr_mask(_i, (sz));			\
+									\
+	__u._ptr = _arr + (_i & _mask);					\
+	__u._bit &= _mask;						\
+	__u._ptr;							\
+})
+
+#if defined(array_ptr_mask) && defined(ifence_array_ptr)
+
+#ifndef HAVE_JUMP_LABEL
+#error Compiler lacks asm-goto, can generate unsafe code
+#endif
+
+#define array_ptr(base, idx, sz)				\
+({								\
+	typeof(*(base)) *__ret;					\
+								\
+	if (static_branch_unlikely(&nospec_key))		\
+		__ret = ifence_array_ptr(base, idx, sz);	\
+	else							\
+		__ret = __array_ptr(base, idx, sz);		\
+	__ret;							\
+})
+
+#elif defined(array_ptr_mask)
+
+#define array_ptr(base, idx, sz) __array_ptr(base, idx, sz)
+
+#elif defined(ifence_array_ptr)
+
+#define array_ptr(base, idx, sz) ifence_array_ptr(base, idx, sz)
+
+#else
+
+/* XXX we want a suitable warning here ? */
+
+#define array_ptr(base, idx, sz) (idx < sz ? base + idx : NULL)
+
+#endif
+
+and stick the generic array_ptr_mask into asm-generic/nospec.h or
+something.
+
+Then the static key stuff is limited to architectures that define _both_
+array_ptr_mask and ifence_array_ptr.
