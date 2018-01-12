@@ -1,176 +1,135 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:13976 "EHLO mga02.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932148AbeALAyk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Jan 2018 19:54:40 -0500
-Subject: [PATCH v2 00/19] prevent bounds-check bypass via speculative
- execution
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 11 Jan 2018 16:46:24 -0800
-Message-ID: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Received: from out01.mta.xmission.com ([166.70.13.231]:35517 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932471AbeALBBQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:01:16 -0500
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Date: Thu, 11 Jan 2018 18:59:30 -0600
+Message-ID: <20180112005940.23279-1-ebiederm@xmission.com>
+In-Reply-To: <87373b6ghs.fsf@xmission.com>
+References: <87373b6ghs.fsf@xmission.com>
+Subject: [PATCH 01/11] signal: Simplify and fix kdb_send_sig
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, linux-media@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Jan Kara <jack@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Greg KH <gregkh@linuxfoundation.org>, linux-wireless@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, netdev@vger.kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Message-ID: <20180112004624.P2h9OqY9Mzdk0cLtrrG-pieJr-uiEs_MhkXOZVtPwMk@z>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20180112005930.0_GgvN4187wHAT2QKmtV8oRWkbKDUPD_StjJDIpoawo@z>
 
-Changes since v1 [1]:
-* fixup the ifence definition to use alternative_2 per recent AMD
-  changes in tip/x86/pti (Tom)
+- Rename from kdb_send_sig_info to kdb_send_sig
+  As there is no meaningful siginfo sent
 
-* drop 'nospec_ptr' (Linus, Mark)
+- Use SEND_SIG_PRIV instead of generating a siginfo for a kdb
+  signal.  The generated siginfo had a bogus rationale and was
+  not correct in the face of pid namespaces.  SEND_SIG_PRIV
+  is simpler and actually correct.
 
-* rename 'nospec_array_ptr' to 'array_ptr' (Alexei)
+- As the code grabs siglock just send the signal with siglock
+  held instead of dropping siglock and attempting to grab it again.
 
-* rename 'nospec_barrier' to 'ifence' (Peter, Ingo)
+- Move the sig_valid test into kdb_kill where it can generate
+  a good error message.
 
-* clean up occasions of 'variable assignment in if()' (Sergei, Stephen)
-
-* make 'array_ptr' use a mask instead of an architectural ifence by
-  default (Linus, Alexei)
-
-* provide a command line and compile-time opt-in to the ifence
-  mechanism, if an architecture provides 'ifence_array_ptr'.
-
-* provide an optimized mask generation helper, 'array_ptr_mask', for
-  x86 (Linus)
-
-* move 'get_user' hardening from '__range_not_ok' to '__uaccess_begin'
-  (Linus)
-
-* drop "Thermal/int340x: prevent bounds-check..." since userspace does
-  not have arbitrary control over the 'trip' index (Srinivas)
-
-* update the changelog of "net: mpls: prevent bounds-check..." and keep
-  it in the series to continue the debate about Spectre hygiene patches.
-  (Eric).
-
-* record a reviewed-by from Laurent on "[media] uvcvideo: prevent
-  bounds-check..."
-
-* update the cover letter
-
-[1]: https://lwn.net/Articles/743376/
-
+Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
 ---
+ kernel/debug/kdb/kdb_main.c    | 10 ++--------
+ kernel/debug/kdb/kdb_private.h |  2 +-
+ kernel/signal.c                | 14 +++++++-------
+ 3 files changed, 10 insertions(+), 16 deletions(-)
 
-Quoting Mark's original RFC:
-
-"Recently, Google Project Zero discovered several classes of attack
-against speculative execution. One of these, known as variant-1, allows
-explicit bounds checks to be bypassed under speculation, providing an
-arbitrary read gadget. Further details can be found on the GPZ blog [2]
-and the Documentation patch in this series."
-
-This series incorporates Mark Rutland's latest ARM changes and adds
-the x86 specific implementation of 'ifence_array_ptr'. That ifence
-based approach is provided as an opt-in fallback, but the default
-mitigation, '__array_ptr', uses a 'mask' approach that removes
-conditional branches instructions, and otherwise aims to redirect
-speculation to use a NULL pointer rather than a user controlled value.
-
-The mask is generated by the following from Alexei, and Linus:
-
-    mask = ~(long)(_i | (_s - 1 - _i)) >> (BITS_PER_LONG - 1);
-
-...and Linus provided an optimized mask generation helper for x86:
-
-    asm ("cmpq %1,%2; sbbq %0,%0;"
-		:"=r" (mask)
-		:"r"(sz),"r" (idx)
-		:"cc");
-
-The 'array_ptr' mechanism can be switched between 'mask' and 'ifence'
-via the spectre_v1={mask,ifence} command line option, and the
-compile-time default is set by selecting either CONFIG_SPECTRE1_MASK or
-CONFIG_SPECTRE1_IFENCE.
-
-The 'array_ptr' infrastructure is the primary focus this patch set. The
-individual patches that perform 'array_ptr' conversions are a point in
-time (i.e. earlier kernel, early analysis tooling, x86 only etc...)
-start at finding some of these gadgets.
-
-Another consideration for reviewing these patches is the 'hygiene'
-argument. When a patch refers to hygiene it is concerned with stopping
-speculation on an unconstrained or insufficiently constrained pointer
-value under userspace control. That by itself is not sufficient for
-attack (per current understanding) [3], but it is a necessary
-pre-condition.  So 'hygiene' refers to cleaning up those suspect
-pointers regardless of whether they are usable as a gadget.
-
-These patches are also be available via the 'nospec-v2' git branch
-here:
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/djbw/linux nospec-v2
-
-Note that the BPF fix for Spectre variant1 is merged in the bpf.git
-tree [4], and is not included in this branch.
-
-[2]: https://googleprojectzero.blogspot.co.uk/2018/01/reading-privileged-memory-with-side.html
-[3]: https://spectreattack.com/spectre.pdf
-[4]: https://git.kernel.org/pub/scm/linux/kernel/git/bpf/bpf.git/commit/?id=b2157399cc98
-
----
-
-Dan Williams (16):
-      x86: implement ifence()
-      x86: implement ifence_array_ptr() and array_ptr_mask()
-      asm-generic/barrier: mask speculative execution flows
-      x86: introduce __uaccess_begin_nospec and ASM_IFENCE
-      x86: use __uaccess_begin_nospec and ASM_IFENCE in get_user paths
-      ipv6: prevent bounds-check bypass via speculative execution
-      ipv4: prevent bounds-check bypass via speculative execution
-      vfs, fdtable: prevent bounds-check bypass via speculative execution
-      userns: prevent bounds-check bypass via speculative execution
-      udf: prevent bounds-check bypass via speculative execution
-      [media] uvcvideo: prevent bounds-check bypass via speculative execution
-      carl9170: prevent bounds-check bypass via speculative execution
-      p54: prevent bounds-check bypass via speculative execution
-      qla2xxx: prevent bounds-check bypass via speculative execution
-      cw1200: prevent bounds-check bypass via speculative execution
-      net: mpls: prevent bounds-check bypass via speculative execution
-
-Mark Rutland (3):
-      Documentation: document array_ptr
-      arm64: implement ifence_array_ptr()
-      arm: implement ifence_array_ptr()
-
- Documentation/speculation.txt            |  142 ++++++++++++++++++++++++++++++
- arch/arm/Kconfig                         |    1 
- arch/arm/include/asm/barrier.h           |   24 +++++
- arch/arm64/Kconfig                       |    1 
- arch/arm64/include/asm/barrier.h         |   24 +++++
- arch/x86/Kconfig                         |    3 +
- arch/x86/include/asm/barrier.h           |   46 ++++++++++
- arch/x86/include/asm/msr.h               |    3 -
- arch/x86/include/asm/smap.h              |    4 +
- arch/x86/include/asm/uaccess.h           |   16 +++
- arch/x86/include/asm/uaccess_32.h        |    6 +
- arch/x86/include/asm/uaccess_64.h        |   12 +--
- arch/x86/lib/copy_user_64.S              |    3 +
- arch/x86/lib/usercopy_32.c               |    8 +-
- drivers/media/usb/uvc/uvc_v4l2.c         |    9 +-
- drivers/net/wireless/ath/carl9170/main.c |    7 +
- drivers/net/wireless/intersil/p54/main.c |    9 +-
- drivers/net/wireless/st/cw1200/sta.c     |   11 +-
- drivers/net/wireless/st/cw1200/wsm.h     |    4 -
- drivers/scsi/qla2xxx/qla_mr.c            |   17 ++--
- fs/udf/misc.c                            |   40 +++++---
- include/linux/fdtable.h                  |    7 +
- include/linux/nospec.h                   |   71 +++++++++++++++
- kernel/Kconfig.nospec                    |   31 +++++++
- kernel/Makefile                          |    1 
- kernel/nospec.c                          |   52 +++++++++++
- kernel/user_namespace.c                  |   11 +-
- lib/Kconfig                              |    3 +
- net/ipv4/raw.c                           |   10 +-
- net/ipv6/raw.c                           |   10 +-
- net/mpls/af_mpls.c                       |   12 +--
- 31 files changed, 521 insertions(+), 77 deletions(-)
- create mode 100644 Documentation/speculation.txt
- create mode 100644 include/linux/nospec.h
- create mode 100644 kernel/Kconfig.nospec
- create mode 100644 kernel/nospec.c
+diff --git a/kernel/debug/kdb/kdb_main.c b/kernel/debug/kdb/kdb_main.c
+index c8146d53ca67..dbb0781a0533 100644
+--- a/kernel/debug/kdb/kdb_main.c
++++ b/kernel/debug/kdb/kdb_main.c
+@@ -2441,7 +2441,6 @@ static int kdb_kill(int argc, const char **argv)
+ 	long sig, pid;
+ 	char *endp;
+ 	struct task_struct *p;
+-	struct siginfo info;
+ 
+ 	if (argc != 2)
+ 		return KDB_ARGCOUNT;
+@@ -2449,7 +2448,7 @@ static int kdb_kill(int argc, const char **argv)
+ 	sig = simple_strtol(argv[1], &endp, 0);
+ 	if (*endp)
+ 		return KDB_BADINT;
+-	if (sig >= 0) {
++	if ((sig >= 0) || !valid_signal(-sig)) {
+ 		kdb_printf("Invalid signal parameter.<-signal>\n");
+ 		return 0;
+ 	}
+@@ -2470,12 +2469,7 @@ static int kdb_kill(int argc, const char **argv)
+ 		return 0;
+ 	}
+ 	p = p->group_leader;
+-	info.si_signo = sig;
+-	info.si_errno = 0;
+-	info.si_code = SI_USER;
+-	info.si_pid = pid;  /* same capabilities as process being signalled */
+-	info.si_uid = 0;    /* kdb has root authority */
+-	kdb_send_sig_info(p, &info);
++	kdb_send_sig(p, sig);
+ 	return 0;
+ }
+ 
+diff --git a/kernel/debug/kdb/kdb_private.h b/kernel/debug/kdb/kdb_private.h
+index fc224fbcf954..1e5a502ba4a7 100644
+--- a/kernel/debug/kdb/kdb_private.h
++++ b/kernel/debug/kdb/kdb_private.h
+@@ -208,7 +208,7 @@ extern unsigned long kdb_task_state(const struct task_struct *p,
+ extern void kdb_ps_suppressed(void);
+ extern void kdb_ps1(const struct task_struct *p);
+ extern void kdb_print_nameval(const char *name, unsigned long val);
+-extern void kdb_send_sig_info(struct task_struct *p, struct siginfo *info);
++extern void kdb_send_sig(struct task_struct *p, int sig);
+ extern void kdb_meminfo_proc_show(void);
+ extern char *kdb_getstr(char *, size_t, const char *);
+ extern void kdb_gdb_state_pass(char *buf);
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 9558664bd9ec..c894162ec96c 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -3684,26 +3684,25 @@ void __init signals_init(void)
+ #ifdef CONFIG_KGDB_KDB
+ #include <linux/kdb.h>
+ /*
+- * kdb_send_sig_info - Allows kdb to send signals without exposing
++ * kdb_send_sig - Allows kdb to send signals without exposing
+  * signal internals.  This function checks if the required locks are
+  * available before calling the main signal code, to avoid kdb
+  * deadlocks.
+  */
+-void
+-kdb_send_sig_info(struct task_struct *t, struct siginfo *info)
++void kdb_send_sig(struct task_struct *t, int sig)
+ {
+ 	static struct task_struct *kdb_prev_t;
+-	int sig, new_t;
++	int new_t, ret;
+ 	if (!spin_trylock(&t->sighand->siglock)) {
+ 		kdb_printf("Can't do kill command now.\n"
+ 			   "The sigmask lock is held somewhere else in "
+ 			   "kernel, try again later\n");
+ 		return;
+ 	}
+-	spin_unlock(&t->sighand->siglock);
+ 	new_t = kdb_prev_t != t;
+ 	kdb_prev_t = t;
+ 	if (t->state != TASK_RUNNING && new_t) {
++		spin_unlock(&t->sighand->siglock);
+ 		kdb_printf("Process is not RUNNING, sending a signal from "
+ 			   "kdb risks deadlock\n"
+ 			   "on the run queue locks. "
+@@ -3712,8 +3711,9 @@ kdb_send_sig_info(struct task_struct *t, struct siginfo *info)
+ 			   "the deadlock.\n");
+ 		return;
+ 	}
+-	sig = info->si_signo;
+-	if (send_sig_info(sig, info, t))
++	ret = send_signal(sig, SEND_SIG_PRIV, t, false);
++	spin_unlock(&t->sighand->siglock);
++	if (ret)
+ 		kdb_printf("Fail to deliver Signal %d to process %d.\n",
+ 			   sig, t->pid);
+ 	else
+-- 
+2.14.1
