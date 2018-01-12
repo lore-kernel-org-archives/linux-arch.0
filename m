@@ -1,33 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:35870 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S965105AbeALUan (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 15:30:43 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87373b6ghs.fsf@xmission.com>
-Date: Fri, 12 Jan 2018 14:29:55 -0600
-In-Reply-To: <87373b6ghs.fsf@xmission.com> (Eric W. Biederman's message of
-        "Thu, 11 Jan 2018 18:57:35 -0600")
-Message-ID: <87vag6zupo.fsf@xmission.com>
+Received: from mx1.redhat.com ([209.132.183.28]:42114 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S965188AbeALUl3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 12 Jan 2018 15:41:29 -0500
+Date: Fri, 12 Jan 2018 14:41:26 -0600
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH v2 07/19] x86: introduce __uaccess_begin_nospec and
+ ASM_IFENCE
+Message-ID: <20180112204126.257jubn2hccgtzdt@treble>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151571802258.27429.932636277047687877.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180112175109.yoz4jaaipztdj34k@treble>
+ <CAPcyv4heW2FqxpCa0NZeTsa5V7pgpzA-MdHYJA+y9C5L2GTP9w@mail.gmail.com>
+ <20180112185815.meiwnnb5vmnrbsdt@treble>
+ <CAPcyv4jm7S+8ezntAo2LeOGshPdpt616RNOambOL6espzBYUvg@mail.gmail.com>
+ <CA+55aFwhU110nyGerakLf-LHgfZDmJ6snTyQJqAHRbnxQoqbHg@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: [PATCH 0/2] siginfo fixes
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CA+55aFwhU110nyGerakLf-LHgfZDmJ6snTyQJqAHRbnxQoqbHg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Al Viro <viro@ZenIV.linux.org.uk>, linux-arch@vger.kernel.org
-Message-ID: <20180112202955.un9m053hWO1L5zP1mFZjlQeljbUyQgof6KgjhgSUIpM@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180112204126.FwmChk_VkRmrJ0ncymNk-ktb8Ejv2eRS12KRehmk21w@z>
 
+On Fri, Jan 12, 2018 at 12:01:04PM -0800, Linus Torvalds wrote:
+> On Fri, Jan 12, 2018 at 11:26 AM, Dan Williams <dan.j.williams@intel.com> wrote:
+> >
+> > By the time we get to de-reference uptr we know it is not pointing at
+> > kernel memory, because access_ok would have failed and the cpu would
+> > have waited for that failure result before doing anything else.
+> 
+> I'm not actually convinced that's right in the original patches,
+> exactly because of the issue that Josh pointed out: even if there is a
+> comparison inside access_ok() that will be properly serialized, then
+> that comparison can (and sometimes does) just cause a truth value to
+> be generated, and then there  might be *another* comparison of that
+> return value after the lfence. And while the return value is table,
+> the conditional branch on that comparison isn't.
+> 
+> The new model of just doing it together with the STAC should be fine, though.
 
-These are two additional siginfo fixes I overlooked yesterday.
-Thankfully the confusion was not arch specific, and did not set an ABI
-to userspace that I had to worry about breaking, so I could fix these
-two issues properly.
+Aha, that clears it up for me, thanks.  I was still thinking about the
+previous version of the patch which had the barrier in access_ok().  I
+didn't realize the new version moved the barrier to after the
+access_ok() checks.
 
-Eric W. Biederman (2):
-      mn10300/misalignment: Use SIGSEGV SEGV_MAPERR to report a failed user copy
-      x86/mm/pkeys: Fix fill_sig_info_pkey
-
- arch/mn10300/mm/misalignment.c | 2 +-
- arch/x86/mm/fault.c            | 7 ++++---
- 2 files changed, 5 insertions(+), 4 deletions(-)
+-- 
+Josh
