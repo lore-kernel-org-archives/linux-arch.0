@@ -1,102 +1,68 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v2 19/19] net: mpls: prevent bounds-check bypass via
- speculative execution
-Date: Thu, 11 Jan 2018 16:48:08 -0800
-Message-ID: <151571808858.27429.12915543823772169761.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: [PATCH 00/11] siginfo fixes/cleanups esp SI_USER
+Date: Thu, 11 Jan 2018 18:57:35 -0600
+Message-ID: <87373b6ghs.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, tglx@linutronix.de, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
+Cc: Oleg Nesterov <oleg@redhat.com>, Al Viro <viro@ZenIV.linux.org.uk>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Static analysis reports that 'index' may be a user controlled value that
-is used as a data dependency reading 'rt' from the 'platform_label'
-array.  In order to avoid potential leaks of kernel memory values, block
-speculative execution of the instruction stream that could issue further
-reads based on an invalid 'rt' value.
 
-Based on an original patch by Elena Reshetova.
+The following changes are available at:
+    git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git  siginfo-minor-fixesv2
 
-Eric notes:
-"
-    When val is a pointer not an integer.
-    Then
-            array2[val] = y;
-            /* or */
-            y = array2[va];
+While answering a question about my earlier introduction to
+siginfo_layout I realized that the code introduces a small number
+of cases where unitialized memory is copied to userspace as
+a result of the fact that SI_USER is sometimes confused with
+another si_code.
 
-    Won't happen.
+This modifies all of the places in the kernel that generate a signal
+with si_code == SI_USER to fully initialize all of siginfo.  Further
+this change updates architectures that are using si_code of 0 to
+mean something other than SI_USER to use TRAP_FIXME, FPE_FIXME, or
+BUS_FIXME to document the problem.
 
-            val->field;
+With all these changes take together there is no danger of copying
+unitialized values to userspace when SI_USER is mistaken for TRAP_FIXME,
+FPE_FIXME or BUS_FIXME.
 
-    Will happen.
+This series also contains a fix for sh and a fix for openrisc where
+they are improperly generating a signal and the fix is obvious.
 
-    Which looks similar.  However the address space of pointers is too
-    large.  Making it impossible for an attack to know where to look in
-    the cache to see if "val->field" happened.  At least on the
-    assumption that val is an arbitrary value.
+Eric W. Biederman (11):
+      signal: Simplify and fix kdb_send_sig
+      signal/sh: Ensure si_signo is initialized in do_divide_error
+      signal/openrisc: Fix do_unaligned_access to send the proper signal
+      signal/parisc: Document a conflict with SI_USER with SIGFPE
+      signal/metag: Document a conflict with SI_USER with SIGFPE
+      signal/powerpc: Document conflicts with SI_USER and SIGFPE and SIGTRAP
+      signal/arm64: Document conflicts with SI_USER and SIGFPE,SIGTRAP,SIGBUS
+      signal/arm: Document conflicts with SI_USER and SIGFPE
+      signal: Reduce copy_siginfo to just a memcpy
+      signal: Introduce clear_siginfo
+      signal: Ensure generic siginfos the kernel sends have all bits initialized
 
-    Further mpls_forward is small enough the entire scope of "rt" the
-    value read possibly past the bound check is auditable without too
-    much trouble.  I have looked and I don't see anything that could
-    possibly allow the value of "rt" to be exfitrated.  The problem
-    continuing to be that it is a pointer and the only operation on the
-    pointer besides derferencing it is testing if it is NULL.
-
-    Other types of timing attacks are very hard if not impossible
-    because any packet presenting with a value outside the bounds check
-    will be dropped.  So it will hard if not impossible to find
-    something to time to see how long it took to drop the packet.
-"
-
-The motivation of resending this patch despite the NAK is to
-continue a community wide discussion on the bar for judging Spectre
-changes. I.e. is any user controlled speculative pointer in the
-kernel a pointer too far, especially given the current array_ptr()
-implementation.
-
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Eric W. Biederman <ebiederm@xmission.com>
-Cc: netdev@vger.kernel.org
-Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
----
- net/mpls/af_mpls.c |   12 +++++++-----
- 1 file changed, 7 insertions(+), 5 deletions(-)
-
-diff --git a/net/mpls/af_mpls.c b/net/mpls/af_mpls.c
-index 8ca9915befc8..c92b1033adc2 100644
---- a/net/mpls/af_mpls.c
-+++ b/net/mpls/af_mpls.c
-@@ -8,6 +8,7 @@
- #include <linux/ipv6.h>
- #include <linux/mpls.h>
- #include <linux/netconf.h>
-+#include <linux/nospec.h>
- #include <linux/vmalloc.h>
- #include <linux/percpu.h>
- #include <net/ip.h>
-@@ -77,12 +78,13 @@ static void rtmsg_lfib(int event, u32 label, struct mpls_route *rt,
- static struct mpls_route *mpls_route_input_rcu(struct net *net, unsigned index)
- {
- 	struct mpls_route *rt = NULL;
-+	struct mpls_route __rcu **platform_label =
-+		rcu_dereference(net->mpls.platform_label);
-+	struct mpls_route __rcu **rtp;
- 
--	if (index < net->mpls.platform_labels) {
--		struct mpls_route __rcu **platform_label =
--			rcu_dereference(net->mpls.platform_label);
--		rt = rcu_dereference(platform_label[index]);
--	}
-+	rtp = array_ptr(platform_label, index, net->mpls.platform_labels);
-+	if (rtp)
-+		rt = rcu_dereference(*rtp);
- 	return rt;
- }
- 
+ arch/arm/include/uapi/asm/siginfo.h     |  13 ++++
+ arch/arm/vfp/vfpmodule.c                |   2 +-
+ arch/arm64/include/uapi/asm/siginfo.h   |  21 ++++++
+ arch/arm64/kernel/fpsimd.c              |   2 +-
+ arch/arm64/mm/fault.c                   | 114 ++++++++++++++++----------------
+ arch/metag/include/uapi/asm/siginfo.h   |   7 ++
+ arch/metag/kernel/traps.c               |   2 +-
+ arch/openrisc/kernel/traps.c            |  10 +--
+ arch/parisc/include/uapi/asm/siginfo.h  |   7 ++
+ arch/parisc/kernel/traps.c              |   2 +-
+ arch/powerpc/include/uapi/asm/siginfo.h |  15 +++++
+ arch/powerpc/kernel/traps.c             |  10 +--
+ arch/sh/kernel/traps_32.c               |   3 +-
+ fs/fcntl.c                              |   1 +
+ include/linux/signal.h                  |  13 ++--
+ ipc/mqueue.c                            |   1 +
+ kernel/debug/kdb/kdb_main.c             |  10 +--
+ kernel/debug/kdb/kdb_private.h          |   2 +-
+ kernel/signal.c                         |  27 +++++---
+ 19 files changed, 167 insertions(+), 95 deletions(-)
