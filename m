@@ -1,120 +1,61 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 06/11] signal/powerpc: Document conflicts with SI_USER and SIGFPE and SIGTRAP
-Date: Thu, 11 Jan 2018 18:59:35 -0600
-Message-ID: <20180112005940.23279-6-ebiederm@xmission.com>
+Subject: [PATCH 03/11] signal/openrisc: Fix do_unaligned_access to send the proper signal
+Date: Thu, 11 Jan 2018 18:59:32 -0600
+Message-ID: <20180112005940.23279-3-ebiederm@xmission.com>
 References: <87373b6ghs.fsf@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87373b6ghs.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Paul Mackerras <paulus@samba.org>, Kumar Gala <kumar.gala@freescale.com>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, stable@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Arnd Bergmann <arnd@arndb.de>, openrisc@lists.librecores.org
 List-Id: linux-arch.vger.kernel.org
 
-Setting si_code to 0 results in a userspace seeing an si_code of 0.
-This is the same si_code as SI_USER.  Posix and common sense requires
-that SI_USER not be a signal specific si_code.  As such this use of 0
-for the si_code is a pretty horribly broken ABI.
+While reviewing the signal sending on openrisc the do_unaligned_access
+function stood out because it is obviously wrong.  A comment about an
+si_code set above when actually si_code is never set.  Leading to a
+random si_code being sent to userspace in the event of an unaligned
+access.
 
-Further use of si_code == 0 guaranteed that copy_siginfo_to_user saw a
-value of __SI_KILL and now sees a value of SIL_KILL with the result
-that uid and pid fields are copied and which might copying the si_addr
-field by accident but certainly not by design.  Making this a very
-flakey implementation.
+Looking further SIGBUS BUS_ADRALN is the proper pair of signal and
+si_code to send for an unaligned access. That is what other
+architectures do and what is required by posix.
 
-Utilizing FPE_FIXME and TRAP_FIXME, siginfo_layout() will now return
-SIL_FAULT and the appropriate fields will be reliably copied.
+Given that do_unaligned_access is broken in a way that no one can be
+relying on it on openrisc fix the code to just do the right thing.
 
-Possible ABI fixes includee:
-- Send the signal without siginfo
-- Don't generate a signal
-- Possibly assign and use an appropriate si_code
-- Don't handle cases which can't happen
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Kumar Gala <kumar.gala@freescale.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc:  linuxppc-dev@lists.ozlabs.org
-Ref: 9bad068c24d7 ("[PATCH] ppc32: support for e500 and 85xx")
-Ref: 0ed70f6105ef ("PPC32: Provide proper siginfo information on various exceptions.")
-History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
+Cc: stable@vger.kernel.org
+Fixes: 769a8a96229e ("OpenRISC: Traps")
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
+Cc: Stafford Horne <shorne@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: openrisc@lists.librecores.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/powerpc/include/uapi/asm/siginfo.h | 15 +++++++++++++++
- arch/powerpc/kernel/traps.c             | 10 +++++-----
- 2 files changed, 20 insertions(+), 5 deletions(-)
+ arch/openrisc/kernel/traps.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/powerpc/include/uapi/asm/siginfo.h b/arch/powerpc/include/uapi/asm/siginfo.h
-index 1a691141e49f..444ca6c9989a 100644
---- a/arch/powerpc/include/uapi/asm/siginfo.h
-+++ b/arch/powerpc/include/uapi/asm/siginfo.h
-@@ -18,4 +18,19 @@
- #undef NSIGTRAP
- #define NSIGTRAP	4
+diff --git a/arch/openrisc/kernel/traps.c b/arch/openrisc/kernel/traps.c
+index 4085d72fa5ae..9e38dc66c9e4 100644
+--- a/arch/openrisc/kernel/traps.c
++++ b/arch/openrisc/kernel/traps.c
+@@ -266,12 +266,12 @@ asmlinkage void do_unaligned_access(struct pt_regs *regs, unsigned long address)
+ 	siginfo_t info;
  
-+/*
-+ * SIGFPE si_codes
-+ */
-+#ifdef __KERNEL__
-+#define FPE_FIXME	0	/* Broken dup of SI_USER */
-+#endif /* __KERNEL__ */
-+
-+/*
-+ * SIGTRAP si_codes
-+ */
-+#ifdef __KERNEL__
-+#define TRAP_FIXME	0	/* Broken dup of SI_USER */
-+#endif /* __KERNEL__ */
-+
-+
- #endif	/* _ASM_POWERPC_SIGINFO_H */
-diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
-index f3eb61be0d30..f2e6e1838952 100644
---- a/arch/powerpc/kernel/traps.c
-+++ b/arch/powerpc/kernel/traps.c
-@@ -917,7 +917,7 @@ void unknown_exception(struct pt_regs *regs)
- 	printk("Bad trap at PC: %lx, SR: %lx, vector=%lx\n",
- 	       regs->nip, regs->msr, regs->trap);
- 
--	_exception(SIGTRAP, regs, 0, 0);
-+	_exception(SIGTRAP, regs, TRAP_FIXME, 0);
- 
- 	exception_exit(prev_state);
- }
-@@ -939,7 +939,7 @@ void instruction_breakpoint_exception(struct pt_regs *regs)
- 
- void RunModeException(struct pt_regs *regs)
- {
--	_exception(SIGTRAP, regs, 0, 0);
-+	_exception(SIGTRAP, regs, TRAP_FIXME, 0);
- }
- 
- void single_step_exception(struct pt_regs *regs)
-@@ -978,7 +978,7 @@ static void emulate_single_step(struct pt_regs *regs)
- 
- static inline int __parse_fpscr(unsigned long fpscr)
- {
--	int ret = 0;
-+	int ret = FPE_FIXME;
- 
- 	/* Invalid operation */
- 	if ((fpscr & FPSCR_VE) && (fpscr & FPSCR_VX))
-@@ -1929,7 +1929,7 @@ void SPEFloatingPointException(struct pt_regs *regs)
- 	extern int do_spe_mathemu(struct pt_regs *regs);
- 	unsigned long spefscr;
- 	int fpexc_mode;
--	int code = 0;
-+	int code = FPE_FIXME;
- 	int err;
- 
- 	flush_spe_to_thread(current);
-@@ -1998,7 +1998,7 @@ void SPEFloatingPointRoundException(struct pt_regs *regs)
- 		printk(KERN_ERR "unrecognized spe instruction "
- 		       "in %s at %lx\n", current->comm, regs->nip);
+ 	if (user_mode(regs)) {
+-		/* Send a SIGSEGV */
+-		info.si_signo = SIGSEGV;
++		/* Send a SIGBUS */
++		info.si_signo = SIGBUS;
+ 		info.si_errno = 0;
+-		/* info.si_code has been set above */
+-		info.si_addr = (void *)address;
+-		force_sig_info(SIGSEGV, &info, current);
++		info.si_code = BUS_ADRALN;
++		info.si_addr = (void __user *)address;
++		force_sig_info(SIGBUS, &info, current);
  	} else {
--		_exception(SIGFPE, regs, 0, regs->nip);
-+		_exception(SIGFPE, regs, FPE_FIXME, regs->nip);
- 		return;
- 	}
- }
+ 		printk("KERNEL: Unaligned Access 0x%.8lx\n", address);
+ 		show_registers(regs);
 -- 
 2.14.1
