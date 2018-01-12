@@ -1,39 +1,188 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:42966 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754377AbeALImm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 03:42:42 -0500
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 01/34] alpha: mark jensen as broken
-Date: Fri, 12 Jan 2018 09:41:59 +0100
-Message-ID: <20180112084232.2857-2-hch@lst.de>
-In-Reply-To: <20180112084232.2857-1-hch@lst.de>
-References: <20180112084232.2857-1-hch@lst.de>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:53644 "EHLO
+        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754350AbeALKDF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 05:03:05 -0500
+Date: Fri, 12 Jan 2018 10:02:08 +0000
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH v2 00/19] prevent bounds-check bypass via speculative
+ execution
+Message-ID: <20180112100208.GX17719@n2100.armlinux.org.uk>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: iommu@lists.linux-foundation.org
-Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180112084159.oBwSltKORA0TGDuitL8fsSaL9k8Wd9LU--97b0nssys@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, linux-scsi@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, linux-media@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Jan Kara <jack@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, tglx@linutronix.de, Mauro Carvalho Chehab <mchehab@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Greg KH <gregkh@linuxfoundation.org>, linux-wireless@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, netdev@vger.kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Message-ID: <20180112100208.E57MKIDZ-RCCq6aoKBue9isy0KYQBoQG_PBqGs9uQvw@z>
 
-CONFIG_ALPHA_JENSEN has failed to compile since commit 6aca0503
-("alpha/dma: use common noop dma ops"), so mark it as broken.
+Do you think that the appropriate patches could be copied to the
+appropriate people please?
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/alpha/Kconfig | 1 +
- 1 file changed, 1 insertion(+)
+On Thu, Jan 11, 2018 at 04:46:24PM -0800, Dan Williams wrote:
+> Changes since v1 [1]:
+> * fixup the ifence definition to use alternative_2 per recent AMD
+>   changes in tip/x86/pti (Tom)
+> 
+> * drop 'nospec_ptr' (Linus, Mark)
+> 
+> * rename 'nospec_array_ptr' to 'array_ptr' (Alexei)
+> 
+> * rename 'nospec_barrier' to 'ifence' (Peter, Ingo)
+> 
+> * clean up occasions of 'variable assignment in if()' (Sergei, Stephen)
+> 
+> * make 'array_ptr' use a mask instead of an architectural ifence by
+>   default (Linus, Alexei)
+> 
+> * provide a command line and compile-time opt-in to the ifence
+>   mechanism, if an architecture provides 'ifence_array_ptr'.
+> 
+> * provide an optimized mask generation helper, 'array_ptr_mask', for
+>   x86 (Linus)
+> 
+> * move 'get_user' hardening from '__range_not_ok' to '__uaccess_begin'
+>   (Linus)
+> 
+> * drop "Thermal/int340x: prevent bounds-check..." since userspace does
+>   not have arbitrary control over the 'trip' index (Srinivas)
+> 
+> * update the changelog of "net: mpls: prevent bounds-check..." and keep
+>   it in the series to continue the debate about Spectre hygiene patches.
+>   (Eric).
+> 
+> * record a reviewed-by from Laurent on "[media] uvcvideo: prevent
+>   bounds-check..."
+> 
+> * update the cover letter
+> 
+> [1]: https://lwn.net/Articles/743376/
+> 
+> ---
+> 
+> Quoting Mark's original RFC:
+> 
+> "Recently, Google Project Zero discovered several classes of attack
+> against speculative execution. One of these, known as variant-1, allows
+> explicit bounds checks to be bypassed under speculation, providing an
+> arbitrary read gadget. Further details can be found on the GPZ blog [2]
+> and the Documentation patch in this series."
+> 
+> This series incorporates Mark Rutland's latest ARM changes and adds
+> the x86 specific implementation of 'ifence_array_ptr'. That ifence
+> based approach is provided as an opt-in fallback, but the default
+> mitigation, '__array_ptr', uses a 'mask' approach that removes
+> conditional branches instructions, and otherwise aims to redirect
+> speculation to use a NULL pointer rather than a user controlled value.
+> 
+> The mask is generated by the following from Alexei, and Linus:
+> 
+>     mask = ~(long)(_i | (_s - 1 - _i)) >> (BITS_PER_LONG - 1);
+> 
+> ...and Linus provided an optimized mask generation helper for x86:
+> 
+>     asm ("cmpq %1,%2; sbbq %0,%0;"
+> 		:"=r" (mask)
+> 		:"r"(sz),"r" (idx)
+> 		:"cc");
+> 
+> The 'array_ptr' mechanism can be switched between 'mask' and 'ifence'
+> via the spectre_v1={mask,ifence} command line option, and the
+> compile-time default is set by selecting either CONFIG_SPECTRE1_MASK or
+> CONFIG_SPECTRE1_IFENCE.
+> 
+> The 'array_ptr' infrastructure is the primary focus this patch set. The
+> individual patches that perform 'array_ptr' conversions are a point in
+> time (i.e. earlier kernel, early analysis tooling, x86 only etc...)
+> start at finding some of these gadgets.
+> 
+> Another consideration for reviewing these patches is the 'hygiene'
+> argument. When a patch refers to hygiene it is concerned with stopping
+> speculation on an unconstrained or insufficiently constrained pointer
+> value under userspace control. That by itself is not sufficient for
+> attack (per current understanding) [3], but it is a necessary
+> pre-condition.  So 'hygiene' refers to cleaning up those suspect
+> pointers regardless of whether they are usable as a gadget.
+> 
+> These patches are also be available via the 'nospec-v2' git branch
+> here:
+> 
+>     git://git.kernel.org/pub/scm/linux/kernel/git/djbw/linux nospec-v2
+> 
+> Note that the BPF fix for Spectre variant1 is merged in the bpf.git
+> tree [4], and is not included in this branch.
+> 
+> [2]: https://googleprojectzero.blogspot.co.uk/2018/01/reading-privileged-memory-with-side.html
+> [3]: https://spectreattack.com/spectre.pdf
+> [4]: https://git.kernel.org/pub/scm/linux/kernel/git/bpf/bpf.git/commit/?id=b2157399cc98
+> 
+> ---
+> 
+> Dan Williams (16):
+>       x86: implement ifence()
+>       x86: implement ifence_array_ptr() and array_ptr_mask()
+>       asm-generic/barrier: mask speculative execution flows
+>       x86: introduce __uaccess_begin_nospec and ASM_IFENCE
+>       x86: use __uaccess_begin_nospec and ASM_IFENCE in get_user paths
+>       ipv6: prevent bounds-check bypass via speculative execution
+>       ipv4: prevent bounds-check bypass via speculative execution
+>       vfs, fdtable: prevent bounds-check bypass via speculative execution
+>       userns: prevent bounds-check bypass via speculative execution
+>       udf: prevent bounds-check bypass via speculative execution
+>       [media] uvcvideo: prevent bounds-check bypass via speculative execution
+>       carl9170: prevent bounds-check bypass via speculative execution
+>       p54: prevent bounds-check bypass via speculative execution
+>       qla2xxx: prevent bounds-check bypass via speculative execution
+>       cw1200: prevent bounds-check bypass via speculative execution
+>       net: mpls: prevent bounds-check bypass via speculative execution
+> 
+> Mark Rutland (3):
+>       Documentation: document array_ptr
+>       arm64: implement ifence_array_ptr()
+>       arm: implement ifence_array_ptr()
+> 
+>  Documentation/speculation.txt            |  142 ++++++++++++++++++++++++++++++
+>  arch/arm/Kconfig                         |    1 
+>  arch/arm/include/asm/barrier.h           |   24 +++++
+>  arch/arm64/Kconfig                       |    1 
+>  arch/arm64/include/asm/barrier.h         |   24 +++++
+>  arch/x86/Kconfig                         |    3 +
+>  arch/x86/include/asm/barrier.h           |   46 ++++++++++
+>  arch/x86/include/asm/msr.h               |    3 -
+>  arch/x86/include/asm/smap.h              |    4 +
+>  arch/x86/include/asm/uaccess.h           |   16 +++
+>  arch/x86/include/asm/uaccess_32.h        |    6 +
+>  arch/x86/include/asm/uaccess_64.h        |   12 +--
+>  arch/x86/lib/copy_user_64.S              |    3 +
+>  arch/x86/lib/usercopy_32.c               |    8 +-
+>  drivers/media/usb/uvc/uvc_v4l2.c         |    9 +-
+>  drivers/net/wireless/ath/carl9170/main.c |    7 +
+>  drivers/net/wireless/intersil/p54/main.c |    9 +-
+>  drivers/net/wireless/st/cw1200/sta.c     |   11 +-
+>  drivers/net/wireless/st/cw1200/wsm.h     |    4 -
+>  drivers/scsi/qla2xxx/qla_mr.c            |   17 ++--
+>  fs/udf/misc.c                            |   40 +++++---
+>  include/linux/fdtable.h                  |    7 +
+>  include/linux/nospec.h                   |   71 +++++++++++++++
+>  kernel/Kconfig.nospec                    |   31 +++++++
+>  kernel/Makefile                          |    1 
+>  kernel/nospec.c                          |   52 +++++++++++
+>  kernel/user_namespace.c                  |   11 +-
+>  lib/Kconfig                              |    3 +
+>  net/ipv4/raw.c                           |   10 +-
+>  net/ipv6/raw.c                           |   10 +-
+>  net/mpls/af_mpls.c                       |   12 +--
+>  31 files changed, 521 insertions(+), 77 deletions(-)
+>  create mode 100644 Documentation/speculation.txt
+>  create mode 100644 include/linux/nospec.h
+>  create mode 100644 kernel/Kconfig.nospec
+>  create mode 100644 kernel/nospec.c
+> 
 
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index b31b974a03cb..e96adcbcab41 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -209,6 +209,7 @@ config ALPHA_EIGER
- 
- config ALPHA_JENSEN
- 	bool "Jensen"
-+	depends on BROKEN
- 	help
- 	  DEC PC 150 AXP (aka Jensen): This is a very old Digital system - one
- 	  of the first-generation Alpha systems. A number of these systems
 -- 
-2.14.2
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line in suburbia: sync at 8.8Mbps down 630kbps up
+According to speedtest.net: 8.21Mbps down 510kbps up
