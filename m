@@ -1,54 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:60656 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754746AbeALH7I (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 02:59:08 -0500
-Date: Fri, 12 Jan 2018 08:59:07 +0100
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v2 10/19] ipv4: prevent bounds-check bypass via
- speculative execution
-Message-ID: <20180112075907.GA3391@kroah.com>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151571803884.27429.7578279171286065970.stgit@dwillia2-desk3.amr.corp.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <151571803884.27429.7578279171286065970.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from bombadil.infradead.org ([65.50.211.133]:35493 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932926AbeALInF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 03:43:05 -0500
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 07/34] riscv: remove the unused dma_capable helper
+Date: Fri, 12 Jan 2018 09:42:05 +0100
+Message-ID: <20180112084232.2857-8-hch@lst.de>
+In-Reply-To: <20180112084232.2857-1-hch@lst.de>
+References: <20180112084232.2857-1-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, kernel-hardening@lists.openwall.com, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, tglx@linutronix.de, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
-Message-ID: <20180112075907.s70JPCH1FVgaFst8uRRJoMqYs1CfbGFv5qhQ1gyiGeo@z>
+To: iommu@lists.linux-foundation.org
+Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180112084205.c_FdmcwfBZIWbcemqyf03qfdE7IQza_3BKbC-0kUpYg@z>
 
-On Thu, Jan 11, 2018 at 04:47:18PM -0800, Dan Williams wrote:
-> Static analysis reports that 'offset' may be a user controlled value
-> that is used as a data dependency reading from a raw_frag_vec buffer.
-> In order to avoid potential leaks of kernel memory values, block
-> speculative execution of the instruction stream that could issue further
-> reads based on an invalid '*(rfv->c + offset)' value.
-> 
-> Based on an original patch by Elena Reshetova.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/riscv/include/asm/dma-mapping.h | 8 --------
+ 1 file changed, 8 deletions(-)
 
-There is the "Co-Developed-by:" tag now, if you want to use it...
-
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Cc: Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
-> Cc: Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>
-> Cc: netdev@vger.kernel.org
-> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> ---
->  net/ipv4/raw.c |   10 ++++++----
->  1 file changed, 6 insertions(+), 4 deletions(-)
-
-Ugh, what is this, the 4th time I've said "I don't think this is an
-issue, so why are you changing this code." to this patch.  To be
-followed by a "oh yeah, you are right, I'll drop it", only to see it
-show back up in the next time this patch series is sent out?
-
-Same for the other patches in this series that I have reviewed 4, maybe
-5, times already.  The "v2" is not very true here...
-
-thanks,
-
-greg k-h
+diff --git a/arch/riscv/include/asm/dma-mapping.h b/arch/riscv/include/asm/dma-mapping.h
+index 3eec1000196d..73849e2cc761 100644
+--- a/arch/riscv/include/asm/dma-mapping.h
++++ b/arch/riscv/include/asm/dma-mapping.h
+@@ -27,12 +27,4 @@ static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
+ 	return &dma_noop_ops;
+ }
+ 
+-static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+-{
+-	if (!dev->dma_mask)
+-		return false;
+-
+-	return addr + size - 1 <= *dev->dma_mask;
+-}
+-
+ #endif	/* __ASM_RISCV_DMA_MAPPING_H */
+-- 
+2.14.2
