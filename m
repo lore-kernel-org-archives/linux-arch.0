@@ -1,77 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:52786 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933451AbeALBBb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:01:31 -0500
+Received: from out02.mta.xmission.com ([166.70.13.232]:48182 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933497AbeALBB2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:01:28 -0500
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Thu, 11 Jan 2018 18:59:34 -0600
-Message-ID: <20180112005940.23279-5-ebiederm@xmission.com>
+Date: Thu, 11 Jan 2018 18:59:32 -0600
+Message-ID: <20180112005940.23279-3-ebiederm@xmission.com>
 In-Reply-To: <87373b6ghs.fsf@xmission.com>
 References: <87373b6ghs.fsf@xmission.com>
-Subject: [PATCH 05/11] signal/metag: Document a conflict with SI_USER with SIGFPE
+Subject: [PATCH 03/11] signal/openrisc: Fix do_unaligned_access to send the proper signal
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org
-Message-ID: <20180112005934.h7H7R98N5nYCKdeYY0DDbt54GcN9E14FTTUYPSOZ9yo@z>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, stable@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Arnd Bergmann <arnd@arndb.de>, openrisc@lists.librecores.org
+Message-ID: <20180112005932.8YZ7AVN06lCDYgcFDCAo-a5Wx_iqEj9a6aB-y9yi-f8@z>
 
-Setting si_code to 0 results in a userspace seeing an si_code of 0.
-This is the same si_code as SI_USER.  Posix and common sense requires
-that SI_USER not be a signal specific si_code.  As such this use of 0
-for the si_code is a pretty horribly broken ABI.
+While reviewing the signal sending on openrisc the do_unaligned_access
+function stood out because it is obviously wrong.  A comment about an
+si_code set above when actually si_code is never set.  Leading to a
+random si_code being sent to userspace in the event of an unaligned
+access.
 
-Further use of si_code == 0 guaranteed that copy_siginfo_to_user saw a
-value of __SI_KILL and now sees a value of SIL_KILL with the result
-hat uid and pid fields are copied and which might copying the si_addr
-field by accident but certainly not by design.  Making this a very
-flakey implementation.
+Looking further SIGBUS BUS_ADRALN is the proper pair of signal and
+si_code to send for an unaligned access. That is what other
+architectures do and what is required by posix.
 
-Utilizing FPE_FIXME siginfo_layout will now return SIL_FAULT and the
-appropriate fields will reliably be copied.
+Given that do_unaligned_access is broken in a way that no one can be
+relying on it on openrisc fix the code to just do the right thing.
 
-Possible ABI fixes includee:
-  - Send the signal without siginfo
-  - Don't generate a signal
-  - Possibly assign and use an appropriate si_code
-  - Don't handle cases which can't happen
-
-Cc: James Hogan <james.hogan@imgtec.com>
-Cc: linux-metag@vger.kernel.org
-Ref: ac919f0883e5 ("metag: Traps")
+Cc: stable@vger.kernel.org
+Fixes: 769a8a96229e ("OpenRISC: Traps")
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
+Cc: Stafford Horne <shorne@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: openrisc@lists.librecores.org
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/metag/include/uapi/asm/siginfo.h | 7 +++++++
- arch/metag/kernel/traps.c             | 2 +-
- 2 files changed, 8 insertions(+), 1 deletion(-)
+ arch/openrisc/kernel/traps.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/metag/include/uapi/asm/siginfo.h b/arch/metag/include/uapi/asm/siginfo.h
-index b54ef7186ca3..9a3f6cde9487 100644
---- a/arch/metag/include/uapi/asm/siginfo.h
-+++ b/arch/metag/include/uapi/asm/siginfo.h
-@@ -6,4 +6,11 @@
+diff --git a/arch/openrisc/kernel/traps.c b/arch/openrisc/kernel/traps.c
+index 4085d72fa5ae..9e38dc66c9e4 100644
+--- a/arch/openrisc/kernel/traps.c
++++ b/arch/openrisc/kernel/traps.c
+@@ -266,12 +266,12 @@ asmlinkage void do_unaligned_access(struct pt_regs *regs, unsigned long address)
+ 	siginfo_t info;
  
- #include <asm-generic/siginfo.h>
- 
-+/*
-+ * SIGFPE si_codes
-+ */
-+#ifdef __KERNEL__
-+#define FPE_FIXME      0       /* Broken dup of SI_USER */
-+#endif /* __KERNEL__ */
-+
- #endif
-diff --git a/arch/metag/kernel/traps.c b/arch/metag/kernel/traps.c
-index 444851e510d5..3b62b1b0c0b5 100644
---- a/arch/metag/kernel/traps.c
-+++ b/arch/metag/kernel/traps.c
-@@ -735,7 +735,7 @@ TBIRES fpe_handler(TBIRES State, int SigNum, int Triggers, int Inst, PTBI pTBI)
- 	else if (error_state & TXSTAT_FPE_INEXACT_BIT)
- 		info.si_code = FPE_FLTRES;
- 	else
--		info.si_code = 0;
-+		info.si_code = FPE_FIXME;
- 	info.si_errno = 0;
- 	info.si_addr = (__force void __user *)regs->ctx.CurrPC;
- 	force_sig_info(SIGFPE, &info, current);
+ 	if (user_mode(regs)) {
+-		/* Send a SIGSEGV */
+-		info.si_signo = SIGSEGV;
++		/* Send a SIGBUS */
++		info.si_signo = SIGBUS;
+ 		info.si_errno = 0;
+-		/* info.si_code has been set above */
+-		info.si_addr = (void *)address;
+-		force_sig_info(SIGSEGV, &info, current);
++		info.si_code = BUS_ADRALN;
++		info.si_addr = (void __user *)address;
++		force_sig_info(SIGBUS, &info, current);
+ 	} else {
+ 		printk("KERNEL: Unaligned Access 0x%.8lx\n", address);
+ 		show_registers(regs);
 -- 
 2.14.1
