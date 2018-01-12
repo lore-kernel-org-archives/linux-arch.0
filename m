@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:8599 "EHLO mga04.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:18499 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933761AbeALA4M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Jan 2018 19:56:12 -0500
-Subject: [PATCH v2 17/19] qla2xxx: prevent bounds-check bypass via
+        id S932465AbeALA4B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Jan 2018 19:56:01 -0500
+Subject: [PATCH v2 15/19] carl9170: prevent bounds-check bypass via
  speculative execution
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 11 Jan 2018 16:47:57 -0800
-Message-ID: <151571807774.27429.7382333750792304971.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 11 Jan 2018 16:47:46 -0800
+Message-ID: <151571806633.27429.1504260808341642890.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,84 +16,54 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, linux-scsi@vger.kernel.org, kernel-hardening@lists.openwall.com, qla2xxx-upstream@qlogic.com, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
-Message-ID: <20180112004757.Hu_inZMANdoO0jmbbUArJyeLWhSqEydGeA_yXLmohwI@z>
+Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, linux-wireless@vger.kernel.org, Elena Reshetova <elena.reshetova@intel.com>, Christian Lamparter <chunkeey@googlemail.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, Kalle Valo <kvalo@codeaurora.org>, alan@linux.intel.com
+Message-ID: <20180112004746.YdkCdrlr-29B6_WIwpsvDNDSh5FZwIyXi1pZ-cXYQfc@z>
 
-Static analysis reports that 'handle' may be a user controlled value
-that is used as a data dependency to read 'sp' from the
-'req->outstanding_cmds' array.  In order to avoid potential leaks of
-kernel memory values, block speculative execution of the instruction
-stream that could issue reads based on an invalid value of 'sp'. In this
-case 'sp' is directly dereferenced later in the function.
-
-If completion tags can be specified by userspace or otherwise
-controlled, we should sanitize 'handle' with array_ptr.
+Static analysis reports that 'queue' may be a user controlled value that
+is used as a data dependency to read from the 'ar9170_qmap' array. In
+order to avoid potential leaks of kernel memory values, block
+speculative execution of the instruction stream that could issue reads
+based on an invalid result of 'ar9170_qmap[queue]'. In this case the
+value of 'ar9170_qmap[queue]' is immediately reused as an index to the
+'ar->edcf' array.
 
 Based on an original patch by Elena Reshetova.
 
-Cc: qla2xxx-upstream@qlogic.com
-Cc: "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>
-Cc: "Martin K. Petersen" <martin.petersen@oracle.com>
-Cc: linux-scsi@vger.kernel.org
+Cc: Christian Lamparter <chunkeey@googlemail.com>
+Cc: Kalle Valo <kvalo@codeaurora.org>
+Cc: linux-wireless@vger.kernel.org
+Cc: netdev@vger.kernel.org
 Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/scsi/qla2xxx/qla_mr.c |   17 +++++++++++------
- 1 file changed, 11 insertions(+), 6 deletions(-)
+ drivers/net/wireless/ath/carl9170/main.c |    7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/scsi/qla2xxx/qla_mr.c b/drivers/scsi/qla2xxx/qla_mr.c
-index d5da3981cefe..6de3f0fddcfc 100644
---- a/drivers/scsi/qla2xxx/qla_mr.c
-+++ b/drivers/scsi/qla2xxx/qla_mr.c
-@@ -9,6 +9,7 @@
- #include <linux/ktime.h>
- #include <linux/pci.h>
- #include <linux/ratelimit.h>
+diff --git a/drivers/net/wireless/ath/carl9170/main.c b/drivers/net/wireless/ath/carl9170/main.c
+index 988c8857d78c..0acfa8c22b7d 100644
+--- a/drivers/net/wireless/ath/carl9170/main.c
++++ b/drivers/net/wireless/ath/carl9170/main.c
+@@ -41,6 +41,7 @@
+ #include <linux/module.h>
+ #include <linux/etherdevice.h>
+ #include <linux/random.h>
 +#include <linux/nospec.h>
- #include <linux/vmalloc.h>
- #include <linux/bsg-lib.h>
- #include <scsi/scsi_tcq.h>
-@@ -2275,7 +2276,7 @@ qlafx00_ioctl_iosb_entry(scsi_qla_host_t *vha, struct req_que *req,
- static void
- qlafx00_status_entry(scsi_qla_host_t *vha, struct rsp_que *rsp, void *pkt)
+ #include <net/mac80211.h>
+ #include <net/cfg80211.h>
+ #include "hw.h"
+@@ -1384,11 +1385,13 @@ static int carl9170_op_conf_tx(struct ieee80211_hw *hw,
+ 			       const struct ieee80211_tx_queue_params *param)
  {
--	srb_t		*sp;
-+	srb_t		*sp, **elem;
- 	fc_port_t	*fcport;
- 	struct scsi_cmnd *cp;
- 	struct sts_entry_fx00 *sts;
-@@ -2304,8 +2305,10 @@ qlafx00_status_entry(scsi_qla_host_t *vha, struct rsp_que *rsp, void *pkt)
- 	req = ha->req_q_map[que];
+ 	struct ar9170 *ar = hw->priv;
++	const u8 *elem;
+ 	int ret;
  
- 	/* Validate handle. */
--	if (handle < req->num_outstanding_cmds)
--		sp = req->outstanding_cmds[handle];
-+	elem = array_ptr(req->outstanding_cmds, handle,
-+			req->num_outstanding_cmds);
-+	if (elem)
-+		sp = *elem;
- 	else
- 		sp = NULL;
- 
-@@ -2626,7 +2629,7 @@ static void
- qlafx00_multistatus_entry(struct scsi_qla_host *vha,
- 	struct rsp_que *rsp, void *pkt)
- {
--	srb_t		*sp;
-+	srb_t		*sp, **elem;
- 	struct multi_sts_entry_fx00 *stsmfx;
- 	struct qla_hw_data *ha = vha->hw;
- 	uint32_t handle, hindex, handle_count, i;
-@@ -2655,8 +2658,10 @@ qlafx00_multistatus_entry(struct scsi_qla_host *vha,
- 		req = ha->req_q_map[que];
- 
- 		/* Validate handle. */
--		if (handle < req->num_outstanding_cmds)
--			sp = req->outstanding_cmds[handle];
-+		elem = array_ptr(req->outstanding_cmds, handle,
-+				req->num_outstanding_cmds);
-+		if (elem)
-+			sp = *elem;
- 		else
- 			sp = NULL;
- 
+ 	mutex_lock(&ar->mutex);
+-	if (queue < ar->hw->queues) {
+-		memcpy(&ar->edcf[ar9170_qmap[queue]], param, sizeof(*param));
++	elem = array_ptr(ar9170_qmap, queue, ar->hw->queues);
++	if (elem) {
++		memcpy(&ar->edcf[*elem], param, sizeof(*param));
+ 		ret = carl9170_set_qos(ar);
+ 	} else {
+ 		ret = -EINVAL;
