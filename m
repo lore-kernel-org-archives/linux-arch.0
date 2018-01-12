@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:43761 "EHLO mga11.intel.com"
+Received: from mga04.intel.com ([192.55.52.120]:8576 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932148AbeALAz2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 11 Jan 2018 19:55:28 -0500
-Subject: [PATCH v2 09/19] ipv6: prevent bounds-check bypass via speculative
- execution
+        id S933411AbeALAzp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 11 Jan 2018 19:55:45 -0500
+Subject: [PATCH v2 12/19] userns: prevent bounds-check bypass via
+ speculative execution
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 11 Jan 2018 16:47:13 -0800
-Message-ID: <151571803370.27429.18342496227199960317.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 11 Jan 2018 16:47:29 -0800
+Message-ID: <151571804955.27429.6378685761369089453.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,59 +16,53 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, kernel-hardening@lists.openwall.com, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, netdev@vger.kernel.org, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, tglx@linutronix.de, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
-Message-ID: <20180112004713.0i6EU9Ig6Qw7_d1nI-cykjVoiETZ8birsFTEmE0RFKc@z>
+Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, "Eric W. Biederman" <ebiederm@xmission.com>, akpm@linux-foundation.org, torvalds@linux-foundation.org, tglx@linutronix.de, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
+Message-ID: <20180112004729.gDFo2fTADsfiKmKoMlIGWQCGmH5iXy4CLCWXaUc5XTY@z>
 
-Static analysis reports that 'offset' may be a user controlled value
-that is used as a data dependency reading from a raw6_frag_vec buffer.
-In order to avoid potential leaks of kernel memory values, block
+Static analysis reports that 'pos' may be a user controlled value that
+is used as a data dependency determining which extent to return out of
+'map'. In order to avoid potential leaks of kernel memory values, block
 speculative execution of the instruction stream that could issue further
-reads based on an invalid '*(rfv->c + offset)' value.
+reads based on an invalid speculative result from 'm_start()'.
 
 Based on an original patch by Elena Reshetova.
 
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
-Cc: Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>
-Cc: netdev@vger.kernel.org
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>
 Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- net/ipv6/raw.c |   10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+ kernel/user_namespace.c |   11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
 
-diff --git a/net/ipv6/raw.c b/net/ipv6/raw.c
-index 761a473a07c5..0b7ceeb6f709 100644
---- a/net/ipv6/raw.c
-+++ b/net/ipv6/raw.c
-@@ -33,6 +33,7 @@
- #include <linux/skbuff.h>
- #include <linux/compat.h>
+diff --git a/kernel/user_namespace.c b/kernel/user_namespace.c
+index 246d4d4ce5c7..8c803eae186f 100644
+--- a/kernel/user_namespace.c
++++ b/kernel/user_namespace.c
+@@ -20,6 +20,7 @@
+ #include <linux/seq_file.h>
+ #include <linux/fs.h>
  #include <linux/uaccess.h>
 +#include <linux/nospec.h>
- #include <asm/ioctls.h>
- 
- #include <net/net_namespace.h>
-@@ -725,17 +726,18 @@ static int raw6_getfrag(void *from, char *to, int offset, int len, int odd,
- 		       struct sk_buff *skb)
+ #include <linux/ctype.h>
+ #include <linux/projid.h>
+ #include <linux/fs_struct.h>
+@@ -648,15 +649,13 @@ static void *m_start(struct seq_file *seq, loff_t *ppos,
  {
- 	struct raw6_frag_vec *rfv = from;
-+	char *rfv_buf;
+ 	loff_t pos = *ppos;
+ 	unsigned extents = map->nr_extents;
+-	smp_rmb();
  
--	if (offset < rfv->hlen) {
-+	rfv_buf = array_ptr(rfv->c, offset, rfv->hlen);
-+	if (rfv_buf) {
- 		int copy = min(rfv->hlen - offset, len);
+-	if (pos >= extents)
+-		return NULL;
++	/* paired with smp_wmb in map_write */
++	smp_rmb();
  
- 		if (skb->ip_summed == CHECKSUM_PARTIAL)
--			memcpy(to, rfv->c + offset, copy);
-+			memcpy(to, rfv_buf, copy);
- 		else
- 			skb->csum = csum_block_add(
- 				skb->csum,
--				csum_partial_copy_nocheck(rfv->c + offset,
--							  to, copy, 0),
-+				csum_partial_copy_nocheck(rfv_buf, to, copy, 0),
- 				odd);
+ 	if (extents <= UID_GID_MAP_MAX_BASE_EXTENTS)
+-		return &map->extent[pos];
+-
+-	return &map->forward[pos];
++		return array_ptr(map->extent, pos, extents);
++	return array_ptr(map->forward, pos, extents);
+ }
  
- 		odd = 0;
+ static void *uid_m_start(struct seq_file *seq, loff_t *ppos)
