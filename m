@@ -1,31 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from resqmta-po-12v.sys.comcast.net ([96.114.154.171]:44548 "EHLO
-        resqmta-po-12v.sys.comcast.net" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S964812AbeALP40 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 12 Jan 2018 10:56:26 -0500
-Date: Fri, 12 Jan 2018 09:56:21 -0600 (CST)
-From: Christopher Lameter <cl@linux.com>
-Subject: RE: [PATCH 04/36] usercopy: Prepare for usercopy whitelisting
-In-Reply-To: <b8c3f85827ca493e9f4517f646ac97da@AcuMS.aculab.com>
-Message-ID: <alpine.DEB.2.20.1801120955540.12791@nuc-kabylake>
-References: <1515531365-37423-1-git-send-email-keescook@chromium.org> <1515531365-37423-5-git-send-email-keescook@chromium.org> <alpine.DEB.2.20.1801101219390.7926@nuc-kabylake> <b8c3f85827ca493e9f4517f646ac97da@AcuMS.aculab.com>
+Received: from mail-ot0-f193.google.com ([74.125.82.193]:40647 "EHLO
+        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S965062AbeALSrq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 13:47:46 -0500
+Received: by mail-ot0-f193.google.com with SMTP id d10so5842277oti.7
+        for <linux-arch@vger.kernel.org>; Fri, 12 Jan 2018 10:47:46 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+In-Reply-To: <20180112075907.GA3391@kroah.com>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151571803884.27429.7578279171286065970.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180112075907.GA3391@kroah.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Fri, 12 Jan 2018 10:47:44 -0800
+Message-ID: <CAPcyv4js=KTb+eJjoc4_hjiJsiHr4EApJfxTjFfRBYx_CtuBKA@mail.gmail.com>
+Subject: Re: [PATCH v2 10/19] ipv4: prevent bounds-check bypass via
+ speculative execution
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Laight <David.Laight@ACULAB.COM>
-Cc: Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-xfs@vger.kernel.org" <linux-xfs@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20180112155621.LpO5aUo49ZACGhuufcy1zYHydLDtSrWVw5E_ZS8Y3Bk@z>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, kernel-hardening@lists.openwall.com, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Netdev <netdev@vger.kernel.org>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180112184744.8NDh1Q7dVzXP86A5gnGVT-dx-lKsHr1NA0WAoOHJPXc@z>
 
-On Fri, 12 Jan 2018, David Laight wrote:
-
-> > Hmmm... At some point we should switch kmem_cache_create to pass a struct
-> > containing all the parameters. Otherwise the API will blow up with
-> > additional functions.
+On Thu, Jan 11, 2018 at 11:59 PM, Greg KH <gregkh@linuxfoundation.org> wrote:
+> On Thu, Jan 11, 2018 at 04:47:18PM -0800, Dan Williams wrote:
+>> Static analysis reports that 'offset' may be a user controlled value
+>> that is used as a data dependency reading from a raw_frag_vec buffer.
+>> In order to avoid potential leaks of kernel memory values, block
+>> speculative execution of the instruction stream that could issue further
+>> reads based on an invalid '*(rfv->c + offset)' value.
+>>
+>> Based on an original patch by Elena Reshetova.
 >
-> Or add an extra function to 'configure' the kmem_cache with the
-> extra parameters.
+> There is the "Co-Developed-by:" tag now, if you want to use it...
 
-We probably need even more configurability if we add callbacks for object
-reclaim / moving.
+Ok, thanks.
+
+>
+>> Cc: "David S. Miller" <davem@davemloft.net>
+>> Cc: Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
+>> Cc: Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>
+>> Cc: netdev@vger.kernel.org
+>> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
+>> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+>> ---
+>>  net/ipv4/raw.c |   10 ++++++----
+>>  1 file changed, 6 insertions(+), 4 deletions(-)
+>
+> Ugh, what is this, the 4th time I've said "I don't think this is an
+> issue, so why are you changing this code." to this patch.  To be
+> followed by a "oh yeah, you are right, I'll drop it", only to see it
+> show back up in the next time this patch series is sent out?
+>
+> Same for the other patches in this series that I have reviewed 4, maybe
+> 5, times already.  The "v2" is not very true here...
+
+The theme of the review feedback on v1 was 'don't put ifence in any
+net/ code', and that was addressed.
+
+I honestly thought the new definition of array_ptr() changed the
+calculus on this patch. Given the same pattern appears in the ipv6
+case, and I have yet to hear that we should drop the ipv6 patch, make
+the code symmetric just for readability purposes. Otherwise we need a
+comment saying why this is safe for ipv4, but maybe not safe for ipv6,
+I think 'array_ptr' is effectively that comment. I.e. 'array_ptr()' is
+designed to be low impact for instrumenting false positives. If that
+new argument does not hold water I will definitely drop this patch.
