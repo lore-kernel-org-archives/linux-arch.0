@@ -1,127 +1,45 @@
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 11/11] signal: Ensure generic siginfos the kernel sends have all bits initialized
-Date: Thu, 11 Jan 2018 18:59:40 -0600
-Message-ID: <20180112005940.23279-11-ebiederm@xmission.com>
-References: <87373b6ghs.fsf@xmission.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87373b6ghs.fsf@xmission.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
-List-Id: linux-arch.vger.kernel.org
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v2 08/19] x86: use __uaccess_begin_nospec and ASM_IFENCE
+ in get_user paths
+Date: Thu, 11 Jan 2018 17:11:20 -0800
+Message-ID: <CA+55aFwu2L+YK-DtfCbtsZL+DopgksfnpazA8ja=FW9_4MNeyg@mail.gmail.com>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151571802814.27429.12886210130791656117.stgit@dwillia2-desk3.amr.corp.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-it0-f65.google.com ([209.85.214.65]:46354 "EHLO
+        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754016AbeALBLV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:11:21 -0500
+In-Reply-To: <151571802814.27429.12886210130791656117.stgit@dwillia2-desk3.amr.corp.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
 
-Call clear_siginfo to ensure stack allocated siginfos are fully
-initialized before being passed to the signal sending functions.
+This patch doesn't affect arch/x86/lib/getuser.S, which I find surprising.
 
-This ensures that if there is the kind of confusion documented by
-TRAP_FIXME, FPE_FIXME, or BUS_FIXME the kernel won't send unitialized
-data to userspace when the kernel generates a signal with SI_USER but
-the copy to userspace assumes it is a different kind of signal, and
-different fields are initialized.
+Of all the user access functions, I actually think that get_user() is
+the one most likely to have the result then used speculatively as an
+index (the required second dependent read to actually leak data).
 
-This also prepares the way for turning copy_siginfo_to_user
-into a copy_to_user, by removing the need in many cases to perform
-a field by field copy simply to skip the uninitialized fields.
+I do *not* see people doing "copy_from_user()" and then somehow using
+the thing as an index to another array. I mean, it can happen (copy a
+structure, use a member in that structure), but it doesn't seem to be
+the most likely thing.
 
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- fs/fcntl.c      | 1 +
- ipc/mqueue.c    | 1 +
- kernel/signal.c | 9 ++++++++-
- 3 files changed, 10 insertions(+), 1 deletion(-)
+The most likely thing would seem to be some random ioctl() do a
+"get_user()" to get an index, and then using that index. That would
+seem to be one of the easier ways to perhaps get that kind of kernel
+spectre attack.
 
-diff --git a/fs/fcntl.c b/fs/fcntl.c
-index 0522e283a4f4..c17369659f4a 100644
---- a/fs/fcntl.c
-+++ b/fs/fcntl.c
-@@ -737,6 +737,7 @@ static void send_sigio_to_task(struct task_struct *p,
- 			   delivered even if we can't queue.  Failure to
- 			   queue in this case _should_ be reported; we fall
- 			   back to SIGIO in that case. --sct */
-+			clear_siginfo(&si);
- 			si.si_signo = signum;
- 			si.si_errno = 0;
- 		        si.si_code  = reason;
-diff --git a/ipc/mqueue.c b/ipc/mqueue.c
-index 9649ecd8a73a..17bc8b874d92 100644
---- a/ipc/mqueue.c
-+++ b/ipc/mqueue.c
-@@ -639,6 +639,7 @@ static void __do_notify(struct mqueue_inode_info *info)
- 		case SIGEV_SIGNAL:
- 			/* sends signal */
- 
-+			clear_siginfo(&sig_i);
- 			sig_i.si_signo = info->notify.sigev_signo;
- 			sig_i.si_errno = 0;
- 			sig_i.si_code = SI_MESGQ;
-diff --git a/kernel/signal.c b/kernel/signal.c
-index fd182a845490..241d54958bbb 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -549,6 +549,7 @@ static void collect_signal(int sig, struct sigpending *list, siginfo_t *info,
- 		 * a fast-pathed signal or we must have been
- 		 * out of queue space.  So zero out the info.
- 		 */
-+		clear_siginfo(info);
- 		info->si_signo = sig;
- 		info->si_errno = 0;
- 		info->si_code = SI_USER;
-@@ -1043,6 +1044,7 @@ static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
- 		list_add_tail(&q->list, &pending->list);
- 		switch ((unsigned long) info) {
- 		case (unsigned long) SEND_SIG_NOINFO:
-+			clear_siginfo(&q->info);
- 			q->info.si_signo = sig;
- 			q->info.si_errno = 0;
- 			q->info.si_code = SI_USER;
-@@ -1051,6 +1053,7 @@ static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
- 			q->info.si_uid = from_kuid_munged(current_user_ns(), current_uid());
- 			break;
- 		case (unsigned long) SEND_SIG_PRIV:
-+			clear_siginfo(&q->info);
- 			q->info.si_signo = sig;
- 			q->info.si_errno = 0;
- 			q->info.si_code = SI_KERNEL;
-@@ -1623,6 +1626,7 @@ bool do_notify_parent(struct task_struct *tsk, int sig)
- 			sig = SIGCHLD;
- 	}
- 
-+	clear_siginfo(&info);
- 	info.si_signo = sig;
- 	info.si_errno = 0;
- 	/*
-@@ -1717,6 +1721,7 @@ static void do_notify_parent_cldstop(struct task_struct *tsk,
- 		parent = tsk->real_parent;
- 	}
- 
-+	clear_siginfo(&info);
- 	info.si_signo = SIGCHLD;
- 	info.si_errno = 0;
- 	/*
-@@ -1929,7 +1934,7 @@ static void ptrace_do_notify(int signr, int exit_code, int why)
- {
- 	siginfo_t info;
- 
--	memset(&info, 0, sizeof info);
-+	clear_siginfo(&info);
- 	info.si_signo = signr;
- 	info.si_code = exit_code;
- 	info.si_pid = task_pid_vnr(current);
-@@ -2136,6 +2141,7 @@ static int ptrace_signal(int signr, siginfo_t *info)
- 	 * have updated *info via PTRACE_SETSIGINFO.
- 	 */
- 	if (signr != info->si_signo) {
-+		clear_siginfo(info);
- 		info->si_signo = signr;
- 		info->si_errno = 0;
- 		info->si_code = SI_USER;
-@@ -2941,6 +2947,7 @@ SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
- {
- 	struct siginfo info;
- 
-+	clear_siginfo(&info);
- 	info.si_signo = sig;
- 	info.si_errno = 0;
- 	info.si_code = SI_USER;
--- 
-2.14.1
+Adding the ASM_IFENCE to __get_user_X() in arch/x86/lib/getuser.S
+would seem to go naturally together with the copy_user_64.S changes in
+this patch.
+
+Is there some reason __get_user_X() was overlooked? Those are _the_
+most common user accessor functions that do the address limit
+checking.
+
+            Linus
