@@ -1,46 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:35527 "EHLO
+Received: from out01.mta.xmission.com ([166.70.13.231]:35545 "EHLO
         out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933242AbeALBBX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:01:23 -0500
+        with ESMTP id S933242AbeALBBf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 Jan 2018 20:01:35 -0500
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Thu, 11 Jan 2018 18:59:31 -0600
-Message-ID: <20180112005940.23279-2-ebiederm@xmission.com>
+Date: Thu, 11 Jan 2018 18:59:35 -0600
+Message-ID: <20180112005940.23279-6-ebiederm@xmission.com>
 In-Reply-To: <87373b6ghs.fsf@xmission.com>
 References: <87373b6ghs.fsf@xmission.com>
-Subject: [PATCH 02/11] signal/sh: Ensure si_signo is initialized in do_divide_error
+Subject: [PATCH 06/11] signal/powerpc: Document conflicts with SI_USER and SIGFPE and SIGTRAP
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, stable@vger.kernel.org
-Message-ID: <20180112005931.BQK1CPD9R_b-YKzfymx8aPDfwTxltQJASzZURO7faBo@z>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Paul Mackerras <paulus@samba.org>, Kumar Gala <kumar.gala@freescale.com>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20180112005935.ZUIdNIJNS8s-HmcjEjHffzOpyxoboxENZe7LMBJE7bs@z>
 
-Set si_signo.
+Setting si_code to 0 results in a userspace seeing an si_code of 0.
+This is the same si_code as SI_USER.  Posix and common sense requires
+that SI_USER not be a signal specific si_code.  As such this use of 0
+for the si_code is a pretty horribly broken ABI.
 
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: linux-sh@vger.kernel.org
-Cc: stable@vger.kernel.org
-Fixes: 0983b31849bb ("sh: Wire up division and address error exceptions on SH-2A.")
+Further use of si_code == 0 guaranteed that copy_siginfo_to_user saw a
+value of __SI_KILL and now sees a value of SIL_KILL with the result
+that uid and pid fields are copied and which might copying the si_addr
+field by accident but certainly not by design.  Making this a very
+flakey implementation.
+
+Utilizing FPE_FIXME and TRAP_FIXME, siginfo_layout() will now return
+SIL_FAULT and the appropriate fields will be reliably copied.
+
+Possible ABI fixes includee:
+- Send the signal without siginfo
+- Don't generate a signal
+- Possibly assign and use an appropriate si_code
+- Don't handle cases which can't happen
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Kumar Gala <kumar.gala@freescale.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc:  linuxppc-dev@lists.ozlabs.org
+Ref: 9bad068c24d7 ("[PATCH] ppc32: support for e500 and 85xx")
+Ref: 0ed70f6105ef ("PPC32: Provide proper siginfo information on various exceptions.")
+History Tree: https://git.kernel.org/pub/scm/linux/kernel/git/tglx/history.git
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/sh/kernel/traps_32.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ arch/powerpc/include/uapi/asm/siginfo.h | 15 +++++++++++++++
+ arch/powerpc/kernel/traps.c             | 10 +++++-----
+ 2 files changed, 20 insertions(+), 5 deletions(-)
 
-diff --git a/arch/sh/kernel/traps_32.c b/arch/sh/kernel/traps_32.c
-index 57cff00cad17..b3770bb26211 100644
---- a/arch/sh/kernel/traps_32.c
-+++ b/arch/sh/kernel/traps_32.c
-@@ -609,7 +609,8 @@ asmlinkage void do_divide_error(unsigned long r4)
- 		break;
- 	}
+diff --git a/arch/powerpc/include/uapi/asm/siginfo.h b/arch/powerpc/include/uapi/asm/siginfo.h
+index 1a691141e49f..444ca6c9989a 100644
+--- a/arch/powerpc/include/uapi/asm/siginfo.h
++++ b/arch/powerpc/include/uapi/asm/siginfo.h
+@@ -18,4 +18,19 @@
+ #undef NSIGTRAP
+ #define NSIGTRAP	4
  
--	force_sig_info(SIGFPE, &info, current);
-+	info.si_signo = SIGFPE;
-+	force_sig_info(info.si_signo, &info, current);
++/*
++ * SIGFPE si_codes
++ */
++#ifdef __KERNEL__
++#define FPE_FIXME	0	/* Broken dup of SI_USER */
++#endif /* __KERNEL__ */
++
++/*
++ * SIGTRAP si_codes
++ */
++#ifdef __KERNEL__
++#define TRAP_FIXME	0	/* Broken dup of SI_USER */
++#endif /* __KERNEL__ */
++
++
+ #endif	/* _ASM_POWERPC_SIGINFO_H */
+diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
+index f3eb61be0d30..f2e6e1838952 100644
+--- a/arch/powerpc/kernel/traps.c
++++ b/arch/powerpc/kernel/traps.c
+@@ -917,7 +917,7 @@ void unknown_exception(struct pt_regs *regs)
+ 	printk("Bad trap at PC: %lx, SR: %lx, vector=%lx\n",
+ 	       regs->nip, regs->msr, regs->trap);
+ 
+-	_exception(SIGTRAP, regs, 0, 0);
++	_exception(SIGTRAP, regs, TRAP_FIXME, 0);
+ 
+ 	exception_exit(prev_state);
  }
- #endif
+@@ -939,7 +939,7 @@ void instruction_breakpoint_exception(struct pt_regs *regs)
  
+ void RunModeException(struct pt_regs *regs)
+ {
+-	_exception(SIGTRAP, regs, 0, 0);
++	_exception(SIGTRAP, regs, TRAP_FIXME, 0);
+ }
+ 
+ void single_step_exception(struct pt_regs *regs)
+@@ -978,7 +978,7 @@ static void emulate_single_step(struct pt_regs *regs)
+ 
+ static inline int __parse_fpscr(unsigned long fpscr)
+ {
+-	int ret = 0;
++	int ret = FPE_FIXME;
+ 
+ 	/* Invalid operation */
+ 	if ((fpscr & FPSCR_VE) && (fpscr & FPSCR_VX))
+@@ -1929,7 +1929,7 @@ void SPEFloatingPointException(struct pt_regs *regs)
+ 	extern int do_spe_mathemu(struct pt_regs *regs);
+ 	unsigned long spefscr;
+ 	int fpexc_mode;
+-	int code = 0;
++	int code = FPE_FIXME;
+ 	int err;
+ 
+ 	flush_spe_to_thread(current);
+@@ -1998,7 +1998,7 @@ void SPEFloatingPointRoundException(struct pt_regs *regs)
+ 		printk(KERN_ERR "unrecognized spe instruction "
+ 		       "in %s at %lx\n", current->comm, regs->nip);
+ 	} else {
+-		_exception(SIGFPE, regs, 0, regs->nip);
++		_exception(SIGFPE, regs, FPE_FIXME, regs->nip);
+ 		return;
+ 	}
+ }
 -- 
 2.14.1
