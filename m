@@ -1,81 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f193.google.com ([74.125.82.193]:36691 "EHLO
-        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S965085AbeALT0b (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 14:26:31 -0500
-Received: by mail-ot0-f193.google.com with SMTP id w4so5935746otg.3
-        for <linux-arch@vger.kernel.org>; Fri, 12 Jan 2018 11:26:31 -0800 (PST)
+Received: from mail-it0-f65.google.com ([209.85.214.65]:41416 "EHLO
+        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S965081AbeALUBG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 15:01:06 -0500
 MIME-Version: 1.0
-In-Reply-To: <20180112185815.meiwnnb5vmnrbsdt@treble>
+In-Reply-To: <CAPcyv4jm7S+8ezntAo2LeOGshPdpt616RNOambOL6espzBYUvg@mail.gmail.com>
 References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
  <151571802258.27429.932636277047687877.stgit@dwillia2-desk3.amr.corp.intel.com>
  <20180112175109.yoz4jaaipztdj34k@treble> <CAPcyv4heW2FqxpCa0NZeTsa5V7pgpzA-MdHYJA+y9C5L2GTP9w@mail.gmail.com>
- <20180112185815.meiwnnb5vmnrbsdt@treble>
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 12 Jan 2018 11:26:30 -0800
-Message-ID: <CAPcyv4jm7S+8ezntAo2LeOGshPdpt616RNOambOL6espzBYUvg@mail.gmail.com>
+ <20180112185815.meiwnnb5vmnrbsdt@treble> <CAPcyv4jm7S+8ezntAo2LeOGshPdpt616RNOambOL6espzBYUvg@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Fri, 12 Jan 2018 12:01:04 -0800
+Message-ID: <CA+55aFwhU110nyGerakLf-LHgfZDmJ6snTyQJqAHRbnxQoqbHg@mail.gmail.com>
 Subject: Re: [PATCH v2 07/19] x86: introduce __uaccess_begin_nospec and ASM_IFENCE
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180112192630.fLmEUyCN37WC5Dn2N3pZttroSOWBOQpPn8_ARpCCSvk@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180112200104.rVTleKYyhampYyV32JN5wTKgX__p8aVpEyZyEC_1AGI@z>
 
-On Fri, Jan 12, 2018 at 10:58 AM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
-> On Fri, Jan 12, 2018 at 10:21:43AM -0800, Dan Williams wrote:
->> > That just sounds wrong.  What if the speculation starts *after* the
->> > access_ok() check?  Then the barrier has no purpose.
->> >
->> > Most access_ok/get_user/copy_from_user calls are like this:
->> >
->> >   if (copy_from_user(...uptr..))  /* or access_ok() or get_user() */
->> >         return -EFAULT;
->> >
->> > So in other words, the usercopy function is called *before* the branch.
->> >
->> > But to halt speculation, the lfence needs to come *after* the branch.
->> > So putting lfences *before* the branch doesn't solve anything.
->> >
->> > So what am I missing?
->>
->> We're trying to prevent a pointer under user control from being
->> de-referenced inside the kernel, before we know it has been limited to
->> something safe. In the following sequence the branch we are worried
->> about speculating is the privilege check:
->>
->> if (access_ok(uptr))  /* <--- Privelege Check */
->>     if (copy_from_user_(uptr))
->>
->> The cpu can speculatively skip that access_ok() check and cause a read
->> of kernel memory.
+On Fri, Jan 12, 2018 at 11:26 AM, Dan Williams <dan.j.williams@intel.com> wrote:
 >
-> Converting your example code to assembly:
->
->         call    access_ok # no speculation which started before this point is allowed to continue past this point
->         test    %rax, %rax
->         jne     error_path
-> dereference_uptr:
->         (do nefarious things with the user pointer)
->
-> error_path:
->         mov -EINVAL, %rax
->         ret
->
-> So the CPU is still free to speculately execute the dereference_uptr
-> block because the lfence was before the 'jne error_path' branch.
+> By the time we get to de-reference uptr we know it is not pointing at
+> kernel memory, because access_ok would have failed and the cpu would
+> have waited for that failure result before doing anything else.
 
-By the time we get to de-reference uptr we know it is not pointing at
-kernel memory, because access_ok would have failed and the cpu would
-have waited for that failure result before doing anything else.
+I'm not actually convinced that's right in the original patches,
+exactly because of the issue that Josh pointed out: even if there is a
+comparison inside access_ok() that will be properly serialized, then
+that comparison can (and sometimes does) just cause a truth value to
+be generated, and then there  might be *another* comparison of that
+return value after the lfence. And while the return value is table,
+the conditional branch on that comparison isn't.
 
-Now the vulnerability that still exists after this fence is if we do
-something with the value returned from de-referencing that pointer.
-I.e. if we do:
+The new model of just doing it together with the STAC should be fine, though.
 
-get_user(val, uptr);
-if (val < array_max)
-    array[val];
+I do think that it would be a good idea to very expressly document the
+fact that it's not that the user access itself is unsafe. I do agree
+that things like "get_user()" want to be protected, but not because of
+any direct bugs or problems with get_user() and friends, but simply
+because get_user() is an excellent source of a pointer that is
+obviously controlled from a potentially attacking user space. So it's
+a prime candidate for then finding _subsequent_ accesses that can then
+be used to perturb the cache.
 
-...then we're back to having a user controlled pointer in the kernel.
-This is the point where we need array_ptr() to sanitize things.
+                 Linus
