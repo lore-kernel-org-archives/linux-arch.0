@@ -1,184 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:18429 "EHLO mga01.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751475AbeAMSZo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 13 Jan 2018 13:25:44 -0500
-Subject: [PATCH v3 1/9] Documentation: document array_ptr
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Sat, 13 Jan 2018 10:17:28 -0800
-Message-ID: <151586744826.5820.2041500357568068352.stgit@dwillia2-desk3.amr.corp.intel.com>
-In-Reply-To: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from mail-io0-f195.google.com ([209.85.223.195]:39790 "EHLO
+        mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753386AbeAMSvz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Jan 2018 13:51:55 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <CA+8MBb+H0FqciBw9nSO9L0fNQtiRvc_1TREitH9z89YxhtyFAQ@mail.gmail.com>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com> <CA+8MBb+H0FqciBw9nSO9L0fNQtiRvc_1TREitH9z89YxhtyFAQ@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sat, 13 Jan 2018 10:51:53 -0800
+Message-ID: <CA+55aFwUspY8DG3hRxZqQaf_n_0OZxGCd=pELc8ZVuBu+058cA@mail.gmail.com>
+Subject: Re: [PATCH v2 00/19] prevent bounds-check bypass via speculative execution
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, gregkh@linuxfoundation.org, Jonathan Corbet <corbet@lwn.net>, Will Deacon <will.deacon@arm.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180113181728.lI4GJ3H0u-DfjnNFToSYr9g_TGRv_I6tdoOOSU3S0RE@z>
+To: Tony Luck <tony.luck@gmail.com>
+Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, Linux SCSI List <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, the arch/x86 maintainers <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Linux Media Mailing List <linux-media@vger.kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Jan Kara <jack@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, Alan Cox <alan@linux.intel.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Greg KH <gregkh@linuxfoundation.org>, Linux Wireless List <linux-wireless@vger.kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Network Development <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Message-ID: <20180113185153.8Egr3J6LA8vNQTpmKyNjErzeUU-TpH5Hlc_QaseBVzc@z>
 
-From: Mark Rutland <mark.rutland@arm.com>
+On Fri, Jan 12, 2018 at 4:15 PM, Tony Luck <tony.luck@gmail.com> wrote:
+>
+> Here there isn't any reason for speculation. The core has the
+> value of 'x' in a register and the upper bound encoded into the
+> "cmp" instruction.  Both are right there, no waiting, no speculation.
 
-Document the rationale and usage of the new array_ptr() helper.
+So this is an argument I haven't seen before (although it was brought
+up in private long ago), but that is very relevant: the actual scope
+and depth of speculation.
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
----
- Documentation/speculation.txt |  143 +++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 143 insertions(+)
- create mode 100644 Documentation/speculation.txt
+Your argument basically depends on just what gets speculated, and on
+the _actual_ order of execution.
 
-diff --git a/Documentation/speculation.txt b/Documentation/speculation.txt
-new file mode 100644
-index 000000000000..1e59d1d9eaf4
---- /dev/null
-+++ b/Documentation/speculation.txt
-@@ -0,0 +1,143 @@
-+This document explains potential effects of speculation, and how undesirable
-+effects can be mitigated portably using common APIs.
-+
-+===========
-+Speculation
-+===========
-+
-+To improve performance and minimize average latencies, many contemporary CPUs
-+employ speculative execution techniques such as branch prediction, performing
-+work which may be discarded at a later stage.
-+
-+Typically speculative execution cannot be observed from architectural state,
-+such as the contents of registers. However, in some cases it is possible to
-+observe its impact on microarchitectural state, such as the presence or
-+absence of data in caches. Such state may form side-channels which can be
-+observed to extract secret information.
-+
-+For example, in the presence of branch prediction, it is possible for bounds
-+checks to be ignored by code which is speculatively executed. Consider the
-+following code:
-+
-+	int load_array(int *array, unsigned int idx)
-+	{
-+		if (idx >= MAX_ARRAY_ELEMS)
-+			return 0;
-+		else
-+			return array[idx];
-+	}
-+
-+Which, on arm64, may be compiled to an assembly sequence such as:
-+
-+	CMP	<idx>, #MAX_ARRAY_ELEMS
-+	B.LT	less
-+	MOV	<returnval>, #0
-+	RET
-+  less:
-+	LDR	<returnval>, [<array>, <idx>]
-+	RET
-+
-+It is possible that a CPU mis-predicts the conditional branch, and
-+speculatively loads array[idx], even if idx >= MAX_ARRAY_ELEMS. This value
-+will subsequently be discarded, but the speculated load may affect
-+microarchitectural state which can be subsequently measured.
-+
-+More complex sequences involving multiple dependent memory accesses may result
-+in sensitive information being leaked. Consider the following code, building
-+on the prior example:
-+
-+	int load_dependent_arrays(int *arr1, int *arr2, int idx)
-+	{
-+		int val1, val2,
-+
-+		val1 = load_array(arr1, idx);
-+		val2 = load_array(arr2, val1);
-+
-+		return val2;
-+	}
-+
-+Under speculation, the first call to load_array() may return the value of an
-+out-of-bounds address, while the second call will influence microarchitectural
-+state dependent on this value. This may provide an arbitrary read primitive.
-+
-+====================================
-+Mitigating speculation side-channels
-+====================================
-+
-+The kernel provides a generic API to ensure that bounds checks are respected
-+even under speculation. Architectures which are affected by speculation-based
-+side-channels are expected to implement these primitives.
-+
-+The array_ptr() helper in <asm/barrier.h> can be used to prevent
-+information from being leaked via side-channels.
-+
-+A call to array_ptr(arr, idx, sz) returns a sanitized pointer to
-+arr[idx] only if idx falls in the [0, sz) interval. When idx < 0 or idx > sz,
-+NULL is returned. Additionally, array_ptr() an out-of-bounds poitner is
-+not propagated to code which is speculatively executed.
-+
-+This can be used to protect the earlier load_array() example:
-+
-+	int load_array(int *array, unsigned int idx)
-+	{
-+		int *elem;
-+
-+		elem = array_ptr(array, idx, MAX_ARRAY_ELEMS);
-+		if (elem)
-+			return *elem;
-+		else
-+			return 0;
-+	}
-+
-+This can also be used in situations where multiple fields on a structure are
-+accessed:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		struct foo *elem;
-+
-+		elem = array_ptr(array, idx, SIZE);
-+		if (elem) {
-+			a = elem->field_a;
-+			b = elem->field_b;
-+		}
-+	}
-+
-+It is imperative that the returned pointer is used. Pointers which are
-+generated separately are subject to a number of potential CPU and compiler
-+optimizations, and may still be used speculatively. For example, this means
-+that the following sequence is unsafe:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		if (array_ptr(array, idx, SIZE) != NULL) {
-+			// unsafe as wrong pointer is used
-+			a = array[idx].field_a;
-+			b = array[idx].field_b;
-+		}
-+	}
-+
-+Similarly, it is unsafe to compare the returned pointer with other pointers,
-+as this may permit the compiler to substitute one pointer with another,
-+permitting speculation. For example, the following sequence is unsafe:
-+
-+	struct foo array[SIZE];
-+	int a, b;
-+
-+	void do_thing(int idx)
-+	{
-+		struct foo *elem = array_ptr(array, idx, size);
-+
-+		// unsafe due to pointer substitution
-+		if (elem == &array[idx]) {
-+			a = elem->field_a;
-+			b = elem->field_b;
-+		}
-+	}
-+
+So your argument depends on "the uarch will actually run the code in
+order if there are no events that block the pipeline".
+
+Or at least it depends on a certain latency of the killing of any OoO
+execution being low enough that the cache access doesn't even begin.
+
+I realize that that is very much a particular microarchitectural
+detail, but it's actually a *big* deal. Do we have a set of rules for
+what is not a worry, simply because the speculated accesses get killed
+early enough?
+
+Apparently "test a register value against a constant" is good enough,
+assuming that register is also needed for the address of the access.
+
+            Linus
