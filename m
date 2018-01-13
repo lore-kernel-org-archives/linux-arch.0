@@ -1,58 +1,127 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v2 10/19] ipv4: prevent bounds-check bypass via
- speculative execution
-Date: Sat, 13 Jan 2018 09:56:35 +0100
-Message-ID: <20180113085635.GA11640@kroah.com>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151571803884.27429.7578279171286065970.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180112075907.GA3391@kroah.com>
- <CAPcyv4js=KTb+eJjoc4_hjiJsiHr4EApJfxTjFfRBYx_CtuBKA@mail.gmail.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: [PATCH v3 0/9] core,
+ x86: prevent bounds-check bypass via speculative execution
+Date: Sat, 13 Jan 2018 10:17:22 -0800
+Message-ID: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAPcyv4js=KTb+eJjoc4_hjiJsiHr4EApJfxTjFfRBYx_CtuBKA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, kernel-hardening@lists.openwall.com, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Netdev <netdev@vger.kernel.org>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+To: linux-kernel@vger.kernel.org
+Cc: Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Alan Cox <alan.cox@intel.com>, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, tglx@linutronix.de, alan@linux.intel.com, gregkh@linuxfoundation.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 12, 2018 at 10:47:44AM -0800, Dan Williams wrote:
-> On Thu, Jan 11, 2018 at 11:59 PM, Greg KH <gregkh@linuxfoundation.org> wrote:
-> >> Cc: "David S. Miller" <davem@davemloft.net>
-> >> Cc: Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
-> >> Cc: Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>
-> >> Cc: netdev@vger.kernel.org
-> >> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
-> >> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> >> ---
-> >>  net/ipv4/raw.c |   10 ++++++----
-> >>  1 file changed, 6 insertions(+), 4 deletions(-)
-> >
-> > Ugh, what is this, the 4th time I've said "I don't think this is an
-> > issue, so why are you changing this code." to this patch.  To be
-> > followed by a "oh yeah, you are right, I'll drop it", only to see it
-> > show back up in the next time this patch series is sent out?
-> >
-> > Same for the other patches in this series that I have reviewed 4, maybe
-> > 5, times already.  The "v2" is not very true here...
-> 
-> The theme of the review feedback on v1 was 'don't put ifence in any
-> net/ code', and that was addressed.
-> 
-> I honestly thought the new definition of array_ptr() changed the
-> calculus on this patch. Given the same pattern appears in the ipv6
-> case, and I have yet to hear that we should drop the ipv6 patch, make
-> the code symmetric just for readability purposes. Otherwise we need a
-> comment saying why this is safe for ipv4, but maybe not safe for ipv6,
-> I think 'array_ptr' is effectively that comment. I.e. 'array_ptr()' is
-> designed to be low impact for instrumenting false positives. If that
-> new argument does not hold water I will definitely drop this patch.
+Changes since v2 [1]:
+* style fix in Documentation/speculation.txt (Geert)
 
-I also argued, again in an older review of this same patch series, that
-the ipv6 patch should be dropped as well for this same exact reason.
+* add Russell and Catalin to the cc on the ARM patches (Russell)
 
-I didn't think you wanted to hear me rant about the same thing on both
-patches :)
+* clarify changelog for "x86: introduce __uaccess_begin_nospec and
+  ASM_IFENCE" (Eric, Linus, Josh)
 
-greg k-h
+* fix the dynamic 'mask' / 'ifence' toggle vs CONFIG_JUMP_LABEL=n
+  (Peter)
+
+* include the get_user_{1,2,4,8} helpers in the ASM_IFENCE protections
+  (Linus)
+
+* fix array_ptr_mask for ARCH=i386 builds (Kbuild robot)
+
+* prioritize the get_user protections, and the fdtable fix
+
+[1]: https://lwn.net/Articles/744141/
+
+---
+
+Quoting Mark's original RFC:
+
+"Recently, Google Project Zero discovered several classes of attack
+against speculative execution. One of these, known as variant-1, allows
+explicit bounds checks to be bypassed under speculation, providing an
+arbitrary read gadget. Further details can be found on the GPZ blog [2]
+and the Documentation patch in this series."
+
+This series incorporates Mark Rutland's latest ARM changes and adds
+the x86 specific implementation of 'ifence_array_ptr'. That ifence
+based approach is provided as an opt-in fallback, but the default
+mitigation, '__array_ptr', uses a 'mask' approach that removes
+conditional branches instructions, and otherwise aims to redirect
+speculation to use a NULL pointer rather than a user controlled value.
+
+The mask is generated by the following from Alexei, and Linus:
+
+    mask = ~(long)(_i | (_s - 1 - _i)) >> (BITS_PER_LONG - 1);
+
+...and Linus provided an optimized mask generation helper for x86:
+
+    asm ("cmpq %1,%2; sbbq %0,%0;"
+		:"=r" (mask)
+		:"r"(sz),"r" (idx)
+		:"cc");
+
+The 'array_ptr' mechanism can be switched between 'mask' and 'ifence'
+via the spectre_v1={mask,ifence} command line option if
+CONFIG_SPECTRE1_DYNAMIC=y, and the compile-time default is otherwise set
+by selecting either CONFIG_SPECTRE1_MASK or CONFIG_SPECTRE1_IFENCE. This
+level of sophistication is provided given concerns about 'value
+speculation' [3].
+
+The get_user protections and 'array_ptr' infrastructure are the only
+concern of this patch set. Going forward 'array_ptr' is a tool that
+sub-system maintainers can use to instrument array bounds checks like
+'__fcheck_files'. When to use 'array_ptr' is saved for a future patch
+set, and in the meantime the 'get_user' protections raise the bar for
+launching a Spectre-v1 attack.
+
+These patches are also available via the 'nospec-v3' git branch here:
+
+    git://git.kernel.org/pub/scm/linux/kernel/git/djbw/linux nospec-v3
+
+Note that the BPF fix for Spectre variant1 is merged for 4.15-rc8.
+
+[2]: https://googleprojectzero.blogspot.co.uk/2018/01/reading-privileged-memory-with-side.html
+[3]: https://marc.info/?l=linux-netdev&m=151527996901350&w=2
+
+---
+
+Dan Williams (6):
+      x86: implement ifence()
+      x86: implement ifence_array_ptr() and array_ptr_mask()
+      asm/nospec: mask speculative execution flows
+      x86: introduce __uaccess_begin_nospec and ASM_IFENCE
+      x86: use __uaccess_begin_nospec and ASM_IFENCE in get_user paths
+      vfs, fdtable: prevent bounds-check bypass via speculative execution
+
+Mark Rutland (3):
+      Documentation: document array_ptr
+      arm64: implement ifence_array_ptr()
+      arm: implement ifence_array_ptr()
+
+
+ Documentation/speculation.txt     |  143 +++++++++++++++++++++++++++++++++++++
+ arch/arm/Kconfig                  |    1 
+ arch/arm/include/asm/barrier.h    |   24 ++++++
+ arch/arm64/Kconfig                |    1 
+ arch/arm64/include/asm/barrier.h  |   24 ++++++
+ arch/x86/Kconfig                  |    3 +
+ arch/x86/include/asm/barrier.h    |   50 +++++++++++++
+ arch/x86/include/asm/msr.h        |    3 -
+ arch/x86/include/asm/smap.h       |    4 +
+ arch/x86/include/asm/uaccess.h    |   16 +++-
+ arch/x86/include/asm/uaccess_32.h |    6 +-
+ arch/x86/include/asm/uaccess_64.h |   12 ++-
+ arch/x86/lib/copy_user_64.S       |    3 +
+ arch/x86/lib/getuser.S            |    5 +
+ arch/x86/lib/usercopy_32.c        |    8 +-
+ include/linux/fdtable.h           |    7 +-
+ include/linux/nospec.h            |   92 ++++++++++++++++++++++++
+ kernel/Kconfig.nospec             |   46 ++++++++++++
+ kernel/Makefile                   |    1 
+ kernel/nospec.c                   |   52 +++++++++++++
+ lib/Kconfig                       |    3 +
+ 21 files changed, 484 insertions(+), 20 deletions(-)
+ create mode 100644 Documentation/speculation.txt
+ create mode 100644 include/linux/nospec.h
+ create mode 100644 kernel/Kconfig.nospec
+ create mode 100644 kernel/nospec.c
