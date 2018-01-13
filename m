@@ -1,51 +1,177 @@
-From: Tony Luck <tony.luck@gmail.com>
-Subject: Re: [PATCH v2 00/19] prevent bounds-check bypass via speculative execution
-Date: Fri, 12 Jan 2018 16:15:12 -0800
-Message-ID: <CA+8MBb+H0FqciBw9nSO9L0fNQtiRvc_1TREitH9z89YxhtyFAQ@mail.gmail.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v2 06/19] asm-generic/barrier: mask speculative execution flows
+Date: Fri, 12 Jan 2018 16:41:37 -0800
+Message-ID: <CAPcyv4j++bw8dO1cbEZpf3u+wDGM89A7d06MTHtugHHJs8CJ5g@mail.gmail.com>
 References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com>
+ <151571801681.27429.15417813964230837664.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180112091246.GP32035@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, Linux SCSI List <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, the arch/x86 maintainers <x86@kernel.org>, Russell
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f67.google.com ([209.85.218.67]:42323 "EHLO
+        mail-oi0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S965265AbeAMAli (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 19:41:38 -0500
+Received: by mail-oi0-f67.google.com with SMTP id o64so5064444oia.9
+        for <linux-arch@vger.kernel.org>; Fri, 12 Jan 2018 16:41:38 -0800 (PST)
+In-Reply-To: <20180112091246.GP32035@hirez.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Catalin Marinas <catalin.marinas@arm.com>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
 
-On Thu, Jan 11, 2018 at 5:19 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> Should the array access in entry_SYSCALL_64_fastpath be made to use
-> the masking approach?
+On Fri, Jan 12, 2018 at 1:12 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Thu, Jan 11, 2018 at 04:46:56PM -0800, Dan Williams wrote:
+>> diff --git a/include/linux/nospec.h b/include/linux/nospec.h
+>> new file mode 100644
+>> index 000000000000..5c66fc30f919
+>> --- /dev/null
+>> +++ b/include/linux/nospec.h
+>> @@ -0,0 +1,71 @@
+>> +// SPDX-License-Identifier: GPL-2.0
+>> +// Copyright(c) 2018 Intel Corporation. All rights reserved.
+>> +
+>> +#ifndef __NOSPEC_H__
+>> +#define __NOSPEC_H__
+>> +
+>> +#include <linux/jump_label.h>
+>> +#include <asm/barrier.h>
+>> +
+>> +#ifndef array_ptr_mask
+>> +#define array_ptr_mask(idx, sz)                                              \
+>> +({                                                                   \
+>> +     unsigned long mask;                                             \
+>> +     unsigned long _i = (idx);                                       \
+>> +     unsigned long _s = (sz);                                        \
+>> +                                                                     \
+>> +     mask = ~(long)(_i | (_s - 1 - _i)) >> (BITS_PER_LONG - 1);      \
+>> +     mask;                                                           \
+>> +})
+>> +#endif
+>> +
+>> +/**
+>> + * __array_ptr - Generate a pointer to an array element, ensuring
+>> + * the pointer is bounded under speculation to NULL.
+>> + *
+>> + * @base: the base of the array
+>> + * @idx: the index of the element, must be less than LONG_MAX
+>> + * @sz: the number of elements in the array, must be less than LONG_MAX
+>> + *
+>> + * If @idx falls in the interval [0, @sz), returns the pointer to
+>> + * @arr[@idx], otherwise returns NULL.
+>> + */
+>> +#define __array_ptr(base, idx, sz)                                   \
+>> +({                                                                   \
+>> +     union { typeof(*(base)) *_ptr; unsigned long _bit; } __u;       \
+>> +     typeof(*(base)) *_arr = (base);                                 \
+>> +     unsigned long _i = (idx);                                       \
+>> +     unsigned long _mask = array_ptr_mask(_i, (sz));                 \
+>> +                                                                     \
+>> +     __u._ptr = _arr + (_i & _mask);                                 \
+>> +     __u._bit &= _mask;                                              \
+>> +     __u._ptr;                                                       \
+>> +})
+>> +
+>> +#ifdef CONFIG_SPECTRE1_IFENCE
+>> +DECLARE_STATIC_KEY_TRUE(nospec_key);
+>> +#else
+>> +DECLARE_STATIC_KEY_FALSE(nospec_key);
+>> +#endif
+>> +
+>> +#ifdef ifence_array_ptr
+>> +/*
+>> + * The expectation is that no compiler or cpu will mishandle __array_ptr
+>> + * leading to problematic speculative execution. Bypass the ifence
+>> + * based implementation by default.
+>> + */
+>> +#define array_ptr(base, idx, sz)                             \
+>> +({                                                           \
+>> +     typeof(*(base)) *__ret;                                 \
+>> +                                                             \
+>> +     if (static_branch_unlikely(&nospec_key))                \
+>> +             __ret = ifence_array_ptr(base, idx, sz);        \
+>> +     else                                                    \
+>> +             __ret = __array_ptr(base, idx, sz);             \
+>> +     __ret;                                                  \
+>> +})
+>
+>
+> So I think this wants:
+>
+> #ifndef HAVE_JUMP_LABEL
+> #error Compiler lacks asm-goto, can generate unsafe code
+> #endif
+>
+> Suppose the generic array_ptr_mask() is unsafe on some arch and they
+> only implement ifence_array_ptr() and they compile without asm-goto,
+> then the above reverts to a dynamic condition, which can be speculated.
+> If we then speculate into the 'bad' __array_ptr we're screwed.
 
-That one has a bounds check for an inline constant.
+True.
 
-     cmpq    $__NR_syscall_max, %rax
+>
+>> +#else
+>> +#define array_ptr __array_ptr
+>> +#endif
+>> +
+>> +#endif /* __NOSPEC_H__ */
+>
+>
+> In general I think I would write all this in a form like:
+>
+> #define __array_ptr(base, idx, sz)                                      \
+> ({                                                                      \
+>         union { typeof(*(base)) *_ptr; unsigned long _bit; } __u;       \
+>         typeof(*(base)) *_arr = (base);                                 \
+>         unsigned long _i = (idx);                                       \
+>         unsigned long _mask = array_ptr_mask(_i, (sz));                 \
+>                                                                         \
+>         __u._ptr = _arr + (_i & _mask);                                 \
+>         __u._bit &= _mask;                                              \
+>         __u._ptr;                                                       \
+> })
+>
+> #if defined(array_ptr_mask) && defined(ifence_array_ptr)
+>
+> #ifndef HAVE_JUMP_LABEL
+> #error Compiler lacks asm-goto, can generate unsafe code
+> #endif
+>
+> #define array_ptr(base, idx, sz)                                \
+> ({                                                              \
+>         typeof(*(base)) *__ret;                                 \
+>                                                                 \
+>         if (static_branch_unlikely(&nospec_key))                \
+>                 __ret = ifence_array_ptr(base, idx, sz);        \
+>         else                                                    \
+>                 __ret = __array_ptr(base, idx, sz);             \
+>         __ret;                                                  \
+> })
+>
+> #elif defined(array_ptr_mask)
+>
+> #define array_ptr(base, idx, sz) __array_ptr(base, idx, sz)
+>
+> #elif defined(ifence_array_ptr)
+>
+> #define array_ptr(base, idx, sz) ifence_array_ptr(base, idx, sz)
+>
+> #else
+>
+> /* XXX we want a suitable warning here ? */
+>
+> #define array_ptr(base, idx, sz) (idx < sz ? base + idx : NULL)
+>
+> #endif
+>
+> and stick the generic array_ptr_mask into asm-generic/nospec.h or
+> something.
+>
+> Then the static key stuff is limited to architectures that define _both_
+> array_ptr_mask and ifence_array_ptr.
 
-so should be safe.
-
-The classic Spectre variant #1 code sequence is:
-
-int array_size;
-
-       if (x < array_size) {
-               something with array[x]
-       }
-
-which runs into problems because the array_size variable may not
-be in cache, and while the CPU core is waiting for the value it
-speculates inside the "if" body.
-
-The syscall entry is more like:
-
-#define ARRAY_SIZE 10
-
-     if (x < ARRAY_SIZE) {
-          something with array[x]
-     }
-
-Here there isn't any reason for speculation. The core has the
-value of 'x' in a register and the upper bound encoded into the
-"cmp" instruction.  Both are right there, no waiting, no speculation.
-
--Tony
+This certainly needs a Kconfig "depends on JUMP_LABEL" to turn on the
+dynamic switching at all, and a HAVE_JUMP_LABEL compile time failure
+if the compiler lacks support. I don't think we need the checks on
+'defined(array_ptr_mask) or that 'XXX' warning case, because default
+mask is assumed safe, and otherwise better than nothing.
