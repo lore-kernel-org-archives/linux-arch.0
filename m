@@ -1,116 +1,51 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH v2 15/19] carl9170: prevent bounds-check bypass via
- speculative execution
-Date: Fri, 12 Jan 2018 15:05:55 -0800
-Message-ID: <CAPcyv4gtf4xL+vTmtfGRF+18fx2seQffemDhdGPGdHMF8thxtQ@mail.gmail.com>
+From: Tony Luck <tony.luck@gmail.com>
+Subject: Re: [PATCH v2 00/19] prevent bounds-check bypass via speculative execution
+Date: Fri, 12 Jan 2018 16:15:12 -0800
+Message-ID: <CA+8MBb+H0FqciBw9nSO9L0fNQtiRvc_1TREitH9z89YxhtyFAQ@mail.gmail.com>
 References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
- <1648304.tjl4HeBnOe@debian64> <CAPcyv4gne66ic3E-Y+pLi4QZdVeeeVmvayVPA3Jt1gyUqpaF9g@mail.gmail.com>
- <6067453.9oC6tc2YFn@debian64>
+ <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <6067453.9oC6tc2YFn@debian64>
+In-Reply-To: <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christian Lamparter <chunkeey@gmail.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Netdev <netdev@vger.kernel.org>, Linux Wireless List <linux-wireless@vger.kernel.org>, Elena Reshetova <elena.reshetova@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Kalle Valo <kvalo@codeaurora.org>, Alan Cox <alan@linux.intel.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, Linux SCSI List <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, the arch/x86 maintainers <x86@kernel.org>, Russell
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 12, 2018 at 12:01 PM, Christian Lamparter
-<chunkeey@gmail.com> wrote:
-> On Friday, January 12, 2018 7:39:50 PM CET Dan Williams wrote:
->> On Fri, Jan 12, 2018 at 6:42 AM, Christian Lamparter <chunkeey@gmail.com> wrote:
->> > On Friday, January 12, 2018 1:47:46 AM CET Dan Williams wrote:
->> >> Static analysis reports that 'queue' may be a user controlled value that
->> >> is used as a data dependency to read from the 'ar9170_qmap' array. In
->> >> order to avoid potential leaks of kernel memory values, block
->> >> speculative execution of the instruction stream that could issue reads
->> >> based on an invalid result of 'ar9170_qmap[queue]'. In this case the
->> >> value of 'ar9170_qmap[queue]' is immediately reused as an index to the
->> >> 'ar->edcf' array.
->> >>
->> >> Based on an original patch by Elena Reshetova.
->> >>
->> >> Cc: Christian Lamparter <chunkeey@googlemail.com>
->> >> Cc: Kalle Valo <kvalo@codeaurora.org>
->> >> Cc: linux-wireless@vger.kernel.org
->> >> Cc: netdev@vger.kernel.org
->> >> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
->> >> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
->> >> ---
->> > This patch (and p54, cw1200) look like the same patch?!
->> > Can you tell me what happend to:
->> >
->> > On Saturday, January 6, 2018 5:34:03 PM CET Dan Williams wrote:
->> >> On Sat, Jan 6, 2018 at 6:23 AM, Christian Lamparter <chunkeey@gmail.com> wrote:
->> >> > And Furthermore a invalid queue (param->ac) would cause a crash in
->> >> > this line in mac80211 before it even reaches the driver [1]:
->> >> > |       sdata->tx_conf[params->ac] = p;
->> >> > |                   ^^^^^^^^
->> >> > |       if (drv_conf_tx(local, sdata, >>>> params->ac <<<<, &p)) {
->> >> > |        ^^ (this is a wrapper for the *_op_conf_tx)
->> >> >
->> >> > I don't think these chin-up exercises are needed.
->> >>
->> >> Quite the contrary, you've identified a better place in the call stack
->> >> to sanitize the input and disable speculation. Then we can kill the
->> >> whole class of the wireless driver reports at once it seems.
->> > <https://www.spinics.net/lists/netdev/msg476353.html>
->>
->> I didn't see where ac is being validated against the driver specific
->> 'queues' value in that earlier patch.
-> The link to the check is right there in the earlier post. It's in
-> parse_txq_params():
-> <https://github.com/torvalds/linux/blob/master/net/wireless/nl80211.c#L2070>
-> |       if (txq_params->ac >= NL80211_NUM_ACS)
-> |               return -EINVAL;
->
-> NL80211_NUM_ACS is 4
-> <http://elixir.free-electrons.com/linux/v4.15-rc7/source/include/uapi/linux/nl80211.h#L3748>
->
-> This check was added ever since mac80211's ieee80211_set_txq_params():
-> | sdata->tx_conf[params->ac] = p;
->
-> For cw1200: the driver just sets the dev->queue to 4.
-> In carl9170 dev->queues is set to __AR9170_NUM_TXQ and
-> p54 uses P54_QUEUE_AC_NUM.
->
-> Both __AR9170_NUM_TXQ and P54_QUEUE_AC_NUM are 4.
-> And this is not going to change since all drivers
-> have to follow mac80211's queue API:
-> <https://wireless.wiki.kernel.org/en/developers/documentation/mac80211/queues>
->
-> Some background:
-> In the old days (linux 2.6 and early 3.x), the parse_txq_params() function did
-> not verify the "queue" value. That's why these drivers had to do it.
->
-> Here's the relevant code from 2.6.39:
-> <http://elixir.free-electrons.com/linux/v2.6.39/source/net/wireless/nl80211.c#L879>
-> You'll notice that the check is missing there.
-> Here's mac80211's ieee80211_set_txq_params for reference:
-> <http://elixir.free-electrons.com/linux/v2.6.39/source/net/mac80211/cfg.c#L1197>
->
-> However over time, the check in the driver has become redundant.
->
+On Thu, Jan 11, 2018 at 5:19 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> Should the array access in entry_SYSCALL_64_fastpath be made to use
+> the masking approach?
 
-Excellent, thank you for pointing that out and the background so clearly.
+That one has a bounds check for an inline constant.
 
-What this tells me though is that we want to inject an ifence() at
-this input validation point, i.e.:
+     cmpq    $__NR_syscall_max, %rax
 
-if (txq_params->ac >= NL80211_NUM_ACS) {
-    ifence();
-    return -EINVAL;
-}
+so should be safe.
 
-...but the kernel, in these patches, only has ifence() defined for
-x86. The only way we can sanitize the 'txq_params->ac' value without
-ifence() is to do it at array access time, but then we're stuck
-touching all drivers when standard kernel development practice says
-'refactor common code out of drivers'.
+The classic Spectre variant #1 code sequence is:
 
-Ugh, the bigger concern is that this driver is being flagged and not
-that initial bounds check. Imagine if cw1200 and p54 had already been
-converted to assume that they can just trust 'queue'. It would never
-have been flagged.
+int array_size;
 
-I think we should focus on the get_user path and  __fcheck_files for v3.
+       if (x < array_size) {
+               something with array[x]
+       }
+
+which runs into problems because the array_size variable may not
+be in cache, and while the CPU core is waiting for the value it
+speculates inside the "if" body.
+
+The syscall entry is more like:
+
+#define ARRAY_SIZE 10
+
+     if (x < ARRAY_SIZE) {
+          something with array[x]
+     }
+
+Here there isn't any reason for speculation. The core has the
+value of 'x' in a register and the upper bound encoded into the
+"cmp" instruction.  Both are right there, no waiting, no speculation.
+
+-Tony
