@@ -1,56 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:44242 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S965312AbeAMAPO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jan 2018 19:15:14 -0500
-MIME-Version: 1.0
-In-Reply-To: <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:49196 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754593AbeAMI63 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Jan 2018 03:58:29 -0500
+Date: Sat, 13 Jan 2018 09:56:35 +0100
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v2 10/19] ipv4: prevent bounds-check bypass via
+ speculative execution
+Message-ID: <20180113085635.GA11640@kroah.com>
 References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com>
-From: Tony Luck <tony.luck@gmail.com>
-Date: Fri, 12 Jan 2018 16:15:12 -0800
-Message-ID: <CA+8MBb+H0FqciBw9nSO9L0fNQtiRvc_1TREitH9z89YxhtyFAQ@mail.gmail.com>
-Subject: Re: [PATCH v2 00/19] prevent bounds-check bypass via speculative execution
-Content-Type: text/plain; charset="UTF-8"
+ <151571803884.27429.7578279171286065970.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180112075907.GA3391@kroah.com>
+ <CAPcyv4js=KTb+eJjoc4_hjiJsiHr4EApJfxTjFfRBYx_CtuBKA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4js=KTb+eJjoc4_hjiJsiHr4EApJfxTjFfRBYx_CtuBKA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, Linux SCSI List <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, the arch/x86 maintainers <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Linux Media Mailing List <linux-media@vger.kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Jan Kara <jack@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, Alan Cox <alan@linux.intel.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Greg KH <gregkh@linuxfoundation.org>, Linux Wireless List <linux-wireless@vger.kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Network Development <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Message-ID: <20180113001512.Ky4cdOI-_K6ETtTv-hWcup0flvhZG_OYQt1rc9OTURY@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, kernel-hardening@lists.openwall.com, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Netdev <netdev@vger.kernel.org>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180113085635.jegrl10JbycZTPu7AURVKd5RgThqa5wpIqzI-Hiki-U@z>
 
-On Thu, Jan 11, 2018 at 5:19 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> Should the array access in entry_SYSCALL_64_fastpath be made to use
-> the masking approach?
+On Fri, Jan 12, 2018 at 10:47:44AM -0800, Dan Williams wrote:
+> On Thu, Jan 11, 2018 at 11:59 PM, Greg KH <gregkh@linuxfoundation.org> wrote:
+> >> Cc: "David S. Miller" <davem@davemloft.net>
+> >> Cc: Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
+> >> Cc: Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>
+> >> Cc: netdev@vger.kernel.org
+> >> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
+> >> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+> >> ---
+> >>  net/ipv4/raw.c |   10 ++++++----
+> >>  1 file changed, 6 insertions(+), 4 deletions(-)
+> >
+> > Ugh, what is this, the 4th time I've said "I don't think this is an
+> > issue, so why are you changing this code." to this patch.  To be
+> > followed by a "oh yeah, you are right, I'll drop it", only to see it
+> > show back up in the next time this patch series is sent out?
+> >
+> > Same for the other patches in this series that I have reviewed 4, maybe
+> > 5, times already.  The "v2" is not very true here...
+> 
+> The theme of the review feedback on v1 was 'don't put ifence in any
+> net/ code', and that was addressed.
+> 
+> I honestly thought the new definition of array_ptr() changed the
+> calculus on this patch. Given the same pattern appears in the ipv6
+> case, and I have yet to hear that we should drop the ipv6 patch, make
+> the code symmetric just for readability purposes. Otherwise we need a
+> comment saying why this is safe for ipv4, but maybe not safe for ipv6,
+> I think 'array_ptr' is effectively that comment. I.e. 'array_ptr()' is
+> designed to be low impact for instrumenting false positives. If that
+> new argument does not hold water I will definitely drop this patch.
 
-That one has a bounds check for an inline constant.
+I also argued, again in an older review of this same patch series, that
+the ipv6 patch should be dropped as well for this same exact reason.
 
-     cmpq    $__NR_syscall_max, %rax
+I didn't think you wanted to hear me rant about the same thing on both
+patches :)
 
-so should be safe.
-
-The classic Spectre variant #1 code sequence is:
-
-int array_size;
-
-       if (x < array_size) {
-               something with array[x]
-       }
-
-which runs into problems because the array_size variable may not
-be in cache, and while the CPU core is waiting for the value it
-speculates inside the "if" body.
-
-The syscall entry is more like:
-
-#define ARRAY_SIZE 10
-
-     if (x < ARRAY_SIZE) {
-          something with array[x]
-     }
-
-Here there isn't any reason for speculation. The core has the
-value of 'x' in a register and the upper bound encoded into the
-"cmp" instruction.  Both are right there, no waiting, no speculation.
-
--Tony
+greg k-h
