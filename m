@@ -1,48 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f195.google.com ([209.85.223.195]:39790 "EHLO
-        mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753386AbeAMSvz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Jan 2018 13:51:55 -0500
+Received: from out01.mta.xmission.com ([166.70.13.231]:59606 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751354AbeAMUXd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Jan 2018 15:23:33 -0500
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
+        <151586748981.5820.14559543798744763404.stgit@dwillia2-desk3.amr.corp.intel.com>
+        <CA+55aFzoAR+MYX+ub0xZ32OsT7WtD5Kru2t6LhwB1buLWPResQ@mail.gmail.com>
+        <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
+Date: Sat, 13 Jan 2018 14:22:17 -0600
+In-Reply-To: <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
+        (Linus Torvalds's message of "Sat, 13 Jan 2018 11:33:50 -0800")
+Message-ID: <87inc5zeyu.fsf@xmission.com>
 MIME-Version: 1.0
-In-Reply-To: <CA+8MBb+H0FqciBw9nSO9L0fNQtiRvc_1TREitH9z89YxhtyFAQ@mail.gmail.com>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com> <CA+8MBb+H0FqciBw9nSO9L0fNQtiRvc_1TREitH9z89YxhtyFAQ@mail.gmail.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Sat, 13 Jan 2018 10:51:53 -0800
-Message-ID: <CA+55aFwUspY8DG3hRxZqQaf_n_0OZxGCd=pELc8ZVuBu+058cA@mail.gmail.com>
-Subject: Re: [PATCH v2 00/19] prevent bounds-check bypass via speculative execution
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
+Subject: Re: [PATCH v3 8/9] x86: use __uaccess_begin_nospec and ASM_IFENCE in get_user paths
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@gmail.com>
-Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, Linux SCSI List <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, the arch/x86 maintainers <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Linux Media Mailing List <linux-media@vger.kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Jan Kara <jack@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, Alan Cox <alan@linux.intel.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Greg KH <gregkh@linuxfoundation.org>, Linux Wireless List <linux-wireless@vger.kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Network Development <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Message-ID: <20180113185153.8Egr3J6LA8vNQTpmKyNjErzeUU-TpH5Hlc_QaseBVzc@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180113202217.WFQPQ8ZM5A1CM-WSdZcWnX-TMkx-ue953vdjLen10Bs@z>
 
-On Fri, Jan 12, 2018 at 4:15 PM, Tony Luck <tony.luck@gmail.com> wrote:
+Linus Torvalds <torvalds@linux-foundation.org> writes:
+
+> On Sat, Jan 13, 2018 at 11:05 AM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+>>
+>> I _know_ that lfence is expensive as hell on P4, for example.
+>>
+>> Yes, yes, "sbb" is often more expensive than most ALU instructions,
+>> and Agner Fog says it has a 10-cycle latency on Prescott (which is
+>> outrageous, but being one or two cycles more due to the flags
+>> generation is normal). So the sbb/and may certainly add a few cycles
+>> to the critical path, but on Prescott "lfence" is *50* cycles
+>> according to those same tables by Agner Fog.
 >
-> Here there isn't any reason for speculation. The core has the
-> value of 'x' in a register and the upper bound encoded into the
-> "cmp" instruction.  Both are right there, no waiting, no speculation.
+> Side note: I don't think P4 is really relevant for a performance
+> discussion, I was just giving it as an example where we do know actual
+> cycles.
+>
+> I'm much more interested in modern Intel big-core CPU's, and just
+> wondering whether somebody could ask an architect.
+>
+> Because I _suspect_ the answer from a CPU architect would be: "Christ,
+> the sbb/and sequence is much better because it doesn't have any extra
+> serialization", but maybe I'm wrong, and people feel that lfence is
+> particularly easy to do right without any real downside.
 
-So this is an argument I haven't seen before (although it was brought
-up in private long ago), but that is very relevant: the actual scope
-and depth of speculation.
-
-Your argument basically depends on just what gets speculated, and on
-the _actual_ order of execution.
-
-So your argument depends on "the uarch will actually run the code in
-order if there are no events that block the pipeline".
-
-Or at least it depends on a certain latency of the killing of any OoO
-execution being low enough that the cache access doesn't even begin.
-
-I realize that that is very much a particular microarchitectural
-detail, but it's actually a *big* deal. Do we have a set of rules for
-what is not a worry, simply because the speculated accesses get killed
-early enough?
-
-Apparently "test a register value against a constant" is good enough,
-assuming that register is also needed for the address of the access.
-
-            Linus
+As an educated observer it seems like the cmpq/sbb/and sequence is an
+improvement because it moves the dependency from one end of the cpu
+pipeline to another.  If any cpu does data speculation on anything other
+than branch targets that sequence could still be susceptible to
+speculation.
