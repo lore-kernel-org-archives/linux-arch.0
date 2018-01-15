@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f66.google.com ([209.85.160.66]:40033 "EHLO
-        mail-pl0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933036AbeAOFzv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:55:51 -0500
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:41835 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932821AbeAOFzW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:55:22 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v6 22/36] nds32: Debugging support
-Date: Mon, 15 Jan 2018 13:53:30 +0800
-Message-ID: <65ae3b5b7eabe8680857b1821c72127f611c950b.1515766253.git.green.hu@gmail.com>
+Subject: [PATCH v6 16/36] nds32: DMA mapping API
+Date: Mon, 15 Jan 2018 13:53:24 +0800
+Message-ID: <ecd1742c718c5b45983486cf9dfb44adb6e06923.1515766253.git.green.hu@gmail.com>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
 References: <cover.1515766253.git.green.hu@gmail.com>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
@@ -15,368 +15,506 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180115055330.8sVZoaSp3Xy5OhSX28Og7F-JHD_BGY72pS9zvc47Xgc@z>
+Message-ID: <20180115055324.M-hRiHYhCDAP__Bb5Gb91imKQwXZdg67RaPQJwNJrME@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds ptrace support.
+This patch adds support for the DMA mapping API. It uses dma_map_ops for
+flexibility.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/uapi/asm/ptrace.h |   25 +++
- arch/nds32/kernel/ptrace.c           |  311 ++++++++++++++++++++++++++++++++++
- 2 files changed, 336 insertions(+)
- create mode 100644 arch/nds32/include/uapi/asm/ptrace.h
- create mode 100644 arch/nds32/kernel/ptrace.c
+ arch/nds32/include/asm/dma-mapping.h |   14 ++
+ arch/nds32/kernel/dma.c              |  459 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 473 insertions(+)
+ create mode 100644 arch/nds32/include/asm/dma-mapping.h
+ create mode 100644 arch/nds32/kernel/dma.c
 
-diff --git a/arch/nds32/include/uapi/asm/ptrace.h b/arch/nds32/include/uapi/asm/ptrace.h
+diff --git a/arch/nds32/include/asm/dma-mapping.h b/arch/nds32/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..358c99e
+index 0000000..2dd47d24
 --- /dev/null
-+++ b/arch/nds32/include/uapi/asm/ptrace.h
-@@ -0,0 +1,25 @@
++++ b/arch/nds32/include/asm/dma-mapping.h
+@@ -0,0 +1,14 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __UAPI_ASM_NDS32_PTRACE_H
-+#define __UAPI_ASM_NDS32_PTRACE_H
++#ifndef ASMNDS32_DMA_MAPPING_H
++#define ASMNDS32_DMA_MAPPING_H
 +
-+#ifndef __ASSEMBLY__
++extern struct dma_map_ops nds32_dma_ops;
++
++static inline struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
++{
++	return &nds32_dma_ops;
++}
++
++#endif
+diff --git a/arch/nds32/kernel/dma.c b/arch/nds32/kernel/dma.c
+new file mode 100644
+index 0000000..9bd1dc7
+--- /dev/null
++++ b/arch/nds32/kernel/dma.c
+@@ -0,0 +1,459 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#include <linux/types.h>
++#include <linux/mm.h>
++#include <linux/export.h>
++#include <linux/string.h>
++#include <linux/scatterlist.h>
++#include <linux/dma-mapping.h>
++#include <linux/io.h>
++#include <linux/cache.h>
++#include <linux/highmem.h>
++#include <linux/slab.h>
++#include <asm/cacheflush.h>
++#include <asm/tlbflush.h>
++#include <asm/dma-mapping.h>
++#include <asm/proc-fns.h>
 +
 +/*
-+ * User structures for general purpose register.
++ * This is the page table (2MB) covering uncached, DMA consistent allocations
 + */
-+struct user_pt_regs {
-+	long uregs[26];
-+	long fp;
-+	long gp;
-+	long lp;
-+	long sp;
-+	long ipc;
-+	long lb;
-+	long le;
-+	long lc;
-+	long syscallno;
-+};
-+#endif
-+#endif
-diff --git a/arch/nds32/kernel/ptrace.c b/arch/nds32/kernel/ptrace.c
-new file mode 100644
-index 0000000..0e18564
---- /dev/null
-+++ b/arch/nds32/kernel/ptrace.c
-@@ -0,0 +1,311 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
++static pte_t *consistent_pte;
++static DEFINE_RAW_SPINLOCK(consistent_lock);
 +
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/ptrace.h>
-+#include <linux/user.h>
-+#include <linux/security.h>
-+#include <linux/init.h>
-+#include <linux/uaccess.h>
-+#include <linux/regset.h>
-+#include <linux/tracehook.h>
-+#include <linux/elf.h>
-+#include <linux/sched/task_stack.h>
-+
-+#include <asm/pgtable.h>
-+
-+enum nds32_regset {
-+	REGSET_GPR,
-+};
-+
-+static int gpr_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user * ubuf)
-+{
-+	struct user_pt_regs *uregs = &task_pt_regs(target)->user_regs;
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs, 0, -1);
-+}
-+
-+static int gpr_set(struct task_struct *target, const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user * ubuf)
-+{
-+	int err;
-+	struct user_pt_regs newregs = task_pt_regs(target)->user_regs;
-+
-+	err = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newregs, 0, -1);
-+	if (err)
-+		return err;
-+
-+	task_pt_regs(target)->user_regs = newregs;
-+	return 0;
-+}
-+
-+static const struct user_regset nds32_regsets[] = {
-+	[REGSET_GPR] = {
-+			.core_note_type = NT_PRSTATUS,
-+			.n = sizeof(struct user_pt_regs) / sizeof(u32),
-+			.size = sizeof(u32),
-+			.align = sizeof(u32),
-+			.get = gpr_get,
-+			.set = gpr_set}
-+};
-+
-+static const struct user_regset_view nds32_user_view = {
-+	.name = "nds32",.e_machine = EM_NDS32,
-+	.regsets = nds32_regsets,.n = ARRAY_SIZE(nds32_regsets)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &nds32_user_view;
-+}
-+
-+/* get_user_reg()
++/*
++ * VM region handling support.
 + *
-+ * This routine will get a word off of the processes privileged stack.
-+ * the offset is how far from the base addr as stored in the THREAD.
-+ * this routine assumes that all the privileged stacks are in our
-+ * data space.
-+ */
-+static inline unsigned int get_user_reg(struct task_struct *task, int offset)
-+{
-+	return task_pt_regs(task)->uregs[offset];
-+}
-+
-+/* put_user_reg()
++ * This should become something generic, handling VM region allocations for
++ * vmalloc and similar (ioremap, module space, etc).
 + *
-+ * this routine will put a word on the processes privileged stack.
-+ * the offset is how far from the base addr as stored in the THREAD.
-+ * this routine assumes that all the privileged stacks are in our
-+ * data space.
++ * I envisage vmalloc()'s supporting vm_struct becoming:
++ *
++ *  struct vm_struct {
++ *    struct vm_region	region;
++ *    unsigned long	flags;
++ *    struct page	**pages;
++ *    unsigned int	nr_pages;
++ *    unsigned long	phys_addr;
++ *  };
++ *
++ * get_vm_area() would then call vm_region_alloc with an appropriate
++ * struct vm_region head (eg):
++ *
++ *  struct vm_region vmalloc_head = {
++ *	.vm_list	= LIST_HEAD_INIT(vmalloc_head.vm_list),
++ *	.vm_start	= VMALLOC_START,
++ *	.vm_end		= VMALLOC_END,
++ *  };
++ *
++ * However, vmalloc_head.vm_start is variable (typically, it is dependent on
++ * the amount of RAM found at boot time.)  I would imagine that get_vm_area()
++ * would have to initialise this each time prior to calling vm_region_alloc().
 + */
-+static inline int put_user_reg(struct task_struct *task, int offset, long data)
++struct arch_vm_region {
++	struct list_head vm_list;
++	unsigned long vm_start;
++	unsigned long vm_end;
++	struct page *vm_pages;
++};
++
++static struct arch_vm_region consistent_head = {
++	.vm_list = LIST_HEAD_INIT(consistent_head.vm_list),
++	.vm_start = CONSISTENT_BASE,
++	.vm_end = CONSISTENT_END,
++};
++
++static struct arch_vm_region *vm_region_alloc(struct arch_vm_region *head,
++					      size_t size, int gfp)
 +{
-+	struct pt_regs newregs, *regs = task_pt_regs(task);
-+	int ret = -EINVAL;
++	unsigned long addr = head->vm_start, end = head->vm_end - size;
++	unsigned long flags;
++	struct arch_vm_region *c, *new;
 +
-+	newregs = *regs;
-+	newregs.uregs[offset] = data;
++	new = kmalloc(sizeof(struct arch_vm_region), gfp);
++	if (!new)
++		goto out;
 +
-+	if (valid_user_regs(&newregs)) {
-+		regs->uregs[offset] = data;
-+		ret = 0;
++	raw_spin_lock_irqsave(&consistent_lock, flags);
++
++	list_for_each_entry(c, &head->vm_list, vm_list) {
++		if ((addr + size) < addr)
++			goto nospc;
++		if ((addr + size) <= c->vm_start)
++			goto found;
++		addr = c->vm_end;
++		if (addr > end)
++			goto nospc;
 +	}
++
++found:
++	/*
++	 * Insert this entry _before_ the one we found.
++	 */
++	list_add_tail(&new->vm_list, &c->vm_list);
++	new->vm_start = addr;
++	new->vm_end = addr + size;
++
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++	return new;
++
++nospc:
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++	kfree(new);
++out:
++	return NULL;
++}
++
++static struct arch_vm_region *vm_region_find(struct arch_vm_region *head,
++					     unsigned long addr)
++{
++	struct arch_vm_region *c;
++
++	list_for_each_entry(c, &head->vm_list, vm_list) {
++		if (c->vm_start == addr)
++			goto out;
++	}
++	c = NULL;
++out:
++	return c;
++}
++
++/* FIXME: attrs is not used. */
++static void *nds32_dma_alloc_coherent(struct device *dev, size_t size,
++				      dma_addr_t * handle, gfp_t gfp,
++				      unsigned long attrs)
++{
++	struct page *page;
++	struct arch_vm_region *c;
++	unsigned long order;
++	u64 mask = ~0ULL, limit;
++	pgprot_t prot = pgprot_noncached(PAGE_KERNEL);
++
++	if (!consistent_pte) {
++		pr_err("%s: not initialized\n", __func__);
++		dump_stack();
++		return NULL;
++	}
++
++	if (dev) {
++		mask = dev->coherent_dma_mask;
++
++		/*
++		 * Sanity check the DMA mask - it must be non-zero, and
++		 * must be able to be satisfied by a DMA allocation.
++		 */
++		if (mask == 0) {
++			dev_warn(dev, "coherent DMA mask is unset\n");
++			goto no_page;
++		}
++
++	}
++
++	/*
++	 * Sanity check the allocation size.
++	 */
++	size = PAGE_ALIGN(size);
++	limit = (mask + 1) & ~mask;
++	if ((limit && size >= limit) ||
++	    size >= (CONSISTENT_END - CONSISTENT_BASE)) {
++		pr_warn("coherent allocation too big "
++			"(requested %#x mask %#llx)\n", size, mask);
++		goto no_page;
++	}
++
++	order = get_order(size);
++
++	if (mask != 0xffffffff)
++		gfp |= GFP_DMA;
++
++	page = alloc_pages(gfp, order);
++	if (!page)
++		goto no_page;
++
++	/*
++	 * Invalidate any data that might be lurking in the
++	 * kernel direct-mapped region for device DMA.
++	 */
++	{
++		unsigned long kaddr = (unsigned long)page_address(page);
++		memset(page_address(page), 0, size);
++		cpu_dma_wbinval_range(kaddr, kaddr + size);
++	}
++
++	/*
++	 * Allocate a virtual address in the consistent mapping region.
++	 */
++	c = vm_region_alloc(&consistent_head, size,
++			    gfp & ~(__GFP_DMA | __GFP_HIGHMEM));
++	if (c) {
++		pte_t *pte = consistent_pte + CONSISTENT_OFFSET(c->vm_start);
++		struct page *end = page + (1 << order);
++
++		c->vm_pages = page;
++
++		/*
++		 * Set the "dma handle"
++		 */
++		*handle = page_to_phys(page);
++
++		do {
++			BUG_ON(!pte_none(*pte));
++
++			/*
++			 * x86 does not mark the pages reserved...
++			 */
++			SetPageReserved(page);
++			set_pte(pte, mk_pte(page, prot));
++			page++;
++			pte++;
++		} while (size -= PAGE_SIZE);
++
++		/*
++		 * Free the otherwise unused pages.
++		 */
++		while (page < end) {
++			__free_page(page);
++			page++;
++		}
++
++		return (void *)c->vm_start;
++	}
++
++	if (page)
++		__free_pages(page, order);
++no_page:
++	*handle = ~0;
++	return NULL;
++}
++
++static void nds32_dma_free(struct device *dev, size_t size, void *cpu_addr,
++			   dma_addr_t handle, unsigned long attrs)
++{
++	struct arch_vm_region *c;
++	unsigned long flags, addr;
++	pte_t *ptep;
++
++	size = PAGE_ALIGN(size);
++
++	raw_spin_lock_irqsave(&consistent_lock, flags);
++
++	c = vm_region_find(&consistent_head, (unsigned long)cpu_addr);
++	if (!c)
++		goto no_area;
++
++	if ((c->vm_end - c->vm_start) != size) {
++		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
++		       __func__, c->vm_end - c->vm_start, size);
++		dump_stack();
++		size = c->vm_end - c->vm_start;
++	}
++
++	ptep = consistent_pte + CONSISTENT_OFFSET(c->vm_start);
++	addr = c->vm_start;
++	do {
++		pte_t pte = ptep_get_and_clear(&init_mm, addr, ptep);
++		unsigned long pfn;
++
++		ptep++;
++		addr += PAGE_SIZE;
++
++		if (!pte_none(pte) && pte_present(pte)) {
++			pfn = pte_pfn(pte);
++
++			if (pfn_valid(pfn)) {
++				struct page *page = pfn_to_page(pfn);
++
++				/*
++				 * x86 does not mark the pages reserved...
++				 */
++				ClearPageReserved(page);
++
++				__free_page(page);
++				continue;
++			}
++		}
++
++		pr_crit("%s: bad page in kernel page table\n", __func__);
++	} while (size -= PAGE_SIZE);
++
++	flush_tlb_kernel_range(c->vm_start, c->vm_end);
++
++	list_del(&c->vm_list);
++
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++
++	kfree(c);
++	return;
++
++no_area:
++	raw_spin_unlock_irqrestore(&consistent_lock, flags);
++	pr_err("%s: trying to free invalid coherent area: %p\n",
++	       __func__, cpu_addr);
++	dump_stack();
++}
++
++/*
++ * Initialise the consistent memory allocation.
++ */
++static int __init consistent_init(void)
++{
++	pgd_t *pgd;
++	pmd_t *pmd;
++	pte_t *pte;
++	int ret = 0;
++
++	do {
++		pgd = pgd_offset(&init_mm, CONSISTENT_BASE);
++		pmd = pmd_alloc(&init_mm, pgd, CONSISTENT_BASE);
++		if (!pmd) {
++			pr_err("%s: no pmd tables\n", __func__);
++			ret = -ENOMEM;
++			break;
++		}
++		/* The first level mapping may be created in somewhere.
++		 * It's not necessary to warn here. */
++		/* WARN_ON(!pmd_none(*pmd)); */
++
++		pte = pte_alloc_kernel(pmd, CONSISTENT_BASE);
++		if (!pte) {
++			ret = -ENOMEM;
++			break;
++		}
++
++		consistent_pte = pte;
++	} while (0);
 +
 +	return ret;
 +}
 +
-+/*
-+ * Called by kernel/ptrace.c when detaching..
-+ *
-+ * Make sure the single step bit is not set.
-+ */
-+void ptrace_disable(struct task_struct *child)
++core_initcall(consistent_init);
++static void consistent_sync(void *vaddr, size_t size, int direction);
++static dma_addr_t nds32_dma_map_page(struct device *dev, struct page *page,
++				     unsigned long offset, size_t size,
++				     enum dma_data_direction dir,
++				     unsigned long attrs)
 +{
-+	user_disable_single_step(child);
++	consistent_sync((void *)(page_address(page) + offset), size, dir);
++	return page_to_phys(page) + offset;
 +}
 +
-+static void fill_sigtrap_info(struct task_struct *tsk,
-+			      struct pt_regs *regs,
-+			      int error_code, int si_code, struct siginfo *info)
++static void nds32_dma_unmap_page(struct device *dev, dma_addr_t handle,
++				 size_t size, enum dma_data_direction dir,
++				 unsigned long attrs)
 +{
-+	tsk->thread.trap_no = ENTRY_DEBUG_RELATED;
-+	tsk->thread.error_code = error_code;
-+
-+	memset(info, 0, sizeof(*info));
-+	info->si_signo = SIGTRAP;
-+	info->si_code = si_code;
-+	info->si_addr = (void __user *)instruction_pointer(regs);
-+}
-+
-+void user_single_step_siginfo(struct task_struct *tsk,
-+			      struct pt_regs *regs, struct siginfo *info)
-+{
-+	fill_sigtrap_info(tsk, regs, 0, TRAP_BRKPT, info);
++	consistent_sync(phys_to_virt(handle), size, dir);
 +}
 +
 +/*
-+ * Handle hitting a breakpoint.
++ * Make an area consistent for devices.
 + */
-+void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
-+		  int error_code, int si_code)
++static void consistent_sync(void *vaddr, size_t size, int direction)
 +{
-+	struct siginfo info;
++	unsigned long start = (unsigned long)vaddr;
++	unsigned long end = start + size;
 +
-+	fill_sigtrap_info(tsk, regs, error_code, TRAP_BRKPT, &info);
-+	/* Send us the fake SIGTRAP */
-+	force_sig_info(SIGTRAP, &info, tsk);
++	switch (direction) {
++	case DMA_FROM_DEVICE:	/* invalidate only */
++		cpu_dma_inval_range(start, end);
++		break;
++	case DMA_TO_DEVICE:	/* writeback only */
++		cpu_dma_wb_range(start, end);
++		break;
++	case DMA_BIDIRECTIONAL:	/* writeback and invalidate */
++		cpu_dma_wbinval_range(start, end);
++		break;
++	default:
++		BUG();
++	}
 +}
 +
-+/* ptrace_read_user()
-+ *
-+ * Read the word at offset "off" into the "struct user".  We
-+ * actually access the pt_regs stored on the kernel stack.
-+ */
-+static int
-+ptrace_read_user(struct task_struct *tsk, unsigned long off,
-+		 unsigned long __user * ret)
++static int nds32_dma_map_sg(struct device *dev, struct scatterlist *sg,
++			    int nents, enum dma_data_direction dir,
++			    unsigned long attrs)
 +{
-+	unsigned long tmp = 0;
++	int i;
 +
-+	if (off < sizeof(struct pt_regs)) {
-+		if (off & 3)
-+			return -EIO;
-+		tmp = get_user_reg(tsk, off >> 2);
-+		return put_user(tmp, ret);
-+	} else
-+		return -EIO;
-+}
++	for (i = 0; i < nents; i++, sg++) {
++		void *virt;
++		unsigned long pfn;
++		struct page *page = sg_page(sg);
 +
-+/* ptrace_write_user()
-+ *
-+ * Write the word at offset "off" into "struct user".  We
-+ * actually access the pt_regs stored on the kernel stack.
-+ */
-+static int
-+ptrace_write_user(struct task_struct *tsk, unsigned long off, unsigned long val)
-+{
-+	if (off < sizeof(struct pt_regs)) {
-+		if (off & 3)
-+			return -EIO;
-+		return put_user_reg(tsk, off >> 2, val);
-+	} else
-+		return -EIO;
-+}
-+
-+/* ptrace_getregs()
-+ *
-+ * Get all user integer registers.
-+ */
-+static int ptrace_getregs(struct task_struct *tsk, void __user * uregs)
-+{
-+	struct pt_regs *regs = task_pt_regs(tsk);
-+
-+	return copy_to_user(uregs, regs, sizeof(struct pt_regs)) ? -EFAULT : 0;
-+}
-+
-+/* ptrace_setregs()
-+ *
-+ * Set all user integer registers.
-+ */
-+static int ptrace_setregs(struct task_struct *tsk, void __user * uregs)
-+{
-+	struct pt_regs newregs;
-+	int ret;
-+
-+	ret = -EFAULT;
-+	if (copy_from_user(&newregs, uregs, sizeof(struct pt_regs)) == 0) {
-+		struct pt_regs *regs = task_pt_regs(tsk);
-+
-+		ret = -EINVAL;
-+		if (valid_user_regs(&newregs)) {
-+			*regs = newregs;
-+			ret = 0;
++		sg->dma_address = sg_phys(sg);
++		pfn = page_to_pfn(page) + sg->offset / PAGE_SIZE;
++		page = pfn_to_page(pfn);
++		if (PageHighMem(page)) {
++			virt = kmap_atomic(page);
++			consistent_sync(virt, sg->length, dir);
++			kunmap_atomic(virt);
++		} else {
++			if (sg->offset > PAGE_SIZE)
++				panic("sg->offset:%08x > PAGE_SIZE\n",
++				      sg->offset);
++			virt = page_address(page) + sg->offset;
++			consistent_sync(virt, sg->length, dir);
 +		}
 +	}
-+
-+	return ret;
++	return nents;
 +}
 +
-+/* ptrace_getfpregs()
-+ *
-+ * Get the child FPU state.
-+ */
-+static int ptrace_getfpregs(struct task_struct *tsk, void __user * ufpregs)
++static void nds32_dma_unmap_sg(struct device *dev, struct scatterlist *sg,
++			       int nhwentries, enum dma_data_direction dir,
++			       unsigned long attrs)
 +{
-+	return -EFAULT;
 +}
 +
-+/*
-+ * Set the child FPU state.
-+ */
-+static int ptrace_setfpregs(struct task_struct *tsk, void __user * ufpregs)
++static void
++nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
++			      size_t size, enum dma_data_direction dir)
 +{
-+	return -EFAULT;
++	consistent_sync((void *)phys_to_virt(handle), size, dir);
 +}
 +
-+/* do_ptrace()
-+ *
-+ * Provide ptrace defined service.
-+ */
-+long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-+		 unsigned long data)
++static void
++nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
++				 size_t size, enum dma_data_direction dir)
 +{
-+	int ret;
++	consistent_sync((void *)phys_to_virt(handle), size, dir);
++}
 +
-+	switch (request) {
-+	case PTRACE_PEEKUSR:
-+		ret =
-+		    ptrace_read_user(child, addr, (unsigned long __user *)data);
-+		break;
++static void
++nds32_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nents,
++			  enum dma_data_direction dir)
++{
++	int i;
 +
-+	case PTRACE_POKEUSR:
-+		ret = ptrace_write_user(child, addr, data);
-+		break;
-+
-+	case PTRACE_GETREGS:
-+		ret = ptrace_getregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_SETREGS:
-+		ret = ptrace_setregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_GETFPREGS:
-+		ret = ptrace_getfpregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_SETFPREGS:
-+		ret = ptrace_setfpregs(child, (void __user *)data);
-+		break;
-+
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
++	for (i = 0; i < nents; i++, sg++) {
++		char *virt =
++		    page_address((struct page *)sg->page_link) + sg->offset;
++		consistent_sync(virt, sg->length, dir);
 +	}
-+
-+	return ret;
 +}
 +
-+void user_enable_single_step(struct task_struct *child)
++static void
++nds32_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++			     int nents, enum dma_data_direction dir)
 +{
-+	struct pt_regs *regs;
-+	regs = task_pt_regs(child);
-+	regs->ipsw |= PSW_mskHSS;
-+	set_tsk_thread_flag(child, TIF_SINGLESTEP);
-+}
++	int i;
 +
-+void user_disable_single_step(struct task_struct *child)
-+{
-+	struct pt_regs *regs;
-+	regs = task_pt_regs(child);
-+	regs->ipsw &= ~PSW_mskHSS;
-+	clear_tsk_thread_flag(child, TIF_SINGLESTEP);
-+}
-+
-+/* sys_trace()
-+ *
-+ * syscall trace handler.
-+ */
-+
-+asmlinkage int syscall_trace_enter(int syscall, struct pt_regs *regs)
-+{
-+	if (test_thread_flag(TIF_SYSCALL_TRACE)) {
-+		if (tracehook_report_syscall_entry(regs))
-+			return -1;
++	for (i = 0; i < nents; i++, sg++) {
++		char *virt =
++		    page_address((struct page *)sg->page_link) + sg->offset;
++		consistent_sync(virt, sg->length, dir);
 +	}
-+	return syscall;
 +}
 +
-+asmlinkage void syscall_trace_leave(struct pt_regs *regs)
-+{
-+	int step = test_thread_flag(TIF_SINGLESTEP);
-+	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(regs, step);
++struct dma_map_ops nds32_dma_ops = {
++	.alloc = nds32_dma_alloc_coherent,
++	.free = nds32_dma_free,
++	.map_page = nds32_dma_map_page,
++	.unmap_page = nds32_dma_unmap_page,
++	.map_sg = nds32_dma_map_sg,
++	.unmap_sg = nds32_dma_unmap_sg,
++	.sync_single_for_device = nds32_dma_sync_single_for_device,
++	.sync_single_for_cpu = nds32_dma_sync_single_for_cpu,
++	.sync_sg_for_cpu = nds32_dma_sync_sg_for_cpu,
++	.sync_sg_for_device = nds32_dma_sync_sg_for_device,
++};
 +
-+}
++EXPORT_SYMBOL(nds32_dma_ops);
 -- 
 1.7.9.5
