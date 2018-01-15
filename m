@@ -1,64 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:36748 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933677AbeAOF45 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:56:57 -0500
+Received: from mail-pl0-f65.google.com ([209.85.160.65]:35725 "EHLO
+        mail-pl0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934143AbeAOF6C (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:58:02 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v6 36/36] net: faraday add nds32 support.
-Date: Mon, 15 Jan 2018 13:53:44 +0800
-Message-ID: <74b1aceeb4a8718657cb60e717b7108783f3241f.1515766253.git.green.hu@gmail.com>
-In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com>
-In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com>
+Subject: [PATCH v6 3/3] dt-bindings: timer: Add andestech atcpit100 timer binding doc
+Date: Mon, 15 Jan 2018 13:57:31 +0800
+Message-ID: <baa3a7a9392a2a04e791f3e29cb7cd5707fed672.1515766198.git.green.hu@gmail.com>
+In-Reply-To: <cover.1515766198.git.green.hu@gmail.com>
+References: <cover.1515766198.git.green.hu@gmail.com>
+In-Reply-To: <cover.1515766198.git.green.hu@gmail.com>
+References: <cover.1515766198.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com
-Message-ID: <20180115055344._ePYLjoA697ek37Jzl59j89y1e_dsNkh2YsEuvtPeQ0@z>
+Cc: Rick Chen <rickchen36@gmail.com>, green.hu@gmail.com, rick@andestech.com
+Message-ID: <20180115055731.CFPXITok4qY8KxSZDagexGrD4uvjjqJqJeKGriy_4m4@z>
 
-From: Greentime Hu <greentime@andestech.com>
+From: Rick Chen <rickchen36@gmail.com>
 
-This patch is used to support nds32 architecture to use these faraday
-mac IP.
+Add a document to describe Andestech atcpit100 timer and
+binding information.
 
-Signed-off-by: Greentime Hu <greentime@andestech.com>
+Signed-off-by: Rick Chen <rickchen36@gmail.com>
+Signed-off-by: Greentime Hu <green.hu@gmail.com>
+Acked-by: Rob Herring <robh@kernel.org>
 ---
- drivers/net/ethernet/faraday/Kconfig |    8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
+ .../bindings/timer/andestech,atcpit100-timer.txt   |   33 ++++++++++++++++++++
+ 1 file changed, 33 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
 
-diff --git a/drivers/net/ethernet/faraday/Kconfig b/drivers/net/ethernet/faraday/Kconfig
-index 040c7f1..0fb8df6 100644
---- a/drivers/net/ethernet/faraday/Kconfig
-+++ b/drivers/net/ethernet/faraday/Kconfig
-@@ -5,7 +5,7 @@
- config NET_VENDOR_FARADAY
- 	bool "Faraday devices"
- 	default y
--	depends on ARM
-+	depends on ARM || NDS32 || COMPILE_TEST
- 	---help---
- 	  If you have a network (Ethernet) card belonging to this class, say Y.
- 
-@@ -18,7 +18,8 @@ if NET_VENDOR_FARADAY
- 
- config FTMAC100
- 	tristate "Faraday FTMAC100 10/100 Ethernet support"
--	depends on ARM
-+	depends on ARM || NDS32 || COMPILE_TEST
-+	depends on !64BIT || BROKEN
- 	select MII
- 	---help---
- 	  This driver supports the FTMAC100 10/100 Ethernet controller
-@@ -27,7 +28,8 @@ config FTMAC100
- 
- config FTGMAC100
- 	tristate "Faraday FTGMAC100 Gigabit Ethernet support"
--	depends on ARM
-+	depends on ARM || NDS32 || COMPILE_TEST
-+	depends on !64BIT || BROKEN
- 	select PHYLIB
- 	---help---
- 	  This driver supports the FTGMAC100 Gigabit Ethernet controller
+diff --git a/Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt b/Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
+new file mode 100644
+index 0000000..4c9ea59
+--- /dev/null
++++ b/Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
+@@ -0,0 +1,33 @@
++Andestech ATCPIT100 timer
++------------------------------------------------------------------
++ATCPIT100 is a generic IP block from Andes Technology, embedded in
++Andestech AE3XX platforms and other designs.
++
++This timer is a set of compact multi-function timers, which can be
++used as pulse width modulators (PWM) as well as simple timers.
++
++It supports up to 4 PIT channels. Each PIT channel is a
++multi-function timer and provide the following usage scenarios:
++One 32-bit timer
++Two 16-bit timers
++Four 8-bit timers
++One 16-bit PWM
++One 16-bit timer and one 8-bit PWM
++Two 8-bit timer and one 8-bit PWM
++
++Required properties:
++- compatible	: Should be "andestech,atcpit100"
++- reg		: Address and length of the register set
++- interrupts	: Reference to the timer interrupt
++- clocks 	: a clock to provide the tick rate for "andestech,atcpit100"
++- clock-names 	: should be "PCLK" for the peripheral clock source.
++
++Examples:
++
++timer0: timer@f0400000 {
++	compatible = "andestech,atcpit100";
++	reg = <0xf0400000 0x1000>;
++	interrupts = <2>;
++	clocks = <&apb>;
++	clock-names = "PCLK";
++};
 -- 
 1.7.9.5
