@@ -1,117 +1,81 @@
-From: James Morse <james.morse@arm.com>
-Subject: Re: [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and
- SIGFPE, SIGTRAP, SIGBUS
-Date: Mon, 15 Jan 2018 19:30:26 +0000
-Message-ID: <5A5D0152.3090707@arm.com>
-References: <87373b6ghs.fsf@xmission.com> <20180112005940.23279-7-ebiederm@xmission.com> <20180115163028.GU22781@e103592.cambridge.arm.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 33/38] arm64: Implement thread_struct whitelist for
+ hardened usercopy
+Date: Mon, 15 Jan 2018 12:06:17 -0800
+Message-ID: <CAGXu5jLHb3BQ9U7g6suoVZwVeETiXiCRbxsprpLNiFxcjcWk1A@mail.gmail.com>
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-34-git-send-email-keescook@chromium.org> <20180115122458.GI12608@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:45864 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751079AbeAOTcr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 15 Jan 2018 14:32:47 -0500
-In-Reply-To: <20180115163028.GU22781@e103592.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>, "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Tyler Baicar <tbaicar@codeaurora.org>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Olof Johansson <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org, Al Viro <viro@zeniv.linux.org.uk>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180115122458.GI12608@e103592.cambridge.arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dave P Martin <Dave.Martin@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, James Morse <James.Morse@arm.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, zijun_hu <zijun_hu@htc.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Dave,
+On Mon, Jan 15, 2018 at 4:24 AM, Dave P Martin <Dave.Martin@arm.com> wrote:
+> On Thu, Jan 11, 2018 at 02:03:05AM +0000, Kees Cook wrote:
+>> This whitelists the FPU register state portion of the thread_struct for
+>> copying to userspace, instead of the default entire structure.
+>>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> Cc: Will Deacon <will.deacon@arm.com>
+>> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+>> Cc: Ingo Molnar <mingo@kernel.org>
+>> Cc: James Morse <james.morse@arm.com>
+>> Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>
+>> Cc: Dave Martin <Dave.Martin@arm.com>
+>> Cc: zijun_hu <zijun_hu@htc.com>
+>> Cc: linux-arm-kernel@lists.infradead.org
+>> Signed-off-by: Kees Cook <keescook@chromium.org>
+>> ---
+>>  arch/arm64/Kconfig                 | 1 +
+>>  arch/arm64/include/asm/processor.h | 8 ++++++++
+>>  2 files changed, 9 insertions(+)
+>>
+>> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+>> index a93339f5178f..c84477e6a884 100644
+>> --- a/arch/arm64/Kconfig
+>> +++ b/arch/arm64/Kconfig
+>> @@ -90,6 +90,7 @@ config ARM64
+>>       select HAVE_ARCH_MMAP_RND_BITS
+>>       select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
+>>       select HAVE_ARCH_SECCOMP_FILTER
+>> +     select HAVE_ARCH_THREAD_STRUCT_WHITELIST
+>>       select HAVE_ARCH_TRACEHOOK
+>>       select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+>>       select HAVE_ARCH_VMAP_STACK
+>> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+>> index 023cacb946c3..e58a5864ec89 100644
+>> --- a/arch/arm64/include/asm/processor.h
+>> +++ b/arch/arm64/include/asm/processor.h
+>> @@ -113,6 +113,14 @@ struct thread_struct {
+>>       struct debug_info       debug;          /* debugging */
+>>  };
+>>
+>> +/* Whitelist the fpsimd_state for copying to userspace. */
+>> +static inline void arch_thread_struct_whitelist(unsigned long *offset,
+>> +                                             unsigned long *size)
+>> +{
+>> +     *offset = offsetof(struct thread_struct, fpsimd_state);
+>> +     *size = sizeof(struct fpsimd_state);
+>
+> This should be fpsimd_state.user_fpsimd (fpsimd_state.cpu is important
+> for correctly context switching and not supposed to be user-accessible.
+> A user copy that encompasses that is definitely a bug).
 
-Thanks for going through all these,
+So, I actually spent some more time looking at this due to the
+comments from rmk on arm32, and I don't think any whitelist is needed
+here at all. (i.e. it can be *offset = *size = 0) This is because all
+the usercopying I could find uses static sizes or bounce buffers, both
+of which bypass the dynamic-size hardened usercopy checks.
 
-On 15/01/18 16:30, Dave Martin wrote:
-> On Thu, Jan 11, 2018 at 06:59:36PM -0600, Eric W. Biederman wrote:
->> diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
->> index 9b7f89df49db..abe200587334 100644
->> --- a/arch/arm64/mm/fault.c
->> +++ b/arch/arm64/mm/fault.c
->> @@ -596,7 +596,7 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+I've been running some arm64 builds now with this change, and I
+haven't tripped over any problems yet...
 
->> +	{ do_sea,		SIGBUS,  BUS_FIXME,	"synchronous external abort"	},
-> 
-> This si_code seems to be a fallback for if ACPI is absent or doesn't
-> know what to do with this error.
-> 
-> -> SIGBUS/BUS_OBJERR?
-> 
-> Can probably legitimately happen for userspace for suitable MMIO mappings.
+-Kees
 
-It can happen for normal memory too, there are specific ESR values for
-parity/checksum errors when read/writing memory. I think this first one is
-'other/unknown', and its up to the CPU how to classify them.
-
-
-> Perhaps it's more serious though in the presence of ACPI.  Do we expect
-> that ACPI can diagnose all localisable errors?
-
-Its not just ACPI, the CPU's v8.2 RAS Extensions use this
-synchronous-external-abort as notification of a RAS error, (the other details
-are written to to memory-mapped nodes). With the v8.2 RAS Extensions the ESR
-tells us if the error was contained.
-
-For ACPI we rely on firmware to set an appropriate severity in the CPER records
-generated by firmware. The APEI helpers will call panic() if they find a fatal
-error.
-
-For systems with neither {firmware,kernel}-first RAS, BUS_OBJERR looks like a
-good choice.
-
-
->> +	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 0 (translation table walk)"	},
->> +	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 1 (translation table walk)"	},
->> +	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 2 (translation table walk)"	},
->> +	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 3 (translation table walk)"	},
-> 
-> Pagetable screwup or kernel/system/CPU bug -> SIGKILL, or panic().
-
-(RAS mechanisms may claim this and send their own signals, if not:)
-
-SIGKILL is probably a better choice here, while we do have an address, there is
-nothing user-space can do about it.
-
-
->> +	{ do_sea,		SIGBUS,  BUS_FIXME,	"synchronous parity or ECC error" },	// Reserved when RAS is implemented
-> 
-> Possibly SIGBUS/BUS_MCEERR_AR (though I don't know exactly what
-> userspace is supposed to do with this or whether this implies the
-> existence or certain kernel features for managing the error that
-> may not be present on arm64...)
-
-I'd like to keep the MCEERR signals to errors that we know are contained, the
-kernel has understood and handled.
-
-(These features do exist for arm64, enabling CONFIG_MEMORY_FAILURE and a few
-APEI options allows all this to work today with suitable firmware. My Seattle
-claims to support it).
-
-
-> Otherwise, SIGKILL.
-
-Sounds good,
-
-
->> +	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 0 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
->> +	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 1 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
->> +	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 2 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
->> +	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 3 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
-> 
-> Process page tables corrupt: if the kernel couldn't fix this, the
-> process can't reasonably fix it -> SIGKILL
-> 
-> Since this is a RAS-type error it could be triggered by a cosmic ray
-> rather than requiring a kernel or system bug or other major failure, so
-> we probably shouldn't panic the system if the error is localisable to a
-> particular process.
-
-Without the RAS-Extensions severity to tell us the error is contained I'm not
-sure what we can expect. But given the page-tables are per-process, and we never
-swap them to disk etc, its probably a safe bet that it doesn't matter either way
-for these.
-
-
-Thanks,
-
-James
+-- 
+Kees Cook
+Pixel Security
