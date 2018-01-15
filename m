@@ -1,46 +1,50 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH v2 13/19] udf: prevent bounds-check bypass via speculative execution
-Date: Mon, 15 Jan 2018 09:49:21 -0800
-Message-ID: <CAPcyv4gVvhuCvnWL2jViZPdA5dAfQKZdiUi1-akpP3EazgY5qQ@mail.gmail.com>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151571805555.27429.728109914195885407.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180115103220.g3xtdsybkfxqkapx@quack2.suse.cz>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH 08/11] signal/arm: Document conflicts with SI_USER and
+ SIGFPE
+Date: Mon, 15 Jan 2018 17:49:47 +0000
+Message-ID: <20180115174947.GH17719@n2100.armlinux.org.uk>
+References: <87373b6ghs.fsf@xmission.com>
+ <20180112005940.23279-8-ebiederm@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f196.google.com ([74.125.82.196]:40108 "EHLO
-        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750716AbeAORtW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 12:49:22 -0500
-Received: by mail-ot0-f196.google.com with SMTP id d10so11311879oti.7
-        for <linux-arch@vger.kernel.org>; Mon, 15 Jan 2018 09:49:22 -0800 (PST)
-In-Reply-To: <20180115103220.g3xtdsybkfxqkapx@quack2.suse.cz>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:52266 "EHLO
+        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750964AbeAORtz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 12:49:55 -0500
+Content-Disposition: inline
+In-Reply-To: <20180112005940.23279-8-ebiederm@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan Kara <jack@suse.cz>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Jan Kara <jack@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Elena Reshetova <elena.reshetova@intel.com>, Alan Cox <alan@linux.intel.com>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, linux-arm-kernel@lists.infradead.org, Al Viro <viro@zeniv.linux.org.uk>
 
-On Mon, Jan 15, 2018 at 2:32 AM, Jan Kara <jack@suse.cz> wrote:
-> On Thu 11-01-18 16:47:35, Dan Williams wrote:
->> Static analysis reports that 'eahd->appAttrLocation' and
->> 'eahd->impAttrLocation' may be a user controlled values that are used as
->> data dependencies for calculating source and destination buffers for
->> memmove operations. In order to avoid potential leaks of kernel memory
->> values, block speculative execution of the instruction stream that could
->> issue further reads based on invalid 'aal' or 'ial' values.
->>
->> Based on an original patch by Elena Reshetova.
->>
->> Cc: Jan Kara <jack@suse.com>
->> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
->> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
->
-> Dan, I've already emailed to you [1] why I don't think this patch is needed
-> at all. Do you disagree or did my email just get lost?
->
-> [1] https://marc.info/?l=linux-arch&m=151540683024125&w=2
+On Thu, Jan 11, 2018 at 06:59:37PM -0600, Eric W. Biederman wrote:
+> Setting si_code to 0 results in a userspace seeing an si_code of 0.
+> This is the same si_code as SI_USER.  Posix and common sense requires
+> that SI_USER not be a signal specific si_code.  As such this use of 0
+> for the si_code is a pretty horribly broken ABI.
+> 
+> Further use of si_code == 0 guaranteed that copy_siginfo_to_user saw a
+> value of __SI_KILL and now sees a value of SIL_KILL with the result
+> that uid and pid fields are copied and which might copying the si_addr
+> field by accident but certainly not by design.  Making this a very
+> flakey implementation.
+> 
+> Utilizing FPE_FIXME, siginfo_layout will now return SIL_FAULT and the
+> appropriate fields will be reliably copied.
 
-Sorry, I missed that one before the v2 posting went out. I've dropped
-this from the v3 [1] posting.
+So what do you suggest when none of the SIGFPE FPE_xxx codes match the
+condition that "we don't know what happened" ?  Raise a SIGKILL instead
+maybe?  We will have dumped the VFP state into the kernel log at this
+point, things are pretty much fscked.
 
-[1]: https://marc.info/?l=linux-kernel&m=151586794400997&w=2
+It's probably an impossible condition unless the hardware has failed,
+no one has knowingly reported getting such a dump in their kernel log,
+so it's something that could very likely be changed in some way
+without anyone noticing.
+
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line in suburbia: sync at 8.8Mbps down 630kbps up
+According to speedtest.net: 8.21Mbps down 510kbps up
