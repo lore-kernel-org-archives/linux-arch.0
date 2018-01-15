@@ -1,30 +1,41 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 06/19] asm-generic/barrier: mask speculative execution
- flows
-Date: Mon, 15 Jan 2018 09:46:11 +0100
-Message-ID: <20180115084611.GK6176@hirez.programming.kicks-ass.net>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151571801681.27429.15417813964230837664.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180112091246.GP32035@hirez.programming.kicks-ass.net>
- <CAPcyv4j++bw8dO1cbEZpf3u+wDGM89A7d06MTHtugHHJs8CJ5g@mail.gmail.com>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: Re: [PATCH 10/22] swiotlb: refactor coherent buffer allocation
+Date: Mon, 15 Jan 2018 10:10:02 +0100
+Message-ID: <20180115091002.GA398@lst.de>
+References: <20180110080932.14157-1-hch@lst.de>
+	<20180110080932.14157-11-hch@lst.de>
+	<cecc98cf-2e6a-a7bc-7390-d6dcced038c4@arm.com>
+	<20180110154649.GA18529@lst.de>
+	<03c25dda-30da-9169-a8a1-1720ec741b9d@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:55467 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752549AbeAOIqg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 03:46:36 -0500
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <CAPcyv4j++bw8dO1cbEZpf3u+wDGM89A7d06MTHtugHHJs8CJ5g@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Catalin Marinas <catalin.marinas@arm.com>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
+In-Reply-To: <03c25dda-30da-9169-a8a1-1720ec741b9d-5wv7dgnIgG8@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Christian =?iso-8859-1?Q?K=F6nig?= <ckoenig.leichtzumerken-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Konrad Rzeszutek Wilk <konrad-Gq0aWv8utHQdnm+yROfE0A@public.gmane.org>, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 12, 2018 at 04:41:37PM -0800, Dan Williams wrote:
-> This certainly needs a Kconfig "depends on JUMP_LABEL" to turn on the
-> dynamic switching at all, and a HAVE_JUMP_LABEL compile time failure
-> if the compiler lacks support.
+On Wed, Jan 10, 2018 at 05:02:30PM +0000, Robin Murphy wrote:
+>>>
+>>> Aren't we leaking the pages here?
+>>
+>> Yes, that free_pages got lost somewhere in the rebases, I've added
+>> it back.
+>
+> Cool.
 
-We're ready to drop all compilers that don't support asm-goto on the
-floor for x86. So don't over engineer it just to avoid that.
+FYI, here is the fixed version, I don't want to re-send the whole
+series for this fix:
+
+http://git.infradead.org/users/hch/misc.git/commitdiff/0176adb004065d6815a8e67946752df4cd947c5b
