@@ -1,47 +1,158 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:32861 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932251AbeAOF5r (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:57:47 -0500
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:43745 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933266AbeAOF4w (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:56:52 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v6 0/3] clocksource/drivers/atcpit100: Add andestech atcpit100 timer
-Date: Mon, 15 Jan 2018 13:57:28 +0800
-Message-ID: <cover.1515766198.git.green.hu@gmail.com>
+Subject: [PATCH v6 35/36] irqchip: Andestech Internal Vector Interrupt Controller driver
+Date: Mon, 15 Jan 2018 13:53:43 +0800
+Message-ID: <1d5ae41a94d63b2be5184c51cf5fe9743916061e.1515766253.git.green.hu@gmail.com>
+In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com>
+In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: Greentime Hu <green.hu@gmail.com>, rick@andestech.com
-Message-ID: <20180115055728.CP8dPk0CcmVWDQKDeI-IF5CFMkjtau-uV75rHyp91qQ@z>
+Cc: green.hu@gmail.com, Rick Chen <rick@andestech.com>
+Message-ID: <20180115055343.uQaPWAsL61WH8H2bqcqpYo3goGT7HXDyjbxsuBQj6IA@z>
 
-ATCPIT100 is often used on the Andes architecture,
-This timer provide 4 PIT channels. Each PIT channel is a
-multi-function timer, can be configured as 32,16,8 bit timers
-or PWM as well.
+From: Greentime Hu <greentime@andestech.com>
 
-For system timer it will set channel 1 32-bit timer0 as clock
-source and count downwards until underflow and restart again.
+This patch adds the Andestech Internal Vector Interrupt Controller
+driver. You can find the spec here. Ch4.9 of AndeStar SPA V3 Manual.
+http://www.andestech.com/product.php?cls=9
 
-It also set channel 0 32-bit timer0 as clock event and count
-downwards until condition match. It will generate an interrupt
-for handling periodically.
+Signed-off-by: Rick Chen <rick@andestech.com>
+Signed-off-by: Greentime Hu <greentime@andestech.com>
+Reviewed-by: Marc Zyngier <marc.zyngier@arm.com>
+---
+ drivers/irqchip/Makefile       |    1 +
+ drivers/irqchip/irq-ativic32.c |  107 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 108 insertions(+)
+ create mode 100644 drivers/irqchip/irq-ativic32.c
 
-Changes in v6:
- - To select TIMER_OF in drivers/clocksource/Kconfig instead of arch/nds32/Kconfig
- - Refine Kconfig
- - Update license format to SPDX-License-Identifier
-
-Rick Chen (3):
-  clocksource/drivers/atcpit100: Add andestech atcpit100 timer
-  clocksource/drivers/atcpit100: VDSO support
-  dt-bindings: timer: Add andestech atcpit100 timer binding doc
-
- .../bindings/timer/andestech,atcpit100-timer.txt   |   33 +++
- drivers/clocksource/Kconfig                        |    9 +
- drivers/clocksource/Makefile                       |    1 +
- drivers/clocksource/timer-atcpit100.c              |  262 ++++++++++++++++++++
- 4 files changed, 305 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
- create mode 100644 drivers/clocksource/timer-atcpit100.c
-
+diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+index b842dfd..201ca9f 100644
+--- a/drivers/irqchip/Makefile
++++ b/drivers/irqchip/Makefile
+@@ -80,3 +80,4 @@ obj-$(CONFIG_ARCH_ASPEED)		+= irq-aspeed-vic.o irq-aspeed-i2c-ic.o
+ obj-$(CONFIG_STM32_EXTI) 		+= irq-stm32-exti.o
+ obj-$(CONFIG_QCOM_IRQ_COMBINER)		+= qcom-irq-combiner.o
+ obj-$(CONFIG_IRQ_UNIPHIER_AIDET)	+= irq-uniphier-aidet.o
++obj-$(CONFIG_NDS32)			+= irq-ativic32.o
+diff --git a/drivers/irqchip/irq-ativic32.c b/drivers/irqchip/irq-ativic32.c
+new file mode 100644
+index 0000000..f69a858
+--- /dev/null
++++ b/drivers/irqchip/irq-ativic32.c
+@@ -0,0 +1,107 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#include <linux/irq.h>
++#include <linux/of.h>
++#include <linux/of_irq.h>
++#include <linux/of_address.h>
++#include <linux/interrupt.h>
++#include <linux/irqdomain.h>
++#include <linux/irqchip.h>
++#include <nds32_intrinsic.h>
++
++static void ativic32_ack_irq(struct irq_data *data)
++{
++	__nds32__mtsr_dsb(BIT(data->hwirq), NDS32_SR_INT_PEND2);
++}
++
++static void ativic32_mask_irq(struct irq_data *data)
++{
++	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
++	__nds32__mtsr_dsb(int_mask2 & (~(BIT(data->hwirq))), NDS32_SR_INT_MASK2);
++}
++
++static void ativic32_unmask_irq(struct irq_data *data)
++{
++	unsigned long int_mask2 = __nds32__mfsr(NDS32_SR_INT_MASK2);
++	__nds32__mtsr_dsb(int_mask2 | (BIT(data->hwirq)), NDS32_SR_INT_MASK2);
++}
++
++static struct irq_chip ativic32_chip = {
++	.name = "ativic32",
++	.irq_ack = ativic32_ack_irq,
++	.irq_mask = ativic32_mask_irq,
++	.irq_unmask = ativic32_unmask_irq,
++};
++
++static unsigned int __initdata nivic_map[6] = { 6, 2, 10, 16, 24, 32 };
++
++static struct irq_domain *root_domain;
++static int ativic32_irq_domain_map(struct irq_domain *id, unsigned int virq,
++				  irq_hw_number_t hw)
++{
++
++	unsigned long int_trigger_type;
++	u32 type;
++	struct irq_data *irq_data;
++	int_trigger_type = __nds32__mfsr(NDS32_SR_INT_TRIGGER);
++	irq_data = irq_get_irq_data(virq);
++	if (!irq_data)
++		return -EINVAL;
++
++	if (int_trigger_type & (BIT(hw))) {
++		irq_set_chip_and_handler(virq, &ativic32_chip, handle_edge_irq);
++		type = IRQ_TYPE_EDGE_RISING;
++	} else {
++		irq_set_chip_and_handler(virq, &ativic32_chip, handle_level_irq);
++		type = IRQ_TYPE_LEVEL_HIGH;
++	}
++
++	irqd_set_trigger_type(irq_data, type);
++	return 0;
++}
++
++static struct irq_domain_ops ativic32_ops = {
++	.map = ativic32_irq_domain_map,
++	.xlate = irq_domain_xlate_onecell
++};
++
++static irq_hw_number_t get_intr_src(void)
++{
++	return ((__nds32__mfsr(NDS32_SR_ITYPE) & ITYPE_mskVECTOR) >> ITYPE_offVECTOR)
++		- NDS32_VECTOR_offINTERRUPT;
++}
++
++asmlinkage void asm_do_IRQ(struct pt_regs *regs)
++{
++	irq_hw_number_t hwirq = get_intr_src();
++	handle_domain_irq(root_domain, hwirq, regs);
++}
++
++int __init ativic32_init_irq(struct device_node *node, struct device_node *parent)
++{
++	unsigned long int_vec_base, nivic, nr_ints;
++
++	if (WARN(parent, "non-root ativic32 are not supported"))
++		return -EINVAL;
++
++	int_vec_base = __nds32__mfsr(NDS32_SR_IVB);
++
++	if (((int_vec_base & IVB_mskIVIC_VER) >> IVB_offIVIC_VER) == 0)
++		panic("Unable to use atcivic32 for this cpu.\n");
++
++	nivic = (int_vec_base & IVB_mskNIVIC) >> IVB_offNIVIC;
++	if (nivic >= ARRAY_SIZE(nivic_map))
++		panic("The number of input for ativic32 is not supported.\n");
++
++	nr_ints = nivic_map[nivic];
++
++	root_domain = irq_domain_add_linear(node, nr_ints,
++			&ativic32_ops, NULL);
++
++	if (!root_domain)
++		panic("%s: unable to create IRQ domain\n", node->full_name);
++
++	return 0;
++}
++IRQCHIP_DECLARE(ativic32, "andestech,ativic32", ativic32_init_irq);
 -- 
 1.7.9.5
