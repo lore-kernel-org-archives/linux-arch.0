@@ -1,65 +1,125 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/2] microblaze: fix endian handling
-Date: Mon, 15 Jan 2018 11:19:54 +0100
-Message-ID: <CAK8P3a1zr_9Oy-neCndUgFd1q0pyT07VKbJe2ezw3x6psfut3A@mail.gmail.com>
-References: <20180102114720.3408356-1-arnd@arndb.de> <201801140858.DQC0KW38%fengguang.wu@intel.com>
- <CAK8P3a1X1Pw65gX7Pn+672yux26oMzWidmN7onX94uESY547Eg@mail.gmail.com> <ed24b2c4-c5d0-057c-49c3-57f50c5946b4@monstr.eu>
+From: Jan Kara <jack@suse.cz>
+Subject: Re: [PATCH v2 13/19] udf: prevent bounds-check bypass via
+ speculative execution
+Date: Mon, 15 Jan 2018 11:32:20 +0100
+Message-ID: <20180115103220.g3xtdsybkfxqkapx@quack2.suse.cz>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151571805555.27429.728109914195885407.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f194.google.com ([74.125.82.194]:43646 "EHLO
-        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751990AbeAOKT4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 05:19:56 -0500
-In-Reply-To: <ed24b2c4-c5d0-057c-49c3-57f50c5946b4@monstr.eu>
+Received: from mx2.suse.de ([195.135.220.15]:33990 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752343AbeAOKcX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 Jan 2018 05:32:23 -0500
+Content-Disposition: inline
+In-Reply-To: <151571805555.27429.728109914195885407.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@monstr.eu>
-Cc: kbuild test robot <lkp@intel.com>, kbuild-all@01.org, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Babu Moger <babu.moger@oracle.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Jan Kara <jack@suse.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
 
-On Mon, Jan 15, 2018 at 11:14 AM, Michal Simek <monstr@monstr.eu> wrote:
-> On 15.1.2018 10:29, Arnd Bergmann wrote:
->> On Sun, Jan 14, 2018 at 2:01 AM, kbuild test robot <lkp@intel.com> wrote:
->>> Hi Arnd,
->>>
->>> I love your patch! Yet something to improve:
->>>
->>> [auto build test ERROR on linus/master]
->>> [also build test ERROR on v4.15-rc7 next-20180112]
->>> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
->>>
->>> url:    https://github.com/0day-ci/linux/commits/Arnd-Bergmann/microblaze-fix-endian-handling/20180105-120705
->>> config: microblaze-mmu_defconfig (attached as .config)
->>> compiler: microblaze-linux-gcc (GCC) 7.2.0
->>> reproduce:
->>>         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
->>>         chmod +x ~/bin/make.cross
->>>         # save the attached .config to linux build tree
->>>         make.cross ARCH=microblaze
->>>
->>> All errors (new ones prefixed by >>):
->>>
->>>>> arch/microblaze/lib/fastcopy.S:33:2: error: #error Microblaze LE not support ASM optimized lib func. Disable OPT_LIB_ASM.
->>>     #error Microblaze LE not support ASM optimized lib func. Disable OPT_LIB_ASM.
->>>      ^~~~~
->>>
->>> vim +33 arch/microblaze/lib/fastcopy.S
->>>
->>
->> This seems to be a result of fixing one bug so we run into one that we didn't
->> get to earlier. I still assume my patch is correct.
->
-> I will look at this later this week. Xilinx toolchain which I use
-> normally are microblaze for BE or microblazeel that's why proper flags
-> are default options already that's why I didn't see any issue.
->
-> Did you take toolchain from kernel.org?
-> https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.9.0/
+On Thu 11-01-18 16:47:35, Dan Williams wrote:
+> Static analysis reports that 'eahd->appAttrLocation' and
+> 'eahd->impAttrLocation' may be a user controlled values that are used as
+> data dependencies for calculating source and destination buffers for
+> memmove operations. In order to avoid potential leaks of kernel memory
+> values, block speculative execution of the instruction stream that could
+> issue further reads based on invalid 'aal' or 'ial' values.
+> 
+> Based on an original patch by Elena Reshetova.
+> 
+> Cc: Jan Kara <jack@suse.com>
+> Signed-off-by: Elena Reshetova <elena.reshetova@intel.com>
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 
-I used a gcc-7.2.1 that I built myself for all architectures in order to debug
-a gcc issue that appeared in gcc-7.2.
+Dan, I've already emailed to you [1] why I don't think this patch is needed
+at all. Do you disagree or did my email just get lost?
 
-The patch that got tested was my workaround for an obviously broken
-allmodconfig build.
+[1] https://marc.info/?l=linux-arch&m=151540683024125&w=2
 
-         Arnd
+								Honza
+
+> ---
+>  fs/udf/misc.c |   40 ++++++++++++++++++++++------------------
+>  1 file changed, 22 insertions(+), 18 deletions(-)
+> 
+> diff --git a/fs/udf/misc.c b/fs/udf/misc.c
+> index 401e64cde1be..693e24699928 100644
+> --- a/fs/udf/misc.c
+> +++ b/fs/udf/misc.c
+> @@ -22,6 +22,7 @@
+>  #include "udfdecl.h"
+>  
+>  #include <linux/fs.h>
+> +#include <linux/nospec.h>
+>  #include <linux/string.h>
+>  #include <linux/crc-itu-t.h>
+>  
+> @@ -51,6 +52,8 @@ struct genericFormat *udf_add_extendedattr(struct inode *inode, uint32_t size,
+>  	int offset;
+>  	uint16_t crclen;
+>  	struct udf_inode_info *iinfo = UDF_I(inode);
+> +	uint8_t *ea_dst, *ea_src;
+> +	uint32_t aal, ial;
+>  
+>  	ea = iinfo->i_ext.i_data;
+>  	if (iinfo->i_lenEAttr) {
+> @@ -100,33 +103,34 @@ struct genericFormat *udf_add_extendedattr(struct inode *inode, uint32_t size,
+>  
+>  		offset = iinfo->i_lenEAttr;
+>  		if (type < 2048) {
+> -			if (le32_to_cpu(eahd->appAttrLocation) <
+> -					iinfo->i_lenEAttr) {
+> -				uint32_t aal =
+> -					le32_to_cpu(eahd->appAttrLocation);
+> -				memmove(&ea[offset - aal + size],
+> -					&ea[aal], offset - aal);
+> +			aal = le32_to_cpu(eahd->appAttrLocation);
+> +			ea_dst = array_ptr(ea, offset - aal + size,
+> +					iinfo->i_lenEAttr);
+> +			ea_src = array_ptr(ea, aal, iinfo->i_lenEAttr);
+> +			if (ea_dst && ea_src) {
+> +				memmove(ea_dst, ea_src, offset - aal);
+>  				offset -= aal;
+>  				eahd->appAttrLocation =
+>  						cpu_to_le32(aal + size);
+>  			}
+> -			if (le32_to_cpu(eahd->impAttrLocation) <
+> -					iinfo->i_lenEAttr) {
+> -				uint32_t ial =
+> -					le32_to_cpu(eahd->impAttrLocation);
+> -				memmove(&ea[offset - ial + size],
+> -					&ea[ial], offset - ial);
+> +
+> +			ial = le32_to_cpu(eahd->impAttrLocation);
+> +			ea_dst = array_ptr(ea, offset - ial + size,
+> +					iinfo->i_lenEAttr);
+> +			ea_src = array_ptr(ea, ial, iinfo->i_lenEAttr);
+> +			if (ea_dst && ea_src) {
+> +				memmove(ea_dst, ea_src, offset - ial);
+>  				offset -= ial;
+>  				eahd->impAttrLocation =
+>  						cpu_to_le32(ial + size);
+>  			}
+>  		} else if (type < 65536) {
+> -			if (le32_to_cpu(eahd->appAttrLocation) <
+> -					iinfo->i_lenEAttr) {
+> -				uint32_t aal =
+> -					le32_to_cpu(eahd->appAttrLocation);
+> -				memmove(&ea[offset - aal + size],
+> -					&ea[aal], offset - aal);
+> +			aal = le32_to_cpu(eahd->appAttrLocation);
+> +			ea_dst = array_ptr(ea, offset - aal + size,
+> +					iinfo->i_lenEAttr);
+> +			ea_src = array_ptr(ea, aal, iinfo->i_lenEAttr);
+> +			if (ea_dst && ea_src) {
+> +				memmove(ea_dst, ea_src, offset - aal);
+>  				offset -= aal;
+>  				eahd->appAttrLocation =
+>  						cpu_to_le32(aal + size);
+> 
+> 
+-- 
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
