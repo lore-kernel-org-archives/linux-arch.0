@@ -1,246 +1,338 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v6 23/36] nds32: L2 cache support
-Date: Mon, 15 Jan 2018 13:53:31 +0800
-Message-ID: <37ba0ace68e4fbd60a8283c9d82423c0b094056e.1515766253.git.green.hu@gmail.com>
+Subject: [PATCH v6 24/36] nds32: Loadable modules
+Date: Mon, 15 Jan 2018 13:53:32 +0800
+Message-ID: <0a0789a3f776a5248ebc01706d502a3a9823cfac.1515766253.git.green.hu@gmail.com>
 References: <cover.1515766253.git.green.hu@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f68.google.com ([209.85.160.68]:45135 "EHLO
-        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932762AbeAOFz4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:55:56 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
 References: <cover.1515766253.git.green.hu@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds L2 cache support.
+This patch adds support for loadable modules.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/l2_cache.h |  137 +++++++++++++++++++++++++++++++++++++
- arch/nds32/kernel/atl2c.c         |   64 +++++++++++++++++
- 2 files changed, 201 insertions(+)
- create mode 100644 arch/nds32/include/asm/l2_cache.h
- create mode 100644 arch/nds32/kernel/atl2c.c
+ arch/nds32/include/asm/module.h |   11 ++
+ arch/nds32/kernel/module.c      |  286 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 297 insertions(+)
+ create mode 100644 arch/nds32/include/asm/module.h
+ create mode 100644 arch/nds32/kernel/module.c
 
-diff --git a/arch/nds32/include/asm/l2_cache.h b/arch/nds32/include/asm/l2_cache.h
+diff --git a/arch/nds32/include/asm/module.h b/arch/nds32/include/asm/module.h
 new file mode 100644
-index 0000000..37dd5ef
+index 0000000..16cf9c7
 --- /dev/null
-+++ b/arch/nds32/include/asm/l2_cache.h
-@@ -0,0 +1,137 @@
++++ b/arch/nds32/include/asm/module.h
+@@ -0,0 +1,11 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef L2_CACHE_H
-+#define L2_CACHE_H
++#ifndef _ASM_NDS32_MODULE_H
++#define _ASM_NDS32_MODULE_H
 +
-+/* CCTL_CMD_OP */
-+#define L2_CA_CONF_OFF		0x0
-+#define L2_IF_CONF_OFF		0x4
-+#define L2CC_SETUP_OFF		0x8
-+#define L2CC_PROT_OFF		0xC
-+#define L2CC_CTRL_OFF		0x10
-+#define L2_INT_EN_OFF           0x20
-+#define L2_STA_OFF              0x24
-+#define RDERR_ADDR_OFF		0x28
-+#define WRERR_ADDR_OFF		0x2c
-+#define EVDPTERR_ADDR_OFF	0x30
-+#define IMPL3ERR_ADDR_OFF	0x34
-+#define L2_CNT0_CTRL_OFF        0x40
-+#define L2_EVNT_CNT0_OFF        0x44
-+#define L2_CNT1_CTRL_OFF        0x48
-+#define L2_EVNT_CNT1_OFF        0x4c
-+#define L2_CCTL_CMD_OFF		0x60
-+#define L2_CCTL_STATUS_OFF	0x64
-+#define L2_LINE_TAG_OFF		0x68
-+#define L2_LINE_DPT_OFF		0x70
++#include <asm-generic/module.h>
 +
-+#define CCTL_CMD_L2_IX_INVAL    0x0
-+#define CCTL_CMD_L2_PA_INVAL    0x1
-+#define CCTL_CMD_L2_IX_WB       0x2
-+#define CCTL_CMD_L2_PA_WB       0x3
-+#define CCTL_CMD_L2_PA_WBINVAL  0x5
-+#define CCTL_CMD_L2_SYNC        0xa
++#define MODULE_ARCH_VERMAGIC	"NDS32v3"
 +
-+/* CCTL_CMD_TYPE */
-+#define CCTL_SINGLE_CMD         0
-+#define CCTL_BLOCK_CMD          0x10
-+#define CCTL_ALL_CMD		0x10
-+
-+/******************************************************************************
-+ * L2_CA_CONF (Cache architecture configuration)
-+ *****************************************************************************/
-+#define L2_CA_CONF_offL2SET		0
-+#define L2_CA_CONF_offL2WAY		4
-+#define L2_CA_CONF_offL2CLSZ            8
-+#define L2_CA_CONF_offL2DW		11
-+#define L2_CA_CONF_offL2PT		14
-+#define L2_CA_CONF_offL2VER		16
-+
-+#define L2_CA_CONF_mskL2SET	(0xFUL << L2_CA_CONF_offL2SET)
-+#define L2_CA_CONF_mskL2WAY	(0xFUL << L2_CA_CONF_offL2WAY)
-+#define L2_CA_CONF_mskL2CLSZ    (0x7UL << L2_CA_CONF_offL2CLSZ)
-+#define L2_CA_CONF_mskL2DW	(0x7UL << L2_CA_CONF_offL2DW)
-+#define L2_CA_CONF_mskL2PT	(0x3UL << L2_CA_CONF_offL2PT)
-+#define L2_CA_CONF_mskL2VER	(0xFFFFUL << L2_CA_CONF_offL2VER)
-+
-+/******************************************************************************
-+ * L2CC_SETUP (L2CC Setup register)
-+ *****************************************************************************/
-+#define L2CC_SETUP_offPART              0
-+#define L2CC_SETUP_mskPART              (0x3UL << L2CC_SETUP_offPART)
-+#define L2CC_SETUP_offDDLATC            4
-+#define L2CC_SETUP_mskDDLATC            (0x3UL << L2CC_SETUP_offDDLATC)
-+#define L2CC_SETUP_offTDLATC            8
-+#define L2CC_SETUP_mskTDLATC            (0x3UL << L2CC_SETUP_offTDLATC)
-+
-+/******************************************************************************
-+ * L2CC_PROT (L2CC Protect register)
-+ *****************************************************************************/
-+#define L2CC_PROT_offMRWEN              31
-+#define L2CC_PROT_mskMRWEN      (0x1UL << L2CC_PROT_offMRWEN)
-+
-+/******************************************************************************
-+ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
-+ *****************************************************************************/
-+#define L2CC_CTRL_offEN                 31
-+#define L2CC_CTRL_mskEN                 (0x1UL << L2CC_CTRL_offEN)
-+
-+/******************************************************************************
-+ * L2_CCTL_STATUS_Mn (The L2CCTL command working status for Master n)
-+ *****************************************************************************/
-+#define L2_CCTL_STATUS_offCMD_COMP      31
-+#define L2_CCTL_STATUS_mskCMD_COMP      (0x1 << L2_CCTL_STATUS_offCMD_COMP)
-+
-+extern void __iomem *atl2c_base;
-+#include <linux/smp.h>
-+#include <asm/io.h>
-+#include <asm/bitfield.h>
-+
-+#define L2C_R_REG(offset)               readl(atl2c_base + offset)
-+#define L2C_W_REG(offset, value)        writel(value, atl2c_base + offset)
-+
-+#define L2_CMD_RDY()    \
-+        do{;}while((L2C_R_REG(L2_CCTL_STATUS_OFF) & L2_CCTL_STATUS_mskCMD_COMP) == 0)
-+
-+static inline unsigned long L2_CACHE_SET(void)
-+{
-+	return 64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
-+		      L2_CA_CONF_offL2SET);
-+}
-+
-+static inline unsigned long L2_CACHE_WAY(void)
-+{
-+	return 1 +
-+	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
-+	     L2_CA_CONF_offL2WAY);
-+}
-+
-+static inline unsigned long L2_CACHE_LINE_SIZE(void)
-+{
-+
-+	return 4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
-+		     L2_CA_CONF_offL2CLSZ);
-+}
-+
-+static inline unsigned long GET_L2CC_CTRL_CPU(unsigned long cpu)
-+{
-+	if (cpu == smp_processor_id())
-+		return L2C_R_REG(L2CC_CTRL_OFF);
-+	return L2C_R_REG(L2CC_CTRL_OFF + (cpu << 8));
-+}
-+
-+static inline void SET_L2CC_CTRL_CPU(unsigned long cpu, unsigned long val)
-+{
-+	if (cpu == smp_processor_id())
-+		L2C_W_REG(L2CC_CTRL_OFF, val);
-+	else
-+		L2C_W_REG(L2CC_CTRL_OFF + (cpu << 8), val);
-+}
-+
-+static inline unsigned long GET_L2CC_STATUS_CPU(unsigned long cpu)
-+{
-+	if (cpu == smp_processor_id())
-+		return L2C_R_REG(L2_CCTL_STATUS_OFF);
-+	return L2C_R_REG(L2_CCTL_STATUS_OFF + (cpu << 8));
-+}
-+#endif
-diff --git a/arch/nds32/kernel/atl2c.c b/arch/nds32/kernel/atl2c.c
++#endif /* _ASM_NDS32_MODULE_H */
+diff --git a/arch/nds32/kernel/module.c b/arch/nds32/kernel/module.c
 new file mode 100644
-index 0000000..0c6d031
+index 0000000..714a6d6
 --- /dev/null
-+++ b/arch/nds32/kernel/atl2c.c
-@@ -0,0 +1,64 @@
++++ b/arch/nds32/kernel/module.c
+@@ -0,0 +1,286 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/compiler.h>
-+#include <linux/of_address.h>
-+#include <linux/of_fdt.h>
-+#include <linux/of_platform.h>
-+#include <asm/l2_cache.h>
++#include <linux/module.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
 +
-+void __iomem *atl2c_base;
-+static const struct of_device_id atl2c_ids[] __initconst = {
-+	{.compatible = "andestech,atl2c",}
-+};
++#include <asm/pgtable.h>
 +
-+static int __init atl2c_of_init(void)
++void *module_alloc(unsigned long size)
 +{
-+	struct device_node *np;
-+	struct resource res;
-+	unsigned long tmp = 0;
-+	unsigned long l2set, l2way, l2clsz;
++	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
++				    GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE,
++				    __builtin_return_address(0));
++}
 +
-+	if (!(__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskL2C))
-+		return -ENODEV;
++void module_free(struct module *module, void *region)
++{
++	vfree(region);
++}
 +
-+	np = of_find_matching_node(NULL, atl2c_ids);
-+	if (!np)
-+		return -ENODEV;
-+
-+	if (of_address_to_resource(np, 0, &res))
-+		return -ENODEV;
-+
-+	atl2c_base = ioremap(res.start, resource_size(&res));
-+	if (!atl2c_base)
-+		return -ENOMEM;
-+
-+	l2set =
-+	    64 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2SET) >>
-+		   L2_CA_CONF_offL2SET);
-+	l2way =
-+	    1 +
-+	    ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2WAY) >>
-+	     L2_CA_CONF_offL2WAY);
-+	l2clsz =
-+	    4 << ((L2C_R_REG(L2_CA_CONF_OFF) & L2_CA_CONF_mskL2CLSZ) >>
-+		  L2_CA_CONF_offL2CLSZ);
-+	pr_info("L2:%luKB/%luS/%luW/%luB\n",
-+		l2set * l2way * l2clsz / 1024, l2set, l2way, l2clsz);
-+
-+	tmp = L2C_R_REG(L2CC_PROT_OFF);
-+	tmp &= ~L2CC_PROT_mskMRWEN;
-+	L2C_W_REG(L2CC_PROT_OFF, tmp);
-+
-+	tmp = L2C_R_REG(L2CC_SETUP_OFF);
-+	tmp &= ~L2CC_SETUP_mskPART;
-+	L2C_W_REG(L2CC_SETUP_OFF, tmp);
-+
-+	tmp = L2C_R_REG(L2CC_CTRL_OFF);
-+	tmp |= L2CC_CTRL_mskEN;
-+	L2C_W_REG(L2CC_CTRL_OFF, tmp);
-+
++int module_frob_arch_sections(Elf_Ehdr * hdr,
++			      Elf_Shdr * sechdrs,
++			      char *secstrings, struct module *mod)
++{
 +	return 0;
 +}
 +
-+subsys_initcall(atl2c_of_init);
++void do_reloc16(unsigned int val, unsigned int *loc, unsigned int val_mask,
++		unsigned int val_shift, unsigned int loc_mask,
++		unsigned int partial_in_place, unsigned int swap)
++{
++	unsigned int tmp = 0, tmp2 = 0;
++
++	__asm__ __volatile__("\tlhi.bi\t%0, [%2], 0\n"
++			     "\tbeqz\t%3, 1f\n"
++			     "\twsbh\t%0, %1\n"
++			     "1:\n":"=r"(tmp):"0"(tmp), "r"(loc), "r"(swap)
++	    );
++
++	tmp2 = tmp & loc_mask;
++	if (partial_in_place) {
++		tmp &= (!loc_mask);
++		tmp =
++		    tmp2 | ((tmp + ((val & val_mask) >> val_shift)) & val_mask);
++	} else {
++		tmp = tmp2 | ((val & val_mask) >> val_shift);
++	}
++
++	__asm__ __volatile__("\tbeqz\t%3, 2f\n"
++			     "\twsbh\t%0, %1\n"
++			     "2:\n"
++			     "\tshi.bi\t%0, [%2], 0\n":"=r"(tmp):"0"(tmp),
++			     "r"(loc), "r"(swap)
++	    );
++}
++
++void do_reloc32(unsigned int val, unsigned int *loc, unsigned int val_mask,
++		unsigned int val_shift, unsigned int loc_mask,
++		unsigned int partial_in_place, unsigned int swap)
++{
++	unsigned int tmp = 0, tmp2 = 0;
++
++	__asm__ __volatile__("\tlmw.bi\t%0, [%2], %0, 0\n"
++			     "\tbeqz\t%3, 1f\n"
++			     "\twsbh\t%0, %1\n"
++			     "\trotri\t%0, %1, 16\n"
++			     "1:\n":"=r"(tmp):"0"(tmp), "r"(loc), "r"(swap)
++	    );
++
++	tmp2 = tmp & loc_mask;
++	if (partial_in_place) {
++		tmp &= (!loc_mask);
++		tmp =
++		    tmp2 | ((tmp + ((val & val_mask) >> val_shift)) & val_mask);
++	} else {
++		tmp = tmp2 | ((val & val_mask) >> val_shift);
++	}
++
++	__asm__ __volatile__("\tbeqz\t%3, 2f\n"
++			     "\twsbh\t%0, %1\n"
++			     "\trotri\t%0, %1, 16\n"
++			     "2:\n"
++			     "\tsmw.bi\t%0, [%2], %0, 0\n":"=r"(tmp):"0"(tmp),
++			     "r"(loc), "r"(swap)
++	    );
++}
++
++static inline int exceed_limit(int offset, unsigned int val_mask,
++			       struct module *module, Elf32_Rela * rel,
++			       unsigned int relindex, unsigned int reloc_order)
++{
++	int abs_off = offset < 0 ? ~offset : offset;
++
++	if (abs_off & (~val_mask)) {
++		pr_err("\n%s: relocation type %d out of range.\n"
++		       "please rebuild the kernel module with gcc option \"-Wa,-mno-small-text\".\n",
++		       module->name, ELF32_R_TYPE(rel->r_info));
++		pr_err("section %d reloc %d offset 0x%x relative 0x%x.\n",
++		       relindex, reloc_order, rel->r_offset, offset);
++		return true;
++	}
++	return false;
++}
++
++#ifdef __NDS32_EL__
++#define NEED_SWAP 1
++#else
++#define NEED_SWAP 0
++#endif
++
++int
++apply_relocate_add(Elf32_Shdr * sechdrs, const char *strtab,
++		   unsigned int symindex, unsigned int relindex,
++		   struct module *module)
++{
++	Elf32_Shdr *symsec = sechdrs + symindex;
++	Elf32_Shdr *relsec = sechdrs + relindex;
++	Elf32_Shdr *dstsec = sechdrs + relsec->sh_info;
++	Elf32_Rela *rel = (void *)relsec->sh_addr;
++	unsigned int i;
++
++	for (i = 0; i < relsec->sh_size / sizeof(Elf32_Rela); i++, rel++) {
++		Elf32_Addr *loc;
++		Elf32_Sym *sym;
++		Elf32_Addr v;
++		s32 offset;
++
++		offset = ELF32_R_SYM(rel->r_info);
++		if (offset < 0
++		    || offset > (symsec->sh_size / sizeof(Elf32_Sym))) {
++			pr_err("%s: bad relocation\n", module->name);
++			pr_err("section %d reloc %d\n", relindex, i);
++			return -ENOEXEC;
++		}
++
++		sym = ((Elf32_Sym *) symsec->sh_addr) + offset;
++
++		if (rel->r_offset < 0
++		    || rel->r_offset > dstsec->sh_size - sizeof(u16)) {
++			pr_err("%s: out of bounds relocation\n", module->name);
++			pr_err("section %d reloc %d offset 0x%0x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
++			return -ENOEXEC;
++		}
++
++		loc = (Elf32_Addr *) (dstsec->sh_addr + rel->r_offset);
++		v = sym->st_value + rel->r_addend;
++
++		switch (ELF32_R_TYPE(rel->r_info)) {
++		case R_NDS32_NONE:
++		case R_NDS32_INSN16:
++		case R_NDS32_LABEL:
++		case R_NDS32_LONGCALL1:
++		case R_NDS32_LONGCALL2:
++		case R_NDS32_LONGCALL3:
++		case R_NDS32_LONGCALL4:
++		case R_NDS32_LONGJUMP1:
++		case R_NDS32_LONGJUMP2:
++		case R_NDS32_LONGJUMP3:
++		case R_NDS32_9_FIXED_RELA:
++		case R_NDS32_15_FIXED_RELA:
++		case R_NDS32_17_FIXED_RELA:
++		case R_NDS32_25_FIXED_RELA:
++		case R_NDS32_LOADSTORE:
++		case R_NDS32_DWARF2_OP1_RELA:
++		case R_NDS32_DWARF2_OP2_RELA:
++		case R_NDS32_DWARF2_LEB_RELA:
++		case R_NDS32_RELA_NOP_MIX ... R_NDS32_RELA_NOP_MAX:
++			break;
++
++		case R_NDS32_32_RELA:
++			do_reloc32(v, loc, 0xffffffff, 0, 0, 0, 0);
++			break;
++
++		case R_NDS32_HI20_RELA:
++			do_reloc32(v, loc, 0xfffff000, 12, 0xfff00000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S3_RELA:
++			do_reloc32(v, loc, 0x00000fff, 3, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S2_RELA:
++			do_reloc32(v, loc, 0x00000fff, 2, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S1_RELA:
++			do_reloc32(v, loc, 0x00000fff, 1, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_LO12S0_RELA:
++		case R_NDS32_LO12S0_ORI_RELA:
++			do_reloc32(v, loc, 0x00000fff, 0, 0xfffff000, 0,
++				   NEED_SWAP);
++			break;
++
++		case R_NDS32_9_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x000000ff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc16(v - (Elf32_Addr) loc, loc, 0x000001ff, 1,
++				   0xffffff00, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_15_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x00003fff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x00007fff, 1,
++				   0xffffc000, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_17_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x0000ffff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x0001ffff, 1,
++				   0xffff0000, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_25_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x00ffffff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x01ffffff, 1,
++				   0xff000000, 0, NEED_SWAP);
++			break;
++		case R_NDS32_WORD_9_PCREL_RELA:
++			if (exceed_limit
++			    ((v - (Elf32_Addr) loc), 0x000000ff, module, rel,
++			     relindex, i))
++				return -ENOEXEC;
++			do_reloc32(v - (Elf32_Addr) loc, loc, 0x000001ff, 1,
++				   0xffffff00, 0, NEED_SWAP);
++			break;
++
++		case R_NDS32_SDA15S3_RELA:
++		case R_NDS32_SDA15S2_RELA:
++		case R_NDS32_SDA15S1_RELA:
++		case R_NDS32_SDA15S0_RELA:
++			pr_err("%s: unsupported relocation type %d.\n",
++			       module->name, ELF32_R_TYPE(rel->r_info));
++			pr_err
++			    ("Small data section access doesn't work in the kernel space; "
++			     "please rebuild the kernel module with gcc option -mcmodel=large.\n");
++			pr_err("section %d reloc %d offset 0x%x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
++			break;
++
++		default:
++			pr_err("%s: unsupported relocation type %d.\n",
++			       module->name, ELF32_R_TYPE(rel->r_info));
++			pr_err("section %d reloc %d offset 0x%x size %d\n",
++			       relindex, i, rel->r_offset, dstsec->sh_size);
++		}
++	}
++	return 0;
++}
++
++int
++apply_relocate(Elf32_Shdr * sechdrs, const char *strtab,
++	       unsigned int symindex, unsigned int relsec,
++	       struct module *module)
++{
++	return 0;
++}
++
++int
++module_finalize(const Elf32_Ehdr * hdr, const Elf_Shdr * sechdrs,
++		struct module *module)
++{
++	return 0;
++}
++
++void module_arch_cleanup(struct module *mod)
++{
++}
 -- 
 1.7.9.5
