@@ -1,82 +1,75 @@
-From: Dave P Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 33/38] arm64: Implement thread_struct whitelist for
- hardened usercopy
-Date: Mon, 15 Jan 2018 12:24:59 +0000
-Message-ID: <20180115122458.GI12608@e103592.cambridge.arm.com>
-References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
- <1515636190-24061-34-git-send-email-keescook@chromium.org>
+From: Stafford Horne <shorne@gmail.com>
+Subject: Re: [PATCH v6 02/36] openrisc: add ioremap_nocache declaration
+ before include asm-generic/io.h and sync ioremap prototype with it.
+Date: Mon, 15 Jan 2018 22:07:28 +0900
+Message-ID: <20180115130728.GG13019@lianli.shorne-pla.net>
+References: <cover.1515766253.git.green.hu@gmail.com>
+ <3e5ba33674a883b56e20b35ea9ae34990ea838c8.1515766253.git.green.hu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1515636190-24061-34-git-send-email-keescook@chromium.org>
-Sender: owner-linux-mm@kvack.org
-To: Kees Cook <keescook@chromium.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, James Morse <James.Morse@arm.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, zijun_hu <zijun_hu@htc.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <Mark.Rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@>
+In-Reply-To: <3e5ba33674a883b56e20b35ea9ae34990ea838c8.1515766253.git.green.hu@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greentime Hu <green.hu@gmail.com>
+Cc: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 11, 2018 at 02:03:05AM +0000, Kees Cook wrote:
-> This whitelists the FPU register state portion of the thread_struct for
-> copying to userspace, instead of the default entire structure.
->
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: James Morse <james.morse@arm.com>
-> Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>
-> Cc: Dave Martin <Dave.Martin@arm.com>
-> Cc: zijun_hu <zijun_hu@htc.com>
-> Cc: linux-arm-kernel@lists.infradead.org
-> Signed-off-by: Kees Cook <keescook@chromium.org>
+On Mon, Jan 15, 2018 at 01:53:10PM +0800, Greentime Hu wrote:
+> From: Greentime Hu <greentime@andestech.com>
+> 
+> It will be built failed if commit id: d25ea659 is selected. This patch can fix this
+> build error.
+
+Hello,
+
+As I mentioned last time, can you you change this to not mention the commit id?
+The ID will probably change when this is actually committed.  You might want to
+do something like:
+
+ 1. Move this commit before the ioremap_nocache change.  This is because we want
+ each commit to result in a buildable kernel.
+
+ 2. The text here and other changes could read:
+
+ A future commit for the nds32 architecture bootstrap ("asm-generic/io.h: move
+ ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU")
+ will move the ioremap_nocache out of the CONFIG_MMU ifdef.  This means that
+ in order to suppress re-definition errors we need to setup #define's before
+ importing asm-generic/io.h.
+
+ Also, the change adds a prototype for ioremap where size is size_t so fix that
+ as well.
+
+I hope that helps. But for the change:
+
+Acked-by: Stafford Horne <shorne@gmail.com>
+
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
 > ---
->  arch/arm64/Kconfig                 | 1 +
->  arch/arm64/include/asm/processor.h | 8 ++++++++
->  2 files changed, 9 insertions(+)
->
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index a93339f5178f..c84477e6a884 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -90,6 +90,7 @@ config ARM64
->       select HAVE_ARCH_MMAP_RND_BITS
->       select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
->       select HAVE_ARCH_SECCOMP_FILTER
-> +     select HAVE_ARCH_THREAD_STRUCT_WHITELIST
->       select HAVE_ARCH_TRACEHOOK
->       select HAVE_ARCH_TRANSPARENT_HUGEPAGE
->       select HAVE_ARCH_VMAP_STACK
-> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/=
-processor.h
-> index 023cacb946c3..e58a5864ec89 100644
-> --- a/arch/arm64/include/asm/processor.h
-> +++ b/arch/arm64/include/asm/processor.h
-> @@ -113,6 +113,14 @@ struct thread_struct {
->       struct debug_info       debug;          /* debugging */
->  };
->
-> +/* Whitelist the fpsimd_state for copying to userspace. */
-> +static inline void arch_thread_struct_whitelist(unsigned long *offset,
-> +                                             unsigned long *size)
-> +{
-> +     *offset =3D offsetof(struct thread_struct, fpsimd_state);
-> +     *size =3D sizeof(struct fpsimd_state);
-
-This should be fpsimd_state.user_fpsimd (fpsimd_state.cpu is important
-for correctly context switching and not supposed to be user-accessible.
-A user copy that encompasses that is definitely a bug).
-
-Cheers
----Dave
-IMPORTANT NOTICE: The contents of this email and any attachments are confid=
-ential and may also be privileged. If you are not the intended recipient, p=
-lease notify the sender immediately and do not disclose the contents to any=
- other person, use it for any purpose, or store or copy the information in =
-any medium. Thank you.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+>  arch/openrisc/include/asm/io.h |    3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
+> index 7c69139..6709b28 100644
+> --- a/arch/openrisc/include/asm/io.h
+> +++ b/arch/openrisc/include/asm/io.h
+> @@ -29,13 +29,14 @@
+>  #define PIO_OFFSET		0
+>  #define PIO_MASK		0
+>  
+> +#define ioremap_nocache ioremap_nocache
+>  #include <asm-generic/io.h>
+>  #include <asm/pgtable.h>
+>  
+>  extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
+>  				pgprot_t prot);
+>  
+> -static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+> +static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
+>  {
+>  	return __ioremap(offset, size, PAGE_KERNEL);
+>  }
+> -- 
+> 1.7.9.5
+> 
