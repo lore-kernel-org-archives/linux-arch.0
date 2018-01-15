@@ -1,254 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:45666 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751128AbeAOTLo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 14:11:44 -0500
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [PATCH for 4.16 06/10] membarrier: Provide core serializing command
-Date: Mon, 15 Jan 2018 14:11:00 -0500
-Message-ID: <20180115191104.12437-7-mathieu.desnoyers@efficios.com>
-In-Reply-To: <20180115191104.12437-1-mathieu.desnoyers@efficios.com>
-References: <20180115191104.12437-1-mathieu.desnoyers@efficios.com>
+Received: from mail-ua0-f194.google.com ([209.85.217.194]:45202 "EHLO
+        mail-ua0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750908AbeAOUGT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 15:06:19 -0500
+Received: by mail-ua0-f194.google.com with SMTP id e39so9286108uae.12
+        for <linux-arch@vger.kernel.org>; Mon, 15 Jan 2018 12:06:19 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <20180115122458.GI12608@e103592.cambridge.arm.com>
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-34-git-send-email-keescook@chromium.org> <20180115122458.GI12608@e103592.cambridge.arm.com>
+From: Kees Cook <keescook@chromium.org>
+Date: Mon, 15 Jan 2018 12:06:17 -0800
+Message-ID: <CAGXu5jLHb3BQ9U7g6suoVZwVeETiXiCRbxsprpLNiFxcjcWk1A@mail.gmail.com>
+Subject: Re: [PATCH 33/38] arm64: Implement thread_struct whitelist for
+ hardened usercopy
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, Thomas Gleixner <tglx@linutronix.de>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, linux-arch@vger.kernel.org
-Message-ID: <20180115191100.XZDafIJUmUtB3mNB4MOtAkoTkUuyLk0GEVx7KzNOU3U@z>
+To: Dave P Martin <Dave.Martin@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, James Morse <James.Morse@arm.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, zijun_hu <zijun_hu@htc.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <Mark.Rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <Marc.Zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20180115200617.1v9So-rg2zKmN24rCvc-1FcGgkdbaKoC45KpOx8OHBs@z>
 
-Provide core serializing membarrier command to support memory reclaim
-by JIT.
+On Mon, Jan 15, 2018 at 4:24 AM, Dave P Martin <Dave.Martin@arm.com> wrote:
+> On Thu, Jan 11, 2018 at 02:03:05AM +0000, Kees Cook wrote:
+>> This whitelists the FPU register state portion of the thread_struct for
+>> copying to userspace, instead of the default entire structure.
+>>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> Cc: Will Deacon <will.deacon@arm.com>
+>> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+>> Cc: Ingo Molnar <mingo@kernel.org>
+>> Cc: James Morse <james.morse@arm.com>
+>> Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>
+>> Cc: Dave Martin <Dave.Martin@arm.com>
+>> Cc: zijun_hu <zijun_hu@htc.com>
+>> Cc: linux-arm-kernel@lists.infradead.org
+>> Signed-off-by: Kees Cook <keescook@chromium.org>
+>> ---
+>>  arch/arm64/Kconfig                 | 1 +
+>>  arch/arm64/include/asm/processor.h | 8 ++++++++
+>>  2 files changed, 9 insertions(+)
+>>
+>> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+>> index a93339f5178f..c84477e6a884 100644
+>> --- a/arch/arm64/Kconfig
+>> +++ b/arch/arm64/Kconfig
+>> @@ -90,6 +90,7 @@ config ARM64
+>>       select HAVE_ARCH_MMAP_RND_BITS
+>>       select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
+>>       select HAVE_ARCH_SECCOMP_FILTER
+>> +     select HAVE_ARCH_THREAD_STRUCT_WHITELIST
+>>       select HAVE_ARCH_TRACEHOOK
+>>       select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+>>       select HAVE_ARCH_VMAP_STACK
+>> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+>> index 023cacb946c3..e58a5864ec89 100644
+>> --- a/arch/arm64/include/asm/processor.h
+>> +++ b/arch/arm64/include/asm/processor.h
+>> @@ -113,6 +113,14 @@ struct thread_struct {
+>>       struct debug_info       debug;          /* debugging */
+>>  };
+>>
+>> +/* Whitelist the fpsimd_state for copying to userspace. */
+>> +static inline void arch_thread_struct_whitelist(unsigned long *offset,
+>> +                                             unsigned long *size)
+>> +{
+>> +     *offset = offsetof(struct thread_struct, fpsimd_state);
+>> +     *size = sizeof(struct fpsimd_state);
+>
+> This should be fpsimd_state.user_fpsimd (fpsimd_state.cpu is important
+> for correctly context switching and not supposed to be user-accessible.
+> A user copy that encompasses that is definitely a bug).
 
-Each architecture needs to explicitly opt into that support by
-documenting in their architecture code how they provide the core
-serializing instructions required when returning from the membarrier
-IPI, and after the scheduler has updated the curr->mm pointer (before
-going back to user-space). They should then select
-ARCH_HAS_MEMBARRIER_SYNC_CORE to enable support for that command on
-their architecture.
+So, I actually spent some more time looking at this due to the
+comments from rmk on arm32, and I don't think any whitelist is needed
+here at all. (i.e. it can be *offset = *size = 0) This is because all
+the usercopying I could find uses static sizes or bounce buffers, both
+of which bypass the dynamic-size hardened usercopy checks.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-CC: Peter Zijlstra <peterz@infradead.org>
-CC: Andy Lutomirski <luto@kernel.org>
-CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-CC: Boqun Feng <boqun.feng@gmail.com>
-CC: Andrew Hunter <ahh@google.com>
-CC: Maged Michael <maged.michael@gmail.com>
-CC: Avi Kivity <avi@scylladb.com>
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-CC: Paul Mackerras <paulus@samba.org>
-CC: Michael Ellerman <mpe@ellerman.id.au>
-CC: Dave Watson <davejwatson@fb.com>
-CC: Thomas Gleixner <tglx@linutronix.de>
-CC: Ingo Molnar <mingo@redhat.com>
-CC: "H. Peter Anvin" <hpa@zytor.com>
-CC: Andrea Parri <parri.andrea@gmail.com>
-CC: Russell King <linux@armlinux.org.uk>
-CC: Greg Hackmann <ghackmann@google.com>
-CC: Will Deacon <will.deacon@arm.com>
-CC: David Sehr <sehr@google.com>
-CC: linux-arch@vger.kernel.org
----
- include/linux/sched/mm.h        |  6 +++++
- include/uapi/linux/membarrier.h | 32 +++++++++++++++++++++++++-
- init/Kconfig                    |  3 +++
- kernel/sched/membarrier.c       | 50 +++++++++++++++++++++++++++++++----------
- 4 files changed, 78 insertions(+), 13 deletions(-)
+I've been running some arm64 builds now with this change, and I
+haven't tripped over any problems yet...
 
-diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
-index cbeecd287589..3ff217a071ca 100644
---- a/include/linux/sched/mm.h
-+++ b/include/linux/sched/mm.h
-@@ -223,6 +223,12 @@ enum {
- 	MEMBARRIER_STATE_PRIVATE_EXPEDITED			= (1U << 1),
- 	MEMBARRIER_STATE_SHARED_EXPEDITED_READY			= (1U << 2),
- 	MEMBARRIER_STATE_SHARED_EXPEDITED			= (1U << 3),
-+	MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE_READY	= (1U << 4),
-+	MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE		= (1U << 5),
-+};
-+
-+enum {
-+	MEMBARRIER_FLAG_SYNC_CORE	= (1U << 0),
- };
- 
- #ifdef CONFIG_ARCH_HAS_MEMBARRIER_HOOKS
-diff --git a/include/uapi/linux/membarrier.h b/include/uapi/linux/membarrier.h
-index 2de01e595d3b..99a66577bd85 100644
---- a/include/uapi/linux/membarrier.h
-+++ b/include/uapi/linux/membarrier.h
-@@ -73,7 +73,7 @@
-  *                          to and return from the system call
-  *                          (non-running threads are de facto in such a
-  *                          state). This only covers threads from the
-- *                          same processes as the caller thread. This
-+ *                          same process as the caller thread. This
-  *                          command returns 0 on success. The
-  *                          "expedited" commands complete faster than
-  *                          the non-expedited ones, they never block,
-@@ -86,6 +86,34 @@
-  *                          Register the process intent to use
-  *                          MEMBARRIER_CMD_PRIVATE_EXPEDITED. Always
-  *                          returns 0.
-+ * @MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE:
-+ *                          In addition to provide memory ordering
-+ *                          guarantees described in
-+ *                          MEMBARRIER_CMD_PRIVATE_EXPEDITED, ensure
-+ *                          the caller thread, upon return from system
-+ *                          call, that all its running threads siblings
-+ *                          have executed a core serializing
-+ *                          instruction. (architectures are required to
-+ *                          guarantee that non-running threads issue
-+ *                          core serializing instructions before they
-+ *                          resume user-space execution). This only
-+ *                          covers threads from the same process as the
-+ *                          caller thread. This command returns 0 on
-+ *                          success. The "expedited" commands complete
-+ *                          faster than the non-expedited ones, they
-+ *                          never block, but have the downside of
-+ *                          causing extra overhead. If this command is
-+ *                          not implemented by an architecture, -EINVAL
-+ *                          is returned. A process needs to register its
-+ *                          intent to use the private expedited sync
-+ *                          core command prior to using it, otherwise
-+ *                          this command returns -EPERM.
-+ * @MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE:
-+ *                          Register the process intent to use
-+ *                          MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE.
-+ *                          If this command is not implemented by an
-+ *                          architecture, -EINVAL is returned.
-+ *                          Returns 0 on success.
-  *
-  * Command to be passed to the membarrier system call. The commands need to
-  * be a single bit each, except for MEMBARRIER_CMD_QUERY which is assigned to
-@@ -98,6 +126,8 @@ enum membarrier_cmd {
- 	MEMBARRIER_CMD_REGISTER_SHARED_EXPEDITED		= (1 << 2),
- 	MEMBARRIER_CMD_PRIVATE_EXPEDITED			= (1 << 3),
- 	MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED		= (1 << 4),
-+	MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE		= (1 << 5),
-+	MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE	= (1 << 6),
- };
- 
- #endif /* _UAPI_LINUX_MEMBARRIER_H */
-diff --git a/init/Kconfig b/init/Kconfig
-index 2d118b6adee2..953c57dda8b9 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1415,6 +1415,9 @@ config USERFAULTFD
- config ARCH_HAS_MEMBARRIER_HOOKS
- 	bool
- 
-+config ARCH_HAS_MEMBARRIER_SYNC_CORE
-+	bool
-+
- config EMBEDDED
- 	bool "Embedded system"
- 	option allnoconfig_y
-diff --git a/kernel/sched/membarrier.c b/kernel/sched/membarrier.c
-index 14bc8bf9e736..fcd2306c2367 100644
---- a/kernel/sched/membarrier.c
-+++ b/kernel/sched/membarrier.c
-@@ -26,11 +26,20 @@
-  * Bitmask made from a "or" of all commands within enum membarrier_cmd,
-  * except MEMBARRIER_CMD_QUERY.
-  */
-+#ifdef CONFIG_ARCH_HAS_MEMBARRIER_SYNC_CORE
-+#define MEMBARRIER_PRIVATE_EXPEDITED_SYNC_CORE_BITMASK	\
-+	(MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE \
-+	| MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE)
-+#else
-+#define MEMBARRIER_PRIVATE_EXPEDITED_SYNC_CORE_BITMASK	0
-+#endif
-+
- #define MEMBARRIER_CMD_BITMASK	\
- 	(MEMBARRIER_CMD_SHARED | MEMBARRIER_CMD_SHARED_EXPEDITED \
- 	| MEMBARRIER_CMD_REGISTER_SHARED_EXPEDITED \
- 	| MEMBARRIER_CMD_PRIVATE_EXPEDITED	\
--	| MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED)
-+	| MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED	\
-+	| MEMBARRIER_PRIVATE_EXPEDITED_SYNC_CORE_BITMASK)
- 
- static void ipi_mb(void *info)
- {
-@@ -104,15 +113,23 @@ static int membarrier_shared_expedited(void)
- 	return 0;
- }
- 
--static int membarrier_private_expedited(void)
-+static int membarrier_private_expedited(int flags)
- {
- 	int cpu;
- 	bool fallback = false;
- 	cpumask_var_t tmpmask;
- 
--	if (!(atomic_read(&current->mm->membarrier_state)
--			& MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY))
--		return -EPERM;
-+	if (flags & MEMBARRIER_FLAG_SYNC_CORE) {
-+		if (!IS_ENABLED(CONFIG_ARCH_HAS_MEMBARRIER_SYNC_CORE))
-+			return -EINVAL;
-+		if (!(atomic_read(&current->mm->membarrier_state) &
-+		      MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE_READY))
-+			return -EPERM;
-+	} else {
-+		if (!(atomic_read(&current->mm->membarrier_state) &
-+		      MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY))
-+			return -EPERM;
-+	}
- 
- 	if (num_online_cpus() == 1)
- 		return 0;
-@@ -205,18 +222,24 @@ static int membarrier_register_shared_expedited(void)
- 	return 0;
- }
- 
--static int membarrier_register_private_expedited(void)
-+static int membarrier_register_private_expedited(int flags)
- {
- 	struct task_struct *p = current;
- 	struct mm_struct *mm = p->mm;
-+	int state = MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY;
-+
-+	if (flags & MEMBARRIER_FLAG_SYNC_CORE) {
-+		if (!IS_ENABLED(CONFIG_ARCH_HAS_MEMBARRIER_SYNC_CORE))
-+			return -EINVAL;
-+		state = MEMBARRIER_STATE_PRIVATE_EXPEDITED_SYNC_CORE_READY;
-+	}
- 
- 	/*
- 	 * We need to consider threads belonging to different thread
- 	 * groups, which use the same mm. (CLONE_VM but not
- 	 * CLONE_THREAD).
- 	 */
--	if (atomic_read(&mm->membarrier_state)
--			& MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY)
-+	if (atomic_read(&mm->membarrier_state) & state)
- 		return 0;
- 	atomic_or(MEMBARRIER_STATE_PRIVATE_EXPEDITED, &mm->membarrier_state);
- 	if (!(atomic_read(&mm->mm_users) == 1 && get_nr_threads(p) == 1)) {
-@@ -226,8 +249,7 @@ static int membarrier_register_private_expedited(void)
- 		 */
- 		synchronize_sched();
- 	}
--	atomic_or(MEMBARRIER_STATE_PRIVATE_EXPEDITED_READY,
--			&mm->membarrier_state);
-+	atomic_or(state, &mm->membarrier_state);
- 	return 0;
- }
- 
-@@ -283,9 +305,13 @@ SYSCALL_DEFINE2(membarrier, int, cmd, int, flags)
- 	case MEMBARRIER_CMD_REGISTER_SHARED_EXPEDITED:
- 		return membarrier_register_shared_expedited();
- 	case MEMBARRIER_CMD_PRIVATE_EXPEDITED:
--		return membarrier_private_expedited();
-+		return membarrier_private_expedited(0);
- 	case MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED:
--		return membarrier_register_private_expedited();
-+		return membarrier_register_private_expedited(0);
-+	case MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE:
-+		return membarrier_private_expedited(MEMBARRIER_FLAG_SYNC_CORE);
-+	case MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE:
-+		return membarrier_register_private_expedited(MEMBARRIER_FLAG_SYNC_CORE);
- 	default:
- 		return -EINVAL;
- 	}
+-Kees
+
 -- 
-2.11.0
+Kees Cook
+Pixel Security
