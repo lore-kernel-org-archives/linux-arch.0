@@ -1,33 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:39548 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932629AbeAOJKE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 15 Jan 2018 04:10:04 -0500
-Date: Mon, 15 Jan 2018 10:10:02 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 10/22] swiotlb: refactor coherent buffer allocation
-Message-ID: <20180115091002.GA398@lst.de>
-References: <20180110080932.14157-1-hch@lst.de> <20180110080932.14157-11-hch@lst.de> <cecc98cf-2e6a-a7bc-7390-d6dcced038c4@arm.com> <20180110154649.GA18529@lst.de> <03c25dda-30da-9169-a8a1-1720ec741b9d@arm.com>
+Received: from mail-eopbgr10067.outbound.protection.outlook.com ([40.107.1.67]:32972
+        "EHLO EUR02-HE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1752403AbeAOMZL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 15 Jan 2018 07:25:11 -0500
+Date: Mon, 15 Jan 2018 12:24:59 +0000
+From: Dave P Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 33/38] arm64: Implement thread_struct whitelist for
+ hardened usercopy
+Message-ID: <20180115122458.GI12608@e103592.cambridge.arm.com>
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-34-git-send-email-keescook@chromium.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <03c25dda-30da-9169-a8a1-1720ec741b9d@arm.com>
+In-Reply-To: <1515636190-24061-34-git-send-email-keescook@chromium.org>
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robin Murphy <robin.murphy@arm.com>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, Christian =?iso-8859-1?Q?K=F6nig?= <ckoenig.leichtzumerken@gmail.com>, x86@kernel.org, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, Konrad Rzeszutek Wilk <konrad@darnok.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180115091002.eTBf5PnQDspL0a9F0TA8upCQyCYDBSbdxES2gkueQL8@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, James Morse <James.Morse@arm.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, zijun_hu <zijun_hu@htc.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Windsor <dave@nullcore.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <Mark.Rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <Marc.Zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20180115122459.Wh96Bt-RcTuvUpzDc1WHtFdVis5NhITyxWdsdDM-Wng@z>
 
-On Wed, Jan 10, 2018 at 05:02:30PM +0000, Robin Murphy wrote:
->>>
->>> Aren't we leaking the pages here?
->>
->> Yes, that free_pages got lost somewhere in the rebases, I've added
->> it back.
+On Thu, Jan 11, 2018 at 02:03:05AM +0000, Kees Cook wrote:
+> This whitelists the FPU register state portion of the thread_struct for
+> copying to userspace, instead of the default entire structure.
 >
-> Cool.
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: James Morse <james.morse@arm.com>
+> Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>
+> Cc: Dave Martin <Dave.Martin@arm.com>
+> Cc: zijun_hu <zijun_hu@htc.com>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  arch/arm64/Kconfig                 | 1 +
+>  arch/arm64/include/asm/processor.h | 8 ++++++++
+>  2 files changed, 9 insertions(+)
+>
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index a93339f5178f..c84477e6a884 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -90,6 +90,7 @@ config ARM64
+>       select HAVE_ARCH_MMAP_RND_BITS
+>       select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
+>       select HAVE_ARCH_SECCOMP_FILTER
+> +     select HAVE_ARCH_THREAD_STRUCT_WHITELIST
+>       select HAVE_ARCH_TRACEHOOK
+>       select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+>       select HAVE_ARCH_VMAP_STACK
+> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/=
+processor.h
+> index 023cacb946c3..e58a5864ec89 100644
+> --- a/arch/arm64/include/asm/processor.h
+> +++ b/arch/arm64/include/asm/processor.h
+> @@ -113,6 +113,14 @@ struct thread_struct {
+>       struct debug_info       debug;          /* debugging */
+>  };
+>
+> +/* Whitelist the fpsimd_state for copying to userspace. */
+> +static inline void arch_thread_struct_whitelist(unsigned long *offset,
+> +                                             unsigned long *size)
+> +{
+> +     *offset =3D offsetof(struct thread_struct, fpsimd_state);
+> +     *size =3D sizeof(struct fpsimd_state);
 
-FYI, here is the fixed version, I don't want to re-send the whole
-series for this fix:
+This should be fpsimd_state.user_fpsimd (fpsimd_state.cpu is important
+for correctly context switching and not supposed to be user-accessible.
+A user copy that encompasses that is definitely a bug).
 
-http://git.infradead.org/users/hch/misc.git/commitdiff/0176adb004065d6815a8e67946752df4cd947c5b
+Cheers
+---Dave
+IMPORTANT NOTICE: The contents of this email and any attachments are confid=
+ential and may also be privileged. If you are not the intended recipient, p=
+lease notify the sender immediately and do not disclose the contents to any=
+ other person, use it for any purpose, or store or copy the information in =
+any medium. Thank you.
