@@ -1,618 +1,495 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v6 06/36] nds32: Kernel booting and initialization
-Date: Mon, 15 Jan 2018 13:53:14 +0800
-Message-ID: <5930d2df872116555cc553284b6c111dce29e298.1515766253.git.green.hu@gmail.com>
+Subject: [PATCH v6 09/36] nds32: MMU initialization
+Date: Mon, 15 Jan 2018 13:53:17 +0800
+Message-ID: <f27b75af63adeb7f543151fdc248dceea85ef0c4.1515766253.git.green.hu@gmail.com>
 References: <cover.1515766253.git.green.hu@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
 References: <cover.1515766253.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: netdev-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch includes the kernel startup code. It can get dtb pointer
-passed from bootloader. It will create a temp mapping by tlb
-instructions at beginning and goto start_kernel.
+This patch includes memory initializations and highmem supporting.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/kernel/head.S  |  188 ++++++++++++++++++++++
- arch/nds32/kernel/setup.c |  387 +++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 575 insertions(+)
- create mode 100644 arch/nds32/kernel/head.S
- create mode 100644 arch/nds32/kernel/setup.c
+ arch/nds32/mm/highmem.c  |   79 +++++++++++++
+ arch/nds32/mm/init.c     |  277 ++++++++++++++++++++++++++++++++++++++++++++++
+ arch/nds32/mm/mm-nds32.c |   90 +++++++++++++++
+ 3 files changed, 446 insertions(+)
+ create mode 100644 arch/nds32/mm/highmem.c
+ create mode 100644 arch/nds32/mm/init.c
+ create mode 100644 arch/nds32/mm/mm-nds32.c
 
-diff --git a/arch/nds32/kernel/head.S b/arch/nds32/kernel/head.S
+diff --git a/arch/nds32/mm/highmem.c b/arch/nds32/mm/highmem.c
 new file mode 100644
-index 0000000..71f57bd
+index 0000000..e17cb8a
 --- /dev/null
-+++ b/arch/nds32/kernel/head.S
-@@ -0,0 +1,188 @@
++++ b/arch/nds32/mm/highmem.c
+@@ -0,0 +1,79 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/linkage.h>
-+#include <linux/init.h>
-+#include <asm/ptrace.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/sizes.h>
-+#include <asm/thread_info.h>
-+
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+#define OF_DT_MAGIC 0xd00dfeed
-+#else
-+#define OF_DT_MAGIC 0xedfe0dd0
-+#endif
-+
-+	.globl  swapper_pg_dir
-+	.equ    swapper_pg_dir, TEXTADDR - 0x4000
-+
-+/*
-+ * Kernel startup entry point.
-+ */
-+	.section ".head.text", "ax"
-+	.type   _stext, %function
-+ENTRY(_stext)
-+	setgie.d                            ! Disable interrupt
-+	isb
-+/*
-+ * Disable I/D-cache and enable it at a proper time
-+ */
-+	mfsr    $r0, $mr8
-+	li      $r1, #~(CACHE_CTL_mskIC_EN|CACHE_CTL_mskDC_EN)
-+	and     $r0, $r0, $r1
-+	mtsr    $r0, $mr8
-+
-+/*
-+ * Process device tree blob
-+ */
-+	andi 	$r0,$r2,#0x3
-+	li	$r10, 0
-+	bne     $r0, $r10, _nodtb
-+	lwi	$r0, [$r2]
-+	li	$r1, OF_DT_MAGIC
-+	bne     $r0, $r1, _nodtb
-+	move	$r10, $r2
-+_nodtb:
-+
-+/*
-+ * Create a temporary mapping area for booting, before start_kernel
-+ */
-+	sethi   $r4, hi20(swapper_pg_dir)
-+	li      $p0, (PAGE_OFFSET - PHYS_OFFSET)
-+	sub     $r4, $r4, $p0
-+	tlbop   FlushAll            ! invalidate TLB\n"
-+	isb
-+	mtsr    $r4, $L1_PPTB       ! load page table pointer\n"
-+
-+/* set NTC0 cacheable/writeback, mutliple page size in use */
-+	mfsr    $r3, $MMU_CTL
-+	li      $r0, #~MMU_CTL_mskNTC0
-+	and     $r3, $r3, $r0
-+#ifdef CONFIG_ANDES_PAGE_SIZE_4KB
-+	ori     $r3, $r3, #(MMU_CTL_mskMPZIU|(MMU_CTL_CACHEABLE_WB << MMU_CTL_offNTC0))
-+#else
-+	ori     $r3, $r3, #(MMU_CTL_mskMPZIU|(MMU_CTL_CACHEABLE_WB << MMU_CTL_offNTC0)|MMU_CTL_D8KB)
-+#endif
-+#ifdef CONFIG_HW_SUPPORT_UNALIGNMENT_ACCESS
-+	li      $r0, #MMU_CTL_UNA
-+	or      $r3, $r3, $r0
-+#endif
-+	mtsr    $r3, $MMU_CTL
-+	isb
-+
-+/* set page size and size of kernel image */
-+        mfsr    $r0, $MMU_CFG
-+        srli    $r3, $r0, MMU_CFG_offfEPSZ
-+        zeb     $r3, $r3
-+        bnez    $r3, _extra_page_size_support
-+#ifdef CONFIG_ANDES_PAGE_SIZE_4KB
-+        li      $r5, #SZ_4K                 ! Use 4KB page size
-+#else
-+        li      $r5, #SZ_8K                 ! Use 8KB page size
-+        li      $r3, #1
-+#endif
-+        mtsr    $r3, $TLB_MISC
-+        b       _image_size_check
-+
-+_extra_page_size_support:                    ! Use epzs pages size
-+        clz     $r6, $r3
-+        subri   $r2, $r6, #31
-+        li      $r3, #1
-+        sll     $r3, $r3, $r2
-+        /* MMU_CFG.EPSZ value -> meaning */
-+        mul     $r5, $r3, $r3
-+        slli    $r5, $r5, #14
-+        /* MMU_CFG.EPSZ  -> TLB_MISC.ACC_PSZ */
-+        addi    $r3, $r2, #0x2
-+        mtsr    $r3, $TLB_MISC
-+
-+_image_size_check:
-+        /* calculate the image maximum size accepted by TLB config */
-+        andi    $r6, $r0, MMU_CFG_mskTBW
-+        andi    $r0, $r0, MMU_CFG_mskTBS
-+        srli    $r6, $r6, MMU_CFG_offTBW
-+        srli    $r0, $r0, MMU_CFG_offTBS
-+        /*
-+         * we just map the kernel to the maximum way - 1 of tlb
-+         * reserver one way for UART VA mapping
-+         * it will cause page fault if UART mapping cover the kernel mapping
-+         *
-+         * direct mapping is not supported now.
-+         */
-+        li      $r2, 't'
-+        beqz    $r6, __error                 ! MMU_CFG.TBW = 0 is direct mappin
-+        addi    $r0, $r0, #0x2               ! MMU_CFG.TBS value -> meaning
-+        sll     $r0, $r6, $r0                ! entries = k-way * n-set
-+        mul     $r6, $r0, $r5                ! max size = entries * page size
-+        /* check kernel image size */
-+        la      $r3, (_end - PAGE_OFFSET)
-+        li      $r2, 's'
-+        bgt     $r3, $r6, __error
-+
-+	li      $r2, #(PHYS_OFFSET + TLB_DATA_kernel_text_attr)
-+        li      $r3, PAGE_OFFSET
-+        add     $r6, $r6, $r3
-+
-+_tlb:
-+	mtsr    $r3, $TLB_VPN
-+	dsb
-+	tlbop   $r2, RWR
-+	isb
-+	add     $r3, $r3, $r5
-+	add     $r2, $r2, $r5
-+	bgt     $r6, $r3, _tlb
-+	mfsr    $r3, $TLB_MISC      ! setup access page size
-+	li      $r2, #~0xf
-+	and     $r3, $r3, $r2
-+#ifdef CONFIG_ANDES_PAGE_SIZE_8KB
-+	ori    $r3, $r3, #0x1
-+#endif
-+	mtsr    $r3, $TLB_MISC
-+
-+	mfsr    $r0, $MISC_CTL      ! Enable BTB and RTP and shadow sp
-+	ori     $r0, $r0, #MISC_init
-+	mtsr    $r0, $MISC_CTL
-+
-+	mfsr    $p1, $PSW
-+	li      $r15, #~PSW_clr             ! clear WBNA|DME|IME|DT|IT|POM|INTL|GIE
-+	and     $p1, $p1, $r15
-+	ori     $p1, $p1, #PSW_init
-+	mtsr    $p1, $IPSW                  ! when iret, it will automatically enable MMU
-+	la      $lp, __mmap_switched
-+	mtsr    $lp, $IPC
-+	iret
-+	nop
-+
-+	.type   __switch_data, %object
-+__switch_data:
-+	.long   __bss_start                 ! $r6
-+	.long   _end                        ! $r7
-+	.long	__atags_pointer 	    ! $atag_pointer
-+	.long   init_task                   ! $r9, move to $r25
-+	.long   init_thread_union + THREAD_SIZE    ! $sp
-+
-+
-+/*
-+ * The following fragment of code is executed with the MMU on in MMU mode,
-+ * and uses absolute addresses; this is not position independent.
-+ */
-+	.align
-+	.type   __mmap_switched, %function
-+__mmap_switched:
-+	la  $r3, __switch_data
-+	lmw.bim $r6, [$r3], $r9, #0b0001
-+	move	$r25, $r9
-+	move    $fp, #0             ! Clear  BSS (and zero $fp)
-+	beq $r7, $r6, _RRT
-+1:	swi.bi  $fp, [$r6], #4
-+	bne $r7, $r6, 1b
-+	swi	$r10, [$r8]
-+
-+_RRT:
-+	b   start_kernel
-+
-+__error:
-+	b   __error
-diff --git a/arch/nds32/kernel/setup.c b/arch/nds32/kernel/setup.c
-new file mode 100644
-index 0000000..01f2654d7
---- /dev/null
-+++ b/arch/nds32/kernel/setup.c
-@@ -0,0 +1,387 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/cpu.h>
++#include <linux/export.h>
++#include <linux/highmem.h>
++#include <linux/sched.h>
++#include <linux/smp.h>
++#include <linux/interrupt.h>
 +#include <linux/bootmem.h>
-+#include <linux/seq_file.h>
-+#include <linux/memblock.h>
-+#include <linux/console.h>
-+#include <linux/screen_info.h>
-+#include <linux/delay.h>
-+#include <linux/dma-mapping.h>
-+#include <linux/of_fdt.h>
-+#include <linux/of_platform.h>
-+#include <asm/setup.h>
-+#include <asm/sections.h>
-+#include <asm/proc-fns.h>
-+#include <asm/cache_info.h>
-+#include <asm/elf.h>
-+#include <nds32_intrinsic.h>
++#include <asm/fixmap.h>
++#include <asm/tlbflush.h>
 +
-+#define HWCAP_MFUSR_PC		0x000001
-+#define HWCAP_EXT		0x000002
-+#define HWCAP_EXT2		0x000004
-+#define HWCAP_FPU		0x000008
-+#define HWCAP_AUDIO		0x000010
-+#define HWCAP_BASE16		0x000020
-+#define HWCAP_STRING		0x000040
-+#define HWCAP_REDUCED_REGS	0x000080
-+#define HWCAP_VIDEO		0x000100
-+#define HWCAP_ENCRYPT		0x000200
-+#define HWCAP_EDM		0x000400
-+#define HWCAP_LMDMA		0x000800
-+#define HWCAP_PFM		0x001000
-+#define HWCAP_HSMP		0x002000
-+#define HWCAP_TRACE		0x004000
-+#define HWCAP_DIV		0x008000
-+#define HWCAP_MAC		0x010000
-+#define HWCAP_L2C		0x020000
-+#define HWCAP_FPU_DP		0x040000
-+#define HWCAP_V2		0x080000
-+#define HWCAP_DX_REGS		0x100000
-+
-+#ifdef CONFIG_VGA_CONSOLE
-+struct screen_info screen_info;
-+#endif
-+
-+extern struct mm_struct init_mm;
-+unsigned long cpu_id, cpu_rev, cpu_cfgid;
-+char cpu_series;
-+char *endianness = NULL;
-+
-+unsigned int __atags_pointer __initdata;
-+unsigned int elf_hwcap;
-+EXPORT_SYMBOL(elf_hwcap);
-+
-+extern void __init early_init_devtree(void *params);
-+extern void __init early_trap_init(void);
-+/*
-+ * The following string table, must sync with HWCAP_xx bitmask,
-+ * which is defined in <asm/procinfo.h>
-+ */
-+static const char *hwcap_str[] = {
-+	"mfusr_pc",
-+	"perf1",
-+	"perf2",
-+	"fpu",
-+	"audio",
-+	"16b",
-+	"string",
-+	"reduced_regs",
-+	"video",
-+	"encrypt",
-+	"edm",
-+	"lmdma",
-+	"pfm",
-+	"hsmp",
-+	"trace",
-+	"div",
-+	"mac",
-+	"l2c",
-+	"dx_regs",
-+	"v2",
-+	NULL,
-+};
-+
-+#ifdef CONFIG_CPU_DCACHE_WRITETHROUGH
-+#define WRITE_METHOD "write through"
-+#else
-+#define WRITE_METHOD "write back"
-+#endif
-+
-+struct cache_info L1_cache_info[2];
-+static void __init dump_cpu_info(int cpu)
++void *kmap(struct page *page)
 +{
-+	int i, p = 0;
-+	char str[sizeof(hwcap_str) + 16];
-+
-+	for (i = 0; hwcap_str[i]; i++) {
-+		if (elf_hwcap & (1 << i)) {
-+			sprintf(str + p, "%s ", hwcap_str[i]);
-+			p += strlen(hwcap_str[i]) + 1;
-+		}
-+	}
-+
-+	pr_info("CPU%d Features: %s\n", cpu, str);
-+
-+	L1_cache_info[ICACHE].ways = CACHE_WAY(ICACHE);
-+	L1_cache_info[ICACHE].line_size = CACHE_LINE_SIZE(ICACHE);
-+	L1_cache_info[ICACHE].sets = CACHE_SET(ICACHE);
-+	L1_cache_info[ICACHE].size =
-+	    L1_cache_info[ICACHE].ways * L1_cache_info[ICACHE].line_size *
-+	    L1_cache_info[ICACHE].sets / 1024;
-+	pr_info("L1I:%dKB/%dS/%dW/%dB\n", L1_cache_info[ICACHE].size,
-+		L1_cache_info[ICACHE].sets, L1_cache_info[ICACHE].ways,
-+		L1_cache_info[ICACHE].line_size);
-+	L1_cache_info[DCACHE].ways = CACHE_WAY(DCACHE);
-+	L1_cache_info[DCACHE].line_size = CACHE_LINE_SIZE(DCACHE);
-+	L1_cache_info[DCACHE].sets = CACHE_SET(DCACHE);
-+	L1_cache_info[DCACHE].size =
-+	    L1_cache_info[DCACHE].ways * L1_cache_info[DCACHE].line_size *
-+	    L1_cache_info[DCACHE].sets / 1024;
-+	pr_info("L1D:%dKB/%dS/%dW/%dB\n", L1_cache_info[DCACHE].size,
-+		L1_cache_info[DCACHE].sets, L1_cache_info[DCACHE].ways,
-+		L1_cache_info[DCACHE].line_size);
-+	pr_info("L1 D-Cache is %s\n", WRITE_METHOD);
-+	if (L1_cache_info[DCACHE].size != L1_CACHE_BYTES)
-+		pr_crit
-+		    ("The cache line size(%d) of this processor is not the same as L1_CACHE_BYTES(%d).\n",
-+		     L1_cache_info[DCACHE].size, L1_CACHE_BYTES);
-+#ifdef CONFIG_CPU_CACHE_ALIASING
-+	{
-+		int aliasing_num;
-+		aliasing_num =
-+		    L1_cache_info[ICACHE].size * 1024 / PAGE_SIZE /
-+		    L1_cache_info[ICACHE].ways;
-+		L1_cache_info[ICACHE].aliasing_num = aliasing_num;
-+		L1_cache_info[ICACHE].aliasing_mask =
-+		    (aliasing_num - 1) << PAGE_SHIFT;
-+		aliasing_num =
-+		    L1_cache_info[DCACHE].size * 1024 / PAGE_SIZE /
-+		    L1_cache_info[DCACHE].ways;
-+		L1_cache_info[DCACHE].aliasing_num = aliasing_num;
-+		L1_cache_info[DCACHE].aliasing_mask =
-+		    (aliasing_num - 1) << PAGE_SHIFT;
-+	}
-+#endif
++	unsigned long vaddr;
++	might_sleep();
++	if (!PageHighMem(page))
++		return page_address(page);
++	vaddr = (unsigned long)kmap_high(page);
++	return (void *)vaddr;
 +}
 +
-+static void __init setup_cpuinfo(void)
-+{
-+	unsigned long tmp = 0, cpu_name;
++EXPORT_SYMBOL(kmap);
 +
-+	cpu_dcache_inval_all();
-+	cpu_icache_inval_all();
++void kunmap(struct page *page)
++{
++	BUG_ON(in_interrupt());
++	if (!PageHighMem(page))
++		return;
++	kunmap_high(page);
++}
++
++EXPORT_SYMBOL(kunmap);
++
++void *kmap_atomic(struct page *page)
++{
++	unsigned int idx;
++	unsigned long vaddr, pte;
++	int type;
++	pte_t *ptep;
++
++	preempt_disable();
++	pagefault_disable();
++	if (!PageHighMem(page))
++		return page_address(page);
++
++	type = kmap_atomic_idx_push();
++
++	idx = type + KM_TYPE_NR * smp_processor_id();
++	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
++	pte = (page_to_pfn(page) << PAGE_SHIFT) | (PAGE_KERNEL);
++	ptep = pte_offset_kernel(pmd_off_k(vaddr), vaddr);
++	set_pte(ptep, pte);
++
++	__nds32__tlbop_inv(vaddr);
++	__nds32__mtsr_dsb(vaddr, NDS32_SR_TLB_VPN);
++	__nds32__tlbop_rwr(pte);
 +	__nds32__isb();
-+
-+	cpu_id = (__nds32__mfsr(NDS32_SR_CPU_VER) & CPU_VER_mskCPUID) >> CPU_VER_offCPUID;
-+	cpu_name = ((cpu_id) & 0xf0) >> 4;
-+	cpu_series = cpu_name ? cpu_name - 10 + 'A' : 'N';
-+	cpu_id = cpu_id & 0xf;
-+	cpu_rev = (__nds32__mfsr(NDS32_SR_CPU_VER) & CPU_VER_mskREV) >> CPU_VER_offREV;
-+	cpu_cfgid = (__nds32__mfsr(NDS32_SR_CPU_VER) & CPU_VER_mskCFGID) >> CPU_VER_offCFGID;
-+
-+	pr_info("CPU:%c%ld, CPU_VER 0x%08x(id %lu, rev %lu, cfg %lu)\n",
-+		cpu_series, cpu_id, __nds32__mfsr(NDS32_SR_CPU_VER), cpu_id, cpu_rev, cpu_cfgid);
-+
-+	elf_hwcap |= HWCAP_MFUSR_PC;
-+
-+	if (((__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskBASEV) >> MSC_CFG_offBASEV) == 0) {
-+		if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskDIV)
-+			elf_hwcap |= HWCAP_DIV;
-+
-+		if ((__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskMAC)
-+		    || (cpu_id == 12 && cpu_rev < 4))
-+			elf_hwcap |= HWCAP_MAC;
-+	} else {
-+		elf_hwcap |= HWCAP_V2;
-+		elf_hwcap |= HWCAP_DIV;
-+		elf_hwcap |= HWCAP_MAC;
-+	}
-+
-+	if (cpu_cfgid & 0x0001)
-+		elf_hwcap |= HWCAP_EXT;
-+
-+	if (cpu_cfgid & 0x0002)
-+		elf_hwcap |= HWCAP_BASE16;
-+
-+	if (cpu_cfgid & 0x0004)
-+		elf_hwcap |= HWCAP_EXT2;
-+
-+	if (cpu_cfgid & 0x0008)
-+		elf_hwcap |= HWCAP_FPU;
-+
-+	if (cpu_cfgid & 0x0010)
-+		elf_hwcap |= HWCAP_STRING;
-+
-+	if (__nds32__mfsr(NDS32_SR_MMU_CFG) & MMU_CFG_mskDE)
-+		endianness = "MSB";
-+	else
-+		endianness = "LSB";
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskEDM)
-+		elf_hwcap |= HWCAP_EDM;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskLMDMA)
-+		elf_hwcap |= HWCAP_LMDMA;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskPFM)
-+		elf_hwcap |= HWCAP_PFM;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskHSMP)
-+		elf_hwcap |= HWCAP_HSMP;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskTRACE)
-+		elf_hwcap |= HWCAP_TRACE;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskAUDIO)
-+		elf_hwcap |= HWCAP_AUDIO;
-+
-+	if (__nds32__mfsr(NDS32_SR_MSC_CFG) & MSC_CFG_mskL2C)
-+		elf_hwcap |= HWCAP_L2C;
-+
-+	tmp = __nds32__mfsr(NDS32_SR_CACHE_CTL);
-+	if (!IS_ENABLED(CONFIG_CPU_DCACHE_DISABLE))
-+		tmp |= CACHE_CTL_mskDC_EN;
-+
-+	if (!IS_ENABLED(CONFIG_CPU_ICACHE_DISABLE))
-+		tmp |= CACHE_CTL_mskIC_EN;
-+	__nds32__mtsr_isb(tmp, NDS32_SR_CACHE_CTL);
-+
-+	dump_cpu_info(smp_processor_id());
++	return (void *)vaddr;
 +}
 +
-+static void __init setup_memory(void)
++EXPORT_SYMBOL(kmap_atomic);
++
++void __kunmap_atomic(void *kvaddr)
 +{
-+	unsigned long ram_start_pfn;
-+	unsigned long free_ram_start_pfn;
-+	phys_addr_t memory_start, memory_end;
-+	struct memblock_region *region;
-+
-+	memory_end = memory_start = 0;
-+
-+	/* Find main memory where is the kernel */
-+	for_each_memblock(memory, region) {
-+		memory_start = region->base;
-+		memory_end = region->base + region->size;
-+		pr_info("%s: Memory: 0x%x-0x%x\n", __func__,
-+			memory_start, memory_end);
++	if (kvaddr >= (void *)FIXADDR_START) {
++		unsigned long vaddr = (unsigned long)kvaddr;
++		pte_t *ptep;
++		kmap_atomic_idx_pop();
++		__nds32__tlbop_inv(vaddr);
++		__nds32__isb();
++		ptep = pte_offset_kernel(pmd_off_k(vaddr), vaddr);
++		set_pte(ptep, 0);
 +	}
++	pagefault_enable();
++	preempt_enable();
++}
 +
-+	if (!memory_end) {
-+		panic("No memory!");
-+	}
++EXPORT_SYMBOL(__kunmap_atomic);
+diff --git a/arch/nds32/mm/init.c b/arch/nds32/mm/init.c
+new file mode 100644
+index 0000000..93ee016
+--- /dev/null
++++ b/arch/nds32/mm/init.c
+@@ -0,0 +1,277 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 1995-2005 Russell King
++// Copyright (C) 2012 ARM Ltd.
++// Copyright (C) 2013-2017 Andes Technology Corporation
 +
-+	ram_start_pfn = PFN_UP(memblock_start_of_DRAM());
-+	/* free_ram_start_pfn is first page after kernel */
-+	free_ram_start_pfn = PFN_UP(__pa(&_end));
-+	max_pfn = PFN_DOWN(memblock_end_of_DRAM());
-+	/* it could update max_pfn */
-+	if (max_pfn - ram_start_pfn <= MAXMEM_PFN)
-+		max_low_pfn = max_pfn;
-+	else {
-+		max_low_pfn = MAXMEM_PFN + ram_start_pfn;
-+		if (!IS_ENABLED(CONFIG_HIGHMEM))
-+			max_pfn = MAXMEM_PFN + ram_start_pfn;
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/swap.h>
++#include <linux/init.h>
++#include <linux/bootmem.h>
++#include <linux/mman.h>
++#include <linux/nodemask.h>
++#include <linux/initrd.h>
++#include <linux/highmem.h>
++#include <linux/memblock.h>
++
++#include <asm/sections.h>
++#include <asm/setup.h>
++#include <asm/tlb.h>
++#include <asm/page.h>
++
++DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
++DEFINE_SPINLOCK(anon_alias_lock);
++extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
++extern unsigned long phys_initrd_start;
++extern unsigned long phys_initrd_size;
++
++/*
++ * empty_zero_page is a special page that is used for
++ * zero-initialized data and COW.
++ */
++struct page *empty_zero_page;
++
++static void __init zone_sizes_init(void)
++{
++	unsigned long zones_size[MAX_NR_ZONES];
++
++	/* Clear the zone sizes */
++	memset(zones_size, 0, sizeof(zones_size));
++
++	zones_size[ZONE_NORMAL] = max_low_pfn;
++#ifdef CONFIG_HIGHMEM
++	zones_size[ZONE_HIGHMEM] = max_pfn;
++#endif
++	free_area_init(zones_size);
++
++}
++
++/*
++ * Map all physical memory under high_memory into kernel's address space.
++ *
++ * This is explicitly coded for two-level page tables, so if you need
++ * something else then this needs to change.
++ */
++static void __init map_ram(void)
++{
++	unsigned long v, p, e;
++	pgd_t *pge;
++	pud_t *pue;
++	pmd_t *pme;
++	pte_t *pte;
++	/* These mark extents of read-only kernel pages...
++	 * ...from vmlinux.lds.S
++	 */
++
++	p = (u32) memblock_start_of_DRAM() & PAGE_MASK;
++	e = min((u32) memblock_end_of_DRAM(), (u32) __pa(high_memory));
++
++	v = (u32) __va(p);
++	pge = pgd_offset_k(v);
++
++	while (p < e) {
++		int j;
++		pue = pud_offset(pge, v);
++		pme = pmd_offset(pue, v);
++
++		if ((u32) pue != (u32) pge || (u32) pme != (u32) pge) {
++			panic("%s: Kernel hardcoded for "
++			      "two-level page tables", __func__);
++		}
++
++		/* Alloc one page for holding PTE's... */
++		pte = (pte_t *) __va(memblock_alloc(PAGE_SIZE, PAGE_SIZE));
++		memset(pte, 0, PAGE_SIZE);
++		set_pmd(pme, __pmd(__pa(pte) + _PAGE_KERNEL_TABLE));
++
++		/* Fill the newly allocated page with PTE'S */
++		for (j = 0; p < e && j < PTRS_PER_PTE;
++		     v += PAGE_SIZE, p += PAGE_SIZE, j++, pte++) {
++			/* Create mapping between p and v. */
++			/* TODO: more fine grant for page access permission */
++			set_pte(pte, __pte(p + pgprot_val(PAGE_KERNEL)));
++		}
++
++		pge++;
 +	}
-+	/* high_memory is related with VMALLOC */
-+	high_memory = (void *)__va(max_low_pfn * PAGE_SIZE);
-+	min_low_pfn = free_ram_start_pfn;
++}
++static pmd_t *fixmap_pmd_p;
++static void __init fixedrange_init(void)
++{
++	unsigned long vaddr;
++	pgd_t *pgd;
++	pud_t *pud;
++	pmd_t *pmd;
++#ifdef CONFIG_HIGHMEM
++	pte_t *pte;
++#endif /* CONFIG_HIGHMEM */
 +
 +	/*
-+	 * initialize the boot-time allocator (with low memory only).
-+	 *
-+	 * This makes the memory from the end of the kernel to the end of
-+	 * RAM usable.
++	 * Fixed mappings:
 +	 */
-+	memblock_set_bottom_up(true);
-+	memblock_reserve(PFN_PHYS(ram_start_pfn), PFN_PHYS(free_ram_start_pfn - ram_start_pfn));
++	vaddr = __fix_to_virt(__end_of_fixed_addresses - 1);
++	pgd = swapper_pg_dir + pgd_index(vaddr);
++	pud = pud_offset(pgd, vaddr);
++	pmd = pmd_offset(pud, vaddr);
++	fixmap_pmd_p = (pmd_t *) __va(memblock_alloc(PAGE_SIZE, PAGE_SIZE));
++	memset(fixmap_pmd_p, 0, PAGE_SIZE);
++	set_pmd(pmd, __pmd(__pa(fixmap_pmd_p) + _PAGE_KERNEL_TABLE));
 +
-+	early_init_fdt_reserve_self();
-+	early_init_fdt_scan_reserved_mem();
++#ifdef CONFIG_HIGHMEM
++	/*
++	 * Permanent kmaps:
++	 */
++	vaddr = PKMAP_BASE;
 +
-+	memblock_dump_all();
++	pgd = swapper_pg_dir + pgd_index(vaddr);
++	pud = pud_offset(pgd, vaddr);
++	pmd = pmd_offset(pud, vaddr);
++	pte = (pte_t *) __va(memblock_alloc(PAGE_SIZE, PAGE_SIZE));
++	memset(pte, 0, PAGE_SIZE);
++	set_pmd(pmd, __pmd(__pa(pte) + _PAGE_KERNEL_TABLE));
++	pkmap_page_table = pte;
++#endif /* CONFIG_HIGHMEM */
 +}
 +
-+void __init setup_arch(char **cmdline_p)
-+{
-+	early_init_devtree(__atags_pointer ?
-+			   phys_to_virt(__atags_pointer) : __dtb_start);
-+
-+	setup_cpuinfo();
-+
-+	init_mm.start_code = (unsigned long)&_stext;
-+	init_mm.end_code = (unsigned long)&_etext;
-+	init_mm.end_data = (unsigned long)&_edata;
-+	init_mm.brk = (unsigned long)&_end;
-+
-+	/* setup bootmem allocator */
-+	setup_memory();
-+
-+	/* paging_init() sets up the MMU and marks all pages as reserved */
-+	paging_init();
-+
-+	/* use generic way to parse */
-+	parse_early_param();
-+
-+	unflatten_and_copy_device_tree();
-+
-+	if(IS_ENABLED(CONFIG_VT)) {
-+		if(IS_ENABLED(CONFIG_VGA_CONSOLE))
-+			conswitchp = &vga_con;
-+		else if(IS_ENABLED(CONFIG_DUMMY_CONSOLE))
-+			conswitchp = &dummy_con;
-+	}
-+
-+	*cmdline_p = boot_command_line;
-+	early_trap_init();
-+}
-+
-+void calibrate_delay(void)
-+{
-+	const int *val;
-+	struct device_node *cpu = NULL;
-+	cpu = of_find_compatible_node(NULL, NULL, "andestech,nds32v3");
-+	val = of_get_property(cpu, "clock-frequency", NULL);
-+	if (!val || !*val)
-+		panic("no cpu 'clock-frequency' parameter in device tree");
-+	loops_per_jiffy = be32_to_cpup(val) / HZ;
-+	pr_cont("%lu.%02lu BogoMIPS (lpj=%lu)\n",
-+		loops_per_jiffy / (500000 / HZ),
-+		(loops_per_jiffy / (5000 / HZ)) % 100, loops_per_jiffy);
-+}
-+
-+static int c_show(struct seq_file *m, void *v)
++/*
++ * paging_init() sets up the page tables, initialises the zone memory
++ * maps, and sets up the zero page, bad page and bad page tables.
++ */
++void __init paging_init(void)
 +{
 +	int i;
++	void *zero_page;
 +
-+	seq_printf(m, "Processor\t: %c%ld (id %lu, rev %lu, cfg %lu)\n",
-+		   cpu_series, cpu_id, cpu_id, cpu_rev, cpu_cfgid);
++	pr_info("Setting up paging and PTEs.\n");
++	/* clear out the init_mm.pgd that will contain the kernel's mappings */
++	for (i = 0; i < PTRS_PER_PGD; i++)
++		swapper_pg_dir[i] = __pgd(1);
 +
-+	seq_printf(m, "L1I\t\t: %luKB/%luS/%luW/%luB\n",
-+		   CACHE_SET(ICACHE) * CACHE_WAY(ICACHE) *
-+		   CACHE_LINE_SIZE(ICACHE) / 1024, CACHE_SET(ICACHE),
-+		   CACHE_WAY(ICACHE), CACHE_LINE_SIZE(ICACHE));
++	map_ram();
 +
-+	seq_printf(m, "L1D\t\t: %luKB/%luS/%luW/%luB\n",
-+		   CACHE_SET(DCACHE) * CACHE_WAY(DCACHE) *
-+		   CACHE_LINE_SIZE(DCACHE) / 1024, CACHE_SET(DCACHE),
-+		   CACHE_WAY(DCACHE), CACHE_LINE_SIZE(DCACHE));
++	fixedrange_init();
 +
-+	seq_printf(m, "BogoMIPS\t: %lu.%02lu\n",
-+		   loops_per_jiffy / (500000 / HZ),
-+		   (loops_per_jiffy / (5000 / HZ)) % 100);
++	/* allocate space for empty_zero_page */
++	zero_page = __va(memblock_alloc(PAGE_SIZE, PAGE_SIZE));
++	memset(zero_page, 0, PAGE_SIZE);
++	zone_sizes_init();
 +
-+	/* dump out the processor features */
-+	seq_puts(m, "Features\t: ");
-+
-+	for (i = 0; hwcap_str[i]; i++)
-+		if (elf_hwcap & (1 << i))
-+			seq_printf(m, "%s ", hwcap_str[i]);
-+
-+	seq_puts(m, "\n\n");
-+
-+	return 0;
++	empty_zero_page = virt_to_page(zero_page);
++	flush_dcache_page(empty_zero_page);
 +}
 +
-+static void *c_start(struct seq_file *m, loff_t * pos)
++static inline void __init free_highmem(void)
 +{
-+	return *pos < 1 ? (void *)1 : NULL;
++#ifdef CONFIG_HIGHMEM
++	unsigned long pfn;
++	for (pfn = PFN_UP(__pa(high_memory)); pfn < max_pfn; pfn++) {
++		phys_addr_t paddr = (phys_addr_t) pfn << PAGE_SHIFT;
++		if (!memblock_is_reserved(paddr))
++			free_highmem_page(pfn_to_page(pfn));
++	}
++#endif
 +}
 +
-+static void *c_next(struct seq_file *m, void *v, loff_t * pos)
++static void __init set_max_mapnr_init(void)
 +{
-+	++*pos;
-+	return NULL;
++	max_mapnr = max_pfn;
 +}
 +
-+static void c_stop(struct seq_file *m, void *v)
++/*
++ * mem_init() marks the free areas in the mem_map and tells us how much
++ * memory is free.  This is done after various parts of the system have
++ * claimed their memory after the kernel image.
++ */
++void __init mem_init(void)
 +{
++	phys_addr_t memory_start = memblock_start_of_DRAM();
++	BUG_ON(!mem_map);
++	set_max_mapnr_init();
++
++	free_highmem();
++
++	/* this will put all low memory onto the freelists */
++	free_all_bootmem();
++	mem_init_print_info(NULL);
++
++	pr_info("virtual kernel memory layout:\n"
++		"    fixmap  : 0x%08lx - 0x%08lx   (%4ld kB)\n"
++#ifdef CONFIG_HIGHMEM
++		"    pkmap   : 0x%08lx - 0x%08lx   (%4ld kB)\n"
++#endif
++		"    consist : 0x%08lx - 0x%08lx   (%4ld MB)\n"
++		"    vmalloc : 0x%08lx - 0x%08lx   (%4ld MB)\n"
++		"    lowmem  : 0x%08lx - 0x%08lx   (%4ld MB)\n"
++		"      .init : 0x%08lx - 0x%08lx   (%4ld kB)\n"
++		"      .data : 0x%08lx - 0x%08lx   (%4ld kB)\n"
++		"      .text : 0x%08lx - 0x%08lx   (%4ld kB)\n",
++		FIXADDR_START, FIXADDR_TOP, (FIXADDR_TOP - FIXADDR_START) >> 10,
++#ifdef CONFIG_HIGHMEM
++		PKMAP_BASE, PKMAP_BASE + LAST_PKMAP * PAGE_SIZE,
++		(LAST_PKMAP * PAGE_SIZE) >> 10,
++#endif
++		CONSISTENT_BASE, CONSISTENT_END,
++		((CONSISTENT_END) - (CONSISTENT_BASE)) >> 20, VMALLOC_START,
++		(unsigned long)VMALLOC_END, (VMALLOC_END - VMALLOC_START) >> 20,
++		(unsigned long)__va(memory_start), (unsigned long)high_memory,
++		((unsigned long)high_memory -
++		 (unsigned long)__va(memory_start)) >> 20,
++		(unsigned long)&__init_begin, (unsigned long)&__init_end,
++		((unsigned long)&__init_end -
++		 (unsigned long)&__init_begin) >> 10, (unsigned long)&_etext,
++		(unsigned long)&_edata,
++		((unsigned long)&_edata - (unsigned long)&_etext) >> 10,
++		(unsigned long)&_text, (unsigned long)&_etext,
++		((unsigned long)&_etext - (unsigned long)&_text) >> 10);
++
++	/*
++	 * Check boundaries twice: Some fundamental inconsistencies can
++	 * be detected at build time already.
++	 */
++#ifdef CONFIG_HIGHMEM
++	BUILD_BUG_ON(PKMAP_BASE + LAST_PKMAP * PAGE_SIZE > FIXADDR_START);
++	BUILD_BUG_ON((CONSISTENT_END) > PKMAP_BASE);
++#endif
++	BUILD_BUG_ON(VMALLOC_END > CONSISTENT_BASE);
++	BUILD_BUG_ON(VMALLOC_START >= VMALLOC_END);
++
++#ifdef CONFIG_HIGHMEM
++	BUG_ON(PKMAP_BASE + LAST_PKMAP * PAGE_SIZE > FIXADDR_START);
++	BUG_ON(CONSISTENT_END > PKMAP_BASE);
++#endif
++	BUG_ON(VMALLOC_END > CONSISTENT_BASE);
++	BUG_ON(VMALLOC_START >= VMALLOC_END);
++	BUG_ON((unsigned long)high_memory > VMALLOC_START);
++
++	return;
 +}
 +
-+struct seq_operations cpuinfo_op = {
-+	.start = c_start,
-+	.next = c_next,
-+	.stop = c_stop,
-+	.show = c_show
-+};
++void free_initmem(void)
++{
++	free_initmem_default(-1);
++}
++
++#ifdef CONFIG_BLK_DEV_INITRD
++void free_initrd_mem(unsigned long start, unsigned long end)
++{
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
++}
++#endif
++
++void __set_fixmap(enum fixed_addresses idx,
++			       phys_addr_t phys, pgprot_t flags)
++{
++	unsigned long addr = __fix_to_virt(idx);
++	pte_t *pte;
++
++	BUG_ON(idx <= FIX_HOLE || idx >= __end_of_fixed_addresses);
++
++	pte = (pte_t *)&fixmap_pmd_p[pte_index(addr)];;
++
++	if (pgprot_val(flags)) {
++		set_pte(pte, pfn_pte(phys >> PAGE_SHIFT, flags));
++	} else {
++		pte_clear(&init_mm, addr, pte);
++		flush_tlb_kernel_range(addr, addr + PAGE_SIZE);
++	}
++}
+diff --git a/arch/nds32/mm/mm-nds32.c b/arch/nds32/mm/mm-nds32.c
+new file mode 100644
+index 0000000..7f7d4b36
+--- /dev/null
++++ b/arch/nds32/mm/mm-nds32.c
+@@ -0,0 +1,90 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#include <linux/init_task.h>
++#include <asm/pgalloc.h>
++
++#define FIRST_KERNEL_PGD_NR	(USER_PTRS_PER_PGD)
++
++/*
++ * need to get a page for level 1
++ */
++
++pgd_t *pgd_alloc(struct mm_struct *mm)
++{
++	pgd_t *new_pgd, *init_pgd;
++	int i;
++
++	new_pgd = (pgd_t *) __get_free_pages(GFP_KERNEL, 0);
++	if (!new_pgd)
++		return NULL;
++	for (i = 0; i < PTRS_PER_PGD; i++) {
++		(*new_pgd) = 1;
++		new_pgd++;
++	}
++	new_pgd -= PTRS_PER_PGD;
++
++	init_pgd = pgd_offset_k(0);
++
++	memcpy(new_pgd + FIRST_KERNEL_PGD_NR, init_pgd + FIRST_KERNEL_PGD_NR,
++	       (PTRS_PER_PGD - FIRST_KERNEL_PGD_NR) * sizeof(pgd_t));
++
++	cpu_dcache_wb_range((unsigned long)new_pgd,
++			    (unsigned long)new_pgd +
++			    PTRS_PER_PGD * sizeof(pgd_t));
++	inc_zone_page_state(virt_to_page((unsigned long *)new_pgd),
++			    NR_PAGETABLE);
++
++	return new_pgd;
++}
++
++void pgd_free(struct mm_struct *mm, pgd_t * pgd)
++{
++	pmd_t *pmd;
++	struct page *pte;
++
++	if (!pgd)
++		return;
++
++	pmd = (pmd_t *) pgd;
++	if (pmd_none(*pmd))
++		goto free;
++	if (pmd_bad(*pmd)) {
++		pmd_ERROR(*pmd);
++		pmd_clear(pmd);
++		goto free;
++	}
++
++	pte = pmd_page(*pmd);
++	pmd_clear(pmd);
++	dec_zone_page_state(virt_to_page((unsigned long *)pgd), NR_PAGETABLE);
++	pte_free(mm, pte);
++	atomic_long_dec(&mm->nr_ptes);
++	pmd_free(mm, pmd);
++free:
++	free_pages((unsigned long)pgd, 0);
++}
++
++/*
++ * In order to soft-boot, we need to insert a 1:1 mapping in place of
++ * the user-mode pages.  This will then ensure that we have predictable
++ * results when turning the mmu off
++ */
++void setup_mm_for_reboot(char mode)
++{
++	unsigned long pmdval;
++	pgd_t *pgd;
++	pmd_t *pmd;
++	int i;
++
++	if (current->mm && current->mm->pgd)
++		pgd = current->mm->pgd;
++	else
++		pgd = init_mm.pgd;
++
++	for (i = 0; i < USER_PTRS_PER_PGD; i++) {
++		pmdval = (i << PGDIR_SHIFT);
++		pmd = pmd_offset(pgd + i, i << PGDIR_SHIFT);
++		set_pmd(pmd, __pmd(pmdval));
++	}
++}
 -- 
 1.7.9.5
