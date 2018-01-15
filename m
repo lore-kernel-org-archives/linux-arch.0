@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v6 02/36] openrisc: add ioremap_nocache declaration before include asm-generic/io.h and sync ioremap prototype with it.
-Date: Mon, 15 Jan 2018 13:53:10 +0800
-Message-ID: <3e5ba33674a883b56e20b35ea9ae34990ea838c8.1515766253.git.green.hu@gmail.com>
+Subject: [PATCH v6 04/36] earlycon: add reg-offset to physical address before mapping
+Date: Mon, 15 Jan 2018 13:53:12 +0800
+Message-ID: <030b9e2ee2d6ee309eebe00feea0e92687304e64.1515766253.git.green.hu@gmail.com>
 References: <cover.1515766253.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
@@ -14,33 +14,32 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-It will be built failed if commit id: d25ea659 is selected. This patch can fix this
-build error.
+It will get the wrong virtual address because port->mapbase is not added
+the correct reg-offset yet. We have to update it before earlycon_map()
+is called
 
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/openrisc/include/asm/io.h |    3 ++-
+ drivers/tty/serial/earlycon.c |    3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
-index 7c69139..6709b28 100644
---- a/arch/openrisc/include/asm/io.h
-+++ b/arch/openrisc/include/asm/io.h
-@@ -29,13 +29,14 @@
- #define PIO_OFFSET		0
- #define PIO_MASK		0
+diff --git a/drivers/tty/serial/earlycon.c b/drivers/tty/serial/earlycon.c
+index 98928f0..17dba0a 100644
+--- a/drivers/tty/serial/earlycon.c
++++ b/drivers/tty/serial/earlycon.c
+@@ -253,11 +253,12 @@ int __init of_setup_earlycon(const struct earlycon_id *match,
+ 	}
+ 	port->mapbase = addr;
+ 	port->uartclk = BASE_BAUD * 16;
+-	port->membase = earlycon_map(port->mapbase, SZ_4K);
  
-+#define ioremap_nocache ioremap_nocache
- #include <asm-generic/io.h>
- #include <asm/pgtable.h>
- 
- extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
- 				pgprot_t prot);
- 
--static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
-+static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
- {
- 	return __ioremap(offset, size, PAGE_KERNEL);
- }
+ 	val = of_get_flat_dt_prop(node, "reg-offset", NULL);
+ 	if (val)
+ 		port->mapbase += be32_to_cpu(*val);
++	port->membase = earlycon_map(port->mapbase, SZ_4K);
++
+ 	val = of_get_flat_dt_prop(node, "reg-shift", NULL);
+ 	if (val)
+ 		port->regshift = be32_to_cpu(*val);
 -- 
 1.7.9.5
