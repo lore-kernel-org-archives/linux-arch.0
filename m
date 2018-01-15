@@ -1,65 +1,30 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v6 01/36] asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU
-Date: Mon, 15 Jan 2018 13:53:09 +0800
-Message-ID: <d25ea659bc370a6bb24c4d42416f890a34051df1.1515766253.git.green.hu@gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
-In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-List-Id: linux-arch.vger.kernel.org
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 06/19] asm-generic/barrier: mask speculative execution
+ flows
+Date: Mon, 15 Jan 2018 09:46:11 +0100
+Message-ID: <20180115084611.GK6176@hirez.programming.kicks-ass.net>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151571801681.27429.15417813964230837664.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180112091246.GP32035@hirez.programming.kicks-ass.net>
+ <CAPcyv4j++bw8dO1cbEZpf3u+wDGM89A7d06MTHtugHHJs8CJ5g@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([65.50.211.133]:55467 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752549AbeAOIqg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 03:46:36 -0500
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4j++bw8dO1cbEZpf3u+wDGM89A7d06MTHtugHHJs8CJ5g@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Catalin Marinas <catalin.marinas@arm.com>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
 
-From: Greentime Hu <greentime@andestech.com>
+On Fri, Jan 12, 2018 at 04:41:37PM -0800, Dan Williams wrote:
+> This certainly needs a Kconfig "depends on JUMP_LABEL" to turn on the
+> dynamic switching at all, and a HAVE_JUMP_LABEL compile time failure
+> if the compiler lacks support.
 
-It allows some architectures to use this generic macro instead of
-defining theirs.
-
-Signed-off-by: Vincent Chen <vincentc@andestech.com>
-Signed-off-by: Greentime Hu <greentime@andestech.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
----
- include/asm-generic/io.h |   18 +++++++++---------
- 1 file changed, 9 insertions(+), 9 deletions(-)
-
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index b4531e3..7c6a39e 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -852,7 +852,16 @@ static inline void __iomem *__ioremap(phys_addr_t offset, size_t size,
- }
- #endif
- 
-+#ifndef iounmap
-+#define iounmap iounmap
-+
-+static inline void iounmap(void __iomem *addr)
-+{
-+}
-+#endif
-+#endif /* CONFIG_MMU */
- #ifndef ioremap_nocache
-+void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
- #define ioremap_nocache ioremap_nocache
- static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
- {
-@@ -884,15 +893,6 @@ static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
- }
- #endif
- 
--#ifndef iounmap
--#define iounmap iounmap
--
--static inline void iounmap(void __iomem *addr)
--{
--}
--#endif
--#endif /* CONFIG_MMU */
--
- #ifdef CONFIG_HAS_IOPORT_MAP
- #ifndef CONFIG_GENERIC_IOMAP
- #ifndef ioport_map
--- 
-1.7.9.5
+We're ready to drop all compilers that don't support asm-goto on the
+floor for x86. So don't over engineer it just to avoid that.
