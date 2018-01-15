@@ -1,49 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:57482 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751302AbeANXH0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jan 2018 18:07:26 -0500
-Date: Sun, 14 Jan 2018 15:07:19 -0800
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: [PATCH 04/36] usercopy: Prepare for usercopy whitelisting
-Message-ID: <20180114230719.GB32027@bombadil.infradead.org>
-References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
- <1515531365-37423-5-git-send-email-keescook@chromium.org>
- <alpine.DEB.2.20.1801101219390.7926@nuc-kabylake>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.20.1801101219390.7926@nuc-kabylake>
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:36748 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933677AbeAOF45 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:56:57 -0500
+From: Greentime Hu <green.hu@gmail.com>
+Subject: [PATCH v6 36/36] net: faraday add nds32 support.
+Date: Mon, 15 Jan 2018 13:53:44 +0800
+Message-ID: <74b1aceeb4a8718657cb60e717b7108783f3241f.1515766253.git.green.hu@gmail.com>
+In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com>
+In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christopher Lameter <cl@linux.com>
-Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180114230719.0RiVDUMDOassppfOh6NSPaR1fYWwpyG7qwkQur_IjeQ@z>
+To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
+Cc: green.hu@gmail.com
+Message-ID: <20180115055344._ePYLjoA697ek37Jzl59j89y1e_dsNkh2YsEuvtPeQ0@z>
 
-On Wed, Jan 10, 2018 at 12:28:23PM -0600, Christopher Lameter wrote:
-> On Tue, 9 Jan 2018, Kees Cook wrote:
-> > +struct kmem_cache *kmem_cache_create_usercopy(const char *name,
-> > +			size_t size, size_t align, slab_flags_t flags,
-> > +			size_t useroffset, size_t usersize,
-> > +			void (*ctor)(void *));
-> 
-> Hmmm... At some point we should switch kmem_cache_create to pass a struct
-> containing all the parameters. Otherwise the API will blow up with
-> additional functions.
+From: Greentime Hu <greentime@andestech.com>
 
-Obviously I agree with you.  I'm inclined to not let that delay Kees'
-patches; we can fix the few places that use this API later.  At this
-point, my proposal for the ultimate form would be:
+This patch is used to support nds32 architecture to use these faraday
+mac IP.
 
-struct kmem_cache_attr {
-	const char name[32];
-	void (*ctor)(void *);
-	unsigned int useroffset;
-	unsigned int user_size; 
-};
+Signed-off-by: Greentime Hu <greentime@andestech.com>
+---
+ drivers/net/ethernet/faraday/Kconfig |    8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
 
-kmem_create_cache_attr(const struct kmem_cache_attr *attr, unsigned int size,
-			unsigned int align, slab_flags_t flags)
-
-(my rationale is that everything in attr should be const, but size, align
-and flags all get modified by the slab code).
+diff --git a/drivers/net/ethernet/faraday/Kconfig b/drivers/net/ethernet/faraday/Kconfig
+index 040c7f1..0fb8df6 100644
+--- a/drivers/net/ethernet/faraday/Kconfig
++++ b/drivers/net/ethernet/faraday/Kconfig
+@@ -5,7 +5,7 @@
+ config NET_VENDOR_FARADAY
+ 	bool "Faraday devices"
+ 	default y
+-	depends on ARM
++	depends on ARM || NDS32 || COMPILE_TEST
+ 	---help---
+ 	  If you have a network (Ethernet) card belonging to this class, say Y.
+ 
+@@ -18,7 +18,8 @@ if NET_VENDOR_FARADAY
+ 
+ config FTMAC100
+ 	tristate "Faraday FTMAC100 10/100 Ethernet support"
+-	depends on ARM
++	depends on ARM || NDS32 || COMPILE_TEST
++	depends on !64BIT || BROKEN
+ 	select MII
+ 	---help---
+ 	  This driver supports the FTMAC100 10/100 Ethernet controller
+@@ -27,7 +28,8 @@ config FTMAC100
+ 
+ config FTGMAC100
+ 	tristate "Faraday FTGMAC100 Gigabit Ethernet support"
+-	depends on ARM
++	depends on ARM || NDS32 || COMPILE_TEST
++	depends on !64BIT || BROKEN
+ 	select PHYLIB
+ 	---help---
+ 	  This driver supports the FTGMAC100 Gigabit Ethernet controller
+-- 
+1.7.9.5
