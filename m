@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f65.google.com ([209.85.160.65]:35528 "EHLO
+Received: from mail-pl0-f65.google.com ([209.85.160.65]:46065 "EHLO
         mail-pl0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932900AbeAOFzb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:55:31 -0500
+        with ESMTP id S932679AbeAOFzD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:55:03 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v6 18/36] nds32: System calls handling
-Date: Mon, 15 Jan 2018 13:53:26 +0800
-Message-ID: <933f69aa93645513e06c6e87cc2dd48bc998343d.1515766253.git.green.hu@gmail.com>
+Subject: [PATCH v6 12/36] nds32: Process management
+Date: Mon, 15 Jan 2018 13:53:20 +0800
+Message-ID: <10820926f3c1a4757acc8f58b8e07dd0191ffd30.1515766253.git.green.hu@gmail.com>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
 References: <cover.1515766253.git.green.hu@gmail.com>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
@@ -15,463 +15,445 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180115055326.8HW0btDWw_ggv2Otof5FlE-QIL6Zt-2G57kWcIIByXs@z>
+Message-ID: <20180115055320.ZBy_ywGfrvzv4SMbjdfoAZ9OirkV-CQL7ONCdgWon1g@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds support for system calls.
+This patch includes copy_thread(), start_thread() implementation and cpu_context
+structure definition. nds32 uses $r25 to get current task_struct.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/asm/syscall.h     |  188 ++++++++++++++++++++++++++++++++++
- arch/nds32/include/asm/syscalls.h    |   13 +++
- arch/nds32/include/asm/unistd.h      |    6 ++
- arch/nds32/include/uapi/asm/unistd.h |   11 ++
- arch/nds32/kernel/ex-scall.S         |  106 +++++++++++++++++++
- arch/nds32/kernel/sys_nds32.c        |   50 +++++++++
- arch/nds32/kernel/syscall_table.c    |   17 +++
- 7 files changed, 391 insertions(+)
- create mode 100644 arch/nds32/include/asm/syscall.h
- create mode 100644 arch/nds32/include/asm/syscalls.h
- create mode 100644 arch/nds32/include/asm/unistd.h
- create mode 100644 arch/nds32/include/uapi/asm/unistd.h
- create mode 100644 arch/nds32/kernel/ex-scall.S
- create mode 100644 arch/nds32/kernel/sys_nds32.c
- create mode 100644 arch/nds32/kernel/syscall_table.c
+ arch/nds32/include/asm/current.h     |   12 ++
+ arch/nds32/include/asm/processor.h   |  102 +++++++++++++++++
+ arch/nds32/include/asm/thread_info.h |   78 +++++++++++++
+ arch/nds32/kernel/process.c          |  204 ++++++++++++++++++++++++++++++++++
+ 4 files changed, 396 insertions(+)
+ create mode 100644 arch/nds32/include/asm/current.h
+ create mode 100644 arch/nds32/include/asm/processor.h
+ create mode 100644 arch/nds32/include/asm/thread_info.h
+ create mode 100644 arch/nds32/kernel/process.c
 
-diff --git a/arch/nds32/include/asm/syscall.h b/arch/nds32/include/asm/syscall.h
+diff --git a/arch/nds32/include/asm/current.h b/arch/nds32/include/asm/current.h
 new file mode 100644
-index 0000000..f7e5e86
+index 0000000..b4dcd22
 --- /dev/null
-+++ b/arch/nds32/include/asm/syscall.h
-@@ -0,0 +1,188 @@
++++ b/arch/nds32/include/asm/current.h
+@@ -0,0 +1,12 @@
 +// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2008-2009 Red Hat, Inc.  All rights reserved.
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef _ASM_NDS32_SYSCALL_H
-+#define _ASM_NDS32_SYSCALL_H	1
++#ifndef _ASM_NDS32_CURRENT_H
++#define _ASM_NDS32_CURRENT_H
 +
-+#include <linux/err.h>
++#ifndef __ASSEMBLY__
++register struct task_struct *current asm("$r25");
++#endif /* __ASSEMBLY__ */
++#define tsk $r25
++
++#endif /* _ASM_NDS32_CURRENT_H */
+diff --git a/arch/nds32/include/asm/processor.h b/arch/nds32/include/asm/processor.h
+new file mode 100644
+index 0000000..cad9b8c
+--- /dev/null
++++ b/arch/nds32/include/asm/processor.h
+@@ -0,0 +1,102 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#ifndef __ASM_NDS32_PROCESSOR_H
++#define __ASM_NDS32_PROCESSOR_H
++
++/*
++ * Default implementation of macro that returns current
++ * instruction pointer ("program counter").
++ */
++#define current_text_addr() ({ __label__ _l; _l: &&_l;})
++
++#ifdef __KERNEL__
++
++#include <asm/ptrace.h>
++#include <asm/types.h>
++#include <asm/sigcontext.h>
++
++#define KERNEL_STACK_SIZE	PAGE_SIZE
++#define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX   TASK_SIZE
++
++struct cpu_context {
++	unsigned long r6;
++	unsigned long r7;
++	unsigned long r8;
++	unsigned long r9;
++	unsigned long r10;
++	unsigned long r11;
++	unsigned long r12;
++	unsigned long r13;
++	unsigned long r14;
++	unsigned long fp;
++	unsigned long pc;
++	unsigned long sp;
++};
++
++struct thread_struct {
++	struct cpu_context cpu_context;	/* cpu context */
++	/* fault info     */
++	unsigned long address;
++	unsigned long trap_no;
++	unsigned long error_code;
++};
++
++#define INIT_THREAD  {	}
++
++#ifdef __NDS32_EB__
++#define PSW_DE	PSW_mskBE
++#else
++#define PSW_DE	0x0
++#endif
++
++#ifdef CONFIG_WBNA
++#define PSW_valWBNA	PSW_mskWBNA
++#else
++#define PSW_valWBNA	0x0
++#endif
++
++#ifdef CONFIG_HWZOL
++#define	PSW_valINIT (PSW_CPL_ANY | PSW_mskAEN | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
++#else
++#define	PSW_valINIT (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
++#endif
++
++#define start_thread(regs,pc,stack)			\
++({							\
++	memzero(regs, sizeof(struct pt_regs));		\
++	regs->ipsw = PSW_valINIT;			\
++	regs->ir0 = (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_SYSTEM | PSW_INTL_1);	\
++	regs->ipc = pc;					\
++	regs->sp = stack;				\
++})
++
++/* Forward declaration, a strange C thing */
 +struct task_struct;
-+struct pt_regs;
 +
-+/**
-+ * syscall_get_nr - find what system call a task is executing
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * If @task is executing a system call or is at system call
-+ * tracing about to attempt one, returns the system call number.
-+ * If @task is not executing a system call, i.e. it's blocked
-+ * inside the kernel for a fault or signal, returns -1.
-+ *
-+ * Note this returns int even on 64-bit machines.  Only 32 bits of
-+ * system call number can be meaningful.  If the actual arch value
-+ * is 64 bits, this truncates to 32 bits so 0xffffffff means -1.
-+ *
-+ * It's only valid to call this when @task is known to be blocked.
-+ */
-+int syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
-+{
-+	return regs->syscallno;
-+}
++/* Free all resources held by a thread. */
++#define release_thread(thread) do { } while(0)
 +
-+/**
-+ * syscall_rollback - roll back registers after an aborted system call
-+ * @task:	task of interest, must be in system call exit tracing
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * It's only valid to call this when @task is stopped for system
-+ * call exit tracing (due to TIF_SYSCALL_TRACE or TIF_SYSCALL_AUDIT),
-+ * after tracehook_report_syscall_entry() returned nonzero to prevent
-+ * the system call from taking place.
-+ *
-+ * This rolls back the register state in @regs so it's as if the
-+ * system call instruction was a no-op.  The registers containing
-+ * the system call number and arguments are as they were before the
-+ * system call instruction.  This may not be the same as what the
-+ * register state looked like at system call entry tracing.
-+ */
-+void syscall_rollback(struct task_struct *task, struct pt_regs *regs)
-+{
-+	regs->uregs[0] = regs->orig_r0;
-+}
++/* Prepare to copy thread state - unlazy all lazy status */
++#define prepare_to_copy(tsk)	do { } while (0)
 +
-+/**
-+ * syscall_get_error - check result of traced system call
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * Returns 0 if the system call succeeded, or -ERRORCODE if it failed.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on exit
-+ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ */
-+long syscall_get_error(struct task_struct *task, struct pt_regs *regs)
-+{
-+	unsigned long error = regs->uregs[0];
-+	return IS_ERR_VALUE(error) ? error : 0;
-+}
++unsigned long get_wchan(struct task_struct *p);
 +
-+/**
-+ * syscall_get_return_value - get the return value of a traced system call
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * Returns the return value of the successful system call.
-+ * This value is meaningless if syscall_get_error() returned nonzero.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on exit
-+ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ */
-+long syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
-+{
-+	return regs->uregs[0];
-+}
++#define cpu_relax()			barrier()
 +
-+/**
-+ * syscall_set_return_value - change the return value of a traced system call
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ * @error:	negative error code, or zero to indicate success
-+ * @val:	user return value if @error is zero
-+ *
-+ * This changes the results of the system call that user mode will see.
-+ * If @error is zero, the user sees a successful system call with a
-+ * return value of @val.  If @error is nonzero, it's a negated errno
-+ * code; the user sees a failed system call with this errno code.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on exit
-+ * from a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ */
-+void syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
-+			      int error, long val)
-+{
-+	regs->uregs[0] = (long)error ? error : val;
-+}
-+
-+/**
-+ * syscall_get_arguments - extract system call parameter values
-+ * @task:	task of interest, must be blocked
-+ * @regs:	task_pt_regs() of @task
-+ * @i:		argument index [0,5]
-+ * @n:		number of arguments; n+i must be [1,6].
-+ * @args:	array filled with argument values
-+ *
-+ * Fetches @n arguments to the system call starting with the @i'th argument
-+ * (from 0 through 5).  Argument @i is stored in @args[0], and so on.
-+ * An arch inline version is probably optimal when @i and @n are constants.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on
-+ * entry to a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ * It's invalid to call this with @i + @n > 6; we only support system calls
-+ * taking up to 6 arguments.
-+ */
-+#define SYSCALL_MAX_ARGS 6
-+void syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
-+			   unsigned int i, unsigned int n, unsigned long *args)
-+{
-+	if (n == 0)
-+		return;
-+	if (i + n > SYSCALL_MAX_ARGS) {
-+		unsigned long *args_bad = args + SYSCALL_MAX_ARGS - i;
-+		unsigned int n_bad = n + i - SYSCALL_MAX_ARGS;
-+		pr_warning("%s called with max args %d, handling only %d\n",
-+			   __func__, i + n, SYSCALL_MAX_ARGS);
-+		memset(args_bad, 0, n_bad * sizeof(args[0]));
-+		memset(args_bad, 0, n_bad * sizeof(args[0]));
-+	}
-+
-+	if (i == 0) {
-+		args[0] = regs->orig_r0;
-+		args++;
-+		i++;
-+		n--;
-+	}
-+
-+	memcpy(args, &regs->uregs[0] + i, n * sizeof(args[0]));
-+}
-+
-+/**
-+ * syscall_set_arguments - change system call parameter value
-+ * @task:	task of interest, must be in system call entry tracing
-+ * @regs:	task_pt_regs() of @task
-+ * @i:		argument index [0,5]
-+ * @n:		number of arguments; n+i must be [1,6].
-+ * @args:	array of argument values to store
-+ *
-+ * Changes @n arguments to the system call starting with the @i'th argument.
-+ * Argument @i gets value @args[0], and so on.
-+ * An arch inline version is probably optimal when @i and @n are constants.
-+ *
-+ * It's only valid to call this when @task is stopped for tracing on
-+ * entry to a system call, due to %TIF_SYSCALL_TRACE or %TIF_SYSCALL_AUDIT.
-+ * It's invalid to call this with @i + @n > 6; we only support system calls
-+ * taking up to 6 arguments.
-+ */
-+void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
-+			   unsigned int i, unsigned int n,
-+			   const unsigned long *args)
-+{
-+	if (n == 0)
-+		return;
-+
-+	if (i + n > SYSCALL_MAX_ARGS) {
-+		pr_warn("%s called with max args %d, handling only %d\n",
-+			__func__, i + n, SYSCALL_MAX_ARGS);
-+		n = SYSCALL_MAX_ARGS - i;
-+	}
-+
-+	if (i == 0) {
-+		regs->orig_r0 = args[0];
-+		args++;
-+		i++;
-+		n--;
-+	}
-+
-+	memcpy(&regs->uregs[0] + i, args, n * sizeof(args[0]));
-+}
-+#endif /* _ASM_NDS32_SYSCALL_H */
-diff --git a/arch/nds32/include/asm/syscalls.h b/arch/nds32/include/asm/syscalls.h
-new file mode 100644
-index 0000000..78778ec
---- /dev/null
-+++ b/arch/nds32/include/asm/syscalls.h
-@@ -0,0 +1,13 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef __ASM_NDS32_SYSCALLS_H
-+#define __ASM_NDS32_SYSCALLS_H
-+
-+asmlinkage long sys_cacheflush(unsigned long addr, unsigned long len, unsigned int op);
-+asmlinkage long sys_fadvise64_64_wrapper(int fd, int advice, loff_t offset, loff_t len);
-+asmlinkage long sys_rt_sigreturn_wrapper(void);
-+
-+#include <asm-generic/syscalls.h>
-+
-+#endif /* __ASM_NDS32_SYSCALLS_H */
-diff --git a/arch/nds32/include/asm/unistd.h b/arch/nds32/include/asm/unistd.h
-new file mode 100644
-index 0000000..b586a28
---- /dev/null
-+++ b/arch/nds32/include/asm/unistd.h
-@@ -0,0 +1,6 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#define __ARCH_WANT_SYS_CLONE
-+
-+#include <uapi/asm/unistd.h>
-diff --git a/arch/nds32/include/uapi/asm/unistd.h b/arch/nds32/include/uapi/asm/unistd.h
-new file mode 100644
-index 0000000..6e95901
---- /dev/null
-+++ b/arch/nds32/include/uapi/asm/unistd.h
-@@ -0,0 +1,11 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#define __ARCH_WANT_SYNC_FILE_RANGE2
-+
-+/* Use the standard ABI for syscalls */
-+#include <asm-generic/unistd.h>
-+
-+/* Additional NDS32 specific syscalls. */
-+#define __NR_cacheflush		(__NR_arch_specific_syscall)
-+__SYSCALL(__NR_cacheflush, sys_cacheflush)
-diff --git a/arch/nds32/kernel/ex-scall.S b/arch/nds32/kernel/ex-scall.S
-new file mode 100644
-index 0000000..3b6b035
---- /dev/null
-+++ b/arch/nds32/kernel/ex-scall.S
-@@ -0,0 +1,106 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/linkage.h>
-+#include <asm/unistd.h>
-+#include <asm/assembler.h>
-+#include <asm/nds32.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/thread_info.h>
-+#include <asm/current.h>
++#define task_pt_regs(task) \
++	((struct pt_regs *) (task_stack_page(task) + THREAD_SIZE \
++		- 8) - 1)
 +
 +/*
-+ * $r0 = previous task_struct,
-+ * $r1 = next task_struct,
-+ * previous and next are guaranteed not to be the same.
++ * Create a new kernel thread
 + */
++extern int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags);
 +
-+ENTRY(__switch_to)
++#define KSTK_EIP(tsk)	instruction_pointer(task_pt_regs(tsk))
++#define KSTK_ESP(tsk)	user_stack_pointer(task_pt_regs(tsk))
 +
-+	la	$p0, __entry_task
-+	sw	$r1, [$p0]
-+	move	$p1, $r0
-+	addi	$p1, $p1, #THREAD_CPU_CONTEXT
-+	smw.bi 	$r6, [$p1], $r14, #0xb		! push r6~r14, fp, lp, sp
-+	move	$r25, $r1
-+	addi	$r1, $r1, #THREAD_CPU_CONTEXT
-+	lmw.bi 	$r6, [$r1], $r14, #0xb		! pop r6~r14, fp, lp, sp
-+	ret
++#endif
 +
-+/*
-+ * These are the registers used in the syscall handler, and allow us
-+ * to have in theory up to 6 arguments to a function - $r0 to $r5.
-+ *
-+ * We must set at least "tsk" and "tbl" when calling ret_with_reschedule.
-+ */
-+
-+/*
-+ * $r7 will be writen as syscall nr
-+ * by retrieving from $ITYPE 'SWID' bitfiled
-+ */
-+	.macro	get_scno
-+	lwi	$r7, [$sp + R15_OFFSET]
-+	swi	$r7, [$sp + SYSCALLNO_OFFSET]
-+	.endm
-+
-+	.macro	updateipc
-+	addi	$r17, $r13, #4				! $r13 is $IPC
-+	swi	$r17, [$sp + IPC_OFFSET]
-+	.endm
-+
-+ENTRY(eh_syscall)
-+	updateipc
-+
-+	get_scno
-+	gie_enable
-+
-+ENTRY(eh_syscall_phase_2)
-+	lwi	$p0, [tsk+#TSK_TI_FLAGS]		! check for syscall tracing
-+
-+	andi	$p1, $p0, #_TIF_WORK_SYSCALL_ENTRY	! are we tracing syscalls?
-+	bnez	$p1, __sys_trace
-+
-+	la	$lp, ret_fast_syscall		! return address
-+jmp_systbl:
-+	addi	$p1, $r7, #-__NR_syscalls	! syscall number of syscall instruction is guarded by addembler
-+	bgez	$p1, _SCNO_EXCEED		! call sys_* routine
-+	la	tbl, sys_call_table		! load syscall table pointer
-+	slli	$p1, $r7, #2
-+	add	$p1, tbl, $p1
-+	lwi	$p1, [$p1]
-+	jr	$p1				! no return
-+
-+_SCNO_EXCEED:
-+	movi	why, 0
-+	ori	$r0, $r7, #0
-+        ori	$r1, $sp, #0
-+	b	bad_syscall
-+
-+/*
-+ * This is the really slow path.  We're going to be doing
-+ * context switches, and waiting for our parent to respond.
-+ */
-+__sys_trace:
-+	move	$r1, $sp
-+	move	$r0, $r7			! trace entry [IP = 0]
-+	bal	syscall_trace_enter
-+	move	$r7, $r0
-+	la	$lp, __sys_trace_return		! return address
-+
-+	addi    $p1, $r7, #1
-+	beqz    $p1, ret_slow_syscall		! fatal signal is pending
-+
-+	addi	$p1, $sp, #R0_OFFSET		! pointer to regs
-+	lmw.bi	$r0, [$p1], $r5			! have to reload $r0 - $r5
-+	b	jmp_systbl
-+
-+__sys_trace_return:
-+	swi	$r0, [$sp+#R0_OFFSET]		! T: save returned $r0
-+	move	$r0, $sp			! set pt_regs for syscall_trace_leave
-+	bal	syscall_trace_leave
-+	b	ret_slow_syscall
-+
-+ENTRY(sys_rt_sigreturn_wrapper)
-+	addi	$r0, $sp, #0
-+	b	sys_rt_sigreturn
-+ENDPROC(sys_rt_sigreturn_wrapper)
-diff --git a/arch/nds32/kernel/sys_nds32.c b/arch/nds32/kernel/sys_nds32.c
++#endif /* __ASM_NDS32_PROCESSOR_H */
+diff --git a/arch/nds32/include/asm/thread_info.h b/arch/nds32/include/asm/thread_info.h
 new file mode 100644
-index 0000000..9de93ab
+index 0000000..818e769
 --- /dev/null
-+++ b/arch/nds32/kernel/sys_nds32.c
-@@ -0,0 +1,50 @@
++++ b/arch/nds32/include/asm/thread_info.h
+@@ -0,0 +1,78 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/syscalls.h>
++#ifndef __ASM_NDS32_THREAD_INFO_H
++#define __ASM_NDS32_THREAD_INFO_H
++
++#ifdef __KERNEL__
++
++#define THREAD_SIZE_ORDER 	(1)
++#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
++
++#ifndef __ASSEMBLY__
++
++struct task_struct;
++
++#include <asm/ptrace.h>
++#include <asm/types.h>
++
++typedef unsigned long mm_segment_t;
++
++/*
++ * low level task data that entry.S needs immediate access to.
++ * __switch_to() assumes cpu_context follows immediately after cpu_domain.
++ */
++struct thread_info {
++	unsigned long flags;	/* low level flags */
++	__s32 preempt_count;	/* 0 => preemptable, <0 => bug */
++	mm_segment_t addr_limit;	/* address limit */
++};
++#define INIT_THREAD_INFO(tsk)						\
++{									\
++	.preempt_count	= INIT_PREEMPT_COUNT,				\
++	.addr_limit	= KERNEL_DS,					\
++}
++#define init_thread_info	(init_thread_union.thread_info)
++#define init_stack		(init_thread_union.stack)
++#define thread_saved_pc(tsk) ((unsigned long)(tsk->thread.cpu_context.pc))
++#define thread_saved_fp(tsk) ((unsigned long)(tsk->thread.cpu_context.fp))
++#endif
++
++/*
++ * thread information flags:
++ *  TIF_SYSCALL_TRACE	- syscall trace active
++ *  TIF_SIGPENDING	- signal pending
++ *  TIF_NEED_RESCHED	- rescheduling necessary
++ *  TIF_NOTIFY_RESUME	- callback before returning to user
++ *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
++ *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
++ */
++#define TIF_SIGPENDING		1
++#define TIF_NEED_RESCHED	2
++#define TIF_SINGLESTEP		3
++#define TIF_NOTIFY_RESUME	4	/* callback before returning to user */
++#define TIF_SYSCALL_TRACE	8
++#define TIF_USEDFPU             16
++#define TIF_POLLING_NRFLAG	17
++#define TIF_MEMDIE		18
++#define TIF_FREEZE		19
++#define TIF_RESTORE_SIGMASK	20
++
++#define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
++#define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
++#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
++#define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
++#define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
++#define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
++#define _TIF_FREEZE		(1 << TIF_FREEZE)
++#define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
++
++/*
++ * Change these and you break ASM code in entry-common.S
++ */
++#define _TIF_WORK_MASK		0x000000ff
++#define _TIF_WORK_SYSCALL_ENTRY (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
++#define _TIF_WORK_SYSCALL_LEAVE (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
++
++#endif /* __KERNEL__ */
++#endif /* __ASM_NDS32_THREAD_INFO_H */
+diff --git a/arch/nds32/kernel/process.c b/arch/nds32/kernel/process.c
+new file mode 100644
+index 0000000..b68cfc4
+--- /dev/null
++++ b/arch/nds32/kernel/process.c
+@@ -0,0 +1,204 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#include <linux/sched.h>
++#include <linux/sched/debug.h>
++#include <linux/sched/task_stack.h>
++#include <linux/delay.h>
++#include <linux/kallsyms.h>
 +#include <linux/uaccess.h>
-+
-+#include <asm/cachectl.h>
++#include <asm/elf.h>
 +#include <asm/proc-fns.h>
++#include <linux/ptrace.h>
 +
-+SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
-+	       unsigned long, prot, unsigned long, flags,
-+	       unsigned long, fd, unsigned long, pgoff)
++extern void setup_mm_for_reboot(char mode);
++#ifdef CONFIG_PROC_FS
++struct proc_dir_entry *proc_dir_cpu;
++EXPORT_SYMBOL(proc_dir_cpu);
++#endif
++
++extern inline void arch_reset(char mode)
 +{
-+	if (pgoff & (~PAGE_MASK >> 12))
-+		return -EINVAL;
-+
-+	return sys_mmap_pgoff(addr, len, prot, flags, fd,
-+			      pgoff >> (PAGE_SHIFT - 12));
-+}
-+
-+SYSCALL_DEFINE4(fadvise64_64_wrapper,int, fd, int, advice, loff_t, offset,
-+					 loff_t, len)
-+{
-+	return sys_fadvise64_64(fd, offset, len, advice);
-+}
-+
-+SYSCALL_DEFINE3(cacheflush, unsigned int, start, unsigned int, end, int, cache)
-+{
-+	struct vm_area_struct *vma;
-+	bool flushi = true, wbd = true;
-+
-+	vma = find_vma(current->mm, start);
-+	if (!vma)
-+		return -EFAULT;
-+	switch (cache) {
-+	case ICACHE:
-+		wbd = false;
-+		break;
-+	case DCACHE:
-+		flushi = false;
-+		break;
-+	case BCACHE:
-+		break;
-+	default:
-+		return -EINVAL;
++	if (mode == 's') {
++		/* Use cpu handler, jump to 0 */
++		cpu_reset(0);
 +	}
-+	cpu_cache_wbinval_range_check(vma, start, end, flushi, wbd);
++}
++
++void (*pm_power_off) (void);
++EXPORT_SYMBOL(pm_power_off);
++
++static char reboot_mode = 'h';
++
++int __init reboot_setup(char *str)
++{
++	reboot_mode = str[0];
++	return 1;
++}
++
++static int cpub_pwroff(void)
++{
++	return 0;
++}
++
++__setup("reboot=", reboot_setup);
++
++void machine_halt(void)
++{
++	cpub_pwroff();
++}
++
++EXPORT_SYMBOL(machine_halt);
++
++void machine_power_off(void)
++{
++	if (pm_power_off)
++		pm_power_off();
++}
++
++EXPORT_SYMBOL(machine_power_off);
++
++void machine_restart(char *__unused)
++{
++	/*
++	 * Clean and disable cache, and turn off interrupts
++	 */
++	cpu_proc_fin();
++
++	/*
++	 * Tell the mm system that we are going to reboot -
++	 * we may need it to insert some 1:1 mappings so that
++	 * soft boot works.
++	 */
++	setup_mm_for_reboot(reboot_mode);
++
++	/*
++	 * Now call the architecture specific reboot code.
++	 */
++	arch_reset(reboot_mode);
++
++	/*
++	 * Whoops - the architecture was unable to reboot.
++	 * Tell the user!
++	 */
++	mdelay(1000);
++	pr_info("Reboot failed -- System halted\n");
++	while (1) ;
++}
++
++EXPORT_SYMBOL(machine_restart);
++
++void show_regs(struct pt_regs *regs)
++{
++	print_symbol("PC is at %s\n", instruction_pointer(regs));
++	print_symbol("LP is at %s\n", regs->lp);
++	pr_info("pc : [<%08lx>]    lp : [<%08lx>]    %s\n"
++		"sp : %08lx  fp : %08lx  gp : %08lx\n",
++		instruction_pointer(regs),
++		regs->lp, print_tainted(), regs->sp, regs->fp, regs->gp);
++	pr_info("r25: %08lx  r24: %08lx\n", regs->uregs[25], regs->uregs[24]);
++
++	pr_info("r23: %08lx  r22: %08lx  r21: %08lx  r20: %08lx\n",
++		regs->uregs[23], regs->uregs[22],
++		regs->uregs[21], regs->uregs[20]);
++	pr_info("r19: %08lx  r18: %08lx  r17: %08lx  r16: %08lx\n",
++		regs->uregs[19], regs->uregs[18],
++		regs->uregs[17], regs->uregs[16]);
++	pr_info("r15: %08lx  r14: %08lx  r13: %08lx  r12: %08lx\n",
++		regs->uregs[15], regs->uregs[14],
++		regs->uregs[13], regs->uregs[12]);
++	pr_info("r11: %08lx  r10: %08lx  r9 : %08lx  r8 : %08lx\n",
++		regs->uregs[11], regs->uregs[10],
++		regs->uregs[9], regs->uregs[8]);
++	pr_info("r7 : %08lx  r6 : %08lx  r5 : %08lx  r4 : %08lx\n",
++		regs->uregs[7], regs->uregs[6], regs->uregs[5], regs->uregs[4]);
++	pr_info("r3 : %08lx  r2 : %08lx  r1 : %08lx  r0 : %08lx\n",
++		regs->uregs[3], regs->uregs[2], regs->uregs[1], regs->uregs[0]);
++	pr_info("  IRQs o%s  Segment %s\n",
++		interrupts_enabled(regs) ? "n" : "ff",
++		segment_eq(get_fs(), get_ds())? "kernel" : "user");
++}
++
++EXPORT_SYMBOL(show_regs);
++
++void flush_thread(void)
++{
++}
++
++DEFINE_PER_CPU(struct task_struct *, __entry_task);
++
++asmlinkage void ret_from_fork(void) __asm__("ret_from_fork");
++int copy_thread(unsigned long clone_flags, unsigned long stack_start,
++	    unsigned long stk_sz, struct task_struct *p)
++{
++	struct pt_regs *childregs = task_pt_regs(p);
++
++	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
++
++	if (unlikely(p->flags & PF_KTHREAD)) {
++		memset(childregs, 0, sizeof(struct pt_regs));
++		/* kernel thread fn */
++		p->thread.cpu_context.r6 = stack_start;
++		/* kernel thread argument */
++		p->thread.cpu_context.r7 = stk_sz;
++	} else {
++		*childregs = *current_pt_regs();
++		if (stack_start)
++			childregs->sp = stack_start;
++		/* child get zero as ret. */
++		childregs->uregs[0] = 0;
++		childregs->osp = 0;
++		if (clone_flags & CLONE_SETTLS)
++			childregs->uregs[25] = childregs->uregs[3];
++	}
++	/* cpu context switching  */
++	p->thread.cpu_context.pc = (unsigned long)ret_from_fork;
++	p->thread.cpu_context.sp = (unsigned long)childregs;
++
++#ifdef CONFIG_HWZOL
++	childregs->lb = 0;
++	childregs->le = 0;
++	childregs->lc = 0;
++#endif
 +
 +	return 0;
 +}
-diff --git a/arch/nds32/kernel/syscall_table.c b/arch/nds32/kernel/syscall_table.c
-new file mode 100644
-index 0000000..7879c06
---- /dev/null
-+++ b/arch/nds32/kernel/syscall_table.c
-@@ -0,0 +1,17 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/syscalls.h>
-+#include <linux/signal.h>
-+#include <linux/unistd.h>
-+#include <asm/syscalls.h>
++/*
++ * fill in the fpe structure for a core dump...
++ */
++int dump_fpu(struct pt_regs *regs, elf_fpregset_t * fpu)
++{
++	int fpvalid = 0;
++	return fpvalid;
++}
 +
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call) [nr] = (call),
++EXPORT_SYMBOL(dump_fpu);
 +
-+#define sys_rt_sigreturn sys_rt_sigreturn_wrapper
-+#define sys_fadvise64_64 sys_fadvise64_64_wrapper
-+void *sys_call_table[__NR_syscalls] __aligned(8192) = {
-+	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
-+#include <asm/unistd.h>
-+};
++unsigned long get_wchan(struct task_struct *p)
++{
++	unsigned long fp, lr;
++	unsigned long stack_start, stack_end;
++	int count = 0;
++
++	if (!p || p == current || p->state == TASK_RUNNING)
++		return 0;
++
++	if (IS_ENABLED(CONFIG_FRAME_POINTER)) {
++		stack_start = (unsigned long)end_of_stack(p);
++		stack_end = (unsigned long)task_stack_page(p) + THREAD_SIZE;
++
++		fp = thread_saved_fp(p);
++		do {
++			if (fp < stack_start || fp > stack_end)
++				return 0;
++			lr = ((unsigned long *)fp)[0];
++			if (!in_sched_functions(lr))
++				return lr;
++			fp = *(unsigned long *)(fp + 4);
++		} while (count++ < 16);
++	}
++	return 0;
++}
++
++EXPORT_SYMBOL(get_wchan);
 -- 
 1.7.9.5
