@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v6 22/36] nds32: Debugging support
-Date: Mon, 15 Jan 2018 13:53:30 +0800
-Message-ID: <65ae3b5b7eabe8680857b1821c72127f611c950b.1515766253.git.green.hu@gmail.com>
+Subject: [PATCH v6 20/36] nds32: Signal handling support
+Date: Mon, 15 Jan 2018 13:53:28 +0800
+Message-ID: <e145c39b3c50b3aee05bc60ad0117f1ec7cc5153.1515766253.git.green.hu@gmail.com>
 References: <cover.1515766253.git.green.hu@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
@@ -14,364 +14,425 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds ptrace support.
+This patch adds support for signal handling.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 ---
- arch/nds32/include/uapi/asm/ptrace.h |   25 +++
- arch/nds32/kernel/ptrace.c           |  311 ++++++++++++++++++++++++++++++++++
- 2 files changed, 336 insertions(+)
- create mode 100644 arch/nds32/include/uapi/asm/ptrace.h
- create mode 100644 arch/nds32/kernel/ptrace.c
+ arch/nds32/include/uapi/asm/sigcontext.h |   60 ++++++
+ arch/nds32/kernel/signal.c               |  337 ++++++++++++++++++++++++++++++
+ 2 files changed, 397 insertions(+)
+ create mode 100644 arch/nds32/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/nds32/kernel/signal.c
 
-diff --git a/arch/nds32/include/uapi/asm/ptrace.h b/arch/nds32/include/uapi/asm/ptrace.h
+diff --git a/arch/nds32/include/uapi/asm/sigcontext.h b/arch/nds32/include/uapi/asm/sigcontext.h
 new file mode 100644
-index 0000000..358c99e
+index 0000000..00567b2
 --- /dev/null
-+++ b/arch/nds32/include/uapi/asm/ptrace.h
-@@ -0,0 +1,25 @@
++++ b/arch/nds32/include/uapi/asm/sigcontext.h
+@@ -0,0 +1,60 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __UAPI_ASM_NDS32_PTRACE_H
-+#define __UAPI_ASM_NDS32_PTRACE_H
-+
-+#ifndef __ASSEMBLY__
++#ifndef _ASMNDS32_SIGCONTEXT_H
++#define _ASMNDS32_SIGCONTEXT_H
 +
 +/*
-+ * User structures for general purpose register.
++ * Signal context structure - contains all info to do with the state
++ * before the signal handler was invoked.  Note: only add new entries
++ * to the end of the structure.
 + */
-+struct user_pt_regs {
-+	long uregs[26];
-+	long fp;
-+	long gp;
-+	long lp;
-+	long sp;
-+	long ipc;
-+	long lb;
-+	long le;
-+	long lc;
-+	long syscallno;
++
++struct zol_struct {
++	unsigned long nds32_lc;	/* $LC */
++	unsigned long nds32_le;	/* $LE */
++	unsigned long nds32_lb;	/* $LB */
 +};
++
++struct sigcontext {
++	unsigned long trap_no;
++	unsigned long error_code;
++	unsigned long oldmask;
++	unsigned long nds32_r0;
++	unsigned long nds32_r1;
++	unsigned long nds32_r2;
++	unsigned long nds32_r3;
++	unsigned long nds32_r4;
++	unsigned long nds32_r5;
++	unsigned long nds32_r6;
++	unsigned long nds32_r7;
++	unsigned long nds32_r8;
++	unsigned long nds32_r9;
++	unsigned long nds32_r10;
++	unsigned long nds32_r11;
++	unsigned long nds32_r12;
++	unsigned long nds32_r13;
++	unsigned long nds32_r14;
++	unsigned long nds32_r15;
++	unsigned long nds32_r16;
++	unsigned long nds32_r17;
++	unsigned long nds32_r18;
++	unsigned long nds32_r19;
++	unsigned long nds32_r20;
++	unsigned long nds32_r21;
++	unsigned long nds32_r22;
++	unsigned long nds32_r23;
++	unsigned long nds32_r24;
++	unsigned long nds32_r25;
++	unsigned long nds32_fp;	/* $r28 */
++	unsigned long nds32_gp;	/* $r29 */
++	unsigned long nds32_lp;	/* $r30 */
++	unsigned long nds32_sp;	/* $r31 */
++	unsigned long nds32_ipc;
++	unsigned long fault_address;
++	unsigned long used_math_flag;
++	/* FPU Registers */
++	struct zol_struct zol;
++};
++
 +#endif
-+#endif
-diff --git a/arch/nds32/kernel/ptrace.c b/arch/nds32/kernel/ptrace.c
+diff --git a/arch/nds32/kernel/signal.c b/arch/nds32/kernel/signal.c
 new file mode 100644
-index 0000000..0e18564
+index 0000000..b6313dd
 --- /dev/null
-+++ b/arch/nds32/kernel/ptrace.c
-@@ -0,0 +1,311 @@
++++ b/arch/nds32/kernel/signal.c
+@@ -0,0 +1,337 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
++#include <linux/errno.h>
++#include <linux/signal.h>
 +#include <linux/ptrace.h>
-+#include <linux/user.h>
-+#include <linux/security.h>
-+#include <linux/init.h>
-+#include <linux/uaccess.h>
-+#include <linux/regset.h>
++#include <linux/personality.h>
++#include <linux/freezer.h>
 +#include <linux/tracehook.h>
-+#include <linux/elf.h>
-+#include <linux/sched/task_stack.h>
++#include <linux/uaccess.h>
 +
-+#include <asm/pgtable.h>
++#include <asm/cacheflush.h>
++#include <asm/ucontext.h>
++#include <asm/unistd.h>
 +
-+enum nds32_regset {
-+	REGSET_GPR,
++#include <asm/ptrace.h>
++#include <asm/vdso.h>
++
++struct rt_sigframe {
++	struct siginfo info;
++	struct ucontext uc;
 +};
 +
-+static int gpr_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user * ubuf)
++static int restore_sigframe(struct pt_regs *regs,
++			    struct rt_sigframe __user * sf)
 +{
-+	struct user_pt_regs *uregs = &task_pt_regs(target)->user_regs;
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs, 0, -1);
++	sigset_t set;
++	int err;
++
++	err = __copy_from_user(&set, &sf->uc.uc_sigmask, sizeof(set));
++	if (err == 0) {
++		set_current_blocked(&set);
++	}
++
++	__get_user_error(regs->uregs[0], &sf->uc.uc_mcontext.nds32_r0, err);
++	__get_user_error(regs->uregs[1], &sf->uc.uc_mcontext.nds32_r1, err);
++	__get_user_error(regs->uregs[2], &sf->uc.uc_mcontext.nds32_r2, err);
++	__get_user_error(regs->uregs[3], &sf->uc.uc_mcontext.nds32_r3, err);
++	__get_user_error(regs->uregs[4], &sf->uc.uc_mcontext.nds32_r4, err);
++	__get_user_error(regs->uregs[5], &sf->uc.uc_mcontext.nds32_r5, err);
++	__get_user_error(regs->uregs[6], &sf->uc.uc_mcontext.nds32_r6, err);
++	__get_user_error(regs->uregs[7], &sf->uc.uc_mcontext.nds32_r7, err);
++	__get_user_error(regs->uregs[8], &sf->uc.uc_mcontext.nds32_r8, err);
++	__get_user_error(regs->uregs[9], &sf->uc.uc_mcontext.nds32_r9, err);
++	__get_user_error(regs->uregs[10], &sf->uc.uc_mcontext.nds32_r10, err);
++	__get_user_error(regs->uregs[11], &sf->uc.uc_mcontext.nds32_r11, err);
++	__get_user_error(regs->uregs[12], &sf->uc.uc_mcontext.nds32_r12, err);
++	__get_user_error(regs->uregs[13], &sf->uc.uc_mcontext.nds32_r13, err);
++	__get_user_error(regs->uregs[14], &sf->uc.uc_mcontext.nds32_r14, err);
++	__get_user_error(regs->uregs[15], &sf->uc.uc_mcontext.nds32_r15, err);
++	__get_user_error(regs->uregs[16], &sf->uc.uc_mcontext.nds32_r16, err);
++	__get_user_error(regs->uregs[17], &sf->uc.uc_mcontext.nds32_r17, err);
++	__get_user_error(regs->uregs[18], &sf->uc.uc_mcontext.nds32_r18, err);
++	__get_user_error(regs->uregs[19], &sf->uc.uc_mcontext.nds32_r19, err);
++	__get_user_error(regs->uregs[20], &sf->uc.uc_mcontext.nds32_r20, err);
++	__get_user_error(regs->uregs[21], &sf->uc.uc_mcontext.nds32_r21, err);
++	__get_user_error(regs->uregs[22], &sf->uc.uc_mcontext.nds32_r22, err);
++	__get_user_error(regs->uregs[23], &sf->uc.uc_mcontext.nds32_r23, err);
++	__get_user_error(regs->uregs[24], &sf->uc.uc_mcontext.nds32_r24, err);
++	__get_user_error(regs->uregs[25], &sf->uc.uc_mcontext.nds32_r25, err);
++
++	__get_user_error(regs->fp, &sf->uc.uc_mcontext.nds32_fp, err);
++	__get_user_error(regs->gp, &sf->uc.uc_mcontext.nds32_gp, err);
++	__get_user_error(regs->lp, &sf->uc.uc_mcontext.nds32_lp, err);
++	__get_user_error(regs->sp, &sf->uc.uc_mcontext.nds32_sp, err);
++	__get_user_error(regs->ipc, &sf->uc.uc_mcontext.nds32_ipc, err);
++#if defined(CONFIG_HWZOL)
++	__get_user_error(regs->lc, &sf->uc.uc_mcontext.zol.nds32_lc, err);
++	__get_user_error(regs->le, &sf->uc.uc_mcontext.zol.nds32_le, err);
++	__get_user_error(regs->lb, &sf->uc.uc_mcontext.zol.nds32_lb, err);
++#endif
++
++	return err;
 +}
 +
-+static int gpr_set(struct task_struct *target, const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user * ubuf)
++asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
 +{
-+	int err;
-+	struct user_pt_regs newregs = task_pt_regs(target)->user_regs;
++	struct rt_sigframe __user *frame;
 +
-+	err = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newregs, 0, -1);
-+	if (err)
-+		return err;
++	/* Always make any pending restarted system calls return -EINTR */
++	current->restart_block.fn = do_no_restart_syscall;
 +
-+	task_pt_regs(target)->user_regs = newregs;
++	/*
++	 * Since we stacked the signal on a 64-bit boundary,
++	 * then 'sp' should be two-word aligned here.  If it's
++	 * not, then the user is trying to mess with us.
++	 */
++	if (regs->sp & 7)
++		goto badframe;
++
++	frame = (struct rt_sigframe __user *)regs->sp;
++
++	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
++		goto badframe;
++
++	if (restore_sigframe(regs, frame))
++		goto badframe;
++
++	if (restore_altstack(&frame->uc.uc_stack))
++		goto badframe;
++
++	return regs->uregs[0];
++
++badframe:
++	force_sig(SIGSEGV, current);
 +	return 0;
 +}
 +
-+static const struct user_regset nds32_regsets[] = {
-+	[REGSET_GPR] = {
-+			.core_note_type = NT_PRSTATUS,
-+			.n = sizeof(struct user_pt_regs) / sizeof(u32),
-+			.size = sizeof(u32),
-+			.align = sizeof(u32),
-+			.get = gpr_get,
-+			.set = gpr_set}
-+};
-+
-+static const struct user_regset_view nds32_user_view = {
-+	.name = "nds32",.e_machine = EM_NDS32,
-+	.regsets = nds32_regsets,.n = ARRAY_SIZE(nds32_regsets)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++static int
++setup_sigframe(struct rt_sigframe __user * sf, struct pt_regs *regs,
++	       sigset_t * set)
 +{
-+	return &nds32_user_view;
++	int err = 0;
++
++
++	__put_user_error(regs->uregs[0], &sf->uc.uc_mcontext.nds32_r0, err);
++	__put_user_error(regs->uregs[1], &sf->uc.uc_mcontext.nds32_r1, err);
++	__put_user_error(regs->uregs[2], &sf->uc.uc_mcontext.nds32_r2, err);
++	__put_user_error(regs->uregs[3], &sf->uc.uc_mcontext.nds32_r3, err);
++	__put_user_error(regs->uregs[4], &sf->uc.uc_mcontext.nds32_r4, err);
++	__put_user_error(regs->uregs[5], &sf->uc.uc_mcontext.nds32_r5, err);
++	__put_user_error(regs->uregs[6], &sf->uc.uc_mcontext.nds32_r6, err);
++	__put_user_error(regs->uregs[7], &sf->uc.uc_mcontext.nds32_r7, err);
++	__put_user_error(regs->uregs[8], &sf->uc.uc_mcontext.nds32_r8, err);
++	__put_user_error(regs->uregs[9], &sf->uc.uc_mcontext.nds32_r9, err);
++	__put_user_error(regs->uregs[10], &sf->uc.uc_mcontext.nds32_r10, err);
++	__put_user_error(regs->uregs[11], &sf->uc.uc_mcontext.nds32_r11, err);
++	__put_user_error(regs->uregs[12], &sf->uc.uc_mcontext.nds32_r12, err);
++	__put_user_error(regs->uregs[13], &sf->uc.uc_mcontext.nds32_r13, err);
++	__put_user_error(regs->uregs[14], &sf->uc.uc_mcontext.nds32_r14, err);
++	__put_user_error(regs->uregs[15], &sf->uc.uc_mcontext.nds32_r15, err);
++	__put_user_error(regs->uregs[16], &sf->uc.uc_mcontext.nds32_r16, err);
++	__put_user_error(regs->uregs[17], &sf->uc.uc_mcontext.nds32_r17, err);
++	__put_user_error(regs->uregs[18], &sf->uc.uc_mcontext.nds32_r18, err);
++	__put_user_error(regs->uregs[19], &sf->uc.uc_mcontext.nds32_r19, err);
++	__put_user_error(regs->uregs[20], &sf->uc.uc_mcontext.nds32_r20, err);
++
++	__put_user_error(regs->uregs[21], &sf->uc.uc_mcontext.nds32_r21, err);
++	__put_user_error(regs->uregs[22], &sf->uc.uc_mcontext.nds32_r22, err);
++	__put_user_error(regs->uregs[23], &sf->uc.uc_mcontext.nds32_r23, err);
++	__put_user_error(regs->uregs[24], &sf->uc.uc_mcontext.nds32_r24, err);
++	__put_user_error(regs->uregs[25], &sf->uc.uc_mcontext.nds32_r25, err);
++	__put_user_error(regs->fp, &sf->uc.uc_mcontext.nds32_fp, err);
++	__put_user_error(regs->gp, &sf->uc.uc_mcontext.nds32_gp, err);
++	__put_user_error(regs->lp, &sf->uc.uc_mcontext.nds32_lp, err);
++	__put_user_error(regs->sp, &sf->uc.uc_mcontext.nds32_sp, err);
++	__put_user_error(regs->ipc, &sf->uc.uc_mcontext.nds32_ipc, err);
++#if defined(CONFIG_HWZOL)
++	__put_user_error(regs->lc, &sf->uc.uc_mcontext.zol.nds32_lc, err);
++	__put_user_error(regs->le, &sf->uc.uc_mcontext.zol.nds32_le, err);
++	__put_user_error(regs->lb, &sf->uc.uc_mcontext.zol.nds32_lb, err);
++#endif
++
++	__put_user_error(current->thread.trap_no, &sf->uc.uc_mcontext.trap_no,
++			 err);
++	__put_user_error(current->thread.error_code,
++			 &sf->uc.uc_mcontext.error_code, err);
++	__put_user_error(current->thread.address,
++			 &sf->uc.uc_mcontext.fault_address, err);
++	__put_user_error(set->sig[0], &sf->uc.uc_mcontext.oldmask, err);
++
++	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(*set));
++
++	return err;
 +}
 +
-+/* get_user_reg()
-+ *
-+ * This routine will get a word off of the processes privileged stack.
-+ * the offset is how far from the base addr as stored in the THREAD.
-+ * this routine assumes that all the privileged stacks are in our
-+ * data space.
-+ */
-+static inline unsigned int get_user_reg(struct task_struct *task, int offset)
++static inline void __user *get_sigframe(struct ksignal *ksig,
++					struct pt_regs *regs, int framesize)
 +{
-+	return task_pt_regs(task)->uregs[offset];
++	unsigned long sp = sigsp(regs->sp, ksig);
++	void __user *frame;
++
++	/*
++	 * nds32 mandates 8-byte alignment
++	 */
++	frame = (void __user *)((sp - framesize) & ~7);
++
++	/*
++	 * Check that we can actually write to the signal frame.
++	 */
++	if (!access_ok(VERIFY_WRITE, frame, framesize))
++		frame = NULL;
++
++	return frame;
 +}
 +
-+/* put_user_reg()
-+ *
-+ * this routine will put a word on the processes privileged stack.
-+ * the offset is how far from the base addr as stored in the THREAD.
-+ * this routine assumes that all the privileged stacks are in our
-+ * data space.
-+ */
-+static inline int put_user_reg(struct task_struct *task, int offset, long data)
++static int
++setup_return(struct pt_regs *regs, struct ksignal *ksig, void __user * frame)
 +{
-+	struct pt_regs newregs, *regs = task_pt_regs(task);
-+	int ret = -EINVAL;
++	unsigned long handler = (unsigned long)ksig->ka.sa.sa_handler;
++	unsigned long retcode;
 +
-+	newregs = *regs;
-+	newregs.uregs[offset] = data;
++	retcode = VDSO_SYMBOL(current->mm->context.vdso, rt_sigtramp);
++	regs->uregs[0] = ksig->sig;
++	regs->sp = (unsigned long)frame;
++	regs->lp = retcode;
++	regs->ipc = handler;
 +
-+	if (valid_user_regs(&newregs)) {
-+		regs->uregs[offset] = data;
-+		ret = 0;
++	return 0;
++}
++
++static int
++setup_rt_frame(struct ksignal *ksig, sigset_t * set, struct pt_regs *regs)
++{
++	struct rt_sigframe __user *frame =
++	    get_sigframe(ksig, regs, sizeof(*frame));
++	int err = 0;
++
++	if (!frame)
++		return 1;
++
++	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
++
++	__put_user_error(0, &frame->uc.uc_flags, err);
++	__put_user_error(NULL, &frame->uc.uc_link, err);
++
++	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
++	err |= setup_sigframe(frame, regs, set);
++	if (err == 0) {
++		setup_return(regs, ksig, frame);
++
++		if (err == 0) {
++			/*
++			 * For realtime signals we must also set the second and third
++			 * arguments for the signal handler.
++			 *   -- Peter Maydell <pmaydell@chiark.greenend.org.uk> 2000-12-06
++			 */
++			regs->uregs[1] = (unsigned long)&frame->info;
++			regs->uregs[2] = (unsigned long)&frame->uc;
++		}
 +	}
-+
-+	return ret;
++	return err;
 +}
 +
 +/*
-+ * Called by kernel/ptrace.c when detaching..
-+ *
-+ * Make sure the single step bit is not set.
++ * OK, we're invoking a handler
 + */
-+void ptrace_disable(struct task_struct *child)
++static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
 +{
-+	user_disable_single_step(child);
-+}
-+
-+static void fill_sigtrap_info(struct task_struct *tsk,
-+			      struct pt_regs *regs,
-+			      int error_code, int si_code, struct siginfo *info)
-+{
-+	tsk->thread.trap_no = ENTRY_DEBUG_RELATED;
-+	tsk->thread.error_code = error_code;
-+
-+	memset(info, 0, sizeof(*info));
-+	info->si_signo = SIGTRAP;
-+	info->si_code = si_code;
-+	info->si_addr = (void __user *)instruction_pointer(regs);
-+}
-+
-+void user_single_step_siginfo(struct task_struct *tsk,
-+			      struct pt_regs *regs, struct siginfo *info)
-+{
-+	fill_sigtrap_info(tsk, regs, 0, TRAP_BRKPT, info);
-+}
-+
-+/*
-+ * Handle hitting a breakpoint.
-+ */
-+void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
-+		  int error_code, int si_code)
-+{
-+	struct siginfo info;
-+
-+	fill_sigtrap_info(tsk, regs, error_code, TRAP_BRKPT, &info);
-+	/* Send us the fake SIGTRAP */
-+	force_sig_info(SIGTRAP, &info, tsk);
-+}
-+
-+/* ptrace_read_user()
-+ *
-+ * Read the word at offset "off" into the "struct user".  We
-+ * actually access the pt_regs stored on the kernel stack.
-+ */
-+static int
-+ptrace_read_user(struct task_struct *tsk, unsigned long off,
-+		 unsigned long __user * ret)
-+{
-+	unsigned long tmp = 0;
-+
-+	if (off < sizeof(struct pt_regs)) {
-+		if (off & 3)
-+			return -EIO;
-+		tmp = get_user_reg(tsk, off >> 2);
-+		return put_user(tmp, ret);
-+	} else
-+		return -EIO;
-+}
-+
-+/* ptrace_write_user()
-+ *
-+ * Write the word at offset "off" into "struct user".  We
-+ * actually access the pt_regs stored on the kernel stack.
-+ */
-+static int
-+ptrace_write_user(struct task_struct *tsk, unsigned long off, unsigned long val)
-+{
-+	if (off < sizeof(struct pt_regs)) {
-+		if (off & 3)
-+			return -EIO;
-+		return put_user_reg(tsk, off >> 2, val);
-+	} else
-+		return -EIO;
-+}
-+
-+/* ptrace_getregs()
-+ *
-+ * Get all user integer registers.
-+ */
-+static int ptrace_getregs(struct task_struct *tsk, void __user * uregs)
-+{
-+	struct pt_regs *regs = task_pt_regs(tsk);
-+
-+	return copy_to_user(uregs, regs, sizeof(struct pt_regs)) ? -EFAULT : 0;
-+}
-+
-+/* ptrace_setregs()
-+ *
-+ * Set all user integer registers.
-+ */
-+static int ptrace_setregs(struct task_struct *tsk, void __user * uregs)
-+{
-+	struct pt_regs newregs;
 +	int ret;
++	sigset_t *oldset = sigmask_to_save();
 +
-+	ret = -EFAULT;
-+	if (copy_from_user(&newregs, uregs, sizeof(struct pt_regs)) == 0) {
-+		struct pt_regs *regs = task_pt_regs(tsk);
++	/*
++	 * Set up the stack frame
++	 */
++	ret = setup_rt_frame(ksig, oldset, regs);
 +
-+		ret = -EINVAL;
-+		if (valid_user_regs(&newregs)) {
-+			*regs = newregs;
-+			ret = 0;
++	/*
++	 * Check that the resulting registers are actually sane.
++	 */
++	ret |= !valid_user_regs(regs);
++
++	signal_setup_done(ret, ksig, 0);
++}
++
++/*
++ * Note that 'init' is a special process: it doesn't get signals it doesn't
++ * want to handle. Thus you cannot kill init even with a SIGKILL even by
++ * mistake.
++ *
++ * Note that we go through the signals twice: once to check the signals that
++ * the kernel can handle, and then we build all the user-level signal handling
++ * stack-frames in one go after that.
++ */
++static int do_signal(struct pt_regs *regs, int syscall)
++{
++	unsigned int retval = 0, continue_addr = 0, restart_addr = 0;
++	struct ksignal ksig;
++	int restart = 0;
++
++	/*
++	 * If we were from a system call, check for system call restarting...
++	 */
++	if (syscall) {
++		continue_addr = regs->ipc;
++		restart_addr = continue_addr - 4;
++		retval = regs->uregs[0];
++
++		/*
++		 * Prepare for system call restart.  We do this here so that a
++		 * debugger will see the already changed PSW.
++		 */
++		switch (retval) {
++		case -ERESTART_RESTARTBLOCK:
++			restart -= 2;
++		case -ERESTARTNOHAND:
++		case -ERESTARTSYS:
++		case -ERESTARTNOINTR:
++			restart++;
++			regs->uregs[0] = regs->orig_r0;
++			regs->ipc = restart_addr;
++			break;
 +		}
 +	}
 +
-+	return ret;
-+}
-+
-+/* ptrace_getfpregs()
-+ *
-+ * Get the child FPU state.
-+ */
-+static int ptrace_getfpregs(struct task_struct *tsk, void __user * ufpregs)
-+{
-+	return -EFAULT;
-+}
-+
-+/*
-+ * Set the child FPU state.
-+ */
-+static int ptrace_setfpregs(struct task_struct *tsk, void __user * ufpregs)
-+{
-+	return -EFAULT;
-+}
-+
-+/* do_ptrace()
-+ *
-+ * Provide ptrace defined service.
-+ */
-+long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-+		 unsigned long data)
-+{
-+	int ret;
-+
-+	switch (request) {
-+	case PTRACE_PEEKUSR:
-+		ret =
-+		    ptrace_read_user(child, addr, (unsigned long __user *)data);
-+		break;
-+
-+	case PTRACE_POKEUSR:
-+		ret = ptrace_write_user(child, addr, data);
-+		break;
-+
-+	case PTRACE_GETREGS:
-+		ret = ptrace_getregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_SETREGS:
-+		ret = ptrace_setregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_GETFPREGS:
-+		ret = ptrace_getfpregs(child, (void __user *)data);
-+		break;
-+
-+	case PTRACE_SETFPREGS:
-+		ret = ptrace_setfpregs(child, (void __user *)data);
-+		break;
-+
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
++	/*
++	 * Get the signal to deliver.  When running under ptrace, at this
++	 * point the debugger may change all our registers ...
++	 */
++	/*
++	 * Depending on the signal settings we may need to revert the
++	 * decision to restart the system call.  But skip this if a
++	 * debugger has chosen to restart at a different PC.
++	 */
++	if (get_signal(&ksig)) {
++		if (unlikely(restart) && regs->ipc == restart_addr) {
++			if (retval == -ERESTARTNOHAND ||
++			    retval == -ERESTART_RESTARTBLOCK
++			    || (retval == -ERESTARTSYS
++				&& !(ksig.ka.sa.sa_flags & SA_RESTART))) {
++				regs->uregs[0] = -EINTR;
++				regs->ipc = continue_addr;
++			}
++		}
++		handle_signal(&ksig, regs);
++	} else {
++		restore_saved_sigmask();
++		if (unlikely(restart) && regs->ipc == restart_addr) {
++			regs->ipc = continue_addr;
++			return restart;
++		}
 +	}
-+
-+	return ret;
++	return 0;
 +}
 +
-+void user_enable_single_step(struct task_struct *child)
++asmlinkage int
++do_notify_resume(struct pt_regs *regs, unsigned int thread_flags, int syscall)
 +{
-+	struct pt_regs *regs;
-+	regs = task_pt_regs(child);
-+	regs->ipsw |= PSW_mskHSS;
-+	set_tsk_thread_flag(child, TIF_SINGLESTEP);
-+}
++	if (thread_flags & _TIF_SIGPENDING)
++		return do_signal(regs, syscall);
 +
-+void user_disable_single_step(struct task_struct *child)
-+{
-+	struct pt_regs *regs;
-+	regs = task_pt_regs(child);
-+	regs->ipsw &= ~PSW_mskHSS;
-+	clear_tsk_thread_flag(child, TIF_SINGLESTEP);
-+}
-+
-+/* sys_trace()
-+ *
-+ * syscall trace handler.
-+ */
-+
-+asmlinkage int syscall_trace_enter(int syscall, struct pt_regs *regs)
-+{
-+	if (test_thread_flag(TIF_SYSCALL_TRACE)) {
-+		if (tracehook_report_syscall_entry(regs))
-+			return -1;
++	if (thread_flags & _TIF_NOTIFY_RESUME) {
++		clear_thread_flag(TIF_NOTIFY_RESUME);
++		tracehook_notify_resume(regs);
 +	}
-+	return syscall;
-+}
-+
-+asmlinkage void syscall_trace_leave(struct pt_regs *regs)
-+{
-+	int step = test_thread_flag(TIF_SINGLESTEP);
-+	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(regs, step);
-+
++	return 0;
 +}
 -- 
 1.7.9.5
