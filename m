@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f67.google.com ([209.85.160.67]:45036 "EHLO
+Received: from mail-pl0-f67.google.com ([209.85.160.67]:41155 "EHLO
         mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933084AbeAOF4K (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:56:10 -0500
+        with ESMTP id S933469AbeAOF4i (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 00:56:38 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v6 26/36] nds32: Device tree support
-Date: Mon, 15 Jan 2018 13:53:34 +0800
-Message-ID: <623edb96d0a59433c25d71e5f6bb24a17804e960.1515766253.git.green.hu@gmail.com>
+Subject: [PATCH v6 32/36] dt-bindings: nds32 L2 cache controller Bindings
+Date: Mon, 15 Jan 2018 13:53:40 +0800
+Message-ID: <11bba5e5107a0b434f0ae19775fef8d36ccd7246.1515766253.git.green.hu@gmail.com>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
 References: <cover.1515766253.git.green.hu@gmail.com>
 In-Reply-To: <cover.1515766253.git.green.hu@gmail.com>
@@ -14,153 +14,54 @@ References: <cover.1515766253.git.green.hu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180115055334.8p7z8pkBw_8eEeMVZwqpEA_ZvpgMIntwUdpUqLH5kdg@z>
+Cc: green.hu@gmail.com
+Message-ID: <20180115055340.KJulreNsf8ix67fMuWJ3C1TDyC3M4ZAjLhKOSyrsGIQ@z>
 
 From: Greentime Hu <greentime@andestech.com>
 
-This patch adds support for device tree.
+This patch adds nds32 L2 cache controller binding documents.
 
-Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
+Reviewed-by: Rob Herring <robh@kernel.org>
 ---
- arch/nds32/boot/dts/Makefile  |    8 ++++
- arch/nds32/boot/dts/ae3xx.dts |   85 +++++++++++++++++++++++++++++++++++++++++
- arch/nds32/kernel/devtree.c   |   19 +++++++++
- 3 files changed, 112 insertions(+)
- create mode 100644 arch/nds32/boot/dts/Makefile
- create mode 100644 arch/nds32/boot/dts/ae3xx.dts
- create mode 100644 arch/nds32/kernel/devtree.c
+ Documentation/devicetree/bindings/nds32/atl2c.txt |   29 +++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/nds32/atl2c.txt
 
-diff --git a/arch/nds32/boot/dts/Makefile b/arch/nds32/boot/dts/Makefile
+diff --git a/Documentation/devicetree/bindings/nds32/atl2c.txt b/Documentation/devicetree/bindings/nds32/atl2c.txt
 new file mode 100644
-index 0000000..d31faa8
+index 0000000..6b34e04
 --- /dev/null
-+++ b/arch/nds32/boot/dts/Makefile
-@@ -0,0 +1,8 @@
-+ifneq '$(CONFIG_NDS32_BUILTIN_DTB)' '""'
-+BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_NDS32_BUILTIN_DTB)).dtb.o
-+else
-+BUILTIN_DTB :=
-+endif
-+obj-$(CONFIG_OF) += $(BUILTIN_DTB)
++++ b/Documentation/devicetree/bindings/nds32/atl2c.txt
+@@ -0,0 +1,29 @@
++* Andestech L2 cache Controller
 +
-+clean-files := *.dtb *.dtb.S
-diff --git a/arch/nds32/boot/dts/ae3xx.dts b/arch/nds32/boot/dts/ae3xx.dts
-new file mode 100644
-index 0000000..bb39749
---- /dev/null
-+++ b/arch/nds32/boot/dts/ae3xx.dts
-@@ -0,0 +1,85 @@
-+/dts-v1/;
-+/ {
-+	compatible = "andestech,ae3xx";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
++The level-2 cache controller plays an important role in reducing memory latency
++for high performance systems, such as thoese designs with AndesCore processors.
++Level-2 cache controller in general enhances overall system performance
++signigicantly and the system power consumption might be reduced as well by
++reducing DRAM accesses.
 +
-+	chosen {
-+		stdout-path = &serial0;
++This binding specifies what properties must be available in the device tree
++representation of an Andestech L2 cache controller.
++
++Required properties:
++	- compatible:
++		Usage: required
++		Value type: <string>
++		Definition: "andestech,atl2c"
++	- reg : Physical base address and size of cache controller's memory mapped
++	- cache-unified : Specifies the cache is a unified cache.
++	- cache-level : Should be set to 2 for a level 2 cache.
++
++* Example
++
++	cache-controller@e0500000 {
++		compatible = "andestech,atl2c";
++		reg = <0xe0500000 0x1000>;
++		cache-unified;
++		cache-level = <2>;
 +	};
 +
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x00000000 0x40000000>;
-+	};
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		cpu@0 {
-+			device_type = "cpu";
-+			compatible = "andestech,n13", "andestech,nds32v3";
-+			reg = <0>;
-+			clock-frequency = <60000000>;
-+			next-level-cache = <&L2>;
-+		};
-+	};
-+
-+	intc: interrupt-controller {
-+		compatible = "andestech,ativic32";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
-+
-+	clock: clk {
-+		#clock-cells = <0>;
-+		compatible = "fixed-clock";
-+		clock-frequency = <30000000>;
-+	};
-+
-+	apb {
-+		compatible = "simple-bus";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		ranges;
-+
-+		serial0: serial@f0300000 {
-+			compatible = "andestech,uart16550", "ns16550a";
-+			reg = <0xf0300000 0x1000>;
-+			interrupts = <8>;
-+			clock-frequency = <14745600>;
-+			reg-shift = <2>;
-+			reg-offset = <32>;
-+			no-loopback-test = <1>;
-+		};
-+
-+		timer0: timer@f0400000 {
-+			compatible = "andestech,atcpit100";
-+			reg = <0xf0400000 0x1000>;
-+			interrupts = <2>;
-+			clocks = <&clock>;
-+			clock-names = "PCLK";
-+		};
-+	};
-+
-+	ahb {
-+		compatible = "simple-bus";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		ranges;
-+
-+		L2: cache-controller@e0500000 {
-+			compatible = "andestech,atl2c";
-+			reg = <0xe0500000 0x1000>;
-+			cache-unified;
-+			cache-level = <2>;
-+		};
-+
-+		mac0: ethernet@e0100000 {
-+			compatible = "andestech,atmac100";
-+			reg = <0xe0100000 0x1000>;
-+			interrupts = <18>;
-+		};
-+	};
-+};
-diff --git a/arch/nds32/kernel/devtree.c b/arch/nds32/kernel/devtree.c
-new file mode 100644
-index 0000000..bdce0fe
---- /dev/null
-+++ b/arch/nds32/kernel/devtree.c
-@@ -0,0 +1,19 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#include <linux/bug.h>
-+#include <linux/printk.h>
-+#include <linux/of_fdt.h>
-+
-+void __init early_init_devtree(void *params)
-+{
-+	if (!params || !early_init_dt_scan(params)) {
-+		pr_crit("\n"
-+			"Error: invalid device tree blob at (virtual address 0x%p)\n"
-+			"\nPlease check your bootloader.", params);
-+
-+		BUG_ON(1);
-+	}
-+
-+	dump_stack_set_arch_desc("%s (DT)", of_flat_dt_get_machine_name());
-+}
 -- 
 1.7.9.5
