@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 02/22] signal: Document the strange si_codes used by ptrace event stops
-Date: Mon, 15 Jan 2018 18:39:49 -0600
-Message-ID: <20180116004009.31036-2-ebiederm@xmission.com>
+Subject: [PATCH 04/22] signal: Ensure no siginfo union member increases the size of struct siginfo
+Date: Mon, 15 Jan 2018 18:39:51 -0600
+Message-ID: <20180116004009.31036-4-ebiederm@xmission.com>
 References: <87k1wimybi.fsf_-_@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87k1wimybi.fsf_-_@xmission.com>
@@ -12,24 +12,20 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- include/uapi/asm-generic/siginfo.h | 5 +++++
- 1 file changed, 5 insertions(+)
+ kernel/signal.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index cbe1b0cc7a6a..7158421ac911 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -225,6 +225,11 @@ typedef struct siginfo {
- #define TRAP_HWBKPT     4	/* hardware breakpoint/watchpoint */
- #define NSIGTRAP	4
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 241d54958bbb..b9e5d825ee46 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -3688,6 +3688,7 @@ void __init signals_init(void)
+ 	/* If this check fails, the __ARCH_SI_PREAMBLE_SIZE value is wrong! */
+ 	BUILD_BUG_ON(__ARCH_SI_PREAMBLE_SIZE
+ 		!= offsetof(struct siginfo, _sifields._pad));
++	BUILD_BUG_ON(sizeof(struct siginfo) != SI_MAX_SIZE);
  
-+/*
-+ * There are an additional set of SIGTRAP si_codes used by ptrace
-+ * that of the form: ((PTRACE_EVENT_XXX << 8) | SIGTRAP)
-+ */
-+
- /*
-  * SIGCHLD si_codes
-  */
+ 	sigqueue_cachep = KMEM_CACHE(sigqueue, SLAB_PANIC);
+ }
 -- 
 2.14.1
