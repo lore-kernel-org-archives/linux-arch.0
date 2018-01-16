@@ -1,107 +1,84 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: [PATCH v3 07/10] include: Add new y2038 safe __kernel_timespec
-Date: Mon, 15 Jan 2018 18:18:15 -0800
-Message-ID: <20180116021818.24791-8-deepa.kernel@gmail.com>
-References: <20180116021818.24791-1-deepa.kernel@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180116021818.24791-1-deepa.kernel@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: tglx@linutronix.de, john.stultz@linaro.org
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [REGRESSION] testing/selftests/x86/ pkeys build failures
+Date: Tue, 16 Jan 2018 03:37:59 +0100
+Message-ID: <20180116023759.4xpgkc53qfbtmemb@gmail.com>
+References: <360ef254-48bc-aee6-70f9-858f773b8693@redhat.com>
+ <20180112125537.bdl376ziiaqp664o@gmail.com>
+ <063ba398-88e6-8650-2905-c378ee1fb8b2@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wr0-f195.google.com ([209.85.128.195]:36392 "EHLO
+        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750981AbeAPCiD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 21:38:03 -0500
+Content-Disposition: inline
+In-Reply-To: <063ba398-88e6-8650-2905-c378ee1fb8b2@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Florian Weimer <fweimer@redhat.com>
+Cc: Shuah Khan <shuahkh@osg.samsung.com>, Dave Hansen <dave.hansen@linux.intel.com>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, linux-x86_64@vger.kernel.org, Linux API <linux-api@vger.kernel.org>, x86@kernel.org, Dave Hansen <dave.hansen@intel.com>, Ram Pai <linuxram@us.ibm.com>
 
-The new struct __kernel_timespec is similar to current
-internal kernel struct timespec64 on 64 bit architecture.
-The compat structure however is similar to below on little
-endian systems (padding and tv_nsec are switched for big
-endian systems):
 
-typedef s32            compat_long_t;
-typedef s64            compat_kernel_time64_t;
+* Florian Weimer <fweimer@redhat.com> wrote:
 
-struct compat_kernel_timespec {
-       compat_kernel_time64_t  tv_sec;
-       compat_long_t           tv_nsec;
-       compat_long_t           padding;
-};
+> On 01/12/2018 01:55 PM, Ingo Molnar wrote:
+> > 
+> > * Florian Weimer <fweimer@redhat.com> wrote:
+> > 
+> > > This patch is based on the previous discussion (pkeys: Support setting
+> > > access rights for signal handlers):
+> > > 
+> > >    https://marc.info/?t=151285426000001
+> > > 
+> > > It aligns the signal semantics of the x86 implementation with the upcoming
+> > > POWER implementation, and defines a new flag, so that applications can
+> > > detect which semantics the kernel uses.
+> > > 
+> > > A change in this area is needed to make memory protection keys usable for
+> > > protecting the GOT in the dynamic linker.
+> > > 
+> > > (Feel free to replace the trigraphs in the commit message before committing,
+> > > or to remove the program altogether.)
+> > 
+> > Could you please send patches not as MIME attachments?
+> 
+> My mail infrastructure corrupts patches not sent as attachments, sorry.
 
-This allows for both the native and compat representations to
-be the same and syscalls using this type as part of their ABI
-can have a single entry point to both.
+Your headers suggest the following mail client:
 
-Note that the compat define is not included anywhere in the
-kernel explicitly to avoid confusion.
+  User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101
+        Thunderbird/52.5.0
 
-These types will be used by the new syscalls that will be
-introduced in the consequent patches.
-Most of the new syscalls are just an update to the existing
-native ones with this new type. Hence, put this new type under
-an ifdef so that the architectures can define CONFIG_64BIT_TIME
-when they are ready to handle this switch.
+Have you seen the suggestions in Documentation/process/email-clients.rst, which 
+lists a handful of Thunderbird tips:
 
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
----
- include/linux/time64.h                 | 10 +++++++++-
- include/uapi/asm-generic/posix_types.h |  1 +
- include/uapi/linux/time.h              |  7 +++++++
- 3 files changed, 17 insertions(+), 1 deletion(-)
+  Thunderbird (GUI)
+  *****************
 
-diff --git a/include/linux/time64.h b/include/linux/time64.h
-index 93d39499838e..0d96887ba4e0 100644
---- a/include/linux/time64.h
-+++ b/include/linux/time64.h
-@@ -2,12 +2,20 @@
- #ifndef _LINUX_TIME64_H
- #define _LINUX_TIME64_H
- 
--#include <uapi/linux/time.h>
- #include <linux/math64.h>
- 
- typedef __s64 time64_t;
- typedef __u64 timeu64_t;
- 
-+/* CONFIG_64BIT_TIME enables new 64 bit time_t syscalls in the compat path
-+ * and 32-bit emulation.
-+ */
-+#ifndef CONFIG_64BIT_TIME
-+#define __kernel_timespec timespec
-+#endif
-+
-+#include <uapi/linux/time.h>
-+
- #if __BITS_PER_LONG == 64
- /* this trick allows us to optimize out timespec64_to_timespec */
- # define timespec64 timespec
-diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
-index 5e6ea22bd525..f0733a26ebfc 100644
---- a/include/uapi/asm-generic/posix_types.h
-+++ b/include/uapi/asm-generic/posix_types.h
-@@ -87,6 +87,7 @@ typedef struct {
- typedef __kernel_long_t	__kernel_off_t;
- typedef long long	__kernel_loff_t;
- typedef __kernel_long_t	__kernel_time_t;
-+typedef long long __kernel_time64_t;
- typedef __kernel_long_t	__kernel_clock_t;
- typedef int		__kernel_timer_t;
- typedef int		__kernel_clockid_t;
-diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
-index 53f8dd84beb5..0ad4510884b0 100644
---- a/include/uapi/linux/time.h
-+++ b/include/uapi/linux/time.h
-@@ -42,6 +42,13 @@ struct itimerval {
- 	struct timeval it_value;	/* current value */
- };
- 
-+#ifndef __kernel_timespec
-+struct __kernel_timespec {
-+	__kernel_time64_t       tv_sec;                 /* seconds */
-+	long long               tv_nsec;                /* nanoseconds */
-+};
-+#endif
-+
- /*
-  * The IDs of the various system clocks (for POSIX.1b interval timers):
-  */
--- 
-2.14.1
+  Thunderbird is an Outlook clone that likes to mangle text, but there are ways
+  to coerce it into behaving.
+
+?
+
+> > Also, the protection keys testcase first need to be fixed, before we complicate
+> > them - for example on a pretty regular Ubuntu x86-64 installation they fail to
+> > build with the build errors attached further below.
+> 
+> I can fix things up so that they build on Fedora 26, Debian stretch, and Red
+> Hat Enterprise Linux 7.  Would that be sufficient?
+
+Yeah, I think so.
+
+> Fedora 23 is out of support and I'd prefer not invest any work into it.
+> 
+> Note that I find it strange to make this a precondition for even looking at
+> the patch.
+
+I wanted to try the patch to give review feedback, but found these annoyances. 
+It's customary to make new features dependent on the cleanliness of the underlying 
+code.
+
+Thanks,
+
+	Ingo
