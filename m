@@ -1,42 +1,158 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0074.outbound.protection.outlook.com ([104.47.34.74]:40360
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-co1nam03on0040.outbound.protection.outlook.com ([104.47.40.40]:59526
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1750790AbeAPIwp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 16 Jan 2018 03:52:45 -0500
-Subject: Re: consolidate swiotlb dma_map implementations
-References: <20180110080932.14157-1-hch@lst.de>
- <20180116075338.GB12693@infradead.org>
- <76e47666-3de1-68cc-07ad-003491d26ef9@gmail.com>
- <20180116082827.GA9211@lst.de>
-From: =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>
-Message-ID: <485e6f8b-ef22-0792-1acc-3fefe203040c@amd.com>
-Date: Tue, 16 Jan 2018 09:52:28 +0100
+        id S1751124AbeAPKMN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 16 Jan 2018 05:12:13 -0500
+Date: Tue, 16 Jan 2018 13:11:49 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH v5 00/30] ARM Scalable Vector Extension (SVE)
+Message-ID: <20180116101149.pyqbn3dkhnw5x2dv@yury-thinkpad>
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+ <20180108144905.qu5qbmaaglcgwvwq@yury-thinkpad>
+ <20180109165120.6ravt4stp3654374@yury-thinkpad>
+ <20180115172201.GW22781@e103592.cambridge.arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20180116082827.GA9211@lst.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Content-Language: en-US
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180115172201.GW22781@e103592.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, Christoph Hellwig <hch@infradead.org>, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Michal Simek <monstr@monstr.eu>, linux-ia64@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180116085228.unv2CyXhipw2XjlYOZhJ25wPLwZ9Tyt_a3pt9Dv16QM@z>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Okamoto Takayuki <tokamoto@jp.fujitsu.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, "H . J . Lu" <hjl.tools@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Will Deacon <will.deacon@arm.com>, Oleg Nesterov <oleg@redhat.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Alan Hayward <alan.hayward@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee@linaro.org>, kvmarm@lists.cs.columbia.edu, Christoffer Dall <christoffer.dall@linaro.org>, Michael Kerrisk <mtk.manpages@gmail.com>
+Message-ID: <20180116101149.ZKAA_or4muRh-oLqma5Cmzsb6GBLlsfBDGcygPMR0_M@z>
 
-Am 16.01.2018 um 09:28 schrieb Christoph Hellwig:
-> On Tue, Jan 16, 2018 at 09:22:52AM +0100, Christian König wrote:
->> Hi Konrad,
->>
->> can you send the first patch to Linus for inclusion in 4.15 if you haven't
->> already done so?
-> It's in the 4.16 queue with a cc to stable.  I guess we're ok with
-> a duplicate commit if we have to.
+On Mon, Jan 15, 2018 at 05:22:01PM +0000, Dave Martin wrote:
+> On Tue, Jan 09, 2018 at 07:51:20PM +0300, Yury Norov wrote:
+> > On Mon, Jan 08, 2018 at 05:49:05PM +0300, Yury Norov wrote:
+> > > On Tue, Oct 31, 2017 at 03:50:52PM +0000, Dave Martin wrote:
+> > > > This series implements Linux kernel support for the ARM Scalable Vector
+> > > > Extension (SVE). [1]  It supersedes the previous v3: see [3] for link
+> > > > and full cover letter.
+> > > > 
+> > > > This is a minor update to v4, but does contain a couple of important
+> > > > fixes.
+> > > > 
+> > > > As in previous postings, the last two patches (here 29-30) are still
+> > > > RFC and not proposed for merging at this time.
+> > > > 
+> > > > The patches apply on
+> > > > git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git
+> > > > for-next/core
+> > > > d7b1d22d3821 ("arm64: uapi: Remove PSR_Q_BIT")
+> > > > 
+> > > > To reduce spam, some people may not been copied on the entire series.
+> > > > For those who did not receive the whole series, it can be found in the
+> > > > linux-arm-kernel archive. [2]
+> > > > 
+> > > > See the individual patches for details of changes.
+> > > > 
+> > > > For reviewer convenience, a git tree is available. [4]
+> > > > 
+> > > > Since there are some changes against already-reviewed patches, I've also
+> > > > pushed an unsquashed fixes tree for people to take a look at if it
+> > > > helps. [5]
+> > > > 
+> > > > 
+> > > > Summary:
+> > > > 
+> > > >  * "regset: Add support for dynamically sized regsets" fixed to avoid
+> > > >    x86 breakage;
+> > > > 
+> > > >  * one trival arm64 patch added to add asmlinkage annotations, and a
+> > > >    corresponding minor change to the Core task context handling patch;
+> > > > 
+> > > >  * one new arm64 fix ("signal: Verify extra data is user-readable in
+> > > >    sys_rt_sigreturn") to ensure that access_ok() checks are done for the
+> > > >    whole extended signal frame, not just the base frame;
+> > > > 
+> > > >  * one minor fix to the SVE sigreturn code to return consistent
+> > > >    intermediate error values (semantic correctness, non-functional
+> > > >    change);
+> > > > 
+> > > >  * one minor change to call __copy_from_user() instead of
+> > > >    copy_from_user() in a situation where there is already an access_ok()
+> > > >    check;
+> > > > 
+> > > > 
+> > > > [1] ARM Scalable Vector Extension
+> > > > https://community.arm.com/groups/processors/blog/2016/08/22/technology-update-the-scalable-vector-extension-sve-for-the-armv8-a-architecture
+> > > > 
+> > > > [2] linux-arm-kernel October 2017 Archives by thread
+> > > > http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/thread.html
+> > > > 
+> > > > [3] [PATCH v4 00/28] ARM Scalable Vector Extension (SVE)
+> > > > http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/539414.html
+> > > > 
+> > > > [4] For review and testing only -- **do not pull**
+> > > >     (This branch has review changelogs which should not form part of
+> > > >     the final commits.)
+> > > > 
+> > > >     v5 series (this posting)
+> > > > 
+> > > >     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v5
+> > > >     git://linux-arm.org/linux-dm.git sve/v5
+> > > > 
+> > > > [5] For review and testing only -- **do not pull**
+> > > >     (This branch has review changelogs which should not form part of
+> > > >     the final commits.)
+> > > > 
+> > > >     v4 with unsquashed fixes
+> > > > 
+> > > >     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v4%2Bfixes
+> > > >     git://linux-arm.org/linux-dm.git sve/v4+fixes
+> > > 
+> > > Hi Dave,
+> > > 
+> > > During rebase of my ILP32 series on 4.15 kernel I found that 
+> > > ILP32 needs to be enabled with SVE support, like you do for 
+> > > LP64 in this series.
+> > > 
+> > > I did all rebase work on this draft branch:
+> > > https://github.com/norov/linux/tree/ilp32-4.15-rc7
+> > > 
+> > > But any ILP32 program I tried crash, and the message in dmesg looks
+> > > like this:
+> > > [   39.510667] CPU: 0 PID: 1857 Comm: mytime Not tainted 4.15.0-rc7-00028-g45e0659df4d9 #41
+> > > [   39.510712] Hardware name: linux,dummy-virt (DT)
+> > > [   39.510829] pstate: 00000000 (nzcv daif -PAN -UAO)
+> > > [   39.511101] pc : 0x33488e28
+> > > [   39.511125] lr : 0x33488e28
+> > > [   39.511138] sp : 00000000fffef670
+> > > [   39.511158] x29: 000000005a536c33 x28: 0000000000000000 
+> > > [   39.511211] x27: 0000000000000000 x26: 0000000000000000 
+> > > [   39.511235] x25: 0000000000000000 x24: 0000000000000000 
+> > > [   39.511257] x23: 0000000000466000 x22: 0000000000000000 
+> > > [   39.511278] x21: 0000000000000000 x20: 000000000047f2a8 
+> > > [   39.511300] x19: 0000000000000000 x18: 0000000000000001 
+> > > [   39.511321] x17: 0000000000001000 x16: 0000000000001030 
+> > > [   39.511342] x15: 0000000000554e47 x14: 0000000000000001 
+> > > [   39.511364] x13: 0000000000000004 x12: 000000000000003c 
+> > > [   39.511385] x11: 0000100000000000 x10: 0800000000000000 
+> > > [   39.511406] x9 : 0fffffffffffffff x8 : 000000000000007c 
+> > > [   39.511427] x7 : 0000000000000077 x6 : 0000000000000041 
+> > > [   39.511448] x5 : 0000000000000411 x4 : 00000000fbad2488 
+> > > [   39.511468] x3 : 0000000000000001 x2 : 0000000000497950 
+> > > [   39.511489] x1 : 0000000000497550 x0 : 0000000000000001
+> > 
+> > Hi Dave,
+> > 
+> > I fixed the crash. It was my local problem.
+> 
+> Ah, right :)
+> 
+> I'll take a look at your code anyway in case there's something
+> else one of us didn't think of.
 
-Yeah, while it's only a false positive warning it would be really nice 
-to have in 4.15.
+Thanks, Dave.
 
-It affects all drivers using TTM in the system and not just the two I'm 
-the maintainer of.
+This is the branch:
+https://github.com/norov/linux/tree/ilp32-4.15-rc7
 
-Regards,
-Christian.
+SVE-related changes are mostly in patches:
+arm64: ilp32: introduce ilp32-specific handlers for sigframe and ucontext
+arm64: signal32: move ilp32 and aarch32 common code to separated file
+arm64: signal: share lp64 signal structures and routines to ilp32
+arm64: ilp32: add sys_ilp32.c and a separate table (in entry.S) to use it
+
+Yury
