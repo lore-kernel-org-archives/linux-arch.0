@@ -1,103 +1,61 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 33/38] arm64: Implement thread_struct whitelist for
- hardened usercopy
-Date: Tue, 16 Jan 2018 12:33:34 +0000
-Message-ID: <20180116123332.GX22781@e103592.cambridge.arm.com>
-References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
- <1515636190-24061-34-git-send-email-keescook@chromium.org>
- <20180115122458.GI12608@e103592.cambridge.arm.com>
- <CAGXu5jLHb3BQ9U7g6suoVZwVeETiXiCRbxsprpLNiFxcjcWk1A@mail.gmail.com>
+From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Subject: Re: [PATCH v3 00/10] posix_clocks: Prepare syscalls for 64 bit time_t conversion
+Date: Tue, 16 Jan 2018 16:18:37 +0100
+Message-ID: <CAK8P3a2NjS2tTS0Jzrv2HoAg5Xz=DbOJD=0-JZi65_uGmKa8sA@mail.gmail.com>
+References: <20180116021818.24791-1-deepa.kernel@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CAGXu5jLHb3BQ9U7g6suoVZwVeETiXiCRbxsprpLNiFxcjcWk1A@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Mark Rutland <Mark.Rutland@arm.com>, Jan Kara <jack@suse.cz>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Rik van Riel <riel@redhat.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Christoph Lameter <cl@linux.com>, Ingo Molnar <mingo@kernel.org>, zijun_hu <zijun_hu@htc.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Laura Abbott <labbott@redhat.com>, David Windsor <dave@nullcore.net>, Marc Zyngier <Marc.Zyngier@arm.com>, Dave Kleikamp <dave.kleikamp@oracle.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradea>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20180116021818.24791-1-deepa.kernel-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Deepa Dinamani <deepa.kernel-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, John Stultz <john.stultz-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, y2038 Mailman List <y2038-cunTk1MwBs8s++Sfvej+rw@public.gmane.org>, Arnaldo Carvalho de Melo <acme-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Christian Borntraeger <borntraeger-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Chris Metcalf <cmetcalf-VPRAkNaXOzVWk0Htik3J/w@public.gmane.org>, cohuck-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>, devel-gWbeCf7V1WCQmaza687I9mD2FQJk+8+b@public.gmane.org, gerald.schaefer-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org, gregkh <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, Jan Hoeppner <hoeppner-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Julian
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 15, 2018 at 12:06:17PM -0800, Kees Cook wrote:
-> On Mon, Jan 15, 2018 at 4:24 AM, Dave P Martin <Dave.Martin@arm.com> wrote:
-> > On Thu, Jan 11, 2018 at 02:03:05AM +0000, Kees Cook wrote:
-> >> This whitelists the FPU register state portion of the thread_struct for
-> >> copying to userspace, instead of the default entire structure.
-> >>
-> >> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> >> Cc: Will Deacon <will.deacon@arm.com>
-> >> Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-> >> Cc: Ingo Molnar <mingo@kernel.org>
-> >> Cc: James Morse <james.morse@arm.com>
-> >> Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>
-> >> Cc: Dave Martin <Dave.Martin@arm.com>
-> >> Cc: zijun_hu <zijun_hu@htc.com>
-> >> Cc: linux-arm-kernel@lists.infradead.org
-> >> Signed-off-by: Kees Cook <keescook@chromium.org>
-> >> ---
-> >>  arch/arm64/Kconfig                 | 1 +
-> >>  arch/arm64/include/asm/processor.h | 8 ++++++++
-> >>  2 files changed, 9 insertions(+)
-> >>
-> >> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> >> index a93339f5178f..c84477e6a884 100644
-> >> --- a/arch/arm64/Kconfig
-> >> +++ b/arch/arm64/Kconfig
-> >> @@ -90,6 +90,7 @@ config ARM64
-> >>       select HAVE_ARCH_MMAP_RND_BITS
-> >>       select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
-> >>       select HAVE_ARCH_SECCOMP_FILTER
-> >> +     select HAVE_ARCH_THREAD_STRUCT_WHITELIST
-> >>       select HAVE_ARCH_TRACEHOOK
-> >>       select HAVE_ARCH_TRANSPARENT_HUGEPAGE
-> >>       select HAVE_ARCH_VMAP_STACK
-> >> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-> >> index 023cacb946c3..e58a5864ec89 100644
-> >> --- a/arch/arm64/include/asm/processor.h
-> >> +++ b/arch/arm64/include/asm/processor.h
-> >> @@ -113,6 +113,14 @@ struct thread_struct {
-> >>       struct debug_info       debug;          /* debugging */
-> >>  };
-> >>
-> >> +/* Whitelist the fpsimd_state for copying to userspace. */
-> >> +static inline void arch_thread_struct_whitelist(unsigned long *offset,
-> >> +                                             unsigned long *size)
-> >> +{
-> >> +     *offset = offsetof(struct thread_struct, fpsimd_state);
-> >> +     *size = sizeof(struct fpsimd_state);
-> >
-> > This should be fpsimd_state.user_fpsimd (fpsimd_state.cpu is important
-> > for correctly context switching and not supposed to be user-accessible.
-> > A user copy that encompasses that is definitely a bug).
-> 
-> So, I actually spent some more time looking at this due to the
-> comments from rmk on arm32, and I don't think any whitelist is needed
-> here at all. (i.e. it can be *offset = *size = 0) This is because all
-> the usercopying I could find uses static sizes or bounce buffers, both
-> of which bypass the dynamic-size hardened usercopy checks.
+On Tue, Jan 16, 2018 at 3:18 AM, Deepa Dinamani <deepa.kernel-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
+> The series is a preparation series for individual architectures
+> to use 64 bit time_t syscalls in compat and 32 bit emulation modes.
+>
+> This is a follow up to the series Arnd Bergmann posted:
+> https://sourceware.org/ml/libc-alpha/2015-05/msg00070.html [1]
+>
+> Big picture is as per the lwn article:
+> https://lwn.net/Articles/643234/ [2]
+>
+> The series is directed at converting posix clock syscalls:
+> clock_gettime, clock_settime, clock_getres and clock_nanosleep
+> to use a new data structure __kernel_timespec at syscall boundaries.
+> __kernel_timespec maintains 64 bit time_t across all execution modes.
+>
+> vdso will be handled as part of each architecture when they enable
+> support for 64 bit time_t.
+>
+> The compat syscalls are repurposed to provide backward compatibility
+> by using them as native syscalls as well for 32 bit architectures.
+> They will continue to use timespec at syscall boundaries.
+>
+> CONFIG_64_BIT_TIME controls whether the syscalls use __kernel_timespec
+> or timespec at syscall boundaries.
+>
+> The series does the following:
+> 1. Enable compat syscalls on 32 bit architectures.
+> 2. Add a new __kernel_timespec type to be used as the data structure
+>    for all the new syscalls.
+> 3. Add new config CONFIG_64BIT_TIME(intead of the CONFIG_COMPAT_TIME in
+>    [1] and [2] to switch to new definition of __kernel_timespec. It is
+>    the same as struct timespec otherwise.
+> 4. Add new CONFIG_32BIT_TIME to conditionally compile compat syscalls.
 
-Why do static sizes bypass these checks?  Just for efficiency?
+This looks all good to me. I think we should have this included in linux-next as
+soon as possible, but this probably means after -rc1 at the current point, since
+it's a bit late for 4.16.
 
-> I've been running some arm64 builds now with this change, and I
-> haven't tripped over any problems yet...
+I'll pick up the series into my randconfig build tree again to find
+possible build
+time regressions. Otherwise the way I'd stage it out is to put it into my y2038
+branch after -rc1 and then send a pull request to Thomas for the tip tree
+a week later. It seems unlikely that any major problems come up, so we could
+plan to address additional requests for changes by adding commits on top
+once it's in linux-next.
 
-Sounds fair enough for now.
-
-I haven't ruled out getting rid of the bounce buffers for FPSIMD
-copy-in/out.  They add stack and runtime overhead, and don't seem
-to bring benefits.
-
-Bounce buffers enable copies to succeed or fail atomically, rather
-than being half-done and then faulting.  This feels cleaner, but
-In practice this doesn't seem to matter in real situations.
-
-For SVE there are no bounce buffers, because the register data
-can be unreasonably large (at least in theory).
-
-Cheers
----Dave
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+       Arnd
