@@ -1,7 +1,7 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 21/22] signal: Remove the code to clear siginfo before calling copy_siginfo_from_user32
-Date: Mon, 15 Jan 2018 18:40:08 -0600
-Message-ID: <20180116004009.31036-21-ebiederm@xmission.com>
+Subject: [PATCH 03/22] signal: Document glibc's si_code of SI_ASYNCNL
+Date: Mon, 15 Jan 2018 18:39:50 -0600
+Message-ID: <20180116004009.31036-3-ebiederm@xmission.com>
 References: <87k1wimybi.fsf_-_@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87k1wimybi.fsf_-_@xmission.com>
@@ -10,47 +10,27 @@ To: linux-kernel@vger.kernel.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
 List-Id: linux-arch.vger.kernel.org
 
-The new unified copy_siginfo_from_user32 takes care of this.
+The header uapi/asm-generic/siginfo.h appears to the the repository of
+all of these definitions in linux so collect up glibcs additions as
+well.  Just to prevent someone from accidentally creating a conflict
+in the future.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- kernel/ptrace.c | 1 -
- kernel/signal.c | 4 ++--
- 2 files changed, 2 insertions(+), 3 deletions(-)
+ include/uapi/asm-generic/siginfo.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 84b1367935e4..ec4365da9be8 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -1226,7 +1226,6 @@ int compat_ptrace_request(struct task_struct *child, compat_long_t request,
- 		break;
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index 7158421ac911..2d3348afb2f0 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -165,6 +165,7 @@ typedef struct siginfo {
+ #define SI_SIGIO	-5		/* sent by queued SIGIO */
+ #define SI_TKILL	-6		/* sent by tkill system call */
+ #define SI_DETHREAD	-7		/* sent by execve() killing subsidiary threads */
++#define SI_ASYNCNL	-60		/* sent by glibc async name lookup completion */
  
- 	case PTRACE_SETSIGINFO:
--		memset(&siginfo, 0, sizeof siginfo);
- 		if (copy_siginfo_from_user32(
- 			    &siginfo, (struct compat_siginfo __user *) datap))
- 			ret = -EFAULT;
-diff --git a/kernel/signal.c b/kernel/signal.c
-index 5211b1b57163..bebe44265b8b 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -3155,7 +3155,7 @@ COMPAT_SYSCALL_DEFINE3(rt_sigqueueinfo,
- 			int, sig,
- 			struct compat_siginfo __user *, uinfo)
- {
--	siginfo_t info = {};
-+	siginfo_t info;
- 	int ret = copy_siginfo_from_user32(&info, uinfo);
- 	if (unlikely(ret))
- 		return ret;
-@@ -3199,7 +3199,7 @@ COMPAT_SYSCALL_DEFINE4(rt_tgsigqueueinfo,
- 			int, sig,
- 			struct compat_siginfo __user *, uinfo)
- {
--	siginfo_t info = {};
-+	siginfo_t info;
- 
- 	if (copy_siginfo_from_user32(&info, uinfo))
- 		return -EFAULT;
+ #define SI_FROMUSER(siptr)	((siptr)->si_code <= 0)
+ #define SI_FROMKERNEL(siptr)	((siptr)->si_code > 0)
 -- 
 2.14.1
