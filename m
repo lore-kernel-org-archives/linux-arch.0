@@ -1,42 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:46805 "EHLO
+Received: from out01.mta.xmission.com ([166.70.13.231]:46802 "EHLO
         out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751450AbeAPAnj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 19:43:39 -0500
+        with ESMTP id S1751367AbeAPAni (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 19:43:38 -0500
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Mon, 15 Jan 2018 18:40:01 -0600
-Message-ID: <20180116004009.31036-14-ebiederm@xmission.com>
+Date: Mon, 15 Jan 2018 18:40:08 -0600
+Message-ID: <20180116004009.31036-21-ebiederm@xmission.com>
 In-Reply-To: <87k1wimybi.fsf_-_@xmission.com>
 References: <87k1wimybi.fsf_-_@xmission.com>
-Subject: [PATCH 14/22] signal/powerpc: Remove redefinition of NSIGTRAP on powerpc
+Subject: [PATCH 21/22] signal: Remove the code to clear siginfo before calling copy_siginfo_from_user32
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180116004001.K85CHKL2KdTuqZbQm9TdLhOPwyndi2v5HbgTAykt8XU@z>
+Message-ID: <20180116004008._4S1gPpXxxaNbFcjUj1IHE9JX7JkgJbyEcHyzHsaIFk@z>
 
-NSIGTRAP is 4 in the generic siginfo and powerpc just undefines
-NSGTRAP and redefine it as 4.  That accomplishes nothing so remove
-the duplication.
+The new unified copy_siginfo_from_user32 takes care of this.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/powerpc/include/uapi/asm/siginfo.h | 3 ---
- 1 file changed, 3 deletions(-)
+ kernel/ptrace.c | 1 -
+ kernel/signal.c | 4 ++--
+ 2 files changed, 2 insertions(+), 3 deletions(-)
 
-diff --git a/arch/powerpc/include/uapi/asm/siginfo.h b/arch/powerpc/include/uapi/asm/siginfo.h
-index 444ca6c9989a..9f142451a01f 100644
---- a/arch/powerpc/include/uapi/asm/siginfo.h
-+++ b/arch/powerpc/include/uapi/asm/siginfo.h
-@@ -15,9 +15,6 @@
+diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+index 84b1367935e4..ec4365da9be8 100644
+--- a/kernel/ptrace.c
++++ b/kernel/ptrace.c
+@@ -1226,7 +1226,6 @@ int compat_ptrace_request(struct task_struct *child, compat_long_t request,
+ 		break;
  
- #include <asm-generic/siginfo.h>
+ 	case PTRACE_SETSIGINFO:
+-		memset(&siginfo, 0, sizeof siginfo);
+ 		if (copy_siginfo_from_user32(
+ 			    &siginfo, (struct compat_siginfo __user *) datap))
+ 			ret = -EFAULT;
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 5211b1b57163..bebe44265b8b 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -3155,7 +3155,7 @@ COMPAT_SYSCALL_DEFINE3(rt_sigqueueinfo,
+ 			int, sig,
+ 			struct compat_siginfo __user *, uinfo)
+ {
+-	siginfo_t info = {};
++	siginfo_t info;
+ 	int ret = copy_siginfo_from_user32(&info, uinfo);
+ 	if (unlikely(ret))
+ 		return ret;
+@@ -3199,7 +3199,7 @@ COMPAT_SYSCALL_DEFINE4(rt_tgsigqueueinfo,
+ 			int, sig,
+ 			struct compat_siginfo __user *, uinfo)
+ {
+-	siginfo_t info = {};
++	siginfo_t info;
  
--#undef NSIGTRAP
--#define NSIGTRAP	4
--
- /*
-  * SIGFPE si_codes
-  */
+ 	if (copy_siginfo_from_user32(&info, uinfo))
+ 		return -EFAULT;
 -- 
 2.14.1
