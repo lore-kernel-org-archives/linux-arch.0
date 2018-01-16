@@ -1,68 +1,46 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [PATCH for 4.16 08/10] membarrier: x86: Provide core
- serializing command (v3)
-Date: Tue, 16 Jan 2018 20:41:09 +0000 (UTC)
-Message-ID: <84882000.4019.1516135269345.JavaMail.zimbra@efficios.com>
-References: <20180115191104.12437-1-mathieu.desnoyers@efficios.com> <20180115191104.12437-9-mathieu.desnoyers@efficios.com> <alpine.DEB.2.20.1801161928110.2366@nanos> <1443621141.3981.1516130533202.JavaMail.zimbra@efficios.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v2 01/19] Documentation: document array_ptr
+Date: Tue, 16 Jan 2018 13:01:09 -0800
+Message-ID: <CAGXu5jKpJVAccE=Ch1=2Xx8ig-dq592gkorPNjzhQ044ORyAvw@mail.gmail.com>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151571799008.27429.12325141216769795517.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:33696 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751071AbeAPUlF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jan 2018 15:41:05 -0500
-In-Reply-To: <1443621141.3981.1516130533202.JavaMail.zimbra@efficios.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, "Russell King, ARM Linux" <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <151571799008.27429.12325141216769795517.stgit@dwillia2-desk3.amr.corp.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dan Williams <dan.j.williams@intel.com>, Mark Rutland <mark.rutland@arm.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Jonathan Corbet <corbet@lwn.net>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
+List-Id: linux-arch.vger.kernel.org
 
------ On Jan 16, 2018, at 2:22 PM, Mathieu Desnoyers mathieu.desnoyers@efficios.com wrote:
+On Thu, Jan 11, 2018 at 4:46 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> From: Mark Rutland <mark.rutland@arm.com>
+>
+> Document the rationale and usage of the new array_ptr() helper.
+>
+> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> Cc: Dan Williams <dan.j.williams@intel.com>
+> Cc: Jonathan Corbet <corbet@lwn.net>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+> ---
+>  Documentation/speculation.txt |  142 +++++++++++++++++++++++++++++++++++++++++
+> [...]
+> +NULL is returned. Additionally, array_ptr() an out-of-bounds poitner is
+> +not propagated to code which is speculatively executed.
 
-> ----- On Jan 16, 2018, at 1:29 PM, Thomas Gleixner tglx@linutronix.de wrote:
-> 
->> On Mon, 15 Jan 2018, Mathieu Desnoyers wrote:
->> 
->>> There are two places where core serialization is needed by membarrier:
->>> 
->>> 1) When returning from the membarrier IPI,
->>> 2) After scheduler updates curr to a thread with a different mm, before
->>>    going back to user-space, since the curr->mm is used by membarrier to
->>>    check whether it needs to send an IPI to that CPU.
->> 
->> This wants to be split into x86 and core changes. Ideally you make the core
->> changes before the previous patch and add the empty inline into
->> linux/processor.h....
-> 
-> Good point, done. The first commit introducing the new command now also
-> introduces the generic stuff moved from the x86 patches.
+I think this meant to say:
 
-Scratch this: it's cleaner if I add a separate generic patch to introduce
-just the empty inline into linux/processor.h and the
-ARCH_HAS_SYNC_CORE_BEFORE_USERMODE in init/Kconfig.
+Additionally, array_ptr() of an out-of-bounds pointer is
+not propagated to code which is speculatively executed.
 
-Thanks,
+Other than that:
 
-Mathieu
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-
-> 
-> Thanks,
-> 
-> Mathieu
-> 
->> 
->> Thanks,
->> 
->> 	tglx
-> 
-> --
-> Mathieu Desnoyers
-> EfficiOS Inc.
-> http://www.efficios.com
+-Kees
 
 -- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+Kees Cook
+Pixel Security
