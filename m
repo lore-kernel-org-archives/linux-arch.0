@@ -1,40 +1,152 @@
-From: =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig-5C7GfCeVMHo@public.gmane.org>
-Subject: Re: consolidate swiotlb dma_map implementations
-Date: Tue, 16 Jan 2018 09:52:28 +0100
-Message-ID: <485e6f8b-ef22-0792-1acc-3fefe203040c@amd.com>
-References: <20180110080932.14157-1-hch@lst.de>
-	<20180116075338.GB12693@infradead.org>
-	<76e47666-3de1-68cc-07ad-003491d26ef9@gmail.com>
-	<20180116082827.GA9211@lst.de>
+From: Yury Norov <ynorov-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
+Subject: Re: [PATCH v5 00/30] ARM Scalable Vector Extension (SVE)
+Date: Tue, 16 Jan 2018 13:11:49 +0300
+Message-ID: <20180116101149.pyqbn3dkhnw5x2dv@yury-thinkpad>
+References: <1509465082-30427-1-git-send-email-Dave.Martin@arm.com>
+ <20180108144905.qu5qbmaaglcgwvwq@yury-thinkpad>
+ <20180109165120.6ravt4stp3654374@yury-thinkpad>
+ <20180115172201.GW22781@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; Format="flowed"
-Content-Transfer-Encoding: base64
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20180116082827.GA9211-jcswGhMUV9g@public.gmane.org>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Konrad Rzeszutek Wilk <konrad-Gq0aWv8utHQdnm+yROfE0A@public.gmane.org>, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20180115172201.GW22781-M5GwZQ6tE7x5pKCnmE3YQBJ8xKzm50AiAL8bYrjMMd8@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
+Cc: linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Okamoto Takayuki <tokamoto-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, libc-alpha-9JcytcrH/bA+uJoB2kUjGw@public.gmane.org, Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Szabolcs Nagy <szabolcs.nagy-5wv7dgnIgG8@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, "H . J . Lu" <hjl.tools-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Dmitry Safonov <dsafonov-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Alan Hayward <alan.hayward-5wv7dgnIgG8@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Alex =?iso-8859-1?Q?Benn=E9e?= <alex.bennee-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, kvmarm-FPEHb7Xf0XXUo1n7N8X6UoWGPAHP3yOg@public.gmane.org, Ch
 List-Id: linux-arch.vger.kernel.org
 
-QW0gMTYuMDEuMjAxOCB1bSAwOToyOCBzY2hyaWViIENocmlzdG9waCBIZWxsd2lnOgo+IE9uIFR1
-ZSwgSmFuIDE2LCAyMDE4IGF0IDA5OjIyOjUyQU0gKzAxMDAsIENocmlzdGlhbiBLw7ZuaWcgd3Jv
-dGU6Cj4+IEhpIEtvbnJhZCwKPj4KPj4gY2FuIHlvdSBzZW5kIHRoZSBmaXJzdCBwYXRjaCB0byBM
-aW51cyBmb3IgaW5jbHVzaW9uIGluIDQuMTUgaWYgeW91IGhhdmVuJ3QKPj4gYWxyZWFkeSBkb25l
-IHNvPwo+IEl0J3MgaW4gdGhlIDQuMTYgcXVldWUgd2l0aCBhIGNjIHRvIHN0YWJsZS4gIEkgZ3Vl
-c3Mgd2UncmUgb2sgd2l0aAo+IGEgZHVwbGljYXRlIGNvbW1pdCBpZiB3ZSBoYXZlIHRvLgoKWWVh
-aCwgd2hpbGUgaXQncyBvbmx5IGEgZmFsc2UgcG9zaXRpdmUgd2FybmluZyBpdCB3b3VsZCBiZSBy
-ZWFsbHkgbmljZSAKdG8gaGF2ZSBpbiA0LjE1LgoKSXQgYWZmZWN0cyBhbGwgZHJpdmVycyB1c2lu
-ZyBUVE0gaW4gdGhlIHN5c3RlbSBhbmQgbm90IGp1c3QgdGhlIHR3byBJJ20gCnRoZSBtYWludGFp
-bmVyIG9mLgoKUmVnYXJkcywKQ2hyaXN0aWFuLgpfX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fXwppb21tdSBtYWlsaW5nIGxpc3QKaW9tbXVAbGlzdHMubGludXgt
-Zm91bmRhdGlvbi5vcmcKaHR0cHM6Ly9saXN0cy5saW51eGZvdW5kYXRpb24ub3JnL21haWxtYW4v
-bGlzdGluZm8vaW9tbXU=
+On Mon, Jan 15, 2018 at 05:22:01PM +0000, Dave Martin wrote:
+> On Tue, Jan 09, 2018 at 07:51:20PM +0300, Yury Norov wrote:
+> > On Mon, Jan 08, 2018 at 05:49:05PM +0300, Yury Norov wrote:
+> > > On Tue, Oct 31, 2017 at 03:50:52PM +0000, Dave Martin wrote:
+> > > > This series implements Linux kernel support for the ARM Scalable Vector
+> > > > Extension (SVE). [1]  It supersedes the previous v3: see [3] for link
+> > > > and full cover letter.
+> > > > 
+> > > > This is a minor update to v4, but does contain a couple of important
+> > > > fixes.
+> > > > 
+> > > > As in previous postings, the last two patches (here 29-30) are still
+> > > > RFC and not proposed for merging at this time.
+> > > > 
+> > > > The patches apply on
+> > > > git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git
+> > > > for-next/core
+> > > > d7b1d22d3821 ("arm64: uapi: Remove PSR_Q_BIT")
+> > > > 
+> > > > To reduce spam, some people may not been copied on the entire series.
+> > > > For those who did not receive the whole series, it can be found in the
+> > > > linux-arm-kernel archive. [2]
+> > > > 
+> > > > See the individual patches for details of changes.
+> > > > 
+> > > > For reviewer convenience, a git tree is available. [4]
+> > > > 
+> > > > Since there are some changes against already-reviewed patches, I've also
+> > > > pushed an unsquashed fixes tree for people to take a look at if it
+> > > > helps. [5]
+> > > > 
+> > > > 
+> > > > Summary:
+> > > > 
+> > > >  * "regset: Add support for dynamically sized regsets" fixed to avoid
+> > > >    x86 breakage;
+> > > > 
+> > > >  * one trival arm64 patch added to add asmlinkage annotations, and a
+> > > >    corresponding minor change to the Core task context handling patch;
+> > > > 
+> > > >  * one new arm64 fix ("signal: Verify extra data is user-readable in
+> > > >    sys_rt_sigreturn") to ensure that access_ok() checks are done for the
+> > > >    whole extended signal frame, not just the base frame;
+> > > > 
+> > > >  * one minor fix to the SVE sigreturn code to return consistent
+> > > >    intermediate error values (semantic correctness, non-functional
+> > > >    change);
+> > > > 
+> > > >  * one minor change to call __copy_from_user() instead of
+> > > >    copy_from_user() in a situation where there is already an access_ok()
+> > > >    check;
+> > > > 
+> > > > 
+> > > > [1] ARM Scalable Vector Extension
+> > > > https://community.arm.com/groups/processors/blog/2016/08/22/technology-update-the-scalable-vector-extension-sve-for-the-armv8-a-architecture
+> > > > 
+> > > > [2] linux-arm-kernel October 2017 Archives by thread
+> > > > http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/thread.html
+> > > > 
+> > > > [3] [PATCH v4 00/28] ARM Scalable Vector Extension (SVE)
+> > > > http://lists.infradead.org/pipermail/linux-arm-kernel/2017-October/539414.html
+> > > > 
+> > > > [4] For review and testing only -- **do not pull**
+> > > >     (This branch has review changelogs which should not form part of
+> > > >     the final commits.)
+> > > > 
+> > > >     v5 series (this posting)
+> > > > 
+> > > >     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v5
+> > > >     git://linux-arm.org/linux-dm.git sve/v5
+> > > > 
+> > > > [5] For review and testing only -- **do not pull**
+> > > >     (This branch has review changelogs which should not form part of
+> > > >     the final commits.)
+> > > > 
+> > > >     v4 with unsquashed fixes
+> > > > 
+> > > >     http://linux-arm.org/git?p=linux-dm.git;a=shortlog;h=refs/heads/sve/v4%2Bfixes
+> > > >     git://linux-arm.org/linux-dm.git sve/v4+fixes
+> > > 
+> > > Hi Dave,
+> > > 
+> > > During rebase of my ILP32 series on 4.15 kernel I found that 
+> > > ILP32 needs to be enabled with SVE support, like you do for 
+> > > LP64 in this series.
+> > > 
+> > > I did all rebase work on this draft branch:
+> > > https://github.com/norov/linux/tree/ilp32-4.15-rc7
+> > > 
+> > > But any ILP32 program I tried crash, and the message in dmesg looks
+> > > like this:
+> > > [   39.510667] CPU: 0 PID: 1857 Comm: mytime Not tainted 4.15.0-rc7-00028-g45e0659df4d9 #41
+> > > [   39.510712] Hardware name: linux,dummy-virt (DT)
+> > > [   39.510829] pstate: 00000000 (nzcv daif -PAN -UAO)
+> > > [   39.511101] pc : 0x33488e28
+> > > [   39.511125] lr : 0x33488e28
+> > > [   39.511138] sp : 00000000fffef670
+> > > [   39.511158] x29: 000000005a536c33 x28: 0000000000000000 
+> > > [   39.511211] x27: 0000000000000000 x26: 0000000000000000 
+> > > [   39.511235] x25: 0000000000000000 x24: 0000000000000000 
+> > > [   39.511257] x23: 0000000000466000 x22: 0000000000000000 
+> > > [   39.511278] x21: 0000000000000000 x20: 000000000047f2a8 
+> > > [   39.511300] x19: 0000000000000000 x18: 0000000000000001 
+> > > [   39.511321] x17: 0000000000001000 x16: 0000000000001030 
+> > > [   39.511342] x15: 0000000000554e47 x14: 0000000000000001 
+> > > [   39.511364] x13: 0000000000000004 x12: 000000000000003c 
+> > > [   39.511385] x11: 0000100000000000 x10: 0800000000000000 
+> > > [   39.511406] x9 : 0fffffffffffffff x8 : 000000000000007c 
+> > > [   39.511427] x7 : 0000000000000077 x6 : 0000000000000041 
+> > > [   39.511448] x5 : 0000000000000411 x4 : 00000000fbad2488 
+> > > [   39.511468] x3 : 0000000000000001 x2 : 0000000000497950 
+> > > [   39.511489] x1 : 0000000000497550 x0 : 0000000000000001
+> > 
+> > Hi Dave,
+> > 
+> > I fixed the crash. It was my local problem.
+> 
+> Ah, right :)
+> 
+> I'll take a look at your code anyway in case there's something
+> else one of us didn't think of.
+
+Thanks, Dave.
+
+This is the branch:
+https://github.com/norov/linux/tree/ilp32-4.15-rc7
+
+SVE-related changes are mostly in patches:
+arm64: ilp32: introduce ilp32-specific handlers for sigframe and ucontext
+arm64: signal32: move ilp32 and aarch32 common code to separated file
+arm64: signal: share lp64 signal structures and routines to ilp32
+arm64: ilp32: add sys_ilp32.c and a separate table (in entry.S) to use it
+
+Yury
