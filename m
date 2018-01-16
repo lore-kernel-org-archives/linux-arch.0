@@ -1,151 +1,102 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 09/22] signal/mips: switch mips to generic siginfo
-Date: Mon, 15 Jan 2018 18:39:56 -0600
-Message-ID: <20180116004009.31036-9-ebiederm@xmission.com>
+Subject: [PATCH 10/22] signal: Remove unnecessary ifdefs now that there is only one struct siginfo
+Date: Mon, 15 Jan 2018 18:39:57 -0600
+Message-ID: <20180116004009.31036-10-ebiederm@xmission.com>
 References: <87k1wimybi.fsf_-_@xmission.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87k1wimybi.fsf_-_@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W . Biederman" <ebiederm@xmission.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+Remove HAVE_ARCH_SIGINFO_T
+Remove __ARCH_SIGSYS
 
-... having taught the latter that si_errno and si_code might be
-swapped.
-
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
-Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/mips/include/uapi/asm/siginfo.h | 86 +-----------------------------------
- include/uapi/asm-generic/siginfo.h   |  5 +++
- 2 files changed, 6 insertions(+), 85 deletions(-)
+ include/linux/signal.h             | 2 --
+ include/uapi/asm-generic/siginfo.h | 8 --------
+ kernel/signal.c                    | 4 ----
+ 3 files changed, 14 deletions(-)
 
-diff --git a/arch/mips/include/uapi/asm/siginfo.h b/arch/mips/include/uapi/asm/siginfo.h
-index f17d8163dec6..262504bd59a5 100644
---- a/arch/mips/include/uapi/asm/siginfo.h
-+++ b/arch/mips/include/uapi/asm/siginfo.h
-@@ -14,8 +14,6 @@
- #define __ARCH_SIGEV_PREAMBLE_SIZE (sizeof(long) + 2*sizeof(int))
- #undef __ARCH_SI_TRAPNO /* exception code needs to fill this ...  */
- 
--#define HAVE_ARCH_SIGINFO_T
--
- /*
-  * Careful to keep union _sifields from shifting ...
-  */
-@@ -27,92 +25,10 @@
- #error _MIPS_SZLONG neither 32 nor 64
- #endif
- 
--#define __ARCH_SIGSYS
-+#define __ARCH_HAS_SWAPPED_SIGINFO
- 
- #include <asm-generic/siginfo.h>
- 
--/* We can't use generic siginfo_t, because our si_code and si_errno are swapped */
--typedef struct siginfo {
--	int si_signo;
--	int si_code;
--	int si_errno;
--	int __pad0[SI_MAX_SIZE / sizeof(int) - SI_PAD_SIZE - 3];
--
--	union {
--		int _pad[SI_PAD_SIZE];
--
--		/* kill() */
--		struct {
--			__kernel_pid_t _pid;	/* sender's pid */
--			__ARCH_SI_UID_T _uid;	/* sender's uid */
--		} _kill;
--
--		/* POSIX.1b timers */
--		struct {
--			__kernel_timer_t _tid;	/* timer id */
--			int _overrun;		/* overrun count */
--			char _pad[sizeof( __ARCH_SI_UID_T) - sizeof(int)];
--			sigval_t _sigval;	/* same as below */
--			int _sys_private;	/* not to be passed to user */
--		} _timer;
--
--		/* POSIX.1b signals */
--		struct {
--			__kernel_pid_t _pid;	/* sender's pid */
--			__ARCH_SI_UID_T _uid;	/* sender's uid */
--			sigval_t _sigval;
--		} _rt;
--
--		/* SIGCHLD */
--		struct {
--			__kernel_pid_t _pid;	/* which child */
--			__ARCH_SI_UID_T _uid;	/* sender's uid */
--			int _status;		/* exit code */
--			__kernel_clock_t _utime;
--			__kernel_clock_t _stime;
--		} _sigchld;
--
--		/* IRIX SIGCHLD */
--		struct {
--			__kernel_pid_t _pid;	/* which child */
--			__kernel_clock_t _utime;
--			int _status;		/* exit code */
--			__kernel_clock_t _stime;
--		} _irix_sigchld;
--
--		/* SIGILL, SIGFPE, SIGSEGV, SIGBUS */
--		struct {
--			void __user *_addr; /* faulting insn/memory ref. */
--#ifdef __ARCH_SI_TRAPNO
--			int _trapno;	/* TRAP # which caused the signal */
+diff --git a/include/linux/signal.h b/include/linux/signal.h
+index 87abf0c29ed7..a9bc7e1b077e 100644
+--- a/include/linux/signal.h
++++ b/include/linux/signal.h
+@@ -30,9 +30,7 @@ enum siginfo_layout {
+ 	SIL_FAULT,
+ 	SIL_CHLD,
+ 	SIL_RT,
+-#ifdef __ARCH_SIGSYS
+ 	SIL_SYS,
 -#endif
--			short _addr_lsb;
--			union {
--				/* used when si_code=SEGV_BNDERR */
--				struct {
--					void __user *_lower;
--					void __user *_upper;
--				} _addr_bnd;
--				/* used when si_code=SEGV_PKUERR */
--				__u32 _pkey;
--			};
--		} _sigfault;
--
--		/* SIGPOLL, SIGXFSZ (To do ...)	 */
--		struct {
--			__ARCH_SI_BAND_T _band; /* POLL_IN, POLL_OUT, POLL_MSG */
--			int _fd;
--		} _sigpoll;
--
--		/* SIGSYS */
--		struct {
--			void __user *_call_addr; /* calling user insn */
--			int _syscall;	/* triggering system call number */
--			unsigned int _arch;	/* AUDIT_ARCH_* of syscall */
--		} _sigsys;
--	} _sifields;
--} siginfo_t;
--
- /*
-  * si_code values
-  * Again these have been chosen to be IRIX compatible.
+ };
+ 
+ enum siginfo_layout siginfo_layout(int sig, int si_code);
 diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index 1555805c5ac8..00829f74dcb6 100644
+index 00829f74dcb6..a650d252de0a 100644
 --- a/include/uapi/asm-generic/siginfo.h
 +++ b/include/uapi/asm-generic/siginfo.h
-@@ -48,8 +48,13 @@ typedef union sigval {
+@@ -44,8 +44,6 @@ typedef union sigval {
+ #define __ARCH_SI_ATTRIBUTES
+ #endif
  
+-#ifndef HAVE_ARCH_SIGINFO_T
+-
  typedef struct siginfo {
  	int si_signo;
-+#ifndef __ARCH_HAS_SWAPPED_SIGINFO
- 	int si_errno;
- 	int si_code;
-+#else
-+	int si_code;
-+	int si_errno;
-+#endif
+ #ifndef __ARCH_HAS_SWAPPED_SIGINFO
+@@ -128,10 +126,6 @@ typedef struct siginfo {
+ 	} _sifields;
+ } __ARCH_SI_ATTRIBUTES siginfo_t;
  
- 	union {
- 		int _pad[SI_PAD_SIZE];
+-/* If the arch shares siginfo, then it has SIGSYS. */
+-#define __ARCH_SIGSYS
+-#endif
+-
+ /*
+  * How these fields are to be accessed.
+  */
+@@ -156,11 +150,9 @@ typedef struct siginfo {
+ #define si_pkey		_sifields._sigfault._pkey
+ #define si_band		_sifields._sigpoll._band
+ #define si_fd		_sifields._sigpoll._fd
+-#ifdef __ARCH_SIGSYS
+ #define si_call_addr	_sifields._sigsys._call_addr
+ #define si_syscall	_sifields._sigsys._syscall
+ #define si_arch		_sifields._sigsys._arch
+-#endif
+ 
+ /*
+  * si_code values
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 62c642899290..47c87b1d0b8a 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -2697,9 +2697,7 @@ enum siginfo_layout siginfo_layout(int sig, int si_code)
+ #endif
+ 			[SIGCHLD] = { NSIGCHLD, SIL_CHLD },
+ 			[SIGPOLL] = { NSIGPOLL, SIL_POLL },
+-#ifdef __ARCH_SIGSYS
+ 			[SIGSYS]  = { NSIGSYS,  SIL_SYS },
+-#endif
+ 		};
+ 		if ((sig < ARRAY_SIZE(filter)) && (si_code <= filter[sig].limit))
+ 			layout = filter[sig].layout;
+@@ -2804,13 +2802,11 @@ int copy_siginfo_to_user(siginfo_t __user *to, const siginfo_t *from)
+ 		err |= __put_user(from->si_uid, &to->si_uid);
+ 		err |= __put_user(from->si_ptr, &to->si_ptr);
+ 		break;
+-#ifdef __ARCH_SIGSYS
+ 	case SIL_SYS:
+ 		err |= __put_user(from->si_call_addr, &to->si_call_addr);
+ 		err |= __put_user(from->si_syscall, &to->si_syscall);
+ 		err |= __put_user(from->si_arch, &to->si_arch);
+ 		break;
+-#endif
+ 	}
+ 	return err;
+ }
 -- 
 2.14.1
