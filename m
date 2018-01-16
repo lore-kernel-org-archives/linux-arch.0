@@ -1,61 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:46818 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751477AbeAPAnl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 19:43:41 -0500
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Mon, 15 Jan 2018 18:40:04 -0600
-Message-ID: <20180116004009.31036-17-ebiederm@xmission.com>
-In-Reply-To: <87k1wimybi.fsf_-_@xmission.com>
-References: <87k1wimybi.fsf_-_@xmission.com>
-Subject: [PATCH 17/22] signal/tile: Move the tile specific si_codes to asm-generic/siginfo.h
+Received: from mail-pl0-f67.google.com ([209.85.160.67]:42739 "EHLO
+        mail-pl0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751483AbeAPCTI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 21:19:08 -0500
+From: Deepa Dinamani <deepa.kernel@gmail.com>
+Subject: [PATCH v3 07/10] include: Add new y2038 safe __kernel_timespec
+Date: Mon, 15 Jan 2018 18:18:15 -0800
+Message-ID: <20180116021818.24791-8-deepa.kernel@gmail.com>
+In-Reply-To: <20180116021818.24791-1-deepa.kernel@gmail.com>
+References: <20180116021818.24791-1-deepa.kernel@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180116004004.ssIUnnlt-Ih3cL_X8I1gVH2LQh3VnQI7b2SQ7CyPG7Y@z>
+To: tglx@linutronix.de, john.stultz@linaro.org
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, y2038@lists.linaro.org, linux-arch@vger.kernel.org
+Message-ID: <20180116021815.QuVpso3h8avAGJgelh8bSmuggJlB0p6eJoY2YoQdehc@z>
 
-Having si_codes in many different files simply encourages duplicate definitions
-that can cause problems later.  To avoid that merge the tile specific si_codes
-into uapi/asm-generic/siginfo.h
+The new struct __kernel_timespec is similar to current
+internal kernel struct timespec64 on 64 bit architecture.
+The compat structure however is similar to below on little
+endian systems (padding and tv_nsec are switched for big
+endian systems):
 
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+typedef s32            compat_long_t;
+typedef s64            compat_kernel_time64_t;
+
+struct compat_kernel_timespec {
+       compat_kernel_time64_t  tv_sec;
+       compat_long_t           tv_nsec;
+       compat_long_t           padding;
+};
+
+This allows for both the native and compat representations to
+be the same and syscalls using this type as part of their ABI
+can have a single entry point to both.
+
+Note that the compat define is not included anywhere in the
+kernel explicitly to avoid confusion.
+
+These types will be used by the new syscalls that will be
+introduced in the consequent patches.
+Most of the new syscalls are just an update to the existing
+native ones with this new type. Hence, put this new type under
+an ifdef so that the architectures can define CONFIG_64BIT_TIME
+when they are ready to handle this switch.
+
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
 ---
- arch/tile/include/uapi/asm/siginfo.h | 8 --------
- include/uapi/asm-generic/siginfo.h   | 4 ++++
- 2 files changed, 4 insertions(+), 8 deletions(-)
+ include/linux/time64.h                 | 10 +++++++++-
+ include/uapi/asm-generic/posix_types.h |  1 +
+ include/uapi/linux/time.h              |  7 +++++++
+ 3 files changed, 17 insertions(+), 1 deletion(-)
 
-diff --git a/arch/tile/include/uapi/asm/siginfo.h b/arch/tile/include/uapi/asm/siginfo.h
-index f234d24fff55..a812fcbf4267 100644
---- a/arch/tile/include/uapi/asm/siginfo.h
-+++ b/arch/tile/include/uapi/asm/siginfo.h
-@@ -24,12 +24,4 @@
+diff --git a/include/linux/time64.h b/include/linux/time64.h
+index 93d39499838e..0d96887ba4e0 100644
+--- a/include/linux/time64.h
++++ b/include/linux/time64.h
+@@ -2,12 +2,20 @@
+ #ifndef _LINUX_TIME64_H
+ #define _LINUX_TIME64_H
  
- #include <asm-generic/siginfo.h>
+-#include <uapi/linux/time.h>
+ #include <linux/math64.h>
  
--/*
-- * Additional Tile-specific SIGILL si_codes
-- */
--#define ILL_DBLFLT	9	/* double fault */
--#define ILL_HARDWALL	10	/* user networks hardwall violation */
--#undef NSIGILL
--#define NSIGILL		10
--
- #endif /* _ASM_TILE_SIGINFO_H */
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index f1c0af4f36a4..7a268db1c44f 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -186,6 +186,10 @@ typedef struct siginfo {
- #define ILL_PRVREG	6	/* privileged register */
- #define ILL_COPROC	7	/* coprocessor error */
- #define ILL_BADSTK	8	/* internal stack error */
-+#ifdef __tile__
-+# define ILL_DBLFLT	9	/* double fault */
-+# define ILL_HARDWALL	10	/* user networks hardwall violation */
+ typedef __s64 time64_t;
+ typedef __u64 timeu64_t;
+ 
++/* CONFIG_64BIT_TIME enables new 64 bit time_t syscalls in the compat path
++ * and 32-bit emulation.
++ */
++#ifndef CONFIG_64BIT_TIME
++#define __kernel_timespec timespec
 +#endif
- #ifdef __ia64__
- # define ILL_BADIADDR	9	/* unimplemented instruction address */
- # define __ILL_BREAK	10	/* illegal break */
++
++#include <uapi/linux/time.h>
++
+ #if __BITS_PER_LONG == 64
+ /* this trick allows us to optimize out timespec64_to_timespec */
+ # define timespec64 timespec
+diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
+index 5e6ea22bd525..f0733a26ebfc 100644
+--- a/include/uapi/asm-generic/posix_types.h
++++ b/include/uapi/asm-generic/posix_types.h
+@@ -87,6 +87,7 @@ typedef struct {
+ typedef __kernel_long_t	__kernel_off_t;
+ typedef long long	__kernel_loff_t;
+ typedef __kernel_long_t	__kernel_time_t;
++typedef long long __kernel_time64_t;
+ typedef __kernel_long_t	__kernel_clock_t;
+ typedef int		__kernel_timer_t;
+ typedef int		__kernel_clockid_t;
+diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
+index 53f8dd84beb5..0ad4510884b0 100644
+--- a/include/uapi/linux/time.h
++++ b/include/uapi/linux/time.h
+@@ -42,6 +42,13 @@ struct itimerval {
+ 	struct timeval it_value;	/* current value */
+ };
+ 
++#ifndef __kernel_timespec
++struct __kernel_timespec {
++	__kernel_time64_t       tv_sec;                 /* seconds */
++	long long               tv_nsec;                /* nanoseconds */
++};
++#endif
++
+ /*
+  * The IDs of the various system clocks (for POSIX.1b interval timers):
+  */
 -- 
 2.14.1
