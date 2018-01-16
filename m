@@ -1,41 +1,47 @@
-From: Tony Luck <tony.luck@gmail.com>
-Subject: Re: [PATCH v2 00/19] prevent bounds-check bypass via speculative execution
-Date: Tue, 16 Jan 2018 11:21:19 -0800
-Message-ID: <CA+8MBbL-ZJhTT7jTKVffS5r_7Qq6b-Af96YiNLrMs7Ndo45WhA@mail.gmail.com>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com>
- <CA+8MBb+H0FqciBw9nSO9L0fNQtiRvc_1TREitH9z89YxhtyFAQ@mail.gmail.com> <CA+55aFwUspY8DG3hRxZqQaf_n_0OZxGCd=pELc8ZVuBu+058cA@mail.gmail.com>
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: Re: [PATCH for 4.16 08/10] membarrier: x86: Provide core
+ serializing command (v3)
+Date: Tue, 16 Jan 2018 19:22:13 +0000 (UTC)
+Message-ID: <1443621141.3981.1516130533202.JavaMail.zimbra@efficios.com>
+References: <20180115191104.12437-1-mathieu.desnoyers@efficios.com> <20180115191104.12437-9-mathieu.desnoyers@efficios.com> <alpine.DEB.2.20.1801161928110.2366@nanos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFwUspY8DG3hRxZqQaf_n_0OZxGCd=pELc8ZVuBu+058cA@mail.gmail.com>
-Sender: netdev-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <ast@kernel.org>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, Linux SCSI List <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, the arch/x86 maintainers <x86@kernel.org>, Russell
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <alpine.DEB.2.20.1801161928110.2366@nanos>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, "Russell King, ARM Linux" <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jan 13, 2018 at 10:51 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Fri, Jan 12, 2018 at 4:15 PM, Tony Luck <tony.luck@gmail.com> wrote:
-> So your argument depends on "the uarch will actually run the code in
-> order if there are no events that block the pipeline".
+----- On Jan 16, 2018, at 1:29 PM, Thomas Gleixner tglx@linutronix.de wrote:
 
-And might be bogus ... I'm a software person not a u-arch expert. That
-sounded good in my head, but the level of parallelism may be greater
-than I can imagine.
+> On Mon, 15 Jan 2018, Mathieu Desnoyers wrote:
+> 
+>> There are two places where core serialization is needed by membarrier:
+>> 
+>> 1) When returning from the membarrier IPI,
+>> 2) After scheduler updates curr to a thread with a different mm, before
+>>    going back to user-space, since the curr->mm is used by membarrier to
+>>    check whether it needs to send an IPI to that CPU.
+> 
+> This wants to be split into x86 and core changes. Ideally you make the core
+> changes before the previous patch and add the empty inline into
+> linux/processor.h....
 
-> Or at least it depends on a certain latency of the killing of any OoO
-> execution being low enough that the cache access doesn't even begin.
->
-> I realize that that is very much a particular microarchitectural
-> detail, but it's actually a *big* deal. Do we have a set of rules for
-> what is not a worry, simply because the speculated accesses get killed
-> early enough?
->
-> Apparently "test a register value against a constant" is good enough,
-> assuming that register is also needed for the address of the access.
+Good point, done. The first commit introducing the new command now also
+introduces the generic stuff moved from the x86 patches.
 
-People who do understand this are working on what can be guaranteed.
-For now don't make big plans based on my ramblings.
+Thanks,
 
--Tony
+Mathieu
+
+> 
+> Thanks,
+> 
+> 	tglx
+
+-- 
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
