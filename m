@@ -1,67 +1,74 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: kmem_cache_attr (was Re: [PATCH 04/36] usercopy: Prepare for
- usercopy whitelisting)
-Date: Tue, 16 Jan 2018 13:03:13 -0800
-Message-ID: <20180116210313.GA7791@bombadil.infradead.org>
-References: <1515531365-37423-1-git-send-email-keescook@chromium.org>
- <1515531365-37423-5-git-send-email-keescook@chromium.org>
- <alpine.DEB.2.20.1801101219390.7926@nuc-kabylake>
- <20180114230719.GB32027@bombadil.infradead.org>
- <alpine.DEB.2.20.1801160913260.3908@nuc-kabylake>
- <20180116160525.GF30073@bombadil.infradead.org>
- <alpine.DEB.2.20.1801161049320.5162@nuc-kabylake>
- <20180116174315.GA10461@bombadil.infradead.org>
- <alpine.DEB.2.20.1801161205590.1771@nuc-kabylake>
- <alpine.DEB.2.20.1801161215500.2945@nuc-kabylake>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v3 8/9] x86: use __uaccess_begin_nospec and ASM_IFENCE in
+ get_user paths
+Date: Tue, 16 Jan 2018 14:23:08 -0800
+Message-ID: <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com>
+References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151586748981.5820.14559543798744763404.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzoAR+MYX+ub0xZ32OsT7WtD5Kru2t6LhwB1buLWPResQ@mail.gmail.com> <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:46901 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750796AbeAPVDU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jan 2018 16:03:20 -0500
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.20.1801161215500.2945@nuc-kabylake>
+Received: from mail-ot0-f193.google.com ([74.125.82.193]:40109 "EHLO
+        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750750AbeAPWXJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jan 2018 17:23:09 -0500
+Received: by mail-ot0-f193.google.com with SMTP id d10so15062363oti.7
+        for <linux-arch@vger.kernel.org>; Tue, 16 Jan 2018 14:23:09 -0800 (PST)
+In-Reply-To: <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christopher Lameter <cl@linux.com>
-Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
 
-On Tue, Jan 16, 2018 at 12:17:01PM -0600, Christopher Lameter wrote:
-> Draft patch of how the data structs could change. kmem_cache_attr is read
-> only.
+On Sat, Jan 13, 2018 at 11:33 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Sat, Jan 13, 2018 at 11:05 AM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+>>
+>> I _know_ that lfence is expensive as hell on P4, for example.
+>>
+>> Yes, yes, "sbb" is often more expensive than most ALU instructions,
+>> and Agner Fog says it has a 10-cycle latency on Prescott (which is
+>> outrageous, but being one or two cycles more due to the flags
+>> generation is normal). So the sbb/and may certainly add a few cycles
+>> to the critical path, but on Prescott "lfence" is *50* cycles
+>> according to those same tables by Agner Fog.
+>
+> Side note: I don't think P4 is really relevant for a performance
+> discussion, I was just giving it as an example where we do know actual
+> cycles.
+>
+> I'm much more interested in modern Intel big-core CPU's, and just
+> wondering whether somebody could ask an architect.
+>
+> Because I _suspect_ the answer from a CPU architect would be: "Christ,
+> the sbb/and sequence is much better because it doesn't have any extra
+> serialization", but maybe I'm wrong, and people feel that lfence is
+> particularly easy to do right without any real downside.
+>
 
-Looks good.  Although I would add Kees' user feature:
+From the last paragraph of this guidance:
 
-struct kmem_cache_attr {
-	char name[16];
-	unsigned int size;
-	unsigned int align;
-+	unsigned int useroffset;
-+	unsigned int usersize;
-	slab_flags_t flags;
-	kmem_cache_ctor ctor;
-}
+https://software.intel.com/sites/default/files/managed/c5/63/336996-Speculative-Execution-Side-Channel-Mitigations.pdf
 
-And I'd start with 
-+struct kmem_cache *kmem_cache_create_attr(const kmem_cache_attr *);
+...I read that as Linux can constrain speculation with 'and; sbb'
+instead of 'lfence', and any future changes will be handled like any
+new cpu enabling.
 
-leaving the old kmem_cache_create to kmalloc a kmem_cache_attr and
-initialise it.
+To your specific question of the relative costs, sbb is
+architecturally cheaper, so let's go with that approach.
 
-Can we also do something like this?
+For this '__uaccess_begin_nospec' patch set, at a minimum the kernel
+needs a helper that can be easily grep'd when/if it needs changing in
+a future kernel. It also indicates that the command line approach to
+dynamically switch the mitigation mechanism is over-engineering.
 
--#define KMEM_CACHE(__struct, __flags) kmem_cache_create(#__struct,\
--		sizeof(struct __struct), __alignof__(struct __struct),\
--		(__flags), NULL)
-+#define KMEM_CACHE(__struct, __flags) ({				\
-+	const struct kmem_cache_attr kca ## __stringify(__struct) = {	\
-+		.name = #__struct,					\
-+		.size = sizeof(struct __struct),			\
-+		.align = __alignof__(struct __struct),			\
-+		.flags = (__flags),					\
-+	};								\
-+	kmem_cache_create_attr(&kca ## __stringify(__struct));		\
-+})
+That said, for get_user specifically, can we do something even
+cheaper. Dave H. reminds me that any valid user pointer that gets past
+the address limit check will have the high bit clear. So instead of
+calculating a mask, just unconditionally clear the high bit. It seems
+worse case userspace can speculatively leak something that's already
+in its address space.
 
-That way we won't need to convert any of those users.
+I'll respin this set along those lines, and drop the ifence bits.
