@@ -1,77 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:46810 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751465AbeAPAnk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 19:43:40 -0500
+Received: from out02.mta.xmission.com ([166.70.13.232]:37962 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751236AbeAPAlc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 19:41:32 -0500
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Mon, 15 Jan 2018 18:39:58 -0600
-Message-ID: <20180116004009.31036-11-ebiederm@xmission.com>
+Date: Mon, 15 Jan 2018 18:39:49 -0600
+Message-ID: <20180116004009.31036-2-ebiederm@xmission.com>
 In-Reply-To: <87k1wimybi.fsf_-_@xmission.com>
 References: <87k1wimybi.fsf_-_@xmission.com>
-Subject: [PATCH 11/22] signal: kill __ARCH_SI_UID_T
+Subject: [PATCH 02/22] signal: Document the strange si_codes used by ptrace event stops
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W . Biederman" <ebiederm@xmission.com>
-Message-ID: <20180116003958.Y1Mz2NGN4EJUCdfmD9HbIga1LfWfCv7zGYxm8D8Svgw@z>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20180116003949.n37PCmnqqoyVJsJpwVYiQ2ZA0QIP-DD5AF0G-XybYRM@z>
 
-From: Al Viro <viro@zeniv.linux.org.uk>
-
-it's always __kernel_uid32_t
-
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
-Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- include/uapi/asm-generic/siginfo.h | 11 +++--------
- 1 file changed, 3 insertions(+), 8 deletions(-)
+ include/uapi/asm-generic/siginfo.h | 5 +++++
+ 1 file changed, 5 insertions(+)
 
 diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index a650d252de0a..d32f62a7f95c 100644
+index cbe1b0cc7a6a..7158421ac911 100644
 --- a/include/uapi/asm-generic/siginfo.h
 +++ b/include/uapi/asm-generic/siginfo.h
-@@ -23,10 +23,6 @@ typedef union sigval {
- #define SI_PAD_SIZE	((SI_MAX_SIZE - __ARCH_SI_PREAMBLE_SIZE) / sizeof(int))
- #endif
+@@ -225,6 +225,11 @@ typedef struct siginfo {
+ #define TRAP_HWBKPT     4	/* hardware breakpoint/watchpoint */
+ #define NSIGTRAP	4
  
--#ifndef __ARCH_SI_UID_T
--#define __ARCH_SI_UID_T	__kernel_uid32_t
--#endif
--
++/*
++ * There are an additional set of SIGTRAP si_codes used by ptrace
++ * that of the form: ((PTRACE_EVENT_XXX << 8) | SIGTRAP)
++ */
++
  /*
-  * The default "si_band" type is "long", as specified by POSIX.
-  * However, some architectures want to override this to "int"
-@@ -60,14 +56,13 @@ typedef struct siginfo {
- 		/* kill() */
- 		struct {
- 			__kernel_pid_t _pid;	/* sender's pid */
--			__ARCH_SI_UID_T _uid;	/* sender's uid */
-+			__kernel_uid32_t _uid;	/* sender's uid */
- 		} _kill;
- 
- 		/* POSIX.1b timers */
- 		struct {
- 			__kernel_timer_t _tid;	/* timer id */
- 			int _overrun;		/* overrun count */
--			char _pad[sizeof( __ARCH_SI_UID_T) - sizeof(int)];
- 			sigval_t _sigval;	/* same as below */
- 			int _sys_private;       /* not to be passed to user */
- 		} _timer;
-@@ -75,14 +70,14 @@ typedef struct siginfo {
- 		/* POSIX.1b signals */
- 		struct {
- 			__kernel_pid_t _pid;	/* sender's pid */
--			__ARCH_SI_UID_T _uid;	/* sender's uid */
-+			__kernel_uid32_t _uid;	/* sender's uid */
- 			sigval_t _sigval;
- 		} _rt;
- 
- 		/* SIGCHLD */
- 		struct {
- 			__kernel_pid_t _pid;	/* which child */
--			__ARCH_SI_UID_T _uid;	/* sender's uid */
-+			__kernel_uid32_t _uid;	/* sender's uid */
- 			int _status;		/* exit code */
- 			__ARCH_SI_CLOCK_T _utime;
- 			__ARCH_SI_CLOCK_T _stime;
+  * SIGCHLD si_codes
+  */
 -- 
 2.14.1
