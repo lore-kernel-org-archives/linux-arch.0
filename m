@@ -1,70 +1,239 @@
-From: Christopher Lameter <cl@linux.com>
-Subject: Re: kmem_cache_attr (was Re: [PATCH 04/36] usercopy: Prepare for
- usercopy whitelisting)
-Date: Tue, 16 Jan 2018 10:54:27 -0600 (CST)
-Message-ID: <alpine.DEB.2.20.1801161049320.5162@nuc-kabylake>
-References: <1515531365-37423-1-git-send-email-keescook@chromium.org> <1515531365-37423-5-git-send-email-keescook@chromium.org> <alpine.DEB.2.20.1801101219390.7926@nuc-kabylake> <20180114230719.GB32027@bombadil.infradead.org> <alpine.DEB.2.20.1801160913260.3908@nuc-kabylake>
- <20180116160525.GF30073@bombadil.infradead.org>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and
+ SIGFPE, SIGTRAP, SIGBUS
+Date: Tue, 16 Jan 2018 17:24:07 +0000
+Message-ID: <20180116172407.GA22781@e103592.cambridge.arm.com>
+References: <87373b6ghs.fsf@xmission.com>
+ <20180112005940.23279-7-ebiederm@xmission.com>
+ <20180115163028.GU22781@e103592.cambridge.arm.com>
+ <87h8rnox3c.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20180116160525.GF30073@bombadil.infradead.org>
-Sender: owner-linux-mm@kvack.org
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <87h8rnox3c.fsf@xmission.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Tyler Baicar <tbaicar@codeaurora.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, James Morse <james.morse@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Olof Johansson <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 16 Jan 2018, Matthew Wilcox wrote:
+On Mon, Jan 15, 2018 at 11:23:03AM -0600, Eric W. Biederman wrote:
+> Dave Martin <Dave.Martin@arm.com> writes:
+> 
+> > On Thu, Jan 11, 2018 at 06:59:36PM -0600, Eric W. Biederman wrote:
+> >> Setting si_code to 0 results in a userspace seeing an si_code of 0.
+> >> This is the same si_code as SI_USER.  Posix and common sense requires
+> >> that SI_USER not be a signal specific si_code.  As such this use of 0
+> >> for the si_code is a pretty horribly broken ABI.
+> >
+> > I think this situation may have come about because 0 is used as a
+> > padding value for "impossible" cases -- i.e., things that can't happen
+> > unless the kernel is broken, or things that are too unrecoverable for
+> > clean error reporting to be helpful.
+> >
+> > In general, I think these values are not expected to reach userspace in
+> > practice.
+> >
+> > This is not an excuse though -- and not 100% true -- so it's certainly
+> > worthy of cleanup.
+> >
+> >
+> > It would be good to approach this similarly for arm and arm64, since
+> > the arm64 fault code is derived from arm.
+> 
+> In this case the fault_info is something I have only seen on arm64.
+> I have been approaching all architectures the same way.
 
-> I think that's a good thing!  /proc/slabinfo really starts to get grotty
-> above 16 bytes.  I'd like to chop off "_cache" from the name of every
-> single slab!  If ext4_allocation_context has to become ext4_alloc_ctx,
-> I don't think we're going to lose any valuable information.
+Bad guess on my part; this table-driven approach seems to be new for
+arm64.
 
-Ok so we are going to cut off at 16 charaacters? Sounds good to me.
+> If there is insufficient information without architecture expertise
+> to fix this class of error I have been ading FPE_FIXME to them.
 
-> > struct kmem_cache_attr {
-> > 	char *name;
-> > 	size_t size;
-> > 	size_t align;
-> > 	slab_flags_t flags;
-> > 	unsigned int useroffset;
-> > 	unsinged int usersize;
-> > 	void (*ctor)(void *);
-> > 	kmem_isolate_func *isolate;
-> > 	kmem_migrate_func *migrate;
-> > 	...
-> > }
->
-> In these slightly-more-security-conscious days, it's considered poor
-> practice to have function pointers in writable memory.  That was why
-> I wanted to make the kmem_cache_attr const.
+Fair enough.
 
-Sure this data is never changed. It can be const.
+> >> Further use of si_code == 0 guaranteed that copy_siginfo_to_user saw a
+> >> value of __SI_KILL and now sees a value of SIL_KILL with the result
+> >> that uid and pid fields are copied and which might copying the si_addr
+> >> field by accident but certainly not by design.  Making this a very
+> >> flakey implementation.
+> >> 
+> >> Utilizing FPE_FIXME, BUS_FIXME, TRAP_FIXME siginfo_layout will now return
+> >> SIL_FAULT and the appropriate fields will be reliably copied.
+> >> 
+> >> But folks this is a new and unique kind of bad.  This is massively
+> >> untested code bad.  This is inventing new and unique was to get
+> >> siginfo wrong bad.  This is don't even think about Posix or what
+> >> siginfo means bad.  This is lots of eyeballs all missing the fact
+> >> that the code does the wrong thing bad.  This is getting stuck
+> >> and keep making the same mistake bad.
+> >> 
+> >> I really hope we can find a non userspace breaking fix for this on a
+> >> port as new as arm64.
+> >
+> >> Possible ABI fixes include:
+> >> - Send the signal without siginfo
+> >> - Don't generate a signal
+> >
+> > The above two sould like ABI breaks?
+> 
+> They are ways I have seen code on other platforms deal with
+> not information to generate siginfo.  Sending the signal without siginfo
+> is roughly equivalent to your send SIGKILL suggestion below.
+> 
+> A good example of that is code that calls force_sigsegv.
+> 
+> Calling "force_sig(SIGBUS, current);" is perfectly valid.
+> And then the parent when it reaped the process would have
+> a little more information to go on when guessing what happened
+> to the process.
+> 
+> >> - Possibly assign and use an appropriate si_code
+> >> - Don't handle cases which can't happen
+> >
+> > I think a mixture of these two is the best approach.
+> >
+> > In any case, si_code == 0 here doesn't seem to have any explicit meaning.
+> > I think we can translate all of the arm64 faults to proper si_codes --
+> > see my sketch below.  Probably means a bit more thought though.
+> 
+> Yes I would be very happy to see that.
+> 
+> > The only counterargument would be if there is software relying on
+> > these bogus signal cases getting si_code == 0 for a useful purpose.
+> >
+> > The main reason I see to check for SI_USER is to allow a process to
+> > filter out spurious signals (say, an asynchronous I/O signal for
+> > which si_value would be garbage), and to print out diagnostics
+> > before (in the case of a well-behaved program) resetting the signal
+> > to SIG_DFL and killing itself to report the signal to the waiter.
+> >
+> > Daemons may be more discerning about who is allowed to signal them,
+> > but overloading SIGBUS (say) as an IPC channel sounds like a very odd
+> > thing to do.  The same probably applies to any signal that has
+> > nontrivial metadata.
+> 
+> Agreed.  Although I have seen ltp test cases that do crazy things like
+> that.
+> 
+> > Have you found software that is impacted by this in practice?
+> 
+> No.
 
-> Also, there's no need for 'size' and 'align' to be size_t.  Slab should
-> never support allocations above 4GB in size.  I'm not even keen on seeing
-> allocations above 64kB, but I see my laptop has six 512kB allocations (!),
-> three 256kB allocations and seven 128kB allocations, so I must reluctantly
-> concede that using an unsigned int is necessary.  If I were really into
-> bitshaving, I might force all allocations to be a multiple of 32-bytes
-> in size, and then we could use 16 bits to represent an allocation between
-> 32 and 2MB, but I think that tips us beyond the complexity boundary.
+Searching for si_code on codesearch.debian.net, I looked at a few
+random hits.  Although this is far from exhaustive, I saw no instance
+of code that assumes some arch-specific meaning for SI_USER (or 0).
 
-I am not married to either way of specifying the sizes. unsigned int would
-be fine with me. SLUB falls back to the page allocator anyways for
-anything above 2* PAGE_SIZE and I think we can do the same for the other
-allocators as well. Zeroing or initializing such a large memory chunk is
-much more expensive than the allocation so it does not make much sense to
-have that directly supported in the slab allocators.
+Most code seems to check for signal-specific si_code values before
+assuming that signal-specific signifo fields are valid; or for
+SI_USER (or si_code <= 0) before assuming that si_uid and si_pid
+are valid.
 
-Some platforms support 64K page size and I could envision a 2M page size
-at some point. So I think we cannot use 16 bits there.
+Returning proper values for si_code values in place of "0" would fix
+rather than break such cases.
 
-If no one objects then I can use unsigned int there again.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> I don't expect many userspace applications look at siginfo and
+> everything I have found is some rare hard to trigger non-x86 case which
+> limits the exposure to userspace applications tremendously.
+> 
+> The angle I am coming at all of this from is that the linux kernel code
+> that filled out out struct siginfo was not comprehensible or correct.
+
+I think "not comprehensible or correct" is a pretty good summary of
+all signal-related code...
+
+> Internal to the kernel it was using a magic value (not exportable to
+> userspace) in the upper bits of si_code.  That was causing problems for
+> signal injection and converting signals from 32bit to 64bit, and from
+> 64bit to 32bit.
+> 
+> So I wrote kernel/signal.c:siginfo_layout() to figure out which fields
+> of struct siginfo should be sent to userspace.  In doing so I discovered
+> that using 0 in si_code (aka SI_USER) is ambiguous, and problematic.
+> 
+> Unfortuantely in most of the cases I have spotted using 0 in the si_code
+> requires architectural knowledge that I don't currently have to sort
+> out.  So the best I can do is change si_code from 0 to
+> FPE_FIXME/BUS_FIXME/TRAP_FIXME and bring the architecture maintainers
+> attention to this area.
+> 
+> One of the problems that results from all of this is that we copy
+> unitialized data to userspace.   I am slowly unifying and cleaning the
+> code up so that the code is simple enough we can be certain we are
+> not copying unitialized data to userspace.
+> 
+> With si_coes of FPE_FIXME/BUS_FIXME/TRAP_FIXME I can at least attempt to
+> keep the craziness from happening.
+> 
+> My next step is to unify struct siginfo and struct compat_siginfo
+> and the functions that copy them to userspace because there are very
+> siginficant problems there.
+
+All of which sounds valuable.
+
+> All of that said I like the way you are thinking about fixing these
+> issues.
+
+Is it feasible to have a different internal constant for SI_USER?
+Then the generic could warn if it sees si_code == 0.  If the
+special nonzero KERNEL_SI_USER is seen instead, it is silently
+translated to SI_USER (0) for userspace.  This might help us
+track down cases where 0 is passed by accident.
+
+It may not be worth it though: if the affected cases are ones
+that happen never or almost never, a runtime BUG_ON() may not be
+helpful for tracking them down.
+
+Also, I'm making an assumption that si_code always flows through
+some generic code before reaching userspace (maybe untrue).
+
+
+> >> +++ b/arch/arm64/kernel/fpsimd.c
+> >> @@ -867,7 +867,7 @@ asmlinkage void do_fpsimd_acc(unsigned int esr, struct pt_regs *regs)
+> >>  asmlinkage void do_fpsimd_exc(unsigned int esr, struct pt_regs *regs)
+> >>  {
+> >>  	siginfo_t info;
+> >> -	unsigned int si_code = 0;
+> >> +	unsigned int si_code = FPE_FIXME;
+> >>  
+> >>  	if (esr & FPEXC_IOF)
+> >>  		si_code = FPE_FLTINV;
+> >
+> > This 0 can happen for vector operations where the implementation may
+> > not be able to report exactly what happened, for example where
+> > the implementer didn't want to pay the cost of tracking exactly
+> > what went wrong in each lane.
+> >
+> > However, the FPEXC_* bits can be garbage in such a case rather
+> > than being all zero: we should be checking the TFV bit in the ESR here.
+> > This may be a bug.
+> >
+> > Perhaps FPE_FLTINV should be returned in si_code for such cases:  it's
+> > not otherwise used on arm64 -- invalid instructions would be reported as
+> > SIGILL/ILL_ILLOPC instead).
+> >
+> > Otherwise, we might want to define a new code or arbitrarily pick
+> > one of the existing FLT_* since this is really a more benign condition
+> > than executing an illegal instruction.  Alternatively, treat the
+> > fault as spurious and suppress it, but that doesn't feel right either.
+> 
+> I would love to see this sorted out.  There is a very similar pattern
+> on several different architectures.  I suspect if we have a clean
+> solution on one architecture the other architectures will be able to use
+> that solution as well.
+
+Since user code that relies on checking si_code for fp exceptions will
+probably already break in these cases, we can probably fudge things a
+bit here.
+
+I'll have a think.  IEEE may also define some rules that are relevant
+here...
+
+For the proposed conversion of the si_code==0 cases for arm64, I'll
+draft an RFC for discussion (hopefully sometime this week).
+
+[...]
+
+Cheers
+---Dave
