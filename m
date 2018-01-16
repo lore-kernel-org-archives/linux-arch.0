@@ -1,41 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:46423 "EHLO
+Received: from out01.mta.xmission.com ([166.70.13.231]:46818 "EHLO
         out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750750AbeAPAle (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 19:41:34 -0500
+        with ESMTP id S1751477AbeAPAnl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jan 2018 19:43:41 -0500
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Mon, 15 Jan 2018 18:39:50 -0600
-Message-ID: <20180116004009.31036-3-ebiederm@xmission.com>
+Date: Mon, 15 Jan 2018 18:40:04 -0600
+Message-ID: <20180116004009.31036-17-ebiederm@xmission.com>
 In-Reply-To: <87k1wimybi.fsf_-_@xmission.com>
 References: <87k1wimybi.fsf_-_@xmission.com>
-Subject: [PATCH 03/22] signal: Document glibc's si_code of SI_ASYNCNL
+Subject: [PATCH 17/22] signal/tile: Move the tile specific si_codes to asm-generic/siginfo.h
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180116003950.SYsYpG0oF6zdWIDBSuJpSBAoM8YyZDLKC7oI9Qgwbdg@z>
+Message-ID: <20180116004004.ssIUnnlt-Ih3cL_X8I1gVH2LQh3VnQI7b2SQ7CyPG7Y@z>
 
-The header uapi/asm-generic/siginfo.h appears to the the repository of
-all of these definitions in linux so collect up glibcs additions as
-well.  Just to prevent someone from accidentally creating a conflict
-in the future.
+Having si_codes in many different files simply encourages duplicate definitions
+that can cause problems later.  To avoid that merge the tile specific si_codes
+into uapi/asm-generic/siginfo.h
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- include/uapi/asm-generic/siginfo.h | 1 +
- 1 file changed, 1 insertion(+)
+ arch/tile/include/uapi/asm/siginfo.h | 8 --------
+ include/uapi/asm-generic/siginfo.h   | 4 ++++
+ 2 files changed, 4 insertions(+), 8 deletions(-)
 
+diff --git a/arch/tile/include/uapi/asm/siginfo.h b/arch/tile/include/uapi/asm/siginfo.h
+index f234d24fff55..a812fcbf4267 100644
+--- a/arch/tile/include/uapi/asm/siginfo.h
++++ b/arch/tile/include/uapi/asm/siginfo.h
+@@ -24,12 +24,4 @@
+ 
+ #include <asm-generic/siginfo.h>
+ 
+-/*
+- * Additional Tile-specific SIGILL si_codes
+- */
+-#define ILL_DBLFLT	9	/* double fault */
+-#define ILL_HARDWALL	10	/* user networks hardwall violation */
+-#undef NSIGILL
+-#define NSIGILL		10
+-
+ #endif /* _ASM_TILE_SIGINFO_H */
 diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index 7158421ac911..2d3348afb2f0 100644
+index f1c0af4f36a4..7a268db1c44f 100644
 --- a/include/uapi/asm-generic/siginfo.h
 +++ b/include/uapi/asm-generic/siginfo.h
-@@ -165,6 +165,7 @@ typedef struct siginfo {
- #define SI_SIGIO	-5		/* sent by queued SIGIO */
- #define SI_TKILL	-6		/* sent by tkill system call */
- #define SI_DETHREAD	-7		/* sent by execve() killing subsidiary threads */
-+#define SI_ASYNCNL	-60		/* sent by glibc async name lookup completion */
- 
- #define SI_FROMUSER(siptr)	((siptr)->si_code <= 0)
- #define SI_FROMKERNEL(siptr)	((siptr)->si_code > 0)
+@@ -186,6 +186,10 @@ typedef struct siginfo {
+ #define ILL_PRVREG	6	/* privileged register */
+ #define ILL_COPROC	7	/* coprocessor error */
+ #define ILL_BADSTK	8	/* internal stack error */
++#ifdef __tile__
++# define ILL_DBLFLT	9	/* double fault */
++# define ILL_HARDWALL	10	/* user networks hardwall violation */
++#endif
+ #ifdef __ia64__
+ # define ILL_BADIADDR	9	/* unimplemented instruction address */
+ # define __ILL_BREAK	10	/* illegal break */
 -- 
 2.14.1
