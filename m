@@ -1,101 +1,135 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and
- SIGFPE, SIGTRAP, SIGBUS
-Date: Wed, 17 Jan 2018 12:37:52 +0000
-Message-ID: <20180117123752.GN17719@n2100.armlinux.org.uk>
-References: <87373b6ghs.fsf@xmission.com>
- <20180112005940.23279-7-ebiederm@xmission.com>
- <20180115163028.GU22781@e103592.cambridge.arm.com>
- <87h8rnox3c.fsf@xmission.com>
- <20180116172407.GA22781@e103592.cambridge.arm.com>
- <871sipl9p9.fsf@xmission.com>
- <20180117115708.GM17719@n2100.armlinux.org.uk>
- <20180117121505.GD22781@e103592.cambridge.arm.com>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH 1/2] microblaze: fix endian handling
+Date: Wed, 17 Jan 2018 13:57:51 +0100
+Message-ID: <ffc7b253-bc9e-c098-fe02-707709d5acfe@monstr.eu>
+References: <20180102114720.3408356-1-arnd@arndb.de>
+ <201801140858.DQC0KW38%fengguang.wu@intel.com>
+ <CAK8P3a1X1Pw65gX7Pn+672yux26oMzWidmN7onX94uESY547Eg@mail.gmail.com>
+ <ed24b2c4-c5d0-057c-49c3-57f50c5946b4@monstr.eu>
+ <CAK8P3a1zr_9Oy-neCndUgFd1q0pyT07VKbJe2ezw3x6psfut3A@mail.gmail.com>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:54550 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753158AbeAQMiO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 07:38:14 -0500
-Content-Disposition: inline
-In-Reply-To: <20180117121505.GD22781@e103592.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Tyler Baicar <tbaicar@codeaurora.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, James Morse <james.morse@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Olof Johansson <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="c7sZuhtBot5q01YeubbfUlm6aECVm88ny"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a1zr_9Oy-neCndUgFd1q0pyT07VKbJe2ezw3x6psfut3A@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: kbuild test robot <lkp@intel.com>, kbuild-all@01.org, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Babu Moger <babu.moger@oracle.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 17, 2018 at 12:15:05PM +0000, Dave Martin wrote:
-> On Wed, Jan 17, 2018 at 11:57:09AM +0000, Russell King - ARM Linux wrote:
-> > On Tue, Jan 16, 2018 at 04:28:50PM -0600, Eric W. Biederman wrote:
-> > > I will keep FPE_FIXME as a place holder until this gets sorted out.
-> > > 
-> > > There is a second issue I am looking at in this location,
-> > > and maybe I don't have to address it now.  But it looks like the code is
-> > > calling send_sig_info instead of force_sig_info for a synchronous
-> > > exception.  Am I reading that correctly?
-> > 
-> > VFP used to use force_sig_info(), but it seems to be really the wrong
-> > call to use.  force_sig_info() checks whether the program decided to
-> > ignore or block the signal, and if it did, replaces the signal handler
-> > with the default handler and unblocks the signal.
-> > 
-> > Are you really suggesting that FP all FP signals should get this
-> > treatment?
-> 
-> feenableexcept(FE_OVERFLOW) kind of means "I can't run safely past
-> an fp overflow exception, please signal me instead".
-> 
-> If the process also blocked SIGFPE, that could be taken to mean
-> "I can't run safely past an fp overflow exception _and_ I can't
-> take SIGFPE either" ... i.e., if an fp overflow happens there is
-> no way to proceed and it's really fatal.
-> 
-> What SIG_IGN ought to mean is rather more debatable, but again,
-> the process could be asking for two opposite things: guarantee a
-> SIGFPE is delivered instead of running past an fp exception, and
-> also guarantee that SIGFPE is _not_ delivered.
-> 
-> It looks like arm and arm64 are different from most other arches
-> (including x86) here, but I'm not sure what is considered correct, and
-> it looks like the answer is not standardised.  There's a possibility
-> that some software goes subtly wrong on arm/arm64 where on other arches
-> it would get terminated with SIGKILL.
-> 
-> Whether this matters depends on how harmless the fp exception is to
-> the work of the program.  I think if an exception is set to trap
-> via feenableexcept() then that's a strong hint the programmer thinks
-> that exception is not harmless.  OTOH, trapping is not always
-> available anyway...
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--c7sZuhtBot5q01YeubbfUlm6aECVm88ny
+Content-Type: multipart/mixed; boundary="YaTN1kN57NviEAqoV3UbPbsJrFj0wVWbF";
+ protected-headers="v1"
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: kbuild test robot <lkp@intel.com>, kbuild-all@01.org,
+ Andrew Morton <akpm@linux-foundation.org>,
+ linux-arch <linux-arch@vger.kernel.org>, Babu Moger <babu.moger@oracle.com>,
+ Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <ffc7b253-bc9e-c098-fe02-707709d5acfe@monstr.eu>
+Subject: Re: [PATCH 1/2] microblaze: fix endian handling
+References: <20180102114720.3408356-1-arnd@arndb.de>
+ <201801140858.DQC0KW38%fengguang.wu@intel.com>
+ <CAK8P3a1X1Pw65gX7Pn+672yux26oMzWidmN7onX94uESY547Eg@mail.gmail.com>
+ <ed24b2c4-c5d0-057c-49c3-57f50c5946b4@monstr.eu>
+ <CAK8P3a1zr_9Oy-neCndUgFd1q0pyT07VKbJe2ezw3x6psfut3A@mail.gmail.com>
+In-Reply-To: <CAK8P3a1zr_9Oy-neCndUgFd1q0pyT07VKbJe2ezw3x6psfut3A@mail.gmail.com>
 
-Like many of these things, there is no clear answer.  It's a set of
-conflicting requirements, and as you point out, even if you've called
-feenableexcept(), you are not guaranteed to get a trap.
+--YaTN1kN57NviEAqoV3UbPbsJrFj0wVWbF
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
 
-However, do remember that FP exceptions on ARM hardware are already
-asynchronous - they get reported by the _next_ FP operation to the one
-that caused them, which means they could be raised by a library function
-sometime after it occured (when the library function decides to save the
-FP registers to the stack before it makes use of them.)  It's entirely
-possible that the library function has blocked FP signals temporarily
-(not explicitly, just decided to block all signals while it does
-something sensitive) and will unblock them again afterwards - at which
-point we get the SIGFPE, and it would be quite right to deliver that
-signal to the user SIGFPE handler, rather than forcing it onto the
-program mid-library function.
+On 15.1.2018 11:19, Arnd Bergmann wrote:
+> On Mon, Jan 15, 2018 at 11:14 AM, Michal Simek <monstr@monstr.eu> wrote=
+:
+>> On 15.1.2018 10:29, Arnd Bergmann wrote:
+>>> On Sun, Jan 14, 2018 at 2:01 AM, kbuild test robot <lkp@intel.com> wr=
+ote:
+>>>> Hi Arnd,
+>>>>
+>>>> I love your patch! Yet something to improve:
+>>>>
+>>>> [auto build test ERROR on linus/master]
+>>>> [also build test ERROR on v4.15-rc7 next-20180112]
+>>>> [if your patch is applied to the wrong git tree, please drop us a no=
+te to help improve the system]
+>>>>
+>>>> url:    https://github.com/0day-ci/linux/commits/Arnd-Bergmann/micro=
+blaze-fix-endian-handling/20180105-120705
+>>>> config: microblaze-mmu_defconfig (attached as .config)
+>>>> compiler: microblaze-linux-gcc (GCC) 7.2.0
+>>>> reproduce:
+>>>>         wget https://raw.githubusercontent.com/intel/lkp-tests/maste=
+r/sbin/make.cross -O ~/bin/make.cross
+>>>>         chmod +x ~/bin/make.cross
+>>>>         # save the attached .config to linux build tree
+>>>>         make.cross ARCH=3Dmicroblaze
+>>>>
+>>>> All errors (new ones prefixed by >>):
+>>>>
+>>>>>> arch/microblaze/lib/fastcopy.S:33:2: error: #error Microblaze LE n=
+ot support ASM optimized lib func. Disable OPT_LIB_ASM.
+>>>>     #error Microblaze LE not support ASM optimized lib func. Disable=
+ OPT_LIB_ASM.
+>>>>      ^~~~~
+>>>>
+>>>> vim +33 arch/microblaze/lib/fastcopy.S
+>>>>
+>>>
+>>> This seems to be a result of fixing one bug so we run into one that w=
+e didn't
+>>> get to earlier. I still assume my patch is correct.
+>>
+>> I will look at this later this week. Xilinx toolchain which I use
+>> normally are microblaze for BE or microblazeel that's why proper flags=
 
-It's also possible that SIGFPE could be blocked by another signal handler
-having been invoked, and it triggers the latent generation of the SIGFPE.
+>> are default options already that's why I didn't see any issue.
+>>
+>> Did you take toolchain from kernel.org?
+>> https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.9.0/
+>=20
+> I used a gcc-7.2.1 that I built myself for all architectures in order t=
+o debug
+> a gcc issue that appeared in gcc-7.2.
+>=20
+> The patch that got tested was my workaround for an obviously broken
+> allmodconfig build.
 
-I'd be more inclined to agree with you if VFP exceptions were synchronous
-but they aren't.
+ok.
 
-> Was there some particular program being broken by the force_sig_info()
-> here?
+Applied both.
 
-I don't recall.
+Thanks,
+Michal
 
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 8.8Mbps down 630kbps up
-According to speedtest.net: 8.21Mbps down 510kbps up
+
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Xilinx Microblaze
+Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
+U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP SoCs
+
+
+
+--YaTN1kN57NviEAqoV3UbPbsJrFj0wVWbF--
+
+--c7sZuhtBot5q01YeubbfUlm6aECVm88ny
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+iEYEARECAAYFAlpfSFMACgkQykllyylKDCHKSgCggAha5MH8wqSHcYXcuH+aqQOA
+Rz4AnjBrl+mVVxTrKj4JujYrVINAH7sm
+=B+Qg
+-----END PGP SIGNATURE-----
+
+--c7sZuhtBot5q01YeubbfUlm6aECVm88ny--
