@@ -1,57 +1,33 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Dan Williams <dan.j.williams@intel.com>
 Subject: Re: [PATCH v3 8/9] x86: use __uaccess_begin_nospec and ASM_IFENCE in
  get_user paths
-Date: Wed, 17 Jan 2018 11:26:08 -0800
-Message-ID: <CA+55aFzCgqjRR=x37fzUecK5ERMBUmBOag-EpM1zQQxFeH2+bw@mail.gmail.com>
+Date: Wed, 17 Jan 2018 11:54:12 -0800
+Message-ID: <CAPcyv4iYVcCZxdd5wHDf2av8F=E1F7UGTX9uVzX68KkrJ1ZuQQ@mail.gmail.com>
 References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
  <151586748981.5820.14559543798744763404.stgit@dwillia2-desk3.amr.corp.intel.com>
  <CA+55aFzoAR+MYX+ub0xZ32OsT7WtD5Kru2t6LhwB1buLWPResQ@mail.gmail.com>
  <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
  <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com>
  <CA+55aFxAFG5czVmCyhYMyHmXLNJ7pcXxWzusjZvLRh_qTGHj6Q@mail.gmail.com>
- <CA+55aFxB01XEEpdPynwYmzQMfTJdJnUrN+ZLqSV_UdnKLBgAZw@mail.gmail.com> <1516198646.4184.13.camel@linux.intel.com>
+ <CA+55aFxB01XEEpdPynwYmzQMfTJdJnUrN+ZLqSV_UdnKLBgAZw@mail.gmail.com>
+ <1516198646.4184.13.camel@linux.intel.com> <20180117185232.GW13338@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f194.google.com ([209.85.223.194]:33712 "EHLO
-        mail-io0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750931AbeAQT0J (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 14:26:09 -0500
-In-Reply-To: <1516198646.4184.13.camel@linux.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@linux.intel.com>, Eric Dumazet <edumazet@google.com>
-Cc: Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180117185232.GW13338@ZenIV.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Alan Cox <alan@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 17, 2018 at 6:17 AM, Alan Cox <alan@linux.intel.com> wrote:
+On Wed, Jan 17, 2018 at 10:52 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> On Wed, Jan 17, 2018 at 02:17:26PM +0000, Alan Cox wrote:
+[..]
+>         Incidentally, what about copy_to_iter() and friends?  They
+> check iov_iter flavour and go either into the "copy to kernel buffer"
+> or "copy to userland" paths.  Do we need to deal with mispredictions
+> there?  We are calling a bunch of those on read()...
 >
-> Can we kill off the remaining users of set_fs() ?
 
-I would love to, but it's not going to happen short-term. If ever.
-
-Some could be removed today: the code in arch/x86/net/bpf_jit_comp.c
-seems to be literally the ramblings of a diseased mind. There's no
-reason for the set_fs(), there's no reason for the
-flush_icache_range() (it's a no-op on x86 anyway), and the smp_wmb()
-looks bogus too.
-
-I have no idea how that braindamage happened, but I assume it got
-copied from some broken source.
-
-But there are about ~100 set_fs() calls in generic code, and some of
-those really are pretty fundamental. Doing things like "kernel_read()"
-without set_fs() is basically impossible.
-
-We've had set_fs() since the beginning. The naming is obviously very
-historical. We have it for a very good reason, and I don't really see
-that reason going away.
-
-So realistically, we want to _minimize_ set_fs(), and we might want to
-make sure that it's done only in limited settings (it might, for
-example, be a good idea and a realistic goal to make sure that drivers
-and modules can't do it, and use proper helper functions like that
-"read_kernel()").
-
-But getting rid of the concept entirely? Doesn't seem likely.
-
-             Linus
+Those should be protected by the conversion of __uaccess_begin to
+__uaccess_begin_nospec that includes the lfence.
