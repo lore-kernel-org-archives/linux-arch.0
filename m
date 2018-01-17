@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60694 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:34622 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753657AbeAQPZY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 17 Jan 2018 10:25:24 -0500
-Subject: [PATCH 2/8] hexagon: Make THREAD_SIZE available to vmlinux.lds
+        id S1753661AbeAQPZZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 17 Jan 2018 10:25:25 -0500
+Subject: [PATCH 1/8] cris: Make THREAD_SIZE available to vmlinux.lds
 From: David Howells <dhowells@redhat.com>
-Date: Wed, 17 Jan 2018 15:25:13 +0000
-Message-ID: <151620271356.22429.8919995001708942435.stgit@warthog.procyon.org.uk>
+Date: Wed, 17 Jan 2018 15:25:02 +0000
+Message-ID: <151620270203.22429.2757290992238483064.stgit@warthog.procyon.org.uk>
 In-Reply-To: <151620268761.22429.14193525405303696385.stgit@warthog.procyon.org.uk>
 References: <151620268761.22429.14193525405303696385.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,34 +16,72 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
 Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180117152513.aySFaD8C784jDMKUMQIn3tfX6yOx8PY4kF5uyWqMZnU@z>
+Message-ID: <20180117152502.v1g-7CInOi-SqAq-TrH3NxuaD1uiXIeJecUUOGNT5oY@z>
 
-Make THREAD_SIZE available to vmlinux.lds on hexagon by including
-asm/thread_info.h the linker script.
+Make THREAD_SIZE available to vmlinux.lds on cris by moving it to
+asm/thread_info.h and including that from the linker script.
 
 This allows init_stack to be allocated in the linker script in a subsequent
 patch.
 
 Reported-by: Guenter Roeck <linux@roeck-us.net>
 Signed-off-by: David Howells <dhowells@redhat.com>
-Reviewed-by: Guenter Roeck <linux@roeck-us.net>
-Acked-by: Richard Kuo <rkuo@codeaurora.org>
-cc: linux-hexagon@vger.kernel.org
+Tested-by: Guenter Roeck <linux@roeck-us.net>
+cc: Mikael Starvik <starvik@axis.com>
+cc: Jesper Nilsson <jesper.nilsson@axis.com>
+cc: linux-cris-kernel@axis.com
 ---
 
- arch/hexagon/kernel/vmlinux.lds.S |    2 ++
- 1 file changed, 2 insertions(+)
+ arch/cris/include/asm/processor.h   |    7 -------
+ arch/cris/include/asm/thread_info.h |    7 +++++++
+ arch/cris/kernel/vmlinux.lds.S      |    1 +
+ 3 files changed, 8 insertions(+), 7 deletions(-)
 
-diff --git a/arch/hexagon/kernel/vmlinux.lds.S b/arch/hexagon/kernel/vmlinux.lds.S
-index ec87e67feb19..ad69d181c939 100644
---- a/arch/hexagon/kernel/vmlinux.lds.S
-+++ b/arch/hexagon/kernel/vmlinux.lds.S
-@@ -22,6 +22,8 @@
- #include <asm/asm-offsets.h>	/*  Most of the kernel defines are here  */
- #include <asm/mem-layout.h>	/*  except for page_offset  */
- #include <asm/cache.h>		/*  and now we're pulling cache line size  */
-+#include <asm/thread_info.h>	/*  and we need THREAD_SIZE too */
-+
- OUTPUT_ARCH(hexagon)
- ENTRY(stext)
+diff --git a/arch/cris/include/asm/processor.h b/arch/cris/include/asm/processor.h
+index 124dd5ec7f65..b50907799cb2 100644
+--- a/arch/cris/include/asm/processor.h
++++ b/arch/cris/include/asm/processor.h
+@@ -26,13 +26,6 @@ struct task_struct;
+  */
+ #define TASK_UNMAPPED_BASE      (PAGE_ALIGN(TASK_SIZE / 3))
  
+-/* THREAD_SIZE is the size of the thread_info/kernel_stack combo.
+- * normally, the stack is found by doing something like p + THREAD_SIZE
+- * in CRIS, a page is 8192 bytes, which seems like a sane size
+- */
+-#define THREAD_SIZE       PAGE_SIZE
+-#define THREAD_SIZE_ORDER (0)
+-
+ /*
+  * At user->kernel entry, the pt_regs struct is stacked on the top of the kernel-stack.
+  * This macro allows us to find those regs for a task.
+diff --git a/arch/cris/include/asm/thread_info.h b/arch/cris/include/asm/thread_info.h
+index 472830c90997..108f77081a3c 100644
+--- a/arch/cris/include/asm/thread_info.h
++++ b/arch/cris/include/asm/thread_info.h
+@@ -20,6 +20,13 @@
+ #endif
+ 
+ 
++/* THREAD_SIZE is the size of the thread_info/kernel_stack combo.
++ * normally, the stack is found by doing something like p + THREAD_SIZE
++ * in CRIS, a page is 8192 bytes, which seems like a sane size
++ */
++#define THREAD_SIZE       PAGE_SIZE
++#define THREAD_SIZE_ORDER (0)
++
+ /*
+  * low level task data that entry.S needs immediate access to
+  * - this struct should fit entirely inside of one cache line
+diff --git a/arch/cris/kernel/vmlinux.lds.S b/arch/cris/kernel/vmlinux.lds.S
+index 6d1dbc1ba767..9b232e0f673e 100644
+--- a/arch/cris/kernel/vmlinux.lds.S
++++ b/arch/cris/kernel/vmlinux.lds.S
+@@ -11,6 +11,7 @@
+ 
+ #include <asm-generic/vmlinux.lds.h>
+ #include <asm/page.h>
++#include <asm/thread_info.h>
+ 
+ #ifdef CONFIG_ETRAX_VMEM_SIZE
+ #define __CONFIG_ETRAX_VMEM_SIZE CONFIG_ETRAX_VMEM_SIZE
