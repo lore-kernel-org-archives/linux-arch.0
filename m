@@ -1,126 +1,121 @@
-From: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: Re: [PATCH for 4.16 07/11] x86: Implement sync_core_before_usermode (v3)
-Date: Wed, 17 Jan 2018 10:13:05 -0800
-Message-ID: <CALCETrV2Cve1sW=UXHgjTWMKfsiwY5QdeaBnQRZGfpELLKry+A@mail.gmail.com>
-References: <20180117165458.13330-1-mathieu.desnoyers@efficios.com>
- <20180117165458.13330-8-mathieu.desnoyers@efficios.com> <CALCETrWqRPsmLY=sTo5YHbWRh3HWjrVQ4FOn-=YfP=4_n98F6w@mail.gmail.com>
- <712464074.4666.1516212636860.JavaMail.zimbra@efficios.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH v3 8/9] x86: use __uaccess_begin_nospec and ASM_IFENCE in
+ get_user paths
+Date: Wed, 17 Jan 2018 18:52:32 +0000
+Message-ID: <20180117185232.GW13338@ZenIV.linux.org.uk>
+References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151586748981.5820.14559543798744763404.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzoAR+MYX+ub0xZ32OsT7WtD5Kru2t6LhwB1buLWPResQ@mail.gmail.com>
+ <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
+ <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com>
+ <CA+55aFxAFG5czVmCyhYMyHmXLNJ7pcXxWzusjZvLRh_qTGHj6Q@mail.gmail.com>
+ <CA+55aFxB01XEEpdPynwYmzQMfTJdJnUrN+ZLqSV_UdnKLBgAZw@mail.gmail.com>
+ <1516198646.4184.13.camel@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <712464074.4666.1516212636860.JavaMail.zimbra-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Mathieu Desnoyers <mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>
-Cc: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-kernel <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-api <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "Paul E. McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Andrew Hunter <ahh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, maged michael <maged.michael-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Avi Kivity <avi-VrcmuVmyx1hWk0Htik3J/w@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, Dave Watson <davejwatson-b10kYP2dOMg@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Andrea Parri <parri.andrea-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "Russell King, ARM Linux" <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, Greg Hackmann <ghackmann-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Will Deacon <wi>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1516198646.4184.13.camel@linux.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alan Cox <alan@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 17, 2018 at 10:10 AM, Mathieu Desnoyers
-<mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org> wrote:
-> ----- On Jan 17, 2018, at 12:53 PM, Andy Lutomirski luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org wrote:
->
->> On Wed, Jan 17, 2018 at 8:54 AM, Mathieu Desnoyers
->> <mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org> wrote:
->>> Ensure that a core serializing instruction is issued before returning to
->>> user-mode. x86 implements return to user-space through sysexit, sysrel,
->>> and sysretq, which are not core serializing.
->>>
->>> Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>
->>> Reviewed-by: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
->>> CC: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
->>> CC: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
->>> CC: Paul E. McKenney <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
->>> CC: Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
->>> CC: Andrew Hunter <ahh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
->>> CC: Maged Michael <maged.michael-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
->>> CC: Avi Kivity <avi-VrcmuVmyx1hWk0Htik3J/w@public.gmane.org>
->>> CC: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
->>> CC: Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
->>> CC: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
->>> CC: Dave Watson <davejwatson-b10kYP2dOMg@public.gmane.org>
->>> CC: Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
->>> CC: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
->>> CC: Andrea Parri <parri.andrea-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
->>> CC: Russell King <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>
->>> CC: Greg Hackmann <ghackmann-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
->>> CC: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
->>> CC: David Sehr <sehr-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
->>> CC: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
->>> CC: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org
->>> CC: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
->>> ---
->>> Changes since v1:
->>> - Fix prototype of sync_core_before_usermode in generic code (missing
->>>   return type).
->>> - Add linux/processor.h include to sched/core.c.
->>> - Add ARCH_HAS_SYNC_CORE_BEFORE_USERMODE to init/Kconfig.
->>> - Fix linux/processor.h ifdef to target
->>>   CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE rather than
->>>   ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
->>> - Move empty static inline in processor.h to generic patch.
->>> ---
->>>  arch/x86/Kconfig                 |  1 +
->>>  arch/x86/include/asm/processor.h | 10 ++++++++++
->>>  2 files changed, 11 insertions(+)
->>>
->>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
->>> index 20da391b5f32..0b44c8dd0e95 100644
->>> --- a/arch/x86/Kconfig
->>> +++ b/arch/x86/Kconfig
->>> @@ -61,6 +61,7 @@ config X86
->>>         select ARCH_HAS_SG_CHAIN
->>>         select ARCH_HAS_STRICT_KERNEL_RWX
->>>         select ARCH_HAS_STRICT_MODULE_RWX
->>> +       select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
->>>         select ARCH_HAS_UBSAN_SANITIZE_ALL
->>>         select ARCH_HAS_ZONE_DEVICE             if X86_64
->>>         select ARCH_HAVE_NMI_SAFE_CMPXCHG
->>> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
->>> index d3a67fba200a..3257d34dbb40 100644
->>> --- a/arch/x86/include/asm/processor.h
->>> +++ b/arch/x86/include/asm/processor.h
->>> @@ -722,6 +722,16 @@ static inline void sync_core(void)
->>>  #endif
->>>  }
->>>
->>> +/*
->>> + * Ensure that a core serializing instruction is issued before returning
->>> + * to user-mode. x86 implements return to user-space through sysexit,
->>> + * sysrel, and sysretq, which are not core serializing.
->>> + */
->>> +static inline void sync_core_before_usermode(void)
->>> +{
->>
->> /* With PTI, we unconditionally serialize before running user code. */
->> if (static_cpu_has(X86_FEATURE_PTI))
->>  return;
->
-> One issue I'm facing with this change is header dependency:
-> sync_core_before_usermode() is currently implemented in
-> arch/x86/include/asm/processor.h, but arch/x86/include/asm/cpufeature.h
-> is needed for static_cpu_has, and it happens to include
-> asm/processor.h.
->
-> I'm facing a similar issue for adding a (in_irq() || in_nmi()) check.
->
-> Should we move sync_core_before_usermode() to a different header, and if
-> so, any suggestion ?
+On Wed, Jan 17, 2018 at 02:17:26PM +0000, Alan Cox wrote:
+> On Tue, 2018-01-16 at 14:41 -0800, Linus Torvalds wrote:
+> > 
+> > 
+> > On Jan 16, 2018 14:23, "Dan Williams" <dan.j.williams@intel.com>
+> > wrote:
+> > > That said, for get_user specifically, can we do something even
+> > > cheaper. Dave H. reminds me that any valid user pointer that gets
+> > > past
+> > > the address limit check will have the high bit clear. So instead of
+> > > calculating a mask, just unconditionally clear the high bit. It
+> > > seems
+> > > worse case userspace can speculatively leak something that's
+> > > already
+> > > in its address space.
+> > 
+> > That's not at all true.
+> > 
+> > The address may be a kernel address. That's the whole point of
+> > 'set_fs()'.
+> 
+> Can we kill off the remaining users of set_fs() ?
 
-tlbflush.h, maybe?
+Not easily.  They tend to come in pairs (the usual pattern is get_fs(),
+save the result, set_fs(something), do work, set_fs(saved)), and
+counting each such area as single instance we have (in my tree right
+now) 121 locations.  Some could be killed (and will eventually be -
+the number of set_fs()/access_ok()/__{get,put}_user()/__copy_...()
+call sites had been seriously decreasing during the last couple of
+years), but some are really hard to kill off.
 
->
-> Thanks,
->
-> Mathieu
->
->
->
->>
->>> +       sync_core();
->>> +}
->>
->> --Andy
->
-> --
-> Mathieu Desnoyers
-> EfficiOS Inc.
-> http://www.efficios.com
+How, for example, would you deal with this one:
+
+/*
+ * Receive a datagram from a UDP socket.
+ */
+static int svc_udp_recvfrom(struct svc_rqst *rqstp)
+{
+        struct svc_sock *svsk =
+                container_of(rqstp->rq_xprt, struct svc_sock, sk_xprt);
+        struct svc_serv *serv = svsk->sk_xprt.xpt_server;
+        struct sk_buff  *skb;
+        union {
+                struct cmsghdr  hdr;
+                long            all[SVC_PKTINFO_SPACE / sizeof(long)];
+        } buffer;
+        struct cmsghdr *cmh = &buffer.hdr;
+        struct msghdr msg = {
+                .msg_name = svc_addr(rqstp),
+                .msg_control = cmh,
+                .msg_controllen = sizeof(buffer),
+                .msg_flags = MSG_DONTWAIT,
+        };
+...
+        err = kernel_recvmsg(svsk->sk_sock, &msg, NULL,
+                             0, 0, MSG_PEEK | MSG_DONTWAIT);
+
+With kernel_recvmsg() (and in my tree the above is its last surviving caller)
+being
+
+int kernel_recvmsg(struct socket *sock, struct msghdr *msg,
+                   struct kvec *vec, size_t num, size_t size, int flags)
+{
+        mm_segment_t oldfs = get_fs();
+        int result;
+
+        iov_iter_kvec(&msg->msg_iter, READ | ITER_KVEC, vec, num, size);
+        set_fs(KERNEL_DS);
+        result = sock_recvmsg(sock, msg, flags);
+        set_fs(oldfs);
+        return result;
+}
+EXPORT_SYMBOL(kernel_recvmsg);
+
+We are asking for recvmsg() with zero data length; what we really want is
+->msg_control.  And _that_ is why we need that set_fs() - we want the damn
+thing to go into local variable.
+
+But note that filling ->msg_control will happen in put_cmsg(), called
+from ip_cmsg_recv_pktinfo(), called from ip_cmsg_recv_offset(),
+called from udp_recvmsg(), called from sock_recvmsg_nosec(), called
+from sock_recvmsg().  Or in another path in case of IPv6.
+Sure, we can arrange for propagation of that all way down those
+call chains.  My preference would be to try and mark that (one and
+only) case in ->msg_flags, so that put_cmsg() would be able to
+check.  ___sys_recvmsg() sets that as
+        msg_sys->msg_flags = flags & (MSG_CMSG_CLOEXEC|MSG_CMSG_COMPAT);
+so we ought to be free to use any bit other than those two.  Since
+put_cmsg() already checks ->msg_flags, that shouldn't put too much
+overhead.  But then we'll need to do something to prevent speculative
+execution straying down that way, won't we?  I'm not saying it can't
+be done, but quite a few of the remaining call sites will take
+serious work.
+
+	Incidentally, what about copy_to_iter() and friends?  They
+check iov_iter flavour and go either into the "copy to kernel buffer"
+or "copy to userland" paths.  Do we need to deal with mispredictions
+there?  We are calling a bunch of those on read()...
