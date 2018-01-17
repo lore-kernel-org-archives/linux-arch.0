@@ -1,142 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:41843 "EHLO
-        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752625AbeAQM6F (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 07:58:05 -0500
-Received: by mail-wm0-f65.google.com with SMTP id f71so15030419wmf.0
-        for <linux-arch@vger.kernel.org>; Wed, 17 Jan 2018 04:58:04 -0800 (PST)
-Reply-To: monstr@monstr.eu
-Subject: Re: [PATCH 1/2] microblaze: fix endian handling
-References: <20180102114720.3408356-1-arnd@arndb.de>
- <201801140858.DQC0KW38%fengguang.wu@intel.com>
- <CAK8P3a1X1Pw65gX7Pn+672yux26oMzWidmN7onX94uESY547Eg@mail.gmail.com>
- <ed24b2c4-c5d0-057c-49c3-57f50c5946b4@monstr.eu>
- <CAK8P3a1zr_9Oy-neCndUgFd1q0pyT07VKbJe2ezw3x6psfut3A@mail.gmail.com>
-From: Michal Simek <monstr@monstr.eu>
-Message-ID: <ffc7b253-bc9e-c098-fe02-707709d5acfe@monstr.eu>
-Date: Wed, 17 Jan 2018 13:57:51 +0100
+Received: from resqmta-ch2-12v.sys.comcast.net ([69.252.207.44]:51134 "EHLO
+        resqmta-ch2-12v.sys.comcast.net" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1753142AbeAQOqq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 17 Jan 2018 09:46:46 -0500
+Date: Wed, 17 Jan 2018 08:46:41 -0600 (CST)
+From: Christopher Lameter <cl@linux.com>
+Subject: Re: kmem_cache_attr (was Re: [PATCH 04/36] usercopy: Prepare for
+ usercopy whitelisting)
+In-Reply-To: <20180116210313.GA7791@bombadil.infradead.org>
+Message-ID: <alpine.DEB.2.20.1801170843550.12151@nuc-kabylake>
+References: <1515531365-37423-1-git-send-email-keescook@chromium.org> <1515531365-37423-5-git-send-email-keescook@chromium.org> <alpine.DEB.2.20.1801101219390.7926@nuc-kabylake> <20180114230719.GB32027@bombadil.infradead.org> <alpine.DEB.2.20.1801160913260.3908@nuc-kabylake>
+ <20180116160525.GF30073@bombadil.infradead.org> <alpine.DEB.2.20.1801161049320.5162@nuc-kabylake> <20180116174315.GA10461@bombadil.infradead.org> <alpine.DEB.2.20.1801161205590.1771@nuc-kabylake> <alpine.DEB.2.20.1801161215500.2945@nuc-kabylake>
+ <20180116210313.GA7791@bombadil.infradead.org>
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a1zr_9Oy-neCndUgFd1q0pyT07VKbJe2ezw3x6psfut3A@mail.gmail.com>
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="c7sZuhtBot5q01YeubbfUlm6aECVm88ny"
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: kbuild test robot <lkp@intel.com>, kbuild-all@01.org, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Babu Moger <babu.moger@oracle.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20180117125751.x-sS8rAo5OdtWydO6ArmDLYF6sGwTubWtzWqhU0uiEM@z>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180117144641.D59Ash1PAlm0_AU3g9lkpc0zWDOS_ZWh8RTaqEouISY@z>
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---c7sZuhtBot5q01YeubbfUlm6aECVm88ny
-Content-Type: multipart/mixed; boundary="YaTN1kN57NviEAqoV3UbPbsJrFj0wVWbF";
- protected-headers="v1"
-From: Michal Simek <monstr@monstr.eu>
-Reply-To: monstr@monstr.eu
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: kbuild test robot <lkp@intel.com>, kbuild-all@01.org,
- Andrew Morton <akpm@linux-foundation.org>,
- linux-arch <linux-arch@vger.kernel.org>, Babu Moger <babu.moger@oracle.com>,
- Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <ffc7b253-bc9e-c098-fe02-707709d5acfe@monstr.eu>
-Subject: Re: [PATCH 1/2] microblaze: fix endian handling
-References: <20180102114720.3408356-1-arnd@arndb.de>
- <201801140858.DQC0KW38%fengguang.wu@intel.com>
- <CAK8P3a1X1Pw65gX7Pn+672yux26oMzWidmN7onX94uESY547Eg@mail.gmail.com>
- <ed24b2c4-c5d0-057c-49c3-57f50c5946b4@monstr.eu>
- <CAK8P3a1zr_9Oy-neCndUgFd1q0pyT07VKbJe2ezw3x6psfut3A@mail.gmail.com>
-In-Reply-To: <CAK8P3a1zr_9Oy-neCndUgFd1q0pyT07VKbJe2ezw3x6psfut3A@mail.gmail.com>
+On Tue, 16 Jan 2018, Matthew Wilcox wrote:
 
---YaTN1kN57NviEAqoV3UbPbsJrFj0wVWbF
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: quoted-printable
+> On Tue, Jan 16, 2018 at 12:17:01PM -0600, Christopher Lameter wrote:
+> > Draft patch of how the data structs could change. kmem_cache_attr is read
+> > only.
+>
+> Looks good.  Although I would add Kees' user feature:
 
-On 15.1.2018 11:19, Arnd Bergmann wrote:
-> On Mon, Jan 15, 2018 at 11:14 AM, Michal Simek <monstr@monstr.eu> wrote=
-:
->> On 15.1.2018 10:29, Arnd Bergmann wrote:
->>> On Sun, Jan 14, 2018 at 2:01 AM, kbuild test robot <lkp@intel.com> wr=
-ote:
->>>> Hi Arnd,
->>>>
->>>> I love your patch! Yet something to improve:
->>>>
->>>> [auto build test ERROR on linus/master]
->>>> [also build test ERROR on v4.15-rc7 next-20180112]
->>>> [if your patch is applied to the wrong git tree, please drop us a no=
-te to help improve the system]
->>>>
->>>> url:    https://github.com/0day-ci/linux/commits/Arnd-Bergmann/micro=
-blaze-fix-endian-handling/20180105-120705
->>>> config: microblaze-mmu_defconfig (attached as .config)
->>>> compiler: microblaze-linux-gcc (GCC) 7.2.0
->>>> reproduce:
->>>>         wget https://raw.githubusercontent.com/intel/lkp-tests/maste=
-r/sbin/make.cross -O ~/bin/make.cross
->>>>         chmod +x ~/bin/make.cross
->>>>         # save the attached .config to linux build tree
->>>>         make.cross ARCH=3Dmicroblaze
->>>>
->>>> All errors (new ones prefixed by >>):
->>>>
->>>>>> arch/microblaze/lib/fastcopy.S:33:2: error: #error Microblaze LE n=
-ot support ASM optimized lib func. Disable OPT_LIB_ASM.
->>>>     #error Microblaze LE not support ASM optimized lib func. Disable=
- OPT_LIB_ASM.
->>>>      ^~~~~
->>>>
->>>> vim +33 arch/microblaze/lib/fastcopy.S
->>>>
->>>
->>> This seems to be a result of fixing one bug so we run into one that w=
-e didn't
->>> get to earlier. I still assume my patch is correct.
->>
->> I will look at this later this week. Xilinx toolchain which I use
->> normally are microblaze for BE or microblazeel that's why proper flags=
+Sure I tried to do this quickly so that the basic struct changes are
+visible.
 
->> are default options already that's why I didn't see any issue.
->>
->> Did you take toolchain from kernel.org?
->> https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.9.0/
->=20
-> I used a gcc-7.2.1 that I built myself for all architectures in order t=
-o debug
-> a gcc issue that appeared in gcc-7.2.
->=20
-> The patch that got tested was my workaround for an obviously broken
-> allmodconfig build.
+> And I'd start with
+> +struct kmem_cache *kmem_cache_create_attr(const kmem_cache_attr *);
+>
+> leaving the old kmem_cache_create to kmalloc a kmem_cache_attr and
+> initialise it.
 
-ok.
+Well at some point we should convert the callers by putting the
+definitions into const kmem_cache_attr initializations. That way
+the callbacks function pointers are safe.
 
-Applied both.
+> Can we also do something like this?
+>
+> -#define KMEM_CACHE(__struct, __flags) kmem_cache_create(#__struct,\
+> -		sizeof(struct __struct), __alignof__(struct __struct),\
+> -		(__flags), NULL)
+> +#define KMEM_CACHE(__struct, __flags) ({				\
+> +	const struct kmem_cache_attr kca ## __stringify(__struct) = {	\
+> +		.name = #__struct,					\
+> +		.size = sizeof(struct __struct),			\
+> +		.align = __alignof__(struct __struct),			\
+> +		.flags = (__flags),					\
+> +	};								\
+> +	kmem_cache_create_attr(&kca ## __stringify(__struct));		\
+> +})
+>
+> That way we won't need to convert any of those users.
 
-Thanks,
-Michal
-
-
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Xilinx Microblaze
-Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP SoCs
-
-
-
---YaTN1kN57NviEAqoV3UbPbsJrFj0wVWbF--
-
---c7sZuhtBot5q01YeubbfUlm6aECVm88ny
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.22 (GNU/Linux)
-
-iEYEARECAAYFAlpfSFMACgkQykllyylKDCHKSgCggAha5MH8wqSHcYXcuH+aqQOA
-Rz4AnjBrl+mVVxTrKj4JujYrVINAH7sm
-=B+Qg
------END PGP SIGNATURE-----
-
---c7sZuhtBot5q01YeubbfUlm6aECVm88ny--
+Yep thats what I was planning.
