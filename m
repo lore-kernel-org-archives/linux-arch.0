@@ -1,110 +1,397 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and
- SIGFPE, SIGTRAP, SIGBUS
-Date: Wed, 17 Jan 2018 15:37:31 +0000
-Message-ID: <20180117153731.GG22781@e103592.cambridge.arm.com>
-References: <87373b6ghs.fsf@xmission.com>
- <20180112005940.23279-7-ebiederm@xmission.com>
- <20180115163028.GU22781@e103592.cambridge.arm.com>
- <87h8rnox3c.fsf@xmission.com>
- <20180116172407.GA22781@e103592.cambridge.arm.com>
- <871sipl9p9.fsf@xmission.com>
- <20180117115708.GM17719@n2100.armlinux.org.uk>
- <20180117121505.GD22781@e103592.cambridge.arm.com>
- <20180117123752.GN17719@n2100.armlinux.org.uk>
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 6/8] Expand various INIT_* macros and remove
+Date: Wed, 17 Jan 2018 15:26:00 +0000
+Message-ID: <151620276028.22429.16148790747386455925.stgit@warthog.procyon.org.uk>
+References: <151620268761.22429.14193525405303696385.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20180117123752.GN17719@n2100.armlinux.org.uk>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Tyler Baicar <tbaicar@codeaurora.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, James Morse <james.morse@arm.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Olof Johansson <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org, Al Viro <viro@zeniv.linux.org.uk>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <151620268761.22429.14193525405303696385.stgit@warthog.procyon.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: torvalds@linux-foundation.org
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 17, 2018 at 12:37:52PM +0000, Russell King - ARM Linux wrote:
-> On Wed, Jan 17, 2018 at 12:15:05PM +0000, Dave Martin wrote:
-> > On Wed, Jan 17, 2018 at 11:57:09AM +0000, Russell King - ARM Linux wrote:
+Expand various INIT_* macros into the single places they're used in
+init/init_task.c and remove them.
 
-[...]
+Signed-off-by: David Howells <dhowells@redhat.com>
+Tested-by: Tony Luck <tony.luck@intel.com>
+Tested-by: Will Deacon <will.deacon@arm.com> (arm64)
+Tested-by: Palmer Dabbelt <palmer@sifive.com>
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
+---
 
-> > > VFP used to use force_sig_info(), but it seems to be really the wrong
-> > > call to use.  force_sig_info() checks whether the program decided to
-> > > ignore or block the signal, and if it did, replaces the signal handler
-> > > with the default handler and unblocks the signal.
-> > > 
-> > > Are you really suggesting that FP all FP signals should get this
-> > > treatment?
-> > 
-> > feenableexcept(FE_OVERFLOW) kind of means "I can't run safely past
-> > an fp overflow exception, please signal me instead".
-> > 
-> > If the process also blocked SIGFPE, that could be taken to mean
-> > "I can't run safely past an fp overflow exception _and_ I can't
-> > take SIGFPE either" ... i.e., if an fp overflow happens there is
-> > no way to proceed and it's really fatal.
-> > 
-> > What SIG_IGN ought to mean is rather more debatable, but again,
-> > the process could be asking for two opposite things: guarantee a
-> > SIGFPE is delivered instead of running past an fp exception, and
-> > also guarantee that SIGFPE is _not_ delivered.
-> > 
-> > It looks like arm and arm64 are different from most other arches
-> > (including x86) here, but I'm not sure what is considered correct, and
-> > it looks like the answer is not standardised.  There's a possibility
-> > that some software goes subtly wrong on arm/arm64 where on other arches
-> > it would get terminated with SIGKILL.
-> > 
-> > Whether this matters depends on how harmless the fp exception is to
-> > the work of the program.  I think if an exception is set to trap
-> > via feenableexcept() then that's a strong hint the programmer thinks
-> > that exception is not harmless.  OTOH, trapping is not always
-> > available anyway...
-> 
-> Like many of these things, there is no clear answer.  It's a set of
-> conflicting requirements, and as you point out, even if you've called
-> feenableexcept(), you are not guaranteed to get a trap.
-> 
-> However, do remember that FP exceptions on ARM hardware are already
-> asynchronous - they get reported by the _next_ FP operation to the one
-> that caused them, which means they could be raised by a library function
-> sometime after it occured (when the library function decides to save the
-> FP registers to the stack before it makes use of them.)  It's entirely
-> possible that the library function has blocked FP signals temporarily
-> (not explicitly, just decided to block all signals while it does
-> something sensitive) and will unblock them again afterwards - at which
-> point we get the SIGFPE, and it would be quite right to deliver that
-> signal to the user SIGFPE handler, rather than forcing it onto the
-> program mid-library function.
-> 
-> It's also possible that SIGFPE could be blocked by another signal handler
-> having been invoked, and it triggers the latent generation of the SIGFPE.
-> 
-> I'd be more inclined to agree with you if VFP exceptions were synchronous
-> but they aren't.
+ include/linux/ftrace.h    |   12 -----
+ include/linux/init_task.h |  112 ---------------------------------------------
+ include/linux/irqflags.h  |    2 -
+ include/linux/lockdep.h   |    3 -
+ init/init_task.c          |   95 +++++++++++++++++++++++++++++---------
+ 5 files changed, 71 insertions(+), 153 deletions(-)
 
-Hmmm, it looks like imprecise fp exception traps are disallowed from
-ARMv8 onwards.  I guess they made more sense when the FPU really was a
-coprocessor, or at least semidetached from the integer core.
-
-I think force_sig_info() makes sense here if and only if the traps
-are guaranteed to be precise, so we probably should use this on arm64.
-Not arm though (alpha doesn't either, if I understand the code
-correctly.)
-
-Does that make sense?
-
-Apparently, few recent cores (at least ARM's own ones) support fp
-exception trapping anyway...  1176 may be the most recent.
-
-Cheers
----Dave
+diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+index 2bab81951ced..6311f35acbc4 100644
+--- a/include/linux/ftrace.h
++++ b/include/linux/ftrace.h
+@@ -764,9 +764,6 @@ typedef int (*trace_func_graph_ent_t)(struct ftrace_graph_ent *); /* entry */
+ 
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+ 
+-/* for init task */
+-#define INIT_FTRACE_GRAPH		.ret_stack = NULL,
+-
+ /*
+  * Stack of return addresses for functions
+  * of a thread.
+@@ -844,7 +841,6 @@ static inline void unpause_graph_tracing(void)
+ #else /* !CONFIG_FUNCTION_GRAPH_TRACER */
+ 
+ #define __notrace_funcgraph
+-#define INIT_FTRACE_GRAPH
+ 
+ static inline void ftrace_graph_init_task(struct task_struct *t) { }
+ static inline void ftrace_graph_exit_task(struct task_struct *t) { }
+@@ -923,10 +919,6 @@ extern int tracepoint_printk;
+ extern void disable_trace_on_warning(void);
+ extern int __disable_trace_on_warning;
+ 
+-#ifdef CONFIG_PREEMPT
+-#define INIT_TRACE_RECURSION		.trace_recursion = 0,
+-#endif
+-
+ int tracepoint_printk_sysctl(struct ctl_table *table, int write,
+ 			     void __user *buffer, size_t *lenp,
+ 			     loff_t *ppos);
+@@ -935,10 +927,6 @@ int tracepoint_printk_sysctl(struct ctl_table *table, int write,
+ static inline void  disable_trace_on_warning(void) { }
+ #endif /* CONFIG_TRACING */
+ 
+-#ifndef INIT_TRACE_RECURSION
+-#define INIT_TRACE_RECURSION
+-#endif
+-
+ #ifdef CONFIG_FTRACE_SYSCALLS
+ 
+ unsigned long arch_syscall_addr(int nr);
+diff --git a/include/linux/init_task.h b/include/linux/init_task.h
+index 9711611b831d..b1385e1dca63 100644
+--- a/include/linux/init_task.h
++++ b/include/linux/init_task.h
+@@ -21,23 +21,9 @@
+ 
+ #include <asm/thread_info.h>
+ 
+-#ifdef CONFIG_SMP
+-# define INIT_PUSHABLE_TASKS(tsk)					\
+-	.pushable_tasks = PLIST_NODE_INIT(tsk.pushable_tasks, MAX_PRIO),
+-#else
+-# define INIT_PUSHABLE_TASKS(tsk)
+-#endif
+-
+ extern struct files_struct init_files;
+ extern struct fs_struct init_fs;
+ 
+-#ifdef CONFIG_CPUSETS
+-#define INIT_CPUSET_SEQ(tsk)							\
+-	.mems_allowed_seq = SEQCNT_ZERO(tsk.mems_allowed_seq),
+-#else
+-#define INIT_CPUSET_SEQ(tsk)
+-#endif
+-
+ #ifndef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
+ #define INIT_PREV_CPUTIME(x)	.prev_cputime = {			\
+ 	.lock = __RAW_SPIN_LOCK_UNLOCKED(x.prev_cputime.lock),		\
+@@ -117,107 +103,10 @@ extern struct group_info init_groups;
+ 	.pid = &init_struct_pid,				\
+ }
+ 
+-#ifdef CONFIG_AUDITSYSCALL
+-#define INIT_IDS \
+-	.loginuid = INVALID_UID, \
+-	.sessionid = (unsigned int)-1,
+-#else
+-#define INIT_IDS
+-#endif
+-
+-#ifdef CONFIG_PREEMPT_RCU
+-#define INIT_TASK_RCU_PREEMPT(tsk)					\
+-	.rcu_read_lock_nesting = 0,					\
+-	.rcu_read_unlock_special.s = 0,					\
+-	.rcu_node_entry = LIST_HEAD_INIT(tsk.rcu_node_entry),		\
+-	.rcu_blocked_node = NULL,
+-#else
+-#define INIT_TASK_RCU_PREEMPT(tsk)
+-#endif
+-#ifdef CONFIG_TASKS_RCU
+-#define INIT_TASK_RCU_TASKS(tsk)					\
+-	.rcu_tasks_holdout = false,					\
+-	.rcu_tasks_holdout_list =					\
+-		LIST_HEAD_INIT(tsk.rcu_tasks_holdout_list),		\
+-	.rcu_tasks_idle_cpu = -1,
+-#else
+-#define INIT_TASK_RCU_TASKS(tsk)
+-#endif
+-
+ extern struct cred init_cred;
+ 
+-#ifdef CONFIG_CGROUP_SCHED
+-# define INIT_CGROUP_SCHED(tsk)						\
+-	.sched_task_group = &root_task_group,
+-#else
+-# define INIT_CGROUP_SCHED(tsk)
+-#endif
+-
+-#ifdef CONFIG_PERF_EVENTS
+-# define INIT_PERF_EVENTS(tsk)						\
+-	.perf_event_mutex = 						\
+-		 __MUTEX_INITIALIZER(tsk.perf_event_mutex),		\
+-	.perf_event_list = LIST_HEAD_INIT(tsk.perf_event_list),
+-#else
+-# define INIT_PERF_EVENTS(tsk)
+-#endif
+-
+-#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
+-# define INIT_VTIME(tsk)						\
+-	.vtime.seqcount = SEQCNT_ZERO(tsk.vtime.seqcount),		\
+-	.vtime.starttime = 0,						\
+-	.vtime.state = VTIME_SYS,
+-#else
+-# define INIT_VTIME(tsk)
+-#endif
+-
+ #define INIT_TASK_COMM "swapper"
+ 
+-#ifdef CONFIG_RT_MUTEXES
+-# define INIT_RT_MUTEXES(tsk)						\
+-	.pi_waiters = RB_ROOT_CACHED,					\
+-	.pi_top_task = NULL,
+-#else
+-# define INIT_RT_MUTEXES(tsk)
+-#endif
+-
+-#ifdef CONFIG_NUMA_BALANCING
+-# define INIT_NUMA_BALANCING(tsk)					\
+-	.numa_preferred_nid = -1,					\
+-	.numa_group = NULL,						\
+-	.numa_faults = NULL,
+-#else
+-# define INIT_NUMA_BALANCING(tsk)
+-#endif
+-
+-#ifdef CONFIG_KASAN
+-# define INIT_KASAN(tsk)						\
+-	.kasan_depth = 1,
+-#else
+-# define INIT_KASAN(tsk)
+-#endif
+-
+-#ifdef CONFIG_LIVEPATCH
+-# define INIT_LIVEPATCH(tsk)						\
+-	.patch_state = KLP_UNDEFINED,
+-#else
+-# define INIT_LIVEPATCH(tsk)
+-#endif
+-
+-#ifdef CONFIG_THREAD_INFO_IN_TASK
+-# define INIT_TASK_TI(tsk)			\
+-	.thread_info = INIT_THREAD_INFO(tsk),	\
+-	.stack_refcount = ATOMIC_INIT(1),
+-#else
+-# define INIT_TASK_TI(tsk)
+-#endif
+-
+-#ifdef CONFIG_SECURITY
+-#define INIT_TASK_SECURITY .security = NULL,
+-#else
+-#define INIT_TASK_SECURITY
+-#endif
+-
+ /* Attach to the init_task data structure for proper alignment */
+ #ifdef CONFIG_ARCH_TASK_STRUCT_ON_STACK
+ #define __init_task_data __attribute__((__section__(".data..init_task")))
+@@ -228,5 +117,4 @@ extern struct cred init_cred;
+ /* Attach to the thread_info data structure for proper alignment */
+ #define __init_thread_info __attribute__((__section__(".data..init_thread_info")))
+ 
+-
+ #endif
+diff --git a/include/linux/irqflags.h b/include/linux/irqflags.h
+index 46cb57d5eb13..2ec81dc1487e 100644
+--- a/include/linux/irqflags.h
++++ b/include/linux/irqflags.h
+@@ -44,7 +44,6 @@ do {						\
+ 	current->softirq_context--;		\
+ 	crossrelease_hist_end(XHLOCK_SOFT);	\
+ } while (0)
+-# define INIT_TRACE_IRQFLAGS	.softirqs_enabled = 1,
+ #else
+ # define trace_hardirqs_on()		do { } while (0)
+ # define trace_hardirqs_off()		do { } while (0)
+@@ -58,7 +57,6 @@ do {						\
+ # define trace_hardirq_exit()		do { } while (0)
+ # define lockdep_softirq_enter()	do { } while (0)
+ # define lockdep_softirq_exit()		do { } while (0)
+-# define INIT_TRACE_IRQFLAGS
+ #endif
+ 
+ #if defined(CONFIG_IRQSOFF_TRACER) || \
+diff --git a/include/linux/lockdep.h b/include/linux/lockdep.h
+index 2e75dc34bff5..26f2ccc60669 100644
+--- a/include/linux/lockdep.h
++++ b/include/linux/lockdep.h
+@@ -367,8 +367,6 @@ extern struct pin_cookie lock_pin_lock(struct lockdep_map *lock);
+ extern void lock_repin_lock(struct lockdep_map *lock, struct pin_cookie);
+ extern void lock_unpin_lock(struct lockdep_map *lock, struct pin_cookie);
+ 
+-# define INIT_LOCKDEP				.lockdep_recursion = 0,
+-
+ #define lockdep_depth(tsk)	(debug_locks ? (tsk)->lockdep_depth : 0)
+ 
+ #define lockdep_assert_held(l)	do {				\
+@@ -426,7 +424,6 @@ static inline void lockdep_on(void)
+  * #ifdef the call himself.
+  */
+ 
+-# define INIT_LOCKDEP
+ # define lockdep_reset()		do { debug_locks = 1; } while (0)
+ # define lockdep_free_key_range(start, size)	do { } while (0)
+ # define lockdep_sys_exit() 			do { } while (0)
+diff --git a/init/init_task.c b/init/init_task.c
+index 7b2436f02dad..aa4030a939e5 100644
+--- a/init/init_task.c
++++ b/init/init_task.c
+@@ -16,7 +16,6 @@
+ static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
+ static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
+ 
+-
+ /*
+  * Set up the first task table, touch at your own risk!. Base=0,
+  * limit=0x1fffff (=2MB)
+@@ -26,20 +25,23 @@ struct task_struct init_task
+ 	__init_task_data
+ #endif
+ = {
+-	INIT_TASK_TI(init_task)
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++	.thread_info	= INIT_THREAD_INFO(init_task),
++	.stack_refcount	= ATOMIC_INIT(1),
++#endif
+ 	.state		= 0,
+ 	.stack		= init_stack,
+ 	.usage		= ATOMIC_INIT(2),
+ 	.flags		= PF_KTHREAD,
+-	.prio		= MAX_PRIO-20,
+-	.static_prio	= MAX_PRIO-20,
+-	.normal_prio	= MAX_PRIO-20,
++	.prio		= MAX_PRIO - 20,
++	.static_prio	= MAX_PRIO - 20,
++	.normal_prio	= MAX_PRIO - 20,
+ 	.policy		= SCHED_NORMAL,
+ 	.cpus_allowed	= CPU_MASK_ALL,
+ 	.nr_cpus_allowed= NR_CPUS,
+ 	.mm		= NULL,
+ 	.active_mm	= &init_mm,
+-	.restart_block = {
++	.restart_block	= {
+ 		.fn = do_no_restart_syscall,
+ 	},
+ 	.se		= {
+@@ -50,8 +52,12 @@ struct task_struct init_task
+ 		.time_slice	= RR_TIMESLICE,
+ 	},
+ 	.tasks		= LIST_HEAD_INIT(init_task.tasks),
+-	INIT_PUSHABLE_TASKS(init_task)
+-	INIT_CGROUP_SCHED(init_task)
++#ifdef CONFIG_SMP
++	.pushable_tasks	= PLIST_NODE_INIT(init_task.pushable_tasks, MAX_PRIO),
++#endif
++#ifdef CONFIG_CGROUP_SCHED
++	.sched_task_group = &root_task_group,
++#endif
+ 	.ptraced	= LIST_HEAD_INIT(init_task.ptraced),
+ 	.ptrace_entry	= LIST_HEAD_INIT(init_task.ptrace_entry),
+ 	.real_parent	= &init_task,
+@@ -85,24 +91,65 @@ struct task_struct init_task
+ 	},
+ 	.thread_group	= LIST_HEAD_INIT(init_task.thread_group),
+ 	.thread_node	= LIST_HEAD_INIT(init_signals.thread_head),
+-	INIT_IDS
+-	INIT_PERF_EVENTS(init_task)
+-	INIT_TRACE_IRQFLAGS
+-	INIT_LOCKDEP
+-	INIT_FTRACE_GRAPH
+-	INIT_TRACE_RECURSION
+-	INIT_TASK_RCU_PREEMPT(init_task)
+-	INIT_TASK_RCU_TASKS(init_task)
+-	INIT_CPUSET_SEQ(init_task)
+-	INIT_RT_MUTEXES(init_task)
++#ifdef CONFIG_AUDITSYSCALL
++	.loginuid	= INVALID_UID,
++	.sessionid	= (unsigned int)-1,
++#endif
++#ifdef CONFIG_PERF_EVENTS
++	.perf_event_mutex = __MUTEX_INITIALIZER(init_task.perf_event_mutex),
++	.perf_event_list = LIST_HEAD_INIT(init_task.perf_event_list),
++#endif
++#ifdef CONFIG_PREEMPT_RCU
++	.rcu_read_lock_nesting = 0,
++	.rcu_read_unlock_special.s = 0,
++	.rcu_node_entry = LIST_HEAD_INIT(init_task.rcu_node_entry),
++	.rcu_blocked_node = NULL,
++#endif
++#ifdef CONFIG_TASKS_RCU
++	.rcu_tasks_holdout = false,
++	.rcu_tasks_holdout_list = LIST_HEAD_INIT(init_task.rcu_tasks_holdout_list),
++	.rcu_tasks_idle_cpu = -1,
++#endif
++#ifdef CONFIG_CPUSETS
++	.mems_allowed_seq = SEQCNT_ZERO(init_task.mems_allowed_seq),
++#endif
++#ifdef CONFIG_RT_MUTEXES
++	.pi_waiters	= RB_ROOT_CACHED,
++	.pi_top_task	= NULL,
++#endif
+ 	INIT_PREV_CPUTIME(init_task)
+-	INIT_VTIME(init_task)
+-	INIT_NUMA_BALANCING(init_task)
+-	INIT_KASAN(init_task)
+-	INIT_LIVEPATCH(init_task)
+-	INIT_TASK_SECURITY
++#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
++	.vtime.seqcount	= SEQCNT_ZERO(init_task.vtime_seqcount),
++	.vtime.starttime = 0,
++	.vtime.state	= VTIME_SYS,
++#endif
++#ifdef CONFIG_NUMA_BALANCING
++	.numa_preferred_nid = -1,
++	.numa_group	= NULL,
++	.numa_faults	= NULL,
++#endif
++#ifdef CONFIG_KASAN
++	.kasan_depth	= 1,
++#endif
++#ifdef CONFIG_TRACE_IRQFLAGS
++	.softirqs_enabled = 1,
++#endif
++#ifdef CONFIG_LOCKDEP
++	.lockdep_recursion = 0,
++#endif
++#ifdef CONFIG_FUNCTION_GRAPH_TRACER
++	.ret_stack	= NULL,
++#endif
++#if defined(CONFIG_TRACING) && defined(CONFIG_PREEMPT)
++	.trace_recursion = 0,
++#endif
++#ifdef CONFIG_LIVEPATCH
++	.patch_state	= KLP_UNDEFINED,
++#endif
++#ifdef CONFIG_SECURITY
++	.security	= NULL,
++#endif
+ };
+-
+ EXPORT_SYMBOL(init_task);
+ 
+ /*
