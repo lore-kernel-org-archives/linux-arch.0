@@ -1,82 +1,110 @@
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 1/8] cris: Make THREAD_SIZE available to vmlinux.lds
-Date: Wed, 17 Jan 2018 15:25:02 +0000
-Message-ID: <151620270203.22429.2757290992238483064.stgit@warthog.procyon.org.uk>
-References: <151620268761.22429.14193525405303696385.stgit@warthog.procyon.org.uk>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and
+ SIGFPE, SIGTRAP, SIGBUS
+Date: Wed, 17 Jan 2018 15:49:59 +0000
+Message-ID: <20180117154959.GP17719@n2100.armlinux.org.uk>
+References: <87373b6ghs.fsf@xmission.com>
+ <20180112005940.23279-7-ebiederm@xmission.com>
+ <20180115163028.GU22781@e103592.cambridge.arm.com>
+ <87h8rnox3c.fsf@xmission.com>
+ <20180116172407.GA22781@e103592.cambridge.arm.com>
+ <871sipl9p9.fsf@xmission.com>
+ <20180117115708.GM17719@n2100.armlinux.org.uk>
+ <20180117121505.GD22781@e103592.cambridge.arm.com>
+ <20180117123752.GN17719@n2100.armlinux.org.uk>
+ <20180117153731.GG22781@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <151620268761.22429.14193525405303696385.stgit@warthog.procyon.org.uk>
+Content-Disposition: inline
+In-Reply-To: <20180117153731.GG22781@e103592.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: torvalds@linux-foundation.org
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Tyler Baicar <tbaicar@codeaurora.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, James Morse <james.morse@arm.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Olof Johansson <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org, Al Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-Make THREAD_SIZE available to vmlinux.lds on cris by moving it to
-asm/thread_info.h and including that from the linker script.
+On Wed, Jan 17, 2018 at 03:37:31PM +0000, Dave Martin wrote:
+> On Wed, Jan 17, 2018 at 12:37:52PM +0000, Russell King - ARM Linux wrote:
+> > On Wed, Jan 17, 2018 at 12:15:05PM +0000, Dave Martin wrote:
+> > > On Wed, Jan 17, 2018 at 11:57:09AM +0000, Russell King - ARM Linux wrote:
+> 
+> [...]
+> 
+> > > > VFP used to use force_sig_info(), but it seems to be really the wrong
+> > > > call to use.  force_sig_info() checks whether the program decided to
+> > > > ignore or block the signal, and if it did, replaces the signal handler
+> > > > with the default handler and unblocks the signal.
+> > > > 
+> > > > Are you really suggesting that FP all FP signals should get this
+> > > > treatment?
+> > > 
+> > > feenableexcept(FE_OVERFLOW) kind of means "I can't run safely past
+> > > an fp overflow exception, please signal me instead".
+> > > 
+> > > If the process also blocked SIGFPE, that could be taken to mean
+> > > "I can't run safely past an fp overflow exception _and_ I can't
+> > > take SIGFPE either" ... i.e., if an fp overflow happens there is
+> > > no way to proceed and it's really fatal.
+> > > 
+> > > What SIG_IGN ought to mean is rather more debatable, but again,
+> > > the process could be asking for two opposite things: guarantee a
+> > > SIGFPE is delivered instead of running past an fp exception, and
+> > > also guarantee that SIGFPE is _not_ delivered.
+> > > 
+> > > It looks like arm and arm64 are different from most other arches
+> > > (including x86) here, but I'm not sure what is considered correct, and
+> > > it looks like the answer is not standardised.  There's a possibility
+> > > that some software goes subtly wrong on arm/arm64 where on other arches
+> > > it would get terminated with SIGKILL.
+> > > 
+> > > Whether this matters depends on how harmless the fp exception is to
+> > > the work of the program.  I think if an exception is set to trap
+> > > via feenableexcept() then that's a strong hint the programmer thinks
+> > > that exception is not harmless.  OTOH, trapping is not always
+> > > available anyway...
+> > 
+> > Like many of these things, there is no clear answer.  It's a set of
+> > conflicting requirements, and as you point out, even if you've called
+> > feenableexcept(), you are not guaranteed to get a trap.
+> > 
+> > However, do remember that FP exceptions on ARM hardware are already
+> > asynchronous - they get reported by the _next_ FP operation to the one
+> > that caused them, which means they could be raised by a library function
+> > sometime after it occured (when the library function decides to save the
+> > FP registers to the stack before it makes use of them.)  It's entirely
+> > possible that the library function has blocked FP signals temporarily
+> > (not explicitly, just decided to block all signals while it does
+> > something sensitive) and will unblock them again afterwards - at which
+> > point we get the SIGFPE, and it would be quite right to deliver that
+> > signal to the user SIGFPE handler, rather than forcing it onto the
+> > program mid-library function.
+> > 
+> > It's also possible that SIGFPE could be blocked by another signal handler
+> > having been invoked, and it triggers the latent generation of the SIGFPE.
+> > 
+> > I'd be more inclined to agree with you if VFP exceptions were synchronous
+> > but they aren't.
+> 
+> Hmmm, it looks like imprecise fp exception traps are disallowed from
+> ARMv8 onwards.  I guess they made more sense when the FPU really was a
+> coprocessor, or at least semidetached from the integer core.
+> 
+> I think force_sig_info() makes sense here if and only if the traps
+> are guaranteed to be precise, so we probably should use this on arm64.
+> Not arm though (alpha doesn't either, if I understand the code
+> correctly.)
+> 
+> Does that make sense?
+> 
+> Apparently, few recent cores (at least ARM's own ones) support fp
+> exception trapping anyway...  1176 may be the most recent.
 
-This allows init_stack to be allocated in the linker script in a subsequent
-patch.
+... and that makes the feenableexcept() argument about "A program
+really wants to know" moot.  It can enable the exceptions in the
+FPSCR but its never going to receive a SIGFPE on CPUs that don't
+do exception trapping.
 
-Reported-by: Guenter Roeck <linux@roeck-us.net>
-Signed-off-by: David Howells <dhowells@redhat.com>
-Tested-by: Guenter Roeck <linux@roeck-us.net>
-cc: Mikael Starvik <starvik@axis.com>
-cc: Jesper Nilsson <jesper.nilsson@axis.com>
-cc: linux-cris-kernel@axis.com
----
-
- arch/cris/include/asm/processor.h   |    7 -------
- arch/cris/include/asm/thread_info.h |    7 +++++++
- arch/cris/kernel/vmlinux.lds.S      |    1 +
- 3 files changed, 8 insertions(+), 7 deletions(-)
-
-diff --git a/arch/cris/include/asm/processor.h b/arch/cris/include/asm/processor.h
-index 124dd5ec7f65..b50907799cb2 100644
---- a/arch/cris/include/asm/processor.h
-+++ b/arch/cris/include/asm/processor.h
-@@ -26,13 +26,6 @@ struct task_struct;
-  */
- #define TASK_UNMAPPED_BASE      (PAGE_ALIGN(TASK_SIZE / 3))
- 
--/* THREAD_SIZE is the size of the thread_info/kernel_stack combo.
-- * normally, the stack is found by doing something like p + THREAD_SIZE
-- * in CRIS, a page is 8192 bytes, which seems like a sane size
-- */
--#define THREAD_SIZE       PAGE_SIZE
--#define THREAD_SIZE_ORDER (0)
--
- /*
-  * At user->kernel entry, the pt_regs struct is stacked on the top of the kernel-stack.
-  * This macro allows us to find those regs for a task.
-diff --git a/arch/cris/include/asm/thread_info.h b/arch/cris/include/asm/thread_info.h
-index 472830c90997..108f77081a3c 100644
---- a/arch/cris/include/asm/thread_info.h
-+++ b/arch/cris/include/asm/thread_info.h
-@@ -20,6 +20,13 @@
- #endif
- 
- 
-+/* THREAD_SIZE is the size of the thread_info/kernel_stack combo.
-+ * normally, the stack is found by doing something like p + THREAD_SIZE
-+ * in CRIS, a page is 8192 bytes, which seems like a sane size
-+ */
-+#define THREAD_SIZE       PAGE_SIZE
-+#define THREAD_SIZE_ORDER (0)
-+
- /*
-  * low level task data that entry.S needs immediate access to
-  * - this struct should fit entirely inside of one cache line
-diff --git a/arch/cris/kernel/vmlinux.lds.S b/arch/cris/kernel/vmlinux.lds.S
-index 6d1dbc1ba767..9b232e0f673e 100644
---- a/arch/cris/kernel/vmlinux.lds.S
-+++ b/arch/cris/kernel/vmlinux.lds.S
-@@ -11,6 +11,7 @@
- 
- #include <asm-generic/vmlinux.lds.h>
- #include <asm/page.h>
-+#include <asm/thread_info.h>
- 
- #ifdef CONFIG_ETRAX_VMEM_SIZE
- #define __CONFIG_ETRAX_VMEM_SIZE CONFIG_ETRAX_VMEM_SIZE
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line in suburbia: sync at 8.8Mbps down 630kbps up
+According to speedtest.net: 8.21Mbps down 510kbps up
