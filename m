@@ -1,108 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:37313 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753614AbeAQQqF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 11:46:05 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87373b6ghs.fsf@xmission.com>
-        <20180112005940.23279-7-ebiederm@xmission.com>
-        <20180115163028.GU22781@e103592.cambridge.arm.com>
-        <87h8rnox3c.fsf@xmission.com>
-        <20180116172407.GA22781@e103592.cambridge.arm.com>
-        <871sipl9p9.fsf@xmission.com>
-        <20180117115708.GM17719@n2100.armlinux.org.uk>
-        <20180117121505.GD22781@e103592.cambridge.arm.com>
-        <20180117123752.GN17719@n2100.armlinux.org.uk>
-Date: Wed, 17 Jan 2018 10:45:10 -0600
-In-Reply-To: <20180117123752.GN17719@n2100.armlinux.org.uk> (Russell King's
-        message of "Wed, 17 Jan 2018 12:37:52 +0000")
-Message-ID: <87y3kwh1t5.fsf@xmission.com>
-MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and SIGFPE, SIGTRAP, SIGBUS
+Received: from mail.efficios.com ([167.114.142.141]:46397 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754204AbeAQQ40 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 11:56:26 -0500
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: [PATCH for 4.16 10/11] membarrier: arm64: Provide core serializing command
+Date: Wed, 17 Jan 2018 11:54:57 -0500
+Message-ID: <20180117165458.13330-11-mathieu.desnoyers@efficios.com>
+In-Reply-To: <20180117165458.13330-1-mathieu.desnoyers@efficios.com>
+References: <20180117165458.13330-1-mathieu.desnoyers@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: Dave Martin <Dave.Martin@arm.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Tyler Baicar <tbaicar@codeaurora.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, James Morse <james.morse@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Olof Johansson <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180117164510.FbGwl9Bw1arxfUIwodGj4aG-13zhHx6essGZsNRptKQ@z>
+To: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, linux-arch@vger.kernel.org
+Message-ID: <20180117165457.4l07iw239FKPURheojCev-uKPB2JlbFe1x74LgrfnKU@z>
 
-Russell King - ARM Linux <linux@armlinux.org.uk> writes:
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+CC: Peter Zijlstra <peterz@infradead.org>
+CC: Andy Lutomirski <luto@kernel.org>
+CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CC: Boqun Feng <boqun.feng@gmail.com>
+CC: Andrew Hunter <ahh@google.com>
+CC: Maged Michael <maged.michael@gmail.com>
+CC: Avi Kivity <avi@scylladb.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Paul Mackerras <paulus@samba.org>
+CC: Michael Ellerman <mpe@ellerman.id.au>
+CC: Dave Watson <davejwatson@fb.com>
+CC: Thomas Gleixner <tglx@linutronix.de>
+CC: Ingo Molnar <mingo@redhat.com>
+CC: "H. Peter Anvin" <hpa@zytor.com>
+CC: Andrea Parri <parri.andrea@gmail.com>
+CC: Russell King <linux@armlinux.org.uk>
+CC: Greg Hackmann <ghackmann@google.com>
+CC: Will Deacon <will.deacon@arm.com>
+CC: David Sehr <sehr@google.com>
+CC: x86@kernel.org
+CC: linux-arch@vger.kernel.org
+---
+ arch/arm64/Kconfig        | 1 +
+ arch/arm64/kernel/entry.S | 4 ++++
+ 2 files changed, 5 insertions(+)
 
-> On Wed, Jan 17, 2018 at 12:15:05PM +0000, Dave Martin wrote:
->> On Wed, Jan 17, 2018 at 11:57:09AM +0000, Russell King - ARM Linux wrote:
->> > On Tue, Jan 16, 2018 at 04:28:50PM -0600, Eric W. Biederman wrote:
->> > > I will keep FPE_FIXME as a place holder until this gets sorted out.
->> > > 
->> > > There is a second issue I am looking at in this location,
->> > > and maybe I don't have to address it now.  But it looks like the code is
->> > > calling send_sig_info instead of force_sig_info for a synchronous
->> > > exception.  Am I reading that correctly?
->> > 
->> > VFP used to use force_sig_info(), but it seems to be really the wrong
->> > call to use.  force_sig_info() checks whether the program decided to
->> > ignore or block the signal, and if it did, replaces the signal handler
->> > with the default handler and unblocks the signal.
-
-That ignored and blocked behavior is a very weird implementation,
-but for a synchronous signal it amounts to enforcing coredump and
-then exit behavior.  As the process does not continue past that
-point the behavior is not observable by userspace.
-
->> > Are you really suggesting that FP all FP signals should get this
->> > treatment?
-
-I am only suggesting that all synchronous signals, aka signals where
-it helps to point at the instruction from the signal information
-get that treatment.  As the vast majority are synchronous I was
-asking about this one oddball case.
-
->> feenableexcept(FE_OVERFLOW) kind of means "I can't run safely past
->> an fp overflow exception, please signal me instead".
->> 
->> If the process also blocked SIGFPE, that could be taken to mean
->> "I can't run safely past an fp overflow exception _and_ I can't
->> take SIGFPE either" ... i.e., if an fp overflow happens there is
->> no way to proceed and it's really fatal.
->> 
->> What SIG_IGN ought to mean is rather more debatable, but again,
->> the process could be asking for two opposite things: guarantee a
->> SIGFPE is delivered instead of running past an fp exception, and
->> also guarantee that SIGFPE is _not_ delivered.
->> 
->> It looks like arm and arm64 are different from most other arches
->> (including x86) here, but I'm not sure what is considered correct, and
->> it looks like the answer is not standardised.  There's a possibility
->> that some software goes subtly wrong on arm/arm64 where on other arches
->> it would get terminated with SIGKILL.
-
-I looked it up yesterday to be clear, and POSIX actually says the
-behavior is implemenation dependent/undefined if you try to ignore
-SIGFPE.
-
->> Whether this matters depends on how harmless the fp exception is to
->> the work of the program.  I think if an exception is set to trap
->> via feenableexcept() then that's a strong hint the programmer thinks
->> that exception is not harmless.  OTOH, trapping is not always
->> available anyway...
->
-> Like many of these things, there is no clear answer.  It's a set of
-> conflicting requirements, and as you point out, even if you've called
-> feenableexcept(), you are not guaranteed to get a trap.
->
-> However, do remember that FP exceptions on ARM hardware are already
-> asynchronous - they get reported by the _next_ FP operation to the one
-> that caused them, which means they could be raised by a library function
-> sometime after it occured (when the library function decides to save the
-> FP registers to the stack before it makes use of them.)  It's entirely
-> possible that the library function has blocked FP signals temporarily
-> (not explicitly, just decided to block all signals while it does
-> something sensitive) and will unblock them again afterwards - at which
-> point we get the SIGFPE, and it would be quite right to deliver that
-> signal to the user SIGFPE handler, rather than forcing it onto the
-> program mid-library function.
->
-> It's also possible that SIGFPE could be blocked by another signal handler
-> having been invoked, and it triggers the latent generation of the SIGFPE.
->
-> I'd be more inclined to agree with you if VFP exceptions were synchronous
-> but they aren't.
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index c9a7e9e1414f..5b0c06d8dbbe 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -16,6 +16,7 @@ config ARM64
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_HAS_GIGANTIC_PAGE if (MEMORY_ISOLATION && COMPACTION) || CMA
+ 	select ARCH_HAS_KCOV
++	select ARCH_HAS_MEMBARRIER_SYNC_CORE
+ 	select ARCH_HAS_SET_MEMORY
+ 	select ARCH_HAS_SG_CHAIN
+ 	select ARCH_HAS_STRICT_KERNEL_RWX
+diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
+index 6d14b8f29b5f..5edde1c2e93e 100644
+--- a/arch/arm64/kernel/entry.S
++++ b/arch/arm64/kernel/entry.S
+@@ -302,6 +302,10 @@ alternative_else_nop_endif
+ 	ldp	x28, x29, [sp, #16 * 14]
+ 	ldr	lr, [sp, #S_LR]
+ 	add	sp, sp, #S_FRAME_SIZE		// restore sp
++	/*
++	 * ARCH_HAS_MEMBARRIER_SYNC_CORE rely on eret context synchronization
++	 * when returning from IPI handler, and when returning to user-space.
++	 */
+ 	eret					// return to kernel
+ 	.endm
+ 
+-- 
+2.11.0
