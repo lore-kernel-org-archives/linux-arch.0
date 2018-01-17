@@ -1,73 +1,44 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Dan Williams <dan.j.williams@intel.com>
 Subject: Re: [PATCH v3 8/9] x86: use __uaccess_begin_nospec and ASM_IFENCE in
  get_user paths
-Date: Tue, 16 Jan 2018 14:41:35 -0800
-Message-ID: <CA+55aFxB01XEEpdPynwYmzQMfTJdJnUrN+ZLqSV_UdnKLBgAZw@mail.gmail.com>
+Date: Tue, 16 Jan 2018 20:30:17 -0800
+Message-ID: <CAPcyv4g94iysWqz64KNk=HDdx6+b2e0O-rRrnFZDqfNSR3Xrjg@mail.gmail.com>
 References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
  <151586748981.5820.14559543798744763404.stgit@dwillia2-desk3.amr.corp.intel.com>
  <CA+55aFzoAR+MYX+ub0xZ32OsT7WtD5Kru2t6LhwB1buLWPResQ@mail.gmail.com>
- <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
- <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com> <CA+55aFxAFG5czVmCyhYMyHmXLNJ7pcXxWzusjZvLRh_qTGHj6Q@mail.gmail.com>
+ <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com> <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/alternative; boundary="94eb2c05fbaeeed4530562ec6edd"
-Return-path: <kernel-hardening-return-11296-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Sender: linus971@gmail.com
-In-Reply-To: <CA+55aFxAFG5czVmCyhYMyHmXLNJ7pcXxWzusjZvLRh_qTGHj6Q@mail.gmail.com>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
-
---94eb2c05fbaeeed4530562ec6edd
 Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ot0-f193.google.com ([74.125.82.193]:36766 "EHLO
+        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750823AbeAQEaS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jan 2018 23:30:18 -0500
+Received: by mail-ot0-f193.google.com with SMTP id f100so3118432otf.3
+        for <linux-arch@vger.kernel.org>; Tue, 16 Jan 2018 20:30:18 -0800 (PST)
+In-Reply-To: <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
 
-On Jan 16, 2018 14:23, "Dan Williams" <dan.j.williams@intel.com> wrote:
+On Tue, Jan 16, 2018 at 2:23 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> On Sat, Jan 13, 2018 at 11:33 AM, Linus Torvalds
+[..]
+> I'll respin this set along those lines, and drop the ifence bits.
 
+So now I'm not so sure. Yes, get_user_{1,2,4,8} can mask the pointer
+with the address limit result, but this doesn't work for the
+access_ok() + __get_user() case. We can either change the access_ok()
+calling convention to return a properly masked pointer to be used in
+subsequent calls to __get_user(), or go with lfence on every
+__get_user call. There seem to be several drivers that open code
+copy_from_user() with __get_user loops, so the 'fence every
+__get_user' approach might have noticeable overhead. On the other hand
+the access_ok conversion, while it could be scripted with coccinelle,
+is ~300 sites (VERIFY_READ), if you're concerned about having
+something small to merge for 4.15.
 
-That said, for get_user specifically, can we do something even
-cheaper. Dave H. reminds me that any valid user pointer that gets past
-the address limit check will have the high bit clear. So instead of
-calculating a mask, just unconditionally clear the high bit. It seems
-worse case userspace can speculatively leak something that's already
-in its address space.
-
-
-That's not at all true.
-
-The address may be a kernel address. That's the whole point of 'set_fs()'.
-
-That's why we compare against the address limit variable, not against some
-constant number.
-
-     Linus
-
---94eb2c05fbaeeed4530562ec6edd
-Content-Type: text/html; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-
-<div dir=3D"auto"><div><br><div class=3D"gmail_extra"><br><div class=3D"gma=
-il_quote">On Jan 16, 2018 14:23, &quot;Dan Williams&quot; &lt;<a href=3D"ma=
-ilto:dan.j.williams@intel.com">dan.j.williams@intel.com</a>&gt; wrote:<br t=
-ype=3D"attribution"><blockquote class=3D"quote" style=3D"margin:0 0 0 .8ex;=
-border-left:1px #ccc solid;padding-left:1ex"><br>
-That said, for get_user specifically, can we do something even<br>
-cheaper. Dave H. reminds me that any valid user pointer that gets past<br>
-the address limit check will have the high bit clear. So instead of<br>
-calculating a mask, just unconditionally clear the high bit. It seems<br>
-worse case userspace can speculatively leak something that&#39;s already<br=
->
-in its address space.<br></blockquote></div></div></div><div dir=3D"auto"><=
-br></div><div dir=3D"auto">That&#39;s not at all true.</div><div dir=3D"aut=
-o"><br></div><div dir=3D"auto">The address may be a kernel address. That&#3=
-9;s the whole point of &#39;set_fs()&#39;.</div><div dir=3D"auto"><br></div=
-><div dir=3D"auto">That&#39;s why we compare against the address limit vari=
-able, not against some constant number.</div><div dir=3D"auto"><br></div><d=
-iv dir=3D"auto">=C2=A0 =C2=A0 =C2=A0Linus</div><div dir=3D"auto"><div class=
-=3D"gmail_extra"><div class=3D"gmail_quote"><blockquote class=3D"quote" sty=
-le=3D"margin:0 0 0 .8ex;border-left:1px #ccc solid;padding-left:1ex"></bloc=
-kquote></div></div></div></div>
-
---94eb2c05fbaeeed4530562ec6edd--
+I think the access_ok() conversion to return a speculation sanitized
+pointer or NULL is the way to go unless I'm missing something simpler.
+Other ideas?
