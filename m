@@ -1,93 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f65.google.com ([209.85.218.65]:36367 "EHLO
-        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750882AbeAQGuD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 01:50:03 -0500
-Received: by mail-oi0-f65.google.com with SMTP id w135so12438186oie.3
-        for <linux-arch@vger.kernel.org>; Tue, 16 Jan 2018 22:50:03 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <20180117062800.GU13338@ZenIV.linux.org.uk>
+Received: from smtp-out4.electric.net ([192.162.216.181]:52012 "EHLO
+        smtp-out4.electric.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750806AbeAQKG0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 05:06:26 -0500
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH v3 8/9] x86: use __uaccess_begin_nospec and ASM_IFENCE in
+ get_user paths
+Date: Wed, 17 Jan 2018 10:07:05 +0000
+Message-ID: <0afda538622440fab6682c8d4bff6d9d@AcuMS.aculab.com>
 References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
  <151586748981.5820.14559543798744763404.stgit@dwillia2-desk3.amr.corp.intel.com>
  <CA+55aFzoAR+MYX+ub0xZ32OsT7WtD5Kru2t6LhwB1buLWPResQ@mail.gmail.com>
  <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
  <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com>
- <CAPcyv4g94iysWqz64KNk=HDdx6+b2e0O-rRrnFZDqfNSR3Xrjg@mail.gmail.com> <20180117062800.GU13338@ZenIV.linux.org.uk>
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Tue, 16 Jan 2018 22:50:01 -0800
-Message-ID: <CAPcyv4jn6xHNB2DevoFEzkfpnKCd7u8UdA+TmVPtbO08TjzFWA@mail.gmail.com>
-Subject: Re: [PATCH v3 8/9] x86: use __uaccess_begin_nospec and ASM_IFENCE in
- get_user paths
-Content-Type: text/plain; charset="UTF-8"
+ <CAPcyv4g94iysWqz64KNk=HDdx6+b2e0O-rRrnFZDqfNSR3Xrjg@mail.gmail.com>
+ <20180117062800.GU13338@ZenIV.linux.org.uk>
+ <CAPcyv4jn6xHNB2DevoFEzkfpnKCd7u8UdA+TmVPtbO08TjzFWA@mail.gmail.com>
+In-Reply-To: <CAPcyv4jn6xHNB2DevoFEzkfpnKCd7u8UdA+TmVPtbO08TjzFWA@mail.gmail.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180117065001.9RK3YYXlpmLdsFRKJ9E9_68hcdrLWjehKgGONPphxxk@z>
+To: 'Dan Williams' <dan.j.williams@intel.com>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
+Message-ID: <20180117100705.9Ewfh4NUjJfT1jLNDL_iQbiHVOgl-8Ge8Scpebl8wdI@z>
 
-On Tue, Jan 16, 2018 at 10:28 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> On Tue, Jan 16, 2018 at 08:30:17PM -0800, Dan Williams wrote:
->> On Tue, Jan 16, 2018 at 2:23 PM, Dan Williams <dan.j.williams@intel.com> wrote:
->> > On Sat, Jan 13, 2018 at 11:33 AM, Linus Torvalds
->> [..]
->> > I'll respin this set along those lines, and drop the ifence bits.
->>
->> So now I'm not so sure. Yes, get_user_{1,2,4,8} can mask the pointer
->> with the address limit result, but this doesn't work for the
->> access_ok() + __get_user() case. We can either change the access_ok()
->> calling convention to return a properly masked pointer to be used in
->> subsequent calls to __get_user(), or go with lfence on every
->> __get_user call. There seem to be several drivers that open code
->> copy_from_user() with __get_user loops, so the 'fence every
->> __get_user' approach might have noticeable overhead. On the other hand
->> the access_ok conversion, while it could be scripted with coccinelle,
->> is ~300 sites (VERIFY_READ), if you're concerned about having
->> something small to merge for 4.15.
->>
->> I think the access_ok() conversion to return a speculation sanitized
->> pointer or NULL is the way to go unless I'm missing something simpler.
->> Other ideas?
->
-> What masked pointer?
-
-The pointer value that is masked under speculation.
-
-   diff --git a/arch/x86/lib/getuser.S b/arch/x86/lib/getuser.S
-   index c97d935a29e8..4c378b485399 100644
-   --- a/arch/x86/lib/getuser.S
-   +++ b/arch/x86/lib/getuser.S
-   @@ -40,6 +40,8 @@ ENTRY(__get_user_1)
-           mov PER_CPU_VAR(current_task), %_ASM_DX
-           cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
-           jae bad_get_user
-   +       sbb %_ASM_DX,%_ASM_DX
-   +       and %_ASM_DX,%_ASM_AX
-           ASM_STAC
-    1:     movzbl (%_ASM_AX),%edx
-           xor %eax,%eax
-
-...i.e %_ASM_AX is guaranteed to be zero if userspace tries to cause
-speculation with an address above the limit. The proposal is make
-access_ok do that same masking so we never speculate on pointers from
-userspace aimed at kernel memory.
-
-> access_ok() exists for other architectures as well,
-
-I'd modify those as well...
-
-> and the fewer callers remain outside of arch/*, the better.
->
-> Anything that open-codes copy_from_user() that way is *ALREADY* fucked if
-> it cares about the overhead - recent x86 boxen will have slowdown from
-> hell on stac()/clac() pairs.  Anything like that on a hot path is already
-> deep in trouble and needs to be found and fixed.  What drivers would those
-> be?
-
-So I took a closer look and the pattern is not copy_from_user it's
-more like __get_user + write-to-hardware loops. If the performance is
-already expected to be bad for those then perhaps an lfence each loop
-iteration won't be much worse. It's still a waste because the lfence
-is only needed once after the access_ok.
-
-> We don't have that many __get_user() users left outside of arch/*
-> anymore...
+RnJvbTogRGFuIFdpbGxpYW1zDQo+IFNlbnQ6IDE3IEphbnVhcnkgMjAxOCAwNjo1MA0KLi4uDQo+
+ID4gQW55dGhpbmcgdGhhdCBvcGVuLWNvZGVzIGNvcHlfZnJvbV91c2VyKCkgdGhhdCB3YXkgaXMg
+KkFMUkVBRFkqIGZ1Y2tlZCBpZg0KPiA+IGl0IGNhcmVzIGFib3V0IHRoZSBvdmVyaGVhZCAtIHJl
+Y2VudCB4ODYgYm94ZW4gd2lsbCBoYXZlIHNsb3dkb3duIGZyb20NCj4gPiBoZWxsIG9uIHN0YWMo
+KS9jbGFjKCkgcGFpcnMuICBBbnl0aGluZyBsaWtlIHRoYXQgb24gYSBob3QgcGF0aCBpcyBhbHJl
+YWR5DQo+ID4gZGVlcCBpbiB0cm91YmxlIGFuZCBuZWVkcyB0byBiZSBmb3VuZCBhbmQgZml4ZWQu
+ICBXaGF0IGRyaXZlcnMgd291bGQgdGhvc2UNCj4gPiBiZT8NCj4gDQo+IFNvIEkgdG9vayBhIGNs
+b3NlciBsb29rIGFuZCB0aGUgcGF0dGVybiBpcyBub3QgY29weV9mcm9tX3VzZXIgaXQncw0KPiBt
+b3JlIGxpa2UgX19nZXRfdXNlciArIHdyaXRlLXRvLWhhcmR3YXJlIGxvb3BzLiBJZiB0aGUgcGVy
+Zm9ybWFuY2UgaXMNCj4gYWxyZWFkeSBleHBlY3RlZCB0byBiZSBiYWQgZm9yIHRob3NlIHRoZW4g
+cGVyaGFwcyBhbiBsZmVuY2UgZWFjaCBsb29wDQo+IGl0ZXJhdGlvbiB3b24ndCBiZSBtdWNoIHdv
+cnNlLiBJdCdzIHN0aWxsIGEgd2FzdGUgYmVjYXVzZSB0aGUgbGZlbmNlDQo+IGlzIG9ubHkgbmVl
+ZGVkIG9uY2UgYWZ0ZXIgdGhlIGFjY2Vzc19vay4NCg0KUGVyZm9ybWFuY2Ugb2YgUENJZSB3cml0
+ZXMgaXNuJ3QgdGhhdCBiYWNrIChzaW5jZSB0aGV5IGFyZSBwb3N0ZWQpDQphZGRpbmcgYSBzeW5j
+aHJvbmlzaW5nIGluc3RydWN0aW9ucyB0byBfX2dldF91c2VyKCkgY291bGQgZWFzaWx5DQpiZSBu
+b3RpY2VhYmxlLg0KDQpVbmZvcnR1bmF0ZWx5IHlvdSBjYW4ndCB1c2UgY29weV9mcm9tX3VzZXIo
+KSB3aXRoIGEgUENJZSBtYXBwZWQNCnRhcmdldCBtZW1vcnkgYWRkcmVzcyAob3IgZXZlbiBtZW1j
+cHlfdG9faW8oKSkgYmVjYXVzZSBvbiB4ODYNCnRoZSBjb3B5IGlzIGFsaWFzZWQgdG8gbWVtY3B5
+KCkgYW5kIHRoYXQgdXNlcyAncmVwIG1vdnNiJw0Kd2hpY2ggaGFzIHRvIGRvIHNpbmdsZSBieXRl
+IHRyYW5zZmVycyBiZWNhdXNlIHRoZSBhZGRyZXNzIGlzDQp1bmNhY2hlZC4NCihUaGlzIGlzIHJl
+YWxseSBiYWQgZm9yIFBDSWUgcmVhZHMuKQ0KDQoJRGF2aWQNCg0KDQo=
