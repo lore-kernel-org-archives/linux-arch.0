@@ -1,211 +1,97 @@
-From: Mathieu Desnoyers <mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>
-Subject: [PATCH for 4.16 01/11] membarrier: selftest: Test private expedited cmd (v2)
-Date: Wed, 17 Jan 2018 11:54:48 -0500
-Message-ID: <20180117165458.13330-2-mathieu.desnoyers@efficios.com>
-References: <20180117165458.13330-1-mathieu.desnoyers@efficios.com>
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20180117165458.13330-1-mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "Paul E . McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Andrew Hunter <ahh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Maged Michael <maged.michael-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Avi Kivity <avi-VrcmuVmyx1hWk0Htik3J/w@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, Dave Watson <davejwatson-b10kYP2dOMg@public.gmane.org>, "H . Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Andrea Parri <parri.andrea-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Russell King <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, Greg Hackmann <ghackmann-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, David Sehr <sehr-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Mathieu Desnoyers <mathieu.desnoy>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and
+ SIGFPE, SIGTRAP, SIGBUS
+Date: Wed, 17 Jan 2018 17:14:25 +0000
+Message-ID: <20180117171425.GQ17719@n2100.armlinux.org.uk>
+References: <87373b6ghs.fsf@xmission.com>
+ <20180112005940.23279-7-ebiederm@xmission.com>
+ <20180115163028.GU22781@e103592.cambridge.arm.com>
+ <87h8rnox3c.fsf@xmission.com>
+ <20180116172407.GA22781@e103592.cambridge.arm.com>
+ <871sipl9p9.fsf@xmission.com>
+ <20180117115708.GM17719@n2100.armlinux.org.uk>
+ <20180117121505.GD22781@e103592.cambridge.arm.com>
+ <20180117123752.GN17719@n2100.armlinux.org.uk>
+ <87y3kwh1t5.fsf@xmission.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <87y3kwh1t5.fsf@xmission.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Dave Martin <Dave.Martin@arm.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Tyler Baicar <tbaicar@codeaurora.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, James Morse <james.morse@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Olof Johansson <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Test the new MEMBARRIER_CMD_PRIVATE_EXPEDITED and
-MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED commands.
+On Wed, Jan 17, 2018 at 10:45:10AM -0600, Eric W. Biederman wrote:
+> Russell King - ARM Linux <linux@armlinux.org.uk> writes:
+> >From your description there still seems to be an association with an
+> instruction so I don't know if I would really call the signal
+> asynchronous.  It sounds like the exception is delayed and not
+> asynchronous.
 
-Add checks expecting specific error values on system calls expected to
-fail.
+Traps can only be passed from ARM coprocessors by a coprocessor refusing
+to execute an instruction.  That's what happens in this case - the VFP
+gets offered an instruction to execute.  It accepts it, and the CPU
+continues, leaving the VFP to execute its instruction independently.  If
+this instruction generates an error, then nothing happens at this point.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>
-Acked-by: Shuah Khan <shuahkh-JPH+aEBZ4P+UEJcrhfAQsw@public.gmane.org>
-Acked-by: Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>
-CC: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-CC: Paul E. McKenney <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-CC: Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-CC: Andrew Hunter <ahh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-CC: Maged Michael <maged.michael-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-CC: Avi Kivity <avi-VrcmuVmyx1hWk0Htik3J/w@public.gmane.org>
-CC: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
-CC: Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
-CC: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
-CC: Dave Watson <davejwatson-b10kYP2dOMg@public.gmane.org>
-CC: Alan Stern <stern-nwvwT67g6+6dFdvTe/nMLpVzexx5G7lz@public.gmane.org>
-CC: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
-CC: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-CC: Alice Ferrazzi <alice.ferrazzi-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-CC: Paul Elder <paul.elder-fYq5UfK3d1k@public.gmane.org>
-CC: linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-CC: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
----
-Changes since v1:
-- return result of ksft_exit_pass from main(), silencing compiler
-  warning about missing return value.
----
- .../testing/selftests/membarrier/membarrier_test.c | 111 ++++++++++++++++++---
- 1 file changed, 95 insertions(+), 16 deletions(-)
+That error remains pending until the CPU offers the coprocessor the next
+VFP instruction, which it refuses.  That causes an undefined instruction
+exception, and we trap into the kernel VFP code which reads the VFP
+status and works out what needs to be done.
 
-diff --git a/tools/testing/selftests/membarrier/membarrier_test.c b/tools/testing/selftests/membarrier/membarrier_test.c
-index 9e674d9514d1..e6ee73d01fa1 100644
---- a/tools/testing/selftests/membarrier/membarrier_test.c
-+++ b/tools/testing/selftests/membarrier/membarrier_test.c
-@@ -16,49 +16,119 @@ static int sys_membarrier(int cmd, int flags)
- static int test_membarrier_cmd_fail(void)
- {
- 	int cmd = -1, flags = 0;
-+	const char *test_name = "sys membarrier invalid command";
- 
- 	if (sys_membarrier(cmd, flags) != -1) {
- 		ksft_exit_fail_msg(
--			"sys membarrier invalid command test: command = %d, flags = %d. Should fail, but passed\n",
--			cmd, flags);
-+			"%s test: command = %d, flags = %d. Should fail, but passed\n",
-+			test_name, cmd, flags);
-+	}
-+	if (errno != EINVAL) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
-+			test_name, flags, EINVAL, strerror(EINVAL),
-+			errno, strerror(errno));
- 	}
- 
- 	ksft_test_result_pass(
--		"sys membarrier invalid command test: command = %d, flags = %d. Failed as expected\n",
--		cmd, flags);
-+		"%s test: command = %d, flags = %d, errno = %d. Failed as expected\n",
-+		test_name, cmd, flags, errno);
- 	return 0;
- }
- 
- static int test_membarrier_flags_fail(void)
- {
- 	int cmd = MEMBARRIER_CMD_QUERY, flags = 1;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_QUERY invalid flags";
- 
- 	if (sys_membarrier(cmd, flags) != -1) {
- 		ksft_exit_fail_msg(
--			"sys membarrier MEMBARRIER_CMD_QUERY invalid flags test: flags = %d. Should fail, but passed\n",
--			flags);
-+			"%s test: flags = %d. Should fail, but passed\n",
-+			test_name, flags);
-+	}
-+	if (errno != EINVAL) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
-+			test_name, flags, EINVAL, strerror(EINVAL),
-+			errno, strerror(errno));
- 	}
- 
- 	ksft_test_result_pass(
--		"sys membarrier MEMBARRIER_CMD_QUERY invalid flags test: flags = %d. Failed as expected\n",
--		flags);
-+		"%s test: flags = %d, errno = %d. Failed as expected\n",
-+		test_name, flags, errno);
- 	return 0;
- }
- 
--static int test_membarrier_success(void)
-+static int test_membarrier_shared_success(void)
- {
- 	int cmd = MEMBARRIER_CMD_SHARED, flags = 0;
--	const char *test_name = "sys membarrier MEMBARRIER_CMD_SHARED\n";
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_SHARED";
-+
-+	if (sys_membarrier(cmd, flags) != 0) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d, errno = %d\n",
-+			test_name, flags, errno);
-+	}
-+
-+	ksft_test_result_pass(
-+		"%s test: flags = %d\n", test_name, flags);
-+	return 0;
-+}
-+
-+static int test_membarrier_private_expedited_fail(void)
-+{
-+	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED not registered failure";
-+
-+	if (sys_membarrier(cmd, flags) != -1) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should fail, but passed\n",
-+			test_name, flags);
-+	}
-+	if (errno != EPERM) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d. Should return (%d: \"%s\"), but returned (%d: \"%s\").\n",
-+			test_name, flags, EPERM, strerror(EPERM),
-+			errno, strerror(errno));
-+	}
-+
-+	ksft_test_result_pass(
-+		"%s test: flags = %d, errno = %d\n",
-+		test_name, flags, errno);
-+	return 0;
-+}
-+
-+static int test_membarrier_register_private_expedited_success(void)
-+{
-+	int cmd = MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED";
- 
- 	if (sys_membarrier(cmd, flags) != 0) {
- 		ksft_exit_fail_msg(
--			"sys membarrier MEMBARRIER_CMD_SHARED test: flags = %d\n",
--			flags);
-+			"%s test: flags = %d, errno = %d\n",
-+			test_name, flags, errno);
- 	}
- 
- 	ksft_test_result_pass(
--		"sys membarrier MEMBARRIER_CMD_SHARED test: flags = %d\n",
--		flags);
-+		"%s test: flags = %d\n",
-+		test_name, flags);
-+	return 0;
-+}
-+
-+static int test_membarrier_private_expedited_success(void)
-+{
-+	int cmd = MEMBARRIER_CMD_PRIVATE_EXPEDITED, flags = 0;
-+	const char *test_name = "sys membarrier MEMBARRIER_CMD_PRIVATE_EXPEDITED";
-+
-+	if (sys_membarrier(cmd, flags) != 0) {
-+		ksft_exit_fail_msg(
-+			"%s test: flags = %d, errno = %d\n",
-+			test_name, flags, errno);
-+	}
-+
-+	ksft_test_result_pass(
-+		"%s test: flags = %d\n",
-+		test_name, flags);
- 	return 0;
- }
- 
-@@ -72,7 +142,16 @@ static int test_membarrier(void)
- 	status = test_membarrier_flags_fail();
- 	if (status)
- 		return status;
--	status = test_membarrier_success();
-+	status = test_membarrier_shared_success();
-+	if (status)
-+		return status;
-+	status = test_membarrier_private_expedited_fail();
-+	if (status)
-+		return status;
-+	status = test_membarrier_register_private_expedited_success();
-+	if (status)
-+		return status;
-+	status = test_membarrier_private_expedited_success();
- 	if (status)
- 		return status;
- 	return 0;
-@@ -108,5 +187,5 @@ int main(int argc, char **argv)
- 	test_membarrier_query();
- 	test_membarrier();
- 
--	ksft_exit_pass();
-+	return ksft_exit_pass();
- }
+What this means is that if you execute a VFP instruction, wait 10 minutes
+and then execute another VFP instruction, if the first VFP instruction
+raised an exception, you'll get to hear about it 10 minutes later.
+
+You can use whatever weasel words you want to describe that situation,
+my choice is "asynchronous", your choice is "delayed".  However, it is
+clearly not "synchronous", and arguing that we should report something
+synchronously that is not reported to _us_ synchronously (where
+synchronous means "at the same time") is IMHO daft.
+
+So, let's take an example:
+
+	installs SIGFPE handler
+	..fp instructions.. one of which raises an exception
+	returns to main loop
+	main loop blocks all signals while it sets stuff up
+	calls ppoll()
+
+In the synchronous SIGFPE delivery case, the SIGFPE handler will be
+called when the exception is generated in the FP code, and delivered
+at that time.  The fact that the main loop blocks all signals happens
+later, so the users handler gets called as one expects.
+
+In the VFP case, however, the FP instructions towards the end may not
+end up causing the exception to be signalled until sometime later,
+and as I've already explained, that may be the result of a C library
+function accessing the VFP registers.  This could well end up trying
+to deliver the SIGFPE while signals are blocked, and we get
+drastically different behaviour if force_sig_info() is used.
+
+In the VFP case, if force_sig_info() is used, the program gets killed
+at this point.  In the non-VFP case, the program's signal handler was
+called.
+
+Using send_sig_info() results in the already delayed or asynchronous
+signal being held off until ppoll() drops the blocking, at which point
+the signal is delivered, the program handles it in its handler, and
+the program continues to run.
+
+So
+1. non-VFP case, program doesn't get killed but gets the opportunity
+   to handle the signal.
+2. VFP case with send_sig_info, program doesn't get killed but gets
+   the opportunity to handle the signal.
+3. VFP case with force_sig_info, the program gets killed and dumps
+   core.
+
+Which one of these results in a big change of behaviour in your
+opinion?
+
 -- 
-2.11.0
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line in suburbia: sync at 8.8Mbps down 630kbps up
+According to speedtest.net: 8.21Mbps down 510kbps up
