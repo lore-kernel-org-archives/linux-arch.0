@@ -1,97 +1,81 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
+From: Dave Martin <Dave.Martin@arm.com>
 Subject: Re: [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and
  SIGFPE, SIGTRAP, SIGBUS
-Date: Wed, 17 Jan 2018 17:14:25 +0000
-Message-ID: <20180117171425.GQ17719@n2100.armlinux.org.uk>
+Date: Wed, 17 Jan 2018 17:17:29 +0000
+Message-ID: <20180117171729.GJ22781@e103592.cambridge.arm.com>
 References: <87373b6ghs.fsf@xmission.com>
  <20180112005940.23279-7-ebiederm@xmission.com>
  <20180115163028.GU22781@e103592.cambridge.arm.com>
  <87h8rnox3c.fsf@xmission.com>
- <20180116172407.GA22781@e103592.cambridge.arm.com>
- <871sipl9p9.fsf@xmission.com>
- <20180117115708.GM17719@n2100.armlinux.org.uk>
- <20180117121505.GD22781@e103592.cambridge.arm.com>
- <20180117123752.GN17719@n2100.armlinux.org.uk>
- <87y3kwh1t5.fsf@xmission.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <87y3kwh1t5.fsf@xmission.com>
+In-Reply-To: <87h8rnox3c.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Dave Martin <Dave.Martin@arm.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Tyler Baicar <tbaicar@codeaurora.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, James Morse <james.morse@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Olof Johansson <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Tyler Baicar <tbaicar@codeaurora.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, James Morse <james.morse@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Olof Johansson <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 17, 2018 at 10:45:10AM -0600, Eric W. Biederman wrote:
-> Russell King - ARM Linux <linux@armlinux.org.uk> writes:
-> >From your description there still seems to be an association with an
-> instruction so I don't know if I would really call the signal
-> asynchronous.  It sounds like the exception is delayed and not
-> asynchronous.
+On Mon, Jan 15, 2018 at 11:23:03AM -0600, Eric W. Biederman wrote:
+> Dave Martin <Dave.Martin@arm.com> writes:
+> 
+> > On Thu, Jan 11, 2018 at 06:59:36PM -0600, Eric W. Biederman wrote:
 
-Traps can only be passed from ARM coprocessors by a coprocessor refusing
-to execute an instruction.  That's what happens in this case - the VFP
-gets offered an instruction to execute.  It accepts it, and the CPU
-continues, leaving the VFP to execute its instruction independently.  If
-this instruction generates an error, then nothing happens at this point.
+[...]
 
-That error remains pending until the CPU offers the coprocessor the next
-VFP instruction, which it refuses.  That causes an undefined instruction
-exception, and we trap into the kernel VFP code which reads the VFP
-status and works out what needs to be done.
+> >> Possible ABI fixes include:
+> >> - Send the signal without siginfo
+> >> - Don't generate a signal
 
-What this means is that if you execute a VFP instruction, wait 10 minutes
-and then execute another VFP instruction, if the first VFP instruction
-raised an exception, you'll get to hear about it 10 minutes later.
+[...]
 
-You can use whatever weasel words you want to describe that situation,
-my choice is "asynchronous", your choice is "delayed".  However, it is
-clearly not "synchronous", and arguing that we should report something
-synchronously that is not reported to _us_ synchronously (where
-synchronous means "at the same time") is IMHO daft.
+> >> - Possibly assign and use an appropriate si_code
+> >> - Don't handle cases which can't happen
+> >
+> > I think a mixture of these two is the best approach.
+> >
+> > In any case, si_code == 0 here doesn't seem to have any explicit meaning.
+> > I think we can translate all of the arm64 faults to proper si_codes --
+> > see my sketch below.  Probably means a bit more thought though.
 
-So, let's take an example:
+[...]
 
-	installs SIGFPE handler
-	..fp instructions.. one of which raises an exception
-	returns to main loop
-	main loop blocks all signals while it sets stuff up
-	calls ppoll()
+> >> diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
 
-In the synchronous SIGFPE delivery case, the SIGFPE handler will be
-called when the exception is generated in the FP code, and delivered
-at that time.  The fact that the main loop blocks all signals happens
-later, so the users handler gets called as one expects.
+[...]
 
-In the VFP case, however, the FP instructions towards the end may not
-end up causing the exception to be signalled until sometime later,
-and as I've already explained, that may be the result of a C library
-function accessing the VFP registers.  This could well end up trying
-to deliver the SIGFPE while signals are blocked, and we get
-drastically different behaviour if force_sig_info() is used.
+> >> @@ -607,70 +607,70 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+> >>  }
+> >>  
+> >>  static const struct fault_info fault_info[] = {
+> >> -	{ do_bad,		SIGBUS,  0,		"ttbr address size fault"	},
+> >> -	{ do_bad,		SIGBUS,  0,		"level 1 address size fault"	},
+> >> -	{ do_bad,		SIGBUS,  0,		"level 2 address size fault"	},
+> >> -	{ do_bad,		SIGBUS,  0,		"level 3 address size fault"	},
 
-In the VFP case, if force_sig_info() is used, the program gets killed
-at this point.  In the non-VFP case, the program's signal handler was
-called.
+If I convert this kind of thing to SIGKILL there really is nothing
+sensible to put in si_code, except possibly SI_KERNEL (indicating that
+the kill did not come from userspace).  Even so, it hardly seems worth
+filling in fields like si_pid and si_uid just to make this "correct".
 
-Using send_sig_info() results in the already delayed or asynchronous
-signal being held off until ppoll() drops the blocking, at which point
-the signal is delivered, the program handles it in its handler, and
-the program continues to run.
+In any case, if siginfo is never seen by userspace for SIGKILL this is
+moot.
 
-So
-1. non-VFP case, program doesn't get killed but gets the opportunity
-   to handle the signal.
-2. VFP case with send_sig_info, program doesn't get killed but gets
-   the opportunity to handle the signal.
-3. VFP case with force_sig_info, the program gets killed and dumps
-   core.
+Obviously, siginfo is never copied to the user stack in that case, but
+is it also guaranteed not to be visible to userspace by other means?
+For ptrace I'm hoping not, since SIGKILL should nuke the tracee
+immediately instead of being reported to the tracer as a
+signal-delivery-stop -- so the tracer should get WIFSIGNALED() &&
+WTERMSIG() == SIGKILL.  A subsequent PTRACE_GETSIGINFO would fail with
+ESRCH.
 
-Which one of these results in a big change of behaviour in your
-opinion?
+Does that match your understanding?
 
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line in suburbia: sync at 8.8Mbps down 630kbps up
-According to speedtest.net: 8.21Mbps down 510kbps up
+If so, there is some merit in not pretending to pass a reall value
+for si_code.
+
+Should si_code simply be ignored for the SIGKILL case?
+
+Cheers
+---Dave
