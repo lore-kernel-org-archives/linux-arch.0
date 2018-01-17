@@ -1,96 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:38788 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753142AbeAQRZB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 12:25:01 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87373b6ghs.fsf@xmission.com>
-        <20180112005940.23279-7-ebiederm@xmission.com>
-        <20180115163028.GU22781@e103592.cambridge.arm.com>
-        <87h8rnox3c.fsf@xmission.com>
-        <20180117171729.GJ22781@e103592.cambridge.arm.com>
-Date: Wed, 17 Jan 2018 11:24:06 -0600
-In-Reply-To: <20180117171729.GJ22781@e103592.cambridge.arm.com> (Dave Martin's
-        message of "Wed, 17 Jan 2018 17:17:29 +0000")
-Message-ID: <87h8rkflft.fsf@xmission.com>
+Received: from mail.kernel.org ([198.145.29.99]:52766 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754220AbeAQRxe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 17 Jan 2018 12:53:34 -0500
+Received: from mail-it0-f42.google.com (mail-it0-f42.google.com [209.85.214.42])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+        (No client certificate requested)
+        by mail.kernel.org (Postfix) with ESMTPSA id 670682178D
+        for <linux-arch@vger.kernel.org>; Wed, 17 Jan 2018 17:53:34 +0000 (UTC)
+Received: by mail-it0-f42.google.com with SMTP id b77so10223614itd.0
+        for <linux-arch@vger.kernel.org>; Wed, 17 Jan 2018 09:53:34 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and SIGFPE, SIGTRAP, SIGBUS
+In-Reply-To: <20180117165458.13330-8-mathieu.desnoyers@efficios.com>
+References: <20180117165458.13330-1-mathieu.desnoyers@efficios.com> <20180117165458.13330-8-mathieu.desnoyers@efficios.com>
+From: Andy Lutomirski <luto@kernel.org>
+Date: Wed, 17 Jan 2018 09:53:12 -0800
+Message-ID: <CALCETrWqRPsmLY=sTo5YHbWRh3HWjrVQ4FOn-=YfP=4_n98F6w@mail.gmail.com>
+Subject: Re: [PATCH for 4.16 07/11] x86: Implement sync_core_before_usermode (v3)
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Tyler Baicar <tbaicar@codeaurora.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, James Morse <james.morse@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Olof Johansson <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180117172406.yAB5JXKgiyvDdDiAJRu8oPLzBYk0x-Dt-FYjBPUbKy0@z>
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20180117175312.f2AX2iQFvPGE9euqaOXWDhESe1wNmbJiZTuC8au3AHo@z>
 
-Dave Martin <Dave.Martin@arm.com> writes:
+On Wed, Jan 17, 2018 at 8:54 AM, Mathieu Desnoyers
+<mathieu.desnoyers@efficios.com> wrote:
+> Ensure that a core serializing instruction is issued before returning to
+> user-mode. x86 implements return to user-space through sysexit, sysrel,
+> and sysretq, which are not core serializing.
+>
+> Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+> CC: Peter Zijlstra <peterz@infradead.org>
+> CC: Andy Lutomirski <luto@kernel.org>
+> CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> CC: Boqun Feng <boqun.feng@gmail.com>
+> CC: Andrew Hunter <ahh@google.com>
+> CC: Maged Michael <maged.michael@gmail.com>
+> CC: Avi Kivity <avi@scylladb.com>
+> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> CC: Paul Mackerras <paulus@samba.org>
+> CC: Michael Ellerman <mpe@ellerman.id.au>
+> CC: Dave Watson <davejwatson@fb.com>
+> CC: Ingo Molnar <mingo@redhat.com>
+> CC: "H. Peter Anvin" <hpa@zytor.com>
+> CC: Andrea Parri <parri.andrea@gmail.com>
+> CC: Russell King <linux@armlinux.org.uk>
+> CC: Greg Hackmann <ghackmann@google.com>
+> CC: Will Deacon <will.deacon@arm.com>
+> CC: David Sehr <sehr@google.com>
+> CC: Linus Torvalds <torvalds@linux-foundation.org>
+> CC: x86@kernel.org
+> CC: linux-arch@vger.kernel.org
+> ---
+> Changes since v1:
+> - Fix prototype of sync_core_before_usermode in generic code (missing
+>   return type).
+> - Add linux/processor.h include to sched/core.c.
+> - Add ARCH_HAS_SYNC_CORE_BEFORE_USERMODE to init/Kconfig.
+> - Fix linux/processor.h ifdef to target
+>   CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE rather than
+>   ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
+> - Move empty static inline in processor.h to generic patch.
+> ---
+>  arch/x86/Kconfig                 |  1 +
+>  arch/x86/include/asm/processor.h | 10 ++++++++++
+>  2 files changed, 11 insertions(+)
+>
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index 20da391b5f32..0b44c8dd0e95 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -61,6 +61,7 @@ config X86
+>         select ARCH_HAS_SG_CHAIN
+>         select ARCH_HAS_STRICT_KERNEL_RWX
+>         select ARCH_HAS_STRICT_MODULE_RWX
+> +       select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
+>         select ARCH_HAS_UBSAN_SANITIZE_ALL
+>         select ARCH_HAS_ZONE_DEVICE             if X86_64
+>         select ARCH_HAVE_NMI_SAFE_CMPXCHG
+> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+> index d3a67fba200a..3257d34dbb40 100644
+> --- a/arch/x86/include/asm/processor.h
+> +++ b/arch/x86/include/asm/processor.h
+> @@ -722,6 +722,16 @@ static inline void sync_core(void)
+>  #endif
+>  }
+>
+> +/*
+> + * Ensure that a core serializing instruction is issued before returning
+> + * to user-mode. x86 implements return to user-space through sysexit,
+> + * sysrel, and sysretq, which are not core serializing.
+> + */
+> +static inline void sync_core_before_usermode(void)
+> +{
 
-> On Mon, Jan 15, 2018 at 11:23:03AM -0600, Eric W. Biederman wrote:
->> Dave Martin <Dave.Martin@arm.com> writes:
->> 
->> > On Thu, Jan 11, 2018 at 06:59:36PM -0600, Eric W. Biederman wrote:
->
-> [...]
->
->> >> Possible ABI fixes include:
->> >> - Send the signal without siginfo
->> >> - Don't generate a signal
->
-> [...]
->
->> >> - Possibly assign and use an appropriate si_code
->> >> - Don't handle cases which can't happen
->> >
->> > I think a mixture of these two is the best approach.
->> >
->> > In any case, si_code == 0 here doesn't seem to have any explicit meaning.
->> > I think we can translate all of the arm64 faults to proper si_codes --
->> > see my sketch below.  Probably means a bit more thought though.
->
-> [...]
->
->> >> diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
->
-> [...]
->
->> >> @@ -607,70 +607,70 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
->> >>  }
->> >>  
->> >>  static const struct fault_info fault_info[] = {
->> >> -	{ do_bad,		SIGBUS,  0,		"ttbr address size fault"	},
->> >> -	{ do_bad,		SIGBUS,  0,		"level 1 address size fault"	},
->> >> -	{ do_bad,		SIGBUS,  0,		"level 2 address size fault"	},
->> >> -	{ do_bad,		SIGBUS,  0,		"level 3 address size fault"	},
->
-> If I convert this kind of thing to SIGKILL there really is nothing
-> sensible to put in si_code, except possibly SI_KERNEL (indicating that
-> the kill did not come from userspace).  Even so, it hardly seems worth
-> filling in fields like si_pid and si_uid just to make this "correct".
->
-> In any case, if siginfo is never seen by userspace for SIGKILL this is
-> moot.
->
-> Obviously, siginfo is never copied to the user stack in that case, but
-> is it also guaranteed not to be visible to userspace by other means?
-> For ptrace I'm hoping not, since SIGKILL should nuke the tracee
-> immediately instead of being reported to the tracer as a
-> signal-delivery-stop -- so the tracer should get WIFSIGNALED() &&
-> WTERMSIG() == SIGKILL.  A subsequent PTRACE_GETSIGINFO would fail with
-> ESRCH.
->
-> Does that match your understanding?
->
-> If so, there is some merit in not pretending to pass a reall value
-> for si_code.
->
-> Should si_code simply be ignored for the SIGKILL case?
+/* With PTI, we unconditionally serialize before running user code. */
+if (static_cpu_has(X86_FEATURE_PTI))
+  return;
 
-I know what x86 does in a similar case is it uses force_sig instead of
-force_sig_info.  Then the generic code gets to worry about 
+> +       sync_core();
+> +}
 
-If the appropriate paths generic paths get to worry about what siginfo
-to fill in in that case.  Which for SI_KERNEL is zero for everything
-except the si_code and the si_signo.
-
-That seems perfectly reasonable.
-
-Eric
+--Andy
