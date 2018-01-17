@@ -1,125 +1,49 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [PATCH for 4.16 07/11] x86: Implement sync_core_before_usermode
- (v3)
-Date: Wed, 17 Jan 2018 18:10:36 +0000 (UTC)
-Message-ID: <712464074.4666.1516212636860.JavaMail.zimbra@efficios.com>
-References: <20180117165458.13330-1-mathieu.desnoyers@efficios.com> <20180117165458.13330-8-mathieu.desnoyers@efficios.com> <CALCETrWqRPsmLY=sTo5YHbWRh3HWjrVQ4FOn-=YfP=4_n98F6w@mail.gmail.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v3 8/9] x86: use __uaccess_begin_nospec and ASM_IFENCE in
+ get_user paths
+Date: Wed, 17 Jan 2018 10:12:06 -0800
+Message-ID: <CAPcyv4gG-bftybBHcwhf-q17+byonQW4ymGzrJmsYAbzga8AxA@mail.gmail.com>
+References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151586748981.5820.14559543798744763404.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzoAR+MYX+ub0xZ32OsT7WtD5Kru2t6LhwB1buLWPResQ@mail.gmail.com>
+ <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
+ <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com>
+ <CAPcyv4g94iysWqz64KNk=HDdx6+b2e0O-rRrnFZDqfNSR3Xrjg@mail.gmail.com>
+ <20180117062800.GU13338@ZenIV.linux.org.uk> <CAPcyv4jn6xHNB2DevoFEzkfpnKCd7u8UdA+TmVPtbO08TjzFWA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:47672 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752268AbeAQSKk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 13:10:40 -0500
-In-Reply-To: <CALCETrWqRPsmLY=sTo5YHbWRh3HWjrVQ4FOn-=YfP=4_n98F6w@mail.gmail.com>
+Received: from mail-ot0-f194.google.com ([74.125.82.194]:36544 "EHLO
+        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752578AbeAQSMH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 13:12:07 -0500
+Received: by mail-ot0-f194.google.com with SMTP id f100so5071859otf.3
+        for <linux-arch@vger.kernel.org>; Wed, 17 Jan 2018 10:12:07 -0800 (PST)
+In-Reply-To: <CAPcyv4jn6xHNB2DevoFEzkfpnKCd7u8UdA+TmVPtbO08TjzFWA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel <linux-kernel@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, "Russell King, ARM Linux" <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
 
------ On Jan 17, 2018, at 12:53 PM, Andy Lutomirski luto@kernel.org wrote:
+On Tue, Jan 16, 2018 at 10:50 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> On Tue, Jan 16, 2018 at 10:28 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+[..]
+>> Anything that open-codes copy_from_user() that way is *ALREADY* fucked if
+>> it cares about the overhead - recent x86 boxen will have slowdown from
+>> hell on stac()/clac() pairs.  Anything like that on a hot path is already
+>> deep in trouble and needs to be found and fixed.  What drivers would those
+>> be?
+>
+> So I took a closer look and the pattern is not copy_from_user it's
+> more like __get_user + write-to-hardware loops. If the performance is
+> already expected to be bad for those then perhaps an lfence each loop
+> iteration won't be much worse. It's still a waste because the lfence
+> is only needed once after the access_ok.
+>
+>> We don't have that many __get_user() users left outside of arch/*
+>> anymore...
 
-> On Wed, Jan 17, 2018 at 8:54 AM, Mathieu Desnoyers
-> <mathieu.desnoyers@efficios.com> wrote:
->> Ensure that a core serializing instruction is issued before returning to
->> user-mode. x86 implements return to user-space through sysexit, sysrel,
->> and sysretq, which are not core serializing.
->>
->> Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
->> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
->> CC: Peter Zijlstra <peterz@infradead.org>
->> CC: Andy Lutomirski <luto@kernel.org>
->> CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
->> CC: Boqun Feng <boqun.feng@gmail.com>
->> CC: Andrew Hunter <ahh@google.com>
->> CC: Maged Michael <maged.michael@gmail.com>
->> CC: Avi Kivity <avi@scylladb.com>
->> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->> CC: Paul Mackerras <paulus@samba.org>
->> CC: Michael Ellerman <mpe@ellerman.id.au>
->> CC: Dave Watson <davejwatson@fb.com>
->> CC: Ingo Molnar <mingo@redhat.com>
->> CC: "H. Peter Anvin" <hpa@zytor.com>
->> CC: Andrea Parri <parri.andrea@gmail.com>
->> CC: Russell King <linux@armlinux.org.uk>
->> CC: Greg Hackmann <ghackmann@google.com>
->> CC: Will Deacon <will.deacon@arm.com>
->> CC: David Sehr <sehr@google.com>
->> CC: Linus Torvalds <torvalds@linux-foundation.org>
->> CC: x86@kernel.org
->> CC: linux-arch@vger.kernel.org
->> ---
->> Changes since v1:
->> - Fix prototype of sync_core_before_usermode in generic code (missing
->>   return type).
->> - Add linux/processor.h include to sched/core.c.
->> - Add ARCH_HAS_SYNC_CORE_BEFORE_USERMODE to init/Kconfig.
->> - Fix linux/processor.h ifdef to target
->>   CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE rather than
->>   ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
->> - Move empty static inline in processor.h to generic patch.
->> ---
->>  arch/x86/Kconfig                 |  1 +
->>  arch/x86/include/asm/processor.h | 10 ++++++++++
->>  2 files changed, 11 insertions(+)
->>
->> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
->> index 20da391b5f32..0b44c8dd0e95 100644
->> --- a/arch/x86/Kconfig
->> +++ b/arch/x86/Kconfig
->> @@ -61,6 +61,7 @@ config X86
->>         select ARCH_HAS_SG_CHAIN
->>         select ARCH_HAS_STRICT_KERNEL_RWX
->>         select ARCH_HAS_STRICT_MODULE_RWX
->> +       select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
->>         select ARCH_HAS_UBSAN_SANITIZE_ALL
->>         select ARCH_HAS_ZONE_DEVICE             if X86_64
->>         select ARCH_HAVE_NMI_SAFE_CMPXCHG
->> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
->> index d3a67fba200a..3257d34dbb40 100644
->> --- a/arch/x86/include/asm/processor.h
->> +++ b/arch/x86/include/asm/processor.h
->> @@ -722,6 +722,16 @@ static inline void sync_core(void)
->>  #endif
->>  }
->>
->> +/*
->> + * Ensure that a core serializing instruction is issued before returning
->> + * to user-mode. x86 implements return to user-space through sysexit,
->> + * sysrel, and sysretq, which are not core serializing.
->> + */
->> +static inline void sync_core_before_usermode(void)
->> +{
-> 
-> /* With PTI, we unconditionally serialize before running user code. */
-> if (static_cpu_has(X86_FEATURE_PTI))
->  return;
-
-One issue I'm facing with this change is header dependency:
-sync_core_before_usermode() is currently implemented in
-arch/x86/include/asm/processor.h, but arch/x86/include/asm/cpufeature.h
-is needed for static_cpu_has, and it happens to include
-asm/processor.h.
-
-I'm facing a similar issue for adding a (in_irq() || in_nmi()) check.
-
-Should we move sync_core_before_usermode() to a different header, and if
-so, any suggestion ?
-
-Thanks,
-
-Mathieu
-
-
-
-> 
->> +       sync_core();
->> +}
-> 
-> --Andy
-
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+Given the concern of having something easy to backport first I think
+we should start with lfence in __uaccess_begin(). Any deeper changes
+to the access_ok() + __get_user calling convention can build on top of
+that baseline.
