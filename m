@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60940 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:60694 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753703AbeAQPZf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 17 Jan 2018 10:25:35 -0500
-Subject: [PATCH 3/8] openrisc: Make THREAD_SIZE available to vmlinux.lds
+        id S1753657AbeAQPZY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 17 Jan 2018 10:25:24 -0500
+Subject: [PATCH 2/8] hexagon: Make THREAD_SIZE available to vmlinux.lds
 From: David Howells <dhowells@redhat.com>
-Date: Wed, 17 Jan 2018 15:25:22 +0000
-Message-ID: <151620272282.22429.6464815290811380426.stgit@warthog.procyon.org.uk>
+Date: Wed, 17 Jan 2018 15:25:13 +0000
+Message-ID: <151620271356.22429.8919995001708942435.stgit@warthog.procyon.org.uk>
 In-Reply-To: <151620268761.22429.14193525405303696385.stgit@warthog.procyon.org.uk>
 References: <151620268761.22429.14193525405303696385.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,9 +16,9 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
 Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20180117152522._HnQN6rYwhjXHa3fDeb2eDNcrn-dUub0m5iMVLiNreo@z>
+Message-ID: <20180117152513.aySFaD8C784jDMKUMQIn3tfX6yOx8PY4kF5uyWqMZnU@z>
 
-Make THREAD_SIZE available to vmlinux.lds on openrisc by including
+Make THREAD_SIZE available to vmlinux.lds on hexagon by including
 asm/thread_info.h the linker script.
 
 This allows init_stack to be allocated in the linker script in a subsequent
@@ -26,25 +26,24 @@ patch.
 
 Reported-by: Guenter Roeck <linux@roeck-us.net>
 Signed-off-by: David Howells <dhowells@redhat.com>
-Tested-by: Guenter Roeck <linux@roeck-us.net>
-Acked-by: Stafford Horne <shorne@gmail.com>
-cc: Jonas Bonn <jonas@southpole.se>
-cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-cc: openrisc@lists.librecores.org
+Reviewed-by: Guenter Roeck <linux@roeck-us.net>
+Acked-by: Richard Kuo <rkuo@codeaurora.org>
+cc: linux-hexagon@vger.kernel.org
 ---
 
- arch/openrisc/kernel/vmlinux.lds.S |    1 +
- 1 file changed, 1 insertion(+)
+ arch/hexagon/kernel/vmlinux.lds.S |    2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/openrisc/kernel/vmlinux.lds.S b/arch/openrisc/kernel/vmlinux.lds.S
-index 00ddb7804be4..953bdcd54efe 100644
---- a/arch/openrisc/kernel/vmlinux.lds.S
-+++ b/arch/openrisc/kernel/vmlinux.lds.S
-@@ -28,6 +28,7 @@
+diff --git a/arch/hexagon/kernel/vmlinux.lds.S b/arch/hexagon/kernel/vmlinux.lds.S
+index ec87e67feb19..ad69d181c939 100644
+--- a/arch/hexagon/kernel/vmlinux.lds.S
++++ b/arch/hexagon/kernel/vmlinux.lds.S
+@@ -22,6 +22,8 @@
+ #include <asm/asm-offsets.h>	/*  Most of the kernel defines are here  */
+ #include <asm/mem-layout.h>	/*  except for page_offset  */
+ #include <asm/cache.h>		/*  and now we're pulling cache line size  */
++#include <asm/thread_info.h>	/*  and we need THREAD_SIZE too */
++
+ OUTPUT_ARCH(hexagon)
+ ENTRY(stext)
  
- #include <asm/page.h>
- #include <asm/cache.h>
-+#include <asm/thread_info.h>
- #include <asm-generic/vmlinux.lds.h>
- 
- #ifdef __OR1K__
