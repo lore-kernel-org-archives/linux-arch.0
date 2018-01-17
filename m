@@ -1,49 +1,56 @@
-From: Alan Cox <alan@linux.intel.com>
-Subject: Re: [PATCH v3 8/9] x86: use __uaccess_begin_nospec and ASM_IFENCE
- in get_user paths
-Date: Wed, 17 Jan 2018 14:17:26 +0000
-Message-ID: <1516198646.4184.13.camel@linux.intel.com>
-References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
-         <151586748981.5820.14559543798744763404.stgit@dwillia2-desk3.amr.corp.intel.com>
-         <CA+55aFzoAR+MYX+ub0xZ32OsT7WtD5Kru2t6LhwB1buLWPResQ@mail.gmail.com>
-         <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
-         <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com>
-         <CA+55aFxAFG5czVmCyhYMyHmXLNJ7pcXxWzusjZvLRh_qTGHj6Q@mail.gmail.com>
-         <CA+55aFxB01XEEpdPynwYmzQMfTJdJnUrN+ZLqSV_UdnKLBgAZw@mail.gmail.com>
+From: Christopher Lameter <cl@linux.com>
+Subject: Re: kmem_cache_attr (was Re: [PATCH 04/36] usercopy: Prepare for
+ usercopy whitelisting)
+Date: Wed, 17 Jan 2018 08:46:41 -0600 (CST)
+Message-ID: <alpine.DEB.2.20.1801170843550.12151@nuc-kabylake>
+References: <1515531365-37423-1-git-send-email-keescook@chromium.org> <1515531365-37423-5-git-send-email-keescook@chromium.org> <alpine.DEB.2.20.1801101219390.7926@nuc-kabylake> <20180114230719.GB32027@bombadil.infradead.org> <alpine.DEB.2.20.1801160913260.3908@nuc-kabylake>
+ <20180116160525.GF30073@bombadil.infradead.org> <alpine.DEB.2.20.1801161049320.5162@nuc-kabylake> <20180116174315.GA10461@bombadil.infradead.org> <alpine.DEB.2.20.1801161205590.1771@nuc-kabylake> <alpine.DEB.2.20.1801161215500.2945@nuc-kabylake>
+ <20180116210313.GA7791@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:53955 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752343AbeAQORz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 17 Jan 2018 09:17:55 -0500
-In-Reply-To: <CA+55aFxB01XEEpdPynwYmzQMfTJdJnUrN+ZLqSV_UdnKLBgAZw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180116210313.GA7791@bombadil.infradead.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, David Windsor <dave@nullcore.net>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-xfs@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@redhat.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2018-01-16 at 14:41 -0800, Linus Torvalds wrote:
-> 
-> 
-> On Jan 16, 2018 14:23, "Dan Williams" <dan.j.williams@intel.com>
-> wrote:
-> > That said, for get_user specifically, can we do something even
-> > cheaper. Dave H. reminds me that any valid user pointer that gets
-> > past
-> > the address limit check will have the high bit clear. So instead of
-> > calculating a mask, just unconditionally clear the high bit. It
-> > seems
-> > worse case userspace can speculatively leak something that's
-> > already
-> > in its address space.
-> 
-> That's not at all true.
-> 
-> The address may be a kernel address. That's the whole point of
-> 'set_fs()'.
+On Tue, 16 Jan 2018, Matthew Wilcox wrote:
 
-Can we kill off the remaining users of set_fs() ?
+> On Tue, Jan 16, 2018 at 12:17:01PM -0600, Christopher Lameter wrote:
+> > Draft patch of how the data structs could change. kmem_cache_attr is read
+> > only.
+>
+> Looks good.  Although I would add Kees' user feature:
 
-Alan
+Sure I tried to do this quickly so that the basic struct changes are
+visible.
+
+> And I'd start with
+> +struct kmem_cache *kmem_cache_create_attr(const kmem_cache_attr *);
+>
+> leaving the old kmem_cache_create to kmalloc a kmem_cache_attr and
+> initialise it.
+
+Well at some point we should convert the callers by putting the
+definitions into const kmem_cache_attr initializations. That way
+the callbacks function pointers are safe.
+
+> Can we also do something like this?
+>
+> -#define KMEM_CACHE(__struct, __flags) kmem_cache_create(#__struct,\
+> -		sizeof(struct __struct), __alignof__(struct __struct),\
+> -		(__flags), NULL)
+> +#define KMEM_CACHE(__struct, __flags) ({				\
+> +	const struct kmem_cache_attr kca ## __stringify(__struct) = {	\
+> +		.name = #__struct,					\
+> +		.size = sizeof(struct __struct),			\
+> +		.align = __alignof__(struct __struct),			\
+> +		.flags = (__flags),					\
+> +	};								\
+> +	kmem_cache_create_attr(&kca ## __stringify(__struct));		\
+> +})
+>
+> That way we won't need to convert any of those users.
+
+Yep thats what I was planning.
