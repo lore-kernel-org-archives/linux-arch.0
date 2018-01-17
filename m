@@ -1,75 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:44344 "EHLO
-        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750853AbeAQUBh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 15:01:37 -0500
-Received: by mail-wm0-f66.google.com with SMTP id t74so17677350wme.3
-        for <linux-arch@vger.kernel.org>; Wed, 17 Jan 2018 12:01:37 -0800 (PST)
+Received: from mail.efficios.com ([167.114.142.141]:51966 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753031AbeAQXZg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jan 2018 18:25:36 -0500
+Date: Wed, 17 Jan 2018 23:25:32 +0000 (UTC)
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Message-ID: <80094124.4887.1516231532603.JavaMail.zimbra@efficios.com>
+In-Reply-To: <CALCETrV2Cve1sW=UXHgjTWMKfsiwY5QdeaBnQRZGfpELLKry+A@mail.gmail.com>
+References: <20180117165458.13330-1-mathieu.desnoyers@efficios.com> <20180117165458.13330-8-mathieu.desnoyers@efficios.com> <CALCETrWqRPsmLY=sTo5YHbWRh3HWjrVQ4FOn-=YfP=4_n98F6w@mail.gmail.com> <712464074.4666.1516212636860.JavaMail.zimbra@efficios.com> <CALCETrV2Cve1sW=UXHgjTWMKfsiwY5QdeaBnQRZGfpELLKry+A@mail.gmail.com>
+Subject: Re: [PATCH for 4.16 07/11] x86: Implement sync_core_before_usermode
+ (v3)
 MIME-Version: 1.0
-In-Reply-To: <CA+55aFzCgqjRR=x37fzUecK5ERMBUmBOag-EpM1zQQxFeH2+bw@mail.gmail.com>
-References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151586748981.5820.14559543798744763404.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzoAR+MYX+ub0xZ32OsT7WtD5Kru2t6LhwB1buLWPResQ@mail.gmail.com>
- <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
- <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com>
- <CA+55aFxAFG5czVmCyhYMyHmXLNJ7pcXxWzusjZvLRh_qTGHj6Q@mail.gmail.com>
- <CA+55aFxB01XEEpdPynwYmzQMfTJdJnUrN+ZLqSV_UdnKLBgAZw@mail.gmail.com>
- <1516198646.4184.13.camel@linux.intel.com> <CA+55aFzCgqjRR=x37fzUecK5ERMBUmBOag-EpM1zQQxFeH2+bw@mail.gmail.com>
-From: Eric Dumazet <edumazet@google.com>
-Date: Wed, 17 Jan 2018 12:01:35 -0800
-Message-ID: <CANn89i+JXg0YfGJeBN2wDpNqVr1g6AKQ1WbSCjdpXmSWjWcAPQ@mail.gmail.com>
-Subject: Re: [PATCH v3 8/9] x86: use __uaccess_begin_nospec and ASM_IFENCE in
- get_user paths
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Alan Cox <alan@linux.intel.com>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180117200135.h6z-BWAkTmHPQ4WrdsTPggxYpBJh5P4JagBs3-Vwht0@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel <linux-kernel@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, "Russell King, ARM Linux" <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86 <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20180117232532.1PAWszJYGBG1sEw1aBVBkHWmcIiqrpig_J5Ydalqrig@z>
 
-On Wed, Jan 17, 2018 at 11:26 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Wed, Jan 17, 2018 at 6:17 AM, Alan Cox <alan@linux.intel.com> wrote:
+----- On Jan 17, 2018, at 1:13 PM, Andy Lutomirski luto@kernel.org wrote:
+
+> On Wed, Jan 17, 2018 at 10:10 AM, Mathieu Desnoyers
+> <mathieu.desnoyers@efficios.com> wrote:
+>> ----- On Jan 17, 2018, at 12:53 PM, Andy Lutomirski luto@kernel.org wrote:
 >>
->> Can we kill off the remaining users of set_fs() ?
->
-> I would love to, but it's not going to happen short-term. If ever.
->
-> Some could be removed today: the code in arch/x86/net/bpf_jit_comp.c
-> seems to be literally the ramblings of a diseased mind. There's no
-> reason for the set_fs(), there's no reason for the
-> flush_icache_range() (it's a no-op on x86 anyway), and the smp_wmb()
-> looks bogus too.
->
-> I have no idea how that braindamage happened, but I assume it got
-> copied from some broken source.
+>>> On Wed, Jan 17, 2018 at 8:54 AM, Mathieu Desnoyers
+>>> <mathieu.desnoyers@efficios.com> wrote:
+>>>> Ensure that a core serializing instruction is issued before returning to
+>>>> user-mode. x86 implements return to user-space through sysexit, sysrel,
+>>>> and sysretq, which are not core serializing.
+>>>>
+>>>> Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+>>>> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+>>>> CC: Peter Zijlstra <peterz@infradead.org>
+>>>> CC: Andy Lutomirski <luto@kernel.org>
+>>>> CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+>>>> CC: Boqun Feng <boqun.feng@gmail.com>
+>>>> CC: Andrew Hunter <ahh@google.com>
+>>>> CC: Maged Michael <maged.michael@gmail.com>
+>>>> CC: Avi Kivity <avi@scylladb.com>
+>>>> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+>>>> CC: Paul Mackerras <paulus@samba.org>
+>>>> CC: Michael Ellerman <mpe@ellerman.id.au>
+>>>> CC: Dave Watson <davejwatson@fb.com>
+>>>> CC: Ingo Molnar <mingo@redhat.com>
+>>>> CC: "H. Peter Anvin" <hpa@zytor.com>
+>>>> CC: Andrea Parri <parri.andrea@gmail.com>
+>>>> CC: Russell King <linux@armlinux.org.uk>
+>>>> CC: Greg Hackmann <ghackmann@google.com>
+>>>> CC: Will Deacon <will.deacon@arm.com>
+>>>> CC: David Sehr <sehr@google.com>
+>>>> CC: Linus Torvalds <torvalds@linux-foundation.org>
+>>>> CC: x86@kernel.org
+>>>> CC: linux-arch@vger.kernel.org
+>>>> ---
+>>>> Changes since v1:
+>>>> - Fix prototype of sync_core_before_usermode in generic code (missing
+>>>>   return type).
+>>>> - Add linux/processor.h include to sched/core.c.
+>>>> - Add ARCH_HAS_SYNC_CORE_BEFORE_USERMODE to init/Kconfig.
+>>>> - Fix linux/processor.h ifdef to target
+>>>>   CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE rather than
+>>>>   ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
+>>>> - Move empty static inline in processor.h to generic patch.
+>>>> ---
+>>>>  arch/x86/Kconfig                 |  1 +
+>>>>  arch/x86/include/asm/processor.h | 10 ++++++++++
+>>>>  2 files changed, 11 insertions(+)
+>>>>
+>>>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+>>>> index 20da391b5f32..0b44c8dd0e95 100644
+>>>> --- a/arch/x86/Kconfig
+>>>> +++ b/arch/x86/Kconfig
+>>>> @@ -61,6 +61,7 @@ config X86
+>>>>         select ARCH_HAS_SG_CHAIN
+>>>>         select ARCH_HAS_STRICT_KERNEL_RWX
+>>>>         select ARCH_HAS_STRICT_MODULE_RWX
+>>>> +       select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
+>>>>         select ARCH_HAS_UBSAN_SANITIZE_ALL
+>>>>         select ARCH_HAS_ZONE_DEVICE             if X86_64
+>>>>         select ARCH_HAVE_NMI_SAFE_CMPXCHG
+>>>> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+>>>> index d3a67fba200a..3257d34dbb40 100644
+>>>> --- a/arch/x86/include/asm/processor.h
+>>>> +++ b/arch/x86/include/asm/processor.h
+>>>> @@ -722,6 +722,16 @@ static inline void sync_core(void)
+>>>>  #endif
+>>>>  }
+>>>>
+>>>> +/*
+>>>> + * Ensure that a core serializing instruction is issued before returning
+>>>> + * to user-mode. x86 implements return to user-space through sysexit,
+>>>> + * sysrel, and sysretq, which are not core serializing.
+>>>> + */
+>>>> +static inline void sync_core_before_usermode(void)
+>>>> +{
+>>>
+>>> /* With PTI, we unconditionally serialize before running user code. */
+>>> if (static_cpu_has(X86_FEATURE_PTI))
+>>>  return;
+>>
+>> One issue I'm facing with this change is header dependency:
+>> sync_core_before_usermode() is currently implemented in
+>> arch/x86/include/asm/processor.h, but arch/x86/include/asm/cpufeature.h
+>> is needed for static_cpu_has, and it happens to include
+>> asm/processor.h.
+>>
+>> I'm facing a similar issue for adding a (in_irq() || in_nmi()) check.
+>>
+>> Should we move sync_core_before_usermode() to a different header, and if
+>> so, any suggestion ?
+> 
+> tlbflush.h, maybe?
 
-At the time commit 0a14842f5a3c0e88a1e59fac5c3025db39721f74 went in,
-this was the first JIT implementation for BPF, so maybe I wanted to avoid
-other arches to forget to flush icache : You bet that my implementation served
-as a reference for other JIT.
+Core serialization seems to be unrelated to TLB flushing though.
 
-At that time, various calls to flush_icache_range() were definitely in arch/x86
-or kernel/module.c
+I'm considering to create those new header files:
 
-(I believe I must have copied the code from kernel/module.c, but that
-I am not sure)
+include/asm-generic/sync_core.h (empty function)
+arch/x86/include/asm/sync_core.h
 
->
-> But there are about ~100 set_fs() calls in generic code, and some of
-> those really are pretty fundamental. Doing things like "kernel_read()"
-> without set_fs() is basically impossible.
->
-> We've had set_fs() since the beginning. The naming is obviously very
-> historical. We have it for a very good reason, and I don't really see
-> that reason going away.
->
-> So realistically, we want to _minimize_ set_fs(), and we might want to
-> make sure that it's done only in limited settings (it might, for
-> example, be a good idea and a realistic goal to make sure that drivers
-> and modules can't do it, and use proper helper functions like that
-> "read_kernel()").
->
-> But getting rid of the concept entirely? Doesn't seem likely.
->
->              Linus
+for the sync_core_before_usermode() static inlines. Any better idea ?
+
+Thanks,
+
+Mathieu
+
+
+> 
+>>
+>> Thanks,
+>>
+>> Mathieu
+>>
+>>
+>>
+>>>
+>>>> +       sync_core();
+>>>> +}
+>>>
+>>> --Andy
+>>
+>> --
+>> Mathieu Desnoyers
+>> EfficiOS Inc.
+> > http://www.efficios.com
+
+-- 
+Mathieu Desnoyers
+EfficiOS Inc.
+http://www.efficios.com
