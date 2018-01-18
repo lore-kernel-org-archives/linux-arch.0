@@ -1,28 +1,68 @@
-From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: Re: [PATCH v6 05/36] nds32: Assembly macros and definitions
-Date: Thu, 18 Jan 2018 11:01:36 +0100
-Message-ID: <CAK8P3a3RsJUnXeyghS4B-BqN5xppk8CHZbmhT=UdrvKLEARq2A@mail.gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com> <d36e188c167392994a84c8f52ef0dab90b93ed8d.1515766253.git.green.hu@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v6 06/36] nds32: Kernel booting and initialization
+Date: Thu, 18 Jan 2018 11:11:13 +0100
+Message-ID: <CAK8P3a143yQ72+QGZSxpiFc7p8Hb7PXuCybJBFoLRSBaZ2uw4g@mail.gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com> <5930d2df872116555cc553284b6c111dce29e298.1515766253.git.green.hu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <d36e188c167392994a84c8f52ef0dab90b93ed8d.1515766253.git.green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Networking <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, Guo Ren <ren_guo-Y+KPrCd2zL4@public.gmane.org>
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <5930d2df872116555cc553284b6c111dce29e298.1515766253.git.green.hu@gmail.com>
+Sender: netdev-owner@vger.kernel.org
+To: Greentime Hu <green.hu@gmail.com>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.co>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
-> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
->
-> This patch includes assembly macros, bit field definitions used in .S
-> files across arch/nds32/.
->
-> Signed-off-by: Vincent Chen <vincentc-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
-> Signed-off-by: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
 
-Acked-by: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+I had not looked at this patch in enough detail earlier, sorry about
+that. It should be
+easy enough to fix though.
+
+> +#ifdef CONFIG_VGA_CONSOLE
+> +struct screen_info screen_info;
+> +#endif
+
+I would assume that you can't ever have a VGA console. Just drop all
+the references
+here and instead send a patch to the fbdev maintainer to add the dependency
+at CONFIG_VGA_CONSOLE to prevent selecting it with nds32.
+
+> +extern struct mm_struct init_mm;
+
+init_mm is declared in linux/mm_types.h, so you should need another declaration.
+In general, you should never put 'extern' declarations in to .c files anyway.
+
+> +
+> +extern void __init early_init_devtree(void *params);
+> +extern void __init early_trap_init(void);
+
+similarly, these are declared in include/linux/of_fdt.h
+
+> +void __init setup_arch(char **cmdline_p)
+> +{
+> +       early_init_devtree(__atags_pointer ?
+> +                          phys_to_virt(__atags_pointer) : __dtb_start);
+
+The reference to '__atags_pointer' appears to be a leftover from pre-DT
+days. Can you just remove that?
+
+> +void calibrate_delay(void)
+> +{
+> +       const int *val;
+> +       struct device_node *cpu = NULL;
+> +       cpu = of_find_compatible_node(NULL, NULL, "andestech,nds32v3");
+> +       val = of_get_property(cpu, "clock-frequency", NULL);
+> +       if (!val || !*val)
+> +               panic("no cpu 'clock-frequency' parameter in device tree");
+> +       loops_per_jiffy = be32_to_cpup(val) / HZ;
+> +       pr_cont("%lu.%02lu BogoMIPS (lpj=%lu)\n",
+> +               loops_per_jiffy / (500000 / HZ),
+> +               (loops_per_jiffy / (5000 / HZ)) % 100, loops_per_jiffy);
+> +}
+
+This seems very odd to me: The 'clock-frequency' property in the
+cpu node should refer to the actual frequency it is running at, but that
+tends to be different from the bogomips as needed by the ndelay()
+function. Can you explain what is going on here?
+
+       Arnd
