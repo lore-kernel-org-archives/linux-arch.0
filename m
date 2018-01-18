@@ -1,135 +1,133 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: Re: [PATCH for 4.16 07/11] x86: Implement sync_core_before_usermode (v3)
-Date: Wed, 17 Jan 2018 15:37:58 -0800
-Message-ID: <CALCETrUVhb0LkVP++h5Vibd+iN3g2kfQJJFL1reucvG=v-3QSw@mail.gmail.com>
-References: <20180117165458.13330-1-mathieu.desnoyers@efficios.com>
- <20180117165458.13330-8-mathieu.desnoyers@efficios.com> <CALCETrWqRPsmLY=sTo5YHbWRh3HWjrVQ4FOn-=YfP=4_n98F6w@mail.gmail.com>
- <712464074.4666.1516212636860.JavaMail.zimbra@efficios.com>
- <CALCETrV2Cve1sW=UXHgjTWMKfsiwY5QdeaBnQRZGfpELLKry+A@mail.gmail.com> <80094124.4887.1516231532603.JavaMail.zimbra@efficios.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [RFC][PATCH] get rid of the use of set_fs() (by way of
+ kernel_recvmsg()) in sunrpc
+Date: Thu, 18 Jan 2018 03:06:34 +0000
+Message-ID: <20180118030634.GY13338@ZenIV.linux.org.uk>
+References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151586748981.5820.14559543798744763404.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzoAR+MYX+ub0xZ32OsT7WtD5Kru2t6LhwB1buLWPResQ@mail.gmail.com>
+ <CA+55aFxsg5+u7bCHj1N8xyyVf7-RMm-5ACNp=ENNrKL78omaow@mail.gmail.com>
+ <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com>
+ <CA+55aFxAFG5czVmCyhYMyHmXLNJ7pcXxWzusjZvLRh_qTGHj6Q@mail.gmail.com>
+ <CA+55aFxB01XEEpdPynwYmzQMfTJdJnUrN+ZLqSV_UdnKLBgAZw@mail.gmail.com>
+ <1516198646.4184.13.camel@linux.intel.com>
+ <20180117185232.GW13338@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:58346 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753504AbeAQXiU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 17 Jan 2018 18:38:20 -0500
-Received: from mail-io0-f173.google.com (mail-io0-f173.google.com [209.85.223.173])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-        (No client certificate requested)
-        by mail.kernel.org (Postfix) with ESMTPSA id 0531C2179F
-        for <linux-arch@vger.kernel.org>; Wed, 17 Jan 2018 23:38:20 +0000 (UTC)
-Received: by mail-io0-f173.google.com with SMTP id f89so14748959ioj.4
-        for <linux-arch@vger.kernel.org>; Wed, 17 Jan 2018 15:38:20 -0800 (PST)
-In-Reply-To: <80094124.4887.1516231532603.JavaMail.zimbra@efficios.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel <linux-kernel@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, maged michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, "Russell King, ARM Linux" <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <wi>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20180117185232.GW13338@ZenIV.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: netdev@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>, David Miller <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 17, 2018 at 3:25 PM, Mathieu Desnoyers
-<mathieu.desnoyers@efficios.com> wrote:
-> ----- On Jan 17, 2018, at 1:13 PM, Andy Lutomirski luto@kernel.org wrote:
->
->> On Wed, Jan 17, 2018 at 10:10 AM, Mathieu Desnoyers
->> <mathieu.desnoyers@efficios.com> wrote:
->>> ----- On Jan 17, 2018, at 12:53 PM, Andy Lutomirski luto@kernel.org wrote:
->>>
->>>> On Wed, Jan 17, 2018 at 8:54 AM, Mathieu Desnoyers
->>>> <mathieu.desnoyers@efficios.com> wrote:
->>>>> Ensure that a core serializing instruction is issued before returning to
->>>>> user-mode. x86 implements return to user-space through sysexit, sysrel,
->>>>> and sysretq, which are not core serializing.
->>>>>
->>>>> Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
->>>>> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
->>>>> CC: Peter Zijlstra <peterz@infradead.org>
->>>>> CC: Andy Lutomirski <luto@kernel.org>
->>>>> CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
->>>>> CC: Boqun Feng <boqun.feng@gmail.com>
->>>>> CC: Andrew Hunter <ahh@google.com>
->>>>> CC: Maged Michael <maged.michael@gmail.com>
->>>>> CC: Avi Kivity <avi@scylladb.com>
->>>>> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->>>>> CC: Paul Mackerras <paulus@samba.org>
->>>>> CC: Michael Ellerman <mpe@ellerman.id.au>
->>>>> CC: Dave Watson <davejwatson@fb.com>
->>>>> CC: Ingo Molnar <mingo@redhat.com>
->>>>> CC: "H. Peter Anvin" <hpa@zytor.com>
->>>>> CC: Andrea Parri <parri.andrea@gmail.com>
->>>>> CC: Russell King <linux@armlinux.org.uk>
->>>>> CC: Greg Hackmann <ghackmann@google.com>
->>>>> CC: Will Deacon <will.deacon@arm.com>
->>>>> CC: David Sehr <sehr@google.com>
->>>>> CC: Linus Torvalds <torvalds@linux-foundation.org>
->>>>> CC: x86@kernel.org
->>>>> CC: linux-arch@vger.kernel.org
->>>>> ---
->>>>> Changes since v1:
->>>>> - Fix prototype of sync_core_before_usermode in generic code (missing
->>>>>   return type).
->>>>> - Add linux/processor.h include to sched/core.c.
->>>>> - Add ARCH_HAS_SYNC_CORE_BEFORE_USERMODE to init/Kconfig.
->>>>> - Fix linux/processor.h ifdef to target
->>>>>   CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE rather than
->>>>>   ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
->>>>> - Move empty static inline in processor.h to generic patch.
->>>>> ---
->>>>>  arch/x86/Kconfig                 |  1 +
->>>>>  arch/x86/include/asm/processor.h | 10 ++++++++++
->>>>>  2 files changed, 11 insertions(+)
->>>>>
->>>>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
->>>>> index 20da391b5f32..0b44c8dd0e95 100644
->>>>> --- a/arch/x86/Kconfig
->>>>> +++ b/arch/x86/Kconfig
->>>>> @@ -61,6 +61,7 @@ config X86
->>>>>         select ARCH_HAS_SG_CHAIN
->>>>>         select ARCH_HAS_STRICT_KERNEL_RWX
->>>>>         select ARCH_HAS_STRICT_MODULE_RWX
->>>>> +       select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
->>>>>         select ARCH_HAS_UBSAN_SANITIZE_ALL
->>>>>         select ARCH_HAS_ZONE_DEVICE             if X86_64
->>>>>         select ARCH_HAVE_NMI_SAFE_CMPXCHG
->>>>> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
->>>>> index d3a67fba200a..3257d34dbb40 100644
->>>>> --- a/arch/x86/include/asm/processor.h
->>>>> +++ b/arch/x86/include/asm/processor.h
->>>>> @@ -722,6 +722,16 @@ static inline void sync_core(void)
->>>>>  #endif
->>>>>  }
->>>>>
->>>>> +/*
->>>>> + * Ensure that a core serializing instruction is issued before returning
->>>>> + * to user-mode. x86 implements return to user-space through sysexit,
->>>>> + * sysrel, and sysretq, which are not core serializing.
->>>>> + */
->>>>> +static inline void sync_core_before_usermode(void)
->>>>> +{
->>>>
->>>> /* With PTI, we unconditionally serialize before running user code. */
->>>> if (static_cpu_has(X86_FEATURE_PTI))
->>>>  return;
->>>
->>> One issue I'm facing with this change is header dependency:
->>> sync_core_before_usermode() is currently implemented in
->>> arch/x86/include/asm/processor.h, but arch/x86/include/asm/cpufeature.h
->>> is needed for static_cpu_has, and it happens to include
->>> asm/processor.h.
->>>
->>> I'm facing a similar issue for adding a (in_irq() || in_nmi()) check.
->>>
->>> Should we move sync_core_before_usermode() to a different header, and if
->>> so, any suggestion ?
->>
->> tlbflush.h, maybe?
->
-> Core serialization seems to be unrelated to TLB flushing though.
->
-> I'm considering to create those new header files:
->
-> include/asm-generic/sync_core.h (empty function)
-> arch/x86/include/asm/sync_core.h
->
-> for the sync_core_before_usermode() static inlines. Any better idea ?
+On Wed, Jan 17, 2018 at 06:52:32PM +0000, Al Viro wrote:
 
-Seems reasonable to me.  Or maybe switch_to.h.
+[use of set_fs() by sunrpc]
+> We are asking for recvmsg() with zero data length; what we really want is
+> ->msg_control.  And _that_ is why we need that set_fs() - we want the damn
+> thing to go into local variable.
+> 
+> But note that filling ->msg_control will happen in put_cmsg(), called
+> from ip_cmsg_recv_pktinfo(), called from ip_cmsg_recv_offset(),
+> called from udp_recvmsg(), called from sock_recvmsg_nosec(), called
+> from sock_recvmsg().  Or in another path in case of IPv6.
+> Sure, we can arrange for propagation of that all way down those
+> call chains.  My preference would be to try and mark that (one and
+> only) case in ->msg_flags, so that put_cmsg() would be able to
+> check.  ___sys_recvmsg() sets that as
+>         msg_sys->msg_flags = flags & (MSG_CMSG_CLOEXEC|MSG_CMSG_COMPAT);
+> so we ought to be free to use any bit other than those two.  Since
+> put_cmsg() already checks ->msg_flags, that shouldn't put too much
+> overhead.
+
+Folks, does anybody have objections against the following:
+
+Get rid of kernel_recvmsg() (and thus set_fs()) use in sunrpc
+
+In net/sunrpc/svcsock.c:svc_udp_recvfrom() we want to get
+IP_PKTINFO; currently we stash the address of local variable
+into ->msg_control (which normall contains a userland pointer
+in recepients) and issue zero-length ->recvmsg() under
+set_fs(KERNEL_DS).
+
+Similar to the way put_cmsg() handles 32bit case on biarch
+targets, introduce a flag telling put_cmsg() to treat
+->msg_control as kernel pointer, using memcpy instead of
+copy_to_user().  That allows to avoid the use of kernel_recvmsg()
+with its set_fs().
+
+All places that might have non-NULL ->msg_control either pass the
+msghdr only to ->sendmsg() and its ilk, or have ->msg_flags
+sanitized before passing msghdr anywhere.  IOW, there no
+way the new flag to reach put_cmsg() in the mainline kernel,
+and after this change it will only be seen in sunrpc case.
+
+Incidentally, all other kernel_recvmsg() users are very easy to
+convert to sock_recvmsg(), so that would allow to kill
+kernel_recvmsg() off...
+
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index 9286a5a8c60c..60947da9c806 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -298,6 +298,7 @@ struct ucred {
+ #else
+ #define MSG_CMSG_COMPAT	0		/* We never have 32 bit fixups */
+ #endif
++#define MSG_CMSG_KERNEL	0x10000000
+ 
+ 
+ /* Setsockoptions(2) level. Thanks to BSD these must match IPPROTO_xxx */
+diff --git a/net/core/scm.c b/net/core/scm.c
+index b1ff8a441748..1b73b682e441 100644
+--- a/net/core/scm.c
++++ b/net/core/scm.c
+@@ -237,10 +237,17 @@ int put_cmsg(struct msghdr * msg, int level, int type, int len, void *data)
+ 	cmhdr.cmsg_len = cmlen;
+ 
+ 	err = -EFAULT;
+-	if (copy_to_user(cm, &cmhdr, sizeof cmhdr))
+-		goto out;
+-	if (copy_to_user(CMSG_DATA(cm), data, cmlen - sizeof(struct cmsghdr)))
+-		goto out;
++	if (unlikely(MSG_CMSG_KERNEL & msg->msg_flags)) {
++		struct cmsghdr *p = msg->msg_control;
++		memcpy(p, &cmhdr, sizeof cmhdr);
++		memcpy(CMSG_DATA(p), data, cmlen - sizeof(struct cmsghdr));
++	} else {
++		if (copy_to_user(cm, &cmhdr, sizeof cmhdr))
++			goto out;
++		if (copy_to_user(CMSG_DATA(cm), data,
++				 cmlen - sizeof(struct cmsghdr)))
++			goto out;
++	}
+ 	cmlen = CMSG_SPACE(len);
+ 	if (msg->msg_controllen < cmlen)
+ 		cmlen = msg->msg_controllen;
+diff --git a/net/sunrpc/svcsock.c b/net/sunrpc/svcsock.c
+index 5570719e4787..774904f67c93 100644
+--- a/net/sunrpc/svcsock.c
++++ b/net/sunrpc/svcsock.c
+@@ -545,7 +545,7 @@ static int svc_udp_recvfrom(struct svc_rqst *rqstp)
+ 		.msg_name = svc_addr(rqstp),
+ 		.msg_control = cmh,
+ 		.msg_controllen = sizeof(buffer),
+-		.msg_flags = MSG_DONTWAIT,
++		.msg_flags = MSG_DONTWAIT | MSG_CMSG_KERNEL,
+ 	};
+ 	size_t len;
+ 	int err;
+@@ -565,8 +565,7 @@ static int svc_udp_recvfrom(struct svc_rqst *rqstp)
+ 
+ 	clear_bit(XPT_DATA, &svsk->sk_xprt.xpt_flags);
+ 	skb = NULL;
+-	err = kernel_recvmsg(svsk->sk_sock, &msg, NULL,
+-			     0, 0, MSG_PEEK | MSG_DONTWAIT);
++	err = sock_recvmsg(svsk->sk_sock, &msg, MSG_PEEK | MSG_DONTWAIT);
+ 	if (err >= 0)
+ 		skb = skb_recv_udp(svsk->sk_sk, 0, 1, &err);
+ 
