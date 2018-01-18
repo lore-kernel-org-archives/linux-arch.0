@@ -1,59 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f195.google.com ([74.125.82.195]:35118 "EHLO
-        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753505AbeARKl0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 05:41:26 -0500
+Received: from mail-oi0-f66.google.com ([209.85.218.66]:36573 "EHLO
+        mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754788AbeARKl5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 05:41:57 -0500
 MIME-Version: 1.0
-In-Reply-To: <0a0789a3f776a5248ebc01706d502a3a9823cfac.1515766253.git.green.hu@gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com> <0a0789a3f776a5248ebc01706d502a3a9823cfac.1515766253.git.green.hu@gmail.com>
+In-Reply-To: <ff6346e073ae38aa96a031420f57aad3d1057ddf.1515766253.git.green.hu@gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com> <ff6346e073ae38aa96a031420f57aad3d1057ddf.1515766253.git.green.hu@gmail.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 18 Jan 2018 11:41:25 +0100
-Message-ID: <CAK8P3a3pQSxM+gJ+dJsyeo5YnuOOyFYVoJdCVmnoHR0Numya5g@mail.gmail.com>
-Subject: Re: [PATCH v6 24/36] nds32: Loadable modules
+Date: Thu, 18 Jan 2018 11:41:56 +0100
+Message-ID: <CAK8P3a157QN1y0oEkiEt5jU8WJsKGvEW2tyaSR+66ffOpXvs=A@mail.gmail.com>
+Subject: Re: [PATCH v6 25/36] nds32: Generic timers support
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greentime Hu <green.hu@gmail.com>
 Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180118104125.0QHVX9Ek90Bi4xNja47dIh5xar_0LSOjVEd9x-2Xc1M@z>
+Message-ID: <20180118104156.byKjG0BUrIXm2TGkNpfgcxJV4ySAwBbr_PrNlnzlKLM@z>
 
 On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
 > From: Greentime Hu <greentime@andestech.com>
 >
-> This patch adds support for loadable modules.
+> This patch adds support for timer.
+>
+> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 
-One detail:
-
-You still seem to have both the ELF_REL and ELF_RELA based functions
-implemented here, you should drop the unused ELF_REL version:
-
-> diff --git a/arch/nds32/kernel/module.c b/arch/nds32/kernel/module.c
-> new file mode 100644
-> index 0000000..714a6d6
-> --- /dev/null
-> +++ b/arch/nds32/kernel/module.c
-> @@ -0,0 +1,286 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +// Copyright (C) 2005-2017 Andes Technology Corporation
-> +
-> +#include <linux/module.h>
-> +#include <linux/elf.h>
-> +#include <linux/vmalloc.h>
-> +
-> +#include <asm/pgtable.h>
-
-include <linux/moduleloader.h> to catch this.
-
-> +int
-> +apply_relocate(Elf32_Shdr * sechdrs, const char *strtab,
-> +              unsigned int symindex, unsigned int relsec,
-> +              struct module *module)
-> +{
-> +       return 0;
-> +}
-
-and drop this.
-
-With that change,
-
-Acked-by:  Arnd Bergmann <arnd@arndb.de>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
