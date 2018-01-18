@@ -1,8 +1,8 @@
-From: Christoph Hellwig <hch@infradead.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH v3 8/9] x86: use __uaccess_begin_nospec and ASM_IFENCE in
  get_user paths
-Date: Thu, 18 Jan 2018 08:38:18 -0800
-Message-ID: <20180118163818.GB16649@infradead.org>
+Date: Thu, 18 Jan 2018 08:49:31 -0800
+Message-ID: <CA+55aFxw2CtC_28-7Renuzxfu0zegfCHv+QX-ng4NxUrBRhyXA@mail.gmail.com>
 References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.corp.intel.com>
  <151586748981.5820.14559543798744763404.stgit@dwillia2-desk3.amr.corp.intel.com>
  <CA+55aFzoAR+MYX+ub0xZ32OsT7WtD5Kru2t6LhwB1buLWPResQ@mail.gmail.com>
@@ -10,39 +10,39 @@ References: <151586744180.5820.13215059696964205856.stgit@dwillia2-desk3.amr.cor
  <CAPcyv4hfUx8gLScuNewY3+BWi4YBS_Z9dhvYf1D+WEWDDCShXA@mail.gmail.com>
  <CA+55aFxAFG5czVmCyhYMyHmXLNJ7pcXxWzusjZvLRh_qTGHj6Q@mail.gmail.com>
  <CA+55aFxB01XEEpdPynwYmzQMfTJdJnUrN+ZLqSV_UdnKLBgAZw@mail.gmail.com>
- <1516198646.4184.13.camel@linux.intel.com>
- <CA+55aFzCgqjRR=x37fzUecK5ERMBUmBOag-EpM1zQQxFeH2+bw@mail.gmail.com>
+ <1516198646.4184.13.camel@linux.intel.com> <CA+55aFzCgqjRR=x37fzUecK5ERMBUmBOag-EpM1zQQxFeH2+bw@mail.gmail.com>
+ <20180118163818.GB16649@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:55727 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754513AbeARQiV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 11:38:21 -0500
-Content-Disposition: inline
-In-Reply-To: <CA+55aFzCgqjRR=x37fzUecK5ERMBUmBOag-EpM1zQQxFeH2+bw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <kernel-hardening-return-11323-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Sender: linus971@gmail.com
+In-Reply-To: <20180118163818.GB16649@infradead.org>
+To: Christoph Hellwig <hch@infradead.org>
 Cc: Alan Cox <alan@linux.intel.com>, Eric Dumazet <edumazet@google.com>, Dan Williams <dan.j.williams@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 17, 2018 at 11:26:08AM -0800, Linus Torvalds wrote:
-> But there are about ~100 set_fs() calls in generic code, and some of
-> those really are pretty fundamental. Doing things like "kernel_read()"
-> without set_fs() is basically impossible.
+On Thu, Jan 18, 2018 at 8:38 AM, Christoph Hellwig <hch@infradead.org> wrote:
+>
+> > But there are about ~100 set_fs() calls in generic code, and some of
+> > those really are pretty fundamental. Doing things like "kernel_read()"
+> > without set_fs() is basically impossible.
+>
+> Not if we move to iov_iter or iov_iter-like behavior for all reads
+> and writes.
 
-Not if we move to iov_iter or iov_iter-like behavior for all reads
-and writes.  There is an issue with how vectored writes are handles
-in plain read/write vs read_iter/write_iter inherited from readv/writev,
-but that's nothing a flag, or a second set of methods with the
-same signature.
+Not going to happen. Really. We have how many tens of thousands of
+drivers again, all doing "copy_to_user()".
 
-But there are more annoying things, most notable in-kernel ioctls
-calls.  We have quite a few of them, and while many are just utterly
-stupid and can be replaced with direct function calls or new methods
-(I've done quite a few conversions of those) some might be left.
-Something like iov_iter might be the answer again.
+And the fact is, set_fs() really isn't even a problem for this. Never
+really has been.   From a security standpoint, it would actually be
+*much* worse if we made those ten thousand places do "if (kernel_flag)
+memcpy() else copy_to_user()".
 
-Then we have things like probe_kernel_read/probe_kernel_write which
-abuse the exception handling in get/put user.  But with a little
-arch helper we don't strictly need get_fs/set_fs for that.
+We've had some issues with set_fs() being abused in interesting ways.
+But "kernel_read()" and friends is not it.
+
+               Linus
