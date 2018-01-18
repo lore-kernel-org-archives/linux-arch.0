@@ -1,37 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f65.google.com ([209.85.218.65]:35101 "EHLO
-        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752100AbeARLIS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 06:08:18 -0500
+Received: from foss.arm.com ([217.140.101.70]:55256 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1756245AbeARNSc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 18 Jan 2018 08:18:32 -0500
+Date: Thu, 18 Jan 2018 13:18:37 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 00/19] prevent bounds-check bypass via speculative
+ execution
+Message-ID: <20180118131837.GA20783@arm.com>
+References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com>
+ <CAPcyv4gPcV7MRumSJNz6nDw=HhKO4MK2QqKbj4uc_6APsSFr+g@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <de648d211061a16c85ae0321625c51343ce5e5ce.1515766198.git.green.hu@gmail.com>
-References: <cover.1515766198.git.green.hu@gmail.com> <de648d211061a16c85ae0321625c51343ce5e5ce.1515766198.git.green.hu@gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 18 Jan 2018 12:08:17 +0100
-Message-ID: <CAK8P3a1RQxBNGiVD11BuL5kUx+fn0QcA02j0HVPnMQ2j3WmMQQ@mail.gmail.com>
-Subject: Re: [PATCH v6 2/3] clocksource/drivers/atcpit100: VDSO support
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4gPcV7MRumSJNz6nDw=HhKO4MK2QqKbj4uc_6APsSFr+g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Rick Chen <rickchen36@gmail.com>, Rick Chen <rick@andestech.com>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180118110817.C3NqweXt7bMiHuIZMnGUmH9c8zukFhIiIPNKBsv9FSc@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Alexei Starovoitov <ast@kernel.org>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, Linux SCSI List <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, the arch/x86 maintainers <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Linux Media Mailing List <linux-media@vger.kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Jan Kara <jack@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, Alan Cox <alan@linux.intel.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Greg KH <gregkh@linuxfoundation.org>, Linux Wireless List <linux-wireless@vger.kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Network Development <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Message-ID: <20180118131837.7FhkIaaueMSK9BbIWF88oUYalvjmnX0_BZjUUQln0KY@z>
 
-On Mon, Jan 15, 2018 at 6:57 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> From: Rick Chen <rickchen36@gmail.com>
->
-> VDSO needs real-time cycle count to ensure the time accuracy.
-> Unlike others, nds32 architecture does not define clock source,
-> hence VDSO needs atcpit100 offering real-time cycle count
-> to derive the correct time.
->
-> Signed-off-by: Vincent Chen <vincentc@andestech.com>
-> Signed-off-by: Rick Chen <rickchen36@gmail.com>
-> Signed-off-by: Greentime Hu <green.hu@gmail.com>
+Hi Dan, Linus,
 
-I'm a bit puzzled by this patch, can you explain how the vdso actually
-manages to access the clock hardware? It looks like you make the
-physical address and the register offset available to user space, but
-how does it end up accessing it?
-
-      Arnd
+On Thu, Jan 11, 2018 at 05:41:08PM -0800, Dan Williams wrote:
+> On Thu, Jan 11, 2018 at 5:19 PM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> > On Thu, Jan 11, 2018 at 4:46 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> >>
+> >> This series incorporates Mark Rutland's latest ARM changes and adds
+> >> the x86 specific implementation of 'ifence_array_ptr'. That ifence
+> >> based approach is provided as an opt-in fallback, but the default
+> >> mitigation, '__array_ptr', uses a 'mask' approach that removes
+> >> conditional branches instructions, and otherwise aims to redirect
+> >> speculation to use a NULL pointer rather than a user controlled value.
+> >
+> > Do you have any performance numbers and perhaps example code
+> > generation? Is this noticeable? Are there any microbenchmarks showing
+> > the difference between lfence use and the masking model?
+> 
+> I don't have performance numbers, but here's a sample code generation
+> from __fcheck_files, where the 'and; lea; and' sequence is portion of
+> array_ptr() after the mask generation with 'sbb'.
+> 
+>         fdp = array_ptr(fdt->fd, fd, fdt->max_fds);
+>      8e7:       8b 02                   mov    (%rdx),%eax
+>      8e9:       48 39 c7                cmp    %rax,%rdi
+>      8ec:       48 19 c9                sbb    %rcx,%rcx
+>      8ef:       48 8b 42 08             mov    0x8(%rdx),%rax
+>      8f3:       48 89 fe                mov    %rdi,%rsi
+>      8f6:       48 21 ce                and    %rcx,%rsi
+>      8f9:       48 8d 04 f0             lea    (%rax,%rsi,8),%rax
+>      8fd:       48 21 c8                and    %rcx,%rax
+> 
+> 
+> > Having both seems good for testing, but wouldn't we want to pick one in the end?
+> 
+> I was thinking we'd keep it as a 'just in case' sort of thing, at
+> least until the 'probably safe' assumption of the 'mask' approach has
+> more time to settle out.
