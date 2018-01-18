@@ -1,27 +1,49 @@
-From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: Re: [PATCH v6 11/36] nds32: Cache and TLB routines
-Date: Thu, 18 Jan 2018 11:17:52 +0100
-Message-ID: <CAK8P3a2V_3GLefxxpgfczyRxC4zuYCqiBZ_cjBNHGDPrxPbvXw@mail.gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com> <e1f55cfd5a5384967f1c4691bc766edbd06fee1d.1515766253.git.green.hu@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v6 12/36] nds32: Process management
+Date: Thu, 18 Jan 2018 11:22:13 +0100
+Message-ID: <CAK8P3a2X75r6wrmwwnyOuZLDwkRh+QQJcxb9c+aG2DC9BozeNg@mail.gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com> <10820926f3c1a4757acc8f58b8e07dd0191ffd30.1515766253.git.green.hu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <e1f55cfd5a5384967f1c4691bc766edbd06fee1d.1515766253.git.green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Networking <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, Guo Ren <ren_guo-Y+KPrCd2zL4@public.gmane.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <10820926f3c1a4757acc8f58b8e07dd0191ffd30.1515766253.git.green.hu@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greentime Hu <green.hu@gmail.com>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.co>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
-> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
->
-> This patch contains cache and TLB maintenance functions.
->
-> Signed-off-by: Vincent Chen <vincentc-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
-> Signed-off-by: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
 
-Acked-by: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> +void machine_restart(char *__unused)
+> +{
+> +       /*
+> +        * Clean and disable cache, and turn off interrupts
+> +        */
+> +       cpu_proc_fin();
+> +
+> +       /*
+> +        * Tell the mm system that we are going to reboot -
+> +        * we may need it to insert some 1:1 mappings so that
+> +        * soft boot works.
+> +        */
+> +       setup_mm_for_reboot(reboot_mode);
+> +
+> +       /*
+> +        * Now call the architecture specific reboot code.
+> +        */
+> +       arch_reset(reboot_mode);
+> +
+> +       /*
+> +        * Whoops - the architecture was unable to reboot.
+> +        * Tell the user!
+> +        */
+> +       mdelay(1000);
+> +       pr_info("Reboot failed -- System halted\n");
+> +       while (1) ;
+> +}
+
+You should insert a call to do_kernel_restart() in this function to allow e.g. a
+watchdog driver to provide a machine-specific reboot method. Otherwise
+the patch looks good to me,
+
+Acked-by: Arnd Bergmann <arnd@arndb.de>
