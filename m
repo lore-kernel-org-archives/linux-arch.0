@@ -1,32 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f195.google.com ([74.125.82.195]:34573 "EHLO
-        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755127AbeARKaa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 05:30:30 -0500
+Received: from mail-ot0-f196.google.com ([74.125.82.196]:35628 "EHLO
+        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754765AbeARKbu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 05:31:50 -0500
 MIME-Version: 1.0
-In-Reply-To: <e145c39b3c50b3aee05bc60ad0117f1ec7cc5153.1515766253.git.green.hu@gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com> <e145c39b3c50b3aee05bc60ad0117f1ec7cc5153.1515766253.git.green.hu@gmail.com>
+In-Reply-To: <6e8431d52d635f077ca49b2f1f7dd905bdf27a3c.1515766253.git.green.hu@gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com> <6e8431d52d635f077ca49b2f1f7dd905bdf27a3c.1515766253.git.green.hu@gmail.com>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 18 Jan 2018 11:30:29 +0100
-Message-ID: <CAK8P3a2HR6be9Fm+o1Oq-V5p51xEiuhbyqkgVWprD5BxuU29xQ@mail.gmail.com>
-Subject: Re: [PATCH v6 20/36] nds32: Signal handling support
+Date: Thu, 18 Jan 2018 11:31:49 +0100
+Message-ID: <CAK8P3a2U+jpjBm8FKNCySjJQ28KJ9Gy2mf_Amvyn+rBXYKteLQ@mail.gmail.com>
+Subject: Re: [PATCH v6 21/36] nds32: Library functions
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greentime Hu <green.hu@gmail.com>
 Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180118103029.QsWE0zNeynGtj_Eu3lGKNTwsI1RkAkOXmDzO4C3Gf4o@z>
+Message-ID: <20180118103149.IQptPb4xaqMPZG0g51pSJZ8Y6_U8PIzer_xQpZ4lTuU@z>
 
 On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
 > From: Greentime Hu <greentime@andestech.com>
 >
-> This patch adds support for signal handling.
+> This patch add support for various library functions.
 >
 > Signed-off-by: Vincent Chen <vincentc@andestech.com>
 > Signed-off-by: Greentime Hu <greentime@andestech.com>
 
-I never feel qualified enough to properly review signal handling code, so
-no Ack from me for this code even though I don't see anything wrong with it.
-Hopefully someone else can give an Ack after looking more closely.
-
-       Arnd
+Acked-by: Arnd Bergmann <arnd@arndb.de>
