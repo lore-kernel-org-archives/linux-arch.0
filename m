@@ -1,93 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:58562 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750841AbeARRFm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 18 Jan 2018 12:05:42 -0500
-Date: Thu, 18 Jan 2018 17:05:47 +0000
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 00/19] prevent bounds-check bypass via speculative
- execution
-Message-ID: <20180118170547.GF12394@arm.com>
-References: <151571798296.27429.7166552848688034184.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CA+55aFzNQ8CZ8iNcPXrCfyk=1edMiRGDA0fY0rd87BsFKBxgAw@mail.gmail.com>
- <CAPcyv4gPcV7MRumSJNz6nDw=HhKO4MK2QqKbj4uc_6APsSFr+g@mail.gmail.com>
- <20180118131837.GA20783@arm.com>
- <CAPcyv4gPLx74CAHGGrC3R-fgrh0vUmCbLNXZ0f7PTiKi0f+hCQ@mail.gmail.com>
+Received: from mail-ot0-f196.google.com ([74.125.82.196]:35428 "EHLO
+        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755163AbeARVbw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 16:31:52 -0500
+Received: by mail-ot0-f196.google.com with SMTP id 53so21423579otj.2
+        for <linux-arch@vger.kernel.org>; Thu, 18 Jan 2018 13:31:52 -0800 (PST)
+Subject: Re: [PATCH 27/38] sctp: Copy struct sctp_sock.autoclose to userspace
+ using put_user()
+References: <1515636190-24061-1-git-send-email-keescook@chromium.org>
+ <1515636190-24061-28-git-send-email-keescook@chromium.org>
+From: Laura Abbott <labbott@redhat.com>
+Message-ID: <19a7add8-adaf-4ad4-6ae3-4a62967656b9@redhat.com>
+Date: Thu, 18 Jan 2018 13:31:42 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAPcyv4gPLx74CAHGGrC3R-fgrh0vUmCbLNXZ0f7PTiKi0f+hCQ@mail.gmail.com>
+In-Reply-To: <1515636190-24061-28-git-send-email-keescook@chromium.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Alan Cox <alan.cox@intel.com>, Alexei Starovoitov <ast@kernel.org>, Solomon Peachy <pizza@shaftnet.org>, "H. Peter Anvin" <hpa@zytor.com>, Christian Lamparter <chunkeey@googlemail.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "James E.J. Bottomley" <jejb@linux.vnet.ibm.com>, Linux SCSI List <linux-scsi@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, the arch/x86 maintainers <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Linux Media Mailing List <linux-media@vger.kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Jan Kara <jack@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, qla2xxx-upstream@qlogic.com, Thomas Gleixner <tglx@linutronix.de>, Mauro Carvalho Chehab <mchehab@kernel.org>, Kalle Valo <kvalo@codeaurora.org>, Alan Cox <alan@linux.intel.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Greg KH <gregkh@linuxfoundation.org>, Linux Wireless List <linux-wireless@vger.kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Network Development <netdev@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Message-ID: <20180118170547.qbUqDbBZYQ7ZTk9nOwsoy5vIwWD84eXe5JBYOZUf2M4@z>
+To: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org
+Cc: David Windsor <dave@nullcore.net>, Vlad Yasevich <vyasevich@gmail.com>, Neil Horman <nhorman@tuxdriver.com>, "David S. Miller" <davem@davemloft.net>, linux-sctp@vger.kernel.org, netdev@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Christoph Hellwig <hch@infradead.org>, Christoph Lameter <cl@linux.com>, Mark Rutland <mark.rutland@arm.com>, "Martin K. Petersen" <martin.petersen@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Christoffer Dall <christoffer.dall@linaro.org>, Dave Kleikamp <dave.kleikamp@oracle.com>, Jan Kara <jack@suse.cz>, Luis de Bethencourt <luisbg@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Rik van Riel <riel@redhat.com>, Matthew Garrett <mjg59@google.com>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20180118213142.0xKJeRrMbaZ4yWII8ZqtWEmScZS7lwf3yTE_GkrwRFg@z>
 
-On Thu, Jan 18, 2018 at 08:58:08AM -0800, Dan Williams wrote:
-> On Thu, Jan 18, 2018 at 5:18 AM, Will Deacon <will.deacon@arm.com> wrote:
-> > On Thu, Jan 11, 2018 at 05:41:08PM -0800, Dan Williams wrote:
-> >> On Thu, Jan 11, 2018 at 5:19 PM, Linus Torvalds
-> >> <torvalds@linux-foundation.org> wrote:
-> >> > On Thu, Jan 11, 2018 at 4:46 PM, Dan Williams <dan.j.williams@intel.com> wrote:
-> >> >>
-> >> >> This series incorporates Mark Rutland's latest ARM changes and adds
-> >> >> the x86 specific implementation of 'ifence_array_ptr'. That ifence
-> >> >> based approach is provided as an opt-in fallback, but the default
-> >> >> mitigation, '__array_ptr', uses a 'mask' approach that removes
-> >> >> conditional branches instructions, and otherwise aims to redirect
-> >> >> speculation to use a NULL pointer rather than a user controlled value.
-> >> >
-> >> > Do you have any performance numbers and perhaps example code
-> >> > generation? Is this noticeable? Are there any microbenchmarks showing
-> >> > the difference between lfence use and the masking model?
-> >>
-> >> I don't have performance numbers, but here's a sample code generation
-> >> from __fcheck_files, where the 'and; lea; and' sequence is portion of
-> >> array_ptr() after the mask generation with 'sbb'.
-> >>
-> >>         fdp = array_ptr(fdt->fd, fd, fdt->max_fds);
-> >>      8e7:       8b 02                   mov    (%rdx),%eax
-> >>      8e9:       48 39 c7                cmp    %rax,%rdi
-> >>      8ec:       48 19 c9                sbb    %rcx,%rcx
-> >>      8ef:       48 8b 42 08             mov    0x8(%rdx),%rax
-> >>      8f3:       48 89 fe                mov    %rdi,%rsi
-> >>      8f6:       48 21 ce                and    %rcx,%rsi
-> >>      8f9:       48 8d 04 f0             lea    (%rax,%rsi,8),%rax
-> >>      8fd:       48 21 c8                and    %rcx,%rax
-> >>
-> >>
-> >> > Having both seems good for testing, but wouldn't we want to pick one in the end?
-> >>
-> >> I was thinking we'd keep it as a 'just in case' sort of thing, at
-> >> least until the 'probably safe' assumption of the 'mask' approach has
-> >> more time to settle out.
-> >
-> > From the arm64 side, the only concern I have (and this actually applies to
-> > our CSDB sequence as well) is the calculation of the array size by the
-> > caller. As Linus mentioned at the end of [1], if the determination of the
-> > size argument is based on a conditional branch, then masking doesn't help
-> > because you bound within the wrong range under speculation.
-> >
-> > We ran into this when trying to use masking to protect our uaccess routines
-> > where the conditional bound is either KERNEL_DS or USER_DS. It's possible
-> > that a prior conditional set_fs(KERNEL_DS) could defeat the masking and so
-> > we'd need to throw some heavy barriers in set_fs to make it robust.
+On 01/10/2018 06:02 PM, Kees Cook wrote:
+> From: David Windsor <dave@nullcore.net>
 > 
-> At least in the conditional mask case near set_fs() usage the approach
-> we are taking is to use a barrier. I.e. the following guidance from
-> Linus:
+> The autoclose field can be copied with put_user(), so there is no need to
+> use copy_to_user(). In both cases, hardened usercopy is being bypassed
+> since the size is constant, and not open to runtime manipulation.
 > 
-> "Basically, the rule is trivial: find all 'stac' users, and use address
-> masking if those users already integrate the limit check, and lfence
-> they don't."
+> This patch is verbatim from Brad Spengler/PaX Team's PAX_USERCOPY
+> whitelisting code in the last public patch of grsecurity/PaX based on my
+> understanding of the code. Changes or omissions from the original code are
+> mine and don't reflect the original grsecurity/PaX code.
 > 
-> ...which translates to narrow the pointer for get_user() and use a
-> barrier  for __get_user().
 
-Great, that matches my thinking re set_fs but I'm still worried about
-finding all the places where the bound is conditional for other users
-of the macro. Then again, finding the places that need this macro in the
-first place is tough enough so perhaps analysing the bound calculation
-doesn't make it much worse.
+Just tried a quick rebase and it looks like this conflicts with
+c76f97c99ae6 ("sctp: make use of pre-calculated len")
+I don't think we can use put_user if we're copying via the full
+len?
 
-Will
+Thanks,
+Laura
+
+> Signed-off-by: David Windsor <dave@nullcore.net>
+> [kees: adjust commit log]
+> Cc: Vlad Yasevich <vyasevich@gmail.com>
+> Cc: Neil Horman <nhorman@tuxdriver.com>
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: linux-sctp@vger.kernel.org
+> Cc: netdev@vger.kernel.org
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>   net/sctp/socket.c | 2 +-
+>   1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/net/sctp/socket.c b/net/sctp/socket.c
+> index efbc8f52c531..15491491ec88 100644
+> --- a/net/sctp/socket.c
+> +++ b/net/sctp/socket.c
+> @@ -5011,7 +5011,7 @@ static int sctp_getsockopt_autoclose(struct sock *sk, int len, char __user *optv
+>   	len = sizeof(int);
+>   	if (put_user(len, optlen))
+>   		return -EFAULT;
+> -	if (copy_to_user(optval, &sctp_sk(sk)->autoclose, sizeof(int)))
+> +	if (put_user(sctp_sk(sk)->autoclose, (int __user *)optval))
+>   		return -EFAULT;
+>   	return 0;
+>   }
+> 
