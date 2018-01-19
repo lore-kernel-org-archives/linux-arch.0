@@ -1,97 +1,58 @@
-From: Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH v4 10/10] nl80211: sanitize array index in parse_txq_params
-Date: Thu, 18 Jan 2018 16:02:41 -0800
-Message-ID: <151632015637.21271.10452415430644852207.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: [PATCH v4 08/10] vfs,
+ fdtable: prevent bounds-check bypass via speculative execution
+Date: Thu, 18 Jan 2018 16:02:26 -0800
+Message-ID: <151632014611.21271.2373946384226391096.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-wireless-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <151632009605.21271.11304291057104672116.stgit-p8uTFz9XbKj2zm6wflaqv1nYeNYlB/vhral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Sender: linux-wireless-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, Christian Lamparter <chunkeey-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-wireless-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, Johannes Berg <johannes-cdvu00un1VgdHxzADdlk8Q@public.gmane.org>, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Elena Reshetova <elena.reshetova-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, alan-VuQAYsv1563Yd54FQh9/CA@public.gmane.org
+Return-path: <kernel-hardening-return-11345-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, Al Viro <viro@zeniv.linux.org.uk>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-Wireless drivers rely on parse_txq_params to validate that
-txq_params->ac is less than NL80211_NUM_ACS by the time the low-level
-driver's ->conf_tx() handler is called. Use a new helper, 'array_idx',
-to sanitize txq_params->ac with respect to speculation. I.e. ensure that
-any speculation into ->conf_tx() handlers is done with a value of
-txq_params->ac that is within the bounds of [0, NL80211_NUM_ACS).
+'fd' is a user controlled value that is used as a data dependency to
+read from the 'fdt->fd' array.  In order to avoid potential leaks of
+kernel memory values, block speculative execution of the instruction
+stream that could issue reads based on an invalid 'file *' returned from
+__fcheck_files.
 
-Reported-by: Christian Lamparter <chunkeey-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Reported-by: Elena Reshetova <elena.reshetova-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Cc: Johannes Berg <johannes-cdvu00un1VgdHxzADdlk8Q@public.gmane.org>
-Cc: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
-Cc: linux-wireless-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Signed-off-by: Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Co-developed-by: Elena Reshetova <elena.reshetova@intel.com>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- include/linux/nospec.h |   21 +++++++++++++++++++++
- net/wireless/nl80211.c |   10 +++++++---
- 2 files changed, 28 insertions(+), 3 deletions(-)
+ include/linux/fdtable.h |    7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/nospec.h b/include/linux/nospec.h
-index f841c11f3f1f..8af35be1869e 100644
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -41,4 +41,25 @@ static inline unsigned long array_ptr_mask(unsigned long idx, unsigned long sz)
- 	__u._bit &= _mask;						\
- 	__u._ptr;							\
- })
-+
-+/**
-+ * array_idx - Generate a pointer to an array index, ensuring the
-+ * pointer is bounded under speculation to NULL.
-+ *
-+ * @idx: the index of the element, must be less than LONG_MAX
-+ * @sz: the number of elements in the array, must be less than LONG_MAX
-+ *
-+ * If @idx falls in the interval [0, @sz), returns &@idx otherwise
-+ * returns NULL.
-+ */
-+#define array_idx(idx, sz)						\
-+({									\
-+	union { typeof((idx)) *_ptr; unsigned long _bit; } __u;		\
-+	typeof(idx) *_i = &(idx);					\
-+	unsigned long _mask = array_ptr_mask(*_i, (sz));		\
-+									\
-+	__u._ptr = _i;							\
-+	__u._bit &= _mask;						\
-+	__u._ptr;							\
-+})
- #endif /* __NOSPEC_H__ */
-diff --git a/net/wireless/nl80211.c b/net/wireless/nl80211.c
-index 2b3dbcd40e46..202cb1dc03ee 100644
---- a/net/wireless/nl80211.c
-+++ b/net/wireless/nl80211.c
-@@ -16,6 +16,7 @@
- #include <linux/nl80211.h>
- #include <linux/rtnetlink.h>
- #include <linux/netlink.h>
+diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
+index 1c65817673db..9731f1a255db 100644
+--- a/include/linux/fdtable.h
++++ b/include/linux/fdtable.h
+@@ -10,6 +10,7 @@
+ #include <linux/compiler.h>
+ #include <linux/spinlock.h>
+ #include <linux/rcupdate.h>
 +#include <linux/nospec.h>
- #include <linux/etherdevice.h>
- #include <net/net_namespace.h>
- #include <net/genetlink.h>
-@@ -2056,20 +2057,23 @@ static const struct nla_policy txq_params_policy[NL80211_TXQ_ATTR_MAX + 1] = {
- static int parse_txq_params(struct nlattr *tb[],
- 			    struct ieee80211_txq_params *txq_params)
+ #include <linux/types.h>
+ #include <linux/init.h>
+ #include <linux/fs.h>
+@@ -81,9 +82,11 @@ struct dentry;
+ static inline struct file *__fcheck_files(struct files_struct *files, unsigned int fd)
  {
-+	u8 ac, *idx;
-+
- 	if (!tb[NL80211_TXQ_ATTR_AC] || !tb[NL80211_TXQ_ATTR_TXOP] ||
- 	    !tb[NL80211_TXQ_ATTR_CWMIN] || !tb[NL80211_TXQ_ATTR_CWMAX] ||
- 	    !tb[NL80211_TXQ_ATTR_AIFS])
- 		return -EINVAL;
+ 	struct fdtable *fdt = rcu_dereference_raw(files->fdt);
++	struct file __rcu **fdp;
  
--	txq_params->ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
-+	ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
- 	txq_params->txop = nla_get_u16(tb[NL80211_TXQ_ATTR_TXOP]);
- 	txq_params->cwmin = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMIN]);
- 	txq_params->cwmax = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMAX]);
- 	txq_params->aifs = nla_get_u8(tb[NL80211_TXQ_ATTR_AIFS]);
+-	if (fd < fdt->max_fds)
+-		return rcu_dereference_raw(fdt->fd[fd]);
++	fdp = array_ptr(fdt->fd, fd, fdt->max_fds);
++	if (fdp)
++		return rcu_dereference_raw(*fdp);
+ 	return NULL;
+ }
  
--	if (txq_params->ac >= NL80211_NUM_ACS)
-+	idx = array_idx(ac, NL80211_NUM_ACS);
-+	if (!idx)
- 		return -EINVAL;
