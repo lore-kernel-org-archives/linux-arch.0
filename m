@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 15/27] powerpc: Program HPTE key protection bits
-Date: Thu, 18 Jan 2018 17:50:36 -0800
-Message-ID: <1516326648-22775-16-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 11/27] powerpc: introduce execute-only pkey
+Date: Thu, 18 Jan 2018 17:50:32 -0800
+Message-ID: <1516326648-22775-12-git-send-email-linuxram@us.ibm.com>
 References: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
@@ -10,90 +10,123 @@ To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-Map the PTE protection key bits to the HPTE key protection bits,
-while creating HPTE  entries.
+This patch provides the implementation of execute-only pkey.
+The architecture-independent layer expects the arch-dependent
+layer, to support the ability to create and enable a special
+key which has execute-only permission.
 
 Acked-by: Balbir Singh <bsingharora@gmail.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/book3s/64/mmu-hash.h |    5 +++++
- arch/powerpc/include/asm/mmu_context.h        |    6 ++++++
- arch/powerpc/include/asm/pkeys.h              |    9 +++++++++
- arch/powerpc/mm/hash_utils_64.c               |    1 +
- 4 files changed, 21 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/book3s/64/mmu.h |    1 +
+ arch/powerpc/include/asm/pkeys.h         |    6 +++-
+ arch/powerpc/mm/pkeys.c                  |   58 ++++++++++++++++++++++++++++++
+ 3 files changed, 64 insertions(+), 1 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-index e91e115..50ed64f 100644
---- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-+++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
-@@ -90,6 +90,8 @@
- #define HPTE_R_PP0		ASM_CONST(0x8000000000000000)
- #define HPTE_R_TS		ASM_CONST(0x4000000000000000)
- #define HPTE_R_KEY_HI		ASM_CONST(0x3000000000000000)
-+#define HPTE_R_KEY_BIT0		ASM_CONST(0x2000000000000000)
-+#define HPTE_R_KEY_BIT1		ASM_CONST(0x1000000000000000)
- #define HPTE_R_RPN_SHIFT	12
- #define HPTE_R_RPN		ASM_CONST(0x0ffffffffffff000)
- #define HPTE_R_RPN_3_0		ASM_CONST(0x01fffffffffff000)
-@@ -104,6 +106,9 @@
- #define HPTE_R_C		ASM_CONST(0x0000000000000080)
- #define HPTE_R_R		ASM_CONST(0x0000000000000100)
- #define HPTE_R_KEY_LO		ASM_CONST(0x0000000000000e00)
-+#define HPTE_R_KEY_BIT2		ASM_CONST(0x0000000000000800)
-+#define HPTE_R_KEY_BIT3		ASM_CONST(0x0000000000000400)
-+#define HPTE_R_KEY_BIT4		ASM_CONST(0x0000000000000200)
- #define HPTE_R_KEY		(HPTE_R_KEY_LO | HPTE_R_KEY_HI)
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu.h b/arch/powerpc/include/asm/book3s/64/mmu.h
+index 37ef23c..0abeb0e 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu.h
+@@ -116,6 +116,7 @@ struct patb_entry {
+ 	 * bit unset -> key available for allocation
+ 	 */
+ 	u32 pkey_allocation_map;
++	s16 execute_only_pkey; /* key holding execute-only protection */
+ #endif
+ } mm_context_t;
  
- #define HPTE_V_1TB_SEG		ASM_CONST(0x4000000000000000)
-diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-index 3ba571d..209f127 100644
---- a/arch/powerpc/include/asm/mmu_context.h
-+++ b/arch/powerpc/include/asm/mmu_context.h
-@@ -203,6 +203,12 @@ static inline int vma_pkey(struct vm_area_struct *vma)
- {
- 	return 0;
- }
-+
-+static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
-+{
-+	return 0x0UL;
-+}
-+
- #endif /* CONFIG_PPC_MEM_KEYS */
- 
- #endif /* __KERNEL__ */
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index f65dedd..523d66c 100644
+index 3def5af..2b5bb35 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -73,6 +73,15 @@ static inline int vma_pkey(struct vm_area_struct *vma)
- 
- #define arch_max_pkey() pkeys_total
- 
-+static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
-+{
-+	return (((pteflags & H_PTE_PKEY_BIT0) ? HPTE_R_KEY_BIT0 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT1) ? HPTE_R_KEY_BIT1 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT2) ? HPTE_R_KEY_BIT2 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT3) ? HPTE_R_KEY_BIT3 : 0x0UL) |
-+		((pteflags & H_PTE_PKEY_BIT4) ? HPTE_R_KEY_BIT4 : 0x0UL));
-+}
+@@ -128,9 +128,13 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
+  * Try to dedicate one of the protection keys to be used as an
+  * execute-only protection key.
+  */
++extern int __execute_only_pkey(struct mm_struct *mm);
+ static inline int execute_only_pkey(struct mm_struct *mm)
+ {
+-	return 0;
++	if (static_branch_likely(&pkey_disabled))
++		return -1;
 +
- #define pkey_alloc_mask(pkey) (0x1 << pkey)
- 
- #define mm_pkey_allocation_map(mm) (mm->context.pkey_allocation_map)
-diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
-index 8bd841a..dc0f76e 100644
---- a/arch/powerpc/mm/hash_utils_64.c
-+++ b/arch/powerpc/mm/hash_utils_64.c
-@@ -233,6 +233,7 @@ unsigned long htab_convert_pte_flags(unsigned long pteflags)
- 		 */
- 		rflags |= HPTE_R_M;
- 
-+	rflags |= pte_to_hpte_pkey_bits(pteflags);
- 	return rflags;
++	return __execute_only_pkey(mm);
  }
  
+ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
+diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
+index 7dfcf2d..b466a2c 100644
+--- a/arch/powerpc/mm/pkeys.c
++++ b/arch/powerpc/mm/pkeys.c
+@@ -96,6 +96,8 @@ void pkey_mm_init(struct mm_struct *mm)
+ 	if (static_branch_likely(&pkey_disabled))
+ 		return;
+ 	mm_pkey_allocation_map(mm) = initial_allocation_mask;
++	/* -1 means unallocated or invalid */
++	mm->context.execute_only_pkey = -1;
+ }
+ 
+ static inline u64 read_amr(void)
+@@ -260,3 +262,59 @@ void thread_pkey_regs_init(struct thread_struct *thread)
+ 	write_iamr(read_iamr() & pkey_iamr_mask);
+ 	write_uamor(read_uamor() & pkey_amr_uamor_mask);
+ }
++
++static inline bool pkey_allows_readwrite(int pkey)
++{
++	int pkey_shift = pkeyshift(pkey);
++
++	if (!is_pkey_enabled(pkey))
++		return true;
++
++	return !(read_amr() & ((AMR_RD_BIT|AMR_WR_BIT) << pkey_shift));
++}
++
++int __execute_only_pkey(struct mm_struct *mm)
++{
++	bool need_to_set_mm_pkey = false;
++	int execute_only_pkey = mm->context.execute_only_pkey;
++	int ret;
++
++	/* Do we need to assign a pkey for mm's execute-only maps? */
++	if (execute_only_pkey == -1) {
++		/* Go allocate one to use, which might fail */
++		execute_only_pkey = mm_pkey_alloc(mm);
++		if (execute_only_pkey < 0)
++			return -1;
++		need_to_set_mm_pkey = true;
++	}
++
++	/*
++	 * We do not want to go through the relatively costly dance to set AMR
++	 * if we do not need to. Check it first and assume that if the
++	 * execute-only pkey is readwrite-disabled than we do not have to set it
++	 * ourselves.
++	 */
++	if (!need_to_set_mm_pkey && !pkey_allows_readwrite(execute_only_pkey))
++		return execute_only_pkey;
++
++	/*
++	 * Set up AMR so that it denies access for everything other than
++	 * execution.
++	 */
++	ret = __arch_set_user_pkey_access(current, execute_only_pkey,
++					  PKEY_DISABLE_ACCESS |
++					  PKEY_DISABLE_WRITE);
++	/*
++	 * If the AMR-set operation failed somehow, just return 0 and
++	 * effectively disable execute-only support.
++	 */
++	if (ret) {
++		mm_pkey_free(mm, execute_only_pkey);
++		return -1;
++	}
++
++	/* We got one, store it and use it from here on out */
++	if (need_to_set_mm_pkey)
++		mm->context.execute_only_pkey = execute_only_pkey;
++	return execute_only_pkey;
++}
 -- 
 1.7.1
 
