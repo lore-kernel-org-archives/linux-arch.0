@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 06/27] powerpc: helper functions to initialize AMR, IAMR and UAMOR registers
-Date: Thu, 18 Jan 2018 17:50:27 -0800
-Message-ID: <1516326648-22775-7-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 08/27] powerpc: implementation for arch_set_user_pkey_access()
+Date: Thu, 18 Jan 2018 17:50:29 -0800
+Message-ID: <1516326648-22775-9-git-send-email-linuxram@us.ibm.com>
 References: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
@@ -10,76 +10,108 @@ To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-Introduce  helper functions that can initialize the bits in the AMR,
-IAMR and UAMOR register; the bits that correspond to the given pkey.
+This patch provides the detailed implementation for
+a user to allocate a key and enable it in the hardware.
+
+It provides the plumbing, but it cannot be used till
+the system call is implemented. The next patch  will
+do so.
 
 Reviewed-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/mm/pkeys.c |   47 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 47 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/pkeys.h |    6 ++++-
+ arch/powerpc/mm/pkeys.c          |   40 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 45 insertions(+), 1 deletions(-)
 
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+index 9964b46..2500a90 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -139,10 +139,14 @@ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
+ 	return 0;
+ }
+ 
++extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
++				       unsigned long init_val);
+ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 					    unsigned long init_val)
+ {
+-	return 0;
++	if (static_branch_likely(&pkey_disabled))
++		return -EINVAL;
++	return __arch_set_user_pkey_access(tsk, pkey, init_val);
+ }
+ 
+ extern void pkey_mm_init(struct mm_struct *mm);
 diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 6e8df6e..e1dc45b 100644
+index e1dc45b..eca04cd 100644
 --- a/arch/powerpc/mm/pkeys.c
 +++ b/arch/powerpc/mm/pkeys.c
-@@ -16,6 +16,10 @@
- int  pkeys_total;		/* Total pkeys as per device tree */
+@@ -9,6 +9,7 @@
+  * (at your option) any later version.
+  */
+ 
++#include <asm/mman.h>
+ #include <linux/pkeys.h>
+ 
+ DEFINE_STATIC_KEY_TRUE(pkey_disabled);
+@@ -17,6 +18,9 @@
  u32  initial_allocation_mask;	/* Bits set for reserved keys */
  
-+#define AMR_BITS_PER_PKEY 2
-+#define PKEY_REG_BITS (sizeof(u64)*8)
-+#define pkeyshift(pkey) (PKEY_REG_BITS - ((pkey+1) * AMR_BITS_PER_PKEY))
-+
- int pkey_initialize(void)
- {
- 	int os_reserved, i;
-@@ -107,3 +111,46 @@ static inline void write_uamor(u64 value)
- {
+ #define AMR_BITS_PER_PKEY 2
++#define AMR_RD_BIT 0x1UL
++#define AMR_WR_BIT 0x2UL
++#define IAMR_EX_BIT 0x1UL
+ #define PKEY_REG_BITS (sizeof(u64)*8)
+ #define pkeyshift(pkey) (PKEY_REG_BITS - ((pkey+1) * AMR_BITS_PER_PKEY))
+ 
+@@ -112,6 +116,20 @@ static inline void write_uamor(u64 value)
  	mtspr(SPRN_UAMOR, value);
  }
-+
-+static inline void init_amr(int pkey, u8 init_bits)
+ 
++static bool is_pkey_enabled(int pkey)
 +{
-+	u64 new_amr_bits = (((u64)init_bits & 0x3UL) << pkeyshift(pkey));
-+	u64 old_amr = read_amr() & ~((u64)(0x3ul) << pkeyshift(pkey));
++	u64 uamor = read_uamor();
++	u64 pkey_bits = 0x3ul << pkeyshift(pkey);
++	u64 uamor_pkey_bits = (uamor & pkey_bits);
 +
-+	write_amr(old_amr | new_amr_bits);
++	/*
++	 * Both the bits in UAMOR corresponding to the key should be set or
++	 * reset.
++	 */
++	WARN_ON(uamor_pkey_bits && (uamor_pkey_bits != pkey_bits));
++	return !!(uamor_pkey_bits);
 +}
 +
-+static inline void init_iamr(int pkey, u8 init_bits)
+ static inline void init_amr(int pkey, u8 init_bits)
+ {
+ 	u64 new_amr_bits = (((u64)init_bits & 0x3UL) << pkeyshift(pkey));
+@@ -154,3 +172,25 @@ void __arch_deactivate_pkey(int pkey)
+ {
+ 	pkey_status_change(pkey, false);
+ }
++
++/*
++ * Set the access rights in AMR IAMR and UAMOR registers for @pkey to that
++ * specified in @init_val.
++ */
++int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
++				unsigned long init_val)
 +{
-+	u64 new_iamr_bits = (((u64)init_bits & 0x1UL) << pkeyshift(pkey));
-+	u64 old_iamr = read_iamr() & ~((u64)(0x1ul) << pkeyshift(pkey));
++	u64 new_amr_bits = 0x0ul;
 +
-+	write_iamr(old_iamr | new_iamr_bits);
-+}
++	if (!is_pkey_enabled(pkey))
++		return -EINVAL;
 +
-+static void pkey_status_change(int pkey, bool enable)
-+{
-+	u64 old_uamor;
++	/* Set the bits we need in AMR: */
++	if (init_val & PKEY_DISABLE_ACCESS)
++		new_amr_bits |= AMR_RD_BIT | AMR_WR_BIT;
++	else if (init_val & PKEY_DISABLE_WRITE)
++		new_amr_bits |= AMR_WR_BIT;
 +
-+	/* Reset the AMR and IAMR bits for this key */
-+	init_amr(pkey, 0x0);
-+	init_iamr(pkey, 0x0);
-+
-+	/* Enable/disable key */
-+	old_uamor = read_uamor();
-+	if (enable)
-+		old_uamor |= (0x3ul << pkeyshift(pkey));
-+	else
-+		old_uamor &= ~(0x3ul << pkeyshift(pkey));
-+	write_uamor(old_uamor);
-+}
-+
-+void __arch_activate_pkey(int pkey)
-+{
-+	pkey_status_change(pkey, true);
-+}
-+
-+void __arch_deactivate_pkey(int pkey)
-+{
-+	pkey_status_change(pkey, false);
++	init_amr(pkey, new_amr_bits);
++	return 0;
 +}
 -- 
 1.7.1
