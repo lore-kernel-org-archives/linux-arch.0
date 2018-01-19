@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:63244 "EHLO mga03.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:45997 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755040AbeASAKy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 18 Jan 2018 19:10:54 -0500
-Subject: [PATCH v4 02/10] asm/nospec,
- array_ptr: sanitize speculative array de-references
+        id S1755093AbeASALh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 18 Jan 2018 19:11:37 -0500
+Subject: [PATCH v4 09/10] kvm, x86: fix spectre-v1 mitigation
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 18 Jan 2018 16:01:46 -0800
-Message-ID: <151632010687.21271.12004432287640499992.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 18 Jan 2018 16:02:31 -0800
+Message-ID: <151632015123.21271.9060883997507739532.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,82 +15,62 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, gregkh@linuxfoundation.org, "H. Peter Anvin" <hpa@zytor.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180119000146.3I2akjXGqu2gArO0OFTT8nFv1G2K0uOlw6VM9fO2f5k@z>
+Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andrew Honig <ahonig@google.com>, stable@vger.kernel.org, gregkh@linuxfoundation.org, Paolo Bonzini <pbonzini@redhat.com>, tglx@linutronix.de, alan@linux.intel.com, torvalds@linux-foundation.org, akpm@linux-foundation.org, Jim Mattson <jmattson@google.com>
+Message-ID: <20180119000231.kBXRh-2mZXYeH-RJCsLnR7vkvqaga3Sb9ROvYaE3vSM@z>
 
-'array_ptr' is proposed as a generic mechanism to mitigate against
-Spectre-variant-1 attacks, i.e. an attack that bypasses boundary checks
-via speculative execution). The 'array_ptr' implementation is expected
-to be safe for current generation cpus across multiple architectures
-(ARM, x86).
+Commit 75f139aaf896 "KVM: x86: Add memory barrier on vmcs field lookup"
+added a raw 'asm("lfence");' to prevent a bounds check bypass of
+'vmcs_field_to_offset_table'. This does not work for some AMD cpus, see
+the 'ifence' helper, and it otherwise does not use the common
+'array_ptr' helper designed for these types of fixes. Convert this to
+use 'array_ptr'.
 
-Based on an original implementation by Linus Torvalds, tweaked to remove
-speculative flows by Alexei Starovoitov, and tweaked again by Linus to
-introduce an x86 assembly implementation for the mask generation.
-
-Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
-Co-developed-by: Alexei Starovoitov <ast@kernel.org>
-Co-developed-by: Peter Zijlstra <peterz@infradead.org>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
+Cc: Andrew Honig <ahonig@google.com>
+Cc: Jim Mattson <jmattson@google.com>
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Cc: <stable@vger.kernel.org>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- include/linux/nospec.h |   44 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 44 insertions(+)
- create mode 100644 include/linux/nospec.h
+ arch/x86/kvm/vmx.c |   19 +++++++------------
+ 1 file changed, 7 insertions(+), 12 deletions(-)
 
-diff --git a/include/linux/nospec.h b/include/linux/nospec.h
-new file mode 100644
-index 000000000000..f841c11f3f1f
---- /dev/null
-+++ b/include/linux/nospec.h
-@@ -0,0 +1,44 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright(c) 2018 Intel Corporation. All rights reserved.
-+
-+#ifndef __NOSPEC_H__
-+#define __NOSPEC_H__
-+
-+#include <linux/jump_label.h>
-+#include <asm/barrier.h>
-+
-+/*
-+ * If idx is negative or if idx > size then bit 63 is set in the mask,
-+ * and the value of ~(-1L) is zero. When the mask is zero, bounds check
-+ * failed, array_ptr will return NULL.
-+ */
-+#ifndef array_ptr_mask
-+static inline unsigned long array_ptr_mask(unsigned long idx, unsigned long sz)
-+{
-+	return ~(long)(idx | (sz - 1 - idx)) >> (BITS_PER_LONG - 1);
-+}
-+#endif
-+
-+/**
-+ * array_ptr - Generate a pointer to an array element, ensuring
-+ * the pointer is bounded under speculation to NULL.
-+ *
-+ * @base: the base of the array
-+ * @idx: the index of the element, must be less than LONG_MAX
-+ * @sz: the number of elements in the array, must be less than LONG_MAX
-+ *
-+ * If @idx falls in the interval [0, @sz), returns the pointer to
-+ * @arr[@idx], otherwise returns NULL.
-+ */
-+#define array_ptr(base, idx, sz)					\
-+({									\
-+	union { typeof(*(base)) *_ptr; unsigned long _bit; } __u;	\
-+	typeof(*(base)) *_arr = (base);					\
-+	unsigned long _i = (idx);					\
-+	unsigned long _mask = array_ptr_mask(_i, (sz));			\
-+									\
-+	__u._ptr = _arr + (_i & _mask);					\
-+	__u._bit &= _mask;						\
-+	__u._ptr;							\
-+})
-+#endif /* __NOSPEC_H__ */
+diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
+index c829d89e2e63..20b9b0b5e336 100644
+--- a/arch/x86/kvm/vmx.c
++++ b/arch/x86/kvm/vmx.c
+@@ -34,6 +34,7 @@
+ #include <linux/tboot.h>
+ #include <linux/hrtimer.h>
+ #include <linux/frame.h>
++#include <linux/nospec.h>
+ #include "kvm_cache_regs.h"
+ #include "x86.h"
+ 
+@@ -898,21 +899,15 @@ static const unsigned short vmcs_field_to_offset_table[] = {
+ 
+ static inline short vmcs_field_to_offset(unsigned long field)
+ {
+-	BUILD_BUG_ON(ARRAY_SIZE(vmcs_field_to_offset_table) > SHRT_MAX);
+-
+-	if (field >= ARRAY_SIZE(vmcs_field_to_offset_table))
+-		return -ENOENT;
++	const unsigned short *offset;
+ 
+-	/*
+-	 * FIXME: Mitigation for CVE-2017-5753.  To be replaced with a
+-	 * generic mechanism.
+-	 */
+-	asm("lfence");
++	BUILD_BUG_ON(ARRAY_SIZE(vmcs_field_to_offset_table) > SHRT_MAX);
+ 
+-	if (vmcs_field_to_offset_table[field] == 0)
++	offset = array_ptr(vmcs_field_to_offset_table, field,
++			ARRAY_SIZE(vmcs_field_to_offset_table));
++	if (!offset || *offset == 0)
+ 		return -ENOENT;
+-
+-	return vmcs_field_to_offset_table[field];
++	return *offset;
+ }
+ 
+ static inline struct vmcs12 *get_vmcs12(struct kvm_vcpu *vcpu)
