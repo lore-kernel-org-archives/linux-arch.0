@@ -1,78 +1,97 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v4 07/10] x86: narrow out of bounds syscalls to sys_read
- under speculation
-Date: Thu, 18 Jan 2018 16:02:21 -0800
-Message-ID: <151632014097.21271.16980532033566583357.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Subject: [PATCH v4 10/10] nl80211: sanitize array index in parse_txq_params
+Date: Thu, 18 Jan 2018 16:02:41 -0800
+Message-ID: <151632015637.21271.10452415430644852207.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:29441 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755259AbeASAL1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 18 Jan 2018 19:11:27 -0500
-In-Reply-To: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
+Return-path: <linux-wireless-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <151632009605.21271.11304291057104672116.stgit-p8uTFz9XbKj2zm6wflaqv1nYeNYlB/vhral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Sender: linux-wireless-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, Christian Lamparter <chunkeey-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-wireless-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, Johannes Berg <johannes-cdvu00un1VgdHxzADdlk8Q@public.gmane.org>, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Elena Reshetova <elena.reshetova-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, alan-VuQAYsv1563Yd54FQh9/CA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-The syscall table base is a user controlled function pointer in kernel
-space. Like, 'get_user, use 'MASK_NOSPEC' to prevent any out of bounds
-speculation. While retpoline prevents speculating into the user
-controlled target it does not stop the pointer de-reference, the concern
-is leaking memory relative to the syscall table base.
+Wireless drivers rely on parse_txq_params to validate that
+txq_params->ac is less than NL80211_NUM_ACS by the time the low-level
+driver's ->conf_tx() handler is called. Use a new helper, 'array_idx',
+to sanitize txq_params->ac with respect to speculation. I.e. ensure that
+any speculation into ->conf_tx() handlers is done with a value of
+txq_params->ac that is within the bounds of [0, NL80211_NUM_ACS).
 
-Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: Andy Lutomirski <luto@kernel.org>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Reported-by: Christian Lamparter <chunkeey-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Reported-by: Elena Reshetova <elena.reshetova-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Cc: Johannes Berg <johannes-cdvu00un1VgdHxzADdlk8Q@public.gmane.org>
+Cc: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
+Cc: linux-wireless-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Signed-off-by: Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
 ---
- arch/x86/entry/entry_64.S   |    2 ++
- arch/x86/include/asm/smap.h |    9 ++++++++-
- 2 files changed, 10 insertions(+), 1 deletion(-)
+ include/linux/nospec.h |   21 +++++++++++++++++++++
+ net/wireless/nl80211.c |   10 +++++++---
+ 2 files changed, 28 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 4f8e1d35a97c..2320017077d4 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -35,6 +35,7 @@
- #include <asm/asm.h>
- #include <asm/smap.h>
- #include <asm/pgtable_types.h>
-+#include <asm/smap.h>
- #include <asm/export.h>
- #include <asm/frame.h>
- #include <asm/nospec-branch.h>
-@@ -264,6 +265,7 @@ entry_SYSCALL_64_fastpath:
- 	cmpl	$__NR_syscall_max, %eax
- #endif
- 	ja	1f				/* return -ENOSYS (already in pt_regs->ax) */
-+	MASK_NOSPEC %r11 %rax			/* sanitize syscall_nr wrt speculation */
- 	movq	%r10, %rcx
- 
- 	/*
-diff --git a/arch/x86/include/asm/smap.h b/arch/x86/include/asm/smap.h
-index 2b4ad4c6a226..3b5b2cf58dc6 100644
---- a/arch/x86/include/asm/smap.h
-+++ b/arch/x86/include/asm/smap.h
-@@ -35,7 +35,14 @@
-  * this directs the cpu to speculate with a NULL ptr rather than
-  * something targeting kernel memory.
-  *
-- * assumes CF is set from a previous 'cmp TASK_addr_limit, %ptr'
-+ * In the syscall entry path it is possible to speculate past the
-+ * validation of the system call number. Use MASK_NOSPEC to sanitize the
-+ * syscall array index to zero (sys_read) rather than an arbitrary
-+ * target.
+diff --git a/include/linux/nospec.h b/include/linux/nospec.h
+index f841c11f3f1f..8af35be1869e 100644
+--- a/include/linux/nospec.h
++++ b/include/linux/nospec.h
+@@ -41,4 +41,25 @@ static inline unsigned long array_ptr_mask(unsigned long idx, unsigned long sz)
+ 	__u._bit &= _mask;						\
+ 	__u._ptr;							\
+ })
++
++/**
++ * array_idx - Generate a pointer to an array index, ensuring the
++ * pointer is bounded under speculation to NULL.
 + *
-+ * assumes CF is set from a previous 'cmp' i.e.:
-+ *     cmp TASK_addr_limit, %ptr
-+ *     cmp __NR_syscall_max, %idx
-  */
- .macro MASK_NOSPEC mask val
- 	sbb \mask, \mask
++ * @idx: the index of the element, must be less than LONG_MAX
++ * @sz: the number of elements in the array, must be less than LONG_MAX
++ *
++ * If @idx falls in the interval [0, @sz), returns &@idx otherwise
++ * returns NULL.
++ */
++#define array_idx(idx, sz)						\
++({									\
++	union { typeof((idx)) *_ptr; unsigned long _bit; } __u;		\
++	typeof(idx) *_i = &(idx);					\
++	unsigned long _mask = array_ptr_mask(*_i, (sz));		\
++									\
++	__u._ptr = _i;							\
++	__u._bit &= _mask;						\
++	__u._ptr;							\
++})
+ #endif /* __NOSPEC_H__ */
+diff --git a/net/wireless/nl80211.c b/net/wireless/nl80211.c
+index 2b3dbcd40e46..202cb1dc03ee 100644
+--- a/net/wireless/nl80211.c
++++ b/net/wireless/nl80211.c
+@@ -16,6 +16,7 @@
+ #include <linux/nl80211.h>
+ #include <linux/rtnetlink.h>
+ #include <linux/netlink.h>
++#include <linux/nospec.h>
+ #include <linux/etherdevice.h>
+ #include <net/net_namespace.h>
+ #include <net/genetlink.h>
+@@ -2056,20 +2057,23 @@ static const struct nla_policy txq_params_policy[NL80211_TXQ_ATTR_MAX + 1] = {
+ static int parse_txq_params(struct nlattr *tb[],
+ 			    struct ieee80211_txq_params *txq_params)
+ {
++	u8 ac, *idx;
++
+ 	if (!tb[NL80211_TXQ_ATTR_AC] || !tb[NL80211_TXQ_ATTR_TXOP] ||
+ 	    !tb[NL80211_TXQ_ATTR_CWMIN] || !tb[NL80211_TXQ_ATTR_CWMAX] ||
+ 	    !tb[NL80211_TXQ_ATTR_AIFS])
+ 		return -EINVAL;
+ 
+-	txq_params->ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
++	ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
+ 	txq_params->txop = nla_get_u16(tb[NL80211_TXQ_ATTR_TXOP]);
+ 	txq_params->cwmin = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMIN]);
+ 	txq_params->cwmax = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMAX]);
+ 	txq_params->aifs = nla_get_u8(tb[NL80211_TXQ_ATTR_AIFS]);
+ 
+-	if (txq_params->ac >= NL80211_NUM_ACS)
++	idx = array_idx(ac, NL80211_NUM_ACS);
++	if (!idx)
+ 		return -EINVAL;
