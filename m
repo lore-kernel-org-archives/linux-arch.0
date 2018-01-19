@@ -1,85 +1,85 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [kernel-hardening] [PATCH v4 02/10] asm/nospec, array_ptr:
- sanitize speculative array de-references
-Date: Fri, 19 Jan 2018 10:26:13 -0800
-Message-ID: <CAPcyv4hGjqv1bS_=h8VauHSfkyj0b8HLm69AzoTsf_GfnRA-Pg@mail.gmail.com>
-References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151632010687.21271.12004432287640499992.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CAG48ez0Y97-gyzWBmcVbUyLuzUG42To=Mm8PAKuzWma6XbFmew@mail.gmail.com>
- <y2afu71pwob.fsf@offog.org> <CAPcyv4iEZMkU-K14vTcFSjAy=12QHPJjMGc8Uu7xUVakHfqOyQ@mail.gmail.com>
- <20180119181833.GA1878@arm.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] arc: fix iounmap prototype
+Date: Fri, 19 Jan 2018 11:31:44 -0800
+Message-ID: <afb933d6-e325-dc5f-b844-8d3a3df3fd13@synopsys.com>
+References: <20180102110141.1853608-1-arnd@arndb.de>
+ <CAMuHMdVrb56oxz-UuxXAT5c-97J42f+JJ0EY+G6d2vLucDTu5Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f195.google.com ([74.125.82.195]:46674 "EHLO
-        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755982AbeASS0P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jan 2018 13:26:15 -0500
-Received: by mail-ot0-f195.google.com with SMTP id t35so2155446otd.13
-        for <linux-arch@vger.kernel.org>; Fri, 19 Jan 2018 10:26:15 -0800 (PST)
-In-Reply-To: <20180119181833.GA1878@arm.com>
+Received: from smtprelay.synopsys.com ([198.182.60.111]:58961 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756040AbeASTcV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jan 2018 14:32:21 -0500
+In-Reply-To: <CAMuHMdVrb56oxz-UuxXAT5c-97J42f+JJ0EY+G6d2vLucDTu5Q@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Adam Sampson <ats@offog.org>, Jann Horn <jannh@google.com>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Catalin Marinas <catalin.marinas@arm.com>, the arch/x86 maintainers <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>, Alexei Starovoitov <ast@kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-On Fri, Jan 19, 2018 at 10:18 AM, Will Deacon <will.deacon@arm.com> wrote:
->
-> On Fri, Jan 19, 2018 at 10:12:47AM -0800, Dan Williams wrote:
-> > [ adding Alexei back to the cc ]
-> >
-> > On Fri, Jan 19, 2018 at 9:48 AM, Adam Sampson <ats@offog.org> wrote:
-> > > Jann Horn <jannh@google.com> writes:
-> > >
-> > >>> +/*
-> > >>> + * If idx is negative or if idx > size then bit 63 is set in the mask,
-> > >>> + * and the value of ~(-1L) is zero. When the mask is zero, bounds check
-> > >>> + * failed, array_ptr will return NULL.
-> > >>> + */
-> > >>> +#ifndef array_ptr_mask
-> > >>> +static inline unsigned long array_ptr_mask(unsigned long idx,
-> > >>> unsigned long sz)
-> > >>> +{
-> > >>> +       return ~(long)(idx | (sz - 1 - idx)) >> (BITS_PER_LONG - 1);
-> > >>> +}
-> > >>> +#endif
-> > >>
-> > >> Nit: Maybe add a comment saying that this is equivalent to
-> > >> "return ((long)idx >= 0 && idx < sz) ? ULONG_MAX : 0"?
-> > >
-> > > That's only true when sz < LONG_MAX, which is documented below but not
-> > > here; it's also different from the asm version, which doesn't do the idx
-> > > <= LONG_MAX check. So making the constraint explicit would be a good idea.
-> > >
-> > > From a bit of experimentation, when the top bit of sz is set, this
-> > > expression, the C version and the assembler version all have different
-> > > behaviour. For example, with 32-bit unsigned long:
-> > >
-> > > index=00000000 size=80000001: expr=ffffffff c=00000000 asm=ffffffff
-> > > index=80000000 size=80000001: expr=00000000 c=00000000 asm=ffffffff
-> > > index=00000000 size=a0000000: expr=ffffffff c=00000000 asm=ffffffff
-> > > index=00000001 size=a0000000: expr=ffffffff c=00000000 asm=ffffffff
-> > > index=fffffffe size=ffffffff: expr=00000000 c=00000000 asm=ffffffff
-> > >
-> > > It may be worth noting that:
-> > >
-> > >      return 0 - ((long) (idx < sz));
-> > >
-> > > causes GCC, on ia32 and amd64, to generate exactly the same cmp/sbb
-> > > sequence as in Linus's asm. Are there architectures where this form
-> > > would allow speculation?
-> >
-> > We're operating on the assumption that compilers will not try to
-> > introduce branches where they don't exist in the code, so if this is
-> > producing identical assembly I think we should go with it and drop the
-> > x86 array_ptr_mask.
->
-> Branches, perhaps, but this could easily be compiled to a conditional
-> select (CSEL) instruction on arm64 and that wouldn't be safe without a
-> CSDB. Of course, we can do our own thing in assembly to prevent that, but
-> it would mean that the generic C implementation would not be robust for us.
->
+On 01/02/2018 06:23 AM, Geert Uytterhoeven wrote:
+> Hi Arnd,
+> 
+> On Tue, Jan 2, 2018 at 12:01 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> The missing 'volatile' keyword on the iounmap argument leads to lots of
+>> harmless warnings in an allmodconfig build:
+>>
+>> sound/pci/echoaudio/echoaudio.c:1879:10: warning: passing argument 1 of 'iounmap' discards 'volatile' qualifier f
+>> pointer target type [-Wdiscarded-qualifiers]
+>>
+>> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Ah, ok good to know. Likely if the current version doesn't produce a
-conditional instruction on ARM perhaps it also won't do that on other
-architectures, so it is safer.
+Arnd, do you agree to Geert's comments - if you are busy I can respin a v2 ?
+
+Thx,
+-Vineet
+
+>> ---
+>>   arch/arc/include/asm/io.h | 4 ++--
+>>   arch/arc/mm/ioremap.c     | 2 +-
+>>   2 files changed, 3 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/arch/arc/include/asm/io.h b/arch/arc/include/asm/io.h
+>> index c22b181e8206..2c9b98fabf82 100644
+>> --- a/arch/arc/include/asm/io.h
+>> +++ b/arch/arc/include/asm/io.h
+>> @@ -30,11 +30,11 @@ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+>>          return (void __iomem *)port;
+>>   }
+>>
+>> -static inline void ioport_unmap(void __iomem *addr)
+>> +static inline void ioport_unmap(volatile void __iomem *addr)
+>>   {
+>>   }
+>>
+>> -extern void iounmap(const void __iomem *addr);
+>> +extern void iounmap(const volatile void __iomem *addr);
+> 
+> Note that include/asm-generic/io.h also lacks the volatiles?
+> 
+>>
+>>   #define ioremap_nocache(phy, sz)       ioremap(phy, sz)
+>>   #define ioremap_wc(phy, sz)            ioremap(phy, sz)
+>> diff --git a/arch/arc/mm/ioremap.c b/arch/arc/mm/ioremap.c
+>> index 9881bd740ccc..94d0116063a8 100644
+>> --- a/arch/arc/mm/ioremap.c
+>> +++ b/arch/arc/mm/ioremap.c
+>> @@ -95,7 +95,7 @@ void __iomem *ioremap_prot(phys_addr_t paddr, unsigned long size,
+>>   EXPORT_SYMBOL(ioremap_prot);
+>>
+>>
+>> -void iounmap(const void __iomem *addr)
+>> +void iounmap(volatile const void __iomem *addr)
+> 
+> const volatile?
+> 
+>>   {
+>>          /* weird double cast to handle phys_addr_t > 32 bits */
+>>          if (arc_uncached_addr_space((phys_addr_t)(u32)addr))
+> 
+> Gr{oetje,eeting}s,
+> 
+>                          Geert
+> 
