@@ -1,85 +1,44 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] arc: fix iounmap prototype
-Date: Fri, 19 Jan 2018 11:31:44 -0800
-Message-ID: <afb933d6-e325-dc5f-b844-8d3a3df3fd13@synopsys.com>
-References: <20180102110141.1853608-1-arnd@arndb.de>
- <CAMuHMdVrb56oxz-UuxXAT5c-97J42f+JJ0EY+G6d2vLucDTu5Q@mail.gmail.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [kernel-hardening] [PATCH v4 02/10] asm/nospec, array_ptr:
+ sanitize speculative array de-references
+Date: Fri, 19 Jan 2018 12:55:08 -0800
+Message-ID: <CAPcyv4jUDTGpWm-ATMo=3P7TJxxtCK7BBo3KWsmUuuzxHMDmug@mail.gmail.com>
+References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151632010687.21271.12004432287640499992.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <CAG48ez0Y97-gyzWBmcVbUyLuzUG42To=Mm8PAKuzWma6XbFmew@mail.gmail.com> <CA+55aFw-RNg4diZ0RCVkEYAANDp22YDskNOR913vKQEBdarJSw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:58961 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756040AbeASTcV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jan 2018 14:32:21 -0500
-In-Reply-To: <CAMuHMdVrb56oxz-UuxXAT5c-97J42f+JJ0EY+G6d2vLucDTu5Q@mail.gmail.com>
-Content-Language: en-US
+Received: from mail-ot0-f196.google.com ([74.125.82.196]:42456 "EHLO
+        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751466AbeASUzJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jan 2018 15:55:09 -0500
+Received: by mail-ot0-f196.google.com with SMTP id s3so2505276otc.9
+        for <linux-arch@vger.kernel.org>; Fri, 19 Jan 2018 12:55:09 -0800 (PST)
+In-Reply-To: <CA+55aFw-RNg4diZ0RCVkEYAANDp22YDskNOR913vKQEBdarJSw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Jann Horn <jannh@google.com>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Catalin Marinas <catalin.marinas@arm.com>, the arch/x86 maintainers <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
 
-On 01/02/2018 06:23 AM, Geert Uytterhoeven wrote:
-> Hi Arnd,
-> 
-> On Tue, Jan 2, 2018 at 12:01 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> The missing 'volatile' keyword on the iounmap argument leads to lots of
->> harmless warnings in an allmodconfig build:
+On Fri, Jan 19, 2018 at 10:18 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Fri, Jan 19, 2018 at 2:20 AM, Jann Horn <jannh@google.com> wrote:
+>>> +                                                                       \
+>>> +       __u._ptr = _arr + (_i & _mask);                                 \
+>>> +       __u._bit &= _mask;                                              \
 >>
->> sound/pci/echoaudio/echoaudio.c:1879:10: warning: passing argument 1 of 'iounmap' discards 'volatile' qualifier f
->> pointer target type [-Wdiscarded-qualifiers]
->>
->> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+>> AFAICS, if `idx` is out of bounds, you first zero out the index
+>> (`_i & _mask`) and then immediately afterwards zero out
+>> the whole pointer (`_u._bit &= _mask`).
+>> Is there a reason for the `_i & _mask`, and if so, can you
+>> add a comment explaining that?
+>
+> I think that's just leftovers from my original (untested) thing that
+> also did the access itself. So that __u._bit masking wasn't masking
+> the pointer, it was masking the value that was *read* from the
+> pointer, so that you could know that an invalid access returned
+> 0/NULL, not just the first value in the array.
 
-Arnd, do you agree to Geert's comments - if you are busy I can respin a v2 ?
-
-Thx,
--Vineet
-
->> ---
->>   arch/arc/include/asm/io.h | 4 ++--
->>   arch/arc/mm/ioremap.c     | 2 +-
->>   2 files changed, 3 insertions(+), 3 deletions(-)
->>
->> diff --git a/arch/arc/include/asm/io.h b/arch/arc/include/asm/io.h
->> index c22b181e8206..2c9b98fabf82 100644
->> --- a/arch/arc/include/asm/io.h
->> +++ b/arch/arc/include/asm/io.h
->> @@ -30,11 +30,11 @@ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
->>          return (void __iomem *)port;
->>   }
->>
->> -static inline void ioport_unmap(void __iomem *addr)
->> +static inline void ioport_unmap(volatile void __iomem *addr)
->>   {
->>   }
->>
->> -extern void iounmap(const void __iomem *addr);
->> +extern void iounmap(const volatile void __iomem *addr);
-> 
-> Note that include/asm-generic/io.h also lacks the volatiles?
-> 
->>
->>   #define ioremap_nocache(phy, sz)       ioremap(phy, sz)
->>   #define ioremap_wc(phy, sz)            ioremap(phy, sz)
->> diff --git a/arch/arc/mm/ioremap.c b/arch/arc/mm/ioremap.c
->> index 9881bd740ccc..94d0116063a8 100644
->> --- a/arch/arc/mm/ioremap.c
->> +++ b/arch/arc/mm/ioremap.c
->> @@ -95,7 +95,7 @@ void __iomem *ioremap_prot(phys_addr_t paddr, unsigned long size,
->>   EXPORT_SYMBOL(ioremap_prot);
->>
->>
->> -void iounmap(const void __iomem *addr)
->> +void iounmap(volatile const void __iomem *addr)
-> 
-> const volatile?
-> 
->>   {
->>          /* weird double cast to handle phys_addr_t > 32 bits */
->>          if (arc_uncached_addr_space((phys_addr_t)(u32)addr))
-> 
-> Gr{oetje,eeting}s,
-> 
->                          Geert
-> 
+Yes, the index masking can be dropped since we're returning a
+sanitized array element pointer now.
