@@ -1,174 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f196.google.com ([209.85.216.196]:41339 "EHLO
-        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755569AbeASBwo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 20:52:44 -0500
+Received: from mail-qt0-f195.google.com ([209.85.216.195]:37306 "EHLO
+        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755701AbeASBwd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 20:52:33 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 21/27] powerpc: Deliver SEGV signal on pkey violation
-Date: Thu, 18 Jan 2018 17:50:42 -0800
-Message-ID: <1516326648-22775-22-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 17/27] powerpc: check key protection for user page access
+Date: Thu, 18 Jan 2018 17:50:38 -0800
+Message-ID: <1516326648-22775-18-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 References: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
-Message-ID: <20180119015042.ZvSJphTRjo3PvNRWYLAz-otS4E6bFWFeQ8VRJQgCNOM@z>
+Message-ID: <20180119015038.-0q3T4NOr0hQMFAbAnGjTI-RpVaCNG3h-6zF4BHZlLo@z>
 
-The value of the pkey, whose protection got violated,
-is made available in si_pkey field of the siginfo structure.
+Make sure that the kernel does not access user pages without
+checking their key-protection.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 ---
- arch/powerpc/include/asm/bug.h |    1 +
- arch/powerpc/kernel/traps.c    |   12 +++++++++++-
- arch/powerpc/mm/fault.c        |   39 +++++++++++++++++++++++++++------------
- 3 files changed, 39 insertions(+), 13 deletions(-)
+ arch/powerpc/include/asm/book3s/64/pgtable.h |   19 +++++++++++++++++++
+ 1 files changed, 19 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/bug.h b/arch/powerpc/include/asm/bug.h
-index 3c04249..97c3847 100644
---- a/arch/powerpc/include/asm/bug.h
-+++ b/arch/powerpc/include/asm/bug.h
-@@ -133,6 +133,7 @@
- extern int do_page_fault(struct pt_regs *, unsigned long, unsigned long);
- extern void bad_page_fault(struct pt_regs *, unsigned long, int);
- extern void _exception(int, struct pt_regs *, int, unsigned long);
-+extern void _exception_pkey(int, struct pt_regs *, int, unsigned long, int);
- extern void die(const char *, struct pt_regs *, long);
- extern bool die_will_crash(void);
+diff --git a/arch/powerpc/include/asm/book3s/64/pgtable.h b/arch/powerpc/include/asm/book3s/64/pgtable.h
+index e785c68..3d8186e 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgtable.h
++++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
+@@ -464,6 +464,25 @@ static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
  
-diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
-index f3eb61b..3753498 100644
---- a/arch/powerpc/kernel/traps.c
-+++ b/arch/powerpc/kernel/traps.c
-@@ -20,6 +20,7 @@
- #include <linux/sched/debug.h>
- #include <linux/kernel.h>
- #include <linux/mm.h>
-+#include <linux/pkeys.h>
- #include <linux/stddef.h>
- #include <linux/unistd.h>
- #include <linux/ptrace.h>
-@@ -266,7 +267,9 @@ void user_single_step_siginfo(struct task_struct *tsk,
- 	info->si_addr = (void __user *)regs->nip;
- }
- 
--void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
+ #ifdef CONFIG_PPC_MEM_KEYS
+ extern bool arch_pte_access_permitted(u64 pte, bool write, bool execute);
 +
-+void _exception_pkey(int signr, struct pt_regs *regs, int code,
-+		unsigned long addr, int key)
- {
- 	siginfo_t info;
- 	const char fmt32[] = KERN_INFO "%s[%d]: unhandled signal %d " \
-@@ -293,9 +296,16 @@ void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
- 	info.si_signo = signr;
- 	info.si_code = code;
- 	info.si_addr = (void __user *) addr;
-+	info.si_pkey = key;
++#define pte_access_permitted(pte, write) \
++	(pte_present(pte) && \
++	 ((!(write) || pte_write(pte)) && \
++	  arch_pte_access_permitted(pte_val(pte), !!write, 0)))
 +
- 	force_sig_info(signr, &info, current);
- }
- 
-+void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
-+{
-+	_exception_pkey(signr, regs, code, addr, 0);
-+}
++/*
++ * We store key in pmd/pud for huge pages. Need to check for key protection.
++ */
++#define pmd_access_permitted(pmd, write) \
++	(pmd_present(pmd) && \
++	 ((!(write) || pmd_write(pmd)) && \
++	  arch_pte_access_permitted(pmd_val(pmd), !!write, 0)))
 +
- void system_reset_exception(struct pt_regs *regs)
- {
- 	/*
-diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
-index 943a91e..65f8b04 100644
---- a/arch/powerpc/mm/fault.c
-+++ b/arch/powerpc/mm/fault.c
-@@ -107,7 +107,8 @@ static bool store_updates_sp(struct pt_regs *regs)
-  */
- 
- static int
--__bad_area_nosemaphore(struct pt_regs *regs, unsigned long address, int si_code)
-+__bad_area_nosemaphore(struct pt_regs *regs, unsigned long address, int si_code,
-+		int pkey)
- {
- 	/*
- 	 * If we are in kernel mode, bail out with a SEGV, this will
-@@ -117,17 +118,18 @@ static bool store_updates_sp(struct pt_regs *regs)
- 	if (!user_mode(regs))
- 		return SIGSEGV;
- 
--	_exception(SIGSEGV, regs, si_code, address);
-+	_exception_pkey(SIGSEGV, regs, si_code, address, pkey);
- 
- 	return 0;
- }
- 
- static noinline int bad_area_nosemaphore(struct pt_regs *regs, unsigned long address)
- {
--	return __bad_area_nosemaphore(regs, address, SEGV_MAPERR);
-+	return __bad_area_nosemaphore(regs, address, SEGV_MAPERR, 0);
- }
- 
--static int __bad_area(struct pt_regs *regs, unsigned long address, int si_code)
-+static int __bad_area(struct pt_regs *regs, unsigned long address, int si_code,
-+			int pkey)
- {
- 	struct mm_struct *mm = current->mm;
- 
-@@ -137,12 +139,18 @@ static int __bad_area(struct pt_regs *regs, unsigned long address, int si_code)
- 	 */
- 	up_read(&mm->mmap_sem);
- 
--	return __bad_area_nosemaphore(regs, address, si_code);
-+	return __bad_area_nosemaphore(regs, address, si_code, pkey);
- }
- 
- static noinline int bad_area(struct pt_regs *regs, unsigned long address)
- {
--	return __bad_area(regs, address, SEGV_MAPERR);
-+	return __bad_area(regs, address, SEGV_MAPERR, 0);
-+}
++#define pud_access_permitted(pud, write) \
++	(pud_present(pud) && \
++	 ((!(write) || pud_write(pud)) && \
++	  arch_pte_access_permitted(pud_val(pud), !!write, 0)))
 +
-+static int bad_key_fault_exception(struct pt_regs *regs, unsigned long address,
-+				    int pkey)
-+{
-+	return __bad_area_nosemaphore(regs, address, SEGV_PKUERR, pkey);
- }
- 
- static int do_sigbus(struct pt_regs *regs, unsigned long address,
-@@ -427,10 +435,9 @@ static int __do_page_fault(struct pt_regs *regs, unsigned long address,
- 
- 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
- 
--	if (error_code & DSISR_KEYFAULT) {
--		_exception(SIGSEGV, regs, SEGV_PKUERR, address);
--		return 0;
--	}
-+	if (error_code & DSISR_KEYFAULT)
-+		return bad_key_fault_exception(regs, address,
-+					       get_mm_addr_key(mm, address));
- 
- 	/*
- 	 * We want to do this outside mmap_sem, because reading code around nip
-@@ -513,10 +520,18 @@ static int __do_page_fault(struct pt_regs *regs, unsigned long address,
- 	if (unlikely(fault & VM_FAULT_SIGSEGV) &&
- 		!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
- 			is_exec, 0)) {
-+		/*
-+		 * The PGD-PDT...PMD-PTE tree may not have been fully setup.
-+		 * Hence we cannot walk the tree to locate the PTE, to locate
-+		 * the key. Hence let's use vma_pkey() to get the key; instead
-+		 * of get_mm_addr_key().
-+		 */
- 		int pkey = vma_pkey(vma);
- 
--		if (likely(pkey))
--			return __bad_area(regs, address, SEGV_PKUERR);
-+		if (likely(pkey)) {
-+			up_read(&mm->mmap_sem);
-+			return bad_key_fault_exception(regs, address, pkey);
-+		}
- 	}
  #endif /* CONFIG_PPC_MEM_KEYS */
  
+ #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
 -- 
 1.7.1
