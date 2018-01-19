@@ -1,107 +1,287 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:5074 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755358AbeASALr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 18 Jan 2018 19:11:47 -0500
-Subject: [PATCH v4 10/10] nl80211: sanitize array index in parse_txq_params
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 18 Jan 2018 16:02:41 -0800
-Message-ID: <151632015637.21271.10452415430644852207.stgit@dwillia2-desk3.amr.corp.intel.com>
-In-Reply-To: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:45219 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754833AbeASBvi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 20:51:38 -0500
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH v10 00/27] powerpc, mm: Memory Protection Keys
+Date: Thu, 18 Jan 2018 17:50:21 -0800
+Message-ID: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, Christian Lamparter <chunkeey@gmail.com>, linux-wireless@vger.kernel.org, tglx@linutronix.de, Johannes Berg <johannes@sipsolutions.net>, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
-Message-ID: <20180119000241.M8XMt5_rVfKiOwoFslG25sdDonxQ4RhA3g7pQh1kEDg@z>
+To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
+Message-ID: <20180119015021.sLZPLqHPWhgIFcxKaPQPZApnqw81Dpgr3HV4mwdjBH8@z>
 
-Wireless drivers rely on parse_txq_params to validate that
-txq_params->ac is less than NL80211_NUM_ACS by the time the low-level
-driver's ->conf_tx() handler is called. Use a new helper, 'array_idx',
-to sanitize txq_params->ac with respect to speculation. I.e. ensure that
-any speculation into ->conf_tx() handlers is done with a value of
-txq_params->ac that is within the bounds of [0, NL80211_NUM_ACS).
+Memory protection keys enable applications to protect its
+address space from inadvertent access from or corruption
+by itself.
 
-Reported-by: Christian Lamparter <chunkeey@gmail.com>
-Reported-by: Elena Reshetova <elena.reshetova@intel.com>
-Cc: Johannes Berg <johannes@sipsolutions.net>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: linux-wireless@vger.kernel.org
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
----
- include/linux/nospec.h |   21 +++++++++++++++++++++
- net/wireless/nl80211.c |   10 +++++++---
- 2 files changed, 28 insertions(+), 3 deletions(-)
+These patches along with the pte-bit freeing patch series
+enables the protection key feature on powerpc; 4k and 64k
+hashpage kernels.
 
-diff --git a/include/linux/nospec.h b/include/linux/nospec.h
-index f841c11f3f1f..8af35be1869e 100644
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -41,4 +41,25 @@ static inline unsigned long array_ptr_mask(unsigned long idx, unsigned long sz)
- 	__u._bit &= _mask;						\
- 	__u._ptr;							\
- })
-+
-+/**
-+ * array_idx - Generate a pointer to an array index, ensuring the
-+ * pointer is bounded under speculation to NULL.
-+ *
-+ * @idx: the index of the element, must be less than LONG_MAX
-+ * @sz: the number of elements in the array, must be less than LONG_MAX
-+ *
-+ * If @idx falls in the interval [0, @sz), returns &@idx otherwise
-+ * returns NULL.
-+ */
-+#define array_idx(idx, sz)						\
-+({									\
-+	union { typeof((idx)) *_ptr; unsigned long _bit; } __u;		\
-+	typeof(idx) *_i = &(idx);					\
-+	unsigned long _mask = array_ptr_mask(*_i, (sz));		\
-+									\
-+	__u._ptr = _i;							\
-+	__u._bit &= _mask;						\
-+	__u._ptr;							\
-+})
- #endif /* __NOSPEC_H__ */
-diff --git a/net/wireless/nl80211.c b/net/wireless/nl80211.c
-index 2b3dbcd40e46..202cb1dc03ee 100644
---- a/net/wireless/nl80211.c
-+++ b/net/wireless/nl80211.c
-@@ -16,6 +16,7 @@
- #include <linux/nl80211.h>
- #include <linux/rtnetlink.h>
- #include <linux/netlink.h>
-+#include <linux/nospec.h>
- #include <linux/etherdevice.h>
- #include <net/net_namespace.h>
- #include <net/genetlink.h>
-@@ -2056,20 +2057,23 @@ static const struct nla_policy txq_params_policy[NL80211_TXQ_ATTR_MAX + 1] = {
- static int parse_txq_params(struct nlattr *tb[],
- 			    struct ieee80211_txq_params *txq_params)
- {
-+	u8 ac, *idx;
-+
- 	if (!tb[NL80211_TXQ_ATTR_AC] || !tb[NL80211_TXQ_ATTR_TXOP] ||
- 	    !tb[NL80211_TXQ_ATTR_CWMIN] || !tb[NL80211_TXQ_ATTR_CWMAX] ||
- 	    !tb[NL80211_TXQ_ATTR_AIFS])
- 		return -EINVAL;
- 
--	txq_params->ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
-+	ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
- 	txq_params->txop = nla_get_u16(tb[NL80211_TXQ_ATTR_TXOP]);
- 	txq_params->cwmin = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMIN]);
- 	txq_params->cwmax = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMAX]);
- 	txq_params->aifs = nla_get_u8(tb[NL80211_TXQ_ATTR_AIFS]);
- 
--	if (txq_params->ac >= NL80211_NUM_ACS)
-+	idx = array_idx(ac, NL80211_NUM_ACS);
-+	if (!idx)
- 		return -EINVAL;
--
-+	txq_params->ac = *idx;
- 	return 0;
- }
- 
+Will send the documentation and selftest patches separately
+
+All patches can be found at --
+https://github.com/rampai/memorykeys.git memkey.v10
+
+
+The overall idea:
+-----------------
+ A process allocates a key and associates it with
+ an address range within its address space.
+ The process then can dynamically set read/write 
+ permissions on the key without involving the 
+ kernel. Any code that violates the permissions
+ of the address space; as defined by its associated
+ key, will receive a segmentation fault.
+
+This patch series enables the feature on PPC64 HPTE
+platform.
+
+ISA3.0 section 5.7.13 describes the detailed
+specifications.
+
+
+Highlevel view of the design:
+---------------------------
+When an application associates a key with a address
+address range, program the key in the Linux PTE.
+When the MMU detects a page fault, allocate a hash
+page and program the key into HPTE. And finally
+when the MMU detects a key violation; due to
+invalid application access, invoke the registered
+signal handler and provide the violated key number.
+
+
+Testing:
+-------
+This patch series has passed all the protection key
+tests available in the selftest directory.The
+tests are updated to work on both x86 and powerpc.
+The selftests have passed on x86 and powerpc hardware.
+
+History:
+-------
+version v10:
+	(1) key-fault in page-fault handler
+		is handled as normal fault
+		and not as a bad fault.
+	(2) changed device tree scanning to 
+		unflattened device tree.
+	(3) fixed a bug in the logic that detected
+		the total number of available pkeys.
+	(4) dropped two patches. (i) sysfs interface
+		(ii) sys_pkey_modif() syscall
+
+version v9:
+	(1) used jump-labels to optimize code
+		-- Balbir
+	(2) fixed a register initialization bug noted
+		by Balbir
+	(3) fixed inappropriate use of paca to pass
+		siginfo and keys to signal handler
+	(4) Cleanup of comment style not to be right 
+		justified -- mpe
+	(5) restructured the patches to depend on the
+		availability of VM_PKEY_BIT4 in
+		include/linux/mm.h
+	(6) Incorporated comments from Dave Hansen
+		towards changes to selftest and got
+		them tested on x86.
+
+version v8:
+	(1) Contents of the AMR register withdrawn from
+	the siginfo structure. Applications can always
+	read the AMR register.
+	(2) AMR/IAMR/UAMOR are now available through 
+		ptrace system call. -- thanks to Thiago
+	(3) code changes to handle legacy power cpus
+	that do not support execute-disable.
+	(4) incorporates many code improvement
+		suggestions.
+
+version v7:
+	(1) refers to device tree property to enable
+		protection keys.
+	(2) adds 4K PTE support.
+	(3) fixes a couple of bugs noticed by Thiago
+	(4) decouples this patch series from arch-
+	 independent code. This patch series can
+	 now stand by itself, with one kludge
+	patch(2).
+version v7:
+	(1) refers to device tree property to enable
+		protection keys.
+	(2) adds 4K PTE support.
+	(3) fixes a couple of bugs noticed by Thiago
+	(4) decouples this patch series from arch-
+	 independent code. This patch series can
+	 now stand by itself, with one kludge
+	 patch(2).
+
+version v6:
+	(1) selftest changes are broken down into 20
+		incremental patches.
+	(2) A separate key allocation mask that
+		includes PKEY_DISABLE_EXECUTE is 
+		added for powerpc
+	(3) pkey feature is enabled for 64K HPT case
+		only. RPT and 4k HPT is disabled.
+	(4) Documentation is updated to better 
+		capture the semantics.
+	(5) introduced arch_pkeys_enabled() to find
+		if an arch enables pkeys. Correspond-
+		ing change the logic that displays
+		key value in smaps.
+	(6) code rearranged in many places based on
+		comments from Dave Hansen, Balbir,
+		Anshuman.	
+	(7) fixed one bug where a bogus key could be
+		associated successfully in
+		pkey_mprotect().
+
+version v5:
+	(1) reverted back to the old design -- store
+	 the key in the pte, instead of bypassing
+	 it. The v4 design slowed down the hash
+	 page path.
+	(2) detects key violation when kernel is told
+		to access user pages.
+	(3) further refined the patches into smaller
+		consumable units
+	(4) page faults handlers captures the fault-
+		ing key 
+	 from the pte instead of the vma. This
+	 closes a race between where the key 
+	 update in the vma and a key fault caused
+	 by the key programmed in the pte.
+	(5) a key created with access-denied should
+	 also set it up to deny write. Fixed it.
+	(6) protection-key number is displayed in
+ 		smaps the x86 way.
+
+version v4:
+	(1) patches no more depend on the pte bits
+		to program the hpte
+			-- comment by Balbir
+	(2) documentation updates
+	(3) fixed a bug in the selftest.
+	(4) unlike x86, powerpc lets signal handler
+		change key permission bits; the
+		change will persist across signal
+		handler boundaries. Earlier we
+		allowed the signal handler to
+		modify a field in the siginfo
+		structure which would than be used
+		by the kernel to program the key
+		protection register (AMR)
+		 -- resolves a issue raised by Ben.
+		"Calls to sys_swapcontext with a
+		made-up context will end up with a
+		crap AMR if done by code who didn't
+		know about that register".
+	(5) these changes enable protection keys on
+ 		4k-page kernel aswell.
+
+version v3:
+	(1) split the patches into smaller consumable
+		patches.
+	(2) added the ability to disable execute
+		permission on a key at creation.
+	(3) rename calc_pte_to_hpte_pkey_bits() to
+	pte_to_hpte_pkey_bits()
+		-- suggested by Anshuman
+	(4) some code optimization and clarity in
+		do_page_fault()
+	(5) A bug fix while invalidating a hpte slot
+		in __hash_page_4K()
+		-- noticed by Aneesh
+	
+
+version v2:
+	(1) documentation and selftest added.
+ 	(2) fixed a bug in 4k hpte backed 64k pte
+		where page invalidation was not
+		done correctly, and initialization
+		of second-part-of-the-pte was not
+		done correctly if the pte was not
+		yet Hashed with a hpte.
+		--	Reported by Aneesh.
+	(3) Fixed ABI breakage caused in siginfo
+		structure.
+		-- Reported by Anshuman.
+	
+
+version v1: Initial version
+
+
+Ram Pai (26):
+  mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS
+    is enabled
+  mm, powerpc, x86: introduce an additional vma bit for powerpc pkey
+  powerpc: initial pkey plumbing
+  powerpc: track allocation status of all pkeys
+  powerpc: helper function to read,write AMR,IAMR,UAMOR registers
+  powerpc: helper functions to initialize AMR, IAMR and UAMOR registers
+  powerpc: cleanup AMR, IAMR when a key is allocated or freed
+  powerpc: implementation for arch_set_user_pkey_access()
+  powerpc: ability to create execute-disabled pkeys
+  powerpc: store and restore the pkey state across context switches
+  powerpc: introduce execute-only pkey
+  powerpc: ability to associate pkey to a vma
+  powerpc: implementation for arch_override_mprotect_pkey()
+  powerpc: map vma key-protection bits to pte key bits.
+  powerpc: Program HPTE key protection bits
+  powerpc: helper to validate key-access permissions of a pte
+  powerpc: check key protection for user page access
+  powerpc: implementation for arch_vma_access_permitted()
+  powerpc: Handle exceptions caused by pkey violation
+  powerpc: introduce get_mm_addr_key() helper
+  powerpc: Deliver SEGV signal on pkey violation
+  powerpc: Enable pkey subsystem
+  powerpc: sys_pkey_alloc() and sys_pkey_free() system calls
+  powerpc: sys_pkey_mprotect() system call
+  mm, x86 : introduce arch_pkeys_enabled()
+  mm: display pkey in smaps if arch_pkeys_enabled() is true
+
+Thiago Jung Bauermann (1):
+  powerpc/ptrace: Add memory protection key regset
+
+ arch/powerpc/Kconfig                          |   15 +
+ arch/powerpc/include/asm/book3s/64/mmu-hash.h |    5 +
+ arch/powerpc/include/asm/book3s/64/mmu.h      |   10 +
+ arch/powerpc/include/asm/book3s/64/pgtable.h  |   48 +++-
+ arch/powerpc/include/asm/bug.h                |    1 +
+ arch/powerpc/include/asm/cputable.h           |   16 +-
+ arch/powerpc/include/asm/mman.h               |   13 +-
+ arch/powerpc/include/asm/mmu.h                |    9 +
+ arch/powerpc/include/asm/mmu_context.h        |   22 ++
+ arch/powerpc/include/asm/pkeys.h              |  229 ++++++++++++
+ arch/powerpc/include/asm/processor.h          |    5 +
+ arch/powerpc/include/asm/reg.h                |    1 -
+ arch/powerpc/include/asm/systbl.h             |    3 +
+ arch/powerpc/include/asm/unistd.h             |    6 +-
+ arch/powerpc/include/uapi/asm/elf.h           |    1 +
+ arch/powerpc/include/uapi/asm/mman.h          |    6 +
+ arch/powerpc/include/uapi/asm/unistd.h        |    3 +
+ arch/powerpc/kernel/exceptions-64s.S          |    2 +-
+ arch/powerpc/kernel/process.c                 |    7 +
+ arch/powerpc/kernel/ptrace.c                  |   66 ++++
+ arch/powerpc/kernel/traps.c                   |   19 +-
+ arch/powerpc/mm/Makefile                      |    1 +
+ arch/powerpc/mm/fault.c                       |   49 +++-
+ arch/powerpc/mm/hash_utils_64.c               |   26 ++
+ arch/powerpc/mm/mmu_context_book3s64.c        |    2 +
+ arch/powerpc/mm/pkeys.c                       |  469 +++++++++++++++++++++++++
+ arch/x86/include/asm/pkeys.h                  |    1 +
+ arch/x86/kernel/fpu/xstate.c                  |    5 +
+ arch/x86/kernel/setup.c                       |    8 -
+ fs/proc/task_mmu.c                            |   16 +-
+ include/linux/mm.h                            |   12 +-
+ include/linux/pkeys.h                         |    5 +
+ include/uapi/linux/elf.h                      |    1 +
+ 33 files changed, 1040 insertions(+), 42 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/pkeys.h
+ create mode 100644 arch/powerpc/mm/pkeys.c
