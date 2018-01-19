@@ -1,95 +1,68 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v4 02/10] asm/nospec,
- array_ptr: sanitize speculative array de-references
-Date: Thu, 18 Jan 2018 16:01:46 -0800
-Message-ID: <151632010687.21271.12004432287640499992.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v4 03/10] x86: implement array_ptr_mask()
+Date: Thu, 18 Jan 2018 16:01:52 -0800
+Message-ID: <151632011276.21271.6230510107230588371.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <kernel-hardening-return-11338-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga05.intel.com ([192.55.52.43]:62046 "EHLO mga05.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1755093AbeASAK7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 18 Jan 2018 19:10:59 -0500
 In-Reply-To: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, gregkh@linuxfoundation.org, "H. Peter Anvin" <hpa@zytor.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
 
-'array_ptr' is proposed as a generic mechanism to mitigate against
-Spectre-variant-1 attacks, i.e. an attack that bypasses boundary checks
-via speculative execution). The 'array_ptr' implementation is expected
-to be safe for current generation cpus across multiple architectures
-(ARM, x86).
+'array_ptr' uses a mask to sanitize user controllable pointers.  The x86
+'array_ptr_mask' is an assembler optimized way to generate a 0 or ~0
+mask if an array index is out-of-bounds or in-bounds.
 
-Based on an original implementation by Linus Torvalds, tweaked to remove
-speculative flows by Alexei Starovoitov, and tweaked again by Linus to
-introduce an x86 assembly implementation for the mask generation.
-
-Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
-Co-developed-by: Alexei Starovoitov <ast@kernel.org>
-Co-developed-by: Peter Zijlstra <peterz@infradead.org>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- include/linux/nospec.h |   44 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 44 insertions(+)
- create mode 100644 include/linux/nospec.h
+ arch/x86/include/asm/barrier.h |   24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
-diff --git a/include/linux/nospec.h b/include/linux/nospec.h
-new file mode 100644
-index 000000000000..f841c11f3f1f
---- /dev/null
-+++ b/include/linux/nospec.h
-@@ -0,0 +1,44 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright(c) 2018 Intel Corporation. All rights reserved.
-+
-+#ifndef __NOSPEC_H__
-+#define __NOSPEC_H__
-+
-+#include <linux/jump_label.h>
-+#include <asm/barrier.h>
-+
-+/*
-+ * If idx is negative or if idx > size then bit 63 is set in the mask,
-+ * and the value of ~(-1L) is zero. When the mask is zero, bounds check
-+ * failed, array_ptr will return NULL.
+diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+index 7fb336210e1b..67f6d4707a2c 100644
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -24,6 +24,30 @@
+ #define wmb()	asm volatile("sfence" ::: "memory")
+ #endif
+ 
++/**
++ * array_ptr_mask - generate a mask for array_ptr() that is ~0UL when
++ * the bounds check succeeds and 0 otherwise
 + */
-+#ifndef array_ptr_mask
++#define array_ptr_mask array_ptr_mask
 +static inline unsigned long array_ptr_mask(unsigned long idx, unsigned long sz)
 +{
-+	return ~(long)(idx | (sz - 1 - idx)) >> (BITS_PER_LONG - 1);
-+}
-+#endif
++	unsigned long mask;
 +
-+/**
-+ * array_ptr - Generate a pointer to an array element, ensuring
-+ * the pointer is bounded under speculation to NULL.
-+ *
-+ * @base: the base of the array
-+ * @idx: the index of the element, must be less than LONG_MAX
-+ * @sz: the number of elements in the array, must be less than LONG_MAX
-+ *
-+ * If @idx falls in the interval [0, @sz), returns the pointer to
-+ * @arr[@idx], otherwise returns NULL.
-+ */
-+#define array_ptr(base, idx, sz)					\
-+({									\
-+	union { typeof(*(base)) *_ptr; unsigned long _bit; } __u;	\
-+	typeof(*(base)) *_arr = (base);					\
-+	unsigned long _i = (idx);					\
-+	unsigned long _mask = array_ptr_mask(_i, (sz));			\
-+									\
-+	__u._ptr = _arr + (_i & _mask);					\
-+	__u._bit &= _mask;						\
-+	__u._ptr;							\
-+})
-+#endif /* __NOSPEC_H__ */
++	/*
++	 * mask = index - size, if that result is >= 0 then the index is
++	 * invalid and the mask is 0 else ~0
++	 */
++#ifdef CONFIG_X86_32
++	asm ("cmpl %1,%2; sbbl %0,%0;"
++#else
++	asm ("cmpq %1,%2; sbbq %0,%0;"
++#endif
++			:"=r" (mask)
++			:"r"(sz),"r" (idx)
++			:"cc");
++	return mask;
++}
++
+ #ifdef CONFIG_X86_PPRO_FENCE
+ #define dma_rmb()	rmb()
+ #else
