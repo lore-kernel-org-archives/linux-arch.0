@@ -1,40 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f176.google.com ([209.85.223.176]:36290 "EHLO
-        mail-io0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755949AbeASSSy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jan 2018 13:18:54 -0500
+Received: from mail-ua0-f170.google.com ([209.85.217.170]:45040 "EHLO
+        mail-ua0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756577AbeASWtW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jan 2018 17:49:22 -0500
+Received: by mail-ua0-f170.google.com with SMTP id x16so2124269uaj.11
+        for <linux-arch@vger.kernel.org>; Fri, 19 Jan 2018 14:49:22 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <CAG48ez0Y97-gyzWBmcVbUyLuzUG42To=Mm8PAKuzWma6XbFmew@mail.gmail.com>
-References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151632010687.21271.12004432287640499992.stgit@dwillia2-desk3.amr.corp.intel.com>
- <CAG48ez0Y97-gyzWBmcVbUyLuzUG42To=Mm8PAKuzWma6XbFmew@mail.gmail.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 19 Jan 2018 10:18:53 -0800
-Message-ID: <CA+55aFw-RNg4diZ0RCVkEYAANDp22YDskNOR913vKQEBdarJSw@mail.gmail.com>
-Subject: Re: [kernel-hardening] [PATCH v4 02/10] asm/nospec, array_ptr:
- sanitize speculative array de-references
+In-Reply-To: <1515529383-35695-1-git-send-email-keescook@chromium.org>
+References: <1515529383-35695-1-git-send-email-keescook@chromium.org>
+From: Kees Cook <keescook@chromium.org>
+Date: Fri, 19 Jan 2018 14:49:20 -0800
+Message-ID: <CAGXu5jJjHd9D=20jYnx4PSJHBbRsUOP3bAOJ11yyUWutqVHr2A@mail.gmail.com>
+Subject: Re: [PATCH 0/3] exec: Pin stack limit during exec
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jann Horn <jannh@google.com>
-Cc: Dan Williams <dan.j.williams@intel.com>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Catalin Marinas <catalin.marinas@arm.com>, the arch/x86 maintainers <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180119181853.ZWcSKSwfcMoOoITWlsf3pk5BfgZxIQnaguWkVxmrVEk@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, Michal Hocko <mhocko@kernel.org>, Ben Hutchings <ben@decadent.org.uk>, Willy Tarreau <w@1wt.eu>, Hugh Dickins <hughd@google.com>, Oleg Nesterov <oleg@redhat.com>, "Jason A. Donenfeld" <Jason@zx2c4.com>, Rik van Riel <riel@redhat.com>, Laura Abbott <labbott@redhat.com>, Greg KH <greg@kroah.com>, Andy Lutomirski <luto@kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, kernel-hardening@lists.openwall.com
+Message-ID: <20180119224920.qGh-EUKdL3ymEPcAyKwRr6DV2ZcXZUWb96XOKCTly00@z>
 
-On Fri, Jan 19, 2018 at 2:20 AM, Jann Horn <jannh@google.com> wrote:
->> +                                                                       \
->> +       __u._ptr = _arr + (_i & _mask);                                 \
->> +       __u._bit &= _mask;                                              \
->
-> AFAICS, if `idx` is out of bounds, you first zero out the index
-> (`_i & _mask`) and then immediately afterwards zero out
-> the whole pointer (`_u._bit &= _mask`).
-> Is there a reason for the `_i & _mask`, and if so, can you
-> add a comment explaining that?
+On Tue, Jan 9, 2018 at 12:23 PM, Kees Cook <keescook@chromium.org> wrote:
+> Attempts to solve problems with the stack limit changing during exec
+> continue to be frustrated[1][2]. In addition to the specific issues
+> around the Stack Clash family of flaws, Andy Lutomirski pointed out[3]
+> other places during exec where the stack limit is used and is assumed
+> to be unchanging. Given the many places it gets used and the fact that
+> it can be manipulated/raced via setrlimit() and prlimit(), I think the
+> only way to handle this is to move away from the "current" view of the
+> stack limit and instead attach it to the bprm, and plumb this down into
+> the functions that need to know the stack limits. This series implements
+> the approach. I'd be curious to hear feedback on alternatives.
 
-I think that's just leftovers from my original (untested) thing that
-also did the access itself. So that __u._bit masking wasn't masking
-the pointer, it was masking the value that was *read* from the
-pointer, so that you could know that an invalid access returned
-0/NULL, not just the first value in the array.
+Friendly ping -- looking for some people with spare cycles to look
+this over. If people want, I can toss it into -next as part of my kspp
+tree. It's been living happily in 0-day for  2 weeks...
 
-                  Linus
+Thanks!
+
+-Kees
+
+> [1] 04e35f4495dd ("exec: avoid RLIMIT_STACK races with prlimit()")
+> [2] 779f4e1c6c7c ("Revert "exec: avoid RLIMIT_STACK races with prlimit()"")
+> [3] to security@kernel.org, "Subject: existing rlimit races?"
+
+-- 
+Kees Cook
+Pixel Security
