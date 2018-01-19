@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 01/27] mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS is enabled
-Date: Thu, 18 Jan 2018 17:50:22 -0800
-Message-ID: <1516326648-22775-2-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 07/27] powerpc: cleanup AMR, IAMR when a key is allocated or freed
+Date: Thu, 18 Jan 2018 17:50:28 -0800
+Message-ID: <1516326648-22775-8-git-send-email-linuxram@us.ibm.com>
 References: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
@@ -10,62 +10,54 @@ To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-VM_PKEY_BITx are defined only if CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
-is enabled. Powerpc also needs these bits. Hence lets define the
-VM_PKEY_BITx bits for any architecture that enables
-CONFIG_ARCH_HAS_PKEYS.
+Cleanup the bits corresponding to a key in the AMR, and IAMR
+register, when the key is newly allocated/activated or is freed.
+We dont want some residual bits cause the hardware enforce
+unintended behavior when the key is activated or freed.
 
+Reviewed-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- fs/proc/task_mmu.c |    4 ++--
- include/linux/mm.h |    9 +++++----
- 2 files changed, 7 insertions(+), 6 deletions(-)
+ arch/powerpc/include/asm/pkeys.h |   12 ++++++++++++
+ 1 files changed, 12 insertions(+), 0 deletions(-)
 
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 339e4c1..b139617 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -674,13 +674,13 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
- 		[ilog2(VM_MERGEABLE)]	= "mg",
- 		[ilog2(VM_UFFD_MISSING)]= "um",
- 		[ilog2(VM_UFFD_WP)]	= "uw",
--#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
-+#ifdef CONFIG_ARCH_HAS_PKEYS
- 		/* These come out via ProtectionKey: */
- 		[ilog2(VM_PKEY_BIT0)]	= "",
- 		[ilog2(VM_PKEY_BIT1)]	= "",
- 		[ilog2(VM_PKEY_BIT2)]	= "",
- 		[ilog2(VM_PKEY_BIT3)]	= "",
--#endif
-+#endif /* CONFIG_ARCH_HAS_PKEYS */
- 	};
- 	size_t i;
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+index 1e8cef2..9964b46 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -69,6 +69,8 @@ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
+ 		__mm_pkey_is_allocated(mm, pkey));
+ }
  
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index ea818ff..01381d3 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -228,15 +228,16 @@ extern int overcommit_kbytes_handler(struct ctl_table *, int, void __user *,
- #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
- #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
++extern void __arch_activate_pkey(int pkey);
++extern void __arch_deactivate_pkey(int pkey);
+ /*
+  * Returns a positive, 5-bit key on success, or -1 on failure.
+  * Relies on the mmap_sem to protect against concurrency in mm_pkey_alloc() and
+@@ -96,6 +98,12 @@ static inline int mm_pkey_alloc(struct mm_struct *mm)
  
--#if defined(CONFIG_X86)
--# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
--#if defined (CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS)
-+#ifdef CONFIG_ARCH_HAS_PKEYS
- # define VM_PKEY_SHIFT	VM_HIGH_ARCH_BIT_0
- # define VM_PKEY_BIT0	VM_HIGH_ARCH_0	/* A protection key is a 4-bit value */
- # define VM_PKEY_BIT1	VM_HIGH_ARCH_1
- # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
- # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
--#endif
-+#endif /* CONFIG_ARCH_HAS_PKEYS */
+ 	ret = ffz((u32)mm_pkey_allocation_map(mm));
+ 	__mm_pkey_allocated(mm, ret);
 +
-+#if defined(CONFIG_X86)
-+# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
- #elif defined(CONFIG_PPC)
- # define VM_SAO		VM_ARCH_1	/* Strong Access Ordering (powerpc) */
- #elif defined(CONFIG_PARISC)
++	/*
++	 * Enable the key in the hardware
++	 */
++	if (ret > 0)
++		__arch_activate_pkey(ret);
+ 	return ret;
+ }
+ 
+@@ -107,6 +115,10 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
+ 	if (!mm_pkey_is_allocated(mm, pkey))
+ 		return -EINVAL;
+ 
++	/*
++	 * Disable the key in the hardware
++	 */
++	__arch_deactivate_pkey(pkey);
+ 	__mm_pkey_free(mm, pkey);
+ 
+ 	return 0;
 -- 
 1.7.1
 
