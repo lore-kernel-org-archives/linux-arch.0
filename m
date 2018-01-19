@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 08/27] powerpc: implementation for arch_set_user_pkey_access()
-Date: Thu, 18 Jan 2018 17:50:29 -0800
-Message-ID: <1516326648-22775-9-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 12/27] powerpc: ability to associate pkey to a vma
+Date: Thu, 18 Jan 2018 17:50:33 -0800
+Message-ID: <1516326648-22775-13-git-send-email-linuxram@us.ibm.com>
 References: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
@@ -10,109 +10,83 @@ To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-This patch provides the detailed implementation for
-a user to allocate a key and enable it in the hardware.
+arch-independent code expects the arch to  map
+a  pkey  into the vma's protection bit setting.
+The patch provides that ability.
 
-It provides the plumbing, but it cannot be used till
-the system call is implemented. The next patch  will
-do so.
-
-Reviewed-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/pkeys.h |    6 ++++-
- arch/powerpc/mm/pkeys.c          |   40 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 45 insertions(+), 1 deletions(-)
+ arch/powerpc/include/asm/mman.h  |    7 ++++++-
+ arch/powerpc/include/asm/pkeys.h |   11 +++++++++++
+ arch/powerpc/mm/pkeys.c          |    8 ++++++++
+ 3 files changed, 25 insertions(+), 1 deletions(-)
 
+diff --git a/arch/powerpc/include/asm/mman.h b/arch/powerpc/include/asm/mman.h
+index 30922f6..2999478 100644
+--- a/arch/powerpc/include/asm/mman.h
++++ b/arch/powerpc/include/asm/mman.h
+@@ -13,6 +13,7 @@
+ 
+ #include <asm/cputable.h>
+ #include <linux/mm.h>
++#include <linux/pkeys.h>
+ #include <asm/cpu_has_feature.h>
+ 
+ /*
+@@ -22,7 +23,11 @@
+ static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
+ 		unsigned long pkey)
+ {
+-	return (prot & PROT_SAO) ? VM_SAO : 0;
++#ifdef CONFIG_PPC_MEM_KEYS
++	return (((prot & PROT_SAO) ? VM_SAO : 0) | pkey_to_vmflag_bits(pkey));
++#else
++	return ((prot & PROT_SAO) ? VM_SAO : 0);
++#endif
+ }
+ #define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
+ 
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 9964b46..2500a90 100644
+index 2b5bb35..c7cc433 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -139,10 +139,14 @@ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
- 	return 0;
- }
+@@ -41,6 +41,17 @@
+ #define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
+ 			    VM_PKEY_BIT3 | VM_PKEY_BIT4)
  
-+extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+				       unsigned long init_val);
- static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 					    unsigned long init_val)
- {
--	return 0;
-+	if (static_branch_likely(&pkey_disabled))
-+		return -EINVAL;
-+	return __arch_set_user_pkey_access(tsk, pkey, init_val);
- }
++/* Override any generic PKEY permission defines */
++#define PKEY_DISABLE_EXECUTE   0x4
++#define PKEY_ACCESS_MASK       (PKEY_DISABLE_ACCESS | \
++				PKEY_DISABLE_WRITE  | \
++				PKEY_DISABLE_EXECUTE)
++
++static inline u64 pkey_to_vmflag_bits(u16 pkey)
++{
++	return (((u64)pkey << VM_PKEY_SHIFT) & ARCH_VM_PKEY_FLAGS);
++}
++
+ #define arch_max_pkey() pkeys_total
  
- extern void pkey_mm_init(struct mm_struct *mm);
+ #define pkey_alloc_mask(pkey) (0x1 << pkey)
 diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index e1dc45b..eca04cd 100644
+index b466a2c..ee31ab5 100644
 --- a/arch/powerpc/mm/pkeys.c
 +++ b/arch/powerpc/mm/pkeys.c
-@@ -9,6 +9,7 @@
-  * (at your option) any later version.
-  */
+@@ -39,6 +39,14 @@ int pkey_initialize(void)
+ 		     (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
  
-+#include <asm/mman.h>
- #include <linux/pkeys.h>
- 
- DEFINE_STATIC_KEY_TRUE(pkey_disabled);
-@@ -17,6 +18,9 @@
- u32  initial_allocation_mask;	/* Bits set for reserved keys */
- 
- #define AMR_BITS_PER_PKEY 2
-+#define AMR_RD_BIT 0x1UL
-+#define AMR_WR_BIT 0x2UL
-+#define IAMR_EX_BIT 0x1UL
- #define PKEY_REG_BITS (sizeof(u64)*8)
- #define pkeyshift(pkey) (PKEY_REG_BITS - ((pkey+1) * AMR_BITS_PER_PKEY))
- 
-@@ -112,6 +116,20 @@ static inline void write_uamor(u64 value)
- 	mtspr(SPRN_UAMOR, value);
- }
- 
-+static bool is_pkey_enabled(int pkey)
-+{
-+	u64 uamor = read_uamor();
-+	u64 pkey_bits = 0x3ul << pkeyshift(pkey);
-+	u64 uamor_pkey_bits = (uamor & pkey_bits);
+ 	/*
++	 * pkey_to_vmflag_bits() assumes that the pkey bits are contiguous
++	 * in the vmaflag. Make sure that is really the case.
++	 */
++	BUILD_BUG_ON(__builtin_clzl(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT) +
++		     __builtin_popcountl(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT)
++				!= (sizeof(u64) * BITS_PER_BYTE));
 +
 +	/*
-+	 * Both the bits in UAMOR corresponding to the key should be set or
-+	 * reset.
-+	 */
-+	WARN_ON(uamor_pkey_bits && (uamor_pkey_bits != pkey_bits));
-+	return !!(uamor_pkey_bits);
-+}
-+
- static inline void init_amr(int pkey, u8 init_bits)
- {
- 	u64 new_amr_bits = (((u64)init_bits & 0x3UL) << pkeyshift(pkey));
-@@ -154,3 +172,25 @@ void __arch_deactivate_pkey(int pkey)
- {
- 	pkey_status_change(pkey, false);
- }
-+
-+/*
-+ * Set the access rights in AMR IAMR and UAMOR registers for @pkey to that
-+ * specified in @init_val.
-+ */
-+int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+				unsigned long init_val)
-+{
-+	u64 new_amr_bits = 0x0ul;
-+
-+	if (!is_pkey_enabled(pkey))
-+		return -EINVAL;
-+
-+	/* Set the bits we need in AMR: */
-+	if (init_val & PKEY_DISABLE_ACCESS)
-+		new_amr_bits |= AMR_RD_BIT | AMR_WR_BIT;
-+	else if (init_val & PKEY_DISABLE_WRITE)
-+		new_amr_bits |= AMR_WR_BIT;
-+
-+	init_amr(pkey, new_amr_bits);
-+	return 0;
-+}
+ 	 * Disable the pkey system till everything is in place. A subsequent
+ 	 * patch will enable it.
+ 	 */
 -- 
 1.7.1
 
