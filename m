@@ -1,113 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:33924 "EHLO
-        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755878AbeASRFD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jan 2018 12:05:03 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
-        <1516326648-22775-28-git-send-email-linuxram@us.ibm.com>
-        <87shb1de4a.fsf@xmission.com>
-        <20180119165050.GK5612@ram.oc3035372033.ibm.com>
-Date: Fri, 19 Jan 2018 11:04:02 -0600
-In-Reply-To: <20180119165050.GK5612@ram.oc3035372033.ibm.com> (Ram Pai's
-        message of "Fri, 19 Jan 2018 08:50:50 -0800")
-Message-ID: <87efmldblp.fsf@xmission.com>
+Received: from a-painless.mh.aa.net.uk ([81.187.30.51]:56129 "EHLO
+        a-painless.mh.aa.net.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755949AbeASSRM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jan 2018 13:17:12 -0500
+From: Adam Sampson <ats@offog.org>
+Subject: Re: [kernel-hardening] [PATCH v4 02/10] asm/nospec, array_ptr: sanitize speculative array de-references
+References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
+        <151632010687.21271.12004432287640499992.stgit@dwillia2-desk3.amr.corp.intel.com>
+        <CAG48ez0Y97-gyzWBmcVbUyLuzUG42To=Mm8PAKuzWma6XbFmew@mail.gmail.com>
+Date: Fri, 19 Jan 2018 17:48:04 +0000
+In-Reply-To: <CAG48ez0Y97-gyzWBmcVbUyLuzUG42To=Mm8PAKuzWma6XbFmew@mail.gmail.com>
+        (Jann Horn's message of "Fri, 19 Jan 2018 11:20:48 +0100")
+Message-ID: <y2afu71pwob.fsf@offog.org>
 MIME-Version: 1.0
 Content-Type: text/plain
-Subject: Re: [PATCH v10 27/27] mm: display pkey in smaps if arch_pkeys_enabled() is true
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com
-Message-ID: <20180119170402.wh3MwlpcsOTpK5NyHgjEClZPMz3kyXTSl1GIgJtjy_Y@z>
+To: Jann Horn <jannh@google.com>
+Cc: Dan Williams <dan.j.williams@intel.com>, kernel list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Catalin Marinas <catalin.marinas@arm.com>, the arch/x86 maintainers <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, alan@linux.intel.com
+Message-ID: <20180119174804.ngq0Y3Er2lE5OY0421QntnGpkQmg-sSlnAPbZEP0bIA@z>
 
-Ram Pai <linuxram@us.ibm.com> writes:
+Jann Horn <jannh@google.com> writes:
 
-> On Fri, Jan 19, 2018 at 10:09:41AM -0600, Eric W. Biederman wrote:
->> Ram Pai <linuxram@us.ibm.com> writes:
->> 
->> > Currently the  architecture  specific code is expected to
->> > display  the  protection  keys  in  smap  for a given vma.
->> > This can lead to redundant code and possibly to divergent
->> > formats in which the key gets displayed.
->> >
->> > This  patch  changes  the implementation. It displays the
->> > pkey only if the architecture support pkeys.
->> >
->> > x86 arch_show_smap() function is not needed anymore.
->> > Delete it.
->> >
->> > Signed-off-by: Ram Pai <linuxram@us.ibm.com>
->> > ---
->> >  arch/x86/kernel/setup.c |    8 --------
->> >  fs/proc/task_mmu.c      |   11 ++++++-----
->> >  2 files changed, 6 insertions(+), 13 deletions(-)
->> >
->> > diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
->> > index 8af2e8d..ddf945a 100644
->> > --- a/arch/x86/kernel/setup.c
->> > +++ b/arch/x86/kernel/setup.c
->> > @@ -1326,11 +1326,3 @@ static int __init register_kernel_offset_dumper(void)
->> >  	return 0;
->> >  }
->> >  __initcall(register_kernel_offset_dumper);
->> > -
->> > -void arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
->> > -{
->> > -	if (!boot_cpu_has(X86_FEATURE_OSPKE))
->> > -		return;
->> > -
->> > -	seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
->> > -}
->> > diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
->> > index 0edd4da..4b39a94 100644
->> > --- a/fs/proc/task_mmu.c
->> > +++ b/fs/proc/task_mmu.c
->> > @@ -18,6 +18,7 @@
->> >  #include <linux/page_idle.h>
->> >  #include <linux/shmem_fs.h>
->> >  #include <linux/uaccess.h>
->> > +#include <linux/pkeys.h>
->> >  
->> >  #include <asm/elf.h>
->> >  #include <asm/tlb.h>
->> > @@ -728,10 +729,6 @@ static int smaps_hugetlb_range(pte_t *pte, unsigned long hmask,
->> >  }
->> >  #endif /* HUGETLB_PAGE */
->> >  
->> > -void __weak arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
->> > -{
->> > -}
->> > -
->> >  static int show_smap(struct seq_file *m, void *v, int is_pid)
->> >  {
->> >  	struct proc_maps_private *priv = m->private;
->> > @@ -851,9 +848,13 @@ static int show_smap(struct seq_file *m, void *v, int is_pid)
->> >  			   (unsigned long)(mss->pss >> (10 + PSS_SHIFT)));
->> >  
->> >  	if (!rollup_mode) {
->> > -		arch_show_smap(m, vma);
->> > +#ifdef CONFIG_ARCH_HAS_PKEYS
->> > +		if (arch_pkeys_enabled())
->> > +			seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
->> > +#endif
->> 
->> Would it be worth it making vma_pkey a noop on architectures that don't
->> support protection keys so that we don't need the #ifdef here?
+>> +/*
+>> + * If idx is negative or if idx > size then bit 63 is set in the mask,
+>> + * and the value of ~(-1L) is zero. When the mask is zero, bounds check
+>> + * failed, array_ptr will return NULL.
+>> + */
+>> +#ifndef array_ptr_mask
+>> +static inline unsigned long array_ptr_mask(unsigned long idx,
+>> unsigned long sz)
+>> +{
+>> +       return ~(long)(idx | (sz - 1 - idx)) >> (BITS_PER_LONG - 1);
+>> +}
+>> +#endif
 >
-> You mean something like this?
-> 	#define vma_pkey(vma)  
-> It will lead to compilation error.
->
->
-> I can make it
-> 	#define vma_pkey(vma)  0
->
-> and that will work and get rid of the #ifdef
+> Nit: Maybe add a comment saying that this is equivalent to
+> "return ((long)idx >= 0 && idx < sz) ? ULONG_MAX : 0"?
 
-Yes the second is what I was thinking.
-
-I don't know if it is worth it but #ifdefs can be problematic as the
-result in code not being compile tested.
-
-Eric
+That's only true when sz < LONG_MAX, which is documented below but not
+here; it's also different from the asm version, which doesn't do the idx
+<= LONG_MAX check. So making the constraint explicit would be a good idea.
