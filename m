@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 23/27] powerpc: Enable pkey subsystem
-Date: Thu, 18 Jan 2018 17:50:44 -0800
-Message-ID: <1516326648-22775-24-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 21/27] powerpc: Deliver SEGV signal on pkey violation
+Date: Thu, 18 Jan 2018 17:50:42 -0800
+Message-ID: <1516326648-22775-22-git-send-email-linuxram@us.ibm.com>
 References: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
@@ -10,223 +10,161 @@ To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-PAPR defines 'ibm,processor-storage-keys' property. It exports two
-values. The first value holds the number of data-access keys and the
-second holds the number of instruction-access keys.  Due to a bug in
-the  firmware, instruction-access  keys is  always  reported  as zero.
-However any key can be configured to disable data-access and/or disable
-execution-access. The inavailablity of the second value is not a
-big handicap, though it could have been used to determine if the
-platform supported disable-execution-access.
-
-Non-PAPR platforms do not define this property in the device tree yet.
-Fortunately power8 is the only released Non-PAPR platform that is
-supported.  Here, we hardcode the number of supported pkey to 32, by
-consulting the PowerISA3.0
-
-This patch calculates the number of keys supported by the platform.
-Also it determines the platform support for read/write/execution access
-support for pkeys.
+The value of the pkey, whose protection got violated,
+is made available in si_pkey field of the siginfo structure.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 ---
- arch/powerpc/include/asm/cputable.h |   16 ++++++---
- arch/powerpc/include/asm/pkeys.h    |    3 ++
- arch/powerpc/mm/pkeys.c             |   61 +++++++++++++++++++++++++++++-----
- 3 files changed, 65 insertions(+), 15 deletions(-)
+ arch/powerpc/include/asm/bug.h |    1 +
+ arch/powerpc/kernel/traps.c    |   12 +++++++++++-
+ arch/powerpc/mm/fault.c        |   39 +++++++++++++++++++++++++++------------
+ 3 files changed, 39 insertions(+), 13 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/cputable.h b/arch/powerpc/include/asm/cputable.h
-index 0546663..5b54337 100644
---- a/arch/powerpc/include/asm/cputable.h
-+++ b/arch/powerpc/include/asm/cputable.h
-@@ -207,7 +207,7 @@ enum {
- #define CPU_FTR_STCX_CHECKS_ADDRESS	LONG_ASM_CONST(0x0004000000000000)
- #define CPU_FTR_POPCNTB			LONG_ASM_CONST(0x0008000000000000)
- #define CPU_FTR_POPCNTD			LONG_ASM_CONST(0x0010000000000000)
--/* Free					LONG_ASM_CONST(0x0020000000000000) */
-+#define CPU_FTR_PKEY			LONG_ASM_CONST(0x0020000000000000)
- #define CPU_FTR_VMX_COPY		LONG_ASM_CONST(0x0040000000000000)
- #define CPU_FTR_TM			LONG_ASM_CONST(0x0080000000000000)
- #define CPU_FTR_CFAR			LONG_ASM_CONST(0x0100000000000000)
-@@ -215,6 +215,7 @@ enum {
- #define CPU_FTR_DAWR			LONG_ASM_CONST(0x0400000000000000)
- #define CPU_FTR_DABRX			LONG_ASM_CONST(0x0800000000000000)
- #define CPU_FTR_PMAO_BUG		LONG_ASM_CONST(0x1000000000000000)
-+#define CPU_FTR_PKEY_EXECUTE		LONG_ASM_CONST(0x2000000000000000)
- #define CPU_FTR_POWER9_DD1		LONG_ASM_CONST(0x4000000000000000)
- #define CPU_FTR_POWER9_DD2_1		LONG_ASM_CONST(0x8000000000000000)
+diff --git a/arch/powerpc/include/asm/bug.h b/arch/powerpc/include/asm/bug.h
+index 3c04249..97c3847 100644
+--- a/arch/powerpc/include/asm/bug.h
++++ b/arch/powerpc/include/asm/bug.h
+@@ -133,6 +133,7 @@
+ extern int do_page_fault(struct pt_regs *, unsigned long, unsigned long);
+ extern void bad_page_fault(struct pt_regs *, unsigned long, int);
+ extern void _exception(int, struct pt_regs *, int, unsigned long);
++extern void _exception_pkey(int, struct pt_regs *, int, unsigned long, int);
+ extern void die(const char *, struct pt_regs *, long);
+ extern bool die_will_crash(void);
  
-@@ -437,7 +438,8 @@ enum {
- 	    CPU_FTR_PPCAS_ARCH_V2 | CPU_FTR_CTRL | \
- 	    CPU_FTR_MMCRA | CPU_FTR_SMT | \
- 	    CPU_FTR_COHERENT_ICACHE | CPU_FTR_PURR | \
--	    CPU_FTR_STCX_CHECKS_ADDRESS | CPU_FTR_POPCNTB | CPU_FTR_DABRX)
-+	    CPU_FTR_STCX_CHECKS_ADDRESS | CPU_FTR_POPCNTB | CPU_FTR_DABRX | \
-+	    CPU_FTR_PKEY)
- #define CPU_FTRS_POWER6 (CPU_FTR_USE_TB | CPU_FTR_LWSYNC | \
- 	    CPU_FTR_PPCAS_ARCH_V2 | CPU_FTR_CTRL | \
- 	    CPU_FTR_MMCRA | CPU_FTR_SMT | \
-@@ -445,7 +447,7 @@ enum {
- 	    CPU_FTR_PURR | CPU_FTR_SPURR | CPU_FTR_REAL_LE | \
- 	    CPU_FTR_DSCR | CPU_FTR_UNALIGNED_LD_STD | \
- 	    CPU_FTR_STCX_CHECKS_ADDRESS | CPU_FTR_POPCNTB | CPU_FTR_CFAR | \
--	    CPU_FTR_DABRX)
-+	    CPU_FTR_DABRX | CPU_FTR_PKEY)
- #define CPU_FTRS_POWER7 (CPU_FTR_USE_TB | CPU_FTR_LWSYNC | \
- 	    CPU_FTR_PPCAS_ARCH_V2 | CPU_FTR_CTRL | CPU_FTR_ARCH_206 |\
- 	    CPU_FTR_MMCRA | CPU_FTR_SMT | \
-@@ -454,7 +456,7 @@ enum {
- 	    CPU_FTR_DSCR | CPU_FTR_SAO  | CPU_FTR_ASYM_SMT | \
- 	    CPU_FTR_STCX_CHECKS_ADDRESS | CPU_FTR_POPCNTB | CPU_FTR_POPCNTD | \
- 	    CPU_FTR_CFAR | CPU_FTR_HVMODE | \
--	    CPU_FTR_VMX_COPY | CPU_FTR_HAS_PPR | CPU_FTR_DABRX)
-+	    CPU_FTR_VMX_COPY | CPU_FTR_HAS_PPR | CPU_FTR_DABRX | CPU_FTR_PKEY)
- #define CPU_FTRS_POWER8 (CPU_FTR_USE_TB | CPU_FTR_LWSYNC | \
- 	    CPU_FTR_PPCAS_ARCH_V2 | CPU_FTR_CTRL | CPU_FTR_ARCH_206 |\
- 	    CPU_FTR_MMCRA | CPU_FTR_SMT | \
-@@ -464,7 +466,8 @@ enum {
- 	    CPU_FTR_STCX_CHECKS_ADDRESS | CPU_FTR_POPCNTB | CPU_FTR_POPCNTD | \
- 	    CPU_FTR_CFAR | CPU_FTR_HVMODE | CPU_FTR_VMX_COPY | \
- 	    CPU_FTR_DBELL | CPU_FTR_HAS_PPR | CPU_FTR_DAWR | \
--	    CPU_FTR_ARCH_207S | CPU_FTR_TM_COMP)
-+	    CPU_FTR_ARCH_207S | CPU_FTR_TM_COMP | CPU_FTR_PKEY |\
-+	    CPU_FTR_PKEY_EXECUTE)
- #define CPU_FTRS_POWER8E (CPU_FTRS_POWER8 | CPU_FTR_PMAO_BUG)
- #define CPU_FTRS_POWER8_DD1 (CPU_FTRS_POWER8 & ~CPU_FTR_DBELL)
- #define CPU_FTRS_POWER9 (CPU_FTR_USE_TB | CPU_FTR_LWSYNC | \
-@@ -476,7 +479,8 @@ enum {
- 	    CPU_FTR_STCX_CHECKS_ADDRESS | CPU_FTR_POPCNTB | CPU_FTR_POPCNTD | \
- 	    CPU_FTR_CFAR | CPU_FTR_HVMODE | CPU_FTR_VMX_COPY | \
- 	    CPU_FTR_DBELL | CPU_FTR_HAS_PPR | CPU_FTR_DAWR | \
--	    CPU_FTR_ARCH_207S | CPU_FTR_TM_COMP | CPU_FTR_ARCH_300)
-+	    CPU_FTR_ARCH_207S | CPU_FTR_TM_COMP | CPU_FTR_ARCH_300 | \
-+	    CPU_FTR_PKEY | CPU_FTR_PKEY_EXECUTE)
- #define CPU_FTRS_POWER9_DD1 ((CPU_FTRS_POWER9 | CPU_FTR_POWER9_DD1) & \
- 			     (~CPU_FTR_SAO))
- #define CPU_FTRS_POWER9_DD2_0 CPU_FTRS_POWER9
-diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 0c480b2..92b6776 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -13,6 +13,7 @@
- #define _ASM_POWERPC_KEYS_H
- 
- #include <linux/jump_label.h>
-+#include <asm/firmware.h>
- 
- DECLARE_STATIC_KEY_TRUE(pkey_disabled);
- extern int pkeys_total; /* total pkeys as per device tree */
-@@ -219,6 +220,8 @@ static inline bool arch_pkeys_enabled(void)
+diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
+index f3eb61b..3753498 100644
+--- a/arch/powerpc/kernel/traps.c
++++ b/arch/powerpc/kernel/traps.c
+@@ -20,6 +20,7 @@
+ #include <linux/sched/debug.h>
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
++#include <linux/pkeys.h>
+ #include <linux/stddef.h>
+ #include <linux/unistd.h>
+ #include <linux/ptrace.h>
+@@ -266,7 +267,9 @@ void user_single_step_siginfo(struct task_struct *tsk,
+ 	info->si_addr = (void __user *)regs->nip;
  }
  
- extern void pkey_mm_init(struct mm_struct *mm);
-+extern bool arch_supports_pkeys(int cap);
-+extern unsigned int arch_usable_pkeys(void);
- extern void thread_pkey_regs_save(struct thread_struct *thread);
- extern void thread_pkey_regs_restore(struct thread_struct *new_thread,
- 				     struct thread_struct *old_thread);
-diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 0701aa3..66a1091 100644
---- a/arch/powerpc/mm/pkeys.c
-+++ b/arch/powerpc/mm/pkeys.c
-@@ -10,11 +10,14 @@
+-void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
++
++void _exception_pkey(int signr, struct pt_regs *regs, int code,
++		unsigned long addr, int key)
+ {
+ 	siginfo_t info;
+ 	const char fmt32[] = KERN_INFO "%s[%d]: unhandled signal %d " \
+@@ -293,9 +296,16 @@ void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
+ 	info.si_signo = signr;
+ 	info.si_code = code;
+ 	info.si_addr = (void __user *) addr;
++	info.si_pkey = key;
++
+ 	force_sig_info(signr, &info, current);
+ }
+ 
++void _exception(int signr, struct pt_regs *regs, int code, unsigned long addr)
++{
++	_exception_pkey(signr, regs, code, addr, 0);
++}
++
+ void system_reset_exception(struct pt_regs *regs)
+ {
+ 	/*
+diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
+index 943a91e..65f8b04 100644
+--- a/arch/powerpc/mm/fault.c
++++ b/arch/powerpc/mm/fault.c
+@@ -107,7 +107,8 @@ static bool store_updates_sp(struct pt_regs *regs)
   */
  
- #include <asm/mman.h>
-+#include <asm/setup.h>
- #include <linux/pkeys.h>
-+#include <linux/of_device.h>
- 
- DEFINE_STATIC_KEY_TRUE(pkey_disabled);
- bool pkey_execute_disable_supported;
- int  pkeys_total;		/* Total pkeys as per device tree */
-+bool pkeys_devtree_defined;	/* pkey property exported by device tree */
- u32  initial_allocation_mask;	/* Bits set for reserved keys */
- u64  pkey_amr_uamor_mask;	/* Bits in AMR/UMOR not to be touched */
- u64  pkey_iamr_mask;		/* Bits in AMR not to be touched */
-@@ -26,6 +29,35 @@
- #define PKEY_REG_BITS (sizeof(u64)*8)
- #define pkeyshift(pkey) (PKEY_REG_BITS - ((pkey+1) * AMR_BITS_PER_PKEY))
- 
-+static void scan_pkey_feature(void)
-+{
-+	u32 vals[2];
-+	struct device_node *cpu;
-+
-+	cpu = of_find_node_by_type(NULL, "cpu");
-+	if (!cpu)
-+		return;
-+
-+	if (of_property_read_u32_array(cpu,
-+			"ibm,processor-storage-keys", vals, 2))
-+		return;
-+
-+	/*
-+	 * Since any pkey can be used for data or execute, we will just treat
-+	 * all keys as equal and track them as one entity.
-+	 */
-+	pkeys_total = be32_to_cpu(vals[0]);
-+	pkeys_devtree_defined = true;
-+}
-+
-+static inline bool pkey_mmu_enabled(void)
-+{
-+	if (firmware_has_feature(FW_FEATURE_LPAR))
-+		return pkeys_total;
-+	else
-+		return cpu_has_feature(CPU_FTR_PKEY);
-+}
-+
- int pkey_initialize(void)
+ static int
+-__bad_area_nosemaphore(struct pt_regs *regs, unsigned long address, int si_code)
++__bad_area_nosemaphore(struct pt_regs *regs, unsigned long address, int si_code,
++		int pkey)
  {
- 	int os_reserved, i;
-@@ -46,14 +78,17 @@ int pkey_initialize(void)
- 		     __builtin_popcountl(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT)
- 				!= (sizeof(u64) * BITS_PER_BYTE));
- 
-+	/* scan the device tree for pkey feature */
-+	scan_pkey_feature();
-+
  	/*
--	 * Disable the pkey system till everything is in place. A subsequent
--	 * patch will enable it.
-+	 * Let's assume 32 pkeys on P8 bare metal, if its not defined by device
-+	 * tree. We make this exception since skiboot forgot to expose this
-+	 * property on power8.
+ 	 * If we are in kernel mode, bail out with a SEGV, this will
+@@ -117,17 +118,18 @@ static bool store_updates_sp(struct pt_regs *regs)
+ 	if (!user_mode(regs))
+ 		return SIGSEGV;
+ 
+-	_exception(SIGSEGV, regs, si_code, address);
++	_exception_pkey(SIGSEGV, regs, si_code, address, pkey);
+ 
+ 	return 0;
+ }
+ 
+ static noinline int bad_area_nosemaphore(struct pt_regs *regs, unsigned long address)
+ {
+-	return __bad_area_nosemaphore(regs, address, SEGV_MAPERR);
++	return __bad_area_nosemaphore(regs, address, SEGV_MAPERR, 0);
+ }
+ 
+-static int __bad_area(struct pt_regs *regs, unsigned long address, int si_code)
++static int __bad_area(struct pt_regs *regs, unsigned long address, int si_code,
++			int pkey)
+ {
+ 	struct mm_struct *mm = current->mm;
+ 
+@@ -137,12 +139,18 @@ static int __bad_area(struct pt_regs *regs, unsigned long address, int si_code)
  	 */
--	static_branch_enable(&pkey_disabled);
--
--	/* Lets assume 32 keys */
--	pkeys_total = 32;
-+	if (!pkeys_devtree_defined && !firmware_has_feature(FW_FEATURE_LPAR) &&
-+			cpu_has_feature(CPU_FTRS_POWER8))
-+		pkeys_total = 32;
+ 	up_read(&mm->mmap_sem);
  
- 	/*
- 	 * Adjust the upper limit, based on the number of bits supported by
-@@ -62,11 +97,19 @@ int pkey_initialize(void)
- 	pkeys_total = min_t(int, pkeys_total,
- 			(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT));
+-	return __bad_area_nosemaphore(regs, address, si_code);
++	return __bad_area_nosemaphore(regs, address, si_code, pkey);
+ }
  
-+	if (!pkey_mmu_enabled() || radix_enabled() || !pkeys_total)
-+		static_branch_enable(&pkey_disabled);
-+	else
-+		static_branch_disable(&pkey_disabled);
+ static noinline int bad_area(struct pt_regs *regs, unsigned long address)
+ {
+-	return __bad_area(regs, address, SEGV_MAPERR);
++	return __bad_area(regs, address, SEGV_MAPERR, 0);
++}
 +
-+	if (static_branch_likely(&pkey_disabled))
-+		return 0;
-+
- 	/*
--	 * Disable execute_disable support for now. A subsequent patch will
--	 * enable it.
-+	 * The device tree cannot be relied on for execute_disable support.
-+	 * Hence we depend on CPU FTR.
- 	 */
--	pkey_execute_disable_supported = false;
-+	pkey_execute_disable_supported = cpu_has_feature(CPU_FTR_PKEY_EXECUTE);
++static int bad_key_fault_exception(struct pt_regs *regs, unsigned long address,
++				    int pkey)
++{
++	return __bad_area_nosemaphore(regs, address, SEGV_PKUERR, pkey);
+ }
  
- #ifdef CONFIG_PPC_4K_PAGES
+ static int do_sigbus(struct pt_regs *regs, unsigned long address,
+@@ -427,10 +435,9 @@ static int __do_page_fault(struct pt_regs *regs, unsigned long address,
+ 
+ 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
+ 
+-	if (error_code & DSISR_KEYFAULT) {
+-		_exception(SIGSEGV, regs, SEGV_PKUERR, address);
+-		return 0;
+-	}
++	if (error_code & DSISR_KEYFAULT)
++		return bad_key_fault_exception(regs, address,
++					       get_mm_addr_key(mm, address));
+ 
  	/*
+ 	 * We want to do this outside mmap_sem, because reading code around nip
+@@ -513,10 +520,18 @@ static int __do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	if (unlikely(fault & VM_FAULT_SIGSEGV) &&
+ 		!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
+ 			is_exec, 0)) {
++		/*
++		 * The PGD-PDT...PMD-PTE tree may not have been fully setup.
++		 * Hence we cannot walk the tree to locate the PTE, to locate
++		 * the key. Hence let's use vma_pkey() to get the key; instead
++		 * of get_mm_addr_key().
++		 */
+ 		int pkey = vma_pkey(vma);
+ 
+-		if (likely(pkey))
+-			return __bad_area(regs, address, SEGV_PKUERR);
++		if (likely(pkey)) {
++			up_read(&mm->mmap_sem);
++			return bad_key_fault_exception(regs, address, pkey);
++		}
+ 	}
+ #endif /* CONFIG_PPC_MEM_KEYS */
+ 
 -- 
 1.7.1
 
