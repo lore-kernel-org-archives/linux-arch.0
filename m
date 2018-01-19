@@ -1,95 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f193.google.com ([209.85.216.193]:44017 "EHLO
-        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755447AbeASBwf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 20:52:35 -0500
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:42217 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755524AbeASBwG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 20:52:06 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 18/27] powerpc: implementation for arch_vma_access_permitted()
-Date: Thu, 18 Jan 2018 17:50:39 -0800
-Message-ID: <1516326648-22775-19-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 09/27] powerpc: ability to create execute-disabled pkeys
+Date: Thu, 18 Jan 2018 17:50:30 -0800
+Message-ID: <1516326648-22775-10-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 References: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
-Message-ID: <20180119015039.E1Aqj6EJYsqejXFvpQku0Y5aW-izbc1ZehpPnhVoS6U@z>
+Message-ID: <20180119015030.BTJrhhrXYsD7a2tDx09ugdxRYc3sTg0UokWl6Kn29xQ@z>
 
-This patch provides the implementation for
-arch_vma_access_permitted(). Returns true if the
-requested access is allowed by pkey associated with the
-vma.
+powerpc has hardware support to disable execute on a pkey.
+This patch enables the ability to create execute-disabled
+keys.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/mmu_context.h |    5 +++-
- arch/powerpc/mm/pkeys.c                |   34 ++++++++++++++++++++++++++++++++
- 2 files changed, 38 insertions(+), 1 deletions(-)
+ arch/powerpc/include/uapi/asm/mman.h |    6 ++++++
+ arch/powerpc/mm/pkeys.c              |   16 ++++++++++++++++
+ 2 files changed, 22 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-index 209f127..cd2bd73 100644
---- a/arch/powerpc/include/asm/mmu_context.h
-+++ b/arch/powerpc/include/asm/mmu_context.h
-@@ -186,6 +186,10 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
- {
- }
+diff --git a/arch/powerpc/include/uapi/asm/mman.h b/arch/powerpc/include/uapi/asm/mman.h
+index e63bc37..65065ce 100644
+--- a/arch/powerpc/include/uapi/asm/mman.h
++++ b/arch/powerpc/include/uapi/asm/mman.h
+@@ -30,4 +30,10 @@
+ #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
+ #define MAP_HUGETLB	0x40000		/* create a huge page mapping */
  
-+#ifdef CONFIG_PPC_MEM_KEYS
-+bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write,
-+			       bool execute, bool foreign);
-+#else /* CONFIG_PPC_MEM_KEYS */
- static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 		bool write, bool execute, bool foreign)
- {
-@@ -193,7 +197,6 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- 	return true;
- }
- 
--#ifndef CONFIG_PPC_MEM_KEYS
- #define pkey_mm_init(mm)
- #define thread_pkey_regs_save(thread)
- #define thread_pkey_regs_restore(new_thread, old_thread)
++/* Override any generic PKEY permission defines */
++#define PKEY_DISABLE_EXECUTE   0x4
++#undef PKEY_ACCESS_MASK
++#define PKEY_ACCESS_MASK       (PKEY_DISABLE_ACCESS |\
++				PKEY_DISABLE_WRITE  |\
++				PKEY_DISABLE_EXECUTE)
+ #endif /* _UAPI_ASM_POWERPC_MMAN_H */
 diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index 0e044ea..0701aa3 100644
+index eca04cd..39e9814 100644
 --- a/arch/powerpc/mm/pkeys.c
 +++ b/arch/powerpc/mm/pkeys.c
-@@ -390,3 +390,37 @@ bool arch_pte_access_permitted(u64 pte, bool write, bool execute)
+@@ -29,6 +29,14 @@ int pkey_initialize(void)
+ 	int os_reserved, i;
  
- 	return pkey_access_permitted(pte_to_pkey_bits(pte), write, execute);
- }
-+
-+/*
-+ * We only want to enforce protection keys on the current thread because we
-+ * effectively have no access to AMR/IAMR for other threads or any way to tell
-+ * which AMR/IAMR in a threaded process we could use.
-+ *
-+ * So do not enforce things if the VMA is not from the current mm, or if we are
-+ * in a kernel thread.
-+ */
-+static inline bool vma_is_foreign(struct vm_area_struct *vma)
-+{
-+	if (!current->mm)
-+		return true;
-+
-+	/* if it is not our ->mm, it has to be foreign */
-+	if (current->mm != vma->vm_mm)
-+		return true;
-+
-+	return false;
-+}
-+
-+bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write,
-+			       bool execute, bool foreign)
-+{
-+	if (static_branch_likely(&pkey_disabled))
-+		return true;
-+	/*
-+	 * Do not enforce our key-permissions on a foreign vma.
+ 	/*
++	 * We define PKEY_DISABLE_EXECUTE in addition to the arch-neutral
++	 * generic defines for PKEY_DISABLE_ACCESS and PKEY_DISABLE_WRITE.
++	 * Ensure that the bits a distinct.
 +	 */
-+	if (foreign || vma_is_foreign(vma))
-+		return true;
++	BUILD_BUG_ON(PKEY_DISABLE_EXECUTE &
++		     (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
 +
-+	return pkey_access_permitted(vma_pkey(vma), write, execute);
-+}
++	/*
+ 	 * Disable the pkey system till everything is in place. A subsequent
+ 	 * patch will enable it.
+ 	 */
+@@ -181,10 +189,18 @@ int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 				unsigned long init_val)
+ {
+ 	u64 new_amr_bits = 0x0ul;
++	u64 new_iamr_bits = 0x0ul;
+ 
+ 	if (!is_pkey_enabled(pkey))
+ 		return -EINVAL;
+ 
++	if (init_val & PKEY_DISABLE_EXECUTE) {
++		if (!pkey_execute_disable_supported)
++			return -EINVAL;
++		new_iamr_bits |= IAMR_EX_BIT;
++	}
++	init_iamr(pkey, new_iamr_bits);
++
+ 	/* Set the bits we need in AMR: */
+ 	if (init_val & PKEY_DISABLE_ACCESS)
+ 		new_amr_bits |= AMR_RD_BIT | AMR_WR_BIT;
 -- 
 1.7.1
