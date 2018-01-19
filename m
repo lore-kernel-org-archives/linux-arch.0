@@ -1,96 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f196.google.com ([209.85.216.196]:42265 "EHLO
-        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755621AbeASBwT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 20:52:19 -0500
+Received: from mail-qt0-f195.google.com ([209.85.216.195]:42237 "EHLO
+        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755363AbeASBwM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jan 2018 20:52:12 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 12/27] powerpc: ability to associate pkey to a vma
-Date: Thu, 18 Jan 2018 17:50:33 -0800
-Message-ID: <1516326648-22775-13-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 11/27] powerpc: introduce execute-only pkey
+Date: Thu, 18 Jan 2018 17:50:32 -0800
+Message-ID: <1516326648-22775-12-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 References: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
-Message-ID: <20180119015033.7B8lrJECKhdpyfH4MKJ5ooGCD_RkMsY-KFMcbamD4GU@z>
+Message-ID: <20180119015032.Prrg0nOltrmUBGZbku3Ii9iptOwUUa7oSHviKuGrJIc@z>
 
-arch-independent code expects the arch to  map
-a  pkey  into the vma's protection bit setting.
-The patch provides that ability.
+This patch provides the implementation of execute-only pkey.
+The architecture-independent layer expects the arch-dependent
+layer, to support the ability to create and enable a special
+key which has execute-only permission.
 
+Acked-by: Balbir Singh <bsingharora@gmail.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- arch/powerpc/include/asm/mman.h  |    7 ++++++-
- arch/powerpc/include/asm/pkeys.h |   11 +++++++++++
- arch/powerpc/mm/pkeys.c          |    8 ++++++++
- 3 files changed, 25 insertions(+), 1 deletions(-)
+ arch/powerpc/include/asm/book3s/64/mmu.h |    1 +
+ arch/powerpc/include/asm/pkeys.h         |    6 +++-
+ arch/powerpc/mm/pkeys.c                  |   58 ++++++++++++++++++++++++++++++
+ 3 files changed, 64 insertions(+), 1 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/mman.h b/arch/powerpc/include/asm/mman.h
-index 30922f6..2999478 100644
---- a/arch/powerpc/include/asm/mman.h
-+++ b/arch/powerpc/include/asm/mman.h
-@@ -13,6 +13,7 @@
- 
- #include <asm/cputable.h>
- #include <linux/mm.h>
-+#include <linux/pkeys.h>
- #include <asm/cpu_has_feature.h>
- 
- /*
-@@ -22,7 +23,11 @@
- static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
- 		unsigned long pkey)
- {
--	return (prot & PROT_SAO) ? VM_SAO : 0;
-+#ifdef CONFIG_PPC_MEM_KEYS
-+	return (((prot & PROT_SAO) ? VM_SAO : 0) | pkey_to_vmflag_bits(pkey));
-+#else
-+	return ((prot & PROT_SAO) ? VM_SAO : 0);
-+#endif
- }
- #define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu.h b/arch/powerpc/include/asm/book3s/64/mmu.h
+index 37ef23c..0abeb0e 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu.h
+@@ -116,6 +116,7 @@ struct patb_entry {
+ 	 * bit unset -> key available for allocation
+ 	 */
+ 	u32 pkey_allocation_map;
++	s16 execute_only_pkey; /* key holding execute-only protection */
+ #endif
+ } mm_context_t;
  
 diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
-index 2b5bb35..c7cc433 100644
+index 3def5af..2b5bb35 100644
 --- a/arch/powerpc/include/asm/pkeys.h
 +++ b/arch/powerpc/include/asm/pkeys.h
-@@ -41,6 +41,17 @@
- #define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | \
- 			    VM_PKEY_BIT3 | VM_PKEY_BIT4)
- 
-+/* Override any generic PKEY permission defines */
-+#define PKEY_DISABLE_EXECUTE   0x4
-+#define PKEY_ACCESS_MASK       (PKEY_DISABLE_ACCESS | \
-+				PKEY_DISABLE_WRITE  | \
-+				PKEY_DISABLE_EXECUTE)
+@@ -128,9 +128,13 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
+  * Try to dedicate one of the protection keys to be used as an
+  * execute-only protection key.
+  */
++extern int __execute_only_pkey(struct mm_struct *mm);
+ static inline int execute_only_pkey(struct mm_struct *mm)
+ {
+-	return 0;
++	if (static_branch_likely(&pkey_disabled))
++		return -1;
 +
-+static inline u64 pkey_to_vmflag_bits(u16 pkey)
-+{
-+	return (((u64)pkey << VM_PKEY_SHIFT) & ARCH_VM_PKEY_FLAGS);
-+}
-+
- #define arch_max_pkey() pkeys_total
++	return __execute_only_pkey(mm);
+ }
  
- #define pkey_alloc_mask(pkey) (0x1 << pkey)
+ static inline int arch_override_mprotect_pkey(struct vm_area_struct *vma,
 diff --git a/arch/powerpc/mm/pkeys.c b/arch/powerpc/mm/pkeys.c
-index b466a2c..ee31ab5 100644
+index 7dfcf2d..b466a2c 100644
 --- a/arch/powerpc/mm/pkeys.c
 +++ b/arch/powerpc/mm/pkeys.c
-@@ -39,6 +39,14 @@ int pkey_initialize(void)
- 		     (PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE));
+@@ -96,6 +96,8 @@ void pkey_mm_init(struct mm_struct *mm)
+ 	if (static_branch_likely(&pkey_disabled))
+ 		return;
+ 	mm_pkey_allocation_map(mm) = initial_allocation_mask;
++	/* -1 means unallocated or invalid */
++	mm->context.execute_only_pkey = -1;
+ }
  
- 	/*
-+	 * pkey_to_vmflag_bits() assumes that the pkey bits are contiguous
-+	 * in the vmaflag. Make sure that is really the case.
-+	 */
-+	BUILD_BUG_ON(__builtin_clzl(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT) +
-+		     __builtin_popcountl(ARCH_VM_PKEY_FLAGS >> VM_PKEY_SHIFT)
-+				!= (sizeof(u64) * BITS_PER_BYTE));
+ static inline u64 read_amr(void)
+@@ -260,3 +262,59 @@ void thread_pkey_regs_init(struct thread_struct *thread)
+ 	write_iamr(read_iamr() & pkey_iamr_mask);
+ 	write_uamor(read_uamor() & pkey_amr_uamor_mask);
+ }
++
++static inline bool pkey_allows_readwrite(int pkey)
++{
++	int pkey_shift = pkeyshift(pkey);
++
++	if (!is_pkey_enabled(pkey))
++		return true;
++
++	return !(read_amr() & ((AMR_RD_BIT|AMR_WR_BIT) << pkey_shift));
++}
++
++int __execute_only_pkey(struct mm_struct *mm)
++{
++	bool need_to_set_mm_pkey = false;
++	int execute_only_pkey = mm->context.execute_only_pkey;
++	int ret;
++
++	/* Do we need to assign a pkey for mm's execute-only maps? */
++	if (execute_only_pkey == -1) {
++		/* Go allocate one to use, which might fail */
++		execute_only_pkey = mm_pkey_alloc(mm);
++		if (execute_only_pkey < 0)
++			return -1;
++		need_to_set_mm_pkey = true;
++	}
 +
 +	/*
- 	 * Disable the pkey system till everything is in place. A subsequent
- 	 * patch will enable it.
- 	 */
++	 * We do not want to go through the relatively costly dance to set AMR
++	 * if we do not need to. Check it first and assume that if the
++	 * execute-only pkey is readwrite-disabled than we do not have to set it
++	 * ourselves.
++	 */
++	if (!need_to_set_mm_pkey && !pkey_allows_readwrite(execute_only_pkey))
++		return execute_only_pkey;
++
++	/*
++	 * Set up AMR so that it denies access for everything other than
++	 * execution.
++	 */
++	ret = __arch_set_user_pkey_access(current, execute_only_pkey,
++					  PKEY_DISABLE_ACCESS |
++					  PKEY_DISABLE_WRITE);
++	/*
++	 * If the AMR-set operation failed somehow, just return 0 and
++	 * effectively disable execute-only support.
++	 */
++	if (ret) {
++		mm_pkey_free(mm, execute_only_pkey);
++		return -1;
++	}
++
++	/* We got one, store it and use it from here on out */
++	if (need_to_set_mm_pkey)
++		mm->context.execute_only_pkey = execute_only_pkey;
++	return execute_only_pkey;
++}
 -- 
 1.7.1
