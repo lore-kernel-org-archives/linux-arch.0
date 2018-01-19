@@ -1,37 +1,64 @@
-From: 38965208@mylife.unisa.ac.za
-Subject: Darlehensangebot
-Date: Fri, 19 Jan 2018 19:07:24 +0530
-Message-ID: <VI1PR0101MB23994E1BA002FD0A7E6B1EB1B4EF0@VI1PR0101MB2399.eurprd01.prod.exchangelabs.com>
-Reply-To: david.loanfirm09@gmail.com
+From: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH v6 24/36] nds32: Loadable modules
+Date: Fri, 19 Jan 2018 22:26:57 +0800
+Message-ID: <CAEbi=3e8eUDsmX2DgixgM9P=oPu1b1-wvUDpiLGx4fbUPtCOuw@mail.gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com> <0a0789a3f776a5248ebc01706d502a3a9823cfac.1515766253.git.green.hu@gmail.com>
+ <CAK8P3a3pQSxM+gJ+dJsyeo5YnuOOyFYVoJdCVmnoHR0Numya5g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-he1eur01hn0235.outbound.protection.outlook.com ([104.47.0.235]:52683
-        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1754542AbeASNfu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Jan 2018 08:35:50 -0500
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <38965208@mylife.unisa.ac.za>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <CAK8P3a3pQSxM+gJ+dJsyeo5YnuOOyFYVoJdCVmnoHR0Numya5g-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Networking <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, Guo Ren <ren_guo-Y+KPrCd2zL4@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-Sch=C3=B6nen Tag,
+2018-01-18 18:41 GMT+08:00 Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>:
+> On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
+>> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
+>>
+>> This patch adds support for loadable modules.
+>
+> One detail:
+>
+> You still seem to have both the ELF_REL and ELF_RELA based functions
+> implemented here, you should drop the unused ELF_REL version:
+>
+>> diff --git a/arch/nds32/kernel/module.c b/arch/nds32/kernel/module.c
+>> new file mode 100644
+>> index 0000000..714a6d6
+>> --- /dev/null
+>> +++ b/arch/nds32/kernel/module.c
+>> @@ -0,0 +1,286 @@
+>> +// SPDX-License-Identifier: GPL-2.0
+>> +// Copyright (C) 2005-2017 Andes Technology Corporation
+>> +
+>> +#include <linux/module.h>
+>> +#include <linux/elf.h>
+>> +#include <linux/vmalloc.h>
+>> +
+>> +#include <asm/pgtable.h>
+>
+> include <linux/moduleloader.h> to catch this.
+>
+>> +int
+>> +apply_relocate(Elf32_Shdr * sechdrs, const char *strtab,
+>> +              unsigned int symindex, unsigned int relsec,
+>> +              struct module *module)
+>> +{
+>> +       return 0;
+>> +}
+>
+> and drop this.
+>
+> With that change,
+>
+> Acked-by:  Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
 
-Sie ben=C3=B6tigen einen echten Kredit online Ihre Rechnungen zu sichern?
-Startet ein neues Unternehmen? Sie ben=C3=B6tigen einen pers=C3=B6nlichen K=
-redit
-oder Business-Darlehen? Wir bieten ein Darlehen von =E2=82=AC 10.000 bis =
-=E2=82=AC
-500,000.000.00 mit 2% Zinsen pro Jahr und auch mit einem
-erschwinglichen R=C3=BCckzahlungsbedingungen und Zustand. Ich suche f=C3=BCr
-Darlehen und Projektinvestmentfonds ? Wir halten professionelle
-Exzellenz, unsere Definition von Exzellenz liegt in hervorragenden
-Kundenservice, erschwingliche Zahlung und R=C3=BCckzahlung Pl=C3=A4ne, schn=
-ell
-und einfach-Prozess.
-Hochachtungsvoll....
+Hi, Arnd:
 
-Freundliche Gr=C3=BC=C3=9Fe,
-Herr David Williams
+Thank you. I will include moduleloader.h and drop apply_relocate().
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
