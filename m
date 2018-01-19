@@ -1,96 +1,85 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH v10 27/27] mm: display pkey in smaps if arch_pkeys_enabled() is true
-Date: Fri, 19 Jan 2018 10:09:41 -0600
-Message-ID: <87shb1de4a.fsf@xmission.com>
-References: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com>
-        <1516326648-22775-28-git-send-email-linuxram@us.ibm.com>
+From: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH v6 06/36] nds32: Kernel booting and initialization
+Date: Sat, 20 Jan 2018 00:34:38 +0800
+Message-ID: <CAEbi=3dJm=M-1UjUftb5qb0YOOsq92zzF86xeaVOhzULjvT3eA@mail.gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com> <5930d2df872116555cc553284b6c111dce29e298.1515766253.git.green.hu@gmail.com>
+ <CAK8P3a143yQ72+QGZSxpiFc7p8Hb7PXuCybJBFoLRSBaZ2uw4g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1516326648-22775-28-git-send-email-linuxram@us.ibm.com> (Ram
-        Pai's message of "Thu, 18 Jan 2018 17:50:48 -0800")
-Sender: linux-doc-owner@vger.kernel.org
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <CAK8P3a143yQ72+QGZSxpiFc7p8Hb7PXuCybJBFoLRSBaZ2uw4g-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Networking <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, Guo Ren <ren_guo-Y+KPrCd2zL4@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-Ram Pai <linuxram@us.ibm.com> writes:
+Hi, Arnd:
 
-> Currently the  architecture  specific code is expected to
-> display  the  protection  keys  in  smap  for a given vma.
-> This can lead to redundant code and possibly to divergent
-> formats in which the key gets displayed.
+2018-01-18 18:11 GMT+08:00 Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>:
+> On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
 >
-> This  patch  changes  the implementation. It displays the
-> pkey only if the architecture support pkeys.
+> I had not looked at this patch in enough detail earlier, sorry about
+> that. It should be
+> easy enough to fix though.
 >
-> x86 arch_show_smap() function is not needed anymore.
-> Delete it.
+>> +#ifdef CONFIG_VGA_CONSOLE
+>> +struct screen_info screen_info;
+>> +#endif
 >
-> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> ---
->  arch/x86/kernel/setup.c |    8 --------
->  fs/proc/task_mmu.c      |   11 ++++++-----
->  2 files changed, 6 insertions(+), 13 deletions(-)
+> I would assume that you can't ever have a VGA console. Just drop all
+> the references
+> here and instead send a patch to the fbdev maintainer to add the dependency
+> at CONFIG_VGA_CONSOLE to prevent selecting it with nds32.
+
+I found it can be built pass for now because we disable it in defconfig.
+Should I send the patch in v7 series?
+
+>> +
+>> +extern void __init early_init_devtree(void *params);
+>> +extern void __init early_trap_init(void);
 >
-> diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-> index 8af2e8d..ddf945a 100644
-> --- a/arch/x86/kernel/setup.c
-> +++ b/arch/x86/kernel/setup.c
-> @@ -1326,11 +1326,3 @@ static int __init register_kernel_offset_dumper(void)
->  	return 0;
->  }
->  __initcall(register_kernel_offset_dumper);
-> -
-> -void arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
-> -{
-> -	if (!boot_cpu_has(X86_FEATURE_OSPKE))
-> -		return;
-> -
-> -	seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
-> -}
-> diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-> index 0edd4da..4b39a94 100644
-> --- a/fs/proc/task_mmu.c
-> +++ b/fs/proc/task_mmu.c
-> @@ -18,6 +18,7 @@
->  #include <linux/page_idle.h>
->  #include <linux/shmem_fs.h>
->  #include <linux/uaccess.h>
-> +#include <linux/pkeys.h>
->  
->  #include <asm/elf.h>
->  #include <asm/tlb.h>
-> @@ -728,10 +729,6 @@ static int smaps_hugetlb_range(pte_t *pte, unsigned long hmask,
->  }
->  #endif /* HUGETLB_PAGE */
->  
-> -void __weak arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
-> -{
-> -}
-> -
->  static int show_smap(struct seq_file *m, void *v, int is_pid)
->  {
->  	struct proc_maps_private *priv = m->private;
-> @@ -851,9 +848,13 @@ static int show_smap(struct seq_file *m, void *v, int is_pid)
->  			   (unsigned long)(mss->pss >> (10 + PSS_SHIFT)));
->  
->  	if (!rollup_mode) {
-> -		arch_show_smap(m, vma);
-> +#ifdef CONFIG_ARCH_HAS_PKEYS
-> +		if (arch_pkeys_enabled())
-> +			seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
-> +#endif
+> similarly, these are declared in include/linux/of_fdt.h
+>
 
-Would it be worth it making vma_pkey a noop on architectures that don't
-support protection keys so that we don't need the #ifdef here?
+early_trap_init is a nds32 function. I will move it to nds32.h
 
-Eric
+>> +void __init setup_arch(char **cmdline_p)
+>> +{
+>> +       early_init_devtree(__atags_pointer ?
+>> +                          phys_to_virt(__atags_pointer) : __dtb_start);
+>
+> The reference to '__atags_pointer' appears to be a leftover from pre-DT
+> days. Can you just remove that?
+
+Yes, I will remove it.
+
+>> +void calibrate_delay(void)
+>> +{
+>> +       const int *val;
+>> +       struct device_node *cpu = NULL;
+>> +       cpu = of_find_compatible_node(NULL, NULL, "andestech,nds32v3");
+>> +       val = of_get_property(cpu, "clock-frequency", NULL);
+>> +       if (!val || !*val)
+>> +               panic("no cpu 'clock-frequency' parameter in device tree");
+>> +       loops_per_jiffy = be32_to_cpup(val) / HZ;
+>> +       pr_cont("%lu.%02lu BogoMIPS (lpj=%lu)\n",
+>> +               loops_per_jiffy / (500000 / HZ),
+>> +               (loops_per_jiffy / (5000 / HZ)) % 100, loops_per_jiffy);
+>> +}
+>
+> This seems very odd to me: The 'clock-frequency' property in the
+> cpu node should refer to the actual frequency it is running at, but that
+> tends to be different from the bogomips as needed by the ndelay()
+> function. Can you explain what is going on here?
+>
+
+This implementation is referenced from openrisc.
+https://lkml.org/lkml/2017/11/17/228
 
 
->  		show_smap_vma_flags(m, vma);
->  	}
-> +
->  	m_cache_vma(m, vma);
->  	return ret;
->  }
+
+Thank you.
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
