@@ -1,93 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42876 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754951AbeASInG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Jan 2018 03:43:06 -0500
-Subject: Re: [PATCH v4 09/10] kvm, x86: fix spectre-v1 mitigation
-References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151632015123.21271.9060883997507739532.stgit@dwillia2-desk3.amr.corp.intel.com>
-From: Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <729b6b10-500b-3002-4051-8a1d8fe31d27@redhat.com>
-Date: Fri, 19 Jan 2018 09:42:59 +0100
+Received: from mail-vk0-f45.google.com ([209.85.213.45]:45203 "EHLO
+        mail-vk0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751200AbeASMvc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jan 2018 07:51:32 -0500
 MIME-Version: 1.0
-In-Reply-To: <151632015123.21271.9060883997507739532.stgit@dwillia2-desk3.amr.corp.intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <CAK8P3a2qx5pZmE-=QM5Bwrsib4XcfVac7RQr-QMzEseQ_oBPEA@mail.gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com> <790e05e9b9675b3f6ef41693a794d1f09795c151.1515766253.git.green.hu@gmail.com>
+ <CAK8P3a2qx5pZmE-=QM5Bwrsib4XcfVac7RQr-QMzEseQ_oBPEA@mail.gmail.com>
+From: Greentime Hu <green.hu@gmail.com>
+Date: Fri, 19 Jan 2018 20:50:50 +0800
+Message-ID: <CAEbi=3dR1wc3NY6aaUw+gzMUp_Z7Fk2E_eEfJq6J22DPaaMjkQ@mail.gmail.com>
+Subject: Re: [PATCH v6 03/36] sparc: io: To use the define of
+ ioremap_[nocache|wc|wb] in asm-generic/io.h
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andrew Honig <ahonig@google.com>, stable@vger.kernel.org, gregkh@linuxfoundation.org, tglx@linutronix.de, alan@linux.intel.com, torvalds@linux-foundation.org, akpm@linux-foundation.org, Jim Mattson <jmattson@google.com>
-Message-ID: <20180119084259.hlxCCQMgCtrHVwG2xbFDREECtwcu6OvscbxWs6c4acA@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
+Message-ID: <20180119125050.LvGAio87wv1ALN58hLpJEiuGfn63WgRD78DbdkVy-NA@z>
 
-On 19/01/2018 01:02, Dan Williams wrote:
-> Commit 75f139aaf896 "KVM: x86: Add memory barrier on vmcs field lookup"
-> added a raw 'asm("lfence");' to prevent a bounds check bypass of
-> 'vmcs_field_to_offset_table'. This does not work for some AMD cpus, see
-> the 'ifence' helper,
+2018-01-18 17:56 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>> From: Greentime Hu <greentime@andestech.com>
+>>
+>> It will be built failed if commit id: d25ea659 is selected. This patch
+>> can fix this build error.
+>>
+>> Signed-off-by: Greentime Hu <greentime@andestech.com>
+>
+> The change is fine, but the reference to commit 'd25ea659' is not for
+> two reasons:
+>
+> - when you rebase the tree, you will get a different ID
+> - the recommended format for referring to another commit is to list it wi=
+th
+>   12 digits and the one-line summary like this:
+>
+>    commit d25ea659bc37 ("asm-generic/io.h: move
+>   ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_=E2=80=A6")
+>
+> - Ideally you use a 'Fixes:' tag in the patch description.
+>
+> You can add these lines in your .gitconfig to help you here
+>
+> [alias]
+>         fixes =3D show --format=3D'Fixes: %h (\"%s\")' -s
+> [core]
+>         abbrev =3D 12
+>
+> That will give you a 'git fixes' command to output the Fixes: line
+> in the correct format for future bug fixes. For this particular change,
+> I would actually just merge the two patches into one patch that
+> then doesn't break anything in the first place.
+>
 
-The code never runs on AMD cpus (it's for Intel virtualization
-extensions), so it'd be nice if you could fix up the commit message.
+Hi, Arnd:
 
-Apart from this, obviously
+Thank you for your comments and teaching me how to add these messages.
+I will update the commit messages and my .gitconfig.
 
-Acked-by: Paolo Bonzini <pbonzini@redhat.com>
+Since the commit id will be changed after rebasing, I will update the
+messages like this.
 
-Thanks!
+sparc: io: To use the define of ioremap_[nocache|wc|wb] in asm-generic/io.h
 
-Paolo
+A commit for the nds32 architecture bootstrap("asm-generic/io.h: move
+ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU")
+will move the ioremap_nocache out of the CONFIG_MMU ifdef. This means that
+in order to suppress re-definition errors we need to remove the #define
+in io_32.h.
 
-> and it otherwise does not use the common
-> 'array_ptr' helper designed for these types of fixes. Convert this to
-> use 'array_ptr'.
-> 
-> Cc: Andrew Honig <ahonig@google.com>
-> Cc: Jim Mattson <jmattson@google.com>
-> Cc: Paolo Bonzini <pbonzini@redhat.com>
-> Cc: <stable@vger.kernel.org>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> ---
->  arch/x86/kvm/vmx.c |   19 +++++++------------
->  1 file changed, 7 insertions(+), 12 deletions(-)
-> 
-> diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
-> index c829d89e2e63..20b9b0b5e336 100644
-> --- a/arch/x86/kvm/vmx.c
-> +++ b/arch/x86/kvm/vmx.c
-> @@ -34,6 +34,7 @@
->  #include <linux/tboot.h>
->  #include <linux/hrtimer.h>
->  #include <linux/frame.h>
-> +#include <linux/nospec.h>
->  #include "kvm_cache_regs.h"
->  #include "x86.h"
->  
-> @@ -898,21 +899,15 @@ static const unsigned short vmcs_field_to_offset_table[] = {
->  
->  static inline short vmcs_field_to_offset(unsigned long field)
->  {
-> -	BUILD_BUG_ON(ARRAY_SIZE(vmcs_field_to_offset_table) > SHRT_MAX);
-> -
-> -	if (field >= ARRAY_SIZE(vmcs_field_to_offset_table))
-> -		return -ENOENT;
-> +	const unsigned short *offset;
->  
-> -	/*
-> -	 * FIXME: Mitigation for CVE-2017-5753.  To be replaced with a
-> -	 * generic mechanism.
-> -	 */
-> -	asm("lfence");
-> +	BUILD_BUG_ON(ARRAY_SIZE(vmcs_field_to_offset_table) > SHRT_MAX);
->  
-> -	if (vmcs_field_to_offset_table[field] == 0)
-> +	offset = array_ptr(vmcs_field_to_offset_table, field,
-> +			ARRAY_SIZE(vmcs_field_to_offset_table));
-> +	if (!offset || *offset == 0)
->  		return -ENOENT;
-> -
-> -	return vmcs_field_to_offset_table[field];
-> +	return *offset;
->  }
->  
->  static inline struct vmcs12 *get_vmcs12(struct kvm_vcpu *vcpu)
-> 
+Also, the change adds a prototype for ioremap where size is size_t and
+offset is phys_addr_t so fix that as well.
+
+Signed-off-by: Greentime Hu <greentime@andestech.com>
