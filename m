@@ -1,31 +1,184 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [GIT PULL] spectre variant1 mitigations for 4.16
-Date: Sat, 20 Jan 2018 20:49:32 +0100 (CET)
-Message-ID: <alpine.DEB.2.20.1801202047400.1998@nanos>
-References: <1516473386.30886.35.camel@intel.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: [PATCH v4.1 01/10] Documentation: document array_ptr
+Date: Sat, 20 Jan 2018 13:06:04 -0800
+Message-ID: <151648236454.34747.93245075402067564.stgit@dwillia2-desk3.amr.corp.intel.com>
+References: <151648235823.34747.15181877619346237802.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-11366-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <1516473386.30886.35.camel@intel.com>
-To: "Williams, Dan J" <dan.j.williams@intel.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "alan@linux.intel.com" <alan@linux.intel.com>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "Reshetova, Elena" <elena.reshetova@intel.com>, "johannes@sipsolutions.net" <johannes@sipsolutions.net>, "will.deacon@arm.com" <will.deacon@arm.com>, "luto@kernel.org" <luto@kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga05.intel.com ([192.55.52.43]:2203 "EHLO mga05.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1756667AbeATVPK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 20 Jan 2018 16:15:10 -0500
+In-Reply-To: <151648235823.34747.15181877619346237802.stgit@dwillia2-desk3.amr.corp.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: tglx@linutronix.de
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, gregkh@linuxfoundation.org, Jonathan Corbet <corbet@lwn.net>, Will Deacon <will.deacon@arm.com>, torvalds@linux-foundation.org, alan@linux.intel.com
 
-Dan,
+From: Mark Rutland <mark.rutland@arm.com>
 
-On Sat, 20 Jan 2018, Williams, Dan J wrote:
+Document the rationale and usage of the new array_ptr() helper.
 
-> The following changes since commit a8750ddca918032d6349adbf9a4b6555e7db20da:
-> 
->   Linux 4.15-rc8 (2018-01-14 15:32:30 -0800)
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+---
+ Documentation/speculation.txt |  143 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 143 insertions(+)
+ create mode 100644 Documentation/speculation.txt
 
-can you please post the individual patches? I want to make sure that they
-go through x86/pti for ease of backporting.
-
-Thanks,
-
-	tglx
+diff --git a/Documentation/speculation.txt b/Documentation/speculation.txt
+new file mode 100644
+index 000000000000..a47fbffe0dab
+--- /dev/null
++++ b/Documentation/speculation.txt
+@@ -0,0 +1,143 @@
++This document explains potential effects of speculation, and how undesirable
++effects can be mitigated portably using common APIs.
++
++===========
++Speculation
++===========
++
++To improve performance and minimize average latencies, many contemporary CPUs
++employ speculative execution techniques such as branch prediction, performing
++work which may be discarded at a later stage.
++
++Typically speculative execution cannot be observed from architectural state,
++such as the contents of registers. However, in some cases it is possible to
++observe its impact on microarchitectural state, such as the presence or
++absence of data in caches. Such state may form side-channels which can be
++observed to extract secret information.
++
++For example, in the presence of branch prediction, it is possible for bounds
++checks to be ignored by code which is speculatively executed. Consider the
++following code:
++
++	int load_array(int *array, unsigned int idx)
++	{
++		if (idx >= MAX_ARRAY_ELEMS)
++			return 0;
++		else
++			return array[idx];
++	}
++
++Which, on arm64, may be compiled to an assembly sequence such as:
++
++	CMP	<idx>, #MAX_ARRAY_ELEMS
++	B.LT	less
++	MOV	<returnval>, #0
++	RET
++  less:
++	LDR	<returnval>, [<array>, <idx>]
++	RET
++
++It is possible that a CPU mis-predicts the conditional branch, and
++speculatively loads array[idx], even if idx >= MAX_ARRAY_ELEMS. This value
++will subsequently be discarded, but the speculated load may affect
++microarchitectural state which can be subsequently measured.
++
++More complex sequences involving multiple dependent memory accesses may result
++in sensitive information being leaked. Consider the following code, building
++on the prior example:
++
++	int load_dependent_arrays(int *arr1, int *arr2, int idx)
++	{
++		int val1, val2,
++
++		val1 = load_array(arr1, idx);
++		val2 = load_array(arr2, val1);
++
++		return val2;
++	}
++
++Under speculation, the first call to load_array() may return the value of an
++out-of-bounds address, while the second call will influence microarchitectural
++state dependent on this value. This may provide an arbitrary read primitive.
++
++====================================
++Mitigating speculation side-channels
++====================================
++
++The kernel provides a generic API to ensure that bounds checks are respected
++even under speculation. Architectures which are affected by speculation-based
++side-channels are expected to implement these primitives.
++
++The array_ptr() helper in <asm/barrier.h> can be used to prevent
++information from being leaked via side-channels.
++
++A call to array_ptr(arr, idx, sz) returns a sanitized pointer to
++arr[idx] only if idx falls in the [0, sz) interval. When idx < 0 or idx > sz,
++NULL is returned. Additionally, array_ptr() of an out-of-bounds pointer is
++not propagated to code which is speculatively executed.
++
++This can be used to protect the earlier load_array() example:
++
++	int load_array(int *array, unsigned int idx)
++	{
++		int *elem;
++
++		elem = array_ptr(array, idx, MAX_ARRAY_ELEMS);
++		if (elem)
++			return *elem;
++		else
++			return 0;
++	}
++
++This can also be used in situations where multiple fields on a structure are
++accessed:
++
++	struct foo array[SIZE];
++	int a, b;
++
++	void do_thing(int idx)
++	{
++		struct foo *elem;
++
++		elem = array_ptr(array, idx, SIZE);
++		if (elem) {
++			a = elem->field_a;
++			b = elem->field_b;
++		}
++	}
++
++It is imperative that the returned pointer is used. Pointers which are
++generated separately are subject to a number of potential CPU and compiler
++optimizations, and may still be used speculatively. For example, this means
++that the following sequence is unsafe:
++
++	struct foo array[SIZE];
++	int a, b;
++
++	void do_thing(int idx)
++	{
++		if (array_ptr(array, idx, SIZE) != NULL) {
++			// unsafe as wrong pointer is used
++			a = array[idx].field_a;
++			b = array[idx].field_b;
++		}
++	}
++
++Similarly, it is unsafe to compare the returned pointer with other pointers,
++as this may permit the compiler to substitute one pointer with another,
++permitting speculation. For example, the following sequence is unsafe:
++
++	struct foo array[SIZE];
++	int a, b;
++
++	void do_thing(int idx)
++	{
++		struct foo *elem = array_ptr(array, idx, size);
++
++		// unsafe due to pointer substitution
++		if (elem == &array[idx]) {
++			a = elem->field_a;
++			b = elem->field_b;
++		}
++	}
++
