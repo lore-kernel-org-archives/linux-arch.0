@@ -1,87 +1,70 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH v4 00/10] prevent bounds-check bypass via speculative execution
-Date: Fri, 19 Jan 2018 22:58:44 -0800
-Message-ID: <CAPcyv4iBHTahi66deUT1iSPpA2W2wjYZSaiUYUjpdK10d5Rt7g@mail.gmail.com>
-References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: Vincent Chen <deanbo422@gmail.com>
+Subject: Re: [PATCH v6 2/3] clocksource/drivers/atcpit100: VDSO support
+Date: Sat, 20 Jan 2018 19:11:22 +0800
+Message-ID: <CAJsyPhxrKKN43usZ+mxAzci4G1qXnEXQ6ydT18MCiT7qQcMz3g@mail.gmail.com>
+References: <cover.1515766198.git.green.hu@gmail.com> <de648d211061a16c85ae0321625c51343ce5e5ce.1515766198.git.green.hu@gmail.com>
+ <CAK8P3a1RQxBNGiVD11BuL5kUx+fn0QcA02j0HVPnMQ2j3WmMQQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: stable-owner@vger.kernel.org
-To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Cc: Mark Rutland <mark.rutland@arm.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, X86 ML <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Andrew Honig <ahonig@google.com>, Alan Cox <alan@linux.intel.com>, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>An
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-io0-f193.google.com ([209.85.223.193]:46749 "EHLO
+        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751022AbeATLLY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 20 Jan 2018 06:11:24 -0500
+In-Reply-To: <CAK8P3a1RQxBNGiVD11BuL5kUx+fn0QcA02j0HVPnMQ2j3WmMQQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>
 
-On Thu, Jan 18, 2018 at 4:01 PM, Dan Williams <dan.j.williams@intel.com> wrote:
-> Changes since v3 [1]
-> * Drop 'ifence_array_ptr' and associated compile-time + run-time
->   switching and just use the masking approach all the time.
+2018-01-18 19:08 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Mon, Jan 15, 2018 at 6:57 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>> From: Rick Chen <rickchen36@gmail.com>
+>>
+>> VDSO needs real-time cycle count to ensure the time accuracy.
+>> Unlike others, nds32 architecture does not define clock source,
+>> hence VDSO needs atcpit100 offering real-time cycle count
+>> to derive the correct time.
+>>
+>> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+>> Signed-off-by: Rick Chen <rickchen36@gmail.com>
+>> Signed-off-by: Greentime Hu <green.hu@gmail.com>
 >
-> * Convert 'get_user' to use pointer sanitization via masking rather than
->   lfence. '__get_user' and associated paths still rely on
->   lfence. (Linus)
+> I'm a bit puzzled by this patch, can you explain how the vdso actually
+> manages to access the clock hardware? It looks like you make the
+> physical address and the register offset available to user space, but
+> how does it end up accessing it?
 >
->       "Basically, the rule is trivial: find all 'stac' users, and use
->        address masking if those users already integrate the limit
->        check, and lfence they don't."
->
-> * At syscall entry sanitize the syscall number under speculation
->   to remove a user controlled pointer de-reference in kernel
->   space.  (Linus)
->
-> * Fix a raw lfence in the kvm code (added for v4.15-rc8) to use
->   'array_ptr'.
->
-> * Propose 'array_idx' as a way to sanitize user input that is
->   later used as an array index, but where the validation is
->   happening in a different code block than the array reference.
->   (Christian).
->
-> * Fix grammar in speculation.txt (Kees)
->
-> ---
->
-> Quoting Mark's original RFC:
->
-> "Recently, Google Project Zero discovered several classes of attack
-> against speculative execution. One of these, known as variant-1, allows
-> explicit bounds checks to be bypassed under speculation, providing an
-> arbitrary read gadget. Further details can be found on the GPZ blog [2]
-> and the Documentation patch in this series."
->
-> A precondition of using this attack on the kernel is to get a user
-> controlled pointer de-referenced (under speculation) in privileged code.
-> The primary source of user controlled pointers in the kernel is the
-> arguments passed to 'get_user' and '__get_user'. An example of other
-> user controlled pointers are user-controlled array / pointer offsets.
->
-> Better tooling is needed to find more arrays / pointers with user
-> controlled indices / offsets that can be converted to use 'array_ptr' or
-> 'array_idx'. A few are included in this set, and these are not expected
-> to be complete. That said, the 'get_user' protections raise the bar on
-> finding a vulnerable gadget in the kernel.
->
-> These patches are also available via the 'nospec-v4' git branch here:
->
->     git://git.kernel.org/pub/scm/linux/kernel/git/djbw/linux nospec-v4
+>       Arnd
 
-I've pushed out a nospec-v4.1 with the below minor cleanup, a fixup of
-the changelog for "kvm, x86: fix spectre-v1 mitigation", and added
-Paolo's ack.
+Dear Arnd:
 
-     git://git.kernel.org/pub/scm/linux/kernel/git/djbw/linux nospec-v4.1
+Accessing clock hardware in vdso can be divided to 2 step.
 
-diff --git a/include/linux/nospec.h b/include/linux/nospec.h
-index 8af35be1869e..b8a9222e34d1 100644
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -37,7 +37,7 @@ static inline unsigned long array_ptr_mask(unsigned
-long idx, unsigned long sz)
-        unsigned long _i = (idx);                                       \
-        unsigned long _mask = array_ptr_mask(_i, (sz));                 \
-                                                                        \
--       __u._ptr = _arr + (_i & _mask);                                 \
-+       __u._ptr = _arr + _i;                                           \
-        __u._bit &= _mask;                                              \
-        __u._ptr;                                                       \
- })
+1. Setup an additional memory mapping for clock hardware in user space
+when establishing
+    vdso-needed memory mapping
+
+        In arch_setup_additional_pages(), kernel establishes memory
+mapping for vdso's text and vdata page
+    in user space. In order to make clock hardware be accessible in
+user space, we try to establish an
+    additional memory mapping for clock hardware here based on clock
+information from driver. This page is
+    located between vdata page and vdso text page. For safety, this
+region for clock accessing is read-only.
+
+2. Accessing clock hardware in vdso
+
+        After step 1, clock hardware is accessible in user space
+through memory-mapped IO. However, it is not
+   enough to access a specific register. Therefore, we store register
+offset information in vdata page to make it
+   visible in user space.  Now, vdso can derive the address of counter
+register by summation of __get_timerpage()
+   and counter register offset where __get_timerpage() is used to
+derive the virtual address of memory-mapped
+   clock.
+
+
+Vincent
