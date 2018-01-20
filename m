@@ -1,128 +1,106 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v4.1 06/10] x86,
- get_user: use pointer masking to limit speculation
-Date: Sat, 20 Jan 2018 13:06:30 -0800
-Message-ID: <151648239021.34747.14309294863650682773.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v4.1 10/10] nl80211: sanitize array index in parse_txq_params
+Date: Sat, 20 Jan 2018 13:06:52 -0800
+Message-ID: <151648241217.34747.15879467952925973505.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151648235823.34747.15181877619346237802.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:11182 "EHLO mga07.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:37131 "EHLO mga01.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756667AbeATVPg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 20 Jan 2018 16:15:36 -0500
+        id S1756705AbeATVP6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 20 Jan 2018 16:15:58 -0500
 In-Reply-To: <151648235823.34747.15181877619346237802.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
-Cc: linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
+Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, Christian Lamparter <chunkeey@gmail.com>, linux-wireless@vger.kernel.org, Johannes Berg <johannes@sipsolutions.net>, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
 
-Quoting Linus:
+Wireless drivers rely on parse_txq_params to validate that
+txq_params->ac is less than NL80211_NUM_ACS by the time the low-level
+driver's ->conf_tx() handler is called. Use a new helper, 'array_idx',
+to sanitize txq_params->ac with respect to speculation. I.e. ensure that
+any speculation into ->conf_tx() handlers is done with a value of
+txq_params->ac that is within the bounds of [0, NL80211_NUM_ACS).
 
-    I do think that it would be a good idea to very expressly document
-    the fact that it's not that the user access itself is unsafe. I do
-    agree that things like "get_user()" want to be protected, but not
-    because of any direct bugs or problems with get_user() and friends,
-    but simply because get_user() is an excellent source of a pointer
-    that is obviously controlled from a potentially attacking user
-    space. So it's a prime candidate for then finding _subsequent_
-    accesses that can then be used to perturb the cache.
-
-Unlike the '__get_user' case 'get_user' includes the address limit check
-near the pointer de-reference. With that locality the speculation can be
-mitigated with pointer narrowing rather than a barrier. Where the
-narrowing is performed by:
-
-	cmp %limit, %ptr
-	sbb %mask, %mask
-	and %mask, %ptr
-
-With respect to speculation the value of %ptr is either less than %limit
-or NULL.
-
-Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: x86@kernel.org
+Reported-by: Christian Lamparter <chunkeey@gmail.com>
+Reported-by: Elena Reshetova <elena.reshetova@intel.com>
+Cc: Johannes Berg <johannes@sipsolutions.net>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: linux-wireless@vger.kernel.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/x86/include/asm/smap.h |   17 +++++++++++++++++
- arch/x86/lib/getuser.S      |    5 +++++
- 2 files changed, 22 insertions(+)
+ include/linux/nospec.h |   21 +++++++++++++++++++++
+ net/wireless/nl80211.c |   10 +++++++---
+ 2 files changed, 28 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/smap.h b/arch/x86/include/asm/smap.h
-index db333300bd4b..2b4ad4c6a226 100644
---- a/arch/x86/include/asm/smap.h
-+++ b/arch/x86/include/asm/smap.h
-@@ -25,6 +25,23 @@
- 
- #include <asm/alternative-asm.h>
- 
-+/*
-+ * MASK_NOSPEC - sanitize the value of a user controlled value with
-+ * respect to speculation
-+ *
-+ * In the get_user path once we have determined that the pointer is
-+ * below the current address limit sanitize its value with respect to
-+ * speculation. In the case when the pointer is above the address limit
-+ * this directs the cpu to speculate with a NULL ptr rather than
-+ * something targeting kernel memory.
-+ *
-+ * assumes CF is set from a previous 'cmp TASK_addr_limit, %ptr'
-+ */
-+.macro MASK_NOSPEC mask val
-+	sbb \mask, \mask
-+	and \mask, \val
-+.endm
+diff --git a/include/linux/nospec.h b/include/linux/nospec.h
+index dd3aa05fab87..b8a9222e34d1 100644
+--- a/include/linux/nospec.h
++++ b/include/linux/nospec.h
+@@ -41,4 +41,25 @@ static inline unsigned long array_ptr_mask(unsigned long idx, unsigned long sz)
+ 	__u._bit &= _mask;						\
+ 	__u._ptr;							\
+ })
 +
- #ifdef CONFIG_X86_SMAP
++/**
++ * array_idx - Generate a pointer to an array index, ensuring the
++ * pointer is bounded under speculation to NULL.
++ *
++ * @idx: the index of the element, must be less than LONG_MAX
++ * @sz: the number of elements in the array, must be less than LONG_MAX
++ *
++ * If @idx falls in the interval [0, @sz), returns &@idx otherwise
++ * returns NULL.
++ */
++#define array_idx(idx, sz)						\
++({									\
++	union { typeof((idx)) *_ptr; unsigned long _bit; } __u;		\
++	typeof(idx) *_i = &(idx);					\
++	unsigned long _mask = array_ptr_mask(*_i, (sz));		\
++									\
++	__u._ptr = _i;							\
++	__u._bit &= _mask;						\
++	__u._ptr;							\
++})
+ #endif /* __NOSPEC_H__ */
+diff --git a/net/wireless/nl80211.c b/net/wireless/nl80211.c
+index d396cb61a280..e3b3527c16d4 100644
+--- a/net/wireless/nl80211.c
++++ b/net/wireless/nl80211.c
+@@ -16,6 +16,7 @@
+ #include <linux/nl80211.h>
+ #include <linux/rtnetlink.h>
+ #include <linux/netlink.h>
++#include <linux/nospec.h>
+ #include <linux/etherdevice.h>
+ #include <net/net_namespace.h>
+ #include <net/genetlink.h>
+@@ -2056,20 +2057,23 @@ static const struct nla_policy txq_params_policy[NL80211_TXQ_ATTR_MAX + 1] = {
+ static int parse_txq_params(struct nlattr *tb[],
+ 			    struct ieee80211_txq_params *txq_params)
+ {
++	u8 ac, *idx;
++
+ 	if (!tb[NL80211_TXQ_ATTR_AC] || !tb[NL80211_TXQ_ATTR_TXOP] ||
+ 	    !tb[NL80211_TXQ_ATTR_CWMIN] || !tb[NL80211_TXQ_ATTR_CWMAX] ||
+ 	    !tb[NL80211_TXQ_ATTR_AIFS])
+ 		return -EINVAL;
  
- #define ASM_CLAC \
-diff --git a/arch/x86/lib/getuser.S b/arch/x86/lib/getuser.S
-index c97d935a29e8..07d0e8a28b17 100644
---- a/arch/x86/lib/getuser.S
-+++ b/arch/x86/lib/getuser.S
-@@ -40,6 +40,7 @@ ENTRY(__get_user_1)
- 	mov PER_CPU_VAR(current_task), %_ASM_DX
- 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	MASK_NOSPEC %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 1:	movzbl (%_ASM_AX),%edx
- 	xor %eax,%eax
-@@ -54,6 +55,7 @@ ENTRY(__get_user_2)
- 	mov PER_CPU_VAR(current_task), %_ASM_DX
- 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	MASK_NOSPEC %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 2:	movzwl -1(%_ASM_AX),%edx
- 	xor %eax,%eax
-@@ -68,6 +70,7 @@ ENTRY(__get_user_4)
- 	mov PER_CPU_VAR(current_task), %_ASM_DX
- 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	MASK_NOSPEC %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 3:	movl -3(%_ASM_AX),%edx
- 	xor %eax,%eax
-@@ -83,6 +86,7 @@ ENTRY(__get_user_8)
- 	mov PER_CPU_VAR(current_task), %_ASM_DX
- 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	MASK_NOSPEC %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 4:	movq -7(%_ASM_AX),%rdx
- 	xor %eax,%eax
-@@ -94,6 +98,7 @@ ENTRY(__get_user_8)
- 	mov PER_CPU_VAR(current_task), %_ASM_DX
- 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user_8
-+	MASK_NOSPEC %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 4:	movl -7(%_ASM_AX),%edx
- 5:	movl -3(%_ASM_AX),%ecx
+-	txq_params->ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
++	ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
+ 	txq_params->txop = nla_get_u16(tb[NL80211_TXQ_ATTR_TXOP]);
+ 	txq_params->cwmin = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMIN]);
+ 	txq_params->cwmax = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMAX]);
+ 	txq_params->aifs = nla_get_u8(tb[NL80211_TXQ_ATTR_AIFS]);
+ 
+-	if (txq_params->ac >= NL80211_NUM_ACS)
++	idx = array_idx(ac, NL80211_NUM_ACS);
++	if (!idx)
+ 		return -EINVAL;
+-
++	txq_params->ac = *idx;
+ 	return 0;
+ }
+ 
