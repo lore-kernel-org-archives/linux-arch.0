@@ -1,45 +1,67 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [PATCH v11 6/9] LPC: Support the LPC host on Hip06/Hip07 with DT
- bindings
-Date: Sun, 21 Jan 2018 09:54:40 -0800
-Message-ID: <cabc1ed6-18e3-8685-82b7-ae1d7dd2348a@infradead.org>
-References: <1516537647-50553-1-git-send-email-john.garry@huawei.com>
- <1516537647-50553-7-git-send-email-john.garry@huawei.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH v4.1 07/10] x86: narrow out of bounds syscalls to sys_read under speculation
+Date: Sun, 21 Jan 2018 11:16:59 -0800
+Message-ID: <867402A5-BED8-4A44-9770-7D3B153BEE82@amacapital.net>
+References: <151648235823.34747.15181877619346237802.stgit@dwillia2-desk3.amr.corp.intel.com> <151648239535.34747.4422108674633222531.stgit@dwillia2-desk3.amr.corp.intel.com>
+Mime-Version: 1.0 (1.0)
+Content-Type: text/plain;
+        charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([65.50.211.133]:33119 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751290AbeAURyu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 21 Jan 2018 12:54:50 -0500
-In-Reply-To: <1516537647-50553-7-git-send-email-john.garry@huawei.com>
-Content-Language: en-US
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:39581 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750853AbeAUTRB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 21 Jan 2018 14:17:01 -0500
+Received: by mail-pg0-f67.google.com with SMTP id w17so5380125pgv.6
+        for <linux-arch@vger.kernel.org>; Sun, 21 Jan 2018 11:17:01 -0800 (PST)
+In-Reply-To: <151648239535.34747.4422108674633222531.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Garry <john.garry@huawei.com>, mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, hanjun.guo@linaro.org, dann.frazier@canonical.com
-Cc: benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, Zhichang Yuan <yuanzhichang@hisilicon.com>, Zou Rongrong <zourongrong@huawei.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: tglx@linutronix.de, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
 
-On 01/21/2018 04:27 AM, John Garry wrote:
-> diff --git a/drivers/bus/Kconfig b/drivers/bus/Kconfig
-> index 57e011d..91debe4 100644
-> --- a/drivers/bus/Kconfig
-> +++ b/drivers/bus/Kconfig
-> @@ -65,6 +65,14 @@ config BRCMSTB_GISB_ARB
->  	  arbiter. This driver provides timeout and target abort error handling
->  	  and internal bus master decoding.
->  
-> +config HISILICON_LPC
-> +	bool "Support for ISA I/O space on Hisilicon hip06/7"
-> +	depends on (ARM64 && (ARCH_HISI || COMPILE_TEST))
-> +	select INDIRECT_PIO
-> +	help
-> +	  Driver needed for some legacy ISA devices attached to Low-Pin-Count
-> +	  on Hisilicon hip06/7 SoC.
 
-Hi,
-Why is this config symbol bool instead of tristate?
 
-thanks,
--- 
-~Randy
+> On Jan 20, 2018, at 1:06 PM, Dan Williams <dan.j.williams@intel.com> wrote=
+:
+>=20
+> The syscall table base is a user controlled function pointer in kernel
+> space. Like, 'get_user, use 'MASK_NOSPEC' to prevent any out of bounds
+> speculation. While retpoline prevents speculating into the user
+> controlled target it does not stop the pointer de-reference, the concern
+> is leaking memory relative to the syscall table base.
+>=20
+> Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: x86@kernel.org
+> Cc: Andy Lutomirski <luto@kernel.org>
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+> ---
+> arch/x86/entry/entry_64.S   |    2 ++
+> arch/x86/include/asm/smap.h |    9 ++++++++-
+> 2 files changed, 10 insertions(+), 1 deletion(-)
+>=20
+> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+> index 63f4320602a3..584f6d2236b3 100644
+> --- a/arch/x86/entry/entry_64.S
+> +++ b/arch/x86/entry/entry_64.S
+> @@ -35,6 +35,7 @@
+> #include <asm/asm.h>
+> #include <asm/smap.h>
+> #include <asm/pgtable_types.h>
+> +#include <asm/smap.h>
+> #include <asm/export.h>
+> #include <asm/frame.h>
+> #include <asm/nospec-branch.h>
+> @@ -260,6 +261,7 @@ entry_SYSCALL_64_fastpath:
+>    cmpl    $__NR_syscall_max, %eax
+> #endif
+>    ja    1f                /* return -ENOSYS (already in pt_regs->ax) */
+> +    MASK_NOSPEC %r11 %rax            /* sanitize syscall_nr wrt speculati=
+on */
+
+What's the threat you're protecting against?  No one does any computation or=
+ data dependent loads based on the value being read.  Or are you worried abo=
+ut ASLR leaks due to merely speculatively loading from a bogus address.=
