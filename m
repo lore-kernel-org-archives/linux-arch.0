@@ -1,7 +1,7 @@
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v11 4/9] PCI: Apply the new generic I/O management on PCI IO hosts
-Date: Sun, 21 Jan 2018 20:27:22 +0800
-Message-ID: <1516537647-50553-5-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v11 8/9] LPC, ACPI: Add the HISI LPC ACPI support
+Date: Sun, 21 Jan 2018 20:27:26 +0800
+Message-ID: <1516537647-50553-9-git-send-email-john.garry@huawei.com>
 References: <1516537647-50553-1-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -9,184 +9,90 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1516537647-50553-1-git-send-email-john.garry@huawei.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, hanjun.guo@linaro.org, dann.frazier@canonical.com
-Cc: benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Zhichang Yuan <yuanzhichang@hisilicon.com>
+Cc: benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, John Garry <john.garry@huawei.com>, Zhichang Yuan <yuanzhichang@hisilicon.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Based on the previous patches, this patch supports the LPC host on
+Hip06/Hip07 for ACPI FW.
 
-After introducing the new generic I/O space management in logic pio, the
-original PCI MMIO relevant helpers need to be updated based on the new
-interfaces.
-This patch adapts the corresponding code to match the changes introduced
-by logic pio.
-
+Signed-off-by: John Garry <john.garry@huawei.com>
 Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
 Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>        #earlier draft
-Acked-by: Bjorn Helgaas <bhelgaas@google.com>
+Tested-by: dann frazier <dann.frazier@canonical.com>
 ---
- drivers/pci/pci.c        | 95 +++++++++---------------------------------------
- include/asm-generic/io.h |  2 +-
- 2 files changed, 18 insertions(+), 79 deletions(-)
+ drivers/acpi/arm64/acpi_indirectio.c | 11 ++++++++++-
+ drivers/bus/hisi_lpc.c               | 17 ++++++++++++++++-
+ 2 files changed, 26 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index d60f0a3..54048fe 100644
---- a/drivers/pci/pci.c
-+++ b/drivers/pci/pci.c
-@@ -21,6 +21,7 @@
- #include <linux/spinlock.h>
- #include <linux/string.h>
- #include <linux/log2.h>
-+#include <linux/logic_pio.h>
- #include <linux/pci-aspm.h>
- #include <linux/pm_wakeup.h>
- #include <linux/interrupt.h>
-@@ -3368,17 +3369,6 @@ int pci_request_regions_exclusive(struct pci_dev *pdev, const char *res_name)
+diff --git a/drivers/acpi/arm64/acpi_indirectio.c b/drivers/acpi/arm64/acpi_indirectio.c
+index 2649f57..6403f84 100644
+--- a/drivers/acpi/arm64/acpi_indirectio.c
++++ b/drivers/acpi/arm64/acpi_indirectio.c
+@@ -142,7 +142,7 @@ int acpi_indirectio_set_logicio_res(struct device *child,
+ 	return ret;
  }
- EXPORT_SYMBOL(pci_request_regions_exclusive);
  
--#ifdef PCI_IOBASE
--struct io_range {
--	struct list_head list;
--	phys_addr_t start;
--	resource_size_t size;
--};
--
--static LIST_HEAD(io_range_list);
--static DEFINE_SPINLOCK(io_range_lock);
--#endif
--
- /*
-  * Record the PCI IO range (expressed as CPU physical address + size).
-  * Return a negative value if an error has occured, zero otherwise
-@@ -3386,51 +3376,28 @@ struct io_range {
- int pci_register_io_range(struct fwnode_handle *fwnode, phys_addr_t addr,
- 			resource_size_t	size)
+-int
++static int
+ acpi_indirectio_pre_setup(struct acpi_device *adev,
+ 			  struct acpi_indirectio_host_data *pdata)
  {
--	int err = 0;
--
-+	int ret = 0;
- #ifdef PCI_IOBASE
--	struct io_range *range;
--	resource_size_t allocated_size = 0;
--
--	/* check if the range hasn't been previously recorded */
--	spin_lock(&io_range_lock);
--	list_for_each_entry(range, &io_range_list, list) {
--		if (addr >= range->start && addr + size <= range->start + size) {
--			/* range already registered, bail out */
--			goto end_register;
--		}
--		allocated_size += range->size;
--	}
-+	struct logic_pio_hwaddr *range;
- 
--	/* range not registed yet, check for available space */
--	if (allocated_size + size - 1 > IO_SPACE_LIMIT) {
--		/* if it's too big check if 64K space can be reserved */
--		if (allocated_size + SZ_64K - 1 > IO_SPACE_LIMIT) {
--			err = -E2BIG;
--			goto end_register;
--		}
--
--		size = SZ_64K;
--		pr_warn("Requested IO range too big, new size set to 64K\n");
--	}
-+	if (!size || addr + size < addr)
-+		return -EINVAL;
- 
--	/* add the range to the list */
- 	range = kzalloc(sizeof(*range), GFP_ATOMIC);
--	if (!range) {
--		err = -ENOMEM;
--		goto end_register;
--	}
-+	if (!range)
-+		return -ENOMEM;
- 
--	range->start = addr;
-+	range->fwnode = fwnode;
- 	range->size = size;
-+	range->hw_start = addr;
-+	range->flags = PIO_CPU_MMIO;
- 
--	list_add_tail(&range->list, &io_range_list);
--
--end_register:
--	spin_unlock(&io_range_lock);
-+	ret = logic_pio_register_range(range);
-+	if (ret)
-+		kfree(range);
- #endif
- 
--	return err;
-+	return ret;
+@@ -239,8 +239,17 @@ int acpi_indirectio_set_logicio_res(struct device *child,
+ 	return ret;
  }
  
- phys_addr_t pci_pio_to_address(unsigned long pio)
-@@ -3438,21 +3405,10 @@ phys_addr_t pci_pio_to_address(unsigned long pio)
- 	phys_addr_t address = (phys_addr_t)OF_BAD_ADDR;
++const struct acpi_indirectio_device_desc hisi_lpc_host_desc = {
++	.pdata = {
++		.io_size = PIO_INDIRECT_SIZE,
++		.io_start = 0,
++	},
++	.pre_setup = acpi_indirectio_pre_setup,
++};
++
+ /* All the host devices which apply indirect-IO can be listed here. */
+ static const struct acpi_device_id acpi_indirect_host_id[] = {
++	{"HISI0191", INDIRECT_IO_INFO(hisi_lpc_host_desc)},
+ 	{""},
+ };
  
- #ifdef PCI_IOBASE
--	struct io_range *range;
--	resource_size_t allocated_size = 0;
--
--	if (pio > IO_SPACE_LIMIT)
-+	if (pio >= MMIO_UPPER_LIMIT)
- 		return address;
+diff --git a/drivers/bus/hisi_lpc.c b/drivers/bus/hisi_lpc.c
+index 4ce089a..9cabb84 100644
+--- a/drivers/bus/hisi_lpc.c
++++ b/drivers/bus/hisi_lpc.c
+@@ -457,7 +457,13 @@ static int hisilpc_probe(struct platform_device *pdev)
+ 	}
  
--	spin_lock(&io_range_lock);
--	list_for_each_entry(range, &io_range_list, list) {
--		if (pio >= allocated_size && pio < allocated_size + range->size) {
--			address = range->start + pio - allocated_size;
--			break;
--		}
--		allocated_size += range->size;
--	}
--	spin_unlock(&io_range_lock);
-+	address = logic_pio_to_hwaddr(pio);
- #endif
+ 	/* register the LPC host PIO resources */
+-	{
++	if (has_acpi_companion(dev)) {
++		lpcdev->io_host = find_io_range_by_fwnode(dev->fwnode);
++		if (!lpcdev->io_host) {
++			dev_err(dev, "range not registered!\n");
++			return -EFAULT;
++		}
++	} else {
+ 		struct logic_pio_hwaddr *range;
  
- 	return address;
-@@ -3461,25 +3417,8 @@ phys_addr_t pci_pio_to_address(unsigned long pio)
- unsigned long __weak pci_address_to_pio(phys_addr_t address)
- {
- #ifdef PCI_IOBASE
--	struct io_range *res;
--	resource_size_t offset = 0;
--	unsigned long addr = -1;
--
--	spin_lock(&io_range_lock);
--	list_for_each_entry(res, &io_range_list, list) {
--		if (address >= res->start && address < res->start + res->size) {
--			addr = address - res->start + offset;
--			break;
--		}
--		offset += res->size;
--	}
--	spin_unlock(&io_range_lock);
--
--	return addr;
-+	return logic_pio_trans_cpuaddr(address);
- #else
--	if (address > IO_SPACE_LIMIT)
--		return (unsigned long)-1;
--
- 	return (unsigned long) address;
- #endif
- }
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index b7996a79..5a59931 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -901,7 +901,7 @@ static inline void iounmap(void __iomem *addr)
- #define ioport_map ioport_map
- static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
- {
--	return PCI_IOBASE + (port & IO_SPACE_LIMIT);
-+	return PCI_IOBASE + (port & MMIO_UPPER_LIMIT);
- }
- #endif
+ 		range = devm_kzalloc(dev, sizeof(*range), GFP_KERNEL);
+@@ -515,10 +521,19 @@ static int hisilpc_probe(struct platform_device *pdev)
+ 	{},
+ };
  
++#ifdef CONFIG_ACPI
++static const struct acpi_device_id hisilpc_acpi_match[] = {
++	{"HISI0191", },
++	{},
++};
++
++#endif
++
+ static struct platform_driver hisilpc_driver = {
+ 	.driver = {
+ 		.name           = "hisi_lpc",
+ 		.of_match_table = hisilpc_of_match,
++		.acpi_match_table = ACPI_PTR(hisilpc_acpi_match),
+ 	},
+ 	.probe = hisilpc_probe,
+ };
 -- 
 1.9.1
