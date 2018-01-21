@@ -1,162 +1,84 @@
-From: Jann Horn <jannh@google.com>
-Subject: Re: Re: [PATCH v4.1 02/10] asm/nospec, array_ptr:
- sanitize speculative array de-references
-Date: Sun, 21 Jan 2018 15:07:57 +0000
-Message-ID: <CAG48ez31rdQTv-vehUSymp4ZCM8RVxWuzJd2G7igwRF83aZiJg@mail.gmail.com>
-References: <151648235823.34747.15181877619346237802.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151648236968.34747.390507912161115784.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180121104019.GS17719@n2100.armlinux.org.uk>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: Re: [PATCH v10 01/27] mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS is enabled
+Date: Sun, 21 Jan 2018 21:04:02 +0530
+Message-ID: <87mv17rzth.fsf@linux.vnet.ibm.com>
+References: <1516326648-22775-1-git-send-email-linuxram@us.ibm.com> <1516326648-22775-2-git-send-email-linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: multipart/alternative; boundary="94eb2c09166c639b3505634aae98"
-Return-path: <kernel-hardening-return-11381-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20180121104019.GS17719@n2100.armlinux.org.uk>
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@redhat.com>, gregkh@linuxfoundation.org, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
+Content-Type: text/plain
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <1516326648-22775-2-git-send-email-linuxram@us.ibm.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
---94eb2c09166c639b3505634aae98
-Content-Type: text/plain; charset="UTF-8"
+Ram Pai <linuxram@us.ibm.com> writes:
 
-On Sun, Jan 21, 2018, 11:40 Russell King - ARM Linux <linux@armlinux.org.uk>
-wrote:
-
-> On Sat, Jan 20, 2018 at 01:06:09PM -0800, Dan Williams wrote:
-> > +/*
-> > + * If idx is negative or if idx > size then bit 63 is set in the mask,
-> > + * and the value of ~(-1L) is zero. When the mask is zero, bounds check
-> > + * failed, array_ptr will return NULL.
->
-> The more times I see this the more times I'm unhappy with this comment:
->
-> 1. does this really mean "idx > size" or "idx >= size" ?  The code
->    implements the latter not the former.
+> VM_PKEY_BITx are defined only if CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
+> is enabled. Powerpc also needs these bits. Hence lets define the
+> VM_PKEY_BITx bits for any architecture that enables
+> CONFIG_ARCH_HAS_PKEYS.
 >
 
-Copying the code here for context:
-return ~(long)(idx | (sz - 1 - idx)) >> (BITS_PER_LONG - 1);
+Reviewed-by: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
 
-That part of the condition (ignoring the overflow edgecases) is equivalent
-to "!(idx > sz - 1)", which is equivalent to "idx <= sz - 1", which is
-(ignoring overflow edgecases) equivalent to "idx < sz".
-
-Handling of edgecases:
-idx>=2^(BITS_PER_LONG-1) will cause a NULL return through the first part of
-the condition.
-Hmm... a problematic case might be "sz==0 && idx==2^(BITS_PER_LONG-1)-1".
-The first part of the expression wouldn't trigger, the second part would be
-"2^(BITS_PER_LONG)-1-(2^(BITS_PER_LONG-1)-1) ==
-2^(BITS_PER_LONG)-2^(BITS_PER_LONG-1)
-== 2^(BITS_PER_LONG-1)", which also wouldn't trigger, I think?
-
-2. is "bit 63" relevant here - what if longs are 32-bit?  "the top bit"
->    or "the sign bit" would be better.
+> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> ---
+>  fs/proc/task_mmu.c |    4 ++--
+>  include/linux/mm.h |    9 +++++----
+>  2 files changed, 7 insertions(+), 6 deletions(-)
 >
-> 3. "and the value of ~(-1L) is zero."  So does this mean that when
->    0 <= idx < size, somehow the rules of logic change and ~(-1L)
->    magically becomes no longer zero!
->
-> I'd suggest changing the description to something like:
->
->   * If 0 <= idx < size, return a mask of ~0UL, otherwise return zero.
->
-> or:
->
->   * When idx is out of bounds (iow, is negative or idx >= sz), the sign
->   * bit will be set. Extend the sign bit to all bits and invert, giving
->   * a result of zero for an out of bounds idx, or ~0UL if within bounds.
->
-> depending on how deeply you want to describe what's going on here.
+> diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+> index 339e4c1..b139617 100644
+> --- a/fs/proc/task_mmu.c
+> +++ b/fs/proc/task_mmu.c
+> @@ -674,13 +674,13 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+>  		[ilog2(VM_MERGEABLE)]	= "mg",
+>  		[ilog2(VM_UFFD_MISSING)]= "um",
+>  		[ilog2(VM_UFFD_WP)]	= "uw",
+> -#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
+> +#ifdef CONFIG_ARCH_HAS_PKEYS
+>  		/* These come out via ProtectionKey: */
+>  		[ilog2(VM_PKEY_BIT0)]	= "",
+>  		[ilog2(VM_PKEY_BIT1)]	= "",
+>  		[ilog2(VM_PKEY_BIT2)]	= "",
+>  		[ilog2(VM_PKEY_BIT3)]	= "",
+> -#endif
+> +#endif /* CONFIG_ARCH_HAS_PKEYS */
+>  	};
+>  	size_t i;
+>  
+> diff --git a/include/linux/mm.h b/include/linux/mm.h
+> index ea818ff..01381d3 100644
+> --- a/include/linux/mm.h
+> +++ b/include/linux/mm.h
+> @@ -228,15 +228,16 @@ extern int overcommit_kbytes_handler(struct ctl_table *, int, void __user *,
+>  #define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
+>  #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
+>  
+> -#if defined(CONFIG_X86)
+> -# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+> -#if defined (CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS)
+> +#ifdef CONFIG_ARCH_HAS_PKEYS
+>  # define VM_PKEY_SHIFT	VM_HIGH_ARCH_BIT_0
+>  # define VM_PKEY_BIT0	VM_HIGH_ARCH_0	/* A protection key is a 4-bit value */
+>  # define VM_PKEY_BIT1	VM_HIGH_ARCH_1
+>  # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
+>  # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
+> -#endif
+> +#endif /* CONFIG_ARCH_HAS_PKEYS */
+> +
+> +#if defined(CONFIG_X86)
+> +# define VM_PAT		VM_ARCH_1	/* PAT reserves whole VMA at once (x86) */
+>  #elif defined(CONFIG_PPC)
+>  # define VM_SAO		VM_ARCH_1	/* Strong Access Ordering (powerpc) */
+>  #elif defined(CONFIG_PARISC)
+> -- 
+> 1.7.1
 >
 > --
-> RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-> FTTC broadband for 0.8mile line in suburbia: sync at 8.8Mbps down 630kbps
-> up
-> According to speedtest.net: 8.21Mbps down 510kbps up
->
+> To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> the body to majordomo@kvack.org.  For more info on Linux MM,
+> see: http://www.linux-mm.org/ .
+> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
 
---94eb2c09166c639b3505634aae98
-Content-Type: text/html; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-
-<div dir=3D"auto"><div><div class=3D"gmail_quote"><div dir=3D"ltr">On Sun, =
-Jan 21, 2018, 11:40 Russell King - ARM Linux &lt;<a href=3D"mailto:linux@ar=
-mlinux.org.uk" target=3D"_blank" rel=3D"noreferrer">linux@armlinux.org.uk</=
-a>&gt; wrote:<br></div><blockquote class=3D"gmail_quote" style=3D"margin:0 =
-0 0 .8ex;border-left:1px #ccc solid;padding-left:1ex">On Sat, Jan 20, 2018 =
-at 01:06:09PM -0800, Dan Williams wrote:<br>
-&gt; +/*<br>
-&gt; + * If idx is negative or if idx &gt; size then bit 63 is set in the m=
-ask,<br>
-&gt; + * and the value of ~(-1L) is zero. When the mask is zero, bounds che=
-ck<br>
-&gt; + * failed, array_ptr will return NULL.<br>
-<br>
-The more times I see this the more times I&#39;m unhappy with this comment:=
-<br>
-<br>
-1. does this really mean &quot;idx &gt; size&quot; or &quot;idx &gt;=3D siz=
-e&quot; ?=C2=A0 The code<br>
-=C2=A0 =C2=A0implements the latter not the former.<br></blockquote></div></=
-div><div dir=3D"auto"><br></div><div dir=3D"auto">Copying the code here for=
- context:</div><div dir=3D"auto"><span style=3D"font-family:sans-serif;font=
--size:12.8px">return ~(long)(idx | (sz - 1 - idx)) &gt;&gt; (BITS_PER_LONG =
-- 1);</span><br></div><div dir=3D"auto"><br></div><div dir=3D"auto">That pa=
-rt of the condition (ignoring the overflow edgecases) is equivalent to &quo=
-t;!(idx &gt; sz - 1)&quot;, which is equivalent to &quot;idx &lt;=3D sz - 1=
-&quot;, which is (ignoring overflow edgecases) equivalent to &quot;idx &lt;=
- sz&quot;.</div><div dir=3D"auto"><br></div><div dir=3D"auto">Handling of e=
-dgecases:</div><div dir=3D"auto">idx&gt;=3D2^(BITS_PER_LONG-1) will cause a=
- NULL return through the first part of the condition.</div><div dir=3D"auto=
-">Hmm... a problematic case might be &quot;sz=3D=3D0 &amp;&amp; idx=3D=3D<s=
-pan style=3D"font-family:sans-serif">2^(BITS_PER_LONG-1)-1&quot;. The first=
- part of the expression wouldn&#39;t trigger, the second part would be &quo=
-t;2^(BITS_PER_LONG)-1-(</span><span style=3D"font-family:sans-serif">2^(BIT=
-S_PER_LONG-1)-1) =3D=3D=C2=A0</span><span style=3D"font-family:sans-serif">=
-2^(BITS_PER_LONG)-</span><span style=3D"font-family:sans-serif">2^(BITS_PER=
-_LONG-1) =3D=3D=C2=A0</span><span style=3D"font-family:sans-serif">2^(BITS_=
-PER_LONG-1)&quot;, which also wouldn&#39;t trigger, I think?</span></div><d=
-iv dir=3D"auto"><br></div><div dir=3D"auto"><div class=3D"gmail_quote"><blo=
-ckquote class=3D"gmail_quote" style=3D"margin:0 0 0 .8ex;border-left:1px #c=
-cc solid;padding-left:1ex">
-2. is &quot;bit 63&quot; relevant here - what if longs are 32-bit?=C2=A0 &q=
-uot;the top bit&quot;<br>
-=C2=A0 =C2=A0or &quot;the sign bit&quot; would be better.<br>
-<br>
-3. &quot;and the value of ~(-1L) is zero.&quot;=C2=A0 So does this mean tha=
-t when<br>
-=C2=A0 =C2=A00 &lt;=3D idx &lt; size, somehow the rules of logic change and=
- ~(-1L)<br>
-=C2=A0 =C2=A0magically becomes no longer zero!<br>
-<br>
-I&#39;d suggest changing the description to something like:<br>
-<br>
-=C2=A0 * If 0 &lt;=3D idx &lt; size, return a mask of ~0UL, otherwise retur=
-n zero.<br>
-<br>
-or:<br>
-<br>
-=C2=A0 * When idx is out of bounds (iow, is negative or idx &gt;=3D sz), th=
-e sign<br>
-=C2=A0 * bit will be set. Extend the sign bit to all bits and invert, givin=
-g<br>
-=C2=A0 * a result of zero for an out of bounds idx, or ~0UL if within bound=
-s.<br>
-<br>
-depending on how deeply you want to describe what&#39;s going on here.<br>
-<br>
---<br>
-RMK&#39;s Patch system: <a href=3D"http://www.armlinux.org.uk/developer/pat=
-ches/" rel=3D"noreferrer noreferrer noreferrer" target=3D"_blank">http://ww=
-w.armlinux.org.uk/developer/patches/</a><br>
-FTTC broadband for 0.8mile line in suburbia: sync at 8.8Mbps down 630kbps u=
-p<br>
-According to <a href=3D"http://speedtest.net" rel=3D"noreferrer noreferrer =
-noreferrer" target=3D"_blank">speedtest.net</a>: 8.21Mbps down 510kbps up<b=
-r>
-</blockquote></div></div></div>
-
---94eb2c09166c639b3505634aae98--
