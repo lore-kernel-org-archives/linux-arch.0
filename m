@@ -1,54 +1,157 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 02/27] mm, powerpc, x86: introduce an additional vma bit for powerpc pkey
-Date: Mon, 22 Jan 2018 10:26:31 -0800
-Message-ID: <1516645616-10059-3-git-send-email-linuxram@us.ibm.com>
-References: <1516645616-10059-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1516645616-10059-1-git-send-email-linuxram@us.ibm.com>
-Sender: linux-doc-owner@vger.kernel.org
+Subject: [PATCH v10 2/2] Documentation/vm: PowerPC specific updates to memory protection keys
+Date: Mon, 22 Jan 2018 10:28:36 -0800
+Message-ID: <1516645716-10174-3-git-send-email-linuxram@us.ibm.com>
+References: <1516645716-10174-1-git-send-email-linuxram@us.ibm.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1516645716-10174-1-git-send-email-linuxram@us.ibm.com>
+Sender: owner-linux-mm@kvack.org
 To: corbet@lwn.net, linux-doc@vger.kernel.org
 Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-Currently only 4bits are allocated in the vma flags to hold 16
-keys. This is sufficient for x86. PowerPC  supports  32  keys,
-which needs 5bits. This patch allocates an  additional bit.
+Add documentation updates that capture PowerPC specific changes.
 
-Acked-by: Balbir Singh <bsingharora@gmail.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- fs/proc/task_mmu.c |    1 +
- include/linux/mm.h |    3 ++-
- 2 files changed, 3 insertions(+), 1 deletions(-)
+ Documentation/vm/protection-keys.txt |   84 +++++++++++++++++++++++++--------
+ 1 files changed, 63 insertions(+), 21 deletions(-)
 
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index b139617..0edd4da 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -680,6 +680,7 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
- 		[ilog2(VM_PKEY_BIT1)]	= "",
- 		[ilog2(VM_PKEY_BIT2)]	= "",
- 		[ilog2(VM_PKEY_BIT3)]	= "",
-+		[ilog2(VM_PKEY_BIT4)]	= "",
- #endif /* CONFIG_ARCH_HAS_PKEYS */
- 	};
- 	size_t i;
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 01381d3..ebcb997 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -231,9 +231,10 @@ extern int overcommit_kbytes_handler(struct ctl_table *, int, void __user *,
- #ifdef CONFIG_ARCH_HAS_PKEYS
- # define VM_PKEY_SHIFT	VM_HIGH_ARCH_BIT_0
- # define VM_PKEY_BIT0	VM_HIGH_ARCH_0	/* A protection key is a 4-bit value */
--# define VM_PKEY_BIT1	VM_HIGH_ARCH_1
-+# define VM_PKEY_BIT1	VM_HIGH_ARCH_1	/* on x86 and 5-bit value on ppc64   */
- # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
- # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
-+# define VM_PKEY_BIT4	VM_HIGH_ARCH_4
- #endif /* CONFIG_ARCH_HAS_PKEYS */
+diff --git a/Documentation/vm/protection-keys.txt b/Documentation/vm/protection-keys.txt
+index ecb0d2d..7a4cbce 100644
+--- a/Documentation/vm/protection-keys.txt
++++ b/Documentation/vm/protection-keys.txt
+@@ -1,27 +1,52 @@
+ Memory Protection Keys for Userspace (PKU aka PKEYs) is a feature
+ which is found on Intel's Skylake "Scalable Processor" Server CPUs.
+-It will be avalable in future non-server parts.
++It will be available in future non-server parts.
  
- #if defined(CONFIG_X86)
+ For anyone wishing to test or use this feature, it is available in
+ Amazon's EC2 C5 instances and is known to work there using an Ubuntu
+ 17.04 image.
+ 
+-Memory Protection Keys provides a mechanism for enforcing page-based
+-protections, but without requiring modification of the page tables
+-when an application changes protection domains.  It works by
+-dedicating 4 previously ignored bits in each page table entry to a
+-"protection key", giving 16 possible keys.
++This feature is available on PowerPC 5 and higher CPUs.
+ 
+-There is also a new user-accessible register (PKRU) with two separate
+-bits (Access Disable and Write Disable) for each key.  Being a CPU
+-register, PKRU is inherently thread-local, potentially giving each
+-thread a different set of protections from every other thread.
++Memory Protection Keys provide a mechanism for enforcing page-based
++protections, but without requiring modification of the page tables when an
++application changes protection domains.
+ 
+-There are two new instructions (RDPKRU/WRPKRU) for reading and writing
+-to the new register.  The feature is only available in 64-bit mode,
+-even though there is theoretically space in the PAE PTEs.  These
+-permissions are enforced on data access only and have no effect on
+-instruction fetches.
++It works by dedicating bits in each page table entry to a "protection key".
++There is also a user-accessible register with two separate bits for each
++key.  Being a CPU register, the user-accessible register is inherently
++thread-local, potentially giving each thread a different set of protections
++from every other thread.
++
++On Intel:
++
++	Four previously ignored bits in the page table entry are used giving
++       	16 possible keys.
++
++	The user accessible register(PKRU) has a bit each per key to disable
++	access and to disable write.
++
++	The feature is only available in 64-bit mode, even though there is
++	theoretically space in the PAE PTEs.  These permissions are enforced on
++	data access only and have no effect on instruction fetches.
++
++On PowerPC:
++
++	Five bits in the page table entry are used giving 32 possible keys.
++	This support is currently for Hash Page Table mode only.
++
++	The user accessible register(AMR) has a bit each per key to disable
++	read and write. Access-disable can be achieved by disabling
++	read and write.
++
++	'mtspr 0xd, mem' reads the AMR register
++	'mfspr mem, 0xd' writes into the AMR register.
++
++	Execution can be disabled by allocating a key with execute-disabled
++	permission. The execute-permissions on the key; however, cannot be
++	changed through a user accessible register.  The CPU will not allow
++	execution of instruction in pages that are associated with
++	execute-disabled key.
+ 
+ =========================== Syscalls ===========================
+ 
+@@ -33,9 +58,9 @@ There are 3 system calls which directly interact with pkeys:
+ 			  unsigned long prot, int pkey);
+ 
+ Before a pkey can be used, it must first be allocated with
+-pkey_alloc().  An application calls the WRPKRU instruction
++pkey_alloc().  An application calls the WRPKRU/AMR instruction
+ directly in order to change access permissions to memory covered
+-with a key.  In this example WRPKRU is wrapped by a C function
++with a key.  In this example WRPKRU/AMR is wrapped by a C function
+ called pkey_set().
+ 
+ 	int real_prot = PROT_READ|PROT_WRITE;
+@@ -57,11 +82,11 @@ is no longer in use:
+ 	munmap(ptr, PAGE_SIZE);
+ 	pkey_free(pkey);
+ 
+-(Note: pkey_set() is a wrapper for the RDPKRU and WRPKRU instructions.
++(Note: pkey_set() is a wrapper for the RDPKRU,WRPKRU or AMR instructions.
+  An example implementation can be found in
+- tools/testing/selftests/x86/protection_keys.c)
++ tools/testing/selftests/vm/protection_keys.c)
+ 
+-=========================== Behavior ===========================
++=========================== Behavior =================================
+ 
+ The kernel attempts to make protection keys consistent with the
+ behavior of a plain mprotect().  For instance if you do this:
+@@ -71,7 +96,7 @@ behavior of a plain mprotect().  For instance if you do this:
+ 
+ you can expect the same effects with protection keys when doing this:
+ 
+-	pkey = pkey_alloc(0, PKEY_DISABLE_WRITE | PKEY_DISABLE_READ);
++	pkey = pkey_alloc(0, PKEY_DISABLE_ACCESS);
+ 	pkey_mprotect(ptr, size, PROT_READ|PROT_WRITE, pkey);
+ 	something(ptr);
+ 
+@@ -88,3 +113,20 @@ with a read():
+ The kernel will send a SIGSEGV in both cases, but si_code will be set
+ to SEGV_PKERR when violating protection keys versus SEGV_ACCERR when
+ the plain mprotect() permissions are violated.
++
++====================================================================
++		Differences
++
++The following differences exist between x86 and power.
++
++a) powerpc (PowerPC8 onwards) *also* allows creation of a key with
++   execute-disabled.
++	The following is allowed
++	pkey = pkey_alloc(0, PKEY_DISABLE_EXECUTE);
++
++b) On powerpc the access/write permission on a key can be modified by
++   programming the AMR register from the signal handler. The changes
++   persist across signal boundaries. On x86, the PKRU specific fpregs
++   entry must be modified to change the access/write permission on
++   a key.
++=====================================================================
 -- 
 1.7.1
 
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
