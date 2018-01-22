@@ -1,58 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:37605 "EHLO huawei.com"
-        rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1750886AbeAVL7l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jan 2018 06:59:41 -0500
-Subject: Re: [PATCH v11 2/9] PCI: Remove unused __weak attribute in
- pci_register_io_range()
-References: <1516537647-50553-1-git-send-email-john.garry@huawei.com>
- <1516537647-50553-3-git-send-email-john.garry@huawei.com>
-From: John Garry <john.garry@huawei.com>
-Message-ID: <6816e715-df0f-ddff-d19d-de2d0f3101c7@huawei.com>
-Date: Mon, 22 Jan 2018 11:59:20 +0000
-MIME-Version: 1.0
-In-Reply-To: <1516537647-50553-3-git-send-email-john.garry@huawei.com>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from foss.arm.com ([217.140.101.70]:58174 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751004AbeAVMXh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jan 2018 07:23:37 -0500
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [RFC PATCH 0/2] arm64: Fix invalid si_codes for fault signals
+Date: Mon, 22 Jan 2018 12:23:16 +0000
+Message-ID: <1516623798-25001-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: bhelgaas@google.com
-Cc: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, robh+dt@kernel.org, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, hanjun.guo@linaro.org, dann.frazier@canonical.com, benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180122115920.bMO1Y_BvwjQDNzRvgl9EAf_o8GmMQY87tKJ7VgowRVI@z>
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>
+Message-ID: <20180122122316.Jag2AkFms-eoDvLam7OGOp3CNe4OhO3bHdIL6wCMEzo@z>
 
-On 21/01/2018 12:27, John Garry wrote:
-> From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
->
-> Currently pci_register_io_range() has only one definition;
-> therefore there is no use of the __weak attribute.
->
-> Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-> Acked-by: Bjorn Helgaas <bhelgaas@google.com>
-> ---
+As reported by Eric Biederman, [1], [2], [3] etc., several architectures
+are inappropriately setting si_code to 0 when signaling faults to
+userspace, which will interpret this value as SI_USER leading to garbage
+being read out of siginfo fields that the kernel doesn't initialise.
 
-Hi Bjorn,
+This seems not to be a huge problem in practice, since many affected
+faults should only happen if the kernel or hardware is buggy or broken.
+However, there are some cases that don't fall under this.
 
-So I will need to respin this series again (and it still requires many 
-more SOB tags), so do you want to pick up this minor patch in isolation 
-now? It would save me carrying it, and save people receiving it in future.
+This RFC series proposes fixes to eliminate these si_code == 0 cases
+from arm64.  Some of the changes may be controversial.
 
-Thanks,
-John
+There are two main headlines here, which may be applicable to other
+architectures:
 
->  drivers/pci/pci.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-> index 764ca7b..d8357ff 100644
-> --- a/drivers/pci/pci.c
-> +++ b/drivers/pci/pci.c
-> @@ -3383,7 +3383,7 @@ struct io_range {
->   * Record the PCI IO range (expressed as CPU physical address + size).
->   * Return a negative value if an error has occured, zero otherwise
->   */
-> -int __weak pci_register_io_range(phys_addr_t addr, resource_size_t size)
-> +int pci_register_io_range(phys_addr_t addr, resource_size_t size)
->  {
->  	int err = 0;
->
->
+ * addition of a new code FPE_UNKNOWN for undiagnosable floating-point
+   exception traps;
+
+ * delivering SIGKILL instead of SIGSEGV/BUS/TRAP etc. for "impossible"
+   exceptions that are not feasible to recover from and likely indicate
+   a kernel or system bug or failure.
+
+In particular there is likely to be a fair amount of overlap between arm
+and arm64 here, but due to the longer history and evolution of the arm
+tree and 32-bit architecture I'm less confident in making correct
+judgements for that case.  This series doesn't touch arm, for now.
+
+This series has been build-tested only.
+
+[1] [PATCH 00/11] siginfo fixes/cleanups esp SI_USER
+https://marc.info/?l=linux-kernel&m=151571871109016&w=2
+
+[2] [PATCH 08/11] signal/arm: Document conflicts with SI_USER and SIGFPE
+http://lists.infradead.org/pipermail/linux-arm-kernel/2018-January/553574.html
+
+[3] [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and SIGFPE, SIGTRAP, SIGBUS
+lists.infradead.org/pipermail/linux-arm-kernel/2018-January/553573.html
+
+Dave Martin (2):
+  arm64: fpsimd: Fix bad si_code for undiagnosed SIGFPE
+  arm64: signal: Ensure si_code is valid for all fault signals
+
+ arch/arm64/include/asm/esr.h       |   9 +++
+ arch/arm64/kernel/fpsimd.c         |  31 +++++-----
+ arch/arm64/mm/fault.c              | 114 ++++++++++++++++++-------------------
+ include/uapi/asm-generic/siginfo.h |   3 +-
+ 4 files changed, 85 insertions(+), 72 deletions(-)
+
+-- 
+2.1.4
