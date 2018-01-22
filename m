@@ -1,76 +1,30 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 21/24] selftests/vm: sub-page allocator
-Date: Mon, 22 Jan 2018 10:52:14 -0800
-Message-ID: <1516647137-11174-22-git-send-email-linuxram@us.ibm.com>
-References: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
-Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, arnd@arndb.de
-List-Id: linux-arch.vger.kernel.org
+From: Jann Horn <jannh@google.com>
+Subject: Re: [kernel-hardening] [PATCH v4.1 01/10] Documentation: document array_ptr
+Date: Mon, 22 Jan 2018 20:00:40 +0100
+Message-ID: <CAG48ez3SQNMKxMLNKCV4o8qAbqzB4d+EPo8a4wHzDgqkGAX8Dw@mail.gmail.com>
+References: <151648235823.34747.15181877619346237802.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151648236454.34747.93245075402067564.stgit@dwillia2-desk3.amr.corp.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f46.google.com ([209.85.218.46]:34433 "EHLO
+        mail-oi0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751170AbeAVTBC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jan 2018 14:01:02 -0500
+Received: by mail-oi0-f46.google.com with SMTP id k15so4043262oib.1
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jan 2018 11:01:02 -0800 (PST)
+In-Reply-To: <151648236454.34747.93245075402067564.stgit@dwillia2-desk3.amr.corp.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Mark Rutland <mark.rutland@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Peter Zijlstra <peterz@infradead.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Corbet <corbet@lwn.net>, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>, alan@linux.intel.com
 
-introduce a new allocator that allocates 4k hardware-pages to back
-64k linux-page. This allocator is only applicable on powerpc.
+On Sat, Jan 20, 2018 at 10:06 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> From: Mark Rutland <mark.rutland@arm.com>
+>
+> Document the rationale and usage of the new array_ptr() helper.
+[...]
+> +A call to array_ptr(arr, idx, sz) returns a sanitized pointer to
+> +arr[idx] only if idx falls in the [0, sz) interval. When idx < 0 or idx > sz,
 
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
----
- tools/testing/selftests/vm/protection_keys.c |   30 ++++++++++++++++++++++++++
- 1 files changed, 30 insertions(+), 0 deletions(-)
-
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 5783587..ae71dad 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -766,6 +766,35 @@ void free_pkey_malloc(void *ptr)
- 	return ptr;
- }
- 
-+void *malloc_pkey_with_mprotect_subpage(long size, int prot, u16 pkey)
-+{
-+#ifdef __powerpc64__
-+	void *ptr;
-+	int ret;
-+
-+	dprintf1("doing %s(size=%ld, prot=0x%x, pkey=%d)\n", __func__,
-+			size, prot, pkey);
-+	pkey_assert(pkey < NR_PKEYS);
-+	ptr = mmap(NULL, size, prot, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
-+	pkey_assert(ptr != (void *)-1);
-+
-+	ret = syscall(__NR_subpage_prot, ptr, size, NULL);
-+	if (ret) {
-+		perror("subpage_perm");
-+		return PTR_ERR_ENOTSUP;
-+	}
-+
-+	ret = mprotect_pkey((void *)ptr, PAGE_SIZE, prot, pkey);
-+	pkey_assert(!ret);
-+	record_pkey_malloc(ptr, size);
-+
-+	dprintf1("%s() for pkey %d @ %p\n", __func__, pkey, ptr);
-+	return ptr;
-+#else /*  __powerpc64__ */
-+	return PTR_ERR_ENOTSUP;
-+#endif /*  __powerpc64__ */
-+}
-+
- void *malloc_pkey_anon_huge(long size, int prot, u16 pkey)
- {
- 	int ret;
-@@ -888,6 +917,7 @@ void setup_hugetlbfs(void)
- void *(*pkey_malloc[])(long size, int prot, u16 pkey) = {
- 
- 	malloc_pkey_with_mprotect,
-+	malloc_pkey_with_mprotect_subpage,
- 	malloc_pkey_anon_huge,
- 	malloc_pkey_hugetlb
- /* can not do direct with the pkey_mprotect() API:
--- 
-1.7.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+"or idx >= sz"?
