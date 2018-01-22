@@ -1,34 +1,30 @@
-From: 'Darlehen' <a1615112D@fie.umich.mx>
-Subject: Garantiertes Darlehen?
-Date: Sun, 21 Jan 2018 16:05:26 -0800
-Message-ID: <20180121235536.152E52DA6D19@correo.fie.umich.mx>
-Reply-To: bothavillecashloans@gmail.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from correo.fie.umich.mx ([148.216.17.22]:57259 "EHLO
-        correo.fie.umich.mx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750919AbeAVDWY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 21 Jan 2018 22:22:24 -0500
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <a1615112D@fie.umich.mx>
+From: Michael Ellerman <patch-notifications@ellerman.id.au>
+Subject: Re: [v10,03/27] powerpc: initial pkey plumbing
+Date: Mon, 22 Jan 2018 14:34:33 +1100 (AEDT)
+Message-ID: <3zPxrB60pxz9sNx@ozlabs.org>
+References: <1516326648-22775-4-git-send-email-linuxram@us.ibm.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1516326648-22775-4-git-send-email-linuxram@us.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
+Cc: linux-arch@vger.kernel.org, ebiederm@xmission.com, linux-doc@vger.kernel.org, x86@kernel.org, dave.hansen@intel.com, linux-kernel@vger.kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-Brauchen Sie ein zuverlässiges und garantiertes Darlehen? Kontakt [bothavillecashloans@gmail.com] bei 5% Zinssatz geben wir Darlehen von €5.000  bis €10.000.000 . 24 bis 48 Stunden Genehmigungszeit
-Interessierte Bewerber sollten auf dieses Angebot durch Emailing: [bothavillecashloans@gmail.com] zu beantworten.
-Fülle die untenstehenden Informationen aus und gib sie zurück,um genehmigt zu werden
-Vorname:
-Familienname:
-Darlehensbetrag:
-Darlehensdauer:
-Land:
-Adresse:
-Telefonnummer:
-Besetzung:
-Monatliches Gehalt:
+On Fri, 2018-01-19 at 01:50:24 UTC, Ram Pai wrote:
+> Basic  plumbing  to   initialize  the   pkey  system.
+> Nothing is enabled yet. A later patch will enable it
+> once all the infrastructure is in place.
+> 
+> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 
----
-This email has been checked for viruses by Avast antivirus software.
-https://www.avast.com/antivirus
+Patches 3-27 applied to powerpc next, thanks.
+
+https://git.kernel.org/powerpc/c/92e3da3cf193fd27996909956c12a2
+
+cheers
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
