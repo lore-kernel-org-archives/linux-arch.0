@@ -1,18 +1,18 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 19/47] x86/mm/pkeys: Fix fill_sig_info_pkey
-Date: Mon, 22 Jan 2018 09:45:30 +0100
-Message-ID: <20180122083927.168382996@linuxfoundation.org>
-References: <20180122083925.568134913@linuxfoundation.org>
+Subject: [PATCH 4.14 38/89] x86/mm/pkeys: Fix fill_sig_info_pkey
+Date: Mon, 22 Jan 2018 09:45:18 +0100
+Message-ID: <20180122083958.454399528@linuxfoundation.org>
+References: <20180122083954.683903493@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180122083925.568134913@linuxfoundation.org>
+In-Reply-To: <20180122083954.683903493@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Oleg Nesterov <oleg@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-4.9-stable review patch.  If anyone has any objections, please let me know.
+4.14-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -46,7 +46,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/arch/x86/mm/fault.c
 +++ b/arch/x86/mm/fault.c
-@@ -191,14 +191,15 @@ is_prefetch(struct pt_regs *regs, unsign
+@@ -173,14 +173,15 @@ is_prefetch(struct pt_regs *regs, unsign
   * 6. T1   : reaches here, sees vma_pkey(vma)=5, when we really
   *	     faulted on a pte with its pkey=4.
   */
@@ -64,7 +64,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  		return;
  	/*
  	 * force_sig_info_fault() is called from a number of
-@@ -237,7 +238,7 @@ force_sig_info_fault(int si_signo, int s
+@@ -219,7 +220,7 @@ force_sig_info_fault(int si_signo, int s
  		lsb = PAGE_SHIFT;
  	info.si_addr_lsb = lsb;
  
