@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 16/24] selftests/vm: fix an assertion in test_pkey_alloc_exhaust()
-Date: Mon, 22 Jan 2018 10:52:09 -0800
-Message-ID: <1516647137-11174-17-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 21/24] selftests/vm: sub-page allocator
+Date: Mon, 22 Jan 2018 10:52:14 -0800
+Message-ID: <1516647137-11174-22-git-send-email-linuxram@us.ibm.com>
 References: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
@@ -10,63 +10,62 @@ To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-The maximum number of keys that can be allocated has to
-take into consideration, that some keys are reserved by
-the architecture for   specific   purpose. Hence cannot
-be allocated.
-
-Fix the assertion in test_pkey_alloc_exhaust()
+introduce a new allocator that allocates 4k hardware-pages to back
+64k linux-page. This allocator is only applicable on powerpc.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h    |   14 ++++++++++++++
- tools/testing/selftests/vm/protection_keys.c |    9 ++++-----
- 2 files changed, 18 insertions(+), 5 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |   30 ++++++++++++++++++++++++++
+ 1 files changed, 30 insertions(+), 0 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 3559527..9d06b4a 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -401,4 +401,18 @@ static inline int get_start_key(void)
- #endif /* arch */
- }
- 
-+static inline int arch_reserved_keys(void)
-+{
-+#if defined(__i386__) || defined(__x86_64__) /* arch */
-+	return NR_RESERVED_PKEYS;
-+#elif __powerpc64__ /* arch */
-+	if (sysconf(_SC_PAGESIZE) == 4096)
-+		return NR_RESERVED_PKEYS_4K;
-+	else
-+		return NR_RESERVED_PKEYS_64K;
-+#else /* arch */
-+	NOT SUPPORTED
-+#endif /* arch */
-+}
-+
- #endif /* _PKEYS_HELPER_H */
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 65e6dd6..33d5839 100644
+index 5783587..ae71dad 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1167,12 +1167,11 @@ void test_pkey_alloc_exhaust(int *ptr, u16 pkey)
- 	pkey_assert(i < NR_PKEYS*2);
+@@ -766,6 +766,35 @@ void free_pkey_malloc(void *ptr)
+ 	return ptr;
+ }
  
- 	/*
--	 * There are 16 pkeys supported in hardware.  One is taken
--	 * up for the default (0) and another can be taken up by
--	 * an execute-only mapping.  Ensure that we can allocate
--	 * at least 14 (16-2).
-+	 * There are NR_PKEYS pkeys supported in hardware. arch_reserved_keys()
-+	 * are reserved. One   can   be   taken   up by an execute-only mapping.
-+	 * Ensure that we can allocate at least the remaining.
- 	 */
--	pkey_assert(i >= NR_PKEYS-2);
-+	pkey_assert(i >= (NR_PKEYS-arch_reserved_keys()-1));
++void *malloc_pkey_with_mprotect_subpage(long size, int prot, u16 pkey)
++{
++#ifdef __powerpc64__
++	void *ptr;
++	int ret;
++
++	dprintf1("doing %s(size=%ld, prot=0x%x, pkey=%d)\n", __func__,
++			size, prot, pkey);
++	pkey_assert(pkey < NR_PKEYS);
++	ptr = mmap(NULL, size, prot, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
++	pkey_assert(ptr != (void *)-1);
++
++	ret = syscall(__NR_subpage_prot, ptr, size, NULL);
++	if (ret) {
++		perror("subpage_perm");
++		return PTR_ERR_ENOTSUP;
++	}
++
++	ret = mprotect_pkey((void *)ptr, PAGE_SIZE, prot, pkey);
++	pkey_assert(!ret);
++	record_pkey_malloc(ptr, size);
++
++	dprintf1("%s() for pkey %d @ %p\n", __func__, pkey, ptr);
++	return ptr;
++#else /*  __powerpc64__ */
++	return PTR_ERR_ENOTSUP;
++#endif /*  __powerpc64__ */
++}
++
+ void *malloc_pkey_anon_huge(long size, int prot, u16 pkey)
+ {
+ 	int ret;
+@@ -888,6 +917,7 @@ void setup_hugetlbfs(void)
+ void *(*pkey_malloc[])(long size, int prot, u16 pkey) = {
  
- 	for (i = 0; i < nr_allocated_pkeys; i++) {
- 		err = sys_pkey_free(allocated_pkeys[i]);
+ 	malloc_pkey_with_mprotect,
++	malloc_pkey_with_mprotect_subpage,
+ 	malloc_pkey_anon_huge,
+ 	malloc_pkey_hugetlb
+ /* can not do direct with the pkey_mprotect() API:
 -- 
 1.7.1
 
