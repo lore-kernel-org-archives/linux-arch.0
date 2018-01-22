@@ -1,65 +1,251 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:58174 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751004AbeAVMXh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Jan 2018 07:23:37 -0500
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:58200 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750955AbeAVMXk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Jan 2018 07:23:40 -0500
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH 0/2] arm64: Fix invalid si_codes for fault signals
-Date: Mon, 22 Jan 2018 12:23:16 +0000
-Message-ID: <1516623798-25001-1-git-send-email-Dave.Martin@arm.com>
+Subject: [RFC PATCH 2/2] arm64: signal: Ensure si_code is valid for all fault signals
+Date: Mon, 22 Jan 2018 12:23:18 +0000
+Message-ID: <1516623798-25001-3-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1516623798-25001-1-git-send-email-Dave.Martin@arm.com>
+References: <1516623798-25001-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>
-Message-ID: <20180122122316.Jag2AkFms-eoDvLam7OGOp3CNe4OhO3bHdIL6wCMEzo@z>
+Message-ID: <20180122122318.AhFgDP4FEi0hEJJR8tb11qG0JHzfME-eaWXyJZ6_ZnU@z>
 
-As reported by Eric Biederman, [1], [2], [3] etc., several architectures
-are inappropriately setting si_code to 0 when signaling faults to
-userspace, which will interpret this value as SI_USER leading to garbage
-being read out of siginfo fields that the kernel doesn't initialise.
+Currently, as reported by Eric, an invalid si_code value 0 is
+passed in many signals delivered to userspace in response to faults
+and other kernel errors.  Typically 0 is passed when the fault is
+insufficiently diagnosable or when there does not appear to be any
+sensible alternative value to choose.
 
-This seems not to be a huge problem in practice, since many affected
-faults should only happen if the kernel or hardware is buggy or broken.
-However, there are some cases that don't fall under this.
+This appears to violate POSIX, and is intuitively wrong for at
+least two reasons arising from the fact that 0 == SI_USER:
 
-This RFC series proposes fixes to eliminate these si_code == 0 cases
-from arm64.  Some of the changes may be controversial.
+ 1) si_code is a union selector, and SI_USER (and si_code <= 0 in
+    general) implies the existence of a different set of fields
+    (siginfo._kill) from that which exists for a fault signal
+    (siginfo._sigfault).  However, the code raising the signal
+    typically writes only the _sigfault fields, and the _kill
+    fields make no sense in this case.
 
-There are two main headlines here, which may be applicable to other
-architectures:
+    Thus when userspace sees si_code == 0 (SI_USER) it may
+    legitimately inspect fields in the inactive union member _kill
+    and obtain garbage as a result.
 
- * addition of a new code FPE_UNKNOWN for undiagnosable floating-point
-   exception traps;
+    There appears to be software in the wild relying on this,
+    albeit generally only for printing diagnostic messages.
 
- * delivering SIGKILL instead of SIGSEGV/BUS/TRAP etc. for "impossible"
-   exceptions that are not feasible to recover from and likely indicate
-   a kernel or system bug or failure.
+ 2) Software that wants to be robust against spurious signals may
+    discard signals where si_code == SI_USER (or <= 0), or may
+    filter such signals based on the si_uid and si_pid fields of
+    siginfo._sigkill.  In the case of fault signals, this means
+    that important (and usually fatal) error conditions may be
+    silently ignored.
 
-In particular there is likely to be a fair amount of overlap between arm
-and arm64 here, but due to the longer history and evolution of the arm
-tree and 32-bit architecture I'm less confident in making correct
-judgements for that case.  This series doesn't touch arm, for now.
+In practice, many of the faults for which arm64 passes si_code == 0
+are undiagnosable conditions such as exceptions with syndrome
+values in ESR_ELx to which the architecture does not yet assign any
+meaning, or conditions indicative of a bug or error in the kernel
+or system and thus that are unrecoverable and should never occur in
+normal operation.
 
-This series has been build-tested only.
+The approach taken in this patch is to translate all such
+undiagnosable or "impossible" synchronous fault conditions to
+SIGKILL, since these are at least probably localisable to a single
+process.  Some of these conditions should really result in a kernel
+panic, but due to the lack of diagnostic information it is
+difficult to be certain: this patch does not add any calls to
+panic(), but this could change later if justified.
 
-[1] [PATCH 00/11] siginfo fixes/cleanups esp SI_USER
-https://marc.info/?l=linux-kernel&m=151571871109016&w=2
+Although si_code will not reach userspace in the case of SIGKILL,
+it is still desirable to pass a nonzero value so that the common
+siginfo handling code can detect incorrect use of si_code == 0
+without false positives.  In this case the si_code dependent
+siginfo fields will not be correctly initialised, but since they
+are not passed to userspace I deem this not to matter.
 
-[2] [PATCH 08/11] signal/arm: Document conflicts with SI_USER and SIGFPE
-http://lists.infradead.org/pipermail/linux-arm-kernel/2018-January/553574.html
+A few faults can reasonably occur in realistic userspace scenarios,
+and _should_ raise a regular, handleable (but perhaps not
+ignorable/blockable) signal: for these, this patch attempts to
+choose a suitable standard si_code value for the raised signal in
+each case instead of 0.
 
-[3] [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and SIGFPE, SIGTRAP, SIGBUS
-lists.infradead.org/pipermail/linux-arm-kernel/2018-January/553573.html
+Reported-by: Eric W. Biederman <ebiederm@xmission.com>
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+---
+ arch/arm64/kernel/fpsimd.c |   4 +-
+ arch/arm64/mm/fault.c      | 114 ++++++++++++++++++++++-----------------------
+ 2 files changed, 59 insertions(+), 59 deletions(-)
 
-Dave Martin (2):
-  arm64: fpsimd: Fix bad si_code for undiagnosed SIGFPE
-  arm64: signal: Ensure si_code is valid for all fault signals
-
- arch/arm64/include/asm/esr.h       |   9 +++
- arch/arm64/kernel/fpsimd.c         |  31 +++++-----
- arch/arm64/mm/fault.c              | 114 ++++++++++++++++++-------------------
- include/uapi/asm-generic/siginfo.h |   3 +-
- 4 files changed, 85 insertions(+), 72 deletions(-)
-
+diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+index 2d6ba9e..7ce23e0 100644
+--- a/arch/arm64/kernel/fpsimd.c
++++ b/arch/arm64/kernel/fpsimd.c
+@@ -286,8 +286,8 @@ static void task_fpsimd_save(void)
+ 				 * re-enter user with corrupt state.
+ 				 * There's no way to recover, so kill it:
+ 				 */
+-				force_signal_inject(
+-					SIGKILL, 0, current_pt_regs(), 0);
++				force_signal_inject(SIGKILL, SI_KERNEL,
++						    current_pt_regs(), 0);
+ 				return;
+ 			}
+ 
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 9b7f89d..4baa922 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -596,7 +596,7 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+ 
+ 	info.si_signo = SIGBUS;
+ 	info.si_errno = 0;
+-	info.si_code  = 0;
++	info.si_code  = BUS_OBJERR;
+ 	if (esr & ESR_ELx_FnV)
+ 		info.si_addr = NULL;
+ 	else
+@@ -607,70 +607,70 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+ }
+ 
+ static const struct fault_info fault_info[] = {
+-	{ do_bad,		SIGBUS,  0,		"ttbr address size fault"	},
+-	{ do_bad,		SIGBUS,  0,		"level 1 address size fault"	},
+-	{ do_bad,		SIGBUS,  0,		"level 2 address size fault"	},
+-	{ do_bad,		SIGBUS,  0,		"level 3 address size fault"	},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"ttbr address size fault"	},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"level 1 address size fault"	},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"level 2 address size fault"	},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"level 3 address size fault"	},
+ 	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 0 translation fault"	},
+ 	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 1 translation fault"	},
+ 	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 2 translation fault"	},
+ 	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 3 translation fault"	},
+-	{ do_bad,		SIGBUS,  0,		"unknown 8"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 8"			},
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 1 access flag fault"	},
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 access flag fault"	},
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 access flag fault"	},
+-	{ do_bad,		SIGBUS,  0,		"unknown 12"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 12"			},
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 1 permission fault"	},
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 permission fault"	},
+ 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 permission fault"	},
+-	{ do_sea,		SIGBUS,  0,		"synchronous external abort"	},
+-	{ do_bad,		SIGBUS,  0,		"unknown 17"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 18"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 19"			},
+-	{ do_sea,		SIGBUS,  0,		"level 0 (translation table walk)"	},
+-	{ do_sea,		SIGBUS,  0,		"level 1 (translation table walk)"	},
+-	{ do_sea,		SIGBUS,  0,		"level 2 (translation table walk)"	},
+-	{ do_sea,		SIGBUS,  0,		"level 3 (translation table walk)"	},
+-	{ do_sea,		SIGBUS,  0,		"synchronous parity or ECC error" },	// Reserved when RAS is implemented
+-	{ do_bad,		SIGBUS,  0,		"unknown 25"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 26"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 27"			},
+-	{ do_sea,		SIGBUS,  0,		"level 0 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
+-	{ do_sea,		SIGBUS,  0,		"level 1 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
+-	{ do_sea,		SIGBUS,  0,		"level 2 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
+-	{ do_sea,		SIGBUS,  0,		"level 3 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
+-	{ do_bad,		SIGBUS,  0,		"unknown 32"			},
++	{ do_sea,		SIGBUS,  BUS_OBJERR,	"synchronous external abort"	},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 17"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 18"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 19"			},
++	{ do_sea,		SIGKILL, SI_KERNEL,	"level 0 (translation table walk)"	},
++	{ do_sea,		SIGKILL, SI_KERNEL,	"level 1 (translation table walk)"	},
++	{ do_sea,		SIGKILL, SI_KERNEL,	"level 2 (translation table walk)"	},
++	{ do_sea,		SIGKILL, SI_KERNEL,	"level 3 (translation table walk)"	},
++	{ do_sea,		SIGBUS,  BUS_OBJERR,	"synchronous parity or ECC error" },	// Reserved when RAS is implemented
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 25"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 26"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 27"			},
++	{ do_sea,		SIGKILL, SI_KERNEL,	"level 0 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
++	{ do_sea,		SIGKILL, SI_KERNEL,	"level 1 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
++	{ do_sea,		SIGKILL, SI_KERNEL,	"level 2 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
++	{ do_sea,		SIGKILL, SI_KERNEL,	"level 3 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 32"			},
+ 	{ do_alignment_fault,	SIGBUS,  BUS_ADRALN,	"alignment fault"		},
+-	{ do_bad,		SIGBUS,  0,		"unknown 34"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 35"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 36"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 37"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 38"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 39"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 40"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 41"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 42"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 43"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 44"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 45"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 46"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 47"			},
+-	{ do_bad,		SIGBUS,  0,		"TLB conflict abort"		},
+-	{ do_bad,		SIGBUS,  0,		"Unsupported atomic hardware update fault"	},
+-	{ do_bad,		SIGBUS,  0,		"unknown 50"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 51"			},
+-	{ do_bad,		SIGBUS,  0,		"implementation fault (lockdown abort)" },
+-	{ do_bad,		SIGBUS,  0,		"implementation fault (unsupported exclusive)" },
+-	{ do_bad,		SIGBUS,  0,		"unknown 54"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 55"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 56"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 57"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 58" 			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 59"			},
+-	{ do_bad,		SIGBUS,  0,		"unknown 60"			},
+-	{ do_bad,		SIGBUS,  0,		"section domain fault"		},
+-	{ do_bad,		SIGBUS,  0,		"page domain fault"		},
+-	{ do_bad,		SIGBUS,  0,		"unknown 63"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 34"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 35"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 36"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 37"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 38"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 39"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 40"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 41"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 42"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 43"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 44"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 45"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 46"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 47"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"TLB conflict abort"		},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"Unsupported atomic hardware update fault"	},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 50"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 51"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"implementation fault (lockdown abort)" },
++	{ do_bad,		SIGBUS,  BUS_OBJERR,	"implementation fault (unsupported exclusive)" },
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 54"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 55"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 56"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 57"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 58" 			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 59"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 60"			},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"section domain fault"		},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"page domain fault"		},
++	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 63"			},
+ };
+ 
+ int handle_guest_sea(phys_addr_t addr, unsigned int esr)
+@@ -739,11 +739,11 @@ static struct fault_info __refdata debug_fault_info[] = {
+ 	{ do_bad,	SIGTRAP,	TRAP_HWBKPT,	"hardware breakpoint"	},
+ 	{ do_bad,	SIGTRAP,	TRAP_HWBKPT,	"hardware single-step"	},
+ 	{ do_bad,	SIGTRAP,	TRAP_HWBKPT,	"hardware watchpoint"	},
+-	{ do_bad,	SIGBUS,		0,		"unknown 3"		},
++	{ do_bad,	SIGKILL,	SI_KERNEL,	"unknown 3"		},
+ 	{ do_bad,	SIGTRAP,	TRAP_BRKPT,	"aarch32 BKPT"		},
+-	{ do_bad,	SIGTRAP,	0,		"aarch32 vector catch"	},
++	{ do_bad,	SIGKILL,	SI_KERNEL,	"aarch32 vector catch"	},
+ 	{ early_brk64,	SIGTRAP,	TRAP_BRKPT,	"aarch64 BRK"		},
+-	{ do_bad,	SIGBUS,		0,		"unknown 7"		},
++	{ do_bad,	SIGKILL,	SI_KERNEL,	"unknown 7"		},
+ };
+ 
+ void __init hook_debug_fault_code(int nr,
 -- 
 2.1.4
