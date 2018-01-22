@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 20/24] selftests/vm: testcases must restore pkey-permissions
-Date: Mon, 22 Jan 2018 10:52:13 -0800
-Message-ID: <1516647137-11174-21-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 22/24] selftests/vm: Fix deadlock in protection_keys.c
+Date: Mon, 22 Jan 2018 10:52:15 -0800
+Message-ID: <1516647137-11174-23-git-send-email-linuxram@us.ibm.com>
 References: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
@@ -10,63 +10,62 @@ To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-Generally the signal handler restores the state of the pkey register
-before returning. However there are times when the read/write operation
-can legitamely fail without invoking the signal handler.  Eg: A
-sys_read() operaton to a write-protected page should be disallowed.  In
-such a case the state of the pkey register is not restored to its
-original state.  The test case is responsible for restoring the key
-register state to its original value.
+From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+
+The sig_chld() handler calls dprintf2() taking care of setting
+dprint_in_signal so that sigsafe_printf() won't call printf().
+Unfortunately, this precaution is is negated by dprintf_level(), which
+has a call to fflush().
+
+This function acquires a lock, which means that if the signal interrupts an
+ongoing fflush() the process will deadlock. At least on powerpc this is
+easy to trigger, resulting in the following backtrace when attaching to the
+frozen process:
+
+  (gdb) bt
+  #0  0x00007fff9f96c7d8 in __lll_lock_wait_private () from /lib64/power8/libc.so.6
+  #1  0x00007fff9f8cba4c in _IO_flush_all_lockp () from /lib64/power8/libc.so.6
+  #2  0x00007fff9f8cbd1c in __GI__IO_flush_all () from /lib64/power8/libc.so.6
+  #3  0x00007fff9f8b7424 in fflush () from /lib64/power8/libc.so.6
+  #4  0x00000000100504f8 in sig_chld (x=17) at protection_keys.c:283
+  #5  <signal handler called>
+  #6  0x00007fff9f8cb8ac in _IO_flush_all_lockp () from /lib64/power8/libc.so.6
+  #7  0x00007fff9f8cbd1c in __GI__IO_flush_all () from /lib64/power8/libc.so.6
+  #8  0x00007fff9f8b7424 in fflush () from /lib64/power8/libc.so.6
+  #9  0x0000000010050b50 in pkey_get (pkey=7, flags=0) at protection_keys.c:379
+  #10 0x0000000010050dc0 in pkey_disable_set (pkey=7, flags=2) at protection_keys.c:423
+  #11 0x0000000010051414 in pkey_write_deny (pkey=7) at protection_keys.c:486
+  #12 0x00000000100556bc in test_ptrace_of_child (ptr=0x7fff9f7f0000, pkey=7) at protection_keys.c:1288
+  #13 0x0000000010055f60 in run_tests_once () at protection_keys.c:1414
+  #14 0x00000000100561a4 in main () at protection_keys.c:1459
+
+The fix is to refrain from calling fflush() when inside a signal handler.
+The output may not be as pretty but at least the testcase will be able to
+move on.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
----
- tools/testing/selftests/vm/protection_keys.c |    5 +++++
- 1 files changed, 5 insertions(+), 0 deletions(-)
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 
-diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 3e9e36d..5783587 100644
---- a/tools/testing/selftests/vm/protection_keys.c
-+++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1003,6 +1003,7 @@ void test_read_of_write_disabled_region(int *ptr, u16 pkey)
- 	ptr_contents = read_ptr(ptr);
- 	dprintf1("*ptr: %d\n", ptr_contents);
- 	dprintf1("\n");
-+	pkey_write_allow(pkey);
- }
- void test_read_of_access_disabled_region(int *ptr, u16 pkey)
- {
-@@ -1082,6 +1083,7 @@ void test_kernel_write_of_access_disabled_region(int *ptr, u16 pkey)
- 	ret = read(test_fd, ptr, 1);
- 	dprintf1("read ret: %d\n", ret);
- 	pkey_assert(ret);
-+	pkey_access_allow(pkey);
- }
- void test_kernel_write_of_write_disabled_region(int *ptr, u16 pkey)
- {
-@@ -1094,6 +1096,7 @@ void test_kernel_write_of_write_disabled_region(int *ptr, u16 pkey)
- 	if (ret < 0 && (DEBUG_LEVEL > 0))
- 		perror("verbose read result (OK for this to be bad)");
- 	pkey_assert(ret);
-+	pkey_write_allow(pkey);
- }
- 
- void test_kernel_gup_of_access_disabled_region(int *ptr, u16 pkey)
-@@ -1113,6 +1116,7 @@ void test_kernel_gup_of_access_disabled_region(int *ptr, u16 pkey)
- 	vmsplice_ret = vmsplice(pipe_fds[1], &iov, 1, SPLICE_F_GIFT);
- 	dprintf1("vmsplice() ret: %d\n", vmsplice_ret);
- 	pkey_assert(vmsplice_ret == -1);
-+	pkey_access_allow(pkey);
- 
- 	close(pipe_fds[0]);
- 	close(pipe_fds[1]);
-@@ -1133,6 +1137,7 @@ void test_kernel_gup_write_to_write_disabled_region(int *ptr, u16 pkey)
- 	if (DEBUG_LEVEL > 0)
- 		perror("futex");
- 	dprintf1("futex() ret: %d\n", futex_ret);
-+	pkey_write_allow(pkey);
- }
- 
- /* Assumes that all pkeys other than 'pkey' are unallocated */
+ tools/testing/selftests/vm/pkey-helpers.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+---
+ tools/testing/selftests/vm/pkey-helpers.h |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
+
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index 9d06b4a..965cfcd 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -131,7 +131,8 @@ static inline void sigsafe_printf(const char *format, ...)
+ #define dprintf_level(level, args...) do {	\
+ 	if (level <= DEBUG_LEVEL)		\
+ 		sigsafe_printf(args);		\
+-	fflush(NULL);				\
++	if (!dprint_in_signal)			\
++		fflush(NULL);			\
+ } while (0)
+ #define dprintf0(args...) dprintf_level(0, args)
+ #define dprintf1(args...) dprintf_level(1, args)
 -- 
 1.7.1
 
