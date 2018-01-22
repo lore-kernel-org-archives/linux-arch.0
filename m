@@ -1,55 +1,49 @@
-From: John Garry <john.garry@huawei.com>
-Subject: Re: [PATCH v11 2/9] PCI: Remove unused __weak attribute in
- pci_register_io_range()
-Date: Mon, 22 Jan 2018 11:59:20 +0000
-Message-ID: <6816e715-df0f-ddff-d19d-de2d0f3101c7@huawei.com>
-References: <1516537647-50553-1-git-send-email-john.garry@huawei.com>
- <1516537647-50553-3-git-send-email-john.garry@huawei.com>
+From: Samuel Neves <samuel.c.p.neves@gmail.com>
+Subject: Re: [kernel-hardening] Re: [PATCH v4.1 07/10] x86: narrow out of
+ bounds syscalls to sys_read under speculation
+Date: Mon, 22 Jan 2018 11:59:55 +0000
+Message-ID: <CAEX_ruEw_0R4XZWXhdpDQHpEbf23CRCNvgQjAKiLs-TMycXd=A@mail.gmail.com>
+References: <151648235823.34747.15181877619346237802.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151648239535.34747.4422108674633222531.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <867402A5-BED8-4A44-9770-7D3B153BEE82@amacapital.net> <CAG48ez3dWLJEoiUOLKRD3e8uJmAz87FNQB5MOLTxJg=y3KahRw@mail.gmail.com>
+ <CALCETrVxf06iNYWUxtsBU4ApNSK0jbnEUBoSvnGGQ7z1cyPJ9A@mail.gmail.com> <CA+55aFxLOMcSfodeV5WV=n0+tuz7rVs4bEtnfv9qT9c8H0TfLA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-acpi-owner@vger.kernel.org>
-In-Reply-To: <1516537647-50553-3-git-send-email-john.garry@huawei.com>
-Sender: linux-acpi-owner@vger.kernel.org
-To: bhelgaas@google.com
-Cc: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, robh+dt@kernel.org, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, hanjun.guo@linaro.org, dann.frazier@canonical.com, benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f48.google.com ([74.125.82.48]:35020 "EHLO
+        mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750848AbeAVMAh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jan 2018 07:00:37 -0500
+Received: by mail-wm0-f48.google.com with SMTP id r78so16317568wme.0
+        for <linux-arch@vger.kernel.org>; Mon, 22 Jan 2018 04:00:37 -0800 (PST)
+In-Reply-To: <CA+55aFxLOMcSfodeV5WV=n0+tuz7rVs4bEtnfv9qT9c8H0TfLA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>, Jann Horn <jannh@google.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Alan Cox <alan@linux.intel.com>
 
-On 21/01/2018 12:27, John Garry wrote:
-> From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+On Mon, Jan 22, 2018 at 2:04 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> However, I suspect it actually has a slightly higher register
+> pressure, since you'd need to have that zero register (zero being the
+> "safe" value), and the only good way to get a zero value is the xor
+> thing, which affects flags and thus needs to be before the cmp.
 >
-> Currently pci_register_io_range() has only one definition;
-> therefore there is no use of the __weak attribute.
->
-> Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-> Acked-by: Bjorn Helgaas <bhelgaas@google.com>
-> ---
+> In contrast, the sbb trick has no early inputs needed.
 
-Hi Bjorn,
+On the flipside, sbb carries a false dependency [*] on the destination
+register. Imagine something like
 
-So I will need to respin this series again (and it still requires many 
-more SOB tags), so do you want to pick up this minor patch in isolation 
-now? It would save me carrying it, and save people receiving it in future.
+divq %rcx
+...
+cmpq %rdi, %rsi
+sbbq %rax,%rax
 
-Thanks,
-John
+sbb needs to wait not only for the comparison, but also for the
+earlier unrelated slow division. On the other hand, zeroing with mov
+or xor breaks dependencies on the destination register, making the
+computation independent of what came before.
 
->  drivers/pci/pci.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-> index 764ca7b..d8357ff 100644
-> --- a/drivers/pci/pci.c
-> +++ b/drivers/pci/pci.c
-> @@ -3383,7 +3383,7 @@ struct io_range {
->   * Record the PCI IO range (expressed as CPU physical address + size).
->   * Return a negative value if an error has occured, zero otherwise
->   */
-> -int __weak pci_register_io_range(phys_addr_t addr, resource_size_t size)
-> +int pci_register_io_range(phys_addr_t addr, resource_size_t size)
->  {
->  	int err = 0;
->
->
-
-
+[*] Recent AMD chips are smart enough to understand the sbb r,r idiom
+and ignore the value of r, but as far as I know none of the Intel
+chips do.
