@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:33438 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:60302 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752988AbeAVIvs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jan 2018 03:51:48 -0500
+        with ESMTP id S1752171AbeAVIsK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jan 2018 03:48:10 -0500
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 38/89] x86/mm/pkeys: Fix fill_sig_info_pkey
-Date: Mon, 22 Jan 2018 09:45:18 +0100
-Message-ID: <20180122083958.454399528@linuxfoundation.org>
-In-Reply-To: <20180122083954.683903493@linuxfoundation.org>
-References: <20180122083954.683903493@linuxfoundation.org>
+Subject: [PATCH 4.9 19/47] x86/mm/pkeys: Fix fill_sig_info_pkey
+Date: Mon, 22 Jan 2018 09:45:30 +0100
+Message-ID: <20180122083927.168382996@linuxfoundation.org>
+In-Reply-To: <20180122083925.568134913@linuxfoundation.org>
+References: <20180122083925.568134913@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Oleg Nesterov <oleg@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20180122084518.vd35CesDWLyLPhZcBsadgPrUxQKPBmfTkpF8f1H_o-Y@z>
+Message-ID: <20180122084530.KLje4wwIoyq_kJI-N1lUeFXwVRrToF6cC9MVrWmMJlM@z>
 
-4.14-stable review patch.  If anyone has any objections, please let me know.
+4.9-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -51,7 +51,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/arch/x86/mm/fault.c
 +++ b/arch/x86/mm/fault.c
-@@ -173,14 +173,15 @@ is_prefetch(struct pt_regs *regs, unsign
+@@ -191,14 +191,15 @@ is_prefetch(struct pt_regs *regs, unsign
   * 6. T1   : reaches here, sees vma_pkey(vma)=5, when we really
   *	     faulted on a pte with its pkey=4.
   */
@@ -69,7 +69,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  		return;
  	/*
  	 * force_sig_info_fault() is called from a number of
-@@ -219,7 +220,7 @@ force_sig_info_fault(int si_signo, int s
+@@ -237,7 +238,7 @@ force_sig_info_fault(int si_signo, int s
  		lsb = PAGE_SHIFT;
  	info.si_addr_lsb = lsb;
  
