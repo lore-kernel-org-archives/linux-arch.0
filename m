@@ -1,30 +1,45 @@
-From: Jann Horn <jannh@google.com>
-Subject: Re: [kernel-hardening] [PATCH v4.1 01/10] Documentation: document array_ptr
-Date: Mon, 22 Jan 2018 20:00:40 +0100
-Message-ID: <CAG48ez3SQNMKxMLNKCV4o8qAbqzB4d+EPo8a4wHzDgqkGAX8Dw@mail.gmail.com>
-References: <151648235823.34747.15181877619346237802.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151648236454.34747.93245075402067564.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [RFC PATCH 1/2] arm64: fpsimd: Fix bad si_code for undiagnosed SIGFPE
+Date: Mon, 22 Jan 2018 15:13:08 -0600
+Message-ID: <878tcp8umz.fsf@xmission.com>
+References: <1516623798-25001-1-git-send-email-Dave.Martin@arm.com>
+        <1516623798-25001-2-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f46.google.com ([209.85.218.46]:34433 "EHLO
-        mail-oi0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751170AbeAVTBC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jan 2018 14:01:02 -0500
-Received: by mail-oi0-f46.google.com with SMTP id k15so4043262oib.1
-        for <linux-arch@vger.kernel.org>; Mon, 22 Jan 2018 11:01:02 -0800 (PST)
-In-Reply-To: <151648236454.34747.93245075402067564.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from out02.mta.xmission.com ([166.70.13.232]:54474 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751046AbeAVVOJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jan 2018 16:14:09 -0500
+In-Reply-To: <1516623798-25001-2-git-send-email-Dave.Martin@arm.com> (Dave
+        Martin's message of "Mon, 22 Jan 2018 12:23:17 +0000")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Mark Rutland <mark.rutland@arm.com>, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Peter Zijlstra <peterz@infradead.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Corbet <corbet@lwn.net>, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>, alan@linux.intel.com
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>
 
-On Sat, Jan 20, 2018 at 10:06 PM, Dan Williams <dan.j.williams@intel.com> wrote:
-> From: Mark Rutland <mark.rutland@arm.com>
->
-> Document the rationale and usage of the new array_ptr() helper.
-[...]
-> +A call to array_ptr(arr, idx, sz) returns a sanitized pointer to
-> +arr[idx] only if idx falls in the [0, sz) interval. When idx < 0 or idx > sz,
 
-"or idx >= sz"?
+> diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+> index e447283..77edb00 100644
+> --- a/include/uapi/asm-generic/siginfo.h
+> +++ b/include/uapi/asm-generic/siginfo.h
+> @@ -193,7 +193,8 @@ typedef struct siginfo {
+>  #define FPE_FLTRES	6	/* floating point inexact result */
+>  #define FPE_FLTINV	7	/* floating point invalid operation */
+>  #define FPE_FLTSUB	8	/* subscript out of range */
+> -#define NSIGFPE		8
+> +#define FPE_UNKNOWN	9	/* undiagnosed floating-point exception */
+> +#define NSIGFPE		9
+
+Minor nit here.
+
+At least before this is final I would really appreciate if you could
+rebase this on top of my unificiation of siginfo.h that I posted on
+linux-arch and is in my siginfo-next branch.
+
+As that already pushes NSIGFPE up to 13.
+
+Which would make this patch change NSIGFPE to 14 and allocate the number
+14 for FPE_UNKNOWN
+
+Eric
