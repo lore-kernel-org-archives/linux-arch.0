@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 14/24] selftests/vm: clear the bits in shadow reg when a pkey is freed.
-Date: Mon, 22 Jan 2018 10:52:07 -0800
-Message-ID: <1516647137-11174-15-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 20/24] selftests/vm: testcases must restore pkey-permissions
+Date: Mon, 22 Jan 2018 10:52:13 -0800
+Message-ID: <1516647137-11174-21-git-send-email-linuxram@us.ibm.com>
 References: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
@@ -10,30 +10,63 @@ To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-When a key is freed, the  key  is  no  more  effective.
-Clear the bits corresponding to the pkey in the shadow
-register. Otherwise  it  will carry some spurious bits
-which can trigger false-positive asserts.
+Generally the signal handler restores the state of the pkey register
+before returning. However there are times when the read/write operation
+can legitamely fail without invoking the signal handler.  Eg: A
+sys_read() operaton to a write-protected page should be disallowed.  In
+such a case the state of the pkey register is not restored to its
+original state.  The test case is responsible for restoring the key
+register state to its original value.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |    3 ++-
- 1 files changed, 2 insertions(+), 1 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |    5 +++++
+ 1 files changed, 5 insertions(+), 0 deletions(-)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 55a25e1..d1cbdfe 100644
+index 3e9e36d..5783587 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -586,7 +586,8 @@ int sys_pkey_free(unsigned long pkey)
- 	int ret = syscall(SYS_pkey_free, pkey);
- 
- 	if (!ret)
--		shadow_pkey_reg &= reset_bits(pkey, PKEY_DISABLE_ACCESS);
-+		shadow_pkey_reg &= reset_bits(pkey,
-+				PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE);
- 	dprintf1("%s(pkey=%ld) syscall ret: %d\n", __func__, pkey, ret);
- 	return ret;
+@@ -1003,6 +1003,7 @@ void test_read_of_write_disabled_region(int *ptr, u16 pkey)
+ 	ptr_contents = read_ptr(ptr);
+ 	dprintf1("*ptr: %d\n", ptr_contents);
+ 	dprintf1("\n");
++	pkey_write_allow(pkey);
  }
+ void test_read_of_access_disabled_region(int *ptr, u16 pkey)
+ {
+@@ -1082,6 +1083,7 @@ void test_kernel_write_of_access_disabled_region(int *ptr, u16 pkey)
+ 	ret = read(test_fd, ptr, 1);
+ 	dprintf1("read ret: %d\n", ret);
+ 	pkey_assert(ret);
++	pkey_access_allow(pkey);
+ }
+ void test_kernel_write_of_write_disabled_region(int *ptr, u16 pkey)
+ {
+@@ -1094,6 +1096,7 @@ void test_kernel_write_of_write_disabled_region(int *ptr, u16 pkey)
+ 	if (ret < 0 && (DEBUG_LEVEL > 0))
+ 		perror("verbose read result (OK for this to be bad)");
+ 	pkey_assert(ret);
++	pkey_write_allow(pkey);
+ }
+ 
+ void test_kernel_gup_of_access_disabled_region(int *ptr, u16 pkey)
+@@ -1113,6 +1116,7 @@ void test_kernel_gup_of_access_disabled_region(int *ptr, u16 pkey)
+ 	vmsplice_ret = vmsplice(pipe_fds[1], &iov, 1, SPLICE_F_GIFT);
+ 	dprintf1("vmsplice() ret: %d\n", vmsplice_ret);
+ 	pkey_assert(vmsplice_ret == -1);
++	pkey_access_allow(pkey);
+ 
+ 	close(pipe_fds[0]);
+ 	close(pipe_fds[1]);
+@@ -1133,6 +1137,7 @@ void test_kernel_gup_write_to_write_disabled_region(int *ptr, u16 pkey)
+ 	if (DEBUG_LEVEL > 0)
+ 		perror("futex");
+ 	dprintf1("futex() ret: %d\n", futex_ret);
++	pkey_write_allow(pkey);
+ }
+ 
+ /* Assumes that all pkeys other than 'pkey' are unallocated */
 -- 
 1.7.1
 
