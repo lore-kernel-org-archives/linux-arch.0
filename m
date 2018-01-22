@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 18/24] selftests/vm: associate key on a mapped page and detect write violation
-Date: Mon, 22 Jan 2018 10:52:11 -0800
-Message-ID: <1516647137-11174-19-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 14/24] selftests/vm: clear the bits in shadow reg when a pkey is freed.
+Date: Mon, 22 Jan 2018 10:52:07 -0800
+Message-ID: <1516647137-11174-15-git-send-email-linuxram@us.ibm.com>
 References: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
@@ -10,44 +10,30 @@ To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-detect write-violation on a page to which write-disabled
-key is associated much after the page is mapped.
+When a key is freed, the  key  is  no  more  effective.
+Clear the bits corresponding to the pkey in the shadow
+register. Otherwise  it  will carry some spurious bits
+which can trigger false-positive asserts.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |   12 ++++++++++++
- 1 files changed, 12 insertions(+), 0 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 1d3f596..f90a8b6 100644
+index 55a25e1..d1cbdfe 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1034,6 +1034,17 @@ void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
- 	expected_pkey_fault(pkey);
- }
+@@ -586,7 +586,8 @@ int sys_pkey_free(unsigned long pkey)
+ 	int ret = syscall(SYS_pkey_free, pkey);
  
-+void test_write_of_write_disabled_region_with_page_already_mapped(int *ptr,
-+		u16 pkey)
-+{
-+	*ptr = __LINE__;
-+	dprintf1("disabling write access; after accessing the page, "
-+		"to PKEY[%02d], doing write\n", pkey);
-+	pkey_write_deny(pkey);
-+	*ptr = __LINE__;
-+	expected_pkey_fault(pkey);
-+}
-+
- void test_write_of_write_disabled_region(int *ptr, u16 pkey)
- {
- 	dprintf1("disabling write access to PKEY[%02d], doing write\n", pkey);
-@@ -1330,6 +1341,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
- 	test_read_of_access_disabled_region,
- 	test_read_of_access_disabled_region_with_page_already_mapped,
- 	test_write_of_write_disabled_region,
-+	test_write_of_write_disabled_region_with_page_already_mapped,
- 	test_write_of_access_disabled_region,
- 	test_kernel_write_of_access_disabled_region,
- 	test_kernel_write_of_write_disabled_region,
+ 	if (!ret)
+-		shadow_pkey_reg &= reset_bits(pkey, PKEY_DISABLE_ACCESS);
++		shadow_pkey_reg &= reset_bits(pkey,
++				PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE);
+ 	dprintf1("%s(pkey=%ld) syscall ret: %d\n", __func__, pkey, ret);
+ 	return ret;
+ }
 -- 
 1.7.1
 
