@@ -1,68 +1,55 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v6 31/36] dt-bindings: nds32 CPU Bindings
-Date: Mon, 22 Jan 2018 12:15:47 +0100
-Message-ID: <CAK8P3a2noraQFvJbi2=T+rb3KDfZ88zJWQ_h3dYjD2ArhLPM1Q@mail.gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com> <e9577ec0f6b6ca17077aa2f576c8bef191c3d7c2.1515766253.git.green.hu@gmail.com>
- <CAK8P3a0HGhx3WpF-AwC+7m8+FoaiQBTYoCLqhECrATBRLX7x5g@mail.gmail.com>
- <CAEbi=3ef8JHf_Jpru1B2L3+Xz-Oz4p_t84Lh=5kuTFo0YEz=5A@mail.gmail.com>
- <CAK8P3a38hCHULZt=fGXJebcoiEGCwA0fre_kixA7sUpPP2xf5g@mail.gmail.com>
- <CAEbi=3eexCyrVhFZB8wmK1fT=QONzc63y6=dGNgj_H+Rt4zo_g@mail.gmail.com>
- <CAMuHMdX4nzU06ovDOwzJw-O8w0gyer-fi6skDae=K1yr-EN1gA@mail.gmail.com>
- <CAEbi=3fKp5tj32hoH=ZTo6kqpCE+Zv1LopnpVujusSfMkeaJKg@mail.gmail.com>
- <CAMuHMdUqxuiTfM_m80F4XDVkZjx_XCsj_qXRehZxMcKjWhGQ_Q@mail.gmail.com> <CAEbi=3es7O6f5T0Z2zsQzbuxzNte+h-_fMnjOOvbvpz8Hu8g_Q@mail.gmail.com>
+From: John Garry <john.garry@huawei.com>
+Subject: Re: [PATCH v11 2/9] PCI: Remove unused __weak attribute in
+ pci_register_io_range()
+Date: Mon, 22 Jan 2018 11:59:20 +0000
+Message-ID: <6816e715-df0f-ddff-d19d-de2d0f3101c7@huawei.com>
+References: <1516537647-50553-1-git-send-email-john.garry@huawei.com>
+ <1516537647-50553-3-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAEbi=3es7O6f5T0Z2zsQzbuxzNte+h-_fMnjOOvbvpz8Hu8g_Q@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Greentime Hu <green.hu@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-acpi-owner@vger.kernel.org>
+In-Reply-To: <1516537647-50553-3-git-send-email-john.garry@huawei.com>
+Sender: linux-acpi-owner@vger.kernel.org
+To: bhelgaas@google.com
+Cc: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, robh+dt@kernel.org, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, hanjun.guo@linaro.org, dann.frazier@canonical.com, benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 22, 2018 at 10:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> 2018-01-19 23:37 GMT+08:00 Geert Uytterhoeven <geert@linux-m68k.org>:
->> On Fri, Jan 19, 2018 at 4:35 PM, Greentime Hu <green.hu@gmail.com> wrote:
->>> 2018-01-19 23:29 GMT+08:00 Geert Uytterhoeven <geert@linux-m68k.org>:
->>>> On Fri, Jan 19, 2018 at 4:18 PM, Greentime Hu <green.hu@gmail.com> wrote:
-
->>> Thank you and your example.
->>> I get it. I will update this document like this.
->>> - compatible: Should be "andestech,<core_name>", "andestech,nds32v3"
->>> as fallback.
->>
->> And please keep a list of supported values of "andestech,<core_name>"
->> in the DT binding document, so checkpatch can validate compatible values.
->>
+On 21/01/2018 12:27, John Garry wrote:
+> From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
 >
-> Thank you for reminding me this.
-> I will list it like this.
+> Currently pci_register_io_range() has only one definition;
+> therefore there is no use of the __weak attribute.
 >
-> - compatible:
->         Usage: required
->         Value type: <string>
->         Definition: Should be "andestech,<core_name>",
-> "andestech,nds32v3" as fallback.
->         Examlpes with core_names are:
->         "andestech,n13"
->         "andestech,n15"
->         "andestech,d15"
->         "andestech,n10"
->         "andestech,d10"
+> Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+> Acked-by: Bjorn Helgaas <bhelgaas@google.com>
+> ---
 
-This is still not written as a proper specification, you should not
-give "examples"
-but give a complete list of the available options. You could write it like:
+Hi Bjorn,
 
-Must contain "andestech,nds32v3" as the most generic value, in addition to
-one of the following identifiers for a particular CPU core:
-         "andestech,n13"
-         "andestech,n15"
-         "andestech,d15"
-         "andestech,n10"
-         "andestech,d10"
+So I will need to respin this series again (and it still requires many 
+more SOB tags), so do you want to pick up this minor patch in isolation 
+now? It would save me carrying it, and save people receiving it in future.
 
-It might be helpful to also list all other existing nds32v3 cores,
-even those that the
-current Linux port does not support them.
+Thanks,
+John
 
-      Arnd
+>  drivers/pci/pci.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+> index 764ca7b..d8357ff 100644
+> --- a/drivers/pci/pci.c
+> +++ b/drivers/pci/pci.c
+> @@ -3383,7 +3383,7 @@ struct io_range {
+>   * Record the PCI IO range (expressed as CPU physical address + size).
+>   * Return a negative value if an error has occured, zero otherwise
+>   */
+> -int __weak pci_register_io_range(phys_addr_t addr, resource_size_t size)
+> +int pci_register_io_range(phys_addr_t addr, resource_size_t size)
+>  {
+>  	int err = 0;
+>
+>
+
+
