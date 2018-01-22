@@ -1,28 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:41853 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751346AbeAVDeh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 21 Jan 2018 22:34:37 -0500
-In-Reply-To: <1516326648-22775-4-git-send-email-linuxram@us.ibm.com>
-From: Michael Ellerman <patch-notifications@ellerman.id.au>
-Subject: Re: [v10,03/27] powerpc: initial pkey plumbing
-Message-ID: <3zPxrB60pxz9sNx@ozlabs.org>
-Date: Mon, 22 Jan 2018 14:34:33 +1100 (AEDT)
+Received: from mail.linuxfoundation.org ([140.211.169.12]:33438 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752988AbeAVIvs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jan 2018 03:51:48 -0500
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.14 38/89] x86/mm/pkeys: Fix fill_sig_info_pkey
+Date: Mon, 22 Jan 2018 09:45:18 +0100
+Message-ID: <20180122083958.454399528@linuxfoundation.org>
+In-Reply-To: <20180122083954.683903493@linuxfoundation.org>
+References: <20180122083954.683903493@linuxfoundation.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>, mingo@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, arnd@arndb.de
-Cc: linux-arch@vger.kernel.org, ebiederm@xmission.com, linux-doc@vger.kernel.org, x86@kernel.org, dave.hansen@intel.com, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, linux-kselftest@vger.kernel.org, bauerman@linux.vnet.ibm.com, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
-Message-ID: <20180122033433.a3q-T7eGrU7zIo5y9Iav8o3De5aexBXyNufqB-QI2BI@z>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Oleg Nesterov <oleg@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20180122084518.vd35CesDWLyLPhZcBsadgPrUxQKPBmfTkpF8f1H_o-Y@z>
 
-On Fri, 2018-01-19 at 01:50:24 UTC, Ram Pai wrote:
-> Basic  plumbing  to   initialize  the   pkey  system.
-> Nothing is enabled yet. A later patch will enable it
-> once all the infrastructure is in place.
-> 
-> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+4.14-stable review patch.  If anyone has any objections, please let me know.
 
-Patches 3-27 applied to powerpc next, thanks.
+------------------
 
-https://git.kernel.org/powerpc/c/92e3da3cf193fd27996909956c12a2
+From: Eric W. Biederman <ebiederm@xmission.com>
 
-cheers
+commit beacd6f7ed5e2915959442245b3b2480c2e37490 upstream.
+
+SEGV_PKUERR is a signal specific si_code which happens to have the same
+numeric value as several others: BUS_MCEERR_AR, ILL_ILLTRP, FPE_FLTOVF,
+TRAP_HWBKPT, CLD_TRAPPED, POLL_ERR, SEGV_THREAD_ID, as such it is not safe
+to just test the si_code the signal number must also be tested to prevent a
+false positive in fill_sig_info_pkey.
+
+This error was by inspection, and BUS_MCEERR_AR appears to be a real
+candidate for confusion.  So pass in si_signo and check for SIG_SEGV to
+verify that it is actually a SEGV_PKUERR
+
+Fixes: 019132ff3daf ("x86/mm/pkeys: Fill in pkey field in siginfo")
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Link: https://lkml.kernel.org/r/20180112203135.4669-2-ebiederm@xmission.com
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+---
+ arch/x86/mm/fault.c |    7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -173,14 +173,15 @@ is_prefetch(struct pt_regs *regs, unsign
+  * 6. T1   : reaches here, sees vma_pkey(vma)=5, when we really
+  *	     faulted on a pte with its pkey=4.
+  */
+-static void fill_sig_info_pkey(int si_code, siginfo_t *info, u32 *pkey)
++static void fill_sig_info_pkey(int si_signo, int si_code, siginfo_t *info,
++		u32 *pkey)
+ {
+ 	/* This is effectively an #ifdef */
+ 	if (!boot_cpu_has(X86_FEATURE_OSPKE))
+ 		return;
+ 
+ 	/* Fault not from Protection Keys: nothing to do */
+-	if (si_code != SEGV_PKUERR)
++	if ((si_code != SEGV_PKUERR) || (si_signo != SIGSEGV))
+ 		return;
+ 	/*
+ 	 * force_sig_info_fault() is called from a number of
+@@ -219,7 +220,7 @@ force_sig_info_fault(int si_signo, int s
+ 		lsb = PAGE_SHIFT;
+ 	info.si_addr_lsb = lsb;
+ 
+-	fill_sig_info_pkey(si_code, &info, pkey);
++	fill_sig_info_pkey(si_signo, si_code, &info, pkey);
+ 
+ 	force_sig_info(si_signo, &info, tsk);
+ }
