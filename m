@@ -1,7 +1,7 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v10 11/24] selftests/vm: pkey register should match shadow pkey
-Date: Mon, 22 Jan 2018 10:52:04 -0800
-Message-ID: <1516647137-11174-12-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v10 08/24] selftests/vm: clear the bits in shadow reg when a pkey is freed.
+Date: Mon, 22 Jan 2018 10:52:01 -0800
+Message-ID: <1516647137-11174-9-git-send-email-linuxram@us.ibm.com>
 References: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
@@ -10,35 +10,30 @@ To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-expected_pkey_fault() is comparing the contents of pkey
-register with 0. This may not be true all the time. There
-could be bits set by default by the architecture
-which can never be changed. Hence compare the value against
-shadow pkey register, which is supposed to track the bits
-accurately all throughout
+When a key is freed, the  key  is  no  more  effective.
+Clear the bits corresponding to the pkey in the shadow
+register. Otherwise  it  will carry some spurious bits
+which can trigger false-positive asserts.
 
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 254b66d..6054093 100644
+index ca54a95..aaf9f09 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -926,10 +926,10 @@ void expected_pkey_fault(int pkey)
- 	pkey_assert(last_pkey_faults + 1 == pkey_faults);
- 	pkey_assert(last_si_pkey == pkey);
- 	/*
--	 * The signal handler shold have cleared out PKEY register to let the
-+	 * The signal handler shold have cleared out pkey-register to let the
- 	 * test program continue.  We now have to restore it.
- 	 */
--	if (__rdpkey_reg() != 0)
-+	if (__rdpkey_reg() != shadow_pkey_reg)
- 		pkey_assert(0);
- 
- 	__wrpkey_reg(shadow_pkey_reg);
+@@ -582,6 +582,9 @@ int alloc_pkey(void)
+ int sys_pkey_free(unsigned long pkey)
+ {
+ 	int ret = syscall(SYS_pkey_free, pkey);
++
++	if (!ret)
++		shadow_pkey_reg &= reset_bits(pkey, PKEY_DISABLE_ACCESS);
+ 	dprintf1("%s(pkey=%ld) syscall ret: %d\n", __func__, pkey, ret);
+ 	return ret;
+ }
 -- 
 1.7.1
 
