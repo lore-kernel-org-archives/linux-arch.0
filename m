@@ -1,81 +1,68 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH v4.1 02/10] asm/nospec, array_ptr: sanitize speculative
- array de-references
-Date: Mon, 22 Jan 2018 10:52:54 -0800
-Message-ID: <CAPcyv4gjDrTnC_xeuVWjonvF7_L1Y-OOQndMRyVDdaLmcC7NMg@mail.gmail.com>
-References: <151648235823.34747.15181877619346237802.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151648236968.34747.390507912161115784.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180121104019.GS17719@n2100.armlinux.org.uk> <CAPcyv4iY9PWULZfGnKnTiD4tVxHSw4QfSwUBV4d=1KfnUjbgWw@mail.gmail.com>
- <CA+55aFyqAGRE4+QteYyvNyMzepFXHVVBn=A07Adj-yBs=tS_Ww@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <kernel-hardening-return-11394-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CA+55aFyqAGRE4+QteYyvNyMzepFXHVVBn=A07Adj-yBs=tS_Ww@mail.gmail.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Alan Cox <alan@linux.intel.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH v10 10/24] selftests/vm: introduce two arch independent abstraction
+Date: Mon, 22 Jan 2018 10:52:03 -0800
+Message-ID: <1516647137-11174-11-git-send-email-linuxram@us.ibm.com>
+References: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1516647137-11174-1-git-send-email-linuxram@us.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
+Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 22, 2018 at 10:37 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Mon, Jan 22, 2018 at 10:07 AM, Dan Williams <dan.j.williams@intel.com> wrote:
->> On Sun, Jan 21, 2018 at 2:40 AM, Russell King - ARM Linux
->> <linux@armlinux.org.uk> wrote:
->>>
->>> I'd suggest changing the description to something like:
->>>
->>>   * If 0 <= idx < size, return a mask of ~0UL, otherwise return zero.
->
-> Yes. HOWEVER.
->
-> We should make it clear that the signedness of the comparisons is
-> undefined, and that 'size' should always be positive for the above to
-> be well-specified.
->
-> Why?
->
-> Because one valid implementation of the above is:
->
->    idx U< size ? ~0UL : 0
->
-> as a single unsigned comparison (I'm using "U<" as a "unsigned less than").
->
-> But an equally valid implementation of it might be
->
->    idx S>= 0 && idx S< size ? ~0UL : 0
->
-> which does two signed comparisons instead.
->
-> And they are not exactly the same. They are the same _IFF_ 'size' is
-> positive in 'long'. But if size is an unsigned value so big as to be
-> negative in 'long', they give different results for 'idx'.
->
-> In fact, the ALU-only version actually did a third version of the
-> above that only uses "signed comparison against zero":
->
->    idx S> 0 && (size - idx - 1) S>= 0 ? ~0UL : 0
->
-> which again is equivalent only when 'size' is positive in 'long'.
->
-> Note that 'idx' itself can have any range (that's kind of the _point_,
-> after all: checking that idx is in some range). But the logic only
-> works for a positive array size.
->
-> Which honestly is not really a limitation, but it's worth spelling out, I think.
->
-> In particular, if you have a user pointer, and a 3G:1G split in
-> user:kernel address space, you camn *not* do something like
->
->     uptr = array_ptr(NULL, userptr, TASK_SIZE);
->
-> to get a sanitized user pointer, because TASK_SIZE is not positive in 'long'.
->
-> Hmm?
+open_hugepage_file() <- opens the huge page file
+get_start_key() <--  provides the first non-reserved key.
 
-We could at least have a BUILD_BUG_ON when 'size' is a
-builtin_contstant and greater than LONG_MAX. Alternatively we could
-require archs to provide the equivalent of the x86 array_ptr_mask()
-that does not have the LONG_MAX limitation?
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+---
+ tools/testing/selftests/vm/pkey-helpers.h    |   11 +++++++++++
+ tools/testing/selftests/vm/protection_keys.c |    6 +++---
+ 2 files changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index 7c979ad..c8f5739 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -304,3 +304,14 @@ static inline void __page_o_noops(void)
+ 	}					\
+ } while (0)
+ #define raw_assert(cond) assert(cond)
++
++static inline int open_hugepage_file(int flag)
++{
++	return open("/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages",
++		 O_RDONLY);
++}
++
++static inline int get_start_key(void)
++{
++	return 1;
++}
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 2e4b636..254b66d 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -809,7 +809,7 @@ void setup_hugetlbfs(void)
+ 	 * Now go make sure that we got the pages and that they
+ 	 * are 2M pages.  Someone might have made 1G the default.
+ 	 */
+-	fd = open("/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages", O_RDONLY);
++	fd = open_hugepage_file(O_RDONLY);
+ 	if (fd < 0) {
+ 		perror("opening sysfs 2M hugetlb config");
+ 		return;
+@@ -1087,10 +1087,10 @@ void test_kernel_gup_write_to_write_disabled_region(int *ptr, u16 pkey)
+ void test_pkey_syscalls_on_non_allocated_pkey(int *ptr, u16 pkey)
+ {
+ 	int err;
+-	int i;
++	int i = get_start_key();
+ 
+ 	/* Note: 0 is the default pkey, so don't mess with it */
+-	for (i = 1; i < NR_PKEYS; i++) {
++	for (; i < NR_PKEYS; i++) {
+ 		if (pkey == i)
+ 			continue;
+ 
+-- 
+1.7.1
