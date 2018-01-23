@@ -1,206 +1,146 @@
-From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v12 0/9] LPC: legacy ISA I/O support
-Date: Wed, 24 Jan 2018 00:36:16 +0800
-Message-ID: <1516725385-24535-1-git-send-email-john.garry@huawei.com>
-Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, hanjun.guo@linaro.org, dann.frazier@canonical.com
-Cc: benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, John Garry <john.garry@huawei.com>
+From: Mathieu Desnoyers <mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>
+Subject: [PATCH 05/11] membarrier: selftest: Test global expedited cmd (v2)
+Date: Tue, 23 Jan 2018 10:57:27 -0500
+Message-ID: <20180123155733.3404-6-mathieu.desnoyers@efficios.com>
+References: <20180123155733.3404-1-mathieu.desnoyers@efficios.com>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20180123155733.3404-1-mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "Paul E . McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Andrew Hunter <ahh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Maged Michael <maged.michael-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Avi Kivity <avi-VrcmuVmyx1hWk0Htik3J/w@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, Dave Watson <davejwatson-b10kYP2dOMg@public.gmane.org>, "H . Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Andrea Parri <parri.andrea-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Russell King <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, Greg Hackmann <ghackmann-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, David Sehr <sehr-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Mathieu Desnoyers <mathieu.desnoy>
 List-Id: linux-arch.vger.kernel.org
 
-This patchset supports the IPMI-bt device attached to the Low-Pin-Count
-interface implemented on Hisilicon Hip06/Hip07 SoC.
-                        -----------
-                        | LPC host|
-                        |         |
-                        -----------
-                             |
-                _____________V_______________LPC
-                  |                       |
-                  V                       V
-                                     ------------
-                                     |  BT(ipmi)|
-                                     ------------
+Test the new MEMBARRIER_CMD_GLOBAL_EXPEDITED and
+MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED commands.
 
-When master accesses those peripherals beneath the Hip06/Hip07 LPC, a specific
-LPC driver is needed to make LPC host generate the standard LPC I/O cycles with
-the target peripherals'I/O port addresses. But on curent arm64 world, there is
-no real I/O accesses. All the I/O operations through in/out accessors are based
-on MMIO ranges; on Hip06/Hip07 LPC the I/O accesses are performed through driver
-specific accessors rather than MMIO.
-To solve this issue and keep the relevant existing peripherals' drivers untouched,
-this patchset:
-   - introduces a generic I/O space management framework, LIBIO, to support I/O
-     operations on host controllers operating either on MMIO buses or on buses
-     requiring specific driver I/O accessors;
-   - redefines the in/out accessors to provide a unified interface for both MMIO
-     and driver specific I/O operations. Using LIBIO, th call of in/out() from
-     the host children drivers, such as ipmi-si, will be redirected to the
-     corresponding device-specific I/O hooks to perform the I/O accesses.
+Adapt to the MEMBARRIER_CMD_SHARED -> MEMBARRIER_CMD_GLOBAL rename.
 
-Based on this patch-set, all the I/O accesses to Hip06/Hip07 LPC peripherals can
-be supported without any changes on the existing ipmi-si driver.
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>
+Acked-by: Shuah Khan <shuahkh-JPH+aEBZ4P+UEJcrhfAQsw@public.gmane.org>
+CC: Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>
+CC: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+CC: Paul E. McKenney <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
+CC: Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+CC: Andrew Hunter <ahh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+CC: Maged Michael <maged.michael-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+CC: Avi Kivity <avi-VrcmuVmyx1hWk0Htik3J/w@public.gmane.org>
+CC: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
+CC: Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
+CC: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
+CC: Dave Watson <davejwatson-b10kYP2dOMg@public.gmane.org>
+CC: Alan Stern <stern-nwvwT67g6+6dFdvTe/nMLpVzexx5G7lz@public.gmane.org>
+CC: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
+CC: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+CC: Alice Ferrazzi <alice.ferrazzi-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+CC: Paul Elder <paul.elder-fYq5UfK3d1k@public.gmane.org>
+CC: linux-kselftest-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+CC: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+---
+Changes since v1:
+- Rename SHARED to GLOBAL.
+---
+ .../testing/selftests/membarrier/membarrier_test.c | 59 ++++++++++++++++++++--
+ 1 file changed, 54 insertions(+), 5 deletions(-)
 
-The whole patchset has been tested on Hip07 D05 board both using DTB and ACPI.
-
-Differences to v11:
-    - fixed build errors for i386, m68k, and tile
-    - added a comment in LPC driver commit log why we set
-       the kernel config as bool
-    - some tidying logic_pio code
-
-Differences to v10:
-    - dropped CONFIG_LOGIC_PIO. Reason is that CONFIG_PCI
-      depends on this, and CONFIG_PCI is a per-arch CONFIG.
-      So we would require all arch's kconfig to select this.
-    - Addressed Dann Frazier's comments on LPC driver, and
-      sopme other cleanup
-    - Moved logic_pio.h to be included in generic asm io.h
-    - Fixed ACPI indirect IO host setup to handle >1 child
-    - Relocated ACPI indirect IO host setup code to
-      drivers/acpi
-    - Rebased to linux next-20180118
-
-Changes from v9:
-  - patch 2 has been split into 3 patches according to Bjorn comments on
-    v9 thread
-  - patch 1 has been reworked accordign to Bjorn comments on v9
-  - now logic_pio_trans_hwaddr() has a sanity check to make sure the resource
-    size fits into the assigned range
-  - in patch 5 the MFD framework has been used to probe the LPC children
-    according to the suggestion from Mika Westerberg
-  - Maintaner has changed to Huawei Linuxarm mailing list
-
-Changes from v8:
-  - Simplified LIB IO framewrok
-  - Moved INDIRECT PIO ACPI framework under acpi/arm64
-  - Renamed occurrences of "lib io" and "indirect io" to "lib pio" and
-    "indirect pio" to keep the patchset nomenclature consistent
-  - Removed Alignment reuqirements
-  - Moved LPC specific code out of ACPI common framework
-  - Now PIO indirect HW ranges can overlap
-  - Changed HiSilicon LPC driver maintainer (Gabriele Paoloni now) and split
-    maintaner file modifications in a separate commit
-  - Removed the commit with the DT nodes support for hip06 and hip07 (to be
-    pushed separately)
-  - Added a checking on ioport_map() not to break that function as Arnd points
-    out in V7 review thread;
-  - fixed the compile issues on alpha, m68k;
-
-Changes from V7:
-  - Based on Arnd's comment, rename the LIBIO as LOGIC_PIO;
-  - Improved the mapping process in LOGIC_PIO to gain better efficiency when
-    redirecting the I/O accesses to right device driver;
-  - To reduce the impact on PCI MMIO to a minimum, add a new
-    CONFIG_INDIRECT_PIO for indirect-IO hosts/devices;
-  - Added a new ACPI handler for indirect-IO hosts/devices;
-  - Fixed the compile issues on V6;
-
-Changes from V6:
-  - According to the comments from Bjorn and Alex, merge PCI IO and indirect-IO
-    into a generic I/O space management, LIBIO;
-  - Adopted the '_DEP' to replace the platform bus notifier. In this way, we can
-    ensure the LPC peripherals' I/O resources had been translated to logical IO
-    before the LPC peripheral enumeration;
-  - Replaced the rwlock with rcu list based on Alex's suggestion;
-  - Applied relaxed write/read to LPC driver;
-  - Some bugs fixing and some optimazations based on the comments of V6;
-
-Changes from V5:
-  - Made the extio driver more generic and locate in lib/;
-  - Supported multiple indirect-IO bus instances;
-  - Extended the pci_register_io_range() to support indirect-IO, then dropped
-  the I/O reservation used in previous patchset;
-  - Reimplemented the ACPI LPC support;
-  - Fixed some bugs, including the compile error on other archs, the module
-  building failure found by Ming Lei, etc;
-
-Changes from V4:
-  - Some revises based on the comments from Bjorn, Rob on V4;
-  - Fixed the compile error on some platforms, such as openrisc;
-
-Changes from V3:
-  - UART support deferred to a separate patchset; This patchset only support
-  ipmi device under LPC;
-  - LPC bus I/O range is fixed to 0 ~ (PCIBIOS_MIN_IO - 1), which is separeted
-  from PCI/PCIE PIO space;
-  - Based on Arnd's remarks, removed the ranges property from Hip06 lpc dts and
-  added a new fixup function, of_isa_indirect_io(), to get the I/O address
-  directly from LPC dts configurations;
-  - Support in(w,l)/out(w,l) for Hip06 lpc I/O;
-  - Decouple the header file dependency on the gerenic io.h by defining in/out
-  as normal functions in c file;
-  - removed unused macro definitions in the LPC driver;
-
-Changes from V2:
-  - Support the PIO retrieval from the linux PIO generated by
-  pci_address_to_pio. This method replace the 4K PIO reservation in V2;
-  - Support the flat-tree earlycon;
-  - Some revises based on Arnd's remarks;
-  - Make sure the linux PIO range allocated to Hip06 LPC peripherals starts
-  from non-ZERO;
-
-Changes from V1:
-  - Support the ACPI LPC device;
-  - Optimize the dts LPC driver in ISA compatible mode;
-  - Reserve the IO range below 4K in avoid the possible conflict with PCI host
-  IO ranges;
-  - Support the LPC uart and relevant earlycon;
-
-V11 thread here: https://lkml.org/lkml/2018/1/21/38
-V10 thread here: https://lkml.org/lkml/2017/10/27/465
-V9 thread here: https://lkml.org/lkml/2017/5/25/263
-V8 thread here: https://lkml.org/lkml/2017/3/30/619
-V7 thread here: https://lkml.org/lkml/2017/3/12/279
-v6 thread here: https://lkml.org/lkml/2017/1/24/25
-v5 thread here: https://lkml.org/lkml/2016/11/7/955
-v4 thread here: https://lkml.org/lkml/2016/10/20/149
-v3 thread here: https://lkml.org/lkml/2016/9/14/326
-v2 thread here: https://lkml.org/lkml/2016/9/7/356
-v1 thread here: https://lkml.org/lkml/2015/12/29/154
-
-
-Gabriele Paoloni (2):
-  PCI: Remove unused __weak attribute in pci_register_io_range()
-  PCI: Add fwnode handler as input param of pci_register_io_range()
-
-John Garry (3):
-  ACPI: Translate the I/O range of non-MMIO devices before scanning
-  LPC, ACPI: Add the HISI LPC ACPI support
-  MAINTAINERS: Add maintainer for HiSilicon LPC driver
-
-Zhichang Yuan (4):
-  LIB: Introduce a generic PIO mapping method
-  PCI: Apply the new generic I/O management on PCI IO hosts
-  OF: Add missing I/O range exception for indirect-IO devices
-  LPC: Support the LPC host on Hip06/Hip07 with DT bindings
-
- .../arm/hisilicon/hisilicon-low-pin-count.txt      |  33 ++
- MAINTAINERS                                        |   7 +
- drivers/acpi/arm64/Makefile                        |   1 +
- drivers/acpi/arm64/acpi_indirectio.c               | 282 +++++++++++
- drivers/acpi/internal.h                            |   5 +
- drivers/acpi/pci_root.c                            |   8 +-
- drivers/acpi/scan.c                                |   1 +
- drivers/bus/Kconfig                                |   8 +
- drivers/bus/Makefile                               |   1 +
- drivers/bus/hisi_lpc.c                             | 541 +++++++++++++++++++++
- drivers/of/address.c                               |  96 +++-
- drivers/pci/pci.c                                  |  98 +---
- include/asm-generic/io.h                           |   4 +-
- include/linux/logic_pio.h                          | 141 ++++++
- include/linux/pci.h                                |   3 +-
- lib/Kconfig                                        |  15 +
- lib/Makefile                                       |   2 +
- lib/logic_pio.c                                    | 282 +++++++++++
- 18 files changed, 1427 insertions(+), 101 deletions(-)
- create mode 100644 Documentation/devicetree/bindings/arm/hisilicon/hisilicon-low-pin-count.txt
- create mode 100644 drivers/acpi/arm64/acpi_indirectio.c
- create mode 100644 drivers/bus/hisi_lpc.c
- create mode 100644 include/linux/logic_pio.h
- create mode 100644 lib/logic_pio.c
-
+diff --git a/tools/testing/selftests/membarrier/membarrier_test.c b/tools/testing/selftests/membarrier/membarrier_test.c
+index e6ee73d01fa1..eec39a0e1f77 100644
+--- a/tools/testing/selftests/membarrier/membarrier_test.c
++++ b/tools/testing/selftests/membarrier/membarrier_test.c
+@@ -59,10 +59,10 @@ static int test_membarrier_flags_fail(void)
+ 	return 0;
+ }
+ 
+-static int test_membarrier_shared_success(void)
++static int test_membarrier_global_success(void)
+ {
+-	int cmd = MEMBARRIER_CMD_SHARED, flags = 0;
+-	const char *test_name = "sys membarrier MEMBARRIER_CMD_SHARED";
++	int cmd = MEMBARRIER_CMD_GLOBAL, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_GLOBAL";
+ 
+ 	if (sys_membarrier(cmd, flags) != 0) {
+ 		ksft_exit_fail_msg(
+@@ -132,6 +132,40 @@ static int test_membarrier_private_expedited_success(void)
+ 	return 0;
+ }
+ 
++static int test_membarrier_register_global_expedited_success(void)
++{
++	int cmd = MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n",
++		test_name, flags);
++	return 0;
++}
++
++static int test_membarrier_global_expedited_success(void)
++{
++	int cmd = MEMBARRIER_CMD_GLOBAL_EXPEDITED, flags = 0;
++	const char *test_name = "sys membarrier MEMBARRIER_CMD_GLOBAL_EXPEDITED";
++
++	if (sys_membarrier(cmd, flags) != 0) {
++		ksft_exit_fail_msg(
++			"%s test: flags = %d, errno = %d\n",
++			test_name, flags, errno);
++	}
++
++	ksft_test_result_pass(
++		"%s test: flags = %d\n",
++		test_name, flags);
++	return 0;
++}
++
+ static int test_membarrier(void)
+ {
+ 	int status;
+@@ -142,7 +176,7 @@ static int test_membarrier(void)
+ 	status = test_membarrier_flags_fail();
+ 	if (status)
+ 		return status;
+-	status = test_membarrier_shared_success();
++	status = test_membarrier_global_success();
+ 	if (status)
+ 		return status;
+ 	status = test_membarrier_private_expedited_fail();
+@@ -154,6 +188,19 @@ static int test_membarrier(void)
+ 	status = test_membarrier_private_expedited_success();
+ 	if (status)
+ 		return status;
++	/*
++	 * It is valid to send a global membarrier from a non-registered
++	 * process.
++	 */
++	status = test_membarrier_global_expedited_success();
++	if (status)
++		return status;
++	status = test_membarrier_register_global_expedited_success();
++	if (status)
++		return status;
++	status = test_membarrier_global_expedited_success();
++	if (status)
++		return status;
+ 	return 0;
+ }
+ 
+@@ -173,8 +220,10 @@ static int test_membarrier_query(void)
+ 		}
+ 		ksft_exit_fail_msg("sys_membarrier() failed\n");
+ 	}
+-	if (!(ret & MEMBARRIER_CMD_SHARED))
++	if (!(ret & MEMBARRIER_CMD_GLOBAL)) {
++		ksft_test_result_fail("sys_membarrier() CMD_GLOBAL query failed\n");
+ 		ksft_exit_fail_msg("sys_membarrier is not supported.\n");
++	}
+ 
+ 	ksft_test_result_pass("sys_membarrier available\n");
+ 	return 0;
 -- 
-1.9.1
+2.11.0
