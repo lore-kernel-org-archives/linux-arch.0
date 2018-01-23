@@ -1,40 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([184.105.139.130]:57338 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751978AbeAWS3S (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jan 2018 13:29:18 -0500
-Date: Tue, 23 Jan 2018 13:29:16 -0500 (EST)
-Message-ID: <20180123.132916.1025436873838680654.davem@davemloft.net>
-Subject: Re: [RFC PATCH 1/2] arm64: fpsimd: Fix bad si_code for undiagnosed
- SIGFPE
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <87tvvc77nf.fsf@xmission.com>
-References: <878tcp8umz.fsf@xmission.com>
-        <20180123101446.GP22781@e103592.cambridge.arm.com>
-        <87tvvc77nf.fsf@xmission.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from out02.mta.xmission.com ([166.70.13.232]:46066 "EHLO
+        out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932195AbeAWVJY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jan 2018 16:09:24 -0500
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Date: Tue, 23 Jan 2018 15:07:19 -0600
+Message-ID: <20180123210719.10456-10-ebiederm@xmission.com>
+In-Reply-To: <87607s5lra.fsf_-_@xmission.com>
+References: <87607s5lra.fsf_-_@xmission.com>
+Subject: [PATCH 10/10] signal/memory-failure: Use force_sig_mceerr and send_sig_mceerr
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ebiederm@xmission.com
-Cc: Dave.Martin@arm.com, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, will.deacon@arm.com, linux@armlinux.org.uk, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180123182916.tsyRGQjzLiPZ55SfTkJRud6jsaIjFPePDq1DzdGGNZk@z>
+To: linux-kernel@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Ram Pai <linuxram@us.ibm.com>, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20180123210719.ohnG43GaYsjD9LSnFrB5SjX8x4NlcXOxU3cJh6Gdei4@z>
 
-From: ebiederm@xmission.com (Eric W. Biederman)
-Date: Tue, 23 Jan 2018 12:27:16 -0600
+Delegate filling out struct siginfo to functions in kernel/signal.c
+to simplify the code.
 
-> Dave Martin <Dave.Martin@arm.com> writes:
-> 
->> On Mon, Jan 22, 2018 at 03:13:08PM -0600, Eric W. Biederman wrote:
->> However, the purpose of this as an RFC was to get feedback on whether
->> adding FPE_UNKNOWN is considered acceptable at all from an API
->> perspective -- the precise number doesn't matter for that discussion.
->>
->> Do you have any view on this?
-> 
-> That seems as good a solution as any too me.  It is reality and it
-> happens in the code and there are several places of the same form I
-> would use it, just to get rid of the FPE_FIXME.
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+---
+ mm/memory-failure.c | 15 ++++++---------
+ 1 file changed, 6 insertions(+), 9 deletions(-)
 
-Eric, feel free to do something similar on Sparc.
+diff --git a/mm/memory-failure.c b/mm/memory-failure.c
+index c5f5f31bd979..4b80ccee4535 100644
+--- a/mm/memory-failure.c
++++ b/mm/memory-failure.c
+@@ -181,19 +181,16 @@ EXPORT_SYMBOL_GPL(hwpoison_filter);
+ static int kill_proc(struct task_struct *t, unsigned long addr,
+ 			unsigned long pfn, struct page *page, int flags)
+ {
+-	struct siginfo si;
++	short addr_lsb;
+ 	int ret;
+ 
+ 	pr_err("Memory failure: %#lx: Killing %s:%d due to hardware memory corruption\n",
+ 		pfn, t->comm, t->pid);
+-	si.si_signo = SIGBUS;
+-	si.si_errno = 0;
+-	si.si_addr = (void *)addr;
+-	si.si_addr_lsb = compound_order(compound_head(page)) + PAGE_SHIFT;
++	addr_lsb = compound_order(compound_head(page)) + PAGE_SHIFT;
+ 
+ 	if ((flags & MF_ACTION_REQUIRED) && t->mm == current->mm) {
+-		si.si_code = BUS_MCEERR_AR;
+-		ret = force_sig_info(SIGBUS, &si, current);
++		ret = force_sig_mceerr(BUS_MCEERR_AR, (void __user *)addr,
++				       addr_lsb, current);
+ 	} else {
+ 		/*
+ 		 * Don't use force here, it's convenient if the signal
+@@ -201,8 +198,8 @@ static int kill_proc(struct task_struct *t, unsigned long addr,
+ 		 * This could cause a loop when the user sets SIGBUS
+ 		 * to SIG_IGN, but hopefully no one will do that?
+ 		 */
+-		si.si_code = BUS_MCEERR_AO;
+-		ret = send_sig_info(SIGBUS, &si, t);  /* synchronous? */
++		ret = send_sig_mceerr(BUS_MCEERR_AO, (void __user *)addr,
++				      addr_lsb, t);  /* synchronous? */
+ 	}
+ 	if (ret < 0)
+ 		pr_info("Memory failure: Error sending signal to %s:%d: %d\n",
+-- 
+2.14.1
