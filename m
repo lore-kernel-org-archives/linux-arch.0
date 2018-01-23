@@ -1,75 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:51877 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932213AbeAWVI5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jan 2018 16:08:57 -0500
+Received: from out01.mta.xmission.com ([166.70.13.231]:46679 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932195AbeAWVJF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jan 2018 16:09:05 -0500
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Tue, 23 Jan 2018 15:07:11 -0600
-Message-ID: <20180123210719.10456-2-ebiederm@xmission.com>
+Date: Tue, 23 Jan 2018 15:07:13 -0600
+Message-ID: <20180123210719.10456-4-ebiederm@xmission.com>
 In-Reply-To: <87607s5lra.fsf_-_@xmission.com>
 References: <87607s5lra.fsf_-_@xmission.com>
-Subject: [PATCH 02/10] signal/arm64: Better isolate the COMPAT_TASK portion of ptrace_hbptriggered
+Subject: [PATCH 04/10] signal: Replace memset(info,...) with clear_siginfo for clarity
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Ram Pai <linuxram@us.ibm.com>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180123210711.Som4-PmSD9Axi90KeHD8f2jKoQSeNlR5szjcJBnSKoY@z>
+Message-ID: <20180123210713.fZhAm4oI5HKnfWfe3uWzzjQFZ3tuHKiIv_FJ06DAamI@z>
 
-Instead of jumpping while !is_compat_task placee all of the code
-inside of an if (is_compat_task) block.  This allows the int i
-variable to be properly limited to the compat block no matter how the
-rest of ptrace_hbptriggered changes.
-
-In a following change a non-variable declaration will preceed
-was made independent to ensure the code is easy to review.
+The function clear_siginfo is just a nice wrapper around memset so
+this results in no functional change.  This change makes mistakes
+a little more difficult and it makes it clearer what is going on.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- arch/arm64/kernel/ptrace.c | 27 ++++++++++++---------------
- 1 file changed, 12 insertions(+), 15 deletions(-)
+ arch/um/kernel/trap.c      | 2 +-
+ drivers/usb/core/devio.c   | 4 ++--
+ kernel/seccomp.c           | 2 +-
+ kernel/time/posix-timers.c | 2 +-
+ 4 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 7c44658b316d..0a1cf830e4b3 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -188,26 +188,23 @@ static void ptrace_hbptriggered(struct perf_event *bp,
- 	};
+diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
+index 428644175956..b2b02df9896e 100644
+--- a/arch/um/kernel/trap.c
++++ b/arch/um/kernel/trap.c
+@@ -306,7 +306,7 @@ void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
  
- #ifdef CONFIG_COMPAT
--	int i;
--
--	if (!is_compat_task())
--		goto send_sig;
-+	if (is_compat_task()) {
-+		int i;
+ 	arch_examine_signal(sig, regs);
  
--	for (i = 0; i < ARM_MAX_BRP; ++i) {
--		if (current->thread.debug.hbp_break[i] == bp) {
--			info.si_errno = (i << 1) + 1;
--			break;
-+		for (i = 0; i < ARM_MAX_BRP; ++i) {
-+			if (current->thread.debug.hbp_break[i] == bp) {
-+				info.si_errno = (i << 1) + 1;
-+				break;
-+			}
- 		}
--	}
+-	memset(&clean_si, 0, sizeof(clean_si));
++	clear_siginfo(&clean_si);
+ 	clean_si.si_signo = si->si_signo;
+ 	clean_si.si_errno = si->si_errno;
+ 	clean_si.si_code = si->si_code;
+diff --git a/drivers/usb/core/devio.c b/drivers/usb/core/devio.c
+index a3fad4ec9870..3f9bd3e4c373 100644
+--- a/drivers/usb/core/devio.c
++++ b/drivers/usb/core/devio.c
+@@ -595,7 +595,7 @@ static void async_completed(struct urb *urb)
+ 	as->status = urb->status;
+ 	signr = as->signr;
+ 	if (signr) {
+-		memset(&sinfo, 0, sizeof(sinfo));
++		clear_siginfo(&sinfo);
+ 		sinfo.si_signo = as->signr;
+ 		sinfo.si_errno = as->status;
+ 		sinfo.si_code = SI_ASYNCIO;
+@@ -2613,7 +2613,7 @@ static void usbdev_remove(struct usb_device *udev)
+ 		wake_up_all(&ps->wait);
+ 		list_del_init(&ps->list);
+ 		if (ps->discsignr) {
+-			memset(&sinfo, 0, sizeof(sinfo));
++			clear_siginfo(&sinfo);
+ 			sinfo.si_signo = ps->discsignr;
+ 			sinfo.si_errno = EPIPE;
+ 			sinfo.si_code = SI_ASYNCIO;
+diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+index 5f0dfb2abb8d..3153c9ea51bf 100644
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@ -515,7 +515,7 @@ void put_seccomp_filter(struct task_struct *tsk)
  
--	for (i = 0; i < ARM_MAX_WRP; ++i) {
--		if (current->thread.debug.hbp_watch[i] == bp) {
--			info.si_errno = -((i << 1) + 1);
--			break;
-+		for (i = 0; i < ARM_MAX_WRP; ++i) {
-+			if (current->thread.debug.hbp_watch[i] == bp) {
-+				info.si_errno = -((i << 1) + 1);
-+				break;
-+			}
- 		}
+ static void seccomp_init_siginfo(siginfo_t *info, int syscall, int reason)
+ {
+-	memset(info, 0, sizeof(*info));
++	clear_siginfo(info);
+ 	info->si_signo = SIGSYS;
+ 	info->si_code = SYS_SECCOMP;
+ 	info->si_call_addr = (void __user *)KSTK_EIP(current);
+diff --git a/kernel/time/posix-timers.c b/kernel/time/posix-timers.c
+index ec999f32c840..75043046914e 100644
+--- a/kernel/time/posix-timers.c
++++ b/kernel/time/posix-timers.c
+@@ -462,7 +462,7 @@ static struct k_itimer * alloc_posix_timer(void)
+ 		kmem_cache_free(posix_timers_cache, tmr);
+ 		return NULL;
  	}
--
--send_sig:
- #endif
- 	force_sig_info(SIGTRAP, &info, current);
+-	memset(&tmr->sigq->info, 0, sizeof(siginfo_t));
++	clear_siginfo(&tmr->sigq->info);
+ 	return tmr;
  }
+ 
 -- 
 2.14.1
