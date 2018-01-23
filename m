@@ -1,63 +1,57 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: Re: [PATCH v6 16/36] nds32: DMA mapping API
-Date: Tue, 23 Jan 2018 16:23:27 +0800
-Message-ID: <CAEbi=3cYynvFS2GDzj5Oav_5LtHPdBfBWh9c=mFT0PxeOLX9sQ@mail.gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com> <ecd1742c718c5b45983486cf9dfb44adb6e06923.1515766253.git.green.hu@gmail.com>
- <CAK8P3a0-Vf9CRZzdXCxpuQoWgMhYWgO6Hy2KuP-gOKttoSGESA@mail.gmail.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH 1/2] arm64: fpsimd: Fix bad si_code for undiagnosed
+ SIGFPE
+Date: Tue, 23 Jan 2018 10:14:48 +0000
+Message-ID: <20180123101446.GP22781@e103592.cambridge.arm.com>
+References: <1516623798-25001-1-git-send-email-Dave.Martin@arm.com>
+ <1516623798-25001-2-git-send-email-Dave.Martin@arm.com>
+ <878tcp8umz.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a0-Vf9CRZzdXCxpuQoWgMhYWgO6Hy2KuP-gOKttoSGESA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.co>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:39240 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751154AbeAWKOw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Jan 2018 05:14:52 -0500
+Content-Disposition: inline
+In-Reply-To: <878tcp8umz.fsf@xmission.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
 
-Hi, Arnd:
+On Mon, Jan 22, 2018 at 03:13:08PM -0600, Eric W. Biederman wrote:
+> 
+> > diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+> > index e447283..77edb00 100644
+> > --- a/include/uapi/asm-generic/siginfo.h
+> > +++ b/include/uapi/asm-generic/siginfo.h
+> > @@ -193,7 +193,8 @@ typedef struct siginfo {
+> >  #define FPE_FLTRES	6	/* floating point inexact result */
+> >  #define FPE_FLTINV	7	/* floating point invalid operation */
+> >  #define FPE_FLTSUB	8	/* subscript out of range */
+> > -#define NSIGFPE		8
+> > +#define FPE_UNKNOWN	9	/* undiagnosed floating-point exception */
+> > +#define NSIGFPE		9
+> 
+> Minor nit here.
+> 
+> At least before this is final I would really appreciate if you could
+> rebase this on top of my unificiation of siginfo.h that I posted on
+> linux-arch and is in my siginfo-next branch.
+> 
+> As that already pushes NSIGFPE up to 13.
+> 
+> Which would make this patch change NSIGFPE to 14 and allocate the number
+> 14 for FPE_UNKNOWN
 
-2018-01-18 18:26 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
-> On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
->> From: Greentime Hu <greentime@andestech.com>
->>
->> This patch adds support for the DMA mapping API. It uses dma_map_ops for
->> flexibility.
->>
->> Signed-off-by: Vincent Chen <vincentc@andestech.com>
->> Signed-off-by: Greentime Hu <greentime@andestech.com>
->
-> I'm still unhappy about the way the cache flushes are done here as discussed
-> before. It's not a show-stopped, but no Ack from me.
+My bad -- I hadn't looked in detail at the whole series.
 
-How about this implementation?
+However, the purpose of this as an RFC was to get feedback on whether
+adding FPE_UNKNOWN is considered acceptable at all from an API
+perspective -- the precise number doesn't matter for that discussion.
 
-static void
-nds32_dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
-                              size_t size, enum dma_data_direction dir)
-{
-        switch (direction) {
-        case DMA_TO_DEVICE:     /* writeback only */
-                break;
-        case DMA_FROM_DEVICE:   /* invalidate only */
-        case DMA_BIDIRECTIONAL: /* writeback and invalidate */
-                cpu_dma_inval_range(start, end);
-                break;
-        default:
-                BUG();
-        }
-}
+Do you have any view on this?
 
-static void
-nds32_dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
-                                 size_t size, enum dma_data_direction dir)
-{
-        switch (direction) {
-        case DMA_FROM_DEVICE:   /* invalidate only */
-                break;
-        case DMA_TO_DEVICE:     /* writeback only */
-        case DMA_BIDIRECTIONAL: /* writeback and invalidate */
-                cpu_dma_wb_range(start, end);
-                break;
-        default:
-                BUG();
-        }
-}
+Cheers
+---Dave
