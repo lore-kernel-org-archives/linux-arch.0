@@ -1,128 +1,87 @@
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 05/10] signal: Add send_sig_fault and force_sig_fault
-Date: Tue, 23 Jan 2018 15:07:14 -0600
-Message-ID: <20180123210719.10456-5-ebiederm@xmission.com>
+Subject: [PATCH 04/10] signal: Replace memset(info,...) with clear_siginfo for clarity
+Date: Tue, 23 Jan 2018 15:07:13 -0600
+Message-ID: <20180123210719.10456-4-ebiederm@xmission.com>
 References: <87607s5lra.fsf_-_@xmission.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:51899 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932195AbeAWVJI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jan 2018 16:09:08 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <87607s5lra.fsf_-_@xmission.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Ram Pai <linuxram@us.ibm.com>, "Eric W. Biederman" <ebiederm@xmission.com>
+List-Id: linux-arch.vger.kernel.org
 
-The vast majority of signals sent from architecture specific code are
-simple faults.  Encapsulate this reality with two helper functions so
-that the nit-picky implementation of preparing a siginfo does not need
-to be repeated many times on each architecture.
-
-As only some architectures support the trapno field, make the trapno
-arguement only present on those architectures.
-
-Similary as ia64 has three fields: imm, flags, and isr that
-are specific to it.  Have those arguments always present on ia64
-and no where else.
-
-This ensures the architecture specific code always remembers which
-fields it needs to pass into the siginfo structure.
+The function clear_siginfo is just a nice wrapper around memset so
+this results in no functional change.  This change makes mistakes
+a little more difficult and it makes it clearer what is going on.
 
 Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
 ---
- include/linux/sched/signal.h | 20 +++++++++++++++++++
- kernel/signal.c              | 47 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 67 insertions(+)
+ arch/um/kernel/trap.c      | 2 +-
+ drivers/usb/core/devio.c   | 4 ++--
+ kernel/seccomp.c           | 2 +-
+ kernel/time/posix-timers.c | 2 +-
+ 4 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/include/linux/sched/signal.h b/include/linux/sched/signal.h
-index 0aa4548fb492..375f31eb3b6b 100644
---- a/include/linux/sched/signal.h
-+++ b/include/linux/sched/signal.h
-@@ -285,6 +285,26 @@ static inline void kernel_signal_stop(void)
+diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
+index 428644175956..b2b02df9896e 100644
+--- a/arch/um/kernel/trap.c
++++ b/arch/um/kernel/trap.c
+@@ -306,7 +306,7 @@ void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
  
- 	schedule();
- }
-+#ifdef __ARCH_SI_TRAPNO
-+# define ___ARCH_SI_TRAPNO(_a1) , _a1
-+#else
-+# define ___ARCH_SI_TRAPNO(_a1)
-+#endif
-+#ifdef __ia64__
-+# define ___ARCH_SI_IA64(_a1, _a2, _a3) , _a1, _a2, _a3
-+#else
-+# define ___ARCH_SI_IA64(_a1, _a2, _a3)
-+#endif
-+
-+int force_sig_fault(int sig, int code, void __user *addr
-+	___ARCH_SI_TRAPNO(int trapno)
-+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
-+	, struct task_struct *t);
-+int send_sig_fault(int sig, int code, void __user *addr
-+	___ARCH_SI_TRAPNO(int trapno)
-+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
-+	, struct task_struct *t);
-+
- extern int send_sig_info(int, struct siginfo *, struct task_struct *);
- extern int force_sigsegv(int, struct task_struct *);
- extern int force_sig_info(int, struct siginfo *, struct task_struct *);
-diff --git a/kernel/signal.c b/kernel/signal.c
-index f14492ff976f..15ec7b3cbe69 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -1491,6 +1491,53 @@ force_sigsegv(int sig, struct task_struct *p)
- 	return 0;
- }
+ 	arch_examine_signal(sig, regs);
  
-+int force_sig_fault(int sig, int code, void __user *addr
-+	___ARCH_SI_TRAPNO(int trapno)
-+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
-+	, struct task_struct *t)
-+{
-+	struct siginfo info;
-+
-+	clear_siginfo(&info);
-+	info.si_signo = sig;
-+	info.si_errno = 0;
-+	info.si_code  = code;
-+	info.si_addr  = addr;
-+#ifdef __ARCH_SI_TRAPNO
-+	info.si_trapno = trapno;
-+#endif
-+#ifdef __ia64__
-+	info.si_imm = imm;
-+	info.si_flags = flags;
-+	info.si_isr = isr;
-+#endif
-+	return force_sig_info(info.si_signo, &info, t);
-+}
-+
-+int send_sig_fault(int sig, int code, void __user *addr
-+	___ARCH_SI_TRAPNO(int trapno)
-+	___ARCH_SI_IA64(int imm, unsigned int flags, unsigned long isr)
-+	, struct task_struct *t)
-+{
-+	struct siginfo info;
-+
-+	clear_siginfo(&info);
-+	info.si_signo = sig;
-+	info.si_errno = 0;
-+	info.si_code  = code;
-+	info.si_addr  = addr;
-+#ifdef __ARCH_SI_TRAPNO
-+	info.si_trapno = trapno;
-+#endif
-+#ifdef __ia64__
-+	info.si_imm = imm;
-+	info.si_flags = flags;
-+	info.si_isr = isr;
-+#endif
-+	return send_sig_info(info.si_signo, &info, t);
-+}
-+
-+
- int kill_pgrp(struct pid *pid, int sig, int priv)
+-	memset(&clean_si, 0, sizeof(clean_si));
++	clear_siginfo(&clean_si);
+ 	clean_si.si_signo = si->si_signo;
+ 	clean_si.si_errno = si->si_errno;
+ 	clean_si.si_code = si->si_code;
+diff --git a/drivers/usb/core/devio.c b/drivers/usb/core/devio.c
+index a3fad4ec9870..3f9bd3e4c373 100644
+--- a/drivers/usb/core/devio.c
++++ b/drivers/usb/core/devio.c
+@@ -595,7 +595,7 @@ static void async_completed(struct urb *urb)
+ 	as->status = urb->status;
+ 	signr = as->signr;
+ 	if (signr) {
+-		memset(&sinfo, 0, sizeof(sinfo));
++		clear_siginfo(&sinfo);
+ 		sinfo.si_signo = as->signr;
+ 		sinfo.si_errno = as->status;
+ 		sinfo.si_code = SI_ASYNCIO;
+@@ -2613,7 +2613,7 @@ static void usbdev_remove(struct usb_device *udev)
+ 		wake_up_all(&ps->wait);
+ 		list_del_init(&ps->list);
+ 		if (ps->discsignr) {
+-			memset(&sinfo, 0, sizeof(sinfo));
++			clear_siginfo(&sinfo);
+ 			sinfo.si_signo = ps->discsignr;
+ 			sinfo.si_errno = EPIPE;
+ 			sinfo.si_code = SI_ASYNCIO;
+diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+index 5f0dfb2abb8d..3153c9ea51bf 100644
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@ -515,7 +515,7 @@ void put_seccomp_filter(struct task_struct *tsk)
+ 
+ static void seccomp_init_siginfo(siginfo_t *info, int syscall, int reason)
  {
- 	int ret;
+-	memset(info, 0, sizeof(*info));
++	clear_siginfo(info);
+ 	info->si_signo = SIGSYS;
+ 	info->si_code = SYS_SECCOMP;
+ 	info->si_call_addr = (void __user *)KSTK_EIP(current);
+diff --git a/kernel/time/posix-timers.c b/kernel/time/posix-timers.c
+index ec999f32c840..75043046914e 100644
+--- a/kernel/time/posix-timers.c
++++ b/kernel/time/posix-timers.c
+@@ -462,7 +462,7 @@ static struct k_itimer * alloc_posix_timer(void)
+ 		kmem_cache_free(posix_timers_cache, tmr);
+ 		return NULL;
+ 	}
+-	memset(&tmr->sigq->info, 0, sizeof(siginfo_t));
++	clear_siginfo(&tmr->sigq->info);
+ 	return tmr;
+ }
+ 
 -- 
 2.14.1
