@@ -1,7 +1,7 @@
 From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [PATCH 10/11] membarrier: arm64: Provide core serializing command
-Date: Tue, 23 Jan 2018 10:57:32 -0500
-Message-ID: <20180123155733.3404-11-mathieu.desnoyers@efficios.com>
+Subject: [PATCH 06/11] Introduce sync_core_before_usermode (v2)
+Date: Tue, 23 Jan 2018 10:57:28 -0500
+Message-ID: <20180123155733.3404-7-mathieu.desnoyers@efficios.com>
 References: <20180123155733.3404-1-mathieu.desnoyers@efficios.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180123155733.3404-1-mathieu.desnoyers@efficios.com>
@@ -10,7 +10,16 @@ To: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thoma
 Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoy>
 List-Id: linux-arch.vger.kernel.org
 
+Introduce an architecture function that ensures the current CPU
+issues a core serializing instruction before returning to usermode.
+
+This is needed for the membarrier "sync_core" command.
+
+Architectures defining the sync_core_before_usermode() static inline
+need to select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
+
 Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+CC: Thomas Gleixner <tglx@linutronix.de>
 CC: Peter Zijlstra <peterz@infradead.org>
 CC: Andy Lutomirski <luto@kernel.org>
 CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
@@ -22,7 +31,6 @@ CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 CC: Paul Mackerras <paulus@samba.org>
 CC: Michael Ellerman <mpe@ellerman.id.au>
 CC: Dave Watson <davejwatson@fb.com>
-CC: Thomas Gleixner <tglx@linutronix.de>
 CC: Ingo Molnar <mingo@redhat.com>
 CC: "H. Peter Anvin" <hpa@zytor.com>
 CC: Andrea Parri <parri.andrea@gmail.com>
@@ -30,39 +38,56 @@ CC: Russell King <linux@armlinux.org.uk>
 CC: Greg Hackmann <ghackmann@google.com>
 CC: Will Deacon <will.deacon@arm.com>
 CC: David Sehr <sehr@google.com>
+CC: Linus Torvalds <torvalds@linux-foundation.org>
+CC: Arnd Bergmann <arnd@arndb.de>
 CC: x86@kernel.org
 CC: linux-arch@vger.kernel.org
 ---
- arch/arm64/Kconfig        | 1 +
- arch/arm64/kernel/entry.S | 4 ++++
- 2 files changed, 5 insertions(+)
+Changes since v1:
+- Introduce include/linux/sync_core.h
+---
+ include/linux/sync_core.h | 21 +++++++++++++++++++++
+ init/Kconfig              |  3 +++
+ 2 files changed, 24 insertions(+)
+ create mode 100644 include/linux/sync_core.h
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index c9a7e9e1414f..5b0c06d8dbbe 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -16,6 +16,7 @@ config ARM64
- 	select ARCH_HAS_GCOV_PROFILE_ALL
- 	select ARCH_HAS_GIGANTIC_PAGE if (MEMORY_ISOLATION && COMPACTION) || CMA
- 	select ARCH_HAS_KCOV
-+	select ARCH_HAS_MEMBARRIER_SYNC_CORE
- 	select ARCH_HAS_SET_MEMORY
- 	select ARCH_HAS_SG_CHAIN
- 	select ARCH_HAS_STRICT_KERNEL_RWX
-diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
-index 6d14b8f29b5f..5edde1c2e93e 100644
---- a/arch/arm64/kernel/entry.S
-+++ b/arch/arm64/kernel/entry.S
-@@ -302,6 +302,10 @@ alternative_else_nop_endif
- 	ldp	x28, x29, [sp, #16 * 14]
- 	ldr	lr, [sp, #S_LR]
- 	add	sp, sp, #S_FRAME_SIZE		// restore sp
-+	/*
-+	 * ARCH_HAS_MEMBARRIER_SYNC_CORE rely on eret context synchronization
-+	 * when returning from IPI handler, and when returning to user-space.
-+	 */
- 	eret					// return to kernel
- 	.endm
+diff --git a/include/linux/sync_core.h b/include/linux/sync_core.h
+new file mode 100644
+index 000000000000..013da4b8b327
+--- /dev/null
++++ b/include/linux/sync_core.h
+@@ -0,0 +1,21 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _LINUX_SYNC_CORE_H
++#define _LINUX_SYNC_CORE_H
++
++#ifdef CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
++#include <asm/sync_core.h>
++#else
++/*
++ * This is a dummy sync_core_before_usermode() implementation that can be used
++ * on all architectures which return to user-space through core serializing
++ * instructions.
++ * If your architecture returns to user-space through non-core-serializing
++ * instructions, you need to write your own functions.
++ */
++static inline void sync_core_before_usermode(void)
++{
++}
++#endif
++
++#endif /* _LINUX_SYNC_CORE_H */
++
+diff --git a/init/Kconfig b/init/Kconfig
+index 2d118b6adee2..30208da2221f 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1918,3 +1918,6 @@ config ASN1
+ 	  functions to call on what tags.
  
+ source "kernel/Kconfig.locks"
++
++config ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
++	bool
 -- 
 2.11.0
