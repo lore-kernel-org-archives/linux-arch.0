@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:4686 "EHLO huawei.com"
+Received: from szxga04-in.huawei.com ([45.249.212.190]:4681 "EHLO huawei.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751125AbeAWPpi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 Jan 2018 10:45:38 -0500
+        id S1751615AbeAWPpY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Jan 2018 10:45:24 -0500
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v12 7/9] ACPI: Translate the I/O range of non-MMIO devices before scanning
-Date: Wed, 24 Jan 2018 00:36:23 +0800
-Message-ID: <1516725385-24535-8-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v12 3/9] PCI: Add fwnode handler as input param of pci_register_io_range()
+Date: Wed, 24 Jan 2018 00:36:19 +0800
+Message-ID: <1516725385-24535-4-git-send-email-john.garry@huawei.com>
 In-Reply-To: <1516725385-24535-1-git-send-email-john.garry@huawei.com>
 References: <1516725385-24535-1-git-send-email-john.garry@huawei.com>
 MIME-Version: 1.0
@@ -14,344 +14,108 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, hanjun.guo@linaro.org, dann.frazier@canonical.com
-Cc: benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, John Garry <john.garry@huawei.com>, Zhichang Yuan <yuanzhichang@hisilicon.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Message-ID: <20180123163623.BlpRnsxARrnT5KysMQDZtAhoN1Eya9MTkazh8IlutFU@z>
+Cc: benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Message-ID: <20180123163619.LIu1-vsPnrY0vBk9S79LFtdfgNgAZUl35_6324LJs6Y@z>
 
-On some platforms(such as Hip06/Hip07), the legacy ISA/LPC devices access
-I/O with some special host-local I/O ports known on x86. As their I/O space
-are not memory mapped like PCI/PCIE MMIO host bridges, this patch is meant
-to support a new class of I/O host controllers where the local IO ports of
-the children devices are translated into the Indirect I/O address space.
+From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
 
-Through the handler attach callback, all the I/O translations are done
-before starting the enumeration on children devices and the translated
-addresses are replaced in the children resources.
+In preparation for having the PCI MMIO helpers to use the new generic
+I/O space management(LOGIC_PIO) we need to add the fwnode handler as
+extra input parameter.
+This patch changes the signature of pci_register_io_range() and of
+its callers as needed.
 
-Signed-off-by: John Garry <john.garry@huawei.com>
-Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
 Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Acked-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/acpi/arm64/Makefile          |   1 +
- drivers/acpi/arm64/acpi_indirectio.c | 273 +++++++++++++++++++++++++++++++++++
- drivers/acpi/internal.h              |   5 +
- drivers/acpi/scan.c                  |   1 +
- 4 files changed, 280 insertions(+)
- create mode 100644 drivers/acpi/arm64/acpi_indirectio.c
+ drivers/acpi/pci_root.c | 8 +++++---
+ drivers/of/address.c    | 4 +++-
+ drivers/pci/pci.c       | 3 ++-
+ include/linux/pci.h     | 3 ++-
+ 4 files changed, 12 insertions(+), 6 deletions(-)
 
-diff --git a/drivers/acpi/arm64/Makefile b/drivers/acpi/arm64/Makefile
-index 1017def..f4a7f46 100644
---- a/drivers/acpi/arm64/Makefile
-+++ b/drivers/acpi/arm64/Makefile
-@@ -1,2 +1,3 @@
- obj-$(CONFIG_ACPI_IORT) 	+= iort.o
- obj-$(CONFIG_ACPI_GTDT) 	+= gtdt.o
-+obj-$(CONFIG_INDIRECT_PIO)	+= acpi_indirectio.o
-diff --git a/drivers/acpi/arm64/acpi_indirectio.c b/drivers/acpi/arm64/acpi_indirectio.c
-new file mode 100644
-index 0000000..2649f57
---- /dev/null
-+++ b/drivers/acpi/arm64/acpi_indirectio.c
-@@ -0,0 +1,273 @@
-+/*
-+ * ACPI support for indirect-IO bus.
-+ *
-+ * Copyright (C) 2017 HiSilicon Limited, All Rights Reserved.
-+ * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-+ * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
-+ * Author: John Garry <john.garry@huawei.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/acpi.h>
-+#include <linux/logic_pio.h>
-+#include <linux/mfd/core.h>
-+#include <linux/platform_device.h>
-+
-+ACPI_MODULE_NAME("indirect IO");
-+
-+#define ACPI_INDIRECTIO_NAME_LENGTH 255
-+
-+#define INDIRECT_IO_INFO(desc) ((unsigned long)&desc)
-+
-+struct acpi_indirectio_mfd_cell {
-+	struct mfd_cell_acpi_match acpi_match;
-+	char name[ACPI_INDIRECTIO_NAME_LENGTH];
-+	char pnpid[ACPI_INDIRECTIO_NAME_LENGTH];
-+};
-+
-+struct acpi_indirectio_host_data {
-+	resource_size_t io_size;
-+	resource_size_t io_start;
-+};
-+
-+struct acpi_indirectio_device_desc {
-+	struct acpi_indirectio_host_data pdata; /* device relevant info data */
-+	int (*pre_setup)(struct acpi_device *adev,
-+			 struct acpi_indirectio_host_data *pdata);
-+};
-+
-+static int acpi_translate_logicio_res(struct acpi_device *adev,
-+		struct acpi_device *host, struct resource *resource)
-+{
-+	unsigned long sys_port;
-+	struct device *dev = &adev->dev;
-+	resource_size_t length = resource->end - resource->start;
-+
-+	sys_port = logic_pio_trans_hwaddr(&host->fwnode, resource->start,
-+					length);
-+
-+	if (sys_port == -1) {
-+		dev_err(dev, "translate bus-addr(0x%llx) fail!\n",
-+			resource->start);
-+		return -EFAULT;
-+	}
-+
-+	resource->start = sys_port;
-+	resource->end = sys_port + length;
-+
-+	return 0;
-+}
-+
-+/*
-+ * update/set the current I/O resource of the designated device node.
-+ * after this calling, the enumeration can be started as the I/O resource
-+ * had been translated to logicial I/O from bus-local I/O.
-+ *
-+ * @child: the device node to be updated the I/O resource;
-+ * @hostdev: the device node where 'adev' is attached, which can be not
-+ *  the parent of 'adev';
-+ * @res: double pointer to be set to the address of the updated resources
-+ * @num_res: address of the variable to contain the number of updated resources
-+ *
-+ * return 0 when successful, negative is for failure.
-+ */
-+int acpi_indirectio_set_logicio_res(struct device *child,
-+					 struct device *hostdev,
-+					 const struct resource **res,
-+					 int *num_res)
-+{
-+	struct acpi_device *adev;
-+	struct acpi_device *host;
-+	struct resource_entry *rentry;
-+	LIST_HEAD(resource_list);
-+	struct resource *resources = NULL;
-+	int count;
-+	int i;
-+	int ret = -EIO;
-+
-+	if (!child || !hostdev)
-+		return -EINVAL;
-+
-+	host = to_acpi_device(hostdev);
-+	adev = to_acpi_device(child);
-+
-+	/* check the device state */
-+	if (!adev->status.present) {
-+		dev_info(child, "ACPI: device is not present!\n");
-+		return 0;
-+	}
-+	/* whether the child had been enumerated? */
-+	if (acpi_device_enumerated(adev)) {
-+		dev_info(child, "ACPI: had been enumerated!\n");
-+		return 0;
-+	}
-+
-+	count = acpi_dev_get_resources(adev, &resource_list, NULL, NULL);
-+	if (count <= 0) {
-+		dev_err(&adev->dev, "failed to get ACPI resources\n");
-+		return count ? count : -EIO;
-+	}
-+
-+	resources = kcalloc(count, sizeof(struct resource), GFP_KERNEL);
-+	if (!resources) {
-+		acpi_dev_free_resource_list(&resource_list);
-+		return -ENOMEM;
-+	}
-+	count = 0;
-+	list_for_each_entry(rentry, &resource_list, node)
-+		resources[count++] = *rentry->res;
-+
-+	acpi_dev_free_resource_list(&resource_list);
-+
-+	/* translate the I/O resources */
-+	for (i = 0; i < count; i++) {
-+		if (resources[i].flags & IORESOURCE_IO) {
-+			ret = acpi_translate_logicio_res(adev, host,
-+							&resources[i]);
-+			if (ret) {
-+				kfree(resources);
-+				dev_err(child,
-+					"Translate I/O range failed (%d)!\n",
-+					ret);
-+				return ret;
-+			}
-+		}
-+	}
-+	*res = resources;
-+	*num_res = count;
-+
-+	return ret;
-+}
-+
-+int
-+acpi_indirectio_pre_setup(struct acpi_device *adev,
-+			  struct acpi_indirectio_host_data *pdata)
-+{
-+	struct platform_device *pdev;
-+	struct mfd_cell *mfd_cells;
-+	struct logic_pio_hwaddr *range;
-+	struct acpi_device *child;
-+	struct acpi_indirectio_mfd_cell *acpi_indirectio_mfd_cells;
-+	int size, ret, count = 0, cell_num = 0;
-+
-+	range = kzalloc(sizeof(*range), GFP_KERNEL);
-+	if (!range)
-+		return -ENOMEM;
-+	range->fwnode = &adev->fwnode;
-+	range->flags = PIO_INDIRECT;
-+	range->size = pdata->io_size;
-+	range->hw_start = pdata->io_start;
-+
-+	ret = logic_pio_register_range(range);
-+	if (ret)
-+		goto free_range;
-+
-+	list_for_each_entry(child, &adev->children, node)
-+		cell_num++;
-+
-+	/* allocate the mfd cells */
-+	size = sizeof(*mfd_cells) + sizeof(*acpi_indirectio_mfd_cells);
-+	mfd_cells = kcalloc(cell_num, size, GFP_KERNEL);
-+	if (!mfd_cells) {
-+		ret = -ENOMEM;
-+		goto free_range;
-+	}
-+
-+	acpi_indirectio_mfd_cells = (struct acpi_indirectio_mfd_cell *)
-+					&mfd_cells[cell_num];
-+	/* Only consider the children of the host */
-+	list_for_each_entry(child, &adev->children, node) {
-+		struct mfd_cell *mfd_cell = &mfd_cells[count];
-+		struct acpi_indirectio_mfd_cell *acpi_indirectio_mfd_cell =
-+					&acpi_indirectio_mfd_cells[count];
-+		const struct mfd_cell_acpi_match *acpi_match =
-+					&acpi_indirectio_mfd_cell->acpi_match;
-+		char *name = &acpi_indirectio_mfd_cell[count].name[0];
-+		char *pnpid = &acpi_indirectio_mfd_cell[count].pnpid[0];
-+		struct mfd_cell_acpi_match match = {
-+				.pnpid = pnpid,
-+		};
-+
-+		snprintf(name, ACPI_INDIRECTIO_NAME_LENGTH, "indirect-io-%s",
-+			 acpi_device_hid(child));
-+		snprintf(pnpid, ACPI_INDIRECTIO_NAME_LENGTH, "%s",
-+			 acpi_device_hid(child));
-+
-+		memcpy((void *)acpi_match, (void *)&match, sizeof(*acpi_match));
-+		mfd_cell->name = name;
-+		mfd_cell->acpi_match = acpi_match;
-+
-+		ret =
-+		acpi_indirectio_set_logicio_res(&child->dev,
-+						&adev->dev,
-+						&mfd_cell->resources,
-+						&mfd_cell->num_resources);
-+		if (ret) {
-+			dev_err(&child->dev, "set resource failed (%d)\n", ret);
-+			goto free_mfd_res;
-+		}
-+		count++;
-+	}
-+
-+	pdev = acpi_create_platform_device(adev, NULL);
-+	if (IS_ERR_OR_NULL(pdev)) {
-+		dev_err(&adev->dev, "Create platform device for host failed!\n");
-+		ret = PTR_ERR(pdev);
-+		goto free_mfd_res;
-+	}
-+	acpi_device_set_enumerated(adev);
-+
-+	ret = mfd_add_devices(&pdev->dev, PLATFORM_DEVID_NONE,
-+			mfd_cells, cell_num, NULL, 0, NULL);
-+	if (ret) {
-+		dev_err(&pdev->dev, "failed to add mfd cells (%d)\n", ret);
-+		goto free_mfd_res;
-+	}
-+
-+	return ret;
-+
-+free_mfd_res:
-+	while (cell_num--)
-+		kfree(mfd_cells[cell_num].resources);
-+	kfree(mfd_cells);
-+free_range:
-+	kfree(range);
-+
-+	return ret;
-+}
-+
-+/* All the host devices which apply indirect-IO can be listed here. */
-+static const struct acpi_device_id acpi_indirect_host_id[] = {
-+	{""},
-+};
-+
-+static int acpi_indirectio_attach(struct acpi_device *adev,
-+				const struct acpi_device_id *id)
-+{
-+	struct acpi_indirectio_device_desc *hostdata;
-+	int ret;
-+
-+	hostdata = (struct acpi_indirectio_device_desc *)id->driver_data;
-+	if (!hostdata || !hostdata->pre_setup)
-+		return -EINVAL;
-+
-+	ret = hostdata->pre_setup(adev, &hostdata->pdata);
-+
-+	if (ret < 0)
-+		return ret;
-+
-+	return 1;
-+}
-+
-+static struct acpi_scan_handler acpi_indirect_handler = {
-+	.ids = acpi_indirect_host_id,
-+	.attach = acpi_indirectio_attach,
-+};
-+
-+void __init acpi_indirectio_scan_init(void)
-+{
-+	acpi_scan_add_handler(&acpi_indirect_handler);
-+}
-diff --git a/drivers/acpi/internal.h b/drivers/acpi/internal.h
-index 1d0a501..d6b1a95 100644
---- a/drivers/acpi/internal.h
-+++ b/drivers/acpi/internal.h
-@@ -31,6 +31,11 @@
- void acpi_platform_init(void);
- void acpi_pnp_init(void);
- void acpi_int340x_thermal_init(void);
-+#ifdef CONFIG_INDIRECT_PIO
-+void acpi_indirectio_scan_init(void);
-+#else
-+static inline void acpi_indirectio_scan_init(void) {}
-+#endif
- #ifdef CONFIG_ARM_AMBA
- void acpi_amba_init(void);
- #else
-diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
-index b0fe527..8ea6f69 100644
---- a/drivers/acpi/scan.c
-+++ b/drivers/acpi/scan.c
-@@ -2141,6 +2141,7 @@ int __init acpi_scan_init(void)
- 	acpi_amba_init();
- 	acpi_watchdog_init();
- 	acpi_init_lpit();
-+	acpi_indirectio_scan_init();
+diff --git a/drivers/acpi/pci_root.c b/drivers/acpi/pci_root.c
+index 6fc204a..1213479 100644
+--- a/drivers/acpi/pci_root.c
++++ b/drivers/acpi/pci_root.c
+@@ -729,7 +729,8 @@ static void acpi_pci_root_validate_resources(struct device *dev,
+ 	}
+ }
  
- 	acpi_scan_add_handler(&generic_device_handler);
+-static void acpi_pci_root_remap_iospace(struct resource_entry *entry)
++static void acpi_pci_root_remap_iospace(struct fwnode_handle *fwnode,
++			struct resource_entry *entry)
+ {
+ #ifdef PCI_IOBASE
+ 	struct resource *res = entry->res;
+@@ -738,7 +739,7 @@ static void acpi_pci_root_remap_iospace(struct resource_entry *entry)
+ 	resource_size_t length = resource_size(res);
+ 	unsigned long port;
  
+-	if (pci_register_io_range(cpu_addr, length))
++	if (pci_register_io_range(fwnode, cpu_addr, length))
+ 		goto err;
+ 
+ 	port = pci_address_to_pio(cpu_addr);
+@@ -780,7 +781,8 @@ int acpi_pci_probe_root_resources(struct acpi_pci_root_info *info)
+ 	else {
+ 		resource_list_for_each_entry_safe(entry, tmp, list) {
+ 			if (entry->res->flags & IORESOURCE_IO)
+-				acpi_pci_root_remap_iospace(entry);
++				acpi_pci_root_remap_iospace(&device->fwnode,
++						entry);
+ 
+ 			if (entry->res->flags & IORESOURCE_DISABLED)
+ 				resource_list_destroy_entry(entry);
+diff --git a/drivers/of/address.c b/drivers/of/address.c
+index c6c410b..85975fe 100644
+--- a/drivers/of/address.c
++++ b/drivers/of/address.c
+@@ -2,6 +2,7 @@
+ #define pr_fmt(fmt)	"OF: " fmt
+ 
+ #include <linux/device.h>
++#include <linux/fwnode.h>
+ #include <linux/io.h>
+ #include <linux/ioport.h>
+ #include <linux/module.h>
+@@ -335,7 +336,8 @@ int of_pci_range_to_resource(struct of_pci_range *range,
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+ 		unsigned long port;
+-		err = pci_register_io_range(range->cpu_addr, range->size);
++		err = pci_register_io_range(&np->fwnode, range->cpu_addr,
++				range->size);
+ 		if (err)
+ 			goto invalid_range;
+ 		port = pci_address_to_pio(range->cpu_addr);
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index d8357ff..d60f0a3 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -3383,7 +3383,8 @@ struct io_range {
+  * Record the PCI IO range (expressed as CPU physical address + size).
+  * Return a negative value if an error has occured, zero otherwise
+  */
+-int pci_register_io_range(phys_addr_t addr, resource_size_t size)
++int pci_register_io_range(struct fwnode_handle *fwnode, phys_addr_t addr,
++			resource_size_t	size)
+ {
+ 	int err = 0;
+ 
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 8329983..1b70732 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1225,7 +1225,8 @@ int __must_check pci_bus_alloc_resource(struct pci_bus *bus,
+ 			void *alignf_data);
+ 
+ 
+-int pci_register_io_range(phys_addr_t addr, resource_size_t size);
++int pci_register_io_range(struct fwnode_handle *fwnode, phys_addr_t addr,
++			resource_size_t size);
+ unsigned long pci_address_to_pio(phys_addr_t addr);
+ phys_addr_t pci_pio_to_address(unsigned long pio);
+ int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr);
 -- 
 1.9.1
