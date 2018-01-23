@@ -1,57 +1,58 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH 1/2] arm64: fpsimd: Fix bad si_code for undiagnosed
- SIGFPE
-Date: Tue, 23 Jan 2018 10:14:48 +0000
-Message-ID: <20180123101446.GP22781@e103592.cambridge.arm.com>
-References: <1516623798-25001-1-git-send-email-Dave.Martin@arm.com>
- <1516623798-25001-2-git-send-email-Dave.Martin@arm.com>
- <878tcp8umz.fsf@xmission.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v4.1 02/10] asm/nospec, array_ptr: sanitize speculative
+ array de-references
+Date: Tue, 23 Jan 2018 10:17:49 +0000
+Message-ID: <20180123101748.GA2604@arm.com>
+References: <151648235823.34747.15181877619346237802.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151648236968.34747.390507912161115784.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180121104019.GS17719@n2100.armlinux.org.uk>
+ <CAPcyv4iY9PWULZfGnKnTiD4tVxHSw4QfSwUBV4d=1KfnUjbgWw@mail.gmail.com>
+ <CA+55aFyqAGRE4+QteYyvNyMzepFXHVVBn=A07Adj-yBs=tS_Ww@mail.gmail.com>
+ <CAPcyv4gjDrTnC_xeuVWjonvF7_L1Y-OOQndMRyVDdaLmcC7NMg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:39240 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:39304 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751154AbeAWKOw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 Jan 2018 05:14:52 -0500
+        id S1751233AbeAWKRl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Jan 2018 05:17:41 -0500
 Content-Disposition: inline
-In-Reply-To: <878tcp8umz.fsf@xmission.com>
+In-Reply-To: <CAPcyv4gjDrTnC_xeuVWjonvF7_L1Y-OOQndMRyVDdaLmcC7NMg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Alan Cox <alan@linux.intel.com>
 
-On Mon, Jan 22, 2018 at 03:13:08PM -0600, Eric W. Biederman wrote:
-> 
-> > diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-> > index e447283..77edb00 100644
-> > --- a/include/uapi/asm-generic/siginfo.h
-> > +++ b/include/uapi/asm-generic/siginfo.h
-> > @@ -193,7 +193,8 @@ typedef struct siginfo {
-> >  #define FPE_FLTRES	6	/* floating point inexact result */
-> >  #define FPE_FLTINV	7	/* floating point invalid operation */
-> >  #define FPE_FLTSUB	8	/* subscript out of range */
-> > -#define NSIGFPE		8
-> > +#define FPE_UNKNOWN	9	/* undiagnosed floating-point exception */
-> > +#define NSIGFPE		9
-> 
-> Minor nit here.
-> 
-> At least before this is final I would really appreciate if you could
-> rebase this on top of my unificiation of siginfo.h that I posted on
-> linux-arch and is in my siginfo-next branch.
-> 
-> As that already pushes NSIGFPE up to 13.
-> 
-> Which would make this patch change NSIGFPE to 14 and allocate the number
-> 14 for FPE_UNKNOWN
+On Mon, Jan 22, 2018 at 10:52:54AM -0800, Dan Williams wrote:
+> On Mon, Jan 22, 2018 at 10:37 AM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> > Note that 'idx' itself can have any range (that's kind of the _point_,
+> > after all: checking that idx is in some range). But the logic only
+> > works for a positive array size.
+> >
+> > Which honestly is not really a limitation, but it's worth spelling out, I think.
 
-My bad -- I hadn't looked in detail at the whole series.
+Agreed. We should be absolutely clear about when this thing works and when
+it doesn't.
 
-However, the purpose of this as an RFC was to get feedback on whether
-adding FPE_UNKNOWN is considered acceptable at all from an API
-perspective -- the precise number doesn't matter for that discussion.
+> > In particular, if you have a user pointer, and a 3G:1G split in
+> > user:kernel address space, you camn *not* do something like
+> >
+> >     uptr = array_ptr(NULL, userptr, TASK_SIZE);
+> >
+> > to get a sanitized user pointer, because TASK_SIZE is not positive in 'long'.
+> >
+> > Hmm?
+> 
+> We could at least have a BUILD_BUG_ON when 'size' is a
+> builtin_contstant and greater than LONG_MAX. Alternatively we could
+> require archs to provide the equivalent of the x86 array_ptr_mask()
+> that does not have the LONG_MAX limitation?
 
-Do you have any view on this?
+I'd rather avoid imposing that limitation and instead just treat uaccess
+specially. It looks like we can satisfy the current definition of
+array_ptr_mask with three instructions, but I'm not sure how we could get it
+working on arm64 if we needed to deal with arbitrary sizes (particularly as
+we're trying to avoid conditional instructions).
 
-Cheers
----Dave
+Will
