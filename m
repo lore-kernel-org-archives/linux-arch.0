@@ -1,538 +1,352 @@
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v12 1/9] LIB: Introduce a generic PIO mapping method
-Date: Wed, 24 Jan 2018 00:36:17 +0800
-Message-ID: <1516725385-24535-2-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v12 7/9] ACPI: Translate the I/O range of non-MMIO devices before scanning
+Date: Wed, 24 Jan 2018 00:36:23 +0800
+Message-ID: <1516725385-24535-8-git-send-email-john.garry@huawei.com>
 References: <1516725385-24535-1-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1516725385-24535-1-git-send-email-john.garry@huawei.com>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, hanjun.guo@linaro.org, dann.frazier@canonical.com
-Cc: benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, Zhichang Yuan <yuanzhichang@hisilicon.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, John Garry <john.garry@huawei.com>
+Cc: benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, John Garry <john.garry@huawei.com>, Zhichang Yuan <yuanzhichang@hisilicon.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Zhichang Yuan <yuanzhichang@hisilicon.com>
+On some platforms(such as Hip06/Hip07), the legacy ISA/LPC devices access
+I/O with some special host-local I/O ports known on x86. As their I/O space
+are not memory mapped like PCI/PCIE MMIO host bridges, this patch is meant
+to support a new class of I/O host controllers where the local IO ports of
+the children devices are translated into the Indirect I/O address space.
 
-In commit 41f8bba7f555 ("of/pci: Add pci_register_io_range() and
-pci_pio_to_address()"), a new I/O space management was supported. With
-that driver, the I/O ranges configured for PCI/PCIe hosts on some
-architectures can be mapped to logical PIO, converted easily between
-CPU address and the corresponding logicial PIO. Based on this, PCI
-I/O devices can be accessed in a memory read/write way through the
-unified in/out accessors.
+Through the handler attach callback, all the I/O translations are done
+before starting the enumeration on children devices and the translated
+addresses are replaced in the children resources.
 
-But on some archs/platforms, there are bus hosts which access I/O
-peripherals with host-local I/O port addresses rather than memory
-addresses after memory-mapped.
-
-To support those devices, a more generic I/O mapping method is introduced
-here. Through this patch, both the CPU addresses and the host-local port
-can be mapped into the logical PIO space with different logical/fake PIOs.
-After this, all the I/O accesses to either PCI MMIO devices or host-local
-I/O peripherals can be unified into the existing I/O accessors defined in
-asm-generic/io.h and be redirected to the right device-specific hooks
-based on the input logical PIO.
-
+Signed-off-by: John Garry <john.garry@huawei.com>
 Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
 Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Signed-off-by: John Garry <john.garry@huawei.com>
 ---
- include/asm-generic/io.h  |   2 +
- include/linux/logic_pio.h | 141 +++++++++++++++++++++++
- lib/Kconfig               |  15 +++
- lib/Makefile              |   2 +
- lib/logic_pio.c           | 282 ++++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 442 insertions(+)
- create mode 100644 include/linux/logic_pio.h
- create mode 100644 lib/logic_pio.c
+ drivers/acpi/arm64/Makefile          |   1 +
+ drivers/acpi/arm64/acpi_indirectio.c | 273 +++++++++++++++++++++++++++++++++++
+ drivers/acpi/internal.h              |   5 +
+ drivers/acpi/scan.c                  |   1 +
+ 4 files changed, 280 insertions(+)
+ create mode 100644 drivers/acpi/arm64/acpi_indirectio.c
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index b4531e3..b7996a79 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -351,6 +351,8 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
- #define IO_SPACE_LIMIT 0xffff
- #endif
- 
-+#include <linux/logic_pio.h>
-+
- /*
-  * {in,out}{b,w,l}() access little endian I/O. {in,out}{b,w,l}_p() can be
-  * implemented on hardware that needs an additional delay for I/O accesses to
-diff --git a/include/linux/logic_pio.h b/include/linux/logic_pio.h
+diff --git a/drivers/acpi/arm64/Makefile b/drivers/acpi/arm64/Makefile
+index 1017def..f4a7f46 100644
+--- a/drivers/acpi/arm64/Makefile
++++ b/drivers/acpi/arm64/Makefile
+@@ -1,2 +1,3 @@
+ obj-$(CONFIG_ACPI_IORT) 	+= iort.o
+ obj-$(CONFIG_ACPI_GTDT) 	+= gtdt.o
++obj-$(CONFIG_INDIRECT_PIO)	+= acpi_indirectio.o
+diff --git a/drivers/acpi/arm64/acpi_indirectio.c b/drivers/acpi/arm64/acpi_indirectio.c
 new file mode 100644
-index 0000000..9545c77
+index 0000000..2649f57
 --- /dev/null
-+++ b/include/linux/logic_pio.h
-@@ -0,0 +1,141 @@
++++ b/drivers/acpi/arm64/acpi_indirectio.c
+@@ -0,0 +1,273 @@
 +/*
-+ * Copyright (C) 2017 Hisilicon Limited, All Rights Reserved.
++ * ACPI support for indirect-IO bus.
++ *
++ * Copyright (C) 2017 HiSilicon Limited, All Rights Reserved.
 + * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
 + * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
++ * Author: John Garry <john.garry@huawei.com>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef __LINUX_LOGIC_PIO_H
-+#define __LINUX_LOGIC_PIO_H
++#include <linux/acpi.h>
++#include <linux/logic_pio.h>
++#include <linux/mfd/core.h>
++#include <linux/platform_device.h>
 +
-+#ifdef __KERNEL__
++ACPI_MODULE_NAME("indirect IO");
 +
-+#include <linux/fwnode.h>
++#define ACPI_INDIRECTIO_NAME_LENGTH 255
 +
-+#define PIO_INDIRECT		0x01UL /* indirect IO flag */
-+#define PIO_CPU_MMIO		0x00UL /* memory mapped io flag */
++#define INDIRECT_IO_INFO(desc) ((unsigned long)&desc)
 +
-+struct logic_pio_hwaddr {
-+	struct list_head list;
-+	struct fwnode_handle *fwnode;
-+	resource_size_t hw_start;
++struct acpi_indirectio_mfd_cell {
++	struct mfd_cell_acpi_match acpi_match;
++	char name[ACPI_INDIRECTIO_NAME_LENGTH];
++	char pnpid[ACPI_INDIRECTIO_NAME_LENGTH];
++};
++
++struct acpi_indirectio_host_data {
++	resource_size_t io_size;
 +	resource_size_t io_start;
-+	resource_size_t size; /* range size populated */
-+	unsigned long flags;
-+
-+	void *devpara;	/* private parameter of the host device */
-+	struct hostio_ops *ops;	/* ops operating on this node */
 +};
 +
-+struct hostio_ops {
-+	u32 (*pfin)(void *devobj, unsigned long ptaddr,	size_t dlen);
-+	void (*pfout)(void *devobj, unsigned long ptaddr, u32 outval,
-+			size_t dlen);
-+	u32 (*pfins)(void *devobj, unsigned long ptaddr, void *inbuf,
-+			size_t dlen, unsigned int count);
-+	void (*pfouts)(void *devobj, unsigned long ptaddr,
-+			const void *outbuf, size_t dlen, unsigned int count);
++struct acpi_indirectio_device_desc {
++	struct acpi_indirectio_host_data pdata; /* device relevant info data */
++	int (*pre_setup)(struct acpi_device *adev,
++			 struct acpi_indirectio_host_data *pdata);
 +};
 +
-+#ifdef CONFIG_INDIRECT_PIO
-+u8 logic_inb(unsigned long addr);
-+void logic_outb(u8 value, unsigned long addr);
-+void logic_outw(u16 value, unsigned long addr);
-+void logic_outl(u32 value, unsigned long addr);
-+u16 logic_inw(unsigned long addr);
-+u32 logic_inl(unsigned long addr);
-+void logic_outb(u8 value, unsigned long addr);
-+void logic_outw(u16 value, unsigned long addr);
-+void logic_outl(u32 value, unsigned long addr);
-+void logic_insb(unsigned long addr, void *buffer, unsigned int count);
-+void logic_insl(unsigned long addr, void *buffer, unsigned int count);
-+void logic_insw(unsigned long addr, void *buffer, unsigned int count);
-+void logic_outsb(unsigned long addr, const void *buffer, unsigned int count);
-+void logic_outsw(unsigned long addr, const void *buffer, unsigned int count);
-+void logic_outsl(unsigned long addr, const void *buffer, unsigned int count);
-+
-+#ifndef inb
-+#define inb logic_inb
-+#endif
-+
-+#ifndef inw
-+#define inw logic_inw
-+#endif
-+
-+#ifndef inl
-+#define inl logic_inl
-+#endif
-+
-+#ifndef outb
-+#define outb logic_outb
-+#endif
-+
-+#ifndef outw
-+#define outw logic_outw
-+#endif
-+
-+#ifndef outl
-+#define outl logic_outl
-+#endif
-+
-+#ifndef insb
-+#define insb logic_insb
-+#endif
-+
-+#ifndef insw
-+#define insw logic_insw
-+#endif
-+
-+#ifndef insl
-+#define insl logic_insl
-+#endif
-+
-+#ifndef outsb
-+#define outsb logic_outsb
-+#endif
-+
-+#ifndef outsw
-+#define outsw logic_outsw
-+#endif
-+
-+#ifndef outsl
-+#define outsl logic_outsl
-+#endif
-+
-+/*
-+ * Below we reserve 0x4000 bytes for Indirect IO as so far this library is only
-+ * used by Hisilicon LPC Host. If needed in future we may reserve a wider IO
-+ * area by redefining the macro below.
-+ */
-+#define PIO_INDIRECT_SIZE 0x4000
-+#define MMIO_UPPER_LIMIT (IO_SPACE_LIMIT - PIO_INDIRECT_SIZE)
-+#else
-+#define MMIO_UPPER_LIMIT IO_SPACE_LIMIT
-+#endif /* CONFIG_INDIRECT_PIO */
-+
-+
-+struct logic_pio_hwaddr *find_io_range_by_fwnode(struct fwnode_handle *fwnode);
-+
-+unsigned long logic_pio_trans_hwaddr(struct fwnode_handle *fwnode,
-+			resource_size_t hw_addr, resource_size_t size);
-+
-+int logic_pio_register_range(struct logic_pio_hwaddr *newrange);
-+
-+
-+extern resource_size_t logic_pio_to_hwaddr(unsigned long pio);
-+
-+extern unsigned long logic_pio_trans_cpuaddr(resource_size_t hw_addr);
-+
-+#endif /* __KERNEL__ */
-+#endif /* __LINUX_LOGIC_PIO_H */
-diff --git a/lib/Kconfig b/lib/Kconfig
-index e960894..7ad1e69 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -55,6 +55,21 @@ config ARCH_USE_CMPXCHG_LOCKREF
- config ARCH_HAS_FAST_MULTIPLIER
- 	bool
- 
-+config INDIRECT_PIO
-+	bool "Access I/O in non-MMIO mode"
-+	depends on ARM64
-+	help
-+	  On some platforms where no separate I/O space exists, there are I/O
-+	  hosts which can not be accessed in MMIO mode. Using the logical PIO
-+	  mechanism, the host-local I/O resource can be mapped into system
-+	  logic PIO space shared with MMIO hosts, such as PCI/PCIE, then the
-+	  system can access the I/O devices with the mapped logic PIO through
-+	  I/O accessors.
-+	  This way has a relatively little I/O performance cost. Please make
-+	  sure your devices really need this configure item enabled.
-+
-+	  When in doubt, say N.
-+
- config CRC_CCITT
- 	tristate "CRC-CCITT functions"
- 	help
-diff --git a/lib/Makefile b/lib/Makefile
-index a90d4fc..4a9eacd 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -81,6 +81,8 @@ obj-$(CONFIG_HAS_IOMEM) += iomap_copy.o devres.o
- obj-$(CONFIG_CHECK_SIGNATURE) += check_signature.o
- obj-$(CONFIG_DEBUG_LOCKING_API_SELFTESTS) += locking-selftest.o
- 
-+obj-y += logic_pio.o
-+
- obj-$(CONFIG_GENERIC_HWEIGHT) += hweight.o
- 
- obj-$(CONFIG_BTREE) += btree.o
-diff --git a/lib/logic_pio.c b/lib/logic_pio.c
-new file mode 100644
-index 0000000..e42a90e
---- /dev/null
-+++ b/lib/logic_pio.c
-@@ -0,0 +1,282 @@
-+/*
-+ * Copyright (C) 2017 Hisilicon Limited, All Rights Reserved.
-+ * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-+ * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#define pr_fmt(fmt)	"LOGIC PIO: " fmt
-+
-+#include <linux/of.h>
-+#include <linux/io.h>
-+#include <linux/logic_pio.h>
-+#include <linux/mm.h>
-+#include <linux/rculist.h>
-+#include <linux/sizes.h>
-+#include <linux/slab.h>
-+
-+/* The unique hardware address list. */
-+static LIST_HEAD(io_range_list);
-+static DEFINE_MUTEX(io_range_mutex);
-+
-+/*
-+ * register a new io range node in the io range list.
-+ *
-+ * @newrange: pointer to the io range to be registered.
-+ *
-+ * returns 0 on success, the error code in case of failure
-+ */
-+int logic_pio_register_range(struct logic_pio_hwaddr *new_range)
++static int acpi_translate_logicio_res(struct acpi_device *adev,
++		struct acpi_device *host, struct resource *resource)
 +{
-+	struct logic_pio_hwaddr *range;
-+	int ret = 0;
-+	resource_size_t start = new_range->hw_start;
-+	resource_size_t end = new_range->hw_start + new_range->size;
-+	resource_size_t allocated_mmio_size = 0;
-+	resource_size_t allocated_iio_size = MMIO_UPPER_LIMIT;
++	unsigned long sys_port;
++	struct device *dev = &adev->dev;
++	resource_size_t length = resource->end - resource->start;
 +
-+	if (!new_range || !new_range->fwnode || !new_range->size)
++	sys_port = logic_pio_trans_hwaddr(&host->fwnode, resource->start,
++					length);
++
++	if (sys_port == -1) {
++		dev_err(dev, "translate bus-addr(0x%llx) fail!\n",
++			resource->start);
++		return -EFAULT;
++	}
++
++	resource->start = sys_port;
++	resource->end = sys_port + length;
++
++	return 0;
++}
++
++/*
++ * update/set the current I/O resource of the designated device node.
++ * after this calling, the enumeration can be started as the I/O resource
++ * had been translated to logicial I/O from bus-local I/O.
++ *
++ * @child: the device node to be updated the I/O resource;
++ * @hostdev: the device node where 'adev' is attached, which can be not
++ *  the parent of 'adev';
++ * @res: double pointer to be set to the address of the updated resources
++ * @num_res: address of the variable to contain the number of updated resources
++ *
++ * return 0 when successful, negative is for failure.
++ */
++int acpi_indirectio_set_logicio_res(struct device *child,
++					 struct device *hostdev,
++					 const struct resource **res,
++					 int *num_res)
++{
++	struct acpi_device *adev;
++	struct acpi_device *host;
++	struct resource_entry *rentry;
++	LIST_HEAD(resource_list);
++	struct resource *resources = NULL;
++	int count;
++	int i;
++	int ret = -EIO;
++
++	if (!child || !hostdev)
 +		return -EINVAL;
 +
-+	mutex_lock(&io_range_mutex);
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->fwnode == new_range->fwnode) {
-+			/* range already there */
-+			ret = -EFAULT;
-+			goto end_register;
-+		}
-+		if (range->flags == PIO_CPU_MMIO &&
-+				new_range->flags == PIO_CPU_MMIO) {
-+			/* for MMIO ranges we need to check for overlap */
-+			if (start >= range->hw_start + range->size ||
-+			    end < range->hw_start)
-+				allocated_mmio_size += range->size;
-+			else {
-+				ret = -EFAULT;
-+				goto end_register;
-+			}
-+		} else if (range->flags == PIO_INDIRECT &&
-+			   new_range->flags == PIO_INDIRECT) {
-+			allocated_iio_size += range->size;
-+		}
++	host = to_acpi_device(hostdev);
++	adev = to_acpi_device(child);
++
++	/* check the device state */
++	if (!adev->status.present) {
++		dev_info(child, "ACPI: device is not present!\n");
++		return 0;
++	}
++	/* whether the child had been enumerated? */
++	if (acpi_device_enumerated(adev)) {
++		dev_info(child, "ACPI: had been enumerated!\n");
++		return 0;
 +	}
 +
-+	/* range not registered yet, check for available space */
-+	if (new_range->flags == PIO_CPU_MMIO) {
-+		if (allocated_mmio_size + new_range->size - 1 >
-+			MMIO_UPPER_LIMIT) {
-+			/* if it's too big check if 64K space can be reserved */
-+			if (allocated_mmio_size + SZ_64K - 1 >
-+			MMIO_UPPER_LIMIT) {
-+				ret = -E2BIG;
-+				goto end_register;
-+			}
-+			new_range->size = SZ_64K;
-+			pr_warn("Requested IO range too big, new size set to 64K\n");
-+		}
-+		new_range->io_start = allocated_mmio_size;
-+	} else if (new_range->flags == PIO_INDIRECT) {
-+		if (allocated_iio_size + new_range->size - 1 >
-+		    IO_SPACE_LIMIT) {
-+			ret = -E2BIG;
-+			goto end_register;
-+		}
-+		new_range->io_start = allocated_iio_size;
-+	} else {
-+		/* invalid flag */
-+		ret = -EINVAL;
-+		goto end_register;
++	count = acpi_dev_get_resources(adev, &resource_list, NULL, NULL);
++	if (count <= 0) {
++		dev_err(&adev->dev, "failed to get ACPI resources\n");
++		return count ? count : -EIO;
 +	}
 +
-+	list_add_tail_rcu(&new_range->list, &io_range_list);
++	resources = kcalloc(count, sizeof(struct resource), GFP_KERNEL);
++	if (!resources) {
++		acpi_dev_free_resource_list(&resource_list);
++		return -ENOMEM;
++	}
++	count = 0;
++	list_for_each_entry(rentry, &resource_list, node)
++		resources[count++] = *rentry->res;
 +
-+end_register:
-+	mutex_unlock(&io_range_mutex);
++	acpi_dev_free_resource_list(&resource_list);
++
++	/* translate the I/O resources */
++	for (i = 0; i < count; i++) {
++		if (resources[i].flags & IORESOURCE_IO) {
++			ret = acpi_translate_logicio_res(adev, host,
++							&resources[i]);
++			if (ret) {
++				kfree(resources);
++				dev_err(child,
++					"Translate I/O range failed (%d)!\n",
++					ret);
++				return ret;
++			}
++		}
++	}
++	*res = resources;
++	*num_res = count;
++
 +	return ret;
 +}
 +
-+/*
-+ * traverse the io_range_list to find the registered node whose device node
-+ * and/or physical IO address match to.
-+ */
-+struct logic_pio_hwaddr *find_io_range_by_fwnode(struct fwnode_handle *fwnode)
++int
++acpi_indirectio_pre_setup(struct acpi_device *adev,
++			  struct acpi_indirectio_host_data *pdata)
 +{
++	struct platform_device *pdev;
++	struct mfd_cell *mfd_cells;
 +	struct logic_pio_hwaddr *range;
++	struct acpi_device *child;
++	struct acpi_indirectio_mfd_cell *acpi_indirectio_mfd_cells;
++	int size, ret, count = 0, cell_num = 0;
 +
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->fwnode == fwnode)
-+			return range;
++	range = kzalloc(sizeof(*range), GFP_KERNEL);
++	if (!range)
++		return -ENOMEM;
++	range->fwnode = &adev->fwnode;
++	range->flags = PIO_INDIRECT;
++	range->size = pdata->io_size;
++	range->hw_start = pdata->io_start;
++
++	ret = logic_pio_register_range(range);
++	if (ret)
++		goto free_range;
++
++	list_for_each_entry(child, &adev->children, node)
++		cell_num++;
++
++	/* allocate the mfd cells */
++	size = sizeof(*mfd_cells) + sizeof(*acpi_indirectio_mfd_cells);
++	mfd_cells = kcalloc(cell_num, size, GFP_KERNEL);
++	if (!mfd_cells) {
++		ret = -ENOMEM;
++		goto free_range;
 +	}
-+	return NULL;
++
++	acpi_indirectio_mfd_cells = (struct acpi_indirectio_mfd_cell *)
++					&mfd_cells[cell_num];
++	/* Only consider the children of the host */
++	list_for_each_entry(child, &adev->children, node) {
++		struct mfd_cell *mfd_cell = &mfd_cells[count];
++		struct acpi_indirectio_mfd_cell *acpi_indirectio_mfd_cell =
++					&acpi_indirectio_mfd_cells[count];
++		const struct mfd_cell_acpi_match *acpi_match =
++					&acpi_indirectio_mfd_cell->acpi_match;
++		char *name = &acpi_indirectio_mfd_cell[count].name[0];
++		char *pnpid = &acpi_indirectio_mfd_cell[count].pnpid[0];
++		struct mfd_cell_acpi_match match = {
++				.pnpid = pnpid,
++		};
++
++		snprintf(name, ACPI_INDIRECTIO_NAME_LENGTH, "indirect-io-%s",
++			 acpi_device_hid(child));
++		snprintf(pnpid, ACPI_INDIRECTIO_NAME_LENGTH, "%s",
++			 acpi_device_hid(child));
++
++		memcpy((void *)acpi_match, (void *)&match, sizeof(*acpi_match));
++		mfd_cell->name = name;
++		mfd_cell->acpi_match = acpi_match;
++
++		ret =
++		acpi_indirectio_set_logicio_res(&child->dev,
++						&adev->dev,
++						&mfd_cell->resources,
++						&mfd_cell->num_resources);
++		if (ret) {
++			dev_err(&child->dev, "set resource failed (%d)\n", ret);
++			goto free_mfd_res;
++		}
++		count++;
++	}
++
++	pdev = acpi_create_platform_device(adev, NULL);
++	if (IS_ERR_OR_NULL(pdev)) {
++		dev_err(&adev->dev, "Create platform device for host failed!\n");
++		ret = PTR_ERR(pdev);
++		goto free_mfd_res;
++	}
++	acpi_device_set_enumerated(adev);
++
++	ret = mfd_add_devices(&pdev->dev, PLATFORM_DEVID_NONE,
++			mfd_cells, cell_num, NULL, 0, NULL);
++	if (ret) {
++		dev_err(&pdev->dev, "failed to add mfd cells (%d)\n", ret);
++		goto free_mfd_res;
++	}
++
++	return ret;
++
++free_mfd_res:
++	while (cell_num--)
++		kfree(mfd_cells[cell_num].resources);
++	kfree(mfd_cells);
++free_range:
++	kfree(range);
++
++	return ret;
 +}
 +
-+/* return a registered range given an input PIO token */
-+static struct logic_pio_hwaddr *find_io_range(unsigned long pio)
++/* All the host devices which apply indirect-IO can be listed here. */
++static const struct acpi_device_id acpi_indirect_host_id[] = {
++	{""},
++};
++
++static int acpi_indirectio_attach(struct acpi_device *adev,
++				const struct acpi_device_id *id)
 +{
-+	struct logic_pio_hwaddr *range;
++	struct acpi_indirectio_device_desc *hostdata;
++	int ret;
 +
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (pio >= range->io_start &&
-+		    pio < range->io_start + range->size)
-+			return range;
-+	}
-+	pr_err("PIO entry token invalid\n");
-+	return NULL;
++	hostdata = (struct acpi_indirectio_device_desc *)id->driver_data;
++	if (!hostdata || !hostdata->pre_setup)
++		return -EINVAL;
++
++	ret = hostdata->pre_setup(adev, &hostdata->pdata);
++
++	if (ret < 0)
++		return ret;
++
++	return 1;
 +}
 +
-+/*
-+ * Translate the input logical pio to the corresponding hardware address.
-+ * The input pio should be unique in the whole logical PIO space.
-+ */
-+resource_size_t logic_pio_to_hwaddr(unsigned long pio)
++static struct acpi_scan_handler acpi_indirect_handler = {
++	.ids = acpi_indirect_host_id,
++	.attach = acpi_indirectio_attach,
++};
++
++void __init acpi_indirectio_scan_init(void)
 +{
-+	struct logic_pio_hwaddr *range;
-+	resource_size_t hwaddr = -1;
-+
-+	range = find_io_range(pio);
-+	if (range)
-+		hwaddr = range->hw_start + pio - range->io_start;
-+
-+	return hwaddr;
++	acpi_scan_add_handler(&acpi_indirect_handler);
 +}
-+
-+/*
-+ * This function is generic for translating a hardware address to logical PIO.
-+ * @hw_addr: the hardware address of host, can be CPU address or host-local
-+ *		address;
-+ */
-+unsigned long
-+logic_pio_trans_hwaddr(struct fwnode_handle *fwnode, resource_size_t addr,
-+		       resource_size_t size)
-+{
-+	struct logic_pio_hwaddr *range;
-+
-+	range = find_io_range_by_fwnode(fwnode);
-+	if (!range || range->flags == PIO_CPU_MMIO) {
-+		pr_err("range not found or invalid\n");
-+		return -1;
-+	}
-+	if (range->size < size) {
-+		pr_err("resource size %pa cannot fit in IO range size %pa\n",
-+		       &size, &range->size);
-+		return -1;
-+	}
-+	return addr - range->hw_start + range->io_start;
-+}
-+
-+unsigned long
-+logic_pio_trans_cpuaddr(resource_size_t addr)
-+{
-+	struct logic_pio_hwaddr *range;
-+
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->flags != PIO_CPU_MMIO)
-+			continue;
-+		if (addr >= range->hw_start &&
-+		    addr < range->hw_start + range->size)
-+			return addr - range->hw_start +
-+				range->io_start;
-+	}
-+	pr_err("addr not registered in io_range_list\n");
-+	return -1;
-+}
-+
-+#if defined(CONFIG_INDIRECT_PIO) && defined(PCI_IOBASE)
-+#define BUILD_LOGIC_IO(bw, type)					\
-+type logic_in##bw(unsigned long addr)					\
-+{									\
-+	type ret = -1;							\
-+									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		ret = read##bw(PCI_IOBASE + addr);			\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) { \
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			ret = entry->ops->pfin(entry->devpara,		\
-+					addr, sizeof(type));		\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+	return ret;							\
-+}									\
-+									\
-+void logic_out##bw(type value, unsigned long addr)			\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		write##bw(value, PCI_IOBASE + addr);			\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->pfout(entry->devpara,		\
-+					addr, value, sizeof(type));	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+}									\
-+									\
-+void logic_ins##bw(unsigned long addr, void *buffer, unsigned int count)\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		reads##bw(PCI_IOBASE + addr, buffer, count);		\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->pfins(entry->devpara,		\
-+				addr, buffer, sizeof(type), count);	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+									\
-+}									\
-+									\
-+void logic_outs##bw(unsigned long addr, const void *buffer,		\
-+		    unsigned int count)					\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		writes##bw(PCI_IOBASE + addr, buffer, count);		\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->pfouts(entry->devpara,		\
-+				addr, buffer, sizeof(type), count);	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+}
-+
-+BUILD_LOGIC_IO(b, u8)
-+
-+EXPORT_SYMBOL(logic_inb);
-+EXPORT_SYMBOL(logic_outb);
-+EXPORT_SYMBOL(logic_insb);
-+EXPORT_SYMBOL(logic_outsb);
-+
-+BUILD_LOGIC_IO(w, u16)
-+
-+EXPORT_SYMBOL(logic_inw);
-+EXPORT_SYMBOL(logic_outw);
-+EXPORT_SYMBOL(logic_insw);
-+EXPORT_SYMBOL(logic_outsw);
-+
-+BUILD_LOGIC_IO(l, u32)
-+
-+EXPORT_SYMBOL(logic_inl);
-+EXPORT_SYMBOL(logic_outl);
-+EXPORT_SYMBOL(logic_insl);
-+EXPORT_SYMBOL(logic_outsl);
-+#endif /* CONFIG_INDIRECT_PIO && PCI_IOBASE */
+diff --git a/drivers/acpi/internal.h b/drivers/acpi/internal.h
+index 1d0a501..d6b1a95 100644
+--- a/drivers/acpi/internal.h
++++ b/drivers/acpi/internal.h
+@@ -31,6 +31,11 @@
+ void acpi_platform_init(void);
+ void acpi_pnp_init(void);
+ void acpi_int340x_thermal_init(void);
++#ifdef CONFIG_INDIRECT_PIO
++void acpi_indirectio_scan_init(void);
++#else
++static inline void acpi_indirectio_scan_init(void) {}
++#endif
+ #ifdef CONFIG_ARM_AMBA
+ void acpi_amba_init(void);
+ #else
+diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
+index b0fe527..8ea6f69 100644
+--- a/drivers/acpi/scan.c
++++ b/drivers/acpi/scan.c
+@@ -2141,6 +2141,7 @@ int __init acpi_scan_init(void)
+ 	acpi_amba_init();
+ 	acpi_watchdog_init();
+ 	acpi_init_lpit();
++	acpi_indirectio_scan_init();
+ 
+ 	acpi_scan_add_handler(&generic_device_handler);
+ 
 -- 
 1.9.1
