@@ -1,25 +1,45 @@
-From: Aisha Gaddafi <aishagaddai8@gmail.com>
-Subject: FROM AISHA GADDAFI
-Date: Tue, 23 Jan 2018 15:33:18 +0000 (UTC)
-Message-ID: <2142516896.3360690.1516721598049@mail.yahoo.com>
-References: <2142516896.3360690.1516721598049.ref@mail.yahoo.com>
-Reply-To: Aisha Gaddafi <aishagadafi0k@hotmail.com>
+From: John Garry <john.garry@huawei.com>
+Subject: [PATCH v12 9/9] MAINTAINERS: Add maintainer for HiSilicon LPC driver
+Date: Wed, 24 Jan 2018 00:36:25 +0800
+Message-ID: <1516725385-24535-10-git-send-email-john.garry@huawei.com>
+References: <1516725385-24535-1-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sonic304-38.consmr.mail.bf2.yahoo.com ([74.6.128.61]:41693 "EHLO
-        sonic304-38.consmr.mail.bf2.yahoo.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752046AbeAWPhT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 Jan 2018 10:37:19 -0500
+Received: from szxga04-in.huawei.com ([45.249.212.190]:4679 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751571AbeAWPpY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Jan 2018 10:45:24 -0500
+In-Reply-To: <1516725385-24535-1-git-send-email-john.garry@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, hanjun.guo@linaro.org, dann.frazier@canonical.com
+Cc: benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, John Garry <john.garry@huawei.com>
 
-Please after reading this mail make sure you contact me with this my private email address: {aishagadafi0k@hotmail.com}  so that I will see your mail and reply you,
-My names are Dr. Aisha Gaddafi, the daughter of late Libyan president, am contacting you because I need a  Partner or an investor that will help me in investing the sum of $87.5 Million USD in his or her country, the funds is deposited here in Burkina Faso where I am staying for the moment with my children as my husband is late, I would like to know your mind and interest tows the investment of the total sum mentioned Above, as my partner and beneficiary of the funds I want to inform you that will receive 30% shear of the total sum after the transfer of the said funds $87.5 Million USD is completed into your account, while the balance as my own shear will be used for the investment in your country 
-Please after reading this mail try and make sure you reply and contact me with this my private email address: {aishagadafi0k@hotmail.com}  
-so that I will see your mail and reply you without delaying, please note once again that it is necessary that you reply me through this my private email address: {aishagadafi0k@hotmail.com}    if you really want me to see your respond and interest concerning the transaction Yours friend 
-Dr. Aisha Gaddafi
+Added maintainer for drivers/bus/hisi_lpc.c
 
-FROM AISHA GADDAFI
+Signed-off-by: John Garry <john.garry@huawei.com>
+---
+ MAINTAINERS | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/MAINTAINERS b/MAINTAINERS
+index f1e3ee6..ab09908 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -6386,6 +6386,13 @@ W:	http://www.hisilicon.com
+ S:	Maintained
+ F:	drivers/net/ethernet/hisilicon/hns3/
+ 
++HISILICON LPC BUS DRIVER
++M:	john.garry@huawei.com
++W:	http://www.hisilicon.com
++S:	Maintained
++F:	drivers/bus/hisi_lpc.c
++F:	Documentation/devicetree/bindings/arm/hisilicon/hisilicon-low-pin-count.txt
++
+ HISILICON NETWORK SUBSYSTEM DRIVER
+ M:	Yisen Zhuang <yisen.zhuang@huawei.com>
+ M:	Salil Mehta <salil.mehta@huawei.com>
+-- 
+1.9.1
