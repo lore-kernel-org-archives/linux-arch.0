@@ -1,54 +1,32 @@
-From: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [RFC PATCH 1/2] arm64: fpsimd: Fix bad si_code for undiagnosed
- SIGFPE
-Date: Wed, 24 Jan 2018 09:53:44 +0000
-Message-ID: <20180124095341.GC5862@e103592.cambridge.arm.com>
-References: <878tcp8umz.fsf@xmission.com>
- <20180123101446.GP22781@e103592.cambridge.arm.com>
- <87tvvc77nf.fsf@xmission.com>
- <20180123.132916.1025436873838680654.davem@davemloft.net>
- <87lggo7430.fsf@xmission.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH RFC 0/3] API for 128-bit IO access
+Date: Wed, 24 Jan 2018 10:22:13 +0000
+Message-ID: <20180124102212.GC20586@arm.com>
+References: <20180124090519.6680-1-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:50694 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932775AbeAXKWF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jan 2018 05:22:05 -0500
 Content-Disposition: inline
-In-Reply-To: <87lggo7430.fsf-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
-Cc: David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org, catalin.marinas-5wv7dgnIgG8@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20180124090519.6680-1-ynorov@caviumnetworks.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-crypto@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "David S . Miller" <davem@davemloft.net>, Geethasowjanya Akula <Geethasowjanya.Akula@cavium.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, Sunil Goutham <Sunil.Goutham@cavium.com>
 
-On Tue, Jan 23, 2018 at 01:44:19PM -0600, Eric W. Biederman wrote:
-> David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org> writes:
+On Wed, Jan 24, 2018 at 12:05:16PM +0300, Yury Norov wrote:
+> This series adds API for 128-bit memory IO access and enables it for ARM64.
+> The original motivation for 128-bit API came from new Cavium network device
+> driver. The hardware requires 128-bit access to make things work. See
+> description in patch 3 for details.
 > 
-> > From: ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org (Eric W. Biederman)
-> > Date: Tue, 23 Jan 2018 12:27:16 -0600
-> >
-> >> Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org> writes:
-> >> 
-> >>> On Mon, Jan 22, 2018 at 03:13:08PM -0600, Eric W. Biederman wrote:
-> >>> However, the purpose of this as an RFC was to get feedback on whether
-> >>> adding FPE_UNKNOWN is considered acceptable at all from an API
-> >>> perspective -- the precise number doesn't matter for that discussion.
-> >>>
-> >>> Do you have any view on this?
-> >> 
-> >> That seems as good a solution as any too me.  It is reality and it
-> >> happens in the code and there are several places of the same form I
-> >> would use it, just to get rid of the FPE_FIXME.
-> >
-> > Eric, feel free to do something similar on Sparc.
-> 
-> Will do.
-> 
-> This sounds like a good solution for this weird corner case, that
-> appears on multiple architectures.
+> Also, starting from ARMv8.4, stp and ldp instructions become atomic, and
+> API for 128-bit access would be helpful in core arm64 code.
 
-OK, I'll rebase my patches onto your tree (though trivial here) and
-repost.
+Only for normal, cacheable memory, so they're not suitable for IO accesses
+as you're proposing here.
 
-I'm still waiting for feeback on the Arm specifics, but FPE_UNKNOWN
-could be picked up independently of that.
-
-Cheers
----Dave
+Will
