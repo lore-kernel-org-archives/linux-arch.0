@@ -1,56 +1,32 @@
-From: Jiri Slaby <jslaby@suse.cz>
-Subject: Re: [GIT PULL] spectre variant1 mitigations for 4.16
-Date: Wed, 24 Jan 2018 15:47:11 +0100
-Message-ID: <5fffd4e8-90fe-0799-adf0-5376113b268d@suse.cz>
-References: <1516473386.30886.35.camel@intel.com>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Subject: Re: [PATCH RFC 0/3] API for 128-bit IO access
+Date: Wed, 24 Jan 2018 17:48:03 +0200
+Message-ID: <CAHp75VfWZOAMRaWTa-PZP68tDtXCydNYbGF+8y11L_yMWfP1iA@mail.gmail.com>
+References: <20180124090519.6680-1-ynorov@caviumnetworks.com> <CAK8P3a3TEV7Uyo_oBcMz_GYEYTB+V5AhDgbOgCEW-+X1h7sXEg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-2
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f48.google.com ([74.125.82.48]:33361 "EHLO
-        mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933688AbeAXOrO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jan 2018 09:47:14 -0500
-In-Reply-To: <1516473386.30886.35.camel@intel.com>
-Content-Language: en-GB
+Received: from mail-qt0-f175.google.com ([209.85.216.175]:41448 "EHLO
+        mail-qt0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934168AbeAXPsF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jan 2018 10:48:05 -0500
+In-Reply-To: <CAK8P3a3TEV7Uyo_oBcMz_GYEYTB+V5AhDgbOgCEW-+X1h7sXEg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Williams, Dan J" <dan.j.williams@intel.com>, "tglx@linutronix.de" <tglx@linutronix.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "alan@linux.intel.com" <alan@linux.intel.com>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "Reshetova, Elena" <elena.reshetova@intel.com>, "johannes@sipsolutions.net" <johannes@sipsolutions.net>, "will.deacon@arm.com" <will.deacon@arm.com>, "luto@kernel.org" <luto@kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "davem@davemloft.net" <davem@davemloft.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Catalin Marinas <catalin.marinas@arm.com>, "David S . Miller" <davem@davemloft.net>, Geethasowjanya Akula <Geethasowjanya.Akula@cavium.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, Sunil Goutham <Sunil.Goutham@cavium.com>
 
-On 01/20/2018, 07:36 PM, Williams, Dan J wrote:
-> Dan Williams (9):
->       asm/nospec, array_ptr: sanitize speculative array de-references
->       x86: implement array_ptr_mask()
->       x86: introduce __uaccess_begin_nospec and ifence
->       x86, __get_user: use __uaccess_begin_nospec
->       x86, get_user: use pointer masking to limit speculation
->       x86: narrow out of bounds syscalls to sys_read under speculation
->       vfs, fdtable: prevent bounds-check bypass via speculative execution
->       kvm, x86: update spectre-v1 mitigation
->       nl80211: sanitize array index in parse_txq_params
-> 
-> Mark Rutland (1):
->       Documentation: document array_ptr
-> 
->  Documentation/speculation.txt     | 143 ++++++++++++++++++++++++++++++++++++++
->  arch/x86/entry/entry_64.S         |   2 +
->  arch/x86/include/asm/barrier.h    |  28 ++++++++
->  arch/x86/include/asm/msr.h        |   3 +-
->  arch/x86/include/asm/smap.h       |  24 +++++++
->  arch/x86/include/asm/uaccess.h    |  15 +++-
->  arch/x86/include/asm/uaccess_32.h |   6 +-
->  arch/x86/include/asm/uaccess_64.h |  12 ++--
->  arch/x86/kvm/vmx.c                |  19 ++---
->  arch/x86/lib/getuser.S            |   5 ++
->  arch/x86/lib/usercopy_32.c        |   8 +--
->  include/linux/fdtable.h           |   7 +-
->  include/linux/nospec.h            |  65 +++++++++++++++++
->  net/wireless/nl80211.c            |  10 ++-
+On Wed, Jan 24, 2018 at 12:28 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Wed, Jan 24, 2018 at 10:05 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
 
-Could you update also cpu_show_spectre_v1?
+>> * For 128-bit read/write functions I take suffix 'o', which means read/write
+>> the octet of bytes. Is this name OK?
+>
+> Can't think of anything better. It's not an octet though, but 16 bytes
+> ('q' is for quadword, meaning four 16-bit words in Intel terminology).
 
-thanks,
+It's apparently follows Intel's terminology by implying "word", so, "octetword".
+
 -- 
-js
-suse labs
+With Best Regards,
+Andy Shevchenko
