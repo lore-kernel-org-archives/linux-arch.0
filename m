@@ -1,71 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f194.google.com ([209.85.216.194]:38991 "EHLO
-        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933576AbeAXNAn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jan 2018 08:00:43 -0500
+Received: from mail-qt0-f175.google.com ([209.85.216.175]:41448 "EHLO
+        mail-qt0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934168AbeAXPsF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jan 2018 10:48:05 -0500
 MIME-Version: 1.0
-In-Reply-To: <20180124090519.6680-4-ynorov@caviumnetworks.com>
-References: <20180124090519.6680-1-ynorov@caviumnetworks.com> <20180124090519.6680-4-ynorov@caviumnetworks.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Wed, 24 Jan 2018 14:00:42 +0100
-Message-ID: <CAMuHMdU5AHC4ZYkvC=X4UUAnGyysHqayv4m+T5=1Grpo5Qez4g@mail.gmail.com>
-Subject: Re: [PATCH 3/3] arm64: enable 128-bit memory read/write support
+In-Reply-To: <CAK8P3a3TEV7Uyo_oBcMz_GYEYTB+V5AhDgbOgCEW-+X1h7sXEg@mail.gmail.com>
+References: <20180124090519.6680-1-ynorov@caviumnetworks.com> <CAK8P3a3TEV7Uyo_oBcMz_GYEYTB+V5AhDgbOgCEW-+X1h7sXEg@mail.gmail.com>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Date: Wed, 24 Jan 2018 17:48:03 +0200
+Message-ID: <CAHp75VfWZOAMRaWTa-PZP68tDtXCydNYbGF+8y11L_yMWfP1iA@mail.gmail.com>
+Subject: Re: [PATCH RFC 0/3] API for 128-bit IO access
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arm-kernel@lists.infradead.org, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "David S . Miller" <davem@davemloft.net>, Geethasowjanya Akula <Geethasowjanya.Akula@cavium.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, Sunil Goutham <Sunil.Goutham@cavium.com>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20180124130042.-rSsyPJojLX-q-teqLePMmjSv9Vs-e_9QudtzCLqtAk@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Catalin Marinas <catalin.marinas@arm.com>, "David S . Miller" <davem@davemloft.net>, Geethasowjanya Akula <Geethasowjanya.Akula@cavium.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, Sunil Goutham <Sunil.Goutham@cavium.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20180124154803.yaX9YwlEYvdN-zrkMNuvhaOmjG2DNtjWvwuJvN_PfjY@z>
 
-Hi Yury,
+On Wed, Jan 24, 2018 at 12:28 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Wed, Jan 24, 2018 at 10:05 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
 
-On Wed, Jan 24, 2018 at 10:05 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
-> Introduce __raw_writeo(), __raw_reado() and other arch-specific
-> RW functions for 128-bit memory access, and enable it for arm64.
+>> * For 128-bit read/write functions I take suffix 'o', which means read/write
+>> the octet of bytes. Is this name OK?
 >
-> 128-bit I/O is required for example by Octeon TX2 device to access
-> some registers. According to Hardware Reference Manual:
->
-> A 128-bit write to the OP_FREE0/1 registers frees a pointer into a
-> given [...] pool. All other accesses to these registers (e.g. reads
-> and 64-bit writes) are RAZ/WI.
->
-> Starting from ARMv8.4, stp and ldp instructions become atomic, and
-> API for 128-bit access would be helpful for core code.
->
-> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> Can't think of anything better. It's not an octet though, but 16 bytes
+> ('q' is for quadword, meaning four 16-bit words in Intel terminology).
 
-Thanks for your patch!
+It's apparently follows Intel's terminology by implying "word", so, "octetword".
 
-> --- a/arch/Kconfig
-> +++ b/arch/Kconfig
-> @@ -116,6 +116,13 @@ config UPROBES
->             managed by the kernel and kept transparent to the probed
->             application. )
->
-> +config HAVE_128BIT_ACCESS
-> +       def_bool ARM64
-
-I think it's better to select this symbol from arch/arm64/Kconfig instead.
-Else this file has to be modified each and every time an architecture
-adds support for 128-bit, causing conflicts.
-
-> +       help
-> +         Architectures having 128-bit access require corresponding APIs,
-> +         like reado() and writeo(), which stands for reading and writing
-> +         the octet of bytes at once.
-> +
->  config HAVE_64BIT_ALIGNED_ACCESS
->         def_bool 64BIT && !HAVE_EFFICIENT_UNALIGNED_ACCESS
->         help
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+With Best Regards,
+Andy Shevchenko
