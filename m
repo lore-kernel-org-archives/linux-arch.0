@@ -1,117 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:51262 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932891AbeAXK5J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 Jan 2018 05:57:09 -0500
-Date: Wed, 24 Jan 2018 10:57:05 +0000
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH 1/2] arm64: fpsimd: Fix bad si_code for undiagnosed
- SIGFPE
-Message-ID: <20180124105704.GD5862@e103592.cambridge.arm.com>
-References: <1516623798-25001-1-git-send-email-Dave.Martin@arm.com>
- <1516623798-25001-2-git-send-email-Dave.Martin@arm.com>
- <878tcp8umz.fsf@xmission.com>
+Received: from mail-ot0-f195.google.com ([74.125.82.195]:41068 "EHLO
+        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933062AbeAXLJE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jan 2018 06:09:04 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <878tcp8umz.fsf@xmission.com>
+In-Reply-To: <CAJsyPhx1B75GJCD2a_=m92ipq3oYsXxMGq9Bg9eCw_ALavWKMg@mail.gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com> <28c2c9da4da4c8b07473e97cd4a6cb953f4b507c.1515766253.git.green.hu@gmail.com>
+ <CAK8P3a1ZZsB7MVZ8sEPzkVcNUJh3-MB_ApmPi+DUF1rc9h8pXg@mail.gmail.com> <CAJsyPhx1B75GJCD2a_=m92ipq3oYsXxMGq9Bg9eCw_ALavWKMg@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 24 Jan 2018 12:09:02 +0100
+Message-ID: <CAK8P3a1mwKLi2Cj43EQvwodPCQVwWfW5gjNtf+DLdyb8T49OWw@mail.gmail.com>
+Subject: Re: [PATCH v6 07/36] nds32: Exception handling
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>
-Message-ID: <20180124105705.gPObu14ST2sq-mthFxNYbI-huu1QMvXVJ8D9a3rmYf8@z>
+To: Vincent Chen <deanbo422@gmail.com>
+Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20180124110902.c09ZH3KrxYtjbbDVYBRRCkU0kRXOdleFM2E-60dfLdE@z>
 
-On Mon, Jan 22, 2018 at 03:13:08PM -0600, Eric W. Biederman wrote:
-> 
-> > diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-> > index e447283..77edb00 100644
-> > --- a/include/uapi/asm-generic/siginfo.h
-> > +++ b/include/uapi/asm-generic/siginfo.h
-> > @@ -193,7 +193,8 @@ typedef struct siginfo {
-> >  #define FPE_FLTRES	6	/* floating point inexact result */
-> >  #define FPE_FLTINV	7	/* floating point invalid operation */
-> >  #define FPE_FLTSUB	8	/* subscript out of range */
-> > -#define NSIGFPE		8
-> > +#define FPE_UNKNOWN	9	/* undiagnosed floating-point exception */
-> > +#define NSIGFPE		9
-> 
-> Minor nit here.
-> 
-> At least before this is final I would really appreciate if you could
-> rebase this on top of my unificiation of siginfo.h that I posted on
-> linux-arch and is in my siginfo-next branch.
-> 
-> As that already pushes NSIGFPE up to 13.
-> 
-> Which would make this patch change NSIGFPE to 14 and allocate the number
-> 14 for FPE_UNKNOWN
+On Wed, Jan 24, 2018 at 11:53 AM, Vincent Chen <deanbo422@gmail.com> wrote:
+> 2018-01-18 18:14 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+>> On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote=
+:
+>>> From: Greentime Hu <greentime@andestech.com>
+>>>
+>>> This patch includes the exception/interrupt entries, pt_reg structure a=
+nd
+>>> related accessors.
+>>>
+>>> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+>>> Signed-off-by: Greentime Hu <greentime@andestech.com>
+>>
+>> Here it would be good to have a more detailed explanation about the alig=
+nment
+>> trap handling. I remember discussing it with you before, but don't remem=
+ber
+>> the exact outcome. In particular you should explain here why you need to
+>> handle alignment traps in the first place, and what the expected default=
+s
+>> are (e.g. always disabled unless a user requests it, or always enabled) =
+and
+>> what kind of code runs into the traps (e.g. buggy kernel code, correct
+>> kernel code, buggy user space code etc).
+>>
+>>        Arnd
+>
+>
+> Dear Arnd:
+>
+> I am plans to add the following description in the git commit's comment
+>
+> Andes processors cannot load/store information which is not naturally ali=
+gned
+> on the bus, i.e., loading a 4 byte data whose start address must be divis=
+ible
+> by 4. If unaligned data accessing is happened, data unaligned exception w=
+ill be
+> triggered and user will get SIGSEGV or kernel oops according to the unali=
+gned
+> address. In order to make user able to load/store data from an unaligned
+> address, software load /store emulation is implemented in
+> arch/nds32/mm/alignment.c to handle data unaligned exception.
+>
+> Unaligned accessing handling is disable by default because of it is not
+> a normal case. User can follow the steps below to enable this feature.
+>
+> A. Compile time:
+>     1. Enable kernel config CONFIG_ALIGNMENT_TRAP
+> B. Run time:
+>     1. Enter /proc/sys/nds32/unaligned_acess folder
+>     2.
+>         a. Write =E2=80=981=E2=80=99 to file enable_mode to enable unalig=
+ned accessing handling
+>             for user space
+>         b. Write =E2=80=982=E2=80=99 to file enable_mode to enable unalig=
+ned accessing handling
+>             for kernel space
+>         c. Write =E2=80=983=E2=80=99 to file enable_mode to enable unalig=
+ned accessing handling
+>             for user and kernel space
+>         d. Write '0' to file enable_mode to disable all unaligned
+> accessing handling
+>     3.
+>         a. Write =E2=80=981=E2=80=99 to file debug to show which unaligne=
+d address is addressed
+>         b. Write =E2=80=980=E2=80=99 to file debug to disable all informa=
+tion
+>
+> However, unaligned accessing handler can=E2=80=99t work on following cond=
+itions.
+> A. The corresponding mode for unaligned address is not enabled.
+> B. This unaligned address is not accessible such as protection violation.
+> On these conditions, the default behaviors for data unaligned
+> exception still happen.
 
-Looking at this, I note a few things:
+Ok. I still wonder about the kernel part of this though: is it a good idea
+for user space to configure whether the kernel does unaligned
+accesses? I would think that the kernel should just be fixed in such
+a case.
 
- * For consistent naming, FPE_FLTUNK might be a better name for
-   FPE_UNKNOWN.
-
-   FPE_FLTUNK seems generic, tempting me to insert it as number 9
-   (since only the numbers up to 8 are ABI just now).
-
-   (The temptation to call it FPE_FLUNK is strong, but I can't argue
-   that's consistent...)
-
- * No distinction is drawn between generic and arch-dependent codes
-   here, so NSIGFPE will typically be too big.  The generic siginfo
-   handling code can detect random garbage in si_code this way, but
-   off-by-ones or misused arch-specific codes may slip through.
-
-   In particular, new x86-specific FPE_* codes will likely be
-   invisible to the BUILD_BUG_ON()s in arch/x86/kernel/signal_compat.c
-   unless so many are added that x86 overtakes ia64.
-
- * Should we reserve space for future generic codes (say up to 15)?
-   Downside: si_code validation is not a simple matter of checking
-   <= NSIGFPE in that case.  (Though <= is still better than no
-   check at all, and no worse than the current situation.)
-
- * What are NSIGFPE etc. doing in this header?  These aren't specified
-   by POSIX and I'm not sure what userspace would legitimately use them
-   for... though it may be too late to change this now.
-
-   Most instances on codeseaarch.debian.net are the kernel, copies
-   of kernel headers, and translated versions of kernel headers.
-   It's hard to be exhaustive though.
-
-
-We could have something like this:
-
-#define FPE_FLTUNK	9
-#define __NSIGFPE_GENERIC	9
-#define NSIGFPE		__NSIGFPE_GENERIC
-
-/* si_code <= 15 reserved for arch-independent codes */
-
-#if defined(__frv__)
-
-# define FPE_MDAOF	16
-# undef NSIGFPE
-# define NSIGFPE	16
-
-#elif define(__ia64__)
-
-# define __FPE_DECOVF	16
-# define __FPE_DECDIV	17
-# define __FPE_DECERR	18
-# define __FPR_INVASC	19
-# undef NSIGFPE
-# define NSIGFPE	19
-
-#endif
-
-(Avoiding a (base + offset) approach for the arch codes, since that
-would make it look like the codes can be renumbered safely without
-breaking anything).
-
-The generic vs. arch vs. NSIGFOO problem already exists for other
-signals.  We could take a similar approach for those, but OTOH it
-may just not be worth the effort.
-
-Cheers
----Dave
+     Arnd
