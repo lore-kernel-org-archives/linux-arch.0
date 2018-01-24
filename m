@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0089.outbound.protection.outlook.com ([104.47.38.89]:12267
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+Received: from mail-bn3nam01on0056.outbound.protection.outlook.com ([104.47.33.56]:6706
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932356AbeAXJGT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 Jan 2018 04:06:19 -0500
+        id S932356AbeAXJFw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jan 2018 04:05:52 -0500
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 3/3] arm64: enable 128-bit memory read/write support
-Date: Wed, 24 Jan 2018 12:05:19 +0300
-Message-ID: <20180124090519.6680-4-ynorov@caviumnetworks.com>
+Subject: [PATCH 1/3] UAPI: Introduce 128-bit types and byteswap operations
+Date: Wed, 24 Jan 2018 12:05:17 +0300
+Message-ID: <20180124090519.6680-2-ynorov@caviumnetworks.com>
 In-Reply-To: <20180124090519.6680-1-ynorov@caviumnetworks.com>
 References: <20180124090519.6680-1-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -16,128 +16,167 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-crypto@vger.kernel.org
 Cc: Yury Norov <ynorov@caviumnetworks.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "David S . Miller" <davem@davemloft.net>, Geethasowjanya Akula <Geethasowjanya.Akula@cavium.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, Sunil Goutham <Sunil.Goutham@cavium.com>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20180124090519.Y0MBDiEywyzJySwlYGQS6c95H925Vqm7wLfufclePdM@z>
+Message-ID: <20180124090517.s8bG8FfEDpFzLOpSVrJheHecAFQMaxZQDg8VNGJnx5E@z>
 
-Introduce __raw_writeo(), __raw_reado() and other arch-specific
-RW functions for 128-bit memory access, and enable it for arm64.
+Architectures like arm64 support 128-bit integer types and
+operations. This patch introduces corresponding types and
+__swab128() operation for be/le conversions.
 
-128-bit I/O is required for example by Octeon TX2 device to access
-some registers. According to Hardware Reference Manual:
-
-A 128-bit write to the OP_FREE0/1 registers frees a pointer into a
-given [...] pool. All other accesses to these registers (e.g. reads
-and 64-bit writes) are RAZ/WI.
-
-Starting from ARMv8.4, stp and ldp instructions become atomic, and
-API for 128-bit access would be helpful for core code.
+They are required to implement 128-bit access to the memory,
+in following patches.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- arch/Kconfig                |  7 +++++++
- arch/arm64/include/asm/io.h | 31 +++++++++++++++++++++++++++++++
- 2 files changed, 38 insertions(+)
+ include/linux/byteorder/generic.h            |  8 ++++++++
+ include/uapi/asm-generic/int-ll64.h          |  8 ++++++++
+ include/uapi/linux/byteorder/big_endian.h    |  4 ++++
+ include/uapi/linux/byteorder/little_endian.h |  8 ++++++++
+ include/uapi/linux/swab.h                    | 22 ++++++++++++++++++++++
+ include/uapi/linux/types.h                   |  4 ++++
+ 6 files changed, 54 insertions(+)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 76c0b54443b1..2baff7de405d 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -116,6 +116,13 @@ config UPROBES
- 	    managed by the kernel and kept transparent to the probed
- 	    application. )
+diff --git a/include/linux/byteorder/generic.h b/include/linux/byteorder/generic.h
+index 451aaa0786ae..aa61662ee3dc 100644
+--- a/include/linux/byteorder/generic.h
++++ b/include/linux/byteorder/generic.h
+@@ -85,12 +85,20 @@
  
-+config HAVE_128BIT_ACCESS
-+	def_bool ARM64
-+	help
-+	  Architectures having 128-bit access require corresponding APIs,
-+	  like reado() and writeo(), which stands for reading and writing
-+	  the octet of bytes at once.
-+
- config HAVE_64BIT_ALIGNED_ACCESS
- 	def_bool 64BIT && !HAVE_EFFICIENT_UNALIGNED_ACCESS
- 	help
-diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
-index 35b2e50f17fb..7c5d834abfd8 100644
---- a/arch/arm64/include/asm/io.h
-+++ b/arch/arm64/include/asm/io.h
-@@ -60,6 +60,18 @@ static inline void __raw_writeq(u64 val, volatile void __iomem *addr)
- 	asm volatile("str %x0, [%1]" : : "rZ" (val), "r" (addr));
+ #define cpu_to_le64 __cpu_to_le64
+ #define le64_to_cpu __le64_to_cpu
++#ifdef CONFIG_HAVE_128BIT_ACCESS
++#define cpu_to_le128 __cpu_to_le128
++#define le128_to_cpu __le128_to_cpu
++#endif
+ #define cpu_to_le32 __cpu_to_le32
+ #define le32_to_cpu __le32_to_cpu
+ #define cpu_to_le16 __cpu_to_le16
+ #define le16_to_cpu __le16_to_cpu
+ #define cpu_to_be64 __cpu_to_be64
+ #define be64_to_cpu __be64_to_cpu
++#ifdef CONFIG_HAVE_128BIT_ACCESS
++#define cpu_to_be128 __cpu_to_be128
++#define be128_to_cpu __be128_to_cpu
++#endif
+ #define cpu_to_be32 __cpu_to_be32
+ #define be32_to_cpu __be32_to_cpu
+ #define cpu_to_be16 __cpu_to_be16
+diff --git a/include/uapi/asm-generic/int-ll64.h b/include/uapi/asm-generic/int-ll64.h
+index 1ed06964257c..4bc2241988a9 100644
+--- a/include/uapi/asm-generic/int-ll64.h
++++ b/include/uapi/asm-generic/int-ll64.h
+@@ -29,9 +29,17 @@ typedef unsigned int __u32;
+ #ifdef __GNUC__
+ __extension__ typedef __signed__ long long __s64;
+ __extension__ typedef unsigned long long __u64;
++#ifdef CONFIG_HAVE_128BIT_ACCESS
++__extension__ typedef __int128_t __s128;
++__extension__ typedef __uint128_t __u128;
++#endif
+ #else
+ typedef __signed__ long long __s64;
+ typedef unsigned long long __u64;
++#ifdef CONFIG_HAVE_128BIT_ACCESS
++typedef __int128_t __s128;
++typedef __uint128_t __u128;
++#endif
+ #endif
+ 
+ #endif /* __ASSEMBLY__ */
+diff --git a/include/uapi/linux/byteorder/big_endian.h b/include/uapi/linux/byteorder/big_endian.h
+index 2199adc6a6c2..28a69ec10dd2 100644
+--- a/include/uapi/linux/byteorder/big_endian.h
++++ b/include/uapi/linux/byteorder/big_endian.h
+@@ -30,6 +30,10 @@
+ #define __constant_be16_to_cpu(x) ((__force __u16)(__be16)(x))
+ #define __cpu_to_le64(x) ((__force __le64)__swab64((x)))
+ #define __le64_to_cpu(x) __swab64((__force __u64)(__le64)(x))
++#ifdef CONFIG_HAVE_128BIT_ACCESS
++#define __cpu_to_le128(x) ((__force __le128)__swab128((x)))
++#define __le128_to_cpu(x) __swab128((__force __u128)(__le128)(x))
++#endif
+ #define __cpu_to_le32(x) ((__force __le32)__swab32((x)))
+ #define __le32_to_cpu(x) __swab32((__force __u32)(__le32)(x))
+ #define __cpu_to_le16(x) ((__force __le16)__swab16((x)))
+diff --git a/include/uapi/linux/byteorder/little_endian.h b/include/uapi/linux/byteorder/little_endian.h
+index 601c904fd5cd..15365bd0fe29 100644
+--- a/include/uapi/linux/byteorder/little_endian.h
++++ b/include/uapi/linux/byteorder/little_endian.h
+@@ -18,6 +18,10 @@
+ #define __constant_ntohs(x) ___constant_swab16((__force __be16)(x))
+ #define __constant_cpu_to_le64(x) ((__force __le64)(__u64)(x))
+ #define __constant_le64_to_cpu(x) ((__force __u64)(__le64)(x))
++#ifdef CONFIG_HAVE_128BIT_ACCESS
++#define __constant_cpu_to_le128(x) ((__force __le128)(__u128)(x))
++#define __constant_le128_to_cpu(x) ((__force __u128)(__le128)(x))
++#endif
+ #define __constant_cpu_to_le32(x) ((__force __le32)(__u32)(x))
+ #define __constant_le32_to_cpu(x) ((__force __u32)(__le32)(x))
+ #define __constant_cpu_to_le16(x) ((__force __le16)(__u16)(x))
+@@ -30,6 +34,10 @@
+ #define __constant_be16_to_cpu(x) ___constant_swab16((__force __u16)(__be16)(x))
+ #define __cpu_to_le64(x) ((__force __le64)(__u64)(x))
+ #define __le64_to_cpu(x) ((__force __u64)(__le64)(x))
++#ifdef CONFIG_HAVE_128BIT_ACCESS
++#define __cpu_to_le128(x) ((__force __le128)(__u128)(x))
++#define __le128_to_cpu(x) ((__force __u128)(__le128)(x))
++#endif
+ #define __cpu_to_le32(x) ((__force __le32)(__u32)(x))
+ #define __le32_to_cpu(x) ((__force __u32)(__le32)(x))
+ #define __cpu_to_le16(x) ((__force __le16)(__u16)(x))
+diff --git a/include/uapi/linux/swab.h b/include/uapi/linux/swab.h
+index 23cd84868cc3..a7e97eb06a3e 100644
+--- a/include/uapi/linux/swab.h
++++ b/include/uapi/linux/swab.h
+@@ -75,6 +75,20 @@ static inline __attribute_const__ __u64 __fswab64(__u64 val)
+ #endif
  }
  
-+#define __raw_writeo __raw_writeo
-+static inline void __raw_writeo(__uint128_t val, volatile void __iomem *addr)
++#ifdef CONFIG_HAVE_128BIT_ACCESS
++static inline __attribute_const__ __u128 __fswab128(__u128 val)
 +{
-+	u64 l = (u64) val;
-+	u64 h = (u64) (val >> 64);
-+	__uint128_t *__addr = (__uint128_t *) addr;
++#if defined(__arch_swab128)
++	return __arch_swab128(val);
++#else
++	__u64 h = (__u64) (val >> 64);
++	__u64 l = (__u64) val;
 +
-+	asm volatile("stp %x[x0], %x[x1], %x[p1]"
-+		     : [p1]"=Ump"(*__addr)
-+		     : [x0]"r"(l), [x1]"r"(h));
++	return (((__u128)__fswab64(l)) << 64) | (__u128)(__fswab64(h));
++#endif
 +}
++#endif
 +
- #define __raw_readb __raw_readb
- static inline u8 __raw_readb(const volatile void __iomem *addr)
+ static inline __attribute_const__ __u32 __fswahw32(__u32 val)
  {
-@@ -105,6 +117,19 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
- 	return val;
- }
+ #ifdef __arch_swahw32
+@@ -132,6 +146,14 @@ static inline __attribute_const__ __u32 __fswahb32(__u32 val)
+ 	__fswab64(x))
+ #endif
  
-+#define __raw_reado __raw_reado
-+static inline __uint128_t __raw_reado(const volatile void __iomem *addr)
-+{
-+	u64 l, h;
-+	__uint128_t *__addr = (__uint128_t *) addr;
++#ifdef CONFIG_HAVE_128BIT_ACCESS
++/**
++ * __swab128 - return a byteswapped 128-bit value
++ * @x: value to byteswap
++ */
++#define __swab128(x)	__fswab128(x)
++#endif
 +
-+	asm volatile("ldp %x[x0], %x[x1], %x[p1]"
-+		     : [x0]"=r"(l), [x1]"=r"(h)
-+		     : [p1]"Ump"(*__addr));
-+
-+	return (__uint128_t) l | ((__uint128_t) h) << 64;
-+}
-+
- /* IO barriers */
- #define __iormb()		rmb()
- #define __iowmb()		wmb()
-@@ -120,11 +145,13 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
- #define readw_relaxed(c)	({ u16 __r = le16_to_cpu((__force __le16)__raw_readw(c)); __r; })
- #define readl_relaxed(c)	({ u32 __r = le32_to_cpu((__force __le32)__raw_readl(c)); __r; })
- #define readq_relaxed(c)	({ u64 __r = le64_to_cpu((__force __le64)__raw_readq(c)); __r; })
-+#define reado_relaxed(c)	({ __uint128_t __r = le128_to_cpu((__force __le128)__raw_reado(c)); __r; })
+ /**
+  * __swahw32 - return a word-swapped 32-bit value
+  * @x: value to wordswap
+diff --git a/include/uapi/linux/types.h b/include/uapi/linux/types.h
+index cd4f0b897a48..a4500baaccd6 100644
+--- a/include/uapi/linux/types.h
++++ b/include/uapi/linux/types.h
+@@ -32,6 +32,10 @@ typedef __u32 __bitwise __le32;
+ typedef __u32 __bitwise __be32;
+ typedef __u64 __bitwise __le64;
+ typedef __u64 __bitwise __be64;
++#ifdef CONFIG_HAVE_128BIT_ACCESS
++typedef __u128 __bitwise __le128;
++typedef __u128 __bitwise __be128;
++#endif
  
- #define writeb_relaxed(v,c)	((void)__raw_writeb((v),(c)))
- #define writew_relaxed(v,c)	((void)__raw_writew((__force u16)cpu_to_le16(v),(c)))
- #define writel_relaxed(v,c)	((void)__raw_writel((__force u32)cpu_to_le32(v),(c)))
- #define writeq_relaxed(v,c)	((void)__raw_writeq((__force u64)cpu_to_le64(v),(c)))
-+#define writeo_relaxed(v,c)	((void)__raw_writeo((__force __uint128_t)cpu_to_le128(v),(c)))
- 
- /*
-  * I/O memory access primitives. Reads are ordered relative to any
-@@ -135,11 +162,13 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
- #define readw(c)		({ u16 __v = readw_relaxed(c); __iormb(); __v; })
- #define readl(c)		({ u32 __v = readl_relaxed(c); __iormb(); __v; })
- #define readq(c)		({ u64 __v = readq_relaxed(c); __iormb(); __v; })
-+#define reado(c)		({ __uint128_t __v = reado_relaxed(c); __iormb(); __v; })
- 
- #define writeb(v,c)		({ __iowmb(); writeb_relaxed((v),(c)); })
- #define writew(v,c)		({ __iowmb(); writew_relaxed((v),(c)); })
- #define writel(v,c)		({ __iowmb(); writel_relaxed((v),(c)); })
- #define writeq(v,c)		({ __iowmb(); writeq_relaxed((v),(c)); })
-+#define writeo(v,c)		({ __iowmb(); writeo_relaxed((v),(c)); })
- 
- /*
-  *  I/O port access primitives.
-@@ -188,10 +217,12 @@ extern void __iomem *ioremap_cache(phys_addr_t phys_addr, size_t size);
- #define ioread16be(p)		({ __u16 __v = be16_to_cpu((__force __be16)__raw_readw(p)); __iormb(); __v; })
- #define ioread32be(p)		({ __u32 __v = be32_to_cpu((__force __be32)__raw_readl(p)); __iormb(); __v; })
- #define ioread64be(p)		({ __u64 __v = be64_to_cpu((__force __be64)__raw_readq(p)); __iormb(); __v; })
-+#define ioread128be(p)		({ __uint128_t __v = be128_to_cpu((__force __be128)__raw_readq(p)); __iormb(); __v; })
- 
- #define iowrite16be(v,p)	({ __iowmb(); __raw_writew((__force __u16)cpu_to_be16(v), p); })
- #define iowrite32be(v,p)	({ __iowmb(); __raw_writel((__force __u32)cpu_to_be32(v), p); })
- #define iowrite64be(v,p)	({ __iowmb(); __raw_writeq((__force __u64)cpu_to_be64(v), p); })
-+#define iowrite128be(v,p)	({ __iowmb(); __raw_writeo((__force __u128)cpu_to_be128(v), p); })
- 
- #include <asm-generic/io.h>
- 
+ typedef __u16 __bitwise __sum16;
+ typedef __u32 __bitwise __wsum;
 -- 
 2.11.0
