@@ -1,112 +1,76 @@
-From: Dave Martin <Dave.Martin-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [RFC PATCH 1/2] arm64: fpsimd: Fix bad si_code for undiagnosed
- SIGFPE
-Date: Wed, 24 Jan 2018 10:57:05 +0000
-Message-ID: <20180124105704.GD5862@e103592.cambridge.arm.com>
-References: <1516623798-25001-1-git-send-email-Dave.Martin@arm.com>
- <1516623798-25001-2-git-send-email-Dave.Martin@arm.com>
- <878tcp8umz.fsf@xmission.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2] Automate memory-barriers.txt; provide Linux-kernel
+ memory model
+Date: Wed, 24 Jan 2018 10:59:55 +0000
+Message-ID: <20180124105955.GA21491@arm.com>
+References: <20180119035855.GA29296@linux.vnet.ibm.com>
+ <20180119171211.GA13636@linux.vnet.ibm.com>
+ <20180124000014.GA1562@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:51340 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932891AbeAXK7r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jan 2018 05:59:47 -0500
 Content-Disposition: inline
-In-Reply-To: <878tcp8umz.fsf-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
-Cc: linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Russell King <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20180124000014.GA1562@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, linux-kernel@vger.kernel.org, elena.reshetova@intel.com, mhocko@suse.com, linux-arch@vger.kernel.org
 
-On Mon, Jan 22, 2018 at 03:13:08PM -0600, Eric W. Biederman wrote:
+Hi Paul,
+
+On Tue, Jan 23, 2018 at 04:00:14PM -0800, Paul E. McKenney wrote:
+> On Fri, Jan 19, 2018 at 09:12:11AM -0800, Paul E. McKenney wrote:
+> > On Thu, Jan 18, 2018 at 07:58:55PM -0800, Paul E. McKenney wrote:
+> > > Hello!
+> > > 
+> > > There is some reason to believe that Documentation/memory-barriers.txt
+> > > could use some help, and a major purpose of this patch is to provide
+> > > that help in the form of a design-time tool that can produce all valid
+> > > executions of a small fragment of concurrent Linux-kernel code, which is
+> > > called a "litmus test".  This tool's functionality is roughly similar to
+> > > a full state-space search.  Please note that this is a design-time tool,
+> > > not useful for regression testing.  However, we hope that the underlying
+> > > Linux-kernel memory model will be incorporated into other tools capable
+> > > of analyzing large bodies of code for regression-testing purposes.
+> > > 
+> > > The main tool is herd7, together with the linux-kernel.bell,
+> > > linux-kernel.cat, linux-kernel.cfg, linux-kernel.def, and lock.cat files
+> > > added by this patch.  The herd7 executable takes the other files as input,
+> > > and all of these files collectively define the Linux-kernel memory memory
+> > > model.  A brief description of each of these other files is provided
+> > > in the README file.  Although this tool does have its limitations,
+> > > which are documented in the README file, it does improve on the version
+> > > reported on in the LWN series (https://lwn.net/Articles/718628/ and
+> > > https://lwn.net/Articles/720550/) by supporting locking and arithmetic,
+> > > including a much wider variety of read-modify-write atomic operations.
+> > > Please note that herd7 is not part of this submission, but is freely
+> > > available from http://diy.inria.fr/sources/index.html (and via "git"
+> > > at https://github.com/herd/herdtools7).
+> > 
+> > Please note that the latest version of herd is necessary for this version
+> > of the memory model.  With older versions, you will get error messages
+> > like the following:
+> > 
+> > File "./linux-kernel.def", line 44, characters 29-30: unexpected '-' (in macros)
+> > 
+> > Many thanks to Andrea for spotting this one!
 > 
-> > diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-> > index e447283..77edb00 100644
-> > --- a/include/uapi/asm-generic/siginfo.h
-> > +++ b/include/uapi/asm-generic/siginfo.h
-> > @@ -193,7 +193,8 @@ typedef struct siginfo {
-> >  #define FPE_FLTRES	6	/* floating point inexact result */
-> >  #define FPE_FLTINV	7	/* floating point invalid operation */
-> >  #define FPE_FLTSUB	8	/* subscript out of range */
-> > -#define NSIGFPE		8
-> > +#define FPE_UNKNOWN	9	/* undiagnosed floating-point exception */
-> > +#define NSIGFPE		9
-> 
-> Minor nit here.
-> 
-> At least before this is final I would really appreciate if you could
-> rebase this on top of my unificiation of siginfo.h that I posted on
-> linux-arch and is in my siginfo-next branch.
-> 
-> As that already pushes NSIGFPE up to 13.
-> 
-> Which would make this patch change NSIGFPE to 14 and allocate the number
-> 14 for FPE_UNKNOWN
+> And given that I am hearing no objections, I am thinking in terms of
+> sending this in a pull request later this week.
 
-Looking at this, I note a few things:
+No objections from me. I can't claim to have deep knowledge about everything
+being contributed here, but I think that the documentation is well-written
+and a welcome addition to the codebase (thanks, Alan!). I also find that,
+whilst complicated, the gist of the .cat file comes across pretty well and
+is less confusing than the previous situation where we had two .cat files
+for the strong and weak models.
 
- * For consistent naming, FPE_FLTUNK might be a better name for
-   FPE_UNKNOWN.
+At this stage of maturity, I think that this is all much better as part of
+the kernel sources and maintained as such, knowing that things will change
+as we encounter new tests and CPU architectures.
 
-   FPE_FLTUNK seems generic, tempting me to insert it as number 9
-   (since only the numbers up to 8 are ABI just now).
-
-   (The temptation to call it FPE_FLUNK is strong, but I can't argue
-   that's consistent...)
-
- * No distinction is drawn between generic and arch-dependent codes
-   here, so NSIGFPE will typically be too big.  The generic siginfo
-   handling code can detect random garbage in si_code this way, but
-   off-by-ones or misused arch-specific codes may slip through.
-
-   In particular, new x86-specific FPE_* codes will likely be
-   invisible to the BUILD_BUG_ON()s in arch/x86/kernel/signal_compat.c
-   unless so many are added that x86 overtakes ia64.
-
- * Should we reserve space for future generic codes (say up to 15)?
-   Downside: si_code validation is not a simple matter of checking
-   <= NSIGFPE in that case.  (Though <= is still better than no
-   check at all, and no worse than the current situation.)
-
- * What are NSIGFPE etc. doing in this header?  These aren't specified
-   by POSIX and I'm not sure what userspace would legitimately use them
-   for... though it may be too late to change this now.
-
-   Most instances on codeseaarch.debian.net are the kernel, copies
-   of kernel headers, and translated versions of kernel headers.
-   It's hard to be exhaustive though.
-
-
-We could have something like this:
-
-#define FPE_FLTUNK	9
-#define __NSIGFPE_GENERIC	9
-#define NSIGFPE		__NSIGFPE_GENERIC
-
-/* si_code <= 15 reserved for arch-independent codes */
-
-#if defined(__frv__)
-
-# define FPE_MDAOF	16
-# undef NSIGFPE
-# define NSIGFPE	16
-
-#elif define(__ia64__)
-
-# define __FPE_DECOVF	16
-# define __FPE_DECDIV	17
-# define __FPE_DECERR	18
-# define __FPR_INVASC	19
-# undef NSIGFPE
-# define NSIGFPE	19
-
-#endif
-
-(Avoiding a (base + offset) approach for the arch codes, since that
-would make it look like the codes can be renumbered safely without
-breaking anything).
-
-The generic vs. arch vs. NSIGFOO problem already exists for other
-signals.  We could take a similar approach for those, but OTOH it
-may just not be worth the effort.
-
-Cheers
----Dave
+Will
