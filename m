@@ -1,66 +1,57 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 3/3] arm64: enable 128-bit memory read/write support
-Date: Wed, 24 Jan 2018 14:00:42 +0100
-Message-ID: <CAMuHMdU5AHC4ZYkvC=X4UUAnGyysHqayv4m+T5=1Grpo5Qez4g@mail.gmail.com>
-References: <20180124090519.6680-1-ynorov@caviumnetworks.com> <20180124090519.6680-4-ynorov@caviumnetworks.com>
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: Re: [PATCH v4 07/10] x86: narrow out of bounds syscalls to sys_read
+ under speculation
+Date: Wed, 24 Jan 2018 15:40:40 +0100
+Message-ID: <f858abdb-f142-7157-c785-ca9eca919de1@suse.cz>
+References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151632014097.21271.16980532033566583357.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180124090519.6680-4-ynorov@caviumnetworks.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arm-kernel@lists.infradead.org, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "David S . Miller" <davem@davemloft.net>, Geethasowjanya Akula <Geethasowjanya.Akula@cavium.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, Sunil Goutham <Sunil.Goutham@cavium.com>, Will Deacon <will.deacon@arm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:33571 "EHLO
+        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933688AbeAXOkn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jan 2018 09:40:43 -0500
+In-Reply-To: <151632014097.21271.16980532033566583357.stgit@dwillia2-desk3.amr.corp.intel.com>
+Content-Language: en-GB
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
 
-Hi Yury,
+On 01/19/2018, 01:02 AM, Dan Williams wrote:
+> The syscall table base is a user controlled function pointer in kernel
+> space. Like, 'get_user, use 'MASK_NOSPEC' to prevent any out of bounds
+> speculation. While retpoline prevents speculating into the user
+> controlled target it does not stop the pointer de-reference, the concern
+> is leaking memory relative to the syscall table base.
+> 
+> Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: x86@kernel.org
+> Cc: Andy Lutomirski <luto@kernel.org>
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+> ---
+>  arch/x86/entry/entry_64.S   |    2 ++
+>  arch/x86/include/asm/smap.h |    9 ++++++++-
+>  2 files changed, 10 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+> index 4f8e1d35a97c..2320017077d4 100644
+> --- a/arch/x86/entry/entry_64.S
+> +++ b/arch/x86/entry/entry_64.S
+> @@ -35,6 +35,7 @@
+>  #include <asm/asm.h>
+>  #include <asm/smap.h>
+>  #include <asm/pgtable_types.h>
+> +#include <asm/smap.h>
 
-On Wed, Jan 24, 2018 at 10:05 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
-> Introduce __raw_writeo(), __raw_reado() and other arch-specific
-> RW functions for 128-bit memory access, and enable it for arm64.
->
-> 128-bit I/O is required for example by Octeon TX2 device to access
-> some registers. According to Hardware Reference Manual:
->
-> A 128-bit write to the OP_FREE0/1 registers frees a pointer into a
-> given [...] pool. All other accesses to these registers (e.g. reads
-> and 64-bit writes) are RAZ/WI.
->
-> Starting from ARMv8.4, stp and ldp instructions become atomic, and
-> API for 128-bit access would be helpful for core code.
->
-> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+This is already included 2 lines above
 
-Thanks for your patch!
-
-> --- a/arch/Kconfig
-> +++ b/arch/Kconfig
-> @@ -116,6 +116,13 @@ config UPROBES
->             managed by the kernel and kept transparent to the probed
->             application. )
->
-> +config HAVE_128BIT_ACCESS
-> +       def_bool ARM64
-
-I think it's better to select this symbol from arch/arm64/Kconfig instead.
-Else this file has to be modified each and every time an architecture
-adds support for 128-bit, causing conflicts.
-
-> +       help
-> +         Architectures having 128-bit access require corresponding APIs,
-> +         like reado() and writeo(), which stands for reading and writing
-> +         the octet of bytes at once.
-> +
->  config HAVE_64BIT_ALIGNED_ACCESS
->         def_bool 64BIT && !HAVE_EFFICIENT_UNALIGNED_ACCESS
->         help
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+thanks,
+-- 
+js
+suse labs
