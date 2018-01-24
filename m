@@ -1,104 +1,66 @@
-From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: Re: [PATCH v6 16/36] nds32: DMA mapping API
-Date: Wed, 24 Jan 2018 12:36:17 +0100
-Message-ID: <CAK8P3a30W1ph-6Owuf9yZF-bKg_bx6dJKCtiF_aRAYu9NVO3DQ@mail.gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com> <ecd1742c718c5b45983486cf9dfb44adb6e06923.1515766253.git.green.hu@gmail.com>
- <CAK8P3a0-Vf9CRZzdXCxpuQoWgMhYWgO6Hy2KuP-gOKttoSGESA@mail.gmail.com>
- <CAEbi=3cYynvFS2GDzj5Oav_5LtHPdBfBWh9c=mFT0PxeOLX9sQ@mail.gmail.com> <CAEbi=3d46tXacnnU+RJGMw+KR1O=NaVjO+NW3cxUjAN==V51iw@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 3/3] arm64: enable 128-bit memory read/write support
+Date: Wed, 24 Jan 2018 14:00:42 +0100
+Message-ID: <CAMuHMdU5AHC4ZYkvC=X4UUAnGyysHqayv4m+T5=1Grpo5Qez4g@mail.gmail.com>
+References: <20180124090519.6680-1-ynorov@caviumnetworks.com> <20180124090519.6680-4-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CAEbi=3d46tXacnnU+RJGMw+KR1O=NaVjO+NW3cxUjAN==V51iw-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Greentime <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Jason Cooper <jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org>, Marc Zyngier <marc.zyngier-5wv7dgnIgG8@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Networking <netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vincent Chen <deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, DTML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Greg KH <greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>, Guo Ren <ren_guo-Y+KPrCd2zL4@public.gmane.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180124090519.6680-4-ynorov@caviumnetworks.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-arm-kernel@lists.infradead.org, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "David S . Miller" <davem@davemloft.net>, Geethasowjanya Akula <Geethasowjanya.Akula@cavium.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, Sunil Goutham <Sunil.Goutham@cavium.com>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 23, 2018 at 12:52 PM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
-> Hi, Arnd:
->
-> 2018-01-23 16:23 GMT+08:00 Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>:
->> Hi, Arnd:
->>
->> 2018-01-18 18:26 GMT+08:00 Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>:
->>> On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
->>>> From: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
->>>>
->>>> This patch adds support for the DMA mapping API. It uses dma_map_ops for
->>>> flexibility.
->>>>
->>>> Signed-off-by: Vincent Chen <vincentc-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
->>>> Signed-off-by: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
->>>
->>> I'm still unhappy about the way the cache flushes are done here as discussed
->>> before. It's not a show-stopped, but no Ack from me.
->>
->> How about this implementation?
+Hi Yury,
 
-> I am not sure if I understand it correctly.
-> I list all the combinations.
+On Wed, Jan 24, 2018 at 10:05 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
+> Introduce __raw_writeo(), __raw_reado() and other arch-specific
+> RW functions for 128-bit memory access, and enable it for arm64.
 >
-> RAM to DEVICE
->     before DMA => writeback cache
->     after DMA => nop
+> 128-bit I/O is required for example by Octeon TX2 device to access
+> some registers. According to Hardware Reference Manual:
 >
-> DEVICE to RAM
->     before DMA => nop
->     after DMA => invalidate cache
+> A 128-bit write to the OP_FREE0/1 registers frees a pointer into a
+> given [...] pool. All other accesses to these registers (e.g. reads
+> and 64-bit writes) are RAZ/WI.
 >
-> static void consistent_sync(void *vaddr, size_t size, int direction, int master)
-> {
->         unsigned long start = (unsigned long)vaddr;
->         unsigned long end = start + size;
+> Starting from ARMv8.4, stp and ldp instructions become atomic, and
+> API for 128-bit access would be helpful for core code.
 >
->         if (master == FOR_CPU) {
->                 switch (direction) {
->                 case DMA_TO_DEVICE:
->                         break;
->                 case DMA_FROM_DEVICE:
->                 case DMA_BIDIRECTIONAL:
->                         cpu_dma_inval_range(start, end);
->                         break;
->                 default:
->                         BUG();
->                 }
->         } else {
->                 /* FOR_DEVICE */
->                 switch (direction) {
->                 case DMA_FROM_DEVICE:
->                         break;
->                 case DMA_TO_DEVICE:
->                 case DMA_BIDIRECTIONAL:
->                         cpu_dma_wb_range(start, end);
->                         break;
->                 default:
->                         BUG();
->                 }
->         }
-> }
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 
-That looks reasonable enough, but it does depend on a number of factors,
-and the dma-mapping.h implementation is not just about cache flushes.
+Thanks for your patch!
 
-As I don't know the microarchitecture, can you answer these questions:
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -116,6 +116,13 @@ config UPROBES
+>             managed by the kernel and kept transparent to the probed
+>             application. )
+>
+> +config HAVE_128BIT_ACCESS
+> +       def_bool ARM64
 
-- are caches always write-back, or could they be write-through?
-- can the cache be shared with another CPU or a device?
-- if the cache is shared, is it always coherent, never coherent, or
-either of them?
-- could the same memory be visible at different physical addresses
-  and have conflicting caches?
-- is the CPU physical address always the same as the address visible to the
-  device?
-- are there devices that can only see a subset of the physical memory?
-- can there be an IOMMU?
-- are there write-buffers in the CPU that might need to get flushed before
-  flushing the cache?
-- could cache lines be loaded speculatively or with read-ahead while
-  a buffer is owned by a device?
+I think it's better to select this symbol from arch/arm64/Kconfig instead.
+Else this file has to be modified each and every time an architecture
+adds support for 128-bit, causing conflicts.
 
-        Arnd
+> +       help
+> +         Architectures having 128-bit access require corresponding APIs,
+> +         like reado() and writeo(), which stands for reading and writing
+> +         the octet of bytes at once.
+> +
+>  config HAVE_64BIT_ALIGNED_ACCESS
+>         def_bool 64BIT && !HAVE_EFFICIENT_UNALIGNED_ACCESS
+>         help
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
 --
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
