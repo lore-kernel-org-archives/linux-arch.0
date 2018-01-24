@@ -1,281 +1,172 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0080.outbound.protection.outlook.com ([104.47.34.80]:56221
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-dm3nam03on0062.outbound.protection.outlook.com ([104.47.41.62]:1186
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932669AbeAXJGC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 24 Jan 2018 04:06:02 -0500
+        id S932356AbeAXJFh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jan 2018 04:05:37 -0500
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 2/3] asm-generic/io.h: API for 128-bit memory accessors
-Date: Wed, 24 Jan 2018 12:05:18 +0300
-Message-ID: <20180124090519.6680-3-ynorov@caviumnetworks.com>
-In-Reply-To: <20180124090519.6680-1-ynorov@caviumnetworks.com>
-References: <20180124090519.6680-1-ynorov@caviumnetworks.com>
+Subject: [PATCH RFC 0/3] API for 128-bit IO access
+Date: Wed, 24 Jan 2018 12:05:16 +0300
+Message-ID: <20180124090519.6680-1-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-crypto@vger.kernel.org
 Cc: Yury Norov <ynorov@caviumnetworks.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "David S . Miller" <davem@davemloft.net>, Geethasowjanya Akula <Geethasowjanya.Akula@cavium.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, Sunil Goutham <Sunil.Goutham@cavium.com>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20180124090518.Z5Uw08TOUlUc10VyNraWV45vOV3PzOhxjeSzrwtqCWw@z>
+Message-ID: <20180124090516.E9v0sY7ETjD7OQMsj62Y9lvEhvFRv9rL1tZhbu0P5nc@z>
 
-Some architectures, like arm64, support 128-bit memory access. For
-ARM64 - using load/store pair instructions. This patch introduces
-reado() and writeo() functions family, where suffix 'o' stands for
-reading and writing the octet of bytes at once.
+Hi all,
 
-Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
----
- include/asm-generic/io.h | 147 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 147 insertions(+)
+This series adds API for 128-bit memory IO access and enables it for ARM64.
+The original motivation for 128-bit API came from new Cavium network device
+driver. The hardware requires 128-bit access to make things work. See
+description in patch 3 for details.
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index b4531e3b2120..ac4a4de69efc 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -67,6 +67,16 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef __raw_reado
-+#define __raw_reado __raw_reado
-+static inline __uint128_t __raw_reado(const volatile void __iomem *addr)
-+{
-+	return *(const volatile __uint128_t __force *)addr;
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- #ifndef __raw_writeb
- #define __raw_writeb __raw_writeb
- static inline void __raw_writeb(u8 value, volatile void __iomem *addr)
-@@ -101,6 +111,16 @@ static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef __raw_writeo
-+#define __raw_writeo __raw_writeo
-+static inline void __raw_writeo(__uint128_t value, volatile void __iomem *addr)
-+{
-+	*(volatile __uint128_t __force *)addr = value;
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- /*
-  * {read,write}{b,w,l,q}() access little endian memory and return result in
-  * native endianness.
-@@ -140,6 +160,16 @@ static inline u64 readq(const volatile void __iomem *addr)
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef reado
-+#define reado reado
-+static inline __uint128_t reado(const volatile void __iomem *addr)
-+{
-+	return __le128_to_cpu(__raw_reado(addr));
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- #ifndef writeb
- #define writeb writeb
- static inline void writeb(u8 value, volatile void __iomem *addr)
-@@ -174,6 +204,16 @@ static inline void writeq(u64 value, volatile void __iomem *addr)
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef writeo
-+#define writeo writeo
-+static inline void writeo(__uint128_t value, volatile void __iomem *addr)
-+{
-+	__raw_writeo(__cpu_to_le128(value), addr);
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- /*
-  * {read,write}{b,w,l,q}_relaxed() are like the regular version, but
-  * are not guaranteed to provide ordering against spinlocks or memory
-@@ -195,6 +235,10 @@ static inline void writeq(u64 value, volatile void __iomem *addr)
- #define readq_relaxed readq
- #endif
- 
-+#if defined(reado) && !defined(reado_relaxed)
-+#define reado_relaxed reado
-+#endif
-+
- #ifndef writeb_relaxed
- #define writeb_relaxed writeb
- #endif
-@@ -211,6 +255,10 @@ static inline void writeq(u64 value, volatile void __iomem *addr)
- #define writeq_relaxed writeq
- #endif
- 
-+#if defined(writeo) && !defined(writeo_relaxed)
-+#define writeo_relaxed writeo
-+#endif
-+
- /*
-  * {read,write}s{b,w,l,q}() repeatedly access the same memory address in
-  * native endianness in 8-, 16-, 32- or 64-bit chunks (@count times).
-@@ -281,6 +329,24 @@ static inline void readsq(const volatile void __iomem *addr, void *buffer,
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef readso
-+#define readso readso
-+static inline void readso(const volatile void __iomem *addr, void *buffer,
-+			  unsigned int count)
-+{
-+	if (count) {
-+		__uint128_t *buf = buffer;
-+
-+		do {
-+			__uint128_t x = __raw_reado(addr);
-+			*buf++ = x;
-+		} while (--count);
-+	}
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- #ifndef writesb
- #define writesb writesb
- static inline void writesb(volatile void __iomem *addr, const void *buffer,
-@@ -343,6 +409,23 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef writeso
-+#define writeso writeso
-+static inline void writeso(volatile void __iomem *addr, const void *buffer,
-+			   unsigned int count)
-+{
-+	if (count) {
-+		const __uint128_t *buf = buffer;
-+
-+		do {
-+			__raw_writeo(*buf++, addr);
-+		} while (--count);
-+	}
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- #ifndef PCI_IOBASE
- #define PCI_IOBASE ((void __iomem *)0)
- #endif
-@@ -595,6 +678,16 @@ static inline u64 ioread64(const volatile void __iomem *addr)
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef ioread128
-+#define ioread128 ioread128
-+static inline __uint128_t ioread128(const volatile void __iomem *addr)
-+{
-+	return reado(addr);
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- #ifndef iowrite8
- #define iowrite8 iowrite8
- static inline void iowrite8(u8 value, volatile void __iomem *addr)
-@@ -629,6 +722,16 @@ static inline void iowrite64(u64 value, volatile void __iomem *addr)
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef iowrite128
-+#define iowrite128 iowrite128
-+static inline void iowrite128(__uint128_t value, volatile void __iomem *addr)
-+{
-+	writeo(value, addr);
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- #ifndef ioread16be
- #define ioread16be ioread16be
- static inline u16 ioread16be(const volatile void __iomem *addr)
-@@ -655,6 +758,16 @@ static inline u64 ioread64be(const volatile void __iomem *addr)
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef ioread128be
-+#define ioread128be ioread128be
-+static inline __uint128_t ioread128be(const volatile void __iomem *addr)
-+{
-+	return swab128(reado(addr));
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- #ifndef iowrite16be
- #define iowrite16be iowrite16be
- static inline void iowrite16be(u16 value, void volatile __iomem *addr)
-@@ -681,6 +794,16 @@ static inline void iowrite64be(u64 value, volatile void __iomem *addr)
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef iowrite128be
-+#define iowrite128be iowrite128be
-+static inline void iowrite128be(__uint128_t value, volatile void __iomem *addr)
-+{
-+	writeo(swab128(value), addr);
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- #ifndef ioread8_rep
- #define ioread8_rep ioread8_rep
- static inline void ioread8_rep(const volatile void __iomem *addr, void *buffer,
-@@ -719,6 +842,17 @@ static inline void ioread64_rep(const volatile void __iomem *addr,
- #endif
- #endif /* CONFIG_64BIT */
- 
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef ioread128_rep
-+#define ioread128_rep ioread128_rep
-+static inline void ioread128_rep(const volatile void __iomem *addr,
-+				 void *buffer, unsigned int count)
-+{
-+	readso(addr, buffer, count);
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- #ifndef iowrite8_rep
- #define iowrite8_rep iowrite8_rep
- static inline void iowrite8_rep(volatile void __iomem *addr,
-@@ -760,6 +894,19 @@ static inline void iowrite64_rep(volatile void __iomem *addr,
- }
- #endif
- #endif /* CONFIG_64BIT */
-+
-+#ifdef CONFIG_HAVE_128BIT_ACCESS
-+#ifndef iowrite128_rep
-+#define iowrite128_rep iowrite128_rep
-+static inline void iowrite128_rep(volatile void __iomem *addr,
-+				  const void *buffer,
-+				  unsigned int count)
-+{
-+	writeso(addr, buffer, count);
-+}
-+#endif
-+#endif /* CONFIG_HAVE_128BIT_ACCESS */
-+
- #endif /* CONFIG_GENERIC_IOMAP */
- 
- #ifdef __KERNEL__
+Also, starting from ARMv8.4, stp and ldp instructions become atomic, and
+API for 128-bit access would be helpful in core arm64 code.
+
+This series is RFC. I'd like to collect opinions on idea and implementation
+details.
+* I didn't implement all 128-bit operations existing for 64-bit variables
+and other types (__swab128p etc). Do we need them all right now, or we
+can add them when actually needed?
+* u128 name is already used in crypto code. So here I use __uint128_t that
+comes from GCC for 128-bit types. Should I rename existing type in crypto
+and make core code for 128-bit variables consistent with u64, u32 etc? (I
+think yes, but would like to ask crypto people for it.)
+* Some compilers don't support __uint128_t, so I protected all generic code
+with config option HAVE_128BIT_ACCESS. I think it's OK, but... 
+* For 128-bit read/write functions I take suffix 'o', which means read/write
+the octet of bytes. Is this name OK?
+* my mips-linux-gnu-gcc v6.3.0 doesn't support __uint128_t, and I
+don't have other BE setup on hand, so BE case is formally not tested.
+BE code for arm64 is looking well though.
+
+With all that, this example code:
+
+static int __init 128bit_test(void)
+{
+	__uint128_t v;
+	__uint128_t addr;
+	__uint128_t val = (__uint128_t) 0x1234567890abc;
+
+	val |= ((__uint128_t) 0xdeadbeaf) << 64;
+
+	writeo(val, &addr);
+	v = reado(&addr);
+
+	pr_err("%llx%llx\n", (u64) (val >> 64), (u64) val);
+	pr_err("%llx%llx\n", (u64) (v >> 64), (u64) v);
+	return v != val;
+}
+
+Generates this listing for arm64-le:
+
+0000000000000000 <128bit_test>:
+   0:	a9bb7bfd 	stp	x29, x30, [sp, #-80]!
+   4:	910003fd 	mov	x29, sp
+   8:	a90153f3 	stp	x19, x20, [sp, #16]
+   c:	a9025bf5 	stp	x21, x22, [sp, #32]
+  10:	f9001bf7 	str	x23, [sp, #48]
+  14:	d5033e9f 	dsb	st
+  18:	d2815797 	mov	x23, #0xabc                 	// #2748
+  1c:	d297d5f6 	mov	x22, #0xbeaf                	// #48815
+  20:	f2acf137 	movk	x23, #0x6789, lsl #16
+  24:	f2bbd5b6 	movk	x22, #0xdead, lsl #16
+  28:	f2c468b7 	movk	x23, #0x2345, lsl #32
+  2c:	f2e00037 	movk	x23, #0x1, lsl #48
+  30:	a9045bb7 	stp	x23, x22, [x29, #64]
+  34:	a94453b3 	ldp	x19, x20, [x29, #64]
+  38:	d5033d9f 	dsb	ld
+  3c:	90000015 	adrp	x21, 0 <128bit_test>
+  40:	910002b5 	add	x21, x21, #0x0
+  44:	aa1703e2 	mov	x2, x23
+  48:	aa1603e1 	mov	x1, x22
+  4c:	aa1503e0 	mov	x0, x21
+  50:	94000000 	bl	0 <printk>
+  54:	aa1303e2 	mov	x2, x19
+  58:	aa1403e1 	mov	x1, x20
+  5c:	ca170273 	eor	x19, x19, x23
+  60:	ca160294 	eor	x20, x20, x22
+  64:	aa1503e0 	mov	x0, x21
+  68:	aa140273 	orr	x19, x19, x20
+  6c:	94000000 	bl	0 <printk>
+  70:	f9401bf7 	ldr	x23, [sp, #48]
+  74:	f100027f 	cmp	x19, #0x0
+  78:	a94153f3 	ldp	x19, x20, [sp, #16]
+  7c:	1a9f07e0 	cset	w0, ne  // ne = any
+  80:	a9425bf5 	ldp	x21, x22, [sp, #32]
+  84:	a8c57bfd 	ldp	x29, x30, [sp], #80
+  88:	d65f03c0 	ret
+
+And for arm64-be:
+
+0000000000000000 <128bit_test>:
+   0:	a9bb7bfd 	stp	x29, x30, [sp, #-80]!
+   4:	910003fd 	mov	x29, sp
+   8:	a90153f3 	stp	x19, x20, [sp, #16]
+   c:	a9025bf5 	stp	x21, x22, [sp, #32]
+  10:	f9001bf7 	str	x23, [sp, #48]
+  14:	d5033e9f 	dsb	st
+  18:	d2802001 	mov	x1, #0x100                 	// #256
+  1c:	d2d5bbc0 	mov	x0, #0xadde00000000        	// #191168994344960
+  20:	f2a8a461 	movk	x1, #0x4523, lsl #16
+  24:	f2f5f7c0 	movk	x0, #0xafbe, lsl #48
+  28:	f2d12ce1 	movk	x1, #0x8967, lsl #32
+  2c:	f2f78141 	movk	x1, #0xbc0a, lsl #48
+  30:	a90407a0 	stp	x0, x1, [x29, #64]
+  34:	a94453b3 	ldp	x19, x20, [x29, #64]
+  38:	dac00e73 	rev	x19, x19
+  3c:	dac00e94 	rev	x20, x20
+  40:	d5033d9f 	dsb	ld
+  44:	d2815796 	mov	x22, #0xabc                 	// #2748
+  48:	90000015 	adrp	x21, 0 <128bit_test>
+  4c:	f2acf136 	movk	x22, #0x6789, lsl #16
+  50:	910002b5 	add	x21, x21, #0x0
+  54:	f2c468b6 	movk	x22, #0x2345, lsl #32
+  58:	d297d5f7 	mov	x23, #0xbeaf                	// #48815
+  5c:	f2e00036 	movk	x22, #0x1, lsl #48
+  60:	f2bbd5b7 	movk	x23, #0xdead, lsl #16
+  64:	aa1603e2 	mov	x2, x22
+  68:	aa1703e1 	mov	x1, x23
+  6c:	aa1503e0 	mov	x0, x21
+  70:	94000000 	bl	0 <printk>
+  74:	aa1403e2 	mov	x2, x20
+  78:	aa1303e1 	mov	x1, x19
+  7c:	ca160294 	eor	x20, x20, x22
+  80:	ca170273 	eor	x19, x19, x23
+  84:	aa1503e0 	mov	x0, x21
+  88:	aa140273 	orr	x19, x19, x20
+  8c:	94000000 	bl	0 <printk>
+  90:	f9401bf7 	ldr	x23, [sp, #48]
+  94:	f100027f 	cmp	x19, #0x0
+  98:	a94153f3 	ldp	x19, x20, [sp, #16]
+  9c:	1a9f07e0 	cset	w0, ne  // ne = any
+  a0:	a9425bf5 	ldp	x21, x22, [sp, #32]
+  a4:	a8c57bfd 	ldp	x29, x30, [sp], #80
+  a8:	d65f03c0 	ret
+
+I tested LE kernel with this, and it works OK for me. BE version adds
+few extra instructions to swap bytes, but generated code looks reasonable. 
+We can avoid byteswapping, if not needed, by using __raw_reado() and 
+__raw_writeo().
+
+Yury Norov (3):
+  UAPI: Introduce 128-bit types and byteswap operations
+  asm-generic/io.h: API for 128-bit I/O accessors
+  arm64: enable 128-bit memory read/write support
+
+ arch/Kconfig                                 |   7 ++
+ arch/arm64/include/asm/io.h                  |  31 ++++++
+ include/asm-generic/io.h                     | 147 +++++++++++++++++++++++++++
+ include/linux/byteorder/generic.h            |   4 +
+ include/uapi/asm-generic/int-ll64.h          |   8 ++
+ include/uapi/linux/byteorder/big_endian.h    |   2 +
+ include/uapi/linux/byteorder/little_endian.h |   4 +
+ include/uapi/linux/swab.h                    |  22 ++++
+ include/uapi/linux/types.h                   |   4 +
+ 9 files changed, 229 insertions(+)
+
 -- 
 2.11.0
