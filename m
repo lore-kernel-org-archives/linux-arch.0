@@ -1,153 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:45602 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934312AbeAXQsx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jan 2018 11:48:53 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <1516623798-25001-1-git-send-email-Dave.Martin@arm.com>
-        <1516623798-25001-2-git-send-email-Dave.Martin@arm.com>
-        <878tcp8umz.fsf@xmission.com>
-        <20180124105704.GD5862@e103592.cambridge.arm.com>
-Date: Wed, 24 Jan 2018 10:47:36 -0600
-In-Reply-To: <20180124105704.GD5862@e103592.cambridge.arm.com> (Dave Martin's
-        message of "Wed, 24 Jan 2018 10:57:05 +0000")
-Message-ID: <87efmf2ogn.fsf@xmission.com>
+Received: from mail-by2nam01on0086.outbound.protection.outlook.com ([104.47.34.86]:57760
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S964930AbeAXSUK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Jan 2018 13:20:10 -0500
+Date: Wed, 24 Jan 2018 21:19:54 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 3/3] arm64: enable 128-bit memory read/write support
+Message-ID: <20180124181954.o6e6wfekbdnjn7rc@yury-thinkpad>
+References: <20180124090519.6680-1-ynorov@caviumnetworks.com>
+ <20180124090519.6680-4-ynorov@caviumnetworks.com>
+ <CAMuHMdU5AHC4ZYkvC=X4UUAnGyysHqayv4m+T5=1Grpo5Qez4g@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [RFC PATCH 1/2] arm64: fpsimd: Fix bad si_code for undiagnosed SIGFPE
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdU5AHC4ZYkvC=X4UUAnGyysHqayv4m+T5=1Grpo5Qez4g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>
-Message-ID: <20180124164736.KOGjS5gkRVVAlJc6xxN5JvE8o0o4IjxGSRbX6jRwePU@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-arm-kernel@lists.infradead.org, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "David S . Miller" <davem@davemloft.net>, Geethasowjanya Akula <Geethasowjanya.Akula@cavium.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, Sunil Goutham <Sunil.Goutham@cavium.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20180124181954.W4hX804Wo6Bj0hw9XD2fOvRSuEYDNjBQ3PbYD8sHaCw@z>
 
-Dave Martin <Dave.Martin@arm.com> writes:
+On Wed, Jan 24, 2018 at 02:00:42PM +0100, Geert Uytterhoeven wrote:
+> Hi Yury,
+> 
+> On Wed, Jan 24, 2018 at 10:05 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
+> > Introduce __raw_writeo(), __raw_reado() and other arch-specific
+> > RW functions for 128-bit memory access, and enable it for arm64.
+> >
+> > 128-bit I/O is required for example by Octeon TX2 device to access
+> > some registers. According to Hardware Reference Manual:
+> >
+> > A 128-bit write to the OP_FREE0/1 registers frees a pointer into a
+> > given [...] pool. All other accesses to these registers (e.g. reads
+> > and 64-bit writes) are RAZ/WI.
+> >
+> > Starting from ARMv8.4, stp and ldp instructions become atomic, and
+> > API for 128-bit access would be helpful for core code.
+> >
+> > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> 
+> Thanks for your patch!
+> 
+> > --- a/arch/Kconfig
+> > +++ b/arch/Kconfig
+> > @@ -116,6 +116,13 @@ config UPROBES
+> >             managed by the kernel and kept transparent to the probed
+> >             application. )
+> >
+> > +config HAVE_128BIT_ACCESS
+> > +       def_bool ARM64
+> 
+> I think it's better to select this symbol from arch/arm64/Kconfig instead.
+> Else this file has to be modified each and every time an architecture
+> adds support for 128-bit, causing conflicts.
 
-> On Mon, Jan 22, 2018 at 03:13:08PM -0600, Eric W. Biederman wrote:
->> 
->> > diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
->> > index e447283..77edb00 100644
->> > --- a/include/uapi/asm-generic/siginfo.h
->> > +++ b/include/uapi/asm-generic/siginfo.h
->> > @@ -193,7 +193,8 @@ typedef struct siginfo {
->> >  #define FPE_FLTRES	6	/* floating point inexact result */
->> >  #define FPE_FLTINV	7	/* floating point invalid operation */
->> >  #define FPE_FLTSUB	8	/* subscript out of range */
->> > -#define NSIGFPE		8
->> > +#define FPE_UNKNOWN	9	/* undiagnosed floating-point exception */
->> > +#define NSIGFPE		9
->> 
->> Minor nit here.
->> 
->> At least before this is final I would really appreciate if you could
->> rebase this on top of my unificiation of siginfo.h that I posted on
->> linux-arch and is in my siginfo-next branch.
->> 
->> As that already pushes NSIGFPE up to 13.
->> 
->> Which would make this patch change NSIGFPE to 14 and allocate the number
->> 14 for FPE_UNKNOWN
->
-> Looking at this, I note a few things:
->
->  * For consistent naming, FPE_FLTUNK might be a better name for
->    FPE_UNKNOWN.
->
->    FPE_FLTUNK seems generic, tempting me to insert it as number 9
->    (since only the numbers up to 8 are ABI just now).
+Shure, thanks.
 
-Except on ia64 and frv.  And who knows we might need it on one of those
-architectures as well.
-
->    (The temptation to call it FPE_FLUNK is strong, but I can't argue
->    that's consistent...)
-
-I totally understand the temptation.
-
->  * No distinction is drawn between generic and arch-dependent codes
->    here, so NSIGFPE will typically be too big.  The generic siginfo
->    handling code can detect random garbage in si_code this way, but
->    off-by-ones or misused arch-specific codes may slip through.
->
->    In particular, new x86-specific FPE_* codes will likely be
->    invisible to the BUILD_BUG_ON()s in arch/x86/kernel/signal_compat.c
->    unless so many are added that x86 overtakes ia64.
-
-Long ago in a far off time, we had arch dependent system call numbers
-and the like because that provided ABI compatibility with the existing
-unix on the platform.
-
-I don't see any of that with the siginfo si_codes.   In most cases
-they are arch dependent extensions which is silly.  We should have
-unconditionally extended the si_codes for all architectures in case
-another architecture needs that si_code.
-
-The fact we now have battling meanings for si_codes depending on the
-architecture is an unfortunate mess.
-
-So to me it looks most maintainable going forward to declare that all
-si_codes should be allocated generically, from the same number space,
-in the same header file.  While we live with the existing historic
-mess.
-
->  * Should we reserve space for future generic codes (say up to 15)?
->    Downside: si_code validation is not a simple matter of checking
->    <= NSIGFPE in that case.  (Though <= is still better than no
->    check at all, and no worse than the current situation.)
-
-I think new si_codes should be allocated where there are not conflicts
-on any architecture.  Just in case they are useful on another
-architecture in the future.
-
->  * What are NSIGFPE etc. doing in this header?  These aren't specified
->    by POSIX and I'm not sure what userspace would legitimately use them
->    for... though it may be too late to change this now.
->
->    Most instances on codeseaarch.debian.net are the kernel, copies
->    of kernel headers, and translated versions of kernel headers.
->    It's hard to be exhaustive though.
->
->
-> We could have something like this:
->
-> #define FPE_FLTUNK	9
-> #define __NSIGFPE_GENERIC	9
-> #define NSIGFPE		__NSIGFPE_GENERIC
->
-> /* si_code <= 15 reserved for arch-independent codes */
->
-> #if defined(__frv__)
->
-> # define FPE_MDAOF	16
-> # undef NSIGFPE
-> # define NSIGFPE	16
->
-> #elif define(__ia64__)
->
-> # define __FPE_DECOVF	16
-> # define __FPE_DECDIV	17
-> # define __FPE_DECERR	18
-> # define __FPR_INVASC	19
-> # undef NSIGFPE
-> # define NSIGFPE	19
->
-> #endif
->
-> (Avoiding a (base + offset) approach for the arch codes, since that
-> would make it look like the codes can be renumbered safely without
-> breaking anything).
->
-> The generic vs. arch vs. NSIGFOO problem already exists for other
-> signals.  We could take a similar approach for those, but OTOH it
-> may just not be worth the effort.
-
-What I have tried to do in my merger is discurage the idea that there
-are any arch specific si_codes.  To set NSIGXXX to the largest value
-from any of the architectures.  And to encourage new si_codes get
-allocated after the current NSIGXXX.  So that they will work on all
-architectures.
-
-It is all a bit of a mess, but one unified mess seems like the best we
-can do right now.
-
-Eric
+Yury
+ 
+> > +       help
+> > +         Architectures having 128-bit access require corresponding APIs,
+> > +         like reado() and writeo(), which stands for reading and writing
+> > +         the octet of bytes at once.
+> > +
+> >  config HAVE_64BIT_ALIGNED_ACCESS
+> >         def_bool 64BIT && !HAVE_EFFICIENT_UNALIGNED_ACCESS
+> >         help
+> 
+> Gr{oetje,eeting}s,
+> 
+>                         Geert
+> 
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> 
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
