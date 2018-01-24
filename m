@@ -1,92 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:46679 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932195AbeAWVJF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jan 2018 16:09:05 -0500
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Date: Tue, 23 Jan 2018 15:07:13 -0600
-Message-ID: <20180123210719.10456-4-ebiederm@xmission.com>
-In-Reply-To: <87607s5lra.fsf_-_@xmission.com>
-References: <87607s5lra.fsf_-_@xmission.com>
-Subject: [PATCH 04/10] signal: Replace memset(info,...) with clear_siginfo for clarity
+Received: from mail-it0-f67.google.com ([209.85.214.67]:36165 "EHLO
+        mail-it0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752725AbeAXA4J (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jan 2018 19:56:09 -0500
+MIME-Version: 1.0
+In-Reply-To: <CAK8P3a2HR6be9Fm+o1Oq-V5p51xEiuhbyqkgVWprD5BxuU29xQ@mail.gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com> <e145c39b3c50b3aee05bc60ad0117f1ec7cc5153.1515766253.git.green.hu@gmail.com>
+ <CAK8P3a2HR6be9Fm+o1Oq-V5p51xEiuhbyqkgVWprD5BxuU29xQ@mail.gmail.com>
+From: Vincent Chen <deanbo422@gmail.com>
+Date: Wed, 24 Jan 2018 08:56:08 +0800
+Message-ID: <CAJsyPhyGpJVQegd7ns9oZOjM=XsGVixCQaH9nT_jOQsSpyRs+g@mail.gmail.com>
+Subject: Re: [PATCH v6 20/36] nds32: Signal handling support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Ram Pai <linuxram@us.ibm.com>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20180123210713.fZhAm4oI5HKnfWfe3uWzzjQFZ3tuHKiIv_FJ06DAamI@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20180124005608.rhxFBNy_Ixm7BTpIhmXIdIYZF0wTgS1408hzISIhzvE@z>
 
-The function clear_siginfo is just a nice wrapper around memset so
-this results in no functional change.  This change makes mistakes
-a little more difficult and it makes it clearer what is going on.
+2018-01-18 18:30 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>> From: Greentime Hu <greentime@andestech.com>
+>>
+>> This patch adds support for signal handling.
+>>
+>> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+>> Signed-off-by: Greentime Hu <greentime@andestech.com>
+>
+> I never feel qualified enough to properly review signal handling code, so
+> no Ack from me for this code even though I don't see anything wrong with it.
+> Hopefully someone else can give an Ack after looking more closely.
+>
+>        Arnd
 
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- arch/um/kernel/trap.c      | 2 +-
- drivers/usb/core/devio.c   | 4 ++--
- kernel/seccomp.c           | 2 +-
- kernel/time/posix-timers.c | 2 +-
- 4 files changed, 5 insertions(+), 5 deletions(-)
+Dear Arnd:
 
-diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
-index 428644175956..b2b02df9896e 100644
---- a/arch/um/kernel/trap.c
-+++ b/arch/um/kernel/trap.c
-@@ -306,7 +306,7 @@ void relay_signal(int sig, struct siginfo *si, struct uml_pt_regs *regs)
- 
- 	arch_examine_signal(sig, regs);
- 
--	memset(&clean_si, 0, sizeof(clean_si));
-+	clear_siginfo(&clean_si);
- 	clean_si.si_signo = si->si_signo;
- 	clean_si.si_errno = si->si_errno;
- 	clean_si.si_code = si->si_code;
-diff --git a/drivers/usb/core/devio.c b/drivers/usb/core/devio.c
-index a3fad4ec9870..3f9bd3e4c373 100644
---- a/drivers/usb/core/devio.c
-+++ b/drivers/usb/core/devio.c
-@@ -595,7 +595,7 @@ static void async_completed(struct urb *urb)
- 	as->status = urb->status;
- 	signr = as->signr;
- 	if (signr) {
--		memset(&sinfo, 0, sizeof(sinfo));
-+		clear_siginfo(&sinfo);
- 		sinfo.si_signo = as->signr;
- 		sinfo.si_errno = as->status;
- 		sinfo.si_code = SI_ASYNCIO;
-@@ -2613,7 +2613,7 @@ static void usbdev_remove(struct usb_device *udev)
- 		wake_up_all(&ps->wait);
- 		list_del_init(&ps->list);
- 		if (ps->discsignr) {
--			memset(&sinfo, 0, sizeof(sinfo));
-+			clear_siginfo(&sinfo);
- 			sinfo.si_signo = ps->discsignr;
- 			sinfo.si_errno = EPIPE;
- 			sinfo.si_code = SI_ASYNCIO;
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 5f0dfb2abb8d..3153c9ea51bf 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -515,7 +515,7 @@ void put_seccomp_filter(struct task_struct *tsk)
- 
- static void seccomp_init_siginfo(siginfo_t *info, int syscall, int reason)
- {
--	memset(info, 0, sizeof(*info));
-+	clear_siginfo(info);
- 	info->si_signo = SIGSYS;
- 	info->si_code = SYS_SECCOMP;
- 	info->si_call_addr = (void __user *)KSTK_EIP(current);
-diff --git a/kernel/time/posix-timers.c b/kernel/time/posix-timers.c
-index ec999f32c840..75043046914e 100644
---- a/kernel/time/posix-timers.c
-+++ b/kernel/time/posix-timers.c
-@@ -462,7 +462,7 @@ static struct k_itimer * alloc_posix_timer(void)
- 		kmem_cache_free(posix_timers_cache, tmr);
- 		return NULL;
- 	}
--	memset(&tmr->sigq->info, 0, sizeof(siginfo_t));
-+	clear_siginfo(&tmr->sigq->info);
- 	return tmr;
- }
- 
--- 
-2.14.1
+We'd be glad to improve signal handling code to meet your requirement.
+Could you
+tell us which part we need to refine or which implementation is good
+for us to refer?
+
+Thanks.
+
+Vincent
