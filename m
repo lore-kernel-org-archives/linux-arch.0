@@ -1,139 +1,129 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and
- SIGFPE, SIGTRAP, SIGBUS
-Date: Wed, 24 Jan 2018 15:28:51 -0600
-Message-ID: <87shavt08c.fsf@xmission.com>
-References: <87373b6ghs.fsf@xmission.com>
- <20180112005940.23279-7-ebiederm@xmission.com>
- <20180115163028.GU22781@e103592.cambridge.arm.com>
- <87h8rnox3c.fsf@xmission.com>
- <20180116172407.GA22781@e103592.cambridge.arm.com>
- <871sipl9p9.fsf@xmission.com>
- <20180117115708.GM17719@n2100.armlinux.org.uk>
- <20180117121505.GD22781@e103592.cambridge.arm.com>
- <20180117123752.GN17719@n2100.armlinux.org.uk>
- <87y3kwh1t5.fsf@xmission.com>
- <20180117171425.GQ17719@n2100.armlinux.org.uk>
+From: Greentime Hu <green.hu@gmail.com>
+Subject: Re: [PATCH v6 16/36] nds32: DMA mapping API
+Date: Thu, 25 Jan 2018 11:45:18 +0800
+Message-ID: <CAEbi=3fwCnFXmYKPEiDiqoGFujqRD0bPrPAgqtiTkO_vuX25dQ@mail.gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com> <ecd1742c718c5b45983486cf9dfb44adb6e06923.1515766253.git.green.hu@gmail.com>
+ <CAK8P3a0-Vf9CRZzdXCxpuQoWgMhYWgO6Hy2KuP-gOKttoSGESA@mail.gmail.com>
+ <CAEbi=3cYynvFS2GDzj5Oav_5LtHPdBfBWh9c=mFT0PxeOLX9sQ@mail.gmail.com>
+ <CAEbi=3d46tXacnnU+RJGMw+KR1O=NaVjO+NW3cxUjAN==V51iw@mail.gmail.com> <CAK8P3a30W1ph-6Owuf9yZF-bKg_bx6dJKCtiF_aRAYu9NVO3DQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20180117171425.GQ17719@n2100.armlinux.org.uk> (Russell King's
- message of "Wed, 17 Jan 2018 17:14:25 +0000")
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Tony Lindgren <tony@atomide.com>, Catalin Marinas <catalin.marinas@arm.com>, Tyler Baicar <tbaicar@codeaurora.org>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, James Morse <james.morse@arm.com>, Al Viro <viro@zeniv.linux.org.uk>, Olof Johansson <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vk0-f65.google.com ([209.85.213.65]:44465 "EHLO
+        mail-vk0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933198AbeAYDp7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jan 2018 22:45:59 -0500
+In-Reply-To: <CAK8P3a30W1ph-6Owuf9yZF-bKg_bx6dJKCtiF_aRAYu9NVO3DQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.co>
 
-Russell King - ARM Linux <linux@armlinux.org.uk> writes:
+Hi, Arnd:
 
-> On Wed, Jan 17, 2018 at 10:45:10AM -0600, Eric W. Biederman wrote:
->> Russell King - ARM Linux <linux@armlinux.org.uk> writes:
->> >From your description there still seems to be an association with an
->> instruction so I don't know if I would really call the signal
->> asynchronous.  It sounds like the exception is delayed and not
->> asynchronous.
+2018-01-24 19:36 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Tue, Jan 23, 2018 at 12:52 PM, Greentime Hu <green.hu@gmail.com> wrote:
+>> Hi, Arnd:
+>>
+>> 2018-01-23 16:23 GMT+08:00 Greentime Hu <green.hu@gmail.com>:
+>>> Hi, Arnd:
+>>>
+>>> 2018-01-18 18:26 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+>>>> On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>>>>> From: Greentime Hu <greentime@andestech.com>
+>>>>>
+>>>>> This patch adds support for the DMA mapping API. It uses dma_map_ops for
+>>>>> flexibility.
+>>>>>
+>>>>> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+>>>>> Signed-off-by: Greentime Hu <greentime@andestech.com>
+>>>>
+>>>> I'm still unhappy about the way the cache flushes are done here as discussed
+>>>> before. It's not a show-stopped, but no Ack from me.
+>>>
+>>> How about this implementation?
 >
-> Traps can only be passed from ARM coprocessors by a coprocessor refusing
-> to execute an instruction.  That's what happens in this case - the VFP
-> gets offered an instruction to execute.  It accepts it, and the CPU
-> continues, leaving the VFP to execute its instruction independently.  If
-> this instruction generates an error, then nothing happens at this point.
+>> I am not sure if I understand it correctly.
+>> I list all the combinations.
+>>
+>> RAM to DEVICE
+>>     before DMA => writeback cache
+>>     after DMA => nop
+>>
+>> DEVICE to RAM
+>>     before DMA => nop
+>>     after DMA => invalidate cache
+>>
+>> static void consistent_sync(void *vaddr, size_t size, int direction, int master)
+>> {
+>>         unsigned long start = (unsigned long)vaddr;
+>>         unsigned long end = start + size;
+>>
+>>         if (master == FOR_CPU) {
+>>                 switch (direction) {
+>>                 case DMA_TO_DEVICE:
+>>                         break;
+>>                 case DMA_FROM_DEVICE:
+>>                 case DMA_BIDIRECTIONAL:
+>>                         cpu_dma_inval_range(start, end);
+>>                         break;
+>>                 default:
+>>                         BUG();
+>>                 }
+>>         } else {
+>>                 /* FOR_DEVICE */
+>>                 switch (direction) {
+>>                 case DMA_FROM_DEVICE:
+>>                         break;
+>>                 case DMA_TO_DEVICE:
+>>                 case DMA_BIDIRECTIONAL:
+>>                         cpu_dma_wb_range(start, end);
+>>                         break;
+>>                 default:
+>>                         BUG();
+>>                 }
+>>         }
+>> }
 >
-> That error remains pending until the CPU offers the coprocessor the next
-> VFP instruction, which it refuses.  That causes an undefined instruction
-> exception, and we trap into the kernel VFP code which reads the VFP
-> status and works out what needs to be done.
+> That looks reasonable enough, but it does depend on a number of factors,
+> and the dma-mapping.h implementation is not just about cache flushes.
 >
-> What this means is that if you execute a VFP instruction, wait 10 minutes
-> and then execute another VFP instruction, if the first VFP instruction
-> raised an exception, you'll get to hear about it 10 minutes later.
+> As I don't know the microarchitecture, can you answer these questions:
 >
-> You can use whatever weasel words you want to describe that situation,
-> my choice is "asynchronous", your choice is "delayed".  However, it is
-> clearly not "synchronous", and arguing that we should report something
-> synchronously that is not reported to _us_ synchronously (where
-> synchronous means "at the same time") is IMHO daft.
->
-> So, let's take an example:
->
-> 	installs SIGFPE handler
-> 	..fp instructions.. one of which raises an exception
-> 	returns to main loop
-> 	main loop blocks all signals while it sets stuff up
-> 	calls ppoll()
->
-> In the synchronous SIGFPE delivery case, the SIGFPE handler will be
-> called when the exception is generated in the FP code, and delivered
-> at that time.  The fact that the main loop blocks all signals happens
-> later, so the users handler gets called as one expects.
->
-> In the VFP case, however, the FP instructions towards the end may not
-> end up causing the exception to be signalled until sometime later,
-> and as I've already explained, that may be the result of a C library
-> function accessing the VFP registers.  This could well end up trying
-> to deliver the SIGFPE while signals are blocked, and we get
-> drastically different behaviour if force_sig_info() is used.
->
-> In the VFP case, if force_sig_info() is used, the program gets killed
-> at this point.  In the non-VFP case, the program's signal handler was
-> called.
->
-> Using send_sig_info() results in the already delayed or asynchronous
-> signal being held off until ppoll() drops the blocking, at which point
-> the signal is delivered, the program handles it in its handler, and
-> the program continues to run.
->
-> So
-> 1. non-VFP case, program doesn't get killed but gets the opportunity
->    to handle the signal.
-> 2. VFP case with send_sig_info, program doesn't get killed but gets
->    the opportunity to handle the signal.
-> 3. VFP case with force_sig_info, the program gets killed and dumps
->    core.
->
-> Which one of these results in a big change of behaviour in your
-> opinion?
+> - are caches always write-back, or could they be write-through?
+Yes, we can config it to write-back or write-through.
 
-I want to apologize for the disagreement.  In part of my due diligence
-for cleaning up the signal handling I am introducing some helpers for
-generating siginfo.  I decided to ask which kind of helpers should I
-introduce.
+> - can the cache be shared with another CPU or a device?
+No, we don't support it.
 
-Very basic generic helpers that just wrap the current functionality
-today.  Or some slightly smarter helpers that solve some other problems
-as well.  After consideration I am shelving the smarter helpers for now,
-as the need to introduce the helpers universally is strong, so that I
-can guarantee struct siginfo is always fully initialized before being
-passed to userspace.
+> - if the cache is shared, is it always coherent, never coherent, or
+> either of them?
+We don't support SMP and the device will access memory through bus. I
+think the cache is not shared.
 
-Given the choice between force_sig_info and send_sig_info I agree that
-send_sig_info is the right choice for signals that can be ignored.
+> - could the same memory be visible at different physical addresses
+>   and have conflicting caches?
+We currently don't have such kind of SoC memory map.
 
-The problem I was focusing on is the problem where force_sig_info and
-send_sig_info can be tricked into causing the instruction pointer to
-point to the wrong instruction (even when the signal is not blocked),
-due to the delivery of another signal.
+> - is the CPU physical address always the same as the address visible to the
+>   device?
+Yes, it is always the same unless the CPU uses local memory. The
+physical address of local memory will overlap the original bus
+address.
+I think the local memory case can be ignored because we don't use it for now.
 
-So I was wondering if in practice we could introduce a singal delivery
-function that would operation synchronously and would solve the
-instruction pointer problem.
+> - are there devices that can only see a subset of the physical memory?
+All devices are able to see the whole physical memory in our current
+SoC, but I think other SoC may support such kind of HW behavior.
 
-It looks to me like this location on arm where we are using
-send_sig_info is a clear candidate for such a function as long as it has
-a mode where you can say deliverly the signal like send_sig_info if the
-signal is blocked.
+> - can there be an IOMMU?
+No.
 
-Still like I said such a smarter helper is not the priority and I don't
-intend any semantic changes when I introduce helpers into the signal
-deliver path.  Just fewer places initializing struct siginfo.
+> - are there write-buffers in the CPU that might need to get flushed before
+>   flushing the cache?
+Yes, there are write-buffers in front of CPU caches but it should be
+transparent to SW. We don't need to flush it.
 
-Eric
+> - could cache lines be loaded speculatively or with read-ahead while
+>   a buffer is owned by a device?
+No.
