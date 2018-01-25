@@ -1,12 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:41608 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:42426 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750734AbeAYF06 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 Jan 2018 00:26:58 -0500
+        id S1751301AbeAYF31 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Jan 2018 00:29:27 -0500
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH 0/8] kprobes: Fix %p in kprobes
-Date: Thu, 25 Jan 2018 14:26:31 +0900
-Message-ID: <151685799071.3099.10383062804474021403.stgit@devbox>
+Subject: [PATCH 5/8] kprobes/arm: Fix %p uses in error messages
+Date: Thu, 25 Jan 2018 14:29:02 +0900
+Message-ID: <151685814207.3099.8908722443473501855.stgit@devbox>
+In-Reply-To: <151685799071.3099.10383062804474021403.stgit@devbox>
+References: <151685799071.3099.10383062804474021403.stgit@devbox>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -14,55 +16,56 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20180125052631.bfuHbt5O6P9vkbm4uGElmZz7OgDdEh52SeadCwZvn-Q@z>
+Message-ID: <20180125052902.RFvcC76-x4yyoF2z-mWeL6ZEPn7zKD2jGmvcX_6-gDs@z>
 
-Hi,
+Fix %p uses in error messages by removing it and
+using general dumper.
 
-This series fixes %p uses in kprobes. Some by replacing
-with %pS, some by replacing with %px but masking with
-kallsyms_show_value().
-
-I've read the thread about %pK and if I understand correctly
-we shouldn't print kernel addresses. However, kprobes debugfs
-interface can not stop to show the actual probe address because
-it should be compared with addresses in kallsyms for debugging.
-So, it depends on that kallsyms_show_value() allows to show
-address to user, because if it returns true, anyway that user
-can dump /proc/kallsyms.
-
-Other error messages are replaced it with %pS, and one critical
-function uses %px which is called right before BUG().
-
-Also, I tried to fix this issue on each arch port. I searched
-it by
-
- # find arch/* | grep -e 'kprobe.*c' | xargs grep -w %p
-
-And fixed all %p uses in those files.
-
-Thank you,
-
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
 ---
-
-Masami Hiramatsu (8):
-      kprobes: Show blacklist addresses as same as kallsyms does
-      kprobes: Show address of kprobes if kallsyms does
-      kprobes: Replace %p with other pointer types
-      kprobes/x86: Fix %p uses in error messages
-      kprobes/arm: Fix %p uses in error messages
-      kprobes/arm64: Fix %p uses in error messages
-      kprobes/MN10300: Fix %p uses in error messages
-      kprobes/s390: Fix %p uses in error messages
-
-
- arch/arm/probes/kprobes/core.c      |   10 ++++----
+ arch/arm/probes/kprobes/core.c      |   10 +++++-----
  arch/arm/probes/kprobes/test-core.c |    1 -
- arch/arm64/kernel/probes/kprobes.c  |    4 ++-
- arch/mn10300/kernel/kprobes.c       |    6 +++--
- arch/s390/kernel/kprobes.c          |    2 +-
- arch/x86/kernel/kprobes/core.c      |   12 +++-------
- kernel/kprobes.c                    |   42 ++++++++++++++++++++++-------------
- 7 files changed, 41 insertions(+), 36 deletions(-)
+ 2 files changed, 5 insertions(+), 6 deletions(-)
 
---
-Masami Hiramatsu (Linaro) <mhiramat@kernel.org>
+diff --git a/arch/arm/probes/kprobes/core.c b/arch/arm/probes/kprobes/core.c
+index 52d1cd14fda4..8f37d505194f 100644
+--- a/arch/arm/probes/kprobes/core.c
++++ b/arch/arm/probes/kprobes/core.c
+@@ -291,8 +291,8 @@ void __kprobes kprobe_handler(struct pt_regs *regs)
+ 				break;
+ 			case KPROBE_REENTER:
+ 				/* A nested probe was hit in FIQ, it is a BUG */
+-				pr_warn("Unrecoverable kprobe detected at %p.\n",
+-					p->addr);
++				pr_warn("Unrecoverable kprobe detected.\n");
++				dump_kprobe(p);
+ 				/* fall through */
+ 			default:
+ 				/* impossible cases */
+@@ -617,11 +617,11 @@ int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+ 		if (orig_sp != stack_addr) {
+ 			struct pt_regs *saved_regs =
+ 				(struct pt_regs *)kcb->jprobe_saved_regs.ARM_sp;
+-			printk("current sp %lx does not match saved sp %lx\n",
++			pr_err("current sp %lx does not match saved sp %lx\n",
+ 			       orig_sp, stack_addr);
+-			printk("Saved registers for jprobe %p\n", jp);
++			pr_err("Saved registers for jprobe\n");
+ 			show_regs(saved_regs);
+-			printk("Current registers\n");
++			pr_err("Current registers\n");
+ 			show_regs(regs);
+ 			BUG();
+ 		}
+diff --git a/arch/arm/probes/kprobes/test-core.c b/arch/arm/probes/kprobes/test-core.c
+index 9ed0129bed3c..b5c892e24244 100644
+--- a/arch/arm/probes/kprobes/test-core.c
++++ b/arch/arm/probes/kprobes/test-core.c
+@@ -1460,7 +1460,6 @@ static bool check_test_results(void)
+ 	print_registers(&result_regs);
+ 
+ 	if (mem) {
+-		pr_err("current_stack=%p\n", current_stack);
+ 		pr_err("expected_memory:\n");
+ 		print_memory(expected_memory, mem_size);
+ 		pr_err("result_memory:\n");
