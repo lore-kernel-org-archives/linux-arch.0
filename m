@@ -1,92 +1,134 @@
-From: Cyril Novikov <cnovikov@lynx.com>
-Subject: Re: [PATCH v4 02/10] asm/nospec, array_ptr: sanitize speculative
- array de-references
-Date: Wed, 24 Jan 2018 23:09:54 -0800
-Message-ID: <cfd29ebf-b2ac-dfba-db4d-0fd3321959ce@lynx.com>
-References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151632010687.21271.12004432287640499992.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [GIT PULL tools] Linux kernel memory model
+Date: Thu, 25 Jan 2018 01:34:40 -0800
+Message-ID: <20180125093440.GA875@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <151632010687.21271.12004432287640499992.stgit@dwillia2-desk3.amr.corp.intel.com>
-Content-Language: en-US
+Content-Disposition: inline
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, gregkh@linuxfoundation.org, "H. Peter Anvin" <hpa@zytor.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
+To: mingo@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, boqun.feng@gmail.com, will.deacon@arm.com, peterz@infradead.org, npiggin@gmail.com, dhowells@redhat.com, elena.reshetova@intel.com, mhocko@suse.com, akiyks@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On 1/18/2018 4:01 PM, Dan Williams wrote:
-> 'array_ptr' is proposed as a generic mechanism to mitigate against
-> Spectre-variant-1 attacks, i.e. an attack that bypasses boundary checks
-> via speculative execution). The 'array_ptr' implementation is expected
-> to be safe for current generation cpus across multiple architectures
-> (ARM, x86).
+Hello, Ingo,
 
-I'm an outside reviewer, not subscribed to the list, so forgive me if I 
-do something not according to protocol. I have the following comments on 
-this change:
+This pull request contains a single commit that adds a memory model to
+the tools directory.  This memory model can (roughly speaking) be thought
+of as an automated version of memory-barriers.txt.  It is written in the
+"cat" language, which is executable by the externally provided "herd7"
+simulator, which exhaustively explores the state space of small litmus
+tests.
 
-After discarding the speculation barrier variant, is array_ptr() needed 
-at all? You could have a simpler sanitizing macro, say
+This memory model is accompanied by extensive documentation on its use
+and its design.  Two versions have been sent to LKML and feedback
+incorporated:
 
-#define array_sanitize_idx(idx, sz) ((idx) & array_ptr_mask((idx), (sz)))
+1.	http://lkml.kernel.org/r/20171113184031.GA26302@linux.vnet.ibm.com
+2.	http://lkml.kernel.org/r/20180119035855.GA29296@linux.vnet.ibm.com
 
-(adjusted to not evaluate idx twice). And use it as follows:
+This model has been presented and demoed at a number of Linux gatherings,
+including the 2016 LinuxCon EU, the 2016 Linux Plumbers Conference,
+the 2016 Linux Kernel Summit, the 2017 linux.conf.au, and the 2017 Linux
+Plumbers Conference, which featured a workshop helping a number of Linux
+kernel hackers install and use the tool.
 
-if (idx < array_size) {
-     idx = array_sanitize_idx(idx, array_size);
-     do_something(array[idx]);
-}
+This memory model has matured to the point where it would be good to include
+it in the Linux kernel, for example, to allow it to track changes as new
+hardware and use cases are added.  We expect the rate of change to be similar
+to that of Documentation/memory-barriers.txt.
 
-If I understand the speculation stuff correctly, unlike array_ptr(), 
-this "leaks" array[0] rather than nothing (*NULL) when executed 
-speculatively. However, it's still much better than leaking an arbitrary 
-location in memory. The attacker can likely get array[0] "leaked" by 
-passing 0 as idx anyway.
+This memory model is available in the git repository at:
 
-> +/*
-> + * If idx is negative or if idx > size then bit 63 is set in the mask,
-> + * and the value of ~(-1L) is zero. When the mask is zero, bounds check
-> + * failed, array_ptr will return NULL.
-> + */
-> +#ifndef array_ptr_mask
-> +static inline unsigned long array_ptr_mask(unsigned long idx, unsigned long sz)
-> +{
-> +	return ~(long)(idx | (sz - 1 - idx)) >> (BITS_PER_LONG - 1);
-> +}
-> +#endif
+  git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git 
 
-Why does this have to resort to the undefined behavior of shifting a 
-negative number to the right? You can do without it:
+for you to fetch changes up to 1c27b644c0fdbc61e113b8faee14baeb8df32486:
 
-return ((idx | (sz - 1 - idx)) >> (BITS_PER_LONG - 1)) - 1;
+  Automate memory-barriers.txt; provide Linux-kernel memory model (2018-01-24 20:53:49 -0800)
 
-Of course, you could argue that subtracting 1 from 0 to get all ones is 
-also an undefined behavior, but it's still much better than the shift, 
-isn't it?
+----------------------------------------------------------------
+Paul E. McKenney (1):
+      Automate memory-barriers.txt; provide Linux-kernel memory model
 
-> +#define array_ptr(base, idx, sz)					\
-> +({									\
-> +	union { typeof(*(base)) *_ptr; unsigned long _bit; } __u;	\
-> +	typeof(*(base)) *_arr = (base);					\
-> +	unsigned long _i = (idx);					\
-> +	unsigned long _mask = array_ptr_mask(_i, (sz));			\
-> +									\
-> +	__u._ptr = _arr + (_i & _mask);					\
-> +	__u._bit &= _mask;						\
-> +	__u._ptr;							\
-> +})
-
-Call me paranoid, but I think this may actually create an exploitable 
-bug on 32-bit systems due to casting the index to an unsigned long, if 
-the index as it comes from userland is a 64-bit value. You have 
-*replaced* the "if (idx < array_size)" check with checking if 
-array_ptr() returns NULL. Well, it doesn't return NULL if the low 32 
-bits of the index are in-bounds, but the high 32 bits are not zero. 
-Apart from the return value pointing to the wrong place, the subsequent 
-code may then assume that the 64-bit idx is actually valid and trip on 
-it badly.
-
---
-Cyril
+ tools/memory-model/Documentation/cheatsheet.txt    |   30 +
+ tools/memory-model/Documentation/explanation.txt   | 1840 ++++++++++++++++++++
+ tools/memory-model/Documentation/recipes.txt       |  570 ++++++
+ tools/memory-model/Documentation/references.txt    |  107 ++
+ tools/memory-model/MAINTAINERS                     |   15 +
+ tools/memory-model/README                          |  220 +++
+ tools/memory-model/linux-kernel.bell               |   53 +
+ tools/memory-model/linux-kernel.cat                |  124 ++
+ tools/memory-model/linux-kernel.cfg                |   21 +
+ tools/memory-model/linux-kernel.def                |  108 ++
+ .../litmus-tests/CoRR+poonceonce+Once.litmus       |   19 +
+ .../litmus-tests/CoRW+poonceonce+Once.litmus       |   18 +
+ .../litmus-tests/CoWR+poonceonce+Once.litmus       |   18 +
+ .../litmus-tests/CoWW+poonceonce.litmus            |   11 +
+ .../litmus-tests/IRIW+mbonceonces+OnceOnce.litmus  |   35 +
+ .../litmus-tests/IRIW+poonceonces+OnceOnce.litmus  |   33 +
+ .../litmus-tests/ISA2+poonceonces.litmus           |   28 +
+ ...cerelease+poacquirerelease+poacquireonce.litmus |   28 +
+ .../litmus-tests/LB+ctrlonceonce+mbonceonce.litmus |   23 +
+ .../LB+poacquireonce+pooncerelease.litmus          |   21 +
+ .../litmus-tests/LB+poonceonces.litmus             |   21 +
+ .../litmus-tests/MP+onceassign+derefonce.litmus    |   25 +
+ tools/memory-model/litmus-tests/MP+polocks.litmus  |   24 +
+ .../litmus-tests/MP+poonceonces.litmus             |   20 +
+ .../MP+pooncerelease+poacquireonce.litmus          |   20 +
+ .../memory-model/litmus-tests/MP+porevlocks.litmus |   24 +
+ .../litmus-tests/MP+wmbonceonce+rmbonceonce.litmus |   22 +
+ .../memory-model/litmus-tests/R+mbonceonces.litmus |   21 +
+ .../memory-model/litmus-tests/R+poonceonces.litmus |   19 +
+ tools/memory-model/litmus-tests/README             |  125 ++
+ .../memory-model/litmus-tests/S+poonceonces.litmus |   19 +
+ .../S+wmbonceonce+poacquireonce.litmus             |   20 +
+ .../litmus-tests/SB+mbonceonces.litmus             |   23 +
+ .../litmus-tests/SB+poonceonces.litmus             |   21 +
+ .../litmus-tests/WRC+poonceonces+Once.litmus       |   27 +
+ .../WRC+pooncerelease+rmbonceonce+Once.litmus      |   28 +
+ .../Z6.0+pooncelock+poonceLock+pombonce.litmus     |   33 +
+ .../Z6.0+pooncelock+pooncelock+pombonce.litmus     |   32 +
+ ...ooncerelease+poacquirerelease+mbonceonce.litmus |   28 +
+ tools/memory-model/lock.cat                        |   99 ++
+ 40 files changed, 3973 insertions(+)
+ create mode 100644 tools/memory-model/Documentation/cheatsheet.txt
+ create mode 100644 tools/memory-model/Documentation/explanation.txt
+ create mode 100644 tools/memory-model/Documentation/recipes.txt
+ create mode 100644 tools/memory-model/Documentation/references.txt
+ create mode 100644 tools/memory-model/MAINTAINERS
+ create mode 100644 tools/memory-model/README
+ create mode 100644 tools/memory-model/linux-kernel.bell
+ create mode 100644 tools/memory-model/linux-kernel.cat
+ create mode 100644 tools/memory-model/linux-kernel.cfg
+ create mode 100644 tools/memory-model/linux-kernel.def
+ create mode 100644 tools/memory-model/litmus-tests/CoRR+poonceonce+Once.litmus
+ create mode 100644 tools/memory-model/litmus-tests/CoRW+poonceonce+Once.litmus
+ create mode 100644 tools/memory-model/litmus-tests/CoWR+poonceonce+Once.litmus
+ create mode 100644 tools/memory-model/litmus-tests/CoWW+poonceonce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/IRIW+poonceonces+OnceOnce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/ISA2+poonceonces.litmus
+ create mode 100644 tools/memory-model/litmus-tests/ISA2+pooncerelease+poacquirerelease+poacquireonce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/LB+ctrlonceonce+mbonceonce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/LB+poacquireonce+pooncerelease.litmus
+ create mode 100644 tools/memory-model/litmus-tests/LB+poonceonces.litmus
+ create mode 100644 tools/memory-model/litmus-tests/MP+onceassign+derefonce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/MP+polocks.litmus
+ create mode 100644 tools/memory-model/litmus-tests/MP+poonceonces.litmus
+ create mode 100644 tools/memory-model/litmus-tests/MP+pooncerelease+poacquireonce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/MP+porevlocks.litmus
+ create mode 100644 tools/memory-model/litmus-tests/MP+wmbonceonce+rmbonceonce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/R+mbonceonces.litmus
+ create mode 100644 tools/memory-model/litmus-tests/R+poonceonces.litmus
+ create mode 100644 tools/memory-model/litmus-tests/README
+ create mode 100644 tools/memory-model/litmus-tests/S+poonceonces.litmus
+ create mode 100644 tools/memory-model/litmus-tests/S+wmbonceonce+poacquireonce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/SB+mbonceonces.litmus
+ create mode 100644 tools/memory-model/litmus-tests/SB+poonceonces.litmus
+ create mode 100644 tools/memory-model/litmus-tests/WRC+poonceonces+Once.litmus
+ create mode 100644 tools/memory-model/litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus
+ create mode 100644 tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/Z6.0+pooncelock+pooncelock+pombonce.litmus
+ create mode 100644 tools/memory-model/litmus-tests/Z6.0+pooncerelease+poacquirerelease+mbonceonce.litmus
+ create mode 100644 tools/memory-model/lock.cat
