@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:42426 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:42872 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751301AbeAYF31 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 Jan 2018 00:29:27 -0500
+        id S1750734AbeAYFa4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Jan 2018 00:30:56 -0500
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH 5/8] kprobes/arm: Fix %p uses in error messages
-Date: Thu, 25 Jan 2018 14:29:02 +0900
-Message-ID: <151685814207.3099.8908722443473501855.stgit@devbox>
+Subject: [PATCH 8/8] kprobes/s390: Fix %p uses in error messages
+Date: Thu, 25 Jan 2018 14:30:32 +0900
+Message-ID: <151685823207.3099.1804053958699756937.stgit@devbox>
 In-Reply-To: <151685799071.3099.10383062804474021403.stgit@devbox>
 References: <151685799071.3099.10383062804474021403.stgit@devbox>
 MIME-Version: 1.0
@@ -16,56 +16,26 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20180125052902.RFvcC76-x4yyoF2z-mWeL6ZEPn7zKD2jGmvcX_6-gDs@z>
+Message-ID: <20180125053032.piKS_4XkOkcpzoR7EbW7i6Le0FbognFBPzjjVN35_nw@z>
 
-Fix %p uses in error messages by removing it and
-using general dumper.
+Remove %p because the kprobe will be dumped in
+dump_kprobe().
 
 Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
 ---
- arch/arm/probes/kprobes/core.c      |   10 +++++-----
- arch/arm/probes/kprobes/test-core.c |    1 -
- 2 files changed, 5 insertions(+), 6 deletions(-)
+ arch/s390/kernel/kprobes.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm/probes/kprobes/core.c b/arch/arm/probes/kprobes/core.c
-index 52d1cd14fda4..8f37d505194f 100644
---- a/arch/arm/probes/kprobes/core.c
-+++ b/arch/arm/probes/kprobes/core.c
-@@ -291,8 +291,8 @@ void __kprobes kprobe_handler(struct pt_regs *regs)
- 				break;
- 			case KPROBE_REENTER:
- 				/* A nested probe was hit in FIQ, it is a BUG */
--				pr_warn("Unrecoverable kprobe detected at %p.\n",
--					p->addr);
-+				pr_warn("Unrecoverable kprobe detected.\n");
-+				dump_kprobe(p);
- 				/* fall through */
- 			default:
- 				/* impossible cases */
-@@ -617,11 +617,11 @@ int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
- 		if (orig_sp != stack_addr) {
- 			struct pt_regs *saved_regs =
- 				(struct pt_regs *)kcb->jprobe_saved_regs.ARM_sp;
--			printk("current sp %lx does not match saved sp %lx\n",
-+			pr_err("current sp %lx does not match saved sp %lx\n",
- 			       orig_sp, stack_addr);
--			printk("Saved registers for jprobe %p\n", jp);
-+			pr_err("Saved registers for jprobe\n");
- 			show_regs(saved_regs);
--			printk("Current registers\n");
-+			pr_err("Current registers\n");
- 			show_regs(regs);
- 			BUG();
- 		}
-diff --git a/arch/arm/probes/kprobes/test-core.c b/arch/arm/probes/kprobes/test-core.c
-index 9ed0129bed3c..b5c892e24244 100644
---- a/arch/arm/probes/kprobes/test-core.c
-+++ b/arch/arm/probes/kprobes/test-core.c
-@@ -1460,7 +1460,6 @@ static bool check_test_results(void)
- 	print_registers(&result_regs);
- 
- 	if (mem) {
--		pr_err("current_stack=%p\n", current_stack);
- 		pr_err("expected_memory:\n");
- 		print_memory(expected_memory, mem_size);
- 		pr_err("result_memory:\n");
+diff --git a/arch/s390/kernel/kprobes.c b/arch/s390/kernel/kprobes.c
+index af3722c28fd9..df30e5b9a572 100644
+--- a/arch/s390/kernel/kprobes.c
++++ b/arch/s390/kernel/kprobes.c
+@@ -282,7 +282,7 @@ static void kprobe_reenter_check(struct kprobe_ctlblk *kcb, struct kprobe *p)
+ 		 * is a BUG. The code path resides in the .kprobes.text
+ 		 * section and is executed with interrupts disabled.
+ 		 */
+-		printk(KERN_EMERG "Invalid kprobe detected at %p.\n", p->addr);
++		pr_err("Invalid kprobe detected.\n");
+ 		dump_kprobe(p);
+ 		BUG();
+ 	}
