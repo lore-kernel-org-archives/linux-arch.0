@@ -1,58 +1,128 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 6/8] kprobes/arm64: Fix %p uses in error messages
-Date: Thu, 25 Jan 2018 16:42:31 +0000
-Message-ID: <20180125164230.GC22963@arm.com>
-References: <151685799071.3099.10383062804474021403.stgit@devbox>
- <151685817205.3099.18079175391687728067.stgit@devbox>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v4 02/10] asm/nospec, array_ptr: sanitize speculative
+ array de-references
+Date: Thu, 25 Jan 2018 14:37:53 -0800
+Message-ID: <CAPcyv4hfca4pHXGqx383TirQu2YT1d4No--yQJ0MJpy8boJ5sA@mail.gmail.com>
+References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151632010687.21271.12004432287640499992.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <cfd29ebf-b2ac-dfba-db4d-0fd3321959ce@lynx.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:37742 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751112AbeAYQmc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 25 Jan 2018 11:42:32 -0500
-Content-Disposition: inline
-In-Reply-To: <151685817205.3099.18079175391687728067.stgit@devbox>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <mhiramat@kernel.org>, catalin.marinas@arm.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cfd29ebf-b2ac-dfba-db4d-0fd3321959ce@lynx.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Cyril Novikov <cnovikov@lynx.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Catalin Marinas <catalin.marinas@arm.com>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>, Adam Sampson <ats@offog.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 25, 2018 at 02:29:32PM +0900, Masami Hiramatsu wrote:
-> Fix %p uses in error messages by removing it because
-> those are redundant or meaningless.
-> 
-> Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
-> ---
->  arch/arm64/kernel/probes/kprobes.c |    4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
+On Wed, Jan 24, 2018 at 11:09 PM, Cyril Novikov <cnovikov@lynx.com> wrote:
+> On 1/18/2018 4:01 PM, Dan Williams wrote:
+>>
+>> 'array_ptr' is proposed as a generic mechanism to mitigate against
+>> Spectre-variant-1 attacks, i.e. an attack that bypasses boundary checks
+>> via speculative execution). The 'array_ptr' implementation is expected
+>> to be safe for current generation cpus across multiple architectures
+>> (ARM, x86).
+>
+>
+> I'm an outside reviewer, not subscribed to the list, so forgive me if I do
+> something not according to protocol. I have the following comments on this
+> change:
+>
+> After discarding the speculation barrier variant, is array_ptr() needed at
+> all? You could have a simpler sanitizing macro, say
+>
+> #define array_sanitize_idx(idx, sz) ((idx) & array_ptr_mask((idx), (sz)))
+>
+> (adjusted to not evaluate idx twice). And use it as follows:
+>
+> if (idx < array_size) {
+>     idx = array_sanitize_idx(idx, array_size);
+>     do_something(array[idx]);
+> }
+>
+> If I understand the speculation stuff correctly, unlike array_ptr(), this
+> "leaks" array[0] rather than nothing (*NULL) when executed speculatively.
+> However, it's still much better than leaking an arbitrary location in
+> memory. The attacker can likely get array[0] "leaked" by passing 0 as idx
+> anyway.
 
-Acked-by: Will Deacon <will.deacon@arm.com>
+True, we could simplify it to just sanitize the index with the
+expectation that speculating with index 0 is safe. Although we'd want
+to document it just case there is some odd code paths where the valid
+portion of the array is offset from 0.
 
-I guess Catalin can just pick this one up via arm64.
+I like this approach better because it handles cases where the bounds
+check is far away from the array de-reference. I.e. instead of having
+array_ptr() and array_idx() for different cases, just sanitize the
+index.
 
-Will
+>
+>> +/*
+>> + * If idx is negative or if idx > size then bit 63 is set in the mask,
+>> + * and the value of ~(-1L) is zero. When the mask is zero, bounds check
+>> + * failed, array_ptr will return NULL.
+>> + */
+>> +#ifndef array_ptr_mask
+>> +static inline unsigned long array_ptr_mask(unsigned long idx, unsigned
+>> long sz)
+>> +{
+>> +       return ~(long)(idx | (sz - 1 - idx)) >> (BITS_PER_LONG - 1);
+>> +}
+>> +#endif
+>
+>
+> Why does this have to resort to the undefined behavior of shifting a
+> negative number to the right? You can do without it:
+>
+> return ((idx | (sz - 1 - idx)) >> (BITS_PER_LONG - 1)) - 1;
+>
+> Of course, you could argue that subtracting 1 from 0 to get all ones is also
+> an undefined behavior, but it's still much better than the shift, isn't it?
 
-> diff --git a/arch/arm64/kernel/probes/kprobes.c b/arch/arm64/kernel/probes/kprobes.c
-> index d849d9804011..34f78d07a068 100644
-> --- a/arch/arm64/kernel/probes/kprobes.c
-> +++ b/arch/arm64/kernel/probes/kprobes.c
-> @@ -275,7 +275,7 @@ static int __kprobes reenter_kprobe(struct kprobe *p,
->  		break;
->  	case KPROBE_HIT_SS:
->  	case KPROBE_REENTER:
-> -		pr_warn("Unrecoverable kprobe detected at %p.\n", p->addr);
-> +		pr_warn("Unrecoverable kprobe detected.\n");
->  		dump_kprobe(p);
->  		BUG();
->  		break;
-> @@ -521,7 +521,7 @@ int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
->  		    (struct pt_regs *)kcb->jprobe_saved_regs.sp;
->  		pr_err("current sp %lx does not match saved sp %lx\n",
->  		       orig_sp, stack_addr);
-> -		pr_err("Saved registers for jprobe %p\n", jp);
-> +		pr_err("Saved registers for jprobe\n");
->  		__show_regs(saved_regs);
->  		pr_err("Current registers\n");
->  		__show_regs(regs);
-> 
+The goal is to prevent the compiler from emitting conditional
+instructions. For example, the simplest form of this sanitize
+operation from Adam:
+
+    return 0 - ((long) (idx < sz));
+
+...produces the desired "cmp, sbb" sequence on x86, but leads to a
+"csel" instruction being emitted for arm64.
+
+Stepping back and realizing that all this churn is around the
+un-optimized form of the comparison vs the inline asm that an arch can
+provide, and we're effectively handling the carry bit in software, we
+can have a WARN_ON_ONCE(idx < 0 || sz < 0) to catch places where the
+expectations of the macro are violated.
+
+Archs can remove the overhead of that extra branch with an instruction
+sequence to handle the carry bit in hardware, otherwise we get runtime
+coverage of places where array_idx() gets used incorrectly.
+
+>
+>> +#define array_ptr(base, idx, sz)                                       \
+>> +({                                                                     \
+>> +       union { typeof(*(base)) *_ptr; unsigned long _bit; } __u;       \
+>> +       typeof(*(base)) *_arr = (base);                                 \
+>> +       unsigned long _i = (idx);                                       \
+>> +       unsigned long _mask = array_ptr_mask(_i, (sz));                 \
+>> +                                                                       \
+>> +       __u._ptr = _arr + (_i & _mask);                                 \
+>> +       __u._bit &= _mask;                                              \
+>> +       __u._ptr;                                                       \
+>> +})
+>
+>
+> Call me paranoid, but I think this may actually create an exploitable bug on
+> 32-bit systems due to casting the index to an unsigned long, if the index as
+> it comes from userland is a 64-bit value. You have *replaced* the "if (idx <
+> array_size)" check with checking if array_ptr() returns NULL. Well, it
+> doesn't return NULL if the low 32 bits of the index are in-bounds, but the
+> high 32 bits are not zero. Apart from the return value pointing to the wrong
+> place, the subsequent code may then assume that the 64-bit idx is actually
+> valid and trip on it badly.
+
+Yes, I'll add some BUILD_BUG_ON safety for cases where sizeof(idx) >
+sizeof(long).
+
+Thanks for taking a look.
