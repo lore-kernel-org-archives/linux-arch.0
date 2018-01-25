@@ -1,63 +1,56 @@
 From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: [PATCH 0/8] kprobes: Fix %p in kprobes
-Date: Thu, 25 Jan 2018 14:26:31 +0900
-Message-ID: <151685799071.3099.10383062804474021403.stgit@devbox>
+Subject: [PATCH 1/8] kprobes: Show blacklist addresses as same as kallsyms does
+Date: Thu, 25 Jan 2018 14:27:03 +0900
+Message-ID: <151685802318.3099.14391385436778328009.stgit@devbox>
+References: <151685799071.3099.10383062804474021403.stgit@devbox>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.99]:41788 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751154AbeAYF12 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Jan 2018 00:27:28 -0500
+In-Reply-To: <151685799071.3099.10383062804474021403.stgit@devbox>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Masami Hiramatsu <mhiramat@kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>, "David S . Miller" <davem@davemloft.net>, Jon Medhurst <tixy@linaro.org>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Tobin C . Harding" <me@tobin.cc>, Linus Torvalds <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
 
-Hi,
+Show kprobes blacklist addresses under same condition of
+showing kallsyms addresses.
 
-This series fixes %p uses in kprobes. Some by replacing
-with %pS, some by replacing with %px but masking with
-kallsyms_show_value().
+Since there are several name conflict for local symbols,
+kprobe blacklist needs to show each addresses so that
+user can identify where is on blacklist by comparing
+with kallsyms.
 
-I've read the thread about %pK and if I understand correctly
-we shouldn't print kernel addresses. However, kprobes debugfs
-interface can not stop to show the actual probe address because
-it should be compared with addresses in kallsyms for debugging.
-So, it depends on that kallsyms_show_value() allows to show
-address to user, because if it returns true, anyway that user
-can dump /proc/kallsyms.
-
-Other error messages are replaced it with %pS, and one critical
-function uses %px which is called right before BUG().
-
-Also, I tried to fix this issue on each arch port. I searched
-it by
-
- # find arch/* | grep -e 'kprobe.*c' | xargs grep -w %p
-
-And fixed all %p uses in those files.
-
-Thank you,
-
+Signed-off-by: Masami Hiramatsu <mhiramat@kernel.org>
 ---
+ kernel/kprobes.c |   12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
-Masami Hiramatsu (8):
-      kprobes: Show blacklist addresses as same as kallsyms does
-      kprobes: Show address of kprobes if kallsyms does
-      kprobes: Replace %p with other pointer types
-      kprobes/x86: Fix %p uses in error messages
-      kprobes/arm: Fix %p uses in error messages
-      kprobes/arm64: Fix %p uses in error messages
-      kprobes/MN10300: Fix %p uses in error messages
-      kprobes/s390: Fix %p uses in error messages
-
-
- arch/arm/probes/kprobes/core.c      |   10 ++++----
- arch/arm/probes/kprobes/test-core.c |    1 -
- arch/arm64/kernel/probes/kprobes.c  |    4 ++-
- arch/mn10300/kernel/kprobes.c       |    6 +++--
- arch/s390/kernel/kprobes.c          |    2 +-
- arch/x86/kernel/kprobes/core.c      |   12 +++-------
- kernel/kprobes.c                    |   42 ++++++++++++++++++++++-------------
- 7 files changed, 41 insertions(+), 36 deletions(-)
-
---
-Masami Hiramatsu (Linaro) <mhiramat@kernel.org>
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index da2ccf142358..cb15991ba676 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -2382,9 +2382,17 @@ static int kprobe_blacklist_seq_show(struct seq_file *m, void *v)
+ {
+ 	struct kprobe_blacklist_entry *ent =
+ 		list_entry(v, struct kprobe_blacklist_entry, list);
++	void *start = (void *)ent->start_addr, *end = (void *)ent->end_addr;
+ 
+-	seq_printf(m, "0x%p-0x%p\t%ps\n", (void *)ent->start_addr,
+-		   (void *)ent->end_addr, (void *)ent->start_addr);
++	/*
++	 * As long as kallsyms shows the address, kprobes blacklist also
++	 * show it, Or, it shows null address and symbol.
++	 */
++	if (!kallsyms_show_value())
++		start = end = NULL;
++
++	seq_printf(m, "0x%px-0x%px\t%ps\n", start, end,
++		   (void *)ent->start_addr);
+ 	return 0;
+ }
+ 
