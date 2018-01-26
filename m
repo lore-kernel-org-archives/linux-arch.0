@@ -1,46 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0069.outbound.protection.outlook.com ([104.47.41.69]:63419
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752675AbeAZJF6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 26 Jan 2018 04:05:58 -0500
-Date: Fri, 26 Jan 2018 12:05:42 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
+Received: from foss.arm.com ([217.140.101.70]:51948 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750864AbeAZSLv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 26 Jan 2018 13:11:51 -0500
+Date: Fri, 26 Jan 2018 18:11:49 +0000
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH RFC 0/3] API for 128-bit IO access
-Message-ID: <20180126090542.bsza7hqqinqwllcr@yury-thinkpad>
+Message-ID: <20180126181149.GA17922@arm.com>
 References: <20180124090519.6680-1-ynorov@caviumnetworks.com>
  <20180124102212.GC20586@arm.com>
+ <20180126090542.bsza7hqqinqwllcr@yury-thinkpad>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180124102212.GC20586@arm.com>
+In-Reply-To: <20180126090542.bsza7hqqinqwllcr@yury-thinkpad>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
+To: Yury Norov <ynorov@caviumnetworks.com>
 Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-crypto@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "David S . Miller" <davem@davemloft.net>, Geethasowjanya Akula <Geethasowjanya.Akula@cavium.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, Sunil Goutham <Sunil.Goutham@cavium.com>
-Message-ID: <20180126090542.n5Xy8o_lI120WAcxhBWw8UguMDZsRJh4jxcJinebA2c@z>
+Message-ID: <20180126181149.UvFJ7Q6YONXXlWllbBcFTKiM34dr8N2D8Hhl0Pv-7Dw@z>
 
-On Wed, Jan 24, 2018 at 10:22:13AM +0000, Will Deacon wrote:
-> On Wed, Jan 24, 2018 at 12:05:16PM +0300, Yury Norov wrote:
-> > This series adds API for 128-bit memory IO access and enables it for ARM64.
-> > The original motivation for 128-bit API came from new Cavium network device
-> > driver. The hardware requires 128-bit access to make things work. See
-> > description in patch 3 for details.
+On Fri, Jan 26, 2018 at 12:05:42PM +0300, Yury Norov wrote:
+> On Wed, Jan 24, 2018 at 10:22:13AM +0000, Will Deacon wrote:
+> > On Wed, Jan 24, 2018 at 12:05:16PM +0300, Yury Norov wrote:
+> > > This series adds API for 128-bit memory IO access and enables it for ARM64.
+> > > The original motivation for 128-bit API came from new Cavium network device
+> > > driver. The hardware requires 128-bit access to make things work. See
+> > > description in patch 3 for details.
+> > > 
+> > > Also, starting from ARMv8.4, stp and ldp instructions become atomic, and
+> > > API for 128-bit access would be helpful in core arm64 code.
 > > 
-> > Also, starting from ARMv8.4, stp and ldp instructions become atomic, and
-> > API for 128-bit access would be helpful in core arm64 code.
+> > Only for normal, cacheable memory, so they're not suitable for IO accesses
+> > as you're proposing here.
 > 
-> Only for normal, cacheable memory, so they're not suitable for IO accesses
-> as you're proposing here.
+> Hi Will,
+> 
+> Thanks for clarification.
+> 
+> Could you elaborate, do you find 128-bit read/write API useless, or
+> you just correct my comment?
+> 
+> I think that ordered uniform 128-bit access API would be helpful, even
+> if not atomic.
 
-Hi Will,
+Sorry, but I strongly disagree here. Having an IO accessor that isn't
+guaranteed to be atomic is a recipe for disaster if it's not called out
+explicitly. You're much better off implementing something along the lines
+of <linux/io-128-nonatomic-hi-lo.h> using 2x64-bit accessors like we already
+have for the 2x32-bit case.
 
-Thanks for clarification.
+However, that doesn't solve your problem and is somewhat of a distraction.
+I'd suggest that in your case, where you have a device that relies on
+128-bit atomic access that is assumedly tightly integrated into your SoC,
+then the driver just codes it's own local implementation of the accessor,
+given that there isn't a way to guarantee the atomicity architecturally
+(and even within your SoC it might not be atomic to all endpoints).
 
-Could you elaborate, do you find 128-bit read/write API useless, or
-you just correct my comment?
-
-I think that ordered uniform 128-bit access API would be helpful, even
-if not atomic.
-
-Yury.
+Will
