@@ -1,112 +1,115 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v5 04/12] x86: introduce __uaccess_begin_nospec and ifence
-Date: Fri, 26 Jan 2018 23:55:34 -0800
-Message-ID: <151703973427.26578.15693075353773519333.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v5 02/12] array_idx: sanitize speculative array de-references
+Date: Fri, 26 Jan 2018 23:55:24 -0800
+Message-ID: <151703972396.26578.7326612698912543866.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:25951 "EHLO mga03.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751267AbeA0IEk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 27 Jan 2018 03:04:40 -0500
+Return-path: <kernel-hardening-return-11459-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 In-Reply-To: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
-Cc: linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
+Cc: linux-arch@vger.kernel.org, Cyril Novikov <cnovikov@lynx.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, gregkh@linuxfoundation.org, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
+List-Id: linux-arch.vger.kernel.org
 
-For '__get_user' paths, do not allow the kernel to speculate on the
-value of a user controlled pointer. In addition to the 'stac'
-instruction for Supervisor Mode Access Protection, an 'ifence' causes
-the 'access_ok' result to resolve in the pipeline before the cpu might
-take any speculative action on the pointer value.
+'array_idx' is proposed as a generic mechanism to mitigate against
+Spectre-variant-1 attacks, i.e. an attack that bypasses boundary checks
+via speculative execution). The 'array_idx' implementation is expected
+to be safe for current generation cpus across multiple architectures
+(ARM, x86).
 
-Since __get_user is a major kernel interface that deals with user
-controlled pointers, the '__uaccess_begin_nospec' mechanism will prevent
-speculative execution past an 'access_ok' permission check. While
-speculative execution past 'access_ok' is not enough to lead to a kernel
-memory leak, it is a necessary precondition.
+Based on an original implementation by Linus Torvalds, tweaked to remove
+speculative flows by Alexei Starovoitov, and tweaked again by Linus to
+introduce an x86 assembly implementation for the mask generation.
 
-To be clear, '__uaccess_begin_nospec' is addressing a class of potential
-problems near '__get_user' usages.
-
-Note, that while ifence is used to protect '__get_user', pointer masking
-will be used for 'get_user' since it incorporates a bounds check near
-the usage.
-
-There are no functional changes in this patch.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Suggested-by: Andi Kleen <ak@linux.intel.com>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Kees Cook <keescook@chromium.org>
+Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
+Co-developed-by: Alexei Starovoitov <ast@kernel.org>
+Suggested-by: Cyril Novikov <cnovikov@lynx.com>
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/x86/include/asm/barrier.h |    4 ++++
- arch/x86/include/asm/msr.h     |    3 +--
- arch/x86/include/asm/uaccess.h |    9 +++++++++
- 3 files changed, 14 insertions(+), 2 deletions(-)
+ include/linux/nospec.h |   64 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 64 insertions(+)
+ create mode 100644 include/linux/nospec.h
 
-diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
-index 30419b674ebd..5f11d4c5c862 100644
---- a/arch/x86/include/asm/barrier.h
-+++ b/arch/x86/include/asm/barrier.h
-@@ -46,6 +46,10 @@ static inline unsigned long array_idx_mask(unsigned long idx, unsigned long sz)
- 	return mask;
- }
- 
-+/* prevent speculative execution past this barrier */
-+#define ifence() alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC, \
-+				   "lfence", X86_FEATURE_LFENCE_RDTSC)
+diff --git a/include/linux/nospec.h b/include/linux/nospec.h
+new file mode 100644
+index 000000000000..f59f81889ba3
+--- /dev/null
++++ b/include/linux/nospec.h
+@@ -0,0 +1,64 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright(c) 2018 Intel Corporation. All rights reserved.
 +
- #ifdef CONFIG_X86_PPRO_FENCE
- #define dma_rmb()	rmb()
- #else
-diff --git a/arch/x86/include/asm/msr.h b/arch/x86/include/asm/msr.h
-index 07962f5f6fba..e426d2a33ff3 100644
---- a/arch/x86/include/asm/msr.h
-+++ b/arch/x86/include/asm/msr.h
-@@ -214,8 +214,7 @@ static __always_inline unsigned long long rdtsc_ordered(void)
- 	 * that some other imaginary CPU is updating continuously with a
- 	 * time stamp.
- 	 */
--	alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC,
--			  "lfence", X86_FEATURE_LFENCE_RDTSC);
-+	ifence();
- 	return rdtsc();
- }
- 
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index 574dff4d2913..626caf58183a 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -124,6 +124,11 @@ extern int __get_user_bad(void);
- 
- #define __uaccess_begin() stac()
- #define __uaccess_end()   clac()
-+#define __uaccess_begin_nospec()	\
-+({					\
-+	stac();				\
-+	ifence();			\
++#ifndef __NOSPEC_H__
++#define __NOSPEC_H__
++
++/*
++ * When idx is out of bounds (idx >= sz), the sign bit will be set.
++ * Extend the sign bit to all bits and invert, giving a result of zero
++ * for an out of bounds idx, or ~0UL if within bounds [0, sz).
++ */
++#ifndef array_idx_mask
++static inline unsigned long array_idx_mask(unsigned long idx, unsigned long sz)
++{
++	/*
++	 * Warn developers about inappropriate array_idx usage.
++	 *
++	 * Even if the cpu speculates past the WARN_ONCE branch, the
++	 * sign bit of idx is taken into account when generating the
++	 * mask.
++	 *
++	 * This warning is compiled out when the compiler can infer that
++	 * idx and sz are less than LONG_MAX.
++	 */
++	if (WARN_ONCE(idx > LONG_MAX || sz > LONG_MAX,
++			"array_idx limited to range of [0, LONG_MAX]\n"))
++		return 0;
++
++	/*
++	 * Always calculate and emit the mask even if the compiler
++	 * thinks the mask is not needed. The compiler does not take
++	 * into account the value of idx under speculation.
++	 */
++	OPTIMIZER_HIDE_VAR(idx);
++	return ~(long)(idx | (sz - 1UL - idx)) >> (BITS_PER_LONG - 1);
++}
++#endif
++
++/*
++ * array_idx - sanitize an array index after a bounds check
++ *
++ * For a code sequence like:
++ *
++ *     if (idx < sz) {
++ *         idx = array_idx(idx, sz);
++ *         val = array[idx];
++ *     }
++ *
++ * ...if the cpu speculates past the bounds check then array_idx() will
++ * clamp the index within the range of [0, sz).
++ */
++#define array_idx(idx, sz)						\
++({									\
++	typeof(idx) _i = (idx);						\
++	typeof(sz) _s = (sz);						\
++	unsigned long _mask = array_idx_mask(_i, _s);			\
++									\
++	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
++	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
++									\
++	_i &= _mask;							\
++	_i;								\
 +})
- 
- /*
-  * This is a type: either unsigned long, if the argument fits into
-@@ -487,6 +492,10 @@ struct __large_struct { unsigned long buf[100]; };
- 	__uaccess_begin();						\
- 	barrier();
- 
-+#define uaccess_try_nospec do {						\
-+	current->thread.uaccess_err = 0;				\
-+	__uaccess_begin_nospec();					\
-+
- #define uaccess_catch(err)						\
- 	__uaccess_end();						\
- 	(err) |= (current->thread.uaccess_err ? -EFAULT : 0);		\
++#endif /* __NOSPEC_H__ */
