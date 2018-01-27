@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:2492 "EHLO mga07.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:27303 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751832AbeA0IE3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 27 Jan 2018 03:04:29 -0500
-Subject: [PATCH v5 02/12] array_idx: sanitize speculative array de-references
+        id S1752038AbeA0IFS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 27 Jan 2018 03:05:18 -0500
+Subject: [PATCH v5 11/12] nl80211: sanitize array index in parse_txq_params
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 26 Jan 2018 23:55:24 -0800
-Message-ID: <151703972396.26578.7326612698912543866.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 26 Jan 2018 23:56:12 -0800
+Message-ID: <151703977228.26578.2872989927391963609.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,103 +15,61 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
-Cc: linux-arch@vger.kernel.org, Cyril Novikov <cnovikov@lynx.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, gregkh@linuxfoundation.org, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180127075524.lut58xb1Q8wLMG9N0Kwt1yIlZDxAMT0oTOlTEOpg5v8@z>
+Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, Christian Lamparter <chunkeey@gmail.com>, linux-wireless@vger.kernel.org, Johannes Berg <johannes@sipsolutions.net>, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
+Message-ID: <20180127075612.c7xqu1TJ62hi_9EGstajz3WH30Pnk0UDcP9iWOXf-7c@z>
 
-'array_idx' is proposed as a generic mechanism to mitigate against
-Spectre-variant-1 attacks, i.e. an attack that bypasses boundary checks
-via speculative execution). The 'array_idx' implementation is expected
-to be safe for current generation cpus across multiple architectures
-(ARM, x86).
+Wireless drivers rely on parse_txq_params to validate that
+txq_params->ac is less than NL80211_NUM_ACS by the time the low-level
+driver's ->conf_tx() handler is called. Use a new helper, 'array_idx',
+to sanitize txq_params->ac with respect to speculation. I.e. ensure that
+any speculation into ->conf_tx() handlers is done with a value of
+txq_params->ac that is within the bounds of [0, NL80211_NUM_ACS).
 
-Based on an original implementation by Linus Torvalds, tweaked to remove
-speculative flows by Alexei Starovoitov, and tweaked again by Linus to
-introduce an x86 assembly implementation for the mask generation.
-
-Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
-Co-developed-by: Alexei Starovoitov <ast@kernel.org>
-Suggested-by: Cyril Novikov <cnovikov@lynx.com>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
+Reported-by: Christian Lamparter <chunkeey@gmail.com>
+Reported-by: Elena Reshetova <elena.reshetova@intel.com>
+Acked-by: Johannes Berg <johannes@sipsolutions.net>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: linux-wireless@vger.kernel.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- include/linux/nospec.h |   64 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 64 insertions(+)
- create mode 100644 include/linux/nospec.h
+ net/wireless/nl80211.c |    9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/nospec.h b/include/linux/nospec.h
-new file mode 100644
-index 000000000000..f59f81889ba3
---- /dev/null
-+++ b/include/linux/nospec.h
-@@ -0,0 +1,64 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright(c) 2018 Intel Corporation. All rights reserved.
+diff --git a/net/wireless/nl80211.c b/net/wireless/nl80211.c
+index d396cb61a280..1479a1c7819c 100644
+--- a/net/wireless/nl80211.c
++++ b/net/wireless/nl80211.c
+@@ -16,6 +16,7 @@
+ #include <linux/nl80211.h>
+ #include <linux/rtnetlink.h>
+ #include <linux/netlink.h>
++#include <linux/nospec.h>
+ #include <linux/etherdevice.h>
+ #include <net/net_namespace.h>
+ #include <net/genetlink.h>
+@@ -2056,20 +2057,22 @@ static const struct nla_policy txq_params_policy[NL80211_TXQ_ATTR_MAX + 1] = {
+ static int parse_txq_params(struct nlattr *tb[],
+ 			    struct ieee80211_txq_params *txq_params)
+ {
++	u8 ac;
 +
-+#ifndef __NOSPEC_H__
-+#define __NOSPEC_H__
-+
-+/*
-+ * When idx is out of bounds (idx >= sz), the sign bit will be set.
-+ * Extend the sign bit to all bits and invert, giving a result of zero
-+ * for an out of bounds idx, or ~0UL if within bounds [0, sz).
-+ */
-+#ifndef array_idx_mask
-+static inline unsigned long array_idx_mask(unsigned long idx, unsigned long sz)
-+{
-+	/*
-+	 * Warn developers about inappropriate array_idx usage.
-+	 *
-+	 * Even if the cpu speculates past the WARN_ONCE branch, the
-+	 * sign bit of idx is taken into account when generating the
-+	 * mask.
-+	 *
-+	 * This warning is compiled out when the compiler can infer that
-+	 * idx and sz are less than LONG_MAX.
-+	 */
-+	if (WARN_ONCE(idx > LONG_MAX || sz > LONG_MAX,
-+			"array_idx limited to range of [0, LONG_MAX]\n"))
-+		return 0;
-+
-+	/*
-+	 * Always calculate and emit the mask even if the compiler
-+	 * thinks the mask is not needed. The compiler does not take
-+	 * into account the value of idx under speculation.
-+	 */
-+	OPTIMIZER_HIDE_VAR(idx);
-+	return ~(long)(idx | (sz - 1UL - idx)) >> (BITS_PER_LONG - 1);
-+}
-+#endif
-+
-+/*
-+ * array_idx - sanitize an array index after a bounds check
-+ *
-+ * For a code sequence like:
-+ *
-+ *     if (idx < sz) {
-+ *         idx = array_idx(idx, sz);
-+ *         val = array[idx];
-+ *     }
-+ *
-+ * ...if the cpu speculates past the bounds check then array_idx() will
-+ * clamp the index within the range of [0, sz).
-+ */
-+#define array_idx(idx, sz)						\
-+({									\
-+	typeof(idx) _i = (idx);						\
-+	typeof(sz) _s = (sz);						\
-+	unsigned long _mask = array_idx_mask(_i, _s);			\
-+									\
-+	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
-+	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
-+									\
-+	_i &= _mask;							\
-+	_i;								\
-+})
-+#endif /* __NOSPEC_H__ */
+ 	if (!tb[NL80211_TXQ_ATTR_AC] || !tb[NL80211_TXQ_ATTR_TXOP] ||
+ 	    !tb[NL80211_TXQ_ATTR_CWMIN] || !tb[NL80211_TXQ_ATTR_CWMAX] ||
+ 	    !tb[NL80211_TXQ_ATTR_AIFS])
+ 		return -EINVAL;
+ 
+-	txq_params->ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
++	ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
+ 	txq_params->txop = nla_get_u16(tb[NL80211_TXQ_ATTR_TXOP]);
+ 	txq_params->cwmin = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMIN]);
+ 	txq_params->cwmax = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMAX]);
+ 	txq_params->aifs = nla_get_u8(tb[NL80211_TXQ_ATTR_AIFS]);
+ 
+-	if (txq_params->ac >= NL80211_NUM_ACS)
++	if (ac >= NL80211_NUM_ACS)
+ 		return -EINVAL;
+-
++	txq_params->ac = array_idx(ac, NL80211_NUM_ACS);
+ 	return 0;
+ }
+ 
