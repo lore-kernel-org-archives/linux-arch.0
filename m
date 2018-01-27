@@ -1,55 +1,93 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH RFC 0/3] API for 128-bit IO access
-Date: Fri, 26 Jan 2018 18:11:49 +0000
-Message-ID: <20180126181149.GA17922@arm.com>
-References: <20180124090519.6680-1-ynorov@caviumnetworks.com>
- <20180124102212.GC20586@arm.com>
- <20180126090542.bsza7hqqinqwllcr@yury-thinkpad>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: [PATCH v5 00/12] spectre variant1 mitigations for tip/x86/pti
+Date: Fri, 26 Jan 2018 23:55:13 -0800
+Message-ID: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-crypto-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180126090542.bsza7hqqinqwllcr@yury-thinkpad>
-Sender: linux-crypto-owner@vger.kernel.org
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-crypto@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Andrew Pinski <Andrew.Pinski@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "David S . Miller" <davem@davemloft.net>, Geethasowjanya Akula <Geethasowjanya.Akula@cavium.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@redhat.com>, Nicholas Piggin <npiggin@gmail.com>, Sunil Goutham <Sunil.Goutham@cavium.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga03.intel.com ([134.134.136.65]:25942 "EHLO mga03.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751446AbeA0IET (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 27 Jan 2018 03:04:19 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: tglx@linutronix.de
+Cc: Mark Rutland <mark.rutland@arm.com>, Cyril Novikov <cnovikov@lynx.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, Jiri Slaby <jslaby@suse.cz>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Andrew Honig <ahonig@google.com>, alan@linux.intel.com, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Jim Mattson <jmattson@google.com>C
 
-On Fri, Jan 26, 2018 at 12:05:42PM +0300, Yury Norov wrote:
-> On Wed, Jan 24, 2018 at 10:22:13AM +0000, Will Deacon wrote:
-> > On Wed, Jan 24, 2018 at 12:05:16PM +0300, Yury Norov wrote:
-> > > This series adds API for 128-bit memory IO access and enables it for ARM64.
-> > > The original motivation for 128-bit API came from new Cavium network device
-> > > driver. The hardware requires 128-bit access to make things work. See
-> > > description in patch 3 for details.
-> > > 
-> > > Also, starting from ARMv8.4, stp and ldp instructions become atomic, and
-> > > API for 128-bit access would be helpful in core arm64 code.
-> > 
-> > Only for normal, cacheable memory, so they're not suitable for IO accesses
-> > as you're proposing here.
-> 
-> Hi Will,
-> 
-> Thanks for clarification.
-> 
-> Could you elaborate, do you find 128-bit read/write API useless, or
-> you just correct my comment?
-> 
-> I think that ordered uniform 128-bit access API would be helpful, even
-> if not atomic.
+Hi Thomas,
 
-Sorry, but I strongly disagree here. Having an IO accessor that isn't
-guaranteed to be atomic is a recipe for disaster if it's not called out
-explicitly. You're much better off implementing something along the lines
-of <linux/io-128-nonatomic-hi-lo.h> using 2x64-bit accessors like we already
-have for the 2x32-bit case.
+Here's another spin of the spectre-v1 mitigations for 4.16.
 
-However, that doesn't solve your problem and is somewhat of a distraction.
-I'd suggest that in your case, where you have a device that relies on
-128-bit atomic access that is assumedly tightly integrated into your SoC,
-then the driver just codes it's own local implementation of the accessor,
-given that there isn't a way to guarantee the atomicity architecturally
-(and even within your SoC it might not be atomic to all endpoints).
+Changes since v4.1: [1]
+* Tweak the sanitization scheme yet again to make it even simpler. Now,
+  instead of 'array_ptr' to get a sanitized pointer to an array element,
+  just provide an array index sanitization helper 'array_idx' to be called
+  after successfully validating the index is in bounds. I.e. in the
+  exact same location one would otherwise put an lfence, place this
+  sanitizer:
 
-Will
+      if (idx < sz) {
+          idx = array_idx(idx, sz);
+          val = array[idx];
+      }
+
+  This lets the implementation include more sanity checking that the
+  compiler can usually compile out. It otherwise appears to produce
+  better assembly. This also cleans up the concern about comparing the
+  value returned from array_ptr to create another speculation point.
+  (Russell, Linus, Cyril)
+
+* Drop the syscall_64_fastpath.  This is the straightforward patch from
+  Linus that might also be in flight from Andy, but I went ahead and
+  included it since I did not see it on LKML yet.
+
+* Kill the MASK_NOSPEC macro and just open code it. (Andy)
+
+* Add system-call-number sanitization to the slow path syscall table
+  lookups.
+
+* Redo the array_ptr conversions with array_idx.
+
+* Update /sys/devices/system/cpu/vulnerabilities/spectre_v1 to indicate
+  the new protections. It now reports "Vulnerable: Minimal user pointer
+  sanitization". (Jiri)
+
+---
+
+Dan Williams (11):
+      array_idx: sanitize speculative array de-references
+      x86: implement array_idx_mask
+      x86: introduce __uaccess_begin_nospec and ifence
+      x86, __get_user: use __uaccess_begin_nospec
+      x86, get_user: use pointer masking to limit speculation
+      x86: remove the syscall_64 fast-path
+      x86: sanitize sycall table de-references under speculation
+      vfs, fdtable: prevent bounds-check bypass via speculative execution
+      kvm, x86: update spectre-v1 mitigation
+      nl80211: sanitize array index in parse_txq_params
+      x86/spectre: report get_user mitigation for spectre_v1
+
+Mark Rutland (1):
+      Documentation: document array_idx
+
+
+ Documentation/speculation.txt     |   87 ++++++++++++++++++++++++++++
+ arch/x86/entry/common.c           |    3 +
+ arch/x86/entry/entry_64.S         |  116 -------------------------------------
+ arch/x86/entry/syscall_64.c       |    7 +-
+ arch/x86/include/asm/barrier.h    |   26 ++++++++
+ arch/x86/include/asm/msr.h        |    3 -
+ arch/x86/include/asm/uaccess.h    |   15 ++++-
+ arch/x86/include/asm/uaccess_32.h |    6 +-
+ arch/x86/include/asm/uaccess_64.h |   12 ++--
+ arch/x86/kernel/cpu/bugs.c        |    2 -
+ arch/x86/kvm/vmx.c                |   14 +++-
+ arch/x86/lib/getuser.S            |   10 +++
+ arch/x86/lib/usercopy_32.c        |    8 +--
+ include/linux/fdtable.h           |    5 +-
+ include/linux/nospec.h            |   64 ++++++++++++++++++++
+ net/wireless/nl80211.c            |    9 ++-
+ 16 files changed, 239 insertions(+), 148 deletions(-)
+ create mode 100644 Documentation/speculation.txt
+ create mode 100644 include/linux/nospec.h
