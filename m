@@ -1,49 +1,65 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v5 12/12] x86/spectre: report get_user mitigation for
- spectre_v1
-Date: Fri, 26 Jan 2018 23:56:17 -0800
-Message-ID: <151703977742.26578.8362387033092864423.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Subject: [PATCH v5 11/12] nl80211: sanitize array index in parse_txq_params
+Date: Fri, 26 Jan 2018 23:56:12 -0800
+Message-ID: <151703977228.26578.2872989927391963609.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:20192 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752043AbeA0IFY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 27 Jan 2018 03:05:24 -0500
-In-Reply-To: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, torvalds@linux-foundation.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Jiri Slaby <jslaby@suse.cz>, alan@linux.intel.com
+Return-path: <linux-wireless-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <151703971300.26578.1185595719337719486.stgit-p8uTFz9XbKj2zm6wflaqv1nYeNYlB/vhral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Sender: linux-wireless-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, Christian Lamparter <chunkeey-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-wireless-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Johannes Berg <johannes-cdvu00un1VgdHxzADdlk8Q@public.gmane.org>, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Elena Reshetova <elena.reshetova-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, alan-VuQAYsv1563Yd54FQh9/CA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-Reflect the presence of 'get_user', '__get_user', and 'syscall'
-protections in sysfs. Keep the "Vulnerable" distinction given the
-expectation that the places that have been identified for 'array_idx'
-usage are likely incomplete.
+Wireless drivers rely on parse_txq_params to validate that
+txq_params->ac is less than NL80211_NUM_ACS by the time the low-level
+driver's ->conf_tx() handler is called. Use a new helper, 'array_idx',
+to sanitize txq_params->ac with respect to speculation. I.e. ensure that
+any speculation into ->conf_tx() handlers is done with a value of
+txq_params->ac that is within the bounds of [0, NL80211_NUM_ACS).
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Reported-by: Jiri Slaby <jslaby@suse.cz>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Reported-by: Christian Lamparter <chunkeey-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Reported-by: Elena Reshetova <elena.reshetova-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Acked-by: Johannes Berg <johannes-cdvu00un1VgdHxzADdlk8Q@public.gmane.org>
+Cc: "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
+Cc: linux-wireless-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Signed-off-by: Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
 ---
- arch/x86/kernel/cpu/bugs.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ net/wireless/nl80211.c |    9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
-index 390b3dc3d438..01d5ba48f745 100644
---- a/arch/x86/kernel/cpu/bugs.c
-+++ b/arch/x86/kernel/cpu/bugs.c
-@@ -269,7 +269,7 @@ ssize_t cpu_show_spectre_v1(struct device *dev,
+diff --git a/net/wireless/nl80211.c b/net/wireless/nl80211.c
+index d396cb61a280..1479a1c7819c 100644
+--- a/net/wireless/nl80211.c
++++ b/net/wireless/nl80211.c
+@@ -16,6 +16,7 @@
+ #include <linux/nl80211.h>
+ #include <linux/rtnetlink.h>
+ #include <linux/netlink.h>
++#include <linux/nospec.h>
+ #include <linux/etherdevice.h>
+ #include <net/net_namespace.h>
+ #include <net/genetlink.h>
+@@ -2056,20 +2057,22 @@ static const struct nla_policy txq_params_policy[NL80211_TXQ_ATTR_MAX + 1] = {
+ static int parse_txq_params(struct nlattr *tb[],
+ 			    struct ieee80211_txq_params *txq_params)
  {
- 	if (!boot_cpu_has_bug(X86_BUG_SPECTRE_V1))
- 		return sprintf(buf, "Not affected\n");
--	return sprintf(buf, "Vulnerable\n");
-+	return sprintf(buf, "Vulnerable: Minimal user pointer sanitization\n");
- }
++	u8 ac;
++
+ 	if (!tb[NL80211_TXQ_ATTR_AC] || !tb[NL80211_TXQ_ATTR_TXOP] ||
+ 	    !tb[NL80211_TXQ_ATTR_CWMIN] || !tb[NL80211_TXQ_ATTR_CWMAX] ||
+ 	    !tb[NL80211_TXQ_ATTR_AIFS])
+ 		return -EINVAL;
  
- ssize_t cpu_show_spectre_v2(struct device *dev,
+-	txq_params->ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
++	ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
+ 	txq_params->txop = nla_get_u16(tb[NL80211_TXQ_ATTR_TXOP]);
+ 	txq_params->cwmin = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMIN]);
+ 	txq_params->cwmax = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMAX]);
+ 	txq_params->aifs = nla_get_u8(tb[NL80211_TXQ_ATTR_AIFS]);
+ 
+-	if (txq_params->ac >= NL80211_NUM_ACS)
++	if (ac >= NL80211_NUM_ACS)
+ 		return -EINVAL;
