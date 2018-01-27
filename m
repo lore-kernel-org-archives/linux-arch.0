@@ -1,93 +1,128 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v5 00/12] spectre variant1 mitigations for tip/x86/pti
-Date: Fri, 26 Jan 2018 23:55:13 -0800
-Message-ID: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v5 01/12] Documentation: document array_idx
+Date: Fri, 26 Jan 2018 23:55:18 -0800
+Message-ID: <151703971882.26578.14987326469880344294.stgit@dwillia2-desk3.amr.corp.intel.com>
+References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:25942 "EHLO mga03.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:54245 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751446AbeA0IET (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 27 Jan 2018 03:04:19 -0500
+        id S1751832AbeA0IEY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 27 Jan 2018 03:04:24 -0500
+In-Reply-To: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
-Cc: Mark Rutland <mark.rutland@arm.com>, Cyril Novikov <cnovikov@lynx.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, Jiri Slaby <jslaby@suse.cz>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Andrew Honig <ahonig@google.com>, alan@linux.intel.com, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Jim Mattson <jmattson@google.com>C
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, gregkh@linuxfoundation.org, Jonathan Corbet <corbet@lwn.net>, Will Deacon <will.deacon@arm.com>, torvalds@linux-foundation.org, alan@linux.intel.com
 
-Hi Thomas,
+From: Mark Rutland <mark.rutland@arm.com>
 
-Here's another spin of the spectre-v1 mitigations for 4.16.
+Document the rationale and usage of the new array_idx() helper.
 
-Changes since v4.1: [1]
-* Tweak the sanitization scheme yet again to make it even simpler. Now,
-  instead of 'array_ptr' to get a sanitized pointer to an array element,
-  just provide an array index sanitization helper 'array_idx' to be called
-  after successfully validating the index is in bounds. I.e. in the
-  exact same location one would otherwise put an lfence, place this
-  sanitizer:
-
-      if (idx < sz) {
-          idx = array_idx(idx, sz);
-          val = array[idx];
-      }
-
-  This lets the implementation include more sanity checking that the
-  compiler can usually compile out. It otherwise appears to produce
-  better assembly. This also cleans up the concern about comparing the
-  value returned from array_ptr to create another speculation point.
-  (Russell, Linus, Cyril)
-
-* Drop the syscall_64_fastpath.  This is the straightforward patch from
-  Linus that might also be in flight from Andy, but I went ahead and
-  included it since I did not see it on LKML yet.
-
-* Kill the MASK_NOSPEC macro and just open code it. (Andy)
-
-* Add system-call-number sanitization to the slow path syscall table
-  lookups.
-
-* Redo the array_ptr conversions with array_idx.
-
-* Update /sys/devices/system/cpu/vulnerabilities/spectre_v1 to indicate
-  the new protections. It now reports "Vulnerable: Minimal user pointer
-  sanitization". (Jiri)
-
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
-
-Dan Williams (11):
-      array_idx: sanitize speculative array de-references
-      x86: implement array_idx_mask
-      x86: introduce __uaccess_begin_nospec and ifence
-      x86, __get_user: use __uaccess_begin_nospec
-      x86, get_user: use pointer masking to limit speculation
-      x86: remove the syscall_64 fast-path
-      x86: sanitize sycall table de-references under speculation
-      vfs, fdtable: prevent bounds-check bypass via speculative execution
-      kvm, x86: update spectre-v1 mitigation
-      nl80211: sanitize array index in parse_txq_params
-      x86/spectre: report get_user mitigation for spectre_v1
-
-Mark Rutland (1):
-      Documentation: document array_idx
-
-
- Documentation/speculation.txt     |   87 ++++++++++++++++++++++++++++
- arch/x86/entry/common.c           |    3 +
- arch/x86/entry/entry_64.S         |  116 -------------------------------------
- arch/x86/entry/syscall_64.c       |    7 +-
- arch/x86/include/asm/barrier.h    |   26 ++++++++
- arch/x86/include/asm/msr.h        |    3 -
- arch/x86/include/asm/uaccess.h    |   15 ++++-
- arch/x86/include/asm/uaccess_32.h |    6 +-
- arch/x86/include/asm/uaccess_64.h |   12 ++--
- arch/x86/kernel/cpu/bugs.c        |    2 -
- arch/x86/kvm/vmx.c                |   14 +++-
- arch/x86/lib/getuser.S            |   10 +++
- arch/x86/lib/usercopy_32.c        |    8 +--
- include/linux/fdtable.h           |    5 +-
- include/linux/nospec.h            |   64 ++++++++++++++++++++
- net/wireless/nl80211.c            |    9 ++-
- 16 files changed, 239 insertions(+), 148 deletions(-)
+ Documentation/speculation.txt |   87 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 87 insertions(+)
  create mode 100644 Documentation/speculation.txt
- create mode 100644 include/linux/nospec.h
+
+diff --git a/Documentation/speculation.txt b/Documentation/speculation.txt
+new file mode 100644
+index 000000000000..308177cab617
+--- /dev/null
++++ b/Documentation/speculation.txt
+@@ -0,0 +1,87 @@
++This document explains potential effects of speculation, and how undesirable
++effects can be mitigated portably using common APIs.
++
++===========
++Speculation
++===========
++
++To improve performance and minimize average latencies, many contemporary CPUs
++employ speculative execution techniques such as branch prediction, performing
++work which may be discarded at a later stage.
++
++Typically speculative execution cannot be observed from architectural state,
++such as the contents of registers. However, in some cases it is possible to
++observe its impact on microarchitectural state, such as the presence or
++absence of data in caches. Such state may form side-channels which can be
++observed to extract secret information.
++
++For example, in the presence of branch prediction, it is possible for bounds
++checks to be ignored by code which is speculatively executed. Consider the
++following code:
++
++	int load_array(int *array, unsigned int idx)
++	{
++		if (idx >= MAX_ARRAY_ELEMS)
++			return 0;
++		else
++			return array[idx];
++	}
++
++Which, on arm64, may be compiled to an assembly sequence such as:
++
++	CMP	<idx>, #MAX_ARRAY_ELEMS
++	B.LT	less
++	MOV	<returnval>, #0
++	RET
++  less:
++	LDR	<returnval>, [<array>, <idx>]
++	RET
++
++It is possible that a CPU mis-predicts the conditional branch, and
++speculatively loads array[idx], even if idx >= MAX_ARRAY_ELEMS. This value
++will subsequently be discarded, but the speculated load may affect
++microarchitectural state which can be subsequently measured.
++
++More complex sequences involving multiple dependent memory accesses may result
++in sensitive information being leaked. Consider the following code, building
++on the prior example:
++
++	int load_dependent_arrays(int *arr1, int *arr2, int idx)
++	{
++		int val1, val2,
++
++		val1 = load_array(arr1, idx);
++		val2 = load_array(arr2, val1);
++
++		return val2;
++	}
++
++Under speculation, the first call to load_array() may return the value of an
++out-of-bounds address, while the second call will influence microarchitectural
++state dependent on this value. This may provide an arbitrary read primitive.
++
++====================================
++Mitigating speculation side-channels
++====================================
++
++The kernel provides a generic API to ensure that bounds checks are respected
++even under speculation. Architectures which are affected by speculation-based
++side-channels are expected to implement these primitives.
++
++The array_idx() helper in <linux/nospec.h> can be used to prevent
++information from being leaked via side-channels.
++
++A call to array_idx(idx, sz) returns a sanitized index value that is
++bounded to [0, sz) even under cpu speculation conditions.
++
++This can be used to protect the earlier load_array() example:
++
++	int load_array(int *array, unsigned int idx)
++	{
++		if (idx >= MAX_ARRAY_ELEMS)
++			return 0;
++		else {
++			idx = array_idx(idx, MAX_ARRAY_ELEMS);
++			return array[idx];
++		}
++	}
