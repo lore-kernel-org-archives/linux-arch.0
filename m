@@ -1,66 +1,68 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v5 08/12] x86: sanitize sycall table de-references under
- speculation
-Date: Fri, 26 Jan 2018 23:55:56 -0800
-Message-ID: <151703975686.26578.8851773106290279966.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v5 10/12] kvm, x86: update spectre-v1 mitigation
+Date: Fri, 26 Jan 2018 23:56:07 -0800
+Message-ID: <151703976714.26578.17488222459772354305.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:54564 "EHLO mga12.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:27303 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751446AbeA0IFC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 27 Jan 2018 03:05:02 -0500
+        id S1752038AbeA0IFN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 27 Jan 2018 03:05:13 -0500
 In-Reply-To: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
+Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andrew Honig <ahonig@google.com>, gregkh@linuxfoundation.org, Paolo Bonzini <pbonzini@redhat.com>, alan@linux.intel.com, torvalds@linux-foundation.org, Jim Mattson <jmattson@google.com>
 
-The syscall table base is a user controlled function pointer in kernel
-space. Use 'array_idx' to prevent any out of bounds speculation. While
-retpoline prevents speculating into a userspace directed target it does
-not stop the pointer de-reference, the concern is leaking memory
-relative to the syscall table base, by observing instruction cache
-behavior.
+Commit 75f139aaf896 "KVM: x86: Add memory barrier on vmcs field lookup"
+added a raw 'asm("lfence");' to prevent a bounds check bypass of
+'vmcs_field_to_offset_table'. We can save an lfence in this path and
+just use the common 'array_idx' helper designed for these types of
+fixes.
 
-Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Andrew Honig <ahonig@google.com>
+Cc: Jim Mattson <jmattson@google.com>
+Acked-by: Paolo Bonzini <pbonzini@redhat.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/x86/entry/common.c |    3 +++
- 1 file changed, 3 insertions(+)
+ arch/x86/kvm/vmx.c |   14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/entry/common.c b/arch/x86/entry/common.c
-index 03505ffbe1b6..f78bf8bfdfae 100644
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -21,6 +21,7 @@
- #include <linux/export.h>
- #include <linux/context_tracking.h>
- #include <linux/user-return-notifier.h>
+diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
+index 924589c53422..5345e68cc506 100644
+--- a/arch/x86/kvm/vmx.c
++++ b/arch/x86/kvm/vmx.c
+@@ -34,6 +34,7 @@
+ #include <linux/tboot.h>
+ #include <linux/hrtimer.h>
+ #include <linux/frame.h>
 +#include <linux/nospec.h>
- #include <linux/uprobes.h>
- #include <linux/livepatch.h>
- #include <linux/syscalls.h>
-@@ -284,6 +285,7 @@ __visible void do_syscall_64(struct pt_regs *regs)
- 	 * regs->orig_ax, which changes the behavior of some syscalls.
- 	 */
- 	if (likely((nr & __SYSCALL_MASK) < NR_syscalls)) {
-+		nr = array_idx(nr & __SYSCALL_MASK, NR_syscalls);
- 		regs->ax = sys_call_table[nr & __SYSCALL_MASK](
- 			regs->di, regs->si, regs->dx,
- 			regs->r10, regs->r8, regs->r9);
-@@ -320,6 +322,7 @@ static __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs)
- 	}
+ #include "kvm_cache_regs.h"
+ #include "x86.h"
  
- 	if (likely(nr < IA32_NR_syscalls)) {
-+		nr = array_idx(nr, IA32_NR_syscalls);
- 		/*
- 		 * It's possible that a 32-bit syscall implementation
- 		 * takes a 64-bit parameter but nonetheless assumes that
+@@ -883,13 +884,18 @@ static const unsigned short vmcs_field_to_offset_table[] = {
+ 
+ static inline short vmcs_field_to_offset(unsigned long field)
+ {
+-	BUILD_BUG_ON(ARRAY_SIZE(vmcs_field_to_offset_table) > SHRT_MAX);
++	const size_t sz = ARRAY_SIZE(vmcs_field_to_offset_table);
++	unsigned short offset;
+ 
+-	if (field >= ARRAY_SIZE(vmcs_field_to_offset_table) ||
+-	    vmcs_field_to_offset_table[field] == 0)
++	BUILD_BUG_ON(sz > SHRT_MAX);
++	if (field >= sz)
+ 		return -ENOENT;
+ 
+-	return vmcs_field_to_offset_table[field];
++	field = array_idx(field, sz);
++	offset = vmcs_field_to_offset_table[field];
++	if (offset == 0)
++		return -ENOENT;
++	return offset;
+ }
+ 
+ static inline struct vmcs12 *get_vmcs12(struct kvm_vcpu *vcpu)
