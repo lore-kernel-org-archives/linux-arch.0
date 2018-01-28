@@ -1,65 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f171.google.com ([209.85.192.171]:42922 "EHLO
-        mail-pf0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751843AbeA1PW3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 28 Jan 2018 10:22:29 -0500
-Received: by mail-pf0-f171.google.com with SMTP id b25so2725538pfd.9
-        for <linux-arch@vger.kernel.org>; Sun, 28 Jan 2018 07:22:28 -0800 (PST)
-Content-Type: text/plain;
-        charset=us-ascii
-Mime-Version: 1.0 (1.0)
-Subject: Re: [PATCH v5 07/12] x86: remove the syscall_64 fast-path
-From: Andy Lutomirski <luto@amacapital.net>
-In-Reply-To: <20180128092914.dabnzq7arv4bebhn@gmail.com>
-Date: Sun, 28 Jan 2018 07:22:26 -0800
-Content-Transfer-Encoding: quoted-printable
-Message-ID: <5CF96758-5FD5-49BB-80E8-951AF5AB2B68@amacapital.net>
-References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com> <151703975137.26578.11230688940391207602.stgit@dwillia2-desk3.amr.corp.intel.com> <20180128092914.dabnzq7arv4bebhn@gmail.com>
+Received: from Galois.linutronix.de ([146.0.238.70]:40114 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751955AbeA1Shx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 28 Jan 2018 13:37:53 -0500
+Date: Sun, 28 Jan 2018 19:36:38 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v5 02/12] array_idx: sanitize speculative array
+ de-references
+In-Reply-To: <CAPcyv4jTaskPT1qXhdCO2mWVkcaMDMBq12vUJ_hSfjOU49qvgQ@mail.gmail.com>
+Message-ID: <alpine.DEB.2.20.1801281931180.2126@nanos>
+References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com> <151703972396.26578.7326612698912543866.stgit@dwillia2-desk3.amr.corp.intel.com> <20180128085500.djlm5rlbhjlpfj4i@gmail.com>
+ <CAPcyv4jTaskPT1qXhdCO2mWVkcaMDMBq12vUJ_hSfjOU49qvgQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, tglx@linutronix.de, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com, linux-kernel@vger.kernel.org
-Message-ID: <20180128152226.8eCYvXmFi11t74qcl_zAmXscFeX5bFZH-AUYWsFCKhQ@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Cyril Novikov <cnovikov@lynx.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alan Cox <alan@linux.intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20180128183638.sVUjnHE_IkARn1B8_Tu2nj_WuRcuAJzpVTzl_zFQo0Y@z>
 
+On Sun, 28 Jan 2018, Dan Williams wrote:
+> On Sun, Jan 28, 2018 at 12:55 AM, Ingo Molnar <mingo@kernel.org> wrote:
+> >> + */
+> >> +#define array_idx(idx, sz)                                           \
+> >> +({                                                                   \
+> >> +     typeof(idx) _i = (idx);                                         \
+> >> +     typeof(sz) _s = (sz);                                           \
+> >> +     unsigned long _mask = array_idx_mask(_i, _s);                   \
+> >> +                                                                     \
+> >> +     BUILD_BUG_ON(sizeof(_i) > sizeof(long));                        \
+> >> +     BUILD_BUG_ON(sizeof(_s) > sizeof(long));                        \
+> >> +                                                                     \
+> >> +     _i &= _mask;                                                    \
+> >> +     _i;                                                             \
+> >> +})
+> >> +#endif /* __NOSPEC_H__ */
+> >
+> > For heaven's sake, please name a size variable as 'size', not 'sz'. We don't have
+> > a shortage of characters and can deobfuscate common primitives, can we?
+> >
+> > Also, beyond the nits, I also hate the namespace here. We have a new generic
+> > header providing two new methods:
+> >
+> >         #include <linux/nospec.h>
+> >
+> >         array_idx_mask()
+> >         array_idx()
+> >
+> > which is then optimized for x86 in asm/barrier.h. That's already a non-sequitor.
+> >
+> > Then we introduce uaccess API variants with a _nospec() postfix.
+> >
+> > Then we add ifence() to x86.
+> >
+> > There's no naming coherency to this.
+> 
+> Ingo, I love you, but please take the incredulity down a bit,
+> especially when I had 'nospec' in all the names in v1. Thomas, Peter,
+> and Alexei wanted s/nospec_barrier/ifence/ and
 
+Sorry, I never was involved in that discussion.
 
+> s/array_idx_nospec/array_idx/. You can always follow on with a patch
+> to fix up the names and placements to your liking. While they'll pick
+> on my name choices, they won't pick on yours, because I simply can't
+> be bothered to care about a bikeshed color at this point after being
+> bounced around for 5 revisions of this patch set.
 
-> On Jan 28, 2018, at 1:29 AM, Ingo Molnar <mingo@kernel.org> wrote:
->=20
->=20
-> * Dan Williams <dan.j.williams@intel.com> wrote:
->=20
->> Quoting Linus:
->>=20
->>  "Honestly, I'd rather get rid of the fast-path entirely. Compared to
->>   all the PTI mess, it's not even noticeable.
->>=20
->>   And if we ever get CPU's that have this all fixed, we can re-visit
->>   introducing the fastpath. But this is all very messy and it doesn't
->>   seem worth it right now.
->>=20
->>   If we get rid of the fastpath, we can lay out the slow path slightly
->>   better, and get rid of some of those jump-overs. And we'd get rid of
->>   the ptregs hooks entirely.
->>=20
->>   So we can try to make the "slow" path better while at it, but I
->>   really don't think it matters much now in the post-PTI era. Sadly."
->=20
-> Please fix the title to have the proper prefix and to reference the functi=
-on that=20
-> is actually modified by the patch, i.e. something like:
->=20
-> s/ x86: remove the syscall_64 fast-path
-> / x86/entry/64: Remove the entry_SYSCALL_64() fast-path
->=20
-> With the title fixed:
->=20
-> Reviewed-by: Ingo Molnar <mingo@kernel.org>
+Oh well, we really need this kind of attitude right now. We are all fed up
+with that mess, but Ingo and I care about the details, consistency and
+general code quality beyond the current rush to get stuff solved. It's our
+damned job as maintainers.
 
-I have a very similar but not quite identical version I'll send out shortly.=
-  The difference is that I fixed the silly prologue.
+If you decide you don't care anymore, please let me know, so I can try to
+free up some cycles to pick up the stuff from where you decided to dump it.
 
->=20
-> Thanks,
->=20
->    Ingo
+Thanks,
+
+	tglx
