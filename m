@@ -1,93 +1,62 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [PATCH for 4.16 v2 06/11] Introduce sync_core_before_usermode
-Date: Mon, 29 Jan 2018 15:20:15 -0500
-Message-ID: <20180129202020.8515-7-mathieu.desnoyers@efficios.com>
-References: <20180129202020.8515-1-mathieu.desnoyers@efficios.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v5 04/12] x86: introduce __uaccess_begin_nospec and ifence
+Date: Mon, 29 Jan 2018 12:41:00 -0800
+Message-ID: <CAPcyv4hmkJyFgCBCXR8A1ykzk1tsxX-Lg4qgimhGxne=iG1Hzg@mail.gmail.com>
+References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151703973427.26578.15693075353773519333.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180128091437.4lbll5bev7mgdpug@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180129202020.8515-1-mathieu.desnoyers@efficios.com>
+In-Reply-To: <20180128091437.4lbll5bev7mgdpug@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, Mathieu Desnoyers <mathieu.desnoy>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Greg KH <gregkh@linuxfoundation.org>, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alan Cox <alan@linux.intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Introduce an architecture function that ensures the current CPU
-issues a core serializing instruction before returning to usermode.
+On Sun, Jan 28, 2018 at 1:14 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>
+> * Dan Williams <dan.j.williams@intel.com> wrote:
+>
+>> --- a/arch/x86/include/asm/uaccess.h
+>> +++ b/arch/x86/include/asm/uaccess.h
+>> @@ -124,6 +124,11 @@ extern int __get_user_bad(void);
+>>
+>>  #define __uaccess_begin() stac()
+>>  #define __uaccess_end()   clac()
+>> +#define __uaccess_begin_nospec()     \
+>> +({                                   \
+>> +     stac();                         \
+>> +     ifence();                       \
+>> +})
+>
+> BTW., wouldn't it be better to switch the barrier order here, i.e. to do:
+>
+>         ifence();                       \
+>         stac();                         \
+>
+> ?
+>
+> The reason is that stac()/clac() is usually paired, so there's a chance with short
+> sequences that it would resolve with 'no externally visible changes to flags'.
+>
+> Also, there's many cases where flags are modified _inside_ the STAC/CLAC section,
+> so grouping them together inside a speculation atom could be beneficial.
 
-This is needed for the membarrier "sync_core" command.
+I'm struggling a bit to grok this. Are you referring to the state of
+the flags from the address limit comparison? That's the result that
+needs fencing before speculative execution leaks to to the user
+pointer de-reference.
 
-Architectures defining the sync_core_before_usermode() static inline
-need to select ARCH_HAS_SYNC_CORE_BEFORE_USERMODE.
+> The flip side is that if the MFENCE stalls the STAC that is ahead of it could be
+> processed for 'free' - while it's always post barrier with my suggestion.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-CC: Thomas Gleixner <tglx@linutronix.de>
-CC: Andy Lutomirski <luto@kernel.org>
-CC: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-CC: Boqun Feng <boqun.feng@gmail.com>
-CC: Andrew Hunter <ahh@google.com>
-CC: Maged Michael <maged.michael@gmail.com>
-CC: Avi Kivity <avi@scylladb.com>
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-CC: Paul Mackerras <paulus@samba.org>
-CC: Michael Ellerman <mpe@ellerman.id.au>
-CC: Dave Watson <davejwatson@fb.com>
-CC: Ingo Molnar <mingo@redhat.com>
-CC: "H. Peter Anvin" <hpa@zytor.com>
-CC: Andrea Parri <parri.andrea@gmail.com>
-CC: Russell King <linux@armlinux.org.uk>
-CC: Greg Hackmann <ghackmann@google.com>
-CC: Will Deacon <will.deacon@arm.com>
-CC: David Sehr <sehr@google.com>
-CC: Linus Torvalds <torvalds@linux-foundation.org>
-CC: Arnd Bergmann <arnd@arndb.de>
-CC: x86@kernel.org
-CC: linux-arch@vger.kernel.org
----
-Changes since v1:
-- Introduce include/linux/sync_core.h
----
- include/linux/sync_core.h | 21 +++++++++++++++++++++
- init/Kconfig              |  3 +++
- 2 files changed, 24 insertions(+)
- create mode 100644 include/linux/sync_core.h
+This 'for free' aspect is what I aiming for.
 
-diff --git a/include/linux/sync_core.h b/include/linux/sync_core.h
-new file mode 100644
-index 000000000000..013da4b8b327
---- /dev/null
-+++ b/include/linux/sync_core.h
-@@ -0,0 +1,21 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LINUX_SYNC_CORE_H
-+#define _LINUX_SYNC_CORE_H
-+
-+#ifdef CONFIG_ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
-+#include <asm/sync_core.h>
-+#else
-+/*
-+ * This is a dummy sync_core_before_usermode() implementation that can be used
-+ * on all architectures which return to user-space through core serializing
-+ * instructions.
-+ * If your architecture returns to user-space through non-core-serializing
-+ * instructions, you need to write your own functions.
-+ */
-+static inline void sync_core_before_usermode(void)
-+{
-+}
-+#endif
-+
-+#endif /* _LINUX_SYNC_CORE_H */
-+
-diff --git a/init/Kconfig b/init/Kconfig
-index 2d118b6adee2..30208da2221f 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1918,3 +1918,6 @@ config ASN1
- 	  functions to call on what tags.
- 
- source "kernel/Kconfig.locks"
-+
-+config ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
-+	bool
--- 
-2.11.0
+>
+> But in any case it would be nice to see a discussion of this aspect in the
+> changelog, even if the patch does not change.
+
+I'll add a note to the changelog that having the fence after the
+'stac' hopefully allows some overlap of the cost of 'stac' and the
+flushing of the instruction pipeline.
