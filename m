@@ -1,78 +1,65 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v5 02/12] array_idx: sanitize speculative array
- de-references
-Date: Sun, 28 Jan 2018 19:36:38 +0100 (CET)
-Message-ID: <alpine.DEB.2.20.1801281931180.2126@nanos>
-References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com> <151703972396.26578.7326612698912543866.stgit@dwillia2-desk3.amr.corp.intel.com> <20180128085500.djlm5rlbhjlpfj4i@gmail.com>
- <CAPcyv4jTaskPT1qXhdCO2mWVkcaMDMBq12vUJ_hSfjOU49qvgQ@mail.gmail.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [GIT PULL tools] Linux kernel memory model
+Date: Mon, 29 Jan 2018 07:57:24 +0100
+Message-ID: <20180129065724.ybrdsabvktq7fbqg@gmail.com>
+References: <20180125093440.GA875@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <kernel-hardening-return-11488-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CAPcyv4jTaskPT1qXhdCO2mWVkcaMDMBq12vUJ_hSfjOU49qvgQ@mail.gmail.com>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Cyril Novikov <cnovikov@lynx.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alan Cox <alan@linux.intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:55609 "EHLO
+        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751127AbeA2G52 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jan 2018 01:57:28 -0500
+Content-Disposition: inline
+In-Reply-To: <20180125093440.GA875@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, boqun.feng@gmail.com, will.deacon@arm.com, peterz@infradead.org, npiggin@gmail.com, dhowells@redhat.com, elena.reshetova@intel.com, mhocko@suse.com, akiyks@gmail.com, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
 
-On Sun, 28 Jan 2018, Dan Williams wrote:
-> On Sun, Jan 28, 2018 at 12:55 AM, Ingo Molnar <mingo@kernel.org> wrote:
-> >> + */
-> >> +#define array_idx(idx, sz)                                           \
-> >> +({                                                                   \
-> >> +     typeof(idx) _i = (idx);                                         \
-> >> +     typeof(sz) _s = (sz);                                           \
-> >> +     unsigned long _mask = array_idx_mask(_i, _s);                   \
-> >> +                                                                     \
-> >> +     BUILD_BUG_ON(sizeof(_i) > sizeof(long));                        \
-> >> +     BUILD_BUG_ON(sizeof(_s) > sizeof(long));                        \
-> >> +                                                                     \
-> >> +     _i &= _mask;                                                    \
-> >> +     _i;                                                             \
-> >> +})
-> >> +#endif /* __NOSPEC_H__ */
-> >
-> > For heaven's sake, please name a size variable as 'size', not 'sz'. We don't have
-> > a shortage of characters and can deobfuscate common primitives, can we?
-> >
-> > Also, beyond the nits, I also hate the namespace here. We have a new generic
-> > header providing two new methods:
-> >
-> >         #include <linux/nospec.h>
-> >
-> >         array_idx_mask()
-> >         array_idx()
-> >
-> > which is then optimized for x86 in asm/barrier.h. That's already a non-sequitor.
-> >
-> > Then we introduce uaccess API variants with a _nospec() postfix.
-> >
-> > Then we add ifence() to x86.
-> >
-> > There's no naming coherency to this.
+
+hi Paul,
+
+* Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+
+> Hello, Ingo,
 > 
-> Ingo, I love you, but please take the incredulity down a bit,
-> especially when I had 'nospec' in all the names in v1. Thomas, Peter,
-> and Alexei wanted s/nospec_barrier/ifence/ and
+> This pull request contains a single commit that adds a memory model to
+> the tools directory.  This memory model can (roughly speaking) be thought
+> of as an automated version of memory-barriers.txt.  It is written in the
+> "cat" language, which is executable by the externally provided "herd7"
+> simulator, which exhaustively explores the state space of small litmus
+> tests.
+> 
+> This memory model is accompanied by extensive documentation on its use
+> and its design.  Two versions have been sent to LKML and feedback
+> incorporated:
+> 
+> 1.	http://lkml.kernel.org/r/20171113184031.GA26302@linux.vnet.ibm.com
+> 2.	http://lkml.kernel.org/r/20180119035855.GA29296@linux.vnet.ibm.com
+> 
+> This model has been presented and demoed at a number of Linux gatherings,
+> including the 2016 LinuxCon EU, the 2016 Linux Plumbers Conference,
+> the 2016 Linux Kernel Summit, the 2017 linux.conf.au, and the 2017 Linux
+> Plumbers Conference, which featured a workshop helping a number of Linux
+> kernel hackers install and use the tool.
+> 
+> This memory model has matured to the point where it would be good to include
+> it in the Linux kernel, for example, to allow it to track changes as new
+> hardware and use cases are added.  We expect the rate of change to be similar
+> to that of Documentation/memory-barriers.txt.
+> 
+> This memory model is available in the git repository at:
+> 
+>   git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git 
+> 
+> for you to fetch changes up to 1c27b644c0fdbc61e113b8faee14baeb8df32486:
+> 
+>   Automate memory-barriers.txt; provide Linux-kernel memory model (2018-01-24 20:53:49 -0800)
 
-Sorry, I never was involved in that discussion.
-
-> s/array_idx_nospec/array_idx/. You can always follow on with a patch
-> to fix up the names and placements to your liking. While they'll pick
-> on my name choices, they won't pick on yours, because I simply can't
-> be bothered to care about a bikeshed color at this point after being
-> bounced around for 5 revisions of this patch set.
-
-Oh well, we really need this kind of attitude right now. We are all fed up
-with that mess, but Ingo and I care about the details, consistency and
-general code quality beyond the current rush to get stuff solved. It's our
-damned job as maintainers.
-
-If you decide you don't care anymore, please let me know, so I can try to
-free up some cycles to pick up the stuff from where you decided to dump it.
+Looks good to me, but the commit is not in the master branch of your tree, which 
+branch should I pull?
 
 Thanks,
 
-	tglx
+	Ingo
