@@ -1,137 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:57252 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751972AbeA3Suz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 30 Jan 2018 13:50:55 -0500
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH v2 2/3] arm64: fpsimd: Fix bad si_code for undiagnosed SIGFPE
-Date: Tue, 30 Jan 2018 18:50:42 +0000
-Message-ID: <1517338243-9749-3-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1517338243-9749-1-git-send-email-Dave.Martin@arm.com>
-References: <1517338243-9749-1-git-send-email-Dave.Martin@arm.com>
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:45534 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751677AbeA3TpB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jan 2018 14:45:01 -0500
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH v11 0/3] mm, x86, powerpc: Enhancements to Memory Protection Keys.
+Date: Tue, 30 Jan 2018 11:44:09 -0800
+Message-ID: <1517341452-11924-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>
-Message-ID: <20180130185042.FrN5X2tbCKQ5UPTFcN8cvL8e0-YvltWLx3TRvGDaYac@z>
+To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
+Message-ID: <20180130194409.hbKkXXR4tlZqb1qm8S3MG6Ld0JHqrsI4YVWAO0orAqg@z>
 
-Currently a SIGFPE delivered in response to a floating-point
-exception trap may have si_code set to 0 on arm64.  As reported by
-Eric, this is a bad idea since this is the value of SI_USER -- yet
-this signal is definitely not the result of kill(2), tgkill(2) etc.
-and si_uid and si_pid make limited sense whereas we do want to
-yield a value for si_addr (which doesn't exist for SI_USER).
+This patch series provides arch-neutral enhancements to
+enable memory-keys on new architecutes, and the corresponding
+changes in x86 and powerpc specific code to support that.
 
-It's not entirely clear whether the architecure permits a
-"spurious" fp exception trap where none of the exception flag bits
-in ESR_ELx is set.  (IMHO the architectural intent is to forbid
-this.)  However, it does permit those bits to contain garbage if
-the TFV bit in ESR_ELx is 0.  That case isn't currently handled at
-all and may result in si_code == 0 or si_code containing a FPE_FLT*
-constant corresponding to an exception that did not in fact happen.
+a) Provides ability to support upto 32 keys.  PowerPC
+	can handle 32 keys and hence needs this.
 
-There is nothing sensible we can return for si_code in such cases,
-but SI_USER is certainly not appropriate and will lead to violation
-of legitimate userspace assumptions.
+b) Arch-neutral code; and not the arch-specific code,
+   determines the format of the string, that displays the key
+   for each vma in smaps.
 
-This patch allocates a new si_code value FPE_UNKNOWN that at least
-does not conflict with any existing SI_* or FPE_* code, and yields
-this in si_code for undiagnosable cases.  This is probably the best
-simplicity/incorrectness tradeoff achieveable without relying on
-implementation-dependent features or adding a lot of code.  In any
-case, there appears to be no perfect solution possible that would
-justify a lot of effort here.
+PowerPC implementation of memory-keys is now in powerpc/next tree.
+https://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux.git/commit/?h=next&id=92e3da3cf193fd27996909956c12a23c0333da44
 
-Yielding FPE_UNKNOWN when some well-defined fp exception caused the
-trap is a violation of POSIX, but this is forced by the
-architecture.  We have no realistic prospect of yielding the
-correct code in such cases.  At present I am not aware of any ARMv8
-implementation that supports trapped floating-point exceptions in
-any case.
+History:
+-------
+version v11:
+	(1) code that displays key in smaps is not any more
+		defined under CONFIG_ARCH_HAS_PKEYS.
+       	    - Comment by Eric W. Biederman and Michal Hocko
+	(2) merged two patches that implemented (1).
+		- comment by Michal Hocko
 
-The new code may be applicable to other architectures for similar
-reasons.
+version prior to v11:
+	(1) used one additional bit from VM_HIGH_ARCH_*
+       		to support 32 keys.
+	    - Suggestion by Dave Hansen.
+	(2) powerpc specific changes to support memory keys.
 
-No attempt is made to provide ESR_ELx to userspace in the signal
-frame, since architectural limitations mean that it is unlikely to
-provide much diagnostic value, doesn't benefit existing software
-and would create ABI with no proven purpose.  The existing
-mechanism for passing it also has problems of its own which may
-result in the wrong value being passed to userspace due to
-interaction with mm faults.  The implied rework does not appear
-justified.
+Ram Pai (3):
+  mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS
+    is enabled
+  mm, powerpc, x86: introduce an additional vma bit for powerpc pkey
+  mm, x86: display pkey in smaps only if arch supports pkeys
 
-Reported-by: Eric W. Biederman <ebiederm@xmission.com>
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
----
- arch/arm64/include/asm/esr.h |  9 +++++++++
- arch/arm64/kernel/fpsimd.c   | 27 +++++++++++++++------------
- 2 files changed, 24 insertions(+), 12 deletions(-)
-
-diff --git a/arch/arm64/include/asm/esr.h b/arch/arm64/include/asm/esr.h
-index 014d7d8..c585e91 100644
---- a/arch/arm64/include/asm/esr.h
-+++ b/arch/arm64/include/asm/esr.h
-@@ -220,6 +220,15 @@
- 		(((e) & ESR_ELx_SYS64_ISS_OP2_MASK) >>		\
- 		 ESR_ELx_SYS64_ISS_OP2_SHIFT))
- 
-+/*
-+ * ISS field definitions for floating-point exception traps
-+ * (FP_EXC_32/FP_EXC_64).
-+ *
-+ * (The FPEXC_* constants are used instead for common bits.)
-+ */
-+
-+#define ESR_ELx_FP_EXC_TFV	(UL(1) << 23)
-+
- #ifndef __ASSEMBLY__
- #include <asm/types.h>
- 
-diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index fae81f7..4fecda1 100644
---- a/arch/arm64/kernel/fpsimd.c
-+++ b/arch/arm64/kernel/fpsimd.c
-@@ -39,6 +39,7 @@
- #include <linux/slab.h>
- #include <linux/sysctl.h>
- 
-+#include <asm/esr.h>
- #include <asm/fpsimd.h>
- #include <asm/cputype.h>
- #include <asm/simd.h>
-@@ -867,18 +868,20 @@ asmlinkage void do_fpsimd_acc(unsigned int esr, struct pt_regs *regs)
- asmlinkage void do_fpsimd_exc(unsigned int esr, struct pt_regs *regs)
- {
- 	siginfo_t info;
--	unsigned int si_code = 0;
--
--	if (esr & FPEXC_IOF)
--		si_code = FPE_FLTINV;
--	else if (esr & FPEXC_DZF)
--		si_code = FPE_FLTDIV;
--	else if (esr & FPEXC_OFF)
--		si_code = FPE_FLTOVF;
--	else if (esr & FPEXC_UFF)
--		si_code = FPE_FLTUND;
--	else if (esr & FPEXC_IXF)
--		si_code = FPE_FLTRES;
-+	unsigned int si_code = FPE_FLTUNK;
-+
-+	if (esr & ESR_ELx_FP_EXC_TFV) {
-+		if (esr & FPEXC_IOF)
-+			si_code = FPE_FLTINV;
-+		else if (esr & FPEXC_DZF)
-+			si_code = FPE_FLTDIV;
-+		else if (esr & FPEXC_OFF)
-+			si_code = FPE_FLTOVF;
-+		else if (esr & FPEXC_UFF)
-+			si_code = FPE_FLTUND;
-+		else if (esr & FPEXC_IXF)
-+			si_code = FPE_FLTRES;
-+	}
- 
- 	memset(&info, 0, sizeof(info));
- 	info.si_signo = SIGFPE;
--- 
-2.1.4
+ arch/x86/include/asm/pkeys.h |    1 +
+ arch/x86/kernel/fpu/xstate.c |    5 +++++
+ arch/x86/kernel/setup.c      |    8 --------
+ fs/proc/task_mmu.c           |   14 +++++++-------
+ include/linux/mm.h           |   12 +++++++-----
+ include/linux/pkeys.h        |    6 ++++++
+ 6 files changed, 26 insertions(+), 20 deletions(-)
