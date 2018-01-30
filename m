@@ -1,69 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f195.google.com ([74.125.82.195]:43276 "EHLO
-        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751962AbeA2UlC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jan 2018 15:41:02 -0500
-Received: by mail-ot0-f195.google.com with SMTP id p36so7817909otd.10
-        for <linux-arch@vger.kernel.org>; Mon, 29 Jan 2018 12:41:02 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <20180128091437.4lbll5bev7mgdpug@gmail.com>
-References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151703973427.26578.15693075353773519333.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180128091437.4lbll5bev7mgdpug@gmail.com>
+Received: from mga17.intel.com ([192.55.52.151]:27426 "EHLO mga17.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752376AbeA3BLR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 29 Jan 2018 20:11:17 -0500
+Subject: [PATCH v6 00/13] spectre variant1 mitigations for tip/x86/pti
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Mon, 29 Jan 2018 12:41:00 -0800
-Message-ID: <CAPcyv4hmkJyFgCBCXR8A1ykzk1tsxX-Lg4qgimhGxne=iG1Hzg@mail.gmail.com>
-Subject: Re: [PATCH v5 04/12] x86: introduce __uaccess_begin_nospec and ifence
-Content-Type: text/plain; charset="UTF-8"
+Date: Mon, 29 Jan 2018 17:02:10 -0800
+Message-ID: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Tom Lendacky <thomas.lendacky@amd.com>, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Greg KH <gregkh@linuxfoundation.org>, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alan Cox <alan@linux.intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20180129204100.SXDbwiB3E5ipQPaJbT1bOkUS-aWhgs6EgBGm5O_v_50@z>
+To: tglx@linutronix.de, mingo@kernel.org
+Cc: Mark Rutland <mark.rutland@arm.com>, Cyril Novikov <cnovikov@lynx.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "H. Peter Anvin" <hpa@zytor.com>, Jiri Slaby <jslaby@suse.cz>, Elena Reshetova <elena.reshetova@intel.com>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Jonathan Corbet <corbet@lwn.net>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Andrew Honig <ahonig@google.com>, alan@linux.intel.com, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, Jim Mattson <jmattson@google.com>, Christian Lamparter <chunkeey@gmail.com>, gregkh@linuxfoundation.org, linux-wireless@vger.kernel.org, linux-kernel@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, Johannes Berg <johannes@sipsolutions.net>, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20180130010210.zW1IRmVSw50oMl00e_2rX779r36_Pb5m3WpUZDi2YbQ@z>
 
-On Sun, Jan 28, 2018 at 1:14 AM, Ingo Molnar <mingo@kernel.org> wrote:
->
-> * Dan Williams <dan.j.williams@intel.com> wrote:
->
->> --- a/arch/x86/include/asm/uaccess.h
->> +++ b/arch/x86/include/asm/uaccess.h
->> @@ -124,6 +124,11 @@ extern int __get_user_bad(void);
->>
->>  #define __uaccess_begin() stac()
->>  #define __uaccess_end()   clac()
->> +#define __uaccess_begin_nospec()     \
->> +({                                   \
->> +     stac();                         \
->> +     ifence();                       \
->> +})
->
-> BTW., wouldn't it be better to switch the barrier order here, i.e. to do:
->
->         ifence();                       \
->         stac();                         \
->
-> ?
->
-> The reason is that stac()/clac() is usually paired, so there's a chance with short
-> sequences that it would resolve with 'no externally visible changes to flags'.
->
-> Also, there's many cases where flags are modified _inside_ the STAC/CLAC section,
-> so grouping them together inside a speculation atom could be beneficial.
+Hi Thomas, Ingo,
 
-I'm struggling a bit to grok this. Are you referring to the state of
-the flags from the address limit comparison? That's the result that
-needs fencing before speculative execution leaks to to the user
-pointer de-reference.
+Here is another spin of the Spectre variant1 mitigations.
 
-> The flip side is that if the MFENCE stalls the STAC that is ahead of it could be
-> processed for 'free' - while it's always post barrier with my suggestion.
+Changes since v5 [1]:
+* Use the _nospec suffix for all new infrastructure, i.e.
+  s/ifence/barrier_nospec/, s/array_idx/array_index_nospec/,
+  and s/array_idx_mask/array_index_mask_nospec/. (Ingo)
 
-This 'for free' aspect is what I aiming for.
+* Fix up array_index_mask_nospec() to have a proper kernel doc comment
+  (Thomas)
 
->
-> But in any case it would be nice to see a discussion of this aspect in the
-> changelog, even if the patch does not change.
+* Fix up copyright attribution in include/linux/nospec.h (Ingo)
 
-I'll add a note to the changelog that having the fence after the
-'stac' hopefully allows some overlap of the cost of 'stac' and the
-flushing of the instruction pipeline.
+* Spell out 'index' and 'size' throughout the patch set rather than
+  'idx' and 'sz'. (Ingo).
+
+* Clarify placement of barrier_nospec() relative to stac() in
+  __uaccess_begin_nospec() (Ingo)
+
+* Drop the syscall fast path elimination patch out of this series since
+  Andy is handling that separately. (Andy)
+
+* Simplify the x86 array_index_mask_nospec() assembly, no need for a
+  separate 32-bit version (Ingo)
+
+* Clarify that the 'cmp, sbb' sequence in the get_user_<size> variants
+  are effectively open coded array_index_nospec() instances where the
+  array base is the user pointer and the array limit is the task address
+  limit. (Ingo)
+
+* Replace '<function identifier>' with <function identifier>()
+  throughout the series. (Ingo)
+
+* Comment and whitespace fixups in asm/barrier.h (Ingo)
+
+* Split the definition of barrier_nospec() into its own patch separate
+  from its new usages with __uaccess_begin_nospec(). (Ingo)
+
+* Split the __uaccess_begin_nospec() patch into one that cleans up open
+  coded stac/clac usage and one that uses the new
+  __uaccess_begin_nospec() helper. (Ingo)
+
+* Change the contents of the 'bug/spectre_v1' sysfs file to:
+  "Mitigation: __user pointer sanitization" since these changes do raise
+  the kernel's defenses. (Ingo)
+
+[1]: https://www.spinics.net/lists/linux-arch/msg44193.html
+
+---
+
+Dan Williams (12):
+      array_index_nospec: sanitize speculative array de-references
+      x86: implement array_index_mask_nospec
+      x86: introduce barrier_nospec
+      x86: introduce __uaccess_begin_nospec
+      x86, usercopy: replace open coded stac/clac with __uaccess_{begin,end}
+      x86, __get_user: use __uaccess_begin_nospec
+      x86, get_user: use pointer masking to limit speculation
+      x86: sanitize syscall table de-references under speculation
+      vfs, fdtable: prevent bounds-check bypass via speculative execution
+      kvm, x86: update spectre-v1 mitigation
+      nl80211: sanitize array index in parse_txq_params
+      x86/spectre: report get_user mitigation for spectre_v1
+
+Mark Rutland (1):
+      Documentation: document array_index_nospec
+
+
+ Documentation/speculation.txt     |   90 +++++++++++++++++++++++++++++++++++++
+ arch/x86/entry/common.c           |    5 ++
+ arch/x86/include/asm/barrier.h    |   28 ++++++++++++
+ arch/x86/include/asm/msr.h        |    3 -
+ arch/x86/include/asm/uaccess.h    |   15 +++++-
+ arch/x86/include/asm/uaccess_32.h |    6 +-
+ arch/x86/include/asm/uaccess_64.h |   12 ++---
+ arch/x86/kernel/cpu/bugs.c        |    2 -
+ arch/x86/kvm/vmx.c                |   14 ++++--
+ arch/x86/lib/getuser.S            |   10 ++++
+ arch/x86/lib/usercopy_32.c        |    8 ++-
+ include/linux/fdtable.h           |    5 ++
+ include/linux/nospec.h            |   72 ++++++++++++++++++++++++++++++
+ net/wireless/nl80211.c            |    9 ++--
+ 14 files changed, 251 insertions(+), 28 deletions(-)
+ create mode 100644 Documentation/speculation.txt
+ create mode 100644 include/linux/nospec.h
