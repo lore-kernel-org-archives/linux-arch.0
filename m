@@ -1,8 +1,8 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v6 10/13] vfs,
- fdtable: prevent bounds-check bypass via speculative execution
-Date: Mon, 29 Jan 2018 17:03:05 -0800
-Message-ID: <151727418500.33451.17392199002892248656.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v6 13/13] x86/spectre: report get_user mitigation for
+ spectre_v1
+Date: Mon, 29 Jan 2018 17:03:21 -0800
+Message-ID: <151727420158.33451.11658324346540434635.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,43 +11,35 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: tglx@linutronix.de, mingo@kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, torvalds@linux-foundation.org, alan@linux.intel.com
+Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Jiri Slaby <jslaby@suse.cz>, alan@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-'fd' is a user controlled value that is used as a data dependency to
-read from the 'fdt->fd' array.  In order to avoid potential leaks of
-kernel memory values, block speculative execution of the instruction
-stream that could issue reads based on an invalid 'file *' returned from
-__fcheck_files.
+Reflect the presence of get_user(), __get_user(), and 'syscall'
+protections in sysfs. The expectation is that new and better tooling
+will allow the kernel to grow more usages of array_index_nospec(), for
+now, only claim mitigation for __user pointer de-references.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Co-developed-by: Elena Reshetova <elena.reshetova@intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Reported-by: Jiri Slaby <jslaby@suse.cz>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- include/linux/fdtable.h |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ arch/x86/kernel/cpu/bugs.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
-index 1c65817673db..41615f38bcff 100644
---- a/include/linux/fdtable.h
-+++ b/include/linux/fdtable.h
-@@ -10,6 +10,7 @@
- #include <linux/compiler.h>
- #include <linux/spinlock.h>
- #include <linux/rcupdate.h>
-+#include <linux/nospec.h>
- #include <linux/types.h>
- #include <linux/init.h>
- #include <linux/fs.h>
-@@ -82,8 +83,10 @@ static inline struct file *__fcheck_files(struct files_struct *files, unsigned i
+diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
+index 390b3dc3d438..06f1d4c5ec6b 100644
+--- a/arch/x86/kernel/cpu/bugs.c
++++ b/arch/x86/kernel/cpu/bugs.c
+@@ -269,7 +269,7 @@ ssize_t cpu_show_spectre_v1(struct device *dev,
  {
- 	struct fdtable *fdt = rcu_dereference_raw(files->fdt);
- 
--	if (fd < fdt->max_fds)
-+	if (fd < fdt->max_fds) {
-+		fd = array_index_nospec(fd, fdt->max_fds);
- 		return rcu_dereference_raw(fdt->fd[fd]);
-+	}
- 	return NULL;
+ 	if (!boot_cpu_has_bug(X86_BUG_SPECTRE_V1))
+ 		return sprintf(buf, "Not affected\n");
+-	return sprintf(buf, "Vulnerable\n");
++	return sprintf(buf, "Mitigation: __user pointer sanitization\n");
  }
  
+ ssize_t cpu_show_spectre_v2(struct device *dev,
