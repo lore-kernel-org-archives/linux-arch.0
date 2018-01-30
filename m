@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:17587 "EHLO mga11.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:11249 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752189AbeA3BLp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 29 Jan 2018 20:11:45 -0500
-Subject: [PATCH v6 05/13] x86: introduce __uaccess_begin_nospec
+        id S1752189AbeA3BLk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 29 Jan 2018 20:11:40 -0500
+Subject: [PATCH v6 04/13] x86: introduce barrier_nospec
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Mon, 29 Jan 2018 17:02:39 -0800
-Message-ID: <151727415922.33451.5796614273104346583.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Mon, 29 Jan 2018 17:02:33 -0800
+Message-ID: <151727415361.33451.9049453007262764675.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,30 +16,16 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org
 Cc: linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Andi Kleen <ak@linux.intel.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180130010239.lr9Lyc_eAhlvNakZeID2iLAmays8RngY9M7t-qhCDag@z>
+Message-ID: <20180130010233.1YPIUII56oAe3ULb9DjoOhxsDHOpDYHfkLh0L_tskts@z>
 
-For __get_user() paths, do not allow the kernel to speculate on the
-value of a user controlled pointer. In addition to the 'stac'
-instruction for Supervisor Mode Access Protection (SMAP), a
-barrier_nospec() causes the access_ok() result to resolve in the
-pipeline before the CPU might take any speculative action on the pointer
-value. Given the cost of 'stac' the speculation barrier is placed after
-'stac' to hopefully overlap the cost of disabling SMAP with the cost of
-flushing the instruction pipeline.
+Rename the open coded form of this instruction sequence from
+rdtsc_ordered() into a generic barrier primitive, barrier_nospec().
 
-Since __get_user is a major kernel interface that deals with user
-controlled pointers, the __uaccess_begin_nospec() mechanism will prevent
-speculative execution past an access_ok() permission check. While
-speculative execution past access_ok() is not enough to lead to a kernel
-memory leak, it is a necessary precondition.
-
-To be clear, __uaccess_begin_nospec() is addressing a class of potential
-problems near __get_user() usages.
-
-Note, that while the barrier_nospec() in __uaccess_begin_nospec() is
-used to protect __get_user(), pointer masking similar to
-array_index_nospec() will be used for get_user() since it incorporates a
-bounds check near the usage.
+One of the mitigations for Spectre variant1 vulnerabilities is to fence
+speculative execution after successfully validating a bounds check. I.e.
+force the result of a bounds check to resolve in the instruction
+pipeline to ensure speculative execution honors that result before
+potentially operating on out-of-bounds data.
 
 There are no functional changes in this patch.
 
@@ -54,33 +40,36 @@ Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/x86/include/asm/uaccess.h |    9 +++++++++
- 1 file changed, 9 insertions(+)
+ arch/x86/include/asm/barrier.h |    4 ++++
+ arch/x86/include/asm/msr.h     |    3 +--
+ 2 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index 574dff4d2913..663e9bde9fc9 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -124,6 +124,11 @@ extern int __get_user_bad(void);
+diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+index 551ccbe07c0f..1e7c955b6303 100644
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -48,6 +48,10 @@ static inline unsigned long array_index_mask_nospec(unsigned long index,
+ /* Override the default implementation from linux/nospec.h. */
+ #define array_index_mask_nospec array_index_mask_nospec
  
- #define __uaccess_begin() stac()
- #define __uaccess_end()   clac()
-+#define __uaccess_begin_nospec()	\
-+({					\
-+	stac();				\
-+	barrier_nospec();		\
-+})
- 
- /*
-  * This is a type: either unsigned long, if the argument fits into
-@@ -487,6 +492,10 @@ struct __large_struct { unsigned long buf[100]; };
- 	__uaccess_begin();						\
- 	barrier();
- 
-+#define uaccess_try_nospec do {						\
-+	current->thread.uaccess_err = 0;				\
-+	__uaccess_begin_nospec();					\
++/* Prevent speculative execution past this barrier. */
++#define barrier_nospec() alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC, \
++					   "lfence", X86_FEATURE_LFENCE_RDTSC)
 +
- #define uaccess_catch(err)						\
- 	__uaccess_end();						\
- 	(err) |= (current->thread.uaccess_err ? -EFAULT : 0);		\
+ #ifdef CONFIG_X86_PPRO_FENCE
+ #define dma_rmb()	rmb()
+ #else
+diff --git a/arch/x86/include/asm/msr.h b/arch/x86/include/asm/msr.h
+index 07962f5f6fba..30df295f6d94 100644
+--- a/arch/x86/include/asm/msr.h
++++ b/arch/x86/include/asm/msr.h
+@@ -214,8 +214,7 @@ static __always_inline unsigned long long rdtsc_ordered(void)
+ 	 * that some other imaginary CPU is updating continuously with a
+ 	 * time stamp.
+ 	 */
+-	alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC,
+-			  "lfence", X86_FEATURE_LFENCE_RDTSC);
++	barrier_nospec();
+ 	return rdtsc();
+ }
+ 
