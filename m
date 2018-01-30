@@ -1,126 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:17569 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752531AbeA3BL2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 29 Jan 2018 20:11:28 -0500
-Subject: [PATCH v6 02/13] array_index_nospec: sanitize speculative array
- de-references
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Mon, 29 Jan 2018 17:02:22 -0800
-Message-ID: <151727414229.33451.18411580953862676575.stgit@dwillia2-desk3.amr.corp.intel.com>
-In-Reply-To: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from mail-ot0-f173.google.com ([74.125.82.173]:34573 "EHLO
+        mail-ot0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752810AbeA3G3P (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jan 2018 01:29:15 -0500
+Received: by mail-ot0-f173.google.com with SMTP id x15so8962400ote.1
+        for <linux-arch@vger.kernel.org>; Mon, 29 Jan 2018 22:29:15 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <alpine.DEB.2.20.1801281931180.2126@nanos>
+References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151703972396.26578.7326612698912543866.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180128085500.djlm5rlbhjlpfj4i@gmail.com> <CAPcyv4jTaskPT1qXhdCO2mWVkcaMDMBq12vUJ_hSfjOU49qvgQ@mail.gmail.com>
+ <alpine.DEB.2.20.1801281931180.2126@nanos>
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Mon, 29 Jan 2018 22:29:12 -0800
+Message-ID: <CAPcyv4hSZ7=+076s+fmJ0HQ293H4X8829-LTrbvd8ZqJygGV6A@mail.gmail.com>
+Subject: Re: [PATCH v5 02/12] array_idx: sanitize speculative array de-references
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@kernel.org
-Cc: linux-arch@vger.kernel.org, Cyril Novikov <cnovikov@lynx.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, gregkh@linuxfoundation.org, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180130010222.VPqVPSgE68WBnB2-3QA90PJ4nMWPZzJOsErMf5v7E98@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Cyril Novikov <cnovikov@lynx.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alan Cox <alan@linux.intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20180130062912.dCSDal5_ijwp5G7Z-6hwjbDFx96YUHcKwsJFIXfrcbI@z>
 
-array_index_nospec() is proposed as a generic mechanism to mitigate
-against Spectre-variant-1 attacks, i.e. an attack that bypasses boundary
-checks via speculative execution. The array_index_nospec()
-implementation is expected to be safe for current generation CPUs across
-multiple architectures (ARM, x86).
+On Sun, Jan 28, 2018 at 10:36 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Sun, 28 Jan 2018, Dan Williams wrote:
+>> On Sun, Jan 28, 2018 at 12:55 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>> >> + */
+>> >> +#define array_idx(idx, sz)                                           \
+>> >> +({                                                                   \
+>> >> +     typeof(idx) _i = (idx);                                         \
+>> >> +     typeof(sz) _s = (sz);                                           \
+>> >> +     unsigned long _mask = array_idx_mask(_i, _s);                   \
+>> >> +                                                                     \
+>> >> +     BUILD_BUG_ON(sizeof(_i) > sizeof(long));                        \
+>> >> +     BUILD_BUG_ON(sizeof(_s) > sizeof(long));                        \
+>> >> +                                                                     \
+>> >> +     _i &= _mask;                                                    \
+>> >> +     _i;                                                             \
+>> >> +})
+>> >> +#endif /* __NOSPEC_H__ */
+>> >
+>> > For heaven's sake, please name a size variable as 'size', not 'sz'. We don't have
+>> > a shortage of characters and can deobfuscate common primitives, can we?
+>> >
+>> > Also, beyond the nits, I also hate the namespace here. We have a new generic
+>> > header providing two new methods:
+>> >
+>> >         #include <linux/nospec.h>
+>> >
+>> >         array_idx_mask()
+>> >         array_idx()
+>> >
+>> > which is then optimized for x86 in asm/barrier.h. That's already a non-sequitor.
+>> >
+>> > Then we introduce uaccess API variants with a _nospec() postfix.
+>> >
+>> > Then we add ifence() to x86.
+>> >
+>> > There's no naming coherency to this.
+>>
+>> Ingo, I love you, but please take the incredulity down a bit,
+>> especially when I had 'nospec' in all the names in v1. Thomas, Peter,
+>> and Alexei wanted s/nospec_barrier/ifence/ and
+>
+> Sorry, I never was involved in that discussion.
+>
+>> s/array_idx_nospec/array_idx/. You can always follow on with a patch
+>> to fix up the names and placements to your liking. While they'll pick
+>> on my name choices, they won't pick on yours, because I simply can't
+>> be bothered to care about a bikeshed color at this point after being
+>> bounced around for 5 revisions of this patch set.
+>
+> Oh well, we really need this kind of attitude right now. We are all fed up
+> with that mess, but Ingo and I care about the details, consistency and
+> general code quality beyond the current rush to get stuff solved. It's our
+> damned job as maintainers.
 
-Based on an original implementation by Linus Torvalds, tweaked to remove
-speculative flows by Alexei Starovoitov, and tweaked again by Linus to
-introduce an x86 assembly implementation for the mask generation.
+Of course, and everything about the technical feedback and suggestions
+was completely valid, on point, and made the patches that much better.
+What wasn't appreciated and what I am tired of grinning and bearing is
+the idea that it's only the maintainer that can show emotion, that
+it's only the maintainer that can be exasperated and burnt out.
 
-Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
-Co-developed-by: Alexei Starovoitov <ast@kernel.org>
-Suggested-by: Cyril Novikov <cnovikov@lynx.com>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
----
- include/linux/nospec.h |   72 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 72 insertions(+)
- create mode 100644 include/linux/nospec.h
+For example, I would have spun v6 the same day (same hour?) had the
+mail started, "hey I'm late to the party, why aren't all these helpers
+in a new _nospec namespace?". I might have pointed to the mails from
+Peter about ifence being his preferred name for a speculation barrier
+and Alexei's request to drop nospec [1] and moved on because naming is
+a maintainer's prerogative.
 
-diff --git a/include/linux/nospec.h b/include/linux/nospec.h
-new file mode 100644
-index 000000000000..cf7be4bbcf17
---- /dev/null
-+++ b/include/linux/nospec.h
-@@ -0,0 +1,72 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright(c) 2018 Linus Torvalds. All rights reserved.
-+// Copyright(c) 2018 Alexei Starovoitov. All rights reserved.
-+// Copyright(c) 2018 Intel Corporation. All rights reserved.
-+
-+#ifndef _LINUX_NOSPEC_H
-+#define _LINUX_NOSPEC_H
-+
-+/**
-+ * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
-+ * @index: array element index
-+ * @size: number of elements in array
-+ *
-+ * When @index is out of bounds (@index >= @size), the sign bit will be
-+ * set.  Extend the sign bit to all bits and invert, giving a result of
-+ * zero for an out of bounds index, or ~0 if within bounds [0, @size).
-+ */
-+#ifndef array_index_mask_nospec
-+static inline unsigned long array_index_mask_nospec(unsigned long index,
-+		unsigned long size)
-+{
-+	/*
-+	 * Warn developers about inappropriate array_index_nospec() usage.
-+	 *
-+	 * Even if the CPU speculates past the WARN_ONCE branch, the
-+	 * sign bit of @index is taken into account when generating the
-+	 * mask.
-+	 *
-+	 * This warning is compiled out when the compiler can infer that
-+	 * @index and @size are less than LONG_MAX.
-+	 */
-+	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,
-+			"array_index_nospec() limited to range of [0, LONG_MAX]\n"))
-+		return 0;
-+
-+	/*
-+	 * Always calculate and emit the mask even if the compiler
-+	 * thinks the mask is not needed. The compiler does not take
-+	 * into account the value of @index under speculation.
-+	 */
-+	OPTIMIZER_HIDE_VAR(index);
-+	return ~(long)(index | (size - 1UL - index)) >> (BITS_PER_LONG - 1);
-+}
-+#endif
-+
-+/*
-+ * array_index_nospec - sanitize an array index after a bounds check
-+ *
-+ * For a code sequence like:
-+ *
-+ *     if (index < size) {
-+ *         index = array_index_nospec(index, size);
-+ *         val = array[index];
-+ *     }
-+ *
-+ * ...if the CPU speculates past the bounds check then
-+ * array_index_nospec() will clamp the index within the range of [0,
-+ * size).
-+ */
-+#define array_index_nospec(index, size)					\
-+({									\
-+	typeof(index) _i = (index);					\
-+	typeof(size) _s = (size);					\
-+	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
-+									\
-+	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
-+	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
-+									\
-+	_i &= _mask;							\
-+	_i;								\
-+})
-+#endif /* _LINUX_NOSPEC_H */
+> If you decide you don't care anymore, please let me know, so I can try to
+> free up some cycles to pick up the stuff from where you decided to dump it.
+
+Care is a two way street. I respect yours and Ingo's workload, please
+respect mine.
+
+[1]: https://lkml.org/lkml/2018/1/9/1232
