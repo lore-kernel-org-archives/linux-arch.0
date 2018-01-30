@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:11437 "EHLO mga06.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:11402 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751448AbeA3BMQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 29 Jan 2018 20:12:16 -0500
-Subject: [PATCH v6 11/13] kvm, x86: update spectre-v1 mitigation
+        id S1752441AbeA3BLe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 29 Jan 2018 20:11:34 -0500
+Subject: [PATCH v6 03/13] x86: implement array_index_mask_nospec
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Mon, 29 Jan 2018 17:03:10 -0800
-Message-ID: <151727419015.33451.13762926723789552997.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Mon, 29 Jan 2018 17:02:28 -0800
+Message-ID: <151727414808.33451.1873237130672785331.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,55 +15,59 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andrew Honig <ahonig@google.com>, linux-kernel@vger.kernel.org, gregkh@linuxfoundation.org, Paolo Bonzini <pbonzini@redhat.com>, alan@linux.intel.com, torvalds@linux-foundation.org, Jim Mattson <jmattson@google.com>
-Message-ID: <20180130010310.40-z5ZSgfM4qDRtg4dXveJbUgFWx0Jv6ANTP9BMDBsY@z>
+Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
+Message-ID: <20180130010228.jK6-bmLqrOgkrAaYkKmjudAHwaOGvtBRG29FoK75QSM@z>
 
-Commit 75f139aaf896 "KVM: x86: Add memory barrier on vmcs field lookup"
-added a raw 'asm("lfence");' to prevent a bounds check bypass of
-'vmcs_field_to_offset_table'. We can save an lfence in this path and
-just use the common array_index_nospec() helper designed for these types
-of fixes.
+array_index_nospec() uses a mask to sanitize user controllable array
+indexes, i.e. generate a 0 mask if 'index' >= 'size', and a ~0 mask
+otherwise. While the default array_index_mask_nospec() handles the
+carry-bit from the (index - size) result in software. The x86
+array_index_mask_nospec() does the same, but the carry-bit is handled in
+the processor CF flag without conditional instructions in the control
+flow.
 
-Cc: Andrew Honig <ahonig@google.com>
-Cc: Jim Mattson <jmattson@google.com>
-Acked-by: Paolo Bonzini <pbonzini@redhat.com>
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/x86/kvm/vmx.c |   14 ++++++++++----
- 1 file changed, 10 insertions(+), 4 deletions(-)
+ arch/x86/include/asm/barrier.h |   24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
-diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
-index 924589c53422..8514186241d2 100644
---- a/arch/x86/kvm/vmx.c
-+++ b/arch/x86/kvm/vmx.c
-@@ -34,6 +34,7 @@
- #include <linux/tboot.h>
- #include <linux/hrtimer.h>
- #include <linux/frame.h>
-+#include <linux/nospec.h>
- #include "kvm_cache_regs.h"
- #include "x86.h"
+diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+index 01727dbc294a..551ccbe07c0f 100644
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -24,6 +24,30 @@
+ #define wmb()	asm volatile("sfence" ::: "memory")
+ #endif
  
-@@ -883,13 +884,18 @@ static const unsigned short vmcs_field_to_offset_table[] = {
- 
- static inline short vmcs_field_to_offset(unsigned long field)
- {
--	BUILD_BUG_ON(ARRAY_SIZE(vmcs_field_to_offset_table) > SHRT_MAX);
-+	const size_t size = ARRAY_SIZE(vmcs_field_to_offset_table);
-+	unsigned short offset;
- 
--	if (field >= ARRAY_SIZE(vmcs_field_to_offset_table) ||
--	    vmcs_field_to_offset_table[field] == 0)
-+	BUILD_BUG_ON(size > SHRT_MAX);
-+	if (field >= size)
- 		return -ENOENT;
- 
--	return vmcs_field_to_offset_table[field];
-+	field = array_index_nospec(field, size);
-+	offset = vmcs_field_to_offset_table[field];
-+	if (offset == 0)
-+		return -ENOENT;
-+	return offset;
- }
- 
- static inline struct vmcs12 *get_vmcs12(struct kvm_vcpu *vcpu)
++/**
++ * array_index_mask_nospec() - generate a mask that is ~0UL when the
++ * 	bounds check succeeds and 0 otherwise
++ * @index: array element index
++ * @size: number of elements in array
++ *
++ * Returns:
++ *     0 - (index < size)
++ */
++static inline unsigned long array_index_mask_nospec(unsigned long index,
++		unsigned long size)
++{
++	unsigned long mask;
++
++	asm ("cmp %1,%2; sbb %0,%0;"
++			:"=r" (mask)
++			:"r"(size),"r" (index)
++			:"cc");
++	return mask;
++}
++
++/* Override the default implementation from linux/nospec.h. */
++#define array_index_mask_nospec array_index_mask_nospec
++
+ #ifdef CONFIG_X86_PPRO_FENCE
+ #define dma_rmb()	rmb()
+ #else
