@@ -1,8 +1,7 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v6 09/13] x86: sanitize syscall table de-references under
- speculation
-Date: Mon, 29 Jan 2018 17:02:59 -0800
-Message-ID: <151727417984.33451.1216731042505722161.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v6 12/13] nl80211: sanitize array index in parse_txq_params
+Date: Mon, 29 Jan 2018 17:03:15 -0800
+Message-ID: <151727419584.33451.7700736761686184303.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,54 +10,62 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: tglx@linutronix.de, mingo@kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
+Cc: linux-arch@vger.kernel.org, Christian Lamparter <chunkeey@gmail.com>, gregkh@linuxfoundation.org, kernel-hardening@lists.openwall.com, linux-wireless@vger.kernel.org, linux-kernel@vger.kernel.org, Johannes Berg <johannes@sipsolutions.net>, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, Elena Reshetova <elena.reshetova@intel.com>, alan@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-The syscall table base is a user controlled function pointer in kernel
-space. Use array_index_nospec() to prevent any out of bounds
-speculation. While retpoline prevents speculating into a userspace
-directed target it does not stop the pointer de-reference, the concern
-is leaking memory relative to the syscall table base, by observing
-instruction cache behavior.
+Wireless drivers rely on parse_txq_params to validate that
+txq_params->ac is less than NL80211_NUM_ACS by the time the low-level
+driver's ->conf_tx() handler is called. Use a new helper,
+array_index_nospec(), to sanitize txq_params->ac with respect to
+speculation. I.e. ensure that any speculation into ->conf_tx() handlers
+is done with a value of txq_params->ac that is within the bounds of [0,
+NL80211_NUM_ACS).
 
-Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: Andy Lutomirski <luto@kernel.org>
+Reported-by: Christian Lamparter <chunkeey@gmail.com>
+Reported-by: Elena Reshetova <elena.reshetova@intel.com>
+Acked-by: Johannes Berg <johannes@sipsolutions.net>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: linux-wireless@vger.kernel.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/x86/entry/common.c |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ net/wireless/nl80211.c |    9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/entry/common.c b/arch/x86/entry/common.c
-index 03505ffbe1b6..390abbc4c915 100644
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -21,6 +21,7 @@
- #include <linux/export.h>
- #include <linux/context_tracking.h>
- #include <linux/user-return-notifier.h>
+diff --git a/net/wireless/nl80211.c b/net/wireless/nl80211.c
+index d396cb61a280..81bef0676e1d 100644
+--- a/net/wireless/nl80211.c
++++ b/net/wireless/nl80211.c
+@@ -16,6 +16,7 @@
+ #include <linux/nl80211.h>
+ #include <linux/rtnetlink.h>
+ #include <linux/netlink.h>
 +#include <linux/nospec.h>
- #include <linux/uprobes.h>
- #include <linux/livepatch.h>
- #include <linux/syscalls.h>
-@@ -284,7 +285,8 @@ __visible void do_syscall_64(struct pt_regs *regs)
- 	 * regs->orig_ax, which changes the behavior of some syscalls.
- 	 */
- 	if (likely((nr & __SYSCALL_MASK) < NR_syscalls)) {
--		regs->ax = sys_call_table[nr & __SYSCALL_MASK](
-+		nr = array_index_nospec(nr & __SYSCALL_MASK, NR_syscalls);
-+		regs->ax = sys_call_table[nr](
- 			regs->di, regs->si, regs->dx,
- 			regs->r10, regs->r8, regs->r9);
- 	}
-@@ -320,6 +322,7 @@ static __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs)
- 	}
+ #include <linux/etherdevice.h>
+ #include <net/net_namespace.h>
+ #include <net/genetlink.h>
+@@ -2056,20 +2057,22 @@ static const struct nla_policy txq_params_policy[NL80211_TXQ_ATTR_MAX + 1] = {
+ static int parse_txq_params(struct nlattr *tb[],
+ 			    struct ieee80211_txq_params *txq_params)
+ {
++	u8 ac;
++
+ 	if (!tb[NL80211_TXQ_ATTR_AC] || !tb[NL80211_TXQ_ATTR_TXOP] ||
+ 	    !tb[NL80211_TXQ_ATTR_CWMIN] || !tb[NL80211_TXQ_ATTR_CWMAX] ||
+ 	    !tb[NL80211_TXQ_ATTR_AIFS])
+ 		return -EINVAL;
  
- 	if (likely(nr < IA32_NR_syscalls)) {
-+		nr = array_index_nospec(nr, IA32_NR_syscalls);
- 		/*
- 		 * It's possible that a 32-bit syscall implementation
- 		 * takes a 64-bit parameter but nonetheless assumes that
+-	txq_params->ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
++	ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
+ 	txq_params->txop = nla_get_u16(tb[NL80211_TXQ_ATTR_TXOP]);
+ 	txq_params->cwmin = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMIN]);
+ 	txq_params->cwmax = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMAX]);
+ 	txq_params->aifs = nla_get_u8(tb[NL80211_TXQ_ATTR_AIFS]);
+ 
+-	if (txq_params->ac >= NL80211_NUM_ACS)
++	if (ac >= NL80211_NUM_ACS)
+ 		return -EINVAL;
+-
++	txq_params->ac = array_index_nospec(ac, NL80211_NUM_ACS);
+ 	return 0;
+ }
+ 
