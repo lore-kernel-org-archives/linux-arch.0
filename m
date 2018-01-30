@@ -1,146 +1,43 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v11 3/3] mm, x86: display pkey in smaps only if arch supports pkeys
-Date: Tue, 30 Jan 2018 11:44:12 -0800
-Message-ID: <1517341452-11924-4-git-send-email-linuxram@us.ibm.com>
-References: <1517341452-11924-1-git-send-email-linuxram@us.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1517341452-11924-1-git-send-email-linuxram@us.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
-Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
-List-Id: linux-arch.vger.kernel.org
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v5 02/12] array_idx: sanitize speculative array de-references
+Date: Tue, 30 Jan 2018 12:13:18 -0800
+Message-ID: <CAPcyv4jTbH6As_SC2Po8j5mB6jKLcwMr3Yn=19aTN2yMgBR=iw@mail.gmail.com>
+References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151703972396.26578.7326612698912543866.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180128085500.djlm5rlbhjlpfj4i@gmail.com> <CAPcyv4jTaskPT1qXhdCO2mWVkcaMDMBq12vUJ_hSfjOU49qvgQ@mail.gmail.com>
+ <alpine.DEB.2.20.1801281931180.2126@nanos> <CAPcyv4hSZ7=+076s+fmJ0HQ293H4X8829-LTrbvd8ZqJygGV6A@mail.gmail.com>
+ <CA+55aFxLEL+8YA4MYkeyeUH7K8rZwBmGe6Z9V8QS=TYCREWDTQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ot0-f178.google.com ([74.125.82.178]:39943 "EHLO
+        mail-ot0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751907AbeA3UNT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jan 2018 15:13:19 -0500
+Received: by mail-ot0-f178.google.com with SMTP id x4so11172250otg.7
+        for <linux-arch@vger.kernel.org>; Tue, 30 Jan 2018 12:13:18 -0800 (PST)
+In-Reply-To: <CA+55aFxLEL+8YA4MYkeyeUH7K8rZwBmGe6Z9V8QS=TYCREWDTQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Cyril Novikov <cnovikov@lynx.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Alan Cox <alan@linux.intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arjan Van De Ven <arjan.van.de.ven@intel.com>
 
-Currently the  architecture  specific code is expected to
-display  the  protection  keys  in  smap  for a given vma.
-This can lead to redundant code and possibly to divergent
-formats in which the key gets displayed.
+[ adding Arjan ]
 
-This  patch  changes  the implementation. It displays the
-pkey only if the architecture support pkeys, i.e
-arch_pkeys_enabled() returns true.  This patch
-provides x86 implementation for arch_pkeys_enabled().
-
-x86 arch_show_smap() function is not needed anymore.
-Deleting it.
-
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
----
- arch/x86/include/asm/pkeys.h |    1 +
- arch/x86/kernel/fpu/xstate.c |    5 +++++
- arch/x86/kernel/setup.c      |    8 --------
- fs/proc/task_mmu.c           |    9 ++++-----
- include/linux/pkeys.h        |    6 ++++++
- 5 files changed, 16 insertions(+), 13 deletions(-)
-
-diff --git a/arch/x86/include/asm/pkeys.h b/arch/x86/include/asm/pkeys.h
-index a0ba1ff..f6c287b 100644
---- a/arch/x86/include/asm/pkeys.h
-+++ b/arch/x86/include/asm/pkeys.h
-@@ -6,6 +6,7 @@
- 
- extern int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 		unsigned long init_val);
-+extern bool arch_pkeys_enabled(void);
- 
- /*
-  * Try to dedicate one of the protection keys to be used as an
-diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
-index 87a57b7..4f566e9 100644
---- a/arch/x86/kernel/fpu/xstate.c
-+++ b/arch/x86/kernel/fpu/xstate.c
-@@ -945,6 +945,11 @@ int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 
- 	return 0;
- }
-+
-+bool arch_pkeys_enabled(void)
-+{
-+	return boot_cpu_has(X86_FEATURE_OSPKE);
-+}
- #endif /* ! CONFIG_ARCH_HAS_PKEYS */
- 
- /*
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 8af2e8d..ddf945a 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -1326,11 +1326,3 @@ static int __init register_kernel_offset_dumper(void)
- 	return 0;
- }
- __initcall(register_kernel_offset_dumper);
--
--void arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
--{
--	if (!boot_cpu_has(X86_FEATURE_OSPKE))
--		return;
--
--	seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
--}
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 0edd4da..6f9fbde 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -18,6 +18,7 @@
- #include <linux/page_idle.h>
- #include <linux/shmem_fs.h>
- #include <linux/uaccess.h>
-+#include <linux/pkeys.h>
- 
- #include <asm/elf.h>
- #include <asm/tlb.h>
-@@ -728,10 +729,6 @@ static int smaps_hugetlb_range(pte_t *pte, unsigned long hmask,
- }
- #endif /* HUGETLB_PAGE */
- 
--void __weak arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
--{
--}
--
- static int show_smap(struct seq_file *m, void *v, int is_pid)
- {
- 	struct proc_maps_private *priv = m->private;
-@@ -851,9 +848,11 @@ static int show_smap(struct seq_file *m, void *v, int is_pid)
- 			   (unsigned long)(mss->pss >> (10 + PSS_SHIFT)));
- 
- 	if (!rollup_mode) {
--		arch_show_smap(m, vma);
-+		if (arch_pkeys_enabled())
-+			seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
- 		show_smap_vma_flags(m, vma);
- 	}
-+
- 	m_cache_vma(m, vma);
- 	return ret;
- }
-diff --git a/include/linux/pkeys.h b/include/linux/pkeys.h
-index 0794ca7..dfdc609 100644
---- a/include/linux/pkeys.h
-+++ b/include/linux/pkeys.h
-@@ -13,6 +13,7 @@
- #define arch_override_mprotect_pkey(vma, prot, pkey) (0)
- #define PKEY_DEDICATED_EXECUTE_ONLY 0
- #define ARCH_VM_PKEY_FLAGS 0
-+#define vma_pkey(vma) 0
- 
- static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
- {
-@@ -35,6 +36,11 @@ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 	return 0;
- }
- 
-+static inline bool arch_pkeys_enabled(void)
-+{
-+	return false;
-+}
-+
- static inline void copy_init_pkru_to_fpregs(void)
- {
- }
--- 
-1.7.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+On Tue, Jan 30, 2018 at 11:38 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+[..]
+> Anyway, I do think the patches I've seen so far are ok, and the real
+> reason I'm writing this email is actually more about future patches:
+> do we have a good handle on where these array index sanitations will
+> be needed?
+>
+> Also, while array limit checking was obviously the official
+> "spectre-v1" issue, I do wonder if there are possible other issues
+> where mispredicted conditional branches can end up leaking
+> information?
+>
+> IOW, is there some work on tooling/analysis/similar? Not asking for
+> near-term, but more of a "big picture" question..
+>
+>             Linus
