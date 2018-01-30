@@ -1,124 +1,76 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v6 02/13] array_index_nospec: sanitize speculative array
- de-references
-Date: Mon, 29 Jan 2018 17:02:22 -0800
-Message-ID: <151727414229.33451.18411580953862676575.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v6 06/13] x86,
+ usercopy: replace open coded stac/clac with __uaccess_{begin, end}
+Date: Mon, 29 Jan 2018 17:02:44 -0800
+Message-ID: <151727416438.33451.17309465232057176966.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <kernel-hardening-return-11511-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga18.intel.com ([134.134.136.126]:18804 "EHLO mga18.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751448AbeA3BLu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 29 Jan 2018 20:11:50 -0500
 In-Reply-To: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org
-Cc: linux-arch@vger.kernel.org, Cyril Novikov <cnovikov@lynx.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, gregkh@linuxfoundation.org, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
 
-array_index_nospec() is proposed as a generic mechanism to mitigate
-against Spectre-variant-1 attacks, i.e. an attack that bypasses boundary
-checks via speculative execution. The array_index_nospec()
-implementation is expected to be safe for current generation CPUs across
-multiple architectures (ARM, x86).
+In preparation for converting some __uaccess_begin() instances to
+__uacess_begin_nospec(), make sure all 'from user' uaccess paths are
+using the _begin(), _end() helpers rather than open-coded stac() and
+clac().
 
-Based on an original implementation by Linus Torvalds, tweaked to remove
-speculative flows by Alexei Starovoitov, and tweaked again by Linus to
-introduce an x86 assembly implementation for the mask generation.
+There are no functional changes in this patch.
 
-Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
-Co-developed-by: Alexei Starovoitov <ast@kernel.org>
-Suggested-by: Cyril Novikov <cnovikov@lynx.com>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Suggested-by: Ingo Molnar <mingo@redhat.com>
+Cc: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Kees Cook <keescook@chromium.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- include/linux/nospec.h |   72 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 72 insertions(+)
- create mode 100644 include/linux/nospec.h
+ arch/x86/lib/usercopy_32.c |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/nospec.h b/include/linux/nospec.h
-new file mode 100644
-index 000000000000..cf7be4bbcf17
---- /dev/null
-+++ b/include/linux/nospec.h
-@@ -0,0 +1,72 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright(c) 2018 Linus Torvalds. All rights reserved.
-+// Copyright(c) 2018 Alexei Starovoitov. All rights reserved.
-+// Copyright(c) 2018 Intel Corporation. All rights reserved.
-+
-+#ifndef _LINUX_NOSPEC_H
-+#define _LINUX_NOSPEC_H
-+
-+/**
-+ * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
-+ * @index: array element index
-+ * @size: number of elements in array
-+ *
-+ * When @index is out of bounds (@index >= @size), the sign bit will be
-+ * set.  Extend the sign bit to all bits and invert, giving a result of
-+ * zero for an out of bounds index, or ~0 if within bounds [0, @size).
-+ */
-+#ifndef array_index_mask_nospec
-+static inline unsigned long array_index_mask_nospec(unsigned long index,
-+		unsigned long size)
-+{
-+	/*
-+	 * Warn developers about inappropriate array_index_nospec() usage.
-+	 *
-+	 * Even if the CPU speculates past the WARN_ONCE branch, the
-+	 * sign bit of @index is taken into account when generating the
-+	 * mask.
-+	 *
-+	 * This warning is compiled out when the compiler can infer that
-+	 * @index and @size are less than LONG_MAX.
-+	 */
-+	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,
-+			"array_index_nospec() limited to range of [0, LONG_MAX]\n"))
-+		return 0;
-+
-+	/*
-+	 * Always calculate and emit the mask even if the compiler
-+	 * thinks the mask is not needed. The compiler does not take
-+	 * into account the value of @index under speculation.
-+	 */
-+	OPTIMIZER_HIDE_VAR(index);
-+	return ~(long)(index | (size - 1UL - index)) >> (BITS_PER_LONG - 1);
-+}
-+#endif
-+
-+/*
-+ * array_index_nospec - sanitize an array index after a bounds check
-+ *
-+ * For a code sequence like:
-+ *
-+ *     if (index < size) {
-+ *         index = array_index_nospec(index, size);
-+ *         val = array[index];
-+ *     }
-+ *
-+ * ...if the CPU speculates past the bounds check then
-+ * array_index_nospec() will clamp the index within the range of [0,
-+ * size).
-+ */
-+#define array_index_nospec(index, size)					\
-+({									\
-+	typeof(index) _i = (index);					\
-+	typeof(size) _s = (size);					\
-+	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
-+									\
-+	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
-+	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
-+									\
-+	_i &= _mask;							\
-+	_i;								\
-+})
-+#endif /* _LINUX_NOSPEC_H */
+diff --git a/arch/x86/lib/usercopy_32.c b/arch/x86/lib/usercopy_32.c
+index 1b377f734e64..de3436719e26 100644
+--- a/arch/x86/lib/usercopy_32.c
++++ b/arch/x86/lib/usercopy_32.c
+@@ -331,12 +331,12 @@ do {									\
+ 
+ unsigned long __copy_user_ll(void *to, const void *from, unsigned long n)
+ {
+-	stac();
++	__uaccess_begin();
+ 	if (movsl_is_ok(to, from, n))
+ 		__copy_user(to, from, n);
+ 	else
+ 		n = __copy_user_intel(to, from, n);
+-	clac();
++	__uaccess_end();
+ 	return n;
+ }
+ EXPORT_SYMBOL(__copy_user_ll);
+@@ -344,7 +344,7 @@ EXPORT_SYMBOL(__copy_user_ll);
+ unsigned long __copy_from_user_ll_nocache_nozero(void *to, const void __user *from,
+ 					unsigned long n)
+ {
+-	stac();
++	__uaccess_begin();
+ #ifdef CONFIG_X86_INTEL_USERCOPY
+ 	if (n > 64 && static_cpu_has(X86_FEATURE_XMM2))
+ 		n = __copy_user_intel_nocache(to, from, n);
+@@ -353,7 +353,7 @@ unsigned long __copy_from_user_ll_nocache_nozero(void *to, const void __user *fr
+ #else
+ 	__copy_user(to, from, n);
+ #endif
+-	clac();
++	__uaccess_end();
+ 	return n;
+ }
+ EXPORT_SYMBOL(__copy_from_user_ll_nocache_nozero);
