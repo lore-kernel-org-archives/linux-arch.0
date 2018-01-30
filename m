@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:43989 "EHLO mga02.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:17569 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751448AbeA3BMK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 29 Jan 2018 20:12:10 -0500
-Subject: [PATCH v6 10/13] vfs,
- fdtable: prevent bounds-check bypass via speculative execution
+        id S1752531AbeA3BL2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 29 Jan 2018 20:11:28 -0500
+Subject: [PATCH v6 02/13] array_index_nospec: sanitize speculative array
+ de-references
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Mon, 29 Jan 2018 17:03:05 -0800
-Message-ID: <151727418500.33451.17392199002892248656.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Mon, 29 Jan 2018 17:02:22 -0800
+Message-ID: <151727414229.33451.18411580953862676575.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,43 +16,111 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org
-Cc: linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, torvalds@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180130010305.Xn1d_13zSPm46n5ePOxu4tRDQqJ3OSDxPghQ90n_LLI@z>
+Cc: linux-arch@vger.kernel.org, Cyril Novikov <cnovikov@lynx.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, gregkh@linuxfoundation.org, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
+Message-ID: <20180130010222.VPqVPSgE68WBnB2-3QA90PJ4nMWPZzJOsErMf5v7E98@z>
 
-'fd' is a user controlled value that is used as a data dependency to
-read from the 'fdt->fd' array.  In order to avoid potential leaks of
-kernel memory values, block speculative execution of the instruction
-stream that could issue reads based on an invalid 'file *' returned from
-__fcheck_files.
+array_index_nospec() is proposed as a generic mechanism to mitigate
+against Spectre-variant-1 attacks, i.e. an attack that bypasses boundary
+checks via speculative execution. The array_index_nospec()
+implementation is expected to be safe for current generation CPUs across
+multiple architectures (ARM, x86).
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Co-developed-by: Elena Reshetova <elena.reshetova@intel.com>
+Based on an original implementation by Linus Torvalds, tweaked to remove
+speculative flows by Alexei Starovoitov, and tweaked again by Linus to
+introduce an x86 assembly implementation for the mask generation.
+
+Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
+Co-developed-by: Alexei Starovoitov <ast@kernel.org>
+Suggested-by: Cyril Novikov <cnovikov@lynx.com>
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- include/linux/fdtable.h |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ include/linux/nospec.h |   72 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 72 insertions(+)
+ create mode 100644 include/linux/nospec.h
 
-diff --git a/include/linux/fdtable.h b/include/linux/fdtable.h
-index 1c65817673db..41615f38bcff 100644
---- a/include/linux/fdtable.h
-+++ b/include/linux/fdtable.h
-@@ -10,6 +10,7 @@
- #include <linux/compiler.h>
- #include <linux/spinlock.h>
- #include <linux/rcupdate.h>
-+#include <linux/nospec.h>
- #include <linux/types.h>
- #include <linux/init.h>
- #include <linux/fs.h>
-@@ -82,8 +83,10 @@ static inline struct file *__fcheck_files(struct files_struct *files, unsigned i
- {
- 	struct fdtable *fdt = rcu_dereference_raw(files->fdt);
- 
--	if (fd < fdt->max_fds)
-+	if (fd < fdt->max_fds) {
-+		fd = array_index_nospec(fd, fdt->max_fds);
- 		return rcu_dereference_raw(fdt->fd[fd]);
-+	}
- 	return NULL;
- }
- 
+diff --git a/include/linux/nospec.h b/include/linux/nospec.h
+new file mode 100644
+index 000000000000..cf7be4bbcf17
+--- /dev/null
++++ b/include/linux/nospec.h
+@@ -0,0 +1,72 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright(c) 2018 Linus Torvalds. All rights reserved.
++// Copyright(c) 2018 Alexei Starovoitov. All rights reserved.
++// Copyright(c) 2018 Intel Corporation. All rights reserved.
++
++#ifndef _LINUX_NOSPEC_H
++#define _LINUX_NOSPEC_H
++
++/**
++ * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
++ * @index: array element index
++ * @size: number of elements in array
++ *
++ * When @index is out of bounds (@index >= @size), the sign bit will be
++ * set.  Extend the sign bit to all bits and invert, giving a result of
++ * zero for an out of bounds index, or ~0 if within bounds [0, @size).
++ */
++#ifndef array_index_mask_nospec
++static inline unsigned long array_index_mask_nospec(unsigned long index,
++		unsigned long size)
++{
++	/*
++	 * Warn developers about inappropriate array_index_nospec() usage.
++	 *
++	 * Even if the CPU speculates past the WARN_ONCE branch, the
++	 * sign bit of @index is taken into account when generating the
++	 * mask.
++	 *
++	 * This warning is compiled out when the compiler can infer that
++	 * @index and @size are less than LONG_MAX.
++	 */
++	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,
++			"array_index_nospec() limited to range of [0, LONG_MAX]\n"))
++		return 0;
++
++	/*
++	 * Always calculate and emit the mask even if the compiler
++	 * thinks the mask is not needed. The compiler does not take
++	 * into account the value of @index under speculation.
++	 */
++	OPTIMIZER_HIDE_VAR(index);
++	return ~(long)(index | (size - 1UL - index)) >> (BITS_PER_LONG - 1);
++}
++#endif
++
++/*
++ * array_index_nospec - sanitize an array index after a bounds check
++ *
++ * For a code sequence like:
++ *
++ *     if (index < size) {
++ *         index = array_index_nospec(index, size);
++ *         val = array[index];
++ *     }
++ *
++ * ...if the CPU speculates past the bounds check then
++ * array_index_nospec() will clamp the index within the range of [0,
++ * size).
++ */
++#define array_index_nospec(index, size)					\
++({									\
++	typeof(index) _i = (index);					\
++	typeof(size) _s = (size);					\
++	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
++									\
++	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
++	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
++									\
++	_i &= _mask;							\
++	_i;								\
++})
++#endif /* _LINUX_NOSPEC_H */
