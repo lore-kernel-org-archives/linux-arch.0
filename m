@@ -1,46 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:55734 "EHLO
-        mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751001AbeAaHHP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Jan 2018 02:07:15 -0500
-Date: Wed, 31 Jan 2018 08:07:11 +0100
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v11 0/3] mm, x86, powerpc: Enhancements to Memory
- Protection Keys.
-Message-ID: <20180131070711.pad45qmnougnh4vf@gmail.com>
-References: <1517341452-11924-1-git-send-email-linuxram@us.ibm.com>
+Received: from Galois.linutronix.de ([146.0.238.70]:45729 "EHLO
+        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752558AbeAaIHT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Jan 2018 03:07:19 -0500
+Date: Wed, 31 Jan 2018 09:07:10 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v6 11/13] kvm, x86: update spectre-v1 mitigation
+In-Reply-To: <CAPcyv4ihnC+ALbvqUWOOZ9zwBv7iy+2pBjLn9ed_duo9Z4TGKQ@mail.gmail.com>
+Message-ID: <alpine.DEB.2.20.1801310902180.2293@nanos>
+References: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com> <151727419015.33451.13762926723789552997.stgit@dwillia2-desk3.amr.corp.intel.com> <CAPcyv4ihnC+ALbvqUWOOZ9zwBv7iy+2pBjLn9ed_duo9Z4TGKQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1517341452-11924-1-git-send-email-linuxram@us.ibm.com>
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
-Message-ID: <20180131070711.gxGGr3Ny4ew5fAv5TOo7oQyjhg1liaMUR3IuE7Ow-Ss@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Andrew Honig <ahonig@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Paolo Bonzini <pbonzini@redhat.com>, Alan Cox <alan@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jim Mattson <jmattson@google.com>
+Message-ID: <20180131080710.6s3q0a3AssU7rfnSpiKrzO0iD5K0jiG9s5LizFkvWHM@z>
 
+On Tue, 30 Jan 2018, Dan Williams wrote:
 
-* Ram Pai <linuxram@us.ibm.com> wrote:
-
-> This patch series provides arch-neutral enhancements to
-> enable memory-keys on new architecutes, and the corresponding
-> changes in x86 and powerpc specific code to support that.
+> On Mon, Jan 29, 2018 at 5:03 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> > Commit 75f139aaf896 "KVM: x86: Add memory barrier on vmcs field lookup"
+> > added a raw 'asm("lfence");' to prevent a bounds check bypass of
+> > 'vmcs_field_to_offset_table'. We can save an lfence in this path and
+> > just use the common array_index_nospec() helper designed for these types
+> > of fixes.
+> >
+> > Cc: Andrew Honig <ahonig@google.com>
+> > Cc: Jim Mattson <jmattson@google.com>
+> > Acked-by: Paolo Bonzini <pbonzini@redhat.com>
+> > Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 > 
-> a) Provides ability to support upto 32 keys.  PowerPC
-> 	can handle 32 keys and hence needs this.
 > 
-> b) Arch-neutral code; and not the arch-specific code,
->    determines the format of the string, that displays the key
->    for each vma in smaps.
+> Hi Thomas,
 > 
-> PowerPC implementation of memory-keys is now in powerpc/next tree.
-> https://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux.git/commit/?h=next&id=92e3da3cf193fd27996909956c12a23c0333da44
+> I notice this one missing from -tip, I suspect because of the
+> collision with the raw 'lfence' that is in current mainline? No
+> worries, I'll send a rebased fixup to Paolo directly once
+> array_idx_nospec() goes upstream.
 
-All three patches look sane to me. If you would like to carry these generic bits 
-in the PowerPC tree as well then:
+It did not apply for that reason and I'm still trying to keep x86/pti as
+clean as it goes to keep GregKHs backporting hell somehow under control.
 
-  Reviewed-by: Ingo Molnar <mingo@kernel.org>
+Sorry, I wanted to reply on that, but then my brain shut down after pushing
+it out.
 
 Thanks,
 
-	Ingo
+	tglx
