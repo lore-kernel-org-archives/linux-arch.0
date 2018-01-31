@@ -1,56 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:53700 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752832AbeAaCVi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jan 2018 21:21:38 -0500
-MIME-Version: 1.0
-In-Reply-To: <20180130183939.GB29051@ZenIV.linux.org.uk>
-References: <20180130183939.GB29051@ZenIV.linux.org.uk>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 30 Jan 2018 18:21:37 -0800
-Message-ID: <CA+55aFz8UL883+rj0nYsU_gtX6jLhriPGncDb1XDteEu817HRQ@mail.gmail.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:42970 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752838AbeAaDNC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jan 2018 22:13:02 -0500
+Date: Wed, 31 Jan 2018 03:13:00 +0000
+From: Al Viro <viro@ZenIV.linux.org.uk>
 Subject: Re: [git pull] vfs.git: poll annotations
-Content-Type: text/plain; charset="UTF-8"
+Message-ID: <20180131031300.GE29051@ZenIV.linux.org.uk>
+References: <20180130183939.GB29051@ZenIV.linux.org.uk>
+ <CA+55aFz8UL883+rj0nYsU_gtX6jLhriPGncDb1XDteEu817HRQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CA+55aFz8UL883+rj0nYsU_gtX6jLhriPGncDb1XDteEu817HRQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20180131022137.YQlCUkHmAwcaGKIzVdhhP74zAnZUYm0pA2Nf2nuDBL8@z>
+Message-ID: <20180131031300.WGozyBcqih6-50MXHEamuxXhgnjnI-MAdrr0J3lW_EM@z>
 
-On Tue, Jan 30, 2018 at 10:39 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
->         Introduces a __bitwise type for POLL... bitmap, propagates
-> the annotations through the tree.
+On Tue, Jan 30, 2018 at 06:21:37PM -0800, Linus Torvalds wrote:
+> On Tue, Jan 30, 2018 at 10:39 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> >         Introduces a __bitwise type for POLL... bitmap, propagates
+> > the annotations through the tree.
+> 
+> Ok, I'm not entirely happy with this.
+> 
+> I don't think the mangle/demangle_poll() stuff should be in the uapi
+> headers, and it really worries me that we use the same names - with
+> different values - for the kernel and user versions of the POLLxyz
+> macros.
 
-Ok, I'm not entirely happy with this.
+I'm not happy with that either, but the alternative would be to
+rename almost every instance of POLL... in the tree.  All of them
+except for poll.h, actually.  And then keep playing whack-a-mole
+for resurfacing POLL... in drivers.
 
-I don't think the mangle/demangle_poll() stuff should be in the uapi
-headers, and it really worries me that we use the same names - with
-different values - for the kernel and user versions of the POLLxyz
-macros.
+Sure, we can do that, but at least let's do that as a single
+search-and-replace job in -rc1.  Too many conflicts otherwise.
+No need to invent KPOLLIN et.al. - we have perfectly usable
+EPOLLIN and friends.
 
-So honestly, like the structure translations we do (ie termios <->
-ktermios, stat <-> kstat), I really think we'd be better off having
-explicit naming when some kernel data is different from user data.
+A bit of a problem in places like
+                        mask & POLLOUT ? "POLLOUT" : "",
+but it's not too terrible.  I'll experiment a bit - should be able to
+post a script to run.
 
-That could make the mangling be automated too, ie assuming gcc gets it
-right, maybe done with
-
-   #define pollmask_to_kernel(uval, UMASK, KMASK) \
-        ((force __poll_t)(((uval)&UMASK)/UMASK*KMASK))
-
-   static inline __poll_t unmangle_poll(unsigned int uval)
-   {
-        return pollmask_to_kernel(uval, POLLIN, KPOLLIN) |
-             pollmask_to_kernel(uval, POLLOUT, KPOLLOUT) |
-             pollmask_to_kernel(uval, POLLERR, KPOLLERR) |
-             ...
-
-or similar. With no arch-specific hardcoded bit knowledge except for
-the actual values of POLLIN/etc.
-
-I dunno. Maybe it ends up being too painful.
-
-So I've pulled this, but I just wanted to state that I'm not entirely
-happy about it all.
-
-                Linus
+As for the place for mangle/demangle... where would you prefer them?
