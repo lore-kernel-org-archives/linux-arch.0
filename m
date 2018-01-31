@@ -1,80 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:50625 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753310AbeAaQTa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Jan 2018 11:19:30 -0500
+Received: from out01.mta.xmission.com ([166.70.13.231]:56587 "EHLO
+        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750829AbeAaT5h (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Jan 2018 14:57:37 -0500
 From: ebiederm@xmission.com (Eric W. Biederman)
+References: <87372oph61.fsf@xmission.com> <87a7wwnkce.fsf@xmission.com>
+        <87607im26i.fsf_-_@xmission.com>
+        <CA+55aFz+uhHRRDPHW_OU+MXmrpKdE3Eb=okczd5_0STaTDe8sQ@mail.gmail.com>
+Date: Wed, 31 Jan 2018 13:57:28 -0600
+In-Reply-To: <CA+55aFz+uhHRRDPHW_OU+MXmrpKdE3Eb=okczd5_0STaTDe8sQ@mail.gmail.com>
+        (Linus Torvalds's message of "Wed, 31 Jan 2018 11:30:58 -0800")
+Message-ID: <878tcdls2f.fsf@xmission.com>
 MIME-Version: 1.0
 Content-Type: text/plain
-References: <87372oph61.fsf@xmission.com> <87a7wwnkce.fsf@xmission.com>
-Date: Wed, 31 Jan 2018 10:19:01 -0600
-In-Reply-To: <87a7wwnkce.fsf@xmission.com> (Eric W. Biederman's message of
-        "Mon, 29 Jan 2018 20:36:49 -0600")
-Message-ID: <87607im26i.fsf_-_@xmission.com>
-Subject: [GIT PULL] siginfo fix for 4.16-rc1
+Subject: Re: [GIT PULL] siginfo fix for 4.16-rc1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20180131161901.YsKMuVESjvLRPfQG8DaSxCYXRiGtl-fjbnjy1uTlQsY@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20180131195728.Mxgn4RIJ5TTZLKdVcPDbsdw7xGnQalfq7ZCbt0vWeUs@z>
 
-Linus,
+Linus Torvalds <torvalds@linux-foundation.org> writes:
 
-Please pull the siginfo-linus branch from the git tree:
+> On Wed, Jan 31, 2018 at 8:19 AM, Eric W. Biederman
+> <ebiederm@xmission.com> wrote:
+>>
+>> I had a brain fart when I received Stephen email about a compile failure
+>> in linux-next.  I thought the powerpc call to memory_failure had not
+>> merged yet.  Instead it simply failed to compile :(
+>>
+>> Linus can you please pull Stephen's fix so that powerpc builds correctly.
+>
+> I fixed this up in the merge already, afaik. Or is there some other failure?
 
-   git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git siginfo-linus
+My bad.  I missed you fixed it in the merge.
 
-   HEAD: f20239c0d2d720d7deb8a40fd05c31849ddc8293  mm/memory_failure: update powerpc for memory_failure() API change
+I received a kbuild failure against linux-next this morning, and I
+realized the build failure was against code that was already in 2.15 so
+I should have patched and fixed that myself.
 
-I had a brain fart when I received Stephen email about a compile failure
-in linux-next.  I thought the powerpc call to memory_failure had not
-merged yet.  Instead it simply failed to compile :(
+At which point I assumed the failure was because my siginfo code had
+been merged into your tree.
 
-Linus can you please pull Stephen's fix so that powerpc builds correctly.
+Looking again you definitely fixed this in the merge.  So I don't know
+the story of the broken kbuild of linux-next.  But I assume it will
+sort itself out when the dust clears.
 
-Thank you,
-Eric 
-
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Date: Fri, 26 Jan 2018 12:05:12 +1100
-Subject: [PATCH] mm/memory_failure: update powerpc for memory_failure() API change
-
-After merging the userns tree, today's linux-next build (powerpc
-allyesconfig) failed like this:
-
-arch/powerpc/kernel/mce.c: In function 'machine_process_ue_event':
-arch/powerpc/kernel/mce.c:276:5: error: too many arguments to function 'memory_failure'
-     memory_failure(pfn, SIGBUS, 0);
-     ^~~~~~~~~~~~~~
-In file included from include/linux/pid_namespace.h:7:0,
-                 from include/linux/ptrace.h:10,
-                 from arch/powerpc/kernel/mce.c:27:
-include/linux/mm.h:2571:12: note: declared here
- extern int memory_failure(unsigned long pfn, int flags);
-            ^~~~~~~~~~~~~~
-
-Caused by commit
-
-  83b57531c58f ("mm/memory_failure: Remove unused trapno from memory_failure")
-
-Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
-Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
----
- arch/powerpc/kernel/mce.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/powerpc/kernel/mce.c b/arch/powerpc/kernel/mce.c
-index 742e4658c5dc..71e8a1b8c86e 100644
---- a/arch/powerpc/kernel/mce.c
-+++ b/arch/powerpc/kernel/mce.c
-@@ -273,7 +273,7 @@ static void machine_process_ue_event(struct work_struct *work)
- 
- 				pfn = evt->u.ue_error.physical_address >>
- 					PAGE_SHIFT;
--				memory_failure(pfn, SIGBUS, 0);
-+				memory_failure(pfn, 0);
- 			} else
- 				pr_warn("Failed to identify bad address from "
- 					"where the uncorrectable error (UE) "
--- 
-2.14.1
+Apologies for the noise,
+Eric
