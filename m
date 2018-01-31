@@ -1,108 +1,43 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v5 12/12] x86/spectre: report get_user mitigation for
- spectre_v1
-Date: Wed, 31 Jan 2018 09:07:15 +0100
-Message-ID: <20180131080714.svyq34reb7d2pwmf@gmail.com>
-References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151703977742.26578.8362387033092864423.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180128095027.hqrcpnholsvukdzd@gmail.com>
- <CAPcyv4gA5eBYGsb+5WGcCnyB-8MB6qeO9Sw6aZNvaBCtb7OK1w@mail.gmail.com>
+From: Cao jin <caoj.fnst@cn.fujitsu.com>
+Subject: [PATCH] trivial: typofix in vmlinux.lds.h
+Date: Wed, 31 Jan 2018 16:11:49 +0800
+Message-ID: <20180131081149.9183-1-caoj.fnst@cn.fujitsu.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:50643 "EHLO
-        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751728AbeAaIHS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Jan 2018 03:07:18 -0500
-Received: by mail-wm0-f68.google.com with SMTP id f71so6193422wmf.0
-        for <linux-arch@vger.kernel.org>; Wed, 31 Jan 2018 00:07:18 -0800 (PST)
-Content-Disposition: inline
-In-Reply-To: <CAPcyv4gA5eBYGsb+5WGcCnyB-8MB6qeO9Sw6aZNvaBCtb7OK1w@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Greg KH <gregkh@linuxfoundation.org>, X86 ML <x86@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Jiri Slaby <jslaby@suse.cz>, Alan Cox <alan@linux.intel.com>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, trivial@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+aling --> aligned
 
-* Dan Williams <dan.j.williams@intel.com> wrote:
+Signed-off-by: Cao jin <caoj.fnst@cn.fujitsu.com>
+---
+ include/asm-generic/vmlinux.lds.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-> On Sun, Jan 28, 2018 at 1:50 AM, Ingo Molnar <mingo@kernel.org> wrote:
-> >
-> > * Dan Williams <dan.j.williams@intel.com> wrote:
-> >
-> >> Reflect the presence of 'get_user', '__get_user', and 'syscall'
-> >> protections in sysfs. Keep the "Vulnerable" distinction given the
-> >> expectation that the places that have been identified for 'array_idx'
-> >> usage are likely incomplete.
-> >
-> > (The style problems/inconsistencies of the previous patches are repeated here too,
-> > please fix.)
-> >
-> >>
-> >> Cc: Thomas Gleixner <tglx@linutronix.de>
-> >> Cc: Ingo Molnar <mingo@redhat.com>
-> >> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> >> Cc: x86@kernel.org
-> >> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-> >> Reported-by: Jiri Slaby <jslaby@suse.cz>
-> >> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> >> ---
-> >>  arch/x86/kernel/cpu/bugs.c |    2 +-
-> >>  1 file changed, 1 insertion(+), 1 deletion(-)
-> >>
-> >> diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
-> >> index 390b3dc3d438..01d5ba48f745 100644
-> >> --- a/arch/x86/kernel/cpu/bugs.c
-> >> +++ b/arch/x86/kernel/cpu/bugs.c
-> >> @@ -269,7 +269,7 @@ ssize_t cpu_show_spectre_v1(struct device *dev,
-> >>  {
-> >>       if (!boot_cpu_has_bug(X86_BUG_SPECTRE_V1))
-> >>               return sprintf(buf, "Not affected\n");
-> >> -     return sprintf(buf, "Vulnerable\n");
-> >> +     return sprintf(buf, "Vulnerable: Minimal user pointer sanitization\n");
-> >
-> > Btw., I think this string is still somewhat passive-aggressive towards users, as
-> > it doesn't really give them any idea about what is missing from their system so
-> > that they can turn it into not vulnerable.
-> >
-> > What else is missing that would turn this into a "Mitigated" entry?
-> 
-> Part of the problem is that there are different sub-classes of Spectre
-> variant1 vulnerabilities. For example, speculating on the value of a
-> user pointer returned from get_user() is mitigated by these kernel
-> changes. However, cleaning up occasions where the CPU might speculate
-> on the validity of a user-controlled pointer offset, or
-> user-controlled array index is only covered by manual inspection of
-> some noisy / incomplete tooling results. I.e. the handful of
-> array_index_nospec() usages in this series is likely incomplete.
-> 
-> The usage of barrier_nospec() in __get_user() and open coded
-> array_index_nospec() in get_user() does raise the bar and mitigates an
-> entire class of problems. Perhaps it would be reasonable to have
-> cpu_show_spectre_v1() emit:
-> 
->     "Mitigation: __user pointer sanitization"
-
-Yeah, so I think the ideal approach would be if we emitted _both_ pieces of 
-information:
-
-     Mitigation: __user pointer sanitization
-     Vulnerable: incomplete array index sanitization
-
-I.e. we inform the user about the mitigation measures that are active, but we also 
-fully inform that we think it's incomplete at this stage.
-
-> ...with the expectation that the kernel community intends to use new
-> and better tooling to find more places to use array_index_nospec().
-> Once there is wider confidence in that tooling, or a compiler that
-> does it automatically, the kernel can emit:
-> 
->     "Mitigation: automated user input sanitization"
-> 
-> ...or something like that.
-
-Yeah.
-
-Thanks,
-
-	Ingo
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index ee8b707d9fa9..470c41d2e272 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -468,7 +468,7 @@
+ 	MEM_KEEP(exit.text)						\
+ 
+ 
+-/* sched.text is aling to function alignment to secure we have same
++/* sched.text is aligned to function alignment to secure we have same
+  * address even at second ld pass when generating System.map */
+ #define SCHED_TEXT							\
+ 		ALIGN_FUNCTION();					\
+@@ -476,7 +476,7 @@
+ 		*(.sched.text)						\
+ 		VMLINUX_SYMBOL(__sched_text_end) = .;
+ 
+-/* spinlock.text is aling to function alignment to secure we have same
++/* spinlock.text is aligned to function alignment to secure we have same
+  * address even at second ld pass when generating System.map */
+ #define LOCK_TEXT							\
+ 		ALIGN_FUNCTION();					\
+-- 
+2.14.3
