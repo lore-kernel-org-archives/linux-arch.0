@@ -1,48 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.cn.fujitsu.com ([183.91.158.132]:22368 "EHLO
-        heian.cn.fujitsu.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1753337AbeAaIMI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Jan 2018 03:12:08 -0500
-From: Cao jin <caoj.fnst@cn.fujitsu.com>
-Subject: [PATCH] trivial: typofix in vmlinux.lds.h
-Date: Wed, 31 Jan 2018 16:11:49 +0800
-Message-ID: <20180131081149.9183-1-caoj.fnst@cn.fujitsu.com>
+Received: from bombadil.infradead.org ([65.50.211.133]:55695 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753141AbeAaKIi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Jan 2018 05:08:38 -0500
+Date: Wed, 31 Jan 2018 11:08:22 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [GIT PULL tools] Linux kernel memory model
+Message-ID: <20180131100822.GL2269@hirez.programming.kicks-ass.net>
+References: <20180125093440.GA875@linux.vnet.ibm.com>
+ <20180129065724.ybrdsabvktq7fbqg@gmail.com>
+ <20180129095449.GT3741@linux.vnet.ibm.com>
+ <20180131090006.onaopgyqthppoysi@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180131090006.onaopgyqthppoysi@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, trivial@kernel.org
-Message-ID: <20180131081149.VXKviLe8DaqEZeXV33njl_AjJkcS1yjBhPVGPxYpYPg@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, boqun.feng@gmail.com, will.deacon@arm.com, npiggin@gmail.com, dhowells@redhat.com, elena.reshetova@intel.com, mhocko@suse.com, akiyks@gmail.com, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20180131100822.3ztviGoNdgG8E2R9G8U-FCZjVa5V5usqOHkoWFbvbU4@z>
 
-aling --> aligned
+On Wed, Jan 31, 2018 at 10:00:06AM +0100, Ingo Molnar wrote:
+> - Similary, some of the high level descriptions in tools/memory-model/README
+>   should probably propagated into the source code files as well: for example
+>   both tools/memory-model/lock.cat and linux-kernel.cat could be improved that
+>   way.
 
-Signed-off-by: Cao jin <caoj.fnst@cn.fujitsu.com>
----
- include/asm-generic/vmlinux.lds.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index ee8b707d9fa9..470c41d2e272 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -468,7 +468,7 @@
- 	MEM_KEEP(exit.text)						\
- 
- 
--/* sched.text is aling to function alignment to secure we have same
-+/* sched.text is aligned to function alignment to secure we have same
-  * address even at second ld pass when generating System.map */
- #define SCHED_TEXT							\
- 		ALIGN_FUNCTION();					\
-@@ -476,7 +476,7 @@
- 		*(.sched.text)						\
- 		VMLINUX_SYMBOL(__sched_text_end) = .;
- 
--/* spinlock.text is aling to function alignment to secure we have same
-+/* spinlock.text is aligned to function alignment to secure we have same
-  * address even at second ld pass when generating System.map */
- #define LOCK_TEXT							\
- 		ALIGN_FUNCTION();					\
--- 
-2.14.3
+This is something both Will and me have on our todo list, sadly we've
+not had any time to work on this due to this pesky spectre crap.
