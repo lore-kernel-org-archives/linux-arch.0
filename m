@@ -1,50 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:45729 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752558AbeAaIHT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Jan 2018 03:07:19 -0500
-Date: Wed, 31 Jan 2018 09:07:10 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v6 11/13] kvm, x86: update spectre-v1 mitigation
-In-Reply-To: <CAPcyv4ihnC+ALbvqUWOOZ9zwBv7iy+2pBjLn9ed_duo9Z4TGKQ@mail.gmail.com>
-Message-ID: <alpine.DEB.2.20.1801310902180.2293@nanos>
-References: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com> <151727419015.33451.13762926723789552997.stgit@dwillia2-desk3.amr.corp.intel.com> <CAPcyv4ihnC+ALbvqUWOOZ9zwBv7iy+2pBjLn9ed_duo9Z4TGKQ@mail.gmail.com>
+Received: from mail.cn.fujitsu.com ([183.91.158.132]:22368 "EHLO
+        heian.cn.fujitsu.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+        with ESMTP id S1753337AbeAaIMI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Jan 2018 03:12:08 -0500
+From: Cao jin <caoj.fnst@cn.fujitsu.com>
+Subject: [PATCH] trivial: typofix in vmlinux.lds.h
+Date: Wed, 31 Jan 2018 16:11:49 +0800
+Message-ID: <20180131081149.9183-1-caoj.fnst@cn.fujitsu.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Andrew Honig <ahonig@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Paolo Bonzini <pbonzini@redhat.com>, Alan Cox <alan@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jim Mattson <jmattson@google.com>
-Message-ID: <20180131080710.6s3q0a3AssU7rfnSpiKrzO0iD5K0jiG9s5LizFkvWHM@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, trivial@kernel.org
+Message-ID: <20180131081149.VXKviLe8DaqEZeXV33njl_AjJkcS1yjBhPVGPxYpYPg@z>
 
-On Tue, 30 Jan 2018, Dan Williams wrote:
+aling --> aligned
 
-> On Mon, Jan 29, 2018 at 5:03 PM, Dan Williams <dan.j.williams@intel.com> wrote:
-> > Commit 75f139aaf896 "KVM: x86: Add memory barrier on vmcs field lookup"
-> > added a raw 'asm("lfence");' to prevent a bounds check bypass of
-> > 'vmcs_field_to_offset_table'. We can save an lfence in this path and
-> > just use the common array_index_nospec() helper designed for these types
-> > of fixes.
-> >
-> > Cc: Andrew Honig <ahonig@google.com>
-> > Cc: Jim Mattson <jmattson@google.com>
-> > Acked-by: Paolo Bonzini <pbonzini@redhat.com>
-> > Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> 
-> 
-> Hi Thomas,
-> 
-> I notice this one missing from -tip, I suspect because of the
-> collision with the raw 'lfence' that is in current mainline? No
-> worries, I'll send a rebased fixup to Paolo directly once
-> array_idx_nospec() goes upstream.
+Signed-off-by: Cao jin <caoj.fnst@cn.fujitsu.com>
+---
+ include/asm-generic/vmlinux.lds.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-It did not apply for that reason and I'm still trying to keep x86/pti as
-clean as it goes to keep GregKHs backporting hell somehow under control.
-
-Sorry, I wanted to reply on that, but then my brain shut down after pushing
-it out.
-
-Thanks,
-
-	tglx
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index ee8b707d9fa9..470c41d2e272 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -468,7 +468,7 @@
+ 	MEM_KEEP(exit.text)						\
+ 
+ 
+-/* sched.text is aling to function alignment to secure we have same
++/* sched.text is aligned to function alignment to secure we have same
+  * address even at second ld pass when generating System.map */
+ #define SCHED_TEXT							\
+ 		ALIGN_FUNCTION();					\
+@@ -476,7 +476,7 @@
+ 		*(.sched.text)						\
+ 		VMLINUX_SYMBOL(__sched_text_end) = .;
+ 
+-/* spinlock.text is aling to function alignment to secure we have same
++/* spinlock.text is aligned to function alignment to secure we have same
+  * address even at second ld pass when generating System.map */
+ #define LOCK_TEXT							\
+ 		ALIGN_FUNCTION();					\
+-- 
+2.14.3
