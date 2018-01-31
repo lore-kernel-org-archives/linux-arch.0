@@ -1,75 +1,49 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: [GIT PULL] siginfo fix for 4.16-rc1
-Date: Wed, 31 Jan 2018 10:19:01 -0600
-Message-ID: <87607im26i.fsf_-_@xmission.com>
-References: <87372oph61.fsf@xmission.com> <87a7wwnkce.fsf@xmission.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [git pull] vfs.git: poll annotations
+Date: Wed, 31 Jan 2018 17:50:01 +0000
+Message-ID: <20180131175001.GA1433@ZenIV.linux.org.uk>
+References: <20180130183939.GB29051@ZenIV.linux.org.uk>
+ <CA+55aFz8UL883+rj0nYsU_gtX6jLhriPGncDb1XDteEu817HRQ@mail.gmail.com>
+ <20180131031300.GE29051@ZenIV.linux.org.uk>
+ <CA+55aFyMh_cHUb37X6=8=DU2Zm8Cz=mhXYJcGGWqiC8LKLAoFA@mail.gmail.com>
+ <20180131044620.GF29051@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87a7wwnkce.fsf@xmission.com> (Eric W. Biederman's message of
-        "Mon, 29 Jan 2018 20:36:49 -0600")
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:60394 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752618AbeAaRuC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Jan 2018 12:50:02 -0500
+Content-Disposition: inline
+In-Reply-To: <20180131044620.GF29051@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-List-Id: linux-arch.vger.kernel.org
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-Linus,
+On Wed, Jan 31, 2018 at 04:46:20AM +0000, Al Viro wrote:
 
-Please pull the siginfo-linus branch from the git tree:
+> MSG and REMOVE are never triggered, so it's all down to {WR{NORM,BAND},RDHUP}.
 
-   git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git siginfo-linus
+Actually, POLLREMOVE is an amusing story (FSVO amusing): it's a part of
+UnixWare /dev/poll ABI.  It had _not_ lasted in Linux - epoll_ctl()
+EPOLL_CTL_DEL is used for the same purpose.  Chronology:
 
-   HEAD: f20239c0d2d720d7deb8a40fd05c31849ddc8293  mm/memory_failure: update powerpc for memory_failure() API change
+Oct 29 2002: davidel introduces it into the tree (and defines for i386)
+Oct 31 2002: jgarzik has noticed broken alpha build and added definition
+within a few hours the same had been done for itanic (davidm)
+afternoon of the same day: Alan's merge of v850 adds definition there
+Nov 1 2002: rmk adds definition for arm
+Nov 2 2002: anton does the same for ppc64
+Nov 2 2002: ak does the same for amd64
+Nov 2 2002: davidel removes the sole user of that thing.
+But that, of course, does not stop the propagation of the (now and forever)
+useless definition - the same day it infects m68k; next day it's
+parisc and sparc.  On Nov 8 it hits ppc32, Nov 17 - s390.
+In June 2003 mips gets it, in July sh is brought in with that
+thing already in it and the damn thing spreads to cris.  And so it goes;
+the last flash of infection had been in 2007 when asm-generic/poll.h
+had been introduced.
 
-I had a brain fart when I received Stephen email about a compile failure
-in linux-next.  I thought the powerpc call to memory_failure had not
-merged yet.  Instead it simply failed to compile :(
-
-Linus can you please pull Stephen's fix so that powerpc builds correctly.
-
-Thank you,
-Eric 
-
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Date: Fri, 26 Jan 2018 12:05:12 +1100
-Subject: [PATCH] mm/memory_failure: update powerpc for memory_failure() API change
-
-After merging the userns tree, today's linux-next build (powerpc
-allyesconfig) failed like this:
-
-arch/powerpc/kernel/mce.c: In function 'machine_process_ue_event':
-arch/powerpc/kernel/mce.c:276:5: error: too many arguments to function 'memory_failure'
-     memory_failure(pfn, SIGBUS, 0);
-     ^~~~~~~~~~~~~~
-In file included from include/linux/pid_namespace.h:7:0,
-                 from include/linux/ptrace.h:10,
-                 from arch/powerpc/kernel/mce.c:27:
-include/linux/mm.h:2571:12: note: declared here
- extern int memory_failure(unsigned long pfn, int flags);
-            ^~~~~~~~~~~~~~
-
-Caused by commit
-
-  83b57531c58f ("mm/memory_failure: Remove unused trapno from memory_failure")
-
-Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
-Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
----
- arch/powerpc/kernel/mce.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/powerpc/kernel/mce.c b/arch/powerpc/kernel/mce.c
-index 742e4658c5dc..71e8a1b8c86e 100644
---- a/arch/powerpc/kernel/mce.c
-+++ b/arch/powerpc/kernel/mce.c
-@@ -273,7 +273,7 @@ static void machine_process_ue_event(struct work_struct *work)
- 
- 				pfn = evt->u.ue_error.physical_address >>
- 					PAGE_SHIFT;
--				memory_failure(pfn, SIGBUS, 0);
-+				memory_failure(pfn, 0);
- 			} else
- 				pr_warn("Failed to identify bad address from "
- 					"where the uncorrectable error (UE) "
--- 
-2.14.1
+Its only user has lasted in the tree for four days.  Definitions
+will probably stay forever...
