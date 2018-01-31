@@ -1,72 +1,51 @@
-From: "Van De Ven, Arjan" <arjan.van.de.ven@intel.com>
-Subject: RE: [PATCH v5 02/12] array_idx: sanitize speculative array
- de-references
-Date: Tue, 30 Jan 2018 20:27:28 +0000
-Message-ID: <0575AF4FD06DD142AD198903C74E1CC87A6048F5@ORSMSX103.amr.corp.intel.com>
-References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151703972396.26578.7326612698912543866.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180128085500.djlm5rlbhjlpfj4i@gmail.com>
- <CAPcyv4jTaskPT1qXhdCO2mWVkcaMDMBq12vUJ_hSfjOU49qvgQ@mail.gmail.com>
- <alpine.DEB.2.20.1801281931180.2126@nanos>
- <CAPcyv4hSZ7=+076s+fmJ0HQ293H4X8829-LTrbvd8ZqJygGV6A@mail.gmail.com>
- <CA+55aFxLEL+8YA4MYkeyeUH7K8rZwBmGe6Z9V8QS=TYCREWDTQ@mail.gmail.com>
- <CAPcyv4jTbH6As_SC2Po8j5mB6jKLcwMr3Yn=19aTN2yMgBR=iw@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [git pull] vfs.git: poll annotations
+Date: Tue, 30 Jan 2018 18:21:37 -0800
+Message-ID: <CA+55aFz8UL883+rj0nYsU_gtX6jLhriPGncDb1XDteEu817HRQ@mail.gmail.com>
+References: <20180130183939.GB29051@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:41819 "EHLO mga05.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751598AbeA3U1v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 30 Jan 2018 15:27:51 -0500
-In-Reply-To: <CAPcyv4jTbH6As_SC2Po8j5mB6jKLcwMr3Yn=19aTN2yMgBR=iw@mail.gmail.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Williams, Dan J" <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Cyril Novikov <cnovikov@lynx.com>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Alan Cox <alan@linux.intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180130183939.GB29051@ZenIV.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-PiA+IEFueXdheSwgSSBkbyB0aGluayB0aGUgcGF0Y2hlcyBJJ3ZlIHNlZW4gc28gZmFyIGFyZSBv
-aywgYW5kIHRoZSByZWFsDQo+ID4gcmVhc29uIEknbSB3cml0aW5nIHRoaXMgZW1haWwgaXMgYWN0
-dWFsbHkgbW9yZSBhYm91dCBmdXR1cmUgcGF0Y2hlczoNCj4gPiBkbyB3ZSBoYXZlIGEgZ29vZCBo
-YW5kbGUgb24gd2hlcmUgdGhlc2UgYXJyYXkgaW5kZXggc2FuaXRhdGlvbnMgd2lsbA0KPiA+IGJl
-IG5lZWRlZD8NCg0KdGhlIG9idmlvdXMgY2FzZXMgYXJlIGN1cnJlbnRseSBvYnZpb3VzbHkgYmVp
-bmcgZGlzY3Vzc2VkLg0KDQpidXQgdG8gYmUgcmVhbGlzdGljLCB0aGUgcGxhY2VzIHBlb3BsZSB3
-aWxsIGZpbmQgd2lsbCBnbyBvbiBmb3IgdGhlIG5leHQgdHdvKyB5ZWFycywgYW5kIHRoZSBkaXN0
-cm9zIHdpbGwgYWxzbyANCmVuZCB1cCBuZWVkaW5nIHRvIGJhY2twb3J0IHRob3NlIGZvciB0aGUg
-bmV4dCB0d28geWVhcnMuDQoNCih2MSBpcyBsaWtlICJidWZmZXIgb3ZlcmZsb3ciLCBpdCdzIGEg
-Y2xhc3Mgb2YgaXNzdWVzLiBidWZmZXIgb3ZlcmZsb3dzIHdlcmUgbm90IGZpeGVkIGluIG9uZSBw
-YXRjaCBvciBvdmVybmlnaHQpDQoNCiANCj4gPiBBbHNvLCB3aGlsZSBhcnJheSBsaW1pdCBjaGVj
-a2luZyB3YXMgb2J2aW91c2x5IHRoZSBvZmZpY2lhbA0KPiA+ICJzcGVjdHJlLXYxIiBpc3N1ZSwg
-SSBkbyB3b25kZXIgaWYgdGhlcmUgYXJlIHBvc3NpYmxlIG90aGVyIGlzc3Vlcw0KPiA+IHdoZXJl
-IG1pc3ByZWRpY3RlZCBjb25kaXRpb25hbCBicmFuY2hlcyBjYW4gZW5kIHVwIGxlYWtpbmcNCj4g
-PiBpbmZvcm1hdGlvbj8NCg0KdGhlcmUncyBvYnZpb3VzbHkgbWFueSB0aGluZ3Mgb25lIGNhbiBk
-byB0byBsZWFrIHRoaW5ncywgZm9yIGV4YW1wbGUgdGhlIHYxIHBhcGVyIHRhbGtzIGFib3V0IHVz
-aW5nIHRoZSBjYWNoZQ0KYXMgYSBtZWNoYW5pc20gdG8gbGVhaywgYnV0IHlvdSBjYW4gdHJpdmlh
-bGx5IGNvbnN0cnVjdCBzb21ldGhpbmcgdGhhdCB1c2VzIHRoZSBUTEJzIGFzIHRoZSBjaGFubmVs
-IHRvIGxlYWsNCih0aGFua2Z1bGx5IEtQVEkgY3V0cyB0aGF0IHNpZGUgb2ZmKSBidXQgb3RoZXIg
-dmFyaWF0aW9ucyBhcmUgcG9zc2libGUuIEkgc3VzcGVjdCBtYW55IG1hc2VyIHRoZXNpcyBwcm9q
-ZWN0cw0KZ290IHJlZGlyZWN0ZWQgaW4gdGhlIGxhc3QgZmV3IG1vbnRocyA7LSkNCg0KDQo+ID4g
-SU9XLCBpcyB0aGVyZSBzb21lIHdvcmsgb24gdG9vbGluZy9hbmFseXNpcy9zaW1pbGFyPyBOb3Qg
-YXNraW5nIGZvcg0KPiA+IG5lYXItdGVybSwgYnV0IG1vcmUgb2YgYSAiYmlnIHBpY3R1cmUiIHF1
-ZXN0aW9uLi4NCg0Kc2hvcnQgdGVybSB0aGVyZSB3YXMgc29tZSBleHRyZW1lbHkgcnVkaW1lbnRh
-cnkgc3RhdGljIGFuYWx5c2lzIGRvbmUuDQpjbGVhcmx5IHRoYXQgaGFzIGV4dHJlbWUgbGltaXRh
-dGlvbnMgYm90aCBpbiBpbnNhbmUgcmF0ZSBvZiBmYWxzZSBwb3NpdGl2ZXMsIGFuZCBtaXNzaW5n
-IGNhc2VzLg0KDQp0aGUgcmVhbCBjYXNlIGlzIHRvIGdldCB0aGluZ3MgbGlrZSBjb21waWxlciBw
-bHVnaW5zIGFuZCB0aGUgbGlrZSB0byBpZGVudGlmeSBzdXNwZWN0IGNhc2VzLg0KDQpidXQgd2Ug
-YWxzbyBuZWVkIHRvIGNvbnNpZGVyIGNoYW5naW5nIHRoZSBrZXJuZWwgYSBiaXQuIFBhcnQgb2Yg
-d2hhdCBtYWtlcyBmaXhpbmcNClYxIGhhcmQgaXMgdGhhdCBzZWN1cml0eSBjaGVja3Mgb24gdXNl
-ciBkYXRhIGFyZSBzcHJlYWQgaW4gbWFueSBwbGFjZXMgYWNyb3NzIGRyaXZlcnMgYW5kIHN1YnN5
-c3RlbXMuDQpJZiB3ZSBkbyB0aGUgc2VjdXJpdHkgY2hlY2tzIG1vcmUgY29uY2VudHJhdGVkIHdl
-IGN1dCBvZmYgbWFueSBhdHRhY2tzLg0KDQpGb3IgZXhhbXBsZSwgd2UgYXJlIGNvbnNpZGVyaW5n
-IGRvaW5nIGENCg0KY29weV9mcm9tX3VzZXJfc3RydWN0KCpkc3QsICpzcmMsIHR5cGUsIHZhbGlk
-YXRpb25fZnVuY3Rpb24pDQoNCndoZXJlIHRoZSB2YWxpZGF0aW9uIGZ1bmN0aW9uIGdldHMgYXV0
-by1nZW5lcmF0ZWQgZnJvbSB0aGUgdWFwaSBoZWFkZXJzICh3aXRoIHNvbWUgZm9ybSBvZiBhbm5v
-dGF0aW9uKQ0KYW5kIGlmIGFueXRoaW5nIGZhaWxzIG9yIHRoZSBjb3B5IGZhdWx0cyBwYXJ0d2F5
-IHRocm91Z2gsIHRoZSBkc3QgaXMgemVyb2VkLg0KDQpzdWNoIGEgYmVhc3QgY2FuIGRvIHRoZSBi
-YXNpYyBzZWN1cml0eSBjaGVja3Mgb24gdGhlIHVzZXIgZGF0YSBpbnNpZGUgdGhhdCBmdW5jdGlv
-bih3cmFwcGVyKSwgYW5kIHRoYXQgZ3JlYXRseQ0KbGltaXRzIHRoZSBudW1iZXIgb2YgcGxhY2Vz
-IHdlIG5lZWQgdG8gdGFrZSBjYXJlIG9mLg0KDQpib251cyBpcyB0aGF0IHRoaXMgYWxzbyB3aWxs
-IGltcHJvdmUgdGhlIHNpdHVhdGlvbiBvZiBkcml2ZXJzIGJlaW5nIHNsb3BweSB3aXRoIGlucHV0
-IHZhbGlkYXRpb24gYW5kIHdoZXJlIA0KdGhlIGN1cnJlbnQgcm9vdGhvbGVzIGFyZSBoYXBwZW5p
-bmcNCg0K
+On Tue, Jan 30, 2018 at 10:39 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>         Introduces a __bitwise type for POLL... bitmap, propagates
+> the annotations through the tree.
+
+Ok, I'm not entirely happy with this.
+
+I don't think the mangle/demangle_poll() stuff should be in the uapi
+headers, and it really worries me that we use the same names - with
+different values - for the kernel and user versions of the POLLxyz
+macros.
+
+So honestly, like the structure translations we do (ie termios <->
+ktermios, stat <-> kstat), I really think we'd be better off having
+explicit naming when some kernel data is different from user data.
+
+That could make the mangling be automated too, ie assuming gcc gets it
+right, maybe done with
+
+   #define pollmask_to_kernel(uval, UMASK, KMASK) \
+        ((force __poll_t)(((uval)&UMASK)/UMASK*KMASK))
+
+   static inline __poll_t unmangle_poll(unsigned int uval)
+   {
+        return pollmask_to_kernel(uval, POLLIN, KPOLLIN) |
+             pollmask_to_kernel(uval, POLLOUT, KPOLLOUT) |
+             pollmask_to_kernel(uval, POLLERR, KPOLLERR) |
+             ...
+
+or similar. With no arch-specific hardcoded bit knowledge except for
+the actual values of POLLIN/etc.
+
+I dunno. Maybe it ends up being too painful.
+
+So I've pulled this, but I just wanted to state that I'm not entirely
+happy about it all.
+
+                Linus
