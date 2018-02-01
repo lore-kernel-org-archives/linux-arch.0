@@ -1,371 +1,361 @@
-From: John Garry <john.garry@huawei.com>
-Subject: Re: [PATCH v12 7/9] ACPI: Translate the I/O range of non-MMIO devices
- before scanning
-Date: Thu, 1 Feb 2018 11:32:50 +0000
-Message-ID: <0a30452f-34eb-d0b5-2001-ab6b866c53e2@huawei.com>
-References: <1516725385-24535-1-git-send-email-john.garry@huawei.com>
- <1516725385-24535-8-git-send-email-john.garry@huawei.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <1516725385-24535-8-git-send-email-john.garry@huawei.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net
-Cc: robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, hanjun.guo@linaro.org, dann.frazier@canonical.com, benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, linux-pci@vger.kernel.org, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: [PATCH v11 00/10] Application Data Integrity feature introduced by SPARC M7
+Date: Thu,  1 Feb 2018 11:01:08 -0700
+Message-ID: <cover.1517497017.git.khalid.aziz@oracle.com>
+Return-path: <linux-doc-owner@vger.kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: davem@davemloft.net, dave.hansen@linux.intel.com
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, aarcange@redhat.com, akpm@linux-foundation.org, allen.pais@oracle.com, anthony.yznaga@oracle.com, arnd@arndb.de, babu.moger@oracle.com, benh@kernel.crashing.org, bob.picco@oracle.com, bsingharora@gmail.com, corbet@lwn.net, dan.j.williams@intel.com, dave.jiang@intel.com, david.j.aldridge@oracle.com, ebiederm@xmission.com, elena.reshetova@intel.com, glx@linutronix.de, gregkh@linuxfoundation.org, hannes@cmpxchg.org, hillf.zj@alibaba-inc.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jag.raman@oracle.com, jane.chu@oracle.com, jglisse@redhat.com, jroedel@suse.de, khalid@gonehiking.org, khandual@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, kstewart@linuxfoundation.org, ktkhai@virtuozzo.com, liam.merwick@oracl
 List-Id: linux-arch.vger.kernel.org
 
-On 23/01/2018 16:36, John Garry wrote:
-> On some platforms(such as Hip06/Hip07), the legacy ISA/LPC devices access
-> I/O with some special host-local I/O ports known on x86. As their I/O space
-> are not memory mapped like PCI/PCIE MMIO host bridges, this patch is meant
-> to support a new class of I/O host controllers where the local IO ports of
-> the children devices are translated into the Indirect I/O address space.
->
-> Through the handler attach callback, all the I/O translations are done
-> before starting the enumeration on children devices and the translated
-> addresses are replaced in the children resources.
->
+V11 changes:
+This series is same as v10 and was simply rebased on 4.15 kernel. Can
+mm maintainers please review patches 2, 7, 8 and 9 which are arch
+independent, and include/linux/mm.h and mm/ksm.c changes in patch 10
+and ack these if everything looks good? 
 
-Hi Lorenzo, Rafael, Mika,
 
-I would really appreciate if you could have a look at this patch.
+SPARC M7 processor adds additional metadata for memory address space
+that can be used to secure access to regions of memory. This additional
+metadata is implemented as a 4-bit tag attached to each cacheline size
+block of memory. A task can set a tag on any number of such blocks.
+Access to such block is granted only if the virtual address used to
+access that block of memory has the tag encoded in the uppermost 4 bits
+of VA. Since sparc processor does not implement all 64 bits of VA, top 4
+bits are available for ADI tags. Any mismatch between tag encoded in VA
+and tag set on the memory block results in a trap. Tags are verified in
+the VA presented to the MMU and tags are associated with the physical
+page VA maps on to. If a memory page is swapped out and page frame gets
+reused for another task, the tags are lost and hence must be saved when
+swapping or migrating the page.
 
-The current solution here is to scan the ACPI devices under these 
-indirectIO hosts and create MFDs for the children.
+A userspace task enables ADI through mprotect(). This patch series adds
+a page protection bit PROT_ADI and a corresponding VMA flag
+VM_SPARC_ADI. VM_SPARC_ADI is used to trigger setting TTE.mcd bit in the
+sparc pte that enables ADI checking on the corresponding page. MMU
+validates the tag embedded in VA for every page that has TTE.mcd bit set
+in its pte. After enabling ADI on a memory range, the userspace task can
+set ADI version tags using stxa instruction with ASI_MCD_PRIMARY or
+ASI_MCD_ST_BLKINIT_PRIMARY ASI.
 
-I think another solution - which you may prefer - is to avoid adding 
-this scan handler (and all this other scan code) and add a check like 
-acpi_is_serial_bus_slave() [which checks the device parent versus a list 
-of known indirectIO hosts] to not enumerate these children, and do it 
-from the LLDD host probe instead (https://lkml.org/lkml/2017/6/16/250)
+Once userspace task calls mprotect() with PROT_ADI, kernel takes
+following overall steps:
 
-John
+1. Find the VMAs covering the address range passed in to mprotect and
+set VM_SPARC_ADI flag. If address range covers a subset of a VMA, the
+VMA will be split.
 
-> Signed-off-by: John Garry <john.garry@huawei.com>
-> Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
-> Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-> ---
->  drivers/acpi/arm64/Makefile          |   1 +
->  drivers/acpi/arm64/acpi_indirectio.c | 273 +++++++++++++++++++++++++++++++++++
->  drivers/acpi/internal.h              |   5 +
->  drivers/acpi/scan.c                  |   1 +
->  4 files changed, 280 insertions(+)
->  create mode 100644 drivers/acpi/arm64/acpi_indirectio.c
->
-> diff --git a/drivers/acpi/arm64/Makefile b/drivers/acpi/arm64/Makefile
-> index 1017def..f4a7f46 100644
-> --- a/drivers/acpi/arm64/Makefile
-> +++ b/drivers/acpi/arm64/Makefile
-> @@ -1,2 +1,3 @@
->  obj-$(CONFIG_ACPI_IORT) 	+= iort.o
->  obj-$(CONFIG_ACPI_GTDT) 	+= gtdt.o
-> +obj-$(CONFIG_INDIRECT_PIO)	+= acpi_indirectio.o
-> diff --git a/drivers/acpi/arm64/acpi_indirectio.c b/drivers/acpi/arm64/acpi_indirectio.c
-> new file mode 100644
-> index 0000000..2649f57
-> --- /dev/null
-> +++ b/drivers/acpi/arm64/acpi_indirectio.c
-> @@ -0,0 +1,273 @@
-> +/*
-> + * ACPI support for indirect-IO bus.
-> + *
-> + * Copyright (C) 2017 HiSilicon Limited, All Rights Reserved.
-> + * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-> + * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
-> + * Author: John Garry <john.garry@huawei.com>
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + */
-> +
-> +#include <linux/acpi.h>
-> +#include <linux/logic_pio.h>
-> +#include <linux/mfd/core.h>
-> +#include <linux/platform_device.h>
-> +
-> +ACPI_MODULE_NAME("indirect IO");
-> +
-> +#define ACPI_INDIRECTIO_NAME_LENGTH 255
-> +
-> +#define INDIRECT_IO_INFO(desc) ((unsigned long)&desc)
-> +
-> +struct acpi_indirectio_mfd_cell {
-> +	struct mfd_cell_acpi_match acpi_match;
-> +	char name[ACPI_INDIRECTIO_NAME_LENGTH];
-> +	char pnpid[ACPI_INDIRECTIO_NAME_LENGTH];
-> +};
-> +
-> +struct acpi_indirectio_host_data {
-> +	resource_size_t io_size;
-> +	resource_size_t io_start;
-> +};
-> +
-> +struct acpi_indirectio_device_desc {
-> +	struct acpi_indirectio_host_data pdata; /* device relevant info data */
-> +	int (*pre_setup)(struct acpi_device *adev,
-> +			 struct acpi_indirectio_host_data *pdata);
-> +};
-> +
-> +static int acpi_translate_logicio_res(struct acpi_device *adev,
-> +		struct acpi_device *host, struct resource *resource)
-> +{
-> +	unsigned long sys_port;
-> +	struct device *dev = &adev->dev;
-> +	resource_size_t length = resource->end - resource->start;
-> +
-> +	sys_port = logic_pio_trans_hwaddr(&host->fwnode, resource->start,
-> +					length);
-> +
-> +	if (sys_port == -1) {
-> +		dev_err(dev, "translate bus-addr(0x%llx) fail!\n",
-> +			resource->start);
-> +		return -EFAULT;
-> +	}
-> +
-> +	resource->start = sys_port;
-> +	resource->end = sys_port + length;
-> +
-> +	return 0;
-> +}
-> +
-> +/*
-> + * update/set the current I/O resource of the designated device node.
-> + * after this calling, the enumeration can be started as the I/O resource
-> + * had been translated to logicial I/O from bus-local I/O.
-> + *
-> + * @child: the device node to be updated the I/O resource;
-> + * @hostdev: the device node where 'adev' is attached, which can be not
-> + *  the parent of 'adev';
-> + * @res: double pointer to be set to the address of the updated resources
-> + * @num_res: address of the variable to contain the number of updated resources
-> + *
-> + * return 0 when successful, negative is for failure.
-> + */
-> +int acpi_indirectio_set_logicio_res(struct device *child,
-> +					 struct device *hostdev,
-> +					 const struct resource **res,
-> +					 int *num_res)
-> +{
-> +	struct acpi_device *adev;
-> +	struct acpi_device *host;
-> +	struct resource_entry *rentry;
-> +	LIST_HEAD(resource_list);
-> +	struct resource *resources = NULL;
-> +	int count;
-> +	int i;
-> +	int ret = -EIO;
-> +
-> +	if (!child || !hostdev)
-> +		return -EINVAL;
-> +
-> +	host = to_acpi_device(hostdev);
-> +	adev = to_acpi_device(child);
-> +
-> +	/* check the device state */
-> +	if (!adev->status.present) {
-> +		dev_info(child, "ACPI: device is not present!\n");
-> +		return 0;
-> +	}
-> +	/* whether the child had been enumerated? */
-> +	if (acpi_device_enumerated(adev)) {
-> +		dev_info(child, "ACPI: had been enumerated!\n");
-> +		return 0;
-> +	}
-> +
-> +	count = acpi_dev_get_resources(adev, &resource_list, NULL, NULL);
-> +	if (count <= 0) {
-> +		dev_err(&adev->dev, "failed to get ACPI resources\n");
-> +		return count ? count : -EIO;
-> +	}
-> +
-> +	resources = kcalloc(count, sizeof(struct resource), GFP_KERNEL);
-> +	if (!resources) {
-> +		acpi_dev_free_resource_list(&resource_list);
-> +		return -ENOMEM;
-> +	}
-> +	count = 0;
-> +	list_for_each_entry(rentry, &resource_list, node)
-> +		resources[count++] = *rentry->res;
-> +
-> +	acpi_dev_free_resource_list(&resource_list);
-> +
-> +	/* translate the I/O resources */
-> +	for (i = 0; i < count; i++) {
-> +		if (resources[i].flags & IORESOURCE_IO) {
-> +			ret = acpi_translate_logicio_res(adev, host,
-> +							&resources[i]);
-> +			if (ret) {
-> +				kfree(resources);
-> +				dev_err(child,
-> +					"Translate I/O range failed (%d)!\n",
-> +					ret);
-> +				return ret;
-> +			}
-> +		}
-> +	}
-> +	*res = resources;
-> +	*num_res = count;
-> +
-> +	return ret;
-> +}
-> +
-> +int
-> +acpi_indirectio_pre_setup(struct acpi_device *adev,
-> +			  struct acpi_indirectio_host_data *pdata)
-> +{
-> +	struct platform_device *pdev;
-> +	struct mfd_cell *mfd_cells;
-> +	struct logic_pio_hwaddr *range;
-> +	struct acpi_device *child;
-> +	struct acpi_indirectio_mfd_cell *acpi_indirectio_mfd_cells;
-> +	int size, ret, count = 0, cell_num = 0;
-> +
-> +	range = kzalloc(sizeof(*range), GFP_KERNEL);
-> +	if (!range)
-> +		return -ENOMEM;
-> +	range->fwnode = &adev->fwnode;
-> +	range->flags = PIO_INDIRECT;
-> +	range->size = pdata->io_size;
-> +	range->hw_start = pdata->io_start;
-> +
-> +	ret = logic_pio_register_range(range);
-> +	if (ret)
-> +		goto free_range;
-> +
-> +	list_for_each_entry(child, &adev->children, node)
-> +		cell_num++;
-> +
-> +	/* allocate the mfd cells */
-> +	size = sizeof(*mfd_cells) + sizeof(*acpi_indirectio_mfd_cells);
-> +	mfd_cells = kcalloc(cell_num, size, GFP_KERNEL);
-> +	if (!mfd_cells) {
-> +		ret = -ENOMEM;
-> +		goto free_range;
-> +	}
-> +
-> +	acpi_indirectio_mfd_cells = (struct acpi_indirectio_mfd_cell *)
-> +					&mfd_cells[cell_num];
-> +	/* Only consider the children of the host */
-> +	list_for_each_entry(child, &adev->children, node) {
-> +		struct mfd_cell *mfd_cell = &mfd_cells[count];
-> +		struct acpi_indirectio_mfd_cell *acpi_indirectio_mfd_cell =
-> +					&acpi_indirectio_mfd_cells[count];
-> +		const struct mfd_cell_acpi_match *acpi_match =
-> +					&acpi_indirectio_mfd_cell->acpi_match;
-> +		char *name = &acpi_indirectio_mfd_cell[count].name[0];
-> +		char *pnpid = &acpi_indirectio_mfd_cell[count].pnpid[0];
-> +		struct mfd_cell_acpi_match match = {
-> +				.pnpid = pnpid,
-> +		};
-> +
-> +		snprintf(name, ACPI_INDIRECTIO_NAME_LENGTH, "indirect-io-%s",
-> +			 acpi_device_hid(child));
-> +		snprintf(pnpid, ACPI_INDIRECTIO_NAME_LENGTH, "%s",
-> +			 acpi_device_hid(child));
-> +
-> +		memcpy((void *)acpi_match, (void *)&match, sizeof(*acpi_match));
-> +		mfd_cell->name = name;
-> +		mfd_cell->acpi_match = acpi_match;
-> +
-> +		ret =
-> +		acpi_indirectio_set_logicio_res(&child->dev,
-> +						&adev->dev,
-> +						&mfd_cell->resources,
-> +						&mfd_cell->num_resources);
-> +		if (ret) {
-> +			dev_err(&child->dev, "set resource failed (%d)\n", ret);
-> +			goto free_mfd_res;
-> +		}
-> +		count++;
-> +	}
-> +
-> +	pdev = acpi_create_platform_device(adev, NULL);
-> +	if (IS_ERR_OR_NULL(pdev)) {
-> +		dev_err(&adev->dev, "Create platform device for host failed!\n");
-> +		ret = PTR_ERR(pdev);
-> +		goto free_mfd_res;
-> +	}
-> +	acpi_device_set_enumerated(adev);
-> +
-> +	ret = mfd_add_devices(&pdev->dev, PLATFORM_DEVID_NONE,
-> +			mfd_cells, cell_num, NULL, 0, NULL);
-> +	if (ret) {
-> +		dev_err(&pdev->dev, "failed to add mfd cells (%d)\n", ret);
-> +		goto free_mfd_res;
-> +	}
-> +
-> +	return ret;
-> +
-> +free_mfd_res:
-> +	while (cell_num--)
-> +		kfree(mfd_cells[cell_num].resources);
-> +	kfree(mfd_cells);
-> +free_range:
-> +	kfree(range);
-> +
-> +	return ret;
-> +}
-> +
-> +/* All the host devices which apply indirect-IO can be listed here. */
-> +static const struct acpi_device_id acpi_indirect_host_id[] = {
-> +	{""},
-> +};
-> +
-> +static int acpi_indirectio_attach(struct acpi_device *adev,
-> +				const struct acpi_device_id *id)
-> +{
-> +	struct acpi_indirectio_device_desc *hostdata;
-> +	int ret;
-> +
-> +	hostdata = (struct acpi_indirectio_device_desc *)id->driver_data;
-> +	if (!hostdata || !hostdata->pre_setup)
-> +		return -EINVAL;
-> +
-> +	ret = hostdata->pre_setup(adev, &hostdata->pdata);
-> +
-> +	if (ret < 0)
-> +		return ret;
-> +
-> +	return 1;
-> +}
-> +
-> +static struct acpi_scan_handler acpi_indirect_handler = {
-> +	.ids = acpi_indirect_host_id,
-> +	.attach = acpi_indirectio_attach,
-> +};
-> +
-> +void __init acpi_indirectio_scan_init(void)
-> +{
-> +	acpi_scan_add_handler(&acpi_indirect_handler);
-> +}
-> diff --git a/drivers/acpi/internal.h b/drivers/acpi/internal.h
-> index 1d0a501..d6b1a95 100644
-> --- a/drivers/acpi/internal.h
-> +++ b/drivers/acpi/internal.h
-> @@ -31,6 +31,11 @@
->  void acpi_platform_init(void);
->  void acpi_pnp_init(void);
->  void acpi_int340x_thermal_init(void);
-> +#ifdef CONFIG_INDIRECT_PIO
-> +void acpi_indirectio_scan_init(void);
-> +#else
-> +static inline void acpi_indirectio_scan_init(void) {}
-> +#endif
->  #ifdef CONFIG_ARM_AMBA
->  void acpi_amba_init(void);
->  #else
-> diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
-> index b0fe527..8ea6f69 100644
-> --- a/drivers/acpi/scan.c
-> +++ b/drivers/acpi/scan.c
-> @@ -2141,6 +2141,7 @@ int __init acpi_scan_init(void)
->  	acpi_amba_init();
->  	acpi_watchdog_init();
->  	acpi_init_lpit();
-> +	acpi_indirectio_scan_init();
->
->  	acpi_scan_add_handler(&generic_device_handler);
->
->
+2. When a page is allocated for a VA and the VMA covering this VA has
+VM_SPARC_ADI flag set, set the TTE.mcd bit so MMU will check the
+vwersion tag.
+
+3. Userspace can now set version tags on the memory it has enabled ADI
+on. Userspace accesses ADI enabled memory using a virtual address that
+has the version tag embedded in the high bits. MMU validates this
+version tag against the actual tag set on the memory. If tag matches,
+MMU performs the VA->PA translation and access is granted. If there is a
+mismatch, hypervisor sends a data access exception or precise memory
+corruption detected exception depending upon whether precise exceptions
+are enabled or not (controlled by MCDPERR register). Kernel sends
+SIGSEGV to the task with appropriate si_code.
+
+4. If a page is being swapped out or migrated, kernel must save any ADI
+tags set on the page. Kernel maintains a page worth of tag storage
+descriptors. Each descriptors pointsto a tag storage space and the
+address range it covers. If the page being swapped out or migrated has
+ADI enabled on it, kernel finds a tag storage descriptor that covers the
+address range for the page or allocates a new descriptor if none of the
+existing descriptors cover the address range. Kernel saves tags from the
+page into the tag storage space descriptor points to.
+
+5. When the page is swapped back in or reinstantiated after migration,
+kernel restores the version tags on the new physical page by retrieving
+the original tag from tag storage pointed to by a tag storage descriptor
+for the virtual address range for new page.
+
+User task can disable ADI by calling mprotect() again on the memory
+range with PROT_ADI bit unset. Kernel clears the VM_SPARC_ADI flag in
+VMAs, merges adjacent VMAs if necessary, and clears TTE.mcd bit in the
+corresponding ptes.
+
+IOMMU does not support ADI checking. Any version tags embedded in the
+top bits of VA meant for IOMMU, are cleared and replaced with sign
+extension of the first non-version tag bit (bit 59 for SPARC M7) for
+IOMMU addresses.
+
+This patch series adds support for this feature in 10 patches:
+
+Patch 1/10
+  Tag mismatch on access by a task results in a trap from hypervisor as
+  data access exception or a precide memory corruption detected
+  exception. As part of handling these exceptions, kernel sends a
+  SIGSEGV to user process with special si_code to indicate which fault
+  occurred. This patch adds three new si_codes to differentiate between
+  various mismatch errors.
+
+Patch 2/10
+  When a page is swapped or migrated, metadata associated with the page
+  must be saved so it can be restored later. This patch adds a new
+  function that saves/restores this metadata when updating pte upon a
+  swap/migration.
+
+Patch 3/10
+  SPARC M7 processor adds new fields to control registers to support ADI
+  feature. It also adds a new exception for precise traps on tag
+  mismatch. This patch adds definitions for the new control register
+  fields, new ASIs for ADI and an exception handler for the precise trap
+  on tag mismatch.
+
+Patch 4/10
+  New hypervisor fault types were added by sparc M7 processor to support
+  ADI feature. This patch adds code to handle these fault types for data
+  access exception handler.
+
+Patch 5/10
+  When ADI is in use for a page and a tag mismatch occurs, processor
+  raises "Memory corruption Detected" trap. This patch adds a handler
+  for this trap.
+
+Patch 6/10
+  ADI usage is governed by ADI properties on a platform. These
+  properties are provided to kernel by firmware. Thsi patch adds new
+  auxiliary vectors that provide these values to userpsace.
+
+Patch 7/10
+  arch_validate_prot() is used to validate the new protection bits asked
+  for by the userspace app. Validating protection bits may need the
+  context of address space the bits are being applied to. One such
+  example is PROT_ADI bit on sparc processor that enables ADI protection
+  on an address range. ADI protection applies only to addresses covered
+  by physical RAM and not other PFN mapped addresses or device
+  addresses. This patch adds "address" to the parameters being passed to
+  arch_validate_prot() to provide that context.
+
+Patch 8/10
+  When protection bits are changed on a page, kernel carries forward all
+  protection bits except for read/write/exec. Additional code was added
+  to allow kernel to clear PKEY bits on x86 but this requirement to
+  clear other bits is not unique to x86. This patch extends the existing
+  code to allow other architectures to clear any other protection bits
+  as well on protection bit change.
+
+Patch 9/10
+  When a processor supports additional metadata on memory pages, that
+  additional metadata needs to be copied to new memory pages when those
+  pages are moved. This patch allows architecture specific code to
+  replace the default copy_highpage() routine with arch specific
+  version that copies the metadata as well besides the data on the page.
+
+Patch 10/10
+  This patch adds support for a user space task to enable ADI and enable
+  tag checking for subsets of its address space. As part of enabling
+  this feature, this patch adds to support manipulation of precise
+  exception for memory corruption detection, adds code to save and
+  restore tags on page swap and migration, and adds code to handle ADI
+  tagged addresses for DMA.
+
+
+Changelog v11:
+
+	- Rebased to 4.15
+
+Changelog v10:
+
+	- Patch 1/10: Updated si_codes definitions for SEGV to match 4.14
+	- Patch 2/10: No changes
+	- Patch 3/10: Updated copyright
+	- Patch 4/10: No changes
+	- Patch 5/10: No changes
+	- Patch 6/10: Updated copyright
+	- Patch 7/10: No changes
+	- Patch 8/10: No changes
+	- Patch 9/10: No changes
+	- Patch 10/10: Added code to return from kernel path to set
+	  PSTATE.mcde if kernel continues execution in another thread
+	  (Suggested by Anthony)
+
+Changelog v9:
+
+	- Patch 1/10: No changes
+	- Patch 2/10: No changes
+	- Patch 3/10: No changes
+	- Patch 4/10: No changes
+	- Patch 5/10: No changes
+	- Patch 6/10: No changes
+	- Patch 7/10: No changes
+	- Patch 8/10: No changes
+	- Patch 9/10: New patch
+	- Patch 10/10: Patch 9 from v8. Added code to copy ADI tags when
+	  pages are migrated. Updated code to detect overflow and underflow
+	  of addresses when allocating tag storage.
+
+Changelog v8:
+
+	- Patch 1/9: No changes
+	- Patch 2/9: Fixed and erroneous "}"
+	- Patch 3/9: Minor print formatting change
+	- Patch 4/9: No changes
+	- Patch 5/9: No changes
+	- Patch 6/9: Added AT_ADI_UEONADI back
+	- Patch 7/9: Added addr parameter to powerpc arch_validate_prot()
+	- Patch 8/9: No changes
+	- Patch 9/9:
+		- Documentation updates
+		- Added an IPI on mprotect(...PROT_ADI...) call and
+		  restore of TSTATE.MCDE on context switch
+		- Removed restriction on enabling ADI on read-only
+		  memory
+		- Changed kzalloc() for tag storage to use GFP_NOWAIT
+		- Added code to handle overflow and underflow when
+		  allocating tag storage
+		- Replaced sun_m7_patch_1insn_range() with
+		  sun4v_patch_1insn_range()
+		- Added membar after restoring ADI tags in
+		  copy_user_highpage()
+
+Changelog v7:
+
+	- Patch 1/9: No changes
+	- Patch 2/9: Updated parameters to arch specific swap in/out
+	  handlers
+	- Patch 3/9: No changes
+	- Patch 4/9: new patch split off from patch 4/4 in v6
+	- Patch 5/9: new patch split off from patch 4/4 in v6
+	- Patch 6/9: new patch split off from patch 4/4 in v6
+	- Patch 7/9: new patch
+	- Patch 8/9: new patch
+	- Patch 9/9:
+		- Enhanced arch_validate_prot() to enable ADI only on
+		  writable addresses backed by physical RAM
+		- Added support for saving/restoring ADI tags for each
+		  ADI block size address range on a page on swap in/out
+		- copy ADI tags on COW
+		- Updated values for auxiliary vectors to not conflict
+		  with values on other architectures to avoid conflict
+		  in glibc
+		- Disable same page merging on ADI enabled pages
+		- Enable ADI only on writable addresses backed by
+		  physical RAM
+		- Split parts of patch off into separate patches
+
+Changelog v6:
+	- Patch 1/4: No changes
+	- Patch 2/4: No changes
+	- Patch 3/4: Added missing nop in the delay slot in
+	  sun4v_mcd_detect_precise
+	- Patch 4/4: Eliminated instructions to read and write PSTATE
+	  as well as MCDPER and PMCDPER on every access to userspace
+	  addresses by setting PSTATE and PMCDPER correctly upon entry
+	  into kernel
+
+Changelog v5:
+	- Patch 1/4: No changes
+	- Patch 2/4: Replaced set_swp_pte_at() with new architecture
+	  functions arch_do_swap_page() and arch_unmap_one() that
+	  suppoprt architecture specific actions to be taken on page
+	  swap and migration
+	- Patch 3/4: Fixed indentation issues in assembly code
+	- Patch 4/4:
+		- Fixed indentation issues and instrcuctions in assembly
+		  code
+		- Removed CONFIG_SPARC64 from mdesc.c
+		- Changed to maintain state of MCDPER register in thread
+		  info flags as opposed to in mm context. MCDPER is a
+		  per-thread state and belongs in thread info flag as
+		  opposed to mm context which is shared across threads.
+		  Added comments to clarify this is a lazily maintained
+		  state and must be updated on context switch and
+		  copy_process() 
+		- Updated code to use the new arch_do_swap_page() and
+		  arch_unmap_one() functions
+
+Testing:
+
+- All functionality was tested with 8K normal pages as well as hugepages
+  using malloc, mmap and shm.
+- Multiple long duration stress tests were run using hugepages over 2+
+  months. Normal pages were tested with shorter duration stress tests.
+- Tested swapping with malloc and shm by reducing max memory and
+  allocating three times the available system memory by active processes
+  using ADI on allocated memory. Ran through multiple hours long runs of
+  this test.
+- Tested page migration with malloc and shm by migrating data pages of
+  active ADI test process using migratepages, back and forth between two
+  nodes every few seconds over an hour long run. Verified page migration
+  through /proc/<pid>/numa_maps.
+- Tested COW support using test that forks children that read from
+  ADI enabled pages shared with parent and other children and write to
+  them as well forcing COW.
+
+
+---------
+
+Khalid Aziz (10):
+  signals, sparc: Add signal codes for ADI violations
+  mm, swap: Add infrastructure for saving page metadata on swap
+  sparc64: Add support for ADI register fields, ASIs and traps
+  sparc64: Add HV fault type handlers for ADI related faults
+  sparc64: Add handler for "Memory Corruption Detected" trap
+  sparc64: Add auxiliary vectors to report platform ADI properties
+  mm: Add address parameter to arch_validate_prot()
+  mm: Clear arch specific VM flags on protection change
+  mm: Allow arch code to override copy_highpage()
+  sparc64: Add support for ADI (Application Data Integrity)
+
+ Documentation/sparc/adi.txt             | 278 ++++++++++++++++++++++
+ arch/powerpc/include/asm/mman.h         |   4 +-
+ arch/powerpc/kernel/syscalls.c          |   2 +-
+ arch/sparc/include/asm/adi.h            |   6 +
+ arch/sparc/include/asm/adi_64.h         |  47 ++++
+ arch/sparc/include/asm/elf_64.h         |   5 +
+ arch/sparc/include/asm/hypervisor.h     |   2 +
+ arch/sparc/include/asm/mman.h           |  84 ++++++-
+ arch/sparc/include/asm/mmu_64.h         |  17 ++
+ arch/sparc/include/asm/mmu_context_64.h |  50 ++++
+ arch/sparc/include/asm/page_64.h        |   6 +
+ arch/sparc/include/asm/pgtable_64.h     |  48 ++++
+ arch/sparc/include/asm/thread_info_64.h |   2 +-
+ arch/sparc/include/asm/trap_block.h     |   2 +
+ arch/sparc/include/asm/ttable.h         |  10 +
+ arch/sparc/include/uapi/asm/asi.h       |   5 +
+ arch/sparc/include/uapi/asm/auxvec.h    |  11 +
+ arch/sparc/include/uapi/asm/mman.h      |   2 +
+ arch/sparc/include/uapi/asm/pstate.h    |  10 +
+ arch/sparc/kernel/Makefile              |   1 +
+ arch/sparc/kernel/adi_64.c              | 397 ++++++++++++++++++++++++++++++++
+ arch/sparc/kernel/entry.h               |   3 +
+ arch/sparc/kernel/etrap_64.S            |  27 ++-
+ arch/sparc/kernel/head_64.S             |   1 +
+ arch/sparc/kernel/mdesc.c               |   2 +
+ arch/sparc/kernel/process_64.c          |  25 ++
+ arch/sparc/kernel/rtrap_64.S            |  33 ++-
+ arch/sparc/kernel/setup_64.c            |   2 +
+ arch/sparc/kernel/sun4v_mcd.S           |  18 ++
+ arch/sparc/kernel/traps_64.c            | 142 +++++++++++-
+ arch/sparc/kernel/ttable_64.S           |   6 +-
+ arch/sparc/kernel/urtt_fill.S           |   7 +-
+ arch/sparc/kernel/vmlinux.lds.S         |   5 +
+ arch/sparc/mm/gup.c                     |  37 +++
+ arch/sparc/mm/hugetlbpage.c             |  14 +-
+ arch/sparc/mm/init_64.c                 |  69 ++++++
+ arch/sparc/mm/tsb.c                     |  21 ++
+ arch/x86/kernel/signal_compat.c         |   2 +-
+ include/asm-generic/pgtable.h           |  36 +++
+ include/linux/highmem.h                 |   4 +
+ include/linux/mm.h                      |   9 +
+ include/linux/mman.h                    |   2 +-
+ include/uapi/asm-generic/siginfo.h      |   5 +-
+ mm/ksm.c                                |   4 +
+ mm/memory.c                             |   1 +
+ mm/mprotect.c                           |   4 +-
+ mm/rmap.c                               |  14 ++
+ 47 files changed, 1461 insertions(+), 21 deletions(-)
+ create mode 100644 Documentation/sparc/adi.txt
+ create mode 100644 arch/sparc/include/asm/adi.h
+ create mode 100644 arch/sparc/include/asm/adi_64.h
+ create mode 100644 arch/sparc/kernel/adi_64.c
+ create mode 100644 arch/sparc/kernel/sun4v_mcd.S
+
+-- 
+2.11.0
+
