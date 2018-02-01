@@ -1,141 +1,95 @@
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: [PATCH v11 02/10] mm, swap: Add infrastructure for saving page metadata on swap
-Date: Thu,  1 Feb 2018 11:01:10 -0700
-Message-ID: <c7cdd0eccb1c1ea10cf0a145e4854364686a1e82.1517497017.git.khalid.aziz@oracle.com>
-References: <cover.1517497017.git.khalid.aziz@oracle.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <cover.1517497017.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1517497017.git.khalid.aziz@oracle.com>
-References: <cover.1517497017.git.khalid.aziz@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: akpm@linux-foundation.org, davem@davemloft.net, dave.hansen@linux.intel.com, arnd@arndb.de
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, kirill.shutemov@linux.intel.com, mhocko@suse.com, ross.zwisler@linux.intel.com, dave.jiang@intel.com, mgorman@techsingularity.net, willy@infradead.org, hughd@google.com, minchan@kernel.org, hannes@cmpxchg.org, shli@fb.com, mingo@kernel.org, jglisse@redhat.com, me@tobin.cc, anthony.yznaga@oracle.com, hillf.zj@alibaba-inc.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v5 12/12] x86/spectre: report get_user mitigation for spectre_v1
+Date: Thu, 1 Feb 2018 12:23:01 -0800
+Message-ID: <CAPcyv4jdDkwGFW1oqdL_wDS1b55ryB5OjDb3PmERsMZ0mz=z=g@mail.gmail.com>
+References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151703977742.26578.8362387033092864423.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180128095027.hqrcpnholsvukdzd@gmail.com> <CAPcyv4gA5eBYGsb+5WGcCnyB-8MB6qeO9Sw6aZNvaBCtb7OK1w@mail.gmail.com>
+ <20180131080714.svyq34reb7d2pwmf@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <kernel-hardening-return-11551-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20180131080714.svyq34reb7d2pwmf@gmail.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Greg KH <gregkh@linuxfoundation.org>, X86 ML <x86@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Jiri Slaby <jslaby@suse.cz>, Alan Cox <alan@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-If a processor supports special metadata for a page, for example ADI
-version tags on SPARC M7, this metadata must be saved when the page is
-swapped out. The same metadata must be restored when the page is swapped
-back in. This patch adds two new architecture specific functions -
-arch_do_swap_page() to be called when a page is swapped in, and
-arch_unmap_one() to be called when a page is being unmapped for swap
-out. These architecture hooks allow page metadata to be saved if the
-architecture supports it.
+On Wed, Jan 31, 2018 at 12:07 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>
+> * Dan Williams <dan.j.williams@intel.com> wrote:
+>
+>> On Sun, Jan 28, 2018 at 1:50 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>> >
+>> > * Dan Williams <dan.j.williams@intel.com> wrote:
+>> >
+>> >> Reflect the presence of 'get_user', '__get_user', and 'syscall'
+>> >> protections in sysfs. Keep the "Vulnerable" distinction given the
+>> >> expectation that the places that have been identified for 'array_idx'
+>> >> usage are likely incomplete.
+>> >
+>> > (The style problems/inconsistencies of the previous patches are repeated here too,
+>> > please fix.)
+>> >
+>> >>
+>> >> Cc: Thomas Gleixner <tglx@linutronix.de>
+>> >> Cc: Ingo Molnar <mingo@redhat.com>
+>> >> Cc: "H. Peter Anvin" <hpa@zytor.com>
+>> >> Cc: x86@kernel.org
+>> >> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+>> >> Reported-by: Jiri Slaby <jslaby@suse.cz>
+>> >> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+>> >> ---
+>> >>  arch/x86/kernel/cpu/bugs.c |    2 +-
+>> >>  1 file changed, 1 insertion(+), 1 deletion(-)
+>> >>
+>> >> diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
+>> >> index 390b3dc3d438..01d5ba48f745 100644
+>> >> --- a/arch/x86/kernel/cpu/bugs.c
+>> >> +++ b/arch/x86/kernel/cpu/bugs.c
+>> >> @@ -269,7 +269,7 @@ ssize_t cpu_show_spectre_v1(struct device *dev,
+>> >>  {
+>> >>       if (!boot_cpu_has_bug(X86_BUG_SPECTRE_V1))
+>> >>               return sprintf(buf, "Not affected\n");
+>> >> -     return sprintf(buf, "Vulnerable\n");
+>> >> +     return sprintf(buf, "Vulnerable: Minimal user pointer sanitization\n");
+>> >
+>> > Btw., I think this string is still somewhat passive-aggressive towards users, as
+>> > it doesn't really give them any idea about what is missing from their system so
+>> > that they can turn it into not vulnerable.
+>> >
+>> > What else is missing that would turn this into a "Mitigated" entry?
+>>
+>> Part of the problem is that there are different sub-classes of Spectre
+>> variant1 vulnerabilities. For example, speculating on the value of a
+>> user pointer returned from get_user() is mitigated by these kernel
+>> changes. However, cleaning up occasions where the CPU might speculate
+>> on the validity of a user-controlled pointer offset, or
+>> user-controlled array index is only covered by manual inspection of
+>> some noisy / incomplete tooling results. I.e. the handful of
+>> array_index_nospec() usages in this series is likely incomplete.
+>>
+>> The usage of barrier_nospec() in __get_user() and open coded
+>> array_index_nospec() in get_user() does raise the bar and mitigates an
+>> entire class of problems. Perhaps it would be reasonable to have
+>> cpu_show_spectre_v1() emit:
+>>
+>>     "Mitigation: __user pointer sanitization"
+>
+> Yeah, so I think the ideal approach would be if we emitted _both_ pieces of
+> information:
+>
+>      Mitigation: __user pointer sanitization
+>      Vulnerable: incomplete array index sanitization
+>
+> I.e. we inform the user about the mitigation measures that are active, but we also
+> fully inform that we think it's incomplete at this stage.
 
-Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: Khalid Aziz <khalid@gonehiking.org>
-Acked-by: Jerome Marchand <jmarchan@redhat.com>
-Reviewed-by: Anthony Yznaga <anthony.yznaga@oracle.com>
----
-v8:
-	- Fixed an erroneous "}"
-v6:
-	- Updated parameter list for arch_do_swap_page() and
-	  arch_unmap_one()
-v5:
-	- Replaced set_swp_pte() function with new architecture
-	  functions arch_do_swap_page() and arch_unmap_one()
-
- include/asm-generic/pgtable.h | 36 ++++++++++++++++++++++++++++++++++++
- mm/memory.c                   |  1 +
- mm/rmap.c                     | 14 ++++++++++++++
- 3 files changed, 51 insertions(+)
-
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 868e68561f91..5530cfc72ef8 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -393,6 +393,42 @@ static inline int pud_same(pud_t pud_a, pud_t pud_b)
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
-+#ifndef __HAVE_ARCH_DO_SWAP_PAGE
-+/*
-+ * Some architectures support metadata associated with a page. When a
-+ * page is being swapped out, this metadata must be saved so it can be
-+ * restored when the page is swapped back in. SPARC M7 and newer
-+ * processors support an ADI (Application Data Integrity) tag for the
-+ * page as metadata for the page. arch_do_swap_page() can restore this
-+ * metadata when a page is swapped back in.
-+ */
-+static inline void arch_do_swap_page(struct mm_struct *mm,
-+				     struct vm_area_struct *vma,
-+				     unsigned long addr,
-+				     pte_t pte, pte_t oldpte)
-+{
-+
-+}
-+#endif
-+
-+#ifndef __HAVE_ARCH_UNMAP_ONE
-+/*
-+ * Some architectures support metadata associated with a page. When a
-+ * page is being swapped out, this metadata must be saved so it can be
-+ * restored when the page is swapped back in. SPARC M7 and newer
-+ * processors support an ADI (Application Data Integrity) tag for the
-+ * page as metadata for the page. arch_unmap_one() can save this
-+ * metadata on a swap-out of a page.
-+ */
-+static inline int arch_unmap_one(struct mm_struct *mm,
-+				  struct vm_area_struct *vma,
-+				  unsigned long addr,
-+				  pte_t orig_pte)
-+{
-+	return 0;
-+}
-+#endif
-+
- #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
- #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
- #endif
-diff --git a/mm/memory.c b/mm/memory.c
-index 793004608332..4e9bd81aa6f5 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3017,6 +3017,7 @@ int do_swap_page(struct vm_fault *vmf)
- 	if (pte_swp_soft_dirty(vmf->orig_pte))
- 		pte = pte_mksoft_dirty(pte);
- 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, pte);
-+	arch_do_swap_page(vma->vm_mm, vma, vmf->address, pte, vmf->orig_pte);
- 	vmf->orig_pte = pte;
- 
- 	/* ksm created a completely new copy */
-diff --git a/mm/rmap.c b/mm/rmap.c
-index 47db27f8049e..144c66e688a9 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1497,6 +1497,14 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 				(flags & (TTU_MIGRATION|TTU_SPLIT_FREEZE))) {
- 			swp_entry_t entry;
- 			pte_t swp_pte;
-+
-+			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
-+				set_pte_at(mm, address, pvmw.pte, pteval);
-+				ret = false;
-+				page_vma_mapped_walk_done(&pvmw);
-+				break;
-+			}
-+
- 			/*
- 			 * Store the pfn of the page in a special migration
- 			 * pte. do_swap_page() will wait until the migration
-@@ -1556,6 +1564,12 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 				page_vma_mapped_walk_done(&pvmw);
- 				break;
- 			}
-+			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
-+				set_pte_at(mm, address, pvmw.pte, pteval);
-+				ret = false;
-+				page_vma_mapped_walk_done(&pvmw);
-+				break;
-+			}
- 			if (list_empty(&mm->mmlist)) {
- 				spin_lock(&mmlist_lock);
- 				if (list_empty(&mm->mmlist))
--- 
-2.11.0
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+But that would assume that it's only array index sanitization that we
+need to worry about. The get_user() protections were interesting
+because they showed a class of potential leaks near pointer
+de-references not necessarily arrays. So I think it's more likely the
+case that we'll add more "Mitigation:" lines over time.
