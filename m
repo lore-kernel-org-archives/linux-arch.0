@@ -1,62 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp2120.oracle.com ([156.151.31.85]:57260 "EHLO
-        userp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752472AbeBBPCk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Feb 2018 10:02:40 -0500
-Subject: Re: [PATCH v11 00/10] Application Data Integrity feature introduced
- by SPARC M7
-References: <cover.1517497017.git.khalid.aziz@oracle.com>
- <87wozwi0p1.fsf@xmission.com>
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Message-ID: <0f1bdb63-60d5-467c-a6a4-c06ba62b1f6e@oracle.com>
-Date: Fri, 2 Feb 2018 07:59:25 -0700
+Received: from merlin.infradead.org ([205.233.59.134]:36254 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753102AbeBBRrj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Feb 2018 12:47:39 -0500
+Subject: Re: [PATCH 22/34] dma-mapping: add an arch_dma_supported hook
+References: <20180112084232.2857-1-hch@lst.de>
+ <20180112084232.2857-23-hch@lst.de>
+From: Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <5d7dfb29-eeef-2280-13c9-5260e9104f67@infradead.org>
+Date: Fri, 2 Feb 2018 09:47:23 -0800
 MIME-Version: 1.0
-In-Reply-To: <87wozwi0p1.fsf@xmission.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
+In-Reply-To: <20180112084232.2857-23-hch@lst.de>
+Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: davem@davemloft.net, dave.hansen@linux.intel.com, aarcange@redhat.com, akpm@linux-foundation.org, allen.pais@oracle.com, anthony.yznaga@oracle.com, arnd@arndb.de, babu.moger@oracle.com, benh@kernel.crashing.org, bob.picco@oracle.com, bsingharora@gmail.com, corbet@lwn.net, dan.j.williams@intel.com, dave.jiang@intel.com, david.j.aldridge@oracle.com, elena.reshetova@intel.com, glx@linutronix.de, gregkh@linuxfoundation.org, hannes@cmpxchg.org, hillf.zj@alibaba-inc.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jag.raman@oracle.com, jane.chu@oracle.com, jglisse@redhat.com, jroedel@suse.de, khalid@gonehiking.org, khandual@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, kstewart@linuxfoundation.org, ktkhai@virtuozzo.com, liam.merwick@oracle.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux@roeck-us.net, me@tobin.cc, mgorman@suse.de, mgorman@techsingularity.net, mhocko@suse.com, mike.kravetz@oracle.com, minchan@kernel.org, mingo@kernel.org, mingo@redhat.com, mpe@ellerman.id.au, nadav.amit@gmail.com, nagarathnam.muthusamy@oracle.com, nborisov@suse.com, n-horiguchi@ah.jp.nec.com, nick.alcock@oracle.com, nitin.m.gupta@oracle.com, ombredanne@nexb.com, pasha.tatashin@oracle.com, paulus@samba.org, pombredanne@nexb.com, punit.agrawal@arm.com, rob.gardner@oracle.com, ross.zwisler@linux.intel.com, shannon.nelson@oracle.com, shli@fb.com, sparclinux@vger.kernel.org, steven.sistare@oracle.com, tglx@linutronix.de, thomas.tai@oracle.com, tklauser@distanz.ch, tom.hromatka@oracle.com, vegard.nossum@oracle.com, vijay.ac.kumar@oracle.com, willy@infradead.org, x86@kernel.org, zi.yan@cs.rutgers.edu
-Message-ID: <20180202145925.mRbBkY-N8bwrftCrrVCV8fSURcWujq6BfULS9lZ0DT0@z>
+To: Christoph Hellwig <hch@lst.de>, iommu@lists.linux-foundation.org
+Cc: Konrad Rzeszutek Wilk <konrad@darnok.org>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, patches@groups.riscv.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20180202174723.bXxN88ZYW85qfgG60i3QVBlWBCu7kSB0dj_XPUHBDuM@z>
 
-On 02/01/2018 07:29 PM, ebiederm@xmission.com wrote:
-> Khalid Aziz <khalid.aziz@oracle.com> writes:
+On 01/12/2018 12:42 AM, Christoph Hellwig wrote:
+> To implement the x86 forbid_dac and iommu_sac_force we want an arch hook
+> so that it can apply the global options across all dma_map_ops
+> implementations.
 > 
->> V11 changes:
->> This series is same as v10 and was simply rebased on 4.15 kernel. Can
->> mm maintainers please review patches 2, 7, 8 and 9 which are arch
->> independent, and include/linux/mm.h and mm/ksm.c changes in patch 10
->> and ack these if everything looks good?
-> 
-> I am a bit puzzled how this differs from the pkey's that other
-> architectures are implementing to achieve a similar result.
-> 
-> I am a bit mystified why you don't store the tag in a vma
-> instead of inventing a new way to store data on page out.
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  arch/x86/include/asm/dma-mapping.h |  3 +++
+>  arch/x86/kernel/pci-dma.c          | 19 ++++++++++++-------
+>  include/linux/dma-mapping.h        | 11 +++++++++++
+>  3 files changed, 26 insertions(+), 7 deletions(-)
 
-Hello Eric,
+> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+> index 88bcb1a8211d..d67742dad904 100644
+> --- a/include/linux/dma-mapping.h
+> +++ b/include/linux/dma-mapping.h
+> @@ -576,6 +576,14 @@ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+>  	return 0;
+>  }
+>  
+> +/*
+> + * This is a hack for the legacy x86 forbid_dac and iommu_sac_force. Please
+> + * don't use this is new code.
 
-As Steven pointed out, sparc sets tags per cacheline unlike pkey. This 
-results in much finer granularity for tags that pkey and hence requires 
-larger tag storage than what we can do in a vma.
+                     in new code.
 
-> 
-> Can you please use force_sig_fault to send these signals instead
-> of force_sig_info.  Emperically I have found that it is very
-> error prone to generate siginfo's by hand, especially on code
-> paths where several different si_codes may apply.  So it helps
-> to go through a helper function to ensure the fiddly bits are
-> all correct.  AKA the unused bits all need to be set to zero before
-> struct siginfo is copied to userspace.
-> 
+> + */
+> +#ifndef arch_dma_supported
+> +#define arch_dma_supported(dev, mask)	(1)
+> +#endif
 
-What you say makes sense. I followed the same code as other fault 
-handlers for sparc. I could change just the fault handlers for ADI 
-related faults. Would it make more sense to change all the fault 
-handlers in a separate patch and keep the code in 
-arch/sparc/kernel/traps_64.c consistent? Dave M, do you have a preference?
 
-Thanks,
-Khalid
+-- 
+~Randy
