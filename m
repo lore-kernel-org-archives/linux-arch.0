@@ -1,97 +1,78 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [GIT PULL tools] Linux kernel memory model
-Date: Fri, 2 Feb 2018 12:46:03 +0800
-Message-ID: <20180202044603.i2z3q25jeftbct5c@tardis>
-References: <20180125093440.GA875@linux.vnet.ibm.com>
- <20180129065724.ybrdsabvktq7fbqg@gmail.com>
- <20180129095449.GT3741@linux.vnet.ibm.com>
- <20180131090006.onaopgyqthppoysi@gmail.com>
- <20180201011728.GL3741@linux.vnet.ibm.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [PATCH v11 3/3] mm, x86: display pkey in smaps only if arch
+ supports pkeys
+Date: Thu, 1 Feb 2018 23:21:39 -0800
+Message-ID: <20180202072139.GD5411@ram.oc3035372033.ibm.com>
+References: <1517341452-11924-4-git-send-email-linuxram@us.ibm.com>
+ <201802021225.JPjLbdCs%fengguang.wu@intel.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="hxzmqihrdkbwwur2"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f196.google.com ([74.125.82.196]:43427 "EHLO
-        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751530AbeBBEnB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Feb 2018 23:43:01 -0500
-Content-Disposition: inline
-In-Reply-To: <20180201011728.GL3741@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, will.deacon@arm.com, peterz@infradead.org, npiggin@gmail.com, dhowells@redhat.com, elena.reshetova@intel.com, mhocko@suse.com, akiyks@gmail.com, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Linus Torvalds <torvalds@linux-foundation.org>
-
-
---hxzmqihrdkbwwur2
 Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <201802021225.JPjLbdCs%fengguang.wu@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: kbuild test robot <lkp@intel.com>
+Cc: kbuild-all@01.org, mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 31, 2018 at 05:17:28PM -0800, Paul E. McKenney wrote:
-[...]
-> > - A long term question: have you considered and would it make sense to =
-generate a
-> >   memory-barriers.txt like file directly into Documentation/locking/, u=
-sing the
-> >   formal description? That way any changes/extensions/fixes to the mode=
-l could be
-> >   tracked on a high level, without readers having to understand the for=
-mal
-> >   representation.
->=20
-> I hadn't considered this at all, actually.  ;-)
->=20
-> The sections of memory-barriers.txt dealing with MMIO ordering would need
-> to stay hand-generated, but they are a very small fraction of the total.
-> The herd7 tool is capable of generating cool diagrams sort of like
-> this one: https://static.lwn.net/images/2017/mm-model/rmo-acyclic.png,
-> which might replace at least some of the hand-generated ASCII-art
-> diagrams.
->=20
+On Fri, Feb 02, 2018 at 12:27:27PM +0800, kbuild test robot wrote:
+> Hi Ram,
+> 
+> Thank you for the patch! Yet something to improve:
+> 
+> [auto build test ERROR on linus/master]
+> [also build test ERROR on v4.15 next-20180201]
+> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+> 
+> url:    https://urldefense.proofpoint.com/v2/url?u=https-3A__github.com_0day-2Dci_linux_commits_Ram-2DPai_mm-2Dx86-2Dpowerpc-2DEnhancements-2Dto-2DMemory-2DProtection-2DKeys_20180202-2D120004&d=DwIBAg&c=jf_iaSHvJObTbx-siA1ZOg&r=m-UrKChQVkZtnPpjbF6YY99NbT8FBByQ-E-ygV8luxw&m=Fv3tEHet1bTUrDjOnzEhXvGM_4tGlkYhJHPBnWNWgVA&s=Z1W6CV2tfPmLYU8lVv1oDRl2cAyQA76KE2P064A2CQY&e=
+> config: x86_64-randconfig-x005-201804 (attached as .config)
+> compiler: gcc-7 (Debian 7.2.0-12) 7.2.1 20171025
+> reproduce:
+>         # save the attached .config to linux build tree
+>         make ARCH=x86_64 
+> 
+> All error/warnings (new ones prefixed by >>):
+> 
+>    In file included from arch/x86/include/asm/mmu_context.h:8:0,
+>                     from arch/x86/events/core.c:36:
+> >> include/linux/pkeys.h:16:23: error: expected identifier or '(' before numeric constant
+>     #define vma_pkey(vma) 0
+>                           ^
+> >> arch/x86/include/asm/mmu_context.h:298:19: note: in expansion of macro 'vma_pkey'
+>     static inline int vma_pkey(struct vm_area_struct *vma)
+>                       ^~~~~~~~
+> 
+> vim +16 include/linux/pkeys.h
+> 
+>      7	
+>      8	#ifdef CONFIG_ARCH_HAS_PKEYS
+>      9	#include <asm/pkeys.h>
+>     10	#else /* ! CONFIG_ARCH_HAS_PKEYS */
+>     11	#define arch_max_pkey() (1)
+>     12	#define execute_only_pkey(mm) (0)
+>     13	#define arch_override_mprotect_pkey(vma, prot, pkey) (0)
+>     14	#define PKEY_DEDICATED_EXECUTE_ONLY 0
+>     15	#define ARCH_VM_PKEY_FLAGS 0
+>   > 16	#define vma_pkey(vma) 0
 
-Which reminds me, one thing we could start with is to try to convert all
-the examples with litmus tests. Has this been done somewhere (e.g. in
-your litmus github repo)? If not, I can try if you think that's a good
-idea.
+Oops. Thanks for catching the issue. The following fix will resolve the error.
 
-Regards,
-Boqun
+diff --git a/arch/x86/include/asm/mmu_context.h
+b/arch/x86/include/asm/mmu_context.h
+index 6d16d15..c1aeb19 100644
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@ -238,11 +238,6 @@ static inline int vma_pkey(struct vm_area_struct
+		*vma)
+ 
+        return (vma->vm_flags & vma_pkey_mask) >> VM_PKEY_SHIFT;
+}
+-#else
+-static inline int vma_pkey(struct vm_area_struct *vma)
+-{
+-       return 0;
+-}
+ #endif
 
-> Although I do confess harboring some skepticism about being able to
-> generated high-quality text, there is no denying that it would be
-> valuable to be able to do so.
->=20
-> > In any case, the base commit is certainly nice and clean and I've pulle=
-d it into=20
-> > tip:locking/core for a v4.17 merge.
->=20
-> Very good!
->=20
-> > I believe these additional improvements (to the extent you agree with d=
-oing them!)=20
-> > could/should be done as add-on commits on top of this existing commit.
->=20
-> Sounds good!
->=20
-> Would you prefer a pull request or a patch series for these?
->=20
-> 							Thanx, Paul
->=20
-
---hxzmqihrdkbwwur2
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCAAdFiEEj5IosQTPz8XU1wRHSXnow7UH+rgFAlpz7QgACgkQSXnow7UH
-+rgRLQf+LTeuFTeKP7AbS36x2B/vyKxi2rzUFeoM2bPBLNZmiW80YpnerEoExADu
-FVMtGVV1dGKmUhkQoQ4ZnOaIrLd8D22NfLKXlzFkQ34EcIl5BtkzpLXQZoIpeAUT
-K+d64s+saWRhq4G+bOngWACQDMkrvWmsagSnGpI0Hb/AWyDNTF+Xqbw9rIWvOf+6
-+B6CV3kiTm6E/5ymS25JsAc0pvi3gbS+7gbN54398j30WmBWGZ7Yl/H58YLn1/pt
-gIw0jYsIsvxcuaEEpMY+0WIlqwzqIK17Nr/uOfrNet/0gF8/GFhZGnGYCv5o3DWI
-wgfCG5moGho84HjDwj6NJXdK9iUJDg==
-=Fp9Y
------END PGP SIGNATURE-----
-
---hxzmqihrdkbwwur2--
+RP
