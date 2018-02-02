@@ -1,22 +1,22 @@
-From: Steven Sistare <steven.sistare@oracle.com>
+From: Khalid Aziz <khalid.aziz@oracle.com>
 Subject: Re: [PATCH v11 00/10] Application Data Integrity feature introduced
  by SPARC M7
-Date: Fri, 2 Feb 2018 09:13:08 -0500
-Message-ID: <59fb3a0c-0163-0ec2-9757-cc5969601fa7@oracle.com>
+Date: Fri, 2 Feb 2018 07:59:25 -0700
+Message-ID: <0f1bdb63-60d5-467c-a6a4-c06ba62b1f6e@oracle.com>
 References: <cover.1517497017.git.khalid.aziz@oracle.com>
  <87wozwi0p1.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <sparclinux-owner@vger.kernel.org>
+Return-path: <linux-doc-owner@vger.kernel.org>
 In-Reply-To: <87wozwi0p1.fsf@xmission.com>
 Content-Language: en-US
-Sender: sparclinux-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
 Cc: davem@davemloft.net, dave.hansen@linux.intel.com, aarcange@redhat.com, akpm@linux-foundation.org, allen.pais@oracle.com, anthony.yznaga@oracle.com, arnd@arndb.de, babu.moger@oracle.com, benh@kernel.crashing.org, bob.picco@oracle.com, bsingharora@gmail.com, corbet@lwn.net, dan.j.williams@intel.com, dave.jiang@intel.com, david.j.aldridge@oracle.com, elena.reshetova@intel.com, glx@linutronix.de, gregkh@linuxfoundation.org, hannes@cmpxchg.org, hillf.zj@alibaba-inc.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jag.raman@oracle.com, jane.chu@oracle.com, jglisse@redhat.com, jroedel@suse.de, khalid@gonehiking.org, khandual@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, kstewart@linuxfoundation.org, ktkhai@virtuozzo.com, liam.merwick@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On 2/1/2018 9:29 PM, ebiederm@xmission.com wrote:
+On 02/01/2018 07:29 PM, ebiederm@xmission.com wrote:
 > Khalid Aziz <khalid.aziz@oracle.com> writes:
 > 
 >> V11 changes:
@@ -30,6 +30,13 @@ On 2/1/2018 9:29 PM, ebiederm@xmission.com wrote:
 > 
 > I am a bit mystified why you don't store the tag in a vma
 > instead of inventing a new way to store data on page out.
+
+Hello Eric,
+
+As Steven pointed out, sparc sets tags per cacheline unlike pkey. This 
+results in much finer granularity for tags that pkey and hence requires 
+larger tag storage than what we can do in a vma.
+
 > 
 > Can you please use force_sig_fault to send these signals instead
 > of force_sig_info.  Emperically I have found that it is very
@@ -39,21 +46,12 @@ On 2/1/2018 9:29 PM, ebiederm@xmission.com wrote:
 > all correct.  AKA the unused bits all need to be set to zero before
 > struct siginfo is copied to userspace.
 > 
-> Eric
 
-The ADI tag can be set at a cacheline (64B) granularity, as opposed
-to the per-page granularity of pkeys.  This allows an object allocator
-to color each object differently within a page (rounding to 64B boundaries),
-such that a pointer overrun bug from one object to the next will cause a
-fault.  When pages are paged out, the tags must be saved, hence the
-new scheme for storing them.  One tag per vma is too coarse.
+What you say makes sense. I followed the same code as other fault 
+handlers for sparc. I could change just the fault handlers for ADI 
+related faults. Would it make more sense to change all the fault 
+handlers in a separate patch and keep the code in 
+arch/sparc/kernel/traps_64.c consistent? Dave M, do you have a preference?
 
-The combination of fine granularity and pageability makes for a powerful
-memory-reference error-detection framework.
-
-This was discussed in more detail when earlier patches were submitted,
-but it's been a while, and the distribution was probably narrower.
-
-Khalid can respond to the sig_fault comment.
-
-- Steve
+Thanks,
+Khalid
