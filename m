@@ -1,99 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f195.google.com ([74.125.82.195]:34591 "EHLO
-        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755004AbeBAUXD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Feb 2018 15:23:03 -0500
-Received: by mail-ot0-f195.google.com with SMTP id x15so18155061ote.1
-        for <linux-arch@vger.kernel.org>; Thu, 01 Feb 2018 12:23:02 -0800 (PST)
+Received: from out03.mta.xmission.com ([166.70.13.233]:59416 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754363AbeBBC3n (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Feb 2018 21:29:43 -0500
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <cover.1517497017.git.khalid.aziz@oracle.com>
+Date: Thu, 01 Feb 2018 20:29:14 -0600
+In-Reply-To: <cover.1517497017.git.khalid.aziz@oracle.com> (Khalid Aziz's
+        message of "Thu, 1 Feb 2018 11:01:08 -0700")
+Message-ID: <87wozwi0p1.fsf@xmission.com>
 MIME-Version: 1.0
-In-Reply-To: <20180131080714.svyq34reb7d2pwmf@gmail.com>
-References: <151703971300.26578.1185595719337719486.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151703977742.26578.8362387033092864423.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180128095027.hqrcpnholsvukdzd@gmail.com> <CAPcyv4gA5eBYGsb+5WGcCnyB-8MB6qeO9Sw6aZNvaBCtb7OK1w@mail.gmail.com>
- <20180131080714.svyq34reb7d2pwmf@gmail.com>
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 1 Feb 2018 12:23:01 -0800
-Message-ID: <CAPcyv4jdDkwGFW1oqdL_wDS1b55ryB5OjDb3PmERsMZ0mz=z=g@mail.gmail.com>
-Subject: Re: [PATCH v5 12/12] x86/spectre: report get_user mitigation for spectre_v1
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
+Subject: Re: [PATCH v11 00/10] Application Data Integrity feature introduced by SPARC M7
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Greg KH <gregkh@linuxfoundation.org>, X86 ML <x86@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Jiri Slaby <jslaby@suse.cz>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180201202301.qY2D6eKQzG7BfSgxY5Mpil4N_dDppFKzHuAdGiW2jbQ@z>
+To: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: davem@davemloft.net, dave.hansen@linux.intel.com, aarcange@redhat.com, akpm@linux-foundation.org, allen.pais@oracle.com, anthony.yznaga@oracle.com, arnd@arndb.de, babu.moger@oracle.com, benh@kernel.crashing.org, bob.picco@oracle.com, bsingharora@gmail.com, corbet@lwn.net, dan.j.williams@intel.com, dave.jiang@intel.com, david.j.aldridge@oracle.com, elena.reshetova@intel.com, glx@linutronix.de, gregkh@linuxfoundation.org, hannes@cmpxchg.org, hillf.zj@alibaba-inc.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jag.raman@oracle.com, jane.chu@oracle.com, jglisse@redhat.com, jroedel@suse.de, khalid@gonehiking.org, khandual@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, kstewart@linuxfoundation.org, ktkhai@virtuozzo.com, liam.merwick@oracle.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux@roeck-us.net, me@tobin.cc, mgorman@suse.de, mgorman@techsingularity.net, mhocko@suse.com, mike.kravetz@oracle.com, minchan@kernel.org, mingo@kernel.org, mingo@redhat.com, mpe@ellerman.id.au, nadav.amit@gmail.com, nagarathnam.muthusamy@oracle.com, nborisov@suse.com, n-horiguchi@ah.jp.nec.com, nick.alcock@oracle.com, nitin.m.gupta@oracle.com, ombredanne@nexb.com, pasha.tatashin@oracle.com, paulus@samba.org, pombredanne@nexb.com, punit.agrawal@arm.com, rob.gardner@oracle.com, ross.zwisler@linux.intel.com, shannon.nelson@oracle.com, shli@fb.com, sparclinux@vger.kernel.org, steven.sistare@oracle.com, tglx@linutronix.de, thomas.tai@oracle.com, tklauser@distanz.ch, tom.hromatka@oracle.com, vegard.nossum@oracle.com, vijay.ac.kumar@oracle.com, willy@infradead.org, x86@kernel.org, zi.yan@cs.rutgers.edu
+Message-ID: <20180202022914.RCp8XKuUuL7wlN41XmTg04Mxcrv5M8iR1Jxx6M-vo0w@z>
 
-On Wed, Jan 31, 2018 at 12:07 AM, Ingo Molnar <mingo@kernel.org> wrote:
->
-> * Dan Williams <dan.j.williams@intel.com> wrote:
->
->> On Sun, Jan 28, 2018 at 1:50 AM, Ingo Molnar <mingo@kernel.org> wrote:
->> >
->> > * Dan Williams <dan.j.williams@intel.com> wrote:
->> >
->> >> Reflect the presence of 'get_user', '__get_user', and 'syscall'
->> >> protections in sysfs. Keep the "Vulnerable" distinction given the
->> >> expectation that the places that have been identified for 'array_idx'
->> >> usage are likely incomplete.
->> >
->> > (The style problems/inconsistencies of the previous patches are repeated here too,
->> > please fix.)
->> >
->> >>
->> >> Cc: Thomas Gleixner <tglx@linutronix.de>
->> >> Cc: Ingo Molnar <mingo@redhat.com>
->> >> Cc: "H. Peter Anvin" <hpa@zytor.com>
->> >> Cc: x86@kernel.org
->> >> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
->> >> Reported-by: Jiri Slaby <jslaby@suse.cz>
->> >> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
->> >> ---
->> >>  arch/x86/kernel/cpu/bugs.c |    2 +-
->> >>  1 file changed, 1 insertion(+), 1 deletion(-)
->> >>
->> >> diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
->> >> index 390b3dc3d438..01d5ba48f745 100644
->> >> --- a/arch/x86/kernel/cpu/bugs.c
->> >> +++ b/arch/x86/kernel/cpu/bugs.c
->> >> @@ -269,7 +269,7 @@ ssize_t cpu_show_spectre_v1(struct device *dev,
->> >>  {
->> >>       if (!boot_cpu_has_bug(X86_BUG_SPECTRE_V1))
->> >>               return sprintf(buf, "Not affected\n");
->> >> -     return sprintf(buf, "Vulnerable\n");
->> >> +     return sprintf(buf, "Vulnerable: Minimal user pointer sanitization\n");
->> >
->> > Btw., I think this string is still somewhat passive-aggressive towards users, as
->> > it doesn't really give them any idea about what is missing from their system so
->> > that they can turn it into not vulnerable.
->> >
->> > What else is missing that would turn this into a "Mitigated" entry?
->>
->> Part of the problem is that there are different sub-classes of Spectre
->> variant1 vulnerabilities. For example, speculating on the value of a
->> user pointer returned from get_user() is mitigated by these kernel
->> changes. However, cleaning up occasions where the CPU might speculate
->> on the validity of a user-controlled pointer offset, or
->> user-controlled array index is only covered by manual inspection of
->> some noisy / incomplete tooling results. I.e. the handful of
->> array_index_nospec() usages in this series is likely incomplete.
->>
->> The usage of barrier_nospec() in __get_user() and open coded
->> array_index_nospec() in get_user() does raise the bar and mitigates an
->> entire class of problems. Perhaps it would be reasonable to have
->> cpu_show_spectre_v1() emit:
->>
->>     "Mitigation: __user pointer sanitization"
->
-> Yeah, so I think the ideal approach would be if we emitted _both_ pieces of
-> information:
->
->      Mitigation: __user pointer sanitization
->      Vulnerable: incomplete array index sanitization
->
-> I.e. we inform the user about the mitigation measures that are active, but we also
-> fully inform that we think it's incomplete at this stage.
+Khalid Aziz <khalid.aziz@oracle.com> writes:
 
-But that would assume that it's only array index sanitization that we
-need to worry about. The get_user() protections were interesting
-because they showed a class of potential leaks near pointer
-de-references not necessarily arrays. So I think it's more likely the
-case that we'll add more "Mitigation:" lines over time.
+> V11 changes:
+> This series is same as v10 and was simply rebased on 4.15 kernel. Can
+> mm maintainers please review patches 2, 7, 8 and 9 which are arch
+> independent, and include/linux/mm.h and mm/ksm.c changes in patch 10
+> and ack these if everything looks good?
+
+I am a bit puzzled how this differs from the pkey's that other
+architectures are implementing to achieve a similar result.
+
+I am a bit mystified why you don't store the tag in a vma
+instead of inventing a new way to store data on page out.
+
+Can you please use force_sig_fault to send these signals instead
+of force_sig_info.  Emperically I have found that it is very
+error prone to generate siginfo's by hand, especially on code
+paths where several different si_codes may apply.  So it helps
+to go through a helper function to ensure the fiddly bits are
+all correct.  AKA the unused bits all need to be set to zero before
+struct siginfo is copied to userspace.
+
+Eric
