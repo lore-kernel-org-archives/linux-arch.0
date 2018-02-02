@@ -1,87 +1,59 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [GIT PULL tools] Linux kernel memory model
-Date: Thu, 1 Feb 2018 21:40:13 -0800
-Message-ID: <20180202054013.GV3741@linux.vnet.ibm.com>
-References: <20180125093440.GA875@linux.vnet.ibm.com>
- <20180129065724.ybrdsabvktq7fbqg@gmail.com>
- <20180129095449.GT3741@linux.vnet.ibm.com>
- <20180131090006.onaopgyqthppoysi@gmail.com>
- <20180201011728.GL3741@linux.vnet.ibm.com>
- <20180202044603.i2z3q25jeftbct5c@tardis>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Steven Sistare <steven.sistare@oracle.com>
+Subject: Re: [PATCH v11 00/10] Application Data Integrity feature introduced
+ by SPARC M7
+Date: Fri, 2 Feb 2018 09:13:08 -0500
+Message-ID: <59fb3a0c-0163-0ec2-9757-cc5969601fa7@oracle.com>
+References: <cover.1517497017.git.khalid.aziz@oracle.com>
+ <87wozwi0p1.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:46982 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751935AbeBBIlJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Feb 2018 03:41:09 -0500
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w128edBg085905
-        for <linux-arch@vger.kernel.org>; Fri, 2 Feb 2018 03:41:09 -0500
-Received: from e13.ny.us.ibm.com (e13.ny.us.ibm.com [129.33.205.203])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2fvgm09bgg-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 02 Feb 2018 03:41:07 -0500
-Received: from localhost
-        by e13.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Fri, 2 Feb 2018 03:40:52 -0500
-Content-Disposition: inline
-In-Reply-To: <20180202044603.i2z3q25jeftbct5c@tardis>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, will.deacon@arm.com, peterz@infradead.org, npiggin@gmail.com, dhowells@redhat.com, elena.reshetova@intel.com, mhocko@suse.com, akiyks@gmail.com, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <87wozwi0p1.fsf@xmission.com>
+Content-Language: en-US
+Sender: sparclinux-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>
+Cc: davem@davemloft.net, dave.hansen@linux.intel.com, aarcange@redhat.com, akpm@linux-foundation.org, allen.pais@oracle.com, anthony.yznaga@oracle.com, arnd@arndb.de, babu.moger@oracle.com, benh@kernel.crashing.org, bob.picco@oracle.com, bsingharora@gmail.com, corbet@lwn.net, dan.j.williams@intel.com, dave.jiang@intel.com, david.j.aldridge@oracle.com, elena.reshetova@intel.com, glx@linutronix.de, gregkh@linuxfoundation.org, hannes@cmpxchg.org, hillf.zj@alibaba-inc.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jag.raman@oracle.com, jane.chu@oracle.com, jglisse@redhat.com, jroedel@suse.de, khalid@gonehiking.org, khandual@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, kstewart@linuxfoundation.org, ktkhai@virtuozzo.com, liam.merwick@oracle.com
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 02, 2018 at 12:46:03PM +0800, Boqun Feng wrote:
-> On Wed, Jan 31, 2018 at 05:17:28PM -0800, Paul E. McKenney wrote:
-> [...]
-> > > - A long term question: have you considered and would it make sense to generate a
-> > >   memory-barriers.txt like file directly into Documentation/locking/, using the
-> > >   formal description? That way any changes/extensions/fixes to the model could be
-> > >   tracked on a high level, without readers having to understand the formal
-> > >   representation.
-> > 
-> > I hadn't considered this at all, actually.  ;-)
-> > 
-> > The sections of memory-barriers.txt dealing with MMIO ordering would need
-> > to stay hand-generated, but they are a very small fraction of the total.
-> > The herd7 tool is capable of generating cool diagrams sort of like
-> > this one: https://static.lwn.net/images/2017/mm-model/rmo-acyclic.png,
-> > which might replace at least some of the hand-generated ASCII-art
-> > diagrams.
+On 2/1/2018 9:29 PM, ebiederm@xmission.com wrote:
+> Khalid Aziz <khalid.aziz@oracle.com> writes:
 > 
-> Which reminds me, one thing we could start with is to try to convert all
-> the examples with litmus tests. Has this been done somewhere (e.g. in
-> your litmus github repo)? If not, I can try if you think that's a good
-> idea.
-
-That would be very helpful, thank you!
-
-There are probably some that are already in the litmus-tests directory,
-but I suspect that most are not yet converted.  So please do!
-
-							Thanx, Paul
-
-> Regards,
-> Boqun
+>> V11 changes:
+>> This series is same as v10 and was simply rebased on 4.15 kernel. Can
+>> mm maintainers please review patches 2, 7, 8 and 9 which are arch
+>> independent, and include/linux/mm.h and mm/ksm.c changes in patch 10
+>> and ack these if everything looks good?
 > 
-> > Although I do confess harboring some skepticism about being able to
-> > generated high-quality text, there is no denying that it would be
-> > valuable to be able to do so.
-> > 
-> > > In any case, the base commit is certainly nice and clean and I've pulled it into 
-> > > tip:locking/core for a v4.17 merge.
-> > 
-> > Very good!
-> > 
-> > > I believe these additional improvements (to the extent you agree with doing them!) 
-> > > could/should be done as add-on commits on top of this existing commit.
-> > 
-> > Sounds good!
-> > 
-> > Would you prefer a pull request or a patch series for these?
-> > 
-> > 							Thanx, Paul
-> > 
+> I am a bit puzzled how this differs from the pkey's that other
+> architectures are implementing to achieve a similar result.
+> 
+> I am a bit mystified why you don't store the tag in a vma
+> instead of inventing a new way to store data on page out.
+> 
+> Can you please use force_sig_fault to send these signals instead
+> of force_sig_info.  Emperically I have found that it is very
+> error prone to generate siginfo's by hand, especially on code
+> paths where several different si_codes may apply.  So it helps
+> to go through a helper function to ensure the fiddly bits are
+> all correct.  AKA the unused bits all need to be set to zero before
+> struct siginfo is copied to userspace.
+> 
+> Eric
+
+The ADI tag can be set at a cacheline (64B) granularity, as opposed
+to the per-page granularity of pkeys.  This allows an object allocator
+to color each object differently within a page (rounding to 64B boundaries),
+such that a pointer overrun bug from one object to the next will cause a
+fault.  When pages are paged out, the tags must be saved, hence the
+new scheme for storing them.  One tag per vma is too coarse.
+
+The combination of fine granularity and pageability makes for a powerful
+memory-reference error-detection framework.
+
+This was discussed in more detail when earlier patches were submitted,
+but it's been a while, and the distribution was probably narrower.
+
+Khalid can respond to the sig_fault comment.
+
+- Steve
