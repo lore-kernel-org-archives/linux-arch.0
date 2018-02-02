@@ -1,56 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:33164 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751827AbeBBIkz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Feb 2018 03:40:55 -0500
-Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w128eKtj019094
-        for <linux-arch@vger.kernel.org>; Fri, 2 Feb 2018 03:40:54 -0500
-Received: from e15.ny.us.ibm.com (e15.ny.us.ibm.com [129.33.205.205])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2fvju2vkk8-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 02 Feb 2018 03:40:54 -0500
-Received: from localhost
-        by e15.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Fri, 2 Feb 2018 03:40:52 -0500
-Date: Thu, 1 Feb 2018 15:14:09 -0800
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [GIT PULL tools] Linux kernel memory model
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20180125093440.GA875@linux.vnet.ibm.com>
- <20180129065724.ybrdsabvktq7fbqg@gmail.com>
- <20180129095449.GT3741@linux.vnet.ibm.com>
- <20180131090006.onaopgyqthppoysi@gmail.com>
- <20180201011728.GL3741@linux.vnet.ibm.com>
- <20180201065742.efww6os2qiwi2vjj@gmail.com>
+Received: from aserp2120.oracle.com ([141.146.126.78]:47532 "EHLO
+        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751629AbeBBOQE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Feb 2018 09:16:04 -0500
+Subject: Re: [PATCH v11 00/10] Application Data Integrity feature introduced
+ by SPARC M7
+References: <cover.1517497017.git.khalid.aziz@oracle.com>
+ <87wozwi0p1.fsf@xmission.com>
+From: Steven Sistare <steven.sistare@oracle.com>
+Message-ID: <59fb3a0c-0163-0ec2-9757-cc5969601fa7@oracle.com>
+Date: Fri, 2 Feb 2018 09:13:08 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180201065742.efww6os2qiwi2vjj@gmail.com>
-Message-ID: <20180201231409.GU3741@linux.vnet.ibm.com>
+In-Reply-To: <87wozwi0p1.fsf@xmission.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, boqun.feng@gmail.com, will.deacon@arm.com, peterz@infradead.org, npiggin@gmail.com, dhowells@redhat.com, elena.reshetova@intel.com, mhocko@suse.com, akiyks@gmail.com, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20180201231409.C83JBJaHQe8dAWtb8ZqCN83eJXGtesycoM6oUTAkPlA@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, Khalid Aziz <khalid.aziz@oracle.com>
+Cc: davem@davemloft.net, dave.hansen@linux.intel.com, aarcange@redhat.com, akpm@linux-foundation.org, allen.pais@oracle.com, anthony.yznaga@oracle.com, arnd@arndb.de, babu.moger@oracle.com, benh@kernel.crashing.org, bob.picco@oracle.com, bsingharora@gmail.com, corbet@lwn.net, dan.j.williams@intel.com, dave.jiang@intel.com, david.j.aldridge@oracle.com, elena.reshetova@intel.com, glx@linutronix.de, gregkh@linuxfoundation.org, hannes@cmpxchg.org, hillf.zj@alibaba-inc.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jag.raman@oracle.com, jane.chu@oracle.com, jglisse@redhat.com, jroedel@suse.de, khalid@gonehiking.org, khandual@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, kstewart@linuxfoundation.org, ktkhai@virtuozzo.com, liam.merwick@oracle.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linux@roeck-us.net, me@tobin.cc, mgorman@suse.de, mgorman@techsingularity.net, mhocko@suse.com, mike.kravetz@oracle.com, minchan@kernel.org, mingo@kernel.org, mingo@redhat.com, mpe@ellerman.id.au, nadav.amit@gmail.com, nagarathnam.muthusamy@oracle.com, nborisov@suse.com, n-horiguchi@ah.jp.nec.com, nick.alcock@oracle.com, nitin.m.gupta@oracle.com, ombredanne@nexb.com, pasha.tatashin@oracle.com, paulus@samba.org, pombredanne@nexb.com, punit.agrawal@arm.com, rob.gardner@oracle.com, ross.zwisler@linux.intel.com, shannon.nelson@oracle.com, shli@fb.com, sparclinux@vger.kernel.org, tglx@linutronix.de, thomas.tai@oracle.com, tklauser@distanz.ch, tom.hromatka@oracle.com, vegard.nossum@oracle.com, vijay.ac.kumar@oracle.com, willy@infradead.org, x86@kernel.org, zi.yan@cs.rutgers.edu
+Message-ID: <20180202141308.lSPbaqzPSdqSgnukfSUIswZQWisaGipGx_4KYd0eqK0@z>
 
-On Thu, Feb 01, 2018 at 07:57:42AM +0100, Ingo Molnar wrote:
+On 2/1/2018 9:29 PM, ebiederm@xmission.com wrote:
+> Khalid Aziz <khalid.aziz@oracle.com> writes:
 > 
-> * Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+>> V11 changes:
+>> This series is same as v10 and was simply rebased on 4.15 kernel. Can
+>> mm maintainers please review patches 2, 7, 8 and 9 which are arch
+>> independent, and include/linux/mm.h and mm/ksm.c changes in patch 10
+>> and ack these if everything looks good?
 > 
-> > > I believe these additional improvements (to the extent you agree with doing them!) 
-> > > could/should be done as add-on commits on top of this existing commit.
-> > 
-> > Sounds good!
-> > 
-> > Would you prefer a pull request or a patch series for these?
+> I am a bit puzzled how this differs from the pkey's that other
+> architectures are implementing to achieve a similar result.
 > 
-> Patch series would be nice, for review and later application to the locking tree.
+> I am a bit mystified why you don't store the tag in a vma
+> instead of inventing a new way to store data on page out.
+> 
+> Can you please use force_sig_fault to send these signals instead
+> of force_sig_info.  Emperically I have found that it is very
+> error prone to generate siginfo's by hand, especially on code
+> paths where several different si_codes may apply.  So it helps
+> to go through a helper function to ensure the fiddly bits are
+> all correct.  AKA the unused bits all need to be set to zero before
+> struct siginfo is copied to userspace.
+> 
+> Eric
 
-Works for me!
+The ADI tag can be set at a cacheline (64B) granularity, as opposed
+to the per-page granularity of pkeys.  This allows an object allocator
+to color each object differently within a page (rounding to 64B boundaries),
+such that a pointer overrun bug from one object to the next will cause a
+fault.  When pages are paged out, the tags must be saved, hence the
+new scheme for storing them.  One tag per vma is too coarse.
 
-I will curate the series on branch lkmm in my -rcu tree, and send the
-series out non-RFC when I believe that it is ready for you.
+The combination of fine granularity and pageability makes for a powerful
+memory-reference error-detection framework.
 
-							Thanx, Paul
+This was discussed in more detail when earlier patches were submitted,
+but it's been a while, and the distribution was probably narrower.
+
+Khalid can respond to the sig_fault comment.
+
+- Steve
