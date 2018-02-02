@@ -1,88 +1,44 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [git pull] vfs.git: poll annotations
-Date: Thu, 1 Feb 2018 22:00:01 +0000
-Message-ID: <20180201220001.GE30522@ZenIV.linux.org.uk>
-References: <20180130183939.GB29051@ZenIV.linux.org.uk>
- <CA+55aFz8UL883+rj0nYsU_gtX6jLhriPGncDb1XDteEu817HRQ@mail.gmail.com>
- <20180131031300.GE29051@ZenIV.linux.org.uk>
- <CA+55aFyMh_cHUb37X6=8=DU2Zm8Cz=mhXYJcGGWqiC8LKLAoFA@mail.gmail.com>
- <20180131044620.GF29051@ZenIV.linux.org.uk>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [PATCH v11 00/10] Application Data Integrity feature introduced by SPARC M7
+Date: Thu, 01 Feb 2018 20:29:14 -0600
+Message-ID: <87wozwi0p1.fsf@xmission.com>
+References: <cover.1517497017.git.khalid.aziz@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:40600 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751826AbeBAWAE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Feb 2018 17:00:04 -0500
-Content-Disposition: inline
-In-Reply-To: <20180131044620.GF29051@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <cover.1517497017.git.khalid.aziz@oracle.com> (Khalid Aziz's
+	message of "Thu, 1 Feb 2018 11:01:08 -0700")
+Sender: owner-linux-mm@kvack.org
+To: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: davem@davemloft.net, dave.hansen@linux.intel.com, aarcange@redhat.com, akpm@linux-foundation.org, allen.pais@oracle.com, anthony.yznaga@oracle.com, arnd@arndb.de, babu.moger@oracle.com, benh@kernel.crashing.org, bob.picco@oracle.com, bsingharora@gmail.com, corbet@lwn.net, dan.j.williams@intel.com, dave.jiang@intel.com, david.j.aldridge@oracle.com, elena.reshetova@intel.com, glx@linutronix.de, gregkh@linuxfoundation.org, hannes@cmpxchg.org, hillf.zj@alibaba-inc.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jag.raman@oracle.com, jane.chu@oracle.com, jglisse@redhat.com, jroedel@suse.de, khalid@gonehiking.org, khandual@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, kstewart@linuxfoundation.org, ktkhai@virtuozzo.com, liam.merwick@oracle.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vg
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 31, 2018 at 04:46:20AM +0000, Al Viro wrote:
-> On Tue, Jan 30, 2018 at 07:19:19PM -0800, Linus Torvalds wrote:
-> > On Tue, Jan 30, 2018 at 7:13 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> > >
-> > > As for the place for mangle/demangle... where would you prefer them?
-> > 
-> > If we can make gcc generate ok code for the generic case and not need
-> > any arch-specific ones, why not just do in <linux/poll.h>?
-> 
-> Umm...  I'll try and see how well does that work.
+Khalid Aziz <khalid.aziz@oracle.com> writes:
 
-FWIW, it does generate sane code and bulk rename itself is not hard.
-What I've got is in vfs.git#work.poll:
-      smc: missing poll annotations
-      xen: fix poll misannotation
-      use linux/poll.h instead of asm/poll.h
-      add EPOLLNVAL, annotate EPOLL... and event_poll->event
-      preparation to switching ->poll() to returning EPOLL...
-      ep_send_events_proc(): return result via esed->res
-      annotate ep_scan_ready_list()
-      switch users of kernel-side POLL... to EPOLL...
-      unify {de,}mangle_poll(), get rid of kernel-side POLL...
-The first 7 commits are preparation, then mechanical bulk rename with
-for V in IN OUT PRI ERR RDNORM RDBAND WRNORM WRBAND HUP RDHUP NVAL MSG; do
-  L=`git grep -l -w POLL$V | grep -v '^t' | grep -v /um/ | grep -v '^sa' | grep -v '/poll.h$'|grep -v '^D'`
-  for f in $L; do sed -i "-es/^\([^\"]*\)\(\<POLL$V\>\)/\\1E\\2/" $f; done
-done
-then consolidation of mangle_poll/demangle_poll and making those
-ifndef __KERNEL__ poll.h unconditional.
+> V11 changes:
+> This series is same as v10 and was simply rebased on 4.15 kernel. Can
+> mm maintainers please review patches 2, 7, 8 and 9 which are arch
+> independent, and include/linux/mm.h and mm/ksm.c changes in patch 10
+> and ack these if everything looks good?
 
-FWIW, with the entire series applied __poll_t warnings (with CF=-D__CHECK_POLL)
-are down to the following:
+I am a bit puzzled how this differs from the pkey's that other
+architectures are implementing to achieve a similar result.
 
-* genuine bugs in ->poll() instances, of the "return -EINVAL/-ERESTARTSYS/etc."
-sort -
-kernel/trace/ring_buffer.c:643:32:    expected restricted __poll_t
-drivers/media/pci/saa7164/saa7164-vbi.c:632:24:    expected restricted __poll_t
-drivers/media/pci/saa7164/saa7164-vbi.c:637:40:    expected restricted __poll_t
-drivers/media/pci/saa7164/saa7164-vbi.c:647:40:    expected restricted __poll_t
-drivers/media/platform/exynos-gsc/gsc-m2m.c:718:24:    expected restricted __poll_t
-drivers/media/platform/s3c-camif/camif-capture.c:602:21:    expected restricted __poll_t [usertype] ret
-drivers/media/radio/radio-wl1273.c:1099:24:    expected restricted __poll_t
-drivers/platform/goldfish/goldfish_pipe.c:549:24:    expected restricted __poll_t
-drivers/tty/n_r3964.c:1239:24:    expected restricted __poll_t [assigned] [usertype] result
-drivers/uio/uio.c:505:24:    expected restricted __poll_t
-drivers/xen/pvcalls-front.c:921:24:    expected restricted __poll_t
-sound/core/seq/seq_clientmgr.c:1097:24:    expected restricted __poll_t
-sound/core/seq/oss/seq_oss.c:206:24:    expected restricted __poll_t
+I am a bit mystified why you don't store the tag in a vma
+instead of inventing a new way to store data on page out.
 
-* misannotation around SAA6588_CMD_POLL and struct saa6588_command -
-drivers/media/i2c/saa6588.c:416:35:    right side has type restricted __poll_t
-drivers/media/pci/bt8xx/bttv-driver.c:3347:20:    got restricted __poll_t [assigned] [usertype] res
-drivers/media/pci/bt8xx/bttv-driver.c:3350:19:    expected restricted __poll_t
-drivers/media/pci/saa7134/saa7134-video.c:1243:16: warning: restricted __poll_t degrades to integer
-drivers/media/pci/saa7134/saa7134-video.c:1243:19:    expected restricted __poll_t
+Can you please use force_sig_fault to send these signals instead
+of force_sig_info.  Emperically I have found that it is very
+error prone to generate siginfo's by hand, especially on code
+paths where several different si_codes may apply.  So it helps
+to go through a helper function to ensure the fiddly bits are
+all correct.  AKA the unused bits all need to be set to zero before
+struct siginfo is copied to userspace.
 
-* misannotations around perf ring_buffer->poll -
-kernel/events/core.c:4541:24:    expected restricted __poll_t [usertype] events
-kernel/events/ring_buffer.c:22:39:    got restricted __poll_t [usertype] <noident>
+Eric
 
-IOW, not much and fairly low on false positives.
-
-Are you OK with that approach?  I could send a pull request for the first 7
-in that series (it should be bisect-safe), then you'd run the bulk rename
-script just before -rc1 and apply the last one on top of that.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
