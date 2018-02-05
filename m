@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:51914 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:51494 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753591AbeBESYj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 13:24:39 -0500
+        with ESMTP id S1753525AbeBESYU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 13:24:20 -0500
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 38/64] x86: Implement array_index_mask_nospec
-Date: Mon,  5 Feb 2018 10:22:57 -0800
-Message-ID: <20180205182140.147895085@linuxfoundation.org>
+Subject: [PATCH 4.14 46/64] nl80211: Sanitize array index in parse_txq_params
+Date: Mon,  5 Feb 2018 10:23:05 -0800
+Message-ID: <20180205182140.464675558@linuxfoundation.org>
 In-Reply-To: <20180205182138.571333346@linuxfoundation.org>
 References: <20180205182138.571333346@linuxfoundation.org>
 MIME-Version: 1.0
@@ -14,8 +14,8 @@ Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, alan@linux.intel.com
-Message-ID: <20180205182257.nQe_139KgLMfki3sOrIeE6w9U6hw5KKxUqJJEhRhZn8@z>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Christian Lamparter <chunkeey@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Johannes Berg <johannes@sipsolutions.net>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, linux-wireless@vger.kernel.org, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, alan@linux.intel.com
+Message-ID: <20180205182305.gkFb4ehlTdk8U09kQKuM4MxpHMpt_Gbuzh-Xs53OZkg@z>
 
 4.14-stable review patch.  If anyone has any objections, please let me know.
 
@@ -23,62 +23,68 @@ Message-ID: <20180205182257.nQe_139KgLMfki3sOrIeE6w9U6hw5KKxUqJJEhRhZn8@z>
 
 From: Dan Williams dan.j.williams@intel.com
 
-commit babdde2698d482b6c0de1eab4f697cf5856c5859
+commit 259d8c1e984318497c84eef547bbb6b1d9f4eb05
 
-array_index_nospec() uses a mask to sanitize user controllable array
-indexes, i.e. generate a 0 mask if 'index' >= 'size', and a ~0 mask
-otherwise. While the default array_index_mask_nospec() handles the
-carry-bit from the (index - size) result in software.
+Wireless drivers rely on parse_txq_params to validate that txq_params->ac
+is less than NL80211_NUM_ACS by the time the low-level driver's ->conf_tx()
+handler is called. Use a new helper, array_index_nospec(), to sanitize
+txq_params->ac with respect to speculation. I.e. ensure that any
+speculation into ->conf_tx() handlers is done with a value of
+txq_params->ac that is within the bounds of [0, NL80211_NUM_ACS).
 
-The x86 array_index_mask_nospec() does the same, but the carry-bit is
-handled in the processor CF flag without conditional instructions in the
-control flow.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Reported-by: Christian Lamparter <chunkeey@gmail.com>
+Reported-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Acked-by: Johannes Berg <johannes@sipsolutions.net>
 Cc: linux-arch@vger.kernel.org
 Cc: kernel-hardening@lists.openwall.com
 Cc: gregkh@linuxfoundation.org
+Cc: linux-wireless@vger.kernel.org
+Cc: torvalds@linux-foundation.org
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727414808.33451.1873237130672785331.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727419584.33451.7700736761686184303.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 
 ---
- arch/x86/include/asm/barrier.h |   24 ++++++++++++++++++++++++
- 1 file changed, 24 insertions(+)
+ net/wireless/nl80211.c |    9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
 
---- a/arch/x86/include/asm/barrier.h
-+++ b/arch/x86/include/asm/barrier.h
-@@ -24,6 +24,30 @@
- #define wmb()	asm volatile("sfence" ::: "memory")
- #endif
+--- a/net/wireless/nl80211.c
++++ b/net/wireless/nl80211.c
+@@ -16,6 +16,7 @@
+ #include <linux/nl80211.h>
+ #include <linux/rtnetlink.h>
+ #include <linux/netlink.h>
++#include <linux/nospec.h>
+ #include <linux/etherdevice.h>
+ #include <net/net_namespace.h>
+ #include <net/genetlink.h>
+@@ -2056,20 +2057,22 @@ static const struct nla_policy txq_param
+ static int parse_txq_params(struct nlattr *tb[],
+ 			    struct ieee80211_txq_params *txq_params)
+ {
++	u8 ac;
++
+ 	if (!tb[NL80211_TXQ_ATTR_AC] || !tb[NL80211_TXQ_ATTR_TXOP] ||
+ 	    !tb[NL80211_TXQ_ATTR_CWMIN] || !tb[NL80211_TXQ_ATTR_CWMAX] ||
+ 	    !tb[NL80211_TXQ_ATTR_AIFS])
+ 		return -EINVAL;
  
-+/**
-+ * array_index_mask_nospec() - generate a mask that is ~0UL when the
-+ * 	bounds check succeeds and 0 otherwise
-+ * @index: array element index
-+ * @size: number of elements in array
-+ *
-+ * Returns:
-+ *     0 - (index < size)
-+ */
-+static inline unsigned long array_index_mask_nospec(unsigned long index,
-+		unsigned long size)
-+{
-+	unsigned long mask;
-+
-+	asm ("cmp %1,%2; sbb %0,%0;"
-+			:"=r" (mask)
-+			:"r"(size),"r" (index)
-+			:"cc");
-+	return mask;
-+}
-+
-+/* Override the default implementation from linux/nospec.h. */
-+#define array_index_mask_nospec array_index_mask_nospec
-+
- #ifdef CONFIG_X86_PPRO_FENCE
- #define dma_rmb()	rmb()
- #else
+-	txq_params->ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
++	ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
+ 	txq_params->txop = nla_get_u16(tb[NL80211_TXQ_ATTR_TXOP]);
+ 	txq_params->cwmin = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMIN]);
+ 	txq_params->cwmax = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMAX]);
+ 	txq_params->aifs = nla_get_u8(tb[NL80211_TXQ_ATTR_AIFS]);
+ 
+-	if (txq_params->ac >= NL80211_NUM_ACS)
++	if (ac >= NL80211_NUM_ACS)
+ 		return -EINVAL;
+-
++	txq_params->ac = array_index_nospec(ac, NL80211_NUM_ACS);
+ 	return 0;
+ }
+ 
