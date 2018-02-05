@@ -1,88 +1,37 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.15 42/60] nl80211: Sanitize array index in parse_txq_params
-Date: Mon,  5 Feb 2018 10:23:15 -0800
-Message-ID: <20180205182215.701214369@linuxfoundation.org>
-References: <20180205182213.902626065@linuxfoundation.org>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH for 4.16 v7 02/11] powerpc: membarrier: Skip memory
+ barrier in switch_mm()
+Date: Mon, 5 Feb 2018 21:22:42 +0100
+Message-ID: <20180205202242.6ilyjh35byycf3ez@gmail.com>
+References: <20180129202020.8515-1-mathieu.desnoyers@efficios.com>
+ <20180129202020.8515-3-mathieu.desnoyers@efficios.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-11625-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20180205182213.902626065@linuxfoundation.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Christian Lamparter <chunkeey@gmail.com>, Elena Reshetova <elena.reshetova@intel.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Johannes Berg <johannes@sipsolutions.net>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, linux-wireless@vger.kernel.org, torvalds@linux-foundation.org, "David S. Miller" <davem@davemloft.net>, alan@linux.intel.com
-List-Id: linux-arch.vger.kernel.org
-
-4.15-stable review patch.  If anyone has any objections, please let me know.
-
-------------------
-
-From: Dan Williams dan.j.williams@intel.com
-
-commit 259d8c1e984318497c84eef547bbb6b1d9f4eb05
-
-Wireless drivers rely on parse_txq_params to validate that txq_params->ac
-is less than NL80211_NUM_ACS by the time the low-level driver's ->conf_tx()
-handler is called. Use a new helper, array_index_nospec(), to sanitize
-txq_params->ac with respect to speculation. I.e. ensure that any
-speculation into ->conf_tx() handlers is done with a value of
-txq_params->ac that is within the bounds of [0, NL80211_NUM_ACS).
-
-Reported-by: Christian Lamparter <chunkeey@gmail.com>
-Reported-by: Elena Reshetova <elena.reshetova@intel.com>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Acked-by: Johannes Berg <johannes@sipsolutions.net>
-Cc: linux-arch@vger.kernel.org
-Cc: kernel-hardening@lists.openwall.com
-Cc: gregkh@linuxfoundation.org
-Cc: linux-wireless@vger.kernel.org
-Cc: torvalds@linux-foundation.org
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727419584.33451.7700736761686184303.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f47.google.com ([74.125.82.47]:35576 "EHLO
+        mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750962AbeBEUWr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 15:22:47 -0500
+Content-Disposition: inline
+In-Reply-To: <20180129202020.8515-3-mathieu.desnoyers@efficios.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David
 
 
----
- net/wireless/nl80211.c |    9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
+* Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
 
---- a/net/wireless/nl80211.c
-+++ b/net/wireless/nl80211.c
-@@ -16,6 +16,7 @@
- #include <linux/nl80211.h>
- #include <linux/rtnetlink.h>
- #include <linux/netlink.h>
-+#include <linux/nospec.h>
- #include <linux/etherdevice.h>
- #include <net/net_namespace.h>
- #include <net/genetlink.h>
-@@ -2056,20 +2057,22 @@ static const struct nla_policy txq_param
- static int parse_txq_params(struct nlattr *tb[],
- 			    struct ieee80211_txq_params *txq_params)
- {
-+	u8 ac;
-+
- 	if (!tb[NL80211_TXQ_ATTR_AC] || !tb[NL80211_TXQ_ATTR_TXOP] ||
- 	    !tb[NL80211_TXQ_ATTR_CWMIN] || !tb[NL80211_TXQ_ATTR_CWMAX] ||
- 	    !tb[NL80211_TXQ_ATTR_AIFS])
- 		return -EINVAL;
- 
--	txq_params->ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
-+	ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
- 	txq_params->txop = nla_get_u16(tb[NL80211_TXQ_ATTR_TXOP]);
- 	txq_params->cwmin = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMIN]);
- 	txq_params->cwmax = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMAX]);
- 	txq_params->aifs = nla_get_u8(tb[NL80211_TXQ_ATTR_AIFS]);
- 
--	if (txq_params->ac >= NL80211_NUM_ACS)
-+	if (ac >= NL80211_NUM_ACS)
- 		return -EINVAL;
--
-+	txq_params->ac = array_index_nospec(ac, NL80211_NUM_ACS);
- 	return 0;
- }
- 
+>  
+> +config ARCH_HAS_MEMBARRIER_HOOKS
+> +	bool
+
+Yeah, so I have renamed this to ARCH_HAS_MEMBARRIER_CALLBACKS, and propagated it 
+through the rest of the patches. "Callback" is the canonical name, and I also 
+cringe every time I see 'hook'.
+
+Please let me know if there are any big objections against this minor cleanup.
+
+Thanks,
+
+	Ingo
