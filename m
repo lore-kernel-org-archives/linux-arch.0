@@ -1,18 +1,18 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.15 39/60] x86/get_user: Use pointer masking to limit speculation
-Date: Mon,  5 Feb 2018 10:23:12 -0800
-Message-ID: <20180205182215.573695155@linuxfoundation.org>
+Subject: [PATCH 4.15 43/60] x86/spectre: Report get_user mitigation for spectre_v1
+Date: Mon,  5 Feb 2018 10:23:16 -0800
+Message-ID: <20180205182215.744093198@linuxfoundation.org>
 References: <20180205182213.902626065@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-11622-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+Return-path: <kernel-hardening-return-11618-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
 List-Post: <mailto:kernel-hardening@lists.openwall.com>
 List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
 List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
 List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 In-Reply-To: <20180205182213.902626065@linuxfoundation.org>
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, torvalds@linux-foundation.org, alan@linux.intel.com
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, torvalds@linux-foundation.org, alan@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
 4.15-stable review patch.  If anyone has any objections, please let me know.
@@ -21,94 +21,37 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Dan Williams dan.j.williams@intel.com
 
-commit c7f631cb07e7da06ac1d231ca178452339e32a94
+commit edfbae53dab8348fca778531be9f4855d2ca0360
 
-Quoting Linus:
+Reflect the presence of get_user(), __get_user(), and 'syscall' protections
+in sysfs. The expectation is that new and better tooling will allow the
+kernel to grow more usages of array_index_nospec(), for now, only claim
+mitigation for __user pointer de-references.
 
-    I do think that it would be a good idea to very expressly document
-    the fact that it's not that the user access itself is unsafe. I do
-    agree that things like "get_user()" want to be protected, but not
-    because of any direct bugs or problems with get_user() and friends,
-    but simply because get_user() is an excellent source of a pointer
-    that is obviously controlled from a potentially attacking user
-    space. So it's a prime candidate for then finding _subsequent_
-    accesses that can then be used to perturb the cache.
-
-Unlike the __get_user() case get_user() includes the address limit check
-near the pointer de-reference. With that locality the speculation can be
-mitigated with pointer narrowing rather than a barrier, i.e.
-array_index_nospec(). Where the narrowing is performed by:
-
-	cmp %limit, %ptr
-	sbb %mask, %mask
-	and %mask, %ptr
-
-With respect to speculation the value of %ptr is either less than %limit
-or NULL.
-
-Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
+Reported-by: Jiri Slaby <jslaby@suse.cz>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
 Cc: gregkh@linuxfoundation.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andy Lutomirski <luto@kernel.org>
 Cc: torvalds@linux-foundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727417469.33451.11804043010080838495.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727420158.33451.11658324346540434635.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 
 ---
- arch/x86/lib/getuser.S |   10 ++++++++++
- 1 file changed, 10 insertions(+)
+ arch/x86/kernel/cpu/bugs.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
---- a/arch/x86/lib/getuser.S
-+++ b/arch/x86/lib/getuser.S
-@@ -40,6 +40,8 @@ ENTRY(__get_user_1)
- 	mov PER_CPU_VAR(current_task), %_ASM_DX
- 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
-+	and %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 1:	movzbl (%_ASM_AX),%edx
- 	xor %eax,%eax
-@@ -54,6 +56,8 @@ ENTRY(__get_user_2)
- 	mov PER_CPU_VAR(current_task), %_ASM_DX
- 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
-+	and %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 2:	movzwl -1(%_ASM_AX),%edx
- 	xor %eax,%eax
-@@ -68,6 +72,8 @@ ENTRY(__get_user_4)
- 	mov PER_CPU_VAR(current_task), %_ASM_DX
- 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
-+	and %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 3:	movl -3(%_ASM_AX),%edx
- 	xor %eax,%eax
-@@ -83,6 +89,8 @@ ENTRY(__get_user_8)
- 	mov PER_CPU_VAR(current_task), %_ASM_DX
- 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
-+	and %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 4:	movq -7(%_ASM_AX),%rdx
- 	xor %eax,%eax
-@@ -94,6 +102,8 @@ ENTRY(__get_user_8)
- 	mov PER_CPU_VAR(current_task), %_ASM_DX
- 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user_8
-+	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
-+	and %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 4:	movl -7(%_ASM_AX),%edx
- 5:	movl -3(%_ASM_AX),%ecx
+--- a/arch/x86/kernel/cpu/bugs.c
++++ b/arch/x86/kernel/cpu/bugs.c
+@@ -297,7 +297,7 @@ ssize_t cpu_show_spectre_v1(struct devic
+ {
+ 	if (!boot_cpu_has_bug(X86_BUG_SPECTRE_V1))
+ 		return sprintf(buf, "Not affected\n");
+-	return sprintf(buf, "Vulnerable\n");
++	return sprintf(buf, "Mitigation: __user pointer sanitization\n");
+ }
+ 
+ ssize_t cpu_show_spectre_v2(struct device *dev,
