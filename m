@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail.linuxfoundation.org ([140.211.169.12]:51890 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753618AbeBESYq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 13:24:46 -0500
+        with ESMTP id S1753607AbeBESYm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 13:24:42 -0500
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 44/64] x86/syscall: Sanitize syscall table de-references under speculation
-Date: Mon,  5 Feb 2018 10:23:03 -0800
-Message-ID: <20180205182140.385565178@linuxfoundation.org>
+Subject: [PATCH 4.14 41/64] x86/usercopy: Replace open coded stac/clac with __uaccess_{begin, end}
+Date: Mon,  5 Feb 2018 10:23:00 -0800
+Message-ID: <20180205182140.266128654@linuxfoundation.org>
 In-Reply-To: <20180205182138.571333346@linuxfoundation.org>
 References: <20180205182138.571333346@linuxfoundation.org>
 MIME-Version: 1.0
@@ -14,8 +14,8 @@ Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@kernel.org>, alan@linux.intel.com
-Message-ID: <20180205182303.eHWees7erS3-jUC5EdsLDA1GfdaPPTmMdOpTynz-mZI@z>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, torvalds@linux-foundation.org, alan@linux.intel.com
+Message-ID: <20180205182300.G29qOguC-uDppd1GL4ybDD0-1kN-MKZJF6AjmmcPAbM@z>
 
 4.14-stable review patch.  If anyone has any objections, please let me know.
 
@@ -23,57 +23,66 @@ Message-ID: <20180205182303.eHWees7erS3-jUC5EdsLDA1GfdaPPTmMdOpTynz-mZI@z>
 
 From: Dan Williams dan.j.williams@intel.com
 
-commit 2fbd7af5af8665d18bcefae3e9700be07e22b681
+commit b5c4ae4f35325d520b230bab6eb3310613b72ac1
 
-The syscall table base is a user controlled function pointer in kernel
-space. Use array_index_nospec() to prevent any out of bounds speculation.
+In preparation for converting some __uaccess_begin() instances to
+__uacess_begin_nospec(), make sure all 'from user' uaccess paths are
+using the _begin(), _end() helpers rather than open-coded stac() and
+clac().
 
-While retpoline prevents speculating into a userspace directed target it
-does not stop the pointer de-reference, the concern is leaking memory
-relative to the syscall table base, by observing instruction cache
-behavior.
+No functional changes.
 
-Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+Suggested-by: Ingo Molnar <mingo@redhat.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
+Cc: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
 Cc: gregkh@linuxfoundation.org
-Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: torvalds@linux-foundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727417984.33451.1216731042505722161.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727416438.33451.17309465232057176966.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 
 ---
- arch/x86/entry/common.c |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ arch/x86/lib/usercopy_32.c |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -21,6 +21,7 @@
- #include <linux/export.h>
- #include <linux/context_tracking.h>
- #include <linux/user-return-notifier.h>
-+#include <linux/nospec.h>
- #include <linux/uprobes.h>
- #include <linux/livepatch.h>
- #include <linux/syscalls.h>
-@@ -284,7 +285,8 @@ __visible void do_syscall_64(struct pt_r
- 	 * regs->orig_ax, which changes the behavior of some syscalls.
- 	 */
- 	if (likely((nr & __SYSCALL_MASK) < NR_syscalls)) {
--		regs->ax = sys_call_table[nr & __SYSCALL_MASK](
-+		nr = array_index_nospec(nr & __SYSCALL_MASK, NR_syscalls);
-+		regs->ax = sys_call_table[nr](
- 			regs->di, regs->si, regs->dx,
- 			regs->r10, regs->r8, regs->r9);
- 	}
-@@ -320,6 +322,7 @@ static __always_inline void do_syscall_3
- 	}
+--- a/arch/x86/lib/usercopy_32.c
++++ b/arch/x86/lib/usercopy_32.c
+@@ -331,12 +331,12 @@ do {									\
  
- 	if (likely(nr < IA32_NR_syscalls)) {
-+		nr = array_index_nospec(nr, IA32_NR_syscalls);
- 		/*
- 		 * It's possible that a 32-bit syscall implementation
- 		 * takes a 64-bit parameter but nonetheless assumes that
+ unsigned long __copy_user_ll(void *to, const void *from, unsigned long n)
+ {
+-	stac();
++	__uaccess_begin();
+ 	if (movsl_is_ok(to, from, n))
+ 		__copy_user(to, from, n);
+ 	else
+ 		n = __copy_user_intel(to, from, n);
+-	clac();
++	__uaccess_end();
+ 	return n;
+ }
+ EXPORT_SYMBOL(__copy_user_ll);
+@@ -344,7 +344,7 @@ EXPORT_SYMBOL(__copy_user_ll);
+ unsigned long __copy_from_user_ll_nocache_nozero(void *to, const void __user *from,
+ 					unsigned long n)
+ {
+-	stac();
++	__uaccess_begin();
+ #ifdef CONFIG_X86_INTEL_USERCOPY
+ 	if (n > 64 && static_cpu_has(X86_FEATURE_XMM2))
+ 		n = __copy_user_intel_nocache(to, from, n);
+@@ -353,7 +353,7 @@ unsigned long __copy_from_user_ll_nocach
+ #else
+ 	__copy_user(to, from, n);
+ #endif
+-	clac();
++	__uaccess_end();
+ 	return n;
+ }
+ EXPORT_SYMBOL(__copy_from_user_ll_nocache_nozero);
