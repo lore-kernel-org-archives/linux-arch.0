@@ -1,22 +1,21 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.15 34/60] x86: Implement array_index_mask_nospec
-Date: Mon,  5 Feb 2018 10:23:07 -0800
-Message-ID: <20180205182215.361264698@linuxfoundation.org>
-References: <20180205182213.902626065@linuxfoundation.org>
+Subject: [PATCH 4.14 38/64] x86: Implement array_index_mask_nospec
+Date: Mon,  5 Feb 2018 10:22:57 -0800
+Message-ID: <20180205182140.147895085@linuxfoundation.org>
+References: <20180205182138.571333346@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:52698 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753749AbeBESZ3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 13:25:29 -0500
-In-Reply-To: <20180205182213.902626065@linuxfoundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <kernel-hardening-return-11604-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20180205182138.571333346@linuxfoundation.org>
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, alan@linux.intel.com
+List-Id: linux-arch.vger.kernel.org
 
-4.15-stable review patch.  If anyone has any objections, please let me know.
+4.14-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
