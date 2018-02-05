@@ -1,84 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:52602 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:51890 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753753AbeBESZ3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 13:25:29 -0500
+        with ESMTP id S1753618AbeBESYq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 13:24:46 -0500
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.15 35/60] x86: Introduce barrier_nospec
-Date: Mon,  5 Feb 2018 10:23:08 -0800
-Message-ID: <20180205182215.404154263@linuxfoundation.org>
-In-Reply-To: <20180205182213.902626065@linuxfoundation.org>
-References: <20180205182213.902626065@linuxfoundation.org>
+Subject: [PATCH 4.14 44/64] x86/syscall: Sanitize syscall table de-references under speculation
+Date: Mon,  5 Feb 2018 10:23:03 -0800
+Message-ID: <20180205182140.385565178@linuxfoundation.org>
+In-Reply-To: <20180205182138.571333346@linuxfoundation.org>
+References: <20180205182138.571333346@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, alan@linux.intel.com
-Message-ID: <20180205182308.sH2IW9Taom97W3gVxU1vfaz3j8D0PSOMXEdwsyZho50@z>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@kernel.org>, alan@linux.intel.com
+Message-ID: <20180205182303.eHWees7erS3-jUC5EdsLDA1GfdaPPTmMdOpTynz-mZI@z>
 
-4.15-stable review patch.  If anyone has any objections, please let me know.
+4.14-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
 From: Dan Williams dan.j.williams@intel.com
 
-commit b3d7ad85b80bbc404635dca80f5b129f6242bc7a
+commit 2fbd7af5af8665d18bcefae3e9700be07e22b681
 
-Rename the open coded form of this instruction sequence from
-rdtsc_ordered() into a generic barrier primitive, barrier_nospec().
+The syscall table base is a user controlled function pointer in kernel
+space. Use array_index_nospec() to prevent any out of bounds speculation.
 
-One of the mitigations for Spectre variant1 vulnerabilities is to fence
-speculative execution after successfully validating a bounds check. I.e.
-force the result of a bounds check to resolve in the instruction pipeline
-to ensure speculative execution honors that result before potentially
-operating on out-of-bounds data.
+While retpoline prevents speculating into a userspace directed target it
+does not stop the pointer de-reference, the concern is leaking memory
+relative to the syscall table base, by observing instruction cache
+behavior.
 
-No functional changes.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Suggested-by: Andi Kleen <ak@linux.intel.com>
-Suggested-by: Ingo Molnar <mingo@redhat.com>
+Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
 Cc: gregkh@linuxfoundation.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andy Lutomirski <luto@kernel.org>
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727415361.33451.9049453007262764675.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727417984.33451.1216731042505722161.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 
 ---
- arch/x86/include/asm/barrier.h |    4 ++++
- arch/x86/include/asm/msr.h     |    3 +--
- 2 files changed, 5 insertions(+), 2 deletions(-)
+ arch/x86/entry/common.c |    5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
---- a/arch/x86/include/asm/barrier.h
-+++ b/arch/x86/include/asm/barrier.h
-@@ -48,6 +48,10 @@ static inline unsigned long array_index_
- /* Override the default implementation from linux/nospec.h. */
- #define array_index_mask_nospec array_index_mask_nospec
- 
-+/* Prevent speculative execution past this barrier. */
-+#define barrier_nospec() alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC, \
-+					   "lfence", X86_FEATURE_LFENCE_RDTSC)
-+
- #ifdef CONFIG_X86_PPRO_FENCE
- #define dma_rmb()	rmb()
- #else
---- a/arch/x86/include/asm/msr.h
-+++ b/arch/x86/include/asm/msr.h
-@@ -214,8 +214,7 @@ static __always_inline unsigned long lon
- 	 * that some other imaginary CPU is updating continuously with a
- 	 * time stamp.
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -21,6 +21,7 @@
+ #include <linux/export.h>
+ #include <linux/context_tracking.h>
+ #include <linux/user-return-notifier.h>
++#include <linux/nospec.h>
+ #include <linux/uprobes.h>
+ #include <linux/livepatch.h>
+ #include <linux/syscalls.h>
+@@ -284,7 +285,8 @@ __visible void do_syscall_64(struct pt_r
+ 	 * regs->orig_ax, which changes the behavior of some syscalls.
  	 */
--	alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC,
--			  "lfence", X86_FEATURE_LFENCE_RDTSC);
-+	barrier_nospec();
- 	return rdtsc();
- }
+ 	if (likely((nr & __SYSCALL_MASK) < NR_syscalls)) {
+-		regs->ax = sys_call_table[nr & __SYSCALL_MASK](
++		nr = array_index_nospec(nr & __SYSCALL_MASK, NR_syscalls);
++		regs->ax = sys_call_table[nr](
+ 			regs->di, regs->si, regs->dx,
+ 			regs->r10, regs->r8, regs->r9);
+ 	}
+@@ -320,6 +322,7 @@ static __always_inline void do_syscall_3
+ 	}
  
+ 	if (likely(nr < IA32_NR_syscalls)) {
++		nr = array_index_nospec(nr, IA32_NR_syscalls);
+ 		/*
+ 		 * It's possible that a 32-bit syscall implementation
+ 		 * takes a 64-bit parameter but nonetheless assumes that
