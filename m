@@ -1,77 +1,137 @@
-From: John Garry <john.garry@huawei.com>
-Subject: Re: [PATCH v12 7/9] ACPI: Translate the I/O range of non-MMIO devices
- before scanning
-Date: Mon, 5 Feb 2018 14:25:20 +0000
-Message-ID: <62634aa6-ad3c-93c2-e6fa-9e163d4004ca@huawei.com>
-References: <1516725385-24535-1-git-send-email-john.garry@huawei.com>
- <1516725385-24535-8-git-send-email-john.garry@huawei.com>
- <0a30452f-34eb-d0b5-2001-ab6b866c53e2@huawei.com>
- <CAHp75VfXoAHNH2BnfNLbFfdCqUk3rxU_QWfxTx7ZyLgV0qxotQ@mail.gmail.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.14 36/64] Documentation: Document array_index_nospec
+Date: Mon,  5 Feb 2018 10:22:55 -0800
+Message-ID: <20180205182140.060710592@linuxfoundation.org>
+References: <20180205182138.571333346@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAHp75VfXoAHNH2BnfNLbFfdCqUk3rxU_QWfxTx7ZyLgV0qxotQ@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael@kernel.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Hanjun Guo <hanjun.guo@linaro.org>, dann.frazier@canonical.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, linux-pci@vger.kernel.org, Corey Minyard <minyard@acm.org>, devicetree <devicetree@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20180205182138.571333346@linuxfoundation.org>
+Sender: stable-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, kernel-hardening@lists.openwall.com, torvalds@linux-foundation.org, alan@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-On 05/02/2018 13:16, Andy Shevchenko wrote:
-> On Thu, Feb 1, 2018 at 1:32 PM, John Garry <john.garry@huawei.com> wrote:
->
->
+4.14-stable review patch.  If anyone has any objections, please let me know.
 
-Hi Andy,
+------------------
 
-> I'm not going through all patch, by one thing I would like you to pay
-> attention on, i.e.
-> printing resource_size_t and struct resource
->
->>> +               dev_err(dev, "translate bus-addr(0x%llx) fail!\n",
->>> +                       resource->start);
->
-> resource_size_t is dynamic width type, you will see a compiler
-> warning. For this we have
-> %pap specifier.
->
-> Moreover, in some cases it's useful to print struct resource via %pR or %pr.
+From: Mark Rutland mark.rutland@arm.com
 
-I have already fixed this up in my rework.
+commit f84a56f73dddaeac1dba8045b007f742f61cd2da
 
->
-> Consider reading kernel documentation about these (printk-formats.rst).
->
->>> +struct acpi_indirectio_host_data {
->>> +       resource_size_t io_size;
->>> +       resource_size_t io_start;
->>> +};
->
-> Why not utilize struct resource?
->
-> If it's coming from platform / firmware it should *never* have types
-> like size_t, unsigned long, resource_size_t, etc.
+Document the rationale and usage of the new array_index_nospec() helper.
 
-This is not coming from firmware, but it is a struct which we define in 
-the kernel per host, describing that host bus address range for translation.
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Cc: linux-arch@vger.kernel.org
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: gregkh@linuxfoundation.org
+Cc: kernel-hardening@lists.openwall.com
+Cc: torvalds@linux-foundation.org
+Cc: alan@linux.intel.com
+Link: https://lkml.kernel.org/r/151727413645.33451.15878817161436755393.stgit@dwillia2-desk3.amr.corp.intel.com
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
-In fact, generally io_start is 0 and the io_size would be 
-PIO_INDIRECT_SIZE, so I'll consider removing it for now.
 
->
->>> +/* All the host devices which apply indirect-IO can be listed here. */
->>> +static const struct acpi_device_id acpi_indirect_host_id[] = {
->>> +       {""},
->>> +};
->
-> The idea of terminator is to be such (remove comma there). And it's
-> basically redundant to have an empty string there. Moreover, it's a
-> waste of resources in ro section.
+---
+ Documentation/speculation.txt |   90 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 90 insertions(+)
 
-OK, the comma should be removed. So what is the preferred acpi device id 
-array sentinel? I see {}, {"", 0}, and {""} used.
-
->
-
-thank you,
-John
+--- /dev/null
++++ b/Documentation/speculation.txt
+@@ -0,0 +1,90 @@
++This document explains potential effects of speculation, and how undesirable
++effects can be mitigated portably using common APIs.
++
++===========
++Speculation
++===========
++
++To improve performance and minimize average latencies, many contemporary CPUs
++employ speculative execution techniques such as branch prediction, performing
++work which may be discarded at a later stage.
++
++Typically speculative execution cannot be observed from architectural state,
++such as the contents of registers. However, in some cases it is possible to
++observe its impact on microarchitectural state, such as the presence or
++absence of data in caches. Such state may form side-channels which can be
++observed to extract secret information.
++
++For example, in the presence of branch prediction, it is possible for bounds
++checks to be ignored by code which is speculatively executed. Consider the
++following code:
++
++	int load_array(int *array, unsigned int index)
++	{
++		if (index >= MAX_ARRAY_ELEMS)
++			return 0;
++		else
++			return array[index];
++	}
++
++Which, on arm64, may be compiled to an assembly sequence such as:
++
++	CMP	<index>, #MAX_ARRAY_ELEMS
++	B.LT	less
++	MOV	<returnval>, #0
++	RET
++  less:
++	LDR	<returnval>, [<array>, <index>]
++	RET
++
++It is possible that a CPU mis-predicts the conditional branch, and
++speculatively loads array[index], even if index >= MAX_ARRAY_ELEMS. This
++value will subsequently be discarded, but the speculated load may affect
++microarchitectural state which can be subsequently measured.
++
++More complex sequences involving multiple dependent memory accesses may
++result in sensitive information being leaked. Consider the following
++code, building on the prior example:
++
++	int load_dependent_arrays(int *arr1, int *arr2, int index)
++	{
++		int val1, val2,
++
++		val1 = load_array(arr1, index);
++		val2 = load_array(arr2, val1);
++
++		return val2;
++	}
++
++Under speculation, the first call to load_array() may return the value
++of an out-of-bounds address, while the second call will influence
++microarchitectural state dependent on this value. This may provide an
++arbitrary read primitive.
++
++====================================
++Mitigating speculation side-channels
++====================================
++
++The kernel provides a generic API to ensure that bounds checks are
++respected even under speculation. Architectures which are affected by
++speculation-based side-channels are expected to implement these
++primitives.
++
++The array_index_nospec() helper in <linux/nospec.h> can be used to
++prevent information from being leaked via side-channels.
++
++A call to array_index_nospec(index, size) returns a sanitized index
++value that is bounded to [0, size) even under cpu speculation
++conditions.
++
++This can be used to protect the earlier load_array() example:
++
++	int load_array(int *array, unsigned int index)
++	{
++		if (index >= MAX_ARRAY_ELEMS)
++			return 0;
++		else {
++			index = array_index_nospec(index, MAX_ARRAY_ELEMS);
++			return array[index];
++		}
++	}
