@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:52602 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:52738 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753469AbeBESZZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 13:25:25 -0500
+        with ESMTP id S1753766AbeBESZf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 13:25:35 -0500
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.15 32/60] Documentation: Document array_index_nospec
-Date: Mon,  5 Feb 2018 10:23:05 -0800
-Message-ID: <20180205182215.274202516@linuxfoundation.org>
+Subject: [PATCH 4.15 37/60] x86/usercopy: Replace open coded stac/clac with __uaccess_{begin, end}
+Date: Mon,  5 Feb 2018 10:23:10 -0800
+Message-ID: <20180205182215.491244329@linuxfoundation.org>
 In-Reply-To: <20180205182213.902626065@linuxfoundation.org>
 References: <20180205182213.902626065@linuxfoundation.org>
 MIME-Version: 1.0
@@ -14,129 +14,75 @@ Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, kernel-hardening@lists.openwall.com, torvalds@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180205182305.j8l7XCRzsNMovthnXTY-UeXJgeoqPu-wZW72g88GoDw@z>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, torvalds@linux-foundation.org, alan@linux.intel.com
+Message-ID: <20180205182310.X6W_ItaGr0gmw1tWH1L2HPRZHRuRt3zh5lGmG_jLgIA@z>
 
 4.15-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
-From: Mark Rutland mark.rutland@arm.com
+From: Dan Williams dan.j.williams@intel.com
 
-commit f84a56f73dddaeac1dba8045b007f742f61cd2da
+commit b5c4ae4f35325d520b230bab6eb3310613b72ac1
 
-Document the rationale and usage of the new array_index_nospec() helper.
+In preparation for converting some __uaccess_begin() instances to
+__uacess_begin_nospec(), make sure all 'from user' uaccess paths are
+using the _begin(), _end() helpers rather than open-coded stac() and
+clac().
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
+No functional changes.
+
+Suggested-by: Ingo Molnar <mingo@redhat.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Reviewed-by: Kees Cook <keescook@chromium.org>
 Cc: linux-arch@vger.kernel.org
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: gregkh@linuxfoundation.org
+Cc: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
+Cc: gregkh@linuxfoundation.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: torvalds@linux-foundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727413645.33451.15878817161436755393.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727416438.33451.17309465232057176966.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 
 ---
- Documentation/speculation.txt |   90 ++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 90 insertions(+)
+ arch/x86/lib/usercopy_32.c |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
---- /dev/null
-+++ b/Documentation/speculation.txt
-@@ -0,0 +1,90 @@
-+This document explains potential effects of speculation, and how undesirable
-+effects can be mitigated portably using common APIs.
-+
-+===========
-+Speculation
-+===========
-+
-+To improve performance and minimize average latencies, many contemporary CPUs
-+employ speculative execution techniques such as branch prediction, performing
-+work which may be discarded at a later stage.
-+
-+Typically speculative execution cannot be observed from architectural state,
-+such as the contents of registers. However, in some cases it is possible to
-+observe its impact on microarchitectural state, such as the presence or
-+absence of data in caches. Such state may form side-channels which can be
-+observed to extract secret information.
-+
-+For example, in the presence of branch prediction, it is possible for bounds
-+checks to be ignored by code which is speculatively executed. Consider the
-+following code:
-+
-+	int load_array(int *array, unsigned int index)
-+	{
-+		if (index >= MAX_ARRAY_ELEMS)
-+			return 0;
-+		else
-+			return array[index];
-+	}
-+
-+Which, on arm64, may be compiled to an assembly sequence such as:
-+
-+	CMP	<index>, #MAX_ARRAY_ELEMS
-+	B.LT	less
-+	MOV	<returnval>, #0
-+	RET
-+  less:
-+	LDR	<returnval>, [<array>, <index>]
-+	RET
-+
-+It is possible that a CPU mis-predicts the conditional branch, and
-+speculatively loads array[index], even if index >= MAX_ARRAY_ELEMS. This
-+value will subsequently be discarded, but the speculated load may affect
-+microarchitectural state which can be subsequently measured.
-+
-+More complex sequences involving multiple dependent memory accesses may
-+result in sensitive information being leaked. Consider the following
-+code, building on the prior example:
-+
-+	int load_dependent_arrays(int *arr1, int *arr2, int index)
-+	{
-+		int val1, val2,
-+
-+		val1 = load_array(arr1, index);
-+		val2 = load_array(arr2, val1);
-+
-+		return val2;
-+	}
-+
-+Under speculation, the first call to load_array() may return the value
-+of an out-of-bounds address, while the second call will influence
-+microarchitectural state dependent on this value. This may provide an
-+arbitrary read primitive.
-+
-+====================================
-+Mitigating speculation side-channels
-+====================================
-+
-+The kernel provides a generic API to ensure that bounds checks are
-+respected even under speculation. Architectures which are affected by
-+speculation-based side-channels are expected to implement these
-+primitives.
-+
-+The array_index_nospec() helper in <linux/nospec.h> can be used to
-+prevent information from being leaked via side-channels.
-+
-+A call to array_index_nospec(index, size) returns a sanitized index
-+value that is bounded to [0, size) even under cpu speculation
-+conditions.
-+
-+This can be used to protect the earlier load_array() example:
-+
-+	int load_array(int *array, unsigned int index)
-+	{
-+		if (index >= MAX_ARRAY_ELEMS)
-+			return 0;
-+		else {
-+			index = array_index_nospec(index, MAX_ARRAY_ELEMS);
-+			return array[index];
-+		}
-+	}
+--- a/arch/x86/lib/usercopy_32.c
++++ b/arch/x86/lib/usercopy_32.c
+@@ -331,12 +331,12 @@ do {									\
+ 
+ unsigned long __copy_user_ll(void *to, const void *from, unsigned long n)
+ {
+-	stac();
++	__uaccess_begin();
+ 	if (movsl_is_ok(to, from, n))
+ 		__copy_user(to, from, n);
+ 	else
+ 		n = __copy_user_intel(to, from, n);
+-	clac();
++	__uaccess_end();
+ 	return n;
+ }
+ EXPORT_SYMBOL(__copy_user_ll);
+@@ -344,7 +344,7 @@ EXPORT_SYMBOL(__copy_user_ll);
+ unsigned long __copy_from_user_ll_nocache_nozero(void *to, const void __user *from,
+ 					unsigned long n)
+ {
+-	stac();
++	__uaccess_begin();
+ #ifdef CONFIG_X86_INTEL_USERCOPY
+ 	if (n > 64 && static_cpu_has(X86_FEATURE_XMM2))
+ 		n = __copy_user_intel_nocache(to, from, n);
+@@ -353,7 +353,7 @@ unsigned long __copy_from_user_ll_nocach
+ #else
+ 	__copy_user(to, from, n);
+ #endif
+-	clac();
++	__uaccess_end();
+ 	return n;
+ }
+ EXPORT_SYMBOL(__copy_from_user_ll_nocache_nozero);
