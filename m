@@ -1,72 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:51448 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753518AbeBESYR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 13:24:17 -0500
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 45/64] vfs, fdtable: Prevent bounds-check bypass via speculative execution
-Date: Mon,  5 Feb 2018 10:23:04 -0800
-Message-ID: <20180205182140.422732097@linuxfoundation.org>
-In-Reply-To: <20180205182138.571333346@linuxfoundation.org>
-References: <20180205182138.571333346@linuxfoundation.org>
+Received: from mail-wm0-f47.google.com ([74.125.82.47]:35576 "EHLO
+        mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750962AbeBEUWr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 15:22:47 -0500
+Date: Mon, 5 Feb 2018 21:22:42 +0100
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH for 4.16 v7 02/11] powerpc: membarrier: Skip memory
+ barrier in switch_mm()
+Message-ID: <20180205202242.6ilyjh35byycf3ez@gmail.com>
+References: <20180129202020.8515-1-mathieu.desnoyers@efficios.com>
+ <20180129202020.8515-3-mathieu.desnoyers@efficios.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180129202020.8515-3-mathieu.desnoyers@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, torvalds@linux-foundation.org, alan@linux.intel.com
-Message-ID: <20180205182304.suiN3eM0exHzbf5_mLKSjwoo-7pbEEhfUtG7k4q2TVk@z>
-
-4.14-stable review patch.  If anyone has any objections, please let me know.
-
-------------------
-
-From: Dan Williams dan.j.williams@intel.com
-
-commit 56c30ba7b348b90484969054d561f711ba196507
-
-'fd' is a user controlled value that is used as a data dependency to
-read from the 'fdt->fd' array.  In order to avoid potential leaks of
-kernel memory values, block speculative execution of the instruction
-stream that could issue reads based on an invalid 'file *' returned from
-__fcheck_files.
-
-Co-developed-by: Elena Reshetova <elena.reshetova@intel.com>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
-Cc: kernel-hardening@lists.openwall.com
-Cc: gregkh@linuxfoundation.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: torvalds@linux-foundation.org
-Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727418500.33451.17392199002892248656.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>, Andrew Hunter <ahh@google.com>, Maged Michael <maged.michael@gmail.com>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Dave Watson <davejwatson@fb.com>, "H . Peter Anvin" <hpa@zytor.com>, Andrea Parri <parri.andrea@gmail.com>, Russell King <linux@armlinux.org.uk>, Greg Hackmann <ghackmann@google.com>, Will Deacon <will.deacon@arm.com>, David Sehr <sehr@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, Alan Stern <stern@rowland.harvard.edu>, Alexander Viro <viro@zeniv.linux.org.uk>, Nicholas Piggin <npiggin@gmail.com>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+Message-ID: <20180205202242.CL9qgYEpjdrP-J9KmtjvCIi7qA2JrJOW5bI-ivxSbuQ@z>
 
 
----
- include/linux/fdtable.h |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+* Mathieu Desnoyers <mathieu.desnoyers@efficios.com> wrote:
 
---- a/include/linux/fdtable.h
-+++ b/include/linux/fdtable.h
-@@ -10,6 +10,7 @@
- #include <linux/compiler.h>
- #include <linux/spinlock.h>
- #include <linux/rcupdate.h>
-+#include <linux/nospec.h>
- #include <linux/types.h>
- #include <linux/init.h>
- #include <linux/fs.h>
-@@ -82,8 +83,10 @@ static inline struct file *__fcheck_file
- {
- 	struct fdtable *fdt = rcu_dereference_raw(files->fdt);
- 
--	if (fd < fdt->max_fds)
-+	if (fd < fdt->max_fds) {
-+		fd = array_index_nospec(fd, fdt->max_fds);
- 		return rcu_dereference_raw(fdt->fd[fd]);
-+	}
- 	return NULL;
- }
- 
+>  
+> +config ARCH_HAS_MEMBARRIER_HOOKS
+> +	bool
+
+Yeah, so I have renamed this to ARCH_HAS_MEMBARRIER_CALLBACKS, and propagated it 
+through the rest of the patches. "Callback" is the canonical name, and I also 
+cringe every time I see 'hook'.
+
+Please let me know if there are any big objections against this minor cleanup.
+
+Thanks,
+
+	Ingo
