@@ -1,16 +1,20 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.15 36/60] x86: Introduce __uaccess_begin_nospec() and uaccess_try_nospec
-Date: Mon,  5 Feb 2018 10:23:09 -0800
-Message-ID: <20180205182215.444654864@linuxfoundation.org>
+Subject: [PATCH 4.15 34/60] x86: Implement array_index_mask_nospec
+Date: Mon,  5 Feb 2018 10:23:07 -0800
+Message-ID: <20180205182215.361264698@linuxfoundation.org>
 References: <20180205182213.902626065@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <stable-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:52698 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753749AbeBESZ3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Feb 2018 13:25:29 -0500
 In-Reply-To: <20180205182213.902626065@linuxfoundation.org>
-Sender: stable-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, alan@linux.intel.com
-List-Id: linux-arch.vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, alan@linux.intel.com
 
 4.15-stable review patch.  If anyone has any objections, please let me know.
 
@@ -18,76 +22,62 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Dan Williams dan.j.williams@intel.com
 
-commit b3bbfb3fb5d25776b8e3f361d2eedaabb0b496cd
+commit babdde2698d482b6c0de1eab4f697cf5856c5859
 
-For __get_user() paths, do not allow the kernel to speculate on the value
-of a user controlled pointer. In addition to the 'stac' instruction for
-Supervisor Mode Access Protection (SMAP), a barrier_nospec() causes the
-access_ok() result to resolve in the pipeline before the CPU might take any
-speculative action on the pointer value. Given the cost of 'stac' the
-speculation barrier is placed after 'stac' to hopefully overlap the cost of
-disabling SMAP with the cost of flushing the instruction pipeline.
+array_index_nospec() uses a mask to sanitize user controllable array
+indexes, i.e. generate a 0 mask if 'index' >= 'size', and a ~0 mask
+otherwise. While the default array_index_mask_nospec() handles the
+carry-bit from the (index - size) result in software.
 
-Since __get_user is a major kernel interface that deals with user
-controlled pointers, the __uaccess_begin_nospec() mechanism will prevent
-speculative execution past an access_ok() permission check. While
-speculative execution past access_ok() is not enough to lead to a kernel
-memory leak, it is a necessary precondition.
-
-To be clear, __uaccess_begin_nospec() is addressing a class of potential
-problems near __get_user() usages.
-
-Note, that while the barrier_nospec() in __uaccess_begin_nospec() is used
-to protect __get_user(), pointer masking similar to array_index_nospec()
-will be used for get_user() since it incorporates a bounds check near the
-usage.
-
-uaccess_try_nospec provides the same mechanism for get_user_try.
-
-No functional changes.
+The x86 array_index_mask_nospec() does the same, but the carry-bit is
+handled in the processor CF flag without conditional instructions in the
+control flow.
 
 Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Suggested-by: Andi Kleen <ak@linux.intel.com>
-Suggested-by: Ingo Molnar <mingo@redhat.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
 Cc: gregkh@linuxfoundation.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727415922.33451.5796614273104346583.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727414808.33451.1873237130672785331.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 
 ---
- arch/x86/include/asm/uaccess.h |    9 +++++++++
- 1 file changed, 9 insertions(+)
+ arch/x86/include/asm/barrier.h |   24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -124,6 +124,11 @@ extern int __get_user_bad(void);
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -24,6 +24,30 @@
+ #define wmb()	asm volatile("sfence" ::: "memory")
+ #endif
  
- #define __uaccess_begin() stac()
- #define __uaccess_end()   clac()
-+#define __uaccess_begin_nospec()	\
-+({					\
-+	stac();				\
-+	barrier_nospec();		\
-+})
- 
- /*
-  * This is a type: either unsigned long, if the argument fits into
-@@ -487,6 +492,10 @@ struct __large_struct { unsigned long bu
- 	__uaccess_begin();						\
- 	barrier();
- 
-+#define uaccess_try_nospec do {						\
-+	current->thread.uaccess_err = 0;				\
-+	__uaccess_begin_nospec();					\
++/**
++ * array_index_mask_nospec() - generate a mask that is ~0UL when the
++ * 	bounds check succeeds and 0 otherwise
++ * @index: array element index
++ * @size: number of elements in array
++ *
++ * Returns:
++ *     0 - (index < size)
++ */
++static inline unsigned long array_index_mask_nospec(unsigned long index,
++		unsigned long size)
++{
++	unsigned long mask;
 +
- #define uaccess_catch(err)						\
- 	__uaccess_end();						\
- 	(err) |= (current->thread.uaccess_err ? -EFAULT : 0);		\
++	asm ("cmp %1,%2; sbb %0,%0;"
++			:"=r" (mask)
++			:"r"(size),"r" (index)
++			:"cc");
++	return mask;
++}
++
++/* Override the default implementation from linux/nospec.h. */
++#define array_index_mask_nospec array_index_mask_nospec
++
+ #ifdef CONFIG_X86_PPRO_FENCE
+ #define dma_rmb()	rmb()
+ #else
