@@ -1,118 +1,116 @@
-From: Christoffer Dall <christoffer.dall@linaro.org>
-Subject: Re: [PATCHv2 05/12] arm64: Don't trap host pointer auth use to EL2
-Date: Tue, 6 Feb 2018 13:39:06 +0100
-Message-ID: <20180206123906.GZ21802@cbox>
-References: <20171127163806.31435-1-mark.rutland@arm.com>
- <20171127163806.31435-6-mark.rutland@arm.com>
+From: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH/RFC 4/6] mm: Add NO_DMA dummies for DMA pool API
+Date: Tue, 6 Feb 2018 12:47:56 +0000
+Message-ID: <61f0970a-c0aa-9b6f-74c7-d63be1e477ac@arm.com>
+References: <1517912092-15470-1-git-send-email-geert@linux-m68k.org>
+	<1517912092-15470-5-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:36221 "EHLO
-        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752755AbeBFMjK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Feb 2018 07:39:10 -0500
-Received: by mail-wm0-f65.google.com with SMTP id f3so3571031wmc.1
-        for <linux-arch@vger.kernel.org>; Tue, 06 Feb 2018 04:39:09 -0800 (PST)
-Content-Disposition: inline
-In-Reply-To: <20171127163806.31435-6-mark.rutland@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, arnd@arndb.de, catalin.marinas@arm.com, cdall@linaro.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <1517912092-15470-5-git-send-email-geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Content-Language: en-GB
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Mark Brown <broonie-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Richard Weinberger <richard-/L3Ra7n9ekc@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Felipe Balbi <balbi-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "James E . J . Bottomley" <jejb-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "Martin K . Petersen" <martin.petersen-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Mark,
+Hi Geert,
 
-On Mon, Nov 27, 2017 at 04:37:59PM +0000, Mark Rutland wrote:
-> To allow EL0 (and/or EL1) to use pointer authentication functionality,
-> we must ensure that pointer authentication instructions and accesses to
-> pointer authentication keys are not trapped to EL2 (where we will not be
-> able to handle them).
-
-...on non-VHE systems, presumably?
-
+On 06/02/18 10:14, Geert Uytterhoeven wrote:
+> Add dummies for dma{,m}_pool_{create,destroy,alloc,free}(), to allow
+> compile-testing if NO_DMA=y.
 > 
-> This patch ensures that HCR_EL2 is configured appropriately when the
-> kernel is booted at EL2. For non-VHE kernels we set HCR_EL2.{API,APK},
-> ensuring that EL1 can access keys and permit EL0 use of instructions.
-> For VHE kernels, EL2 access is controlled by EL3, and we need not set
-> anything.
-
-
-for VHE kernels host EL0 (TGE && E2H) is unaffected by these settings,
-and it doesn't matter how we configure HCR_EL2.{API,APK}.
-
-(Because you do actually set these bits when the features are present if
-I read the code correctly).
-
-
+> This prevents the following from showing up later:
 > 
-> This does not enable support for KVM guests, since KVM manages HCR_EL2
-> itself.
-
-        (...when running VMs.)
-
-
-Besides the nits:
-
-Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
-
+>      ERROR: "dma_pool_destroy" [drivers/usb/mtu3/mtu3.ko] undefined!
+>      ERROR: "dma_pool_free" [drivers/usb/mtu3/mtu3.ko] undefined!
+>      ERROR: "dma_pool_alloc" [drivers/usb/mtu3/mtu3.ko] undefined!
+>      ERROR: "dma_pool_create" [drivers/usb/mtu3/mtu3.ko] undefined!
+>      ERROR: "dma_pool_destroy" [drivers/scsi/hisi_sas/hisi_sas_main.ko] undefined!
+>      ERROR: "dma_pool_free" [drivers/scsi/hisi_sas/hisi_sas_main.ko] undefined!
+>      ERROR: "dma_pool_alloc" [drivers/scsi/hisi_sas/hisi_sas_main.ko] undefined!
+>      ERROR: "dma_pool_create" [drivers/scsi/hisi_sas/hisi_sas_main.ko] undefined!
+>      ERROR: "dma_pool_alloc" [drivers/mailbox/bcm-pdc-mailbox.ko] undefined!
+>      ERROR: "dma_pool_free" [drivers/mailbox/bcm-pdc-mailbox.ko] undefined!
+>      ERROR: "dma_pool_create" [drivers/mailbox/bcm-pdc-mailbox.ko] undefined!
+>      ERROR: "dma_pool_destroy" [drivers/mailbox/bcm-pdc-mailbox.ko] undefined!
 > 
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Christoffer Dall <cdall@linaro.org>
-> Cc: Marc Zyngier <marc.zyngier@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: kvmarm@lists.cs.columbia.edu
+> Signed-off-by: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
 > ---
->  arch/arm64/include/asm/kvm_arm.h |  2 ++
->  arch/arm64/kernel/head.S         | 19 +++++++++++++++++--
->  2 files changed, 19 insertions(+), 2 deletions(-)
+>   include/linux/dmapool.h | 21 +++++++++++++++++++--
+>   1 file changed, 19 insertions(+), 2 deletions(-)
 > 
-> diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
-> index 7f069ff37f06..62854d5d1d3b 100644
-> --- a/arch/arm64/include/asm/kvm_arm.h
-> +++ b/arch/arm64/include/asm/kvm_arm.h
-> @@ -23,6 +23,8 @@
->  #include <asm/types.h>
->  
->  /* Hyp Configuration Register (HCR) bits */
-> +#define HCR_API		(UL(1) << 41)
-> +#define HCR_APK		(UL(1) << 40)
->  #define HCR_E2H		(UL(1) << 34)
->  #define HCR_ID		(UL(1) << 33)
->  #define HCR_CD		(UL(1) << 32)
-> diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
-> index 67e86a0f57ac..06a96e9af26b 100644
-> --- a/arch/arm64/kernel/head.S
-> +++ b/arch/arm64/kernel/head.S
-> @@ -415,10 +415,25 @@ CPU_LE(	bic	x0, x0, #(1 << 25)	)	// Clear the EE bit for EL2
->  
->  	/* Hyp configuration. */
->  	mov	x0, #HCR_RW			// 64-bit EL1
-> -	cbz	x2, set_hcr
-> +	cbz	x2, 1f
->  	orr	x0, x0, #HCR_TGE		// Enable Host Extensions
->  	orr	x0, x0, #HCR_E2H
-> -set_hcr:
-> +1:
-> +#ifdef CONFIG_ARM64_POINTER_AUTHENTICATION
-> +	/*
-> +	 * Disable pointer authentication traps to EL2. The HCR_EL2.{APK,API}
-> +	 * bits exist iff at least one authentication mechanism is implemented.
-> +	 */
-> +	mrs	x1, id_aa64isar1_el1
-> +	mov_q	x3, ((0xf << ID_AA64ISAR1_GPI_SHIFT) | \
-> +		     (0xf << ID_AA64ISAR1_GPA_SHIFT) | \
-> +		     (0xf << ID_AA64ISAR1_API_SHIFT) | \
-> +		     (0xf << ID_AA64ISAR1_APA_SHIFT))
-> +	and	x1, x1, x3
-> +	cbz	x1, 1f
-> +	orr	x0, x0, #(HCR_APK | HCR_API)
-> +1:
-> +#endif
->  	msr	hcr_el2, x0
->  	isb
->  
-> -- 
-> 2.11.0
+> diff --git a/include/linux/dmapool.h b/include/linux/dmapool.h
+> index 53ba737505df31c7..adeb5e56c3ad73a8 100644
+> --- a/include/linux/dmapool.h
+> +++ b/include/linux/dmapool.h
+> @@ -16,6 +16,7 @@
+>   
+>   struct device;
+>   
+> +#ifdef CONFIG_HAS_DMA
+>   struct dma_pool *dma_pool_create(const char *name, struct device *dev,
+>   			size_t size, size_t align, size_t allocation);
+>   
+> @@ -23,6 +24,17 @@ void dma_pool_destroy(struct dma_pool *pool);
+>   
+>   void *dma_pool_alloc(struct dma_pool *pool, gfp_t mem_flags,
+>   		     dma_addr_t *handle);
+> +void dma_pool_free(struct dma_pool *pool, void *vaddr, dma_addr_t addr);
+> +#else /* !CONFIG_HAS_DMA */
+> +static inline struct dma_pool *dma_pool_create(const char *name,
+> +	struct device *dev, size_t size, size_t align, size_t allocation)
+> +{ return NULL; }
+> +static inline void dma_pool_destroy(struct dma_pool *pool) { }
+> +static inline void *dma_pool_alloc(struct dma_pool *pool, gfp_t mem_flags,
+> +				   dma_addr_t *handle) { return NULL; }
+> +static inline void dma_pool_free(struct dma_pool *pool, void *vaddr,
+> +				 dma_addr_t addr) { }
+> +#endif /* !CONFIG_HAS_DMA */
+>   
+>   static inline void *dma_pool_zalloc(struct dma_pool *pool, gfp_t mem_flags,
+>   				    dma_addr_t *handle)
+> @@ -30,14 +42,19 @@ static inline void *dma_pool_zalloc(struct dma_pool *pool, gfp_t mem_flags,
+>   	return dma_pool_alloc(pool, mem_flags | __GFP_ZERO, handle);
+>   }
+>   
+> -void dma_pool_free(struct dma_pool *pool, void *vaddr, dma_addr_t addr);
+> -
+>   /*
+>    * Managed DMA pool
+>    */
+> +#ifdef CONFIG_HAS_DMA
+>   struct dma_pool *dmam_pool_create(const char *name, struct device *dev,
+>   				  size_t size, size_t align, size_t allocation);
+>   void dmam_pool_destroy(struct dma_pool *pool);
+> +#else /* !CONFIG_HAS_DMA */
+> +static inline struct dma_pool *dmam_pool_create(const char *name,
+> +	struct device *dev, size_t size, size_t align, size_t allocation)
+> +{ return NULL; }
+> +static inline void dmam_pool_destroy(struct dma_pool *pool) { }
+> +#endif /* !CONFIG_HAS_DMA */
+
+Nit: It might be tidier to add *all* the stubs down here so that there 
+only need be a single #ifdef, then move the dma_pool_zalloc definition 
+outside at the end (where we might eventually get rid of it anyway).
+
+Other than that, though, I think I agree with the series in general - 
+more COMPILE_TEST is always good from the point of view of weeding out 
+drivers using architecture-specific DMA API internals which aren't part 
+of the proper generic interface.
+
+Robin.
+
+>   
+>   #endif
+>   
 > 
