@@ -1,54 +1,107 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH v12 7/9] ACPI: Translate the I/O range of non-MMIO devices
- before scanning
-Date: Tue, 6 Feb 2018 21:44:35 +0200
-Message-ID: <CAHp75VdTKCq5Vxox2OPvr+BvVSduhaxs_sa7B9wskzjv8ZJLqw@mail.gmail.com>
-References: <1516725385-24535-1-git-send-email-john.garry@huawei.com>
- <1516725385-24535-8-git-send-email-john.garry@huawei.com> <0a30452f-34eb-d0b5-2001-ab6b866c53e2@huawei.com>
- <CAHp75VfXoAHNH2BnfNLbFfdCqUk3rxU_QWfxTx7ZyLgV0qxotQ@mail.gmail.com> <62634aa6-ad3c-93c2-e6fa-9e163d4004ca@huawei.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v4 07/10] x86: narrow out of bounds syscalls to sys_read
+ under speculation
+Date: Tue, 6 Feb 2018 11:48:45 -0800
+Message-ID: <CAPcyv4ihN6fy5-vBtfA0PuwXvCAj8-rMhtQmevh5sdYxbH3Yfw@mail.gmail.com>
+References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151632014097.21271.16980532033566583357.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20180206192925.qkmghwsbaysr4iv2@hermes.olymp>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-acpi-owner@vger.kernel.org>
-In-Reply-To: <62634aa6-ad3c-93c2-e6fa-9e163d4004ca@huawei.com>
-Sender: linux-acpi-owner@vger.kernel.org
-To: John Garry <john.garry@huawei.com>
-Cc: Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael@kernel.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Hanjun Guo <hanjun.guo@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, linux-pci@vger.kernel.org, Corey Minyard <minyard@acm.org>, devicetree <devicetree@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel>
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180206192925.qkmghwsbaysr4iv2@hermes.olymp>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Luis Henriques <lhenriques@suse.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Greg KH <gregkh@linuxfoundation.org>, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 5, 2018 at 4:25 PM, John Garry <john.garry@huawei.com> wrote:
-> On 05/02/2018 13:16, Andy Shevchenko wrote:
->> On Thu, Feb 1, 2018 at 1:32 PM, John Garry <john.garry@huawei.com> wrote:
-
->> resource_size_t is dynamic width type, you will see a compiler
->> warning. For this we have
->> %pap specifier.
->>
->> Moreover, in some cases it's useful to print struct resource via %pR or
->> %pr.
-
-> I have already fixed this up in my rework.
-
-Good!
-
->>>> +/* All the host devices which apply indirect-IO can be listed here. */
->>>> +static const struct acpi_device_id acpi_indirect_host_id[] = {
->>>> +       {""},
->>>> +};
->>
->>
->> The idea of terminator is to be such (remove comma there). And it's
->> basically redundant to have an empty string there. Moreover, it's a
->> waste of resources in ro section.
+On Tue, Feb 6, 2018 at 11:29 AM, Luis Henriques <lhenriques@suse.com> wrote=
+:
+> On Thu, Jan 18, 2018 at 04:02:21PM -0800, Dan Williams wrote:
+>> The syscall table base is a user controlled function pointer in kernel
+>> space. Like, 'get_user, use 'MASK_NOSPEC' to prevent any out of bounds
+>> speculation. While retpoline prevents speculating into the user
+>> controlled target it does not stop the pointer de-reference, the concern
+>> is leaking memory relative to the syscall table base.
 >
+> This patch seems to cause a regression.  An easy way to reproduce what
+> I'm seeing is to run the samples/statx/test-statx.  Here's what I see
+> when I have this patchset applied:
 >
-> OK, the comma should be removed. So what is the preferred acpi device id
-> array sentinel? I see {}, {"", 0}, and {""} used.
+> # ./test-statx /tmp
+> statx(/tmp) =3D -1
+> /tmp: Bad file descriptor
+>
+> Reverting this single patch seems to fix it.
 
-The rule of thumb --- whatever has more entries in the kernel.
-In case of similarity I would prefer simple {} because it suits for
-termination slightly better (for my opinion, some cases might
-potentially have {"", non_null_vakue}).
+Just to clarify, when you say "this patch" you mean:
 
--- 
-With Best Regards,
-Andy Shevchenko
+     2fbd7af5af86 x86/syscall: Sanitize syscall table de-references
+under speculation
+
+...not this early MASK_NOSPEC version of the patch, right?
+
+>
+> Cheers,
+> --
+> Lu=C3=ADs
+>
+>>
+>> Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+>> Cc: Thomas Gleixner <tglx@linutronix.de>
+>> Cc: Ingo Molnar <mingo@redhat.com>
+>> Cc: "H. Peter Anvin" <hpa@zytor.com>
+>> Cc: x86@kernel.org
+>> Cc: Andy Lutomirski <luto@kernel.org>
+>> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+>> ---
+>>  arch/x86/entry/entry_64.S   |    2 ++
+>>  arch/x86/include/asm/smap.h |    9 ++++++++-
+>>  2 files changed, 10 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+>> index 4f8e1d35a97c..2320017077d4 100644
+>> --- a/arch/x86/entry/entry_64.S
+>> +++ b/arch/x86/entry/entry_64.S
+>> @@ -35,6 +35,7 @@
+>>  #include <asm/asm.h>
+>>  #include <asm/smap.h>
+>>  #include <asm/pgtable_types.h>
+>> +#include <asm/smap.h>
+>>  #include <asm/export.h>
+>>  #include <asm/frame.h>
+>>  #include <asm/nospec-branch.h>
+>> @@ -264,6 +265,7 @@ entry_SYSCALL_64_fastpath:
+>>       cmpl    $__NR_syscall_max, %eax
+>>  #endif
+>>       ja      1f                              /* return -ENOSYS (already=
+ in pt_regs->ax) */
+>> +     MASK_NOSPEC %r11 %rax                   /* sanitize syscall_nr wrt=
+ speculation */
+>>       movq    %r10, %rcx
+>>
+>>       /*
+>> diff --git a/arch/x86/include/asm/smap.h b/arch/x86/include/asm/smap.h
+>> index 2b4ad4c6a226..3b5b2cf58dc6 100644
+>> --- a/arch/x86/include/asm/smap.h
+>> +++ b/arch/x86/include/asm/smap.h
+>> @@ -35,7 +35,14 @@
+>>   * this directs the cpu to speculate with a NULL ptr rather than
+>>   * something targeting kernel memory.
+>>   *
+>> - * assumes CF is set from a previous 'cmp TASK_addr_limit, %ptr'
+>> + * In the syscall entry path it is possible to speculate past the
+>> + * validation of the system call number. Use MASK_NOSPEC to sanitize th=
+e
+>> + * syscall array index to zero (sys_read) rather than an arbitrary
+>> + * target.
+>> + *
+>> + * assumes CF is set from a previous 'cmp' i.e.:
+>> + *     cmp TASK_addr_limit, %ptr
+>> + *     cmp __NR_syscall_max, %idx
+>>   */
+>>  .macro MASK_NOSPEC mask val
+>>       sbb \mask, \mask
+>>
+>>
