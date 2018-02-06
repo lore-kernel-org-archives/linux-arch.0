@@ -1,118 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:41077 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753346AbeBFRAf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Feb 2018 12:00:35 -0500
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [RFC PATCH] membarrier-sync-core: Document architecture support
-Date: Tue,  6 Feb 2018 12:00:13 -0500
-Message-ID: <1517936413-19675-1-git-send-email-mathieu.desnoyers@efficios.com>
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:46179 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752966AbeBFTog (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Feb 2018 14:44:36 -0500
+MIME-Version: 1.0
+In-Reply-To: <62634aa6-ad3c-93c2-e6fa-9e163d4004ca@huawei.com>
+References: <1516725385-24535-1-git-send-email-john.garry@huawei.com>
+ <1516725385-24535-8-git-send-email-john.garry@huawei.com> <0a30452f-34eb-d0b5-2001-ab6b866c53e2@huawei.com>
+ <CAHp75VfXoAHNH2BnfNLbFfdCqUk3rxU_QWfxTx7ZyLgV0qxotQ@mail.gmail.com> <62634aa6-ad3c-93c2-e6fa-9e163d4004ca@huawei.com>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Date: Tue, 6 Feb 2018 21:44:35 +0200
+Message-ID: <CAHp75VdTKCq5Vxox2OPvr+BvVSduhaxs_sa7B9wskzjv8ZJLqw@mail.gmail.com>
+Subject: Re: [PATCH v12 7/9] ACPI: Translate the I/O range of non-MMIO devices
+ before scanning
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Thomas Gleixner <tglx@linutronix.de>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Andrea Parri <parri.andrea@gmail.com>, Andrew Hunter <ahh@google.com>, Andy Lutomirski <luto@kernel.org>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, David Sehr <sehr@google.com>, Greg Hackmann <ghackmann@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Maged Michael <maged.michael@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180206170013.15ByoCnp_OvI2PU9aQmPlMO4P6V4LtI3ecun841rZ8A@z>
+To: John Garry <john.garry@huawei.com>
+Cc: Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael@kernel.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Hanjun Guo <hanjun.guo@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, linux-pci@vger.kernel.org, Corey Minyard <minyard@acm.org>, devicetree <devicetree@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <20180206194435.86DV12Js5eao5dK1h7U_UFT9LxYpmbAlhuLiVX8qs0g@z>
 
-Ensure we gather architecture requirements about each architecture supporting
-the "sync_core" membarrier command in a single file under Documentation/features.
+On Mon, Feb 5, 2018 at 4:25 PM, John Garry <john.garry@huawei.com> wrote:
+> On 05/02/2018 13:16, Andy Shevchenko wrote:
+>> On Thu, Feb 1, 2018 at 1:32 PM, John Garry <john.garry@huawei.com> wrote:
 
-[ This patch applies on top of tip sched/core. ]
+>> resource_size_t is dynamic width type, you will see a compiler
+>> warning. For this we have
+>> %pap specifier.
+>>
+>> Moreover, in some cases it's useful to print struct resource via %pR or
+>> %pr.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
-Cc: Andrea Parri <parri.andrea@gmail.com>
-Cc: Andrew Hunter <ahh@google.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Avi Kivity <avi@scylladb.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Dave Watson <davejwatson@fb.com>
-Cc: David Sehr <sehr@google.com>
-Cc: Greg Hackmann <ghackmann@google.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Maged Michael <maged.michael@gmail.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
----
- .../sched/membarrier-sync-core/arch-support.txt    | 62 ++++++++++++++++++++++
- 1 file changed, 62 insertions(+)
- create mode 100644 Documentation/features/sched/membarrier-sync-core/arch-support.txt
+> I have already fixed this up in my rework.
 
-diff --git a/Documentation/features/sched/membarrier-sync-core/arch-support.txt b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
-new file mode 100644
-index 0000000..2c815a7
---- /dev/null
-+++ b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
-@@ -0,0 +1,62 @@
-+#
-+# Feature name:          membarrier-sync-core
-+#         Kconfig:       ARCH_HAS_MEMBARRIER_SYNC_CORE
-+#         description:   arch supports core serializing membarrier
-+#
-+# Architecture requirements
-+#
-+# * arm64
-+#
-+# Rely on eret context synchronization when returning from IPI handler, and
-+# when returning to user-space.
-+#
-+# * x86
-+#
-+# x86-32 uses IRET as return from interrupt, which takes care of the IPI.
-+# However, it uses both IRET and SYSEXIT to go back to user-space. The IRET
-+# instruction is core serializing, but not SYSEXIT.
-+#
-+# x86-64 uses IRET as return from interrupt, which takes care of the IPI.
-+# However, it can return to user-space through either SYSRETL (compat code),
-+# SYSRETQ, or IRET.
-+#
-+# Given that neither SYSRET{L,Q}, nor SYSEXIT, are core serializing, we rely
-+# instead on write_cr3() performed by switch_mm() to provide core serialization
-+# after changing the current mm, and deal with the special case of kthread ->
-+# uthread (temporarily keeping current mm into active_mm) by issuing a
-+# sync_core_before_usermode() in that specific case.
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: |  ok  |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |       h8300: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
+Good!
+
+>>>> +/* All the host devices which apply indirect-IO can be listed here. */
+>>>> +static const struct acpi_device_id acpi_indirect_host_id[] = {
+>>>> +       {""},
+>>>> +};
+>>
+>>
+>> The idea of terminator is to be such (remove comma there). And it's
+>> basically redundant to have an empty string there. Moreover, it's a
+>> waste of resources in ro section.
+>
+>
+> OK, the comma should be removed. So what is the preferred acpi device id
+> array sentinel? I see {}, {"", 0}, and {""} used.
+
+The rule of thumb --- whatever has more entries in the kernel.
+In case of similarity I would prefer simple {} because it suits for
+termination slightly better (for my opinion, some cases might
+potentially have {"", non_null_vakue}).
+
 -- 
-1.9.1
+With Best Regards,
+Andy Shevchenko
