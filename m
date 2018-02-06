@@ -1,56 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f194.google.com ([74.125.82.194]:34491 "EHLO
-        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752203AbeBFIsT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Feb 2018 03:48:19 -0500
-MIME-Version: 1.0
-In-Reply-To: <CAJsyPhwHmMrXmN2-NW3ZyvRvTWR0vio_bQO+GDBf30DVp=5LTw@mail.gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com> <4a602db0a58cc858515c3c669d5ac34c567b061c.1515766253.git.green.hu@gmail.com>
- <CAK8P3a0GQDrj+7kc4YB1_ZC1vCWmMtSiYeKsNir_27FvY50Kmg@mail.gmail.com> <CAJsyPhwHmMrXmN2-NW3ZyvRvTWR0vio_bQO+GDBf30DVp=5LTw@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 6 Feb 2018 09:48:17 +0100
-Message-ID: <CAK8P3a2R02bNZF-BYW6mbC9jCT+zx-HUtw1y1HS5EifOuOting@mail.gmail.com>
-Subject: Re: [PATCH v6 19/36] nds32: VDSO support
-Content-Type: text/plain; charset="UTF-8"
+Received: from andre.telenet-ops.be ([195.130.132.53]:45488 "EHLO
+        andre.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752488AbeBFKPD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Feb 2018 05:15:03 -0500
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH/RFC 3/6] usb: gadget: Add NO_DMA dummies for DMA mapping API
+Date: Tue,  6 Feb 2018 11:14:49 +0100
+Message-ID: <1517912092-15470-4-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1517912092-15470-1-git-send-email-geert@linux-m68k.org>
+References: <1517912092-15470-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincent Chen <deanbo422@gmail.com>
-Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180206084817.VbAo2YcPF6rez30Twgf_cV2nLTPDPEBnf10sszJcP4s@z>
+To: Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Arnd Bergmann <arnd@arndb.de>, Mark Brown <broonie@kernel.org>, Richard Weinberger <richard@nod.at>
+Cc: Felipe Balbi <balbi@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "James E . J . Bottomley" <jejb@linux.vnet.ibm.com>, "Martin K . Petersen" <martin.petersen@oracle.com>, iommu@lists.linux-foundation.org, linux-usb@vger.kernel.org, linux-scsi@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20180206101449.DyJkwmOhvIeSyfUOF8eK3AHr2Xq9pbV0RfbWULNKxPw@z>
 
-On Tue, Feb 6, 2018 at 8:41 AM, Vincent Chen <deanbo422@gmail.com> wrote:
-> 2018-01-18 18:28 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->> On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
->>> From: Greentime Hu <greentime@andestech.com>
->>>
->>> This patch adds VDSO support. The VDSO code is currently used for
->>> sys_rt_sigreturn() and optimised gettimeofday() (using the SoC timer counter).
->>>
->>> Signed-off-by: Vincent Chen <vincentc@andestech.com>
->>> Signed-off-by: Greentime Hu <greentime@andestech.com>
->>
->> Acked-by: Arnd Bergmann <arnd@arndb.de>
->
-> Dear Arnd Bergmann:
->
-> We find a small bug here which make LTP 20170929 clock_getres01
-> fail. The bug is in __vdso_clock_getres() function. When argument res
-> is NULL, -EFAULT error code is returned now. But, the returned
-> value is 0 for SyS_clock_getres under the same conditions.
-> Therefore, testcase thinks it is a bug.
->
-> I will modify the code as below and add it in the next version patch
-> if you think it is OK.
->
-> @@ -209,7 +209,7 @@ static notrace int clock_getres_fallback( ...
->  {
->          if (res == NULL)
-> -                return -EFAULT;
-> +                return 0;
->
+Add dummies for usb_gadget_{,un}map_request{,_by_dev}(), to allow
+compile-testing if NO_DMA=y.
 
-Ok. I don't know why that is the expected behavior (clock_getres
-with a NULL argument makes little sense), but I can see that it
-matches the regular syscall implementation.
+This prevents the following from showing up later:
 
-      Arnd
+    ERROR: "usb_gadget_unmap_request_by_dev" [drivers/usb/renesas_usbhs/renesas_usbhs.ko] undefined!
+    ERROR: "usb_gadget_map_request_by_dev" [drivers/usb/renesas_usbhs/renesas_usbhs.ko] undefined!
+    ERROR: "usb_gadget_map_request" [drivers/usb/mtu3/mtu3.ko] undefined!
+    ERROR: "usb_gadget_unmap_request" [drivers/usb/mtu3/mtu3.ko] undefined!
+    ERROR: "usb_gadget_map_request" [drivers/usb/gadget/udc/renesas_usb3.ko] undefined!
+    ERROR: "usb_gadget_unmap_request" [drivers/usb/gadget/udc/renesas_usb3.ko] undefined!
+
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+---
+ include/linux/usb/gadget.h | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/include/linux/usb/gadget.h b/include/linux/usb/gadget.h
+index 66a5cff7ee142d6a..b68e7f9b210be122 100644
+--- a/include/linux/usb/gadget.h
++++ b/include/linux/usb/gadget.h
+@@ -805,6 +805,7 @@ int usb_otg_descriptor_init(struct usb_gadget *gadget,
+ 
+ /* utility to simplify map/unmap of usb_requests to/from DMA */
+ 
++#ifdef	CONFIG_HAS_DMA
+ extern int usb_gadget_map_request_by_dev(struct device *dev,
+ 		struct usb_request *req, int is_in);
+ extern int usb_gadget_map_request(struct usb_gadget *gadget,
+@@ -814,6 +815,17 @@ extern void usb_gadget_unmap_request_by_dev(struct device *dev,
+ 		struct usb_request *req, int is_in);
+ extern void usb_gadget_unmap_request(struct usb_gadget *gadget,
+ 		struct usb_request *req, int is_in);
++#else /* !CONFIG_HAS_DMA */
++static inline int usb_gadget_map_request_by_dev(struct device *dev,
++		struct usb_request *req, int is_in) { return -ENOSYS; }
++static inline int usb_gadget_map_request(struct usb_gadget *gadget,
++		struct usb_request *req, int is_in) { return -ENOSYS; }
++
++static inline void usb_gadget_unmap_request_by_dev(struct device *dev,
++		struct usb_request *req, int is_in) { }
++static inline void usb_gadget_unmap_request(struct usb_gadget *gadget,
++		struct usb_request *req, int is_in) { }
++#endif /* !CONFIG_HAS_DMA */
+ 
+ /*-------------------------------------------------------------------------*/
+ 
+-- 
+2.7.4
