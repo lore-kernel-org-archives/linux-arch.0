@@ -1,115 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:37751 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750841AbeBFFvP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Feb 2018 00:51:15 -0500
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v11 3/3] mm, x86: display pkey in smaps only if arch supports pkeys
-In-Reply-To: <20180202072139.GD5411@ram.oc3035372033.ibm.com>
-References: <1517341452-11924-4-git-send-email-linuxram@us.ibm.com> <201802021225.JPjLbdCs%fengguang.wu@intel.com> <20180202072139.GD5411@ram.oc3035372033.ibm.com>
-Date: Tue, 06 Feb 2018 16:51:12 +1100
-Message-ID: <878tc64qen.fsf@concordia.ellerman.id.au>
+Received: from mail-it0-f65.google.com ([209.85.214.65]:37718 "EHLO
+        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751872AbeBFGjk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Feb 2018 01:39:40 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
+In-Reply-To: <CAK8P3a0eeJKAOZjJ-XVQwLOCuVzSqdUtCaS4F90zZ=WvRQ8sBQ@mail.gmail.com>
+References: <cover.1515766253.git.green.hu@gmail.com> <e145c39b3c50b3aee05bc60ad0117f1ec7cc5153.1515766253.git.green.hu@gmail.com>
+ <CAK8P3a2HR6be9Fm+o1Oq-V5p51xEiuhbyqkgVWprD5BxuU29xQ@mail.gmail.com>
+ <CAJsyPhyGpJVQegd7ns9oZOjM=XsGVixCQaH9nT_jOQsSpyRs+g@mail.gmail.com> <CAK8P3a0eeJKAOZjJ-XVQwLOCuVzSqdUtCaS4F90zZ=WvRQ8sBQ@mail.gmail.com>
+From: Vincent Chen <deanbo422@gmail.com>
+Date: Tue, 6 Feb 2018 14:39:38 +0800
+Message-ID: <CAJsyPhxmZx_S=imSxDyW3POhRcHd66q1p0kkX0B4f-W2APxJkA@mail.gmail.com>
+Subject: Re: [PATCH v6 20/36] nds32: Signal handling support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>, kbuild test robot <lkp@intel.com>
-Cc: kbuild-all@01.org, mingo@redhat.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
-Message-ID: <20180206055112.E1X87rFAfxhLEcDCYmn1-GJHNAbQ-ZhpmGRUoNzH30g@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20180206063938.Gp1iahv9BshZBh8ruGcFW3bmwf5lpILzDakl5dRoBmw@z>
 
-Ram Pai <linuxram@us.ibm.com> writes:
+Thanks, I got it.
 
-> On Fri, Feb 02, 2018 at 12:27:27PM +0800, kbuild test robot wrote:
->> Hi Ram,
->> 
->> Thank you for the patch! Yet something to improve:
->> 
->> [auto build test ERROR on linus/master]
->> [also build test ERROR on v4.15 next-20180201]
->> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
->> 
->> url:    https://urldefense.proofpoint.com/v2/url?u=https-3A__github.com_0day-2Dci_linux_commits_Ram-2DPai_mm-2Dx86-2Dpowerpc-2DEnhancements-2Dto-2DMemory-2DProtection-2DKeys_20180202-2D120004&d=DwIBAg&c=jf_iaSHvJObTbx-siA1ZOg&r=m-UrKChQVkZtnPpjbF6YY99NbT8FBByQ-E-ygV8luxw&m=Fv3tEHet1bTUrDjOnzEhXvGM_4tGlkYhJHPBnWNWgVA&s=Z1W6CV2tfPmLYU8lVv1oDRl2cAyQA76KE2P064A2CQY&e=
->> config: x86_64-randconfig-x005-201804 (attached as .config)
->> compiler: gcc-7 (Debian 7.2.0-12) 7.2.1 20171025
->> reproduce:
->>         # save the attached .config to linux build tree
->>         make ARCH=x86_64 
->> 
->> All error/warnings (new ones prefixed by >>):
->> 
->>    In file included from arch/x86/include/asm/mmu_context.h:8:0,
->>                     from arch/x86/events/core.c:36:
->> >> include/linux/pkeys.h:16:23: error: expected identifier or '(' before numeric constant
->>     #define vma_pkey(vma) 0
->>                           ^
->> >> arch/x86/include/asm/mmu_context.h:298:19: note: in expansion of macro 'vma_pkey'
->>     static inline int vma_pkey(struct vm_area_struct *vma)
->>                       ^~~~~~~~
->> 
->> vim +16 include/linux/pkeys.h
->> 
->>      7	
->>      8	#ifdef CONFIG_ARCH_HAS_PKEYS
->>      9	#include <asm/pkeys.h>
->>     10	#else /* ! CONFIG_ARCH_HAS_PKEYS */
->>     11	#define arch_max_pkey() (1)
->>     12	#define execute_only_pkey(mm) (0)
->>     13	#define arch_override_mprotect_pkey(vma, prot, pkey) (0)
->>     14	#define PKEY_DEDICATED_EXECUTE_ONLY 0
->>     15	#define ARCH_VM_PKEY_FLAGS 0
->>   > 16	#define vma_pkey(vma) 0
+After referring to arm64 and risc-v, we try to refine our code, such as
+removing unneeded checking and refining syscall restart flow. We
+hope these modifications can enhance the reliability and readability.
+However, the following 2 files which you had acked are included in
+this modification.
+1. arch/nds32/include/asm/nds32.h
+    (patch: Assembly macros and definitions)
+     The definition of  macro tbl and why are removed.
+       - Now, we use pt_reg->syscallno instead of 'why' to determine
+         whether entering kernel is via syscall or not. Therefore, macro
+         'why' is unneeded.
+
+--- a/arch/nds32/include/asm/nds32.h
++++ b/arch/nds32/include/asm/nds32.h
+@@ -66,10 +66,6 @@ static inline unsigned long CACHE_LINE_SIZE
+
+ #endif /* __ASSEMBLY__ */
+
+-/* tbl and why is used in ex-scall.S and ex-exit.S */
+-#define tbl $r8
+-#define why $r8
+-
+ #define IVB_BASE               PHYS_OFFSET
+
+
+2. arch/nds32/kernel/ex-scall.S    (patch: System calls handling)
+    a. Define macro tbl
+        - The marco tbl is used only in this file. So, I move its definition
+          from arch/nds32/include/asm/nds32.h to here.
+    b. Remove 'set why = 0'  when issuing syscall number is invalid
+    c. Adjust input arguments of syscall_trace_enter
+
+--- a/arch/nds32/kernel/ex-scall.S
++++ b/arch/nds32/kernel/ex-scall.S
+...
++#define tbl $r8
+
+ /*
+  * $r7 will be writen as syscall nr
+- * by retrieving from $ITYPE 'SWID' bitfiled
+  */
+        .macro  get_scno
+        lwi     $r7, [$sp + R15_OFFSET]
+@@ -54,7 +49,6 @@ ENTRY(eh_syscall)
+        get_scno
+        gie_enable
+
+-ENTRY(eh_syscall_phase_2)
+        lwi     $p0, [tsk+#TSK_TI_FLAGS]
+
+        andi    $p1, $p0, #_TIF_WORK_SYSCALL_ENTRY
+@@ -71,7 +65,6 @@ jmp_systbl:
+        jr      $p1                             ! no return
+
+ _SCNO_EXCEED:
+-       movi    why, 0
+        ori     $r0, $r7, #0
+        ori    $r1, $sp, #0
+        b       bad_syscall
+@@ -81,8 +74,7 @@ _SCNO_EXCEED:
+  * context switches, and waiting for our parent to respond.
+  */
+ __sys_trace:
+-       move    $r1, $sp
+-       move    $r0, $r7                        ! trace entry [IP = 0]
++       move    $r0, $sp
+        bal     syscall_trace_enter
+        move    $r7, $r0
+        la      $lp, __sys_trace_return         ! return address
+
+
+If you think these modifications in acked files are not permitted,
+we will recover it.
+
+We verify all modifications by LTP 2017 related cases and glibc
+2.26 testsuite. We plan to add it in the next version patch and
+hope you can give us some comments as before.
+
+Thanks
+
+Vincent
+
+
+
+2018-01-24 19:13 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Wed, Jan 24, 2018 at 1:56 AM, Vincent Chen <deanbo422@gmail.com> wrote:
+>> 2018-01-18 18:30 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+>>> On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>>>> From: Greentime Hu <greentime@andestech.com>
+>>>>
+>>>> This patch adds support for signal handling.
+>>>>
+>>>> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+>>>> Signed-off-by: Greentime Hu <greentime@andestech.com>
+>>>
+>>> I never feel qualified enough to properly review signal handling code, so
+>>> no Ack from me for this code even though I don't see anything wrong with it.
+>>> Hopefully someone else can give an Ack after looking more closely.
+>>>
+>>
+>> Dear Arnd:
+>>
+>> We'd be glad to improve signal handling code to meet your requirement.
+>> Could you
+>> tell us which part we need to refine or which implementation is good
+>> for us to refer?
 >
-> Oops. Thanks for catching the issue. The following fix will resolve the error.
+> No, as I said, the problem is on my side, I just don't understand enough of it.
+> I would assume that the arm64 and risc-v implementations are the most
+> thoroughly reviewed, but haven't looked at those in enough detail either.
+> If your code does something that risc-v doesn't do, try to understand whether
+> there should be a difference or not.
 >
-> diff --git a/arch/x86/include/asm/mmu_context.h
-> b/arch/x86/include/asm/mmu_context.h
-> index 6d16d15..c1aeb19 100644
-> --- a/arch/x86/include/asm/mmu_context.h
-> +++ b/arch/x86/include/asm/mmu_context.h
-> @@ -238,11 +238,6 @@ static inline int vma_pkey(struct vm_area_struct
-> 		*vma)
->  
->         return (vma->vm_flags & vma_pkey_mask) >> VM_PKEY_SHIFT;
-> }
-> -#else
-> -static inline int vma_pkey(struct vm_area_struct *vma)
-> -{
-> -       return 0;
-> -}
->  #endif
-
-That's not working for me (i386_defconfig):
-
-  In file included from ../include/linux/pkeys.h:6:0,
-                   from ../arch/x86/kernel/fpu/xstate.c:9:
-  ../arch/x86/include/asm/mmu_context.h: In function ‘arch_vma_access_permitted’:
-  ../arch/x86/include/asm/mmu_context.h:276:28: error: implicit declaration of function ‘vma_pkey’ [-Werror=implicit-function-declaration]
-    return __pkru_allows_pkey(vma_pkey(vma), write);
-                              ^~~~~~~~
-  In file included from ../include/linux/pkeys.h:6:0,
-                   from ../fs/proc/task_mmu.c:21:
-  ../arch/x86/include/asm/mmu_context.h: In function ‘arch_vma_access_permitted’:
-  ../arch/x86/include/asm/mmu_context.h:276:28: error: implicit declaration of function ‘vma_pkey’ [-Werror=implicit-function-declaration]
-    return __pkru_allows_pkey(vma_pkey(vma), write);
-                              ^~~~~~~~
-  In file included from ../include/linux/pkeys.h:6:0,
-                   from ../mm/mmap.c:46:
-  ../arch/x86/include/asm/mmu_context.h: In function ‘arch_vma_access_permitted’:
-  ../arch/x86/include/asm/mmu_context.h:276:28: error: implicit declaration of function ‘vma_pkey’ [-Werror=implicit-function-declaration]
-    return __pkru_allows_pkey(vma_pkey(vma), write);
-                              ^~~~~~~~
-  In file included from ../include/linux/pkeys.h:6:0,
-                   from ../mm/mprotect.c:27:
-  ../arch/x86/include/asm/mmu_context.h: In function ‘arch_vma_access_permitted’:
-  ../arch/x86/include/asm/mmu_context.h:276:28: error: implicit declaration of function ‘vma_pkey’ [-Werror=implicit-function-declaration]
-    return __pkru_allows_pkey(vma_pkey(vma), write);
-                              ^~~~~~~~
-  In file included from ../include/linux/pkeys.h:6:0,
-                   from ../arch/x86/kernel/fpu/core.c:15:
-  ../arch/x86/include/asm/mmu_context.h: In function ‘arch_vma_access_permitted’:
-  ../arch/x86/include/asm/mmu_context.h:276:28: error: implicit declaration of function ‘vma_pkey’ [-Werror=implicit-function-declaration]
-    return __pkru_allows_pkey(vma_pkey(vma), write);
-                              ^~~~~~~~
-
-cheers
+>       Arnd
