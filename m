@@ -1,117 +1,98 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [RFC PATCH] membarrier-sync-core: Document architecture support
-Date: Tue,  6 Feb 2018 12:00:13 -0500
-Message-ID: <1517936413-19675-1-git-send-email-mathieu.desnoyers@efficios.com>
+From: Luis Henriques <lhenriques@suse.com>
+Subject: Re: [PATCH v4 07/10] x86: narrow out of bounds syscalls to sys_read
+ under speculation
+Date: Tue, 6 Feb 2018 19:29:25 +0000
+Message-ID: <20180206192925.qkmghwsbaysr4iv2@hermes.olymp>
+References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151632014097.21271.16980532033566583357.stgit@dwillia2-desk3.amr.corp.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:41077 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753346AbeBFRAf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Feb 2018 12:00:35 -0500
+Received: from mx2.suse.de ([195.135.220.15]:52225 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751554AbeBFT3Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Feb 2018 14:29:25 -0500
+Content-Disposition: inline
+In-Reply-To: <151632014097.21271.16980532033566583357.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Thomas Gleixner <tglx@linutronix.de>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Andrea Parri <parri.andrea@gmail.com>, Andrew Hunter <ahh@google.com>, Andy Lutomirski <luto@kernel.org>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, David Sehr <sehr@google.com>, Greg Hackmann <ghackmann@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Maged Michael <maged.michael@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, Russell
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@linux.intel.com
 
-Ensure we gather architecture requirements about each architecture supporting
-the "sync_core" membarrier command in a single file under Documentation/features.
+On Thu, Jan 18, 2018 at 04:02:21PM -0800, Dan Williams wrote:
+> The syscall table base is a user controlled function pointer in kernel
+> space. Like, 'get_user, use 'MASK_NOSPEC' to prevent any out of bounds
+> speculation. While retpoline prevents speculating into the user
+> controlled target it does not stop the pointer de-reference, the concern
+> is leaking memory relative to the syscall table base.
 
-[ This patch applies on top of tip sched/core. ]
+This patch seems to cause a regression.  An easy way to reproduce what
+I'm seeing is to run the samples/statx/test-statx.  Here's what I see
+when I have this patchset applied:
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
-Cc: Andrea Parri <parri.andrea@gmail.com>
-Cc: Andrew Hunter <ahh@google.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Avi Kivity <avi@scylladb.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Dave Watson <davejwatson@fb.com>
-Cc: David Sehr <sehr@google.com>
-Cc: Greg Hackmann <ghackmann@google.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Maged Michael <maged.michael@gmail.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
----
- .../sched/membarrier-sync-core/arch-support.txt    | 62 ++++++++++++++++++++++
- 1 file changed, 62 insertions(+)
- create mode 100644 Documentation/features/sched/membarrier-sync-core/arch-support.txt
+# ./test-statx /tmp
+statx(/tmp) = -1
+/tmp: Bad file descriptor
 
-diff --git a/Documentation/features/sched/membarrier-sync-core/arch-support.txt b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
-new file mode 100644
-index 0000000..2c815a7
---- /dev/null
-+++ b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
-@@ -0,0 +1,62 @@
-+#
-+# Feature name:          membarrier-sync-core
-+#         Kconfig:       ARCH_HAS_MEMBARRIER_SYNC_CORE
-+#         description:   arch supports core serializing membarrier
-+#
-+# Architecture requirements
-+#
-+# * arm64
-+#
-+# Rely on eret context synchronization when returning from IPI handler, and
-+# when returning to user-space.
-+#
-+# * x86
-+#
-+# x86-32 uses IRET as return from interrupt, which takes care of the IPI.
-+# However, it uses both IRET and SYSEXIT to go back to user-space. The IRET
-+# instruction is core serializing, but not SYSEXIT.
-+#
-+# x86-64 uses IRET as return from interrupt, which takes care of the IPI.
-+# However, it can return to user-space through either SYSRETL (compat code),
-+# SYSRETQ, or IRET.
-+#
-+# Given that neither SYSRET{L,Q}, nor SYSEXIT, are core serializing, we rely
-+# instead on write_cr3() performed by switch_mm() to provide core serialization
-+# after changing the current mm, and deal with the special case of kthread ->
-+# uthread (temporarily keeping current mm into active_mm) by issuing a
-+# sync_core_before_usermode() in that specific case.
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: |  ok  |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |       h8300: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
--- 
-1.9.1
+Reverting this single patch seems to fix it.
+
+Cheers,
+--
+Luís
+
+> 
+> Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: x86@kernel.org
+> Cc: Andy Lutomirski <luto@kernel.org>
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+> ---
+>  arch/x86/entry/entry_64.S   |    2 ++
+>  arch/x86/include/asm/smap.h |    9 ++++++++-
+>  2 files changed, 10 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+> index 4f8e1d35a97c..2320017077d4 100644
+> --- a/arch/x86/entry/entry_64.S
+> +++ b/arch/x86/entry/entry_64.S
+> @@ -35,6 +35,7 @@
+>  #include <asm/asm.h>
+>  #include <asm/smap.h>
+>  #include <asm/pgtable_types.h>
+> +#include <asm/smap.h>
+>  #include <asm/export.h>
+>  #include <asm/frame.h>
+>  #include <asm/nospec-branch.h>
+> @@ -264,6 +265,7 @@ entry_SYSCALL_64_fastpath:
+>  	cmpl	$__NR_syscall_max, %eax
+>  #endif
+>  	ja	1f				/* return -ENOSYS (already in pt_regs->ax) */
+> +	MASK_NOSPEC %r11 %rax			/* sanitize syscall_nr wrt speculation */
+>  	movq	%r10, %rcx
+>  
+>  	/*
+> diff --git a/arch/x86/include/asm/smap.h b/arch/x86/include/asm/smap.h
+> index 2b4ad4c6a226..3b5b2cf58dc6 100644
+> --- a/arch/x86/include/asm/smap.h
+> +++ b/arch/x86/include/asm/smap.h
+> @@ -35,7 +35,14 @@
+>   * this directs the cpu to speculate with a NULL ptr rather than
+>   * something targeting kernel memory.
+>   *
+> - * assumes CF is set from a previous 'cmp TASK_addr_limit, %ptr'
+> + * In the syscall entry path it is possible to speculate past the
+> + * validation of the system call number. Use MASK_NOSPEC to sanitize the
+> + * syscall array index to zero (sys_read) rather than an arbitrary
+> + * target.
+> + *
+> + * assumes CF is set from a previous 'cmp' i.e.:
+> + *     cmp TASK_addr_limit, %ptr
+> + *     cmp __NR_syscall_max, %idx
+>   */
+>  .macro MASK_NOSPEC mask val
+>  	sbb \mask, \mask
+> 
+> 
