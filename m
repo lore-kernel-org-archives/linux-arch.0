@@ -1,51 +1,63 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v6 19/36] nds32: VDSO support
-Date: Tue, 6 Feb 2018 09:48:17 +0100
-Message-ID: <CAK8P3a2R02bNZF-BYW6mbC9jCT+zx-HUtw1y1HS5EifOuOting@mail.gmail.com>
-References: <cover.1515766253.git.green.hu@gmail.com> <4a602db0a58cc858515c3c669d5ac34c567b061c.1515766253.git.green.hu@gmail.com>
- <CAK8P3a0GQDrj+7kc4YB1_ZC1vCWmMtSiYeKsNir_27FvY50Kmg@mail.gmail.com> <CAJsyPhwHmMrXmN2-NW3ZyvRvTWR0vio_bQO+GDBf30DVp=5LTw@mail.gmail.com>
+From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Subject: [PATCH/RFC 1/6] dma-mapping: Convert NO_DMA get_dma_ops() into a real
+	dummy
+Date: Tue,  6 Feb 2018 11:14:47 +0100
+Message-ID: <1517912092-15470-2-git-send-email-geert@linux-m68k.org>
+References: <1517912092-15470-1-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAJsyPhwHmMrXmN2-NW3ZyvRvTWR0vio_bQO+GDBf30DVp=5LTw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vincent Chen <deanbo422@gmail.com>
-Cc: Greentime Hu <green.hu@gmail.com>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <1517912092-15470-1-git-send-email-geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Mark Brown <broonie-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Richard Weinberger <richard-/L3Ra7n9ekc@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Felipe Balbi <balbi-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "James E . J . Bottomley" <jejb-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "Martin K . Petersen" <martin.petersen-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 6, 2018 at 8:41 AM, Vincent Chen <deanbo422@gmail.com> wrote:
-> 2018-01-18 18:28 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->> On Mon, Jan 15, 2018 at 6:53 AM, Greentime Hu <green.hu@gmail.com> wrote:
->>> From: Greentime Hu <greentime@andestech.com>
->>>
->>> This patch adds VDSO support. The VDSO code is currently used for
->>> sys_rt_sigreturn() and optimised gettimeofday() (using the SoC timer counter).
->>>
->>> Signed-off-by: Vincent Chen <vincentc@andestech.com>
->>> Signed-off-by: Greentime Hu <greentime@andestech.com>
->>
->> Acked-by: Arnd Bergmann <arnd@arndb.de>
->
-> Dear Arnd Bergmann:
->
-> We find a small bug here which make LTP 20170929 clock_getres01
-> fail. The bug is in __vdso_clock_getres() function. When argument res
-> is NULL, -EFAULT error code is returned now. But, the returned
-> value is 0 for SyS_clock_getres under the same conditions.
-> Therefore, testcase thinks it is a bug.
->
-> I will modify the code as below and add it in the next version patch
-> if you think it is OK.
->
-> @@ -209,7 +209,7 @@ static notrace int clock_getres_fallback( ...
->  {
->          if (res == NULL)
-> -                return -EFAULT;
-> +                return 0;
->
+If NO_DMA=y, get_dma_ops() returns a reference to the
+non-existing symbol bad_dma_ops, thus causing a link failure if it is
+ever used.
 
-Ok. I don't know why that is the expected behavior (clock_getres
-with a NULL argument makes little sense), but I can see that it
-matches the regular syscall implementation.
+Make get_dma_ops() return NULL instead, to avoid the link failure.
+This allows to improve compile-testing, and limits the need to keep on
+sprinkling dependencies on HAS_DMA all over the place.
 
-      Arnd
+Signed-off-by: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+---
+ include/linux/dma-mapping.h | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 34fe8463d10ea3be..d78d7541f784875b 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -212,14 +212,14 @@ static inline void set_dma_ops(struct device *dev,
+ }
+ #else
+ /*
+- * Define the dma api to allow compilation but not linking of
+- * dma dependent code.  Code that depends on the dma-mapping
+- * API needs to set 'depends on HAS_DMA' in its Kconfig
++ * Define the dma api to allow compilation of dma dependent code.
++ * Code that depends on the dma-mapping API needs to set 'depends on HAS_DMA'
++ * in its Kconfig, unless it already depends on <something> || COMPILE_TEST,
++ * where <something> guarantuees the availability of the dma-mapping API.
+  */
+-extern const struct dma_map_ops bad_dma_ops;
+ static inline const struct dma_map_ops *get_dma_ops(struct device *dev)
+ {
+-	return &bad_dma_ops;
++	return NULL;
+ }
+ #endif
+ 
+-- 
+2.7.4
