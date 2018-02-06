@@ -1,16 +1,15 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:36312 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:36726 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752910AbeBFMsB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Feb 2018 07:48:01 -0500
-Subject: Re: [PATCH/RFC 4/6] mm: Add NO_DMA dummies for DMA pool API
+        id S1752246AbeBFNFs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Feb 2018 08:05:48 -0500
+Subject: Re: [PATCH/RFC 0/6] Allow compile-testing NO_DMA
 References: <1517912092-15470-1-git-send-email-geert@linux-m68k.org>
- <1517912092-15470-5-git-send-email-geert@linux-m68k.org>
 From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <61f0970a-c0aa-9b6f-74c7-d63be1e477ac@arm.com>
-Date: Tue, 6 Feb 2018 12:47:56 +0000
+Message-ID: <c68d8b8b-dc46-2066-0341-558f57ad113f@arm.com>
+Date: Tue, 6 Feb 2018 13:05:44 +0000
 MIME-Version: 1.0
-In-Reply-To: <1517912092-15470-5-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1517912092-15470-1-git-send-email-geert@linux-m68k.org>
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Language: en-GB
 Content-Transfer-Encoding: 7bit
@@ -18,96 +17,129 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Mark Brown <broonie@kernel.org>, Richard Weinberger <richard@nod.at>
 Cc: Felipe Balbi <balbi@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "James E . J . Bottomley" <jejb@linux.vnet.ibm.com>, "Martin K . Petersen" <martin.petersen@oracle.com>, iommu@lists.linux-foundation.org, linux-usb@vger.kernel.org, linux-scsi@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180206124756.AmvGiUzorVge5dY8meMrcIIRq_j-QJ53h4jw529x-CQ@z>
-
-Hi Geert,
+Message-ID: <20180206130544.0x5yedxSxzd5TPsy2OZfEYcd7QlqWtuIMCe6GwlfuYE@z>
 
 On 06/02/18 10:14, Geert Uytterhoeven wrote:
-> Add dummies for dma{,m}_pool_{create,destroy,alloc,free}(), to allow
-> compile-testing if NO_DMA=y.
+> 	Hi all,
 > 
-> This prevents the following from showing up later:
+> If NO_DMA=y, get_dma_ops() returns a reference to the non-existing
+> symbol bad_dma_ops, thus causing a link failure if it is ever used.
 > 
->      ERROR: "dma_pool_destroy" [drivers/usb/mtu3/mtu3.ko] undefined!
->      ERROR: "dma_pool_free" [drivers/usb/mtu3/mtu3.ko] undefined!
->      ERROR: "dma_pool_alloc" [drivers/usb/mtu3/mtu3.ko] undefined!
->      ERROR: "dma_pool_create" [drivers/usb/mtu3/mtu3.ko] undefined!
->      ERROR: "dma_pool_destroy" [drivers/scsi/hisi_sas/hisi_sas_main.ko] undefined!
->      ERROR: "dma_pool_free" [drivers/scsi/hisi_sas/hisi_sas_main.ko] undefined!
->      ERROR: "dma_pool_alloc" [drivers/scsi/hisi_sas/hisi_sas_main.ko] undefined!
->      ERROR: "dma_pool_create" [drivers/scsi/hisi_sas/hisi_sas_main.ko] undefined!
->      ERROR: "dma_pool_alloc" [drivers/mailbox/bcm-pdc-mailbox.ko] undefined!
->      ERROR: "dma_pool_free" [drivers/mailbox/bcm-pdc-mailbox.ko] undefined!
->      ERROR: "dma_pool_create" [drivers/mailbox/bcm-pdc-mailbox.ko] undefined!
->      ERROR: "dma_pool_destroy" [drivers/mailbox/bcm-pdc-mailbox.ko] undefined!
+> The intention of this is twofold:
+>    1. To catch users of the DMA API on systems that do no support the DMA
+>       mapping API,
+>    2. To avoid building drivers that cannot work on such systems anyway.
 > 
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> ---
->   include/linux/dmapool.h | 21 +++++++++++++++++++--
->   1 file changed, 19 insertions(+), 2 deletions(-)
+> However, the disadvantage is that we have to keep on adding dependencies
+> on HAS_DMA all over the place.
 > 
-> diff --git a/include/linux/dmapool.h b/include/linux/dmapool.h
-> index 53ba737505df31c7..adeb5e56c3ad73a8 100644
-> --- a/include/linux/dmapool.h
-> +++ b/include/linux/dmapool.h
-> @@ -16,6 +16,7 @@
->   
->   struct device;
->   
-> +#ifdef CONFIG_HAS_DMA
->   struct dma_pool *dma_pool_create(const char *name, struct device *dev,
->   			size_t size, size_t align, size_t allocation);
->   
-> @@ -23,6 +24,17 @@ void dma_pool_destroy(struct dma_pool *pool);
->   
->   void *dma_pool_alloc(struct dma_pool *pool, gfp_t mem_flags,
->   		     dma_addr_t *handle);
-> +void dma_pool_free(struct dma_pool *pool, void *vaddr, dma_addr_t addr);
-> +#else /* !CONFIG_HAS_DMA */
-> +static inline struct dma_pool *dma_pool_create(const char *name,
-> +	struct device *dev, size_t size, size_t align, size_t allocation)
-> +{ return NULL; }
-> +static inline void dma_pool_destroy(struct dma_pool *pool) { }
-> +static inline void *dma_pool_alloc(struct dma_pool *pool, gfp_t mem_flags,
-> +				   dma_addr_t *handle) { return NULL; }
-> +static inline void dma_pool_free(struct dma_pool *pool, void *vaddr,
-> +				 dma_addr_t addr) { }
-> +#endif /* !CONFIG_HAS_DMA */
->   
->   static inline void *dma_pool_zalloc(struct dma_pool *pool, gfp_t mem_flags,
->   				    dma_addr_t *handle)
-> @@ -30,14 +42,19 @@ static inline void *dma_pool_zalloc(struct dma_pool *pool, gfp_t mem_flags,
->   	return dma_pool_alloc(pool, mem_flags | __GFP_ZERO, handle);
->   }
->   
-> -void dma_pool_free(struct dma_pool *pool, void *vaddr, dma_addr_t addr);
-> -
->   /*
->    * Managed DMA pool
->    */
-> +#ifdef CONFIG_HAS_DMA
->   struct dma_pool *dmam_pool_create(const char *name, struct device *dev,
->   				  size_t size, size_t align, size_t allocation);
->   void dmam_pool_destroy(struct dma_pool *pool);
-> +#else /* !CONFIG_HAS_DMA */
-> +static inline struct dma_pool *dmam_pool_create(const char *name,
-> +	struct device *dev, size_t size, size_t align, size_t allocation)
-> +{ return NULL; }
-> +static inline void dmam_pool_destroy(struct dma_pool *pool) { }
-> +#endif /* !CONFIG_HAS_DMA */
+> Thanks to the COMPILE_TEST symbol, lots of drivers now depend on one or
+> more platform dependencies (that imply HAS_DMA) || COMPILE_TEST, thus
+> already covering intention #2.  Having to add an explicit dependency on
+> HAS_DMA here is cumbersome, and hinders compile-testing.
+> 
+> Hence I think the time is ripe to reconsider the link failure.
+> This patch series:
+>    - Changes get_dma_ops() to return NULL instead,
+>    - Adds a few more dummies to enable compile-testing,
+>    - Removes dependencies on HAS_DMA for symbols that already have
+>      platform dependencies implying HAS_DMA.
+> 
+> Note that adding more platform dependencies and/or dependencies on
+> COMPILE_TEST is encouraged!
+> 
+> This may make life harder for UML, though, as UML usually satisfies all
+> other platform dependencies for HAS_DMA.  Similarly, HAS_IOMEM is even
+> more complicated.  Can/do we want to do something similar for
+> HAS_IOMEM?
 
-Nit: It might be tidier to add *all* the stubs down here so that there 
-only need be a single #ifdef, then move the dma_pool_zalloc definition 
-outside at the end (where we might eventually get rid of it anyway).
+It looks like we have only one real arch (score) without IOMEM, and two 
+(s390 and tile) where it is possible to configure out, so it does seem 
+like a reasonable feature to assume. Maybe we could have something like 
+asm-generic/no-io.h to provide an "unimplemented" version of those 
+interfaces.
 
-Other than that, though, I think I agree with the series in general - 
-more COMPILE_TEST is always good from the point of view of weeding out 
-drivers using architecture-specific DMA API internals which aren't part 
-of the proper generic interface.
+Anyway, for this series:
 
+Acked-by: Robin Murphy <robin.murphy@arm.com>
+
+Thanks,
 Robin.
 
->   
->   #endif
->   
+> This series is against my current local tree, which has a few more
+> "depends on HAS_DMA" than upstream.  Of course I will rebase, and split
+> the last patch per subsystem, if this RFC is welcomed positively.
+> 
+> Compile-tested with allmodconfig and allyesconfig for m68k/sun3.
+> 
+> Thanks for your comments!
+> 
+> Geert Uytterhoeven (6):
+>    [RFC] dma-mapping: Convert NO_DMA get_dma_ops() into a real dummy
+>    [RFC] dma-coherent: Add NO_DMA dummies for managed DMA API
+>    [RFC] usb: gadget: Add NO_DMA dummies for DMA mapping API
+>    [RFC] mm: Add NO_DMA dummies for DMA pool API
+>    [RFC] scsi: Add NO_DMA dummies for SCSI DMA mapping API
+>    [RFC] Treewide: Remove depends on HAS_DMA in case of platform
+>      dependency
+> 
+>   drivers/ata/Kconfig                             |  2 --
+>   drivers/crypto/Kconfig                          | 14 +++------
+>   drivers/firewire/Kconfig                        |  1 -
+>   drivers/fpga/Kconfig                            |  1 -
+>   drivers/gpu/ipu-v3/Kconfig                      |  1 -
+>   drivers/i2c/busses/Kconfig                      |  3 --
+>   drivers/iio/adc/Kconfig                         |  3 --
+>   drivers/iommu/Kconfig                           |  5 ++--
+>   drivers/lightnvm/Kconfig                        |  2 +-
+>   drivers/mailbox/Kconfig                         |  2 --
+>   drivers/media/pci/dt3155/Kconfig                |  1 -
+>   drivers/media/pci/solo6x10/Kconfig              |  1 -
+>   drivers/media/pci/sta2x11/Kconfig               |  1 -
+>   drivers/media/pci/tw5864/Kconfig                |  1 -
+>   drivers/media/pci/tw686x/Kconfig                |  1 -
+>   drivers/media/platform/Kconfig                  | 40 ++++++++-----------------
+>   drivers/media/platform/am437x/Kconfig           |  2 +-
+>   drivers/media/platform/atmel/Kconfig            |  4 +--
+>   drivers/media/platform/blackfin/Kconfig         |  1 -
+>   drivers/media/platform/davinci/Kconfig          |  6 ----
+>   drivers/media/platform/marvell-ccic/Kconfig     |  3 +-
+>   drivers/media/platform/rcar-vin/Kconfig         |  2 +-
+>   drivers/media/platform/soc_camera/Kconfig       |  3 +-
+>   drivers/media/platform/sti/c8sectpfe/Kconfig    |  2 +-
+>   drivers/mmc/host/Kconfig                        | 10 ++-----
+>   drivers/mtd/nand/Kconfig                        |  8 ++---
+>   drivers/mtd/spi-nor/Kconfig                     |  2 +-
+>   drivers/net/ethernet/amd/Kconfig                |  2 +-
+>   drivers/net/ethernet/apm/xgene-v2/Kconfig       |  1 -
+>   drivers/net/ethernet/apm/xgene/Kconfig          |  1 -
+>   drivers/net/ethernet/arc/Kconfig                |  6 ++--
+>   drivers/net/ethernet/broadcom/Kconfig           |  2 --
+>   drivers/net/ethernet/calxeda/Kconfig            |  2 +-
+>   drivers/net/ethernet/hisilicon/Kconfig          |  2 +-
+>   drivers/net/ethernet/marvell/Kconfig            |  8 ++---
+>   drivers/net/ethernet/mellanox/mlxsw/Kconfig     |  2 +-
+>   drivers/net/ethernet/renesas/Kconfig            |  2 --
+>   drivers/net/ethernet/socionext/Kconfig          |  4 +--
+>   drivers/net/wireless/broadcom/brcm80211/Kconfig |  1 -
+>   drivers/net/wireless/quantenna/qtnfmac/Kconfig  |  2 +-
+>   drivers/remoteproc/Kconfig                      |  1 -
+>   drivers/scsi/hisi_sas/Kconfig                   |  2 +-
+>   drivers/spi/Kconfig                             | 12 ++------
+>   drivers/staging/media/davinci_vpfe/Kconfig      |  1 -
+>   drivers/staging/media/omap4iss/Kconfig          |  1 -
+>   drivers/staging/vc04_services/Kconfig           |  1 -
+>   drivers/tty/serial/Kconfig                      |  4 ---
+>   drivers/usb/gadget/udc/Kconfig                  |  4 +--
+>   drivers/usb/mtu3/Kconfig                        |  2 +-
+>   drivers/video/fbdev/Kconfig                     |  3 +-
+>   include/linux/dma-mapping.h                     | 19 ++++++++----
+>   include/linux/dmapool.h                         | 21 +++++++++++--
+>   include/linux/usb/gadget.h                      | 12 ++++++++
+>   include/scsi/scsi_cmnd.h                        |  5 ++++
+>   sound/soc/bcm/Kconfig                           |  3 +-
+>   sound/soc/kirkwood/Kconfig                      |  1 -
+>   sound/soc/pxa/Kconfig                           |  1 -
+>   sound/soc/qcom/Kconfig                          |  6 ++--
+>   58 files changed, 108 insertions(+), 148 deletions(-)
 > 
