@@ -1,42 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f179.google.com ([209.85.223.179]:41307 "EHLO
-        mail-io0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753798AbeBFWxA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Feb 2018 17:53:00 -0500
-MIME-Version: 1.0
-In-Reply-To: <CAPcyv4hELJQMEBQ_gi+_bh4D=7h47ypzK++XTdQjhDGnOs2uRg@mail.gmail.com>
-References: <151632009605.21271.11304291057104672116.stgit@dwillia2-desk3.amr.corp.intel.com>
- <151632014097.21271.16980532033566583357.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20180206192925.qkmghwsbaysr4iv2@hermes.olymp> <CAPcyv4ihN6fy5-vBtfA0PuwXvCAj8-rMhtQmevh5sdYxbH3Yfw@mail.gmail.com>
- <CA+55aFxYHX3=HN4P5M0ziSJ08WfjccyhE2T7epS-EC6ZJ6LyjQ@mail.gmail.com>
- <CAPcyv4i5oORdk-Fzypxw_+gCLUa8f=w1e_n0=47P7uHR-jT6GQ@mail.gmail.com>
- <CA+55aFzZVL=WVuhJAQDazj59jwnmhUrRRwNgzXS+c-q5yva0iw@mail.gmail.com>
- <CALCETrXV3rHb7Z8iaoieAJ5hRY0+UT7eTknxe4-FiOoke9XoGg@mail.gmail.com>
- <CA+55aFy2-OMMCatHTXL7wfP7H=4CEKv4Y_pRvfeEOCwxriDP4Q@mail.gmail.com> <CAPcyv4hELJQMEBQ_gi+_bh4D=7h47ypzK++XTdQjhDGnOs2uRg@mail.gmail.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 6 Feb 2018 14:52:59 -0800
-Message-ID: <CA+55aFxU_vo+JFBZcvE5EOs2D_QHNXBf4G=-KT=3LeP2zjECHw@mail.gmail.com>
-Subject: Re: [PATCH v4 07/10] x86: narrow out of bounds syscalls to sys_read
- under speculation
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:35279 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752465AbeBGELr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Feb 2018 23:11:47 -0500
+From: Jia He <hejianet@gmail.com>
+Subject: [PATCH] ACPI/IORT: Remove linker section for IORT entries again
+Date: Tue,  6 Feb 2018 20:11:34 -0800
+Message-ID: <1517976694-2004-1-git-send-email-hejianet@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Luis Henriques <lhenriques@suse.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Kernel Hardening <kernel-hardening@lists.openwall.com>, Greg KH <gregkh@linuxfoundation.org>, X86 ML <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Alan Cox <alan@linux.intel.com>
-Message-ID: <20180206225259.3Ua6_Gphe7ZijfyoP0YgkLITxetylsMfjtQ5dK-iOxc@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jia He <hejianet@gmail.com>
+Message-ID: <20180207041134.KoP7U_UtXiNKSIESzXt91DeWBN9gT2Uqin5663tReWU@z>
 
-On Tue, Feb 6, 2018 at 1:37 PM, Dan Williams <dan.j.williams@intel.com> wrote:
->
-> At that point we're basically just back to the array_ptr() version
-> that returned a sanitized pointer to an array element.
+In commit 316ca8804ea8 ("ACPI/IORT: Remove linker section for IORT entries
+probing"), iort entries was removed in vmlinux.lds.h. But in
+commit 2fcc112af37f ("clocksource/drivers: Rename clksrc table to timer"),
+this line was back incorrectly.
 
-.. that one does an extra unnecessary 'andq' instead of the duplicated
-cmp.  But at least it avoids comparing that 32-bit integer twice, so
-it's probably slightly smaller.
+It does no harm except for adding some useless symbols, so fix it.
 
-(And your code generation is without the "r" -> "ir" fix for the size argument)
+Signed-off-by: Jia He <hejianet@gmail.com>
+---
+ include/asm-generic/vmlinux.lds.h | 1 -
+ 1 file changed, 1 deletion(-)
 
-Probably doesn't matter. But a "asm goto" would give you at least
-potentially optimal code.
-
-            Linus
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 1ab0e52..58b1dab 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -589,7 +589,6 @@
+ 	IRQCHIP_OF_MATCH_TABLE()					\
+ 	ACPI_PROBE_TABLE(irqchip)					\
+ 	ACPI_PROBE_TABLE(timer)						\
+-	ACPI_PROBE_TABLE(iort)						\
+ 	EARLYCON_TABLE()
+ 
+ #define INIT_TEXT							\
+-- 
+2.7.4
