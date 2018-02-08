@@ -1,73 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35394 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751014AbeBHN7C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Feb 2018 08:59:02 -0500
-Date: Thu, 8 Feb 2018 13:58:56 +0000
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH] ACPI/IORT: Remove linker section for IORT entries again
-Message-ID: <20180208135856.GA4360@e107981-ln.cambridge.arm.com>
-References: <1517976694-2004-1-git-send-email-hejianet@gmail.com>
- <20180207114104.GA22549@e107981-ln.cambridge.arm.com>
- <c2f09386-90c6-809c-127b-87bd3d80c7ca@gmail.com>
+Received: from merlin.infradead.org ([205.233.59.134]:49400 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752277AbeBHUCn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Feb 2018 15:02:43 -0500
+Date: Thu, 8 Feb 2018 21:02:19 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [GIT PULL tools] Linux kernel memory model
+Message-ID: <20180208200219.GE25181@hirez.programming.kicks-ass.net>
+References: <20180125093440.GA875@linux.vnet.ibm.com>
+ <20180208184106.GA17043@e110439-lin>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <c2f09386-90c6-809c-127b-87bd3d80c7ca@gmail.com>
+In-Reply-To: <20180208184106.GA17043@e110439-lin>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jia He <hejianet@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Daniel Lezcano <daniel.lezcano@linaro.org>
-Message-ID: <20180208135856.gv0PlHQYrRXWZtWKHEodugmWx2CKA8kCubQN_WUIqw4@z>
+To: Patrick Bellasi <patrick.bellasi@arm.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, boqun.feng@gmail.com, will.deacon@arm.com, npiggin@gmail.com, dhowells@redhat.com, elena.reshetova@intel.com, mhocko@suse.com, akiyks@gmail.com
+Message-ID: <20180208200219.zHysMn_jM8j25nHV2QrGsAinZLeDA96I8UnPnr4W9yE@z>
 
-On Thu, Feb 08, 2018 at 10:37:54AM +0800, Jia He wrote:
+On Thu, Feb 08, 2018 at 06:41:06PM +0000, Patrick Bellasi wrote:
+> Hi Paul,
+> thanks to you and all the involved guys for this useful tool.
 > 
+> I give it a try today and found that by installing herd7 by just
+> following the instruction in herdtools7/INSTALL.md, and precisely
+> installing it via:
 > 
-> On 2/7/2018 7:41 PM, Lorenzo Pieralisi Wrote:
-> >On Tue, Feb 06, 2018 at 08:11:34PM -0800, Jia He wrote:
-> >>In commit 316ca8804ea8 ("ACPI/IORT: Remove linker section for IORT entries
-> >>probing"), iort entries was removed in vmlinux.lds.h. But in
-> >>commit 2fcc112af37f ("clocksource/drivers: Rename clksrc table to timer"),
-> >>this line was back incorrectly.
-> >>
-> >>It does no harm except for adding some useless symbols, so fix it.
-> >>
-> >>Signed-off-by: Jia He <hejianet@gmail.com>
-> forget to add another Signed-off-by line(because of my company's opensource
-> rules)
+>    opam install herdtools7
 > 
-> Signed-off-by: Jia He <jia.he@hxt-semitech.com>
+> it seems to give you a tool which fails to run the basic example in
+> your README with this error:
 > 
-> >>---
-> >>  include/asm-generic/vmlinux.lds.h | 1 -
-> >>  1 file changed, 1 deletion(-)
-> >Acked-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-> >
-> >Who is picking this up ?
-> Sorry, do you mean who is picking up acpi/iort subsystem?
+>    File "./linux-kernel.def", line 44, characters 29-30: unexpected '-' (in macros)
+> 
+> As suggested by Will, by building instead herd7 HEAD (commit 44d69c2)
+> everything works fine.
+> 
+> Maybe it's a know issue, in case just ignore me. :)
+> 
+> Otherwise, maybe it can be worth to add to the README a note on which
+> minimum version of the herd7 tool is required.
+> 
+>  opma   version (not working)    : 7.47, Rev: exported
+>  master version (working for me) : 7.47+7(dev), Rev: 44d69c2b1b5ca0f97bd138899d31532ee5e4e084
 
-No, I meant who (as-in me or Daniel) will merge this patch.
+Urgh. So that's why it wouldn't work.
 
-I will take it.
-
-Lorenzo
-
-> I can't answer this question. I find this minor bug while doing the code
-> review.
-> 
-> Cheers,
-> Jia
-> >>diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> >>index 1ab0e52..58b1dab 100644
-> >>--- a/include/asm-generic/vmlinux.lds.h
-> >>+++ b/include/asm-generic/vmlinux.lds.h
-> >>@@ -589,7 +589,6 @@
-> >>  	IRQCHIP_OF_MATCH_TABLE()					\
-> >>  	ACPI_PROBE_TABLE(irqchip)					\
-> >>  	ACPI_PROBE_TABLE(timer)						\
-> >>-	ACPI_PROBE_TABLE(iort)						\
-> >>  	EARLYCON_TABLE()
-> >>  #define INIT_TEXT							\
-> >>-- 
-> >>2.7.4
-> >>
+I remember Paul saying you needed the latest version, which is why I
+rebuild from opam, but building top of git is a bit much.
