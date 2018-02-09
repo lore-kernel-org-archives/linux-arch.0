@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:50070 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:50040 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753109AbeBINmy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Feb 2018 08:42:54 -0500
+        with ESMTP id S1753080AbeBINmv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Feb 2018 08:42:51 -0500
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 58/92] x86: Implement array_index_mask_nospec
-Date: Fri,  9 Feb 2018 14:39:27 +0100
-Message-ID: <20180209133935.416247744@linuxfoundation.org>
+Subject: [PATCH 4.9 57/92] array_index_nospec: Sanitize speculative array de-references
+Date: Fri,  9 Feb 2018 14:39:26 +0100
+Message-ID: <20180209133935.337867597@linuxfoundation.org>
 In-Reply-To: <20180209133931.211869118@linuxfoundation.org>
 References: <20180209133931.211869118@linuxfoundation.org>
 MIME-Version: 1.0
@@ -14,8 +14,8 @@ Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>
-Message-ID: <20180209133927.fjVXBJI9HmWpnB-5lGWj2Z_lLEm4LMc-GRCjX1vfeo4@z>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Cyril Novikov <cnovikov@lynx.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, torvalds@linux-foundation.org, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>
+Message-ID: <20180209133926.kykSPSzNy3lf-F38YKX9x3GPb9vaYSAQEx-hMslgpTo@z>
 
 4.9-stable review patch.  If anyone has any objections, please let me know.
 
@@ -24,61 +24,112 @@ Message-ID: <20180209133927.fjVXBJI9HmWpnB-5lGWj2Z_lLEm4LMc-GRCjX1vfeo4@z>
 From: Dan Williams <dan.j.williams@intel.com>
 
 
-(cherry picked from commit babdde2698d482b6c0de1eab4f697cf5856c5859)
+(cherry picked from commit f3804203306e098dae9ca51540fcd5eb700d7f40)
 
-array_index_nospec() uses a mask to sanitize user controllable array
-indexes, i.e. generate a 0 mask if 'index' >= 'size', and a ~0 mask
-otherwise. While the default array_index_mask_nospec() handles the
-carry-bit from the (index - size) result in software.
+array_index_nospec() is proposed as a generic mechanism to mitigate
+against Spectre-variant-1 attacks, i.e. an attack that bypasses boundary
+checks via speculative execution. The array_index_nospec()
+implementation is expected to be safe for current generation CPUs across
+multiple architectures (ARM, x86).
 
-The x86 array_index_mask_nospec() does the same, but the carry-bit is
-handled in the processor CF flag without conditional instructions in the
-control flow.
+Based on an original implementation by Linus Torvalds, tweaked to remove
+speculative flows by Alexei Starovoitov, and tweaked again by Linus to
+introduce an x86 assembly implementation for the mask generation.
 
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
+Co-developed-by: Alexei Starovoitov <ast@kernel.org>
+Suggested-by: Cyril Novikov <cnovikov@lynx.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
 Cc: kernel-hardening@lists.openwall.com
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Russell King <linux@armlinux.org.uk>
 Cc: gregkh@linuxfoundation.org
+Cc: torvalds@linux-foundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727414808.33451.1873237130672785331.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727414229.33451.18411580953862676575.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 ---
- arch/x86/include/asm/barrier.h |   24 ++++++++++++++++++++++++
- 1 file changed, 24 insertions(+)
+ include/linux/nospec.h |   72 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 72 insertions(+)
+ create mode 100644 include/linux/nospec.h
 
---- a/arch/x86/include/asm/barrier.h
-+++ b/arch/x86/include/asm/barrier.h
-@@ -23,6 +23,30 @@
- #define wmb()	asm volatile("sfence" ::: "memory")
- #endif
- 
+--- /dev/null
++++ b/include/linux/nospec.h
+@@ -0,0 +1,72 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright(c) 2018 Linus Torvalds. All rights reserved.
++// Copyright(c) 2018 Alexei Starovoitov. All rights reserved.
++// Copyright(c) 2018 Intel Corporation. All rights reserved.
++
++#ifndef _LINUX_NOSPEC_H
++#define _LINUX_NOSPEC_H
++
 +/**
-+ * array_index_mask_nospec() - generate a mask that is ~0UL when the
-+ * 	bounds check succeeds and 0 otherwise
++ * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
 + * @index: array element index
 + * @size: number of elements in array
 + *
-+ * Returns:
-+ *     0 - (index < size)
++ * When @index is out of bounds (@index >= @size), the sign bit will be
++ * set.  Extend the sign bit to all bits and invert, giving a result of
++ * zero for an out of bounds index, or ~0 if within bounds [0, @size).
 + */
++#ifndef array_index_mask_nospec
 +static inline unsigned long array_index_mask_nospec(unsigned long index,
-+		unsigned long size)
++						    unsigned long size)
 +{
-+	unsigned long mask;
++	/*
++	 * Warn developers about inappropriate array_index_nospec() usage.
++	 *
++	 * Even if the CPU speculates past the WARN_ONCE branch, the
++	 * sign bit of @index is taken into account when generating the
++	 * mask.
++	 *
++	 * This warning is compiled out when the compiler can infer that
++	 * @index and @size are less than LONG_MAX.
++	 */
++	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,
++			"array_index_nospec() limited to range of [0, LONG_MAX]\n"))
++		return 0;
 +
-+	asm ("cmp %1,%2; sbb %0,%0;"
-+			:"=r" (mask)
-+			:"r"(size),"r" (index)
-+			:"cc");
-+	return mask;
++	/*
++	 * Always calculate and emit the mask even if the compiler
++	 * thinks the mask is not needed. The compiler does not take
++	 * into account the value of @index under speculation.
++	 */
++	OPTIMIZER_HIDE_VAR(index);
++	return ~(long)(index | (size - 1UL - index)) >> (BITS_PER_LONG - 1);
 +}
++#endif
 +
-+/* Override the default implementation from linux/nospec.h. */
-+#define array_index_mask_nospec array_index_mask_nospec
-+
- #ifdef CONFIG_X86_PPRO_FENCE
- #define dma_rmb()	rmb()
- #else
++/*
++ * array_index_nospec - sanitize an array index after a bounds check
++ *
++ * For a code sequence like:
++ *
++ *     if (index < size) {
++ *         index = array_index_nospec(index, size);
++ *         val = array[index];
++ *     }
++ *
++ * ...if the CPU speculates past the bounds check then
++ * array_index_nospec() will clamp the index within the range of [0,
++ * size).
++ */
++#define array_index_nospec(index, size)					\
++({									\
++	typeof(index) _i = (index);					\
++	typeof(size) _s = (size);					\
++	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
++									\
++	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
++	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
++									\
++	_i &= _mask;							\
++	_i;								\
++})
++#endif /* _LINUX_NOSPEC_H */
