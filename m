@@ -1,7 +1,7 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 57/92] array_index_nospec: Sanitize speculative array de-references
-Date: Fri,  9 Feb 2018 14:39:26 +0100
-Message-ID: <20180209133935.337867597@linuxfoundation.org>
+Subject: [PATCH 4.9 60/92] x86: Introduce __uaccess_begin_nospec() and uaccess_try_nospec
+Date: Fri,  9 Feb 2018 14:39:29 +0100
+Message-ID: <20180209133935.579350557@linuxfoundation.org>
 References: <20180209133931.211869118@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -9,7 +9,7 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180209133931.211869118@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Cyril Novikov <cnovikov@lynx.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, torvalds@linux-foundation.org, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>
 List-Id: linux-arch.vger.kernel.org
 
 4.9-stable review patch.  If anyone has any objections, please let me know.
@@ -19,112 +19,75 @@ List-Id: linux-arch.vger.kernel.org
 From: Dan Williams <dan.j.williams@intel.com>
 
 
-(cherry picked from commit f3804203306e098dae9ca51540fcd5eb700d7f40)
+(cherry picked from commit b3bbfb3fb5d25776b8e3f361d2eedaabb0b496cd)
 
-array_index_nospec() is proposed as a generic mechanism to mitigate
-against Spectre-variant-1 attacks, i.e. an attack that bypasses boundary
-checks via speculative execution. The array_index_nospec()
-implementation is expected to be safe for current generation CPUs across
-multiple architectures (ARM, x86).
+For __get_user() paths, do not allow the kernel to speculate on the value
+of a user controlled pointer. In addition to the 'stac' instruction for
+Supervisor Mode Access Protection (SMAP), a barrier_nospec() causes the
+access_ok() result to resolve in the pipeline before the CPU might take any
+speculative action on the pointer value. Given the cost of 'stac' the
+speculation barrier is placed after 'stac' to hopefully overlap the cost of
+disabling SMAP with the cost of flushing the instruction pipeline.
 
-Based on an original implementation by Linus Torvalds, tweaked to remove
-speculative flows by Alexei Starovoitov, and tweaked again by Linus to
-introduce an x86 assembly implementation for the mask generation.
+Since __get_user is a major kernel interface that deals with user
+controlled pointers, the __uaccess_begin_nospec() mechanism will prevent
+speculative execution past an access_ok() permission check. While
+speculative execution past access_ok() is not enough to lead to a kernel
+memory leak, it is a necessary precondition.
 
-Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
-Co-developed-by: Alexei Starovoitov <ast@kernel.org>
-Suggested-by: Cyril Novikov <cnovikov@lynx.com>
+To be clear, __uaccess_begin_nospec() is addressing a class of potential
+problems near __get_user() usages.
+
+Note, that while the barrier_nospec() in __uaccess_begin_nospec() is used
+to protect __get_user(), pointer masking similar to array_index_nospec()
+will be used for get_user() since it incorporates a bounds check near the
+usage.
+
+uaccess_try_nospec provides the same mechanism for get_user_try.
+
+No functional changes.
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Suggested-by: Andi Kleen <ak@linux.intel.com>
+Suggested-by: Ingo Molnar <mingo@redhat.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
+Cc: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Russell King <linux@armlinux.org.uk>
 Cc: gregkh@linuxfoundation.org
-Cc: torvalds@linux-foundation.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727414229.33451.18411580953862676575.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727415922.33451.5796614273104346583.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 ---
- include/linux/nospec.h |   72 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 72 insertions(+)
- create mode 100644 include/linux/nospec.h
+ arch/x86/include/asm/uaccess.h |    9 +++++++++
+ 1 file changed, 9 insertions(+)
 
---- /dev/null
-+++ b/include/linux/nospec.h
-@@ -0,0 +1,72 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright(c) 2018 Linus Torvalds. All rights reserved.
-+// Copyright(c) 2018 Alexei Starovoitov. All rights reserved.
-+// Copyright(c) 2018 Intel Corporation. All rights reserved.
-+
-+#ifndef _LINUX_NOSPEC_H
-+#define _LINUX_NOSPEC_H
-+
-+/**
-+ * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
-+ * @index: array element index
-+ * @size: number of elements in array
-+ *
-+ * When @index is out of bounds (@index >= @size), the sign bit will be
-+ * set.  Extend the sign bit to all bits and invert, giving a result of
-+ * zero for an out of bounds index, or ~0 if within bounds [0, @size).
-+ */
-+#ifndef array_index_mask_nospec
-+static inline unsigned long array_index_mask_nospec(unsigned long index,
-+						    unsigned long size)
-+{
-+	/*
-+	 * Warn developers about inappropriate array_index_nospec() usage.
-+	 *
-+	 * Even if the CPU speculates past the WARN_ONCE branch, the
-+	 * sign bit of @index is taken into account when generating the
-+	 * mask.
-+	 *
-+	 * This warning is compiled out when the compiler can infer that
-+	 * @index and @size are less than LONG_MAX.
-+	 */
-+	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,
-+			"array_index_nospec() limited to range of [0, LONG_MAX]\n"))
-+		return 0;
-+
-+	/*
-+	 * Always calculate and emit the mask even if the compiler
-+	 * thinks the mask is not needed. The compiler does not take
-+	 * into account the value of @index under speculation.
-+	 */
-+	OPTIMIZER_HIDE_VAR(index);
-+	return ~(long)(index | (size - 1UL - index)) >> (BITS_PER_LONG - 1);
-+}
-+#endif
-+
-+/*
-+ * array_index_nospec - sanitize an array index after a bounds check
-+ *
-+ * For a code sequence like:
-+ *
-+ *     if (index < size) {
-+ *         index = array_index_nospec(index, size);
-+ *         val = array[index];
-+ *     }
-+ *
-+ * ...if the CPU speculates past the bounds check then
-+ * array_index_nospec() will clamp the index within the range of [0,
-+ * size).
-+ */
-+#define array_index_nospec(index, size)					\
-+({									\
-+	typeof(index) _i = (index);					\
-+	typeof(size) _s = (size);					\
-+	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
-+									\
-+	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
-+	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
-+									\
-+	_i &= _mask;							\
-+	_i;								\
+--- a/arch/x86/include/asm/uaccess.h
++++ b/arch/x86/include/asm/uaccess.h
+@@ -123,6 +123,11 @@ extern int __get_user_bad(void);
+ 
+ #define __uaccess_begin() stac()
+ #define __uaccess_end()   clac()
++#define __uaccess_begin_nospec()	\
++({					\
++	stac();				\
++	barrier_nospec();		\
 +})
-+#endif /* _LINUX_NOSPEC_H */
+ 
+ /*
+  * This is a type: either unsigned long, if the argument fits into
+@@ -474,6 +479,10 @@ struct __large_struct { unsigned long bu
+ 	__uaccess_begin();						\
+ 	barrier();
+ 
++#define uaccess_try_nospec do {						\
++	current->thread.uaccess_err = 0;				\
++	__uaccess_begin_nospec();					\
++
+ #define uaccess_catch(err)						\
+ 	__uaccess_end();						\
+ 	(err) |= (current->thread.uaccess_err ? -EFAULT : 0);		\
