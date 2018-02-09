@@ -1,70 +1,116 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 65/92] vfs, fdtable: Prevent bounds-check bypass via speculative execution
-Date: Fri,  9 Feb 2018 14:39:34 +0100
-Message-ID: <20180209133935.948520836@linuxfoundation.org>
-References: <20180209133931.211869118@linuxfoundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-11678-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20180209133931.211869118@linuxfoundation.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, torvalds@linux-foundation.org, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>
-List-Id: linux-arch.vger.kernel.org
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Subject: [PATCH for 4.16] membarrier-sync-core: Document architecture support
+Date: Fri,  9 Feb 2018 15:30:56 -0500
+Message-ID: <1518208256-22034-1-git-send-email-mathieu.desnoyers@efficios.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.efficios.com ([167.114.142.141]:55070 "EHLO
+        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752218AbeBIUbE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Feb 2018 15:31:04 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Thomas Gleixner <tglx@linutronix.de>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Andrea Parri <parri.andrea@gmail.com>, Andrew Hunter <ahh@google.com>, Andy Lutomirski <luto@kernel.org>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, David Sehr <sehr@google.com>, Greg Hackmann <ghackmann@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Maged Michael <maged.michael@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, Russell
 
-4.9-stable review patch.  If anyone has any objections, please let me know.
+Ensure we gather architecture requirements about each architecture
+supporting the "sync_core" membarrier command in a single file under
+Documentation/features.
 
-------------------
-
-From: Dan Williams <dan.j.williams@intel.com>
-
-
-(cherry picked from commit 56c30ba7b348b90484969054d561f711ba196507)
-
-'fd' is a user controlled value that is used as a data dependency to
-read from the 'fdt->fd' array.  In order to avoid potential leaks of
-kernel memory values, block speculative execution of the instruction
-stream that could issue reads based on an invalid 'file *' returned from
-__fcheck_files.
-
-Co-developed-by: Elena Reshetova <elena.reshetova@intel.com>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: Andrea Parri <parri.andrea@gmail.com>
+Cc: Andrew Hunter <ahh@google.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Avi Kivity <avi@scylladb.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>
+Cc: Dave Watson <davejwatson@fb.com>
+Cc: David Sehr <sehr@google.com>
+Cc: Greg Hackmann <ghackmann@google.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Maged Michael <maged.michael@gmail.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-api@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
-Cc: kernel-hardening@lists.openwall.com
-Cc: gregkh@linuxfoundation.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: torvalds@linux-foundation.org
-Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727418500.33451.17392199002892248656.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 ---
- include/linux/fdtable.h |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ .../sched/membarrier-sync-core/arch-support.txt    | 62 ++++++++++++++++++++++
+ 1 file changed, 62 insertions(+)
+ create mode 100644 Documentation/features/sched/membarrier-sync-core/arch-support.txt
 
---- a/include/linux/fdtable.h
-+++ b/include/linux/fdtable.h
-@@ -9,6 +9,7 @@
- #include <linux/compiler.h>
- #include <linux/spinlock.h>
- #include <linux/rcupdate.h>
-+#include <linux/nospec.h>
- #include <linux/types.h>
- #include <linux/init.h>
- #include <linux/fs.h>
-@@ -81,8 +82,10 @@ static inline struct file *__fcheck_file
- {
- 	struct fdtable *fdt = rcu_dereference_raw(files->fdt);
- 
--	if (fd < fdt->max_fds)
-+	if (fd < fdt->max_fds) {
-+		fd = array_index_nospec(fd, fdt->max_fds);
- 		return rcu_dereference_raw(fdt->fd[fd]);
-+	}
- 	return NULL;
- }
- 
+diff --git a/Documentation/features/sched/membarrier-sync-core/arch-support.txt b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
+new file mode 100644
+index 0000000..2c815a7
+--- /dev/null
++++ b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
+@@ -0,0 +1,62 @@
++#
++# Feature name:          membarrier-sync-core
++#         Kconfig:       ARCH_HAS_MEMBARRIER_SYNC_CORE
++#         description:   arch supports core serializing membarrier
++#
++# Architecture requirements
++#
++# * arm64
++#
++# Rely on eret context synchronization when returning from IPI handler, and
++# when returning to user-space.
++#
++# * x86
++#
++# x86-32 uses IRET as return from interrupt, which takes care of the IPI.
++# However, it uses both IRET and SYSEXIT to go back to user-space. The IRET
++# instruction is core serializing, but not SYSEXIT.
++#
++# x86-64 uses IRET as return from interrupt, which takes care of the IPI.
++# However, it can return to user-space through either SYSRETL (compat code),
++# SYSRETQ, or IRET.
++#
++# Given that neither SYSRET{L,Q}, nor SYSEXIT, are core serializing, we rely
++# instead on write_cr3() performed by switch_mm() to provide core serialization
++# after changing the current mm, and deal with the special case of kthread ->
++# uthread (temporarily keeping current mm into active_mm) by issuing a
++# sync_core_before_usermode() in that specific case.
++#
++    -----------------------
++    |         arch |status|
++    -----------------------
++    |       alpha: | TODO |
++    |         arc: | TODO |
++    |         arm: | TODO |
++    |       arm64: |  ok  |
++    |    blackfin: | TODO |
++    |         c6x: | TODO |
++    |        cris: | TODO |
++    |         frv: | TODO |
++    |       h8300: | TODO |
++    |     hexagon: | TODO |
++    |        ia64: | TODO |
++    |        m32r: | TODO |
++    |        m68k: | TODO |
++    |       metag: | TODO |
++    |  microblaze: | TODO |
++    |        mips: | TODO |
++    |     mn10300: | TODO |
++    |       nios2: | TODO |
++    |    openrisc: | TODO |
++    |      parisc: | TODO |
++    |     powerpc: | TODO |
++    |        s390: | TODO |
++    |       score: | TODO |
++    |          sh: | TODO |
++    |       sparc: | TODO |
++    |        tile: | TODO |
++    |          um: | TODO |
++    |   unicore32: | TODO |
++    |         x86: |  ok  |
++    |      xtensa: | TODO |
++    -----------------------
+-- 
+1.9.1
