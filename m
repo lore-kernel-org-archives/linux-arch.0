@@ -1,7 +1,7 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 62/92] x86/uaccess: Use __uaccess_begin_nospec() and uaccess_try_nospec
-Date: Fri,  9 Feb 2018 14:39:31 +0100
-Message-ID: <20180209133935.742909119@linuxfoundation.org>
+Subject: [PATCH 4.9 57/92] array_index_nospec: Sanitize speculative array de-references
+Date: Fri,  9 Feb 2018 14:39:26 +0100
+Message-ID: <20180209133935.337867597@linuxfoundation.org>
 References: <20180209133931.211869118@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -9,7 +9,7 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180209133931.211869118@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Cyril Novikov <cnovikov@lynx.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, torvalds@linux-foundation.org, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>
 List-Id: linux-arch.vger.kernel.org
 
 4.9-stable review patch.  If anyone has any objections, please let me know.
@@ -19,182 +19,112 @@ List-Id: linux-arch.vger.kernel.org
 From: Dan Williams <dan.j.williams@intel.com>
 
 
-(cherry picked from commit 304ec1b050310548db33063e567123fae8fd0301)
+(cherry picked from commit f3804203306e098dae9ca51540fcd5eb700d7f40)
 
-Quoting Linus:
+array_index_nospec() is proposed as a generic mechanism to mitigate
+against Spectre-variant-1 attacks, i.e. an attack that bypasses boundary
+checks via speculative execution. The array_index_nospec()
+implementation is expected to be safe for current generation CPUs across
+multiple architectures (ARM, x86).
 
-    I do think that it would be a good idea to very expressly document
-    the fact that it's not that the user access itself is unsafe. I do
-    agree that things like "get_user()" want to be protected, but not
-    because of any direct bugs or problems with get_user() and friends,
-    but simply because get_user() is an excellent source of a pointer
-    that is obviously controlled from a potentially attacking user
-    space. So it's a prime candidate for then finding _subsequent_
-    accesses that can then be used to perturb the cache.
+Based on an original implementation by Linus Torvalds, tweaked to remove
+speculative flows by Alexei Starovoitov, and tweaked again by Linus to
+introduce an x86 assembly implementation for the mask generation.
 
-__uaccess_begin_nospec() covers __get_user() and copy_from_iter() where the
-limit check is far away from the user pointer de-reference. In those cases
-a barrier_nospec() prevents speculation with a potential pointer to
-privileged memory. uaccess_try_nospec covers get_user_try.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Suggested-by: Andi Kleen <ak@linux.intel.com>
+Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
+Co-developed-by: Alexei Starovoitov <ast@kernel.org>
+Suggested-by: Cyril Novikov <cnovikov@lynx.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Russell King <linux@armlinux.org.uk>
 Cc: gregkh@linuxfoundation.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: torvalds@linux-foundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727416953.33451.10508284228526170604.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727414229.33451.18411580953862676575.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 ---
- arch/x86/include/asm/uaccess.h    |    6 +++---
- arch/x86/include/asm/uaccess_32.h |   12 ++++++------
- arch/x86/include/asm/uaccess_64.h |   12 ++++++------
- arch/x86/lib/usercopy_32.c        |    4 ++--
- 4 files changed, 17 insertions(+), 17 deletions(-)
+ include/linux/nospec.h |   72 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 72 insertions(+)
+ create mode 100644 include/linux/nospec.h
 
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -437,7 +437,7 @@ do {									\
- ({									\
- 	int __gu_err;							\
- 	__inttype(*(ptr)) __gu_val;					\
--	__uaccess_begin();						\
-+	__uaccess_begin_nospec();					\
- 	__get_user_size(__gu_val, (ptr), (size), __gu_err, -EFAULT);	\
- 	__uaccess_end();						\
- 	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
-@@ -547,7 +547,7 @@ struct __large_struct { unsigned long bu
-  *	get_user_ex(...);
-  * } get_user_catch(err)
-  */
--#define get_user_try		uaccess_try
-+#define get_user_try		uaccess_try_nospec
- #define get_user_catch(err)	uaccess_catch(err)
- 
- #define get_user_ex(x, ptr)	do {					\
-@@ -582,7 +582,7 @@ extern void __cmpxchg_wrong_size(void)
- 	__typeof__(ptr) __uval = (uval);				\
- 	__typeof__(*(ptr)) __old = (old);				\
- 	__typeof__(*(ptr)) __new = (new);				\
--	__uaccess_begin();						\
-+	__uaccess_begin_nospec();					\
- 	switch (size) {							\
- 	case 1:								\
- 	{								\
---- a/arch/x86/include/asm/uaccess_32.h
-+++ b/arch/x86/include/asm/uaccess_32.h
-@@ -102,17 +102,17 @@ __copy_from_user(void *to, const void __
- 
- 		switch (n) {
- 		case 1:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u8 *)to, from, 1, ret, 1);
- 			__uaccess_end();
- 			return ret;
- 		case 2:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u16 *)to, from, 2, ret, 2);
- 			__uaccess_end();
- 			return ret;
- 		case 4:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u32 *)to, from, 4, ret, 4);
- 			__uaccess_end();
- 			return ret;
-@@ -130,17 +130,17 @@ static __always_inline unsigned long __c
- 
- 		switch (n) {
- 		case 1:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u8 *)to, from, 1, ret, 1);
- 			__uaccess_end();
- 			return ret;
- 		case 2:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u16 *)to, from, 2, ret, 2);
- 			__uaccess_end();
- 			return ret;
- 		case 4:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u32 *)to, from, 4, ret, 4);
- 			__uaccess_end();
- 			return ret;
---- a/arch/x86/include/asm/uaccess_64.h
-+++ b/arch/x86/include/asm/uaccess_64.h
-@@ -59,31 +59,31 @@ int __copy_from_user_nocheck(void *dst,
- 		return copy_user_generic(dst, (__force void *)src, size);
- 	switch (size) {
- 	case 1:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u8 *)dst, (u8 __user *)src,
- 			      ret, "b", "b", "=q", 1);
- 		__uaccess_end();
- 		return ret;
- 	case 2:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u16 *)dst, (u16 __user *)src,
- 			      ret, "w", "w", "=r", 2);
- 		__uaccess_end();
- 		return ret;
- 	case 4:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u32 *)dst, (u32 __user *)src,
- 			      ret, "l", "k", "=r", 4);
- 		__uaccess_end();
- 		return ret;
- 	case 8:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u64 *)dst, (u64 __user *)src,
- 			      ret, "q", "", "=r", 8);
- 		__uaccess_end();
- 		return ret;
- 	case 10:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u64 *)dst, (u64 __user *)src,
- 			       ret, "q", "", "=r", 10);
- 		if (likely(!ret))
-@@ -93,7 +93,7 @@ int __copy_from_user_nocheck(void *dst,
- 		__uaccess_end();
- 		return ret;
- 	case 16:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u64 *)dst, (u64 __user *)src,
- 			       ret, "q", "", "=r", 16);
- 		if (likely(!ret))
---- a/arch/x86/lib/usercopy_32.c
-+++ b/arch/x86/lib/usercopy_32.c
-@@ -570,7 +570,7 @@ do {									\
- unsigned long __copy_to_user_ll(void __user *to, const void *from,
- 				unsigned long n)
- {
--	__uaccess_begin();
-+	__uaccess_begin_nospec();
- 	if (movsl_is_ok(to, from, n))
- 		__copy_user(to, from, n);
- 	else
-@@ -627,7 +627,7 @@ EXPORT_SYMBOL(__copy_from_user_ll_nocach
- unsigned long __copy_from_user_ll_nocache_nozero(void *to, const void __user *from,
- 					unsigned long n)
- {
--	__uaccess_begin();
-+	__uaccess_begin_nospec();
- #ifdef CONFIG_X86_INTEL_USERCOPY
- 	if (n > 64 && static_cpu_has(X86_FEATURE_XMM2))
- 		n = __copy_user_intel_nocache(to, from, n);
+--- /dev/null
++++ b/include/linux/nospec.h
+@@ -0,0 +1,72 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright(c) 2018 Linus Torvalds. All rights reserved.
++// Copyright(c) 2018 Alexei Starovoitov. All rights reserved.
++// Copyright(c) 2018 Intel Corporation. All rights reserved.
++
++#ifndef _LINUX_NOSPEC_H
++#define _LINUX_NOSPEC_H
++
++/**
++ * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
++ * @index: array element index
++ * @size: number of elements in array
++ *
++ * When @index is out of bounds (@index >= @size), the sign bit will be
++ * set.  Extend the sign bit to all bits and invert, giving a result of
++ * zero for an out of bounds index, or ~0 if within bounds [0, @size).
++ */
++#ifndef array_index_mask_nospec
++static inline unsigned long array_index_mask_nospec(unsigned long index,
++						    unsigned long size)
++{
++	/*
++	 * Warn developers about inappropriate array_index_nospec() usage.
++	 *
++	 * Even if the CPU speculates past the WARN_ONCE branch, the
++	 * sign bit of @index is taken into account when generating the
++	 * mask.
++	 *
++	 * This warning is compiled out when the compiler can infer that
++	 * @index and @size are less than LONG_MAX.
++	 */
++	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,
++			"array_index_nospec() limited to range of [0, LONG_MAX]\n"))
++		return 0;
++
++	/*
++	 * Always calculate and emit the mask even if the compiler
++	 * thinks the mask is not needed. The compiler does not take
++	 * into account the value of @index under speculation.
++	 */
++	OPTIMIZER_HIDE_VAR(index);
++	return ~(long)(index | (size - 1UL - index)) >> (BITS_PER_LONG - 1);
++}
++#endif
++
++/*
++ * array_index_nospec - sanitize an array index after a bounds check
++ *
++ * For a code sequence like:
++ *
++ *     if (index < size) {
++ *         index = array_index_nospec(index, size);
++ *         val = array[index];
++ *     }
++ *
++ * ...if the CPU speculates past the bounds check then
++ * array_index_nospec() will clamp the index within the range of [0,
++ * size).
++ */
++#define array_index_nospec(index, size)					\
++({									\
++	typeof(index) _i = (index);					\
++	typeof(size) _s = (size);					\
++	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
++									\
++	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
++	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
++									\
++	_i &= _mask;							\
++	_i;								\
++})
++#endif /* _LINUX_NOSPEC_H */
