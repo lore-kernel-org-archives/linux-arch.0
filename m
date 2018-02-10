@@ -1,70 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([167.114.142.141]:35813 "EHLO
-        mail.efficios.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750832AbeBJRBY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 10 Feb 2018 12:01:24 -0500
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [PATCH for 4.16] Documentation: Allow comments in arch features files
-Date: Sat, 10 Feb 2018 12:00:58 -0500
-Message-ID: <1518282058-24226-1-git-send-email-mathieu.desnoyers@efficios.com>
-In-Reply-To: <20180210114700.mq2rg4lbjtzyx5pn@gmail.com>
-References: <20180210114700.mq2rg4lbjtzyx5pn@gmail.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:53930 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751116AbeBJTX6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 10 Feb 2018 14:23:58 -0500
+Date: Sat, 10 Feb 2018 19:23:56 +0000
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [git pull] poll annotations - second round
+Message-ID: <20180210192356.GP30522@ZenIV.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Thomas Gleixner <tglx@linutronix.de>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Andrea Parri <parri.andrea@gmail.com>, Andrew Hunter <ahh@google.com>, Andy Lutomirski <luto@kernel.org>, Avi Kivity <avi@scylladb.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Boqun Feng <boqun.feng@gmail.com>, Dave Watson <davejwatson@fb.com>, David Sehr <sehr@google.com>, Greg Hackmann <ghackmann@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Maged Michael <maged.michael@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180210170058.NBunGQKck7k1LZvLoNVuRDT_Y3gBY3Li1jjboy4vZDk@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180210192356.TGi_D59Dip-kIDEX4QYxRbtAa35eTYepK5uMROx0dBU@z>
 
-The list-arch.sh script considers lines beginning with "#" as match for
-the feature table.
+	Preparations to solving the problems you've mentioned in the original poll
+series.  After this series, run
 
-Given that those tables are never in lines beginning with "#",
-add a reverse grep on "^#" when matching the "ok/TODO" state of
-the architecture.
+for V in IN OUT PRI ERR RDNORM RDBAND WRNORM WRBAND HUP RDHUP NVAL MSG; do
+    L=`git grep -l -w POLL$V | grep -v '^t' | grep -v /um/ | grep -v '^sa' | grep -v '/poll.h$'|grep -v '^D'`
+    for f in $L; do sed -i "-es/^\([^\"]*\)\(\<POLL$V\>\)/\\1E\\2/" $f; done
+done
 
-This allows adding comments within the feature files, for instance
-describing the architecture requirements for the feature in each
-architecture.
+(ideally - just before -rc1) for bulk search-and-replace.  Then cherry-pick
+git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git#work.poll on top
+of that and we should be done with that stuff - {de,}mangle_poll() unified,
+no more separate kernel-side POLL... definitions.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
-Cc: Andrea Parri <parri.andrea@gmail.com>
-Cc: Andrew Hunter <ahh@google.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Avi Kivity <avi@scylladb.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Dave Watson <davejwatson@fb.com>
-Cc: David Sehr <sehr@google.com>
-Cc: Greg Hackmann <ghackmann@google.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Maged Michael <maged.michael@gmail.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
----
- Documentation/features/list-arch.sh | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Basically, that's what you suggested wrt KPOLL..., except that we can use
+EPOLL... instead - they already are arch-independent (and equal to what is
+currently kernel-side POLL...).  After the preparations (in this series)
+switch to returning EPOLL... from ->poll() instances is completely mechanical
+and kernel-side POLL... can go away.  The last step (killing kernel-side
+POLL... and unifying {de,}mangle_poll() has to be done after the
+search-and-replace job, since we need userland-side POLL... for unified
+{de,}mangle_poll(), thus the cherry-pick at the last step.
 
-diff --git a/Documentation/features/list-arch.sh b/Documentation/features/list-arch.sh
-index c16b5b5..1ec47c3 100755
---- a/Documentation/features/list-arch.sh
-+++ b/Documentation/features/list-arch.sh
-@@ -17,7 +17,7 @@ for F in */*/arch-support.txt; do
-   N=$(grep -h "^# Feature name:"        $F | cut -c25-)
-   C=$(grep -h "^#         Kconfig:"     $F | cut -c25-)
-   D=$(grep -h "^#         description:" $F | cut -c25-)
--  S=$(grep -hw $ARCH $F | cut -d\| -f3)
-+  S=$(grep -hv "^#" $F | grep -w $ARCH | cut -d\| -f3)
- 
-   printf "%10s/%-22s:%s| %35s # %s\n" "$SUBSYS" "$N" "$S" "$C" "$D"
- done
--- 
-1.9.1
+After that we get
+	* POLL{IN,OUT,...} *not* in __poll_t, so any stray instances of ->poll()
+still using those will be caught by sparse.
+	* eventpoll.c and select.c warning-free wrt __poll_t
+	* no more kernel-side definitions of POLL... - userland ones are
+visible through the entire kernel (and used pretty much only for mangle/demangle)
+	* same behavior as after the first series (i.e. sparc et.al. epoll(2)
+working correctly).
+
+The following changes since commit b2fe5fa68642860e7de76167c3111623aa0d5de1:
+
+  Merge git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next (2018-01-31 14:31:10 -0800)
+
+are available in the git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git work.poll2
+
+for you to fetch changes up to d85e2aa2e34dac793e70b900d865f48c69ecbc27:
+
+  annotate ep_scan_ready_list() (2018-02-01 16:30:06 -0500)
+
+----------------------------------------------------------------
+Al Viro (7):
+      smc: missing poll annotations
+      xen: fix poll misannotation
+      use linux/poll.h instead of asm/poll.h
+      add EPOLLNVAL, annotate EPOLL... and event_poll->event
+      preparation to switching ->poll() to returning EPOLL...
+      ep_send_events_proc(): return result via esed->res
+      annotate ep_scan_ready_list()
+
+ drivers/xen/pvcalls-front.h    |  2 +-
+ fs/coda/psdev.c                |  2 +-
+ fs/debugfs/file.c              |  2 +-
+ fs/eventpoll.c                 | 41 +++++++++++++++++++++++------------------
+ fs/fcntl.c                     |  2 +-
+ include/linux/poll.h           |  3 ++-
+ include/uapi/linux/eventpoll.h | 33 +++++++++++++++++----------------
+ net/smc/af_smc.c               |  2 +-
+ 8 files changed, 47 insertions(+), 40 deletions(-)
