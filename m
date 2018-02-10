@@ -1,65 +1,75 @@
-From: Mathieu Desnoyers <mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>
-Subject: [PATCH for 4.16] Documentation: Allow comments in arch features files
-Date: Sat, 10 Feb 2018 12:00:58 -0500
-Message-ID: <1518282058-24226-1-git-send-email-mathieu.desnoyers@efficios.com>
-References: <20180210114700.mq2rg4lbjtzyx5pn@gmail.com>
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20180210114700.mq2rg4lbjtzyx5pn-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Mathieu Desnoyers <mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "Peter Zijlstra (Intel)" <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Andrea Parri <parri.andrea-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Andrew Hunter <ahh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Avi Kivity <avi-VrcmuVmyx1hWk0Htik3J/w@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Dave Watson <davejwatson-b10kYP2dOMg@public.gmane.org>, David Sehr <sehr-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Greg Hackmann <ghackmann-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Maged Michael <maged.michael-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, "Paul E. McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Russell
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [git pull] poll annotations - second round
+Date: Sat, 10 Feb 2018 19:23:56 +0000
+Message-ID: <20180210192356.GP30522@ZenIV.linux.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The list-arch.sh script considers lines beginning with "#" as match for
-the feature table.
+	Preparations to solving the problems you've mentioned in the original poll
+series.  After this series, run
 
-Given that those tables are never in lines beginning with "#",
-add a reverse grep on "^#" when matching the "ok/TODO" state of
-the architecture.
+for V in IN OUT PRI ERR RDNORM RDBAND WRNORM WRBAND HUP RDHUP NVAL MSG; do
+    L=`git grep -l -w POLL$V | grep -v '^t' | grep -v /um/ | grep -v '^sa' | grep -v '/poll.h$'|grep -v '^D'`
+    for f in $L; do sed -i "-es/^\([^\"]*\)\(\<POLL$V\>\)/\\1E\\2/" $f; done
+done
 
-This allows adding comments within the feature files, for instance
-describing the architecture requirements for the feature in each
-architecture.
+(ideally - just before -rc1) for bulk search-and-replace.  Then cherry-pick
+git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git#work.poll on top
+of that and we should be done with that stuff - {de,}mangle_poll() unified,
+no more separate kernel-side POLL... definitions.
 
-Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org>
-Cc: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Cc: Peter Zijlstra (Intel) <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Cc: Andrea Parri <parri.andrea-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Andrew Hunter <ahh-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Cc: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Avi Kivity <avi-VrcmuVmyx1hWk0Htik3J/w@public.gmane.org>
-Cc: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
-Cc: Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Dave Watson <davejwatson-b10kYP2dOMg@public.gmane.org>
-Cc: David Sehr <sehr-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Cc: Greg Hackmann <ghackmann-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Cc: H. Peter Anvin <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Maged Michael <maged.michael-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
-Cc: Paul E. McKenney <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-Cc: Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
-Cc: Russell King <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>
-Cc: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
-Cc: linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
----
- Documentation/features/list-arch.sh | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Basically, that's what you suggested wrt KPOLL..., except that we can use
+EPOLL... instead - they already are arch-independent (and equal to what is
+currently kernel-side POLL...).  After the preparations (in this series)
+switch to returning EPOLL... from ->poll() instances is completely mechanical
+and kernel-side POLL... can go away.  The last step (killing kernel-side
+POLL... and unifying {de,}mangle_poll() has to be done after the
+search-and-replace job, since we need userland-side POLL... for unified
+{de,}mangle_poll(), thus the cherry-pick at the last step.
 
-diff --git a/Documentation/features/list-arch.sh b/Documentation/features/list-arch.sh
-index c16b5b5..1ec47c3 100755
---- a/Documentation/features/list-arch.sh
-+++ b/Documentation/features/list-arch.sh
-@@ -17,7 +17,7 @@ for F in */*/arch-support.txt; do
-   N=$(grep -h "^# Feature name:"        $F | cut -c25-)
-   C=$(grep -h "^#         Kconfig:"     $F | cut -c25-)
-   D=$(grep -h "^#         description:" $F | cut -c25-)
--  S=$(grep -hw $ARCH $F | cut -d\| -f3)
-+  S=$(grep -hv "^#" $F | grep -w $ARCH | cut -d\| -f3)
- 
-   printf "%10s/%-22s:%s| %35s # %s\n" "$SUBSYS" "$N" "$S" "$C" "$D"
- done
--- 
-1.9.1
+After that we get
+	* POLL{IN,OUT,...} *not* in __poll_t, so any stray instances of ->poll()
+still using those will be caught by sparse.
+	* eventpoll.c and select.c warning-free wrt __poll_t
+	* no more kernel-side definitions of POLL... - userland ones are
+visible through the entire kernel (and used pretty much only for mangle/demangle)
+	* same behavior as after the first series (i.e. sparc et.al. epoll(2)
+working correctly).
+
+The following changes since commit b2fe5fa68642860e7de76167c3111623aa0d5de1:
+
+  Merge git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next (2018-01-31 14:31:10 -0800)
+
+are available in the git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git work.poll2
+
+for you to fetch changes up to d85e2aa2e34dac793e70b900d865f48c69ecbc27:
+
+  annotate ep_scan_ready_list() (2018-02-01 16:30:06 -0500)
+
+----------------------------------------------------------------
+Al Viro (7):
+      smc: missing poll annotations
+      xen: fix poll misannotation
+      use linux/poll.h instead of asm/poll.h
+      add EPOLLNVAL, annotate EPOLL... and event_poll->event
+      preparation to switching ->poll() to returning EPOLL...
+      ep_send_events_proc(): return result via esed->res
+      annotate ep_scan_ready_list()
+
+ drivers/xen/pvcalls-front.h    |  2 +-
+ fs/coda/psdev.c                |  2 +-
+ fs/debugfs/file.c              |  2 +-
+ fs/eventpoll.c                 | 41 +++++++++++++++++++++++------------------
+ fs/fcntl.c                     |  2 +-
+ include/linux/poll.h           |  3 ++-
+ include/uapi/linux/eventpoll.h | 33 +++++++++++++++++----------------
+ net/smc/af_smc.c               |  2 +-
+ 8 files changed, 47 insertions(+), 40 deletions(-)
