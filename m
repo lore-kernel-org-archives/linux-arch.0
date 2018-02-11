@@ -1,75 +1,75 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [git pull] poll annotations - second round
-Date: Sat, 10 Feb 2018 19:23:56 +0000
-Message-ID: <20180210192356.GP30522@ZenIV.linux.org.uk>
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: Regression after commit 19809c2da28a ("mm, vmalloc: use
+ __GFP_HIGHMEM implicitly")
+Date: Sun, 11 Feb 2018 04:05:15 -0800
+Message-ID: <20180211120515.GB4551@bombadil.infradead.org>
+References: <627DA40A-D0F6-41C1-BB5A-55830FBC9800@canonical.com>
+ <20180208130649.GA15846@bombadil.infradead.org>
+ <20180208232004.GA21027@bombadil.infradead.org>
+ <20180211092652.GV21609@dhcp22.suse.cz>
+ <20180211112808.GA4551@bombadil.infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org
+In-Reply-To: <20180211112808.GA4551@bombadil.infradead.org>
+Sender: owner-linux-mm@kvack.org
+To: Michal Hocko <mhocko@kernel.org>
+Cc: Kai Heng Feng <kai.heng.feng@canonical.com>, Laura Abbott <labbott@redhat.com>, linux-mm@kvack.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, James.Bottomley@HansenPartnership.com, davem@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-	Preparations to solving the problems you've mentioned in the original poll
-series.  After this series, run
+On Sun, Feb 11, 2018 at 03:28:08AM -0800, Matthew Wilcox wrote:
+> Now, longer-term, perhaps we should do the following:
+> 
+> #ifdef CONFIG_ZONE_DMA32
+> #define OPT_ZONE_DMA32	ZONE_DMA32
+> #elif defined(CONFIG_64BIT)
+> #define OPT_ZONE_DMA	OPT_ZONE_DMA
+> #else
+> #define OPT_ZONE_DMA32 ZONE_NORMAL
+> #endif
+> 
+> Then we wouldn't need the ifdef here and could always use GFP_DMA32
+> | GFP_KERNEL.  Would need to audit current users and make sure they
+> wouldn't be broken by such a change.
 
-for V in IN OUT PRI ERR RDNORM RDBAND WRNORM WRBAND HUP RDHUP NVAL MSG; do
-    L=`git grep -l -w POLL$V | grep -v '^t' | grep -v /um/ | grep -v '^sa' | grep -v '/poll.h$'|grep -v '^D'`
-    for f in $L; do sed -i "-es/^\([^\"]*\)\(\<POLL$V\>\)/\\1E\\2/" $f; done
-done
+Argh, I forgot to say the most important thing.  (For those newly invited
+to the party, we're talking about drivers/media, in particular
+drivers/media/common/saa7146/saa7146_core.c, functions
+saa7146_vmalloc_build_pgtable and vmalloc_to_sg)
 
-(ideally - just before -rc1) for bulk search-and-replace.  Then cherry-pick
-git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git#work.poll on top
-of that and we should be done with that stuff - {de,}mangle_poll() unified,
-no more separate kernel-side POLL... definitions.
+I think we're missing a function in our DMA API.  These drivers don't
+actually need physical memory below the 4GB mark.  They need DMA addresses
+which are below the 4GB mark.  For machines with IOMMUs, this can mean
+no restrictions on physical memory.  If we don't have an IOMMU, then a
+bounce buffer could be used (but would be slow) -- like the swiotlb.
+So we should endeavour to allocate memory below the 4GB boundary on
+systems with no IOMMU, but can allocate memory anywhere on systems with
+an IOMMU.
 
-Basically, that's what you suggested wrt KPOLL..., except that we can use
-EPOLL... instead - they already are arch-independent (and equal to what is
-currently kernel-side POLL...).  After the preparations (in this series)
-switch to returning EPOLL... from ->poll() instances is completely mechanical
-and kernel-side POLL... can go away.  The last step (killing kernel-side
-POLL... and unifying {de,}mangle_poll() has to be done after the
-search-and-replace job, since we need userland-side POLL... for unified
-{de,}mangle_poll(), thus the cherry-pick at the last step.
+For consistent / coherent memory, we have an allocation function.
+But we don't have an allocation function for streaming memory, which is
+what these drivers want.  They also flush the DMA memory and then access
+the memory through a different virtual mapping, which I'm not sure is
+going to work well on virtually-indexed caches like SPARC and PA-RISC
+(maybe not MIPS either?)
 
-After that we get
-	* POLL{IN,OUT,...} *not* in __poll_t, so any stray instances of ->poll()
-still using those will be caught by sparse.
-	* eventpoll.c and select.c warning-free wrt __poll_t
-	* no more kernel-side definitions of POLL... - userland ones are
-visible through the entire kernel (and used pretty much only for mangle/demangle)
-	* same behavior as after the first series (i.e. sparc et.al. epoll(2)
-working correctly).
+I think we want something like
 
-The following changes since commit b2fe5fa68642860e7de76167c3111623aa0d5de1:
+struct scatterlist *dma_alloc_sg(struct device *dev, int *nents);
+void dma_free_sg(struct device *dev, struct scatterlist *sg, int nents);
 
-  Merge git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next (2018-01-31 14:31:10 -0800)
+That lets individual architectures decide where to allocate, and handle
+the tradeoff between allocating below 4GB and using bounce buffers.
 
-are available in the git repository at:
+I don't have a good answer to synchronising between device-view of
+memory and CPU-view-through-vmalloc though.  They're already calling
+dma_sync_*_for_cpu(); do they need to also call a new vflush(void *p,
+unsigned long len) function which can be a no-op on x86 and flushes the
+range on SPARC/PA-RISC/... ?
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git work.poll2
-
-for you to fetch changes up to d85e2aa2e34dac793e70b900d865f48c69ecbc27:
-
-  annotate ep_scan_ready_list() (2018-02-01 16:30:06 -0500)
-
-----------------------------------------------------------------
-Al Viro (7):
-      smc: missing poll annotations
-      xen: fix poll misannotation
-      use linux/poll.h instead of asm/poll.h
-      add EPOLLNVAL, annotate EPOLL... and event_poll->event
-      preparation to switching ->poll() to returning EPOLL...
-      ep_send_events_proc(): return result via esed->res
-      annotate ep_scan_ready_list()
-
- drivers/xen/pvcalls-front.h    |  2 +-
- fs/coda/psdev.c                |  2 +-
- fs/debugfs/file.c              |  2 +-
- fs/eventpoll.c                 | 41 +++++++++++++++++++++++------------------
- fs/fcntl.c                     |  2 +-
- include/linux/poll.h           |  3 ++-
- include/uapi/linux/eventpoll.h | 33 +++++++++++++++++----------------
- net/smc/af_smc.c               |  2 +-
- 8 files changed, 47 insertions(+), 40 deletions(-)
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
