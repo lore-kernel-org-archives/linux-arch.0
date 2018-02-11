@@ -1,74 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:54384 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:59540 "EHLO
         casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752691AbeBKMdL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Feb 2018 07:33:11 -0500
-Date: Sun, 11 Feb 2018 04:05:15 -0800
+        with ESMTP id S932244AbeBLALA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Feb 2018 19:11:00 -0500
+Date: Sun, 11 Feb 2018 15:51:07 -0800
 From: Matthew Wilcox <willy@infradead.org>
 Subject: Re: Regression after commit 19809c2da28a ("mm, vmalloc: use
  __GFP_HIGHMEM implicitly")
-Message-ID: <20180211120515.GB4551@bombadil.infradead.org>
+Message-ID: <20180211235107.GE4680@bombadil.infradead.org>
 References: <627DA40A-D0F6-41C1-BB5A-55830FBC9800@canonical.com>
  <20180208130649.GA15846@bombadil.infradead.org>
  <20180208232004.GA21027@bombadil.infradead.org>
  <20180211092652.GV21609@dhcp22.suse.cz>
  <20180211112808.GA4551@bombadil.infradead.org>
+ <20180211120515.GB4551@bombadil.infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180211112808.GA4551@bombadil.infradead.org>
+In-Reply-To: <20180211120515.GB4551@bombadil.infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michal Hocko <mhocko@kernel.org>
 Cc: Kai Heng Feng <kai.heng.feng@canonical.com>, Laura Abbott <labbott@redhat.com>, linux-mm@kvack.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, James.Bottomley@HansenPartnership.com, davem@redhat.com
-Message-ID: <20180211120515.Jb70pb3kfK2zq0lm2HyRLe9Y59MO8kOGoYMmzx9PdBk@z>
+Message-ID: <20180211235107.1lWG_JGUHkZLh2xa2yUMxic5HpX7YuUVrl43_OAblyM@z>
 
-On Sun, Feb 11, 2018 at 03:28:08AM -0800, Matthew Wilcox wrote:
-> Now, longer-term, perhaps we should do the following:
+On Sun, Feb 11, 2018 at 04:05:15AM -0800, Matthew Wilcox wrote:
+> On Sun, Feb 11, 2018 at 03:28:08AM -0800, Matthew Wilcox wrote:
+> > Now, longer-term, perhaps we should do the following:
+> > 
+> > #ifdef CONFIG_ZONE_DMA32
+> > #define OPT_ZONE_DMA32	ZONE_DMA32
+> > #elif defined(CONFIG_64BIT)
+> > #define OPT_ZONE_DMA	OPT_ZONE_DMA
+> > #else
+> > #define OPT_ZONE_DMA32 ZONE_NORMAL
+> > #endif
 > 
-> #ifdef CONFIG_ZONE_DMA32
-> #define OPT_ZONE_DMA32	ZONE_DMA32
-> #elif defined(CONFIG_64BIT)
-> #define OPT_ZONE_DMA	OPT_ZONE_DMA
-> #else
-> #define OPT_ZONE_DMA32 ZONE_NORMAL
-> #endif
-> 
-> Then we wouldn't need the ifdef here and could always use GFP_DMA32
-> | GFP_KERNEL.  Would need to audit current users and make sure they
-> wouldn't be broken by such a change.
+> For consistent / coherent memory, we have an allocation function.
+> But we don't have an allocation function for streaming memory, which is
+> what these drivers want.  They also flush the DMA memory and then access
+> the memory through a different virtual mapping, which I'm not sure is
+> going to work well on virtually-indexed caches like SPARC and PA-RISC
+> (maybe not MIPS either?)
 
-Argh, I forgot to say the most important thing.  (For those newly invited
-to the party, we're talking about drivers/media, in particular
-drivers/media/common/saa7146/saa7146_core.c, functions
-saa7146_vmalloc_build_pgtable and vmalloc_to_sg)
+Perhaps I (and a number of other people ...) have misunderstood the
+semantics of GFP_DMA32.  Perhaps GFP_DMA32 is not "allocate memory below
+4GB", perhaps it's "allocate memory which can be mapped below 4GB".
+Machines with an IOMMU can use ZONE_NORMAL.  Machines with no IOMMU can
+choose to allocate memory with a physical address below 4GB.
 
-I think we're missing a function in our DMA API.  These drivers don't
-actually need physical memory below the 4GB mark.  They need DMA addresses
-which are below the 4GB mark.  For machines with IOMMUs, this can mean
-no restrictions on physical memory.  If we don't have an IOMMU, then a
-bounce buffer could be used (but would be slow) -- like the swiotlb.
-So we should endeavour to allocate memory below the 4GB boundary on
-systems with no IOMMU, but can allocate memory anywhere on systems with
-an IOMMU.
-
-For consistent / coherent memory, we have an allocation function.
-But we don't have an allocation function for streaming memory, which is
-what these drivers want.  They also flush the DMA memory and then access
-the memory through a different virtual mapping, which I'm not sure is
-going to work well on virtually-indexed caches like SPARC and PA-RISC
-(maybe not MIPS either?)
-
-I think we want something like
-
-struct scatterlist *dma_alloc_sg(struct device *dev, int *nents);
-void dma_free_sg(struct device *dev, struct scatterlist *sg, int nents);
-
-That lets individual architectures decide where to allocate, and handle
-the tradeoff between allocating below 4GB and using bounce buffers.
-
-I don't have a good answer to synchronising between device-view of
-memory and CPU-view-through-vmalloc though.  They're already calling
-dma_sync_*_for_cpu(); do they need to also call a new vflush(void *p,
-unsigned long len) function which can be a no-op on x86 and flushes the
-range on SPARC/PA-RISC/... ?
+After all, it has 'DMA' right there in the name.  If someone's relying
+on it to allocate physical memory below 4GB, they're arguably misusing it.
