@@ -1,75 +1,31 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: Regression after commit 19809c2da28a ("mm, vmalloc: use
- __GFP_HIGHMEM implicitly")
-Date: Sun, 11 Feb 2018 04:05:15 -0800
-Message-ID: <20180211120515.GB4551@bombadil.infradead.org>
-References: <627DA40A-D0F6-41C1-BB5A-55830FBC9800@canonical.com>
- <20180208130649.GA15846@bombadil.infradead.org>
- <20180208232004.GA21027@bombadil.infradead.org>
- <20180211092652.GV21609@dhcp22.suse.cz>
- <20180211112808.GA4551@bombadil.infradead.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [git pull] poll annotations - second round
+Date: Sun, 11 Feb 2018 14:45:28 -0800
+Message-ID: <CA+55aFyaoLAh0Ar4a+xHzVZtvP=0423jCWtc3kV5Ncm-UqCHiA@mail.gmail.com>
+References: <20180210192356.GP30522@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20180211112808.GA4551@bombadil.infradead.org>
-Sender: owner-linux-mm@kvack.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: Kai Heng Feng <kai.heng.feng@canonical.com>, Laura Abbott <labbott@redhat.com>, linux-mm@kvack.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, James.Bottomley@HansenPartnership.com, davem@redhat.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-io0-f179.google.com ([209.85.223.179]:40510 "EHLO
+        mail-io0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932168AbeBKWpa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Feb 2018 17:45:30 -0500
+In-Reply-To: <20180210192356.GP30522@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Sun, Feb 11, 2018 at 03:28:08AM -0800, Matthew Wilcox wrote:
-> Now, longer-term, perhaps we should do the following:
-> 
-> #ifdef CONFIG_ZONE_DMA32
-> #define OPT_ZONE_DMA32	ZONE_DMA32
-> #elif defined(CONFIG_64BIT)
-> #define OPT_ZONE_DMA	OPT_ZONE_DMA
-> #else
-> #define OPT_ZONE_DMA32 ZONE_NORMAL
-> #endif
-> 
-> Then we wouldn't need the ifdef here and could always use GFP_DMA32
-> | GFP_KERNEL.  Would need to audit current users and make sure they
-> wouldn't be broken by such a change.
+On Sat, Feb 10, 2018 at 11:23 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>
+> (ideally - just before -rc1)
 
-Argh, I forgot to say the most important thing.  (For those newly invited
-to the party, we're talking about drivers/media, in particular
-drivers/media/common/saa7146/saa7146_core.c, functions
-saa7146_vmalloc_build_pgtable and vmalloc_to_sg)
+Ok, merged and scripted and final patch applied. It's going through
+the allmodconfig test after that final patch, but I'll make -rc1 once
+that's done, and hopefully we are done with the whole EPOLL/POLL
+confusion.
 
-I think we're missing a function in our DMA API.  These drivers don't
-actually need physical memory below the 4GB mark.  They need DMA addresses
-which are below the 4GB mark.  For machines with IOMMUs, this can mean
-no restrictions on physical memory.  If we don't have an IOMMU, then a
-bounce buffer could be used (but would be slow) -- like the swiotlb.
-So we should endeavour to allocate memory below the 4GB boundary on
-systems with no IOMMU, but can allocate memory anywhere on systems with
-an IOMMU.
+.. and yes, I'm sure we'll be picking up straggling new uses of the
+POLL* macros for months or years.
 
-For consistent / coherent memory, we have an allocation function.
-But we don't have an allocation function for streaming memory, which is
-what these drivers want.  They also flush the DMA memory and then access
-the memory through a different virtual mapping, which I'm not sure is
-going to work well on virtually-indexed caches like SPARC and PA-RISC
-(maybe not MIPS either?)
-
-I think we want something like
-
-struct scatterlist *dma_alloc_sg(struct device *dev, int *nents);
-void dma_free_sg(struct device *dev, struct scatterlist *sg, int nents);
-
-That lets individual architectures decide where to allocate, and handle
-the tradeoff between allocating below 4GB and using bounce buffers.
-
-I don't have a good answer to synchronising between device-view of
-memory and CPU-view-through-vmalloc though.  They're already calling
-dma_sync_*_for_cpu(); do they need to also call a new vflush(void *p,
-unsigned long len) function which can be a no-op on x86 and flushes the
-range on SPARC/PA-RISC/... ?
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+            Linus
