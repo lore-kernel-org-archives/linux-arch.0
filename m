@@ -1,54 +1,59 @@
-From: Matthew Wilcox <willy@infradead.org>
-Subject: Re: Regression after commit 19809c2da28a ("mm, vmalloc: use
- __GFP_HIGHMEM implicitly")
-Date: Sun, 11 Feb 2018 15:51:07 -0800
-Message-ID: <20180211235107.GE4680@bombadil.infradead.org>
-References: <627DA40A-D0F6-41C1-BB5A-55830FBC9800@canonical.com>
- <20180208130649.GA15846@bombadil.infradead.org>
- <20180208232004.GA21027@bombadil.infradead.org>
- <20180211092652.GV21609@dhcp22.suse.cz>
- <20180211112808.GA4551@bombadil.infradead.org>
- <20180211120515.GB4551@bombadil.infradead.org>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCHv2 05/12] arm64: Don't trap host pointer auth use to EL2
+Date: Mon, 12 Feb 2018 16:00:39 +0000
+Message-ID: <20180212160039.br2emy3zt6ftmwfu@lakrids.cambridge.arm.com>
+References: <20171127163806.31435-1-mark.rutland@arm.com>
+ <20171127163806.31435-6-mark.rutland@arm.com>
+ <20180206123906.GZ21802@cbox>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180211120515.GB4551@bombadil.infradead.org>
-Sender: owner-linux-mm@kvack.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: Kai Heng Feng <kai.heng.feng@canonical.com>, Laura Abbott <labbott@redhat.com>, linux-mm@kvack.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, James.Bottomley@HansenPartnership.com, davem@redhat.com
+In-Reply-To: <20180206123906.GZ21802@cbox>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoffer Dall <christoffer.dall@linaro.org>
+Cc: linux-arm-kernel@lists.infradead.org, arnd@arndb.de, catalin.marinas@arm.com, cdall@linaro.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Feb 11, 2018 at 04:05:15AM -0800, Matthew Wilcox wrote:
-> On Sun, Feb 11, 2018 at 03:28:08AM -0800, Matthew Wilcox wrote:
-> > Now, longer-term, perhaps we should do the following:
-> > 
-> > #ifdef CONFIG_ZONE_DMA32
-> > #define OPT_ZONE_DMA32	ZONE_DMA32
-> > #elif defined(CONFIG_64BIT)
-> > #define OPT_ZONE_DMA	OPT_ZONE_DMA
-> > #else
-> > #define OPT_ZONE_DMA32 ZONE_NORMAL
-> > #endif
+On Tue, Feb 06, 2018 at 01:39:06PM +0100, Christoffer Dall wrote:
+> Hi Mark,
 > 
-> For consistent / coherent memory, we have an allocation function.
-> But we don't have an allocation function for streaming memory, which is
-> what these drivers want.  They also flush the DMA memory and then access
-> the memory through a different virtual mapping, which I'm not sure is
-> going to work well on virtually-indexed caches like SPARC and PA-RISC
-> (maybe not MIPS either?)
+> On Mon, Nov 27, 2017 at 04:37:59PM +0000, Mark Rutland wrote:
+> > To allow EL0 (and/or EL1) to use pointer authentication functionality,
+> > we must ensure that pointer authentication instructions and accesses to
+> > pointer authentication keys are not trapped to EL2 (where we will not be
+> > able to handle them).
+> 
+> ...on non-VHE systems, presumably?
 
-Perhaps I (and a number of other people ...) have misunderstood the
-semantics of GFP_DMA32.  Perhaps GFP_DMA32 is not "allocate memory below
-4GB", perhaps it's "allocate memory which can be mapped below 4GB".
-Machines with an IOMMU can use ZONE_NORMAL.  Machines with no IOMMU can
-choose to allocate memory with a physical address below 4GB.
+For EL0 usage, we don't want to trap even in the absence of VHE, so I'll
+drop the bit in brackets entirely.
 
-After all, it has 'DMA' right there in the name.  If someone's relying
-on it to allocate physical memory below 4GB, they're arguably misusing it.
+> > This patch ensures that HCR_EL2 is configured appropriately when the
+> > kernel is booted at EL2. For non-VHE kernels we set HCR_EL2.{API,APK},
+> > ensuring that EL1 can access keys and permit EL0 use of instructions.
+> > For VHE kernels, EL2 access is controlled by EL3, and we need not set
+> > anything.
+> 
+> 
+> for VHE kernels host EL0 (TGE && E2H) is unaffected by these settings,
+> and it doesn't matter how we configure HCR_EL2.{API,APK}.
+> 
+> (Because you do actually set these bits when the features are present if
+> I read the code correctly).
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Ah, true. I've taken your proposed wording.
+
+> > This does not enable support for KVM guests, since KVM manages HCR_EL2
+> > itself.
+> 
+>         (...when running VMs.)
+> 
+> 
+> Besides the nits:
+> 
+> Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
+
+Cheers!
+
+Mark.
