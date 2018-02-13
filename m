@@ -1,64 +1,461 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:42660 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932878AbeBLQAr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 12 Feb 2018 11:00:47 -0500
-Date: Mon, 12 Feb 2018 16:00:39 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCHv2 05/12] arm64: Don't trap host pointer auth use to EL2
-Message-ID: <20180212160039.br2emy3zt6ftmwfu@lakrids.cambridge.arm.com>
-References: <20171127163806.31435-1-mark.rutland@arm.com>
- <20171127163806.31435-6-mark.rutland@arm.com>
- <20180206123906.GZ21802@cbox>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180206123906.GZ21802@cbox>
+Received: from mail-pl0-f66.google.com ([209.85.160.66]:44104 "EHLO
+        mail-pl0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934147AbeBMJLn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Feb 2018 04:11:43 -0500
+From: Greentime Hu <green.hu@gmail.com>
+Subject: [PATCH v7 13/37] nds32: Process management
+Date: Tue, 13 Feb 2018 17:09:17 +0800
+Message-ID: <04436a48ed9ec3c221740478cd9a620e50100d7a.1518505384.git.greentime@andestech.com>
+In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
+References: <cover.1518505384.git.greentime@andestech.com>
+In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
+References: <cover.1518505384.git.greentime@andestech.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoffer Dall <christoffer.dall@linaro.org>
-Cc: linux-arm-kernel@lists.infradead.org, arnd@arndb.de, catalin.marinas@arm.com, cdall@linaro.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org
-Message-ID: <20180212160039.HGWoMPaTmpTZvt-S3Zq-ECJBq591ANTOeWmk7Qf4Pmw@z>
+To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
+Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
+Message-ID: <20180213090917.FcChc9Oms_irtvlfLDj_SYflr-l2JppaYi_eJWyIhGo@z>
 
-On Tue, Feb 06, 2018 at 01:39:06PM +0100, Christoffer Dall wrote:
-> Hi Mark,
-> 
-> On Mon, Nov 27, 2017 at 04:37:59PM +0000, Mark Rutland wrote:
-> > To allow EL0 (and/or EL1) to use pointer authentication functionality,
-> > we must ensure that pointer authentication instructions and accesses to
-> > pointer authentication keys are not trapped to EL2 (where we will not be
-> > able to handle them).
-> 
-> ...on non-VHE systems, presumably?
+This patch includes copy_thread(), start_thread() implementation and cpu_context
+structure definition. nds32 uses $r25 to get current task_struct.
 
-For EL0 usage, we don't want to trap even in the absence of VHE, so I'll
-drop the bit in brackets entirely.
+Signed-off-by: Vincent Chen <vincentc@andestech.com>
+Signed-off-by: Greentime Hu <greentime@andestech.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/nds32/include/asm/current.h     |  12 ++
+ arch/nds32/include/asm/processor.h   | 103 +++++++++++++++++
+ arch/nds32/include/asm/thread_info.h |  76 +++++++++++++
+ arch/nds32/kernel/process.c          | 208 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 399 insertions(+)
+ create mode 100644 arch/nds32/include/asm/current.h
+ create mode 100644 arch/nds32/include/asm/processor.h
+ create mode 100644 arch/nds32/include/asm/thread_info.h
+ create mode 100644 arch/nds32/kernel/process.c
 
-> > This patch ensures that HCR_EL2 is configured appropriately when the
-> > kernel is booted at EL2. For non-VHE kernels we set HCR_EL2.{API,APK},
-> > ensuring that EL1 can access keys and permit EL0 use of instructions.
-> > For VHE kernels, EL2 access is controlled by EL3, and we need not set
-> > anything.
-> 
-> 
-> for VHE kernels host EL0 (TGE && E2H) is unaffected by these settings,
-> and it doesn't matter how we configure HCR_EL2.{API,APK}.
-> 
-> (Because you do actually set these bits when the features are present if
-> I read the code correctly).
-
-Ah, true. I've taken your proposed wording.
-
-> > This does not enable support for KVM guests, since KVM manages HCR_EL2
-> > itself.
-> 
->         (...when running VMs.)
-> 
-> 
-> Besides the nits:
-> 
-> Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
-
-Cheers!
-
-Mark.
+diff --git a/arch/nds32/include/asm/current.h b/arch/nds32/include/asm/current.h
+new file mode 100644
+index 000000000000..b4dcd22b7bcb
+--- /dev/null
++++ b/arch/nds32/include/asm/current.h
+@@ -0,0 +1,12 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#ifndef _ASM_NDS32_CURRENT_H
++#define _ASM_NDS32_CURRENT_H
++
++#ifndef __ASSEMBLY__
++register struct task_struct *current asm("$r25");
++#endif /* __ASSEMBLY__ */
++#define tsk $r25
++
++#endif /* _ASM_NDS32_CURRENT_H */
+diff --git a/arch/nds32/include/asm/processor.h b/arch/nds32/include/asm/processor.h
+new file mode 100644
+index 000000000000..9c83caf4269f
+--- /dev/null
++++ b/arch/nds32/include/asm/processor.h
+@@ -0,0 +1,103 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#ifndef __ASM_NDS32_PROCESSOR_H
++#define __ASM_NDS32_PROCESSOR_H
++
++/*
++ * Default implementation of macro that returns current
++ * instruction pointer ("program counter").
++ */
++#define current_text_addr() ({ __label__ _l; _l: &&_l;})
++
++#ifdef __KERNEL__
++
++#include <asm/ptrace.h>
++#include <asm/types.h>
++#include <asm/sigcontext.h>
++
++#define KERNEL_STACK_SIZE	PAGE_SIZE
++#define STACK_TOP	TASK_SIZE
++#define STACK_TOP_MAX   TASK_SIZE
++
++struct cpu_context {
++	unsigned long r6;
++	unsigned long r7;
++	unsigned long r8;
++	unsigned long r9;
++	unsigned long r10;
++	unsigned long r11;
++	unsigned long r12;
++	unsigned long r13;
++	unsigned long r14;
++	unsigned long fp;
++	unsigned long pc;
++	unsigned long sp;
++};
++
++struct thread_struct {
++	struct cpu_context cpu_context;	/* cpu context */
++	/* fault info     */
++	unsigned long address;
++	unsigned long trap_no;
++	unsigned long error_code;
++};
++
++#define INIT_THREAD  {	}
++
++#ifdef __NDS32_EB__
++#define PSW_DE	PSW_mskBE
++#else
++#define PSW_DE	0x0
++#endif
++
++#ifdef CONFIG_WBNA
++#define PSW_valWBNA	PSW_mskWBNA
++#else
++#define PSW_valWBNA	0x0
++#endif
++
++#ifdef CONFIG_HWZOL
++#define	PSW_valINIT (PSW_CPL_ANY | PSW_mskAEN | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
++#else
++#define	PSW_valINIT (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_mskGIE)
++#endif
++
++#define start_thread(regs,pc,stack)			\
++({							\
++	memzero(regs, sizeof(struct pt_regs));		\
++	forget_syscall(regs);				\
++	regs->ipsw = PSW_valINIT;			\
++	regs->ir0 = (PSW_CPL_ANY | PSW_valWBNA | PSW_mskDT | PSW_mskIT | PSW_DE | PSW_SYSTEM | PSW_INTL_1);	\
++	regs->ipc = pc;					\
++	regs->sp = stack;				\
++})
++
++/* Forward declaration, a strange C thing */
++struct task_struct;
++
++/* Free all resources held by a thread. */
++#define release_thread(thread) do { } while(0)
++
++/* Prepare to copy thread state - unlazy all lazy status */
++#define prepare_to_copy(tsk)	do { } while (0)
++
++unsigned long get_wchan(struct task_struct *p);
++
++#define cpu_relax()			barrier()
++
++#define task_pt_regs(task) \
++	((struct pt_regs *) (task_stack_page(task) + THREAD_SIZE \
++		- 8) - 1)
++
++/*
++ * Create a new kernel thread
++ */
++extern int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags);
++
++#define KSTK_EIP(tsk)	instruction_pointer(task_pt_regs(tsk))
++#define KSTK_ESP(tsk)	user_stack_pointer(task_pt_regs(tsk))
++
++#endif
++
++#endif /* __ASM_NDS32_PROCESSOR_H */
+diff --git a/arch/nds32/include/asm/thread_info.h b/arch/nds32/include/asm/thread_info.h
+new file mode 100644
+index 000000000000..bff741ff337b
+--- /dev/null
++++ b/arch/nds32/include/asm/thread_info.h
+@@ -0,0 +1,76 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#ifndef __ASM_NDS32_THREAD_INFO_H
++#define __ASM_NDS32_THREAD_INFO_H
++
++#ifdef __KERNEL__
++
++#define THREAD_SIZE_ORDER 	(1)
++#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
++
++#ifndef __ASSEMBLY__
++
++struct task_struct;
++
++#include <asm/ptrace.h>
++#include <asm/types.h>
++
++typedef unsigned long mm_segment_t;
++
++/*
++ * low level task data that entry.S needs immediate access to.
++ * __switch_to() assumes cpu_context follows immediately after cpu_domain.
++ */
++struct thread_info {
++	unsigned long flags;	/* low level flags */
++	__s32 preempt_count;	/* 0 => preemptable, <0 => bug */
++	mm_segment_t addr_limit;	/* address limit */
++};
++#define INIT_THREAD_INFO(tsk)						\
++{									\
++	.preempt_count	= INIT_PREEMPT_COUNT,				\
++	.addr_limit	= KERNEL_DS,					\
++}
++#define thread_saved_pc(tsk) ((unsigned long)(tsk->thread.cpu_context.pc))
++#define thread_saved_fp(tsk) ((unsigned long)(tsk->thread.cpu_context.fp))
++#endif
++
++/*
++ * thread information flags:
++ *  TIF_SYSCALL_TRACE	- syscall trace active
++ *  TIF_SIGPENDING	- signal pending
++ *  TIF_NEED_RESCHED	- rescheduling necessary
++ *  TIF_NOTIFY_RESUME	- callback before returning to user
++ *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
++ *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
++ */
++#define TIF_SIGPENDING		1
++#define TIF_NEED_RESCHED	2
++#define TIF_SINGLESTEP		3
++#define TIF_NOTIFY_RESUME	4	/* callback before returning to user */
++#define TIF_SYSCALL_TRACE	8
++#define TIF_USEDFPU             16
++#define TIF_POLLING_NRFLAG	17
++#define TIF_MEMDIE		18
++#define TIF_FREEZE		19
++#define TIF_RESTORE_SIGMASK	20
++
++#define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
++#define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
++#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
++#define _TIF_SINGLESTEP		(1 << TIF_SINGLESTEP)
++#define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
++#define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
++#define _TIF_FREEZE		(1 << TIF_FREEZE)
++#define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
++
++/*
++ * Change these and you break ASM code in entry-common.S
++ */
++#define _TIF_WORK_MASK		0x000000ff
++#define _TIF_WORK_SYSCALL_ENTRY (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
++#define _TIF_WORK_SYSCALL_LEAVE (_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP)
++
++#endif /* __KERNEL__ */
++#endif /* __ASM_NDS32_THREAD_INFO_H */
+diff --git a/arch/nds32/kernel/process.c b/arch/nds32/kernel/process.c
+new file mode 100644
+index 000000000000..65fda986e55f
+--- /dev/null
++++ b/arch/nds32/kernel/process.c
+@@ -0,0 +1,208 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++
++#include <linux/sched.h>
++#include <linux/sched/debug.h>
++#include <linux/sched/task_stack.h>
++#include <linux/delay.h>
++#include <linux/kallsyms.h>
++#include <linux/uaccess.h>
++#include <asm/elf.h>
++#include <asm/proc-fns.h>
++#include <linux/ptrace.h>
++#include <linux/reboot.h>
++
++extern void setup_mm_for_reboot(char mode);
++#ifdef CONFIG_PROC_FS
++struct proc_dir_entry *proc_dir_cpu;
++EXPORT_SYMBOL(proc_dir_cpu);
++#endif
++
++extern inline void arch_reset(char mode)
++{
++	if (mode == 's') {
++		/* Use cpu handler, jump to 0 */
++		cpu_reset(0);
++	}
++}
++
++void (*pm_power_off) (void);
++EXPORT_SYMBOL(pm_power_off);
++
++static char reboot_mode_nds32 = 'h';
++
++int __init reboot_setup(char *str)
++{
++	reboot_mode_nds32 = str[0];
++	return 1;
++}
++
++static int cpub_pwroff(void)
++{
++	return 0;
++}
++
++__setup("reboot=", reboot_setup);
++
++void machine_halt(void)
++{
++	cpub_pwroff();
++}
++
++EXPORT_SYMBOL(machine_halt);
++
++void machine_power_off(void)
++{
++	if (pm_power_off)
++		pm_power_off();
++}
++
++EXPORT_SYMBOL(machine_power_off);
++
++void machine_restart(char *cmd)
++{
++	/*
++	 * Clean and disable cache, and turn off interrupts
++	 */
++	cpu_proc_fin();
++
++	/*
++	 * Tell the mm system that we are going to reboot -
++	 * we may need it to insert some 1:1 mappings so that
++	 * soft boot works.
++	 */
++	setup_mm_for_reboot(reboot_mode_nds32);
++
++	/* Execute kernel restart handler call chain */
++	do_kernel_restart(cmd);
++
++	/*
++	 * Now call the architecture specific reboot code.
++	 */
++	arch_reset(reboot_mode_nds32);
++
++	/*
++	 * Whoops - the architecture was unable to reboot.
++	 * Tell the user!
++	 */
++	mdelay(1000);
++	pr_info("Reboot failed -- System halted\n");
++	while (1) ;
++}
++
++EXPORT_SYMBOL(machine_restart);
++
++void show_regs(struct pt_regs *regs)
++{
++	printk("PC is at %pS\n", (void *)instruction_pointer(regs));
++	printk("LP is at %pS\n", (void *)regs->lp);
++	pr_info("pc : [<%08lx>]    lp : [<%08lx>]    %s\n"
++		"sp : %08lx  fp : %08lx  gp : %08lx\n",
++		instruction_pointer(regs),
++		regs->lp, print_tainted(), regs->sp, regs->fp, regs->gp);
++	pr_info("r25: %08lx  r24: %08lx\n", regs->uregs[25], regs->uregs[24]);
++
++	pr_info("r23: %08lx  r22: %08lx  r21: %08lx  r20: %08lx\n",
++		regs->uregs[23], regs->uregs[22],
++		regs->uregs[21], regs->uregs[20]);
++	pr_info("r19: %08lx  r18: %08lx  r17: %08lx  r16: %08lx\n",
++		regs->uregs[19], regs->uregs[18],
++		regs->uregs[17], regs->uregs[16]);
++	pr_info("r15: %08lx  r14: %08lx  r13: %08lx  r12: %08lx\n",
++		regs->uregs[15], regs->uregs[14],
++		regs->uregs[13], regs->uregs[12]);
++	pr_info("r11: %08lx  r10: %08lx  r9 : %08lx  r8 : %08lx\n",
++		regs->uregs[11], regs->uregs[10],
++		regs->uregs[9], regs->uregs[8]);
++	pr_info("r7 : %08lx  r6 : %08lx  r5 : %08lx  r4 : %08lx\n",
++		regs->uregs[7], regs->uregs[6], regs->uregs[5], regs->uregs[4]);
++	pr_info("r3 : %08lx  r2 : %08lx  r1 : %08lx  r0 : %08lx\n",
++		regs->uregs[3], regs->uregs[2], regs->uregs[1], regs->uregs[0]);
++	pr_info("  IRQs o%s  Segment %s\n",
++		interrupts_enabled(regs) ? "n" : "ff",
++		segment_eq(get_fs(), get_ds())? "kernel" : "user");
++}
++
++EXPORT_SYMBOL(show_regs);
++
++void flush_thread(void)
++{
++}
++
++DEFINE_PER_CPU(struct task_struct *, __entry_task);
++
++asmlinkage void ret_from_fork(void) __asm__("ret_from_fork");
++int copy_thread(unsigned long clone_flags, unsigned long stack_start,
++	    unsigned long stk_sz, struct task_struct *p)
++{
++	struct pt_regs *childregs = task_pt_regs(p);
++
++	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
++
++	if (unlikely(p->flags & PF_KTHREAD)) {
++		memset(childregs, 0, sizeof(struct pt_regs));
++		/* kernel thread fn */
++		p->thread.cpu_context.r6 = stack_start;
++		/* kernel thread argument */
++		p->thread.cpu_context.r7 = stk_sz;
++	} else {
++		*childregs = *current_pt_regs();
++		if (stack_start)
++			childregs->sp = stack_start;
++		/* child get zero as ret. */
++		childregs->uregs[0] = 0;
++		childregs->osp = 0;
++		if (clone_flags & CLONE_SETTLS)
++			childregs->uregs[25] = childregs->uregs[3];
++	}
++	/* cpu context switching  */
++	p->thread.cpu_context.pc = (unsigned long)ret_from_fork;
++	p->thread.cpu_context.sp = (unsigned long)childregs;
++
++#ifdef CONFIG_HWZOL
++	childregs->lb = 0;
++	childregs->le = 0;
++	childregs->lc = 0;
++#endif
++
++	return 0;
++}
++
++/*
++ * fill in the fpe structure for a core dump...
++ */
++int dump_fpu(struct pt_regs *regs, elf_fpregset_t * fpu)
++{
++	int fpvalid = 0;
++	return fpvalid;
++}
++
++EXPORT_SYMBOL(dump_fpu);
++
++unsigned long get_wchan(struct task_struct *p)
++{
++	unsigned long fp, lr;
++	unsigned long stack_start, stack_end;
++	int count = 0;
++
++	if (!p || p == current || p->state == TASK_RUNNING)
++		return 0;
++
++	if (IS_ENABLED(CONFIG_FRAME_POINTER)) {
++		stack_start = (unsigned long)end_of_stack(p);
++		stack_end = (unsigned long)task_stack_page(p) + THREAD_SIZE;
++
++		fp = thread_saved_fp(p);
++		do {
++			if (fp < stack_start || fp > stack_end)
++				return 0;
++			lr = ((unsigned long *)fp)[0];
++			if (!in_sched_functions(lr))
++				return lr;
++			fp = *(unsigned long *)(fp + 4);
++		} while (count++ < 16);
++	}
++	return 0;
++}
++
++EXPORT_SYMBOL(get_wchan);
+-- 
+2.16.1
