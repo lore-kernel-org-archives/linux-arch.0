@@ -1,14 +1,18 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v7 0/3] clocksource/drivers/atcpit100: Add andestech atcpit100 timer
-Date: Tue, 13 Feb 2018 17:13:16 +0800
-Message-ID: <cover.1518505425.git.greentime@andestech.com>
+Subject: [PATCH v7 1/3] clocksource/drivers/atcpit100: Add andestech atcpit100 timer
+Date: Tue, 13 Feb 2018 17:13:17 +0800
+Message-ID: <129d3fd48d42bcea5c83758d8bdfecc9212ad5b8.1518505425.git.greentime@andestech.com>
+References: <cover.1518505425.git.greentime@andestech.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1518505425.git.greentime@andestech.com>
+In-Reply-To: <cover.1518505425.git.greentime@andestech.com>
+References: <cover.1518505425.git.greentime@andestech.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com
+Cc: Rick Chen <rickchen36@gmail.com>, green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi, all:
+From: Rick Chen <rickchen36@gmail.com>
 
 ATCPIT100 is often used on the Andes architecture,
 This timer provide 4 PIT channels. Each PIT channel is a
@@ -22,30 +26,298 @@ It also set channel 0 32-bit timer0 as clock event and count
 downwards until condition match. It will generate an interrupt
 for handling periodically.
 
-Changes in v7:
- - Fix atcpit100_clkevt_next_event(), before set reload register,
-   clock source timer shall disable. And re-enable it after the setting.
-   Without this modification, the test case 'clock_nanosleep02' of ltp_20170929
-   will fail.
+Signed-off-by: Rick Chen <rickchen36@gmail.com>
+Signed-off-by: Greentime Hu <green.hu@gmail.com>
+Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 
-Changes in v6:
- - To select TIMER_OF in drivers/clocksource/Kconfig instead of arch/nds32/Kconfig
- - Refine Kconfig
- - Update license format to SPDX-License-Identifier
-
-
-Rick Chen (3):
-  clocksource/drivers/atcpit100: Add andestech atcpit100 timer
-  clocksource/drivers/atcpit100: VDSO support
-  dt-bindings: timer: Add andestech atcpit100 timer binding doc
-
- .../bindings/timer/andestech,atcpit100-timer.txt   |  33 +++
- drivers/clocksource/Kconfig                        |   9 +
- drivers/clocksource/Makefile                       |   1 +
- drivers/clocksource/timer-atcpit100.c              | 266 +++++++++++++++++++++
- 4 files changed, 309 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/andestech,atcpit100-timer.txt
+Add andestech atcpit100 timer
+---
+ drivers/clocksource/Kconfig           |   9 ++
+ drivers/clocksource/Makefile          |   1 +
+ drivers/clocksource/timer-atcpit100.c | 248 ++++++++++++++++++++++++++++++++++
+ 3 files changed, 258 insertions(+)
  create mode 100644 drivers/clocksource/timer-atcpit100.c
 
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index b3b4ed9b6874..19d65fe0627e 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -591,4 +591,13 @@ config CLKSRC_ST_LPC
+ 	  Enable this option to use the Low Power controller timer
+ 	  as clocksource.
+ 
++config ATCPIT100_TIMER
++	bool "ATCPIT100 timer driver"
++	depends on NDS32 || COMPILE_TEST
++	depends on HAS_IOMEM
++	select TIMER_OF
++	default NDS32
++	help
++	  This option enables support for the Andestech ATCPIT100 timers.
++
+ endmenu
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index d6dec4489d66..a79523b22e52 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -76,3 +76,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
+ obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
+ obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
+ obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
++obj-$(CONFIG_ATCPIT100_TIMER)		+= timer-atcpit100.o
+diff --git a/drivers/clocksource/timer-atcpit100.c b/drivers/clocksource/timer-atcpit100.c
+new file mode 100644
+index 000000000000..2190096cffa3
+--- /dev/null
++++ b/drivers/clocksource/timer-atcpit100.c
+@@ -0,0 +1,248 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2005-2017 Andes Technology Corporation
++/*
++ *  Andestech ATCPIT100 Timer Device Driver Implementation
++ * Rick Chen, Andes Technology Corporation <rick@andestech.com>
++ *
++ */
++
++#include <linux/irq.h>
++#include <linux/clocksource.h>
++#include <linux/clockchips.h>
++#include <linux/interrupt.h>
++#include <linux/ioport.h>
++#include <linux/cpufreq.h>
++#include <linux/sched.h>
++#include <linux/sched_clock.h>
++#include <linux/of_address.h>
++#include <linux/of_irq.h>
++#include <linux/of_platform.h>
++#include "timer-of.h"
++
++/*
++ * Definition of register offsets
++ */
++
++/* ID and Revision Register */
++#define ID_REV		0x0
++
++/* Configuration Register */
++#define CFG		0x10
++
++/* Interrupt Enable Register */
++#define INT_EN		0x14
++#define CH_INT_EN(c, i)	((1<<i)<<(4*c))
++#define CH0INT0EN	0x01
++
++/* Interrupt Status Register */
++#define INT_STA		0x18
++#define CH0INT0		0x01
++
++/* Channel Enable Register */
++#define CH_EN		0x1C
++#define CH0TMR0EN	0x1
++#define CH1TMR0EN	0x10
++
++/* Channel 0 , 1 Control Register */
++#define CH0_CTL		(0x20)
++#define CH1_CTL		(0x20 + 0x10)
++
++/* Channel clock source , bit 3 , 0:External clock , 1:APB clock */
++#define APB_CLK		BIT(3)
++
++/* Channel mode , bit 0~2 */
++#define TMR_32		0x1
++#define TMR_16		0x2
++#define TMR_8		0x3
++
++/* Channel 0 , 1 Reload Register */
++#define CH0_REL		(0x24)
++#define CH1_REL		(0x24 + 0x10)
++
++/* Channel 0 , 1 Counter Register */
++#define CH0_CNT		(0x28)
++#define CH1_CNT		(0x28 + 0x10)
++
++#define TIMER_SYNC_TICKS	3
++
++static void atcpit100_ch1_tmr0_en(void __iomem *base)
++{
++	writel(~0, base + CH1_REL);
++	writel(APB_CLK|TMR_32, base + CH1_CTL);
++}
++
++static void atcpit100_ch0_tmr0_en(void __iomem *base)
++{
++	writel(APB_CLK|TMR_32, base + CH0_CTL);
++}
++
++static void atcpit100_clkevt_time_setup(void __iomem *base, unsigned long delay)
++{
++	writel(delay, base + CH0_CNT);
++	writel(delay, base + CH0_REL);
++}
++
++static void atcpit100_timer_clear_interrupt(void __iomem *base)
++{
++	u32 val;
++
++	val = readl(base + INT_STA);
++	writel(val | CH0INT0, base + INT_STA);
++}
++
++static void atcpit100_clocksource_start(void __iomem *base)
++{
++	u32 val;
++
++	val = readl(base + CH_EN);
++	writel(val | CH1TMR0EN, base + CH_EN);
++}
++
++static void atcpit100_clkevt_time_start(void __iomem *base)
++{
++	u32 val;
++
++	val = readl(base + CH_EN);
++	writel(val | CH0TMR0EN, base + CH_EN);
++}
++
++static void atcpit100_clkevt_time_stop(void __iomem *base)
++{
++	u32 val;
++
++	atcpit100_timer_clear_interrupt(base);
++	val = readl(base + CH_EN);
++	writel(val & ~CH0TMR0EN, base + CH_EN);
++}
++
++static int atcpit100_clkevt_next_event(unsigned long evt,
++	struct clock_event_device *clkevt)
++{
++	u32 val;
++	struct timer_of *to = to_timer_of(clkevt);
++
++	val = readl(timer_of_base(to) + CH_EN);
++	writel(val & ~CH0TMR0EN, timer_of_base(to) + CH_EN);
++	writel(evt, timer_of_base(to) + CH0_REL);
++	writel(val | CH0TMR0EN, timer_of_base(to) + CH_EN);
++
++	return 0;
++}
++
++static int atcpit100_clkevt_set_periodic(struct clock_event_device *evt)
++{
++	struct timer_of *to = to_timer_of(evt);
++
++	atcpit100_clkevt_time_setup(timer_of_base(to), timer_of_period(to));
++	atcpit100_clkevt_time_start(timer_of_base(to));
++
++	return 0;
++}
++static int atcpit100_clkevt_shutdown(struct clock_event_device *evt)
++{
++	struct timer_of *to = to_timer_of(evt);
++
++	atcpit100_clkevt_time_stop(timer_of_base(to));
++
++	return 0;
++}
++static int atcpit100_clkevt_set_oneshot(struct clock_event_device *evt)
++{
++	struct timer_of *to = to_timer_of(evt);
++	u32 val;
++
++	writel(~0x0, timer_of_base(to) + CH0_REL);
++	val = readl(timer_of_base(to) + CH_EN);
++	writel(val | CH0TMR0EN, timer_of_base(to) + CH_EN);
++
++	return 0;
++}
++
++static irqreturn_t atcpit100_timer_interrupt(int irq, void *dev_id)
++{
++	struct clock_event_device *evt = (struct clock_event_device *)dev_id;
++	struct timer_of *to = to_timer_of(evt);
++
++	atcpit100_timer_clear_interrupt(timer_of_base(to));
++
++	evt->event_handler(evt);
++
++	return IRQ_HANDLED;
++}
++
++static struct timer_of to = {
++	.flags = TIMER_OF_IRQ | TIMER_OF_CLOCK | TIMER_OF_BASE,
++
++	.clkevt = {
++		.name = "atcpit100_tick",
++		.rating = 300,
++		.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
++		.set_state_shutdown = atcpit100_clkevt_shutdown,
++		.set_state_periodic = atcpit100_clkevt_set_periodic,
++		.set_state_oneshot = atcpit100_clkevt_set_oneshot,
++		.tick_resume = atcpit100_clkevt_shutdown,
++		.set_next_event = atcpit100_clkevt_next_event,
++		.cpumask = cpu_all_mask,
++	},
++
++	.of_irq = {
++		.handler = atcpit100_timer_interrupt,
++		.flags = IRQF_TIMER | IRQF_IRQPOLL,
++	},
++
++	/*
++	 * FIXME: we currently only support clocking using PCLK
++	 * and using EXTCLK is not supported in the driver.
++	 */
++	.of_clk = {
++		.name = "PCLK",
++	}
++};
++
++static u64 notrace atcpit100_timer_sched_read(void)
++{
++	return ~readl(timer_of_base(&to) + CH1_CNT);
++}
++
++static int __init atcpit100_timer_init(struct device_node *node)
++{
++	int ret;
++	u32 val;
++	void __iomem *base;
++
++	ret = timer_of_init(node, &to);
++	if (ret)
++		return ret;
++
++	base = timer_of_base(&to);
++
++	sched_clock_register(atcpit100_timer_sched_read, 32,
++		timer_of_rate(&to));
++
++	ret = clocksource_mmio_init(base + CH1_CNT,
++		node->name, timer_of_rate(&to), 300, 32,
++		clocksource_mmio_readl_down);
++
++	if (ret) {
++		pr_err("Failed to register clocksource\n");
++		return ret;
++	}
++
++	/* clear channel 0 timer0 interrupt */
++	atcpit100_timer_clear_interrupt(base);
++
++	clockevents_config_and_register(&to.clkevt, timer_of_rate(&to),
++					TIMER_SYNC_TICKS, 0xffffffff);
++	atcpit100_ch0_tmr0_en(base);
++	atcpit100_ch1_tmr0_en(base);
++	atcpit100_clocksource_start(base);
++	atcpit100_clkevt_time_start(base);
++
++	/* Enable channel 0 timer0 interrupt */
++	val = readl(base + INT_EN);
++	writel(val | CH0INT0EN, base + INT_EN);
++
++	return ret;
++}
++
++TIMER_OF_DECLARE(atcpit100, "andestech,atcpit100", atcpit100_timer_init);
 -- 
 2.16.1
