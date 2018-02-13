@@ -1,63 +1,121 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v7 02/37] asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU
-Date: Tue, 13 Feb 2018 17:09:06 +0800
-Message-ID: <ff404658ececd53f1bf111067c587c4e3eb695af.1518505384.git.greentime@andestech.com>
-References: <cover.1518505384.git.greentime@andestech.com>
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
-In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
-References: <cover.1518505384.git.greentime@andestech.com>
-Sender: netdev-owner@vger.kernel.org
-To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-List-Id: linux-arch.vger.kernel.org
+From: James Morse <james.morse@arm.com>
+Subject: Re: [RFC PATCH v2 3/3] arm64: signal: Ensure si_code is valid for
+ all fault signals
+Date: Tue, 13 Feb 2018 13:58:55 +0000
+Message-ID: <5A82EF1F.8010701@arm.com>
+References: <1517338243-9749-1-git-send-email-Dave.Martin@arm.com> <1517338243-9749-4-git-send-email-Dave.Martin@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:58106 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S964859AbeBMOBY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 13 Feb 2018 09:01:24 -0500
+In-Reply-To: <1517338243-9749-4-git-send-email-Dave.Martin@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, "Eric W. Biederman" <ebiederm@xmission.com>, Catalin Marinas <catalin.marinas@arm.com>
 
-It allows some architectures to use this generic macro instead of
-defining theirs.
+Hi Dave,
 
-Signed-off-by: Vincent Chen <vincentc@andestech.com>
-Signed-off-by: Greentime Hu <greentime@andestech.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
----
- include/asm-generic/io.h | 18 +++++++++---------
- 1 file changed, 9 insertions(+), 9 deletions(-)
+On 30/01/18 18:50, Dave Martin wrote:
+> Currently, as reported by Eric, an invalid si_code value 0 is
+> passed in many signals delivered to userspace in response to faults
+> and other kernel errors.  Typically 0 is passed when the fault is
+> insufficiently diagnosable or when there does not appear to be any
+> sensible alternative value to choose.
+> 
+> This appears to violate POSIX, and is intuitively wrong for at
+> least two reasons arising from the fact that 0 == SI_USER:
+> 
+>  1) si_code is a union selector, and SI_USER (and si_code <= 0 in
+>     general) implies the existence of a different set of fields
+>     (siginfo._kill) from that which exists for a fault signal
+>     (siginfo._sigfault).  However, the code raising the signal
+>     typically writes only the _sigfault fields, and the _kill
+>     fields make no sense in this case.
+> 
+>     Thus when userspace sees si_code == 0 (SI_USER) it may
+>     legitimately inspect fields in the inactive union member _kill
+>     and obtain garbage as a result.
+> 
+>     There appears to be software in the wild relying on this,
+>     albeit generally only for printing diagnostic messages.
+> 
+>  2) Software that wants to be robust against spurious signals may
+>     discard signals where si_code == SI_USER (or <= 0), or may
+>     filter such signals based on the si_uid and si_pid fields of
+>     siginfo._sigkill.  In the case of fault signals, this means
+>     that important (and usually fatal) error conditions may be
+>     silently ignored.
+> 
+> In practice, many of the faults for which arm64 passes si_code == 0
+> are undiagnosable conditions such as exceptions with syndrome
+> values in ESR_ELx to which the architecture does not yet assign any
+> meaning, or conditions indicative of a bug or error in the kernel
+> or system and thus that are unrecoverable and should never occur in
+> normal operation.
+> 
+> The approach taken in this patch is to translate all such
+> undiagnosable or "impossible" synchronous fault conditions to
+> SIGKILL, since these are at least probably localisable to a single
+> process.  Some of these conditions should really result in a kernel
+> panic, but due to the lack of diagnostic information it is
+> difficult to be certain: this patch does not add any calls to
+> panic(), but this could change later if justified.
+> 
+> Although si_code will not reach userspace in the case of SIGKILL,
+> it is still desirable to pass a nonzero value so that the common
+> siginfo handling code can detect incorrect use of si_code == 0
+> without false positives.  In this case the si_code dependent
+> siginfo fields will not be correctly initialised, but since they
+> are not passed to userspace I deem this not to matter.
+> 
+> A few faults can reasonably occur in realistic userspace scenarios,
+> and _should_ raise a regular, handleable (but perhaps not
+> ignorable/blockable) signal: for these, this patch attempts to
+> choose a suitable standard si_code value for the raised signal in
+> each case instead of 0.
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index b4531e3b2120..7c6a39e64749 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -852,7 +852,16 @@ static inline void __iomem *__ioremap(phys_addr_t offset, size_t size,
- }
- #endif
- 
-+#ifndef iounmap
-+#define iounmap iounmap
-+
-+static inline void iounmap(void __iomem *addr)
-+{
-+}
-+#endif
-+#endif /* CONFIG_MMU */
- #ifndef ioremap_nocache
-+void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
- #define ioremap_nocache ioremap_nocache
- static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
- {
-@@ -884,15 +893,6 @@ static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
- }
- #endif
- 
--#ifndef iounmap
--#define iounmap iounmap
--
--static inline void iounmap(void __iomem *addr)
--{
--}
--#endif
--#endif /* CONFIG_MMU */
--
- #ifdef CONFIG_HAS_IOPORT_MAP
- #ifndef CONFIG_GENERIC_IOMAP
- #ifndef ioport_map
--- 
-2.16.1
+
+> diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+> index 9b7f89d..4baa922 100644
+> --- a/arch/arm64/mm/fault.c
+> +++ b/arch/arm64/mm/fault.c
+> @@ -607,70 +607,70 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+[..]
+> +	{ do_sea,		SIGKILL, SI_KERNEL,	"level 0 (translation table walk)"	},
+> +	{ do_sea,		SIGKILL, SI_KERNEL,	"level 1 (translation table walk)"	},
+> +	{ do_sea,		SIGKILL, SI_KERNEL,	"level 2 (translation table walk)"	},
+> +	{ do_sea,		SIGKILL, SI_KERNEL,	"level 3 (translation table walk)"	},
+> +	{ do_sea,		SIGBUS,  BUS_OBJERR,	"synchronous parity or ECC error" },	// Reserved when RAS is implemented
+
+I agree the translation-table related external-aborts should end up with
+SIGKILL: there is nothing user-space can do.
+
+You use the fault_info table to vary the signal and si_code that should be used,
+but do_mem_abort() only uses these if the fn returns an error. For do_sea(),
+regardless of the values in this table SIGBUS will be generated as it always
+returns 0.
+
+
+> @@ -596,7 +596,7 @@ static int do_sea(unsigned long addr, unsigned int esr,
+struct pt_regs *regs)
+>
+>  	info.si_signo = SIGBUS;
+>  	info.si_errno = 0;
+> -	info.si_code  = 0;
+> +	info.si_code  = BUS_OBJERR;
+>  	if (esr & ESR_ELx_FnV)
+>  		info.si_addr = NULL;
+>  	else
+
+do_sea() has the right fault_info entry to hand, so I think these need to change
+to inf->sig and inf->code. (I assume its not valid to set si_addr for SIGKILL...)
+
+
+Thanks,
+
+James
