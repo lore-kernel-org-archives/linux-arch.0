@@ -1,53 +1,63 @@
-From: Greentime Hu <green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: [PATCH v7 04/37] earlycon: add reg-offset to physical address before mapping
-Date: Tue, 13 Feb 2018 17:09:08 +0800
-Message-ID: <968497070242f849dd70ab1fa81635451f8fda7f.1518505384.git.greentime@andestech.com>
+From: Greentime Hu <green.hu@gmail.com>
+Subject: [PATCH v7 02/37] asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU
+Date: Tue, 13 Feb 2018 17:09:06 +0800
+Message-ID: <ff404658ececd53f1bf111067c587c4e3eb695af.1518505384.git.greentime@andestech.com>
 References: <cover.1518505384.git.greentime@andestech.com>
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <cover.1518505384.git.greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
-In-Reply-To: <cover.1518505384.git.greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
-References: <cover.1518505384.git.greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, jason-NLaQJdtUoK4Be96aLqz0jA@public.gmane.org, marc.zyngier-5wv7dgnIgG8@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, deanbo422-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org, daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, mark.rutland-5wv7dgnIgG8@public.gmane.org, greg-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org, ren_guo-Y+KPrCd2zL4AvxtiuMwx3w@public.gmane.org, rdunlap-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org, jonas-A9uVI2HLR7kOP4wsBPIw7w@public.gmane.org, stefan.kristiansson-MbMCFXIvDHJFcC0YU169RA@public.gmane.org, shorne-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
-Cc: green.hu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, Peter Hurley <peter-WaGBZJeGNqdsbIuE7sb01tBPR1lH4CV8@public.gmane.org>, stable-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
+In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
+References: <cover.1518505384.git.greentime@andestech.com>
+Sender: netdev-owner@vger.kernel.org
+To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
+Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
-It will get the wrong virtual address because port->mapbase is not added
-the correct reg-offset yet. We have to update it before earlycon_map()
-is called
+It allows some architectures to use this generic macro instead of
+defining theirs.
 
-Signed-off-by: Greentime Hu <greentime-MUIXKm3Oiri1Z/+hSey0Gg@public.gmane.org>
-Acked-by: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: Peter Hurley <peter-WaGBZJeGNqdsbIuE7sb01tBPR1lH4CV8@public.gmane.org>
-Cc: stable-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Fixes: 088da2a17619 ("of: earlycon: Initialize port fields from DT
-properties")
+Signed-off-by: Vincent Chen <vincentc@andestech.com>
+Signed-off-by: Greentime Hu <greentime@andestech.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- drivers/tty/serial/earlycon.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ include/asm-generic/io.h | 18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
 
-diff --git a/drivers/tty/serial/earlycon.c b/drivers/tty/serial/earlycon.c
-index 870e84fb6e39..a24278380fec 100644
---- a/drivers/tty/serial/earlycon.c
-+++ b/drivers/tty/serial/earlycon.c
-@@ -245,11 +245,12 @@ int __init of_setup_earlycon(const struct earlycon_id *match,
- 	}
- 	port->mapbase = addr;
- 	port->uartclk = BASE_BAUD * 16;
--	port->membase = earlycon_map(port->mapbase, SZ_4K);
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index b4531e3b2120..7c6a39e64749 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -852,7 +852,16 @@ static inline void __iomem *__ioremap(phys_addr_t offset, size_t size,
+ }
+ #endif
  
- 	val = of_get_flat_dt_prop(node, "reg-offset", NULL);
- 	if (val)
- 		port->mapbase += be32_to_cpu(*val);
-+	port->membase = earlycon_map(port->mapbase, SZ_4K);
++#ifndef iounmap
++#define iounmap iounmap
 +
- 	val = of_get_flat_dt_prop(node, "reg-shift", NULL);
- 	if (val)
- 		port->regshift = be32_to_cpu(*val);
++static inline void iounmap(void __iomem *addr)
++{
++}
++#endif
++#endif /* CONFIG_MMU */
+ #ifndef ioremap_nocache
++void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+ #define ioremap_nocache ioremap_nocache
+ static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
+ {
+@@ -884,15 +893,6 @@ static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
+ }
+ #endif
+ 
+-#ifndef iounmap
+-#define iounmap iounmap
+-
+-static inline void iounmap(void __iomem *addr)
+-{
+-}
+-#endif
+-#endif /* CONFIG_MMU */
+-
+ #ifdef CONFIG_HAS_IOPORT_MAP
+ #ifndef CONFIG_GENERIC_IOMAP
+ #ifndef ioport_map
 -- 
 2.16.1
-
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
