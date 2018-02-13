@@ -1,62 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0249.hostedemail.com ([216.40.44.249]:47801 "EHLO
-        smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S934558AbeBMQC4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 13 Feb 2018 11:02:56 -0500
-Message-ID: <1518537768.22190.42.camel@perches.com>
-Subject: Re: [PATCH v7 31/37] MAINTAINERS: Add nds32
-From: Joe Perches <joe@perches.com>
-Date: Tue, 13 Feb 2018 08:02:48 -0800
-In-Reply-To: <f7758221d49fd24fdff7c900aa5951a6c1c6a3cd.1518505384.git.greentime@andestech.com>
-References: <cover.1518505384.git.greentime@andestech.com>
-         <f7758221d49fd24fdff7c900aa5951a6c1c6a3cd.1518505384.git.greentime@andestech.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from szxga04-in.huawei.com ([45.249.212.190]:5645 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S934677AbeBMQ4q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 13 Feb 2018 11:56:46 -0500
+From: John Garry <john.garry@huawei.com>
+Subject: [PATCH v13 2/9] PCI: Remove unused __weak attribute in pci_register_io_range()
+Date: Wed, 14 Feb 2018 01:45:26 +0800
+Message-ID: <1518543933-22456-3-git-send-email-john.garry@huawei.com>
+In-Reply-To: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
+References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Message-ID: <20180213160248.feusZkzL4QL_nlM-GKYTkBadjt06m2vJpF2evqBZo6k@z>
+To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org
+Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org
+Message-ID: <20180213174526.ji8rjNXLC_fxAkV3LOaLqsse4wjwYpGyvA6MeZjhxVI@z>
 
-On Tue, 2018-02-13 at 17:09 +0800, Greentime Hu wrote:
-> Add a maintainer information for the nds32(Andes) architecture.
-[]
-> diff --git a/MAINTAINERS b/MAINTAINERS
-[]
-> @@ -868,6 +868,17 @@ X:	drivers/iio/*/adjd*
->  F:	drivers/staging/iio/*/ad*
->  F:	drivers/staging/iio/trigger/iio-trig-bfin-timer.c
->  
-> +ANDES ARCHITECTURE
-> +M:	Greentime Hu <green.hu@gmail.com>
-> +M:	Vincent Chen <deanbo422@gmail.com>
-> +T:	git https://github.com/andestech/linux.git
-> +S:	Supported
-> +F:	arch/nds32
+From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
 
-This should have a trailing /
+Currently pci_register_io_range() has only one definition;
+therefore there is no use of the __weak attribute.
 
-F:	arch/nds32/
+Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Acked-by: Bjorn Helgaas <bhelgaas@google.com>
+---
+ drivers/pci/pci.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-> +F:	Documentation/devicetree/bindings/interrupt-controller/andestech,ativic32.txt
-> +F:	Documentation/devicetree/bindings/nds32
-> +K:	nds32
-
-Perhaps this should be
-
-K:	\bnds32
-
-as there are some existing uses of nds32 in the current tree.
-
-or maybe case insensitive like
-
-K:	(?i:\bnds32)
-or
-K:	(?:\bnds32|\bNDS32)
-
-> +N:	nds32
-> +
->  ANDROID CONFIG FRAGMENTS
->  M:	Rob Herring <robh@kernel.org>
->  S:	Supported
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index f6a4dd1..4666a01 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -3455,7 +3455,7 @@ struct io_range {
+  * Record the PCI IO range (expressed as CPU physical address + size).
+  * Return a negative value if an error has occured, zero otherwise
+  */
+-int __weak pci_register_io_range(phys_addr_t addr, resource_size_t size)
++int pci_register_io_range(phys_addr_t addr, resource_size_t size)
+ {
+ 	int err = 0;
+ 
+-- 
+1.9.1
