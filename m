@@ -1,518 +1,215 @@
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v13 1/9] LIB: Introduce a generic PIO mapping method
-Date: Wed, 14 Feb 2018 01:45:25 +0800
-Message-ID: <1518543933-22456-2-git-send-email-john.garry@huawei.com>
-References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v13 0/9] LPC: legacy ISA I/O support
+Date: Wed, 14 Feb 2018 01:45:24 +0800
+Message-ID: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
-Sender: linux-pci-owner@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Zhichang Yuan <yuanzhichang@hisilicon.com>
+This patchset supports the IPMI-bt device attached to the Low-Pin-Count
+interface implemented on Hisilicon Hip06/Hip07 SoC.
+                        -----------
+                        | LPC host|
+                        |         |
+                        -----------
+                             |
+                _____________V_______________LPC
+                  |                       |
+                  V                       V
+                                     ------------
+                                     |  BT(ipmi)|
+                                     ------------
 
-In commit 41f8bba7f555 ("of/pci: Add pci_register_io_range() and
-pci_pio_to_address()"), a new I/O space management was supported. With
-that driver, the I/O ranges configured for PCI/PCIe hosts on some
-architectures can be mapped to logical PIO, converted easily between
-CPU address and the corresponding logicial PIO. Based on this, PCI
-I/O devices can be accessed in a memory read/write way through the
-unified in/out accessors.
+When master accesses those peripherals beneath the Hip06/Hip07 LPC, a specific
+LPC driver is needed to make LPC host generate the standard LPC I/O cycles with
+the target peripherals'I/O port addresses. But on curent arm64 world, there is
+no real I/O accesses. All the I/O operations through in/out accessors are based
+on MMIO ranges; on Hip06/Hip07 LPC the I/O accesses are performed through driver
+specific accessors rather than MMIO.
+To solve this issue and keep the relevant existing peripherals' drivers untouched,
+this patchset:
+   - introduces a generic I/O space management framework, LIBIO, to support I/O
+     operations on host controllers operating either on MMIO buses or on buses
+     requiring specific driver I/O accessors;
+   - redefines the in/out accessors to provide a unified interface for both MMIO
+     and driver specific I/O operations. Using LIBIO, th call of in/out() from
+     the host children drivers, such as ipmi-si, will be redirected to the
+     corresponding device-specific I/O hooks to perform the I/O accesses.
 
-But on some archs/platforms, there are bus hosts which access I/O
-peripherals with host-local I/O port addresses rather than memory
-addresses after memory-mapped.
+Based on this patch-set, all the I/O accesses to Hip06/Hip07 LPC peripherals can
+be supported without any changes on the existing ipmi-si driver.
 
-To support those devices, a more generic I/O mapping method is introduced
-here. Through this patch, both the CPU addresses and the host-local port
-can be mapped into the logical PIO space with different logical/fake PIOs.
-After this, all the I/O accesses to either PCI MMIO devices or host-local
-I/O peripherals can be unified into the existing I/O accessors defined in
-asm-generic/io.h and be redirected to the right device-specific hooks
-based on the input logical PIO.
+The whole patchset has been tested on Hip07 D05 board both using DTB and ACPI.
 
-Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
-Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Signed-off-by: John Garry <john.garry@huawei.com>
----
- include/asm-generic/io.h  |   2 +
- include/linux/logic_pio.h | 131 ++++++++++++++++++++++
- lib/Kconfig               |  15 +++
- lib/Makefile              |   2 +
- lib/logic_pio.c           | 272 ++++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 422 insertions(+)
+Differences to v12:
+    - Addressed ACPI comments from Rafael and Andy, including:
+     - added SPDX license identifiers (other new files in the series got this also)
+     - fixed style issues, like superflous newlines and symbol naming
+     - add fuller acpi_indirectio.c patch commit message
+     - dropped acpi_indirectio_host_data (author's decision) to simplify
+    - added Rob Herring's tag
+    - rebase to linux-next 20180212
+    
+Differences to v11:
+    - fixed build errors for i386, m68k, and tile
+    - added a comment in LPC driver commit log why we set
+       the kernel config as bool
+    - some tidying logic_pio code
+
+Differences to v10:
+    - dropped CONFIG_LOGIC_PIO. Reason is that CONFIG_PCI
+      depends on this, and CONFIG_PCI is a per-arch CONFIG.
+      So we would require all arch's kconfig to select this.
+    - Addressed Dann Frazier's comments on LPC driver, and
+      sopme other cleanup
+    - Moved logic_pio.h to be included in generic asm io.h
+    - Fixed ACPI indirect IO host setup to handle >1 child
+    - Relocated ACPI indirect IO host setup code to
+      drivers/acpi
+    - Rebased to linux next-20180118
+
+Changes from v9:
+  - patch 2 has been split into 3 patches according to Bjorn comments on
+    v9 thread
+  - patch 1 has been reworked accordign to Bjorn comments on v9
+  - now logic_pio_trans_hwaddr() has a sanity check to make sure the resource
+    size fits into the assigned range
+  - in patch 5 the MFD framework has been used to probe the LPC children
+    according to the suggestion from Mika Westerberg
+  - Maintaner has changed to Huawei Linuxarm mailing list
+
+Changes from v8:
+  - Simplified LIB IO framewrok
+  - Moved INDIRECT PIO ACPI framework under acpi/arm64
+  - Renamed occurrences of "lib io" and "indirect io" to "lib pio" and
+    "indirect pio" to keep the patchset nomenclature consistent
+  - Removed Alignment reuqirements
+  - Moved LPC specific code out of ACPI common framework
+  - Now PIO indirect HW ranges can overlap
+  - Changed HiSilicon LPC driver maintainer (Gabriele Paoloni now) and split
+    maintaner file modifications in a separate commit
+  - Removed the commit with the DT nodes support for hip06 and hip07 (to be
+    pushed separately)
+  - Added a checking on ioport_map() not to break that function as Arnd points
+    out in V7 review thread;
+  - fixed the compile issues on alpha, m68k;
+
+Changes from V7:
+  - Based on Arnd's comment, rename the LIBIO as LOGIC_PIO;
+  - Improved the mapping process in LOGIC_PIO to gain better efficiency when
+    redirecting the I/O accesses to right device driver;
+  - To reduce the impact on PCI MMIO to a minimum, add a new
+    CONFIG_INDIRECT_PIO for indirect-IO hosts/devices;
+  - Added a new ACPI handler for indirect-IO hosts/devices;
+  - Fixed the compile issues on V6;
+
+Changes from V6:
+  - According to the comments from Bjorn and Alex, merge PCI IO and indirect-IO
+    into a generic I/O space management, LIBIO;
+  - Adopted the '_DEP' to replace the platform bus notifier. In this way, we can
+    ensure the LPC peripherals' I/O resources had been translated to logical IO
+    before the LPC peripheral enumeration;
+  - Replaced the rwlock with rcu list based on Alex's suggestion;
+  - Applied relaxed write/read to LPC driver;
+  - Some bugs fixing and some optimazations based on the comments of V6;
+
+Changes from V5:
+  - Made the extio driver more generic and locate in lib/;
+  - Supported multiple indirect-IO bus instances;
+  - Extended the pci_register_io_range() to support indirect-IO, then dropped
+  the I/O reservation used in previous patchset;
+  - Reimplemented the ACPI LPC support;
+  - Fixed some bugs, including the compile error on other archs, the module
+  building failure found by Ming Lei, etc;
+
+Changes from V4:
+  - Some revises based on the comments from Bjorn, Rob on V4;
+  - Fixed the compile error on some platforms, such as openrisc;
+
+Changes from V3:
+  - UART support deferred to a separate patchset; This patchset only support
+  ipmi device under LPC;
+  - LPC bus I/O range is fixed to 0 ~ (PCIBIOS_MIN_IO - 1), which is separeted
+  from PCI/PCIE PIO space;
+  - Based on Arnd's remarks, removed the ranges property from Hip06 lpc dts and
+  added a new fixup function, of_isa_indirect_io(), to get the I/O address
+  directly from LPC dts configurations;
+  - Support in(w,l)/out(w,l) for Hip06 lpc I/O;
+  - Decouple the header file dependency on the gerenic io.h by defining in/out
+  as normal functions in c file;
+  - removed unused macro definitions in the LPC driver;
+
+Changes from V2:
+  - Support the PIO retrieval from the linux PIO generated by
+  pci_address_to_pio. This method replace the 4K PIO reservation in V2;
+  - Support the flat-tree earlycon;
+  - Some revises based on Arnd's remarks;
+  - Make sure the linux PIO range allocated to Hip06 LPC peripherals starts
+  from non-ZERO;
+
+Changes from V1:
+  - Support the ACPI LPC device;
+  - Optimize the dts LPC driver in ISA compatible mode;
+  - Reserve the IO range below 4K in avoid the possible conflict with PCI host
+  IO ranges;
+  - Support the LPC uart and relevant earlycon;
+
+V12 thread here: https://lkml.org/lkml/2018/1/23/508
+V11 thread here: https://lkml.org/lkml/2018/1/21/38
+V10 thread here: https://lkml.org/lkml/2017/10/27/465
+V9 thread here: https://lkml.org/lkml/2017/5/25/263
+V8 thread here: https://lkml.org/lkml/2017/3/30/619
+V7 thread here: https://lkml.org/lkml/2017/3/12/279
+v6 thread here: https://lkml.org/lkml/2017/1/24/25
+v5 thread here: https://lkml.org/lkml/2016/11/7/955
+v4 thread here: https://lkml.org/lkml/2016/10/20/149
+v3 thread here: https://lkml.org/lkml/2016/9/14/326
+v2 thread here: https://lkml.org/lkml/2016/9/7/356
+v1 thread here: https://lkml.org/lkml/2015/12/29/154
+
+Gabriele Paoloni (2):
+  PCI: Remove unused __weak attribute in pci_register_io_range()
+  PCI: Add fwnode handler as input param of pci_register_io_range()
+
+John Garry (3):
+  ACPI: Translate the I/O range of non-MMIO devices before scanning
+  LPC, ACPI: Add the HISI LPC ACPI support
+  MAINTAINERS: Add maintainer for HiSilicon LPC driver
+
+Zhichang Yuan (4):
+  LIB: Introduce a generic PIO mapping method
+  PCI: Apply the new generic I/O management on PCI IO hosts
+  OF: Add missing I/O range exception for indirect-IO devices
+  LPC: Support the LPC host on Hip06/Hip07 with DT bindings
+
+ .../arm/hisilicon/hisilicon-low-pin-count.txt      |  33 ++
+ MAINTAINERS                                        |   7 +
+ drivers/acpi/arm64/Makefile                        |   1 +
+ drivers/acpi/arm64/acpi_indirectio.c               | 251 ++++++++++
+ drivers/acpi/internal.h                            |   5 +
+ drivers/acpi/pci_root.c                            |   8 +-
+ drivers/acpi/scan.c                                |   1 +
+ drivers/bus/Kconfig                                |   8 +
+ drivers/bus/Makefile                               |   1 +
+ drivers/bus/hisi_lpc.c                             | 522 +++++++++++++++++++++
+ drivers/of/address.c                               |  96 +++-
+ drivers/pci/pci.c                                  |  98 +---
+ include/asm-generic/io.h                           |   4 +-
+ include/linux/logic_pio.h                          | 131 ++++++
+ include/linux/pci.h                                |   3 +-
+ lib/Kconfig                                        |  15 +
+ lib/Makefile                                       |   2 +
+ lib/logic_pio.c                                    | 272 +++++++++++
+ 18 files changed, 1357 insertions(+), 101 deletions(-)
+ create mode 100644 Documentation/devicetree/bindings/arm/hisilicon/hisilicon-low-pin-count.txt
+ create mode 100644 drivers/acpi/arm64/acpi_indirectio.c
+ create mode 100644 drivers/bus/hisi_lpc.c
  create mode 100644 include/linux/logic_pio.h
  create mode 100644 lib/logic_pio.c
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index b4531e3..b7996a79 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -351,6 +351,8 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
- #define IO_SPACE_LIMIT 0xffff
- #endif
- 
-+#include <linux/logic_pio.h>
-+
- /*
-  * {in,out}{b,w,l}() access little endian I/O. {in,out}{b,w,l}_p() can be
-  * implemented on hardware that needs an additional delay for I/O accesses to
-diff --git a/include/linux/logic_pio.h b/include/linux/logic_pio.h
-new file mode 100644
-index 0000000..b3322fd
---- /dev/null
-+++ b/include/linux/logic_pio.h
-@@ -0,0 +1,131 @@
-+// SPDX-License-Identifier: GPL-2.0+
-+/*
-+ * Copyright (C) 2017 Hisilicon Limited, All Rights Reserved.
-+ * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-+ * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
-+ *
-+ */
-+
-+#ifndef __LINUX_LOGIC_PIO_H__
-+#define __LINUX_LOGIC_PIO_H__
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/fwnode.h>
-+
-+#define PIO_INDIRECT		0x01UL /* indirect IO flag */
-+#define PIO_CPU_MMIO		0x00UL /* memory mapped io flag */
-+
-+struct logic_pio_hwaddr {
-+	struct list_head list;
-+	struct fwnode_handle *fwnode;
-+	resource_size_t hw_start;
-+	resource_size_t io_start;
-+	resource_size_t size; /* range size populated */
-+	unsigned long flags;
-+
-+	void *devpara;	/* private parameter of the host device */
-+	struct hostio_ops *ops;	/* ops operating on this node */
-+};
-+
-+struct hostio_ops {
-+	u32 (*pfin)(void *devobj, unsigned long ptaddr,	size_t dlen);
-+	void (*pfout)(void *devobj, unsigned long ptaddr, u32 outval,
-+			size_t dlen);
-+	u32 (*pfins)(void *devobj, unsigned long ptaddr, void *inbuf,
-+			size_t dlen, unsigned int count);
-+	void (*pfouts)(void *devobj, unsigned long ptaddr,
-+			const void *outbuf, size_t dlen, unsigned int count);
-+};
-+
-+#ifdef CONFIG_INDIRECT_PIO
-+u8 logic_inb(unsigned long addr);
-+void logic_outb(u8 value, unsigned long addr);
-+void logic_outw(u16 value, unsigned long addr);
-+void logic_outl(u32 value, unsigned long addr);
-+u16 logic_inw(unsigned long addr);
-+u32 logic_inl(unsigned long addr);
-+void logic_outb(u8 value, unsigned long addr);
-+void logic_outw(u16 value, unsigned long addr);
-+void logic_outl(u32 value, unsigned long addr);
-+void logic_insb(unsigned long addr, void *buffer, unsigned int count);
-+void logic_insl(unsigned long addr, void *buffer, unsigned int count);
-+void logic_insw(unsigned long addr, void *buffer, unsigned int count);
-+void logic_outsb(unsigned long addr, const void *buffer, unsigned int count);
-+void logic_outsw(unsigned long addr, const void *buffer, unsigned int count);
-+void logic_outsl(unsigned long addr, const void *buffer, unsigned int count);
-+
-+#ifndef inb
-+#define inb logic_inb
-+#endif
-+
-+#ifndef inw
-+#define inw logic_inw
-+#endif
-+
-+#ifndef inl
-+#define inl logic_inl
-+#endif
-+
-+#ifndef outb
-+#define outb logic_outb
-+#endif
-+
-+#ifndef outw
-+#define outw logic_outw
-+#endif
-+
-+#ifndef outl
-+#define outl logic_outl
-+#endif
-+
-+#ifndef insb
-+#define insb logic_insb
-+#endif
-+
-+#ifndef insw
-+#define insw logic_insw
-+#endif
-+
-+#ifndef insl
-+#define insl logic_insl
-+#endif
-+
-+#ifndef outsb
-+#define outsb logic_outsb
-+#endif
-+
-+#ifndef outsw
-+#define outsw logic_outsw
-+#endif
-+
-+#ifndef outsl
-+#define outsl logic_outsl
-+#endif
-+
-+/*
-+ * Below we reserve 0x4000 bytes for Indirect IO as so far this library is only
-+ * used by Hisilicon LPC Host. If needed in future we may reserve a wider IO
-+ * area by redefining the macro below.
-+ */
-+#define PIO_INDIRECT_SIZE 0x4000
-+#define MMIO_UPPER_LIMIT (IO_SPACE_LIMIT - PIO_INDIRECT_SIZE)
-+#else
-+#define MMIO_UPPER_LIMIT IO_SPACE_LIMIT
-+#endif /* CONFIG_INDIRECT_PIO */
-+
-+
-+struct logic_pio_hwaddr *find_io_range_by_fwnode(struct fwnode_handle *fwnode);
-+
-+unsigned long logic_pio_trans_hwaddr(struct fwnode_handle *fwnode,
-+			resource_size_t hw_addr, resource_size_t size);
-+
-+int logic_pio_register_range(struct logic_pio_hwaddr *newrange);
-+
-+
-+extern resource_size_t logic_pio_to_hwaddr(unsigned long pio);
-+
-+extern unsigned long logic_pio_trans_cpuaddr(resource_size_t hw_addr);
-+
-+#endif /* __KERNEL__ */
-+#endif /* __LINUX_LOGIC_PIO_H__ */
-diff --git a/lib/Kconfig b/lib/Kconfig
-index e960894..7ad1e69 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -55,6 +55,21 @@ config ARCH_USE_CMPXCHG_LOCKREF
- config ARCH_HAS_FAST_MULTIPLIER
- 	bool
- 
-+config INDIRECT_PIO
-+	bool "Access I/O in non-MMIO mode"
-+	depends on ARM64
-+	help
-+	  On some platforms where no separate I/O space exists, there are I/O
-+	  hosts which can not be accessed in MMIO mode. Using the logical PIO
-+	  mechanism, the host-local I/O resource can be mapped into system
-+	  logic PIO space shared with MMIO hosts, such as PCI/PCIE, then the
-+	  system can access the I/O devices with the mapped logic PIO through
-+	  I/O accessors.
-+	  This way has a relatively little I/O performance cost. Please make
-+	  sure your devices really need this configure item enabled.
-+
-+	  When in doubt, say N.
-+
- config CRC_CCITT
- 	tristate "CRC-CCITT functions"
- 	help
-diff --git a/lib/Makefile b/lib/Makefile
-index a90d4fc..4a9eacd 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -81,6 +81,8 @@ obj-$(CONFIG_HAS_IOMEM) += iomap_copy.o devres.o
- obj-$(CONFIG_CHECK_SIGNATURE) += check_signature.o
- obj-$(CONFIG_DEBUG_LOCKING_API_SELFTESTS) += locking-selftest.o
- 
-+obj-y += logic_pio.o
-+
- obj-$(CONFIG_GENERIC_HWEIGHT) += hweight.o
- 
- obj-$(CONFIG_BTREE) += btree.o
-diff --git a/lib/logic_pio.c b/lib/logic_pio.c
-new file mode 100644
-index 0000000..1006d9d
---- /dev/null
-+++ b/lib/logic_pio.c
-@@ -0,0 +1,272 @@
-+// SPDX-License-Identifier: GPL-2.0+
-+/*
-+ * Copyright (C) 2017 Hisilicon Limited, All Rights Reserved.
-+ * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-+ * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
-+ *
-+ */
-+
-+#define pr_fmt(fmt)	"LOGIC PIO: " fmt
-+
-+#include <linux/of.h>
-+#include <linux/io.h>
-+#include <linux/logic_pio.h>
-+#include <linux/mm.h>
-+#include <linux/rculist.h>
-+#include <linux/sizes.h>
-+#include <linux/slab.h>
-+
-+/* The unique hardware address list. */
-+static LIST_HEAD(io_range_list);
-+static DEFINE_MUTEX(io_range_mutex);
-+
-+/*
-+ * register a new io range node in the io range list.
-+ *
-+ * @newrange: pointer to the io range to be registered.
-+ *
-+ * returns 0 on success, the error code in case of failure
-+ */
-+int logic_pio_register_range(struct logic_pio_hwaddr *new_range)
-+{
-+	struct logic_pio_hwaddr *range;
-+	int ret = 0;
-+	resource_size_t start = new_range->hw_start;
-+	resource_size_t end = new_range->hw_start + new_range->size;
-+	resource_size_t allocated_mmio_size = 0;
-+	resource_size_t allocated_iio_size = MMIO_UPPER_LIMIT;
-+
-+	if (!new_range || !new_range->fwnode || !new_range->size)
-+		return -EINVAL;
-+
-+	mutex_lock(&io_range_mutex);
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->fwnode == new_range->fwnode) {
-+			/* range already there */
-+			ret = -EFAULT;
-+			goto end_register;
-+		}
-+		if (range->flags == PIO_CPU_MMIO &&
-+				new_range->flags == PIO_CPU_MMIO) {
-+			/* for MMIO ranges we need to check for overlap */
-+			if (start >= range->hw_start + range->size ||
-+			    end < range->hw_start)
-+				allocated_mmio_size += range->size;
-+			else {
-+				ret = -EFAULT;
-+				goto end_register;
-+			}
-+		} else if (range->flags == PIO_INDIRECT &&
-+			   new_range->flags == PIO_INDIRECT) {
-+			allocated_iio_size += range->size;
-+		}
-+	}
-+
-+	/* range not registered yet, check for available space */
-+	if (new_range->flags == PIO_CPU_MMIO) {
-+		if (allocated_mmio_size + new_range->size - 1 >
-+			MMIO_UPPER_LIMIT) {
-+			/* if it's too big check if 64K space can be reserved */
-+			if (allocated_mmio_size + SZ_64K - 1 >
-+			MMIO_UPPER_LIMIT) {
-+				ret = -E2BIG;
-+				goto end_register;
-+			}
-+			new_range->size = SZ_64K;
-+			pr_warn("Requested IO range too big, new size set to 64K\n");
-+		}
-+		new_range->io_start = allocated_mmio_size;
-+	} else if (new_range->flags == PIO_INDIRECT) {
-+		if (allocated_iio_size + new_range->size - 1 >
-+		    IO_SPACE_LIMIT) {
-+			ret = -E2BIG;
-+			goto end_register;
-+		}
-+		new_range->io_start = allocated_iio_size;
-+	} else {
-+		/* invalid flag */
-+		ret = -EINVAL;
-+		goto end_register;
-+	}
-+
-+	list_add_tail_rcu(&new_range->list, &io_range_list);
-+
-+end_register:
-+	mutex_unlock(&io_range_mutex);
-+	return ret;
-+}
-+
-+/*
-+ * traverse the io_range_list to find the registered node whose device node
-+ * and/or physical IO address match to.
-+ */
-+struct logic_pio_hwaddr *find_io_range_by_fwnode(struct fwnode_handle *fwnode)
-+{
-+	struct logic_pio_hwaddr *range;
-+
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->fwnode == fwnode)
-+			return range;
-+	}
-+	return NULL;
-+}
-+
-+/* return a registered range given an input PIO token */
-+static struct logic_pio_hwaddr *find_io_range(unsigned long pio)
-+{
-+	struct logic_pio_hwaddr *range;
-+
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (pio >= range->io_start &&
-+		    pio < range->io_start + range->size)
-+			return range;
-+	}
-+	pr_err("PIO entry token invalid\n");
-+	return NULL;
-+}
-+
-+/*
-+ * Translate the input logical pio to the corresponding hardware address.
-+ * The input pio should be unique in the whole logical PIO space.
-+ */
-+resource_size_t logic_pio_to_hwaddr(unsigned long pio)
-+{
-+	struct logic_pio_hwaddr *range;
-+	resource_size_t hwaddr = -1;
-+
-+	range = find_io_range(pio);
-+	if (range)
-+		hwaddr = range->hw_start + pio - range->io_start;
-+
-+	return hwaddr;
-+}
-+
-+/*
-+ * This function is generic for translating a hardware address to logical PIO.
-+ * @hw_addr: the hardware address of host, can be CPU address or host-local
-+ *		address;
-+ */
-+unsigned long
-+logic_pio_trans_hwaddr(struct fwnode_handle *fwnode, resource_size_t addr,
-+		       resource_size_t size)
-+{
-+	struct logic_pio_hwaddr *range;
-+
-+	range = find_io_range_by_fwnode(fwnode);
-+	if (!range || range->flags == PIO_CPU_MMIO) {
-+		pr_err("range not found or invalid\n");
-+		return -1;
-+	}
-+	if (range->size < size) {
-+		pr_err("resource size %pa cannot fit in IO range size %pa\n",
-+		       &size, &range->size);
-+		return -1;
-+	}
-+	return addr - range->hw_start + range->io_start;
-+}
-+
-+unsigned long
-+logic_pio_trans_cpuaddr(resource_size_t addr)
-+{
-+	struct logic_pio_hwaddr *range;
-+
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->flags != PIO_CPU_MMIO)
-+			continue;
-+		if (addr >= range->hw_start &&
-+		    addr < range->hw_start + range->size)
-+			return addr - range->hw_start +
-+				range->io_start;
-+	}
-+	pr_err("addr not registered in io_range_list\n");
-+	return -1;
-+}
-+
-+#if defined(CONFIG_INDIRECT_PIO) && defined(PCI_IOBASE)
-+#define BUILD_LOGIC_IO(bw, type)					\
-+type logic_in##bw(unsigned long addr)					\
-+{									\
-+	type ret = -1;							\
-+									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		ret = read##bw(PCI_IOBASE + addr);			\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) { \
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			ret = entry->ops->pfin(entry->devpara,		\
-+					addr, sizeof(type));		\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+	return ret;							\
-+}									\
-+									\
-+void logic_out##bw(type value, unsigned long addr)			\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		write##bw(value, PCI_IOBASE + addr);			\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->pfout(entry->devpara,		\
-+					addr, value, sizeof(type));	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+}									\
-+									\
-+void logic_ins##bw(unsigned long addr, void *buffer, unsigned int count)\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		reads##bw(PCI_IOBASE + addr, buffer, count);		\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->pfins(entry->devpara,		\
-+				addr, buffer, sizeof(type), count);	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+									\
-+}									\
-+									\
-+void logic_outs##bw(unsigned long addr, const void *buffer,		\
-+		    unsigned int count)					\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		writes##bw(PCI_IOBASE + addr, buffer, count);		\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->pfouts(entry->devpara,		\
-+				addr, buffer, sizeof(type), count);	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+}
-+
-+BUILD_LOGIC_IO(b, u8)
-+
-+EXPORT_SYMBOL(logic_inb);
-+EXPORT_SYMBOL(logic_outb);
-+EXPORT_SYMBOL(logic_insb);
-+EXPORT_SYMBOL(logic_outsb);
-+
-+BUILD_LOGIC_IO(w, u16)
-+
-+EXPORT_SYMBOL(logic_inw);
-+EXPORT_SYMBOL(logic_outw);
-+EXPORT_SYMBOL(logic_insw);
-+EXPORT_SYMBOL(logic_outsw);
-+
-+BUILD_LOGIC_IO(l, u32)
-+
-+EXPORT_SYMBOL(logic_inl);
-+EXPORT_SYMBOL(logic_outl);
-+EXPORT_SYMBOL(logic_insl);
-+EXPORT_SYMBOL(logic_outsl);
-+#endif /* CONFIG_INDIRECT_PIO && PCI_IOBASE */
 -- 
 1.9.1
