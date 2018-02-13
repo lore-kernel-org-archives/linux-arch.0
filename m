@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v7 18/37] nds32: ELF definitions
-Date: Tue, 13 Feb 2018 17:09:22 +0800
-Message-ID: <24b075d1b99f22b0920ebb0186b5f5af8256f31c.1518505384.git.greentime@andestech.com>
+Subject: [PATCH v7 16/37] nds32: Device specific operations
+Date: Tue, 13 Feb 2018 17:09:20 +0800
+Message-ID: <7e158934acdeac150645a303de21b7ed9c75e4ff.1518505384.git.greentime@andestech.com>
 References: <cover.1518505384.git.greentime@andestech.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
@@ -12,232 +12,174 @@ To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds definitions for the ELF format, relocation types, vdso
-locations and EXEC_PAGESIZE.
+This patch introduces ioremap implementations.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/nds32/include/asm/elf.h         | 171 +++++++++++++++++++++++++++++++++++
- arch/nds32/include/uapi/asm/auxvec.h |  12 +++
- arch/nds32/include/uapi/asm/param.h  |  11 +++
- 3 files changed, 194 insertions(+)
- create mode 100644 arch/nds32/include/asm/elf.h
- create mode 100644 arch/nds32/include/uapi/asm/auxvec.h
- create mode 100644 arch/nds32/include/uapi/asm/param.h
+ arch/nds32/include/asm/io.h | 83 +++++++++++++++++++++++++++++++++++++++++++++
+ arch/nds32/mm/ioremap.c     | 62 +++++++++++++++++++++++++++++++++
+ 2 files changed, 145 insertions(+)
+ create mode 100644 arch/nds32/include/asm/io.h
+ create mode 100644 arch/nds32/mm/ioremap.c
 
-diff --git a/arch/nds32/include/asm/elf.h b/arch/nds32/include/asm/elf.h
+diff --git a/arch/nds32/include/asm/io.h b/arch/nds32/include/asm/io.h
 new file mode 100644
-index 000000000000..56c479058802
+index 000000000000..966e71b3c960
 --- /dev/null
-+++ b/arch/nds32/include/asm/elf.h
-@@ -0,0 +1,171 @@
++++ b/arch/nds32/include/asm/io.h
+@@ -0,0 +1,83 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __ASMNDS32_ELF_H
-+#define __ASMNDS32_ELF_H
++#ifndef __ASM_NDS32_IO_H
++#define __ASM_NDS32_IO_H
++
++extern void iounmap(volatile void __iomem *addr);
++#define __raw_writeb __raw_writeb
++static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
++{
++	asm volatile("sbi %0, [%1]" : : "r" (val), "r" (addr));
++}
++
++#define __raw_writew __raw_writew
++static inline void __raw_writew(u16 val, volatile void __iomem *addr)
++{
++	asm volatile("shi %0, [%1]" : : "r" (val), "r" (addr));
++}
++
++#define __raw_writel __raw_writel
++static inline void __raw_writel(u32 val, volatile void __iomem *addr)
++{
++	asm volatile("swi %0, [%1]" : : "r" (val), "r" (addr));
++}
++
++#define __raw_readb __raw_readb
++static inline u8 __raw_readb(const volatile void __iomem *addr)
++{
++	u8 val;
++
++	asm volatile("lbi %0, [%1]" : "=r" (val) : "r" (addr));
++	return val;
++}
++
++#define __raw_readw __raw_readw
++static inline u16 __raw_readw(const volatile void __iomem *addr)
++{
++	u16 val;
++
++	asm volatile("lhi %0, [%1]" : "=r" (val) : "r" (addr));
++	return val;
++}
++
++#define __raw_readl __raw_readl
++static inline u32 __raw_readl(const volatile void __iomem *addr)
++{
++	u32 val;
++
++	asm volatile("lwi %0, [%1]" : "=r" (val) : "r" (addr));
++	return val;
++}
++
++#define __iormb()               rmb()
++#define __iowmb()               wmb()
++
++#define mmiowb()        __asm__ __volatile__ ("msync all" : : : "memory");
 +
 +/*
-+ * ELF register definitions..
++ * {read,write}{b,w,l,q}_relaxed() are like the regular version, but
++ * are not guaranteed to provide ordering against spinlocks or memory
++ * accesses.
 + */
 +
-+#include <asm/ptrace.h>
-+
-+typedef unsigned long elf_greg_t;
-+typedef unsigned long elf_freg_t[3];
-+
-+extern unsigned int elf_hwcap;
-+
-+#define EM_NDS32			167
-+
-+#define R_NDS32_NONE			0
-+#define R_NDS32_16_RELA			19
-+#define R_NDS32_32_RELA			20
-+#define R_NDS32_9_PCREL_RELA		22
-+#define R_NDS32_15_PCREL_RELA		23
-+#define R_NDS32_17_PCREL_RELA		24
-+#define R_NDS32_25_PCREL_RELA		25
-+#define R_NDS32_HI20_RELA		26
-+#define R_NDS32_LO12S3_RELA		27
-+#define R_NDS32_LO12S2_RELA		28
-+#define R_NDS32_LO12S1_RELA		29
-+#define R_NDS32_LO12S0_RELA		30
-+#define R_NDS32_SDA15S3_RELA    	31
-+#define R_NDS32_SDA15S2_RELA    	32
-+#define R_NDS32_SDA15S1_RELA    	33
-+#define R_NDS32_SDA15S0_RELA    	34
-+#define R_NDS32_GOT20			37
-+#define R_NDS32_25_PLTREL		38
-+#define R_NDS32_COPY			39
-+#define R_NDS32_GLOB_DAT		40
-+#define R_NDS32_JMP_SLOT		41
-+#define R_NDS32_RELATIVE		42
-+#define R_NDS32_GOTOFF			43
-+#define R_NDS32_GOTPC20			44
-+#define R_NDS32_GOT_HI20		45
-+#define R_NDS32_GOT_LO12		46
-+#define R_NDS32_GOTPC_HI20		47
-+#define R_NDS32_GOTPC_LO12		48
-+#define R_NDS32_GOTOFF_HI20		49
-+#define R_NDS32_GOTOFF_LO12		50
-+#define R_NDS32_INSN16			51
-+#define R_NDS32_LABEL			52
-+#define R_NDS32_LONGCALL1		53
-+#define R_NDS32_LONGCALL2		54
-+#define R_NDS32_LONGCALL3		55
-+#define R_NDS32_LONGJUMP1		56
-+#define R_NDS32_LONGJUMP2		57
-+#define R_NDS32_LONGJUMP3		58
-+#define R_NDS32_LOADSTORE		59
-+#define R_NDS32_9_FIXED_RELA		60
-+#define R_NDS32_15_FIXED_RELA		61
-+#define R_NDS32_17_FIXED_RELA		62
-+#define R_NDS32_25_FIXED_RELA		63
-+#define R_NDS32_PLTREL_HI20		64
-+#define R_NDS32_PLTREL_LO12		65
-+#define R_NDS32_PLT_GOTREL_HI20		66
-+#define R_NDS32_PLT_GOTREL_LO12		67
-+#define R_NDS32_LO12S0_ORI_RELA		72
-+#define R_NDS32_DWARF2_OP1_RELA     	77
-+#define R_NDS32_DWARF2_OP2_RELA     	78
-+#define R_NDS32_DWARF2_LEB_RELA     	79
-+#define R_NDS32_WORD_9_PCREL_RELA	94
-+#define R_NDS32_LONGCALL4 		107
-+#define R_NDS32_RELA_NOP_MIX		192
-+#define R_NDS32_RELA_NOP_MAX		255
-+
-+#define ELF_NGREG (sizeof (struct user_pt_regs) / sizeof(elf_greg_t))
-+#define ELF_CORE_COPY_REGS(dest, regs)	\
-+	*(struct user_pt_regs *)&(dest) = (regs)->user_regs;
-+
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+/* Core file format: The core file is written in such a way that gdb
-+   can understand it and provide useful information to the user (under
-+   linux we use the 'trad-core' bfd).  There are quite a number of
-+   obstacles to being able to view the contents of the floating point
-+   registers, and until these are solved you will not be able to view the
-+   contents of them.  Actually, you can read in the core file and look at
-+   the contents of the user struct to find out what the floating point
-+   registers contain.
-+   The actual file contents are as follows:
-+   UPAGE: 1 page consisting of a user struct that tells gdb what is present
-+   in the file.  Directly after this is a copy of the task_struct, which
-+   is currently not used by gdb, but it may come in useful at some point.
-+   All of the registers are stored as part of the upage.  The upage should
-+   always be only one page.
-+   DATA: The data area is stored.  We use current->end_text to
-+   current->brk to pick up all of the user variables, plus any memory
-+   that may have been malloced.  No attempt is made to determine if a page
-+   is demand-zero or if a page is totally unused, we just cover the entire
-+   range.  All of the addresses are rounded in such a way that an integral
-+   number of pages is written.
-+   STACK: We need the stack information in order to get a meaningful
-+   backtrace.  We need to write the data from (esp) to
-+   current->start_stack, so we round each of these off in order to be able
-+   to write an integer number of pages.
-+   The minimum core file size is 3 pages, or 12288 bytes.
-+*/
-+
-+struct user_fp {
-+        unsigned long long fd_regs[32];
-+        unsigned long fpcsr;
-+};
-+
-+typedef struct user_fp elf_fpregset_t;
-+
-+struct elf32_hdr;
-+#define elf_check_arch(x)		((x)->e_machine == EM_NDS32)
++#define readb_relaxed(c)	({ u8  __v = __raw_readb(c); __v; })
++#define readw_relaxed(c)	({ u16 __v = le16_to_cpu((__force __le16)__raw_readw(c)); __v; })
++#define readl_relaxed(c)	({ u32 __v = le32_to_cpu((__force __le32)__raw_readl(c)); __v; })
++#define writeb_relaxed(v,c)	((void)__raw_writeb((v),(c)))
++#define writew_relaxed(v,c)	((void)__raw_writew((__force u16)cpu_to_le16(v),(c)))
++#define writel_relaxed(v,c)	((void)__raw_writel((__force u32)cpu_to_le32(v),(c)))
 +
 +/*
-+ * These are used to set parameters in the core dumps.
++ * {read,write}{b,w,l,q}() access little endian memory and return result in
++ * native endianness.
 + */
-+#define ELF_CLASS	ELFCLASS32
-+#ifdef __NDS32_EB__
-+#define ELF_DATA	ELFDATA2MSB;
-+#else
-+#define ELF_DATA	ELFDATA2LSB;
-+#endif
-+#define ELF_ARCH	EM_NDS32
-+#define USE_ELF_CORE_DUMP
-+#define ELF_EXEC_PAGESIZE	PAGE_SIZE
++#define readb(c)	({ u8  __v = readb_relaxed(c); __iormb(); __v; })
++#define readw(c)	({ u16 __v = readw_relaxed(c); __iormb(); __v; })
++#define readl(c)	({ u32 __v = readl_relaxed(c); __iormb(); __v; })
 +
-+/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+   use of this is to invoke "./ld.so someprog" to test out a new version of
-+   the loader.  We need to make sure that it is out of the way of the program
-+   that it will "exec", and that there is sufficient room for the brk.  */
-+
-+#define ELF_ET_DYN_BASE	(2 * TASK_SIZE / 3)
-+
-+/* When the program starts, a1 contains a pointer to a function to be
-+   registered with atexit, as per the SVR4 ABI.  A value of 0 means we
-+   have no such handler.  */
-+#define ELF_PLAT_INIT(_r, load_addr)	(_r)->uregs[0] = 0
-+
-+/* This yields a mask that user programs can use to figure out what
-+   instruction set this cpu supports. */
-+
-+#define ELF_HWCAP	(elf_hwcap)
-+
-+#ifdef __KERNEL__
-+
-+#define ELF_PLATFORM    (NULL)
-+
-+/* Old NetWinder binaries were compiled in such a way that the iBCS
-+   heuristic always trips on them.  Until these binaries become uncommon
-+   enough not to care, don't trust the `ibcs' flag here.  In any case
-+   there is no other ELF system currently supported by iBCS.
-+   @@ Could print a warning message to encourage users to upgrade.  */
-+#define SET_PERSONALITY(ex)	set_personality(PER_LINUX)
-+
-+#endif
-+
-+#define ARCH_DLINFO						\
-+do {								\
-+	NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
-+		    (elf_addr_t)current->mm->context.vdso);	\
-+} while (0)
-+#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
-+struct linux_binprm;
-+int arch_setup_additional_pages(struct linux_binprm *, int);
-+
-+#endif
-diff --git a/arch/nds32/include/uapi/asm/auxvec.h b/arch/nds32/include/uapi/asm/auxvec.h
++#define writeb(v,c)	({ __iowmb(); writeb_relaxed((v),(c)); })
++#define writew(v,c)	({ __iowmb(); writew_relaxed((v),(c)); })
++#define writel(v,c)	({ __iowmb(); writel_relaxed((v),(c)); })
++#include <asm-generic/io.h>
++#endif /* __ASM_NDS32_IO_H */
+diff --git a/arch/nds32/mm/ioremap.c b/arch/nds32/mm/ioremap.c
 new file mode 100644
-index 000000000000..56043ce4972f
+index 000000000000..690140bb23a2
 --- /dev/null
-+++ b/arch/nds32/include/uapi/asm/auxvec.h
-@@ -0,0 +1,12 @@
++++ b/arch/nds32/mm/ioremap.c
+@@ -0,0 +1,62 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __ASM_AUXVEC_H
-+#define __ASM_AUXVEC_H
++#include <linux/vmalloc.h>
++#include <linux/io.h>
++#include <linux/mm.h>
++#include <asm/pgtable.h>
 +
-+/* VDSO location */
-+#define AT_SYSINFO_EHDR	33
++void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
 +
-+#define AT_VECTOR_SIZE_ARCH 1
++static void __iomem *__ioremap_caller(phys_addr_t phys_addr, size_t size,
++				      void *caller)
++{
++	struct vm_struct *area;
++	unsigned long addr, offset, last_addr;
++	pgprot_t prot;
 +
-+#endif
-diff --git a/arch/nds32/include/uapi/asm/param.h b/arch/nds32/include/uapi/asm/param.h
-new file mode 100644
-index 000000000000..e3fb723ee362
---- /dev/null
-+++ b/arch/nds32/include/uapi/asm/param.h
-@@ -0,0 +1,11 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
++	/* Don't allow wraparound or zero size */
++	last_addr = phys_addr + size - 1;
++	if (!size || last_addr < phys_addr)
++		return NULL;
 +
-+#ifndef __ASM_NDS32_PARAM_H
-+#define __ASM_NDS32_PARAM_H
++	/*
++	 * Mappings have to be page-aligned
++	 */
++	offset = phys_addr & ~PAGE_MASK;
++	phys_addr &= PAGE_MASK;
++	size = PAGE_ALIGN(last_addr + 1) - phys_addr;
 +
-+#define EXEC_PAGESIZE	8192
++	/*
++	 * Ok, go for it..
++	 */
++	area = get_vm_area_caller(size, VM_IOREMAP, caller);
++	if (!area)
++		return NULL;
 +
-+#include <asm-generic/param.h>
++	area->phys_addr = phys_addr;
++	addr = (unsigned long)area->addr;
++	prot = __pgprot(_PAGE_V | _PAGE_M_KRW | _PAGE_D |
++			_PAGE_G | _PAGE_C_DEV);
++	if (ioremap_page_range(addr, addr + size, phys_addr, prot)) {
++		vunmap((void *)addr);
++		return NULL;
++	}
++	return (__force void __iomem *)(offset + (char *)addr);
 +
-+#endif /* __ASM_NDS32_PARAM_H */
++}
++
++void __iomem *ioremap(phys_addr_t phys_addr, size_t size)
++{
++	return __ioremap_caller(phys_addr, size,
++				__builtin_return_address(0));
++}
++
++EXPORT_SYMBOL(ioremap);
++
++void iounmap(volatile void __iomem * addr)
++{
++	vunmap((void *)(PAGE_MASK & (unsigned long)addr));
++}
++
++EXPORT_SYMBOL(iounmap);
 -- 
 2.16.1
