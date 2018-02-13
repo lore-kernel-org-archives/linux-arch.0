@@ -1,7 +1,7 @@
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v7 09/37] nds32: MMU definitions
-Date: Tue, 13 Feb 2018 17:09:13 +0800
-Message-ID: <47ea12e406919e672305b2f1b666131c4f7fbee0.1518505384.git.greentime@andestech.com>
+Subject: [PATCH v7 11/37] nds32: MMU fault handling and page table management
+Date: Tue, 13 Feb 2018 17:09:15 +0800
+Message-ID: <a419d2de8b14394310edcd2561bfe6d4bd6d2561.1518505384.git.greentime@andestech.com>
 References: <cover.1518505384.git.greentime@andestech.com>
 Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
@@ -12,880 +12,581 @@ To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch includes virtual memory layout, PHYS_OFFSET is defined as 0x0. It
-also includes the 4KB/8KB page size configurations and pte operations.
+This patch includes page fault handler, mmap and fixup implementations.
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/nds32/include/asm/fixmap.h   |  29 +++
- arch/nds32/include/asm/highmem.h  |  65 ++++++
- arch/nds32/include/asm/memory.h   | 105 ++++++++++
- arch/nds32/include/asm/mmu.h      |  12 ++
- arch/nds32/include/asm/page.h     |  67 +++++++
- arch/nds32/include/asm/pgalloc.h  |  96 +++++++++
- arch/nds32/include/asm/pgtable.h  | 409 ++++++++++++++++++++++++++++++++++++++
- arch/nds32/include/asm/shmparam.h |  19 ++
- 8 files changed, 802 insertions(+)
- create mode 100644 arch/nds32/include/asm/fixmap.h
- create mode 100644 arch/nds32/include/asm/highmem.h
- create mode 100644 arch/nds32/include/asm/memory.h
- create mode 100644 arch/nds32/include/asm/mmu.h
- create mode 100644 arch/nds32/include/asm/page.h
- create mode 100644 arch/nds32/include/asm/pgalloc.h
- create mode 100644 arch/nds32/include/asm/pgtable.h
- create mode 100644 arch/nds32/include/asm/shmparam.h
+ arch/nds32/lib/copy_page.S |  37 ++++
+ arch/nds32/mm/extable.c    |  16 ++
+ arch/nds32/mm/fault.c      | 410 +++++++++++++++++++++++++++++++++++++++++++++
+ arch/nds32/mm/mmap.c       |  73 ++++++++
+ 4 files changed, 536 insertions(+)
+ create mode 100644 arch/nds32/lib/copy_page.S
+ create mode 100644 arch/nds32/mm/extable.c
+ create mode 100644 arch/nds32/mm/fault.c
+ create mode 100644 arch/nds32/mm/mmap.c
 
-diff --git a/arch/nds32/include/asm/fixmap.h b/arch/nds32/include/asm/fixmap.h
+diff --git a/arch/nds32/lib/copy_page.S b/arch/nds32/lib/copy_page.S
 new file mode 100644
-index 000000000000..0e60e153a71a
+index 000000000000..4a2ff85f17ee
 --- /dev/null
-+++ b/arch/nds32/include/asm/fixmap.h
-@@ -0,0 +1,29 @@
++++ b/arch/nds32/lib/copy_page.S
+@@ -0,0 +1,37 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __ASM_NDS32_FIXMAP_H
-+#define __ASM_NDS32_FIXMAP_H
-+
-+#ifdef CONFIG_HIGHMEM
-+#include <linux/threads.h>
-+#include <asm/kmap_types.h>
-+#endif
-+
-+enum fixed_addresses {
-+	FIX_HOLE,
-+	FIX_KMAP_RESERVED,
-+	FIX_KMAP_BEGIN,
-+#ifdef CONFIG_HIGHMEM
-+	FIX_KMAP_END = FIX_KMAP_BEGIN + (KM_TYPE_NR * NR_CPUS),
-+#endif
-+	FIX_EARLYCON_MEM_BASE,
-+	__end_of_fixed_addresses
-+};
-+#define FIXADDR_TOP             ((unsigned long) (-(16 * PAGE_SIZE)))
-+#define FIXADDR_SIZE		((__end_of_fixed_addresses) << PAGE_SHIFT)
-+#define FIXADDR_START		(FIXADDR_TOP - FIXADDR_SIZE)
-+#define FIXMAP_PAGE_IO		__pgprot(PAGE_DEVICE)
-+void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys, pgprot_t prot);
-+
-+#include <asm-generic/fixmap.h>
-+#endif /* __ASM_NDS32_FIXMAP_H */
-diff --git a/arch/nds32/include/asm/highmem.h b/arch/nds32/include/asm/highmem.h
-new file mode 100644
-index 000000000000..425d546cb059
---- /dev/null
-+++ b/arch/nds32/include/asm/highmem.h
-@@ -0,0 +1,65 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef _ASM_HIGHMEM_H
-+#define _ASM_HIGHMEM_H
-+
-+#include <asm/proc-fns.h>
-+#include <asm/kmap_types.h>
-+#include <asm/fixmap.h>
-+#include <asm/pgtable.h>
-+
-+/*
-+ * Right now we initialize only a single pte table. It can be extended
-+ * easily, subsequent pte tables have to be allocated in one physical
-+ * chunk of RAM.
-+ */
-+/*
-+ * Ordering is (from lower to higher memory addresses):
-+ *
-+ * high_memory
-+ *			Persistent kmap area
-+ * PKMAP_BASE
-+ *			fixed_addresses
-+ * FIXADDR_START
-+ * FIXADDR_TOP
-+ *			Vmalloc area
-+ * VMALLOC_START
-+ * VMALLOC_END
-+ */
-+#define PKMAP_BASE		((FIXADDR_START - PGDIR_SIZE) & (PGDIR_MASK))
-+#define LAST_PKMAP		PTRS_PER_PTE
-+#define LAST_PKMAP_MASK		(LAST_PKMAP - 1)
-+#define PKMAP_NR(virt)		(((virt) - (PKMAP_BASE)) >> PAGE_SHIFT)
-+#define PKMAP_ADDR(nr)		(PKMAP_BASE + ((nr) << PAGE_SHIFT))
-+#define kmap_prot		PAGE_KERNEL
-+
-+static inline void flush_cache_kmaps(void)
-+{
-+	cpu_dcache_wbinval_all();
-+}
-+
-+/* declarations for highmem.c */
-+extern unsigned long highstart_pfn, highend_pfn;
-+
-+extern pte_t *pkmap_page_table;
-+
-+extern void *kmap_high(struct page *page);
-+extern void kunmap_high(struct page *page);
-+
-+extern void kmap_init(void);
-+
-+/*
-+ * The following functions are already defined by <linux/highmem.h>
-+ * when CONFIG_HIGHMEM is not set.
-+ */
-+#ifdef CONFIG_HIGHMEM
-+extern void *kmap(struct page *page);
-+extern void kunmap(struct page *page);
-+extern void *kmap_atomic(struct page *page);
-+extern void __kunmap_atomic(void *kvaddr);
-+extern void *kmap_atomic_pfn(unsigned long pfn);
-+extern struct page *kmap_atomic_to_page(void *ptr);
-+#endif
-+
-+#endif
-diff --git a/arch/nds32/include/asm/memory.h b/arch/nds32/include/asm/memory.h
-new file mode 100644
-index 000000000000..60efc726b56e
---- /dev/null
-+++ b/arch/nds32/include/asm/memory.h
-@@ -0,0 +1,105 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef __ASM_NDS32_MEMORY_H
-+#define __ASM_NDS32_MEMORY_H
-+
-+#include <linux/compiler.h>
-+#include <linux/sizes.h>
-+
-+#ifndef __ASSEMBLY__
++#include <linux/linkage.h>
 +#include <asm/page.h>
-+#endif
 +
-+#ifndef PHYS_OFFSET
-+#define PHYS_OFFSET     (0x0)
-+#endif
++	.text
++ENTRY(copy_page)
++	pushm	$r2, $r10
++	movi	$r2, PAGE_SIZE >> 5
++.Lcopy_loop:
++	lmw.bim	$r3, [$r1], $r10
++	smw.bim	$r3, [$r0], $r10
++	subi45	$r2, #1
++	bnez38	$r2, .Lcopy_loop
++	popm	$r2, $r10
++	ret
++ENDPROC(copy_page)
 +
-+#ifndef __virt_to_bus
-+#define __virt_to_bus	__virt_to_phys
-+#endif
-+
-+#ifndef __bus_to_virt
-+#define __bus_to_virt	__phys_to_virt
-+#endif
-+
-+/*
-+ * TASK_SIZE - the maximum size of a user space task.
-+ * TASK_UNMAPPED_BASE - the lower boundary of the mmap VM area
-+ */
-+#define TASK_SIZE		((CONFIG_PAGE_OFFSET) - (SZ_32M))
-+#define TASK_UNMAPPED_BASE	ALIGN(TASK_SIZE / 3, SZ_32M)
-+#define PAGE_OFFSET		(CONFIG_PAGE_OFFSET)
-+
-+/*
-+ * Physical vs virtual RAM address space conversion.  These are
-+ * private definitions which should NOT be used outside memory.h
-+ * files.  Use virt_to_phys/phys_to_virt/__pa/__va instead.
-+ */
-+#ifndef __virt_to_phys
-+#define __virt_to_phys(x)	((x) - PAGE_OFFSET + PHYS_OFFSET)
-+#define __phys_to_virt(x)	((x) - PHYS_OFFSET + PAGE_OFFSET)
-+#endif
-+
-+/*
-+ * The module space lives between the addresses given by TASK_SIZE
-+ * and PAGE_OFFSET - it must be within 32MB of the kernel text.
-+ */
-+#define MODULES_END	(PAGE_OFFSET)
-+#define MODULES_VADDR	(MODULES_END - SZ_32M)
-+
-+#if TASK_SIZE > MODULES_VADDR
-+#error Top of user space clashes with start of module space
-+#endif
-+
-+#ifndef __ASSEMBLY__
-+
-+/*
-+ * PFNs are used to describe any physical page; this means
-+ * PFN 0 == physical address 0.
-+ *
-+ * This is the PFN of the first RAM page in the kernel
-+ * direct-mapped view.  We assume this is the first page
-+ * of RAM in the mem_map as well.
-+ */
-+#define PHYS_PFN_OFFSET	(PHYS_OFFSET >> PAGE_SHIFT)
-+
-+/*
-+ * Drivers should NOT use these either.
-+ */
-+#define __pa(x)			__virt_to_phys((unsigned long)(x))
-+#define __va(x)			((void *)__phys_to_virt((unsigned long)(x)))
-+
-+/*
-+ * Conversion between a struct page and a physical address.
-+ *
-+ * Note: when converting an unknown physical address to a
-+ * struct page, the resulting pointer must be validated
-+ * using VALID_PAGE().  It must return an invalid struct page
-+ * for any physical address not corresponding to a system
-+ * RAM address.
-+ *
-+ *  pfn_valid(pfn)	indicates whether a PFN number is valid
-+ *
-+ *  virt_to_page(k)	convert a _valid_ virtual address to struct page *
-+ *  virt_addr_valid(k)	indicates whether a virtual address is valid
-+ */
-+#ifndef CONFIG_DISCONTIGMEM
-+
-+#define ARCH_PFN_OFFSET		PHYS_PFN_OFFSET
-+#define pfn_valid(pfn)		((pfn) >= PHYS_PFN_OFFSET && (pfn) < (PHYS_PFN_OFFSET + max_mapnr))
-+
-+#define virt_to_page(kaddr)	(pfn_to_page(__pa(kaddr) >> PAGE_SHIFT))
-+#define virt_addr_valid(kaddr)	((unsigned long)(kaddr) >= PAGE_OFFSET && (unsigned long)(kaddr) < (unsigned long)high_memory)
-+
-+#else /* CONFIG_DISCONTIGMEM */
-+#error CONFIG_DISCONTIGMEM is not supported yet.
-+#endif /* !CONFIG_DISCONTIGMEM */
-+
-+#define page_to_phys(page)	(page_to_pfn(page) << PAGE_SHIFT)
-+
-+#endif
-+
-+#include <asm-generic/memory_model.h>
-+
-+#endif
-diff --git a/arch/nds32/include/asm/mmu.h b/arch/nds32/include/asm/mmu.h
++ENTRY(clear_page)
++	pushm	$r1, $r9
++	movi	$r1, PAGE_SIZE >> 5
++	movi55	$r2, #0
++	movi55	$r3, #0
++	movi55	$r4, #0
++	movi55	$r5, #0
++	movi55	$r6, #0
++	movi55	$r7, #0
++	movi55	$r8, #0
++	movi55	$r9, #0
++.Lclear_loop:
++	smw.bim	$r2, [$r0], $r9
++	subi45	$r1, #1
++	bnez38	$r1, .Lclear_loop
++	popm	$r1, $r9
++        ret
++ENDPROC(clear_page)
+diff --git a/arch/nds32/mm/extable.c b/arch/nds32/mm/extable.c
 new file mode 100644
-index 000000000000..88b9ee8c1064
+index 000000000000..db7f0a7c8966
 --- /dev/null
-+++ b/arch/nds32/include/asm/mmu.h
-@@ -0,0 +1,12 @@
++++ b/arch/nds32/mm/extable.c
+@@ -0,0 +1,16 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __NDS32_MMU_H
-+#define __NDS32_MMU_H
++#include <linux/extable.h>
++#include <linux/uaccess.h>
 +
-+typedef struct {
-+	unsigned int id;
-+	void *vdso;
-+} mm_context_t;
++int fixup_exception(struct pt_regs *regs)
++{
++	const struct exception_table_entry *fixup;
 +
-+#endif
-diff --git a/arch/nds32/include/asm/page.h b/arch/nds32/include/asm/page.h
++	fixup = search_exception_tables(instruction_pointer(regs));
++	if (fixup)
++		regs->ipc = fixup->fixup;
++
++	return fixup != NULL;
++}
+diff --git a/arch/nds32/mm/fault.c b/arch/nds32/mm/fault.c
 new file mode 100644
-index 000000000000..e27365c097b6
+index 000000000000..3a246fb8098c
 --- /dev/null
-+++ b/arch/nds32/include/asm/page.h
-@@ -0,0 +1,67 @@
-+/*
-+ * SPDX-License-Identifier: GPL-2.0
-+ * Copyright (C) 2005-2017 Andes Technology Corporation
-+ */
-+
-+#ifndef _ASMNDS32_PAGE_H
-+#define _ASMNDS32_PAGE_H
-+
-+#ifdef CONFIG_ANDES_PAGE_SIZE_4KB
-+#define PAGE_SHIFT      12
-+#endif
-+#ifdef CONFIG_ANDES_PAGE_SIZE_8KB
-+#define PAGE_SHIFT      13
-+#endif
-+#include <linux/const.h>
-+#define PAGE_SIZE       (_AC(1,UL) << PAGE_SHIFT)
-+#define PAGE_MASK       (~(PAGE_SIZE-1))
-+
-+#ifdef __KERNEL__
-+
-+#ifndef __ASSEMBLY__
-+
-+struct page;
-+struct vm_area_struct;
-+#ifdef CONFIG_CPU_CACHE_ALIASING
-+extern void copy_user_highpage(struct page *to, struct page *from,
-+			       unsigned long vaddr, struct vm_area_struct *vma);
-+extern void clear_user_highpage(struct page *page, unsigned long vaddr);
-+
-+#define __HAVE_ARCH_COPY_USER_HIGHPAGE
-+#define clear_user_highpage	clear_user_highpage
-+#else
-+#define clear_user_page(page, vaddr, pg)        clear_page(page)
-+#define copy_user_page(to, from, vaddr, pg)     copy_page(to, from)
-+#endif
-+
-+void clear_page(void *page);
-+void copy_page(void *to, void *from);
-+
-+typedef unsigned long pte_t;
-+typedef unsigned long pmd_t;
-+typedef unsigned long pgd_t;
-+typedef unsigned long pgprot_t;
-+
-+#define pte_val(x)      (x)
-+#define pmd_val(x)      (x)
-+#define pgd_val(x)	(x)
-+#define pgprot_val(x)   (x)
-+
-+#define __pte(x)        (x)
-+#define __pmd(x)        (x)
-+#define __pgd(x)        (x)
-+#define __pgprot(x)     (x)
-+
-+typedef struct page *pgtable_t;
-+
-+#include <asm/memory.h>
-+#include <asm-generic/getorder.h>
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
-+				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
-+
-+#endif /* __KERNEL__ */
-+
-+#endif
-diff --git a/arch/nds32/include/asm/pgalloc.h b/arch/nds32/include/asm/pgalloc.h
-new file mode 100644
-index 000000000000..27448869131a
---- /dev/null
-+++ b/arch/nds32/include/asm/pgalloc.h
-@@ -0,0 +1,96 @@
++++ b/arch/nds32/mm/fault.c
+@@ -0,0 +1,410 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef _ASMNDS32_PGALLOC_H
-+#define _ASMNDS32_PGALLOC_H
++#include <linux/extable.h>
++#include <linux/module.h>
++#include <linux/signal.h>
++#include <linux/ptrace.h>
++#include <linux/mm.h>
++#include <linux/init.h>
++#include <linux/hardirq.h>
++#include <linux/uaccess.h>
 +
-+#include <asm/processor.h>
-+#include <asm/cacheflush.h>
++#include <asm/pgtable.h>
 +#include <asm/tlbflush.h>
-+#include <asm/proc-fns.h>
++
++extern void die(const char *str, struct pt_regs *regs, long err);
 +
 +/*
-+ * Since we have only two-level page tables, these are trivial
++ * This is useful to dump out the page tables associated with
++ * 'addr' in mm 'mm'.
 + */
-+#define pmd_alloc_one(mm, addr)		({ BUG(); ((pmd_t *)2); })
-+#define pmd_free(mm, pmd)			do { } while (0)
-+#define pgd_populate(mm, pmd, pte)	BUG()
-+#define pmd_pgtable(pmd) pmd_page(pmd)
-+
-+extern pgd_t *pgd_alloc(struct mm_struct *mm);
-+extern void pgd_free(struct mm_struct *mm, pgd_t * pgd);
-+
-+#define check_pgt_cache()		do { } while (0)
-+
-+static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
-+					  unsigned long addr)
++void show_pte(struct mm_struct *mm, unsigned long addr)
 +{
-+	pte_t *pte;
++	pgd_t *pgd;
++	if (!mm)
++		mm = &init_mm;
 +
-+	pte =
-+	    (pte_t *) __get_free_page(GFP_KERNEL | __GFP_RETRY_MAYFAIL |
-+				      __GFP_ZERO);
++	pr_alert("pgd = %p\n", mm->pgd);
++	pgd = pgd_offset(mm, addr);
++	pr_alert("[%08lx] *pgd=%08lx", addr, pgd_val(*pgd));
 +
-+	return pte;
++	do {
++		pmd_t *pmd;
++
++		if (pgd_none(*pgd))
++			break;
++
++		if (pgd_bad(*pgd)) {
++			pr_alert("(bad)");
++			break;
++		}
++
++		pmd = pmd_offset(pgd, addr);
++#if PTRS_PER_PMD != 1
++		pr_alert(", *pmd=%08lx", pmd_val(*pmd));
++#endif
++
++		if (pmd_none(*pmd))
++			break;
++
++		if (pmd_bad(*pmd)) {
++			pr_alert("(bad)");
++			break;
++		}
++
++		if (IS_ENABLED(CONFIG_HIGHMEM))
++		{
++			pte_t *pte;
++			/* We must not map this if we have highmem enabled */
++			pte = pte_offset_map(pmd, addr);
++			pr_alert(", *pte=%08lx", pte_val(*pte));
++			pte_unmap(pte);
++		}
++	} while (0);
++
++	pr_alert("\n");
 +}
 +
-+static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addr)
++void do_page_fault(unsigned long entry, unsigned long addr,
++		   unsigned int error_code, struct pt_regs *regs)
 +{
-+	pgtable_t pte;
++	struct task_struct *tsk;
++	struct mm_struct *mm;
++	struct vm_area_struct *vma;
++	siginfo_t info;
++	int fault;
++	unsigned int mask = VM_READ | VM_WRITE | VM_EXEC;
++	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
 +
-+	pte = alloc_pages(GFP_KERNEL | __GFP_RETRY_MAYFAIL | __GFP_ZERO, 0);
-+	if (pte)
-+		cpu_dcache_wb_page((unsigned long)page_address(pte));
++	error_code = error_code & (ITYPE_mskINST | ITYPE_mskETYPE);
++	tsk = current;
++	mm = tsk->mm;
++	info.si_code = SEGV_MAPERR;
++	/*
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
++	 */
++	if (addr >= TASK_SIZE) {
++		if (user_mode(regs))
++			goto bad_area_nosemaphore;
 +
-+	return pte;
-+}
++		if (addr >= TASK_SIZE && addr < VMALLOC_END
++		    && (entry == ENTRY_PTE_NOT_PRESENT))
++			goto vmalloc_fault;
++		else
++			goto no_context;
++	}
 +
-+/*
-+ * Free one PTE table.
-+ */
-+static inline void pte_free_kernel(struct mm_struct *mm, pte_t * pte)
-+{
-+	if (pte) {
-+		free_page((unsigned long)pte);
++	/* Send a signal to the task for handling the unalignment access. */
++	if (entry == ENTRY_GENERAL_EXCPETION
++	    && error_code == ETYPE_ALIGNMENT_CHECK) {
++		if (user_mode(regs))
++			goto bad_area_nosemaphore;
++		else
++			goto no_context;
++	}
++
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (unlikely(faulthandler_disabled() || !mm))
++		goto no_context;
++
++	/*
++	 * As per x86, we may deadlock here. However, since the kernel only
++	 * validly references user space from well defined areas of the code,
++	 * we can bug out early if this is from code which shouldn't.
++	 */
++	if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
++		if (!user_mode(regs) &&
++		    !search_exception_tables(instruction_pointer(regs)))
++			goto no_context;
++retry:
++		down_read(&mm->mmap_sem);
++	} else {
++		/*
++		 * The above down_read_trylock() might have succeeded in which
++		 * case, we'll have missed the might_sleep() from down_read().
++		 */
++		might_sleep();
++		if (IS_ENABLED(CONFIG_DEBUG_VM)) {
++			if (!user_mode(regs) &&
++			    !search_exception_tables(instruction_pointer(regs)))
++				goto no_context;
++		}
++	}
++
++	vma = find_vma(mm, addr);
++
++	if (unlikely(!vma))
++		goto bad_area;
++
++	if (vma->vm_start <= addr)
++		goto good_area;
++
++	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
++		goto bad_area;
++
++	if (unlikely(expand_stack(vma, addr)))
++		goto bad_area;
++
++	/*
++	 * Ok, we have a good vm_area for this memory access, so
++	 * we can handle it..
++	 */
++
++good_area:
++	info.si_code = SEGV_ACCERR;
++
++	/* first do some preliminary protection checks */
++	if (entry == ENTRY_PTE_NOT_PRESENT) {
++		if (error_code & ITYPE_mskINST)
++			mask = VM_EXEC;
++		else {
++			mask = VM_READ | VM_WRITE;
++			if (vma->vm_flags & VM_WRITE)
++				flags |= FAULT_FLAG_WRITE;
++		}
++	} else if (entry == ENTRY_TLB_MISC) {
++		switch (error_code & ITYPE_mskETYPE) {
++		case RD_PROT:
++			mask = VM_READ;
++			break;
++		case WRT_PROT:
++			mask = VM_WRITE;
++			flags |= FAULT_FLAG_WRITE;
++			break;
++		case NOEXEC:
++			mask = VM_EXEC;
++			break;
++		case PAGE_MODIFY:
++			mask = VM_WRITE;
++			flags |= FAULT_FLAG_WRITE;
++			break;
++		case ACC_BIT:
++			BUG();
++		default:
++			break;
++		}
++
++	}
++	if (!(vma->vm_flags & mask))
++		goto bad_area;
++
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++
++	fault = handle_mm_fault(vma, addr, flags);
++
++	/*
++	 * If we need to retry but a fatal signal is pending, handle the
++	 * signal first. We do not need to release the mmap_sem because it
++	 * would already be released in __lock_page_or_retry in mm/filemap.c.
++	 */
++	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current)) {
++		if (!user_mode(regs))
++			goto no_context;
++		return;
++	}
++
++	if (unlikely(fault & VM_FAULT_ERROR)) {
++		if (fault & VM_FAULT_OOM)
++			goto out_of_memory;
++		else if (fault & VM_FAULT_SIGBUS)
++			goto do_sigbus;
++		else
++			goto bad_area;
++	}
++
++	/*
++	 * Major/minor page fault accounting is only done on the initial
++	 * attempt. If we go through a retry, it is extremely likely that the
++	 * page will be found in page cache at that point.
++	 */
++	if (flags & FAULT_FLAG_ALLOW_RETRY) {
++		if (fault & VM_FAULT_MAJOR)
++			tsk->maj_flt++;
++		else
++			tsk->min_flt++;
++		if (fault & VM_FAULT_RETRY) {
++			flags &= ~FAULT_FLAG_ALLOW_RETRY;
++			flags |= FAULT_FLAG_TRIED;
++
++			/* No need to up_read(&mm->mmap_sem) as we would
++			 * have already released it in __lock_page_or_retry
++			 * in mm/filemap.c.
++			 */
++			goto retry;
++		}
++	}
++
++	up_read(&mm->mmap_sem);
++	return;
++
++	/*
++	 * Something tried to access memory that isn't in our memory map..
++	 * Fix it, but check if it's kernel or user first..
++	 */
++bad_area:
++	up_read(&mm->mmap_sem);
++
++bad_area_nosemaphore:
++
++	/* User mode accesses just cause a SIGSEGV */
++
++	if (user_mode(regs)) {
++		tsk->thread.address = addr;
++		tsk->thread.error_code = error_code;
++		tsk->thread.trap_no = entry;
++		info.si_signo = SIGSEGV;
++		info.si_errno = 0;
++		/* info.si_code has been set above */
++		info.si_addr = (void *)addr;
++		force_sig_info(SIGSEGV, &info, tsk);
++		return;
++	}
++
++no_context:
++
++	/* Are we prepared to handle this kernel fault?
++	 *
++	 * (The kernel has valid exception-points in the source
++	 *  when it acesses user-memory. When it fails in one
++	 *  of those points, we find it in a table and do a jump
++	 *  to some fixup code that loads an appropriate error
++	 *  code)
++	 */
++
++	{
++		const struct exception_table_entry *entry;
++
++		if ((entry =
++		     search_exception_tables(instruction_pointer(regs))) !=
++		    NULL) {
++			/* Adjust the instruction pointer in the stackframe */
++			instruction_pointer(regs) = entry->fixup;
++			return;
++		}
++	}
++
++	/*
++	 * Oops. The kernel tried to access some bad page. We'll have to
++	 * terminate things with extreme prejudice.
++	 */
++
++	bust_spinlocks(1);
++	pr_alert("Unable to handle kernel %s at virtual address %08lx\n",
++		 (addr < PAGE_SIZE) ? "NULL pointer dereference" :
++		 "paging request", addr);
++
++	show_pte(mm, addr);
++	die("Oops", regs, error_code);
++	bust_spinlocks(0);
++	do_exit(SIGKILL);
++
++	return;
++
++	/*
++	 * We ran out of memory, or some other thing happened to us that made
++	 * us unable to handle the page fault gracefully.
++	 */
++
++out_of_memory:
++	up_read(&mm->mmap_sem);
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
++
++do_sigbus:
++	up_read(&mm->mmap_sem);
++
++	/* Kernel mode? Handle exceptions or die */
++	if (!user_mode(regs))
++		goto no_context;
++
++	/*
++	 * Send a sigbus
++	 */
++	tsk->thread.address = addr;
++	tsk->thread.error_code = error_code;
++	tsk->thread.trap_no = entry;
++	info.si_signo = SIGBUS;
++	info.si_errno = 0;
++	info.si_code = BUS_ADRERR;
++	info.si_addr = (void *)addr;
++	force_sig_info(SIGBUS, &info, tsk);
++
++	return;
++
++vmalloc_fault:
++	{
++		/*
++		 * Synchronize this task's top level page-table
++		 * with the 'reference' page table.
++		 *
++		 * Use current_pgd instead of tsk->active_mm->pgd
++		 * since the latter might be unavailable if this
++		 * code is executed in a misfortunately run irq
++		 * (like inside schedule() between switch_mm and
++		 *  switch_to...).
++		 */
++
++		unsigned int index = pgd_index(addr);
++		pgd_t *pgd, *pgd_k;
++		pud_t *pud, *pud_k;
++		pmd_t *pmd, *pmd_k;
++		pte_t *pte_k;
++
++		pgd = (pgd_t *) __va(__nds32__mfsr(NDS32_SR_L1_PPTB)) + index;
++		pgd_k = init_mm.pgd + index;
++
++		if (!pgd_present(*pgd_k))
++			goto no_context;
++
++		pud = pud_offset(pgd, addr);
++		pud_k = pud_offset(pgd_k, addr);
++		if (!pud_present(*pud_k))
++			goto no_context;
++
++		pmd = pmd_offset(pud, addr);
++		pmd_k = pmd_offset(pud_k, addr);
++		if (!pmd_present(*pmd_k))
++			goto no_context;
++
++		if (!pmd_present(*pmd))
++			set_pmd(pmd, *pmd_k);
++		else
++			BUG_ON(pmd_page(*pmd) != pmd_page(*pmd_k));
++
++		/*
++		 * Since the vmalloc area is global, we don't
++		 * need to copy individual PTE's, it is enough to
++		 * copy the pgd pointer into the pte page of the
++		 * root task. If that is there, we'll find our pte if
++		 * it exists.
++		 */
++
++		/* Make sure the actual PTE exists as well to
++		 * catch kernel vmalloc-area accesses to non-mapped
++		 * addres. If we don't do this, this will just
++		 * silently loop forever.
++		 */
++
++		pte_k = pte_offset_kernel(pmd_k, addr);
++		if (!pte_present(*pte_k))
++			goto no_context;
++
++		return;
 +	}
 +}
-+
-+static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
-+{
-+	__free_page(pte);
-+}
-+
-+/*
-+ * Populate the pmdp entry with a pointer to the pte.  This pmd is part
-+ * of the mm address space.
-+ *
-+ * Ensure that we always set both PMD entries.
-+ */
-+static inline void
-+pmd_populate_kernel(struct mm_struct *mm, pmd_t * pmdp, pte_t * ptep)
-+{
-+	unsigned long pte_ptr = (unsigned long)ptep;
-+	unsigned long pmdval;
-+
-+	BUG_ON(mm != &init_mm);
-+
-+	/*
-+	 * The pmd must be loaded with the physical
-+	 * address of the PTE table
-+	 */
-+	pmdval = __pa(pte_ptr) | _PAGE_KERNEL_TABLE;
-+	set_pmd(pmdp, __pmd(pmdval));
-+}
-+
-+static inline void
-+pmd_populate(struct mm_struct *mm, pmd_t * pmdp, pgtable_t ptep)
-+{
-+	unsigned long pmdval;
-+
-+	BUG_ON(mm == &init_mm);
-+
-+	pmdval = page_to_pfn(ptep) << PAGE_SHIFT | _PAGE_USER_TABLE;
-+	set_pmd(pmdp, __pmd(pmdval));
-+}
-+
-+#endif
-diff --git a/arch/nds32/include/asm/pgtable.h b/arch/nds32/include/asm/pgtable.h
+diff --git a/arch/nds32/mm/mmap.c b/arch/nds32/mm/mmap.c
 new file mode 100644
-index 000000000000..6783937edbeb
+index 000000000000..c206b31ce07a
 --- /dev/null
-+++ b/arch/nds32/include/asm/pgtable.h
-@@ -0,0 +1,409 @@
++++ b/arch/nds32/mm/mmap.c
+@@ -0,0 +1,73 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef _ASMNDS32_PGTABLE_H
-+#define _ASMNDS32_PGTABLE_H
++#include <linux/sched.h>
++#include <linux/mman.h>
++#include <linux/shm.h>
 +
-+#define __PAGETABLE_PMD_FOLDED
-+#include <asm-generic/4level-fixup.h>
-+#include <asm-generic/sizes.h>
-+
-+#include <asm/memory.h>
-+#include <asm/nds32.h>
-+#ifndef __ASSEMBLY__
-+#include <asm/fixmap.h>
-+#include <asm/io.h>
-+#include <nds32_intrinsic.h>
-+#endif
-+
-+#ifdef CONFIG_ANDES_PAGE_SIZE_4KB
-+#define PGDIR_SHIFT      22
-+#define PTRS_PER_PGD     1024
-+#define PMD_SHIFT        22
-+#define PTRS_PER_PMD     1
-+#define PTRS_PER_PTE     1024
-+#endif
-+
-+#ifdef CONFIG_ANDES_PAGE_SIZE_8KB
-+#define PGDIR_SHIFT      24
-+#define PTRS_PER_PGD     256
-+#define PMD_SHIFT        24
-+#define PTRS_PER_PMD     1
-+#define PTRS_PER_PTE     2048
-+#endif
-+
-+#ifndef __ASSEMBLY__
-+extern void __pte_error(const char *file, int line, unsigned long val);
-+extern void __pmd_error(const char *file, int line, unsigned long val);
-+extern void __pgd_error(const char *file, int line, unsigned long val);
-+
-+#define pte_ERROR(pte)		__pte_error(__FILE__, __LINE__, pte_val(pte))
-+#define pmd_ERROR(pmd)		__pmd_error(__FILE__, __LINE__, pmd_val(pmd))
-+#define pgd_ERROR(pgd)		__pgd_error(__FILE__, __LINE__, pgd_val(pgd))
-+#endif /* !__ASSEMBLY__ */
-+
-+#define PMD_SIZE		(1UL << PMD_SHIFT)
-+#define PMD_MASK		(~(PMD_SIZE-1))
-+#define PGDIR_SIZE		(1UL << PGDIR_SHIFT)
-+#define PGDIR_MASK		(~(PGDIR_SIZE-1))
++#define COLOUR_ALIGN(addr,pgoff)		\
++	((((addr)+SHMLBA-1)&~(SHMLBA-1)) +	\
++	 (((pgoff)<<PAGE_SHIFT) & (SHMLBA-1)))
 +
 +/*
-+ * This is the lowest virtual address we can permit any user space
-+ * mapping to be mapped at.  This is particularly important for
-+ * non-high vector CPUs.
-+ */
-+#define FIRST_USER_ADDRESS	0x8000
-+
-+#ifdef CONFIG_HIGHMEM
-+#define CONSISTENT_BASE		((PKMAP_BASE) - (SZ_2M))
-+#define CONSISTENT_END		(PKMAP_BASE)
-+#else
-+#define CONSISTENT_BASE		(FIXADDR_START - SZ_2M)
-+#define CONSISTENT_END		(FIXADDR_START)
-+#endif
-+#define CONSISTENT_OFFSET(x)	(((unsigned long)(x) - CONSISTENT_BASE) >> PAGE_SHIFT)
-+
-+#ifdef CONFIG_HIGHMEM
-+#ifndef __ASSEMBLY__
-+#include <asm/highmem.h>
-+#endif
-+#endif
-+
-+#define VMALLOC_RESERVE 	SZ_128M
-+#define VMALLOC_END		(CONSISTENT_BASE - PAGE_SIZE)
-+#define VMALLOC_START		((VMALLOC_END) - VMALLOC_RESERVE)
-+#define VMALLOC_VMADDR(x)	((unsigned long)(x))
-+#define MAXMEM			__pa(VMALLOC_START)
-+#define MAXMEM_PFN		PFN_DOWN(MAXMEM)
-+
-+#define FIRST_USER_PGD_NR	0
-+#define USER_PTRS_PER_PGD	((TASK_SIZE/PGDIR_SIZE) + FIRST_USER_PGD_NR)
-+
-+/* L2 PTE */
-+#define _PAGE_V			(1UL << 0)
-+
-+#define _PAGE_M_XKRW            (0UL << 1)
-+#define _PAGE_M_UR_KR		(1UL << 1)
-+#define _PAGE_M_UR_KRW		(2UL << 1)
-+#define _PAGE_M_URW_KRW		(3UL << 1)
-+#define _PAGE_M_KR		(5UL << 1)
-+#define _PAGE_M_KRW		(7UL << 1)
-+
-+#define _PAGE_D			(1UL << 4)
-+#define _PAGE_E			(1UL << 5)
-+#define _PAGE_A			(1UL << 6)
-+#define _PAGE_G			(1UL << 7)
-+
-+#define _PAGE_C_DEV		(0UL << 8)
-+#define _PAGE_C_DEV_WB		(1UL << 8)
-+#define _PAGE_C_MEM		(2UL << 8)
-+#define _PAGE_C_MEM_SHRD_WB	(4UL << 8)
-+#define _PAGE_C_MEM_SHRD_WT	(5UL << 8)
-+#define _PAGE_C_MEM_WB		(6UL << 8)
-+#define _PAGE_C_MEM_WT		(7UL << 8)
-+
-+#define _PAGE_L			(1UL << 11)
-+
-+#define _HAVE_PAGE_L		(_PAGE_L)
-+#define _PAGE_FILE		(1UL << 1)
-+#define _PAGE_YOUNG		0
-+#define _PAGE_M_MASK		_PAGE_M_KRW
-+#define _PAGE_C_MASK		_PAGE_C_MEM_WT
-+
-+#ifdef CONFIG_SMP
-+#ifdef CONFIG_CPU_DCACHE_WRITETHROUGH
-+#define _PAGE_CACHE_SHRD	_PAGE_C_MEM_SHRD_WT
-+#else
-+#define _PAGE_CACHE_SHRD	_PAGE_C_MEM_SHRD_WB
-+#endif
-+#else
-+#ifdef CONFIG_CPU_DCACHE_WRITETHROUGH
-+#define _PAGE_CACHE_SHRD	_PAGE_C_MEM_WT
-+#else
-+#define _PAGE_CACHE_SHRD	_PAGE_C_MEM_WB
-+#endif
-+#endif
-+
-+#ifdef CONFIG_CPU_DCACHE_WRITETHROUGH
-+#define _PAGE_CACHE		_PAGE_C_MEM_WT
-+#else
-+#define _PAGE_CACHE		_PAGE_C_MEM_WB
-+#endif
-+
-+/*
-+ * + Level 1 descriptor (PMD)
-+ */
-+#define PMD_TYPE_TABLE		0
-+
-+#ifndef __ASSEMBLY__
-+
-+#define _PAGE_USER_TABLE     PMD_TYPE_TABLE
-+#define _PAGE_KERNEL_TABLE   PMD_TYPE_TABLE
-+
-+#define PAGE_EXEC	__pgprot(_PAGE_V | _PAGE_M_XKRW | _PAGE_E)
-+#define PAGE_NONE	__pgprot(_PAGE_V | _PAGE_M_KRW | _PAGE_A)
-+#define PAGE_READ	__pgprot(_PAGE_V | _PAGE_M_UR_KR)
-+#define PAGE_RDWR	__pgprot(_PAGE_V | _PAGE_M_URW_KRW | _PAGE_D)
-+#define PAGE_COPY	__pgprot(_PAGE_V | _PAGE_M_UR_KR)
-+
-+#define PAGE_UXKRWX_V1	__pgprot(_PAGE_V | _PAGE_M_KRW | _PAGE_D | _PAGE_E | _PAGE_G | _PAGE_CACHE_SHRD)
-+#define PAGE_UXKRWX_V2	__pgprot(_PAGE_V | _PAGE_M_XKRW | _PAGE_D | _PAGE_E | _PAGE_G | _PAGE_CACHE_SHRD)
-+#define PAGE_URXKRWX_V2	__pgprot(_PAGE_V | _PAGE_M_UR_KRW | _PAGE_D | _PAGE_E | _PAGE_G | _PAGE_CACHE_SHRD)
-+#define PAGE_CACHE_L1	__pgprot(_HAVE_PAGE_L | _PAGE_V | _PAGE_M_KRW | _PAGE_D | _PAGE_E | _PAGE_G | _PAGE_CACHE)
-+#define PAGE_MEMORY	__pgprot(_HAVE_PAGE_L | _PAGE_V | _PAGE_M_KRW | _PAGE_D | _PAGE_E | _PAGE_G | _PAGE_CACHE_SHRD)
-+#define PAGE_KERNEL	__pgprot(_PAGE_V | _PAGE_M_KRW | _PAGE_D | _PAGE_E | _PAGE_G | _PAGE_CACHE_SHRD)
-+#define PAGE_DEVICE    __pgprot(_PAGE_V | _PAGE_M_KRW | _PAGE_D | _PAGE_G | _PAGE_C_DEV)
-+#endif /* __ASSEMBLY__ */
-+
-+/*         xwr */
-+#define __P000  (PAGE_NONE | _PAGE_CACHE_SHRD)
-+#define __P001  (PAGE_READ | _PAGE_CACHE_SHRD)
-+#define __P010  (PAGE_COPY | _PAGE_CACHE_SHRD)
-+#define __P011  (PAGE_COPY | _PAGE_CACHE_SHRD)
-+#define __P100  (PAGE_EXEC | _PAGE_CACHE_SHRD)
-+#define __P101  (PAGE_READ | _PAGE_E | _PAGE_CACHE_SHRD)
-+#define __P110  (PAGE_COPY | _PAGE_E | _PAGE_CACHE_SHRD)
-+#define __P111  (PAGE_COPY | _PAGE_E | _PAGE_CACHE_SHRD)
-+
-+#define __S000  (PAGE_NONE | _PAGE_CACHE_SHRD)
-+#define __S001  (PAGE_READ | _PAGE_CACHE_SHRD)
-+#define __S010  (PAGE_RDWR | _PAGE_CACHE_SHRD)
-+#define __S011  (PAGE_RDWR | _PAGE_CACHE_SHRD)
-+#define __S100  (PAGE_EXEC | _PAGE_CACHE_SHRD)
-+#define __S101  (PAGE_READ | _PAGE_E | _PAGE_CACHE_SHRD)
-+#define __S110  (PAGE_RDWR | _PAGE_E | _PAGE_CACHE_SHRD)
-+#define __S111  (PAGE_RDWR | _PAGE_E | _PAGE_CACHE_SHRD)
-+
-+#ifndef __ASSEMBLY__
-+/*
-+ * ZERO_PAGE is a global shared page that is always zero: used
-+ * for zero-mapped memory areas etc..
-+ */
-+extern struct page *empty_zero_page;
-+extern void paging_init(void);
-+#define ZERO_PAGE(vaddr)	(empty_zero_page)
-+
-+#define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)
-+#define pfn_pte(pfn,prot)	(__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot)))
-+
-+#define pte_none(pte)	        !(pte_val(pte))
-+#define pte_clear(mm,addr,ptep)	set_pte_at((mm),(addr),(ptep), __pte(0))
-+#define pte_page(pte)		(pfn_to_page(pte_pfn(pte)))
-+
-+#define pte_index(address)                   (((address) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
-+#define pte_offset_kernel(dir, address)	     ((pte_t *)pmd_page_kernel(*(dir)) + pte_index(address))
-+#define pte_offset_map(dir, address)	     ((pte_t *)page_address(pmd_page(*(dir))) + pte_index(address))
-+#define pte_offset_map_nested(dir, address)  pte_offset_map(dir, address)
-+#define pmd_page_kernel(pmd)	  	     ((unsigned long) __va(pmd_val(pmd) & PAGE_MASK))
-+
-+#define pte_unmap(pte)		do { } while (0)
-+#define pte_unmap_nested(pte)	do { } while (0)
-+
-+#define pmd_off_k(address)	pmd_offset(pgd_offset_k(address), address)
-+
-+#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
-+/*
-+ * Set a level 1 translation table entry, and clean it out of
-+ * any caches such that the MMUs can load it correctly.
-+ */
-+static inline void set_pmd(pmd_t * pmdp, pmd_t pmd)
-+{
-+
-+	*pmdp = pmd;
-+#if !defined(CONFIG_CPU_DCACHE_DISABLE) && !defined(CONFIG_CPU_DCACHE_WRITETHROUGH)
-+	__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (pmdp):"memory");
-+	__nds32__msync_all();
-+	__nds32__dsb();
-+#endif
-+}
-+
-+/*
-+ * Set a PTE and flush it out
-+ */
-+static inline void set_pte(pte_t * ptep, pte_t pte)
-+{
-+
-+	*ptep = pte;
-+#if !defined(CONFIG_CPU_DCACHE_DISABLE) && !defined(CONFIG_CPU_DCACHE_WRITETHROUGH)
-+	__asm__ volatile ("\n\tcctl %0, L1D_VA_WB"::"r" (ptep):"memory");
-+	__nds32__msync_all();
-+	__nds32__dsb();
-+#endif
-+}
-+
-+/*
-+ * The following only work if pte_present() is true.
-+ * Undefined behaviour if not..
-+ */
-+
-+/*
-+ * pte_write: 	     this page is writeable for user mode
-+ * pte_read:         this page is readable for user mode
-+ * pte_kernel_write: this page is writeable for kernel mode
++ * We need to ensure that shared mappings are correctly aligned to
++ * avoid aliasing issues with VIPT caches.  We need to ensure that
++ * a specific page of an object is always mapped at a multiple of
++ * SHMLBA bytes.
 + *
-+ * We don't have pte_kernel_read because kernel always can read.
-+ *
-+ * */
-+
-+#define pte_present(pte)        (pte_val(pte) & _PAGE_V)
-+#define pte_write(pte)          ((pte_val(pte) & _PAGE_M_MASK) == _PAGE_M_URW_KRW)
-+#define pte_read(pte)		(((pte_val(pte) & _PAGE_M_MASK) == _PAGE_M_UR_KR) || \
-+				((pte_val(pte) & _PAGE_M_MASK) == _PAGE_M_UR_KRW) || \
-+				((pte_val(pte) & _PAGE_M_MASK) == _PAGE_M_URW_KRW))
-+#define pte_kernel_write(pte)   (((pte_val(pte) & _PAGE_M_MASK) == _PAGE_M_URW_KRW) || \
-+				((pte_val(pte) & _PAGE_M_MASK) == _PAGE_M_UR_KRW) || \
-+				((pte_val(pte) & _PAGE_M_MASK) == _PAGE_M_KRW) || \
-+				(((pte_val(pte) & _PAGE_M_MASK) == _PAGE_M_XKRW) && pte_exec(pte)))
-+#define pte_exec(pte)		(pte_val(pte) & _PAGE_E)
-+#define pte_dirty(pte)		(pte_val(pte) & _PAGE_D)
-+#define pte_young(pte)		(pte_val(pte) & _PAGE_YOUNG)
-+
-+/*
-+ * The following only works if pte_present() is not true.
++ * We unconditionally provide this function for all cases, however
++ * in the VIVT case, we optimise out the alignment rules.
 + */
-+#define pte_file(pte)		(pte_val(pte) & _PAGE_FILE)
-+#define pte_to_pgoff(x)		(pte_val(x) >> 2)
-+#define pgoff_to_pte(x)		__pte(((x) << 2) | _PAGE_FILE)
-+
-+#define PTE_FILE_MAX_BITS	29
-+
-+#define PTE_BIT_FUNC(fn,op) \
-+static inline pte_t pte_##fn(pte_t pte) { pte_val(pte) op; return pte; }
-+
-+static inline pte_t pte_wrprotect(pte_t pte)
++unsigned long
++arch_get_unmapped_area(struct file *filp, unsigned long addr,
++		       unsigned long len, unsigned long pgoff,
++		       unsigned long flags)
 +{
-+	pte_val(pte) = pte_val(pte) & ~_PAGE_M_MASK;
-+	pte_val(pte) = pte_val(pte) | _PAGE_M_UR_KR;
-+	return pte;
-+}
-+
-+static inline pte_t pte_mkwrite(pte_t pte)
-+{
-+	pte_val(pte) = pte_val(pte) & ~_PAGE_M_MASK;
-+	pte_val(pte) = pte_val(pte) | _PAGE_M_URW_KRW;
-+	return pte;
-+}
-+
-+PTE_BIT_FUNC(exprotect, &=~_PAGE_E);
-+PTE_BIT_FUNC(mkexec, |=_PAGE_E);
-+PTE_BIT_FUNC(mkclean, &=~_PAGE_D);
-+PTE_BIT_FUNC(mkdirty, |=_PAGE_D);
-+PTE_BIT_FUNC(mkold, &=~_PAGE_YOUNG);
-+PTE_BIT_FUNC(mkyoung, |=_PAGE_YOUNG);
-+static inline int pte_special(pte_t pte)
-+{
-+	return 0;
-+}
-+
-+static inline pte_t pte_mkspecial(pte_t pte)
-+{
-+	return pte;
-+}
-+
-+/*
-+ * Mark the prot value as uncacheable and unbufferable.
-+ */
-+#define pgprot_noncached(prot)	   __pgprot((pgprot_val(prot)&~_PAGE_C_MASK) | _PAGE_C_DEV)
-+#define pgprot_writecombine(prot)  __pgprot((pgprot_val(prot)&~_PAGE_C_MASK) | _PAGE_C_DEV_WB)
-+
-+#define pmd_none(pmd)         (pmd_val(pmd)&0x1)
-+#define pmd_present(pmd)      (!pmd_none(pmd))
-+#define	pmd_bad(pmd)	      pmd_none(pmd)
-+
-+#define copy_pmd(pmdpd,pmdps)	set_pmd((pmdpd), *(pmdps))
-+#define pmd_clear(pmdp)		set_pmd((pmdp), __pmd(1))
-+
-+static inline pmd_t __mk_pmd(pte_t * ptep, unsigned long prot)
-+{
-+	unsigned long ptr = (unsigned long)ptep;
-+	pmd_t pmd;
++	struct mm_struct *mm = current->mm;
++	struct vm_area_struct *vma;
++	int do_align = 0;
++	struct vm_unmapped_area_info info;
++	int aliasing = 0;
++	if(IS_ENABLED(CONFIG_CPU_CACHE_ALIASING))
++		aliasing = 1;
 +
 +	/*
-+	 * The pmd must be loaded with the physical
-+	 * address of the PTE table
++	 * We only need to do colour alignment if either the I or D
++	 * caches alias.
 +	 */
++	if (aliasing)
++		do_align = filp || (flags & MAP_SHARED);
 +
-+	pmd_val(pmd) = __virt_to_phys(ptr) | prot;
-+	return pmd;
++	/*
++	 * We enforce the MAP_FIXED case.
++	 */
++	if (flags & MAP_FIXED) {
++		if (aliasing && flags & MAP_SHARED &&
++		    (addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1))
++			return -EINVAL;
++		return addr;
++	}
++
++	if (len > TASK_SIZE)
++		return -ENOMEM;
++
++	if (addr) {
++		if (do_align)
++			addr = COLOUR_ALIGN(addr, pgoff);
++		else
++			addr = PAGE_ALIGN(addr);
++
++		vma = find_vma(mm, addr);
++		if (TASK_SIZE - len >= addr &&
++		    (!vma || addr + len <= vma->vm_start))
++			return addr;
++	}
++
++	info.flags = 0;
++	info.length = len;
++	info.low_limit = mm->mmap_base;
++	info.high_limit = TASK_SIZE;
++	info.align_mask = do_align ? (PAGE_MASK & (SHMLBA - 1)) : 0;
++	info.align_offset = pgoff << PAGE_SHIFT;
++	return vm_unmapped_area(&info);
 +}
-+
-+#define pmd_page(pmd)        virt_to_page(__va(pmd_val(pmd)))
-+
-+/*
-+ * Permanent address of a page. We never have highmem, so this is trivial.
-+ */
-+#define pages_to_mb(x)       ((x) >> (20 - PAGE_SHIFT))
-+
-+/*
-+ * Conversion functions: convert a page and protection to a page entry,
-+ * and a page entry and page directory to the page they refer to.
-+ */
-+#define mk_pte(page,prot)	pfn_pte(page_to_pfn(page),prot)
-+
-+/*
-+ * The "pgd_xxx()" functions here are trivial for a folded two-level
-+ * setup: the pgd is never bad, and a pmd always exists (as it's folded
-+ * into the pgd entry)
-+ */
-+#define pgd_none(pgd)		(0)
-+#define pgd_bad(pgd)		(0)
-+#define pgd_present(pgd)  	(1)
-+#define pgd_clear(pgdp)		do { } while (0)
-+
-+#define page_pte_prot(page,prot)     	mk_pte(page, prot)
-+#define page_pte(page)		        mk_pte(page, __pgprot(0))
-+/*
-+ *     L1PTE = $mr1 + ((virt >> PMD_SHIFT) << 2);
-+ *     L2PTE = (((virt >> PAGE_SHIFT) & (PTRS_PER_PTE -1 )) << 2);
-+ *     PPN = (phys & 0xfffff000);
-+ *
-+*/
-+
-+/* to find an entry in a page-table-directory */
-+#define pgd_index(address)      (((address) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
-+#define pgd_offset(mm, address)	((mm)->pgd + pgd_index(address))
-+/* to find an entry in a kernel page-table-directory */
-+#define pgd_offset_k(addr)      pgd_offset(&init_mm, addr)
-+
-+/* Find an entry in the second-level page table.. */
-+#define pmd_offset(dir, addr)	((pmd_t *)(dir))
-+
-+static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
-+{
-+	const unsigned long mask = 0xfff;
-+	pte_val(pte) = (pte_val(pte) & ~mask) | (pgprot_val(newprot) & mask);
-+	return pte;
-+}
-+
-+extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
-+
-+/* Encode and decode a swap entry.
-+ *
-+ * We support up to 32GB of swap on 4k machines
-+ */
-+#define __swp_type(x)	 	     (((x).val >> 2) & 0x7f)
-+#define __swp_offset(x)	   	     ((x).val >> 9)
-+#define __swp_entry(type,offset)     ((swp_entry_t) { ((type) << 2) | ((offset) << 9) })
-+#define __pte_to_swp_entry(pte)	     ((swp_entry_t) { pte_val(pte) })
-+#define __swp_entry_to_pte(swp)	     ((pte_t) { (swp).val })
-+
-+/* Needs to be defined here and not in linux/mm.h, as it is arch dependent */
-+#define kern_addr_valid(addr)	(1)
-+
-+#include <asm-generic/pgtable.h>
-+
-+/*
-+ * We provide our own arch_get_unmapped_area to cope with VIPT caches.
-+ */
-+#define HAVE_ARCH_UNMAPPED_AREA
-+
-+/*
-+ * remap a physical address `phys' of size `size' with page protection `prot'
-+ * into virtual address `from'
-+ */
-+
-+#define pgtable_cache_init()       do { } while (0)
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* _ASMNDS32_PGTABLE_H */
-diff --git a/arch/nds32/include/asm/shmparam.h b/arch/nds32/include/asm/shmparam.h
-new file mode 100644
-index 000000000000..fd1cff64b68e
---- /dev/null
-+++ b/arch/nds32/include/asm/shmparam.h
-@@ -0,0 +1,19 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2005-2017 Andes Technology Corporation
-+
-+#ifndef _ASMNDS32_SHMPARAM_H
-+#define _ASMNDS32_SHMPARAM_H
-+
-+/*
-+ * This should be the size of the virtually indexed cache/ways,
-+ * whichever is greater since the cache aliases every size/ways
-+ * bytes.
-+ */
-+#define	SHMLBA	(4 * SZ_8K)	/* attach addr a multiple of this */
-+
-+/*
-+ * Enforce SHMLBA in shmat
-+ */
-+#define __ARCH_FORCE_SHMLBA
-+
-+#endif /* _ASMNDS32_SHMPARAM_H */
 -- 
 2.16.1
