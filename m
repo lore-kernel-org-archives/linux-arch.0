@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f67.google.com ([74.125.83.67]:33363 "EHLO
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:37441 "EHLO
         mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933925AbeBMJLx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Feb 2018 04:11:53 -0500
+        with ESMTP id S933416AbeBMJLs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Feb 2018 04:11:48 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v7 15/37] nds32: Atomic operations
-Date: Tue, 13 Feb 2018 17:09:19 +0800
-Message-ID: <e8a50d786be63fe293c9eec6a531d6e6e6577805.1518505384.git.greentime@andestech.com>
+Subject: [PATCH v7 14/37] nds32: IRQ handling
+Date: Tue, 13 Feb 2018 17:09:18 +0800
+Message-ID: <ffdd80d006a15f572efdad859f332241b5ce2f73.1518505384.git.greentime@andestech.com>
 In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
 References: <cover.1518505384.git.greentime@andestech.com>
 In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
@@ -15,150 +15,76 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
 Cc: green.hu@gmail.com, Vincent Chen <vincentc@andestech.com>
-Message-ID: <20180213090919.W1fv3NYgdzKkuo00MYxSsE3cDKvsrHjpVtJ-jMvRLqQ@z>
+Message-ID: <20180213090918.ntmDh3Vw3wZClaMfdK68hvdxC0l9XaDIO_R5c07svHc@z>
 
-This patch includes the atomic and futex operations. Many atomic operations use
-the load-lock word(llw) and store-condition word(scw) operations.
+This patch includes irq related functions and irqchip_init().
 
 Signed-off-by: Vincent Chen <vincentc@andestech.com>
 Signed-off-by: Greentime Hu <greentime@andestech.com>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/nds32/include/asm/barrier.h |  15 ++++++
- arch/nds32/include/asm/futex.h   | 103 +++++++++++++++++++++++++++++++++++++++
- 2 files changed, 118 insertions(+)
- create mode 100644 arch/nds32/include/asm/barrier.h
- create mode 100644 arch/nds32/include/asm/futex.h
+ arch/nds32/include/asm/irqflags.h | 36 ++++++++++++++++++++++++++++++++++++
+ arch/nds32/kernel/irq.c           |  9 +++++++++
+ 2 files changed, 45 insertions(+)
+ create mode 100644 arch/nds32/include/asm/irqflags.h
+ create mode 100644 arch/nds32/kernel/irq.c
 
-diff --git a/arch/nds32/include/asm/barrier.h b/arch/nds32/include/asm/barrier.h
+diff --git a/arch/nds32/include/asm/irqflags.h b/arch/nds32/include/asm/irqflags.h
 new file mode 100644
-index 000000000000..faafc373ea6c
+index 000000000000..2bfd00f8bc48
 --- /dev/null
-+++ b/arch/nds32/include/asm/barrier.h
-@@ -0,0 +1,15 @@
++++ b/arch/nds32/include/asm/irqflags.h
+@@ -0,0 +1,36 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __NDS32_ASM_BARRIER_H
-+#define __NDS32_ASM_BARRIER_H
++#include <asm/nds32.h>
++#include <nds32_intrinsic.h>
 +
-+#ifndef __ASSEMBLY__
-+#define mb()		asm volatile("msync all":::"memory")
-+#define rmb()		asm volatile("msync all":::"memory")
-+#define wmb()		asm volatile("msync store":::"memory")
-+#include <asm-generic/barrier.h>
++#define arch_local_irq_disable()	\
++	GIE_DISABLE();
 +
-+#endif	/* __ASSEMBLY__ */
++#define arch_local_irq_enable()	\
++	GIE_ENABLE();
++static inline unsigned long arch_local_irq_save(void)
++{
++	unsigned long flags;
++	flags = __nds32__mfsr(NDS32_SR_PSW) & PSW_mskGIE;
++	GIE_DISABLE();
++	return flags;
++}
 +
-+#endif	/* __NDS32_ASM_BARRIER_H */
-diff --git a/arch/nds32/include/asm/futex.h b/arch/nds32/include/asm/futex.h
++static inline unsigned long arch_local_save_flags(void)
++{
++	unsigned long flags;
++	flags = __nds32__mfsr(NDS32_SR_PSW) & PSW_mskGIE;
++	return flags;
++}
++
++static inline void arch_local_irq_restore(unsigned long flags)
++{
++	if(flags)
++		GIE_ENABLE();
++}
++
++static inline int arch_irqs_disabled_flags(unsigned long flags)
++{
++	return !flags;
++}
+diff --git a/arch/nds32/kernel/irq.c b/arch/nds32/kernel/irq.c
 new file mode 100644
-index 000000000000..eab5e84bd991
+index 000000000000..6ff5a672be27
 --- /dev/null
-+++ b/arch/nds32/include/asm/futex.h
-@@ -0,0 +1,103 @@
++++ b/arch/nds32/kernel/irq.c
+@@ -0,0 +1,9 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2005-2017 Andes Technology Corporation
 +
-+#ifndef __NDS32_FUTEX_H__
-+#define __NDS32_FUTEX_H__
++#include <linux/irqchip.h>
 +
-+#include <linux/futex.h>
-+#include <linux/uaccess.h>
-+#include <asm/errno.h>
-+
-+#define __futex_atomic_ex_table(err_reg)			\
-+	"	.pushsection __ex_table,\"a\"\n"		\
-+	"	.align	3\n"					\
-+	"	.long	1b, 4f\n"				\
-+	"	.long	2b, 4f\n"				\
-+	"	.popsection\n"					\
-+	"	.pushsection .fixup,\"ax\"\n"			\
-+	"4:	move	%0, " err_reg "\n"			\
-+	"	j	3b\n"					\
-+	"	.popsection"
-+
-+#define __futex_atomic_op(insn, ret, oldval, tmp, uaddr, oparg)	\
-+	smp_mb();						\
-+	asm volatile(					\
-+	"	movi	$ta, #0\n"				\
-+	"1:	llw	%1, [%2+$ta]\n"				\
-+	"	" insn "\n"					\
-+	"2:	scw	%0, [%2+$ta]\n"				\
-+	"	beqz	%0, 1b\n"				\
-+	"	movi	%0, #0\n"				\
-+	"3:\n"							\
-+	__futex_atomic_ex_table("%4")				\
-+	: "=&r" (ret), "=&r" (oldval)				\
-+	: "r" (uaddr), "r" (oparg), "i" (-EFAULT)		\
-+	: "cc", "memory")
-+static inline int
-+futex_atomic_cmpxchg_inatomic(u32 * uval, u32 __user * uaddr,
-+			      u32 oldval, u32 newval)
++void __init init_IRQ(void)
 +{
-+	int ret = 0;
-+	u32 val, tmp, flags;
-+
-+	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
-+		return -EFAULT;
-+
-+	smp_mb();
-+	asm volatile ("       movi    $ta, #0\n"
-+		      "1:     llw     %1, [%6 + $ta]\n"
-+		      "       sub     %3, %1, %4\n"
-+		      "       cmovz   %2, %5, %3\n"
-+		      "       cmovn   %2, %1, %3\n"
-+		      "2:     scw     %2, [%6 + $ta]\n"
-+		      "       beqz    %2, 1b\n"
-+		      "3:\n                   " __futex_atomic_ex_table("%7")
-+		      :"+&r"(ret), "=&r"(val), "=&r"(tmp), "=&r"(flags)
-+		      :"r"(oldval), "r"(newval), "r"(uaddr), "i"(-EFAULT)
-+		      :"$ta", "memory");
-+	smp_mb();
-+
-+	*uval = val;
-+	return ret;
++	irqchip_init();
 +}
-+
-+static inline int
-+arch_futex_atomic_op_inuser(int op, int oparg, int *oval, u32 __user *uaddr)
-+{
-+	int oldval = 0, ret;
-+
-+
-+	pagefault_disable();
-+	switch (op) {
-+	case FUTEX_OP_SET:
-+		__futex_atomic_op("move	%0, %3", ret, oldval, tmp, uaddr,
-+				  oparg);
-+		break;
-+	case FUTEX_OP_ADD:
-+		__futex_atomic_op("add	%0, %1, %3", ret, oldval, tmp, uaddr,
-+				  oparg);
-+		break;
-+	case FUTEX_OP_OR:
-+		__futex_atomic_op("or	%0, %1, %3", ret, oldval, tmp, uaddr,
-+				  oparg);
-+		break;
-+	case FUTEX_OP_ANDN:
-+		__futex_atomic_op("and	%0, %1, %3", ret, oldval, tmp, uaddr,
-+				  ~oparg);
-+		break;
-+	case FUTEX_OP_XOR:
-+		__futex_atomic_op("xor	%0, %1, %3", ret, oldval, tmp, uaddr,
-+				  oparg);
-+		break;
-+	default:
-+		ret = -ENOSYS;
-+	}
-+
-+	pagefault_enable();
-+
-+	if (!ret)
-+		*oval = oldval;
-+
-+	return ret;
-+}
-+#endif /* __NDS32_FUTEX_H__ */
 -- 
 2.16.1
