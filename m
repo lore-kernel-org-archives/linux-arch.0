@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f68.google.com ([74.125.83.68]:41034 "EHLO
-        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933851AbeBMJK7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Feb 2018 04:10:59 -0500
+Received: from mail-pl0-f65.google.com ([209.85.160.65]:40579 "EHLO
+        mail-pl0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933810AbeBMJKq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Feb 2018 04:10:46 -0500
 From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH v7 04/37] earlycon: add reg-offset to physical address before mapping
-Date: Tue, 13 Feb 2018 17:09:08 +0800
-Message-ID: <968497070242f849dd70ab1fa81635451f8fda7f.1518505384.git.greentime@andestech.com>
+Subject: [PATCH v7 01/37] openrisc: add ioremap_nocache declaration before include asm-generic/io.h and sync ioremap prototype with it.
+Date: Tue, 13 Feb 2018 17:09:05 +0800
+Message-ID: <a5d727ac3c73a02c1ef3eff81be1494b1fad3644.1518505384.git.greentime@andestech.com>
 In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
 References: <cover.1518505384.git.greentime@andestech.com>
 In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
@@ -14,40 +14,43 @@ References: <cover.1518505384.git.greentime@andestech.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
-Cc: green.hu@gmail.com, Peter Hurley <peter@hurleysoftware.com>, stable@vger.kernel.org
-Message-ID: <20180213090908.JpaxnBbqwVwQXnQxWS9ezfdQiPZUpA9I8SPjO0jA0S0@z>
+Cc: green.hu@gmail.com
+Message-ID: <20180213090905.xncnOMquC5mRqXjFpDycDd5pqyOE3QnI9dFqgjxh6P8@z>
 
-It will get the wrong virtual address because port->mapbase is not added
-the correct reg-offset yet. We have to update it before earlycon_map()
-is called
+A future commit for the nds32 architecture bootstrap("asm-generic/io.h: move
+ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU")
+will move the ioremap_nocache out of the CONFIG_MMU ifdef. This means that
+in order to suppress re-definition errors we need to setup #define's before
+importing asm-generic/io.h.
+
+Also, the change adds a prototype for ioremap where size is size_t so fix that
+as well.
 
 Signed-off-by: Greentime Hu <greentime@andestech.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Cc: Peter Hurley <peter@hurleysoftware.com>
-Cc: stable@vger.kernel.org
-Fixes: 088da2a17619 ("of: earlycon: Initialize port fields from DT
-properties")
+Acked-by: Stafford Horne <shorne@gmail.com>
 ---
- drivers/tty/serial/earlycon.c | 3 ++-
+ arch/openrisc/include/asm/io.h | 3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/tty/serial/earlycon.c b/drivers/tty/serial/earlycon.c
-index 870e84fb6e39..a24278380fec 100644
---- a/drivers/tty/serial/earlycon.c
-+++ b/drivers/tty/serial/earlycon.c
-@@ -245,11 +245,12 @@ int __init of_setup_earlycon(const struct earlycon_id *match,
- 	}
- 	port->mapbase = addr;
- 	port->uartclk = BASE_BAUD * 16;
--	port->membase = earlycon_map(port->mapbase, SZ_4K);
+diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
+index 7c691399da3f..6709b28a0221 100644
+--- a/arch/openrisc/include/asm/io.h
++++ b/arch/openrisc/include/asm/io.h
+@@ -29,13 +29,14 @@
+ #define PIO_OFFSET		0
+ #define PIO_MASK		0
  
- 	val = of_get_flat_dt_prop(node, "reg-offset", NULL);
- 	if (val)
- 		port->mapbase += be32_to_cpu(*val);
-+	port->membase = earlycon_map(port->mapbase, SZ_4K);
-+
- 	val = of_get_flat_dt_prop(node, "reg-shift", NULL);
- 	if (val)
- 		port->regshift = be32_to_cpu(*val);
++#define ioremap_nocache ioremap_nocache
+ #include <asm-generic/io.h>
+ #include <asm/pgtable.h>
+ 
+ extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
+ 				pgprot_t prot);
+ 
+-static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
++static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
+ {
+ 	return __ioremap(offset, size, PAGE_KERNEL);
+ }
 -- 
 2.16.1
