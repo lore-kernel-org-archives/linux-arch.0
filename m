@@ -1,59 +1,51 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCHv2 05/12] arm64: Don't trap host pointer auth use to EL2
-Date: Mon, 12 Feb 2018 16:00:39 +0000
-Message-ID: <20180212160039.br2emy3zt6ftmwfu@lakrids.cambridge.arm.com>
-References: <20171127163806.31435-1-mark.rutland@arm.com>
- <20171127163806.31435-6-mark.rutland@arm.com>
- <20180206123906.GZ21802@cbox>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Greentime Hu <green.hu@gmail.com>
+Subject: [PATCH v7 01/37] openrisc: add ioremap_nocache declaration before include asm-generic/io.h and sync ioremap prototype with it.
+Date: Tue, 13 Feb 2018 17:09:05 +0800
+Message-ID: <a5d727ac3c73a02c1ef3eff81be1494b1fad3644.1518505384.git.greentime@andestech.com>
+References: <cover.1518505384.git.greentime@andestech.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180206123906.GZ21802@cbox>
+In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
+In-Reply-To: <cover.1518505384.git.greentime@andestech.com>
+References: <cover.1518505384.git.greentime@andestech.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Christoffer Dall <christoffer.dall@linaro.org>
-Cc: linux-arm-kernel@lists.infradead.org, arnd@arndb.de, catalin.marinas@arm.com, cdall@linaro.org, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, marc.zyngier@arm.com, suzuki.poulose@arm.com, will.deacon@arm.com, yao.qi@arm.com, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, awallis@codeaurora.org
+To: greentime@andestech.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, marc.zyngier@arm.com, robh+dt@kernel.org, netdev@vger.kernel.org, deanbo422@gmail.com, devicetree@vger.kernel.org, viro@zeniv.linux.org.uk, dhowells@redhat.com, will.deacon@arm.com, daniel.lezcano@linaro.org, linux-serial@vger.kernel.org, geert.uytterhoeven@gmail.com, linus.walleij@linaro.org, mark.rutland@arm.com, greg@kroah.com, ren_guo@c-sky.com, rdunlap@infradead.org, davem@davemloft.net, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com
+Cc: green.hu@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 06, 2018 at 01:39:06PM +0100, Christoffer Dall wrote:
-> Hi Mark,
-> 
-> On Mon, Nov 27, 2017 at 04:37:59PM +0000, Mark Rutland wrote:
-> > To allow EL0 (and/or EL1) to use pointer authentication functionality,
-> > we must ensure that pointer authentication instructions and accesses to
-> > pointer authentication keys are not trapped to EL2 (where we will not be
-> > able to handle them).
-> 
-> ...on non-VHE systems, presumably?
+A future commit for the nds32 architecture bootstrap("asm-generic/io.h: move
+ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU")
+will move the ioremap_nocache out of the CONFIG_MMU ifdef. This means that
+in order to suppress re-definition errors we need to setup #define's before
+importing asm-generic/io.h.
 
-For EL0 usage, we don't want to trap even in the absence of VHE, so I'll
-drop the bit in brackets entirely.
+Also, the change adds a prototype for ioremap where size is size_t so fix that
+as well.
 
-> > This patch ensures that HCR_EL2 is configured appropriately when the
-> > kernel is booted at EL2. For non-VHE kernels we set HCR_EL2.{API,APK},
-> > ensuring that EL1 can access keys and permit EL0 use of instructions.
-> > For VHE kernels, EL2 access is controlled by EL3, and we need not set
-> > anything.
-> 
-> 
-> for VHE kernels host EL0 (TGE && E2H) is unaffected by these settings,
-> and it doesn't matter how we configure HCR_EL2.{API,APK}.
-> 
-> (Because you do actually set these bits when the features are present if
-> I read the code correctly).
+Signed-off-by: Greentime Hu <greentime@andestech.com>
+Acked-by: Stafford Horne <shorne@gmail.com>
+---
+ arch/openrisc/include/asm/io.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-Ah, true. I've taken your proposed wording.
-
-> > This does not enable support for KVM guests, since KVM manages HCR_EL2
-> > itself.
-> 
->         (...when running VMs.)
-> 
-> 
-> Besides the nits:
-> 
-> Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
-
-Cheers!
-
-Mark.
+diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
+index 7c691399da3f..6709b28a0221 100644
+--- a/arch/openrisc/include/asm/io.h
++++ b/arch/openrisc/include/asm/io.h
+@@ -29,13 +29,14 @@
+ #define PIO_OFFSET		0
+ #define PIO_MASK		0
+ 
++#define ioremap_nocache ioremap_nocache
+ #include <asm-generic/io.h>
+ #include <asm/pgtable.h>
+ 
+ extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
+ 				pgprot_t prot);
+ 
+-static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
++static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
+ {
+ 	return __ioremap(offset, size, PAGE_KERNEL);
+ }
+-- 
+2.16.1
