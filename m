@@ -1,147 +1,113 @@
-From: John Garry <john.garry@huawei.com>
-Subject: Re: [PATCH v13 7/9] ACPI: Translate the I/O range of non-MMIO devices
- before scanning
-Date: Wed, 14 Feb 2018 16:52:59 +0000
-Message-ID: <65185a4d-c712-4486-d713-3fa9de14e35d@huawei.com>
-References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
- <1518543933-22456-8-git-send-email-john.garry@huawei.com>
- <20180214161635.GA13849@e107981-ln.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180214161635.GA13849@e107981-ln.cambridge.arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: mika.westerberg@linux.intel.com, rafael@kernel.org, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org
-List-Id: linux-arch.vger.kernel.org
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 2/3] exec: Introduce finalize_exec() before start_thread()
+Date: Wed, 14 Feb 2018 12:06:35 -0800
+Message-ID: <1518638796-20819-3-git-send-email-keescook@chromium.org>
+References: <1518638796-20819-1-git-send-email-keescook@chromium.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pl0-f65.google.com ([209.85.160.65]:34950 "EHLO
+        mail-pl0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1031005AbeBNUGy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Feb 2018 15:06:54 -0500
+Received: by mail-pl0-f65.google.com with SMTP id o11so5512942pls.2
+        for <linux-arch@vger.kernel.org>; Wed, 14 Feb 2018 12:06:54 -0800 (PST)
+In-Reply-To: <1518638796-20819-1-git-send-email-keescook@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, Michal Hocko <mhocko@kernel.org>, Ben Hutchings <ben@decadent.org.uk>, Willy Tarreau <w@1wt.eu>, Hugh Dickins <hughd@google.com>, Oleg Nesterov <oleg@redhat.com>, "Jason A. Donenfeld" <Jason@zx2c4.com>, Rik van Riel <riel@redhat.com>, Laura Abbott <labbott@redhat.com>, Greg KH <greg@kroah.com>, Andy Lutomirski <luto@kernel.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
 
-On 14/02/2018 16:16, Lorenzo Pieralisi wrote:
-> On Wed, Feb 14, 2018 at 01:45:31AM +0800, John Garry wrote:
->> On some platforms (such as arm64-based hip06/hip07), access to legacy
->> ISA/LPC devices through access IO space is required, similar to x86
->> platforms. As the I/O for these devices are not memory mapped like
->> PCI/PCIE MMIO host bridges, they require special low-level device
->> operations through some host to generate IO accesses, i.e. a non-
->> transparent bridge.
->>
->> Through the logical PIO framework, hosts are able to register address
->> ranges in the logical PIO space for IO accesses. For hosts which require
->> a LLDD to generate the IO accesses, through the logical PIO framework
->> the host also registers accessors as a backend to generate the physical
->> bus transactions for IO space accesses (called indirect IO).
->>
->> When describing the indirect IO child device in APCI tables, the IO
->> resource is the host-specific address for the child (generally a
->> bus address).
->> An example is as follows:
->>   Device (LPC0) {
->>     Name (_HID, "HISI0191")  // HiSi LPC
->>     Name (_CRS, ResourceTemplate () {
->>       Memory32Fixed (ReadWrite, 0xa01b0000, 0x1000)
->>     })
->>   }
->>
->>   Device (LPC0.IPMI) {
->>     Name (_HID, "IPI0001")
->>     Name (LORS, ResourceTemplate() {
->>       QWordIO (
->>         ResourceConsumer,
->> 	MinNotFixed,     // _MIF
->> 	MaxNotFixed,     // _MAF
->> 	PosDecode,
->> 	EntireRange,
->> 	0x0,             // _GRA
->> 	0xe4,            // _MIN
->> 	0x3fff,          // _MAX
->> 	0x0,             // _TRA
->> 	0x04,            // _LEN
->> 	, ,
->> 	BTIO
->>       )
->>     })
->>
->> Since the IO resource for the child is a host-specific address,
->> special translation are required to retrieve the logical PIO address
->> for that child.
->
+Provide a final call back into fs/exec.c before start_thread() takes
+over, to handle any last-minute changes, like the coming restoration of
+the stack limit.
 
-Hi Lorenzo,
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+As an alternative, fs/exec.c could provide a wrapper for start_thread()...
+---
+ fs/binfmt_aout.c        | 1 +
+ fs/binfmt_elf.c         | 1 +
+ fs/binfmt_elf_fdpic.c   | 1 +
+ fs/binfmt_flat.c        | 1 +
+ fs/exec.c               | 6 ++++++
+ include/linux/binfmts.h | 1 +
+ 6 files changed, 11 insertions(+)
 
-> The problem I have with this patchset and with pretending that the ACPI
-> bits are generic is that the rules used to translate resources (I am
-> referring to LPC0.IPMI above) are documented _nowhere_ which means that
-> making this series generic code is just wishful thinking - there are no
-> bindings backing it, it will never ever be used on a platform different
-> from the one you are pushing this code for and I stated this already.
->
-
-Right, it is working on the presumption that this is how all "indirectio 
-IO" hosts and children should/would be described in DSDT.
-
-> Reworded differently - this is a Hisilicon driver it is not generic ACPI
-> code; I can't see how it can be used on a multitude of platforms unless
-> you specify FW level bindings.
->
->> To overcome the problem of associating this logical PIO address
->> with the child device, a scan handler is added to scan the ACPI
->> namespace for known indirect IO hosts. This scan handler creates an
->> MFD per child with the translated logical PIO address as it's IO
->> resource, as a substitute for the normal platform device which ACPI
->> would create during device enumeration.
->>
->> Signed-off-by: John Garry <john.garry@huawei.com>
->> Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
->> Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
->> ---
->>  drivers/acpi/arm64/Makefile          |   1 +
->>  drivers/acpi/arm64/acpi_indirectio.c | 250 +++++++++++++++++++++++++++++++++++
->
-> See above (and I do not understand what arm64 has to do with it).
-
-Nothing apart from only being used by arm64 platforms today, which is 
-circumstantial.
-
->
-> I understand you need to find a place to add the:
->
-> acpi_indirect_io_scan_init()
->
-> to be called from core ACPI code because ACPI can't handle probe
-> dependencies in any other way but other than that this patch is
-> a Hisilicon ACPI driver - there is nothing generic in it (or at
-> least there are no standard bindings to make it so).
->
-> Whether a callback from ACPI core code (acpi_scan_init()) to a driver
-> specific hook is sane or not that's the question and the only reason
-> why you want to add this in drivers/acpi/arm64 rather than, say,
-> drivers/bus (as you do for the DT driver).
->
-> I do not know Rafael's opinion on the above, I would like to help
-> you make forward progress but please understand my concerns, mostly
-> on FW side.
->
-
-I did mention an alternative in my "ping" in v12 patch 7/9 (Feb 1), but 
-no response to this specific note so I kept on the same path.
-
-Here's what I then wrote:
-"I think another solution - which you may prefer - is to avoid adding
-this scan handler (and all this other scan code) and add a check like
-acpi_is_serial_bus_slave() [which checks the device parent versus a list 
-of known indirectIO hosts] to not enumerate these children, and do it 
-from the LLDD host probe instead (https://lkml.org/lkml/2017/6/16/250)"
-
-Please consider this.
-
-> Thanks,
-> Lorenzo
->
->>  drivers/acpi/internal.h              |   5 +
->>  drivers/acpi/scan.c                  |   1 +
->>  4 files changed, 257 insertions(+)
->>  create mode 100644 drivers/acpi/arm64/acpi_indirectio.c
->>
-
-Cheers,
-John
+diff --git a/fs/binfmt_aout.c b/fs/binfmt_aout.c
+index ce1824f47ba6..c3deb2e35f20 100644
+--- a/fs/binfmt_aout.c
++++ b/fs/binfmt_aout.c
+@@ -330,6 +330,7 @@ static int load_aout_binary(struct linux_binprm * bprm)
+ #ifdef __alpha__
+ 	regs->gp = ex.a_gpvalue;
+ #endif
++	finalize_exec(bprm);
+ 	start_thread(regs, ex.a_entry, current->mm->start_stack);
+ 	return 0;
+ }
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index bdb201230bae..3edca6cb9a33 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -1155,6 +1155,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	ELF_PLAT_INIT(regs, reloc_func_desc);
+ #endif
+ 
++	finalize_exec(bprm);
+ 	start_thread(regs, elf_entry, bprm->p);
+ 	retval = 0;
+ out:
+diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
+index 429326b6e2e7..d90993adeffa 100644
+--- a/fs/binfmt_elf_fdpic.c
++++ b/fs/binfmt_elf_fdpic.c
+@@ -463,6 +463,7 @@ static int load_elf_fdpic_binary(struct linux_binprm *bprm)
+ 			    dynaddr);
+ #endif
+ 
++	finalize_exec(bprm);
+ 	/* everything is now ready... get the userspace context ready to roll */
+ 	entryaddr = interp_params.entry_addr ?: exec_params.entry_addr;
+ 	start_thread(regs, entryaddr, current->mm->start_stack);
+diff --git a/fs/binfmt_flat.c b/fs/binfmt_flat.c
+index 5d6b94475f27..82a48e830018 100644
+--- a/fs/binfmt_flat.c
++++ b/fs/binfmt_flat.c
+@@ -994,6 +994,7 @@ static int load_flat_binary(struct linux_binprm *bprm)
+ 	FLAT_PLAT_INIT(regs);
+ #endif
+ 
++	finalize_exec(bprm);
+ 	pr_debug("start_thread(regs=0x%p, entry=0x%lx, start_stack=0x%lx)\n",
+ 		 regs, start_addr, current->mm->start_stack);
+ 	start_thread(regs, start_addr, current->mm->start_stack);
+diff --git a/fs/exec.c b/fs/exec.c
+index 7074913ad2e7..e4ae20ff6278 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1384,6 +1384,12 @@ void setup_new_exec(struct linux_binprm * bprm)
+ }
+ EXPORT_SYMBOL(setup_new_exec);
+ 
++/* Runs immediately before start_thread() takes over. */
++void finalize_exec(struct linux_binprm *bprm)
++{
++}
++EXPORT_SYMBOL(finalize_exec);
++
+ /*
+  * Prepare credentials and lock ->cred_guard_mutex.
+  * install_exec_creds() commits the new creds and drops the lock.
+diff --git a/include/linux/binfmts.h b/include/linux/binfmts.h
+index b0abe21d6cc9..40e52afbb2b0 100644
+--- a/include/linux/binfmts.h
++++ b/include/linux/binfmts.h
+@@ -118,6 +118,7 @@ extern int __must_check remove_arg_zero(struct linux_binprm *);
+ extern int search_binary_handler(struct linux_binprm *);
+ extern int flush_old_exec(struct linux_binprm * bprm);
+ extern void setup_new_exec(struct linux_binprm * bprm);
++extern void finalize_exec(struct linux_binprm *bprm);
+ extern void would_dump(struct linux_binprm *, struct file *);
+ 
+ extern int suid_dumpable;
+-- 
+2.7.4
