@@ -1,47 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:5652 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1032249AbeBNQPD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Feb 2018 11:15:03 -0500
-Subject: Re: [PATCH v13 1/9] LIB: Introduce a generic PIO mapping method
-References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
- <1518543933-22456-2-git-send-email-john.garry@huawei.com>
- <20180213230551.GA24986@xps13.dannf>
-From: John Garry <john.garry@huawei.com>
-Message-ID: <b16db30e-67d3-0469-d8c7-029665702378@huawei.com>
-Date: Wed, 14 Feb 2018 16:13:57 +0000
+Received: from mail-qt0-f178.google.com ([209.85.216.178]:42158 "EHLO
+        mail-qt0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1032130AbeBNQQz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Feb 2018 11:16:55 -0500
 MIME-Version: 1.0
-In-Reply-To: <20180213230551.GA24986@xps13.dannf>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <adfa2009-476b-8c25-c661-b0eeb48a6c43@huawei.com>
+References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
+ <1518543933-22456-8-git-send-email-john.garry@huawei.com> <CAHp75Ve7C4AJYK6AC=o-jzw6b2p8c8GBRd70Zjv+vYWbfytufg@mail.gmail.com>
+ <adfa2009-476b-8c25-c661-b0eeb48a6c43@huawei.com>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Date: Wed, 14 Feb 2018 18:16:53 +0200
+Message-ID: <CAHp75VfOa5pN4MKT-aQmWBwPGWsOaQupyfrN-weWwfR3vMLtuA@mail.gmail.com>
+Subject: Re: [PATCH v13 7/9] ACPI: Translate the I/O range of non-MMIO devices
+ before scanning
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: dann frazier <dann.frazier@canonical.com>
-Cc: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, andy.shevchenko@gmail.com, robh@kernel.org, joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org
-Message-ID: <20180214161357.WO_cS7v8NMUuGRuWwoAdtKyUL5pK4W8eoOVh16VS5N4@z>
+To: John Garry <john.garry@huawei.com>
+Cc: Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael@kernel.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-pci@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, Corey Minyard <minyard@acm.org>, devicetree <devicetree@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Randy Dunlap <rdunlap@infradead.org>
+Message-ID: <20180214161653.DtSxFrF-j4PLDXMWaQ3vxusuU_K9lsk8cdnCLqe44U4@z>
 
-On 13/02/2018 23:05, dann frazier wrote:
->>  	bool
->> >
->> > +config INDIRECT_PIO
->> > +	bool "Access I/O in non-MMIO mode"
->> > +	depends on ARM64
->> > +	help
->> > +	  On some platforms where no separate I/O space exists, there are I/O
->> > +	  hosts which can not be accessed in MMIO mode. Using the logical PIO
->> > +	  mechanism, the host-local I/O resource can be mapped into system
->> > +	  logic PIO space shared with MMIO hosts, such as PCI/PCIE, then the
->> > +	  system can access the I/O devices with the mapped logic PIO through
->> > +	  I/O accessors.
->> > +	  This way has a relatively little I/O performance cost. Please make
-> grammar nit - s/a relatively/relatively/
->
+On Wed, Feb 14, 2018 at 5:33 PM, John Garry <john.garry@huawei.com> wrote:
+> On 14/02/2018 13:53, Andy Shevchenko wrote:
+>> On Tue, Feb 13, 2018 at 7:45 PM, John Garry <john.garry@huawei.com> wrote:
 
-Fine, thanks
+>>> +       sys_port = logic_pio_trans_hwaddr(&host->fwnode, res->start,
+>>> len);
+>>> +       if (sys_port == -1UL)
 
-John
+>> Wouldn't it be better to compare with ULONG_MAX?
 
->   -dann
->
->> > +	  sure your devices really need this configure item enabled.
->> > +
+> Could do, being the same thing. Maybe people prefer -1UL as it saves having
+> to figure out what ULONG_MAX is :)
+
+-1UL looks confusing.
+
+Another approach is to use ~0UL if that is preferable.
+
+>>> +       list_for_each_entry(rentry, &resource_list, node)
+>>> +               resources[count++] = *rentry->res;
+
+>> It has similarities with acpi_create_platform_device().
+>> I guess we can utilize existing code.
+
+> For sure, this particular segment is effectively same as part of
+> acpi_create_platform_device():
+
+Not the same, acpi_create_platform_device() does a bit more than
+copying the resources. If it indeed makes no hurt...
+
+>         list_for_each_entry(rentry, &resource_list, node)
+>             acpi_platform_fill_resource(adev, rentry->res,
+>                             &resources[count++]);
+
+> So is your idea to refactor this common segment into a helper function?
+
+...I would go with helper.
+
+>>> +               char *name = &acpi_indirect_io_mfd_cell[count].name[0];
+>>> +               char *pnpid = &acpi_indirect_io_mfd_cell[count].pnpid[0];
+>>
+>>
+>> Plain x is equivalent to &x[0].
+
+> Right, but I thought for arrays that we should use address of x rather than
+> x itself, no?
+
+x is addressed by it's beginning.
+
+-- 
+With Best Regards,
+Andy Shevchenko
