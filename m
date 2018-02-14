@@ -1,74 +1,53 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: Regression after commit 19809c2da28a ("mm, vmalloc: use
- __GFP_HIGHMEM implicitly")
-Date: Wed, 14 Feb 2018 15:04:30 +0100
-Message-ID: <20180214140430.GB3443@dhcp22.suse.cz>
-References: <627DA40A-D0F6-41C1-BB5A-55830FBC9800@canonical.com>
- <20180208130649.GA15846@bombadil.infradead.org>
- <20180208232004.GA21027@bombadil.infradead.org>
- <20180211092652.GV21609@dhcp22.suse.cz>
- <20180211112808.GA4551@bombadil.infradead.org>
- <20180211120515.GB4551@bombadil.infradead.org>
- <20180211235107.GE4680@bombadil.infradead.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v7 08/37] nds32: Exception handling
+Date: Wed, 14 Feb 2018 15:31:44 +0100
+Message-ID: <CAK8P3a3hnHVrMJuTfDwWcy1R3C=o9UzDVN=OtsZdUzXboYPT5w@mail.gmail.com>
+References: <cover.1518505384.git.greentime@andestech.com> <5d7538f6cad0763594f968d58625c7c7a99f3225.1518505384.git.greentime@andestech.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:59835 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1030450AbeBNOEd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Feb 2018 09:04:33 -0500
-Content-Disposition: inline
-In-Reply-To: <20180211235107.GE4680@bombadil.infradead.org>
+Received: from mail-qt0-f196.google.com ([209.85.216.196]:35859 "EHLO
+        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1030381AbeBNObp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Feb 2018 09:31:45 -0500
+In-Reply-To: <5d7538f6cad0763594f968d58625c7c7a99f3225.1518505384.git.greentime@andestech.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: Kai Heng Feng <kai.heng.feng@canonical.com>, Laura Abbott <labbott@redhat.com>, linux-mm@kvack.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, James.Bottomley@HansenPartnership.com, davem@redhat.com
+To: Greentime Hu <green.hu@gmail.com>
+Cc: Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.co>
 
-On Sun 11-02-18 15:51:07, Matthew Wilcox wrote:
-> On Sun, Feb 11, 2018 at 04:05:15AM -0800, Matthew Wilcox wrote:
-> > On Sun, Feb 11, 2018 at 03:28:08AM -0800, Matthew Wilcox wrote:
-> > > Now, longer-term, perhaps we should do the following:
-> > > 
-> > > #ifdef CONFIG_ZONE_DMA32
-> > > #define OPT_ZONE_DMA32	ZONE_DMA32
-> > > #elif defined(CONFIG_64BIT)
-> > > #define OPT_ZONE_DMA	OPT_ZONE_DMA
-> > > #else
-> > > #define OPT_ZONE_DMA32 ZONE_NORMAL
-> > > #endif
-> > 
-> > For consistent / coherent memory, we have an allocation function.
-> > But we don't have an allocation function for streaming memory, which is
-> > what these drivers want.  They also flush the DMA memory and then access
-> > the memory through a different virtual mapping, which I'm not sure is
-> > going to work well on virtually-indexed caches like SPARC and PA-RISC
-> > (maybe not MIPS either?)
-> 
-> Perhaps I (and a number of other people ...) have misunderstood the
-> semantics of GFP_DMA32.  Perhaps GFP_DMA32 is not "allocate memory below
-> 4GB", perhaps it's "allocate memory which can be mapped below 4GB".
+On Tue, Feb 13, 2018 at 10:09 AM, Greentime Hu <green.hu@gmail.com> wrote:
+> This patch includes the exception/interrupt entries, pt_reg structure and
+> related accessors.
+>
+> /* Unaligned accessing handling*/
+> Andes processors cannot load/store information which is not naturally
+> aligned on the bus, i.e., loading a 4 byte data whose start address must
+> be divisible by 4. If unaligned data accessing is happened, data
+> unaligned exception will be triggered and user will get SIGSEGV or
+> kernel oops according to the unaligned address. In order to make user be
+> able to load/store data from an unaligned address, software load/store
+> emulation is implemented in arch/nds32/mm/alignment.c to address data
+> unaligned exception.
+>
+> Unaligned accessing handling is disabled by default because it is not a
+> normal case. User can enable this feature by following steps.
+>
+> A. Compile time:
+>     1. Enable kernel config CONFIG_ALIGNMENT_TRAP
+> B. Run time:
+>     1. Enter /proc/sys/nds32/unaligned_acess folder
+>     2. Write 1 to file enable_mode to enable unaligned accessing
+>        handling. User can disable it by writing 0 to this file.
+>     3. Write 1 to file debug to show which unaligned address is under
+>        processing. User can disable it by writing 0 to this file.
+>
+> However, unaligned accessing handler cannot work if this unaligned
+> address is not accessible such as protection violation. On this
+> condition, the default behaviors for addressing data unaligned exception
+> still happen
+>
+> Signed-off-by: Vincent Chen <vincentc@andestech.com>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
 
-Well, GFP_DMA32 is clearly under-documented. But I _believe_ the
-intention was to really return a physical memory within 32b address
-range.
-
-> Machines with an IOMMU can use ZONE_NORMAL.  Machines with no IOMMU can
-> choose to allocate memory with a physical address below 4GB.
-
-This would be something for the higher level allocator I think. The page
-allocator is largely unaware of IOMMU or any remapping and that is good
-IMHO.
-
-> After all, it has 'DMA' right there in the name.
-
-The name is misnomer following GFP_DMA which is arguably a better fit.
-GFP_MEM32 would be a better name.
-
-Btw. I believe the GFP_VMALLOC32 shows that our GFP_DM32 needs some
-love. The user shouldn't really care about lowmem zones layout.
-GFP_DMA32 should simply use the appropriate zone regardless the arch
-specific details.
-
--- 
-Michal Hocko
-SUSE Labs
+Acked-by: Arnd Bergmann <arnd@arndb.de>
