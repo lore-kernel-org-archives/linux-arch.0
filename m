@@ -1,68 +1,147 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
+From: John Garry <john.garry@huawei.com>
 Subject: Re: [PATCH v13 7/9] ACPI: Translate the I/O range of non-MMIO devices
  before scanning
-Date: Wed, 14 Feb 2018 18:16:53 +0200
-Message-ID: <CAHp75VfOa5pN4MKT-aQmWBwPGWsOaQupyfrN-weWwfR3vMLtuA@mail.gmail.com>
+Date: Wed, 14 Feb 2018 16:52:59 +0000
+Message-ID: <65185a4d-c712-4486-d713-3fa9de14e35d@huawei.com>
 References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
- <1518543933-22456-8-git-send-email-john.garry@huawei.com> <CAHp75Ve7C4AJYK6AC=o-jzw6b2p8c8GBRd70Zjv+vYWbfytufg@mail.gmail.com>
- <adfa2009-476b-8c25-c661-b0eeb48a6c43@huawei.com>
+ <1518543933-22456-8-git-send-email-john.garry@huawei.com>
+ <20180214161635.GA13849@e107981-ln.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <adfa2009-476b-8c25-c661-b0eeb48a6c43@huawei.com>
+In-Reply-To: <20180214161635.GA13849@e107981-ln.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: John Garry <john.garry@huawei.com>
-Cc: Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael@kernel.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-pci@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, Corey Minyard <minyard@acm.org>devicetree <d>
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: mika.westerberg@linux.intel.com, rafael@kernel.org, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 14, 2018 at 5:33 PM, John Garry <john.garry@huawei.com> wrote:
-> On 14/02/2018 13:53, Andy Shevchenko wrote:
->> On Tue, Feb 13, 2018 at 7:45 PM, John Garry <john.garry@huawei.com> wrote:
-
->>> +       sys_port = logic_pio_trans_hwaddr(&host->fwnode, res->start,
->>> len);
->>> +       if (sys_port == -1UL)
-
->> Wouldn't it be better to compare with ULONG_MAX?
-
-> Could do, being the same thing. Maybe people prefer -1UL as it saves having
-> to figure out what ULONG_MAX is :)
-
--1UL looks confusing.
-
-Another approach is to use ~0UL if that is preferable.
-
->>> +       list_for_each_entry(rentry, &resource_list, node)
->>> +               resources[count++] = *rentry->res;
-
->> It has similarities with acpi_create_platform_device().
->> I guess we can utilize existing code.
-
-> For sure, this particular segment is effectively same as part of
-> acpi_create_platform_device():
-
-Not the same, acpi_create_platform_device() does a bit more than
-copying the resources. If it indeed makes no hurt...
-
->         list_for_each_entry(rentry, &resource_list, node)
->             acpi_platform_fill_resource(adev, rentry->res,
->                             &resources[count++]);
-
-> So is your idea to refactor this common segment into a helper function?
-
-...I would go with helper.
-
->>> +               char *name = &acpi_indirect_io_mfd_cell[count].name[0];
->>> +               char *pnpid = &acpi_indirect_io_mfd_cell[count].pnpid[0];
+On 14/02/2018 16:16, Lorenzo Pieralisi wrote:
+> On Wed, Feb 14, 2018 at 01:45:31AM +0800, John Garry wrote:
+>> On some platforms (such as arm64-based hip06/hip07), access to legacy
+>> ISA/LPC devices through access IO space is required, similar to x86
+>> platforms. As the I/O for these devices are not memory mapped like
+>> PCI/PCIE MMIO host bridges, they require special low-level device
+>> operations through some host to generate IO accesses, i.e. a non-
+>> transparent bridge.
 >>
+>> Through the logical PIO framework, hosts are able to register address
+>> ranges in the logical PIO space for IO accesses. For hosts which require
+>> a LLDD to generate the IO accesses, through the logical PIO framework
+>> the host also registers accessors as a backend to generate the physical
+>> bus transactions for IO space accesses (called indirect IO).
 >>
->> Plain x is equivalent to &x[0].
+>> When describing the indirect IO child device in APCI tables, the IO
+>> resource is the host-specific address for the child (generally a
+>> bus address).
+>> An example is as follows:
+>>   Device (LPC0) {
+>>     Name (_HID, "HISI0191")  // HiSi LPC
+>>     Name (_CRS, ResourceTemplate () {
+>>       Memory32Fixed (ReadWrite, 0xa01b0000, 0x1000)
+>>     })
+>>   }
+>>
+>>   Device (LPC0.IPMI) {
+>>     Name (_HID, "IPI0001")
+>>     Name (LORS, ResourceTemplate() {
+>>       QWordIO (
+>>         ResourceConsumer,
+>> 	MinNotFixed,     // _MIF
+>> 	MaxNotFixed,     // _MAF
+>> 	PosDecode,
+>> 	EntireRange,
+>> 	0x0,             // _GRA
+>> 	0xe4,            // _MIN
+>> 	0x3fff,          // _MAX
+>> 	0x0,             // _TRA
+>> 	0x04,            // _LEN
+>> 	, ,
+>> 	BTIO
+>>       )
+>>     })
+>>
+>> Since the IO resource for the child is a host-specific address,
+>> special translation are required to retrieve the logical PIO address
+>> for that child.
+>
 
-> Right, but I thought for arrays that we should use address of x rather than
-> x itself, no?
+Hi Lorenzo,
 
-x is addressed by it's beginning.
+> The problem I have with this patchset and with pretending that the ACPI
+> bits are generic is that the rules used to translate resources (I am
+> referring to LPC0.IPMI above) are documented _nowhere_ which means that
+> making this series generic code is just wishful thinking - there are no
+> bindings backing it, it will never ever be used on a platform different
+> from the one you are pushing this code for and I stated this already.
+>
 
--- 
-With Best Regards,
-Andy Shevchenko
+Right, it is working on the presumption that this is how all "indirectio 
+IO" hosts and children should/would be described in DSDT.
+
+> Reworded differently - this is a Hisilicon driver it is not generic ACPI
+> code; I can't see how it can be used on a multitude of platforms unless
+> you specify FW level bindings.
+>
+>> To overcome the problem of associating this logical PIO address
+>> with the child device, a scan handler is added to scan the ACPI
+>> namespace for known indirect IO hosts. This scan handler creates an
+>> MFD per child with the translated logical PIO address as it's IO
+>> resource, as a substitute for the normal platform device which ACPI
+>> would create during device enumeration.
+>>
+>> Signed-off-by: John Garry <john.garry@huawei.com>
+>> Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
+>> Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+>> ---
+>>  drivers/acpi/arm64/Makefile          |   1 +
+>>  drivers/acpi/arm64/acpi_indirectio.c | 250 +++++++++++++++++++++++++++++++++++
+>
+> See above (and I do not understand what arm64 has to do with it).
+
+Nothing apart from only being used by arm64 platforms today, which is 
+circumstantial.
+
+>
+> I understand you need to find a place to add the:
+>
+> acpi_indirect_io_scan_init()
+>
+> to be called from core ACPI code because ACPI can't handle probe
+> dependencies in any other way but other than that this patch is
+> a Hisilicon ACPI driver - there is nothing generic in it (or at
+> least there are no standard bindings to make it so).
+>
+> Whether a callback from ACPI core code (acpi_scan_init()) to a driver
+> specific hook is sane or not that's the question and the only reason
+> why you want to add this in drivers/acpi/arm64 rather than, say,
+> drivers/bus (as you do for the DT driver).
+>
+> I do not know Rafael's opinion on the above, I would like to help
+> you make forward progress but please understand my concerns, mostly
+> on FW side.
+>
+
+I did mention an alternative in my "ping" in v12 patch 7/9 (Feb 1), but 
+no response to this specific note so I kept on the same path.
+
+Here's what I then wrote:
+"I think another solution - which you may prefer - is to avoid adding
+this scan handler (and all this other scan code) and add a check like
+acpi_is_serial_bus_slave() [which checks the device parent versus a list 
+of known indirectIO hosts] to not enumerate these children, and do it 
+from the LLDD host probe instead (https://lkml.org/lkml/2017/6/16/250)"
+
+Please consider this.
+
+> Thanks,
+> Lorenzo
+>
+>>  drivers/acpi/internal.h              |   5 +
+>>  drivers/acpi/scan.c                  |   1 +
+>>  4 files changed, 257 insertions(+)
+>>  create mode 100644 drivers/acpi/arm64/acpi_indirectio.c
+>>
+
+Cheers,
+John
