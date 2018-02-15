@@ -1,117 +1,74 @@
-From: John Garry <john.garry@huawei.com>
-Subject: Re: [PATCH v13 7/9] ACPI: Translate the I/O range of non-MMIO devices
- before scanning
-Date: Thu, 15 Feb 2018 12:59:36 +0000
-Message-ID: <4c81ecec-b3be-6b57-938a-b7d11ca7ee96@huawei.com>
-References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
- <1518543933-22456-8-git-send-email-john.garry@huawei.com>
- <20180214161635.GA13849@e107981-ln.cambridge.arm.com>
- <65185a4d-c712-4486-d713-3fa9de14e35d@huawei.com>
- <e3fb78b3-5f5c-fe96-9f02-e96092963c17@huawei.com>
- <CAJZ5v0jGvo+cutmvi3WSe1JNvQ1UvZhJr1mQ76=8=1E5Gq+iRg@mail.gmail.com>
+From: Felipe Balbi <balbi@kernel.org>
+Subject: Re: [PATCH/RFC 3/6] usb: gadget: Add NO_DMA dummies for DMA mapping API
+Date: Thu, 15 Feb 2018 15:18:42 +0200
+Message-ID: <87lgfu8k7h.fsf@linux.intel.com>
+References: <1517912092-15470-1-git-send-email-geert@linux-m68k.org> <1517912092-15470-4-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAJZ5v0jGvo+cutmvi3WSe1JNvQ1UvZhJr1mQ76=8=1E5Gq+iRg@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Rafael J. Wysocki" <rafael@kernel.org>
-Cc: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux PCI <linux-pci@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, Corey Minyard <minyard@acm.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; boundary="=-=-=";
+        micalg=pgp-sha512; protocol="application/pgp-signature"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga09.intel.com ([134.134.136.24]:51916 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1031011AbeBONTR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Feb 2018 08:19:17 -0500
+In-Reply-To: <1517912092-15470-4-git-send-email-geert@linux-m68k.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Arnd Bergmann <arnd@arndb.de>, Mark Brown <broonie@kernel.org>, Richard Weinberger <richard@nod.at>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "James E . J . Bottomley" <jejb@linux.vnet.ibm.com>, "Martin K . Petersen" <martin.petersen@oracle.com>, iommu@lists.linux-foundation.org, linux-usb@vger.kernel.org, linux-scsi@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
 
-On 15/02/2018 11:47, Rafael J. Wysocki wrote:
-> On Thu, Feb 15, 2018 at 12:19 PM, John Garry <john.garry@huawei.com> wrote:
->>> Nothing apart from only being used by arm64 platforms today, which is
->>> circumstantial.
->>>
->>>>
->>>> I understand you need to find a place to add the:
->>>>
->>>> acpi_indirect_io_scan_init()
->>>>
->>>> to be called from core ACPI code because ACPI can't handle probe
->>>> dependencies in any other way but other than that this patch is
->>>> a Hisilicon ACPI driver - there is nothing generic in it (or at
->>>> least there are no standard bindings to make it so).
->>>>
->>>> Whether a callback from ACPI core code (acpi_scan_init()) to a driver
->>>> specific hook is sane or not that's the question and the only reason
->>>> why you want to add this in drivers/acpi/arm64 rather than, say,
->>>> drivers/bus (as you do for the DT driver).
->>>>
->>>> I do not know Rafael's opinion on the above, I would like to help
->>>> you make forward progress but please understand my concerns, mostly
->>>> on FW side.
->>>>
->>>
->>> I did mention an alternative in my "ping" in v12 patch 7/9 (Feb 1), but
->>> no response to this specific note so I kept on the same path.
->>>
->>> Here's what I then wrote:
->>> "I think another solution - which you may prefer - is to avoid adding
->>> this scan handler (and all this other scan code) and add a check like
->>> acpi_is_serial_bus_slave() [which checks the device parent versus a list
->>> of known indirectIO hosts] to not enumerate these children, and do it
->>> from the LLDD host probe instead (https://lkml.org/lkml/2017/6/16/250)"
->>>
->>
->> Hi Rafael, Lorenzo,
->>
->> I can avoid adding the scan handler in acpi_indirectio.c by skipping the
->> child enumeration, like with this change in scan.c:
->>
+--=-=-=
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
 
-Hi Rafael,
 
->> +static const struct acpi_device_id indirect_io_hosts[] = {
->> +    {"HISI0191", 0},    /* HiSilicon LPC host */
->> +    {},
->> +};
->> +
->> +static bool acpi_is_indirect_io_slave(struct acpi_device *device)
->> +{
+Hi,
+
+Geert Uytterhoeven <geert@linux-m68k.org> writes:
+> Add dummies for usb_gadget_{,un}map_request{,_by_dev}(), to allow
+> compile-testing if NO_DMA=3Dy.
 >
-> Why don't you put the table definition here?
+> This prevents the following from showing up later:
 >
-
-I can do.
-
->> +    struct acpi_device *parent = dev->parent;
->> +
->> +    if (!parent || acpi_match_device_ids(parent, indirect_io_hosts))
->> +        return false;
->> +
->> +    return true;
+>     ERROR: "usb_gadget_unmap_request_by_dev" [drivers/usb/renesas_usbhs/r=
+enesas_usbhs.ko] undefined!
+>     ERROR: "usb_gadget_map_request_by_dev" [drivers/usb/renesas_usbhs/ren=
+esas_usbhs.ko] undefined!
+>     ERROR: "usb_gadget_map_request" [drivers/usb/mtu3/mtu3.ko] undefined!
+>     ERROR: "usb_gadget_unmap_request" [drivers/usb/mtu3/mtu3.ko] undefine=
+d!
+>     ERROR: "usb_gadget_map_request" [drivers/usb/gadget/udc/renesas_usb3.=
+ko] undefined!
+>     ERROR: "usb_gadget_unmap_request" [drivers/usb/gadget/udc/renesas_usb=
+3.ko] undefined!
 >
-> return parent && !acpi_match_device_ids(parent, indirect_io_hosts);
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Fine, a bit more concise
+Should I take this or is it going with the rest of the series? If you
+wanna take it through Trivial or something like that:
 
->
->> +}
->> +
->>  static bool acpi_is_serial_bus_slave(struct acpi_device *device)
->>  {
->>      struct list_head resource_list;
->>      bool is_serial_bus_slave = false;
->>
->> +    if (acpi_is_indirect_io_slave(device))
->> +        return true;
->> +
->>      /* Macs use device properties in lieu of _CRS resources */
->>
->>
->> This means I can move all this scan code into the LLDD.
->>
->> What do you think? Please let me know.
->
-> If Lorenzo agrees, that will be fine by me modulo the above remarks.
->
-> .
+Acked-by: Felipe Balbi <felipe.balbi@linux.intel.com>
 
-I see Lorenzo also finds this ok, so I'll go with that.
+=2D-=20
+balbi
 
-Thanks to all,
-John
+--=-=-=
+Content-Type: application/pgp-signature; name="signature.asc"
 
->
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEElLzh7wn96CXwjh2IzL64meEamQYFAlqFiLIACgkQzL64meEa
+mQbEnBAApRr5RxkJmFnvARTFLuDHKzPVd1pP5TvKUo1bjA83t6xKOt1befuxFq7i
+W1jIyPgKCwd60s/fh66xmUFs8VlP9uT9zF2pGNyMREhZ3YAhoMZ7T80S07hGCPp7
+fzNOuK1m9AOmWRfdmi2ZaKFGl8zfD7oKIgbgeG7f+Jx+phuhOwMqblNcHZWhglBI
+Qm5I8/ol5ALXiLZjfvDMEkVRZeAX9Gyk0g5WcNbZRmcBdXaNFcuRQslyng+pQj+E
+lOuCH7EFvV1enHPRccI6pTwqU9IFxnBFpJcLdTElgmPtH3wsLIqQR8p0LMQwvffS
+HW66W64uv2+Xx8J8OeATrvmrrnL2lgAedSZ8T1BOrra+H+eB3/QKsUSHC7xQYASo
+UPvst7C7AYZrdYOcrH//SKCSfwig0giJFtQrHZXS6RC34vgQJNoXfQifrpqA1NIG
+Ll/nGSJG4egDs2wBOBIZ6AWd0dUzlJhE3y65FBxn8DhFsvq7mKyOwgGYWVw3VQwq
+mCkfryrAfF+tRwsgl/+/cSSbdNJKqPVg8O+w8CwXqvujhetKhqBMUW/tg47dwfMC
+puwmGoEkaaBUDqrU69A88xMtIXo6m+/iwkwo/E6I7J7I2S7AHtrdMxA54YjuHCwt
+oGFEXiubsMpWrSnwv6wokrbMse2thFcM5T89g7RGXxk0BcCwmls=
+=U0pW
+-----END PGP SIGNATURE-----
+--=-=-=--
