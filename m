@@ -1,71 +1,117 @@
-From: Andy Shevchenko <andy.shevchenko-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+From: John Garry <john.garry@huawei.com>
 Subject: Re: [PATCH v13 7/9] ACPI: Translate the I/O range of non-MMIO devices
  before scanning
-Date: Thu, 15 Feb 2018 14:55:37 +0200
-Message-ID: <CAHp75Vec1vXxuo9i5G-og1cQre1AYm=0_61u+DK1690FpY17bQ@mail.gmail.com>
+Date: Thu, 15 Feb 2018 12:59:36 +0000
+Message-ID: <4c81ecec-b3be-6b57-938a-b7d11ca7ee96@huawei.com>
 References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
- <1518543933-22456-8-git-send-email-john.garry@huawei.com> <20180214161635.GA13849@e107981-ln.cambridge.arm.com>
- <65185a4d-c712-4486-d713-3fa9de14e35d@huawei.com> <e3fb78b3-5f5c-fe96-9f02-e96092963c17@huawei.com>
- <CAHp75VfFKcnUVQwPUxynzp88RXWdV8VEqtXxd0=_Q_GJKO6UpQ@mail.gmail.com> <f7b3de31-46fb-f80e-511e-651fa815bddf@huawei.com>
+ <1518543933-22456-8-git-send-email-john.garry@huawei.com>
+ <20180214161635.GA13849@e107981-ln.cambridge.arm.com>
+ <65185a4d-c712-4486-d713-3fa9de14e35d@huawei.com>
+ <e3fb78b3-5f5c-fe96-9f02-e96092963c17@huawei.com>
+ <CAJZ5v0jGvo+cutmvi3WSe1JNvQ1UvZhJr1mQ76=8=1E5Gq+iRg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <f7b3de31-46fb-f80e-511e-651fa815bddf-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: John Garry <john.garry-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-Cc: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>, "Rafael J. Wysocki" <rafael-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Mika Westerberg <mika.westerberg-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, "Rafael J. Wysocki" <rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org>, Hanjun Guo <hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Olof Johansson <olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org>, Dann Frazier <dann.frazier-Z7WLFzj8eWMS+FvcfC7Uqw@public.gmane.org>, Rob Herring <robh-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Joe Perches <joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, ACPI Devel Maling List <linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linuxarm <linuxarm-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Corey Minyard <minyard-HInyCGIudOg@public.gmane.org>devicetree <d>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAJZ5v0jGvo+cutmvi3WSe1JNvQ1UvZhJr1mQ76=8=1E5Gq+iRg@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Rafael J. Wysocki" <rafael@kernel.org>
+Cc: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux PCI <linux-pci@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, Corey Minyard <minyard@acm.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 15, 2018 at 2:52 PM, John Garry <john.garry-hv44wF8Li93QT0dZR+AlfA@public.gmane.org> wrote:
-> On 15/02/2018 12:22, Andy Shevchenko wrote:
->> On Thu, Feb 15, 2018 at 1:19 PM, John Garry <john.garry-hv44wF8Li93QT0dZR+AlfA@public.gmane.org> wrote:
+On 15/02/2018 11:47, Rafael J. Wysocki wrote:
+> On Thu, Feb 15, 2018 at 12:19 PM, John Garry <john.garry@huawei.com> wrote:
+>>> Nothing apart from only being used by arm64 platforms today, which is
+>>> circumstantial.
+>>>
+>>>>
+>>>> I understand you need to find a place to add the:
+>>>>
+>>>> acpi_indirect_io_scan_init()
+>>>>
+>>>> to be called from core ACPI code because ACPI can't handle probe
+>>>> dependencies in any other way but other than that this patch is
+>>>> a Hisilicon ACPI driver - there is nothing generic in it (or at
+>>>> least there are no standard bindings to make it so).
+>>>>
+>>>> Whether a callback from ACPI core code (acpi_scan_init()) to a driver
+>>>> specific hook is sane or not that's the question and the only reason
+>>>> why you want to add this in drivers/acpi/arm64 rather than, say,
+>>>> drivers/bus (as you do for the DT driver).
+>>>>
+>>>> I do not know Rafael's opinion on the above, I would like to help
+>>>> you make forward progress but please understand my concerns, mostly
+>>>> on FW side.
+>>>>
+>>>
+>>> I did mention an alternative in my "ping" in v12 patch 7/9 (Feb 1), but
+>>> no response to this specific note so I kept on the same path.
+>>>
+>>> Here's what I then wrote:
+>>> "I think another solution - which you may prefer - is to avoid adding
+>>> this scan handler (and all this other scan code) and add a check like
+>>> acpi_is_serial_bus_slave() [which checks the device parent versus a list
+>>> of known indirectIO hosts] to not enumerate these children, and do it
+>>> from the LLDD host probe instead (https://lkml.org/lkml/2017/6/16/250)"
+>>>
+>>
+>> Hi Rafael, Lorenzo,
+>>
+>> I can avoid adding the scan handler in acpi_indirectio.c by skipping the
+>> child enumeration, like with this change in scan.c:
+>>
 
->>> +static const struct acpi_device_id indirect_io_hosts[] = {
->>> +    {"HISI0191", 0},    /* HiSilicon LPC host */
->>> +    {},
->>
->>
->> Just a nit.
->>
+Hi Rafael,
+
+>> +static const struct acpi_device_id indirect_io_hosts[] = {
+>> +    {"HISI0191", 0},    /* HiSilicon LPC host */
+>> +    {},
+>> +};
+>> +
+>> +static bool acpi_is_indirect_io_slave(struct acpi_device *device)
+>> +{
 >
-> I noticed that I have this in the LLDD also. I think that this may be a
-> force of habit.
+> Why don't you put the table definition here?
+>
 
+I can do.
 
->> It seems lately this happens more often than usual, I mean a comma in
->> the terminator line.
+>> +    struct acpi_device *parent = dev->parent;
+>> +
+>> +    if (!parent || acpi_match_device_ids(parent, indirect_io_hosts))
+>> +        return false;
+>> +
+>> +    return true;
+>
+> return parent && !acpi_match_device_ids(parent, indirect_io_hosts);
+
+Fine, a bit more concise
+
+>
+>> +}
+>> +
+>>  static bool acpi_is_serial_bus_slave(struct acpi_device *device)
+>>  {
+>>      struct list_head resource_list;
+>>      bool is_serial_bus_slave = false;
 >>
->> If we remove it. we terminate not only at runtime, but at compile
->> time, which is slightly better.
+>> +    if (acpi_is_indirect_io_slave(device))
+>> +        return true;
+>> +
+>>      /* Macs use device properties in lieu of _CRS resources */
+>>
+>>
+>> This means I can move all this scan code into the LLDD.
+>>
+>> What do you think? Please let me know.
 >
+> If Lorenzo agrees, that will be fine by me modulo the above remarks.
 >
-> I grepped for "{}," in the drivers folder and it gives many results (I do
-> accept that some are not sentinels):
+> .
 
-Yes, in old code it might be, but why to cargo-culting bad (okay, less
-worth) practices?
+I see Lorenzo also finds this ok, so I'll go with that.
 
->>grep -R "{}," * | tail
+Thanks to all,
+John
 
-Btw, `git grep ...` is much faster.
-
-> watchdog/gef_wdt.c:    {},
-> watchdog/asm9260_wdt.c:    {},
-> watchdog/bcm2835_wdt.c:    {},
-> watchdog/digicolor_wdt.c:    {},
-> watchdog/bcm7038_wdt.c:    {},
-> watchdog/ath79_wdt.c:    {},
-> watchdog/riowd.c:    {},
-> watchdog/sbsa_gwdt.c:    {},
-> watchdog/sbsa_gwdt.c:    {},
-> watchdog/bcm_kona_wdt.c:    {},
-
-
-
--- 
-With Best Regards,
-Andy Shevchenko
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
