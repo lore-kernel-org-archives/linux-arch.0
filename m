@@ -1,74 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga12.intel.com ([192.55.52.136]:36239 "EHLO mga12.intel.com"
+Received: from mail.kernel.org ([198.145.29.99]:59000 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1031273AbeBONaG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Feb 2018 08:30:06 -0500
-From: Felipe Balbi <balbi@kernel.org>
-Subject: Re: [PATCH/RFC 6/6] Treewide: Remove depends on HAS_DMA in case of platform dependency
-In-Reply-To: <1517912092-15470-7-git-send-email-geert@linux-m68k.org>
-References: <1517912092-15470-1-git-send-email-geert@linux-m68k.org> <1517912092-15470-7-git-send-email-geert@linux-m68k.org>
-Date: Thu, 15 Feb 2018 15:19:28 +0200
-Message-ID: <87inay8k67.fsf@linux.intel.com>
+        id S1423874AbeBOPlM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Feb 2018 10:41:12 -0500
 MIME-Version: 1.0
-Content-Type: multipart/signed; boundary="=-=-=";
-        micalg=pgp-sha512; protocol="application/pgp-signature"
+In-Reply-To: <968497070242f849dd70ab1fa81635451f8fda7f.1518505384.git.greentime@andestech.com>
+References: <cover.1518505384.git.greentime@andestech.com> <968497070242f849dd70ab1fa81635451f8fda7f.1518505384.git.greentime@andestech.com>
+From: Rob Herring <robh+dt@kernel.org>
+Date: Thu, 15 Feb 2018 09:40:49 -0600
+Message-ID: <CAL_JsqJteT1P2GJGdesTsz=PuXU1qxiyhtKLURkGwV9sSQ7XZQ@mail.gmail.com>
+Subject: Re: [PATCH v7 04/37] earlycon: add reg-offset to physical address
+ before mapping
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Arnd Bergmann <arnd@arndb.de>, Mark Brown <broonie@kernel.org>, Richard Weinberger <richard@nod.at>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "James E . J . Bottomley" <jejb@linux.vnet.ibm.com>, "Martin K . Petersen" <martin.petersen@oracle.com>, iommu@lists.linux-foundation.org, linux-usb@vger.kernel.org, linux-scsi@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180215131928.kPvtn5GhpGr-IcHMKvLe_ChAAgvvfXvK1wddB3_Fx74@z>
+To: Greentime Hu <green.hu@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, deanbo422@gmail.com, devicetree@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, ren_guo@c-sky.com, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Peter Hurley <peter@hurleysoftware.com>, stable <stable@vger.kernel.org>
+Message-ID: <20180215154049.UHEmKqXNvxIRD8lObDT1p6J6EOAZq2SffmZhIDmA2Uc@z>
 
---=-=-=
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
-
-Geert Uytterhoeven <geert@linux-m68k.org> writes:
-
-> Remove dependencies on HAS_DMA where a Kconfig symbol depends on another
-> symbol that implies HAS_DMA, and, optionally, on "|| COMPILE_TEST".
-> In most cases this other symbol is an architecture or platform specific
-> symbol, or PCI.
+On Tue, Feb 13, 2018 at 3:09 AM, Greentime Hu <green.hu@gmail.com> wrote:
+> It will get the wrong virtual address because port->mapbase is not added
+> the correct reg-offset yet. We have to update it before earlycon_map()
+> is called
 >
-> Generic symbols and drivers without platform dependencies keep their
-> dependencies on HAS_DMA, to prevent compiling subsystems or drivers that
-> cannot work anyway.
->
-> This simplifies the dependencies, and allows to improve compile-testing.
->
-> Notes:
->   - FSL_FMAN keeps its dependency on HAS_DMA, as it calls set_dma_ops(),
->     which does not exist if HAS_DMA=3Dn (Do we need a dummy? The use of
->     set_dma_ops() in this driver is questionable),
->   - SND_SOC_LPASS_IPQ806X and SND_SOC_LPASS_PLATFORM loose their
->     dependency on HAS_DMA, as they are selected from
->     SND_SOC_APQ8016_SBC.
->
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Cc: Peter Hurley <peter@hurleysoftware.com>
+> Cc: stable@vger.kernel.org
+> Fixes: 088da2a17619 ("of: earlycon: Initialize port fields from DT
+> properties")
 
-for drivers/usb/gadget/:
+This should get applied now rather than sit in numerous revisions of
+this series for nds32.
 
-Acked-by: Felipe Balbi <felipe.balbi@linux.intel.com>
+Acked-by: Rob Herring <robh@kernel.org>
 
-=2D-=20
-balbi
+Greg, can you apply?
 
---=-=-=
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAEBCgAdFiEElLzh7wn96CXwjh2IzL64meEamQYFAlqFiOAACgkQzL64meEa
-mQa2SxAAlW7lfUK0u4wYfEIEW/sDVDlt29tyJK/30ID1+B19bg9EdnpVFrWhOHj4
-VdVg82aK/45YbuAxQKzlZIZcoR0eURUQRJqxFoBNkodNjwY8R90bhrFW4SaQc0zA
-kjYCQAvRdA7qSEQay5sztWYaS+0GGotISvA33R0vvZVi8V+r6oOkLVPLH5B6UVPe
-AR4pB3o+Fwis8tPxeRF6+nSFhoVCVPjSmGPiXDjm8MWdPs0gbzkfkANvIgt3G+Sd
-lzCyf2wgnoKC1rOG7UuYH2179+7RlhezvXhcu4NCpm2wuq1CsU5mIR5CjyyuY6m3
-M9q1/AS6+5e/GatadYanyCCy070sqls81cx66UEROgsMTXVw8wal/O39rjHp2+8L
-rbAGQ7KmcxfSFi+Kk8+6G0eOrgWr7Q1ykego9Hd2PPIG0jD/Z/g2n97yTlUydCUo
-0WR9PQO+QqjGJ1wku66da03oD7VuvZoDAKJeuriJo1Ipm9tiJVfsW6hAvfWzf5Md
-SvX/jwxzMk6/ackrcvf9lSjNh50794AUurx3Rpz6QzJaaheXCfAhzGyaykQZuwSj
-+wY0omxCN/ywb70XUPZNHhhCfoa7Fnq9EqlbW2HU1jodS7I0Tu2Lr69ZKN7vMlcN
-0qCcIKPDR/xug7mpYXISyToppKjn+uCb8EUkSTb/IUVBER9h4ww=
-=988a
------END PGP SIGNATURE-----
---=-=-=--
+Rob
