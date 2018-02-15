@@ -1,35 +1,49 @@
-From: Rob Herring <robh+dt@kernel.org>
-Subject: Re: [PATCH v7 04/37] earlycon: add reg-offset to physical address
- before mapping
-Date: Thu, 15 Feb 2018 09:40:49 -0600
-Message-ID: <CAL_JsqJteT1P2GJGdesTsz=PuXU1qxiyhtKLURkGwV9sSQ7XZQ@mail.gmail.com>
-References: <cover.1518505384.git.greentime@andestech.com> <968497070242f849dd70ab1fa81635451f8fda7f.1518505384.git.greentime@andestech.com>
+From: John Garry <john.garry@huawei.com>
+Subject: Re: [PATCH v13 7/9] ACPI: Translate the I/O range of non-MMIO devices
+ before scanning
+Date: Thu, 15 Feb 2018 17:07:24 +0000
+Message-ID: <59e5293f-0ea5-12f4-27db-b13bbcf0918b@huawei.com>
+References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
+ <1518543933-22456-8-git-send-email-john.garry@huawei.com>
+ <CAHp75Ve7C4AJYK6AC=o-jzw6b2p8c8GBRd70Zjv+vYWbfytufg@mail.gmail.com>
+ <adfa2009-476b-8c25-c661-b0eeb48a6c43@huawei.com>
+ <CAHp75VfOa5pN4MKT-aQmWBwPGWsOaQupyfrN-weWwfR3vMLtuA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <968497070242f849dd70ab1fa81635451f8fda7f.1518505384.git.greentime@andestech.com>
+In-Reply-To: <CAHp75VfOa5pN4MKT-aQmWBwPGWsOaQupyfrN-weWwfR3vMLtuA@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Greentime Hu <green.hu@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, deanbo422@gmail.com, devicetree@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, ren_guo@c-sky.com, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>
+To: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael@kernel.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-pci@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, Corey Minyard <minyard@acm.org>, devic
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 13, 2018 at 3:09 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> It will get the wrong virtual address because port->mapbase is not added
-> the correct reg-offset yet. We have to update it before earlycon_map()
-> is called
+On 14/02/2018 16:16, Andy Shevchenko wrote:
+> Another approach is to use ~0UL if that is preferable.
 >
-> Signed-off-by: Greentime Hu <greentime@andestech.com>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> Cc: Peter Hurley <peter@hurleysoftware.com>
-> Cc: stable@vger.kernel.org
-> Fixes: 088da2a17619 ("of: earlycon: Initialize port fields from DT
-> properties")
+>>>> >>> +       list_for_each_entry(rentry, &resource_list, node)
+>>>> >>> +               resources[count++] = *rentry->res;
+>>> >> It has similarities with acpi_create_platform_device().
+>>> >> I guess we can utilize existing code.
+>> > For sure, this particular segment is effectively same as part of
+>> > acpi_create_platform_device():
+> Not the same, acpi_create_platform_device() does a bit more than
+> copying the resources. If it indeed makes no hurt...
+>
+>> >         list_for_each_entry(rentry, &resource_list, node)
+>> >             acpi_platform_fill_resource(adev, rentry->res,
+>> >                             &resources[count++]);
+>> > So is your idea to refactor this common segment into a helper function?
+> ...I would go with helper.
+>
 
-This should get applied now rather than sit in numerous revisions of
-this series for nds32.
+Hi Andy,
 
-Acked-by: Rob Herring <robh@kernel.org>
+Since the plan now is that this code is no longer going to be added to 
+drivers/acpi, but instead pushed to the LLDD, I am pondering whether we 
+should still factor out of this common code. Opinion?
 
-Greg, can you apply?
+Thanks,
+John
 
-Rob
+>>>> >>> +               char *name = &acpi_indirect_io_mfd_cell[count].name[0];
