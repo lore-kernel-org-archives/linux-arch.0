@@ -1,37 +1,89 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [RESEND][PATCH 0/3] exec: Pin stack limit during exec
-Date: Wed, 14 Feb 2018 12:06:33 -0800
-Message-ID: <1518638796-20819-1-git-send-email-keescook@chromium.org>
-Return-path: <owner-linux-mm@kvack.org>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>, Linus Torvalds <torvalds@linux-foundation.org>, Michal Hocko <mhocko@kernel.org>, Ben Hutchings <ben@decadent.org.uk>, Willy Tarreau <w@1wt.eu>, Hugh Dickins <hughd@google.com>, Oleg Nesterov <oleg@redhat.com>, "Jason A. Donenfeld" <Jason@zx2c4.com>, Rik van Riel <riel@redhat.com>, Laura Abbott <labbott@redhat.com>, Greg KH <greg@kroah.com>, Andy Lutomirski <luto@kernel.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
+From: John Garry <john.garry@huawei.com>
+Subject: Re: [PATCH v13 7/9] ACPI: Translate the I/O range of non-MMIO devices
+ before scanning
+Date: Thu, 15 Feb 2018 11:19:00 +0000
+Message-ID: <e3fb78b3-5f5c-fe96-9f02-e96092963c17@huawei.com>
+References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
+ <1518543933-22456-8-git-send-email-john.garry@huawei.com>
+ <20180214161635.GA13849@e107981-ln.cambridge.arm.com>
+ <65185a4d-c712-4486-d713-3fa9de14e35d@huawei.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <65185a4d-c712-4486-d713-3fa9de14e35d@huawei.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, rafael@kernel.org
+Cc: mika.westerberg@linux.intel.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Attempts to solve problems with the stack limit changing during exec
-continue to be frustrated[1][2]. In addition to the specific issues around
-the Stack Clash family of flaws, Andy Lutomirski pointed out[3] other
-places during exec where the stack limit is used and is assumed to be
-unchanging. Given the many places it gets used and the fact that it can be
-manipulated/raced via setrlimit() and prlimit(), I think the only way to
-handle this is to move away from the "current" view of the stack limit and
-instead attach it to the bprm, and plumb this down into the functions that
-need to know the stack limits. This series implements the approach.
+> Nothing apart from only being used by arm64 platforms today, which is
+> circumstantial.
+>
+>>
+>> I understand you need to find a place to add the:
+>>
+>> acpi_indirect_io_scan_init()
+>>
+>> to be called from core ACPI code because ACPI can't handle probe
+>> dependencies in any other way but other than that this patch is
+>> a Hisilicon ACPI driver - there is nothing generic in it (or at
+>> least there are no standard bindings to make it so).
+>>
+>> Whether a callback from ACPI core code (acpi_scan_init()) to a driver
+>> specific hook is sane or not that's the question and the only reason
+>> why you want to add this in drivers/acpi/arm64 rather than, say,
+>> drivers/bus (as you do for the DT driver).
+>>
+>> I do not know Rafael's opinion on the above, I would like to help
+>> you make forward progress but please understand my concerns, mostly
+>> on FW side.
+>>
+>
+> I did mention an alternative in my "ping" in v12 patch 7/9 (Feb 1), but
+> no response to this specific note so I kept on the same path.
+>
+> Here's what I then wrote:
+> "I think another solution - which you may prefer - is to avoid adding
+> this scan handler (and all this other scan code) and add a check like
+> acpi_is_serial_bus_slave() [which checks the device parent versus a list
+> of known indirectIO hosts] to not enumerate these children, and do it
+> from the LLDD host probe instead (https://lkml.org/lkml/2017/6/16/250)"
+>
 
-Neither I nor 0-day have found issues with this series, so I'd like to
-get it into -mm for further testing.
+Hi Rafael, Lorenzo,
 
-Thanks!
+I can avoid adding the scan handler in acpi_indirectio.c by skipping the 
+child enumeration, like with this change in scan.c:
 
--Kees
++static const struct acpi_device_id indirect_io_hosts[] = {
++    {"HISI0191", 0},    /* HiSilicon LPC host */
++    {},
++};
++
++static bool acpi_is_indirect_io_slave(struct acpi_device *device)
++{
++    struct acpi_device *parent = dev->parent;
++
++    if (!parent || acpi_match_device_ids(parent, indirect_io_hosts))
++        return false;
++
++    return true;
++}
++
+  static bool acpi_is_serial_bus_slave(struct acpi_device *device)
+  {
+      struct list_head resource_list;
+      bool is_serial_bus_slave = false;
 
-[1] 04e35f4495dd ("exec: avoid RLIMIT_STACK races with prlimit()")
-[2] 779f4e1c6c7c ("Revert "exec: avoid RLIMIT_STACK races with prlimit()"")
-[3] to security@kernel.org, "Subject: existing rlimit races?"
++    if (acpi_is_indirect_io_slave(device))
++        return true;
++
+      /* Macs use device properties in lieu of _CRS resources */
 
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+This means I can move all this scan code into the LLDD.
+
+What do you think? Please let me know.
+
+John
