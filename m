@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:51916 "EHLO mga09.intel.com"
+Received: from mga12.intel.com ([192.55.52.136]:36239 "EHLO mga12.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1031011AbeBONTR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Feb 2018 08:19:17 -0500
+        id S1031273AbeBONaG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Feb 2018 08:30:06 -0500
 From: Felipe Balbi <balbi@kernel.org>
-Subject: Re: [PATCH/RFC 3/6] usb: gadget: Add NO_DMA dummies for DMA mapping API
-In-Reply-To: <1517912092-15470-4-git-send-email-geert@linux-m68k.org>
-References: <1517912092-15470-1-git-send-email-geert@linux-m68k.org> <1517912092-15470-4-git-send-email-geert@linux-m68k.org>
-Date: Thu, 15 Feb 2018 15:18:42 +0200
-Message-ID: <87lgfu8k7h.fsf@linux.intel.com>
+Subject: Re: [PATCH/RFC 6/6] Treewide: Remove depends on HAS_DMA in case of platform dependency
+In-Reply-To: <1517912092-15470-7-git-send-email-geert@linux-m68k.org>
+References: <1517912092-15470-1-git-send-email-geert@linux-m68k.org> <1517912092-15470-7-git-send-email-geert@linux-m68k.org>
+Date: Thu, 15 Feb 2018 15:19:28 +0200
+Message-ID: <87inay8k67.fsf@linux.intel.com>
 MIME-Version: 1.0
 Content-Type: multipart/signed; boundary="=-=-=";
         micalg=pgp-sha512; protocol="application/pgp-signature"
@@ -16,37 +16,36 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@lst.de>, Marek Szyprowski <m.szyprowski@samsung.com>, Robin Murphy <robin.murphy@arm.com>, Arnd Bergmann <arnd@arndb.de>, Mark Brown <broonie@kernel.org>, Richard Weinberger <richard@nod.at>
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "James E . J . Bottomley" <jejb@linux.vnet.ibm.com>, "Martin K . Petersen" <martin.petersen@oracle.com>, iommu@lists.linux-foundation.org, linux-usb@vger.kernel.org, linux-scsi@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180215131842.vTn90_YwXOdYm_ElPyHjoCpwwSUWHZXrzhe5haIMUQg@z>
+Message-ID: <20180215131928.kPvtn5GhpGr-IcHMKvLe_ChAAgvvfXvK1wddB3_Fx74@z>
 
 --=-=-=
 Content-Type: text/plain
 Content-Transfer-Encoding: quoted-printable
 
-
-Hi,
-
 Geert Uytterhoeven <geert@linux-m68k.org> writes:
-> Add dummies for usb_gadget_{,un}map_request{,_by_dev}(), to allow
-> compile-testing if NO_DMA=3Dy.
+
+> Remove dependencies on HAS_DMA where a Kconfig symbol depends on another
+> symbol that implies HAS_DMA, and, optionally, on "|| COMPILE_TEST".
+> In most cases this other symbol is an architecture or platform specific
+> symbol, or PCI.
 >
-> This prevents the following from showing up later:
+> Generic symbols and drivers without platform dependencies keep their
+> dependencies on HAS_DMA, to prevent compiling subsystems or drivers that
+> cannot work anyway.
 >
->     ERROR: "usb_gadget_unmap_request_by_dev" [drivers/usb/renesas_usbhs/r=
-enesas_usbhs.ko] undefined!
->     ERROR: "usb_gadget_map_request_by_dev" [drivers/usb/renesas_usbhs/ren=
-esas_usbhs.ko] undefined!
->     ERROR: "usb_gadget_map_request" [drivers/usb/mtu3/mtu3.ko] undefined!
->     ERROR: "usb_gadget_unmap_request" [drivers/usb/mtu3/mtu3.ko] undefine=
-d!
->     ERROR: "usb_gadget_map_request" [drivers/usb/gadget/udc/renesas_usb3.=
-ko] undefined!
->     ERROR: "usb_gadget_unmap_request" [drivers/usb/gadget/udc/renesas_usb=
-3.ko] undefined!
+> This simplifies the dependencies, and allows to improve compile-testing.
+>
+> Notes:
+>   - FSL_FMAN keeps its dependency on HAS_DMA, as it calls set_dma_ops(),
+>     which does not exist if HAS_DMA=3Dn (Do we need a dummy? The use of
+>     set_dma_ops() in this driver is questionable),
+>   - SND_SOC_LPASS_IPQ806X and SND_SOC_LPASS_PLATFORM loose their
+>     dependency on HAS_DMA, as they are selected from
+>     SND_SOC_APQ8016_SBC.
 >
 > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Should I take this or is it going with the rest of the series? If you
-wanna take it through Trivial or something like that:
+for drivers/usb/gadget/:
 
 Acked-by: Felipe Balbi <felipe.balbi@linux.intel.com>
 
@@ -58,18 +57,18 @@ Content-Type: application/pgp-signature; name="signature.asc"
 
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEElLzh7wn96CXwjh2IzL64meEamQYFAlqFiLIACgkQzL64meEa
-mQbEnBAApRr5RxkJmFnvARTFLuDHKzPVd1pP5TvKUo1bjA83t6xKOt1befuxFq7i
-W1jIyPgKCwd60s/fh66xmUFs8VlP9uT9zF2pGNyMREhZ3YAhoMZ7T80S07hGCPp7
-fzNOuK1m9AOmWRfdmi2ZaKFGl8zfD7oKIgbgeG7f+Jx+phuhOwMqblNcHZWhglBI
-Qm5I8/ol5ALXiLZjfvDMEkVRZeAX9Gyk0g5WcNbZRmcBdXaNFcuRQslyng+pQj+E
-lOuCH7EFvV1enHPRccI6pTwqU9IFxnBFpJcLdTElgmPtH3wsLIqQR8p0LMQwvffS
-HW66W64uv2+Xx8J8OeATrvmrrnL2lgAedSZ8T1BOrra+H+eB3/QKsUSHC7xQYASo
-UPvst7C7AYZrdYOcrH//SKCSfwig0giJFtQrHZXS6RC34vgQJNoXfQifrpqA1NIG
-Ll/nGSJG4egDs2wBOBIZ6AWd0dUzlJhE3y65FBxn8DhFsvq7mKyOwgGYWVw3VQwq
-mCkfryrAfF+tRwsgl/+/cSSbdNJKqPVg8O+w8CwXqvujhetKhqBMUW/tg47dwfMC
-puwmGoEkaaBUDqrU69A88xMtIXo6m+/iwkwo/E6I7J7I2S7AHtrdMxA54YjuHCwt
-oGFEXiubsMpWrSnwv6wokrbMse2thFcM5T89g7RGXxk0BcCwmls=
-=U0pW
+iQIzBAEBCgAdFiEElLzh7wn96CXwjh2IzL64meEamQYFAlqFiOAACgkQzL64meEa
+mQa2SxAAlW7lfUK0u4wYfEIEW/sDVDlt29tyJK/30ID1+B19bg9EdnpVFrWhOHj4
+VdVg82aK/45YbuAxQKzlZIZcoR0eURUQRJqxFoBNkodNjwY8R90bhrFW4SaQc0zA
+kjYCQAvRdA7qSEQay5sztWYaS+0GGotISvA33R0vvZVi8V+r6oOkLVPLH5B6UVPe
+AR4pB3o+Fwis8tPxeRF6+nSFhoVCVPjSmGPiXDjm8MWdPs0gbzkfkANvIgt3G+Sd
+lzCyf2wgnoKC1rOG7UuYH2179+7RlhezvXhcu4NCpm2wuq1CsU5mIR5CjyyuY6m3
+M9q1/AS6+5e/GatadYanyCCy070sqls81cx66UEROgsMTXVw8wal/O39rjHp2+8L
+rbAGQ7KmcxfSFi+Kk8+6G0eOrgWr7Q1ykego9Hd2PPIG0jD/Z/g2n97yTlUydCUo
+0WR9PQO+QqjGJ1wku66da03oD7VuvZoDAKJeuriJo1Ipm9tiJVfsW6hAvfWzf5Md
+SvX/jwxzMk6/ackrcvf9lSjNh50794AUurx3Rpz6QzJaaheXCfAhzGyaykQZuwSj
++wY0omxCN/ywb70XUPZNHhhCfoa7Fnq9EqlbW2HU1jodS7I0Tu2Lr69ZKN7vMlcN
+0qCcIKPDR/xug7mpYXISyToppKjn+uCb8EUkSTb/IUVBER9h4ww=
+=988a
 -----END PGP SIGNATURE-----
 --=-=-=--
