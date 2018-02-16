@@ -1,127 +1,58 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: arc: mm->mmap_sem gets locked in do_page_fault() in case of OOM
- killer invocation
-Date: Fri, 16 Feb 2018 12:40:30 +0000
-Message-ID: <1518784830.3544.33.camel@synopsys.com>
+From: Andy Shevchenko <andy.shevchenko-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH v13 7/9] ACPI: Translate the I/O range of non-MMIO devices
+ before scanning
+Date: Fri, 16 Feb 2018 16:42:34 +0200
+Message-ID: <CAHp75VeTQg+A9o5Ox-k_9Qx8=JPEnqg1taVjcd8Zd2rfj_TMog@mail.gmail.com>
+References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
+ <1518543933-22456-8-git-send-email-john.garry@huawei.com> <CAHp75Ve7C4AJYK6AC=o-jzw6b2p8c8GBRd70Zjv+vYWbfytufg@mail.gmail.com>
+ <adfa2009-476b-8c25-c661-b0eeb48a6c43@huawei.com> <CAHp75VfOa5pN4MKT-aQmWBwPGWsOaQupyfrN-weWwfR3vMLtuA@mail.gmail.com>
+ <59e5293f-0ea5-12f4-27db-b13bbcf0918b@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:60938 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S967151AbeBPMkf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Feb 2018 07:40:35 -0500
-Content-Language: en-US
-Content-ID: <2A9131B80B16FB4EAC4FB40E2B39EC19@internal.synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <59e5293f-0ea5-12f4-27db-b13bbcf0918b-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: John Garry <john.garry-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+Cc: Mika Westerberg <mika.westerberg-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, "Rafael J. Wysocki" <rafael-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>, "Rafael J. Wysocki" <rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org>, Hanjun Guo <hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Olof Johansson <olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org>, Dann Frazier <dann.frazier-Z7WLFzj8eWMS+FvcfC7Uqw@public.gmane.org>, Rob Herring <robh-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Joe Perches <joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, ACPI Devel Maling List <linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linuxarm <linuxarm-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Corey Minyard <minyard-HInyCGIudOg@public.gmane.org>devicetree <d>
+List-Id: linux-arch.vger.kernel.org
 
-SGkgVmluZWV0LA0KDQpXaGlsZSBwbGF5aW5nIHdpdGggT09NIGtpbGxlciBJIGJ1bXBlZCBpbiBh
-IHB1cmUgc29mdHdhcmUgZGVhZGxvY2sgb24gQVJDDQp3aGljaCBpcyBldmVuIG9ic2VydmVkIGlu
-IHNpbXVsYXRpb24gKGkuZS4gaXQgaGFzIG5vdGhpbmcgdG8gZG8gd2l0aCBIVyBwZWN1bGlhcml0
-aWVzKS4NCg0KV2hhdCdzIG5pY2Uga2VybmVsIGV2ZW4gc2VlcyB0aGF0IGxvY2stdXAgaWYgIkxv
-Y2sgRGVidWdnaW5nIiBpcyBlbmFibGVkLg0KVGhhdCdzIHdoYXQgSSBzZWU6DQotLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KIyAvaG9tZS9vb20tdGVzdCA0NTAgJiAvaG9tZS9vb20t
-dGVzdCA0NTANCm9vbS10ZXN0IGludm9rZWQgb29tLWtpbGxlcjogZ2ZwX21hc2s9MHgxNDIwMGNh
-KEdGUF9ISUdIVVNFUl9NT1ZBQkxFKSwgbm9kZW1hc2s9KG51bGwpLCAgb3JkZXI9MCwgb29tX3Nj
-b3JlX2Fkaj0wDQpDUFU6IDAgUElEOiA2NyBDb21tOiBvb20tdGVzdCBOb3QgdGFpbnRlZCA0LjE0
-LjE5ICMyDQoNClN0YWNrIFRyYWNlOg0KICBhcmNfdW53aW5kX2NvcmUuY29uc3Rwcm9wLjErMHhk
-NC8weGY4DQogIGR1bXBfaGVhZGVyLmlzcmEuNisweDg0LzB4MmY4DQogIG9vbV9raWxsX3Byb2Nl
-c3MrMHgyNTgvMHg3YzgNCiAgb3V0X29mX21lbW9yeSsweGI4LzB4NWUwDQogIF9fYWxsb2NfcGFn
-ZXNfbm9kZW1hc2srMHg5MjIvMHhkMjgNCiAgaGFuZGxlX21tX2ZhdWx0KzB4Mjg0LzB4ZDkwDQog
-IGRvX3BhZ2VfZmF1bHQrMHhmNi8weDJhMA0KICByZXRfZnJvbV9leGNlcHRpb24rMHgwLzB4OA0K
-TWVtLUluZm86DQphY3RpdmVfYW5vbjo2MjI3NiBpbmFjdGl2ZV9hbm9uOjM0MSBpc29sYXRlZF9h
-bm9uOjANCiBhY3RpdmVfZmlsZTowIGluYWN0aXZlX2ZpbGU6MCBpc29sYXRlZF9maWxlOjANCiB1
-bmV2aWN0YWJsZTowIGRpcnR5OjAgd3JpdGViYWNrOjAgdW5zdGFibGU6MA0KIHNsYWJfcmVjbGFp
-bWFibGU6MjYgc2xhYl91bnJlY2xhaW1hYmxlOjE5Ng0KIG1hcHBlZDoxMDUgc2htZW06NTc4IHBh
-Z2V0YWJsZXM6MjYzIGJvdW5jZTowDQogZnJlZTozNDQgZnJlZV9wY3A6MzkgZnJlZV9jbWE6MA0K
-Tm9kZSAwIGFjdGl2ZV9hbm9uOjQ5ODIwOGtCIGluYWN0aXZlX2Fub246MjcyOGtCIGFjdGl2ZV9m
-aWxlOjBrQiBpbmFjdGl2ZV9maWxlOjBrQiB1bmV2aWN0YWJsZTowa0IgaXNvbGF0ZWQoYW5vbik6
-MGtCIGlzb2xhdGVkKGZpbGUpOjBrQiBtYXBwZWQ6ODQwa0INCmRpcnR5Og0KMGtCIHdyaXRlYmFj
-azowa0Igc2htZW06NDYyNGtCIHdyaXRlYmFja190bXA6MGtCIHVuc3RhYmxlOjBrQiBhbGxfdW5y
-ZWNsYWltYWJsZT8gbm8NCk5vcm1hbCBmcmVlOjI3NTJrQiBtaW46Mjg0MGtCIGxvdzozNTQ0a0Ig
-aGlnaDo0MjQ4a0IgYWN0aXZlX2Fub246NDk4MjA4a0IgaW5hY3RpdmVfYW5vbjoyNzI4a0IgYWN0
-aXZlX2ZpbGU6MGtCIGluYWN0aXZlX2ZpbGU6MGtCIHVuZXZpY3RhYmxlOjBrQg0Kd3JpdGVwZW5k
-aW4NCmc6MGtCIHByZXNlbnQ6NTI0Mjg4a0IgbWFuYWdlZDo1MDg1ODRrQiBtbG9ja2VkOjBrQiBr
-ZXJuZWxfc3RhY2s6MjQwa0IgcGFnZXRhYmxlczoyMTA0a0IgYm91bmNlOjBrQiBmcmVlX3BjcDoz
-MTJrQiBsb2NhbF9wY3A6MzEya0IgZnJlZV9jbWE6MGtCDQpsb3dtZW1fcmVzZXJ2ZVtdOiAwIDAN
-Ck5vcm1hbDogMCo4a0IgMCoxNmtCIDAqMzJrQiAxKjY0a0IgKE0pIDEqMTI4a0IgKE0pIDAqMjU2
-a0IgMSo1MTJrQiAoTSkgMCoxMDI0a0IgMSoyMDQ4a0IgKE0pIDAqNDA5NmtCIDAqODE5MmtCID0g
-Mjc1MmtCDQo1NzggdG90YWwgcGFnZWNhY2hlIHBhZ2VzDQo2NTUzNiBwYWdlcyBSQU0NCjAgcGFn
-ZXMgSGlnaE1lbS9Nb3ZhYmxlT25seQ0KMTk2MyBwYWdlcyByZXNlcnZlZA0KWyBwaWQgXSAgIHVp
-ZCAgdGdpZCB0b3RhbF92bSAgICAgIHJzcyBucl9wdGVzIG5yX3BtZHMgc3dhcGVudHMgb29tX3Nj
-b3JlX2FkaiBuYW1lDQpbICAgNDFdICAgICAwICAgIDQxICAgICAgMTU3ICAgICAgMTAzICAgICAg
-IDMgICAgICAgMCAgICAgICAgMCAgICAgICAgICAgICAwIHN5c2xvZ2QNClsgICA0M10gICAgIDAg
-ICAgNDMgICAgICAxNTYgICAgICAxMDYgICAgICAgMyAgICAgICAwICAgICAgICAwICAgICAgICAg
-ICAgIDAga2xvZ2QNClsgICA2M10gICAgIDAgICAgNjMgICAgICAxNTcgICAgICAgOTkgICAgICAg
-MyAgICAgICAwICAgICAgICAwICAgICAgICAgICAgIDAgZ2V0dHkNClsgICA2NF0gICAgIDAgICAg
-NjQgICAgICAxNTkgICAgICAxMTggICAgICAgMyAgICAgICAwICAgICAgICAwICAgICAgICAgICAg
-IDAgc2gNClsgICA2Nl0gICAgIDAgICAgNjYgICAxMTUyOTEgICAgMzEwOTQgICAgIDEyNCAgICAg
-ICAwICAgICAgICAwICAgICAgICAgICAgIDAgb29tLXRlc3QNClsgICA2N10gICAgIDAgICAgNjcg
-ICAxMTUyOTEgICAgMzEwMDQgICAgIDEyNCAgICAgICAwICAgICAgICAwICAgICAgICAgICAgIDAg
-b29tLXRlc3QNCk91dCBvZiBtZW1vcnk6IEtpbGwgcHJvY2VzcyA2NiAob29tLXRlc3QpIHNjb3Jl
-IDQ3NiBvciBzYWNyaWZpY2UgY2hpbGQNCktpbGxlZCBwcm9jZXNzIDY2IChvb20tdGVzdCkgdG90
-YWwtdm06OTIyMzI4a0IsIGFub24tcnNzOjI0ODMyOGtCLCBmaWxlLXJzczowa0IsIHNobWVtLXJz
-czo0MjRrQg0KDQo9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQ0K
-V0FSTklORzogcG9zc2libGUgcmVjdXJzaXZlIGxvY2tpbmcgZGV0ZWN0ZWQNCjQuMTQuMTkgIzIg
-Tm90IHRhaW50ZWQNCi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-DQpvb20tdGVzdC82NiBpcyB0cnlpbmcgdG8gYWNxdWlyZSBsb2NrOg0KICgmbW0tPm1tYXBfc2Vt
-KXsrKysrfSwgYXQ6IFs8ODAyMTdkNTA+XSBkb19leGl0KzB4NDQ0LzB4N2Y4DQoNCmJ1dCB0YXNr
-IGlzIGFscmVhZHkgaG9sZGluZyBsb2NrOg0KICgmbW0tPm1tYXBfc2VtKXsrKysrfSwgYXQ6IFs8
-ODAyMTAyOGE+XSBkb19wYWdlX2ZhdWx0KzB4OWUvMHgyYTANCg0Kb3RoZXIgaW5mbyB0aGF0IG1p
-Z2h0IGhlbHAgdXMgZGVidWcgdGhpczoNCiBQb3NzaWJsZSB1bnNhZmUgbG9ja2luZyBzY2VuYXJp
-bzoNCg0KICAgICAgIENQVTANCiAgICAgICAtLS0tDQogIGxvY2soJm1tLT5tbWFwX3NlbSk7DQog
-IGxvY2soJm1tLT5tbWFwX3NlbSk7DQoNCiAqKiogREVBRExPQ0sgKioqDQoNCiBNYXkgYmUgZHVl
-IHRvIG1pc3NpbmcgbG9jayBuZXN0aW5nIG5vdGF0aW9uDQoNCjEgbG9jayBoZWxkIGJ5IG9vbS10
-ZXN0LzY2Og0KICMwOiAgKCZtbS0+bW1hcF9zZW0peysrKyt9LCBhdDogWzw4MDIxMDI4YT5dIGRv
-X3BhZ2VfZmF1bHQrMHg5ZS8weDJhMA0KDQpzdGFjayBiYWNrdHJhY2U6DQpDUFU6IDAgUElEOiA2
-NiBDb21tOiBvb20tdGVzdCBOb3QgdGFpbnRlZCA0LjE0LjE5ICMyDQoNClN0YWNrIFRyYWNlOg0K
-ICBhcmNfdW53aW5kX2NvcmUuY29uc3Rwcm9wLjErMHhkNC8weGY4DQogIF9fbG9ja19hY3F1aXJl
-KzB4NTgyLzB4MTQ5NA0KICBsb2NrX2FjcXVpcmUrMHgzYy8weDU4DQogIGRvd25fcmVhZCsweDFh
-LzB4MjgNCiAgZG9fZXhpdCsweDQ0NC8weDdmOA0KICBkb19ncm91cF9leGl0KzB4MjYvMHg4Yw0K
-ICBnZXRfc2lnbmFsKzB4MWFhLzB4N2Q0DQogIGRvX3NpZ25hbCsweDMwLzB4MjIwDQogIHJlc3Vt
-ZV91c2VyX21vZGVfYmVnaW4rMHg5MC8weGQ4DQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLQ0KDQpMb29raW5nIGF0IG91ciBjb2RlIGluICJhcmNoL2FyYy9tbS9mYXVsdC5jIiBJIG1h
-eSBzZWUgd2h5ICJtbS0+bW1hcF9zZW0iIGlzIG5vdCByZWxlYXNlZDoNCjEuIGZhdGFsX3NpZ25h
-bF9wZW5kaW5nKGN1cnJlbnQpIHJldHVybnMgbm9uLXplcm8gdmFsdWUNCjIuICgoZmF1bHQgJiBW
-TV9GQVVMVF9FUlJPUikgJiYgIShmYXVsdCAmIFZNX0ZBVUxUX1JFVFJZKSkgaXMgZmFsc2UgdGh1
-cyB1cF9yZWFkKCZtbS0+bW1hcF9zZW0pDQogICBpcyBub3QgZXhlY3V0ZWQuDQozLiBJdCB3YXMg
-YSB1c2VyLXNwYWNlIHByb2Nlc3MgdGh1cyB3ZSBzaW1wbHkgcmV0dXJuIFt3aXRoICJtbS0+bW1h
-cF9zZW0iIHN0aWxsIGhlbGRdLg0KDQpTZWUgdGhlIGNvZGUgc25pcHBldCBiZWxvdzoNCi0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQoJLyogSWYgUGFnZWZhdWx0IHdhcyBpbnRlcnJ1
-cHRlZCBieSBTSUdLSUxMLCBleGl0IHBhZ2UgZmF1bHQgImVhcmx5IiAqLw0KCWlmICh1bmxpa2Vs
-eShmYXRhbF9zaWduYWxfcGVuZGluZyhjdXJyZW50KSkpIHsNCgkJaWYgKChmYXVsdCAmIFZNX0ZB
-VUxUX0VSUk9SKSAmJiAhKGZhdWx0ICYgVk1fRkFVTFRfUkVUUlkpKQ0KCQkJdXBfcmVhZCgmbW0t
-Pm1tYXBfc2VtKTsNCgkJaWYgKHVzZXJfbW9kZShyZWdzKSkNCgkJCXJldHVybjsNCgl9DQotLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQpUaGVuIHdlIGxlYXZlIHBhZ2UgZmF1bHQg
-aGFuZGxlciBhbmQgYmVmb3JlIHJldHVybmluZyB0byB1c2VyLXNwYWNlIHdlDQpwcm9jZXNzIHBl
-bmRpbmcgc2lnbmFsIHdoaWNoIGhhcHBlbiB0byBiZSBhIGRlYXRoIHNpZ25hbCBhbmQgc28gd2Ug
-ZW5kLXVwIGV4ZWN1dGluZyB0aGUNCmZvbGxvd2luZyBjb2RlLXBhdGggKHNlZSBzdGFjayB0cmFj
-ZSBhYm92ZSk6DQogICAgZG9fZXhpdCgpIC0+IGV4aXRfbW0oKSAtPiBkb3duX3JlYWQoJm1tLT5t
-bWFwX3NlbSkgPC0tIEFuZCBoZXJlIHdlIGdvIGxvY2tpbmcgb3Vyc2VsdmVzIGZvciBnb29kLg0K
-DQpXaGF0J3MgaW50ZXJlc3RpbmcgbW9zdCBpZiBub3QgYWxsIGFyY2hpdGVjdHVyZXMgcmV0dXJu
-IGZyb20gcGFnZSBmYXVsdCBoYW5kbGVyIHdpdGgNCiJtbS0+bW1hcF9zZW0iIGhlbGQgaW4gY2Fz
-ZSBvZiBmYXRhbF9zaWduYWxfcGVuZGluZygpLiBTbyBJIHdvdWxkIGV4cGVjdCB0aGUgc2FtZSBm
-YWlsdXJlIGFzIEkgc2VlIG9uIEFSQw0KdG8gaGFwcGVuIG9uIG90aGVyIGFyY2hlcyB0b28uLi4g
-dGhvdWdoIEkgd2FzIG5vdCBhYmxlIHRvIHRyaWdnZXIgdGhhdCBvbiBBUk0gKFdhbmRCb2FyZCBR
-dWFkKS4NCg0KSSB0aGluayBiZWNhdXNlIG9uIEFSTSBhbmQgbWFueSBvdGhlcnMgdGhlIGNoZWNr
-IGlzIGEgYml0IGRpZmZlcmVudDoNCi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQoJ
-aWYgKChmYXVsdCAmIFZNX0ZBVUxUX1JFVFJZKSAmJiBmYXRhbF9zaWduYWxfcGVuZGluZyhjdXJy
-ZW50KSkgew0KCQlpZiAoIXVzZXJfbW9kZShyZWdzKSkNCgkJCWdvdG8gbm9fY29udGV4dDsNCgkJ
-cmV0dXJuIDA7DQoJfQ0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg0KU28gdG8g
-Z2V0IGludG8gcHJvYmxlbWF0aWMgY29kZS1wYXRoIChpLmUuIGV4aXQgd2l0aCAibW0tPm1tYXBf
-c2VtIiBzdGlsbCBoZWxkKSB3ZSBuZWVkDQpfX2RvX3BhZ2VfZmF1bHQoKSB0byByZXR1cm4gVk1f
-RkFVTFRfUkVUUlkuIFdoaWNoIG1ha2VzIHJlcHJvZHVjdGlvbiBldmVuIG1vcmUgY29tcGxpY2F0
-ZWQgYnV0DQpJIHRoaW5rIGl0J3Mgc3RpbGwgZG9hYmxlIDopDQoNClRoZSBzaW1wbGVzdCBzb2x1
-dGlvbiBoZXJlIHNlZW1zIHRvIGJlIHVuY29uZGl0aW9uYWwgdXBfcmVhZCgmbW0tPm1tYXBfc2Vt
-KSBiZWZvcmUgcmV0dXJuIGJ1dA0KdGhhdCdzIHNvIHN0cmFuZ2UgaXQgd2FzIG5vdCBkb25lIGJ5
-IHRoYXQgdGltZS4gQW55d2F5cyBhbnkgdGhvdWdodCBhcmUgdmVyeSB3ZWxjb21lIQ0KDQotQWxl
-eGV5
+On Thu, Feb 15, 2018 at 7:07 PM, John Garry <john.garry-hv44wF8Li93QT0dZR+AlfA@public.gmane.org> wrote:
+> On 14/02/2018 16:16, Andy Shevchenko wrote:
+
+>>>>> >>> +       list_for_each_entry(rentry, &resource_list, node)
+>>>>> >>> +               resources[count++] = *rentry->res;
+>>>>
+>>>> >> It has similarities with acpi_create_platform_device().
+>>>> >> I guess we can utilize existing code.
+>>>
+>>> > For sure, this particular segment is effectively same as part of
+>>> > acpi_create_platform_device():
+>>
+>> Not the same, acpi_create_platform_device() does a bit more than
+>> copying the resources. If it indeed makes no hurt...
+>>
+>>> >         list_for_each_entry(rentry, &resource_list, node)
+>>> >             acpi_platform_fill_resource(adev, rentry->res,
+>>> >                             &resources[count++]);
+>>> > So is your idea to refactor this common segment into a helper function?
+>>
+>> ...I would go with helper.
+>>
+>
+> Hi Andy,
+>
+> Since the plan now is that this code is no longer going to be added to
+> drivers/acpi, but instead pushed to the LLDD, I am pondering whether we
+> should still factor out of this common code. Opinion?
+
+I would still go with a common helper. Though, as first step, we can
+make it lazy, i.e. put a comment in your code, like a todo notice (w/o
+TODO word :-) ) to consider a common helper.
+
+-- 
+With Best Regards,
+Andy Shevchenko
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
