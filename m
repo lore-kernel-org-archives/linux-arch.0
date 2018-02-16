@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:42944 "EHLO mga03.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:38698 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750922AbeBPV3z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 16 Feb 2018 16:29:55 -0500
-Subject: [PATCH 2/3] nospec: Allow index argument to have const-qualified
- type
+        id S1750865AbeBPV3t (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Feb 2018 16:29:49 -0500
+Subject: [PATCH 1/3] nospec: Kill array_index_nospec_mask_check()
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 16 Feb 2018 13:20:48 -0800
-Message-ID: <151881604837.17395.10812767547837568328.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 16 Feb 2018 13:20:42 -0800
+Message-ID: <151881604278.17395.6605847763178076520.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <151881603700.17395.6474595347527003884.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <151881603700.17395.6474595347527003884.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,54 +15,71 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@kernel.org
-Cc: linux-arch@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20180216212048.LkNu-58U-_EXhvVMitfPTtBocVBeeoeRvxbDuz85YdY@z>
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
+Message-ID: <20180216212042.pgXedjtAD42pHtlZxkWBd0HrRgE3zkQ30cwiDpwJM5U@z>
 
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+There are multiple problems with the dynamic sanity checking in
+array_index_nospec_mask_check():
 
-The last expression in a statement expression need not be a bare
-variable, quoting gcc docs
+* It causes unnecessary overhead in the 32-bit case since integer sized
+  @index values will no longer cause the check to be compiled away like
+  in the 64-bit case.
 
-  The last thing in the compound statement should be an expression
-  followed by a semicolon; the value of this subexpression serves as the
-  value of the entire construct.
+* In the 32-bit case it may trigger with user controllable input when
+  the expectation is that should only trigger during development of new
+  kernel enabling.
 
-and we already use that in e.g. the min/max macros which end with a
-ternary expression.
+* The macro reuses the input parameter in multiple locations which is
+  broken if someone passes an expression like 'index++' to
+  array_index_nospec().
 
-This way, we can allow index to have const-qualified type, which will in
-some cases avoid the need for introducing a local copy of index of
-non-const qualified type. That, in turn, can prevent readers not
-familiar with the internals of array_index_nospec from wondering about
-the seemingly redundant extra variable, and I think that's worthwhile
-considering how confusing the whole _nospec business is.
-
-The expression _i&_mask has type unsigned long (since that is the type
-of _mask, and the BUILD_BUG_ONs guarantee that _i will get promoted to
-that), so in order not to change the type of the whole expression, add
-a cast back to typeof(_i).
-
-Cc: stable@vger.kernel.org
 Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Dan Williams <dan.j.williams@intel.com>
 Cc: Ingo Molnar <mingo@kernel.org>
 Cc: Will Deacon <will.deacon@arm.com>
-Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- include/linux/nospec.h |    3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ include/linux/nospec.h |   22 +---------------------
+ 1 file changed, 1 insertion(+), 21 deletions(-)
 
 diff --git a/include/linux/nospec.h b/include/linux/nospec.h
-index d6701e34424f..172a19dc35ab 100644
+index fbc98e2c8228..d6701e34424f 100644
 --- a/include/linux/nospec.h
 +++ b/include/linux/nospec.h
-@@ -52,7 +52,6 @@ static inline unsigned long array_index_mask_nospec(unsigned long index,
+@@ -30,26 +30,6 @@ static inline unsigned long array_index_mask_nospec(unsigned long index,
+ #endif
+ 
+ /*
+- * Warn developers about inappropriate array_index_nospec() usage.
+- *
+- * Even if the CPU speculates past the WARN_ONCE branch, the
+- * sign bit of @index is taken into account when generating the
+- * mask.
+- *
+- * This warning is compiled out when the compiler can infer that
+- * @index and @size are less than LONG_MAX.
+- */
+-#define array_index_mask_nospec_check(index, size)				\
+-({										\
+-	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,			\
+-	    "array_index_nospec() limited to range of [0, LONG_MAX]\n"))	\
+-		_mask = 0;							\
+-	else									\
+-		_mask = array_index_mask_nospec(index, size);			\
+-	_mask;									\
+-})
+-
+-/*
+  * array_index_nospec - sanitize an array index after a bounds check
+  *
+  * For a code sequence like:
+@@ -67,7 +47,7 @@ static inline unsigned long array_index_mask_nospec(unsigned long index,
+ ({									\
+ 	typeof(index) _i = (index);					\
+ 	typeof(size) _s = (size);					\
+-	unsigned long _mask = array_index_mask_nospec_check(_i, _s);	\
++	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
+ 									\
  	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
  	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
- 									\
--	_i &= _mask;							\
--	_i;								\
-+	(typeof(_i)) (_i & _mask);					\
- })
- #endif /* _LINUX_NOSPEC_H */
