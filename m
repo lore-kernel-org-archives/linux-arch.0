@@ -1,74 +1,134 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH/RFC] headers: drop 2 #included headers from
- <linux/interrupt.h>
-Date: Fri, 16 Feb 2018 08:59:42 +0100
-Message-ID: <20180216075942.kmgdyvmluke2s5vg@gmail.com>
-References: <b24b9ec8-4970-65f5-759a-911d4ba2fcf0@infradead.org>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: Re: [PATCH v6 02/13] array_index_nospec: sanitize speculative array
+ de-references
+Date: Fri, 16 Feb 2018 09:55:05 +0100
+Message-ID: <366bb116-e375-458c-2b63-1b26b4c8bdac@de.ibm.com>
+References: <151727412964.33451.17213780323040673404.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <151727414229.33451.18411580953862676575.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <b24b9ec8-4970-65f5-759a-911d4ba2fcf0@infradead.org>
+In-Reply-To: <151727414229.33451.18411580953862676575.stgit@dwillia2-desk3.amr.corp.intel.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Randy Dunlap <rdunlap@infradead.org>
-Cc: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>, tglx@linutronix.de, mingo@kernel.org
+Cc: linux-arch@vger.kernel.org, Cyril Novikov <cnovikov@lynx.com>, kernel-hardening@lists.openwall.com, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, gregkh@linuxfoundation.org, "H. Peter Anvin" <hpa@zytor.com>, torvalds@linux-foundation.org, alan@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
 
-* Randy Dunlap <rdunlap@infradead.org> wrote:
 
-> Does anyone know or see why <linux/interrupt.h> needs <linux/linkage.h> or
-> <linux/preempt.h>?  There are no direct uses in <linux/interrupt.h> AFAICT.
+On 01/30/2018 02:02 AM, Dan Williams wrote:
+> array_index_nospec() is proposed as a generic mechanism to mitigate
+> against Spectre-variant-1 attacks, i.e. an attack that bypasses boundary
+> checks via speculative execution. The array_index_nospec()
+> implementation is expected to be safe for current generation CPUs across
+> multiple architectures (ARM, x86).
+> 
+> Based on an original implementation by Linus Torvalds, tweaked to remove
+> speculative flows by Alexei Starovoitov, and tweaked again by Linus to
+> introduce an x86 assembly implementation for the mask generation.
+> 
+> Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
+> Co-developed-by: Alexei Starovoitov <ast@kernel.org>
+> Suggested-by: Cyril Novikov <cnovikov@lynx.com>
+> Cc: Russell King <linux@armlinux.org.uk>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: x86@kernel.org
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+> ---
+>  include/linux/nospec.h |   72 ++++++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 72 insertions(+)
+>  create mode 100644 include/linux/nospec.h
+> 
+> diff --git a/include/linux/nospec.h b/include/linux/nospec.h
+> new file mode 100644
+> index 000000000000..cf7be4bbcf17
+> --- /dev/null
+> +++ b/include/linux/nospec.h
+> @@ -0,0 +1,72 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +// Copyright(c) 2018 Linus Torvalds. All rights reserved.
+> +// Copyright(c) 2018 Alexei Starovoitov. All rights reserved.
+> +// Copyright(c) 2018 Intel Corporation. All rights reserved.
+> +
+> +#ifndef _LINUX_NOSPEC_H
+> +#define _LINUX_NOSPEC_H
 
-These are likely historical, plus it's a classic 'tragedy of the commons' 
-scenario: it's easy to take away from the "public good" of "clean header 
-dependencies" and very hard to add to it:
 
- - it's very easy to add a new #include line
+Hmmm, shouldn't we include asm/barrier.h here? Otherwise users might or might not
+use the optimized variant depending on which headers are included by the users
+of array_index_nospec.
 
- - it's very hard to remove one, not just due to the 2^10000 complex Kconfig
-   space, but due to 99% of the developers not testing cross-arch builds
-   (and we don't want to require them to do it)
 
- - the cost of getting the removal wrong is high (the build breaks for many 
-   people who will be unhappy at the person removing the header), while the 
-   benefit of the removal is low in isolation
-
-Then apply this dynamic for more than 20 years and we get a spaghetti:
-
- triton:~/tip> grep -c '#include <' include/linux/*.h | sort -n -t: -k +2  | tail -20
-
- include/linux/device.h:15
- include/linux/ide.h:16
- include/linux/module.h:16
- include/linux/acpi.h:17
- include/linux/filter.h:17
- include/linux/init_task.h:17
- include/linux/mmzone.h:17
- include/linux/cgroup.h:18
- include/linux/nfs_fs.h:18
- include/linux/sched.h:18
- include/linux/irq.h:19
- include/linux/pci.h:19
- include/linux/perf_event.h:23
- include/linux/blkdev.h:25
- include/linux/kvm_host.h:26
- include/linux/mm.h:26
- include/linux/netdevice.h:26
- include/linux/skbuff.h:26
- include/linux/isdn.h:27
- include/linux/fs.h:39
-
-Plus there's collateral damage as well: there's countless primitives that were 
-forced into the CPP macro space because the header dependencies were too hard. 
-Such code is not just harder to read and maintain, it's more fragile to macro 
-substitution bugs and it's less type safe as well.
-
-I'd argue that due to the basic human dynamics here this calls for tooling help.
-
-In the meanwhile I've applied your patch to tip:core/headers and will do full 
-build testing + fixing, should anything break.
-
-Thanks,
-
-	Ingo
+> +
+> +/**
+> + * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
+> + * @index: array element index
+> + * @size: number of elements in array
+> + *
+> + * When @index is out of bounds (@index >= @size), the sign bit will be
+> + * set.  Extend the sign bit to all bits and invert, giving a result of
+> + * zero for an out of bounds index, or ~0 if within bounds [0, @size).
+> + */
+> +#ifndef array_index_mask_nospec
+> +static inline unsigned long array_index_mask_nospec(unsigned long index,
+> +		unsigned long size)
+> +{
+> +	/*
+> +	 * Warn developers about inappropriate array_index_nospec() usage.
+> +	 *
+> +	 * Even if the CPU speculates past the WARN_ONCE branch, the
+> +	 * sign bit of @index is taken into account when generating the
+> +	 * mask.
+> +	 *
+> +	 * This warning is compiled out when the compiler can infer that
+> +	 * @index and @size are less than LONG_MAX.
+> +	 */
+> +	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,
+> +			"array_index_nospec() limited to range of [0, LONG_MAX]\n"))
+> +		return 0;
+> +
+> +	/*
+> +	 * Always calculate and emit the mask even if the compiler
+> +	 * thinks the mask is not needed. The compiler does not take
+> +	 * into account the value of @index under speculation.
+> +	 */
+> +	OPTIMIZER_HIDE_VAR(index);
+> +	return ~(long)(index | (size - 1UL - index)) >> (BITS_PER_LONG - 1);
+> +}
+> +#endif
+> +
+> +/*
+> + * array_index_nospec - sanitize an array index after a bounds check
+> + *
+> + * For a code sequence like:
+> + *
+> + *     if (index < size) {
+> + *         index = array_index_nospec(index, size);
+> + *         val = array[index];
+> + *     }
+> + *
+> + * ...if the CPU speculates past the bounds check then
+> + * array_index_nospec() will clamp the index within the range of [0,
+> + * size).
+> + */
+> +#define array_index_nospec(index, size)					\
+> +({									\
+> +	typeof(index) _i = (index);					\
+> +	typeof(size) _s = (size);					\
+> +	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
+> +									\
+> +	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
+> +	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
+> +									\
+> +	_i &= _mask;							\
+> +	_i;								\
+> +})
+> +#endif /* _LINUX_NOSPEC_H */
+> 
