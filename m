@@ -1,70 +1,91 @@
-From: John Garry <john.garry-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v13 7/9] ACPI: Translate the I/O range of non-MMIO devices
- before scanning
-Date: Fri, 16 Feb 2018 14:48:46 +0000
-Message-ID: <fa1cadea-6127-2526-449c-3eed3d4c3041@huawei.com>
-References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
- <1518543933-22456-8-git-send-email-john.garry@huawei.com>
- <CAHp75Ve7C4AJYK6AC=o-jzw6b2p8c8GBRd70Zjv+vYWbfytufg@mail.gmail.com>
- <adfa2009-476b-8c25-c661-b0eeb48a6c43@huawei.com>
- <CAHp75VfOa5pN4MKT-aQmWBwPGWsOaQupyfrN-weWwfR3vMLtuA@mail.gmail.com>
- <59e5293f-0ea5-12f4-27db-b13bbcf0918b@huawei.com>
- <CAHp75VeTQg+A9o5Ox-k_9Qx8=JPEnqg1taVjcd8Zd2rfj_TMog@mail.gmail.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: [PATCH 0/3] nospec: Various fix-ups for include/linux/nospec.h
+Date: Fri, 16 Feb 2018 13:20:37 -0800
+Message-ID: <151881603700.17395.6474595347527003884.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CAHp75VeTQg+A9o5Ox-k_9Qx8=JPEnqg1taVjcd8Zd2rfj_TMog-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Andy Shevchenko <andy.shevchenko-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Mika Westerberg <mika.westerberg-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, "Rafael J. Wysocki" <rafael-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>, "Rafael J. Wysocki" <rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org>, Hanjun Guo <hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Olof Johansson <olof-nZhT3qVonbNeoWH0uzbU5w@public.gmane.org>, Dann Frazier <dann.frazier-Z7WLFzj8eWMS+FvcfC7Uqw@public.gmane.org>, Rob Herring <robh-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Joe Perches <joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, ACPI Devel Maling List <linux-acpi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linuxarm <linuxarm-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Corey Minyard <minyard-HInyCGIudOg@public.gmane.org>, devic
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:40080 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750727AbeBPV3n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Feb 2018 16:29:43 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: mingo@kernel.org
+Cc: linux-arch@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On 16/02/2018 14:42, Andy Shevchenko wrote:
-> On Thu, Feb 15, 2018 at 7:07 PM, John Garry <john.garry-hv44wF8Li93QT0dZR+AlfA@public.gmane.org> wrote:
->> On 14/02/2018 16:16, Andy Shevchenko wrote:
->
->>>>>>>>> +       list_for_each_entry(rentry, &resource_list, node)
->>>>>>>>> +               resources[count++] = *rentry->res;
->>>>>
->>>>>>> It has similarities with acpi_create_platform_device().
->>>>>>> I guess we can utilize existing code.
->>>>
->>>>> For sure, this particular segment is effectively same as part of
->>>>> acpi_create_platform_device():
->>>
->>> Not the same, acpi_create_platform_device() does a bit more than
->>> copying the resources. If it indeed makes no hurt...
->>>
->>>>>         list_for_each_entry(rentry, &resource_list, node)
->>>>>             acpi_platform_fill_resource(adev, rentry->res,
->>>>>                             &resources[count++]);
->>>>> So is your idea to refactor this common segment into a helper function?
->>>
->>> ...I would go with helper.
->>>
->>
->> Hi Andy,
->>
->> Since the plan now is that this code is no longer going to be added to
->> drivers/acpi, but instead pushed to the LLDD, I am pondering whether we
->> should still factor out of this common code. Opinion?
->
-> I would still go with a common helper. Though, as first step, we can
-> make it lazy, i.e. put a comment in your code, like a todo notice (w/o
-> TODO word :-) ) to consider a common helper.
+Hi Ingo,
 
-Fine, I was also thinking that I don't want to do this now as it could 
-make merging the patchset more complex. For now, the ACPI change I plan 
-creates no dependencies.
+Here is a small pile of cleanups and fixes for nospec.h after inspection
+from Linus, Rasmus, and Christian. Full changelogs below:
 
-Cheers,
-John
+These have received a build success notification from 0day across 126
+configs.
 
->
+---
 
+Dan Williams (2):
+      nospec: Kill array_index_nospec_mask_check()
+      nospec: Include asm/barrier.h dependency
+
+Rasmus Villemoes (1):
+      nospec: Allow index argument to have const-qualified type
+
+
+ include/linux/nospec.h |   26 +++-----------------------
+ 1 file changed, 3 insertions(+), 23 deletions(-)
 
 --
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+    nospec: Kill array_index_nospec_mask_check()
+    
+    There are multiple problems with the dynamic sanity checking in
+    array_index_nospec_mask_check():
+    
+    * It causes unnecessary overhead in the 32-bit case since integer sized
+      @index values will no longer cause the check to be compiled away like
+      in the 64-bit case.
+    
+    * In the 32-bit case it may trigger with user controllable input when
+      the expectation is that should only trigger during development of new
+      kernel enabling.
+    
+    * The macro reuses the input parameter in multiple locations which is
+      broken if someone passes an expression like 'index++' to
+      array_index_nospec().
+
+
+    
+    nospec: Allow index argument to have const-qualified type
+    
+    The last expression in a statement expression need not be a bare
+    variable, quoting gcc docs
+    
+      The last thing in the compound statement should be an expression
+      followed by a semicolon; the value of this subexpression serves as the
+      value of the entire construct.
+    
+    and we already use that in e.g. the min/max macros which end with a
+    ternary expression.
+    
+    This way, we can allow index to have const-qualified type, which will in
+    some cases avoid the need for introducing a local copy of index of
+    non-const qualified type. That, in turn, can prevent readers not
+    familiar with the internals of array_index_nospec from wondering about
+    the seemingly redundant extra variable, and I think that's worthwhile
+    considering how confusing the whole _nospec business is.
+    
+    The expression _i&_mask has type unsigned long (since that is the type
+    of _mask, and the BUILD_BUG_ONs guarantee that _i will get promoted to
+    that), so in order not to change the type of the whole expression, add
+    a cast back to typeof(_i).
+
+    
+    nospec: Include asm/barrier.h dependency
+    
+    The nospec.h header expects the per-architecture header file
+    asm/barrier.h to optionally define array_index_mask_nospec(). Include
+    that dependency to prevent inadvertent fallback to the default
+    array_index_mask_nospec() implementation. The default implementation may
+    not provide a full mitigation on architectures that perform data value
+    speculation.
