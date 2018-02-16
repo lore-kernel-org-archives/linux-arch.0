@@ -1,49 +1,49 @@
-From: John Garry <john.garry@huawei.com>
-Subject: Re: [PATCH v13 7/9] ACPI: Translate the I/O range of non-MMIO devices
- before scanning
-Date: Thu, 15 Feb 2018 17:07:24 +0000
-Message-ID: <59e5293f-0ea5-12f4-27db-b13bbcf0918b@huawei.com>
-References: <1518543933-22456-1-git-send-email-john.garry@huawei.com>
- <1518543933-22456-8-git-send-email-john.garry@huawei.com>
- <CAHp75Ve7C4AJYK6AC=o-jzw6b2p8c8GBRd70Zjv+vYWbfytufg@mail.gmail.com>
- <adfa2009-476b-8c25-c661-b0eeb48a6c43@huawei.com>
- <CAHp75VfOa5pN4MKT-aQmWBwPGWsOaQupyfrN-weWwfR3vMLtuA@mail.gmail.com>
+From: Randy Dunlap <rdunlap@infradead.org>
+Subject: [PATCH/RFC] headers: drop 2 #included headers from
+ <linux/interrupt.h>
+Date: Thu, 15 Feb 2018 16:49:45 -0800
+Message-ID: <b24b9ec8-4970-65f5-759a-911d4ba2fcf0@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAHp75VfOa5pN4MKT-aQmWBwPGWsOaQupyfrN-weWwfR3vMLtuA@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael@kernel.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-pci@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, Corey Minyard <minyard@acm.org>, devic
+To: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 14/02/2018 16:16, Andy Shevchenko wrote:
-> Another approach is to use ~0UL if that is preferable.
->
->>>> >>> +       list_for_each_entry(rentry, &resource_list, node)
->>>> >>> +               resources[count++] = *rentry->res;
->>> >> It has similarities with acpi_create_platform_device().
->>> >> I guess we can utilize existing code.
->> > For sure, this particular segment is effectively same as part of
->> > acpi_create_platform_device():
-> Not the same, acpi_create_platform_device() does a bit more than
-> copying the resources. If it indeed makes no hurt...
->
->> >         list_for_each_entry(rentry, &resource_list, node)
->> >             acpi_platform_fill_resource(adev, rentry->res,
->> >                             &resources[count++]);
->> > So is your idea to refactor this common segment into a helper function?
-> ...I would go with helper.
->
+From: Randy Dunlap <rdunlap@infradead.org>
 
-Hi Andy,
+It seems that <linux/interrupt.h> does not need <linux/linkage.h>
+nor <linux/preempt.h>.  8 kernels builds are successful without
+these 2 headers (allmodconfig, allyesconfig, allnoconfig, and
+tinyconfig on both i386 and x86_64).
 
-Since the plan now is that this code is no longer going to be added to 
-drivers/acpi, but instead pushed to the LLDD, I am pondering whether we 
-should still factor out of this common code. Opinion?
+<linux/interrupt.h> is #included 3875 times in 4.16-rc1, so this
+reduces #include processing of these 2 files by a total of 7750 times.
 
-Thanks,
-John
+Since I only tested x86 builds, this needs to be tested on other
+$ARCHes as well.
 
->>>> >>> +               char *name = &acpi_indirect_io_mfd_cell[count].name[0];
+Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
+---
+
+Does anyone know or see why <linux/interrupt.h> needs <linux/linkage.h> or
+<linux/preempt.h>?  There are no direct uses in <linux/interrupt.h> AFAICT.
+
+ include/linux/interrupt.h |    2 --
+ 1 file changed, 2 deletions(-)
+
+--- lnx-416-rc1.orig/include/linux/interrupt.h
++++ lnx-416-rc1/include/linux/interrupt.h
+@@ -4,9 +4,7 @@
+ #define _LINUX_INTERRUPT_H
+ 
+ #include <linux/kernel.h>
+-#include <linux/linkage.h>
+ #include <linux/bitops.h>
+-#include <linux/preempt.h>
+ #include <linux/cpumask.h>
+ #include <linux/irqreturn.h>
+ #include <linux/irqnr.h>
