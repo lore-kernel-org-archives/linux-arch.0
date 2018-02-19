@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga06-in.huawei.com ([45.249.212.32]:45686 "EHLO huawei.com"
+Received: from szxga06-in.huawei.com ([45.249.212.32]:45732 "EHLO huawei.com"
         rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1753233AbeBSQ5D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Feb 2018 11:57:03 -0500
+        id S1753274AbeBSQ5F (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 19 Feb 2018 11:57:05 -0500
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v14 7/9] ACPI / scan: do not enumerate Indirect IO host children
-Date: Tue, 20 Feb 2018 01:48:38 +0800
-Message-ID: <1519062520-198902-8-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v14 5/9] OF: Add missing I/O range exception for indirect-IO devices
+Date: Tue, 20 Feb 2018 01:48:36 +0800
+Message-ID: <1519062520-198902-6-git-send-email-john.garry@huawei.com>
 In-Reply-To: <1519062520-198902-1-git-send-email-john.garry@huawei.com>
 References: <1519062520-198902-1-git-send-email-john.garry@huawei.com>
 MIME-Version: 1.0
@@ -16,67 +16,189 @@ List-ID: <linux-arch.vger.kernel.org>
 To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org
 
-Through the logical PIO framework systems which otherwise have
-no IO space access to legacy ISA/LPC devices may access these
-devices through so-called "indirect IO" method. In this, IO
-space accesses for non-PCI hosts are redirected to a host
-LLDD to manually generate the IO space (bus) accesses. Hosts
-are able to register a region in logical PIO space to map to
-its bus address range.
+From: Zhichang Yuan <yuanzhichang@hisilicon.com>
 
-Indirect IO child devices have an associated host-specific bus
-address. Special translation is required to map between
-a logical PIO address for a device and it's host bus address.
+There are some special ISA/LPC devices that work on a specific I/O range
+where it is not correct to specify a 'ranges' property in DTS parent node
+as cpu addresses translated from DTS node are only for memory space on
+some architectures, such as Arm64. Without the parent 'ranges' property,
+current of_translate_address() return an error.
+Here we add special handlings for this case.
+During the OF address translation, some checkings will be perfromed to
+identify whether the device node is registered as indirect-IO. If yes,
+the I/O translation will be done in a different way from that one of PCI
+MMIO. In this way, the I/O 'reg' property of the special ISA/LPC devices
+will be parsed correctly.
 
-Since in the ACPI tables the child device IO resources would
-be the host-specific values, it is required the ACPI scan code
-should not enumerate these devices, and that this should be
-the responsibility of the host driver so that it can "fixup"
-the resources so that they map to the appropriate logical PIO
-addresses.
-
-To avoid enumerating these child devices, we check whether
-the parent for a device is a member of a known list of
-"indirect IO" hosts. For now, the HiSilicon LPC host
-controller ID is added.
-
-To flag a device to not be enumerated, we reuse the existing
-serial bus slave flag.
-
-Signed-off-by: John Garry <john.garry@huawei.com>
+Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
+Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>    #earlier draft
+Acked-by: Rob Herring <robh@kernel.org>
 ---
- drivers/acpi/scan.c | 14 ++++++++++++++
- 1 file changed, 14 insertions(+)
+ drivers/of/address.c | 92 +++++++++++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 76 insertions(+), 16 deletions(-)
 
-diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
-index 8e63d93..c1a60852 100644
---- a/drivers/acpi/scan.c
-+++ b/drivers/acpi/scan.c
-@@ -1524,11 +1524,25 @@ static int acpi_check_serial_bus_slave(struct acpi_resource *ares, void *data)
- 	return -1;
- }
+diff --git a/drivers/of/address.c b/drivers/of/address.c
+index cdf047b..2db8b56 100644
+--- a/drivers/of/address.c
++++ b/drivers/of/address.c
+@@ -5,6 +5,7 @@
+ #include <linux/fwnode.h>
+ #include <linux/io.h>
+ #include <linux/ioport.h>
++#include <linux/logic_pio.h>
+ #include <linux/module.h>
+ #include <linux/of_address.h>
+ #include <linux/pci.h>
+@@ -562,9 +563,14 @@ static int of_translate_one(struct device_node *parent, struct of_bus *bus,
+  * that translation is impossible (that is we are not dealing with a value
+  * that can be mapped to a cpu physical address). This is not really specified
+  * that way, but this is traditionally the way IBM at least do things
++ *
++ * Whenever the translation fails, the *host pointer will be set to the
++ * device that had registered logical PIO mapping, and the return code is
++ * relative to that node.
+  */
+ static u64 __of_translate_address(struct device_node *dev,
+-				  const __be32 *in_addr, const char *rprop)
++				  const __be32 *in_addr, const char *rprop,
++				  struct device_node **host)
+ {
+ 	struct device_node *parent = NULL;
+ 	struct of_bus *bus, *pbus;
+@@ -577,6 +583,7 @@ static u64 __of_translate_address(struct device_node *dev,
+ 	/* Increase refcount at current level */
+ 	of_node_get(dev);
  
-+static bool acpi_is_indirect_io_slave(struct acpi_device *device)
-+{
-+	struct acpi_device *parent = device->parent;
-+	const struct acpi_device_id indirect_io_hosts[] = {
-+		{"HISI0191", 0},
-+		{}
-+	};
++	*host = NULL;
+ 	/* Get parent & match bus type */
+ 	parent = of_get_parent(dev);
+ 	if (parent == NULL)
+@@ -597,6 +604,8 @@ static u64 __of_translate_address(struct device_node *dev,
+ 
+ 	/* Translate */
+ 	for (;;) {
++		struct logic_pio_hwaddr *iorange;
 +
-+	return parent && !acpi_match_device_ids(parent, indirect_io_hosts);
+ 		/* Switch to parent bus */
+ 		of_node_put(dev);
+ 		dev = parent;
+@@ -609,6 +618,19 @@ static u64 __of_translate_address(struct device_node *dev,
+ 			break;
+ 		}
+ 
++		/*
++		 * For indirectIO device which has no ranges property, get
++		 * the address from reg directly.
++		 */
++		iorange = find_io_range_by_fwnode(&dev->fwnode);
++		if (iorange && (iorange->flags != PIO_CPU_MMIO)) {
++			result = of_read_number(addr + 1, na - 1);
++			pr_debug("indirectIO matched(%s) 0x%llx\n",
++					of_node_full_name(dev), result);
++			*host = of_node_get(dev);
++			break;
++		}
++
+ 		/* Get new parent bus and counts */
+ 		pbus = of_match_bus(parent);
+ 		pbus->count_cells(dev, &pna, &pns);
+@@ -640,13 +662,32 @@ static u64 __of_translate_address(struct device_node *dev,
+ 
+ u64 of_translate_address(struct device_node *dev, const __be32 *in_addr)
+ {
+-	return __of_translate_address(dev, in_addr, "ranges");
++	struct device_node *host;
++	u64 ret;
++
++	ret = __of_translate_address(dev, in_addr, "ranges", &host);
++	if (host) {
++		of_node_put(host);
++		return OF_BAD_ADDR;
++	}
++
++	return ret;
+ }
+ EXPORT_SYMBOL(of_translate_address);
+ 
+ u64 of_translate_dma_address(struct device_node *dev, const __be32 *in_addr)
+ {
+-	return __of_translate_address(dev, in_addr, "dma-ranges");
++	struct device_node *host;
++	u64 ret;
++
++	ret = __of_translate_address(dev, in_addr, "dma-ranges", &host);
++
++	if (host) {
++		of_node_put(host);
++		return OF_BAD_ADDR;
++	}
++
++	return ret;
+ }
+ EXPORT_SYMBOL(of_translate_dma_address);
+ 
+@@ -688,29 +729,48 @@ const __be32 *of_get_address(struct device_node *dev, int index, u64 *size,
+ }
+ EXPORT_SYMBOL(of_get_address);
+ 
++static u64 of_translate_ioport(struct device_node *dev, const __be32 *in_addr,
++			u64 size)
++{
++	u64 taddr;
++	unsigned long port;
++	struct device_node *host;
++
++	taddr = __of_translate_address(dev, in_addr, "ranges", &host);
++	if (host) {
++		/* host specific port access */
++		port = logic_pio_trans_hwaddr(&host->fwnode, taddr, size);
++		of_node_put(host);
++	} else {
++		/* memory mapped I/O range */
++		port = pci_address_to_pio(taddr);
++	}
++
++	if (port == (unsigned long)-1)
++		return OF_BAD_ADDR;
++
++	return port;
 +}
 +
- static bool acpi_is_serial_bus_slave(struct acpi_device *device)
+ static int __of_address_to_resource(struct device_node *dev,
+ 		const __be32 *addrp, u64 size, unsigned int flags,
+ 		const char *name, struct resource *r)
  {
- 	struct list_head resource_list;
- 	bool is_serial_bus_slave = false;
+ 	u64 taddr;
  
-+	if (acpi_is_indirect_io_slave(device))
-+		return true;
+-	if ((flags & (IORESOURCE_IO | IORESOURCE_MEM)) == 0)
++	if (flags & IORESOURCE_MEM)
++		taddr = of_translate_address(dev, addrp);
++	else if (flags & IORESOURCE_IO)
++		taddr = of_translate_ioport(dev, addrp, size);
++	else
+ 		return -EINVAL;
+-	taddr = of_translate_address(dev, addrp);
 +
- 	/* Macs use device properties in lieu of _CRS resources */
- 	if (x86_apple_machine &&
- 	    (fwnode_property_present(&device->fwnode, "spiSclkPeriod") ||
+ 	if (taddr == OF_BAD_ADDR)
+ 		return -EINVAL;
+ 	memset(r, 0, sizeof(struct resource));
+-	if (flags & IORESOURCE_IO) {
+-		unsigned long port;
+-		port = pci_address_to_pio(taddr);
+-		if (port == (unsigned long)-1)
+-			return -EINVAL;
+-		r->start = port;
+-		r->end = port + size - 1;
+-	} else {
+-		r->start = taddr;
+-		r->end = taddr + size - 1;
+-	}
++
++	r->start = taddr;
++	r->end = taddr + size - 1;
+ 	r->flags = flags;
+ 	r->name = name ? name : dev->full_name;
+ 
 -- 
 1.9.1
