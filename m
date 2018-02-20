@@ -1,43 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:45542 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751352AbeBTNq2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Feb 2018 08:46:28 -0500
-Date: Tue, 20 Feb 2018 14:46:23 +0100
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [RESEND][PATCH 0/3] exec: Pin stack limit during exec
-Message-ID: <20180220134623.GA21134@dhcp22.suse.cz>
-References: <1518638796-20819-1-git-send-email-keescook@chromium.org>
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:33522 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750988AbeBTOdq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Feb 2018 09:33:46 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1518638796-20819-1-git-send-email-keescook@chromium.org>
+In-Reply-To: <1519062520-198902-2-git-send-email-john.garry@huawei.com>
+References: <1519062520-198902-1-git-send-email-john.garry@huawei.com> <1519062520-198902-2-git-send-email-john.garry@huawei.com>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Date: Tue, 20 Feb 2018 16:33:45 +0200
+Message-ID: <CAHp75Vf102MDDZ8d9kXw2K0+0_WkhFMSq7o=Vz=KrzOM=NRW5A@mail.gmail.com>
+Subject: Re: [PATCH v14 1/9] LIB: Introduce a generic PIO mapping method
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Willy Tarreau <w@1wt.eu>, Hugh Dickins <hughd@google.com>, Oleg Nesterov <oleg@redhat.com>, "Jason A. Donenfeld" <Jason@zx2c4.com>, Rik van Riel <riel@redhat.com>, Laura Abbott <labbott@redhat.com>, Greg KH <greg@kroah.com>, Andy Lutomirski <luto@kernel.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
-Message-ID: <20180220134623.fAgMS0fpZPOj6fbsBNnUVNBJMRghL_95vgkBWWioq3Q@z>
+To: John Garry <john.garry@huawei.com>
+Cc: Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael@kernel.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-pci@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, Corey Minyard <minyard@acm.org>, devicetree <devicetree@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Randy Dunlap <rdunlap@infradead.org>
 
-On Wed 14-02-18 12:06:33, Kees Cook wrote:
-> Attempts to solve problems with the stack limit changing during exec
-> continue to be frustrated[1][2]. In addition to the specific issues around
-> the Stack Clash family of flaws, Andy Lutomirski pointed out[3] other
-> places during exec where the stack limit is used and is assumed to be
-> unchanging. Given the many places it gets used and the fact that it can be
-> manipulated/raced via setrlimit() and prlimit(), I think the only way to
-> handle this is to move away from the "current" view of the stack limit and
-> instead attach it to the bprm, and plumb this down into the functions that
-> need to know the stack limits. This series implements the approach.
-> 
-> Neither I nor 0-day have found issues with this series, so I'd like to
-> get it into -mm for further testing.
+On Mon, Feb 19, 2018 at 7:48 PM, John Garry <john.garry@huawei.com> wrote:
+> From: Zhichang Yuan <yuanzhichang@hisilicon.com>
+>
+> In commit 41f8bba7f555 ("of/pci: Add pci_register_io_range() and
+> pci_pio_to_address()"), a new I/O space management was supported. With
+> that driver, the I/O ranges configured for PCI/PCIe hosts on some
+> architectures can be mapped to logical PIO, converted easily between
+> CPU address and the corresponding logicial PIO. Based on this, PCI
+> I/O devices can be accessed in a memory read/write way through the
+> unified in/out accessors.
+>
+> But on some archs/platforms, there are bus hosts which access I/O
+> peripherals with host-local I/O port addresses rather than memory
+> addresses after memory-mapped.
+>
+> To support those devices, a more generic I/O mapping method is introduced
+> here. Through this patch, both the CPU addresses and the host-local port
+> can be mapped into the logical PIO space with different logical/fake PIOs.
+> After this, all the I/O accesses to either PCI MMIO devices or host-local
+> I/O peripherals can be unified into the existing I/O accessors defined in
+> asm-generic/io.h and be redirected to the right device-specific hooks
+> based on the input logical PIO.
 
-Sorry, for the late response. All three patches make sense to me.
-finalize_exec could see a much better documentation and explain what is
-the semantic.
+> +#define PIO_INDIRECT           0x01UL /* indirect IO flag */
+> +#define PIO_CPU_MMIO           0x00UL /* memory mapped io flag */
 
-Anyway, feel free to add
-Acked-by: Michal Hocko <mhocko@suse.com>
+It looks like bitfield, but from use I don't see it.
+
+Perhaps use enum instead?
+
+> +       resource_size_t hwaddr = -1;
+
+> +unsigned long
+> +               return -1;
+> +               return -1;
+
+> +unsigned long
+> +       return -1;
+
+> +type logic_in##bw(unsigned long addr)                                  \
+> +       type ret = -1;                                                  \
+
+All types above are unsigned. I'm not sure it's the best approach to
+use -1 implicitly casted to unsigned type.
+
+I would rather use ~0UL or alike.
+
 -- 
-Michal Hocko
-SUSE Labs
+With Best Regards,
+Andy Shevchenko
