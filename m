@@ -1,77 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:37765 "EHLO huawei.com"
-        rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752313AbeBTPln (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Feb 2018 10:41:43 -0500
-Subject: Re: [PATCH v14 0/9] LPC: legacy ISA I/O support
-References: <1519062520-198902-1-git-send-email-john.garry@huawei.com>
- <CAHp75VeFiQocuedW64ePgLO=_FQd7Q_hX-+wMh0zec3XUzhVxw@mail.gmail.com>
-From: John Garry <john.garry@huawei.com>
-Message-ID: <55d64c79-87b6-78e0-b13e-77ac7f1c9e90@huawei.com>
-Date: Tue, 20 Feb 2018 15:41:18 +0000
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:42498 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751764AbeBTXXt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Feb 2018 18:23:49 -0500
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w1KNNdOT118579
+        for <linux-arch@vger.kernel.org>; Tue, 20 Feb 2018 18:23:49 -0500
+Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2g8umakcc1-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 20 Feb 2018 18:23:48 -0500
+Received: from localhost
+        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Tue, 20 Feb 2018 18:23:48 -0500
+Date: Tue, 20 Feb 2018 15:24:05 -0800
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH RFC tools/lkmm 0/12] Miscellaneous fixes
+Reply-To: paulmck@linux.vnet.ibm.com
 MIME-Version: 1.0
-In-Reply-To: <CAHp75VeFiQocuedW64ePgLO=_FQd7Q_hX-+wMh0zec3XUzhVxw@mail.gmail.com>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Message-Id: <20180220232405.GA19274@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael@kernel.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-pci@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, Corey Minyard <minyard@acm.org>, devicetree <devicetree@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Randy Dunlap <rdunlap@infradead.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, nborisov@suse.com
 
-On 20/02/2018 14:54, Andy Shevchenko wrote:
-> On Mon, Feb 19, 2018 at 7:48 PM, John Garry <john.garry@huawei.com> wrote:
->> > This patchset supports the IPMI-bt device attached to the Low-Pin-Count
->> > interface implemented on Hisilicon Hip06/Hip07 SoC.
->> >                         -----------
->> >                         | LPC host|
->> >                         |         |
->> >                         -----------
->> >                              |
->> >                 _____________V_______________LPC
->> >                   |                       |
->> >                   V                       V
->> >                                      ------------
->> >                                      |  BT(ipmi)|
->> >                                      ------------
->> >
->> > When master accesses those peripherals beneath the Hip06/Hip07 LPC, a specific
->> > LPC driver is needed to make LPC host generate the standard LPC I/O cycles with
->> > the target peripherals'I/O port addresses. But on curent arm64 world, there is
->> > no real I/O accesses. All the I/O operations through in/out accessors are based
->> > on MMIO ranges; on Hip06/Hip07 LPC the I/O accesses are performed through driver
->> > specific accessors rather than MMIO.
->> > To solve this issue and keep the relevant existing peripherals' drivers untouched,
->> > this patchset:
->> >    - introduces a generic I/O space management framework, logical PIO, to support
->> >       I/O operations on host controllers operating either on MMIO buses or on buses
->> >      requiring specific driver I/O accessors;
->> >    - redefines the in/out accessors to provide a unified interface for both MMIO
->> >      and driver specific I/O operations. Using logical PIO, th call of in/out() from
->> >      the host children drivers, such as ipmi-si, will be redirected to the
->> >      corresponding device-specific I/O hooks to perform the I/O accesses.
->> >
->> > Based on this patch-set, all the I/O accesses to Hip06/Hip07 LPC peripherals can
->> > be supported without any changes on the existing ipmi-si driver.
->> >
->> > The whole patchset has been tested on Hip07 D05 board both using DTB and ACPI.
->> >
->> > Differences to v13:
->> > - dropped ACPI scan handler and added patch to not enumerate children
->> >   of indirect IO hosts in ACPI code
->> > - tidied up logic_pio.c a bit for kerneldoc and made some APIs clearer
->> >   to understand
->> > - tided (and simplified) hisi_lpc.c and added new ACPI probe code
->> >   (same as previous ACPI scan handler code, so comments from Rafael
->> >   and Andy included)
->> > - reinstated PCI range upper limit check in pci_pio_to_address()
->> > - dropped Dann Frazier's "tested-by" tag in light of changes
->> > - rebase to linuxnext 20180219 (had to fix locally arm64 build issue)
->> >
-> Some minor comments per patches, otherwise FWIW
->
-> Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
->
+Hello!
 
-Thanks, the comments in the other 2 patches I did not reply to are ok.
+This RFC series adds some miscellaneous updates to the Linux kernel
+memory model:
 
-John
+1.	Clarify the origin and scope of the tool name to avoid confusion
+	between "memory model" and "memory management", courtesy of
+	Andrea Parri.
+
+2.	Move the maintainer list for LKMM to the main MAINTAINERS file,
+	courtesy of Andrea Parri.
+
+3.	Add memory-barriers.txt to the LKMM MAINTAINERS entry, courtesy
+	of Andrea Parri.
+
+4.	Add comments explaining the purpose of the various litmus tests.
+
+5.	Fix punctuation errors in litmus-tests/README.
+
+6.	Add Akira Yokosawa as an LKMM reviewer.
+
+7.	Cross-reference tools/memory-model from memory-barriers.txt,
+	courtesy of Andrea Parri and Akira Yokosawa.
+
+8.	Fix description of data dependency barriers, courtesy of
+	Nikolay Borisov.
+
+9.	Add required herd7 version to README file.
+
+10.	Add a S lock-based external-view litmus test, courtesy of Alan
+	Stern.
+
+11.	Convert underscores to hyphens in .bell and .cat files for
+	consistency with typical cat-language code.
+
+12.	Remove rb-dep, smp_read_barrier_depends, and lockless_dereference,
+	which reflect recent Linux-kernel changes, courtesy of
+	Alan Stern.
+
+Changes since v1:
+
+o	Applied feedback from v1 posting.
+
+o	Squashing patches together, as promised in v1.
+
+o	Added patches 7-10 and 12.
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ /tools/memory-model/MAINTAINERS                                                            |   15 -
+ b/Documentation/memory-barriers.txt                                                        |    8 
+ b/MAINTAINERS                                                                              |   18 ++
+ b/tools/memory-model/Documentation/cheatsheet.txt                                          |    3 
+ b/tools/memory-model/Documentation/explanation.txt                                         |   81 +++++-----
+ b/tools/memory-model/MAINTAINERS                                                           |    2 
+ b/tools/memory-model/README                                                                |   17 +-
+ b/tools/memory-model/linux-kernel.bell                                                     |    9 -
+ b/tools/memory-model/linux-kernel.cat                                                      |   15 -
+ b/tools/memory-model/linux-kernel.def                                                      |    8 
+ b/tools/memory-model/litmus-tests/CoRR+poonceonce+Once.litmus                              |    7 
+ b/tools/memory-model/litmus-tests/CoRW+poonceonce+Once.litmus                              |    7 
+ b/tools/memory-model/litmus-tests/CoWR+poonceonce+Once.litmus                              |    7 
+ b/tools/memory-model/litmus-tests/CoWW+poonceonce.litmus                                   |    7 
+ b/tools/memory-model/litmus-tests/IRIW+mbonceonces+OnceOnce.litmus                         |   10 +
+ b/tools/memory-model/litmus-tests/IRIW+poonceonces+OnceOnce.litmus                         |   10 +
+ b/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus               |   41 +++++
+ b/tools/memory-model/litmus-tests/ISA2+poonceonces.litmus                                  |    9 +
+ b/tools/memory-model/litmus-tests/ISA2+pooncerelease+poacquirerelease+poacquireonce.litmus |   11 +
+ b/tools/memory-model/litmus-tests/LB+ctrlonceonce+mbonceonce.litmus                        |   11 +
+ b/tools/memory-model/litmus-tests/LB+poacquireonce+pooncerelease.litmus                    |    8 
+ b/tools/memory-model/litmus-tests/LB+poonceonces.litmus                                    |    7 
+ b/tools/memory-model/litmus-tests/MP+onceassign+derefonce.litmus                           |   11 +
+ b/tools/memory-model/litmus-tests/MP+polocks.litmus                                        |   11 +
+ b/tools/memory-model/litmus-tests/MP+poonceonces.litmus                                    |    7 
+ b/tools/memory-model/litmus-tests/MP+pooncerelease+poacquireonce.litmus                    |    8 
+ b/tools/memory-model/litmus-tests/MP+porevlocks.litmus                                     |   11 +
+ b/tools/memory-model/litmus-tests/MP+wmbonceonce+rmbonceonce.litmus                        |    8 
+ b/tools/memory-model/litmus-tests/R+mbonceonces.litmus                                     |    9 +
+ b/tools/memory-model/litmus-tests/R+poonceonces.litmus                                     |    8 
+ b/tools/memory-model/litmus-tests/README                                                   |    4 
+ b/tools/memory-model/litmus-tests/S+poonceonces.litmus                                     |    9 +
+ b/tools/memory-model/litmus-tests/S+wmbonceonce+poacquireonce.litmus                       |    7 
+ b/tools/memory-model/litmus-tests/SB+mbonceonces.litmus                                    |    9 +
+ b/tools/memory-model/litmus-tests/SB+poonceonces.litmus                                    |    8 
+ b/tools/memory-model/litmus-tests/WRC+poonceonces+Once.litmus                              |    8 
+ b/tools/memory-model/litmus-tests/WRC+pooncerelease+rmbonceonce+Once.litmus                |    8 
+ b/tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus               |    9 +
+ b/tools/memory-model/litmus-tests/Z6.0+pooncelock+pooncelock+pombonce.litmus               |    8 
+ b/tools/memory-model/litmus-tests/Z6.0+pooncerelease+poacquirerelease+mbonceonce.litmus    |   14 +
+ 40 files changed, 380 insertions(+), 88 deletions(-)
