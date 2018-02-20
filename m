@@ -1,44 +1,41 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH 3/3] nospec: Include asm/barrier.h dependency
-Date: Fri, 16 Feb 2018 13:20:54 -0800
-Message-ID: <151881605404.17395.1341935530792574707.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <151881603700.17395.6474595347527003884.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [RESEND][PATCH 0/3] exec: Pin stack limit during exec
+Date: Tue, 20 Feb 2018 14:46:23 +0100
+Message-ID: <20180220134623.GA21134@dhcp22.suse.cz>
+References: <1518638796-20819-1-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <151881603700.17395.6474595347527003884.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: mingo@kernel.org
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-11827-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <1518638796-20819-1-git-send-email-keescook@chromium.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Willy Tarreau <w@1wt.eu>, Hugh Dickins <hughd@google.com>, Oleg Nesterov <oleg@redhat.com>, "Jason A. Donenfeld" <Jason@zx2c4.com>, Rik van Riel <riel@redhat.com>, Laura Abbott <labbott@redhat.com>, Greg KH <greg@kroah.com>, Andy Lutomirski <luto@kernel.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
 List-Id: linux-arch.vger.kernel.org
 
-The nospec.h header expects the per-architecture header file
-asm/barrier.h to optionally define array_index_mask_nospec(). Include
-that dependency to prevent inadvertent fallback to the default
-array_index_mask_nospec() implementation. The default implementation may
-not provide a full mitigation on architectures that perform data value
-speculation.
+On Wed 14-02-18 12:06:33, Kees Cook wrote:
+> Attempts to solve problems with the stack limit changing during exec
+> continue to be frustrated[1][2]. In addition to the specific issues around
+> the Stack Clash family of flaws, Andy Lutomirski pointed out[3] other
+> places during exec where the stack limit is used and is assumed to be
+> unchanging. Given the many places it gets used and the fact that it can be
+> manipulated/raced via setrlimit() and prlimit(), I think the only way to
+> handle this is to move away from the "current" view of the stack limit and
+> instead attach it to the bprm, and plumb this down into the functions that
+> need to know the stack limits. This series implements the approach.
+> 
+> Neither I nor 0-day have found issues with this series, so I'd like to
+> get it into -mm for further testing.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Reported-by: Christian Borntraeger <borntraeger@de.ibm.com>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
----
- include/linux/nospec.h |    1 +
- 1 file changed, 1 insertion(+)
+Sorry, for the late response. All three patches make sense to me.
+finalize_exec could see a much better documentation and explain what is
+the semantic.
 
-diff --git a/include/linux/nospec.h b/include/linux/nospec.h
-index 172a19dc35ab..e791ebc65c9c 100644
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -5,6 +5,7 @@
- 
- #ifndef _LINUX_NOSPEC_H
- #define _LINUX_NOSPEC_H
-+#include <asm/barrier.h>
- 
- /**
-  * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
+Anyway, feel free to add
+Acked-by: Michal Hocko <mhocko@suse.com>
+-- 
+Michal Hocko
+SUSE Labs
