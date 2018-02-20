@@ -1,120 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:35194 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:35620 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751900AbeBTXZM (ORCPT
+        by vger.kernel.org with ESMTP id S1752028AbeBTXZP (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Feb 2018 18:25:12 -0500
+        Tue, 20 Feb 2018 18:25:15 -0500
 Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w1KNO4UB124824
-        for <linux-arch@vger.kernel.org>; Tue, 20 Feb 2018 18:25:12 -0500
-Received: from e18.ny.us.ibm.com (e18.ny.us.ibm.com [129.33.205.208])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2g8rqead2m-1
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w1KNO5gg124888
+        for <linux-arch@vger.kernel.org>; Tue, 20 Feb 2018 18:25:15 -0500
+Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2g8rqead3p-1
         (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 20 Feb 2018 18:25:03 -0500
+        for <linux-arch@vger.kernel.org>; Tue, 20 Feb 2018 18:25:04 -0500
 Received: from localhost
-        by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Tue, 20 Feb 2018 18:25:02 -0500
+        Tue, 20 Feb 2018 18:25:03 -0500
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH RFC tools/lkmm 01/12] tools/memory-model: Clarify the origin/scope of the tool name
-Date: Tue, 20 Feb 2018 15:25:01 -0800
+Subject: [PATCH RFC tools/lkmm 08/12] memory-barriers: Fix description of data dependency barriers
+Date: Tue, 20 Feb 2018 15:25:08 -0800
 In-Reply-To: <20180220232405.GA19274@linux.vnet.ibm.com>
 References: <20180220232405.GA19274@linux.vnet.ibm.com>
-Message-Id: <1519169112-20593-1-git-send-email-paulmck@linux.vnet.ibm.com>
+Message-Id: <1519169112-20593-8-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, nborisov@suse.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 
-From: Andrea Parri <parri.andrea@gmail.com>
+From: Nikolay Borisov <nborisov@suse.com>
 
-Ingo pointed out that:
+In the description of data dependency barriers the words 'before' is
+used erroneously. Since such barrier order dependent loads one after
+the other. So substitute 'before' with 'after'.
 
-  "The "memory model" name is overly generic, ambiguous and somewhat
-   misleading, as we usually mean the virtual memory layout/model
-   when we say "memory model". GCC too uses it in that sense [...]"
-
-Make it clear that tools/memory-model/ uses the term "memory model" as
-shorthand for "memory consistency model" by calling out this convention
-in tools/memory-model/README.
-
-Stick to the original "memory model" term in sources' headers and for
-the subsystem name.
-
-Suggested-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Andrea Parri <parri.andrea@gmail.com>
-Acked-by: Will Deacon <will.deacon@arm.com>
-Acked-by: Alan Stern <stern@rowland.harvard.edu>
+Signed-off-by: Nikolay Borisov <nborisov@suse.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- tools/memory-model/MAINTAINERS       |  2 +-
- tools/memory-model/README            | 14 +++++++-------
- tools/memory-model/linux-kernel.bell |  2 +-
- tools/memory-model/linux-kernel.cat  |  2 +-
- 4 files changed, 10 insertions(+), 10 deletions(-)
+ Documentation/memory-barriers.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/MAINTAINERS b/tools/memory-model/MAINTAINERS
-index 711cbe72d606..db3bd3fc0435 100644
---- a/tools/memory-model/MAINTAINERS
-+++ b/tools/memory-model/MAINTAINERS
-@@ -1,4 +1,4 @@
--LINUX KERNEL MEMORY MODEL
-+LINUX KERNEL MEMORY CONSISTENCY MODEL
- M:	Alan Stern <stern@rowland.harvard.edu>
- M:	Andrea Parri <parri.andrea@gmail.com>
- M:	Will Deacon <will.deacon@arm.com>
-diff --git a/tools/memory-model/README b/tools/memory-model/README
-index 43ba49492111..91414a49fac5 100644
---- a/tools/memory-model/README
-+++ b/tools/memory-model/README
-@@ -1,15 +1,15 @@
--			=========================
--			LINUX KERNEL MEMORY MODEL
--			=========================
-+		=====================================
-+		LINUX KERNEL MEMORY CONSISTENCY MODEL
-+		=====================================
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 74ad222d11ed..0d83333b84a9 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -400,7 +400,7 @@ Memory barriers come in four basic varieties:
+      where two loads are performed such that the second depends on the result
+      of the first (eg: the first load retrieves the address to which the second
+      load will be directed), a data dependency barrier would be required to
+-     make sure that the target of the second load is updated before the address
++     make sure that the target of the second load is updated after the address
+      obtained by the first load is accessed.
  
- ============
- INTRODUCTION
- ============
- 
--This directory contains the memory model of the Linux kernel, written
--in the "cat" language and executable by the (externally provided)
--"herd7" simulator, which exhaustively explores the state space of
--small litmus tests.
-+This directory contains the memory consistency model (memory model, for
-+short) of the Linux kernel, written in the "cat" language and executable
-+by the externally provided "herd7" simulator, which exhaustively explores
-+the state space of small litmus tests.
- 
- In addition, the "klitmus7" tool (also externally provided) may be used
- to convert a litmus test to a Linux kernel module, which in turn allows
-diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
-index 57112505f5e0..b984bbda01a5 100644
---- a/tools/memory-model/linux-kernel.bell
-+++ b/tools/memory-model/linux-kernel.bell
-@@ -11,7 +11,7 @@
-  * which is to appear in ASPLOS 2018.
-  *)
- 
--"Linux kernel memory model"
-+"Linux-kernel memory consistency model"
- 
- enum Accesses = 'once (*READ_ONCE,WRITE_ONCE,ACCESS_ONCE*) ||
- 		'release (*smp_store_release*) ||
-diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index 15b7a5dd8a9a..babe2b3b0bb3 100644
---- a/tools/memory-model/linux-kernel.cat
-+++ b/tools/memory-model/linux-kernel.cat
-@@ -11,7 +11,7 @@
-  * which is to appear in ASPLOS 2018.
-  *)
- 
--"Linux kernel memory model"
-+"Linux-kernel memory consistency model"
- 
- (*
-  * File "lock.cat" handles locks and is experimental.
+      A data dependency barrier is a partial ordering on interdependent loads
 -- 
 2.5.2
