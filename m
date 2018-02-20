@@ -1,15 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:33522 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750988AbeBTOdq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Feb 2018 09:33:46 -0500
+Received: from mail-qt0-f171.google.com ([209.85.216.171]:33056 "EHLO
+        mail-qt0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751420AbeBTOhB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Feb 2018 09:37:01 -0500
 MIME-Version: 1.0
-In-Reply-To: <1519062520-198902-2-git-send-email-john.garry@huawei.com>
-References: <1519062520-198902-1-git-send-email-john.garry@huawei.com> <1519062520-198902-2-git-send-email-john.garry@huawei.com>
+In-Reply-To: <1519062520-198902-6-git-send-email-john.garry@huawei.com>
+References: <1519062520-198902-1-git-send-email-john.garry@huawei.com> <1519062520-198902-6-git-send-email-john.garry@huawei.com>
 From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Date: Tue, 20 Feb 2018 16:33:45 +0200
-Message-ID: <CAHp75Vf102MDDZ8d9kXw2K0+0_WkhFMSq7o=Vz=KrzOM=NRW5A@mail.gmail.com>
-Subject: Re: [PATCH v14 1/9] LIB: Introduce a generic PIO mapping method
+Date: Tue, 20 Feb 2018 16:36:59 +0200
+Message-ID: <CAHp75VcS7zU=sefmMHHCSeOF14tw=hVysKHR78EazThBkHS-=g@mail.gmail.com>
+Subject: Re: [PATCH v14 5/9] OF: Add missing I/O range exception for
+ indirect-IO devices
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -19,49 +20,61 @@ Cc: Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafa
 On Mon, Feb 19, 2018 at 7:48 PM, John Garry <john.garry@huawei.com> wrote:
 > From: Zhichang Yuan <yuanzhichang@hisilicon.com>
 >
-> In commit 41f8bba7f555 ("of/pci: Add pci_register_io_range() and
-> pci_pio_to_address()"), a new I/O space management was supported. With
-> that driver, the I/O ranges configured for PCI/PCIe hosts on some
-> architectures can be mapped to logical PIO, converted easily between
-> CPU address and the corresponding logicial PIO. Based on this, PCI
-> I/O devices can be accessed in a memory read/write way through the
-> unified in/out accessors.
->
-> But on some archs/platforms, there are bus hosts which access I/O
-> peripherals with host-local I/O port addresses rather than memory
-> addresses after memory-mapped.
->
-> To support those devices, a more generic I/O mapping method is introduced
-> here. Through this patch, both the CPU addresses and the host-local port
-> can be mapped into the logical PIO space with different logical/fake PIOs.
-> After this, all the I/O accesses to either PCI MMIO devices or host-local
-> I/O peripherals can be unified into the existing I/O accessors defined in
-> asm-generic/io.h and be redirected to the right device-specific hooks
-> based on the input logical PIO.
+> There are some special ISA/LPC devices that work on a specific I/O range
+> where it is not correct to specify a 'ranges' property in DTS parent node
+> as cpu addresses translated from DTS node are only for memory space on
+> some architectures, such as Arm64. Without the parent 'ranges' property,
+> current of_translate_address() return an error.
+> Here we add special handlings for this case.
+> During the OF address translation, some checkings will be perfromed to
+> identify whether the device node is registered as indirect-IO. If yes,
+> the I/O translation will be done in a different way from that one of PCI
+> MMIO. In this way, the I/O 'reg' property of the special ISA/LPC devices
+> will be parsed correctly.
 
-> +#define PIO_INDIRECT           0x01UL /* indirect IO flag */
-> +#define PIO_CPU_MMIO           0x00UL /* memory mapped io flag */
+> +               /*
+> +                * For indirectIO device which has no ranges property, get
+> +                * the address from reg directly.
+> +                */
+> +               iorange = find_io_range_by_fwnode(&dev->fwnode);
+> +               if (iorange && (iorange->flags != PIO_CPU_MMIO)) {
+> +                       result = of_read_number(addr + 1, na - 1);
+> +                       pr_debug("indirectIO matched(%s) 0x%llx\n",
+> +                                       of_node_full_name(dev), result);
 
-It looks like bitfield, but from use I don't see it.
+%pOF ?
 
-Perhaps use enum instead?
+> +                       *host = of_node_get(dev);
+> +                       break;
+> +               }
 
-> +       resource_size_t hwaddr = -1;
+> +static u64 of_translate_ioport(struct device_node *dev, const __be32 *in_addr,
+> +                       u64 size)
+> +{
+> +       u64 taddr;
+> +       unsigned long port;
+> +       struct device_node *host;
+> +
+> +       taddr = __of_translate_address(dev, in_addr, "ranges", &host);
+> +       if (host) {
+> +               /* host specific port access */
+> +               port = logic_pio_trans_hwaddr(&host->fwnode, taddr, size);
+> +               of_node_put(host);
+> +       } else {
+> +               /* memory mapped I/O range */
+> +               port = pci_address_to_pio(taddr);
+> +       }
+> +
+> +       if (port == (unsigned long)-1)
+> +               return OF_BAD_ADDR;
 
-> +unsigned long
-> +               return -1;
-> +               return -1;
+~0UL ?
 
-> +unsigned long
-> +       return -1;
+Ah, okay, old code on plate.
 
-> +type logic_in##bw(unsigned long addr)                                  \
-> +       type ret = -1;                                                  \
-
-All types above are unsigned. I'm not sure it's the best approach to
-use -1 implicitly casted to unsigned type.
-
-I would rather use ~0UL or alike.
+> +
+> +       return port;
+> +}
 
 -- 
 With Best Regards,
