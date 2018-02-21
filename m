@@ -1,75 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f194.google.com ([209.85.220.194]:44469 "EHLO
-        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751459AbeBUM14 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 07:27:56 -0500
+Received: from iolanthe.rowland.org ([192.131.102.54]:33016 "HELO
+        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1754561AbeBUPJB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 10:09:01 -0500
+Date: Wed, 21 Feb 2018 10:09:00 -0500 (EST)
+From: Alan Stern <stern@rowland.harvard.edu>
+Subject: Re: [PATCH RFC tools/lkmm 10/12] tools/memory-model: Add a S lock-based
+ external-view litmus test
+In-Reply-To: <1519169112-20593-10-git-send-email-paulmck@linux.vnet.ibm.com>
+Message-ID: <Pine.LNX.4.44L0.1802211001030.2032-100000@iolanthe.rowland.org>
 MIME-Version: 1.0
-In-Reply-To: <CAEbi=3eCfWYXZiN+5uaSqDKcEs1Kf3Av=ua6LCZmy2jAy5-Fdw@mail.gmail.com>
-References: <cover.1518505384.git.greentime@andestech.com> <4bb01fd533c66c357f3dc23a64f56414109a2aad.1518505384.git.greentime@andestech.com>
- <CAK8P3a1MYopHeyWAs974zHRmfe5z8RS7G1mVQyC+iJXqa28EfA@mail.gmail.com> <CAEbi=3eCfWYXZiN+5uaSqDKcEs1Kf3Av=ua6LCZmy2jAy5-Fdw@mail.gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 21 Feb 2018 13:27:55 +0100
-Message-ID: <CAK8P3a19k92HhqEVBYO7wqx77k5PN6t_-9UbbU-DDYfZrnUUhA@mail.gmail.com>
-Subject: Re: [PATCH v7 03/37] sparc: io: To use the define of
- ioremap_[nocache|wc|wb] in asm-generic/io.h
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greentime Hu <green.hu@gmail.com>
-Cc: sparclinux <sparclinux@vger.kernel.org>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, nborisov@suse.com
 
-On Wed, Feb 21, 2018 at 9:05 AM, Greentime Hu <green.hu@gmail.com> wrote:
-> 2018-02-14 22:43 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
->> On Tue, Feb 13, 2018 at 10:09 AM, Greentime Hu <green.hu@gmail.com> wrote:
->>> A commit for the nds32 architecture bootstrap("asm-generic/io.h: move
->>> ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU")
->>> will move the ioremap_nocache out of the CONFIG_MMU ifdef. This means that
->>> in order to suppress re-definition errors we need to remove the #define
->>> in io_32.h.
->>>
->>> Also, the change adds a prototype for ioremap where size is size_t and
->>> offset is phys_addr_t so fix that as well.
->>>
->>> Signed-off-by: Greentime Hu <greentime@andestech.com>
->>
->> This patch should have been addressed to the sparclinux mailing list to
->> the maintainers can see it, otherwise they are unlikely to notice.
->>
->> Added it to Cc now.
->>
->> Can you confirm that the patches are ordered correctly in your series so that
->> at no point, sparc is in a state that fails to be build cleanly?
->>
->> If not, this may have to get merged into the other patch.
->
-> Hi, Arnd:
->
-> These 2 patch will cause sparc building error in any order.
+On Tue, 20 Feb 2018, Paul E. McKenney wrote:
 
+> From: Alan Stern <stern@rowland.harvard.edu>
+> 
+> This commit adds a litmus test in which P0() and P1() form a lock-based S
+> litmus test, with the addition of P2(), which observes P0()'s and P1()'s
 
->
-> Should I merge them together like this?
->
-> asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of
-> ifndef CONFIG_MMU
->
-> It allows some architectures to use this generic macro instead of
-> defining theirs.
->
-> sparc: io: To use the define of ioremap_[nocache|wc|wb] in asm-generic/io.h
-> It will move the ioremap_nocache out of the CONFIG_MMU ifdef. This means that
-> in order to suppress re-definition errors we need to remove the #define
-> in arch/sparc/include/asm/io_32.h. Also, the change adds a prototype for
-> ioremap where size is size_t and offset is phys_addr_t so fix that as well.
->
-> Signed-off-by: Greentime Hu <greentime@andestech.com>
+Why do you call this an "S" litmus test?  Isn't ISA2 a better 
+description?
 
-That looks reasonable since both patches are fairly small, yes.
+> accesses with a full memory barrier but without the lock.  This litmus
+> test asks whether writes carried out by two different processes under the
+> same lock will be seen in order by a third process not holding that lock.
+> The answer to this question is "yes" for all architectures supporting
+> the Linux kernel, but is "no" according to the current version of LKMM.
+> 
+> A patch to LKMM is under development.
+> 
+> Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+> Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> ---
+>  .../ISA2+pooncelock+pooncelock+pombonce.litmus     | 41 ++++++++++++++++++++++
+>  1 file changed, 41 insertions(+)
+>  create mode 100644 tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
 
-For a more complex patch that requires interdependent changes
-in different areas of the kernel, it may be necessary instead to
-come up with a way to stage out the changes differently so they
-are truly independent. Getting that right requires a bit practice
-but is usually possible.
+Aren't these tests supposed to be described in litmus-tests/README?
 
-       Arnd
+> diff --git a/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus b/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
+> new file mode 100644
+> index 000000000000..7a39a0aaa976
+> --- /dev/null
+> +++ b/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
+> @@ -0,0 +1,41 @@
+> +C ISA2+pooncelock+pooncelock+pombonce.litmus
+> +
+> +(*
+> + * Result: Sometimes
+> + *
+> + * This test shows that the ordering provided by a lock-protected S
+> + * litmus test (P0() and P1()) are not visible to external process P2().
+> + * This is likely to change soon.
+
+That last line may be premature.  We haven't reached any consensus on 
+how RISC-V will handle this.  If RISC-V allows the test then the memory 
+model can't forbid it.
+
+Alan
+
+> + *)
+> +
+> +{}
+> +
+> +P0(int *x, int *y, spinlock_t *mylock)
+> +{
+> +	spin_lock(mylock);
+> +	WRITE_ONCE(*x, 1);
+> +	WRITE_ONCE(*y, 1);
+> +	spin_unlock(mylock);
+> +}
+> +
+> +P1(int *y, int *z, spinlock_t *mylock)
+> +{
+> +	int r0;
+> +
+> +	spin_lock(mylock);
+> +	r0 = READ_ONCE(*y);
+> +	WRITE_ONCE(*z, 1);
+> +	spin_unlock(mylock);
+> +}
+> +
+> +P2(int *x, int *z)
+> +{
+> +	int r1;
+> +	int r2;
+> +
+> +	r2 = READ_ONCE(*z);
+> +	smp_mb();
+> +	r1 = READ_ONCE(*x);
+> +}
+> +
+> +exists (1:r0=1 /\ 2:r2=1 /\ 2:r1=0)
+> 
