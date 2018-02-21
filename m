@@ -1,80 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:56593 "EHLO
-        out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752331AbeBUU7D (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 15:59:03 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <cover.1519227112.git.khalid.aziz@oracle.com>
-        <cover.1519227112.git.khalid.aziz@oracle.com>
-        <b1712b03774934c31afd9e394f07aae51eca74f8.1519227112.git.khalid.aziz@oracle.com>
-Date: Wed, 21 Feb 2018 14:58:32 -0600
-In-Reply-To: <b1712b03774934c31afd9e394f07aae51eca74f8.1519227112.git.khalid.aziz@oracle.com>
-        (Khalid Aziz's message of "Wed, 21 Feb 2018 10:15:43 -0700")
-Message-ID: <874lmaf4av.fsf@xmission.com>
+Received: from smtprelay.synopsys.com ([198.182.47.9]:53808 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751399AbeBUVYI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 16:24:08 -0500
+Subject: Re: [PATCH] bug.h: Work around GCC PR82365 in BUG()
+References: <20171219114112.939391-1-arnd@arndb.de>
+ <8e42a1de-f619-7a4e-6d58-f90f53f5f38f@synopsys.com>
+ <CAK8P3a2fXQHCN7gqNL9j7AeZqy7NXAMW1bqyFJs3G1M_M4BQ4A@mail.gmail.com>
+ <f31caa9b-89f0-4168-04bf-14a98595865e@synopsys.com>
+ <CAK8P3a25RgC0qPCrGfutSnLHr77NqK74dW2g0m7fcMnm5Ou8yg@mail.gmail.com>
+ <27bfdc23-1774-cf07-dab4-ab253a41d2f7@synopsys.com>
+ <CAK8P3a0UKLJkmU_zVDyODMZR0G47i=zscNpgGZO4LryvmdUt6Q@mail.gmail.com>
+ <861992dd-a28d-0f8c-572f-4194d15238df@synopsys.com>
+ <20180207160138.0705eeca67d8cc4d6309381c@linux-foundation.org>
+ <e35cd0ea-b1b1-b8a1-6d01-6a17da091407@synopsys.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <2d57e8c6-069c-c4b7-0eb2-6abb8fa2181f@synopsys.com>
+Date: Wed, 21 Feb 2018 13:23:52 -0800
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH v12 01/11] signals, sparc: Add signal codes for ADI violations
+In-Reply-To: <e35cd0ea-b1b1-b8a1-6d01-6a17da091407@synopsys.com>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 8bit
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: arnd@arndb.de, hpa@zytor.com, davem@davemloft.net, dave.hansen@linux.intel.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, anthony.yznaga@oracle.com, pombredanne@nexb.com, jroedel@suse.de, gregkh@linuxfoundation.org, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "David S. Miller" <davem@davemloft.net>, Christopher Li <sparse@chrisli.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Will Deacon <will.deacon@arm.com>, "Steven Rostedt (VMware)" <rostedt@goodmis.org>, Mark Rutland <mark.rutland@arm.com>, arcml <linux-snps-arc@lists.infradead.org>
+Message-ID: <20180221212352.rvL6xGy8MvDzPTwNHuJFJzF3fdu2KtqG23hH42YZ8QM@z>
 
-Khalid Aziz <khalid.aziz@oracle.com> writes:
+On 02/07/2018 05:20 PM, Vineet Gupta wrote:
+>
+>> Didn't do ;)
+>>
+>> Is Arnd's patch good to merge or do we need a fixup?
+>>
+>>
+>> From: Arnd Bergmann <arnd@arndb.de>
+>> Subject: bug.h: work around GCC PR82365 in BUG()
+>>
+>> Looking at functions with large stack frames across all architectures led
+>> me discovering that BUG() suffers from the same problem as
+>> fortify_panic(), which I've added a workaround for already.  In short,
+>> variables that go out of scope by calling a noreturn function or
+>> __builtin_unreachable() keep using stack space in functions afterwards.
+>>
+>> A workaround that was identified is to insert an empty assembler statement
+>> just before calling the function that doesn't return.  I'm adding a macro
+>> "barrier_before_unreachable()" to document this, and insert calls to that
+>> in all instances of BUG() that currently suffer from this problem.
+>>
+..
+..
 
-> SPARC M7 processor introduces a new feature - Application Data
-> Integrity (ADI). ADI allows MMU to  catch rogue accesses to memory.
-> When a rogue access occurs, MMU blocks the access and raises an
-> exception. In response to the exception, kernel sends the offending
-> task a SIGSEGV with si_code that indicates the nature of exception.
-> This patch adds three new signal codes specific to ADI feature:
+>> ---
+>>
+>>   arch/arc/include/asm/bug.h            |    3 ++-
+>>   arch/cris/include/arch-v10/arch/bug.h |   11 +++++++++--
+>>   arch/ia64/include/asm/bug.h           |    6 +++++-
+>>   arch/m68k/include/asm/bug.h           |    3 +++
+>>   arch/sparc/include/asm/bug.h          |    6 +++++-
+>>   include/asm-generic/bug.h             |    1 +
+>>   include/linux/compiler-gcc.h          |   15 ++++++++++++++-
+>>   include/linux/compiler.h              |    5 +++++
+>>   8 files changed, 44 insertions(+), 6 deletions(-)
+>>
+>> diff -puN arch/arc/include/asm/bug.h~bugh-work-around-gcc-pr82365-in-bug 
+>> arch/arc/include/asm/bug.h
+>> --- a/arch/arc/include/asm/bug.h~bugh-work-around-gcc-pr82365-in-bug
+>> +++ a/arch/arc/include/asm/bug.h
+>> @@ -23,7 +23,8 @@ void die(const char *str, struct pt_regs
+>>     #define BUG()    do {                                \
+>>       pr_warn("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
+>> -    dump_stack();                                \
+>> +    barrier_before_unreachable();                        \
+>> +    __builtin_trap();                            \
+>>   } while (0)
 >
-> 1. ADI is not enabled for the address and task attempted to access
->    memory using ADI
-> 2. Task attempted to access memory using wrong ADI tag and caused
->    a deferred exception.
-> 3. Task attempted to access memory using wrong ADI tag and caused
->    a precise exception.
+> For ARC, it is double win.
 >
-> Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-> Cc: Khalid Aziz <khalid@gonehiking.org>
-> Reviewed-by: Anthony Yznaga <anthony.yznaga@oracle.com>
+> 1. Fixes 3 -Wreturn-type warnings
+>
+> | ../net/core/ethtool.c:311:1: warning: control reaches end of non-void function 
+> [-Wreturn-type]
+> | ../kernel/sched/core.c:3246:1: warning: control reaches end of non-void 
+> function [-Wreturn-type]
+> | ../include/linux/sunrpc/svc_xprt.h:180:1: warning: control reaches end of 
+> non-void function [-Wreturn-type]
+>
+> 2. bloat-o-meter reports code size improvements as gcc elides the generated code 
+> for stack return.
+>
+>
+> Acked-by: Vineet Gupta <vgupta@synopsys.com>   # for arch/arc
+> Tested-by: Vineet Gupta <vgupta@synopsys.com>   # for arch/arc
 
-Acked-by: "Eric W. Biederman" <ebiederm@xmission.com>
-
-> ---
-> v10:
-> 	- Updated si_code definitions to match other definitions
->
->  arch/x86/kernel/signal_compat.c    | 2 +-
->  include/uapi/asm-generic/siginfo.h | 5 ++++-
->  2 files changed, 5 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
-> index ac057f9b0763..41cf5996a2a9 100644
-> --- a/arch/x86/kernel/signal_compat.c
-> +++ b/arch/x86/kernel/signal_compat.c
-> @@ -27,7 +27,7 @@ static inline void signal_compat_build_tests(void)
->  	 */
->  	BUILD_BUG_ON(NSIGILL  != 11);
->  	BUILD_BUG_ON(NSIGFPE  != 13);
-> -	BUILD_BUG_ON(NSIGSEGV != 4);
-> +	BUILD_BUG_ON(NSIGSEGV != 7);
->  	BUILD_BUG_ON(NSIGBUS  != 5);
->  	BUILD_BUG_ON(NSIGTRAP != 4);
->  	BUILD_BUG_ON(NSIGCHLD != 6);
-> diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-> index 85dc965afd89..e94f03b3ee6f 100644
-> --- a/include/uapi/asm-generic/siginfo.h
-> +++ b/include/uapi/asm-generic/siginfo.h
-> @@ -246,7 +246,10 @@ typedef struct siginfo {
->  #else
->  # define SEGV_PKUERR	4	/* failed protection key checks */
->  #endif
-> -#define NSIGSEGV	4
-> +#define SEGV_ACCADI	5	/* ADI not enabled for mapped object */
-> +#define SEGV_ADIDERR	6	/* Disrupting MCD error */
-> +#define SEGV_ADIPERR	7	/* Precise MCD exception */
-> +#define NSIGSEGV	7
->  
->  /*
->   * SIGBUS si_codes
+Ping ?
