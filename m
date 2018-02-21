@@ -1,139 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2120.oracle.com ([141.146.126.78]:37384 "EHLO
-        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754791AbeBURUB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 12:20:01 -0500
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: [PATCH v12 02/11] mm, swap: Add infrastructure for saving page metadata on swap
-Date: Wed, 21 Feb 2018 10:15:44 -0700
-Message-Id: <f5316c71e645d99ffdd52963f1e9675de3fc6386.1519227112.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1519227112.git.khalid.aziz@oracle.com>
-References: <cover.1519227112.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1519227112.git.khalid.aziz@oracle.com>
-References: <cover.1519227112.git.khalid.aziz@oracle.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:56634 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S934040AbeBURxI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 21 Feb 2018 12:53:08 -0500
+Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w1LHnRaY014120
+        for <linux-arch@vger.kernel.org>; Wed, 21 Feb 2018 12:53:07 -0500
+Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2g9bcmef6v-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 21 Feb 2018 12:53:03 -0500
+Received: from localhost
+        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Wed, 21 Feb 2018 12:53:02 -0500
+Date: Wed, 21 Feb 2018 09:53:21 -0800
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC tools/lkmm 10/12] tools/memory-model: Add a S
+ lock-based external-view litmus test
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <20180221161223.GE3617@linux.vnet.ibm.com>
+ <Pine.LNX.4.44L0.1802211148390.2032-100000@iolanthe.rowland.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.1802211148390.2032-100000@iolanthe.rowland.org>
+Message-Id: <20180221175320.GI3617@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, davem@davemloft.net, dave.hansen@linux.intel.com, arnd@arndb.de
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, kirill.shutemov@linux.intel.com, mhocko@suse.com, ross.zwisler@linux.intel.com, dave.jiang@intel.com, mgorman@techsingularity.net, willy@infradead.org, hughd@google.com, minchan@kernel.org, hannes@cmpxchg.org, shli@fb.com, mingo@kernel.org, jglisse@redhat.com, me@tobin.cc, anthony.yznaga@oracle.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, nborisov@suse.com
 
-If a processor supports special metadata for a page, for example ADI
-version tags on SPARC M7, this metadata must be saved when the page is
-swapped out. The same metadata must be restored when the page is swapped
-back in. This patch adds two new architecture specific functions -
-arch_do_swap_page() to be called when a page is swapped in, and
-arch_unmap_one() to be called when a page is being unmapped for swap
-out. These architecture hooks allow page metadata to be saved if the
-architecture supports it.
+On Wed, Feb 21, 2018 at 11:50:31AM -0500, Alan Stern wrote:
+> On Wed, 21 Feb 2018, Paul E. McKenney wrote:
+> 
+> > On Wed, Feb 21, 2018 at 10:09:00AM -0500, Alan Stern wrote:
+> > > On Tue, 20 Feb 2018, Paul E. McKenney wrote:
+> > > 
+> > > > From: Alan Stern <stern@rowland.harvard.edu>
+> > > > 
+> > > > This commit adds a litmus test in which P0() and P1() form a lock-based S
+> > > > litmus test, with the addition of P2(), which observes P0()'s and P1()'s
+> > > 
+> > > Why do you call this an "S" litmus test?  Isn't ISA2 a better 
+> > > description?
+> > 
+> > Indeed, the name of the test is in fact ISA2.
+> 
+> Sure; and the Changelog entry should reflect this.
 
-Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: Khalid Aziz <khalid@gonehiking.org>
-Acked-by: Jerome Marchand <jmarchan@redhat.com>
-Reviewed-by: Anthony Yznaga <anthony.yznaga@oracle.com>
----
-v8:
-	- Fixed an erroneous "}"
-v6:
-	- Updated parameter list for arch_do_swap_page() and
-	  arch_unmap_one()
-v5:
-	- Replaced set_swp_pte() function with new architecture
-	  functions arch_do_swap_page() and arch_unmap_one()
+No argument.
 
- include/asm-generic/pgtable.h | 36 ++++++++++++++++++++++++++++++++++++
- mm/memory.c                   |  1 +
- mm/rmap.c                     | 14 ++++++++++++++
- 3 files changed, 51 insertions(+)
+> > > > accesses with a full memory barrier but without the lock.  This litmus
+> > > > test asks whether writes carried out by two different processes under the
+> > > > same lock will be seen in order by a third process not holding that lock.
+> > > > The answer to this question is "yes" for all architectures supporting
+> > > > the Linux kernel, but is "no" according to the current version of LKMM.
+> > > > 
+> > > > A patch to LKMM is under development.
+> > > > 
+> > > > Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+> > > > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > > > ---
+> > > >  .../ISA2+pooncelock+pooncelock+pombonce.litmus     | 41 ++++++++++++++++++++++
+> > > >  1 file changed, 41 insertions(+)
+> > > >  create mode 100644 tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
+> > > 
+> > > Aren't these tests supposed to be described in litmus-tests/README?
+> 
+> You apparently missed this recommendation.
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 2cfa3075d148..6fbbc0b6c05e 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -400,6 +400,42 @@ static inline int pud_same(pud_t pud_a, pud_t pud_b)
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
+I did, please accept my apologies and please see below.
+
+> > > > diff --git a/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus b/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
+> > > > new file mode 100644
+> > > > index 000000000000..7a39a0aaa976
+> > > > --- /dev/null
+> > > > +++ b/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
+> > > > @@ -0,0 +1,41 @@
+> > > > +C ISA2+pooncelock+pooncelock+pombonce.litmus
+> > > > +
+> > > > +(*
+> > > > + * Result: Sometimes
+> > > > + *
+> > > > + * This test shows that the ordering provided by a lock-protected S
+> > > > + * litmus test (P0() and P1()) are not visible to external process P2().
+> > > > + * This is likely to change soon.
+> > > 
+> > > That last line may be premature.  We haven't reached any consensus on 
+> > > how RISC-V will handle this.  If RISC-V allows the test then the memory 
+> > > model can't forbid it.
+> > 
+> > Agreed.  How about this?  If the RISC-V question is answered by the
+> > end of next week, I update accordingly.  If not, I update the comment
+> > to give the details.
+> 
+> The README also should be updated.
+
+Agreed.
+
+> > Hey, at least having the memory model go in at about the same time as
+> > a new architecture is giving us good practice!  ;-)
+> 
+> Hopefully things will settle down in a week or two.
+
+Here is hoping!
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+commit e6658d1d7fcc6391f3d00beaadc484243123a893
+Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Date:   Wed Feb 21 09:49:01 2018 -0800
+
+    tools/memory-order: Add documentation of new litmus test
+    
+    The litmus-tests/README file lacked any mention of then litmus test
+    named ISA2+pooncelock+pooncelock+pombonce.litmus.  This commit therefore
+    adds this test.
+    
+    Reported-by: Alan Stern <stern@rowland.harvard.edu>
+    Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+
+diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
+index dca7d823ad57..aff3eb90e067 100644
+--- a/tools/memory-model/litmus-tests/README
++++ b/tools/memory-model/litmus-tests/README
+@@ -32,6 +32,11 @@ IRIW+poonceonces+OnceOnce.litmus
+ 	order of a pair of writes, where each write is to a different
+ 	variable by a different process?
  
-+#ifndef __HAVE_ARCH_DO_SWAP_PAGE
-+/*
-+ * Some architectures support metadata associated with a page. When a
-+ * page is being swapped out, this metadata must be saved so it can be
-+ * restored when the page is swapped back in. SPARC M7 and newer
-+ * processors support an ADI (Application Data Integrity) tag for the
-+ * page as metadata for the page. arch_do_swap_page() can restore this
-+ * metadata when a page is swapped back in.
-+ */
-+static inline void arch_do_swap_page(struct mm_struct *mm,
-+				     struct vm_area_struct *vma,
-+				     unsigned long addr,
-+				     pte_t pte, pte_t oldpte)
-+{
++ISA2+pooncelock+pooncelock+pombonce.litmus
++	Tests whether the ordering provided by a lock-protected S litmus
++	test is visible to an external process whose accesses are
++	separated by smp_mb().
 +
-+}
-+#endif
-+
-+#ifndef __HAVE_ARCH_UNMAP_ONE
-+/*
-+ * Some architectures support metadata associated with a page. When a
-+ * page is being swapped out, this metadata must be saved so it can be
-+ * restored when the page is swapped back in. SPARC M7 and newer
-+ * processors support an ADI (Application Data Integrity) tag for the
-+ * page as metadata for the page. arch_unmap_one() can save this
-+ * metadata on a swap-out of a page.
-+ */
-+static inline int arch_unmap_one(struct mm_struct *mm,
-+				  struct vm_area_struct *vma,
-+				  unsigned long addr,
-+				  pte_t orig_pte)
-+{
-+	return 0;
-+}
-+#endif
-+
- #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
- #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
- #endif
-diff --git a/mm/memory.c b/mm/memory.c
-index 5fcfc24904d1..aed37325d94e 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3053,6 +3053,7 @@ int do_swap_page(struct vm_fault *vmf)
- 	if (pte_swp_soft_dirty(vmf->orig_pte))
- 		pte = pte_mksoft_dirty(pte);
- 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, pte);
-+	arch_do_swap_page(vma->vm_mm, vma, vmf->address, pte, vmf->orig_pte);
- 	vmf->orig_pte = pte;
- 
- 	/* ksm created a completely new copy */
-diff --git a/mm/rmap.c b/mm/rmap.c
-index 47db27f8049e..144c66e688a9 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1497,6 +1497,14 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 				(flags & (TTU_MIGRATION|TTU_SPLIT_FREEZE))) {
- 			swp_entry_t entry;
- 			pte_t swp_pte;
-+
-+			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
-+				set_pte_at(mm, address, pvmw.pte, pteval);
-+				ret = false;
-+				page_vma_mapped_walk_done(&pvmw);
-+				break;
-+			}
-+
- 			/*
- 			 * Store the pfn of the page in a special migration
- 			 * pte. do_swap_page() will wait until the migration
-@@ -1556,6 +1564,12 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 				page_vma_mapped_walk_done(&pvmw);
- 				break;
- 			}
-+			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
-+				set_pte_at(mm, address, pvmw.pte, pteval);
-+				ret = false;
-+				page_vma_mapped_walk_done(&pvmw);
-+				break;
-+			}
- 			if (list_empty(&mm->mmlist)) {
- 				spin_lock(&mmlist_lock);
- 				if (list_empty(&mm->mmlist))
--- 
-2.11.0
+ ISA2+poonceonces.litmus
+ 	As below, but with store-release replaced with WRITE_ONCE()
+ 	and load-acquire replaced with READ_ONCE().
