@@ -1,41 +1,56 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [RESEND][PATCH 0/3] exec: Pin stack limit during exec
-Date: Tue, 20 Feb 2018 14:46:23 +0100
-Message-ID: <20180220134623.GA21134@dhcp22.suse.cz>
-References: <1518638796-20819-1-git-send-email-keescook@chromium.org>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH 1/3] signal: Add FPE_FLTUNK si_code for undiagnosable fp
+ exceptions
+Date: Wed, 21 Feb 2018 16:02:38 +0000
+Message-ID: <1519228960-10883-2-git-send-email-Dave.Martin@arm.com>
+References: <1519228960-10883-1-git-send-email-Dave.Martin@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-11827-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Content-Disposition: inline
-In-Reply-To: <1518638796-20819-1-git-send-email-keescook@chromium.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Willy Tarreau <w@1wt.eu>, Hugh Dickins <hughd@google.com>, Oleg Nesterov <oleg@redhat.com>, "Jason A. Donenfeld" <Jason@zx2c4.com>, Rik van Riel <riel@redhat.com>, Laura Abbott <labbott@redhat.com>, Greg KH <greg@kroah.com>, Andy Lutomirski <luto@kernel.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1519228960-10883-1-git-send-email-Dave.Martin@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Will Deacon <will.deacon@arm.com>, James Morse <james.morse@arm.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Catalin Marinas <catalin.marinas@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed 14-02-18 12:06:33, Kees Cook wrote:
-> Attempts to solve problems with the stack limit changing during exec
-> continue to be frustrated[1][2]. In addition to the specific issues around
-> the Stack Clash family of flaws, Andy Lutomirski pointed out[3] other
-> places during exec where the stack limit is used and is assumed to be
-> unchanging. Given the many places it gets used and the fact that it can be
-> manipulated/raced via setrlimit() and prlimit(), I think the only way to
-> handle this is to move away from the "current" view of the stack limit and
-> instead attach it to the bprm, and plumb this down into the functions that
-> need to know the stack limits. This series implements the approach.
-> 
-> Neither I nor 0-day have found issues with this series, so I'd like to
-> get it into -mm for further testing.
+Some architectures cannot always report accurately what kind of
+floating-point exception triggered a floating-point exception trap.
 
-Sorry, for the late response. All three patches make sense to me.
-finalize_exec could see a much better documentation and explain what is
-the semantic.
+This can occur with fp exceptions occuring on lanes in a vector
+instruction on arm64 for example.
 
-Anyway, feel free to add
-Acked-by: Michal Hocko <mhocko@suse.com>
+Rather than have every architecture come up with its own way of
+descrbing such a condition, this patch adds a common FPE_FLTUNK do
+report that an fp exception caused a trap but we cannot be certain
+which kind of fp exception it was.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+---
+ include/uapi/asm-generic/siginfo.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index 85dc965..10304de 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -229,7 +229,8 @@ typedef struct siginfo {
+ # define __FPE_INVASC	12	/* invalid ASCII digit */
+ # define __FPE_INVDEC	13	/* invalid decimal digit */
+ #endif
+-#define NSIGFPE		13
++#define FPE_FLTUNK	14	/* undiagnosed floating-point exception */
++#define NSIGFPE		14
+ 
+ /*
+  * SIGSEGV si_codes
 -- 
-Michal Hocko
-SUSE Labs
+2.1.4
