@@ -1,56 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:44906 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751764AbeBTXZE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 20 Feb 2018 18:25:04 -0500
-Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w1KNNeoQ040728
-        for <linux-arch@vger.kernel.org>; Tue, 20 Feb 2018 18:25:03 -0500
-Received: from e14.ny.us.ibm.com (e14.ny.us.ibm.com [129.33.205.204])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2g8vh7hjbj-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 20 Feb 2018 18:25:03 -0500
-Received: from localhost
-        by e14.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Tue, 20 Feb 2018 18:25:02 -0500
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH RFC tools/lkmm 05/12] README: Fix a couple of punctuation errors
-Date: Tue, 20 Feb 2018 15:25:05 -0800
-In-Reply-To: <20180220232405.GA19274@linux.vnet.ibm.com>
-References: <20180220232405.GA19274@linux.vnet.ibm.com>
-Message-Id: <1519169112-20593-5-git-send-email-paulmck@linux.vnet.ibm.com>
+Received: from mail-ua0-f193.google.com ([209.85.217.193]:43577 "EHLO
+        mail-ua0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751461AbeBUIGX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 03:06:23 -0500
+MIME-Version: 1.0
+In-Reply-To: <CAK8P3a1MYopHeyWAs974zHRmfe5z8RS7G1mVQyC+iJXqa28EfA@mail.gmail.com>
+References: <cover.1518505384.git.greentime@andestech.com> <4bb01fd533c66c357f3dc23a64f56414109a2aad.1518505384.git.greentime@andestech.com>
+ <CAK8P3a1MYopHeyWAs974zHRmfe5z8RS7G1mVQyC+iJXqa28EfA@mail.gmail.com>
+From: Greentime Hu <green.hu@gmail.com>
+Date: Wed, 21 Feb 2018 16:05:41 +0800
+Message-ID: <CAEbi=3eCfWYXZiN+5uaSqDKcEs1Kf3Av=ua6LCZmy2jAy5-Fdw@mail.gmail.com>
+Subject: Re: [PATCH v7 03/37] sparc: io: To use the define of
+ ioremap_[nocache|wc|wb] in asm-generic/io.h
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, nborisov@suse.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: sparclinux <sparclinux@vger.kernel.org>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
 
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
----
- tools/memory-model/litmus-tests/README | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+2018-02-14 22:43 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+> On Tue, Feb 13, 2018 at 10:09 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>> A commit for the nds32 architecture bootstrap("asm-generic/io.h: move
+>> ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU")
+>> will move the ioremap_nocache out of the CONFIG_MMU ifdef. This means that
+>> in order to suppress re-definition errors we need to remove the #define
+>> in io_32.h.
+>>
+>> Also, the change adds a prototype for ioremap where size is size_t and
+>> offset is phys_addr_t so fix that as well.
+>>
+>> Signed-off-by: Greentime Hu <greentime@andestech.com>
+>
+> This patch should have been addressed to the sparclinux mailing list to
+> the maintainers can see it, otherwise they are unlikely to notice.
+>
+> Added it to Cc now.
+>
+> Can you confirm that the patches are ordered correctly in your series so that
+> at no point, sparc is in a state that fails to be build cleanly?
+>
+> If not, this may have to get merged into the other patch.
 
-diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
-index 9a3bb5949191..dca7d823ad57 100644
---- a/tools/memory-model/litmus-tests/README
-+++ b/tools/memory-model/litmus-tests/README
-@@ -23,14 +23,14 @@ IRIW+mbonceonces+OnceOnce.litmus
- 	between each pairs of reads.  In other words, is smp_mb()
- 	sufficient to cause two different reading processes to agree on
- 	the order of a pair of writes, where each write is to a different
--	variable by a different process.
-+	variable by a different process?
- 
- IRIW+poonceonces+OnceOnce.litmus
- 	Test of independent reads from independent writes with nothing
- 	between each pairs of reads.  In other words, is anything at all
- 	needed to cause two different reading processes to agree on the
- 	order of a pair of writes, where each write is to a different
--	variable by a different process.
-+	variable by a different process?
- 
- ISA2+poonceonces.litmus
- 	As below, but with store-release replaced with WRITE_ONCE()
--- 
-2.5.2
+Hi, Arnd:
+
+These 2 patch will cause sparc building error in any order.
+
+commit af84603e339a6832052071aca1f2a16b8963cc2e
+Author: Greentime Hu <green.hu@gmail.com>
+Date:   Tue Feb 13 17:09:07 2018 +0800
+
+    sparc: io: To use the define of ioremap_[nocache|wc|wb] in asm-generic/io.h
+
+    A commit for the nds32 architecture bootstrap("asm-generic/io.h: move
+    ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of     ifndef
+CONFIG_MMU")
+    will move the ioremap_nocache out of the CONFIG_MMU ifdef. This means that
+    in order to suppress re-definition errors we need to remove the #define
+    in io_32.h.
+
+    Also, the change adds a prototype for ioremap where size is size_t and
+    offset is phys_addr_t so fix that as well.
+
+    Signed-off-by: Greentime Hu <greentime@andestech.com>
+
+commit 1995b30ea6628b261192662741940c22ac978884
+Author: Greentime Hu <green.hu@gmail.com>
+Date:   Tue Feb 13 17:09:06 2018 +0800
+
+    asm-generic/io.h: move
+ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef
+CONFIG_MMU
+
+    It allows some architectures to use this generic macro instead of
+    defining theirs.
+
+    Signed-off-by: Vincent Chen <vincentc@andestech.com>
+    Signed-off-by: Greentime Hu <greentime@andestech.com>
+    Acked-by: Arnd Bergmann <arnd@arndb.de>
+
+Should I merge them together like this?
+
+asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of
+ifndef CONFIG_MMU
+
+It allows some architectures to use this generic macro instead of
+defining theirs.
+
+sparc: io: To use the define of ioremap_[nocache|wc|wb] in asm-generic/io.h
+It will move the ioremap_nocache out of the CONFIG_MMU ifdef. This means that
+in order to suppress re-definition errors we need to remove the #define
+in arch/sparc/include/asm/io_32.h. Also, the change adds a prototype for
+ioremap where size is size_t and offset is phys_addr_t so fix that as well.
+
+Signed-off-by: Greentime Hu <greentime@andestech.com>
