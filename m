@@ -1,309 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:57270 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S966125AbeBUQCv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Feb 2018 11:02:51 -0500
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH 3/3] arm64: signal: Ensure si_code is valid for all fault signals
-Date: Wed, 21 Feb 2018 16:02:40 +0000
-Message-ID: <1519228960-10883-4-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1519228960-10883-1-git-send-email-Dave.Martin@arm.com>
-References: <1519228960-10883-1-git-send-email-Dave.Martin@arm.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:39110 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S938593AbeBUQMT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 21 Feb 2018 11:12:19 -0500
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w1LGBtOx043313
+        for <linux-arch@vger.kernel.org>; Wed, 21 Feb 2018 11:12:18 -0500
+Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2g9a9swtq7-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 21 Feb 2018 11:12:14 -0500
+Received: from localhost
+        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Wed, 21 Feb 2018 11:12:05 -0500
+Date: Wed, 21 Feb 2018 08:12:23 -0800
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC tools/lkmm 10/12] tools/memory-model: Add a S
+ lock-based external-view litmus test
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <1519169112-20593-10-git-send-email-paulmck@linux.vnet.ibm.com>
+ <Pine.LNX.4.44L0.1802211001030.2032-100000@iolanthe.rowland.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.44L0.1802211001030.2032-100000@iolanthe.rowland.org>
+Message-Id: <20180221161223.GE3617@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, James Morse <james.morse@arm.com>
-Message-ID: <20180221160240.wfwVAN0cTLgOXEA2-TB3CUJ6jHOrIhs5Dvax_bOGRFY@z>
+To: Alan Stern <stern@rowland.harvard.edu>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, nborisov@suse.com
 
-Currently, as reported by Eric, an invalid si_code value 0 is
-passed in many signals delivered to userspace in response to faults
-and other kernel errors.  Typically 0 is passed when the fault is
-insufficiently diagnosable or when there does not appear to be any
-sensible alternative value to choose.
+On Wed, Feb 21, 2018 at 10:09:00AM -0500, Alan Stern wrote:
+> On Tue, 20 Feb 2018, Paul E. McKenney wrote:
+> 
+> > From: Alan Stern <stern@rowland.harvard.edu>
+> > 
+> > This commit adds a litmus test in which P0() and P1() form a lock-based S
+> > litmus test, with the addition of P2(), which observes P0()'s and P1()'s
+> 
+> Why do you call this an "S" litmus test?  Isn't ISA2 a better 
+> description?
 
-This appears to violate POSIX, and is intuitively wrong for at
-least two reasons arising from the fact that 0 == SI_USER:
+Indeed, the name of the test is in fact ISA2.
 
- 1) si_code is a union selector, and SI_USER (and si_code <= 0 in
-    general) implies the existence of a different set of fields
-    (siginfo._kill) from that which exists for a fault signal
-    (siginfo._sigfault).  However, the code raising the signal
-    typically writes only the _sigfault fields, and the _kill
-    fields make no sense in this case.
+> > accesses with a full memory barrier but without the lock.  This litmus
+> > test asks whether writes carried out by two different processes under the
+> > same lock will be seen in order by a third process not holding that lock.
+> > The answer to this question is "yes" for all architectures supporting
+> > the Linux kernel, but is "no" according to the current version of LKMM.
+> > 
+> > A patch to LKMM is under development.
+> > 
+> > Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+> > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > ---
+> >  .../ISA2+pooncelock+pooncelock+pombonce.litmus     | 41 ++++++++++++++++++++++
+> >  1 file changed, 41 insertions(+)
+> >  create mode 100644 tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
+> 
+> Aren't these tests supposed to be described in litmus-tests/README?
+> 
+> > diff --git a/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus b/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
+> > new file mode 100644
+> > index 000000000000..7a39a0aaa976
+> > --- /dev/null
+> > +++ b/tools/memory-model/litmus-tests/ISA2+pooncelock+pooncelock+pombonce.litmus
+> > @@ -0,0 +1,41 @@
+> > +C ISA2+pooncelock+pooncelock+pombonce.litmus
+> > +
+> > +(*
+> > + * Result: Sometimes
+> > + *
+> > + * This test shows that the ordering provided by a lock-protected S
+> > + * litmus test (P0() and P1()) are not visible to external process P2().
+> > + * This is likely to change soon.
+> 
+> That last line may be premature.  We haven't reached any consensus on 
+> how RISC-V will handle this.  If RISC-V allows the test then the memory 
+> model can't forbid it.
 
-    Thus when userspace sees si_code == 0 (SI_USER) it may
-    legitimately inspect fields in the inactive union member _kill
-    and obtain garbage as a result.
+Agreed.  How about this?  If the RISC-V question is answered by the
+end of next week, I update accordingly.  If not, I update the comment
+to give the details.
 
-    There appears to be software in the wild relying on this,
-    albeit generally only for printing diagnostic messages.
+Hey, at least having the memory model go in at about the same time as
+a new architecture is giving us good practice!  ;-)
 
- 2) Software that wants to be robust against spurious signals may
-    discard signals where si_code == SI_USER (or <= 0), or may
-    filter such signals based on the si_uid and si_pid fields of
-    siginfo._sigkill.  In the case of fault signals, this means
-    that important (and usually fatal) error conditions may be
-    silently ignored.
+							Thanx, Paul
 
-In practice, many of the faults for which arm64 passes si_code == 0
-are undiagnosable conditions such as exceptions with syndrome
-values in ESR_ELx to which the architecture does not yet assign any
-meaning, or conditions indicative of a bug or error in the kernel
-or system and thus that are unrecoverable and should never occur in
-normal operation.
-
-The approach taken in this patch is to translate all such
-undiagnosable or "impossible" synchronous fault conditions to
-SIGKILL, since these are at least probably localisable to a single
-process.  Some of these conditions should really result in a kernel
-panic, but due to the lack of diagnostic information it is
-difficult to be certain: this patch does not add any calls to
-panic(), but this could change later if justified.
-
-Although si_code will not reach userspace in the case of SIGKILL,
-it is still desirable to pass a nonzero value so that the common
-siginfo handling code can detect incorrect use of si_code == 0
-without false positives.  In this case the si_code dependent
-siginfo fields will not be correctly initialised, but since they
-are not passed to userspace I deem this not to matter.
-
-A few faults can reasonably occur in realistic userspace scenarios,
-and _should_ raise a regular, handleable (but perhaps not
-ignorable/blockable) signal: for these, this patch attempts to
-choose a suitable standard si_code value for the raised signal in
-each case instead of 0.
-
-arm64 was the only arch to define a BUS_FIXME code, so after this
-patch nobody defines it.  This patch therefore also removes the
-relevant code from siginfo_layout().
-
-Cc: James Morse <james.morse@arm.com>
-Reported-by: Eric W. Biederman <ebiederm@xmission.com>
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-
----
-
-Changes since RFC v2:
-
- * Squashed in revert of the appropriate bits of Eric's BUS_/TRAP_FIXME
-   stuff.
-
- * Propagated the fault_info[] sig and code vaules through do_sea(),
-   which previously was ignoring them.
----
- arch/arm64/include/uapi/asm/siginfo.h |  14 ----
- arch/arm64/kernel/fpsimd.c            |   4 +-
- arch/arm64/mm/fault.c                 | 116 +++++++++++++++++-----------------
- kernel/signal.c                       |   4 --
- 4 files changed, 60 insertions(+), 78 deletions(-)
-
-diff --git a/arch/arm64/include/uapi/asm/siginfo.h b/arch/arm64/include/uapi/asm/siginfo.h
-index 157e6a8..574d12f 100644
---- a/arch/arm64/include/uapi/asm/siginfo.h
-+++ b/arch/arm64/include/uapi/asm/siginfo.h
-@@ -21,18 +21,4 @@
- 
- #include <asm-generic/siginfo.h>
- 
--/*
-- * SIGBUS si_codes
-- */
--#ifdef __KERNEL__
--#define BUS_FIXME	0	/* Broken dup of SI_USER */
--#endif /* __KERNEL__ */
--
--/*
-- * SIGTRAP si_codes
-- */
--#ifdef __KERNEL__
--#define TRAP_FIXME	0	/* Broken dup of SI_USER */
--#endif /* __KERNEL__ */
--
- #endif
-diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index 9040038..dc93aa4 100644
---- a/arch/arm64/kernel/fpsimd.c
-+++ b/arch/arm64/kernel/fpsimd.c
-@@ -286,8 +286,8 @@ static void task_fpsimd_save(void)
- 				 * re-enter user with corrupt state.
- 				 * There's no way to recover, so kill it:
- 				 */
--				force_signal_inject(
--					SIGKILL, 0, current_pt_regs(), 0);
-+				force_signal_inject(SIGKILL, SI_KERNEL,
-+						    current_pt_regs(), 0);
- 				return;
- 			}
- 
-diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-index bff1155..c7c85c3 100644
---- a/arch/arm64/mm/fault.c
-+++ b/arch/arm64/mm/fault.c
-@@ -600,9 +600,9 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
- 			nmi_exit();
- 	}
- 
--	info.si_signo = SIGBUS;
-+	info.si_signo = inf->sig;
- 	info.si_errno = 0;
--	info.si_code  = BUS_FIXME;
-+	info.si_code  = inf->code;
- 	if (esr & ESR_ELx_FnV)
- 		info.si_addr = NULL;
- 	else
-@@ -613,70 +613,70 @@ static int do_sea(unsigned long addr, unsigned int esr, struct pt_regs *regs)
- }
- 
- static const struct fault_info fault_info[] = {
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"ttbr address size fault"	},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"level 1 address size fault"	},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"level 2 address size fault"	},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"level 3 address size fault"	},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"ttbr address size fault"	},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"level 1 address size fault"	},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"level 2 address size fault"	},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"level 3 address size fault"	},
- 	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 0 translation fault"	},
- 	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 1 translation fault"	},
- 	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 2 translation fault"	},
- 	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 3 translation fault"	},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 8"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 8"			},
- 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 1 access flag fault"	},
- 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 access flag fault"	},
- 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 access flag fault"	},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 12"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 12"			},
- 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 1 permission fault"	},
- 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 permission fault"	},
- 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 permission fault"	},
--	{ do_sea,		SIGBUS,  BUS_FIXME,	"synchronous external abort"	},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 17"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 18"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 19"			},
--	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 0 (translation table walk)"	},
--	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 1 (translation table walk)"	},
--	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 2 (translation table walk)"	},
--	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 3 (translation table walk)"	},
--	{ do_sea,		SIGBUS,  BUS_FIXME,	"synchronous parity or ECC error" },	// Reserved when RAS is implemented
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 25"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 26"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 27"			},
--	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 0 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
--	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 1 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
--	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 2 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
--	{ do_sea,		SIGBUS,  BUS_FIXME,	"level 3 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 32"			},
-+	{ do_sea,		SIGBUS,  BUS_OBJERR,	"synchronous external abort"	},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 17"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 18"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 19"			},
-+	{ do_sea,		SIGKILL, SI_KERNEL,	"level 0 (translation table walk)"	},
-+	{ do_sea,		SIGKILL, SI_KERNEL,	"level 1 (translation table walk)"	},
-+	{ do_sea,		SIGKILL, SI_KERNEL,	"level 2 (translation table walk)"	},
-+	{ do_sea,		SIGKILL, SI_KERNEL,	"level 3 (translation table walk)"	},
-+	{ do_sea,		SIGBUS,  BUS_OBJERR,	"synchronous parity or ECC error" },	// Reserved when RAS is implemented
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 25"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 26"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 27"			},
-+	{ do_sea,		SIGKILL, SI_KERNEL,	"level 0 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
-+	{ do_sea,		SIGKILL, SI_KERNEL,	"level 1 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
-+	{ do_sea,		SIGKILL, SI_KERNEL,	"level 2 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
-+	{ do_sea,		SIGKILL, SI_KERNEL,	"level 3 synchronous parity error (translation table walk)"	},	// Reserved when RAS is implemented
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 32"			},
- 	{ do_alignment_fault,	SIGBUS,  BUS_ADRALN,	"alignment fault"		},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 34"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 35"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 36"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 37"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 38"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 39"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 40"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 41"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 42"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 43"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 44"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 45"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 46"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 47"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"TLB conflict abort"		},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"Unsupported atomic hardware update fault"	},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 50"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 51"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"implementation fault (lockdown abort)" },
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"implementation fault (unsupported exclusive)" },
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 54"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 55"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 56"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 57"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 58" 			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 59"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 60"			},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"section domain fault"		},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"page domain fault"		},
--	{ do_bad,		SIGBUS,  BUS_FIXME,	"unknown 63"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 34"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 35"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 36"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 37"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 38"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 39"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 40"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 41"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 42"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 43"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 44"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 45"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 46"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 47"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"TLB conflict abort"		},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"Unsupported atomic hardware update fault"	},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 50"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 51"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"implementation fault (lockdown abort)" },
-+	{ do_bad,		SIGBUS,  BUS_OBJERR,	"implementation fault (unsupported exclusive)" },
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 54"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 55"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 56"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 57"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 58" 			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 59"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 60"			},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"section domain fault"		},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"page domain fault"		},
-+	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 63"			},
- };
- 
- int handle_guest_sea(phys_addr_t addr, unsigned int esr)
-@@ -774,11 +774,11 @@ static struct fault_info __refdata debug_fault_info[] = {
- 	{ do_bad,	SIGTRAP,	TRAP_HWBKPT,	"hardware breakpoint"	},
- 	{ do_bad,	SIGTRAP,	TRAP_HWBKPT,	"hardware single-step"	},
- 	{ do_bad,	SIGTRAP,	TRAP_HWBKPT,	"hardware watchpoint"	},
--	{ do_bad,	SIGBUS,		BUS_FIXME,	"unknown 3"		},
-+	{ do_bad,	SIGKILL,	SI_KERNEL,	"unknown 3"		},
- 	{ do_bad,	SIGTRAP,	TRAP_BRKPT,	"aarch32 BKPT"		},
--	{ do_bad,	SIGTRAP,	TRAP_FIXME,	"aarch32 vector catch"	},
-+	{ do_bad,	SIGKILL,	SI_KERNEL,	"aarch32 vector catch"	},
- 	{ early_brk64,	SIGTRAP,	TRAP_BRKPT,	"aarch64 BRK"		},
--	{ do_bad,	SIGBUS,		BUS_FIXME,	"unknown 7"		},
-+	{ do_bad,	SIGKILL,	SI_KERNEL,	"unknown 7"		},
- };
- 
- void __init hook_debug_fault_code(int nr,
-diff --git a/kernel/signal.c b/kernel/signal.c
-index c6e4c83d..049a482 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -2844,10 +2844,6 @@ enum siginfo_layout siginfo_layout(int sig, int si_code)
- 		if ((sig == SIGFPE) && (si_code == FPE_FIXME))
- 			layout = SIL_FAULT;
- #endif
--#ifdef BUS_FIXME
--		if ((sig == SIGBUS) && (si_code == BUS_FIXME))
--			layout = SIL_FAULT;
--#endif
- 	}
- 	return layout;
- }
--- 
-2.1.4
+> Alan
+> 
+> > + *)
+> > +
+> > +{}
+> > +
+> > +P0(int *x, int *y, spinlock_t *mylock)
+> > +{
+> > +	spin_lock(mylock);
+> > +	WRITE_ONCE(*x, 1);
+> > +	WRITE_ONCE(*y, 1);
+> > +	spin_unlock(mylock);
+> > +}
+> > +
+> > +P1(int *y, int *z, spinlock_t *mylock)
+> > +{
+> > +	int r0;
+> > +
+> > +	spin_lock(mylock);
+> > +	r0 = READ_ONCE(*y);
+> > +	WRITE_ONCE(*z, 1);
+> > +	spin_unlock(mylock);
+> > +}
+> > +
+> > +P2(int *x, int *z)
+> > +{
+> > +	int r1;
+> > +	int r2;
+> > +
+> > +	r2 = READ_ONCE(*z);
+> > +	smp_mb();
+> > +	r1 = READ_ONCE(*x);
+> > +}
+> > +
+> > +exists (1:r0=1 /\ 2:r2=1 /\ 2:r1=0)
+> > 
+> 
+> 
