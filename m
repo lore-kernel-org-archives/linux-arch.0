@@ -1,75 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f68.google.com ([209.85.213.68]:37584 "EHLO
-        mail-vk0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751180AbeBUMDY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 07:03:24 -0500
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:44469 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751459AbeBUM14 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 07:27:56 -0500
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a2pQTFiJ9Sr9pLFx-qFv1PAAs+KyPiRuB3qTLmtY2ZhYw@mail.gmail.com>
-References: <ff404658ececd53f1bf111067c587c4e3eb695af.1518505384.git.greentime@andestech.com>
- <201802161853.FKQRlYLX%fengguang.wu@intel.com> <CAEbi=3fMVLgqMxg5ru=Nd7YHTHs7YvirorT-zEtdBpMkuWHLyg@mail.gmail.com>
- <CAK8P3a2pQTFiJ9Sr9pLFx-qFv1PAAs+KyPiRuB3qTLmtY2ZhYw@mail.gmail.com>
-From: Greentime Hu <green.hu@gmail.com>
-Date: Wed, 21 Feb 2018 20:02:42 +0800
-Message-ID: <CAEbi=3eAkOeB=Hb93ekPwqBLENNDxWutxJnJHaC=3KAV_P6kJA@mail.gmail.com>
-Subject: Re: [PATCH v7 02/37] asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt
- out of ifndef CONFIG_MMU
+In-Reply-To: <CAEbi=3eCfWYXZiN+5uaSqDKcEs1Kf3Av=ua6LCZmy2jAy5-Fdw@mail.gmail.com>
+References: <cover.1518505384.git.greentime@andestech.com> <4bb01fd533c66c357f3dc23a64f56414109a2aad.1518505384.git.greentime@andestech.com>
+ <CAK8P3a1MYopHeyWAs974zHRmfe5z8RS7G1mVQyC+iJXqa28EfA@mail.gmail.com> <CAEbi=3eCfWYXZiN+5uaSqDKcEs1Kf3Av=ua6LCZmy2jAy5-Fdw@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 21 Feb 2018 13:27:55 +0100
+Message-ID: <CAK8P3a19k92HhqEVBYO7wqx77k5PN6t_-9UbbU-DDYfZrnUUhA@mail.gmail.com>
+Subject: Re: [PATCH v7 03/37] sparc: io: To use the define of
+ ioremap_[nocache|wc|wb] in asm-generic/io.h
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: kbuild test robot <lkp@intel.com>, kbuild-all@01.org, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, netdev <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Vincent Chen <vincentc@andestech.com>
+To: Greentime Hu <green.hu@gmail.com>
+Cc: sparclinux <sparclinux@vger.kernel.org>, Greentime <greentime@andestech.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, Rob Herring <robh+dt@kernel.org>, Networking <netdev@vger.kernel.org>, Vincent Chen <deanbo422@gmail.com>, DTML <devicetree@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Greg KH <greg@kroah.com>, Guo Ren <ren_guo@c-sky.com>, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>
 
-2018-02-21 19:37 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
-> On Wed, Feb 21, 2018 at 12:21 PM, Greentime Hu <green.hu@gmail.com> wrote:
->> 2018-02-16 18:47 GMT+08:00 kbuild test robot <lkp@intel.com>:
+On Wed, Feb 21, 2018 at 9:05 AM, Greentime Hu <green.hu@gmail.com> wrote:
+> 2018-02-14 22:43 GMT+08:00 Arnd Bergmann <arnd@arndb.de>:
+>> On Tue, Feb 13, 2018 at 10:09 AM, Greentime Hu <green.hu@gmail.com> wrote:
+>>> A commit for the nds32 architecture bootstrap("asm-generic/io.h: move
+>>> ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU")
+>>> will move the ioremap_nocache out of the CONFIG_MMU ifdef. This means that
+>>> in order to suppress re-definition errors we need to remove the #define
+>>> in io_32.h.
+>>>
+>>> Also, the change adds a prototype for ioremap where size is size_t and
+>>> offset is phys_addr_t so fix that as well.
+>>>
+>>> Signed-off-by: Greentime Hu <greentime@andestech.com>
+>>
+>> This patch should have been addressed to the sparclinux mailing list to
+>> the maintainers can see it, otherwise they are unlikely to notice.
+>>
+>> Added it to Cc now.
+>>
+>> Can you confirm that the patches are ordered correctly in your series so that
+>> at no point, sparc is in a state that fails to be build cleanly?
+>>
+>> If not, this may have to get merged into the other patch.
 >
->>
->> From: Greentime Hu <greentime@andestech.com>
->> Date: Wed, 21 Feb 2018 14:21:23 +0800
->> Subject: [PATCH] xtensa: add ioremap_nocache declaration before include
->>  asm-generic/io.h.
->>
->> A future commit for the nds32 architecture bootstrap("asm-generic/io.h:
->> move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef
->> CONFIG_MMU") will move the ioremap_nocache out of the CONFIG_MMU ifdef.
->> This means that in order to suppress re-definition errors we need to
->> setup #define's before importing asm-generic/io.h.
->>
->> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> Hi, Arnd:
 >
-> Don't you need to override both ioremap and ioremap_nocache?
+> These 2 patch will cause sparc building error in any order.
 
-Hi, Arnd:
 
-It can fix the building error to override ioremap_nocache.
-Why should I override ioremap?
+>
+> Should I merge them together like this?
+>
+> asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of
+> ifndef CONFIG_MMU
+>
+> It allows some architectures to use this generic macro instead of
+> defining theirs.
+>
+> sparc: io: To use the define of ioremap_[nocache|wc|wb] in asm-generic/io.h
+> It will move the ioremap_nocache out of the CONFIG_MMU ifdef. This means that
+> in order to suppress re-definition errors we need to remove the #define
+> in arch/sparc/include/asm/io_32.h. Also, the change adds a prototype for
+> ioremap where size is size_t and offset is phys_addr_t so fix that as well.
+>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
 
-Do you mean remove this implementation
-"
-static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
-{
-        return ioremap_nocache(offset, size);
-}
-"
-and replace it with
-#define ioremap ioremap_nocache
+That looks reasonable since both patches are fairly small, yes.
 
-Because I think this patch is just used to fix the build error.
-Thank you.
+For a more complex patch that requires interdependent changes
+in different areas of the kernel, it may be necessary instead to
+come up with a way to stage out the changes differently so they
+are truly independent. Getting that right requires a bit practice
+but is usually possible.
 
->> ---
->>  arch/xtensa/include/asm/io.h | 1 +
->>  1 file changed, 1 insertion(+)
->>
->> diff --git a/arch/xtensa/include/asm/io.h b/arch/xtensa/include/asm/io.h
->> index c38e5a732d86..acc5bb2cf1c7 100644
->> --- a/arch/xtensa/include/asm/io.h
->> +++ b/arch/xtensa/include/asm/io.h
->> @@ -52,6 +52,7 @@ static inline void __iomem *ioremap_cache(unsigned
->> long offset,
->>                 return xtensa_ioremap_cache(offset, size);
->>  }
->>  #define ioremap_cache ioremap_cache
->> +#define ioremap_nocache ioremap_nocache
->>
->>  #define ioremap_wc ioremap_nocache
+       Arnd
