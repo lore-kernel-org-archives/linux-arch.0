@@ -1,10 +1,15 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v12 22/22] selftests/vm: Fix deadlock in protection_keys.c
-Date: Wed, 21 Feb 2018 17:55:41 -0800
-Message-ID: <1519264541-7621-23-git-send-email-linuxram@us.ibm.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v12 01/22] selftests/x86: Move protecton key selftest to
+ arch neutral directory
+Date: Thu, 22 Feb 2018 06:51:35 +0100
+Message-ID: <20180222055135.6m43xt3mt47sz37q@gmail.com>
 References: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
+ <1519264541-7621-2-git-send-email-linuxram@us.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
+Content-Disposition: inline
+In-Reply-To: <1519264541-7621-2-git-send-email-linuxram@us.ibm.com>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -15,67 +20,31 @@ List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
 Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
 Sender: "Linuxppc-dev"
  <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, ebiederm@xmission.com, arnd@arndb.de, linux-doc@vger.kernel.org, x86@kernel.org, dave.hansen@intel.com, linux-kernel@vger.kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, bauerman@linux.vnet.ibm.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: linux-doc@vger.kernel.org, mhocko@kernel.org, dave.hansen@intel.com, paulus@samba.org, linux-kselftest@vger.kernel.org, khandual@linux.vnet.ibm.com, linux-arch@vger.kernel.org, x86@kernel.org, shuahkh@osg.samsung.com, mingo@redhat.com, bauerman@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, arnd@arndb.de, linux-mm@kvack.org, linux-kernel@vger.kernel.org, ebiederm@xmission.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 
-The sig_chld() handler calls dprintf2() taking care of setting
-dprint_in_signal so that sigsafe_printf() won't call printf().
-Unfortunately, this precaution is is negated by dprintf_level(), which
-has a call to fflush().
+* Ram Pai <linuxram@us.ibm.com> wrote:
 
-This function acquires a lock, which means that if the signal interrupts an
-ongoing fflush() the process will deadlock. At least on powerpc this is
-easy to trigger, resulting in the following backtrace when attaching to the
-frozen process:
+> cc: Dave Hansen <dave.hansen@intel.com>
+> cc: Florian Weimer <fweimer@redhat.com>
+> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+> ---
+>  tools/testing/selftests/vm/Makefile           |    1 +
+>  tools/testing/selftests/vm/pkey-helpers.h     |  223 ++++
+>  tools/testing/selftests/vm/protection_keys.c  | 1407 +++++++++++++++++++++++++
+>  tools/testing/selftests/x86/Makefile          |    2 +-
+>  tools/testing/selftests/x86/pkey-helpers.h    |  223 ----
+>  tools/testing/selftests/x86/protection_keys.c | 1407 -------------------------
+>  6 files changed, 1632 insertions(+), 1631 deletions(-)
+>  create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
+>  create mode 100644 tools/testing/selftests/vm/protection_keys.c
+>  delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
+>  delete mode 100644 tools/testing/selftests/x86/protection_keys.c
 
-  (gdb) bt
-  #0  0x00007fff9f96c7d8 in __lll_lock_wait_private () from /lib64/power8/libc.so.6
-  #1  0x00007fff9f8cba4c in _IO_flush_all_lockp () from /lib64/power8/libc.so.6
-  #2  0x00007fff9f8cbd1c in __GI__IO_flush_all () from /lib64/power8/libc.so.6
-  #3  0x00007fff9f8b7424 in fflush () from /lib64/power8/libc.so.6
-  #4  0x00000000100504f8 in sig_chld (x=17) at protection_keys.c:283
-  #5  <signal handler called>
-  #6  0x00007fff9f8cb8ac in _IO_flush_all_lockp () from /lib64/power8/libc.so.6
-  #7  0x00007fff9f8cbd1c in __GI__IO_flush_all () from /lib64/power8/libc.so.6
-  #8  0x00007fff9f8b7424 in fflush () from /lib64/power8/libc.so.6
-  #9  0x0000000010050b50 in pkey_get (pkey=7, flags=0) at protection_keys.c:379
-  #10 0x0000000010050dc0 in pkey_disable_set (pkey=7, flags=2) at protection_keys.c:423
-  #11 0x0000000010051414 in pkey_write_deny (pkey=7) at protection_keys.c:486
-  #12 0x00000000100556bc in test_ptrace_of_child (ptr=0x7fff9f7f0000, pkey=7) at protection_keys.c:1288
-  #13 0x0000000010055f60 in run_tests_once () at protection_keys.c:1414
-  #14 0x00000000100561a4 in main () at protection_keys.c:1459
+Acked-by: Ingo Molnar <mingo@kernel.org>
 
-The fix is to refrain from calling fflush() when inside a signal handler.
-The output may not be as pretty but at least the testcase will be able to
-move on.
+Thanks,
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Florian Weimer <fweimer@redhat.com>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-
- tools/testing/selftests/vm/pkey-helpers.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
----
- tools/testing/selftests/vm/pkey-helpers.h |    3 ++-
- 1 files changed, 2 insertions(+), 1 deletions(-)
-
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index 67f9b0f..7240598 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -128,7 +128,8 @@ static inline void sigsafe_printf(const char *format, ...)
- #define dprintf_level(level, args...) do {	\
- 	if (level <= DEBUG_LEVEL)		\
- 		sigsafe_printf(args);		\
--	fflush(NULL);				\
-+	if (!dprint_in_signal)			\
-+		fflush(NULL);			\
- } while (0)
- #define dprintf0(args...) dprintf_level(0, args)
- #define dprintf1(args...) dprintf_level(1, args)
--- 
-1.7.1
+	Ingo
