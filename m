@@ -1,70 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f194.google.com ([209.85.216.194]:35140 "EHLO
-        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751379AbeBVWnM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Feb 2018 17:43:12 -0500
-MIME-Version: 1.0
-In-Reply-To: <20180222191758.GB5180@codeaurora.org>
-References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
- <20180222191758.GB5180@codeaurora.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 22 Feb 2018 23:43:10 +0100
-Message-ID: <CAK8P3a3r=3wDtqV5feLUT-hOkE+9yWOLjLVm+nejqdaN7MtMFw@mail.gmail.com>
+Received: from mail-ot0-f195.google.com ([74.125.82.195]:40519 "EHLO
+        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751586AbeBVXsg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Feb 2018 18:48:36 -0500
+Date: Thu, 22 Feb 2018 15:48:33 -0800
+From: Guenter Roeck <linux@roeck-us.net>
 Subject: Re: Removing architectures without upstream gcc support
-Content-Type: text/plain; charset="UTF-8"
+Message-ID: <20180222234833.GA3047@roeck-us.net>
+References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Kuo <rkuo@codeaurora.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-hexagon@vger.kernel.org, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>, James Hogan <jhogan@kernel.org>, linux-metag@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org, David Howells <dhowells@redhat.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Al Viro <viro@zeniv.linux.org.uk>, James Hogan <jhogan@kernel.org>, linux-metag@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org, David Howells <dhowells@redhat.com>
 
-On Thu, Feb 22, 2018 at 8:17 PM, Richard Kuo <rkuo@codeaurora.org> wrote:
-> On Thu, Feb 22, 2018 at 04:45:06PM +0100, Arnd Bergmann wrote:
->> * Hexagon is Qualcomm's DSP architecture. It is being actively used
->>   in all Snapdragon ARM SoCs, but the kernel code appears to be
->>   the result of a failed research project to make a standalone Hexagon
->>   SoC without an ARM core. There is some information about the
->>   project at https://wiki.codeaurora.org/xwiki/bin/Hexagon/ and
->>   https://unix.stackexchange.com/questions/246243/what-is-was-the-qualcomm-hexagon-comet-board
->>   There is a port to gcc-4.5 on the project page, which is evidently
->>   abandoned, but there is an active upstream LLVM port that is
->>   apparently used to build non-Linux programs.
->>   I would consider this one a candidate for removal as well, given that
->>   there were never any machines outside of Qualcomm that used this,
->>   and they are no longer interested themselves.
->
-> It's difficult for me to speak to the decisions as I can understand
-> your point of view, but maybe I can speak to some of the status.
->
-> We still use the port internally for kicking the tools around and other
-> research projects.  As you noticed we're not doing gcc anymore; we're
-> using LLVM for both kernel and userspace.  Yes there have been some
-> caveats but it does work within confines.
->
-> Time is unfortunately just limited for me to upstream some of my kernel
-> fixes and cleanups, and there are some things that just haven't shown
-> up externally yet.
->
-> However, as James Hogan mentioned, having it in the tree really has been
-> useful because it gets included in the various upstream changes and
-> fixes, which we appreciate.
->
-> So hopefully this will help inform the decision a little better.
->
-> If you have any other questions please let me know.
+On Thu, Feb 22, 2018 at 04:45:06PM +0100, Arnd Bergmann wrote:
+> While building the cross-toolchains, I noticed that overall, we can build almost
+> all linux target architectures with upstream binutils and gcc these days,
+> however there are still some exceptions, and I'd like to find out if anyone
+> has objections to removing the ones that do not have upstream support.
+> This are the four architectures I found:
+> 
+> * score (s+core, sunplus core) was a proprietary RISC architecture
+>   made by sunplus. It is unclear if they still ship any products based on
+>   this architecture, all they list is either ARM Cortex-A9 or an unspecified
+>   RISC core that could be any of arm, mips, nds32, arc, xtensa or
+>   something completely different. The two maintainers have both left the
+>   company many years ago and have not contributed any patches in
+>   at least five years. There was an upstream gcc port, which was marked
+>   'obsolete' in 2013 and got removed in gcc-5.0.
+>   I conclude that this is dead in Linux and can be removed
+> 
+> * unicore32 was a research project at Peking University with a SoC
+>   based on the Intel PXA design. No gcc source code has ever been
+>   published, the only toolchain available is a set of binaries that include
+>   a gcc-4.4 compiler. The project page at
+>   http://mprc.pku.edu.cn/~guanxuetao/linux/ has a TODO list that has
+>   not been modified since 2011. The maintainer still Acks patches
+>   and has last sent a pull request in 2014 and last sent a patch of
+>   his own in 2012 when the project appears to have stalled.
+>   I would suggest removing this one.
+> 
 
-Thanks for the clarification! Since you are the maintainer and you
-still consider the port useful, I don't see how anyone else would be
-in a position to demand it to be removed, so we should keep it
-around until you want it gone.
+The above two would be primary removal targets for me; they are all
+but impossible to support given the toolchain limitations. Meta
+would have been another one, but James is already taking care of it.
 
-I still have a few questions:
+Guenter
 
-- Any idea how we would find out of the status ever changes? E.g. if
-  you decide at some point that you don't find the latest Linux useful
-  any more for your internal work, would you send a patch for removal?
-
-- How do I build an llvm based toolchain for Hexagon? Do I need patches
-  on top of the llvm-6 release branch? Where can I find the corresponding
-  binutils-2.30 sources?
-
-       Arnd
+> * Hexagon is Qualcomm's DSP architecture. It is being actively used
+>   in all Snapdragon ARM SoCs, but the kernel code appears to be
+>   the result of a failed research project to make a standalone Hexagon
+>   SoC without an ARM core. There is some information about the
+>   project at https://wiki.codeaurora.org/xwiki/bin/Hexagon/ and
+>   https://unix.stackexchange.com/questions/246243/what-is-was-the-qualcomm-hexagon-comet-board
+>   There is a port to gcc-4.5 on the project page, which is evidently
+>   abandoned, but there is an active upstream LLVM port that is
+>   apparently used to build non-Linux programs.
+>   I would consider this one a candidate for removal as well, given that
+>   there were never any machines outside of Qualcomm that used this,
+>   and they are no longer interested themselves.
+> 
+> * Meta was ImgTec's own architecture and they upstreamed the kernel
+>   port just before they acquired MIPS. Apparently Meta was abandoned
+>   shortly afterwards and disappeared from imgtec's website in 2014.
+>   The maintainer is still fixing bugs in the port, but I could not find
+>   any toolchain more recent than
+>   https://github.com/img-meta/metag-buildroot/tree/metag-core/toolchain/gcc/4.2.4
+>   Not sure about this one, I'd be interested in more background
+>   from James Hogan, who probably has an opinion and might have
+>   newer toolchain sources.
+> 
+> * OpenRISC is a RISC architecture with a free license and an
+>   active community. It seems to have lost a bit of steam after RISC-V
+>   is rapidly taking over that niche, but there are chips out there and
+>   the design isn't going away. Listing it here for completeness only
+>   because there is no upstream gcc port yet, but this will hopefully
+>   change in the future based on
+>   https://lists.librecores.org/pipermail/openrisc/2018-January/000958.html
+>   and I had no problems locating the gcc-7.x tree for building my
+>   toolchains. The port is actively being maintained.
+> 
+> There are also a couple of architectures that are more or less
+> unmaintained but do have working gcc support: FR-V and M32R
+> have been orphaned for a while and are not getting updated
+> MN10300 is still maintained officially by David Howells but doesn't
+> seem any more active than the other two, the last real updates were
+> in 2013.
+> 
+>        Arnd
