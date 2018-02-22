@@ -1,218 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f196.google.com ([209.85.216.196]:35945 "EHLO
-        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751842AbeBVB4X (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 20:56:23 -0500
+Received: from mail-qk0-f193.google.com ([209.85.220.193]:34583 "EHLO
+        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751998AbeBVB4l (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 20:56:41 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v12 03/22] selftests/vm: move generic definitions to header file
-Date: Wed, 21 Feb 2018 17:55:22 -0800
-Message-ID: <1519264541-7621-4-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v12 09/22] selftests/vm: fix alloc_random_pkey() to make it really random
+Date: Wed, 21 Feb 2018 17:55:28 -0800
+Message-ID: <1519264541-7621-10-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
 References: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, arnd@arndb.de
-Message-ID: <20180222015522._PQdGO1Yl0dQdOH4c_nbe4kgYcCrDqOFCZVGYOD1Whs@z>
+Message-ID: <20180222015528.vU0LtSb2QLOOe2OfI2_fcAes0Q1gZQo1cF5KOFg_npw@z>
 
-Moved all the generic definition and helper functions to the
-header file
+alloc_random_pkey() was allocating the same pkey every time.
+Not all pkeys were geting tested. fixed it.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/pkey-helpers.h    |   62 ++++++++++++++++++++++--
- tools/testing/selftests/vm/protection_keys.c |   66 --------------------------
- 2 files changed, 57 insertions(+), 71 deletions(-)
+ tools/testing/selftests/vm/protection_keys.c |   10 +++++++---
+ 1 files changed, 7 insertions(+), 3 deletions(-)
 
-diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
-index a568166..c1bc761 100644
---- a/tools/testing/selftests/vm/pkey-helpers.h
-+++ b/tools/testing/selftests/vm/pkey-helpers.h
-@@ -13,8 +13,31 @@
- #include <ucontext.h>
- #include <sys/mman.h>
- 
-+/* Define some kernel-like types */
-+#define  u8 uint8_t
-+#define u16 uint16_t
-+#define u32 uint32_t
-+#define u64 uint64_t
-+
-+#ifdef __i386__
-+#define SYS_mprotect_key 380
-+#define SYS_pkey_alloc	 381
-+#define SYS_pkey_free	 382
-+#define REG_IP_IDX REG_EIP
-+#define si_pkey_offset 0x14
-+#else
-+#define SYS_mprotect_key 329
-+#define SYS_pkey_alloc	 330
-+#define SYS_pkey_free	 331
-+#define REG_IP_IDX REG_RIP
-+#define si_pkey_offset 0x20
-+#endif
-+
- #define NR_PKEYS 16
- #define PKEY_BITS_PER_PKEY 2
-+#define PKEY_DISABLE_ACCESS    0x1
-+#define PKEY_DISABLE_WRITE     0x2
-+#define HPAGE_SIZE	(1UL<<21)
- 
- #ifndef DEBUG_LEVEL
- #define DEBUG_LEVEL 0
-@@ -141,11 +164,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
- 	dprintf4("pkey_reg now: %08x\n", rdpkey_reg());
- }
- 
--#define PROT_PKEY0     0x10            /* protection key value (bit 0) */
--#define PROT_PKEY1     0x20            /* protection key value (bit 1) */
--#define PROT_PKEY2     0x40            /* protection key value (bit 2) */
--#define PROT_PKEY3     0x80            /* protection key value (bit 3) */
--
- #define PAGE_SIZE 4096
- #define MB	(1<<20)
- 
-@@ -223,4 +241,38 @@ int pkey_reg_xstate_offset(void)
- 	return xstate_offset;
- }
- 
-+static inline void __page_o_noops(void)
-+{
-+	/* 8-bytes of instruction * 512 bytes = 1 page */
-+	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
-+}
-+
- #endif /* _PKEYS_HELPER_H */
-+
-+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
-+#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
-+#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
-+#define ALIGN_PTR_UP(p, ptr_align_to)	\
-+		((typeof(p))ALIGN_UP((unsigned long)(p), ptr_align_to))
-+#define ALIGN_PTR_DOWN(p, ptr_align_to) \
-+	((typeof(p))ALIGN_DOWN((unsigned long)(p), ptr_align_to))
-+#define __stringify_1(x...)     #x
-+#define __stringify(x...)       __stringify_1(x)
-+
-+#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
-+
-+int dprint_in_signal;
-+char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
-+
-+extern void abort_hooks(void);
-+#define pkey_assert(condition) do {		\
-+	if (!(condition)) {			\
-+		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
-+				__FILE__, __LINE__,	\
-+				test_nr, iteration_nr);	\
-+		dprintf0("errno at assert: %d", errno);	\
-+		abort_hooks();			\
-+		assert(condition);		\
-+	}					\
-+} while (0)
-+#define raw_assert(cond) assert(cond)
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index 4aebf12..91bade4 100644
+index aaf9f09..2e4b636 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -49,34 +49,9 @@
- int test_nr;
+@@ -24,6 +24,7 @@
+ #define _GNU_SOURCE
+ #include <errno.h>
+ #include <linux/futex.h>
++#include <time.h>
+ #include <sys/time.h>
+ #include <sys/syscall.h>
+ #include <string.h>
+@@ -602,13 +603,15 @@ int alloc_random_pkey(void)
+ 	int alloced_pkeys[NR_PKEYS];
+ 	int nr_alloced = 0;
+ 	int random_index;
++
+ 	memset(alloced_pkeys, 0, sizeof(alloced_pkeys));
++	srand((unsigned int)time(NULL));
  
- unsigned int shadow_pkey_reg;
--
--#define HPAGE_SIZE	(1UL<<21)
--#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
--#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
--#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
--#define ALIGN_PTR_UP(p, ptr_align_to)	((typeof(p))ALIGN_UP((unsigned long)(p),	ptr_align_to))
--#define ALIGN_PTR_DOWN(p, ptr_align_to)	((typeof(p))ALIGN_DOWN((unsigned long)(p),	ptr_align_to))
--#define __stringify_1(x...)     #x
--#define __stringify(x...)       __stringify_1(x)
--
--#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
--
- int dprint_in_signal;
- char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
- 
--extern void abort_hooks(void);
--#define pkey_assert(condition) do {		\
--	if (!(condition)) {			\
--		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
--				__FILE__, __LINE__,	\
--				test_nr, iteration_nr);	\
--		dprintf0("errno at assert: %d", errno);	\
--		abort_hooks();			\
--		assert(condition);		\
--	}					\
--} while (0)
--#define raw_assert(cond) assert(cond)
--
- void cat_into_file(char *str, char *file)
- {
- 	int fd = open(file, O_RDWR);
-@@ -154,12 +129,6 @@ void abort_hooks(void)
- #endif
+ 	/* allocate every possible key and make a note of which ones we got */
+ 	max_nr_pkey_allocs = NR_PKEYS;
+-	max_nr_pkey_allocs = 1;
+ 	for (i = 0; i < max_nr_pkey_allocs; i++) {
+ 		int new_pkey = alloc_pkey();
++
+ 		if (new_pkey < 0)
+ 			break;
+ 		alloced_pkeys[nr_alloced++] = new_pkey;
+@@ -624,13 +627,14 @@ int alloc_random_pkey(void)
+ 	/* go through the allocated ones that we did not want and free them */
+ 	for (i = 0; i < nr_alloced; i++) {
+ 		int free_ret;
++
+ 		if (!alloced_pkeys[i])
+ 			continue;
+ 		free_ret = sys_pkey_free(alloced_pkeys[i]);
+ 		pkey_assert(!free_ret);
+ 	}
+-	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%x\n", __func__,
+-			__LINE__, ret, __rdpkey_reg(), shadow_pkey_reg);
++	dprintf1("%s()::%d, ret: %d pkey_reg: 0x%x shadow: 0x%016lx\n",
++		__func__, __LINE__, ret, __rdpkey_reg(), shadow_pkey_reg);
+ 	return ret;
  }
  
--static inline void __page_o_noops(void)
--{
--	/* 8-bytes of instruction * 512 bytes = 1 page */
--	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
--}
--
- /*
-  * This attempts to have roughly a page of instructions followed by a few
-  * instructions that do a write, and another page of instructions.  That
-@@ -182,38 +151,6 @@ void lots_o_noops_around_write(int *write_to_me)
- 	dprintf3("%s() done\n", __func__);
- }
- 
--/* Define some kernel-like types */
--#define  u8 uint8_t
--#define u16 uint16_t
--#define u32 uint32_t
--#define u64 uint64_t
--
--#ifdef __i386__
--
--#ifndef SYS_mprotect_key
--# define SYS_mprotect_key 380
--#endif
--#ifndef SYS_pkey_alloc
--# define SYS_pkey_alloc	 381
--# define SYS_pkey_free	 382
--#endif
--#define REG_IP_IDX REG_EIP
--#define si_pkey_offset 0x14
--
--#else
--
--#ifndef SYS_mprotect_key
--# define SYS_mprotect_key 329
--#endif
--#ifndef SYS_pkey_alloc
--# define SYS_pkey_alloc	 330
--# define SYS_pkey_free	 331
--#endif
--#define REG_IP_IDX REG_RIP
--#define si_pkey_offset 0x20
--
--#endif
--
- void dump_mem(void *dumpme, int len_bytes)
- {
- 	char *c = (void *)dumpme;
-@@ -424,9 +361,6 @@ void dumpit(char *f)
- 	close(fd);
- }
- 
--#define PKEY_DISABLE_ACCESS    0x1
--#define PKEY_DISABLE_WRITE     0x2
--
- u32 pkey_get(int pkey, unsigned long flags)
- {
- 	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
 -- 
 1.7.1
