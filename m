@@ -1,11 +1,8 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v12 3/3] mm, x86,
- powerpc: display pkey in smaps only if arch supports pkeys
-Date: Wed, 21 Feb 2018 15:52:18 -0800
-Message-ID: <1519257138-23797-4-git-send-email-linuxram@us.ibm.com>
-References: <1519257138-23797-1-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v12 00/22] selftests, powerpc, x86 : Memory Protection Keys
+Date: Wed, 21 Feb 2018 17:55:19 -0800
+Message-ID: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1519257138-23797-1-git-send-email-linuxram@us.ibm.com>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -16,190 +13,73 @@ List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
 Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
 Sender: "Linuxppc-dev"
  <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, corbet@lwn.net, ebiederm@xmission.com, msuchanek@suse.com, fweimer@redhat.com, arnd@arndb.de, dave.hansen@intel.com, x86@kernel.org, linuxram@us.ibm.com, linux-kernel@vger.kernel.org, mhocko@kernel.org, linux-mm@kvack.org, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, bauerman@linux.vnet.ibm.com, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
+To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, ebiederm@xmission.com, arnd@arndb.de, linux-doc@vger.kernel.org, x86@kernel.org, dave.hansen@intel.com, linux-kernel@vger.kernel.org, linuxram@us.ibm.com, mhocko@kernel.org, linux-mm@kvack.org, mingo@redhat.com, paulus@samba.org, aneesh.kumar@linux.vnet.ibm.com, bauerman@linux.vnet.ibm.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, khandual@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-Currently the  architecture  specific code is expected to
-display  the  protection  keys  in  smap  for a given vma.
-This can lead to redundant code and possibly to divergent
-formats in which the key gets displayed.
+Memory protection keys enables an application to protect its address space from
+inadvertent access by its own code.
 
-This  patch  changes  the implementation. It displays the
-pkey only if the architecture support pkeys, i.e
-arch_pkeys_enabled() returns true.  This patch
-provides x86 implementation for arch_pkeys_enabled().
+This feature is now enabled on powerpc architecture and integrated in
+4.16-rc1.  The patches move the selftests to arch neutral directory
+and enhance their test coverage. 
 
-x86 arch_show_smap() function is not needed anymore.
-Deleting it.
+Test
+----
+Verified for correctness on powerpc
+and on x86 architectures(using EC2 ubuntu VM instance).
 
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Michael Ellermen <mpe@ellerman.id.au>
-cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-cc: Andrew Morton <akpm@linux-foundation.org>
-Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-(fixed compilation errors for x86 configs)
-Acked-by: Michal Hocko <mhocko@suse.com>
-Reviewed-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
----
- arch/powerpc/include/asm/mmu_context.h |    5 -----
- arch/x86/include/asm/mmu_context.h     |    5 -----
- arch/x86/include/asm/pkeys.h           |    1 +
- arch/x86/kernel/fpu/xstate.c           |    5 +++++
- arch/x86/kernel/setup.c                |    8 --------
- fs/proc/task_mmu.c                     |   10 +++++-----
- include/linux/pkeys.h                  |    7 ++++++-
- 7 files changed, 17 insertions(+), 24 deletions(-)
+History:
+-------
 
-diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-index 051b3d6..566b3c2 100644
---- a/arch/powerpc/include/asm/mmu_context.h
-+++ b/arch/powerpc/include/asm/mmu_context.h
-@@ -203,11 +203,6 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
- #define thread_pkey_regs_restore(new_thread, old_thread)
- #define thread_pkey_regs_init(thread)
- 
--static inline int vma_pkey(struct vm_area_struct *vma)
--{
--	return 0;
--}
--
- static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
- {
- 	return 0x0UL;
-diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
-index c931b88..134f3a0 100644
---- a/arch/x86/include/asm/mmu_context.h
-+++ b/arch/x86/include/asm/mmu_context.h
-@@ -294,11 +294,6 @@ static inline int vma_pkey(struct vm_area_struct *vma)
- 
- 	return (vma->vm_flags & vma_pkey_mask) >> VM_PKEY_SHIFT;
- }
--#else
--static inline int vma_pkey(struct vm_area_struct *vma)
--{
--	return 0;
--}
- #endif
- 
- /*
-diff --git a/arch/x86/include/asm/pkeys.h b/arch/x86/include/asm/pkeys.h
-index a0ba1ff..f6c287b 100644
---- a/arch/x86/include/asm/pkeys.h
-+++ b/arch/x86/include/asm/pkeys.h
-@@ -6,6 +6,7 @@
- 
- extern int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 		unsigned long init_val);
-+extern bool arch_pkeys_enabled(void);
- 
- /*
-  * Try to dedicate one of the protection keys to be used as an
-diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
-index 87a57b7..4f566e9 100644
---- a/arch/x86/kernel/fpu/xstate.c
-+++ b/arch/x86/kernel/fpu/xstate.c
-@@ -945,6 +945,11 @@ int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 
- 	return 0;
- }
-+
-+bool arch_pkeys_enabled(void)
-+{
-+	return boot_cpu_has(X86_FEATURE_OSPKE);
-+}
- #endif /* ! CONFIG_ARCH_HAS_PKEYS */
- 
- /*
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 1ae67e9..d0539e3 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -1314,11 +1314,3 @@ static int __init register_kernel_offset_dumper(void)
- 	return 0;
- }
- __initcall(register_kernel_offset_dumper);
--
--void arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
--{
--	if (!boot_cpu_has(X86_FEATURE_OSPKE))
--		return;
--
--	seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
--}
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 6d83bb7..70aa912 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -18,10 +18,12 @@
- #include <linux/page_idle.h>
- #include <linux/shmem_fs.h>
- #include <linux/uaccess.h>
-+#include <linux/pkeys.h>
- 
- #include <asm/elf.h>
- #include <asm/tlb.h>
- #include <asm/tlbflush.h>
-+#include <asm/mmu_context.h>
- #include "internal.h"
- 
- void task_mem(struct seq_file *m, struct mm_struct *mm)
-@@ -733,10 +735,6 @@ static int smaps_hugetlb_range(pte_t *pte, unsigned long hmask,
- }
- #endif /* HUGETLB_PAGE */
- 
--void __weak arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
--{
--}
--
- static int show_smap(struct seq_file *m, void *v, int is_pid)
- {
- 	struct proc_maps_private *priv = m->private;
-@@ -856,9 +854,11 @@ static int show_smap(struct seq_file *m, void *v, int is_pid)
- 			   (unsigned long)(mss->pss >> (10 + PSS_SHIFT)));
- 
- 	if (!rollup_mode) {
--		arch_show_smap(m, vma);
-+		if (arch_pkeys_enabled())
-+			seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
- 		show_smap_vma_flags(m, vma);
- 	}
-+
- 	m_cache_vma(m, vma);
- 	return ret;
- }
-diff --git a/include/linux/pkeys.h b/include/linux/pkeys.h
-index 0794ca7..49dff15 100644
---- a/include/linux/pkeys.h
-+++ b/include/linux/pkeys.h
-@@ -3,7 +3,6 @@
- #define _LINUX_PKEYS_H
- 
- #include <linux/mm_types.h>
--#include <asm/mmu_context.h>
- 
- #ifdef CONFIG_ARCH_HAS_PKEYS
- #include <asm/pkeys.h>
-@@ -13,6 +12,7 @@
- #define arch_override_mprotect_pkey(vma, prot, pkey) (0)
- #define PKEY_DEDICATED_EXECUTE_ONLY 0
- #define ARCH_VM_PKEY_FLAGS 0
-+#define vma_pkey(vma) 0
- 
- static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
- {
-@@ -35,6 +35,11 @@ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 	return 0;
- }
- 
-+static inline bool arch_pkeys_enabled(void)
-+{
-+	return false;
-+}
-+
- static inline void copy_init_pkru_to_fpregs(void)
- {
- }
--- 
-1.7.1
+version 12: 
+	(1) fixed the offset of pkey field in the siginfo structure for
+		x86_64 and powerpc. And tries to use the actual field
+		if the headers have it defined.
+version 11:
+	(1) fixed a deadlock in the ptrace testcase.
+
+version 10 and prior:
+	(1) moved the testcase to arch neutral directory
+	(2) split the changes into incremental patches.
+
+Ram Pai (21):
+  selftests/x86: Move protecton key selftest to arch neutral directory
+  selftests/vm: rename all references to pkru to a generic name
+  selftests/vm: move generic definitions to header file
+  selftests/vm: typecast the pkey register
+  selftests/vm: generic function to handle shadow key register
+  selftests/vm: fix the wrong assert in pkey_disable_set()
+  selftests/vm: fixed bugs in pkey_disable_clear()
+  selftests/vm: clear the bits in shadow reg when a pkey is freed.
+  selftests/vm: fix alloc_random_pkey() to make it really random
+  selftests/vm: introduce two arch independent abstraction
+  selftests/vm: pkey register should match shadow pkey
+  selftests/vm: generic cleanup
+  selftests/vm: powerpc implementation for generic abstraction
+  selftests/vm: clear the bits in shadow reg when a pkey is freed.
+  selftests/vm: powerpc implementation to check support for pkey
+  selftests/vm: fix an assertion in test_pkey_alloc_exhaust()
+  selftests/vm: associate key on a mapped page and detect access
+    violation
+  selftests/vm: associate key on a mapped page and detect write
+    violation
+  selftests/vm: detect write violation on a mapped access-denied-key
+    page
+  selftests/vm: testcases must restore pkey-permissions
+  selftests/vm: sub-page allocator
+
+Thiago Jung Bauermann (1):
+  selftests/vm: Fix deadlock in protection_keys.c
+
+ tools/testing/selftests/vm/Makefile           |    1 +
+ tools/testing/selftests/vm/pkey-helpers.h     |  434 ++++++++
+ tools/testing/selftests/vm/protection_keys.c  | 1471 +++++++++++++++++++++++++
+ tools/testing/selftests/x86/Makefile          |    2 +-
+ tools/testing/selftests/x86/pkey-helpers.h    |  223 ----
+ tools/testing/selftests/x86/protection_keys.c | 1407 -----------------------
+ 6 files changed, 1907 insertions(+), 1631 deletions(-)
+ create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
+ create mode 100644 tools/testing/selftests/vm/protection_keys.c
+ delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
+ delete mode 100644 tools/testing/selftests/x86/protection_keys.c
