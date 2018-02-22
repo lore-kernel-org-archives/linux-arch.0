@@ -1,70 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:43744 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753703AbeBVL7r (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Feb 2018 06:59:47 -0500
-Date: Thu, 22 Feb 2018 12:59:29 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH RFC tools/lkmm 10/12] tools/memory-model: Add a S
- lock-based external-view litmus test
-Message-ID: <20180222115929.GM25181@hirez.programming.kicks-ass.net>
-References: <20180220232405.GA19274@linux.vnet.ibm.com>
- <1519169112-20593-10-git-send-email-paulmck@linux.vnet.ibm.com>
- <20180222032349.klcuiq23f52sfop6@tardis>
- <20180222041357.GB2855@linux.vnet.ibm.com>
- <20180222052746.vofmqbpnmfahck3z@tardis>
- <fad8e18b-ef5a-5bc0-5d87-6fad2e9f7c95@nvidia.com>
- <20180222065847.zqiquiyehvzgiiht@tardis>
- <20180222101504.GQ25201@hirez.programming.kicks-ass.net>
- <20180222104532.6znly3zespgfga4i@tardis>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40100 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932077AbeBVMQt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Feb 2018 07:16:49 -0500
+Message-ID: <5A8EB419.1020508@arm.com>
+Date: Thu, 22 Feb 2018 12:14:17 +0000
+From: James Morse <james.morse@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180222104532.6znly3zespgfga4i@tardis>
+Subject: Re: [PATCH 1/3] signal: Add FPE_FLTUNK si_code for undiagnosable
+ fp exceptions
+References: <1519228960-10883-1-git-send-email-Dave.Martin@arm.com> <1519228960-10883-2-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1519228960-10883-2-git-send-email-Dave.Martin@arm.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: Daniel Lustig <dlustig@nvidia.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, nborisov@suse.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>
+Message-ID: <20180222121417.lSFgKIMt0mmuWUwhj4uLIRwdM70KC-di-_vWEhBcJ8g@z>
 
-On Thu, Feb 22, 2018 at 06:45:32PM +0800, Boqun Feng wrote:
-> Maybe it's me who misunderstand Daniel's words. But my understanding is
-> that riscv people are on a debate about whether their "RCpc" atomic
-> instructions need to be more strict: release+acquire pair orders two
-> writes. And I thought that atomics(including RmW atomics) in kernel only
-> have purely RCpc semantics, which I needed to check with you guy. And if
-> I'm right, it's cerntainly fine for riscv "RCpc" instruction to be
-> purely RCpc.
+Hi Dave,
+
+On 21/02/18 16:02, Dave Martin wrote:
+> Some architectures cannot always report accurately what kind of
+> floating-point exception triggered a floating-point exception trap.
 > 
-> Note that even on PPC, the release+acquire pair of atomics orders writes
-> before and after, and on x86, writes are ordered since it's TSO. So
-> strictly speaking, I think our current implementation of atomics are a
-> little more strict than purely RCpc. If we think this is an requirement
-> for implementation of atomic primitives, than the current version of
-> riscv's "RCpc" atomics don't suffice.
+> This can occur with fp exceptions occuring on lanes in a vector
+
+(Nit: occurring)
+
+> instruction on arm64 for example.
+> 
+> Rather than have every architecture come up with its own way of
+> descrbing such a condition, this patch adds a common FPE_FLTUNK do
+
+(Nits: describing; 'to report')
+
+> report that an fp exception caused a trap but we cannot be certain
+> which kind of fp exception it was.
 
 
-So the question is:
+> diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+> index 85dc965..10304de 100644
+> --- a/include/uapi/asm-generic/siginfo.h
+> +++ b/include/uapi/asm-generic/siginfo.h
+> @@ -229,7 +229,8 @@ typedef struct siginfo {
+>  # define __FPE_INVASC	12	/* invalid ASCII digit */
+>  # define __FPE_INVDEC	13	/* invalid decimal digit */
+>  #endif
+> -#define NSIGFPE		13
+> +#define FPE_FLTUNK	14	/* undiagnosed floating-point exception */
+> +#define NSIGFPE		14
 
-P0()
-{
-	WRITE_ONCE(x, 1);
-	smp_store_release(&y, 1);
-	r0 = smp_load_acquire(&y);
-	WRITE_ONCE(z, 1);
-}
+It looks like x86's compat relies on this value not changing:
+| arch/x86/kernel/signal_compat.c:        BUILD_BUG_ON(NSIGFPE  != 13);
+| include/uapi/asm-generic/siginfo.h:#define NSIGFPE              13
 
-P1()
-{
-	r1 = READ_ONCE(z);
-	smp_rmb();
-	r2 = READ_ONCE(x);
-}
+(from v4.16-rc2)
 
-exists: r0 == 1 /\ r1==1 /\ r2==0
 
-Which per the current LKMM would be forbidden? How would strict RCpc
-allow that? Due to a fwd from the release to the acquire and then
-defeating the ordering or something like that?
+Thanks,
 
-My vote would go to disallowing this. Allowing this would be rather
-subtle and unexpected IMO.
+James
