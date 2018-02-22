@@ -1,81 +1,218 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f196.google.com ([209.85.220.196]:37310 "EHLO
-        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751798AbeBVB4O (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 20:56:14 -0500
+Received: from mail-qt0-f196.google.com ([209.85.216.196]:35945 "EHLO
+        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751842AbeBVB4X (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 20:56:23 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v12 00/22] selftests, powerpc, x86 : Memory Protection Keys
-Date: Wed, 21 Feb 2018 17:55:19 -0800
-Message-ID: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v12 03/22] selftests/vm: move generic definitions to header file
+Date: Wed, 21 Feb 2018 17:55:22 -0800
+Message-ID: <1519264541-7621-4-git-send-email-linuxram@us.ibm.com>
+In-Reply-To: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
+References: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, arnd@arndb.de
-Message-ID: <20180222015519.JQd5YIndNhOqPvoZxXDCT07XAicuI8hlP_CYg6Rh29Y@z>
+Message-ID: <20180222015522._PQdGO1Yl0dQdOH4c_nbe4kgYcCrDqOFCZVGYOD1Whs@z>
 
-Memory protection keys enables an application to protect its address space from
-inadvertent access by its own code.
+Moved all the generic definition and helper functions to the
+header file
 
-This feature is now enabled on powerpc architecture and integrated in
-4.16-rc1.  The patches move the selftests to arch neutral directory
-and enhance their test coverage. 
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+---
+ tools/testing/selftests/vm/pkey-helpers.h    |   62 ++++++++++++++++++++++--
+ tools/testing/selftests/vm/protection_keys.c |   66 --------------------------
+ 2 files changed, 57 insertions(+), 71 deletions(-)
 
-Test
-----
-Verified for correctness on powerpc
-and on x86 architectures(using EC2 ubuntu VM instance).
-
-History:
--------
-
-version 12: 
-	(1) fixed the offset of pkey field in the siginfo structure for
-		x86_64 and powerpc. And tries to use the actual field
-		if the headers have it defined.
-version 11:
-	(1) fixed a deadlock in the ptrace testcase.
-
-version 10 and prior:
-	(1) moved the testcase to arch neutral directory
-	(2) split the changes into incremental patches.
-
-Ram Pai (21):
-  selftests/x86: Move protecton key selftest to arch neutral directory
-  selftests/vm: rename all references to pkru to a generic name
-  selftests/vm: move generic definitions to header file
-  selftests/vm: typecast the pkey register
-  selftests/vm: generic function to handle shadow key register
-  selftests/vm: fix the wrong assert in pkey_disable_set()
-  selftests/vm: fixed bugs in pkey_disable_clear()
-  selftests/vm: clear the bits in shadow reg when a pkey is freed.
-  selftests/vm: fix alloc_random_pkey() to make it really random
-  selftests/vm: introduce two arch independent abstraction
-  selftests/vm: pkey register should match shadow pkey
-  selftests/vm: generic cleanup
-  selftests/vm: powerpc implementation for generic abstraction
-  selftests/vm: clear the bits in shadow reg when a pkey is freed.
-  selftests/vm: powerpc implementation to check support for pkey
-  selftests/vm: fix an assertion in test_pkey_alloc_exhaust()
-  selftests/vm: associate key on a mapped page and detect access
-    violation
-  selftests/vm: associate key on a mapped page and detect write
-    violation
-  selftests/vm: detect write violation on a mapped access-denied-key
-    page
-  selftests/vm: testcases must restore pkey-permissions
-  selftests/vm: sub-page allocator
-
-Thiago Jung Bauermann (1):
-  selftests/vm: Fix deadlock in protection_keys.c
-
- tools/testing/selftests/vm/Makefile           |    1 +
- tools/testing/selftests/vm/pkey-helpers.h     |  434 ++++++++
- tools/testing/selftests/vm/protection_keys.c  | 1471 +++++++++++++++++++++++++
- tools/testing/selftests/x86/Makefile          |    2 +-
- tools/testing/selftests/x86/pkey-helpers.h    |  223 ----
- tools/testing/selftests/x86/protection_keys.c | 1407 -----------------------
- 6 files changed, 1907 insertions(+), 1631 deletions(-)
- create mode 100644 tools/testing/selftests/vm/pkey-helpers.h
- create mode 100644 tools/testing/selftests/vm/protection_keys.c
- delete mode 100644 tools/testing/selftests/x86/pkey-helpers.h
- delete mode 100644 tools/testing/selftests/x86/protection_keys.c
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index a568166..c1bc761 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -13,8 +13,31 @@
+ #include <ucontext.h>
+ #include <sys/mman.h>
+ 
++/* Define some kernel-like types */
++#define  u8 uint8_t
++#define u16 uint16_t
++#define u32 uint32_t
++#define u64 uint64_t
++
++#ifdef __i386__
++#define SYS_mprotect_key 380
++#define SYS_pkey_alloc	 381
++#define SYS_pkey_free	 382
++#define REG_IP_IDX REG_EIP
++#define si_pkey_offset 0x14
++#else
++#define SYS_mprotect_key 329
++#define SYS_pkey_alloc	 330
++#define SYS_pkey_free	 331
++#define REG_IP_IDX REG_RIP
++#define si_pkey_offset 0x20
++#endif
++
+ #define NR_PKEYS 16
+ #define PKEY_BITS_PER_PKEY 2
++#define PKEY_DISABLE_ACCESS    0x1
++#define PKEY_DISABLE_WRITE     0x2
++#define HPAGE_SIZE	(1UL<<21)
+ 
+ #ifndef DEBUG_LEVEL
+ #define DEBUG_LEVEL 0
+@@ -141,11 +164,6 @@ static inline void __pkey_write_allow(int pkey, int do_allow_write)
+ 	dprintf4("pkey_reg now: %08x\n", rdpkey_reg());
+ }
+ 
+-#define PROT_PKEY0     0x10            /* protection key value (bit 0) */
+-#define PROT_PKEY1     0x20            /* protection key value (bit 1) */
+-#define PROT_PKEY2     0x40            /* protection key value (bit 2) */
+-#define PROT_PKEY3     0x80            /* protection key value (bit 3) */
+-
+ #define PAGE_SIZE 4096
+ #define MB	(1<<20)
+ 
+@@ -223,4 +241,38 @@ int pkey_reg_xstate_offset(void)
+ 	return xstate_offset;
+ }
+ 
++static inline void __page_o_noops(void)
++{
++	/* 8-bytes of instruction * 512 bytes = 1 page */
++	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
++}
++
+ #endif /* _PKEYS_HELPER_H */
++
++#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
++#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
++#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
++#define ALIGN_PTR_UP(p, ptr_align_to)	\
++		((typeof(p))ALIGN_UP((unsigned long)(p), ptr_align_to))
++#define ALIGN_PTR_DOWN(p, ptr_align_to) \
++	((typeof(p))ALIGN_DOWN((unsigned long)(p), ptr_align_to))
++#define __stringify_1(x...)     #x
++#define __stringify(x...)       __stringify_1(x)
++
++#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
++
++int dprint_in_signal;
++char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
++
++extern void abort_hooks(void);
++#define pkey_assert(condition) do {		\
++	if (!(condition)) {			\
++		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
++				__FILE__, __LINE__,	\
++				test_nr, iteration_nr);	\
++		dprintf0("errno at assert: %d", errno);	\
++		abort_hooks();			\
++		assert(condition);		\
++	}					\
++} while (0)
++#define raw_assert(cond) assert(cond)
+diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
+index 4aebf12..91bade4 100644
+--- a/tools/testing/selftests/vm/protection_keys.c
++++ b/tools/testing/selftests/vm/protection_keys.c
+@@ -49,34 +49,9 @@
+ int test_nr;
+ 
+ unsigned int shadow_pkey_reg;
+-
+-#define HPAGE_SIZE	(1UL<<21)
+-#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
+-#define ALIGN_UP(x, align_to)	(((x) + ((align_to)-1)) & ~((align_to)-1))
+-#define ALIGN_DOWN(x, align_to) ((x) & ~((align_to)-1))
+-#define ALIGN_PTR_UP(p, ptr_align_to)	((typeof(p))ALIGN_UP((unsigned long)(p),	ptr_align_to))
+-#define ALIGN_PTR_DOWN(p, ptr_align_to)	((typeof(p))ALIGN_DOWN((unsigned long)(p),	ptr_align_to))
+-#define __stringify_1(x...)     #x
+-#define __stringify(x...)       __stringify_1(x)
+-
+-#define PTR_ERR_ENOTSUP ((void *)-ENOTSUP)
+-
+ int dprint_in_signal;
+ char dprint_in_signal_buffer[DPRINT_IN_SIGNAL_BUF_SIZE];
+ 
+-extern void abort_hooks(void);
+-#define pkey_assert(condition) do {		\
+-	if (!(condition)) {			\
+-		dprintf0("assert() at %s::%d test_nr: %d iteration: %d\n", \
+-				__FILE__, __LINE__,	\
+-				test_nr, iteration_nr);	\
+-		dprintf0("errno at assert: %d", errno);	\
+-		abort_hooks();			\
+-		assert(condition);		\
+-	}					\
+-} while (0)
+-#define raw_assert(cond) assert(cond)
+-
+ void cat_into_file(char *str, char *file)
+ {
+ 	int fd = open(file, O_RDWR);
+@@ -154,12 +129,6 @@ void abort_hooks(void)
+ #endif
+ }
+ 
+-static inline void __page_o_noops(void)
+-{
+-	/* 8-bytes of instruction * 512 bytes = 1 page */
+-	asm(".rept 512 ; nopl 0x7eeeeeee(%eax) ; .endr");
+-}
+-
+ /*
+  * This attempts to have roughly a page of instructions followed by a few
+  * instructions that do a write, and another page of instructions.  That
+@@ -182,38 +151,6 @@ void lots_o_noops_around_write(int *write_to_me)
+ 	dprintf3("%s() done\n", __func__);
+ }
+ 
+-/* Define some kernel-like types */
+-#define  u8 uint8_t
+-#define u16 uint16_t
+-#define u32 uint32_t
+-#define u64 uint64_t
+-
+-#ifdef __i386__
+-
+-#ifndef SYS_mprotect_key
+-# define SYS_mprotect_key 380
+-#endif
+-#ifndef SYS_pkey_alloc
+-# define SYS_pkey_alloc	 381
+-# define SYS_pkey_free	 382
+-#endif
+-#define REG_IP_IDX REG_EIP
+-#define si_pkey_offset 0x14
+-
+-#else
+-
+-#ifndef SYS_mprotect_key
+-# define SYS_mprotect_key 329
+-#endif
+-#ifndef SYS_pkey_alloc
+-# define SYS_pkey_alloc	 330
+-# define SYS_pkey_free	 331
+-#endif
+-#define REG_IP_IDX REG_RIP
+-#define si_pkey_offset 0x20
+-
+-#endif
+-
+ void dump_mem(void *dumpme, int len_bytes)
+ {
+ 	char *c = (void *)dumpme;
+@@ -424,9 +361,6 @@ void dumpit(char *f)
+ 	close(fd);
+ }
+ 
+-#define PKEY_DISABLE_ACCESS    0x1
+-#define PKEY_DISABLE_WRITE     0x2
+-
+ u32 pkey_get(int pkey, unsigned long flags)
+ {
+ 	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
+-- 
+1.7.1
