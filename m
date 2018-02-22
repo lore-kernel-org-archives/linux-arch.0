@@ -1,76 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:40888 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932392AbeBVNNj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Feb 2018 08:13:39 -0500
-Date: Thu, 22 Feb 2018 13:13:35 +0000
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [PATCH 1/3] signal: Add FPE_FLTUNK si_code for undiagnosable fp
- exceptions
-Message-ID: <20180222131333.GD32331@e103592.cambridge.arm.com>
-References: <1519228960-10883-1-git-send-email-Dave.Martin@arm.com>
- <1519228960-10883-2-git-send-email-Dave.Martin@arm.com>
- <5A8EB419.1020508@arm.com>
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:45251 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932942AbeBVPpI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Feb 2018 10:45:08 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5A8EB419.1020508@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 22 Feb 2018 16:45:06 +0100
+Message-ID: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
+Subject: Removing architectures without upstream gcc support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Morse <james.morse@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>
-Message-ID: <20180222131335.y7n-wuCYAqFTOkayP_TboSwskUOZ4BnnasSawdo_jbs@z>
+To: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Cc: Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>, James Hogan <jhogan@kernel.org>, linux-metag@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org, David Howells <dhowells@redhat.com>
 
-On Thu, Feb 22, 2018 at 12:14:17PM +0000, James Morse wrote:
-> Hi Dave,
-> 
-> On 21/02/18 16:02, Dave Martin wrote:
-> > Some architectures cannot always report accurately what kind of
-> > floating-point exception triggered a floating-point exception trap.
-> > 
-> > This can occur with fp exceptions occuring on lanes in a vector
-> 
-> (Nit: occurring)
-> 
-> > instruction on arm64 for example.
-> > 
-> > Rather than have every architecture come up with its own way of
-> > descrbing such a condition, this patch adds a common FPE_FLTUNK do
-> 
-> (Nits: describing; 'to report')
-> 
-> > report that an fp exception caused a trap but we cannot be certain
+While building the cross-toolchains, I noticed that overall, we can build almost
+all linux target architectures with upstream binutils and gcc these days,
+however there are still some exceptions, and I'd like to find out if anyone
+has objections to removing the ones that do not have upstream support.
+This are the four architectures I found:
 
-Hmmm, this wasn't my best effort...
+* score (s+core, sunplus core) was a proprietary RISC architecture
+  made by sunplus. It is unclear if they still ship any products based on
+  this architecture, all they list is either ARM Cortex-A9 or an unspecified
+  RISC core that could be any of arm, mips, nds32, arc, xtensa or
+  something completely different. The two maintainers have both left the
+  company many years ago and have not contributed any patches in
+  at least five years. There was an upstream gcc port, which was marked
+  'obsolete' in 2013 and got removed in gcc-5.0.
+  I conclude that this is dead in Linux and can be removed
 
-> > which kind of fp exception it was.
-> 
-> 
-> > diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-> > index 85dc965..10304de 100644
-> > --- a/include/uapi/asm-generic/siginfo.h
-> > +++ b/include/uapi/asm-generic/siginfo.h
-> > @@ -229,7 +229,8 @@ typedef struct siginfo {
-> >  # define __FPE_INVASC	12	/* invalid ASCII digit */
-> >  # define __FPE_INVDEC	13	/* invalid decimal digit */
-> >  #endif
-> > -#define NSIGFPE		13
-> > +#define FPE_FLTUNK	14	/* undiagnosed floating-point exception */
-> > +#define NSIGFPE		14
-> 
-> It looks like x86's compat relies on this value not changing:
-> | arch/x86/kernel/signal_compat.c:        BUILD_BUG_ON(NSIGFPE  != 13);
-> | include/uapi/asm-generic/siginfo.h:#define NSIGFPE              13
-> 
-> (from v4.16-rc2)
+* unicore32 was a research project at Peking University with a SoC
+  based on the Intel PXA design. No gcc source code has ever been
+  published, the only toolchain available is a set of binaries that include
+  a gcc-4.4 compiler. The project page at
+  http://mprc.pku.edu.cn/~guanxuetao/linux/ has a TODO list that has
+  not been modified since 2011. The maintainer still Acks patches
+  and has last sent a pull request in 2014 and last sent a patch of
+  his own in 2012 when the project appears to have stalled.
+  I would suggest removing this one.
 
-Hmmm, that's embarrassing -- thanks for spotting!
+* Hexagon is Qualcomm's DSP architecture. It is being actively used
+  in all Snapdragon ARM SoCs, but the kernel code appears to be
+  the result of a failed research project to make a standalone Hexagon
+  SoC without an ARM core. There is some information about the
+  project at https://wiki.codeaurora.org/xwiki/bin/Hexagon/ and
+  https://unix.stackexchange.com/questions/246243/what-is-was-the-qualcomm-hexagon-comet-board
+  There is a port to gcc-4.5 on the project page, which is evidently
+  abandoned, but there is an active upstream LLVM port that is
+  apparently used to build non-Linux programs.
+  I would consider this one a candidate for removal as well, given that
+  there were never any machines outside of Qualcomm that used this,
+  and they are no longer interested themselves.
 
-I think we can justifiably bump the number there, since x86 won't use
-FPT_FLTUNK (for now, perhaps for ever) and anyway it doesn't add any new
-information to siginfo.
+* Meta was ImgTec's own architecture and they upstreamed the kernel
+  port just before they acquired MIPS. Apparently Meta was abandoned
+  shortly afterwards and disappeared from imgtec's website in 2014.
+  The maintainer is still fixing bugs in the port, but I could not find
+  any toolchain more recent than
+  https://github.com/img-meta/metag-buildroot/tree/metag-core/toolchain/gcc/4.2.4
+  Not sure about this one, I'd be interested in more background
+  from James Hogan, who probably has an opinion and might have
+  newer toolchain sources.
 
-I'll respin with these changes.
+* OpenRISC is a RISC architecture with a free license and an
+  active community. It seems to have lost a bit of steam after RISC-V
+  is rapidly taking over that niche, but there are chips out there and
+  the design isn't going away. Listing it here for completeness only
+  because there is no upstream gcc port yet, but this will hopefully
+  change in the future based on
+  https://lists.librecores.org/pipermail/openrisc/2018-January/000958.html
+  and I had no problems locating the gcc-7.x tree for building my
+  toolchains. The port is actively being maintained.
 
-Cheers
----Dave
+There are also a couple of architectures that are more or less
+unmaintained but do have working gcc support: FR-V and M32R
+have been orphaned for a while and are not getting updated
+MN10300 is still maintained officially by David Howells but doesn't
+seem any more active than the other two, the last real updates were
+in 2013.
+
+       Arnd
