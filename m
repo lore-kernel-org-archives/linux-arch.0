@@ -1,66 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f196.google.com ([209.85.220.196]:41534 "EHLO
-        mail-qk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751838AbeBVB5S (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 20:57:18 -0500
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:42725 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751847AbeBVB5M (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Feb 2018 20:57:12 -0500
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v12 17/22] selftests/vm: associate key on a mapped page and detect access violation
-Date: Wed, 21 Feb 2018 17:55:36 -0800
-Message-ID: <1519264541-7621-18-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v12 15/22] selftests/vm: powerpc implementation to check support for pkey
+Date: Wed, 21 Feb 2018 17:55:34 -0800
+Message-ID: <1519264541-7621-16-git-send-email-linuxram@us.ibm.com>
 In-Reply-To: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
 References: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
 Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, arnd@arndb.de
-Message-ID: <20180222015536.z1uOAP-RlGmLWa7WTo6nFJsPQ9U33qOHp6IQTN4cZWU@z>
+Message-ID: <20180222015534.6HFXzLeQRG-9tLNQul3FAHKFHSyVvZTZuXDIx2XmdSM@z>
 
-detect access-violation on a page to which access-disabled
-key is associated much after the page is mapped.
+pkey subsystem is supported if the hardware and kernel has support.
+We determine that by checking if allocation of a key succeeds or not.
 
 cc: Dave Hansen <dave.hansen@intel.com>
 cc: Florian Weimer <fweimer@redhat.com>
 Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- tools/testing/selftests/vm/protection_keys.c |   19 +++++++++++++++++++
- 1 files changed, 19 insertions(+), 0 deletions(-)
+ tools/testing/selftests/vm/pkey-helpers.h    |   22 ++++++++++++++++------
+ tools/testing/selftests/vm/protection_keys.c |    9 +++++----
+ 2 files changed, 21 insertions(+), 10 deletions(-)
 
+diff --git a/tools/testing/selftests/vm/pkey-helpers.h b/tools/testing/selftests/vm/pkey-helpers.h
+index c47aead..88ef58f 100644
+--- a/tools/testing/selftests/vm/pkey-helpers.h
++++ b/tools/testing/selftests/vm/pkey-helpers.h
+@@ -258,7 +258,7 @@ static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
+ #define X86_FEATURE_PKU        (1<<3) /* Protection Keys for Userspace */
+ #define X86_FEATURE_OSPKE      (1<<4) /* OS Protection Keys Enable */
+ 
+-static inline int cpu_has_pku(void)
++static inline bool is_pkey_supported(void)
+ {
+ 	unsigned int eax;
+ 	unsigned int ebx;
+@@ -271,13 +271,13 @@ static inline int cpu_has_pku(void)
+ 
+ 	if (!(ecx & X86_FEATURE_PKU)) {
+ 		dprintf2("cpu does not have PKU\n");
+-		return 0;
++		return false;
+ 	}
+ 	if (!(ecx & X86_FEATURE_OSPKE)) {
+ 		dprintf2("cpu does not have OSPKE\n");
+-		return 0;
++		return false;
+ 	}
+-	return 1;
++	return true;
+ }
+ 
+ #define XSTATE_PKEY_BIT	(9)
+@@ -323,9 +323,19 @@ static inline void __page_o_noops(void)
+ #elif __powerpc64__ /* arch */
+ 
+ #define PAGE_SIZE (0x1UL << 16)
+-static inline int cpu_has_pku(void)
++static inline bool is_pkey_supported(void)
+ {
+-	return 1;
++	/*
++	 * No simple way to determine this.
++	 * lets try allocating a key and see if it succeeds.
++	 */
++	int ret = sys_pkey_alloc(0, 0);
++
++	if (ret > 0) {
++		sys_pkey_free(ret);
++		return true;
++	}
++	return false;
+ }
+ 
+ /* 8-bytes of instruction * 16384bytes = 1 page */
 diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-index aae6771..dba9162 100644
+index e82bd88..58da5a0 100644
 --- a/tools/testing/selftests/vm/protection_keys.c
 +++ b/tools/testing/selftests/vm/protection_keys.c
-@@ -1016,6 +1016,24 @@ void test_read_of_access_disabled_region(int *ptr, u16 pkey)
- 	dprintf1("*ptr: %d\n", ptr_contents);
- 	expected_pkey_fault(pkey);
- }
-+
-+void test_read_of_access_disabled_region_with_page_already_mapped(int *ptr,
-+		u16 pkey)
-+{
-+	int ptr_contents;
-+
-+	dprintf1("disabling access to PKEY[%02d], doing read @ %p\n",
-+				pkey, ptr);
-+	ptr_contents = read_ptr(ptr);
-+	dprintf1("reading ptr before disabling the read : %d\n",
-+			ptr_contents);
-+	rdpkey_reg();
-+	pkey_access_deny(pkey);
-+	ptr_contents = read_ptr(ptr);
-+	dprintf1("*ptr: %d\n", ptr_contents);
-+	expected_pkey_fault(pkey);
-+}
-+
- void test_write_of_write_disabled_region(int *ptr, u16 pkey)
+@@ -1299,8 +1299,8 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
+ 	int size = PAGE_SIZE;
+ 	int sret;
+ 
+-	if (cpu_has_pku()) {
+-		dprintf1("SKIP: %s: no CPU support\n", __func__);
++	if (is_pkey_supported()) {
++		dprintf1("SKIP: %s: no CPU/kernel support\n", __func__);
+ 		return;
+ 	}
+ 
+@@ -1362,12 +1362,13 @@ void run_tests_once(void)
+ int main(void)
  {
- 	dprintf1("disabling write access to PKEY[%02d], doing write\n", pkey);
-@@ -1310,6 +1328,7 @@ void test_mprotect_pkey_on_unsupported_cpu(int *ptr, u16 pkey)
- void (*pkey_tests[])(int *ptr, u16 pkey) = {
- 	test_read_of_write_disabled_region,
- 	test_read_of_access_disabled_region,
-+	test_read_of_access_disabled_region_with_page_already_mapped,
- 	test_write_of_write_disabled_region,
- 	test_write_of_access_disabled_region,
- 	test_kernel_write_of_access_disabled_region,
+ 	int nr_iterations = 22;
++	int pkey_supported = is_pkey_supported();
+ 
+ 	setup_handlers();
+ 
+-	printf("has pkey: %d\n", cpu_has_pku());
++	printf("has pkey: %s\n", pkey_supported ? "Yes" : "No");
+ 
+-	if (!cpu_has_pku()) {
++	if (!pkey_supported) {
+ 		int size = PAGE_SIZE;
+ 		int *ptr;
+ 
 -- 
 1.7.1
