@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:40502 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:40442 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753520AbeBWSlR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Feb 2018 13:41:17 -0500
+        with ESMTP id S1753520AbeBWSlK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Feb 2018 13:41:10 -0500
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 181/193] x86/spectre: Report get_user mitigation for spectre_v1
-Date: Fri, 23 Feb 2018 19:26:54 +0100
-Message-ID: <20180223170354.510966870@linuxfoundation.org>
+Subject: [PATCH 4.4 179/193] vfs, fdtable: Prevent bounds-check bypass via speculative execution
+Date: Fri, 23 Feb 2018 19:26:52 +0100
+Message-ID: <20180223170354.207391528@linuxfoundation.org>
 In-Reply-To: <20180223170325.997716448@linuxfoundation.org>
 References: <20180223170325.997716448@linuxfoundation.org>
 MIME-Version: 1.0
@@ -14,8 +14,8 @@ Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, torvalds@linux-foundation.org, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jack Wang <jinpu.wang@profitbricks.com>
-Message-ID: <20180223182654.iEzu5HUQNl8Ibmhc51x1XV6AAGmwoWH5L6BlQlxZA-s@z>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, torvalds@linux-foundation.org, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jack Wang <jinpu.wang@profitbricks.com>
+Message-ID: <20180223182652.eHk4dA_RL3hfMHqHs7-BJLKLkdv9gO-O--NH7Ju7Gxo@z>
 
 4.4-stable review patch.  If anyone has any objections, please let me know.
 
@@ -23,38 +23,51 @@ Message-ID: <20180223182654.iEzu5HUQNl8Ibmhc51x1XV6AAGmwoWH5L6BlQlxZA-s@z>
 
 From: Dan Williams <dan.j.williams@intel.com>
 
-(cherry picked from commit edfbae53dab8348fca778531be9f4855d2ca0360)
+(cherry picked from commit 56c30ba7b348b90484969054d561f711ba196507)
 
-Reflect the presence of get_user(), __get_user(), and 'syscall' protections
-in sysfs. The expectation is that new and better tooling will allow the
-kernel to grow more usages of array_index_nospec(), for now, only claim
-mitigation for __user pointer de-references.
+'fd' is a user controlled value that is used as a data dependency to
+read from the 'fdt->fd' array.  In order to avoid potential leaks of
+kernel memory values, block speculative execution of the instruction
+stream that could issue reads based on an invalid 'file *' returned from
+__fcheck_files.
 
-Reported-by: Jiri Slaby <jslaby@suse.cz>
+Co-developed-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
 Cc: kernel-hardening@lists.openwall.com
 Cc: gregkh@linuxfoundation.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: torvalds@linux-foundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727420158.33451.11658324346540434635.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727418500.33451.17392199002892248656.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 [jwang: cherry pick to 4.4]
 Signed-off-by: Jack Wang <jinpu.wang@profitbricks.com>
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 ---
- arch/x86/kernel/cpu/bugs.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/linux/fdtable.h |    5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
---- a/arch/x86/kernel/cpu/bugs.c
-+++ b/arch/x86/kernel/cpu/bugs.c
-@@ -291,7 +291,7 @@ ssize_t cpu_show_spectre_v1(struct devic
+--- a/include/linux/fdtable.h
++++ b/include/linux/fdtable.h
+@@ -9,6 +9,7 @@
+ #include <linux/compiler.h>
+ #include <linux/spinlock.h>
+ #include <linux/rcupdate.h>
++#include <linux/nospec.h>
+ #include <linux/types.h>
+ #include <linux/init.h>
+ #include <linux/fs.h>
+@@ -81,8 +82,10 @@ static inline struct file *__fcheck_file
  {
- 	if (!boot_cpu_has_bug(X86_BUG_SPECTRE_V1))
- 		return sprintf(buf, "Not affected\n");
--	return sprintf(buf, "Vulnerable\n");
-+	return sprintf(buf, "Mitigation: __user pointer sanitization\n");
+ 	struct fdtable *fdt = rcu_dereference_raw(files->fdt);
+ 
+-	if (fd < fdt->max_fds)
++	if (fd < fdt->max_fds) {
++		fd = array_index_nospec(fd, fdt->max_fds);
+ 		return rcu_dereference_raw(fdt->fd[fd]);
++	}
+ 	return NULL;
  }
  
- ssize_t cpu_show_spectre_v2(struct device *dev,
