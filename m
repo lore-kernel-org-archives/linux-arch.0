@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:40358 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:40280 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754256AbeBWSlA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Feb 2018 13:41:00 -0500
+        with ESMTP id S932672AbeBWSkv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Feb 2018 13:40:51 -0500
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 176/193] x86: Introduce barrier_nospec
-Date: Fri, 23 Feb 2018 19:26:49 +0100
-Message-ID: <20180223170353.649405309@linuxfoundation.org>
+Subject: [PATCH 4.4 173/193] Documentation: Document array_index_nospec
+Date: Fri, 23 Feb 2018 19:26:46 +0100
+Message-ID: <20180223170353.126016056@linuxfoundation.org>
 In-Reply-To: <20180223170325.997716448@linuxfoundation.org>
 References: <20180223170325.997716448@linuxfoundation.org>
 MIME-Version: 1.0
@@ -14,72 +14,131 @@ Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Tom Lendacky <thomas.lendacky@amd.com>, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jack Wang <jinpu.wang@profitbricks.com>
-Message-ID: <20180223182649.TOCAC8RuylkkfAgY1Ry0wgYTbwtt1-ISqav23nRsX-M@z>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, kernel-hardening@lists.openwall.com, torvalds@linux-foundation.org, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jack Wang <jinpu.wang@profitbricks.com>
+Message-ID: <20180223182646.tKKmfm1VBFXdZo1R_p59py7v1MFfaH8fIKwa4zOKlTM@z>
 
 4.4-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
-From: Dan Williams <dan.j.williams@intel.com>
+From: Mark Rutland <mark.rutland@arm.com>
 
-(cherry picked from commit b3d7ad85b80bbc404635dca80f5b129f6242bc7a)
+(cherry picked from commit f84a56f73dddaeac1dba8045b007f742f61cd2da)
 
-Rename the open coded form of this instruction sequence from
-rdtsc_ordered() into a generic barrier primitive, barrier_nospec().
+Document the rationale and usage of the new array_index_nospec() helper.
 
-One of the mitigations for Spectre variant1 vulnerabilities is to fence
-speculative execution after successfully validating a bounds check. I.e.
-force the result of a bounds check to resolve in the instruction pipeline
-to ensure speculative execution honors that result before potentially
-operating on out-of-bounds data.
-
-No functional changes.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Suggested-by: Andi Kleen <ak@linux.intel.com>
-Suggested-by: Ingo Molnar <mingo@redhat.com>
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 Cc: linux-arch@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: kernel-hardening@lists.openwall.com
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: gregkh@linuxfoundation.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: kernel-hardening@lists.openwall.com
+Cc: torvalds@linux-foundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727415361.33451.9049453007262764675.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727413645.33451.15878817161436755393.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 [jwang: cherry pick to 4.4]
 Signed-off-by: Jack Wang <jinpu.wang@profitbricks.com>
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 ---
- arch/x86/include/asm/barrier.h |    4 ++++
- arch/x86/include/asm/msr.h     |    3 +--
- 2 files changed, 5 insertions(+), 2 deletions(-)
+ Documentation/speculation.txt |   90 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 90 insertions(+)
+ create mode 100644 Documentation/speculation.txt
 
---- a/arch/x86/include/asm/barrier.h
-+++ b/arch/x86/include/asm/barrier.h
-@@ -48,6 +48,10 @@ static inline unsigned long array_index_
- /* Override the default implementation from linux/nospec.h. */
- #define array_index_mask_nospec array_index_mask_nospec
- 
-+/* Prevent speculative execution past this barrier. */
-+#define barrier_nospec() alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC, \
-+					   "lfence", X86_FEATURE_LFENCE_RDTSC)
+--- /dev/null
++++ b/Documentation/speculation.txt
+@@ -0,0 +1,90 @@
++This document explains potential effects of speculation, and how undesirable
++effects can be mitigated portably using common APIs.
 +
- #ifdef CONFIG_X86_PPRO_FENCE
- #define dma_rmb()	rmb()
- #else
---- a/arch/x86/include/asm/msr.h
-+++ b/arch/x86/include/asm/msr.h
-@@ -147,8 +147,7 @@ static __always_inline unsigned long lon
- 	 * that some other imaginary CPU is updating continuously with a
- 	 * time stamp.
- 	 */
--	alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC,
--			  "lfence", X86_FEATURE_LFENCE_RDTSC);
-+	barrier_nospec();
- 	return rdtsc();
- }
- 
++===========
++Speculation
++===========
++
++To improve performance and minimize average latencies, many contemporary CPUs
++employ speculative execution techniques such as branch prediction, performing
++work which may be discarded at a later stage.
++
++Typically speculative execution cannot be observed from architectural state,
++such as the contents of registers. However, in some cases it is possible to
++observe its impact on microarchitectural state, such as the presence or
++absence of data in caches. Such state may form side-channels which can be
++observed to extract secret information.
++
++For example, in the presence of branch prediction, it is possible for bounds
++checks to be ignored by code which is speculatively executed. Consider the
++following code:
++
++	int load_array(int *array, unsigned int index)
++	{
++		if (index >= MAX_ARRAY_ELEMS)
++			return 0;
++		else
++			return array[index];
++	}
++
++Which, on arm64, may be compiled to an assembly sequence such as:
++
++	CMP	<index>, #MAX_ARRAY_ELEMS
++	B.LT	less
++	MOV	<returnval>, #0
++	RET
++  less:
++	LDR	<returnval>, [<array>, <index>]
++	RET
++
++It is possible that a CPU mis-predicts the conditional branch, and
++speculatively loads array[index], even if index >= MAX_ARRAY_ELEMS. This
++value will subsequently be discarded, but the speculated load may affect
++microarchitectural state which can be subsequently measured.
++
++More complex sequences involving multiple dependent memory accesses may
++result in sensitive information being leaked. Consider the following
++code, building on the prior example:
++
++	int load_dependent_arrays(int *arr1, int *arr2, int index)
++	{
++		int val1, val2,
++
++		val1 = load_array(arr1, index);
++		val2 = load_array(arr2, val1);
++
++		return val2;
++	}
++
++Under speculation, the first call to load_array() may return the value
++of an out-of-bounds address, while the second call will influence
++microarchitectural state dependent on this value. This may provide an
++arbitrary read primitive.
++
++====================================
++Mitigating speculation side-channels
++====================================
++
++The kernel provides a generic API to ensure that bounds checks are
++respected even under speculation. Architectures which are affected by
++speculation-based side-channels are expected to implement these
++primitives.
++
++The array_index_nospec() helper in <linux/nospec.h> can be used to
++prevent information from being leaked via side-channels.
++
++A call to array_index_nospec(index, size) returns a sanitized index
++value that is bounded to [0, size) even under cpu speculation
++conditions.
++
++This can be used to protect the earlier load_array() example:
++
++	int load_array(int *array, unsigned int index)
++	{
++		if (index >= MAX_ARRAY_ELEMS)
++			return 0;
++		else {
++			index = array_index_nospec(index, MAX_ARRAY_ELEMS);
++			return array[index];
++		}
++	}
