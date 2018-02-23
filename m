@@ -1,63 +1,145 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:37513 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750798AbeBWKcd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Feb 2018 05:32:33 -0500
-MIME-Version: 1.0
-In-Reply-To: <20180222234833.GA3047@roeck-us.net>
-References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
- <20180222234833.GA3047@roeck-us.net>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Fri, 23 Feb 2018 11:32:32 +0100
-Message-ID: <CAK8P3a3Y2b-DivYz1ZqhFGUqQaiF=5SDB6RFLtCknwY2--09OQ@mail.gmail.com>
-Subject: Re: Removing architectures without upstream gcc support
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-wr0-f193.google.com ([209.85.128.193]:38547 "EHLO
+        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751089AbeBWKme (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Feb 2018 05:42:34 -0500
+Received: by mail-wr0-f193.google.com with SMTP id n7so13614345wrn.5
+        for <linux-arch@vger.kernel.org>; Fri, 23 Feb 2018 02:42:33 -0800 (PST)
+From: Jack Wang <jinpu.wang@profitbricks.com>
+Subject: [stable 4.4 10/29] Documentation: Document array_index_nospec
+Date: Fri, 23 Feb 2018 11:41:59 +0100
+Message-ID: <1519382538-15143-11-git-send-email-jinpu.wangl@profitbricks.com>
+In-Reply-To: <1519382538-15143-1-git-send-email-jinpu.wangl@profitbricks.com>
+References: <1519382538-15143-1-git-send-email-jinpu.wangl@profitbricks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Al Viro <viro@zeniv.linux.org.uk>, James Hogan <jhogan@kernel.org>, linux-metag@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org, David Howells <dhowells@redhat.com>
+To: gregkh@linuxfoundation.org, stable@vger.kernel.org
+Cc: Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, kernel-hardening@lists.openwall.com, torvalds@linux-foundation.org, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jack Wang <jinpu.wang@profitbricks.com>
+Message-ID: <20180223104159.qGcjS608K9bxGile8TkHNp_70vXy5mSB6XIpoCk4fFw@z>
 
-On Fri, Feb 23, 2018 at 12:48 AM, Guenter Roeck <linux@roeck-us.net> wrote:
-> On Thu, Feb 22, 2018 at 04:45:06PM +0100, Arnd Bergmann wrote:
->> While building the cross-toolchains, I noticed that overall, we can build almost
->> all linux target architectures with upstream binutils and gcc these days,
->> however there are still some exceptions, and I'd like to find out if anyone
->> has objections to removing the ones that do not have upstream support.
->> This are the four architectures I found:
->>
->> * score (s+core, sunplus core) was a proprietary RISC architecture
->>   made by sunplus. It is unclear if they still ship any products based on
->>   this architecture, all they list is either ARM Cortex-A9 or an unspecified
->>   RISC core that could be any of arm, mips, nds32, arc, xtensa or
->>   something completely different. The two maintainers have both left the
->>   company many years ago and have not contributed any patches in
->>   at least five years. There was an upstream gcc port, which was marked
->>   'obsolete' in 2013 and got removed in gcc-5.0.
->>   I conclude that this is dead in Linux and can be removed
->>
->> * unicore32 was a research project at Peking University with a SoC
->>   based on the Intel PXA design. No gcc source code has ever been
->>   published, the only toolchain available is a set of binaries that include
->>   a gcc-4.4 compiler. The project page at
->>   http://mprc.pku.edu.cn/~guanxuetao/linux/ has a TODO list that has
->>   not been modified since 2011. The maintainer still Acks patches
->>   and has last sent a pull request in 2014 and last sent a patch of
->>   his own in 2012 when the project appears to have stalled.
->>   I would suggest removing this one.
->>
->
-> The above two would be primary removal targets for me; they are all
-> but impossible to support given the toolchain limitations. Meta
-> would have been another one, but James is already taking care of it.
+From: Mark Rutland <mark.rutland@arm.com>
 
-Ok. Have you had any success building arch/hexagon with clang?
+(cherry picked from commit f84a56f73dddaeac1dba8045b007f742f61cd2da)
 
-Regarding the older architectures I mentioned (m32r, frv, mn10300),
-the situation is a bit different as they don't have the problems with
-build testing but they do have problems with using less of the
-standard interfaces (syscall, timer, gpio, rtc, ...), so they do add
-more to the maintenance burden without the nostalgia value of
-some of the even older architectures (parisc, alpha, m68k, ia64)
-that people maintain mainly for fun.
+Document the rationale and usage of the new array_index_nospec() helper.
 
-     Arnd
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Cc: linux-arch@vger.kernel.org
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: gregkh@linuxfoundation.org
+Cc: kernel-hardening@lists.openwall.com
+Cc: torvalds@linux-foundation.org
+Cc: alan@linux.intel.com
+Link: https://lkml.kernel.org/r/151727413645.33451.15878817161436755393.stgit@dwillia2-desk3.amr.corp.intel.com
+Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+[jwang: cherry pick to 4.4]
+Signed-off-by: Jack Wang <jinpu.wang@profitbricks.com>
+---
+ Documentation/speculation.txt | 90 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 90 insertions(+)
+ create mode 100644 Documentation/speculation.txt
+
+diff --git a/Documentation/speculation.txt b/Documentation/speculation.txt
+new file mode 100644
+index 0000000..e9e6cba
+--- /dev/null
++++ b/Documentation/speculation.txt
+@@ -0,0 +1,90 @@
++This document explains potential effects of speculation, and how undesirable
++effects can be mitigated portably using common APIs.
++
++===========
++Speculation
++===========
++
++To improve performance and minimize average latencies, many contemporary CPUs
++employ speculative execution techniques such as branch prediction, performing
++work which may be discarded at a later stage.
++
++Typically speculative execution cannot be observed from architectural state,
++such as the contents of registers. However, in some cases it is possible to
++observe its impact on microarchitectural state, such as the presence or
++absence of data in caches. Such state may form side-channels which can be
++observed to extract secret information.
++
++For example, in the presence of branch prediction, it is possible for bounds
++checks to be ignored by code which is speculatively executed. Consider the
++following code:
++
++	int load_array(int *array, unsigned int index)
++	{
++		if (index >= MAX_ARRAY_ELEMS)
++			return 0;
++		else
++			return array[index];
++	}
++
++Which, on arm64, may be compiled to an assembly sequence such as:
++
++	CMP	<index>, #MAX_ARRAY_ELEMS
++	B.LT	less
++	MOV	<returnval>, #0
++	RET
++  less:
++	LDR	<returnval>, [<array>, <index>]
++	RET
++
++It is possible that a CPU mis-predicts the conditional branch, and
++speculatively loads array[index], even if index >= MAX_ARRAY_ELEMS. This
++value will subsequently be discarded, but the speculated load may affect
++microarchitectural state which can be subsequently measured.
++
++More complex sequences involving multiple dependent memory accesses may
++result in sensitive information being leaked. Consider the following
++code, building on the prior example:
++
++	int load_dependent_arrays(int *arr1, int *arr2, int index)
++	{
++		int val1, val2,
++
++		val1 = load_array(arr1, index);
++		val2 = load_array(arr2, val1);
++
++		return val2;
++	}
++
++Under speculation, the first call to load_array() may return the value
++of an out-of-bounds address, while the second call will influence
++microarchitectural state dependent on this value. This may provide an
++arbitrary read primitive.
++
++====================================
++Mitigating speculation side-channels
++====================================
++
++The kernel provides a generic API to ensure that bounds checks are
++respected even under speculation. Architectures which are affected by
++speculation-based side-channels are expected to implement these
++primitives.
++
++The array_index_nospec() helper in <linux/nospec.h> can be used to
++prevent information from being leaked via side-channels.
++
++A call to array_index_nospec(index, size) returns a sanitized index
++value that is bounded to [0, size) even under cpu speculation
++conditions.
++
++This can be used to protect the earlier load_array() example:
++
++	int load_array(int *array, unsigned int index)
++	{
++		if (index >= MAX_ARRAY_ELEMS)
++			return 0;
++		else {
++			index = array_index_nospec(index, MAX_ARRAY_ELEMS);
++			return array[index];
++		}
++	}
+-- 
+2.7.4
