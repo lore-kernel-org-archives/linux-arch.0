@@ -1,145 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f193.google.com ([209.85.128.193]:38547 "EHLO
-        mail-wr0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751089AbeBWKme (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Feb 2018 05:42:34 -0500
-Received: by mail-wr0-f193.google.com with SMTP id n7so13614345wrn.5
-        for <linux-arch@vger.kernel.org>; Fri, 23 Feb 2018 02:42:33 -0800 (PST)
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:40256 "EHLO
+        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751454AbeBWKmg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Feb 2018 05:42:36 -0500
+Received: by mail-wm0-f65.google.com with SMTP id t82so3714179wmt.5
+        for <linux-arch@vger.kernel.org>; Fri, 23 Feb 2018 02:42:35 -0800 (PST)
 From: Jack Wang <jinpu.wang@profitbricks.com>
-Subject: [stable 4.4 10/29] Documentation: Document array_index_nospec
-Date: Fri, 23 Feb 2018 11:41:59 +0100
-Message-ID: <1519382538-15143-11-git-send-email-jinpu.wangl@profitbricks.com>
+Subject: [stable 4.4 12/29] x86: Implement array_index_mask_nospec
+Date: Fri, 23 Feb 2018 11:42:01 +0100
+Message-ID: <1519382538-15143-13-git-send-email-jinpu.wangl@profitbricks.com>
 In-Reply-To: <1519382538-15143-1-git-send-email-jinpu.wangl@profitbricks.com>
 References: <1519382538-15143-1-git-send-email-jinpu.wangl@profitbricks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: gregkh@linuxfoundation.org, stable@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, kernel-hardening@lists.openwall.com, torvalds@linux-foundation.org, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jack Wang <jinpu.wang@profitbricks.com>
-Message-ID: <20180223104159.qGcjS608K9bxGile8TkHNp_70vXy5mSB6XIpoCk4fFw@z>
+Cc: Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jack Wang <jinpu.wang@profitbricks.com>
+Message-ID: <20180223104201.-ZFe3e3PUQeufOs45QOi0_1kpy7PtfVDzX7cJRqJKdA@z>
 
-From: Mark Rutland <mark.rutland@arm.com>
+From: Dan Williams <dan.j.williams@intel.com>
 
-(cherry picked from commit f84a56f73dddaeac1dba8045b007f742f61cd2da)
+(cherry picked from commit babdde2698d482b6c0de1eab4f697cf5856c5859)
 
-Document the rationale and usage of the new array_index_nospec() helper.
+array_index_nospec() uses a mask to sanitize user controllable array
+indexes, i.e. generate a 0 mask if 'index' >= 'size', and a ~0 mask
+otherwise. While the default array_index_mask_nospec() handles the
+carry-bit from the (index - size) result in software.
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
+The x86 array_index_mask_nospec() does the same, but the carry-bit is
+handled in the processor CF flag without conditional instructions in the
+control flow.
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Reviewed-by: Kees Cook <keescook@chromium.org>
 Cc: linux-arch@vger.kernel.org
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: gregkh@linuxfoundation.org
 Cc: kernel-hardening@lists.openwall.com
-Cc: torvalds@linux-foundation.org
+Cc: gregkh@linuxfoundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727413645.33451.15878817161436755393.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727414808.33451.1873237130672785331.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-[jwang: cherry pick to 4.4]
+[jwang:chery pick to 4.4]
 Signed-off-by: Jack Wang <jinpu.wang@profitbricks.com>
 ---
- Documentation/speculation.txt | 90 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 90 insertions(+)
- create mode 100644 Documentation/speculation.txt
+ arch/x86/include/asm/barrier.h | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
-diff --git a/Documentation/speculation.txt b/Documentation/speculation.txt
-new file mode 100644
-index 0000000..e9e6cba
---- /dev/null
-+++ b/Documentation/speculation.txt
-@@ -0,0 +1,90 @@
-+This document explains potential effects of speculation, and how undesirable
-+effects can be mitigated portably using common APIs.
+diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+index 0681d25..b5028e3 100644
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -24,6 +24,30 @@
+ #define wmb()	asm volatile("sfence" ::: "memory")
+ #endif
+ 
++/**
++ * array_index_mask_nospec() - generate a mask that is ~0UL when the
++ * 	bounds check succeeds and 0 otherwise
++ * @index: array element index
++ * @size: number of elements in array
++ *
++ * Returns:
++ *     0 - (index < size)
++ */
++static inline unsigned long array_index_mask_nospec(unsigned long index,
++		unsigned long size)
++{
++	unsigned long mask;
 +
-+===========
-+Speculation
-+===========
++	asm ("cmp %1,%2; sbb %0,%0;"
++			:"=r" (mask)
++			:"r"(size),"r" (index)
++			:"cc");
++	return mask;
++}
 +
-+To improve performance and minimize average latencies, many contemporary CPUs
-+employ speculative execution techniques such as branch prediction, performing
-+work which may be discarded at a later stage.
++/* Override the default implementation from linux/nospec.h. */
++#define array_index_mask_nospec array_index_mask_nospec
 +
-+Typically speculative execution cannot be observed from architectural state,
-+such as the contents of registers. However, in some cases it is possible to
-+observe its impact on microarchitectural state, such as the presence or
-+absence of data in caches. Such state may form side-channels which can be
-+observed to extract secret information.
-+
-+For example, in the presence of branch prediction, it is possible for bounds
-+checks to be ignored by code which is speculatively executed. Consider the
-+following code:
-+
-+	int load_array(int *array, unsigned int index)
-+	{
-+		if (index >= MAX_ARRAY_ELEMS)
-+			return 0;
-+		else
-+			return array[index];
-+	}
-+
-+Which, on arm64, may be compiled to an assembly sequence such as:
-+
-+	CMP	<index>, #MAX_ARRAY_ELEMS
-+	B.LT	less
-+	MOV	<returnval>, #0
-+	RET
-+  less:
-+	LDR	<returnval>, [<array>, <index>]
-+	RET
-+
-+It is possible that a CPU mis-predicts the conditional branch, and
-+speculatively loads array[index], even if index >= MAX_ARRAY_ELEMS. This
-+value will subsequently be discarded, but the speculated load may affect
-+microarchitectural state which can be subsequently measured.
-+
-+More complex sequences involving multiple dependent memory accesses may
-+result in sensitive information being leaked. Consider the following
-+code, building on the prior example:
-+
-+	int load_dependent_arrays(int *arr1, int *arr2, int index)
-+	{
-+		int val1, val2,
-+
-+		val1 = load_array(arr1, index);
-+		val2 = load_array(arr2, val1);
-+
-+		return val2;
-+	}
-+
-+Under speculation, the first call to load_array() may return the value
-+of an out-of-bounds address, while the second call will influence
-+microarchitectural state dependent on this value. This may provide an
-+arbitrary read primitive.
-+
-+====================================
-+Mitigating speculation side-channels
-+====================================
-+
-+The kernel provides a generic API to ensure that bounds checks are
-+respected even under speculation. Architectures which are affected by
-+speculation-based side-channels are expected to implement these
-+primitives.
-+
-+The array_index_nospec() helper in <linux/nospec.h> can be used to
-+prevent information from being leaked via side-channels.
-+
-+A call to array_index_nospec(index, size) returns a sanitized index
-+value that is bounded to [0, size) even under cpu speculation
-+conditions.
-+
-+This can be used to protect the earlier load_array() example:
-+
-+	int load_array(int *array, unsigned int index)
-+	{
-+		if (index >= MAX_ARRAY_ELEMS)
-+			return 0;
-+		else {
-+			index = array_index_nospec(index, MAX_ARRAY_ELEMS);
-+			return array[index];
-+		}
-+	}
+ #ifdef CONFIG_X86_PPRO_FENCE
+ #define dma_rmb()	rmb()
+ #else
 -- 
 2.7.4
