@@ -1,68 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:43004 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751955AbeBXBF3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 23 Feb 2018 20:05:29 -0500
-Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w1O14Reg132012
-        for <linux-arch@vger.kernel.org>; Fri, 23 Feb 2018 20:05:28 -0500
-Received: from e06smtp11.uk.ibm.com (e06smtp11.uk.ibm.com [195.75.94.107])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2gaup946ae-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 23 Feb 2018 20:05:28 -0500
-Received: from localhost
-        by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <linuxram@us.ibm.com>;
-        Sat, 24 Feb 2018 01:05:26 -0000
-Date: Fri, 23 Feb 2018 17:05:11 -0800
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: Re: [PATCH v12 1/3] mm, powerpc, x86: define VM_PKEY_BITx bits if
- CONFIG_ARCH_HAS_PKEYS is enabled
-Reply-To: Ram Pai <linuxram@us.ibm.com>
-References: <1519257138-23797-2-git-send-email-linuxram@us.ibm.com>
- <201802231528.snWZIspR%fengguang.wu@intel.com>
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:39319 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751943AbeBXEEw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Feb 2018 23:04:52 -0500
+Subject: Re: Removing architectures without upstream gcc support
+References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
+ <20180222234833.GA3047@roeck-us.net>
+ <CAK8P3a3Y2b-DivYz1ZqhFGUqQaiF=5SDB6RFLtCknwY2--09OQ@mail.gmail.com>
+ <20180223154316.35b26857@alans-desktop> <20180223171019.GA1125@roeck-us.net>
+ <20180223181943.GF30522@ZenIV.linux.org.uk>
+ <1519414328.30443.29.camel@HansenPartnership.com>
+ <20180223213423.iskp7kmvy6rd52gc@angband.pl>
+From: Guenter Roeck <linux@roeck-us.net>
+Message-ID: <b4d9a9c9-f05d-4981-b03b-02ced665254e@roeck-us.net>
+Date: Fri, 23 Feb 2018 20:04:48 -0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <201802231528.snWZIspR%fengguang.wu@intel.com>
-Message-ID: <20180224010511.GK5559@ram.oc3035372033.ibm.com>
+In-Reply-To: <20180223213423.iskp7kmvy6rd52gc@angband.pl>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kbuild test robot <lkp@intel.com>
-Cc: kbuild-all@01.org, mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
-Message-ID: <20180224010511.hkG78styVtHfftglTfoJmO-4qGbZsj-xUxSjfx8qM70@z>
+To: Adam Borowski <kilobyte@angband.pl>, James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, James Hogan <jhogan@kernel.org>, linux-metag@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org, David Howells <dhowells@redhat.com>
 
-On Fri, Feb 23, 2018 at 03:11:45PM +0800, kbuild test robot wrote:
-> Hi Ram,
+On 02/23/2018 01:34 PM, Adam Borowski wrote:
+> On Fri, Feb 23, 2018 at 02:32:08PM -0500, James Bottomley wrote:
+>> On Fri, 2018-02-23 at 18:19 +0000, Al Viro wrote:
+>> [...]
+>>> IIRC, parisc/qemu stuff had been announced a while ago;
+>>
+>> I have, but it didn't work sufficiently for me to either boot a kernel
+>> using system emulation or start an architecture container using user
+>> emulation.  I'll try again now that qemu has gone through several
+>> revisions.
 > 
-> Thank you for the patch! Yet something to improve:
+> Doesn't seem to work.  Debian package (1:2.11+dfsg-1) ships hppa support but
+> it doesn't even install binfmt; otherwise, -user is functional enough for a
+> minimal executable (so arch-test reports it as working[1]), but not for
+> anything libc:
 > 
-> [auto build test ERROR on linus/master]
-> [also build test ERROR on v4.16-rc2 next-20180222]
-> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+> [/srv/chroots/hppa]# chroot . /usr/bin/qemu-hppa-static /bin/true
+> qemu-hppa-static: /build/qemu-v8TF72/qemu-2.11+dfsg/target/hppa/translate.c:422: nullify_end: Assertion `status != DISAS_NORETURN && status != DISAS_IAQ_N_UPDATED' failed.
+> Segmentation fault
 > 
->         chmod +x ~/bin/make.cross
-...snip..
->         # save the attached .config to linux build tree
->         make.cross ARCH=powerpc 
+> This looks bad enough that I didn't even look at qemu-system.
 > 
-> Note: the linux-review/Ram-Pai/mm-x86-powerpc-Enhancements-to-Memory-Protection-Keys/20180223-042743 HEAD c5692bca45543c242ffca15c811923e4c548ed19 builds fine.
->       It only hurts bisectibility.
 
-oops, it broke git-bisect on powerpc :-(
-The following change will fix it. This should nail it down.
+qemu-system-hppa support was added to qemu end of January. It seems to boot fine,
+only I lost my ability to build a root file system :-( so it may take a bit
+for me to create one.
 
-diff --git a/arch/powerpc/include/asm/pkeys.h
-b/arch/powerpc/include/asm/pkeys.h
-index 0409c80..0b3b669 100644
---- a/arch/powerpc/include/asm/pkeys.h
-+++ b/arch/powerpc/include/asm/pkeys.h
-@@ -25,6 +25,7 @@
- # define VM_PKEY_BIT1  VM_HIGH_ARCH_1
- # define VM_PKEY_BIT2  VM_HIGH_ARCH_2
- # define VM_PKEY_BIT3  VM_HIGH_ARCH_3
- # define VM_PKEY_BIT4  VM_HIGH_ARCH_4
-+#elif !defined(VM_PKEY_BIT4)
-+# define VM_PKEY_BIT4  VM_HIGH_ARCH_4
-#endif
+Guenter
