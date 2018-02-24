@@ -1,58 +1,60 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 181/193] x86/spectre: Report get_user mitigation for spectre_v1
-Date: Fri, 23 Feb 2018 19:26:54 +0100
-Message-ID: <20180223170354.510966870@linuxfoundation.org>
-References: <20180223170325.997716448@linuxfoundation.org>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [PATCH v12 1/3] mm, powerpc, x86: define VM_PKEY_BITx bits if
+ CONFIG_ARCH_HAS_PKEYS is enabled
+Date: Fri, 23 Feb 2018 17:05:11 -0800
+Message-ID: <20180224010511.GK5559@ram.oc3035372033.ibm.com>
+References: <1519257138-23797-2-git-send-email-linuxram@us.ibm.com>
+ <201802231528.snWZIspR%fengguang.wu@intel.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-11935-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20180223170325.997716448@linuxfoundation.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, torvalds@linux-foundation.org, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jack Wang <jinpu.wang@profitbricks.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Content-Disposition: inline
+In-Reply-To: <201802231528.snWZIspR%fengguang.wu@intel.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: kbuild test robot <lkp@intel.com>
+Cc: kbuild-all@01.org, msuchanek@suse.com, mhocko@kernel.org, dave.hansen@intel.com, paulus@samba.org, khandual@linux.vnet.ibm.com, linux-arch@vger.kernel.org, corbet@lwn.net, x86@kernel.org, mingo@redhat.com, bauerman@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, arnd@arndb.de, fweimer@redhat.com, linux-mm@kvack.org, linux-kernel@vger.kernel.org, ebiederm@xmission.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-4.4-stable review patch.  If anyone has any objections, please let me know.
+On Fri, Feb 23, 2018 at 03:11:45PM +0800, kbuild test robot wrote:
+> Hi Ram,
+> 
+> Thank you for the patch! Yet something to improve:
+> 
+> [auto build test ERROR on linus/master]
+> [also build test ERROR on v4.16-rc2 next-20180222]
+> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+> 
+>         chmod +x ~/bin/make.cross
+...snip..
+>         # save the attached .config to linux build tree
+>         make.cross ARCH=powerpc 
+> 
+> Note: the linux-review/Ram-Pai/mm-x86-powerpc-Enhancements-to-Memory-Protection-Keys/20180223-042743 HEAD c5692bca45543c242ffca15c811923e4c548ed19 builds fine.
+>       It only hurts bisectibility.
 
-------------------
+oops, it broke git-bisect on powerpc :-(
+The following change will fix it. This should nail it down.
 
-From: Dan Williams <dan.j.williams@intel.com>
-
-(cherry picked from commit edfbae53dab8348fca778531be9f4855d2ca0360)
-
-Reflect the presence of get_user(), __get_user(), and 'syscall' protections
-in sysfs. The expectation is that new and better tooling will allow the
-kernel to grow more usages of array_index_nospec(), for now, only claim
-mitigation for __user pointer de-references.
-
-Reported-by: Jiri Slaby <jslaby@suse.cz>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
-Cc: kernel-hardening@lists.openwall.com
-Cc: gregkh@linuxfoundation.org
-Cc: torvalds@linux-foundation.org
-Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727420158.33451.11658324346540434635.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
-[jwang: cherry pick to 4.4]
-Signed-off-by: Jack Wang <jinpu.wang@profitbricks.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- arch/x86/kernel/cpu/bugs.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
---- a/arch/x86/kernel/cpu/bugs.c
-+++ b/arch/x86/kernel/cpu/bugs.c
-@@ -291,7 +291,7 @@ ssize_t cpu_show_spectre_v1(struct devic
- {
- 	if (!boot_cpu_has_bug(X86_BUG_SPECTRE_V1))
- 		return sprintf(buf, "Not affected\n");
--	return sprintf(buf, "Vulnerable\n");
-+	return sprintf(buf, "Mitigation: __user pointer sanitization\n");
- }
- 
- ssize_t cpu_show_spectre_v2(struct device *dev,
+diff --git a/arch/powerpc/include/asm/pkeys.h
+b/arch/powerpc/include/asm/pkeys.h
+index 0409c80..0b3b669 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -25,6 +25,7 @@
+ # define VM_PKEY_BIT1  VM_HIGH_ARCH_1
+ # define VM_PKEY_BIT2  VM_HIGH_ARCH_2
+ # define VM_PKEY_BIT3  VM_HIGH_ARCH_3
+ # define VM_PKEY_BIT4  VM_HIGH_ARCH_4
++#elif !defined(VM_PKEY_BIT4)
++# define VM_PKEY_BIT4  VM_HIGH_ARCH_4
+#endif
