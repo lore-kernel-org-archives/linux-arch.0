@@ -1,36 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:36341 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751820AbeBYTjk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 25 Feb 2018 14:39:40 -0500
-Subject: Re: [OpenRISC] Removing architectures without upstream gcc support
-References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
- <20180222234833.GA3047@roeck-us.net>
- <CAK8P3a3Y2b-DivYz1ZqhFGUqQaiF=5SDB6RFLtCknwY2--09OQ@mail.gmail.com>
- <20180223154316.35b26857@alans-desktop> <20180223171019.GA1125@roeck-us.net>
- <20180223181943.GF30522@ZenIV.linux.org.uk>
-From: Richard Henderson <rth@twiddle.net>
-Message-ID: <e49978cd-3a68-85f3-0f2c-36b10076f9b9@twiddle.net>
-Date: Sun, 25 Feb 2018 11:39:36 -0800
+Received: from mout.gmx.net ([212.227.15.15]:40487 "EHLO mout.gmx.net"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751921AbeBYTuP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 25 Feb 2018 14:50:15 -0500
+Subject: Re: [PATCH 04/11] signal/parisc: Document a conflict with SI_USER
+ with SIGFPE
+References: <87373b6ghs.fsf@xmission.com>
+ <20180112005940.23279-4-ebiederm@xmission.com>
+ <20180112222944.GA22642@ls3530.fritz.box> <87fu5s4l4b.fsf@xmission.com>
+From: Helge Deller <deller@gmx.de>
+Message-ID: <68641c9e-99c6-34d3-83aa-1241bddef33c@gmx.de>
+Date: Sun, 25 Feb 2018 20:49:41 +0100
 MIME-Version: 1.0
-In-Reply-To: <20180223181943.GF30522@ZenIV.linux.org.uk>
+In-Reply-To: <87fu5s4l4b.fsf@xmission.com>
 Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>, Guenter Roeck <linux@roeck-us.net>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Alan Cox <gnomes@lxorguk.ukuu.org.uk>, Jonas Bonn <jonas@southpole.se>, Arnd Bergmann <arnd@arndb.de>, Chen Liqin <liqin.linux@gmail.com>, linux-hexagon@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>, David Howells <dhowells@redhat.com>, openrisc@lists.librecores.org, James Hogan <jhogan@kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-metag@vger.kernel.org, Lennox Wu <lennox.wu@gmail.com>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-parisc@vger.kernel.org, James Bottomley <James.Bottomley@HansenPartnership.com>, John David Anglin <dave.anglin@bell.net>, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 
-On 02/23/2018 10:19 AM, Al Viro wrote:
-> For m68k,
-> IIRC, qemu is mostly for coldfire and friends with aranym
-> working for m68k/MMU testing.
+On 23.02.2018 01:15, Eric W. Biederman wrote:
+> Helge Deller <deller@gmx.de> writes:
+> 
+>> * Eric W. Biederman <ebiederm@xmission.com>:
+>>> Setting si_code to 0 results in a userspace seeing an si_code of 0.
+>>> This is the same si_code as SI_USER.  Posix and common sense requires
+>>> that SI_USER not be a signal specific si_code.  As such this use of 0
+>>> for the si_code is a pretty horribly broken ABI.
+>>>
+>>> Further use of si_code == 0 guaranteed that copy_siginfo_to_user saw a
+>>> value of __SI_KILL and now sees a value of SIL_KILL with the result
+>>> that uid and pid fields are copied and which might copying the si_addr
+>>> field by accident but certainly not by design.  Making this a very
+>>> flakey implementation.
+>>>
+>>> Utilizing FPE_FIXME siginfo_layout will now return SIL_FAULT and the
+>>> appropriate fields will reliably be copied.
+>>>
+>>> This bug is 13 years old and parsic machines are no longer being built
+>>> so I don't know if it possible or worth fixing it.  But it is at least
+>>> worth documenting this so other architectures don't make the same
+>>> mistake.
+>>
+>>
+>> I think we should fix it, even if we now break the ABI.
+>>
+>> It's about a "conditional trap" which needs to be handled by userspace.
+>> I doubt there is any Linux code out which is utilizing this
+>> parisc-specific trap.
+>>
+>> I'd suggest to add a new FPE trap si_code (e.g. FPE_CONDTRAP).
+>> While at it, maybe we should include the already existing FPE_MDAOVF
+>> from the frv architecture, so that arch/frv/include/uapi/asm/siginfo.h
+>> can go completely.
+>>
+>> Suggested patch is below.
+>>
+>> I'm willing to test the patch below on the parisc architecture for a few
+>> weeks. And it will break arch/x86/kernel/signal_compat.c which needs
+>> looking at then too.
+> 
+> Have you managed to test this change?
 
-Laurent Vivier is in the process of fixing that upstream, it won't all make
-qemu 2.12.  He has a branch with full support for a Mac Quadra 800:
+Sadly I haven't done any further testing yet.
+ 
+> I am sitting looking at another new FPE si_code and if this has been tested
+> I figure FPE_CONDTRAP should get the next available FPE si_code and the
+> other change should get the one that follows.
 
-  https://github.com/vivier/qemu-m68k/tree/q800-dev
+I'm fine either way. Do you have a git tree I can pull which includes
+all your patches? I can then start testing.
 
-
-r~
+Helge
