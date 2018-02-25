@@ -1,61 +1,58 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: Removing architectures without upstream gcc support
-Date: Sun, 25 Feb 2018 23:50:02 +0100
-Message-ID: <20180225225002.GA6078@amd>
-References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
- <20180222234833.GA3047@roeck-us.net>
- <CAK8P3a3Y2b-DivYz1ZqhFGUqQaiF=5SDB6RFLtCknwY2--09OQ@mail.gmail.com>
- <20180223154316.35b26857@alans-desktop>
- <20180223171019.GA1125@roeck-us.net>
- <20180225202806.735a6870@alans-desktop>
+From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Subject: Re: [PATCH/RFC] headers: drop 2 #included headers from <linux/interrupt.h>
+Date: Mon, 26 Feb 2018 00:19:56 +0100
+Message-ID: <87bmgc3bdv.fsf@rasmusvillemoes.dk>
+References: <b24b9ec8-4970-65f5-759a-911d4ba2fcf0@infradead.org>
+        <20180216075942.kmgdyvmluke2s5vg@gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="ZPt4rx8FFjLCG7dd"
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180225202806.735a6870@alans-desktop>
+In-Reply-To: <20180216075942.kmgdyvmluke2s5vg@gmail.com> (Ingo Molnar's
+        message of "Fri, 16 Feb 2018 08:59:42 +0100")
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alan Cox <gnomes@lxorguk.ukuu.org.uk>
-Cc: Guenter Roeck <linux@roeck-us.net>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Al Viro <viro@zeniv.linux.org.uk>, James Hogan <jhogan@kernel.org>, linux-metag@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org, David Howells <dhowells@redhat.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Randy Dunlap <rdunlap@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Fri, Feb 16 2018, Ingo Molnar <mingo@kernel.org> wrote:
 
---ZPt4rx8FFjLCG7dd
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+> * Randy Dunlap <rdunlap@infradead.org> wrote:
+>
+>> Does anyone know or see why <linux/interrupt.h> needs <linux/linkage.h> or
+>> <linux/preempt.h>?  There are no direct uses in <linux/interrupt.h> AFAICT.
+>
+> These are likely historical, plus it's a classic 'tragedy of the commons' 
+> scenario: it's easy to take away from the "public good" of "clean header 
+> dependencies" and very hard to add to it:
+>
+>  - it's very easy to add a new #include line
+>
+>  - it's very hard to remove one, not just due to the 2^10000 complex Kconfig
+>    space, but due to 99% of the developers not testing cross-arch builds
+>    (and we don't want to require them to do it)
+>
+>  - the cost of getting the removal wrong is high (the build breaks for many 
+>    people who will be unhappy at the person removing the header), while the 
+>    benefit of the removal is low in isolation
+>
+> Then apply this dynamic for more than 20 years and we get a spaghetti:
+>
+[snip]
+>
+> I'd argue that due to the basic human dynamics here this calls for tooling help.
 
-Hi!
+I started trying to write some scripts a few years ago, but only got as
+far as doing a pass over lib/ (e.g. b8b6db17) - but doing individual .c
+files is never going to be enough; one really needs to eliminate
+#includes from header files. But then I decided that before trying to
+systematically attack that much bigger problem, I'd want some objective
+metrics to see that it actually worked. Now I finally got around to
+writing some scripts for that, so here's a visualization of
+(the evolution of) the problem:
 
-On Sun 2018-02-25 20:28:06, Alan Cox wrote:
-> > FWIW, alpha and m68k are known boot with qemu (even though m68k
-> > generates a warning traceback with the mainline kernel).
->=20
-> M68K works - people actively use it. Crazy people true 8). Alpha I
-> believe one or two people boot. I just need to track down some discs for
-> my Alpha 8)
+https://wildmoose.dk/header-bloat/
 
-I guess it would be useful to track who tested what kernel on what
-hardware ... and I created a project for
-that. Feel free to contribute: https://github.com/pavelmachek/missy --
-I'd like to get some data from "big" iron...
+I hope to find some time soonish to polish the old programs and see if
+they actually still work.
 
-									Pavel
---=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
-g.html
-
---ZPt4rx8FFjLCG7dd
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iEYEARECAAYFAlqTPZoACgkQMOfwapXb+vLKywCgk2z5SVeKJcYPKZ6cWyThLJMR
-OnQAoIPqgq/lzlii0UrakhlWdMkuYyYy
-=Tfvd
------END PGP SIGNATURE-----
-
---ZPt4rx8FFjLCG7dd--
+Rasmus
