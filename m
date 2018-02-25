@@ -1,58 +1,57 @@
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Subject: Re: [PATCH/RFC] headers: drop 2 #included headers from <linux/interrupt.h>
-Date: Mon, 26 Feb 2018 00:19:56 +0100
-Message-ID: <87bmgc3bdv.fsf@rasmusvillemoes.dk>
-References: <b24b9ec8-4970-65f5-759a-911d4ba2fcf0@infradead.org>
-        <20180216075942.kmgdyvmluke2s5vg@gmail.com>
+From: Balbir Singh <bsingharora@gmail.com>
+Subject: Re: [PATCH v12 22/22] selftests/vm: Fix deadlock in
+ protection_keys.c
+Date: Mon, 26 Feb 2018 10:19:51 +1100
+Message-ID: <20180226101951.0136f963@balbir.ozlabs.ibm.com>
+References: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
+        <1519264541-7621-23-git-send-email-linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180216075942.kmgdyvmluke2s5vg@gmail.com> (Ingo Molnar's
-        message of "Fri, 16 Feb 2018 08:59:42 +0100")
+In-Reply-To: <1519264541-7621-23-git-send-email-linuxram@us.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Randy Dunlap <rdunlap@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 16 2018, Ingo Molnar <mingo@kernel.org> wrote:
+On Wed, 21 Feb 2018 17:55:41 -0800
+Ram Pai <linuxram@us.ibm.com> wrote:
 
-> * Randy Dunlap <rdunlap@infradead.org> wrote:
+> From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+> 
+> The sig_chld() handler calls dprintf2() taking care of setting
+> dprint_in_signal so that sigsafe_printf() won't call printf().
+> Unfortunately, this precaution is is negated by dprintf_level(), which
+> has a call to fflush().
 >
->> Does anyone know or see why <linux/interrupt.h> needs <linux/linkage.h> or
->> <linux/preempt.h>?  There are no direct uses in <linux/interrupt.h> AFAICT.
->
-> These are likely historical, plus it's a classic 'tragedy of the commons' 
-> scenario: it's easy to take away from the "public good" of "clean header 
-> dependencies" and very hard to add to it:
->
->  - it's very easy to add a new #include line
->
->  - it's very hard to remove one, not just due to the 2^10000 complex Kconfig
->    space, but due to 99% of the developers not testing cross-arch builds
->    (and we don't want to require them to do it)
->
->  - the cost of getting the removal wrong is high (the build breaks for many 
->    people who will be unhappy at the person removing the header), while the 
->    benefit of the removal is low in isolation
->
-> Then apply this dynamic for more than 20 years and we get a spaghetti:
->
-[snip]
->
-> I'd argue that due to the basic human dynamics here this calls for tooling help.
 
-I started trying to write some scripts a few years ago, but only got as
-far as doing a pass over lib/ (e.g. b8b6db17) - but doing individual .c
-files is never going to be enough; one really needs to eliminate
-#includes from header files. But then I decided that before trying to
-systematically attack that much bigger problem, I'd want some objective
-metrics to see that it actually worked. Now I finally got around to
-writing some scripts for that, so here's a visualization of
-(the evolution of) the problem:
+fflush() is not the signal-safe function list, so this makes sense.
+I wonder if fflush() is needed in sigsafe_printf()?
 
-https://wildmoose.dk/header-bloat/
+How about?
 
-I hope to find some time soonish to polish the old programs and see if
-they actually still work.
+diff --git a/tools/testing/selftests/x86/pkey-helpers.h b/tools/testing/selftests/x86/pkey-helpers.h
+index b3cb7670e026..2c3b39851f10 100644
+--- a/tools/testing/selftests/x86/pkey-helpers.h
++++ b/tools/testing/selftests/x86/pkey-helpers.h
+@@ -29,6 +29,7 @@ static inline void sigsafe_printf(const char *format, ...)
+ 	va_start(ap, format);
+ 	if (!dprint_in_signal) {
+ 		vprintf(format, ap);
++		fflush(NULL);				\
+ 	} else {
+ 		int ret;
+ 		int len = vsnprintf(dprint_in_signal_buffer,
+@@ -49,7 +50,6 @@ static inline void sigsafe_printf(const char *format, ...)
+ #define dprintf_level(level, args...) do {	\
+ 	if (level <= DEBUG_LEVEL)		\
+ 		sigsafe_printf(args);		\
+-	fflush(NULL);				\
+ } while (0)
+ #define dprintf0(args...) dprintf_level(0, args)
+ #define dprintf1(args...) dprintf_level(1, args)
 
-Rasmus
+
+But both are equivalent I guess, so
+Acked-by: Balbir Singh <bsingharora@gmail.com>
