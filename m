@@ -1,95 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:52784 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751630AbeBYL53 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 25 Feb 2018 06:57:29 -0500
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w1PBsS9i053963
-        for <linux-arch@vger.kernel.org>; Sun, 25 Feb 2018 06:57:28 -0500
-Received: from e37.co.us.ibm.com (e37.co.us.ibm.com [32.97.110.158])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2gbp8w8uxh-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Sun, 25 Feb 2018 06:57:28 -0500
-Received: from localhost
-        by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
-        Sun, 25 Feb 2018 04:57:27 -0700
-Subject: Re: [PATCH v12 1/3] mm, powerpc, x86: define VM_PKEY_BITx bits if
- CONFIG_ARCH_HAS_PKEYS is enabled
-References: <1519257138-23797-2-git-send-email-linuxram@us.ibm.com>
- <201802231528.snWZIspR%fengguang.wu@intel.com>
- <20180224010511.GK5559@ram.oc3035372033.ibm.com>
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Date: Sun, 25 Feb 2018 17:27:11 +0530
+Received: from smtprelay02.ispgateway.de ([80.67.31.40]:17636 "EHLO
+        smtprelay02.ispgateway.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751634AbeBYQCK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 25 Feb 2018 11:02:10 -0500
+Subject: Re: [OpenRISC] Removing architectures without upstream gcc support
+References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
+From: Philipp Wagner <lists@philipp-wagner.com>
+Message-ID: <155284c9-7fd4-2f2c-0216-1c43622f88c3@philipp-wagner.com>
+Date: Sun, 25 Feb 2018 16:43:19 +0100
 MIME-Version: 1.0
-In-Reply-To: <20180224010511.GK5559@ram.oc3035372033.ibm.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
+In-Reply-To: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
 Content-Language: en-US
 Content-Transfer-Encoding: 7bit
-Message-ID: <43082fe4-a6e4-2468-0069-4fbc53418c79@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>, kbuild test robot <lkp@intel.com>
-Cc: kbuild-all@01.org, mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
-Message-ID: <20180225115711.DTqcEA4qG45bMusWbO0nAXQ-3hx61RZ-hDWWSh6_bJk@z>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Cc: Jonas Bonn <jonas@southpole.se>, Chen Liqin <liqin.linux@gmail.com>, linux-hexagon@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>, David Howells <dhowells@redhat.com>, openrisc@lists.librecores.org, Lennox Wu <lennox.wu@gmail.com>, James Hogan <jhogan@kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-metag@vger.kernel.org, Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>
 
+Am 22.02.2018 um 16:45 schrieb Arnd Bergmann:
+> While building the cross-toolchains, I noticed that overall, we can build almost
+> all linux target architectures with upstream binutils and gcc these days,
+> however there are still some exceptions, and I'd like to find out if anyone
+> has objections to removing the ones that do not have upstream support.
+> This are the four architectures I found:
+> [...]
+> * OpenRISC is a RISC architecture with a free license and an
+>   active community. It seems to have lost a bit of steam after RISC-V
+>   is rapidly taking over that niche, but there are chips out there and
+>   the design isn't going away. Listing it here for completeness only
+>   because there is no upstream gcc port yet, but this will hopefully
+>   change in the future based on
+>   https://lists.librecores.org/pipermail/openrisc/2018-January/000958.html
+>   and I had no problems locating the gcc-7.x tree for building my
+>   toolchains. The port is actively being maintained.
 
+It's mostly mentioned in the mailing list thread you linked to, but just
+for completeness in this thread:
 
-On 02/24/2018 06:35 AM, Ram Pai wrote:
-> On Fri, Feb 23, 2018 at 03:11:45PM +0800, kbuild test robot wrote:
->> Hi Ram,
->>
->> Thank you for the patch! Yet something to improve:
->>
->> [auto build test ERROR on linus/master]
->> [also build test ERROR on v4.16-rc2 next-20180222]
->> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
->>
->>          chmod +x ~/bin/make.cross
-> ...snip..
->>          # save the attached .config to linux build tree
->>          make.cross ARCH=powerpc
->>
->> Note: the linux-review/Ram-Pai/mm-x86-powerpc-Enhancements-to-Memory-Protection-Keys/20180223-042743 HEAD c5692bca45543c242ffca15c811923e4c548ed19 builds fine.
->>        It only hurts bisectibility.
-> 
-> oops, it broke git-bisect on powerpc :-(
-> The following change will fix it. This should nail it down.
-> 
-> diff --git a/arch/powerpc/include/asm/pkeys.h
-> b/arch/powerpc/include/asm/pkeys.h
-> index 0409c80..0b3b669 100644
-> --- a/arch/powerpc/include/asm/pkeys.h
-> +++ b/arch/powerpc/include/asm/pkeys.h
-> @@ -25,6 +25,7 @@
->   # define VM_PKEY_BIT1  VM_HIGH_ARCH_1
->   # define VM_PKEY_BIT2  VM_HIGH_ARCH_2
->   # define VM_PKEY_BIT3  VM_HIGH_ARCH_3
->   # define VM_PKEY_BIT4  VM_HIGH_ARCH_4
-> +#elif !defined(VM_PKEY_BIT4)
-> +# define VM_PKEY_BIT4  VM_HIGH_ARCH_4
-> #endif
-> 
+The OpenRISC GCC port is maintained and regularly updated to newer GCC
+versions. It is not, however, upstreamed to the FSF due to a single
+missing FSF copyright assignment from a developer who has written large
+parts of the initial port. All code which has copyright assignments in
+place (binutils, GDB, etc.) has been upstreamed lately.
 
-Why don't you remove this powerpc definition completely in this patch? 
-Also move that comment above #define. The comments are not specific to
-BIT1
+For GCC, Stafford Horne is actively working on rewriting the parts which
+we don't have the FSF copyright assignment for (and unless something
+very surprising happens, won't get). [If anyone wants to help, there's
+GSoC project for it as well:
+https://fossi-foundation.org/gsoc18-ideas#openrisc-gcc-port]
 
-@@ -231,9 +231,10 @@ extern int overcommit_kbytes_handler(struct 
-ctl_table *, int, void __user *,
-  #ifdef CONFIG_ARCH_HAS_PKEYS
-  # define VM_PKEY_SHIFT	VM_HIGH_ARCH_BIT_0
-  # define VM_PKEY_BIT0	VM_HIGH_ARCH_0	/* A protection key is a 4-bit 
-value */
--# define VM_PKEY_BIT1	VM_HIGH_ARCH_1
-+# define VM_PKEY_BIT1	VM_HIGH_ARCH_1	/* on x86 and 5-bit value on ppc64 
-   */
-  # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
-  # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
-+# define VM_PKEY_BIT4	VM_HIGH_ARCH_4
-  #endif /* CONFIG_ARCH_HAS_PKEYS */
+So I'd be very sad if the openrisc port gets dropped from Linux upstream.
 
-
-
--aneesh
+Philipp
