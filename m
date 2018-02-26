@@ -1,7 +1,7 @@
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v15 5/9] OF: Add missing I/O range exception for indirect-IO devices
-Date: Tue, 27 Feb 2018 00:40:45 +0800
-Message-ID: <1519663249-9850-6-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v15 1/9] LIB: Introduce a generic PIO mapping method
+Date: Tue, 27 Feb 2018 00:40:41 +0800
+Message-ID: <1519663249-9850-2-git-send-email-john.garry@huawei.com>
 References: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -14,189 +14,516 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Zhichang Yuan <yuanzhichang@hisilicon.com>
 
-There are some special ISA/LPC devices that work on a specific I/O range
-where it is not correct to specify a 'ranges' property in DTS parent node
-as CPU addresses translated from DTS node are only for memory space on
-some architectures, such as Arm64. Without the parent 'ranges' property,
-current of_translate_address() return an error.
-Here we add special handling for this case.
-During the OF address translation, some checking will be performed to
-identify whether the device node is registered as indirect-IO. If yes,
-the I/O translation will be done in a different way from that one of PCI
-MMIO. In this way, the I/O 'reg' property of the special ISA/LPC devices
-will be parsed correctly.
+In commit 41f8bba7f555 ("of/pci: Add pci_register_io_range() and
+pci_pio_to_address()"), a new I/O space management was supported. With
+that driver, the I/O ranges configured for PCI/PCIe hosts on some
+architectures can be mapped to logical PIO, converted easily between
+CPU address and the corresponding logicial PIO. Based on this, PCI
+I/O devices can be accessed in a memory read/write way through the
+unified in/out accessors.
+
+But on some archs/platforms, there are bus hosts which access I/O
+peripherals with host-local I/O port addresses rather than memory
+addresses after memory-mapped.
+
+To support those devices, a more generic I/O mapping method is introduced
+here. Through this patch, both the CPU addresses and the host-local port
+can be mapped into the logical PIO space with different logical/fake PIOs.
+After this, all the I/O accesses to either PCI MMIO devices or host-local
+I/O peripherals can be unified into the existing I/O accessors defined in
+asm-generic/io.h and be redirected to the right device-specific hooks
+based on the input logical PIO.
 
 Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
 Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>    #earlier draft
-Acked-by: Rob Herring <robh@kernel.org>
-Andy Shevchenko <andy.shevchenko@gmail.com>
+Signed-off-by: John Garry <john.garry@huawei.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
 Tested-by: dann frazier <dann.frazier@canonical.com>
 ---
- drivers/of/address.c | 92 +++++++++++++++++++++++++++++++++++++++++++---------
- 1 file changed, 76 insertions(+), 16 deletions(-)
+ include/asm-generic/io.h  |   2 +
+ include/linux/logic_pio.h | 127 +++++++++++++++++++++
+ lib/Kconfig               |  15 +++
+ lib/Makefile              |   2 +
+ lib/logic_pio.c           | 285 ++++++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 431 insertions(+)
+ create mode 100644 include/linux/logic_pio.h
+ create mode 100644 lib/logic_pio.c
 
-diff --git a/drivers/of/address.c b/drivers/of/address.c
-index cdf047b..c434f659 100644
---- a/drivers/of/address.c
-+++ b/drivers/of/address.c
-@@ -5,6 +5,7 @@
- #include <linux/fwnode.h>
- #include <linux/io.h>
- #include <linux/ioport.h>
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 7c6a39e..f76fbd6 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -351,6 +351,8 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
+ #define IO_SPACE_LIMIT 0xffff
+ #endif
+ 
 +#include <linux/logic_pio.h>
- #include <linux/module.h>
- #include <linux/of_address.h>
- #include <linux/pci.h>
-@@ -562,9 +563,14 @@ static int of_translate_one(struct device_node *parent, struct of_bus *bus,
-  * that translation is impossible (that is we are not dealing with a value
-  * that can be mapped to a cpu physical address). This is not really specified
-  * that way, but this is traditionally the way IBM at least do things
++
+ /*
+  * {in,out}{b,w,l}() access little endian I/O. {in,out}{b,w,l}_p() can be
+  * implemented on hardware that needs an additional delay for I/O accesses to
+diff --git a/include/linux/logic_pio.h b/include/linux/logic_pio.h
+new file mode 100644
+index 0000000..26fe14b
+--- /dev/null
++++ b/include/linux/logic_pio.h
+@@ -0,0 +1,127 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2017 Hisilicon Limited, All Rights Reserved.
++ * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
++ * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
 + *
-+ * Whenever the translation fails, the *host pointer will be set to the
-+ * device that had registered logical PIO mapping, and the return code is
-+ * relative to that node.
-  */
- static u64 __of_translate_address(struct device_node *dev,
--				  const __be32 *in_addr, const char *rprop)
-+				  const __be32 *in_addr, const char *rprop,
-+				  struct device_node **host)
- {
- 	struct device_node *parent = NULL;
- 	struct of_bus *bus, *pbus;
-@@ -577,6 +583,7 @@ static u64 __of_translate_address(struct device_node *dev,
- 	/* Increase refcount at current level */
- 	of_node_get(dev);
- 
-+	*host = NULL;
- 	/* Get parent & match bus type */
- 	parent = of_get_parent(dev);
- 	if (parent == NULL)
-@@ -597,6 +604,8 @@ static u64 __of_translate_address(struct device_node *dev,
- 
- 	/* Translate */
- 	for (;;) {
-+		struct logic_pio_hwaddr *iorange;
++ */
 +
- 		/* Switch to parent bus */
- 		of_node_put(dev);
- 		dev = parent;
-@@ -609,6 +618,19 @@ static u64 __of_translate_address(struct device_node *dev,
- 			break;
- 		}
++#ifndef __LINUX_LOGIC_PIO_H
++#define __LINUX_LOGIC_PIO_H
++
++#ifdef __KERNEL__
++
++#include <linux/fwnode.h>
++
++enum {
++	LOGIC_PIO_INDIRECT,		/* Indirect IO flag */
++	LOGIC_PIO_CPU_MMIO,		/* Memory mapped IO flag */
++};
++
++struct logic_pio_hwaddr {
++	struct list_head list;
++	struct fwnode_handle *fwnode;
++	resource_size_t hw_start;
++	resource_size_t io_start;
++	resource_size_t size; /* range size populated */
++	unsigned long flags;
++
++	void *hostdata;
++	const struct logic_pio_host_ops *ops;
++};
++
++struct logic_pio_host_ops {
++	u32 (*in)(void *hostdata, unsigned long addr, size_t dwidth);
++	void (*out)(void *hostdata, unsigned long addr, u32 val,
++		    size_t dwidth);
++	u32 (*ins)(void *hostdata, unsigned long addr, void *buffer,
++		   size_t dwidth, unsigned int count);
++	void (*outs)(void *hostdata, unsigned long addr, const void *buffer,
++		     size_t dwidth, unsigned int count);
++};
++
++#ifdef CONFIG_INDIRECT_PIO
++u8 logic_inb(unsigned long addr);
++void logic_outb(u8 value, unsigned long addr);
++void logic_outw(u16 value, unsigned long addr);
++void logic_outl(u32 value, unsigned long addr);
++u16 logic_inw(unsigned long addr);
++u32 logic_inl(unsigned long addr);
++void logic_outb(u8 value, unsigned long addr);
++void logic_outw(u16 value, unsigned long addr);
++void logic_outl(u32 value, unsigned long addr);
++void logic_insb(unsigned long addr, void *buffer, unsigned int count);
++void logic_insl(unsigned long addr, void *buffer, unsigned int count);
++void logic_insw(unsigned long addr, void *buffer, unsigned int count);
++void logic_outsb(unsigned long addr, const void *buffer, unsigned int count);
++void logic_outsw(unsigned long addr, const void *buffer, unsigned int count);
++void logic_outsl(unsigned long addr, const void *buffer, unsigned int count);
++
++#ifndef inb
++#define inb logic_inb
++#endif
++
++#ifndef inw
++#define inw logic_inw
++#endif
++
++#ifndef inl
++#define inl logic_inl
++#endif
++
++#ifndef outb
++#define outb logic_outb
++#endif
++
++#ifndef outw
++#define outw logic_outw
++#endif
++
++#ifndef outl
++#define outl logic_outl
++#endif
++
++#ifndef insb
++#define insb logic_insb
++#endif
++
++#ifndef insw
++#define insw logic_insw
++#endif
++
++#ifndef insl
++#define insl logic_insl
++#endif
++
++#ifndef outsb
++#define outsb logic_outsb
++#endif
++
++#ifndef outsw
++#define outsw logic_outsw
++#endif
++
++#ifndef outsl
++#define outsl logic_outsl
++#endif
++
++/*
++ * Below we reserve 0x4000 bytes for Indirect IO as so far this library is only
++ * used by Hisilicon LPC Host. If needed in future we may reserve a wider IO
++ * area by redefining the macro below.
++ */
++#define PIO_INDIRECT_SIZE 0x4000
++#define MMIO_UPPER_LIMIT (IO_SPACE_LIMIT - PIO_INDIRECT_SIZE)
++#else
++#define MMIO_UPPER_LIMIT IO_SPACE_LIMIT
++#endif /* CONFIG_INDIRECT_PIO */
++
++struct logic_pio_hwaddr *find_io_range_by_fwnode(struct fwnode_handle *fwnode);
++unsigned long logic_pio_trans_hwaddr(struct fwnode_handle *fwnode,
++			resource_size_t hw_addr, resource_size_t size);
++int logic_pio_register_range(struct logic_pio_hwaddr *newrange);
++extern resource_size_t logic_pio_to_hwaddr(unsigned long pio);
++extern unsigned long logic_pio_trans_cpuaddr(resource_size_t hw_addr);
++
++#endif /* __KERNEL__ */
++#endif /* __LINUX_LOGIC_PIO_H */
+diff --git a/lib/Kconfig b/lib/Kconfig
+index e960894..d9dd02c 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -55,6 +55,21 @@ config ARCH_USE_CMPXCHG_LOCKREF
+ config ARCH_HAS_FAST_MULTIPLIER
+ 	bool
  
-+		/*
-+		 * For indirectIO device which has no ranges property, get
-+		 * the address from reg directly.
-+		 */
-+		iorange = find_io_range_by_fwnode(&dev->fwnode);
-+		if (iorange && (iorange->flags != LOGIC_PIO_CPU_MMIO)) {
-+			result = of_read_number(addr + 1, na - 1);
-+			pr_debug("indirectIO matched(%pOF) 0x%llx\n",
-+				 dev, result);
-+			*host = of_node_get(dev);
-+			break;
-+		}
++config INDIRECT_PIO
++	bool "Access I/O in non-MMIO mode"
++	depends on ARM64
++	help
++	  On some platforms where no separate I/O space exists, there are I/O
++	  hosts which can not be accessed in MMIO mode. Using the logical PIO
++	  mechanism, the host-local I/O resource can be mapped into system
++	  logic PIO space shared with MMIO hosts, such as PCI/PCIE, then the
++	  system can access the I/O devices with the mapped logic PIO through
++	  I/O accessors.
++	  This way has relatively little I/O performance cost. Please make
++	  sure your devices really need this configure item enabled.
 +
- 		/* Get new parent bus and counts */
- 		pbus = of_match_bus(parent);
- 		pbus->count_cells(dev, &pna, &pns);
-@@ -640,13 +662,32 @@ static u64 __of_translate_address(struct device_node *dev,
++	  When in doubt, say N.
++
+ config CRC_CCITT
+ 	tristate "CRC-CCITT functions"
+ 	help
+diff --git a/lib/Makefile b/lib/Makefile
+index a90d4fc..4a9eacd 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -81,6 +81,8 @@ obj-$(CONFIG_HAS_IOMEM) += iomap_copy.o devres.o
+ obj-$(CONFIG_CHECK_SIGNATURE) += check_signature.o
+ obj-$(CONFIG_DEBUG_LOCKING_API_SELFTESTS) += locking-selftest.o
  
- u64 of_translate_address(struct device_node *dev, const __be32 *in_addr)
- {
--	return __of_translate_address(dev, in_addr, "ranges");
-+	struct device_node *host;
-+	u64 ret;
++obj-y += logic_pio.o
 +
-+	ret = __of_translate_address(dev, in_addr, "ranges", &host);
-+	if (host) {
-+		of_node_put(host);
-+		return OF_BAD_ADDR;
-+	}
-+
-+	return ret;
- }
- EXPORT_SYMBOL(of_translate_address);
+ obj-$(CONFIG_GENERIC_HWEIGHT) += hweight.o
  
- u64 of_translate_dma_address(struct device_node *dev, const __be32 *in_addr)
- {
--	return __of_translate_address(dev, in_addr, "dma-ranges");
-+	struct device_node *host;
-+	u64 ret;
+ obj-$(CONFIG_BTREE) += btree.o
+diff --git a/lib/logic_pio.c b/lib/logic_pio.c
+new file mode 100644
+index 0000000..fd52d55
+--- /dev/null
++++ b/lib/logic_pio.c
+@@ -0,0 +1,285 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2017 Hisilicon Limited, All Rights Reserved.
++ * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
++ * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
++ *
++ */
 +
-+	ret = __of_translate_address(dev, in_addr, "dma-ranges", &host);
++#define pr_fmt(fmt)	"LOGIC PIO: " fmt
 +
-+	if (host) {
-+		of_node_put(host);
-+		return OF_BAD_ADDR;
-+	}
++#include <linux/of.h>
++#include <linux/io.h>
++#include <linux/logic_pio.h>
++#include <linux/mm.h>
++#include <linux/rculist.h>
++#include <linux/sizes.h>
++#include <linux/slab.h>
 +
-+	return ret;
- }
- EXPORT_SYMBOL(of_translate_dma_address);
- 
-@@ -688,29 +729,48 @@ const __be32 *of_get_address(struct device_node *dev, int index, u64 *size,
- }
- EXPORT_SYMBOL(of_get_address);
- 
-+static u64 of_translate_ioport(struct device_node *dev, const __be32 *in_addr,
-+			u64 size)
++/* The unique hardware address list. */
++static LIST_HEAD(io_range_list);
++static DEFINE_MUTEX(io_range_mutex);
++
++/**
++ * logic_pio_register_range - register logical PIO range for a host
++ * @new_range: pointer to the io range to be registered.
++ *
++ * returns 0 on success, the error code in case of failure
++ *
++ * Register a new io range node in the io range list.
++ */
++int logic_pio_register_range(struct logic_pio_hwaddr *new_range)
 +{
-+	u64 taddr;
-+	unsigned long port;
-+	struct device_node *host;
++	struct logic_pio_hwaddr *range;
++	resource_size_t start = new_range->hw_start;
++	resource_size_t end = new_range->hw_start + new_range->size;
++	resource_size_t allocated_mmio_size = 0;
++	resource_size_t allocated_iio_size = MMIO_UPPER_LIMIT;
++	int ret = 0;
 +
-+	taddr = __of_translate_address(dev, in_addr, "ranges", &host);
-+	if (host) {
-+		/* host specific port access */
-+		port = logic_pio_trans_hwaddr(&host->fwnode, taddr, size);
-+		of_node_put(host);
-+	} else {
-+		/* memory mapped I/O range */
-+		port = pci_address_to_pio(taddr);
++	if (!new_range || !new_range->fwnode || !new_range->size)
++		return -EINVAL;
++
++	mutex_lock(&io_range_mutex);
++	list_for_each_entry_rcu(range, &io_range_list, list) {
++		if (range->fwnode == new_range->fwnode) {
++			/* range already there */
++			ret = -EFAULT;
++			goto end_register;
++		}
++		if (range->flags == LOGIC_PIO_CPU_MMIO &&
++				new_range->flags == LOGIC_PIO_CPU_MMIO) {
++			/* for MMIO ranges we need to check for overlap */
++			if (start >= range->hw_start + range->size ||
++			    end < range->hw_start)
++				allocated_mmio_size += range->size;
++			else {
++				ret = -EFAULT;
++				goto end_register;
++			}
++		} else if (range->flags == LOGIC_PIO_INDIRECT &&
++			   new_range->flags == LOGIC_PIO_INDIRECT) {
++			allocated_iio_size += range->size;
++		}
 +	}
 +
-+	if (port == (unsigned long)-1)
-+		return OF_BAD_ADDR;
++	/* range not registered yet, check for available space */
++	if (new_range->flags == LOGIC_PIO_CPU_MMIO) {
++		if (allocated_mmio_size + new_range->size - 1 >
++			MMIO_UPPER_LIMIT) {
++			/* if it's too big check if 64K space can be reserved */
++			if (allocated_mmio_size + SZ_64K - 1 >
++			MMIO_UPPER_LIMIT) {
++				ret = -E2BIG;
++				goto end_register;
++			}
++			new_range->size = SZ_64K;
++			pr_warn("Requested IO range too big, new size set to 64K\n");
++		}
++		new_range->io_start = allocated_mmio_size;
++	} else if (new_range->flags == LOGIC_PIO_INDIRECT) {
++		if (allocated_iio_size + new_range->size - 1 >
++		    IO_SPACE_LIMIT) {
++			ret = -E2BIG;
++			goto end_register;
++		}
++		new_range->io_start = allocated_iio_size;
++	} else {
++		/* invalid flag */
++		ret = -EINVAL;
++		goto end_register;
++	}
 +
-+	return port;
++	list_add_tail_rcu(&new_range->list, &io_range_list);
++
++end_register:
++	mutex_unlock(&io_range_mutex);
++	return ret;
 +}
 +
- static int __of_address_to_resource(struct device_node *dev,
- 		const __be32 *addrp, u64 size, unsigned int flags,
- 		const char *name, struct resource *r)
- {
- 	u64 taddr;
- 
--	if ((flags & (IORESOURCE_IO | IORESOURCE_MEM)) == 0)
-+	if (flags & IORESOURCE_MEM)
-+		taddr = of_translate_address(dev, addrp);
-+	else if (flags & IORESOURCE_IO)
-+		taddr = of_translate_ioport(dev, addrp, size);
-+	else
- 		return -EINVAL;
--	taddr = of_translate_address(dev, addrp);
++/**
++ * find_io_range_by_fwnode - find logical PIO range for given FW node
++ * @fwnode: FW node handle associated with logical PIO range
++ *
++ * Returns pointer to node on success, NULL otherwise
++ *
++ * Traverse the io_range_list to find the registered node whose device node
++ * and/or physical IO address match to.
++ */
++struct logic_pio_hwaddr *find_io_range_by_fwnode(struct fwnode_handle *fwnode)
++{
++	struct logic_pio_hwaddr *range;
 +
- 	if (taddr == OF_BAD_ADDR)
- 		return -EINVAL;
- 	memset(r, 0, sizeof(struct resource));
--	if (flags & IORESOURCE_IO) {
--		unsigned long port;
--		port = pci_address_to_pio(taddr);
--		if (port == (unsigned long)-1)
--			return -EINVAL;
--		r->start = port;
--		r->end = port + size - 1;
--	} else {
--		r->start = taddr;
--		r->end = taddr + size - 1;
--	}
++	list_for_each_entry_rcu(range, &io_range_list, list) {
++		if (range->fwnode == fwnode)
++			return range;
++	}
++	return NULL;
++}
 +
-+	r->start = taddr;
-+	r->end = taddr + size - 1;
- 	r->flags = flags;
- 	r->name = name ? name : dev->full_name;
- 
++/* Return a registered range given an input PIO token */
++static struct logic_pio_hwaddr *find_io_range(unsigned long pio)
++{
++	struct logic_pio_hwaddr *range;
++
++	list_for_each_entry_rcu(range, &io_range_list, list) {
++		if (pio >= range->io_start &&
++		    pio < range->io_start + range->size)
++			return range;
++	}
++	pr_err("PIO entry token invalid\n");
++	return NULL;
++}
++
++/**
++ * logic_pio_to_hwaddr - translate logical PIO to HW address
++ * @pio: logical PIO value
++ *
++ * Returns HW address if valid, -1 otherwise
++ *
++ * Translate the input logical pio to the corresponding hardware address.
++ * The input pio should be unique in the whole logical PIO space.
++ */
++resource_size_t logic_pio_to_hwaddr(unsigned long pio)
++{
++	struct logic_pio_hwaddr *range;
++	resource_size_t hwaddr = (resource_size_t)-1;
++
++	range = find_io_range(pio);
++	if (range)
++		hwaddr = range->hw_start + pio - range->io_start;
++
++	return hwaddr;
++}
++
++/**
++ * logic_pio_trans_hwaddr - translate HW address to logical PIO
++ * @fwnode: FW node reference for the host
++ * @addr: Host-relative HW address
++ * @size: size to translate
++ *
++ * Returns Logical PIO value if successful, ~0UL otherwise
++ */
++unsigned long
++logic_pio_trans_hwaddr(struct fwnode_handle *fwnode, resource_size_t addr,
++		       resource_size_t size)
++{
++	struct logic_pio_hwaddr *range;
++
++	range = find_io_range_by_fwnode(fwnode);
++	if (!range || range->flags == LOGIC_PIO_CPU_MMIO) {
++		pr_err("range not found or invalid\n");
++		return ~0UL;
++	}
++	if (range->size < size) {
++		pr_err("resource size %pa cannot fit in IO range size %pa\n",
++		       &size, &range->size);
++		return ~0UL;
++	}
++	return addr - range->hw_start + range->io_start;
++}
++
++unsigned long
++logic_pio_trans_cpuaddr(resource_size_t addr)
++{
++	struct logic_pio_hwaddr *range;
++
++	list_for_each_entry_rcu(range, &io_range_list, list) {
++		if (range->flags != LOGIC_PIO_CPU_MMIO)
++			continue;
++		if (addr >= range->hw_start &&
++		    addr < range->hw_start + range->size)
++			return addr - range->hw_start +
++				range->io_start;
++	}
++	pr_err("addr not registered in io_range_list\n");
++	return ~0UL;
++}
++
++#if defined(CONFIG_INDIRECT_PIO) && defined(PCI_IOBASE)
++#define BUILD_LOGIC_IO(bw, type)					\
++type logic_in##bw(unsigned long addr)					\
++{									\
++	type ret = (type)~0;						\
++									\
++	if (addr < MMIO_UPPER_LIMIT) {					\
++		ret = read##bw(PCI_IOBASE + addr);			\
++	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) { \
++		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
++									\
++		if (entry && entry->ops)				\
++			ret = entry->ops->in(entry->hostdata,		\
++					addr, sizeof(type));		\
++		else							\
++			WARN_ON_ONCE(1);				\
++	}								\
++	return ret;							\
++}									\
++									\
++void logic_out##bw(type value, unsigned long addr)			\
++{									\
++	if (addr < MMIO_UPPER_LIMIT) {					\
++		write##bw(value, PCI_IOBASE + addr);			\
++	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
++		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
++									\
++		if (entry && entry->ops)				\
++			entry->ops->out(entry->hostdata,		\
++					addr, value, sizeof(type));	\
++		else							\
++			WARN_ON_ONCE(1);				\
++	}								\
++}									\
++									\
++void logic_ins##bw(unsigned long addr, void *buffer,		\
++		   unsigned int count)					\
++{									\
++	if (addr < MMIO_UPPER_LIMIT) {					\
++		reads##bw(PCI_IOBASE + addr, buffer, count);		\
++	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
++		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
++									\
++		if (entry && entry->ops)				\
++			entry->ops->ins(entry->hostdata,		\
++				addr, buffer, sizeof(type), count);	\
++		else							\
++			WARN_ON_ONCE(1);				\
++	}								\
++									\
++}									\
++									\
++void logic_outs##bw(unsigned long addr, const void *buffer,		\
++		    unsigned int count)					\
++{									\
++	if (addr < MMIO_UPPER_LIMIT) {					\
++		writes##bw(PCI_IOBASE + addr, buffer, count);		\
++	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
++		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
++									\
++		if (entry && entry->ops)				\
++			entry->ops->outs(entry->hostdata,		\
++				addr, buffer, sizeof(type), count);	\
++		else							\
++			WARN_ON_ONCE(1);				\
++	}								\
++}
++
++BUILD_LOGIC_IO(b, u8)
++EXPORT_SYMBOL(logic_inb);
++EXPORT_SYMBOL(logic_insb);
++EXPORT_SYMBOL(logic_outb);
++EXPORT_SYMBOL(logic_outsb);
++
++BUILD_LOGIC_IO(w, u16)
++EXPORT_SYMBOL(logic_inw);
++EXPORT_SYMBOL(logic_insw);
++EXPORT_SYMBOL(logic_outw);
++EXPORT_SYMBOL(logic_outsw);
++
++BUILD_LOGIC_IO(l, u32)
++EXPORT_SYMBOL(logic_inl);
++EXPORT_SYMBOL(logic_insl);
++EXPORT_SYMBOL(logic_outl);
++EXPORT_SYMBOL(logic_outsl);
++
++#endif /* CONFIG_INDIRECT_PIO && PCI_IOBASE */
 -- 
 1.9.1
