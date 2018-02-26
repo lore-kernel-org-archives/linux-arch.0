@@ -1,7 +1,7 @@
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v15 8/9] HISI LPC: Add ACPI support
-Date: Tue, 27 Feb 2018 00:40:48 +0800
-Message-ID: <1519663249-9850-9-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v15 5/9] OF: Add missing I/O range exception for indirect-IO devices
+Date: Tue, 27 Feb 2018 00:40:45 +0800
+Message-ID: <1519663249-9850-6-git-send-email-john.garry@huawei.com>
 References: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,285 +12,191 @@ To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.co
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-Based on the previous patches, this patch supports the
-LPC host on hip06/hip07 for ACPI FW.
+From: Zhichang Yuan <yuanzhichang@hisilicon.com>
 
-It is the responsibility of the LPC host driver to
-enumerate the child devices, as the ACPI scan code will
-not enumerate children of "indirect IO" hosts.
+There are some special ISA/LPC devices that work on a specific I/O range
+where it is not correct to specify a 'ranges' property in DTS parent node
+as CPU addresses translated from DTS node are only for memory space on
+some architectures, such as Arm64. Without the parent 'ranges' property,
+current of_translate_address() return an error.
+Here we add special handling for this case.
+During the OF address translation, some checking will be performed to
+identify whether the device node is registered as indirect-IO. If yes,
+the I/O translation will be done in a different way from that one of PCI
+MMIO. In this way, the I/O 'reg' property of the special ISA/LPC devices
+will be parsed correctly.
 
-The ACPI table for the LPC host controller and the child
-devices is in the following format:
-  Device (LPC0) {
-    Name (_HID, "HISI0191")  // HiSi LPC
-    Name (_CRS, ResourceTemplate () {
-      Memory32Fixed (ReadWrite, 0xa01b0000, 0x1000)
-    })
-  }
-
-  Device (LPC0.IPMI) {
-    Name (_HID, "IPI0001")
-    Name (LORS, ResourceTemplate() {
-      QWordIO (
-        ResourceConsumer,
-	MinNotFixed,     // _MIF
-	MaxNotFixed,     // _MAF
-	PosDecode,
-	EntireRange,
-	0x0,             // _GRA
-	0xe4,            // _MIN
-	0x3fff,          // _MAX
-	0x0,             // _TRA
-	0x04,            // _LEN
-	, ,
-	BTIO
-      )
-    })
-
-Since the IO resources of the child devices need to be
-translated from LPC bus addresses to logical PIO addresses,
-and we shouldn't modify the resources of the devices
-generated in the FW scan, a per-child MFD is created as
-a substitute. The MFD IO resources will be the translated
-bus addresses of the ACPI child.
-
-Signed-off-by: John Garry <john.garry@huawei.com>
 Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
 Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>    #earlier draft
+Acked-by: Rob Herring <robh@kernel.org>
+Andy Shevchenko <andy.shevchenko@gmail.com>
 Tested-by: dann frazier <dann.frazier@canonical.com>
 ---
- drivers/bus/hisi_lpc.c | 197 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 197 insertions(+)
+ drivers/of/address.c | 92 +++++++++++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 76 insertions(+), 16 deletions(-)
 
-diff --git a/drivers/bus/hisi_lpc.c b/drivers/bus/hisi_lpc.c
-index c2f3c14..0c7c1ec 100644
---- a/drivers/bus/hisi_lpc.c
-+++ b/drivers/bus/hisi_lpc.c
-@@ -12,6 +12,7 @@
- #include <linux/delay.h>
+diff --git a/drivers/of/address.c b/drivers/of/address.c
+index cdf047b..c434f659 100644
+--- a/drivers/of/address.c
++++ b/drivers/of/address.c
+@@ -5,6 +5,7 @@
+ #include <linux/fwnode.h>
  #include <linux/io.h>
- #include <linux/logic_pio.h>
-+#include <linux/mfd/core.h>
+ #include <linux/ioport.h>
++#include <linux/logic_pio.h>
  #include <linux/module.h>
- #include <linux/of.h>
  #include <linux/of_address.h>
-@@ -353,6 +354,199 @@ static void hisi_lpc_comm_out(void *hostdata, unsigned long pio,
- 	.outs = hisi_lpc_comm_outs,
- };
+ #include <linux/pci.h>
+@@ -562,9 +563,14 @@ static int of_translate_one(struct device_node *parent, struct of_bus *bus,
+  * that translation is impossible (that is we are not dealing with a value
+  * that can be mapped to a cpu physical address). This is not really specified
+  * that way, but this is traditionally the way IBM at least do things
++ *
++ * Whenever the translation fails, the *host pointer will be set to the
++ * device that had registered logical PIO mapping, and the return code is
++ * relative to that node.
+  */
+ static u64 __of_translate_address(struct device_node *dev,
+-				  const __be32 *in_addr, const char *rprop)
++				  const __be32 *in_addr, const char *rprop,
++				  struct device_node **host)
+ {
+ 	struct device_node *parent = NULL;
+ 	struct of_bus *bus, *pbus;
+@@ -577,6 +583,7 @@ static u64 __of_translate_address(struct device_node *dev,
+ 	/* Increase refcount at current level */
+ 	of_node_get(dev);
  
-+#ifdef CONFIG_ACPI
-+#define MFD_CHILD_NAME_PREFIX DRV_NAME"-"
-+#define MFD_CHILD_NAME_LEN (ACPI_ID_LEN + sizeof(MFD_CHILD_NAME_PREFIX))
++	*host = NULL;
+ 	/* Get parent & match bus type */
+ 	parent = of_get_parent(dev);
+ 	if (parent == NULL)
+@@ -597,6 +604,8 @@ static u64 __of_translate_address(struct device_node *dev,
+ 
+ 	/* Translate */
+ 	for (;;) {
++		struct logic_pio_hwaddr *iorange;
 +
-+struct hisi_lpc_mfd_cell {
-+	struct mfd_cell_acpi_match acpi_match;
-+	char name[MFD_CHILD_NAME_LEN];
-+	char pnpid[ACPI_ID_LEN];
-+};
-+
-+static int hisi_lpc_acpi_xlat_io_res(struct acpi_device *adev,
-+				     struct acpi_device *host,
-+				     struct resource *res)
-+{
-+	unsigned long sys_port;
-+	resource_size_t len = res->end - res->start;
-+
-+	sys_port = logic_pio_trans_hwaddr(&host->fwnode, res->start, len);
-+	if (sys_port == ~0UL)
-+		return -EFAULT;
-+
-+	res->start = sys_port;
-+	res->end = sys_port + len;
-+
-+	return 0;
-+}
-+
-+/*
-+ * hisi_lpc_acpi_set_io_res - set the resources for a child's MFD
-+ * @child: the device node to be updated the I/O resource
-+ * @hostdev: the device node associated with host controller
-+ * @res: double pointer to be set to the address of translated resources
-+ * @num_res: pointer to variable to hold the number of translated resources
-+ *
-+ * Returns 0 when successful, and a negative value for failure.
-+ *
-+ * For a given host controller, each child device will have an associated
-+ * host-relative address resource. This function will return the translated
-+ * logical PIO addresses for each child devices resources.
-+ */
-+static int hisi_lpc_acpi_set_io_res(struct device *child,
-+				    struct device *hostdev,
-+				    const struct resource **res,
-+				    int *num_res)
-+{
-+	struct acpi_device *adev;
-+	struct acpi_device *host;
-+	struct resource_entry *rentry;
-+	LIST_HEAD(resource_list);
-+	struct resource *resources;
-+	int count;
-+	int i;
-+
-+	if (!child || !hostdev)
-+		return -EINVAL;
-+
-+	host = to_acpi_device(hostdev);
-+	adev = to_acpi_device(child);
-+
-+	/* check the device state */
-+	if (!adev->status.present) {
-+		dev_dbg(child, "device is not present\n");
-+		return -EIO;
-+	}
-+	/* whether the child had been enumerated? */
-+	if (acpi_device_enumerated(adev)) {
-+		dev_dbg(child, "has been enumerated\n");
-+		return -EIO;
-+	}
-+
-+	/*
-+	 * The following code segment to retrieve the resources is common to
-+	 * acpi_create_platform_device(), so consider a common helper function
-+	 * in future.
-+	 */
-+	count = acpi_dev_get_resources(adev, &resource_list, NULL, NULL);
-+	if (count <= 0) {
-+		dev_dbg(child, "failed to get resources\n");
-+		return count ? count : -EIO;
-+	}
-+
-+	resources = devm_kcalloc(hostdev, count, sizeof(*resources),
-+				 GFP_KERNEL);
-+	if (!resources) {
-+		dev_warn(hostdev, "could not allocate memory for %d resources\n",
-+			 count);
-+		acpi_dev_free_resource_list(&resource_list);
-+		return -ENOMEM;
-+	}
-+	count = 0;
-+	list_for_each_entry(rentry, &resource_list, node)
-+		resources[count++] = *rentry->res;
-+
-+	acpi_dev_free_resource_list(&resource_list);
-+
-+	/* translate the I/O resources */
-+	for (i = 0; i < count; i++) {
-+		int ret;
-+
-+		if (!(resources[i].flags & IORESOURCE_IO))
-+			continue;
-+		ret = hisi_lpc_acpi_xlat_io_res(adev, host, &resources[i]);
-+		if (ret) {
-+			dev_err(child, "translate IO range failed(%d)\n", ret);
-+			return ret;
+ 		/* Switch to parent bus */
+ 		of_node_put(dev);
+ 		dev = parent;
+@@ -609,6 +618,19 @@ static u64 __of_translate_address(struct device_node *dev,
+ 			break;
+ 		}
+ 
++		/*
++		 * For indirectIO device which has no ranges property, get
++		 * the address from reg directly.
++		 */
++		iorange = find_io_range_by_fwnode(&dev->fwnode);
++		if (iorange && (iorange->flags != LOGIC_PIO_CPU_MMIO)) {
++			result = of_read_number(addr + 1, na - 1);
++			pr_debug("indirectIO matched(%pOF) 0x%llx\n",
++				 dev, result);
++			*host = of_node_get(dev);
++			break;
 +		}
++
+ 		/* Get new parent bus and counts */
+ 		pbus = of_match_bus(parent);
+ 		pbus->count_cells(dev, &pna, &pns);
+@@ -640,13 +662,32 @@ static u64 __of_translate_address(struct device_node *dev,
+ 
+ u64 of_translate_address(struct device_node *dev, const __be32 *in_addr)
+ {
+-	return __of_translate_address(dev, in_addr, "ranges");
++	struct device_node *host;
++	u64 ret;
++
++	ret = __of_translate_address(dev, in_addr, "ranges", &host);
++	if (host) {
++		of_node_put(host);
++		return OF_BAD_ADDR;
 +	}
-+	*res = resources;
-+	*num_res = count;
 +
-+	return 0;
-+}
++	return ret;
+ }
+ EXPORT_SYMBOL(of_translate_address);
+ 
+ u64 of_translate_dma_address(struct device_node *dev, const __be32 *in_addr)
+ {
+-	return __of_translate_address(dev, in_addr, "dma-ranges");
++	struct device_node *host;
++	u64 ret;
 +
-+/*
-+ * hisi_lpc_acpi_probe - probe children for ACPI FW
-+ * @hostdev: LPC host device pointer
-+ *
-+ * Returns 0 when successful, and a negative value for failure.
-+ *
-+ * Scan all child devices and create a per-device MFD with
-+ * logical PIO translated IO resources.
-+ */
-+static int hisi_lpc_acpi_probe(struct device *hostdev)
++	ret = __of_translate_address(dev, in_addr, "dma-ranges", &host);
++
++	if (host) {
++		of_node_put(host);
++		return OF_BAD_ADDR;
++	}
++
++	return ret;
+ }
+ EXPORT_SYMBOL(of_translate_dma_address);
+ 
+@@ -688,29 +729,48 @@ const __be32 *of_get_address(struct device_node *dev, int index, u64 *size,
+ }
+ EXPORT_SYMBOL(of_get_address);
+ 
++static u64 of_translate_ioport(struct device_node *dev, const __be32 *in_addr,
++			u64 size)
 +{
-+	struct acpi_device *adev = ACPI_COMPANION(hostdev);
-+	struct hisi_lpc_mfd_cell *hisi_lpc_mfd_cells;
-+	struct mfd_cell *mfd_cells;
-+	struct acpi_device *child;
-+	int size, ret, count = 0, cell_num = 0;
++	u64 taddr;
++	unsigned long port;
++	struct device_node *host;
 +
-+	list_for_each_entry(child, &adev->children, node)
-+		cell_num++;
-+
-+	/* allocate the mfd cell and companion acpi info, one per child */
-+	size = sizeof(*mfd_cells) + sizeof(*hisi_lpc_mfd_cells);
-+	mfd_cells = devm_kcalloc(hostdev, cell_num, size, GFP_KERNEL);
-+	if (!mfd_cells)
-+		return -ENOMEM;
-+
-+	hisi_lpc_mfd_cells = (struct hisi_lpc_mfd_cell *)
-+					&mfd_cells[cell_num];
-+	/* Only consider the children of the host */
-+	list_for_each_entry(child, &adev->children, node) {
-+		struct mfd_cell *mfd_cell = &mfd_cells[count];
-+		struct hisi_lpc_mfd_cell *hisi_lpc_mfd_cell =
-+					&hisi_lpc_mfd_cells[count];
-+		struct mfd_cell_acpi_match *acpi_match =
-+					&hisi_lpc_mfd_cell->acpi_match;
-+		char *name = hisi_lpc_mfd_cell[count].name;
-+		char *pnpid = hisi_lpc_mfd_cell[count].pnpid;
-+		struct mfd_cell_acpi_match match = {
-+			.pnpid = pnpid,
-+		};
-+
-+		snprintf(name, MFD_CHILD_NAME_LEN, MFD_CHILD_NAME_PREFIX"%s",
-+			 acpi_device_hid(child));
-+		snprintf(pnpid, ACPI_ID_LEN, "%s", acpi_device_hid(child));
-+
-+		memcpy(acpi_match, &match, sizeof(*acpi_match));
-+		mfd_cell->name = name;
-+		mfd_cell->acpi_match = acpi_match;
-+
-+		ret = hisi_lpc_acpi_set_io_res(&child->dev, &adev->dev,
-+					       &mfd_cell->resources,
-+					       &mfd_cell->num_resources);
-+		if (ret) {
-+			dev_warn(&child->dev, "set resource fail(%d)\n", ret);
-+			return ret;
-+		}
-+		count++;
++	taddr = __of_translate_address(dev, in_addr, "ranges", &host);
++	if (host) {
++		/* host specific port access */
++		port = logic_pio_trans_hwaddr(&host->fwnode, taddr, size);
++		of_node_put(host);
++	} else {
++		/* memory mapped I/O range */
++		port = pci_address_to_pio(taddr);
 +	}
 +
-+	ret = mfd_add_devices(hostdev, PLATFORM_DEVID_NONE,
-+			      mfd_cells, cell_num, NULL, 0, NULL);
-+	if (ret) {
-+		dev_err(hostdev, "failed to add mfd cells (%d)\n", ret);
-+		return ret;
-+	}
++	if (port == (unsigned long)-1)
++		return OF_BAD_ADDR;
 +
-+	return 0;
++	return port;
 +}
 +
-+static const struct acpi_device_id hisi_lpc_acpi_match[] = {
-+	{"HISI0191"},
-+	{}
-+};
-+#else
-+static int hisi_lpc_acpi_probe(struct device *dev)
-+{
-+	return -ENODEV;
-+}
-+#endif // CONFIG_ACPI
-+
- /*
-  * hisi_lpc_probe - the probe callback function for hisi lpc host,
-  *		   will finish all the initialization.
-@@ -397,6 +591,8 @@ static int hisi_lpc_probe(struct platform_device *pdev)
- 	/* register the LPC host PIO resources */
- 	if (!acpi_device)
- 		ret = of_platform_populate(dev->of_node, NULL, NULL, dev);
+ static int __of_address_to_resource(struct device_node *dev,
+ 		const __be32 *addrp, u64 size, unsigned int flags,
+ 		const char *name, struct resource *r)
+ {
+ 	u64 taddr;
+ 
+-	if ((flags & (IORESOURCE_IO | IORESOURCE_MEM)) == 0)
++	if (flags & IORESOURCE_MEM)
++		taddr = of_translate_address(dev, addrp);
++	else if (flags & IORESOURCE_IO)
++		taddr = of_translate_ioport(dev, addrp, size);
 +	else
-+		ret = hisi_lpc_acpi_probe(dev);
- 	if (ret)
- 		return ret;
+ 		return -EINVAL;
+-	taddr = of_translate_address(dev, addrp);
++
+ 	if (taddr == OF_BAD_ADDR)
+ 		return -EINVAL;
+ 	memset(r, 0, sizeof(struct resource));
+-	if (flags & IORESOURCE_IO) {
+-		unsigned long port;
+-		port = pci_address_to_pio(taddr);
+-		if (port == (unsigned long)-1)
+-			return -EINVAL;
+-		r->start = port;
+-		r->end = port + size - 1;
+-	} else {
+-		r->start = taddr;
+-		r->end = taddr + size - 1;
+-	}
++
++	r->start = taddr;
++	r->end = taddr + size - 1;
+ 	r->flags = flags;
+ 	r->name = name ? name : dev->full_name;
  
-@@ -420,6 +616,7 @@ static int hisi_lpc_probe(struct platform_device *pdev)
- 	.driver = {
- 		.name           = DRV_NAME,
- 		.of_match_table = hisi_lpc_of_match,
-+		.acpi_match_table = ACPI_PTR(hisi_lpc_acpi_match),
- 	},
- 	.probe = hisi_lpc_probe,
- };
 -- 
 1.9.1
