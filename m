@@ -1,83 +1,131 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay08.ispgateway.de ([134.119.228.107]:3642 "EHLO
-        smtprelay08.ispgateway.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752420AbeBZMfT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Feb 2018 07:35:19 -0500
-Subject: Re: [OpenRISC] Removing architectures without upstream gcc support
-References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
- <155284c9-7fd4-2f2c-0216-1c43622f88c3@philipp-wagner.com>
- <CAK8P3a1Pd5+mGocnpQyPNYEqqqwpDJAb+FnWS6OJxuO1d-R=2A@mail.gmail.com>
-From: Philipp Wagner <lists@philipp-wagner.com>
-Message-ID: <57602e7e-a9c6-3480-7e99-7d274e836ed6@philipp-wagner.com>
-Date: Mon, 26 Feb 2018 13:10:44 +0100
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:37062 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751935AbeBZN6V (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Feb 2018 08:58:21 -0500
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a1Pd5+mGocnpQyPNYEqqqwpDJAb+FnWS6OJxuO1d-R=2A@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20171208160640.13125-1-thomas.petazzoni@free-electrons.com>
+References: <20171208160640.13125-1-thomas.petazzoni@free-electrons.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Mon, 26 Feb 2018 14:58:20 +0100
+Message-ID: <CAMuHMdWXXTJm8jmhusKdNziAFuiComxHcdb9jCa_Q5xCotRu_w@mail.gmail.com>
+Subject: Re: [PATCH] drivers/sh: clk: drop "const" qualifier in I/O read wrappers
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, Chen Liqin <liqin.linux@gmail.com>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>, David Howells <dhowells@redhat.com>, openrisc@lists.librecores.org, Lennox Wu <lennox.wu@gmail.com>, James Hogan <jhogan@kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, "open list:METAG ARCHITECTURE" <linux-metag@vger.kernel.org>, Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>, whitequark@whitequark.org
-Message-ID: <20180226121044.GNH6itF5lFNDNMqdzIw2Qj9ZWY01ZPZMxMMrQfLIb7s@z>
+To: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, Linux-sh list <linux-sh@vger.kernel.org>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On 02/26/2018 09:00 AM, Arnd Bergmann wrote:
-> On Sun, Feb 25, 2018 at 4:43 PM, Philipp Wagner
-> <lists@philipp-wagner.com> wrote:
->> Am 22.02.2018 um 16:45 schrieb Arnd Bergmann:
->>> While building the cross-toolchains, I noticed that overall, we can build almost
->>> all linux target architectures with upstream binutils and gcc these days,
->>> however there are still some exceptions, and I'd like to find out if anyone
->>> has objections to removing the ones that do not have upstream support.
->>> This are the four architectures I found:
->>> [...]
->>> * OpenRISC is a RISC architecture with a free license and an
->>>    active community. It seems to have lost a bit of steam after RISC-V
->>>    is rapidly taking over that niche, but there are chips out there and
->>>    the design isn't going away. Listing it here for completeness only
->>>    because there is no upstream gcc port yet, but this will hopefully
->>>    change in the future based on
->>>    https://lists.librecores.org/pipermail/openrisc/2018-January/000958.html
->>>    and I had no problems locating the gcc-7.x tree for building my
->>>    toolchains. The port is actively being maintained.
->>
->> It's mostly mentioned in the mailing list thread you linked to, but just
->> for completeness in this thread:
->>
->> The OpenRISC GCC port is maintained and regularly updated to newer GCC
->> versions. It is not, however, upstreamed to the FSF due to a single
->> missing FSF copyright assignment from a developer who has written large
->> parts of the initial port. All code which has copyright assignments in
->> place (binutils, GDB, etc.) has been upstreamed lately.
->>
->> For GCC, Stafford Horne is actively working on rewriting the parts which
->> we don't have the FSF copyright assignment for (and unless something
->> very surprising happens, won't get). [If anyone wants to help, there's
->> GSoC project for it as well:
->> https://fossi-foundation.org/gsoc18-ideas#openrisc-gcc-port]
->>
->> So I'd be very sad if the openrisc port gets dropped from Linux upstream.
-> 
-> Yes, definitely. What I was really trying to say here is I consider openrisc
-> an obvious exception to the 'no more ports without upstream gcc' rule
-> because of the above.
-> 
-> On a related note, has anyone successfully built an openrisc kernel with
-> llvm/clang? As we discussed for arch/hexagon/, that architecture is unlikely
-> to ever get an upstream gcc port, but like openrisc does have an upstream
-> llvm port and they actually use that.
+On Fri, Dec 8, 2017 at 5:06 PM, Thomas Petazzoni
+<thomas.petazzoni@free-electrons.com> wrote:
+> The r8/r16/r32 wrappers around ioread8/ioread16/ioread32 take "const
+> void __iomem *" pointers, but ioread8/ioread16/ioread32 as defined in
+> <asm-generic/iomap.h> don't take const pointers. This causes a warning
+> when building cpg.c:
+>
+>   CC      net/ipv4/inet_fragment.o
+> drivers/sh/clk/cpg.c: In function =E2=80=98r8=E2=80=99:
+> drivers/sh/clk/cpg.c:41:17: warning: passing argument 1 of =E2=80=98iorea=
+d8=E2=80=99 discards =E2=80=98const=E2=80=99 qualifier from pointer target =
+type [-Wdiscarded-qualifiers]
+>   return ioread8(addr);
+>                  ^~~~
+> In file included from arch/sh/include/asm/io.h:21:0,
+>                  from include/linux/io.h:25,
+>                  from drivers/sh/clk/cpg.c:14:
+> include/asm-generic/iomap.h:29:21: note: expected =E2=80=98void *=E2=80=
+=99 but argument is of type =E2=80=98const void *=E2=80=99
+>  extern unsigned int ioread8(void __iomem *);
+>                      ^~~~~~~
+> drivers/sh/clk/cpg.c: In function =E2=80=98r16=E2=80=99:
+> drivers/sh/clk/cpg.c:46:18: warning: passing argument 1 of =E2=80=98iorea=
+d16=E2=80=99 discards =E2=80=98const=E2=80=99 qualifier from pointer target=
+ type [-Wdiscarded-qualifiers]
+>   return ioread16(addr);
+>                   ^~~~
+> In file included from arch/sh/include/asm/io.h:21:0,
+>                  from include/linux/io.h:25,
+>                  from drivers/sh/clk/cpg.c:14:
+> include/asm-generic/iomap.h:30:21: note: expected =E2=80=98void *=E2=80=
+=99 but argument is of type =E2=80=98const void *=E2=80=99
+>  extern unsigned int ioread16(void __iomem *);
+>                      ^~~~~~~~
+> drivers/sh/clk/cpg.c: In function =E2=80=98r32=E2=80=99:
+> drivers/sh/clk/cpg.c:51:18: warning: passing argument 1 of =E2=80=98iorea=
+d32=E2=80=99 discards =E2=80=98const=E2=80=99 qualifier from pointer target=
+ type [-Wdiscarded-qualifiers]
+>   return ioread32(addr);
+>                   ^~~~
+> In file included from arch/sh/include/asm/io.h:21:0,
+>                  from include/linux/io.h:25,
+>                  from drivers/sh/clk/cpg.c:14:
+> include/asm-generic/iomap.h:32:21: note: expected =E2=80=98void *=E2=80=
+=99 but argument is of type =E2=80=98const void *=E2=80=99
+>  extern unsigned int ioread32(void __iomem *);
+>
+> To fix this, we simply drop the const qualifiers in the definitions of
+> r8/r16/r32. Changing the prototypes of ioread8/ioread16/ioread32 would
+> be a much bigger adventure.
+>
+> Signed-off-by: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
 
-Actually the LLVM port of or1k isn't upstream either. CCing whitequark, 
-who might know more about the (non-)plans of getting the backend 
-upstream. I also don't know of anyone having tried to build the openrisc 
-kernel with LLVM, would certainly be an interesting thing to try.
+Hmm: io.h and iomap.h seem to disagree:
 
-> I know that x86 and arm64 mostly work with llvm, arm32 works in some of
-> the more common configurations at least (not big-endian or older CPUs
-> though) and some others probably work as well. I have already build both
-> gcc-5.5 and gcc-7.3 for openrisc and uploaded those to
-> https://www.kernel.org/pub/tools/crosstool/files/bin/, but if llvm works as
-> well, that could be one more reason to try to build a working set of
-> clang based cross toolchains.
+include/asm-generic/io.h:static inline u8 ioread8(const volatile void
+__iomem *addr)
+include/asm-generic/iomap.h:extern unsigned int ioread8(void __iomem *);
 
-Philipp
+> ---
+>  drivers/sh/clk/cpg.c | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
+>
+> diff --git a/drivers/sh/clk/cpg.c b/drivers/sh/clk/cpg.c
+> index 7442bc130055..87de622a0767 100644
+> --- a/drivers/sh/clk/cpg.c
+> +++ b/drivers/sh/clk/cpg.c
+> @@ -36,17 +36,17 @@ static void sh_clk_write(int value, struct clk *clk)
+>                 iowrite32(value, clk->mapped_reg);
+>  }
+>
+> -static unsigned int r8(const void __iomem *addr)
+> +static unsigned int r8(void __iomem *addr)
+>  {
+>         return ioread8(addr);
+>  }
+>
+> -static unsigned int r16(const void __iomem *addr)
+> +static unsigned int r16(void __iomem *addr)
+>  {
+>         return ioread16(addr);
+>  }
+>
+> -static unsigned int r32(const void __iomem *addr)
+> +static unsigned int r32(void __iomem *addr)
+>  {
+>         return ioread32(addr);
+>  }
+> @@ -55,7 +55,7 @@ static int sh_clk_mstp_enable(struct clk *clk)
+>  {
+>         sh_clk_write(sh_clk_read(clk) & ~(1 << clk->enable_bit), clk);
+>         if (clk->status_reg) {
+> -               unsigned int (*read)(const void __iomem *addr);
+> +               unsigned int (*read)(void __iomem *addr);
+>                 int i;
+>                 void __iomem *mapped_status =3D (phys_addr_t)clk->status_=
+reg -
+>                         (phys_addr_t)clk->enable_reg + clk->mapped_reg;
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k=
+.org
+
+In personal conversations with technical people, I call myself a hacker. Bu=
+t
+when I'm talking to journalists I just say "programmer" or something like t=
+hat.
+                                -- Linus Torvalds
