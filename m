@@ -1,7 +1,7 @@
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v15 4/9] PCI: Apply the new generic I/O management on PCI IO hosts
-Date: Tue, 27 Feb 2018 00:40:44 +0800
-Message-ID: <1519663249-9850-5-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v15 3/9] PCI: Add fwnode handler as input param of pci_register_io_range()
+Date: Tue, 27 Feb 2018 00:40:43 +0800
+Message-ID: <1519663249-9850-4-git-send-email-john.garry@huawei.com>
 References: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,179 +12,108 @@ To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.co
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-From: Zhichang Yuan <yuanzhichang@hisilicon.com>
+From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
 
-After introducing the new generic I/O space management(Logical PIO), the
-original PCI MMIO relevant helpers need to be updated based on the new
-interfaces defined in logical PIO.
-This patch adapts the corresponding code to match the changes introduced
-by logical PIO.
+In preparation for having the PCI MMIO helpers to use the new generic
+I/O space management(logical PIO) we need to add the fwnode handler as
+extra input parameter.
+This patch changes the signature of pci_register_io_range() and of
+its callers as needed.
 
-Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
 Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>        #earlier draft
 Acked-by: Bjorn Helgaas <bhelgaas@google.com>
+Acked-by: Rob Herring <robh@kernel.org>
 Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
 Tested-by: dann frazier <dann.frazier@canonical.com>
 ---
- drivers/pci/pci.c        | 92 +++++++++---------------------------------------
- include/asm-generic/io.h |  2 +-
- 2 files changed, 18 insertions(+), 76 deletions(-)
+ drivers/acpi/pci_root.c | 8 +++++---
+ drivers/of/address.c    | 4 +++-
+ drivers/pci/pci.c       | 3 ++-
+ include/linux/pci.h     | 3 ++-
+ 4 files changed, 12 insertions(+), 6 deletions(-)
 
+diff --git a/drivers/acpi/pci_root.c b/drivers/acpi/pci_root.c
+index 6fc204a..1213479 100644
+--- a/drivers/acpi/pci_root.c
++++ b/drivers/acpi/pci_root.c
+@@ -729,7 +729,8 @@ static void acpi_pci_root_validate_resources(struct device *dev,
+ 	}
+ }
+ 
+-static void acpi_pci_root_remap_iospace(struct resource_entry *entry)
++static void acpi_pci_root_remap_iospace(struct fwnode_handle *fwnode,
++			struct resource_entry *entry)
+ {
+ #ifdef PCI_IOBASE
+ 	struct resource *res = entry->res;
+@@ -738,7 +739,7 @@ static void acpi_pci_root_remap_iospace(struct resource_entry *entry)
+ 	resource_size_t length = resource_size(res);
+ 	unsigned long port;
+ 
+-	if (pci_register_io_range(cpu_addr, length))
++	if (pci_register_io_range(fwnode, cpu_addr, length))
+ 		goto err;
+ 
+ 	port = pci_address_to_pio(cpu_addr);
+@@ -780,7 +781,8 @@ int acpi_pci_probe_root_resources(struct acpi_pci_root_info *info)
+ 	else {
+ 		resource_list_for_each_entry_safe(entry, tmp, list) {
+ 			if (entry->res->flags & IORESOURCE_IO)
+-				acpi_pci_root_remap_iospace(entry);
++				acpi_pci_root_remap_iospace(&device->fwnode,
++						entry);
+ 
+ 			if (entry->res->flags & IORESOURCE_DISABLED)
+ 				resource_list_destroy_entry(entry);
+diff --git a/drivers/of/address.c b/drivers/of/address.c
+index ce4d3d8..cdf047b 100644
+--- a/drivers/of/address.c
++++ b/drivers/of/address.c
+@@ -2,6 +2,7 @@
+ #define pr_fmt(fmt)	"OF: " fmt
+ 
+ #include <linux/device.h>
++#include <linux/fwnode.h>
+ #include <linux/io.h>
+ #include <linux/ioport.h>
+ #include <linux/module.h>
+@@ -333,7 +334,8 @@ int of_pci_range_to_resource(struct of_pci_range *range,
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+ 		unsigned long port;
+-		err = pci_register_io_range(range->cpu_addr, range->size);
++		err = pci_register_io_range(&np->fwnode, range->cpu_addr,
++				range->size);
+ 		if (err)
+ 			goto invalid_range;
+ 		port = pci_address_to_pio(range->cpu_addr);
 diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index 07290a3..83a263f 100644
+index 4666a01..07290a3 100644
 --- a/drivers/pci/pci.c
 +++ b/drivers/pci/pci.c
-@@ -22,6 +22,7 @@
- #include <linux/spinlock.h>
- #include <linux/string.h>
- #include <linux/log2.h>
-+#include <linux/logic_pio.h>
- #include <linux/pci-aspm.h>
- #include <linux/pm_wakeup.h>
- #include <linux/interrupt.h>
-@@ -3440,17 +3441,6 @@ int pci_request_regions_exclusive(struct pci_dev *pdev, const char *res_name)
- }
- EXPORT_SYMBOL(pci_request_regions_exclusive);
- 
--#ifdef PCI_IOBASE
--struct io_range {
--	struct list_head list;
--	phys_addr_t start;
--	resource_size_t size;
--};
--
--static LIST_HEAD(io_range_list);
--static DEFINE_SPINLOCK(io_range_lock);
--#endif
--
- /*
+@@ -3455,7 +3455,8 @@ struct io_range {
   * Record the PCI IO range (expressed as CPU physical address + size).
   * Return a negative value if an error has occured, zero otherwise
-@@ -3458,51 +3448,28 @@ struct io_range {
- int pci_register_io_range(struct fwnode_handle *fwnode, phys_addr_t addr,
- 			resource_size_t	size)
+  */
+-int pci_register_io_range(phys_addr_t addr, resource_size_t size)
++int pci_register_io_range(struct fwnode_handle *fwnode, phys_addr_t addr,
++			resource_size_t	size)
  {
--	int err = 0;
--
-+	int ret = 0;
- #ifdef PCI_IOBASE
--	struct io_range *range;
--	resource_size_t allocated_size = 0;
--
--	/* check if the range hasn't been previously recorded */
--	spin_lock(&io_range_lock);
--	list_for_each_entry(range, &io_range_list, list) {
--		if (addr >= range->start && addr + size <= range->start + size) {
--			/* range already registered, bail out */
--			goto end_register;
--		}
--		allocated_size += range->size;
--	}
-+	struct logic_pio_hwaddr *range;
+ 	int err = 0;
  
--	/* range not registed yet, check for available space */
--	if (allocated_size + size - 1 > IO_SPACE_LIMIT) {
--		/* if it's too big check if 64K space can be reserved */
--		if (allocated_size + SZ_64K - 1 > IO_SPACE_LIMIT) {
--			err = -E2BIG;
--			goto end_register;
--		}
--
--		size = SZ_64K;
--		pr_warn("Requested IO range too big, new size set to 64K\n");
--	}
-+	if (!size || addr + size < addr)
-+		return -EINVAL;
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 25b7a35..17cc998 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1221,7 +1221,8 @@ int __must_check pci_bus_alloc_resource(struct pci_bus *bus,
+ 			void *alignf_data);
  
--	/* add the range to the list */
- 	range = kzalloc(sizeof(*range), GFP_ATOMIC);
--	if (!range) {
--		err = -ENOMEM;
--		goto end_register;
--	}
-+	if (!range)
-+		return -ENOMEM;
  
--	range->start = addr;
-+	range->fwnode = fwnode;
- 	range->size = size;
-+	range->hw_start = addr;
-+	range->flags = LOGIC_PIO_CPU_MMIO;
- 
--	list_add_tail(&range->list, &io_range_list);
--
--end_register:
--	spin_unlock(&io_range_lock);
-+	ret = logic_pio_register_range(range);
-+	if (ret)
-+		kfree(range);
- #endif
- 
--	return err;
-+	return ret;
- }
- 
- phys_addr_t pci_pio_to_address(unsigned long pio)
-@@ -3510,21 +3477,10 @@ phys_addr_t pci_pio_to_address(unsigned long pio)
- 	phys_addr_t address = (phys_addr_t)OF_BAD_ADDR;
- 
- #ifdef PCI_IOBASE
--	struct io_range *range;
--	resource_size_t allocated_size = 0;
--
--	if (pio > IO_SPACE_LIMIT)
-+	if (pio >= MMIO_UPPER_LIMIT)
- 		return address;
- 
--	spin_lock(&io_range_lock);
--	list_for_each_entry(range, &io_range_list, list) {
--		if (pio >= allocated_size && pio < allocated_size + range->size) {
--			address = range->start + pio - allocated_size;
--			break;
--		}
--		allocated_size += range->size;
--	}
--	spin_unlock(&io_range_lock);
-+	address = logic_pio_to_hwaddr(pio);
- #endif
- 
- 	return address;
-@@ -3533,21 +3489,7 @@ phys_addr_t pci_pio_to_address(unsigned long pio)
- unsigned long __weak pci_address_to_pio(phys_addr_t address)
- {
- #ifdef PCI_IOBASE
--	struct io_range *res;
--	resource_size_t offset = 0;
--	unsigned long addr = -1;
--
--	spin_lock(&io_range_lock);
--	list_for_each_entry(res, &io_range_list, list) {
--		if (address >= res->start && address < res->start + res->size) {
--			addr = address - res->start + offset;
--			break;
--		}
--		offset += res->size;
--	}
--	spin_unlock(&io_range_lock);
--
--	return addr;
-+	return logic_pio_trans_cpuaddr(address);
- #else
- 	if (address > IO_SPACE_LIMIT)
- 		return (unsigned long)-1;
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index f76fbd6..0016413 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -901,7 +901,7 @@ static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
- #define ioport_map ioport_map
- static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
- {
--	return PCI_IOBASE + (port & IO_SPACE_LIMIT);
-+	return PCI_IOBASE + (port & MMIO_UPPER_LIMIT);
- }
- #endif
- 
+-int pci_register_io_range(phys_addr_t addr, resource_size_t size);
++int pci_register_io_range(struct fwnode_handle *fwnode, phys_addr_t addr,
++			resource_size_t size);
+ unsigned long pci_address_to_pio(phys_addr_t addr);
+ phys_addr_t pci_pio_to_address(unsigned long pio);
+ int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr);
 -- 
 1.9.1
