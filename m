@@ -1,7 +1,7 @@
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v15 9/9] MAINTAINERS: Add maintainer for HiSilicon LPC driver
-Date: Tue, 27 Feb 2018 00:40:49 +0800
-Message-ID: <1519663249-9850-10-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v15 7/9] ACPI / scan: do not enumerate Indirect IO host children
+Date: Tue, 27 Feb 2018 00:40:47 +0800
+Message-ID: <1519663249-9850-8-git-send-email-john.garry@huawei.com>
 References: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,30 +12,70 @@ To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.co
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-Added maintainer for drivers/bus/hisi_lpc.c
+Through the logical PIO framework systems which otherwise have
+no IO space access to legacy ISA/LPC devices may access these
+devices through so-called "indirect IO" method. In this, IO
+space accesses for non-PCI hosts are redirected to a host
+LLDD to manually generate the IO space (bus) accesses. Hosts
+are able to register a region in logical PIO space to map to
+its bus address range.
+
+Indirect IO child devices have an associated host-specific bus
+address. Special translation is required to map between
+a logical PIO address for a device and it's host bus address.
+
+Since in the ACPI tables the child device IO resources would
+be the host-specific values, it is required the ACPI scan code
+should not enumerate these devices, and that this should be
+the responsibility of the host driver so that it can "fixup"
+the resources so that they map to the appropriate logical PIO
+addresses.
+
+To avoid enumerating these child devices, we check whether
+the parent for a device is a member of a known list of
+"indirect IO" hosts. For now, the HiSilicon LPC host
+controller ID is added.
+
+To flag a device to not be enumerated, we reuse the existing
+serial bus slave flag.
 
 Signed-off-by: John Garry <john.garry@huawei.com>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Tested-by: dann frazier <dann.frazier@canonical.com>
 ---
- MAINTAINERS | 7 +++++++
- 1 file changed, 7 insertions(+)
+ drivers/acpi/scan.c | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 8c2320e1..ef5c38a 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -6401,6 +6401,13 @@ W:	http://www.hisilicon.com
- S:	Maintained
- F:	drivers/net/ethernet/hisilicon/hns3/
+diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
+index 8e63d93..c1a60852 100644
+--- a/drivers/acpi/scan.c
++++ b/drivers/acpi/scan.c
+@@ -1524,11 +1524,25 @@ static int acpi_check_serial_bus_slave(struct acpi_resource *ares, void *data)
+ 	return -1;
+ }
  
-+HISILICON LPC BUS DRIVER
-+M:	john.garry@huawei.com
-+W:	http://www.hisilicon.com
-+S:	Maintained
-+F:	drivers/bus/hisi_lpc.c
-+F:	Documentation/devicetree/bindings/arm/hisilicon/hisilicon-low-pin-count.txt
++static bool acpi_is_indirect_io_slave(struct acpi_device *device)
++{
++	struct acpi_device *parent = device->parent;
++	const struct acpi_device_id indirect_io_hosts[] = {
++		{"HISI0191", 0},
++		{}
++	};
 +
- HISILICON NETWORK SUBSYSTEM DRIVER
- M:	Yisen Zhuang <yisen.zhuang@huawei.com>
- M:	Salil Mehta <salil.mehta@huawei.com>
++	return parent && !acpi_match_device_ids(parent, indirect_io_hosts);
++}
++
+ static bool acpi_is_serial_bus_slave(struct acpi_device *device)
+ {
+ 	struct list_head resource_list;
+ 	bool is_serial_bus_slave = false;
+ 
++	if (acpi_is_indirect_io_slave(device))
++		return true;
++
+ 	/* Macs use device properties in lieu of _CRS resources */
+ 	if (x86_apple_machine &&
+ 	    (fwnode_property_present(&device->fwnode, "spiSclkPeriod") ||
 -- 
 1.9.1
