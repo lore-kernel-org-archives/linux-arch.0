@@ -1,207 +1,195 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga07-in.huawei.com ([45.249.212.35]:49599 "EHLO huawei.com"
-        rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751707AbeBZPuN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Feb 2018 10:50:13 -0500
-From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v15 5/9] OF: Add missing I/O range exception for indirect-IO devices
-Date: Tue, 27 Feb 2018 00:40:45 +0800
-Message-ID: <1519663249-9850-6-git-send-email-john.garry@huawei.com>
-In-Reply-To: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
-References: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:55676 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752879AbeBZUot (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Feb 2018 15:44:49 -0500
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: arc: mm->mmap_sem gets locked in do_page_fault() in case of OOM
+ killer invocation
+Date: Mon, 26 Feb 2018 20:44:44 +0000
+Message-ID: <1519677883.2997.21.camel@synopsys.com>
+References: <1518784830.3544.33.camel@synopsys.com>
+In-Reply-To: <1518784830.3544.33.camel@synopsys.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <6AB982F5A0BDC648B8C39D449D7EA544@internal.synopsys.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com
-Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
-Message-ID: <20180226164045.fG9eMUgXZWPorOj2TQPTK6tjofcAjFHilxKy_wvMKHo@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Message-ID: <20180226204444.CfxzDIv-lvSxUtzJOLQFckhrtYO5YcjlFBKSa7jzY10@z>
 
-From: Zhichang Yuan <yuanzhichang@hisilicon.com>
-
-There are some special ISA/LPC devices that work on a specific I/O range
-where it is not correct to specify a 'ranges' property in DTS parent node
-as CPU addresses translated from DTS node are only for memory space on
-some architectures, such as Arm64. Without the parent 'ranges' property,
-current of_translate_address() return an error.
-Here we add special handling for this case.
-During the OF address translation, some checking will be performed to
-identify whether the device node is registered as indirect-IO. If yes,
-the I/O translation will be done in a different way from that one of PCI
-MMIO. In this way, the I/O 'reg' property of the special ISA/LPC devices
-will be parsed correctly.
-
-Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
-Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>    #earlier draft
-Acked-by: Rob Herring <robh@kernel.org>
-Andy Shevchenko <andy.shevchenko@gmail.com>
-Tested-by: dann frazier <dann.frazier@canonical.com>
----
- drivers/of/address.c | 92 +++++++++++++++++++++++++++++++++++++++++++---------
- 1 file changed, 76 insertions(+), 16 deletions(-)
-
-diff --git a/drivers/of/address.c b/drivers/of/address.c
-index cdf047b..c434f659 100644
---- a/drivers/of/address.c
-+++ b/drivers/of/address.c
-@@ -5,6 +5,7 @@
- #include <linux/fwnode.h>
- #include <linux/io.h>
- #include <linux/ioport.h>
-+#include <linux/logic_pio.h>
- #include <linux/module.h>
- #include <linux/of_address.h>
- #include <linux/pci.h>
-@@ -562,9 +563,14 @@ static int of_translate_one(struct device_node *parent, struct of_bus *bus,
-  * that translation is impossible (that is we are not dealing with a value
-  * that can be mapped to a cpu physical address). This is not really specified
-  * that way, but this is traditionally the way IBM at least do things
-+ *
-+ * Whenever the translation fails, the *host pointer will be set to the
-+ * device that had registered logical PIO mapping, and the return code is
-+ * relative to that node.
-  */
- static u64 __of_translate_address(struct device_node *dev,
--				  const __be32 *in_addr, const char *rprop)
-+				  const __be32 *in_addr, const char *rprop,
-+				  struct device_node **host)
- {
- 	struct device_node *parent = NULL;
- 	struct of_bus *bus, *pbus;
-@@ -577,6 +583,7 @@ static u64 __of_translate_address(struct device_node *dev,
- 	/* Increase refcount at current level */
- 	of_node_get(dev);
- 
-+	*host = NULL;
- 	/* Get parent & match bus type */
- 	parent = of_get_parent(dev);
- 	if (parent == NULL)
-@@ -597,6 +604,8 @@ static u64 __of_translate_address(struct device_node *dev,
- 
- 	/* Translate */
- 	for (;;) {
-+		struct logic_pio_hwaddr *iorange;
-+
- 		/* Switch to parent bus */
- 		of_node_put(dev);
- 		dev = parent;
-@@ -609,6 +618,19 @@ static u64 __of_translate_address(struct device_node *dev,
- 			break;
- 		}
- 
-+		/*
-+		 * For indirectIO device which has no ranges property, get
-+		 * the address from reg directly.
-+		 */
-+		iorange = find_io_range_by_fwnode(&dev->fwnode);
-+		if (iorange && (iorange->flags != LOGIC_PIO_CPU_MMIO)) {
-+			result = of_read_number(addr + 1, na - 1);
-+			pr_debug("indirectIO matched(%pOF) 0x%llx\n",
-+				 dev, result);
-+			*host = of_node_get(dev);
-+			break;
-+		}
-+
- 		/* Get new parent bus and counts */
- 		pbus = of_match_bus(parent);
- 		pbus->count_cells(dev, &pna, &pns);
-@@ -640,13 +662,32 @@ static u64 __of_translate_address(struct device_node *dev,
- 
- u64 of_translate_address(struct device_node *dev, const __be32 *in_addr)
- {
--	return __of_translate_address(dev, in_addr, "ranges");
-+	struct device_node *host;
-+	u64 ret;
-+
-+	ret = __of_translate_address(dev, in_addr, "ranges", &host);
-+	if (host) {
-+		of_node_put(host);
-+		return OF_BAD_ADDR;
-+	}
-+
-+	return ret;
- }
- EXPORT_SYMBOL(of_translate_address);
- 
- u64 of_translate_dma_address(struct device_node *dev, const __be32 *in_addr)
- {
--	return __of_translate_address(dev, in_addr, "dma-ranges");
-+	struct device_node *host;
-+	u64 ret;
-+
-+	ret = __of_translate_address(dev, in_addr, "dma-ranges", &host);
-+
-+	if (host) {
-+		of_node_put(host);
-+		return OF_BAD_ADDR;
-+	}
-+
-+	return ret;
- }
- EXPORT_SYMBOL(of_translate_dma_address);
- 
-@@ -688,29 +729,48 @@ const __be32 *of_get_address(struct device_node *dev, int index, u64 *size,
- }
- EXPORT_SYMBOL(of_get_address);
- 
-+static u64 of_translate_ioport(struct device_node *dev, const __be32 *in_addr,
-+			u64 size)
-+{
-+	u64 taddr;
-+	unsigned long port;
-+	struct device_node *host;
-+
-+	taddr = __of_translate_address(dev, in_addr, "ranges", &host);
-+	if (host) {
-+		/* host specific port access */
-+		port = logic_pio_trans_hwaddr(&host->fwnode, taddr, size);
-+		of_node_put(host);
-+	} else {
-+		/* memory mapped I/O range */
-+		port = pci_address_to_pio(taddr);
-+	}
-+
-+	if (port == (unsigned long)-1)
-+		return OF_BAD_ADDR;
-+
-+	return port;
-+}
-+
- static int __of_address_to_resource(struct device_node *dev,
- 		const __be32 *addrp, u64 size, unsigned int flags,
- 		const char *name, struct resource *r)
- {
- 	u64 taddr;
- 
--	if ((flags & (IORESOURCE_IO | IORESOURCE_MEM)) == 0)
-+	if (flags & IORESOURCE_MEM)
-+		taddr = of_translate_address(dev, addrp);
-+	else if (flags & IORESOURCE_IO)
-+		taddr = of_translate_ioport(dev, addrp, size);
-+	else
- 		return -EINVAL;
--	taddr = of_translate_address(dev, addrp);
-+
- 	if (taddr == OF_BAD_ADDR)
- 		return -EINVAL;
- 	memset(r, 0, sizeof(struct resource));
--	if (flags & IORESOURCE_IO) {
--		unsigned long port;
--		port = pci_address_to_pio(taddr);
--		if (port == (unsigned long)-1)
--			return -EINVAL;
--		r->start = port;
--		r->end = port + size - 1;
--	} else {
--		r->start = taddr;
--		r->end = taddr + size - 1;
--	}
-+
-+	r->start = taddr;
-+	r->end = taddr + size - 1;
- 	r->flags = flags;
- 	r->name = name ? name : dev->full_name;
- 
--- 
-1.9.1
+SGkgVmluZWV0LCBhbGwNCg0KT24gRnJpLCAyMDE4LTAyLTE2IGF0IDE1OjQwICswMzAwLCBBbGV4
+ZXkgQnJvZGtpbiB3cm90ZToNCj4gSGkgVmluZWV0LA0KPiANCj4gV2hpbGUgcGxheWluZyB3aXRo
+IE9PTSBraWxsZXIgSSBidW1wZWQgaW4gYSBwdXJlIHNvZnR3YXJlIGRlYWRsb2NrIG9uIEFSQw0K
+PiB3aGljaCBpcyBldmVuIG9ic2VydmVkIGluIHNpbXVsYXRpb24gKGkuZS4gaXQgaGFzIG5vdGhp
+bmcgdG8gZG8gd2l0aCBIVyBwZWN1bGlhcml0aWVzKS4NCj4gDQo+IFdoYXQncyBuaWNlIGtlcm5l
+bCBldmVuIHNlZXMgdGhhdCBsb2NrLXVwIGlmICJMb2NrIERlYnVnZ2luZyIgaXMgZW5hYmxlZC4N
+Cj4gVGhhdCdzIHdoYXQgSSBzZWU6DQo+IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+DQo+ICMgL2hvbWUvb29tLXRlc3QgNDUwICYgL2hvbWUvb29tLXRlc3QgNDUwDQo+IG9vbS10ZXN0
+IGludm9rZWQgb29tLWtpbGxlcjogZ2ZwX21hc2s9MHgxNDIwMGNhKEdGUF9ISUdIVVNFUl9NT1ZB
+QkxFKSwgbm9kZW1hc2s9KG51bGwpLCAgb3JkZXI9MCwgb29tX3Njb3JlX2Fkaj0wDQo+IENQVTog
+MCBQSUQ6IDY3IENvbW06IG9vbS10ZXN0IE5vdCB0YWludGVkIDQuMTQuMTkgIzINCj4gDQo+IFN0
+YWNrIFRyYWNlOg0KPiAgIGFyY191bndpbmRfY29yZS5jb25zdHByb3AuMSsweGQ0LzB4ZjgNCj4g
+ICBkdW1wX2hlYWRlci5pc3JhLjYrMHg4NC8weDJmOA0KPiAgIG9vbV9raWxsX3Byb2Nlc3MrMHgy
+NTgvMHg3YzgNCj4gICBvdXRfb2ZfbWVtb3J5KzB4YjgvMHg1ZTANCj4gICBfX2FsbG9jX3BhZ2Vz
+X25vZGVtYXNrKzB4OTIyLzB4ZDI4DQo+ICAgaGFuZGxlX21tX2ZhdWx0KzB4Mjg0LzB4ZDkwDQo+
+ICAgZG9fcGFnZV9mYXVsdCsweGY2LzB4MmEwDQo+ICAgcmV0X2Zyb21fZXhjZXB0aW9uKzB4MC8w
+eDgNCj4gTWVtLUluZm86DQo+IGFjdGl2ZV9hbm9uOjYyMjc2IGluYWN0aXZlX2Fub246MzQxIGlz
+b2xhdGVkX2Fub246MA0KPiAgYWN0aXZlX2ZpbGU6MCBpbmFjdGl2ZV9maWxlOjAgaXNvbGF0ZWRf
+ZmlsZTowDQo+ICB1bmV2aWN0YWJsZTowIGRpcnR5OjAgd3JpdGViYWNrOjAgdW5zdGFibGU6MA0K
+PiAgc2xhYl9yZWNsYWltYWJsZToyNiBzbGFiX3VucmVjbGFpbWFibGU6MTk2DQo+ICBtYXBwZWQ6
+MTA1IHNobWVtOjU3OCBwYWdldGFibGVzOjI2MyBib3VuY2U6MA0KPiAgZnJlZTozNDQgZnJlZV9w
+Y3A6MzkgZnJlZV9jbWE6MA0KPiBOb2RlIDAgYWN0aXZlX2Fub246NDk4MjA4a0IgaW5hY3RpdmVf
+YW5vbjoyNzI4a0IgYWN0aXZlX2ZpbGU6MGtCIGluYWN0aXZlX2ZpbGU6MGtCIHVuZXZpY3RhYmxl
+OjBrQiBpc29sYXRlZChhbm9uKTowa0IgaXNvbGF0ZWQoZmlsZSk6MGtCDQo+IG1hcHBlZDo4NDBr
+Qg0KPiBkaXJ0eToNCj4gMGtCIHdyaXRlYmFjazowa0Igc2htZW06NDYyNGtCIHdyaXRlYmFja190
+bXA6MGtCIHVuc3RhYmxlOjBrQiBhbGxfdW5yZWNsYWltYWJsZT8gbm8NCj4gTm9ybWFsIGZyZWU6
+Mjc1MmtCIG1pbjoyODQwa0IgbG93OjM1NDRrQiBoaWdoOjQyNDhrQiBhY3RpdmVfYW5vbjo0OTgy
+MDhrQiBpbmFjdGl2ZV9hbm9uOjI3MjhrQiBhY3RpdmVfZmlsZTowa0IgaW5hY3RpdmVfZmlsZTow
+a0IgdW5ldmljdGFibGU6MGtCDQo+IHdyaXRlcGVuZGluDQo+IGc6MGtCIHByZXNlbnQ6NTI0Mjg4
+a0IgbWFuYWdlZDo1MDg1ODRrQiBtbG9ja2VkOjBrQiBrZXJuZWxfc3RhY2s6MjQwa0IgcGFnZXRh
+YmxlczoyMTA0a0IgYm91bmNlOjBrQiBmcmVlX3BjcDozMTJrQiBsb2NhbF9wY3A6MzEya0IgZnJl
+ZV9jbWE6MGtCDQo+IGxvd21lbV9yZXNlcnZlW106IDAgMA0KPiBOb3JtYWw6IDAqOGtCIDAqMTZr
+QiAwKjMya0IgMSo2NGtCIChNKSAxKjEyOGtCIChNKSAwKjI1NmtCIDEqNTEya0IgKE0pIDAqMTAy
+NGtCIDEqMjA0OGtCIChNKSAwKjQwOTZrQiAwKjgxOTJrQiA9IDI3NTJrQg0KPiA1NzggdG90YWwg
+cGFnZWNhY2hlIHBhZ2VzDQo+IDY1NTM2IHBhZ2VzIFJBTQ0KPiAwIHBhZ2VzIEhpZ2hNZW0vTW92
+YWJsZU9ubHkNCj4gMTk2MyBwYWdlcyByZXNlcnZlZA0KPiBbIHBpZCBdICAgdWlkICB0Z2lkIHRv
+dGFsX3ZtICAgICAgcnNzIG5yX3B0ZXMgbnJfcG1kcyBzd2FwZW50cyBvb21fc2NvcmVfYWRqIG5h
+bWUNCj4gWyAgIDQxXSAgICAgMCAgICA0MSAgICAgIDE1NyAgICAgIDEwMyAgICAgICAzICAgICAg
+IDAgICAgICAgIDAgICAgICAgICAgICAgMCBzeXNsb2dkDQo+IFsgICA0M10gICAgIDAgICAgNDMg
+ICAgICAxNTYgICAgICAxMDYgICAgICAgMyAgICAgICAwICAgICAgICAwICAgICAgICAgICAgIDAg
+a2xvZ2QNCj4gWyAgIDYzXSAgICAgMCAgICA2MyAgICAgIDE1NyAgICAgICA5OSAgICAgICAzICAg
+ICAgIDAgICAgICAgIDAgICAgICAgICAgICAgMCBnZXR0eQ0KPiBbICAgNjRdICAgICAwICAgIDY0
+ICAgICAgMTU5ICAgICAgMTE4ICAgICAgIDMgICAgICAgMCAgICAgICAgMCAgICAgICAgICAgICAw
+IHNoDQo+IFsgICA2Nl0gICAgIDAgICAgNjYgICAxMTUyOTEgICAgMzEwOTQgICAgIDEyNCAgICAg
+ICAwICAgICAgICAwICAgICAgICAgICAgIDAgb29tLXRlc3QNCj4gWyAgIDY3XSAgICAgMCAgICA2
+NyAgIDExNTI5MSAgICAzMTAwNCAgICAgMTI0ICAgICAgIDAgICAgICAgIDAgICAgICAgICAgICAg
+MCBvb20tdGVzdA0KPiBPdXQgb2YgbWVtb3J5OiBLaWxsIHByb2Nlc3MgNjYgKG9vbS10ZXN0KSBz
+Y29yZSA0NzYgb3Igc2FjcmlmaWNlIGNoaWxkDQo+IEtpbGxlZCBwcm9jZXNzIDY2IChvb20tdGVz
+dCkgdG90YWwtdm06OTIyMzI4a0IsIGFub24tcnNzOjI0ODMyOGtCLCBmaWxlLXJzczowa0IsIHNo
+bWVtLXJzczo0MjRrQg0KPiANCj4gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
+PT09PT09PT0NCj4gV0FSTklORzogcG9zc2libGUgcmVjdXJzaXZlIGxvY2tpbmcgZGV0ZWN0ZWQN
+Cj4gNC4xNC4xOSAjMiBOb3QgdGFpbnRlZA0KPiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLQ0KPiBvb20tdGVzdC82NiBpcyB0cnlpbmcgdG8gYWNxdWlyZSBsb2Nr
+Og0KPiAgKCZtbS0+bW1hcF9zZW0peysrKyt9LCBhdDogWzw4MDIxN2Q1MD5dIGRvX2V4aXQrMHg0
+NDQvMHg3ZjgNCj4gDQo+IGJ1dCB0YXNrIGlzIGFscmVhZHkgaG9sZGluZyBsb2NrOg0KPiAgKCZt
+bS0+bW1hcF9zZW0peysrKyt9LCBhdDogWzw4MDIxMDI4YT5dIGRvX3BhZ2VfZmF1bHQrMHg5ZS8w
+eDJhMA0KPiANCj4gb3RoZXIgaW5mbyB0aGF0IG1pZ2h0IGhlbHAgdXMgZGVidWcgdGhpczoNCj4g
+IFBvc3NpYmxlIHVuc2FmZSBsb2NraW5nIHNjZW5hcmlvOg0KPiANCj4gICAgICAgIENQVTANCj4g
+ICAgICAgIC0tLS0NCj4gICBsb2NrKCZtbS0+bW1hcF9zZW0pOw0KPiAgIGxvY2soJm1tLT5tbWFw
+X3NlbSk7DQo+IA0KPiAgKioqIERFQURMT0NLICoqKg0KPiANCj4gIE1heSBiZSBkdWUgdG8gbWlz
+c2luZyBsb2NrIG5lc3Rpbmcgbm90YXRpb24NCj4gDQo+IDEgbG9jayBoZWxkIGJ5IG9vbS10ZXN0
+LzY2Og0KPiAgIzA6ICAoJm1tLT5tbWFwX3NlbSl7KysrK30sIGF0OiBbPDgwMjEwMjhhPl0gZG9f
+cGFnZV9mYXVsdCsweDllLzB4MmEwDQo+IA0KPiBzdGFjayBiYWNrdHJhY2U6DQo+IENQVTogMCBQ
+SUQ6IDY2IENvbW06IG9vbS10ZXN0IE5vdCB0YWludGVkIDQuMTQuMTkgIzINCj4gDQo+IFN0YWNr
+IFRyYWNlOg0KPiAgIGFyY191bndpbmRfY29yZS5jb25zdHByb3AuMSsweGQ0LzB4ZjgNCj4gICBf
+X2xvY2tfYWNxdWlyZSsweDU4Mi8weDE0OTQNCj4gICBsb2NrX2FjcXVpcmUrMHgzYy8weDU4DQo+
+ICAgZG93bl9yZWFkKzB4MWEvMHgyOA0KPiAgIGRvX2V4aXQrMHg0NDQvMHg3ZjgNCj4gICBkb19n
+cm91cF9leGl0KzB4MjYvMHg4Yw0KPiAgIGdldF9zaWduYWwrMHgxYWEvMHg3ZDQNCj4gICBkb19z
+aWduYWwrMHgzMC8weDIyMA0KPiAgIHJlc3VtZV91c2VyX21vZGVfYmVnaW4rMHg5MC8weGQ4DQo+
+IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQo+IA0KPiBMb29raW5nIGF0IG91ciBj
+b2RlIGluICJhcmNoL2FyYy9tbS9mYXVsdC5jIiBJIG1heSBzZWUgd2h5ICJtbS0+bW1hcF9zZW0i
+IGlzIG5vdCByZWxlYXNlZDoNCj4gMS4gZmF0YWxfc2lnbmFsX3BlbmRpbmcoY3VycmVudCkgcmV0
+dXJucyBub24temVybyB2YWx1ZQ0KPiAyLiAoKGZhdWx0ICYgVk1fRkFVTFRfRVJST1IpICYmICEo
+ZmF1bHQgJiBWTV9GQVVMVF9SRVRSWSkpIGlzIGZhbHNlIHRodXMgdXBfcmVhZCgmbW0tPm1tYXBf
+c2VtKQ0KPiAgICBpcyBub3QgZXhlY3V0ZWQuDQo+IDMuIEl0IHdhcyBhIHVzZXItc3BhY2UgcHJv
+Y2VzcyB0aHVzIHdlIHNpbXBseSByZXR1cm4gW3dpdGggIm1tLT5tbWFwX3NlbSIgc3RpbGwgaGVs
+ZF0uDQo+IA0KPiBTZWUgdGhlIGNvZGUgc25pcHBldCBiZWxvdzoNCj4gLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0NCj4gCS8qIElmIFBhZ2VmYXVsdCB3YXMgaW50ZXJydXB0ZWQgYnkg
+U0lHS0lMTCwgZXhpdCBwYWdlIGZhdWx0ICJlYXJseSIgKi8NCj4gCWlmICh1bmxpa2VseShmYXRh
+bF9zaWduYWxfcGVuZGluZyhjdXJyZW50KSkpIHsNCj4gCQlpZiAoKGZhdWx0ICYgVk1fRkFVTFRf
+RVJST1IpICYmICEoZmF1bHQgJiBWTV9GQVVMVF9SRVRSWSkpDQo+IAkJCXVwX3JlYWQoJm1tLT5t
+bWFwX3NlbSk7DQo+IAkJaWYgKHVzZXJfbW9kZShyZWdzKSkNCj4gCQkJcmV0dXJuOw0KPiAJfQ0K
+PiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQpTbyBJIGRlY2lkZWQgdG8gZ2l2
+ZSBhIHRyaXZpYWwgZml4IGEgdHJ5Og0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0N
+CmRpZmYgLS1naXQgYS9hcmNoL2FyYy9tbS9mYXVsdC5jIGIvYXJjaC9hcmMvbW0vZmF1bHQuYw0K
+aW5kZXggYTBiN2JkNmQwMzBkLi45NzlhMDk5NTEwMGQgMTAwNjQ0DQotLS0gYS9hcmNoL2FyYy9t
+bS9mYXVsdC5jDQorKysgYi9hcmNoL2FyYy9tbS9mYXVsdC5jDQpAQCAtMTQzLDggKzE0MywxMCBA
+QCB2b2lkIGRvX3BhZ2VfZmF1bHQodW5zaWduZWQgbG9uZyBhZGRyZXNzLCBzdHJ1Y3QgcHRfcmVn
+cyAqcmVncykNCiAgICAgICAgaWYgKHVubGlrZWx5KGZhdGFsX3NpZ25hbF9wZW5kaW5nKGN1cnJl
+bnQpKSkgew0KICAgICAgICAgICAgICAgIGlmICgoZmF1bHQgJiBWTV9GQVVMVF9FUlJPUikgJiYg
+IShmYXVsdCAmIFZNX0ZBVUxUX1JFVFJZKSkNCiAgICAgICAgICAgICAgICAgICAgICAgIHVwX3Jl
+YWQoJm1tLT5tbWFwX3NlbSk7DQotICAgICAgICAgICAgICAgaWYgKHVzZXJfbW9kZShyZWdzKSkN
+CisgICAgICAgICAgICAgICBpZiAodXNlcl9tb2RlKHJlZ3MpKSB7DQorICAgICAgICAgICAgICAg
+ICAgICAgICB1cF9yZWFkKCZtbS0+bW1hcF9zZW0pOw0KICAgICAgICAgICAgICAgICAgICAgICAg
+cmV0dXJuOw0KKyAgICAgICAgICAgICAgIH0NCiAgICAgICAgfQ0KLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0NCg0KQW5kIGluZGVlZCBJIG5vIGxvbmdlciBzZWUgdGhhdCBkZWFkbG9j
+ayBidXQgaW5zdGVhZCBJJ20gZ2V0dGluZyBhbm90aGVyIGZhdGFsIGZhaWx1cmU6DQotLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KIyB3aGlsZSB0cnVlOyBkbyAvaG9tZS9vb20tdGVz
+dCA0NTAgJiAvaG9tZS9vb20tdGVzdCA0NTA7IGRvbmU7DQpCdWZmZXIgc2l6ZSBpcyA0NTAgTWlC
+DQpCdWZmZXIgc2l6ZSBpcyA0NTAgTWlCDQpvb20tdGVzdCBpbnZva2VkIG9vbS1raWxsZXI6IGdm
+cF9tYXNrPTB4MTQyMDBjYShHRlBfSElHSFVTRVJfTU9WQUJMRSksIG5vZGVtYXNrPShudWxsKSwg
+IG9yZGVyPTAsIG9vbV9zY29yZV9hZGo9MA0KQ1BVOiAzIFBJRDogMTA1IENvbW06IG9vbS10ZXN0
+IE5vdCB0YWludGVkIDQuMTQuMjItZGlydHkgIzEzDQoNClN0YWNrIFRyYWNlOg0KICBhcmNfdW53
+aW5kX2NvcmUuY29uc3Rwcm9wLjErMHhkMC8weGY0DQogIGR1bXBfc3RhY2srMHg2OC8weDgwDQog
+IGR1bXBfaGVhZGVyLmlzcmEuNisweDdjLzB4MTkwDQogIG9vbV9raWxsX3Byb2Nlc3MrMHgxMTAv
+MHg2MTgNCiAgb3V0X29mX21lbW9yeSsweGI0LzB4NDA0DQogIF9fYWxsb2NfcGFnZXNfbm9kZW1h
+c2srMHgxYjkyLzB4MjczNA0KICBoYW5kbGVfbW1fZmF1bHQrMHgyZTIvMHg5NzQNCiAgZG9fcGFn
+ZV9mYXVsdCsweGY2LzB4MmFjDQogIHJldF9mcm9tX2V4Y2VwdGlvbisweDAvMHg4DQpNZW0tSW5m
+bzoNCmFjdGl2ZV9hbm9uOjk0ODcyIGluYWN0aXZlX2Fub246MzQ0IGlzb2xhdGVkX2Fub246MA0K
+IGFjdGl2ZV9maWxlOjAgaW5hY3RpdmVfZmlsZTowIGlzb2xhdGVkX2ZpbGU6MA0KIHVuZXZpY3Rh
+YmxlOjAgZGlydHk6MCB3cml0ZWJhY2s6MCB1bnN0YWJsZTowDQogc2xhYl9yZWNsYWltYWJsZToz
+OCBzbGFiX3VucmVjbGFpbWFibGU6Mjg1DQogbWFwcGVkOjEwNSBzaG1lbTo1NzkgcGFnZXRhYmxl
+czozOTIgYm91bmNlOjANCiBmcmVlOjQyOCBmcmVlX3BjcDoxNjAgZnJlZV9jbWE6MA0KTm9kZSAw
+IGFjdGl2ZV9hbm9uOjc1ODk3NmtCIGluYWN0aXZlX2Fub246Mjc1MmtCIGFjdGl2ZV9maWxlOjBr
+QiBpbmFjdGl2ZV9maWxlOjBrQiB1bmV2aWN0YWJsZTowa0IgaXNvbGF0ZWQoYW5vbik6MGtCIGlz
+b2xhdGVkKGZpbGUpOjBrQiBtYXBwZWQ6ODQwa0INCmRpcnR5OjBzDQpOb3JtYWwgZnJlZTozNDI0
+a0IgbWluOjM1MTJrQiBsb3c6NDM4NGtCIGhpZ2g6NTI1NmtCIGFjdGl2ZV9hbm9uOjc1OTAyNGtC
+IGluYWN0aXZlX2Fub246Mjc1MmtCIGFjdGl2ZV9maWxlOjBrQiBpbmFjdGl2ZV9maWxlOjBrQiB1
+bmV2aWN0YWJsZTowa0INCndyaXRlcGVuZGluZ0INCmxvd21lbV9yZXNlcnZlW106IDAgMA0KTm9y
+bWFsOiAwKjhrQiAwKjE2a0IgMSozMmtCIChNKSAxKjY0a0IgKE0pIDIqMTI4a0IgKFVNKSAyKjI1
+NmtCIChVTSkgMSo1MTJrQiAoTSkgMioxMDI0a0IgKFVNKSAwKjIwNDhrQiAwKjQwOTZrQiAwKjgx
+OTJrQiA9IDM0MjRrQg0KNTc5IHRvdGFsIHBhZ2VjYWNoZSBwYWdlcw0KMCBwYWdlcyBpbiBzd2Fw
+IGNhY2hlDQpTd2FwIGNhY2hlIHN0YXRzOiBhZGQgMCwgZGVsZXRlIDAsIGZpbmQgMC8wDQpGcmVl
+IHN3YXAgID0gMGtCDQpUb3RhbCBzd2FwID0gMGtCDQoxMzEwNzIgcGFnZXMgUkFNDQowIHBhZ2Vz
+IEhpZ2hNZW0vTW92YWJsZU9ubHkNCjM0Mzk3IHBhZ2VzIHJlc2VydmVkDQpbIHBpZCBdICAgdWlk
+ICB0Z2lkIHRvdGFsX3ZtICAgICAgcnNzIG5yX3B0ZXMgbnJfcG1kcyBzd2FwZW50cyBvb21fc2Nv
+cmVfYWRqIG5hbWUNClsgICA4MF0gICAgIDAgICAgODAgICAgICAxNTcgICAgICAgMjggICAgICAg
+MyAgICAgICAwICAgICAgICAwICAgICAgICAgICAgIDAgc3lzbG9nZA0KWyAgIDgzXSAgICAgMCAg
+ICA4MyAgICAgIDE1NiAgICAgICAyNSAgICAgICAzICAgICAgIDAgICAgICAgIDAgICAgICAgICAg
+ICAgMCBrbG9nZA0KWyAgMTAyXSAgICAgMCAgIDEwMiAgICAgIDE1NyAgICAgICAyOCAgICAgICAz
+ICAgICAgIDAgICAgICAgIDAgICAgICAgICAgICAgMCBnZXR0eQ0KWyAgMTAzXSAgICAgMCAgIDEw
+MyAgICAgIDE1OSAgICAgICAyOCAgICAgICAzICAgICAgIDAgICAgICAgIDAgICAgICAgICAgICAg
+MCBzaA0KWyAgMTA1XSAgICAgMCAgIDEwNSAgIDExNTI5MSAgICA0NzQ0MiAgICAgMTg4ICAgICAg
+IDAgICAgICAgIDAgICAgICAgICAgICAgMCBvb20tdGVzdA0KWyAgMTA2XSAgICAgMCAgIDEwNiAg
+IDExNTI5MSAgICA0NzE3OCAgICAgMTg4ICAgICAgIDAgICAgICAgIDAgICAgICAgICAgICAgMCBv
+b20tdGVzdA0KT3V0IG9mIG1lbW9yeTogS2lsbCBwcm9jZXNzIDEwNSAob29tLXRlc3QpIHNjb3Jl
+IDQ3NyBvciBzYWNyaWZpY2UgY2hpbGQNCktpbGxlZCBwcm9jZXNzIDEwNSAob29tLXRlc3QpIHRv
+dGFsLXZtOjkyMjMyOGtCLCBhbm9uLXJzczozNzkxMTJrQiwgZmlsZS1yc3M6MGtCLCBzaG1lbS1y
+c3M6NDI0a0INCg0KT29wcw0KUGF0aDogKG51bGwpDQpDUFU6IDMgUElEOiAzNSBDb21tOiBvb21f
+cmVhcGVyIE5vdCB0YWludGVkIDQuMTQuMjItZGlydHkgIzEzDQp0YXNrOiBiZjBlMzU0MCB0YXNr
+LnN0YWNrOiBiZjBlODAwMA0KDQpbRUNSICAgXTogMHgwMDA1MDEwMCA9PiBJbnZhbGlkIFJlYWQg
+QCAweDAwMDAwMzYwIGJ5IGluc24gQCAweDkwMmVjN2FlDQpbRUZBICAgXTogMHgwMDAwMDM2MA0K
+W0JMSU5LIF06IHphcF9wdGVfcmFuZ2UrMHg3ZS8weDRmOA0KW0VSRVQgIF06IHphcF9wdGVfcmFu
+Z2UrMHg4Ni8weDRmOA0KW1NUQVQzMl06IDB4ODAwODBhNDIgOiBJRSBLIERFDQpCVEE6IDB4OTAy
+ZWM3ZWUgIFNQOiAweGJmMGU5ZTMwICBGUDogMHgwMDAwMDAwMA0KTFBTOiAweDkwNmQ2M2ZjIExQ
+RTogMHg5MDZkNjQwMCBMUEM6IDB4MDAwMDAwMDANCnIwMDogMHhiZjI4MDAxYyByMDE6IDB4MDAw
+MDAwMDAgcjAyOiAweDAwMDAwMDAxDQpyMDM6IDB4MDAwMDAwMDAgcjA0OiAweDAwMDAwMGQ4IHIw
+NTogMHgwMDAwMDAwMA0KcjA2OiAweDJmOTNlMDAwIHIwNzogMHg5MDgxODk4MCByMDg6IDB4YmZk
+YzkxYzQNCnIwOTogMHgwMDAwMDA0OCByMTA6IDB4MDAwMDAwMDAgcjExOiAweGZmZmZmZmZmDQpy
+MTI6IDB4OTAyZWM3YTYNCg0KU3RhY2sgVHJhY2U6DQogIHphcF9wdGVfcmFuZ2UrMHg4Ni8weDRm
+OA0KICB6YXBfcG1kX3JhbmdlKzB4NGEvMHg2NA0KICB6YXBfcHVkX3JhbmdlKzB4MjgvMHg0MA0K
+ICB6YXBfcDRkX3JhbmdlKzB4MjgvMHg0MA0KICB1bm1hcF9wYWdlX3JhbmdlKzB4NTQvMHhkMA0K
+ICBvb21fcmVhcGVyKzB4MWM4LzB4MjE0DQogIGt0aHJlYWQrMHgxMjQvMHgxNDANCiAgcmV0X2Zy
+b21fZm9yaysweDE4LzB4MWMNCi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQoNCkFn
+YWluIHRoYXQgZmFpbHVyZSBoYXBwZW5zIG5vdCB2ZXJ5IHJlbGlhYmx5IC0gaW4gZmFjdCBJIGhh
+dmUgdG8gdHJpZ2dlciBPT00ga2lsbGVyDQppbiBhIGxvb3AgdG8gZmFjZSB0aGlzIHByb2JsZW0g
+cmFuZG9tbHkgYXQgc29tZSBwb2ludC4gVGhvdWdoIEkgZG9uJ3Qgc2VlIGFueSBsb2dpY2FsDQpj
+b25uZWN0aW9uIHRvIGluaXRpYWxseSBkaXNjdXNzZWQgaXNzdWUgdGhlcmUgc2VlbXMgdG8gYmUg
+c29tZSBvdGhlciBjb3JuZXItY2FzZSB3ZSdyZQ0Kbm90IGhhbmRsaW5nIHByb3Blcmx5IGFzIEkg
+d2FzIG5vdCBhYmxlIHRvIHRyaWdnZXIgc29tZXRoaW5nIGxpa2UgdGhhdCBvbiBBUk0ncyBXYW5k
+Qm9hcmQuDQoNClN0aWxsIHdpdGggdGhhdCBuZXcgcHJvYmxlbSBpbiBwbGFjZSBJIGNhbm5vdCBj
+b25jbHVkZSBteSBwcm9wb3NlZCBhYm92ZSBmaXggaXMgYSBnb29kIG9uZQ0Kc28gSSdsbCB0cnkg
+dG8gZ2V0IHRvIHRoZSBib3R0b20gb2YgdGhhdCBuZXcgaXNzdWUgYW5kIHRoZW4gd2UnbGwgc2Vl
+IHdoYXQgdG8gZG8uDQoNCi1BbGV4ZXk=
