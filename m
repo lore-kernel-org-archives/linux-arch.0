@@ -1,230 +1,296 @@
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v15 0/9] LPC: legacy ISA I/O support
-Date: Tue, 27 Feb 2018 00:40:40 +0800
-Message-ID: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v15 8/9] HISI LPC: Add ACPI support
+Date: Tue, 27 Feb 2018 00:40:48 +0800
+Message-ID: <1519663249-9850-9-git-send-email-john.garry@huawei.com>
+References: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-This patchset supports the IPMI-bt device attached to the Low-Pin-Count
-interface implemented on Hisilicon Hip06/Hip07 SoC.
-                        -----------
-                        | LPC host|
-                        |         |
-                        -----------
-                             |
-                _____________V_______________LPC
-                  |                       |
-                  V                       V
-                                     ------------
-                                     |  BT(ipmi)|
-                                     ------------
+Based on the previous patches, this patch supports the
+LPC host on hip06/hip07 for ACPI FW.
 
-When master accesses those peripherals beneath the Hip06/Hip07 LPC, a specific
-LPC driver is needed to make LPC host generate the standard LPC I/O cycles with
-the target peripherals'I/O port addresses. But on curent arm64 world, there is
-no real I/O accesses. All the I/O operations through in/out accessors are based
-on MMIO ranges; on Hip06/Hip07 LPC the I/O accesses are performed through driver
-specific accessors rather than MMIO.
-To solve this issue and keep the relevant existing peripherals' drivers untouched,
-this patchset:
-   - introduces a generic I/O space management framework, logical PIO, to support
-      I/O operations on host controllers operating either on MMIO buses or on buses
-     requiring specific driver I/O accessors;
-   - redefines the in/out accessors to provide a unified interface for both MMIO
-     and driver specific I/O operations. Using logical PIO, th call of in/out() from
-     the host children drivers, such as ipmi-si, will be redirected to the
-     corresponding device-specific I/O hooks to perform the I/O accesses.
+It is the responsibility of the LPC host driver to
+enumerate the child devices, as the ACPI scan code will
+not enumerate children of "indirect IO" hosts.
 
-Based on this patch-set, all the I/O accesses to Hip06/Hip07 LPC peripherals can
-be supported without any changes on the existing ipmi-si driver.
+The ACPI table for the LPC host controller and the child
+devices is in the following format:
+  Device (LPC0) {
+    Name (_HID, "HISI0191")  // HiSi LPC
+    Name (_CRS, ResourceTemplate () {
+      Memory32Fixed (ReadWrite, 0xa01b0000, 0x1000)
+    })
+  }
 
-The whole patchset has been tested on Hip07 D05 board both using DTB and ACPI.
+  Device (LPC0.IPMI) {
+    Name (_HID, "IPI0001")
+    Name (LORS, ResourceTemplate() {
+      QWordIO (
+        ResourceConsumer,
+	MinNotFixed,     // _MIF
+	MaxNotFixed,     // _MAF
+	PosDecode,
+	EntireRange,
+	0x0,             // _GRA
+	0xe4,            // _MIN
+	0x3fff,          // _MAX
+	0x0,             // _TRA
+	0x04,            // _LEN
+	, ,
+	BTIO
+      )
+    })
 
-Differences to v14:
-- addressed coding style comments from Andy
-- applied tags from Rafael, Andy, and Dann
-- rebased to linux next 20180223 (had to fix locally arm64 build issue)
+Since the IO resources of the child devices need to be
+translated from LPC bus addresses to logical PIO addresses,
+and we shouldn't modify the resources of the devices
+generated in the FW scan, a per-child MFD is created as
+a substitute. The MFD IO resources will be the translated
+bus addresses of the ACPI child.
 
-Differences to v13:
-- dropped ACPI scan handler and added patch to not enumerate children
-  of indirect IO hosts in ACPI code
-- tidied up logic_pio.c a bit for kerneldoc and made some APIs clearer
-  to understand
-- tided (and simplified) hisi_lpc.c and added new ACPI probe code
-  (same as previous ACPI scan handler code, so comments from Rafael
-  and Andy included)
-- reinstated PCI range upper limit check in pci_pio_to_address()
-- dropped Dann Frazier's "tested-by" tag in light of changes
-- rebase to linuxnext 20180219 (had to fix locally arm64 build issue)
+Signed-off-by: John Garry <john.garry@huawei.com>
+Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
+Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Tested-by: dann frazier <dann.frazier@canonical.com>
+---
+ drivers/bus/hisi_lpc.c | 197 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 197 insertions(+)
 
-Differences to v12:
-    - Addressed ACPI comments from Rafael and Andy, including:
-     - added SPDX license identifiers (other new files in the series got this also)
-     - fixed style issues, like superflous newlines and symbol naming
-     - add fuller acpi_indirectio.c patch commit message
-     - dropped acpi_indirectio_host_data (author's decision) to simplify
-    - added Rob Herring's tag
-    - rebase to linux-next 20180212
-    
-Differences to v11:
-    - fixed build errors for i386, m68k, and tile
-    - added a comment in LPC driver commit log why we set
-       the kernel config as bool
-    - some tidying logic_pio code
-
-Differences to v10:
-    - dropped CONFIG_LOGIC_PIO. Reason is that CONFIG_PCI
-      depends on this, and CONFIG_PCI is a per-arch CONFIG.
-      So we would require all arch's kconfig to select this.
-    - Addressed Dann Frazier's comments on LPC driver, and
-      sopme other cleanup
-    - Moved logic_pio.h to be included in generic asm io.h
-    - Fixed ACPI indirect IO host setup to handle >1 child
-    - Relocated ACPI indirect IO host setup code to
-      drivers/acpi
-    - Rebased to linux next-20180118
-
-Changes from v9:
-  - patch 2 has been split into 3 patches according to Bjorn comments on
-    v9 thread
-  - patch 1 has been reworked accordign to Bjorn comments on v9
-  - now logic_pio_trans_hwaddr() has a sanity check to make sure the resource
-    size fits into the assigned range
-  - in patch 5 the MFD framework has been used to probe the LPC children
-    according to the suggestion from Mika Westerberg
-  - Maintaner has changed to Huawei Linuxarm mailing list
-
-Changes from v8:
-  - Simplified LIB IO framewrok
-  - Moved INDIRECT PIO ACPI framework under acpi/arm64
-  - Renamed occurrences of "lib io" and "indirect io" to "lib pio" and
-    "indirect pio" to keep the patchset nomenclature consistent
-  - Removed Alignment reuqirements
-  - Moved LPC specific code out of ACPI common framework
-  - Now PIO indirect HW ranges can overlap
-  - Changed HiSilicon LPC driver maintainer (Gabriele Paoloni now) and split
-    maintaner file modifications in a separate commit
-  - Removed the commit with the DT nodes support for hip06 and hip07 (to be
-    pushed separately)
-  - Added a checking on ioport_map() not to break that function as Arnd points
-    out in V7 review thread;
-  - fixed the compile issues on alpha, m68k;
-
-Changes from V7:
-  - Based on Arnd's comment, rename the LIBIO as LOGIC_PIO;
-  - Improved the mapping process in LOGIC_PIO to gain better efficiency when
-    redirecting the I/O accesses to right device driver;
-  - To reduce the impact on PCI MMIO to a minimum, add a new
-    CONFIG_INDIRECT_PIO for indirect-IO hosts/devices;
-  - Added a new ACPI handler for indirect-IO hosts/devices;
-  - Fixed the compile issues on V6;
-
-Changes from V6:
-  - According to the comments from Bjorn and Alex, merge PCI IO and indirect-IO
-    into a generic I/O space management, LIBIO;
-  - Adopted the '_DEP' to replace the platform bus notifier. In this way, we can
-    ensure the LPC peripherals' I/O resources had been translated to logical IO
-    before the LPC peripheral enumeration;
-  - Replaced the rwlock with rcu list based on Alex's suggestion;
-  - Applied relaxed write/read to LPC driver;
-  - Some bugs fixing and some optimazations based on the comments of V6;
-
-Changes from V5:
-  - Made the extio driver more generic and locate in lib/;
-  - Supported multiple indirect-IO bus instances;
-  - Extended the pci_register_io_range() to support indirect-IO, then dropped
-  the I/O reservation used in previous patchset;
-  - Reimplemented the ACPI LPC support;
-  - Fixed some bugs, including the compile error on other archs, the module
-  building failure found by Ming Lei, etc;
-
-Changes from V4:
-  - Some revises based on the comments from Bjorn, Rob on V4;
-  - Fixed the compile error on some platforms, such as openrisc;
-
-Changes from V3:
-  - UART support deferred to a separate patchset; This patchset only support
-  ipmi device under LPC;
-  - LPC bus I/O range is fixed to 0 ~ (PCIBIOS_MIN_IO - 1), which is separeted
-  from PCI/PCIE PIO space;
-  - Based on Arnd's remarks, removed the ranges property from Hip06 lpc dts and
-  added a new fixup function, of_isa_indirect_io(), to get the I/O address
-  directly from LPC dts configurations;
-  - Support in(w,l)/out(w,l) for Hip06 lpc I/O;
-  - Decouple the header file dependency on the gerenic io.h by defining in/out
-  as normal functions in c file;
-  - removed unused macro definitions in the LPC driver;
-
-Changes from V2:
-  - Support the PIO retrieval from the linux PIO generated by
-  pci_address_to_pio. This method replace the 4K PIO reservation in V2;
-  - Support the flat-tree earlycon;
-  - Some revises based on Arnd's remarks;
-  - Make sure the linux PIO range allocated to Hip06 LPC peripherals starts
-  from non-ZERO;
-
-Changes from V1:
-  - Support the ACPI LPC device;
-  - Optimize the dts LPC driver in ISA compatible mode;
-  - Reserve the IO range below 4K in avoid the possible conflict with PCI host
-  IO ranges;
-  - Support the LPC uart and relevant earlycon;
-
-V14 thread here: https://lkml.org/lkml/2018/2/19/460
-V13 thread here: https://lkml.org/lkml/2018/2/13/744
-V12 thread here: https://lkml.org/lkml/2018/1/23/508
-V11 thread here: https://lkml.org/lkml/2018/1/21/38
-V10 thread here: https://lkml.org/lkml/2017/10/27/465
-V9 thread here: https://lkml.org/lkml/2017/5/25/263
-V8 thread here: https://lkml.org/lkml/2017/3/30/619
-V7 thread here: https://lkml.org/lkml/2017/3/12/279
-v6 thread here: https://lkml.org/lkml/2017/1/24/25
-v5 thread here: https://lkml.org/lkml/2016/11/7/955
-v4 thread here: https://lkml.org/lkml/2016/10/20/149
-v3 thread here: https://lkml.org/lkml/2016/9/14/326
-v2 thread here: https://lkml.org/lkml/2016/9/7/356
-v1 thread here: https://lkml.org/lkml/2015/12/29/154
-
-Gabriele Paoloni (2):
-  PCI: Remove unused __weak attribute in pci_register_io_range()
-  PCI: Add fwnode handler as input param of pci_register_io_range()
-
-John Garry (3):
-  ACPI / scan: do not enumerate Indirect IO host children
-  HISI LPC: Add ACPI support
-  MAINTAINERS: Add maintainer for HiSilicon LPC driver
-
-Zhichang Yuan (4):
-  LIB: Introduce a generic PIO mapping method
-  PCI: Apply the new generic I/O management on PCI IO hosts
-  OF: Add missing I/O range exception for indirect-IO devices
-  HISI LPC: Support the LPC host on Hip06/Hip07 with DT bindings
-
- .../arm/hisilicon/hisilicon-low-pin-count.txt      |  33 ++
- MAINTAINERS                                        |   7 +
- drivers/acpi/pci_root.c                            |   8 +-
- drivers/acpi/scan.c                                |  14 +
- drivers/bus/Kconfig                                |   8 +
- drivers/bus/Makefile                               |   2 +
- drivers/bus/hisi_lpc.c                             | 624 +++++++++++++++++++++
- drivers/of/address.c                               |  96 +++-
- drivers/pci/pci.c                                  |  95 +---
- include/asm-generic/io.h                           |   4 +-
- include/linux/logic_pio.h                          | 127 +++++
- include/linux/pci.h                                |   3 +-
- lib/Kconfig                                        |  15 +
- lib/Makefile                                       |   2 +
- lib/logic_pio.c                                    | 285 ++++++++++
- 15 files changed, 1225 insertions(+), 98 deletions(-)
- create mode 100644 Documentation/devicetree/bindings/arm/hisilicon/hisilicon-low-pin-count.txt
- create mode 100644 drivers/bus/hisi_lpc.c
- create mode 100644 include/linux/logic_pio.h
- create mode 100644 lib/logic_pio.c
-
+diff --git a/drivers/bus/hisi_lpc.c b/drivers/bus/hisi_lpc.c
+index c2f3c14..0c7c1ec 100644
+--- a/drivers/bus/hisi_lpc.c
++++ b/drivers/bus/hisi_lpc.c
+@@ -12,6 +12,7 @@
+ #include <linux/delay.h>
+ #include <linux/io.h>
+ #include <linux/logic_pio.h>
++#include <linux/mfd/core.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/of_address.h>
+@@ -353,6 +354,199 @@ static void hisi_lpc_comm_out(void *hostdata, unsigned long pio,
+ 	.outs = hisi_lpc_comm_outs,
+ };
+ 
++#ifdef CONFIG_ACPI
++#define MFD_CHILD_NAME_PREFIX DRV_NAME"-"
++#define MFD_CHILD_NAME_LEN (ACPI_ID_LEN + sizeof(MFD_CHILD_NAME_PREFIX))
++
++struct hisi_lpc_mfd_cell {
++	struct mfd_cell_acpi_match acpi_match;
++	char name[MFD_CHILD_NAME_LEN];
++	char pnpid[ACPI_ID_LEN];
++};
++
++static int hisi_lpc_acpi_xlat_io_res(struct acpi_device *adev,
++				     struct acpi_device *host,
++				     struct resource *res)
++{
++	unsigned long sys_port;
++	resource_size_t len = res->end - res->start;
++
++	sys_port = logic_pio_trans_hwaddr(&host->fwnode, res->start, len);
++	if (sys_port == ~0UL)
++		return -EFAULT;
++
++	res->start = sys_port;
++	res->end = sys_port + len;
++
++	return 0;
++}
++
++/*
++ * hisi_lpc_acpi_set_io_res - set the resources for a child's MFD
++ * @child: the device node to be updated the I/O resource
++ * @hostdev: the device node associated with host controller
++ * @res: double pointer to be set to the address of translated resources
++ * @num_res: pointer to variable to hold the number of translated resources
++ *
++ * Returns 0 when successful, and a negative value for failure.
++ *
++ * For a given host controller, each child device will have an associated
++ * host-relative address resource. This function will return the translated
++ * logical PIO addresses for each child devices resources.
++ */
++static int hisi_lpc_acpi_set_io_res(struct device *child,
++				    struct device *hostdev,
++				    const struct resource **res,
++				    int *num_res)
++{
++	struct acpi_device *adev;
++	struct acpi_device *host;
++	struct resource_entry *rentry;
++	LIST_HEAD(resource_list);
++	struct resource *resources;
++	int count;
++	int i;
++
++	if (!child || !hostdev)
++		return -EINVAL;
++
++	host = to_acpi_device(hostdev);
++	adev = to_acpi_device(child);
++
++	/* check the device state */
++	if (!adev->status.present) {
++		dev_dbg(child, "device is not present\n");
++		return -EIO;
++	}
++	/* whether the child had been enumerated? */
++	if (acpi_device_enumerated(adev)) {
++		dev_dbg(child, "has been enumerated\n");
++		return -EIO;
++	}
++
++	/*
++	 * The following code segment to retrieve the resources is common to
++	 * acpi_create_platform_device(), so consider a common helper function
++	 * in future.
++	 */
++	count = acpi_dev_get_resources(adev, &resource_list, NULL, NULL);
++	if (count <= 0) {
++		dev_dbg(child, "failed to get resources\n");
++		return count ? count : -EIO;
++	}
++
++	resources = devm_kcalloc(hostdev, count, sizeof(*resources),
++				 GFP_KERNEL);
++	if (!resources) {
++		dev_warn(hostdev, "could not allocate memory for %d resources\n",
++			 count);
++		acpi_dev_free_resource_list(&resource_list);
++		return -ENOMEM;
++	}
++	count = 0;
++	list_for_each_entry(rentry, &resource_list, node)
++		resources[count++] = *rentry->res;
++
++	acpi_dev_free_resource_list(&resource_list);
++
++	/* translate the I/O resources */
++	for (i = 0; i < count; i++) {
++		int ret;
++
++		if (!(resources[i].flags & IORESOURCE_IO))
++			continue;
++		ret = hisi_lpc_acpi_xlat_io_res(adev, host, &resources[i]);
++		if (ret) {
++			dev_err(child, "translate IO range failed(%d)\n", ret);
++			return ret;
++		}
++	}
++	*res = resources;
++	*num_res = count;
++
++	return 0;
++}
++
++/*
++ * hisi_lpc_acpi_probe - probe children for ACPI FW
++ * @hostdev: LPC host device pointer
++ *
++ * Returns 0 when successful, and a negative value for failure.
++ *
++ * Scan all child devices and create a per-device MFD with
++ * logical PIO translated IO resources.
++ */
++static int hisi_lpc_acpi_probe(struct device *hostdev)
++{
++	struct acpi_device *adev = ACPI_COMPANION(hostdev);
++	struct hisi_lpc_mfd_cell *hisi_lpc_mfd_cells;
++	struct mfd_cell *mfd_cells;
++	struct acpi_device *child;
++	int size, ret, count = 0, cell_num = 0;
++
++	list_for_each_entry(child, &adev->children, node)
++		cell_num++;
++
++	/* allocate the mfd cell and companion acpi info, one per child */
++	size = sizeof(*mfd_cells) + sizeof(*hisi_lpc_mfd_cells);
++	mfd_cells = devm_kcalloc(hostdev, cell_num, size, GFP_KERNEL);
++	if (!mfd_cells)
++		return -ENOMEM;
++
++	hisi_lpc_mfd_cells = (struct hisi_lpc_mfd_cell *)
++					&mfd_cells[cell_num];
++	/* Only consider the children of the host */
++	list_for_each_entry(child, &adev->children, node) {
++		struct mfd_cell *mfd_cell = &mfd_cells[count];
++		struct hisi_lpc_mfd_cell *hisi_lpc_mfd_cell =
++					&hisi_lpc_mfd_cells[count];
++		struct mfd_cell_acpi_match *acpi_match =
++					&hisi_lpc_mfd_cell->acpi_match;
++		char *name = hisi_lpc_mfd_cell[count].name;
++		char *pnpid = hisi_lpc_mfd_cell[count].pnpid;
++		struct mfd_cell_acpi_match match = {
++			.pnpid = pnpid,
++		};
++
++		snprintf(name, MFD_CHILD_NAME_LEN, MFD_CHILD_NAME_PREFIX"%s",
++			 acpi_device_hid(child));
++		snprintf(pnpid, ACPI_ID_LEN, "%s", acpi_device_hid(child));
++
++		memcpy(acpi_match, &match, sizeof(*acpi_match));
++		mfd_cell->name = name;
++		mfd_cell->acpi_match = acpi_match;
++
++		ret = hisi_lpc_acpi_set_io_res(&child->dev, &adev->dev,
++					       &mfd_cell->resources,
++					       &mfd_cell->num_resources);
++		if (ret) {
++			dev_warn(&child->dev, "set resource fail(%d)\n", ret);
++			return ret;
++		}
++		count++;
++	}
++
++	ret = mfd_add_devices(hostdev, PLATFORM_DEVID_NONE,
++			      mfd_cells, cell_num, NULL, 0, NULL);
++	if (ret) {
++		dev_err(hostdev, "failed to add mfd cells (%d)\n", ret);
++		return ret;
++	}
++
++	return 0;
++}
++
++static const struct acpi_device_id hisi_lpc_acpi_match[] = {
++	{"HISI0191"},
++	{}
++};
++#else
++static int hisi_lpc_acpi_probe(struct device *dev)
++{
++	return -ENODEV;
++}
++#endif // CONFIG_ACPI
++
+ /*
+  * hisi_lpc_probe - the probe callback function for hisi lpc host,
+  *		   will finish all the initialization.
+@@ -397,6 +591,8 @@ static int hisi_lpc_probe(struct platform_device *pdev)
+ 	/* register the LPC host PIO resources */
+ 	if (!acpi_device)
+ 		ret = of_platform_populate(dev->of_node, NULL, NULL, dev);
++	else
++		ret = hisi_lpc_acpi_probe(dev);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -420,6 +616,7 @@ static int hisi_lpc_probe(struct platform_device *pdev)
+ 	.driver = {
+ 		.name           = DRV_NAME,
+ 		.of_match_table = hisi_lpc_of_match,
++		.acpi_match_table = ACPI_PTR(hisi_lpc_acpi_match),
+ 	},
+ 	.probe = hisi_lpc_probe,
+ };
 -- 
 1.9.1
