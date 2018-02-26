@@ -1,57 +1,69 @@
-From: Balbir Singh <bsingharora@gmail.com>
-Subject: Re: [PATCH v12 22/22] selftests/vm: Fix deadlock in
- protection_keys.c
-Date: Mon, 26 Feb 2018 10:19:51 +1100
-Message-ID: <20180226101951.0136f963@balbir.ozlabs.ibm.com>
-References: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
-        <1519264541-7621-23-git-send-email-linuxram@us.ibm.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [PATCH v12 1/3] mm, powerpc, x86: define VM_PKEY_BITx bits if
+ CONFIG_ARCH_HAS_PKEYS is enabled
+Date: Sun, 25 Feb 2018 23:26:45 -0800
+Message-ID: <20180226072645.GA1060@ram.oc3035372033.ibm.com>
+References: <1519257138-23797-2-git-send-email-linuxram@us.ibm.com>
+ <201802231528.snWZIspR%fengguang.wu@intel.com>
+ <20180224010511.GK5559@ram.oc3035372033.ibm.com>
+ <43082fe4-a6e4-2468-0069-4fbc53418c79@linux.vnet.ibm.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1519264541-7621-23-git-send-email-linuxram@us.ibm.com>
+Content-Disposition: inline
+In-Reply-To: <43082fe4-a6e4-2468-0069-4fbc53418c79@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, arnd@arndb.de
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Cc: kbuild test robot <lkp@intel.com>, kbuild-all@01.org, mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 21 Feb 2018 17:55:41 -0800
-Ram Pai <linuxram@us.ibm.com> wrote:
-
-> From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+On Sun, Feb 25, 2018 at 05:27:11PM +0530, Aneesh Kumar K.V wrote:
 > 
-> The sig_chld() handler calls dprintf2() taking care of setting
-> dprint_in_signal so that sigsafe_printf() won't call printf().
-> Unfortunately, this precaution is is negated by dprintf_level(), which
-> has a call to fflush().
->
+> 
+> On 02/24/2018 06:35 AM, Ram Pai wrote:
+> >On Fri, Feb 23, 2018 at 03:11:45PM +0800, kbuild test robot wrote:
+> >>Hi Ram,
+> >>
+> >>Thank you for the patch! Yet something to improve:
+> >>
+> >>[auto build test ERROR on linus/master]
+> >>[also build test ERROR on v4.16-rc2 next-20180222]
+> >>[if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+> >>
+> >>         chmod +x ~/bin/make.cross
+> >...snip..
+> >>         # save the attached .config to linux build tree
+> >>         make.cross ARCH=powerpc
+> >>
+> >>Note: the linux-review/Ram-Pai/mm-x86-powerpc-Enhancements-to-Memory-Protection-Keys/20180223-042743 HEAD c5692bca45543c242ffca15c811923e4c548ed19 builds fine.
+> >>       It only hurts bisectibility.
+> >
+> >oops, it broke git-bisect on powerpc :-(
+> >The following change will fix it. This should nail it down.
+> >
+> >diff --git a/arch/powerpc/include/asm/pkeys.h
+> >b/arch/powerpc/include/asm/pkeys.h
+> >index 0409c80..0b3b669 100644
+> >--- a/arch/powerpc/include/asm/pkeys.h
+> >+++ b/arch/powerpc/include/asm/pkeys.h
+> >@@ -25,6 +25,7 @@
+> >  # define VM_PKEY_BIT1  VM_HIGH_ARCH_1
+> >  # define VM_PKEY_BIT2  VM_HIGH_ARCH_2
+> >  # define VM_PKEY_BIT3  VM_HIGH_ARCH_3
+> >  # define VM_PKEY_BIT4  VM_HIGH_ARCH_4
+> >+#elif !defined(VM_PKEY_BIT4)
+> >+# define VM_PKEY_BIT4  VM_HIGH_ARCH_4
+> >#endif
+> >
+> 
+> Why don't you remove this powerpc definition completely in this
+> patch? 
 
-fflush() is not the signal-safe function list, so this makes sense.
-I wonder if fflush() is needed in sigsafe_printf()?
+That was my thought too, but refrained from sneaking in the changes into
+the patch, to maintain the integrity of all the reviewed-by.
 
-How about?
+Was planning on sending a seperate patch to remove the
+powerpc definition entirely.
 
-diff --git a/tools/testing/selftests/x86/pkey-helpers.h b/tools/testing/selftests/x86/pkey-helpers.h
-index b3cb7670e026..2c3b39851f10 100644
---- a/tools/testing/selftests/x86/pkey-helpers.h
-+++ b/tools/testing/selftests/x86/pkey-helpers.h
-@@ -29,6 +29,7 @@ static inline void sigsafe_printf(const char *format, ...)
- 	va_start(ap, format);
- 	if (!dprint_in_signal) {
- 		vprintf(format, ap);
-+		fflush(NULL);				\
- 	} else {
- 		int ret;
- 		int len = vsnprintf(dprint_in_signal_buffer,
-@@ -49,7 +50,6 @@ static inline void sigsafe_printf(const char *format, ...)
- #define dprintf_level(level, args...) do {	\
- 	if (level <= DEBUG_LEVEL)		\
- 		sigsafe_printf(args);		\
--	fflush(NULL);				\
- } while (0)
- #define dprintf0(args...) dprintf_level(0, args)
- #define dprintf1(args...) dprintf_level(1, args)
-
-
-But both are equivalent I guess, so
-Acked-by: Balbir Singh <bsingharora@gmail.com>
+RP
