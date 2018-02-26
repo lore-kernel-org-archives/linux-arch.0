@@ -1,529 +1,190 @@
-From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v15 1/9] LIB: Introduce a generic PIO mapping method
-Date: Tue, 27 Feb 2018 00:40:41 +0800
-Message-ID: <1519663249-9850-2-git-send-email-john.garry@huawei.com>
-References: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: arc: mm->mmap_sem gets locked in do_page_fault() in case of OOM
+ killer invocation
+Date: Mon, 26 Feb 2018 20:44:44 +0000
+Message-ID: <1519677883.2997.21.camel@synopsys.com>
+References: <1518784830.3544.33.camel@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
+In-Reply-To: <1518784830.3544.33.camel@synopsys.com>
+Content-Language: en-US
+Content-ID: <6AB982F5A0BDC648B8C39D449D7EA544@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com
-Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Zhichang Yuan <yuanzhichang@hisilicon.com>
-
-In commit 41f8bba7f555 ("of/pci: Add pci_register_io_range() and
-pci_pio_to_address()"), a new I/O space management was supported. With
-that driver, the I/O ranges configured for PCI/PCIe hosts on some
-architectures can be mapped to logical PIO, converted easily between
-CPU address and the corresponding logicial PIO. Based on this, PCI
-I/O devices can be accessed in a memory read/write way through the
-unified in/out accessors.
-
-But on some archs/platforms, there are bus hosts which access I/O
-peripherals with host-local I/O port addresses rather than memory
-addresses after memory-mapped.
-
-To support those devices, a more generic I/O mapping method is introduced
-here. Through this patch, both the CPU addresses and the host-local port
-can be mapped into the logical PIO space with different logical/fake PIOs.
-After this, all the I/O accesses to either PCI MMIO devices or host-local
-I/O peripherals can be unified into the existing I/O accessors defined in
-asm-generic/io.h and be redirected to the right device-specific hooks
-based on the input logical PIO.
-
-Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
-Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Signed-off-by: John Garry <john.garry@huawei.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Tested-by: dann frazier <dann.frazier@canonical.com>
----
- include/asm-generic/io.h  |   2 +
- include/linux/logic_pio.h | 127 +++++++++++++++++++++
- lib/Kconfig               |  15 +++
- lib/Makefile              |   2 +
- lib/logic_pio.c           | 285 ++++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 431 insertions(+)
- create mode 100644 include/linux/logic_pio.h
- create mode 100644 lib/logic_pio.c
-
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 7c6a39e..f76fbd6 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -351,6 +351,8 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
- #define IO_SPACE_LIMIT 0xffff
- #endif
- 
-+#include <linux/logic_pio.h>
-+
- /*
-  * {in,out}{b,w,l}() access little endian I/O. {in,out}{b,w,l}_p() can be
-  * implemented on hardware that needs an additional delay for I/O accesses to
-diff --git a/include/linux/logic_pio.h b/include/linux/logic_pio.h
-new file mode 100644
-index 0000000..26fe14b
---- /dev/null
-+++ b/include/linux/logic_pio.h
-@@ -0,0 +1,127 @@
-+// SPDX-License-Identifier: GPL-2.0+
-+/*
-+ * Copyright (C) 2017 Hisilicon Limited, All Rights Reserved.
-+ * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-+ * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
-+ *
-+ */
-+
-+#ifndef __LINUX_LOGIC_PIO_H
-+#define __LINUX_LOGIC_PIO_H
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/fwnode.h>
-+
-+enum {
-+	LOGIC_PIO_INDIRECT,		/* Indirect IO flag */
-+	LOGIC_PIO_CPU_MMIO,		/* Memory mapped IO flag */
-+};
-+
-+struct logic_pio_hwaddr {
-+	struct list_head list;
-+	struct fwnode_handle *fwnode;
-+	resource_size_t hw_start;
-+	resource_size_t io_start;
-+	resource_size_t size; /* range size populated */
-+	unsigned long flags;
-+
-+	void *hostdata;
-+	const struct logic_pio_host_ops *ops;
-+};
-+
-+struct logic_pio_host_ops {
-+	u32 (*in)(void *hostdata, unsigned long addr, size_t dwidth);
-+	void (*out)(void *hostdata, unsigned long addr, u32 val,
-+		    size_t dwidth);
-+	u32 (*ins)(void *hostdata, unsigned long addr, void *buffer,
-+		   size_t dwidth, unsigned int count);
-+	void (*outs)(void *hostdata, unsigned long addr, const void *buffer,
-+		     size_t dwidth, unsigned int count);
-+};
-+
-+#ifdef CONFIG_INDIRECT_PIO
-+u8 logic_inb(unsigned long addr);
-+void logic_outb(u8 value, unsigned long addr);
-+void logic_outw(u16 value, unsigned long addr);
-+void logic_outl(u32 value, unsigned long addr);
-+u16 logic_inw(unsigned long addr);
-+u32 logic_inl(unsigned long addr);
-+void logic_outb(u8 value, unsigned long addr);
-+void logic_outw(u16 value, unsigned long addr);
-+void logic_outl(u32 value, unsigned long addr);
-+void logic_insb(unsigned long addr, void *buffer, unsigned int count);
-+void logic_insl(unsigned long addr, void *buffer, unsigned int count);
-+void logic_insw(unsigned long addr, void *buffer, unsigned int count);
-+void logic_outsb(unsigned long addr, const void *buffer, unsigned int count);
-+void logic_outsw(unsigned long addr, const void *buffer, unsigned int count);
-+void logic_outsl(unsigned long addr, const void *buffer, unsigned int count);
-+
-+#ifndef inb
-+#define inb logic_inb
-+#endif
-+
-+#ifndef inw
-+#define inw logic_inw
-+#endif
-+
-+#ifndef inl
-+#define inl logic_inl
-+#endif
-+
-+#ifndef outb
-+#define outb logic_outb
-+#endif
-+
-+#ifndef outw
-+#define outw logic_outw
-+#endif
-+
-+#ifndef outl
-+#define outl logic_outl
-+#endif
-+
-+#ifndef insb
-+#define insb logic_insb
-+#endif
-+
-+#ifndef insw
-+#define insw logic_insw
-+#endif
-+
-+#ifndef insl
-+#define insl logic_insl
-+#endif
-+
-+#ifndef outsb
-+#define outsb logic_outsb
-+#endif
-+
-+#ifndef outsw
-+#define outsw logic_outsw
-+#endif
-+
-+#ifndef outsl
-+#define outsl logic_outsl
-+#endif
-+
-+/*
-+ * Below we reserve 0x4000 bytes for Indirect IO as so far this library is only
-+ * used by Hisilicon LPC Host. If needed in future we may reserve a wider IO
-+ * area by redefining the macro below.
-+ */
-+#define PIO_INDIRECT_SIZE 0x4000
-+#define MMIO_UPPER_LIMIT (IO_SPACE_LIMIT - PIO_INDIRECT_SIZE)
-+#else
-+#define MMIO_UPPER_LIMIT IO_SPACE_LIMIT
-+#endif /* CONFIG_INDIRECT_PIO */
-+
-+struct logic_pio_hwaddr *find_io_range_by_fwnode(struct fwnode_handle *fwnode);
-+unsigned long logic_pio_trans_hwaddr(struct fwnode_handle *fwnode,
-+			resource_size_t hw_addr, resource_size_t size);
-+int logic_pio_register_range(struct logic_pio_hwaddr *newrange);
-+extern resource_size_t logic_pio_to_hwaddr(unsigned long pio);
-+extern unsigned long logic_pio_trans_cpuaddr(resource_size_t hw_addr);
-+
-+#endif /* __KERNEL__ */
-+#endif /* __LINUX_LOGIC_PIO_H */
-diff --git a/lib/Kconfig b/lib/Kconfig
-index e960894..d9dd02c 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -55,6 +55,21 @@ config ARCH_USE_CMPXCHG_LOCKREF
- config ARCH_HAS_FAST_MULTIPLIER
- 	bool
- 
-+config INDIRECT_PIO
-+	bool "Access I/O in non-MMIO mode"
-+	depends on ARM64
-+	help
-+	  On some platforms where no separate I/O space exists, there are I/O
-+	  hosts which can not be accessed in MMIO mode. Using the logical PIO
-+	  mechanism, the host-local I/O resource can be mapped into system
-+	  logic PIO space shared with MMIO hosts, such as PCI/PCIE, then the
-+	  system can access the I/O devices with the mapped logic PIO through
-+	  I/O accessors.
-+	  This way has relatively little I/O performance cost. Please make
-+	  sure your devices really need this configure item enabled.
-+
-+	  When in doubt, say N.
-+
- config CRC_CCITT
- 	tristate "CRC-CCITT functions"
- 	help
-diff --git a/lib/Makefile b/lib/Makefile
-index a90d4fc..4a9eacd 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -81,6 +81,8 @@ obj-$(CONFIG_HAS_IOMEM) += iomap_copy.o devres.o
- obj-$(CONFIG_CHECK_SIGNATURE) += check_signature.o
- obj-$(CONFIG_DEBUG_LOCKING_API_SELFTESTS) += locking-selftest.o
- 
-+obj-y += logic_pio.o
-+
- obj-$(CONFIG_GENERIC_HWEIGHT) += hweight.o
- 
- obj-$(CONFIG_BTREE) += btree.o
-diff --git a/lib/logic_pio.c b/lib/logic_pio.c
-new file mode 100644
-index 0000000..fd52d55
---- /dev/null
-+++ b/lib/logic_pio.c
-@@ -0,0 +1,285 @@
-+// SPDX-License-Identifier: GPL-2.0+
-+/*
-+ * Copyright (C) 2017 Hisilicon Limited, All Rights Reserved.
-+ * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-+ * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
-+ *
-+ */
-+
-+#define pr_fmt(fmt)	"LOGIC PIO: " fmt
-+
-+#include <linux/of.h>
-+#include <linux/io.h>
-+#include <linux/logic_pio.h>
-+#include <linux/mm.h>
-+#include <linux/rculist.h>
-+#include <linux/sizes.h>
-+#include <linux/slab.h>
-+
-+/* The unique hardware address list. */
-+static LIST_HEAD(io_range_list);
-+static DEFINE_MUTEX(io_range_mutex);
-+
-+/**
-+ * logic_pio_register_range - register logical PIO range for a host
-+ * @new_range: pointer to the io range to be registered.
-+ *
-+ * returns 0 on success, the error code in case of failure
-+ *
-+ * Register a new io range node in the io range list.
-+ */
-+int logic_pio_register_range(struct logic_pio_hwaddr *new_range)
-+{
-+	struct logic_pio_hwaddr *range;
-+	resource_size_t start = new_range->hw_start;
-+	resource_size_t end = new_range->hw_start + new_range->size;
-+	resource_size_t allocated_mmio_size = 0;
-+	resource_size_t allocated_iio_size = MMIO_UPPER_LIMIT;
-+	int ret = 0;
-+
-+	if (!new_range || !new_range->fwnode || !new_range->size)
-+		return -EINVAL;
-+
-+	mutex_lock(&io_range_mutex);
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->fwnode == new_range->fwnode) {
-+			/* range already there */
-+			ret = -EFAULT;
-+			goto end_register;
-+		}
-+		if (range->flags == LOGIC_PIO_CPU_MMIO &&
-+				new_range->flags == LOGIC_PIO_CPU_MMIO) {
-+			/* for MMIO ranges we need to check for overlap */
-+			if (start >= range->hw_start + range->size ||
-+			    end < range->hw_start)
-+				allocated_mmio_size += range->size;
-+			else {
-+				ret = -EFAULT;
-+				goto end_register;
-+			}
-+		} else if (range->flags == LOGIC_PIO_INDIRECT &&
-+			   new_range->flags == LOGIC_PIO_INDIRECT) {
-+			allocated_iio_size += range->size;
-+		}
-+	}
-+
-+	/* range not registered yet, check for available space */
-+	if (new_range->flags == LOGIC_PIO_CPU_MMIO) {
-+		if (allocated_mmio_size + new_range->size - 1 >
-+			MMIO_UPPER_LIMIT) {
-+			/* if it's too big check if 64K space can be reserved */
-+			if (allocated_mmio_size + SZ_64K - 1 >
-+			MMIO_UPPER_LIMIT) {
-+				ret = -E2BIG;
-+				goto end_register;
-+			}
-+			new_range->size = SZ_64K;
-+			pr_warn("Requested IO range too big, new size set to 64K\n");
-+		}
-+		new_range->io_start = allocated_mmio_size;
-+	} else if (new_range->flags == LOGIC_PIO_INDIRECT) {
-+		if (allocated_iio_size + new_range->size - 1 >
-+		    IO_SPACE_LIMIT) {
-+			ret = -E2BIG;
-+			goto end_register;
-+		}
-+		new_range->io_start = allocated_iio_size;
-+	} else {
-+		/* invalid flag */
-+		ret = -EINVAL;
-+		goto end_register;
-+	}
-+
-+	list_add_tail_rcu(&new_range->list, &io_range_list);
-+
-+end_register:
-+	mutex_unlock(&io_range_mutex);
-+	return ret;
-+}
-+
-+/**
-+ * find_io_range_by_fwnode - find logical PIO range for given FW node
-+ * @fwnode: FW node handle associated with logical PIO range
-+ *
-+ * Returns pointer to node on success, NULL otherwise
-+ *
-+ * Traverse the io_range_list to find the registered node whose device node
-+ * and/or physical IO address match to.
-+ */
-+struct logic_pio_hwaddr *find_io_range_by_fwnode(struct fwnode_handle *fwnode)
-+{
-+	struct logic_pio_hwaddr *range;
-+
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->fwnode == fwnode)
-+			return range;
-+	}
-+	return NULL;
-+}
-+
-+/* Return a registered range given an input PIO token */
-+static struct logic_pio_hwaddr *find_io_range(unsigned long pio)
-+{
-+	struct logic_pio_hwaddr *range;
-+
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (pio >= range->io_start &&
-+		    pio < range->io_start + range->size)
-+			return range;
-+	}
-+	pr_err("PIO entry token invalid\n");
-+	return NULL;
-+}
-+
-+/**
-+ * logic_pio_to_hwaddr - translate logical PIO to HW address
-+ * @pio: logical PIO value
-+ *
-+ * Returns HW address if valid, -1 otherwise
-+ *
-+ * Translate the input logical pio to the corresponding hardware address.
-+ * The input pio should be unique in the whole logical PIO space.
-+ */
-+resource_size_t logic_pio_to_hwaddr(unsigned long pio)
-+{
-+	struct logic_pio_hwaddr *range;
-+	resource_size_t hwaddr = (resource_size_t)-1;
-+
-+	range = find_io_range(pio);
-+	if (range)
-+		hwaddr = range->hw_start + pio - range->io_start;
-+
-+	return hwaddr;
-+}
-+
-+/**
-+ * logic_pio_trans_hwaddr - translate HW address to logical PIO
-+ * @fwnode: FW node reference for the host
-+ * @addr: Host-relative HW address
-+ * @size: size to translate
-+ *
-+ * Returns Logical PIO value if successful, ~0UL otherwise
-+ */
-+unsigned long
-+logic_pio_trans_hwaddr(struct fwnode_handle *fwnode, resource_size_t addr,
-+		       resource_size_t size)
-+{
-+	struct logic_pio_hwaddr *range;
-+
-+	range = find_io_range_by_fwnode(fwnode);
-+	if (!range || range->flags == LOGIC_PIO_CPU_MMIO) {
-+		pr_err("range not found or invalid\n");
-+		return ~0UL;
-+	}
-+	if (range->size < size) {
-+		pr_err("resource size %pa cannot fit in IO range size %pa\n",
-+		       &size, &range->size);
-+		return ~0UL;
-+	}
-+	return addr - range->hw_start + range->io_start;
-+}
-+
-+unsigned long
-+logic_pio_trans_cpuaddr(resource_size_t addr)
-+{
-+	struct logic_pio_hwaddr *range;
-+
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->flags != LOGIC_PIO_CPU_MMIO)
-+			continue;
-+		if (addr >= range->hw_start &&
-+		    addr < range->hw_start + range->size)
-+			return addr - range->hw_start +
-+				range->io_start;
-+	}
-+	pr_err("addr not registered in io_range_list\n");
-+	return ~0UL;
-+}
-+
-+#if defined(CONFIG_INDIRECT_PIO) && defined(PCI_IOBASE)
-+#define BUILD_LOGIC_IO(bw, type)					\
-+type logic_in##bw(unsigned long addr)					\
-+{									\
-+	type ret = (type)~0;						\
-+									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		ret = read##bw(PCI_IOBASE + addr);			\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) { \
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			ret = entry->ops->in(entry->hostdata,		\
-+					addr, sizeof(type));		\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+	return ret;							\
-+}									\
-+									\
-+void logic_out##bw(type value, unsigned long addr)			\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		write##bw(value, PCI_IOBASE + addr);			\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->out(entry->hostdata,		\
-+					addr, value, sizeof(type));	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+}									\
-+									\
-+void logic_ins##bw(unsigned long addr, void *buffer,		\
-+		   unsigned int count)					\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		reads##bw(PCI_IOBASE + addr, buffer, count);		\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->ins(entry->hostdata,		\
-+				addr, buffer, sizeof(type), count);	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+									\
-+}									\
-+									\
-+void logic_outs##bw(unsigned long addr, const void *buffer,		\
-+		    unsigned int count)					\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		writes##bw(PCI_IOBASE + addr, buffer, count);		\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->outs(entry->hostdata,		\
-+				addr, buffer, sizeof(type), count);	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+}
-+
-+BUILD_LOGIC_IO(b, u8)
-+EXPORT_SYMBOL(logic_inb);
-+EXPORT_SYMBOL(logic_insb);
-+EXPORT_SYMBOL(logic_outb);
-+EXPORT_SYMBOL(logic_outsb);
-+
-+BUILD_LOGIC_IO(w, u16)
-+EXPORT_SYMBOL(logic_inw);
-+EXPORT_SYMBOL(logic_insw);
-+EXPORT_SYMBOL(logic_outw);
-+EXPORT_SYMBOL(logic_outsw);
-+
-+BUILD_LOGIC_IO(l, u32)
-+EXPORT_SYMBOL(logic_inl);
-+EXPORT_SYMBOL(logic_insl);
-+EXPORT_SYMBOL(logic_outl);
-+EXPORT_SYMBOL(logic_outsl);
-+
-+#endif /* CONFIG_INDIRECT_PIO && PCI_IOBASE */
--- 
-1.9.1
+SGkgVmluZWV0LCBhbGwNCg0KT24gRnJpLCAyMDE4LTAyLTE2IGF0IDE1OjQwICswMzAwLCBBbGV4
+ZXkgQnJvZGtpbiB3cm90ZToNCj4gSGkgVmluZWV0LA0KPiANCj4gV2hpbGUgcGxheWluZyB3aXRo
+IE9PTSBraWxsZXIgSSBidW1wZWQgaW4gYSBwdXJlIHNvZnR3YXJlIGRlYWRsb2NrIG9uIEFSQw0K
+PiB3aGljaCBpcyBldmVuIG9ic2VydmVkIGluIHNpbXVsYXRpb24gKGkuZS4gaXQgaGFzIG5vdGhp
+bmcgdG8gZG8gd2l0aCBIVyBwZWN1bGlhcml0aWVzKS4NCj4gDQo+IFdoYXQncyBuaWNlIGtlcm5l
+bCBldmVuIHNlZXMgdGhhdCBsb2NrLXVwIGlmICJMb2NrIERlYnVnZ2luZyIgaXMgZW5hYmxlZC4N
+Cj4gVGhhdCdzIHdoYXQgSSBzZWU6DQo+IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+DQo+ICMgL2hvbWUvb29tLXRlc3QgNDUwICYgL2hvbWUvb29tLXRlc3QgNDUwDQo+IG9vbS10ZXN0
+IGludm9rZWQgb29tLWtpbGxlcjogZ2ZwX21hc2s9MHgxNDIwMGNhKEdGUF9ISUdIVVNFUl9NT1ZB
+QkxFKSwgbm9kZW1hc2s9KG51bGwpLCAgb3JkZXI9MCwgb29tX3Njb3JlX2Fkaj0wDQo+IENQVTog
+MCBQSUQ6IDY3IENvbW06IG9vbS10ZXN0IE5vdCB0YWludGVkIDQuMTQuMTkgIzINCj4gDQo+IFN0
+YWNrIFRyYWNlOg0KPiAgIGFyY191bndpbmRfY29yZS5jb25zdHByb3AuMSsweGQ0LzB4ZjgNCj4g
+ICBkdW1wX2hlYWRlci5pc3JhLjYrMHg4NC8weDJmOA0KPiAgIG9vbV9raWxsX3Byb2Nlc3MrMHgy
+NTgvMHg3YzgNCj4gICBvdXRfb2ZfbWVtb3J5KzB4YjgvMHg1ZTANCj4gICBfX2FsbG9jX3BhZ2Vz
+X25vZGVtYXNrKzB4OTIyLzB4ZDI4DQo+ICAgaGFuZGxlX21tX2ZhdWx0KzB4Mjg0LzB4ZDkwDQo+
+ICAgZG9fcGFnZV9mYXVsdCsweGY2LzB4MmEwDQo+ICAgcmV0X2Zyb21fZXhjZXB0aW9uKzB4MC8w
+eDgNCj4gTWVtLUluZm86DQo+IGFjdGl2ZV9hbm9uOjYyMjc2IGluYWN0aXZlX2Fub246MzQxIGlz
+b2xhdGVkX2Fub246MA0KPiAgYWN0aXZlX2ZpbGU6MCBpbmFjdGl2ZV9maWxlOjAgaXNvbGF0ZWRf
+ZmlsZTowDQo+ICB1bmV2aWN0YWJsZTowIGRpcnR5OjAgd3JpdGViYWNrOjAgdW5zdGFibGU6MA0K
+PiAgc2xhYl9yZWNsYWltYWJsZToyNiBzbGFiX3VucmVjbGFpbWFibGU6MTk2DQo+ICBtYXBwZWQ6
+MTA1IHNobWVtOjU3OCBwYWdldGFibGVzOjI2MyBib3VuY2U6MA0KPiAgZnJlZTozNDQgZnJlZV9w
+Y3A6MzkgZnJlZV9jbWE6MA0KPiBOb2RlIDAgYWN0aXZlX2Fub246NDk4MjA4a0IgaW5hY3RpdmVf
+YW5vbjoyNzI4a0IgYWN0aXZlX2ZpbGU6MGtCIGluYWN0aXZlX2ZpbGU6MGtCIHVuZXZpY3RhYmxl
+OjBrQiBpc29sYXRlZChhbm9uKTowa0IgaXNvbGF0ZWQoZmlsZSk6MGtCDQo+IG1hcHBlZDo4NDBr
+Qg0KPiBkaXJ0eToNCj4gMGtCIHdyaXRlYmFjazowa0Igc2htZW06NDYyNGtCIHdyaXRlYmFja190
+bXA6MGtCIHVuc3RhYmxlOjBrQiBhbGxfdW5yZWNsYWltYWJsZT8gbm8NCj4gTm9ybWFsIGZyZWU6
+Mjc1MmtCIG1pbjoyODQwa0IgbG93OjM1NDRrQiBoaWdoOjQyNDhrQiBhY3RpdmVfYW5vbjo0OTgy
+MDhrQiBpbmFjdGl2ZV9hbm9uOjI3MjhrQiBhY3RpdmVfZmlsZTowa0IgaW5hY3RpdmVfZmlsZTow
+a0IgdW5ldmljdGFibGU6MGtCDQo+IHdyaXRlcGVuZGluDQo+IGc6MGtCIHByZXNlbnQ6NTI0Mjg4
+a0IgbWFuYWdlZDo1MDg1ODRrQiBtbG9ja2VkOjBrQiBrZXJuZWxfc3RhY2s6MjQwa0IgcGFnZXRh
+YmxlczoyMTA0a0IgYm91bmNlOjBrQiBmcmVlX3BjcDozMTJrQiBsb2NhbF9wY3A6MzEya0IgZnJl
+ZV9jbWE6MGtCDQo+IGxvd21lbV9yZXNlcnZlW106IDAgMA0KPiBOb3JtYWw6IDAqOGtCIDAqMTZr
+QiAwKjMya0IgMSo2NGtCIChNKSAxKjEyOGtCIChNKSAwKjI1NmtCIDEqNTEya0IgKE0pIDAqMTAy
+NGtCIDEqMjA0OGtCIChNKSAwKjQwOTZrQiAwKjgxOTJrQiA9IDI3NTJrQg0KPiA1NzggdG90YWwg
+cGFnZWNhY2hlIHBhZ2VzDQo+IDY1NTM2IHBhZ2VzIFJBTQ0KPiAwIHBhZ2VzIEhpZ2hNZW0vTW92
+YWJsZU9ubHkNCj4gMTk2MyBwYWdlcyByZXNlcnZlZA0KPiBbIHBpZCBdICAgdWlkICB0Z2lkIHRv
+dGFsX3ZtICAgICAgcnNzIG5yX3B0ZXMgbnJfcG1kcyBzd2FwZW50cyBvb21fc2NvcmVfYWRqIG5h
+bWUNCj4gWyAgIDQxXSAgICAgMCAgICA0MSAgICAgIDE1NyAgICAgIDEwMyAgICAgICAzICAgICAg
+IDAgICAgICAgIDAgICAgICAgICAgICAgMCBzeXNsb2dkDQo+IFsgICA0M10gICAgIDAgICAgNDMg
+ICAgICAxNTYgICAgICAxMDYgICAgICAgMyAgICAgICAwICAgICAgICAwICAgICAgICAgICAgIDAg
+a2xvZ2QNCj4gWyAgIDYzXSAgICAgMCAgICA2MyAgICAgIDE1NyAgICAgICA5OSAgICAgICAzICAg
+ICAgIDAgICAgICAgIDAgICAgICAgICAgICAgMCBnZXR0eQ0KPiBbICAgNjRdICAgICAwICAgIDY0
+ICAgICAgMTU5ICAgICAgMTE4ICAgICAgIDMgICAgICAgMCAgICAgICAgMCAgICAgICAgICAgICAw
+IHNoDQo+IFsgICA2Nl0gICAgIDAgICAgNjYgICAxMTUyOTEgICAgMzEwOTQgICAgIDEyNCAgICAg
+ICAwICAgICAgICAwICAgICAgICAgICAgIDAgb29tLXRlc3QNCj4gWyAgIDY3XSAgICAgMCAgICA2
+NyAgIDExNTI5MSAgICAzMTAwNCAgICAgMTI0ICAgICAgIDAgICAgICAgIDAgICAgICAgICAgICAg
+MCBvb20tdGVzdA0KPiBPdXQgb2YgbWVtb3J5OiBLaWxsIHByb2Nlc3MgNjYgKG9vbS10ZXN0KSBz
+Y29yZSA0NzYgb3Igc2FjcmlmaWNlIGNoaWxkDQo+IEtpbGxlZCBwcm9jZXNzIDY2IChvb20tdGVz
+dCkgdG90YWwtdm06OTIyMzI4a0IsIGFub24tcnNzOjI0ODMyOGtCLCBmaWxlLXJzczowa0IsIHNo
+bWVtLXJzczo0MjRrQg0KPiANCj4gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
+PT09PT09PT0NCj4gV0FSTklORzogcG9zc2libGUgcmVjdXJzaXZlIGxvY2tpbmcgZGV0ZWN0ZWQN
+Cj4gNC4xNC4xOSAjMiBOb3QgdGFpbnRlZA0KPiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLQ0KPiBvb20tdGVzdC82NiBpcyB0cnlpbmcgdG8gYWNxdWlyZSBsb2Nr
+Og0KPiAgKCZtbS0+bW1hcF9zZW0peysrKyt9LCBhdDogWzw4MDIxN2Q1MD5dIGRvX2V4aXQrMHg0
+NDQvMHg3ZjgNCj4gDQo+IGJ1dCB0YXNrIGlzIGFscmVhZHkgaG9sZGluZyBsb2NrOg0KPiAgKCZt
+bS0+bW1hcF9zZW0peysrKyt9LCBhdDogWzw4MDIxMDI4YT5dIGRvX3BhZ2VfZmF1bHQrMHg5ZS8w
+eDJhMA0KPiANCj4gb3RoZXIgaW5mbyB0aGF0IG1pZ2h0IGhlbHAgdXMgZGVidWcgdGhpczoNCj4g
+IFBvc3NpYmxlIHVuc2FmZSBsb2NraW5nIHNjZW5hcmlvOg0KPiANCj4gICAgICAgIENQVTANCj4g
+ICAgICAgIC0tLS0NCj4gICBsb2NrKCZtbS0+bW1hcF9zZW0pOw0KPiAgIGxvY2soJm1tLT5tbWFw
+X3NlbSk7DQo+IA0KPiAgKioqIERFQURMT0NLICoqKg0KPiANCj4gIE1heSBiZSBkdWUgdG8gbWlz
+c2luZyBsb2NrIG5lc3Rpbmcgbm90YXRpb24NCj4gDQo+IDEgbG9jayBoZWxkIGJ5IG9vbS10ZXN0
+LzY2Og0KPiAgIzA6ICAoJm1tLT5tbWFwX3NlbSl7KysrK30sIGF0OiBbPDgwMjEwMjhhPl0gZG9f
+cGFnZV9mYXVsdCsweDllLzB4MmEwDQo+IA0KPiBzdGFjayBiYWNrdHJhY2U6DQo+IENQVTogMCBQ
+SUQ6IDY2IENvbW06IG9vbS10ZXN0IE5vdCB0YWludGVkIDQuMTQuMTkgIzINCj4gDQo+IFN0YWNr
+IFRyYWNlOg0KPiAgIGFyY191bndpbmRfY29yZS5jb25zdHByb3AuMSsweGQ0LzB4ZjgNCj4gICBf
+X2xvY2tfYWNxdWlyZSsweDU4Mi8weDE0OTQNCj4gICBsb2NrX2FjcXVpcmUrMHgzYy8weDU4DQo+
+ICAgZG93bl9yZWFkKzB4MWEvMHgyOA0KPiAgIGRvX2V4aXQrMHg0NDQvMHg3ZjgNCj4gICBkb19n
+cm91cF9leGl0KzB4MjYvMHg4Yw0KPiAgIGdldF9zaWduYWwrMHgxYWEvMHg3ZDQNCj4gICBkb19z
+aWduYWwrMHgzMC8weDIyMA0KPiAgIHJlc3VtZV91c2VyX21vZGVfYmVnaW4rMHg5MC8weGQ4DQo+
+IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQo+IA0KPiBMb29raW5nIGF0IG91ciBj
+b2RlIGluICJhcmNoL2FyYy9tbS9mYXVsdC5jIiBJIG1heSBzZWUgd2h5ICJtbS0+bW1hcF9zZW0i
+IGlzIG5vdCByZWxlYXNlZDoNCj4gMS4gZmF0YWxfc2lnbmFsX3BlbmRpbmcoY3VycmVudCkgcmV0
+dXJucyBub24temVybyB2YWx1ZQ0KPiAyLiAoKGZhdWx0ICYgVk1fRkFVTFRfRVJST1IpICYmICEo
+ZmF1bHQgJiBWTV9GQVVMVF9SRVRSWSkpIGlzIGZhbHNlIHRodXMgdXBfcmVhZCgmbW0tPm1tYXBf
+c2VtKQ0KPiAgICBpcyBub3QgZXhlY3V0ZWQuDQo+IDMuIEl0IHdhcyBhIHVzZXItc3BhY2UgcHJv
+Y2VzcyB0aHVzIHdlIHNpbXBseSByZXR1cm4gW3dpdGggIm1tLT5tbWFwX3NlbSIgc3RpbGwgaGVs
+ZF0uDQo+IA0KPiBTZWUgdGhlIGNvZGUgc25pcHBldCBiZWxvdzoNCj4gLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0NCj4gCS8qIElmIFBhZ2VmYXVsdCB3YXMgaW50ZXJydXB0ZWQgYnkg
+U0lHS0lMTCwgZXhpdCBwYWdlIGZhdWx0ICJlYXJseSIgKi8NCj4gCWlmICh1bmxpa2VseShmYXRh
+bF9zaWduYWxfcGVuZGluZyhjdXJyZW50KSkpIHsNCj4gCQlpZiAoKGZhdWx0ICYgVk1fRkFVTFRf
+RVJST1IpICYmICEoZmF1bHQgJiBWTV9GQVVMVF9SRVRSWSkpDQo+IAkJCXVwX3JlYWQoJm1tLT5t
+bWFwX3NlbSk7DQo+IAkJaWYgKHVzZXJfbW9kZShyZWdzKSkNCj4gCQkJcmV0dXJuOw0KPiAJfQ0K
+PiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQpTbyBJIGRlY2lkZWQgdG8gZ2l2
+ZSBhIHRyaXZpYWwgZml4IGEgdHJ5Og0KLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0N
+CmRpZmYgLS1naXQgYS9hcmNoL2FyYy9tbS9mYXVsdC5jIGIvYXJjaC9hcmMvbW0vZmF1bHQuYw0K
+aW5kZXggYTBiN2JkNmQwMzBkLi45NzlhMDk5NTEwMGQgMTAwNjQ0DQotLS0gYS9hcmNoL2FyYy9t
+bS9mYXVsdC5jDQorKysgYi9hcmNoL2FyYy9tbS9mYXVsdC5jDQpAQCAtMTQzLDggKzE0MywxMCBA
+QCB2b2lkIGRvX3BhZ2VfZmF1bHQodW5zaWduZWQgbG9uZyBhZGRyZXNzLCBzdHJ1Y3QgcHRfcmVn
+cyAqcmVncykNCiAgICAgICAgaWYgKHVubGlrZWx5KGZhdGFsX3NpZ25hbF9wZW5kaW5nKGN1cnJl
+bnQpKSkgew0KICAgICAgICAgICAgICAgIGlmICgoZmF1bHQgJiBWTV9GQVVMVF9FUlJPUikgJiYg
+IShmYXVsdCAmIFZNX0ZBVUxUX1JFVFJZKSkNCiAgICAgICAgICAgICAgICAgICAgICAgIHVwX3Jl
+YWQoJm1tLT5tbWFwX3NlbSk7DQotICAgICAgICAgICAgICAgaWYgKHVzZXJfbW9kZShyZWdzKSkN
+CisgICAgICAgICAgICAgICBpZiAodXNlcl9tb2RlKHJlZ3MpKSB7DQorICAgICAgICAgICAgICAg
+ICAgICAgICB1cF9yZWFkKCZtbS0+bW1hcF9zZW0pOw0KICAgICAgICAgICAgICAgICAgICAgICAg
+cmV0dXJuOw0KKyAgICAgICAgICAgICAgIH0NCiAgICAgICAgfQ0KLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0NCg0KQW5kIGluZGVlZCBJIG5vIGxvbmdlciBzZWUgdGhhdCBkZWFkbG9j
+ayBidXQgaW5zdGVhZCBJJ20gZ2V0dGluZyBhbm90aGVyIGZhdGFsIGZhaWx1cmU6DQotLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KIyB3aGlsZSB0cnVlOyBkbyAvaG9tZS9vb20tdGVz
+dCA0NTAgJiAvaG9tZS9vb20tdGVzdCA0NTA7IGRvbmU7DQpCdWZmZXIgc2l6ZSBpcyA0NTAgTWlC
+DQpCdWZmZXIgc2l6ZSBpcyA0NTAgTWlCDQpvb20tdGVzdCBpbnZva2VkIG9vbS1raWxsZXI6IGdm
+cF9tYXNrPTB4MTQyMDBjYShHRlBfSElHSFVTRVJfTU9WQUJMRSksIG5vZGVtYXNrPShudWxsKSwg
+IG9yZGVyPTAsIG9vbV9zY29yZV9hZGo9MA0KQ1BVOiAzIFBJRDogMTA1IENvbW06IG9vbS10ZXN0
+IE5vdCB0YWludGVkIDQuMTQuMjItZGlydHkgIzEzDQoNClN0YWNrIFRyYWNlOg0KICBhcmNfdW53
+aW5kX2NvcmUuY29uc3Rwcm9wLjErMHhkMC8weGY0DQogIGR1bXBfc3RhY2srMHg2OC8weDgwDQog
+IGR1bXBfaGVhZGVyLmlzcmEuNisweDdjLzB4MTkwDQogIG9vbV9raWxsX3Byb2Nlc3MrMHgxMTAv
+MHg2MTgNCiAgb3V0X29mX21lbW9yeSsweGI0LzB4NDA0DQogIF9fYWxsb2NfcGFnZXNfbm9kZW1h
+c2srMHgxYjkyLzB4MjczNA0KICBoYW5kbGVfbW1fZmF1bHQrMHgyZTIvMHg5NzQNCiAgZG9fcGFn
+ZV9mYXVsdCsweGY2LzB4MmFjDQogIHJldF9mcm9tX2V4Y2VwdGlvbisweDAvMHg4DQpNZW0tSW5m
+bzoNCmFjdGl2ZV9hbm9uOjk0ODcyIGluYWN0aXZlX2Fub246MzQ0IGlzb2xhdGVkX2Fub246MA0K
+IGFjdGl2ZV9maWxlOjAgaW5hY3RpdmVfZmlsZTowIGlzb2xhdGVkX2ZpbGU6MA0KIHVuZXZpY3Rh
+YmxlOjAgZGlydHk6MCB3cml0ZWJhY2s6MCB1bnN0YWJsZTowDQogc2xhYl9yZWNsYWltYWJsZToz
+OCBzbGFiX3VucmVjbGFpbWFibGU6Mjg1DQogbWFwcGVkOjEwNSBzaG1lbTo1NzkgcGFnZXRhYmxl
+czozOTIgYm91bmNlOjANCiBmcmVlOjQyOCBmcmVlX3BjcDoxNjAgZnJlZV9jbWE6MA0KTm9kZSAw
+IGFjdGl2ZV9hbm9uOjc1ODk3NmtCIGluYWN0aXZlX2Fub246Mjc1MmtCIGFjdGl2ZV9maWxlOjBr
+QiBpbmFjdGl2ZV9maWxlOjBrQiB1bmV2aWN0YWJsZTowa0IgaXNvbGF0ZWQoYW5vbik6MGtCIGlz
+b2xhdGVkKGZpbGUpOjBrQiBtYXBwZWQ6ODQwa0INCmRpcnR5OjBzDQpOb3JtYWwgZnJlZTozNDI0
+a0IgbWluOjM1MTJrQiBsb3c6NDM4NGtCIGhpZ2g6NTI1NmtCIGFjdGl2ZV9hbm9uOjc1OTAyNGtC
+IGluYWN0aXZlX2Fub246Mjc1MmtCIGFjdGl2ZV9maWxlOjBrQiBpbmFjdGl2ZV9maWxlOjBrQiB1
+bmV2aWN0YWJsZTowa0INCndyaXRlcGVuZGluZ0INCmxvd21lbV9yZXNlcnZlW106IDAgMA0KTm9y
+bWFsOiAwKjhrQiAwKjE2a0IgMSozMmtCIChNKSAxKjY0a0IgKE0pIDIqMTI4a0IgKFVNKSAyKjI1
+NmtCIChVTSkgMSo1MTJrQiAoTSkgMioxMDI0a0IgKFVNKSAwKjIwNDhrQiAwKjQwOTZrQiAwKjgx
+OTJrQiA9IDM0MjRrQg0KNTc5IHRvdGFsIHBhZ2VjYWNoZSBwYWdlcw0KMCBwYWdlcyBpbiBzd2Fw
+IGNhY2hlDQpTd2FwIGNhY2hlIHN0YXRzOiBhZGQgMCwgZGVsZXRlIDAsIGZpbmQgMC8wDQpGcmVl
+IHN3YXAgID0gMGtCDQpUb3RhbCBzd2FwID0gMGtCDQoxMzEwNzIgcGFnZXMgUkFNDQowIHBhZ2Vz
+IEhpZ2hNZW0vTW92YWJsZU9ubHkNCjM0Mzk3IHBhZ2VzIHJlc2VydmVkDQpbIHBpZCBdICAgdWlk
+ICB0Z2lkIHRvdGFsX3ZtICAgICAgcnNzIG5yX3B0ZXMgbnJfcG1kcyBzd2FwZW50cyBvb21fc2Nv
+cmVfYWRqIG5hbWUNClsgICA4MF0gICAgIDAgICAgODAgICAgICAxNTcgICAgICAgMjggICAgICAg
+MyAgICAgICAwICAgICAgICAwICAgICAgICAgICAgIDAgc3lzbG9nZA0KWyAgIDgzXSAgICAgMCAg
+ICA4MyAgICAgIDE1NiAgICAgICAyNSAgICAgICAzICAgICAgIDAgICAgICAgIDAgICAgICAgICAg
+ICAgMCBrbG9nZA0KWyAgMTAyXSAgICAgMCAgIDEwMiAgICAgIDE1NyAgICAgICAyOCAgICAgICAz
+ICAgICAgIDAgICAgICAgIDAgICAgICAgICAgICAgMCBnZXR0eQ0KWyAgMTAzXSAgICAgMCAgIDEw
+MyAgICAgIDE1OSAgICAgICAyOCAgICAgICAzICAgICAgIDAgICAgICAgIDAgICAgICAgICAgICAg
+MCBzaA0KWyAgMTA1XSAgICAgMCAgIDEwNSAgIDExNTI5MSAgICA0NzQ0MiAgICAgMTg4ICAgICAg
+IDAgICAgICAgIDAgICAgICAgICAgICAgMCBvb20tdGVzdA0KWyAgMTA2XSAgICAgMCAgIDEwNiAg
+IDExNTI5MSAgICA0NzE3OCAgICAgMTg4ICAgICAgIDAgICAgICAgIDAgICAgICAgICAgICAgMCBv
+b20tdGVzdA0KT3V0IG9mIG1lbW9yeTogS2lsbCBwcm9jZXNzIDEwNSAob29tLXRlc3QpIHNjb3Jl
+IDQ3NyBvciBzYWNyaWZpY2UgY2hpbGQNCktpbGxlZCBwcm9jZXNzIDEwNSAob29tLXRlc3QpIHRv
+dGFsLXZtOjkyMjMyOGtCLCBhbm9uLXJzczozNzkxMTJrQiwgZmlsZS1yc3M6MGtCLCBzaG1lbS1y
+c3M6NDI0a0INCg0KT29wcw0KUGF0aDogKG51bGwpDQpDUFU6IDMgUElEOiAzNSBDb21tOiBvb21f
+cmVhcGVyIE5vdCB0YWludGVkIDQuMTQuMjItZGlydHkgIzEzDQp0YXNrOiBiZjBlMzU0MCB0YXNr
+LnN0YWNrOiBiZjBlODAwMA0KDQpbRUNSICAgXTogMHgwMDA1MDEwMCA9PiBJbnZhbGlkIFJlYWQg
+QCAweDAwMDAwMzYwIGJ5IGluc24gQCAweDkwMmVjN2FlDQpbRUZBICAgXTogMHgwMDAwMDM2MA0K
+W0JMSU5LIF06IHphcF9wdGVfcmFuZ2UrMHg3ZS8weDRmOA0KW0VSRVQgIF06IHphcF9wdGVfcmFu
+Z2UrMHg4Ni8weDRmOA0KW1NUQVQzMl06IDB4ODAwODBhNDIgOiBJRSBLIERFDQpCVEE6IDB4OTAy
+ZWM3ZWUgIFNQOiAweGJmMGU5ZTMwICBGUDogMHgwMDAwMDAwMA0KTFBTOiAweDkwNmQ2M2ZjIExQ
+RTogMHg5MDZkNjQwMCBMUEM6IDB4MDAwMDAwMDANCnIwMDogMHhiZjI4MDAxYyByMDE6IDB4MDAw
+MDAwMDAgcjAyOiAweDAwMDAwMDAxDQpyMDM6IDB4MDAwMDAwMDAgcjA0OiAweDAwMDAwMGQ4IHIw
+NTogMHgwMDAwMDAwMA0KcjA2OiAweDJmOTNlMDAwIHIwNzogMHg5MDgxODk4MCByMDg6IDB4YmZk
+YzkxYzQNCnIwOTogMHgwMDAwMDA0OCByMTA6IDB4MDAwMDAwMDAgcjExOiAweGZmZmZmZmZmDQpy
+MTI6IDB4OTAyZWM3YTYNCg0KU3RhY2sgVHJhY2U6DQogIHphcF9wdGVfcmFuZ2UrMHg4Ni8weDRm
+OA0KICB6YXBfcG1kX3JhbmdlKzB4NGEvMHg2NA0KICB6YXBfcHVkX3JhbmdlKzB4MjgvMHg0MA0K
+ICB6YXBfcDRkX3JhbmdlKzB4MjgvMHg0MA0KICB1bm1hcF9wYWdlX3JhbmdlKzB4NTQvMHhkMA0K
+ICBvb21fcmVhcGVyKzB4MWM4LzB4MjE0DQogIGt0aHJlYWQrMHgxMjQvMHgxNDANCiAgcmV0X2Zy
+b21fZm9yaysweDE4LzB4MWMNCi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQoNCkFn
+YWluIHRoYXQgZmFpbHVyZSBoYXBwZW5zIG5vdCB2ZXJ5IHJlbGlhYmx5IC0gaW4gZmFjdCBJIGhh
+dmUgdG8gdHJpZ2dlciBPT00ga2lsbGVyDQppbiBhIGxvb3AgdG8gZmFjZSB0aGlzIHByb2JsZW0g
+cmFuZG9tbHkgYXQgc29tZSBwb2ludC4gVGhvdWdoIEkgZG9uJ3Qgc2VlIGFueSBsb2dpY2FsDQpj
+b25uZWN0aW9uIHRvIGluaXRpYWxseSBkaXNjdXNzZWQgaXNzdWUgdGhlcmUgc2VlbXMgdG8gYmUg
+c29tZSBvdGhlciBjb3JuZXItY2FzZSB3ZSdyZQ0Kbm90IGhhbmRsaW5nIHByb3Blcmx5IGFzIEkg
+d2FzIG5vdCBhYmxlIHRvIHRyaWdnZXIgc29tZXRoaW5nIGxpa2UgdGhhdCBvbiBBUk0ncyBXYW5k
+Qm9hcmQuDQoNClN0aWxsIHdpdGggdGhhdCBuZXcgcHJvYmxlbSBpbiBwbGFjZSBJIGNhbm5vdCBj
+b25jbHVkZSBteSBwcm9wb3NlZCBhYm92ZSBmaXggaXMgYSBnb29kIG9uZQ0Kc28gSSdsbCB0cnkg
+dG8gZ2V0IHRvIHRoZSBib3R0b20gb2YgdGhhdCBuZXcgaXNzdWUgYW5kIHRoZW4gd2UnbGwgc2Vl
+IHdoYXQgdG8gZG8uDQoNCi1BbGV4ZXk=
