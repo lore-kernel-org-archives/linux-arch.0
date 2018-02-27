@@ -1,57 +1,91 @@
 From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: Removing architectures without upstream gcc support
-Date: Mon, 26 Feb 2018 16:11:54 -0600
-Message-ID: <877eqz1jv9.fsf@xmission.com>
-References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
-        <2d12dc77-16b9-417d-72e3-2b1ffa38803d@gmail.com>
-        <CAK8P3a2GP8uQWe+DCD=p-JLHxXBUTBpx9nnpNzF_Hz49XA9a8A@mail.gmail.com>
+Subject: Re: [PATCH 04/11] signal/parisc: Document a conflict with SI_USER with SIGFPE
+Date: Mon, 26 Feb 2018 20:19:35 -0600
+Message-ID: <87r2p7uqbs.fsf@xmission.com>
+References: <87373b6ghs.fsf@xmission.com>
+        <20180112005940.23279-4-ebiederm@xmission.com>
+        <20180112222944.GA22642@ls3530.fritz.box>
+        <87fu5s4l4b.fsf@xmission.com>
+        <68641c9e-99c6-34d3-83aa-1241bddef33c@gmx.de>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2GP8uQWe+DCD=p-JLHxXBUTBpx9nnpNzF_Hz49XA9a8A@mail.gmail.com>
-        (Arnd Bergmann's message of "Mon, 26 Feb 2018 09:26:57 +0100")
+In-Reply-To: <68641c9e-99c6-34d3-83aa-1241bddef33c@gmx.de> (Helge Deller's
+        message of "Sun, 25 Feb 2018 20:49:41 +0100")
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Florian Fainelli <f.fainelli@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>, James Hogan <jhogan@kernel.org>, "open list:METAG ARCHITECTURE" <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+To: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org, James Bottomley <James.Bottomley@HansenPartnership.com>, John David Anglin <dave.anglin@bell.net>, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Arnd Bergmann <arnd@arndb.de> writes:
+Helge Deller <deller@gmx.de> writes:
 
-> On Sat, Feb 24, 2018 at 1:15 AM, Florian Fainelli <f.fainelli@gmail.com> wrote:
->> On 02/22/2018 07:45 AM, Arnd Bergmann wrote:
->>
->> Add blackfin to that list, there have been no responses from the
->> maintainers last time I posted patches to remove DSA header files, so we
->> had to go these through the networking tree. Have not see a Blackfin
->> pull request since forever, Aaron himself seems to agree this should be
->> removed:
->>
->> http://lkml.iu.edu/hypermail/linux/kernel/1801.1/04345.html
+> On 23.02.2018 01:15, Eric W. Biederman wrote:
+>> Helge Deller <deller@gmx.de> writes:
+>> 
+>>> * Eric W. Biederman <ebiederm@xmission.com>:
+>>>> Setting si_code to 0 results in a userspace seeing an si_code of 0.
+>>>> This is the same si_code as SI_USER.  Posix and common sense requires
+>>>> that SI_USER not be a signal specific si_code.  As such this use of 0
+>>>> for the si_code is a pretty horribly broken ABI.
+>>>>
+>>>> Further use of si_code == 0 guaranteed that copy_siginfo_to_user saw a
+>>>> value of __SI_KILL and now sees a value of SIL_KILL with the result
+>>>> that uid and pid fields are copied and which might copying the si_addr
+>>>> field by accident but certainly not by design.  Making this a very
+>>>> flakey implementation.
+>>>>
+>>>> Utilizing FPE_FIXME siginfo_layout will now return SIL_FAULT and the
+>>>> appropriate fields will reliably be copied.
+>>>>
+>>>> This bug is 13 years old and parsic machines are no longer being built
+>>>> so I don't know if it possible or worth fixing it.  But it is at least
+>>>> worth documenting this so other architectures don't make the same
+>>>> mistake.
+>>>
+>>>
+>>> I think we should fix it, even if we now break the ABI.
+>>>
+>>> It's about a "conditional trap" which needs to be handled by userspace.
+>>> I doubt there is any Linux code out which is utilizing this
+>>> parisc-specific trap.
+>>>
+>>> I'd suggest to add a new FPE trap si_code (e.g. FPE_CONDTRAP).
+>>> While at it, maybe we should include the already existing FPE_MDAOVF
+>>> from the frv architecture, so that arch/frv/include/uapi/asm/siginfo.h
+>>> can go completely.
+>>>
+>>> Suggested patch is below.
+>>>
+>>> I'm willing to test the patch below on the parisc architecture for a few
+>>> weeks. And it will break arch/x86/kernel/signal_compat.c which needs
+>>> looking at then too.
+>> 
+>> Have you managed to test this change?
 >
-> Peter Zijlstra also mentioned that one on IRC, I didn't have it on my radar
-> before. Like Tile, it has only recently been marked as Orphaned in MAINTAINERS,
-> so I'd be inclined to wait a little while to give possible users a
-> chance to step
-> up as new maintainers.
->
-> My plan for v4.17 is now:
->
-> - remove score, unicore and metag due to lack of toolchain
->   or interest from the maintainers.
-> - keep hexagon, and try to build an llvm/clang toolchain
-> - remove frv and m32r due to being abandoned for several years
-> - mark tile and blackfin for pending removal later this year unless
->   a new maintainer steps up
-> - mark mn10300 for pending removal unless it gets updated to
->   support chips that were made in the past 12 years and to build
->   properly.
+> Sadly I haven't done any further testing yet.
 
-My frustration says please please please remove blackfin with sugar on
-top.   If you look at the new unified siginfo.h you will notice that
-blackfin has the majority of conflicting si_code definitions.
+So at this point for purposed of testing I don't think it matters which
+number FPE_CONDTRAP gets as long as it is non-zero.
+>  
+>> I am sitting looking at another new FPE si_code and if this has been tested
+>> I figure FPE_CONDTRAP should get the next available FPE si_code and the
+>> other change should get the one that follows.
+>
+> I'm fine either way. Do you have a git tree I can pull which includes
+> all your patches? I can then start testing.
 
-Given that I have already dealt with the frustrating situations I can
-wait a release or two.  But even though I found a cross compiler for
-blackfin there is a real cost to keeping it in the tree.
+Everything finalized is in Linus's tree.  There is a patch pending
+review on linux-arch that defines FPE_FLTUNK that looks to be useful
+on several architectures.
+
+I had probably misread our earlier exchange.  I had hoped you had tested
+that FPE_CONDTRAP did not cause problems.
+
+If that level of testing was complete I would have given FPE_CONDTRAP
+the next FPE number and FPE_FLTUNK the one after.
+
+As it sounds like FPE_CONDTRAP hasn't been tested enough to know if it
+causes problems I will encourage the patches to be merged in the other
+order.
 
 Eric
