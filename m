@@ -1,91 +1,44 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 04/11] signal/parisc: Document a conflict with SI_USER with SIGFPE
-Date: Mon, 26 Feb 2018 20:19:35 -0600
-Message-ID: <87r2p7uqbs.fsf@xmission.com>
-References: <87373b6ghs.fsf@xmission.com>
-        <20180112005940.23279-4-ebiederm@xmission.com>
-        <20180112222944.GA22642@ls3530.fritz.box>
-        <87fu5s4l4b.fsf@xmission.com>
-        <68641c9e-99c6-34d3-83aa-1241bddef33c@gmx.de>
+From: Richard Kuo <rkuo@codeaurora.org>
+Subject: Re: Removing architectures without upstream gcc support
+Date: Tue, 27 Feb 2018 20:06:31 -0600
+Message-ID: <20180228020631.GB3780@codeaurora.org>
+References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
+ <20180222191758.GB5180@codeaurora.org>
+ <CAK8P3a3r=3wDtqV5feLUT-hOkE+9yWOLjLVm+nejqdaN7MtMFw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <68641c9e-99c6-34d3-83aa-1241bddef33c@gmx.de> (Helge Deller's
-        message of "Sun, 25 Feb 2018 20:49:41 +0100")
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a3r=3wDtqV5feLUT-hOkE+9yWOLjLVm+nejqdaN7MtMFw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Helge Deller <deller@gmx.de>
-Cc: linux-parisc@vger.kernel.org, James Bottomley <James.Bottomley@HansenPartnership.com>, John David Anglin <dave.anglin@bell.net>, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-hexagon@vger.kernel.org, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>, James Hogan <jhogan@kernel.org>, linux-metag@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org, David Howells <dhowells@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-Helge Deller <deller@gmx.de> writes:
+On Thu, Feb 22, 2018 at 11:43:10PM +0100, Arnd Bergmann wrote:
+> - How do I build an llvm based toolchain for Hexagon? Do I need patches
+>   on top of the llvm-6 release branch? Where can I find the corresponding
+>   binutils-2.30 sources?
 
-> On 23.02.2018 01:15, Eric W. Biederman wrote:
->> Helge Deller <deller@gmx.de> writes:
->> 
->>> * Eric W. Biederman <ebiederm@xmission.com>:
->>>> Setting si_code to 0 results in a userspace seeing an si_code of 0.
->>>> This is the same si_code as SI_USER.  Posix and common sense requires
->>>> that SI_USER not be a signal specific si_code.  As such this use of 0
->>>> for the si_code is a pretty horribly broken ABI.
->>>>
->>>> Further use of si_code == 0 guaranteed that copy_siginfo_to_user saw a
->>>> value of __SI_KILL and now sees a value of SIL_KILL with the result
->>>> that uid and pid fields are copied and which might copying the si_addr
->>>> field by accident but certainly not by design.  Making this a very
->>>> flakey implementation.
->>>>
->>>> Utilizing FPE_FIXME siginfo_layout will now return SIL_FAULT and the
->>>> appropriate fields will reliably be copied.
->>>>
->>>> This bug is 13 years old and parsic machines are no longer being built
->>>> so I don't know if it possible or worth fixing it.  But it is at least
->>>> worth documenting this so other architectures don't make the same
->>>> mistake.
->>>
->>>
->>> I think we should fix it, even if we now break the ABI.
->>>
->>> It's about a "conditional trap" which needs to be handled by userspace.
->>> I doubt there is any Linux code out which is utilizing this
->>> parisc-specific trap.
->>>
->>> I'd suggest to add a new FPE trap si_code (e.g. FPE_CONDTRAP).
->>> While at it, maybe we should include the already existing FPE_MDAOVF
->>> from the frv architecture, so that arch/frv/include/uapi/asm/siginfo.h
->>> can go completely.
->>>
->>> Suggested patch is below.
->>>
->>> I'm willing to test the patch below on the parisc architecture for a few
->>> weeks. And it will break arch/x86/kernel/signal_compat.c which needs
->>> looking at then too.
->> 
->> Have you managed to test this change?
->
-> Sadly I haven't done any further testing yet.
+Just to follow up on this, the closest thing right now to compile the kernel
+for Hexagon is the toolchain included with the Hexagon SDK.  However, the 
+linker will fail because of something in the kernel build process that
+I think produces empty sections, which that linker can't handle.  A newer
+linker can handle it, but that's not scheduled to be released until much later
+this year.
 
-So at this point for purposed of testing I don't think it matters which
-number FPE_CONDTRAP gets as long as it is non-zero.
->  
->> I am sitting looking at another new FPE si_code and if this has been tested
->> I figure FPE_CONDTRAP should get the next available FPE si_code and the
->> other change should get the one that follows.
->
-> I'm fine either way. Do you have a git tree I can pull which includes
-> all your patches? I can then start testing.
+That's actually the closest option currently.  I tried the upstream source
+but it seems to lack some specific patches to support kernel compilation,
+so I will need to chase those down.
 
-Everything finalized is in Linus's tree.  There is a patch pending
-review on linux-arch that defines FPE_FLTUNK that looks to be useful
-on several architectures.
 
-I had probably misread our earlier exchange.  I had hoped you had tested
-that FPE_CONDTRAP did not cause problems.
 
-If that level of testing was complete I would have given FPE_CONDTRAP
-the next FPE number and FPE_FLTUNK the one after.
+Thanks,
+Richard Kuo
 
-As it sounds like FPE_CONDTRAP hasn't been tested enough to know if it
-causes problems I will encourage the patches to be merged in the other
-order.
 
-Eric
+
+-- 
+Employee of Qualcomm Innovation Center, Inc.
+Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum, 
+a Linux Foundation Collaborative Project
