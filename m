@@ -1,43 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3-rdu2.redhat.com ([66.187.233.73]:40258 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752175AbeB1I7c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Feb 2018 03:59:32 -0500
-Subject: Re: Removing architectures without upstream gcc support
-References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
- <20180222160217.GA18243@infradead.org>
- <CAMo8BfLoqat+6CyOM2VV5Wz13NFMj54YisCogiVm95oDwdnTFQ@mail.gmail.com>
- <20180222180420.GA17956@infradead.org>
- <CAK8P3a2VMbAARCFuBjY7TMuAfGM_h4BU3PfQA2C_pUFT34UHAA@mail.gmail.com>
-From: Florian Weimer <fweimer@redhat.com>
-Message-ID: <6357df10-c3bd-587f-69d1-efb1855aaf85@redhat.com>
-Date: Wed, 28 Feb 2018 09:59:24 +0100
+Received: from mail.linuxfoundation.org ([140.211.169.12]:55902 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752230AbeB1Mjf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Feb 2018 07:39:35 -0500
+Date: Wed, 28 Feb 2018 13:39:35 +0100
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v7 04/37] earlycon: add reg-offset to physical address
+ before mapping
+Message-ID: <20180228123935.GB10114@kroah.com>
+References: <cover.1518505384.git.greentime@andestech.com>
+ <968497070242f849dd70ab1fa81635451f8fda7f.1518505384.git.greentime@andestech.com>
+ <CAL_JsqJteT1P2GJGdesTsz=PuXU1qxiyhtKLURkGwV9sSQ7XZQ@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a2VMbAARCFuBjY7TMuAfGM_h4BU3PfQA2C_pUFT34UHAA@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAL_JsqJteT1P2GJGdesTsz=PuXU1qxiyhtKLURkGwV9sSQ7XZQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>
-Cc: Max Filippov <jcmvbkbc@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>, James Hogan <jhogan@kernel.org>, "open list:METAG ARCHITECTURE" <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org, David Howells <dhowells@redhat.com>, metcalf@alum.mit.edu
-Message-ID: <20180228085924.Riaz1KdZZdFAjaLeN4N6gW9ofzub5TBQXHdyJyVPWco@z>
+To: Rob Herring <robh+dt@kernel.org>
+Cc: Greentime Hu <green.hu@gmail.com>, greentime@andestech.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Jason Cooper <jason@lakedaemon.net>, Marc Zyngier <marc.zyngier@arm.com>, netdev <netdev@vger.kernel.org>, deanbo422@gmail.com, devicetree@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, David Howells <dhowells@redhat.com>, Will Deacon <will.deacon@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-serial@vger.kernel.org, Geert Uytterhoeven <geert.uytterhoeven@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Mark Rutland <mark.rutland@arm.com>, ren_guo@c-sky.com, Randy Dunlap <rdunlap@infradead.org>, David Miller <davem@davemloft.net>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, Peter Hurley <peter@hurleysoftware.com>, stable <stable@vger.kernel.org>
+Message-ID: <20180228123935.KUz8_1GFx9kaytolh5TQESYLOwS0lRQ6hTnhLP082U0@z>
 
-On 02/23/2018 12:37 PM, Arnd Bergmann wrote:
-> That makes more sense, yes. I'm still unsure about this one though. Chris in
-> fact made the suggestion to remove the architecture from both glibc and kernel
-> as with his departure from Mellanox there is nobody left from to maintain it.
+On Thu, Feb 15, 2018 at 09:40:49AM -0600, Rob Herring wrote:
+> On Tue, Feb 13, 2018 at 3:09 AM, Greentime Hu <green.hu@gmail.com> wrote:
+> > It will get the wrong virtual address because port->mapbase is not added
+> > the correct reg-offset yet. We have to update it before earlycon_map()
+> > is called
+> >
+> > Signed-off-by: Greentime Hu <greentime@andestech.com>
+> > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> > Cc: Peter Hurley <peter@hurleysoftware.com>
+> > Cc: stable@vger.kernel.org
+> > Fixes: 088da2a17619 ("of: earlycon: Initialize port fields from DT
+> > properties")
 > 
-> I suggested keeping it as 'Orphaned' for the time being, given that the port
-> is still in a good shape, much better than many other ports.
+> This should get applied now rather than sit in numerous revisions of
+> this series for nds32.
 > 
-> The known customers that sold TileGX based appliances (Cisco, Brocade,
-> Checkpoint, Mikrotik, ...) tend to have long support cycles, and there have
-> been attempts at getting Debian, OpenWRT and Centos distro support
-> at least a few years ago.
+> Acked-by: Rob Herring <robh@kernel.org>
+> 
+> Greg, can you apply?
 
-Note that there is tilegx-*-linux-gnu and tilepro-*-linux-gnu.  Only the 
-latter was removed from glibc.
+Yes, will queue it up now, thanks.
 
-Thanks,
-Florian
+greg k-h
