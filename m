@@ -1,30 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:35971 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1031631AbeCAPNP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Mar 2018 10:13:15 -0500
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Do we need to disable preemption in flush_tlb_range()?
-Date: Thu, 1 Mar 2018 15:13:10 +0000
-Message-ID: <1519917189.13866.6.camel@synopsys.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <F63FCB7436102149B26B564179AFB4FB@internal.synopsys.com>
-Content-Transfer-Encoding: base64
-MIME-Version: 1.0
+Received: from mail-pg0-f65.google.com ([74.125.83.65]:33986 "EHLO
+        mail-pg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1032948AbeCAQjf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Mar 2018 11:39:35 -0500
+From: Greentime Hu <green.hu@gmail.com>
+Subject: [PATCH] cris: add ioremap_nocache declaration before include asm-generic/io.h.
+Date: Fri,  2 Mar 2018 00:38:38 +0800
+Message-ID: <20180301163838.10818-1-greentime@andestech.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Message-ID: <20180301151310.GvvTEe0hmbEtzEYLT34zO-_UMVGxRA0YKDZVnrXdZyU@z>
+To: linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, greentime@andestech.com, green.hu@gmail.com, jesper.nilsson@axis.com, starvik@axis.com
+Message-ID: <20180301163838.4vsKnjcEO05D6Z2ZRRAZ2iDTpILu7IPq_0MLW3_XOJw@z>
 
-SGkgVmluZWV0LA0KDQpKdXN0IG5vdGljZWQgdGhhdCBpbiBjb21tZW50cyBmb3Igc21wX2NhbGxf
-ZnVuY3Rpb25fbWFueSgpIGl0IGlzIHNhaWQgdGhhdA0KcHJlZW1wdGlvbiBtdXN0IGJlIGRpc2Fi
-bGVkIGR1cmluZyBpdHMgZXhlY3V0aW9uLiBBbmQgdGhhdCBmdW5jdGlvbiBnZXRzIGV4ZWN1dGVk
-DQphbW9uZyBvdGhlciB3YXlzIGxpa2UgdGhhdDoNCi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-PjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KICBmbHVzaF90bGJfcmFuZ2UoKQ0KICAgIC0+IG9u
-X2VhY2hfY3B1X21hc2soKQ0KICAgICAgICAgLT4gc21wX2NhbGxfZnVuY3Rpb25fbWFueSgpDQot
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg0KSSdt
-IG5vdCBzZWVpbmcgcmlnaHQgbm93IGFueSByZWFsIHByb2JsZW0gd2l0aCBjdXJyZW50IGltcGxl
-bWVudGF0aW9uIGJ1dA0Kc29tZSBhcmNoaXRlY3R1cmVzIGRvIHRoYXQgdGh1cyB0aGUgcXVlc3Rp
-b24uDQoNCi1BbGV4ZXk=
+A future commit for the nds32 architecture bootstrap("asm-generic/io.h:
+move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef
+CONFIG_MMU") will move the ioremap_nocache out of the CONFIG_MMU ifdef.
+This means that in order to suppress re-definition errors we need to
+setup #define's before importing asm-generic/io.h.
+
+Signed-off-by: Greentime Hu <greentime@andestech.com>
+---
+ arch/cris/include/asm/io.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/cris/include/asm/io.h b/arch/cris/include/asm/io.h
+index c92712d30f54..3867db75c314 100644
+--- a/arch/cris/include/asm/io.h
++++ b/arch/cris/include/asm/io.h
+@@ -20,6 +20,7 @@ static inline void __iomem * ioremap (unsigned long offset, unsigned long size)
+ extern void iounmap(volatile void * __iomem addr);
+ 
+ extern void __iomem * ioremap_nocache(unsigned long offset, unsigned long size);
++#define ioremap_nocache ioremap_nocache
+ 
+ #include <asm-generic/io.h>
+ 
+-- 
+I am picking up the patch in the nds32 tree that caused the regression.
+Subject: [linux-next:master 3188/3885] include/asm-generic/io.h:864:15: error: conflicting types for 'ioremap'
+
+tree:   https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git master
+head:   eced78aae9cba83072d5335fbc9b2282a9270469
+commit: b3ada9d0ce8d286c8bbbb02fdbddec5036242b42 [3188/3885] asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU
+config: cris-etrax-100lx_v2_defconfig (attached as .config)
+compiler: cris-linux-gcc (GCC) 7.2.0
+reproduce:
+        wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
+        chmod +x ~/bin/make.cross
+        git checkout b3ada9d0ce8d286c8bbbb02fdbddec5036242b42
+        # save the attached .config to linux build tree
+        make.cross ARCH=cris
+
+All errors (new ones prefixed by >>):
+
+   In file included from arch/cris/include/asm/io.h:24:0,
+                    from include/linux/io.h:25,
+                    from include/linux/irq.h:25,
+                    from include/asm-generic/hardirq.h:13,
+                    from ./arch/cris/include/generated/asm/hardirq.h:1,
+                    from include/linux/hardirq.h:9,
+                    from include/linux/trace_events.h:9,
+                    from include/trace/syscall.h:7,
+                    from include/linux/syscalls.h:82,
+                    from init/main.c:20:
+>> include/asm-generic/io.h:864:15: error: conflicting types for 'ioremap'
+    void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+                  ^~~~~~~
