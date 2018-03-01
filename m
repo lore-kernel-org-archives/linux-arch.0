@@ -1,62 +1,95 @@
-From: Greentime Hu <green.hu@gmail.com>
-Subject: [PATCH] nios2: add ioremap_nocache declaration before include asm-generic/io.h.
-Date: Fri,  2 Mar 2018 00:39:43 +0800
-Message-ID: <20180301163943.10887-1-greentime@andestech.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: lftan@altera.com, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, greentime@andestech.com, green.hu@gmail.com
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [PATCH v2 0/3] arm64: Fix invalid si_codes for fault signals
+Date: Thu,  1 Mar 2018 17:44:05 +0000
+Message-ID: <1519926248-12591-1-git-send-email-Dave.Martin@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Will Deacon <will.deacon@arm.com>, James Morse <james.morse@arm.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Catalin Marinas <catalin.marinas@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-A commit for the nds32 architecture bootstrap("asm-generic/io.h:
-move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef
-CONFIG_MMU") will move the ioremap_nocache out of the CONFIG_MMU ifdef.
-This means that in order to suppress re-definition errors we need to
-setup #define's before importing asm-generic/io.h.
+Changes since v1:
 
-Signed-off-by: Greentime Hu <greentime@andestech.com>
----
- arch/nios2/include/asm/io.h | 1 +
- 1 file changed, 1 insertion(+)
+ * Fixed failing BUILD_BUG_ON() sanity check on NSIGFPE done by x86.
+   (Thanks to James Morse for spotting.)
 
-diff --git a/arch/nios2/include/asm/io.h b/arch/nios2/include/asm/io.h
-index ce072ba0f8dd..9010243077ab 100644
---- a/arch/nios2/include/asm/io.h
-+++ b/arch/nios2/include/asm/io.h
-@@ -45,6 +45,7 @@ static inline void iounmap(void __iomem *addr)
- 	__iounmap(addr);
- }
- 
-+#define ioremap_nocache ioremap_nocache
- #define ioremap_wc ioremap_nocache
- #define ioremap_wt ioremap_nocache
- 
+   The addition of FPE_FLTUNK is harmless to x86, since only arm64
+   uses this code right now.
+
+Changes since RFC v2:
+
+ * Fold in reverts of the relevant parts of Eric's *_FIXME changes,
+   since this series removes all cases of those dummy si_code values
+   from arm64.
+
+ * Propagated the new signal/si_code assignments for synchronous
+   external aborts correctly to signals thrown from do_sea().
+
+Original blurb:
+
+As reported by Eric Biederman, [1], [2], [3] etc., several architectures
+are inappropriately setting si_code to 0 when signaling faults to
+userspace, which will interpret this value as SI_USER leading to garbage
+being read out of siginfo fields that the kernel doesn't initialise.
+
+This seems not to be a huge problem in practice, since many affected
+faults should only happen if the kernel or hardware is buggy or broken.
+However, there are some cases that don't fall under this.
+
+This RFC series proposes fixes to eliminate these si_code == 0 cases
+from arm64.  Some of the changes may be controversial.
+
+There are two main headlines here, which may be applicable to other
+architectures:
+
+ * addition of a new code FPE_UNKNOWN for undiagnosable floating-point
+   exception traps;
+
+ * delivering SIGKILL instead of SIGSEGV/BUS/TRAP etc. for "impossible"
+   exceptions that are not feasible to recover from and likely indicate
+   a kernel or system bug or failure.
+
+In particular there is likely to be a fair amount of overlap between arm
+and arm64 here, but due to the longer history and evolution of the arm
+tree and 32-bit architecture I'm less confident in making correct
+judgements for that case.  This series doesn't touch arm, for now.
+
+Boot-tested on Arm Juno r0.
+Floating-point exception traps tested on the Arm Fast Model.
+
+[1] [PATCH 00/11] siginfo fixes/cleanups esp SI_USER
+https://marc.info/?l=linux-kernel&m=151571871109016&w=2
+
+[2] [PATCH 08/11] signal/arm: Document conflicts with SI_USER and SIGFPE
+http://lists.infradead.org/pipermail/linux-arm-kernel/2018-January/553574.html
+
+[3] [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and SIGFPE, SIGTRAP, SIGBUS
+lists.infradead.org/pipermail/linux-arm-kernel/2018-January/553573.html
+
+Dave Martin (3):
+  signal: Add FPE_FLTUNK si_code for undiagnosable fp exceptions
+  arm64: fpsimd: Fix bad si_code for undiagnosed SIGFPE
+  arm64: signal: Ensure si_code is valid for all fault signals
+
+ arch/arm64/include/asm/esr.h          |   9 +++
+ arch/arm64/include/uapi/asm/siginfo.h |  21 ------
+ arch/arm64/kernel/fpsimd.c            |  31 +++++----
+ arch/arm64/mm/fault.c                 | 116 +++++++++++++++++-----------------
+ arch/x86/kernel/signal_compat.c       |   2 +-
+ include/uapi/asm-generic/siginfo.h    |   3 +-
+ kernel/signal.c                       |   4 --
+ 7 files changed, 87 insertions(+), 99 deletions(-)
+
 -- 
-I am picking up the patch in the nds32 tree that caused the regression.
-Subject: [linux-next:master 2878/4431] include/asm-generic/io.h:864:15: error: conflicting types for 'ioremap'
-
-tree:   https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git master
-head:   827ad482fda17d0de5df5116fda827cd3671e62e
-commit: b3ada9d0ce8d286c8bbbb02fdbddec5036242b42 [2878/4431] asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU
-config: nios2-10m50_defconfig (attached as .config)
-compiler: nios2-linux-gcc (GCC) 7.2.0
-reproduce:
-        wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
-        chmod +x ~/bin/make.cross
-        git checkout b3ada9d0ce8d286c8bbbb02fdbddec5036242b42
-        # save the attached .config to linux build tree
-        make.cross ARCH=nios2
-
-All errors (new ones prefixed by >>):
-
-   In file included from arch/nios2/include/asm/io.h:61:0,
-                    from include/linux/io.h:25,
-                    from include/linux/irq.h:25,
-                    from include/asm-generic/hardirq.h:13,
-                    from ./arch/nios2/include/generated/asm/hardirq.h:1,
-                    from include/linux/hardirq.h:9,
-                    from include/linux/interrupt.h:13,
-                    from include/linux/kernel_stat.h:9,
-                    from arch/nios2/kernel/asm-offsets.c:21:
->> include/asm-generic/io.h:864:15: error: conflicting types for 'ioremap'
-    void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
-                  ^~~~~~~
+2.1.4
