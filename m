@@ -1,135 +1,238 @@
 From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Subject: Re: [PATCH v15 6/9] HISI LPC: Support the LPC host on Hip06/Hip07
- with DT bindings
-Date: Thu, 01 Mar 2018 21:26:48 +0200
-Message-ID: <1519932408.10722.351.camel@linux.intel.com>
+Subject: Re: [PATCH v15 8/9] HISI LPC: Add ACPI support
+Date: Thu, 01 Mar 2018 21:50:55 +0200
+Message-ID: <1519933855.10722.364.camel@linux.intel.com>
 References: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
-         <1519663249-9850-7-git-send-email-john.garry@huawei.com>
+         <1519663249-9850-9-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1519663249-9850-7-git-send-email-john.garry@huawei.com>
+In-Reply-To: <1519663249-9850-9-git-send-email-john.garry@huawei.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: John Garry <john.garry@huawei.com>, mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
 List-Id: linux-arch.vger.kernel.org
 
 On Tue, 2018-02-27 at 00:40 +0800, John Garry wrote:
-
-> The low-pin-count(LPC) interface of Hip06/Hip07 accesses the
-> peripherals in
-> I/O port addresses. This patch implements the LPC host controller
-> driver
-> which perform the I/O operations on the underlying hardware.
-> We don't want to touch those existing peripherals' driver, such as
-> ipmi-bt.
-> So this driver applies the indirect-IO introduced in the previous
-> patch
-> after registering an indirect-IO node to the indirect-IO devices list
-> which
-> will be searched in the I/O accessors to retrieve the host-local I/O
-> port.
+> Based on the previous patches, this patch supports the
+> LPC host on hip06/hip07 for ACPI FW.
 > 
-> The driver config is set as a bool instead of a trisate. The reason
-> here is that, by the very nature of the driver providing a logical
-> PIO range, it does not make sense to have this driver as a loadable
-> module. Another more specific reason is that the Huawei D03 board
-> which includes hip06 SoC requires the LPC bus for UART console, so
-> should be built in.
+> It is the responsibility of the LPC host driver to
+> enumerate the child devices, as the ACPI scan code will
+> not enumerate children of "indirect IO" hosts.
+> 
+> The ACPI table for the LPC host controller and the child
+> devices is in the following format:
+>   Device (LPC0) {
+>     Name (_HID, "HISI0191")  // HiSi LPC
+>     Name (_CRS, ResourceTemplate () {
+>       Memory32Fixed (ReadWrite, 0xa01b0000, 0x1000)
+>     })
+>   }
+> 
+>   Device (LPC0.IPMI) {
+>     Name (_HID, "IPI0001")
+>     Name (LORS, ResourceTemplate() {
+>       QWordIO (
+>         ResourceConsumer,
+> 	MinNotFixed,     // _MIF
+> 	MaxNotFixed,     // _MAF
+> 	PosDecode,
+> 	EntireRange,
+> 	0x0,             // _GRA
+> 	0xe4,            // _MIN
+> 	0x3fff,          // _MAX
+> 	0x0,             // _TRA
+> 	0x04,            // _LEN
+> 	, ,
+> 	BTIO
+>       )
+>     })
+> 
+> Since the IO resources of the child devices need to be
+> translated from LPC bus addresses to logical PIO addresses,
+> and we shouldn't modify the resources of the devices
+> generated in the FW scan, a per-child MFD is created as
+> a substitute. The MFD IO resources will be the translated
+> bus addresses of the ACPI child.
 
-Few minor comments below.
+Ok, this needs to be thought about a bit more.
 
-> +static inline int wait_lpc_idle(unsigned char *mbase,
-> +				unsigned int waitcnt) {
-> +	do {
-> +		u32 status;
+I guess I understand what's is the problem with PNP IDs in the driver.
+
+You probe your LPC device quite late.
+One option is to move from classical probe to a event-driven model, i.e.
+via registering a notifier (see acpi_lpss.c), preparing necessary stuff
+at earlier stages and then register devices by their enumeration and
+appearance.
+
+Though, if I would be you I would seek a opinion from Rafael and Mika
+(maybe others as well).
+
+See also some comments below.
+
+> +#ifdef CONFIG_ACPI
+> +#define MFD_CHILD_NAME_PREFIX DRV_NAME"-"
+
+> +#define MFD_CHILD_NAME_LEN (ACPI_ID_LEN +
+> sizeof(MFD_CHILD_NAME_PREFIX))
+
+..._PREFIX) - 1)
+
+?
+
+> +static int hisi_lpc_acpi_xlat_io_res(struct acpi_device *adev,
+> +				     struct acpi_device *host,
+> +				     struct resource *res)
+> +{
+> +	unsigned long sys_port;
+
+> +	resource_size_t len = res->end - res->start;
+
+resource_size()
+
+> +	return 0;
+> +}
+
+
+> +static int hisi_lpc_acpi_set_io_res(struct device *child,
+> +				    struct device *hostdev,
+> +				    const struct resource **res,
+> +				    int *num_res)
+> +{
+
+> +	/*
+> +	 * The following code segment to retrieve the resources is
+> common to
+> +	 * acpi_create_platform_device(), so consider a common helper
+> function
+> +	 * in future.
+> +	 */
+> +	count = acpi_dev_get_resources(adev, &resource_list, NULL,
+> NULL);
+> +	if (count <= 0) {
+> +		dev_dbg(child, "failed to get resources\n");
+
+> +		return count ? count : -EIO;
+
+count == 0 --> return 0;
+
+Is it by design? (I didn't check acpi_create_platform_device() though)
+
+> +	}
 > +
-> +		status = readl(mbase + LPC_REG_OP_STATUS);
-> +		if (status & LPC_REG_OP_STATUS_IDLE)
-> +			return (status & LPC_REG_OP_STATUS_FINISHED)
-> ? 0 : -EIO;
-> +		ndelay(LPC_NSEC_PERWAIT);
-
-> +	} while (waitcnt--);
-
-} while (--waitcnt);
+> +	resources = devm_kcalloc(hostdev, count, sizeof(*resources),
+> +				 GFP_KERNEL);
+> +	if (!resources) {
+> +		dev_warn(hostdev, "could not allocate memory for %d
+> resources\n",
+> +			 count);
+> +		acpi_dev_free_resource_list(&resource_list);
+> +		return -ENOMEM;
+> +	}
+> +	count = 0;
+> +	list_for_each_entry(rentry, &resource_list, node)
+> +		resources[count++] = *rentry->res;
+> +
+> +	acpi_dev_free_resource_list(&resource_list);
 
 > +
-> +	return -ETIME;
+> +	return 0;
 > +}
 
 > +
 > +/*
-
-If you would like to have a documentation you need to use proper syntax,
-i.e.
-
-/**
-
-Check the rest of the series for it.
-
-> + * hisi_lpc_target_in - trigger a series of LPC cycles for read
-> operation
-> + * @lpcdev: pointer to hisi lpc device
-> + * @para: some parameters used to control the lpc I/O operations
-> + * @addr: the lpc I/O target port address
-> + * @buf: where the read back data is stored
-> + * @opcnt: how many I/O operations required, i.e. data width
+> + * hisi_lpc_acpi_probe - probe children for ACPI FW
+> + * @hostdev: LPC host device pointer
 > + *
-> + * Returns 0 on success, non-zero on fail.
+> + * Returns 0 when successful, and a negative value for failure.
+> + *
+> + * Scan all child devices and create a per-device MFD with
+> + * logical PIO translated IO resources.
 > + */
-
-> +	do {
-> +		*buf++ = readb(lpcdev->membase + LPC_REG_RDATA);
-> +	} while (--opcnt);
-
-readsb() ?
-
-> +	do {
-> +		writeb(*buf++, lpcdev->membase + LPC_REG_WDATA);
-> +	} while (--opcnt);
-
-writesb() ?
-
-> +static inline unsigned long
-> +hisi_lpc_pio_to_addr(struct hisi_lpc_dev *lpcdev, unsigned long pio)
+> +static int hisi_lpc_acpi_probe(struct device *hostdev)
 > +{
-> +	return pio - lpcdev->io_host->io_start +
-> +		lpcdev->io_host->hw_start;
-
-I would rather put on one line.
-
-> +}
-
-> +	do {
-> +		if (hisi_lpc_target_out(lpcdev, &iopara, addr, buf,
-> +						dwidth))
-
-Fancy indentation. Perhaps put to one line?
-
-> +			break;
-> +		buf += dwidth;
-> +	} while (--count);
-
-
-> +	int ret;
+> +	struct acpi_device *adev = ACPI_COMPANION(hostdev);
+> +	struct hisi_lpc_mfd_cell *hisi_lpc_mfd_cells;
+> +	struct mfd_cell *mfd_cells;
+> +	struct acpi_device *child;
+> +	int size, ret, count = 0, cell_num = 0;
 > +
-> +	lpcdev = devm_kzalloc(dev, sizeof(struct hisi_lpc_dev),
+> +	list_for_each_entry(child, &adev->children, node)
+> +		cell_num++;
+> +
+> +	/* allocate the mfd cell and companion acpi info, one per
+> child */
+> +	size = sizeof(*mfd_cells) + sizeof(*hisi_lpc_mfd_cells);
+> +	mfd_cells = devm_kcalloc(hostdev, cell_num, size,
 > GFP_KERNEL);
-
-sizeof(*lpcdev) ?
-
-> +	if (!lpcdev)
+> +	if (!mfd_cells)
 > +		return -ENOMEM;
+> +
 
-> +	dev_info(dev, "registered range[%pa - sz:%pa]\n",
+> +	hisi_lpc_mfd_cells = (struct hisi_lpc_mfd_cell *)
+> +					&mfd_cells[cell_num];
 
-This is rather non-standard. We provide for resources the pattern like
-"... [start-end]\n"
+One line, please.
 
-> +		 &lpcdev->io_host->io_start,
-> +		 &lpcdev->io_host->size);
+Just noticed that calloc() memory layout is not the same how you are
+using it.
+
+> +	/* Only consider the children of the host */
+> +	list_for_each_entry(child, &adev->children, node) {
+> +		struct mfd_cell *mfd_cell = &mfd_cells[count];
+> +		struct hisi_lpc_mfd_cell *hisi_lpc_mfd_cell =
+> +					&hisi_lpc_mfd_cells[count];
+> +		struct mfd_cell_acpi_match *acpi_match =
+> +					&hisi_lpc_mfd_cell-
+> >acpi_match;
+> +		char *name = hisi_lpc_mfd_cell[count].name;
+> +		char *pnpid = hisi_lpc_mfd_cell[count].pnpid;
+> +		struct mfd_cell_acpi_match match = {
+> +			.pnpid = pnpid,
+> +		};
+> +
+
+> +		snprintf(name, MFD_CHILD_NAME_LEN,
+> MFD_CHILD_NAME_PREFIX"%s",
+> +			 acpi_device_hid(child));
+
+No possibility of identical devices?
+
+> +		snprintf(pnpid, ACPI_ID_LEN, "%s",
+> acpi_device_hid(child));
+> +
+> +		memcpy(acpi_match, &match, sizeof(*acpi_match));
+> +		mfd_cell->name = name;
+> +		mfd_cell->acpi_match = acpi_match;
+> +
+> +		ret = hisi_lpc_acpi_set_io_res(&child->dev, &adev-
+> >dev,
+> +					       &mfd_cell->resources,
+> +					       &mfd_cell-
+> >num_resources);
+> +		if (ret) {
+> +			dev_warn(&child->dev, "set resource
+> fail(%d)\n", ret);
+> +			return ret;
+> +		}
+> +		count++;
+> +	}
+> +
+> +	ret = mfd_add_devices(hostdev, 
+
+> PLATFORM_DEVID_NONE,
+
+You mean it's not possible to have more than one identical device?
+
+> +			      mfd_cells, cell_num, NULL, 0, NULL);
+> +	if (ret) {
+> +		dev_err(hostdev, "failed to add mfd cells (%d)\n",
+> ret);
+> +		return ret;
+> +	}
+
 
 -- 
 Andy Shevchenko <andriy.shevchenko@linux.intel.com>
