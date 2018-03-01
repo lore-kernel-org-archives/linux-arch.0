@@ -1,89 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:42606 "EHLO
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:42616 "EHLO
         foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1033524AbeCARoS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 1 Mar 2018 12:44:18 -0500
+        id S1033596AbeCARoT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 1 Mar 2018 12:44:19 -0500
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [PATCH v2 0/3] arm64: Fix invalid si_codes for fault signals
-Date: Thu,  1 Mar 2018 17:44:05 +0000
-Message-ID: <1519926248-12591-1-git-send-email-Dave.Martin@arm.com>
+Subject: [PATCH v2 1/3] signal: Add FPE_FLTUNK si_code for undiagnosable fp exceptions
+Date: Thu,  1 Mar 2018 17:44:06 +0000
+Message-ID: <1519926248-12591-2-git-send-email-Dave.Martin@arm.com>
+In-Reply-To: <1519926248-12591-1-git-send-email-Dave.Martin@arm.com>
+References: <1519926248-12591-1-git-send-email-Dave.Martin@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, James Morse <james.morse@arm.com>
-Message-ID: <20180301174405.CqvDoYIJPezWwf06ykoJIwrPDUbkpnQeJYfuM-MDBj4@z>
+Message-ID: <20180301174406.sfP1qEr8Bjufn2bbEGAOAxaUOzYxVWRfngHIDAr8iE0@z>
+
+Some architectures cannot always report accurately what kind of
+floating-point exception triggered a floating-point exception trap.
+
+This can occur with fp exceptions occurring on lanes in a vector
+instruction on arm64 for example.
+
+Rather than have every architecture come up with its own way of
+describing such a condition, this patch adds a common FPE_FLTUNK
+si_code value to report that an fp exception caused a trap but we
+cannot be certain which kind of fp exception it was.
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+
+--
 
 Changes since v1:
 
- * Fixed failing BUILD_BUG_ON() sanity check on NSIGFPE done by x86.
-   (Thanks to James Morse for spotting.)
+Reported by James Morse:
 
-   The addition of FPE_FLTUNK is harmless to x86, since only arm64
-   uses this code right now.
+ * Bump NSIGFPE BUILD_BUG_ON() check for x86 compat.
 
-Changes since RFC v2:
+   FPE_FLTUNK does not current have any implications for x86, since it
+   is not currently used and has no implications for the way siginfo
+   is populated.
+---
+ arch/x86/kernel/signal_compat.c    | 2 +-
+ include/uapi/asm-generic/siginfo.h | 3 ++-
+ 2 files changed, 3 insertions(+), 2 deletions(-)
 
- * Fold in reverts of the relevant parts of Eric's *_FIXME changes,
-   since this series removes all cases of those dummy si_code values
-   from arm64.
-
- * Propagated the new signal/si_code assignments for synchronous
-   external aborts correctly to signals thrown from do_sea().
-
-Original blurb:
-
-As reported by Eric Biederman, [1], [2], [3] etc., several architectures
-are inappropriately setting si_code to 0 when signaling faults to
-userspace, which will interpret this value as SI_USER leading to garbage
-being read out of siginfo fields that the kernel doesn't initialise.
-
-This seems not to be a huge problem in practice, since many affected
-faults should only happen if the kernel or hardware is buggy or broken.
-However, there are some cases that don't fall under this.
-
-This RFC series proposes fixes to eliminate these si_code == 0 cases
-from arm64.  Some of the changes may be controversial.
-
-There are two main headlines here, which may be applicable to other
-architectures:
-
- * addition of a new code FPE_UNKNOWN for undiagnosable floating-point
-   exception traps;
-
- * delivering SIGKILL instead of SIGSEGV/BUS/TRAP etc. for "impossible"
-   exceptions that are not feasible to recover from and likely indicate
-   a kernel or system bug or failure.
-
-In particular there is likely to be a fair amount of overlap between arm
-and arm64 here, but due to the longer history and evolution of the arm
-tree and 32-bit architecture I'm less confident in making correct
-judgements for that case.  This series doesn't touch arm, for now.
-
-Boot-tested on Arm Juno r0.
-Floating-point exception traps tested on the Arm Fast Model.
-
-[1] [PATCH 00/11] siginfo fixes/cleanups esp SI_USER
-https://marc.info/?l=linux-kernel&m=151571871109016&w=2
-
-[2] [PATCH 08/11] signal/arm: Document conflicts with SI_USER and SIGFPE
-http://lists.infradead.org/pipermail/linux-arm-kernel/2018-January/553574.html
-
-[3] [PATCH 07/11] signal/arm64: Document conflicts with SI_USER and SIGFPE, SIGTRAP, SIGBUS
-lists.infradead.org/pipermail/linux-arm-kernel/2018-January/553573.html
-
-Dave Martin (3):
-  signal: Add FPE_FLTUNK si_code for undiagnosable fp exceptions
-  arm64: fpsimd: Fix bad si_code for undiagnosed SIGFPE
-  arm64: signal: Ensure si_code is valid for all fault signals
-
- arch/arm64/include/asm/esr.h          |   9 +++
- arch/arm64/include/uapi/asm/siginfo.h |  21 ------
- arch/arm64/kernel/fpsimd.c            |  31 +++++----
- arch/arm64/mm/fault.c                 | 116 +++++++++++++++++-----------------
- arch/x86/kernel/signal_compat.c       |   2 +-
- include/uapi/asm-generic/siginfo.h    |   3 +-
- kernel/signal.c                       |   4 --
- 7 files changed, 87 insertions(+), 99 deletions(-)
-
+diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
+index ac057f9..954ad99 100644
+--- a/arch/x86/kernel/signal_compat.c
++++ b/arch/x86/kernel/signal_compat.c
+@@ -26,7 +26,7 @@ static inline void signal_compat_build_tests(void)
+ 	 * new fields are handled in copy_siginfo_to_user32()!
+ 	 */
+ 	BUILD_BUG_ON(NSIGILL  != 11);
+-	BUILD_BUG_ON(NSIGFPE  != 13);
++	BUILD_BUG_ON(NSIGFPE  != 14);
+ 	BUILD_BUG_ON(NSIGSEGV != 4);
+ 	BUILD_BUG_ON(NSIGBUS  != 5);
+ 	BUILD_BUG_ON(NSIGTRAP != 4);
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index 85dc965..10304de 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -229,7 +229,8 @@ typedef struct siginfo {
+ # define __FPE_INVASC	12	/* invalid ASCII digit */
+ # define __FPE_INVDEC	13	/* invalid decimal digit */
+ #endif
+-#define NSIGFPE		13
++#define FPE_FLTUNK	14	/* undiagnosed floating-point exception */
++#define NSIGFPE		14
+ 
+ /*
+  * SIGSEGV si_codes
 -- 
 2.1.4
