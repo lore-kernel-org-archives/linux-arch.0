@@ -1,162 +1,168 @@
 From: John Garry <john.garry@huawei.com>
-Subject: Re: [PATCH v15 1/9] LIB: Introduce a generic PIO mapping method
-Date: Fri, 2 Mar 2018 10:33:26 +0000
-Message-ID: <bf00d184-137d-a2fa-b202-f18ce131fdd6@huawei.com>
+Subject: Re: [PATCH v15 6/9] HISI LPC: Support the LPC host on Hip06/Hip07
+ with DT bindings
+Date: Fri, 2 Mar 2018 10:44:46 +0000
+Message-ID: <6028793a-cfd3-b61f-3245-abc3dc771a6a@huawei.com>
 References: <1519663249-9850-1-git-send-email-john.garry@huawei.com>
- <1519663249-9850-2-git-send-email-john.garry@huawei.com>
- <1519931483.10722.342.camel@linux.intel.com>
+ <1519663249-9850-7-git-send-email-john.garry@huawei.com>
+ <1519932408.10722.351.camel@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1519931483.10722.342.camel@linux.intel.com>
+In-Reply-To: <1519932408.10722.351.camel@linux.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-On 01/03/2018 19:11, Andy Shevchenko wrote:
+On 01/03/2018 19:26, Andy Shevchenko wrote:
 > On Tue, 2018-02-27 at 00:40 +0800, John Garry wrote:
->> From: Zhichang Yuan <yuanzhichang@hisilicon.com>
->>
->> In commit 41f8bba7f555 ("of/pci: Add pci_register_io_range() and
->> pci_pio_to_address()"), a new I/O space management was supported. With
->> that driver, the I/O ranges configured for PCI/PCIe hosts on some
->> architectures can be mapped to logical PIO, converted easily between
->> CPU address and the corresponding logicial PIO. Based on this, PCI
->> I/O devices can be accessed in a memory read/write way through the
->> unified in/out accessors.
->>
->> But on some archs/platforms, there are bus hosts which access I/O
->> peripherals with host-local I/O port addresses rather than memory
->> addresses after memory-mapped.
->>
->> To support those devices, a more generic I/O mapping method is
->> introduced
->> here. Through this patch, both the CPU addresses and the host-local
->> port
->> can be mapped into the logical PIO space with different logical/fake
->> PIOs.
->> After this, all the I/O accesses to either PCI MMIO devices or host-
->> local
->> I/O peripherals can be unified into the existing I/O accessors defined
->> in
->> asm-generic/io.h and be redirected to the right device-specific hooks
->> based on the input logical PIO.
->>
 >
-> A bit more small comments.
->
->
+>> The low-pin-count(LPC) interface of Hip06/Hip07 accesses the
+>> peripherals in
+>> I/O port addresses. This patch implements the LPC host controller
+>> driver
+>> which perform the I/O operations on the underlying hardware.
+>> We don't want to touch those existing peripherals' driver, such as
+>> ipmi-bt.
+>> So this driver applies the indirect-IO introduced in the previous
+>> patch
+>> after registering an indirect-IO node to the indirect-IO devices list
+>> which
+>> will be searched in the I/O accessors to retrieve the host-local I/O
+>> port.
+>>
+>> The driver config is set as a bool instead of a trisate. The reason
+>> here is that, by the very nature of the driver providing a logical
+>> PIO range, it does not make sense to have this driver as a loadable
+>> module. Another more specific reason is that the Huawei D03 board
+>> which includes hip06 SoC requires the LPC bus for UART console, so
+>> should be built in.
 
 Hi Andy,
 
->> +#ifndef __LINUX_LOGIC_PIO_H
->> +#define __LINUX_LOGIC_PIO_H
+>
+> Few minor comments below.
+>
+>> +static inline int wait_lpc_idle(unsigned char *mbase,
+>> +				unsigned int waitcnt) {
+>> +	do {
+>> +		u32 status;
 >> +
+>> +		status = readl(mbase + LPC_REG_OP_STATUS);
+>> +		if (status & LPC_REG_OP_STATUS_IDLE)
+>> +			return (status & LPC_REG_OP_STATUS_FINISHED)
+>> ? 0 : -EIO;
+>> +		ndelay(LPC_NSEC_PERWAIT);
 >
->> +#ifdef __KERNEL__
+>> +	} while (waitcnt--);
 >
-> Hmm... How the header in include/linux/ can be non-kernel?
+> } while (--waitcnt);
 
-I did doubt the legitimacy of this. I think it should be ok to remove.
-
->
->> +	list_for_each_entry_rcu(range, &io_range_list, list) {
->
->> +		if (range->flags == LOGIC_PIO_CPU_MMIO &&
->> +				new_range->flags ==
->> LOGIC_PIO_CPU_MMIO) {
->
-> It's rather fancy indentation.
-
-Right, I should align these.
+Right, in reality it makes little difference, but we should honour the 
+argument we are passed.
 
 >
->> +			if (start >= range->hw_start + range->size ||
->> +			    end < range->hw_start)
->
-> Misses {}
-
-Right, I will fix.
-
->
->> +				allocated_mmio_size += range->size;
->> +			else {
->> +				ret = -EFAULT;
->> +				goto end_register;
->> +			}
->
->> +		if (allocated_mmio_size + new_range->size - 1 >
->> +			MMIO_UPPER_LIMIT) {
->
-> Fancy indentation.
->
->> +			if (allocated_mmio_size + SZ_64K - 1 >
->> +			MMIO_UPPER_LIMIT) {
->
-> Ditto.
-
-Will fix both
-
->
->> +		if (allocated_iio_size + new_range->size - 1 >
->> +		    IO_SPACE_LIMIT) {
->
-> While this is nothing wrong, like above I would consider to check how
-> long it is and consider putting on one line.
-
-Fine. Some symbol names can be shortened to aid this.
-
->
->> +/**
->> + * logic_pio_to_hwaddr - translate logical PIO to HW address
->> + * @pio: logical PIO value
->> + *
->> + * Returns HW address if valid, -1 otherwise
->
-> It can't return -1 when the return type is unsigned.
->
->> + *
->> + * Translate the input logical pio to the corresponding hardware
->> address.
->> + * The input pio should be unique in the whole logical PIO space.
->> + */
->> +resource_size_t logic_pio_to_hwaddr(unsigned long pio)
->> +{
->> +	struct logic_pio_hwaddr *range;
->
->> +	resource_size_t hwaddr = (resource_size_t)-1;
->
-> Ditto.
-
-ok, I should have changed this to ~0 also.
-
->
->> +	return hwaddr;
+>> +
+>> +	return -ETIME;
 >> +}
 >
->> +	list_for_each_entry_rcu(range, &io_range_list, list) {
->> +		if (range->flags != LOGIC_PIO_CPU_MMIO)
->> +			continue;
+>> +
+>> +/*
 >
->> +		if (addr >= range->hw_start &&
->> +		    addr < range->hw_start + range->size)
+> If you would like to have a documentation you need to use proper syntax,
+> i.e.
 >
-> Perhaps you may copy'n'paste in_range() macro from fs/ext* files and use
-> in this module. At some point it would be good to make it generic.
+> /**
+>
+> Check the rest of the series for it.
 
-OK, I should be able to copy. It would not be good to include 
-fs/ufs/util.h, but a generic helper would be useful.
+I don't think kerneldoc should include these functions - they are static 
+and specific to this HW. I think the rest of the series is ok for 
+kerneldoc vs non-kerneldoc comments. The logic_pio code does have 
+kerneldoc comments. I will double check.
 
 >
->> +			return addr - range->hw_start +
->> +				range->io_start;
+>> + * hisi_lpc_target_in - trigger a series of LPC cycles for read
+>> operation
+>> + * @lpcdev: pointer to hisi lpc device
+>> + * @para: some parameters used to control the lpc I/O operations
+>> + * @addr: the lpc I/O target port address
+>> + * @buf: where the read back data is stored
+>> + * @opcnt: how many I/O operations required, i.e. data width
+>> + *
+>> + * Returns 0 on success, non-zero on fail.
+>> + */
+>
+>> +	do {
+>> +		*buf++ = readb(lpcdev->membase + LPC_REG_RDATA);
+>> +	} while (--opcnt);
+>
+> readsb() ?
+>
+>> +	do {
+>> +		writeb(*buf++, lpcdev->membase + LPC_REG_WDATA);
+>> +	} while (--opcnt);
+>
+> writesb() ?
+
+It should be ok to include these.
+
+>
+>> +static inline unsigned long
+>> +hisi_lpc_pio_to_addr(struct hisi_lpc_dev *lpcdev, unsigned long pio)
+>> +{
+>> +	return pio - lpcdev->io_host->io_start +
+>> +		lpcdev->io_host->hw_start;
+>
+> I would rather put on one line.
+
+I will try.
+
+>
+>> +}
+>
+>> +	do {
+>> +		if (hisi_lpc_target_out(lpcdev, &iopara, addr, buf,
+>> +						dwidth))
+>
+> Fancy indentation. Perhaps put to one line?
+
+Will try
+
+>
+>> +			break;
+>> +		buf += dwidth;
+>> +	} while (--count);
 >
 >
->> +	}
+>> +	int ret;
+>> +
+>> +	lpcdev = devm_kzalloc(dev, sizeof(struct hisi_lpc_dev),
+>> GFP_KERNEL);
 >
+> sizeof(*lpcdev) ?
+
+OK, will include
+
+>
+>> +	if (!lpcdev)
+>> +		return -ENOMEM;
+>
+>> +	dev_info(dev, "registered range[%pa - sz:%pa]\n",
+>
+> This is rather non-standard. We provide for resources the pattern like
+> "... [start-end]\n"
+>
+>> +		 &lpcdev->io_host->io_start,
+>> +		 &lpcdev->io_host->size);
+
+In the HW structure we record the IO base and size, as the size of 
+relevant to the bus address length. I could print in [start-end] format 
+no problem.
+
 >
 
-Thanks very much,
+Thanks,
 John
