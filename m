@@ -1,104 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:34754 "EHLO ale.deltatee.com"
+Received: from ale.deltatee.com ([207.54.116.67]:34816 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751462AbeCETIo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 5 Mar 2018 14:08:44 -0500
+        id S1751893AbeCETIt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 5 Mar 2018 14:08:49 -0500
 From: Logan Gunthorpe <logang@deltatee.com>
-Date: Mon,  5 Mar 2018 12:08:17 -0700
-Message-ID: <20180305190824.847-1-logang@deltatee.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Subject: [PATCH v11 0/7] Add io{read|write}64 to io-64-atomic headers
+Date: Mon,  5 Mar 2018 12:08:18 -0700
+Message-ID: <20180305190824.847-2-logang@deltatee.com>
+In-Reply-To: <20180305190824.847-1-logang@deltatee.com>
+References: <20180305190824.847-1-logang@deltatee.com>
+Subject: [PATCH v11 1/7] powerpc: io.h: move iomap.h include so that it can use readq/writeq defs
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <20180305190817.ksZNy5Id6vY3Ab5VmhuVBoj9tz8mbK_5iNl132Jj0aQ@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, Suresh Warrier <warrier@linux.vnet.ibm.com>, Oliver O'Halloran <oohall@gmail.com>
+Message-ID: <20180305190818.suQGqj1Ud7R3r0Z5s4ogpIecrSg0w44_ZaDI0tqMZpQ@z>
 
-This is v11 of my cleanup series to push a number of instances of people
-defining their own io{read|write}64 functions into common headers seing
-they don't exist in non-64bit systems. This series adds inline functions to the
-io-64-nonatomic headers and then cleans up the drivers that defined their
-own.
+Subsequent patches in this series makes use of the readq and writeq
+defines in iomap.h. However, as is, they get missed on the powerpc
+platform seeing the include comes before the define. This patch
+moves the include down to fix this.
 
-This cleanup was originally requested by Greg after he reviewed my
-Switchtec NTB code. And I hope someone can pick it up or at least give
-feedback on it soon as it's been around relatively unchanged for a few
-cycles now and I'm getting a bit tired of resubmitting it with little to
-no interest.
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: Suresh Warrier <warrier@linux.vnet.ibm.com>
+Cc: "Oliver O'Halloran" <oohall@gmail.com>
+---
+ arch/powerpc/include/asm/io.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Thanks,
-
-Logan
-
---
-
-Changes since v10:
-- Rebased onto v4.16-rc4, this droped the drm/tilcdc patch which was
-  picked up by that tree and is already in 4.16.
-
-Changes since v9:
-- Rebased onto v4.15-rc6
-- Fixed a couple of issues in the new version of the CAAM patch as
-  pointed out by Horia
-
-Changes since v8:
-- Rebased onto v4.15-rc2, as a result rewrote patch 7 seeing someone did
-  some similar cleanup in that area.
-- Added a patch to clean up the Switchtec NTB driver which landed in
-  v4.15-rc1
-
-Changes since v7:
-- Fix minor nits from Andy Shevchenko
-- Rebased onto v4.14-rc1
-
-Changes since v6:
- ** none **
-
-Changes since v5:
-- Added a fix to the tilcdc driver to ensure it doesn't use the
-  non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
-  defines).
-
-Changes since v4:
-- Add functions so the powerpc implementation of iomap.c compiles. (As
-  noticed by Horia)
-
-Changes since v3:
-
-- I noticed powerpc didn't use the appropriate functions seeing
-  readq/writeq were not defined when iomap.h was included. Thus I've
-  included a patch to adjust this
-- Fixed some mistakes with a couple of the defines in io-64-nonatomic*
-  headers
-- Fixed a typo noticed by Horia.
-
-(earlier versions were drastically different)
-
---
-
-Logan Gunthorpe (7):
-  powerpc: io.h: move iomap.h include so that it can use readq/writeq
-    defs
-  powerpc: iomap.c: introduce io{read|write}64_{lo_hi|hi_lo}
-  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
-  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
-  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
-  ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common
-    header
-
- arch/powerpc/include/asm/io.h          |   6 +-
- arch/powerpc/kernel/iomap.c            |  40 ++++++++++
- drivers/crypto/caam/regs.h             |  30 +-------
- drivers/ntb/hw/intel/ntb_hw_intel.c    |  30 +-------
- drivers/ntb/hw/mscc/ntb_hw_switchtec.c |  30 +-------
- include/asm-generic/iomap.h            |  26 +++++--
- include/linux/io-64-nonatomic-hi-lo.h  |  64 ++++++++++++++++
- include/linux/io-64-nonatomic-lo-hi.h  |  64 ++++++++++++++++
- lib/iomap.c                            | 132 +++++++++++++++++++++++++++++++++
- 9 files changed, 329 insertions(+), 93 deletions(-)
-
---
+diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.h
+index 422f99cf9924..af074923d598 100644
+--- a/arch/powerpc/include/asm/io.h
++++ b/arch/powerpc/include/asm/io.h
+@@ -33,8 +33,6 @@ extern struct pci_dev *isa_bridge_pcidev;
+ #include <asm/mmu.h>
+ #include <asm/ppc_asm.h>
+ 
+-#include <asm-generic/iomap.h>
+-
+ #ifdef CONFIG_PPC64
+ #include <asm/paca.h>
+ #endif
+@@ -663,6 +661,8 @@ static inline void name at					\
+ #define writel_relaxed(v, addr)	writel(v, addr)
+ #define writeq_relaxed(v, addr)	writeq(v, addr)
+ 
++#include <asm-generic/iomap.h>
++
+ #ifdef CONFIG_PPC32
+ #define mmiowb()
+ #else
+-- 
 2.11.0
