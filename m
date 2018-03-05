@@ -1,60 +1,71 @@
-From: Richard Kuo <rkuo@codeaurora.org>
-Subject: Re: Removing architectures without upstream gcc support
-Date: Fri, 2 Mar 2018 19:43:06 -0600
-Message-ID: <20180303014306.GA6911@codeaurora.org>
-References: <CAK8P3a2-6YwRR3j7J78fVHSvDpq8Kf4wRj6d9mnGgAxgkYypxg@mail.gmail.com>
- <20180222191758.GB5180@codeaurora.org>
- <CAK8P3a3r=3wDtqV5feLUT-hOkE+9yWOLjLVm+nejqdaN7MtMFw@mail.gmail.com>
- <20180228020631.GB3780@codeaurora.org>
- <CAK8P3a13VDiH8+NG00p5oM2j5KMNU3JnCUurFn6EdJgztZsKHg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: [PATCH v11 7/7] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
+Date: Mon,  5 Mar 2018 12:08:24 -0700
+Message-ID: <20180305190824.847-8-logang@deltatee.com>
+References: <20180305190824.847-1-logang@deltatee.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a13VDiH8+NG00p5oM2j5KMNU3JnCUurFn6EdJgztZsKHg@mail.gmail.com>
+In-Reply-To: <20180305190824.847-1-logang@deltatee.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>, James Hogan <jhogan@kernel.org>, "open list:METAG ARCHITECTURE" <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org, David Howells <dhowells@redhat.com>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Jon Mason <jdmason@kudzu.us>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 28, 2018 at 09:37:09AM +0100, Arnd Bergmann wrote:
-> On Wed, Feb 28, 2018 at 3:06 AM, Richard Kuo <rkuo@codeaurora.org> wrote:
-> > On Thu, Feb 22, 2018 at 11:43:10PM +0100, Arnd Bergmann wrote:
-> >> - How do I build an llvm based toolchain for Hexagon? Do I need patches
-> >>   on top of the llvm-6 release branch? Where can I find the corresponding
-> >>   binutils-2.30 sources?
-> >
-> > Just to follow up on this, the closest thing right now to compile the kernel
-> > for Hexagon is the toolchain included with the Hexagon SDK.  However, the
-> > linker will fail because of something in the kernel build process that
-> > I think produces empty sections, which that linker can't handle.  A newer
-> > linker can handle it, but that's not scheduled to be released until much later
-> > this year.
-> >
-> > That's actually the closest option currently.  I tried the upstream source
-> > but it seems to lack some specific patches to support kernel compilation,
-> > so I will need to chase those down.
-> 
-> Thanks for trying it out. Can you point me to the sources? I tried downloading
-> a Hexagon SDK when I first looked at it, but only got a huge chunk of binary
-> java files and gave up before finding the llvm patches.
+Clean up the ifdefs which conditionally defined the io{read|write}64
+functions in favour of the new common io-64-nonatomic-lo-hi header.
 
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Cc: Jon Mason <jdmason@kudzu.us>
+---
+ drivers/ntb/hw/mscc/ntb_hw_switchtec.c | 30 +-----------------------------
+ 1 file changed, 1 insertion(+), 29 deletions(-)
 
-I don't think the SDK patches are available externally.
-
-The good news is I think we're now one patch away from the upstream LLVM
-compiling a functional kernel for Hexagon (a few fixes to LLVM/clang have
-been committed already).  It technically compiles but produces an abort (from
-a null deref) which the linker doesn't like.
-
-The linker itself unfortunately is going to be a different matter.
-
-
-Thanks,
-Richard Kuo
-
-
+diff --git a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
+index f624ae27eabe..d2a1e746b335 100644
+--- a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
++++ b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
+@@ -19,6 +19,7 @@
+ #include <linux/kthread.h>
+ #include <linux/interrupt.h>
+ #include <linux/ntb.h>
++#include <linux/io-64-nonatomic-lo-hi.h>
+ 
+ MODULE_DESCRIPTION("Microsemi Switchtec(tm) NTB Driver");
+ MODULE_VERSION("0.1");
+@@ -35,35 +36,6 @@ module_param(use_lut_mws, bool, 0644);
+ MODULE_PARM_DESC(use_lut_mws,
+ 		 "Enable the use of the LUT based memory windows");
+ 
+-#ifndef ioread64
+-#ifdef readq
+-#define ioread64 readq
+-#else
+-#define ioread64 _ioread64
+-static inline u64 _ioread64(void __iomem *mmio)
+-{
+-	u64 low, high;
+-
+-	low = ioread32(mmio);
+-	high = ioread32(mmio + sizeof(u32));
+-	return low | (high << 32);
+-}
+-#endif
+-#endif
+-
+-#ifndef iowrite64
+-#ifdef writeq
+-#define iowrite64 writeq
+-#else
+-#define iowrite64 _iowrite64
+-static inline void _iowrite64(u64 val, void __iomem *mmio)
+-{
+-	iowrite32(val, mmio);
+-	iowrite32(val >> 32, mmio + sizeof(u32));
+-}
+-#endif
+-#endif
+-
+ #define SWITCHTEC_NTB_MAGIC 0x45CC0001
+ #define MAX_MWS     128
+ 
 -- 
-Employee of Qualcomm Innovation Center, Inc.
-Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum, 
-a Linux Foundation Collaborative Project
+2.11.0
