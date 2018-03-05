@@ -1,74 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0061.outbound.protection.outlook.com ([104.47.41.61]:47712
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S933291AbeCEK5S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 5 Mar 2018 05:57:18 -0500
-From: "Wu, Aaron" <Aaron.Wu@analog.com>
-Subject: RE: Re: Removing architectures without upstream gcc support
-Date: Mon, 5 Mar 2018 10:57:12 +0000
-Message-ID: <649EF91064D35D40B9C93A225BF41674ADE252E2@NWD2MBX6.ad.analog.com>
-References: <CAK8P3a2GP8uQWe+DCD=p-JLHxXBUTBpx9nnpNzF_Hz49XA9a8A@mail.gmail.com>
- <5ef16c51-7cc5-9111-7e54-edfe77f39f4b@metafoo.de>
-In-Reply-To: <5ef16c51-7cc5-9111-7e54-edfe77f39f4b@metafoo.de>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Received: from ale.deltatee.com ([207.54.116.67]:34754 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751462AbeCETIo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 5 Mar 2018 14:08:44 -0500
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Mon,  5 Mar 2018 12:08:17 -0700
+Message-ID: <20180305190824.847-1-logang@deltatee.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Subject: [PATCH v11 0/7] Add io{read|write}64 to io-64-atomic headers
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Florian Fainelli <f.fainelli@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux- <kernel@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "liqin.linux@gmail.com" <liqin.linux@gmail.com>, "lennox.wu@gmail.com" <lennox.wu@gmail.com>, "gxt@mprc.pku.edu.cn" <gxt@mprc.pku.edu.cn>, "linux@roeck-us.net" <linux@roeck-us.net>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "jhogan@kernel.org" <jhogan@kernel.org>, "linux-metag@vger.kernel.org" <linux-metag@vger.kernel.org>, "jonas@southpole.se" <jonas@southpole.se>, "stefan.kristiansson@saunalahti.fi" <stefan.kristiansson@saunalahti.fi>, "shorne@gmail.com" <shorne@gmail.com>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "dhowells@redhat.com" <dhowells@redhat.com>, "peterz@infradead.org" <peterz@infradead.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <20180305190817.ksZNy5Id6vY3Ab5VmhuVBoj9tz8mbK_5iNl132Jj0aQ@z>
 
-DQoNCj4gLS0tLS1PcmlnaW5hbCBNZXNzYWdlLS0tLS0NCj4gRnJvbTogTGFycy1QZXRlciBDbGF1
-c2VuIFttYWlsdG86bGFyc0BtZXRhZm9vLmRlXQ0KPiBTZW50OiAyMDE45bm0M+aciDXml6UgMTc6
-NTYNCj4gVG86IFd1LCBBYXJvbiA8QWFyb24uV3VAYW5hbG9nLmNvbT4NCj4gU3ViamVjdDogRndk
-OiBSZTogUmVtb3ZpbmcgYXJjaGl0ZWN0dXJlcyB3aXRob3V0IHVwc3RyZWFtIGdjYyBzdXBwb3J0
-DQo+IA0KPiANCj4gDQo+IA0KPiAtLS0tLS0tLSBGb3J3YXJkZWQgTWVzc2FnZSAtLS0tLS0tLQ0K
-PiBTdWJqZWN0OiBSZTogUmVtb3ZpbmcgYXJjaGl0ZWN0dXJlcyB3aXRob3V0IHVwc3RyZWFtIGdj
-YyBzdXBwb3J0DQo+IERhdGU6IE1vbiwgMjYgRmViIDIwMTggMDk6MjY6NTcgKzAxMDANCj4gRnJv
-bTogQXJuZCBCZXJnbWFubiA8YXJuZEBhcm5kYi5kZT4NCj4gVG86IEZsb3JpYW4gRmFpbmVsbGkg
-PGYuZmFpbmVsbGlAZ21haWwuY29tPg0KPiBDQzogbGludXgtYXJjaCA8bGludXgtYXJjaEB2Z2Vy
-Lmtlcm5lbC5vcmc+LCBMaW51eCBLZXJuZWwgTWFpbGluZyBMaXN0IDxsaW51eC0NCj4ga2VybmVs
-QHZnZXIua2VybmVsLm9yZz4sIFJpY2hhcmQgS3VvIDxya3VvQGNvZGVhdXJvcmEub3JnPiwgb3Bl
-bg0KPiBsaXN0OlFVQUxDT01NIEhFWEFHT04uLi4gPGxpbnV4LWhleGFnb25Admdlci5rZXJuZWwu
-b3JnPiwgQ2hlbiBMaXFpbg0KPiA8bGlxaW4ubGludXhAZ21haWwuY29tPiwgTGVubm94IFd1IDxs
-ZW5ub3gud3VAZ21haWwuY29tPiwgR3VhbiBYdWV0YW8NCj4gPGd4dEBtcHJjLnBrdS5lZHUuY24+
-LCBHdWVudGVyIFJvZWNrIDxsaW51eEByb2Vjay11cy5uZXQ+LCBBbCBWaXJvDQo+IDx2aXJvQHpl
-bml2LmxpbnV4Lm9yZy51az4sIEphbWVzIEhvZ2FuIDxqaG9nYW5Aa2VybmVsLm9yZz4sIG9wZW4N
-Cj4gbGlzdDpNRVRBRyBBUkNISVRFQ1RVUkUgPGxpbnV4LW1ldGFnQHZnZXIua2VybmVsLm9yZz4s
-IEpvbmFzIEJvbm4NCj4gPGpvbmFzQHNvdXRocG9sZS5zZT4sIFN0ZWZhbiBLcmlzdGlhbnNzb24g
-PHN0ZWZhbi5rcmlzdGlhbnNzb25Ac2F1bmFsYWh0aS5maT4sDQo+IFN0YWZmb3JkIEhvcm5lIDxz
-aG9ybmVAZ21haWwuY29tPiwgb3BlbnJpc2NAbGlzdHMubGlicmVjb3Jlcy5vcmcsIERhdmlkDQo+
-IEhvd2VsbHMgPGRob3dlbGxzQHJlZGhhdC5jb20+LCBQZXRlciBaaWpsc3RyYSA8cGV0ZXJ6QGlu
-ZnJhZGVhZC5vcmc+DQo+IA0KPiBPbiBTYXQsIEZlYiAyNCwgMjAxOCBhdCAxOjE1IEFNLCBGbG9y
-aWFuIEZhaW5lbGxpIDxmLmZhaW5lbGxpQGdtYWlsLmNvbT4gd3JvdGU6DQo+ID4gT24gMDIvMjIv
-MjAxOCAwNzo0NSBBTSwgQXJuZCBCZXJnbWFubiB3cm90ZToNCj4gPg0KPiA+IEFkZCBibGFja2Zp
-biB0byB0aGF0IGxpc3QsIHRoZXJlIGhhdmUgYmVlbiBubyByZXNwb25zZXMgZnJvbSB0aGUNCj4g
-PiBtYWludGFpbmVycyBsYXN0IHRpbWUgSSBwb3N0ZWQgcGF0Y2hlcyB0byByZW1vdmUgRFNBIGhl
-YWRlciBmaWxlcywgc28NCj4gPiB3ZSBoYWQgdG8gZ28gdGhlc2UgdGhyb3VnaCB0aGUgbmV0d29y
-a2luZyB0cmVlLiBIYXZlIG5vdCBzZWUgYQ0KPiA+IEJsYWNrZmluIHB1bGwgcmVxdWVzdCBzaW5j
-ZSBmb3JldmVyLCBBYXJvbiBoaW1zZWxmIHNlZW1zIHRvIGFncmVlIHRoaXMNCj4gPiBzaG91bGQg
-YmUNCj4gPiByZW1vdmVkOg0KPiA+DQo+ID4gaHR0cDovL2xrbWwuaXUuZWR1L2h5cGVybWFpbC9s
-aW51eC9rZXJuZWwvMTgwMS4xLzA0MzQ1Lmh0bWwNCj4NCg0KSSdtIHNvcnJ5IHRvIGNvbmZpcm0g
-dGhhdCBBREkgY2FuIG5vIGxvbmdlciBwcm92aWRlIG1haW50ZW5hbmNlIGZvciBCbGFja2ZpbiBp
-bg0KS2VybmVsIGNvbW11bml0eS4gV2Ugd2lsbCB0cnkgdG8gcHJvdmlkZSBhIHBhdGNoIHRvIHJl
-bW92ZSBpdC4NCkFwb2xvZ2l6ZS4uLiBhbmQgc2luY2VyZWx5IHRoYW5rcyB0byBjb21tdW5pdHkg
-YW5kIGFsbCB1c2VkIGFuZCBjb250cmlidXRlZCB0bw0KQmxhY2tmaW4gTGludXguIExvb2tpbmcg
-Zm9yd2FyZCB3ZSBhcmUgd29ya2luZyBvbiBzdXBwb3J0aW5nIExpbnV4IGZyb20gdGhlDQpuZXdl
-ciBTQzV4eCBtdXRsaS1jb3JlIHByb2Nlc3NvcnMgd2l0aCBBUk0gYW5kIFNIQVJDIERTUHMgaW4g
-aXQuICANCg0KPiBQZXRlciBaaWpsc3RyYSBhbHNvIG1lbnRpb25lZCB0aGF0IG9uZSBvbiBJUkMs
-IEkgZGlkbid0IGhhdmUgaXQgb24gbXkgcmFkYXIgYmVmb3JlLg0KPiBMaWtlIFRpbGUsIGl0IGhh
-cyBvbmx5IHJlY2VudGx5IGJlZW4gbWFya2VkIGFzIE9ycGhhbmVkIGluIE1BSU5UQUlORVJTLCBz
-byBJJ2QNCj4gYmUgaW5jbGluZWQgdG8gd2FpdCBhIGxpdHRsZSB3aGlsZSB0byBnaXZlIHBvc3Np
-YmxlIHVzZXJzIGEgY2hhbmNlIHRvIHN0ZXAgdXAgYXMgbmV3DQo+IG1haW50YWluZXJzLg0KPiAN
-Cj4gTXkgcGxhbiBmb3IgdjQuMTcgaXMgbm93Og0KPiANCj4gLSByZW1vdmUgc2NvcmUsIHVuaWNv
-cmUgYW5kIG1ldGFnIGR1ZSB0byBsYWNrIG9mIHRvb2xjaGFpbg0KPiAgIG9yIGludGVyZXN0IGZy
-b20gdGhlIG1haW50YWluZXJzLg0KPiAtIGtlZXAgaGV4YWdvbiwgYW5kIHRyeSB0byBidWlsZCBh
-biBsbHZtL2NsYW5nIHRvb2xjaGFpbg0KPiAtIHJlbW92ZSBmcnYgYW5kIG0zMnIgZHVlIHRvIGJl
-aW5nIGFiYW5kb25lZCBmb3Igc2V2ZXJhbCB5ZWFycw0KPiAtIG1hcmsgdGlsZSBhbmQgYmxhY2tm
-aW4gZm9yIHBlbmRpbmcgcmVtb3ZhbCBsYXRlciB0aGlzIHllYXIgdW5sZXNzDQo+ICAgYSBuZXcg
-bWFpbnRhaW5lciBzdGVwcyB1cA0KPiAtIG1hcmsgbW4xMDMwMCBmb3IgcGVuZGluZyByZW1vdmFs
-IHVubGVzcyBpdCBnZXRzIHVwZGF0ZWQgdG8NCj4gICBzdXBwb3J0IGNoaXBzIHRoYXQgd2VyZSBt
-YWRlIGluIHRoZSBwYXN0IDEyIHllYXJzIGFuZCB0byBidWlsZA0KPiAgIHByb3Blcmx5Lg0KPiAN
-Cj4gICAgICAgIEFybmQNCg0KVGhhbmtzIGFuZCBCZXN0IHJlZ2FyZHMsDQpBYXJvbiBXdQ0K
+This is v11 of my cleanup series to push a number of instances of people
+defining their own io{read|write}64 functions into common headers seing
+they don't exist in non-64bit systems. This series adds inline functions to the
+io-64-nonatomic headers and then cleans up the drivers that defined their
+own.
+
+This cleanup was originally requested by Greg after he reviewed my
+Switchtec NTB code. And I hope someone can pick it up or at least give
+feedback on it soon as it's been around relatively unchanged for a few
+cycles now and I'm getting a bit tired of resubmitting it with little to
+no interest.
+
+Thanks,
+
+Logan
+
+--
+
+Changes since v10:
+- Rebased onto v4.16-rc4, this droped the drm/tilcdc patch which was
+  picked up by that tree and is already in 4.16.
+
+Changes since v9:
+- Rebased onto v4.15-rc6
+- Fixed a couple of issues in the new version of the CAAM patch as
+  pointed out by Horia
+
+Changes since v8:
+- Rebased onto v4.15-rc2, as a result rewrote patch 7 seeing someone did
+  some similar cleanup in that area.
+- Added a patch to clean up the Switchtec NTB driver which landed in
+  v4.15-rc1
+
+Changes since v7:
+- Fix minor nits from Andy Shevchenko
+- Rebased onto v4.14-rc1
+
+Changes since v6:
+ ** none **
+
+Changes since v5:
+- Added a fix to the tilcdc driver to ensure it doesn't use the
+  non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
+  defines).
+
+Changes since v4:
+- Add functions so the powerpc implementation of iomap.c compiles. (As
+  noticed by Horia)
+
+Changes since v3:
+
+- I noticed powerpc didn't use the appropriate functions seeing
+  readq/writeq were not defined when iomap.h was included. Thus I've
+  included a patch to adjust this
+- Fixed some mistakes with a couple of the defines in io-64-nonatomic*
+  headers
+- Fixed a typo noticed by Horia.
+
+(earlier versions were drastically different)
+
+--
+
+Logan Gunthorpe (7):
+  powerpc: io.h: move iomap.h include so that it can use readq/writeq
+    defs
+  powerpc: iomap.c: introduce io{read|write}64_{lo_hi|hi_lo}
+  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
+  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
+  ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common
+    header
+
+ arch/powerpc/include/asm/io.h          |   6 +-
+ arch/powerpc/kernel/iomap.c            |  40 ++++++++++
+ drivers/crypto/caam/regs.h             |  30 +-------
+ drivers/ntb/hw/intel/ntb_hw_intel.c    |  30 +-------
+ drivers/ntb/hw/mscc/ntb_hw_switchtec.c |  30 +-------
+ include/asm-generic/iomap.h            |  26 +++++--
+ include/linux/io-64-nonatomic-hi-lo.h  |  64 ++++++++++++++++
+ include/linux/io-64-nonatomic-lo-hi.h  |  64 ++++++++++++++++
+ lib/iomap.c                            | 132 +++++++++++++++++++++++++++++++++
+ 9 files changed, 329 insertions(+), 93 deletions(-)
+
+--
+2.11.0
