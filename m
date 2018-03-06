@@ -1,59 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:41368 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750782AbeCFRED (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Mar 2018 12:04:03 -0500
-References: <20180305190824.847-1-logang@deltatee.com>
- <20180305190824.847-8-logang@deltatee.com>
- <CAHp75Vc41MwtDr24-z3po2nx3Hr7_=tFUD0odcrbnVTP4SnJ1g@mail.gmail.com>
- <20180306114632.GB16784@kroah.com>
- <CAHp75Vf6sYss8q5FjgLYaQXYN761M4awmLVjZ48Cdd8+NrrhxQ@mail.gmail.com>
-From: Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <18e6f79d-04db-463a-8916-09d7d859d273@deltatee.com>
-Date: Tue, 6 Mar 2018 10:03:55 -0700
-MIME-Version: 1.0
-In-Reply-To: <CAHp75Vf6sYss8q5FjgLYaQXYN761M4awmLVjZ48Cdd8+NrrhxQ@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
+Received: from mail.linuxfoundation.org ([140.211.169.12]:40600 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753971AbeCFWr7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Mar 2018 17:47:59 -0500
+Date: Tue, 6 Mar 2018 14:47:57 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v12 02/11] mm, swap: Add infrastructure for saving page
+ metadata on swap
+Message-ID: <20180306144757.8b1b4967bce500fca9bb6083@linux-foundation.org>
+In-Reply-To: <f5316c71e645d99ffdd52963f1e9675de3fc6386.1519227112.git.khalid.aziz@oracle.com>
+References: <cover.1519227112.git.khalid.aziz@oracle.com>
+        <f5316c71e645d99ffdd52963f1e9675de3fc6386.1519227112.git.khalid.aziz@oracle.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Subject: Re: [PATCH v11 7/7] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines
- to use the common header
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andy.shevchenko@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Jon Mason <jdmason@kudzu.us>
-Message-ID: <20180306170355.qxaPWwNeNHSDOcfpVBvnufit1TCC2x3Wl31TFvAZ2qI@z>
+To: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: davem@davemloft.net, dave.hansen@linux.intel.com, arnd@arndb.de, kirill.shutemov@linux.intel.com, mhocko@suse.com, ross.zwisler@linux.intel.com, dave.jiang@intel.com, mgorman@techsingularity.net, willy@infradead.org, hughd@google.com, minchan@kernel.org, hannes@cmpxchg.org, shli@fb.com, mingo@kernel.org, jglisse@redhat.com, me@tobin.cc, anthony.yznaga@oracle.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+Message-ID: <20180306224757.YH4ompQ6_yKEPIAB46lK2K6NlCerYTG2EDQExF0FGGk@z>
 
+On Wed, 21 Feb 2018 10:15:44 -0700 Khalid Aziz <khalid.aziz@oracle.com> wrote:
 
-
-On 06/03/18 04:57 AM, Andy Shevchenko wrote:
-> On Tue, Mar 6, 2018 at 1:46 PM, Greg Kroah-Hartman
-> <gregkh@linuxfoundation.org> wrote:
->> On Tue, Mar 06, 2018 at 12:48:29PM +0200, Andy Shevchenko wrote:
->>> On Mon, Mar 5, 2018 at 9:08 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
->>>> Clean up the ifdefs which conditionally defined the io{read|write}64
->>>> functions in favour of the new common io-64-nonatomic-lo-hi header.
->>>
->>>>   #include <linux/kthread.h>
->>>>   #include <linux/interrupt.h>
->>>>   #include <linux/ntb.h>
->>>> +#include <linux/io-64-nonatomic-lo-hi.h>
->>>
->>> A nit, can we preserve alphabetical ordering?
->>
->> Ugh, why, it doesn't matter at all :)
+> If a processor supports special metadata for a page, for example ADI
+> version tags on SPARC M7, this metadata must be saved when the page is
+> swapped out. The same metadata must be restored when the page is swapped
+> back in. This patch adds two new architecture specific functions -
+> arch_do_swap_page() to be called when a page is swapped in, and
+> arch_unmap_one() to be called when a page is being unmapped for swap
+> out. These architecture hooks allow page metadata to be saved if the
+> architecture supports it.
 > 
-> I'm fine with either way, but ordering is a good thing to have in long
-> term prospective.
-> Easy to find what headers are in there, easy to understand if you need
-> another one or not, easy to maintain the list w/o duplications.
-> 
-> I saw already few examples where long list of headers contained
-> duplications b/c it was in messy order.
-> 
+> Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
+> Cc: Khalid Aziz <khalid@gonehiking.org>
+> Acked-by: Jerome Marchand <jmarchan@redhat.com>
+> Reviewed-by: Anthony Yznaga <anthony.yznaga@oracle.com>
 
-I agree with Greg here. This is a bit silly. The list isn't even 
-alphabetical to begin with so it can't be preserved. However, if I do a 
-v12 I'll make it alphabetical.
-
-Logan
+Acked-by: Andrew Morton <akpm@linux-foundation.org>
