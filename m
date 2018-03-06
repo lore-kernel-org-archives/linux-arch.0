@@ -1,48 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f175.google.com ([209.85.220.175]:33112 "EHLO
-        mail-qk0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750838AbeCFL5v (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Mar 2018 06:57:51 -0500
+Received: from mail-db5eur01on0047.outbound.protection.outlook.com ([104.47.2.47]:45472
+        "EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750933AbeCFMhc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Mar 2018 07:37:32 -0500
+From: =?iso-8859-2?Q?Horia_Geant=E3?= <horia.geanta@nxp.com>
+Subject: Re: [PATCH v11 6/7] crypto: caam: cleanup CONFIG_64BIT ifdefs when
+ using io{read|write}64
+Date: Tue, 6 Mar 2018 12:37:27 +0000
+Message-ID: <VI1PR0402MB33422D83AE168D84FDED974698D90@VI1PR0402MB3342.eurprd04.prod.outlook.com>
+References: <20180305190824.847-1-logang@deltatee.com>
+ <20180305190824.847-7-logang@deltatee.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="iso-8859-2"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-In-Reply-To: <20180306114632.GB16784@kroah.com>
-References: <20180305190824.847-1-logang@deltatee.com> <20180305190824.847-8-logang@deltatee.com>
- <CAHp75Vc41MwtDr24-z3po2nx3Hr7_=tFUD0odcrbnVTP4SnJ1g@mail.gmail.com> <20180306114632.GB16784@kroah.com>
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Date: Tue, 6 Mar 2018 13:57:50 +0200
-Message-ID: <CAHp75Vf6sYss8q5FjgLYaQXYN761M4awmLVjZ48Cdd8+NrrhxQ@mail.gmail.com>
-Subject: Re: [PATCH v11 7/7] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines
- to use the common header
-Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Logan Gunthorpe <logang@deltatee.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Jon Mason <jdmason@kudzu.us>
-Message-ID: <20180306115750.MbTor1sl15muh9nlVZyMjFcPxhrXbtJuU3bJUoXlSL0@z>
+To: Logan Gunthorpe <logang@deltatee.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20180306123727.NY0xVbICaPcocgVLHCANTLC06k7t85c2aNeOz-HKMp4@z>
 
-On Tue, Mar 6, 2018 at 1:46 PM, Greg Kroah-Hartman
-<gregkh@linuxfoundation.org> wrote:
-> On Tue, Mar 06, 2018 at 12:48:29PM +0200, Andy Shevchenko wrote:
->> On Mon, Mar 5, 2018 at 9:08 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
->> > Clean up the ifdefs which conditionally defined the io{read|write}64
->> > functions in favour of the new common io-64-nonatomic-lo-hi header.
->>
->> >  #include <linux/kthread.h>
->> >  #include <linux/interrupt.h>
->> >  #include <linux/ntb.h>
->> > +#include <linux/io-64-nonatomic-lo-hi.h>
->>
->> A nit, can we preserve alphabetical ordering?
->
-> Ugh, why, it doesn't matter at all :)
-
-I'm fine with either way, but ordering is a good thing to have in long
-term prospective.
-Easy to find what headers are in there, easy to understand if you need
-another one or not, easy to maintain the list w/o duplications.
-
-I saw already few examples where long list of headers contained
-duplications b/c it was in messy order.
-
--- 
-With Best Regards,
-Andy Shevchenko
+On 3/5/2018 9:08 PM, Logan Gunthorpe wrote:=0A=
+> Clean up the extra ifdefs which defined the wr_reg64 and rd_reg64=0A=
+> functions in non-64bit cases in favour of the new common=0A=
+> io-64-nonatomic-lo-hi header.=0A=
+> =0A=
+> To be consistent with CAAM engine HW spec: in case of 64-bit registers,=
+=0A=
+> irrespective of device endianness, the lower address should be read from=
+=0A=
+> / written to first, followed by the upper address. Indeed the I/O=0A=
+> accessors in CAAM driver currently don't follow the spec, however this=0A=
+> is a good opportunity to fix the code.=0A=
+> =0A=
+> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>=0A=
+> Cc: Andy Shevchenko <andy.shevchenko@gmail.com>=0A=
+> Cc: Horia Geant=E3 <horia.geanta@nxp.com>=0A=
+> Cc: Dan Douglass <dan.douglass@nxp.com>=0A=
+> Cc: Herbert Xu <herbert@gondor.apana.org.au>=0A=
+> Cc: "David S. Miller" <davem@davemloft.net>=0A=
+Reviewed-by: Horia Geant=E3 <horia.geanta@nxp.com>=0A=
+=0A=
+Please get used to carrying Reviewed-bys from previous iterations when patc=
+hes=0A=
+stay the same:=0A=
+https://lkml.kernel.org/r/VI1PR0402MB334282217BC0AE1F8DA8BFC3981C0@VI1PR040=
+2MB3342.eurprd04.prod.outlook.com=0A=
+=0A=
+Thanks,=0A=
+Horia=0A=
+=0A=
