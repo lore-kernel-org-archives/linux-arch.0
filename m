@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:6150 "EHLO huawei.com"
+Received: from szxga04-in.huawei.com ([45.249.212.190]:6151 "EHLO huawei.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1750897AbeCFKs0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Mar 2018 05:48:26 -0500
+        id S1753065AbeCFKsa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Mar 2018 05:48:30 -0500
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v16 1/9] LIB: Introduce a generic PIO mapping method
-Date: Tue, 6 Mar 2018 18:47:40 +0800
-Message-ID: <1520333268-82754-2-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v16 6/9] HISI LPC: Support the LPC host on Hip06/Hip07 with DT bindings
+Date: Tue, 6 Mar 2018 18:47:45 +0800
+Message-ID: <1520333268-82754-7-git-send-email-john.garry@huawei.com>
 In-Reply-To: <1520333268-82754-1-git-send-email-john.garry@huawei.com>
 References: <1520333268-82754-1-git-send-email-john.garry@huawei.com>
 MIME-Version: 1.0
@@ -15,514 +15,537 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
-Message-ID: <20180306104740.gTbgtSiZIRWrfrCcU_KFeLyB5xS33SNAtksVoNL2acA@z>
+Message-ID: <20180306104745.76736lbyQD031OD6sub9TVJCl8JkjL0SBywvMbCSk3I@z>
 
 From: Zhichang Yuan <yuanzhichang@hisilicon.com>
 
-In commit 41f8bba7f555 ("of/pci: Add pci_register_io_range() and
-pci_pio_to_address()"), a new I/O space management was supported. With
-that driver, the I/O ranges configured for PCI/PCIe hosts on some
-architectures can be mapped to logical PIO, converted easily between
-CPU address and the corresponding logicial PIO. Based on this, PCI
-I/O devices can be accessed in a memory read/write way through the
-unified in/out accessors.
+The low-pin-count(LPC) interface of Hip06/Hip07 accesses the peripherals in
+I/O port addresses. This patch implements the LPC host controller driver
+which perform the I/O operations on the underlying hardware.
+We don't want to touch those existing peripherals' driver, such as ipmi-bt.
+So this driver applies the indirect-IO introduced in the previous patch
+after registering an indirect-IO node to the indirect-IO devices list which
+will be searched in the I/O accessors to retrieve the host-local I/O port.
 
-But on some archs/platforms, there are bus hosts which access I/O
-peripherals with host-local I/O port addresses rather than memory
-addresses after memory-mapped.
+The driver config is set as a bool instead of a trisate. The reason
+here is that, by the very nature of the driver providing a logical
+PIO range, it does not make sense to have this driver as a loadable
+module. Another more specific reason is that the Huawei D03 board
+which includes hip06 SoC requires the LPC bus for UART console, so
+should be built in.
 
-To support those devices, a more generic I/O mapping method is introduced
-here. Through this patch, both the CPU addresses and the host-local port
-can be mapped into the logical PIO space with different logical/fake PIOs.
-After this, all the I/O accesses to either PCI MMIO devices or host-local
-I/O peripherals can be unified into the existing I/O accessors defined in
-asm-generic/io.h and be redirected to the right device-specific hooks
-based on the input logical PIO.
-
+Signed-off-by: Zou Rongrong <zourongrong@huawei.com>
 Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
-Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
 Signed-off-by: John Garry <john.garry@huawei.com>
+Acked-by: Rob Herring <robh@kernel.org> #dts part
 Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
 Tested-by: dann frazier <dann.frazier@canonical.com>
 ---
- include/asm-generic/io.h  |   2 +
- include/linux/logic_pio.h | 124 ++++++++++++++++++++
- lib/Kconfig               |  15 +++
- lib/Makefile              |   2 +
- lib/logic_pio.c           | 282 ++++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 425 insertions(+)
- create mode 100644 include/linux/logic_pio.h
- create mode 100644 lib/logic_pio.c
+ .../arm/hisilicon/hisilicon-low-pin-count.txt      |  33 ++
+ drivers/bus/Kconfig                                |   8 +
+ drivers/bus/Makefile                               |   2 +
+ drivers/bus/hisi_lpc.c                             | 421 +++++++++++++++++++++
+ 4 files changed, 464 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/arm/hisilicon/hisilicon-low-pin-count.txt
+ create mode 100644 drivers/bus/hisi_lpc.c
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 7c6a39e..f76fbd6 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -351,6 +351,8 @@ static inline void writesq(volatile void __iomem *addr, const void *buffer,
- #define IO_SPACE_LIMIT 0xffff
- #endif
- 
-+#include <linux/logic_pio.h>
-+
- /*
-  * {in,out}{b,w,l}() access little endian I/O. {in,out}{b,w,l}_p() can be
-  * implemented on hardware that needs an additional delay for I/O accesses to
-diff --git a/include/linux/logic_pio.h b/include/linux/logic_pio.h
+diff --git a/Documentation/devicetree/bindings/arm/hisilicon/hisilicon-low-pin-count.txt b/Documentation/devicetree/bindings/arm/hisilicon/hisilicon-low-pin-count.txt
 new file mode 100644
-index 0000000..8c78ff4
+index 0000000..213181f
 --- /dev/null
-+++ b/include/linux/logic_pio.h
-@@ -0,0 +1,124 @@
-+// SPDX-License-Identifier: GPL-2.0+
-+/*
-+ * Copyright (C) 2017 Hisilicon Limited, All Rights Reserved.
-+ * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-+ * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
-+ *
-+ */
++++ b/Documentation/devicetree/bindings/arm/hisilicon/hisilicon-low-pin-count.txt
+@@ -0,0 +1,33 @@
++Hisilicon Hip06 low-pin-count device
++  Hisilicon Hip06 SoCs implement a Low Pin Count (LPC) controller, which
++  provides I/O access to some legacy ISA devices.
++  Hip06 is based on arm64 architecture where there is no I/O space. So, the
++  I/O ports here are not cpu addresses, and there is no 'ranges' property in
++  LPC device node.
 +
-+#ifndef __LINUX_LOGIC_PIO_H
-+#define __LINUX_LOGIC_PIO_H
++Required properties:
++- compatible:  value should be as follows:
++	(a) "hisilicon,hip06-lpc"
++	(b) "hisilicon,hip07-lpc"
++- #address-cells: must be 2 which stick to the ISA/EISA binding doc.
++- #size-cells: must be 1 which stick to the ISA/EISA binding doc.
++- reg: base memory range where the LPC register set is mapped.
 +
-+#include <linux/fwnode.h>
++Note:
++  The node name before '@' must be "isa" to represent the binding stick to the
++  ISA/EISA binding specification.
 +
-+enum {
-+	LOGIC_PIO_INDIRECT,		/* Indirect IO flag */
-+	LOGIC_PIO_CPU_MMIO,		/* Memory mapped IO flag */
++Example:
++
++isa@a01b0000 {
++	compatible = "hisilicon,hip06-lpc";
++	#address-cells = <2>;
++	#size-cells = <1>;
++	reg = <0x0 0xa01b0000 0x0 0x1000>;
++
++	ipmi0: bt@e4 {
++		compatible = "ipmi-bt";
++		device_type = "ipmi";
++		reg = <0x01 0xe4 0x04>;
++	};
 +};
-+
-+struct logic_pio_hwaddr {
-+	struct list_head list;
-+	struct fwnode_handle *fwnode;
-+	resource_size_t hw_start;
-+	resource_size_t io_start;
-+	resource_size_t size; /* range size populated */
-+	unsigned long flags;
-+
-+	void *hostdata;
-+	const struct logic_pio_host_ops *ops;
-+};
-+
-+struct logic_pio_host_ops {
-+	u32 (*in)(void *hostdata, unsigned long addr, size_t dwidth);
-+	void (*out)(void *hostdata, unsigned long addr, u32 val,
-+		    size_t dwidth);
-+	u32 (*ins)(void *hostdata, unsigned long addr, void *buffer,
-+		   size_t dwidth, unsigned int count);
-+	void (*outs)(void *hostdata, unsigned long addr, const void *buffer,
-+		     size_t dwidth, unsigned int count);
-+};
-+
-+#ifdef CONFIG_INDIRECT_PIO
-+u8 logic_inb(unsigned long addr);
-+void logic_outb(u8 value, unsigned long addr);
-+void logic_outw(u16 value, unsigned long addr);
-+void logic_outl(u32 value, unsigned long addr);
-+u16 logic_inw(unsigned long addr);
-+u32 logic_inl(unsigned long addr);
-+void logic_outb(u8 value, unsigned long addr);
-+void logic_outw(u16 value, unsigned long addr);
-+void logic_outl(u32 value, unsigned long addr);
-+void logic_insb(unsigned long addr, void *buffer, unsigned int count);
-+void logic_insl(unsigned long addr, void *buffer, unsigned int count);
-+void logic_insw(unsigned long addr, void *buffer, unsigned int count);
-+void logic_outsb(unsigned long addr, const void *buffer, unsigned int count);
-+void logic_outsw(unsigned long addr, const void *buffer, unsigned int count);
-+void logic_outsl(unsigned long addr, const void *buffer, unsigned int count);
-+
-+#ifndef inb
-+#define inb logic_inb
-+#endif
-+
-+#ifndef inw
-+#define inw logic_inw
-+#endif
-+
-+#ifndef inl
-+#define inl logic_inl
-+#endif
-+
-+#ifndef outb
-+#define outb logic_outb
-+#endif
-+
-+#ifndef outw
-+#define outw logic_outw
-+#endif
-+
-+#ifndef outl
-+#define outl logic_outl
-+#endif
-+
-+#ifndef insb
-+#define insb logic_insb
-+#endif
-+
-+#ifndef insw
-+#define insw logic_insw
-+#endif
-+
-+#ifndef insl
-+#define insl logic_insl
-+#endif
-+
-+#ifndef outsb
-+#define outsb logic_outsb
-+#endif
-+
-+#ifndef outsw
-+#define outsw logic_outsw
-+#endif
-+
-+#ifndef outsl
-+#define outsl logic_outsl
-+#endif
-+
-+/*
-+ * Below we reserve 0x4000 bytes for Indirect IO as so far this library is only
-+ * used by Hisilicon LPC Host. If needed in future we may reserve a wider IO
-+ * area by redefining the macro below.
-+ */
-+#define PIO_INDIRECT_SIZE 0x4000
-+#define MMIO_UPPER_LIMIT (IO_SPACE_LIMIT - PIO_INDIRECT_SIZE)
-+#else
-+#define MMIO_UPPER_LIMIT IO_SPACE_LIMIT
-+#endif /* CONFIG_INDIRECT_PIO */
-+
-+struct logic_pio_hwaddr *find_io_range_by_fwnode(struct fwnode_handle *fwnode);
-+unsigned long logic_pio_trans_hwaddr(struct fwnode_handle *fwnode,
-+			resource_size_t hw_addr, resource_size_t size);
-+int logic_pio_register_range(struct logic_pio_hwaddr *newrange);
-+extern resource_size_t logic_pio_to_hwaddr(unsigned long pio);
-+extern unsigned long logic_pio_trans_cpuaddr(resource_size_t hw_addr);
-+
-+#endif /* __LINUX_LOGIC_PIO_H */
-diff --git a/lib/Kconfig b/lib/Kconfig
-index e960894..d9dd02c 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -55,6 +55,21 @@ config ARCH_USE_CMPXCHG_LOCKREF
- config ARCH_HAS_FAST_MULTIPLIER
- 	bool
+diff --git a/drivers/bus/Kconfig b/drivers/bus/Kconfig
+index 769599b..0097317 100644
+--- a/drivers/bus/Kconfig
++++ b/drivers/bus/Kconfig
+@@ -65,6 +65,14 @@ config BRCMSTB_GISB_ARB
+ 	  arbiter. This driver provides timeout and target abort error handling
+ 	  and internal bus master decoding.
  
-+config INDIRECT_PIO
-+	bool "Access I/O in non-MMIO mode"
-+	depends on ARM64
++config HISILICON_LPC
++	bool "Support for ISA I/O space on Hisilicon hip06/7"
++	depends on ARM64 && (ARCH_HISI || COMPILE_TEST)
++	select INDIRECT_PIO
 +	help
-+	  On some platforms where no separate I/O space exists, there are I/O
-+	  hosts which can not be accessed in MMIO mode. Using the logical PIO
-+	  mechanism, the host-local I/O resource can be mapped into system
-+	  logic PIO space shared with MMIO hosts, such as PCI/PCIE, then the
-+	  system can access the I/O devices with the mapped logic PIO through
-+	  I/O accessors.
-+	  This way has relatively little I/O performance cost. Please make
-+	  sure your devices really need this configure item enabled.
++	  Driver needed for some legacy ISA devices attached to Low-Pin-Count
++	  on Hisilicon hip06/7 SoC.
 +
-+	  When in doubt, say N.
-+
- config CRC_CCITT
- 	tristate "CRC-CCITT functions"
- 	help
-diff --git a/lib/Makefile b/lib/Makefile
-index 0bd50d71f..8fc0d3a 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -82,6 +82,8 @@ obj-$(CONFIG_HAS_IOMEM) += iomap_copy.o devres.o
- obj-$(CONFIG_CHECK_SIGNATURE) += check_signature.o
- obj-$(CONFIG_DEBUG_LOCKING_API_SELFTESTS) += locking-selftest.o
+ config IMX_WEIM
+ 	bool "Freescale EIM DRIVER"
+ 	depends on ARCH_MXC
+diff --git a/drivers/bus/Makefile b/drivers/bus/Makefile
+index b666c49..b8d9ffb 100644
+--- a/drivers/bus/Makefile
++++ b/drivers/bus/Makefile
+@@ -12,6 +12,8 @@ obj-$(CONFIG_BRCMSTB_GISB_ARB)	+= brcmstb_gisb.o
+ # DPAA2 fsl-mc bus
+ obj-$(CONFIG_FSL_MC_BUS)	+= fsl-mc/
  
-+obj-y += logic_pio.o
++obj-$(CONFIG_HISILICON_LPC)	+= hisi_lpc.o
 +
- obj-$(CONFIG_GENERIC_HWEIGHT) += hweight.o
- 
- obj-$(CONFIG_BTREE) += btree.o
-diff --git a/lib/logic_pio.c b/lib/logic_pio.c
+ obj-$(CONFIG_IMX_WEIM)		+= imx-weim.o
+ obj-$(CONFIG_MIPS_CDMM)		+= mips_cdmm.o
+ obj-$(CONFIG_MVEBU_MBUS) 	+= mvebu-mbus.o
+diff --git a/drivers/bus/hisi_lpc.c b/drivers/bus/hisi_lpc.c
 new file mode 100644
-index 0000000..8394c2d
+index 0000000..c331609
 --- /dev/null
-+++ b/lib/logic_pio.c
-@@ -0,0 +1,282 @@
++++ b/drivers/bus/hisi_lpc.c
+@@ -0,0 +1,421 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2017 Hisilicon Limited, All Rights Reserved.
-+ * Author: Gabriele Paoloni <gabriele.paoloni@huawei.com>
 + * Author: Zhichang Yuan <yuanzhichang@hisilicon.com>
++ * Author: Zou Rongrong <zourongrong@huawei.com>
++ * Author: John Garry <john.garry@huawei.com>
 + *
 + */
 +
-+#define pr_fmt(fmt)	"LOGIC PIO: " fmt
-+
-+#include <linux/of.h>
++#include <linux/acpi.h>
++#include <linux/console.h>
++#include <linux/delay.h>
 +#include <linux/io.h>
 +#include <linux/logic_pio.h>
-+#include <linux/mm.h>
-+#include <linux/rculist.h>
-+#include <linux/sizes.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_platform.h>
++#include <linux/pci.h>
 +#include <linux/slab.h>
 +
-+/* The unique hardware address list. */
-+static LIST_HEAD(io_range_list);
-+static DEFINE_MUTEX(io_range_mutex);
++#define DRV_NAME "hisi-lpc"
 +
-+/* Consider a kernel general helper for this */
-+#define in_range(b, first, len)        ((b) >= (first) && (b) < (first) + (len))
-+
-+/**
-+ * logic_pio_register_range - register logical PIO range for a host
-+ * @new_range: pointer to the io range to be registered.
-+ *
-+ * returns 0 on success, the error code in case of failure
-+ *
-+ * Register a new io range node in the io range list.
++/*
++ * Setting this bit means each IO operation will target to a
++ * different port address:
++ * 0 means repeatedly IO operations will stick on the same port,
++ * such as BT;
 + */
-+int logic_pio_register_range(struct logic_pio_hwaddr *new_range)
-+{
-+	struct logic_pio_hwaddr *range;
-+	resource_size_t start = new_range->hw_start;
-+	resource_size_t end = new_range->hw_start + new_range->size;
-+	resource_size_t mmio_sz = 0;
-+	resource_size_t iio_sz = MMIO_UPPER_LIMIT;
-+	int ret = 0;
++#define FG_INCRADDR_LPC		0x02
 +
-+	if (!new_range || !new_range->fwnode || !new_range->size)
++struct lpc_cycle_para {
++	unsigned int opflags;
++	unsigned int csize; /* the data length of each operation */
++};
++
++struct hisi_lpc_dev {
++	spinlock_t cycle_lock;
++	void __iomem  *membase;
++	struct logic_pio_hwaddr *io_host;
++};
++
++/* The maxIO cycle counts supported is four per operation at maximum */
++#define LPC_MAX_DWIDTH	4
++
++#define LPC_REG_STARTUP_SIGNAL		0x00
++#define LPC_REG_STARTUP_SIGNAL_START	BIT(0)
++#define LPC_REG_OP_STATUS		0x04
++#define LPC_REG_OP_STATUS_IDLE		BIT(0)
++#define LPC_REG_OP_STATUS_FINISHED	BIT(1)
++#define LPC_REG_OP_LEN			0x10 /* LPC cycles count per start */
++#define LPC_REG_CMD			0x14
++#define LPC_REG_CMD_OP			BIT(0) /* 0: read, 1: write */
++#define LPC_REG_CMD_SAMEADDR		BIT(3)
++#define LPC_REG_ADDR			0x20 /* target address */
++#define LPC_REG_WDATA			0x24 /* write FIFO */
++#define LPC_REG_RDATA			0x28 /* read FIFO */
++
++/* The minimal nanosecond interval for each query on LPC cycle status. */
++#define LPC_NSEC_PERWAIT	100
++
++/*
++ * The maximum waiting time is about 128us.
++ * It is specific for stream I/O, such as ins.
++ * The fastest IO cycle time is about 390ns, but the worst case will wait
++ * for extra 256 lpc clocks, so (256 + 13) * 30ns = 8 us. The maximum
++ * burst cycles is 16. So, the maximum waiting time is about 128us under
++ * worst case.
++ * choose 1300 as the maximum.
++ */
++#define LPC_MAX_WAITCNT		1300
++/* About 10us. This is specific for single IO operation, such as inb. */
++#define LPC_PEROP_WAITCNT	100
++
++static inline int wait_lpc_idle(unsigned char *mbase,
++				unsigned int waitcnt) {
++	do {
++		u32 status;
++
++		status = readl(mbase + LPC_REG_OP_STATUS);
++		if (status & LPC_REG_OP_STATUS_IDLE)
++			return (status & LPC_REG_OP_STATUS_FINISHED) ? 0 : -EIO;
++		ndelay(LPC_NSEC_PERWAIT);
++	} while (--waitcnt);
++
++	return -ETIME;
++}
++
++/*
++ * hisi_lpc_target_in - trigger a series of LPC cycles for read operation
++ * @lpcdev: pointer to hisi lpc device
++ * @para: some parameters used to control the lpc I/O operations
++ * @addr: the lpc I/O target port address
++ * @buf: where the read back data is stored
++ * @opcnt: how many I/O operations required, i.e. data width
++ *
++ * Returns 0 on success, non-zero on fail.
++ */
++static int
++hisi_lpc_target_in(struct hisi_lpc_dev *lpcdev, struct lpc_cycle_para *para,
++		  unsigned long addr, unsigned char *buf,
++		  unsigned long opcnt)
++{
++	unsigned int cmd_word;
++	unsigned int waitcnt;
++	unsigned long flags;
++	int ret;
++
++	if (!buf || !opcnt || !para || !para->csize || !lpcdev)
 +		return -EINVAL;
 +
-+	mutex_lock(&io_range_mutex);
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->fwnode == new_range->fwnode) {
-+			/* range already there */
-+			ret = -EFAULT;
-+			goto end_register;
-+		}
-+		if (range->flags == LOGIC_PIO_CPU_MMIO &&
-+		    new_range->flags == LOGIC_PIO_CPU_MMIO) {
-+			/* for MMIO ranges we need to check for overlap */
-+			if (start >= range->hw_start + range->size ||
-+			    end < range->hw_start) {
-+				mmio_sz += range->size;
-+			} else {
-+				ret = -EFAULT;
-+				goto end_register;
-+			}
-+		} else if (range->flags == LOGIC_PIO_INDIRECT &&
-+			   new_range->flags == LOGIC_PIO_INDIRECT) {
-+			iio_sz += range->size;
-+		}
++	cmd_word = 0; /* IO mode, Read */
++	waitcnt = LPC_PEROP_WAITCNT;
++	if (!(para->opflags & FG_INCRADDR_LPC)) {
++		cmd_word |= LPC_REG_CMD_SAMEADDR;
++		waitcnt = LPC_MAX_WAITCNT;
 +	}
 +
-+	/* range not registered yet, check for available space */
-+	if (new_range->flags == LOGIC_PIO_CPU_MMIO) {
-+		if (mmio_sz + new_range->size - 1 > MMIO_UPPER_LIMIT) {
-+			/* if it's too big check if 64K space can be reserved */
-+			if (mmio_sz + SZ_64K - 1 > MMIO_UPPER_LIMIT) {
-+				ret = -E2BIG;
-+				goto end_register;
-+			}
-+			new_range->size = SZ_64K;
-+			pr_warn("Requested IO range too big, new size set to 64K\n");
-+		}
-+		new_range->io_start = mmio_sz;
-+	} else if (new_range->flags == LOGIC_PIO_INDIRECT) {
-+		if (iio_sz + new_range->size - 1 > IO_SPACE_LIMIT) {
-+			ret = -E2BIG;
-+			goto end_register;
-+		}
-+		new_range->io_start = iio_sz;
-+	} else {
-+		/* invalid flag */
-+		ret = -EINVAL;
-+		goto end_register;
++	/* whole operation must be atomic */
++	spin_lock_irqsave(&lpcdev->cycle_lock, flags);
++
++	writel_relaxed(opcnt, lpcdev->membase + LPC_REG_OP_LEN);
++
++	writel_relaxed(cmd_word, lpcdev->membase + LPC_REG_CMD);
++
++	writel_relaxed(addr, lpcdev->membase + LPC_REG_ADDR);
++
++	writel(LPC_REG_STARTUP_SIGNAL_START,
++	       lpcdev->membase + LPC_REG_STARTUP_SIGNAL);
++
++	/* whether the operation is finished */
++	ret = wait_lpc_idle(lpcdev->membase, waitcnt);
++	if (ret) {
++		spin_unlock_irqrestore(&lpcdev->cycle_lock, flags);
++		return ret;
 +	}
 +
-+	list_add_tail_rcu(&new_range->list, &io_range_list);
++	readsb(lpcdev->membase + LPC_REG_RDATA, buf, opcnt);
 +
-+end_register:
-+	mutex_unlock(&io_range_mutex);
++	spin_unlock_irqrestore(&lpcdev->cycle_lock, flags);
++
++	return 0;
++}
++
++/*
++ * hisi_lpc_target_out - trigger a series of LPC cycles for write operation
++ * @lpcdev: pointer to hisi lpc device
++ * @para: some parameters used to control the lpc I/O operations
++ * @addr: the lpc I/O target port address
++ * @buf: where the data to be written is stored
++ * @opcnt: how many I/O operations required, i.e. data width
++ *
++ * Returns 0 on success, non-zero on fail.
++ */
++static int
++hisi_lpc_target_out(struct hisi_lpc_dev *lpcdev, struct lpc_cycle_para *para,
++		    unsigned long addr, const unsigned char *buf,
++		    unsigned long opcnt)
++{
++	unsigned int waitcnt;
++	unsigned long flags;
++	u32 cmd_word;
++	int ret;
++
++	if (!buf || !opcnt || !para || !lpcdev)
++		return -EINVAL;
++
++	/* default is increasing address */
++	cmd_word = LPC_REG_CMD_OP; /* IO mode, write */
++	waitcnt = LPC_PEROP_WAITCNT;
++	if (!(para->opflags & FG_INCRADDR_LPC)) {
++		cmd_word |= LPC_REG_CMD_SAMEADDR;
++		waitcnt = LPC_MAX_WAITCNT;
++	}
++
++	spin_lock_irqsave(&lpcdev->cycle_lock, flags);
++
++	writel_relaxed(opcnt, lpcdev->membase + LPC_REG_OP_LEN);
++	writel_relaxed(cmd_word, lpcdev->membase + LPC_REG_CMD);
++	writel_relaxed(addr, lpcdev->membase + LPC_REG_ADDR);
++
++	writesb(lpcdev->membase + LPC_REG_WDATA, buf, opcnt);
++
++	writel(LPC_REG_STARTUP_SIGNAL_START,
++	       lpcdev->membase + LPC_REG_STARTUP_SIGNAL);
++
++	/* whether the operation is finished */
++	ret = wait_lpc_idle(lpcdev->membase, waitcnt);
++
++	spin_unlock_irqrestore(&lpcdev->cycle_lock, flags);
++
 +	return ret;
 +}
 +
-+/**
-+ * find_io_range_by_fwnode - find logical PIO range for given FW node
-+ * @fwnode: FW node handle associated with logical PIO range
++static inline unsigned long
++hisi_lpc_pio_to_addr(struct hisi_lpc_dev *lpcdev, unsigned long pio)
++{
++	return pio - lpcdev->io_host->io_start + lpcdev->io_host->hw_start;
++}
++
++/*
++ * hisi_lpc_comm_in - input the data in a single operation
++ * @hostdata: pointer to the device information relevant to LPC controller.
++ * @pio: the target I/O port address.
++ * @dwidth: the data length required to read from the target I/O port.
 + *
-+ * Returns pointer to node on success, NULL otherwise
-+ *
-+ * Traverse the io_range_list to find the registered node whose device node
-+ * and/or physical IO address match to.
++ * When success, data is returned. Otherwise, ~0 is returned.
 + */
-+struct logic_pio_hwaddr *find_io_range_by_fwnode(struct fwnode_handle *fwnode)
++static u32 hisi_lpc_comm_in(void *hostdata, unsigned long pio, size_t dwidth)
 +{
-+	struct logic_pio_hwaddr *range;
++	struct hisi_lpc_dev *lpcdev = hostdata;
++	struct lpc_cycle_para iopara;
++	unsigned long addr;
++	u32 rd_data = 0;
++	int ret;
 +
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->fwnode == fwnode)
-+			return range;
-+	}
-+	return NULL;
++	if (!lpcdev || !dwidth || dwidth > LPC_MAX_DWIDTH)
++		return ~0;
++
++	addr = hisi_lpc_pio_to_addr(lpcdev, pio);
++
++	iopara.opflags = FG_INCRADDR_LPC;
++	iopara.csize = dwidth;
++
++	ret = hisi_lpc_target_in(lpcdev, &iopara, addr,
++				 (unsigned char *)&rd_data, dwidth);
++	if (ret)
++		return ~0;
++
++	return le32_to_cpu(rd_data);
 +}
 +
-+/* Return a registered range given an input PIO token */
-+static struct logic_pio_hwaddr *find_io_range(unsigned long pio)
-+{
-+	struct logic_pio_hwaddr *range;
-+
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (in_range(pio, range->io_start, range->size))
-+			return range;
-+	}
-+	pr_err("PIO entry token invalid\n");
-+	return NULL;
-+}
-+
-+/**
-+ * logic_pio_to_hwaddr - translate logical PIO to HW address
-+ * @pio: logical PIO value
++/*
++ * hisi_lpc_comm_out - output the data in a single operation
++ * @hostdata: pointer to the device information relevant to LPC controller.
++ * @pio: the target I/O port address.
++ * @val: a value to be outputted from caller, maximum is four bytes.
++ * @dwidth: the data width required writing to the target I/O port.
 + *
-+ * Returns HW address if valid, ~0 otherwise
++ * This function is corresponding to out(b,w,l) only
 + *
-+ * Translate the input logical pio to the corresponding hardware address.
-+ * The input pio should be unique in the whole logical PIO space.
 + */
-+resource_size_t logic_pio_to_hwaddr(unsigned long pio)
++static void hisi_lpc_comm_out(void *hostdata, unsigned long pio,
++			     u32 val, size_t dwidth)
 +{
-+	struct logic_pio_hwaddr *range;
-+	resource_size_t hwaddr = (resource_size_t)~0;
++	struct hisi_lpc_dev *lpcdev = hostdata;
++	struct lpc_cycle_para iopara;
++	const unsigned char *buf;
++	unsigned long addr;
 +
-+	range = find_io_range(pio);
-+	if (range)
-+		hwaddr = range->hw_start + pio - range->io_start;
++	if (!lpcdev || !dwidth || dwidth > LPC_MAX_DWIDTH)
++		return;
 +
-+	return hwaddr;
++	val = cpu_to_le32(val);
++
++	buf = (const unsigned char *)&val;
++	addr = hisi_lpc_pio_to_addr(lpcdev, pio);
++
++	iopara.opflags = FG_INCRADDR_LPC;
++	iopara.csize = dwidth;
++
++	hisi_lpc_target_out(lpcdev, &iopara, addr, buf, dwidth);
 +}
 +
-+/**
-+ * logic_pio_trans_hwaddr - translate HW address to logical PIO
-+ * @fwnode: FW node reference for the host
-+ * @addr: Host-relative HW address
-+ * @size: size to translate
++/*
++ * hisi_lpc_comm_ins - input the data in the buffer in multiple operations
++ * @hostdata: pointer to the device information relevant to LPC controller.
++ * @pio: the target I/O port address.
++ * @buffer: a buffer where read/input data bytes are stored.
++ * @dwidth: the data width required writing to the target I/O port.
++ * @count: how many data units whose length is dwidth will be read.
 + *
-+ * Returns Logical PIO value if successful, ~0UL otherwise
++ * When success, the data read back is stored in buffer pointed by buffer.
++ * Returns 0 on success, -errno otherwise
++ *
 + */
-+unsigned long
-+logic_pio_trans_hwaddr(struct fwnode_handle *fwnode, resource_size_t addr,
-+		       resource_size_t size)
++static u32
++hisi_lpc_comm_ins(void *hostdata, unsigned long pio, void *buffer,
++		  size_t dwidth, unsigned int count)
 +{
-+	struct logic_pio_hwaddr *range;
++	struct hisi_lpc_dev *lpcdev = hostdata;
++	unsigned char *buf = buffer;
++	struct lpc_cycle_para iopara;
++	unsigned long addr;
 +
-+	range = find_io_range_by_fwnode(fwnode);
-+	if (!range || range->flags == LOGIC_PIO_CPU_MMIO) {
-+		pr_err("range not found or invalid\n");
-+		return ~0UL;
-+	}
-+	if (range->size < size) {
-+		pr_err("resource size %pa cannot fit in IO range size %pa\n",
-+		       &size, &range->size);
-+		return ~0UL;
-+	}
-+	return addr - range->hw_start + range->io_start;
++	if (!lpcdev || !buf || !count || !dwidth || dwidth > LPC_MAX_DWIDTH)
++		return -EINVAL;
++
++	iopara.opflags = 0;
++	if (dwidth > 1)
++		iopara.opflags |= FG_INCRADDR_LPC;
++	iopara.csize = dwidth;
++
++	addr = hisi_lpc_pio_to_addr(lpcdev, pio);
++
++	do {
++		int ret;
++
++		ret = hisi_lpc_target_in(lpcdev, &iopara, addr, buf, dwidth);
++		if (ret)
++			return ret;
++		buf += dwidth;
++	} while (--count);
++
++	return 0;
 +}
 +
-+unsigned long
-+logic_pio_trans_cpuaddr(resource_size_t addr)
++/*
++ * hisi_lpc_comm_outs - output the data in the buffer in multiple operations
++ * @hostdata: pointer to the device information relevant to LPC controller.
++ * @pio: the target I/O port address.
++ * @buffer: a buffer where write/output data bytes are stored.
++ * @dwidth: the data width required writing to the target I/O port .
++ * @count: how many data units whose length is dwidth will be written.
++ *
++ */
++static void
++hisi_lpc_comm_outs(void *hostdata, unsigned long pio, const void *buffer,
++		   size_t dwidth, unsigned int count)
 +{
++	struct hisi_lpc_dev *lpcdev = hostdata;
++	struct lpc_cycle_para iopara;
++	const unsigned char *buf = buffer;
++	unsigned long addr;
++
++	if (!lpcdev || !buf || !count || !dwidth || dwidth > LPC_MAX_DWIDTH)
++		return;
++
++	iopara.opflags = 0;
++	if (dwidth > 1)
++		iopara.opflags |= FG_INCRADDR_LPC;
++	iopara.csize = dwidth;
++
++	addr = hisi_lpc_pio_to_addr(lpcdev, pio);
++	do {
++		if (hisi_lpc_target_out(lpcdev, &iopara, addr, buf, dwidth))
++			break;
++		buf += dwidth;
++	} while (--count);
++}
++
++static const struct logic_pio_host_ops hisi_lpc_ops = {
++	.in = hisi_lpc_comm_in,
++	.out = hisi_lpc_comm_out,
++	.ins = hisi_lpc_comm_ins,
++	.outs = hisi_lpc_comm_outs,
++};
++
++/*
++ * hisi_lpc_probe - the probe callback function for hisi lpc host,
++ *		   will finish all the initialization.
++ * @pdev: the platform device corresponding to hisi lpc host
++ *
++ * Returns 0 on success, non-zero on fail.
++ */
++static int hisi_lpc_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct acpi_device *acpi_device = ACPI_COMPANION(dev);
 +	struct logic_pio_hwaddr *range;
++	struct hisi_lpc_dev *lpcdev;
++	resource_size_t io_end;
++	struct resource *res;
++	int ret;
 +
-+	list_for_each_entry_rcu(range, &io_range_list, list) {
-+		if (range->flags != LOGIC_PIO_CPU_MMIO)
-+			continue;
-+		if (in_range(addr, range->hw_start, range->size))
-+			return addr - range->hw_start + range->io_start;
++	lpcdev = devm_kzalloc(dev, sizeof(*lpcdev), GFP_KERNEL);
++	if (!lpcdev)
++		return -ENOMEM;
++
++	spin_lock_init(&lpcdev->cycle_lock);
++
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	lpcdev->membase = devm_ioremap_resource(dev, res);
++	if (IS_ERR(lpcdev->membase))
++		return PTR_ERR(lpcdev->membase);
++
++	range = devm_kzalloc(dev, sizeof(*range), GFP_KERNEL);
++	if (!range)
++		return -ENOMEM;
++	range->fwnode = dev->fwnode;
++	range->flags = LOGIC_PIO_INDIRECT;
++	range->size = PIO_INDIRECT_SIZE;
++
++	ret = logic_pio_register_range(range);
++	if (ret) {
++		dev_err(dev, "register IO range failed (%d)!\n", ret);
++		return ret;
 +	}
-+	pr_err("addr not registered in io_range_list\n");
-+	return ~0UL;
++	lpcdev->io_host = range;
++
++	/* register the LPC host PIO resources */
++	if (!acpi_device)
++		ret = of_platform_populate(dev->of_node, NULL, NULL, dev);
++	if (ret)
++		return ret;
++
++	lpcdev->io_host->hostdata = lpcdev;
++	lpcdev->io_host->ops = &hisi_lpc_ops;
++
++	io_end = lpcdev->io_host->io_start + lpcdev->io_host->size;
++	dev_info(dev, "registered range [%pa - %pa]\n",
++		 &lpcdev->io_host->io_start, &io_end);
++
++	return ret;
 +}
 +
-+#if defined(CONFIG_INDIRECT_PIO) && defined(PCI_IOBASE)
-+#define BUILD_LOGIC_IO(bw, type)					\
-+type logic_in##bw(unsigned long addr)					\
-+{									\
-+	type ret = (type)~0;						\
-+									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		ret = read##bw(PCI_IOBASE + addr);			\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) { \
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			ret = entry->ops->in(entry->hostdata,		\
-+					addr, sizeof(type));		\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+	return ret;							\
-+}									\
-+									\
-+void logic_out##bw(type value, unsigned long addr)			\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		write##bw(value, PCI_IOBASE + addr);			\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->out(entry->hostdata,		\
-+					addr, value, sizeof(type));	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+}									\
-+									\
-+void logic_ins##bw(unsigned long addr, void *buffer,		\
-+		   unsigned int count)					\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		reads##bw(PCI_IOBASE + addr, buffer, count);		\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->ins(entry->hostdata,		\
-+				addr, buffer, sizeof(type), count);	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+									\
-+}									\
-+									\
-+void logic_outs##bw(unsigned long addr, const void *buffer,		\
-+		    unsigned int count)					\
-+{									\
-+	if (addr < MMIO_UPPER_LIMIT) {					\
-+		writes##bw(PCI_IOBASE + addr, buffer, count);		\
-+	} else if (addr >= MMIO_UPPER_LIMIT && addr < IO_SPACE_LIMIT) {	\
-+		struct logic_pio_hwaddr *entry = find_io_range(addr);	\
-+									\
-+		if (entry && entry->ops)				\
-+			entry->ops->outs(entry->hostdata,		\
-+				addr, buffer, sizeof(type), count);	\
-+		else							\
-+			WARN_ON_ONCE(1);				\
-+	}								\
-+}
++static const struct of_device_id hisi_lpc_of_match[] = {
++	{ .compatible = "hisilicon,hip06-lpc", },
++	{ .compatible = "hisilicon,hip07-lpc", },
++	{}
++};
 +
-+BUILD_LOGIC_IO(b, u8)
-+EXPORT_SYMBOL(logic_inb);
-+EXPORT_SYMBOL(logic_insb);
-+EXPORT_SYMBOL(logic_outb);
-+EXPORT_SYMBOL(logic_outsb);
++static struct platform_driver hisi_lpc_driver = {
++	.driver = {
++		.name           = DRV_NAME,
++		.of_match_table = hisi_lpc_of_match,
++	},
++	.probe = hisi_lpc_probe,
++};
 +
-+BUILD_LOGIC_IO(w, u16)
-+EXPORT_SYMBOL(logic_inw);
-+EXPORT_SYMBOL(logic_insw);
-+EXPORT_SYMBOL(logic_outw);
-+EXPORT_SYMBOL(logic_outsw);
-+
-+BUILD_LOGIC_IO(l, u32)
-+EXPORT_SYMBOL(logic_inl);
-+EXPORT_SYMBOL(logic_insl);
-+EXPORT_SYMBOL(logic_outl);
-+EXPORT_SYMBOL(logic_outsl);
-+
-+#endif /* CONFIG_INDIRECT_PIO && PCI_IOBASE */
++builtin_platform_driver(hisi_lpc_driver);
 -- 
 1.9.1
