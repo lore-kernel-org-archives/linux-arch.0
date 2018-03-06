@@ -1,91 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:35557 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750797AbeCFQLl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Mar 2018 11:11:41 -0500
-Received: by mail-qk0-f195.google.com with SMTP id s188so25457132qkb.2
-        for <linux-arch@vger.kernel.org>; Tue, 06 Mar 2018 08:11:41 -0800 (PST)
+Received: from szxga04-in.huawei.com ([45.249.212.190]:6160 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1752055AbeCFQXO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Mar 2018 11:23:14 -0500
+Subject: Re: [PATCH v16 0/9] LPC: legacy ISA I/O support
+References: <1520333268-82754-1-git-send-email-john.garry@huawei.com>
+ <1520335317.10722.416.camel@linux.intel.com>
+ <b4459d98-ebd4-7b13-07ec-613845579558@huawei.com>
+ <CAJZ5v0gnf6rDYtKLBNfKjC=g3W=2XUed_R=AO+GeGYuubP_zWw@mail.gmail.com>
+From: John Garry <john.garry@huawei.com>
+Message-ID: <3ef757ff-8430-017f-59d3-ff67f49f5a80@huawei.com>
+Date: Tue, 6 Mar 2018 16:22:36 +0000
 MIME-Version: 1.0
-In-Reply-To: <0a95efad-1a3d-4aab-6d94-58dd583d275a@suse.cz>
-References: <20180223170325.997716448@linuxfoundation.org> <20180223170354.028619665@linuxfoundation.org>
- <0a95efad-1a3d-4aab-6d94-58dd583d275a@suse.cz>
-From: Jinpu Wang <jinpu.wang@profitbricks.com>
-Date: Tue, 6 Mar 2018 17:11:20 +0100
-Message-ID: <CAMGffEm3bRrshMftdpC4cTNppQuFUPyOniE3zZL7PJRinbVVfw@mail.gmail.com>
-Subject: Re: [PATCH 4.4 178/193] x86/syscall: Sanitize syscall table
- de-references under speculation
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <CAJZ5v0gnf6rDYtKLBNfKjC=g3W=2XUed_R=AO+GeGYuubP_zWw@mail.gmail.com>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, stable <stable@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@kernel.org>, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jan Beulich <JBeulich@suse.com>
-Message-ID: <20180306161120.HfI17JdeP-FMCmyDV8Ix-HnMN9f9W_abjNB8HnI-O6M@z>
+To: "Rafael J. Wysocki" <rafael@kernel.org>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Mika Westerberg <mika.westerberg@linux.intel.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux PCI <linux-pci@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, Corey Minyard <minyard@acm.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Randy Dunlap <rdunlap@infradead.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Frank Rowand <frowand.list@gmail.com>, Alexander Graf <agraf@suse.de>
+Message-ID: <20180306162236.w98LFnleJ-AU8jNIlRq1baFGhI4F8ahXaAz-HyOWd9w@z>
 
-On Tue, Mar 6, 2018 at 3:21 PM, Jiri Slaby <jslaby@suse.cz> wrote:
-> On 02/23/2018, 07:26 PM, Greg Kroah-Hartman wrote:
->> 4.4-stable review patch.  If anyone has any objections, please let me know.
+>>>>
+>>>> Based on this patch-set, all the I/O accesses to Hip06/Hip07 LPC
+>>>> peripherals can
+>>>> be supported without any changes on the existing ipmi-si driver.
+>>>>
+>>>> The whole patchset has been tested on Hip07 D05 board both using DTB
+>>>> and ACPI.
+>>>>
+>>>
+>>>> V15 thread here: https://lkml.org/lkml/2018/2/26/584
+>>>
+>>>
+>>> Thanks for an update.
+>>> Though I answered to previous thread.
+>>>
+>>> Summary: I'm fine with the series as long as maintainers are fine
+>>> (Rafael et al.). On personal side I think that the handler approach is
+>>> better. Details are in v15 thread.
 >>
->> ------------------
 >>
->> From: Dan Williams <dan.j.williams@intel.com>
+>> Hi Andy,
 >>
->> (cherry picked from commit 2fbd7af5af8665d18bcefae3e9700be07e22b681)
->>
->> The syscall table base is a user controlled function pointer in kernel
->> space. Use array_index_nospec() to prevent any out of bounds speculation.
->>
->> While retpoline prevents speculating into a userspace directed target it
->> does not stop the pointer de-reference, the concern is leaking memory
->> relative to the syscall table base, by observing instruction cache
->> behavior.
->>
->> Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
->> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
->> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
->> Cc: linux-arch@vger.kernel.org
->> Cc: kernel-hardening@lists.openwall.com
->> Cc: gregkh@linuxfoundation.org
->> Cc: Andy Lutomirski <luto@kernel.org>
->> Cc: alan@linux.intel.com
->> Link: https://lkml.kernel.org/r/151727417984.33451.1216731042505722161.stgit@dwillia2-desk3.amr.corp.intel.com
->> Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
->> [jwang: port to 4.4, no syscall_64]
+>> Thanks for your input and continued support. As I mentioned in reply in v15,
+>> the handler support would (or has) faced issues. And Rafael seems fine with
+>> deferring the probe to the LLDD in Patch #7/9
 >
-> This is not complete IMO, the syscall is indeed there, only written in
-> assembly in 4.4 yet.
->
-> So this patch looks like it is missing these two hunks (from my
-> SLE12-SP2 backport):
->
->> --- a/arch/x86/entry/entry_64.S
->> +++ b/arch/x86/entry/entry_64.S
->> @@ -184,6 +184,8 @@ entry_SYSCALL_64_fastpath:
->>        cmpl    $__NR_syscall_max, %eax
->>  #endif
->>        ja      1f                              /* return -ENOSYS (already in pt_regs->ax) */
->> +      sbb     %rcx, %rcx                      /* array_index_mask_nospec() */
->> +      and     %rcx, %rax
->>        movq    %r10, %rcx
->>  #ifdef CONFIG_RETPOLINE
->>        movq    sys_call_table(, %rax, 8), %rax
->> @@ -282,6 +284,8 @@ tracesys_phase2:
->>        cmpl    $__NR_syscall_max, %eax
->>  #endif
->>        ja      1f                              /* return -ENOSYS (already in pt_regs->ax) */
->> +      sbb     %rcx, %rcx                      /* array_index_mask_nospec() */
->> +      and     %rcx, %rax
->>        movq    %r10, %rcx                      /* fixup for C */
->>  #ifdef CONFIG_RETPOLINE
->>        movq    sys_call_table(, %rax, 8), %rax
->
-> Discovered by Jan Beulich.
->
-> thanks,
-> --
-> js
-> suse labs
 
-Thanks Jiri, yes, indeed, could you send a formal patch of the fix?
+Hi Rafael,
 
-Thanks!
-Jack Wang
+> Well, the only sort-of concern is that these devices may not be
+> "serial bus slaves" in general, so the naming is slightly confusing.
+>
+
+Right, the name.
+
+The key point is that we model the bus the same as other serial buses 
+like I2C or SPI, so require the same treatment from the ACPI scan.
+
+Would you prefer acpi_is_serial_bus_slave() and 
+acpi_device_flags.serial_bus_slave symbols be modified also?
+
+> But overall this approach and the one based on a scan handler both
+> boil down to checking a (list of) device ID(s) and doing something
+> special in case of a match.
+>
+> .
+>
+
+Thanks,
+John
