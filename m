@@ -1,81 +1,30 @@
-From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v16 7/9] ACPI / scan: do not enumerate Indirect IO host children
-Date: Tue, 6 Mar 2018 18:47:46 +0800
-Message-ID: <1520333268-82754-8-git-send-email-john.garry@huawei.com>
-References: <1520333268-82754-1-git-send-email-john.garry@huawei.com>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Subject: Re: [PATCH v11 7/7] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines
+ to use the common header
+Date: Tue, 6 Mar 2018 12:48:29 +0200
+Message-ID: <CAHp75Vc41MwtDr24-z3po2nx3Hr7_=tFUD0odcrbnVTP4SnJ1g@mail.gmail.com>
+References: <20180305190824.847-1-logang@deltatee.com> <20180305190824.847-8-logang@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1520333268-82754-1-git-send-email-john.garry@huawei.com>
+In-Reply-To: <20180305190824.847-8-logang@deltatee.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com
-Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
+To: Logan Gunthorpe <logang@deltatee.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Jon Mason <jdmason@kudzu.us>
 List-Id: linux-arch.vger.kernel.org
 
-Through the logical PIO framework systems which otherwise have
-no IO space access to legacy ISA/LPC devices may access these
-devices through so-called "indirect IO" method. In this, IO
-space accesses for non-PCI hosts are redirected to a host
-LLDD to manually generate the IO space (bus) accesses. Hosts
-are able to register a region in logical PIO space to map to
-its bus address range.
+On Mon, Mar 5, 2018 at 9:08 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
+> Clean up the ifdefs which conditionally defined the io{read|write}64
+> functions in favour of the new common io-64-nonatomic-lo-hi header.
 
-Indirect IO child devices have an associated host-specific bus
-address. Special translation is required to map between
-a logical PIO address for a device and it's host bus address.
+>  #include <linux/kthread.h>
+>  #include <linux/interrupt.h>
+>  #include <linux/ntb.h>
+> +#include <linux/io-64-nonatomic-lo-hi.h>
 
-Since in the ACPI tables the child device IO resources would
-be the host-specific values, it is required the ACPI scan code
-should not enumerate these devices, and that this should be
-the responsibility of the host driver so that it can "fixup"
-the resources so that they map to the appropriate logical PIO
-addresses.
+A nit, can we preserve alphabetical ordering?
 
-To avoid enumerating these child devices, we check whether
-the parent for a device is a member of a known list of
-"indirect IO" hosts. For now, the HiSilicon LPC host
-controller ID is added.
 
-To flag a device to not be enumerated, we reuse the existing
-serial bus slave flag.
-
-Signed-off-by: John Garry <john.garry@huawei.com>
-Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Tested-by: dann frazier <dann.frazier@canonical.com>
----
- drivers/acpi/scan.c | 14 ++++++++++++++
- 1 file changed, 14 insertions(+)
-
-diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
-index 8e63d93..c1a60852 100644
---- a/drivers/acpi/scan.c
-+++ b/drivers/acpi/scan.c
-@@ -1524,11 +1524,25 @@ static int acpi_check_serial_bus_slave(struct acpi_resource *ares, void *data)
- 	return -1;
- }
- 
-+static bool acpi_is_indirect_io_slave(struct acpi_device *device)
-+{
-+	struct acpi_device *parent = device->parent;
-+	const struct acpi_device_id indirect_io_hosts[] = {
-+		{"HISI0191", 0},
-+		{}
-+	};
-+
-+	return parent && !acpi_match_device_ids(parent, indirect_io_hosts);
-+}
-+
- static bool acpi_is_serial_bus_slave(struct acpi_device *device)
- {
- 	struct list_head resource_list;
- 	bool is_serial_bus_slave = false;
- 
-+	if (acpi_is_indirect_io_slave(device))
-+		return true;
-+
- 	/* Macs use device properties in lieu of _CRS resources */
- 	if (x86_apple_machine &&
- 	    (fwnode_property_present(&device->fwnode, "spiSclkPeriod") ||
 -- 
-1.9.1
+With Best Regards,
+Andy Shevchenko
