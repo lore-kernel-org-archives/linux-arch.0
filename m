@@ -1,94 +1,74 @@
-From: "Rafael J. Wysocki" <rafael@kernel.org>
-Subject: Re: [PATCH v16 0/9] LPC: legacy ISA I/O support
-Date: Tue, 6 Mar 2018 16:30:03 +0100
-Message-ID: <CAJZ5v0gnf6rDYtKLBNfKjC=g3W=2XUed_R=AO+GeGYuubP_zWw@mail.gmail.com>
-References: <1520333268-82754-1-git-send-email-john.garry@huawei.com>
- <1520335317.10722.416.camel@linux.intel.com> <b4459d98-ebd4-7b13-07ec-613845579558@huawei.com>
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: Re: [PATCH 4.4 178/193] x86/syscall: Sanitize syscall table
+ de-references under speculation
+Date: Tue, 6 Mar 2018 17:02:39 +0100
+Message-ID: <10c08ff1-ba52-24a1-c915-42dd0eb175aa@suse.cz>
+References: <20180223170325.997716448@linuxfoundation.org>
+ <20180223170354.028619665@linuxfoundation.org>
+ <0a95efad-1a3d-4aab-6d94-58dd583d275a@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <b4459d98-ebd4-7b13-07ec-613845579558@huawei.com>
+In-Reply-To: <0a95efad-1a3d-4aab-6d94-58dd583d275a@suse.cz>
+Content-Language: en-GB
 Sender: linux-kernel-owner@vger.kernel.org
-To: John Garry <john.garry@huawei.com>
-Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael@kernel.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux PCI <linux-pci@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org
+Cc: stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@kernel.org>, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jack Wang <jinpu.wang@profitbricks.com>, Jan Beulich <JBeulich@suse.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 6, 2018 at 12:36 PM, John Garry <john.garry@huawei.com> wrote:
-> On 06/03/2018 11:21, Andy Shevchenko wrote:
+On 03/06/2018, 03:21 PM, Jiri Slaby wrote:
+> On 02/23/2018, 07:26 PM, Greg Kroah-Hartman wrote:
+>> 4.4-stable review patch.  If anyone has any objections, please let me know.
 >>
->> On Tue, 2018-03-06 at 18:47 +0800, John Garry wrote:
->>>
->>> This patchset supports the IPMI-bt device attached to the Low-Pin-
->>> Count
->>> interface implemented on Hisilicon Hip06/Hip07 SoC.
->>>                         -----------
->>>                         | LPC host|
->>>                         |         |
->>>                         -----------
->>>                              |
->>>                 _____________V_______________LPC
->>>                   |                       |
->>>                   V                       V
->>>                                      ------------
->>>                                      |  BT(ipmi)|
->>>                                      ------------
->>>
->>> When master accesses those peripherals beneath the Hip06/Hip07 LPC, a
->>> specific
->>> LPC driver is needed to make LPC host generate the standard LPC I/O
->>> cycles with
->>> the target peripherals'I/O port addresses. But on curent arm64 world,
->>> there is
->>> no real I/O accesses. All the I/O operations through in/out accessors
->>> are based
->>> on MMIO ranges; on Hip06/Hip07 LPC the I/O accesses are performed
->>> through driver
->>> specific accessors rather than MMIO.
->>> To solve this issue and keep the relevant existing peripherals'
->>> drivers untouched,
->>> this patchset:
->>>    - introduces a generic I/O space management framework, logical PIO,
->>> to support
->>>       I/O operations on host controllers operating either on MMIO
->>> buses or on buses
->>>      requiring specific driver I/O accessors;
->>>    - redefines the in/out accessors to provide a unified interface for
->>> both MMIO
->>>      and driver specific I/O operations. Using logical PIO, th call of
->>> in/out() from
->>>      the host children drivers, such as ipmi-si, will be redirected to
->>> the
->>>      corresponding device-specific I/O hooks to perform the I/O
->>> accesses.
->>>
->>> Based on this patch-set, all the I/O accesses to Hip06/Hip07 LPC
->>> peripherals can
->>> be supported without any changes on the existing ipmi-si driver.
->>>
->>> The whole patchset has been tested on Hip07 D05 board both using DTB
->>> and ACPI.
->>>
+>> ------------------
 >>
->>> V15 thread here: https://lkml.org/lkml/2018/2/26/584
+>> From: Dan Williams <dan.j.williams@intel.com>
 >>
+>> (cherry picked from commit 2fbd7af5af8665d18bcefae3e9700be07e22b681)
 >>
->> Thanks for an update.
->> Though I answered to previous thread.
+>> The syscall table base is a user controlled function pointer in kernel
+>> space. Use array_index_nospec() to prevent any out of bounds speculation.
 >>
->> Summary: I'm fine with the series as long as maintainers are fine
->> (Rafael et al.). On personal side I think that the handler approach is
->> better. Details are in v15 thread.
->
->
-> Hi Andy,
->
-> Thanks for your input and continued support. As I mentioned in reply in v15,
-> the handler support would (or has) faced issues. And Rafael seems fine with
-> deferring the probe to the LLDD in Patch #7/9
+>> While retpoline prevents speculating into a userspace directed target it
+>> does not stop the pointer de-reference, the concern is leaking memory
+>> relative to the syscall table base, by observing instruction cache
+>> behavior.
+>>
+>> Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+>> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+>> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+>> Cc: linux-arch@vger.kernel.org
+>> Cc: kernel-hardening@lists.openwall.com
+>> Cc: gregkh@linuxfoundation.org
+>> Cc: Andy Lutomirski <luto@kernel.org>
+>> Cc: alan@linux.intel.com
+>> Link: https://lkml.kernel.org/r/151727417984.33451.1216731042505722161.stgit@dwillia2-desk3.amr.corp.intel.com
+>> Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
+>> [jwang: port to 4.4, no syscall_64]
+> 
+> This is not complete IMO, the syscall is indeed there, only written in
+> assembly in 4.4 yet.
+> 
+> So this patch looks like it is missing these two hunks (from my
+> SLE12-SP2 backport):
+> 
+>> --- a/arch/x86/entry/entry_64.S
+>> +++ b/arch/x86/entry/entry_64.S
+>> @@ -184,6 +184,8 @@ entry_SYSCALL_64_fastpath:
+>>        cmpl    $__NR_syscall_max, %eax
+>>  #endif
+>>        ja      1f                              /* return -ENOSYS (already in pt_regs->ax) */
+>> +      sbb     %rcx, %rcx                      /* array_index_mask_nospec() */
+>> +      and     %rcx, %rax
 
-Well, the only sort-of concern is that these devices may not be
-"serial bus slaves" in general, so the naming is slightly confusing.
+Which is not completely correct either. The preceding comparison should
+write:
+    cmpl    $NR_syscalls, %eax
+    jae     1f
+to have sbb correctly working even on the last syscall number.
 
-But overall this approach and the one based on a scan handler both
-boil down to checking a (list of) device ID(s) and doing something
-special in case of a match.
+thanks,
+-- 
+js
+suse labs
