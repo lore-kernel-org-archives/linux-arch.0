@@ -1,35 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f171.google.com ([209.85.220.171]:34500 "EHLO
-        mail-qk0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753024AbeCFKsb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Mar 2018 05:48:31 -0500
+Received: from szxga04-in.huawei.com ([45.249.212.190]:6156 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1753431AbeCFKsb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Mar 2018 05:48:31 -0500
+From: John Garry <john.garry@huawei.com>
+Subject: [PATCH v16 2/9] PCI: Remove unused __weak attribute in pci_register_io_range()
+Date: Tue, 6 Mar 2018 18:47:41 +0800
+Message-ID: <1520333268-82754-3-git-send-email-john.garry@huawei.com>
+In-Reply-To: <1520333268-82754-1-git-send-email-john.garry@huawei.com>
+References: <1520333268-82754-1-git-send-email-john.garry@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <20180305190824.847-8-logang@deltatee.com>
-References: <20180305190824.847-1-logang@deltatee.com> <20180305190824.847-8-logang@deltatee.com>
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Date: Tue, 6 Mar 2018 12:48:29 +0200
-Message-ID: <CAHp75Vc41MwtDr24-z3po2nx3Hr7_=tFUD0odcrbnVTP4SnJ1g@mail.gmail.com>
-Subject: Re: [PATCH v11 7/7] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines
- to use the common header
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Logan Gunthorpe <logang@deltatee.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, linux-crypto <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Jon Mason <jdmason@kudzu.us>
-Message-ID: <20180306104829.YG_dEoHKiUKnSNaTuOQWM0k5JMyK5Zkg_h3LSLkX8BI@z>
+To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com
+Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
+Message-ID: <20180306104741.9owRxe6ALG9n86_41mgcKESUQF7ijfwVoxyb-Xc9zFU@z>
 
-On Mon, Mar 5, 2018 at 9:08 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
-> Clean up the ifdefs which conditionally defined the io{read|write}64
-> functions in favour of the new common io-64-nonatomic-lo-hi header.
+From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
 
->  #include <linux/kthread.h>
->  #include <linux/interrupt.h>
->  #include <linux/ntb.h>
-> +#include <linux/io-64-nonatomic-lo-hi.h>
+Currently pci_register_io_range() has only one definition;
+therefore there is no use of the __weak attribute.
 
-A nit, can we preserve alphabetical ordering?
+Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Acked-by: Bjorn Helgaas <bhelgaas@google.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Tested-by: dann frazier <dann.frazier@canonical.com>
+---
+ drivers/pci/pci.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index ae654e2..ff41a64 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -3451,7 +3451,7 @@ struct io_range {
+  * Record the PCI IO range (expressed as CPU physical address + size).
+  * Return a negative value if an error has occured, zero otherwise
+  */
+-int __weak pci_register_io_range(phys_addr_t addr, resource_size_t size)
++int pci_register_io_range(phys_addr_t addr, resource_size_t size)
+ {
+ 	int err = 0;
+ 
 -- 
-With Best Regards,
-Andy Shevchenko
+1.9.1
