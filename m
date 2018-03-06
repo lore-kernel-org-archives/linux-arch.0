@@ -1,73 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:6160 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752055AbeCFQXO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Mar 2018 11:23:14 -0500
-Subject: Re: [PATCH v16 0/9] LPC: legacy ISA I/O support
-References: <1520333268-82754-1-git-send-email-john.garry@huawei.com>
- <1520335317.10722.416.camel@linux.intel.com>
- <b4459d98-ebd4-7b13-07ec-613845579558@huawei.com>
- <CAJZ5v0gnf6rDYtKLBNfKjC=g3W=2XUed_R=AO+GeGYuubP_zWw@mail.gmail.com>
-From: John Garry <john.garry@huawei.com>
-Message-ID: <3ef757ff-8430-017f-59d3-ff67f49f5a80@huawei.com>
-Date: Tue, 6 Mar 2018 16:22:36 +0000
+Received: from ale.deltatee.com ([207.54.116.67]:41292 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752784AbeCFQ4h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Mar 2018 11:56:37 -0500
+References: <20180305190824.847-1-logang@deltatee.com>
+ <20180305190824.847-7-logang@deltatee.com>
+ <VI1PR0402MB33422D83AE168D84FDED974698D90@VI1PR0402MB3342.eurprd04.prod.outlook.com>
+From: Logan Gunthorpe <logang@deltatee.com>
+Message-ID: <06d07fd5-a73c-34b0-079c-f4b44ef7a0cb@deltatee.com>
+Date: Tue, 6 Mar 2018 09:56:22 -0700
 MIME-Version: 1.0
-In-Reply-To: <CAJZ5v0gnf6rDYtKLBNfKjC=g3W=2XUed_R=AO+GeGYuubP_zWw@mail.gmail.com>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <VI1PR0402MB33422D83AE168D84FDED974698D90@VI1PR0402MB3342.eurprd04.prod.outlook.com>
+Content-Type: text/plain; charset=iso-8859-2; format=flowed
+Content-Language: en-US
+Content-Transfer-Encoding: 8bit
+Subject: Re: [PATCH v11 6/7] crypto: caam: cleanup CONFIG_64BIT ifdefs when
+ using io{read|write}64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Rafael J. Wysocki" <rafael@kernel.org>
-Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Mika Westerberg <mika.westerberg@linux.intel.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux PCI <linux-pci@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, Corey Minyard <minyard@acm.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Randy Dunlap <rdunlap@infradead.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Frank Rowand <frowand.list@gmail.com>, Alexander Graf <agraf@suse.de>
-Message-ID: <20180306162236.w98LFnleJ-AU8jNIlRq1baFGhI4F8ahXaAz-HyOWd9w@z>
+To: =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ntb@googlegroups.com" <linux-ntb@googlegroups.com>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20180306165622.cMqBmnwWpl4StC--Wbfh5im0RehGCl47jGmFaEA0RiY@z>
 
->>>>
->>>> Based on this patch-set, all the I/O accesses to Hip06/Hip07 LPC
->>>> peripherals can
->>>> be supported without any changes on the existing ipmi-si driver.
->>>>
->>>> The whole patchset has been tested on Hip07 D05 board both using DTB
->>>> and ACPI.
->>>>
->>>
->>>> V15 thread here: https://lkml.org/lkml/2018/2/26/584
->>>
->>>
->>> Thanks for an update.
->>> Though I answered to previous thread.
->>>
->>> Summary: I'm fine with the series as long as maintainers are fine
->>> (Rafael et al.). On personal side I think that the handler approach is
->>> better. Details are in v15 thread.
+
+
+On 06/03/18 05:37 AM, Horia Geantã wrote:
+> On 3/5/2018 9:08 PM, Logan Gunthorpe wrote:
+>> Clean up the extra ifdefs which defined the wr_reg64 and rd_reg64
+>> functions in non-64bit cases in favour of the new common
+>> io-64-nonatomic-lo-hi header.
 >>
+>> To be consistent with CAAM engine HW spec: in case of 64-bit registers,
+>> irrespective of device endianness, the lower address should be read from
+>> / written to first, followed by the upper address. Indeed the I/O
+>> accessors in CAAM driver currently don't follow the spec, however this
+>> is a good opportunity to fix the code.
 >>
->> Hi Andy,
->>
->> Thanks for your input and continued support. As I mentioned in reply in v15,
->> the handler support would (or has) faced issues. And Rafael seems fine with
->> deferring the probe to the LLDD in Patch #7/9
->
+>> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+>> Cc: Andy Shevchenko <andy.shevchenko@gmail.com>
+>> Cc: Horia Geantã <horia.geanta@nxp.com>
+>> Cc: Dan Douglass <dan.douglass@nxp.com>
+>> Cc: Herbert Xu <herbert@gondor.apana.org.au>
+>> Cc: "David S. Miller" <davem@davemloft.net>
+> Reviewed-by: Horia Geantã <horia.geanta@nxp.com>
+> 
+> Please get used to carrying Reviewed-bys from previous iterations when patches
+> stay the same:
 
-Hi Rafael,
+Sorry, I usually do this but I must have missed the email. Thanks.
 
-> Well, the only sort-of concern is that these devices may not be
-> "serial bus slaves" in general, so the naming is slightly confusing.
->
-
-Right, the name.
-
-The key point is that we model the bus the same as other serial buses 
-like I2C or SPI, so require the same treatment from the ACPI scan.
-
-Would you prefer acpi_is_serial_bus_slave() and 
-acpi_device_flags.serial_bus_slave symbols be modified also?
-
-> But overall this approach and the one based on a scan handler both
-> boil down to checking a (list of) device ID(s) and doing something
-> special in case of a match.
->
-> .
->
-
-Thanks,
-John
+Logan
