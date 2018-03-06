@@ -1,23 +1,20 @@
-From: Jiri Slaby <jslaby@suse.cz>
+From: Jinpu Wang <jinpu.wang@profitbricks.com>
 Subject: Re: [PATCH 4.4 178/193] x86/syscall: Sanitize syscall table
  de-references under speculation
-Date: Tue, 6 Mar 2018 17:02:39 +0100
-Message-ID: <10c08ff1-ba52-24a1-c915-42dd0eb175aa@suse.cz>
-References: <20180223170325.997716448@linuxfoundation.org>
- <20180223170354.028619665@linuxfoundation.org>
+Date: Tue, 6 Mar 2018 17:11:20 +0100
+Message-ID: <CAMGffEm3bRrshMftdpC4cTNppQuFUPyOniE3zZL7PJRinbVVfw@mail.gmail.com>
+References: <20180223170325.997716448@linuxfoundation.org> <20180223170354.028619665@linuxfoundation.org>
  <0a95efad-1a3d-4aab-6d94-58dd583d275a@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <stable-owner@vger.kernel.org>
 In-Reply-To: <0a95efad-1a3d-4aab-6d94-58dd583d275a@suse.cz>
-Content-Language: en-GB
-Sender: linux-kernel-owner@vger.kernel.org
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org
-Cc: stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@kernel.org>, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jack Wang <jinpu.wang@profitbricks.com>, Jan Beulich <JBeulich@suse.com>
+Sender: stable-owner@vger.kernel.org
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, stable <stable@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@kernel.org>, alan@linux.intel.com, David Woodhouse <dwmw@amazon.co.uk>, Jan Beulich <JBeulich@suse.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/06/2018, 03:21 PM, Jiri Slaby wrote:
+On Tue, Mar 6, 2018 at 3:21 PM, Jiri Slaby <jslaby@suse.cz> wrote:
 > On 02/23/2018, 07:26 PM, Greg Kroah-Hartman wrote:
 >> 4.4-stable review patch.  If anyone has any objections, please let me know.
 >>
@@ -46,13 +43,13 @@ On 03/06/2018, 03:21 PM, Jiri Slaby wrote:
 >> Link: https://lkml.kernel.org/r/151727417984.33451.1216731042505722161.stgit@dwillia2-desk3.amr.corp.intel.com
 >> Signed-off-by: David Woodhouse <dwmw@amazon.co.uk>
 >> [jwang: port to 4.4, no syscall_64]
-> 
+>
 > This is not complete IMO, the syscall is indeed there, only written in
 > assembly in 4.4 yet.
-> 
+>
 > So this patch looks like it is missing these two hunks (from my
 > SLE12-SP2 backport):
-> 
+>
 >> --- a/arch/x86/entry/entry_64.S
 >> +++ b/arch/x86/entry/entry_64.S
 >> @@ -184,6 +184,8 @@ entry_SYSCALL_64_fastpath:
@@ -61,14 +58,27 @@ On 03/06/2018, 03:21 PM, Jiri Slaby wrote:
 >>        ja      1f                              /* return -ENOSYS (already in pt_regs->ax) */
 >> +      sbb     %rcx, %rcx                      /* array_index_mask_nospec() */
 >> +      and     %rcx, %rax
+>>        movq    %r10, %rcx
+>>  #ifdef CONFIG_RETPOLINE
+>>        movq    sys_call_table(, %rax, 8), %rax
+>> @@ -282,6 +284,8 @@ tracesys_phase2:
+>>        cmpl    $__NR_syscall_max, %eax
+>>  #endif
+>>        ja      1f                              /* return -ENOSYS (already in pt_regs->ax) */
+>> +      sbb     %rcx, %rcx                      /* array_index_mask_nospec() */
+>> +      and     %rcx, %rax
+>>        movq    %r10, %rcx                      /* fixup for C */
+>>  #ifdef CONFIG_RETPOLINE
+>>        movq    sys_call_table(, %rax, 8), %rax
+>
+> Discovered by Jan Beulich.
+>
+> thanks,
+> --
+> js
+> suse labs
 
-Which is not completely correct either. The preceding comparison should
-write:
-    cmpl    $NR_syscalls, %eax
-    jae     1f
-to have sbb correctly working even on the last syscall number.
+Thanks Jiri, yes, indeed, could you send a formal patch of the fix?
 
-thanks,
--- 
-js
-suse labs
+Thanks!
+Jack Wang
