@@ -1,70 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f67.google.com ([209.85.214.67]:54932 "EHLO
-        mail-it0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753183AbeCFJie (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Mar 2018 04:38:34 -0500
-MIME-Version: 1.0
-In-Reply-To: <649EF91064D35D40B9C93A225BF41674ADE252E2@NWD2MBX6.ad.analog.com>
+Received: from mail-dm3nam03on0050.outbound.protection.outlook.com ([104.47.41.50]:16191
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750897AbeCFKfd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Mar 2018 05:35:33 -0500
+From: "Wu, Aaron" <Aaron.Wu@analog.com>
+Subject: RE: Re: Removing architectures without upstream gcc support
+Date: Tue, 6 Mar 2018 10:35:28 +0000
+Message-ID: <649EF91064D35D40B9C93A225BF41674ADE25B7B@NWD2MBX6.ad.analog.com>
 References: <CAK8P3a2GP8uQWe+DCD=p-JLHxXBUTBpx9nnpNzF_Hz49XA9a8A@mail.gmail.com>
- <5ef16c51-7cc5-9111-7e54-edfe77f39f4b@metafoo.de> <649EF91064D35D40B9C93A225BF41674ADE252E2@NWD2MBX6.ad.analog.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 6 Mar 2018 10:38:32 +0100
-Message-ID: <CAK8P3a2Jg93i-DCU0jVMUqX6b9tEx3odsEGj8dTBNjSoN-8ZRQ@mail.gmail.com>
-Subject: Re: Re: Removing architectures without upstream gcc support
-Content-Type: text/plain; charset="UTF-8"
+ <5ef16c51-7cc5-9111-7e54-edfe77f39f4b@metafoo.de>
+ <649EF91064D35D40B9C93A225BF41674ADE252E2@NWD2MBX6.ad.analog.com>
+ <CAK8P3a2Jg93i-DCU0jVMUqX6b9tEx3odsEGj8dTBNjSoN-8ZRQ@mail.gmail.com>
+In-Reply-To: <CAK8P3a2Jg93i-DCU0jVMUqX6b9tEx3odsEGj8dTBNjSoN-8ZRQ@mail.gmail.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Wu, Aaron" <Aaron.Wu@analog.com>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Florian Fainelli <f.fainelli@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux- <kernel@vger.kernel.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "liqin.linux@gmail.com" <liqin.linux@gmail.com>, "lennox.wu@gmail.com" <lennox.wu@gmail.com>, "gxt@mprc.pku.edu.cn" <gxt@mprc.pku.edu.cn>, "linux@roeck-us.net" <linux@roeck-us.net>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "jhogan@kernel.org" <jhogan@kernel.org>, "linux-metag@vger.kernel.org" <linux-metag@vger.kernel.org>, "jonas@southpole.se" <jonas@southpole.se>, "stefan.kristiansson@saunalahti.fi" <stefan.kristiansson@saunalahti.fi>, "shorne@gmail.com" <shorne@gmail.com>, "openrisc@lists.librecores.org" <openrisc@lists.librecores.org>, "dhowells@redhat.com" <dhowells@redhat.com>, "peterz@infradead.org" <peterz@infradead.org>
 
-On Mon, Mar 5, 2018 at 11:57 AM, Wu, Aaron <Aaron.Wu@analog.com> wrote:
->> -----Original Message-----
->> -------- Forwarded Message --------
->> Subject: Re: Removing architectures without upstream gcc support
->> Date: Mon, 26 Feb 2018 09:26:57 +0100
->> From: Arnd Bergmann <arnd@arndb.de>
->> To: Florian Fainelli <f.fainelli@gmail.com>
->> CC: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-
->> kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>, open
->> list:QUALCOMM HEXAGON... <linux-hexagon@vger.kernel.org>, Chen Liqin
->> <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao
->> <gxt@mprc.pku.edu.cn>, Guenter Roeck <linux@roeck-us.net>, Al Viro
->> <viro@zeniv.linux.org.uk>, James Hogan <jhogan@kernel.org>, open
->> list:METAG ARCHITECTURE <linux-metag@vger.kernel.org>, Jonas Bonn
->> <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
->> Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org, David
->> Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>
->>
->> On Sat, Feb 24, 2018 at 1:15 AM, Florian Fainelli <f.fainelli@gmail.com> wrote:
->> > On 02/22/2018 07:45 AM, Arnd Bergmann wrote:
->> >
->> > Add blackfin to that list, there have been no responses from the
->> > maintainers last time I posted patches to remove DSA header files, so
->> > we had to go these through the networking tree. Have not see a
->> > Blackfin pull request since forever, Aaron himself seems to agree this
->> > should be
->> > removed:
->> >
->> > http://lkml.iu.edu/hypermail/linux/kernel/1801.1/04345.html
->>
->
-> I'm sorry to confirm that ADI can no longer provide maintenance for Blackfin in
-> Kernel community. We will try to provide a patch to remove it.
-> Apologize... and sincerely thanks to community and all used and contributed to
-> Blackfin Linux. Looking forward we are working on supporting Linux from the
-> newer SC5xx mutli-core processors with ARM and SHARC DSPs in it.
-
-Thanks a lot for your reply. I already compiled a list for files
-related to all of
-the architectures under discussion, but it will certainly help to have a patch
-from you as well, then I can see if one of use missed any files.
-
-I'm looking forward to your patches for the SHARC ARM platform, I was
-already wondering about why we don't already have that platform in Linux.
-Let me know if you need any help getting that port ready for inclusion.
-
-One more question: I see that there are a number of drivers that are
-only used on blackfin today. Do you know if any of those are shared with
-SHARC and still needed, or can we remove everything related to blackfin?
-
-       Arnd
+DQoNCj4gLS0tLS1PcmlnaW5hbCBNZXNzYWdlLS0tLS0NCj4gRnJvbTogYXJuZGJlcmdtYW5uQGdt
+YWlsLmNvbSBbbWFpbHRvOmFybmRiZXJnbWFubkBnbWFpbC5jb21dIE9uDQo+IEJlaGFsZiBPZiBB
+cm5kIEJlcmdtYW5uDQo+IFNlbnQ6IDIwMTjlubQz5pyINuaXpSAxNzozOQ0KPiBUbzogV3UsIEFh
+cm9uIDxBYXJvbi5XdUBhbmFsb2cuY29tPg0KPiBDYzogRmxvcmlhbiBGYWluZWxsaSA8Zi5mYWlu
+ZWxsaUBnbWFpbC5jb20+OyBsaW51eC1hcmNoQHZnZXIua2VybmVsLm9yZzsgbGludXgtDQo+IDxr
+ZXJuZWxAdmdlci5rZXJuZWwub3JnPjsgbGludXgtaGV4YWdvbkB2Z2VyLmtlcm5lbC5vcmc7DQo+
+IGxpcWluLmxpbnV4QGdtYWlsLmNvbTsgbGVubm94Lnd1QGdtYWlsLmNvbTsgZ3h0QG1wcmMucGt1
+LmVkdS5jbjsNCj4gbGludXhAcm9lY2stdXMubmV0OyB2aXJvQHplbml2LmxpbnV4Lm9yZy51azsg
+amhvZ2FuQGtlcm5lbC5vcmc7IGxpbnV4LQ0KPiBtZXRhZ0B2Z2VyLmtlcm5lbC5vcmc7IGpvbmFz
+QHNvdXRocG9sZS5zZTsgc3RlZmFuLmtyaXN0aWFuc3NvbkBzYXVuYWxhaHRpLmZpOw0KPiBzaG9y
+bmVAZ21haWwuY29tOyBvcGVucmlzY0BsaXN0cy5saWJyZWNvcmVzLm9yZzsgZGhvd2VsbHNAcmVk
+aGF0LmNvbTsNCj4gcGV0ZXJ6QGluZnJhZGVhZC5vcmcNCj4gU3ViamVjdDogUmU6IFJlOiBSZW1v
+dmluZyBhcmNoaXRlY3R1cmVzIHdpdGhvdXQgdXBzdHJlYW0gZ2NjIHN1cHBvcnQNCj4gDQo+IE9u
+IE1vbiwgTWFyIDUsIDIwMTggYXQgMTE6NTcgQU0sIFd1LCBBYXJvbiA8QWFyb24uV3VAYW5hbG9n
+LmNvbT4gd3JvdGU6DQo+ID4+IC0tLS0tT3JpZ2luYWwgTWVzc2FnZS0tLS0tDQo+ID4+IC0tLS0t
+LS0tIEZvcndhcmRlZCBNZXNzYWdlIC0tLS0tLS0tDQo+ID4+IFN1YmplY3Q6IFJlOiBSZW1vdmlu
+ZyBhcmNoaXRlY3R1cmVzIHdpdGhvdXQgdXBzdHJlYW0gZ2NjIHN1cHBvcnQNCj4gPj4gRGF0ZTog
+TW9uLCAyNiBGZWIgMjAxOCAwOToyNjo1NyArMDEwMA0KPiA+PiBGcm9tOiBBcm5kIEJlcmdtYW5u
+IDxhcm5kQGFybmRiLmRlPg0KPiA+PiBUbzogRmxvcmlhbiBGYWluZWxsaSA8Zi5mYWluZWxsaUBn
+bWFpbC5jb20+DQo+ID4+IENDOiBsaW51eC1hcmNoIDxsaW51eC1hcmNoQHZnZXIua2VybmVsLm9y
+Zz4sIExpbnV4IEtlcm5lbCBNYWlsaW5nDQo+ID4+IExpc3QgPGxpbnV4LSBrZXJuZWxAdmdlci5r
+ZXJuZWwub3JnPiwgUmljaGFyZCBLdW8NCj4gPj4gPHJrdW9AY29kZWF1cm9yYS5vcmc+LCBvcGVu
+IGxpc3Q6UVVBTENPTU0gSEVYQUdPTi4uLg0KPiA+PiA8bGludXgtaGV4YWdvbkB2Z2VyLmtlcm5l
+bC5vcmc+LCBDaGVuIExpcWluIDxsaXFpbi5saW51eEBnbWFpbC5jb20+LA0KPiA+PiBMZW5ub3gg
+V3UgPGxlbm5veC53dUBnbWFpbC5jb20+LCBHdWFuIFh1ZXRhbyA8Z3h0QG1wcmMucGt1LmVkdS5j
+bj4sDQo+ID4+IEd1ZW50ZXIgUm9lY2sgPGxpbnV4QHJvZWNrLXVzLm5ldD4sIEFsIFZpcm8NCj4g
+Pj4gPHZpcm9AemVuaXYubGludXgub3JnLnVrPiwgSmFtZXMgSG9nYW4gPGpob2dhbkBrZXJuZWwu
+b3JnPiwgb3Blbg0KPiA+PiBsaXN0Ok1FVEFHIEFSQ0hJVEVDVFVSRSA8bGludXgtbWV0YWdAdmdl
+ci5rZXJuZWwub3JnPiwgSm9uYXMgQm9ubg0KPiA+PiA8am9uYXNAc291dGhwb2xlLnNlPiwgU3Rl
+ZmFuIEtyaXN0aWFuc3Nvbg0KPiA+PiA8c3RlZmFuLmtyaXN0aWFuc3NvbkBzYXVuYWxhaHRpLmZp
+PiwNCj4gPj4gU3RhZmZvcmQgSG9ybmUgPHNob3JuZUBnbWFpbC5jb20+LCBvcGVucmlzY0BsaXN0
+cy5saWJyZWNvcmVzLm9yZywNCj4gPj4gRGF2aWQgSG93ZWxscyA8ZGhvd2VsbHNAcmVkaGF0LmNv
+bT4sIFBldGVyIFppamxzdHJhDQo+ID4+IDxwZXRlcnpAaW5mcmFkZWFkLm9yZz4NCj4gPj4NCj4g
+Pj4gT24gU2F0LCBGZWIgMjQsIDIwMTggYXQgMToxNSBBTSwgRmxvcmlhbiBGYWluZWxsaSA8Zi5m
+YWluZWxsaUBnbWFpbC5jb20+DQo+IHdyb3RlOg0KPiA+PiA+IE9uIDAyLzIyLzIwMTggMDc6NDUg
+QU0sIEFybmQgQmVyZ21hbm4gd3JvdGU6DQo+ID4+ID4NCj4gPj4gPiBBZGQgYmxhY2tmaW4gdG8g
+dGhhdCBsaXN0LCB0aGVyZSBoYXZlIGJlZW4gbm8gcmVzcG9uc2VzIGZyb20gdGhlDQo+ID4+ID4g
+bWFpbnRhaW5lcnMgbGFzdCB0aW1lIEkgcG9zdGVkIHBhdGNoZXMgdG8gcmVtb3ZlIERTQSBoZWFk
+ZXIgZmlsZXMsDQo+ID4+ID4gc28gd2UgaGFkIHRvIGdvIHRoZXNlIHRocm91Z2ggdGhlIG5ldHdv
+cmtpbmcgdHJlZS4gSGF2ZSBub3Qgc2VlIGENCj4gPj4gPiBCbGFja2ZpbiBwdWxsIHJlcXVlc3Qg
+c2luY2UgZm9yZXZlciwgQWFyb24gaGltc2VsZiBzZWVtcyB0byBhZ3JlZQ0KPiA+PiA+IHRoaXMg
+c2hvdWxkIGJlDQo+ID4+ID4gcmVtb3ZlZDoNCj4gPj4gPg0KPiA+PiA+IGh0dHA6Ly9sa21sLml1
+LmVkdS9oeXBlcm1haWwvbGludXgva2VybmVsLzE4MDEuMS8wNDM0NS5odG1sDQo+ID4+DQo+ID4N
+Cj4gPiBJJ20gc29ycnkgdG8gY29uZmlybSB0aGF0IEFESSBjYW4gbm8gbG9uZ2VyIHByb3ZpZGUg
+bWFpbnRlbmFuY2UgZm9yDQo+ID4gQmxhY2tmaW4gaW4gS2VybmVsIGNvbW11bml0eS4gV2Ugd2ls
+bCB0cnkgdG8gcHJvdmlkZSBhIHBhdGNoIHRvIHJlbW92ZSBpdC4NCj4gPiBBcG9sb2dpemUuLi4g
+YW5kIHNpbmNlcmVseSB0aGFua3MgdG8gY29tbXVuaXR5IGFuZCBhbGwgdXNlZCBhbmQNCj4gPiBj
+b250cmlidXRlZCB0byBCbGFja2ZpbiBMaW51eC4gTG9va2luZyBmb3J3YXJkIHdlIGFyZSB3b3Jr
+aW5nIG9uDQo+ID4gc3VwcG9ydGluZyBMaW51eCBmcm9tIHRoZSBuZXdlciBTQzV4eCBtdXRsaS1j
+b3JlIHByb2Nlc3NvcnMgd2l0aCBBUk0gYW5kDQo+IFNIQVJDIERTUHMgaW4gaXQuDQo+IA0KPiBU
+aGFua3MgYSBsb3QgZm9yIHlvdXIgcmVwbHkuIEkgYWxyZWFkeSBjb21waWxlZCBhIGxpc3QgZm9y
+IGZpbGVzIHJlbGF0ZWQgdG8gYWxsIG9mIHRoZQ0KPiBhcmNoaXRlY3R1cmVzIHVuZGVyIGRpc2N1
+c3Npb24sIGJ1dCBpdCB3aWxsIGNlcnRhaW5seSBoZWxwIHRvIGhhdmUgYSBwYXRjaCBmcm9tIHlv
+dQ0KPiBhcyB3ZWxsLCB0aGVuIEkgY2FuIHNlZSBpZiBvbmUgb2YgdXNlIG1pc3NlZCBhbnkgZmls
+ZXMuDQo+IA0KPiBJJ20gbG9va2luZyBmb3J3YXJkIHRvIHlvdXIgcGF0Y2hlcyBmb3IgdGhlIFNI
+QVJDIEFSTSBwbGF0Zm9ybSwgSSB3YXMgYWxyZWFkeQ0KPiB3b25kZXJpbmcgYWJvdXQgd2h5IHdl
+IGRvbid0IGFscmVhZHkgaGF2ZSB0aGF0IHBsYXRmb3JtIGluIExpbnV4Lg0KPiBMZXQgbWUga25v
+dyBpZiB5b3UgbmVlZCBhbnkgaGVscCBnZXR0aW5nIHRoYXQgcG9ydCByZWFkeSBmb3IgaW5jbHVz
+aW9uLg0KDQpUaGFua3MgYWdhaW4sIEFybmQgYW5kIHRoZSBDb21tdW5pdHkuDQo+IA0KPiBPbmUg
+bW9yZSBxdWVzdGlvbjogSSBzZWUgdGhhdCB0aGVyZSBhcmUgYSBudW1iZXIgb2YgZHJpdmVycyB0
+aGF0IGFyZSBvbmx5IHVzZWQNCj4gb24gYmxhY2tmaW4gdG9kYXkuIERvIHlvdSBrbm93IGlmIGFu
+eSBvZiB0aG9zZSBhcmUgc2hhcmVkIHdpdGggU0hBUkMgYW5kIHN0aWxsDQo+IG5lZWRlZCwgb3Ig
+Y2FuIHdlIHJlbW92ZSBldmVyeXRoaW5nIHJlbGF0ZWQgdG8gYmxhY2tmaW4/DQoNClNvbWUgb2Yg
+dGhlbSBjYW4gYmUgc2hhcmVkIHdpdGggdGhlIEFSTS1TSEFSQ3MgcHJvY2Vzc29ycywgYXMgb2Yg
+bm93DQp3ZSBtYXkgZ28gYWhlYWQgdG8gcmVtb3ZlIGV2ZXJ5dGhpbmcsIHdoZW4gbWVyZ2luZyBT
+SEFSQyB3ZSBjYW4gcmV2ZXJ0DQp0aGVtIGJhY2ssIHByb2JhYmx5IHdpdGggbmV3IGZpbGUgbmFt
+ZXMgd2l0aG91dCAiYmZpbiIsIGlmIHRoaXMgc291bmRzIHJpZ2h0Lg0KPiANCj4gICAgICAgIEFy
+bmQNCg0KVGhhbmtzDQpBYXJvbg0K
