@@ -1,18 +1,18 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 090/110] nospec: Allow index argument to have const-qualified type
-Date: Wed,  7 Mar 2018 11:39:13 -0800
-Message-ID: <20180307191051.371755939@linuxfoundation.org>
-References: <20180307191039.748351103@linuxfoundation.org>
+Subject: [PATCH 4.15 105/122] nospec: Allow index argument to have const-qualified type
+Date: Wed,  7 Mar 2018 11:38:37 -0800
+Message-ID: <20180307191744.666641471@linuxfoundation.org>
+References: <20180307191729.190879024@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180307191039.748351103@linuxfoundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20180307191729.190879024@linuxfoundation.org>
+Sender: stable-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Dan Williams <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-4.14-stable review patch.  If anyone has any objections, please let me know.
+4.15-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
