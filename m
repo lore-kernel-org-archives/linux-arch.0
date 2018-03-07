@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:45168 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:43144 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S965821AbeCGTrv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2018 14:47:51 -0500
+        with ESMTP id S934513AbeCGTne (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2018 14:43:34 -0500
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 090/110] nospec: Allow index argument to have const-qualified type
-Date: Wed,  7 Mar 2018 11:39:13 -0800
-Message-ID: <20180307191051.371755939@linuxfoundation.org>
-In-Reply-To: <20180307191039.748351103@linuxfoundation.org>
-References: <20180307191039.748351103@linuxfoundation.org>
+Subject: [PATCH 4.15 105/122] nospec: Allow index argument to have const-qualified type
+Date: Wed,  7 Mar 2018 11:38:37 -0800
+Message-ID: <20180307191744.666641471@linuxfoundation.org>
+In-Reply-To: <20180307191729.190879024@linuxfoundation.org>
+References: <20180307191729.190879024@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Dan Williams <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20180307193913.hF0CmUs3NWhOVo4BzAYekZxfKFTQv59gqUuxV1XQFdQ@z>
+Message-ID: <20180307193837.ITtykbZ2ZnFaCoVD6gFDcy5KYLAmTfGr8Huq0OMsa2k@z>
 
-4.14-stable review patch.  If anyone has any objections, please let me know.
+4.15-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
