@@ -1,34 +1,89 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v12 02/11] mm, swap: Add infrastructure for saving page
- metadata on swap
-Date: Tue, 6 Mar 2018 14:47:57 -0800
-Message-ID: <20180306144757.8b1b4967bce500fca9bb6083@linux-foundation.org>
-References: <cover.1519227112.git.khalid.aziz@oracle.com>
-        <f5316c71e645d99ffdd52963f1e9675de3fc6386.1519227112.git.khalid.aziz@oracle.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <f5316c71e645d99ffdd52963f1e9675de3fc6386.1519227112.git.khalid.aziz@oracle.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: davem@davemloft.net, dave.hansen@linux.intel.com, arnd@arndb.de, kirill.shutemov@linux.intel.com, mhocko@suse.com, ross.zwisler@linux.intel.com, dave.jiang@intel.com, mgorman@techsingularity.net, willy@infradead.org, hughd@google.com, minchan@kernel.org, hannes@cmpxchg.org, shli@fb.com, mingo@kernel.org, jglisse@redhat.com, me@tobin.cc, anthony.yznaga@oracle.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: [PATCH stable-4.4] x86/syscall: Sanitize syscall table de-references under speculation fix
+Date: Wed,  7 Mar 2018 08:53:57 +0100
+Message-ID: <20180307075357.12147-1-jslaby@suse.cz>
+References: <CAMGffEm3bRrshMftdpC4cTNppQuFUPyOniE3zZL7PJRinbVVfw@mail.gmail.com>
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <CAMGffEm3bRrshMftdpC4cTNppQuFUPyOniE3zZL7PJRinbVVfw@mail.gmail.com>
+Sender: stable-owner@vger.kernel.org
+To: gregkh@linuxfoundation.org
+Cc: stable@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@kernel.org>, alan@linux.intel.com, Jinpu Wang <jinpu.wang@profitbricks.com>, Jiri Slaby <jslaby@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 21 Feb 2018 10:15:44 -0700 Khalid Aziz <khalid.aziz@oracle.com> wrote:
+From: Dan Williams <dan.j.williams@intel.com>
 
-> If a processor supports special metadata for a page, for example ADI
-> version tags on SPARC M7, this metadata must be saved when the page is
-> swapped out. The same metadata must be restored when the page is swapped
-> back in. This patch adds two new architecture specific functions -
-> arch_do_swap_page() to be called when a page is swapped in, and
-> arch_unmap_one() to be called when a page is being unmapped for swap
-> out. These architecture hooks allow page metadata to be saved if the
-> architecture supports it.
-> 
-> Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-> Cc: Khalid Aziz <khalid@gonehiking.org>
-> Acked-by: Jerome Marchand <jmarchan@redhat.com>
-> Reviewed-by: Anthony Yznaga <anthony.yznaga@oracle.com>
+In 4.4.118, we have commit c8961332d6da (x86/syscall: Sanitize syscall
+table de-references under speculation), which is a backport of upstream
+commit 2fbd7af5af86. But it fixed only the C part of the upstream patch
+-- the IA32 sysentry. So it ommitted completely the assembly part -- the
+64bit sysentry.
 
-Acked-by: Andrew Morton <akpm@linux-foundation.org>
+Fix that in this patch by explicit array_index_mask_nospec written in
+assembly. The same was used in lib/getuser.S.
+
+However, to have "sbb" working properly, we have to switch from "cmp"
+against (NR_syscalls-1) to (NR_syscalls), otherwise the last syscall
+number would be "and"ed by 0. It is because the original "ja" relies on
+"CF" or "ZF", but we rely only on "CF" in "sbb". That means: switch to
+"jae" conditional jump too.
+
+Final note: use rcx for mask as this is exactly what is overwritten by
+the 4th syscall argument (r10) right after.
+
+Reported-by: Jan Beulich <JBeulich@suse.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
+Cc: kernel-hardening@lists.openwall.com
+Cc: gregkh@linuxfoundation.org
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: alan@linux.intel.com
+Cc: Jinpu Wang <jinpu.wang@profitbricks.com>
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+---
+ arch/x86/entry/entry_64.S | 16 ++++++++++------
+ 1 file changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index a03b22c615d9..59a4e1604a36 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -178,12 +178,14 @@ GLOBAL(entry_SYSCALL_64_after_swapgs)
+ 	jnz	tracesys
+ entry_SYSCALL_64_fastpath:
+ #if __SYSCALL_MASK == ~0
+-	cmpq	$__NR_syscall_max, %rax
++	cmpq	$NR_syscalls, %rax
+ #else
+ 	andl	$__SYSCALL_MASK, %eax
+-	cmpl	$__NR_syscall_max, %eax
++	cmpl	$NR_syscalls, %eax
+ #endif
+-	ja	1f				/* return -ENOSYS (already in pt_regs->ax) */
++	jae	1f				/* return -ENOSYS (already in pt_regs->ax) */
++	sbb	%rcx, %rcx			/* array_index_mask_nospec() */
++	and	%rcx, %rax
+ 	movq	%r10, %rcx
+ #ifdef CONFIG_RETPOLINE
+ 	movq	sys_call_table(, %rax, 8), %rax
+@@ -276,12 +278,14 @@ tracesys_phase2:
+ 	RESTORE_C_REGS_EXCEPT_RAX
+ 	RESTORE_EXTRA_REGS
+ #if __SYSCALL_MASK == ~0
+-	cmpq	$__NR_syscall_max, %rax
++	cmpq	$NR_syscalls, %rax
+ #else
+ 	andl	$__SYSCALL_MASK, %eax
+-	cmpl	$__NR_syscall_max, %eax
++	cmpl	$NR_syscalls, %eax
+ #endif
+-	ja	1f				/* return -ENOSYS (already in pt_regs->ax) */
++	jae	1f				/* return -ENOSYS (already in pt_regs->ax) */
++	sbb	%rcx, %rcx			/* array_index_mask_nospec() */
++	and	%rcx, %rax
+ 	movq	%r10, %rcx			/* fixup for C */
+ #ifdef CONFIG_RETPOLINE
+ 	movq	sys_call_table(, %rax, 8), %rax
+-- 
+2.16.2
