@@ -1,57 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpost1.zedat.fu-berlin.de ([130.133.4.66]:56957 "EHLO
-        outpost1.zedat.fu-berlin.de" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S933479AbeCGQIM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2018 11:08:12 -0500
-Subject: Re: RFC: remove the "tile" architecture from glibc
-References: <1a57be83-3349-5450-ee4f-d2a33569a728@mellanox.com>
- <d6c8e425-a6b6-6594-05e3-965536f06da3@physik.fu-berlin.de>
- <abce89d0-6798-069a-1a54-06e664665b78@mellanox.com>
- <dc3c52ce-f082-0da0-7828-0d4e6751e2a5@physik.fu-berlin.de>
- <CAK8P3a3itR8i2ayG7e4ku7kz+CQU7qHhptdmtmgTz+CzFGmCiw@mail.gmail.com>
- <alpine.DEB.2.20.1803071557070.28840@digraph.polyomino.org.uk>
-From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Message-ID: <21665e92-27d1-81c5-5959-f0893541b515@physik.fu-berlin.de>
-Date: Wed, 7 Mar 2018 17:08:09 +0100
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:33046 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751211AbeCGR0A (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2018 12:26:00 -0500
+Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w27HPeYn080567
+        for <linux-arch@vger.kernel.org>; Wed, 7 Mar 2018 12:25:58 -0500
+Received: from e12.ny.us.ibm.com (e12.ny.us.ibm.com [129.33.205.202])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2gjk4ec1ge-1
+        (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2018 12:25:58 -0500
+Received: from localhost
+        by e12.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+        Wed, 7 Mar 2018 12:25:57 -0500
+Date: Wed, 7 Mar 2018 09:26:27 -0800
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH tools/memory-model 0/4] Documentation updates and fixes
+Reply-To: paulmck@linux.vnet.ibm.com
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.20.1803071557070.28840@digraph.polyomino.org.uk>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Message-ID: <20180307172627.GA15805@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joseph Myers <joseph@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: GNU C Library <libc-alpha@sourceware.org>, linux-arch <linux-arch@vger.kernel.org>, metcalf@alum.mit.edu, Henrik Grindal Bakken <hgb@ifi.uio.no>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Helmut Grohne <helmutg@debian.org>
-Message-ID: <20180307160809.UHaQvFfqJ361qu_jTKiEQmL3C9653QAqcdBN9rX2wLA@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20180307172627.5qu2L7JyVIaAqWs4e_EHsFzG-0-zzWPgMtEW4rSWxP0@z>
 
-On 03/07/2018 05:00 PM, Joseph Myers wrote:
-> No-one has posted glibc test results for 2.27 or 2.26, despite the prior
-> claims of interest in keeping the glibc port.
+Hello!
 
-To be honest, I find the rapid release model for glibc a bit annoying
-as a downstream. Upstream projects which adopt this model and then require
-constant attention from porters cause lots of stress for the less common
-architectures. There are other upstream projects that want attention as
-well and at some point it just will get extremely frustrating.
+This patch series adds some documentation and fixes to the Linux-kernel
+memory model (LKMM):
 
-Is such a rapid release model really needed for something like a C library?
+1.	Add more text to meomry-barrier.txt to de-emphasize
+	smp_read_barrier_depends().
 
-As for the testsuites: Adhemerval has gotten access from Debian to a
-number of porterboxes for the various uncommon architectures, including
-alpha, hppa, powerpcspe, sh4 and sparc64 and we're happy to give out
-accounts to anyone interested.
+2.	Remove mention of the now-obsolete docker and gentoo images
+	from README.
 
-And since Debian regularly updates glibc as well, you can get most testsuite
-runs also by just checking the build logs (click on the green or red texts):
+3.	Add documentation for the new ISA2+pooncelock+pooncelock+pombonce
+	litmus test.
 
-> https://buildd.debian.org/status/package.php?p=glibc&suite=sid
+4.	Update the removal of rb-dep, smp_read_barrier_depends(), and
+	lockless_dereference() to reflect feedback.
 
-Note: Testsuites for sh4 and m68k are currently disabled.
+							Thanx, Paul
 
-Adrian
+------------------------------------------------------------------------
 
--- 
-  .''`.  John Paul Adrian Glaubitz
-: :' :  Debian Developer - glaubitz@debian.org
-`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
-   `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
+ Documentation/memory-barriers.txt                |   26 +++++++++++++++--------
+ tools/memory-model/Documentation/cheatsheet.txt  |    6 ++---
+ tools/memory-model/Documentation/explanation.txt |    4 +--
+ tools/memory-model/README                        |   15 -------------
+ tools/memory-model/linux-kernel.def              |    2 -
+ tools/memory-model/litmus-tests/README           |    6 +++++
+ 6 files changed, 30 insertions(+), 29 deletions(-)
