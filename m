@@ -1,70 +1,20 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 2/3] arm64: fpsimd: Fix bad si_code for undiagnosed
- SIGFPE
-Date: Thu, 8 Mar 2018 17:11:53 +0000
-Message-ID: <20180308171153.GD14918@arm.com>
-References: <1519926248-12591-1-git-send-email-Dave.Martin@arm.com>
- <1519926248-12591-3-git-send-email-Dave.Martin@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <1519926248-12591-3-git-send-email-Dave.Martin@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, James Morse <james.morse@arm.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
+From: Palmer Dabbelt <palmer@sifive.com>
+Subject: Re: RFC: remove the "tile" architecture from glibc
+Date: Thu, 08 Mar 2018 09:14:52 -0800 (PST)
+Message-ID: <mhng-160eeec9-bd53-4c63-901a-630c66a78534@palmer-si-x1c4>
+References: <CAK8P3a2VuYxzy6RmL_w_5f2qHepVRhfVR5P4x9nCUYav1s5n7g@mail.gmail.com>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAK8P3a2VuYxzy6RmL_w_5f2qHepVRhfVR5P4x9nCUYav1s5n7g@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+Cc: helmut@subdivi.de, Arnd Bergmann <arnd@arndb.de>, glaubitz@physik.fu-berlin.de, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, metcalf@alum.mit.edu, hgb@ifi.uio.no, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 01, 2018 at 05:44:07PM +0000, Dave Martin wrote:
-> Currently a SIGFPE delivered in response to a floating-point
-> exception trap may have si_code set to 0 on arm64.  As reported by
-> Eric, this is a bad idea since this is the value of SI_USER -- yet
-> this signal is definitely not the result of kill(2), tgkill(2) etc.
-> and si_uid and si_pid make limited sense whereas we do want to
-> yield a value for si_addr (which doesn't exist for SI_USER).
+On Thu, 08 Mar 2018 07:55:33 PST (-0800), Arnd Bergmann wrote:
+> - riscv32 is not yet supported by Linux or glibc, but that seems
+>   very likely to come in the future, maybe one or two years from
+>   now.
 
-[...]
-
-> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-> index e7226c4..9040038 100644
-> --- a/arch/arm64/kernel/fpsimd.c
-> +++ b/arch/arm64/kernel/fpsimd.c
-> @@ -39,6 +39,7 @@
->  #include <linux/slab.h>
->  #include <linux/sysctl.h>
->  
-> +#include <asm/esr.h>
->  #include <asm/fpsimd.h>
->  #include <asm/cputype.h>
->  #include <asm/simd.h>
-> @@ -867,18 +868,20 @@ asmlinkage void do_fpsimd_acc(unsigned int esr, struct pt_regs *regs)
->  asmlinkage void do_fpsimd_exc(unsigned int esr, struct pt_regs *regs)
->  {
->  	siginfo_t info;
-> -	unsigned int si_code = FPE_FIXME;
-> -
-> -	if (esr & FPEXC_IOF)
-> -		si_code = FPE_FLTINV;
-> -	else if (esr & FPEXC_DZF)
-> -		si_code = FPE_FLTDIV;
-> -	else if (esr & FPEXC_OFF)
-> -		si_code = FPE_FLTOVF;
-> -	else if (esr & FPEXC_UFF)
-> -		si_code = FPE_FLTUND;
-> -	else if (esr & FPEXC_IXF)
-> -		si_code = FPE_FLTRES;
-> +	unsigned int si_code = FPE_FLTUNK;
-
-Happy to take this patch once the dependency on FPE_FLTUNK in core code is
-resolved.
-
-Will
+I'm hoping it'll be a lot less than a year away :).
