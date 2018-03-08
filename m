@@ -1,92 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41152 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932100AbeCHRLp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 8 Mar 2018 12:11:45 -0500
-Date: Thu, 8 Mar 2018 17:11:50 +0000
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 1/3] signal: Add FPE_FLTUNK si_code for undiagnosable
- fp exceptions
-Message-ID: <20180308171149.GC14918@arm.com>
-References: <1519926248-12591-1-git-send-email-Dave.Martin@arm.com>
- <1519926248-12591-2-git-send-email-Dave.Martin@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1519926248-12591-2-git-send-email-Dave.Martin@arm.com>
+Received: from mail-pf0-f175.google.com ([209.85.192.175]:36687 "EHLO
+        mail-pf0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932133AbeCHROx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Mar 2018 12:14:53 -0500
+Received: by mail-pf0-f175.google.com with SMTP id 68so148126pfx.3
+        for <linux-arch@vger.kernel.org>; Thu, 08 Mar 2018 09:14:53 -0800 (PST)
+Date: Thu, 08 Mar 2018 09:14:52 -0800 (PST)
+Subject: Re: RFC: remove the "tile" architecture from glibc
+In-Reply-To: <CAK8P3a2VuYxzy6RmL_w_5f2qHepVRhfVR5P4x9nCUYav1s5n7g@mail.gmail.com>
+From: Palmer Dabbelt <palmer@sifive.com>
+Message-ID: <mhng-160eeec9-bd53-4c63-901a-630c66a78534@palmer-si-x1c4>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Martin <Dave.Martin@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Catalin Marinas <catalin.marinas@arm.com>, James Morse <james.morse@arm.com>, linux-kernel@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, arnd@arndb.de
-Message-ID: <20180308171150.sfz1Wce-cdDPlZZplVjI1WsXc-o-zQ4NGS4xP2Ek9Gk@z>
+Cc: helmut@subdivi.de, Arnd Bergmann <arnd@arndb.de>, glaubitz@physik.fu-berlin.de, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, metcalf@alum.mit.edu, hgb@ifi.uio.no, linux-kernel@vger.kernel.org
+Message-ID: <20180308171452.ajm1t3axNg1SsCJYa4yFi_07oD9o1qBSKdxR2XELNpA@z>
 
-Hi Dave,
+On Thu, 08 Mar 2018 07:55:33 PST (-0800), Arnd Bergmann wrote:
+> - riscv32 is not yet supported by Linux or glibc, but that seems
+>   very likely to come in the future, maybe one or two years from
+>   now.
 
-On Thu, Mar 01, 2018 at 05:44:06PM +0000, Dave Martin wrote:
-> Some architectures cannot always report accurately what kind of
-> floating-point exception triggered a floating-point exception trap.
-> 
-> This can occur with fp exceptions occurring on lanes in a vector
-> instruction on arm64 for example.
-> 
-> Rather than have every architecture come up with its own way of
-> describing such a condition, this patch adds a common FPE_FLTUNK
-> si_code value to report that an fp exception caused a trap but we
-> cannot be certain which kind of fp exception it was.
-
-This looks straightforward to me, but I'll need Acks for the x86 and uapi
-changes if I'm to take this via arm64. I've added some others to CC and
-kept the patch intact below.
-
-Cheers,
-
-Will
-
-> Signed-off-by: Dave Martin <Dave.Martin@arm.com>
-> 
-> --
-> 
-> Changes since v1:
-> 
-> Reported by James Morse:
-> 
->  * Bump NSIGFPE BUILD_BUG_ON() check for x86 compat.
-> 
->    FPE_FLTUNK does not current have any implications for x86, since it
->    is not currently used and has no implications for the way siginfo
->    is populated.
-> ---
->  arch/x86/kernel/signal_compat.c    | 2 +-
->  include/uapi/asm-generic/siginfo.h | 3 ++-
->  2 files changed, 3 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
-> index ac057f9..954ad99 100644
-> --- a/arch/x86/kernel/signal_compat.c
-> +++ b/arch/x86/kernel/signal_compat.c
-> @@ -26,7 +26,7 @@ static inline void signal_compat_build_tests(void)
->  	 * new fields are handled in copy_siginfo_to_user32()!
->  	 */
->  	BUILD_BUG_ON(NSIGILL  != 11);
-> -	BUILD_BUG_ON(NSIGFPE  != 13);
-> +	BUILD_BUG_ON(NSIGFPE  != 14);
->  	BUILD_BUG_ON(NSIGSEGV != 4);
->  	BUILD_BUG_ON(NSIGBUS  != 5);
->  	BUILD_BUG_ON(NSIGTRAP != 4);
-> diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-> index 85dc965..10304de 100644
-> --- a/include/uapi/asm-generic/siginfo.h
-> +++ b/include/uapi/asm-generic/siginfo.h
-> @@ -229,7 +229,8 @@ typedef struct siginfo {
->  # define __FPE_INVASC	12	/* invalid ASCII digit */
->  # define __FPE_INVDEC	13	/* invalid decimal digit */
->  #endif
-> -#define NSIGFPE		13
-> +#define FPE_FLTUNK	14	/* undiagnosed floating-point exception */
-> +#define NSIGFPE		14
->  
->  /*
->   * SIGSEGV si_codes
-> -- 
-> 2.1.4
-> 
+I'm hoping it'll be a lot less than a year away :).
