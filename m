@@ -1,83 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:43144 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934513AbeCGTne (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2018 14:43:34 -0500
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.15 105/122] nospec: Allow index argument to have const-qualified type
-Date: Wed,  7 Mar 2018 11:38:37 -0800
-Message-ID: <20180307191744.666641471@linuxfoundation.org>
-In-Reply-To: <20180307191729.190879024@linuxfoundation.org>
-References: <20180307191729.190879024@linuxfoundation.org>
+Received: from mail-io0-f195.google.com ([209.85.223.195]:43503 "EHLO
+        mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755755AbeCHNgn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Mar 2018 08:36:43 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+In-Reply-To: <152050252646.30856.16654455402435277982.stgit@warthog.procyon.org.uk>
+References: <152050252646.30856.16654455402435277982.stgit@warthog.procyon.org.uk>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 8 Mar 2018 14:36:41 +0100
+Message-ID: <CAK8P3a2R+ROQbH-9gioP1mg-dck27qaFpxBufJo2S12odseeZg@mail.gmail.com>
+Subject: Re: [PATCH] mn10300: Remove the architecture
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Dan Williams <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20180307193837.ITtykbZ2ZnFaCoVD6gFDcy5KYLAmTfGr8Huq0OMsa2k@z>
+To: David Howells <dhowells@redhat.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-am33-list@redhat.com
+Message-ID: <20180308133641.Zbe5sLvYmrmCtqlWfItoT6Zbwyp39kSABCIek1nLRpA@z>
 
-4.15-stable review patch.  If anyone has any objections, please let me know.
+On Thu, Mar 8, 2018 at 10:48 AM, David Howells <dhowells@redhat.com> wrote:
+> Remove the MN10300 arch as the hardware is defunct.
+>
+> Suggested-by: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: David Howells <dhowells@redhat.com>
+> cc: Masahiro Yamada <yamada.masahiro@socionext.com>
+> cc: linux-am33-list@redhat.com
 
-------------------
+Thanks! I've added it to my asm-generic tree now, along with the other
+removed architectures. I'll post the remaining patches later when I
+have covered the arch specific drivers.
 
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-
-commit b98c6a160a057d5686a8c54c79cc6c8c94a7d0c8 upstream.
-
-The last expression in a statement expression need not be a bare
-variable, quoting gcc docs
-
-  The last thing in the compound statement should be an expression
-  followed by a semicolon; the value of this subexpression serves as the
-  value of the entire construct.
-
-and we already use that in e.g. the min/max macros which end with a
-ternary expression.
-
-This way, we can allow index to have const-qualified type, which will in
-some cases avoid the need for introducing a local copy of index of
-non-const qualified type. That, in turn, can prevent readers not
-familiar with the internals of array_index_nospec from wondering about
-the seemingly redundant extra variable, and I think that's worthwhile
-considering how confusing the whole _nospec business is.
-
-The expression _i&_mask has type unsigned long (since that is the type
-of _mask, and the BUILD_BUG_ONs guarantee that _i will get promoted to
-that), so in order not to change the type of the whole expression, add
-a cast back to typeof(_i).
-
-Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arjan van de Ven <arjan@linux.intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org
-Cc: stable@vger.kernel.org
-Link: http://lkml.kernel.org/r/151881604837.17395.10812767547837568328.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
----
- include/linux/nospec.h |    3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
-
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -72,7 +72,6 @@ static inline unsigned long array_index_
- 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
- 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
- 									\
--	_i &= _mask;							\
--	_i;								\
-+	(typeof(_i)) (_i & _mask);					\
- })
- #endif /* _LINUX_NOSPEC_H */
+      Arnd
