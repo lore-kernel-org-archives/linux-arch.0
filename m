@@ -1,80 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:50782 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750940AbeCHWlK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Mar 2018 17:41:10 -0500
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <1519926248-12591-1-git-send-email-Dave.Martin@arm.com>
-        <1519926248-12591-3-git-send-email-Dave.Martin@arm.com>
-        <20180308171153.GD14918@arm.com>
-Date: Thu, 08 Mar 2018 16:40:12 -0600
-In-Reply-To: <20180308171153.GD14918@arm.com> (Will Deacon's message of "Thu,
-        8 Mar 2018 17:11:53 +0000")
-Message-ID: <87o9jymbsj.fsf@xmission.com>
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:38813 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750885AbeCHXgN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Mar 2018 18:36:13 -0500
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH v2 2/3] arm64: fpsimd: Fix bad si_code for undiagnosed SIGFPE
+In-Reply-To: <mhng-160eeec9-bd53-4c63-901a-630c66a78534@palmer-si-x1c4>
+References: <CAK8P3a2VuYxzy6RmL_w_5f2qHepVRhfVR5P4x9nCUYav1s5n7g@mail.gmail.com>
+ <mhng-160eeec9-bd53-4c63-901a-630c66a78534@palmer-si-x1c4>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 9 Mar 2018 00:36:11 +0100
+Message-ID: <CAK8P3a0nBfwyUS7DuCp46O6NnBQOD8Hb-4B78TeqXQhoRanMPA@mail.gmail.com>
+Subject: Re: RFC: remove the "tile" architecture from glibc
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, James Morse <james.morse@arm.com>
-Message-ID: <20180308224012.q0KNC2YkuYoHq3P-6M2EANWvXJMHenkuWmmC-Fw5Aa8@z>
+To: Palmer Dabbelt <palmer@sifive.com>
+Cc: Helmut Grohne <helmut@subdivi.de>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, GNU C Library <libc-alpha@sourceware.org>, linux-arch <linux-arch@vger.kernel.org>, metcalf@alum.mit.edu, Henrik Grindal Bakken <hgb@ifi.uio.no>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20180308233611.Xa1pkK8K55WWxIWPXAjajmqCriYvdX2v94ANrbPSDpE@z>
 
-Will Deacon <will.deacon@arm.com> writes:
-
-> On Thu, Mar 01, 2018 at 05:44:07PM +0000, Dave Martin wrote:
->> Currently a SIGFPE delivered in response to a floating-point
->> exception trap may have si_code set to 0 on arm64.  As reported by
->> Eric, this is a bad idea since this is the value of SI_USER -- yet
->> this signal is definitely not the result of kill(2), tgkill(2) etc.
->> and si_uid and si_pid make limited sense whereas we do want to
->> yield a value for si_addr (which doesn't exist for SI_USER).
+On Thu, Mar 8, 2018 at 6:14 PM, Palmer Dabbelt <palmer@sifive.com> wrote:
+> On Thu, 08 Mar 2018 07:55:33 PST (-0800), Arnd Bergmann wrote:
+>>
+>> - riscv32 is not yet supported by Linux or glibc, but that seems
+>>   very likely to come in the future, maybe one or two years from
+>>   now.
 >
-> [...]
 >
->> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
->> index e7226c4..9040038 100644
->> --- a/arch/arm64/kernel/fpsimd.c
->> +++ b/arch/arm64/kernel/fpsimd.c
->> @@ -39,6 +39,7 @@
->>  #include <linux/slab.h>
->>  #include <linux/sysctl.h>
->>  
->> +#include <asm/esr.h>
->>  #include <asm/fpsimd.h>
->>  #include <asm/cputype.h>
->>  #include <asm/simd.h>
->> @@ -867,18 +868,20 @@ asmlinkage void do_fpsimd_acc(unsigned int esr, struct pt_regs *regs)
->>  asmlinkage void do_fpsimd_exc(unsigned int esr, struct pt_regs *regs)
->>  {
->>  	siginfo_t info;
->> -	unsigned int si_code = FPE_FIXME;
->> -
->> -	if (esr & FPEXC_IOF)
->> -		si_code = FPE_FLTINV;
->> -	else if (esr & FPEXC_DZF)
->> -		si_code = FPE_FLTDIV;
->> -	else if (esr & FPEXC_OFF)
->> -		si_code = FPE_FLTOVF;
->> -	else if (esr & FPEXC_UFF)
->> -		si_code = FPE_FLTUND;
->> -	else if (esr & FPEXC_IXF)
->> -		si_code = FPE_FLTRES;
->> +	unsigned int si_code = FPE_FLTUNK;
->
-> Happy to take this patch once the dependency on FPE_FLTUNK in core code is
-> resolved.
+> I'm hoping it'll be a lot less than a year away :).
 
-Would it help for me to take the FPE_FLTUNK patch into my siginfo-next
-branch?   So that there is a common branch with the code so we don't
-need to worry about conflicts.  If so I will look at that on Monday.
+Ah, very good. For some reason I was under the impression that all
+the early hardware with Linux support was 64-bit only, and the
+32-bit Linux port therefore a low priority, but even better if that's
+coming soon.
 
-There is another FPE code that appears to be needed for one of the other
-architectures as well.  If we can figure out how to head conflicts off
-at the pass while everyone is fixing the FPE_FIXME type problems it
-might help.
-
-But it is all simple enough I expect a word to the wise when I send
-Linus my pull request will be enough to sort things out.
-
-Eric
+     Arnd
