@@ -1,47 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:54276 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932152AbeCIP6e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 9 Mar 2018 10:58:34 -0500
-Date: Fri, 9 Mar 2018 15:58:29 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH 2/6] arm64: untag user addresses in copy_from_user
- and others
-Message-ID: <20180309155829.2fzgevhsxj3gnyly@armageddon.cambridge.arm.com>
-References: <cover.1520600533.git.andreyknvl@google.com>
- <d681c0dee907ee5cc55d313e2f843237c6087bf0.1520600533.git.andreyknvl@google.com>
- <20180309150309.4sue2zj6teehx6e3@lakrids.cambridge.arm.com>
+Received: from relay1.mentorg.com ([192.94.38.131]:64066 "EHLO
+        relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751147AbeCIQbn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2018 11:31:43 -0500
+Date: Fri, 9 Mar 2018 16:31:36 +0000
+From: Joseph Myers <joseph@codesourcery.com>
+Subject: Re: RFC: remove the "tile" architecture from glibc
+In-Reply-To: <9a60ac70-21e4-3f48-5cd7-ffd3aabc5c21@physik.fu-berlin.de>
+Message-ID: <alpine.DEB.2.20.1803091622420.8457@digraph.polyomino.org.uk>
+References: <1a57be83-3349-5450-ee4f-d2a33569a728@mellanox.com> <d6c8e425-a6b6-6594-05e3-965536f06da3@physik.fu-berlin.de> <abce89d0-6798-069a-1a54-06e664665b78@mellanox.com> <dc3c52ce-f082-0da0-7828-0d4e6751e2a5@physik.fu-berlin.de>
+ <CAK8P3a3itR8i2ayG7e4ku7kz+CQU7qHhptdmtmgTz+CzFGmCiw@mail.gmail.com> <20180307181407.GA24350@alf.mars> <CAK8P3a2VuYxzy6RmL_w_5f2qHepVRhfVR5P4x9nCUYav1s5n7g@mail.gmail.com> <9a60ac70-21e4-3f48-5cd7-ffd3aabc5c21@physik.fu-berlin.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180309150309.4sue2zj6teehx6e3@lakrids.cambridge.arm.com>
+Content-Type: text/plain; charset="US-ASCII"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, Robin Murphy <robin.murphy@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
-Message-ID: <20180309155829.Ltamv2wdoazGGO0Hfbm9mCYL24u17DoLRD_QOpTceMs@z>
+To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, Helmut Grohne <helmut@subdivi.de>, GNU C Library <libc-alpha@sourceware.org>, linux-arch <linux-arch@vger.kernel.org>, metcalf@alum.mit.edu, Henrik Grindal Bakken <hgb@ifi.uio.no>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20180309163136.hSRrEFLI9ES_W5t7z67U4A3YByFheY1k3k5ExLHnvK4@z>
 
-On Fri, Mar 09, 2018 at 03:03:09PM +0000, Mark Rutland wrote:
-> On Fri, Mar 09, 2018 at 03:02:00PM +0100, Andrey Konovalov wrote:
-> > copy_from_user (and a few other similar functions) are used to copy data
-> > from user memory into the kernel memory or vice versa. Since a user can
-> > provided a tagged pointer to one of the syscalls that use copy_from_user,
-> > we need to correctly handle such pointers.
-> 
-> I don't think it makes sense to do this in the low-level uaccess
-> primitives, given we're going to have to untag pointers before common
-> code can use them, e.g. for comparisons against TASK_SIZE or
-> user_addr_max().
-> 
-> I think we'll end up with subtle bugs unless we consistently untag
-> pointers before we get to uaccess primitives. If core code does untag
-> pointers, then it's redundant to do so here.
+On Thu, 8 Mar 2018, John Paul Adrian Glaubitz wrote:
 
-A quick "hack" below clears the tag on syscall entry (where the argument
-is a __user pointer). However, we still have cases in core code where
-the pointer is read from a structure or even passed as an unsigned long
-as part of a command + argument (like in ptrace).
+> I have personally invested a lot of work into the SH port over the
+> past three years in Debian and I was involved fixing many bugs
+> and as a result, the port is quite usable. It would be really
+> disappointing to see it being removed all of a sudden :(.
 
-The "hack":
+Note that SH glibc test results need some work - there are a large number 
+of failures listed at <https://sourceware.org/glibc/wiki/Release/2.27#SH>.  
+Probably most could be addressed with the NaN fixes I outlined at 
+<https://sourceware.org/ml/libc-alpha/2018-02/msg00440.html> - but that 
+does of course need someone to do the work to implement that in GCC and 
+glibc.  (The stdlib/tst-tininess failure is stranger; SH manuals don't 
+seem very specific on this, but the existing setting was definitely 
+determined by testing on hardware.  SH experts with access to a range of 
+different hardware may be needed to advise on what different hardware does 
+or is supposed to do in this regard.)
 
----------------------------------8<--------------------------
+The glibc port whose test results cause me the most concern that it's 
+effectively unmaintained and should be considered for obsoletion is 
+MicroBlaze - the results 
+<https://sourceware.org/glibc/wiki/Release/2.27#MicroBlaze> are clearly a 
+big mess (not something where one fix would probably resolve most failures 
+as on SH) and there's no sign of activity to sort them out (nor has there 
+been such activity for a long time).
+
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
