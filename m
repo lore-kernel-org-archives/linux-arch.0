@@ -1,60 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outpost1.zedat.fu-berlin.de ([130.133.4.66]:38921 "EHLO
-        outpost1.zedat.fu-berlin.de" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751106AbeCINFa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2018 08:05:30 -0500
-Received: from inpost2.zedat.fu-berlin.de ([130.133.4.69])
-          by outpost.zedat.fu-berlin.de (Exim 4.85)
-          for linux-arch@vger.kernel.org with esmtps (TLSv1.2:DHE-RSA-AES256-GCM-SHA384:256)
-          (envelope-from <glaubitz@physik.fu-berlin.de>)
-          id <1euHiD-003K6W-AI>; Fri, 09 Mar 2018 14:05:29 +0100
-Received: from suse-laptop.physik.fu-berlin.de ([160.45.32.140])
-          by inpost2.zedat.fu-berlin.de (Exim 4.85)
-          for linux-arch@vger.kernel.org with esmtpsa (TLSv1.2:DHE-RSA-AES128-SHA:128)
-          (envelope-from <glaubitz@physik.fu-berlin.de>)
-          id <1euHiD-002iLl-3r>; Fri, 09 Mar 2018 14:05:29 +0100
-Subject: Re: Debian Ports architecture status (Re: Re: Removing architectures
- without upstream gcc support)
-From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-References: <fbfb535b-65ac-4b16-469a-9ccc9cb5e714@physik.fu-berlin.de>
-Message-ID: <9047d1e0-1281-4124-82b1-0b5b5d02860b@physik.fu-berlin.de>
-Date: Fri, 9 Mar 2018 14:05:28 +0100
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:51450 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751092AbeCINKN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 9 Mar 2018 08:10:13 -0500
+Date: Fri, 9 Mar 2018 13:10:18 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 2/3] arm64: fpsimd: Fix bad si_code for undiagnosed
+ SIGFPE
+Message-ID: <20180309131017.GB20370@arm.com>
+References: <1519926248-12591-1-git-send-email-Dave.Martin@arm.com>
+ <1519926248-12591-3-git-send-email-Dave.Martin@arm.com>
+ <20180308171153.GD14918@arm.com>
+ <87o9jymbsj.fsf@xmission.com>
 MIME-Version: 1.0
-In-Reply-To: <fbfb535b-65ac-4b16-469a-9ccc9cb5e714@physik.fu-berlin.de>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87o9jymbsj.fsf@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch@vger.kernel.org>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, James Morse <james.morse@arm.com>
+Message-ID: <20180309131018.aaIMbYhEtUwkANB_SpTvzoQImk1tDEeArgNlWvzRz2w@z>
 
-Hi!
+Hi Eric,
 
-On 03/09/2018 01:55 PM, John Paul Adrian Glaubitz wrote:
-> Some notes per architecture:
+On Thu, Mar 08, 2018 at 04:40:12PM -0600, Eric W. Biederman wrote:
+> Will Deacon <will.deacon@arm.com> writes:
+> 
+> > On Thu, Mar 01, 2018 at 05:44:07PM +0000, Dave Martin wrote:
+> >> Currently a SIGFPE delivered in response to a floating-point
+> >> exception trap may have si_code set to 0 on arm64.  As reported by
+> >> Eric, this is a bad idea since this is the value of SI_USER -- yet
+> >> this signal is definitely not the result of kill(2), tgkill(2) etc.
+> >> and si_uid and si_pid make limited sense whereas we do want to
+> >> yield a value for si_addr (which doesn't exist for SI_USER).
+> >
+> > [...]
+> >
+> >> diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+> >> index e7226c4..9040038 100644
+> >> --- a/arch/arm64/kernel/fpsimd.c
+> >> +++ b/arch/arm64/kernel/fpsimd.c
+> >> @@ -39,6 +39,7 @@
+> >>  #include <linux/slab.h>
+> >>  #include <linux/sysctl.h>
+> >>  
+> >> +#include <asm/esr.h>
+> >>  #include <asm/fpsimd.h>
+> >>  #include <asm/cputype.h>
+> >>  #include <asm/simd.h>
+> >> @@ -867,18 +868,20 @@ asmlinkage void do_fpsimd_acc(unsigned int esr, struct pt_regs *regs)
+> >>  asmlinkage void do_fpsimd_exc(unsigned int esr, struct pt_regs *regs)
+> >>  {
+> >>  	siginfo_t info;
+> >> -	unsigned int si_code = FPE_FIXME;
+> >> -
+> >> -	if (esr & FPEXC_IOF)
+> >> -		si_code = FPE_FLTINV;
+> >> -	else if (esr & FPEXC_DZF)
+> >> -		si_code = FPE_FLTDIV;
+> >> -	else if (esr & FPEXC_OFF)
+> >> -		si_code = FPE_FLTOVF;
+> >> -	else if (esr & FPEXC_UFF)
+> >> -		si_code = FPE_FLTUND;
+> >> -	else if (esr & FPEXC_IXF)
+> >> -		si_code = FPE_FLTRES;
+> >> +	unsigned int si_code = FPE_FLTUNK;
+> >
+> > Happy to take this patch once the dependency on FPE_FLTUNK in core code is
+> > resolved.
+> 
+> Would it help for me to take the FPE_FLTUNK patch into my siginfo-next
+> branch?   So that there is a common branch with the code so we don't
+> need to worry about conflicts.  If so I will look at that on Monday.
 
-I forgot to mention powerpc and ppc64:
+Yes please, that would be helpful actually. I can then pull that into
+arm64 if you give me a stable branch or tag. Alternatively, I can define
+FPE_FLTUNK locally and remove it at -rc1.
 
-Both the 32-bit and 64-bit big-endian PowerPC ports in Debian are
-in very good shape. They build over 12200 out of 12900 packages with
-almost no issues. Both powerpc and ppc64 could be release architectures
-but it was unfortunately decided that Debian would support the little-
-endian PowerPC port (ppc64el) for the time being.
+Cheers,
 
-The only known issues are lack of support in Golang as IBM/Golang
-decided to kill off support for anything older than POWER8 in the
-ppc64 port and the lack of a Hotspot port for powerpc in OpenJDK
-(there is support for powerpc in the Zero variant of OpenJDK
-though).
-
-Both powerpc and ppc64 are supported as QEMU targets, both as qemu-user
-and qemu-system. Both ports are maintained by the Debian Ports team.
-
-Thanks,
-Adrian
-
--- 
-  .''`.  John Paul Adrian Glaubitz
-: :' :  Debian Developer - glaubitz@debian.org
-`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
-   `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
+Will
