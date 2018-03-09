@@ -1,59 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f67.google.com ([209.85.214.67]:36297 "EHLO
-        mail-it0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932087AbeCIR5J (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2018 12:57:09 -0500
-Received: by mail-it0-f67.google.com with SMTP id u5-v6so3841877itc.1
-        for <linux-arch@vger.kernel.org>; Fri, 09 Mar 2018 09:57:08 -0800 (PST)
+Received: from mail-io0-f193.google.com ([209.85.223.193]:35964 "EHLO
+        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932131AbeCIR6w (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2018 12:58:52 -0500
+Received: by mail-io0-f193.google.com with SMTP id e30so4433484ioc.3
+        for <linux-arch@vger.kernel.org>; Fri, 09 Mar 2018 09:58:51 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <20180309155829.2fzgevhsxj3gnyly@armageddon.cambridge.arm.com>
-References: <cover.1520600533.git.andreyknvl@google.com> <d681c0dee907ee5cc55d313e2f843237c6087bf0.1520600533.git.andreyknvl@google.com>
- <20180309150309.4sue2zj6teehx6e3@lakrids.cambridge.arm.com> <20180309155829.2fzgevhsxj3gnyly@armageddon.cambridge.arm.com>
+In-Reply-To: <20180309145547.r25eis5ejy6d6xzu@lakrids.cambridge.arm.com>
+References: <cover.1520600533.git.andreyknvl@google.com> <20180309145547.r25eis5ejy6d6xzu@lakrids.cambridge.arm.com>
 From: Andrey Konovalov <andreyknvl@google.com>
-Date: Fri, 9 Mar 2018 18:57:07 +0100
-Message-ID: <CAAeHK+zuooh=of9GCLd4UF3TCpFsxd1ECzVhKZ-W7BEG6=rtsA@mail.gmail.com>
-Subject: Re: [RFC PATCH 2/6] arm64: untag user addresses in copy_from_user and others
+Date: Fri, 9 Mar 2018 18:58:50 +0100
+Message-ID: <CAAeHK+xYcQ_jS68hVE8516+Hpgm4X9A-LpRLkjPMoDHv+ni6tQ@mail.gmail.com>
+Subject: Re: [RFC PATCH 0/6] arm64: untag user pointers passed to the kernel
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, Will Deacon <will.deacon@arm.com>, Robin Murphy <robin.murphy@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
-Message-ID: <20180309175707.g5OmJDuCJBSj5A_NxYuNf7M2TfimPYa0q6zei_zo4Eg@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Robin Murphy <robin.murphy@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Linux Memory Management List <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
+Message-ID: <20180309175850.TZoqUjRDSSVKkaheoBQt2-mz8btg-4QYT3VL-NEHMf8@z>
 
-On Fri, Mar 9, 2018 at 4:58 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
-> On Fri, Mar 09, 2018 at 03:03:09PM +0000, Mark Rutland wrote:
->> On Fri, Mar 09, 2018 at 03:02:00PM +0100, Andrey Konovalov wrote:
->> > copy_from_user (and a few other similar functions) are used to copy data
->> > from user memory into the kernel memory or vice versa. Since a user can
->> > provided a tagged pointer to one of the syscalls that use copy_from_user,
->> > we need to correctly handle such pointers.
+On Fri, Mar 9, 2018 at 3:55 PM, Mark Rutland <mark.rutland@arm.com> wrote:
+> Hi,
+>
+> [trimming Ccs]
+>
+> On Fri, Mar 09, 2018 at 03:01:58PM +0100, Andrey Konovalov wrote:
+>> arm64 has a feature called Top Byte Ignore, which allows to embed pointer
+>> tags into the top byte of each pointer. Userspace programs (such as
+>> HWASan, a memory debugging tool [1]) might use this feature and pass
+>> tagged user pointers to the kernel through syscalls or other interfaces.
 >>
->> I don't think it makes sense to do this in the low-level uaccess
->> primitives, given we're going to have to untag pointers before common
->> code can use them, e.g. for comparisons against TASK_SIZE or
->> user_addr_max().
+>> This patch makes a few of the kernel interfaces accept tagged user
+>> pointers. The kernel is already able to handle user faults with tagged
+>> pointers and has the untagged_addr macro, which this patchset reuses.
 >>
->> I think we'll end up with subtle bugs unless we consistently untag
->> pointers before we get to uaccess primitives. If core code does untag
->> pointers, then it's redundant to do so here.
+>> We're not trying to cover all possible ways the kernel accepts user
+>> pointers in one patchset, so this one should be considered as a start.
+>> It would be nice to learn about the interfaces that I missed though.
+>
+> There are many ways that user pointers can be passed to the kernel, and
+> I'm not sure that it's feasible to catch them all, especially as user
+> pointers are often passed in data structures (e.g. iovecs) rather than
+> direct syscall arguments.
+>
+> If we *really* want the kernel to support taking tagged addresses, anything
+> with a __user annotation (or cast to something with a __user annotation)
+> requires tag removal somewhere in the kernel.
+>
+> It looks like there are plenty uapi structures and syscalls to look at:
+>
+> [mark@lakrids:~/src/linux]% git grep __user -- include/uapi | wc -l
+> 216
+> [mark@lakrids:~/src/linux]% git grep __user | grep SYSCALL_DEFINE | wc -l
+> 308
+>
+> ... in addition to special syscalls like ioctl which multiplex a number
+> of operations with different arguments, where the tag stripping would
+> have to occur elsewhere (e.g. in particular drivers).
+>
+> I also wonder if we ever write any of these pointers back to userspace
+> memory. If so, we have a nasty ABI problem, since we'll have to marshal
+> the original tag along with the pointer, to ensure userspace pointer
+> comparisons continue to work.
+>
+> Thanks,
+> Mark.
 
-There are two different approaches to untagging the user pointers that I see:
+Hi Mark!
 
-1. Untag user pointers right after they are passed to the kernel.
+This seems to be similar to what you said in reply to one of the other
+patches, replied there.
 
-While this might be possible for pointers that are passed to syscalls
-as arguments (Catalin's "hack"), this leaves user pointers, that are
-embedded into for example structs that are passed to the kernel. Since
-there's no specification of the interface between user space and the
-kernel, different kernel parts handle user pointers differently and I
-don't see an easy way to cover them all.
-
-2. Untag user pointers where they are used in the kernel.
-
-Although there's no specification on the interface between the user
-space and the kernel, the kernel still has to use one of a few
-specific ways to access user data (copy_from_user, etc.). So the idea
-here is to add untagging into them. This patchset mostly takes this
-approach (with the exception of memory subsystem syscalls).
-
-If there's a better approach, I'm open to suggestions.
+Thanks!
