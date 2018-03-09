@@ -1,93 +1,49 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH 2/6] arm64: untag user addresses in copy_from_user
- and others
-Date: Fri, 9 Mar 2018 15:58:29 +0000
-Message-ID: <20180309155829.2fzgevhsxj3gnyly@armageddon.cambridge.arm.com>
-References: <cover.1520600533.git.andreyknvl@google.com>
- <d681c0dee907ee5cc55d313e2f843237c6087bf0.1520600533.git.andreyknvl@google.com>
- <20180309150309.4sue2zj6teehx6e3@lakrids.cambridge.arm.com>
+From: Joseph Myers <joseph@codesourcery.com>
+Subject: Re: RFC: remove the "tile" architecture from glibc
+Date: Fri, 9 Mar 2018 16:31:36 +0000
+Message-ID: <alpine.DEB.2.20.1803091622420.8457@digraph.polyomino.org.uk>
+References: <1a57be83-3349-5450-ee4f-d2a33569a728@mellanox.com> <d6c8e425-a6b6-6594-05e3-965536f06da3@physik.fu-berlin.de> <abce89d0-6798-069a-1a54-06e664665b78@mellanox.com> <dc3c52ce-f082-0da0-7828-0d4e6751e2a5@physik.fu-berlin.de>
+ <CAK8P3a3itR8i2ayG7e4ku7kz+CQU7qHhptdmtmgTz+CzFGmCiw@mail.gmail.com> <20180307181407.GA24350@alf.mars> <CAK8P3a2VuYxzy6RmL_w_5f2qHepVRhfVR5P4x9nCUYav1s5n7g@mail.gmail.com> <9a60ac70-21e4-3f48-5cd7-ffd3aabc5c21@physik.fu-berlin.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180309150309.4sue2zj6teehx6e3@lakrids.cambridge.arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Andrey Konovalov <andreyknvl@google.com>, Will Deacon <will.deacon@arm.com>, Robin Murphy <robin.murphy@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
+Content-Type: text/plain; charset="US-ASCII"
+Return-path: <libc-alpha-return-90932-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+In-Reply-To: <9a60ac70-21e4-3f48-5cd7-ffd3aabc5c21@physik.fu-berlin.de>
+To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, Helmut Grohne <helmut@subdivi.de>, GNU C Library <libc-alpha@sourceware.org>, linux-arch <linux-arch@vger.kernel.org>, metcalf@alum.mit.edu, Henrik Grindal Bakken <hgb@ifi.uio.no>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 09, 2018 at 03:03:09PM +0000, Mark Rutland wrote:
-> On Fri, Mar 09, 2018 at 03:02:00PM +0100, Andrey Konovalov wrote:
-> > copy_from_user (and a few other similar functions) are used to copy data
-> > from user memory into the kernel memory or vice versa. Since a user can
-> > provided a tagged pointer to one of the syscalls that use copy_from_user,
-> > we need to correctly handle such pointers.
-> 
-> I don't think it makes sense to do this in the low-level uaccess
-> primitives, given we're going to have to untag pointers before common
-> code can use them, e.g. for comparisons against TASK_SIZE or
-> user_addr_max().
-> 
-> I think we'll end up with subtle bugs unless we consistently untag
-> pointers before we get to uaccess primitives. If core code does untag
-> pointers, then it's redundant to do so here.
+On Thu, 8 Mar 2018, John Paul Adrian Glaubitz wrote:
 
-A quick "hack" below clears the tag on syscall entry (where the argument
-is a __user pointer). However, we still have cases in core code where
-the pointer is read from a structure or even passed as an unsigned long
-as part of a command + argument (like in ptrace).
+> I have personally invested a lot of work into the SH port over the
+> past three years in Debian and I was involved fixing many bugs
+> and as a result, the port is quite usable. It would be really
+> disappointing to see it being removed all of a sudden :(.
 
-The "hack":
+Note that SH glibc test results need some work - there are a large number 
+of failures listed at <https://sourceware.org/glibc/wiki/Release/2.27#SH>.  
+Probably most could be addressed with the NaN fixes I outlined at 
+<https://sourceware.org/ml/libc-alpha/2018-02/msg00440.html> - but that 
+does of course need someone to do the work to implement that in GCC and 
+glibc.  (The stdlib/tst-tininess failure is stranger; SH manuals don't 
+seem very specific on this, but the existing setting was definitely 
+determined by testing on hardware.  SH experts with access to a range of 
+different hardware may be needed to advise on what different hardware does 
+or is supposed to do in this regard.)
 
----------------------------------8<--------------------------
-From 6df503651f73c923d91eb695e56f977ddcc52d43 Mon Sep 17 00:00:00 2001
-From: Catalin Marinas <catalin.marinas@arm.com>
-Date: Tue, 6 Feb 2018 17:54:05 +0000
-Subject: [PATCH] arm64: Allow user pointer tags to be passed into the kernel
+The glibc port whose test results cause me the most concern that it's 
+effectively unmaintained and should be considered for obsoletion is 
+MicroBlaze - the results 
+<https://sourceware.org/glibc/wiki/Release/2.27#MicroBlaze> are clearly a 
+big mess (not something where one fix would probably resolve most failures 
+as on SH) and there's no sign of activity to sort them out (nor has there 
+been such activity for a long time).
 
-The current tagged pointer ABI disallows the top byte of a user pointer
-to be non-zero when invoking a syscall. This patch allows such pointer
-to be passed into the kernel and the kernel will mask them out
-automatically. Page-based syscall ABI (mmap, mprotect, madvise etc.)
-expect the pointer tag to be 0 (see include/linux/syscalls.h for the ABI
-functions taking __user pointers).
-
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
----
- arch/arm64/include/asm/unistd.h | 9 +++++++++
- include/linux/syscalls.h        | 2 ++
- 2 files changed, 11 insertions(+)
-
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-index a0baa9af5487..cd68ad969e3a 100644
---- a/arch/arm64/include/asm/unistd.h
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -53,3 +53,12 @@
- #endif
- 
- #define NR_syscalls (__NR_syscalls)
-+
-+/* copied from arch/s390/ */
-+#define __TYPE_IS_PTR(t) (!__builtin_types_compatible_p( \
-+				typeof(0?(__force t)0:0ULL), u64))
-+/* sign-extend bit 55 to mask out the pointer tag */
-+#define __SC_CAST(t, a)						\
-+	(__TYPE_IS_PTR(t)					\
-+		? (__force t)((__s64)((__u64)a << 8) >> 8)	\
-+		: (__force t)a)
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index a78186d826d7..279497207a31 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -105,7 +105,9 @@ union bpf_attr;
- #define __TYPE_IS_UL(t)	(__TYPE_AS(t, 0UL))
- #define __TYPE_IS_LL(t) (__TYPE_AS(t, 0LL) || __TYPE_AS(t, 0ULL))
- #define __SC_LONG(t, a) __typeof(__builtin_choose_expr(__TYPE_IS_LL(t), 0LL, 0L)) a
-+#ifndef __SC_CAST
- #define __SC_CAST(t, a)	(__force t) a
-+#endif
- #define __SC_ARGS(t, a)	a
- #define __SC_TEST(t, a) (void)BUILD_BUG_ON_ZERO(!__TYPE_IS_LL(t) && sizeof(t) > sizeof(long))
- 
 -- 
-Catalin
+Joseph S. Myers
+joseph@codesourcery.com
