@@ -1,45 +1,48 @@
-From: Andrey Konovalov <andreyknvl@google.com>
-Subject: Re: [RFC PATCH 6/6] arch: add untagged_addr definition for other
- arches
-Date: Fri, 9 Mar 2018 16:47:23 +0100
-Message-ID: <CAAeHK+y=_imh4uNSAg_vj3DLAeDLcVP3a4f79dNMW=Ot5oLiZQ@mail.gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC PATCH 3/6] mm, arm64: untag user addresses in memory
+ syscalls
+Date: Fri, 9 Mar 2018 15:53:16 +0000
+Message-ID: <20180309155315.4x44sbp3darractt@armageddon.cambridge.arm.com>
 References: <cover.1520600533.git.andreyknvl@google.com>
- <89b4bb181a0622d2c581699bb3814fc041078d04.1520600533.git.andreyknvl@google.com>
- <b320ff92-43ae-a479-35aa-4257b9c5430e@arm.com>
+ <beea8ac394bfae3c7c949645fb887ceacc3f3bb3.1520600533.git.andreyknvl@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-In-Reply-To: <b320ff92-43ae-a479-35aa-4257b9c5430e@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: Robin Murphy <robin.murphy@arm.com>
-Cc: linux-mips@linux-mips.org, linux-sh@vger.kernel.org, Lee Smith <Lee.Smith@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, Shaohua Li <shli@fb.com>, linux-arch@vger.kernel.org, Jacob Bramley <Jacob.Bramley@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, "James E . J . Bottomley" <jejb@parisc-linux.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, Evgeniy Stepanov <eugenis@google.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, adi-buildroot-devel@lists.sourceforge.net, Mike Rapoport <rppt@linux.vnet.ibm.com>, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Richard Henderson <rth@twiddle.net>, linux-cris-kernel@axis.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <beea8ac394bfae3c7c949645fb887ceacc3f3bb3.1520600533.git.andreyknvl@google.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrey Konovalov <andreyknvl@google.com>
+Cc: Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 9, 2018 at 3:16 PM, Robin Murphy <robin.murphy@arm.com> wrote:
-> On 09/03/18 14:02, Andrey Konovalov wrote:
->>
->> To allow arm64 syscalls accept tagged pointers from userspace, we must
->> untag them when they are passed to the kernel. Since untagging is done in
->> generic parts of the kernel (like the mm subsystem), the untagged_addr
->> macro should be defined for all architectures.
->
->
-> Would it not suffice to have an "#ifndef untagged_addr..." fallback in
-> linux/uaccess.h?
->
+On Fri, Mar 09, 2018 at 03:02:01PM +0100, Andrey Konovalov wrote:
+> Memory subsystem syscalls accept user addresses as arguments, but don't use
+> copy_from_user and other similar functions, so we need to handle this case
+> separately.
+> 
+> Untag user pointers passed to madvise, mbind, get_mempolicy, mincore,
+> mlock, mlock2, brk, mmap_pgoff, old_mmap, munmap, remap_file_pages,
+> mprotect, pkey_mprotect, mremap and msync.
+> 
+> Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
 
-Hi Robin!
+Please keep the cc list small (maybe linux-arch, linux-arm-kernel) as
+I'm sure some lists would consider this spam.
 
-This approach is much better, I'll try it. This will also solve the
-merge issues that Arnd mentioned.
+>  mm/madvise.c   | 2 ++
+>  mm/mempolicy.c | 6 ++++++
+>  mm/mincore.c   | 2 ++
+>  mm/mlock.c     | 5 +++++
+>  mm/mmap.c      | 9 +++++++++
+>  mm/mprotect.c  | 2 ++
+>  mm/mremap.c    | 2 ++
+>  mm/msync.c     | 3 +++
 
-Thanks!
+I'm not yet convinced these functions need to allow tagged pointers.
+They are not doing memory accesses but rather dealing with the memory
+range, hence an untagged pointer is better suited. There is probably a
+reason why the "start" argument is "unsigned long" vs "void __user *"
+(in the kernel, not the man page).
+
+-- 
+Catalin
