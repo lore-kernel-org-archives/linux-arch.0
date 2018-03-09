@@ -1,61 +1,57 @@
-From: Joseph Myers <joseph@codesourcery.com>
-Subject: Re: RFC: remove the "tile" architecture from glibc
-Date: Fri, 9 Mar 2018 16:53:02 +0000
-Message-ID: <alpine.DEB.2.20.1803091645580.8457@digraph.polyomino.org.uk>
-References: <1a57be83-3349-5450-ee4f-d2a33569a728@mellanox.com> <d6c8e425-a6b6-6594-05e3-965536f06da3@physik.fu-berlin.de> <abce89d0-6798-069a-1a54-06e664665b78@mellanox.com> <dc3c52ce-f082-0da0-7828-0d4e6751e2a5@physik.fu-berlin.de>
- <CAK8P3a3itR8i2ayG7e4ku7kz+CQU7qHhptdmtmgTz+CzFGmCiw@mail.gmail.com> <20180307181407.GA24350@alf.mars> <CAK8P3a2VuYxzy6RmL_w_5f2qHepVRhfVR5P4x9nCUYav1s5n7g@mail.gmail.com> <9a60ac70-21e4-3f48-5cd7-ffd3aabc5c21@physik.fu-berlin.de>
- <alpine.DEB.2.20.1803091622420.8457@digraph.polyomino.org.uk> <224c8996-bda1-5e75-bff3-9ed8abc4de87@physik.fu-berlin.de>
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: Re: [RFC PATCH 3/6] mm, arm64: untag user addresses in memory syscalls
+Date: Fri, 9 Mar 2018 18:31:36 +0100
+Message-ID: <CAAeHK+xF0X-SQuPVmZF--VnmvYrbpDkznSwYTh_3LHq1H2V=9Q@mail.gmail.com>
+References: <cover.1520600533.git.andreyknvl@google.com> <beea8ac394bfae3c7c949645fb887ceacc3f3bb3.1520600533.git.andreyknvl@google.com>
+ <20180309155315.4x44sbp3darractt@armageddon.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <224c8996-bda1-5e75-bff3-9ed8abc4de87@physik.fu-berlin.de>
+In-Reply-To: <20180309155315.4x44sbp3darractt@armageddon.cambridge.arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Helmut Grohne <helmut@subdivi.de>, GNU C Library <libc-alpha@sourceware.org>, linux-arch <linux-arch@vger.kernel.org>, metcalf@alum.mit.edu, Henrik Grindal Bakken <hgb@ifi.uio.no>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>, Evgeniy Stepanov <eugenis@google.com>
+Cc: Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 9 Mar 2018, John Paul Adrian Glaubitz wrote:
+On Fri, Mar 9, 2018 at 4:53 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
+> On Fri, Mar 09, 2018 at 03:02:01PM +0100, Andrey Konovalov wrote:
+>> Memory subsystem syscalls accept user addresses as arguments, but don't use
+>> copy_from_user and other similar functions, so we need to handle this case
+>> separately.
+>>
+>> Untag user pointers passed to madvise, mbind, get_mempolicy, mincore,
+>> mlock, mlock2, brk, mmap_pgoff, old_mmap, munmap, remap_file_pages,
+>> mprotect, pkey_mprotect, mremap and msync.
+>>
+>> Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+>
+> Please keep the cc list small (maybe linux-arch, linux-arm-kernel) as
+> I'm sure some lists would consider this spam.
 
-> On 03/09/2018 05:31 PM, Joseph Myers wrote:
-> > Note that SH glibc test results need some work - there are a large number 
-> > of failures listed at <https://sourceware.org/glibc/wiki/Release/2.27#SH>.  
-> > Probably most could be addressed with the NaN fixes I outlined at 
-> > <https://sourceware.org/ml/libc-alpha/2018-02/msg00440.html> - but that 
-> > does of course need someone to do the work to implement that in GCC and 
-> > glibc.  (The stdlib/tst-tininess failure is stranger; SH manuals don't 
-> > seem very specific on this, but the existing setting was definitely 
-> > determined by testing on hardware.  SH experts with access to a range of 
-> > different hardware may be needed to advise on what different hardware does 
-> > or is supposed to do in this regard.)
-> 
-> Ok, thanks for the explanation.
-> 
-> On a sidenote: Is there documentation somewhere which explains how to properly
-> run the glibc testsuite? I would then go ahead and run it on my Amiga 4000
-> for m68k.
+OK.
 
-"make check", or "make -k check" if you're concerned about some tests 
-failing to build (e.g. the compiler running out of memory on a few large 
-tests) - the testsuite should continue after execution failures, but not 
-after compilation failures.  (Having previously configured with 
---prefix=/usr for the build.  And if the compiler used doesn't have 
-libgcc_s and libstdc++ shared libraries in directories ld.so searches by 
-default, you should copy those libraries into the glibc build directory 
-before running tests.)  On a system that can handle it you'd use an 
-appropriate -jN option for parallelism, but probably not on m68k.
+>
+>>  mm/madvise.c   | 2 ++
+>>  mm/mempolicy.c | 6 ++++++
+>>  mm/mincore.c   | 2 ++
+>>  mm/mlock.c     | 5 +++++
+>>  mm/mmap.c      | 9 +++++++++
+>>  mm/mprotect.c  | 2 ++
+>>  mm/mremap.c    | 2 ++
+>>  mm/msync.c     | 3 +++
+>
+> I'm not yet convinced these functions need to allow tagged pointers.
+> They are not doing memory accesses but rather dealing with the memory
+> range, hence an untagged pointer is better suited. There is probably a
+> reason why the "start" argument is "unsigned long" vs "void __user *"
+> (in the kernel, not the man page).
 
-For cross testing over SSH (when glibc is running on a system that is very 
-slow running the compiler or has too little memory to do so) you need a 
-shared filesystem at the same path on both the system where glibc is built 
-and the system where tests will execute (probably NFS-exported from the 
-build system, and it may be necessary to mount it on the test system with 
-acdirmax=0,acdirmin=0 to limit any caching).  Then you can pass 
-test-wrapper="/path/to/glibc/scripts/cross-test-ssh.sh <host>" to make 
-check.
+So that would make the user to untag pointers before passing to these syscalls.
 
-In both cases, for very slow test systems you may wish to export 
-TIMEOUTFACTOR (an integer by which all test timeouts are multiplied).
+Evgeniy, would that be possible to untag pointers in HWASan before
+using memory subsystem syscalls? Is there a reason for untagging them
+in the kernel?
 
--- 
-Joseph S. Myers
-joseph@codesourcery.com
+>
+> --
+> Catalin
