@@ -1,75 +1,45 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RFC PATCH 0/6] arm64: untag user pointers passed to the kernel
-Date: Fri, 9 Mar 2018 16:16:58 +0100
-Message-ID: <CAMuHMdWtdYAVOvR=gffVu0T1vzEcKM4pqxRc6zWr=k3PykgwiA@mail.gmail.com>
-References: <cover.1520600533.git.andreyknvl@google.com> <20180309145547.r25eis5ejy6d6xzu@lakrids.cambridge.arm.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: Re: [RFC PATCH 6/6] arch: add untagged_addr definition for other
+ arches
+Date: Fri, 9 Mar 2018 16:47:23 +0100
+Message-ID: <CAAeHK+y=_imh4uNSAg_vj3DLAeDLcVP3a4f79dNMW=Ot5oLiZQ@mail.gmail.com>
+References: <cover.1520600533.git.andreyknvl@google.com>
+ <89b4bb181a0622d2c581699bb3814fc041078d04.1520600533.git.andreyknvl@google.com>
+ <b320ff92-43ae-a479-35aa-4257b9c5430e@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180309145547.r25eis5ejy6d6xzu@lakrids.cambridge.arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Andrey Konovalov <andreyknvl@google.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Robin Murphy <robin.murphy@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Evgeniy Stepanov <eugenis@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <b320ff92-43ae-a479-35aa-4257b9c5430e@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Robin Murphy <robin.murphy@arm.com>
+Cc: linux-mips@linux-mips.org, linux-sh@vger.kernel.org, Lee Smith <Lee.Smith@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <will.deacon@arm.com>, Paul Mackerras <paulus@samba.org>, Shaohua Li <shli@fb.com>, linux-arch@vger.kernel.org, Jacob Bramley <Jacob.Bramley@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, "James E . J . Bottomley" <jejb@parisc-linux.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Matt Turner <mattst88@gmail.com>, Evgeniy Stepanov <eugenis@google.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, adi-buildroot-devel@lists.sourceforge.net, Mike Rapoport <rppt@linux.vnet.ibm.com>, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Richard Henderson <rth@twiddle.net>, linux-cris-kernel@axis.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, LKML <linux-kernel>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 9, 2018 at 3:55 PM, Mark Rutland <mark.rutland@arm.com> wrote:
-> On Fri, Mar 09, 2018 at 03:01:58PM +0100, Andrey Konovalov wrote:
->> arm64 has a feature called Top Byte Ignore, which allows to embed pointer
->> tags into the top byte of each pointer. Userspace programs (such as
->> HWASan, a memory debugging tool [1]) might use this feature and pass
->> tagged user pointers to the kernel through syscalls or other interfaces.
+On Fri, Mar 9, 2018 at 3:16 PM, Robin Murphy <robin.murphy@arm.com> wrote:
+> On 09/03/18 14:02, Andrey Konovalov wrote:
 >>
->> This patch makes a few of the kernel interfaces accept tagged user
->> pointers. The kernel is already able to handle user faults with tagged
->> pointers and has the untagged_addr macro, which this patchset reuses.
->>
->> We're not trying to cover all possible ways the kernel accepts user
->> pointers in one patchset, so this one should be considered as a start.
->> It would be nice to learn about the interfaces that I missed though.
+>> To allow arm64 syscalls accept tagged pointers from userspace, we must
+>> untag them when they are passed to the kernel. Since untagging is done in
+>> generic parts of the kernel (like the mm subsystem), the untagged_addr
+>> macro should be defined for all architectures.
 >
-> There are many ways that user pointers can be passed to the kernel, and
-> I'm not sure that it's feasible to catch them all, especially as user
-> pointers are often passed in data structures (e.g. iovecs) rather than
-> direct syscall arguments.
 >
-> If we *really* want the kernel to support taking tagged addresses, anything
-> with a __user annotation (or cast to something with a __user annotation)
-> requires tag removal somewhere in the kernel.
+> Would it not suffice to have an "#ifndef untagged_addr..." fallback in
+> linux/uaccess.h?
 >
-> It looks like there are plenty uapi structures and syscalls to look at:
->
-> [mark@lakrids:~/src/linux]% git grep __user -- include/uapi | wc -l
-> 216
-> [mark@lakrids:~/src/linux]% git grep __user | grep SYSCALL_DEFINE | wc -l
-> 308
->
-> ... in addition to special syscalls like ioctl which multiplex a number
-> of operations with different arguments, where the tag stripping would
-> have to occur elsewhere (e.g. in particular drivers).
 
-Hence we definitely need good support from e.g. sparse to catch any errors
-from happening.
+Hi Robin!
 
-So doing assignments to the same pointer variable like
+This approach is much better, I'll try it. This will also solve the
+merge issues that Arnd mentioned.
 
-     addr = untagged_addr(addr);
-
-defeats any checking.
-
-> I also wonder if we ever write any of these pointers back to userspace
-> memory. If so, we have a nasty ABI problem, since we'll have to marshal
-> the original tag along with the pointer, to ensure userspace pointer
-> comparisons continue to work.
-
-Oh, another can of worms...
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Thanks!
