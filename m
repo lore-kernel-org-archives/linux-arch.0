@@ -1,18 +1,18 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 18/65] nospec: Allow index argument to have const-qualified type
-Date: Fri,  9 Mar 2018 16:18:18 -0800
-Message-ID: <20180310001826.416622744@linuxfoundation.org>
-References: <20180310001824.927996722@linuxfoundation.org>
+Subject: [PATCH 4.4 08/36] nospec: Allow index argument to have const-qualified type
+Date: Fri,  9 Mar 2018 16:18:24 -0800
+Message-ID: <20180310001807.674544545@linuxfoundation.org>
+References: <20180310001807.213987241@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180310001824.927996722@linuxfoundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20180310001807.213987241@linuxfoundation.org>
+Sender: stable-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Dan Williams <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-4.9-stable review patch.  If anyone has any objections, please let me know.
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -67,7 +67,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/include/linux/nospec.h
 +++ b/include/linux/nospec.h
-@@ -72,7 +72,6 @@ static inline unsigned long array_index_
+@@ -66,7 +66,6 @@ static inline unsigned long array_index_
  	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
  	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
  									\
