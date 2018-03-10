@@ -1,78 +1,38 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 08/36] nospec: Allow index argument to have const-qualified type
-Date: Fri,  9 Mar 2018 16:18:24 -0800
-Message-ID: <20180310001807.674544545@linuxfoundation.org>
-References: <20180310001807.213987241@linuxfoundation.org>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [PATCH] x86, powerpc : pkey-mprotect must allow pkey-0
+Date: Fri, 9 Mar 2018 21:55:44 -0800
+Message-ID: <20180310055544.GU1060@ram.oc3035372033.ibm.com>
+References: <1520583161-11741-1-git-send-email-linuxram@us.ibm.com>
+ <60886e4a-59d4-541a-a6af-d4504e6719ad@intel.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <20180310001807.213987241@linuxfoundation.org>
-Sender: stable-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Dan Williams <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <60886e4a-59d4-541a-a6af-d4504e6719ad@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com, Ulrich.Weigand@de.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-4.4-stable review patch.  If anyone has any objections, please let me know.
+On Fri, Mar 09, 2018 at 02:40:32PM -0800, Dave Hansen wrote:
+> On 03/09/2018 12:12 AM, Ram Pai wrote:
+> > Once an address range is associated with an allocated pkey, it cannot be
+> > reverted back to key-0. There is no valid reason for the above behavior.  On
+> > the contrary applications need the ability to do so.
+> 
+> Why don't we just set pkey 0 to be allocated in the allocation bitmap by
+> default?
 
-------------------
+ok. that will make it allocatable. But it will not be associatable,
+given the bug in the current code. And what will be the
+default key associated with a pte? zero? or something else?
 
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+> 
+> We *could* also just not let it be special and let it be freed.  An app
+> could theoretically be careful and make sure nothing is using it.
 
-commit b98c6a160a057d5686a8c54c79cc6c8c94a7d0c8 upstream.
+unable to see how this solves the problem. Need some more explaination.
 
-The last expression in a statement expression need not be a bare
-variable, quoting gcc docs
 
-  The last thing in the compound statement should be an expression
-  followed by a semicolon; the value of this subexpression serves as the
-  value of the entire construct.
-
-and we already use that in e.g. the min/max macros which end with a
-ternary expression.
-
-This way, we can allow index to have const-qualified type, which will in
-some cases avoid the need for introducing a local copy of index of
-non-const qualified type. That, in turn, can prevent readers not
-familiar with the internals of array_index_nospec from wondering about
-the seemingly redundant extra variable, and I think that's worthwhile
-considering how confusing the whole _nospec business is.
-
-The expression _i&_mask has type unsigned long (since that is the type
-of _mask, and the BUILD_BUG_ONs guarantee that _i will get promoted to
-that), so in order not to change the type of the whole expression, add
-a cast back to typeof(_i).
-
-Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arjan van de Ven <arjan@linux.intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org
-Cc: stable@vger.kernel.org
-Link: http://lkml.kernel.org/r/151881604837.17395.10812767547837568328.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
----
- include/linux/nospec.h |    3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
-
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -66,7 +66,6 @@ static inline unsigned long array_index_
- 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
- 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
- 									\
--	_i &= _mask;							\
--	_i;								\
-+	(typeof(_i)) (_i & _mask);					\
- })
- #endif /* _LINUX_NOSPEC_H */
+RP
