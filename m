@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:39470 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:39112 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933636AbeCJAVQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2018 19:21:16 -0500
+        with ESMTP id S933401AbeCJAUX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2018 19:20:23 -0500
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 18/65] nospec: Allow index argument to have const-qualified type
-Date: Fri,  9 Mar 2018 16:18:18 -0800
-Message-ID: <20180310001826.416622744@linuxfoundation.org>
-In-Reply-To: <20180310001824.927996722@linuxfoundation.org>
-References: <20180310001824.927996722@linuxfoundation.org>
+Subject: [PATCH 4.4 08/36] nospec: Allow index argument to have const-qualified type
+Date: Fri,  9 Mar 2018 16:18:24 -0800
+Message-ID: <20180310001807.674544545@linuxfoundation.org>
+In-Reply-To: <20180310001807.213987241@linuxfoundation.org>
+References: <20180310001807.213987241@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Dan Williams <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20180310001818.tgMXmDu9HVRS_FnGUqcVYpmjR4A2bxgZnDRkAG77uvs@z>
+Message-ID: <20180310001824.HDJ5-brO55_Rgc5N1NSZH3m48TXt3bAKwYaouWWpgYM@z>
 
-4.9-stable review patch.  If anyone has any objections, please let me know.
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -72,7 +72,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/include/linux/nospec.h
 +++ b/include/linux/nospec.h
-@@ -72,7 +72,6 @@ static inline unsigned long array_index_
+@@ -66,7 +66,6 @@ static inline unsigned long array_index_
  	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
  	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
  									\
