@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:39112 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:38778 "EHLO
         mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933401AbeCJAUX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2018 19:20:23 -0500
+        with ESMTP id S932727AbeCJATl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2018 19:19:41 -0500
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 08/36] nospec: Allow index argument to have const-qualified type
-Date: Fri,  9 Mar 2018 16:18:24 -0800
-Message-ID: <20180310001807.674544545@linuxfoundation.org>
+Subject: [PATCH 4.4 11/36] x86/syscall: Sanitize syscall table de-references under speculation fix
+Date: Fri,  9 Mar 2018 16:18:27 -0800
+Message-ID: <20180310001807.821338686@linuxfoundation.org>
 In-Reply-To: <20180310001807.213987241@linuxfoundation.org>
 References: <20180310001807.213987241@linuxfoundation.org>
 MIME-Version: 1.0
@@ -14,70 +14,84 @@ Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Dan Williams <dan.j.williams@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20180310001824.HDJ5-brO55_Rgc5N1NSZH3m48TXt3bAKwYaouWWpgYM@z>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Jan Beulich <JBeulich@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@kernel.org>, alan@linux.intel.com, Jinpu Wang <jinpu.wang@profitbricks.com>, Jiri Slaby <jslaby@suse.cz>
+Message-ID: <20180310001827.FtjMTYSN-M0VykVPisddaPsP-ZsLkPYnYZkspBCT3rA@z>
 
 4.4-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+From: Jiri Slaby <jslaby@suse.cz>
 
-commit b98c6a160a057d5686a8c54c79cc6c8c94a7d0c8 upstream.
+In 4.4.118, we have commit c8961332d6da (x86/syscall: Sanitize syscall
+table de-references under speculation), which is a backport of upstream
+commit 2fbd7af5af86. But it fixed only the C part of the upstream patch
+-- the IA32 sysentry. So it ommitted completely the assembly part -- the
+64bit sysentry.
 
-The last expression in a statement expression need not be a bare
-variable, quoting gcc docs
+Fix that in this patch by explicit array_index_mask_nospec written in
+assembly. The same was used in lib/getuser.S.
 
-  The last thing in the compound statement should be an expression
-  followed by a semicolon; the value of this subexpression serves as the
-  value of the entire construct.
+However, to have "sbb" working properly, we have to switch from "cmp"
+against (NR_syscalls-1) to (NR_syscalls), otherwise the last syscall
+number would be "and"ed by 0. It is because the original "ja" relies on
+"CF" or "ZF", but we rely only on "CF" in "sbb". That means: switch to
+"jae" conditional jump too.
 
-and we already use that in e.g. the min/max macros which end with a
-ternary expression.
+Final note: use rcx for mask as this is exactly what is overwritten by
+the 4th syscall argument (r10) right after.
 
-This way, we can allow index to have const-qualified type, which will in
-some cases avoid the need for introducing a local copy of index of
-non-const qualified type. That, in turn, can prevent readers not
-familiar with the internals of array_index_nospec from wondering about
-the seemingly redundant extra variable, and I think that's worthwhile
-considering how confusing the whole _nospec business is.
-
-The expression _i&_mask has type unsigned long (since that is the type
-of _mask, and the BUILD_BUG_ONs guarantee that _i will get promoted to
-that), so in order not to change the type of the whole expression, add
-a cast back to typeof(_i).
-
-Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arjan van de Ven <arjan@linux.intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
+Reported-by: Jan Beulich <JBeulich@suse.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Will Deacon <will.deacon@arm.com>
 Cc: linux-arch@vger.kernel.org
-Cc: stable@vger.kernel.org
-Link: http://lkml.kernel.org/r/151881604837.17395.10812767547837568328.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Cc: kernel-hardening@lists.openwall.com
+Cc: gregkh@linuxfoundation.org
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: alan@linux.intel.com
+Cc: Jinpu Wang <jinpu.wang@profitbricks.com>
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
 ---
- include/linux/nospec.h |    3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ arch/x86/entry/entry_64.S |   16 ++++++++++------
+ 1 file changed, 10 insertions(+), 6 deletions(-)
 
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -66,7 +66,6 @@ static inline unsigned long array_index_
- 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
- 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
- 									\
--	_i &= _mask;							\
--	_i;								\
-+	(typeof(_i)) (_i & _mask);					\
- })
- #endif /* _LINUX_NOSPEC_H */
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -178,12 +178,14 @@ GLOBAL(entry_SYSCALL_64_after_swapgs)
+ 	jnz	tracesys
+ entry_SYSCALL_64_fastpath:
+ #if __SYSCALL_MASK == ~0
+-	cmpq	$__NR_syscall_max, %rax
++	cmpq	$NR_syscalls, %rax
+ #else
+ 	andl	$__SYSCALL_MASK, %eax
+-	cmpl	$__NR_syscall_max, %eax
++	cmpl	$NR_syscalls, %eax
+ #endif
+-	ja	1f				/* return -ENOSYS (already in pt_regs->ax) */
++	jae	1f				/* return -ENOSYS (already in pt_regs->ax) */
++	sbb	%rcx, %rcx			/* array_index_mask_nospec() */
++	and	%rcx, %rax
+ 	movq	%r10, %rcx
+ #ifdef CONFIG_RETPOLINE
+ 	movq	sys_call_table(, %rax, 8), %rax
+@@ -276,12 +278,14 @@ tracesys_phase2:
+ 	RESTORE_C_REGS_EXCEPT_RAX
+ 	RESTORE_EXTRA_REGS
+ #if __SYSCALL_MASK == ~0
+-	cmpq	$__NR_syscall_max, %rax
++	cmpq	$NR_syscalls, %rax
+ #else
+ 	andl	$__SYSCALL_MASK, %eax
+-	cmpl	$__NR_syscall_max, %eax
++	cmpl	$NR_syscalls, %eax
+ #endif
+-	ja	1f				/* return -ENOSYS (already in pt_regs->ax) */
++	jae	1f				/* return -ENOSYS (already in pt_regs->ax) */
++	sbb	%rcx, %rcx			/* array_index_mask_nospec() */
++	and	%rcx, %rax
+ 	movq	%r10, %rcx			/* fixup for C */
+ #ifdef CONFIG_RETPOLINE
+ 	movq	sys_call_table(, %rax, 8), %rax
