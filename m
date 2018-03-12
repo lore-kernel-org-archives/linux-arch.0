@@ -1,35 +1,56 @@
 From: Ben Hutchings <ben@decadent.org.uk>
-Subject: [PATCH 3.16 74/76] x86/usercopy: Replace open coded stac/clac
- with __uaccess_{begin, end}
-Date: Mon, 12 Mar 2018 03:06:12 +0000
-Message-ID: <lsq.1520823972.943057352@decadent.org.uk>
-References: <lsq.1520823971.5976735@decadent.org.uk>
+Subject: [PATCH 3.2 101/104] x86: Introduce __uaccess_begin_nospec() and
+ uaccess_try_nospec
+Date: Mon, 12 Mar 2018 03:03:34 +0000
+Message-ID: <lsq.1520823814.499853632@decadent.org.uk>
+References: <lsq.1520823814.606620518@decadent.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8bit
-Return-path: <stable-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <lsq.1520823971.5976735@decadent.org.uk>
-Sender: stable-owner@vger.kernel.org
+In-Reply-To: <lsq.1520823814.606620518@decadent.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, alan@linux.intel.com, Dan Williams <dan.j.williams@intel.com>, Tom Lendacky <thomas.lendacky@amd.com>, torvalds@linux-foundation.org, kernel-hardening@lists.openwall.com, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: akpm@linux-foundation.org, kernel-hardening@lists.openwall.com, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Dan Williams <dan.j.williams@intel.com>, Kees Cook <keescook@chromium.org>, alan@linux.intel.com, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Tom Lendacky <thomas.lendacky@amd.com>, gregkh@linuxfoundation.org
 List-Id: linux-arch.vger.kernel.org
 
-3.16.56-rc1 review patch.  If anyone has any objections, please let me know.
+3.2.101-rc1 review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
 From: Dan Williams <dan.j.williams@intel.com>
 
-commit b5c4ae4f35325d520b230bab6eb3310613b72ac1 upstream.
+commit b3bbfb3fb5d25776b8e3f361d2eedaabb0b496cd upstream.
 
-In preparation for converting some __uaccess_begin() instances to
-__uacess_begin_nospec(), make sure all 'from user' uaccess paths are
-using the _begin(), _end() helpers rather than open-coded stac() and
-clac().
+For __get_user() paths, do not allow the kernel to speculate on the value
+of a user controlled pointer. In addition to the 'stac' instruction for
+Supervisor Mode Access Protection (SMAP), a barrier_nospec() causes the
+access_ok() result to resolve in the pipeline before the CPU might take any
+speculative action on the pointer value. Given the cost of 'stac' the
+speculation barrier is placed after 'stac' to hopefully overlap the cost of
+disabling SMAP with the cost of flushing the instruction pipeline.
+
+Since __get_user is a major kernel interface that deals with user
+controlled pointers, the __uaccess_begin_nospec() mechanism will prevent
+speculative execution past an access_ok() permission check. While
+speculative execution past access_ok() is not enough to lead to a kernel
+memory leak, it is a necessary precondition.
+
+To be clear, __uaccess_begin_nospec() is addressing a class of potential
+problems near __get_user() usages.
+
+Note, that while the barrier_nospec() in __uaccess_begin_nospec() is used
+to protect __get_user(), pointer masking similar to array_index_nospec()
+will be used for get_user() since it incorporates a bounds check near the
+usage.
+
+uaccess_try_nospec provides the same mechanism for get_user_try.
 
 No functional changes.
 
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Suggested-by: Andi Kleen <ak@linux.intel.com>
 Suggested-by: Ingo Molnar <mingo@redhat.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
@@ -39,99 +60,25 @@ Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
 Cc: gregkh@linuxfoundation.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: torvalds@linux-foundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727416438.33451.17309465232057176966.stgit@dwillia2-desk3.amr.corp.intel.com
-[bwh: Backported to 3.16:
- - Convert several more functions to use __uaccess_begin_nospec(), that
-   are just wrappers in mainline
- - Adjust context]
+Link: https://lkml.kernel.org/r/151727415922.33451.5796614273104346583.stgit@dwillia2-desk3.amr.corp.intel.com
+[bwh: Backported to 3.2:
+ - There's no SMAP support, so only add uaccess_try_nospec()
+ - Use current_thread_info() and save the previous error state, matching
+   uaccess_try()]
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
- arch/x86/lib/usercopy_32.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
-
---- a/arch/x86/lib/usercopy_32.c
-+++ b/arch/x86/lib/usercopy_32.c
-@@ -570,12 +570,12 @@ do {									\
- unsigned long __copy_to_user_ll(void __user *to, const void *from,
- 				unsigned long n)
- {
--	stac();
-+	__uaccess_begin();
- 	if (movsl_is_ok(to, from, n))
- 		__copy_user(to, from, n);
- 	else
- 		n = __copy_user_intel(to, from, n);
--	clac();
-+	__uaccess_end();
- 	return n;
- }
- EXPORT_SYMBOL(__copy_to_user_ll);
-@@ -583,12 +583,12 @@ EXPORT_SYMBOL(__copy_to_user_ll);
- unsigned long __copy_from_user_ll(void *to, const void __user *from,
- 					unsigned long n)
- {
--	stac();
-+	__uaccess_begin();
- 	if (movsl_is_ok(to, from, n))
- 		__copy_user_zeroing(to, from, n);
- 	else
- 		n = __copy_user_zeroing_intel(to, from, n);
--	clac();
-+	__uaccess_end();
- 	return n;
- }
- EXPORT_SYMBOL(__copy_from_user_ll);
-@@ -596,13 +596,13 @@ EXPORT_SYMBOL(__copy_from_user_ll);
- unsigned long __copy_from_user_ll_nozero(void *to, const void __user *from,
- 					 unsigned long n)
- {
--	stac();
-+	__uaccess_begin();
- 	if (movsl_is_ok(to, from, n))
- 		__copy_user(to, from, n);
- 	else
- 		n = __copy_user_intel((void __user *)to,
- 				      (const void *)from, n);
--	clac();
-+	__uaccess_end();
- 	return n;
- }
- EXPORT_SYMBOL(__copy_from_user_ll_nozero);
-@@ -610,7 +610,7 @@ EXPORT_SYMBOL(__copy_from_user_ll_nozero
- unsigned long __copy_from_user_ll_nocache(void *to, const void __user *from,
- 					unsigned long n)
- {
--	stac();
-+	__uaccess_begin();
- #ifdef CONFIG_X86_INTEL_USERCOPY
- 	if (n > 64 && cpu_has_xmm2)
- 		n = __copy_user_zeroing_intel_nocache(to, from, n);
-@@ -619,7 +619,7 @@ unsigned long __copy_from_user_ll_nocach
- #else
- 	__copy_user_zeroing(to, from, n);
- #endif
--	clac();
-+	__uaccess_end();
- 	return n;
- }
- EXPORT_SYMBOL(__copy_from_user_ll_nocache);
-@@ -627,7 +627,7 @@ EXPORT_SYMBOL(__copy_from_user_ll_nocach
- unsigned long __copy_from_user_ll_nocache_nozero(void *to, const void __user *from,
- 					unsigned long n)
- {
--	stac();
-+	__uaccess_begin();
- #ifdef CONFIG_X86_INTEL_USERCOPY
- 	if (n > 64 && cpu_has_xmm2)
- 		n = __copy_user_intel_nocache(to, from, n);
-@@ -636,7 +636,7 @@ unsigned long __copy_from_user_ll_nocach
- #else
- 	__copy_user(to, from, n);
- #endif
--	clac();
-+	__uaccess_end();
- 	return n;
- }
- EXPORT_SYMBOL(__copy_from_user_ll_nocache_nozero);
+--- a/arch/x86/include/asm/uaccess.h
++++ b/arch/x86/include/asm/uaccess.h
+@@ -462,6 +462,11 @@ struct __large_struct { unsigned long bu
+ 	current_thread_info()->uaccess_err = 0;				\
+ 	barrier();
+ 
++#define uaccess_try_nospec do {						\
++	int prev_err = current_thread_info()->uaccess_err;		\
++	current_thread_info()->uaccess_err = 0;				\
++	barrier_nospec();
++
+ #define uaccess_catch(err)						\
+ 	(err) |= current_thread_info()->uaccess_err;			\
+ 	current_thread_info()->uaccess_err = prev_err;			\
