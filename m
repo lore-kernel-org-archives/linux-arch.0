@@ -1,8 +1,8 @@
 From: Ben Hutchings <ben@decadent.org.uk>
-Subject: [PATCH 3.16 55/76] x86/get_user: Use pointer masking to limit
- speculation
+Subject: [PATCH 3.16 57/76] vfs, fdtable: Prevent bounds-check bypass via
+ speculative execution
 Date: Mon, 12 Mar 2018 03:06:12 +0000
-Message-ID: <lsq.1520823972.720424377@decadent.org.uk>
+Message-ID: <lsq.1520823972.494230946@decadent.org.uk>
 References: <lsq.1520823971.5976735@decadent.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
@@ -12,7 +12,7 @@ Content-Disposition: inline
 In-Reply-To: <lsq.1520823971.5976735@decadent.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, Andy Lutomirski <luto@kernel.org>, kernel-hardening@lists.openwall.com, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org, Thomas Gleixner <tglx@linutronix.de>, alan@linux.intel.com, Dan Williams <dan.j.williams@intel.com>
+Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, Al Viro <viro@zeniv.linux.org.uk>, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, alan@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Dan Williams <dan.j.williams@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
 3.16.56-rc1 review patch.  If anyone has any objections, please let me know.
@@ -21,92 +21,48 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Dan Williams <dan.j.williams@intel.com>
 
-commit c7f631cb07e7da06ac1d231ca178452339e32a94 upstream.
+commit 56c30ba7b348b90484969054d561f711ba196507 upstream.
 
-Quoting Linus:
+'fd' is a user controlled value that is used as a data dependency to
+read from the 'fdt->fd' array.  In order to avoid potential leaks of
+kernel memory values, block speculative execution of the instruction
+stream that could issue reads based on an invalid 'file *' returned from
+__fcheck_files.
 
-    I do think that it would be a good idea to very expressly document
-    the fact that it's not that the user access itself is unsafe. I do
-    agree that things like "get_user()" want to be protected, but not
-    because of any direct bugs or problems with get_user() and friends,
-    but simply because get_user() is an excellent source of a pointer
-    that is obviously controlled from a potentially attacking user
-    space. So it's a prime candidate for then finding _subsequent_
-    accesses that can then be used to perturb the cache.
-
-Unlike the __get_user() case get_user() includes the address limit check
-near the pointer de-reference. With that locality the speculation can be
-mitigated with pointer narrowing rather than a barrier, i.e.
-array_index_nospec(). Where the narrowing is performed by:
-
-	cmp %limit, %ptr
-	sbb %mask, %mask
-	and %mask, %ptr
-
-With respect to speculation the value of %ptr is either less than %limit
-or NULL.
-
-Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
+Co-developed-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
 Cc: gregkh@linuxfoundation.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andy Lutomirski <luto@kernel.org>
 Cc: torvalds@linux-foundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727417469.33451.11804043010080838495.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727418500.33451.17392199002892248656.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
- arch/x86/lib/getuser.S | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ include/linux/fdtable.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
---- a/arch/x86/lib/getuser.S
-+++ b/arch/x86/lib/getuser.S
-@@ -40,6 +40,8 @@ ENTRY(__get_user_1)
- 	GET_THREAD_INFO(%_ASM_DX)
- 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
-+	and %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 1:	movzbl (%_ASM_AX),%edx
- 	xor %eax,%eax
-@@ -55,6 +57,8 @@ ENTRY(__get_user_2)
- 	GET_THREAD_INFO(%_ASM_DX)
- 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
-+	and %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 2:	movzwl -1(%_ASM_AX),%edx
- 	xor %eax,%eax
-@@ -70,6 +74,8 @@ ENTRY(__get_user_4)
- 	GET_THREAD_INFO(%_ASM_DX)
- 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
-+	and %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 3:	movl -3(%_ASM_AX),%edx
- 	xor %eax,%eax
-@@ -86,6 +92,8 @@ ENTRY(__get_user_8)
- 	GET_THREAD_INFO(%_ASM_DX)
- 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user
-+	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
-+	and %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 4:	movq -7(%_ASM_AX),%rdx
- 	xor %eax,%eax
-@@ -97,6 +105,8 @@ ENTRY(__get_user_8)
- 	GET_THREAD_INFO(%_ASM_DX)
- 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
- 	jae bad_get_user_8
-+	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
-+	and %_ASM_DX, %_ASM_AX
- 	ASM_STAC
- 4:	movl -7(%_ASM_AX),%edx
- 5:	movl -3(%_ASM_AX),%ecx
+--- a/include/linux/fdtable.h
++++ b/include/linux/fdtable.h
+@@ -9,6 +9,7 @@
+ #include <linux/compiler.h>
+ #include <linux/spinlock.h>
+ #include <linux/rcupdate.h>
++#include <linux/nospec.h>
+ #include <linux/types.h>
+ #include <linux/init.h>
+ #include <linux/fs.h>
+@@ -76,8 +77,10 @@ static inline struct file *__fcheck_file
+ {
+ 	struct fdtable *fdt = rcu_dereference_raw(files->fdt);
+ 
+-	if (fd < fdt->max_fds)
++	if (fd < fdt->max_fds) {
++		fd = array_index_nospec(fd, fdt->max_fds);
+ 		return rcu_dereference_raw(fdt->fd[fd]);
++	}
+ 	return NULL;
+ }
+ 
