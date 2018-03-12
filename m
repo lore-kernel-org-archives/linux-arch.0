@@ -1,8 +1,8 @@
 From: Ben Hutchings <ben@decadent.org.uk>
-Subject: [PATCH 3.2 101/104] x86: Introduce __uaccess_begin_nospec() and
- uaccess_try_nospec
+Subject: [PATCH 3.2 086/104] x86/get_user: Use pointer masking to limit
+ speculation
 Date: Mon, 12 Mar 2018 03:03:34 +0000
-Message-ID: <lsq.1520823814.499853632@decadent.org.uk>
+Message-ID: <lsq.1520823814.163616880@decadent.org.uk>
 References: <lsq.1520823814.606620518@decadent.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
@@ -12,7 +12,7 @@ Content-Disposition: inline
 In-Reply-To: <lsq.1520823814.606620518@decadent.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, kernel-hardening@lists.openwall.com, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Dan Williams <dan.j.williams@intel.com>, Kees Cook <keescook@chromium.org>, alan@linux.intel.com, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Tom Lendacky <thomas.lendacky@amd.com>, gregkh@linuxfoundation.org
+Cc: akpm@linux-foundation.org, gregkh@linuxfoundation.org, Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@kernel.org>, linux-arch@vger.kernel.org, alan@linux.intel.com, Kees Cook <keescook@chromium.org>, Dan Williams <dan.j.williams@intel.com>, kernel-hardening@lists.openwall.com, torvalds@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
 3.2.101-rc1 review patch.  If anyone has any objections, please let me know.
@@ -21,64 +21,86 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Dan Williams <dan.j.williams@intel.com>
 
-commit b3bbfb3fb5d25776b8e3f361d2eedaabb0b496cd upstream.
+commit c7f631cb07e7da06ac1d231ca178452339e32a94 upstream.
 
-For __get_user() paths, do not allow the kernel to speculate on the value
-of a user controlled pointer. In addition to the 'stac' instruction for
-Supervisor Mode Access Protection (SMAP), a barrier_nospec() causes the
-access_ok() result to resolve in the pipeline before the CPU might take any
-speculative action on the pointer value. Given the cost of 'stac' the
-speculation barrier is placed after 'stac' to hopefully overlap the cost of
-disabling SMAP with the cost of flushing the instruction pipeline.
+Quoting Linus:
 
-Since __get_user is a major kernel interface that deals with user
-controlled pointers, the __uaccess_begin_nospec() mechanism will prevent
-speculative execution past an access_ok() permission check. While
-speculative execution past access_ok() is not enough to lead to a kernel
-memory leak, it is a necessary precondition.
+    I do think that it would be a good idea to very expressly document
+    the fact that it's not that the user access itself is unsafe. I do
+    agree that things like "get_user()" want to be protected, but not
+    because of any direct bugs or problems with get_user() and friends,
+    but simply because get_user() is an excellent source of a pointer
+    that is obviously controlled from a potentially attacking user
+    space. So it's a prime candidate for then finding _subsequent_
+    accesses that can then be used to perturb the cache.
 
-To be clear, __uaccess_begin_nospec() is addressing a class of potential
-problems near __get_user() usages.
+Unlike the __get_user() case get_user() includes the address limit check
+near the pointer de-reference. With that locality the speculation can be
+mitigated with pointer narrowing rather than a barrier, i.e.
+array_index_nospec(). Where the narrowing is performed by:
 
-Note, that while the barrier_nospec() in __uaccess_begin_nospec() is used
-to protect __get_user(), pointer masking similar to array_index_nospec()
-will be used for get_user() since it incorporates a bounds check near the
-usage.
+	cmp %limit, %ptr
+	sbb %mask, %mask
+	and %mask, %ptr
 
-uaccess_try_nospec provides the same mechanism for get_user_try.
+With respect to speculation the value of %ptr is either less than %limit
+or NULL.
 
-No functional changes.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Suggested-by: Andi Kleen <ak@linux.intel.com>
-Suggested-by: Ingo Molnar <mingo@redhat.com>
+Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
-Cc: Tom Lendacky <thomas.lendacky@amd.com>
 Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
 Cc: gregkh@linuxfoundation.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: torvalds@linux-foundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727415922.33451.5796614273104346583.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727417469.33451.11804043010080838495.stgit@dwillia2-desk3.amr.corp.intel.com
 [bwh: Backported to 3.2:
- - There's no SMAP support, so only add uaccess_try_nospec()
- - Use current_thread_info() and save the previous error state, matching
-   uaccess_try()]
+ - Drop changes to 32-bit implementation of __get_user_8
+ - Adjust context]
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -462,6 +462,11 @@ struct __large_struct { unsigned long bu
- 	current_thread_info()->uaccess_err = 0;				\
- 	barrier();
- 
-+#define uaccess_try_nospec do {						\
-+	int prev_err = current_thread_info()->uaccess_err;		\
-+	current_thread_info()->uaccess_err = 0;				\
-+	barrier_nospec();
-+
- #define uaccess_catch(err)						\
- 	(err) |= current_thread_info()->uaccess_err;			\
- 	current_thread_info()->uaccess_err = prev_err;			\
+ arch/x86/lib/getuser.S | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+--- a/arch/x86/lib/getuser.S
++++ b/arch/x86/lib/getuser.S
+@@ -40,6 +40,8 @@ ENTRY(__get_user_1)
+ 	GET_THREAD_INFO(%_ASM_DX)
+ 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
+ 	jae bad_get_user
++	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
++	and %_ASM_DX, %_ASM_AX
+ 1:	movzb (%_ASM_AX),%edx
+ 	xor %eax,%eax
+ 	ret
+@@ -53,6 +55,8 @@ ENTRY(__get_user_2)
+ 	GET_THREAD_INFO(%_ASM_DX)
+ 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
+ 	jae bad_get_user
++	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
++	and %_ASM_DX, %_ASM_AX
+ 2:	movzwl -1(%_ASM_AX),%edx
+ 	xor %eax,%eax
+ 	ret
+@@ -66,6 +70,8 @@ ENTRY(__get_user_4)
+ 	GET_THREAD_INFO(%_ASM_DX)
+ 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
+ 	jae bad_get_user
++	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
++	and %_ASM_DX, %_ASM_AX
+ 3:	mov -3(%_ASM_AX),%edx
+ 	xor %eax,%eax
+ 	ret
+@@ -80,6 +86,8 @@ ENTRY(__get_user_8)
+ 	GET_THREAD_INFO(%_ASM_DX)
+ 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
+ 	jae	bad_get_user
++	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
++	and %_ASM_DX, %_ASM_AX
+ 4:	movq -7(%_ASM_AX),%_ASM_DX
+ 	xor %eax,%eax
+ 	ret
