@@ -1,24 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:42795 "EHLO
+Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:42793 "EHLO
         shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S932458AbeCLD3Z (ORCPT
+        by vger.kernel.org with ESMTP id S932458AbeCLD3S (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 11 Mar 2018 23:29:25 -0400
+        Sun, 11 Mar 2018 23:29:18 -0400
 Content-Type: text/plain; charset="UTF-8"
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
 MIME-Version: 1.0
 From: Ben Hutchings <ben@decadent.org.uk>
 Date: Mon, 12 Mar 2018 03:06:12 +0000
-Message-ID: <lsq.1520823972.968056966@decadent.org.uk>
-Subject: [PATCH 3.16 75/76] x86/uaccess: Use __uaccess_begin_nospec() and
- uaccess_try_nospec
+Message-ID: <lsq.1520823972.857925406@decadent.org.uk>
+Subject: [PATCH 3.16 58/76] nl80211: Sanitize array index in parse_txq_params
 In-Reply-To: <lsq.1520823971.5976735@decadent.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, Thomas Gleixner <tglx@linutronix.de>, alan@linux.intel.com, Dan Williams <dan.j.williams@intel.com>, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Andi Kleen <ak@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20180312030612.WWVS1nAHoHNa5_ckj_BfY00dHDkznsPlyUHTuk06A2M@z>
+Cc: akpm@linux-foundation.org, kernel-hardening@lists.openwall.com, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, Thomas Gleixner <tglx@linutronix.de>, alan@linux.intel.com, Dan Williams <dan.j.williams@intel.com>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org, Christian Lamparter <chunkeey@gmail.com>, linux-wireless@vger.kernel.org, gregkh@linuxfoundation.org, Johannes Berg <johannes@sipsolutions.net>
+Message-ID: <20180312030612.PBFZJKHksbmSTzrcs_MUCoILuD_O8sHmH5SViIUK_hY@z>
 
 3.16.56-rc1 review patch.  If anyone has any objections, please let me know.
 
@@ -26,287 +25,66 @@ Message-ID: <20180312030612.WWVS1nAHoHNa5_ckj_BfY00dHDkznsPlyUHTuk06A2M@z>
 
 From: Dan Williams <dan.j.williams@intel.com>
 
-commit 304ec1b050310548db33063e567123fae8fd0301 upstream.
+commit 259d8c1e984318497c84eef547bbb6b1d9f4eb05 upstream.
 
-Quoting Linus:
+Wireless drivers rely on parse_txq_params to validate that txq_params->ac
+is less than NL80211_NUM_ACS by the time the low-level driver's ->conf_tx()
+handler is called. Use a new helper, array_index_nospec(), to sanitize
+txq_params->ac with respect to speculation. I.e. ensure that any
+speculation into ->conf_tx() handlers is done with a value of
+txq_params->ac that is within the bounds of [0, NL80211_NUM_ACS).
 
-    I do think that it would be a good idea to very expressly document
-    the fact that it's not that the user access itself is unsafe. I do
-    agree that things like "get_user()" want to be protected, but not
-    because of any direct bugs or problems with get_user() and friends,
-    but simply because get_user() is an excellent source of a pointer
-    that is obviously controlled from a potentially attacking user
-    space. So it's a prime candidate for then finding _subsequent_
-    accesses that can then be used to perturb the cache.
-
-__uaccess_begin_nospec() covers __get_user() and copy_from_iter() where the
-limit check is far away from the user pointer de-reference. In those cases
-a barrier_nospec() prevents speculation with a potential pointer to
-privileged memory. uaccess_try_nospec covers get_user_try.
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Suggested-by: Andi Kleen <ak@linux.intel.com>
+Reported-by: Christian Lamparter <chunkeey@gmail.com>
+Reported-by: Elena Reshetova <elena.reshetova@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Acked-by: Johannes Berg <johannes@sipsolutions.net>
 Cc: linux-arch@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
 Cc: gregkh@linuxfoundation.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-wireless@vger.kernel.org
+Cc: torvalds@linux-foundation.org
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727416953.33451.10508284228526170604.stgit@dwillia2-desk3.amr.corp.intel.com
-[bwh: Backported to 3.16:
- - Convert several more functions to use __uaccess_begin_nospec(), that
-   are just wrappers in mainline
- - There's no 'case 8' in __copy_to_user_inatomic()
- - Adjust context]
+Link: https://lkml.kernel.org/r/151727419584.33451.7700736761686184303.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -433,7 +433,7 @@ do {									\
- ({									\
- 	int __gu_err;							\
- 	unsigned long __gu_val;						\
--	__uaccess_begin();						\
-+	__uaccess_begin_nospec();					\
- 	__get_user_size(__gu_val, (ptr), (size), __gu_err, -EFAULT);	\
- 	__uaccess_end();						\
- 	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
-@@ -541,7 +541,7 @@ struct __large_struct { unsigned long bu
-  *	get_user_ex(...);
-  * } get_user_catch(err)
-  */
--#define get_user_try		uaccess_try
-+#define get_user_try		uaccess_try_nospec
- #define get_user_catch(err)	uaccess_catch(err)
- 
- #define get_user_ex(x, ptr)	do {					\
-@@ -576,7 +576,7 @@ extern void __cmpxchg_wrong_size(void)
- 	__typeof__(ptr) __uval = (uval);				\
- 	__typeof__(*(ptr)) __old = (old);				\
- 	__typeof__(*(ptr)) __new = (new);				\
--	__uaccess_begin();						\
-+	__uaccess_begin_nospec();					\
- 	switch (size) {							\
- 	case 1:								\
- 	{								\
---- a/arch/x86/include/asm/uaccess_32.h
-+++ b/arch/x86/include/asm/uaccess_32.h
-@@ -48,19 +48,19 @@ __copy_to_user_inatomic(void __user *to,
- 
- 		switch (n) {
- 		case 1:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__put_user_size(*(u8 *)from, (u8 __user *)to,
- 					1, ret, 1);
- 			__uaccess_end();
- 			return ret;
- 		case 2:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__put_user_size(*(u16 *)from, (u16 __user *)to,
- 					2, ret, 2);
- 			__uaccess_end();
- 			return ret;
- 		case 4:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__put_user_size(*(u32 *)from, (u32 __user *)to,
- 					4, ret, 4);
- 			__uaccess_end();
-@@ -104,17 +104,17 @@ __copy_from_user_inatomic(void *to, cons
- 
- 		switch (n) {
- 		case 1:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u8 *)to, from, 1, ret, 1);
- 			__uaccess_end();
- 			return ret;
- 		case 2:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u16 *)to, from, 2, ret, 2);
- 			__uaccess_end();
- 			return ret;
- 		case 4:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u32 *)to, from, 4, ret, 4);
- 			__uaccess_end();
- 			return ret;
-@@ -154,17 +154,17 @@ __copy_from_user(void *to, const void __
- 
- 		switch (n) {
- 		case 1:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u8 *)to, from, 1, ret, 1);
- 			__uaccess_end();
- 			return ret;
- 		case 2:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u16 *)to, from, 2, ret, 2);
- 			__uaccess_end();
- 			return ret;
- 		case 4:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u32 *)to, from, 4, ret, 4);
- 			__uaccess_end();
- 			return ret;
-@@ -182,17 +182,17 @@ static __always_inline unsigned long __c
- 
- 		switch (n) {
- 		case 1:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u8 *)to, from, 1, ret, 1);
- 			__uaccess_end();
- 			return ret;
- 		case 2:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u16 *)to, from, 2, ret, 2);
- 			__uaccess_end();
- 			return ret;
- 		case 4:
--			__uaccess_begin();
-+			__uaccess_begin_nospec();
- 			__get_user_size(*(u32 *)to, from, 4, ret, 4);
- 			__uaccess_end();
- 			return ret;
---- a/arch/x86/include/asm/uaccess_64.h
-+++ b/arch/x86/include/asm/uaccess_64.h
-@@ -57,31 +57,31 @@ int __copy_from_user_nocheck(void *dst,
- 		return copy_user_generic(dst, (__force void *)src, size);
- 	switch (size) {
- 	case 1:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u8 *)dst, (u8 __user *)src,
- 			      ret, "b", "b", "=q", 1);
- 		__uaccess_end();
- 		return ret;
- 	case 2:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u16 *)dst, (u16 __user *)src,
- 			      ret, "w", "w", "=r", 2);
- 		__uaccess_end();
- 		return ret;
- 	case 4:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u32 *)dst, (u32 __user *)src,
- 			      ret, "l", "k", "=r", 4);
- 		__uaccess_end();
- 		return ret;
- 	case 8:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u64 *)dst, (u64 __user *)src,
- 			      ret, "q", "", "=r", 8);
- 		__uaccess_end();
- 		return ret;
- 	case 10:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u64 *)dst, (u64 __user *)src,
- 			       ret, "q", "", "=r", 10);
- 		if (likely(!ret))
-@@ -91,7 +91,7 @@ int __copy_from_user_nocheck(void *dst,
- 		__uaccess_end();
- 		return ret;
- 	case 16:
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(*(u64 *)dst, (u64 __user *)src,
- 			       ret, "q", "", "=r", 16);
- 		if (likely(!ret))
-@@ -190,7 +190,7 @@ int __copy_in_user(void __user *dst, con
- 	switch (size) {
- 	case 1: {
- 		u8 tmp;
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(tmp, (u8 __user *)src,
- 			       ret, "b", "b", "=q", 1);
- 		if (likely(!ret))
-@@ -201,7 +201,7 @@ int __copy_in_user(void __user *dst, con
- 	}
- 	case 2: {
- 		u16 tmp;
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(tmp, (u16 __user *)src,
- 			       ret, "w", "w", "=r", 2);
- 		if (likely(!ret))
-@@ -213,7 +213,7 @@ int __copy_in_user(void __user *dst, con
- 
- 	case 4: {
- 		u32 tmp;
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(tmp, (u32 __user *)src,
- 			       ret, "l", "k", "=r", 4);
- 		if (likely(!ret))
-@@ -224,7 +224,7 @@ int __copy_in_user(void __user *dst, con
- 	}
- 	case 8: {
- 		u64 tmp;
--		__uaccess_begin();
-+		__uaccess_begin_nospec();
- 		__get_user_asm(tmp, (u64 __user *)src,
- 			       ret, "q", "", "=r", 8);
- 		if (likely(!ret))
---- a/arch/x86/lib/usercopy_32.c
-+++ b/arch/x86/lib/usercopy_32.c
-@@ -570,7 +570,7 @@ do {									\
- unsigned long __copy_to_user_ll(void __user *to, const void *from,
- 				unsigned long n)
+ net/wireless/nl80211.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+--- a/net/wireless/nl80211.c
++++ b/net/wireless/nl80211.c
+@@ -14,6 +14,7 @@
+ #include <linux/nl80211.h>
+ #include <linux/rtnetlink.h>
+ #include <linux/netlink.h>
++#include <linux/nospec.h>
+ #include <linux/etherdevice.h>
+ #include <net/net_namespace.h>
+ #include <net/genetlink.h>
+@@ -1829,20 +1830,22 @@ static const struct nla_policy txq_param
+ static int parse_txq_params(struct nlattr *tb[],
+ 			    struct ieee80211_txq_params *txq_params)
  {
--	__uaccess_begin();
-+	__uaccess_begin_nospec();
- 	if (movsl_is_ok(to, from, n))
- 		__copy_user(to, from, n);
- 	else
-@@ -583,7 +583,7 @@ EXPORT_SYMBOL(__copy_to_user_ll);
- unsigned long __copy_from_user_ll(void *to, const void __user *from,
- 					unsigned long n)
- {
--	__uaccess_begin();
-+	__uaccess_begin_nospec();
- 	if (movsl_is_ok(to, from, n))
- 		__copy_user_zeroing(to, from, n);
- 	else
-@@ -596,7 +596,7 @@ EXPORT_SYMBOL(__copy_from_user_ll);
- unsigned long __copy_from_user_ll_nozero(void *to, const void __user *from,
- 					 unsigned long n)
- {
--	__uaccess_begin();
-+	__uaccess_begin_nospec();
- 	if (movsl_is_ok(to, from, n))
- 		__copy_user(to, from, n);
- 	else
-@@ -610,7 +610,7 @@ EXPORT_SYMBOL(__copy_from_user_ll_nozero
- unsigned long __copy_from_user_ll_nocache(void *to, const void __user *from,
- 					unsigned long n)
- {
--	__uaccess_begin();
-+	__uaccess_begin_nospec();
- #ifdef CONFIG_X86_INTEL_USERCOPY
- 	if (n > 64 && cpu_has_xmm2)
- 		n = __copy_user_zeroing_intel_nocache(to, from, n);
-@@ -627,7 +627,7 @@ EXPORT_SYMBOL(__copy_from_user_ll_nocach
- unsigned long __copy_from_user_ll_nocache_nozero(void *to, const void __user *from,
- 					unsigned long n)
- {
--	__uaccess_begin();
-+	__uaccess_begin_nospec();
- #ifdef CONFIG_X86_INTEL_USERCOPY
- 	if (n > 64 && cpu_has_xmm2)
- 		n = __copy_user_intel_nocache(to, from, n);
++	u8 ac;
++
+ 	if (!tb[NL80211_TXQ_ATTR_AC] || !tb[NL80211_TXQ_ATTR_TXOP] ||
+ 	    !tb[NL80211_TXQ_ATTR_CWMIN] || !tb[NL80211_TXQ_ATTR_CWMAX] ||
+ 	    !tb[NL80211_TXQ_ATTR_AIFS])
+ 		return -EINVAL;
+ 
+-	txq_params->ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
++	ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
+ 	txq_params->txop = nla_get_u16(tb[NL80211_TXQ_ATTR_TXOP]);
+ 	txq_params->cwmin = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMIN]);
+ 	txq_params->cwmax = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMAX]);
+ 	txq_params->aifs = nla_get_u8(tb[NL80211_TXQ_ATTR_AIFS]);
+ 
+-	if (txq_params->ac >= NL80211_NUM_ACS)
++	if (ac >= NL80211_NUM_ACS)
+ 		return -EINVAL;
+-
++	txq_params->ac = array_index_nospec(ac, NL80211_NUM_ACS);
+ 	return 0;
+ }
+ 
