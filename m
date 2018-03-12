@@ -1,7 +1,7 @@
 From: Ben Hutchings <ben@decadent.org.uk>
-Subject: [PATCH 3.2 099/104] nospec: Kill array_index_nospec_mask_check()
+Subject: [PATCH 3.2 085/104] x86: Introduce barrier_nospec
 Date: Mon, 12 Mar 2018 03:03:34 +0000
-Message-ID: <lsq.1520823814.733970867@decadent.org.uk>
+Message-ID: <lsq.1520823814.335034940@decadent.org.uk>
 References: <lsq.1520823814.606620518@decadent.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
@@ -11,7 +11,7 @@ Content-Disposition: inline
 In-Reply-To: <lsq.1520823814.606620518@decadent.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, Ingo Molnar <mingo@kernel.org>, David Woodhouse <dwmw2@infradead.org>, Andy Lutomirski <luto@kernel.org>, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Dave Hansen <dave.hansen@linux.intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Dan Williams <dan.j.williams@intel.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Borislav Petkov <bp@alien8.de>, Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, gregkh@linuxfoundation.org, Tom Lendacky <thomas.lendacky@amd.com>, Linus Torvalds <torvalds@linux-foundation.org>, kernel-hardening@lists.openwall.com, Andi Kleen <ak@linux.intel.com>, Dan Williams <dan.j.williams@intel.com>, Kees Cook <keescook@chromium.org>, alan@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
 3.2.101-rc1 review patch.  If anyone has any objections, please let me know.
@@ -20,78 +20,55 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Dan Williams <dan.j.williams@intel.com>
 
-commit 1d91c1d2c80cb70e2e553845e278b87a960c04da upstream.
+commit b3d7ad85b80bbc404635dca80f5b129f6242bc7a upstream.
 
-There are multiple problems with the dynamic sanity checking in
-array_index_nospec_mask_check():
+Rename the open coded form of this instruction sequence from
+rdtsc_ordered() into a generic barrier primitive, barrier_nospec().
 
-* It causes unnecessary overhead in the 32-bit case since integer sized
-  @index values will no longer cause the check to be compiled away like
-  in the 64-bit case.
+One of the mitigations for Spectre variant1 vulnerabilities is to fence
+speculative execution after successfully validating a bounds check. I.e.
+force the result of a bounds check to resolve in the instruction pipeline
+to ensure speculative execution honors that result before potentially
+operating on out-of-bounds data.
 
-* In the 32-bit case it may trigger with user controllable input when
-  the expectation is that should only trigger during development of new
-  kernel enabling.
+No functional changes.
 
-* The macro reuses the input parameter in multiple locations which is
-  broken if someone passes an expression like 'index++' to
-  array_index_nospec().
-
-Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Suggested-by: Andi Kleen <ak@linux.intel.com>
+Suggested-by: Ingo Molnar <mingo@redhat.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arjan van de Ven <arjan@linux.intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
-Link: http://lkml.kernel.org/r/151881604278.17395.6605847763178076520.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Cc: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: kernel-hardening@lists.openwall.com
+Cc: gregkh@linuxfoundation.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: alan@linux.intel.com
+Link: https://lkml.kernel.org/r/151727415361.33451.9049453007262764675.stgit@dwillia2-desk3.amr.corp.intel.com
+[bwh: Backported to 3.2: update rdtsc_barrier() instead of rdtsc_ordered()]
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
- include/linux/nospec.h | 22 +---------------------
- 1 file changed, 1 insertion(+), 21 deletions(-)
-
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -30,26 +30,6 @@ static inline unsigned long array_index_
- #endif
+--- a/arch/x86/include/asm/system.h
++++ b/arch/x86/include/asm/system.h
+@@ -478,6 +478,10 @@ static inline unsigned long array_index_
+ /* Override the default implementation from linux/nospec.h. */
+ #define array_index_mask_nospec array_index_mask_nospec
+ 
++/* Prevent speculative execution past this barrier. */
++#define barrier_nospec() alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC, \
++					   "lfence", X86_FEATURE_LFENCE_RDTSC)
++
+ /**
+  * read_barrier_depends - Flush all pending reads that subsequents reads
+  * depend on.
+@@ -563,8 +567,7 @@ static inline unsigned long array_index_
+  */
+ static __always_inline void rdtsc_barrier(void)
+ {
+-	alternative(ASM_NOP3, "mfence", X86_FEATURE_MFENCE_RDTSC);
+-	alternative(ASM_NOP3, "lfence", X86_FEATURE_LFENCE_RDTSC);
++	barrier_nospec();
+ }
  
  /*
-- * Warn developers about inappropriate array_index_nospec() usage.
-- *
-- * Even if the CPU speculates past the WARN_ONCE branch, the
-- * sign bit of @index is taken into account when generating the
-- * mask.
-- *
-- * This warning is compiled out when the compiler can infer that
-- * @index and @size are less than LONG_MAX.
-- */
--#define array_index_mask_nospec_check(index, size)				\
--({										\
--	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,			\
--	    "array_index_nospec() limited to range of [0, LONG_MAX]\n"))	\
--		_mask = 0;							\
--	else									\
--		_mask = array_index_mask_nospec(index, size);			\
--	_mask;									\
--})
--
--/*
-  * array_index_nospec - sanitize an array index after a bounds check
-  *
-  * For a code sequence like:
-@@ -67,7 +47,7 @@ static inline unsigned long array_index_
- ({									\
- 	typeof(index) _i = (index);					\
- 	typeof(size) _s = (size);					\
--	unsigned long _mask = array_index_mask_nospec_check(_i, _s);	\
-+	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
- 									\
- 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
- 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
