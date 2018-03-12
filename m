@@ -1,23 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:42793 "EHLO
+Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:42794 "EHLO
         shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S932458AbeCLD3S (ORCPT
+        by vger.kernel.org with ESMTP id S932694AbeCLD3V (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 11 Mar 2018 23:29:18 -0400
+        Sun, 11 Mar 2018 23:29:21 -0400
 Content-Type: text/plain; charset="UTF-8"
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
 MIME-Version: 1.0
 From: Ben Hutchings <ben@decadent.org.uk>
 Date: Mon, 12 Mar 2018 03:06:12 +0000
-Message-ID: <lsq.1520823972.857925406@decadent.org.uk>
-Subject: [PATCH 3.16 58/76] nl80211: Sanitize array index in parse_txq_params
+Message-ID: <lsq.1520823972.225516073@decadent.org.uk>
+Subject: [PATCH 3.16 52/76] array_index_nospec: Sanitize speculative array
+ de-references
 In-Reply-To: <lsq.1520823971.5976735@decadent.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, kernel-hardening@lists.openwall.com, torvalds@linux-foundation.org, Elena Reshetova <elena.reshetova@intel.com>, Thomas Gleixner <tglx@linutronix.de>, alan@linux.intel.com, Dan Williams <dan.j.williams@intel.com>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org, Christian Lamparter <chunkeey@gmail.com>, linux-wireless@vger.kernel.org, gregkh@linuxfoundation.org, Johannes Berg <johannes@sipsolutions.net>
-Message-ID: <20180312030612.PBFZJKHksbmSTzrcs_MUCoILuD_O8sHmH5SViIUK_hY@z>
+Cc: akpm@linux-foundation.org, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, alan@linux.intel.com, Peter Zijlstra <peterz@infradead.org>, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Russell King <linux@armlinux.org.uk>, Cyril Novikov <cnovikov@lynx.com>, Will Deacon <will.deacon@arm.com>, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>
+Message-ID: <20180312030612.543piUUsgqIqrfqBgZqfGnsXUD_FyvRGi92YSoZSLrM@z>
 
 3.16.56-rc1 review patch.  If anyone has any objections, please let me know.
 
@@ -25,66 +26,111 @@ Message-ID: <20180312030612.PBFZJKHksbmSTzrcs_MUCoILuD_O8sHmH5SViIUK_hY@z>
 
 From: Dan Williams <dan.j.williams@intel.com>
 
-commit 259d8c1e984318497c84eef547bbb6b1d9f4eb05 upstream.
+commit f3804203306e098dae9ca51540fcd5eb700d7f40 upstream.
 
-Wireless drivers rely on parse_txq_params to validate that txq_params->ac
-is less than NL80211_NUM_ACS by the time the low-level driver's ->conf_tx()
-handler is called. Use a new helper, array_index_nospec(), to sanitize
-txq_params->ac with respect to speculation. I.e. ensure that any
-speculation into ->conf_tx() handlers is done with a value of
-txq_params->ac that is within the bounds of [0, NL80211_NUM_ACS).
+array_index_nospec() is proposed as a generic mechanism to mitigate
+against Spectre-variant-1 attacks, i.e. an attack that bypasses boundary
+checks via speculative execution. The array_index_nospec()
+implementation is expected to be safe for current generation CPUs across
+multiple architectures (ARM, x86).
 
-Reported-by: Christian Lamparter <chunkeey@gmail.com>
-Reported-by: Elena Reshetova <elena.reshetova@intel.com>
+Based on an original implementation by Linus Torvalds, tweaked to remove
+speculative flows by Alexei Starovoitov, and tweaked again by Linus to
+introduce an x86 assembly implementation for the mask generation.
+
+Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
+Co-developed-by: Alexei Starovoitov <ast@kernel.org>
+Suggested-by: Cyril Novikov <cnovikov@lynx.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Acked-by: Johannes Berg <johannes@sipsolutions.net>
 Cc: linux-arch@vger.kernel.org
 Cc: kernel-hardening@lists.openwall.com
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Russell King <linux@armlinux.org.uk>
 Cc: gregkh@linuxfoundation.org
-Cc: linux-wireless@vger.kernel.org
 Cc: torvalds@linux-foundation.org
-Cc: "David S. Miller" <davem@davemloft.net>
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727419584.33451.7700736761686184303.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727414229.33451.18411580953862676575.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
- net/wireless/nl80211.c | 9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
+ include/linux/nospec.h | 72 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 72 insertions(+)
+ create mode 100644 include/linux/nospec.h
 
---- a/net/wireless/nl80211.c
-+++ b/net/wireless/nl80211.c
-@@ -14,6 +14,7 @@
- #include <linux/nl80211.h>
- #include <linux/rtnetlink.h>
- #include <linux/netlink.h>
-+#include <linux/nospec.h>
- #include <linux/etherdevice.h>
- #include <net/net_namespace.h>
- #include <net/genetlink.h>
-@@ -1829,20 +1830,22 @@ static const struct nla_policy txq_param
- static int parse_txq_params(struct nlattr *tb[],
- 			    struct ieee80211_txq_params *txq_params)
- {
-+	u8 ac;
+--- /dev/null
++++ b/include/linux/nospec.h
+@@ -0,0 +1,72 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright(c) 2018 Linus Torvalds. All rights reserved.
++// Copyright(c) 2018 Alexei Starovoitov. All rights reserved.
++// Copyright(c) 2018 Intel Corporation. All rights reserved.
 +
- 	if (!tb[NL80211_TXQ_ATTR_AC] || !tb[NL80211_TXQ_ATTR_TXOP] ||
- 	    !tb[NL80211_TXQ_ATTR_CWMIN] || !tb[NL80211_TXQ_ATTR_CWMAX] ||
- 	    !tb[NL80211_TXQ_ATTR_AIFS])
- 		return -EINVAL;
- 
--	txq_params->ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
-+	ac = nla_get_u8(tb[NL80211_TXQ_ATTR_AC]);
- 	txq_params->txop = nla_get_u16(tb[NL80211_TXQ_ATTR_TXOP]);
- 	txq_params->cwmin = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMIN]);
- 	txq_params->cwmax = nla_get_u16(tb[NL80211_TXQ_ATTR_CWMAX]);
- 	txq_params->aifs = nla_get_u8(tb[NL80211_TXQ_ATTR_AIFS]);
- 
--	if (txq_params->ac >= NL80211_NUM_ACS)
-+	if (ac >= NL80211_NUM_ACS)
- 		return -EINVAL;
--
-+	txq_params->ac = array_index_nospec(ac, NL80211_NUM_ACS);
- 	return 0;
- }
- 
++#ifndef _LINUX_NOSPEC_H
++#define _LINUX_NOSPEC_H
++
++/**
++ * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
++ * @index: array element index
++ * @size: number of elements in array
++ *
++ * When @index is out of bounds (@index >= @size), the sign bit will be
++ * set.  Extend the sign bit to all bits and invert, giving a result of
++ * zero for an out of bounds index, or ~0 if within bounds [0, @size).
++ */
++#ifndef array_index_mask_nospec
++static inline unsigned long array_index_mask_nospec(unsigned long index,
++						    unsigned long size)
++{
++	/*
++	 * Warn developers about inappropriate array_index_nospec() usage.
++	 *
++	 * Even if the CPU speculates past the WARN_ONCE branch, the
++	 * sign bit of @index is taken into account when generating the
++	 * mask.
++	 *
++	 * This warning is compiled out when the compiler can infer that
++	 * @index and @size are less than LONG_MAX.
++	 */
++	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,
++			"array_index_nospec() limited to range of [0, LONG_MAX]\n"))
++		return 0;
++
++	/*
++	 * Always calculate and emit the mask even if the compiler
++	 * thinks the mask is not needed. The compiler does not take
++	 * into account the value of @index under speculation.
++	 */
++	OPTIMIZER_HIDE_VAR(index);
++	return ~(long)(index | (size - 1UL - index)) >> (BITS_PER_LONG - 1);
++}
++#endif
++
++/*
++ * array_index_nospec - sanitize an array index after a bounds check
++ *
++ * For a code sequence like:
++ *
++ *     if (index < size) {
++ *         index = array_index_nospec(index, size);
++ *         val = array[index];
++ *     }
++ *
++ * ...if the CPU speculates past the bounds check then
++ * array_index_nospec() will clamp the index within the range of [0,
++ * size).
++ */
++#define array_index_nospec(index, size)					\
++({									\
++	typeof(index) _i = (index);					\
++	typeof(size) _s = (size);					\
++	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
++									\
++	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
++	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
++									\
++	_i &= _mask;							\
++	_i;								\
++})
++#endif /* _LINUX_NOSPEC_H */
