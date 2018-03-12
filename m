@@ -1,23 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:42790 "EHLO
+Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:42905 "EHLO
         shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S932458AbeCLD3O (ORCPT
+        by vger.kernel.org with ESMTP id S933296AbeCLDeF (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 11 Mar 2018 23:29:14 -0400
+        Sun, 11 Mar 2018 23:34:05 -0400
 Content-Type: text/plain; charset="UTF-8"
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
 MIME-Version: 1.0
 From: Ben Hutchings <ben@decadent.org.uk>
 Date: Mon, 12 Mar 2018 03:06:12 +0000
-Message-ID: <lsq.1520823972.229464947@decadent.org.uk>
-Subject: [PATCH 3.16 69/76] nospec: Kill array_index_nospec_mask_check()
+Message-ID: <lsq.1520823972.720424377@decadent.org.uk>
+Subject: [PATCH 3.16 55/76] x86/get_user: Use pointer masking to limit
+ speculation
 In-Reply-To: <lsq.1520823971.5976735@decadent.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Dave Hansen <dave.hansen@linux.intel.com>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, Arjan van de Ven <arjan@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20180312030612.34p3vSxhMO2dnbRm1_J0WYkPGwv48ULf7gLJikhAql0@z>
+Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, Andy Lutomirski <luto@kernel.org>, kernel-hardening@lists.openwall.com, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org, Thomas Gleixner <tglx@linutronix.de>, alan@linux.intel.com, Dan Williams <dan.j.williams@intel.com>
+Message-ID: <20180312030612.3KTPIQbhaySqDgRriaAWEtP1EYUEyjriWJ13Buk6cVA@z>
 
 3.16.56-rc1 review patch.  If anyone has any objections, please let me know.
 
@@ -25,78 +26,92 @@ Message-ID: <20180312030612.34p3vSxhMO2dnbRm1_J0WYkPGwv48ULf7gLJikhAql0@z>
 
 From: Dan Williams <dan.j.williams@intel.com>
 
-commit 1d91c1d2c80cb70e2e553845e278b87a960c04da upstream.
+commit c7f631cb07e7da06ac1d231ca178452339e32a94 upstream.
 
-There are multiple problems with the dynamic sanity checking in
-array_index_nospec_mask_check():
+Quoting Linus:
 
-* It causes unnecessary overhead in the 32-bit case since integer sized
-  @index values will no longer cause the check to be compiled away like
-  in the 64-bit case.
+    I do think that it would be a good idea to very expressly document
+    the fact that it's not that the user access itself is unsafe. I do
+    agree that things like "get_user()" want to be protected, but not
+    because of any direct bugs or problems with get_user() and friends,
+    but simply because get_user() is an excellent source of a pointer
+    that is obviously controlled from a potentially attacking user
+    space. So it's a prime candidate for then finding _subsequent_
+    accesses that can then be used to perturb the cache.
 
-* In the 32-bit case it may trigger with user controllable input when
-  the expectation is that should only trigger during development of new
-  kernel enabling.
+Unlike the __get_user() case get_user() includes the address limit check
+near the pointer de-reference. With that locality the speculation can be
+mitigated with pointer narrowing rather than a barrier, i.e.
+array_index_nospec(). Where the narrowing is performed by:
 
-* The macro reuses the input parameter in multiple locations which is
-  broken if someone passes an expression like 'index++' to
-  array_index_nospec().
+	cmp %limit, %ptr
+	sbb %mask, %mask
+	and %mask, %ptr
 
-Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+With respect to speculation the value of %ptr is either less than %limit
+or NULL.
+
+Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arjan van de Ven <arjan@linux.intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
-Link: http://lkml.kernel.org/r/151881604278.17395.6605847763178076520.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: kernel-hardening@lists.openwall.com
+Cc: gregkh@linuxfoundation.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: torvalds@linux-foundation.org
+Cc: alan@linux.intel.com
+Link: https://lkml.kernel.org/r/151727417469.33451.11804043010080838495.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
- include/linux/nospec.h | 22 +---------------------
- 1 file changed, 1 insertion(+), 21 deletions(-)
+ arch/x86/lib/getuser.S | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -30,26 +30,6 @@ static inline unsigned long array_index_
- #endif
- 
- /*
-- * Warn developers about inappropriate array_index_nospec() usage.
-- *
-- * Even if the CPU speculates past the WARN_ONCE branch, the
-- * sign bit of @index is taken into account when generating the
-- * mask.
-- *
-- * This warning is compiled out when the compiler can infer that
-- * @index and @size are less than LONG_MAX.
-- */
--#define array_index_mask_nospec_check(index, size)				\
--({										\
--	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,			\
--	    "array_index_nospec() limited to range of [0, LONG_MAX]\n"))	\
--		_mask = 0;							\
--	else									\
--		_mask = array_index_mask_nospec(index, size);			\
--	_mask;									\
--})
--
--/*
-  * array_index_nospec - sanitize an array index after a bounds check
-  *
-  * For a code sequence like:
-@@ -67,7 +47,7 @@ static inline unsigned long array_index_
- ({									\
- 	typeof(index) _i = (index);					\
- 	typeof(size) _s = (size);					\
--	unsigned long _mask = array_index_mask_nospec_check(_i, _s);	\
-+	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
- 									\
- 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
- 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
+--- a/arch/x86/lib/getuser.S
++++ b/arch/x86/lib/getuser.S
+@@ -40,6 +40,8 @@ ENTRY(__get_user_1)
+ 	GET_THREAD_INFO(%_ASM_DX)
+ 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
+ 	jae bad_get_user
++	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
++	and %_ASM_DX, %_ASM_AX
+ 	ASM_STAC
+ 1:	movzbl (%_ASM_AX),%edx
+ 	xor %eax,%eax
+@@ -55,6 +57,8 @@ ENTRY(__get_user_2)
+ 	GET_THREAD_INFO(%_ASM_DX)
+ 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
+ 	jae bad_get_user
++	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
++	and %_ASM_DX, %_ASM_AX
+ 	ASM_STAC
+ 2:	movzwl -1(%_ASM_AX),%edx
+ 	xor %eax,%eax
+@@ -70,6 +74,8 @@ ENTRY(__get_user_4)
+ 	GET_THREAD_INFO(%_ASM_DX)
+ 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
+ 	jae bad_get_user
++	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
++	and %_ASM_DX, %_ASM_AX
+ 	ASM_STAC
+ 3:	movl -3(%_ASM_AX),%edx
+ 	xor %eax,%eax
+@@ -86,6 +92,8 @@ ENTRY(__get_user_8)
+ 	GET_THREAD_INFO(%_ASM_DX)
+ 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
+ 	jae bad_get_user
++	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
++	and %_ASM_DX, %_ASM_AX
+ 	ASM_STAC
+ 4:	movq -7(%_ASM_AX),%rdx
+ 	xor %eax,%eax
+@@ -97,6 +105,8 @@ ENTRY(__get_user_8)
+ 	GET_THREAD_INFO(%_ASM_DX)
+ 	cmp TI_addr_limit(%_ASM_DX),%_ASM_AX
+ 	jae bad_get_user_8
++	sbb %_ASM_DX, %_ASM_DX		/* array_index_mask_nospec() */
++	and %_ASM_DX, %_ASM_AX
+ 	ASM_STAC
+ 4:	movl -7(%_ASM_AX),%edx
+ 5:	movl -3(%_ASM_AX),%ecx
