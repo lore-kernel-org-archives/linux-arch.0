@@ -1,8 +1,7 @@
 From: Ben Hutchings <ben@decadent.org.uk>
-Subject: [PATCH 3.16 57/76] vfs, fdtable: Prevent bounds-check bypass via
- speculative execution
+Subject: [PATCH 3.16 54/76] x86: Introduce barrier_nospec
 Date: Mon, 12 Mar 2018 03:06:12 +0000
-Message-ID: <lsq.1520823972.494230946@decadent.org.uk>
+Message-ID: <lsq.1520823972.926146860@decadent.org.uk>
 References: <lsq.1520823971.5976735@decadent.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
@@ -12,7 +11,7 @@ Content-Disposition: inline
 In-Reply-To: <lsq.1520823971.5976735@decadent.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, Al Viro <viro@zeniv.linux.org.uk>, kernel-hardening@lists.openwall.com, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, alan@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Dan Williams <dan.j.williams@intel.com>
+Cc: akpm@linux-foundation.org, Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Dan Williams <dan.j.williams@intel.com>, alan@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
 List-Id: linux-arch.vger.kernel.org
 
 3.16.56-rc1 review patch.  If anyone has any objections, please let me know.
@@ -21,48 +20,55 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Dan Williams <dan.j.williams@intel.com>
 
-commit 56c30ba7b348b90484969054d561f711ba196507 upstream.
+commit b3d7ad85b80bbc404635dca80f5b129f6242bc7a upstream.
 
-'fd' is a user controlled value that is used as a data dependency to
-read from the 'fdt->fd' array.  In order to avoid potential leaks of
-kernel memory values, block speculative execution of the instruction
-stream that could issue reads based on an invalid 'file *' returned from
-__fcheck_files.
+Rename the open coded form of this instruction sequence from
+rdtsc_ordered() into a generic barrier primitive, barrier_nospec().
 
-Co-developed-by: Elena Reshetova <elena.reshetova@intel.com>
+One of the mitigations for Spectre variant1 vulnerabilities is to fence
+speculative execution after successfully validating a bounds check. I.e.
+force the result of a bounds check to resolve in the instruction pipeline
+to ensure speculative execution honors that result before potentially
+operating on out-of-bounds data.
+
+No functional changes.
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Suggested-by: Andi Kleen <ak@linux.intel.com>
+Suggested-by: Ingo Molnar <mingo@redhat.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
+Cc: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Kees Cook <keescook@chromium.org>
 Cc: kernel-hardening@lists.openwall.com
 Cc: gregkh@linuxfoundation.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: torvalds@linux-foundation.org
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727418500.33451.17392199002892248656.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: https://lkml.kernel.org/r/151727415361.33451.9049453007262764675.stgit@dwillia2-desk3.amr.corp.intel.com
+[bwh: Backported to 3.16: update rdtsc_barrier() instead of rdtsc_ordered()]
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
- include/linux/fdtable.h | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
-
---- a/include/linux/fdtable.h
-+++ b/include/linux/fdtable.h
-@@ -9,6 +9,7 @@
- #include <linux/compiler.h>
- #include <linux/spinlock.h>
- #include <linux/rcupdate.h>
-+#include <linux/nospec.h>
- #include <linux/types.h>
- #include <linux/init.h>
- #include <linux/fs.h>
-@@ -76,8 +77,10 @@ static inline struct file *__fcheck_file
- {
- 	struct fdtable *fdt = rcu_dereference_raw(files->fdt);
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -48,6 +48,10 @@ static inline unsigned long array_index_
+ /* Override the default implementation from linux/nospec.h. */
+ #define array_index_mask_nospec array_index_mask_nospec
  
--	if (fd < fdt->max_fds)
-+	if (fd < fdt->max_fds) {
-+		fd = array_index_nospec(fd, fdt->max_fds);
- 		return rcu_dereference_raw(fdt->fd[fd]);
-+	}
- 	return NULL;
++/* Prevent speculative execution past this barrier. */
++#define barrier_nospec() alternative_2("", "mfence", X86_FEATURE_MFENCE_RDTSC, \
++					   "lfence", X86_FEATURE_LFENCE_RDTSC)
++
+ /**
+  * read_barrier_depends - Flush all pending reads that subsequents reads
+  * depend on.
+@@ -174,8 +178,7 @@ do {									\
+  */
+ static __always_inline void rdtsc_barrier(void)
+ {
+-	alternative(ASM_NOP3, "mfence", X86_FEATURE_MFENCE_RDTSC);
+-	alternative(ASM_NOP3, "lfence", X86_FEATURE_LFENCE_RDTSC);
++	barrier_nospec();
  }
  
+ #endif /* _ASM_X86_BARRIER_H */
