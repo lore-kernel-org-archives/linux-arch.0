@@ -1,131 +1,133 @@
 From: Ben Hutchings <ben@decadent.org.uk>
-Subject: [PATCH 3.16 52/76] array_index_nospec: Sanitize speculative array
- de-references
+Subject: [PATCH 3.16 56/76] x86/syscall: Sanitize syscall table
+ de-references under speculation
 Date: Mon, 12 Mar 2018 03:06:12 +0000
-Message-ID: <lsq.1520823972.225516073@decadent.org.uk>
+Message-ID: <lsq.1520823972.93871245@decadent.org.uk>
 References: <lsq.1520823971.5976735@decadent.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <stable-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <lsq.1520823971.5976735@decadent.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: stable-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, alan@linux.intel.com, Peter Zijlstra <peterz@infradead.org>, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com, Russell King <linux@armlinux.org.uk>, Cyril Novikov <cnovikov@lynx.com>, Will Deacon <will.deacon@arm.com>, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>
+Cc: akpm@linux-foundation.org, Jinpu Wang <jinpu.wang@profitbricks.com>, kernel-hardening@lists.openwall.com, Jiri Slaby <jslaby@suse.cz>, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jan Beulich <JBeulich@suse.com>, alan@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Dan Williams <dan.j.williams@intel.com>, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 3.16.56-rc1 review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
-From: Dan Williams <dan.j.williams@intel.com>
+From: Ben Hutchings <ben@decadent.org.uk>
 
-commit f3804203306e098dae9ca51540fcd5eb700d7f40 upstream.
+commit 2fbd7af5af8665d18bcefae3e9700be07e22b681 upstream.
 
-array_index_nospec() is proposed as a generic mechanism to mitigate
-against Spectre-variant-1 attacks, i.e. an attack that bypasses boundary
-checks via speculative execution. The array_index_nospec()
-implementation is expected to be safe for current generation CPUs across
-multiple architectures (ARM, x86).
+The upstream version of this, touching C code, was written by Dan Williams,
+with the following description:
 
-Based on an original implementation by Linus Torvalds, tweaked to remove
-speculative flows by Alexei Starovoitov, and tweaked again by Linus to
-introduce an x86 assembly implementation for the mask generation.
+> The syscall table base is a user controlled function pointer in kernel
+> space. Use array_index_nospec() to prevent any out of bounds speculation.
+>
+> While retpoline prevents speculating into a userspace directed target it
+> does not stop the pointer de-reference, the concern is leaking memory
+> relative to the syscall table base, by observing instruction cache
+> behavior.
 
-Co-developed-by: Linus Torvalds <torvalds@linux-foundation.org>
-Co-developed-by: Alexei Starovoitov <ast@kernel.org>
-Suggested-by: Cyril Novikov <cnovikov@lynx.com>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+The x86_64 assembly version for 4.4 was written by Jiri Slaby, with
+the following description:
+
+> In 4.4.118, we have commit c8961332d6da (x86/syscall: Sanitize syscall
+> table de-references under speculation), which is a backport of upstream
+> commit 2fbd7af5af86. But it fixed only the C part of the upstream patch
+> -- the IA32 sysentry. So it ommitted completely the assembly part -- the
+> 64bit sysentry.
+>
+> Fix that in this patch by explicit array_index_mask_nospec written in
+> assembly. The same was used in lib/getuser.S.
+>
+> However, to have "sbb" working properly, we have to switch from "cmp"
+> against (NR_syscalls-1) to (NR_syscalls), otherwise the last syscall
+> number would be "and"ed by 0. It is because the original "ja" relies on
+> "CF" or "ZF", but we rely only on "CF" in "sbb". That means: switch to
+> "jae" conditional jump too.
+>
+> Final note: use rcx for mask as this is exactly what is overwritten by
+> the 4th syscall argument (r10) right after.
+
+In 3.16 the x86_32 syscall table lookup is also written in assembly.
+So I've taken Jiri's version and added similar masking in entry_32.S,
+using edx as the temporary.  edx is clobbered by SAVE_REGS and seems
+to be free at this point.
+
+Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Jiri Slaby <jslaby@suse.cz>
+Cc: Jan Beulich <JBeulich@suse.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-arch@vger.kernel.org
 Cc: kernel-hardening@lists.openwall.com
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Russell King <linux@armlinux.org.uk>
 Cc: gregkh@linuxfoundation.org
-Cc: torvalds@linux-foundation.org
+Cc: Andy Lutomirski <luto@kernel.org>
 Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727414229.33451.18411580953862676575.stgit@dwillia2-desk3.amr.corp.intel.com
+Cc: Jinpu Wang <jinpu.wang@profitbricks.com>
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
- include/linux/nospec.h | 72 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 72 insertions(+)
- create mode 100644 include/linux/nospec.h
-
---- /dev/null
-+++ b/include/linux/nospec.h
-@@ -0,0 +1,72 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright(c) 2018 Linus Torvalds. All rights reserved.
-+// Copyright(c) 2018 Alexei Starovoitov. All rights reserved.
-+// Copyright(c) 2018 Intel Corporation. All rights reserved.
-+
-+#ifndef _LINUX_NOSPEC_H
-+#define _LINUX_NOSPEC_H
-+
-+/**
-+ * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
-+ * @index: array element index
-+ * @size: number of elements in array
-+ *
-+ * When @index is out of bounds (@index >= @size), the sign bit will be
-+ * set.  Extend the sign bit to all bits and invert, giving a result of
-+ * zero for an out of bounds index, or ~0 if within bounds [0, @size).
-+ */
-+#ifndef array_index_mask_nospec
-+static inline unsigned long array_index_mask_nospec(unsigned long index,
-+						    unsigned long size)
-+{
-+	/*
-+	 * Warn developers about inappropriate array_index_nospec() usage.
-+	 *
-+	 * Even if the CPU speculates past the WARN_ONCE branch, the
-+	 * sign bit of @index is taken into account when generating the
-+	 * mask.
-+	 *
-+	 * This warning is compiled out when the compiler can infer that
-+	 * @index and @size are less than LONG_MAX.
-+	 */
-+	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,
-+			"array_index_nospec() limited to range of [0, LONG_MAX]\n"))
-+		return 0;
-+
-+	/*
-+	 * Always calculate and emit the mask even if the compiler
-+	 * thinks the mask is not needed. The compiler does not take
-+	 * into account the value of @index under speculation.
-+	 */
-+	OPTIMIZER_HIDE_VAR(index);
-+	return ~(long)(index | (size - 1UL - index)) >> (BITS_PER_LONG - 1);
-+}
-+#endif
-+
-+/*
-+ * array_index_nospec - sanitize an array index after a bounds check
-+ *
-+ * For a code sequence like:
-+ *
-+ *     if (index < size) {
-+ *         index = array_index_nospec(index, size);
-+ *         val = array[index];
-+ *     }
-+ *
-+ * ...if the CPU speculates past the bounds check then
-+ * array_index_nospec() will clamp the index within the range of [0,
-+ * size).
-+ */
-+#define array_index_nospec(index, size)					\
-+({									\
-+	typeof(index) _i = (index);					\
-+	typeof(size) _s = (size);					\
-+	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
-+									\
-+	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
-+	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
-+									\
-+	_i &= _mask;							\
-+	_i;								\
-+})
-+#endif /* _LINUX_NOSPEC_H */
+--- a/arch/x86/kernel/entry_32.S
++++ b/arch/x86/kernel/entry_32.S
+@@ -426,6 +426,8 @@ sysenter_past_esp:
+ sysenter_do_call:
+ 	cmpl $(NR_syscalls), %eax
+ 	jae sysenter_badsys
++	sbb %edx, %edx				/* array_index_mask_nospec() */
++	and %edx, %eax
+ 	call *sys_call_table(,%eax,4)
+ sysenter_after_call:
+ 	movl %eax,PT_EAX(%esp)
+@@ -503,6 +505,8 @@ ENTRY(system_call)
+ 	cmpl $(NR_syscalls), %eax
+ 	jae syscall_badsys
+ syscall_call:
++	sbb %edx, %edx				/* array_index_mask_nospec() */
++	and %edx, %eax
+ 	call *sys_call_table(,%eax,4)
+ syscall_after_call:
+ 	movl %eax,PT_EAX(%esp)		# store the return value
+--- a/arch/x86/kernel/entry_64.S
++++ b/arch/x86/kernel/entry_64.S
+@@ -445,12 +445,14 @@ GLOBAL(system_call_after_swapgs)
+ 	jnz tracesys
+ system_call_fastpath:
+ #if __SYSCALL_MASK == ~0
+-	cmpq $__NR_syscall_max,%rax
++	cmpq	$NR_syscalls, %rax
+ #else
+ 	andl $__SYSCALL_MASK,%eax
+-	cmpl $__NR_syscall_max,%eax
++	cmpl	$NR_syscalls, %eax
+ #endif
+-	ja badsys
++	jae	badsys
++	sbb	%rcx, %rcx			/* array_index_mask_nospec() */
++	and	%rcx, %rax
+ 	movq %r10,%rcx
+ #ifdef CONFIG_RETPOLINE
+ 	movq	sys_call_table(, %rax, 8), %rax
+@@ -577,12 +579,14 @@ tracesys:
+ 	LOAD_ARGS ARGOFFSET, 1
+ 	RESTORE_REST
+ #if __SYSCALL_MASK == ~0
+-	cmpq $__NR_syscall_max,%rax
++	cmpq	$NR_syscalls, %rax
+ #else
+ 	andl $__SYSCALL_MASK,%eax
+-	cmpl $__NR_syscall_max,%eax
++	cmpl	$NR_syscalls, %eax
+ #endif
+-	ja   int_ret_from_sys_call	/* RAX(%rsp) set to -ENOSYS above */
++	jae	int_ret_from_sys_call		/* RAX(%rsp) set to -ENOSYS above */
++	sbb	%rcx, %rcx			/* array_index_mask_nospec() */
++	and	%rcx, %rax
+ 	movq %r10,%rcx	/* fixup for C */
+ #ifdef CONFIG_RETPOLINE
+ 	movq	sys_call_table(, %rax, 8), %rax
