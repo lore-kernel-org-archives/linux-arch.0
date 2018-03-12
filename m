@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:42785 "EHLO
+Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:42807 "EHLO
         shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S932458AbeCLD2w (ORCPT
+        by vger.kernel.org with ESMTP id S932958AbeCLD3m (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 11 Mar 2018 23:28:52 -0400
+        Sun, 11 Mar 2018 23:29:42 -0400
 Content-Type: text/plain; charset="UTF-8"
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
 MIME-Version: 1.0
 From: Ben Hutchings <ben@decadent.org.uk>
 Date: Mon, 12 Mar 2018 03:06:12 +0000
-Message-ID: <lsq.1520823972.992404138@decadent.org.uk>
-Subject: [PATCH 3.16 53/76] x86: Implement array_index_mask_nospec
+Message-ID: <lsq.1520823972.664773192@decadent.org.uk>
+Subject: [PATCH 3.16 70/76] nospec: Include <asm/barrier.h> dependency
 In-Reply-To: <lsq.1520823971.5976735@decadent.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, kernel-hardening@lists.openwall.com, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, alan@linux.intel.com, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org
-Message-ID: <20180312030612.kliVQpls1HN9_NXaUdTijAfEW4fTtA-c1mJWjdwFj9s@z>
+Cc: akpm@linux-foundation.org, Andy Lutomirski <luto@kernel.org>, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Arjan van de Ven <arjan@linux.intel.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Dave Hansen <dave.hansen@linux.intel.com>, Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, David Woodhouse <dwmw2@infradead.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20180312030612.5DDyJQsAh652vAxt_UO_oktSolLiRaTtSWq4GqheiII@z>
 
 3.16.56-rc1 review patch.  If anyone has any objections, please let me know.
 
@@ -25,61 +25,44 @@ Message-ID: <20180312030612.kliVQpls1HN9_NXaUdTijAfEW4fTtA-c1mJWjdwFj9s@z>
 
 From: Dan Williams <dan.j.williams@intel.com>
 
-commit babdde2698d482b6c0de1eab4f697cf5856c5859 upstream.
+commit eb6174f6d1be16b19cfa43dac296bfed003ce1a6 upstream.
 
-array_index_nospec() uses a mask to sanitize user controllable array
-indexes, i.e. generate a 0 mask if 'index' >= 'size', and a ~0 mask
-otherwise. While the default array_index_mask_nospec() handles the
-carry-bit from the (index - size) result in software.
+The nospec.h header expects the per-architecture header file
+<asm/barrier.h> to optionally define array_index_mask_nospec(). Include
+that dependency to prevent inadvertent fallback to the default
+array_index_mask_nospec() implementation.
 
-The x86 array_index_mask_nospec() does the same, but the carry-bit is
-handled in the processor CF flag without conditional instructions in the
-control flow.
+The default implementation may not provide a full mitigation
+on architectures that perform data value speculation.
 
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Reported-by: Christian Borntraeger <borntraeger@de.ibm.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arjan van de Ven <arjan@linux.intel.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Woodhouse <dwmw2@infradead.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will.deacon@arm.com>
 Cc: linux-arch@vger.kernel.org
-Cc: kernel-hardening@lists.openwall.com
-Cc: gregkh@linuxfoundation.org
-Cc: alan@linux.intel.com
-Link: https://lkml.kernel.org/r/151727414808.33451.1873237130672785331.stgit@dwillia2-desk3.amr.corp.intel.com
-[bwh: Backported to 3.16: adjust context]
+Link: http://lkml.kernel.org/r/151881605404.17395.1341935530792574707.stgit@dwillia2-desk3.amr.corp.intel.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
- arch/x86/include/asm/barrier.h | 24 ++++++++++++++++++++++++
- 1 file changed, 24 insertions(+)
+ include/linux/nospec.h | 1 +
+ 1 file changed, 1 insertion(+)
 
---- a/arch/x86/include/asm/barrier.h
-+++ b/arch/x86/include/asm/barrier.h
-@@ -25,6 +25,30 @@
- #endif
+--- a/include/linux/nospec.h
++++ b/include/linux/nospec.h
+@@ -5,6 +5,7 @@
+ 
+ #ifndef _LINUX_NOSPEC_H
+ #define _LINUX_NOSPEC_H
++#include <asm/barrier.h>
  
  /**
-+ * array_index_mask_nospec() - generate a mask that is ~0UL when the
-+ * 	bounds check succeeds and 0 otherwise
-+ * @index: array element index
-+ * @size: number of elements in array
-+ *
-+ * Returns:
-+ *     0 - (index < size)
-+ */
-+static inline unsigned long array_index_mask_nospec(unsigned long index,
-+		unsigned long size)
-+{
-+	unsigned long mask;
-+
-+	asm ("cmp %1,%2; sbb %0,%0;"
-+			:"=r" (mask)
-+			:"r"(size),"r" (index)
-+			:"cc");
-+	return mask;
-+}
-+
-+/* Override the default implementation from linux/nospec.h. */
-+#define array_index_mask_nospec array_index_mask_nospec
-+
-+/**
-  * read_barrier_depends - Flush all pending reads that subsequents reads
-  * depend on.
-  *
+  * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
