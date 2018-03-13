@@ -1,41 +1,34 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.14 115/140] nospec: Kill array_index_nospec_mask_check()
-Date: Tue, 13 Mar 2018 16:25:18 +0100
-Message-ID: <20180313152505.911920624@linuxfoundation.org>
-References: <20180313152458.201155692@linuxfoundation.org>
+Subject: [PATCH 4.15 081/146] nospec: Include <asm/barrier.h> dependency
+Date: Tue, 13 Mar 2018 16:24:08 +0100
+Message-ID: <20180313152327.044053693@linuxfoundation.org>
+References: <20180313152320.439085687@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180313152458.201155692@linuxfoundation.org>
+In-Reply-To: <20180313152320.439085687@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>, Dan Williams <dan.j.williams@intel.com>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-4.14-stable review patch.  If anyone has any objections, please let me know.
+4.15-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
 From: Dan Williams <dan.j.williams@intel.com>
 
-commit 1d91c1d2c80cb70e2e553845e278b87a960c04da upstream.
+commit eb6174f6d1be16b19cfa43dac296bfed003ce1a6 upstream.
 
-There are multiple problems with the dynamic sanity checking in
-array_index_nospec_mask_check():
+The nospec.h header expects the per-architecture header file
+<asm/barrier.h> to optionally define array_index_mask_nospec(). Include
+that dependency to prevent inadvertent fallback to the default
+array_index_mask_nospec() implementation.
 
-* It causes unnecessary overhead in the 32-bit case since integer sized
-  @index values will no longer cause the check to be compiled away like
-  in the 64-bit case.
+The default implementation may not provide a full mitigation
+on architectures that perform data value speculation.
 
-* In the 32-bit case it may trigger with user controllable input when
-  the expectation is that should only trigger during development of new
-  kernel enabling.
-
-* The macro reuses the input parameter in multiple locations which is
-  broken if someone passes an expression like 'index++' to
-  array_index_nospec().
-
-Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+Reported-by: Christian Borntraeger <borntraeger@de.ibm.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 Cc: Andy Lutomirski <luto@kernel.org>
 Cc: Arjan van de Ven <arjan@linux.intel.com>
@@ -44,53 +37,26 @@ Cc: Dave Hansen <dave.hansen@linux.intel.com>
 Cc: David Woodhouse <dwmw2@infradead.org>
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Will Deacon <will.deacon@arm.com>
 Cc: linux-arch@vger.kernel.org
-Link: http://lkml.kernel.org/r/151881604278.17395.6605847763178076520.stgit@dwillia2-desk3.amr.corp.intel.com
+Link: http://lkml.kernel.org/r/151881605404.17395.1341935530792574707.stgit@dwillia2-desk3.amr.corp.intel.com
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 ---
- include/linux/nospec.h |   22 +---------------------
- 1 file changed, 1 insertion(+), 21 deletions(-)
+ include/linux/nospec.h |    1 +
+ 1 file changed, 1 insertion(+)
 
 --- a/include/linux/nospec.h
 +++ b/include/linux/nospec.h
-@@ -30,26 +30,6 @@ static inline unsigned long array_index_
- #endif
+@@ -5,6 +5,7 @@
  
- /*
-- * Warn developers about inappropriate array_index_nospec() usage.
-- *
-- * Even if the CPU speculates past the WARN_ONCE branch, the
-- * sign bit of @index is taken into account when generating the
-- * mask.
-- *
-- * This warning is compiled out when the compiler can infer that
-- * @index and @size are less than LONG_MAX.
-- */
--#define array_index_mask_nospec_check(index, size)				\
--({										\
--	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,			\
--	    "array_index_nospec() limited to range of [0, LONG_MAX]\n"))	\
--		_mask = 0;							\
--	else									\
--		_mask = array_index_mask_nospec(index, size);			\
--	_mask;									\
--})
--
--/*
-  * array_index_nospec - sanitize an array index after a bounds check
-  *
-  * For a code sequence like:
-@@ -67,7 +47,7 @@ static inline unsigned long array_index_
- ({									\
- 	typeof(index) _i = (index);					\
- 	typeof(size) _s = (size);					\
--	unsigned long _mask = array_index_mask_nospec_check(_i, _s);	\
-+	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
- 									\
- 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
- 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
+ #ifndef _LINUX_NOSPEC_H
+ #define _LINUX_NOSPEC_H
++#include <asm/barrier.h>
+ 
+ /**
+  * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
