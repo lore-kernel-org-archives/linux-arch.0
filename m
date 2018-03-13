@@ -1,107 +1,72 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: [PATCH v4 07/10] include: Add new y2038 safe __kernel_timespec
-Date: Mon, 12 Mar 2018 10:53:04 -0700
-Message-ID: <20180312175307.11032-8-deepa.kernel@gmail.com>
-References: <20180312175307.11032-1-deepa.kernel@gmail.com>
+From: "Rafael J. Wysocki" <rafael@kernel.org>
+Subject: Re: [PATCH v16 0/9] LPC: legacy ISA I/O support
+Date: Tue, 13 Mar 2018 11:22:47 +0100
+Message-ID: <CAJZ5v0jTJ-LwyPUO7mbS47KyZ35pZeBfqkjxqubZjEGC=OJ82Q@mail.gmail.com>
+References: <1520333268-82754-1-git-send-email-john.garry@huawei.com>
+ <1520335317.10722.416.camel@linux.intel.com> <b4459d98-ebd4-7b13-07ec-613845579558@huawei.com>
+ <CAJZ5v0gnf6rDYtKLBNfKjC=g3W=2XUed_R=AO+GeGYuubP_zWw@mail.gmail.com> <3ef757ff-8430-017f-59d3-ff67f49f5a80@huawei.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180312175307.11032-1-deepa.kernel@gmail.com>
+In-Reply-To: <3ef757ff-8430-017f-59d3-ff67f49f5a80@huawei.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de, tglx@linutronix.de, john.stultz@linaro.org
-Cc: linux-kernel@vger.kernel.org, y2038@lists.linaro.org, linux-arch@vger.kernel.org
+To: John Garry <john.garry@huawei.com>
+Cc: "Rafael J. Wysocki" <rafael@kernel.org>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, Mika Westerberg <mika.westerberg@linux.intel.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Hanjun Guo <hanjun.guo@linaro.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Olof Johansson <olof@lixom.net>, Dann Frazier <dann.frazier@canonical.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Rob Herring <robh@kernel.org>, Joe Perches <joe@perches.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linux PCI <linux-pci@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ACPI
 List-Id: linux-arch.vger.kernel.org
 
-The new struct __kernel_timespec is similar to current
-internal kernel struct timespec64 on 64 bit architecture.
-The compat structure however is similar to below on little
-endian systems (padding and tv_nsec are switched for big
-endian systems):
+On Tue, Mar 6, 2018 at 5:22 PM, John Garry <john.garry@huawei.com> wrote:
+>>>>>
+>>>>> Based on this patch-set, all the I/O accesses to Hip06/Hip07 LPC
+>>>>> peripherals can
+>>>>> be supported without any changes on the existing ipmi-si driver.
+>>>>>
+>>>>> The whole patchset has been tested on Hip07 D05 board both using DTB
+>>>>> and ACPI.
+>>>>>
+>>>>
+>>>>> V15 thread here: https://lkml.org/lkml/2018/2/26/584
+>>>>
+>>>>
+>>>>
+>>>> Thanks for an update.
+>>>> Though I answered to previous thread.
+>>>>
+>>>> Summary: I'm fine with the series as long as maintainers are fine
+>>>> (Rafael et al.). On personal side I think that the handler approach is
+>>>> better. Details are in v15 thread.
+>>>
+>>>
+>>>
+>>> Hi Andy,
+>>>
+>>> Thanks for your input and continued support. As I mentioned in reply in
+>>> v15,
+>>> the handler support would (or has) faced issues. And Rafael seems fine
+>>> with
+>>> deferring the probe to the LLDD in Patch #7/9
+>>
+>>
+>
+> Hi Rafael,
+>
+>> Well, the only sort-of concern is that these devices may not be
+>> "serial bus slaves" in general, so the naming is slightly confusing.
+>>
+>
+> Right, the name.
+>
+> The key point is that we model the bus the same as other serial buses like
+> I2C or SPI, so require the same treatment from the ACPI scan.
+>
+> Would you prefer acpi_is_serial_bus_slave() and
+> acpi_device_flags.serial_bus_slave symbols be modified also?
 
-typedef s32            compat_long_t;
-typedef s64            compat_kernel_time64_t;
+Yeah, preferably.
 
-struct compat_kernel_timespec {
-       compat_kernel_time64_t  tv_sec;
-       compat_long_t           tv_nsec;
-       compat_long_t           padding;
-};
+You can rename them to acpi_device_enumeration_by_parent() and
+acpi_device_flags.enumeration_by_parent, respectively, as far as I'm
+concerned.
 
-This allows for both the native and compat representations to
-be the same and syscalls using this type as part of their ABI
-can have a single entry point to both.
+At least the names would match the purpose then. :-)
 
-Note that the compat define is not included anywhere in the
-kernel explicitly to avoid confusion.
-
-These types will be used by the new syscalls that will be
-introduced in the consequent patches.
-Most of the new syscalls are just an update to the existing
-native ones with this new type. Hence, put this new type under
-an ifdef so that the architectures can define CONFIG_64BIT_TIME
-when they are ready to handle this switch.
-
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
----
- include/linux/time64.h                 | 10 +++++++++-
- include/uapi/asm-generic/posix_types.h |  1 +
- include/uapi/linux/time.h              |  7 +++++++
- 3 files changed, 17 insertions(+), 1 deletion(-)
-
-diff --git a/include/linux/time64.h b/include/linux/time64.h
-index 93d39499838e..0d96887ba4e0 100644
---- a/include/linux/time64.h
-+++ b/include/linux/time64.h
-@@ -2,12 +2,20 @@
- #ifndef _LINUX_TIME64_H
- #define _LINUX_TIME64_H
- 
--#include <uapi/linux/time.h>
- #include <linux/math64.h>
- 
- typedef __s64 time64_t;
- typedef __u64 timeu64_t;
- 
-+/* CONFIG_64BIT_TIME enables new 64 bit time_t syscalls in the compat path
-+ * and 32-bit emulation.
-+ */
-+#ifndef CONFIG_64BIT_TIME
-+#define __kernel_timespec timespec
-+#endif
-+
-+#include <uapi/linux/time.h>
-+
- #if __BITS_PER_LONG == 64
- /* this trick allows us to optimize out timespec64_to_timespec */
- # define timespec64 timespec
-diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
-index 5e6ea22bd525..f0733a26ebfc 100644
---- a/include/uapi/asm-generic/posix_types.h
-+++ b/include/uapi/asm-generic/posix_types.h
-@@ -87,6 +87,7 @@ typedef struct {
- typedef __kernel_long_t	__kernel_off_t;
- typedef long long	__kernel_loff_t;
- typedef __kernel_long_t	__kernel_time_t;
-+typedef long long __kernel_time64_t;
- typedef __kernel_long_t	__kernel_clock_t;
- typedef int		__kernel_timer_t;
- typedef int		__kernel_clockid_t;
-diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
-index 53f8dd84beb5..0ad4510884b0 100644
---- a/include/uapi/linux/time.h
-+++ b/include/uapi/linux/time.h
-@@ -42,6 +42,13 @@ struct itimerval {
- 	struct timeval it_value;	/* current value */
- };
- 
-+#ifndef __kernel_timespec
-+struct __kernel_timespec {
-+	__kernel_time64_t       tv_sec;                 /* seconds */
-+	long long               tv_nsec;                /* nanoseconds */
-+};
-+#endif
-+
- /*
-  * The IDs of the various system clocks (for POSIX.1b interval timers):
-  */
--- 
-2.14.1
+And please update the comment in acpi_default_enumeration() while at it.
