@@ -1,42 +1,85 @@
-From: Andrey Konovalov <andreyknvl@google.com>
-Subject: Re: [RFC PATCH 3/6] mm, arm64: untag user addresses in memory syscalls
-Date: Wed, 14 Mar 2018 16:45:20 +0100
-Message-ID: <CAAeHK+y3hJ4jAByvfGDYyNb_RZ3_As4r-FCyZL9u69Vv_HS2AA@mail.gmail.com>
-References: <cover.1520600533.git.andreyknvl@google.com> <beea8ac394bfae3c7c949645fb887ceacc3f3bb3.1520600533.git.andreyknvl@google.com>
- <20180309155315.4x44sbp3darractt@armageddon.cambridge.arm.com>
- <CAAeHK+xF0X-SQuPVmZF--VnmvYrbpDkznSwYTh_3LHq1H2V=9Q@mail.gmail.com> <CAFKCwrgPEhBEbXn95ugxVuxHw7UTiQWuo3+HJ_t7UBG69fbUcw@mail.gmail.com>
+From: Christopher Lameter <cl@linux.com>
+Subject: Re: [PATCH v2 06/27] x86/entry/64: Adapt assembly for PIE support
+Date: Wed, 14 Mar 2018 10:54:58 -0500 (CDT)
+Message-ID: <alpine.DEB.2.20.1803141051210.14471@nuc-kabylake>
+References: <20180313205945.245105-1-thgarnie@google.com> <20180313205945.245105-7-thgarnie@google.com> <20180314102951.GQ4043@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAFKCwrgPEhBEbXn95ugxVuxHw7UTiQWuo3+HJ_t7UBG69fbUcw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Evgenii Stepanov <eugenis@google.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <kernel-hardening-return-12603-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20180314102951.GQ4043@hirez.programming.kicks-ass.net>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Garnier <thgarnie@google.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kate Stewart <kstewart@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, Philippe Ombredanne <pombredanne@nexb.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Matthias Kaehlcke <mka@chromium.org>, Kees Cook <keescook@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Borislav Petkov <bp@alien8.de>Borislav
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 9, 2018 at 6:42 PM, Evgenii Stepanov <eugenis@google.com> wrote:
-> On Fri, Mar 9, 2018 at 9:31 AM, Andrey Konovalov <andreyknvl@google.com> wrote:
->> On Fri, Mar 9, 2018 at 4:53 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
->>> I'm not yet convinced these functions need to allow tagged pointers.
->>> They are not doing memory accesses but rather dealing with the memory
->>> range, hence an untagged pointer is better suited. There is probably a
->>> reason why the "start" argument is "unsigned long" vs "void __user *"
->>> (in the kernel, not the man page).
->>
->> So that would make the user to untag pointers before passing to these syscalls.
->>
->> Evgeniy, would that be possible to untag pointers in HWASan before
->> using memory subsystem syscalls? Is there a reason for untagging them
->> in the kernel?
->
-> Generally, no. It's possible to intercept a libc call using symbol
-> interposition, but I don't know how to rewrite arguments of a raw
-> system call other than through ptrace, and that creates more problems
-> than it solves.
->
-> AFAIU, it's valid for a program to pass an address obtained from
-> malloc or, better, posix_memalign to an mm syscall like mprotect().
-> These arguments are pointers from the userspace point of view.
 
-Catalin, do you think this is a good reason to have the untagging done
-in the kernel?
+
+On Wed, 14 Mar 2018, Peter Zijlstra wrote:
+
+> On Tue, Mar 13, 2018 at 01:59:24PM -0700, Thomas Garnier wrote:
+> > @@ -1576,7 +1578,9 @@ first_nmi:
+> >  	addq	$8, (%rsp)	/* Fix up RSP */
+> >  	pushfq			/* RFLAGS */
+> >  	pushq	$__KERNEL_CS	/* CS */
+> > -	pushq	$1f		/* RIP */
+> > +	pushq	%rax		/* Support Position Independent Code */
+> > +	leaq	1f(%rip), %rax	/* RIP */
+> > +	xchgq	%rax, (%rsp)	/* Restore RAX, put 1f */
+> >  	iretq			/* continues at repeat_nmi below */
+> >  	UNWIND_HINT_IRET_REGS
+> >  1:
+>
+> Urgh, xchg with a memop has an implicit LOCK prefix.
+
+this_cpu_xchg uses no lock cmpxchg as a replacement to reduce latency.
+
+From linux/arch/x86/include/asm/percpu.h
+
+/*
+ * xchg is implemented using cmpxchg without a lock prefix. xchg is
+ * expensive due to the implied lock prefix.  The processor cannot prefetch
+ * cachelines if xchg is used.
+ */
+#define percpu_xchg_op(var, nval)                                       \
+({                                                                      \
+        typeof(var) pxo_ret__;                                          \
+        typeof(var) pxo_new__ = (nval);                                 \
+        switch (sizeof(var)) {                                          \
+        case 1:                                                         \
+                asm("\n\tmov "__percpu_arg(1)",%%al"                    \
+                    "\n1:\tcmpxchgb %2, "__percpu_arg(1)                \
+                    "\n\tjnz 1b"                                        \
+                            : "=&a" (pxo_ret__), "+m" (var)             \
+                            : "q" (pxo_new__)                           \
+                            : "memory");                                \
+                break;                                                  \
+        case 2:                                                         \
+                asm("\n\tmov "__percpu_arg(1)",%%ax"                    \
+                    "\n1:\tcmpxchgw %2, "__percpu_arg(1)                \
+                    "\n\tjnz 1b"                                        \
+                            : "=&a" (pxo_ret__), "+m" (var)             \
+                            : "r" (pxo_new__)                           \
+                            : "memory");                                \
+                break;                                                  \
+        case 4:                                                         \
+                asm("\n\tmov "__percpu_arg(1)",%%eax"                   \
+                    "\n1:\tcmpxchgl %2, "__percpu_arg(1)                \
+                    "\n\tjnz 1b"                                        \
+                            : "=&a" (pxo_ret__), "+m" (var)             \
+                            : "r" (pxo_new__)                           \
+                            : "memory");                                \
+                break;                                                  \
+        case 8:                                                         \
+                asm("\n\tmov "__percpu_arg(1)",%%rax"                   \
+                    "\n1:\tcmpxchgq %2, "__percpu_arg(1)                \
+                    "\n\tjnz 1b"                                        \
+                            : "=&a" (pxo_ret__), "+m" (var)             \
+                            : "r" (pxo_new__)                           \
+                            : "memory");                                \
+                break;                                                  \
+        default: __bad_percpu_size();                                   \
+        }                                                               \
+        pxo_ret__;                                                      \
