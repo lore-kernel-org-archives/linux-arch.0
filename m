@@ -1,40 +1,101 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH 1/1 v2] x86: pkey-mprotect must allow pkey-0
-Date: Wed, 14 Mar 2018 07:19:23 -0700
-Message-ID: <18b155e3-07e9-5a4b-1f95-e1667078438c@intel.com>
-References: <1521013574-27041-1-git-send-email-linuxram@us.ibm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 00/16] remove eight obsolete architectures
+Date: Wed, 14 Mar 2018 15:34:59 +0100
+Message-ID: <20180314143529.1456168-1-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521013574-27041-1-git-send-email-linuxram@us.ibm.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ram Pai <linuxram@us.ibm.com>, mingo@redhat.com
-Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: linux-arch@vger.kernel.org
+Cc: linux-rtc@vger.kernel.org, linux-pwm@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-watchdog@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-usb@vger.kernel.org, linux-wireless@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-spi@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-input@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-On 03/14/2018 12:46 AM, Ram Pai wrote:
-> Once an address range is associated with an allocated pkey, it cannot be
-> reverted back to key-0. There is no valid reason for the above behavior.  On
-> the contrary applications need the ability to do so.
-
-I'm trying to remember why we cared in the first place. :)
-
-Could you add that to the changelog, please?
-
-> @@ -92,7 +92,8 @@ int mm_pkey_alloc(struct mm_struct *mm)
->  static inline
->  int mm_pkey_free(struct mm_struct *mm, int pkey)
->  {
-> -	if (!mm_pkey_is_allocated(mm, pkey))
-> +	/* pkey 0 is special and can never be freed */
-> +	if (!pkey || !mm_pkey_is_allocated(mm, pkey))
->  		return -EINVAL;
-
-If an app was being really careful, couldn't it free up all of the
-implicitly-pkey-0-assigned memory so that it is not in use at all?  In
-that case, we might want to allow this.
-
-On the other hand, nobody is likely to _ever_ actually do this so this
-is good shoot-yourself-in-the-foot protection.
+SGVyZSBpcyB0aGUgY29sbGVjdGlvbiBvZiBwYXRjaGVzIEkgaGF2ZSBhcHBsaWVkIHRvIG15ICdh
+c20tZ2VuZXJpYycgdHJlZQpvbiB0b3Agb2YgdGhlICdtZXRhZycgcmVtb3ZhbC4gVGhpcyBkb2Vz
+IG5vdCBpbmNsdWRlIGFueSBvZiB0aGUgZGV2aWNlCmRyaXZlcnMsIEknbGwgc2VuZCB0aG9zZSBz
+ZXBhcmF0ZWx5IHRvIGEgc29tZW9uZSBkaWZmZXJlbnQgbGlzdCBvZiBwZW9wbGUuCgpUaGUgcmVt
+b3ZhbCBjYW1lIG91dCBvZiBhIGRpc2N1c3Npb24gdGhhdCBpcyBub3cgZG9jdW1lbnRlZCBhdApo
+dHRwczovL2x3bi5uZXQvQXJ0aWNsZXMvNzQ4MDc0LwoKRm9sbG93aW5nIHVwIGZyb20gdGhlIHN0
+YXRlIGRlc2NyaWJlZCB0aGVyZSwgSSBlbmRlZCB1cCByZW1vdmluZyB0aGUKbW4xMDMwMCwgdGls
+ZSwgYmxhY2tmaW4gYW5kIGNyaXMgYXJjaGl0ZWN0dXJlcyBkaXJlY3RseSwgcmF0aGVyIHRoYW4K
+d2FpdGluZywgYWZ0ZXIgY29uc3VsdGluZyB3aXRoIHRoZSByZXNwZWN0aXZlIG1haW50YWluZXJz
+LgoKSG93ZXZlciwgdGhlIHVuaWNvcmUzMiBhcmNoaXRlY3R1cmUgaXMgbm8gbG9uZ2VyIHBhcnQg
+b2YgdGhlIHJlbW92YWwsCmFmdGVyIGl0cyBtYWludGFpbmVyIFh1ZXRhbyBHdWFuIHNhaWQgdGhh
+dCB0aGUgcG9ydCBpcyBzdGlsbCBhY3RpdmVseQpiZWluZyB1c2VkIGFuZCB0aGF0IGhlIGludGVu
+ZHMgdG8ga2VlcCB3b3JraW5nIG9uIGl0LCBhbmQgdGhhdCBoZSB3aWxsCnRyeSB0byBwcm92aWRl
+IHVwZGF0ZWQgdG9vbGNoYWluIHNvdXJjZXMuCgpJbiB0aGUgZW5kLCBpdCBzZWVtcyB0aGF0IHdo
+aWxlIHRoZSBlaWdodCBhcmNoaXRlY3R1cmVzIGFyZSBleHRyZW1lbHkKZGlmZmVyZW50LCB0aGV5
+IGFsbCBzdWZmZXJlZCB0aGUgc2FtZSBmYXRlOiBUaGVyZSB3YXMgb25lIGNvbXBhbnkgaW4KY2hh
+cmdlIG9mIGFuIFNvQyBsaW5lLCBhIENQVSBtaWNyb2FyY2hpdGVjdHVyZSBhbmQgYSBzb2Z0d2Fy
+ZSBlY29zeXN0ZW0sCndoaWNoIHdhcyBtb3JlIGNvc3RseSB0aGFuIGxpY2Vuc2luZyBuZXdlciBv
+ZmYtdGhlLXNoZWxmIENQVSBjb3JlcyBmcm9tCmEgdGhpcmQgcGFydHkgKHR5cGljYWxseSBBUk0s
+IE1JUFMsIG9yIFJJU0MtVikuIEl0IHNlZW1zIHRoYXQgYWxsIHRoZQpTb0MgcHJvZHVjdCBsaW5l
+cyBhcmUgc3RpbGwgYXJvdW5kLCBidXQgaGF2ZSBub3QgdXNlZCB0aGUgY3VzdG9tIENQVQphcmNo
+aXRlY3R1cmVzIGZvciBzZXZlcmFsIHllYXJzIGF0IHRoaXMgcG9pbnQuCgogICAgICBBcm5kCgpB
+cm5kIEJlcmdtYW5uICgxNCk6CiAgYXJjaDogcmVtb3ZlIGZydiBwb3J0CiAgYXJjaDogcmVtb3Zl
+IG0zMnIgcG9ydAogIGFyY2g6IHJlbW92ZSBzY29yZSBwb3J0CiAgYXJjaDogcmVtb3ZlIGJsYWNr
+ZmluIHBvcnQKICBhcmNoOiByZW1vdmUgdGlsZSBwb3J0CiAgcHJvY2ZzOiByZW1vdmUgQ09ORklH
+X0hBUkRXQUxMIGRlcGVuZGVuY3kKICBtbTogcmVtb3ZlIGJsYWNrZmluIE1QVSBzdXBwb3J0CiAg
+bW06IHJlbW92ZSBvYnNvbGV0ZSBhbGxvY19yZW1hcCgpCiAgdHJlZXdpZGU6IHNpbXBsaWZ5IEtj
+b25maWcgZGVwZW5kZW5jaWVzIGZvciByZW1vdmVkIGFyY2hzCiAgYXNtLWdlbmVyaWM6IHNpZ2lu
+Zm86IHJlbW92ZSBvYnNvbGV0ZSAjaWZkZWZzCiAgRG9jdW1lbnRhdGlvbjogYXJjaC1zdXBwb3J0
+OiByZW1vdmUgb2Jzb2xldGUgYXJjaGl0ZWN0dXJlcwogIGFzbS1nZW5lcmljOiBjbGVhbiB1cCBh
+c20vdW5pc3RkLmgKICByZWNvcmRtY291bnQucGw6IGRyb3AgYmxhY2tpbiBhbmQgdGlsZSBzdXBw
+b3J0CiAga3Rlc3Q6IHJlbW92ZSBvYnNvbGV0ZSBhcmNoaXRlY3R1cmVzCgpEYXZpZCBIb3dlbGxz
+ICgxKToKICBtbjEwMzAwOiBSZW1vdmUgdGhlIGFyY2hpdGVjdHVyZQoKSmVzcGVyIE5pbHNzb24g
+KDEpOgogIENSSVM6IERyb3Agc3VwcG9ydCBmb3IgdGhlIENSSVMgcG9ydAoKRGlyc3RhdCBvbmx5
+IChmdWxsIGRpZmZzdGF0IGlzIG92ZXIgMTAwS0IpOgoKICAgNi4zJSBhcmNoL2JsYWNrZmluL21h
+Y2gtYmY1NDgvaW5jbHVkZS9tYWNoLwogICA0LjUlIGFyY2gvYmxhY2tmaW4vbWFjaC1iZjYwOS9p
+bmNsdWRlL21hY2gvCiAgMjYuMyUgYXJjaC9ibGFja2Zpbi8KICAgNC4xJSBhcmNoL2NyaXMvYXJj
+aC12MzIvCiAgIDUuNiUgYXJjaC9jcmlzL2luY2x1ZGUvYXJjaC12MzIvYXJjaC9od3JlZ3MvaW9w
+LwogICA0LjElIGFyY2gvY3Jpcy9pbmNsdWRlL2FyY2gtdjMyL21hY2gtYTMvbWFjaC9od3JlZ3Mv
+CiAgIDQuNyUgYXJjaC9jcmlzL2luY2x1ZGUvYXJjaC12MzIvCiAgIDcuOCUgYXJjaC9jcmlzLwog
+ICA1LjYlIGFyY2gvZnJ2LwogICA1LjUlIGFyY2gvbTMyci8KICAgNy4wJSBhcmNoL21uMTAzMDAv
+CiAgIDcuNiUgYXJjaC90aWxlL2luY2x1ZGUvCiAgIDYuNCUgYXJjaC90aWxlL2tlcm5lbC8KICAg
+MC4wJSBEb2N1bWVudGF0aW9uL2FkbWluLWd1aWRlLwogICAwLjAlIERvY3VtZW50YXRpb24vYmxh
+Y2tmaW4vCiAgIDAuMCUgRG9jdW1lbnRhdGlvbi9jcmlzLwogICAwLjAlIERvY3VtZW50YXRpb24v
+ZGV2aWNldHJlZS9iaW5kaW5ncy9jcmlzLwogICAwLjAlIERvY3VtZW50YXRpb24vZGV2aWNldHJl
+ZS9iaW5kaW5ncy9pbnRlcnJ1cHQtY29udHJvbGxlci8KICAgMi44JSBEb2N1bWVudGF0aW9uL2Zl
+YXR1cmVzLwogICAwLjUlIERvY3VtZW50YXRpb24vZnJ2LwogICAwLjAlIERvY3VtZW50YXRpb24v
+aW9jdGwvCiAgIDAuMCUgRG9jdW1lbnRhdGlvbi9tbjEwMzAwLwogICAwLjAlIERvY3VtZW50YXRp
+b24vCiAgIDAuMCUgYmxvY2svCiAgIDAuMCUgY3J5cHRvLwogICAwLjAlIGRyaXZlcnMvaWRlLwog
+ICAwLjAlIGRyaXZlcnMvaW5wdXQvam95c3RpY2svCiAgIDAuMCUgZHJpdmVycy9pc2RuL2hpc2F4
+LwogICAwLjAlIGRyaXZlcnMvbmV0L2V0aGVybmV0L2Rhdmljb20vCiAgIDAuMCUgZHJpdmVycy9u
+ZXQvZXRoZXJuZXQvc21zYy8KICAgMC4wJSBkcml2ZXJzL25ldC93aXJlbGVzcy9jaXNjby8KICAg
+MC4wJSBkcml2ZXJzL3BjaS8KICAgMC4wJSBkcml2ZXJzL3B3bS8KICAgMC4wJSBkcml2ZXJzL3J0
+Yy8KICAgMC4wJSBkcml2ZXJzL3NwaS8KICAgMC4wJSBkcml2ZXJzL3N0YWdpbmcvc3BlYWt1cC8K
+ICAgMC4wJSBkcml2ZXJzL3VzYi9tdXNiLwogICAwLjAlIGRyaXZlcnMvdmlkZW8vY29uc29sZS8K
+ICAgMC4wJSBkcml2ZXJzL3dhdGNoZG9nLwogICAwLjAlIGZzL21pbml4LwogICAwLjAlIGZzL3By
+b2MvCiAgIDAuMCUgZnMvCiAgIDAuMCUgaW5jbHVkZS9hc20tZ2VuZXJpYy8KICAgMC4wJSBpbmNs
+dWRlL2xpbnV4LwogICAwLjAlIGluY2x1ZGUvdWFwaS9hc20tZ2VuZXJpYy8KICAgMC4wJSBpbml0
+LwogICAwLjAlIGtlcm5lbC8KICAgMC4wJSBsaWIvCiAgIDAuMCUgbW0vCiAgIDAuMCUgc2FtcGxl
+cy9ibGFja2Zpbi8KICAgMC4wJSBzYW1wbGVzL2twcm9iZXMvCiAgIDAuMCUgc2FtcGxlcy8KICAg
+MC4wJSBzY3JpcHRzL21vZC8KICAgMC4wJSBzY3JpcHRzLwogICAwLjAlIHRvb2xzL2FyY2gvZnJ2
+L2luY2x1ZGUvdWFwaS9hc20vCiAgIDAuMCUgdG9vbHMvYXJjaC9tMzJyL2luY2x1ZGUvdWFwaS9h
+c20vCiAgIDAuMCUgdG9vbHMvYXJjaC9tbjEwMzAwL2luY2x1ZGUvdWFwaS9hc20vCiAgIDAuMCUg
+dG9vbHMvYXJjaC9zY29yZS9pbmNsdWRlL3VhcGkvYXNtLwogICAwLjAlIHRvb2xzL2FyY2gvdGls
+ZS9pbmNsdWRlL2FzbS8KICAgMC4wJSB0b29scy9hcmNoL3RpbGUvaW5jbHVkZS91YXBpL2FzbS8K
+ICAgMC4wJSB0b29scy9pbmNsdWRlL2FzbS1nZW5lcmljLwogICAwLjAlIHRvb2xzL3NjcmlwdHMv
+CiAgIDAuMCUgdG9vbHMvdGVzdGluZy9rdGVzdC9leGFtcGxlcy8KICAgMC4wJSB0b29scy90ZXN0
+aW5nL2t0ZXN0LwoKQ2M6IGxpbnV4LWRvY0B2Z2VyLmtlcm5lbC5vcmcKQ2M6IGxpbnV4LWtlcm5l
+bEB2Z2VyLmtlcm5lbC5vcmcKQ2M6IGxpbnV4LWJsb2NrQHZnZXIua2VybmVsLm9yZwpDYzogbGlu
+dXgtaWRlQHZnZXIua2VybmVsLm9yZwpDYzogbGludXgtaW5wdXRAdmdlci5rZXJuZWwub3JnCkNj
+OiBuZXRkZXZAdmdlci5rZXJuZWwub3JnCkNjOiBsaW51eC13aXJlbGVzc0B2Z2VyLmtlcm5lbC5v
+cmcKQ2M6IGxpbnV4LXB3bUB2Z2VyLmtlcm5lbC5vcmcKQ2M6IGxpbnV4LXJ0Y0B2Z2VyLmtlcm5l
+bC5vcmcKQ2M6IGxpbnV4LXNwaUB2Z2VyLmtlcm5lbC5vcmcKQ2M6IGxpbnV4LXVzYkB2Z2VyLmtl
+cm5lbC5vcmcKQ2M6IGRyaS1kZXZlbEBsaXN0cy5mcmVlZGVza3RvcC5vcmcKQ2M6IGxpbnV4LWZi
+ZGV2QHZnZXIua2VybmVsLm9yZwpDYzogbGludXgtd2F0Y2hkb2dAdmdlci5rZXJuZWwub3JnCkNj
+OiBsaW51eC1mc2RldmVsQHZnZXIua2VybmVsLm9yZwpDYzogbGludXgtYXJjaEB2Z2VyLmtlcm5l
+bC5vcmcKQ2M6IGxpbnV4LW1tQGt2YWNrLm9yZwpfX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fXwpkcmktZGV2ZWwgbWFpbGluZyBsaXN0CmRyaS1kZXZlbEBsaXN0
+cy5mcmVlZGVza3RvcC5vcmcKaHR0cHM6Ly9saXN0cy5mcmVlZGVza3RvcC5vcmcvbWFpbG1hbi9s
+aXN0aW5mby9kcmktZGV2ZWwK
