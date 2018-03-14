@@ -1,107 +1,65 @@
-From: Deepa Dinamani <deepa.kernel@gmail.com>
-Subject: [PATCH v5 07/10] include: Add new y2038 safe __kernel_timespec
-Date: Tue, 13 Mar 2018 21:03:30 -0700
-Message-ID: <20180314040333.3291-8-deepa.kernel@gmail.com>
-References: <20180314040333.3291-1-deepa.kernel@gmail.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH 1/1 v2] powerpc: pkey-mprotect must allow pkey-0
+Date: Wed, 14 Mar 2018 00:45:00 -0700
+Message-ID: <1521013500-26740-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180314040333.3291-1-deepa.kernel@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de, tglx@linutronix.de, john.stultz@linaro.org
-Cc: linux-kernel@vger.kernel.org, y2038@lists.linaro.org, linux-arch@vger.kernel.org
+To: mpe@ellerman.id.au
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
 List-Id: linux-arch.vger.kernel.org
 
-The new struct __kernel_timespec is similar to current
-internal kernel struct timespec64 on 64 bit architecture.
-The compat structure however is similar to below on little
-endian systems (padding and tv_nsec are switched for big
-endian systems):
+Once an address range is associated with an allocated pkey, it cannot be
+reverted back to key-0. There is no valid reason for the above behavior.  On
+the contrary applications need the ability to do so.
 
-typedef s32            compat_long_t;
-typedef s64            compat_kernel_time64_t;
+The patch relaxes the restriction.
 
-struct compat_kernel_timespec {
-       compat_kernel_time64_t  tv_sec;
-       compat_long_t           tv_nsec;
-       compat_long_t           padding;
-};
+Tested on powerpc.
 
-This allows for both the native and compat representations to
-be the same and syscalls using this type as part of their ABI
-can have a single entry point to both.
-
-Note that the compat define is not included anywhere in the
-kernel explicitly to avoid confusion.
-
-These types will be used by the new syscalls that will be
-introduced in the consequent patches.
-Most of the new syscalls are just an update to the existing
-native ones with this new type. Hence, put this new type under
-an ifdef so that the architectures can define CONFIG_64BIT_TIME
-when they are ready to handle this switch.
-
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Deepa Dinamani <deepa.kernel@gmail.com>
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Michael Ellermen <mpe@ellerman.id.au>
+cc: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
 ---
- include/linux/time64.h                 | 10 +++++++++-
- include/uapi/asm-generic/posix_types.h |  1 +
- include/uapi/linux/time.h              |  7 +++++++
- 3 files changed, 17 insertions(+), 1 deletion(-)
+ arch/powerpc/include/asm/pkeys.h | 19 ++++++++++++++-----
+ 1 file changed, 14 insertions(+), 5 deletions(-)
 
-diff --git a/include/linux/time64.h b/include/linux/time64.h
-index 93d39499838e..0d96887ba4e0 100644
---- a/include/linux/time64.h
-+++ b/include/linux/time64.h
-@@ -2,12 +2,20 @@
- #ifndef _LINUX_TIME64_H
- #define _LINUX_TIME64_H
+diff --git a/arch/powerpc/include/asm/pkeys.h b/arch/powerpc/include/asm/pkeys.h
+index 0409c80..3c1deec 100644
+--- a/arch/powerpc/include/asm/pkeys.h
++++ b/arch/powerpc/include/asm/pkeys.h
+@@ -101,10 +101,18 @@ static inline u16 pte_to_pkey_bits(u64 pteflags)
  
--#include <uapi/linux/time.h>
- #include <linux/math64.h>
- 
- typedef __s64 time64_t;
- typedef __u64 timeu64_t;
- 
-+/* CONFIG_64BIT_TIME enables new 64 bit time_t syscalls in the compat path
-+ * and 32-bit emulation.
-+ */
-+#ifndef CONFIG_64BIT_TIME
-+#define __kernel_timespec timespec
-+#endif
+ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
+ {
+-	/* A reserved key is never considered as 'explicitly allocated' */
+-	return ((pkey < arch_max_pkey()) &&
+-		!__mm_pkey_is_reserved(pkey) &&
+-		__mm_pkey_is_allocated(mm, pkey));
++	/* pkey 0 is allocated by default. */
++	if (!pkey)
++	       return true;
 +
-+#include <uapi/linux/time.h>
++	if (pkey < 0 || pkey >= arch_max_pkey())
++	       return false;
 +
- #if __BITS_PER_LONG == 64
- /* this trick allows us to optimize out timespec64_to_timespec */
- # define timespec64 timespec
-diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
-index 5e6ea22bd525..f0733a26ebfc 100644
---- a/include/uapi/asm-generic/posix_types.h
-+++ b/include/uapi/asm-generic/posix_types.h
-@@ -87,6 +87,7 @@ typedef struct {
- typedef __kernel_long_t	__kernel_off_t;
- typedef long long	__kernel_loff_t;
- typedef __kernel_long_t	__kernel_time_t;
-+typedef long long __kernel_time64_t;
- typedef __kernel_long_t	__kernel_clock_t;
- typedef int		__kernel_timer_t;
- typedef int		__kernel_clockid_t;
-diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
-index 53f8dd84beb5..0ad4510884b0 100644
---- a/include/uapi/linux/time.h
-+++ b/include/uapi/linux/time.h
-@@ -42,6 +42,13 @@ struct itimerval {
- 	struct timeval it_value;	/* current value */
- };
++	/* Reserved keys are never allocated. */
++	if (__mm_pkey_is_reserved(pkey))
++	       return false;
++
++	return __mm_pkey_is_allocated(mm, pkey);
+ }
  
-+#ifndef __kernel_timespec
-+struct __kernel_timespec {
-+	__kernel_time64_t       tv_sec;                 /* seconds */
-+	long long               tv_nsec;                /* nanoseconds */
-+};
-+#endif
-+
- /*
-  * The IDs of the various system clocks (for POSIX.1b interval timers):
-  */
+ extern void __arch_activate_pkey(int pkey);
+@@ -150,7 +158,8 @@ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
+ 	if (static_branch_likely(&pkey_disabled))
+ 		return -1;
+ 
+-	if (!mm_pkey_is_allocated(mm, pkey))
++	/* pkey 0 cannot be freed */
++	if (!pkey || !mm_pkey_is_allocated(mm, pkey))
+ 		return -EINVAL;
+ 
+ 	/*
 -- 
-2.14.1
+1.8.3.1
