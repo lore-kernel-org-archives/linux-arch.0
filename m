@@ -1,1151 +1,1866 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 02/16] arch: remove frv port
-Date: Wed, 14 Mar 2018 15:36:51 +0100
-Message-ID: <20180314143656.1495602-2-arnd@arndb.de>
+Subject: [PATCH 05/16] arch: remove blackfin port
+Date: Wed, 14 Mar 2018 15:36:54 +0100
+Message-ID: <20180314143656.1495602-5-arnd@arndb.de>
 References: <20180314143529.1456168-1-arnd@arndb.de>
  <20180314143656.1495602-1-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180314143656.1495602-1-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Bryan Wu <cooloney@gmail.com>, Steven Miao <realmz6@gmail.com>, Mike Frysinger <vapier@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-The Fujitsu FRV kernel port has been around for a long time, but has not
-seen regular updates in several years and instead was marked 'Orphaned'
-in 2016 by long-time maintainer David Howells.
+The Analog Devices Blackfin port was added in 2007 and was rather
+active for a while, but all work on it has come to a standstill
+over time, as Analog have changed their product line-up.
 
-The SoC product line apparently is apparently still around in the form
-of the Socionext Milbeaut image processor, but this one no longer uses
-the FRV CPU cores.
+Aaron Wu confirmed that the architecture port is no longer relevant,
+and multiple people suggested removing blackfin independently because
+of some of its oddities like a non-working SMP port, and the amount of
+duplication between the chip variants, which cause extra work when
+doing cross-architecture changes.
 
-This removes all FRV specific files from the kernel.
-
-Link: http://www.socionext.com/en/products/assp/milbeaut/
-Cc: David Howells <dhowells@redhat.com>
+Link: https://docs.blackfin.uclinux.org/
+Acked-by: Wu, Aaron <Aaron.Wu@analog.com>
+Cc: Bryan Wu <cooloney@gmail.com>
+Cc: Steven Miao <realmz6@gmail.com>
+Cc: Mike Frysinger <vapier@chromium.org>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- Documentation/00-INDEX                        |    2 -
- Documentation/frv/README.txt                  |   51 -
- Documentation/frv/atomic-ops.txt              |  134 --
- Documentation/frv/booting.txt                 |  182 ---
- Documentation/frv/clock.txt                   |   65 -
- Documentation/frv/configuring.txt             |  125 --
- Documentation/frv/features.txt                |  310 ----
- Documentation/frv/gdbinit                     |  102 --
- Documentation/frv/gdbstub.txt                 |  130 --
- Documentation/frv/kernel-ABI.txt              |  262 ---
- Documentation/frv/mmu-layout.txt              |  306 ----
- MAINTAINERS                                   |    4 -
- arch/frv/Kconfig                              |  386 -----
- arch/frv/Kconfig.debug                        |   49 -
- arch/frv/Makefile                             |   90 --
- arch/frv/boot/Makefile                        |   76 -
- arch/frv/defconfig                            |   39 -
- arch/frv/include/asm/Kbuild                   |   12 -
- arch/frv/include/asm/asm-offsets.h            |    1 -
- arch/frv/include/asm/atomic.h                 |  224 ---
- arch/frv/include/asm/atomic_defs.h            |  175 --
- arch/frv/include/asm/ax88796.h                |   22 -
- arch/frv/include/asm/barrier.h                |   23 -
- arch/frv/include/asm/bitops.h                 |  325 ----
- arch/frv/include/asm/bug.h                    |   56 -
- arch/frv/include/asm/bugs.h                   |   14 -
- arch/frv/include/asm/busctl-regs.h            |   41 -
- arch/frv/include/asm/cache.h                  |   23 -
- arch/frv/include/asm/cacheflush.h             |  105 --
- arch/frv/include/asm/checksum.h               |  180 ---
- arch/frv/include/asm/cmpxchg.h                |  171 --
- arch/frv/include/asm/cpu-irqs.h               |   81 -
- arch/frv/include/asm/current.h                |   30 -
- arch/frv/include/asm/delay.h                  |   50 -
- arch/frv/include/asm/div64.h                  |    1 -
- arch/frv/include/asm/dm9000.h                 |   37 -
- arch/frv/include/asm/dma-mapping.h            |   18 -
- arch/frv/include/asm/dma.h                    |  125 --
- arch/frv/include/asm/elf.h                    |  140 --
- arch/frv/include/asm/emergency-restart.h      |    6 -
- arch/frv/include/asm/fpu.h                    |   12 -
- arch/frv/include/asm/ftrace.h                 |    1 -
- arch/frv/include/asm/futex.h                  |   22 -
- arch/frv/include/asm/gdb-stub.h               |  146 --
- arch/frv/include/asm/gpio-regs.h              |  116 --
- arch/frv/include/asm/hardirq.h                |   26 -
- arch/frv/include/asm/highmem.h                |  149 --
- arch/frv/include/asm/hw_irq.h                 |   16 -
- arch/frv/include/asm/io.h                     |  414 -----
- arch/frv/include/asm/irc-regs.h               |   53 -
- arch/frv/include/asm/irq.h                    |   30 -
- arch/frv/include/asm/irq_regs.h               |   27 -
- arch/frv/include/asm/irqflags.h               |  158 --
- arch/frv/include/asm/kdebug.h                 |    1 -
- arch/frv/include/asm/kmap_types.h             |    8 -
- arch/frv/include/asm/linkage.h                |    7 -
- arch/frv/include/asm/local.h                  |    7 -
- arch/frv/include/asm/local64.h                |    1 -
- arch/frv/include/asm/math-emu.h               |  302 ----
- arch/frv/include/asm/mb-regs.h                |  200 ---
- arch/frv/include/asm/mb86943a.h               |   42 -
- arch/frv/include/asm/mb93091-fpga-irqs.h      |   42 -
- arch/frv/include/asm/mb93093-fpga-irqs.h      |   29 -
- arch/frv/include/asm/mb93493-irqs.h           |   50 -
- arch/frv/include/asm/mb93493-regs.h           |  281 ----
- arch/frv/include/asm/mem-layout.h             |   86 -
- arch/frv/include/asm/mmu.h                    |   41 -
- arch/frv/include/asm/mmu_context.h            |   50 -
- arch/frv/include/asm/module.h                 |   22 -
- arch/frv/include/asm/page.h                   |   74 -
- arch/frv/include/asm/pci.h                    |   40 -
- arch/frv/include/asm/percpu.h                 |    7 -
- arch/frv/include/asm/perf_event.h             |   15 -
- arch/frv/include/asm/pgalloc.h                |   69 -
- arch/frv/include/asm/pgtable.h                |  528 ------
- arch/frv/include/asm/processor.h              |  110 --
- arch/frv/include/asm/ptrace.h                 |   41 -
- arch/frv/include/asm/sections.h               |   40 -
- arch/frv/include/asm/segment.h                |   44 -
- arch/frv/include/asm/serial-regs.h            |   44 -
- arch/frv/include/asm/serial.h                 |   14 -
- arch/frv/include/asm/setup.h                  |   26 -
- arch/frv/include/asm/shmparam.h               |    8 -
- arch/frv/include/asm/signal.h                 |    7 -
- arch/frv/include/asm/smp.h                    |   10 -
- arch/frv/include/asm/spinlock.h               |   17 -
- arch/frv/include/asm/spr-regs.h               |  416 -----
- arch/frv/include/asm/string.h                 |   50 -
- arch/frv/include/asm/switch_to.h              |   35 -
- arch/frv/include/asm/syscall.h                |  123 --
- arch/frv/include/asm/termios.h                |   15 -
- arch/frv/include/asm/thread_info.h            |  116 --
- arch/frv/include/asm/timer-regs.h             |  106 --
- arch/frv/include/asm/timex.h                  |   27 -
- arch/frv/include/asm/tlb.h                    |   28 -
- arch/frv/include/asm/tlbflush.h               |   73 -
- arch/frv/include/asm/topology.h               |   13 -
- arch/frv/include/asm/types.h                  |   22 -
- arch/frv/include/asm/uaccess.h                |  285 ----
- arch/frv/include/asm/ucontext.h               |   13 -
- arch/frv/include/asm/unaligned.h              |   22 -
- arch/frv/include/asm/unistd.h                 |   34 -
- arch/frv/include/asm/user.h                   |   80 -
- arch/frv/include/asm/vga.h                    |   17 -
- arch/frv/include/asm/virtconvert.h            |   41 -
- arch/frv/include/asm/xor.h                    |    1 -
- arch/frv/include/uapi/asm/Kbuild              |    5 -
- arch/frv/include/uapi/asm/auxvec.h            |    4 -
- arch/frv/include/uapi/asm/bitsperlong.h       |    2 -
- arch/frv/include/uapi/asm/byteorder.h         |    7 -
- arch/frv/include/uapi/asm/errno.h             |    8 -
- arch/frv/include/uapi/asm/fcntl.h             |    2 -
- arch/frv/include/uapi/asm/ioctl.h             |    2 -
- arch/frv/include/uapi/asm/ioctls.h            |   11 -
- arch/frv/include/uapi/asm/ipcbuf.h            |    2 -
- arch/frv/include/uapi/asm/kvm_para.h          |    2 -
- arch/frv/include/uapi/asm/mman.h              |    2 -
- arch/frv/include/uapi/asm/msgbuf.h            |   33 -
- arch/frv/include/uapi/asm/param.h             |    9 -
- arch/frv/include/uapi/asm/poll.h              |   11 -
- arch/frv/include/uapi/asm/posix_types.h       |   27 -
- arch/frv/include/uapi/asm/ptrace.h            |   61 -
- arch/frv/include/uapi/asm/registers.h         |  233 ---
- arch/frv/include/uapi/asm/resource.h          |    8 -
- arch/frv/include/uapi/asm/sembuf.h            |   27 -
- arch/frv/include/uapi/asm/setup.h             |   19 -
- arch/frv/include/uapi/asm/shmbuf.h            |   44 -
- arch/frv/include/uapi/asm/sigcontext.h        |   27 -
- arch/frv/include/uapi/asm/signal.h            |   37 -
- arch/frv/include/uapi/asm/socket.h            |  109 --
- arch/frv/include/uapi/asm/sockios.h           |   15 -
- arch/frv/include/uapi/asm/stat.h              |  101 --
- arch/frv/include/uapi/asm/statfs.h            |    8 -
- arch/frv/include/uapi/asm/swab.h              |   11 -
- arch/frv/include/uapi/asm/termbits.h          |  204 ---
- arch/frv/include/uapi/asm/termios.h           |   47 -
- arch/frv/include/uapi/asm/types.h             |   12 -
- arch/frv/include/uapi/asm/unistd.h            |  349 ----
- arch/frv/kernel/.gitignore                    |    1 -
- arch/frv/kernel/Makefile                      |   24 -
- arch/frv/kernel/asm-offsets.c                 |   96 --
- arch/frv/kernel/break.S                       |  792 ---------
- arch/frv/kernel/cmode.S                       |  189 ---
- arch/frv/kernel/debug-stub.c                  |  258 ---
- arch/frv/kernel/dma.c                         |  463 ------
- arch/frv/kernel/entry-table.S                 |  329 ----
- arch/frv/kernel/entry.S                       | 1519 -----------------
- arch/frv/kernel/frv_ksyms.c                   |  109 --
- arch/frv/kernel/futex.c                       |  223 ---
- arch/frv/kernel/gdb-io.c                      |  215 ---
- arch/frv/kernel/gdb-io.h                      |   55 -
- arch/frv/kernel/gdb-stub.c                    | 2149 -------------------------
- arch/frv/kernel/head-mmu-fr451.S              |  374 -----
- arch/frv/kernel/head-uc-fr401.S               |  311 ----
- arch/frv/kernel/head-uc-fr451.S               |  174 --
- arch/frv/kernel/head-uc-fr555.S               |  347 ----
- arch/frv/kernel/head.S                        |  638 --------
- arch/frv/kernel/head.inc                      |   50 -
- arch/frv/kernel/irq-mb93091.c                 |  157 --
- arch/frv/kernel/irq-mb93093.c                 |  129 --
- arch/frv/kernel/irq-mb93493.c                 |  147 --
- arch/frv/kernel/irq.c                         |  159 --
- arch/frv/kernel/local.h                       |   59 -
- arch/frv/kernel/local64.h                     |    1 -
- arch/frv/kernel/module.c                      |   27 -
- arch/frv/kernel/pm-mb93093.c                  |   65 -
- arch/frv/kernel/pm.c                          |  352 ----
- arch/frv/kernel/process.c                     |  275 ----
- arch/frv/kernel/ptrace.c                      |  377 -----
- arch/frv/kernel/setup.c                       | 1178 --------------
- arch/frv/kernel/signal.c                      |  426 -----
- arch/frv/kernel/sleep.S                       |  373 -----
- arch/frv/kernel/switch_to.S                   |  489 ------
- arch/frv/kernel/sys_frv.c                     |   44 -
- arch/frv/kernel/sysctl.c                      |  221 ---
- arch/frv/kernel/time.c                        |  122 --
- arch/frv/kernel/traps.c                       |  642 --------
- arch/frv/kernel/uaccess.c                     |  100 --
- arch/frv/kernel/vmlinux.lds.S                 |  136 --
- arch/frv/lib/Makefile                         |    8 -
- arch/frv/lib/__ashldi3.S                      |   40 -
- arch/frv/lib/__ashrdi3.S                      |   41 -
- arch/frv/lib/__lshrdi3.S                      |   40 -
- arch/frv/lib/__muldi3.S                       |   32 -
- arch/frv/lib/__negdi2.S                       |   28 -
- arch/frv/lib/__ucmpdi2.S                      |   45 -
- arch/frv/lib/atomic-lib.c                     |    8 -
- arch/frv/lib/atomic-ops.S                     |   62 -
- arch/frv/lib/atomic64-ops.S                   |   68 -
- arch/frv/lib/cache.S                          |   98 --
- arch/frv/lib/checksum.c                       |  166 --
- arch/frv/lib/insl_ns.S                        |   52 -
- arch/frv/lib/insl_sw.S                        |   40 -
- arch/frv/lib/memcpy.S                         |  135 --
- arch/frv/lib/memset.S                         |  182 ---
- arch/frv/lib/outsl_ns.S                       |   59 -
- arch/frv/lib/outsl_sw.S                       |   45 -
- arch/frv/mb93090-mb00/Makefile                |   16 -
- arch/frv/mb93090-mb00/flash.c                 |   90 --
- arch/frv/mb93090-mb00/pci-dma-nommu.c         |  176 --
- arch/frv/mb93090-mb00/pci-dma.c               |  118 --
- arch/frv/mb93090-mb00/pci-frv.c               |  193 ---
- arch/frv/mb93090-mb00/pci-frv.h               |   33 -
- arch/frv/mb93090-mb00/pci-irq.c               |   62 -
- arch/frv/mb93090-mb00/pci-vdk.c               |  419 -----
- arch/frv/mm/Makefile                          |    9 -
- arch/frv/mm/cache-page.c                      |   71 -
- arch/frv/mm/dma-alloc.c                       |  183 ---
- arch/frv/mm/elf-fdpic.c                       |  114 --
- arch/frv/mm/extable.c                         |   49 -
- arch/frv/mm/fault.c                           |  328 ----
- arch/frv/mm/highmem.c                         |   86 -
- arch/frv/mm/init.c                            |  144 --
- arch/frv/mm/kmap.c                            |   51 -
- arch/frv/mm/mmu-context.c                     |  210 ---
- arch/frv/mm/pgalloc.c                         |  157 --
- arch/frv/mm/tlb-flush.S                       |  184 ---
- arch/frv/mm/tlb-miss.S                        |  629 --------
- tools/arch/frv/include/uapi/asm/bitsperlong.h |    2 -
- tools/arch/frv/include/uapi/asm/mman.h        |    7 -
- 220 files changed, 28837 deletions(-)
- delete mode 100644 Documentation/frv/README.txt
- delete mode 100644 Documentation/frv/atomic-ops.txt
- delete mode 100644 Documentation/frv/booting.txt
- delete mode 100644 Documentation/frv/clock.txt
- delete mode 100644 Documentation/frv/configuring.txt
- delete mode 100644 Documentation/frv/features.txt
- delete mode 100644 Documentation/frv/gdbinit
- delete mode 100644 Documentation/frv/gdbstub.txt
- delete mode 100644 Documentation/frv/kernel-ABI.txt
- delete mode 100644 Documentation/frv/mmu-layout.txt
- delete mode 100644 arch/frv/Kconfig
- delete mode 100644 arch/frv/Kconfig.debug
- delete mode 100644 arch/frv/Makefile
- delete mode 100644 arch/frv/boot/Makefile
- delete mode 100644 arch/frv/defconfig
- delete mode 100644 arch/frv/include/asm/Kbuild
- delete mode 100644 arch/frv/include/asm/asm-offsets.h
- delete mode 100644 arch/frv/include/asm/atomic.h
- delete mode 100644 arch/frv/include/asm/atomic_defs.h
- delete mode 100644 arch/frv/include/asm/ax88796.h
- delete mode 100644 arch/frv/include/asm/barrier.h
- delete mode 100644 arch/frv/include/asm/bitops.h
- delete mode 100644 arch/frv/include/asm/bug.h
- delete mode 100644 arch/frv/include/asm/bugs.h
- delete mode 100644 arch/frv/include/asm/busctl-regs.h
- delete mode 100644 arch/frv/include/asm/cache.h
- delete mode 100644 arch/frv/include/asm/cacheflush.h
- delete mode 100644 arch/frv/include/asm/checksum.h
- delete mode 100644 arch/frv/include/asm/cmpxchg.h
- delete mode 100644 arch/frv/include/asm/cpu-irqs.h
- delete mode 100644 arch/frv/include/asm/current.h
- delete mode 100644 arch/frv/include/asm/delay.h
- delete mode 100644 arch/frv/include/asm/div64.h
- delete mode 100644 arch/frv/include/asm/dm9000.h
- delete mode 100644 arch/frv/include/asm/dma-mapping.h
- delete mode 100644 arch/frv/include/asm/dma.h
- delete mode 100644 arch/frv/include/asm/elf.h
- delete mode 100644 arch/frv/include/asm/emergency-restart.h
- delete mode 100644 arch/frv/include/asm/fpu.h
- delete mode 100644 arch/frv/include/asm/ftrace.h
- delete mode 100644 arch/frv/include/asm/futex.h
- delete mode 100644 arch/frv/include/asm/gdb-stub.h
- delete mode 100644 arch/frv/include/asm/gpio-regs.h
- delete mode 100644 arch/frv/include/asm/hardirq.h
- delete mode 100644 arch/frv/include/asm/highmem.h
- delete mode 100644 arch/frv/include/asm/hw_irq.h
- delete mode 100644 arch/frv/include/asm/io.h
- delete mode 100644 arch/frv/include/asm/irc-regs.h
- delete mode 100644 arch/frv/include/asm/irq.h
- delete mode 100644 arch/frv/include/asm/irq_regs.h
- delete mode 100644 arch/frv/include/asm/irqflags.h
- delete mode 100644 arch/frv/include/asm/kdebug.h
- delete mode 100644 arch/frv/include/asm/kmap_types.h
- delete mode 100644 arch/frv/include/asm/linkage.h
- delete mode 100644 arch/frv/include/asm/local.h
- delete mode 100644 arch/frv/include/asm/local64.h
- delete mode 100644 arch/frv/include/asm/math-emu.h
- delete mode 100644 arch/frv/include/asm/mb-regs.h
- delete mode 100644 arch/frv/include/asm/mb86943a.h
- delete mode 100644 arch/frv/include/asm/mb93091-fpga-irqs.h
- delete mode 100644 arch/frv/include/asm/mb93093-fpga-irqs.h
- delete mode 100644 arch/frv/include/asm/mb93493-irqs.h
- delete mode 100644 arch/frv/include/asm/mb93493-regs.h
- delete mode 100644 arch/frv/include/asm/mem-layout.h
- delete mode 100644 arch/frv/include/asm/mmu.h
- delete mode 100644 arch/frv/include/asm/mmu_context.h
- delete mode 100644 arch/frv/include/asm/module.h
- delete mode 100644 arch/frv/include/asm/page.h
- delete mode 100644 arch/frv/include/asm/pci.h
- delete mode 100644 arch/frv/include/asm/percpu.h
- delete mode 100644 arch/frv/include/asm/perf_event.h
- delete mode 100644 arch/frv/include/asm/pgalloc.h
- delete mode 100644 arch/frv/include/asm/pgtable.h
- delete mode 100644 arch/frv/include/asm/processor.h
- delete mode 100644 arch/frv/include/asm/ptrace.h
- delete mode 100644 arch/frv/include/asm/sections.h
- delete mode 100644 arch/frv/include/asm/segment.h
- delete mode 100644 arch/frv/include/asm/serial-regs.h
- delete mode 100644 arch/frv/include/asm/serial.h
- delete mode 100644 arch/frv/include/asm/setup.h
- delete mode 100644 arch/frv/include/asm/shmparam.h
- delete mode 100644 arch/frv/include/asm/signal.h
- delete mode 100644 arch/frv/include/asm/smp.h
- delete mode 100644 arch/frv/include/asm/spinlock.h
- delete mode 100644 arch/frv/include/asm/spr-regs.h
- delete mode 100644 arch/frv/include/asm/string.h
- delete mode 100644 arch/frv/include/asm/switch_to.h
- delete mode 100644 arch/frv/include/asm/syscall.h
- delete mode 100644 arch/frv/include/asm/termios.h
- delete mode 100644 arch/frv/include/asm/thread_info.h
- delete mode 100644 arch/frv/include/asm/timer-regs.h
- delete mode 100644 arch/frv/include/asm/timex.h
- delete mode 100644 arch/frv/include/asm/tlb.h
- delete mode 100644 arch/frv/include/asm/tlbflush.h
- delete mode 100644 arch/frv/include/asm/topology.h
- delete mode 100644 arch/frv/include/asm/types.h
- delete mode 100644 arch/frv/include/asm/uaccess.h
- delete mode 100644 arch/frv/include/asm/ucontext.h
- delete mode 100644 arch/frv/include/asm/unaligned.h
- delete mode 100644 arch/frv/include/asm/unistd.h
- delete mode 100644 arch/frv/include/asm/user.h
- delete mode 100644 arch/frv/include/asm/vga.h
- delete mode 100644 arch/frv/include/asm/virtconvert.h
- delete mode 100644 arch/frv/include/asm/xor.h
- delete mode 100644 arch/frv/include/uapi/asm/Kbuild
- delete mode 100644 arch/frv/include/uapi/asm/auxvec.h
- delete mode 100644 arch/frv/include/uapi/asm/bitsperlong.h
- delete mode 100644 arch/frv/include/uapi/asm/byteorder.h
- delete mode 100644 arch/frv/include/uapi/asm/errno.h
- delete mode 100644 arch/frv/include/uapi/asm/fcntl.h
- delete mode 100644 arch/frv/include/uapi/asm/ioctl.h
- delete mode 100644 arch/frv/include/uapi/asm/ioctls.h
- delete mode 100644 arch/frv/include/uapi/asm/ipcbuf.h
- delete mode 100644 arch/frv/include/uapi/asm/kvm_para.h
- delete mode 100644 arch/frv/include/uapi/asm/mman.h
- delete mode 100644 arch/frv/include/uapi/asm/msgbuf.h
- delete mode 100644 arch/frv/include/uapi/asm/param.h
- delete mode 100644 arch/frv/include/uapi/asm/poll.h
- delete mode 100644 arch/frv/include/uapi/asm/posix_types.h
- delete mode 100644 arch/frv/include/uapi/asm/ptrace.h
- delete mode 100644 arch/frv/include/uapi/asm/registers.h
- delete mode 100644 arch/frv/include/uapi/asm/resource.h
- delete mode 100644 arch/frv/include/uapi/asm/sembuf.h
- delete mode 100644 arch/frv/include/uapi/asm/setup.h
- delete mode 100644 arch/frv/include/uapi/asm/shmbuf.h
- delete mode 100644 arch/frv/include/uapi/asm/sigcontext.h
- delete mode 100644 arch/frv/include/uapi/asm/signal.h
- delete mode 100644 arch/frv/include/uapi/asm/socket.h
- delete mode 100644 arch/frv/include/uapi/asm/sockios.h
- delete mode 100644 arch/frv/include/uapi/asm/stat.h
- delete mode 100644 arch/frv/include/uapi/asm/statfs.h
- delete mode 100644 arch/frv/include/uapi/asm/swab.h
- delete mode 100644 arch/frv/include/uapi/asm/termbits.h
- delete mode 100644 arch/frv/include/uapi/asm/termios.h
- delete mode 100644 arch/frv/include/uapi/asm/types.h
- delete mode 100644 arch/frv/include/uapi/asm/unistd.h
- delete mode 100644 arch/frv/kernel/.gitignore
- delete mode 100644 arch/frv/kernel/Makefile
- delete mode 100644 arch/frv/kernel/asm-offsets.c
- delete mode 100644 arch/frv/kernel/break.S
- delete mode 100644 arch/frv/kernel/cmode.S
- delete mode 100644 arch/frv/kernel/debug-stub.c
- delete mode 100644 arch/frv/kernel/dma.c
- delete mode 100644 arch/frv/kernel/entry-table.S
- delete mode 100644 arch/frv/kernel/entry.S
- delete mode 100644 arch/frv/kernel/frv_ksyms.c
- delete mode 100644 arch/frv/kernel/futex.c
- delete mode 100644 arch/frv/kernel/gdb-io.c
- delete mode 100644 arch/frv/kernel/gdb-io.h
- delete mode 100644 arch/frv/kernel/gdb-stub.c
- delete mode 100644 arch/frv/kernel/head-mmu-fr451.S
- delete mode 100644 arch/frv/kernel/head-uc-fr401.S
- delete mode 100644 arch/frv/kernel/head-uc-fr451.S
- delete mode 100644 arch/frv/kernel/head-uc-fr555.S
- delete mode 100644 arch/frv/kernel/head.S
- delete mode 100644 arch/frv/kernel/head.inc
- delete mode 100644 arch/frv/kernel/irq-mb93091.c
- delete mode 100644 arch/frv/kernel/irq-mb93093.c
- delete mode 100644 arch/frv/kernel/irq-mb93493.c
- delete mode 100644 arch/frv/kernel/irq.c
- delete mode 100644 arch/frv/kernel/local.h
- delete mode 100644 arch/frv/kernel/local64.h
- delete mode 100644 arch/frv/kernel/module.c
- delete mode 100644 arch/frv/kernel/pm-mb93093.c
- delete mode 100644 arch/frv/kernel/pm.c
- delete mode 100644 arch/frv/kernel/process.c
- delete mode 100644 arch/frv/kernel/ptrace.c
- delete mode 100644 arch/frv/kernel/setup.c
- delete mode 100644 arch/frv/kernel/signal.c
- delete mode 100644 arch/frv/kernel/sleep.S
- delete mode 100644 arch/frv/kernel/switch_to.S
- delete mode 100644 arch/frv/kernel/sys_frv.c
- delete mode 100644 arch/frv/kernel/sysctl.c
- delete mode 100644 arch/frv/kernel/time.c
- delete mode 100644 arch/frv/kernel/traps.c
- delete mode 100644 arch/frv/kernel/uaccess.c
- delete mode 100644 arch/frv/kernel/vmlinux.lds.S
- delete mode 100644 arch/frv/lib/Makefile
- delete mode 100644 arch/frv/lib/__ashldi3.S
- delete mode 100644 arch/frv/lib/__ashrdi3.S
- delete mode 100644 arch/frv/lib/__lshrdi3.S
- delete mode 100644 arch/frv/lib/__muldi3.S
- delete mode 100644 arch/frv/lib/__negdi2.S
- delete mode 100644 arch/frv/lib/__ucmpdi2.S
- delete mode 100644 arch/frv/lib/atomic-lib.c
- delete mode 100644 arch/frv/lib/atomic-ops.S
- delete mode 100644 arch/frv/lib/atomic64-ops.S
- delete mode 100644 arch/frv/lib/cache.S
- delete mode 100644 arch/frv/lib/checksum.c
- delete mode 100644 arch/frv/lib/insl_ns.S
- delete mode 100644 arch/frv/lib/insl_sw.S
- delete mode 100644 arch/frv/lib/memcpy.S
- delete mode 100644 arch/frv/lib/memset.S
- delete mode 100644 arch/frv/lib/outsl_ns.S
- delete mode 100644 arch/frv/lib/outsl_sw.S
- delete mode 100644 arch/frv/mb93090-mb00/Makefile
- delete mode 100644 arch/frv/mb93090-mb00/flash.c
- delete mode 100644 arch/frv/mb93090-mb00/pci-dma-nommu.c
- delete mode 100644 arch/frv/mb93090-mb00/pci-dma.c
- delete mode 100644 arch/frv/mb93090-mb00/pci-frv.c
- delete mode 100644 arch/frv/mb93090-mb00/pci-frv.h
- delete mode 100644 arch/frv/mb93090-mb00/pci-irq.c
- delete mode 100644 arch/frv/mb93090-mb00/pci-vdk.c
- delete mode 100644 arch/frv/mm/Makefile
- delete mode 100644 arch/frv/mm/cache-page.c
- delete mode 100644 arch/frv/mm/dma-alloc.c
- delete mode 100644 arch/frv/mm/elf-fdpic.c
- delete mode 100644 arch/frv/mm/extable.c
- delete mode 100644 arch/frv/mm/fault.c
- delete mode 100644 arch/frv/mm/highmem.c
- delete mode 100644 arch/frv/mm/init.c
- delete mode 100644 arch/frv/mm/kmap.c
- delete mode 100644 arch/frv/mm/mmu-context.c
- delete mode 100644 arch/frv/mm/pgalloc.c
- delete mode 100644 arch/frv/mm/tlb-flush.S
- delete mode 100644 arch/frv/mm/tlb-miss.S
- delete mode 100644 tools/arch/frv/include/uapi/asm/bitsperlong.h
- delete mode 100644 tools/arch/frv/include/uapi/asm/mman.h
+ Documentation/00-INDEX                             |    2 -
+ Documentation/admin-guide/kernel-parameters.rst    |    1 -
+ Documentation/admin-guide/kernel-parameters.txt    |    2 +-
+ Documentation/blackfin/00-INDEX                    |    6 -
+ Documentation/blackfin/bfin-gpio-notes.txt         |   71 -
+ Documentation/blackfin/bfin-spi-notes.txt          |   16 -
+ MAINTAINERS                                        |   45 -
+ arch/blackfin/Clear_BSD.txt                        |   33 -
+ arch/blackfin/Kconfig                              | 1463 --------
+ arch/blackfin/Kconfig.debug                        |  258 --
+ arch/blackfin/Makefile                             |  168 -
+ arch/blackfin/boot/.gitignore                      |    3 -
+ arch/blackfin/boot/Makefile                        |   71 -
+ arch/blackfin/boot/install.sh                      |   57 -
+ arch/blackfin/configs/BF518F-EZBRD_defconfig       |  121 -
+ arch/blackfin/configs/BF526-EZBRD_defconfig        |  158 -
+ arch/blackfin/configs/BF527-AD7160-EVAL_defconfig  |  104 -
+ arch/blackfin/configs/BF527-EZKIT-V2_defconfig     |  188 -
+ arch/blackfin/configs/BF527-EZKIT_defconfig        |  181 -
+ arch/blackfin/configs/BF527-TLL6527M_defconfig     |  178 -
+ arch/blackfin/configs/BF533-EZKIT_defconfig        |  114 -
+ arch/blackfin/configs/BF533-STAMP_defconfig        |  124 -
+ arch/blackfin/configs/BF537-STAMP_defconfig        |  136 -
+ arch/blackfin/configs/BF538-EZKIT_defconfig        |  133 -
+ arch/blackfin/configs/BF548-EZKIT_defconfig        |  207 --
+ arch/blackfin/configs/BF561-ACVILON_defconfig      |  149 -
+ arch/blackfin/configs/BF561-EZKIT-SMP_defconfig    |  112 -
+ arch/blackfin/configs/BF561-EZKIT_defconfig        |  114 -
+ arch/blackfin/configs/BF609-EZKIT_defconfig        |  154 -
+ arch/blackfin/configs/BlackStamp_defconfig         |  108 -
+ arch/blackfin/configs/CM-BF527_defconfig           |  129 -
+ arch/blackfin/configs/CM-BF533_defconfig           |   76 -
+ arch/blackfin/configs/CM-BF537E_defconfig          |  107 -
+ arch/blackfin/configs/CM-BF537U_defconfig          |   96 -
+ arch/blackfin/configs/CM-BF548_defconfig           |  170 -
+ arch/blackfin/configs/CM-BF561_defconfig           |  104 -
+ arch/blackfin/configs/DNP5370_defconfig            |  118 -
+ arch/blackfin/configs/H8606_defconfig              |   87 -
+ arch/blackfin/configs/IP0X_defconfig               |   91 -
+ arch/blackfin/configs/PNAV-10_defconfig            |  111 -
+ arch/blackfin/configs/SRV1_defconfig               |   88 -
+ arch/blackfin/configs/TCM-BF518_defconfig          |  131 -
+ arch/blackfin/configs/TCM-BF537_defconfig          |   95 -
+ arch/blackfin/include/asm/Kbuild                   |   28 -
+ arch/blackfin/include/asm/asm-offsets.h            |    1 -
+ arch/blackfin/include/asm/atomic.h                 |   47 -
+ arch/blackfin/include/asm/barrier.h                |   86 -
+ arch/blackfin/include/asm/bfin-global.h            |   95 -
+ arch/blackfin/include/asm/bfin-lq035q1.h           |   40 -
+ arch/blackfin/include/asm/bfin5xx_spi.h            |   86 -
+ arch/blackfin/include/asm/bfin_can.h               |  728 ----
+ arch/blackfin/include/asm/bfin_dma.h               |  165 -
+ arch/blackfin/include/asm/bfin_pfmon.h             |   44 -
+ arch/blackfin/include/asm/bfin_ppi.h               |  181 -
+ arch/blackfin/include/asm/bfin_sdh.h               |  161 -
+ arch/blackfin/include/asm/bfin_serial.h            |  429 ---
+ arch/blackfin/include/asm/bfin_simple_timer.h      |   27 -
+ arch/blackfin/include/asm/bfin_sport.h             |   71 -
+ arch/blackfin/include/asm/bfin_sport3.h            |  107 -
+ arch/blackfin/include/asm/bfin_twi.h               |  214 --
+ arch/blackfin/include/asm/bfin_watchdog.h          |   30 -
+ arch/blackfin/include/asm/bfrom.h                  |   90 -
+ arch/blackfin/include/asm/bitops.h                 |  140 -
+ arch/blackfin/include/asm/blackfin.h               |   88 -
+ arch/blackfin/include/asm/bug.h                    |   73 -
+ arch/blackfin/include/asm/cache.h                  |   70 -
+ arch/blackfin/include/asm/cacheflush.h             |  118 -
+ arch/blackfin/include/asm/cdef_LPBlackfin.h        |  309 --
+ arch/blackfin/include/asm/checksum.h               |   44 -
+ arch/blackfin/include/asm/clocks.h                 |   74 -
+ arch/blackfin/include/asm/cmpxchg.h                |  132 -
+ arch/blackfin/include/asm/context.S                |  407 ---
+ arch/blackfin/include/asm/cplb.h                   |  153 -
+ arch/blackfin/include/asm/cplbinit.h               |   66 -
+ arch/blackfin/include/asm/cpu.h                    |   24 -
+ arch/blackfin/include/asm/def_LPBlackfin.h         |  697 ----
+ arch/blackfin/include/asm/delay.h                  |   51 -
+ arch/blackfin/include/asm/dma-mapping.h            |   46 -
+ arch/blackfin/include/asm/dma.h                    |  349 --
+ arch/blackfin/include/asm/dpmc.h                   |  794 -----
+ arch/blackfin/include/asm/early_printk.h           |   36 -
+ arch/blackfin/include/asm/elf.h                    |  135 -
+ arch/blackfin/include/asm/entry.h                  |  178 -
+ arch/blackfin/include/asm/exec.h                   |    1 -
+ arch/blackfin/include/asm/fixed_code.h             |   30 -
+ arch/blackfin/include/asm/flat.h                   |   62 -
+ arch/blackfin/include/asm/ftrace.h                 |   73 -
+ arch/blackfin/include/asm/gpio.h                   |  234 --
+ arch/blackfin/include/asm/gptimers.h               |  337 --
+ arch/blackfin/include/asm/hardirq.h                |   17 -
+ arch/blackfin/include/asm/io.h                     |   49 -
+ arch/blackfin/include/asm/ipipe.h                  |  209 --
+ arch/blackfin/include/asm/ipipe_base.h             |   75 -
+ arch/blackfin/include/asm/irq.h                    |   41 -
+ arch/blackfin/include/asm/irq_handler.h            |   66 -
+ arch/blackfin/include/asm/irqflags.h               |  289 --
+ arch/blackfin/include/asm/kgdb.h                   |  169 -
+ arch/blackfin/include/asm/l1layout.h               |   37 -
+ arch/blackfin/include/asm/linkage.h                |   13 -
+ arch/blackfin/include/asm/mem_init.h               |  500 ---
+ arch/blackfin/include/asm/mem_map.h                |   84 -
+ arch/blackfin/include/asm/mmu.h                    |   36 -
+ arch/blackfin/include/asm/mmu_context.h            |  218 --
+ arch/blackfin/include/asm/module.h                 |   22 -
+ arch/blackfin/include/asm/nand.h                   |   40 -
+ arch/blackfin/include/asm/nmi.h                    |   14 -
+ arch/blackfin/include/asm/page.h                   |   22 -
+ arch/blackfin/include/asm/page_offset.h            |   11 -
+ arch/blackfin/include/asm/pci.h                    |   13 -
+ arch/blackfin/include/asm/pda.h                    |   73 -
+ arch/blackfin/include/asm/perf_event.h             |    1 -
+ arch/blackfin/include/asm/pgtable.h                |  104 -
+ arch/blackfin/include/asm/pm.h                     |   31 -
+ arch/blackfin/include/asm/portmux.h                | 1204 -------
+ arch/blackfin/include/asm/processor.h              |  145 -
+ arch/blackfin/include/asm/pseudo_instructions.h    |   18 -
+ arch/blackfin/include/asm/ptrace.h                 |   42 -
+ arch/blackfin/include/asm/reboot.h                 |   20 -
+ arch/blackfin/include/asm/rwlock.h                 |    7 -
+ arch/blackfin/include/asm/scb.h                    |   21 -
+ arch/blackfin/include/asm/sections.h               |   67 -
+ arch/blackfin/include/asm/segment.h                |   13 -
+ arch/blackfin/include/asm/smp.h                    |   54 -
+ arch/blackfin/include/asm/spinlock.h               |   81 -
+ arch/blackfin/include/asm/spinlock_types.h         |   28 -
+ arch/blackfin/include/asm/string.h                 |   38 -
+ arch/blackfin/include/asm/switch_to.h              |   39 -
+ arch/blackfin/include/asm/syscall.h                |   96 -
+ arch/blackfin/include/asm/thread_info.h            |   98 -
+ arch/blackfin/include/asm/time.h                   |   46 -
+ arch/blackfin/include/asm/timex.h                  |   23 -
+ arch/blackfin/include/asm/tlb.h                    |   22 -
+ arch/blackfin/include/asm/tlbflush.h               |    2 -
+ arch/blackfin/include/asm/trace.h                  |  106 -
+ arch/blackfin/include/asm/traps.h                  |  131 -
+ arch/blackfin/include/asm/uaccess.h                |  234 --
+ arch/blackfin/include/asm/unistd.h                 |   22 -
+ arch/blackfin/include/asm/vga.h                    |    1 -
+ arch/blackfin/include/mach-common/irq.h            |   58 -
+ arch/blackfin/include/mach-common/pll.h            |   86 -
+ arch/blackfin/include/mach-common/ports-a.h        |   26 -
+ arch/blackfin/include/mach-common/ports-b.h        |   26 -
+ arch/blackfin/include/mach-common/ports-c.h        |   26 -
+ arch/blackfin/include/mach-common/ports-d.h        |   26 -
+ arch/blackfin/include/mach-common/ports-e.h        |   26 -
+ arch/blackfin/include/mach-common/ports-f.h        |   26 -
+ arch/blackfin/include/mach-common/ports-g.h        |   26 -
+ arch/blackfin/include/mach-common/ports-h.h        |   26 -
+ arch/blackfin/include/mach-common/ports-i.h        |   26 -
+ arch/blackfin/include/mach-common/ports-j.h        |   26 -
+ arch/blackfin/include/uapi/asm/Kbuild              |   25 -
+ arch/blackfin/include/uapi/asm/bfin_sport.h        |  137 -
+ arch/blackfin/include/uapi/asm/byteorder.h         |    7 -
+ arch/blackfin/include/uapi/asm/cachectl.h          |   21 -
+ arch/blackfin/include/uapi/asm/fcntl.h             |   18 -
+ arch/blackfin/include/uapi/asm/fixed_code.h        |   39 -
+ arch/blackfin/include/uapi/asm/ioctls.h            |    8 -
+ arch/blackfin/include/uapi/asm/poll.h              |   17 -
+ arch/blackfin/include/uapi/asm/posix_types.h       |   31 -
+ arch/blackfin/include/uapi/asm/ptrace.h            |  171 -
+ arch/blackfin/include/uapi/asm/sigcontext.h        |   62 -
+ arch/blackfin/include/uapi/asm/siginfo.h           |   16 -
+ arch/blackfin/include/uapi/asm/signal.h            |    8 -
+ arch/blackfin/include/uapi/asm/stat.h              |   70 -
+ arch/blackfin/include/uapi/asm/swab.h              |   51 -
+ arch/blackfin/include/uapi/asm/unistd.h            |  448 ---
+ arch/blackfin/kernel/.gitignore                    |    1 -
+ arch/blackfin/kernel/Makefile                      |   44 -
+ arch/blackfin/kernel/asm-offsets.c                 |  164 -
+ arch/blackfin/kernel/bfin_dma.c                    |  612 ----
+ arch/blackfin/kernel/bfin_gpio.c                   | 1208 -------
+ arch/blackfin/kernel/bfin_ksyms.c                  |  126 -
+ arch/blackfin/kernel/cplb-mpu/Makefile             |   10 -
+ arch/blackfin/kernel/cplb-mpu/cplbinit.c           |  102 -
+ arch/blackfin/kernel/cplb-mpu/cplbmgr.c            |  379 ---
+ arch/blackfin/kernel/cplb-nompu/Makefile           |   11 -
+ arch/blackfin/kernel/cplb-nompu/cplbinit.c         |  212 --
+ arch/blackfin/kernel/cplb-nompu/cplbmgr.c          |  227 --
+ arch/blackfin/kernel/cplbinfo.c                    |  180 -
+ arch/blackfin/kernel/debug-mmrs.c                  | 1891 ----------
+ arch/blackfin/kernel/dma-mapping.c                 |  172 -
+ arch/blackfin/kernel/dumpstack.c                   |  177 -
+ arch/blackfin/kernel/early_printk.c                |  271 --
+ arch/blackfin/kernel/entry.S                       |   59 -
+ arch/blackfin/kernel/exception.c                   |   45 -
+ arch/blackfin/kernel/fixed_code.S                  |  155 -
+ arch/blackfin/kernel/flat.c                        |   84 -
+ arch/blackfin/kernel/ftrace-entry.S                |  207 --
+ arch/blackfin/kernel/ftrace.c                      |  125 -
+ arch/blackfin/kernel/gptimers.c                    |  383 ---
+ arch/blackfin/kernel/ipipe.c                       |  397 ---
+ arch/blackfin/kernel/irqchip.c                     |  132 -
+ arch/blackfin/kernel/kgdb.c                        |  473 ---
+ arch/blackfin/kernel/kgdb_test.c                   |  114 -
+ arch/blackfin/kernel/module.c                      |  292 --
+ arch/blackfin/kernel/nmi.c                         |  287 --
+ arch/blackfin/kernel/perf_event.c                  |  482 ---
+ arch/blackfin/kernel/process.c                     |  438 ---
+ arch/blackfin/kernel/pseudodbg.c                   |  191 --
+ arch/blackfin/kernel/ptrace.c                      |  413 ---
+ arch/blackfin/kernel/reboot.c                      |  115 -
+ arch/blackfin/kernel/setup.c                       | 1468 --------
+ arch/blackfin/kernel/shadow_console.c              |  111 -
+ arch/blackfin/kernel/signal.c                      |  287 --
+ arch/blackfin/kernel/stacktrace.c                  |   54 -
+ arch/blackfin/kernel/sys_bfin.c                    |   88 -
+ arch/blackfin/kernel/time-ts.c                     |  400 ---
+ arch/blackfin/kernel/time.c                        |  160 -
+ arch/blackfin/kernel/trace.c                       |  988 ------
+ arch/blackfin/kernel/traps.c                       |  585 ----
+ arch/blackfin/kernel/vmlinux.lds.S                 |  271 --
+ arch/blackfin/lib/Makefile                         |   12 -
+ arch/blackfin/lib/ashldi3.c                        |   35 -
+ arch/blackfin/lib/ashrdi3.c                        |   36 -
+ arch/blackfin/lib/divsi3.S                         |  199 --
+ arch/blackfin/lib/gcclib.h                         |   24 -
+ arch/blackfin/lib/ins.S                            |  118 -
+ arch/blackfin/lib/lshrdi3.c                        |   35 -
+ arch/blackfin/lib/memchr.S                         |   47 -
+ arch/blackfin/lib/memcmp.S                         |   92 -
+ arch/blackfin/lib/memcpy.S                         |  124 -
+ arch/blackfin/lib/memmove.S                        |   93 -
+ arch/blackfin/lib/memset.S                         |   87 -
+ arch/blackfin/lib/modsi3.S                         |   57 -
+ arch/blackfin/lib/muldi3.S                         |   74 -
+ arch/blackfin/lib/outs.S                           |   68 -
+ arch/blackfin/lib/smulsi3_highpart.S               |   38 -
+ arch/blackfin/lib/strcmp.S                         |   43 -
+ arch/blackfin/lib/strcpy.S                         |   35 -
+ arch/blackfin/lib/strncmp.S                        |   52 -
+ arch/blackfin/lib/strncpy.S                        |   85 -
+ arch/blackfin/lib/udivsi3.S                        |  277 --
+ arch/blackfin/lib/umodsi3.S                        |   49 -
+ arch/blackfin/lib/umulsi3_highpart.S               |   31 -
+ arch/blackfin/mach-bf518/Kconfig                   |  320 --
+...
+  arch/blackfin/mach-bf609/scb.c                     |  363 --
+ arch/blackfin/mach-common/Makefile                 |   17 -
+ arch/blackfin/mach-common/arch_checks.c            |   66 -
+ arch/blackfin/mach-common/cache-c.c                |   85 -
+ arch/blackfin/mach-common/cache.S                  |  124 -
+ arch/blackfin/mach-common/clock.h                  |   28 -
+ arch/blackfin/mach-common/clocks-init.c            |  121 -
+ arch/blackfin/mach-common/dpmc.c                   |  164 -
+ arch/blackfin/mach-common/dpmc_modes.S             |  320 --
+ arch/blackfin/mach-common/entry.S                  | 1711 ----------
+ arch/blackfin/mach-common/head.S                   |  229 --
+ arch/blackfin/mach-common/interrupt.S              |  326 --
+ arch/blackfin/mach-common/ints-priority.c          | 1366 --------
+ arch/blackfin/mach-common/pm.c                     |  301 --
+ arch/blackfin/mach-common/scb-init.c               |   52 -
+ arch/blackfin/mach-common/smp.c                    |  432 ---
+ arch/blackfin/mm/Makefile                          |    5 -
+ arch/blackfin/mm/blackfin_sram.h                   |   14 -
+ arch/blackfin/mm/init.c                            |  122 -
+ arch/blackfin/mm/isram-driver.c                    |  411 ---
+ arch/blackfin/mm/maccess.c                         |   97 -
+ arch/blackfin/mm/sram-alloc.c                      |  899 -----
+ arch/blackfin/oprofile/Makefile                    |   14 -
+ arch/blackfin/oprofile/bfin_oprofile.c             |   18 -
+ samples/Kconfig                                    |    6 -
+ samples/Makefile                                   |    2 +-
+ samples/blackfin/Makefile                          |    1 -
+ samples/blackfin/gptimers-example.c                |   91 -
+ scripts/checkpatch.pl                              |   26 -
+ 474 files changed, 2 insertions(+), 123906 deletions(-)
 
-diff --git a/Documentation/00-INDEX b/Documentation/00-INDEX
-index bd7e2d08d790..b56b88e20196 100644
+ diff --git a/Documentation/00-INDEX b/Documentation/00-INDEX
+index b56b88e20196..ee2808415f64 100644
 --- a/Documentation/00-INDEX
 +++ b/Documentation/00-INDEX
-@@ -172,8 +172,6 @@ fmc/
- 	- information about the FMC bus abstraction
- fpga/
- 	- FPGA Manager Core.
--frv/
--	- Fujitsu FR-V Linux documentation.
- futex-requeue-pi.txt
- 	- info on requeueing of tasks from a non-PI futex to a PI futex
- gcc-plugins.txt
-diff --git a/Documentation/frv/README.txt b/Documentation/frv/README.txt
+@@ -66,8 +66,6 @@ backlight/
+ 	- directory with info on controlling backlights in flat panel displays
+ bcache.txt
+ 	- Block-layer cache on fast SSDs to improve slow (raid) I/O performance.
+-blackfin/
+-	- directory with documentation for the Blackfin arch.
+ block/
+ 	- info on the Block I/O (BIO) layer.
+ blockdev/
+diff --git a/Documentation/admin-guide/kernel-parameters.rst b/Documentation/admin-guide/kernel-parameters.rst
+index 7242cbda15dd..b8d0bc07ed0a 100644
+--- a/Documentation/admin-guide/kernel-parameters.rst
++++ b/Documentation/admin-guide/kernel-parameters.rst
+@@ -89,7 +89,6 @@ parameter is applicable::
+ 	APM	Advanced Power Management support is enabled.
+ 	ARM	ARM architecture is enabled.
+ 	AX25	Appropriate AX.25 support is enabled.
+-	BLACKFIN Blackfin architecture is enabled.
+ 	CLK	Common clock infrastructure is enabled.
+ 	CMA	Contiguous Memory Area support is enabled.
+ 	DRM	Direct Rendering Management support is enabled.
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 30a8d0635898..c272ea194ff3 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -1025,7 +1025,7 @@
+ 			address. The serial port must already be setup
+ 			and configured. Options are not yet supported.
+ 
+-	earlyprintk=	[X86,SH,BLACKFIN,ARM,M68k,S390]
++	earlyprintk=	[X86,SH,ARM,M68k,S390]
+ 			earlyprintk=vga
+ 			earlyprintk=efi
+ 			earlyprintk=sclp
+diff --git a/Documentation/blackfin/00-INDEX b/Documentation/blackfin/00-INDEX
 deleted file mode 100644
-index a984faa968e8..000000000000
-diff --git a/Documentation/frv/atomic-ops.txt b/Documentation/frv/atomic-ops.txt
+index 265a1effebde..000000000000
+diff --git a/Documentation/blackfin/bfin-gpio-notes.txt b/Documentation/blackfin/bfin-gpio-notes.txt
 deleted file mode 100644
-index 96638e9b9fe0..000000000000
-diff --git a/Documentation/frv/booting.txt b/Documentation/frv/booting.txt
+index d245f39c3d01..000000000000
+diff --git a/Documentation/blackfin/bfin-spi-notes.txt b/Documentation/blackfin/bfin-spi-notes.txt
 deleted file mode 100644
-index cd9dc1dfb144..000000000000
-diff --git a/Documentation/frv/clock.txt b/Documentation/frv/clock.txt
-deleted file mode 100644
-index c72d350e177a..000000000000
-diff --git a/Documentation/frv/configuring.txt b/Documentation/frv/configuring.txt
-deleted file mode 100644
-index 36e76a2336fa..000000000000
-diff --git a/Documentation/frv/features.txt b/Documentation/frv/features.txt
-deleted file mode 100644
-index fa20c0e72833..000000000000
-diff --git a/Documentation/frv/gdbinit b/Documentation/frv/gdbinit
-deleted file mode 100644
-index 51517b6f307f..000000000000
-diff --git a/Documentation/frv/gdbstub.txt b/Documentation/frv/gdbstub.txt
-deleted file mode 100644
-index b92bfd902a4e..000000000000
-diff --git a/Documentation/frv/kernel-ABI.txt b/Documentation/frv/kernel-ABI.txt
-deleted file mode 100644
-index aaa1cec86f0b..000000000000
-diff --git a/Documentation/frv/mmu-layout.txt b/Documentation/frv/mmu-layout.txt
-deleted file mode 100644
-index db10250df6be..000000000000
+index eae6eaf2a09d..000000000000
 diff --git a/MAINTAINERS b/MAINTAINERS
-index 69123be5bb64..3655d284af20 100644
+index 2281937d9432..9e0c097824f5 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
-@@ -5799,10 +5799,6 @@ F:	fs/crypto/
- F:	include/linux/fscrypt*.h
- F:	Documentation/filesystems/fscrypt.rst
+@@ -2629,51 +2629,6 @@ F:	Documentation/filesystems/bfs.txt
+ F:	fs/bfs/
+ F:	include/uapi/linux/bfs_fs.h
  
--FUJITSU FR-V (FRV) PORT
+-BLACKFIN ARCHITECTURE
+-L:	adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+-T:	git git://git.code.sf.net/p/adi-linux/code
+-W:	http://blackfin.uclinux.org
 -S:	Orphan
--F:	arch/frv/
+-F:	arch/blackfin/
 -
- FUJITSU LAPTOP EXTRAS
- M:	Jonathan Woithe <jwoithe@just42.net>
- L:	platform-driver-x86@vger.kernel.org
-diff --git a/arch/frv/Kconfig b/arch/frv/Kconfig
+-BLACKFIN EMAC DRIVER
+-L:	adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+-W:	http://blackfin.uclinux.org
+-S:	Orphan
+-F:	drivers/net/ethernet/adi/
+-
+-BLACKFIN MEDIA DRIVER
+-L:	adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+-W:	http://blackfin.uclinux.org/
+-S:	Orphan
+-F:	drivers/media/platform/blackfin/
+-F:	drivers/media/i2c/adv7183*
+-F:	drivers/media/i2c/vs6624*
+-
+-BLACKFIN RTC DRIVER
+-L:	adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+-W:	http://blackfin.uclinux.org
+-S:	Orphan
+-F:	drivers/rtc/rtc-bfin.c
+-
+-BLACKFIN SDH DRIVER
+-L:	adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+-W:	http://blackfin.uclinux.org
+-S:	Orphan
+-F:	drivers/mmc/host/bfin_sdh.c
+-
+-BLACKFIN SERIAL DRIVER
+-L:	adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+-W:	http://blackfin.uclinux.org
+-S:	Orphan
+-F:	drivers/tty/serial/bfin_uart.c
+-
+-BLACKFIN WATCHDOG DRIVER
+-L:	adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+-W:	http://blackfin.uclinux.org
+-S:	Orphan
+-F:	drivers/watchdog/bfin_wdt.c
+-
+ BLINKM RGB LED DRIVER
+ M:	Jan-Simon Moeller <jansimon.moeller@gmx.de>
+ S:	Maintained
+diff --git a/arch/blackfin/Clear_BSD.txt b/arch/blackfin/Clear_BSD.txt
 deleted file mode 100644
-index af369b05fed5..000000000000
-diff --git a/arch/frv/Kconfig.debug b/arch/frv/Kconfig.debug
+index bfa4b378a368..000000000000
+diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
 deleted file mode 100644
-index ecab6d8a79ed..000000000000
-diff --git a/arch/frv/Makefile b/arch/frv/Makefile
+index d9c2866ba618..000000000000
+diff --git a/arch/blackfin/Kconfig.debug b/arch/blackfin/Kconfig.debug
 deleted file mode 100644
-index 2a8fb730d1ca..000000000000
-diff --git a/arch/frv/boot/Makefile b/arch/frv/boot/Makefile
+index c8d957274cc2..000000000000
+diff --git a/arch/blackfin/Makefile b/arch/blackfin/Makefile
 deleted file mode 100644
-index 636d5bbcd53f..000000000000
-diff --git a/arch/frv/defconfig b/arch/frv/defconfig
+index 1fce08632ad7..000000000000
+diff --git a/arch/blackfin/boot/.gitignore b/arch/blackfin/boot/.gitignore
 deleted file mode 100644
-index b1b792610fdf..000000000000
-diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
+index 1287a5487e7d..000000000000
+diff --git a/arch/blackfin/boot/Makefile b/arch/blackfin/boot/Makefile
 deleted file mode 100644
-index b16b9c48ea09..000000000000
-diff --git a/arch/frv/include/asm/asm-offsets.h b/arch/frv/include/asm/asm-offsets.h
+index 3efaa094fb90..000000000000
+diff --git a/arch/blackfin/boot/install.sh b/arch/blackfin/boot/install.sh
+deleted file mode 100644
+index e2c6e40902b7..000000000000
+diff --git a/arch/blackfin/configs/BF518F-EZBRD_defconfig b/arch/blackfin/configs/BF518F-EZBRD_defconfig
+deleted file mode 100644
+index 99c00d835f47..000000000000
+diff --git a/arch/blackfin/configs/BF526-EZBRD_defconfig b/arch/blackfin/configs/BF526-EZBRD_defconfig
+deleted file mode 100644
+index e66ba31ef84d..000000000000
+diff --git a/arch/blackfin/configs/BF527-AD7160-EVAL_defconfig b/arch/blackfin/configs/BF527-AD7160-EVAL_defconfig
+deleted file mode 100644
+index d95658fc3127..000000000000
+diff --git a/arch/blackfin/configs/BF527-EZKIT-V2_defconfig b/arch/blackfin/configs/BF527-EZKIT-V2_defconfig
+deleted file mode 100644
+index 0207c588c19f..000000000000
+diff --git a/arch/blackfin/configs/BF527-EZKIT_defconfig b/arch/blackfin/configs/BF527-EZKIT_defconfig
+deleted file mode 100644
+index 99c131ba7d90..000000000000
+diff --git a/arch/blackfin/configs/BF527-TLL6527M_defconfig b/arch/blackfin/configs/BF527-TLL6527M_defconfig
+deleted file mode 100644
+index cdeb51856f26..000000000000
+diff --git a/arch/blackfin/configs/BF533-EZKIT_defconfig b/arch/blackfin/configs/BF533-EZKIT_defconfig
+deleted file mode 100644
+index ed7d2c096739..000000000000
+diff --git a/arch/blackfin/configs/BF533-STAMP_defconfig b/arch/blackfin/configs/BF533-STAMP_defconfig
+deleted file mode 100644
+index 0c241f4d28d7..000000000000
+diff --git a/arch/blackfin/configs/BF537-STAMP_defconfig b/arch/blackfin/configs/BF537-STAMP_defconfig
+deleted file mode 100644
+index e5360b30e39a..000000000000
+diff --git a/arch/blackfin/configs/BF538-EZKIT_defconfig b/arch/blackfin/configs/BF538-EZKIT_defconfig
+deleted file mode 100644
+index 60f6fb86125c..000000000000
+diff --git a/arch/blackfin/configs/BF548-EZKIT_defconfig b/arch/blackfin/configs/BF548-EZKIT_defconfig
+deleted file mode 100644
+index 38cb17d218d4..000000000000
+diff --git a/arch/blackfin/configs/BF561-ACVILON_defconfig b/arch/blackfin/configs/BF561-ACVILON_defconfig
+deleted file mode 100644
+index 78f6bc79f910..000000000000
+diff --git a/arch/blackfin/configs/BF561-EZKIT-SMP_defconfig b/arch/blackfin/configs/BF561-EZKIT-SMP_defconfig
+deleted file mode 100644
+index fac8bb578249..000000000000
+diff --git a/arch/blackfin/configs/BF561-EZKIT_defconfig b/arch/blackfin/configs/BF561-EZKIT_defconfig
+deleted file mode 100644
+index 2a2e4d0cebc1..000000000000
+diff --git a/arch/blackfin/configs/BF609-EZKIT_defconfig b/arch/blackfin/configs/BF609-EZKIT_defconfig
+deleted file mode 100644
+index 3ce77f07208a..000000000000
+diff --git a/arch/blackfin/configs/BlackStamp_defconfig b/arch/blackfin/configs/BlackStamp_defconfig
+deleted file mode 100644
+index f4a9200e1ab1..000000000000
+diff --git a/arch/blackfin/configs/CM-BF527_defconfig b/arch/blackfin/configs/CM-BF527_defconfig
+deleted file mode 100644
+index 1902bb05d086..000000000000
+diff --git a/arch/blackfin/configs/CM-BF533_defconfig b/arch/blackfin/configs/CM-BF533_defconfig
+deleted file mode 100644
+index 9a5716d57ebc..000000000000
+diff --git a/arch/blackfin/configs/CM-BF537E_defconfig b/arch/blackfin/configs/CM-BF537E_defconfig
+deleted file mode 100644
+index 684592884349..000000000000
+diff --git a/arch/blackfin/configs/CM-BF537U_defconfig b/arch/blackfin/configs/CM-BF537U_defconfig
+deleted file mode 100644
+index d9915e984787..000000000000
+diff --git a/arch/blackfin/configs/CM-BF548_defconfig b/arch/blackfin/configs/CM-BF548_defconfig
+deleted file mode 100644
+index 92d8130cdb51..000000000000
+diff --git a/arch/blackfin/configs/CM-BF561_defconfig b/arch/blackfin/configs/CM-BF561_defconfig
+deleted file mode 100644
+index fa8d91132a57..000000000000
+diff --git a/arch/blackfin/configs/DNP5370_defconfig b/arch/blackfin/configs/DNP5370_defconfig
+deleted file mode 100644
+index 88600593c731..000000000000
+diff --git a/arch/blackfin/configs/H8606_defconfig b/arch/blackfin/configs/H8606_defconfig
+deleted file mode 100644
+index 0ff97d8d047a..000000000000
+diff --git a/arch/blackfin/configs/IP0X_defconfig b/arch/blackfin/configs/IP0X_defconfig
+deleted file mode 100644
+index 9e3ae4b36d20..000000000000
+diff --git a/arch/blackfin/configs/PNAV-10_defconfig b/arch/blackfin/configs/PNAV-10_defconfig
+deleted file mode 100644
+index c7926812971c..000000000000
+diff --git a/arch/blackfin/configs/SRV1_defconfig b/arch/blackfin/configs/SRV1_defconfig
+deleted file mode 100644
+index 23fdc57d657a..000000000000
+diff --git a/arch/blackfin/configs/TCM-BF518_defconfig b/arch/blackfin/configs/TCM-BF518_defconfig
+deleted file mode 100644
+index e28959479fe0..000000000000
+diff --git a/arch/blackfin/configs/TCM-BF537_defconfig b/arch/blackfin/configs/TCM-BF537_defconfig
+deleted file mode 100644
+index 39e85cce95d7..000000000000
+diff --git a/arch/blackfin/include/asm/Kbuild b/arch/blackfin/include/asm/Kbuild
+deleted file mode 100644
+index fe736973630f..000000000000
+diff --git a/arch/blackfin/include/asm/asm-offsets.h b/arch/blackfin/include/asm/asm-offsets.h
 deleted file mode 100644
 index d370ee36a182..000000000000
-diff --git a/arch/frv/include/asm/atomic.h b/arch/frv/include/asm/atomic.h
+diff --git a/arch/blackfin/include/asm/atomic.h b/arch/blackfin/include/asm/atomic.h
 deleted file mode 100644
-index e93c9494503a..000000000000
-diff --git a/arch/frv/include/asm/atomic_defs.h b/arch/frv/include/asm/atomic_defs.h
+index 63c7deceeeb6..000000000000
+diff --git a/arch/blackfin/include/asm/barrier.h b/arch/blackfin/include/asm/barrier.h
 deleted file mode 100644
-index ce3b8a4efc12..000000000000
-diff --git a/arch/frv/include/asm/ax88796.h b/arch/frv/include/asm/ax88796.h
+index 7cca51cae5ff..000000000000
+diff --git a/arch/blackfin/include/asm/bfin-global.h b/arch/blackfin/include/asm/bfin-global.h
 deleted file mode 100644
-index 637e980393c5..000000000000
-diff --git a/arch/frv/include/asm/barrier.h b/arch/frv/include/asm/barrier.h
+index dc47d79287f9..000000000000
+diff --git a/arch/blackfin/include/asm/bfin-lq035q1.h b/arch/blackfin/include/asm/bfin-lq035q1.h
 deleted file mode 100644
-index abbef470154c..000000000000
-diff --git a/arch/frv/include/asm/bitops.h b/arch/frv/include/asm/bitops.h
+index 836895156b5b..000000000000
+diff --git a/arch/blackfin/include/asm/bfin5xx_spi.h b/arch/blackfin/include/asm/bfin5xx_spi.h
 deleted file mode 100644
-index 0df8e95e3715..000000000000
-diff --git a/arch/frv/include/asm/bug.h b/arch/frv/include/asm/bug.h
+index fb95c853bb1e..000000000000
+diff --git a/arch/blackfin/include/asm/bfin_can.h b/arch/blackfin/include/asm/bfin_can.h
 deleted file mode 100644
-index dd01bcf42ee6..000000000000
-diff --git a/arch/frv/include/asm/bugs.h b/arch/frv/include/asm/bugs.h
+index b1492e0bcabb..000000000000
+diff --git a/arch/blackfin/include/asm/bfin_dma.h b/arch/blackfin/include/asm/bfin_dma.h
 deleted file mode 100644
-index f2382be2b46c..000000000000
-diff --git a/arch/frv/include/asm/busctl-regs.h b/arch/frv/include/asm/busctl-regs.h
+index 6319f4e49083..000000000000
+diff --git a/arch/blackfin/include/asm/bfin_pfmon.h b/arch/blackfin/include/asm/bfin_pfmon.h
 deleted file mode 100644
-index bb0ff4816e27..000000000000
-diff --git a/arch/frv/include/asm/cache.h b/arch/frv/include/asm/cache.h
+index bf52e1f32257..000000000000
+diff --git a/arch/blackfin/include/asm/bfin_ppi.h b/arch/blackfin/include/asm/bfin_ppi.h
 deleted file mode 100644
-index 2797163b8f4f..000000000000
-diff --git a/arch/frv/include/asm/cacheflush.h b/arch/frv/include/asm/cacheflush.h
+index a4e872e16e75..000000000000
+diff --git a/arch/blackfin/include/asm/bfin_sdh.h b/arch/blackfin/include/asm/bfin_sdh.h
 deleted file mode 100644
-index edbac54ae015..000000000000
-diff --git a/arch/frv/include/asm/checksum.h b/arch/frv/include/asm/checksum.h
+index a99957ea9e9b..000000000000
+diff --git a/arch/blackfin/include/asm/bfin_serial.h b/arch/blackfin/include/asm/bfin_serial.h
 deleted file mode 100644
-index b77388c5901d..000000000000
-diff --git a/arch/frv/include/asm/cmpxchg.h b/arch/frv/include/asm/cmpxchg.h
+index b550ada7321b..000000000000
+diff --git a/arch/blackfin/include/asm/bfin_simple_timer.h b/arch/blackfin/include/asm/bfin_simple_timer.h
 deleted file mode 100644
-index ad1f11cfa92a..000000000000
-diff --git a/arch/frv/include/asm/cpu-irqs.h b/arch/frv/include/asm/cpu-irqs.h
+index b2d5e733079e..000000000000
+diff --git a/arch/blackfin/include/asm/bfin_sport.h b/arch/blackfin/include/asm/bfin_sport.h
 deleted file mode 100644
-index 478f3498fcfe..000000000000
-diff --git a/arch/frv/include/asm/current.h b/arch/frv/include/asm/current.h
+index 50b9dfd4839f..000000000000
+diff --git a/arch/blackfin/include/asm/bfin_sport3.h b/arch/blackfin/include/asm/bfin_sport3.h
 deleted file mode 100644
-index 86b027491b08..000000000000
-diff --git a/arch/frv/include/asm/delay.h b/arch/frv/include/asm/delay.h
+index d82f5fa0ad9f..000000000000
+diff --git a/arch/blackfin/include/asm/bfin_twi.h b/arch/blackfin/include/asm/bfin_twi.h
 deleted file mode 100644
-index 597b4ebf03b4..000000000000
-diff --git a/arch/frv/include/asm/div64.h b/arch/frv/include/asm/div64.h
+index 211e9c78f6fb..000000000000
+diff --git a/arch/blackfin/include/asm/bfin_watchdog.h b/arch/blackfin/include/asm/bfin_watchdog.h
 deleted file mode 100644
-index 6cd978cefb28..000000000000
-diff --git a/arch/frv/include/asm/dm9000.h b/arch/frv/include/asm/dm9000.h
+index dce09829a095..000000000000
+diff --git a/arch/blackfin/include/asm/bfrom.h b/arch/blackfin/include/asm/bfrom.h
 deleted file mode 100644
-index f6f48fd9ec6e..000000000000
-diff --git a/arch/frv/include/asm/dma-mapping.h b/arch/frv/include/asm/dma-mapping.h
+index 9e4be5e5e767..000000000000
+diff --git a/arch/blackfin/include/asm/bitops.h b/arch/blackfin/include/asm/bitops.h
 deleted file mode 100644
-index fd80e840a1e6..000000000000
-diff --git a/arch/frv/include/asm/dma.h b/arch/frv/include/asm/dma.h
+index b298b654a26f..000000000000
+diff --git a/arch/blackfin/include/asm/blackfin.h b/arch/blackfin/include/asm/blackfin.h
 deleted file mode 100644
-index 683c47d48a5b..000000000000
-diff --git a/arch/frv/include/asm/elf.h b/arch/frv/include/asm/elf.h
+index f111f366d758..000000000000
+diff --git a/arch/blackfin/include/asm/bug.h b/arch/blackfin/include/asm/bug.h
 deleted file mode 100644
-index 2bac6446db41..000000000000
-diff --git a/arch/frv/include/asm/emergency-restart.h b/arch/frv/include/asm/emergency-restart.h
+index 76b2e82ee730..000000000000
+diff --git a/arch/blackfin/include/asm/cache.h b/arch/blackfin/include/asm/cache.h
 deleted file mode 100644
-index 108d8c48e42e..000000000000
-diff --git a/arch/frv/include/asm/fpu.h b/arch/frv/include/asm/fpu.h
+index 568885a2c286..000000000000
+diff --git a/arch/blackfin/include/asm/cacheflush.h b/arch/blackfin/include/asm/cacheflush.h
 deleted file mode 100644
-index 2f0929333f91..000000000000
-diff --git a/arch/frv/include/asm/ftrace.h b/arch/frv/include/asm/ftrace.h
+index 9a5b2c572ebf..000000000000
+diff --git a/arch/blackfin/include/asm/cdef_LPBlackfin.h b/arch/blackfin/include/asm/cdef_LPBlackfin.h
 deleted file mode 100644
-index 40a8c178f10d..000000000000
-diff --git a/arch/frv/include/asm/futex.h b/arch/frv/include/asm/futex.h
+index 59af63c0c2be..000000000000
+diff --git a/arch/blackfin/include/asm/checksum.h b/arch/blackfin/include/asm/checksum.h
 deleted file mode 100644
-index dfcc3484231d..000000000000
-diff --git a/arch/frv/include/asm/gdb-stub.h b/arch/frv/include/asm/gdb-stub.h
+index e7134bf94e3c..000000000000
+diff --git a/arch/blackfin/include/asm/clocks.h b/arch/blackfin/include/asm/clocks.h
 deleted file mode 100644
-index e6bedd0cd9a5..000000000000
-diff --git a/arch/frv/include/asm/gpio-regs.h b/arch/frv/include/asm/gpio-regs.h
+index 9b3c85b3c288..000000000000
+diff --git a/arch/blackfin/include/asm/cmpxchg.h b/arch/blackfin/include/asm/cmpxchg.h
 deleted file mode 100644
-index 9edf5d5d4d3f..000000000000
-diff --git a/arch/frv/include/asm/hardirq.h b/arch/frv/include/asm/hardirq.h
+index 253928854299..000000000000
+diff --git a/arch/blackfin/include/asm/context.S b/arch/blackfin/include/asm/context.S
 deleted file mode 100644
-index c62833d6ebbb..000000000000
-diff --git a/arch/frv/include/asm/highmem.h b/arch/frv/include/asm/highmem.h
+index 507e7aa6a561..000000000000
+diff --git a/arch/blackfin/include/asm/cplb.h b/arch/blackfin/include/asm/cplb.h
 deleted file mode 100644
-index 1f58938703ab..000000000000
-diff --git a/arch/frv/include/asm/hw_irq.h b/arch/frv/include/asm/hw_irq.h
+index 5c37f620c4b3..000000000000
+diff --git a/arch/blackfin/include/asm/cplbinit.h b/arch/blackfin/include/asm/cplbinit.h
 deleted file mode 100644
-index 522ad37923d8..000000000000
-diff --git a/arch/frv/include/asm/io.h b/arch/frv/include/asm/io.h
+index f315c83a015d..000000000000
+diff --git a/arch/blackfin/include/asm/cpu.h b/arch/blackfin/include/asm/cpu.h
 deleted file mode 100644
-index 8062fc73fad0..000000000000
-diff --git a/arch/frv/include/asm/irc-regs.h b/arch/frv/include/asm/irc-regs.h
+index e349631c8299..000000000000
+diff --git a/arch/blackfin/include/asm/def_LPBlackfin.h b/arch/blackfin/include/asm/def_LPBlackfin.h
 deleted file mode 100644
-index afa30aeacc82..000000000000
-diff --git a/arch/frv/include/asm/irq.h b/arch/frv/include/asm/irq.h
+index c5c8d8a3a5fa..000000000000
+diff --git a/arch/blackfin/include/asm/delay.h b/arch/blackfin/include/asm/delay.h
 deleted file mode 100644
-index 3a66ebd754bd..000000000000
-diff --git a/arch/frv/include/asm/irq_regs.h b/arch/frv/include/asm/irq_regs.h
+index 171d8deb04a5..000000000000
+diff --git a/arch/blackfin/include/asm/dma-mapping.h b/arch/blackfin/include/asm/dma-mapping.h
 deleted file mode 100644
-index d22e83289ad1..000000000000
-diff --git a/arch/frv/include/asm/irqflags.h b/arch/frv/include/asm/irqflags.h
+index 04254ac36bed..000000000000
+diff --git a/arch/blackfin/include/asm/dma.h b/arch/blackfin/include/asm/dma.h
 deleted file mode 100644
-index 82f0b5363f42..000000000000
-diff --git a/arch/frv/include/asm/kdebug.h b/arch/frv/include/asm/kdebug.h
+index 40e9c2bbc6e3..000000000000
+diff --git a/arch/blackfin/include/asm/dpmc.h b/arch/blackfin/include/asm/dpmc.h
 deleted file mode 100644
-index 6ece1b037665..000000000000
-diff --git a/arch/frv/include/asm/kmap_types.h b/arch/frv/include/asm/kmap_types.h
+index 2673b11376f4..000000000000
+diff --git a/arch/blackfin/include/asm/early_printk.h b/arch/blackfin/include/asm/early_printk.h
 deleted file mode 100644
-index 0849db1362d6..000000000000
-diff --git a/arch/frv/include/asm/linkage.h b/arch/frv/include/asm/linkage.h
+index 68a910db8864..000000000000
+diff --git a/arch/blackfin/include/asm/elf.h b/arch/blackfin/include/asm/elf.h
 deleted file mode 100644
-index 636c1bced7d4..000000000000
-diff --git a/arch/frv/include/asm/local.h b/arch/frv/include/asm/local.h
+index d15cb9b5d52c..000000000000
+diff --git a/arch/blackfin/include/asm/entry.h b/arch/blackfin/include/asm/entry.h
 deleted file mode 100644
-index 259ae7b041a7..000000000000
-diff --git a/arch/frv/include/asm/local64.h b/arch/frv/include/asm/local64.h
+index 4104d5783e2c..000000000000
+diff --git a/arch/blackfin/include/asm/exec.h b/arch/blackfin/include/asm/exec.h
 deleted file mode 100644
-index 36c93b5cc239..000000000000
-diff --git a/arch/frv/include/asm/math-emu.h b/arch/frv/include/asm/math-emu.h
+index 54c2e1db274a..000000000000
+diff --git a/arch/blackfin/include/asm/fixed_code.h b/arch/blackfin/include/asm/fixed_code.h
 deleted file mode 100644
-index 8af762dd6109..000000000000
-diff --git a/arch/frv/include/asm/mb-regs.h b/arch/frv/include/asm/mb-regs.h
+index bc330f06207b..000000000000
+diff --git a/arch/blackfin/include/asm/flat.h b/arch/blackfin/include/asm/flat.h
 deleted file mode 100644
-index 219e5f926f18..000000000000
-diff --git a/arch/frv/include/asm/mb86943a.h b/arch/frv/include/asm/mb86943a.h
+index f1d6ba7afbf2..000000000000
+diff --git a/arch/blackfin/include/asm/ftrace.h b/arch/blackfin/include/asm/ftrace.h
 deleted file mode 100644
-index e87ef924bfb4..000000000000
-diff --git a/arch/frv/include/asm/mb93091-fpga-irqs.h b/arch/frv/include/asm/mb93091-fpga-irqs.h
+index 2f1c3c2657ad..000000000000
+diff --git a/arch/blackfin/include/asm/gpio.h b/arch/blackfin/include/asm/gpio.h
 deleted file mode 100644
-index 19778c5ba9d6..000000000000
-diff --git a/arch/frv/include/asm/mb93093-fpga-irqs.h b/arch/frv/include/asm/mb93093-fpga-irqs.h
+index a2579321c7f1..000000000000
+diff --git a/arch/blackfin/include/asm/gptimers.h b/arch/blackfin/include/asm/gptimers.h
 deleted file mode 100644
-index 590266b1a6d3..000000000000
-diff --git a/arch/frv/include/asm/mb93493-irqs.h b/arch/frv/include/asm/mb93493-irqs.h
+index 381e3d621a4c..000000000000
+diff --git a/arch/blackfin/include/asm/hardirq.h b/arch/blackfin/include/asm/hardirq.h
 deleted file mode 100644
-index 82c7aeddd333..000000000000
-diff --git a/arch/frv/include/asm/mb93493-regs.h b/arch/frv/include/asm/mb93493-regs.h
+index 58b54a6d5a16..000000000000
+diff --git a/arch/blackfin/include/asm/io.h b/arch/blackfin/include/asm/io.h
 deleted file mode 100644
-index 8a1f6aac8cf1..000000000000
-diff --git a/arch/frv/include/asm/mem-layout.h b/arch/frv/include/asm/mem-layout.h
+index 6abebe82d4e9..000000000000
+diff --git a/arch/blackfin/include/asm/ipipe.h b/arch/blackfin/include/asm/ipipe.h
 deleted file mode 100644
-index e9a0ec85a402..000000000000
-diff --git a/arch/frv/include/asm/mmu.h b/arch/frv/include/asm/mmu.h
+index fe1160fbff91..000000000000
+diff --git a/arch/blackfin/include/asm/ipipe_base.h b/arch/blackfin/include/asm/ipipe_base.h
 deleted file mode 100644
-index 86ca0e86e7d2..000000000000
-diff --git a/arch/frv/include/asm/mmu_context.h b/arch/frv/include/asm/mmu_context.h
+index 84a4ffd36747..000000000000
+diff --git a/arch/blackfin/include/asm/irq.h b/arch/blackfin/include/asm/irq.h
 deleted file mode 100644
-index c7daa395156a..000000000000
-diff --git a/arch/frv/include/asm/module.h b/arch/frv/include/asm/module.h
+index 89de539ed010..000000000000
+diff --git a/arch/blackfin/include/asm/irq_handler.h b/arch/blackfin/include/asm/irq_handler.h
 deleted file mode 100644
-index a8848f09a217..000000000000
-diff --git a/arch/frv/include/asm/page.h b/arch/frv/include/asm/page.h
+index d2f90c72378e..000000000000
+diff --git a/arch/blackfin/include/asm/irqflags.h b/arch/blackfin/include/asm/irqflags.h
 deleted file mode 100644
-index 0f76a0d586f6..000000000000
-diff --git a/arch/frv/include/asm/pci.h b/arch/frv/include/asm/pci.h
+index 07aff230a812..000000000000
+diff --git a/arch/blackfin/include/asm/kgdb.h b/arch/blackfin/include/asm/kgdb.h
 deleted file mode 100644
-index 895af9d558ba..000000000000
-diff --git a/arch/frv/include/asm/percpu.h b/arch/frv/include/asm/percpu.h
+index 2703ddeeb5db..000000000000
+diff --git a/arch/blackfin/include/asm/l1layout.h b/arch/blackfin/include/asm/l1layout.h
 deleted file mode 100644
-index 4209fe5fe0a2..000000000000
-diff --git a/arch/frv/include/asm/perf_event.h b/arch/frv/include/asm/perf_event.h
+index c87e68647a2b..000000000000
+diff --git a/arch/blackfin/include/asm/linkage.h b/arch/blackfin/include/asm/linkage.h
 deleted file mode 100644
-index c52ea5546b5b..000000000000
-diff --git a/arch/frv/include/asm/pgalloc.h b/arch/frv/include/asm/pgalloc.h
+index f7d6d47a048d..000000000000
+diff --git a/arch/blackfin/include/asm/mem_init.h b/arch/blackfin/include/asm/mem_init.h
 deleted file mode 100644
-index 416d19a632f2..000000000000
-diff --git a/arch/frv/include/asm/pgtable.h b/arch/frv/include/asm/pgtable.h
+index c865b33eeb68..000000000000
+diff --git a/arch/blackfin/include/asm/mem_map.h b/arch/blackfin/include/asm/mem_map.h
 deleted file mode 100644
-index ab6e7e961b54..000000000000
-diff --git a/arch/frv/include/asm/processor.h b/arch/frv/include/asm/processor.h
+index 5e21627c9ba2..000000000000
+diff --git a/arch/blackfin/include/asm/mmu.h b/arch/blackfin/include/asm/mmu.h
 deleted file mode 100644
-index 021cce78b401..000000000000
-diff --git a/arch/frv/include/asm/ptrace.h b/arch/frv/include/asm/ptrace.h
+index 26f6b70b11e2..000000000000
+diff --git a/arch/blackfin/include/asm/mmu_context.h b/arch/blackfin/include/asm/mmu_context.h
 deleted file mode 100644
-index 034f17934192..000000000000
-diff --git a/arch/frv/include/asm/sections.h b/arch/frv/include/asm/sections.h
+index 0ce6de873b27..000000000000
+diff --git a/arch/blackfin/include/asm/module.h b/arch/blackfin/include/asm/module.h
 deleted file mode 100644
-index d03fb64e93e9..000000000000
-diff --git a/arch/frv/include/asm/segment.h b/arch/frv/include/asm/segment.h
+index 231a149b3f77..000000000000
+diff --git a/arch/blackfin/include/asm/nand.h b/arch/blackfin/include/asm/nand.h
 deleted file mode 100644
-index 2305142d4cf8..000000000000
-diff --git a/arch/frv/include/asm/serial-regs.h b/arch/frv/include/asm/serial-regs.h
+index 256c50d8d465..000000000000
+diff --git a/arch/blackfin/include/asm/nmi.h b/arch/blackfin/include/asm/nmi.h
 deleted file mode 100644
-index e1286bda00eb..000000000000
-diff --git a/arch/frv/include/asm/serial.h b/arch/frv/include/asm/serial.h
+index 107d23705f46..000000000000
+diff --git a/arch/blackfin/include/asm/page.h b/arch/blackfin/include/asm/page.h
 deleted file mode 100644
-index 614c6d76789a..000000000000
-diff --git a/arch/frv/include/asm/setup.h b/arch/frv/include/asm/setup.h
+index b93474d5be75..000000000000
+diff --git a/arch/blackfin/include/asm/page_offset.h b/arch/blackfin/include/asm/page_offset.h
 deleted file mode 100644
-index aa76f2eac09a..000000000000
-diff --git a/arch/frv/include/asm/shmparam.h b/arch/frv/include/asm/shmparam.h
+index d06a89b89d20..000000000000
+diff --git a/arch/blackfin/include/asm/pci.h b/arch/blackfin/include/asm/pci.h
 deleted file mode 100644
-index 50ea51f26c46..000000000000
-diff --git a/arch/frv/include/asm/signal.h b/arch/frv/include/asm/signal.h
+index e6458ddbaf7e..000000000000
+diff --git a/arch/blackfin/include/asm/pda.h b/arch/blackfin/include/asm/pda.h
 deleted file mode 100644
-index 796394113904..000000000000
-diff --git a/arch/frv/include/asm/smp.h b/arch/frv/include/asm/smp.h
+index 68d6f6618f2a..000000000000
+diff --git a/arch/blackfin/include/asm/perf_event.h b/arch/blackfin/include/asm/perf_event.h
 deleted file mode 100644
-index 0d7fa409312d..000000000000
-diff --git a/arch/frv/include/asm/spinlock.h b/arch/frv/include/asm/spinlock.h
+index 3d2b1716322f..000000000000
+diff --git a/arch/blackfin/include/asm/pgtable.h b/arch/blackfin/include/asm/pgtable.h
 deleted file mode 100644
-index fe385f45d1fd..000000000000
-diff --git a/arch/frv/include/asm/spr-regs.h b/arch/frv/include/asm/spr-regs.h
+index c1ee3d6533fb..000000000000
+diff --git a/arch/blackfin/include/asm/pm.h b/arch/blackfin/include/asm/pm.h
 deleted file mode 100644
-index d3883021f236..000000000000
-diff --git a/arch/frv/include/asm/string.h b/arch/frv/include/asm/string.h
+index f72239bf3638..000000000000
+diff --git a/arch/blackfin/include/asm/portmux.h b/arch/blackfin/include/asm/portmux.h
 deleted file mode 100644
-index 1f6c35990439..000000000000
-diff --git a/arch/frv/include/asm/switch_to.h b/arch/frv/include/asm/switch_to.h
+index c8f0939419be..000000000000
+diff --git a/arch/blackfin/include/asm/processor.h b/arch/blackfin/include/asm/processor.h
 deleted file mode 100644
-index 2cf0f6a7fbb1..000000000000
-diff --git a/arch/frv/include/asm/syscall.h b/arch/frv/include/asm/syscall.h
+index dbdbb8a558df..000000000000
+diff --git a/arch/blackfin/include/asm/pseudo_instructions.h b/arch/blackfin/include/asm/pseudo_instructions.h
 deleted file mode 100644
-index 70689eb29b98..000000000000
-diff --git a/arch/frv/include/asm/termios.h b/arch/frv/include/asm/termios.h
+index b00adfa08169..000000000000
+diff --git a/arch/blackfin/include/asm/ptrace.h b/arch/blackfin/include/asm/ptrace.h
 deleted file mode 100644
-index 5a8c63554617..000000000000
-diff --git a/arch/frv/include/asm/thread_info.h b/arch/frv/include/asm/thread_info.h
+index c00491594b46..000000000000
+diff --git a/arch/blackfin/include/asm/reboot.h b/arch/blackfin/include/asm/reboot.h
 deleted file mode 100644
-index 0f950845fad9..000000000000
-diff --git a/arch/frv/include/asm/timer-regs.h b/arch/frv/include/asm/timer-regs.h
+index ae1e36329bec..000000000000
+diff --git a/arch/blackfin/include/asm/rwlock.h b/arch/blackfin/include/asm/rwlock.h
 deleted file mode 100644
-index 6c5a871ce5e9..000000000000
-diff --git a/arch/frv/include/asm/timex.h b/arch/frv/include/asm/timex.h
+index 98ebc07cb283..000000000000
+diff --git a/arch/blackfin/include/asm/scb.h b/arch/blackfin/include/asm/scb.h
 deleted file mode 100644
-index bf53166f2793..000000000000
-diff --git a/arch/frv/include/asm/tlb.h b/arch/frv/include/asm/tlb.h
+index a294cc0d1a4a..000000000000
+diff --git a/arch/blackfin/include/asm/sections.h b/arch/blackfin/include/asm/sections.h
 deleted file mode 100644
-index d3e361ad725a..000000000000
-diff --git a/arch/frv/include/asm/tlbflush.h b/arch/frv/include/asm/tlbflush.h
+index fbd408475725..000000000000
+diff --git a/arch/blackfin/include/asm/segment.h b/arch/blackfin/include/asm/segment.h
 deleted file mode 100644
-index 75879420f578..000000000000
-diff --git a/arch/frv/include/asm/topology.h b/arch/frv/include/asm/topology.h
+index f8e1984ffc7e..000000000000
+diff --git a/arch/blackfin/include/asm/smp.h b/arch/blackfin/include/asm/smp.h
 deleted file mode 100644
-index 207603071f78..000000000000
-diff --git a/arch/frv/include/asm/types.h b/arch/frv/include/asm/types.h
+index 9631598dcc5d..000000000000
+diff --git a/arch/blackfin/include/asm/spinlock.h b/arch/blackfin/include/asm/spinlock.h
 deleted file mode 100644
-index 6bc63650d832..000000000000
-diff --git a/arch/frv/include/asm/uaccess.h b/arch/frv/include/asm/uaccess.h
+index 839d1441af3a..000000000000
+diff --git a/arch/blackfin/include/asm/spinlock_types.h b/arch/blackfin/include/asm/spinlock_types.h
 deleted file mode 100644
-index ff9562dc6825..000000000000
-diff --git a/arch/frv/include/asm/ucontext.h b/arch/frv/include/asm/ucontext.h
+index 1a33608c958b..000000000000
+diff --git a/arch/blackfin/include/asm/string.h b/arch/blackfin/include/asm/string.h
 deleted file mode 100644
-index 0cc2d95dd209..000000000000
-diff --git a/arch/frv/include/asm/unaligned.h b/arch/frv/include/asm/unaligned.h
+index 423c099aa988..000000000000
+diff --git a/arch/blackfin/include/asm/switch_to.h b/arch/blackfin/include/asm/switch_to.h
 deleted file mode 100644
-index 6c61c05b2e0c..000000000000
-diff --git a/arch/frv/include/asm/unistd.h b/arch/frv/include/asm/unistd.h
+index aaf671be9242..000000000000
+diff --git a/arch/blackfin/include/asm/syscall.h b/arch/blackfin/include/asm/syscall.h
 deleted file mode 100644
-index b4b3f9b26b81..000000000000
-diff --git a/arch/frv/include/asm/user.h b/arch/frv/include/asm/user.h
+index 4921a4815cce..000000000000
+diff --git a/arch/blackfin/include/asm/thread_info.h b/arch/blackfin/include/asm/thread_info.h
 deleted file mode 100644
-index 82fa8fab64ae..000000000000
-diff --git a/arch/frv/include/asm/vga.h b/arch/frv/include/asm/vga.h
+index a5aeab4e5f2d..000000000000
+diff --git a/arch/blackfin/include/asm/time.h b/arch/blackfin/include/asm/time.h
 deleted file mode 100644
-index a702c800a229..000000000000
-diff --git a/arch/frv/include/asm/virtconvert.h b/arch/frv/include/asm/virtconvert.h
+index 9ca7db844d10..000000000000
+diff --git a/arch/blackfin/include/asm/timex.h b/arch/blackfin/include/asm/timex.h
 deleted file mode 100644
-index b26d70ab9111..000000000000
-diff --git a/arch/frv/include/asm/xor.h b/arch/frv/include/asm/xor.h
+index 248aeb066805..000000000000
+diff --git a/arch/blackfin/include/asm/tlb.h b/arch/blackfin/include/asm/tlb.h
 deleted file mode 100644
-index c82eb12a5b18..000000000000
-diff --git a/arch/frv/include/uapi/asm/Kbuild b/arch/frv/include/uapi/asm/Kbuild
+index a74ae08af1a7..000000000000
+diff --git a/arch/blackfin/include/asm/tlbflush.h b/arch/blackfin/include/asm/tlbflush.h
 deleted file mode 100644
-index 5354b0f84d41..000000000000
-diff --git a/arch/frv/include/uapi/asm/auxvec.h b/arch/frv/include/uapi/asm/auxvec.h
+index 7c368682c0a3..000000000000
+diff --git a/arch/blackfin/include/asm/trace.h b/arch/blackfin/include/asm/trace.h
 deleted file mode 100644
-index 07710778fa10..000000000000
-diff --git a/arch/frv/include/uapi/asm/bitsperlong.h b/arch/frv/include/uapi/asm/bitsperlong.h
+index 33589a29b8d8..000000000000
+diff --git a/arch/blackfin/include/asm/traps.h b/arch/blackfin/include/asm/traps.h
 deleted file mode 100644
-index 76da34b10f59..000000000000
-diff --git a/arch/frv/include/uapi/asm/byteorder.h b/arch/frv/include/uapi/asm/byteorder.h
+index cec771b8100c..000000000000
+diff --git a/arch/blackfin/include/asm/uaccess.h b/arch/blackfin/include/asm/uaccess.h
 deleted file mode 100644
-index a46f6472acdc..000000000000
-diff --git a/arch/frv/include/uapi/asm/errno.h b/arch/frv/include/uapi/asm/errno.h
+index 45da4bcb050e..000000000000
+diff --git a/arch/blackfin/include/asm/unistd.h b/arch/blackfin/include/asm/unistd.h
 deleted file mode 100644
-index c5b82f2f2970..000000000000
-diff --git a/arch/frv/include/uapi/asm/fcntl.h b/arch/frv/include/uapi/asm/fcntl.h
+index c8c8ff9eff61..000000000000
+diff --git a/arch/blackfin/include/asm/vga.h b/arch/blackfin/include/asm/vga.h
 deleted file mode 100644
-index a77648c505d1..000000000000
-diff --git a/arch/frv/include/uapi/asm/ioctl.h b/arch/frv/include/uapi/asm/ioctl.h
+index 89d82fd8fcf1..000000000000
+diff --git a/arch/blackfin/include/mach-common/irq.h b/arch/blackfin/include/mach-common/irq.h
 deleted file mode 100644
-index b809c4566e5f..000000000000
-diff --git a/arch/frv/include/uapi/asm/ioctls.h b/arch/frv/include/uapi/asm/ioctls.h
+index af9fc8171ebc..000000000000
+diff --git a/arch/blackfin/include/mach-common/pll.h b/arch/blackfin/include/mach-common/pll.h
 deleted file mode 100644
-index dd9f5eb9feda..000000000000
-diff --git a/arch/frv/include/uapi/asm/ipcbuf.h b/arch/frv/include/uapi/asm/ipcbuf.h
+index 382178b361af..000000000000
+diff --git a/arch/blackfin/include/mach-common/ports-a.h b/arch/blackfin/include/mach-common/ports-a.h
 deleted file mode 100644
-index 90d6445a14df..000000000000
-diff --git a/arch/frv/include/uapi/asm/kvm_para.h b/arch/frv/include/uapi/asm/kvm_para.h
+index 71bcd74f83fd..000000000000
+diff --git a/arch/blackfin/include/mach-common/ports-b.h b/arch/blackfin/include/mach-common/ports-b.h
 deleted file mode 100644
-index baacc4996d18..000000000000
-diff --git a/arch/frv/include/uapi/asm/mman.h b/arch/frv/include/uapi/asm/mman.h
+index 8013cc8e839b..000000000000
+diff --git a/arch/blackfin/include/mach-common/ports-c.h b/arch/blackfin/include/mach-common/ports-c.h
 deleted file mode 100644
-index 306fc0460b80..000000000000
-diff --git a/arch/frv/include/uapi/asm/msgbuf.h b/arch/frv/include/uapi/asm/msgbuf.h
+index 94e71010ffe9..000000000000
+diff --git a/arch/blackfin/include/mach-common/ports-d.h b/arch/blackfin/include/mach-common/ports-d.h
 deleted file mode 100644
-index 156c81bb46d7..000000000000
-diff --git a/arch/frv/include/uapi/asm/param.h b/arch/frv/include/uapi/asm/param.h
+index ba84a9fb3450..000000000000
+diff --git a/arch/blackfin/include/mach-common/ports-e.h b/arch/blackfin/include/mach-common/ports-e.h
 deleted file mode 100644
-index d3e0168d8937..000000000000
-diff --git a/arch/frv/include/uapi/asm/poll.h b/arch/frv/include/uapi/asm/poll.h
+index 2264fb58bc2b..000000000000
+diff --git a/arch/blackfin/include/mach-common/ports-f.h b/arch/blackfin/include/mach-common/ports-f.h
 deleted file mode 100644
-index f55b45f475ec..000000000000
-diff --git a/arch/frv/include/uapi/asm/posix_types.h b/arch/frv/include/uapi/asm/posix_types.h
+index 2b8ca3ae2a8e..000000000000
+diff --git a/arch/blackfin/include/mach-common/ports-g.h b/arch/blackfin/include/mach-common/ports-g.h
 deleted file mode 100644
-index 2995777227b3..000000000000
-diff --git a/arch/frv/include/uapi/asm/ptrace.h b/arch/frv/include/uapi/asm/ptrace.h
+index 11ad917fcf91..000000000000
+diff --git a/arch/blackfin/include/mach-common/ports-h.h b/arch/blackfin/include/mach-common/ports-h.h
 deleted file mode 100644
-index f1d2f652d083..000000000000
-diff --git a/arch/frv/include/uapi/asm/registers.h b/arch/frv/include/uapi/asm/registers.h
+index 511d088b8094..000000000000
+diff --git a/arch/blackfin/include/mach-common/ports-i.h b/arch/blackfin/include/mach-common/ports-i.h
 deleted file mode 100644
-index 4caf09b6c193..000000000000
-diff --git a/arch/frv/include/uapi/asm/resource.h b/arch/frv/include/uapi/asm/resource.h
+index 21bbab166ae8..000000000000
+diff --git a/arch/blackfin/include/mach-common/ports-j.h b/arch/blackfin/include/mach-common/ports-j.h
 deleted file mode 100644
-index 2100305f9b3e..000000000000
-diff --git a/arch/frv/include/uapi/asm/sembuf.h b/arch/frv/include/uapi/asm/sembuf.h
+index 96a252b0b0bd..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/Kbuild b/arch/blackfin/include/uapi/asm/Kbuild
 deleted file mode 100644
-index d5477f95832b..000000000000
-diff --git a/arch/frv/include/uapi/asm/setup.h b/arch/frv/include/uapi/asm/setup.h
+index 2240b38c2915..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/bfin_sport.h b/arch/blackfin/include/uapi/asm/bfin_sport.h
 deleted file mode 100644
-index f54957047900..000000000000
-diff --git a/arch/frv/include/uapi/asm/shmbuf.h b/arch/frv/include/uapi/asm/shmbuf.h
+index 86c36a208dc5..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/byteorder.h b/arch/blackfin/include/uapi/asm/byteorder.h
 deleted file mode 100644
-index 1de8f892e412..000000000000
-diff --git a/arch/frv/include/uapi/asm/sigcontext.h b/arch/frv/include/uapi/asm/sigcontext.h
+index bcab6670c7fe..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/cachectl.h b/arch/blackfin/include/uapi/asm/cachectl.h
 deleted file mode 100644
-index 8fbb0b00afdd..000000000000
-diff --git a/arch/frv/include/uapi/asm/signal.h b/arch/frv/include/uapi/asm/signal.h
+index b5c86fbbca94..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/fcntl.h b/arch/blackfin/include/uapi/asm/fcntl.h
 deleted file mode 100644
-index 603bb796cf46..000000000000
-diff --git a/arch/frv/include/uapi/asm/socket.h b/arch/frv/include/uapi/asm/socket.h
+index 0b02954f06c3..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/fixed_code.h b/arch/blackfin/include/uapi/asm/fixed_code.h
 deleted file mode 100644
-index 9168e78fa32a..000000000000
-diff --git a/arch/frv/include/uapi/asm/sockios.h b/arch/frv/include/uapi/asm/sockios.h
+index 707b9214bb26..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/ioctls.h b/arch/blackfin/include/uapi/asm/ioctls.h
 deleted file mode 100644
-index 2f62caf1ce84..000000000000
-diff --git a/arch/frv/include/uapi/asm/stat.h b/arch/frv/include/uapi/asm/stat.h
+index 422fee3e4776..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/poll.h b/arch/blackfin/include/uapi/asm/poll.h
 deleted file mode 100644
-index 0ff9fab915a4..000000000000
-diff --git a/arch/frv/include/uapi/asm/statfs.h b/arch/frv/include/uapi/asm/statfs.h
+index cd2f1a78aba5..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/posix_types.h b/arch/blackfin/include/uapi/asm/posix_types.h
 deleted file mode 100644
-index 2a378cbff07f..000000000000
-diff --git a/arch/frv/include/uapi/asm/swab.h b/arch/frv/include/uapi/asm/swab.h
+index 8947c75cf638..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/ptrace.h b/arch/blackfin/include/uapi/asm/ptrace.h
 deleted file mode 100644
-index c78257d172e5..000000000000
-diff --git a/arch/frv/include/uapi/asm/termbits.h b/arch/frv/include/uapi/asm/termbits.h
+index e4423d5560da..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/sigcontext.h b/arch/blackfin/include/uapi/asm/sigcontext.h
 deleted file mode 100644
-index b1dcd8d0ff78..000000000000
-diff --git a/arch/frv/include/uapi/asm/termios.h b/arch/frv/include/uapi/asm/termios.h
+index 66b4d32af89c..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/siginfo.h b/arch/blackfin/include/uapi/asm/siginfo.h
 deleted file mode 100644
-index ae35bedae6a2..000000000000
-diff --git a/arch/frv/include/uapi/asm/types.h b/arch/frv/include/uapi/asm/types.h
+index 2dd8c9c39248..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/signal.h b/arch/blackfin/include/uapi/asm/signal.h
 deleted file mode 100644
-index db74ad9ba6c0..000000000000
-diff --git a/arch/frv/include/uapi/asm/unistd.h b/arch/frv/include/uapi/asm/unistd.h
+index f8e3b99ba0a2..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/stat.h b/arch/blackfin/include/uapi/asm/stat.h
 deleted file mode 100644
-index 4b46acaf832b..000000000000
-diff --git a/arch/frv/kernel/.gitignore b/arch/frv/kernel/.gitignore
+index 458959d1a5ec..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/swab.h b/arch/blackfin/include/uapi/asm/swab.h
+deleted file mode 100644
+index d3437933b95f..000000000000
+diff --git a/arch/blackfin/include/uapi/asm/unistd.h b/arch/blackfin/include/uapi/asm/unistd.h
+deleted file mode 100644
+index 2d392c09323c..000000000000
+diff --git a/arch/blackfin/kernel/.gitignore b/arch/blackfin/kernel/.gitignore
 deleted file mode 100644
 index c5f676c3c224..000000000000
-diff --git a/arch/frv/kernel/Makefile b/arch/frv/kernel/Makefile
+diff --git a/arch/blackfin/kernel/Makefile b/arch/blackfin/kernel/Makefile
 deleted file mode 100644
-index 216ddf30c3c1..000000000000
-diff --git a/arch/frv/kernel/asm-offsets.c b/arch/frv/kernel/asm-offsets.c
+index 1580791f0e3a..000000000000
+diff --git a/arch/blackfin/kernel/asm-offsets.c b/arch/blackfin/kernel/asm-offsets.c
 deleted file mode 100644
-index 0a468e9b51ad..000000000000
-diff --git a/arch/frv/kernel/break.S b/arch/frv/kernel/break.S
+index 486560aea050..000000000000
+diff --git a/arch/blackfin/kernel/bfin_dma.c b/arch/blackfin/kernel/bfin_dma.c
 deleted file mode 100644
-index cbb6958a3147..000000000000
-diff --git a/arch/frv/kernel/cmode.S b/arch/frv/kernel/cmode.S
+index 9d3eb0cf8ccc..000000000000
+diff --git a/arch/blackfin/kernel/bfin_gpio.c b/arch/blackfin/kernel/bfin_gpio.c
 deleted file mode 100644
-index 53deeb5d7e87..000000000000
-diff --git a/arch/frv/kernel/debug-stub.c b/arch/frv/kernel/debug-stub.c
+index 63da80bbadf6..000000000000
+diff --git a/arch/blackfin/kernel/bfin_ksyms.c b/arch/blackfin/kernel/bfin_ksyms.c
 deleted file mode 100644
-index a0228f717ef2..000000000000
-diff --git a/arch/frv/kernel/dma.c b/arch/frv/kernel/dma.c
+index 68096e8f787f..000000000000
+diff --git a/arch/blackfin/kernel/cplb-mpu/Makefile b/arch/blackfin/kernel/cplb-mpu/Makefile
 deleted file mode 100644
-index 370dc9fa0b11..000000000000
-diff --git a/arch/frv/kernel/entry-table.S b/arch/frv/kernel/entry-table.S
+index 394d0b1b28fe..000000000000
+diff --git a/arch/blackfin/kernel/cplb-mpu/cplbinit.c b/arch/blackfin/kernel/cplb-mpu/cplbinit.c
 deleted file mode 100644
-index 06c5ae191e59..000000000000
-diff --git a/arch/frv/kernel/entry.S b/arch/frv/kernel/entry.S
+index c15fd05f0b09..000000000000
+diff --git a/arch/blackfin/kernel/cplb-mpu/cplbmgr.c b/arch/blackfin/kernel/cplb-mpu/cplbmgr.c
 deleted file mode 100644
-index dfcd263c0517..000000000000
-diff --git a/arch/frv/kernel/frv_ksyms.c b/arch/frv/kernel/frv_ksyms.c
+index b56bd8514b7c..000000000000
+diff --git a/arch/blackfin/kernel/cplb-nompu/Makefile b/arch/blackfin/kernel/cplb-nompu/Makefile
 deleted file mode 100644
-index 6ea430d58149..000000000000
-diff --git a/arch/frv/kernel/futex.c b/arch/frv/kernel/futex.c
+index 81baa27bc389..000000000000
+diff --git a/arch/blackfin/kernel/cplb-nompu/cplbinit.c b/arch/blackfin/kernel/cplb-nompu/cplbinit.c
 deleted file mode 100644
-index 37f7b2bf7f73..000000000000
-diff --git a/arch/frv/kernel/gdb-io.c b/arch/frv/kernel/gdb-io.c
+index b49a53b583d5..000000000000
+diff --git a/arch/blackfin/kernel/cplb-nompu/cplbmgr.c b/arch/blackfin/kernel/cplb-nompu/cplbmgr.c
 deleted file mode 100644
-index 0707d35079ba..000000000000
-diff --git a/arch/frv/kernel/gdb-io.h b/arch/frv/kernel/gdb-io.h
+index 79cc0f6dcdd5..000000000000
+diff --git a/arch/blackfin/kernel/cplbinfo.c b/arch/blackfin/kernel/cplbinfo.c
 deleted file mode 100644
-index 138714bacc40..000000000000
-diff --git a/arch/frv/kernel/gdb-stub.c b/arch/frv/kernel/gdb-stub.c
+index 5b80d59e66e5..000000000000
+diff --git a/arch/blackfin/kernel/debug-mmrs.c b/arch/blackfin/kernel/debug-mmrs.c
 deleted file mode 100644
-index bbe78b0bffec..000000000000
-diff --git a/arch/frv/kernel/head-mmu-fr451.S b/arch/frv/kernel/head-mmu-fr451.S
+index 194773ce109e..000000000000
+diff --git a/arch/blackfin/kernel/dma-mapping.c b/arch/blackfin/kernel/dma-mapping.c
 deleted file mode 100644
-index 98f87d586e59..000000000000
-diff --git a/arch/frv/kernel/head-uc-fr401.S b/arch/frv/kernel/head-uc-fr401.S
+index 477bb29a7987..000000000000
+diff --git a/arch/blackfin/kernel/dumpstack.c b/arch/blackfin/kernel/dumpstack.c
 deleted file mode 100644
-index 438643cfa38e..000000000000
-diff --git a/arch/frv/kernel/head-uc-fr451.S b/arch/frv/kernel/head-uc-fr451.S
+index 3c992c1f8ef2..000000000000
+diff --git a/arch/blackfin/kernel/early_printk.c b/arch/blackfin/kernel/early_printk.c
 deleted file mode 100644
-index b2a76c4a1786..000000000000
-diff --git a/arch/frv/kernel/head-uc-fr555.S b/arch/frv/kernel/head-uc-fr555.S
+index 4b89af9243d3..000000000000
+diff --git a/arch/blackfin/kernel/entry.S b/arch/blackfin/kernel/entry.S
 deleted file mode 100644
-index 5497aaf34f77..000000000000
-diff --git a/arch/frv/kernel/head.S b/arch/frv/kernel/head.S
+index 4071265fc4fe..000000000000
+diff --git a/arch/blackfin/kernel/exception.c b/arch/blackfin/kernel/exception.c
 deleted file mode 100644
-index a7d0bea9c036..000000000000
-diff --git a/arch/frv/kernel/head.inc b/arch/frv/kernel/head.inc
+index 9208b5fd5186..000000000000
+diff --git a/arch/blackfin/kernel/fixed_code.S b/arch/blackfin/kernel/fixed_code.S
 deleted file mode 100644
-index bff66628b99a..000000000000
-diff --git a/arch/frv/kernel/irq-mb93091.c b/arch/frv/kernel/irq-mb93091.c
+index 0565917f23ba..000000000000
+diff --git a/arch/blackfin/kernel/flat.c b/arch/blackfin/kernel/flat.c
 deleted file mode 100644
-index 091b2839be90..000000000000
-diff --git a/arch/frv/kernel/irq-mb93093.c b/arch/frv/kernel/irq-mb93093.c
+index 8ebc54daaa8e..000000000000
+diff --git a/arch/blackfin/kernel/ftrace-entry.S b/arch/blackfin/kernel/ftrace-entry.S
 deleted file mode 100644
-index 1f3015cf80f5..000000000000
-diff --git a/arch/frv/kernel/irq-mb93493.c b/arch/frv/kernel/irq-mb93493.c
+index 3b8bdcbb7da3..000000000000
+diff --git a/arch/blackfin/kernel/ftrace.c b/arch/blackfin/kernel/ftrace.c
 deleted file mode 100644
-index 8ca5aa4ff595..000000000000
-diff --git a/arch/frv/kernel/irq.c b/arch/frv/kernel/irq.c
+index 8dad7589b843..000000000000
+diff --git a/arch/blackfin/kernel/gptimers.c b/arch/blackfin/kernel/gptimers.c
 deleted file mode 100644
-index 93513e4ccd2b..000000000000
-diff --git a/arch/frv/kernel/local.h b/arch/frv/kernel/local.h
+index d776773d3869..000000000000
+diff --git a/arch/blackfin/kernel/ipipe.c b/arch/blackfin/kernel/ipipe.c
 deleted file mode 100644
-index 76606d13b1aa..000000000000
-diff --git a/arch/frv/kernel/local64.h b/arch/frv/kernel/local64.h
+index f657b38163e3..000000000000
+diff --git a/arch/blackfin/kernel/irqchip.c b/arch/blackfin/kernel/irqchip.c
 deleted file mode 100644
-index 36c93b5cc239..000000000000
-diff --git a/arch/frv/kernel/module.c b/arch/frv/kernel/module.c
+index 052cde5ed2e4..000000000000
+diff --git a/arch/blackfin/kernel/kgdb.c b/arch/blackfin/kernel/kgdb.c
 deleted file mode 100644
-index 9d9835f1fe2b..000000000000
-diff --git a/arch/frv/kernel/pm-mb93093.c b/arch/frv/kernel/pm-mb93093.c
+index cf773f0f1f30..000000000000
+diff --git a/arch/blackfin/kernel/kgdb_test.c b/arch/blackfin/kernel/kgdb_test.c
 deleted file mode 100644
-index 8358e34a3fad..000000000000
-diff --git a/arch/frv/kernel/pm.c b/arch/frv/kernel/pm.c
+index b8b785dc4e3b..000000000000
+diff --git a/arch/blackfin/kernel/module.c b/arch/blackfin/kernel/module.c
 deleted file mode 100644
-index 051ccecbf7f1..000000000000
-diff --git a/arch/frv/kernel/process.c b/arch/frv/kernel/process.c
+index 15af5768c403..000000000000
+diff --git a/arch/blackfin/kernel/nmi.c b/arch/blackfin/kernel/nmi.c
 deleted file mode 100644
-index a957b374e3a6..000000000000
-diff --git a/arch/frv/kernel/ptrace.c b/arch/frv/kernel/ptrace.c
+index 8a211d95821f..000000000000
+diff --git a/arch/blackfin/kernel/perf_event.c b/arch/blackfin/kernel/perf_event.c
 deleted file mode 100644
-index 49768401ce0f..000000000000
-diff --git a/arch/frv/kernel/setup.c b/arch/frv/kernel/setup.c
+index 6a9524ad04a5..000000000000
+diff --git a/arch/blackfin/kernel/process.c b/arch/blackfin/kernel/process.c
 deleted file mode 100644
-index 9f4a9a607dbe..000000000000
-diff --git a/arch/frv/kernel/signal.c b/arch/frv/kernel/signal.c
+index 89814850b08b..000000000000
+diff --git a/arch/blackfin/kernel/pseudodbg.c b/arch/blackfin/kernel/pseudodbg.c
 deleted file mode 100644
-index bf6e07a7a1b1..000000000000
-diff --git a/arch/frv/kernel/sleep.S b/arch/frv/kernel/sleep.S
+index db85bc94334e..000000000000
+diff --git a/arch/blackfin/kernel/ptrace.c b/arch/blackfin/kernel/ptrace.c
 deleted file mode 100644
-index f67bf73cd2cc..000000000000
-diff --git a/arch/frv/kernel/switch_to.S b/arch/frv/kernel/switch_to.S
+index a6827095b99a..000000000000
+diff --git a/arch/blackfin/kernel/reboot.c b/arch/blackfin/kernel/reboot.c
 deleted file mode 100644
-index b06668670fcc..000000000000
-diff --git a/arch/frv/kernel/sys_frv.c b/arch/frv/kernel/sys_frv.c
+index c4f50a328501..000000000000
+diff --git a/arch/blackfin/kernel/setup.c b/arch/blackfin/kernel/setup.c
 deleted file mode 100644
-index f80cc8b9bd45..000000000000
-diff --git a/arch/frv/kernel/sysctl.c b/arch/frv/kernel/sysctl.c
+index ad82468bd94d..000000000000
+diff --git a/arch/blackfin/kernel/shadow_console.c b/arch/blackfin/kernel/shadow_console.c
 deleted file mode 100644
-index b54a64971cf1..000000000000
-diff --git a/arch/frv/kernel/time.c b/arch/frv/kernel/time.c
+index aeb8343eeb03..000000000000
+diff --git a/arch/blackfin/kernel/signal.c b/arch/blackfin/kernel/signal.c
 deleted file mode 100644
-index 332e00bf9d06..000000000000
-diff --git a/arch/frv/kernel/traps.c b/arch/frv/kernel/traps.c
+index 5f5172779204..000000000000
+diff --git a/arch/blackfin/kernel/stacktrace.c b/arch/blackfin/kernel/stacktrace.c
 deleted file mode 100644
-index fb08ebe0dab4..000000000000
-diff --git a/arch/frv/kernel/uaccess.c b/arch/frv/kernel/uaccess.c
+index 17198f3650b6..000000000000
+diff --git a/arch/blackfin/kernel/sys_bfin.c b/arch/blackfin/kernel/sys_bfin.c
 deleted file mode 100644
-index 8b360b4222a5..000000000000
-diff --git a/arch/frv/kernel/vmlinux.lds.S b/arch/frv/kernel/vmlinux.lds.S
+index d998383cb956..000000000000
+diff --git a/arch/blackfin/kernel/time-ts.c b/arch/blackfin/kernel/time-ts.c
 deleted file mode 100644
-index 42806c512758..000000000000
-diff --git a/arch/frv/lib/Makefile b/arch/frv/lib/Makefile
+index 01350557fbd7..000000000000
+diff --git a/arch/blackfin/kernel/time.c b/arch/blackfin/kernel/time.c
 deleted file mode 100644
-index 970e8b4f1a02..000000000000
-diff --git a/arch/frv/lib/__ashldi3.S b/arch/frv/lib/__ashldi3.S
+index 3126b920a4a5..000000000000
+diff --git a/arch/blackfin/kernel/trace.c b/arch/blackfin/kernel/trace.c
 deleted file mode 100644
-index db5b6dc37a11..000000000000
-diff --git a/arch/frv/lib/__ashrdi3.S b/arch/frv/lib/__ashrdi3.S
+index 151f22196ab6..000000000000
+diff --git a/arch/blackfin/kernel/traps.c b/arch/blackfin/kernel/traps.c
 deleted file mode 100644
-index 5742665bfd29..000000000000
-diff --git a/arch/frv/lib/__lshrdi3.S b/arch/frv/lib/__lshrdi3.S
+index a323a40a46e9..000000000000
+diff --git a/arch/blackfin/kernel/vmlinux.lds.S b/arch/blackfin/kernel/vmlinux.lds.S
 deleted file mode 100644
-index 7b41f6304f04..000000000000
-diff --git a/arch/frv/lib/__muldi3.S b/arch/frv/lib/__muldi3.S
+index 334ef8139b35..000000000000
+diff --git a/arch/blackfin/lib/Makefile b/arch/blackfin/lib/Makefile
 deleted file mode 100644
-index 2703d9b79361..000000000000
-diff --git a/arch/frv/lib/__negdi2.S b/arch/frv/lib/__negdi2.S
+index 74ddde0eb2e7..000000000000
+diff --git a/arch/blackfin/lib/ashldi3.c b/arch/blackfin/lib/ashldi3.c
 deleted file mode 100644
-index d1747bf24997..000000000000
-diff --git a/arch/frv/lib/__ucmpdi2.S b/arch/frv/lib/__ucmpdi2.S
+index ab69d8768afc..000000000000
+diff --git a/arch/blackfin/lib/ashrdi3.c b/arch/blackfin/lib/ashrdi3.c
 deleted file mode 100644
-index d892f16ffaa9..000000000000
-diff --git a/arch/frv/lib/atomic-lib.c b/arch/frv/lib/atomic-lib.c
+index b5b351e82e10..000000000000
+diff --git a/arch/blackfin/lib/divsi3.S b/arch/blackfin/lib/divsi3.S
 deleted file mode 100644
-index 3027576f7782..000000000000
-diff --git a/arch/frv/lib/atomic-ops.S b/arch/frv/lib/atomic-ops.S
+index ef2cd99efb89..000000000000
+diff --git a/arch/blackfin/lib/gcclib.h b/arch/blackfin/lib/gcclib.h
 deleted file mode 100644
-index b7439a960b5b..000000000000
-diff --git a/arch/frv/lib/atomic64-ops.S b/arch/frv/lib/atomic64-ops.S
+index 724f07f14f8d..000000000000
+diff --git a/arch/blackfin/lib/ins.S b/arch/blackfin/lib/ins.S
 deleted file mode 100644
-index c4c472308a33..000000000000
-diff --git a/arch/frv/lib/cache.S b/arch/frv/lib/cache.S
+index d59608deccc1..000000000000
+diff --git a/arch/blackfin/lib/lshrdi3.c b/arch/blackfin/lib/lshrdi3.c
 deleted file mode 100644
-index 0c4fb204911b..000000000000
-diff --git a/arch/frv/lib/checksum.c b/arch/frv/lib/checksum.c
+index 53f1741047e5..000000000000
+diff --git a/arch/blackfin/lib/memchr.S b/arch/blackfin/lib/memchr.S
 deleted file mode 100644
-index 44e16d59bc10..000000000000
-diff --git a/arch/frv/lib/insl_ns.S b/arch/frv/lib/insl_ns.S
+index bcfc8a14c3f2..000000000000
+diff --git a/arch/blackfin/lib/memcmp.S b/arch/blackfin/lib/memcmp.S
 deleted file mode 100644
-index d1658425a9f7..000000000000
-diff --git a/arch/frv/lib/insl_sw.S b/arch/frv/lib/insl_sw.S
+index 2e1c9477f2f7..000000000000
+diff --git a/arch/blackfin/lib/memcpy.S b/arch/blackfin/lib/memcpy.S
 deleted file mode 100644
-index 9b5aa95d069b..000000000000
-diff --git a/arch/frv/lib/memcpy.S b/arch/frv/lib/memcpy.S
+index 53cb3698ab33..000000000000
+diff --git a/arch/blackfin/lib/memmove.S b/arch/blackfin/lib/memmove.S
 deleted file mode 100644
-index 9c5965273428..000000000000
-diff --git a/arch/frv/lib/memset.S b/arch/frv/lib/memset.S
+index e0b78208f1d6..000000000000
+diff --git a/arch/blackfin/lib/memset.S b/arch/blackfin/lib/memset.S
 deleted file mode 100644
-index 55a35263cbe3..000000000000
-diff --git a/arch/frv/lib/outsl_ns.S b/arch/frv/lib/outsl_ns.S
+index cdcf9148ea20..000000000000
+diff --git a/arch/blackfin/lib/modsi3.S b/arch/blackfin/lib/modsi3.S
 deleted file mode 100644
-index 4cd4c46a6966..000000000000
-diff --git a/arch/frv/lib/outsl_sw.S b/arch/frv/lib/outsl_sw.S
+index f7026ce1fa0e..000000000000
+diff --git a/arch/blackfin/lib/muldi3.S b/arch/blackfin/lib/muldi3.S
 deleted file mode 100644
-index 7eb56d35a956..000000000000
-diff --git a/arch/frv/mb93090-mb00/Makefile b/arch/frv/mb93090-mb00/Makefile
+index abf9b2a515b2..000000000000
+diff --git a/arch/blackfin/lib/outs.S b/arch/blackfin/lib/outs.S
 deleted file mode 100644
-index bcb03ebb3583..000000000000
-diff --git a/arch/frv/mb93090-mb00/flash.c b/arch/frv/mb93090-mb00/flash.c
+index 06a5e674401f..000000000000
+diff --git a/arch/blackfin/lib/smulsi3_highpart.S b/arch/blackfin/lib/smulsi3_highpart.S
 deleted file mode 100644
-index e1cf802d1639..000000000000
-diff --git a/arch/frv/mb93090-mb00/pci-dma-nommu.c b/arch/frv/mb93090-mb00/pci-dma-nommu.c
+index e50d6c4ac2a5..000000000000
+diff --git a/arch/blackfin/lib/strcmp.S b/arch/blackfin/lib/strcmp.S
 deleted file mode 100644
-index 4a96de7f0af4..000000000000
-diff --git a/arch/frv/mb93090-mb00/pci-dma.c b/arch/frv/mb93090-mb00/pci-dma.c
+index 9c8b9863713e..000000000000
+diff --git a/arch/blackfin/lib/strcpy.S b/arch/blackfin/lib/strcpy.S
 deleted file mode 100644
-index e7130abc0dae..000000000000
-diff --git a/arch/frv/mb93090-mb00/pci-frv.c b/arch/frv/mb93090-mb00/pci-frv.c
+index 9495aa77cc40..000000000000
+diff --git a/arch/blackfin/lib/strncmp.S b/arch/blackfin/lib/strncmp.S
 deleted file mode 100644
-index c452ddb5620f..000000000000
-diff --git a/arch/frv/mb93090-mb00/pci-frv.h b/arch/frv/mb93090-mb00/pci-frv.h
+index 3bfaedce893e..000000000000
+diff --git a/arch/blackfin/lib/strncpy.S b/arch/blackfin/lib/strncpy.S
 deleted file mode 100644
-index 41fbb6bae558..000000000000
-diff --git a/arch/frv/mb93090-mb00/pci-irq.c b/arch/frv/mb93090-mb00/pci-irq.c
+index 92fd1823bbee..000000000000
+diff --git a/arch/blackfin/lib/udivsi3.S b/arch/blackfin/lib/udivsi3.S
 deleted file mode 100644
-index a40aa8663056..000000000000
-diff --git a/arch/frv/mb93090-mb00/pci-vdk.c b/arch/frv/mb93090-mb00/pci-vdk.c
+index 90bfa809b392..000000000000
+diff --git a/arch/blackfin/lib/umodsi3.S b/arch/blackfin/lib/umodsi3.S
 deleted file mode 100644
-index f211839e2cae..000000000000
-diff --git a/arch/frv/mm/Makefile b/arch/frv/mm/Makefile
+index 3794c00d859d..000000000000
+diff --git a/arch/blackfin/lib/umulsi3_highpart.S b/arch/blackfin/lib/umulsi3_highpart.S
 deleted file mode 100644
-index 1bca5ab8a6ab..000000000000
-diff --git a/arch/frv/mm/cache-page.c b/arch/frv/mm/cache-page.c
+index 0dcace96e4e7..000000000000
+diff --git a/arch/blackfin/mach-bf518/Kconfig b/arch/blackfin/mach-bf518/Kconfig
 deleted file mode 100644
-index 8e09dae0ec3f..000000000000
-diff --git a/arch/frv/mm/dma-alloc.c b/arch/frv/mm/dma-alloc.c
+index 4731f6b27e47..000000000000
+diff --git a/arch/blackfin/mach-bf518/Makefile b/arch/blackfin/mach-bf518/Makefile
 deleted file mode 100644
-index e701aa9e6a14..000000000000
-diff --git a/arch/frv/mm/elf-fdpic.c b/arch/frv/mm/elf-fdpic.c
+index 168a193f9f9a..000000000000
+diff --git a/arch/blackfin/mach-bf518/boards/Kconfig b/arch/blackfin/mach-bf518/boards/Kconfig
 deleted file mode 100644
-index 46aa289c5102..000000000000
-diff --git a/arch/frv/mm/extable.c b/arch/frv/mm/extable.c
+index f7b93b950ef4..000000000000
+diff --git a/arch/blackfin/mach-bf518/boards/Makefile b/arch/blackfin/mach-bf518/boards/Makefile
 deleted file mode 100644
-index 77c0c5ba88bc..000000000000
-diff --git a/arch/frv/mm/fault.c b/arch/frv/mm/fault.c
+index a9ef25c6b302..000000000000
+diff --git a/arch/blackfin/mach-bf518/boards/ezbrd.c b/arch/blackfin/mach-bf518/boards/ezbrd.c
 deleted file mode 100644
-index cbe7aec863e3..000000000000
-diff --git a/arch/frv/mm/highmem.c b/arch/frv/mm/highmem.c
+index c51d1b810ac3..000000000000
+diff --git a/arch/blackfin/mach-bf518/boards/tcm-bf518.c b/arch/blackfin/mach-bf518/boards/tcm-bf518.c
 deleted file mode 100644
-index 45750fb65c49..000000000000
-diff --git a/arch/frv/mm/init.c b/arch/frv/mm/init.c
+index 37d868085f6a..000000000000
+diff --git a/arch/blackfin/mach-bf518/dma.c b/arch/blackfin/mach-bf518/dma.c
 deleted file mode 100644
-index cf464100e838..000000000000
-diff --git a/arch/frv/mm/kmap.c b/arch/frv/mm/kmap.c
+index bcd1fbc8c543..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/anomaly.h b/arch/blackfin/mach-bf518/include/mach/anomaly.h
 deleted file mode 100644
-index e9217e605aa8..000000000000
-diff --git a/arch/frv/mm/mmu-context.c b/arch/frv/mm/mmu-context.c
+index 46cb88231d66..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/bf518.h b/arch/blackfin/mach-bf518/include/mach/bf518.h
 deleted file mode 100644
-index 16946a58f64d..000000000000
-diff --git a/arch/frv/mm/pgalloc.c b/arch/frv/mm/pgalloc.c
+index 6906dee4f4cc..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/bfin_serial.h b/arch/blackfin/mach-bf518/include/mach/bfin_serial.h
 deleted file mode 100644
-index c9ed14f6c67d..000000000000
-diff --git a/arch/frv/mm/tlb-flush.S b/arch/frv/mm/tlb-flush.S
+index 00c603fe8218..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/blackfin.h b/arch/blackfin/mach-bf518/include/mach/blackfin.h
 deleted file mode 100644
-index 79b3c70910ac..000000000000
-diff --git a/arch/frv/mm/tlb-miss.S b/arch/frv/mm/tlb-miss.S
+index a8828863226e..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/cdefBF512.h b/arch/blackfin/mach-bf518/include/mach/cdefBF512.h
 deleted file mode 100644
-index f3ac019bb18b..000000000000
-diff --git a/tools/arch/frv/include/uapi/asm/bitsperlong.h b/tools/arch/frv/include/uapi/asm/bitsperlong.h
+index 1c03ad4bcb72..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/cdefBF514.h b/arch/blackfin/mach-bf518/include/mach/cdefBF514.h
 deleted file mode 100644
-index 76da34b10f59..000000000000
-diff --git a/tools/arch/frv/include/uapi/asm/mman.h b/tools/arch/frv/include/uapi/asm/mman.h
+index 861221d1dcc9..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/cdefBF516.h b/arch/blackfin/mach-bf518/include/mach/cdefBF516.h
 deleted file mode 100644
-index 5bc900b0bc78..000000000000
+index cc9bf0d378c3..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/cdefBF518.h b/arch/blackfin/mach-bf518/include/mach/cdefBF518.h
+deleted file mode 100644
+index 96a82fd62ef1..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/defBF512.h b/arch/blackfin/mach-bf518/include/mach/defBF512.h
+deleted file mode 100644
+index e6a017faad01..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/defBF514.h b/arch/blackfin/mach-bf518/include/mach/defBF514.h
+deleted file mode 100644
+index 97feaa629ed7..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/defBF516.h b/arch/blackfin/mach-bf518/include/mach/defBF516.h
+deleted file mode 100644
+index 7c79cb6a03b1..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/defBF518.h b/arch/blackfin/mach-bf518/include/mach/defBF518.h
+deleted file mode 100644
+index 12042ff13601..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/dma.h b/arch/blackfin/mach-bf518/include/mach/dma.h
+deleted file mode 100644
+index bbd33c1706e2..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/gpio.h b/arch/blackfin/mach-bf518/include/mach/gpio.h
+deleted file mode 100644
+index b480705bfc2e..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/irq.h b/arch/blackfin/mach-bf518/include/mach/irq.h
+deleted file mode 100644
+index edf8efd457dc..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/mem_map.h b/arch/blackfin/mach-bf518/include/mach/mem_map.h
+deleted file mode 100644
+index 073b5d73d391..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/pll.h b/arch/blackfin/mach-bf518/include/mach/pll.h
+deleted file mode 100644
+index 94cca674d835..000000000000
+diff --git a/arch/blackfin/mach-bf518/include/mach/portmux.h b/arch/blackfin/mach-bf518/include/mach/portmux.h
+deleted file mode 100644
+index b3b806f468da..000000000000
+diff --git a/arch/blackfin/mach-bf518/ints-priority.c b/arch/blackfin/mach-bf518/ints-priority.c
+deleted file mode 100644
+index bb05bef34ec0..000000000000
+diff --git a/arch/blackfin/mach-bf527/Kconfig b/arch/blackfin/mach-bf527/Kconfig
+deleted file mode 100644
+index 6df20f9c7bd4..000000000000
+diff --git a/arch/blackfin/mach-bf527/Makefile b/arch/blackfin/mach-bf527/Makefile
+deleted file mode 100644
+index 4a6cdafab8ce..000000000000
+diff --git a/arch/blackfin/mach-bf527/boards/Kconfig b/arch/blackfin/mach-bf527/boards/Kconfig
+deleted file mode 100644
+index a76f02fae11c..000000000000
+diff --git a/arch/blackfin/mach-bf527/boards/Makefile b/arch/blackfin/mach-bf527/boards/Makefile
+deleted file mode 100644
+index 6ada1537e20a..000000000000
+diff --git a/arch/blackfin/mach-bf527/boards/ad7160eval.c b/arch/blackfin/mach-bf527/boards/ad7160eval.c
+deleted file mode 100644
+index 68f2a8a806ea..000000000000
+diff --git a/arch/blackfin/mach-bf527/boards/cm_bf527.c b/arch/blackfin/mach-bf527/boards/cm_bf527.c
+deleted file mode 100644
+index b1004b35db36..000000000000
+diff --git a/arch/blackfin/mach-bf527/boards/ezbrd.c b/arch/blackfin/mach-bf527/boards/ezbrd.c
+deleted file mode 100644
+index 80bcfd1d023e..000000000000
+diff --git a/arch/blackfin/mach-bf527/boards/ezkit.c b/arch/blackfin/mach-bf527/boards/ezkit.c
+deleted file mode 100644
+index 571edfd2ecf3..000000000000
+diff --git a/arch/blackfin/mach-bf527/boards/tll6527m.c b/arch/blackfin/mach-bf527/boards/tll6527m.c
+deleted file mode 100644
+index ce5488e8226b..000000000000
+diff --git a/arch/blackfin/mach-bf527/dma.c b/arch/blackfin/mach-bf527/dma.c
+deleted file mode 100644
+index 1fabdefea73a..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/anomaly.h b/arch/blackfin/mach-bf527/include/mach/anomaly.h
+deleted file mode 100644
+index 2f9cc33deec4..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/bf527.h b/arch/blackfin/mach-bf527/include/mach/bf527.h
+deleted file mode 100644
+index 8ff155b34f64..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/bfin_serial.h b/arch/blackfin/mach-bf527/include/mach/bfin_serial.h
+deleted file mode 100644
+index 00c603fe8218..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/blackfin.h b/arch/blackfin/mach-bf527/include/mach/blackfin.h
+deleted file mode 100644
+index e1d279274487..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/cdefBF522.h b/arch/blackfin/mach-bf527/include/mach/cdefBF522.h
+deleted file mode 100644
+index 2c12e879aa4e..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/cdefBF525.h b/arch/blackfin/mach-bf527/include/mach/cdefBF525.h
+deleted file mode 100644
+index bd045318a250..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/cdefBF527.h b/arch/blackfin/mach-bf527/include/mach/cdefBF527.h
+deleted file mode 100644
+index eb22f5866105..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/defBF522.h b/arch/blackfin/mach-bf527/include/mach/defBF522.h
+deleted file mode 100644
+index e007017cf958..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/defBF525.h b/arch/blackfin/mach-bf527/include/mach/defBF525.h
+deleted file mode 100644
+index 591e00ff620a..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/defBF527.h b/arch/blackfin/mach-bf527/include/mach/defBF527.h
+deleted file mode 100644
+index aeb84795b35e..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/dma.h b/arch/blackfin/mach-bf527/include/mach/dma.h
+deleted file mode 100644
+index eb287da101a2..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/gpio.h b/arch/blackfin/mach-bf527/include/mach/gpio.h
+deleted file mode 100644
+index fba606b699c3..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/irq.h b/arch/blackfin/mach-bf527/include/mach/irq.h
+deleted file mode 100644
+index ed7310ff819b..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/mem_map.h b/arch/blackfin/mach-bf527/include/mach/mem_map.h
+deleted file mode 100644
+index d96e894afd2c..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/pll.h b/arch/blackfin/mach-bf527/include/mach/pll.h
+deleted file mode 100644
+index 94cca674d835..000000000000
+diff --git a/arch/blackfin/mach-bf527/include/mach/portmux.h b/arch/blackfin/mach-bf527/include/mach/portmux.h
+deleted file mode 100644
+index 08bae421f5c9..000000000000
+diff --git a/arch/blackfin/mach-bf527/ints-priority.c b/arch/blackfin/mach-bf527/ints-priority.c
+deleted file mode 100644
+index 44ca215bf164..000000000000
+diff --git a/arch/blackfin/mach-bf533/Kconfig b/arch/blackfin/mach-bf533/Kconfig
+deleted file mode 100644
+index 4e1a05be7137..000000000000
+diff --git a/arch/blackfin/mach-bf533/Makefile b/arch/blackfin/mach-bf533/Makefile
+deleted file mode 100644
+index 874840f76028..000000000000
+diff --git a/arch/blackfin/mach-bf533/boards/H8606.c b/arch/blackfin/mach-bf533/boards/H8606.c
+deleted file mode 100644
+index 01300f40db15..000000000000
+diff --git a/arch/blackfin/mach-bf533/boards/Kconfig b/arch/blackfin/mach-bf533/boards/Kconfig
+deleted file mode 100644
+index 3fde0df1b5f2..000000000000
+diff --git a/arch/blackfin/mach-bf533/boards/Makefile b/arch/blackfin/mach-bf533/boards/Makefile
+deleted file mode 100644
+index 35256d2fc040..000000000000
+diff --git a/arch/blackfin/mach-bf533/boards/blackstamp.c b/arch/blackfin/mach-bf533/boards/blackstamp.c
+deleted file mode 100644
+index fab69c736515..000000000000
+diff --git a/arch/blackfin/mach-bf533/boards/cm_bf533.c b/arch/blackfin/mach-bf533/boards/cm_bf533.c
+deleted file mode 100644
+index 4ef2fb0e48d5..000000000000
+diff --git a/arch/blackfin/mach-bf533/boards/ezkit.c b/arch/blackfin/mach-bf533/boards/ezkit.c
+deleted file mode 100644
+index d64d270e9e62..000000000000
+diff --git a/arch/blackfin/mach-bf533/boards/ip0x.c b/arch/blackfin/mach-bf533/boards/ip0x.c
+deleted file mode 100644
+index 39c8e8547b82..000000000000
+diff --git a/arch/blackfin/mach-bf533/boards/stamp.c b/arch/blackfin/mach-bf533/boards/stamp.c
+deleted file mode 100644
+index 27cbf2fa2c62..000000000000
+diff --git a/arch/blackfin/mach-bf533/dma.c b/arch/blackfin/mach-bf533/dma.c
+deleted file mode 100644
+index 1f5988d43139..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/anomaly.h b/arch/blackfin/mach-bf533/include/mach/anomaly.h
+deleted file mode 100644
+index 0e754efc3cf6..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/bf533.h b/arch/blackfin/mach-bf533/include/mach/bf533.h
+deleted file mode 100644
+index e3e05f8f7af9..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/bfin_serial.h b/arch/blackfin/mach-bf533/include/mach/bfin_serial.h
+deleted file mode 100644
+index 08072c86d5dc..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/blackfin.h b/arch/blackfin/mach-bf533/include/mach/blackfin.h
+deleted file mode 100644
+index e366207fbf12..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/cdefBF532.h b/arch/blackfin/mach-bf533/include/mach/cdefBF532.h
+deleted file mode 100644
+index fd0cbe4df21a..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/defBF532.h b/arch/blackfin/mach-bf533/include/mach/defBF532.h
+deleted file mode 100644
+index d438150b1025..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/dma.h b/arch/blackfin/mach-bf533/include/mach/dma.h
+deleted file mode 100644
+index fb34934c5ba8..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/gpio.h b/arch/blackfin/mach-bf533/include/mach/gpio.h
+deleted file mode 100644
+index cce4f8fb3785..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/irq.h b/arch/blackfin/mach-bf533/include/mach/irq.h
+deleted file mode 100644
+index 709733754142..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/mem_map.h b/arch/blackfin/mach-bf533/include/mach/mem_map.h
+deleted file mode 100644
+index 197af1a398ac..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/pll.h b/arch/blackfin/mach-bf533/include/mach/pll.h
+deleted file mode 100644
+index 94cca674d835..000000000000
+diff --git a/arch/blackfin/mach-bf533/include/mach/portmux.h b/arch/blackfin/mach-bf533/include/mach/portmux.h
+deleted file mode 100644
+index 96f5d9129f20..000000000000
+diff --git a/arch/blackfin/mach-bf533/ints-priority.c b/arch/blackfin/mach-bf533/ints-priority.c
+deleted file mode 100644
+index 8f714cf8135b..000000000000
+diff --git a/arch/blackfin/mach-bf537/Kconfig b/arch/blackfin/mach-bf537/Kconfig
+deleted file mode 100644
+index 1d69b043afd4..000000000000
+diff --git a/arch/blackfin/mach-bf537/Makefile b/arch/blackfin/mach-bf537/Makefile
+deleted file mode 100644
+index 56994b675f9c..000000000000
+diff --git a/arch/blackfin/mach-bf537/boards/Kconfig b/arch/blackfin/mach-bf537/boards/Kconfig
+deleted file mode 100644
+index 60b7b29e512e..000000000000
+diff --git a/arch/blackfin/mach-bf537/boards/Makefile b/arch/blackfin/mach-bf537/boards/Makefile
+deleted file mode 100644
+index 47a1acc5f389..000000000000
+diff --git a/arch/blackfin/mach-bf537/boards/cm_bf537e.c b/arch/blackfin/mach-bf537/boards/cm_bf537e.c
+deleted file mode 100644
+index 1e1014df5e9e..000000000000
+diff --git a/arch/blackfin/mach-bf537/boards/cm_bf537u.c b/arch/blackfin/mach-bf537/boards/cm_bf537u.c
+deleted file mode 100644
+index d056db9e5592..000000000000
+diff --git a/arch/blackfin/mach-bf537/boards/dnp5370.c b/arch/blackfin/mach-bf537/boards/dnp5370.c
+deleted file mode 100644
+index c4a8ffb15417..000000000000
+diff --git a/arch/blackfin/mach-bf537/boards/minotaur.c b/arch/blackfin/mach-bf537/boards/minotaur.c
+deleted file mode 100644
+index dd7bda07bf90..000000000000
+diff --git a/arch/blackfin/mach-bf537/boards/pnav10.c b/arch/blackfin/mach-bf537/boards/pnav10.c
+deleted file mode 100644
+index 06a50ddb54c0..000000000000
+diff --git a/arch/blackfin/mach-bf537/boards/stamp.c b/arch/blackfin/mach-bf537/boards/stamp.c
+deleted file mode 100644
+index 400e6693643e..000000000000
+diff --git a/arch/blackfin/mach-bf537/boards/tcm_bf537.c b/arch/blackfin/mach-bf537/boards/tcm_bf537.c
+deleted file mode 100644
+index ed309c9a62b6..000000000000
+diff --git a/arch/blackfin/mach-bf537/dma.c b/arch/blackfin/mach-bf537/dma.c
+deleted file mode 100644
+index 5c62e99c9fac..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/anomaly.h b/arch/blackfin/mach-bf537/include/mach/anomaly.h
+deleted file mode 100644
+index 2bc70c5b9415..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/bf537.h b/arch/blackfin/mach-bf537/include/mach/bf537.h
+deleted file mode 100644
+index 8b291418ca32..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/bfin_serial.h b/arch/blackfin/mach-bf537/include/mach/bfin_serial.h
+deleted file mode 100644
+index 00c603fe8218..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/blackfin.h b/arch/blackfin/mach-bf537/include/mach/blackfin.h
+deleted file mode 100644
+index baa096fc724a..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/cdefBF534.h b/arch/blackfin/mach-bf537/include/mach/cdefBF534.h
+deleted file mode 100644
+index 563ede907336..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/cdefBF537.h b/arch/blackfin/mach-bf537/include/mach/cdefBF537.h
+deleted file mode 100644
+index 19ec21ea150a..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/defBF534.h b/arch/blackfin/mach-bf537/include/mach/defBF534.h
+deleted file mode 100644
+index ef6a98cdfd44..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/defBF537.h b/arch/blackfin/mach-bf537/include/mach/defBF537.h
+deleted file mode 100644
+index e10332c9f660..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/dma.h b/arch/blackfin/mach-bf537/include/mach/dma.h
+deleted file mode 100644
+index 5ae83b1183a1..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/gpio.h b/arch/blackfin/mach-bf537/include/mach/gpio.h
+deleted file mode 100644
+index fba606b699c3..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/irq.h b/arch/blackfin/mach-bf537/include/mach/irq.h
+deleted file mode 100644
+index b6ed8235bda4..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/mem_map.h b/arch/blackfin/mach-bf537/include/mach/mem_map.h
+deleted file mode 100644
+index 942f08de306b..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/pll.h b/arch/blackfin/mach-bf537/include/mach/pll.h
+deleted file mode 100644
+index 94cca674d835..000000000000
+diff --git a/arch/blackfin/mach-bf537/include/mach/portmux.h b/arch/blackfin/mach-bf537/include/mach/portmux.h
+deleted file mode 100644
+index 71d9eaeb579e..000000000000
+diff --git a/arch/blackfin/mach-bf537/ints-priority.c b/arch/blackfin/mach-bf537/ints-priority.c
+deleted file mode 100644
+index a48baae4384d..000000000000
+diff --git a/arch/blackfin/mach-bf538/Kconfig b/arch/blackfin/mach-bf538/Kconfig
+deleted file mode 100644
+index 4aea85e4e5cf..000000000000
+diff --git a/arch/blackfin/mach-bf538/Makefile b/arch/blackfin/mach-bf538/Makefile
+deleted file mode 100644
+index c0be54f2cd2b..000000000000
+diff --git a/arch/blackfin/mach-bf538/boards/Kconfig b/arch/blackfin/mach-bf538/boards/Kconfig
+deleted file mode 100644
+index 114cff440d43..000000000000
+diff --git a/arch/blackfin/mach-bf538/boards/Makefile b/arch/blackfin/mach-bf538/boards/Makefile
+deleted file mode 100644
+index 6143b320d585..000000000000
+diff --git a/arch/blackfin/mach-bf538/boards/ezkit.c b/arch/blackfin/mach-bf538/boards/ezkit.c
+deleted file mode 100644
+index 1b6a52ad8a0e..000000000000
+diff --git a/arch/blackfin/mach-bf538/dma.c b/arch/blackfin/mach-bf538/dma.c
+deleted file mode 100644
+index cce8ef5a5cec..000000000000
+diff --git a/arch/blackfin/mach-bf538/ext-gpio.c b/arch/blackfin/mach-bf538/ext-gpio.c
+deleted file mode 100644
+index 48c100228f2d..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/anomaly.h b/arch/blackfin/mach-bf538/include/mach/anomaly.h
+deleted file mode 100644
+index eaac26973f6a..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/bf538.h b/arch/blackfin/mach-bf538/include/mach/bf538.h
+deleted file mode 100644
+index 0cf5bf8dab84..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/bfin_serial.h b/arch/blackfin/mach-bf538/include/mach/bfin_serial.h
+deleted file mode 100644
+index c66e2760aad3..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/blackfin.h b/arch/blackfin/mach-bf538/include/mach/blackfin.h
+deleted file mode 100644
+index 791d08400cf0..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/cdefBF538.h b/arch/blackfin/mach-bf538/include/mach/cdefBF538.h
+deleted file mode 100644
+index f6a56792180b..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/cdefBF539.h b/arch/blackfin/mach-bf538/include/mach/cdefBF539.h
+deleted file mode 100644
+index acc15f3aba38..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/defBF538.h b/arch/blackfin/mach-bf538/include/mach/defBF538.h
+deleted file mode 100644
+index 876a77028001..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/defBF539.h b/arch/blackfin/mach-bf538/include/mach/defBF539.h
+deleted file mode 100644
+index 199e871634b4..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/dma.h b/arch/blackfin/mach-bf538/include/mach/dma.h
+deleted file mode 100644
+index eb05cacbf4d3..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/gpio.h b/arch/blackfin/mach-bf538/include/mach/gpio.h
+deleted file mode 100644
+index 3561c7d8935b..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/irq.h b/arch/blackfin/mach-bf538/include/mach/irq.h
+deleted file mode 100644
+index 07ca069d37cd..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/mem_map.h b/arch/blackfin/mach-bf538/include/mach/mem_map.h
+deleted file mode 100644
+index aff00f453e9e..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/pll.h b/arch/blackfin/mach-bf538/include/mach/pll.h
+deleted file mode 100644
+index 94cca674d835..000000000000
+diff --git a/arch/blackfin/mach-bf538/include/mach/portmux.h b/arch/blackfin/mach-bf538/include/mach/portmux.h
+deleted file mode 100644
+index b773c5fdbc72..000000000000
+diff --git a/arch/blackfin/mach-bf538/ints-priority.c b/arch/blackfin/mach-bf538/ints-priority.c
+deleted file mode 100644
+index 1fa793ced347..000000000000
+diff --git a/arch/blackfin/mach-bf548/Kconfig b/arch/blackfin/mach-bf548/Kconfig
+deleted file mode 100644
+index 71c2a765af1d..000000000000
+diff --git a/arch/blackfin/mach-bf548/Makefile b/arch/blackfin/mach-bf548/Makefile
+deleted file mode 100644
+index 56994b675f9c..000000000000
+diff --git a/arch/blackfin/mach-bf548/boards/Kconfig b/arch/blackfin/mach-bf548/boards/Kconfig
+deleted file mode 100644
+index e8ce579ae8f0..000000000000
+diff --git a/arch/blackfin/mach-bf548/boards/Makefile b/arch/blackfin/mach-bf548/boards/Makefile
+deleted file mode 100644
+index 319ef54c4221..000000000000
+diff --git a/arch/blackfin/mach-bf548/boards/cm_bf548.c b/arch/blackfin/mach-bf548/boards/cm_bf548.c
+deleted file mode 100644
+index 120c9941c242..000000000000
+diff --git a/arch/blackfin/mach-bf548/boards/ezkit.c b/arch/blackfin/mach-bf548/boards/ezkit.c
+deleted file mode 100644
+index 3cdd4835a9f7..000000000000
+diff --git a/arch/blackfin/mach-bf548/dma.c b/arch/blackfin/mach-bf548/dma.c
+deleted file mode 100644
+index 69ead33cbf91..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/anomaly.h b/arch/blackfin/mach-bf548/include/mach/anomaly.h
+deleted file mode 100644
+index 098fad63e03b..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/bf548.h b/arch/blackfin/mach-bf548/include/mach/bf548.h
+deleted file mode 100644
+index 751e5e11ecf8..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/bf54x-lq043.h b/arch/blackfin/mach-bf548/include/mach/bf54x-lq043.h
+deleted file mode 100644
+index 8821efe57fbc..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/bf54x_keys.h b/arch/blackfin/mach-bf548/include/mach/bf54x_keys.h
+deleted file mode 100644
+index 49338ae299ab..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/bfin_serial.h b/arch/blackfin/mach-bf548/include/mach/bfin_serial.h
+deleted file mode 100644
+index a77109f99720..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/blackfin.h b/arch/blackfin/mach-bf548/include/mach/blackfin.h
+deleted file mode 100644
+index 72da721a77f5..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF542.h b/arch/blackfin/mach-bf548/include/mach/cdefBF542.h
+deleted file mode 100644
+index 916347901d5a..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF544.h b/arch/blackfin/mach-bf548/include/mach/cdefBF544.h
+deleted file mode 100644
+index 33ec8102ceda..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF547.h b/arch/blackfin/mach-bf548/include/mach/cdefBF547.h
+deleted file mode 100644
+index be83f645bba8..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF548.h b/arch/blackfin/mach-bf548/include/mach/cdefBF548.h
+deleted file mode 100644
+index bae67a65633e..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF549.h b/arch/blackfin/mach-bf548/include/mach/cdefBF549.h
+deleted file mode 100644
+index 002136ad5a44..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF54x_base.h b/arch/blackfin/mach-bf548/include/mach/cdefBF54x_base.h
+deleted file mode 100644
+index 50c89c8052f3..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/defBF542.h b/arch/blackfin/mach-bf548/include/mach/defBF542.h
+deleted file mode 100644
+index ae4b889e3606..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/defBF544.h b/arch/blackfin/mach-bf548/include/mach/defBF544.h
+deleted file mode 100644
+index 018ebfc27f5a..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/defBF547.h b/arch/blackfin/mach-bf548/include/mach/defBF547.h
+deleted file mode 100644
+index 7cc7928a3c73..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/defBF548.h b/arch/blackfin/mach-bf548/include/mach/defBF548.h
+deleted file mode 100644
+index 27f29481e283..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/defBF549.h b/arch/blackfin/mach-bf548/include/mach/defBF549.h
+deleted file mode 100644
+index ac569fc12972..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/defBF54x_base.h b/arch/blackfin/mach-bf548/include/mach/defBF54x_base.h
+deleted file mode 100644
+index 8f6e1925779d..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/dma.h b/arch/blackfin/mach-bf548/include/mach/dma.h
+deleted file mode 100644
+index 1a1091b071fd..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/gpio.h b/arch/blackfin/mach-bf548/include/mach/gpio.h
+deleted file mode 100644
+index 006da1edcf84..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/irq.h b/arch/blackfin/mach-bf548/include/mach/irq.h
+deleted file mode 100644
+index cf7cb725cfa2..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/mem_map.h b/arch/blackfin/mach-bf548/include/mach/mem_map.h
+deleted file mode 100644
+index caac2dfb41eb..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/pll.h b/arch/blackfin/mach-bf548/include/mach/pll.h
+deleted file mode 100644
+index 94cca674d835..000000000000
+diff --git a/arch/blackfin/mach-bf548/include/mach/portmux.h b/arch/blackfin/mach-bf548/include/mach/portmux.h
+deleted file mode 100644
+index d9f8632d7d09..000000000000
+diff --git a/arch/blackfin/mach-bf548/ints-priority.c b/arch/blackfin/mach-bf548/ints-priority.c
+deleted file mode 100644
+index 48dd3a4bc4a5..000000000000
+diff --git a/arch/blackfin/mach-bf561/Kconfig b/arch/blackfin/mach-bf561/Kconfig
+deleted file mode 100644
+index 059c3cbdb5ec..000000000000
+diff --git a/arch/blackfin/mach-bf561/Makefile b/arch/blackfin/mach-bf561/Makefile
+deleted file mode 100644
+index b34029718318..000000000000
+diff --git a/arch/blackfin/mach-bf561/atomic.S b/arch/blackfin/mach-bf561/atomic.S
+deleted file mode 100644
+index 1e2989c5d6b2..000000000000
+diff --git a/arch/blackfin/mach-bf561/boards/Kconfig b/arch/blackfin/mach-bf561/boards/Kconfig
+deleted file mode 100644
+index 10e977b56710..000000000000
+diff --git a/arch/blackfin/mach-bf561/boards/Makefile b/arch/blackfin/mach-bf561/boards/Makefile
+deleted file mode 100644
+index a5879f7857ad..000000000000
+diff --git a/arch/blackfin/mach-bf561/boards/acvilon.c b/arch/blackfin/mach-bf561/boards/acvilon.c
+deleted file mode 100644
+index 696cc9d7820a..000000000000
+diff --git a/arch/blackfin/mach-bf561/boards/cm_bf561.c b/arch/blackfin/mach-bf561/boards/cm_bf561.c
+deleted file mode 100644
+index 10c57771822d..000000000000
+diff --git a/arch/blackfin/mach-bf561/boards/ezkit.c b/arch/blackfin/mach-bf561/boards/ezkit.c
+deleted file mode 100644
+index acc5363f60c6..000000000000
+diff --git a/arch/blackfin/mach-bf561/boards/tepla.c b/arch/blackfin/mach-bf561/boards/tepla.c
+deleted file mode 100644
+index f87b8cc0cd4c..000000000000
+diff --git a/arch/blackfin/mach-bf561/coreb.c b/arch/blackfin/mach-bf561/coreb.c
+deleted file mode 100644
+index cf27554e76bf..000000000000
+diff --git a/arch/blackfin/mach-bf561/dma.c b/arch/blackfin/mach-bf561/dma.c
+deleted file mode 100644
+index 8ffdd6b4a242..000000000000
+diff --git a/arch/blackfin/mach-bf561/hotplug.c b/arch/blackfin/mach-bf561/hotplug.c
+deleted file mode 100644
+index 0123117b8ff2..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/anomaly.h b/arch/blackfin/mach-bf561/include/mach/anomaly.h
+deleted file mode 100644
+index 038249c1d0d4..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/bf561.h b/arch/blackfin/mach-bf561/include/mach/bf561.h
+deleted file mode 100644
+index 9f9a367e6a24..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/bfin_serial.h b/arch/blackfin/mach-bf561/include/mach/bfin_serial.h
+deleted file mode 100644
+index 08072c86d5dc..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/blackfin.h b/arch/blackfin/mach-bf561/include/mach/blackfin.h
+deleted file mode 100644
+index dc470534c085..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/cdefBF561.h b/arch/blackfin/mach-bf561/include/mach/cdefBF561.h
+deleted file mode 100644
+index 753331597207..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/defBF561.h b/arch/blackfin/mach-bf561/include/mach/defBF561.h
+deleted file mode 100644
+index 9f21f768c63a..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/dma.h b/arch/blackfin/mach-bf561/include/mach/dma.h
+deleted file mode 100644
+index 13647c71f1c7..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/gpio.h b/arch/blackfin/mach-bf561/include/mach/gpio.h
+deleted file mode 100644
+index f9f8b2adf4ba..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/irq.h b/arch/blackfin/mach-bf561/include/mach/irq.h
+deleted file mode 100644
+index d6998520f70f..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/mem_map.h b/arch/blackfin/mach-bf561/include/mach/mem_map.h
+deleted file mode 100644
+index 4cc91995f781..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/pll.h b/arch/blackfin/mach-bf561/include/mach/pll.h
+deleted file mode 100644
+index 00bdacee9cc2..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/portmux.h b/arch/blackfin/mach-bf561/include/mach/portmux.h
+deleted file mode 100644
+index 2339ffd0dde8..000000000000
+diff --git a/arch/blackfin/mach-bf561/include/mach/smp.h b/arch/blackfin/mach-bf561/include/mach/smp.h
+deleted file mode 100644
+index 346c60589be6..000000000000
+diff --git a/arch/blackfin/mach-bf561/ints-priority.c b/arch/blackfin/mach-bf561/ints-priority.c
+deleted file mode 100644
+index 7ee9262fe132..000000000000
+diff --git a/arch/blackfin/mach-bf561/secondary.S b/arch/blackfin/mach-bf561/secondary.S
+deleted file mode 100644
+index 01e5408620ac..000000000000
+diff --git a/arch/blackfin/mach-bf561/smp.c b/arch/blackfin/mach-bf561/smp.c
+deleted file mode 100644
+index 8c0c80fd1a45..000000000000
+diff --git a/arch/blackfin/mach-bf609/Kconfig b/arch/blackfin/mach-bf609/Kconfig
+deleted file mode 100644
+index 7d6a8b8926ba..000000000000
+diff --git a/arch/blackfin/mach-bf609/Makefile b/arch/blackfin/mach-bf609/Makefile
+deleted file mode 100644
+index 60ffaf85d303..000000000000
+diff --git a/arch/blackfin/mach-bf609/boards/Kconfig b/arch/blackfin/mach-bf609/boards/Kconfig
+deleted file mode 100644
+index 350154b2a3ee..000000000000
+diff --git a/arch/blackfin/mach-bf609/boards/Makefile b/arch/blackfin/mach-bf609/boards/Makefile
+deleted file mode 100644
+index 11f98b0882ea..000000000000
+diff --git a/arch/blackfin/mach-bf609/boards/ezkit.c b/arch/blackfin/mach-bf609/boards/ezkit.c
+deleted file mode 100644
+index 51157a255824..000000000000
+diff --git a/arch/blackfin/mach-bf609/clock.c b/arch/blackfin/mach-bf609/clock.c
+deleted file mode 100644
+index 16e0b09e2197..000000000000
+diff --git a/arch/blackfin/mach-bf609/dma.c b/arch/blackfin/mach-bf609/dma.c
+deleted file mode 100644
+index 1da4b38ac22c..000000000000
+diff --git a/arch/blackfin/mach-bf609/dpm.S b/arch/blackfin/mach-bf609/dpm.S
+deleted file mode 100644
+index fcb8f688a8b2..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/anomaly.h b/arch/blackfin/mach-bf609/include/mach/anomaly.h
+deleted file mode 100644
+index 696786e9a531..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/bf609.h b/arch/blackfin/mach-bf609/include/mach/bf609.h
+deleted file mode 100644
+index c897c2a2fbfa..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/bfin_serial.h b/arch/blackfin/mach-bf609/include/mach/bfin_serial.h
+deleted file mode 100644
+index 1fd398147fd9..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/blackfin.h b/arch/blackfin/mach-bf609/include/mach/blackfin.h
+deleted file mode 100644
+index b1a48c410711..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/cdefBF609.h b/arch/blackfin/mach-bf609/include/mach/cdefBF609.h
+deleted file mode 100644
+index c4f3fe19acda..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/cdefBF60x_base.h b/arch/blackfin/mach-bf609/include/mach/cdefBF60x_base.h
+deleted file mode 100644
+index 102ee4025ac9..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/defBF609.h b/arch/blackfin/mach-bf609/include/mach/defBF609.h
+deleted file mode 100644
+index 8045ade34370..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/defBF60x_base.h b/arch/blackfin/mach-bf609/include/mach/defBF60x_base.h
+deleted file mode 100644
+index 3933e912cacd..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/dma.h b/arch/blackfin/mach-bf609/include/mach/dma.h
+deleted file mode 100644
+index 872d141ca119..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/gpio.h b/arch/blackfin/mach-bf609/include/mach/gpio.h
+deleted file mode 100644
+index 07182513e794..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/irq.h b/arch/blackfin/mach-bf609/include/mach/irq.h
+deleted file mode 100644
+index d1cb6a86f80a..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/mem_map.h b/arch/blackfin/mach-bf609/include/mach/mem_map.h
+deleted file mode 100644
+index 20b65bfc5311..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/pll.h b/arch/blackfin/mach-bf609/include/mach/pll.h
+deleted file mode 100644
+index 1857a4a0f262..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/pm.h b/arch/blackfin/mach-bf609/include/mach/pm.h
+deleted file mode 100644
+index a1efd936dd30..000000000000
+diff --git a/arch/blackfin/mach-bf609/include/mach/portmux.h b/arch/blackfin/mach-bf609/include/mach/portmux.h
+deleted file mode 100644
+index c48bb71a55ce..000000000000
+diff --git a/arch/blackfin/mach-bf609/ints-priority.c b/arch/blackfin/mach-bf609/ints-priority.c
+deleted file mode 100644
+index f68abb9aa79e..000000000000
+diff --git a/arch/blackfin/mach-bf609/pm.c b/arch/blackfin/mach-bf609/pm.c
+deleted file mode 100644
+index b1bfcf434d16..000000000000
+diff --git a/arch/blackfin/mach-bf609/scb.c b/arch/blackfin/mach-bf609/scb.c
+deleted file mode 100644
+index ac1f07c33594..000000000000
+diff --git a/arch/blackfin/mach-common/Makefile b/arch/blackfin/mach-common/Makefile
+deleted file mode 100644
+index fcef1c8e117f..000000000000
+diff --git a/arch/blackfin/mach-common/arch_checks.c b/arch/blackfin/mach-common/arch_checks.c
+deleted file mode 100644
+index d8643fdd0fcf..000000000000
+diff --git a/arch/blackfin/mach-common/cache-c.c b/arch/blackfin/mach-common/cache-c.c
+deleted file mode 100644
+index f4adedc92895..000000000000
+diff --git a/arch/blackfin/mach-common/cache.S b/arch/blackfin/mach-common/cache.S
+deleted file mode 100644
+index 9f4dd35bfd74..000000000000
+diff --git a/arch/blackfin/mach-common/clock.h b/arch/blackfin/mach-common/clock.h
+deleted file mode 100644
+index fed851a51aaf..000000000000
+diff --git a/arch/blackfin/mach-common/clocks-init.c b/arch/blackfin/mach-common/clocks-init.c
+deleted file mode 100644
+index d436bd907fc8..000000000000
+diff --git a/arch/blackfin/mach-common/dpmc.c b/arch/blackfin/mach-common/dpmc.c
+deleted file mode 100644
+index 724a8c5f5578..000000000000
+diff --git a/arch/blackfin/mach-common/dpmc_modes.S b/arch/blackfin/mach-common/dpmc_modes.S
+deleted file mode 100644
+index de99f3aac2c5..000000000000
+diff --git a/arch/blackfin/mach-common/entry.S b/arch/blackfin/mach-common/entry.S
+deleted file mode 100644
+index 8d9431e22e8c..000000000000
+diff --git a/arch/blackfin/mach-common/head.S b/arch/blackfin/mach-common/head.S
+deleted file mode 100644
+index 31515f0146f9..000000000000
+diff --git a/arch/blackfin/mach-common/interrupt.S b/arch/blackfin/mach-common/interrupt.S
+deleted file mode 100644
+index 469ce7282dc8..000000000000
+diff --git a/arch/blackfin/mach-common/ints-priority.c b/arch/blackfin/mach-common/ints-priority.c
+deleted file mode 100644
+index e81a5b7dabdc..000000000000
+diff --git a/arch/blackfin/mach-common/pm.c b/arch/blackfin/mach-common/pm.c
+deleted file mode 100644
+index f57b5fe5355e..000000000000
+diff --git a/arch/blackfin/mach-common/scb-init.c b/arch/blackfin/mach-common/scb-init.c
+deleted file mode 100644
+index 8923398db66f..000000000000
+diff --git a/arch/blackfin/mach-common/smp.c b/arch/blackfin/mach-common/smp.c
+deleted file mode 100644
+index b32ddab7966c..000000000000
+diff --git a/arch/blackfin/mm/Makefile b/arch/blackfin/mm/Makefile
+deleted file mode 100644
+index 4c011b1f661f..000000000000
+diff --git a/arch/blackfin/mm/blackfin_sram.h b/arch/blackfin/mm/blackfin_sram.h
+deleted file mode 100644
+index fb0b1599cfb7..000000000000
+diff --git a/arch/blackfin/mm/init.c b/arch/blackfin/mm/init.c
+deleted file mode 100644
+index b59cd7c3261a..000000000000
+diff --git a/arch/blackfin/mm/isram-driver.c b/arch/blackfin/mm/isram-driver.c
+deleted file mode 100644
+index aaa1e64b753b..000000000000
+diff --git a/arch/blackfin/mm/maccess.c b/arch/blackfin/mm/maccess.c
+deleted file mode 100644
+index e2532114c5fd..000000000000
+diff --git a/arch/blackfin/mm/sram-alloc.c b/arch/blackfin/mm/sram-alloc.c
+deleted file mode 100644
+index d2a96c2c02a3..000000000000
+diff --git a/arch/blackfin/oprofile/Makefile b/arch/blackfin/oprofile/Makefile
+deleted file mode 100644
+index e89e1c9f3496..000000000000
+diff --git a/arch/blackfin/oprofile/bfin_oprofile.c b/arch/blackfin/oprofile/bfin_oprofile.c
+deleted file mode 100644
+index c3b9713b23f8..000000000000
+diff --git a/samples/Kconfig b/samples/Kconfig
+index c332a3b9de05..f524f551718e 100644
+--- a/samples/Kconfig
++++ b/samples/Kconfig
+@@ -98,12 +98,6 @@ config SAMPLE_SECCOMP
+ 	  Build samples of seccomp filters using various methods of
+ 	  BPF filter construction.
+ 
+-config SAMPLE_BLACKFIN_GPTIMERS
+-	tristate "Build blackfin gptimers sample code -- loadable modules only"
+-	depends on BLACKFIN && BFIN_GPTIMERS && m
+-	help
+-	  Build samples of blackfin gptimers sample module.
+-
+ config SAMPLE_VFIO_MDEV_MTTY
+ 	tristate "Build VFIO mtty example mediated device sample code -- loadable modules only"
+ 	depends on VFIO_MDEV_DEVICE && m
+diff --git a/samples/Makefile b/samples/Makefile
+index db54e766ddb1..70cf3758dcf2 100644
+--- a/samples/Makefile
++++ b/samples/Makefile
+@@ -2,5 +2,5 @@
+ 
+ obj-$(CONFIG_SAMPLES)	+= kobject/ kprobes/ trace_events/ livepatch/ \
+ 			   hw_breakpoint/ kfifo/ kdb/ hidraw/ rpmsg/ seccomp/ \
+-			   configfs/ connector/ v4l/ trace_printk/ blackfin/ \
++			   configfs/ connector/ v4l/ trace_printk/ \
+ 			   vfio-mdev/ statx/
+diff --git a/samples/blackfin/Makefile b/samples/blackfin/Makefile
+deleted file mode 100644
+index 89b86cfd83a2..000000000000
+diff --git a/samples/blackfin/gptimers-example.c b/samples/blackfin/gptimers-example.c
+deleted file mode 100644
+index 283eba993d9d..000000000000
+diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
+index 3d4040322ae1..949842e8c97e 100755
+--- a/scripts/checkpatch.pl
++++ b/scripts/checkpatch.pl
+@@ -2969,20 +2969,6 @@ sub process {
+ 			     "adding a line without newline at end of file\n" . $herecurr);
+ 		}
+ 
+-# Blackfin: use hi/lo macros
+-		if ($realfile =~ m@arch/blackfin/.*\.S$@) {
+-			if ($line =~ /\.[lL][[:space:]]*=.*&[[:space:]]*0x[fF][fF][fF][fF]/) {
+-				my $herevet = "$here\n" . cat_vet($line) . "\n";
+-				ERROR("LO_MACRO",
+-				      "use the LO() macro, not (... & 0xFFFF)\n" . $herevet);
+-			}
+-			if ($line =~ /\.[hH][[:space:]]*=.*>>[[:space:]]*16/) {
+-				my $herevet = "$here\n" . cat_vet($line) . "\n";
+-				ERROR("HI_MACRO",
+-				      "use the HI() macro, not (... >> 16)\n" . $herevet);
+-			}
+-		}
+-
+ # check we are in a valid source file C or perl if not then ignore this hunk
+ 		next if ($realfile !~ /\.(h|c|pl|dtsi|dts)$/);
+ 
+@@ -3269,18 +3255,6 @@ sub process {
+ 			     "CVS style keyword markers, these will _not_ be updated\n". $herecurr);
+ 		}
+ 
+-# Blackfin: don't use __builtin_bfin_[cs]sync
+-		if ($line =~ /__builtin_bfin_csync/) {
+-			my $herevet = "$here\n" . cat_vet($line) . "\n";
+-			ERROR("CSYNC",
+-			      "use the CSYNC() macro in asm/blackfin.h\n" . $herevet);
+-		}
+-		if ($line =~ /__builtin_bfin_ssync/) {
+-			my $herevet = "$here\n" . cat_vet($line) . "\n";
+-			ERROR("SSYNC",
+-			      "use the SSYNC() macro in asm/blackfin.h\n" . $herevet);
+-		}
+-
+ # check for old HOTPLUG __dev<foo> section markings
+ 		if ($line =~ /\b(__dev(init|exit)(data|const|))\b/) {
+ 			WARN("HOTPLUG_SECTION",
 -- 
 2.9.0
