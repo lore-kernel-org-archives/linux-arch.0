@@ -1,84 +1,113 @@
-From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: Re: [PATCH v1 4/4] Revert "arm64: Enforce BBM for huge IO/VMAP
- mappings"
-Date: Wed, 14 Mar 2018 17:02:33 +0530
-Message-ID: <d7d8fe7c-e313-67ac-3793-6a300d61923f@codeaurora.org>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v1 2/4] ioremap: Invalidate TLB after huge mappings
+Date: Wed, 14 Mar 2018 11:48:15 +0000
+Message-ID: <20180314114814.mzgwlzkwzxijiv54@lakrids.cambridge.arm.com>
 References: <1521017305-28518-1-git-send-email-cpandya@codeaurora.org>
- <1521017305-28518-5-git-send-email-cpandya@codeaurora.org>
- <bdcc02a1-cf1b-4887-06e9-4867415ca214@arm.com>
+ <1521017305-28518-3-git-send-email-cpandya@codeaurora.org>
+ <20180314104823.yumqomzmbu3cj442@lakrids.cambridge.arm.com>
+ <a278b3ca-b54f-ee5e-5828-b8859eea5cc6@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <bdcc02a1-cf1b-4887-06e9-4867415ca214@arm.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <a278b3ca-b54f-ee5e-5828-b8859eea5cc6@codeaurora.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Marc Zyngier <marc.zyngier@arm.com>, catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de
-Cc: mark.rutland@arm.com, ard.biesheuvel@linaro.org, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com
+To: Chintan Pandya <cpandya@codeaurora.org>
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com
 List-Id: linux-arch.vger.kernel.org
 
+On Wed, Mar 14, 2018 at 04:50:35PM +0530, Chintan Pandya wrote:
+> On 3/14/2018 4:18 PM, Mark Rutland wrote:
+> > On Wed, Mar 14, 2018 at 02:18:23PM +0530, Chintan Pandya wrote:
+> > As has been noted in previous threads, the ARM architecture requires a
+> > Break-Before-Make sequence when changing an entry from a table to a
+> > block, as is the case here.
+> > 
+> > The means the necessary sequence is:
+> > 
+> > 	1. Make the entry invalid
+> > 	2. Invalidate relevant TLB entries
+> > 	3. Write the new entry
+> > 
+> We do this for PTEs. I don't see this applicable to PMDs.
+
+The architecture requires this for *all* levels of page table, when
+certain changes are made. Switching an entry from a table to block (or
+vice versa) is one of those changes, and this definitely applies to
+PMDs.
+
+> Because,
+> 
+> 1) To mark any PMD invalid, we need to be sure that next level page
+>    table (I mean all the 512 PTEs) should be zero. That requires us
+>    to scan entire last level page. A big perf hit !
+
+This is in ioremap code. Under what workload does this constitute a perf
+hit?
+
+Regardless, so long as we mark the pmd entry invalid before the TLB
+invalidation, we don't need to touch the next level table at all. We
+just require a sequence like:
+
+	pmd_clear(*pmdp);
+	flush_tlb_kernel_range(pmd_start_addr, pmd_end_addr);
+	pmd_set_huge(*pmdp, phys, prot);
 
 
-On 3/14/2018 4:16 PM, Marc Zyngier wrote:
-> On 14/03/18 08:48, Chintan Pandya wrote:
->> This commit 15122ee2c515a ("arm64: Enforce BBM for huge
->> IO/VMAP mappings") is a temporary work-around until the
->> issues with CONFIG_HAVE_ARCH_HUGE_VMAP gets fixed.
->>
->> Revert this change as we have fixes for the issue.
->>
->> Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
->> ---
->>   arch/arm64/mm/mmu.c | 8 --------
->>   1 file changed, 8 deletions(-)
->>
->> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
->> index c0df264..19116c6 100644
->> --- a/arch/arm64/mm/mmu.c
->> +++ b/arch/arm64/mm/mmu.c
->> @@ -935,10 +935,6 @@ int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
->>   	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
->>   					pgprot_val(mk_sect_prot(prot)));
->>   
->> -	/* ioremap_page_range doesn't honour BBM */
->> -	if (pud_present(READ_ONCE(*pudp)))
->> -		return 0;
->> -
->>   	BUG_ON(phys & ~PUD_MASK);
->>   	if (pud_val(*pud) && !pud_huge(*pud))
->>   		free_page((unsigned long)__va(pud_val(*pud)));
->> @@ -952,10 +948,6 @@ int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
->>   	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
->>   					pgprot_val(mk_sect_prot(prot)));
->>   
->> -	/* ioremap_page_range doesn't honour BBM */
->> -	if (pmd_present(READ_ONCE(*pmdp)))
->> -		return 0;
->> -
->>   	BUG_ON(phys & ~PMD_MASK);
->>   	if (pmd_val(*pmd) && !pmd_huge(*pmd))
->>   		free_page((unsigned long)__va(pmd_val(*pmd)));
->>
-> 
-> But you're still not doing a BBM, right? What prevents a speculative
-> access from using the (now freed) entry? The TLB invalidation you've
-> introduce just narrows the window where bad things can happen.
-Valid point. I will rework on these patches.
+> 2) We need to perform step 1 for every unmap as we never know which
+>    unmap will make last level page table empty.
 
-Thanks Marc.
+Sorry, I don't follow. Could you elaborate on the problem?
 
-> 
-> My gut feeling is that this series introduces more bugs than it fixes...
-> If you're going to fix it, please fix it by correctly implementing BBM
-> for huge mappings.
-> 
-> Or am I missing something terribly obvious?
-> 
-> 	M.
-> 
+> Moreover, problem comes only when 4K mapping was followed by 2M
+> mapping. In all other cases, retaining valid PMD has obvious perf
+> gain. That's what walk-cache is supposed to be introduced for.
 
-Chintan
--- 
-Qualcomm India Private Limited, on behalf of Qualcomm Innovation Center,
-Inc. is a member of the Code Aurora Forum, a Linux Foundation
-Collaborative Project
+Retaining a valid PMD in the TLB that *differs* from a valid PMD in the
+page tables is a big problem.
+
+The architecture requires BBM, as this permits CPUs to allocate PMDs
+into TLBs at *any* time, even if there's already PMD in the TLB for a
+given address.
+
+Thus, CPUs can allocate *both* valid PMDs into the TLBs. When this
+happens, a TLB lookup can:
+
+1) return either of the PMDs.
+
+2) raise a TLB conflict abort.
+
+3) return an amalgamation of the two entries (e.g. provide an erroneous
+   address).
+
+Note that (3) is particularly scary:
+
+* The CPU could raise an SError if the amalgamated entry is junk.
+
+* If a memory access hits an amalgamated entry, it may use the wrong
+  physical address, attributes, or permissions, resulting in a number of
+  potential problems.
+
+* If the amalgamated entry looks like a partial walk, the TLB might try
+  to perform a walk starting at the physical address in the amalgamated
+  entry. This would cause page table walks to access bogus addresses,
+  allocating junk into TLBs, and may result in SErrors or other aborts.
+
+> > Whereas above, the sequence is
+> > 
+> > 	1. Write the new entry
+> > 	2. invalidate relevant TLB entries
+> > 
+> > Which is insufficient, and will lead to a number of problems.
+> I couldn't think of new problems with this approach. Could you share
+> any problematic scenarios ?
+
+Please see above.
+
+> Also, my test-case runs fine with these patches for 10+ hours.
+
+While this may happen to work on particular platforms, it is not
+guaranteed per the architecture, and will fail on others.
+
+Thanks,
+Mark.
