@@ -1,60 +1,195 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:55622 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751615AbeCNRxz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 13:53:55 -0400
-Date: Wed, 14 Mar 2018 18:53:52 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: arc_usr_cmpxchg and preemption
-Message-ID: <20180314175352.GP4064@hirez.programming.kicks-ass.net>
-References: <1521045375.11552.27.camel@synopsys.com>
- <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
+Received: from szxga04-in.huawei.com ([45.249.212.190]:6201 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750862AbeCNSRF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Mar 2018 14:17:05 -0400
+From: John Garry <john.garry@huawei.com>
+Subject: [PATCH v17 04/10] PCI: Apply the new generic I/O management on PCI IO hosts
+Date: Thu, 15 Mar 2018 02:15:53 +0800
+Message-ID: <1521051359-34473-5-git-send-email-john.garry@huawei.com>
+In-Reply-To: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
+References: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180314175352.5Qu8bmTIFKvKsES5MaBqyRXAkPNXMLGnaZxADscUCq0@z>
+To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com
+Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
+Message-ID: <20180314181553.uWlmMzDllI_D3TSYjWDYFdXY5G9rM8T5_PfSwtmRHks@z>
 
-On Wed, Mar 14, 2018 at 09:58:19AM -0700, Vineet Gupta wrote:
+From: Zhichang Yuan <yuanzhichang@hisilicon.com>
 
-> Well it is broken wrt the semantics the syscall is supposed to provide.
-> Preemption disabling is what prevents a concurrent thread from coming in and
-> modifying the same location (Imagine a variable which is being cmpxchg
-> concurrently by 2 threads).
-> 
-> One approach is to do it the MIPS way, emulate the llsc flag - set it under
-> preemption disabled section and clear it in switch_to
+After introducing the new generic I/O space management(Logical PIO), the
+original PCI MMIO relevant helpers need to be updated based on the new
+interfaces defined in logical PIO.
+This patch adapts the corresponding code to match the changes introduced
+by logical PIO.
 
-*shudder*... just catch the -EFAULT, force the write fault and retry.
+Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
+Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>        #earlier draft
+Acked-by: Bjorn Helgaas <bhelgaas@google.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Tested-by: dann frazier <dann.frazier@canonical.com>
+---
+ drivers/pci/pci.c        | 92 +++++++++---------------------------------------
+ include/asm-generic/io.h |  2 +-
+ 2 files changed, 18 insertions(+), 76 deletions(-)
 
-Something like:
-
-int sys_cmpxchg(u32 __user *user_ptr, u32 old, u32 new)
-{
-	u32 val;
-	int ret;
-
-again:
-	ret = 0;
-
-	preempt_disable();
-	val = get_user(user_ptr);
-	if (val == old)
-		ret = put_user(new, user_ptr);
-	preempt_enable();
-
-	if (ret == -EFAULT) {
-		struct page *page;
-		ret = get_user_pages_fast((unsigned long)user_ptr, 1, 1, &page);
-		if (ret < 0)
-			return ret;
-		put_page(page);
-		goto again;
-	}
-
-	return ret;
-}
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index 3f30b7d..09c2490 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -22,6 +22,7 @@
+ #include <linux/spinlock.h>
+ #include <linux/string.h>
+ #include <linux/log2.h>
++#include <linux/logic_pio.h>
+ #include <linux/pci-aspm.h>
+ #include <linux/pm_wakeup.h>
+ #include <linux/interrupt.h>
+@@ -3436,17 +3437,6 @@ int pci_request_regions_exclusive(struct pci_dev *pdev, const char *res_name)
+ }
+ EXPORT_SYMBOL(pci_request_regions_exclusive);
+ 
+-#ifdef PCI_IOBASE
+-struct io_range {
+-	struct list_head list;
+-	phys_addr_t start;
+-	resource_size_t size;
+-};
+-
+-static LIST_HEAD(io_range_list);
+-static DEFINE_SPINLOCK(io_range_lock);
+-#endif
+-
+ /*
+  * Record the PCI IO range (expressed as CPU physical address + size).
+  * Return a negative value if an error has occured, zero otherwise
+@@ -3454,51 +3444,28 @@ struct io_range {
+ int pci_register_io_range(struct fwnode_handle *fwnode, phys_addr_t addr,
+ 			resource_size_t	size)
+ {
+-	int err = 0;
+-
++	int ret = 0;
+ #ifdef PCI_IOBASE
+-	struct io_range *range;
+-	resource_size_t allocated_size = 0;
+-
+-	/* check if the range hasn't been previously recorded */
+-	spin_lock(&io_range_lock);
+-	list_for_each_entry(range, &io_range_list, list) {
+-		if (addr >= range->start && addr + size <= range->start + size) {
+-			/* range already registered, bail out */
+-			goto end_register;
+-		}
+-		allocated_size += range->size;
+-	}
++	struct logic_pio_hwaddr *range;
+ 
+-	/* range not registed yet, check for available space */
+-	if (allocated_size + size - 1 > IO_SPACE_LIMIT) {
+-		/* if it's too big check if 64K space can be reserved */
+-		if (allocated_size + SZ_64K - 1 > IO_SPACE_LIMIT) {
+-			err = -E2BIG;
+-			goto end_register;
+-		}
+-
+-		size = SZ_64K;
+-		pr_warn("Requested IO range too big, new size set to 64K\n");
+-	}
++	if (!size || addr + size < addr)
++		return -EINVAL;
+ 
+-	/* add the range to the list */
+ 	range = kzalloc(sizeof(*range), GFP_ATOMIC);
+-	if (!range) {
+-		err = -ENOMEM;
+-		goto end_register;
+-	}
++	if (!range)
++		return -ENOMEM;
+ 
+-	range->start = addr;
++	range->fwnode = fwnode;
+ 	range->size = size;
++	range->hw_start = addr;
++	range->flags = LOGIC_PIO_CPU_MMIO;
+ 
+-	list_add_tail(&range->list, &io_range_list);
+-
+-end_register:
+-	spin_unlock(&io_range_lock);
++	ret = logic_pio_register_range(range);
++	if (ret)
++		kfree(range);
+ #endif
+ 
+-	return err;
++	return ret;
+ }
+ 
+ phys_addr_t pci_pio_to_address(unsigned long pio)
+@@ -3506,21 +3473,10 @@ phys_addr_t pci_pio_to_address(unsigned long pio)
+ 	phys_addr_t address = (phys_addr_t)OF_BAD_ADDR;
+ 
+ #ifdef PCI_IOBASE
+-	struct io_range *range;
+-	resource_size_t allocated_size = 0;
+-
+-	if (pio > IO_SPACE_LIMIT)
++	if (pio >= MMIO_UPPER_LIMIT)
+ 		return address;
+ 
+-	spin_lock(&io_range_lock);
+-	list_for_each_entry(range, &io_range_list, list) {
+-		if (pio >= allocated_size && pio < allocated_size + range->size) {
+-			address = range->start + pio - allocated_size;
+-			break;
+-		}
+-		allocated_size += range->size;
+-	}
+-	spin_unlock(&io_range_lock);
++	address = logic_pio_to_hwaddr(pio);
+ #endif
+ 
+ 	return address;
+@@ -3529,21 +3485,7 @@ phys_addr_t pci_pio_to_address(unsigned long pio)
+ unsigned long __weak pci_address_to_pio(phys_addr_t address)
+ {
+ #ifdef PCI_IOBASE
+-	struct io_range *res;
+-	resource_size_t offset = 0;
+-	unsigned long addr = -1;
+-
+-	spin_lock(&io_range_lock);
+-	list_for_each_entry(res, &io_range_list, list) {
+-		if (address >= res->start && address < res->start + res->size) {
+-			addr = address - res->start + offset;
+-			break;
+-		}
+-		offset += res->size;
+-	}
+-	spin_unlock(&io_range_lock);
+-
+-	return addr;
++	return logic_pio_trans_cpuaddr(address);
+ #else
+ 	if (address > IO_SPACE_LIMIT)
+ 		return (unsigned long)-1;
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index f76fbd6..0016413 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -901,7 +901,7 @@ static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
+ #define ioport_map ioport_map
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+ {
+-	return PCI_IOBASE + (port & IO_SPACE_LIMIT);
++	return PCI_IOBASE + (port & MMIO_UPPER_LIMIT);
+ }
+ #endif
+ 
+-- 
+1.9.1
