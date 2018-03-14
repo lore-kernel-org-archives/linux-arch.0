@@ -1,101 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:59148 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752348AbeCMPbO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Mar 2018 11:31:14 -0400
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.15 080/146] nospec: Kill array_index_nospec_mask_check()
-Date: Tue, 13 Mar 2018 16:24:07 +0100
-Message-ID: <20180313152326.989811763@linuxfoundation.org>
-In-Reply-To: <20180313152320.439085687@linuxfoundation.org>
-References: <20180313152320.439085687@linuxfoundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Received: from mail-ot0-f196.google.com ([74.125.82.196]:37272 "EHLO
+        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932718AbeCNATh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Mar 2018 20:19:37 -0400
+Received: by mail-ot0-f196.google.com with SMTP id t2-v6so1537898otj.4
+        for <linux-arch@vger.kernel.org>; Tue, 13 Mar 2018 17:19:37 -0700 (PDT)
+From: Daniel Kurtz <djkurtz@chromium.org>
+Subject: [PATCH] earlycon: Fix __earlycon_table stride... again
+Date: Tue, 13 Mar 2018 18:19:33 -0600
+Message-ID: <20180314001933.5302-1-djkurtz@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20180313152407.TGNfKCGNQo2804RwSyoFgszJd8sdIvM6xt6d3c0Vyss@z>
+Cc: adurbin@chromium.org, Daniel Kurtz <djkurtz@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.com>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>
+Message-ID: <20180314001933.8izgrrRLerSlNAk0pxE__s6k3znEJ49VZX8pEpGZB7Q@z>
 
-4.15-stable review patch.  If anyone has any objections, please let me know.
+Commit 470ca0de69fe ("serial: earlycon: Enable earlycon without command
+line param") added EARLYCON_TABLE().
 
-------------------
+Commit 99492c39f39f ("earlycon: Fix __earlycon_table stride") fixed
+EARLYCON_TABLE() alignment to 32-bytes.
 
-From: Dan Williams <dan.j.williams@intel.com>
+Commit 2eaa790989e0 ("earlycon: Use common framework for earlycon
+declarations") added the compatible field, which bumped EARLYCON_TABLE()
+alignment to 128 bytes (LCM of size of all fields of struct earlycon_id.
 
-commit 1d91c1d2c80cb70e2e553845e278b87a960c04da upstream.
+Correct the struct definition and linker alignment to match.
 
-There are multiple problems with the dynamic sanity checking in
-array_index_nospec_mask_check():
-
-* It causes unnecessary overhead in the 32-bit case since integer sized
-  @index values will no longer cause the check to be compiled away like
-  in the 64-bit case.
-
-* In the 32-bit case it may trigger with user controllable input when
-  the expectation is that should only trigger during development of new
-  kernel enabling.
-
-* The macro reuses the input parameter in multiple locations which is
-  broken if someone passes an expression like 'index++' to
-  array_index_nospec().
-
-Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arjan van de Ven <arjan@linux.intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org
-Link: http://lkml.kernel.org/r/151881604278.17395.6605847763178076520.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
+Signed-off-by: Daniel Kurtz <djkurtz@chromium.org>
 ---
- include/linux/nospec.h |   22 +---------------------
- 1 file changed, 1 insertion(+), 21 deletions(-)
+ include/asm-generic/vmlinux.lds.h | 2 +-
+ include/linux/serial_core.h       | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -30,26 +30,6 @@ static inline unsigned long array_index_
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 1ab0e520d6fc..2f7de2e36005 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -179,7 +179,7 @@
  #endif
  
- /*
-- * Warn developers about inappropriate array_index_nospec() usage.
-- *
-- * Even if the CPU speculates past the WARN_ONCE branch, the
-- * sign bit of @index is taken into account when generating the
-- * mask.
-- *
-- * This warning is compiled out when the compiler can infer that
-- * @index and @size are less than LONG_MAX.
-- */
--#define array_index_mask_nospec_check(index, size)				\
--({										\
--	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,			\
--	    "array_index_nospec() limited to range of [0, LONG_MAX]\n"))	\
--		_mask = 0;							\
--	else									\
--		_mask = array_index_mask_nospec(index, size);			\
--	_mask;									\
--})
--
--/*
-  * array_index_nospec - sanitize an array index after a bounds check
-  *
-  * For a code sequence like:
-@@ -67,7 +47,7 @@ static inline unsigned long array_index_
- ({									\
- 	typeof(index) _i = (index);					\
- 	typeof(size) _s = (size);					\
--	unsigned long _mask = array_index_mask_nospec_check(_i, _s);	\
-+	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
- 									\
- 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
- 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
+ #ifdef CONFIG_SERIAL_EARLYCON
+-#define EARLYCON_TABLE() STRUCT_ALIGN();			\
++#define EARLYCON_TABLE() . = ALIGN(128);		\
+ 			 VMLINUX_SYMBOL(__earlycon_table) = .;	\
+ 			 KEEP(*(__earlycon_table))		\
+ 			 VMLINUX_SYMBOL(__earlycon_table_end) = .;
+diff --git a/include/linux/serial_core.h b/include/linux/serial_core.h
+index b32df49a3bd5..c9170b9ccb1b 100644
+--- a/include/linux/serial_core.h
++++ b/include/linux/serial_core.h
+@@ -351,7 +351,7 @@ struct earlycon_id {
+ 	char	name[16];
+ 	char	compatible[128];
+ 	int	(*setup)(struct earlycon_device *, const char *options);
+-} __aligned(32);
++} __aligned(128);
+ 
+ extern const struct earlycon_id __earlycon_table[];
+ extern const struct earlycon_id __earlycon_table_end[];
+-- 
+2.16.2.804.g6dcf76e118-goog
