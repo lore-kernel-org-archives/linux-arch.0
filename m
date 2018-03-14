@@ -1,55 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:8243 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751379AbeCNRvk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Mar 2018 13:51:40 -0400
-Subject: Re: [PATCH 1/1 v2] x86: pkey-mprotect must allow pkey-0
-References: <1521013574-27041-1-git-send-email-linuxram@us.ibm.com>
- <18b155e3-07e9-5a4b-1f95-e1667078438c@intel.com>
- <20180314171448.GA1060@ram.oc3035372033.ibm.com>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <5027ca9e-63c8-47ab-960d-a9c4466d7075@intel.com>
-Date: Wed, 14 Mar 2018 10:51:26 -0700
+Received: from bombadil.infradead.org ([198.137.202.133]:55622 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751615AbeCNRxz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 13:53:55 -0400
+Date: Wed, 14 Mar 2018 18:53:52 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: arc_usr_cmpxchg and preemption
+Message-ID: <20180314175352.GP4064@hirez.programming.kicks-ass.net>
+References: <1521045375.11552.27.camel@synopsys.com>
+ <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
 MIME-Version: 1.0
-In-Reply-To: <20180314171448.GA1060@ram.oc3035372033.ibm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: mingo@redhat.com, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
-Message-ID: <20180314175126.f8_mgzVC0-doMy_qOvdmAePy7BdiFnQIKemRj37X2EY@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20180314175352.5Qu8bmTIFKvKsES5MaBqyRXAkPNXMLGnaZxADscUCq0@z>
 
-On 03/14/2018 10:14 AM, Ram Pai wrote:
-> I look at key-0 as 'the key'. It has special status. 
-> (a) It always exist.
+On Wed, Mar 14, 2018 at 09:58:19AM -0700, Vineet Gupta wrote:
 
-Do you mean "is always allocated"?
+> Well it is broken wrt the semantics the syscall is supposed to provide.
+> Preemption disabling is what prevents a concurrent thread from coming in and
+> modifying the same location (Imagine a variable which is being cmpxchg
+> concurrently by 2 threads).
+> 
+> One approach is to do it the MIPS way, emulate the llsc flag - set it under
+> preemption disabled section and clear it in switch_to
 
-> (b) it cannot be freed.
+*shudder*... just catch the -EFAULT, force the write fault and retry.
 
-This is the one I'm questioning.
+Something like:
 
-> (c) it is assigned by default.
+int sys_cmpxchg(u32 __user *user_ptr, u32 old, u32 new)
+{
+	u32 val;
+	int ret;
 
-I agree on this totally. :)
+again:
+	ret = 0;
 
-> (d) its permissions cannot be modified.
+	preempt_disable();
+	val = get_user(user_ptr);
+	if (val == old)
+		ret = put_user(new, user_ptr);
+	preempt_enable();
 
-Why not?  You could pretty easily get a thread going that had its stack
-covered with another pkey and that was being very careful what it
-accesses.  It could pretty easily set pkey-0's access or write-disable bits.
+	if (ret == -EFAULT) {
+		struct page *page;
+		ret = get_user_pages_fast((unsigned long)user_ptr, 1, 1, &page);
+		if (ret < 0)
+			return ret;
+		put_page(page);
+		goto again;
+	}
 
-> (e) it bypasses key-permission checks when assigned.
-
-I don't think this is necessary.  I think the only rule we *need* is:
-
-	pkey-0 is allocated implicitly at execve() time.  You do not
-	need to call pkey_alloc() to allocate it.
-
-> An arch need not necessarily map 'the key-0' to its key-0.  It could
-> internally map it to any of its internal key of its choice, transparent
-> to the application.
-
-I don't understand what you are saying here.
+	return ret;
+}
