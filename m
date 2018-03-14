@@ -1,31 +1,38 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 08/16] procfs: remove CONFIG_HARDWALL dependency
-Date: Wed, 14 Mar 2018 21:18:00 +0100
-Message-ID: <CAK8P3a1fJEY7iy9FghcU-WE8Q=gwZxU6b=aVoFPsbR5sHGkyUQ@mail.gmail.com>
-References: <20180314143755.1508262-1-arnd@arndb.de> <20180314174150.GA2068@avx2>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: Do we need to disable preemption in flush_tlb_range()?
+Date: Wed, 14 Mar 2018 13:19:01 -0700
+Message-ID: <5a5c67c1-9f45-f908-2c8d-0914cd616a18@synopsys.com>
+References: <1519917189.13866.6.camel@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180314174150.GA2068@avx2>
+In-Reply-To: <1519917189.13866.6.camel@synopsys.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alexey Dobriyan <adobriyan@gmail.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Akinobu Mita <akinobu.mita@gmail.com>, Dmitry Vyukov <dvyukov@google.com>, Michal Hocko <mhocko@suse.com>
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 14, 2018 at 6:41 PM, Alexey Dobriyan <adobriyan@gmail.com> wrote:
-> On Wed, Mar 14, 2018 at 03:37:37PM +0100, Arnd Bergmann wrote:
->> Hardwall is a tile specific feature, and with the removal of the
->> tile architecture, this has become dead code, so let's remove it.
->>
->> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
->
-> ACK
->
-> Although it should go via tile tree for "atomicity".
++CC Peter since we have his attention ;-)
 
-Both the arch/tile removal and this patch are in my asm-generic tree, as there
-is no longer a tile specific git.
+On 03/01/2018 07:13 AM, Alexey Brodkin wrote:
+> Hi Vineet,
+> 
+> Just noticed that in comments for smp_call_function_many() it is said that
+> preemption must be disabled during its execution. And that function gets executed
+> among other ways like that:
+> -------------------------->8-----------------------
+>    flush_tlb_range()
+>      -> on_each_cpu_mask()
+>           -> smp_call_function_many()
+> -------------------------->8-----------------------
 
-Thanks for your Ack!
+In general I prefer not to - Peter what say you ?
 
-       Arnd
+> 
+> I'm not seeing right now any real problem with current implementation but
+> some architectures do that thus the question.
+> 
+> -Alexey
+> 
