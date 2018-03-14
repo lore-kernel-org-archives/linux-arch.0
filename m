@@ -1,39 +1,83 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 06/27] x86/entry/64: Adapt assembly for PIE support
-Date: Wed, 14 Mar 2018 11:29:51 +0100
-Message-ID: <20180314102951.GQ4043@hirez.programming.kicks-ass.net>
-References: <20180313205945.245105-1-thgarnie@google.com>
-	<20180313205945.245105-7-thgarnie@google.com>
+From: Marc Zyngier <marc.zyngier@arm.com>
+Subject: Re: [PATCH v1 3/4] arm64: Fix the page leak in pud/pmd_set_huge
+Date: Wed, 14 Mar 2018 10:35:55 +0000
+Message-ID: <4b955357-23a0-c0ac-4407-79a1198e1913@arm.com>
+References: <1521017305-28518-1-git-send-email-cpandya@codeaurora.org>
+ <1521017305-28518-4-git-send-email-cpandya@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <20180313205945.245105-7-thgarnie@google.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Thomas Garnier <thgarnie@google.com>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Michal Hocko <mhocko@suse.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Petr Mladek <pmladek@suse.com>, Len Brown <len.brown@intel.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Christopher Li <sparse@chrisli.org>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, Pavel Machek <pavel@ucw.cz>, "H . Peter Anvin" <hpa@zytor.com>, kernel-hardening@lists.openwall.com, Christoph Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Alok Kataria <akataria@vmware.com>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Herbert Xu <herbert@gondor.apana.org.au>, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1521017305-28518-4-git-send-email-cpandya@codeaurora.org>
+Content-Language: en-GB
+Sender: linux-kernel-owner@vger.kernel.org
+To: Chintan Pandya <cpandya@codeaurora.org>, catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de
+Cc: mark.rutland@arm.com, ard.biesheuvel@linaro.org, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 13, 2018 at 01:59:24PM -0700, Thomas Garnier wrote:
-> @@ -1576,7 +1578,9 @@ first_nmi:
->  	addq	$8, (%rsp)	/* Fix up RSP */
->  	pushfq			/* RFLAGS */
->  	pushq	$__KERNEL_CS	/* CS */
-> -	pushq	$1f		/* RIP */
-> +	pushq	%rax		/* Support Position Independent Code */
-> +	leaq	1f(%rip), %rax	/* RIP */
-> +	xchgq	%rax, (%rsp)	/* Restore RAX, put 1f */
->  	iretq			/* continues at repeat_nmi below */
->  	UNWIND_HINT_IRET_REGS
->  1:
+On 14/03/18 08:48, Chintan Pandya wrote:
+> While setting huge page, we need to take care of
+> previously existing next level mapping. Since,
+> we are going to overrite previous mapping, the
+> only reference to next level page table will get
+> lost and the next level page table will be zombie,
+> occupying space forever. So, free it before
+> overriding.
+> 
+> Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
+> ---
+>  arch/arm64/mm/mmu.c | 9 ++++++++-
+>  1 file changed, 8 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+> index 8c704f1..c0df264 100644
+> --- a/arch/arm64/mm/mmu.c
+> +++ b/arch/arm64/mm/mmu.c
+> @@ -32,7 +32,7 @@
+>  #include <linux/io.h>
+>  #include <linux/mm.h>
+>  #include <linux/vmalloc.h>
+> -
+> +#include <linux/hugetlb.h>
+>  #include <asm/barrier.h>
+>  #include <asm/cputype.h>
+>  #include <asm/fixmap.h>
+> @@ -45,6 +45,7 @@
+>  #include <asm/memblock.h>
+>  #include <asm/mmu_context.h>
+>  #include <asm/ptdump.h>
+> +#include <asm/page.h>
+>  
+>  #define NO_BLOCK_MAPPINGS	BIT(0)
+>  #define NO_CONT_MAPPINGS	BIT(1)
+> @@ -939,6 +940,9 @@ int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
+>  		return 0;
+>  
+>  	BUG_ON(phys & ~PUD_MASK);
+> +	if (pud_val(*pud) && !pud_huge(*pud))
+> +		free_page((unsigned long)__va(pud_val(*pud)));
+> +
 
-Urgh, xchg with a memop has an implicit LOCK prefix.
+This is absolutely scary. Isn't this page still referenced in the page
+tables (assuming patch 4 has been applied too)?
+
+>  	set_pud(pudp, pfn_pud(__phys_to_pfn(phys), sect_prot));
+>  	return 1;
+>  }
+> @@ -953,6 +957,9 @@ int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
+>  		return 0;
+>  
+>  	BUG_ON(phys & ~PMD_MASK);
+> +	if (pmd_val(*pmd) && !pmd_huge(*pmd))
+> +		free_page((unsigned long)__va(pmd_val(*pmd)));
+> +
+>  	set_pmd(pmdp, pfn_pmd(__phys_to_pfn(phys), sect_prot));
+>  	return 1;
+>  }
+> 
+
+Thanks,
+
+	M.
+-- 
+Jazz is not dead. It just smells funny...
