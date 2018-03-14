@@ -1,60 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:20925 "EHLO mga07.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:40279 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750862AbeCNSlM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Mar 2018 14:41:12 -0400
-Date: Thu, 15 Mar 2018 02:40:57 +0800
+        id S1751917AbeCNSnM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Mar 2018 14:43:12 -0400
+Date: Thu, 15 Mar 2018 02:42:39 +0800
 From: kbuild test robot <fengguang.wu@intel.com>
-Subject: [asm-generic:master 2/63] Makefile:505: arch/mn10300/Makefile: No
- such file or directory
-Message-ID: <201803150252.4af3iy14%fengguang.wu@intel.com>
+Subject: [asm-generic:master 3/63] Makefile:505: arch/frv/Makefile: No such
+ file or directory
+Message-ID: <201803150227.8awZdRDG%fengguang.wu@intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: kbuild-all@01.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: kbuild-all@01.org, linux-arch@vger.kernel.org
 
 tree:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git master
 head:   6f0b419290171f99f5d4d52d47920d24010b7744
-commit: 739d875dd6982618020d30f58f8acf10f6076e6d [2/63] mn10300: Remove the architecture
-config: mn10300-asb2364_defconfig
-compiler: am33_2.0-linux-gcc (GCC) 7.2.0
+commit: fd8773f9f544955f6f47dc2ac3ab85ad64376b7f [3/63] arch: remove frv port
+config: frv-defconfig
+compiler: frv-linux-gcc (GCC) 7.2.0
 reproduce:
         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
         chmod +x ~/bin/make.cross
-        git checkout 739d875dd6982618020d30f58f8acf10f6076e6d
-        make.cross ARCH=mn10300  asb2364_defconfig
-        make.cross ARCH=mn10300 
+        git checkout fd8773f9f544955f6f47dc2ac3ab85ad64376b7f
+        make.cross ARCH=frv  defconfig
+        make.cross ARCH=frv 
 
 All errors (new ones prefixed by >>):
 
->> Makefile:505: arch/mn10300/Makefile: No such file or directory
->> make[1]: *** No rule to make target 'arch/mn10300/Makefile'.
-   make[1]: Failed to remake makefile 'arch/mn10300/Makefile'.
->> Kconfig:12: can't open file "arch/mn10300/Kconfig"
-   make[2]: *** [asb2364_defconfig] Error 1
-   make[1]: *** [asb2364_defconfig] Error 2
+>> Makefile:505: arch/frv/Makefile: No such file or directory
+>> make[1]: *** No rule to make target 'arch/frv/Makefile'.
+   make[1]: Failed to remake makefile 'arch/frv/Makefile'.
+>> Kconfig:12: can't open file "arch/frv/Kconfig"
+   make[2]: *** [defconfig] Error 1
+   make[1]: *** [defconfig] Error 2
    make: *** [sub-make] Error 2
 --
-   Makefile:636: arch/mn10300/Makefile: No such file or directory
->> make[1]: *** No rule to make target 'arch/mn10300/Makefile'.
-   make[1]: Failed to remake makefile 'arch/mn10300/Makefile'.
+   Makefile:636: arch/frv/Makefile: No such file or directory
+>> make[1]: *** No rule to make target 'arch/frv/Makefile'.
+   make[1]: Failed to remake makefile 'arch/frv/Makefile'.
    make: *** [sub-make] Error 2
 --
->> Makefile:505: arch/mn10300/Makefile: No such file or directory
->> make[1]: *** No rule to make target 'arch/mn10300/Makefile'.
-   make[1]: Failed to remake makefile 'arch/mn10300/Makefile'.
->> Kconfig:12: can't open file "arch/mn10300/Kconfig"
+>> Makefile:505: arch/frv/Makefile: No such file or directory
+>> make[1]: *** No rule to make target 'arch/frv/Makefile'.
+   make[1]: Failed to remake makefile 'arch/frv/Makefile'.
+>> Kconfig:12: can't open file "arch/frv/Kconfig"
    make[2]: *** [oldconfig] Error 1
    make[1]: *** [oldconfig] Error 2
    make: *** [sub-make] Error 2
 --
->> Makefile:505: arch/mn10300/Makefile: No such file or directory
->> make[1]: *** No rule to make target 'arch/mn10300/Makefile'.
-   make[1]: Failed to remake makefile 'arch/mn10300/Makefile'.
->> Kconfig:12: can't open file "arch/mn10300/Kconfig"
+>> Makefile:505: arch/frv/Makefile: No such file or directory
+>> make[1]: *** No rule to make target 'arch/frv/Makefile'.
+   make[1]: Failed to remake makefile 'arch/frv/Makefile'.
+>> Kconfig:12: can't open file "arch/frv/Kconfig"
    make[2]: *** [olddefconfig] Error 1
    make[2]: Target 'oldnoconfig' not remade because of errors.
    make[1]: *** [oldnoconfig] Error 2
