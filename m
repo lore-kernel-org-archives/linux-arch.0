@@ -1,49 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f67.google.com ([209.85.214.67]:40109 "EHLO
-        mail-it0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752209AbeCNPpW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 11:45:22 -0400
-Received: by mail-it0-f67.google.com with SMTP id e64-v6so5279924ita.5
-        for <linux-arch@vger.kernel.org>; Wed, 14 Mar 2018 08:45:22 -0700 (PDT)
+Received: from mail-it0-f65.google.com ([209.85.214.65]:33798 "EHLO
+        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750862AbeCNQMq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 12:12:46 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAFKCwrgPEhBEbXn95ugxVuxHw7UTiQWuo3+HJ_t7UBG69fbUcw@mail.gmail.com>
-References: <cover.1520600533.git.andreyknvl@google.com> <beea8ac394bfae3c7c949645fb887ceacc3f3bb3.1520600533.git.andreyknvl@google.com>
- <20180309155315.4x44sbp3darractt@armageddon.cambridge.arm.com>
- <CAAeHK+xF0X-SQuPVmZF--VnmvYrbpDkznSwYTh_3LHq1H2V=9Q@mail.gmail.com> <CAFKCwrgPEhBEbXn95ugxVuxHw7UTiQWuo3+HJ_t7UBG69fbUcw@mail.gmail.com>
-From: Andrey Konovalov <andreyknvl@google.com>
-Date: Wed, 14 Mar 2018 16:45:20 +0100
-Message-ID: <CAAeHK+y3hJ4jAByvfGDYyNb_RZ3_As4r-FCyZL9u69Vv_HS2AA@mail.gmail.com>
-Subject: Re: [RFC PATCH 3/6] mm, arm64: untag user addresses in memory syscalls
+In-Reply-To: <20180314040333.3291-1-deepa.kernel@gmail.com>
+References: <20180314040333.3291-1-deepa.kernel@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Wed, 14 Mar 2018 17:12:44 +0100
+Message-ID: <CAK8P3a3hbD=-P1wBwXEOnMdewGsUpZPERBHv6wo+3qqDkZD1qg@mail.gmail.com>
+Subject: Re: [PATCH v5 00/10] posix_clocks: Prepare syscalls for 64 bit time_t conversion
 Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Evgenii Stepanov <eugenis@google.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Robin Murphy <robin.murphy@arm.com>, Linux ARM <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Kostya Serebryany <kcc@google.com>, Lee Smith <Lee.Smith@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Jacob Bramley <Jacob.Bramley@arm.com>, Ruben Ayrapetyan <Ruben.Ayrapetyan@arm.com>
-Message-ID: <20180314154520.KL7udMkTg3VWO0KHN1Hbe98OV2rWD1uO0wnoTEYaBnU@z>
+To: Deepa Dinamani <deepa.kernel@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, John Stultz <john.stultz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, cohuck@redhat.com, David Miller <davem@davemloft.net>, Helge Deller <deller@gmx.de>, devel@driverdev.osuosl.org, gerald.schaefer@de.ibm.com, gregkh <gregkh@linuxfoundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jan Hoeppner <hoeppner@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Julian Wiedmann <jwi@linux.vnet.ibm.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Ingo Molnar <mingo@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Oberparleiter <oberpar@linux.vnet.ibm.com>, oprofile-list@lists.sf.net, Paul Mackerras <paulus@samba.org>, Peter Zijlstra <peterz@infradead.org>, Ralf Baechle <ralf@linux-mips.org>, Steven Rostedt <rostedt@goodmis.org>, Robert Richter <rric@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, sebott@linux.vnet.ibm.com, sparclinux <sparclinux@vger.kernel.org>, Stefan Haberland <sth@linux.vnet.ibm.com>, Ursula Braun <ubraun@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, the arch/x86 maintainers <x86@kernel.org>
+Message-ID: <20180314161244.TXFNpqKeRHIJQrvo3xdCip4HsPUYAuSB0Gmii3-O8pg@z>
 
-On Fri, Mar 9, 2018 at 6:42 PM, Evgenii Stepanov <eugenis@google.com> wrote:
-> On Fri, Mar 9, 2018 at 9:31 AM, Andrey Konovalov <andreyknvl@google.com> wrote:
->> On Fri, Mar 9, 2018 at 4:53 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
->>> I'm not yet convinced these functions need to allow tagged pointers.
->>> They are not doing memory accesses but rather dealing with the memory
->>> range, hence an untagged pointer is better suited. There is probably a
->>> reason why the "start" argument is "unsigned long" vs "void __user *"
->>> (in the kernel, not the man page).
->>
->> So that would make the user to untag pointers before passing to these syscalls.
->>
->> Evgeniy, would that be possible to untag pointers in HWASan before
->> using memory subsystem syscalls? Is there a reason for untagging them
->> in the kernel?
+On Wed, Mar 14, 2018 at 5:03 AM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
+> The series is a preparation series for individual architectures
+> to use 64 bit time_t syscalls in compat and 32 bit emulation modes.
 >
-> Generally, no. It's possible to intercept a libc call using symbol
-> interposition, but I don't know how to rewrite arguments of a raw
-> system call other than through ptrace, and that creates more problems
-> than it solves.
+> This is a follow up to the series Arnd Bergmann posted:
+> https://sourceware.org/ml/libc-alpha/2015-05/msg00070.html [1]
 >
-> AFAIU, it's valid for a program to pass an address obtained from
-> malloc or, better, posix_memalign to an mm syscall like mprotect().
-> These arguments are pointers from the userspace point of view.
+> Thomas, Arnd, this seems ready to be merged now.
+> Can you help get this merged?
+>
+> Big picture is as per the lwn article:
+> https://lwn.net/Articles/643234/ [2]
+>
+> The series is directed at converting posix clock syscalls:
+> clock_gettime, clock_settime, clock_getres and clock_nanosleep
+> to use a new data structure __kernel_timespec at syscall boundaries.
+> __kernel_timespec maintains 64 bit time_t across all execution modes.
+>
+> vdso will be handled as part of each architecture when they enable
+> support for 64 bit time_t.
+>
+> The compat syscalls are repurposed to provide backward compatibility
+> by using them as native syscalls as well for 32 bit architectures.
+> They will continue to use timespec at syscall boundaries.
+>
+> CONFIG_64_BIT_TIME controls whether the syscalls use __kernel_timespec
+> or timespec at syscall boundaries.
+>
+> The series does the following:
+> 1. Enable compat syscalls on 32 bit architectures.
+> 2. Add a new __kernel_timespec type to be used as the data structure
+>    for all the new syscalls.
+> 3. Add new config CONFIG_64BIT_TIME(intead of the CONFIG_COMPAT_TIME in
+>    [1] and [2] to switch to new definition of __kernel_timespec. It is
+>    the same as struct timespec otherwise.
+> 4. Add new CONFIG_32BIT_TIME to conditionally compile compat syscalls.
 
-Catalin, do you think this is a good reason to have the untagging done
-in the kernel?
+I've applied all 10 patches to my y2038 git branch [1], which is part
+of linux-next,
+to give it a little wider testing. If everything goes well, I'd send a
+pull request to
+Thomas next week so he can integrate it into tip from there, or (if he prefers)
+send it directly to Linus in the merge window.
+
+Thanks a lot for your persistence and your work on this!
+
+      Arnd
+
+[1] git://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git#y2038
