@@ -1,30 +1,28 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH 1/1 v2] x86: pkey-mprotect must allow pkey-0
-Date: Wed, 14 Mar 2018 11:58:29 -0700
-Message-ID: <3f7c9ee7-46db-723f-177d-7505d0ac1e41@intel.com>
-References: <1521013574-27041-1-git-send-email-linuxram@us.ibm.com>
- <18b155e3-07e9-5a4b-1f95-e1667078438c@intel.com>
- <20180314171448.GA1060@ram.oc3035372033.ibm.com>
- <5027ca9e-63c8-47ab-960d-a9c4466d7075@intel.com>
- <20180314185452.GB1060@ram.oc3035372033.ibm.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: Do we need to disable preemption in flush_tlb_range()?
+Date: Wed, 14 Mar 2018 19:15:11 +0000
+Message-ID: <1521054910.11552.44.camel@synopsys.com>
+References: <1519917189.13866.6.camel@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180314185452.GB1060@ram.oc3035372033.ibm.com>
+In-Reply-To: <1519917189.13866.6.camel@synopsys.com>
 Content-Language: en-US
+Content-ID: <30A2D9E66292534496C2D08722D7A51C@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: mingo@redhat.com, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/14/2018 11:54 AM, Ram Pai wrote:
->>> (e) it bypasses key-permission checks when assigned.
->> I don't think this is necessary.  I think the only rule we *need* is:
->>
->> 	pkey-0 is allocated implicitly at execve() time.  You do not
->> 	need to call pkey_alloc() to allocate it.
-> And can be explicitly associated with any address range ?
-
-Yes, it should ideally be available for use just like any other key when
-allocated.
+UGluZyENCg0KT24gVGh1LCAyMDE4LTAzLTAxIGF0IDE4OjEzICswMzAwLCBBbGV4ZXkgQnJvZGtp
+biB3cm90ZToNCj4gSGkgVmluZWV0LA0KPiANCj4gSnVzdCBub3RpY2VkIHRoYXQgaW4gY29tbWVu
+dHMgZm9yIHNtcF9jYWxsX2Z1bmN0aW9uX21hbnkoKSBpdCBpcyBzYWlkIHRoYXQNCj4gcHJlZW1w
+dGlvbiBtdXN0IGJlIGRpc2FibGVkIGR1cmluZyBpdHMgZXhlY3V0aW9uLiBBbmQgdGhhdCBmdW5j
+dGlvbiBnZXRzIGV4ZWN1dGVkDQo+IGFtb25nIG90aGVyIHdheXMgbGlrZSB0aGF0Og0KPiAtLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4gICBmbHVz
+aF90bGJfcmFuZ2UoKQ0KPiAgICAgLT4gb25fZWFjaF9jcHVfbWFzaygpDQo+ICAgICAgICAgIC0+
+IHNtcF9jYWxsX2Z1bmN0aW9uX21hbnkoKQ0KPiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4gDQo+IEknbSBub3Qgc2VlaW5nIHJpZ2h0IG5vdyBh
+bnkgcmVhbCBwcm9ibGVtIHdpdGggY3VycmVudCBpbXBsZW1lbnRhdGlvbiBidXQNCj4gc29tZSBh
+cmNoaXRlY3R1cmVzIGRvIHRoYXQgdGh1cyB0aGUgcXVlc3Rpb24uDQo+IA0KPiAtQWxleGV5
