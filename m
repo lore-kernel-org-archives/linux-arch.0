@@ -1,182 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:58274 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:60078 "EHLO
         smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750751AbeCNIsk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 04:48:40 -0400
+        with ESMTP id S1752799AbeCNItN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 04:49:13 -0400
 From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: [PATCH v1 0/4] Fix issues with huge mapping in ioremap
-Date: Wed, 14 Mar 2018 14:18:21 +0530
-Message-ID: <1521017305-28518-1-git-send-email-cpandya@codeaurora.org>
+Subject: [PATCH v1 4/4] Revert "arm64: Enforce BBM for huge IO/VMAP mappings"
+Date: Wed, 14 Mar 2018 14:18:25 +0530
+Message-ID: <1521017305-28518-5-git-send-email-cpandya@codeaurora.org>
+In-Reply-To: <1521017305-28518-1-git-send-email-cpandya@codeaurora.org>
+References: <1521017305-28518-1-git-send-email-cpandya@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de
 Cc: mark.rutland@arm.com, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com, Chintan Pandya <cpandya@codeaurora.org>
-Message-ID: <20180314084821.v5BGr9kBfoPrHCpiMeOGjJQzxbTewvFq0ysLvAT_xX0@z>
+Message-ID: <20180314084825.xVSftRN9BbEQWpSlTSj-11458dOWaJzMeuc1_For_Cc@z>
 
-Note: I was working on these patches for quite sometime
-and realized that Toshi Kani has shared some patches
-addressing the same isssue with subject
-"[PATCH 0/2] fix memory leak / panic in ioremap huge pages".
-I've taken slightly different approach here, so sending
-to the list, finally.
+This commit 15122ee2c515a ("arm64: Enforce BBM for huge
+IO/VMAP mappings") is a temporary work-around until the
+issues with CONFIG_HAVE_ARCH_HUGE_VMAP gets fixed.
 
-This patch series attempts to fix the issue described in
-this discussion: https://lkml.org/lkml/2017/12/23/3
+Revert this change as we have fixes for the issue.
 
-In summary, CONFIG_HAVE_ARCH_HUGE_VMAP has 2 issues
-observed on ARM64
+Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
+---
+ arch/arm64/mm/mmu.c | 8 --------
+ 1 file changed, 8 deletions(-)
 
- 1. Stale TLB entries
- 2. Page table leaks
-
-Will Deacon has by-passed huge mapping for ARM64
-until these issues are fixed properly.
-
-I've tested these patches on ARM64 based SDM845
-with 4.9 kernel. Hanjun Guo <hanjun.guo@linaro.org>
-shared test-case to reproduce this issue in
-https://patchwork.kernel.org/patch/10134581/
-
-However, I had no luck reproducing this issue with
-exactly this test. I added some more code to reproduce
-and here is my test which surfaces this issue in some
-five hours of testing.
-
-Test Code:
-
-#define pr_fmt(fmt)     "IOREMAP_TEST: " fmt
-
-#include <linux/console.h>
-#include <linux/module.h>
-#include <linux/string.h>
-#include <linux/init.h>
-#include <linux/kernel.h>
-#include <linux/random.h>
-#include <linux/io.h>
-#include <linux/kthread.h>
-
-static int io_remap_test(void *arg)
-{
-       phys_addr_t phy_addr_1 = 0x98000000;
-       unsigned long block_size = 0x200000;
-       unsigned long total_size = 0x400000;
-       unsigned long va_addr_3;
-       unsigned long va_addr_4;
-
-       struct vm_struct *area;
-
-       /*
-        * run this test for 10 hours
-        */
-       u32 times_ms = 10 * 60 * 60 * 1000;
-       unsigned long timeout = jiffies + msecs_to_jiffies(times_ms);
-       int rand_type;
-       int rand_value;
-       u32 mem_size;
-       int i;
-
-       area = get_vm_area(total_size, VM_IOREMAP);
-       va_addr_3 = (unsigned long)area->addr;
-       va_addr_4 = va_addr_3 + block_size;
-       pr_err("Virtual area %lx -- %lx\n", va_addr_3, va_addr_3 + total_size);
-
-       ioremap_page_range(va_addr_3, va_addr_3 + block_size, phy_addr_1, __pgprot(PROT_DEVICE_nGnRE));
-       pr_err("My tests will run now 2\n");
-       do {
-               get_random_bytes(&rand_value, sizeof(u32));
-
-               rand_type = rand_value % 6;
-               switch (rand_type) {
-               case 0:
-                       mem_size = 0x1000;
-                       break;
-               case 1:
-                       mem_size = 0x8000;
-                       break;
-               case 2:
-                       mem_size = 0x200000;
-                       break;
-               case 3:
-                       mem_size = 0x30000;
-                       break;
-               case 4:
-                       mem_size = 0x10000;
-                       break;
-               case 5:
-                       mem_size = 0x40000;
-                       break;
-               default:
-                       mem_size = 0x4000;
-                       break;
-               }
-
-               /*
-                * Prompt TLB to speculatively pre-fetch
-                */
-               readq(va_addr_3 + block_size - 0x20);
-               readq(va_addr_3 + block_size - 0x18);
-               readq(va_addr_3 + block_size - 0x10);
-               readq(va_addr_3 + block_size - 0x8);
-
-               ioremap_page_range(va_addr_4, va_addr_4 + mem_size, phy_addr_1, __pgprot(PROT_DEVICE_nGnRE));
-
-               if (mem_size >= 0x200000 && !(rand_value%10000)) {
-                       schedule();
-                       pr_err("possible error case\n");
-               }
-
-               /*
-                * Make CPU aware about our access pattern
-                * Also, these accesses should lead to crash
-                */
-               for (i = 0; i < 5; i++ ) {
-                       readq(va_addr_3 + block_size - 0x20);
-                       readq(va_addr_3 + block_size - 0x18);
-                       readq(va_addr_3 + block_size - 0x10);
-                       readq(va_addr_3 + block_size - 0x8);
-                       // Crash is expected here  
-                       readq(va_addr_4);
-                       readq(va_addr_4 + 0x8);
-                       readq(va_addr_4 + 0x10);
-                       readq(va_addr_4 + 0x18);
-                       readq(va_addr_4 + 0x20);
-               }
-
-               unmap_kernel_range(va_addr_4, mem_size);
-       } while (time_before(jiffies, timeout));
-
-       pr_err("my tests ended now\n");
-       return 0;
-}
-
-static int __init ioremap_testing_init(void)
-{
-       struct task_struct *t;
-       pr_err("my tests will run now 1\n");
-
-       t = kthread_create(&io_remap_test, NULL, "ioremap-testing");
-       /*
-        * Do this so that we can run this thread on GOLD cores
-        */
-       kthread_bind(t, 6);
-       wake_up_process(t);
-       return 0;
-}
-late_initcall(ioremap_testing_init);
-
-
-Chintan Pandya (4):
-  asm/tlbflush: Add flush_tlb_pgtable() for ARM64
-  ioremap: Invalidate TLB after huge mappings
-  arm64: Fix the page leak in pud/pmd_set_huge
-  Revert "arm64: Enforce BBM for huge IO/VMAP mappings"
-
- arch/arm64/include/asm/tlbflush.h |  5 +++++
- arch/arm64/mm/mmu.c               | 17 ++++++++---------
- include/asm-generic/tlb.h         |  6 ++++++
- lib/ioremap.c                     |  9 +++++++--
- 4 files changed, 26 insertions(+), 11 deletions(-)
-
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index c0df264..19116c6 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -935,10 +935,6 @@ int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
+ 	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
+ 					pgprot_val(mk_sect_prot(prot)));
+ 
+-	/* ioremap_page_range doesn't honour BBM */
+-	if (pud_present(READ_ONCE(*pudp)))
+-		return 0;
+-
+ 	BUG_ON(phys & ~PUD_MASK);
+ 	if (pud_val(*pud) && !pud_huge(*pud))
+ 		free_page((unsigned long)__va(pud_val(*pud)));
+@@ -952,10 +948,6 @@ int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
+ 	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
+ 					pgprot_val(mk_sect_prot(prot)));
+ 
+-	/* ioremap_page_range doesn't honour BBM */
+-	if (pmd_present(READ_ONCE(*pmdp)))
+-		return 0;
+-
+ 	BUG_ON(phys & ~PMD_MASK);
+ 	if (pmd_val(*pmd) && !pmd_huge(*pmd))
+ 		free_page((unsigned long)__va(pmd_val(*pmd)));
 -- 
 Qualcomm India Private Limited, on behalf of Qualcomm Innovation
 Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
