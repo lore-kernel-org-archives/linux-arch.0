@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:6201 "EHLO huawei.com"
+Received: from szxga04-in.huawei.com ([45.249.212.190]:6644 "EHLO huawei.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1750862AbeCNSRF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Mar 2018 14:17:05 -0400
+        id S1750862AbeCNSRL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Mar 2018 14:17:11 -0400
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v17 04/10] PCI: Apply the new generic I/O management on PCI IO hosts
-Date: Thu, 15 Mar 2018 02:15:53 +0800
-Message-ID: <1521051359-34473-5-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v17 09/10] HISI LPC: Add ACPI support
+Date: Thu, 15 Mar 2018 02:15:58 +0800
+Message-ID: <1521051359-34473-10-git-send-email-john.garry@huawei.com>
 In-Reply-To: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
 References: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
 MIME-Version: 1.0
@@ -15,181 +15,292 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
-Message-ID: <20180314181553.uWlmMzDllI_D3TSYjWDYFdXY5G9rM8T5_PfSwtmRHks@z>
+Message-ID: <20180314181558.8QA2M3fva3AwtqJ7HvTeB9nB879YUNGCPd-9RZobnXE@z>
 
-From: Zhichang Yuan <yuanzhichang@hisilicon.com>
+Based on the previous patches, this patch supports the
+LPC host on hip06/hip07 for ACPI FW.
 
-After introducing the new generic I/O space management(Logical PIO), the
-original PCI MMIO relevant helpers need to be updated based on the new
-interfaces defined in logical PIO.
-This patch adapts the corresponding code to match the changes introduced
-by logical PIO.
+It is the responsibility of the LPC host driver to
+enumerate the child devices, as the ACPI scan code will
+not enumerate children of "indirect IO" hosts.
 
+The ACPI table for the LPC host controller and the child
+devices is in the following format:
+  Device (LPC0) {
+    Name (_HID, "HISI0191")  // HiSi LPC
+    Name (_CRS, ResourceTemplate () {
+      Memory32Fixed (ReadWrite, 0xa01b0000, 0x1000)
+    })
+  }
+
+  Device (LPC0.IPMI) {
+    Name (_HID, "IPI0001")
+    Name (LORS, ResourceTemplate() {
+      QWordIO (
+        ResourceConsumer,
+	MinNotFixed,     // _MIF
+	MaxNotFixed,     // _MAF
+	PosDecode,
+	EntireRange,
+	0x0,             // _GRA
+	0xe4,            // _MIN
+	0x3fff,          // _MAX
+	0x0,             // _TRA
+	0x04,            // _LEN
+	, ,
+	BTIO
+      )
+    })
+
+Since the IO resources of the child devices need to be
+translated from LPC bus addresses to logical PIO addresses,
+and we shouldn't modify the resources of the devices
+generated in the FW scan, a per-child MFD is created as
+a substitute. The MFD IO resources will be the translated
+bus addresses of the ACPI child.
+
+Signed-off-by: John Garry <john.garry@huawei.com>
 Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
 Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>        #earlier draft
-Acked-by: Bjorn Helgaas <bhelgaas@google.com>
 Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
 Tested-by: dann frazier <dann.frazier@canonical.com>
 ---
- drivers/pci/pci.c        | 92 +++++++++---------------------------------------
- include/asm-generic/io.h |  2 +-
- 2 files changed, 18 insertions(+), 76 deletions(-)
+ drivers/bus/hisi_lpc.c | 202 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 202 insertions(+)
 
-diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index 3f30b7d..09c2490 100644
---- a/drivers/pci/pci.c
-+++ b/drivers/pci/pci.c
-@@ -22,6 +22,7 @@
- #include <linux/spinlock.h>
- #include <linux/string.h>
- #include <linux/log2.h>
-+#include <linux/logic_pio.h>
- #include <linux/pci-aspm.h>
- #include <linux/pm_wakeup.h>
- #include <linux/interrupt.h>
-@@ -3436,17 +3437,6 @@ int pci_request_regions_exclusive(struct pci_dev *pdev, const char *res_name)
- }
- EXPORT_SYMBOL(pci_request_regions_exclusive);
+diff --git a/drivers/bus/hisi_lpc.c b/drivers/bus/hisi_lpc.c
+index c331609..9d38cfa 100644
+--- a/drivers/bus/hisi_lpc.c
++++ b/drivers/bus/hisi_lpc.c
+@@ -12,6 +12,7 @@
+ #include <linux/delay.h>
+ #include <linux/io.h>
+ #include <linux/logic_pio.h>
++#include <linux/mfd/core.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/of_address.h>
+@@ -346,6 +347,204 @@ static void hisi_lpc_comm_out(void *hostdata, unsigned long pio,
+ 	.outs = hisi_lpc_comm_outs,
+ };
  
--#ifdef PCI_IOBASE
--struct io_range {
--	struct list_head list;
--	phys_addr_t start;
--	resource_size_t size;
--};
--
--static LIST_HEAD(io_range_list);
--static DEFINE_SPINLOCK(io_range_lock);
--#endif
--
- /*
-  * Record the PCI IO range (expressed as CPU physical address + size).
-  * Return a negative value if an error has occured, zero otherwise
-@@ -3454,51 +3444,28 @@ struct io_range {
- int pci_register_io_range(struct fwnode_handle *fwnode, phys_addr_t addr,
- 			resource_size_t	size)
- {
--	int err = 0;
--
-+	int ret = 0;
- #ifdef PCI_IOBASE
--	struct io_range *range;
--	resource_size_t allocated_size = 0;
--
--	/* check if the range hasn't been previously recorded */
--	spin_lock(&io_range_lock);
--	list_for_each_entry(range, &io_range_list, list) {
--		if (addr >= range->start && addr + size <= range->start + size) {
--			/* range already registered, bail out */
--			goto end_register;
--		}
--		allocated_size += range->size;
--	}
-+	struct logic_pio_hwaddr *range;
- 
--	/* range not registed yet, check for available space */
--	if (allocated_size + size - 1 > IO_SPACE_LIMIT) {
--		/* if it's too big check if 64K space can be reserved */
--		if (allocated_size + SZ_64K - 1 > IO_SPACE_LIMIT) {
--			err = -E2BIG;
--			goto end_register;
--		}
--
--		size = SZ_64K;
--		pr_warn("Requested IO range too big, new size set to 64K\n");
--	}
-+	if (!size || addr + size < addr)
++#ifdef CONFIG_ACPI
++#define MFD_CHILD_NAME_PREFIX DRV_NAME"-"
++#define MFD_CHILD_NAME_LEN (ACPI_ID_LEN + sizeof(MFD_CHILD_NAME_PREFIX) - 1)
++
++struct hisi_lpc_mfd_cell {
++	struct mfd_cell_acpi_match acpi_match;
++	char name[MFD_CHILD_NAME_LEN];
++	char pnpid[ACPI_ID_LEN];
++};
++
++static int hisi_lpc_acpi_xlat_io_res(struct acpi_device *adev,
++				     struct acpi_device *host,
++				     struct resource *res)
++{
++	unsigned long sys_port;
++	resource_size_t len = resource_size(res);
++
++	sys_port = logic_pio_trans_hwaddr(&host->fwnode, res->start, len);
++	if (sys_port == ~0UL)
++		return -EFAULT;
++
++	res->start = sys_port;
++	res->end = sys_port + len;
++
++	return 0;
++}
++
++/*
++ * hisi_lpc_acpi_set_io_res - set the resources for a child's MFD
++ * @child: the device node to be updated the I/O resource
++ * @hostdev: the device node associated with host controller
++ * @res: double pointer to be set to the address of translated resources
++ * @num_res: pointer to variable to hold the number of translated resources
++ *
++ * Returns 0 when successful, and a negative value for failure.
++ *
++ * For a given host controller, each child device will have an associated
++ * host-relative address resource. This function will return the translated
++ * logical PIO addresses for each child devices resources.
++ */
++static int hisi_lpc_acpi_set_io_res(struct device *child,
++				    struct device *hostdev,
++				    const struct resource **res,
++				    int *num_res)
++{
++	struct acpi_device *adev;
++	struct acpi_device *host;
++	struct resource_entry *rentry;
++	LIST_HEAD(resource_list);
++	struct resource *resources;
++	int count;
++	int i;
++
++	if (!child || !hostdev)
 +		return -EINVAL;
- 
--	/* add the range to the list */
- 	range = kzalloc(sizeof(*range), GFP_ATOMIC);
--	if (!range) {
--		err = -ENOMEM;
--		goto end_register;
--	}
-+	if (!range)
++
++	host = to_acpi_device(hostdev);
++	adev = to_acpi_device(child);
++
++	/* check the device state */
++	if (!adev->status.present) {
++		dev_dbg(child, "device is not present\n");
++		return -EIO;
++	}
++	/* whether the child had been enumerated? */
++	if (acpi_device_enumerated(adev)) {
++		dev_dbg(child, "has been enumerated\n");
++		return -EIO;
++	}
++
++	/*
++	 * The following code segment to retrieve the resources is common to
++	 * acpi_create_platform_device(), so consider a common helper function
++	 * in future.
++	 */
++	count = acpi_dev_get_resources(adev, &resource_list, NULL, NULL);
++	if (count <= 0) {
++		dev_dbg(child, "failed to get resources\n");
++		return count ? count : -EIO;
++	}
++
++	resources = devm_kcalloc(hostdev, count, sizeof(*resources),
++				 GFP_KERNEL);
++	if (!resources) {
++		dev_warn(hostdev, "could not allocate memory for %d resources\n",
++			 count);
++		acpi_dev_free_resource_list(&resource_list);
 +		return -ENOMEM;
++	}
++	count = 0;
++	list_for_each_entry(rentry, &resource_list, node)
++		resources[count++] = *rentry->res;
++
++	acpi_dev_free_resource_list(&resource_list);
++
++	/* translate the I/O resources */
++	for (i = 0; i < count; i++) {
++		int ret;
++
++		if (!(resources[i].flags & IORESOURCE_IO))
++			continue;
++		ret = hisi_lpc_acpi_xlat_io_res(adev, host, &resources[i]);
++		if (ret) {
++			dev_err(child, "translate IO range failed(%d)\n", ret);
++			return ret;
++		}
++	}
++	*res = resources;
++	*num_res = count;
++
++	return 0;
++}
++
++/*
++ * hisi_lpc_acpi_probe - probe children for ACPI FW
++ * @hostdev: LPC host device pointer
++ *
++ * Returns 0 when successful, and a negative value for failure.
++ *
++ * Scan all child devices and create a per-device MFD with
++ * logical PIO translated IO resources.
++ */
++static int hisi_lpc_acpi_probe(struct device *hostdev)
++{
++	struct acpi_device *adev = ACPI_COMPANION(hostdev);
++	struct hisi_lpc_mfd_cell *hisi_lpc_mfd_cells;
++	struct mfd_cell *mfd_cells;
++	struct acpi_device *child;
++	int size, ret, count = 0, cell_num = 0;
++
++	list_for_each_entry(child, &adev->children, node)
++		cell_num++;
++
++	/* allocate the mfd cell and companion ACPI info, one per child */
++	size = sizeof(*mfd_cells) + sizeof(*hisi_lpc_mfd_cells);
++	mfd_cells = devm_kcalloc(hostdev, cell_num, size, GFP_KERNEL);
++	if (!mfd_cells)
++		return -ENOMEM;
++
++	hisi_lpc_mfd_cells = (struct hisi_lpc_mfd_cell *)&mfd_cells[cell_num];
++	/* Only consider the children of the host */
++	list_for_each_entry(child, &adev->children, node) {
++		struct mfd_cell *mfd_cell = &mfd_cells[count];
++		struct hisi_lpc_mfd_cell *hisi_lpc_mfd_cell =
++					&hisi_lpc_mfd_cells[count];
++		struct mfd_cell_acpi_match *acpi_match =
++					&hisi_lpc_mfd_cell->acpi_match;
++		char *name = hisi_lpc_mfd_cell[count].name;
++		char *pnpid = hisi_lpc_mfd_cell[count].pnpid;
++		struct mfd_cell_acpi_match match = {
++			.pnpid = pnpid,
++		};
++
++		/*
++		 * For any instances of this host controller (hip06 and hip07
++		 * are the only chipsets), we would not have multiple slaves
++		 * with the same HID. And in any system we would have just one
++		 * controller active. So don't worrry about MFD name clashes.
++		 */
++		snprintf(name, MFD_CHILD_NAME_LEN, MFD_CHILD_NAME_PREFIX"%s",
++			 acpi_device_hid(child));
++		snprintf(pnpid, ACPI_ID_LEN, "%s", acpi_device_hid(child));
++
++		memcpy(acpi_match, &match, sizeof(*acpi_match));
++		mfd_cell->name = name;
++		mfd_cell->acpi_match = acpi_match;
++
++		ret = hisi_lpc_acpi_set_io_res(&child->dev, &adev->dev,
++					       &mfd_cell->resources,
++					       &mfd_cell->num_resources);
++		if (ret) {
++			dev_warn(&child->dev, "set resource fail(%d)\n", ret);
++			return ret;
++		}
++		count++;
++	}
++
++	ret = mfd_add_devices(hostdev, PLATFORM_DEVID_NONE,
++			      mfd_cells, cell_num, NULL, 0, NULL);
++	if (ret) {
++		dev_err(hostdev, "failed to add mfd cells (%d)\n", ret);
++		return ret;
++	}
++
++	return 0;
++}
++
++static const struct acpi_device_id hisi_lpc_acpi_match[] = {
++	{"HISI0191"},
++	{}
++};
++#else
++static int hisi_lpc_acpi_probe(struct device *dev)
++{
++	return -ENODEV;
++}
++#endif // CONFIG_ACPI
++
+ /*
+  * hisi_lpc_probe - the probe callback function for hisi lpc host,
+  *		   will finish all the initialization.
+@@ -391,6 +590,8 @@ static int hisi_lpc_probe(struct platform_device *pdev)
+ 	/* register the LPC host PIO resources */
+ 	if (!acpi_device)
+ 		ret = of_platform_populate(dev->of_node, NULL, NULL, dev);
++	else
++		ret = hisi_lpc_acpi_probe(dev);
+ 	if (ret)
+ 		return ret;
  
--	range->start = addr;
-+	range->fwnode = fwnode;
- 	range->size = size;
-+	range->hw_start = addr;
-+	range->flags = LOGIC_PIO_CPU_MMIO;
- 
--	list_add_tail(&range->list, &io_range_list);
--
--end_register:
--	spin_unlock(&io_range_lock);
-+	ret = logic_pio_register_range(range);
-+	if (ret)
-+		kfree(range);
- #endif
- 
--	return err;
-+	return ret;
- }
- 
- phys_addr_t pci_pio_to_address(unsigned long pio)
-@@ -3506,21 +3473,10 @@ phys_addr_t pci_pio_to_address(unsigned long pio)
- 	phys_addr_t address = (phys_addr_t)OF_BAD_ADDR;
- 
- #ifdef PCI_IOBASE
--	struct io_range *range;
--	resource_size_t allocated_size = 0;
--
--	if (pio > IO_SPACE_LIMIT)
-+	if (pio >= MMIO_UPPER_LIMIT)
- 		return address;
- 
--	spin_lock(&io_range_lock);
--	list_for_each_entry(range, &io_range_list, list) {
--		if (pio >= allocated_size && pio < allocated_size + range->size) {
--			address = range->start + pio - allocated_size;
--			break;
--		}
--		allocated_size += range->size;
--	}
--	spin_unlock(&io_range_lock);
-+	address = logic_pio_to_hwaddr(pio);
- #endif
- 
- 	return address;
-@@ -3529,21 +3485,7 @@ phys_addr_t pci_pio_to_address(unsigned long pio)
- unsigned long __weak pci_address_to_pio(phys_addr_t address)
- {
- #ifdef PCI_IOBASE
--	struct io_range *res;
--	resource_size_t offset = 0;
--	unsigned long addr = -1;
--
--	spin_lock(&io_range_lock);
--	list_for_each_entry(res, &io_range_list, list) {
--		if (address >= res->start && address < res->start + res->size) {
--			addr = address - res->start + offset;
--			break;
--		}
--		offset += res->size;
--	}
--	spin_unlock(&io_range_lock);
--
--	return addr;
-+	return logic_pio_trans_cpuaddr(address);
- #else
- 	if (address > IO_SPACE_LIMIT)
- 		return (unsigned long)-1;
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index f76fbd6..0016413 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -901,7 +901,7 @@ static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
- #define ioport_map ioport_map
- static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
- {
--	return PCI_IOBASE + (port & IO_SPACE_LIMIT);
-+	return PCI_IOBASE + (port & MMIO_UPPER_LIMIT);
- }
- #endif
- 
+@@ -414,6 +615,7 @@ static int hisi_lpc_probe(struct platform_device *pdev)
+ 	.driver = {
+ 		.name           = DRV_NAME,
+ 		.of_match_table = hisi_lpc_of_match,
++		.acpi_match_table = ACPI_PTR(hisi_lpc_acpi_match),
+ 	},
+ 	.probe = hisi_lpc_probe,
+ };
 -- 
 1.9.1
