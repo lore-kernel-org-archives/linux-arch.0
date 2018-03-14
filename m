@@ -1,34 +1,47 @@
-From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: Re: [PATCH 12/16] asm-generic: siginfo: remove obsolete #ifdefs
-Date: Wed, 14 Mar 2018 21:31:08 +0100
-Message-ID: <20180314203108.GA18775@isilmar-4.linta.de>
-References: <20180314143529.1456168-1-arnd@arndb.de>
- <20180314144614.1632190-1-arnd@arndb.de>
- <20180314144614.1632190-2-arnd@arndb.de>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: arc_usr_cmpxchg and preemption
+Date: Wed, 14 Mar 2018 20:38:53 +0000
+Message-ID: <1521059931.11552.51.camel@synopsys.com>
+References: <1521045375.11552.27.camel@synopsys.com>
+         <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
+         <20180314175352.GP4064@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180314144614.1632190-2-arnd@arndb.de>
+In-Reply-To: <20180314175352.GP4064@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-ID: <E18847B7F7A53446ACF7F7C86D6A353F@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>
+To: "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "peterz@infradead.org" <peterz@infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 14, 2018 at 03:43:47PM +0100, Arnd Bergmann wrote:
-> The frv, tile and blackfin architectures are being removed, so
-> we can clean up this header by removing all the special cases
-> except those for ia64.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-
-AFAICS, score is the only architecture which still defines
-
-	__ARCH_WANT_SYSCALL_NO_FLAGS
-	__ARCH_WANT_SYSCALL_OFF_T
-	__ARCH_WANT_SYSCALL_DEPRECATED .
-
-So maybe you want to clean up include/uapi/asm-generic/unistd.h as well?
-
-Thanks,
-	Dominik
+SGkgUGV0ZXIsIFZpbmVldCwNCg0KT24gV2VkLCAyMDE4LTAzLTE0IGF0IDE4OjUzICswMTAwLCBQ
+ZXRlciBaaWpsc3RyYSB3cm90ZToNCj4gT24gV2VkLCBNYXIgMTQsIDIwMTggYXQgMDk6NTg6MTlB
+TSAtMDcwMCwgVmluZWV0IEd1cHRhIHdyb3RlOg0KPiANCj4gPiBXZWxsIGl0IGlzIGJyb2tlbiB3
+cnQgdGhlIHNlbWFudGljcyB0aGUgc3lzY2FsbCBpcyBzdXBwb3NlZCB0byBwcm92aWRlLg0KPiA+
+IFByZWVtcHRpb24gZGlzYWJsaW5nIGlzIHdoYXQgcHJldmVudHMgYSBjb25jdXJyZW50IHRocmVh
+ZCBmcm9tIGNvbWluZyBpbiBhbmQNCj4gPiBtb2RpZnlpbmcgdGhlIHNhbWUgbG9jYXRpb24gKElt
+YWdpbmUgYSB2YXJpYWJsZSB3aGljaCBpcyBiZWluZyBjbXB4Y2hnDQo+ID4gY29uY3VycmVudGx5
+IGJ5IDIgdGhyZWFkcykuDQo+ID4gDQo+ID4gT25lIGFwcHJvYWNoIGlzIHRvIGRvIGl0IHRoZSBN
+SVBTIHdheSwgZW11bGF0ZSB0aGUgbGxzYyBmbGFnIC0gc2V0IGl0IHVuZGVyDQo+ID4gcHJlZW1w
+dGlvbiBkaXNhYmxlZCBzZWN0aW9uIGFuZCBjbGVhciBpdCBpbiBzd2l0Y2hfdG8NCj4gDQo+ICpz
+aHVkZGVyKi4uLiBqdXN0IGNhdGNoIHRoZSAtRUZBVUxULCBmb3JjZSB0aGUgd3JpdGUgZmF1bHQg
+YW5kIHJldHJ5Lg0KPiANCj4gU29tZXRoaW5nIGxpa2U6DQo+IA0KPiBpbnQgc3lzX2NtcHhjaGco
+dTMyIF9fdXNlciAqdXNlcl9wdHIsIHUzMiBvbGQsIHUzMiBuZXcpDQo+IHsNCj4gCXUzMiB2YWw7
+DQo+IAlpbnQgcmV0Ow0KPiANCj4gYWdhaW46DQo+IAlyZXQgPSAwOw0KPiANCj4gCXByZWVtcHRf
+ZGlzYWJsZSgpOw0KPiAJdmFsID0gZ2V0X3VzZXIodXNlcl9wdHIpOw0KPiAJaWYgKHZhbCA9PSBv
+bGQpDQo+IAkJcmV0ID0gcHV0X3VzZXIobmV3LCB1c2VyX3B0cik7DQo+IAlwcmVlbXB0X2VuYWJs
+ZSgpOw0KPiANCj4gCWlmIChyZXQgPT0gLUVGQVVMVCkgew0KPiAJCXN0cnVjdCBwYWdlICpwYWdl
+Ow0KPiAJCXJldCA9IGdldF91c2VyX3BhZ2VzX2Zhc3QoKHVuc2lnbmVkIGxvbmcpdXNlcl9wdHIs
+IDEsIDEsICZwYWdlKTsNCj4gCQlpZiAocmV0IDwgMCkNCj4gCQkJcmV0dXJuIHJldDsNCj4gCQlw
+dXRfcGFnZShwYWdlKTsNCj4gCQlnb3RvIGFnYWluOw0KDQpJIGd1ZXNzIHRoaXMganVtcCB3ZSBu
+ZWVkIHRvIGRvIG9ubHkgb25jZSwgcmlnaHQ/DQpJZiBmb3Igd2hhdGV2ZXIgcmVhc29uIGdldF91
+c2VyX3BhZ2VzX2Zhc3QoKSBmYWlscyB3ZSByZXR1cm4gaW1tZWRpYXRlbHkNCmFuZCBpZiBpdCBz
+dWNjZWVkcyB0aGVyZSdzIG5vIHJlYXNvbiBmb3IgcHV0X3VzZXIoKSB0byBub3Qgc3VjY2VlZCBh
+cw0KcmVxdWlyZWQgcGFnZSBpcyBzdXBwb3NlZCB0byBiZSBwcmVwYXJlZCBmb3Igd3JpdGUuDQoN
+Ck90aGVyd2lzZSBpZiBzb21ldGhpbmcgZ29lcyB3YXkgdG9vIGJhZCB3ZSBtYXkgZW5kLXVwIGlu
+IGFuIGluZmluaXRlIGxvb3ANCndoaWNoIHdlJ2QgYmV0dGVyIHByZXZlbnQuDQoNCj4gCX0NCj4g
+DQo+IAlyZXR1cm4gcmV0Ow0KPiB9DQoNCkBWaW5lZXQsIGFyZSB5b3UgT0sgd2l0aCBwcm9wb3Nl
+ZCBpbXBsZW1lbnRhdGlvbj8NCg0KLUFsZXhleQ0K
