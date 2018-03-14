@@ -1,68 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:33798 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750862AbeCNQMq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 12:12:46 -0400
+Received: from out03.mta.xmission.com ([166.70.13.233]:56419 "EHLO
+        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751353AbeCNQjR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 12:39:17 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <20180314143529.1456168-1-arnd@arndb.de>
+        <20180314144614.1632190-1-arnd@arndb.de>
+        <20180314144614.1632190-2-arnd@arndb.de>
+Date: Wed, 14 Mar 2018 11:38:29 -0500
+In-Reply-To: <20180314144614.1632190-2-arnd@arndb.de> (Arnd Bergmann's message
+        of "Wed, 14 Mar 2018 15:43:47 +0100")
+Message-ID: <87r2ompq7u.fsf@xmission.com>
 MIME-Version: 1.0
-In-Reply-To: <20180314040333.3291-1-deepa.kernel@gmail.com>
-References: <20180314040333.3291-1-deepa.kernel@gmail.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 14 Mar 2018 17:12:44 +0100
-Message-ID: <CAK8P3a3hbD=-P1wBwXEOnMdewGsUpZPERBHv6wo+3qqDkZD1qg@mail.gmail.com>
-Subject: Re: [PATCH v5 00/10] posix_clocks: Prepare syscalls for 64 bit time_t conversion
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
+Subject: Re: [PATCH 12/16] asm-generic: siginfo: remove obsolete #ifdefs
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Deepa Dinamani <deepa.kernel@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, John Stultz <john.stultz@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, cohuck@redhat.com, David Miller <davem@davemloft.net>, Helge Deller <deller@gmx.de>, devel@driverdev.osuosl.org, gerald.schaefer@de.ibm.com, gregkh <gregkh@linuxfoundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Jan Hoeppner <hoeppner@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Julian Wiedmann <jwi@linux.vnet.ibm.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, Mark Rutland <mark.rutland@arm.com>, Ingo Molnar <mingo@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>, Peter Oberparleiter <oberpar@linux.vnet.ibm.com>, oprofile-list@lists.sf.net, Paul Mackerras <paulus@samba.org>, Peter Zijlstra <peterz@infradead.org>, Ralf Baechle <ralf@linux-mips.org>, Steven Rostedt <rostedt@goodmis.org>, Robert Richter <rric@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, sebott@linux.vnet.ibm.com, sparclinux <sparclinux@vger.kernel.org>, Stefan Haberland <sth@linux.vnet.ibm.com>, Ursula Braun <ubraun@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20180314161244.TXFNpqKeRHIJQrvo3xdCip4HsPUYAuSB0Gmii3-O8pg@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20180314163829.yG-N_oJ5mPKUCYq0rFDsuVq012hgqhQKlaVTO65jv_4@z>
 
-On Wed, Mar 14, 2018 at 5:03 AM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
-> The series is a preparation series for individual architectures
-> to use 64 bit time_t syscalls in compat and 32 bit emulation modes.
->
-> This is a follow up to the series Arnd Bergmann posted:
-> https://sourceware.org/ml/libc-alpha/2015-05/msg00070.html [1]
->
-> Thomas, Arnd, this seems ready to be merged now.
-> Can you help get this merged?
->
-> Big picture is as per the lwn article:
-> https://lwn.net/Articles/643234/ [2]
->
-> The series is directed at converting posix clock syscalls:
-> clock_gettime, clock_settime, clock_getres and clock_nanosleep
-> to use a new data structure __kernel_timespec at syscall boundaries.
-> __kernel_timespec maintains 64 bit time_t across all execution modes.
->
-> vdso will be handled as part of each architecture when they enable
-> support for 64 bit time_t.
->
-> The compat syscalls are repurposed to provide backward compatibility
-> by using them as native syscalls as well for 32 bit architectures.
-> They will continue to use timespec at syscall boundaries.
->
-> CONFIG_64_BIT_TIME controls whether the syscalls use __kernel_timespec
-> or timespec at syscall boundaries.
->
-> The series does the following:
-> 1. Enable compat syscalls on 32 bit architectures.
-> 2. Add a new __kernel_timespec type to be used as the data structure
->    for all the new syscalls.
-> 3. Add new config CONFIG_64BIT_TIME(intead of the CONFIG_COMPAT_TIME in
->    [1] and [2] to switch to new definition of __kernel_timespec. It is
->    the same as struct timespec otherwise.
-> 4. Add new CONFIG_32BIT_TIME to conditionally compile compat syscalls.
+Arnd Bergmann <arnd@arndb.de> writes:
 
-I've applied all 10 patches to my y2038 git branch [1], which is part
-of linux-next,
-to give it a little wider testing. If everything goes well, I'd send a
-pull request to
-Thomas next week so he can integrate it into tip from there, or (if he prefers)
-send it directly to Linus in the merge window.
+> The frv, tile and blackfin architectures are being removed, so
+> we can clean up this header by removing all the special cases
+> except those for ia64.
 
-Thanks a lot for your persistence and your work on this!
+Acked-by: "Eric W. Biederman" <ebiederm@xmission.com>
 
-      Arnd
-
-[1] git://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git#y2038
+>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  include/uapi/asm-generic/siginfo.h | 36 ++----------------------------------
+>  1 file changed, 2 insertions(+), 34 deletions(-)
+>
+> diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+> index 85dc965afd89..b2ebf16c391a 100644
+> --- a/include/uapi/asm-generic/siginfo.h
+> +++ b/include/uapi/asm-generic/siginfo.h
+> @@ -179,28 +179,13 @@ typedef struct siginfo {
+>   * SIGILL si_codes
+>   */
+>  #define ILL_ILLOPC	1	/* illegal opcode */
+> -#ifdef __bfin__
+> -# define ILL_ILLPARAOP	2	/* illegal opcode combine */
+> -#endif
+>  #define ILL_ILLOPN	2	/* illegal operand */
+>  #define ILL_ILLADR	3	/* illegal addressing mode */
+>  #define ILL_ILLTRP	4	/* illegal trap */
+> -#ifdef __bfin__
+> -# define ILL_ILLEXCPT	4	/* unrecoverable exception */
+> -#endif
+>  #define ILL_PRVOPC	5	/* privileged opcode */
+>  #define ILL_PRVREG	6	/* privileged register */
+>  #define ILL_COPROC	7	/* coprocessor error */
+>  #define ILL_BADSTK	8	/* internal stack error */
+> -#ifdef __bfin__
+> -# define ILL_CPLB_VI	9	/* D/I CPLB protect violation */
+> -# define ILL_CPLB_MISS	10	/* D/I CPLB miss */
+> -# define ILL_CPLB_MULHIT 11	/* D/I CPLB multiple hit */
+> -#endif
+> -#ifdef __tile__
+> -# define ILL_DBLFLT	9	/* double fault */
+> -# define ILL_HARDWALL	10	/* user networks hardwall violation */
+> -#endif
+>  #ifdef __ia64__
+>  # define ILL_BADIADDR	9	/* unimplemented instruction address */
+>  # define __ILL_BREAK	10	/* illegal break */
+> @@ -219,9 +204,6 @@ typedef struct siginfo {
+>  #define FPE_FLTRES	6	/* floating point inexact result */
+>  #define FPE_FLTINV	7	/* floating point invalid operation */
+>  #define FPE_FLTSUB	8	/* subscript out of range */
+> -#ifdef __frv__
+> -# define FPE_MDAOVF	9	/* media overflow */
+> -#endif
+>  #ifdef __ia64__
+>  # define __FPE_DECOVF	9	/* decimal overflow */
+>  # define __FPE_DECDIV	10	/* decimal division by zero */
+> @@ -236,11 +218,7 @@ typedef struct siginfo {
+>   */
+>  #define SEGV_MAPERR	1	/* address not mapped to object */
+>  #define SEGV_ACCERR	2	/* invalid permissions for mapped object */
+> -#ifdef __bfin__
+> -# define SEGV_STACKFLOW	3	/* stack overflow */
+> -#else
+> -# define SEGV_BNDERR	3	/* failed address bound checks */
+> -#endif
+> +#define SEGV_BNDERR	3	/* failed address bound checks */
+>  #ifdef __ia64__
+>  # define __SEGV_PSTKOVF	4	/* paragraph stack overflow */
+>  #else
+> @@ -254,12 +232,8 @@ typedef struct siginfo {
+>  #define BUS_ADRALN	1	/* invalid address alignment */
+>  #define BUS_ADRERR	2	/* non-existent physical address */
+>  #define BUS_OBJERR	3	/* object specific hardware error */
+> -#ifdef __bfin__
+> -# define BUS_OPFETCH	4	/* error from instruction fetch */
+> -#else
+>  /* hardware memory error consumed on a machine check: action required */
+> -# define BUS_MCEERR_AR	4
+> -#endif
+> +#define BUS_MCEERR_AR	4
+>  /* hardware memory error detected in process but not consumed: action optional*/
+>  #define BUS_MCEERR_AO	5
+>  #define NSIGBUS		5
+> @@ -271,12 +245,6 @@ typedef struct siginfo {
+>  #define TRAP_TRACE	2	/* process trace trap */
+>  #define TRAP_BRANCH     3	/* process taken branch trap */
+>  #define TRAP_HWBKPT     4	/* hardware breakpoint/watchpoint */
+> -#ifdef __bfin__
+> -# define TRAP_STEP	1	/* single-step breakpoint */
+> -# define TRAP_TRACEFLOW	2	/* trace buffer overflow */
+> -# define TRAP_WATCHPT	3	/* watchpoint match */
+> -# define TRAP_ILLTRAP	4	/* illegal trap */
+> -#endif
+>  #define NSIGTRAP	4
+>  
+>  /*
