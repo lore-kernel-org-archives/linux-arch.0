@@ -1,28 +1,31 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: Do we need to disable preemption in flush_tlb_range()?
-Date: Wed, 14 Mar 2018 19:15:11 +0000
-Message-ID: <1521054910.11552.44.camel@synopsys.com>
-References: <1519917189.13866.6.camel@synopsys.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 08/16] procfs: remove CONFIG_HARDWALL dependency
+Date: Wed, 14 Mar 2018 21:18:00 +0100
+Message-ID: <CAK8P3a1fJEY7iy9FghcU-WE8Q=gwZxU6b=aVoFPsbR5sHGkyUQ@mail.gmail.com>
+References: <20180314143755.1508262-1-arnd@arndb.de> <20180314174150.GA2068@avx2>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1519917189.13866.6.camel@synopsys.com>
-Content-Language: en-US
-Content-ID: <30A2D9E66292534496C2D08722D7A51C@internal.synopsys.com>
+In-Reply-To: <20180314174150.GA2068@avx2>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+To: Alexey Dobriyan <adobriyan@gmail.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Akinobu Mita <akinobu.mita@gmail.com>, Dmitry Vyukov <dvyukov@google.com>, Michal Hocko <mhocko@suse.com>
 List-Id: linux-arch.vger.kernel.org
 
-UGluZyENCg0KT24gVGh1LCAyMDE4LTAzLTAxIGF0IDE4OjEzICswMzAwLCBBbGV4ZXkgQnJvZGtp
-biB3cm90ZToNCj4gSGkgVmluZWV0LA0KPiANCj4gSnVzdCBub3RpY2VkIHRoYXQgaW4gY29tbWVu
-dHMgZm9yIHNtcF9jYWxsX2Z1bmN0aW9uX21hbnkoKSBpdCBpcyBzYWlkIHRoYXQNCj4gcHJlZW1w
-dGlvbiBtdXN0IGJlIGRpc2FibGVkIGR1cmluZyBpdHMgZXhlY3V0aW9uLiBBbmQgdGhhdCBmdW5j
-dGlvbiBnZXRzIGV4ZWN1dGVkDQo+IGFtb25nIG90aGVyIHdheXMgbGlrZSB0aGF0Og0KPiAtLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4gICBmbHVz
-aF90bGJfcmFuZ2UoKQ0KPiAgICAgLT4gb25fZWFjaF9jcHVfbWFzaygpDQo+ICAgICAgICAgIC0+
-IHNtcF9jYWxsX2Z1bmN0aW9uX21hbnkoKQ0KPiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4gDQo+IEknbSBub3Qgc2VlaW5nIHJpZ2h0IG5vdyBh
-bnkgcmVhbCBwcm9ibGVtIHdpdGggY3VycmVudCBpbXBsZW1lbnRhdGlvbiBidXQNCj4gc29tZSBh
-cmNoaXRlY3R1cmVzIGRvIHRoYXQgdGh1cyB0aGUgcXVlc3Rpb24uDQo+IA0KPiAtQWxleGV5
+On Wed, Mar 14, 2018 at 6:41 PM, Alexey Dobriyan <adobriyan@gmail.com> wrote:
+> On Wed, Mar 14, 2018 at 03:37:37PM +0100, Arnd Bergmann wrote:
+>> Hardwall is a tile specific feature, and with the removal of the
+>> tile architecture, this has become dead code, so let's remove it.
+>>
+>> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+>
+> ACK
+>
+> Although it should go via tile tree for "atomicity".
+
+Both the arch/tile removal and this patch are in my asm-generic tree, as there
+is no longer a tile specific git.
+
+Thanks for your Ack!
+
+       Arnd
