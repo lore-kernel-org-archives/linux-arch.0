@@ -1,85 +1,73 @@
-From: Christopher Lameter <cl@linux.com>
-Subject: Re: [PATCH v2 06/27] x86/entry/64: Adapt assembly for PIE support
-Date: Wed, 14 Mar 2018 10:54:58 -0500 (CDT)
-Message-ID: <alpine.DEB.2.20.1803141051210.14471@nuc-kabylake>
-References: <20180313205945.245105-1-thgarnie@google.com> <20180313205945.245105-7-thgarnie@google.com> <20180314102951.GQ4043@hirez.programming.kicks-ass.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v5 00/10] posix_clocks: Prepare syscalls for 64 bit time_t
+ conversion
+Date: Wed, 14 Mar 2018 17:12:44 +0100
+Message-ID: <CAK8P3a3hbD=-P1wBwXEOnMdewGsUpZPERBHv6wo+3qqDkZD1qg@mail.gmail.com>
+References: <20180314040333.3291-1-deepa.kernel@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <kernel-hardening-return-12603-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20180314102951.GQ4043@hirez.programming.kicks-ass.net>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Garnier <thgarnie@google.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S . Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Kate Stewart <kstewart@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, Philippe Ombredanne <pombredanne@nexb.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Matthias Kaehlcke <mka@chromium.org>, Kees Cook <keescook@chromium.org>, Tom Lendacky <thomas.lendacky@amd.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Andy Lutomirski <luto@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Borislav Petkov <bp@alien8.de>Borislav
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <driverdev-devel-bounces@linuxdriverproject.org>
+In-Reply-To: <20180314040333.3291-1-deepa.kernel@gmail.com>
+List-Unsubscribe: <http://driverdev.linuxdriverproject.org/mailman/options/driverdev-devel>,
+ <mailto:driverdev-devel-request@linuxdriverproject.org?subject=unsubscribe>
+List-Archive: <http://driverdev.linuxdriverproject.org/pipermail/driverdev-devel/>
+List-Post: <mailto:driverdev-devel@linuxdriverproject.org>
+List-Help: <mailto:driverdev-devel-request@linuxdriverproject.org?subject=help>
+List-Subscribe: <http://driverdev.linuxdriverproject.org/mailman/listinfo/driverdev-devel>,
+ <mailto:driverdev-devel-request@linuxdriverproject.org?subject=subscribe>
+Errors-To: driverdev-devel-bounces@linuxdriverproject.org
+Sender: "devel" <driverdev-devel-bounces@linuxdriverproject.org>
+To: Deepa Dinamani <deepa.kernel@gmail.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, "open list:RALINK MIPS ARCHITECTURE" <linux-mips@linux-mips.org>, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Stefan Haberland <sth@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux <sparclinux@vger.kernel.org>, devel@driverdev.osuosl.org, linux-s390 <linux-s390@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>, Michael Ellerman <mpe@ellerman.id.au>, Helge Deller <deller@gmx.de>, the arch/x86 maintainers <x86@kernel.org>, sebott@linux.vnet.ibm.com, "James E.J. Bottomley" <jejb@parisc-linux.org>, Will Deacon <will.deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Ingo Molnar <mingo@redhat.com>, oprofile-list@lists.sf.net, Catalin Marinas <catalin.marinas@arm.com>linu
 List-Id: linux-arch.vger.kernel.org
 
-
-
-On Wed, 14 Mar 2018, Peter Zijlstra wrote:
-
-> On Tue, Mar 13, 2018 at 01:59:24PM -0700, Thomas Garnier wrote:
-> > @@ -1576,7 +1578,9 @@ first_nmi:
-> >  	addq	$8, (%rsp)	/* Fix up RSP */
-> >  	pushfq			/* RFLAGS */
-> >  	pushq	$__KERNEL_CS	/* CS */
-> > -	pushq	$1f		/* RIP */
-> > +	pushq	%rax		/* Support Position Independent Code */
-> > +	leaq	1f(%rip), %rax	/* RIP */
-> > +	xchgq	%rax, (%rsp)	/* Restore RAX, put 1f */
-> >  	iretq			/* continues at repeat_nmi below */
-> >  	UNWIND_HINT_IRET_REGS
-> >  1:
+On Wed, Mar 14, 2018 at 5:03 AM, Deepa Dinamani <deepa.kernel@gmail.com> wrote:
+> The series is a preparation series for individual architectures
+> to use 64 bit time_t syscalls in compat and 32 bit emulation modes.
 >
-> Urgh, xchg with a memop has an implicit LOCK prefix.
+> This is a follow up to the series Arnd Bergmann posted:
+> https://sourceware.org/ml/libc-alpha/2015-05/msg00070.html [1]
+>
+> Thomas, Arnd, this seems ready to be merged now.
+> Can you help get this merged?
+>
+> Big picture is as per the lwn article:
+> https://lwn.net/Articles/643234/ [2]
+>
+> The series is directed at converting posix clock syscalls:
+> clock_gettime, clock_settime, clock_getres and clock_nanosleep
+> to use a new data structure __kernel_timespec at syscall boundaries.
+> __kernel_timespec maintains 64 bit time_t across all execution modes.
+>
+> vdso will be handled as part of each architecture when they enable
+> support for 64 bit time_t.
+>
+> The compat syscalls are repurposed to provide backward compatibility
+> by using them as native syscalls as well for 32 bit architectures.
+> They will continue to use timespec at syscall boundaries.
+>
+> CONFIG_64_BIT_TIME controls whether the syscalls use __kernel_timespec
+> or timespec at syscall boundaries.
+>
+> The series does the following:
+> 1. Enable compat syscalls on 32 bit architectures.
+> 2. Add a new __kernel_timespec type to be used as the data structure
+>    for all the new syscalls.
+> 3. Add new config CONFIG_64BIT_TIME(intead of the CONFIG_COMPAT_TIME in
+>    [1] and [2] to switch to new definition of __kernel_timespec. It is
+>    the same as struct timespec otherwise.
+> 4. Add new CONFIG_32BIT_TIME to conditionally compile compat syscalls.
 
-this_cpu_xchg uses no lock cmpxchg as a replacement to reduce latency.
+I've applied all 10 patches to my y2038 git branch [1], which is part
+of linux-next,
+to give it a little wider testing. If everything goes well, I'd send a
+pull request to
+Thomas next week so he can integrate it into tip from there, or (if he prefers)
+send it directly to Linus in the merge window.
 
-From linux/arch/x86/include/asm/percpu.h
+Thanks a lot for your persistence and your work on this!
 
-/*
- * xchg is implemented using cmpxchg without a lock prefix. xchg is
- * expensive due to the implied lock prefix.  The processor cannot prefetch
- * cachelines if xchg is used.
- */
-#define percpu_xchg_op(var, nval)                                       \
-({                                                                      \
-        typeof(var) pxo_ret__;                                          \
-        typeof(var) pxo_new__ = (nval);                                 \
-        switch (sizeof(var)) {                                          \
-        case 1:                                                         \
-                asm("\n\tmov "__percpu_arg(1)",%%al"                    \
-                    "\n1:\tcmpxchgb %2, "__percpu_arg(1)                \
-                    "\n\tjnz 1b"                                        \
-                            : "=&a" (pxo_ret__), "+m" (var)             \
-                            : "q" (pxo_new__)                           \
-                            : "memory");                                \
-                break;                                                  \
-        case 2:                                                         \
-                asm("\n\tmov "__percpu_arg(1)",%%ax"                    \
-                    "\n1:\tcmpxchgw %2, "__percpu_arg(1)                \
-                    "\n\tjnz 1b"                                        \
-                            : "=&a" (pxo_ret__), "+m" (var)             \
-                            : "r" (pxo_new__)                           \
-                            : "memory");                                \
-                break;                                                  \
-        case 4:                                                         \
-                asm("\n\tmov "__percpu_arg(1)",%%eax"                   \
-                    "\n1:\tcmpxchgl %2, "__percpu_arg(1)                \
-                    "\n\tjnz 1b"                                        \
-                            : "=&a" (pxo_ret__), "+m" (var)             \
-                            : "r" (pxo_new__)                           \
-                            : "memory");                                \
-                break;                                                  \
-        case 8:                                                         \
-                asm("\n\tmov "__percpu_arg(1)",%%rax"                   \
-                    "\n1:\tcmpxchgq %2, "__percpu_arg(1)                \
-                    "\n\tjnz 1b"                                        \
-                            : "=&a" (pxo_ret__), "+m" (var)             \
-                            : "r" (pxo_new__)                           \
-                            : "memory");                                \
-                break;                                                  \
-        default: __bad_percpu_size();                                   \
-        }                                                               \
-        pxo_ret__;                                                      \
+      Arnd
+
+[1] git://git.kernel.org/pub/scm/linux/kernel/git/arnd/playground.git#y2038
