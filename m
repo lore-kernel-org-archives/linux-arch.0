@@ -1,38 +1,71 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 21/27] x86/ftrace: Adapt function tracing for PIE
-	support
-Date: Wed, 14 Mar 2018 11:35:37 +0100
-Message-ID: <20180314103537.GR4043@hirez.programming.kicks-ass.net>
-References: <20180313205945.245105-1-thgarnie@google.com>
-	<20180313205945.245105-22-thgarnie@google.com>
+From: Marc Zyngier <marc.zyngier@arm.com>
+Subject: Re: [PATCH v1 4/4] Revert "arm64: Enforce BBM for huge IO/VMAP
+ mappings"
+Date: Wed, 14 Mar 2018 10:46:04 +0000
+Message-ID: <bdcc02a1-cf1b-4887-06e9-4867415ca214@arm.com>
+References: <1521017305-28518-1-git-send-email-cpandya@codeaurora.org>
+ <1521017305-28518-5-git-send-email-cpandya@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <20180313205945.245105-22-thgarnie@google.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Thomas Garnier <thgarnie@google.com>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Michal Hocko <mhocko@suse.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Petr Mladek <pmladek@suse.com>, Len Brown <len.brown@intel.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Christopher Li <sparse@chrisli.org>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, Pavel Machek <pavel@ucw.cz>, "H . Peter Anvin" <hpa@zytor.com>, kernel-hardening@lists.openwall.com, Christoph Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Alok Kataria <akataria@vmware.com>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Herbert Xu <herbert@gondor.apana.org.au>, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Joerg
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1521017305-28518-5-git-send-email-cpandya@codeaurora.org>
+Content-Language: en-GB
+Sender: linux-kernel-owner@vger.kernel.org
+To: Chintan Pandya <cpandya@codeaurora.org>, catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de
+Cc: mark.rutland@arm.com, ard.biesheuvel@linaro.org, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 13, 2018 at 01:59:39PM -0700, Thomas Garnier wrote:
-> +	/*
-> +	 * If PIE is not enabled or no GOT call was found, default to the
-> +	 * original approach to code modification.
-> +	 */
-> +	if (!IS_ENABLED(CONFIG_X86_PIE)
-> +	    || probe_kernel_read(replaced, (void *)ip, sizeof(replaced))
-> +	    || memcmp(replaced, got_call_preinsn, sizeof(got_call_preinsn)))
-> +		return ftrace_modify_code_direct(ip, old_code, new_code);
+On 14/03/18 08:48, Chintan Pandya wrote:
+> This commit 15122ee2c515a ("arm64: Enforce BBM for huge
+> IO/VMAP mappings") is a temporary work-around until the
+> issues with CONFIG_HAVE_ARCH_HUGE_VMAP gets fixed.
+> 
+> Revert this change as we have fixes for the issue.
+> 
+> Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
+> ---
+>  arch/arm64/mm/mmu.c | 8 --------
+>  1 file changed, 8 deletions(-)
+> 
+> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+> index c0df264..19116c6 100644
+> --- a/arch/arm64/mm/mmu.c
+> +++ b/arch/arm64/mm/mmu.c
+> @@ -935,10 +935,6 @@ int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
+>  	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
+>  					pgprot_val(mk_sect_prot(prot)));
+>  
+> -	/* ioremap_page_range doesn't honour BBM */
+> -	if (pud_present(READ_ONCE(*pudp)))
+> -		return 0;
+> -
+>  	BUG_ON(phys & ~PUD_MASK);
+>  	if (pud_val(*pud) && !pud_huge(*pud))
+>  		free_page((unsigned long)__va(pud_val(*pud)));
+> @@ -952,10 +948,6 @@ int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
+>  	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
+>  					pgprot_val(mk_sect_prot(prot)));
+>  
+> -	/* ioremap_page_range doesn't honour BBM */
+> -	if (pmd_present(READ_ONCE(*pmdp)))
+> -		return 0;
+> -
+>  	BUG_ON(phys & ~PMD_MASK);
+>  	if (pmd_val(*pmd) && !pmd_huge(*pmd))
+>  		free_page((unsigned long)__va(pmd_val(*pmd)));
+> 
 
-The predominant kernel style is to place the operators at the end of the
-previous line, not first on the new line.
+But you're still not doing a BBM, right? What prevents a speculative
+access from using the (now freed) entry? The TLB invalidation you've
+introduce just narrows the window where bad things can happen.
+
+My gut feeling is that this series introduces more bugs than it fixes...
+If you're going to fix it, please fix it by correctly implementing BBM
+for huge mappings.
+
+Or am I missing something terribly obvious?
+
+	M.
+-- 
+Jazz is not dead. It just smells funny...
