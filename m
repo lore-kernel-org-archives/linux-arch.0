@@ -1,101 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:44415 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.133]:36877 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751394AbeCNOk6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 10:40:58 -0400
+        with ESMTP id S1751739AbeCNOiH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 10:38:07 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 10/16] mm: remove obsolete alloc_remap()
-Date: Wed, 14 Mar 2018 15:39:09 +0100
-Message-ID: <20180314143958.1548568-1-arnd@arndb.de>
-In-Reply-To: <20180314143529.1456168-1-arnd@arndb.de>
-References: <20180314143529.1456168-1-arnd@arndb.de>
+Subject: [PATCH 08/16] procfs: remove CONFIG_HARDWALL dependency
+Date: Wed, 14 Mar 2018 15:37:37 +0100
+Message-ID: <20180314143755.1508262-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Pavel Tatashin <pasha.tatashin@oracle.com>, Michal Hocko <mhocko@suse.com>, Vlastimil Babka <vbabka@suse.cz>, Mel Gorman <mgorman@techsingularity.net>, Johannes Weiner <hannes@cmpxchg.org>, Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ingo Molnar <mingo@kernel.org>, Petr Tesarik <ptesarik@suse.com>, Dave Hansen <dave.hansen@linux.intel.com>, Wei Yang <richard.weiyang@gmail.com>, linux-mm@kvack.org
-Message-ID: <20180314143909.pe3ZU8NeACMlK2ArmhtNigdWQyCQHhfsThAJASilPxs@z>
+To: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Alexey Dobriyan <adobriyan@gmail.com>, Akinobu Mita <akinobu.mita@gmail.com>, Dmitry Vyukov <dvyukov@google.com>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20180314143737.tvJieXLBYRh1z0GBS6hHQJi6SGK3Ethv-WRgWY0HlYw@z>
 
-Tile was the only remaining architecture to implement alloc_remap(),
-and since that is being removed, there is no point in keeping this
-function.
-
-Removing all callers simplifies the mem_map handling.
+Hardwall is a tile specific feature, and with the removal of the
+tile architecture, this has become dead code, so let's remove it.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/linux/bootmem.h |  9 ---------
- mm/page_alloc.c         |  5 +----
- mm/sparse.c             | 15 ---------------
- 3 files changed, 1 insertion(+), 28 deletions(-)
+ fs/proc/base.c | 9 ---------
+ 1 file changed, 9 deletions(-)
 
-diff --git a/include/linux/bootmem.h b/include/linux/bootmem.h
-index a53063e9d7d8..7942a96b1a9d 100644
---- a/include/linux/bootmem.h
-+++ b/include/linux/bootmem.h
-@@ -364,15 +364,6 @@ static inline void __init memblock_free_late(
- }
- #endif /* defined(CONFIG_HAVE_MEMBLOCK) && defined(CONFIG_NO_BOOTMEM) */
- 
--#ifdef CONFIG_HAVE_ARCH_ALLOC_REMAP
--extern void *alloc_remap(int nid, unsigned long size);
--#else
--static inline void *alloc_remap(int nid, unsigned long size)
--{
--	return NULL;
--}
--#endif /* CONFIG_HAVE_ARCH_ALLOC_REMAP */
--
- extern void *alloc_large_system_hash(const char *tablename,
- 				     unsigned long bucketsize,
- 				     unsigned long numentries,
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index cb416723538f..484e21062228 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -6199,10 +6199,7 @@ static void __ref alloc_node_mem_map(struct pglist_data *pgdat)
- 		end = pgdat_end_pfn(pgdat);
- 		end = ALIGN(end, MAX_ORDER_NR_PAGES);
- 		size =  (end - start) * sizeof(struct page);
--		map = alloc_remap(pgdat->node_id, size);
--		if (!map)
--			map = memblock_virt_alloc_node_nopanic(size,
--							       pgdat->node_id);
-+		map = memblock_virt_alloc_node_nopanic(size, pgdat->node_id);
- 		pgdat->node_mem_map = map + offset;
- 	}
- 	pr_debug("%s: node %d, pgdat %08lx, node_mem_map %08lx\n",
-diff --git a/mm/sparse.c b/mm/sparse.c
-index 7af5e7a92528..65bb52599f90 100644
---- a/mm/sparse.c
-+++ b/mm/sparse.c
-@@ -427,10 +427,6 @@ struct page __init *sparse_mem_map_populate(unsigned long pnum, int nid,
- 	struct page *map;
- 	unsigned long size;
- 
--	map = alloc_remap(nid, sizeof(struct page) * PAGES_PER_SECTION);
--	if (map)
--		return map;
--
- 	size = PAGE_ALIGN(sizeof(struct page) * PAGES_PER_SECTION);
- 	map = memblock_virt_alloc_try_nid(size,
- 					  PAGE_SIZE, __pa(MAX_DMA_ADDRESS),
-@@ -446,17 +442,6 @@ void __init sparse_mem_maps_populate_node(struct page **map_map,
- 	unsigned long pnum;
- 	unsigned long size = sizeof(struct page) * PAGES_PER_SECTION;
- 
--	map = alloc_remap(nodeid, size * map_count);
--	if (map) {
--		for (pnum = pnum_begin; pnum < pnum_end; pnum++) {
--			if (!present_section_nr(pnum))
--				continue;
--			map_map[pnum] = map;
--			map += size;
--		}
--		return;
--	}
--
- 	size = PAGE_ALIGN(size);
- 	map = memblock_virt_alloc_try_nid_raw(size * map_count,
- 					      PAGE_SIZE, __pa(MAX_DMA_ADDRESS),
+diff --git a/fs/proc/base.c b/fs/proc/base.c
+index 9298324325ed..d53246863cfb 100644
+--- a/fs/proc/base.c
++++ b/fs/proc/base.c
+@@ -94,9 +94,6 @@
+ #include <linux/sched/stat.h>
+ #include <linux/flex_array.h>
+ #include <linux/posix-timers.h>
+-#ifdef CONFIG_HARDWALL
+-#include <asm/hardwall.h>
+-#endif
+ #include <trace/events/oom.h>
+ #include "internal.h"
+ #include "fd.h"
+@@ -3002,9 +2999,6 @@ static const struct pid_entry tgid_base_stuff[] = {
+ #ifdef CONFIG_TASK_IO_ACCOUNTING
+ 	ONE("io",	S_IRUSR, proc_tgid_io_accounting),
+ #endif
+-#ifdef CONFIG_HARDWALL
+-	ONE("hardwall",   S_IRUGO, proc_pid_hardwall),
+-#endif
+ #ifdef CONFIG_USER_NS
+ 	REG("uid_map",    S_IRUGO|S_IWUSR, proc_uid_map_operations),
+ 	REG("gid_map",    S_IRUGO|S_IWUSR, proc_gid_map_operations),
+@@ -3393,9 +3387,6 @@ static const struct pid_entry tid_base_stuff[] = {
+ #ifdef CONFIG_TASK_IO_ACCOUNTING
+ 	ONE("io",	S_IRUSR, proc_tid_io_accounting),
+ #endif
+-#ifdef CONFIG_HARDWALL
+-	ONE("hardwall",   S_IRUGO, proc_pid_hardwall),
+-#endif
+ #ifdef CONFIG_USER_NS
+ 	REG("uid_map",    S_IRUGO|S_IWUSR, proc_uid_map_operations),
+ 	REG("gid_map",    S_IRUGO|S_IWUSR, proc_gid_map_operations),
 -- 
 2.9.0
