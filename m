@@ -1,7 +1,7 @@
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v17 03/10] PCI: Add fwnode handler as input param of pci_register_io_range()
-Date: Thu, 15 Mar 2018 02:15:52 +0800
-Message-ID: <1521051359-34473-4-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v17 10/10] MAINTAINERS: Add maintainer for HiSilicon LPC driver
+Date: Thu, 15 Mar 2018 02:15:59 +0800
+Message-ID: <1521051359-34473-11-git-send-email-john.garry@huawei.com>
 References: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,108 +12,30 @@ To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.co
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Added maintainer for drivers/bus/hisi_lpc.c
 
-In preparation for having the PCI MMIO helpers to use the new generic
-I/O space management(logical PIO) we need to add the fwnode handler as
-extra input parameter.
-This patch changes the signature of pci_register_io_range() and of
-its callers as needed.
-
-Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Acked-by: Bjorn Helgaas <bhelgaas@google.com>
-Acked-by: Rob Herring <robh@kernel.org>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Tested-by: dann frazier <dann.frazier@canonical.com>
+Signed-off-by: John Garry <john.garry@huawei.com>
 ---
- drivers/acpi/pci_root.c | 8 +++++---
- drivers/of/address.c    | 4 +++-
- drivers/pci/pci.c       | 3 ++-
- include/linux/pci.h     | 3 ++-
- 4 files changed, 12 insertions(+), 6 deletions(-)
+ MAINTAINERS | 7 +++++++
+ 1 file changed, 7 insertions(+)
 
-diff --git a/drivers/acpi/pci_root.c b/drivers/acpi/pci_root.c
-index 6fc204a..1213479 100644
---- a/drivers/acpi/pci_root.c
-+++ b/drivers/acpi/pci_root.c
-@@ -729,7 +729,8 @@ static void acpi_pci_root_validate_resources(struct device *dev,
- 	}
- }
+diff --git a/MAINTAINERS b/MAINTAINERS
+index c187bc8..cd4f9dc 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -6403,6 +6403,13 @@ W:	http://www.hisilicon.com
+ S:	Maintained
+ F:	drivers/net/ethernet/hisilicon/hns3/
  
--static void acpi_pci_root_remap_iospace(struct resource_entry *entry)
-+static void acpi_pci_root_remap_iospace(struct fwnode_handle *fwnode,
-+			struct resource_entry *entry)
- {
- #ifdef PCI_IOBASE
- 	struct resource *res = entry->res;
-@@ -738,7 +739,7 @@ static void acpi_pci_root_remap_iospace(struct resource_entry *entry)
- 	resource_size_t length = resource_size(res);
- 	unsigned long port;
- 
--	if (pci_register_io_range(cpu_addr, length))
-+	if (pci_register_io_range(fwnode, cpu_addr, length))
- 		goto err;
- 
- 	port = pci_address_to_pio(cpu_addr);
-@@ -780,7 +781,8 @@ int acpi_pci_probe_root_resources(struct acpi_pci_root_info *info)
- 	else {
- 		resource_list_for_each_entry_safe(entry, tmp, list) {
- 			if (entry->res->flags & IORESOURCE_IO)
--				acpi_pci_root_remap_iospace(entry);
-+				acpi_pci_root_remap_iospace(&device->fwnode,
-+						entry);
- 
- 			if (entry->res->flags & IORESOURCE_DISABLED)
- 				resource_list_destroy_entry(entry);
-diff --git a/drivers/of/address.c b/drivers/of/address.c
-index ce4d3d8..cdf047b 100644
---- a/drivers/of/address.c
-+++ b/drivers/of/address.c
-@@ -2,6 +2,7 @@
- #define pr_fmt(fmt)	"OF: " fmt
- 
- #include <linux/device.h>
-+#include <linux/fwnode.h>
- #include <linux/io.h>
- #include <linux/ioport.h>
- #include <linux/module.h>
-@@ -333,7 +334,8 @@ int of_pci_range_to_resource(struct of_pci_range *range,
- 
- 	if (res->flags & IORESOURCE_IO) {
- 		unsigned long port;
--		err = pci_register_io_range(range->cpu_addr, range->size);
-+		err = pci_register_io_range(&np->fwnode, range->cpu_addr,
-+				range->size);
- 		if (err)
- 			goto invalid_range;
- 		port = pci_address_to_pio(range->cpu_addr);
-diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index ff41a64..3f30b7d 100644
---- a/drivers/pci/pci.c
-+++ b/drivers/pci/pci.c
-@@ -3451,7 +3451,8 @@ struct io_range {
-  * Record the PCI IO range (expressed as CPU physical address + size).
-  * Return a negative value if an error has occured, zero otherwise
-  */
--int pci_register_io_range(phys_addr_t addr, resource_size_t size)
-+int pci_register_io_range(struct fwnode_handle *fwnode, phys_addr_t addr,
-+			resource_size_t	size)
- {
- 	int err = 0;
- 
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 25b7a35..17cc998 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -1221,7 +1221,8 @@ int __must_check pci_bus_alloc_resource(struct pci_bus *bus,
- 			void *alignf_data);
- 
- 
--int pci_register_io_range(phys_addr_t addr, resource_size_t size);
-+int pci_register_io_range(struct fwnode_handle *fwnode, phys_addr_t addr,
-+			resource_size_t size);
- unsigned long pci_address_to_pio(phys_addr_t addr);
- phys_addr_t pci_pio_to_address(unsigned long pio);
- int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr);
++HISILICON LPC BUS DRIVER
++M:	john.garry@huawei.com
++W:	http://www.hisilicon.com
++S:	Maintained
++F:	drivers/bus/hisi_lpc.c
++F:	Documentation/devicetree/bindings/arm/hisilicon/hisilicon-low-pin-count.txt
++
+ HISILICON NETWORK SUBSYSTEM DRIVER
+ M:	Yisen Zhuang <yisen.zhuang@huawei.com>
+ M:	Salil Mehta <salil.mehta@huawei.com>
 -- 
 1.9.1
