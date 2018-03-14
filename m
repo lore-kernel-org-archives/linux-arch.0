@@ -1,107 +1,124 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 12/16] asm-generic: siginfo: remove obsolete #ifdefs
-Date: Wed, 14 Mar 2018 15:43:47 +0100
-Message-ID: <20180314144614.1632190-2-arnd@arndb.de>
+From: Pavel Tatashin <pasha.tatashin@oracle.com>
+Subject: Re: [PATCH 10/16] mm: remove obsolete alloc_remap()
+Date: Wed, 14 Mar 2018 10:50:35 -0400
+Message-ID: <83b23320-e9de-a0cf-144c-1b60b9b7002a@oracle.com>
 References: <20180314143529.1456168-1-arnd@arndb.de>
- <20180314144614.1632190-1-arnd@arndb.de>
+ <20180314143958.1548568-1-arnd@arndb.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180314144614.1632190-1-arnd@arndb.de>
+In-Reply-To: <20180314143958.1548568-1-arnd@arndb.de>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, Vlastimil Babka <vbabka@suse.cz>, Mel Gorman <mgorman@techsingularity.net>, Johannes Weiner <hannes@cmpxchg.org>, Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ingo Molnar <mingo@kernel.org>, Petr Tesarik <ptesarik@suse.com>, Dave Hansen <dave.hansen@linux.intel.com>, Wei Yang <richard.weiyang@gmail.com>, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-The frv, tile and blackfin architectures are being removed, so
-we can clean up this header by removing all the special cases
-except those for ia64.
+Hi Arnd,
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- include/uapi/asm-generic/siginfo.h | 36 ++----------------------------------
- 1 file changed, 2 insertions(+), 34 deletions(-)
+I like this cleanup, but arch/tile (which is afaik Orphaned but still in the gate) has:
 
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index 85dc965afd89..b2ebf16c391a 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -179,28 +179,13 @@ typedef struct siginfo {
-  * SIGILL si_codes
-  */
- #define ILL_ILLOPC	1	/* illegal opcode */
--#ifdef __bfin__
--# define ILL_ILLPARAOP	2	/* illegal opcode combine */
--#endif
- #define ILL_ILLOPN	2	/* illegal operand */
- #define ILL_ILLADR	3	/* illegal addressing mode */
- #define ILL_ILLTRP	4	/* illegal trap */
--#ifdef __bfin__
--# define ILL_ILLEXCPT	4	/* unrecoverable exception */
--#endif
- #define ILL_PRVOPC	5	/* privileged opcode */
- #define ILL_PRVREG	6	/* privileged register */
- #define ILL_COPROC	7	/* coprocessor error */
- #define ILL_BADSTK	8	/* internal stack error */
--#ifdef __bfin__
--# define ILL_CPLB_VI	9	/* D/I CPLB protect violation */
--# define ILL_CPLB_MISS	10	/* D/I CPLB miss */
--# define ILL_CPLB_MULHIT 11	/* D/I CPLB multiple hit */
--#endif
--#ifdef __tile__
--# define ILL_DBLFLT	9	/* double fault */
--# define ILL_HARDWALL	10	/* user networks hardwall violation */
--#endif
- #ifdef __ia64__
- # define ILL_BADIADDR	9	/* unimplemented instruction address */
- # define __ILL_BREAK	10	/* illegal break */
-@@ -219,9 +204,6 @@ typedef struct siginfo {
- #define FPE_FLTRES	6	/* floating point inexact result */
- #define FPE_FLTINV	7	/* floating point invalid operation */
- #define FPE_FLTSUB	8	/* subscript out of range */
--#ifdef __frv__
--# define FPE_MDAOVF	9	/* media overflow */
--#endif
- #ifdef __ia64__
- # define __FPE_DECOVF	9	/* decimal overflow */
- # define __FPE_DECDIV	10	/* decimal division by zero */
-@@ -236,11 +218,7 @@ typedef struct siginfo {
-  */
- #define SEGV_MAPERR	1	/* address not mapped to object */
- #define SEGV_ACCERR	2	/* invalid permissions for mapped object */
--#ifdef __bfin__
--# define SEGV_STACKFLOW	3	/* stack overflow */
--#else
--# define SEGV_BNDERR	3	/* failed address bound checks */
--#endif
-+#define SEGV_BNDERR	3	/* failed address bound checks */
- #ifdef __ia64__
- # define __SEGV_PSTKOVF	4	/* paragraph stack overflow */
- #else
-@@ -254,12 +232,8 @@ typedef struct siginfo {
- #define BUS_ADRALN	1	/* invalid address alignment */
- #define BUS_ADRERR	2	/* non-existent physical address */
- #define BUS_OBJERR	3	/* object specific hardware error */
--#ifdef __bfin__
--# define BUS_OPFETCH	4	/* error from instruction fetch */
--#else
- /* hardware memory error consumed on a machine check: action required */
--# define BUS_MCEERR_AR	4
--#endif
-+#define BUS_MCEERR_AR	4
- /* hardware memory error detected in process but not consumed: action optional*/
- #define BUS_MCEERR_AO	5
- #define NSIGBUS		5
-@@ -271,12 +245,6 @@ typedef struct siginfo {
- #define TRAP_TRACE	2	/* process trace trap */
- #define TRAP_BRANCH     3	/* process taken branch trap */
- #define TRAP_HWBKPT     4	/* hardware breakpoint/watchpoint */
--#ifdef __bfin__
--# define TRAP_STEP	1	/* single-step breakpoint */
--# define TRAP_TRACEFLOW	2	/* trace buffer overflow */
--# define TRAP_WATCHPT	3	/* watchpoint match */
--# define TRAP_ILLTRAP	4	/* illegal trap */
--#endif
- #define NSIGTRAP	4
- 
- /*
--- 
-2.9.0
+HAVE_ARCH_ALLOC_REMAP set to yes:
+
+arch/tile/Kconfig
+ config HAVE_ARCH_ALLOC_REMAP
+         def_bool y
+
+Define in arch/tile/kernel/setup.c:
+void *__init alloc_remap(int nid, unsigned long size)
+{
+        int pages = node_end_pfn[nid] - node_start_pfn[nid];
+        void *map = pfn_to_kaddr(node_memmap_pfn[nid]);
+        BUG_ON(size != pages * sizeof(struct page));
+        memset(map, 0, size);
+        return map; 
+}
+
+Thank you,
+Pavel
+
+On 03/14/2018 10:39 AM, Arnd Bergmann wrote:
+> Tile was the only remaining architecture to implement alloc_remap(),
+> and since that is being removed, there is no point in keeping this
+> function.
+> 
+> Removing all callers simplifies the mem_map handling.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  include/linux/bootmem.h |  9 ---------
+>  mm/page_alloc.c         |  5 +----
+>  mm/sparse.c             | 15 ---------------
+>  3 files changed, 1 insertion(+), 28 deletions(-)
+> 
+> diff --git a/include/linux/bootmem.h b/include/linux/bootmem.h
+> index a53063e9d7d8..7942a96b1a9d 100644
+> --- a/include/linux/bootmem.h
+> +++ b/include/linux/bootmem.h
+> @@ -364,15 +364,6 @@ static inline void __init memblock_free_late(
+>  }
+>  #endif /* defined(CONFIG_HAVE_MEMBLOCK) && defined(CONFIG_NO_BOOTMEM) */
+>  
+> -#ifdef CONFIG_HAVE_ARCH_ALLOC_REMAP
+> -extern void *alloc_remap(int nid, unsigned long size);
+> -#else
+> -static inline void *alloc_remap(int nid, unsigned long size)
+> -{
+> -	return NULL;
+> -}
+> -#endif /* CONFIG_HAVE_ARCH_ALLOC_REMAP */
+> -
+>  extern void *alloc_large_system_hash(const char *tablename,
+>  				     unsigned long bucketsize,
+>  				     unsigned long numentries,
+> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+> index cb416723538f..484e21062228 100644
+> --- a/mm/page_alloc.c
+> +++ b/mm/page_alloc.c
+> @@ -6199,10 +6199,7 @@ static void __ref alloc_node_mem_map(struct pglist_data *pgdat)
+>  		end = pgdat_end_pfn(pgdat);
+>  		end = ALIGN(end, MAX_ORDER_NR_PAGES);
+>  		size =  (end - start) * sizeof(struct page);
+> -		map = alloc_remap(pgdat->node_id, size);
+> -		if (!map)
+> -			map = memblock_virt_alloc_node_nopanic(size,
+> -							       pgdat->node_id);
+> +		map = memblock_virt_alloc_node_nopanic(size, pgdat->node_id);
+>  		pgdat->node_mem_map = map + offset;
+>  	}
+>  	pr_debug("%s: node %d, pgdat %08lx, node_mem_map %08lx\n",
+> diff --git a/mm/sparse.c b/mm/sparse.c
+> index 7af5e7a92528..65bb52599f90 100644
+> --- a/mm/sparse.c
+> +++ b/mm/sparse.c
+> @@ -427,10 +427,6 @@ struct page __init *sparse_mem_map_populate(unsigned long pnum, int nid,
+>  	struct page *map;
+>  	unsigned long size;
+>  
+> -	map = alloc_remap(nid, sizeof(struct page) * PAGES_PER_SECTION);
+> -	if (map)
+> -		return map;
+> -
+>  	size = PAGE_ALIGN(sizeof(struct page) * PAGES_PER_SECTION);
+>  	map = memblock_virt_alloc_try_nid(size,
+>  					  PAGE_SIZE, __pa(MAX_DMA_ADDRESS),
+> @@ -446,17 +442,6 @@ void __init sparse_mem_maps_populate_node(struct page **map_map,
+>  	unsigned long pnum;
+>  	unsigned long size = sizeof(struct page) * PAGES_PER_SECTION;
+>  
+> -	map = alloc_remap(nodeid, size * map_count);
+> -	if (map) {
+> -		for (pnum = pnum_begin; pnum < pnum_end; pnum++) {
+> -			if (!present_section_nr(pnum))
+> -				continue;
+> -			map_map[pnum] = map;
+> -			map += size;
+> -		}
+> -		return;
+> -	}
+> -
+>  	size = PAGE_ALIGN(size);
+>  	map = memblock_virt_alloc_try_nid_raw(size * map_count,
+>  					      PAGE_SIZE, __pa(MAX_DMA_ADDRESS),
+> 
