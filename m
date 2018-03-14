@@ -1,83 +1,35 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 16/16] ktest: remove obsolete architectures
-Date: Wed, 14 Mar 2018 15:53:07 +0100
-Message-ID: <20180314145317.2128199-1-arnd@arndb.de>
-References: <20180314143529.1456168-1-arnd@arndb.de>
+Subject: Re: [PATCH 10/16] mm: remove obsolete alloc_remap()
+Date: Wed, 14 Mar 2018 15:56:16 +0100
+Message-ID: <CAK8P3a1otS+2Q7qr0PE_VPXRp44kJqdZMhDFWuYK2g2jkNCCsA@mail.gmail.com>
+References: <20180314143529.1456168-1-arnd@arndb.de> <20180314143958.1548568-1-arnd@arndb.de>
+ <83b23320-e9de-a0cf-144c-1b60b9b7002a@oracle.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180314143529.1456168-1-arnd@arndb.de>
+In-Reply-To: <83b23320-e9de-a0cf-144c-1b60b9b7002a@oracle.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>
+To: Pavel Tatashin <pasha.tatashin@oracle.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.com>, Vlastimil Babka <vbabka@suse.cz>, Mel Gorman <mgorman@techsingularity.net>, Johannes Weiner <hannes@cmpxchg.org>, Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ingo Molnar <mingo@kernel.org>, Petr Tesarik <ptesarik@suse.com>, Dave Hansen <dave.hansen@linux.intel.com>, Wei Yang <richard.weiyang@gmail.com>, Linux-MM <linux-mm@kvack.org>
 List-Id: linux-arch.vger.kernel.org
 
-A number of architectures are being removed from the kernel, so
-we no longer need to test them.
+On Wed, Mar 14, 2018 at 3:50 PM, Pavel Tatashin
+<pasha.tatashin@oracle.com> wrote:
+> Hi Arnd,
+>
+> I like this cleanup, but arch/tile (which is afaik Orphaned but still in the gate) has:
+>
+> HAVE_ARCH_ALLOC_REMAP set to yes:
+>
+> arch/tile/Kconfig
+>  config HAVE_ARCH_ALLOC_REMAP
+>          def_bool y
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- tools/testing/ktest/examples/crosstests.conf | 31 +---------------------------
- 1 file changed, 1 insertion(+), 30 deletions(-)
+It was a bit tricky to juggle the Cc lists here, but tile is removed
+in patch 06/10
+now. As I explained in the cover letter, it was originally planned to be marked
+deprecated for a while first, but after some more discussion, nobody could come
+up with a reason to keep it any longer. Same thing for mn10300,
+blackfin and cris.
 
-diff --git a/tools/testing/ktest/examples/crosstests.conf b/tools/testing/ktest/examples/crosstests.conf
-index a1203148dfa1..6907f32590b2 100644
---- a/tools/testing/ktest/examples/crosstests.conf
-+++ b/tools/testing/ktest/examples/crosstests.conf
-@@ -59,7 +59,7 @@ DO_DEFAULT := 1
- 
- # By setting both DO_FAILED and DO_DEFAULT to zero, you can pick a single
- # arch that you want to test. (uncomment RUN and chose your arch)
--#RUN := m32r
-+#RUN := arm
- 
- # At the bottom of the config file exists a bisect test. You can update that
- # test and set DO_FAILED and DO_DEFAULT to zero, and uncomment this variable
-@@ -106,33 +106,11 @@ TEST_START IF ${RUN} == arm || ${DO_DEFAULT}
- CROSS = arm-unknown-linux-gnueabi
- ARCH = arm
- 
--# black fin
--TEST_START IF ${RUN} == bfin || ${DO_DEFAULT}
--CROSS = bfin-uclinux
--ARCH = blackfin
--BUILD_OPTIONS = -j8 vmlinux
--
--# cris - FAILS?
--TEST_START IF ${RUN} == cris || ${RUN} == cris64 || ${DO_FAILED}
--CROSS = cris-linux
--ARCH = cris
--
--# cris32 - not right arch?
--TEST_START IF ${RUN} == cris || ${RUN} == cris32 || ${DO_FAILED}
--CROSS = crisv32-linux
--ARCH = cris
--
- # ia64
- TEST_START IF ${RUN} == ia64 || ${DO_DEFAULT}
- CROSS = ia64-linux
- ARCH = ia64
- 
--# frv
--TEST_START IF ${RUN} == frv || ${DO_FAILED}
--CROSS = frv-linux
--ARCH = frv
--GCC_VER = 4.5.1
--
- # m68k fails with error?
- TEST_START IF ${RUN} == m68k || ${DO_DEFAULT}
- CROSS = m68k-linux
-@@ -148,13 +126,6 @@ TEST_START IF ${RUN} == mips || ${RUN} == mips32 || ${DO_DEFAULT}
- CROSS = mips-linux
- ARCH = mips
- 
--# m32r
--TEST_START IF ${RUN} == m32r || ${DO_FAILED}
--CROSS = m32r-linux
--ARCH = m32r
--GCC_VER = 4.5.1
--BUILD_OPTIONS = -j8 vmlinux
--
- # parisc64 failed?
- TEST_START IF ${RUN} == hppa || ${RUN} == hppa64 || ${DO_FAILED}
- CROSS = hppa64-linux
--- 
-2.9.0
+     Arnd
