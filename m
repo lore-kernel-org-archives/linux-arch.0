@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([45.249.212.190]:6637 "EHLO huawei.com"
+Received: from szxga04-in.huawei.com ([45.249.212.190]:6638 "EHLO huawei.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751357AbeCNSRG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S1751362AbeCNSRG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Wed, 14 Mar 2018 14:17:06 -0400
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v17 07/10] ACPI / scan: rename acpi_is_serial_bus_slave() to widen use
-Date: Thu, 15 Mar 2018 02:15:56 +0800
-Message-ID: <1521051359-34473-8-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v17 02/10] PCI: Remove unused __weak attribute in pci_register_io_range()
+Date: Thu, 15 Mar 2018 02:15:51 +0800
+Message-ID: <1521051359-34473-3-git-send-email-john.garry@huawei.com>
 In-Reply-To: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
 References: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
 MIME-Version: 1.0
@@ -15,100 +15,33 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
-Message-ID: <20180314181556.pxZZa5nnbxDDMJI6GrKndwvduo6i-sPW7dDnJwtpblk@z>
+Message-ID: <20180314181551.MMBBq9SB2BOthkun-rXWxpV4k1Z2u-b0N-R8KnCC9GI@z>
 
-Currently the ACPI scan has special handling for serial bus
-slaves, in that it makes it the responsibility of the the slave
-device's parent to enumerate the device.
+From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
 
-To support in future other types of slave devices which require
-the same special handling, but where the bus is not strictly a
-serial bus - such as devices on the HiSilicon LPC controller bus -
-rename acpi_is_serial_bus_slave() to
-acpi_device_enumeration_by_parent(), so that the name can fit the
-wider purpose.
+Currently pci_register_io_range() has only one definition;
+therefore there is no use of the __weak attribute.
 
-Associated device flag acpi_device_flags.serial_bus_slave is also
-renamed to .enumeration_by_parent.
-
-Signed-off-by: John Garry <john.garry@huawei.com>
+Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Acked-by: Bjorn Helgaas <bhelgaas@google.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Tested-by: dann frazier <dann.frazier@canonical.com>
 ---
- drivers/acpi/scan.c     | 19 ++++++++++---------
- include/acpi/acpi_bus.h |  2 +-
- 2 files changed, 11 insertions(+), 10 deletions(-)
+ drivers/pci/pci.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
-index 8e63d93..f9e7904 100644
---- a/drivers/acpi/scan.c
-+++ b/drivers/acpi/scan.c
-@@ -1524,7 +1524,7 @@ static int acpi_check_serial_bus_slave(struct acpi_resource *ares, void *data)
- 	return -1;
- }
- 
--static bool acpi_is_serial_bus_slave(struct acpi_device *device)
-+static bool acpi_device_enumeration_by_parent(struct acpi_device *device)
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index ae654e2..ff41a64 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -3451,7 +3451,7 @@ struct io_range {
+  * Record the PCI IO range (expressed as CPU physical address + size).
+  * Return a negative value if an error has occured, zero otherwise
+  */
+-int __weak pci_register_io_range(phys_addr_t addr, resource_size_t size)
++int pci_register_io_range(phys_addr_t addr, resource_size_t size)
  {
- 	struct list_head resource_list;
- 	bool is_serial_bus_slave = false;
-@@ -1560,7 +1560,8 @@ void acpi_init_device_object(struct acpi_device *device, acpi_handle handle,
- 	acpi_bus_get_flags(device);
- 	device->flags.match_driver = false;
- 	device->flags.initialized = true;
--	device->flags.serial_bus_slave = acpi_is_serial_bus_slave(device);
-+	device->flags.enumeration_by_parent =
-+		acpi_device_enumeration_by_parent(device);
- 	acpi_device_clear_enumerated(device);
- 	device_initialize(&device->dev);
- 	dev_set_uevent_suppress(&device->dev, true);
-@@ -1858,10 +1859,10 @@ static acpi_status acpi_bus_check_add(acpi_handle handle, u32 lvl_not_used,
- static void acpi_default_enumeration(struct acpi_device *device)
- {
- 	/*
--	 * Do not enumerate SPI/I2C/UART slaves as they will be enumerated by
--	 * their respective parents.
-+	 * Do not enumerate devices with enumeration_by_parent flag set as
-+	 * they will be enumerated by their respective parents.
- 	 */
--	if (!device->flags.serial_bus_slave) {
-+	if (!device->flags.enumeration_by_parent) {
- 		acpi_create_platform_device(device, NULL);
- 		acpi_device_set_enumerated(device);
- 	} else {
-@@ -1958,7 +1959,7 @@ static void acpi_bus_attach(struct acpi_device *device)
- 		return;
- 
- 	device->flags.match_driver = true;
--	if (ret > 0 && !device->flags.serial_bus_slave) {
-+	if (ret > 0 && !device->flags.enumeration_by_parent) {
- 		acpi_device_set_enumerated(device);
- 		goto ok;
- 	}
-@@ -1967,10 +1968,10 @@ static void acpi_bus_attach(struct acpi_device *device)
- 	if (ret < 0)
- 		return;
- 
--	if (!device->pnp.type.platform_id && !device->flags.serial_bus_slave)
--		acpi_device_set_enumerated(device);
--	else
-+	if (device->pnp.type.platform_id || device->flags.enumeration_by_parent)
- 		acpi_default_enumeration(device);
-+	else
-+		acpi_device_set_enumerated(device);
- 
-  ok:
- 	list_for_each_entry(child, &device->children, node)
-diff --git a/include/acpi/acpi_bus.h b/include/acpi/acpi_bus.h
-index c9608b0..ba4dd54 100644
---- a/include/acpi/acpi_bus.h
-+++ b/include/acpi/acpi_bus.h
-@@ -215,7 +215,7 @@ struct acpi_device_flags {
- 	u32 of_compatible_ok:1;
- 	u32 coherent_dma:1;
- 	u32 cca_seen:1;
--	u32 serial_bus_slave:1;
-+	u32 enumeration_by_parent:1;
- 	u32 reserved:19;
- };
+ 	int err = 0;
  
 -- 
 1.9.1
