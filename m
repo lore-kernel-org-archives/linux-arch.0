@@ -1,7 +1,7 @@
 From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v17 04/10] PCI: Apply the new generic I/O management on PCI IO hosts
-Date: Thu, 15 Mar 2018 02:15:53 +0800
-Message-ID: <1521051359-34473-5-git-send-email-john.garry@huawei.com>
+Subject: [PATCH v17 07/10] ACPI / scan: rename acpi_is_serial_bus_slave() to widen use
+Date: Thu, 15 Mar 2018 02:15:56 +0800
+Message-ID: <1521051359-34473-8-git-send-email-john.garry@huawei.com>
 References: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,179 +12,98 @@ To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.co
 Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-From: Zhichang Yuan <yuanzhichang@hisilicon.com>
+Currently the ACPI scan has special handling for serial bus
+slaves, in that it makes it the responsibility of the the slave
+device's parent to enumerate the device.
 
-After introducing the new generic I/O space management(Logical PIO), the
-original PCI MMIO relevant helpers need to be updated based on the new
-interfaces defined in logical PIO.
-This patch adapts the corresponding code to match the changes introduced
-by logical PIO.
+To support in future other types of slave devices which require
+the same special handling, but where the bus is not strictly a
+serial bus - such as devices on the HiSilicon LPC controller bus -
+rename acpi_is_serial_bus_slave() to
+acpi_device_enumeration_by_parent(), so that the name can fit the
+wider purpose.
 
-Signed-off-by: Zhichang Yuan <yuanzhichang@hisilicon.com>
-Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>        #earlier draft
-Acked-by: Bjorn Helgaas <bhelgaas@google.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Tested-by: dann frazier <dann.frazier@canonical.com>
+Associated device flag acpi_device_flags.serial_bus_slave is also
+renamed to .enumeration_by_parent.
+
+Signed-off-by: John Garry <john.garry@huawei.com>
 ---
- drivers/pci/pci.c        | 92 +++++++++---------------------------------------
- include/asm-generic/io.h |  2 +-
- 2 files changed, 18 insertions(+), 76 deletions(-)
+ drivers/acpi/scan.c     | 19 ++++++++++---------
+ include/acpi/acpi_bus.h |  2 +-
+ 2 files changed, 11 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index 3f30b7d..09c2490 100644
---- a/drivers/pci/pci.c
-+++ b/drivers/pci/pci.c
-@@ -22,6 +22,7 @@
- #include <linux/spinlock.h>
- #include <linux/string.h>
- #include <linux/log2.h>
-+#include <linux/logic_pio.h>
- #include <linux/pci-aspm.h>
- #include <linux/pm_wakeup.h>
- #include <linux/interrupt.h>
-@@ -3436,17 +3437,6 @@ int pci_request_regions_exclusive(struct pci_dev *pdev, const char *res_name)
- }
- EXPORT_SYMBOL(pci_request_regions_exclusive);
- 
--#ifdef PCI_IOBASE
--struct io_range {
--	struct list_head list;
--	phys_addr_t start;
--	resource_size_t size;
--};
--
--static LIST_HEAD(io_range_list);
--static DEFINE_SPINLOCK(io_range_lock);
--#endif
--
- /*
-  * Record the PCI IO range (expressed as CPU physical address + size).
-  * Return a negative value if an error has occured, zero otherwise
-@@ -3454,51 +3444,28 @@ struct io_range {
- int pci_register_io_range(struct fwnode_handle *fwnode, phys_addr_t addr,
- 			resource_size_t	size)
- {
--	int err = 0;
--
-+	int ret = 0;
- #ifdef PCI_IOBASE
--	struct io_range *range;
--	resource_size_t allocated_size = 0;
--
--	/* check if the range hasn't been previously recorded */
--	spin_lock(&io_range_lock);
--	list_for_each_entry(range, &io_range_list, list) {
--		if (addr >= range->start && addr + size <= range->start + size) {
--			/* range already registered, bail out */
--			goto end_register;
--		}
--		allocated_size += range->size;
--	}
-+	struct logic_pio_hwaddr *range;
- 
--	/* range not registed yet, check for available space */
--	if (allocated_size + size - 1 > IO_SPACE_LIMIT) {
--		/* if it's too big check if 64K space can be reserved */
--		if (allocated_size + SZ_64K - 1 > IO_SPACE_LIMIT) {
--			err = -E2BIG;
--			goto end_register;
--		}
--
--		size = SZ_64K;
--		pr_warn("Requested IO range too big, new size set to 64K\n");
--	}
-+	if (!size || addr + size < addr)
-+		return -EINVAL;
- 
--	/* add the range to the list */
- 	range = kzalloc(sizeof(*range), GFP_ATOMIC);
--	if (!range) {
--		err = -ENOMEM;
--		goto end_register;
--	}
-+	if (!range)
-+		return -ENOMEM;
- 
--	range->start = addr;
-+	range->fwnode = fwnode;
- 	range->size = size;
-+	range->hw_start = addr;
-+	range->flags = LOGIC_PIO_CPU_MMIO;
- 
--	list_add_tail(&range->list, &io_range_list);
--
--end_register:
--	spin_unlock(&io_range_lock);
-+	ret = logic_pio_register_range(range);
-+	if (ret)
-+		kfree(range);
- #endif
- 
--	return err;
-+	return ret;
+diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
+index 8e63d93..f9e7904 100644
+--- a/drivers/acpi/scan.c
++++ b/drivers/acpi/scan.c
+@@ -1524,7 +1524,7 @@ static int acpi_check_serial_bus_slave(struct acpi_resource *ares, void *data)
+ 	return -1;
  }
  
- phys_addr_t pci_pio_to_address(unsigned long pio)
-@@ -3506,21 +3473,10 @@ phys_addr_t pci_pio_to_address(unsigned long pio)
- 	phys_addr_t address = (phys_addr_t)OF_BAD_ADDR;
- 
- #ifdef PCI_IOBASE
--	struct io_range *range;
--	resource_size_t allocated_size = 0;
--
--	if (pio > IO_SPACE_LIMIT)
-+	if (pio >= MMIO_UPPER_LIMIT)
- 		return address;
- 
--	spin_lock(&io_range_lock);
--	list_for_each_entry(range, &io_range_list, list) {
--		if (pio >= allocated_size && pio < allocated_size + range->size) {
--			address = range->start + pio - allocated_size;
--			break;
--		}
--		allocated_size += range->size;
--	}
--	spin_unlock(&io_range_lock);
-+	address = logic_pio_to_hwaddr(pio);
- #endif
- 
- 	return address;
-@@ -3529,21 +3485,7 @@ phys_addr_t pci_pio_to_address(unsigned long pio)
- unsigned long __weak pci_address_to_pio(phys_addr_t address)
+-static bool acpi_is_serial_bus_slave(struct acpi_device *device)
++static bool acpi_device_enumeration_by_parent(struct acpi_device *device)
  {
- #ifdef PCI_IOBASE
--	struct io_range *res;
--	resource_size_t offset = 0;
--	unsigned long addr = -1;
--
--	spin_lock(&io_range_lock);
--	list_for_each_entry(res, &io_range_list, list) {
--		if (address >= res->start && address < res->start + res->size) {
--			addr = address - res->start + offset;
--			break;
--		}
--		offset += res->size;
--	}
--	spin_unlock(&io_range_lock);
--
--	return addr;
-+	return logic_pio_trans_cpuaddr(address);
- #else
- 	if (address > IO_SPACE_LIMIT)
- 		return (unsigned long)-1;
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index f76fbd6..0016413 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -901,7 +901,7 @@ static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
- #define ioport_map ioport_map
- static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+ 	struct list_head resource_list;
+ 	bool is_serial_bus_slave = false;
+@@ -1560,7 +1560,8 @@ void acpi_init_device_object(struct acpi_device *device, acpi_handle handle,
+ 	acpi_bus_get_flags(device);
+ 	device->flags.match_driver = false;
+ 	device->flags.initialized = true;
+-	device->flags.serial_bus_slave = acpi_is_serial_bus_slave(device);
++	device->flags.enumeration_by_parent =
++		acpi_device_enumeration_by_parent(device);
+ 	acpi_device_clear_enumerated(device);
+ 	device_initialize(&device->dev);
+ 	dev_set_uevent_suppress(&device->dev, true);
+@@ -1858,10 +1859,10 @@ static acpi_status acpi_bus_check_add(acpi_handle handle, u32 lvl_not_used,
+ static void acpi_default_enumeration(struct acpi_device *device)
  {
--	return PCI_IOBASE + (port & IO_SPACE_LIMIT);
-+	return PCI_IOBASE + (port & MMIO_UPPER_LIMIT);
- }
- #endif
+ 	/*
+-	 * Do not enumerate SPI/I2C/UART slaves as they will be enumerated by
+-	 * their respective parents.
++	 * Do not enumerate devices with enumeration_by_parent flag set as
++	 * they will be enumerated by their respective parents.
+ 	 */
+-	if (!device->flags.serial_bus_slave) {
++	if (!device->flags.enumeration_by_parent) {
+ 		acpi_create_platform_device(device, NULL);
+ 		acpi_device_set_enumerated(device);
+ 	} else {
+@@ -1958,7 +1959,7 @@ static void acpi_bus_attach(struct acpi_device *device)
+ 		return;
+ 
+ 	device->flags.match_driver = true;
+-	if (ret > 0 && !device->flags.serial_bus_slave) {
++	if (ret > 0 && !device->flags.enumeration_by_parent) {
+ 		acpi_device_set_enumerated(device);
+ 		goto ok;
+ 	}
+@@ -1967,10 +1968,10 @@ static void acpi_bus_attach(struct acpi_device *device)
+ 	if (ret < 0)
+ 		return;
+ 
+-	if (!device->pnp.type.platform_id && !device->flags.serial_bus_slave)
+-		acpi_device_set_enumerated(device);
+-	else
++	if (device->pnp.type.platform_id || device->flags.enumeration_by_parent)
+ 		acpi_default_enumeration(device);
++	else
++		acpi_device_set_enumerated(device);
+ 
+  ok:
+ 	list_for_each_entry(child, &device->children, node)
+diff --git a/include/acpi/acpi_bus.h b/include/acpi/acpi_bus.h
+index c9608b0..ba4dd54 100644
+--- a/include/acpi/acpi_bus.h
++++ b/include/acpi/acpi_bus.h
+@@ -215,7 +215,7 @@ struct acpi_device_flags {
+ 	u32 of_compatible_ok:1;
+ 	u32 coherent_dma:1;
+ 	u32 cca_seen:1;
+-	u32 serial_bus_slave:1;
++	u32 enumeration_by_parent:1;
+ 	u32 reserved:19;
+ };
  
 -- 
 1.9.1
