@@ -1,2033 +1,1664 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 01/16] mn10300: Remove the architecture
-Date: Wed, 14 Mar 2018 15:36:50 +0100
-Message-ID: <20180314143656.1495602-1-arnd@arndb.de>
+Subject: [PATCH 06/16] arch: remove tile port
+Date: Wed, 14 Mar 2018 15:36:55 +0100
+Message-ID: <20180314143656.1495602-6-arnd@arndb.de>
 References: <20180314143529.1456168-1-arnd@arndb.de>
+ <20180314143656.1495602-1-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180314143529.1456168-1-arnd@arndb.de>
+In-Reply-To: <20180314143656.1495602-1-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-am33-list@redhat.com, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <chris.d.metcalf@gmail.com>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
 List-Id: linux-arch.vger.kernel.org
 
-From: David Howells <dhowells@redhat.com>
+The Tile architecture port was added by Chris Metcalf in 2010, and
+maintained until early 2018 when he orphaned it due to his departure
+from Mellanox, and nobody else stepped up to maintain it. The product
+line is still around in the form of the BlueField SoC, but no longer
+uses the Tile architecture.
 
-Remove the MN10300 arch as the hardware is defunct.
+There are also still products for sale with Tile-GX SoCs, notably the
+Mikrotik CCR router family. The products all use old (linux-3.3) kernels
+with lots of patches and won't be upgraded by their manufacturers. There
+have been efforts to port both OpenWRT and Debian to these, but both
+projects have stalled and are very unlikely to be continued in the future.
 
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: David Howells <dhowells@redhat.com>
-cc: Masahiro Yamada <yamada.masahiro@socionext.com>
-cc: linux-am33-list@redhat.com
+Given that we are reasonably sure that nobody is still using the port
+with an upstream kernel any more, it seems better to remove it now while
+the port is in a good shape than to let it bitrot for a few years first.
+
+Cc: Chris Metcalf <chris.d.metcalf@gmail.com>
+Cc: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Link: http://www.mellanox.com/page/npu_multicore_overview
+Link: https://jenkins.debian.net/view/rebootstrap/job/rebootstrap_tilegx_gcc7/
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- Documentation/00-INDEX                             |    2 -
- .../features/core/BPF-JIT/arch-support.txt         |    1 -
- .../core/generic-idle-thread/arch-support.txt      |    1 -
- .../features/core/jump-labels/arch-support.txt     |    1 -
- .../features/core/tracehook/arch-support.txt       |    1 -
- .../features/debug/KASAN/arch-support.txt          |    1 -
- .../debug/gcov-profile-all/arch-support.txt        |    1 -
- Documentation/features/debug/kgdb/arch-support.txt |    1 -
- .../debug/kprobes-on-ftrace/arch-support.txt       |    1 -
- .../features/debug/kprobes/arch-support.txt        |    1 -
- .../features/debug/kretprobes/arch-support.txt     |    1 -
- .../features/debug/optprobes/arch-support.txt      |    1 -
- .../features/debug/stackprotector/arch-support.txt |    1 -
- .../features/debug/uprobes/arch-support.txt        |    1 -
- .../debug/user-ret-profiler/arch-support.txt       |    1 -
- .../features/io/dma-api-debug/arch-support.txt     |    1 -
- .../features/io/dma-contiguous/arch-support.txt    |    1 -
- .../features/io/sg-chain/arch-support.txt          |    1 -
- .../features/lib/strncasecmp/arch-support.txt      |    1 -
- .../locking/cmpxchg-local/arch-support.txt         |    1 -
- .../features/locking/lockdep/arch-support.txt      |    1 -
- .../locking/queued-rwlocks/arch-support.txt        |    1 -
- .../locking/queued-spinlocks/arch-support.txt      |    1 -
- .../locking/rwsem-optimized/arch-support.txt       |    1 -
- .../features/perf/kprobes-event/arch-support.txt   |    1 -
- .../features/perf/perf-regs/arch-support.txt       |    1 -
- .../features/perf/perf-stackdump/arch-support.txt  |    1 -
- .../sched/membarrier-sync-core/arch-support.txt    |    1 -
- .../features/sched/numa-balancing/arch-support.txt |    1 -
- .../seccomp/seccomp-filter/arch-support.txt        |    1 -
- .../time/arch-tick-broadcast/arch-support.txt      |    1 -
- .../features/time/clockevents/arch-support.txt     |    1 -
- .../time/context-tracking/arch-support.txt         |    1 -
- .../features/time/irq-time-acct/arch-support.txt   |    1 -
- .../time/modern-timekeeping/arch-support.txt       |    1 -
- .../features/time/virt-cpuacct/arch-support.txt    |    1 -
- .../features/vm/ELF-ASLR/arch-support.txt          |    1 -
- .../features/vm/PG_uncached/arch-support.txt       |    1 -
- Documentation/features/vm/THP/arch-support.txt     |    1 -
- Documentation/features/vm/TLB/arch-support.txt     |    1 -
- .../features/vm/huge-vmap/arch-support.txt         |    1 -
- .../features/vm/ioremap_prot/arch-support.txt      |    1 -
- .../features/vm/numa-memblock/arch-support.txt     |    1 -
- .../features/vm/pte_special/arch-support.txt       |    1 -
- Documentation/mn10300/ABI.txt                      |  149 --
- Documentation/mn10300/compartmentalisation.txt     |   60 -
- MAINTAINERS                                        |    8 -
- arch/mn10300/Kconfig                               |  499 -----
- arch/mn10300/Kconfig.debug                         |  156 --
- arch/mn10300/Makefile                              |   99 -
- arch/mn10300/boot/.gitignore                       |    1 -
- arch/mn10300/boot/Makefile                         |   28 -
- arch/mn10300/boot/compressed/Makefile              |   22 -
- arch/mn10300/boot/compressed/head.S                |  151 --
- arch/mn10300/boot/compressed/misc.c                |  393 ----
- arch/mn10300/boot/compressed/misc.h                |   18 -
- arch/mn10300/boot/compressed/vmlinux.lds           |    9 -
- arch/mn10300/boot/install.sh                       |   67 -
- arch/mn10300/boot/tools/build.c                    |  191 --
- arch/mn10300/configs/asb2303_defconfig             |   67 -
- arch/mn10300/configs/asb2364_defconfig             |   87 -
- arch/mn10300/include/asm/Kbuild                    |   13 -
- arch/mn10300/include/asm/asm-offsets.h             |    1 -
- arch/mn10300/include/asm/atomic.h                  |  161 --
- arch/mn10300/include/asm/bitops.h                  |  232 ---
- arch/mn10300/include/asm/bug.h                     |   37 -
- arch/mn10300/include/asm/bugs.h                    |   20 -
- arch/mn10300/include/asm/busctl-regs.h             |  151 --
- arch/mn10300/include/asm/cache.h                   |   60 -
- arch/mn10300/include/asm/cacheflush.h              |  164 --
- arch/mn10300/include/asm/checksum.h                |   79 -
- arch/mn10300/include/asm/cmpxchg.h                 |  115 --
- arch/mn10300/include/asm/cpu-regs.h                |  353 ----
- arch/mn10300/include/asm/current.h                 |   37 -
- arch/mn10300/include/asm/debugger.h                |   43 -
- arch/mn10300/include/asm/delay.h                   |   19 -
- arch/mn10300/include/asm/div64.h                   |  115 --
- arch/mn10300/include/asm/dma-mapping.h             |   21 -
- arch/mn10300/include/asm/dma.h                     |  117 --
- arch/mn10300/include/asm/dmactl-regs.h             |   16 -
- arch/mn10300/include/asm/elf.h                     |  153 --
- arch/mn10300/include/asm/emergency-restart.h       |    1 -
- arch/mn10300/include/asm/exceptions.h              |  121 --
- arch/mn10300/include/asm/fpu.h                     |  132 --
- arch/mn10300/include/asm/frame.inc                 |   97 -
- arch/mn10300/include/asm/ftrace.h                  |    1 -
- arch/mn10300/include/asm/futex.h                   |    1 -
- arch/mn10300/include/asm/gdb-stub.h                |  182 --
- arch/mn10300/include/asm/hardirq.h                 |   49 -
- arch/mn10300/include/asm/highmem.h                 |  131 --
- arch/mn10300/include/asm/hw_irq.h                  |   14 -
- arch/mn10300/include/asm/intctl-regs.h             |   71 -
- arch/mn10300/include/asm/io.h                      |  325 ----
- arch/mn10300/include/asm/irq.h                     |   40 -
- arch/mn10300/include/asm/irq_regs.h                |   28 -
- arch/mn10300/include/asm/irqflags.h                |  215 ---
- arch/mn10300/include/asm/kdebug.h                  |   22 -
- arch/mn10300/include/asm/kgdb.h                    |   81 -
- arch/mn10300/include/asm/kmap_types.h              |    7 -
- arch/mn10300/include/asm/kprobes.h                 |   55 -
- arch/mn10300/include/asm/linkage.h                 |   20 -
- arch/mn10300/include/asm/local.h                   |    1 -
- arch/mn10300/include/asm/local64.h                 |    1 -
- arch/mn10300/include/asm/mc146818rtc.h             |    1 -
- arch/mn10300/include/asm/mmu.h                     |   20 -
- arch/mn10300/include/asm/mmu_context.h             |  163 --
- arch/mn10300/include/asm/module.h                  |   22 -
- arch/mn10300/include/asm/nmi.h                     |   16 -
- arch/mn10300/include/asm/page.h                    |  130 --
- arch/mn10300/include/asm/page_offset.h             |   12 -
- arch/mn10300/include/asm/pci.h                     |   84 -
- arch/mn10300/include/asm/percpu.h                  |    1 -
- arch/mn10300/include/asm/pgalloc.h                 |   56 -
- arch/mn10300/include/asm/pgtable.h                 |  494 -----
- arch/mn10300/include/asm/pio-regs.h                |  233 ---
- arch/mn10300/include/asm/processor.h               |  171 --
- arch/mn10300/include/asm/ptrace.h                  |   26 -
- arch/mn10300/include/asm/reset-regs.h              |   60 -
- arch/mn10300/include/asm/rtc-regs.h                |   86 -
- arch/mn10300/include/asm/rtc.h                     |   28 -
- arch/mn10300/include/asm/rwlock.h                  |  125 --
- arch/mn10300/include/asm/serial-regs.h             |  191 --
- arch/mn10300/include/asm/serial.h                  |   36 -
- arch/mn10300/include/asm/setup.h                   |   18 -
- arch/mn10300/include/asm/shmparam.h                |    7 -
- arch/mn10300/include/asm/signal.h                  |   33 -
- arch/mn10300/include/asm/smp.h                     |  109 --
- arch/mn10300/include/asm/smsc911x.h                |    1 -
- arch/mn10300/include/asm/spinlock.h                |  180 --
- arch/mn10300/include/asm/spinlock_types.h          |   21 -
- arch/mn10300/include/asm/string.h                  |   32 -
- arch/mn10300/include/asm/switch_to.h               |   49 -
- arch/mn10300/include/asm/syscall.h                 |  117 --
- arch/mn10300/include/asm/termios.h                 |   14 -
- arch/mn10300/include/asm/thread_info.h             |  160 --
- arch/mn10300/include/asm/timer-regs.h              |  452 -----
- arch/mn10300/include/asm/timex.h                   |   34 -
- arch/mn10300/include/asm/tlb.h                     |   34 -
- arch/mn10300/include/asm/tlbflush.h                |  154 --
- arch/mn10300/include/asm/topology.h                |    1 -
- arch/mn10300/include/asm/types.h                   |   22 -
- arch/mn10300/include/asm/uaccess.h                 |  297 ---
- arch/mn10300/include/asm/ucontext.h                |   22 -
- arch/mn10300/include/asm/unaligned.h               |   20 -
- arch/mn10300/include/asm/unistd.h                  |   47 -
- arch/mn10300/include/asm/user.h                    |   53 -
- arch/mn10300/include/asm/vga.h                     |   17 -
- arch/mn10300/include/asm/xor.h                     |    1 -
- arch/mn10300/include/uapi/asm/Kbuild               |    6 -
- arch/mn10300/include/uapi/asm/auxvec.h             |    4 -
- arch/mn10300/include/uapi/asm/bitsperlong.h        |    2 -
- arch/mn10300/include/uapi/asm/byteorder.h          |    7 -
- arch/mn10300/include/uapi/asm/errno.h              |    2 -
- arch/mn10300/include/uapi/asm/fcntl.h              |    2 -
- arch/mn10300/include/uapi/asm/ioctl.h              |    2 -
- arch/mn10300/include/uapi/asm/ioctls.h             |    7 -
- arch/mn10300/include/uapi/asm/ipcbuf.h             |    2 -
- arch/mn10300/include/uapi/asm/kvm_para.h           |    2 -
- arch/mn10300/include/uapi/asm/mman.h               |    7 -
- arch/mn10300/include/uapi/asm/msgbuf.h             |   32 -
- arch/mn10300/include/uapi/asm/param.h              |   19 -
- arch/mn10300/include/uapi/asm/posix_types.h        |   46 -
- arch/mn10300/include/uapi/asm/ptrace.h             |   85 -
- arch/mn10300/include/uapi/asm/resource.h           |    2 -
- arch/mn10300/include/uapi/asm/sembuf.h             |   26 -
- arch/mn10300/include/uapi/asm/setup.h              |    5 -
- arch/mn10300/include/uapi/asm/shmbuf.h             |   43 -
- arch/mn10300/include/uapi/asm/sigcontext.h         |   53 -
- arch/mn10300/include/uapi/asm/signal.h             |  126 --
- arch/mn10300/include/uapi/asm/socket.h             |  108 --
- arch/mn10300/include/uapi/asm/sockios.h            |   14 -
- arch/mn10300/include/uapi/asm/stat.h               |   79 -
- arch/mn10300/include/uapi/asm/statfs.h             |    1 -
- arch/mn10300/include/uapi/asm/swab.h               |   43 -
- arch/mn10300/include/uapi/asm/termbits.h           |  202 --
- arch/mn10300/include/uapi/asm/termios.h            |   84 -
- arch/mn10300/include/uapi/asm/types.h              |   12 -
- arch/mn10300/include/uapi/asm/unistd.h             |  355 ----
- arch/mn10300/kernel/Makefile                       |   29 -
- arch/mn10300/kernel/asm-offsets.c                  |  108 --
- arch/mn10300/kernel/cevt-mn10300.c                 |  137 --
- arch/mn10300/kernel/csrc-mn10300.c                 |   34 -
- arch/mn10300/kernel/entry.S                        |  772 --------
- arch/mn10300/kernel/fpu-low.S                      |  258 ---
- arch/mn10300/kernel/fpu-nofpu-low.S                |   39 -
- arch/mn10300/kernel/fpu-nofpu.c                    |   31 -
- arch/mn10300/kernel/fpu.c                          |  177 --
- arch/mn10300/kernel/gdb-io-serial-low.S            |   91 -
- arch/mn10300/kernel/gdb-io-serial.c                |  174 --
- arch/mn10300/kernel/gdb-io-ttysm-low.S             |   93 -
- arch/mn10300/kernel/gdb-io-ttysm.c                 |  303 ---
- arch/mn10300/kernel/gdb-low.S                      |  115 --
- arch/mn10300/kernel/gdb-stub.c                     | 1924 --------------------
- arch/mn10300/kernel/head.S                         |  442 -----
- arch/mn10300/kernel/internal.h                     |   40 -
- arch/mn10300/kernel/io.c                           |   30 -
- arch/mn10300/kernel/irq.c                          |  356 ----
- arch/mn10300/kernel/kgdb.c                         |  502 -----
- arch/mn10300/kernel/kprobes.c                      |  656 -------
- arch/mn10300/kernel/mn10300-debug.c                |   58 -
- arch/mn10300/kernel/mn10300-serial-low.S           |  194 --
- arch/mn10300/kernel/mn10300-serial.c               | 1790 ------------------
- arch/mn10300/kernel/mn10300-serial.h               |  130 --
- arch/mn10300/kernel/mn10300-watchdog-low.S         |   66 -
- arch/mn10300/kernel/mn10300-watchdog.c             |  205 ---
- arch/mn10300/kernel/mn10300_ksyms.c                |   39 -
- arch/mn10300/kernel/module.c                       |  156 --
- arch/mn10300/kernel/process.c                      |  175 --
- arch/mn10300/kernel/profile-low.S                  |   72 -
- arch/mn10300/kernel/profile.c                      |   51 -
- arch/mn10300/kernel/ptrace.c                       |  386 ----
- arch/mn10300/kernel/rtc.c                          |   46 -
- arch/mn10300/kernel/setup.c                        |  283 ---
- arch/mn10300/kernel/sigframe.h                     |   33 -
- arch/mn10300/kernel/signal.c                       |  431 -----
- arch/mn10300/kernel/smp-low.S                      |   97 -
- arch/mn10300/kernel/smp.c                          | 1186 ------------
- arch/mn10300/kernel/switch_to.S                    |  179 --
- arch/mn10300/kernel/sys_mn10300.c                  |   33 -
- arch/mn10300/kernel/time.c                         |  125 --
- arch/mn10300/kernel/traps.c                        |  615 -------
- arch/mn10300/kernel/vmlinux.lds.S                  |   94 -
- arch/mn10300/lib/Makefile                          |    7 -
- arch/mn10300/lib/__ashldi3.S                       |   51 -
- arch/mn10300/lib/__ashrdi3.S                       |   52 -
- arch/mn10300/lib/__lshrdi3.S                       |   52 -
- arch/mn10300/lib/__ucmpdi2.S                       |   43 -
- arch/mn10300/lib/ashrdi3.c                         |   61 -
- arch/mn10300/lib/bitops.c                          |   50 -
- arch/mn10300/lib/checksum.c                        |  100 -
- arch/mn10300/lib/delay.c                           |   51 -
- arch/mn10300/lib/do_csum.S                         |  157 --
- arch/mn10300/lib/internal.h                        |   15 -
- arch/mn10300/lib/lshrdi3.c                         |   60 -
- arch/mn10300/lib/memcpy.S                          |  135 --
- arch/mn10300/lib/memmove.S                         |  160 --
- arch/mn10300/lib/memset.S                          |  121 --
- arch/mn10300/lib/negdi2.c                          |   57 -
- arch/mn10300/lib/usercopy.c                        |  142 --
- arch/mn10300/mm/Kconfig.cache                      |  148 --
- arch/mn10300/mm/Makefile                           |   32 -
- arch/mn10300/mm/cache-dbg-flush-by-reg.S           |  160 --
- arch/mn10300/mm/cache-dbg-flush-by-tag.S           |  114 --
- arch/mn10300/mm/cache-dbg-inv-by-reg.S             |   69 -
- arch/mn10300/mm/cache-dbg-inv-by-tag.S             |  120 --
- arch/mn10300/mm/cache-dbg-inv.S                    |   47 -
- arch/mn10300/mm/cache-disabled.c                   |   21 -
- arch/mn10300/mm/cache-flush-by-reg.S               |  308 ----
- arch/mn10300/mm/cache-flush-by-tag.S               |  250 ---
- arch/mn10300/mm/cache-flush-icache.c               |  155 --
- arch/mn10300/mm/cache-inv-by-reg.S                 |  350 ----
- arch/mn10300/mm/cache-inv-by-tag.S                 |  276 ---
- arch/mn10300/mm/cache-inv-icache.c                 |  129 --
- arch/mn10300/mm/cache-smp-flush.c                  |  156 --
- arch/mn10300/mm/cache-smp-inv.c                    |  153 --
- arch/mn10300/mm/cache-smp.c                        |  105 --
- arch/mn10300/mm/cache-smp.h                        |   69 -
- arch/mn10300/mm/cache.c                            |   54 -
- arch/mn10300/mm/cache.inc                          |  133 --
- arch/mn10300/mm/dma-alloc.c                        |  128 --
- arch/mn10300/mm/extable.c                          |   26 -
- arch/mn10300/mm/fault.c                            |  414 -----
- arch/mn10300/mm/init.c                             |  136 --
- arch/mn10300/mm/misalignment.c                     |  966 ----------
- arch/mn10300/mm/mmu-context.c                      |   62 -
- arch/mn10300/mm/pgtable.c                          |  174 --
- arch/mn10300/mm/tlb-mn10300.S                      |  220 ---
- arch/mn10300/mm/tlb-smp.c                          |  213 ---
- arch/mn10300/oprofile/Makefile                     |   14 -
- arch/mn10300/oprofile/op_model_null.c              |   22 -
- arch/mn10300/proc-mn103e010/Makefile               |    5 -
- arch/mn10300/proc-mn103e010/include/proc/cache.h   |   43 -
- arch/mn10300/proc-mn103e010/include/proc/clock.h   |   16 -
- .../proc-mn103e010/include/proc/dmactl-regs.h      |  102 --
- .../proc-mn103e010/include/proc/intctl-regs.h      |   30 -
- arch/mn10300/proc-mn103e010/include/proc/irq.h     |   34 -
- arch/mn10300/proc-mn103e010/include/proc/proc.h    |   18 -
- arch/mn10300/proc-mn103e010/proc-init.c            |  115 --
- arch/mn10300/proc-mn2ws0050/Makefile               |    5 -
- arch/mn10300/proc-mn2ws0050/include/proc/cache.h   |   49 -
- arch/mn10300/proc-mn2ws0050/include/proc/clock.h   |   20 -
- .../proc-mn2ws0050/include/proc/dmactl-regs.h      |  103 --
- .../proc-mn2ws0050/include/proc/intctl-regs.h      |   30 -
- arch/mn10300/proc-mn2ws0050/include/proc/irq.h     |   49 -
- .../proc-mn2ws0050/include/proc/nand-regs.h        |  120 --
- arch/mn10300/proc-mn2ws0050/include/proc/proc.h    |   18 -
- .../mn10300/proc-mn2ws0050/include/proc/smp-regs.h |   51 -
- arch/mn10300/proc-mn2ws0050/proc-init.c            |  134 --
- arch/mn10300/unit-asb2303/Makefile                 |    6 -
- arch/mn10300/unit-asb2303/flash.c                  |   99 -
- arch/mn10300/unit-asb2303/include/unit/clock.h     |   24 -
- arch/mn10300/unit-asb2303/include/unit/leds.h      |   43 -
- arch/mn10300/unit-asb2303/include/unit/serial.h    |  141 --
- arch/mn10300/unit-asb2303/include/unit/smc91111.h  |   50 -
- arch/mn10300/unit-asb2303/include/unit/timex.h     |  146 --
- arch/mn10300/unit-asb2303/leds.c                   |   52 -
- arch/mn10300/unit-asb2303/smc91111.c               |   53 -
- arch/mn10300/unit-asb2303/unit-init.c              |   68 -
- arch/mn10300/unit-asb2305/Makefile                 |    8 -
- arch/mn10300/unit-asb2305/include/unit/clock.h     |   24 -
- arch/mn10300/unit-asb2305/include/unit/leds.h      |   51 -
- arch/mn10300/unit-asb2305/include/unit/serial.h    |  125 --
- arch/mn10300/unit-asb2305/include/unit/timex.h     |  146 --
- arch/mn10300/unit-asb2305/leds.c                   |  124 --
- arch/mn10300/unit-asb2305/pci-asb2305.c            |  212 ---
- arch/mn10300/unit-asb2305/pci-asb2305.h            |   65 -
- arch/mn10300/unit-asb2305/pci-irq.c                |   46 -
- arch/mn10300/unit-asb2305/pci.c                    |  505 -----
- arch/mn10300/unit-asb2305/unit-init.c              |   63 -
- arch/mn10300/unit-asb2364/Makefile                 |   12 -
- arch/mn10300/unit-asb2364/include/unit/clock.h     |   29 -
- arch/mn10300/unit-asb2364/include/unit/fpga-regs.h |   53 -
- arch/mn10300/unit-asb2364/include/unit/irq.h       |   35 -
- arch/mn10300/unit-asb2364/include/unit/leds.h      |   54 -
- arch/mn10300/unit-asb2364/include/unit/serial.h    |  151 --
- arch/mn10300/unit-asb2364/include/unit/smsc911x.h  |  171 --
- arch/mn10300/unit-asb2364/include/unit/timex.h     |  155 --
- arch/mn10300/unit-asb2364/irq-fpga.c               |  108 --
- arch/mn10300/unit-asb2364/leds.c                   |   98 -
- arch/mn10300/unit-asb2364/smsc911x.c               |   58 -
- arch/mn10300/unit-asb2364/unit-init.c              |  132 --
- crypto/sha3_generic.c                              |    2 +-
- drivers/input/joystick/analog.c                    |    2 +-
- drivers/net/ethernet/smsc/Kconfig                  |    6 +-
- drivers/net/ethernet/smsc/smc91x.h                 |    8 -
- drivers/rtc/Kconfig                                |    2 +-
- drivers/rtc/rtc-cmos.c                             |    2 +-
- drivers/staging/speakup/Kconfig                    |    2 +-
- drivers/video/console/Kconfig                      |    2 +-
- include/asm-generic/atomic.h                       |    2 -
- include/asm-generic/barrier.h                      |    2 +-
- include/asm-generic/exec.h                         |    2 +-
- include/asm-generic/io.h                           |    2 +-
- include/asm-generic/pci_iomap.h                    |    2 +-
- include/asm-generic/switch_to.h                    |    2 +-
- include/linux/ide.h                                |    2 +-
- init/Kconfig                                       |    2 +-
- lib/Kconfig.debug                                  |    2 +-
- lib/test_user_copy.c                               |    1 -
- scripts/mod/modpost.c                              |    7 +-
- tools/arch/mn10300/include/uapi/asm/bitsperlong.h  |    1 -
- tools/arch/mn10300/include/uapi/asm/mman.h         |    7 -
- tools/include/asm-generic/barrier.h                |    2 +-
- 343 files changed, 21 insertions(+), 34163 deletions(-)
- 
-diff --git a/Documentation/00-INDEX b/Documentation/00-INDEX
-index eae1e7193f50..bd7e2d08d790 100644
---- a/Documentation/00-INDEX
-+++ b/Documentation/00-INDEX
-@@ -284,8 +284,6 @@ misc-devices/
- 	- directory with info about devices using the misc dev subsystem
- mmc/
- 	- directory with info about the MMC subsystem
--mn10300/
--	- directory with info about the mn10300 architecture port
- mtd/
- 	- directory with info about memory technology devices (flash)
- namespaces/
-diff --git a/Documentation/features/core/BPF-JIT/arch-support.txt b/Documentation/features/core/BPF-JIT/arch-support.txt
-index b0634ec01881..544eb1dd5fe1 100644
---- a/Documentation/features/core/BPF-JIT/arch-support.txt
-+++ b/Documentation/features/core/BPF-JIT/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/core/generic-idle-thread/arch-support.txt b/Documentation/features/core/generic-idle-thread/arch-support.txt
-index e2a1a385efd3..c7f8626faca2 100644
---- a/Documentation/features/core/generic-idle-thread/arch-support.txt
-+++ b/Documentation/features/core/generic-idle-thread/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: |  ok  |
-diff --git a/Documentation/features/core/jump-labels/arch-support.txt b/Documentation/features/core/jump-labels/arch-support.txt
-index dafcea38fe5e..647b0ab5a78d 100644
---- a/Documentation/features/core/jump-labels/arch-support.txt
-+++ b/Documentation/features/core/jump-labels/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/core/tracehook/arch-support.txt b/Documentation/features/core/tracehook/arch-support.txt
-index 3d7886fcb6a9..c95ba6d79cee 100644
---- a/Documentation/features/core/tracehook/arch-support.txt
-+++ b/Documentation/features/core/tracehook/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: |  ok  |
-     |       nios2: |  ok  |
-     |    openrisc: |  ok  |
-     |      parisc: |  ok  |
-diff --git a/Documentation/features/debug/KASAN/arch-support.txt b/Documentation/features/debug/KASAN/arch-support.txt
-index 63598b0e8ea6..fbb5afe45848 100644
---- a/Documentation/features/debug/KASAN/arch-support.txt
-+++ b/Documentation/features/debug/KASAN/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/debug/gcov-profile-all/arch-support.txt b/Documentation/features/debug/gcov-profile-all/arch-support.txt
-index 13b3b3dfe7f2..a35c5057585b 100644
---- a/Documentation/features/debug/gcov-profile-all/arch-support.txt
-+++ b/Documentation/features/debug/gcov-profile-all/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: |  ok  |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/debug/kgdb/arch-support.txt b/Documentation/features/debug/kgdb/arch-support.txt
-index cb4792cf0f98..afb31a2505cb 100644
---- a/Documentation/features/debug/kgdb/arch-support.txt
-+++ b/Documentation/features/debug/kgdb/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: |  ok  |
-     |        mips: |  ok  |
--    |     mn10300: |  ok  |
-     |       nios2: |  ok  |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/debug/kprobes-on-ftrace/arch-support.txt b/Documentation/features/debug/kprobes-on-ftrace/arch-support.txt
-index 2046539489fe..4144979bc022 100644
---- a/Documentation/features/debug/kprobes-on-ftrace/arch-support.txt
-+++ b/Documentation/features/debug/kprobes-on-ftrace/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/debug/kprobes/arch-support.txt b/Documentation/features/debug/kprobes/arch-support.txt
-index bfb3546a70d0..7ec1a185e713 100644
---- a/Documentation/features/debug/kprobes/arch-support.txt
-+++ b/Documentation/features/debug/kprobes/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/debug/kretprobes/arch-support.txt b/Documentation/features/debug/kretprobes/arch-support.txt
-index cb2213bfadc5..fa9009c08b1f 100644
---- a/Documentation/features/debug/kretprobes/arch-support.txt
-+++ b/Documentation/features/debug/kretprobes/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/debug/optprobes/arch-support.txt b/Documentation/features/debug/optprobes/arch-support.txt
-index 219aa64ca3f5..38adefbe2edf 100644
---- a/Documentation/features/debug/optprobes/arch-support.txt
-+++ b/Documentation/features/debug/optprobes/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/debug/stackprotector/arch-support.txt b/Documentation/features/debug/stackprotector/arch-support.txt
-index 904864c3f18c..2965ae0ca139 100644
---- a/Documentation/features/debug/stackprotector/arch-support.txt
-+++ b/Documentation/features/debug/stackprotector/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/debug/uprobes/arch-support.txt b/Documentation/features/debug/uprobes/arch-support.txt
-index d092f000e6bb..5da0bc2e7e1e 100644
---- a/Documentation/features/debug/uprobes/arch-support.txt
-+++ b/Documentation/features/debug/uprobes/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/debug/user-ret-profiler/arch-support.txt b/Documentation/features/debug/user-ret-profiler/arch-support.txt
-index 9e9e195b6d30..a45ced203f32 100644
---- a/Documentation/features/debug/user-ret-profiler/arch-support.txt
-+++ b/Documentation/features/debug/user-ret-profiler/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/io/dma-api-debug/arch-support.txt b/Documentation/features/io/dma-api-debug/arch-support.txt
-index ba9e169859c4..411ec941e46c 100644
---- a/Documentation/features/io/dma-api-debug/arch-support.txt
-+++ b/Documentation/features/io/dma-api-debug/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: |  ok  |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/io/dma-contiguous/arch-support.txt b/Documentation/features/io/dma-contiguous/arch-support.txt
-index 35b501f2c117..3b65953a96a9 100644
---- a/Documentation/features/io/dma-contiguous/arch-support.txt
-+++ b/Documentation/features/io/dma-contiguous/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/io/sg-chain/arch-support.txt b/Documentation/features/io/sg-chain/arch-support.txt
-index 42c078dff18b..65e9368c69a7 100644
---- a/Documentation/features/io/sg-chain/arch-support.txt
-+++ b/Documentation/features/io/sg-chain/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/lib/strncasecmp/arch-support.txt b/Documentation/features/lib/strncasecmp/arch-support.txt
-index b10c21f14739..cee48bd07b08 100644
---- a/Documentation/features/lib/strncasecmp/arch-support.txt
-+++ b/Documentation/features/lib/strncasecmp/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/locking/cmpxchg-local/arch-support.txt b/Documentation/features/locking/cmpxchg-local/arch-support.txt
-index 3b87fd37bae8..a83465dc0db5 100644
---- a/Documentation/features/locking/cmpxchg-local/arch-support.txt
-+++ b/Documentation/features/locking/cmpxchg-local/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/locking/lockdep/arch-support.txt b/Documentation/features/locking/lockdep/arch-support.txt
-index cefcd720f04e..e5d51c585a90 100644
---- a/Documentation/features/locking/lockdep/arch-support.txt
-+++ b/Documentation/features/locking/lockdep/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: |  ok  |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/locking/queued-rwlocks/arch-support.txt b/Documentation/features/locking/queued-rwlocks/arch-support.txt
-index da6c7e37141c..5cae3a63a44e 100644
---- a/Documentation/features/locking/queued-rwlocks/arch-support.txt
-+++ b/Documentation/features/locking/queued-rwlocks/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/locking/queued-spinlocks/arch-support.txt b/Documentation/features/locking/queued-spinlocks/arch-support.txt
-index 1e5dbcdd1c76..cb227de0bbf9 100644
---- a/Documentation/features/locking/queued-spinlocks/arch-support.txt
-+++ b/Documentation/features/locking/queued-spinlocks/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/locking/rwsem-optimized/arch-support.txt b/Documentation/features/locking/rwsem-optimized/arch-support.txt
-index b79e92288112..ee70c9c52627 100644
---- a/Documentation/features/locking/rwsem-optimized/arch-support.txt
-+++ b/Documentation/features/locking/rwsem-optimized/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/perf/kprobes-event/arch-support.txt b/Documentation/features/perf/kprobes-event/arch-support.txt
-index 6418ccc6fc34..52f54e64e993 100644
---- a/Documentation/features/perf/kprobes-event/arch-support.txt
-+++ b/Documentation/features/perf/kprobes-event/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/perf/perf-regs/arch-support.txt b/Documentation/features/perf/perf-regs/arch-support.txt
-index 3b3392ac6466..e4294aed38bf 100644
---- a/Documentation/features/perf/perf-regs/arch-support.txt
-+++ b/Documentation/features/perf/perf-regs/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/perf/perf-stackdump/arch-support.txt b/Documentation/features/perf/perf-stackdump/arch-support.txt
-index 4594cb28fbc8..b12117a9aa4d 100644
---- a/Documentation/features/perf/perf-stackdump/arch-support.txt
-+++ b/Documentation/features/perf/perf-stackdump/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/sched/membarrier-sync-core/arch-support.txt b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
-index 42eaab4d439d..0f419ecfbce6 100644
---- a/Documentation/features/sched/membarrier-sync-core/arch-support.txt
-+++ b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
-@@ -44,7 +44,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/sched/numa-balancing/arch-support.txt b/Documentation/features/sched/numa-balancing/arch-support.txt
-index 4e67833aae66..045418673368 100644
---- a/Documentation/features/sched/numa-balancing/arch-support.txt
-+++ b/Documentation/features/sched/numa-balancing/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: |  ..  |
-     |  microblaze: |  ..  |
-     |        mips: | TODO |
--    |     mn10300: |  ..  |
-     |       nios2: |  ..  |
-     |    openrisc: |  ..  |
-     |      parisc: |  ..  |
-diff --git a/Documentation/features/seccomp/seccomp-filter/arch-support.txt b/Documentation/features/seccomp/seccomp-filter/arch-support.txt
-index c5d8b397a693..c08a330e51d2 100644
---- a/Documentation/features/seccomp/seccomp-filter/arch-support.txt
-+++ b/Documentation/features/seccomp/seccomp-filter/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/time/arch-tick-broadcast/arch-support.txt b/Documentation/features/time/arch-tick-broadcast/arch-support.txt
-index 9e4999136881..da91b576ede8 100644
---- a/Documentation/features/time/arch-tick-broadcast/arch-support.txt
-+++ b/Documentation/features/time/arch-tick-broadcast/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/time/clockevents/arch-support.txt b/Documentation/features/time/clockevents/arch-support.txt
-index f90cb64c640b..d76322a76668 100644
---- a/Documentation/features/time/clockevents/arch-support.txt
-+++ b/Documentation/features/time/clockevents/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: |  ok  |
-     |  microblaze: |  ok  |
-     |        mips: |  ok  |
--    |     mn10300: |  ok  |
-     |       nios2: |  ok  |
-     |    openrisc: |  ok  |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/time/context-tracking/arch-support.txt b/Documentation/features/time/context-tracking/arch-support.txt
-index eb4e5d32a2e9..09582d171c84 100644
---- a/Documentation/features/time/context-tracking/arch-support.txt
-+++ b/Documentation/features/time/context-tracking/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/time/irq-time-acct/arch-support.txt b/Documentation/features/time/irq-time-acct/arch-support.txt
-index 02b7441f360f..5df0285b6fc4 100644
---- a/Documentation/features/time/irq-time-acct/arch-support.txt
-+++ b/Documentation/features/time/irq-time-acct/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: |  ..  |
-diff --git a/Documentation/features/time/modern-timekeeping/arch-support.txt b/Documentation/features/time/modern-timekeeping/arch-support.txt
-index b3eb6fe6bc27..0f8c7e4084b0 100644
---- a/Documentation/features/time/modern-timekeeping/arch-support.txt
-+++ b/Documentation/features/time/modern-timekeeping/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: |  ok  |
-     |        mips: |  ok  |
--    |     mn10300: |  ok  |
-     |       nios2: |  ok  |
-     |    openrisc: |  ok  |
-     |      parisc: |  ok  |
-diff --git a/Documentation/features/time/virt-cpuacct/arch-support.txt b/Documentation/features/time/virt-cpuacct/arch-support.txt
-index a1bd77fd723a..c0af0a37444d 100644
---- a/Documentation/features/time/virt-cpuacct/arch-support.txt
-+++ b/Documentation/features/time/virt-cpuacct/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: |  ok  |
-diff --git a/Documentation/features/vm/ELF-ASLR/arch-support.txt b/Documentation/features/vm/ELF-ASLR/arch-support.txt
-index 3f926177833c..72c3124ffd1f 100644
---- a/Documentation/features/vm/ELF-ASLR/arch-support.txt
-+++ b/Documentation/features/vm/ELF-ASLR/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/vm/PG_uncached/arch-support.txt b/Documentation/features/vm/PG_uncached/arch-support.txt
-index 4c8f65d525d7..46c62a1d7dda 100644
---- a/Documentation/features/vm/PG_uncached/arch-support.txt
-+++ b/Documentation/features/vm/PG_uncached/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/vm/THP/arch-support.txt b/Documentation/features/vm/THP/arch-support.txt
-index d121dc2e3e5e..eaace2054bb4 100644
---- a/Documentation/features/vm/THP/arch-support.txt
-+++ b/Documentation/features/vm/THP/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: |  ..  |
-     |  microblaze: |  ..  |
-     |        mips: |  ok  |
--    |     mn10300: |  ..  |
-     |       nios2: |  ..  |
-     |    openrisc: |  ..  |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/vm/TLB/arch-support.txt b/Documentation/features/vm/TLB/arch-support.txt
-index af233d2d82cf..b1088eaaff3f 100644
---- a/Documentation/features/vm/TLB/arch-support.txt
-+++ b/Documentation/features/vm/TLB/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: |  ..  |
-     |  microblaze: |  ..  |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: |  ..  |
-     |    openrisc: |  ..  |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/vm/huge-vmap/arch-support.txt b/Documentation/features/vm/huge-vmap/arch-support.txt
-index 45c74fbe6805..6e4e5295ee2a 100644
---- a/Documentation/features/vm/huge-vmap/arch-support.txt
-+++ b/Documentation/features/vm/huge-vmap/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/vm/ioremap_prot/arch-support.txt b/Documentation/features/vm/ioremap_prot/arch-support.txt
-index 6cd436af0cc8..185e0654389f 100644
---- a/Documentation/features/vm/ioremap_prot/arch-support.txt
-+++ b/Documentation/features/vm/ioremap_prot/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/features/vm/numa-memblock/arch-support.txt b/Documentation/features/vm/numa-memblock/arch-support.txt
-index 2db895856da6..de7f891fb2a8 100644
---- a/Documentation/features/vm/numa-memblock/arch-support.txt
-+++ b/Documentation/features/vm/numa-memblock/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: |  ..  |
-     |  microblaze: |  ok  |
-     |        mips: |  ok  |
--    |     mn10300: | TODO |
-     |       nios2: |  ..  |
-     |    openrisc: |  ..  |
-     |      parisc: |  ..  |
-diff --git a/Documentation/features/vm/pte_special/arch-support.txt b/Documentation/features/vm/pte_special/arch-support.txt
-index ccb15b6da42f..8587fe975fea 100644
---- a/Documentation/features/vm/pte_special/arch-support.txt
-+++ b/Documentation/features/vm/pte_special/arch-support.txt
-@@ -21,7 +21,6 @@
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
-     |        mips: | TODO |
--    |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-diff --git a/Documentation/mn10300/ABI.txt b/Documentation/mn10300/ABI.txt
-deleted file mode 100644
-index d3507bad428d..000000000000
-diff --git a/Documentation/mn10300/compartmentalisation.txt b/Documentation/mn10300/compartmentalisation.txt
-deleted file mode 100644
-index 8958b51dac4b..000000000000
+ Documentation/ioctl/ioctl-number.txt           |    1 -
+ MAINTAINERS                                    |   13 -
+ Makefile                                       |    8 -
+ arch/tile/Kbuild                               |    3 -
+ arch/tile/Kconfig                              |  481 ----
+ arch/tile/Kconfig.debug                        |   26 -
+ arch/tile/Makefile                             |   77 -
+ arch/tile/configs/tilegx_defconfig             |  411 ----
+ arch/tile/configs/tilepro_defconfig            |  524 -----
+ arch/tile/gxio/Kconfig                         |   34 -
+ arch/tile/gxio/Makefile                        |   11 -
+ arch/tile/gxio/dma_queue.c                     |  176 --
+ arch/tile/gxio/iorpc_globals.c                 |   89 -
+ arch/tile/gxio/iorpc_mpipe.c                   |  593 -----
+ arch/tile/gxio/iorpc_mpipe_info.c              |  102 -
+ arch/tile/gxio/iorpc_trio.c                    |  350 ---
+ arch/tile/gxio/iorpc_uart.c                    |   77 -
+ arch/tile/gxio/iorpc_usb_host.c                |   99 -
+ arch/tile/gxio/kiorpc.c                        |   61 -
+ arch/tile/gxio/mpipe.c                         |  584 -----
+ arch/tile/gxio/trio.c                          |   49 -
+ arch/tile/gxio/uart.c                          |   87 -
+ arch/tile/gxio/usb_host.c                      |   91 -
+ arch/tile/include/arch/mpipe.h                 |  371 ---
+ arch/tile/include/arch/mpipe_constants.h       |   42 -
+ arch/tile/include/arch/mpipe_def.h             |   39 -
+ arch/tile/include/arch/mpipe_shm.h             |  521 -----
+ arch/tile/include/arch/mpipe_shm_def.h         |   23 -
+ arch/tile/include/arch/spr_def.h               |  109 -
+ arch/tile/include/arch/trio.h                  |  111 -
+ arch/tile/include/arch/trio_constants.h        |   36 -
+ arch/tile/include/arch/trio_def.h              |   41 -
+ arch/tile/include/arch/trio_pcie_intfc.h       |  229 --
+ arch/tile/include/arch/trio_pcie_intfc_def.h   |   32 -
+ arch/tile/include/arch/trio_pcie_rc.h          |  156 --
+ arch/tile/include/arch/trio_pcie_rc_def.h      |   24 -
+ arch/tile/include/arch/trio_shm.h              |  125 -
+ arch/tile/include/arch/trio_shm_def.h          |   19 -
+ arch/tile/include/arch/uart.h                  |  300 ---
+ arch/tile/include/arch/uart_def.h              |  120 -
+ arch/tile/include/arch/usb_host.h              |   26 -
+ arch/tile/include/arch/usb_host_def.h          |   19 -
+ arch/tile/include/asm/Kbuild                   |   18 -
+ arch/tile/include/asm/asm-offsets.h            |    1 -
+ arch/tile/include/asm/atomic.h                 |  210 --
+ arch/tile/include/asm/atomic_32.h              |  297 ---
+ arch/tile/include/asm/atomic_64.h              |  200 --
+ arch/tile/include/asm/backtrace.h              |  162 --
+ arch/tile/include/asm/barrier.h                |  100 -
+ arch/tile/include/asm/bitops.h                 |   94 -
+ arch/tile/include/asm/bitops_32.h              |  126 -
+ arch/tile/include/asm/bitops_64.h              |   95 -
+ arch/tile/include/asm/cache.h                  |   64 -
+ arch/tile/include/asm/cacheflush.h             |  160 --
+ arch/tile/include/asm/checksum.h               |   42 -
+ arch/tile/include/asm/cmpxchg.h                |  132 --
+ arch/tile/include/asm/compat.h                 |  233 --
+ arch/tile/include/asm/current.h                |   31 -
+ arch/tile/include/asm/delay.h                  |   34 -
+ arch/tile/include/asm/device.h                 |   33 -
+ arch/tile/include/asm/div64.h                  |   17 -
+ arch/tile/include/asm/dma-mapping.h            |   50 -
+ arch/tile/include/asm/dma.h                    |   25 -
+ arch/tile/include/asm/elf.h                    |  182 --
+ arch/tile/include/asm/fixmap.h                 |   87 -
+ arch/tile/include/asm/ftrace.h                 |   42 -
+ arch/tile/include/asm/futex.h                  |  166 --
+ arch/tile/include/asm/hardirq.h                |   45 -
+ arch/tile/include/asm/hardwall.h               |   30 -
+ arch/tile/include/asm/highmem.h                |   71 -
+ arch/tile/include/asm/homecache.h              |  123 -
+ arch/tile/include/asm/hugetlb.h                |  122 -
+ arch/tile/include/asm/hv_driver.h              |   60 -
+ arch/tile/include/asm/ide.h                    |   25 -
+ arch/tile/include/asm/insn.h                   |   59 -
+ arch/tile/include/asm/io.h                     |  509 ----
+ arch/tile/include/asm/irq.h                    |   87 -
+ arch/tile/include/asm/irq_work.h               |   15 -
+ arch/tile/include/asm/irqflags.h               |  311 ---
+ arch/tile/include/asm/jump_label.h             |   58 -
+ arch/tile/include/asm/kdebug.h                 |   28 -
+ arch/tile/include/asm/kexec.h                  |   65 -
+ arch/tile/include/asm/kgdb.h                   |   71 -
+ arch/tile/include/asm/kmap_types.h             |   28 -
+ arch/tile/include/asm/kprobes.h                |   83 -
+ arch/tile/include/asm/linkage.h                |   51 -
+ arch/tile/include/asm/mmu.h                    |   32 -
+ arch/tile/include/asm/mmu_context.h            |  137 --
+ arch/tile/include/asm/mmzone.h                 |   70 -
+ arch/tile/include/asm/module.h                 |   40 -
+ arch/tile/include/asm/page.h                   |  345 ---
+ arch/tile/include/asm/pci.h                    |  229 --
+ arch/tile/include/asm/percpu.h                 |   52 -
+ arch/tile/include/asm/perf_event.h             |   22 -
+ arch/tile/include/asm/pgalloc.h                |  164 --
+ arch/tile/include/asm/pgtable.h                |  518 -----
+ arch/tile/include/asm/pgtable_32.h             |  122 -
+ arch/tile/include/asm/pgtable_64.h             |  172 --
+ arch/tile/include/asm/pmc.h                    |   64 -
+ arch/tile/include/asm/processor.h              |  368 ---
+ arch/tile/include/asm/ptrace.h                 |   97 -
+ arch/tile/include/asm/sections.h               |   44 -
+ arch/tile/include/asm/setup.h                  |   57 -
+ arch/tile/include/asm/sigframe.h               |   33 -
+ arch/tile/include/asm/signal.h                 |   29 -
+ arch/tile/include/asm/smp.h                    |  139 --
+ arch/tile/include/asm/spinlock.h               |   24 -
+ arch/tile/include/asm/spinlock_32.h            |  109 -
+ arch/tile/include/asm/spinlock_64.h            |  138 --
+ arch/tile/include/asm/spinlock_types.h         |   60 -
+ arch/tile/include/asm/stack.h                  |   73 -
+ arch/tile/include/asm/string.h                 |   34 -
+ arch/tile/include/asm/switch_to.h              |   77 -
+ arch/tile/include/asm/syscall.h                |  111 -
+ arch/tile/include/asm/syscalls.h               |   70 -
+ arch/tile/include/asm/thread_info.h            |  167 --
+ arch/tile/include/asm/tile-desc.h              |   19 -
+ arch/tile/include/asm/tile-desc_32.h           |  553 -----
+ arch/tile/include/asm/tile-desc_64.h           |  483 ----
+ arch/tile/include/asm/timex.h                  |   52 -
+ arch/tile/include/asm/tlb.h                    |   25 -
+ arch/tile/include/asm/tlbflush.h               |  123 -
+ arch/tile/include/asm/topology.h               |   52 -
+ arch/tile/include/asm/traps.h                  |   93 -
+ arch/tile/include/asm/uaccess.h                |  411 ----
+ arch/tile/include/asm/unaligned.h              |   43 -
+ arch/tile/include/asm/unistd.h                 |   20 -
+ arch/tile/include/asm/user.h                   |   21 -
+ arch/tile/include/asm/vdso.h                   |   55 -
+ arch/tile/include/asm/vga.h                    |   39 -
+ arch/tile/include/asm/word-at-a-time.h         |   43 -
+ arch/tile/include/gxio/common.h                |   40 -
+ arch/tile/include/gxio/dma_queue.h             |  161 --
+ arch/tile/include/gxio/iorpc_globals.h         |   38 -
+ arch/tile/include/gxio/iorpc_mpipe.h           |  144 --
+ arch/tile/include/gxio/iorpc_mpipe_info.h      |   50 -
+ arch/tile/include/gxio/iorpc_trio.h            |  104 -
+ arch/tile/include/gxio/iorpc_uart.h            |   40 -
+ arch/tile/include/gxio/iorpc_usb_host.h        |   46 -
+ arch/tile/include/gxio/kiorpc.h                |   29 -
+ arch/tile/include/gxio/mpipe.h                 | 1871 ---------------
+ arch/tile/include/gxio/trio.h                  |  298 ---
+ arch/tile/include/gxio/uart.h                  |  105 -
+ arch/tile/include/gxio/usb_host.h              |   87 -
+ arch/tile/include/hv/drv_mpipe_intf.h          |  605 -----
+ arch/tile/include/hv/drv_mshim_intf.h          |   50 -
+ arch/tile/include/hv/drv_pcie_rc_intf.h        |   38 -
+ arch/tile/include/hv/drv_srom_intf.h           |   41 -
+ arch/tile/include/hv/drv_trio_intf.h           |  199 --
+ arch/tile/include/hv/drv_uart_intf.h           |   33 -
+ arch/tile/include/hv/drv_usb_host_intf.h       |   39 -
+ arch/tile/include/hv/drv_xgbe_impl.h           |  300 ---
+ arch/tile/include/hv/drv_xgbe_intf.h           |  615 -----
+ arch/tile/include/hv/hypervisor.h              | 2656 ---------------------
+ arch/tile/include/hv/iorpc.h                   |  714 ------
+ arch/tile/include/hv/netio_errors.h            |  122 -
+ arch/tile/include/hv/netio_intf.h              | 2975 ------------------------
+ arch/tile/include/hv/syscall_public.h          |   42 -
+ arch/tile/include/uapi/arch/abi.h              |  101 -
+ arch/tile/include/uapi/arch/chip.h             |   22 -
+ arch/tile/include/uapi/arch/chip_tilegx.h      |  259 ---
+ arch/tile/include/uapi/arch/chip_tilepro.h     |  259 ---
+ arch/tile/include/uapi/arch/icache.h           |   94 -
+ arch/tile/include/uapi/arch/interrupts.h       |   20 -
+ arch/tile/include/uapi/arch/interrupts_32.h    |  310 ---
+ arch/tile/include/uapi/arch/interrupts_64.h    |  279 ---
+ arch/tile/include/uapi/arch/intreg.h           |   71 -
+ arch/tile/include/uapi/arch/opcode.h           |   22 -
+ arch/tile/include/uapi/arch/opcode_tilegx.h    | 1407 -----------
+ arch/tile/include/uapi/arch/opcode_tilepro.h   | 1473 ------------
+ arch/tile/include/uapi/arch/sim.h              |  644 -----
+ arch/tile/include/uapi/arch/sim_def.h          |  506 ----
+ arch/tile/include/uapi/arch/spr_def.h          |   27 -
+ arch/tile/include/uapi/arch/spr_def_32.h       |  256 --
+ arch/tile/include/uapi/arch/spr_def_64.h       |  217 --
+ arch/tile/include/uapi/asm/Kbuild              |   24 -
+ arch/tile/include/uapi/asm/auxvec.h            |   24 -
+ arch/tile/include/uapi/asm/bitsperlong.h       |   27 -
+ arch/tile/include/uapi/asm/byteorder.h         |   20 -
+ arch/tile/include/uapi/asm/cachectl.h          |   43 -
+ arch/tile/include/uapi/asm/hardwall.h          |   52 -
+ arch/tile/include/uapi/asm/kvm_para.h          |    2 -
+ arch/tile/include/uapi/asm/mman.h              |   43 -
+ arch/tile/include/uapi/asm/ptrace.h            |   99 -
+ arch/tile/include/uapi/asm/setup.h             |   22 -
+ arch/tile/include/uapi/asm/sigcontext.h        |   44 -
+ arch/tile/include/uapi/asm/siginfo.h           |   27 -
+ arch/tile/include/uapi/asm/signal.h            |   28 -
+ arch/tile/include/uapi/asm/stat.h              |    5 -
+ arch/tile/include/uapi/asm/swab.h              |   24 -
+ arch/tile/include/uapi/asm/unistd.h            |   38 -
+ arch/tile/kernel/Makefile                      |   38 -
+ arch/tile/kernel/asm-offsets.c                 |   84 -
+ arch/tile/kernel/backtrace.c                   |  683 ------
+ arch/tile/kernel/compat.c                      |  117 -
+ arch/tile/kernel/compat_signal.c               |  172 --
+ arch/tile/kernel/early_printk.c                |   75 -
+ arch/tile/kernel/entry.S                       |   64 -
+ arch/tile/kernel/ftrace.c                      |  239 --
+ arch/tile/kernel/hardwall.c                    | 1096 ---------
+ arch/tile/kernel/head_32.S                     |  183 --
+ arch/tile/kernel/head_64.S                     |  279 ---
+ arch/tile/kernel/hvglue.S                      |   76 -
+ arch/tile/kernel/hvglue_trace.c                |  270 ---
+ arch/tile/kernel/intvec_32.S                   | 1906 ---------------
+ arch/tile/kernel/intvec_64.S                   | 1564 -------------
+ arch/tile/kernel/irq.c                         |  280 ---
+ arch/tile/kernel/jump_label.c                  |   62 -
+ arch/tile/kernel/kgdb.c                        |  497 ----
+ arch/tile/kernel/kprobes.c                     |  527 -----
+ arch/tile/kernel/machine_kexec.c               |  298 ---
+ arch/tile/kernel/mcount_64.S                   |  211 --
+ arch/tile/kernel/messaging.c                   |  115 -
+ arch/tile/kernel/module.c                      |  231 --
+ arch/tile/kernel/pci-dma.c                     |  607 -----
+ arch/tile/kernel/pci.c                         |  592 -----
+ arch/tile/kernel/pci_gx.c                      | 1592 -------------
+ arch/tile/kernel/perf_event.c                  | 1005 --------
+ arch/tile/kernel/pmc.c                         |  118 -
+ arch/tile/kernel/proc.c                        |  160 --
+ arch/tile/kernel/process.c                     |  659 ------
+ arch/tile/kernel/ptrace.c                      |  316 ---
+ arch/tile/kernel/reboot.c                      |   51 -
+ arch/tile/kernel/regs_32.S                     |  145 --
+ arch/tile/kernel/regs_64.S                     |  145 --
+ arch/tile/kernel/relocate_kernel_32.S          |  269 ---
+ arch/tile/kernel/relocate_kernel_64.S          |  263 ---
+ arch/tile/kernel/setup.c                       | 1743 --------------
+ arch/tile/kernel/signal.c                      |  411 ----
+ arch/tile/kernel/single_step.c                 |  786 -------
+ arch/tile/kernel/smp.c                         |  287 ---
+ arch/tile/kernel/smpboot.c                     |  269 ---
+ arch/tile/kernel/stack.c                       |  539 -----
+ arch/tile/kernel/sys.c                         |  130 --
+ arch/tile/kernel/sysfs.c                       |  266 ---
+ arch/tile/kernel/tile-desc_32.c                | 2605 ---------------------
+ arch/tile/kernel/tile-desc_64.c                | 2218 ------------------
+ arch/tile/kernel/time.c                        |  306 ---
+ arch/tile/kernel/tlb.c                         |  104 -
+ arch/tile/kernel/traps.c                       |  421 ----
+ arch/tile/kernel/unaligned.c                   | 1603 -------------
+ arch/tile/kernel/usb.c                         |   71 -
+ arch/tile/kernel/vdso.c                        |  197 --
+ arch/tile/kernel/vdso/Makefile                 |  117 -
+ arch/tile/kernel/vdso/vdso.S                   |   28 -
+ arch/tile/kernel/vdso/vdso.lds.S               |   89 -
+ arch/tile/kernel/vdso/vdso32.S                 |   28 -
+ arch/tile/kernel/vdso/vgettimeofday.c          |  198 --
+ arch/tile/kernel/vdso/vrt_sigreturn.S          |   30 -
+ arch/tile/kernel/vmlinux.lds.S                 |  105 -
+ arch/tile/kvm/Kconfig                          |   39 -
+ arch/tile/lib/Makefile                         |   19 -
+ arch/tile/lib/atomic_32.c                      |  206 --
+ arch/tile/lib/atomic_asm_32.S                  |  205 --
+ arch/tile/lib/cacheflush.c                     |  167 --
+ arch/tile/lib/checksum.c                       |   89 -
+ arch/tile/lib/cpumask.c                        |   54 -
+ arch/tile/lib/delay.c                          |   45 -
+ arch/tile/lib/exports.c                        |   94 -
+ arch/tile/lib/memchr_32.c                      |   71 -
+ arch/tile/lib/memchr_64.c                      |   69 -
+ arch/tile/lib/memcpy_32.S                      |  544 -----
+ arch/tile/lib/memcpy_64.c                      |  367 ---
+ arch/tile/lib/memcpy_user_64.c                 |   85 -
+ arch/tile/lib/memmove.c                        |   63 -
+ arch/tile/lib/memset_32.c                      |  143 --
+ arch/tile/lib/memset_64.c                      |  142 --
+ arch/tile/lib/spinlock_32.c                    |  251 --
+ arch/tile/lib/spinlock_64.c                    |   97 -
+ arch/tile/lib/spinlock_common.h                |   64 -
+ arch/tile/lib/strchr_32.c                      |   64 -
+ arch/tile/lib/strchr_64.c                      |   62 -
+ arch/tile/lib/string-endian.h                  |   44 -
+ arch/tile/lib/strlen_32.c                      |   36 -
+ arch/tile/lib/strlen_64.c                      |   35 -
+ arch/tile/lib/strnlen_32.c                     |   47 -
+ arch/tile/lib/strnlen_64.c                     |   48 -
+ arch/tile/lib/uaccess.c                        |   24 -
+ arch/tile/lib/usercopy_32.S                    |   89 -
+ arch/tile/lib/usercopy_64.S                    |   89 -
+ arch/tile/mm/Makefile                          |    9 -
+ arch/tile/mm/elf.c                             |  165 --
+ arch/tile/mm/extable.c                         |   30 -
+ arch/tile/mm/fault.c                           |  924 --------
+ arch/tile/mm/highmem.c                         |  277 ---
+ arch/tile/mm/homecache.c                       |  428 ----
+ arch/tile/mm/hugetlbpage.c                     |  348 ---
+ arch/tile/mm/init.c                            |  956 --------
+ arch/tile/mm/migrate.h                         |   56 -
+ arch/tile/mm/migrate_32.S                      |  192 --
+ arch/tile/mm/migrate_64.S                      |  167 --
+ arch/tile/mm/mmap.c                            |   93 -
+ arch/tile/mm/pgtable.c                         |  550 -----
+ drivers/pci/quirks.c                           |   19 -
+ samples/kprobes/kprobe_example.c               |    8 -
+ tools/arch/tile/include/asm/barrier.h          |   16 -
+ tools/arch/tile/include/uapi/asm/bitsperlong.h |   27 -
+ tools/arch/tile/include/uapi/asm/mman.h        |   16 -
+ tools/scripts/Makefile.arch                    |   11 +-
+ tools/testing/ktest/ktest.pl                   |    2 -
+ 300 files changed, 1 insertion(+), 69477 deletions(-)
+ delete mode 100644 arch/tile/Kbuild
+ delete mode 100644 arch/tile/Kconfig
+ delete mode 100644 arch/tile/Kconfig.debug
+ delete mode 100644 arch/tile/Makefile
+ delete mode 100644 arch/tile/configs/tilegx_defconfig
+ delete mode 100644 arch/tile/configs/tilepro_defconfig
+ delete mode 100644 arch/tile/gxio/Kconfig
+ delete mode 100644 arch/tile/gxio/Makefile
+ delete mode 100644 arch/tile/gxio/dma_queue.c
+ delete mode 100644 arch/tile/gxio/iorpc_globals.c
+ delete mode 100644 arch/tile/gxio/iorpc_mpipe.c
+ delete mode 100644 arch/tile/gxio/iorpc_mpipe_info.c
+ delete mode 100644 arch/tile/gxio/iorpc_trio.c
+ delete mode 100644 arch/tile/gxio/iorpc_uart.c
+ delete mode 100644 arch/tile/gxio/iorpc_usb_host.c
+ delete mode 100644 arch/tile/gxio/kiorpc.c
+ delete mode 100644 arch/tile/gxio/mpipe.c
+ delete mode 100644 arch/tile/gxio/trio.c
+ delete mode 100644 arch/tile/gxio/uart.c
+ delete mode 100644 arch/tile/gxio/usb_host.c
+ delete mode 100644 arch/tile/include/arch/mpipe.h
+ delete mode 100644 arch/tile/include/arch/mpipe_constants.h
+ delete mode 100644 arch/tile/include/arch/mpipe_def.h
+ delete mode 100644 arch/tile/include/arch/mpipe_shm.h
+ delete mode 100644 arch/tile/include/arch/mpipe_shm_def.h
+ delete mode 100644 arch/tile/include/arch/spr_def.h
+ delete mode 100644 arch/tile/include/arch/trio.h
+ delete mode 100644 arch/tile/include/arch/trio_constants.h
+ delete mode 100644 arch/tile/include/arch/trio_def.h
+ delete mode 100644 arch/tile/include/arch/trio_pcie_intfc.h
+ delete mode 100644 arch/tile/include/arch/trio_pcie_intfc_def.h
+ delete mode 100644 arch/tile/include/arch/trio_pcie_rc.h
+ delete mode 100644 arch/tile/include/arch/trio_pcie_rc_def.h
+ delete mode 100644 arch/tile/include/arch/trio_shm.h
+ delete mode 100644 arch/tile/include/arch/trio_shm_def.h
+ delete mode 100644 arch/tile/include/arch/uart.h
+ delete mode 100644 arch/tile/include/arch/uart_def.h
+ delete mode 100644 arch/tile/include/arch/usb_host.h
+ delete mode 100644 arch/tile/include/arch/usb_host_def.h
+ delete mode 100644 arch/tile/include/asm/Kbuild
+ delete mode 100644 arch/tile/include/asm/asm-offsets.h
+ delete mode 100644 arch/tile/include/asm/atomic.h
+ delete mode 100644 arch/tile/include/asm/atomic_32.h
+ delete mode 100644 arch/tile/include/asm/atomic_64.h
+ delete mode 100644 arch/tile/include/asm/backtrace.h
+ delete mode 100644 arch/tile/include/asm/barrier.h
+ delete mode 100644 arch/tile/include/asm/bitops.h
+ delete mode 100644 arch/tile/include/asm/bitops_32.h
+ delete mode 100644 arch/tile/include/asm/bitops_64.h
+ delete mode 100644 arch/tile/include/asm/cache.h
+ delete mode 100644 arch/tile/include/asm/cacheflush.h
+ delete mode 100644 arch/tile/include/asm/checksum.h
+ delete mode 100644 arch/tile/include/asm/cmpxchg.h
+ delete mode 100644 arch/tile/include/asm/compat.h
+ delete mode 100644 arch/tile/include/asm/current.h
+ delete mode 100644 arch/tile/include/asm/delay.h
+ delete mode 100644 arch/tile/include/asm/device.h
+ delete mode 100644 arch/tile/include/asm/div64.h
+ delete mode 100644 arch/tile/include/asm/dma-mapping.h
+ delete mode 100644 arch/tile/include/asm/dma.h
+ delete mode 100644 arch/tile/include/asm/elf.h
+ delete mode 100644 arch/tile/include/asm/fixmap.h
+ delete mode 100644 arch/tile/include/asm/ftrace.h
+ delete mode 100644 arch/tile/include/asm/futex.h
+ delete mode 100644 arch/tile/include/asm/hardirq.h
+ delete mode 100644 arch/tile/include/asm/hardwall.h
+ delete mode 100644 arch/tile/include/asm/highmem.h
+ delete mode 100644 arch/tile/include/asm/homecache.h
+ delete mode 100644 arch/tile/include/asm/hugetlb.h
+ delete mode 100644 arch/tile/include/asm/hv_driver.h
+ delete mode 100644 arch/tile/include/asm/ide.h
+ delete mode 100644 arch/tile/include/asm/insn.h
+ delete mode 100644 arch/tile/include/asm/io.h
+ delete mode 100644 arch/tile/include/asm/irq.h
+ delete mode 100644 arch/tile/include/asm/irq_work.h
+ delete mode 100644 arch/tile/include/asm/irqflags.h
+ delete mode 100644 arch/tile/include/asm/jump_label.h
+ delete mode 100644 arch/tile/include/asm/kdebug.h
+ delete mode 100644 arch/tile/include/asm/kexec.h
+ delete mode 100644 arch/tile/include/asm/kgdb.h
+ delete mode 100644 arch/tile/include/asm/kmap_types.h
+ delete mode 100644 arch/tile/include/asm/kprobes.h
+ delete mode 100644 arch/tile/include/asm/linkage.h
+ delete mode 100644 arch/tile/include/asm/mmu.h
+ delete mode 100644 arch/tile/include/asm/mmu_context.h
+ delete mode 100644 arch/tile/include/asm/mmzone.h
+ delete mode 100644 arch/tile/include/asm/module.h
+ delete mode 100644 arch/tile/include/asm/page.h
+ delete mode 100644 arch/tile/include/asm/pci.h
+ delete mode 100644 arch/tile/include/asm/percpu.h
+ delete mode 100644 arch/tile/include/asm/perf_event.h
+ delete mode 100644 arch/tile/include/asm/pgalloc.h
+ delete mode 100644 arch/tile/include/asm/pgtable.h
+ delete mode 100644 arch/tile/include/asm/pgtable_32.h
+ delete mode 100644 arch/tile/include/asm/pgtable_64.h
+ delete mode 100644 arch/tile/include/asm/pmc.h
+ delete mode 100644 arch/tile/include/asm/processor.h
+ delete mode 100644 arch/tile/include/asm/ptrace.h
+ delete mode 100644 arch/tile/include/asm/sections.h
+ delete mode 100644 arch/tile/include/asm/setup.h
+ delete mode 100644 arch/tile/include/asm/sigframe.h
+ delete mode 100644 arch/tile/include/asm/signal.h
+ delete mode 100644 arch/tile/include/asm/smp.h
+ delete mode 100644 arch/tile/include/asm/spinlock.h
+ delete mode 100644 arch/tile/include/asm/spinlock_32.h
+ delete mode 100644 arch/tile/include/asm/spinlock_64.h
+ delete mode 100644 arch/tile/include/asm/spinlock_types.h
+ delete mode 100644 arch/tile/include/asm/stack.h
+ delete mode 100644 arch/tile/include/asm/string.h
+ delete mode 100644 arch/tile/include/asm/switch_to.h
+ delete mode 100644 arch/tile/include/asm/syscall.h
+ delete mode 100644 arch/tile/include/asm/syscalls.h
+ delete mode 100644 arch/tile/include/asm/thread_info.h
+ delete mode 100644 arch/tile/include/asm/tile-desc.h
+ delete mode 100644 arch/tile/include/asm/tile-desc_32.h
+ delete mode 100644 arch/tile/include/asm/tile-desc_64.h
+ delete mode 100644 arch/tile/include/asm/timex.h
+ delete mode 100644 arch/tile/include/asm/tlb.h
+ delete mode 100644 arch/tile/include/asm/tlbflush.h
+ delete mode 100644 arch/tile/include/asm/topology.h
+ delete mode 100644 arch/tile/include/asm/traps.h
+ delete mode 100644 arch/tile/include/asm/uaccess.h
+ delete mode 100644 arch/tile/include/asm/unaligned.h
+ delete mode 100644 arch/tile/include/asm/unistd.h
+ delete mode 100644 arch/tile/include/asm/user.h
+ delete mode 100644 arch/tile/include/asm/vdso.h
+ delete mode 100644 arch/tile/include/asm/vga.h
+ delete mode 100644 arch/tile/include/asm/word-at-a-time.h
+ delete mode 100644 arch/tile/include/gxio/common.h
+ delete mode 100644 arch/tile/include/gxio/dma_queue.h
+ delete mode 100644 arch/tile/include/gxio/iorpc_globals.h
+ delete mode 100644 arch/tile/include/gxio/iorpc_mpipe.h
+ delete mode 100644 arch/tile/include/gxio/iorpc_mpipe_info.h
+ delete mode 100644 arch/tile/include/gxio/iorpc_trio.h
+ delete mode 100644 arch/tile/include/gxio/iorpc_uart.h
+ delete mode 100644 arch/tile/include/gxio/iorpc_usb_host.h
+ delete mode 100644 arch/tile/include/gxio/kiorpc.h
+ delete mode 100644 arch/tile/include/gxio/mpipe.h
+ delete mode 100644 arch/tile/include/gxio/trio.h
+ delete mode 100644 arch/tile/include/gxio/uart.h
+ delete mode 100644 arch/tile/include/gxio/usb_host.h
+ delete mode 100644 arch/tile/include/hv/drv_mpipe_intf.h
+ delete mode 100644 arch/tile/include/hv/drv_mshim_intf.h
+ delete mode 100644 arch/tile/include/hv/drv_pcie_rc_intf.h
+ delete mode 100644 arch/tile/include/hv/drv_srom_intf.h
+ delete mode 100644 arch/tile/include/hv/drv_trio_intf.h
+ delete mode 100644 arch/tile/include/hv/drv_uart_intf.h
+ delete mode 100644 arch/tile/include/hv/drv_usb_host_intf.h
+ delete mode 100644 arch/tile/include/hv/drv_xgbe_impl.h
+ delete mode 100644 arch/tile/include/hv/drv_xgbe_intf.h
+ delete mode 100644 arch/tile/include/hv/hypervisor.h
+ delete mode 100644 arch/tile/include/hv/iorpc.h
+ delete mode 100644 arch/tile/include/hv/netio_errors.h
+ delete mode 100644 arch/tile/include/hv/netio_intf.h
+ delete mode 100644 arch/tile/include/hv/syscall_public.h
+ delete mode 100644 arch/tile/include/uapi/arch/abi.h
+ delete mode 100644 arch/tile/include/uapi/arch/chip.h
+ delete mode 100644 arch/tile/include/uapi/arch/chip_tilegx.h
+ delete mode 100644 arch/tile/include/uapi/arch/chip_tilepro.h
+ delete mode 100644 arch/tile/include/uapi/arch/icache.h
+ delete mode 100644 arch/tile/include/uapi/arch/interrupts.h
+ delete mode 100644 arch/tile/include/uapi/arch/interrupts_32.h
+ delete mode 100644 arch/tile/include/uapi/arch/interrupts_64.h
+ delete mode 100644 arch/tile/include/uapi/arch/intreg.h
+ delete mode 100644 arch/tile/include/uapi/arch/opcode.h
+ delete mode 100644 arch/tile/include/uapi/arch/opcode_tilegx.h
+ delete mode 100644 arch/tile/include/uapi/arch/opcode_tilepro.h
+ delete mode 100644 arch/tile/include/uapi/arch/sim.h
+ delete mode 100644 arch/tile/include/uapi/arch/sim_def.h
+ delete mode 100644 arch/tile/include/uapi/arch/spr_def.h
+ delete mode 100644 arch/tile/include/uapi/arch/spr_def_32.h
+ delete mode 100644 arch/tile/include/uapi/arch/spr_def_64.h
+ delete mode 100644 arch/tile/include/uapi/asm/Kbuild
+ delete mode 100644 arch/tile/include/uapi/asm/auxvec.h
+ delete mode 100644 arch/tile/include/uapi/asm/bitsperlong.h
+ delete mode 100644 arch/tile/include/uapi/asm/byteorder.h
+ delete mode 100644 arch/tile/include/uapi/asm/cachectl.h
+ delete mode 100644 arch/tile/include/uapi/asm/hardwall.h
+ delete mode 100644 arch/tile/include/uapi/asm/kvm_para.h
+ delete mode 100644 arch/tile/include/uapi/asm/mman.h
+ delete mode 100644 arch/tile/include/uapi/asm/ptrace.h
+ delete mode 100644 arch/tile/include/uapi/asm/setup.h
+ delete mode 100644 arch/tile/include/uapi/asm/sigcontext.h
+ delete mode 100644 arch/tile/include/uapi/asm/siginfo.h
+ delete mode 100644 arch/tile/include/uapi/asm/signal.h
+ delete mode 100644 arch/tile/include/uapi/asm/stat.h
+ delete mode 100644 arch/tile/include/uapi/asm/swab.h
+ delete mode 100644 arch/tile/include/uapi/asm/unistd.h
+ delete mode 100644 arch/tile/kernel/Makefile
+ delete mode 100644 arch/tile/kernel/asm-offsets.c
+ delete mode 100644 arch/tile/kernel/backtrace.c
+ delete mode 100644 arch/tile/kernel/compat.c
+ delete mode 100644 arch/tile/kernel/compat_signal.c
+ delete mode 100644 arch/tile/kernel/early_printk.c
+ delete mode 100644 arch/tile/kernel/entry.S
+ delete mode 100644 arch/tile/kernel/ftrace.c
+ delete mode 100644 arch/tile/kernel/hardwall.c
+ delete mode 100644 arch/tile/kernel/head_32.S
+ delete mode 100644 arch/tile/kernel/head_64.S
+ delete mode 100644 arch/tile/kernel/hvglue.S
+ delete mode 100644 arch/tile/kernel/hvglue_trace.c
+ delete mode 100644 arch/tile/kernel/intvec_32.S
+ delete mode 100644 arch/tile/kernel/intvec_64.S
+ delete mode 100644 arch/tile/kernel/irq.c
+ delete mode 100644 arch/tile/kernel/jump_label.c
+ delete mode 100644 arch/tile/kernel/kgdb.c
+ delete mode 100644 arch/tile/kernel/kprobes.c
+ delete mode 100644 arch/tile/kernel/machine_kexec.c
+ delete mode 100644 arch/tile/kernel/mcount_64.S
+ delete mode 100644 arch/tile/kernel/messaging.c
+ delete mode 100644 arch/tile/kernel/module.c
+ delete mode 100644 arch/tile/kernel/pci-dma.c
+ delete mode 100644 arch/tile/kernel/pci.c
+ delete mode 100644 arch/tile/kernel/pci_gx.c
+ delete mode 100644 arch/tile/kernel/perf_event.c
+ delete mode 100644 arch/tile/kernel/pmc.c
+ delete mode 100644 arch/tile/kernel/proc.c
+ delete mode 100644 arch/tile/kernel/process.c
+ delete mode 100644 arch/tile/kernel/ptrace.c
+ delete mode 100644 arch/tile/kernel/reboot.c
+ delete mode 100644 arch/tile/kernel/regs_32.S
+ delete mode 100644 arch/tile/kernel/regs_64.S
+ delete mode 100644 arch/tile/kernel/relocate_kernel_32.S
+ delete mode 100644 arch/tile/kernel/relocate_kernel_64.S
+ delete mode 100644 arch/tile/kernel/setup.c
+ delete mode 100644 arch/tile/kernel/signal.c
+ delete mode 100644 arch/tile/kernel/single_step.c
+ delete mode 100644 arch/tile/kernel/smp.c
+ delete mode 100644 arch/tile/kernel/smpboot.c
+ delete mode 100644 arch/tile/kernel/stack.c
+ delete mode 100644 arch/tile/kernel/sys.c
+ delete mode 100644 arch/tile/kernel/sysfs.c
+ delete mode 100644 arch/tile/kernel/tile-desc_32.c
+ delete mode 100644 arch/tile/kernel/tile-desc_64.c
+ delete mode 100644 arch/tile/kernel/time.c
+ delete mode 100644 arch/tile/kernel/tlb.c
+ delete mode 100644 arch/tile/kernel/traps.c
+ delete mode 100644 arch/tile/kernel/unaligned.c
+ delete mode 100644 arch/tile/kernel/usb.c
+ delete mode 100644 arch/tile/kernel/vdso.c
+ delete mode 100644 arch/tile/kernel/vdso/Makefile
+ delete mode 100644 arch/tile/kernel/vdso/vdso.S
+ delete mode 100644 arch/tile/kernel/vdso/vdso.lds.S
+ delete mode 100644 arch/tile/kernel/vdso/vdso32.S
+ delete mode 100644 arch/tile/kernel/vdso/vgettimeofday.c
+ delete mode 100644 arch/tile/kernel/vdso/vrt_sigreturn.S
+ delete mode 100644 arch/tile/kernel/vmlinux.lds.S
+ delete mode 100644 arch/tile/kvm/Kconfig
+ delete mode 100644 arch/tile/lib/Makefile
+ delete mode 100644 arch/tile/lib/atomic_32.c
+ delete mode 100644 arch/tile/lib/atomic_asm_32.S
+ delete mode 100644 arch/tile/lib/cacheflush.c
+ delete mode 100644 arch/tile/lib/checksum.c
+ delete mode 100644 arch/tile/lib/cpumask.c
+ delete mode 100644 arch/tile/lib/delay.c
+ delete mode 100644 arch/tile/lib/exports.c
+ delete mode 100644 arch/tile/lib/memchr_32.c
+ delete mode 100644 arch/tile/lib/memchr_64.c
+ delete mode 100644 arch/tile/lib/memcpy_32.S
+ delete mode 100644 arch/tile/lib/memcpy_64.c
+ delete mode 100644 arch/tile/lib/memcpy_user_64.c
+ delete mode 100644 arch/tile/lib/memmove.c
+ delete mode 100644 arch/tile/lib/memset_32.c
+ delete mode 100644 arch/tile/lib/memset_64.c
+ delete mode 100644 arch/tile/lib/spinlock_32.c
+ delete mode 100644 arch/tile/lib/spinlock_64.c
+ delete mode 100644 arch/tile/lib/spinlock_common.h
+ delete mode 100644 arch/tile/lib/strchr_32.c
+ delete mode 100644 arch/tile/lib/strchr_64.c
+ delete mode 100644 arch/tile/lib/string-endian.h
+ delete mode 100644 arch/tile/lib/strlen_32.c
+ delete mode 100644 arch/tile/lib/strlen_64.c
+ delete mode 100644 arch/tile/lib/strnlen_32.c
+ delete mode 100644 arch/tile/lib/strnlen_64.c
+ delete mode 100644 arch/tile/lib/uaccess.c
+ delete mode 100644 arch/tile/lib/usercopy_32.S
+ delete mode 100644 arch/tile/lib/usercopy_64.S
+ delete mode 100644 arch/tile/mm/Makefile
+ delete mode 100644 arch/tile/mm/elf.c
+ delete mode 100644 arch/tile/mm/extable.c
+ delete mode 100644 arch/tile/mm/fault.c
+ delete mode 100644 arch/tile/mm/highmem.c
+ delete mode 100644 arch/tile/mm/homecache.c
+ delete mode 100644 arch/tile/mm/hugetlbpage.c
+ delete mode 100644 arch/tile/mm/init.c
+ delete mode 100644 arch/tile/mm/migrate.h
+ delete mode 100644 arch/tile/mm/migrate_32.S
+ delete mode 100644 arch/tile/mm/migrate_64.S
+ delete mode 100644 arch/tile/mm/mmap.c
+ delete mode 100644 arch/tile/mm/pgtable.c
+ delete mode 100644 tools/arch/tile/include/asm/barrier.h
+ delete mode 100644 tools/arch/tile/include/uapi/asm/bitsperlong.h
+ delete mode 100644 tools/arch/tile/include/uapi/asm/mman.h
+
+diff --git a/Documentation/ioctl/ioctl-number.txt b/Documentation/ioctl/ioctl-number.txt
+index 6501389d55b9..84bb74dcae12 100644
+--- a/Documentation/ioctl/ioctl-number.txt
++++ b/Documentation/ioctl/ioctl-number.txt
+@@ -305,7 +305,6 @@ Code  Seq#(hex)	Include File		Comments
+ 0xA0	all	linux/sdp/sdp.h		Industrial Device Project
+ 					<mailto:kenji@bitgate.com>
+ 0xA1	0	linux/vtpm_proxy.h	TPM Emulator Proxy Driver
+-0xA2	00-0F	arch/tile/include/asm/hardwall.h
+ 0xA3	80-8F	Port ACL		in development:
+ 					<mailto:tlewis@mindspring.com>
+ 0xA3	90-9F	linux/dtlk.h
 diff --git a/MAINTAINERS b/MAINTAINERS
-index 313754bf39e1..69123be5bb64 100644
+index 9e0c097824f5..ac6083ae4f94 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
-@@ -10394,14 +10394,6 @@ L:	platform-driver-x86@vger.kernel.org
- S:	Maintained
- F:	drivers/platform/x86/panasonic-laptop.c
+@@ -13840,19 +13840,6 @@ S:	Orphan
+ F:	drivers/net/wireless/ti/
+ F:	include/linux/wl12xx.h
  
--PANASONIC MN10300/AM33/AM34 PORT
--M:	David Howells <dhowells@redhat.com>
--L:	linux-am33-list@redhat.com (moderated for non-subscribers)
--W:	ftp://ftp.redhat.com/pub/redhat/gnupro/AM33/
--S:	Maintained
--F:	Documentation/mn10300/
--F:	arch/mn10300/
+-TILE ARCHITECTURE
+-W:	http://www.mellanox.com/repository/solutions/tile-scm/
+-S:	Orphan
+-F:	arch/tile/
+-F:	drivers/char/tile-srom.c
+-F:	drivers/edac/tile_edac.c
+-F:	drivers/net/ethernet/tile/
+-F:	drivers/rtc/rtc-tile.c
+-F:	drivers/tty/hvc/hvc_tile.c
+-F:	drivers/tty/serial/tilegx.c
+-F:	drivers/usb/host/*-tilegx.c
+-F:	include/linux/usb/tilegx.h
 -
- PARALLEL LCD/KEYPAD PANEL DRIVER
- M:	Willy Tarreau <willy@haproxy.com>
- M:	Ksenija Stanojevic <ksenija.stanojevic@gmail.com>
-diff --git a/arch/mn10300/Kconfig b/arch/mn10300/Kconfig
+ TIMEKEEPING, CLOCKSOURCE CORE, NTP, ALARMTIMER
+ M:	John Stultz <john.stultz@linaro.org>
+ M:	Thomas Gleixner <tglx@linutronix.de>
+diff --git a/Makefile b/Makefile
+index c4322dea3ca2..4114da991ae3 100644
+--- a/Makefile
++++ b/Makefile
+@@ -339,14 +339,6 @@ ifeq ($(ARCH),sh64)
+        SRCARCH := sh
+ endif
+ 
+-# Additional ARCH settings for tile
+-ifeq ($(ARCH),tilepro)
+-       SRCARCH := tile
+-endif
+-ifeq ($(ARCH),tilegx)
+-       SRCARCH := tile
+-endif
+-
+ KCONFIG_CONFIG	?= .config
+ export KCONFIG_CONFIG
+ 
+diff --git a/arch/tile/Kbuild b/arch/tile/Kbuild
 deleted file mode 100644
-index e9d8d60bd28b..000000000000
-diff --git a/arch/mn10300/Kconfig.debug b/arch/mn10300/Kconfig.debug
+index a9b922716092..000000000000
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
 deleted file mode 100644
-index 37ada651f756..000000000000
-diff --git a/arch/mn10300/Makefile b/arch/mn10300/Makefile
+index ef9d403cbbe4..000000000000
+diff --git a/arch/tile/Kconfig.debug b/arch/tile/Kconfig.debug
 deleted file mode 100644
-index 3f1ea5ddc402..000000000000
-diff --git a/arch/mn10300/boot/.gitignore b/arch/mn10300/boot/.gitignore
+index 9f665d1a805f..000000000000
+diff --git a/arch/tile/Makefile b/arch/tile/Makefile
 deleted file mode 100644
-index b6718de23693..000000000000
-diff --git a/arch/mn10300/boot/Makefile b/arch/mn10300/boot/Makefile
+index 8fa0befba32b..000000000000
+diff --git a/arch/tile/configs/tilegx_defconfig b/arch/tile/configs/tilegx_defconfig
 deleted file mode 100644
-index 36c9caf8ea0a..000000000000
-diff --git a/arch/mn10300/boot/compressed/Makefile b/arch/mn10300/boot/compressed/Makefile
+index 357a4c271ad4..000000000000
+diff --git a/arch/tile/configs/tilepro_defconfig b/arch/tile/configs/tilepro_defconfig
 deleted file mode 100644
-index 9b9a48fc8e53..000000000000
-diff --git a/arch/mn10300/boot/compressed/head.S b/arch/mn10300/boot/compressed/head.S
+index da2858755fa1..000000000000
+diff --git a/arch/tile/gxio/Kconfig b/arch/tile/gxio/Kconfig
 deleted file mode 100644
-index 7b50345b9e84..000000000000
-diff --git a/arch/mn10300/boot/compressed/misc.c b/arch/mn10300/boot/compressed/misc.c
+index 903c8646bdd7..000000000000
+diff --git a/arch/tile/gxio/Makefile b/arch/tile/gxio/Makefile
 deleted file mode 100644
-index 42cbd77bd439..000000000000
-diff --git a/arch/mn10300/boot/compressed/misc.h b/arch/mn10300/boot/compressed/misc.h
+index fcc903c4cf87..000000000000
+diff --git a/arch/tile/gxio/dma_queue.c b/arch/tile/gxio/dma_queue.c
 deleted file mode 100644
-index da921cd172fb..000000000000
-diff --git a/arch/mn10300/boot/compressed/vmlinux.lds b/arch/mn10300/boot/compressed/vmlinux.lds
+index b7ba577d82ca..000000000000
+diff --git a/arch/tile/gxio/iorpc_globals.c b/arch/tile/gxio/iorpc_globals.c
 deleted file mode 100644
-index a084903603fe..000000000000
-diff --git a/arch/mn10300/boot/install.sh b/arch/mn10300/boot/install.sh
+index e178e90805a2..000000000000
+diff --git a/arch/tile/gxio/iorpc_mpipe.c b/arch/tile/gxio/iorpc_mpipe.c
 deleted file mode 100644
-index abba30971191..000000000000
-diff --git a/arch/mn10300/boot/tools/build.c b/arch/mn10300/boot/tools/build.c
+index e19325c4c431..000000000000
+diff --git a/arch/tile/gxio/iorpc_mpipe_info.c b/arch/tile/gxio/iorpc_mpipe_info.c
 deleted file mode 100644
-index 3ce158fe07b0..000000000000
-diff --git a/arch/mn10300/configs/asb2303_defconfig b/arch/mn10300/configs/asb2303_defconfig
+index 77019c6e9b4a..000000000000
+diff --git a/arch/tile/gxio/iorpc_trio.c b/arch/tile/gxio/iorpc_trio.c
 deleted file mode 100644
-index d06dae131139..000000000000
-diff --git a/arch/mn10300/configs/asb2364_defconfig b/arch/mn10300/configs/asb2364_defconfig
+index 1d3cedb9aeb4..000000000000
+diff --git a/arch/tile/gxio/iorpc_uart.c b/arch/tile/gxio/iorpc_uart.c
 deleted file mode 100644
-index a84c3153f22a..000000000000
-diff --git a/arch/mn10300/include/asm/Kbuild b/arch/mn10300/include/asm/Kbuild
+index b9a6d6193d73..000000000000
+diff --git a/arch/tile/gxio/iorpc_usb_host.c b/arch/tile/gxio/iorpc_usb_host.c
 deleted file mode 100644
-index 509c45a75d1f..000000000000
-diff --git a/arch/mn10300/include/asm/asm-offsets.h b/arch/mn10300/include/asm/asm-offsets.h
+index 9c820073bfc0..000000000000
+diff --git a/arch/tile/gxio/kiorpc.c b/arch/tile/gxio/kiorpc.c
+deleted file mode 100644
+index c8096aa5a3fc..000000000000
+diff --git a/arch/tile/gxio/mpipe.c b/arch/tile/gxio/mpipe.c
+deleted file mode 100644
+index 34de300ab320..000000000000
+diff --git a/arch/tile/gxio/trio.c b/arch/tile/gxio/trio.c
+deleted file mode 100644
+index 69f0b8df3ce3..000000000000
+diff --git a/arch/tile/gxio/uart.c b/arch/tile/gxio/uart.c
+deleted file mode 100644
+index ba585175ef88..000000000000
+diff --git a/arch/tile/gxio/usb_host.c b/arch/tile/gxio/usb_host.c
+deleted file mode 100644
+index 785afad7922e..000000000000
+diff --git a/arch/tile/include/arch/mpipe.h b/arch/tile/include/arch/mpipe.h
+deleted file mode 100644
+index 904538e754d8..000000000000
+diff --git a/arch/tile/include/arch/mpipe_constants.h b/arch/tile/include/arch/mpipe_constants.h
+deleted file mode 100644
+index 84022ac5fe82..000000000000
+diff --git a/arch/tile/include/arch/mpipe_def.h b/arch/tile/include/arch/mpipe_def.h
+deleted file mode 100644
+index c3d30217fc66..000000000000
+diff --git a/arch/tile/include/arch/mpipe_shm.h b/arch/tile/include/arch/mpipe_shm.h
+deleted file mode 100644
+index 13b3c4300e50..000000000000
+diff --git a/arch/tile/include/arch/mpipe_shm_def.h b/arch/tile/include/arch/mpipe_shm_def.h
+deleted file mode 100644
+index 6124d39c8318..000000000000
+diff --git a/arch/tile/include/arch/spr_def.h b/arch/tile/include/arch/spr_def.h
+deleted file mode 100644
+index 2de83e7aff3e..000000000000
+diff --git a/arch/tile/include/arch/trio.h b/arch/tile/include/arch/trio.h
+deleted file mode 100644
+index c0ddedcae085..000000000000
+diff --git a/arch/tile/include/arch/trio_constants.h b/arch/tile/include/arch/trio_constants.h
+deleted file mode 100644
+index 85647e91a458..000000000000
+diff --git a/arch/tile/include/arch/trio_def.h b/arch/tile/include/arch/trio_def.h
+deleted file mode 100644
+index e80500317dc4..000000000000
+diff --git a/arch/tile/include/arch/trio_pcie_intfc.h b/arch/tile/include/arch/trio_pcie_intfc.h
+deleted file mode 100644
+index 0487fdb9d581..000000000000
+diff --git a/arch/tile/include/arch/trio_pcie_intfc_def.h b/arch/tile/include/arch/trio_pcie_intfc_def.h
+deleted file mode 100644
+index d3fd6781fb24..000000000000
+diff --git a/arch/tile/include/arch/trio_pcie_rc.h b/arch/tile/include/arch/trio_pcie_rc.h
+deleted file mode 100644
+index 6a25d0aca857..000000000000
+diff --git a/arch/tile/include/arch/trio_pcie_rc_def.h b/arch/tile/include/arch/trio_pcie_rc_def.h
+deleted file mode 100644
+index 74081a65b6f2..000000000000
+diff --git a/arch/tile/include/arch/trio_shm.h b/arch/tile/include/arch/trio_shm.h
+deleted file mode 100644
+index 3382e38245af..000000000000
+diff --git a/arch/tile/include/arch/trio_shm_def.h b/arch/tile/include/arch/trio_shm_def.h
+deleted file mode 100644
+index 72a59c88b06a..000000000000
+diff --git a/arch/tile/include/arch/uart.h b/arch/tile/include/arch/uart.h
+deleted file mode 100644
+index 07966970adad..000000000000
+diff --git a/arch/tile/include/arch/uart_def.h b/arch/tile/include/arch/uart_def.h
+deleted file mode 100644
+index 42bcaf535379..000000000000
+diff --git a/arch/tile/include/arch/usb_host.h b/arch/tile/include/arch/usb_host.h
+deleted file mode 100644
+index d09f32683962..000000000000
+diff --git a/arch/tile/include/arch/usb_host_def.h b/arch/tile/include/arch/usb_host_def.h
+deleted file mode 100644
+index aeed7753e8e1..000000000000
+diff --git a/arch/tile/include/asm/Kbuild b/arch/tile/include/asm/Kbuild
+deleted file mode 100644
+index 414dfc3a1808..000000000000
+diff --git a/arch/tile/include/asm/asm-offsets.h b/arch/tile/include/asm/asm-offsets.h
 deleted file mode 100644
 index d370ee36a182..000000000000
-diff --git a/arch/mn10300/include/asm/atomic.h b/arch/mn10300/include/asm/atomic.h
+diff --git a/arch/tile/include/asm/atomic.h b/arch/tile/include/asm/atomic.h
 deleted file mode 100644
-index 36389efd45e8..000000000000
-diff --git a/arch/mn10300/include/asm/bitops.h b/arch/mn10300/include/asm/bitops.h
+index 8dda3c8ff5ab..000000000000
+diff --git a/arch/tile/include/asm/atomic_32.h b/arch/tile/include/asm/atomic_32.h
 deleted file mode 100644
-index fe6f8e2c3617..000000000000
-diff --git a/arch/mn10300/include/asm/bug.h b/arch/mn10300/include/asm/bug.h
+index 53a423e7cb92..000000000000
+diff --git a/arch/tile/include/asm/atomic_64.h b/arch/tile/include/asm/atomic_64.h
 deleted file mode 100644
-index 811414fb002d..000000000000
-diff --git a/arch/mn10300/include/asm/bugs.h b/arch/mn10300/include/asm/bugs.h
+index 4cefa0c9fd81..000000000000
+diff --git a/arch/tile/include/asm/backtrace.h b/arch/tile/include/asm/backtrace.h
 deleted file mode 100644
-index 31c8bc592b47..000000000000
-diff --git a/arch/mn10300/include/asm/busctl-regs.h b/arch/mn10300/include/asm/busctl-regs.h
+index bd5399a69edf..000000000000
+diff --git a/arch/tile/include/asm/barrier.h b/arch/tile/include/asm/barrier.h
 deleted file mode 100644
-index 1632aef73401..000000000000
-diff --git a/arch/mn10300/include/asm/cache.h b/arch/mn10300/include/asm/cache.h
+index 4c419ab95ab7..000000000000
+diff --git a/arch/tile/include/asm/bitops.h b/arch/tile/include/asm/bitops.h
 deleted file mode 100644
-index f29cde2cfc91..000000000000
-diff --git a/arch/mn10300/include/asm/cacheflush.h b/arch/mn10300/include/asm/cacheflush.h
+index 20caa346ac06..000000000000
+diff --git a/arch/tile/include/asm/bitops_32.h b/arch/tile/include/asm/bitops_32.h
 deleted file mode 100644
-index 6d6df839948f..000000000000
-diff --git a/arch/mn10300/include/asm/checksum.h b/arch/mn10300/include/asm/checksum.h
+index d1406a95f6b7..000000000000
+diff --git a/arch/tile/include/asm/bitops_64.h b/arch/tile/include/asm/bitops_64.h
 deleted file mode 100644
-index c80df5b504ac..000000000000
-diff --git a/arch/mn10300/include/asm/cmpxchg.h b/arch/mn10300/include/asm/cmpxchg.h
+index bb1a29221fcd..000000000000
+diff --git a/arch/tile/include/asm/cache.h b/arch/tile/include/asm/cache.h
 deleted file mode 100644
-index 97a4aaf387a6..000000000000
-diff --git a/arch/mn10300/include/asm/cpu-regs.h b/arch/mn10300/include/asm/cpu-regs.h
+index 7d6aaa128e8b..000000000000
+diff --git a/arch/tile/include/asm/cacheflush.h b/arch/tile/include/asm/cacheflush.h
 deleted file mode 100644
-index c54effae2202..000000000000
-diff --git a/arch/mn10300/include/asm/current.h b/arch/mn10300/include/asm/current.h
+index 92ee4c8a4f76..000000000000
+diff --git a/arch/tile/include/asm/checksum.h b/arch/tile/include/asm/checksum.h
 deleted file mode 100644
-index ca6027d83743..000000000000
-diff --git a/arch/mn10300/include/asm/debugger.h b/arch/mn10300/include/asm/debugger.h
+index b21a2fdec9f7..000000000000
+diff --git a/arch/tile/include/asm/cmpxchg.h b/arch/tile/include/asm/cmpxchg.h
 deleted file mode 100644
-index e1d3b083696c..000000000000
-diff --git a/arch/mn10300/include/asm/delay.h b/arch/mn10300/include/asm/delay.h
+index 25d5899497be..000000000000
+diff --git a/arch/tile/include/asm/compat.h b/arch/tile/include/asm/compat.h
 deleted file mode 100644
-index 34517b359399..000000000000
-diff --git a/arch/mn10300/include/asm/div64.h b/arch/mn10300/include/asm/div64.h
+index 769ff6ac0bf5..000000000000
+diff --git a/arch/tile/include/asm/current.h b/arch/tile/include/asm/current.h
 deleted file mode 100644
-index 503efab2a516..000000000000
-diff --git a/arch/mn10300/include/asm/dma-mapping.h b/arch/mn10300/include/asm/dma-mapping.h
+index da21acf020d3..000000000000
+diff --git a/arch/tile/include/asm/delay.h b/arch/tile/include/asm/delay.h
 deleted file mode 100644
-index 439e474ed6d7..000000000000
-diff --git a/arch/mn10300/include/asm/dma.h b/arch/mn10300/include/asm/dma.h
+index 97b0e69e704e..000000000000
+diff --git a/arch/tile/include/asm/device.h b/arch/tile/include/asm/device.h
 deleted file mode 100644
-index 10b77d4628c2..000000000000
-diff --git a/arch/mn10300/include/asm/dmactl-regs.h b/arch/mn10300/include/asm/dmactl-regs.h
+index 1cf45422a0df..000000000000
+diff --git a/arch/tile/include/asm/div64.h b/arch/tile/include/asm/div64.h
 deleted file mode 100644
-index 80337b339c90..000000000000
-diff --git a/arch/mn10300/include/asm/elf.h b/arch/mn10300/include/asm/elf.h
+index a0a798344d5f..000000000000
+diff --git a/arch/tile/include/asm/dma-mapping.h b/arch/tile/include/asm/dma-mapping.h
 deleted file mode 100644
-index f592d7a9f032..000000000000
-diff --git a/arch/mn10300/include/asm/emergency-restart.h b/arch/mn10300/include/asm/emergency-restart.h
+index d25fce101fc0..000000000000
+diff --git a/arch/tile/include/asm/dma.h b/arch/tile/include/asm/dma.h
 deleted file mode 100644
-index 3711bd9d50bd..000000000000
-diff --git a/arch/mn10300/include/asm/exceptions.h b/arch/mn10300/include/asm/exceptions.h
+index 12a7ca16d164..000000000000
+diff --git a/arch/tile/include/asm/elf.h b/arch/tile/include/asm/elf.h
 deleted file mode 100644
-index 95a4d42c3a06..000000000000
-diff --git a/arch/mn10300/include/asm/fpu.h b/arch/mn10300/include/asm/fpu.h
+index e9d54a06736f..000000000000
+diff --git a/arch/tile/include/asm/fixmap.h b/arch/tile/include/asm/fixmap.h
 deleted file mode 100644
-index a47e995d45f3..000000000000
-diff --git a/arch/mn10300/include/asm/frame.inc b/arch/mn10300/include/asm/frame.inc
+index ffe2637aeb31..000000000000
+diff --git a/arch/tile/include/asm/ftrace.h b/arch/tile/include/asm/ftrace.h
 deleted file mode 100644
-index 1c3eb4fda958..000000000000
-diff --git a/arch/mn10300/include/asm/ftrace.h b/arch/mn10300/include/asm/ftrace.h
+index 738d239b792f..000000000000
+diff --git a/arch/tile/include/asm/futex.h b/arch/tile/include/asm/futex.h
 deleted file mode 100644
-index 40a8c178f10d..000000000000
-diff --git a/arch/mn10300/include/asm/futex.h b/arch/mn10300/include/asm/futex.h
+index 83c1e639b411..000000000000
+diff --git a/arch/tile/include/asm/hardirq.h b/arch/tile/include/asm/hardirq.h
 deleted file mode 100644
-index 0b745828f42b..000000000000
-diff --git a/arch/mn10300/include/asm/gdb-stub.h b/arch/mn10300/include/asm/gdb-stub.h
+index 54110af23985..000000000000
+diff --git a/arch/tile/include/asm/hardwall.h b/arch/tile/include/asm/hardwall.h
 deleted file mode 100644
-index f5495ad82b77..000000000000
-diff --git a/arch/mn10300/include/asm/hardirq.h b/arch/mn10300/include/asm/hardirq.h
+index 44d2765bde2b..000000000000
+diff --git a/arch/tile/include/asm/highmem.h b/arch/tile/include/asm/highmem.h
 deleted file mode 100644
-index 0000d650b55f..000000000000
-diff --git a/arch/mn10300/include/asm/highmem.h b/arch/mn10300/include/asm/highmem.h
+index 979579b38e57..000000000000
+diff --git a/arch/tile/include/asm/homecache.h b/arch/tile/include/asm/homecache.h
 deleted file mode 100644
-index 1ddea5afba09..000000000000
-diff --git a/arch/mn10300/include/asm/hw_irq.h b/arch/mn10300/include/asm/hw_irq.h
+index 7ddd1b8d6910..000000000000
+diff --git a/arch/tile/include/asm/hugetlb.h b/arch/tile/include/asm/hugetlb.h
 deleted file mode 100644
-index 70619901098e..000000000000
-diff --git a/arch/mn10300/include/asm/intctl-regs.h b/arch/mn10300/include/asm/intctl-regs.h
+index 2fac5be4de26..000000000000
+diff --git a/arch/tile/include/asm/hv_driver.h b/arch/tile/include/asm/hv_driver.h
 deleted file mode 100644
-index d65bbeebe50a..000000000000
-diff --git a/arch/mn10300/include/asm/io.h b/arch/mn10300/include/asm/io.h
+index ad614de899b3..000000000000
+diff --git a/arch/tile/include/asm/ide.h b/arch/tile/include/asm/ide.h
 deleted file mode 100644
-index 62189353d2f6..000000000000
-diff --git a/arch/mn10300/include/asm/irq.h b/arch/mn10300/include/asm/irq.h
+index 3c6f2ed894ce..000000000000
+diff --git a/arch/tile/include/asm/insn.h b/arch/tile/include/asm/insn.h
 deleted file mode 100644
-index 1a73fb3f60c6..000000000000
-diff --git a/arch/mn10300/include/asm/irq_regs.h b/arch/mn10300/include/asm/irq_regs.h
+index f78ba5c16722..000000000000
+diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
 deleted file mode 100644
-index 97d0cb5af807..000000000000
-diff --git a/arch/mn10300/include/asm/irqflags.h b/arch/mn10300/include/asm/irqflags.h
+index 30f4a210d148..000000000000
+diff --git a/arch/tile/include/asm/irq.h b/arch/tile/include/asm/irq.h
 deleted file mode 100644
-index 8730c0a3c37d..000000000000
-diff --git a/arch/mn10300/include/asm/kdebug.h b/arch/mn10300/include/asm/kdebug.h
+index 1fa1f2544ff9..000000000000
+diff --git a/arch/tile/include/asm/irq_work.h b/arch/tile/include/asm/irq_work.h
 deleted file mode 100644
-index 0f47e112190c..000000000000
-diff --git a/arch/mn10300/include/asm/kgdb.h b/arch/mn10300/include/asm/kgdb.h
+index 78d3b6a7b27a..000000000000
+diff --git a/arch/tile/include/asm/irqflags.h b/arch/tile/include/asm/irqflags.h
 deleted file mode 100644
-index eb245f18a708..000000000000
-diff --git a/arch/mn10300/include/asm/kmap_types.h b/arch/mn10300/include/asm/kmap_types.h
+index 60d62a292fce..000000000000
+diff --git a/arch/tile/include/asm/jump_label.h b/arch/tile/include/asm/jump_label.h
 deleted file mode 100644
-index f444d7ffa766..000000000000
-diff --git a/arch/mn10300/include/asm/kprobes.h b/arch/mn10300/include/asm/kprobes.h
+index cde7573f397b..000000000000
+diff --git a/arch/tile/include/asm/kdebug.h b/arch/tile/include/asm/kdebug.h
 deleted file mode 100644
-index 7abea0bdb549..000000000000
-diff --git a/arch/mn10300/include/asm/linkage.h b/arch/mn10300/include/asm/linkage.h
+index 5bbbfa904c2d..000000000000
+diff --git a/arch/tile/include/asm/kexec.h b/arch/tile/include/asm/kexec.h
 deleted file mode 100644
-index dda3002a5dfa..000000000000
-diff --git a/arch/mn10300/include/asm/local.h b/arch/mn10300/include/asm/local.h
+index fc98ccfc98ac..000000000000
+diff --git a/arch/tile/include/asm/kgdb.h b/arch/tile/include/asm/kgdb.h
 deleted file mode 100644
-index c11c530f74d0..000000000000
-diff --git a/arch/mn10300/include/asm/local64.h b/arch/mn10300/include/asm/local64.h
+index 280c181cf0db..000000000000
+diff --git a/arch/tile/include/asm/kmap_types.h b/arch/tile/include/asm/kmap_types.h
 deleted file mode 100644
-index 36c93b5cc239..000000000000
-diff --git a/arch/mn10300/include/asm/mc146818rtc.h b/arch/mn10300/include/asm/mc146818rtc.h
+index 92b28e3e9972..000000000000
+diff --git a/arch/tile/include/asm/kprobes.h b/arch/tile/include/asm/kprobes.h
 deleted file mode 100644
-index df6bc6e0e8c6..000000000000
-diff --git a/arch/mn10300/include/asm/mmu.h b/arch/mn10300/include/asm/mmu.h
+index 4a8b1cadca24..000000000000
+diff --git a/arch/tile/include/asm/linkage.h b/arch/tile/include/asm/linkage.h
 deleted file mode 100644
-index b9d6d41adace..000000000000
-diff --git a/arch/mn10300/include/asm/mmu_context.h b/arch/mn10300/include/asm/mmu_context.h
+index e121c39751a7..000000000000
+diff --git a/arch/tile/include/asm/mmu.h b/arch/tile/include/asm/mmu.h
 deleted file mode 100644
-index d2034f5e6eda..000000000000
-diff --git a/arch/mn10300/include/asm/module.h b/arch/mn10300/include/asm/module.h
+index 0cab1182bde1..000000000000
+diff --git a/arch/tile/include/asm/mmu_context.h b/arch/tile/include/asm/mmu_context.h
 deleted file mode 100644
-index 6571103b0518..000000000000
-diff --git a/arch/mn10300/include/asm/nmi.h b/arch/mn10300/include/asm/nmi.h
+index 45a4b4c424cf..000000000000
+diff --git a/arch/tile/include/asm/mmzone.h b/arch/tile/include/asm/mmzone.h
 deleted file mode 100644
-index b05627597b1b..000000000000
-diff --git a/arch/mn10300/include/asm/page.h b/arch/mn10300/include/asm/page.h
+index 804f1098b6cd..000000000000
+diff --git a/arch/tile/include/asm/module.h b/arch/tile/include/asm/module.h
 deleted file mode 100644
-index dfe730a5ede0..000000000000
-diff --git a/arch/mn10300/include/asm/page_offset.h b/arch/mn10300/include/asm/page_offset.h
+index 44ed07ccd3d2..000000000000
+diff --git a/arch/tile/include/asm/page.h b/arch/tile/include/asm/page.h
 deleted file mode 100644
-index 1e869aa09418..000000000000
-diff --git a/arch/mn10300/include/asm/pci.h b/arch/mn10300/include/asm/pci.h
+index 498a5f71245d..000000000000
+diff --git a/arch/tile/include/asm/pci.h b/arch/tile/include/asm/pci.h
 deleted file mode 100644
-index 5b75a1b2c4f6..000000000000
-diff --git a/arch/mn10300/include/asm/percpu.h b/arch/mn10300/include/asm/percpu.h
+index fe3de505b024..000000000000
+diff --git a/arch/tile/include/asm/percpu.h b/arch/tile/include/asm/percpu.h
 deleted file mode 100644
-index 06a959d67234..000000000000
-diff --git a/arch/mn10300/include/asm/pgalloc.h b/arch/mn10300/include/asm/pgalloc.h
+index 4f7ae39fa202..000000000000
+diff --git a/arch/tile/include/asm/perf_event.h b/arch/tile/include/asm/perf_event.h
 deleted file mode 100644
-index 0f25d5fa86f3..000000000000
-diff --git a/arch/mn10300/include/asm/pgtable.h b/arch/mn10300/include/asm/pgtable.h
+index 59c5b164e5b6..000000000000
+diff --git a/arch/tile/include/asm/pgalloc.h b/arch/tile/include/asm/pgalloc.h
 deleted file mode 100644
-index 96d3f9deb59c..000000000000
-diff --git a/arch/mn10300/include/asm/pio-regs.h b/arch/mn10300/include/asm/pio-regs.h
+index 1b902508b664..000000000000
+diff --git a/arch/tile/include/asm/pgtable.h b/arch/tile/include/asm/pgtable.h
 deleted file mode 100644
-index 96bc8182d0ba..000000000000
-diff --git a/arch/mn10300/include/asm/processor.h b/arch/mn10300/include/asm/processor.h
+index adfa21b18488..000000000000
+diff --git a/arch/tile/include/asm/pgtable_32.h b/arch/tile/include/asm/pgtable_32.h
 deleted file mode 100644
-index 3ae479117b42..000000000000
-diff --git a/arch/mn10300/include/asm/ptrace.h b/arch/mn10300/include/asm/ptrace.h
+index 5f8c615cb5e9..000000000000
+diff --git a/arch/tile/include/asm/pgtable_64.h b/arch/tile/include/asm/pgtable_64.h
 deleted file mode 100644
-index 838a3830010e..000000000000
-diff --git a/arch/mn10300/include/asm/reset-regs.h b/arch/mn10300/include/asm/reset-regs.h
+index 96fe58b45118..000000000000
+diff --git a/arch/tile/include/asm/pmc.h b/arch/tile/include/asm/pmc.h
 deleted file mode 100644
-index 8ca2a42d365b..000000000000
-diff --git a/arch/mn10300/include/asm/rtc-regs.h b/arch/mn10300/include/asm/rtc-regs.h
+index 7ae3956d9008..000000000000
+diff --git a/arch/tile/include/asm/processor.h b/arch/tile/include/asm/processor.h
 deleted file mode 100644
-index c81cacecb6e3..000000000000
-diff --git a/arch/mn10300/include/asm/rtc.h b/arch/mn10300/include/asm/rtc.h
+index f71e5206650b..000000000000
+diff --git a/arch/tile/include/asm/ptrace.h b/arch/tile/include/asm/ptrace.h
 deleted file mode 100644
-index 07dc87656197..000000000000
-diff --git a/arch/mn10300/include/asm/rwlock.h b/arch/mn10300/include/asm/rwlock.h
+index b9620c077abc..000000000000
+diff --git a/arch/tile/include/asm/sections.h b/arch/tile/include/asm/sections.h
 deleted file mode 100644
-index 6d594d4a0e10..000000000000
-diff --git a/arch/mn10300/include/asm/serial-regs.h b/arch/mn10300/include/asm/serial-regs.h
+index 50343bfe7936..000000000000
+diff --git a/arch/tile/include/asm/setup.h b/arch/tile/include/asm/setup.h
 deleted file mode 100644
-index 8320cda32f5a..000000000000
-diff --git a/arch/mn10300/include/asm/serial.h b/arch/mn10300/include/asm/serial.h
+index 2a0347af0702..000000000000
+diff --git a/arch/tile/include/asm/sigframe.h b/arch/tile/include/asm/sigframe.h
 deleted file mode 100644
-index 594ebff15d3f..000000000000
-diff --git a/arch/mn10300/include/asm/setup.h b/arch/mn10300/include/asm/setup.h
+index 994d3d30205f..000000000000
+diff --git a/arch/tile/include/asm/signal.h b/arch/tile/include/asm/signal.h
 deleted file mode 100644
-index fb024555d2a9..000000000000
-diff --git a/arch/mn10300/include/asm/shmparam.h b/arch/mn10300/include/asm/shmparam.h
+index 10e183de96d3..000000000000
+diff --git a/arch/tile/include/asm/smp.h b/arch/tile/include/asm/smp.h
 deleted file mode 100644
-index 3a31faaa4353..000000000000
-diff --git a/arch/mn10300/include/asm/signal.h b/arch/mn10300/include/asm/signal.h
+index 735e7f144733..000000000000
+diff --git a/arch/tile/include/asm/spinlock.h b/arch/tile/include/asm/spinlock.h
 deleted file mode 100644
-index 214ff5e9fe60..000000000000
-diff --git a/arch/mn10300/include/asm/smp.h b/arch/mn10300/include/asm/smp.h
+index 1a8bd4740c28..000000000000
+diff --git a/arch/tile/include/asm/spinlock_32.h b/arch/tile/include/asm/spinlock_32.h
 deleted file mode 100644
-index 56c42417d428..000000000000
-diff --git a/arch/mn10300/include/asm/smsc911x.h b/arch/mn10300/include/asm/smsc911x.h
+index fb5313d77315..000000000000
+diff --git a/arch/tile/include/asm/spinlock_64.h b/arch/tile/include/asm/spinlock_64.h
 deleted file mode 100644
-index 2fcd1080322b..000000000000
-diff --git a/arch/mn10300/include/asm/spinlock.h b/arch/mn10300/include/asm/spinlock.h
+index 5b616ef642a8..000000000000
+diff --git a/arch/tile/include/asm/spinlock_types.h b/arch/tile/include/asm/spinlock_types.h
 deleted file mode 100644
-index 879cd0df53ba..000000000000
-diff --git a/arch/mn10300/include/asm/spinlock_types.h b/arch/mn10300/include/asm/spinlock_types.h
+index a71f59b49c50..000000000000
+diff --git a/arch/tile/include/asm/stack.h b/arch/tile/include/asm/stack.h
 deleted file mode 100644
-index 32abdc89bbc7..000000000000
-diff --git a/arch/mn10300/include/asm/string.h b/arch/mn10300/include/asm/string.h
+index 3573325e340b..000000000000
+diff --git a/arch/tile/include/asm/string.h b/arch/tile/include/asm/string.h
 deleted file mode 100644
-index 47dbd4346c32..000000000000
-diff --git a/arch/mn10300/include/asm/switch_to.h b/arch/mn10300/include/asm/switch_to.h
+index 92b271bd9ebd..000000000000
+diff --git a/arch/tile/include/asm/switch_to.h b/arch/tile/include/asm/switch_to.h
 deleted file mode 100644
-index 67e333aa7629..000000000000
-diff --git a/arch/mn10300/include/asm/syscall.h b/arch/mn10300/include/asm/syscall.h
+index 34ee72705521..000000000000
+diff --git a/arch/tile/include/asm/syscall.h b/arch/tile/include/asm/syscall.h
 deleted file mode 100644
-index b44b0bb75a01..000000000000
-diff --git a/arch/mn10300/include/asm/termios.h b/arch/mn10300/include/asm/termios.h
+index 373d73064ea1..000000000000
+diff --git a/arch/tile/include/asm/syscalls.h b/arch/tile/include/asm/syscalls.h
 deleted file mode 100644
-index 4010edcaa08e..000000000000
-diff --git a/arch/mn10300/include/asm/thread_info.h b/arch/mn10300/include/asm/thread_info.h
+index 07b298450ef2..000000000000
+diff --git a/arch/tile/include/asm/thread_info.h b/arch/tile/include/asm/thread_info.h
 deleted file mode 100644
-index 1748a7b25bf8..000000000000
-diff --git a/arch/mn10300/include/asm/timer-regs.h b/arch/mn10300/include/asm/timer-regs.h
+index 2adcacd85749..000000000000
+diff --git a/arch/tile/include/asm/tile-desc.h b/arch/tile/include/asm/tile-desc.h
 deleted file mode 100644
-index c634977caf66..000000000000
-diff --git a/arch/mn10300/include/asm/timex.h b/arch/mn10300/include/asm/timex.h
+index 43849bf79dcb..000000000000
+diff --git a/arch/tile/include/asm/tile-desc_32.h b/arch/tile/include/asm/tile-desc_32.h
 deleted file mode 100644
-index f8e66425cbf8..000000000000
-diff --git a/arch/mn10300/include/asm/tlb.h b/arch/mn10300/include/asm/tlb.h
+index f09c5c43b0b2..000000000000
+diff --git a/arch/tile/include/asm/tile-desc_64.h b/arch/tile/include/asm/tile-desc_64.h
 deleted file mode 100644
-index 65d232b96613..000000000000
-diff --git a/arch/mn10300/include/asm/tlbflush.h b/arch/mn10300/include/asm/tlbflush.h
+index 1819efcba54d..000000000000
+diff --git a/arch/tile/include/asm/timex.h b/arch/tile/include/asm/timex.h
 deleted file mode 100644
-index efddd6e1adea..000000000000
-diff --git a/arch/mn10300/include/asm/topology.h b/arch/mn10300/include/asm/topology.h
+index dc987d53e2a9..000000000000
+diff --git a/arch/tile/include/asm/tlb.h b/arch/tile/include/asm/tlb.h
 deleted file mode 100644
-index 5428f333a02c..000000000000
-diff --git a/arch/mn10300/include/asm/types.h b/arch/mn10300/include/asm/types.h
+index 4a891a1a8df3..000000000000
+diff --git a/arch/tile/include/asm/tlbflush.h b/arch/tile/include/asm/tlbflush.h
 deleted file mode 100644
-index 3d6e48311bef..000000000000
-diff --git a/arch/mn10300/include/asm/uaccess.h b/arch/mn10300/include/asm/uaccess.h
+index dcf91b25a1e5..000000000000
+diff --git a/arch/tile/include/asm/topology.h b/arch/tile/include/asm/topology.h
 deleted file mode 100644
-index 5af468fd1359..000000000000
-diff --git a/arch/mn10300/include/asm/ucontext.h b/arch/mn10300/include/asm/ucontext.h
+index 635a0a4596f0..000000000000
+diff --git a/arch/tile/include/asm/traps.h b/arch/tile/include/asm/traps.h
 deleted file mode 100644
-index fcab5c1d8e18..000000000000
-diff --git a/arch/mn10300/include/asm/unaligned.h b/arch/mn10300/include/asm/unaligned.h
+index 11c82270c1f5..000000000000
+diff --git a/arch/tile/include/asm/uaccess.h b/arch/tile/include/asm/uaccess.h
 deleted file mode 100644
-index 0df671318ae4..000000000000
-diff --git a/arch/mn10300/include/asm/unistd.h b/arch/mn10300/include/asm/unistd.h
+index cb4fbe7e4f88..000000000000
+diff --git a/arch/tile/include/asm/unaligned.h b/arch/tile/include/asm/unaligned.h
 deleted file mode 100644
-index 0522468f488b..000000000000
-diff --git a/arch/mn10300/include/asm/user.h b/arch/mn10300/include/asm/user.h
+index 5a58a0d11449..000000000000
+diff --git a/arch/tile/include/asm/unistd.h b/arch/tile/include/asm/unistd.h
 deleted file mode 100644
-index e1193908b78c..000000000000
-diff --git a/arch/mn10300/include/asm/vga.h b/arch/mn10300/include/asm/vga.h
+index 940831fe9e94..000000000000
+diff --git a/arch/tile/include/asm/user.h b/arch/tile/include/asm/user.h
 deleted file mode 100644
-index 0163e50a3459..000000000000
-diff --git a/arch/mn10300/include/asm/xor.h b/arch/mn10300/include/asm/xor.h
+index cbc8b4d5a5ce..000000000000
+diff --git a/arch/tile/include/asm/vdso.h b/arch/tile/include/asm/vdso.h
 deleted file mode 100644
-index c82eb12a5b18..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/Kbuild b/arch/mn10300/include/uapi/asm/Kbuild
+index 9b069692153f..000000000000
+diff --git a/arch/tile/include/asm/vga.h b/arch/tile/include/asm/vga.h
 deleted file mode 100644
-index b04fd1632051..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/auxvec.h b/arch/mn10300/include/uapi/asm/auxvec.h
+index 7b46e754d611..000000000000
+diff --git a/arch/tile/include/asm/word-at-a-time.h b/arch/tile/include/asm/word-at-a-time.h
 deleted file mode 100644
-index 4fdb60b2ae39..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/bitsperlong.h b/arch/mn10300/include/uapi/asm/bitsperlong.h
+index 2f2515867760..000000000000
+diff --git a/arch/tile/include/gxio/common.h b/arch/tile/include/gxio/common.h
 deleted file mode 100644
-index 76da34b10f59..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/byteorder.h b/arch/mn10300/include/uapi/asm/byteorder.h
+index 724595a24d04..000000000000
+diff --git a/arch/tile/include/gxio/dma_queue.h b/arch/tile/include/gxio/dma_queue.h
 deleted file mode 100644
-index 3467df91216c..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/errno.h b/arch/mn10300/include/uapi/asm/errno.h
+index c8fd47edba30..000000000000
+diff --git a/arch/tile/include/gxio/iorpc_globals.h b/arch/tile/include/gxio/iorpc_globals.h
 deleted file mode 100644
-index 9addba592646..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/fcntl.h b/arch/mn10300/include/uapi/asm/fcntl.h
+index 52c721f8dad9..000000000000
+diff --git a/arch/tile/include/gxio/iorpc_mpipe.h b/arch/tile/include/gxio/iorpc_mpipe.h
 deleted file mode 100644
-index a77648c505d1..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/ioctl.h b/arch/mn10300/include/uapi/asm/ioctl.h
+index 4cda03de734f..000000000000
+diff --git a/arch/tile/include/gxio/iorpc_mpipe_info.h b/arch/tile/include/gxio/iorpc_mpipe_info.h
 deleted file mode 100644
-index b809c4566e5f..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/ioctls.h b/arch/mn10300/include/uapi/asm/ioctls.h
+index f0b04284468b..000000000000
+diff --git a/arch/tile/include/gxio/iorpc_trio.h b/arch/tile/include/gxio/iorpc_trio.h
 deleted file mode 100644
-index 0955d4f854e9..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/ipcbuf.h b/arch/mn10300/include/uapi/asm/ipcbuf.h
+index 376a4f771167..000000000000
+diff --git a/arch/tile/include/gxio/iorpc_uart.h b/arch/tile/include/gxio/iorpc_uart.h
 deleted file mode 100644
-index 90d6445a14df..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/kvm_para.h b/arch/mn10300/include/uapi/asm/kvm_para.h
+index 55429d48ea56..000000000000
+diff --git a/arch/tile/include/gxio/iorpc_usb_host.h b/arch/tile/include/gxio/iorpc_usb_host.h
+deleted file mode 100644
+index 79962a97de8e..000000000000
+diff --git a/arch/tile/include/gxio/kiorpc.h b/arch/tile/include/gxio/kiorpc.h
+deleted file mode 100644
+index ee5820979ff3..000000000000
+diff --git a/arch/tile/include/gxio/mpipe.h b/arch/tile/include/gxio/mpipe.h
+deleted file mode 100644
+index 73e83a187866..000000000000
+diff --git a/arch/tile/include/gxio/trio.h b/arch/tile/include/gxio/trio.h
+deleted file mode 100644
+index df10a662cc25..000000000000
+diff --git a/arch/tile/include/gxio/uart.h b/arch/tile/include/gxio/uart.h
+deleted file mode 100644
+index 438ee7e46c7b..000000000000
+diff --git a/arch/tile/include/gxio/usb_host.h b/arch/tile/include/gxio/usb_host.h
+deleted file mode 100644
+index 93c9636d2dd7..000000000000
+diff --git a/arch/tile/include/hv/drv_mpipe_intf.h b/arch/tile/include/hv/drv_mpipe_intf.h
+deleted file mode 100644
+index ff7f50f970a5..000000000000
+diff --git a/arch/tile/include/hv/drv_mshim_intf.h b/arch/tile/include/hv/drv_mshim_intf.h
+deleted file mode 100644
+index c6ef3bdc55cf..000000000000
+diff --git a/arch/tile/include/hv/drv_pcie_rc_intf.h b/arch/tile/include/hv/drv_pcie_rc_intf.h
+deleted file mode 100644
+index 9bd2243bece0..000000000000
+diff --git a/arch/tile/include/hv/drv_srom_intf.h b/arch/tile/include/hv/drv_srom_intf.h
+deleted file mode 100644
+index 6395faa6d9e6..000000000000
+diff --git a/arch/tile/include/hv/drv_trio_intf.h b/arch/tile/include/hv/drv_trio_intf.h
+deleted file mode 100644
+index 237e04dee66c..000000000000
+diff --git a/arch/tile/include/hv/drv_uart_intf.h b/arch/tile/include/hv/drv_uart_intf.h
+deleted file mode 100644
+index f5379e2404fd..000000000000
+diff --git a/arch/tile/include/hv/drv_usb_host_intf.h b/arch/tile/include/hv/drv_usb_host_intf.h
+deleted file mode 100644
+index 24ce774a3f1d..000000000000
+diff --git a/arch/tile/include/hv/drv_xgbe_impl.h b/arch/tile/include/hv/drv_xgbe_impl.h
+deleted file mode 100644
+index 3a73b2b44913..000000000000
+diff --git a/arch/tile/include/hv/drv_xgbe_intf.h b/arch/tile/include/hv/drv_xgbe_intf.h
+deleted file mode 100644
+index 2a20b266d944..000000000000
+diff --git a/arch/tile/include/hv/hypervisor.h b/arch/tile/include/hv/hypervisor.h
+deleted file mode 100644
+index f10b332b3b65..000000000000
+diff --git a/arch/tile/include/hv/iorpc.h b/arch/tile/include/hv/iorpc.h
+deleted file mode 100644
+index ddf1604482b3..000000000000
+diff --git a/arch/tile/include/hv/netio_errors.h b/arch/tile/include/hv/netio_errors.h
+deleted file mode 100644
+index e1591bff61b5..000000000000
+diff --git a/arch/tile/include/hv/netio_intf.h b/arch/tile/include/hv/netio_intf.h
+deleted file mode 100644
+index 8d20972aba2c..000000000000
+diff --git a/arch/tile/include/hv/syscall_public.h b/arch/tile/include/hv/syscall_public.h
+deleted file mode 100644
+index 9cc0837e69fd..000000000000
+diff --git a/arch/tile/include/uapi/arch/abi.h b/arch/tile/include/uapi/arch/abi.h
+deleted file mode 100644
+index df161a484730..000000000000
+diff --git a/arch/tile/include/uapi/arch/chip.h b/arch/tile/include/uapi/arch/chip.h
+deleted file mode 100644
+index 7f55c6856c89..000000000000
+diff --git a/arch/tile/include/uapi/arch/chip_tilegx.h b/arch/tile/include/uapi/arch/chip_tilegx.h
+deleted file mode 100644
+index c2a71a43b21c..000000000000
+diff --git a/arch/tile/include/uapi/arch/chip_tilepro.h b/arch/tile/include/uapi/arch/chip_tilepro.h
+deleted file mode 100644
+index a8a3ed144dfe..000000000000
+diff --git a/arch/tile/include/uapi/arch/icache.h b/arch/tile/include/uapi/arch/icache.h
+deleted file mode 100644
+index ff85a5d77f16..000000000000
+diff --git a/arch/tile/include/uapi/arch/interrupts.h b/arch/tile/include/uapi/arch/interrupts.h
+deleted file mode 100644
+index c288b5d82b4d..000000000000
+diff --git a/arch/tile/include/uapi/arch/interrupts_32.h b/arch/tile/include/uapi/arch/interrupts_32.h
+deleted file mode 100644
+index a748752cec16..000000000000
+diff --git a/arch/tile/include/uapi/arch/interrupts_64.h b/arch/tile/include/uapi/arch/interrupts_64.h
+deleted file mode 100644
+index 142eaff3c244..000000000000
+diff --git a/arch/tile/include/uapi/arch/intreg.h b/arch/tile/include/uapi/arch/intreg.h
+deleted file mode 100644
+index 5387fb645bb8..000000000000
+diff --git a/arch/tile/include/uapi/arch/opcode.h b/arch/tile/include/uapi/arch/opcode.h
+deleted file mode 100644
+index a9ce5961a028..000000000000
+diff --git a/arch/tile/include/uapi/arch/opcode_tilegx.h b/arch/tile/include/uapi/arch/opcode_tilegx.h
+deleted file mode 100644
+index 948ea544567f..000000000000
+diff --git a/arch/tile/include/uapi/arch/opcode_tilepro.h b/arch/tile/include/uapi/arch/opcode_tilepro.h
+deleted file mode 100644
+index 0d633688de63..000000000000
+diff --git a/arch/tile/include/uapi/arch/sim.h b/arch/tile/include/uapi/arch/sim.h
+deleted file mode 100644
+index c4183dcd2ea7..000000000000
+diff --git a/arch/tile/include/uapi/arch/sim_def.h b/arch/tile/include/uapi/arch/sim_def.h
+deleted file mode 100644
+index f74f9943770d..000000000000
+diff --git a/arch/tile/include/uapi/arch/spr_def.h b/arch/tile/include/uapi/arch/spr_def.h
+deleted file mode 100644
+index 743428615cda..000000000000
+diff --git a/arch/tile/include/uapi/arch/spr_def_32.h b/arch/tile/include/uapi/arch/spr_def_32.h
+deleted file mode 100644
+index 64122d6160e1..000000000000
+diff --git a/arch/tile/include/uapi/arch/spr_def_64.h b/arch/tile/include/uapi/arch/spr_def_64.h
+deleted file mode 100644
+index d183cbb31aa7..000000000000
+diff --git a/arch/tile/include/uapi/asm/Kbuild b/arch/tile/include/uapi/asm/Kbuild
+deleted file mode 100644
+index cc439612bcd5..000000000000
+diff --git a/arch/tile/include/uapi/asm/auxvec.h b/arch/tile/include/uapi/asm/auxvec.h
+deleted file mode 100644
+index 922383ce8f4f..000000000000
+diff --git a/arch/tile/include/uapi/asm/bitsperlong.h b/arch/tile/include/uapi/asm/bitsperlong.h
+deleted file mode 100644
+index 57cca78c0fbb..000000000000
+diff --git a/arch/tile/include/uapi/asm/byteorder.h b/arch/tile/include/uapi/asm/byteorder.h
+deleted file mode 100644
+index d508e61c1e56..000000000000
+diff --git a/arch/tile/include/uapi/asm/cachectl.h b/arch/tile/include/uapi/asm/cachectl.h
+deleted file mode 100644
+index ed8bac28a1b9..000000000000
+diff --git a/arch/tile/include/uapi/asm/hardwall.h b/arch/tile/include/uapi/asm/hardwall.h
+deleted file mode 100644
+index f02e9132ae71..000000000000
+diff --git a/arch/tile/include/uapi/asm/kvm_para.h b/arch/tile/include/uapi/asm/kvm_para.h
 deleted file mode 100644
 index baacc4996d18..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/mman.h b/arch/mn10300/include/uapi/asm/mman.h
+diff --git a/arch/tile/include/uapi/asm/mman.h b/arch/tile/include/uapi/asm/mman.h
 deleted file mode 100644
-index eb7f4798c036..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/msgbuf.h b/arch/mn10300/include/uapi/asm/msgbuf.h
+index 9b7add95926b..000000000000
+diff --git a/arch/tile/include/uapi/asm/ptrace.h b/arch/tile/include/uapi/asm/ptrace.h
 deleted file mode 100644
-index 5982def83355..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/param.h b/arch/mn10300/include/uapi/asm/param.h
+index 667ed742f4dd..000000000000
+diff --git a/arch/tile/include/uapi/asm/setup.h b/arch/tile/include/uapi/asm/setup.h
 deleted file mode 100644
-index e0020d7742bd..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/posix_types.h b/arch/mn10300/include/uapi/asm/posix_types.h
+index 6d1dfdddad6c..000000000000
+diff --git a/arch/tile/include/uapi/asm/sigcontext.h b/arch/tile/include/uapi/asm/sigcontext.h
 deleted file mode 100644
-index 6b4cfc7136e9..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/ptrace.h b/arch/mn10300/include/uapi/asm/ptrace.h
+index 4003d5cc9202..000000000000
+diff --git a/arch/tile/include/uapi/asm/siginfo.h b/arch/tile/include/uapi/asm/siginfo.h
 deleted file mode 100644
-index f485c481a266..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/resource.h b/arch/mn10300/include/uapi/asm/resource.h
+index a812fcbf4267..000000000000
+diff --git a/arch/tile/include/uapi/asm/signal.h b/arch/tile/include/uapi/asm/signal.h
 deleted file mode 100644
-index 49a81fbab43d..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/sembuf.h b/arch/mn10300/include/uapi/asm/sembuf.h
+index 7b3c814e00f0..000000000000
+diff --git a/arch/tile/include/uapi/asm/stat.h b/arch/tile/include/uapi/asm/stat.h
 deleted file mode 100644
-index ef44c42c7e0f..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/setup.h b/arch/mn10300/include/uapi/asm/setup.h
+index ea03de7d67aa..000000000000
+diff --git a/arch/tile/include/uapi/asm/swab.h b/arch/tile/include/uapi/asm/swab.h
 deleted file mode 100644
-index 043dd4b92026..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/shmbuf.h b/arch/mn10300/include/uapi/asm/shmbuf.h
+index 36952353a31d..000000000000
+diff --git a/arch/tile/include/uapi/asm/unistd.h b/arch/tile/include/uapi/asm/unistd.h
 deleted file mode 100644
-index 6e81f74f51c6..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/sigcontext.h b/arch/mn10300/include/uapi/asm/sigcontext.h
+index 1a169ec92ef8..000000000000
+diff --git a/arch/tile/kernel/Makefile b/arch/tile/kernel/Makefile
 deleted file mode 100644
-index 1c361fabb977..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/signal.h b/arch/mn10300/include/uapi/asm/signal.h
+index 3e43d78731a8..000000000000
+diff --git a/arch/tile/kernel/asm-offsets.c b/arch/tile/kernel/asm-offsets.c
 deleted file mode 100644
-index 566cb199d5ac..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/socket.h b/arch/mn10300/include/uapi/asm/socket.h
+index 375e7c321eef..000000000000
+diff --git a/arch/tile/kernel/backtrace.c b/arch/tile/kernel/backtrace.c
 deleted file mode 100644
-index b35eee132142..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/sockios.h b/arch/mn10300/include/uapi/asm/sockios.h
+index f8b74ca83b92..000000000000
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
 deleted file mode 100644
-index 5706baa3cd0d..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/stat.h b/arch/mn10300/include/uapi/asm/stat.h
+index bdaf71d31a4a..000000000000
+diff --git a/arch/tile/kernel/compat_signal.c b/arch/tile/kernel/compat_signal.c
 deleted file mode 100644
-index 769f5f8829d4..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/statfs.h b/arch/mn10300/include/uapi/asm/statfs.h
+index a703bd0e0488..000000000000
+diff --git a/arch/tile/kernel/early_printk.c b/arch/tile/kernel/early_printk.c
 deleted file mode 100644
-index 0b91fe198c20..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/swab.h b/arch/mn10300/include/uapi/asm/swab.h
+index aefb2c086726..000000000000
+diff --git a/arch/tile/kernel/entry.S b/arch/tile/kernel/entry.S
 deleted file mode 100644
-index d2284dd27ad4..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/termbits.h b/arch/mn10300/include/uapi/asm/termbits.h
+index 101de132e363..000000000000
+diff --git a/arch/tile/kernel/ftrace.c b/arch/tile/kernel/ftrace.c
 deleted file mode 100644
-index fca82ea2ca2c..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/termios.h b/arch/mn10300/include/uapi/asm/termios.h
+index b827a418b155..000000000000
+diff --git a/arch/tile/kernel/hardwall.c b/arch/tile/kernel/hardwall.c
 deleted file mode 100644
-index 25981aadb8cd..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/types.h b/arch/mn10300/include/uapi/asm/types.h
+index 2fd1694ac1d0..000000000000
+diff --git a/arch/tile/kernel/head_32.S b/arch/tile/kernel/head_32.S
 deleted file mode 100644
-index 7d2a697e2937..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/unistd.h b/arch/mn10300/include/uapi/asm/unistd.h
+index 8d5b40ff2922..000000000000
+diff --git a/arch/tile/kernel/head_64.S b/arch/tile/kernel/head_64.S
 deleted file mode 100644
-index c0c96b650692..000000000000
-diff --git a/arch/mn10300/kernel/Makefile b/arch/mn10300/kernel/Makefile
+index bd0e12f283f3..000000000000
+diff --git a/arch/tile/kernel/hvglue.S b/arch/tile/kernel/hvglue.S
 deleted file mode 100644
-index de32af0e4b6e..000000000000
-diff --git a/arch/mn10300/kernel/asm-offsets.c b/arch/mn10300/kernel/asm-offsets.c
+index 70c661448638..000000000000
+diff --git a/arch/tile/kernel/hvglue_trace.c b/arch/tile/kernel/hvglue_trace.c
 deleted file mode 100644
-index 57e6cc96267b..000000000000
-diff --git a/arch/mn10300/kernel/cevt-mn10300.c b/arch/mn10300/kernel/cevt-mn10300.c
+index add0d71395c6..000000000000
+diff --git a/arch/tile/kernel/intvec_32.S b/arch/tile/kernel/intvec_32.S
 deleted file mode 100644
-index 2b21bbc9efa4..000000000000
-diff --git a/arch/mn10300/kernel/csrc-mn10300.c b/arch/mn10300/kernel/csrc-mn10300.c
+index 9ff75e3a318a..000000000000
+diff --git a/arch/tile/kernel/intvec_64.S b/arch/tile/kernel/intvec_64.S
 deleted file mode 100644
-index 6b74df3661f2..000000000000
-diff --git a/arch/mn10300/kernel/entry.S b/arch/mn10300/kernel/entry.S
+index 3b51bdf37d11..000000000000
+diff --git a/arch/tile/kernel/irq.c b/arch/tile/kernel/irq.c
 deleted file mode 100644
-index 177d61de51c9..000000000000
-diff --git a/arch/mn10300/kernel/fpu-low.S b/arch/mn10300/kernel/fpu-low.S
+index 22044fc691ef..000000000000
+diff --git a/arch/tile/kernel/jump_label.c b/arch/tile/kernel/jump_label.c
 deleted file mode 100644
-index 78df25cfae29..000000000000
-diff --git a/arch/mn10300/kernel/fpu-nofpu-low.S b/arch/mn10300/kernel/fpu-nofpu-low.S
+index 93931a46625b..000000000000
+diff --git a/arch/tile/kernel/kgdb.c b/arch/tile/kernel/kgdb.c
 deleted file mode 100644
-index 7ea087a549f4..000000000000
-diff --git a/arch/mn10300/kernel/fpu-nofpu.c b/arch/mn10300/kernel/fpu-nofpu.c
+index d4eb5fb2df9d..000000000000
+diff --git a/arch/tile/kernel/kprobes.c b/arch/tile/kernel/kprobes.c
 deleted file mode 100644
-index 8d0e041aa798..000000000000
-diff --git a/arch/mn10300/kernel/fpu.c b/arch/mn10300/kernel/fpu.c
+index c68694bb1ad2..000000000000
+diff --git a/arch/tile/kernel/machine_kexec.c b/arch/tile/kernel/machine_kexec.c
 deleted file mode 100644
-index 50ce7b447fed..000000000000
-diff --git a/arch/mn10300/kernel/gdb-io-serial-low.S b/arch/mn10300/kernel/gdb-io-serial-low.S
+index 008aa2faef55..000000000000
+diff --git a/arch/tile/kernel/mcount_64.S b/arch/tile/kernel/mcount_64.S
 deleted file mode 100644
-index b1d0152e96cb..000000000000
-diff --git a/arch/mn10300/kernel/gdb-io-serial.c b/arch/mn10300/kernel/gdb-io-serial.c
+index 6c6702451962..000000000000
+diff --git a/arch/tile/kernel/messaging.c b/arch/tile/kernel/messaging.c
 deleted file mode 100644
-index df51242744cc..000000000000
-diff --git a/arch/mn10300/kernel/gdb-io-ttysm-low.S b/arch/mn10300/kernel/gdb-io-ttysm-low.S
+index 7475af3aacec..000000000000
+diff --git a/arch/tile/kernel/module.c b/arch/tile/kernel/module.c
 deleted file mode 100644
-index 060b7cca735d..000000000000
-diff --git a/arch/mn10300/kernel/gdb-io-ttysm.c b/arch/mn10300/kernel/gdb-io-ttysm.c
+index 09233fbe7801..000000000000
+diff --git a/arch/tile/kernel/pci-dma.c b/arch/tile/kernel/pci-dma.c
 deleted file mode 100644
-index caae8cac9db1..000000000000
-diff --git a/arch/mn10300/kernel/gdb-low.S b/arch/mn10300/kernel/gdb-low.S
+index 6a1efe5543fa..000000000000
+diff --git a/arch/tile/kernel/pci.c b/arch/tile/kernel/pci.c
 deleted file mode 100644
-index e2725552cd82..000000000000
-diff --git a/arch/mn10300/kernel/gdb-stub.c b/arch/mn10300/kernel/gdb-stub.c
+index bbf81579b1f8..000000000000
+diff --git a/arch/tile/kernel/pci_gx.c b/arch/tile/kernel/pci_gx.c
 deleted file mode 100644
-index 3399d5699804..000000000000
-diff --git a/arch/mn10300/kernel/head.S b/arch/mn10300/kernel/head.S
+index 9aa238ac7b35..000000000000
+diff --git a/arch/tile/kernel/perf_event.c b/arch/tile/kernel/perf_event.c
 deleted file mode 100644
-index 0b15f759e0d2..000000000000
-diff --git a/arch/mn10300/kernel/internal.h b/arch/mn10300/kernel/internal.h
+index 6394c1ccb68e..000000000000
+diff --git a/arch/tile/kernel/pmc.c b/arch/tile/kernel/pmc.c
 deleted file mode 100644
-index 561785581f6c..000000000000
-diff --git a/arch/mn10300/kernel/io.c b/arch/mn10300/kernel/io.c
+index 81cf8743a3f3..000000000000
+diff --git a/arch/tile/kernel/proc.c b/arch/tile/kernel/proc.c
 deleted file mode 100644
-index e96fdf6bb542..000000000000
-diff --git a/arch/mn10300/kernel/irq.c b/arch/mn10300/kernel/irq.c
+index 7983e9868df6..000000000000
+diff --git a/arch/tile/kernel/process.c b/arch/tile/kernel/process.c
 deleted file mode 100644
-index c716437baa2c..000000000000
-diff --git a/arch/mn10300/kernel/kgdb.c b/arch/mn10300/kernel/kgdb.c
+index f0a0e18e4dfb..000000000000
+diff --git a/arch/tile/kernel/ptrace.c b/arch/tile/kernel/ptrace.c
 deleted file mode 100644
-index 2d7986c386fe..000000000000
-diff --git a/arch/mn10300/kernel/kprobes.c b/arch/mn10300/kernel/kprobes.c
+index d516d61751c2..000000000000
+diff --git a/arch/tile/kernel/reboot.c b/arch/tile/kernel/reboot.c
 deleted file mode 100644
-index 0311a7fcea16..000000000000
-diff --git a/arch/mn10300/kernel/mn10300-debug.c b/arch/mn10300/kernel/mn10300-debug.c
+index 6c5d2c070a12..000000000000
+diff --git a/arch/tile/kernel/regs_32.S b/arch/tile/kernel/regs_32.S
 deleted file mode 100644
-index bd8196478cbc..000000000000
-diff --git a/arch/mn10300/kernel/mn10300-serial-low.S b/arch/mn10300/kernel/mn10300-serial-low.S
+index 542cae17a93a..000000000000
+diff --git a/arch/tile/kernel/regs_64.S b/arch/tile/kernel/regs_64.S
 deleted file mode 100644
-index b95e76caf4fa..000000000000
-diff --git a/arch/mn10300/kernel/mn10300-serial.c b/arch/mn10300/kernel/mn10300-serial.c
+index bbffcc6f340f..000000000000
+diff --git a/arch/tile/kernel/relocate_kernel_32.S b/arch/tile/kernel/relocate_kernel_32.S
 deleted file mode 100644
-index 4994b570dfd9..000000000000
-diff --git a/arch/mn10300/kernel/mn10300-serial.h b/arch/mn10300/kernel/mn10300-serial.h
+index e44fbcf8cbd5..000000000000
+diff --git a/arch/tile/kernel/relocate_kernel_64.S b/arch/tile/kernel/relocate_kernel_64.S
 deleted file mode 100644
-index 01791c68ea1f..000000000000
-diff --git a/arch/mn10300/kernel/mn10300-watchdog-low.S b/arch/mn10300/kernel/mn10300-watchdog-low.S
+index d9d8cf6176e8..000000000000
+diff --git a/arch/tile/kernel/setup.c b/arch/tile/kernel/setup.c
 deleted file mode 100644
-index 34f8773de7d0..000000000000
-diff --git a/arch/mn10300/kernel/mn10300-watchdog.c b/arch/mn10300/kernel/mn10300-watchdog.c
+index eb4e198f6f93..000000000000
+diff --git a/arch/tile/kernel/signal.c b/arch/tile/kernel/signal.c
 deleted file mode 100644
-index 0d5641beadf5..000000000000
-diff --git a/arch/mn10300/kernel/mn10300_ksyms.c b/arch/mn10300/kernel/mn10300_ksyms.c
+index f2bf557bb005..000000000000
+diff --git a/arch/tile/kernel/single_step.c b/arch/tile/kernel/single_step.c
 deleted file mode 100644
-index 66fb68d0ca8a..000000000000
-diff --git a/arch/mn10300/kernel/module.c b/arch/mn10300/kernel/module.c
+index 479d8033a801..000000000000
+diff --git a/arch/tile/kernel/smp.c b/arch/tile/kernel/smp.c
 deleted file mode 100644
-index 216ad23c9570..000000000000
-diff --git a/arch/mn10300/kernel/process.c b/arch/mn10300/kernel/process.c
+index 94a62e1197ce..000000000000
+diff --git a/arch/tile/kernel/smpboot.c b/arch/tile/kernel/smpboot.c
 deleted file mode 100644
-index 7c475fd99c46..000000000000
-diff --git a/arch/mn10300/kernel/profile-low.S b/arch/mn10300/kernel/profile-low.S
+index 869c22e57561..000000000000
+diff --git a/arch/tile/kernel/stack.c b/arch/tile/kernel/stack.c
 deleted file mode 100644
-index 94ffac12d02d..000000000000
-diff --git a/arch/mn10300/kernel/profile.c b/arch/mn10300/kernel/profile.c
+index 94ecbc6676e5..000000000000
+diff --git a/arch/tile/kernel/sys.c b/arch/tile/kernel/sys.c
 deleted file mode 100644
-index 4f342f75d00c..000000000000
-diff --git a/arch/mn10300/kernel/ptrace.c b/arch/mn10300/kernel/ptrace.c
+index c7418dcbbb08..000000000000
+diff --git a/arch/tile/kernel/sysfs.c b/arch/tile/kernel/sysfs.c
 deleted file mode 100644
-index 8009876a7ac4..000000000000
-diff --git a/arch/mn10300/kernel/rtc.c b/arch/mn10300/kernel/rtc.c
+index b09456a3d77a..000000000000
+diff --git a/arch/tile/kernel/tile-desc_32.c b/arch/tile/kernel/tile-desc_32.c
 deleted file mode 100644
-index f81f37025072..000000000000
-diff --git a/arch/mn10300/kernel/setup.c b/arch/mn10300/kernel/setup.c
+index dd7bd1d8563c..000000000000
+diff --git a/arch/tile/kernel/tile-desc_64.c b/arch/tile/kernel/tile-desc_64.c
 deleted file mode 100644
-index 1b3d80d8a171..000000000000
-diff --git a/arch/mn10300/kernel/sigframe.h b/arch/mn10300/kernel/sigframe.h
+index 65b5f8aca706..000000000000
+diff --git a/arch/tile/kernel/time.c b/arch/tile/kernel/time.c
 deleted file mode 100644
-index 0decba28ae84..000000000000
-diff --git a/arch/mn10300/kernel/signal.c b/arch/mn10300/kernel/signal.c
+index f95d65f3162b..000000000000
+diff --git a/arch/tile/kernel/tlb.c b/arch/tile/kernel/tlb.c
 deleted file mode 100644
-index 2f3cb5734235..000000000000
-diff --git a/arch/mn10300/kernel/smp-low.S b/arch/mn10300/kernel/smp-low.S
+index f23b53515671..000000000000
+diff --git a/arch/tile/kernel/traps.c b/arch/tile/kernel/traps.c
 deleted file mode 100644
-index 71f1b2faaa0b..000000000000
-diff --git a/arch/mn10300/kernel/smp.c b/arch/mn10300/kernel/smp.c
+index 83a7186198d7..000000000000
+diff --git a/arch/tile/kernel/unaligned.c b/arch/tile/kernel/unaligned.c
 deleted file mode 100644
-index 35d2c3fe6f76..000000000000
-diff --git a/arch/mn10300/kernel/switch_to.S b/arch/mn10300/kernel/switch_to.S
+index 77a0b6b6a2a1..000000000000
+diff --git a/arch/tile/kernel/usb.c b/arch/tile/kernel/usb.c
 deleted file mode 100644
-index de3e74fc9ea0..000000000000
-diff --git a/arch/mn10300/kernel/sys_mn10300.c b/arch/mn10300/kernel/sys_mn10300.c
+index 9f1e05e12255..000000000000
+diff --git a/arch/tile/kernel/vdso.c b/arch/tile/kernel/vdso.c
 deleted file mode 100644
-index f999981e55c0..000000000000
-diff --git a/arch/mn10300/kernel/time.c b/arch/mn10300/kernel/time.c
+index 5bc51d7dfdcb..000000000000
+diff --git a/arch/tile/kernel/vdso/Makefile b/arch/tile/kernel/vdso/Makefile
 deleted file mode 100644
-index 06b83b17c5f1..000000000000
-diff --git a/arch/mn10300/kernel/traps.c b/arch/mn10300/kernel/traps.c
+index b596a7396382..000000000000
+diff --git a/arch/tile/kernel/vdso/vdso.S b/arch/tile/kernel/vdso/vdso.S
 deleted file mode 100644
-index 72d1015b2ae7..000000000000
-diff --git a/arch/mn10300/kernel/vmlinux.lds.S b/arch/mn10300/kernel/vmlinux.lds.S
+index 3467adb41630..000000000000
+diff --git a/arch/tile/kernel/vdso/vdso.lds.S b/arch/tile/kernel/vdso/vdso.lds.S
 deleted file mode 100644
-index 2d5f1c3f1afb..000000000000
-diff --git a/arch/mn10300/lib/Makefile b/arch/mn10300/lib/Makefile
+index 731529f3f06f..000000000000
+diff --git a/arch/tile/kernel/vdso/vdso32.S b/arch/tile/kernel/vdso/vdso32.S
 deleted file mode 100644
-index 0cd2346f4c13..000000000000
-diff --git a/arch/mn10300/lib/__ashldi3.S b/arch/mn10300/lib/__ashldi3.S
+index 1d1ac3257e11..000000000000
+diff --git a/arch/tile/kernel/vdso/vgettimeofday.c b/arch/tile/kernel/vdso/vgettimeofday.c
 deleted file mode 100644
-index a51a9506f00c..000000000000
-diff --git a/arch/mn10300/lib/__ashrdi3.S b/arch/mn10300/lib/__ashrdi3.S
+index e63310c49742..000000000000
+diff --git a/arch/tile/kernel/vdso/vrt_sigreturn.S b/arch/tile/kernel/vdso/vrt_sigreturn.S
 deleted file mode 100644
-index 6f42382728cb..000000000000
-diff --git a/arch/mn10300/lib/__lshrdi3.S b/arch/mn10300/lib/__lshrdi3.S
+index 6326caf4a039..000000000000
+diff --git a/arch/tile/kernel/vmlinux.lds.S b/arch/tile/kernel/vmlinux.lds.S
 deleted file mode 100644
-index a686aef31e90..000000000000
-diff --git a/arch/mn10300/lib/__ucmpdi2.S b/arch/mn10300/lib/__ucmpdi2.S
+index 3558d981e336..000000000000
+diff --git a/arch/tile/kvm/Kconfig b/arch/tile/kvm/Kconfig
 deleted file mode 100644
-index 60dcbdfe386c..000000000000
-diff --git a/arch/mn10300/lib/ashrdi3.c b/arch/mn10300/lib/ashrdi3.c
+index efce89a8473b..000000000000
+diff --git a/arch/tile/lib/Makefile b/arch/tile/lib/Makefile
 deleted file mode 100644
-index c54f61ddf0b5..000000000000
-diff --git a/arch/mn10300/lib/bitops.c b/arch/mn10300/lib/bitops.c
+index 815a1fdeb2e4..000000000000
+diff --git a/arch/tile/lib/atomic_32.c b/arch/tile/lib/atomic_32.c
 deleted file mode 100644
-index 37309cdb7584..000000000000
-diff --git a/arch/mn10300/lib/checksum.c b/arch/mn10300/lib/checksum.c
+index f8128800dbf5..000000000000
+diff --git a/arch/tile/lib/atomic_asm_32.S b/arch/tile/lib/atomic_asm_32.S
 deleted file mode 100644
-index 0f569151ef11..000000000000
-diff --git a/arch/mn10300/lib/delay.c b/arch/mn10300/lib/delay.c
+index 94709ab41ed8..000000000000
+diff --git a/arch/tile/lib/cacheflush.c b/arch/tile/lib/cacheflush.c
 deleted file mode 100644
-index 8e7ceb8ba33d..000000000000
-diff --git a/arch/mn10300/lib/do_csum.S b/arch/mn10300/lib/do_csum.S
+index c1ebc1065fc1..000000000000
+diff --git a/arch/tile/lib/checksum.c b/arch/tile/lib/checksum.c
 deleted file mode 100644
-index 1d27bba0cd8f..000000000000
-diff --git a/arch/mn10300/lib/internal.h b/arch/mn10300/lib/internal.h
+index c3ca3e64d9d9..000000000000
+diff --git a/arch/tile/lib/cpumask.c b/arch/tile/lib/cpumask.c
 deleted file mode 100644
-index 0014eee5f04f..000000000000
-diff --git a/arch/mn10300/lib/lshrdi3.c b/arch/mn10300/lib/lshrdi3.c
+index 75947edccb26..000000000000
+diff --git a/arch/tile/lib/delay.c b/arch/tile/lib/delay.c
 deleted file mode 100644
-index e05e64e9ce96..000000000000
-diff --git a/arch/mn10300/lib/memcpy.S b/arch/mn10300/lib/memcpy.S
+index cdacdd11d360..000000000000
+diff --git a/arch/tile/lib/exports.c b/arch/tile/lib/exports.c
 deleted file mode 100644
-index 25fb9bb2604f..000000000000
-diff --git a/arch/mn10300/lib/memmove.S b/arch/mn10300/lib/memmove.S
+index ecce8e177e3f..000000000000
+diff --git a/arch/tile/lib/memchr_32.c b/arch/tile/lib/memchr_32.c
 deleted file mode 100644
-index 20b07b62b77c..000000000000
-diff --git a/arch/mn10300/lib/memset.S b/arch/mn10300/lib/memset.S
+index cc3d9badf030..000000000000
+diff --git a/arch/tile/lib/memchr_64.c b/arch/tile/lib/memchr_64.c
 deleted file mode 100644
-index bc02e39629b7..000000000000
-diff --git a/arch/mn10300/lib/negdi2.c b/arch/mn10300/lib/negdi2.c
+index f8196b3a950e..000000000000
+diff --git a/arch/tile/lib/memcpy_32.S b/arch/tile/lib/memcpy_32.S
 deleted file mode 100644
-index eae4ecdd5f69..000000000000
-diff --git a/arch/mn10300/lib/usercopy.c b/arch/mn10300/lib/usercopy.c
+index 270f1267cd18..000000000000
+diff --git a/arch/tile/lib/memcpy_64.c b/arch/tile/lib/memcpy_64.c
 deleted file mode 100644
-index 39626912de98..000000000000
-diff --git a/arch/mn10300/mm/Kconfig.cache b/arch/mn10300/mm/Kconfig.cache
+index 4815354b8cd2..000000000000
+diff --git a/arch/tile/lib/memcpy_user_64.c b/arch/tile/lib/memcpy_user_64.c
 deleted file mode 100644
-index 8cc5d9ec3b6c..000000000000
-diff --git a/arch/mn10300/mm/Makefile b/arch/mn10300/mm/Makefile
+index a3fea9fd973e..000000000000
+diff --git a/arch/tile/lib/memmove.c b/arch/tile/lib/memmove.c
 deleted file mode 100644
-index 048ba6f67f9a..000000000000
-diff --git a/arch/mn10300/mm/cache-dbg-flush-by-reg.S b/arch/mn10300/mm/cache-dbg-flush-by-reg.S
+index fd615ae6ade7..000000000000
+diff --git a/arch/tile/lib/memset_32.c b/arch/tile/lib/memset_32.c
 deleted file mode 100644
-index a775ea5d7cee..000000000000
-diff --git a/arch/mn10300/mm/cache-dbg-flush-by-tag.S b/arch/mn10300/mm/cache-dbg-flush-by-tag.S
+index 2042bfe6595f..000000000000
+diff --git a/arch/tile/lib/memset_64.c b/arch/tile/lib/memset_64.c
 deleted file mode 100644
-index bf56930e6e70..000000000000
-diff --git a/arch/mn10300/mm/cache-dbg-inv-by-reg.S b/arch/mn10300/mm/cache-dbg-inv-by-reg.S
+index 03ef69cd73de..000000000000
+diff --git a/arch/tile/lib/spinlock_32.c b/arch/tile/lib/spinlock_32.c
 deleted file mode 100644
-index c4e6252941b1..000000000000
-diff --git a/arch/mn10300/mm/cache-dbg-inv-by-tag.S b/arch/mn10300/mm/cache-dbg-inv-by-tag.S
+index db9333f2447c..000000000000
+diff --git a/arch/tile/lib/spinlock_64.c b/arch/tile/lib/spinlock_64.c
 deleted file mode 100644
-index d8ec821e5f88..000000000000
-diff --git a/arch/mn10300/mm/cache-dbg-inv.S b/arch/mn10300/mm/cache-dbg-inv.S
+index de414c22892f..000000000000
+diff --git a/arch/tile/lib/spinlock_common.h b/arch/tile/lib/spinlock_common.h
 deleted file mode 100644
-index eba2d6dca066..000000000000
-diff --git a/arch/mn10300/mm/cache-disabled.c b/arch/mn10300/mm/cache-disabled.c
+index 6ac37509faca..000000000000
+diff --git a/arch/tile/lib/strchr_32.c b/arch/tile/lib/strchr_32.c
 deleted file mode 100644
-index f669ea42aba6..000000000000
-diff --git a/arch/mn10300/mm/cache-flush-by-reg.S b/arch/mn10300/mm/cache-flush-by-reg.S
+index 841fe6963019..000000000000
+diff --git a/arch/tile/lib/strchr_64.c b/arch/tile/lib/strchr_64.c
 deleted file mode 100644
-index 1dcae0211671..000000000000
-diff --git a/arch/mn10300/mm/cache-flush-by-tag.S b/arch/mn10300/mm/cache-flush-by-tag.S
+index fe6e31c06f8d..000000000000
+diff --git a/arch/tile/lib/string-endian.h b/arch/tile/lib/string-endian.h
 deleted file mode 100644
-index 1ddc06849242..000000000000
-diff --git a/arch/mn10300/mm/cache-flush-icache.c b/arch/mn10300/mm/cache-flush-icache.c
+index 2e49cbfe9371..000000000000
+diff --git a/arch/tile/lib/strlen_32.c b/arch/tile/lib/strlen_32.c
 deleted file mode 100644
-index fdb1a9db20f0..000000000000
-diff --git a/arch/mn10300/mm/cache-inv-by-reg.S b/arch/mn10300/mm/cache-inv-by-reg.S
+index f26f88e11e4a..000000000000
+diff --git a/arch/tile/lib/strlen_64.c b/arch/tile/lib/strlen_64.c
 deleted file mode 100644
-index a60825b91e77..000000000000
-diff --git a/arch/mn10300/mm/cache-inv-by-tag.S b/arch/mn10300/mm/cache-inv-by-tag.S
+index 9583fc3361fa..000000000000
+diff --git a/arch/tile/lib/strnlen_32.c b/arch/tile/lib/strnlen_32.c
 deleted file mode 100644
-index ccedce9c144d..000000000000
-diff --git a/arch/mn10300/mm/cache-inv-icache.c b/arch/mn10300/mm/cache-inv-icache.c
+index 1434141d9e01..000000000000
+diff --git a/arch/tile/lib/strnlen_64.c b/arch/tile/lib/strnlen_64.c
 deleted file mode 100644
-index a6b63dde603d..000000000000
-diff --git a/arch/mn10300/mm/cache-smp-flush.c b/arch/mn10300/mm/cache-smp-flush.c
+index 2e8de6a5136f..000000000000
+diff --git a/arch/tile/lib/uaccess.c b/arch/tile/lib/uaccess.c
 deleted file mode 100644
-index fd51af5eaf70..000000000000
-diff --git a/arch/mn10300/mm/cache-smp-inv.c b/arch/mn10300/mm/cache-smp-inv.c
+index 030abe3ee4f1..000000000000
+diff --git a/arch/tile/lib/usercopy_32.S b/arch/tile/lib/usercopy_32.S
 deleted file mode 100644
-index ff1787358c8e..000000000000
-diff --git a/arch/mn10300/mm/cache-smp.c b/arch/mn10300/mm/cache-smp.c
+index db93ad5fae25..000000000000
+diff --git a/arch/tile/lib/usercopy_64.S b/arch/tile/lib/usercopy_64.S
 deleted file mode 100644
-index e80996064d3d..000000000000
-diff --git a/arch/mn10300/mm/cache-smp.h b/arch/mn10300/mm/cache-smp.h
+index 9322dc551e91..000000000000
+diff --git a/arch/tile/mm/Makefile b/arch/tile/mm/Makefile
 deleted file mode 100644
-index cb52892aa66a..000000000000
-diff --git a/arch/mn10300/mm/cache.c b/arch/mn10300/mm/cache.c
+index e252aeddc17d..000000000000
+diff --git a/arch/tile/mm/elf.c b/arch/tile/mm/elf.c
 deleted file mode 100644
-index 0b925cce2b83..000000000000
-diff --git a/arch/mn10300/mm/cache.inc b/arch/mn10300/mm/cache.inc
+index 889901824400..000000000000
+diff --git a/arch/tile/mm/extable.c b/arch/tile/mm/extable.c
 deleted file mode 100644
-index 394a119b9c73..000000000000
-diff --git a/arch/mn10300/mm/dma-alloc.c b/arch/mn10300/mm/dma-alloc.c
+index aeaf20c7aaa4..000000000000
+diff --git a/arch/tile/mm/fault.c b/arch/tile/mm/fault.c
 deleted file mode 100644
-index e3910d4db102..000000000000
-diff --git a/arch/mn10300/mm/extable.c b/arch/mn10300/mm/extable.c
+index f58fa06a2214..000000000000
+diff --git a/arch/tile/mm/highmem.c b/arch/tile/mm/highmem.c
 deleted file mode 100644
-index 045a903ee6b9..000000000000
-diff --git a/arch/mn10300/mm/fault.c b/arch/mn10300/mm/fault.c
+index eca28551b22d..000000000000
+diff --git a/arch/tile/mm/homecache.c b/arch/tile/mm/homecache.c
 deleted file mode 100644
-index f0bfa1448744..000000000000
-diff --git a/arch/mn10300/mm/init.c b/arch/mn10300/mm/init.c
+index 4432f31e8479..000000000000
+diff --git a/arch/tile/mm/hugetlbpage.c b/arch/tile/mm/hugetlbpage.c
 deleted file mode 100644
-index 8ce677d5575e..000000000000
-diff --git a/arch/mn10300/mm/misalignment.c b/arch/mn10300/mm/misalignment.c
+index 0986d426a413..000000000000
+diff --git a/arch/tile/mm/init.c b/arch/tile/mm/init.c
 deleted file mode 100644
-index 8ace89617c1c..000000000000
-diff --git a/arch/mn10300/mm/mmu-context.c b/arch/mn10300/mm/mmu-context.c
+index 5f757e04bcd2..000000000000
+diff --git a/arch/tile/mm/migrate.h b/arch/tile/mm/migrate.h
 deleted file mode 100644
-index a4f7d3dcc6e6..000000000000
-diff --git a/arch/mn10300/mm/pgtable.c b/arch/mn10300/mm/pgtable.c
+index 91683d97917e..000000000000
+diff --git a/arch/tile/mm/migrate_32.S b/arch/tile/mm/migrate_32.S
 deleted file mode 100644
-index 9577cf768875..000000000000
-diff --git a/arch/mn10300/mm/tlb-mn10300.S b/arch/mn10300/mm/tlb-mn10300.S
+index 772085491bf9..000000000000
+diff --git a/arch/tile/mm/migrate_64.S b/arch/tile/mm/migrate_64.S
 deleted file mode 100644
-index b9940177d81b..000000000000
-diff --git a/arch/mn10300/mm/tlb-smp.c b/arch/mn10300/mm/tlb-smp.c
+index a49eee38f872..000000000000
+diff --git a/arch/tile/mm/mmap.c b/arch/tile/mm/mmap.c
 deleted file mode 100644
-index 085f2bb691ac..000000000000
-diff --git a/arch/mn10300/oprofile/Makefile b/arch/mn10300/oprofile/Makefile
+index 8ab28167c44b..000000000000
+diff --git a/arch/tile/mm/pgtable.c b/arch/tile/mm/pgtable.c
 deleted file mode 100644
-index 9fa95aaf496b..000000000000
-diff --git a/arch/mn10300/oprofile/op_model_null.c b/arch/mn10300/oprofile/op_model_null.c
-deleted file mode 100644
-index cd4ab374bc4f..000000000000
-diff --git a/arch/mn10300/proc-mn103e010/Makefile b/arch/mn10300/proc-mn103e010/Makefile
-deleted file mode 100644
-index ac2c9784cd21..000000000000
-diff --git a/arch/mn10300/proc-mn103e010/include/proc/cache.h b/arch/mn10300/proc-mn103e010/include/proc/cache.h
-deleted file mode 100644
-index 967d144f307e..000000000000
-diff --git a/arch/mn10300/proc-mn103e010/include/proc/clock.h b/arch/mn10300/proc-mn103e010/include/proc/clock.h
-deleted file mode 100644
-index 704a819f1f4b..000000000000
-diff --git a/arch/mn10300/proc-mn103e010/include/proc/dmactl-regs.h b/arch/mn10300/proc-mn103e010/include/proc/dmactl-regs.h
-deleted file mode 100644
-index d72d328d1f9c..000000000000
-diff --git a/arch/mn10300/proc-mn103e010/include/proc/intctl-regs.h b/arch/mn10300/proc-mn103e010/include/proc/intctl-regs.h
-deleted file mode 100644
-index 516afe824055..000000000000
-diff --git a/arch/mn10300/proc-mn103e010/include/proc/irq.h b/arch/mn10300/proc-mn103e010/include/proc/irq.h
-deleted file mode 100644
-index aa6ee8f98b1b..000000000000
-diff --git a/arch/mn10300/proc-mn103e010/include/proc/proc.h b/arch/mn10300/proc-mn103e010/include/proc/proc.h
-deleted file mode 100644
-index 39c4f8e7d2d3..000000000000
-diff --git a/arch/mn10300/proc-mn103e010/proc-init.c b/arch/mn10300/proc-mn103e010/proc-init.c
-deleted file mode 100644
-index 102d86a6ae56..000000000000
-diff --git a/arch/mn10300/proc-mn2ws0050/Makefile b/arch/mn10300/proc-mn2ws0050/Makefile
-deleted file mode 100644
-index d4ca13309a85..000000000000
-diff --git a/arch/mn10300/proc-mn2ws0050/include/proc/cache.h b/arch/mn10300/proc-mn2ws0050/include/proc/cache.h
-deleted file mode 100644
-index bcb5df2d892f..000000000000
-diff --git a/arch/mn10300/proc-mn2ws0050/include/proc/clock.h b/arch/mn10300/proc-mn2ws0050/include/proc/clock.h
-deleted file mode 100644
-index fe4c0a4a53a2..000000000000
-diff --git a/arch/mn10300/proc-mn2ws0050/include/proc/dmactl-regs.h b/arch/mn10300/proc-mn2ws0050/include/proc/dmactl-regs.h
-deleted file mode 100644
-index 4c4319e241d1..000000000000
-diff --git a/arch/mn10300/proc-mn2ws0050/include/proc/intctl-regs.h b/arch/mn10300/proc-mn2ws0050/include/proc/intctl-regs.h
-deleted file mode 100644
-index 4d4084ea6694..000000000000
-diff --git a/arch/mn10300/proc-mn2ws0050/include/proc/irq.h b/arch/mn10300/proc-mn2ws0050/include/proc/irq.h
-deleted file mode 100644
-index 37777a85ab6f..000000000000
-diff --git a/arch/mn10300/proc-mn2ws0050/include/proc/nand-regs.h b/arch/mn10300/proc-mn2ws0050/include/proc/nand-regs.h
-deleted file mode 100644
-index 84448f3828b3..000000000000
-diff --git a/arch/mn10300/proc-mn2ws0050/include/proc/proc.h b/arch/mn10300/proc-mn2ws0050/include/proc/proc.h
-deleted file mode 100644
-index 90d5cadd05bd..000000000000
-diff --git a/arch/mn10300/proc-mn2ws0050/include/proc/smp-regs.h b/arch/mn10300/proc-mn2ws0050/include/proc/smp-regs.h
-deleted file mode 100644
-index 22f277fbb4de..000000000000
-diff --git a/arch/mn10300/proc-mn2ws0050/proc-init.c b/arch/mn10300/proc-mn2ws0050/proc-init.c
-deleted file mode 100644
-index 25b1b453c515..000000000000
-diff --git a/arch/mn10300/unit-asb2303/Makefile b/arch/mn10300/unit-asb2303/Makefile
-deleted file mode 100644
-index 38a5bb43b0bb..000000000000
-diff --git a/arch/mn10300/unit-asb2303/flash.c b/arch/mn10300/unit-asb2303/flash.c
-deleted file mode 100644
-index b03d8738d67c..000000000000
-diff --git a/arch/mn10300/unit-asb2303/include/unit/clock.h b/arch/mn10300/unit-asb2303/include/unit/clock.h
-deleted file mode 100644
-index 0316907a012e..000000000000
-diff --git a/arch/mn10300/unit-asb2303/include/unit/leds.h b/arch/mn10300/unit-asb2303/include/unit/leds.h
-deleted file mode 100644
-index 3a7543ea7b5c..000000000000
-diff --git a/arch/mn10300/unit-asb2303/include/unit/serial.h b/arch/mn10300/unit-asb2303/include/unit/serial.h
-deleted file mode 100644
-index 991e356bac5f..000000000000
-diff --git a/arch/mn10300/unit-asb2303/include/unit/smc91111.h b/arch/mn10300/unit-asb2303/include/unit/smc91111.h
-deleted file mode 100644
-index dd4e2946438e..000000000000
-diff --git a/arch/mn10300/unit-asb2303/include/unit/timex.h b/arch/mn10300/unit-asb2303/include/unit/timex.h
-deleted file mode 100644
-index c37f9832cf17..000000000000
-diff --git a/arch/mn10300/unit-asb2303/leds.c b/arch/mn10300/unit-asb2303/leds.c
-deleted file mode 100644
-index c03839357a14..000000000000
-diff --git a/arch/mn10300/unit-asb2303/smc91111.c b/arch/mn10300/unit-asb2303/smc91111.c
-deleted file mode 100644
-index 53677694b165..000000000000
-diff --git a/arch/mn10300/unit-asb2303/unit-init.c b/arch/mn10300/unit-asb2303/unit-init.c
-deleted file mode 100644
-index 834a76aa551a..000000000000
-diff --git a/arch/mn10300/unit-asb2305/Makefile b/arch/mn10300/unit-asb2305/Makefile
-deleted file mode 100644
-index cbc5abaa939a..000000000000
-diff --git a/arch/mn10300/unit-asb2305/include/unit/clock.h b/arch/mn10300/unit-asb2305/include/unit/clock.h
-deleted file mode 100644
-index 29e3425431cf..000000000000
-diff --git a/arch/mn10300/unit-asb2305/include/unit/leds.h b/arch/mn10300/unit-asb2305/include/unit/leds.h
-deleted file mode 100644
-index bc471f617fd1..000000000000
-diff --git a/arch/mn10300/unit-asb2305/include/unit/serial.h b/arch/mn10300/unit-asb2305/include/unit/serial.h
-deleted file mode 100644
-index 88c08219315f..000000000000
-diff --git a/arch/mn10300/unit-asb2305/include/unit/timex.h b/arch/mn10300/unit-asb2305/include/unit/timex.h
-deleted file mode 100644
-index 4cefc224f448..000000000000
-diff --git a/arch/mn10300/unit-asb2305/leds.c b/arch/mn10300/unit-asb2305/leds.c
-deleted file mode 100644
-index 6f8de9954026..000000000000
-diff --git a/arch/mn10300/unit-asb2305/pci-asb2305.c b/arch/mn10300/unit-asb2305/pci-asb2305.c
-deleted file mode 100644
-index e0f4617c0c7a..000000000000
-diff --git a/arch/mn10300/unit-asb2305/pci-asb2305.h b/arch/mn10300/unit-asb2305/pci-asb2305.h
-deleted file mode 100644
-index 0667f613b023..000000000000
-diff --git a/arch/mn10300/unit-asb2305/pci-irq.c b/arch/mn10300/unit-asb2305/pci-irq.c
-deleted file mode 100644
-index fcb28ceb824d..000000000000
-diff --git a/arch/mn10300/unit-asb2305/pci.c b/arch/mn10300/unit-asb2305/pci.c
-deleted file mode 100644
-index 3dfe2d31c67b..000000000000
-diff --git a/arch/mn10300/unit-asb2305/unit-init.c b/arch/mn10300/unit-asb2305/unit-init.c
-deleted file mode 100644
-index bc4adfaf815c..000000000000
-diff --git a/arch/mn10300/unit-asb2364/Makefile b/arch/mn10300/unit-asb2364/Makefile
-deleted file mode 100644
-index b3263ecfc4ff..000000000000
-diff --git a/arch/mn10300/unit-asb2364/include/unit/clock.h b/arch/mn10300/unit-asb2364/include/unit/clock.h
-deleted file mode 100644
-index d34ac9a7508b..000000000000
-diff --git a/arch/mn10300/unit-asb2364/include/unit/fpga-regs.h b/arch/mn10300/unit-asb2364/include/unit/fpga-regs.h
-deleted file mode 100644
-index 2901ed344b3d..000000000000
-diff --git a/arch/mn10300/unit-asb2364/include/unit/irq.h b/arch/mn10300/unit-asb2364/include/unit/irq.h
-deleted file mode 100644
-index 786148e46565..000000000000
-diff --git a/arch/mn10300/unit-asb2364/include/unit/leds.h b/arch/mn10300/unit-asb2364/include/unit/leds.h
-deleted file mode 100644
-index 03a3933ad323..000000000000
-diff --git a/arch/mn10300/unit-asb2364/include/unit/serial.h b/arch/mn10300/unit-asb2364/include/unit/serial.h
-deleted file mode 100644
-index 92f224a97efc..000000000000
-diff --git a/arch/mn10300/unit-asb2364/include/unit/smsc911x.h b/arch/mn10300/unit-asb2364/include/unit/smsc911x.h
-deleted file mode 100644
-index 4c1ede535fa9..000000000000
-diff --git a/arch/mn10300/unit-asb2364/include/unit/timex.h b/arch/mn10300/unit-asb2364/include/unit/timex.h
-deleted file mode 100644
-index 42f32db75087..000000000000
-diff --git a/arch/mn10300/unit-asb2364/irq-fpga.c b/arch/mn10300/unit-asb2364/irq-fpga.c
-deleted file mode 100644
-index 073e2ccc4a44..000000000000
-diff --git a/arch/mn10300/unit-asb2364/leds.c b/arch/mn10300/unit-asb2364/leds.c
-deleted file mode 100644
-index 1ff830c372b3..000000000000
-diff --git a/arch/mn10300/unit-asb2364/smsc911x.c b/arch/mn10300/unit-asb2364/smsc911x.c
-deleted file mode 100644
-index 544a73e94c81..000000000000
-diff --git a/arch/mn10300/unit-asb2364/unit-init.c b/arch/mn10300/unit-asb2364/unit-init.c
-deleted file mode 100644
-index 6359b41ce7e9..000000000000
-diff --git a/crypto/sha3_generic.c b/crypto/sha3_generic.c
-index ded148783303..264ec12c0b9c 100644
---- a/crypto/sha3_generic.c
-+++ b/crypto/sha3_generic.c
-@@ -21,7 +21,7 @@
- #include <asm/unaligned.h>
+index ec5576fd3a86..000000000000
+diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
+index 8b14bd326d4a..5b997138e092 100644
+--- a/drivers/pci/quirks.c
++++ b/drivers/pci/quirks.c
+@@ -2319,25 +2319,6 @@ DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_82865_HB,
+ DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_82875_HB,
+ 			quirk_unhide_mch_dev6);
  
- /*
-- * On some 32-bit architectures (mn10300 and h8300), GCC ends up using
-+ * On some 32-bit architectures (h8300), GCC ends up using
-  * over 1 KB of stack if we inline the round calculation into the loop
-  * in keccakf(). On the other hand, on 64-bit architectures with plenty
-  * of [64-bit wide] general purpose registers, not inlining it severely
-diff --git a/drivers/input/joystick/analog.c b/drivers/input/joystick/analog.c
-index c868a878c84f..be1b4921f22a 100644
---- a/drivers/input/joystick/analog.c
-+++ b/drivers/input/joystick/analog.c
-@@ -163,7 +163,7 @@ static unsigned int get_time_pit(void)
- #define GET_TIME(x)	do { x = (unsigned int)rdtsc(); } while (0)
- #define DELTA(x,y)	((y)-(x))
- #define TIME_NAME	"TSC"
--#elif defined(__alpha__) || defined(CONFIG_MN10300) || defined(CONFIG_ARM) || defined(CONFIG_ARM64) || defined(CONFIG_RISCV) || defined(CONFIG_TILE)
-+#elif defined(__alpha__) || defined(CONFIG_ARM) || defined(CONFIG_ARM64) || defined(CONFIG_RISCV) || defined(CONFIG_TILE)
- #define GET_TIME(x)	do { x = get_cycles(); } while (0)
- #define DELTA(x,y)	((y)-(x))
- #define TIME_NAME	"get_cycles"
-diff --git a/drivers/net/ethernet/smsc/Kconfig b/drivers/net/ethernet/smsc/Kconfig
-index 4c2f612e4414..948603e9b905 100644
---- a/drivers/net/ethernet/smsc/Kconfig
-+++ b/drivers/net/ethernet/smsc/Kconfig
-@@ -6,7 +6,7 @@ config NET_VENDOR_SMSC
- 	bool "SMC (SMSC)/Western Digital devices"
- 	default y
- 	depends on ARM || ARM64 || ATARI_ETHERNAT || BLACKFIN || COLDFIRE || \
--		   ISA || M32R || MAC || MIPS || MN10300 || NIOS2 || PCI || \
-+		   ISA || M32R || MAC || MIPS || NIOS2 || PCI || \
- 		   PCMCIA || SUPERH || XTENSA || H8300
- 	---help---
- 	  If you have a network (Ethernet) card belonging to this class, say Y.
-@@ -38,7 +38,7 @@ config SMC91X
- 	select MII
- 	depends on !OF || GPIOLIB
- 	depends on ARM || ARM64 || ATARI_ETHERNAT || BLACKFIN || COLDFIRE || \
--		   M32R || MIPS || MN10300 || NIOS2 || SUPERH || XTENSA || H8300
-+		   M32R || MIPS || NIOS2 || SUPERH || XTENSA || H8300
- 	---help---
- 	  This is a driver for SMC's 91x series of Ethernet chipsets,
- 	  including the SMC91C94 and the SMC91C111. Say Y if you want it
-@@ -77,7 +77,7 @@ config SMC911X
- 	tristate "SMSC LAN911[5678] support"
- 	select CRC32
- 	select MII
--	depends on (ARM || SUPERH || MN10300)
-+	depends on (ARM || SUPERH)
- 	---help---
- 	  This is a driver for SMSC's LAN911x series of Ethernet chipsets
- 	  including the new LAN9115, LAN9116, LAN9117, and LAN9118.
-diff --git a/drivers/net/ethernet/smsc/smc91x.h b/drivers/net/ethernet/smsc/smc91x.h
-index 08b17adf0a65..8445622dc4cf 100644
---- a/drivers/net/ethernet/smsc/smc91x.h
-+++ b/drivers/net/ethernet/smsc/smc91x.h
-@@ -162,14 +162,6 @@ static inline void _SMC_outw_align4(u16 val, void __iomem *ioaddr, int reg,
- #define RPC_LSA_DEFAULT		RPC_LED_TX_RX
- #define RPC_LSB_DEFAULT		RPC_LED_100_10
- 
--#elif defined(CONFIG_MN10300)
--
+-#ifdef CONFIG_TILEPRO
 -/*
-- * MN10300/AM33 configuration
+- * The Tilera TILEmpower tilepro platform needs to set the link speed
+- * to 2.5GT(Giga-Transfers)/s (Gen 1). The default link speed
+- * setting is 5GT/s (Gen 2). 0x98 is the Link Control2 PCIe
+- * capability register of the PEX8624 PCIe switch. The switch
+- * supports link speed auto negotiation, but falsely sets
+- * the link speed to 5GT/s.
 - */
+-static void quirk_tile_plx_gen1(struct pci_dev *dev)
+-{
+-	if (tile_plx_gen1) {
+-		pci_write_config_dword(dev, 0x98, 0x1);
+-		mdelay(50);
+-	}
+-}
+-DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_PLX, 0x8624, quirk_tile_plx_gen1);
+-#endif /* CONFIG_TILEPRO */
 -
--#include <unit/smc91111.h>
+ #ifdef CONFIG_PCI_MSI
+ /* Some chipsets do not support MSI. We cannot easily rely on setting
+  * PCI_BUS_FLAGS_NO_MSI in its bus flags because there are actually
+diff --git a/samples/kprobes/kprobe_example.c b/samples/kprobes/kprobe_example.c
+index 67de3b774bc9..02be8984c32f 100644
+--- a/samples/kprobes/kprobe_example.c
++++ b/samples/kprobes/kprobe_example.c
+@@ -38,10 +38,6 @@ static int handler_pre(struct kprobe *p, struct pt_regs *regs)
+ 	pr_info("<%s> pre_handler: p->addr = 0x%p, epc = 0x%lx, status = 0x%lx\n",
+ 		p->symbol_name, p->addr, regs->cp0_epc, regs->cp0_status);
+ #endif
+-#ifdef CONFIG_TILEGX
+-	pr_info("<%s> pre_handler: p->addr = 0x%p, pc = 0x%lx, ex1 = 0x%lx\n",
+-		p->symbol_name, p->addr, regs->pc, regs->ex1);
+-#endif
+ #ifdef CONFIG_ARM64
+ 	pr_info("<%s> pre_handler: p->addr = 0x%p, pc = 0x%lx,"
+ 			" pstate = 0x%lx\n",
+@@ -72,10 +68,6 @@ static void handler_post(struct kprobe *p, struct pt_regs *regs,
+ 	pr_info("<%s> post_handler: p->addr = 0x%p, status = 0x%lx\n",
+ 		p->symbol_name, p->addr, regs->cp0_status);
+ #endif
+-#ifdef CONFIG_TILEGX
+-	pr_info("<%s> post_handler: p->addr = 0x%p, ex1 = 0x%lx\n",
+-		p->symbol_name, p->addr, regs->ex1);
+-#endif
+ #ifdef CONFIG_ARM64
+ 	pr_info("<%s> post_handler: p->addr = 0x%p, pstate = 0x%lx\n",
+ 		p->symbol_name, p->addr, (long)regs->pstate);
+diff --git a/tools/arch/tile/include/asm/barrier.h b/tools/arch/tile/include/asm/barrier.h
+deleted file mode 100644
+index 7ad02a591b43..000000000000
+diff --git a/tools/arch/tile/include/uapi/asm/bitsperlong.h b/tools/arch/tile/include/uapi/asm/bitsperlong.h
+deleted file mode 100644
+index 57cca78c0fbb..000000000000
+diff --git a/tools/arch/tile/include/uapi/asm/mman.h b/tools/arch/tile/include/uapi/asm/mman.h
+deleted file mode 100644
+index 65ec92925c6c..000000000000
+diff --git a/tools/scripts/Makefile.arch b/tools/scripts/Makefile.arch
+index 78d90a249e88..b10b7a27c33f 100644
+--- a/tools/scripts/Makefile.arch
++++ b/tools/scripts/Makefile.arch
+@@ -4,8 +4,7 @@ HOSTARCH := $(shell uname -m | sed -e s/i.86/x86/ -e s/x86_64/x86/ \
+                                   -e /arm64/!s/arm.*/arm/ -e s/sa110/arm/ \
+                                   -e s/s390x/s390/ -e s/parisc64/parisc/ \
+                                   -e s/ppc.*/powerpc/ -e s/mips.*/mips/ \
+-                                  -e s/sh[234].*/sh/ -e s/aarch64.*/arm64/ \
+-                                  -e s/tile.*/tile/ )
++                                  -e s/sh[234].*/sh/ -e s/aarch64.*/arm64/ )
+ 
+ ifndef ARCH
+ ARCH := $(HOSTARCH)
+@@ -34,14 +33,6 @@ ifeq ($(ARCH),sh64)
+        SRCARCH := sh
+ endif
+ 
+-# Additional ARCH settings for tile
+-ifeq ($(ARCH),tilepro)
+-       SRCARCH := tile
+-endif
+-ifeq ($(ARCH),tilegx)
+-       SRCARCH := tile
+-endif
 -
- #elif defined(CONFIG_ATARI)
+ LP64 := $(shell echo __LP64__ | ${CC} ${CFLAGS} -E -x c - | tail -n 1)
+ ifeq ($(LP64), 1)
+   IS_64_BIT := 1
+diff --git a/tools/testing/ktest/ktest.pl b/tools/testing/ktest/ktest.pl
+index 0c8b61f8398e..8809f244bb7c 100755
+--- a/tools/testing/ktest/ktest.pl
++++ b/tools/testing/ktest/ktest.pl
+@@ -3683,8 +3683,6 @@ sub read_depends {
+     # what directory to look at.
+     if ($arch eq "i386" || $arch eq "x86_64") {
+ 	$arch = "x86";
+-    } elsif ($arch =~ /^tile/) {
+-	$arch = "tile";
+     }
  
- #define SMC_CAN_USE_8BIT        1
-diff --git a/drivers/rtc/Kconfig b/drivers/rtc/Kconfig
-index 8ab5f0a5d323..be5a3dc99c11 100644
---- a/drivers/rtc/Kconfig
-+++ b/drivers/rtc/Kconfig
-@@ -868,7 +868,7 @@ comment "Platform RTC drivers"
- 
- config RTC_DRV_CMOS
- 	tristate "PC-style 'CMOS'"
--	depends on X86 || ARM || M32R || PPC || MIPS || SPARC64 || MN10300
-+	depends on X86 || ARM || M32R || PPC || MIPS || SPARC64
- 	default y if X86
- 	select RTC_MC146818_LIB
- 	help
-diff --git a/drivers/rtc/rtc-cmos.c b/drivers/rtc/rtc-cmos.c
-index 9dca53df3584..f7c0f72abb56 100644
---- a/drivers/rtc/rtc-cmos.c
-+++ b/drivers/rtc/rtc-cmos.c
-@@ -711,7 +711,7 @@ cmos_do_probe(struct device *dev, struct resource *ports, int rtc_irq)
- 	address_space = 64;
- #elif defined(__i386__) || defined(__x86_64__) || defined(__arm__) \
- 			|| defined(__sparc__) || defined(__mips__) \
--			|| defined(__powerpc__) || defined(CONFIG_MN10300)
-+			|| defined(__powerpc__)
- 	address_space = 128;
- #else
- #warning Assuming 128 bytes of RTC+NVRAM address space, not 64 bytes.
-diff --git a/drivers/staging/speakup/Kconfig b/drivers/staging/speakup/Kconfig
-index 7e8037e230b8..efd6f4560d3e 100644
---- a/drivers/staging/speakup/Kconfig
-+++ b/drivers/staging/speakup/Kconfig
-@@ -1,7 +1,7 @@
- menu "Speakup console speech"
- 
- config SPEAKUP
--	depends on VT && !MN10300
-+	depends on VT
- 	tristate "Speakup core"
- 	---help---
- 		This is the Speakup screen reader.  Think of it as a
-diff --git a/drivers/video/console/Kconfig b/drivers/video/console/Kconfig
-index 7f1f1fbcef9e..005ed87c8216 100644
---- a/drivers/video/console/Kconfig
-+++ b/drivers/video/console/Kconfig
-@@ -7,7 +7,7 @@ menu "Console display driver support"
- config VGA_CONSOLE
- 	bool "VGA text console" if EXPERT || !X86
- 	depends on !4xx && !PPC_8xx && !SPARC && !M68K && !PARISC && !FRV && \
--		!SUPERH && !BLACKFIN && !AVR32 && !MN10300 && !CRIS && \
-+		!SUPERH && !BLACKFIN && !AVR32 && !CRIS && \
- 		(!ARM || ARCH_FOOTBRIDGE || ARCH_INTEGRATOR || ARCH_NETWINDER) && \
- 		!ARM64 && !ARC && !MICROBLAZE && !OPENRISC
- 	default y
-diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
-index 3f38eb03649c..abe6dd9ca2a8 100644
---- a/include/asm-generic/atomic.h
-+++ b/include/asm-generic/atomic.h
-@@ -2,8 +2,6 @@
-  * Generic C implementation of atomic counter operations. Usable on
-  * UP systems only. Do not include in machine independent code.
-  *
-- * Originally implemented for MN10300.
-- *
-  * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-  * Written by David Howells (dhowells@redhat.com)
-  *
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index fe297b599b0a..29458bbb2fa0 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -1,5 +1,5 @@
- /*
-- * Generic barrier definitions, originally based on MN10300 definitions.
-+ * Generic barrier definitions.
-  *
-  * It should be possible to use these on really simple architectures,
-  * but it serves more as a starting point for new ports.
-diff --git a/include/asm-generic/exec.h b/include/asm-generic/exec.h
-index 567766b0074a..32c0a216f576 100644
---- a/include/asm-generic/exec.h
-+++ b/include/asm-generic/exec.h
-@@ -1,4 +1,4 @@
--/* Generic process execution definitions, based on MN10300 definitions.
-+/* Generic process execution definitions.
-  *
-  * It should be possible to use these on really simple architectures,
-  * but it serves more as a starting point for new ports.
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index b4531e3b2120..fe184b9bb6ea 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -1,4 +1,4 @@
--/* Generic I/O port emulation, based on MN10300 code
-+/* Generic I/O port emulation.
-  *
-  * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-  * Written by David Howells (dhowells@redhat.com)
-diff --git a/include/asm-generic/pci_iomap.h b/include/asm-generic/pci_iomap.h
-index 854f96ad5ccb..d4f16dcc2ed7 100644
---- a/include/asm-generic/pci_iomap.h
-+++ b/include/asm-generic/pci_iomap.h
-@@ -1,5 +1,5 @@
- /* SPDX-License-Identifier: GPL-2.0+ */
--/* Generic I/O port emulation, based on MN10300 code
-+/* Generic I/O port emulation.
-  *
-  * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-  * Written by David Howells (dhowells@redhat.com)
-diff --git a/include/asm-generic/switch_to.h b/include/asm-generic/switch_to.h
-index 052c4ac04fd5..986acc9d34bb 100644
---- a/include/asm-generic/switch_to.h
-+++ b/include/asm-generic/switch_to.h
-@@ -1,4 +1,4 @@
--/* Generic task switch macro wrapper, based on MN10300 definitions.
-+/* Generic task switch macro wrapper.
-  *
-  * It should be possible to use these on really simple architectures,
-  * but it serves more as a starting point for new ports.
-diff --git a/include/linux/ide.h b/include/linux/ide.h
-index 771989d25ef8..20d42c0d9fb6 100644
---- a/include/linux/ide.h
-+++ b/include/linux/ide.h
-@@ -25,7 +25,7 @@
- #include <asm/byteorder.h>
- #include <asm/io.h>
- 
--#if defined(CONFIG_CRIS) || defined(CONFIG_FRV) || defined(CONFIG_MN10300)
-+#if defined(CONFIG_CRIS) || defined(CONFIG_FRV)
- # define SUPPORT_VLB_SYNC 0
- #else
- # define SUPPORT_VLB_SYNC 1
-diff --git a/init/Kconfig b/init/Kconfig
-index e37f4b2a6445..a14bcc9724a2 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1108,7 +1108,7 @@ config MULTIUSER
- 
- config SGETMASK_SYSCALL
- 	bool "sgetmask/ssetmask syscalls support" if EXPERT
--	def_bool PARISC || MN10300 || BLACKFIN || M68K || PPC || MIPS || X86 || SPARC || CRIS || MICROBLAZE || SUPERH
-+	def_bool PARISC || BLACKFIN || M68K || PPC || MIPS || X86 || SPARC || CRIS || MICROBLAZE || SUPERH
- 	---help---
- 	  sys_sgetmask and sys_ssetmask are obsolete system calls
- 	  no longer supported in libc but still enabled by default in some
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index d5964b051017..41ac9d294245 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -356,7 +356,7 @@ config FRAME_POINTER
- 	bool "Compile the kernel with frame pointers"
- 	depends on DEBUG_KERNEL && \
- 		(CRIS || M68K || FRV || UML || \
--		 SUPERH || BLACKFIN || MN10300) || \
-+		 SUPERH || BLACKFIN) || \
- 		ARCH_WANT_FRAME_POINTERS
- 	default y if (DEBUG_INFO && UML) || ARCH_WANT_FRAME_POINTERS
- 	help
-diff --git a/lib/test_user_copy.c b/lib/test_user_copy.c
-index 4621db801b23..a6556f3364d1 100644
---- a/lib/test_user_copy.c
-+++ b/lib/test_user_copy.c
-@@ -35,7 +35,6 @@
- 			    !defined(CONFIG_M32R) &&		\
- 			    !defined(CONFIG_M68K) &&		\
- 			    !defined(CONFIG_MICROBLAZE) &&	\
--			    !defined(CONFIG_MN10300) &&		\
- 			    !defined(CONFIG_NIOS2) &&		\
- 			    !defined(CONFIG_PPC32) &&		\
- 			    !defined(CONFIG_SUPERH))
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 9917f928d0fd..4ff08a0ef5d3 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -840,8 +840,7 @@ static const char *const section_white_list[] =
- 	".debug*",
- 	".cranges",		/* sh64 */
- 	".zdebug*",		/* Compressed debug sections. */
--	".GCC-command-line",	/* mn10300 */
--	".GCC.command.line",	/* record-gcc-switches, non mn10300 */
-+	".GCC.command.line",	/* record-gcc-switches */
- 	".mdebug*",        /* alpha, score, mips etc. */
- 	".pdr",            /* alpha, score, mips etc. */
- 	".stab*",
-@@ -1104,8 +1103,8 @@ static const struct sectioncheck *section_mismatch(
- 	/*
- 	 * The target section could be the SHT_NUL section when we're
- 	 * handling relocations to un-resolved symbols, trying to match it
--	 * doesn't make much sense and causes build failures on parisc and
--	 * mn10300 architectures.
-+	 * doesn't make much sense and causes build failures on parisc
-+	 * architectures.
- 	 */
- 	if (*tosec == '\0')
- 		return NULL;
-diff --git a/tools/arch/mn10300/include/uapi/asm/bitsperlong.h b/tools/arch/mn10300/include/uapi/asm/bitsperlong.h
-deleted file mode 100644
-index 6dc0bb0c13b2..000000000000
-diff --git a/tools/arch/mn10300/include/uapi/asm/mman.h b/tools/arch/mn10300/include/uapi/asm/mman.h
-deleted file mode 100644
-index b9360639974f..000000000000
-diff --git a/tools/include/asm-generic/barrier.h b/tools/include/asm-generic/barrier.h
-index 47b933903eaf..52278d880a61 100644
---- a/tools/include/asm-generic/barrier.h
-+++ b/tools/include/asm-generic/barrier.h
-@@ -1,7 +1,7 @@
- /*
-  * Copied from the kernel sources to tools/perf/:
-  *
-- * Generic barrier definitions, originally based on MN10300 definitions.
-+ * Generic barrier definitions.
-  *
-  * It should be possible to use these on really simple architectures,
-  * but it serves more as a starting point for new ports.
+     my $kconfig = "$builddir/arch/$arch/Kconfig";
 -- 
 2.9.0
