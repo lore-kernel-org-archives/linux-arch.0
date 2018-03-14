@@ -1,43 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:41824 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751381AbeCNUTK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 16:19:10 -0400
-Subject: Re: Do we need to disable preemption in flush_tlb_range()?
-References: <1519917189.13866.6.camel@synopsys.com>
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <5a5c67c1-9f45-f908-2c8d-0914cd616a18@synopsys.com>
-Date: Wed, 14 Mar 2018 13:19:01 -0700
+Received: from isilmar-4.linta.de ([136.243.71.142]:58700 "EHLO
+        isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751461AbeCNUbJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 16:31:09 -0400
+Date: Wed, 14 Mar 2018 21:31:08 +0100
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: Re: [PATCH 12/16] asm-generic: siginfo: remove obsolete #ifdefs
+Message-ID: <20180314203108.GA18775@isilmar-4.linta.de>
+References: <20180314143529.1456168-1-arnd@arndb.de>
+ <20180314144614.1632190-1-arnd@arndb.de>
+ <20180314144614.1632190-2-arnd@arndb.de>
 MIME-Version: 1.0
-In-Reply-To: <1519917189.13866.6.camel@synopsys.com>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180314144614.1632190-2-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Message-ID: <20180314201901.X7Xo2XIgPuCiOUXIEEdrARzNZy3M9tJgqdzikrlsyYo@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20180314203108.XQKgKlfG2N2BN-j54FzQHVzCEEHZZrsJnBGdpBfOBu8@z>
 
-+CC Peter since we have his attention ;-)
+On Wed, Mar 14, 2018 at 03:43:47PM +0100, Arnd Bergmann wrote:
+> The frv, tile and blackfin architectures are being removed, so
+> we can clean up this header by removing all the special cases
+> except those for ia64.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-On 03/01/2018 07:13 AM, Alexey Brodkin wrote:
-> Hi Vineet,
-> 
-> Just noticed that in comments for smp_call_function_many() it is said that
-> preemption must be disabled during its execution. And that function gets executed
-> among other ways like that:
-> -------------------------->8-----------------------
->    flush_tlb_range()
->      -> on_each_cpu_mask()
->           -> smp_call_function_many()
-> -------------------------->8-----------------------
+AFAICS, score is the only architecture which still defines
 
-In general I prefer not to - Peter what say you ?
+	__ARCH_WANT_SYSCALL_NO_FLAGS
+	__ARCH_WANT_SYSCALL_OFF_T
+	__ARCH_WANT_SYSCALL_DEPRECATED .
 
-> 
-> I'm not seeing right now any real problem with current implementation but
-> some architectures do that thus the question.
-> 
-> -Alexey
-> 
+So maybe you want to clean up include/uapi/asm-generic/unistd.h as well?
+
+Thanks,
+	Dominik
