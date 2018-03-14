@@ -1,109 +1,74 @@
-From: John Garry <john.garry@huawei.com>
-Subject: [PATCH v17 07/10] ACPI / scan: rename acpi_is_serial_bus_slave() to widen use
-Date: Thu, 15 Mar 2018 02:15:56 +0800
-Message-ID: <1521051359-34473-8-git-send-email-john.garry@huawei.com>
-References: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: arc_usr_cmpxchg and preemption
+Date: Wed, 14 Mar 2018 19:20:17 +0100
+Message-ID: <20180314182017.GB4129@hirez.programming.kicks-ass.net>
+References: <1521045375.11552.27.camel@synopsys.com>
+ <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
+ <20180314175352.GP4064@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com
-Cc: joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20180314175352.GP4064@hirez.programming.kicks-ass.net>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, lkml <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Currently the ACPI scan has special handling for serial bus
-slaves, in that it makes it the responsibility of the the slave
-device's parent to enumerate the device.
+On Wed, Mar 14, 2018 at 06:53:52PM +0100, Peter Zijlstra wrote:
+> On Wed, Mar 14, 2018 at 09:58:19AM -0700, Vineet Gupta wrote:
+> 
+> > Well it is broken wrt the semantics the syscall is supposed to provide.
+> > Preemption disabling is what prevents a concurrent thread from coming in and
+> > modifying the same location (Imagine a variable which is being cmpxchg
+> > concurrently by 2 threads).
+> > 
+> > One approach is to do it the MIPS way, emulate the llsc flag - set it under
+> > preemption disabled section and clear it in switch_to
+> 
+> *shudder*... just catch the -EFAULT, force the write fault and retry.
+> 
+> Something like:
+> 
+> int sys_cmpxchg(u32 __user *user_ptr, u32 old, u32 new)
+> {
+> 	u32 val;
+> 	int ret;
 
-To support in future other types of slave devices which require
-the same special handling, but where the bus is not strictly a
-serial bus - such as devices on the HiSilicon LPC controller bus -
-rename acpi_is_serial_bus_slave() to
-acpi_device_enumeration_by_parent(), so that the name can fit the
-wider purpose.
+Also very important:
 
-Associated device flag acpi_device_flags.serial_bus_slave is also
-renamed to .enumeration_by_parent.
+	if ((unsigned long)user_ptr & 0x3)
+		return -EINVAL;
 
-Signed-off-by: John Garry <john.garry@huawei.com>
----
- drivers/acpi/scan.c     | 19 ++++++++++---------
- include/acpi/acpi_bus.h |  2 +-
- 2 files changed, 11 insertions(+), 10 deletions(-)
+You must disallow unaligned atomics, otherwise the below can cross a
+page-boundary (and unaligned atomics are insane in any case).
 
-diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
-index 8e63d93..f9e7904 100644
---- a/drivers/acpi/scan.c
-+++ b/drivers/acpi/scan.c
-@@ -1524,7 +1524,7 @@ static int acpi_check_serial_bus_slave(struct acpi_resource *ares, void *data)
- 	return -1;
- }
- 
--static bool acpi_is_serial_bus_slave(struct acpi_device *device)
-+static bool acpi_device_enumeration_by_parent(struct acpi_device *device)
- {
- 	struct list_head resource_list;
- 	bool is_serial_bus_slave = false;
-@@ -1560,7 +1560,8 @@ void acpi_init_device_object(struct acpi_device *device, acpi_handle handle,
- 	acpi_bus_get_flags(device);
- 	device->flags.match_driver = false;
- 	device->flags.initialized = true;
--	device->flags.serial_bus_slave = acpi_is_serial_bus_slave(device);
-+	device->flags.enumeration_by_parent =
-+		acpi_device_enumeration_by_parent(device);
- 	acpi_device_clear_enumerated(device);
- 	device_initialize(&device->dev);
- 	dev_set_uevent_suppress(&device->dev, true);
-@@ -1858,10 +1859,10 @@ static acpi_status acpi_bus_check_add(acpi_handle handle, u32 lvl_not_used,
- static void acpi_default_enumeration(struct acpi_device *device)
- {
- 	/*
--	 * Do not enumerate SPI/I2C/UART slaves as they will be enumerated by
--	 * their respective parents.
-+	 * Do not enumerate devices with enumeration_by_parent flag set as
-+	 * they will be enumerated by their respective parents.
- 	 */
--	if (!device->flags.serial_bus_slave) {
-+	if (!device->flags.enumeration_by_parent) {
- 		acpi_create_platform_device(device, NULL);
- 		acpi_device_set_enumerated(device);
- 	} else {
-@@ -1958,7 +1959,7 @@ static void acpi_bus_attach(struct acpi_device *device)
- 		return;
- 
- 	device->flags.match_driver = true;
--	if (ret > 0 && !device->flags.serial_bus_slave) {
-+	if (ret > 0 && !device->flags.enumeration_by_parent) {
- 		acpi_device_set_enumerated(device);
- 		goto ok;
- 	}
-@@ -1967,10 +1968,10 @@ static void acpi_bus_attach(struct acpi_device *device)
- 	if (ret < 0)
- 		return;
- 
--	if (!device->pnp.type.platform_id && !device->flags.serial_bus_slave)
--		acpi_device_set_enumerated(device);
--	else
-+	if (device->pnp.type.platform_id || device->flags.enumeration_by_parent)
- 		acpi_default_enumeration(device);
-+	else
-+		acpi_device_set_enumerated(device);
- 
-  ok:
- 	list_for_each_entry(child, &device->children, node)
-diff --git a/include/acpi/acpi_bus.h b/include/acpi/acpi_bus.h
-index c9608b0..ba4dd54 100644
---- a/include/acpi/acpi_bus.h
-+++ b/include/acpi/acpi_bus.h
-@@ -215,7 +215,7 @@ struct acpi_device_flags {
- 	u32 of_compatible_ok:1;
- 	u32 coherent_dma:1;
- 	u32 cca_seen:1;
--	u32 serial_bus_slave:1;
-+	u32 enumeration_by_parent:1;
- 	u32 reserved:19;
- };
- 
--- 
-1.9.1
+> again:
+> 	ret = 0;
+> 
+> 	preempt_disable();
+> 	val = get_user(user_ptr);
+> 	if (val == old)
+> 		ret = put_user(new, user_ptr);
+> 	preempt_enable();
+> 
+> 	if (ret == -EFAULT) {
+> 		struct page *page;
+> 		ret = get_user_pages_fast((unsigned long)user_ptr, 1, 1, &page);
+> 		if (ret < 0)
+> 			return ret;
+> 		put_page(page);
+> 		goto again;
+> 	}
+> 
+> 	return ret;
+> }
