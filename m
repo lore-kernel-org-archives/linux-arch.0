@@ -1,83 +1,50 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [PATCH v2 00/27] x86: PIE support and option to extend KASLR
-	randomization
-Date: Thu, 15 Mar 2018 09:48:36 +0100
-Message-ID: <20180315084836.GA15953@amd>
-References: <20180313205945.245105-1-thgarnie@google.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: arc_usr_cmpxchg and preemption
+Date: Thu, 15 Mar 2018 09:12:09 +0000
+Message-ID: <1521105128.11552.64.camel@synopsys.com>
+References: <1521045375.11552.27.camel@synopsys.com>
+         <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
+         <20180314175352.GP4064@hirez.programming.kicks-ass.net>
+         <1521059931.11552.51.camel@synopsys.com>
+         <20180315081845.GS4064@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============2098409007256012406=="
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20180313205945.245105-1-thgarnie@google.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Thomas Garnier <thgarnie@google.com>
-Cc: Kate Stewart <kstewart@linuxfoundation.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Michal Hocko <mhocko@suse.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Petr Mladek <pmladek@suse.com>, Len Brown <len.brown@intel.com>, Peter Zijlstra <peterz@infradead.org>, Christopher Li <sparse@chrisli.org>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, "H . Peter Anvin" <hpa@zytor.com>, kernel-hardening@lists.openwall.com, Christoph Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Alok Kataria <akataria@vmware.com>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Herbert Xu <herbert@gondor.apana.org.au>, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Ra
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180315081845.GS4064@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-ID: <5373E3962868F54486F8E6ED3D0ADF5F@internal.synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "peterz@infradead.org" <peterz@infradead.org>
+Cc: "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-
---===============2098409007256012406==
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="0OAP2g/MAC+5xKAE"
-Content-Disposition: inline
-
-
---0OAP2g/MAC+5xKAE
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-Hi!
-
-> These patches make the changes necessary to build the kernel as Position
-> Independent Executable (PIE) on x86_64. A PIE kernel can be relocated bel=
-ow
-> the top 2G of the virtual address space. It allows to optionally extend t=
-he
-> KASLR randomization range from 1G to 3G.
-
-Would you explain why PIE code is good idea?
-
-You are adding less than 2 bits of randomness. Cost is new config
-option, some size and performance impact, and more than 1000 lines of
-code...
-
-Is there some grand plan of adding 30 more bits of randomness with
-future patch or something?
-									Pavel
---=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
-g.html
-
---0OAP2g/MAC+5xKAE
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iEYEARECAAYFAlqqM2QACgkQMOfwapXb+vIPUQCgiwtu3igz+Mea6JgZEWaFBEa4
-DdUAn1zcqcTDjpsItrwfFnQZ9XU/fRNQ
-=OpfY
------END PGP SIGNATURE-----
-
---0OAP2g/MAC+5xKAE--
-
---===============2098409007256012406==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-_______________________________________________
-Virtualization mailing list
-Virtualization@lists.linux-foundation.org
-https://lists.linuxfoundation.org/mailman/listinfo/virtualization
---===============2098409007256012406==--
+SGkgUGV0ZXIsDQoNCk9uIFRodSwgMjAxOC0wMy0xNSBhdCAwOToxOCArMDEwMCwgUGV0ZXIgWmlq
+bHN0cmEgd3JvdGU6DQo+IE9uIFdlZCwgTWFyIDE0LCAyMDE4IGF0IDA4OjM4OjUzUE0gKzAwMDAs
+IEFsZXhleSBCcm9ka2luIHdyb3RlOg0KPiA+ID4gaW50IHN5c19jbXB4Y2hnKHUzMiBfX3VzZXIg
+KnVzZXJfcHRyLCB1MzIgb2xkLCB1MzIgbmV3KQ0KPiA+ID4gew0KPiA+ID4gCXUzMiB2YWw7DQo+
+ID4gPiAJaW50IHJldDsNCj4gPiA+IA0KPiA+ID4gYWdhaW46DQo+ID4gPiAJcmV0ID0gMDsNCj4g
+PiA+IA0KPiA+ID4gCXByZWVtcHRfZGlzYWJsZSgpOw0KPiA+ID4gCXZhbCA9IGdldF91c2VyKHVz
+ZXJfcHRyKTsNCj4gPiA+IAlpZiAodmFsID09IG9sZCkNCj4gPiA+IAkJcmV0ID0gcHV0X3VzZXIo
+bmV3LCB1c2VyX3B0cik7DQo+ID4gPiAJcHJlZW1wdF9lbmFibGUoKTsNCj4gPiA+IA0KPiA+ID4g
+CWlmIChyZXQgPT0gLUVGQVVMVCkgew0KPiA+ID4gCQlzdHJ1Y3QgcGFnZSAqcGFnZTsNCj4gPiA+
+IAkJcmV0ID0gZ2V0X3VzZXJfcGFnZXNfZmFzdCgodW5zaWduZWQgbG9uZyl1c2VyX3B0ciwgMSwg
+MSwgJnBhZ2UpOw0KPiA+ID4gCQlpZiAocmV0IDwgMCkNCj4gPiA+IAkJCXJldHVybiByZXQ7DQo+
+ID4gPiAJCXB1dF9wYWdlKHBhZ2UpOw0KPiA+ID4gCQlnb3RvIGFnYWluOw0KPiA+IA0KPiA+IEkg
+Z3Vlc3MgdGhpcyBqdW1wIHdlIG5lZWQgdG8gZG8gb25seSBvbmNlLCByaWdodD8NCj4gDQo+IFR5
+cGljYWxseSwgeWVzLiBJdCBpcyB0aGVvcmV0aWNhbGx5IHBvc3NpYmxlIGZvciB0aGUgcGFnZSB0
+byBnZXQNCj4gcGFnZWQtb3V0IHJpZ2h0IGFmdGVyIHdlIGRvIHB1dF9wYWdlKCkgYW5kIGJlZm9y
+ZSB3ZSBkbyBnZXQvcHV0X3VzZXIoKSwNCj4gQnV0IGlmIHRoYXQgaGFwcGVucyB0aGUgbWFjaGlu
+ZSBsaWtlbHkgaGFzIGJpZ2dlciBwcm9ibGVtcyB0aGFuIGhhdmluZw0KPiB0byBkbyB0aGlzIGxv
+b3AgYWdhaW4uDQo+IA0KPiBGV0lXLCBsb29rIGF0IGtlcm5lbC9mdXRleC5jIGZvciB3b3JraW5n
+IGV4YW1wbGVzIG9mIHRoaXMgcGF0dGVybiwgdGhlDQo+IGFib3ZlIHdhcyB3cml0dGVuIHB1cmVs
+eSBmcm9tIG1lbW9yeSBhbmQgY291bGQgY29udGFpbiBhIGZhaWwgb3IgdHdvIDstKQ0KDQpUaGFu
+a3MgZm9yIHRoZSBwb2ludGVyIQ0KDQo+IEFsc28sIGl0IG1pZ2h0IG1ha2Ugc2Vuc2UgdG8gc3R1
+ZmYgdGhpcyBpbXBsZW1lbnRhdGlvbiBpbiBzb21lIGxpYi8gZmlsZQ0KPiBzb21ld2hlcmUgYW5k
+IG1ha2UgYWxsIHBsYXRmb3JtcyB0aGF0IG5lZWQgaXQgdXNlIHRoZSBzYW1lIGNvZGUsIGFmYWlj
+dA0KPiB0aGVyZSByZWFsbHkgaXNuJ3QgYW55dGhpbmcgcGxhdGZvcm0gc3BlY2lmaWMgdG8gaXQu
+DQoNCk5vdCBjbGVhciB3aGljaCBwYXJ0IGRvIHlvdSBtZWFuIGhlcmUuDQpBcmUgeW91IHRhbGtp
+bmcgYWJvdXQgZW50aXJlIGNtcHhjaGcgc3lzY2FsbCBpbXBsZW1lbnRhdGlvbj8NCg0KRG8geW91
+IHRoaW5rIHRoZXJlJ3JlIG1hbnkgdXNlcnMgb2YgdGhhdCBxdWl0ZSBhbiBpbmVmZmljaWVudA0K
+W2NvbXBhcmVkIHRvIHByb3BlciBIVyB2ZXJzaW9uXSBhdG9taWMgZXhjaGFuZ2U/DQoNCi1BbGV4
+ZXk=
