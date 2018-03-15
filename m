@@ -1,48 +1,83 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: Do we need to disable preemption in flush_tlb_range()?
-Date: Thu, 15 Mar 2018 09:27:21 +0100
-Message-ID: <20180315082720.GT4064@hirez.programming.kicks-ass.net>
-References: <1519917189.13866.6.camel@synopsys.com>
- <5a5c67c1-9f45-f908-2c8d-0914cd616a18@synopsys.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH v2 00/27] x86: PIE support and option to extend KASLR
+	randomization
+Date: Thu, 15 Mar 2018 09:48:36 +0100
+Message-ID: <20180315084836.GA15953@amd>
+References: <20180313205945.245105-1-thgarnie@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <5a5c67c1-9f45-f908-2c8d-0914cd616a18@synopsys.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Content-Type: multipart/mixed; boundary="===============2098409007256012406=="
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20180313205945.245105-1-thgarnie@google.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Thomas Garnier <thgarnie@google.com>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Michal Hocko <mhocko@suse.com>, Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>, Petr Mladek <pmladek@suse.com>, Len Brown <len.brown@intel.com>, Peter Zijlstra <peterz@infradead.org>, Christopher Li <sparse@chrisli.org>, Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, linux-kernel@vger.kernel.org, Masahiro Yamada <yamada.masahiro@socionext.com>, "H . Peter Anvin" <hpa@zytor.com>, kernel-hardening@lists.openwall.com, Christoph Lameter <cl@linux.com>, Jiri Slaby <jslaby@suse.cz>, Alok Kataria <akataria@vmware.com>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Herbert Xu <herbert@gondor.apana.org.au>, Baoquan He <bhe@redhat.com>, Jonathan Corbet <corbet@lwn.net>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Ra
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 14, 2018 at 01:19:01PM -0700, Vineet Gupta wrote:
-> +CC Peter since we have his attention ;-)
 
-Yeah, timezone collision there, I typically sleep at 1am ;-)
+--===============2098409007256012406==
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="0OAP2g/MAC+5xKAE"
+Content-Disposition: inline
 
-> On 03/01/2018 07:13 AM, Alexey Brodkin wrote:
-> > Hi Vineet,
-> > 
-> > Just noticed that in comments for smp_call_function_many() it is said that
-> > preemption must be disabled during its execution. And that function gets executed
-> > among other ways like that:
-> > -------------------------->8-----------------------
-> >    flush_tlb_range()
-> >      -> on_each_cpu_mask()
-> >           -> smp_call_function_many()
-> > -------------------------->8-----------------------
-> 
-> In general I prefer not to - Peter what say you ?
 
-The comment with smp_call_function_many() is correct, it relies on
-preemption being disabled in a number of ways. I would expect
-this_cpu_ptr() for example to complain when used with preemption
-enabled (CONFIG_DEBUG_PREEMPT).
+--0OAP2g/MAC+5xKAE
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+Hi!
+
+> These patches make the changes necessary to build the kernel as Position
+> Independent Executable (PIE) on x86_64. A PIE kernel can be relocated bel=
+ow
+> the top 2G of the virtual address space. It allows to optionally extend t=
+he
+> KASLR randomization range from 1G to 3G.
+
+Would you explain why PIE code is good idea?
+
+You are adding less than 2 bits of randomness. Cost is new config
+option, some size and performance impact, and more than 1000 lines of
+code...
+
+Is there some grand plan of adding 30 more bits of randomness with
+future patch or something?
+									Pavel
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--0OAP2g/MAC+5xKAE
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAlqqM2QACgkQMOfwapXb+vIPUQCgiwtu3igz+Mea6JgZEWaFBEa4
+DdUAn1zcqcTDjpsItrwfFnQZ9XU/fRNQ
+=OpfY
+-----END PGP SIGNATURE-----
+
+--0OAP2g/MAC+5xKAE--
+
+--===============2098409007256012406==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+_______________________________________________
+Virtualization mailing list
+Virtualization@lists.linux-foundation.org
+https://lists.linuxfoundation.org/mailman/listinfo/virtualization
+--===============2098409007256012406==--
