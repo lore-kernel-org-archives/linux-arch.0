@@ -1,61 +1,63 @@
-From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: Re: [PATCH v1 0/4] Fix issues with huge mapping in ioremap
-Date: Thu, 15 Mar 2018 12:47:25 +0530
-Message-ID: <9954bd28-0457-b80e-8af7-6259b63533f2@codeaurora.org>
-References: <1521017305-28518-1-git-send-email-cpandya@codeaurora.org>
- <1521038277.2693.131.camel@hpe.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: arc_usr_cmpxchg and preemption
+Date: Thu, 15 Mar 2018 09:18:45 +0100
+Message-ID: <20180315081845.GS4064@hirez.programming.kicks-ass.net>
+References: <1521045375.11552.27.camel@synopsys.com>
+ <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
+ <20180314175352.GP4064@hirez.programming.kicks-ass.net>
+ <1521059931.11552.51.camel@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521038277.2693.131.camel@hpe.com>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Kani, Toshi" <toshi.kani@hpe.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "arnd@arndb.de" <arnd@arndb.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "takahiro.akashi@linaro.org" <takahiro.akashi@linaro.org>, "james.morse@arm.com" <james.morse@arm.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <1521059931.11552.51.camel@synopsys.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-
-
-On 3/14/2018 8:08 PM, Kani, Toshi wrote:
-> On Wed, 2018-03-14 at 14:18 +0530, Chintan Pandya wrote:
->> Note: I was working on these patches for quite sometime
->> and realized that Toshi Kani has shared some patches
->> addressing the same isssue with subject
->> "[PATCH 0/2] fix memory leak / panic in ioremap huge pages".
->> I've taken slightly different approach here, so sending
->> to the list, finally.
+On Wed, Mar 14, 2018 at 08:38:53PM +0000, Alexey Brodkin wrote:
+> > int sys_cmpxchg(u32 __user *user_ptr, u32 old, u32 new)
+> > {
+> > 	u32 val;
+> > 	int ret;
+> > 
+> > again:
+> > 	ret = 0;
+> > 
+> > 	preempt_disable();
+> > 	val = get_user(user_ptr);
+> > 	if (val == old)
+> > 		ret = put_user(new, user_ptr);
+> > 	preempt_enable();
+> > 
+> > 	if (ret == -EFAULT) {
+> > 		struct page *page;
+> > 		ret = get_user_pages_fast((unsigned long)user_ptr, 1, 1, &page);
+> > 		if (ret < 0)
+> > 			return ret;
+> > 		put_page(page);
+> > 		goto again;
 > 
-> Hi Chintan,
-Hi Toshi
-> 
-> Do you have any issue in my patchset?  If so, can you please comment on
-Not functional issues. But I didn't see issues you mentioned in your
-commit text being solved for ARM64 in your patches. It is just being
-masked which they were already by Will's patch. In my approach, end
-goal was to get benefits of huge mapping back for ARM64.
+> I guess this jump we need to do only once, right?
 
-> them?  It complicates the thing when you send a different approach
-> without telling why a different approach is needed.  Your approach
-See my reply above. I just had my original patches and I sent it.
+Typically, yes. It is theoretically possible for the page to get
+paged-out right after we do put_page() and before we do get/put_user(),
+But if that happens the machine likely has bigger problems than having
+to do this loop again.
 
-> purges TLB after updating pmd/pud, which I think is broken.  Can you
-Yes, they are broken. I understood the issues after Mark and Marc's
-review comments.
+FWIW, look at kernel/futex.c for working examples of this pattern, the
+above was written purely from memory and could contain a fail or two ;-)
 
-> work on top of my patchset and properly implement pXd_free_pte_page()
-I have realized that if I address Mark's comments, my new patch will
-look similar to what you have done. So, I will work on top of your
-patches.
-
-> for arm64?  I will send out my v2 today.
->    
-> Thanks,
-> -Toshi
-> 
-
-Chintan
--- 
-Qualcomm India Private Limited, on behalf of Qualcomm Innovation Center,
-Inc. is a member of the Code Aurora Forum, a Linux Foundation
-Collaborative Project
+Also, it might make sense to stuff this implementation in some lib/ file
+somewhere and make all platforms that need it use the same code, afaict
+there really isn't anything platform specific to it.
