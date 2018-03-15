@@ -1,7 +1,7 @@
 From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: [PATCH v2 2/4] ioremap: Implement TLB_INV before huge mapping
-Date: Thu, 15 Mar 2018 18:15:04 +0530
-Message-ID: <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
+Subject: [PATCH v2 3/4] arm64: Implement page table free interfaces
+Date: Thu, 15 Mar 2018 18:15:05 +0530
+Message-ID: <1521117906-20107-4-git-send-email-cpandya@codeaurora.org>
 References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
@@ -10,91 +10,63 @@ To: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de
 Cc: mark.rutland@arm.com, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com, Chintan Pandya <cpandya@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-Huge mapping changes PMD/PUD which could have
-valid previous entries. This requires proper
-TLB maintanance on some architectures, like
-ARM64.
+Implement pud_free_pmd_page() and pmd_free_pte_page().
 
-Implent BBM (break-before-make) safe TLB
-invalidation.
-
-Here, I've used flush_tlb_pgtable() instead
-of flush_kernel_range() because invalidating
-intermediate page_table entries could have
-been optimized for specific arch. That's the
-case with ARM64 at least.
+Make sure, that they are indeed a page table before
+taking them to free.
 
 Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
 ---
- lib/ioremap.c | 25 +++++++++++++++++++------
- 1 file changed, 19 insertions(+), 6 deletions(-)
+ arch/arm64/mm/mmu.c | 20 ++++++++++++++++++--
+ 1 file changed, 18 insertions(+), 2 deletions(-)
 
-diff --git a/lib/ioremap.c b/lib/ioremap.c
-index 54e5bba..55f8648 100644
---- a/lib/ioremap.c
-+++ b/lib/ioremap.c
-@@ -13,6 +13,7 @@
- #include <linux/export.h>
- #include <asm/cacheflush.h>
- #include <asm/pgtable.h>
-+#include <asm-generic/tlb.h>
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index 2dbb2c9..6f21a65 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -32,6 +32,7 @@
+ #include <linux/io.h>
+ #include <linux/mm.h>
+ #include <linux/vmalloc.h>
++#include <linux/hugetlb.h>
  
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
- static int __read_mostly ioremap_p4d_capable;
-@@ -80,6 +81,7 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
- 		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
+ #include <asm/barrier.h>
+ #include <asm/cputype.h>
+@@ -45,6 +46,7 @@
+ #include <asm/memblock.h>
+ #include <asm/mmu_context.h>
+ #include <asm/ptdump.h>
++#include <asm/page.h>
+ 
+ #define NO_BLOCK_MAPPINGS	BIT(0)
+ #define NO_CONT_MAPPINGS	BIT(1)
+@@ -975,10 +977,24 @@ int pmd_clear_huge(pmd_t *pmdp)
+ 
+ int pud_free_pmd_page(pud_t *pud)
  {
- 	pmd_t *pmd;
-+	pmd_t old_pmd;
- 	unsigned long next;
+-	return pud_none(*pud);
++	pmd_t *pmd;
++	int i;
++
++	pmd = __va(pud_val(*pud));
++	if (pud_val(*pud) && !pud_huge(*pud)) {
++		for (i = 0; i < PTRS_PER_PMD; i++)
++			pmd_free_pte_page(&pmd[i]);
++
++		free_page((unsigned long)pmd);
++	}
++
++	return 1;
+ }
  
- 	phys_addr -= addr;
-@@ -91,10 +93,15 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
- 
- 		if (ioremap_pmd_enabled() &&
- 		    ((next - addr) == PMD_SIZE) &&
--		    IS_ALIGNED(phys_addr + addr, PMD_SIZE) &&
--		    pmd_free_pte_page(pmd)) {
--			if (pmd_set_huge(pmd, phys_addr + addr, prot))
-+		    IS_ALIGNED(phys_addr + addr, PMD_SIZE)) {
-+			old_pmd = *pmd;
-+			pmd_clear(pmd);
-+			flush_tlb_pgtable(&init_mm, addr);
-+			if (pmd_set_huge(pmd, phys_addr + addr, prot)) {
-+				pmd_free_pte_page(&old_pmd);
- 				continue;
-+			} else
-+				set_pmd(pmd, old_pmd);
- 		}
- 
- 		if (ioremap_pte_range(pmd, addr, next, phys_addr + addr, prot))
-@@ -107,6 +114,7 @@ static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
- 		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
+ int pmd_free_pte_page(pmd_t *pmd)
  {
- 	pud_t *pud;
-+	pud_t old_pud;
- 	unsigned long next;
- 
- 	phys_addr -= addr;
-@@ -118,10 +126,15 @@ static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
- 
- 		if (ioremap_pud_enabled() &&
- 		    ((next - addr) == PUD_SIZE) &&
--		    IS_ALIGNED(phys_addr + addr, PUD_SIZE) &&
--		    pud_free_pmd_page(pud)) {
--			if (pud_set_huge(pud, phys_addr + addr, prot))
-+		    IS_ALIGNED(phys_addr + addr, PUD_SIZE)) {
-+			old_pud = *pud;
-+			pud_clear(pud);
-+			flush_tlb_pgtable(&init_mm, addr);
-+			if (pud_set_huge(pud, phys_addr + addr, prot)) {
-+				pud_free_pmd_page(&old_pud);
- 				continue;
-+			} else
-+				set_pud(pud, old_pud);
- 		}
- 
- 		if (ioremap_pmd_range(pud, addr, next, phys_addr + addr, prot))
+-	return pmd_none(*pmd);
++	if (pmd_val(*pmd) && !pmd_huge(*pmd))
++		free_page((unsigned long)__va(pmd_val(*pmd)));
++
++	return 1;
+ }
 -- 
 Qualcomm India Private Limited, on behalf of Qualcomm Innovation
 Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
