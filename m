@@ -1,63 +1,59 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: arc_usr_cmpxchg and preemption
-Date: Thu, 15 Mar 2018 19:03:32 +0000
-Message-ID: <1521140611.6358.29.camel@synopsys.com>
-References: <1521045375.11552.27.camel@synopsys.com>
-         <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
-         <20180314175352.GP4064@hirez.programming.kicks-ass.net>
-         <1521059931.11552.51.camel@synopsys.com>
-         <20180315081845.GS4064@hirez.programming.kicks-ass.net>
-         <1521105128.11552.64.camel@synopsys.com>
-         <20180315112829.GW4064@hirez.programming.kicks-ass.net>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [PATCH v2 2/3] arm64: fpsimd: Fix bad si_code for undiagnosed
+ SIGFPE
+Date: Thu, 15 Mar 2018 16:13:02 -0500
+Message-ID: <87vadxyrdt.fsf@xmission.com>
+References: <1519926248-12591-1-git-send-email-Dave.Martin@arm.com>
+ <1519926248-12591-3-git-send-email-Dave.Martin@arm.com>
+ <20180308171153.GD14918@arm.com> <87o9jymbsj.fsf@xmission.com>
+ <20180309131017.GB20370@arm.com>
+ <20180309142557.GT32331@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180315112829.GW4064@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Content-ID: <A3C04FD266AAF24BAF3DD608B3D71863@internal.synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "peterz@infradead.org" <peterz@infradead.org>
-Cc: "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20180309142557.GT32331@e103592.cambridge.arm.com> (Dave Martin's
+ message of "Fri, 9 Mar 2018 14:25:57 +0000")
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Will Deacon <will.deacon@arm.com>, James Morse <james.morse@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-SGkgUGV0ZXIsDQoNCk9uIFRodSwgMjAxOC0wMy0xNSBhdCAxMjoyOCArMDEwMCwgUGV0ZXIgWmlq
-bHN0cmEgd3JvdGU6DQo+IE9uIFRodSwgTWFyIDE1LCAyMDE4IGF0IDA5OjEyOjA5QU0gKzAwMDAs
-IEFsZXhleSBCcm9ka2luIHdyb3RlOg0KPiA+IE9uIFRodSwgMjAxOC0wMy0xNSBhdCAwOToxOCAr
-MDEwMCwgUGV0ZXIgWmlqbHN0cmEgd3JvdGU6DQo+ID4gPiBBbHNvLCBpdCBtaWdodCBtYWtlIHNl
-bnNlIHRvIHN0dWZmIHRoaXMgaW1wbGVtZW50YXRpb24gaW4gc29tZSBsaWIvIGZpbGUNCj4gPiA+
-IHNvbWV3aGVyZSBhbmQgbWFrZSBhbGwgcGxhdGZvcm1zIHRoYXQgbmVlZCBpdCB1c2UgdGhlIHNh
-bWUgY29kZSwgYWZhaWN0DQo+ID4gPiB0aGVyZSByZWFsbHkgaXNuJ3QgYW55dGhpbmcgcGxhdGZv
-cm0gc3BlY2lmaWMgdG8gaXQuDQo+ID4gDQo+ID4gTm90IGNsZWFyIHdoaWNoIHBhcnQgZG8geW91
-IG1lYW4gaGVyZS4NCj4gPiBBcmUgeW91IHRhbGtpbmcgYWJvdXQgZW50aXJlIGNtcHhjaGcgc3lz
-Y2FsbCBpbXBsZW1lbnRhdGlvbj8NCj4gDQo+IFllcC4NCg0KSG0uLi4gbmV3IGdlbmVyaWMgc3lz
-Y2FsbCBkb2luZyBzb21ldGhpbmcgc2FuZSBwZW9wbGUgYXJlIG5vdCBzdXBwb3NlZCB0byBkbz8N
-CkxldCdzIHNlZSB3aG8ncyBnb2luZyB0byBleHByZXNzIGhpcy9oZXIgZXhjaXRlbWVudCBhYm91
-dCB0aGF0IDopDQoNCkJ1dCBldmVuIGludHJvZHVjdGlvbiBvZiB0aGF0IG5ldyBzeXNjYWxsIGlz
-IG9idmlvdXNseSBub3QgZW5vdWdoDQphcyB3ZSdsbCBuZWVkIHRvIGZpeC11cCBsaWJjIGZvciBh
-ZmZlY3RlZCBhcmNoZXMgYWNjb3JkaW5nbHkuLi4NCg0KPiA+IERvIHlvdSB0aGluayB0aGVyZSdy
-ZSBtYW55IHVzZXJzIG9mIHRoYXQgcXVpdGUgYW4gaW5lZmZpY2llbnQNCj4gPiBbY29tcGFyZWQg
-dG8gcHJvcGVyIEhXIHZlcnNpb25dIGF0b21pYyBleGNoYW5nZT8NCj4gDQo+IEkgdGhpbmsgdGhl
-cmUncyBhIGJ1bmNoIG9mIGFyY2hpdGVjdHVyZXMgdGhhdCBhcmUgaW4gdGhlIHNhbWUgYm9hdC4N
-Cj4gbTY4aywgYXJtLCBtaXBzIHdhcyBtZW50aW9uZWQuIFN1cmUsIHRoZSBtb21lbnQgYW4gYXJj
-aCBoYXMgaGFyZHdhcmUNCj4gc3VwcG9ydCB5b3UgZG9uJ3QgbmVlZCB0aGUgc3lzY2FsbCBhbnlt
-b3JlLg0KDQpIZXJlJ3MgYSBicmllZiBhbmFseXNpczoNCkFSTTogIExvb2tzIGxpa2UgdGhleSBn
-b3QgcmlkIG9mIHRoYXQgc3R1ZmYgaW4gdjQuNCwgc2VlDQogICAgICBjb21taXQgZGI2OTVjMDUw
-OWQ2ICgiQVJNOiByZW1vdmUgdXNlciBjbXB4Y2hnIHN5c2NhbGwiKS4NCg0KTTY4SzogVGhhdCdz
-IGV2ZW4gdWdsaWVyIGltcGxlbWVudGF0aW9uIHdoaWNoIGlzIHJlYWxseSBhc2tpbmcgZm9yDQog
-ICAgICBhIGZhY2VsaWZ0LCBsb29rIGF0IHN5c19hdG9taWNfY21weGNoZ18zMigpIGhlcmU6DQog
-ICAgICBodHRwczovL2VsaXhpci5ib290bGluLmNvbS9saW51eC9sYXRlc3Qvc291cmNlL2FyY2gv
-bTY4ay9rZXJuZWwvc3lzX202OGsuYyNMNDYxDQoNCk1JUFM6IFRoZXkgZG8gaXQgdmlhIHNwZWNp
-YWwgc3lzbWlwcyBzeXNjYWxsIHdoaWNoIGFtb25nIG90aGVyIHRoaW5ncw0KICAgICAgbWlnaHQg
-aGFuZGxlIE1JUFNfQVRPTUlDX1NFVCB3aXRoIG1pcHNfYXRvbWljX3NldCgpDQoNCkkgZG9uJ3Qg
-aW1tZWRpYXRlbHkgc2VlIGlmIHRoZXJlJ3JlIG90aGVycyBidXQgcmVhbGx5IEknbSBub3Qgc3Vy
-ZSBpZiBpdCBldmVuIHdvcnRoIHRyeWluZyB0bw0KY2xlYW4tdXAgYWxsIHRoYXQgc2luY2UgZWZm
-b3J0cyBtaWdodCBiZSBzcGVudCBwb2ludGxlc3NseS4NCg0KPiBJIHdhcyBqdXN0IHRoaW5raW5n
-IGl0IHdvdWxkIGJlIGdvb2QgdG8gaGF2ZSBhIGNvbW1vbiBpbXBsZW1lbnRhdGlvbiAoaWYNCj4g
-cG9zc2libGUpIHJhdGhlciB0aGFuIDQtNSBkaWZmZXJlbnQgY29waWVzIG9mIGJhc2ljYWxseSB0
-aGUgc2FtZSB0aGluZy4NCg0KRnJvbSBhYm92ZSBJIHdvdWxkIGNvbmNsdWRlIHRoYXQgb25seSBN
-NjhLIG1pZ2h0IGJlbmVmaXQgZnJvbSBuZXcgbGlicmFyeQ0KaW1wbGVtZW50YXRpb24uIEJUVyBN
-NjhLIHVzZXMgYSBiaXQgZGlmZmVyZW50IEFCSSBjb21wYXJlZCB0byBBUkMgZm9yIHRoYXQgc3lz
-Y2FsbCBzbw0KaXQgd2lsbCBiZSByZWFsbHkgYXRvbWljX2NtcHhjaGdfMzIoKSBsaWJmdW5jdGlv
-biBjYWxsZWQgZnJvbSB0aG9zZSBzeXNjYWxscywNCmJ1dCBub3cgSSB0aGluayB0aGF0J3MgZXhh
-Y3RseSB3aGF0IHlvdSBtZWFudCBpbml0aWFsbHksIGNvcnJlY3Q/DQoNCi1BbGV4ZXk=
+Dave Martin <Dave.Martin@arm.com> writes:
+
+> On Fri, Mar 09, 2018 at 01:10:18PM +0000, Will Deacon wrote:
+>> Hi Eric,
+>> 
+>> On Thu, Mar 08, 2018 at 04:40:12PM -0600, Eric W. Biederman wrote:
+>> > Will Deacon <will.deacon@arm.com> writes:
+>> > > Happy to take this patch once the dependency on FPE_FLTUNK in core code is
+>> > > resolved.
+>> > 
+>> > Would it help for me to take the FPE_FLTUNK patch into my siginfo-next
+>> > branch?   So that there is a common branch with the code so we don't
+>> > need to worry about conflicts.  If so I will look at that on Monday.
+>> 
+>> Yes please, that would be helpful actually. I can then pull that into
+>> arm64 if you give me a stable branch or tag. Alternatively, I can define
+>> FPE_FLTUNK locally and remove it at -rc1.
+>
+> OK Eric, let me know if you need me to rebase anything for the first 2
+> patches.
+
+The first patch is now in my siginfo-next tree and avialable at:
+
+git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git siginfo-next
+HEAD: 266da65e9156d93e1126e185259a4aae68188d0e signal: Add FPE_FLTUNK si_code for undiagnosable fp exceptions
+
+I will not rebase this branch, so please fee free to merge it into other
+trees.
+
+Eric
