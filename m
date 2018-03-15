@@ -1,32 +1,199 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:53995 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751502AbeCOQN2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 12:13:28 -0400
-Date: Thu, 15 Mar 2018 17:13:16 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v3] x86: treat pkey-0 special
-In-Reply-To: <f5ef79ef-122a-e0a3-9b8e-d49c33f4a417@intel.com>
-Message-ID: <alpine.DEB.2.21.1803151713050.1525@nanos.tec.linutronix.de>
-References: <1521061214-22385-1-git-send-email-linuxram@us.ibm.com> <alpine.DEB.2.21.1803151039430.1525@nanos.tec.linutronix.de> <f5ef79ef-122a-e0a3-9b8e-d49c33f4a417@intel.com>
+Received: from mail-vk0-f67.google.com ([209.85.213.67]:35734 "EHLO
+        mail-vk0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751466AbeCOQPv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 12:15:51 -0400
+Received: by mail-vk0-f67.google.com with SMTP id r197so3784416vke.2
+        for <linux-arch@vger.kernel.org>; Thu, 15 Mar 2018 09:15:50 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+References: <20180315014817.142930-1-djkurtz@chromium.org> <398eebd9-9ec9-50ef-88ea-c3d5ae9f5d90@infradead.org>
+In-Reply-To: <398eebd9-9ec9-50ef-88ea-c3d5ae9f5d90@infradead.org>
+From: Daniel Kurtz <djkurtz@chromium.org>
+Date: Thu, 15 Mar 2018 16:15:38 +0000
+Message-ID: <CAGS+omDTVWoLGiOrMUFDOtjPDfK4gs+OiPAB6TJGoM+en7NtNw@mail.gmail.com>
+Subject: Re: [PATCH v2] earlycon: Fix __earlycon_table stride... again
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Ram Pai <linuxram@us.ibm.com>, mingo@redhat.com, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com, Ulrich.Weigand@de.ibm.com
-Message-ID: <20180315161316.irO7HmR4mn3iQJXekipsy1ImP8o8HM3Qzzc7-FuzJ0Q@z>
+To: Randy Dunlap <rdunlap@infradead.org>
+Cc: peter@hurleysoftware.com, Rob Herring <robh@kernel.org>, adurbin@chromium.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, Grant Likely <grant.likely@linaro.org>, Rob Herring <robh+dt@kernel.org>, frowand.list@gmail.com, jslaby@suse.com, Arnd Bergmann <arnd@arndb.de>, "open list:OPEN FIRMWARE AND..." <devicetree@vger.kernel.org>, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20180315161538.Wrf6rmULC4C3yxQuCijpF0aLYW-J56Ru93CW3cnsmMw@z>
 
-On Thu, 15 Mar 2018, Dave Hansen wrote:
+On Wed, Mar 14, 2018 at 8:33 PM Randy Dunlap <rdunlap@infradead.org> wrote:
 
-> On 03/15/2018 02:46 AM, Thomas Gleixner wrote:
-> >> +	if (!pkey || !mm_pkey_is_allocated(mm, pkey))
-> > Why this extra check? mm_pkey_is_allocated(mm, 0) should not return true
-> > ever. If it does, then this wants to be fixed.
-> 
-> I was thinking that we _do_ actually want it to seem allocated.  It just
-> get "allocated" implicitly when an mm is created.  I think that will
-> simplify the code if we avoid treating it specially in as many places as
-> possible.
+> On 03/14/2018 06:48 PM, Daniel Kurtz wrote:
+> > Commit 470ca0de69fe ("serial: earlycon: Enable earlycon without command
+> > line param") added EARLYCON_TABLE().
+> >
+> > Commit 99492c39f39f ("earlycon: Fix __earlycon_table stride") reference=
+d
+> > commit 07fca0e57fca92 ("tracing: Properly align linker defined symbols"=
+)
+> > and tried to fix EARLYCON_TABLE() using __aligned(32).
+> >
+> > However, the fix copied just works around compiler behavior.  In fact,
+it
+> > was subsequently re-implemented for tracing using a table of pointers i=
+n
+> > commit 3d56e331b653 ("tracing: Replace syscall_meta_data struct array
+with
+> > pointer array"), commit 654986462939 ("tracepoints: Fix section
+alignment
+> > using pointer array") and commit e4a9ea5ee7c8 ("tracing: Replace
+> > trace_event struct array with pointer array").
+> >
+> > Let's do the same "array of pointers to structs" approach for
+> > EARLYCON_TABLE.
 
-That works as well.
+> Please describe what the problem is instead of just what the fix is.
+> Thanks.
+
+The problem is the same as in 99492c39f39f; the __earlycon_table stride may
+be wrong depending on how the compiler decides to align the contents of
+__earlycon_table.
+See the other referenced patches for a detailed description of the problem
+and its solution.
+
+-Dan
+
+
+> > Signed-off-by: Daniel Kurtz <djkurtz@chromium.org>
+> > ---
+> > Changes since v1:
+> >  * Change __earlycon_table to an array of pointers.
+> >
+> > Note: I do not have a convenient system to test the of/fdt.c part of
+this
+> > patch, so would apreciate help verifying it.  Thanks!
+> >
+> >  drivers/of/fdt.c                  |  7 +++++--
+> >  drivers/tty/serial/earlycon.c     |  6 ++++--
+> >  include/asm-generic/vmlinux.lds.h |  2 +-
+> >  include/linux/serial_core.h       | 21 ++++++++++++++-------
+> >  4 files changed, 24 insertions(+), 12 deletions(-)
+> >
+> > diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+> > index 84aa9d676375..6da20b9688f7 100644=EF=BF=BC
+> > --- a/drivers/of/fdt.c
+> > +++ b/drivers/of/fdt.c
+> > @@ -942,7 +942,7 @@ int __init early_init_dt_scan_chosen_stdout(void)
+> >       int offset;
+> >       const char *p, *q, *options =3D NULL;
+> >       int l;
+> > -     const struct earlycon_id *match;
+> > +     const struct earlycon_id **p_match;
+> >       const void *fdt =3D initial_boot_params;
+> >
+> >       offset =3D fdt_path_offset(fdt, "/chosen");
+> > @@ -969,7 +969,10 @@ int __init early_init_dt_scan_chosen_stdout(void)
+> >               return 0;
+> >       }
+> >
+> > -     for (match =3D __earlycon_table; match < __earlycon_table_end;
+match++) {
+> > +     for (p_match =3D __earlycon_table; p_match < __earlycon_table_end=
+;
+> > +          p_match++) {
+> > +             const struct earlycon_id *match =3D *p_match;
+> > +
+> >               if (!match->compatible[0])
+> >                       continue;
+> >
+> > diff --git a/drivers/tty/serial/earlycon.c
+b/drivers/tty/serial/earlycon.c
+> > index a24278380fec..22683393a0f2 100644
+> > --- a/drivers/tty/serial/earlycon.c
+> > +++ b/drivers/tty/serial/earlycon.c
+> > @@ -169,7 +169,7 @@ static int __init register_earlycon(char *buf,
+const struct earlycon_id *match)
+> >   */
+> >  int __init setup_earlycon(char *buf)
+> >  {
+> > -     const struct earlycon_id *match;
+> > +     const struct earlycon_id **p_match;
+> >
+> >       if (!buf || !buf[0])
+> >               return -EINVAL;
+> > @@ -177,7 +177,9 @@ int __init setup_earlycon(char *buf)
+> >       if (early_con.flags & CON_ENABLED)
+> >               return -EALREADY;
+> >
+> > -     for (match =3D __earlycon_table; match < __earlycon_table_end;
+match++) {
+> > +     for (p_match =3D __earlycon_table; p_match < __earlycon_table_end=
+;
+> > +          p_match++) {
+> > +             const struct earlycon_id *match =3D *p_match;
+> >               size_t len =3D strlen(match->name);
+> >
+> >               if (strncmp(buf, match->name, len))
+> > diff --git a/include/asm-generic/vmlinux.lds.h
+b/include/asm-generic/vmlinux.lds.h
+> > index 1ab0e520d6fc..e17de55c2542 100644
+> > --- a/include/asm-generic/vmlinux.lds.h
+> > +++ b/include/asm-generic/vmlinux.lds.h
+> > @@ -179,7 +179,7 @@
+> >  #endif
+> >
+> >  #ifdef CONFIG_SERIAL_EARLYCON
+> > -#define EARLYCON_TABLE() STRUCT_ALIGN();                     \
+> > +#define EARLYCON_TABLE() . =3D ALIGN(8);                              =
+ \
+> >                        VMLINUX_SYMBOL(__earlycon_table) =3D .;  \
+> >                        KEEP(*(__earlycon_table))              \
+> >                        VMLINUX_SYMBOL(__earlycon_table_end) =3D .;
+> > diff --git a/include/linux/serial_core.h b/include/linux/serial_core.h
+> > index b32df49a3bd5..93b7add47087 100644
+> > --- a/include/linux/serial_core.h
+> > +++ b/include/linux/serial_core.h
+> > @@ -351,10 +351,10 @@ struct earlycon_id {
+> >       char    name[16];
+> >       char    compatible[128];
+> >       int     (*setup)(struct earlycon_device *, const char *options);
+> > -} __aligned(32);
+> > +};
+> >
+> > -extern const struct earlycon_id __earlycon_table[];
+> > -extern const struct earlycon_id __earlycon_table_end[];
+> > +extern const struct earlycon_id *__earlycon_table[];
+> > +extern const struct earlycon_id *__earlycon_table_end[];
+> >
+> >  #if defined(CONFIG_SERIAL_EARLYCON) && !defined(MODULE)
+> >  #define EARLYCON_USED_OR_UNUSED      __used
+> > @@ -362,12 +362,19 @@ extern const struct earlycon_id
+__earlycon_table_end[];
+> >  #define EARLYCON_USED_OR_UNUSED      __maybe_unused
+> >  #endif
+> >
+> > -#define OF_EARLYCON_DECLARE(_name, compat, fn)
+       \
+> > -     static const struct earlycon_id __UNIQUE_ID(__earlycon_##_name) \
+> > -          EARLYCON_USED_OR_UNUSED __section(__earlycon_table)        \
+> > +#define _OF_EARLYCON_DECLARE(_name, compat, fn, unique_id)           \
+> > +     static const struct earlycon_id unique_id                       \
+> > +          EARLYCON_USED_OR_UNUSED __initdata                         \
+> >               =3D { .name =3D __stringify(_name),                      =
+   \
+> >                   .compatible =3D compat,                              =
+ \
+> > -                 .setup =3D fn  }
+> > +                 .setup =3D fn  };                                    =
+ \
+> > +     static const struct earlycon_id EARLYCON_USED_OR_UNUSED         \
+> > +             __section(__earlycon_table)                             \
+> > +             * const __PASTE(__p, unique_id) =3D &unique_id
+> > +
+> > +#define OF_EARLYCON_DECLARE(_name, compat, fn)
+       \
+> > +     _OF_EARLYCON_DECLARE(_name, compat, fn,                         \
+> > +                          __UNIQUE_ID(__earlycon_##_name))
+> >
+> >  #define EARLYCON_DECLARE(_name, fn)  OF_EARLYCON_DECLARE(_name, "", fn=
+)
+> >
+> >
+
+
+> --
+> ~Randy
