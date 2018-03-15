@@ -1,66 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5009.houston.hpe.com ([15.241.48.73]:54408 "EHLO
-        g9t5009.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751667AbeCOQMz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 12:12:55 -0400
-From: "Kani, Toshi" <toshi.kani@hpe.com>
-Subject: Re: [PATCH v2 2/4] ioremap: Implement TLB_INV before huge mapping
-Date: Thu, 15 Mar 2018 16:12:52 +0000
-Message-ID: <1521130368.2693.177.camel@hpe.com>
-References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
-         <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
-In-Reply-To: <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <9168F7EEE5567C4387AEFF4307500D03@NAMPRD84.PROD.OUTLOOK.COM>
-Content-Transfer-Encoding: base64
+Received: from mail.linuxfoundation.org ([140.211.169.12]:46666 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752087AbeCOQZ0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 12:25:26 -0400
+Date: Thu, 15 Mar 2018 17:25:22 +0100
+From: gregkh <gregkh@linuxfoundation.org>
+Subject: Re: [Blackfin removal] [PATCH 11/28] misc: Remove Blackfin DSP echo
+ support
+Message-ID: <20180315162522.GA2258@kroah.com>
+References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
+ <1521111028-19856-11-git-send-email-aaron.wu@analog.com>
+ <CAK8P3a2MKK4gNfP6jN8+ZXpUgS56UBqwdM5aPnbe3e--0BWr5w@mail.gmail.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a2MKK4gNfP6jN8+ZXpUgS56UBqwdM5aPnbe3e--0BWr5w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "cpandya@codeaurora.org" <cpandya@codeaurora.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "arnd@arndb.de" <arnd@arndb.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "takahiro.akashi@linaro.org" <takahiro.akashi@linaro.org>, "james.morse@arm.com" <james.morse@arm.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180315161252.IwJEnR72aP4GMNkRCPna_dSoziBNu5blsAISBufKfO4@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Aaron Wu <aaron.wu@analog.com>, linux-arch <linux-arch@vger.kernel.org>, Steve Underwood <steveu@coppice.org>, David Rowe <david@rowetel.com>
 
-T24gVGh1LCAyMDE4LTAzLTE1IGF0IDE4OjE1ICswNTMwLCBDaGludGFuIFBhbmR5YSB3cm90ZToN
-Cj4gSHVnZSBtYXBwaW5nIGNoYW5nZXMgUE1EL1BVRCB3aGljaCBjb3VsZCBoYXZlDQo+IHZhbGlk
-IHByZXZpb3VzIGVudHJpZXMuIFRoaXMgcmVxdWlyZXMgcHJvcGVyDQo+IFRMQiBtYWludGFuYW5j
-ZSBvbiBzb21lIGFyY2hpdGVjdHVyZXMsIGxpa2UNCj4gQVJNNjQuDQo+IA0KPiBJbXBsZW50IEJC
-TSAoYnJlYWstYmVmb3JlLW1ha2UpIHNhZmUgVExCDQo+IGludmFsaWRhdGlvbi4NCj4gDQo+IEhl
-cmUsIEkndmUgdXNlZCBmbHVzaF90bGJfcGd0YWJsZSgpIGluc3RlYWQNCj4gb2YgZmx1c2hfa2Vy
-bmVsX3JhbmdlKCkgYmVjYXVzZSBpbnZhbGlkYXRpbmcNCj4gaW50ZXJtZWRpYXRlIHBhZ2VfdGFi
-bGUgZW50cmllcyBjb3VsZCBoYXZlDQo+IGJlZW4gb3B0aW1pemVkIGZvciBzcGVjaWZpYyBhcmNo
-LiBUaGF0J3MgdGhlDQo+IGNhc2Ugd2l0aCBBUk02NCBhdCBsZWFzdC4NCj4gDQo+IFNpZ25lZC1v
-ZmYtYnk6IENoaW50YW4gUGFuZHlhIDxjcGFuZHlhQGNvZGVhdXJvcmEub3JnPg0KPiAtLS0NCj4g
-IGxpYi9pb3JlbWFwLmMgfCAyNSArKysrKysrKysrKysrKysrKysrLS0tLS0tDQo+ICAxIGZpbGUg
-Y2hhbmdlZCwgMTkgaW5zZXJ0aW9ucygrKSwgNiBkZWxldGlvbnMoLSkNCj4gDQo+IGRpZmYgLS1n
-aXQgYS9saWIvaW9yZW1hcC5jIGIvbGliL2lvcmVtYXAuYw0KPiBpbmRleCA1NGU1YmJhLi41NWY4
-NjQ4IDEwMDY0NA0KPiAtLS0gYS9saWIvaW9yZW1hcC5jDQo+ICsrKyBiL2xpYi9pb3JlbWFwLmMN
-Cj4gQEAgLTEzLDYgKzEzLDcgQEANCj4gICNpbmNsdWRlIDxsaW51eC9leHBvcnQuaD4NCj4gICNp
-bmNsdWRlIDxhc20vY2FjaGVmbHVzaC5oPg0KPiAgI2luY2x1ZGUgPGFzbS9wZ3RhYmxlLmg+DQo+
-ICsjaW5jbHVkZSA8YXNtLWdlbmVyaWMvdGxiLmg+DQo+ICANCj4gICNpZmRlZiBDT05GSUdfSEFW
-RV9BUkNIX0hVR0VfVk1BUA0KPiAgc3RhdGljIGludCBfX3JlYWRfbW9zdGx5IGlvcmVtYXBfcDRk
-X2NhcGFibGU7DQo+IEBAIC04MCw2ICs4MSw3IEBAIHN0YXRpYyBpbmxpbmUgaW50IGlvcmVtYXBf
-cG1kX3JhbmdlKHB1ZF90ICpwdWQsIHVuc2lnbmVkIGxvbmcgYWRkciwNCj4gIAkJdW5zaWduZWQg
-bG9uZyBlbmQsIHBoeXNfYWRkcl90IHBoeXNfYWRkciwgcGdwcm90X3QgcHJvdCkNCj4gIHsNCj4g
-IAlwbWRfdCAqcG1kOw0KPiArCXBtZF90IG9sZF9wbWQ7DQo+ICAJdW5zaWduZWQgbG9uZyBuZXh0
-Ow0KPiAgDQo+ICAJcGh5c19hZGRyIC09IGFkZHI7DQo+IEBAIC05MSwxMCArOTMsMTUgQEAgc3Rh
-dGljIGlubGluZSBpbnQgaW9yZW1hcF9wbWRfcmFuZ2UocHVkX3QgKnB1ZCwgdW5zaWduZWQgbG9u
-ZyBhZGRyLA0KPiAgDQo+ICAJCWlmIChpb3JlbWFwX3BtZF9lbmFibGVkKCkgJiYNCj4gIAkJICAg
-ICgobmV4dCAtIGFkZHIpID09IFBNRF9TSVpFKSAmJg0KPiAtCQkgICAgSVNfQUxJR05FRChwaHlz
-X2FkZHIgKyBhZGRyLCBQTURfU0laRSkgJiYNCj4gLQkJICAgIHBtZF9mcmVlX3B0ZV9wYWdlKHBt
-ZCkpIHsNCj4gLQkJCWlmIChwbWRfc2V0X2h1Z2UocG1kLCBwaHlzX2FkZHIgKyBhZGRyLCBwcm90
-KSkNCj4gKwkJICAgIElTX0FMSUdORUQocGh5c19hZGRyICsgYWRkciwgUE1EX1NJWkUpKSB7DQo+
-ICsJCQlvbGRfcG1kID0gKnBtZDsNCj4gKwkJCXBtZF9jbGVhcihwbWQpOw0KDQpwbWRfY2xlYXIo
-KSBpcyBvbmUgb2YgdGhlIG9wZXJhdGlvbnMgcG1kX2ZyZWVfcHRlX3BhZ2UoKSBuZWVkcyB0byBk
-by4NClNlZSB0aGUgeDg2IHZlcnNpb24uDQoNCj4gKwkJCWZsdXNoX3RsYl9wZ3RhYmxlKCZpbml0
-X21tLCBhZGRyKTsNCg0KWW91IGNhbiBjYWxsIGl0IGluIHBtZF9mcmVlX3B0ZV9wYWdlKCkgb24g
-YXJtNjQgYXMgd2VsbC4gDQoNCj4gKwkJCWlmIChwbWRfc2V0X2h1Z2UocG1kLCBwaHlzX2FkZHIg
-KyBhZGRyLCBwcm90KSkgew0KPiArCQkJCXBtZF9mcmVlX3B0ZV9wYWdlKCZvbGRfcG1kKTsNCj4g
-IAkJCQljb250aW51ZTsNCj4gKwkJCX0gZWxzZQ0KPiArCQkJCXNldF9wbWQocG1kLCBvbGRfcG1k
-KTsNCg0KSSBkbyBub3QgdW5kZXJzdGFuZCB3aHkgeW91IG5lZWRlZCB0byBtYWtlIHRoaXMgY2hh
-bmdlLiANCnBtZF9mcmVlX3B0ZV9wYWdlKCkgaXMgZGVmaW5lZCBhcyBhbiBhcmNoLXNwZWNpZmlj
-IGZ1bmN0aW9uIHNvIHRoYXQgeW91DQpjYW4gYWRkaXRpb25hbGx5IHBlcmZvcm0gVExCIHB1cmdl
-cyBvbiBhcm02NC4gIFBsZWFzZSB0cnkgdG8gbWFrZSBwcm9wZXINCmFybTY0IGltcGxlbWVudGF0
-aW9uIG9mIHRoaXMgaW50ZXJmYWNlLiAgQW5kIGlmIHlvdSBmaW5kIGFueSBpc3N1ZSBpbg0KdGhp
-cyBpbnRlcmZhY2UsIHBsZWFzZSBsZXQgbWUga25vdy4NCg0KU2FtZSBmb3IgcHVkLg0KDQpUaGFu
-a3MsDQotVG9zaGkNCg==
+On Thu, Mar 15, 2018 at 04:54:11PM +0100, Arnd Bergmann wrote:
+> On Thu, Mar 15, 2018 at 11:50 AM, Aaron Wu <aaron.wu@analog.com> wrote:
+> > Signed-off-by: Aaron Wu <aaron.wu@analog.com>
+> >
+> > Remove Blackfin DSP echo support
+> > ---
+> >  drivers/misc/echo/echo.c | 73 ------------------------------------------------
+> >  drivers/misc/echo/fir.h  | 50 ---------------------------------
+> >  2 files changed, 123 deletions(-)
+> 
+> I had picked up this patch at first, but now took a closer look and found no
+> users of this module. It sounds to me like we should remove the entire
+> directory rather than just the blackfin portion.
+> 
+> Adding the original authors to Cc for clarification.
+
+The echo "driver" is used by Asterix systems.  It seems to be the only
+driver that ended up getting merged upstream from that huge mess.  So
+there are users of it, or at least there were, I don't know how popular
+Asterix is these days.
+
+thanks,
+
+greg k-h
