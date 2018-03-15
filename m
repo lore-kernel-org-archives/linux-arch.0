@@ -1,57 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:38866 "EHLO
-        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751459AbeCONcD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 09:32:03 -0400
-Date: Thu, 15 Mar 2018 13:31:58 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v2 2/4] ioremap: Implement TLB_INV before huge mapping
-Message-ID: <20180315133157.ucbdg25jo5ew3t2h@lakrids.cambridge.arm.com>
-References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
- <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
+Received: from bombadil.infradead.org ([198.137.202.133]:49832 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751551AbeCOORx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 10:17:53 -0400
+Date: Thu, 15 Mar 2018 07:17:49 -0700
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 00/16] remove eight obsolete architectures
+Message-ID: <20180315141749.GA27100@infradead.org>
+References: <20180314143529.1456168-1-arnd@arndb.de>
+ <2929.1521106970@warthog.procyon.org.uk>
+ <6c9d075c-d7a8-72a5-9b2d-af1feaa06c6c@suse.de>
+ <CAK8P3a01pfvsdM1mR8raU9dA7p4H-jRJz2Y8-+KEY76W_Mukpg@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
+In-Reply-To: <CAK8P3a01pfvsdM1mR8raU9dA7p4H-jRJz2Y8-+KEY76W_Mukpg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chintan Pandya <cpandya@codeaurora.org>
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com
-Message-ID: <20180315133158.U8_luErrQzUo6omNy0WZoMz1Z5B1NtfBK4J6bfsZ-6Q@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Hannes Reinecke <hare@suse.de>, David Howells <dhowells@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-block <linux-block@vger.kernel.org>, IDE-ML <linux-ide@vger.kernel.org>, "open list:HID CORE LAYER" <linux-input@vger.kernel.org>, Networking <netdev@vger.kernel.org>, linux-wireless <linux-wireless@vger.kernel.org>, linux-pwm@vger.kernel.org, linux-rtc@vger.kernel.org, linux-spi <linux-spi@vger.kernel.org>, linux-usb@vger.kernel.org, dri-devel <dri-devel@lists.freedesktop.org>, linux-fbdev@vger.kernel.org, linux-watchdog@vger.kernel.org, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
+Message-ID: <20180315141749.zkJkYPe7lcB7G1fLhPjlCej9Q5UkFM9BArh8cV18Pq0@z>
 
-On Thu, Mar 15, 2018 at 06:15:04PM +0530, Chintan Pandya wrote:
-> @@ -91,10 +93,15 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
->  
->  		if (ioremap_pmd_enabled() &&
->  		    ((next - addr) == PMD_SIZE) &&
-> -		    IS_ALIGNED(phys_addr + addr, PMD_SIZE) &&
-> -		    pmd_free_pte_page(pmd)) {
-> -			if (pmd_set_huge(pmd, phys_addr + addr, prot))
-> +		    IS_ALIGNED(phys_addr + addr, PMD_SIZE)) {
-> +			old_pmd = *pmd;
-> +			pmd_clear(pmd);
-> +			flush_tlb_pgtable(&init_mm, addr);
-> +			if (pmd_set_huge(pmd, phys_addr + addr, prot)) {
-> +				pmd_free_pte_page(&old_pmd);
->  				continue;
-> +			} else
-> +				set_pmd(pmd, old_pmd);
->  		}
->  
+On Thu, Mar 15, 2018 at 11:42:25AM +0100, Arnd Bergmann wrote:
+> Is anyone producing a chip that includes enough of the Privileged ISA spec
+> to have things like system calls, but not the MMU parts?
 
-Can we have something like a pmd_can_set_huge() helper? Then we could
-avoid pointless modification and TLB invalidation work when
-pmd_set_huge() will fail.
-
-	if (ioremap_pmd_enabled() &&
-	    ((next - addr) == PMD_SIZE) &&
-	    IS_ALIGNED(phys_addr + addr, PMD_SIZE) &&
-	    pmd_can_set_huge(pmd, phys_addr + addr, prot)) {
-	    	// clear entries, invalidate TLBs, and free tables
-		...
-		continue;
-
-	}
-
-Thanks,
-MArk.
+Various SiFive SOCs seem to support M and U mode, but no S mode or
+iommu.  That should be enough for nommu Linux running in M mode if
+someone cares enough to actually port it.
