@@ -1,81 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41162 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751980AbeCOPUv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 11:20:51 -0400
-Date: Thu, 15 Mar 2018 15:20:45 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v2 2/4] ioremap: Implement TLB_INV before huge mapping
-Message-ID: <20180315152045.uajoedfvdcynhus5@lakrids.cambridge.arm.com>
-References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
- <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
- <20180315133157.ucbdg25jo5ew3t2h@lakrids.cambridge.arm.com>
- <b6c7622d-9676-5584-d52b-10ece6a3877c@codeaurora.org>
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:35326 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752685AbeCOPyO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 11:54:14 -0400
+Received: by mail-qk0-f195.google.com with SMTP id s188so7822248qkb.2
+        for <linux-arch@vger.kernel.org>; Thu, 15 Mar 2018 08:54:14 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <b6c7622d-9676-5584-d52b-10ece6a3877c@codeaurora.org>
+In-Reply-To: <1521111028-19856-11-git-send-email-aaron.wu@analog.com>
+References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com> <1521111028-19856-11-git-send-email-aaron.wu@analog.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 15 Mar 2018 16:54:11 +0100
+Message-ID: <CAK8P3a2MKK4gNfP6jN8+ZXpUgS56UBqwdM5aPnbe3e--0BWr5w@mail.gmail.com>
+Subject: Re: [Blackfin removal] [PATCH 11/28] misc: Remove Blackfin DSP echo support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chintan Pandya <cpandya@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, toshi.kani@hpe.com, arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, catalin.marinas@arm.com, will.deacon@arm.com, linux-kernel@vger.kernel.org, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, james.morse@arm.com, gregkh@linuxfoundation.org, tglx@linutronix.de, akpm@linux-foundation.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20180315152045.TLtn_OdurmpmJBxUmc4yXyJBdk_NFjqu0xTkIETt2e8@z>
+To: Aaron Wu <aaron.wu@analog.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Steve Underwood <steveu@coppice.org>, David Rowe <david@rowetel.com>, gregkh <gregkh@linuxfoundation.org>
 
-On Thu, Mar 15, 2018 at 07:49:01PM +0530, Chintan Pandya wrote:
-> On 3/15/2018 7:01 PM, Mark Rutland wrote:
-> > On Thu, Mar 15, 2018 at 06:15:04PM +0530, Chintan Pandya wrote:
-> > > @@ -91,10 +93,15 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
-> > >   		if (ioremap_pmd_enabled() &&
-> > >   		    ((next - addr) == PMD_SIZE) &&
-> > > -		    IS_ALIGNED(phys_addr + addr, PMD_SIZE) &&
-> > > -		    pmd_free_pte_page(pmd)) {
-> > > -			if (pmd_set_huge(pmd, phys_addr + addr, prot))
-> > > +		    IS_ALIGNED(phys_addr + addr, PMD_SIZE)) {
-> > > +			old_pmd = *pmd;
-> > > +			pmd_clear(pmd);
-> > > +			flush_tlb_pgtable(&init_mm, addr);
-> > > +			if (pmd_set_huge(pmd, phys_addr + addr, prot)) {
-> > > +				pmd_free_pte_page(&old_pmd);
-> > >   				continue;
-> > > +			} else
-> > > +				set_pmd(pmd, old_pmd);
-> > >   		}
-> > 
-> > Can we have something like a pmd_can_set_huge() helper? Then we could
-> > avoid pointless modification and TLB invalidation work when
-> > pmd_set_huge() will fail.
-> 
-> Actually, pmd_set_huge() will never fail because, if
-> CONFIG_HAVE_ARCH_HUGE_VMAP is disabled, ioremap_pmd_enabled()
-> will fail and if enabled (i.e. ARM64 & x86), they don't fail
-> in their implementation. So, rather we can do the following.
+On Thu, Mar 15, 2018 at 11:50 AM, Aaron Wu <aaron.wu@analog.com> wrote:
+> Signed-off-by: Aaron Wu <aaron.wu@analog.com>
+>
+> Remove Blackfin DSP echo support
+> ---
+>  drivers/misc/echo/echo.c | 73 ------------------------------------------------
+>  drivers/misc/echo/fir.h  | 50 ---------------------------------
+>  2 files changed, 123 deletions(-)
 
-AFAICT, that's not true. The x86 pmd_set_huge() can fail under certain
-conditions:
+I had picked up this patch at first, but now took a closer look and found no
+users of this module. It sounds to me like we should remove the entire
+directory rather than just the blackfin portion.
 
-int pmd_set_huge(pmd_t *pmd, phys_addr_t addr, pgprot_t prot)
-{
-	u8 mtrr, uniform;
+Adding the original authors to Cc for clarification.
 
-	mtrr = mtrr_type_lookup(addr, addr + PMD_SIZE, &uniform);
-	if ((mtrr != MTRR_TYPE_INVALID) && (!uniform) &&
-	    (mtrr != MTRR_TYPE_WRBACK)) {
-		pr_warn_once("%s: Cannot satisfy [mem %#010llx-%#010llx] with a huge-page mapping due to MTRR override.\n",
-			     __func__, addr, addr + PMD_SIZE);
-		return 0;
-	}
-
-	prot = pgprot_4k_2_large(prot);
-
-	set_pte((pte_t *)pmd, pfn_pte(
-		(u64)addr >> PAGE_SHIFT,
-		__pgprot(pgprot_val(prot) | _PAGE_PSE)));
-
-	return 1;
-}
-
-... perhaps that can never happen in this particular case, but that's
-not clear to me.
-
-Thanks,
-Mark.
+      Arnd
