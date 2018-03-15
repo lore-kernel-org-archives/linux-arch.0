@@ -1,85 +1,48 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: Do we need to disable preemption in flush_tlb_range()?
-Date: Thu, 15 Mar 2018 10:32:34 -0700
-Message-ID: <4a095f24-770c-3583-ab6e-601b0ca8bdf3@synopsys.com>
-References: <1519917189.13866.6.camel@synopsys.com>
- <5a5c67c1-9f45-f908-2c8d-0914cd616a18@synopsys.com>
- <20180315082720.GT4064@hirez.programming.kicks-ass.net>
- <1521106770.11552.70.camel@synopsys.com>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: Re: [PATCH v3] x86: treat pkey-0 special
+Date: Thu, 15 Mar 2018 10:39:59 -0700
+Message-ID: <20180315173959.GE1060@ram.oc3035372033.ibm.com>
+References: <1521061214-22385-1-git-send-email-linuxram@us.ibm.com>
+ <alpine.DEB.2.21.1803151039430.1525@nanos.tec.linutronix.de>
+ <f5ef79ef-122a-e0a3-9b8e-d49c33f4a417@intel.com>
+ <20180315172129.GD1060@ram.oc3035372033.ibm.com>
+ <2bf8e659-5a8d-a2d5-ea52-e4d395ea2201@intel.com>
+Reply-To: Ram Pai <linuxram@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521106770.11552.70.camel@synopsys.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <2bf8e659-5a8d-a2d5-ea52-e4d395ea2201@intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "peterz@infradead.org" <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Marc Zyngier <marc.zyngier@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>
+To: Dave Hansen <dave.hansen@intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, mingo@redhat.com, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com, Ulrich.Weigand@de.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-+CC some more folks for intc/irq insights - please see question at the bottom !
+On Thu, Mar 15, 2018 at 10:31:51AM -0700, Dave Hansen wrote:
+> On 03/15/2018 10:21 AM, Ram Pai wrote:
+> > On Thu, Mar 15, 2018 at 08:55:31AM -0700, Dave Hansen wrote:
+> >> On 03/15/2018 02:46 AM, Thomas Gleixner wrote:
+> >>>> +	if (!pkey || !mm_pkey_is_allocated(mm, pkey))
+> >>> Why this extra check? mm_pkey_is_allocated(mm, 0) should not return true
+> >>> ever. If it does, then this wants to be fixed.
+> >> I was thinking that we _do_ actually want it to seem allocated.  It just
+> >> get "allocated" implicitly when an mm is created.  I think that will
+> >> simplify the code if we avoid treating it specially in as many places as
+> >> possible.
+> > I think, the logic that makes pkey-0 special must to go
+> > in arch-neutral code.   How about checking for pkey-0 in sys_pkey_free()
+> > itself?
+> 
+> This is for protection against shooting yourself in the foot?  Yes, that
+> can go in sys_pkey_free().
+> 
+> Does this need manpage and/or selftests updates?
 
-On 03/15/2018 02:39 AM, Alexey Brodkin wrote:
-> Hi Peter,
-> 
-> On Thu, 2018-03-15 at 09:27 +0100, Peter Zijlstra wrote:
->> On Wed, Mar 14, 2018 at 01:19:01PM -0700, Vineet Gupta wrote:
->>> +CC Peter since we have his attention ;-)
->>
->> Yeah, timezone collision there, I typically sleep at 1am ;-)
->>
->>> On 03/01/2018 07:13 AM, Alexey Brodkin wrote:
->>>> Hi Vineet,
->>>>
->>>> Just noticed that in comments for smp_call_function_many() it is said that
->>>> preemption must be disabled during its execution. And that function gets executed
->>>> among other ways like that:
->>>> -------------------------->8-----------------------
->>>>     flush_tlb_range()
->>>>       -> on_each_cpu_mask()
->>>>            -> smp_call_function_many()
->>>> -------------------------->8-----------------------
->>>
->>> In general I prefer not to - Peter what say you ?
->>
->> The comment with smp_call_function_many() is correct, it relies on
->> preemption being disabled in a number of ways. I would expect
->> this_cpu_ptr() for example to complain when used with preemption
->> enabled (CONFIG_DEBUG_PREEMPT).
-> 
-> I just tried CONFIG_DEBUG_PREEMPT and the only thing I got was that:
-> -------------------------->8-----------------------
-> ARC perf        : 8 counters (32 bits), 32 conditions, [overflow IRQ support]
-> BUG: using smp_processor_id() in preemptible [00000000] code: swapper/0/1
-> caller is arc_pmu_device_probe+0x24e/0x29c
-> CPU: 0 PID: 1 Comm: swapper/0 Not tainted 4.14.14+ #67
-> 
-> Stack Trace:
->    arc_unwind_core.constprop.1+0xd0/0xf4
->    dump_stack+0x64/0x7c
->    debug_smp_processor_id+0xb8/0xbc
->    arc_pmu_device_probe+0x24e/0x29c
->    platform_drv_probe+0x26/0x5c
->    really_probe+0x288/0x338
->    __driver_attach+0xc4/0xc8
->    bus_for_each_dev+0x38/0x70
->    bus_add_driver+0x12a/0x18c
->    driver_register+0x50/0xec
->    do_one_initcall+0x32/0x108
->    kernel_init_freeable+0xfe/0x188
-> -------------------------->8-----------------------
-> 
-> That happens because in PMU probe routine we want to
-> configure IRQ handlers on all other cores:
-> -------------------------->8-----------------------
->    arc_pmu_device_probe() ->
->      on_each_cpu(arc_cpu_pmu_irq_init, &irq, 1): preempt_disable() ->
->        enable_percpu_irq(irq, IRQ_TYPE_NONE) ->
->          smp_processor_id() with disabled preemption.
-> -------------------------->8-----------------------
-> 
-> Which poses another preemption related question - how do IRQ setup on
-> all cores properly? :)
-> 
-> -Alexey
-> 
+Yes. it needs selftest, manpage and documentation updates too.
+
+Unfortunately I am not getting enough reviewed-by for my selftests
+and documentation changes. :-(  Need help!
+
+
+-- 
+Ram Pai
