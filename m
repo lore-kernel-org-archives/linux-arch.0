@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0057.outbound.protection.outlook.com ([104.47.34.57]:47616
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-bl2nam02on0083.outbound.protection.outlook.com ([104.47.38.83]:48736
+        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752130AbeCOLAa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 07:00:30 -0400
+        id S1752052AbeCOLAB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Mar 2018 07:00:01 -0400
 From: Aaron Wu <aaron.wu@analog.com>
-Subject: [Blackfin removal] [PATCH 09/28] input: Remove Blackfin input support
-Date: Thu, 15 Mar 2018 18:50:09 +0800
-Message-ID: <1521111028-19856-9-git-send-email-aaron.wu@analog.com>
+Subject: [Blackfin removal] [PATCH 04/28] tty: Remove Blackfin tty and uart support
+Date: Thu, 15 Mar 2018 18:50:04 +0800
+Message-ID: <1521111028-19856-4-git-send-email-aaron.wu@analog.com>
 In-Reply-To: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 MIME-Version: 1.0
@@ -19,908 +19,3357 @@ Cc: viro@zeniv.linux.org.uk, jhogan@kernel.org, linux-metag@vger.kernel.org, jon
 
 Signed-off-by: Aaron Wu <aaron.wu@analog.com>
 
-Remove Blackfin input support
+Remove Blackfin tty and uart support
 ---
- drivers/input/keyboard/Kconfig            |   9 -
- drivers/input/keyboard/Makefile           |   1 -
- drivers/input/keyboard/bf54x-keys.c       | 396 ------------------------------
- drivers/input/misc/Kconfig                |   9 -
- drivers/input/misc/Makefile               |   1 -
- drivers/input/misc/bfin_rotary.c          | 294 ----------------------
- include/linux/platform_data/bfin_rotary.h | 117 ---------
- 7 files changed, 827 deletions(-)
- delete mode 100644 drivers/input/keyboard/bf54x-keys.c
- delete mode 100644 drivers/input/misc/bfin_rotary.c
- delete mode 100644 include/linux/platform_data/bfin_rotary.h
+ drivers/tty/Kconfig                  |   13 -
+ drivers/tty/Makefile                 |    1 -
+ drivers/tty/bfin_jtag_comm.c         |  353 --------
+ drivers/tty/hvc/Kconfig              |    9 -
+ drivers/tty/hvc/Makefile             |    1 -
+ drivers/tty/hvc/hvc_bfin_jtag.c      |  104 ---
+ drivers/tty/serial/Kconfig           |  149 ----
+ drivers/tty/serial/Makefile          |    2 -
+ drivers/tty/serial/bfin_sport_uart.c |  937 --------------------
+ drivers/tty/serial/bfin_sport_uart.h |   86 --
+ drivers/tty/serial/bfin_uart.c       | 1551 ----------------------------------
+ include/uapi/linux/serial_core.h     |    6 -
+ 12 files changed, 3212 deletions(-)
+ delete mode 100644 drivers/tty/bfin_jtag_comm.c
+ delete mode 100644 drivers/tty/hvc/hvc_bfin_jtag.c
+ delete mode 100644 drivers/tty/serial/bfin_sport_uart.c
+ delete mode 100644 drivers/tty/serial/bfin_sport_uart.h
+ delete mode 100644 drivers/tty/serial/bfin_uart.c
 
-diff --git a/drivers/input/keyboard/Kconfig b/drivers/input/keyboard/Kconfig
-index 4c4ab1c..2b469cc 100644
---- a/drivers/input/keyboard/Kconfig
-+++ b/drivers/input/keyboard/Kconfig
-@@ -157,15 +157,6 @@ config KEYBOARD_QT2160
- 	  This driver can also be built as a module. If so, the module
- 	  will be called qt2160.
+diff --git a/drivers/tty/Kconfig b/drivers/tty/Kconfig
+index b811442..f298179 100644
+--- a/drivers/tty/Kconfig
++++ b/drivers/tty/Kconfig
+@@ -151,19 +151,6 @@ config LEGACY_PTY_COUNT
+ 	  When not in use, each legacy PTY occupies 12 bytes on 32-bit
+ 	  architectures and 24 bytes on 64-bit architectures.
  
--config KEYBOARD_BFIN
--	tristate "Blackfin BF54x keypad support"
--	depends on (BF54x && !BF544)
+-config BFIN_JTAG_COMM
+-	tristate "Blackfin JTAG Communication"
+-	depends on BLACKFIN
 -	help
--	  Say Y here if you want to use the BF54x keypad.
+-	  Add support for emulating a TTY device over the Blackfin JTAG.
 -
 -	  To compile this driver as a module, choose M here: the
--	  module will be called bf54x-keys.
--
- config KEYBOARD_CLPS711X
- 	tristate "CLPS711X Keypad support"
- 	depends on OF_GPIO && (ARCH_CLPS711X || COMPILE_TEST)
-diff --git a/drivers/input/keyboard/Makefile b/drivers/input/keyboard/Makefile
-index 526e682..8fab920 100644
---- a/drivers/input/keyboard/Makefile
-+++ b/drivers/input/keyboard/Makefile
-@@ -13,7 +13,6 @@ obj-$(CONFIG_KEYBOARD_AMIGA)		+= amikbd.o
- obj-$(CONFIG_KEYBOARD_ATARI)		+= atakbd.o
- obj-$(CONFIG_KEYBOARD_ATKBD)		+= atkbd.o
- obj-$(CONFIG_KEYBOARD_BCM)		+= bcm-keypad.o
--obj-$(CONFIG_KEYBOARD_BFIN)		+= bf54x-keys.o
- obj-$(CONFIG_KEYBOARD_CAP11XX)		+= cap11xx.o
- obj-$(CONFIG_KEYBOARD_CLPS711X)		+= clps711x-keypad.o
- obj-$(CONFIG_KEYBOARD_CROS_EC)		+= cros_ec_keyb.o
-diff --git a/drivers/input/keyboard/bf54x-keys.c b/drivers/input/keyboard/bf54x-keys.c
-deleted file mode 100644
-index 8a07a42..0000000
---- a/drivers/input/keyboard/bf54x-keys.c
-+++ /dev/null
-@@ -1,396 +0,0 @@
--/*
-- * File:         drivers/input/keyboard/bf54x-keys.c
-- * Based on:
-- * Author:       Michael Hennerich <hennerich@blackfin.uclinux.org>
-- *
-- * Created:
-- * Description:  keypad driver for Analog Devices Blackfin BF54x Processors
-- *
-- *
-- * Modified:
-- *               Copyright 2007-2008 Analog Devices Inc.
-- *
-- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License as published by
-- * the Free Software Foundation; either version 2 of the License, or
-- * (at your option) any later version.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, see the file COPYING, or write
-- * to the Free Software Foundation, Inc.,
-- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-- */
--
--#include <linux/module.h>
--
--#include <linux/fs.h>
--#include <linux/interrupt.h>
--#include <linux/irq.h>
--#include <linux/slab.h>
--#include <linux/sched.h>
--#include <linux/pm.h>
--#include <linux/sysctl.h>
--#include <linux/proc_fs.h>
--#include <linux/delay.h>
--#include <linux/platform_device.h>
--#include <linux/input.h>
--
--#include <asm/portmux.h>
--#include <mach/bf54x_keys.h>
--
--#define DRV_NAME	"bf54x-keys"
--#define TIME_SCALE	100	/* 100 ns */
--#define	MAX_MULT	(0xFF * TIME_SCALE)
--#define MAX_RC		8	/* Max Row/Col */
--
--static const u16 per_rows[] = {
--	P_KEY_ROW7,
--	P_KEY_ROW6,
--	P_KEY_ROW5,
--	P_KEY_ROW4,
--	P_KEY_ROW3,
--	P_KEY_ROW2,
--	P_KEY_ROW1,
--	P_KEY_ROW0,
--	0
--};
--
--static const u16 per_cols[] = {
--	P_KEY_COL7,
--	P_KEY_COL6,
--	P_KEY_COL5,
--	P_KEY_COL4,
--	P_KEY_COL3,
--	P_KEY_COL2,
--	P_KEY_COL1,
--	P_KEY_COL0,
--	0
--};
--
--struct bf54x_kpad {
--	struct input_dev *input;
--	int irq;
--	unsigned short lastkey;
--	unsigned short *keycode;
--	struct timer_list timer;
--	unsigned int keyup_test_jiffies;
--	unsigned short kpad_msel;
--	unsigned short kpad_prescale;
--	unsigned short kpad_ctl;
--};
--
--static inline int bfin_kpad_find_key(struct bf54x_kpad *bf54x_kpad,
--			struct input_dev *input, u16 keyident)
--{
--	u16 i;
--
--	for (i = 0; i < input->keycodemax; i++)
--		if (bf54x_kpad->keycode[i + input->keycodemax] == keyident)
--			return bf54x_kpad->keycode[i];
--	return -1;
--}
--
--static inline void bfin_keycodecpy(unsigned short *keycode,
--			const unsigned int *pdata_kc,
--			unsigned short keymapsize)
--{
--	unsigned int i;
--
--	for (i = 0; i < keymapsize; i++) {
--		keycode[i] = pdata_kc[i] & 0xffff;
--		keycode[i + keymapsize] = pdata_kc[i] >> 16;
--	}
--}
--
--static inline u16 bfin_kpad_get_prescale(u32 timescale)
--{
--	u32 sclk = get_sclk();
--
--	return ((((sclk / 1000) * timescale) / 1024) - 1);
--}
--
--static inline u16 bfin_kpad_get_keypressed(struct bf54x_kpad *bf54x_kpad)
--{
--	return (bfin_read_KPAD_STAT() & KPAD_PRESSED);
--}
--
--static inline void bfin_kpad_clear_irq(void)
--{
--	bfin_write_KPAD_STAT(0xFFFF);
--	bfin_write_KPAD_ROWCOL(0xFFFF);
--}
--
--static void bfin_kpad_timer(struct timer_list *t)
--{
--	struct bf54x_kpad *bf54x_kpad = from_timer(bf54x_kpad, t, timer);
--
--	if (bfin_kpad_get_keypressed(bf54x_kpad)) {
--		/* Try again later */
--		mod_timer(&bf54x_kpad->timer,
--			  jiffies + bf54x_kpad->keyup_test_jiffies);
--		return;
--	}
--
--	input_report_key(bf54x_kpad->input, bf54x_kpad->lastkey, 0);
--	input_sync(bf54x_kpad->input);
--
--	/* Clear IRQ Status */
--
--	bfin_kpad_clear_irq();
--	enable_irq(bf54x_kpad->irq);
--}
--
--static irqreturn_t bfin_kpad_isr(int irq, void *dev_id)
--{
--	struct platform_device *pdev = dev_id;
--	struct bf54x_kpad *bf54x_kpad = platform_get_drvdata(pdev);
--	struct input_dev *input = bf54x_kpad->input;
--	int key;
--	u16 rowcol = bfin_read_KPAD_ROWCOL();
--
--	key = bfin_kpad_find_key(bf54x_kpad, input, rowcol);
--
--	input_report_key(input, key, 1);
--	input_sync(input);
--
--	if (bfin_kpad_get_keypressed(bf54x_kpad)) {
--		disable_irq_nosync(bf54x_kpad->irq);
--		bf54x_kpad->lastkey = key;
--		mod_timer(&bf54x_kpad->timer,
--			  jiffies + bf54x_kpad->keyup_test_jiffies);
--	} else {
--		input_report_key(input, key, 0);
--		input_sync(input);
--
--		bfin_kpad_clear_irq();
--	}
--
--	return IRQ_HANDLED;
--}
--
--static int bfin_kpad_probe(struct platform_device *pdev)
--{
--	struct bf54x_kpad *bf54x_kpad;
--	struct bfin_kpad_platform_data *pdata = dev_get_platdata(&pdev->dev);
--	struct input_dev *input;
--	int i, error;
--
--	if (!pdata->rows || !pdata->cols || !pdata->keymap) {
--		dev_err(&pdev->dev, "no rows, cols or keymap from pdata\n");
--		return -EINVAL;
--	}
--
--	if (!pdata->keymapsize ||
--	    pdata->keymapsize > (pdata->rows * pdata->cols)) {
--		dev_err(&pdev->dev, "invalid keymapsize\n");
--		return -EINVAL;
--	}
--
--	bf54x_kpad = kzalloc(sizeof(struct bf54x_kpad), GFP_KERNEL);
--	if (!bf54x_kpad)
--		return -ENOMEM;
--
--	platform_set_drvdata(pdev, bf54x_kpad);
--
--	/* Allocate memory for keymap followed by private LUT */
--	bf54x_kpad->keycode = kmalloc(pdata->keymapsize *
--					sizeof(unsigned short) * 2, GFP_KERNEL);
--	if (!bf54x_kpad->keycode) {
--		error = -ENOMEM;
--		goto out;
--	}
--
--	if (!pdata->debounce_time || pdata->debounce_time > MAX_MULT ||
--	    !pdata->coldrive_time || pdata->coldrive_time > MAX_MULT) {
--		dev_warn(&pdev->dev,
--			"invalid platform debounce/columndrive time\n");
--		bfin_write_KPAD_MSEL(0xFF0);	/* Default MSEL	*/
--	} else {
--		bfin_write_KPAD_MSEL(
--			((pdata->debounce_time / TIME_SCALE)
--						& DBON_SCALE) |
--			(((pdata->coldrive_time / TIME_SCALE) << 8)
--						& COLDRV_SCALE));
--
--	}
--
--	if (!pdata->keyup_test_interval)
--		bf54x_kpad->keyup_test_jiffies = msecs_to_jiffies(50);
--	else
--		bf54x_kpad->keyup_test_jiffies =
--			msecs_to_jiffies(pdata->keyup_test_interval);
--
--	if (peripheral_request_list((u16 *)&per_rows[MAX_RC - pdata->rows],
--				    DRV_NAME)) {
--		dev_err(&pdev->dev, "requesting peripherals failed\n");
--		error = -EFAULT;
--		goto out0;
--	}
--
--	if (peripheral_request_list((u16 *)&per_cols[MAX_RC - pdata->cols],
--				    DRV_NAME)) {
--		dev_err(&pdev->dev, "requesting peripherals failed\n");
--		error = -EFAULT;
--		goto out1;
--	}
--
--	bf54x_kpad->irq = platform_get_irq(pdev, 0);
--	if (bf54x_kpad->irq < 0) {
--		error = -ENODEV;
--		goto out2;
--	}
--
--	error = request_irq(bf54x_kpad->irq, bfin_kpad_isr,
--				0, DRV_NAME, pdev);
--	if (error) {
--		dev_err(&pdev->dev, "unable to claim irq %d\n",
--			bf54x_kpad->irq);
--		goto out2;
--	}
--
--	input = input_allocate_device();
--	if (!input) {
--		error = -ENOMEM;
--		goto out3;
--	}
--
--	bf54x_kpad->input = input;
--
--	input->name = pdev->name;
--	input->phys = "bf54x-keys/input0";
--	input->dev.parent = &pdev->dev;
--
--	input->id.bustype = BUS_HOST;
--	input->id.vendor = 0x0001;
--	input->id.product = 0x0001;
--	input->id.version = 0x0100;
--
--	input->keycodesize = sizeof(unsigned short);
--	input->keycodemax = pdata->keymapsize;
--	input->keycode = bf54x_kpad->keycode;
--
--	bfin_keycodecpy(bf54x_kpad->keycode, pdata->keymap, pdata->keymapsize);
--
--	/* setup input device */
--	__set_bit(EV_KEY, input->evbit);
--
--	if (pdata->repeat)
--		__set_bit(EV_REP, input->evbit);
--
--	for (i = 0; i < input->keycodemax; i++)
--		if (bf54x_kpad->keycode[i] <= KEY_MAX)
--			__set_bit(bf54x_kpad->keycode[i], input->keybit);
--	__clear_bit(KEY_RESERVED, input->keybit);
--
--	error = input_register_device(input);
--	if (error) {
--		dev_err(&pdev->dev, "unable to register input device\n");
--		goto out4;
--	}
--
--	/* Init Keypad Key Up/Release test timer */
--
--	timer_setup(&bf54x_kpad->timer, bfin_kpad_timer, 0);
--
--	bfin_write_KPAD_PRESCALE(bfin_kpad_get_prescale(TIME_SCALE));
--
--	bfin_write_KPAD_CTL((((pdata->cols - 1) << 13) & KPAD_COLEN) |
--				(((pdata->rows - 1) << 10) & KPAD_ROWEN) |
--				(2 & KPAD_IRQMODE));
--
--	bfin_write_KPAD_CTL(bfin_read_KPAD_CTL() | KPAD_EN);
--
--	device_init_wakeup(&pdev->dev, 1);
--
--	return 0;
--
--out4:
--	input_free_device(input);
--out3:
--	free_irq(bf54x_kpad->irq, pdev);
--out2:
--	peripheral_free_list((u16 *)&per_cols[MAX_RC - pdata->cols]);
--out1:
--	peripheral_free_list((u16 *)&per_rows[MAX_RC - pdata->rows]);
--out0:
--	kfree(bf54x_kpad->keycode);
--out:
--	kfree(bf54x_kpad);
--
--	return error;
--}
--
--static int bfin_kpad_remove(struct platform_device *pdev)
--{
--	struct bfin_kpad_platform_data *pdata = dev_get_platdata(&pdev->dev);
--	struct bf54x_kpad *bf54x_kpad = platform_get_drvdata(pdev);
--
--	del_timer_sync(&bf54x_kpad->timer);
--	free_irq(bf54x_kpad->irq, pdev);
--
--	input_unregister_device(bf54x_kpad->input);
--
--	peripheral_free_list((u16 *)&per_rows[MAX_RC - pdata->rows]);
--	peripheral_free_list((u16 *)&per_cols[MAX_RC - pdata->cols]);
--
--	kfree(bf54x_kpad->keycode);
--	kfree(bf54x_kpad);
--
--	return 0;
--}
--
--#ifdef CONFIG_PM
--static int bfin_kpad_suspend(struct platform_device *pdev, pm_message_t state)
--{
--	struct bf54x_kpad *bf54x_kpad = platform_get_drvdata(pdev);
--
--	bf54x_kpad->kpad_msel = bfin_read_KPAD_MSEL();
--	bf54x_kpad->kpad_prescale = bfin_read_KPAD_PRESCALE();
--	bf54x_kpad->kpad_ctl = bfin_read_KPAD_CTL();
--
--	if (device_may_wakeup(&pdev->dev))
--		enable_irq_wake(bf54x_kpad->irq);
--
--	return 0;
--}
--
--static int bfin_kpad_resume(struct platform_device *pdev)
--{
--	struct bf54x_kpad *bf54x_kpad = platform_get_drvdata(pdev);
--
--	bfin_write_KPAD_MSEL(bf54x_kpad->kpad_msel);
--	bfin_write_KPAD_PRESCALE(bf54x_kpad->kpad_prescale);
--	bfin_write_KPAD_CTL(bf54x_kpad->kpad_ctl);
--
--	if (device_may_wakeup(&pdev->dev))
--		disable_irq_wake(bf54x_kpad->irq);
--
--	return 0;
--}
--#else
--# define bfin_kpad_suspend NULL
--# define bfin_kpad_resume  NULL
--#endif
--
--static struct platform_driver bfin_kpad_device_driver = {
--	.driver		= {
--		.name	= DRV_NAME,
--	},
--	.probe		= bfin_kpad_probe,
--	.remove		= bfin_kpad_remove,
--	.suspend	= bfin_kpad_suspend,
--	.resume		= bfin_kpad_resume,
--};
--module_platform_driver(bfin_kpad_device_driver);
--
--MODULE_LICENSE("GPL");
--MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
--MODULE_DESCRIPTION("Keypad driver for BF54x Processors");
--MODULE_ALIAS("platform:bf54x-keys");
-diff --git a/drivers/input/misc/Kconfig b/drivers/input/misc/Kconfig
-index 62a1312..e9770f5 100644
---- a/drivers/input/misc/Kconfig
-+++ b/drivers/input/misc/Kconfig
-@@ -655,15 +655,6 @@ config INPUT_DM355EVM
- 	  To compile this driver as a module, choose M here: the
- 	  module will be called dm355evm_keys.
+-	  module will be called bfin_jtag_comm.
+-
+-config BFIN_JTAG_COMM_CONSOLE
+-	bool "Console on Blackfin JTAG"
+-	depends on BFIN_JTAG_COMM=y
+-
+ config SERIAL_NONSTANDARD
+ 	bool "Non-standard serial port support"
+ 	depends on HAS_IOMEM
+diff --git a/drivers/tty/Makefile b/drivers/tty/Makefile
+index 8ce3a86..42054c7 100644
+--- a/drivers/tty/Makefile
++++ b/drivers/tty/Makefile
+@@ -20,7 +20,6 @@ obj-$(CONFIG_SERIAL_DEV_BUS)	+= serdev/
  
--config INPUT_BFIN_ROTARY
--	tristate "Blackfin Rotary support"
--	depends on BF54x || BF52x
--	help
--	  Say Y here if you want to use the Blackfin Rotary.
--
--	  To compile this driver as a module, choose M here: the
--	  module will be called bfin-rotary.
--
- config INPUT_WM831X_ON
- 	tristate "WM831X ON pin"
- 	depends on MFD_WM831X
-diff --git a/drivers/input/misc/Makefile b/drivers/input/misc/Makefile
-index a8f61af..eb9c6c3 100644
---- a/drivers/input/misc/Makefile
-+++ b/drivers/input/misc/Makefile
-@@ -19,7 +19,6 @@ obj-$(CONFIG_INPUT_ARIZONA_HAPTICS)	+= arizona-haptics.o
- obj-$(CONFIG_INPUT_ATI_REMOTE2)		+= ati_remote2.o
- obj-$(CONFIG_INPUT_ATLAS_BTNS)		+= atlas_btns.o
- obj-$(CONFIG_INPUT_ATMEL_CAPTOUCH)	+= atmel_captouch.o
--obj-$(CONFIG_INPUT_BFIN_ROTARY)		+= bfin_rotary.o
- obj-$(CONFIG_INPUT_BMA150)		+= bma150.o
- obj-$(CONFIG_INPUT_CM109)		+= cm109.o
- obj-$(CONFIG_INPUT_CMA3000)		+= cma3000_d0x.o
-diff --git a/drivers/input/misc/bfin_rotary.c b/drivers/input/misc/bfin_rotary.c
+ # tty drivers
+ obj-$(CONFIG_AMIGA_BUILTIN_SERIAL) += amiserial.o
+-obj-$(CONFIG_BFIN_JTAG_COMM)	+= bfin_jtag_comm.o
+ obj-$(CONFIG_CYCLADES)		+= cyclades.o
+ obj-$(CONFIG_ISI)		+= isicom.o
+ obj-$(CONFIG_MOXA_INTELLIO)	+= moxa.o
+diff --git a/drivers/tty/bfin_jtag_comm.c b/drivers/tty/bfin_jtag_comm.c
 deleted file mode 100644
-index 799ce3d..0000000
---- a/drivers/input/misc/bfin_rotary.c
+index c369bf2..0000000
+--- a/drivers/tty/bfin_jtag_comm.c
 +++ /dev/null
-@@ -1,294 +0,0 @@
+@@ -1,353 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0+
 -/*
-- * Rotary counter driver for Analog Devices Blackfin Processors
+- * TTY over Blackfin JTAG Communication
 - *
 - * Copyright 2008-2009 Analog Devices Inc.
-- * Licensed under the GPL-2 or later.
+- *
+- * Enter bugs at http://blackfin.uclinux.org/
 - */
 -
+-#define DRV_NAME "bfin-jtag-comm"
+-#define DEV_NAME "ttyBFJC"
+-#define pr_fmt(fmt) DRV_NAME ": " fmt
+-
+-#include <linux/circ_buf.h>
+-#include <linux/console.h>
+-#include <linux/delay.h>
+-#include <linux/err.h>
+-#include <linux/kernel.h>
+-#include <linux/kthread.h>
 -#include <linux/module.h>
--#include <linux/interrupt.h>
--#include <linux/io.h>
--#include <linux/irq.h>
--#include <linux/pm.h>
--#include <linux/platform_device.h>
--#include <linux/input.h>
+-#include <linux/mutex.h>
+-#include <linux/sched.h>
 -#include <linux/slab.h>
--#include <linux/platform_data/bfin_rotary.h>
+-#include <linux/tty.h>
+-#include <linux/tty_driver.h>
+-#include <linux/tty_flip.h>
+-#include <linux/atomic.h>
 -
--#include <asm/portmux.h>
+-#define pr_init(fmt, args...) ({ static const __initconst char __fmt[] = fmt; printk(__fmt, ## args); })
 -
--#define CNT_CONFIG_OFF		0	/* CNT Config Offset */
--#define CNT_IMASK_OFF		4	/* CNT Interrupt Mask Offset */
--#define CNT_STATUS_OFF		8	/* CNT Status Offset */
--#define CNT_COMMAND_OFF		12	/* CNT Command Offset */
--#define CNT_DEBOUNCE_OFF	16	/* CNT Debounce Offset */
--#define CNT_COUNTER_OFF		20	/* CNT Counter Offset */
--#define CNT_MAX_OFF		24	/* CNT Maximum Count Offset */
--#define CNT_MIN_OFF		28	/* CNT Minimum Count Offset */
+-/* See the Debug/Emulation chapter in the HRM */
+-#define EMUDOF   0x00000001	/* EMUDAT_OUT full & valid */
+-#define EMUDIF   0x00000002	/* EMUDAT_IN full & valid */
+-#define EMUDOOVF 0x00000004	/* EMUDAT_OUT overflow */
+-#define EMUDIOVF 0x00000008	/* EMUDAT_IN overflow */
 -
--struct bfin_rot {
--	struct input_dev *input;
--	void __iomem *base;
--	int irq;
--	unsigned int up_key;
--	unsigned int down_key;
--	unsigned int button_key;
--	unsigned int rel_code;
+-static inline uint32_t bfin_write_emudat(uint32_t emudat)
+-{
+-	__asm__ __volatile__("emudat = %0;" : : "d"(emudat));
+-	return emudat;
+-}
 -
--	unsigned short mode;
--	unsigned short debounce;
+-static inline uint32_t bfin_read_emudat(void)
+-{
+-	uint32_t emudat;
+-	__asm__ __volatile__("%0 = emudat;" : "=d"(emudat));
+-	return emudat;
+-}
 -
--	unsigned short cnt_config;
--	unsigned short cnt_imask;
--	unsigned short cnt_debounce;
+-static inline uint32_t bfin_write_emudat_chars(char a, char b, char c, char d)
+-{
+-	return bfin_write_emudat((a << 0) | (b << 8) | (c << 16) | (d << 24));
+-}
+-
+-#define CIRC_SIZE 2048	/* see comment in tty_io.c:do_tty_write() */
+-#define CIRC_MASK (CIRC_SIZE - 1)
+-#define circ_empty(circ)     ((circ)->head == (circ)->tail)
+-#define circ_free(circ)      CIRC_SPACE((circ)->head, (circ)->tail, CIRC_SIZE)
+-#define circ_cnt(circ)       CIRC_CNT((circ)->head, (circ)->tail, CIRC_SIZE)
+-#define circ_byte(circ, idx) ((circ)->buf[(idx) & CIRC_MASK])
+-
+-static struct tty_driver *bfin_jc_driver;
+-static struct task_struct *bfin_jc_kthread;
+-static struct tty_port port;
+-static volatile struct circ_buf bfin_jc_write_buf;
+-
+-static int
+-bfin_jc_emudat_manager(void *arg)
+-{
+-	uint32_t inbound_len = 0, outbound_len = 0;
+-
+-	while (!kthread_should_stop()) {
+-		struct tty_struct *tty = tty_port_tty_get(&port);
+-		/* no one left to give data to, so sleep */
+-		if (tty == NULL && circ_empty(&bfin_jc_write_buf)) {
+-			pr_debug("waiting for readers\n");
+-			__set_current_state(TASK_UNINTERRUPTIBLE);
+-			schedule();
+-			continue;
+-		}
+-
+-		/* no data available, so just chill */
+-		if (!(bfin_read_DBGSTAT() & EMUDIF) && circ_empty(&bfin_jc_write_buf)) {
+-			pr_debug("waiting for data (in_len = %i) (circ: %i %i)\n",
+-				inbound_len, bfin_jc_write_buf.tail, bfin_jc_write_buf.head);
+-			tty_kref_put(tty);
+-			if (inbound_len)
+-				schedule();
+-			else
+-				schedule_timeout_interruptible(HZ);
+-			continue;
+-		}
+-
+-		/* if incoming data is ready, eat it */
+-		if (bfin_read_DBGSTAT() & EMUDIF) {
+-			uint32_t emudat = bfin_read_emudat();
+-			if (inbound_len == 0) {
+-				pr_debug("incoming length: 0x%08x\n", emudat);
+-				inbound_len = emudat;
+-			} else {
+-				size_t num_chars = (4 <= inbound_len ? 4 : inbound_len);
+-				pr_debug("  incoming data: 0x%08x (pushing %zu)\n", emudat, num_chars);
+-				inbound_len -= num_chars;
+-				tty_insert_flip_string(&port, (unsigned char *)&emudat, num_chars);
+-				tty_flip_buffer_push(&port);
+-			}
+-		}
+-
+-		/* if outgoing data is ready, post it */
+-		if (!(bfin_read_DBGSTAT() & EMUDOF) && !circ_empty(&bfin_jc_write_buf)) {
+-			if (outbound_len == 0) {
+-				outbound_len = circ_cnt(&bfin_jc_write_buf);
+-				bfin_write_emudat(outbound_len);
+-				pr_debug("outgoing length: 0x%08x\n", outbound_len);
+-			} else {
+-				int tail = bfin_jc_write_buf.tail;
+-				size_t ate = (4 <= outbound_len ? 4 : outbound_len);
+-				uint32_t emudat =
+-				bfin_write_emudat_chars(
+-					circ_byte(&bfin_jc_write_buf, tail + 0),
+-					circ_byte(&bfin_jc_write_buf, tail + 1),
+-					circ_byte(&bfin_jc_write_buf, tail + 2),
+-					circ_byte(&bfin_jc_write_buf, tail + 3)
+-				);
+-				bfin_jc_write_buf.tail += ate;
+-				outbound_len -= ate;
+-				if (tty)
+-					tty_wakeup(tty);
+-				pr_debug("  outgoing data: 0x%08x (pushing %zu)\n", emudat, ate);
+-			}
+-		}
+-		tty_kref_put(tty);
+-	}
+-
+-	__set_current_state(TASK_RUNNING);
+-	return 0;
+-}
+-
+-static int
+-bfin_jc_open(struct tty_struct *tty, struct file *filp)
+-{
+-	unsigned long flags;
+-
+-	spin_lock_irqsave(&port.lock, flags);
+-	port.count++;
+-	spin_unlock_irqrestore(&port.lock, flags);
+-	tty_port_tty_set(&port, tty);
+-	wake_up_process(bfin_jc_kthread);
+-	return 0;
+-}
+-
+-static void
+-bfin_jc_close(struct tty_struct *tty, struct file *filp)
+-{
+-	unsigned long flags;
+-	bool last;
+-
+-	spin_lock_irqsave(&port.lock, flags);
+-	last = --port.count == 0;
+-	spin_unlock_irqrestore(&port.lock, flags);
+-	if (last)
+-		tty_port_tty_set(&port, NULL);
+-	wake_up_process(bfin_jc_kthread);
+-}
+-
+-/* XXX: we dont handle the put_char() case where we must handle count = 1 */
+-static int
+-bfin_jc_circ_write(const unsigned char *buf, int count)
+-{
+-	int i;
+-	count = min(count, circ_free(&bfin_jc_write_buf));
+-	pr_debug("going to write chunk of %i bytes\n", count);
+-	for (i = 0; i < count; ++i)
+-		circ_byte(&bfin_jc_write_buf, bfin_jc_write_buf.head + i) = buf[i];
+-	bfin_jc_write_buf.head += i;
+-	return i;
+-}
+-
+-#ifndef CONFIG_BFIN_JTAG_COMM_CONSOLE
+-# define console_lock()
+-# define console_unlock()
+-#endif
+-static int
+-bfin_jc_write(struct tty_struct *tty, const unsigned char *buf, int count)
+-{
+-	int i;
+-	console_lock();
+-	i = bfin_jc_circ_write(buf, count);
+-	console_unlock();
+-	wake_up_process(bfin_jc_kthread);
+-	return i;
+-}
+-
+-static void
+-bfin_jc_flush_chars(struct tty_struct *tty)
+-{
+-	wake_up_process(bfin_jc_kthread);
+-}
+-
+-static int
+-bfin_jc_write_room(struct tty_struct *tty)
+-{
+-	return circ_free(&bfin_jc_write_buf);
+-}
+-
+-static int
+-bfin_jc_chars_in_buffer(struct tty_struct *tty)
+-{
+-	return circ_cnt(&bfin_jc_write_buf);
+-}
+-
+-static const struct tty_operations bfin_jc_ops = {
+-	.open            = bfin_jc_open,
+-	.close           = bfin_jc_close,
+-	.write           = bfin_jc_write,
+-	/*.put_char        = bfin_jc_put_char,*/
+-	.flush_chars     = bfin_jc_flush_chars,
+-	.write_room      = bfin_jc_write_room,
+-	.chars_in_buffer = bfin_jc_chars_in_buffer,
 -};
 -
--static void report_key_event(struct input_dev *input, int keycode)
+-static int __init bfin_jc_init(void)
 -{
--	/* simulate a press-n-release */
--	input_report_key(input, keycode, 1);
--	input_sync(input);
--	input_report_key(input, keycode, 0);
--	input_sync(input);
+-	int ret;
+-
+-	bfin_jc_kthread = kthread_create(bfin_jc_emudat_manager, NULL, DRV_NAME);
+-	if (IS_ERR(bfin_jc_kthread))
+-		return PTR_ERR(bfin_jc_kthread);
+-
+-	ret = -ENOMEM;
+-
+-	bfin_jc_write_buf.head = bfin_jc_write_buf.tail = 0;
+-	bfin_jc_write_buf.buf = kmalloc(CIRC_SIZE, GFP_KERNEL);
+-	if (!bfin_jc_write_buf.buf)
+-		goto err_buf;
+-
+-	bfin_jc_driver = alloc_tty_driver(1);
+-	if (!bfin_jc_driver)
+-		goto err_driver;
+-
+-	tty_port_init(&port);
+-
+-	bfin_jc_driver->driver_name  = DRV_NAME;
+-	bfin_jc_driver->name         = DEV_NAME;
+-	bfin_jc_driver->type         = TTY_DRIVER_TYPE_SERIAL;
+-	bfin_jc_driver->subtype      = SERIAL_TYPE_NORMAL;
+-	bfin_jc_driver->init_termios = tty_std_termios;
+-	tty_set_operations(bfin_jc_driver, &bfin_jc_ops);
+-	tty_port_link_device(&port, bfin_jc_driver, 0);
+-
+-	ret = tty_register_driver(bfin_jc_driver);
+-	if (ret)
+-		goto err;
+-
+-	pr_init(KERN_INFO DRV_NAME ": initialized\n");
+-
+-	return 0;
+-
+- err:
+-	tty_port_destroy(&port);
+-	put_tty_driver(bfin_jc_driver);
+- err_driver:
+-	kfree(bfin_jc_write_buf.buf);
+- err_buf:
+-	kthread_stop(bfin_jc_kthread);
+-	return ret;
 -}
+-module_init(bfin_jc_init);
 -
--static void report_rotary_event(struct bfin_rot *rotary, int delta)
+-static void __exit bfin_jc_exit(void)
 -{
--	struct input_dev *input = rotary->input;
+-	kthread_stop(bfin_jc_kthread);
+-	kfree(bfin_jc_write_buf.buf);
+-	tty_unregister_driver(bfin_jc_driver);
+-	put_tty_driver(bfin_jc_driver);
+-	tty_port_destroy(&port);
+-}
+-module_exit(bfin_jc_exit);
 -
--	if (rotary->up_key) {
--		report_key_event(input,
--				 delta > 0 ? rotary->up_key : rotary->down_key);
--	} else {
--		input_report_rel(input, rotary->rel_code, delta);
--		input_sync(input);
+-#if defined(CONFIG_BFIN_JTAG_COMM_CONSOLE) || defined(CONFIG_EARLY_PRINTK)
+-static void
+-bfin_jc_straight_buffer_write(const char *buf, unsigned count)
+-{
+-	unsigned ate = 0;
+-	while (bfin_read_DBGSTAT() & EMUDOF)
+-		continue;
+-	bfin_write_emudat(count);
+-	while (ate < count) {
+-		while (bfin_read_DBGSTAT() & EMUDOF)
+-			continue;
+-		bfin_write_emudat_chars(buf[ate], buf[ate+1], buf[ate+2], buf[ate+3]);
+-		ate += 4;
 -	}
 -}
+-#endif
 -
--static irqreturn_t bfin_rotary_isr(int irq, void *dev_id)
+-#ifdef CONFIG_BFIN_JTAG_COMM_CONSOLE
+-static void
+-bfin_jc_console_write(struct console *co, const char *buf, unsigned count)
 -{
--	struct bfin_rot *rotary = dev_id;
--	int delta;
--
--	switch (readw(rotary->base + CNT_STATUS_OFF)) {
--
--	case ICII:
--		break;
--
--	case UCII:
--	case DCII:
--		delta = readl(rotary->base + CNT_COUNTER_OFF);
--		if (delta)
--			report_rotary_event(rotary, delta);
--		break;
--
--	case CZMII:
--		report_key_event(rotary->input, rotary->button_key);
--		break;
--
--	default:
--		break;
--	}
--
--	writew(W1LCNT_ZERO, rotary->base + CNT_COMMAND_OFF); /* Clear COUNTER */
--	writew(-1, rotary->base + CNT_STATUS_OFF); /* Clear STATUS */
--
--	return IRQ_HANDLED;
+-	if (bfin_jc_kthread == NULL)
+-		bfin_jc_straight_buffer_write(buf, count);
+-	else
+-		bfin_jc_circ_write(buf, count);
 -}
 -
--static int bfin_rotary_open(struct input_dev *input)
+-static struct tty_driver *
+-bfin_jc_console_device(struct console *co, int *index)
 -{
--	struct bfin_rot *rotary = input_get_drvdata(input);
--	unsigned short val;
+-	*index = co->index;
+-	return bfin_jc_driver;
+-}
 -
--	if (rotary->mode & ROT_DEBE)
--		writew(rotary->debounce & DPRESCALE,
--			rotary->base + CNT_DEBOUNCE_OFF);
+-static struct console bfin_jc_console = {
+-	.name    = DEV_NAME,
+-	.write   = bfin_jc_console_write,
+-	.device  = bfin_jc_console_device,
+-	.flags   = CON_ANYTIME | CON_PRINTBUFFER,
+-	.index   = -1,
+-};
 -
--	writew(rotary->mode & ~CNTE, rotary->base + CNT_CONFIG_OFF);
+-static int __init bfin_jc_console_init(void)
+-{
+-	register_console(&bfin_jc_console);
+-	return 0;
+-}
+-console_initcall(bfin_jc_console_init);
+-#endif
 -
--	val = UCIE | DCIE;
--	if (rotary->button_key)
--		val |= CZMIE;
--	writew(val, rotary->base + CNT_IMASK_OFF);
+-#ifdef CONFIG_EARLY_PRINTK
+-static void __init
+-bfin_jc_early_write(struct console *co, const char *buf, unsigned int count)
+-{
+-	bfin_jc_straight_buffer_write(buf, count);
+-}
 -
--	writew(rotary->mode | CNTE, rotary->base + CNT_CONFIG_OFF);
+-static struct console bfin_jc_early_console __initdata = {
+-	.name   = "early_BFJC",
+-	.write   = bfin_jc_early_write,
+-	.flags   = CON_ANYTIME | CON_PRINTBUFFER,
+-	.index   = -1,
+-};
+-
+-struct console * __init
+-bfin_jc_early_init(unsigned int port, unsigned int cflag)
+-{
+-	return &bfin_jc_early_console;
+-}
+-#endif
+-
+-MODULE_AUTHOR("Mike Frysinger <vapier@gentoo.org>");
+-MODULE_DESCRIPTION("TTY over Blackfin JTAG Communication");
+-MODULE_LICENSE("GPL");
+diff --git a/drivers/tty/hvc/Kconfig b/drivers/tty/hvc/Kconfig
+index fec457e..3bade5a 100644
+--- a/drivers/tty/hvc/Kconfig
++++ b/drivers/tty/hvc/Kconfig
+@@ -88,15 +88,6 @@ config HVC_DCC
+ 	 driver. This console is used through a JTAG only on ARM. If you don't have
+ 	 a JTAG then you probably don't want this option.
+ 
+-config HVC_BFIN_JTAG
+-	bool "Blackfin JTAG console"
+-	depends on BLACKFIN
+-	select HVC_DRIVER
+-	help
+-	 This console uses the Blackfin JTAG to create a console under the
+-	 the HVC driver.  If you don't have JTAG, then you probably don't
+-	 want this option.
+-
+ config HVCS
+ 	tristate "IBM Hypervisor Virtual Console Server support"
+ 	depends on PPC_PSERIES && HVC_CONSOLE
+diff --git a/drivers/tty/hvc/Makefile b/drivers/tty/hvc/Makefile
+index 0b02ec7..b82f9f6 100644
+--- a/drivers/tty/hvc/Makefile
++++ b/drivers/tty/hvc/Makefile
+@@ -10,5 +10,4 @@ obj-$(CONFIG_HVC_IRQ)		+= hvc_irq.o
+ obj-$(CONFIG_HVC_XEN)		+= hvc_xen.o
+ obj-$(CONFIG_HVC_IUCV)		+= hvc_iucv.o
+ obj-$(CONFIG_HVC_UDBG)		+= hvc_udbg.o
+-obj-$(CONFIG_HVC_BFIN_JTAG)	+= hvc_bfin_jtag.o
+ obj-$(CONFIG_HVCS)		+= hvcs.o
+diff --git a/drivers/tty/hvc/hvc_bfin_jtag.c b/drivers/tty/hvc/hvc_bfin_jtag.c
+deleted file mode 100644
+index dd7cae4..0000000
+--- a/drivers/tty/hvc/hvc_bfin_jtag.c
++++ /dev/null
+@@ -1,104 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0+
+-/*
+- * Console via Blackfin JTAG Communication
+- *
+- * Copyright 2008-2011 Analog Devices Inc.
+- *
+- * Enter bugs at http://blackfin.uclinux.org/
+- */
+-
+-#include <linux/console.h>
+-#include <linux/delay.h>
+-#include <linux/err.h>
+-#include <linux/init.h>
+-#include <linux/moduleparam.h>
+-#include <linux/types.h>
+-
+-#include "hvc_console.h"
+-
+-/* See the Debug/Emulation chapter in the HRM */
+-#define EMUDOF   0x00000001	/* EMUDAT_OUT full & valid */
+-#define EMUDIF   0x00000002	/* EMUDAT_IN full & valid */
+-#define EMUDOOVF 0x00000004	/* EMUDAT_OUT overflow */
+-#define EMUDIOVF 0x00000008	/* EMUDAT_IN overflow */
+-
+-/* Helper functions to glue the register API to simple C operations */
+-static inline uint32_t bfin_write_emudat(uint32_t emudat)
+-{
+-	__asm__ __volatile__("emudat = %0;" : : "d"(emudat));
+-	return emudat;
+-}
+-
+-static inline uint32_t bfin_read_emudat(void)
+-{
+-	uint32_t emudat;
+-	__asm__ __volatile__("%0 = emudat;" : "=d"(emudat));
+-	return emudat;
+-}
+-
+-/* Send data to the host */
+-static int hvc_bfin_put_chars(uint32_t vt, const char *buf, int count)
+-{
+-	static uint32_t outbound_len;
+-	uint32_t emudat;
+-	int ret;
+-
+-	if (bfin_read_DBGSTAT() & EMUDOF)
+-		return 0;
+-
+-	if (!outbound_len) {
+-		outbound_len = count;
+-		bfin_write_emudat(outbound_len);
+-		return 0;
+-	}
+-
+-	ret = min(outbound_len, (uint32_t)4);
+-	memcpy(&emudat, buf, ret);
+-	bfin_write_emudat(emudat);
+-	outbound_len -= ret;
+-
+-	return ret;
+-}
+-
+-/* Receive data from the host */
+-static int hvc_bfin_get_chars(uint32_t vt, char *buf, int count)
+-{
+-	static uint32_t inbound_len;
+-	uint32_t emudat;
+-	int ret;
+-
+-	if (!(bfin_read_DBGSTAT() & EMUDIF))
+-		return 0;
+-	emudat = bfin_read_emudat();
+-
+-	if (!inbound_len) {
+-		inbound_len = emudat;
+-		return 0;
+-	}
+-
+-	ret = min(inbound_len, (uint32_t)4);
+-	memcpy(buf, &emudat, ret);
+-	inbound_len -= ret;
+-
+-	return ret;
+-}
+-
+-/* Glue the HVC layers to the Blackfin layers */
+-static const struct hv_ops hvc_bfin_get_put_ops = {
+-	.get_chars = hvc_bfin_get_chars,
+-	.put_chars = hvc_bfin_put_chars,
+-};
+-
+-static int __init hvc_bfin_console_init(void)
+-{
+-	hvc_instantiate(0, 0, &hvc_bfin_get_put_ops);
+-	return 0;
+-}
+-console_initcall(hvc_bfin_console_init);
+-
+-static int __init hvc_bfin_init(void)
+-{
+-	hvc_alloc(0, 0, &hvc_bfin_get_put_ops, 128);
+-	return 0;
+-}
+-device_initcall(hvc_bfin_init);
+diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
+index 3682fd3..b9b6450 100644
+--- a/drivers/tty/serial/Kconfig
++++ b/drivers/tty/serial/Kconfig
+@@ -498,92 +498,6 @@ config SERIAL_SA1100_CONSOLE
+ 	  your boot loader (lilo or loadlin) about how to pass options to the
+ 	  kernel at boot time.)
+ 
+-config SERIAL_BFIN
+-	tristate "Blackfin serial port support"
+-	depends on BLACKFIN
+-	select SERIAL_CORE
+-	select SERIAL_BFIN_UART0 if (BF531 || BF532 || BF533 || BF561)
+-	help
+-	  Add support for the built-in UARTs on the Blackfin.
+-
+-	  To compile this driver as a module, choose M here: the
+-	  module is named bfin_uart.ko.
+-
+-config SERIAL_BFIN_CONSOLE
+-	bool "Console on Blackfin serial port"
+-	depends on SERIAL_BFIN=y
+-	select SERIAL_CORE_CONSOLE
+-
+-choice
+-	prompt "UART Mode"
+-	depends on SERIAL_BFIN
+-	default SERIAL_BFIN_DMA
+-	help
+-	  This driver supports the built-in serial ports of the Blackfin family
+-	  of CPUs
+-
+-config SERIAL_BFIN_DMA
+-	bool "DMA mode"
+-	depends on !DMA_UNCACHED_NONE && KGDB_SERIAL_CONSOLE=n
+-	help
+-	  This driver works under DMA mode. If this option is selected, the
+-	  blackfin simple dma driver is also enabled.
+-
+-config SERIAL_BFIN_PIO
+-	bool "PIO mode"
+-	help
+-	  This driver works under PIO mode.
+-
+-endchoice
+-
+-config SERIAL_BFIN_UART0
+-	bool "Enable UART0"
+-	depends on SERIAL_BFIN
+-	help
+-	  Enable UART0
+-
+-config BFIN_UART0_CTSRTS
+-	bool "Enable UART0 hardware flow control"
+-	depends on SERIAL_BFIN_UART0
+-	help
+-	  Enable hardware flow control in the driver.
+-
+-config SERIAL_BFIN_UART1
+-	bool "Enable UART1"
+-	depends on SERIAL_BFIN && (!BF531 && !BF532 && !BF533 && !BF561)
+-	help
+-	  Enable UART1
+-
+-config BFIN_UART1_CTSRTS
+-	bool "Enable UART1 hardware flow control"
+-	depends on SERIAL_BFIN_UART1
+-	help
+-	  Enable hardware flow control in the driver.
+-
+-config SERIAL_BFIN_UART2
+-	bool "Enable UART2"
+-	depends on SERIAL_BFIN && (BF54x || BF538 || BF539)
+-	help
+-	  Enable UART2
+-
+-config BFIN_UART2_CTSRTS
+-	bool "Enable UART2 hardware flow control"
+-	depends on SERIAL_BFIN_UART2
+-	help
+-	  Enable hardware flow control in the driver.
+-
+-config SERIAL_BFIN_UART3
+-	bool "Enable UART3"
+-	depends on SERIAL_BFIN && (BF54x)
+-	help
+-	  Enable UART3
+-
+-config BFIN_UART3_CTSRTS
+-	bool "Enable UART3 hardware flow control"
+-	depends on SERIAL_BFIN_UART3
+-	help
+-	  Enable hardware flow control in the driver.
+-
+ config SERIAL_IMX
+ 	tristate "IMX serial port support"
+ 	depends on HAS_DMA
+@@ -1242,69 +1156,6 @@ config SERIAL_SC16IS7XX_SPI
+           This is additional support to exsisting driver.
+           You must select at least one bus for the driver to be built.
+ 
+-config SERIAL_BFIN_SPORT
+-	tristate "Blackfin SPORT emulate UART"
+-	depends on BLACKFIN
+-	select SERIAL_CORE
+-	help
+-	  Enable SPORT emulate UART on Blackfin series.
+-
+-	  To compile this driver as a module, choose M here: the
+-	  module will be called bfin_sport_uart.
+-
+-config SERIAL_BFIN_SPORT_CONSOLE
+-	bool "Console on Blackfin sport emulated uart"
+-	depends on SERIAL_BFIN_SPORT=y
+-	select SERIAL_CORE_CONSOLE
+-
+-config SERIAL_BFIN_SPORT0_UART
+-	bool "Enable UART over SPORT0"
+-	depends on SERIAL_BFIN_SPORT && !(BF542 || BF544)
+-	help
+-	  Enable UART over SPORT0
+-
+-config SERIAL_BFIN_SPORT0_UART_CTSRTS
+-	bool "Enable UART over SPORT0 hardware flow control"
+-	depends on SERIAL_BFIN_SPORT0_UART
+-	help
+-	  Enable hardware flow control in the driver.
+-
+-config SERIAL_BFIN_SPORT1_UART
+-	bool "Enable UART over SPORT1"
+-	depends on SERIAL_BFIN_SPORT
+-	help
+-	  Enable UART over SPORT1
+-
+-config SERIAL_BFIN_SPORT1_UART_CTSRTS
+-	bool "Enable UART over SPORT1 hardware flow control"
+-	depends on SERIAL_BFIN_SPORT1_UART
+-	help
+-	  Enable hardware flow control in the driver.
+-
+-config SERIAL_BFIN_SPORT2_UART
+-	bool "Enable UART over SPORT2"
+-	depends on SERIAL_BFIN_SPORT && (BF54x || BF538 || BF539)
+-	help
+-	  Enable UART over SPORT2
+-
+-config SERIAL_BFIN_SPORT2_UART_CTSRTS
+-	bool "Enable UART over SPORT2 hardware flow control"
+-	depends on SERIAL_BFIN_SPORT2_UART
+-	help
+-	  Enable hardware flow control in the driver.
+-
+-config SERIAL_BFIN_SPORT3_UART
+-	bool "Enable UART over SPORT3"
+-	depends on SERIAL_BFIN_SPORT && (BF54x || BF538 || BF539)
+-	help
+-	  Enable UART over SPORT3
+-
+-config SERIAL_BFIN_SPORT3_UART_CTSRTS
+-	bool "Enable UART over SPORT3 hardware flow control"
+-	depends on SERIAL_BFIN_SPORT3_UART
+-	help
+-	  Enable hardware flow control in the driver.
+-
+ config SERIAL_TIMBERDALE
+ 	tristate "Support for timberdale UART"
+ 	select SERIAL_CORE
+diff --git a/drivers/tty/serial/Makefile b/drivers/tty/serial/Makefile
+index 842d185..1342ffc 100644
+--- a/drivers/tty/serial/Makefile
++++ b/drivers/tty/serial/Makefile
+@@ -29,8 +29,6 @@ obj-$(CONFIG_SERIAL_PXA_NON8250) += pxa.o
+ obj-$(CONFIG_SERIAL_PNX8XXX) += pnx8xxx_uart.o
+ obj-$(CONFIG_SERIAL_SA1100) += sa1100.o
+ obj-$(CONFIG_SERIAL_BCM63XX) += bcm63xx_uart.o
+-obj-$(CONFIG_SERIAL_BFIN) += bfin_uart.o
+-obj-$(CONFIG_SERIAL_BFIN_SPORT) += bfin_sport_uart.o
+ obj-$(CONFIG_SERIAL_SAMSUNG) += samsung.o
+ obj-$(CONFIG_SERIAL_MAX3100) += max3100.o
+ obj-$(CONFIG_SERIAL_MAX310X) += max310x.o
+diff --git a/drivers/tty/serial/bfin_sport_uart.c b/drivers/tty/serial/bfin_sport_uart.c
+deleted file mode 100644
+index 4ccca5d..0000000
+--- a/drivers/tty/serial/bfin_sport_uart.c
++++ /dev/null
+@@ -1,937 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0+
+-/*
+- * Blackfin On-Chip Sport Emulated UART Driver
+- *
+- * Copyright 2006-2009 Analog Devices Inc.
+- *
+- * Enter bugs at http://blackfin.uclinux.org/
+- */
+-
+-/*
+- * This driver and the hardware supported are in term of EE-191 of ADI.
+- * http://www.analog.com/static/imported-files/application_notes/EE191.pdf 
+- * This application note describe how to implement a UART on a Sharc DSP,
+- * but this driver is implemented on Blackfin Processor.
+- * Transmit Frame Sync is not used by this driver to transfer data out.
+- */
+-
+-/* #define DEBUG */
+-
+-#define DRV_NAME "bfin-sport-uart"
+-#define DEVICE_NAME	"ttySS"
+-#define pr_fmt(fmt) DRV_NAME ": " fmt
+-
+-#include <linux/module.h>
+-#include <linux/ioport.h>
+-#include <linux/io.h>
+-#include <linux/init.h>
+-#include <linux/console.h>
+-#include <linux/sysrq.h>
+-#include <linux/slab.h>
+-#include <linux/platform_device.h>
+-#include <linux/tty.h>
+-#include <linux/tty_flip.h>
+-#include <linux/serial_core.h>
+-#include <linux/gpio.h>
+-
+-#include <asm/bfin_sport.h>
+-#include <asm/delay.h>
+-#include <asm/portmux.h>
+-
+-#include "bfin_sport_uart.h"
+-
+-struct sport_uart_port {
+-	struct uart_port	port;
+-	int			err_irq;
+-	unsigned short		csize;
+-	unsigned short		rxmask;
+-	unsigned short		txmask1;
+-	unsigned short		txmask2;
+-	unsigned char		stopb;
+-/*	unsigned char		parib; */
+-#ifdef CONFIG_SERIAL_BFIN_SPORT_CTSRTS
+-	int cts_pin;
+-	int rts_pin;
+-#endif
+-};
+-
+-static int sport_uart_tx_chars(struct sport_uart_port *up);
+-static void sport_stop_tx(struct uart_port *port);
+-
+-static inline void tx_one_byte(struct sport_uart_port *up, unsigned int value)
+-{
+-	pr_debug("%s value:%x, mask1=0x%x, mask2=0x%x\n", __func__, value,
+-		up->txmask1, up->txmask2);
+-
+-	/* Place Start and Stop bits */
+-	__asm__ __volatile__ (
+-		"%[val] <<= 1;"
+-		"%[val] = %[val] & %[mask1];"
+-		"%[val] = %[val] | %[mask2];"
+-		: [val]"+d"(value)
+-		: [mask1]"d"(up->txmask1), [mask2]"d"(up->txmask2)
+-		: "ASTAT"
+-	);
+-	pr_debug("%s value:%x\n", __func__, value);
+-
+-	SPORT_PUT_TX(up, value);
+-}
+-
+-static inline unsigned char rx_one_byte(struct sport_uart_port *up)
+-{
+-	unsigned int value;
+-	unsigned char extract;
+-	u32 tmp_mask1, tmp_mask2, tmp_shift, tmp;
+-
+-	if ((up->csize + up->stopb) > 7)
+-		value = SPORT_GET_RX32(up);
+-	else
+-		value = SPORT_GET_RX(up);
+-
+-	pr_debug("%s value:%x, cs=%d, mask=0x%x\n", __func__, value,
+-		up->csize, up->rxmask);
+-
+-	/* Extract data */
+-	__asm__ __volatile__ (
+-		"%[extr] = 0;"
+-		"%[mask1] = %[rxmask];"
+-		"%[mask2] = 0x0200(Z);"
+-		"%[shift] = 0;"
+-		"LSETUP(.Lloop_s, .Lloop_e) LC0 = %[lc];"
+-		".Lloop_s:"
+-		"%[tmp] = extract(%[val], %[mask1].L)(Z);"
+-		"%[tmp] <<= %[shift];"
+-		"%[extr] = %[extr] | %[tmp];"
+-		"%[mask1] = %[mask1] - %[mask2];"
+-		".Lloop_e:"
+-		"%[shift] += 1;"
+-		: [extr]"=&d"(extract), [shift]"=&d"(tmp_shift), [tmp]"=&d"(tmp),
+-		  [mask1]"=&d"(tmp_mask1), [mask2]"=&d"(tmp_mask2)
+-		: [val]"d"(value), [rxmask]"d"(up->rxmask), [lc]"a"(up->csize)
+-		: "ASTAT", "LB0", "LC0", "LT0"
+-	);
+-
+-	pr_debug("	extract:%x\n", extract);
+-	return extract;
+-}
+-
+-static int sport_uart_setup(struct sport_uart_port *up, int size, int baud_rate)
+-{
+-	int tclkdiv, rclkdiv;
+-	unsigned int sclk = get_sclk();
+-
+-	/* Set TCR1 and TCR2, TFSR is not enabled for uart */
+-	SPORT_PUT_TCR1(up, (LATFS | ITFS | TFSR | TLSBIT | ITCLK));
+-	SPORT_PUT_TCR2(up, size + 1);
+-	pr_debug("%s TCR1:%x, TCR2:%x\n", __func__, SPORT_GET_TCR1(up), SPORT_GET_TCR2(up));
+-
+-	/* Set RCR1 and RCR2 */
+-	SPORT_PUT_RCR1(up, (RCKFE | LARFS | LRFS | RFSR | IRCLK));
+-	SPORT_PUT_RCR2(up, (size + 1) * 2 - 1);
+-	pr_debug("%s RCR1:%x, RCR2:%x\n", __func__, SPORT_GET_RCR1(up), SPORT_GET_RCR2(up));
+-
+-	tclkdiv = sclk / (2 * baud_rate) - 1;
+-	/* The actual uart baud rate of devices vary between +/-2%. The sport
+-	 * RX sample rate should be faster than the double of the worst case,
+-	 * otherwise, wrong data are received. So, set sport RX clock to be
+-	 * 3% faster.
+-	 */
+-	rclkdiv = sclk / (2 * baud_rate * 2 * 97 / 100) - 1;
+-	SPORT_PUT_TCLKDIV(up, tclkdiv);
+-	SPORT_PUT_RCLKDIV(up, rclkdiv);
+-	SSYNC();
+-	pr_debug("%s sclk:%d, baud_rate:%d, tclkdiv:%d, rclkdiv:%d\n",
+-			__func__, sclk, baud_rate, tclkdiv, rclkdiv);
 -
 -	return 0;
 -}
 -
--static void bfin_rotary_close(struct input_dev *input)
+-static irqreturn_t sport_uart_rx_irq(int irq, void *dev_id)
 -{
--	struct bfin_rot *rotary = input_get_drvdata(input);
+-	struct sport_uart_port *up = dev_id;
+-	struct tty_port *port = &up->port.state->port;
+-	unsigned int ch;
 -
--	writew(0, rotary->base + CNT_CONFIG_OFF);
--	writew(0, rotary->base + CNT_IMASK_OFF);
+-	spin_lock(&up->port.lock);
+-
+-	while (SPORT_GET_STAT(up) & RXNE) {
+-		ch = rx_one_byte(up);
+-		up->port.icount.rx++;
+-
+-		if (!uart_handle_sysrq_char(&up->port, ch))
+-			tty_insert_flip_char(port, ch, TTY_NORMAL);
+-	}
+-
+-	spin_unlock(&up->port.lock);
+-
+-	/* XXX this won't deadlock with lowlat? */
+-	tty_flip_buffer_push(port);
+-
+-	return IRQ_HANDLED;
 -}
 -
--static void bfin_rotary_free_action(void *data)
+-static irqreturn_t sport_uart_tx_irq(int irq, void *dev_id)
 -{
--	peripheral_free_list(data);
+-	struct sport_uart_port *up = dev_id;
+-
+-	spin_lock(&up->port.lock);
+-	sport_uart_tx_chars(up);
+-	spin_unlock(&up->port.lock);
+-
+-	return IRQ_HANDLED;
 -}
 -
--static int bfin_rotary_probe(struct platform_device *pdev)
+-static irqreturn_t sport_uart_err_irq(int irq, void *dev_id)
 -{
--	struct device *dev = &pdev->dev;
--	const struct bfin_rotary_platform_data *pdata = dev_get_platdata(dev);
--	struct bfin_rot *rotary;
+-	struct sport_uart_port *up = dev_id;
+-	unsigned int stat = SPORT_GET_STAT(up);
+-
+-	spin_lock(&up->port.lock);
+-
+-	/* Overflow in RX FIFO */
+-	if (stat & ROVF) {
+-		up->port.icount.overrun++;
+-		tty_insert_flip_char(&up->port.state->port, 0, TTY_OVERRUN);
+-		SPORT_PUT_STAT(up, ROVF); /* Clear ROVF bit */
+-	}
+-	/* These should not happen */
+-	if (stat & (TOVF | TUVF | RUVF)) {
+-		pr_err("SPORT Error:%s %s %s\n",
+-		       (stat & TOVF) ? "TX overflow" : "",
+-		       (stat & TUVF) ? "TX underflow" : "",
+-		       (stat & RUVF) ? "RX underflow" : "");
+-		SPORT_PUT_TCR1(up, SPORT_GET_TCR1(up) & ~TSPEN);
+-		SPORT_PUT_RCR1(up, SPORT_GET_RCR1(up) & ~RSPEN);
+-	}
+-	SSYNC();
+-
+-	spin_unlock(&up->port.lock);
+-	/* XXX we don't push the overrun bit to TTY? */
+-
+-	return IRQ_HANDLED;
+-}
+-
+-#ifdef CONFIG_SERIAL_BFIN_SPORT_CTSRTS
+-static unsigned int sport_get_mctrl(struct uart_port *port)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-	if (up->cts_pin < 0)
+-		return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
+-
+-	/* CTS PIN is negative assertive. */
+-	if (SPORT_UART_GET_CTS(up))
+-		return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
+-	else
+-		return TIOCM_DSR | TIOCM_CAR;
+-}
+-
+-static void sport_set_mctrl(struct uart_port *port, unsigned int mctrl)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-	if (up->rts_pin < 0)
+-		return;
+-
+-	/* RTS PIN is negative assertive. */
+-	if (mctrl & TIOCM_RTS)
+-		SPORT_UART_ENABLE_RTS(up);
+-	else
+-		SPORT_UART_DISABLE_RTS(up);
+-}
+-
+-/*
+- * Handle any change of modem status signal.
+- */
+-static irqreturn_t sport_mctrl_cts_int(int irq, void *dev_id)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)dev_id;
+-	unsigned int status;
+-
+-	status = sport_get_mctrl(&up->port);
+-	uart_handle_cts_change(&up->port, status & TIOCM_CTS);
+-
+-	return IRQ_HANDLED;
+-}
+-#else
+-static unsigned int sport_get_mctrl(struct uart_port *port)
+-{
+-	pr_debug("%s enter\n", __func__);
+-	return TIOCM_CTS | TIOCM_CD | TIOCM_DSR;
+-}
+-
+-static void sport_set_mctrl(struct uart_port *port, unsigned int mctrl)
+-{
+-	pr_debug("%s enter\n", __func__);
+-}
+-#endif
+-
+-/* Reqeust IRQ, Setup clock */
+-static int sport_startup(struct uart_port *port)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-	int ret;
+-
+-	pr_debug("%s enter\n", __func__);
+-	ret = request_irq(up->port.irq, sport_uart_rx_irq, 0,
+-		"SPORT_UART_RX", up);
+-	if (ret) {
+-		dev_err(port->dev, "unable to request SPORT RX interrupt\n");
+-		return ret;
+-	}
+-
+-	ret = request_irq(up->port.irq+1, sport_uart_tx_irq, 0,
+-		"SPORT_UART_TX", up);
+-	if (ret) {
+-		dev_err(port->dev, "unable to request SPORT TX interrupt\n");
+-		goto fail1;
+-	}
+-
+-	ret = request_irq(up->err_irq, sport_uart_err_irq, 0,
+-		"SPORT_UART_STATUS", up);
+-	if (ret) {
+-		dev_err(port->dev, "unable to request SPORT status interrupt\n");
+-		goto fail2;
+-	}
+-
+-#ifdef CONFIG_SERIAL_BFIN_SPORT_CTSRTS
+-	if (up->cts_pin >= 0) {
+-		if (request_irq(gpio_to_irq(up->cts_pin),
+-			sport_mctrl_cts_int,
+-			IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING |
+-			0, "BFIN_SPORT_UART_CTS", up)) {
+-			up->cts_pin = -1;
+-			dev_info(port->dev, "Unable to attach BlackFin UART over SPORT CTS interrupt. So, disable it.\n");
+-		}
+-	}
+-	if (up->rts_pin >= 0) {
+-		if (gpio_request(up->rts_pin, DRV_NAME)) {
+-			dev_info(port->dev, "fail to request RTS PIN at GPIO_%d\n", up->rts_pin);
+-			up->rts_pin = -1;
+-		} else
+-			gpio_direction_output(up->rts_pin, 0);
+-	}
+-#endif
+-
+-	return 0;
+- fail2:
+-	free_irq(up->port.irq+1, up);
+- fail1:
+-	free_irq(up->port.irq, up);
+-
+-	return ret;
+-}
+-
+-/*
+- * sport_uart_tx_chars
+- *
+- * ret 1 means need to enable sport.
+- * ret 0 means do nothing.
+- */
+-static int sport_uart_tx_chars(struct sport_uart_port *up)
+-{
+-	struct circ_buf *xmit = &up->port.state->xmit;
+-
+-	if (SPORT_GET_STAT(up) & TXF)
+-		return 0;
+-
+-	if (up->port.x_char) {
+-		tx_one_byte(up, up->port.x_char);
+-		up->port.icount.tx++;
+-		up->port.x_char = 0;
+-		return 1;
+-	}
+-
+-	if (uart_circ_empty(xmit) || uart_tx_stopped(&up->port)) {
+-		/* The waiting loop to stop SPORT TX from TX interrupt is
+-		 * too long. This may block SPORT RX interrupts and cause
+-		 * RX FIFO overflow. So, do stop sport TX only after the last
+-		 * char in TX FIFO is moved into the shift register.
+-		 */
+-		if (SPORT_GET_STAT(up) & TXHRE)
+-			sport_stop_tx(&up->port);
+-		return 0;
+-	}
+-
+-	while(!(SPORT_GET_STAT(up) & TXF) && !uart_circ_empty(xmit)) {
+-		tx_one_byte(up, xmit->buf[xmit->tail]);
+-		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE -1);
+-		up->port.icount.tx++;
+-	}
+-
+-	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
+-		uart_write_wakeup(&up->port);
+-
+-	return 1;
+-}
+-
+-static unsigned int sport_tx_empty(struct uart_port *port)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-	unsigned int stat;
+-
+-	stat = SPORT_GET_STAT(up);
+-	pr_debug("%s stat:%04x\n", __func__, stat);
+-	if (stat & TXHRE) {
+-		return TIOCSER_TEMT;
+-	} else
+-		return 0;
+-}
+-
+-static void sport_stop_tx(struct uart_port *port)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-
+-	pr_debug("%s enter\n", __func__);
+-
+-	if (!(SPORT_GET_TCR1(up) & TSPEN))
+-		return;
+-
+-	/* Although the hold register is empty, last byte is still in shift
+-	 * register and not sent out yet. So, put a dummy data into TX FIFO.
+-	 * Then, sport tx stops when last byte is shift out and the dummy
+-	 * data is moved into the shift register.
+-	 */
+-	SPORT_PUT_TX(up, 0xffff);
+-	while (!(SPORT_GET_STAT(up) & TXHRE))
+-		cpu_relax();
+-
+-	SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) & ~TSPEN));
+-	SSYNC();
+-
+-	return;
+-}
+-
+-static void sport_start_tx(struct uart_port *port)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-
+-	pr_debug("%s enter\n", __func__);
+-
+-	/* Write data into SPORT FIFO before enable SPROT to transmit */
+-	if (sport_uart_tx_chars(up)) {
+-		/* Enable transmit, then an interrupt will generated */
+-		SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) | TSPEN));
+-		SSYNC();
+-	}
+-
+-	pr_debug("%s exit\n", __func__);
+-}
+-
+-static void sport_stop_rx(struct uart_port *port)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-
+-	pr_debug("%s enter\n", __func__);
+-	/* Disable sport to stop rx */
+-	SPORT_PUT_RCR1(up, (SPORT_GET_RCR1(up) & ~RSPEN));
+-	SSYNC();
+-}
+-
+-static void sport_break_ctl(struct uart_port *port, int break_state)
+-{
+-	pr_debug("%s enter\n", __func__);
+-}
+-
+-static void sport_shutdown(struct uart_port *port)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-
+-	dev_dbg(port->dev, "%s enter\n", __func__);
+-
+-	/* Disable sport */
+-	SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) & ~TSPEN));
+-	SPORT_PUT_RCR1(up, (SPORT_GET_RCR1(up) & ~RSPEN));
+-	SSYNC();
+-
+-	free_irq(up->port.irq, up);
+-	free_irq(up->port.irq+1, up);
+-	free_irq(up->err_irq, up);
+-#ifdef CONFIG_SERIAL_BFIN_SPORT_CTSRTS
+-	if (up->cts_pin >= 0)
+-		free_irq(gpio_to_irq(up->cts_pin), up);
+-	if (up->rts_pin >= 0)
+-		gpio_free(up->rts_pin);
+-#endif
+-}
+-
+-static const char *sport_type(struct uart_port *port)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-
+-	pr_debug("%s enter\n", __func__);
+-	return up->port.type == PORT_BFIN_SPORT ? "BFIN-SPORT-UART" : NULL;
+-}
+-
+-static void sport_release_port(struct uart_port *port)
+-{
+-	pr_debug("%s enter\n", __func__);
+-}
+-
+-static int sport_request_port(struct uart_port *port)
+-{
+-	pr_debug("%s enter\n", __func__);
+-	return 0;
+-}
+-
+-static void sport_config_port(struct uart_port *port, int flags)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-
+-	pr_debug("%s enter\n", __func__);
+-	up->port.type = PORT_BFIN_SPORT;
+-}
+-
+-static int sport_verify_port(struct uart_port *port, struct serial_struct *ser)
+-{
+-	pr_debug("%s enter\n", __func__);
+-	return 0;
+-}
+-
+-static void sport_set_termios(struct uart_port *port,
+-		struct ktermios *termios, struct ktermios *old)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-	unsigned long flags;
+-	int i;
+-
+-	pr_debug("%s enter, c_cflag:%08x\n", __func__, termios->c_cflag);
+-
+-#ifdef CONFIG_SERIAL_BFIN_SPORT_CTSRTS
+-	if (old == NULL && up->cts_pin != -1)
+-		termios->c_cflag |= CRTSCTS;
+-	else if (up->cts_pin == -1)
+-		termios->c_cflag &= ~CRTSCTS;
+-#endif
+-
+-	switch (termios->c_cflag & CSIZE) {
+-	case CS8:
+-		up->csize = 8;
+-		break;
+-	case CS7:
+-		up->csize = 7;
+-		break;
+-	case CS6:
+-		up->csize = 6;
+-		break;
+-	case CS5:
+-		up->csize = 5;
+-		break;
+-	default:
+-		pr_warn("requested word length not supported\n");
+-		break;
+-	}
+-
+-	if (termios->c_cflag & CSTOPB) {
+-		up->stopb = 1;
+-	}
+-	if (termios->c_cflag & PARENB) {
+-		pr_warn("PAREN bit is not supported yet\n");
+-		/* up->parib = 1; */
+-	}
+-
+-	spin_lock_irqsave(&up->port.lock, flags);
+-
+-	port->read_status_mask = 0;
+-
+-	/*
+-	 * Characters to ignore
+-	 */
+-	port->ignore_status_mask = 0;
+-
+-	/* RX extract mask */
+-	up->rxmask = 0x01 | (((up->csize + up->stopb) * 2 - 1) << 0x8);
+-	/* TX masks, 8 bit data and 1 bit stop for example:
+-	 * mask1 = b#0111111110
+-	 * mask2 = b#1000000000
+-	 */
+-	for (i = 0, up->txmask1 = 0; i < up->csize; i++)
+-		up->txmask1 |= (1<<i);
+-	up->txmask2 = (1<<i);
+-	if (up->stopb) {
+-		++i;
+-		up->txmask2 |= (1<<i);
+-	}
+-	up->txmask1 <<= 1;
+-	up->txmask2 <<= 1;
+-	/* uart baud rate */
+-	port->uartclk = uart_get_baud_rate(port, termios, old, 0, get_sclk()/16);
+-
+-	/* Disable UART */
+-	SPORT_PUT_TCR1(up, SPORT_GET_TCR1(up) & ~TSPEN);
+-	SPORT_PUT_RCR1(up, SPORT_GET_RCR1(up) & ~RSPEN);
+-
+-	sport_uart_setup(up, up->csize + up->stopb, port->uartclk);
+-
+-	/* driver TX line high after config, one dummy data is
+-	 * necessary to stop sport after shift one byte
+-	 */
+-	SPORT_PUT_TX(up, 0xffff);
+-	SPORT_PUT_TX(up, 0xffff);
+-	SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) | TSPEN));
+-	SSYNC();
+-	while (!(SPORT_GET_STAT(up) & TXHRE))
+-		cpu_relax();
+-	SPORT_PUT_TCR1(up, SPORT_GET_TCR1(up) & ~TSPEN);
+-	SSYNC();
+-
+-	/* Port speed changed, update the per-port timeout. */
+-	uart_update_timeout(port, termios->c_cflag, port->uartclk);
+-
+-	/* Enable sport rx */
+-	SPORT_PUT_RCR1(up, SPORT_GET_RCR1(up) | RSPEN);
+-	SSYNC();
+-
+-	spin_unlock_irqrestore(&up->port.lock, flags);
+-}
+-
+-static const struct uart_ops sport_uart_ops = {
+-	.tx_empty	= sport_tx_empty,
+-	.set_mctrl	= sport_set_mctrl,
+-	.get_mctrl	= sport_get_mctrl,
+-	.stop_tx	= sport_stop_tx,
+-	.start_tx	= sport_start_tx,
+-	.stop_rx	= sport_stop_rx,
+-	.break_ctl	= sport_break_ctl,
+-	.startup	= sport_startup,
+-	.shutdown	= sport_shutdown,
+-	.set_termios	= sport_set_termios,
+-	.type		= sport_type,
+-	.release_port	= sport_release_port,
+-	.request_port	= sport_request_port,
+-	.config_port	= sport_config_port,
+-	.verify_port	= sport_verify_port,
+-};
+-
+-#define BFIN_SPORT_UART_MAX_PORTS 4
+-
+-static struct sport_uart_port *bfin_sport_uart_ports[BFIN_SPORT_UART_MAX_PORTS];
+-
+-#ifdef CONFIG_SERIAL_BFIN_SPORT_CONSOLE
+-#define CLASS_BFIN_SPORT_CONSOLE	"bfin-sport-console"
+-
+-static int __init
+-sport_uart_console_setup(struct console *co, char *options)
+-{
+-	struct sport_uart_port *up;
+-	int baud = 57600;
+-	int bits = 8;
+-	int parity = 'n';
+-# ifdef CONFIG_SERIAL_BFIN_SPORT_CTSRTS
+-	int flow = 'r';
+-# else
+-	int flow = 'n';
+-# endif
+-
+-	/* Check whether an invalid uart number has been specified */
+-	if (co->index < 0 || co->index >= BFIN_SPORT_UART_MAX_PORTS)
+-		return -ENODEV;
+-
+-	up = bfin_sport_uart_ports[co->index];
+-	if (!up)
+-		return -ENODEV;
+-
+-	if (options)
+-		uart_parse_options(options, &baud, &parity, &bits, &flow);
+-
+-	return uart_set_options(&up->port, co, baud, parity, bits, flow);
+-}
+-
+-static void sport_uart_console_putchar(struct uart_port *port, int ch)
+-{
+-	struct sport_uart_port *up = (struct sport_uart_port *)port;
+-
+-	while (SPORT_GET_STAT(up) & TXF)
+-		barrier();
+-
+-	tx_one_byte(up, ch);
+-}
+-
+-/*
+- * Interrupts are disabled on entering
+- */
+-static void
+-sport_uart_console_write(struct console *co, const char *s, unsigned int count)
+-{
+-	struct sport_uart_port *up = bfin_sport_uart_ports[co->index];
+-	unsigned long flags;
+-
+-	spin_lock_irqsave(&up->port.lock, flags);
+-
+-	if (SPORT_GET_TCR1(up) & TSPEN)
+-		uart_console_write(&up->port, s, count, sport_uart_console_putchar);
+-	else {
+-		/* dummy data to start sport */
+-		while (SPORT_GET_STAT(up) & TXF)
+-			barrier();
+-		SPORT_PUT_TX(up, 0xffff);
+-		/* Enable transmit, then an interrupt will generated */
+-		SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) | TSPEN));
+-		SSYNC();
+-
+-		uart_console_write(&up->port, s, count, sport_uart_console_putchar);
+-
+-		/* Although the hold register is empty, last byte is still in shift
+-		 * register and not sent out yet. So, put a dummy data into TX FIFO.
+-		 * Then, sport tx stops when last byte is shift out and the dummy
+-		 * data is moved into the shift register.
+-		 */
+-		while (SPORT_GET_STAT(up) & TXF)
+-			barrier();
+-		SPORT_PUT_TX(up, 0xffff);
+-		while (!(SPORT_GET_STAT(up) & TXHRE))
+-			barrier();
+-
+-		/* Stop sport tx transfer */
+-		SPORT_PUT_TCR1(up, (SPORT_GET_TCR1(up) & ~TSPEN));
+-		SSYNC();
+-	}
+-
+-	spin_unlock_irqrestore(&up->port.lock, flags);
+-}
+-
+-static struct uart_driver sport_uart_reg;
+-
+-static struct console sport_uart_console = {
+-	.name		= DEVICE_NAME,
+-	.write		= sport_uart_console_write,
+-	.device		= uart_console_device,
+-	.setup		= sport_uart_console_setup,
+-	.flags		= CON_PRINTBUFFER,
+-	.index		= -1,
+-	.data		= &sport_uart_reg,
+-};
+-
+-#define SPORT_UART_CONSOLE	(&sport_uart_console)
+-#else
+-#define SPORT_UART_CONSOLE	NULL
+-#endif /* CONFIG_SERIAL_BFIN_SPORT_CONSOLE */
+-
+-
+-static struct uart_driver sport_uart_reg = {
+-	.owner		= THIS_MODULE,
+-	.driver_name	= DRV_NAME,
+-	.dev_name	= DEVICE_NAME,
+-	.major		= 204,
+-	.minor		= 84,
+-	.nr		= BFIN_SPORT_UART_MAX_PORTS,
+-	.cons		= SPORT_UART_CONSOLE,
+-};
+-
+-#ifdef CONFIG_PM
+-static int sport_uart_suspend(struct device *dev)
+-{
+-	struct sport_uart_port *sport = dev_get_drvdata(dev);
+-
+-	dev_dbg(dev, "%s enter\n", __func__);
+-	if (sport)
+-		uart_suspend_port(&sport_uart_reg, &sport->port);
+-
+-	return 0;
+-}
+-
+-static int sport_uart_resume(struct device *dev)
+-{
+-	struct sport_uart_port *sport = dev_get_drvdata(dev);
+-
+-	dev_dbg(dev, "%s enter\n", __func__);
+-	if (sport)
+-		uart_resume_port(&sport_uart_reg, &sport->port);
+-
+-	return 0;
+-}
+-
+-static const struct dev_pm_ops bfin_sport_uart_dev_pm_ops = {
+-	.suspend	= sport_uart_suspend,
+-	.resume		= sport_uart_resume,
+-};
+-#endif
+-
+-static int sport_uart_probe(struct platform_device *pdev)
+-{
 -	struct resource *res;
--	struct input_dev *input;
--	int error;
+-	struct sport_uart_port *sport;
+-	int ret = 0;
 -
--	/* Basic validation */
--	if ((pdata->rotary_up_key && !pdata->rotary_down_key) ||
--	    (!pdata->rotary_up_key && pdata->rotary_down_key)) {
--		return -EINVAL;
--	}
+-	dev_dbg(&pdev->dev, "%s enter\n", __func__);
 -
--	if (pdata->pin_list) {
--		error = peripheral_request_list(pdata->pin_list,
--						dev_name(dev));
--		if (error) {
--			dev_err(dev, "requesting peripherals failed: %d\n",
--				error);
--			return error;
--		}
--
--		error = devm_add_action_or_reset(dev, bfin_rotary_free_action,
--						 pdata->pin_list);
--		if (error) {
--			dev_err(dev, "setting cleanup action failed: %d\n",
--				error);
--			return error;
--		}
--	}
--
--	rotary = devm_kzalloc(dev, sizeof(struct bfin_rot), GFP_KERNEL);
--	if (!rotary)
--		return -ENOMEM;
--
--	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
--	rotary->base = devm_ioremap_resource(dev, res);
--	if (IS_ERR(rotary->base))
--		return PTR_ERR(rotary->base);
--
--	input = devm_input_allocate_device(dev);
--	if (!input)
--		return -ENOMEM;
--
--	rotary->input = input;
--
--	rotary->up_key = pdata->rotary_up_key;
--	rotary->down_key = pdata->rotary_down_key;
--	rotary->button_key = pdata->rotary_button_key;
--	rotary->rel_code = pdata->rotary_rel_code;
--
--	rotary->mode = pdata->mode;
--	rotary->debounce = pdata->debounce;
--
--	input->name = pdev->name;
--	input->phys = "bfin-rotary/input0";
--	input->dev.parent = dev;
--
--	input_set_drvdata(input, rotary);
--
--	input->id.bustype = BUS_HOST;
--	input->id.vendor = 0x0001;
--	input->id.product = 0x0001;
--	input->id.version = 0x0100;
--
--	input->open = bfin_rotary_open;
--	input->close = bfin_rotary_close;
--
--	if (rotary->up_key) {
--		__set_bit(EV_KEY, input->evbit);
--		__set_bit(rotary->up_key, input->keybit);
--		__set_bit(rotary->down_key, input->keybit);
--	} else {
--		__set_bit(EV_REL, input->evbit);
--		__set_bit(rotary->rel_code, input->relbit);
--	}
--
--	if (rotary->button_key) {
--		__set_bit(EV_KEY, input->evbit);
--		__set_bit(rotary->button_key, input->keybit);
--	}
--
--	/* Quiesce the device before requesting irq */
--	bfin_rotary_close(input);
--
--	rotary->irq = platform_get_irq(pdev, 0);
--	if (rotary->irq < 0) {
--		dev_err(dev, "No rotary IRQ specified\n");
+-	if (pdev->id < 0 || pdev->id >= BFIN_SPORT_UART_MAX_PORTS) {
+-		dev_err(&pdev->dev, "Wrong sport uart platform device id.\n");
 -		return -ENOENT;
 -	}
 -
--	error = devm_request_irq(dev, rotary->irq, bfin_rotary_isr,
--				 0, dev_name(dev), rotary);
--	if (error) {
--		dev_err(dev, "unable to claim irq %d; error %d\n",
--			rotary->irq, error);
--		return error;
+-	if (bfin_sport_uart_ports[pdev->id] == NULL) {
+-		bfin_sport_uart_ports[pdev->id] =
+-			kzalloc(sizeof(struct sport_uart_port), GFP_KERNEL);
+-		sport = bfin_sport_uart_ports[pdev->id];
+-		if (!sport) {
+-			dev_err(&pdev->dev,
+-				"Fail to malloc sport_uart_port\n");
+-			return -ENOMEM;
+-		}
+-
+-		ret = peripheral_request_list(dev_get_platdata(&pdev->dev),
+-						DRV_NAME);
+-		if (ret) {
+-			dev_err(&pdev->dev,
+-				"Fail to request SPORT peripherals\n");
+-			goto out_error_free_mem;
+-		}
+-
+-		spin_lock_init(&sport->port.lock);
+-		sport->port.fifosize  = SPORT_TX_FIFO_SIZE,
+-		sport->port.ops       = &sport_uart_ops;
+-		sport->port.line      = pdev->id;
+-		sport->port.iotype    = UPIO_MEM;
+-		sport->port.flags     = UPF_BOOT_AUTOCONF;
+-
+-		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-		if (res == NULL) {
+-			dev_err(&pdev->dev, "Cannot get IORESOURCE_MEM\n");
+-			ret = -ENOENT;
+-			goto out_error_free_peripherals;
+-		}
+-
+-		sport->port.membase = ioremap(res->start, resource_size(res));
+-		if (!sport->port.membase) {
+-			dev_err(&pdev->dev, "Cannot map sport IO\n");
+-			ret = -ENXIO;
+-			goto out_error_free_peripherals;
+-		}
+-		sport->port.mapbase = res->start;
+-
+-		sport->port.irq = platform_get_irq(pdev, 0);
+-		if ((int)sport->port.irq < 0) {
+-			dev_err(&pdev->dev, "No sport RX/TX IRQ specified\n");
+-			ret = -ENOENT;
+-			goto out_error_unmap;
+-		}
+-
+-		sport->err_irq = platform_get_irq(pdev, 1);
+-		if (sport->err_irq < 0) {
+-			dev_err(&pdev->dev, "No sport status IRQ specified\n");
+-			ret = -ENOENT;
+-			goto out_error_unmap;
+-		}
+-#ifdef CONFIG_SERIAL_BFIN_SPORT_CTSRTS
+-		res = platform_get_resource(pdev, IORESOURCE_IO, 0);
+-		if (res == NULL)
+-			sport->cts_pin = -1;
+-		else
+-			sport->cts_pin = res->start;
+-
+-		res = platform_get_resource(pdev, IORESOURCE_IO, 1);
+-		if (res == NULL)
+-			sport->rts_pin = -1;
+-		else
+-			sport->rts_pin = res->start;
+-#endif
 -	}
 -
--	error = input_register_device(input);
--	if (error) {
--		dev_err(dev, "unable to register input device (%d)\n", error);
--		return error;
+-#ifdef CONFIG_SERIAL_BFIN_SPORT_CONSOLE
+-	if (!is_early_platform_device(pdev)) {
+-#endif
+-		sport = bfin_sport_uart_ports[pdev->id];
+-		sport->port.dev = &pdev->dev;
+-		dev_set_drvdata(&pdev->dev, sport);
+-		ret = uart_add_one_port(&sport_uart_reg, &sport->port);
+-#ifdef CONFIG_SERIAL_BFIN_SPORT_CONSOLE
+-	}
+-#endif
+-	if (!ret)
+-		return 0;
+-
+-	if (sport) {
+-out_error_unmap:
+-		iounmap(sport->port.membase);
+-out_error_free_peripherals:
+-		peripheral_free_list(dev_get_platdata(&pdev->dev));
+-out_error_free_mem:
+-		kfree(sport);
+-		bfin_sport_uart_ports[pdev->id] = NULL;
 -	}
 -
--	platform_set_drvdata(pdev, rotary);
--	device_init_wakeup(dev, 1);
--
--	return 0;
+-	return ret;
 -}
 -
--static int __maybe_unused bfin_rotary_suspend(struct device *dev)
+-static int sport_uart_remove(struct platform_device *pdev)
 -{
--	struct platform_device *pdev = to_platform_device(dev);
--	struct bfin_rot *rotary = platform_get_drvdata(pdev);
+-	struct sport_uart_port *sport = platform_get_drvdata(pdev);
 -
--	rotary->cnt_config = readw(rotary->base + CNT_CONFIG_OFF);
--	rotary->cnt_imask = readw(rotary->base + CNT_IMASK_OFF);
--	rotary->cnt_debounce = readw(rotary->base + CNT_DEBOUNCE_OFF);
+-	dev_dbg(&pdev->dev, "%s enter\n", __func__);
+-	dev_set_drvdata(&pdev->dev, NULL);
 -
--	if (device_may_wakeup(&pdev->dev))
--		enable_irq_wake(rotary->irq);
--
--	return 0;
--}
--
--static int __maybe_unused bfin_rotary_resume(struct device *dev)
--{
--	struct platform_device *pdev = to_platform_device(dev);
--	struct bfin_rot *rotary = platform_get_drvdata(pdev);
--
--	writew(rotary->cnt_debounce, rotary->base + CNT_DEBOUNCE_OFF);
--	writew(rotary->cnt_imask, rotary->base + CNT_IMASK_OFF);
--	writew(rotary->cnt_config & ~CNTE, rotary->base + CNT_CONFIG_OFF);
--
--	if (device_may_wakeup(&pdev->dev))
--		disable_irq_wake(rotary->irq);
--
--	if (rotary->cnt_config & CNTE)
--		writew(rotary->cnt_config, rotary->base + CNT_CONFIG_OFF);
+-	if (sport) {
+-		uart_remove_one_port(&sport_uart_reg, &sport->port);
+-		iounmap(sport->port.membase);
+-		peripheral_free_list(dev_get_platdata(&pdev->dev));
+-		kfree(sport);
+-		bfin_sport_uart_ports[pdev->id] = NULL;
+-	}
 -
 -	return 0;
 -}
 -
--static SIMPLE_DEV_PM_OPS(bfin_rotary_pm_ops,
--			 bfin_rotary_suspend, bfin_rotary_resume);
--
--static struct platform_driver bfin_rotary_device_driver = {
--	.probe		= bfin_rotary_probe,
+-static struct platform_driver sport_uart_driver = {
+-	.probe		= sport_uart_probe,
+-	.remove		= sport_uart_remove,
 -	.driver		= {
--		.name	= "bfin-rotary",
--		.pm	= &bfin_rotary_pm_ops,
+-		.name	= DRV_NAME,
+-#ifdef CONFIG_PM
+-		.pm	= &bfin_sport_uart_dev_pm_ops,
+-#endif
 -	},
 -};
--module_platform_driver(bfin_rotary_device_driver);
 -
--MODULE_LICENSE("GPL");
--MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
--MODULE_DESCRIPTION("Rotary Counter driver for Blackfin Processors");
--MODULE_ALIAS("platform:bfin-rotary");
-diff --git a/include/linux/platform_data/bfin_rotary.h b/include/linux/platform_data/bfin_rotary.h
-deleted file mode 100644
-index 9882937..0000000
---- a/include/linux/platform_data/bfin_rotary.h
-+++ /dev/null
-@@ -1,117 +0,0 @@
--/*
-- * board initialization should put one of these structures into platform_data
-- * and place the bfin-rotary onto platform_bus named "bfin-rotary".
-- *
-- * Copyright 2008-2010 Analog Devices Inc.
-- *
-- * Licensed under the GPL-2 or later.
-- */
--
--#ifndef _BFIN_ROTARY_H
--#define _BFIN_ROTARY_H
--
--/* mode bitmasks */
--#define ROT_QUAD_ENC	CNTMODE_QUADENC	/* quadrature/grey code encoder mode */
--#define ROT_BIN_ENC	CNTMODE_BINENC	/* binary encoder mode */
--#define ROT_UD_CNT	CNTMODE_UDCNT	/* rotary counter mode */
--#define ROT_DIR_CNT	CNTMODE_DIRCNT	/* direction counter mode */
--
--#define ROT_DEBE	DEBE		/* Debounce Enable */
--
--#define ROT_CDGINV	CDGINV		/* CDG Pin Polarity Invert */
--#define ROT_CUDINV	CUDINV		/* CUD Pin Polarity Invert */
--#define ROT_CZMINV	CZMINV		/* CZM Pin Polarity Invert */
--
--struct bfin_rotary_platform_data {
--	/* set rotary UP KEY_### or BTN_### in case you prefer
--	 * bfin-rotary to send EV_KEY otherwise set 0
--	 */
--	unsigned int rotary_up_key;
--	/* set rotary DOWN KEY_### or BTN_### in case you prefer
--	 * bfin-rotary to send EV_KEY otherwise set 0
--	 */
--	unsigned int rotary_down_key;
--	/* set rotary BUTTON KEY_### or BTN_### */
--	unsigned int rotary_button_key;
--	/* set rotary Relative Axis REL_### in case you prefer
--	 * bfin-rotary to send EV_REL otherwise set 0
--	 */
--	unsigned int rotary_rel_code;
--	unsigned short debounce;	/* 0..17 */
--	unsigned short mode;
--	unsigned short pm_wakeup;
--	unsigned short *pin_list;
+-#ifdef CONFIG_SERIAL_BFIN_SPORT_CONSOLE
+-static struct early_platform_driver early_sport_uart_driver __initdata = {
+-	.class_str = CLASS_BFIN_SPORT_CONSOLE,
+-	.pdrv = &sport_uart_driver,
+-	.requested_id = EARLY_PLATFORM_ID_UNSET,
 -};
 -
--/* CNT_CONFIG bitmasks */
--#define CNTE		(1 << 0)	/* Counter Enable */
--#define DEBE		(1 << 1)	/* Debounce Enable */
--#define CDGINV		(1 << 4)	/* CDG Pin Polarity Invert */
--#define CUDINV		(1 << 5)	/* CUD Pin Polarity Invert */
--#define CZMINV		(1 << 6)	/* CZM Pin Polarity Invert */
--#define CNTMODE_SHIFT	8
--#define CNTMODE		(0x7 << CNTMODE_SHIFT)	/* Counter Operating Mode */
--#define ZMZC		(1 << 1)	/* CZM Zeroes Counter Enable */
--#define BNDMODE_SHIFT	12
--#define BNDMODE		(0x3 << BNDMODE_SHIFT)	/* Boundary register Mode */
--#define INPDIS		(1 << 15)	/* CUG and CDG Input Disable */
+-static int __init sport_uart_rs_console_init(void)
+-{
+-	early_platform_driver_register(&early_sport_uart_driver, DRV_NAME);
 -
--#define CNTMODE_QUADENC	(0 << CNTMODE_SHIFT)	/* quadrature encoder mode */
--#define CNTMODE_BINENC	(1 << CNTMODE_SHIFT)	/* binary encoder mode */
--#define CNTMODE_UDCNT	(2 << CNTMODE_SHIFT)	/* up/down counter mode */
--#define CNTMODE_DIRCNT	(4 << CNTMODE_SHIFT)	/* direction counter mode */
--#define CNTMODE_DIRTMR	(5 << CNTMODE_SHIFT)	/* direction timer mode */
+-	early_platform_driver_probe(CLASS_BFIN_SPORT_CONSOLE,
+-		BFIN_SPORT_UART_MAX_PORTS, 0);
 -
--#define BNDMODE_COMP	(0 << BNDMODE_SHIFT)	/* boundary compare mode */
--#define BNDMODE_ZERO	(1 << BNDMODE_SHIFT)	/* boundary compare and zero mode */
--#define BNDMODE_CAPT	(2 << BNDMODE_SHIFT)	/* boundary capture mode */
--#define BNDMODE_AEXT	(3 << BNDMODE_SHIFT)	/* boundary auto-extend mode */
+-	register_console(&sport_uart_console);
 -
--/* CNT_IMASK bitmasks */
--#define ICIE		(1 << 0)	/* Illegal Gray/Binary Code Interrupt Enable */
--#define UCIE		(1 << 1)	/* Up count Interrupt Enable */
--#define DCIE		(1 << 2)	/* Down count Interrupt Enable */
--#define MINCIE		(1 << 3)	/* Min Count Interrupt Enable */
--#define MAXCIE		(1 << 4)	/* Max Count Interrupt Enable */
--#define COV31IE		(1 << 5)	/* Bit 31 Overflow Interrupt Enable */
--#define COV15IE		(1 << 6)	/* Bit 15 Overflow Interrupt Enable */
--#define CZEROIE		(1 << 7)	/* Count to Zero Interrupt Enable */
--#define CZMIE		(1 << 8)	/* CZM Pin Interrupt Enable */
--#define CZMEIE		(1 << 9)	/* CZM Error Interrupt Enable */
--#define CZMZIE		(1 << 10)	/* CZM Zeroes Counter Interrupt Enable */
--
--/* CNT_STATUS bitmasks */
--#define ICII		(1 << 0)	/* Illegal Gray/Binary Code Interrupt Identifier */
--#define UCII		(1 << 1)	/* Up count Interrupt Identifier */
--#define DCII		(1 << 2)	/* Down count Interrupt Identifier */
--#define MINCII		(1 << 3)	/* Min Count Interrupt Identifier */
--#define MAXCII		(1 << 4)	/* Max Count Interrupt Identifier */
--#define COV31II		(1 << 5)	/* Bit 31 Overflow Interrupt Identifier */
--#define COV15II		(1 << 6)	/* Bit 15 Overflow Interrupt Identifier */
--#define CZEROII		(1 << 7)	/* Count to Zero Interrupt Identifier */
--#define CZMII		(1 << 8)	/* CZM Pin Interrupt Identifier */
--#define CZMEII		(1 << 9)	/* CZM Error Interrupt Identifier */
--#define CZMZII		(1 << 10)	/* CZM Zeroes Counter Interrupt Identifier */
--
--/* CNT_COMMAND bitmasks */
--#define W1LCNT		0xf		/* Load Counter Register */
--#define W1LMIN		0xf0		/* Load Min Register */
--#define W1LMAX		0xf00		/* Load Max Register */
--#define W1ZMONCE	(1 << 12)	/* Enable CZM Clear Counter Once */
--
--#define W1LCNT_ZERO	(1 << 0)	/* write 1 to load CNT_COUNTER with zero */
--#define W1LCNT_MIN	(1 << 2)	/* write 1 to load CNT_COUNTER from CNT_MIN */
--#define W1LCNT_MAX	(1 << 3)	/* write 1 to load CNT_COUNTER from CNT_MAX */
--
--#define W1LMIN_ZERO	(1 << 4)	/* write 1 to load CNT_MIN with zero */
--#define W1LMIN_CNT	(1 << 5)	/* write 1 to load CNT_MIN from CNT_COUNTER */
--#define W1LMIN_MAX	(1 << 7)	/* write 1 to load CNT_MIN from CNT_MAX */
--
--#define W1LMAX_ZERO	(1 << 8)	/* write 1 to load CNT_MAX with zero */
--#define W1LMAX_CNT	(1 << 9)	/* write 1 to load CNT_MAX from CNT_COUNTER */
--#define W1LMAX_MIN	(1 << 10)	/* write 1 to load CNT_MAX from CNT_MIN */
--
--/* CNT_DEBOUNCE bitmasks */
--#define DPRESCALE	0xf		/* Load Counter Register */
--
+-	return 0;
+-}
+-console_initcall(sport_uart_rs_console_init);
 -#endif
+-
+-static int __init sport_uart_init(void)
+-{
+-	int ret;
+-
+-	pr_info("Blackfin uart over sport driver\n");
+-
+-	ret = uart_register_driver(&sport_uart_reg);
+-	if (ret) {
+-		pr_err("failed to register %s:%d\n",
+-				sport_uart_reg.driver_name, ret);
+-		return ret;
+-	}
+-
+-	ret = platform_driver_register(&sport_uart_driver);
+-	if (ret) {
+-		pr_err("failed to register sport uart driver:%d\n", ret);
+-		uart_unregister_driver(&sport_uart_reg);
+-	}
+-
+-	return ret;
+-}
+-module_init(sport_uart_init);
+-
+-static void __exit sport_uart_exit(void)
+-{
+-	platform_driver_unregister(&sport_uart_driver);
+-	uart_unregister_driver(&sport_uart_reg);
+-}
+-module_exit(sport_uart_exit);
+-
+-MODULE_AUTHOR("Sonic Zhang, Roy Huang");
+-MODULE_DESCRIPTION("Blackfin serial over SPORT driver");
+-MODULE_LICENSE("GPL");
+diff --git a/drivers/tty/serial/bfin_sport_uart.h b/drivers/tty/serial/bfin_sport_uart.h
+deleted file mode 100644
+index 4b12f45..0000000
+--- a/drivers/tty/serial/bfin_sport_uart.h
++++ /dev/null
+@@ -1,86 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0+
+-/*
+- * Blackfin On-Chip Sport Emulated UART Driver
+- *
+- * Copyright 2006-2008 Analog Devices Inc.
+- *
+- * Enter bugs at http://blackfin.uclinux.org/
+- */
+-
+-/*
+- * This driver and the hardware supported are in term of EE-191 of ADI.
+- * http://www.analog.com/static/imported-files/application_notes/EE191.pdf 
+- * This application note describe how to implement a UART on a Sharc DSP,
+- * but this driver is implemented on Blackfin Processor.
+- * Transmit Frame Sync is not used by this driver to transfer data out.
+- */
+-
+-#ifndef _BFIN_SPORT_UART_H
+-#define _BFIN_SPORT_UART_H
+-
+-#define OFFSET_TCR1		0x00	/* Transmit Configuration 1 Register */
+-#define OFFSET_TCR2		0x04	/* Transmit Configuration 2 Register */
+-#define OFFSET_TCLKDIV		0x08	/* Transmit Serial Clock Divider Register */
+-#define OFFSET_TFSDIV		0x0C	/* Transmit Frame Sync Divider Register */
+-#define OFFSET_TX		0x10	/* Transmit Data Register		*/
+-#define OFFSET_RX		0x18	/* Receive Data Register		*/
+-#define OFFSET_RCR1		0x20	/* Receive Configuration 1 Register	*/
+-#define OFFSET_RCR2		0x24	/* Receive Configuration 2 Register	*/
+-#define OFFSET_RCLKDIV		0x28	/* Receive Serial Clock Divider Register */
+-#define OFFSET_RFSDIV		0x2c	/* Receive Frame Sync Divider Register */
+-#define OFFSET_STAT		0x30	/* Status Register			*/
+-
+-#define SPORT_GET_TCR1(sport)		bfin_read16(((sport)->port.membase + OFFSET_TCR1))
+-#define SPORT_GET_TCR2(sport)		bfin_read16(((sport)->port.membase + OFFSET_TCR2))
+-#define SPORT_GET_TCLKDIV(sport)	bfin_read16(((sport)->port.membase + OFFSET_TCLKDIV))
+-#define SPORT_GET_TFSDIV(sport)		bfin_read16(((sport)->port.membase + OFFSET_TFSDIV))
+-#define SPORT_GET_TX(sport)		bfin_read16(((sport)->port.membase + OFFSET_TX))
+-#define SPORT_GET_RX(sport)		bfin_read16(((sport)->port.membase + OFFSET_RX))
+-/*
+- * If another interrupt fires while doing a 32-bit read from RX FIFO,
+- * a fake RX underflow error will be generated.  So disable interrupts
+- * to prevent interruption while reading the FIFO.
+- */
+-#define SPORT_GET_RX32(sport) \
+-({ \
+-	unsigned int __ret; \
+-	unsigned long flags; \
+-	if (ANOMALY_05000473) \
+-		local_irq_save(flags); \
+-	__ret = bfin_read32((sport)->port.membase + OFFSET_RX); \
+-	if (ANOMALY_05000473) \
+-		local_irq_restore(flags); \
+-	__ret; \
+-})
+-#define SPORT_GET_RCR1(sport)		bfin_read16(((sport)->port.membase + OFFSET_RCR1))
+-#define SPORT_GET_RCR2(sport)		bfin_read16(((sport)->port.membase + OFFSET_RCR2))
+-#define SPORT_GET_RCLKDIV(sport)	bfin_read16(((sport)->port.membase + OFFSET_RCLKDIV))
+-#define SPORT_GET_RFSDIV(sport)		bfin_read16(((sport)->port.membase + OFFSET_RFSDIV))
+-#define SPORT_GET_STAT(sport)		bfin_read16(((sport)->port.membase + OFFSET_STAT))
+-
+-#define SPORT_PUT_TCR1(sport, v)	bfin_write16(((sport)->port.membase + OFFSET_TCR1), v)
+-#define SPORT_PUT_TCR2(sport, v)	bfin_write16(((sport)->port.membase + OFFSET_TCR2), v)
+-#define SPORT_PUT_TCLKDIV(sport, v)	bfin_write16(((sport)->port.membase + OFFSET_TCLKDIV), v)
+-#define SPORT_PUT_TFSDIV(sport, v)	bfin_write16(((sport)->port.membase + OFFSET_TFSDIV), v)
+-#define SPORT_PUT_TX(sport, v)		bfin_write16(((sport)->port.membase + OFFSET_TX), v)
+-#define SPORT_PUT_RX(sport, v)		bfin_write16(((sport)->port.membase + OFFSET_RX), v)
+-#define SPORT_PUT_RCR1(sport, v)	bfin_write16(((sport)->port.membase + OFFSET_RCR1), v)
+-#define SPORT_PUT_RCR2(sport, v)	bfin_write16(((sport)->port.membase + OFFSET_RCR2), v)
+-#define SPORT_PUT_RCLKDIV(sport, v)	bfin_write16(((sport)->port.membase + OFFSET_RCLKDIV), v)
+-#define SPORT_PUT_RFSDIV(sport, v)	bfin_write16(((sport)->port.membase + OFFSET_RFSDIV), v)
+-#define SPORT_PUT_STAT(sport, v)	bfin_write16(((sport)->port.membase + OFFSET_STAT), v)
+-
+-#define SPORT_TX_FIFO_SIZE	8
+-
+-#define SPORT_UART_GET_CTS(x)		gpio_get_value(x->cts_pin)
+-#define SPORT_UART_DISABLE_RTS(x)	gpio_set_value(x->rts_pin, 1)
+-#define SPORT_UART_ENABLE_RTS(x)	gpio_set_value(x->rts_pin, 0)
+-
+-#if defined(CONFIG_SERIAL_BFIN_SPORT0_UART_CTSRTS) \
+-	|| defined(CONFIG_SERIAL_BFIN_SPORT1_UART_CTSRTS) \
+-	|| defined(CONFIG_SERIAL_BFIN_SPORT2_UART_CTSRTS) \
+-	|| defined(CONFIG_SERIAL_BFIN_SPORT3_UART_CTSRTS)
+-# define CONFIG_SERIAL_BFIN_SPORT_CTSRTS
+-#endif
+-
+-#endif /* _BFIN_SPORT_UART_H */
+diff --git a/drivers/tty/serial/bfin_uart.c b/drivers/tty/serial/bfin_uart.c
+deleted file mode 100644
+index 4755fa6..0000000
+--- a/drivers/tty/serial/bfin_uart.c
++++ /dev/null
+@@ -1,1551 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0+
+-/*
+- * Blackfin On-Chip Serial Driver
+- *
+- * Copyright 2006-2011 Analog Devices Inc.
+- *
+- * Enter bugs at http://blackfin.uclinux.org/
+- */
+-
+-#if defined(CONFIG_SERIAL_BFIN_CONSOLE) && defined(CONFIG_MAGIC_SYSRQ)
+-#define SUPPORT_SYSRQ
+-#endif
+-
+-#define DRIVER_NAME "bfin-uart"
+-#define pr_fmt(fmt) DRIVER_NAME ": " fmt
+-
+-#include <linux/module.h>
+-#include <linux/ioport.h>
+-#include <linux/gfp.h>
+-#include <linux/io.h>
+-#include <linux/init.h>
+-#include <linux/console.h>
+-#include <linux/sysrq.h>
+-#include <linux/platform_device.h>
+-#include <linux/tty.h>
+-#include <linux/tty_flip.h>
+-#include <linux/serial_core.h>
+-#include <linux/gpio.h>
+-#include <linux/irq.h>
+-#include <linux/kgdb.h>
+-#include <linux/slab.h>
+-#include <linux/dma-mapping.h>
+-
+-#include <asm/portmux.h>
+-#include <asm/cacheflush.h>
+-#include <asm/dma.h>
+-#include <asm/bfin_serial.h>
+-
+-#ifdef CONFIG_SERIAL_BFIN_MODULE
+-# undef CONFIG_EARLY_PRINTK
+-#endif
+-
+-/* UART name and device definitions */
+-#define BFIN_SERIAL_DEV_NAME	"ttyBF"
+-#define BFIN_SERIAL_MAJOR	204
+-#define BFIN_SERIAL_MINOR	64
+-
+-static struct bfin_serial_port *bfin_serial_ports[BFIN_UART_NR_PORTS];
+-
+-#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+-	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
+-
+-# ifndef CONFIG_SERIAL_BFIN_PIO
+-#  error KGDB only support UART in PIO mode.
+-# endif
+-
+-static int kgdboc_port_line;
+-static int kgdboc_break_enabled;
+-#endif
+-/*
+- * Setup for console. Argument comes from the menuconfig
+- */
+-#define DMA_RX_XCOUNT		512
+-#define DMA_RX_YCOUNT		(PAGE_SIZE / DMA_RX_XCOUNT)
+-
+-#define DMA_RX_FLUSH_JIFFIES	(HZ / 50)
+-
+-#ifdef CONFIG_SERIAL_BFIN_DMA
+-static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart);
+-#else
+-static void bfin_serial_tx_chars(struct bfin_serial_port *uart);
+-#endif
+-
+-static void bfin_serial_reset_irda(struct uart_port *port);
+-
+-#if defined(SERIAL_BFIN_CTSRTS) || \
+-	defined(SERIAL_BFIN_HARD_CTSRTS)
+-static unsigned int bfin_serial_get_mctrl(struct uart_port *port)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-	if (uart->cts_pin < 0)
+-		return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
+-
+-	/* CTS PIN is negative assertive. */
+-	if (UART_GET_CTS(uart))
+-		return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
+-	else
+-		return TIOCM_DSR | TIOCM_CAR;
+-}
+-
+-static void bfin_serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-	if (uart->rts_pin < 0)
+-		return;
+-
+-	/* RTS PIN is negative assertive. */
+-	if (mctrl & TIOCM_RTS)
+-		UART_ENABLE_RTS(uart);
+-	else
+-		UART_DISABLE_RTS(uart);
+-}
+-
+-/*
+- * Handle any change of modem status signal.
+- */
+-static irqreturn_t bfin_serial_mctrl_cts_int(int irq, void *dev_id)
+-{
+-	struct bfin_serial_port *uart = dev_id;
+-	struct uart_port *uport = &uart->port;
+-	unsigned int status = bfin_serial_get_mctrl(uport);
+-#ifdef SERIAL_BFIN_HARD_CTSRTS
+-
+-	UART_CLEAR_SCTS(uart);
+-	if (uport->hw_stopped) {
+-		if (status) {
+-			uport->hw_stopped = 0;
+-			uart_write_wakeup(uport);
+-		}
+-	} else {
+-		if (!status)
+-			uport->hw_stopped = 1;
+-	}
+-#else
+-	uart_handle_cts_change(uport, status & TIOCM_CTS);
+-#endif
+-
+-	return IRQ_HANDLED;
+-}
+-#else
+-static unsigned int bfin_serial_get_mctrl(struct uart_port *port)
+-{
+-	return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
+-}
+-
+-static void bfin_serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
+-{
+-}
+-#endif
+-
+-/*
+- * interrupts are disabled on entry
+- */
+-static void bfin_serial_stop_tx(struct uart_port *port)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-#ifdef CONFIG_SERIAL_BFIN_DMA
+-	struct circ_buf *xmit = &uart->port.state->xmit;
+-#endif
+-
+-	while (!(UART_GET_LSR(uart) & TEMT))
+-		cpu_relax();
+-
+-#ifdef CONFIG_SERIAL_BFIN_DMA
+-	disable_dma(uart->tx_dma_channel);
+-	xmit->tail = (xmit->tail + uart->tx_count) & (UART_XMIT_SIZE - 1);
+-	uart->port.icount.tx += uart->tx_count;
+-	uart->tx_count = 0;
+-	uart->tx_done = 1;
+-#else
+-#if defined(CONFIG_BF54x) || defined(CONFIG_BF60x)
+-	/* Clear TFI bit */
+-	UART_PUT_LSR(uart, TFI);
+-#endif
+-	UART_CLEAR_IER(uart, ETBEI);
+-#endif
+-}
+-
+-/*
+- * port is locked and interrupts are disabled
+- */
+-static void bfin_serial_start_tx(struct uart_port *port)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-	struct tty_struct *tty = uart->port.state->port.tty;
+-
+-	/*
+-	 * To avoid losting RX interrupt, we reset IR function
+-	 * before sending data.
+-	 */
+-	if (tty->termios.c_line == N_IRDA)
+-		bfin_serial_reset_irda(port);
+-
+-#ifdef CONFIG_SERIAL_BFIN_DMA
+-	if (uart->tx_done)
+-		bfin_serial_dma_tx_chars(uart);
+-#else
+-	UART_SET_IER(uart, ETBEI);
+-	bfin_serial_tx_chars(uart);
+-#endif
+-}
+-
+-/*
+- * Interrupts are enabled
+- */
+-static void bfin_serial_stop_rx(struct uart_port *port)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-
+-	UART_CLEAR_IER(uart, ERBFI);
+-}
+-
+-#if ANOMALY_05000363 && defined(CONFIG_SERIAL_BFIN_PIO)
+-# define UART_GET_ANOMALY_THRESHOLD(uart)    ((uart)->anomaly_threshold)
+-# define UART_SET_ANOMALY_THRESHOLD(uart, v) ((uart)->anomaly_threshold = (v))
+-#else
+-# define UART_GET_ANOMALY_THRESHOLD(uart)    0
+-# define UART_SET_ANOMALY_THRESHOLD(uart, v)
+-#endif
+-
+-#ifdef CONFIG_SERIAL_BFIN_PIO
+-static void bfin_serial_rx_chars(struct bfin_serial_port *uart)
+-{
+-	unsigned int status, ch, flg;
+-	static u64 anomaly_start;
+-
+-	status = UART_GET_LSR(uart);
+-	UART_CLEAR_LSR(uart);
+-
+-	ch = UART_GET_CHAR(uart);
+-	uart->port.icount.rx++;
+-
+-#if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+-	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
+-	if (kgdb_connected && kgdboc_port_line == uart->port.line
+-		&& kgdboc_break_enabled)
+-		if (ch == 0x3) {/* Ctrl + C */
+-			kgdb_breakpoint();
+-			return;
+-		}
+-
+-	if (!uart->port.state)
+-		return;
+-#endif
+-	if (ANOMALY_05000363) {
+-		/* The BF533 (and BF561) family of processors have a nice anomaly
+-		 * where they continuously generate characters for a "single" break.
+-		 * We have to basically ignore this flood until the "next" valid
+-		 * character comes across.  Due to the nature of the flood, it is
+-		 * not possible to reliably catch bytes that are sent too quickly
+-		 * after this break.  So application code talking to the Blackfin
+-		 * which sends a break signal must allow at least 1.5 character
+-		 * times after the end of the break for things to stabilize.  This
+-		 * timeout was picked as it must absolutely be larger than 1
+-		 * character time +/- some percent.  So 1.5 sounds good.  All other
+-		 * Blackfin families operate properly.  Woo.
+-		 */
+-		if (anomaly_start > 0) {
+-			u64 curr, nsecs, threshold_ns;
+-
+-			if ((~ch & (~ch + 1)) & 0xff)
+-				goto known_good_char;
+-
+-			curr = ktime_get_ns();
+-			nsecs = curr - anomaly_start;
+-			if (nsecs >> 32)
+-				goto known_good_char;
+-
+-			threshold_ns = UART_GET_ANOMALY_THRESHOLD(uart)
+-							* NSEC_PER_USEC;
+-			if (nsecs > threshold_ns)
+-				goto known_good_char;
+-
+-			if (ch)
+-				anomaly_start = 0;
+-			else
+-				anomaly_start = curr;
+-
+-			return;
+-
+- known_good_char:
+-			status &= ~BI;
+-			anomaly_start = 0;
+-		}
+-	}
+-
+-	if (status & BI) {
+-		if (ANOMALY_05000363)
+-			if (bfin_revid() < 5)
+-				anomaly_start = ktime_get_ns();
+-		uart->port.icount.brk++;
+-		if (uart_handle_break(&uart->port))
+-			goto ignore_char;
+-		status &= ~(PE | FE);
+-	}
+-	if (status & PE)
+-		uart->port.icount.parity++;
+-	if (status & OE)
+-		uart->port.icount.overrun++;
+-	if (status & FE)
+-		uart->port.icount.frame++;
+-
+-	status &= uart->port.read_status_mask;
+-
+-	if (status & BI)
+-		flg = TTY_BREAK;
+-	else if (status & PE)
+-		flg = TTY_PARITY;
+-	else if (status & FE)
+-		flg = TTY_FRAME;
+-	else
+-		flg = TTY_NORMAL;
+-
+-	if (uart_handle_sysrq_char(&uart->port, ch))
+-		goto ignore_char;
+-
+-	uart_insert_char(&uart->port, status, OE, ch, flg);
+-
+- ignore_char:
+-	tty_flip_buffer_push(&uart->port.state->port);
+-}
+-
+-static void bfin_serial_tx_chars(struct bfin_serial_port *uart)
+-{
+-	struct circ_buf *xmit = &uart->port.state->xmit;
+-
+-	if (uart_circ_empty(xmit) || uart_tx_stopped(&uart->port)) {
+-#if defined(CONFIG_BF54x) || defined(CONFIG_BF60x)
+-		/* Clear TFI bit */
+-		UART_PUT_LSR(uart, TFI);
+-#endif
+-		/* Anomaly notes:
+-		 *  05000215 -	we always clear ETBEI within last UART TX
+-		 *		interrupt to end a string. It is always set
+-		 *		when start a new tx.
+-		 */
+-		UART_CLEAR_IER(uart, ETBEI);
+-		return;
+-	}
+-
+-	if (uart->port.x_char) {
+-		UART_PUT_CHAR(uart, uart->port.x_char);
+-		uart->port.icount.tx++;
+-		uart->port.x_char = 0;
+-	}
+-
+-	while ((UART_GET_LSR(uart) & THRE) && xmit->tail != xmit->head) {
+-		UART_PUT_CHAR(uart, xmit->buf[xmit->tail]);
+-		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
+-		uart->port.icount.tx++;
+-	}
+-
+-	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
+-		uart_write_wakeup(&uart->port);
+-}
+-
+-static irqreturn_t bfin_serial_rx_int(int irq, void *dev_id)
+-{
+-	struct bfin_serial_port *uart = dev_id;
+-
+-	while (UART_GET_LSR(uart) & DR)
+-		bfin_serial_rx_chars(uart);
+-
+-	return IRQ_HANDLED;
+-}
+-
+-static irqreturn_t bfin_serial_tx_int(int irq, void *dev_id)
+-{
+-	struct bfin_serial_port *uart = dev_id;
+-
+-	spin_lock(&uart->port.lock);
+-	if (UART_GET_LSR(uart) & THRE)
+-		bfin_serial_tx_chars(uart);
+-	spin_unlock(&uart->port.lock);
+-
+-	return IRQ_HANDLED;
+-}
+-#endif
+-
+-#ifdef CONFIG_SERIAL_BFIN_DMA
+-static void bfin_serial_dma_tx_chars(struct bfin_serial_port *uart)
+-{
+-	struct circ_buf *xmit = &uart->port.state->xmit;
+-
+-	uart->tx_done = 0;
+-
+-	if (uart_circ_empty(xmit) || uart_tx_stopped(&uart->port)) {
+-		uart->tx_count = 0;
+-		uart->tx_done = 1;
+-		return;
+-	}
+-
+-	if (uart->port.x_char) {
+-		UART_PUT_CHAR(uart, uart->port.x_char);
+-		uart->port.icount.tx++;
+-		uart->port.x_char = 0;
+-	}
+-
+-	uart->tx_count = CIRC_CNT(xmit->head, xmit->tail, UART_XMIT_SIZE);
+-	if (uart->tx_count > (UART_XMIT_SIZE - xmit->tail))
+-		uart->tx_count = UART_XMIT_SIZE - xmit->tail;
+-	blackfin_dcache_flush_range((unsigned long)(xmit->buf+xmit->tail),
+-					(unsigned long)(xmit->buf+xmit->tail+uart->tx_count));
+-	set_dma_config(uart->tx_dma_channel,
+-		set_bfin_dma_config(DIR_READ, DMA_FLOW_STOP,
+-			INTR_ON_BUF,
+-			DIMENSION_LINEAR,
+-			DATA_SIZE_8,
+-			DMA_SYNC_RESTART));
+-	set_dma_start_addr(uart->tx_dma_channel, (unsigned long)(xmit->buf+xmit->tail));
+-	set_dma_x_count(uart->tx_dma_channel, uart->tx_count);
+-	set_dma_x_modify(uart->tx_dma_channel, 1);
+-	SSYNC();
+-	enable_dma(uart->tx_dma_channel);
+-
+-	UART_SET_IER(uart, ETBEI);
+-}
+-
+-static void bfin_serial_dma_rx_chars(struct bfin_serial_port *uart)
+-{
+-	int i, flg, status;
+-
+-	status = UART_GET_LSR(uart);
+-	UART_CLEAR_LSR(uart);
+-
+-	uart->port.icount.rx +=
+-		CIRC_CNT(uart->rx_dma_buf.head, uart->rx_dma_buf.tail,
+-		UART_XMIT_SIZE);
+-
+-	if (status & BI) {
+-		uart->port.icount.brk++;
+-		if (uart_handle_break(&uart->port))
+-			goto dma_ignore_char;
+-		status &= ~(PE | FE);
+-	}
+-	if (status & PE)
+-		uart->port.icount.parity++;
+-	if (status & OE)
+-		uart->port.icount.overrun++;
+-	if (status & FE)
+-		uart->port.icount.frame++;
+-
+-	status &= uart->port.read_status_mask;
+-
+-	if (status & BI)
+-		flg = TTY_BREAK;
+-	else if (status & PE)
+-		flg = TTY_PARITY;
+-	else if (status & FE)
+-		flg = TTY_FRAME;
+-	else
+-		flg = TTY_NORMAL;
+-
+-	for (i = uart->rx_dma_buf.tail; ; i++) {
+-		if (i >= UART_XMIT_SIZE)
+-			i = 0;
+-		if (i == uart->rx_dma_buf.head)
+-			break;
+-		if (!uart_handle_sysrq_char(&uart->port, uart->rx_dma_buf.buf[i]))
+-			uart_insert_char(&uart->port, status, OE,
+-				uart->rx_dma_buf.buf[i], flg);
+-	}
+-
+- dma_ignore_char:
+-	tty_flip_buffer_push(&uart->port.state->port);
+-}
+-
+-void bfin_serial_rx_dma_timeout(struct timer_list *t)
+-{
+-	struct bfin_serial_port *uart = from_timer(uart, t, rx_dma_timer);
+-	int x_pos, pos;
+-	unsigned long flags;
+-
+-	dma_disable_irq_nosync(uart->rx_dma_channel);
+-	spin_lock_irqsave(&uart->rx_lock, flags);
+-
+-	/* 2D DMA RX buffer ring is used. Because curr_y_count and
+-	 * curr_x_count can't be read as an atomic operation,
+-	 * curr_y_count should be read before curr_x_count. When
+-	 * curr_x_count is read, curr_y_count may already indicate
+-	 * next buffer line. But, the position calculated here is
+-	 * still indicate the old line. The wrong position data may
+-	 * be smaller than current buffer tail, which cause garbages
+-	 * are received if it is not prohibit.
+-	 */
+-	uart->rx_dma_nrows = get_dma_curr_ycount(uart->rx_dma_channel);
+-	x_pos = get_dma_curr_xcount(uart->rx_dma_channel);
+-	uart->rx_dma_nrows = DMA_RX_YCOUNT - uart->rx_dma_nrows;
+-	if (uart->rx_dma_nrows == DMA_RX_YCOUNT || x_pos == 0)
+-		uart->rx_dma_nrows = 0;
+-	x_pos = DMA_RX_XCOUNT - x_pos;
+-	if (x_pos == DMA_RX_XCOUNT)
+-		x_pos = 0;
+-
+-	pos = uart->rx_dma_nrows * DMA_RX_XCOUNT + x_pos;
+-	/* Ignore receiving data if new position is in the same line of
+-	 * current buffer tail and small.
+-	 */
+-	if (pos > uart->rx_dma_buf.tail ||
+-		uart->rx_dma_nrows < (uart->rx_dma_buf.tail/DMA_RX_XCOUNT)) {
+-		uart->rx_dma_buf.head = pos;
+-		bfin_serial_dma_rx_chars(uart);
+-		uart->rx_dma_buf.tail = uart->rx_dma_buf.head;
+-	}
+-
+-	spin_unlock_irqrestore(&uart->rx_lock, flags);
+-	dma_enable_irq(uart->rx_dma_channel);
+-
+-	mod_timer(&(uart->rx_dma_timer), jiffies + DMA_RX_FLUSH_JIFFIES);
+-}
+-
+-static irqreturn_t bfin_serial_dma_tx_int(int irq, void *dev_id)
+-{
+-	struct bfin_serial_port *uart = dev_id;
+-	struct circ_buf *xmit = &uart->port.state->xmit;
+-
+-	spin_lock(&uart->port.lock);
+-	if (!(get_dma_curr_irqstat(uart->tx_dma_channel)&DMA_RUN)) {
+-		disable_dma(uart->tx_dma_channel);
+-		clear_dma_irqstat(uart->tx_dma_channel);
+-		/* Anomaly notes:
+-		 *  05000215 -	we always clear ETBEI within last UART TX
+-		 *		interrupt to end a string. It is always set
+-		 *		when start a new tx.
+-		 */
+-		UART_CLEAR_IER(uart, ETBEI);
+-		uart->port.icount.tx += uart->tx_count;
+-		if (!(xmit->tail == 0 && xmit->head == 0)) {
+-			xmit->tail = (xmit->tail + uart->tx_count) & (UART_XMIT_SIZE - 1);
+-
+-			if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
+-				uart_write_wakeup(&uart->port);
+-		}
+-
+-		bfin_serial_dma_tx_chars(uart);
+-	}
+-
+-	spin_unlock(&uart->port.lock);
+-	return IRQ_HANDLED;
+-}
+-
+-static irqreturn_t bfin_serial_dma_rx_int(int irq, void *dev_id)
+-{
+-	struct bfin_serial_port *uart = dev_id;
+-	unsigned int irqstat;
+-	int x_pos, pos;
+-
+-	spin_lock(&uart->rx_lock);
+-	irqstat = get_dma_curr_irqstat(uart->rx_dma_channel);
+-	clear_dma_irqstat(uart->rx_dma_channel);
+-
+-	uart->rx_dma_nrows = get_dma_curr_ycount(uart->rx_dma_channel);
+-	x_pos = get_dma_curr_xcount(uart->rx_dma_channel);
+-	uart->rx_dma_nrows = DMA_RX_YCOUNT - uart->rx_dma_nrows;
+-	if (uart->rx_dma_nrows == DMA_RX_YCOUNT || x_pos == 0)
+-		uart->rx_dma_nrows = 0;
+-
+-	pos = uart->rx_dma_nrows * DMA_RX_XCOUNT;
+-	if (pos > uart->rx_dma_buf.tail ||
+-		uart->rx_dma_nrows < (uart->rx_dma_buf.tail/DMA_RX_XCOUNT)) {
+-		uart->rx_dma_buf.head = pos;
+-		bfin_serial_dma_rx_chars(uart);
+-		uart->rx_dma_buf.tail = uart->rx_dma_buf.head;
+-	}
+-
+-	spin_unlock(&uart->rx_lock);
+-
+-	return IRQ_HANDLED;
+-}
+-#endif
+-
+-/*
+- * Return TIOCSER_TEMT when transmitter is not busy.
+- */
+-static unsigned int bfin_serial_tx_empty(struct uart_port *port)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-	unsigned int lsr;
+-
+-	lsr = UART_GET_LSR(uart);
+-	if (lsr & TEMT)
+-		return TIOCSER_TEMT;
+-	else
+-		return 0;
+-}
+-
+-static void bfin_serial_break_ctl(struct uart_port *port, int break_state)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-	u32 lcr = UART_GET_LCR(uart);
+-	if (break_state)
+-		lcr |= SB;
+-	else
+-		lcr &= ~SB;
+-	UART_PUT_LCR(uart, lcr);
+-	SSYNC();
+-}
+-
+-static int bfin_serial_startup(struct uart_port *port)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-
+-#ifdef CONFIG_SERIAL_BFIN_DMA
+-	dma_addr_t dma_handle;
+-
+-	if (request_dma(uart->rx_dma_channel, "BFIN_UART_RX") < 0) {
+-		printk(KERN_NOTICE "Unable to attach Blackfin UART RX DMA channel\n");
+-		return -EBUSY;
+-	}
+-
+-	if (request_dma(uart->tx_dma_channel, "BFIN_UART_TX") < 0) {
+-		printk(KERN_NOTICE "Unable to attach Blackfin UART TX DMA channel\n");
+-		free_dma(uart->rx_dma_channel);
+-		return -EBUSY;
+-	}
+-
+-	set_dma_callback(uart->rx_dma_channel, bfin_serial_dma_rx_int, uart);
+-	set_dma_callback(uart->tx_dma_channel, bfin_serial_dma_tx_int, uart);
+-
+-	uart->rx_dma_buf.buf = (unsigned char *)dma_alloc_coherent(NULL, PAGE_SIZE, &dma_handle, GFP_DMA);
+-	uart->rx_dma_buf.head = 0;
+-	uart->rx_dma_buf.tail = 0;
+-	uart->rx_dma_nrows = 0;
+-
+-	set_dma_config(uart->rx_dma_channel,
+-		set_bfin_dma_config(DIR_WRITE, DMA_FLOW_AUTO,
+-				INTR_ON_ROW, DIMENSION_2D,
+-				DATA_SIZE_8,
+-				DMA_SYNC_RESTART));
+-	set_dma_x_count(uart->rx_dma_channel, DMA_RX_XCOUNT);
+-	set_dma_x_modify(uart->rx_dma_channel, 1);
+-	set_dma_y_count(uart->rx_dma_channel, DMA_RX_YCOUNT);
+-	set_dma_y_modify(uart->rx_dma_channel, 1);
+-	set_dma_start_addr(uart->rx_dma_channel, (unsigned long)uart->rx_dma_buf.buf);
+-	enable_dma(uart->rx_dma_channel);
+-
+-	uart->rx_dma_timer.expires = jiffies + DMA_RX_FLUSH_JIFFIES;
+-	add_timer(&(uart->rx_dma_timer));
+-#else
+-# if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+-	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
+-	if (kgdboc_port_line == uart->port.line && kgdboc_break_enabled)
+-		kgdboc_break_enabled = 0;
+-	else {
+-# endif
+-	if (request_irq(uart->rx_irq, bfin_serial_rx_int, 0,
+-	     "BFIN_UART_RX", uart)) {
+-		printk(KERN_NOTICE "Unable to attach BlackFin UART RX interrupt\n");
+-		return -EBUSY;
+-	}
+-
+-	if (request_irq
+-	    (uart->tx_irq, bfin_serial_tx_int, 0,
+-	     "BFIN_UART_TX", uart)) {
+-		printk(KERN_NOTICE "Unable to attach BlackFin UART TX interrupt\n");
+-		free_irq(uart->rx_irq, uart);
+-		return -EBUSY;
+-	}
+-
+-# ifdef CONFIG_BF54x
+-	{
+-		/*
+-		 * UART2 and UART3 on BF548 share interrupt PINs and DMA
+-		 * controllers with SPORT2 and SPORT3. UART rx and tx
+-		 * interrupts are generated in PIO mode only when configure
+-		 * their peripheral mapping registers properly, which means
+-		 * request corresponding DMA channels in PIO mode as well.
+-		 */
+-		unsigned uart_dma_ch_rx, uart_dma_ch_tx;
+-
+-		switch (uart->rx_irq) {
+-		case IRQ_UART3_RX:
+-			uart_dma_ch_rx = CH_UART3_RX;
+-			uart_dma_ch_tx = CH_UART3_TX;
+-			break;
+-		case IRQ_UART2_RX:
+-			uart_dma_ch_rx = CH_UART2_RX;
+-			uart_dma_ch_tx = CH_UART2_TX;
+-			break;
+-		default:
+-			uart_dma_ch_rx = uart_dma_ch_tx = 0;
+-			break;
+-		}
+-
+-		if (uart_dma_ch_rx &&
+-			request_dma(uart_dma_ch_rx, "BFIN_UART_RX") < 0) {
+-			printk(KERN_NOTICE"Fail to attach UART interrupt\n");
+-			free_irq(uart->rx_irq, uart);
+-			free_irq(uart->tx_irq, uart);
+-			return -EBUSY;
+-		}
+-		if (uart_dma_ch_tx &&
+-			request_dma(uart_dma_ch_tx, "BFIN_UART_TX") < 0) {
+-			printk(KERN_NOTICE "Fail to attach UART interrupt\n");
+-			free_dma(uart_dma_ch_rx);
+-			free_irq(uart->rx_irq, uart);
+-			free_irq(uart->tx_irq, uart);
+-			return -EBUSY;
+-		}
+-	}
+-# endif
+-# if defined(CONFIG_KGDB_SERIAL_CONSOLE) || \
+-	defined(CONFIG_KGDB_SERIAL_CONSOLE_MODULE)
+-	}
+-# endif
+-#endif
+-
+-#ifdef SERIAL_BFIN_CTSRTS
+-	if (uart->cts_pin >= 0) {
+-		if (request_irq(gpio_to_irq(uart->cts_pin),
+-			bfin_serial_mctrl_cts_int,
+-			IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING |
+-			0, "BFIN_UART_CTS", uart)) {
+-			uart->cts_pin = -1;
+-			pr_info("Unable to attach BlackFin UART CTS interrupt. So, disable it.\n");
+-		}
+-	}
+-	if (uart->rts_pin >= 0) {
+-		if (gpio_request(uart->rts_pin, DRIVER_NAME)) {
+-			pr_info("fail to request RTS PIN at GPIO_%d\n", uart->rts_pin);
+-			uart->rts_pin = -1;
+-		} else
+-			gpio_direction_output(uart->rts_pin, 0);
+-	}
+-#endif
+-#ifdef SERIAL_BFIN_HARD_CTSRTS
+-	if (uart->cts_pin >= 0) {
+-		if (request_irq(uart->status_irq, bfin_serial_mctrl_cts_int,
+-			0, "BFIN_UART_MODEM_STATUS", uart)) {
+-			uart->cts_pin = -1;
+-			dev_info(port->dev, "Unable to attach BlackFin UART Modem Status interrupt.\n");
+-		}
+-
+-		/* CTS RTS PINs are negative assertive. */
+-		UART_PUT_MCR(uart, UART_GET_MCR(uart) | ACTS);
+-		UART_SET_IER(uart, EDSSI);
+-	}
+-#endif
+-
+-	UART_SET_IER(uart, ERBFI);
+-	return 0;
+-}
+-
+-static void bfin_serial_shutdown(struct uart_port *port)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-
+-#ifdef CONFIG_SERIAL_BFIN_DMA
+-	disable_dma(uart->tx_dma_channel);
+-	free_dma(uart->tx_dma_channel);
+-	disable_dma(uart->rx_dma_channel);
+-	free_dma(uart->rx_dma_channel);
+-	del_timer(&(uart->rx_dma_timer));
+-	dma_free_coherent(NULL, PAGE_SIZE, uart->rx_dma_buf.buf, 0);
+-#else
+-#ifdef CONFIG_BF54x
+-	switch (uart->port.irq) {
+-	case IRQ_UART3_RX:
+-		free_dma(CH_UART3_RX);
+-		free_dma(CH_UART3_TX);
+-		break;
+-	case IRQ_UART2_RX:
+-		free_dma(CH_UART2_RX);
+-		free_dma(CH_UART2_TX);
+-		break;
+-	default:
+-		break;
+-	}
+-#endif
+-	free_irq(uart->rx_irq, uart);
+-	free_irq(uart->tx_irq, uart);
+-#endif
+-
+-#ifdef SERIAL_BFIN_CTSRTS
+-	if (uart->cts_pin >= 0)
+-		free_irq(gpio_to_irq(uart->cts_pin), uart);
+-	if (uart->rts_pin >= 0)
+-		gpio_free(uart->rts_pin);
+-#endif
+-#ifdef SERIAL_BFIN_HARD_CTSRTS
+-	if (uart->cts_pin >= 0)
+-		free_irq(uart->status_irq, uart);
+-#endif
+-}
+-
+-static void
+-bfin_serial_set_termios(struct uart_port *port, struct ktermios *termios,
+-		   struct ktermios *old)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-	unsigned long flags;
+-	unsigned int baud, quot;
+-	unsigned int ier, lcr = 0;
+-	unsigned long timeout;
+-
+-#ifdef SERIAL_BFIN_CTSRTS
+-	if (old == NULL && uart->cts_pin != -1)
+-		termios->c_cflag |= CRTSCTS;
+-	else if (uart->cts_pin == -1)
+-		termios->c_cflag &= ~CRTSCTS;
+-#endif
+-
+-	switch (termios->c_cflag & CSIZE) {
+-	case CS8:
+-		lcr = WLS(8);
+-		break;
+-	case CS7:
+-		lcr = WLS(7);
+-		break;
+-	case CS6:
+-		lcr = WLS(6);
+-		break;
+-	case CS5:
+-		lcr = WLS(5);
+-		break;
+-	default:
+-		printk(KERN_ERR "%s: word length not supported\n",
+-			__func__);
+-	}
+-
+-	/* Anomaly notes:
+-	 *  05000231 -  STOP bit is always set to 1 whatever the user is set.
+-	 */
+-	if (termios->c_cflag & CSTOPB) {
+-		if (ANOMALY_05000231)
+-			printk(KERN_WARNING "STOP bits other than 1 is not "
+-				"supported in case of anomaly 05000231.\n");
+-		else
+-			lcr |= STB;
+-	}
+-	if (termios->c_cflag & PARENB)
+-		lcr |= PEN;
+-	if (!(termios->c_cflag & PARODD))
+-		lcr |= EPS;
+-	if (termios->c_cflag & CMSPAR)
+-		lcr |= STP;
+-
+-	spin_lock_irqsave(&uart->port.lock, flags);
+-
+-	port->read_status_mask = OE;
+-	if (termios->c_iflag & INPCK)
+-		port->read_status_mask |= (FE | PE);
+-	if (termios->c_iflag & (IGNBRK | BRKINT | PARMRK))
+-		port->read_status_mask |= BI;
+-
+-	/*
+-	 * Characters to ignore
+-	 */
+-	port->ignore_status_mask = 0;
+-	if (termios->c_iflag & IGNPAR)
+-		port->ignore_status_mask |= FE | PE;
+-	if (termios->c_iflag & IGNBRK) {
+-		port->ignore_status_mask |= BI;
+-		/*
+-		 * If we're ignoring parity and break indicators,
+-		 * ignore overruns too (for real raw support).
+-		 */
+-		if (termios->c_iflag & IGNPAR)
+-			port->ignore_status_mask |= OE;
+-	}
+-
+-	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
+-	quot = uart_get_divisor(port, baud);
+-
+-	/* If discipline is not IRDA, apply ANOMALY_05000230 */
+-	if (termios->c_line != N_IRDA)
+-		quot -= ANOMALY_05000230;
+-
+-	UART_SET_ANOMALY_THRESHOLD(uart, USEC_PER_SEC / baud * 15);
+-
+-	/* Wait till the transfer buffer is empty */
+-	timeout = jiffies + msecs_to_jiffies(10);
+-	while (UART_GET_GCTL(uart) & UCEN && !(UART_GET_LSR(uart) & TEMT))
+-		if (time_after(jiffies, timeout)) {
+-			dev_warn(port->dev, "timeout waiting for TX buffer empty\n");
+-			break;
+-		}
+-
+-	/* Disable UART */
+-	ier = UART_GET_IER(uart);
+-	UART_PUT_GCTL(uart, UART_GET_GCTL(uart) & ~UCEN);
+-	UART_DISABLE_INTS(uart);
+-
+-	/* Set DLAB in LCR to Access CLK */
+-	UART_SET_DLAB(uart);
+-
+-	UART_PUT_CLK(uart, quot);
+-	SSYNC();
+-
+-	/* Clear DLAB in LCR to Access THR RBR IER */
+-	UART_CLEAR_DLAB(uart);
+-
+-	UART_PUT_LCR(uart, (UART_GET_LCR(uart) & ~LCR_MASK) | lcr);
+-
+-	/* Enable UART */
+-	UART_ENABLE_INTS(uart, ier);
+-	UART_PUT_GCTL(uart, UART_GET_GCTL(uart) | UCEN);
+-
+-	/* Port speed changed, update the per-port timeout. */
+-	uart_update_timeout(port, termios->c_cflag, baud);
+-
+-	spin_unlock_irqrestore(&uart->port.lock, flags);
+-}
+-
+-static const char *bfin_serial_type(struct uart_port *port)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-
+-	return uart->port.type == PORT_BFIN ? "BFIN-UART" : NULL;
+-}
+-
+-/*
+- * Release the memory region(s) being used by 'port'.
+- */
+-static void bfin_serial_release_port(struct uart_port *port)
+-{
+-}
+-
+-/*
+- * Request the memory region(s) being used by 'port'.
+- */
+-static int bfin_serial_request_port(struct uart_port *port)
+-{
+-	return 0;
+-}
+-
+-/*
+- * Configure/autoconfigure the port.
+- */
+-static void bfin_serial_config_port(struct uart_port *port, int flags)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-
+-	if (flags & UART_CONFIG_TYPE &&
+-	    bfin_serial_request_port(&uart->port) == 0)
+-		uart->port.type = PORT_BFIN;
+-}
+-
+-/*
+- * Verify the new serial_struct (for TIOCSSERIAL).
+- * The only change we allow are to the flags and type, and
+- * even then only between PORT_BFIN and PORT_UNKNOWN
+- */
+-static int
+-bfin_serial_verify_port(struct uart_port *port, struct serial_struct *ser)
+-{
+-	return 0;
+-}
+-
+-/*
+- * Enable the IrDA function if tty->ldisc.num is N_IRDA.
+- * In other cases, disable IrDA function.
+- */
+-static void bfin_serial_set_ldisc(struct uart_port *port,
+-				  struct ktermios *termios)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-	unsigned int val;
+-
+-	switch (termios->c_line) {
+-	case N_IRDA:
+-		val = UART_GET_GCTL(uart);
+-		val |= (UMOD_IRDA | RPOLC);
+-		UART_PUT_GCTL(uart, val);
+-		break;
+-	default:
+-		val = UART_GET_GCTL(uart);
+-		val &= ~(UMOD_MASK | RPOLC);
+-		UART_PUT_GCTL(uart, val);
+-	}
+-}
+-
+-static void bfin_serial_reset_irda(struct uart_port *port)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-	unsigned int val;
+-
+-	val = UART_GET_GCTL(uart);
+-	val &= ~(UMOD_MASK | RPOLC);
+-	UART_PUT_GCTL(uart, val);
+-	SSYNC();
+-	val |= (UMOD_IRDA | RPOLC);
+-	UART_PUT_GCTL(uart, val);
+-	SSYNC();
+-}
+-
+-#ifdef CONFIG_CONSOLE_POLL
+-/* Anomaly notes:
+- *  05000099 -  Because we only use THRE in poll_put and DR in poll_get,
+- *		losing other bits of UART_LSR is not a problem here.
+- */
+-static void bfin_serial_poll_put_char(struct uart_port *port, unsigned char chr)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-
+-	while (!(UART_GET_LSR(uart) & THRE))
+-		cpu_relax();
+-
+-	UART_CLEAR_DLAB(uart);
+-	UART_PUT_CHAR(uart, (unsigned char)chr);
+-}
+-
+-static int bfin_serial_poll_get_char(struct uart_port *port)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-	unsigned char chr;
+-
+-	while (!(UART_GET_LSR(uart) & DR))
+-		cpu_relax();
+-
+-	UART_CLEAR_DLAB(uart);
+-	chr = UART_GET_CHAR(uart);
+-
+-	return chr;
+-}
+-#endif
+-
+-static struct uart_ops bfin_serial_pops = {
+-	.tx_empty	= bfin_serial_tx_empty,
+-	.set_mctrl	= bfin_serial_set_mctrl,
+-	.get_mctrl	= bfin_serial_get_mctrl,
+-	.stop_tx	= bfin_serial_stop_tx,
+-	.start_tx	= bfin_serial_start_tx,
+-	.stop_rx	= bfin_serial_stop_rx,
+-	.break_ctl	= bfin_serial_break_ctl,
+-	.startup	= bfin_serial_startup,
+-	.shutdown	= bfin_serial_shutdown,
+-	.set_termios	= bfin_serial_set_termios,
+-	.set_ldisc	= bfin_serial_set_ldisc,
+-	.type		= bfin_serial_type,
+-	.release_port	= bfin_serial_release_port,
+-	.request_port	= bfin_serial_request_port,
+-	.config_port	= bfin_serial_config_port,
+-	.verify_port	= bfin_serial_verify_port,
+-#ifdef CONFIG_CONSOLE_POLL
+-	.poll_put_char	= bfin_serial_poll_put_char,
+-	.poll_get_char	= bfin_serial_poll_get_char,
+-#endif
+-};
+-
+-#if defined(CONFIG_SERIAL_BFIN_CONSOLE) || defined(CONFIG_EARLY_PRINTK)
+-/*
+- * If the port was already initialised (eg, by a boot loader),
+- * try to determine the current setup.
+- */
+-static void __init
+-bfin_serial_console_get_options(struct bfin_serial_port *uart, int *baud,
+-			   int *parity, int *bits)
+-{
+-	unsigned int status;
+-
+-	status = UART_GET_IER(uart) & (ERBFI | ETBEI);
+-	if (status == (ERBFI | ETBEI)) {
+-		/* ok, the port was enabled */
+-		u32 lcr, clk;
+-
+-		lcr = UART_GET_LCR(uart);
+-
+-		*parity = 'n';
+-		if (lcr & PEN) {
+-			if (lcr & EPS)
+-				*parity = 'e';
+-			else
+-				*parity = 'o';
+-		}
+-		*bits = ((lcr & WLS_MASK) >> WLS_OFFSET) + 5;
+-
+-		/* Set DLAB in LCR to Access CLK */
+-		UART_SET_DLAB(uart);
+-
+-		clk = UART_GET_CLK(uart);
+-
+-		/* Clear DLAB in LCR to Access THR RBR IER */
+-		UART_CLEAR_DLAB(uart);
+-
+-		*baud = get_sclk() / (16*clk);
+-	}
+-	pr_debug("%s:baud = %d, parity = %c, bits= %d\n", __func__, *baud, *parity, *bits);
+-}
+-
+-static struct uart_driver bfin_serial_reg;
+-
+-static void bfin_serial_console_putchar(struct uart_port *port, int ch)
+-{
+-	struct bfin_serial_port *uart = (struct bfin_serial_port *)port;
+-	while (!(UART_GET_LSR(uart) & THRE))
+-		barrier();
+-	UART_PUT_CHAR(uart, ch);
+-}
+-
+-#endif /* defined (CONFIG_SERIAL_BFIN_CONSOLE) ||
+-		 defined (CONFIG_EARLY_PRINTK) */
+-
+-#ifdef CONFIG_SERIAL_BFIN_CONSOLE
+-#define CLASS_BFIN_CONSOLE	"bfin-console"
+-/*
+- * Interrupts are disabled on entering
+- */
+-static void
+-bfin_serial_console_write(struct console *co, const char *s, unsigned int count)
+-{
+-	struct bfin_serial_port *uart = bfin_serial_ports[co->index];
+-	unsigned long flags;
+-
+-	spin_lock_irqsave(&uart->port.lock, flags);
+-	uart_console_write(&uart->port, s, count, bfin_serial_console_putchar);
+-	spin_unlock_irqrestore(&uart->port.lock, flags);
+-
+-}
+-
+-static int __init
+-bfin_serial_console_setup(struct console *co, char *options)
+-{
+-	struct bfin_serial_port *uart;
+-	int baud = 57600;
+-	int bits = 8;
+-	int parity = 'n';
+-# if defined(SERIAL_BFIN_CTSRTS) || \
+-	defined(SERIAL_BFIN_HARD_CTSRTS)
+-	int flow = 'r';
+-# else
+-	int flow = 'n';
+-# endif
+-
+-	/*
+-	 * Check whether an invalid uart number has been specified, and
+-	 * if so, search for the first available port that does have
+-	 * console support.
+-	 */
+-	if (co->index < 0 || co->index >= BFIN_UART_NR_PORTS)
+-		return -ENODEV;
+-
+-	uart = bfin_serial_ports[co->index];
+-	if (!uart)
+-		return -ENODEV;
+-
+-	if (options)
+-		uart_parse_options(options, &baud, &parity, &bits, &flow);
+-	else
+-		bfin_serial_console_get_options(uart, &baud, &parity, &bits);
+-
+-	return uart_set_options(&uart->port, co, baud, parity, bits, flow);
+-}
+-
+-static struct console bfin_serial_console = {
+-	.name		= BFIN_SERIAL_DEV_NAME,
+-	.write		= bfin_serial_console_write,
+-	.device		= uart_console_device,
+-	.setup		= bfin_serial_console_setup,
+-	.flags		= CON_PRINTBUFFER,
+-	.index		= -1,
+-	.data		= &bfin_serial_reg,
+-};
+-#define BFIN_SERIAL_CONSOLE	(&bfin_serial_console)
+-#else
+-#define BFIN_SERIAL_CONSOLE	NULL
+-#endif /* CONFIG_SERIAL_BFIN_CONSOLE */
+-
+-#ifdef	CONFIG_EARLY_PRINTK
+-static struct bfin_serial_port bfin_earlyprintk_port;
+-#define CLASS_BFIN_EARLYPRINTK	"bfin-earlyprintk"
+-
+-/*
+- * Interrupts are disabled on entering
+- */
+-static void
+-bfin_earlyprintk_console_write(struct console *co, const char *s, unsigned int count)
+-{
+-	unsigned long flags;
+-
+-	if (bfin_earlyprintk_port.port.line != co->index)
+-		return;
+-
+-	spin_lock_irqsave(&bfin_earlyprintk_port.port.lock, flags);
+-	uart_console_write(&bfin_earlyprintk_port.port, s, count,
+-		bfin_serial_console_putchar);
+-	spin_unlock_irqrestore(&bfin_earlyprintk_port.port.lock, flags);
+-}
+-
+-/*
+- * This should have a .setup or .early_setup in it, but then things get called
+- * without the command line options, and the baud rate gets messed up - so
+- * don't let the common infrastructure play with things. (see calls to setup
+- * & earlysetup in ./kernel/printk.c:register_console()
+- */
+-static struct console bfin_early_serial_console __initdata = {
+-	.name = "early_BFuart",
+-	.write = bfin_earlyprintk_console_write,
+-	.device = uart_console_device,
+-	.flags = CON_PRINTBUFFER,
+-	.index = -1,
+-	.data  = &bfin_serial_reg,
+-};
+-#endif
+-
+-static struct uart_driver bfin_serial_reg = {
+-	.owner			= THIS_MODULE,
+-	.driver_name		= DRIVER_NAME,
+-	.dev_name		= BFIN_SERIAL_DEV_NAME,
+-	.major			= BFIN_SERIAL_MAJOR,
+-	.minor			= BFIN_SERIAL_MINOR,
+-	.nr			= BFIN_UART_NR_PORTS,
+-	.cons			= BFIN_SERIAL_CONSOLE,
+-};
+-
+-static int bfin_serial_suspend(struct platform_device *pdev, pm_message_t state)
+-{
+-	struct bfin_serial_port *uart = platform_get_drvdata(pdev);
+-
+-	return uart_suspend_port(&bfin_serial_reg, &uart->port);
+-}
+-
+-static int bfin_serial_resume(struct platform_device *pdev)
+-{
+-	struct bfin_serial_port *uart = platform_get_drvdata(pdev);
+-
+-	return uart_resume_port(&bfin_serial_reg, &uart->port);
+-}
+-
+-static int bfin_serial_probe(struct platform_device *pdev)
+-{
+-	struct resource *res;
+-	struct bfin_serial_port *uart = NULL;
+-	int ret = 0;
+-
+-	if (pdev->id < 0 || pdev->id >= BFIN_UART_NR_PORTS) {
+-		dev_err(&pdev->dev, "Wrong bfin uart platform device id.\n");
+-		return -ENOENT;
+-	}
+-
+-	if (bfin_serial_ports[pdev->id] == NULL) {
+-
+-		uart = kzalloc(sizeof(*uart), GFP_KERNEL);
+-		if (!uart) {
+-			dev_err(&pdev->dev,
+-				"fail to malloc bfin_serial_port\n");
+-			return -ENOMEM;
+-		}
+-		bfin_serial_ports[pdev->id] = uart;
+-
+-#ifdef CONFIG_EARLY_PRINTK
+-		if (!(bfin_earlyprintk_port.port.membase
+-			&& bfin_earlyprintk_port.port.line == pdev->id)) {
+-			/*
+-			 * If the peripheral PINs of current port is allocated
+-			 * in earlyprintk probe stage, don't do it again.
+-			 */
+-#endif
+-		ret = peripheral_request_list(
+-			dev_get_platdata(&pdev->dev),
+-			DRIVER_NAME);
+-		if (ret) {
+-			dev_err(&pdev->dev,
+-				"fail to request bfin serial peripherals\n");
+-			goto out_error_free_mem;
+-		}
+-#ifdef CONFIG_EARLY_PRINTK
+-		}
+-#endif
+-
+-		spin_lock_init(&uart->port.lock);
+-		uart->port.uartclk   = get_sclk();
+-		uart->port.fifosize  = BFIN_UART_TX_FIFO_SIZE;
+-		uart->port.ops       = &bfin_serial_pops;
+-		uart->port.line      = pdev->id;
+-		uart->port.iotype    = UPIO_MEM;
+-		uart->port.flags     = UPF_BOOT_AUTOCONF;
+-
+-		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-		if (res == NULL) {
+-			dev_err(&pdev->dev, "Cannot get IORESOURCE_MEM\n");
+-			ret = -ENOENT;
+-			goto out_error_free_peripherals;
+-		}
+-
+-		uart->port.membase = ioremap(res->start, resource_size(res));
+-		if (!uart->port.membase) {
+-			dev_err(&pdev->dev, "Cannot map uart IO\n");
+-			ret = -ENXIO;
+-			goto out_error_free_peripherals;
+-		}
+-		uart->port.mapbase = res->start;
+-
+-		uart->tx_irq = platform_get_irq(pdev, 0);
+-		if (uart->tx_irq < 0) {
+-			dev_err(&pdev->dev, "No uart TX IRQ specified\n");
+-			ret = -ENOENT;
+-			goto out_error_unmap;
+-		}
+-
+-		uart->rx_irq = platform_get_irq(pdev, 1);
+-		if (uart->rx_irq < 0) {
+-			dev_err(&pdev->dev, "No uart RX IRQ specified\n");
+-			ret = -ENOENT;
+-			goto out_error_unmap;
+-		}
+-		uart->port.irq = uart->rx_irq;
+-
+-		uart->status_irq = platform_get_irq(pdev, 2);
+-		if (uart->status_irq < 0) {
+-			dev_err(&pdev->dev, "No uart status IRQ specified\n");
+-			ret = -ENOENT;
+-			goto out_error_unmap;
+-		}
+-
+-#ifdef CONFIG_SERIAL_BFIN_DMA
+-		spin_lock_init(&uart->rx_lock);
+-		uart->tx_done	    = 1;
+-		uart->tx_count	    = 0;
+-
+-		res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
+-		if (res == NULL) {
+-			dev_err(&pdev->dev, "No uart TX DMA channel specified\n");
+-			ret = -ENOENT;
+-			goto out_error_unmap;
+-		}
+-		uart->tx_dma_channel = res->start;
+-
+-		res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
+-		if (res == NULL) {
+-			dev_err(&pdev->dev, "No uart RX DMA channel specified\n");
+-			ret = -ENOENT;
+-			goto out_error_unmap;
+-		}
+-		uart->rx_dma_channel = res->start;
+-
+-		timer_setup(&uart->rx_dma_timer, bfin_serial_rx_dma_timeout, 0);
+-#endif
+-
+-#if defined(SERIAL_BFIN_CTSRTS) || \
+-	defined(SERIAL_BFIN_HARD_CTSRTS)
+-		res = platform_get_resource(pdev, IORESOURCE_IO, 0);
+-		if (res == NULL)
+-			uart->cts_pin = -1;
+-		else
+-			uart->cts_pin = res->start;
+-
+-		res = platform_get_resource(pdev, IORESOURCE_IO, 1);
+-		if (res == NULL)
+-			uart->rts_pin = -1;
+-		else
+-			uart->rts_pin = res->start;
+-#endif
+-	}
+-
+-#ifdef CONFIG_SERIAL_BFIN_CONSOLE
+-	if (!is_early_platform_device(pdev)) {
+-#endif
+-		uart = bfin_serial_ports[pdev->id];
+-		uart->port.dev = &pdev->dev;
+-		dev_set_drvdata(&pdev->dev, uart);
+-		ret = uart_add_one_port(&bfin_serial_reg, &uart->port);
+-#ifdef CONFIG_SERIAL_BFIN_CONSOLE
+-	}
+-#endif
+-
+-	if (!ret)
+-		return 0;
+-
+-	if (uart) {
+-out_error_unmap:
+-		iounmap(uart->port.membase);
+-out_error_free_peripherals:
+-		peripheral_free_list(dev_get_platdata(&pdev->dev));
+-out_error_free_mem:
+-		kfree(uart);
+-		bfin_serial_ports[pdev->id] = NULL;
+-	}
+-
+-	return ret;
+-}
+-
+-static int bfin_serial_remove(struct platform_device *pdev)
+-{
+-	struct bfin_serial_port *uart = platform_get_drvdata(pdev);
+-
+-	dev_set_drvdata(&pdev->dev, NULL);
+-
+-	if (uart) {
+-		uart_remove_one_port(&bfin_serial_reg, &uart->port);
+-		iounmap(uart->port.membase);
+-		peripheral_free_list(dev_get_platdata(&pdev->dev));
+-		kfree(uart);
+-		bfin_serial_ports[pdev->id] = NULL;
+-	}
+-
+-	return 0;
+-}
+-
+-static struct platform_driver bfin_serial_driver = {
+-	.probe		= bfin_serial_probe,
+-	.remove		= bfin_serial_remove,
+-	.suspend	= bfin_serial_suspend,
+-	.resume		= bfin_serial_resume,
+-	.driver		= {
+-		.name	= DRIVER_NAME,
+-	},
+-};
+-
+-#if defined(CONFIG_SERIAL_BFIN_CONSOLE)
+-static struct early_platform_driver early_bfin_serial_driver __initdata = {
+-	.class_str = CLASS_BFIN_CONSOLE,
+-	.pdrv = &bfin_serial_driver,
+-	.requested_id = EARLY_PLATFORM_ID_UNSET,
+-};
+-
+-static int __init bfin_serial_rs_console_init(void)
+-{
+-	early_platform_driver_register(&early_bfin_serial_driver, DRIVER_NAME);
+-
+-	early_platform_driver_probe(CLASS_BFIN_CONSOLE, BFIN_UART_NR_PORTS, 0);
+-
+-	register_console(&bfin_serial_console);
+-
+-	return 0;
+-}
+-console_initcall(bfin_serial_rs_console_init);
+-#endif
+-
+-#ifdef CONFIG_EARLY_PRINTK
+-/*
+- * Memory can't be allocated dynamically during earlyprink init stage.
+- * So, do individual probe for earlyprink with a static uart port variable.
+- */
+-static int bfin_earlyprintk_probe(struct platform_device *pdev)
+-{
+-	struct resource *res;
+-	int ret;
+-
+-	if (pdev->id < 0 || pdev->id >= BFIN_UART_NR_PORTS) {
+-		dev_err(&pdev->dev, "Wrong earlyprintk platform device id.\n");
+-		return -ENOENT;
+-	}
+-
+-	ret = peripheral_request_list(dev_get_platdata(&pdev->dev),
+-					DRIVER_NAME);
+-	if (ret) {
+-		dev_err(&pdev->dev,
+-				"fail to request bfin serial peripherals\n");
+-			return ret;
+-	}
+-
+-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	if (res == NULL) {
+-		dev_err(&pdev->dev, "Cannot get IORESOURCE_MEM\n");
+-		ret = -ENOENT;
+-		goto out_error_free_peripherals;
+-	}
+-
+-	bfin_earlyprintk_port.port.membase = ioremap(res->start,
+-						     resource_size(res));
+-	if (!bfin_earlyprintk_port.port.membase) {
+-		dev_err(&pdev->dev, "Cannot map uart IO\n");
+-		ret = -ENXIO;
+-		goto out_error_free_peripherals;
+-	}
+-	bfin_earlyprintk_port.port.mapbase = res->start;
+-	bfin_earlyprintk_port.port.line = pdev->id;
+-	bfin_earlyprintk_port.port.uartclk = get_sclk();
+-	bfin_earlyprintk_port.port.fifosize  = BFIN_UART_TX_FIFO_SIZE;
+-	spin_lock_init(&bfin_earlyprintk_port.port.lock);
+-
+-	return 0;
+-
+-out_error_free_peripherals:
+-	peripheral_free_list(dev_get_platdata(&pdev->dev));
+-
+-	return ret;
+-}
+-
+-static struct platform_driver bfin_earlyprintk_driver = {
+-	.probe		= bfin_earlyprintk_probe,
+-	.driver		= {
+-		.name	= DRIVER_NAME,
+-		.owner	= THIS_MODULE,
+-	},
+-};
+-
+-static struct early_platform_driver early_bfin_earlyprintk_driver __initdata = {
+-	.class_str = CLASS_BFIN_EARLYPRINTK,
+-	.pdrv = &bfin_earlyprintk_driver,
+-	.requested_id = EARLY_PLATFORM_ID_UNSET,
+-};
+-
+-struct console __init *bfin_earlyserial_init(unsigned int port,
+-						unsigned int cflag)
+-{
+-	struct ktermios t;
+-	char port_name[20];
+-
+-	if (port < 0 || port >= BFIN_UART_NR_PORTS)
+-		return NULL;
+-
+-	/*
+-	 * Only probe resource of the given port in earlyprintk boot arg.
+-	 * The expected port id should be indicated in port name string.
+-	 */
+-	snprintf(port_name, 20, DRIVER_NAME ".%d", port);
+-	early_platform_driver_register(&early_bfin_earlyprintk_driver,
+-		port_name);
+-	early_platform_driver_probe(CLASS_BFIN_EARLYPRINTK, 1, 0);
+-
+-	if (!bfin_earlyprintk_port.port.membase)
+-		return NULL;
+-
+-#ifdef CONFIG_SERIAL_BFIN_CONSOLE
+-	/*
+-	 * If we are using early serial, don't let the normal console rewind
+-	 * log buffer, since that causes things to be printed multiple times
+-	 */
+-	bfin_serial_console.flags &= ~CON_PRINTBUFFER;
+-#endif
+-
+-	bfin_early_serial_console.index = port;
+-	t.c_cflag = cflag;
+-	t.c_iflag = 0;
+-	t.c_oflag = 0;
+-	t.c_lflag = ICANON;
+-	t.c_line = port;
+-	bfin_serial_set_termios(&bfin_earlyprintk_port.port, &t, &t);
+-
+-	return &bfin_early_serial_console;
+-}
+-#endif /* CONFIG_EARLY_PRINTK */
+-
+-static int __init bfin_serial_init(void)
+-{
+-	int ret;
+-
+-	pr_info("Blackfin serial driver\n");
+-
+-	ret = uart_register_driver(&bfin_serial_reg);
+-	if (ret) {
+-		pr_err("failed to register %s:%d\n",
+-			bfin_serial_reg.driver_name, ret);
+-	}
+-
+-	ret = platform_driver_register(&bfin_serial_driver);
+-	if (ret) {
+-		pr_err("fail to register bfin uart\n");
+-		uart_unregister_driver(&bfin_serial_reg);
+-	}
+-
+-	return ret;
+-}
+-
+-static void __exit bfin_serial_exit(void)
+-{
+-	platform_driver_unregister(&bfin_serial_driver);
+-	uart_unregister_driver(&bfin_serial_reg);
+-}
+-
+-
+-module_init(bfin_serial_init);
+-module_exit(bfin_serial_exit);
+-
+-MODULE_AUTHOR("Sonic Zhang, Aubrey Li");
+-MODULE_DESCRIPTION("Blackfin generic serial port driver");
+-MODULE_LICENSE("GPL");
+-MODULE_ALIAS_CHARDEV_MAJOR(BFIN_SERIAL_MAJOR);
+-MODULE_ALIAS("platform:bfin-uart");
+diff --git a/include/uapi/linux/serial_core.h b/include/uapi/linux/serial_core.h
+index 1c8413f..82712d0 100644
+--- a/include/uapi/linux/serial_core.h
++++ b/include/uapi/linux/serial_core.h
+@@ -155,9 +155,6 @@
+ /* Xilinx uartlite */
+ #define PORT_UARTLITE	74
+ 
+-/* Blackfin bf5xx */
+-#define PORT_BFIN	75
+-
+ /* Micrel KS8695 */
+ #define PORT_KS8695	76
+ 
+@@ -167,9 +164,6 @@
+ /* Freescale ColdFire */
+ #define PORT_MCF	78
+ 
+-/* Blackfin SPORT */
+-#define PORT_BFIN_SPORT		79
+-
+ /* MN10300 on-chip UART numbers */
+ #define PORT_MN10300		80
+ #define PORT_MN10300_CTS	81
 -- 
 2.7.4
