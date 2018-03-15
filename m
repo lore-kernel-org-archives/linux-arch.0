@@ -1,44 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:47138 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750740AbeCOI1b (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 04:27:31 -0400
-Date: Thu, 15 Mar 2018 09:27:21 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: Do we need to disable preemption in flush_tlb_range()?
-Message-ID: <20180315082720.GT4064@hirez.programming.kicks-ass.net>
-References: <1519917189.13866.6.camel@synopsys.com>
- <5a5c67c1-9f45-f908-2c8d-0914cd616a18@synopsys.com>
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:33104 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751556AbeCOJMN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 05:12:13 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: arc_usr_cmpxchg and preemption
+Date: Thu, 15 Mar 2018 09:12:09 +0000
+Message-ID: <1521105128.11552.64.camel@synopsys.com>
+References: <1521045375.11552.27.camel@synopsys.com>
+         <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
+         <20180314175352.GP4064@hirez.programming.kicks-ass.net>
+         <1521059931.11552.51.camel@synopsys.com>
+         <20180315081845.GS4064@hirez.programming.kicks-ass.net>
+In-Reply-To: <20180315081845.GS4064@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <5373E3962868F54486F8E6ED3D0ADF5F@internal.synopsys.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5a5c67c1-9f45-f908-2c8d-0914cd616a18@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Message-ID: <20180315082721.8stUv1xYEfYNj-2HSoipjakl1A-1QELo0tHcOBj1Vz8@z>
+To: "peterz@infradead.org" <peterz@infradead.org>
+Cc: "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Message-ID: <20180315091209.5bqIAr8-YMPpO3mBQZpdSIlcBdwW3XWvJbUnklj-DhI@z>
 
-On Wed, Mar 14, 2018 at 01:19:01PM -0700, Vineet Gupta wrote:
-> +CC Peter since we have his attention ;-)
-
-Yeah, timezone collision there, I typically sleep at 1am ;-)
-
-> On 03/01/2018 07:13 AM, Alexey Brodkin wrote:
-> > Hi Vineet,
-> > 
-> > Just noticed that in comments for smp_call_function_many() it is said that
-> > preemption must be disabled during its execution. And that function gets executed
-> > among other ways like that:
-> > -------------------------->8-----------------------
-> >    flush_tlb_range()
-> >      -> on_each_cpu_mask()
-> >           -> smp_call_function_many()
-> > -------------------------->8-----------------------
-> 
-> In general I prefer not to - Peter what say you ?
-
-The comment with smp_call_function_many() is correct, it relies on
-preemption being disabled in a number of ways. I would expect
-this_cpu_ptr() for example to complain when used with preemption
-enabled (CONFIG_DEBUG_PREEMPT).
+SGkgUGV0ZXIsDQoNCk9uIFRodSwgMjAxOC0wMy0xNSBhdCAwOToxOCArMDEwMCwgUGV0ZXIgWmlq
+bHN0cmEgd3JvdGU6DQo+IE9uIFdlZCwgTWFyIDE0LCAyMDE4IGF0IDA4OjM4OjUzUE0gKzAwMDAs
+IEFsZXhleSBCcm9ka2luIHdyb3RlOg0KPiA+ID4gaW50IHN5c19jbXB4Y2hnKHUzMiBfX3VzZXIg
+KnVzZXJfcHRyLCB1MzIgb2xkLCB1MzIgbmV3KQ0KPiA+ID4gew0KPiA+ID4gCXUzMiB2YWw7DQo+
+ID4gPiAJaW50IHJldDsNCj4gPiA+IA0KPiA+ID4gYWdhaW46DQo+ID4gPiAJcmV0ID0gMDsNCj4g
+PiA+IA0KPiA+ID4gCXByZWVtcHRfZGlzYWJsZSgpOw0KPiA+ID4gCXZhbCA9IGdldF91c2VyKHVz
+ZXJfcHRyKTsNCj4gPiA+IAlpZiAodmFsID09IG9sZCkNCj4gPiA+IAkJcmV0ID0gcHV0X3VzZXIo
+bmV3LCB1c2VyX3B0cik7DQo+ID4gPiAJcHJlZW1wdF9lbmFibGUoKTsNCj4gPiA+IA0KPiA+ID4g
+CWlmIChyZXQgPT0gLUVGQVVMVCkgew0KPiA+ID4gCQlzdHJ1Y3QgcGFnZSAqcGFnZTsNCj4gPiA+
+IAkJcmV0ID0gZ2V0X3VzZXJfcGFnZXNfZmFzdCgodW5zaWduZWQgbG9uZyl1c2VyX3B0ciwgMSwg
+MSwgJnBhZ2UpOw0KPiA+ID4gCQlpZiAocmV0IDwgMCkNCj4gPiA+IAkJCXJldHVybiByZXQ7DQo+
+ID4gPiAJCXB1dF9wYWdlKHBhZ2UpOw0KPiA+ID4gCQlnb3RvIGFnYWluOw0KPiA+IA0KPiA+IEkg
+Z3Vlc3MgdGhpcyBqdW1wIHdlIG5lZWQgdG8gZG8gb25seSBvbmNlLCByaWdodD8NCj4gDQo+IFR5
+cGljYWxseSwgeWVzLiBJdCBpcyB0aGVvcmV0aWNhbGx5IHBvc3NpYmxlIGZvciB0aGUgcGFnZSB0
+byBnZXQNCj4gcGFnZWQtb3V0IHJpZ2h0IGFmdGVyIHdlIGRvIHB1dF9wYWdlKCkgYW5kIGJlZm9y
+ZSB3ZSBkbyBnZXQvcHV0X3VzZXIoKSwNCj4gQnV0IGlmIHRoYXQgaGFwcGVucyB0aGUgbWFjaGlu
+ZSBsaWtlbHkgaGFzIGJpZ2dlciBwcm9ibGVtcyB0aGFuIGhhdmluZw0KPiB0byBkbyB0aGlzIGxv
+b3AgYWdhaW4uDQo+IA0KPiBGV0lXLCBsb29rIGF0IGtlcm5lbC9mdXRleC5jIGZvciB3b3JraW5n
+IGV4YW1wbGVzIG9mIHRoaXMgcGF0dGVybiwgdGhlDQo+IGFib3ZlIHdhcyB3cml0dGVuIHB1cmVs
+eSBmcm9tIG1lbW9yeSBhbmQgY291bGQgY29udGFpbiBhIGZhaWwgb3IgdHdvIDstKQ0KDQpUaGFu
+a3MgZm9yIHRoZSBwb2ludGVyIQ0KDQo+IEFsc28sIGl0IG1pZ2h0IG1ha2Ugc2Vuc2UgdG8gc3R1
+ZmYgdGhpcyBpbXBsZW1lbnRhdGlvbiBpbiBzb21lIGxpYi8gZmlsZQ0KPiBzb21ld2hlcmUgYW5k
+IG1ha2UgYWxsIHBsYXRmb3JtcyB0aGF0IG5lZWQgaXQgdXNlIHRoZSBzYW1lIGNvZGUsIGFmYWlj
+dA0KPiB0aGVyZSByZWFsbHkgaXNuJ3QgYW55dGhpbmcgcGxhdGZvcm0gc3BlY2lmaWMgdG8gaXQu
+DQoNCk5vdCBjbGVhciB3aGljaCBwYXJ0IGRvIHlvdSBtZWFuIGhlcmUuDQpBcmUgeW91IHRhbGtp
+bmcgYWJvdXQgZW50aXJlIGNtcHhjaGcgc3lzY2FsbCBpbXBsZW1lbnRhdGlvbj8NCg0KRG8geW91
+IHRoaW5rIHRoZXJlJ3JlIG1hbnkgdXNlcnMgb2YgdGhhdCBxdWl0ZSBhbiBpbmVmZmljaWVudA0K
+W2NvbXBhcmVkIHRvIHByb3BlciBIVyB2ZXJzaW9uXSBhdG9taWMgZXhjaGFuZ2U/DQoNCi1BbGV4
+ZXk=
