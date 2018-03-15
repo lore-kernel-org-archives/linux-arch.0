@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0056.outbound.protection.outlook.com ([104.47.33.56]:18432
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam02on0069.outbound.protection.outlook.com ([104.47.36.69]:58267
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751617AbeCOK7w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 06:59:52 -0400
+        id S1751771AbeCOK7x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Mar 2018 06:59:53 -0400
 From: Aaron Wu <aaron.wu@analog.com>
-Subject: [Blackfin removal] [PATCH 02/28] net: Remove Blackfin Ethernet support
-Date: Thu, 15 Mar 2018 18:50:02 +0800
-Message-ID: <1521111028-19856-2-git-send-email-aaron.wu@analog.com>
+Subject: [Blackfin removal] [PATCH 03/28] media: Remove Blackfin media support
+Date: Thu, 15 Mar 2018 18:50:03 +0800
+Message-ID: <1521111028-19856-3-git-send-email-aaron.wu@analog.com>
 In-Reply-To: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 MIME-Version: 1.0
@@ -19,2198 +19,1586 @@ Cc: viro@zeniv.linux.org.uk, jhogan@kernel.org, linux-metag@vger.kernel.org, jon
 
 Signed-off-by: Aaron Wu <aaron.wu@analog.com>
 
-Remove Blackfin Ethernet support
+Remove Blackfin media support
 ---
- drivers/net/ethernet/Kconfig         |    1 -
- drivers/net/ethernet/Makefile        |    1 -
- drivers/net/ethernet/adi/Kconfig     |   66 --
- drivers/net/ethernet/adi/Makefile    |    5 -
- drivers/net/ethernet/adi/bfin_mac.c  | 1881 ----------------------------------
- drivers/net/ethernet/adi/bfin_mac.h  |  104 --
- drivers/net/ethernet/davicom/Kconfig |    2 +-
- drivers/net/ethernet/smsc/Kconfig    |    4 +-
- include/linux/bfin_mac.h             |   30 -
- 9 files changed, 3 insertions(+), 2091 deletions(-)
- delete mode 100644 drivers/net/ethernet/adi/Kconfig
- delete mode 100644 drivers/net/ethernet/adi/Makefile
- delete mode 100644 drivers/net/ethernet/adi/bfin_mac.c
- delete mode 100644 drivers/net/ethernet/adi/bfin_mac.h
- delete mode 100644 include/linux/bfin_mac.h
+ drivers/media/platform/Kconfig                 |   2 -
+ drivers/media/platform/Makefile                |   2 -
+ drivers/media/platform/blackfin/Kconfig        |  16 -
+ drivers/media/platform/blackfin/Makefile       |   2 -
+ drivers/media/platform/blackfin/bfin_capture.c | 989 -------------------------
+ drivers/media/platform/blackfin/ppi.c          | 361 ---------
+ include/media/blackfin/bfin_capture.h          |  39 -
+ include/media/blackfin/ppi.h                   |  94 ---
+ 8 files changed, 1505 deletions(-)
+ delete mode 100644 drivers/media/platform/blackfin/Kconfig
+ delete mode 100644 drivers/media/platform/blackfin/Makefile
+ delete mode 100644 drivers/media/platform/blackfin/bfin_capture.c
+ delete mode 100644 drivers/media/platform/blackfin/ppi.c
+ delete mode 100644 include/media/blackfin/bfin_capture.h
+ delete mode 100644 include/media/blackfin/ppi.h
 
-diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index b6cf4b6..b9b673d 100644
---- a/drivers/net/ethernet/Kconfig
-+++ b/drivers/net/ethernet/Kconfig
-@@ -34,7 +34,6 @@ source "drivers/net/ethernet/arc/Kconfig"
- source "drivers/net/ethernet/atheros/Kconfig"
- source "drivers/net/ethernet/aurora/Kconfig"
- source "drivers/net/ethernet/cadence/Kconfig"
--source "drivers/net/ethernet/adi/Kconfig"
- source "drivers/net/ethernet/broadcom/Kconfig"
- source "drivers/net/ethernet/brocade/Kconfig"
- source "drivers/net/ethernet/calxeda/Kconfig"
-diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index 3cdf01e..c557407 100644
---- a/drivers/net/ethernet/Makefile
-+++ b/drivers/net/ethernet/Makefile
-@@ -21,7 +21,6 @@ obj-$(CONFIG_NET_VENDOR_ARC) += arc/
- obj-$(CONFIG_NET_VENDOR_ATHEROS) += atheros/
- obj-$(CONFIG_NET_VENDOR_AURORA) += aurora/
- obj-$(CONFIG_NET_CADENCE) += cadence/
--obj-$(CONFIG_NET_BFIN) += adi/
- obj-$(CONFIG_NET_VENDOR_BROADCOM) += broadcom/
- obj-$(CONFIG_NET_VENDOR_BROCADE) += brocade/
- obj-$(CONFIG_NET_CALXEDA_XGMAC) += calxeda/
-diff --git a/drivers/net/ethernet/adi/Kconfig b/drivers/net/ethernet/adi/Kconfig
+diff --git a/drivers/media/platform/Kconfig b/drivers/media/platform/Kconfig
+index 614fbef..00158b3 100644
+--- a/drivers/media/platform/Kconfig
++++ b/drivers/media/platform/Kconfig
+@@ -31,8 +31,6 @@ source "drivers/media/platform/davinci/Kconfig"
+ 
+ source "drivers/media/platform/omap/Kconfig"
+ 
+-source "drivers/media/platform/blackfin/Kconfig"
+-
+ config VIDEO_SH_VOU
+ 	tristate "SuperH VOU video output driver"
+ 	depends on MEDIA_CAMERA_SUPPORT
+diff --git a/drivers/media/platform/Makefile b/drivers/media/platform/Makefile
+index 7f30804..e2b5cb3 100644
+--- a/drivers/media/platform/Makefile
++++ b/drivers/media/platform/Makefile
+@@ -53,8 +53,6 @@ obj-$(CONFIG_VIDEO_TEGRA_HDMI_CEC)	+= tegra-cec/
+ 
+ obj-y					+= stm32/
+ 
+-obj-y                                   += blackfin/
+-
+ obj-y					+= davinci/
+ 
+ obj-$(CONFIG_VIDEO_SH_VOU)		+= sh_vou.o
+diff --git a/drivers/media/platform/blackfin/Kconfig b/drivers/media/platform/blackfin/Kconfig
 deleted file mode 100644
-index 98cc8f5..0000000
---- a/drivers/net/ethernet/adi/Kconfig
+index 68fa901..0000000
+--- a/drivers/media/platform/blackfin/Kconfig
 +++ /dev/null
-@@ -1,66 +0,0 @@
--#
--# Blackfin device configuration
--#
+@@ -1,16 +0,0 @@
+-config VIDEO_BLACKFIN_CAPTURE
+-	tristate "Blackfin Video Capture Driver"
+-	depends on VIDEO_V4L2 && BLACKFIN && I2C
+-	depends on HAS_DMA
+-	select VIDEOBUF2_DMA_CONTIG
+-	help
+-	  V4L2 bridge driver for Blackfin video capture device.
+-	  Choose PPI or EPPI as its interface.
 -
--config NET_BFIN
--	bool "Blackfin devices"
--	depends on BF516 || BF518 || BF526 || BF527 || BF536 || BF537
--	---help---
--	  If you have a network (Ethernet) card belonging to this class, say Y.
+-	  To compile this driver as a module, choose M here: the
+-	  module will be called bfin_capture.
 -
--	  If unsure, say Y.
--
--	  Note that the answer to this question doesn't directly affect the
--	  kernel: saying N will just cause the configurator to skip all
--	  the remaining Blackfin card questions. If you say Y, you will be
--	  asked for your specific card in the following questions.
--
--if NET_BFIN
--
--config BFIN_MAC
--	tristate "Blackfin on-chip MAC support"
--	depends on (BF516 || BF518 || BF526 || BF527 || BF536 || BF537)
--	select CRC32
--	select MII
--	select PHYLIB
--	select BFIN_MAC_USE_L1 if DMA_UNCACHED_NONE
--	---help---
--	  This is the driver for Blackfin on-chip mac device. Say Y if you want
--	  it compiled into the kernel. This driver is also available as a
--	  module ( = code which can be inserted in and removed from the running
--	  kernel whenever you want). The module will be called bfin_mac.
--
--config BFIN_MAC_USE_L1
--	bool "Use L1 memory for rx/tx packets"
--	depends on BFIN_MAC && (BF527 || BF537)
--	default y
--	---help---
--	  To get maximum network performance, you should use L1 memory as rx/tx
--	  buffers. Say N here if you want to reserve L1 memory for other uses.
--
--config BFIN_TX_DESC_NUM
--	int "Number of transmit buffer packets"
--	depends on BFIN_MAC
--	range 6 10 if BFIN_MAC_USE_L1
--	range 10 100
--	default "10"
--	---help---
--	  Set the number of buffer packets used in driver.
--
--config BFIN_RX_DESC_NUM
--	int "Number of receive buffer packets"
--	depends on BFIN_MAC
--	range 20 64
--	default "20"
--	---help---
--	  Set the number of buffer packets used in driver.
--
--config BFIN_MAC_USE_HWSTAMP
--	bool "Use IEEE 1588 hwstamp"
--	depends on BFIN_MAC && BF518
--	imply PTP_1588_CLOCK
--	default y
--	---help---
--	  To support the IEEE 1588 Precision Time Protocol (PTP), select y here
--
--endif # NET_BFIN
-diff --git a/drivers/net/ethernet/adi/Makefile b/drivers/net/ethernet/adi/Makefile
+-config VIDEO_BLACKFIN_PPI
+-	tristate
+-	depends on VIDEO_BLACKFIN_CAPTURE
+-	default VIDEO_BLACKFIN_CAPTURE
+diff --git a/drivers/media/platform/blackfin/Makefile b/drivers/media/platform/blackfin/Makefile
 deleted file mode 100644
-index b1fbe19..0000000
---- a/drivers/net/ethernet/adi/Makefile
+index 30421bc..0000000
+--- a/drivers/media/platform/blackfin/Makefile
 +++ /dev/null
-@@ -1,5 +0,0 @@
--#
--# Makefile for the Blackfin device drivers.
--#
--
--obj-$(CONFIG_BFIN_MAC) += bfin_mac.o
-diff --git a/drivers/net/ethernet/adi/bfin_mac.c b/drivers/net/ethernet/adi/bfin_mac.c
+@@ -1,2 +0,0 @@
+-obj-$(CONFIG_VIDEO_BLACKFIN_CAPTURE) += bfin_capture.o
+-obj-$(CONFIG_VIDEO_BLACKFIN_PPI)     += ppi.o
+diff --git a/drivers/media/platform/blackfin/bfin_capture.c b/drivers/media/platform/blackfin/bfin_capture.c
 deleted file mode 100644
-index 7120f2b..0000000
---- a/drivers/net/ethernet/adi/bfin_mac.c
+index 41f1791..0000000
+--- a/drivers/media/platform/blackfin/bfin_capture.c
 +++ /dev/null
-@@ -1,1881 +0,0 @@
+@@ -1,989 +0,0 @@
 -/*
-- * Blackfin On-Chip MAC Driver
+- * Analog Devices video capture driver
 - *
-- * Copyright 2004-2010 Analog Devices Inc.
+- * Copyright (c) 2011 Analog Devices Inc.
 - *
-- * Enter bugs at http://blackfin.uclinux.org/
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
 - *
-- * Licensed under the GPL-2 or later.
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
 - */
 -
--#define DRV_VERSION	"1.1"
--#define DRV_DESC	"Blackfin on-chip Ethernet MAC driver"
--
--#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
--
--#include <linux/init.h>
--#include <linux/module.h>
--#include <linux/kernel.h>
--#include <linux/sched.h>
--#include <linux/slab.h>
+-#include <linux/completion.h>
 -#include <linux/delay.h>
--#include <linux/timer.h>
 -#include <linux/errno.h>
--#include <linux/irq.h>
+-#include <linux/fs.h>
+-#include <linux/i2c.h>
+-#include <linux/init.h>
+-#include <linux/interrupt.h>
 -#include <linux/io.h>
--#include <linux/ioport.h>
--#include <linux/crc32.h>
--#include <linux/device.h>
--#include <linux/spinlock.h>
--#include <linux/mii.h>
--#include <linux/netdevice.h>
--#include <linux/etherdevice.h>
--#include <linux/ethtool.h>
--#include <linux/skbuff.h>
+-#include <linux/mm.h>
+-#include <linux/module.h>
 -#include <linux/platform_device.h>
+-#include <linux/slab.h>
+-#include <linux/time.h>
+-#include <linux/types.h>
+-
+-#include <media/v4l2-common.h>
+-#include <media/v4l2-ctrls.h>
+-#include <media/v4l2-device.h>
+-#include <media/v4l2-ioctl.h>
+-#include <media/videobuf2-dma-contig.h>
 -
 -#include <asm/dma.h>
--#include <linux/dma-mapping.h>
 -
--#include <asm/div64.h>
--#include <asm/dpmc.h>
--#include <asm/blackfin.h>
--#include <asm/cacheflush.h>
--#include <asm/portmux.h>
--#include <mach/pll.h>
+-#include <media/blackfin/bfin_capture.h>
+-#include <media/blackfin/ppi.h>
 -
--#include "bfin_mac.h"
+-#define CAPTURE_DRV_NAME        "bfin_capture"
 -
--MODULE_AUTHOR("Bryan Wu, Luke Yang");
--MODULE_LICENSE("GPL");
--MODULE_DESCRIPTION(DRV_DESC);
--MODULE_ALIAS("platform:bfin_mac");
+-struct bcap_format {
+-	char *desc;
+-	u32 pixelformat;
+-	u32 mbus_code;
+-	int bpp; /* bits per pixel */
+-	int dlen; /* data length for ppi in bits */
+-};
 -
--#if defined(CONFIG_BFIN_MAC_USE_L1)
--# define bfin_mac_alloc(dma_handle, size, num)  l1_data_sram_zalloc(size*num)
--# define bfin_mac_free(dma_handle, ptr, num)    l1_data_sram_free(ptr)
--#else
--# define bfin_mac_alloc(dma_handle, size, num) \
--	dma_alloc_coherent(NULL, size*num, dma_handle, GFP_KERNEL)
--# define bfin_mac_free(dma_handle, ptr, num) \
--	dma_free_coherent(NULL, sizeof(*ptr)*num, ptr, dma_handle)
--#endif
+-struct bcap_buffer {
+-	struct vb2_v4l2_buffer vb;
+-	struct list_head list;
+-};
 -
--#define PKT_BUF_SZ 1580
+-struct bcap_device {
+-	/* capture device instance */
+-	struct v4l2_device v4l2_dev;
+-	/* v4l2 control handler */
+-	struct v4l2_ctrl_handler ctrl_handler;
+-	/* device node data */
+-	struct video_device video_dev;
+-	/* sub device instance */
+-	struct v4l2_subdev *sd;
+-	/* capture config */
+-	struct bfin_capture_config *cfg;
+-	/* ppi interface */
+-	struct ppi_if *ppi;
+-	/* current input */
+-	unsigned int cur_input;
+-	/* current selected standard */
+-	v4l2_std_id std;
+-	/* current selected dv_timings */
+-	struct v4l2_dv_timings dv_timings;
+-	/* used to store pixel format */
+-	struct v4l2_pix_format fmt;
+-	/* bits per pixel*/
+-	int bpp;
+-	/* data length for ppi in bits */
+-	int dlen;
+-	/* used to store sensor supported format */
+-	struct bcap_format *sensor_formats;
+-	/* number of sensor formats array */
+-	int num_sensor_formats;
+-	/* pointing to current video buffer */
+-	struct bcap_buffer *cur_frm;
+-	/* buffer queue used in videobuf2 */
+-	struct vb2_queue buffer_queue;
+-	/* queue of filled frames */
+-	struct list_head dma_queue;
+-	/* used in videobuf2 callback */
+-	spinlock_t lock;
+-	/* used to access capture device */
+-	struct mutex mutex;
+-	/* used to wait ppi to complete one transfer */
+-	struct completion comp;
+-	/* prepare to stop */
+-	bool stop;
+-	/* vb2 buffer sequence counter */
+-	unsigned sequence;
+-};
 -
--#define MAX_TIMEOUT_CNT	500
+-static const struct bcap_format bcap_formats[] = {
+-	{
+-		.desc        = "YCbCr 4:2:2 Interleaved UYVY",
+-		.pixelformat = V4L2_PIX_FMT_UYVY,
+-		.mbus_code   = MEDIA_BUS_FMT_UYVY8_2X8,
+-		.bpp         = 16,
+-		.dlen        = 8,
+-	},
+-	{
+-		.desc        = "YCbCr 4:2:2 Interleaved YUYV",
+-		.pixelformat = V4L2_PIX_FMT_YUYV,
+-		.mbus_code   = MEDIA_BUS_FMT_YUYV8_2X8,
+-		.bpp         = 16,
+-		.dlen        = 8,
+-	},
+-	{
+-		.desc        = "YCbCr 4:2:2 Interleaved UYVY",
+-		.pixelformat = V4L2_PIX_FMT_UYVY,
+-		.mbus_code   = MEDIA_BUS_FMT_UYVY8_1X16,
+-		.bpp         = 16,
+-		.dlen        = 16,
+-	},
+-	{
+-		.desc        = "RGB 565",
+-		.pixelformat = V4L2_PIX_FMT_RGB565,
+-		.mbus_code   = MEDIA_BUS_FMT_RGB565_2X8_LE,
+-		.bpp         = 16,
+-		.dlen        = 8,
+-	},
+-	{
+-		.desc        = "RGB 444",
+-		.pixelformat = V4L2_PIX_FMT_RGB444,
+-		.mbus_code   = MEDIA_BUS_FMT_RGB444_2X8_PADHI_LE,
+-		.bpp         = 16,
+-		.dlen        = 8,
+-	},
 -
--/* pointers to maintain transmit list */
--static struct net_dma_desc_tx *tx_list_head;
--static struct net_dma_desc_tx *tx_list_tail;
--static struct net_dma_desc_rx *rx_list_head;
--static struct net_dma_desc_rx *rx_list_tail;
--static struct net_dma_desc_rx *current_rx_ptr;
--static struct net_dma_desc_tx *current_tx_ptr;
--static struct net_dma_desc_tx *tx_desc;
--static struct net_dma_desc_rx *rx_desc;
+-};
+-#define BCAP_MAX_FMTS ARRAY_SIZE(bcap_formats)
 -
--static void desc_list_free(void)
+-static irqreturn_t bcap_isr(int irq, void *dev_id);
+-
+-static struct bcap_buffer *to_bcap_vb(struct vb2_v4l2_buffer *vb)
 -{
--	struct net_dma_desc_rx *r;
--	struct net_dma_desc_tx *t;
--	int i;
--#if !defined(CONFIG_BFIN_MAC_USE_L1)
--	dma_addr_t dma_handle = 0;
--#endif
--
--	if (tx_desc) {
--		t = tx_list_head;
--		for (i = 0; i < CONFIG_BFIN_TX_DESC_NUM; i++) {
--			if (t) {
--				if (t->skb) {
--					dev_kfree_skb(t->skb);
--					t->skb = NULL;
--				}
--				t = t->next;
--			}
--		}
--		bfin_mac_free(dma_handle, tx_desc, CONFIG_BFIN_TX_DESC_NUM);
--	}
--
--	if (rx_desc) {
--		r = rx_list_head;
--		for (i = 0; i < CONFIG_BFIN_RX_DESC_NUM; i++) {
--			if (r) {
--				if (r->skb) {
--					dev_kfree_skb(r->skb);
--					r->skb = NULL;
--				}
--				r = r->next;
--			}
--		}
--		bfin_mac_free(dma_handle, rx_desc, CONFIG_BFIN_RX_DESC_NUM);
--	}
+-	return container_of(vb, struct bcap_buffer, vb);
 -}
 -
--static int desc_list_init(struct net_device *dev)
+-static int bcap_init_sensor_formats(struct bcap_device *bcap_dev)
 -{
--	int i;
--	struct sk_buff *new_skb;
--#if !defined(CONFIG_BFIN_MAC_USE_L1)
--	/*
--	 * This dma_handle is useless in Blackfin dma_alloc_coherent().
--	 * The real dma handler is the return value of dma_alloc_coherent().
--	 */
--	dma_addr_t dma_handle;
--#endif
+-	struct v4l2_subdev_mbus_code_enum code = {
+-		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
+-	};
+-	struct bcap_format *sf;
+-	unsigned int num_formats = 0;
+-	int i, j;
 -
--	tx_desc = bfin_mac_alloc(&dma_handle,
--				sizeof(struct net_dma_desc_tx),
--				CONFIG_BFIN_TX_DESC_NUM);
--	if (tx_desc == NULL)
--		goto init_error;
--
--	rx_desc = bfin_mac_alloc(&dma_handle,
--				sizeof(struct net_dma_desc_rx),
--				CONFIG_BFIN_RX_DESC_NUM);
--	if (rx_desc == NULL)
--		goto init_error;
--
--	/* init tx_list */
--	tx_list_head = tx_list_tail = tx_desc;
--
--	for (i = 0; i < CONFIG_BFIN_TX_DESC_NUM; i++) {
--		struct net_dma_desc_tx *t = tx_desc + i;
--		struct dma_descriptor *a = &(t->desc_a);
--		struct dma_descriptor *b = &(t->desc_b);
--
--		/*
--		 * disable DMA
--		 * read from memory WNR = 0
--		 * wordsize is 32 bits
--		 * 6 half words is desc size
--		 * large desc flow
--		 */
--		a->config = WDSIZE_32 | NDSIZE_6 | DMAFLOW_LARGE;
--		a->start_addr = (unsigned long)t->packet;
--		a->x_count = 0;
--		a->next_dma_desc = b;
--
--		/*
--		 * enabled DMA
--		 * write to memory WNR = 1
--		 * wordsize is 32 bits
--		 * disable interrupt
--		 * 6 half words is desc size
--		 * large desc flow
--		 */
--		b->config = DMAEN | WNR | WDSIZE_32 | NDSIZE_6 | DMAFLOW_LARGE;
--		b->start_addr = (unsigned long)(&(t->status));
--		b->x_count = 0;
--
--		t->skb = NULL;
--		tx_list_tail->desc_b.next_dma_desc = a;
--		tx_list_tail->next = t;
--		tx_list_tail = t;
+-	while (!v4l2_subdev_call(bcap_dev->sd, pad,
+-				enum_mbus_code, NULL, &code)) {
+-		num_formats++;
+-		code.index++;
 -	}
--	tx_list_tail->next = tx_list_head;	/* tx_list is a circle */
--	tx_list_tail->desc_b.next_dma_desc = &(tx_list_head->desc_a);
--	current_tx_ptr = tx_list_head;
+-	if (!num_formats)
+-		return -ENXIO;
 -
--	/* init rx_list */
--	rx_list_head = rx_list_tail = rx_desc;
+-	sf = kcalloc(num_formats, sizeof(*sf), GFP_KERNEL);
+-	if (!sf)
+-		return -ENOMEM;
 -
--	for (i = 0; i < CONFIG_BFIN_RX_DESC_NUM; i++) {
--		struct net_dma_desc_rx *r = rx_desc + i;
--		struct dma_descriptor *a = &(r->desc_a);
--		struct dma_descriptor *b = &(r->desc_b);
--
--		/* allocate a new skb for next time receive */
--		new_skb = netdev_alloc_skb(dev, PKT_BUF_SZ + NET_IP_ALIGN);
--		if (!new_skb)
--			goto init_error;
--
--		skb_reserve(new_skb, NET_IP_ALIGN);
--		/* Invalidate the data cache of skb->data range when it is write back
--		 * cache. It will prevent overwriting the new data from DMA
--		 */
--		blackfin_dcache_invalidate_range((unsigned long)new_skb->head,
--					 (unsigned long)new_skb->end);
--		r->skb = new_skb;
--
--		/*
--		 * enabled DMA
--		 * write to memory WNR = 1
--		 * wordsize is 32 bits
--		 * disable interrupt
--		 * 6 half words is desc size
--		 * large desc flow
--		 */
--		a->config = DMAEN | WNR | WDSIZE_32 | NDSIZE_6 | DMAFLOW_LARGE;
--		/* since RXDWA is enabled */
--		a->start_addr = (unsigned long)new_skb->data - 2;
--		a->x_count = 0;
--		a->next_dma_desc = b;
--
--		/*
--		 * enabled DMA
--		 * write to memory WNR = 1
--		 * wordsize is 32 bits
--		 * enable interrupt
--		 * 6 half words is desc size
--		 * large desc flow
--		 */
--		b->config = DMAEN | WNR | WDSIZE_32 | DI_EN |
--				NDSIZE_6 | DMAFLOW_LARGE;
--		b->start_addr = (unsigned long)(&(r->status));
--		b->x_count = 0;
--
--		rx_list_tail->desc_b.next_dma_desc = a;
--		rx_list_tail->next = r;
--		rx_list_tail = r;
+-	for (i = 0; i < num_formats; i++) {
+-		code.index = i;
+-		v4l2_subdev_call(bcap_dev->sd, pad,
+-				enum_mbus_code, NULL, &code);
+-		for (j = 0; j < BCAP_MAX_FMTS; j++)
+-			if (code.code == bcap_formats[j].mbus_code)
+-				break;
+-		if (j == BCAP_MAX_FMTS) {
+-			/* we don't allow this sensor working with our bridge */
+-			kfree(sf);
+-			return -EINVAL;
+-		}
+-		sf[i] = bcap_formats[j];
 -	}
--	rx_list_tail->next = rx_list_head;	/* rx_list is a circle */
--	rx_list_tail->desc_b.next_dma_desc = &(rx_list_head->desc_a);
--	current_rx_ptr = rx_list_head;
--
+-	bcap_dev->sensor_formats = sf;
+-	bcap_dev->num_sensor_formats = num_formats;
 -	return 0;
--
--init_error:
--	desc_list_free();
--	pr_err("kmalloc failed\n");
--	return -ENOMEM;
 -}
 -
--
--/*---PHY CONTROL AND CONFIGURATION-----------------------------------------*/
--
--/*
-- * MII operations
-- */
--/* Wait until the previous MDC/MDIO transaction has completed */
--static int bfin_mdio_poll(void)
+-static void bcap_free_sensor_formats(struct bcap_device *bcap_dev)
 -{
--	int timeout_cnt = MAX_TIMEOUT_CNT;
+-	bcap_dev->num_sensor_formats = 0;
+-	kfree(bcap_dev->sensor_formats);
+-	bcap_dev->sensor_formats = NULL;
+-}
 -
--	/* poll the STABUSY bit */
--	while ((bfin_read_EMAC_STAADD()) & STABUSY) {
--		udelay(1);
--		if (timeout_cnt-- < 0) {
--			pr_err("wait MDC/MDIO transaction to complete timeout\n");
--			return -ETIMEDOUT;
--		}
--	}
+-static int bcap_queue_setup(struct vb2_queue *vq,
+-				unsigned int *nbuffers, unsigned int *nplanes,
+-				unsigned int sizes[], struct device *alloc_devs[])
+-{
+-	struct bcap_device *bcap_dev = vb2_get_drv_priv(vq);
+-
+-	if (vq->num_buffers + *nbuffers < 2)
+-		*nbuffers = 2;
+-
+-	if (*nplanes)
+-		return sizes[0] < bcap_dev->fmt.sizeimage ? -EINVAL : 0;
+-
+-	*nplanes = 1;
+-	sizes[0] = bcap_dev->fmt.sizeimage;
 -
 -	return 0;
 -}
 -
--/* Read an off-chip register in a PHY through the MDC/MDIO port */
--static int bfin_mdiobus_read(struct mii_bus *bus, int phy_addr, int regnum)
+-static int bcap_buffer_prepare(struct vb2_buffer *vb)
 -{
--	int ret;
+-	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
+-	struct bcap_device *bcap_dev = vb2_get_drv_priv(vb->vb2_queue);
+-	unsigned long size = bcap_dev->fmt.sizeimage;
 -
--	ret = bfin_mdio_poll();
--	if (ret)
--		return ret;
+-	if (vb2_plane_size(vb, 0) < size) {
+-		v4l2_err(&bcap_dev->v4l2_dev, "buffer too small (%lu < %lu)\n",
+-				vb2_plane_size(vb, 0), size);
+-		return -EINVAL;
+-	}
+-	vb2_set_plane_payload(vb, 0, size);
 -
--	/* read mode */
--	bfin_write_EMAC_STAADD(SET_PHYAD((u16) phy_addr) |
--				SET_REGAD((u16) regnum) |
--				STABUSY);
+-	vbuf->field = bcap_dev->fmt.field;
 -
--	ret = bfin_mdio_poll();
--	if (ret)
--		return ret;
--
--	return (int) bfin_read_EMAC_STADAT();
+-	return 0;
 -}
 -
--/* Write an off-chip register in a PHY through the MDC/MDIO port */
--static int bfin_mdiobus_write(struct mii_bus *bus, int phy_addr, int regnum,
--			      u16 value)
+-static void bcap_buffer_queue(struct vb2_buffer *vb)
 -{
--	int ret;
--
--	ret = bfin_mdio_poll();
--	if (ret)
--		return ret;
--
--	bfin_write_EMAC_STADAT((u32) value);
--
--	/* write mode */
--	bfin_write_EMAC_STAADD(SET_PHYAD((u16) phy_addr) |
--				SET_REGAD((u16) regnum) |
--				STAOP |
--				STABUSY);
--
--	return bfin_mdio_poll();
--}
--
--static void bfin_mac_adjust_link(struct net_device *dev)
--{
--	struct bfin_mac_local *lp = netdev_priv(dev);
--	struct phy_device *phydev = dev->phydev;
+-	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
+-	struct bcap_device *bcap_dev = vb2_get_drv_priv(vb->vb2_queue);
+-	struct bcap_buffer *buf = to_bcap_vb(vbuf);
 -	unsigned long flags;
--	int new_state = 0;
 -
--	spin_lock_irqsave(&lp->lock, flags);
--	if (phydev->link) {
--		/* Now we make sure that we can be in full duplex mode.
--		 * If not, we operate in half-duplex mode. */
--		if (phydev->duplex != lp->old_duplex) {
--			u32 opmode = bfin_read_EMAC_OPMODE();
--			new_state = 1;
--
--			if (phydev->duplex)
--				opmode |= FDMODE;
--			else
--				opmode &= ~(FDMODE);
--
--			bfin_write_EMAC_OPMODE(opmode);
--			lp->old_duplex = phydev->duplex;
--		}
--
--		if (phydev->speed != lp->old_speed) {
--			if (phydev->interface == PHY_INTERFACE_MODE_RMII) {
--				u32 opmode = bfin_read_EMAC_OPMODE();
--				switch (phydev->speed) {
--				case 10:
--					opmode |= RMII_10;
--					break;
--				case 100:
--					opmode &= ~RMII_10;
--					break;
--				default:
--					netdev_warn(dev,
--						"Ack! Speed (%d) is not 10/100!\n",
--						phydev->speed);
--					break;
--				}
--				bfin_write_EMAC_OPMODE(opmode);
--			}
--
--			new_state = 1;
--			lp->old_speed = phydev->speed;
--		}
--
--		if (!lp->old_link) {
--			new_state = 1;
--			lp->old_link = 1;
--		}
--	} else if (lp->old_link) {
--		new_state = 1;
--		lp->old_link = 0;
--		lp->old_speed = 0;
--		lp->old_duplex = -1;
--	}
--
--	if (new_state) {
--		u32 opmode = bfin_read_EMAC_OPMODE();
--		phy_print_status(phydev);
--		pr_debug("EMAC_OPMODE = 0x%08x\n", opmode);
--	}
--
--	spin_unlock_irqrestore(&lp->lock, flags);
+-	spin_lock_irqsave(&bcap_dev->lock, flags);
+-	list_add_tail(&buf->list, &bcap_dev->dma_queue);
+-	spin_unlock_irqrestore(&bcap_dev->lock, flags);
 -}
 -
--/* MDC  = 2.5 MHz */
--#define MDC_CLK 2500000
--
--static int mii_probe(struct net_device *dev, int phy_mode)
+-static void bcap_buffer_cleanup(struct vb2_buffer *vb)
 -{
--	struct bfin_mac_local *lp = netdev_priv(dev);
--	struct phy_device *phydev;
--	unsigned short sysctl;
--	u32 sclk, mdc_div;
+-	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
+-	struct bcap_device *bcap_dev = vb2_get_drv_priv(vb->vb2_queue);
+-	struct bcap_buffer *buf = to_bcap_vb(vbuf);
+-	unsigned long flags;
 -
--	/* Enable PHY output early */
--	if (!(bfin_read_VR_CTL() & CLKBUFOE))
--		bfin_write_VR_CTL(bfin_read_VR_CTL() | CLKBUFOE);
+-	spin_lock_irqsave(&bcap_dev->lock, flags);
+-	list_del_init(&buf->list);
+-	spin_unlock_irqrestore(&bcap_dev->lock, flags);
+-}
 -
--	sclk = get_sclk();
--	mdc_div = ((sclk / MDC_CLK) / 2) - 1;
+-static int bcap_start_streaming(struct vb2_queue *vq, unsigned int count)
+-{
+-	struct bcap_device *bcap_dev = vb2_get_drv_priv(vq);
+-	struct ppi_if *ppi = bcap_dev->ppi;
+-	struct bcap_buffer *buf, *tmp;
+-	struct ppi_params params;
+-	dma_addr_t addr;
+-	int ret;
 -
--	sysctl = bfin_read_EMAC_SYSCTL();
--	sysctl = (sysctl & ~MDCDIV) | SET_MDCDIV(mdc_div);
--	bfin_write_EMAC_SYSCTL(sysctl);
+-	/* enable streamon on the sub device */
+-	ret = v4l2_subdev_call(bcap_dev->sd, video, s_stream, 1);
+-	if (ret && (ret != -ENOIOCTLCMD)) {
+-		v4l2_err(&bcap_dev->v4l2_dev, "stream on failed in subdev\n");
+-		goto err;
+-	}
 -
--	phydev = phy_find_first(lp->mii_bus);
--	if (!phydev) {
--		netdev_err(dev, "no phy device found\n");
+-	/* set ppi params */
+-	params.width = bcap_dev->fmt.width;
+-	params.height = bcap_dev->fmt.height;
+-	params.bpp = bcap_dev->bpp;
+-	params.dlen = bcap_dev->dlen;
+-	params.ppi_control = bcap_dev->cfg->ppi_control;
+-	params.int_mask = bcap_dev->cfg->int_mask;
+-	if (bcap_dev->cfg->inputs[bcap_dev->cur_input].capabilities
+-			& V4L2_IN_CAP_DV_TIMINGS) {
+-		struct v4l2_bt_timings *bt = &bcap_dev->dv_timings.bt;
+-
+-		params.hdelay = bt->hsync + bt->hbackporch;
+-		params.vdelay = bt->vsync + bt->vbackporch;
+-		params.line = V4L2_DV_BT_FRAME_WIDTH(bt);
+-		params.frame = V4L2_DV_BT_FRAME_HEIGHT(bt);
+-	} else if (bcap_dev->cfg->inputs[bcap_dev->cur_input].capabilities
+-			& V4L2_IN_CAP_STD) {
+-		params.hdelay = 0;
+-		params.vdelay = 0;
+-		if (bcap_dev->std & V4L2_STD_525_60) {
+-			params.line = 858;
+-			params.frame = 525;
+-		} else {
+-			params.line = 864;
+-			params.frame = 625;
+-		}
+-	} else {
+-		params.hdelay = 0;
+-		params.vdelay = 0;
+-		params.line = params.width + bcap_dev->cfg->blank_pixels;
+-		params.frame = params.height;
+-	}
+-	ret = ppi->ops->set_params(ppi, &params);
+-	if (ret < 0) {
+-		v4l2_err(&bcap_dev->v4l2_dev,
+-				"Error in setting ppi params\n");
+-		goto err;
+-	}
+-
+-	/* attach ppi DMA irq handler */
+-	ret = ppi->ops->attach_irq(ppi, bcap_isr);
+-	if (ret < 0) {
+-		v4l2_err(&bcap_dev->v4l2_dev,
+-				"Error in attaching interrupt handler\n");
+-		goto err;
+-	}
+-
+-	bcap_dev->sequence = 0;
+-
+-	reinit_completion(&bcap_dev->comp);
+-	bcap_dev->stop = false;
+-
+-	/* get the next frame from the dma queue */
+-	bcap_dev->cur_frm = list_entry(bcap_dev->dma_queue.next,
+-					struct bcap_buffer, list);
+-	/* remove buffer from the dma queue */
+-	list_del_init(&bcap_dev->cur_frm->list);
+-	addr = vb2_dma_contig_plane_dma_addr(&bcap_dev->cur_frm->vb.vb2_buf,
+-						0);
+-	/* update DMA address */
+-	ppi->ops->update_addr(ppi, (unsigned long)addr);
+-	/* enable ppi */
+-	ppi->ops->start(ppi);
+-
+-	return 0;
+-
+-err:
+-	list_for_each_entry_safe(buf, tmp, &bcap_dev->dma_queue, list) {
+-		list_del(&buf->list);
+-		vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_QUEUED);
+-	}
+-
+-	return ret;
+-}
+-
+-static void bcap_stop_streaming(struct vb2_queue *vq)
+-{
+-	struct bcap_device *bcap_dev = vb2_get_drv_priv(vq);
+-	struct ppi_if *ppi = bcap_dev->ppi;
+-	int ret;
+-
+-	bcap_dev->stop = true;
+-	wait_for_completion(&bcap_dev->comp);
+-	ppi->ops->stop(ppi);
+-	ppi->ops->detach_irq(ppi);
+-	ret = v4l2_subdev_call(bcap_dev->sd, video, s_stream, 0);
+-	if (ret && (ret != -ENOIOCTLCMD))
+-		v4l2_err(&bcap_dev->v4l2_dev,
+-				"stream off failed in subdev\n");
+-
+-	/* release all active buffers */
+-	if (bcap_dev->cur_frm)
+-		vb2_buffer_done(&bcap_dev->cur_frm->vb.vb2_buf,
+-				VB2_BUF_STATE_ERROR);
+-
+-	while (!list_empty(&bcap_dev->dma_queue)) {
+-		bcap_dev->cur_frm = list_entry(bcap_dev->dma_queue.next,
+-						struct bcap_buffer, list);
+-		list_del_init(&bcap_dev->cur_frm->list);
+-		vb2_buffer_done(&bcap_dev->cur_frm->vb.vb2_buf,
+-				VB2_BUF_STATE_ERROR);
+-	}
+-}
+-
+-static const struct vb2_ops bcap_video_qops = {
+-	.queue_setup            = bcap_queue_setup,
+-	.buf_prepare            = bcap_buffer_prepare,
+-	.buf_cleanup            = bcap_buffer_cleanup,
+-	.buf_queue              = bcap_buffer_queue,
+-	.wait_prepare           = vb2_ops_wait_prepare,
+-	.wait_finish            = vb2_ops_wait_finish,
+-	.start_streaming        = bcap_start_streaming,
+-	.stop_streaming         = bcap_stop_streaming,
+-};
+-
+-static irqreturn_t bcap_isr(int irq, void *dev_id)
+-{
+-	struct ppi_if *ppi = dev_id;
+-	struct bcap_device *bcap_dev = ppi->priv;
+-	struct vb2_v4l2_buffer *vbuf = &bcap_dev->cur_frm->vb;
+-	struct vb2_buffer *vb = &vbuf->vb2_buf;
+-	dma_addr_t addr;
+-
+-	spin_lock(&bcap_dev->lock);
+-
+-	if (!list_empty(&bcap_dev->dma_queue)) {
+-		vb->timestamp = ktime_get_ns();
+-		if (ppi->err) {
+-			vb2_buffer_done(vb, VB2_BUF_STATE_ERROR);
+-			ppi->err = false;
+-		} else {
+-			vbuf->sequence = bcap_dev->sequence++;
+-			vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
+-		}
+-		bcap_dev->cur_frm = list_entry(bcap_dev->dma_queue.next,
+-				struct bcap_buffer, list);
+-		list_del_init(&bcap_dev->cur_frm->list);
+-	} else {
+-		/* clear error flag, we will get a new frame */
+-		if (ppi->err)
+-			ppi->err = false;
+-	}
+-
+-	ppi->ops->stop(ppi);
+-
+-	if (bcap_dev->stop) {
+-		complete(&bcap_dev->comp);
+-	} else {
+-		addr = vb2_dma_contig_plane_dma_addr(
+-				&bcap_dev->cur_frm->vb.vb2_buf, 0);
+-		ppi->ops->update_addr(ppi, (unsigned long)addr);
+-		ppi->ops->start(ppi);
+-	}
+-
+-	spin_unlock(&bcap_dev->lock);
+-
+-	return IRQ_HANDLED;
+-}
+-
+-static int bcap_querystd(struct file *file, void *priv, v4l2_std_id *std)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct v4l2_input input;
+-
+-	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
+-	if (!(input.capabilities & V4L2_IN_CAP_STD))
+-		return -ENODATA;
+-
+-	return v4l2_subdev_call(bcap_dev->sd, video, querystd, std);
+-}
+-
+-static int bcap_g_std(struct file *file, void *priv, v4l2_std_id *std)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct v4l2_input input;
+-
+-	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
+-	if (!(input.capabilities & V4L2_IN_CAP_STD))
+-		return -ENODATA;
+-
+-	*std = bcap_dev->std;
+-	return 0;
+-}
+-
+-static int bcap_s_std(struct file *file, void *priv, v4l2_std_id std)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct v4l2_input input;
+-	int ret;
+-
+-	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
+-	if (!(input.capabilities & V4L2_IN_CAP_STD))
+-		return -ENODATA;
+-
+-	if (vb2_is_busy(&bcap_dev->buffer_queue))
+-		return -EBUSY;
+-
+-	ret = v4l2_subdev_call(bcap_dev->sd, video, s_std, std);
+-	if (ret < 0)
+-		return ret;
+-
+-	bcap_dev->std = std;
+-	return 0;
+-}
+-
+-static int bcap_enum_dv_timings(struct file *file, void *priv,
+-				struct v4l2_enum_dv_timings *timings)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct v4l2_input input;
+-
+-	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
+-	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
+-		return -ENODATA;
+-
+-	timings->pad = 0;
+-
+-	return v4l2_subdev_call(bcap_dev->sd, pad,
+-			enum_dv_timings, timings);
+-}
+-
+-static int bcap_query_dv_timings(struct file *file, void *priv,
+-				struct v4l2_dv_timings *timings)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct v4l2_input input;
+-
+-	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
+-	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
+-		return -ENODATA;
+-
+-	return v4l2_subdev_call(bcap_dev->sd, video,
+-				query_dv_timings, timings);
+-}
+-
+-static int bcap_g_dv_timings(struct file *file, void *priv,
+-				struct v4l2_dv_timings *timings)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct v4l2_input input;
+-
+-	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
+-	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
+-		return -ENODATA;
+-
+-	*timings = bcap_dev->dv_timings;
+-	return 0;
+-}
+-
+-static int bcap_s_dv_timings(struct file *file, void *priv,
+-				struct v4l2_dv_timings *timings)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct v4l2_input input;
+-	int ret;
+-
+-	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
+-	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
+-		return -ENODATA;
+-
+-	if (vb2_is_busy(&bcap_dev->buffer_queue))
+-		return -EBUSY;
+-
+-	ret = v4l2_subdev_call(bcap_dev->sd, video, s_dv_timings, timings);
+-	if (ret < 0)
+-		return ret;
+-
+-	bcap_dev->dv_timings = *timings;
+-	return 0;
+-}
+-
+-static int bcap_enum_input(struct file *file, void *priv,
+-				struct v4l2_input *input)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct bfin_capture_config *config = bcap_dev->cfg;
+-	int ret;
+-	u32 status;
+-
+-	if (input->index >= config->num_inputs)
+-		return -EINVAL;
+-
+-	*input = config->inputs[input->index];
+-	/* get input status */
+-	ret = v4l2_subdev_call(bcap_dev->sd, video, g_input_status, &status);
+-	if (!ret)
+-		input->status = status;
+-	return 0;
+-}
+-
+-static int bcap_g_input(struct file *file, void *priv, unsigned int *index)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-
+-	*index = bcap_dev->cur_input;
+-	return 0;
+-}
+-
+-static int bcap_s_input(struct file *file, void *priv, unsigned int index)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct bfin_capture_config *config = bcap_dev->cfg;
+-	struct bcap_route *route;
+-	int ret;
+-
+-	if (vb2_is_busy(&bcap_dev->buffer_queue))
+-		return -EBUSY;
+-
+-	if (index >= config->num_inputs)
+-		return -EINVAL;
+-
+-	route = &config->routes[index];
+-	ret = v4l2_subdev_call(bcap_dev->sd, video, s_routing,
+-				route->input, route->output, 0);
+-	if ((ret < 0) && (ret != -ENOIOCTLCMD)) {
+-		v4l2_err(&bcap_dev->v4l2_dev, "Failed to set input\n");
+-		return ret;
+-	}
+-	bcap_dev->cur_input = index;
+-	/* if this route has specific config, update ppi control */
+-	if (route->ppi_control)
+-		config->ppi_control = route->ppi_control;
+-	return 0;
+-}
+-
+-static int bcap_try_format(struct bcap_device *bcap,
+-				struct v4l2_pix_format *pixfmt,
+-				struct bcap_format *bcap_fmt)
+-{
+-	struct bcap_format *sf = bcap->sensor_formats;
+-	struct bcap_format *fmt = NULL;
+-	struct v4l2_subdev_pad_config pad_cfg;
+-	struct v4l2_subdev_format format = {
+-		.which = V4L2_SUBDEV_FORMAT_TRY,
+-	};
+-	int ret, i;
+-
+-	for (i = 0; i < bcap->num_sensor_formats; i++) {
+-		fmt = &sf[i];
+-		if (pixfmt->pixelformat == fmt->pixelformat)
+-			break;
+-	}
+-	if (i == bcap->num_sensor_formats)
+-		fmt = &sf[0];
+-
+-	v4l2_fill_mbus_format(&format.format, pixfmt, fmt->mbus_code);
+-	ret = v4l2_subdev_call(bcap->sd, pad, set_fmt, &pad_cfg,
+-				&format);
+-	if (ret < 0)
+-		return ret;
+-	v4l2_fill_pix_format(pixfmt, &format.format);
+-	if (bcap_fmt) {
+-		for (i = 0; i < bcap->num_sensor_formats; i++) {
+-			fmt = &sf[i];
+-			if (format.format.code == fmt->mbus_code)
+-				break;
+-		}
+-		*bcap_fmt = *fmt;
+-	}
+-	pixfmt->bytesperline = pixfmt->width * fmt->bpp / 8;
+-	pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
+-	return 0;
+-}
+-
+-static int bcap_enum_fmt_vid_cap(struct file *file, void  *priv,
+-					struct v4l2_fmtdesc *fmt)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct bcap_format *sf = bcap_dev->sensor_formats;
+-
+-	if (fmt->index >= bcap_dev->num_sensor_formats)
+-		return -EINVAL;
+-
+-	fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+-	strlcpy(fmt->description,
+-		sf[fmt->index].desc,
+-		sizeof(fmt->description));
+-	fmt->pixelformat = sf[fmt->index].pixelformat;
+-	return 0;
+-}
+-
+-static int bcap_try_fmt_vid_cap(struct file *file, void *priv,
+-					struct v4l2_format *fmt)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct v4l2_pix_format *pixfmt = &fmt->fmt.pix;
+-
+-	return bcap_try_format(bcap_dev, pixfmt, NULL);
+-}
+-
+-static int bcap_g_fmt_vid_cap(struct file *file, void *priv,
+-				struct v4l2_format *fmt)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-
+-	fmt->fmt.pix = bcap_dev->fmt;
+-	return 0;
+-}
+-
+-static int bcap_s_fmt_vid_cap(struct file *file, void *priv,
+-				struct v4l2_format *fmt)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	struct v4l2_subdev_format format = {
+-		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
+-	};
+-	struct bcap_format bcap_fmt;
+-	struct v4l2_pix_format *pixfmt = &fmt->fmt.pix;
+-	int ret;
+-
+-	if (vb2_is_busy(&bcap_dev->buffer_queue))
+-		return -EBUSY;
+-
+-	/* see if format works */
+-	ret = bcap_try_format(bcap_dev, pixfmt, &bcap_fmt);
+-	if (ret < 0)
+-		return ret;
+-
+-	v4l2_fill_mbus_format(&format.format, pixfmt, bcap_fmt.mbus_code);
+-	ret = v4l2_subdev_call(bcap_dev->sd, pad, set_fmt, NULL, &format);
+-	if (ret < 0)
+-		return ret;
+-	bcap_dev->fmt = *pixfmt;
+-	bcap_dev->bpp = bcap_fmt.bpp;
+-	bcap_dev->dlen = bcap_fmt.dlen;
+-	return 0;
+-}
+-
+-static int bcap_querycap(struct file *file, void  *priv,
+-				struct v4l2_capability *cap)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-
+-	cap->device_caps = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
+-	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
+-	strlcpy(cap->driver, CAPTURE_DRV_NAME, sizeof(cap->driver));
+-	strlcpy(cap->bus_info, "Blackfin Platform", sizeof(cap->bus_info));
+-	strlcpy(cap->card, bcap_dev->cfg->card_name, sizeof(cap->card));
+-	return 0;
+-}
+-
+-static int bcap_g_parm(struct file *file, void *fh,
+-				struct v4l2_streamparm *a)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-
+-	if (a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+-		return -EINVAL;
+-	return v4l2_subdev_call(bcap_dev->sd, video, g_parm, a);
+-}
+-
+-static int bcap_s_parm(struct file *file, void *fh,
+-				struct v4l2_streamparm *a)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-
+-	if (a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+-		return -EINVAL;
+-	return v4l2_subdev_call(bcap_dev->sd, video, s_parm, a);
+-}
+-
+-static int bcap_log_status(struct file *file, void *priv)
+-{
+-	struct bcap_device *bcap_dev = video_drvdata(file);
+-	/* status for sub devices */
+-	v4l2_device_call_all(&bcap_dev->v4l2_dev, 0, core, log_status);
+-	return 0;
+-}
+-
+-static const struct v4l2_ioctl_ops bcap_ioctl_ops = {
+-	.vidioc_querycap         = bcap_querycap,
+-	.vidioc_g_fmt_vid_cap    = bcap_g_fmt_vid_cap,
+-	.vidioc_enum_fmt_vid_cap = bcap_enum_fmt_vid_cap,
+-	.vidioc_s_fmt_vid_cap    = bcap_s_fmt_vid_cap,
+-	.vidioc_try_fmt_vid_cap  = bcap_try_fmt_vid_cap,
+-	.vidioc_enum_input       = bcap_enum_input,
+-	.vidioc_g_input          = bcap_g_input,
+-	.vidioc_s_input          = bcap_s_input,
+-	.vidioc_querystd         = bcap_querystd,
+-	.vidioc_s_std            = bcap_s_std,
+-	.vidioc_g_std            = bcap_g_std,
+-	.vidioc_s_dv_timings     = bcap_s_dv_timings,
+-	.vidioc_g_dv_timings     = bcap_g_dv_timings,
+-	.vidioc_query_dv_timings = bcap_query_dv_timings,
+-	.vidioc_enum_dv_timings  = bcap_enum_dv_timings,
+-	.vidioc_reqbufs          = vb2_ioctl_reqbufs,
+-	.vidioc_create_bufs      = vb2_ioctl_create_bufs,
+-	.vidioc_querybuf         = vb2_ioctl_querybuf,
+-	.vidioc_qbuf             = vb2_ioctl_qbuf,
+-	.vidioc_dqbuf            = vb2_ioctl_dqbuf,
+-	.vidioc_expbuf           = vb2_ioctl_expbuf,
+-	.vidioc_streamon         = vb2_ioctl_streamon,
+-	.vidioc_streamoff        = vb2_ioctl_streamoff,
+-	.vidioc_g_parm           = bcap_g_parm,
+-	.vidioc_s_parm           = bcap_s_parm,
+-	.vidioc_log_status       = bcap_log_status,
+-};
+-
+-static const struct v4l2_file_operations bcap_fops = {
+-	.owner = THIS_MODULE,
+-	.open = v4l2_fh_open,
+-	.release = vb2_fop_release,
+-	.unlocked_ioctl = video_ioctl2,
+-	.mmap = vb2_fop_mmap,
+-#ifndef CONFIG_MMU
+-	.get_unmapped_area = vb2_fop_get_unmapped_area,
+-#endif
+-	.poll = vb2_fop_poll
+-};
+-
+-static int bcap_probe(struct platform_device *pdev)
+-{
+-	struct bcap_device *bcap_dev;
+-	struct video_device *vfd;
+-	struct i2c_adapter *i2c_adap;
+-	struct bfin_capture_config *config;
+-	struct vb2_queue *q;
+-	struct bcap_route *route;
+-	int ret;
+-
+-	config = pdev->dev.platform_data;
+-	if (!config || !config->num_inputs) {
+-		v4l2_err(pdev->dev.driver, "Unable to get board config\n");
 -		return -ENODEV;
 -	}
 -
--	if (phy_mode != PHY_INTERFACE_MODE_RMII &&
--		phy_mode != PHY_INTERFACE_MODE_MII) {
--		netdev_err(dev, "invalid phy interface mode\n");
--		return -EINVAL;
--	}
--
--	phydev = phy_connect(dev, phydev_name(phydev),
--			     &bfin_mac_adjust_link, phy_mode);
--
--	if (IS_ERR(phydev)) {
--		netdev_err(dev, "could not attach PHY\n");
--		return PTR_ERR(phydev);
--	}
--
--	/* mask with MAC supported features */
--	phydev->supported &= (SUPPORTED_10baseT_Half
--			      | SUPPORTED_10baseT_Full
--			      | SUPPORTED_100baseT_Half
--			      | SUPPORTED_100baseT_Full
--			      | SUPPORTED_Autoneg
--			      | SUPPORTED_Pause | SUPPORTED_Asym_Pause
--			      | SUPPORTED_MII
--			      | SUPPORTED_TP);
--
--	phydev->advertising = phydev->supported;
--
--	lp->old_link = 0;
--	lp->old_speed = 0;
--	lp->old_duplex = -1;
--
--	phy_attached_print(phydev, "mdc_clk=%dHz(mdc_div=%d)@sclk=%dMHz)\n",
--			   MDC_CLK, mdc_div, sclk / 1000000);
--
--	return 0;
--}
--
--/*
-- * Ethtool support
-- */
--
--/*
-- * interrupt routine for magic packet wakeup
-- */
--static irqreturn_t bfin_mac_wake_interrupt(int irq, void *dev_id)
--{
--	return IRQ_HANDLED;
--}
--
--static void bfin_mac_ethtool_getdrvinfo(struct net_device *dev,
--					struct ethtool_drvinfo *info)
--{
--	strlcpy(info->driver, KBUILD_MODNAME, sizeof(info->driver));
--	strlcpy(info->version, DRV_VERSION, sizeof(info->version));
--	strlcpy(info->fw_version, "N/A", sizeof(info->fw_version));
--	strlcpy(info->bus_info, dev_name(&dev->dev), sizeof(info->bus_info));
--}
--
--static void bfin_mac_ethtool_getwol(struct net_device *dev,
--	struct ethtool_wolinfo *wolinfo)
--{
--	struct bfin_mac_local *lp = netdev_priv(dev);
--
--	wolinfo->supported = WAKE_MAGIC;
--	wolinfo->wolopts = lp->wol;
--}
--
--static int bfin_mac_ethtool_setwol(struct net_device *dev,
--	struct ethtool_wolinfo *wolinfo)
--{
--	struct bfin_mac_local *lp = netdev_priv(dev);
--	int rc;
--
--	if (wolinfo->wolopts & (WAKE_MAGICSECURE |
--				WAKE_UCAST |
--				WAKE_MCAST |
--				WAKE_BCAST |
--				WAKE_ARP))
--		return -EOPNOTSUPP;
--
--	lp->wol = wolinfo->wolopts;
--
--	if (lp->wol && !lp->irq_wake_requested) {
--		/* register wake irq handler */
--		rc = request_irq(IRQ_MAC_WAKEDET, bfin_mac_wake_interrupt,
--				 0, "EMAC_WAKE", dev);
--		if (rc)
--			return rc;
--		lp->irq_wake_requested = true;
--	}
--
--	if (!lp->wol && lp->irq_wake_requested) {
--		free_irq(IRQ_MAC_WAKEDET, dev);
--		lp->irq_wake_requested = false;
--	}
--
--	/* Make sure the PHY driver doesn't suspend */
--	device_init_wakeup(&dev->dev, lp->wol);
--
--	return 0;
--}
--
--#ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
--static int bfin_mac_ethtool_get_ts_info(struct net_device *dev,
--	struct ethtool_ts_info *info)
--{
--	struct bfin_mac_local *lp = netdev_priv(dev);
--
--	info->so_timestamping =
--		SOF_TIMESTAMPING_TX_HARDWARE |
--		SOF_TIMESTAMPING_RX_HARDWARE |
--		SOF_TIMESTAMPING_RAW_HARDWARE;
--	info->phc_index = lp->phc_index;
--	info->tx_types =
--		(1 << HWTSTAMP_TX_OFF) |
--		(1 << HWTSTAMP_TX_ON);
--	info->rx_filters =
--		(1 << HWTSTAMP_FILTER_NONE) |
--		(1 << HWTSTAMP_FILTER_PTP_V1_L4_EVENT) |
--		(1 << HWTSTAMP_FILTER_PTP_V2_L2_EVENT) |
--		(1 << HWTSTAMP_FILTER_PTP_V2_L4_EVENT);
--	return 0;
--}
--#endif
--
--static const struct ethtool_ops bfin_mac_ethtool_ops = {
--	.get_link = ethtool_op_get_link,
--	.get_drvinfo = bfin_mac_ethtool_getdrvinfo,
--	.get_wol = bfin_mac_ethtool_getwol,
--	.set_wol = bfin_mac_ethtool_setwol,
--#ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
--	.get_ts_info = bfin_mac_ethtool_get_ts_info,
--#endif
--	.get_link_ksettings = phy_ethtool_get_link_ksettings,
--	.set_link_ksettings = phy_ethtool_set_link_ksettings,
--};
--
--/**************************************************************************/
--static void setup_system_regs(struct net_device *dev)
--{
--	struct bfin_mac_local *lp = netdev_priv(dev);
--	int i;
--	unsigned short sysctl;
--
--	/*
--	 * Odd word alignment for Receive Frame DMA word
--	 * Configure checksum support and rcve frame word alignment
--	 */
--	sysctl = bfin_read_EMAC_SYSCTL();
--	/*
--	 * check if interrupt is requested for any PHY,
--	 * enable PHY interrupt only if needed
--	 */
--	for (i = 0; i < PHY_MAX_ADDR; ++i)
--		if (lp->mii_bus->irq[i] != PHY_POLL)
--			break;
--	if (i < PHY_MAX_ADDR)
--		sysctl |= PHYIE;
--	sysctl |= RXDWA;
--#if defined(BFIN_MAC_CSUM_OFFLOAD)
--	sysctl |= RXCKS;
--#else
--	sysctl &= ~RXCKS;
--#endif
--	bfin_write_EMAC_SYSCTL(sysctl);
--
--	bfin_write_EMAC_MMC_CTL(RSTC | CROLL);
--
--	/* Set vlan regs to let 1522 bytes long packets pass through */
--	bfin_write_EMAC_VLAN1(lp->vlan1_mask);
--	bfin_write_EMAC_VLAN2(lp->vlan2_mask);
--
--	/* Initialize the TX DMA channel registers */
--	bfin_write_DMA2_X_COUNT(0);
--	bfin_write_DMA2_X_MODIFY(4);
--	bfin_write_DMA2_Y_COUNT(0);
--	bfin_write_DMA2_Y_MODIFY(0);
--
--	/* Initialize the RX DMA channel registers */
--	bfin_write_DMA1_X_COUNT(0);
--	bfin_write_DMA1_X_MODIFY(4);
--	bfin_write_DMA1_Y_COUNT(0);
--	bfin_write_DMA1_Y_MODIFY(0);
--}
--
--static void setup_mac_addr(u8 *mac_addr)
--{
--	u32 addr_low = le32_to_cpu(*(__le32 *) & mac_addr[0]);
--	u16 addr_hi = le16_to_cpu(*(__le16 *) & mac_addr[4]);
--
--	/* this depends on a little-endian machine */
--	bfin_write_EMAC_ADDRLO(addr_low);
--	bfin_write_EMAC_ADDRHI(addr_hi);
--}
--
--static int bfin_mac_set_mac_address(struct net_device *dev, void *p)
--{
--	struct sockaddr *addr = p;
--	if (netif_running(dev))
--		return -EBUSY;
--	memcpy(dev->dev_addr, addr->sa_data, dev->addr_len);
--	setup_mac_addr(dev->dev_addr);
--	return 0;
--}
--
--#ifdef CONFIG_BFIN_MAC_USE_HWSTAMP
--#define bfin_mac_hwtstamp_is_none(cfg) ((cfg) == HWTSTAMP_FILTER_NONE)
--
--static u32 bfin_select_phc_clock(u32 input_clk, unsigned int *shift_result)
--{
--	u32 ipn = 1000000000UL / input_clk;
--	u32 ppn = 1;
--	unsigned int shift = 0;
--
--	while (ppn <= ipn) {
--		ppn <<= 1;
--		shift++;
--	}
--	*shift_result = shift;
--	return 1000000000UL / ppn;
--}
--
--static int bfin_mac_hwtstamp_set(struct net_device *netdev,
--				 struct ifreq *ifr)
--{
--	struct hwtstamp_config config;
--	struct bfin_mac_local *lp = netdev_priv(netdev);
--	u16 ptpctl;
--	u32 ptpfv1, ptpfv2, ptpfv3, ptpfoff;
--
--	if (copy_from_user(&config, ifr->ifr_data, sizeof(config)))
--		return -EFAULT;
--
--	pr_debug("%s config flag:0x%x, tx_type:0x%x, rx_filter:0x%x\n",
--			__func__, config.flags, config.tx_type, config.rx_filter);
--
--	/* reserved for future extensions */
--	if (config.flags)
--		return -EINVAL;
--
--	if ((config.tx_type != HWTSTAMP_TX_OFF) &&
--			(config.tx_type != HWTSTAMP_TX_ON))
--		return -ERANGE;
--
--	ptpctl = bfin_read_EMAC_PTP_CTL();
--
--	switch (config.rx_filter) {
--	case HWTSTAMP_FILTER_NONE:
--		/*
--		 * Dont allow any timestamping
--		 */
--		ptpfv3 = 0xFFFFFFFF;
--		bfin_write_EMAC_PTP_FV3(ptpfv3);
--		break;
--	case HWTSTAMP_FILTER_PTP_V1_L4_EVENT:
--	case HWTSTAMP_FILTER_PTP_V1_L4_SYNC:
--	case HWTSTAMP_FILTER_PTP_V1_L4_DELAY_REQ:
--		/*
--		 * Clear the five comparison mask bits (bits[12:8]) in EMAC_PTP_CTL)
--		 * to enable all the field matches.
--		 */
--		ptpctl &= ~0x1F00;
--		bfin_write_EMAC_PTP_CTL(ptpctl);
--		/*
--		 * Keep the default values of the EMAC_PTP_FOFF register.
--		 */
--		ptpfoff = 0x4A24170C;
--		bfin_write_EMAC_PTP_FOFF(ptpfoff);
--		/*
--		 * Keep the default values of the EMAC_PTP_FV1 and EMAC_PTP_FV2
--		 * registers.
--		 */
--		ptpfv1 = 0x11040800;
--		bfin_write_EMAC_PTP_FV1(ptpfv1);
--		ptpfv2 = 0x0140013F;
--		bfin_write_EMAC_PTP_FV2(ptpfv2);
--		/*
--		 * The default value (0xFFFC) allows the timestamping of both
--		 * received Sync messages and Delay_Req messages.
--		 */
--		ptpfv3 = 0xFFFFFFFC;
--		bfin_write_EMAC_PTP_FV3(ptpfv3);
--
--		config.rx_filter = HWTSTAMP_FILTER_PTP_V1_L4_EVENT;
--		break;
--	case HWTSTAMP_FILTER_PTP_V2_L4_EVENT:
--	case HWTSTAMP_FILTER_PTP_V2_L4_SYNC:
--	case HWTSTAMP_FILTER_PTP_V2_DELAY_REQ:
--		/* Clear all five comparison mask bits (bits[12:8]) in the
--		 * EMAC_PTP_CTL register to enable all the field matches.
--		 */
--		ptpctl &= ~0x1F00;
--		bfin_write_EMAC_PTP_CTL(ptpctl);
--		/*
--		 * Keep the default values of the EMAC_PTP_FOFF register, except set
--		 * the PTPCOF field to 0x2A.
--		 */
--		ptpfoff = 0x2A24170C;
--		bfin_write_EMAC_PTP_FOFF(ptpfoff);
--		/*
--		 * Keep the default values of the EMAC_PTP_FV1 and EMAC_PTP_FV2
--		 * registers.
--		 */
--		ptpfv1 = 0x11040800;
--		bfin_write_EMAC_PTP_FV1(ptpfv1);
--		ptpfv2 = 0x0140013F;
--		bfin_write_EMAC_PTP_FV2(ptpfv2);
--		/*
--		 * To allow the timestamping of Pdelay_Req and Pdelay_Resp, set
--		 * the value to 0xFFF0.
--		 */
--		ptpfv3 = 0xFFFFFFF0;
--		bfin_write_EMAC_PTP_FV3(ptpfv3);
--
--		config.rx_filter = HWTSTAMP_FILTER_PTP_V2_L4_EVENT;
--		break;
--	case HWTSTAMP_FILTER_PTP_V2_L2_EVENT:
--	case HWTSTAMP_FILTER_PTP_V2_L2_SYNC:
--	case HWTSTAMP_FILTER_PTP_V2_L2_DELAY_REQ:
--		/*
--		 * Clear bits 8 and 12 of the EMAC_PTP_CTL register to enable only the
--		 * EFTM and PTPCM field comparison.
--		 */
--		ptpctl &= ~0x1100;
--		bfin_write_EMAC_PTP_CTL(ptpctl);
--		/*
--		 * Keep the default values of all the fields of the EMAC_PTP_FOFF
--		 * register, except set the PTPCOF field to 0x0E.
--		 */
--		ptpfoff = 0x0E24170C;
--		bfin_write_EMAC_PTP_FOFF(ptpfoff);
--		/*
--		 * Program bits [15:0] of the EMAC_PTP_FV1 register to 0x88F7, which
--		 * corresponds to PTP messages on the MAC layer.
--		 */
--		ptpfv1 = 0x110488F7;
--		bfin_write_EMAC_PTP_FV1(ptpfv1);
--		ptpfv2 = 0x0140013F;
--		bfin_write_EMAC_PTP_FV2(ptpfv2);
--		/*
--		 * To allow the timestamping of Pdelay_Req and Pdelay_Resp
--		 * messages, set the value to 0xFFF0.
--		 */
--		ptpfv3 = 0xFFFFFFF0;
--		bfin_write_EMAC_PTP_FV3(ptpfv3);
--
--		config.rx_filter = HWTSTAMP_FILTER_PTP_V2_L2_EVENT;
--		break;
--	default:
--		return -ERANGE;
--	}
--
--	if (config.tx_type == HWTSTAMP_TX_OFF &&
--	    bfin_mac_hwtstamp_is_none(config.rx_filter)) {
--		ptpctl &= ~PTP_EN;
--		bfin_write_EMAC_PTP_CTL(ptpctl);
--
--		SSYNC();
--	} else {
--		ptpctl |= PTP_EN;
--		bfin_write_EMAC_PTP_CTL(ptpctl);
--
--		/*
--		 * clear any existing timestamp
--		 */
--		bfin_read_EMAC_PTP_RXSNAPLO();
--		bfin_read_EMAC_PTP_RXSNAPHI();
--
--		bfin_read_EMAC_PTP_TXSNAPLO();
--		bfin_read_EMAC_PTP_TXSNAPHI();
--
--		SSYNC();
--	}
--
--	lp->stamp_cfg = config;
--	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
--		-EFAULT : 0;
--}
--
--static int bfin_mac_hwtstamp_get(struct net_device *netdev,
--				 struct ifreq *ifr)
--{
--	struct bfin_mac_local *lp = netdev_priv(netdev);
--
--	return copy_to_user(ifr->ifr_data, &lp->stamp_cfg,
--			    sizeof(lp->stamp_cfg)) ?
--		-EFAULT : 0;
--}
--
--static void bfin_tx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
--{
--	struct bfin_mac_local *lp = netdev_priv(netdev);
--
--	if (skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP) {
--		int timeout_cnt = MAX_TIMEOUT_CNT;
--
--		/* When doing time stamping, keep the connection to the socket
--		 * a while longer
--		 */
--		skb_shinfo(skb)->tx_flags |= SKBTX_IN_PROGRESS;
--
--		/*
--		 * The timestamping is done at the EMAC module's MII/RMII interface
--		 * when the module sees the Start of Frame of an event message packet. This
--		 * interface is the closest possible place to the physical Ethernet transmission
--		 * medium, providing the best timing accuracy.
--		 */
--		while ((!(bfin_read_EMAC_PTP_ISTAT() & TXTL)) && (--timeout_cnt))
--			udelay(1);
--		if (timeout_cnt == 0)
--			netdev_err(netdev, "timestamp the TX packet failed\n");
--		else {
--			struct skb_shared_hwtstamps shhwtstamps;
--			u64 ns;
--			u64 regval;
--
--			regval = bfin_read_EMAC_PTP_TXSNAPLO();
--			regval |= (u64)bfin_read_EMAC_PTP_TXSNAPHI() << 32;
--			memset(&shhwtstamps, 0, sizeof(shhwtstamps));
--			ns = regval << lp->shift;
--			shhwtstamps.hwtstamp = ns_to_ktime(ns);
--			skb_tstamp_tx(skb, &shhwtstamps);
--		}
--	}
--}
--
--static void bfin_rx_hwtstamp(struct net_device *netdev, struct sk_buff *skb)
--{
--	struct bfin_mac_local *lp = netdev_priv(netdev);
--	u32 valid;
--	u64 regval, ns;
--	struct skb_shared_hwtstamps *shhwtstamps;
--
--	if (bfin_mac_hwtstamp_is_none(lp->stamp_cfg.rx_filter))
--		return;
--
--	valid = bfin_read_EMAC_PTP_ISTAT() & RXEL;
--	if (!valid)
--		return;
--
--	shhwtstamps = skb_hwtstamps(skb);
--
--	regval = bfin_read_EMAC_PTP_RXSNAPLO();
--	regval |= (u64)bfin_read_EMAC_PTP_RXSNAPHI() << 32;
--	ns = regval << lp->shift;
--	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
--	shhwtstamps->hwtstamp = ns_to_ktime(ns);
--}
--
--static void bfin_mac_hwtstamp_init(struct net_device *netdev)
--{
--	struct bfin_mac_local *lp = netdev_priv(netdev);
--	u64 addend, ppb;
--	u32 input_clk, phc_clk;
--
--	/* Initialize hardware timer */
--	input_clk = get_sclk();
--	phc_clk = bfin_select_phc_clock(input_clk, &lp->shift);
--	addend = phc_clk * (1ULL << 32);
--	do_div(addend, input_clk);
--	bfin_write_EMAC_PTP_ADDEND((u32)addend);
--
--	lp->addend = addend;
--	ppb = 1000000000ULL * input_clk;
--	do_div(ppb, phc_clk);
--	lp->max_ppb = ppb - 1000000000ULL - 1ULL;
--
--	/* Initialize hwstamp config */
--	lp->stamp_cfg.rx_filter = HWTSTAMP_FILTER_NONE;
--	lp->stamp_cfg.tx_type = HWTSTAMP_TX_OFF;
--}
--
--static u64 bfin_ptp_time_read(struct bfin_mac_local *lp)
--{
--	u64 ns;
--	u32 lo, hi;
--
--	lo = bfin_read_EMAC_PTP_TIMELO();
--	hi = bfin_read_EMAC_PTP_TIMEHI();
--
--	ns = ((u64) hi) << 32;
--	ns |= lo;
--	ns <<= lp->shift;
--
--	return ns;
--}
--
--static void bfin_ptp_time_write(struct bfin_mac_local *lp, u64 ns)
--{
--	u32 hi, lo;
--
--	ns >>= lp->shift;
--	hi = ns >> 32;
--	lo = ns & 0xffffffff;
--
--	bfin_write_EMAC_PTP_TIMELO(lo);
--	bfin_write_EMAC_PTP_TIMEHI(hi);
--}
--
--/* PTP Hardware Clock operations */
--
--static int bfin_ptp_adjfreq(struct ptp_clock_info *ptp, s32 ppb)
--{
--	u64 adj;
--	u32 diff, addend;
--	int neg_adj = 0;
--	struct bfin_mac_local *lp =
--		container_of(ptp, struct bfin_mac_local, caps);
--
--	if (ppb < 0) {
--		neg_adj = 1;
--		ppb = -ppb;
--	}
--	addend = lp->addend;
--	adj = addend;
--	adj *= ppb;
--	diff = div_u64(adj, 1000000000ULL);
--
--	addend = neg_adj ? addend - diff : addend + diff;
--
--	bfin_write_EMAC_PTP_ADDEND(addend);
--
--	return 0;
--}
--
--static int bfin_ptp_adjtime(struct ptp_clock_info *ptp, s64 delta)
--{
--	s64 now;
--	unsigned long flags;
--	struct bfin_mac_local *lp =
--		container_of(ptp, struct bfin_mac_local, caps);
--
--	spin_lock_irqsave(&lp->phc_lock, flags);
--
--	now = bfin_ptp_time_read(lp);
--	now += delta;
--	bfin_ptp_time_write(lp, now);
--
--	spin_unlock_irqrestore(&lp->phc_lock, flags);
--
--	return 0;
--}
--
--static int bfin_ptp_gettime(struct ptp_clock_info *ptp, struct timespec64 *ts)
--{
--	u64 ns;
--	unsigned long flags;
--	struct bfin_mac_local *lp =
--		container_of(ptp, struct bfin_mac_local, caps);
--
--	spin_lock_irqsave(&lp->phc_lock, flags);
--
--	ns = bfin_ptp_time_read(lp);
--
--	spin_unlock_irqrestore(&lp->phc_lock, flags);
--
--	*ts = ns_to_timespec64(ns);
--
--	return 0;
--}
--
--static int bfin_ptp_settime(struct ptp_clock_info *ptp,
--			   const struct timespec64 *ts)
--{
--	u64 ns;
--	unsigned long flags;
--	struct bfin_mac_local *lp =
--		container_of(ptp, struct bfin_mac_local, caps);
--
--	ns = timespec64_to_ns(ts);
--
--	spin_lock_irqsave(&lp->phc_lock, flags);
--
--	bfin_ptp_time_write(lp, ns);
--
--	spin_unlock_irqrestore(&lp->phc_lock, flags);
--
--	return 0;
--}
--
--static int bfin_ptp_enable(struct ptp_clock_info *ptp,
--			  struct ptp_clock_request *rq, int on)
--{
--	return -EOPNOTSUPP;
--}
--
--static const struct ptp_clock_info bfin_ptp_caps = {
--	.owner		= THIS_MODULE,
--	.name		= "BF518 clock",
--	.max_adj	= 0,
--	.n_alarm	= 0,
--	.n_ext_ts	= 0,
--	.n_per_out	= 0,
--	.n_pins		= 0,
--	.pps		= 0,
--	.adjfreq	= bfin_ptp_adjfreq,
--	.adjtime	= bfin_ptp_adjtime,
--	.gettime64	= bfin_ptp_gettime,
--	.settime64	= bfin_ptp_settime,
--	.enable		= bfin_ptp_enable,
--};
--
--static int bfin_phc_init(struct net_device *netdev, struct device *dev)
--{
--	struct bfin_mac_local *lp = netdev_priv(netdev);
--
--	lp->caps = bfin_ptp_caps;
--	lp->caps.max_adj = lp->max_ppb;
--	lp->clock = ptp_clock_register(&lp->caps, dev);
--	if (IS_ERR(lp->clock))
--		return PTR_ERR(lp->clock);
--
--	lp->phc_index = ptp_clock_index(lp->clock);
--	spin_lock_init(&lp->phc_lock);
--
--	return 0;
--}
--
--static void bfin_phc_release(struct bfin_mac_local *lp)
--{
--	ptp_clock_unregister(lp->clock);
--}
--
--#else
--# define bfin_mac_hwtstamp_is_none(cfg) 0
--# define bfin_mac_hwtstamp_init(dev)
--# define bfin_mac_hwtstamp_set(dev, ifr) (-EOPNOTSUPP)
--# define bfin_mac_hwtstamp_get(dev, ifr) (-EOPNOTSUPP)
--# define bfin_rx_hwtstamp(dev, skb)
--# define bfin_tx_hwtstamp(dev, skb)
--# define bfin_phc_init(netdev, dev) 0
--# define bfin_phc_release(lp)
--#endif
--
--static inline void _tx_reclaim_skb(void)
--{
--	do {
--		tx_list_head->desc_a.config &= ~DMAEN;
--		tx_list_head->status.status_word = 0;
--		if (tx_list_head->skb) {
--			dev_consume_skb_any(tx_list_head->skb);
--			tx_list_head->skb = NULL;
--		}
--		tx_list_head = tx_list_head->next;
--
--	} while (tx_list_head->status.status_word != 0);
--}
--
--static void tx_reclaim_skb(struct bfin_mac_local *lp)
--{
--	int timeout_cnt = MAX_TIMEOUT_CNT;
--
--	if (tx_list_head->status.status_word != 0)
--		_tx_reclaim_skb();
--
--	if (current_tx_ptr->next == tx_list_head) {
--		while (tx_list_head->status.status_word == 0) {
--			/* slow down polling to avoid too many queue stop. */
--			udelay(10);
--			/* reclaim skb if DMA is not running. */
--			if (!(bfin_read_DMA2_IRQ_STATUS() & DMA_RUN))
--				break;
--			if (timeout_cnt-- < 0)
--				break;
--		}
--
--		if (timeout_cnt >= 0)
--			_tx_reclaim_skb();
--		else
--			netif_stop_queue(lp->ndev);
--	}
--
--	if (current_tx_ptr->next != tx_list_head &&
--		netif_queue_stopped(lp->ndev))
--		netif_wake_queue(lp->ndev);
--
--	if (tx_list_head != current_tx_ptr) {
--		/* shorten the timer interval if tx queue is stopped */
--		if (netif_queue_stopped(lp->ndev))
--			lp->tx_reclaim_timer.expires =
--				jiffies + (TX_RECLAIM_JIFFIES >> 4);
--		else
--			lp->tx_reclaim_timer.expires =
--				jiffies + TX_RECLAIM_JIFFIES;
--
--		mod_timer(&lp->tx_reclaim_timer,
--			lp->tx_reclaim_timer.expires);
--	}
--
--	return;
--}
--
--static void tx_reclaim_skb_timeout(struct timer_list *t)
--{
--	struct bfin_mac_local *lp = from_timer(lp, t, tx_reclaim_timer);
--
--	tx_reclaim_skb(lp);
--}
--
--static int bfin_mac_hard_start_xmit(struct sk_buff *skb,
--				struct net_device *dev)
--{
--	struct bfin_mac_local *lp = netdev_priv(dev);
--	u16 *data;
--	u32 data_align = (unsigned long)(skb->data) & 0x3;
--
--	current_tx_ptr->skb = skb;
--
--	if (data_align == 0x2) {
--		/* move skb->data to current_tx_ptr payload */
--		data = (u16 *)(skb->data) - 1;
--		*data = (u16)(skb->len);
--		/*
--		 * When transmitting an Ethernet packet, the PTP_TSYNC module requires
--		 * a DMA_Length_Word field associated with the packet. The lower 12 bits
--		 * of this field are the length of the packet payload in bytes and the higher
--		 * 4 bits are the timestamping enable field.
--		 */
--		if (skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP)
--			*data |= 0x1000;
--
--		current_tx_ptr->desc_a.start_addr = (u32)data;
--		/* this is important! */
--		blackfin_dcache_flush_range((u32)data,
--				(u32)((u8 *)data + skb->len + 4));
--	} else {
--		*((u16 *)(current_tx_ptr->packet)) = (u16)(skb->len);
--		/* enable timestamping for the sent packet */
--		if (skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP)
--			*((u16 *)(current_tx_ptr->packet)) |= 0x1000;
--		memcpy((u8 *)(current_tx_ptr->packet + 2), skb->data,
--			skb->len);
--		current_tx_ptr->desc_a.start_addr =
--			(u32)current_tx_ptr->packet;
--		blackfin_dcache_flush_range(
--			(u32)current_tx_ptr->packet,
--			(u32)(current_tx_ptr->packet + skb->len + 2));
--	}
--
--	/* make sure the internal data buffers in the core are drained
--	 * so that the DMA descriptors are completely written when the
--	 * DMA engine goes to fetch them below
--	 */
--	SSYNC();
--
--	/* always clear status buffer before start tx dma */
--	current_tx_ptr->status.status_word = 0;
--
--	/* enable this packet's dma */
--	current_tx_ptr->desc_a.config |= DMAEN;
--
--	/* tx dma is running, just return */
--	if (bfin_read_DMA2_IRQ_STATUS() & DMA_RUN)
--		goto out;
--
--	/* tx dma is not running */
--	bfin_write_DMA2_NEXT_DESC_PTR(&(current_tx_ptr->desc_a));
--	/* dma enabled, read from memory, size is 6 */
--	bfin_write_DMA2_CONFIG(current_tx_ptr->desc_a.config);
--	/* Turn on the EMAC tx */
--	bfin_write_EMAC_OPMODE(bfin_read_EMAC_OPMODE() | TE);
--
--out:
--	bfin_tx_hwtstamp(dev, skb);
--
--	current_tx_ptr = current_tx_ptr->next;
--	dev->stats.tx_packets++;
--	dev->stats.tx_bytes += (skb->len);
--
--	tx_reclaim_skb(lp);
--
--	return NETDEV_TX_OK;
--}
--
--#define IP_HEADER_OFF  0
--#define RX_ERROR_MASK (RX_LONG | RX_ALIGN | RX_CRC | RX_LEN | \
--	RX_FRAG | RX_ADDR | RX_DMAO | RX_PHY | RX_LATE | RX_RANGE)
--
--static void bfin_mac_rx(struct bfin_mac_local *lp)
--{
--	struct net_device *dev = lp->ndev;
--	struct sk_buff *skb, *new_skb;
--	unsigned short len;
--#if defined(BFIN_MAC_CSUM_OFFLOAD)
--	unsigned int i;
--	unsigned char fcs[ETH_FCS_LEN + 1];
--#endif
--
--	/* check if frame status word reports an error condition
--	 * we which case we simply drop the packet
--	 */
--	if (current_rx_ptr->status.status_word & RX_ERROR_MASK) {
--		netdev_notice(dev, "rx: receive error - packet dropped\n");
--		dev->stats.rx_dropped++;
--		goto out;
--	}
--
--	/* allocate a new skb for next time receive */
--	skb = current_rx_ptr->skb;
--
--	new_skb = netdev_alloc_skb(dev, PKT_BUF_SZ + NET_IP_ALIGN);
--	if (!new_skb) {
--		dev->stats.rx_dropped++;
--		goto out;
--	}
--	/* reserve 2 bytes for RXDWA padding */
--	skb_reserve(new_skb, NET_IP_ALIGN);
--	/* Invalidate the data cache of skb->data range when it is write back
--	 * cache. It will prevent overwriting the new data from DMA
--	 */
--	blackfin_dcache_invalidate_range((unsigned long)new_skb->head,
--					 (unsigned long)new_skb->end);
--
--	current_rx_ptr->skb = new_skb;
--	current_rx_ptr->desc_a.start_addr = (unsigned long)new_skb->data - 2;
--
--	len = (unsigned short)(current_rx_ptr->status.status_word & RX_FRLEN);
--	/* Deduce Ethernet FCS length from Ethernet payload length */
--	len -= ETH_FCS_LEN;
--	skb_put(skb, len);
--
--	skb->protocol = eth_type_trans(skb, dev);
--
--	bfin_rx_hwtstamp(dev, skb);
--
--#if defined(BFIN_MAC_CSUM_OFFLOAD)
--	/* Checksum offloading only works for IPv4 packets with the standard IP header
--	 * length of 20 bytes, because the blackfin MAC checksum calculation is
--	 * based on that assumption. We must NOT use the calculated checksum if our
--	 * IP version or header break that assumption.
--	 */
--	if (skb->data[IP_HEADER_OFF] == 0x45) {
--		skb->csum = current_rx_ptr->status.ip_payload_csum;
--		/*
--		 * Deduce Ethernet FCS from hardware generated IP payload checksum.
--		 * IP checksum is based on 16-bit one's complement algorithm.
--		 * To deduce a value from checksum is equal to add its inversion.
--		 * If the IP payload len is odd, the inversed FCS should also
--		 * begin from odd address and leave first byte zero.
--		 */
--		if (skb->len % 2) {
--			fcs[0] = 0;
--			for (i = 0; i < ETH_FCS_LEN; i++)
--				fcs[i + 1] = ~skb->data[skb->len + i];
--			skb->csum = csum_partial(fcs, ETH_FCS_LEN + 1, skb->csum);
--		} else {
--			for (i = 0; i < ETH_FCS_LEN; i++)
--				fcs[i] = ~skb->data[skb->len + i];
--			skb->csum = csum_partial(fcs, ETH_FCS_LEN, skb->csum);
--		}
--		skb->ip_summed = CHECKSUM_COMPLETE;
--	}
--#endif
--
--	napi_gro_receive(&lp->napi, skb);
--
--	dev->stats.rx_packets++;
--	dev->stats.rx_bytes += len;
--out:
--	current_rx_ptr->status.status_word = 0x00000000;
--	current_rx_ptr = current_rx_ptr->next;
--}
--
--static int bfin_mac_poll(struct napi_struct *napi, int budget)
--{
--	int i = 0;
--	struct bfin_mac_local *lp = container_of(napi,
--						 struct bfin_mac_local,
--						 napi);
--
--	while (current_rx_ptr->status.status_word != 0 && i < budget) {
--		bfin_mac_rx(lp);
--		i++;
--	}
--
--	if (i < budget) {
--		napi_complete_done(napi, i);
--		if (test_and_clear_bit(BFIN_MAC_RX_IRQ_DISABLED, &lp->flags))
--			enable_irq(IRQ_MAC_RX);
--	}
--
--	return i;
--}
--
--/* interrupt routine to handle rx and error signal */
--static irqreturn_t bfin_mac_interrupt(int irq, void *dev_id)
--{
--	struct bfin_mac_local *lp = netdev_priv(dev_id);
--	u32 status;
--
--	status = bfin_read_DMA1_IRQ_STATUS();
--
--	bfin_write_DMA1_IRQ_STATUS(status | DMA_DONE | DMA_ERR);
--	if (status & DMA_DONE) {
--		disable_irq_nosync(IRQ_MAC_RX);
--		set_bit(BFIN_MAC_RX_IRQ_DISABLED, &lp->flags);
--		napi_schedule(&lp->napi);
--	}
--
--	return IRQ_HANDLED;
--}
--
--#ifdef CONFIG_NET_POLL_CONTROLLER
--static void bfin_mac_poll_controller(struct net_device *dev)
--{
--	struct bfin_mac_local *lp = netdev_priv(dev);
--
--	bfin_mac_interrupt(IRQ_MAC_RX, dev);
--	tx_reclaim_skb(lp);
--}
--#endif				/* CONFIG_NET_POLL_CONTROLLER */
--
--static void bfin_mac_disable(void)
--{
--	unsigned int opmode;
--
--	opmode = bfin_read_EMAC_OPMODE();
--	opmode &= (~RE);
--	opmode &= (~TE);
--	/* Turn off the EMAC */
--	bfin_write_EMAC_OPMODE(opmode);
--}
--
--/*
-- * Enable Interrupts, Receive, and Transmit
-- */
--static int bfin_mac_enable(struct phy_device *phydev)
--{
--	int ret;
--	u32 opmode;
--
--	pr_debug("%s\n", __func__);
--
--	/* Set RX DMA */
--	bfin_write_DMA1_NEXT_DESC_PTR(&(rx_list_head->desc_a));
--	bfin_write_DMA1_CONFIG(rx_list_head->desc_a.config);
--
--	/* Wait MII done */
--	ret = bfin_mdio_poll();
--	if (ret)
--		return ret;
--
--	/* We enable only RX here */
--	/* ASTP   : Enable Automatic Pad Stripping
--	   PR     : Promiscuous Mode for test
--	   PSF    : Receive frames with total length less than 64 bytes.
--	   FDMODE : Full Duplex Mode
--	   LB     : Internal Loopback for test
--	   RE     : Receiver Enable */
--	opmode = bfin_read_EMAC_OPMODE();
--	if (opmode & FDMODE)
--		opmode |= PSF;
--	else
--		opmode |= DRO | DC | PSF;
--	opmode |= RE;
--
--	if (phydev->interface == PHY_INTERFACE_MODE_RMII) {
--		opmode |= RMII; /* For Now only 100MBit are supported */
--#if defined(CONFIG_BF537) || defined(CONFIG_BF536)
--		if (__SILICON_REVISION__ < 3) {
--			/*
--			 * This isn't publicly documented (fun times!), but in
--			 * silicon <=0.2, the RX and TX pins are clocked together.
--			 * So in order to recv, we must enable the transmit side
--			 * as well.  This will cause a spurious TX interrupt too,
--			 * but we can easily consume that.
--			 */
--			opmode |= TE;
--		}
--#endif
--	}
--
--	/* Turn on the EMAC rx */
--	bfin_write_EMAC_OPMODE(opmode);
--
--	return 0;
--}
--
--/* Our watchdog timed out. Called by the networking layer */
--static void bfin_mac_timeout(struct net_device *dev)
--{
--	struct bfin_mac_local *lp = netdev_priv(dev);
--
--	pr_debug("%s: %s\n", dev->name, __func__);
--
--	bfin_mac_disable();
--
--	del_timer(&lp->tx_reclaim_timer);
--
--	/* reset tx queue and free skb */
--	while (tx_list_head != current_tx_ptr) {
--		tx_list_head->desc_a.config &= ~DMAEN;
--		tx_list_head->status.status_word = 0;
--		if (tx_list_head->skb) {
--			dev_kfree_skb(tx_list_head->skb);
--			tx_list_head->skb = NULL;
--		}
--		tx_list_head = tx_list_head->next;
--	}
--
--	if (netif_queue_stopped(dev))
--		netif_wake_queue(dev);
--
--	bfin_mac_enable(dev->phydev);
--
--	/* We can accept TX packets again */
--	netif_trans_update(dev); /* prevent tx timeout */
--}
--
--static void bfin_mac_multicast_hash(struct net_device *dev)
--{
--	u32 emac_hashhi, emac_hashlo;
--	struct netdev_hw_addr *ha;
--	u32 crc;
--
--	emac_hashhi = emac_hashlo = 0;
--
--	netdev_for_each_mc_addr(ha, dev) {
--		crc = ether_crc(ETH_ALEN, ha->addr);
--		crc >>= 26;
--
--		if (crc & 0x20)
--			emac_hashhi |= 1 << (crc & 0x1f);
--		else
--			emac_hashlo |= 1 << (crc & 0x1f);
--	}
--
--	bfin_write_EMAC_HASHHI(emac_hashhi);
--	bfin_write_EMAC_HASHLO(emac_hashlo);
--}
--
--/*
-- * This routine will, depending on the values passed to it,
-- * either make it accept multicast packets, go into
-- * promiscuous mode (for TCPDUMP and cousins) or accept
-- * a select set of multicast packets
-- */
--static void bfin_mac_set_multicast_list(struct net_device *dev)
--{
--	u32 sysctl;
--
--	if (dev->flags & IFF_PROMISC) {
--		netdev_info(dev, "set promisc mode\n");
--		sysctl = bfin_read_EMAC_OPMODE();
--		sysctl |= PR;
--		bfin_write_EMAC_OPMODE(sysctl);
--	} else if (dev->flags & IFF_ALLMULTI) {
--		/* accept all multicast */
--		sysctl = bfin_read_EMAC_OPMODE();
--		sysctl |= PAM;
--		bfin_write_EMAC_OPMODE(sysctl);
--	} else if (!netdev_mc_empty(dev)) {
--		/* set up multicast hash table */
--		sysctl = bfin_read_EMAC_OPMODE();
--		sysctl |= HM;
--		bfin_write_EMAC_OPMODE(sysctl);
--		bfin_mac_multicast_hash(dev);
--	} else {
--		/* clear promisc or multicast mode */
--		sysctl = bfin_read_EMAC_OPMODE();
--		sysctl &= ~(RAF | PAM);
--		bfin_write_EMAC_OPMODE(sysctl);
--	}
--}
--
--static int bfin_mac_ioctl(struct net_device *netdev, struct ifreq *ifr, int cmd)
--{
--	if (!netif_running(netdev))
--		return -EINVAL;
--
--	switch (cmd) {
--	case SIOCSHWTSTAMP:
--		return bfin_mac_hwtstamp_set(netdev, ifr);
--	case SIOCGHWTSTAMP:
--		return bfin_mac_hwtstamp_get(netdev, ifr);
--	default:
--		if (netdev->phydev)
--			return phy_mii_ioctl(netdev->phydev, ifr, cmd);
--		else
--			return -EOPNOTSUPP;
--	}
--}
--
--/*
-- * this puts the device in an inactive state
-- */
--static void bfin_mac_shutdown(struct net_device *dev)
--{
--	/* Turn off the EMAC */
--	bfin_write_EMAC_OPMODE(0x00000000);
--	/* Turn off the EMAC RX DMA */
--	bfin_write_DMA1_CONFIG(0x0000);
--	bfin_write_DMA2_CONFIG(0x0000);
--}
--
--/*
-- * Open and Initialize the interface
-- *
-- * Set up everything, reset the card, etc..
-- */
--static int bfin_mac_open(struct net_device *dev)
--{
--	struct bfin_mac_local *lp = netdev_priv(dev);
--	int ret;
--	pr_debug("%s: %s\n", dev->name, __func__);
--
--	/*
--	 * Check that the address is valid.  If its not, refuse
--	 * to bring the device up.  The user must specify an
--	 * address using ifconfig eth0 hw ether xx:xx:xx:xx:xx:xx
--	 */
--	if (!is_valid_ether_addr(dev->dev_addr)) {
--		netdev_warn(dev, "no valid ethernet hw addr\n");
--		return -EINVAL;
--	}
--
--	/* initial rx and tx list */
--	ret = desc_list_init(dev);
--	if (ret)
--		return ret;
--
--	phy_start(dev->phydev);
--	setup_system_regs(dev);
--	setup_mac_addr(dev->dev_addr);
--
--	bfin_mac_disable();
--	ret = bfin_mac_enable(dev->phydev);
--	if (ret)
--		return ret;
--	pr_debug("hardware init finished\n");
--
--	napi_enable(&lp->napi);
--	netif_start_queue(dev);
--	netif_carrier_on(dev);
--
--	return 0;
--}
--
--/*
-- * this makes the board clean up everything that it can
-- * and not talk to the outside world.   Caused by
-- * an 'ifconfig ethX down'
-- */
--static int bfin_mac_close(struct net_device *dev)
--{
--	struct bfin_mac_local *lp = netdev_priv(dev);
--	pr_debug("%s: %s\n", dev->name, __func__);
--
--	netif_stop_queue(dev);
--	napi_disable(&lp->napi);
--	netif_carrier_off(dev);
--
--	phy_stop(dev->phydev);
--	phy_write(dev->phydev, MII_BMCR, BMCR_PDOWN);
--
--	/* clear everything */
--	bfin_mac_shutdown(dev);
--
--	/* free the rx/tx buffers */
--	desc_list_free();
--
--	return 0;
--}
--
--static const struct net_device_ops bfin_mac_netdev_ops = {
--	.ndo_open		= bfin_mac_open,
--	.ndo_stop		= bfin_mac_close,
--	.ndo_start_xmit		= bfin_mac_hard_start_xmit,
--	.ndo_set_mac_address	= bfin_mac_set_mac_address,
--	.ndo_tx_timeout		= bfin_mac_timeout,
--	.ndo_set_rx_mode	= bfin_mac_set_multicast_list,
--	.ndo_do_ioctl           = bfin_mac_ioctl,
--	.ndo_validate_addr	= eth_validate_addr,
--#ifdef CONFIG_NET_POLL_CONTROLLER
--	.ndo_poll_controller	= bfin_mac_poll_controller,
--#endif
--};
--
--static int bfin_mac_probe(struct platform_device *pdev)
--{
--	struct net_device *ndev;
--	struct bfin_mac_local *lp;
--	struct platform_device *pd;
--	struct bfin_mii_bus_platform_data *mii_bus_data;
--	int rc;
--
--	ndev = alloc_etherdev(sizeof(struct bfin_mac_local));
--	if (!ndev)
+-	bcap_dev = kzalloc(sizeof(*bcap_dev), GFP_KERNEL);
+-	if (!bcap_dev)
 -		return -ENOMEM;
 -
--	SET_NETDEV_DEV(ndev, &pdev->dev);
--	platform_set_drvdata(pdev, ndev);
--	lp = netdev_priv(ndev);
--	lp->ndev = ndev;
+-	bcap_dev->cfg = config;
 -
--	/* Grab the MAC address in the MAC */
--	*(__le32 *) (&(ndev->dev_addr[0])) = cpu_to_le32(bfin_read_EMAC_ADDRLO());
--	*(__le16 *) (&(ndev->dev_addr[4])) = cpu_to_le16((u16) bfin_read_EMAC_ADDRHI());
+-	bcap_dev->ppi = ppi_create_instance(pdev, config->ppi_info);
+-	if (!bcap_dev->ppi) {
+-		v4l2_err(pdev->dev.driver, "Unable to create ppi\n");
+-		ret = -ENODEV;
+-		goto err_free_dev;
+-	}
+-	bcap_dev->ppi->priv = bcap_dev;
 -
--	/* probe mac */
--	/*todo: how to probe? which is revision_register */
--	bfin_write_EMAC_ADDRLO(0x12345678);
--	if (bfin_read_EMAC_ADDRLO() != 0x12345678) {
--		dev_err(&pdev->dev, "Cannot detect Blackfin on-chip ethernet MAC controller!\n");
--		rc = -ENODEV;
--		goto out_err_probe_mac;
+-	vfd = &bcap_dev->video_dev;
+-	/* initialize field of video device */
+-	vfd->release            = video_device_release_empty;
+-	vfd->fops               = &bcap_fops;
+-	vfd->ioctl_ops          = &bcap_ioctl_ops;
+-	vfd->tvnorms            = 0;
+-	vfd->v4l2_dev           = &bcap_dev->v4l2_dev;
+-	strncpy(vfd->name, CAPTURE_DRV_NAME, sizeof(vfd->name));
+-
+-	ret = v4l2_device_register(&pdev->dev, &bcap_dev->v4l2_dev);
+-	if (ret) {
+-		v4l2_err(pdev->dev.driver,
+-				"Unable to register v4l2 device\n");
+-		goto err_free_ppi;
+-	}
+-	v4l2_info(&bcap_dev->v4l2_dev, "v4l2 device registered\n");
+-
+-	bcap_dev->v4l2_dev.ctrl_handler = &bcap_dev->ctrl_handler;
+-	ret = v4l2_ctrl_handler_init(&bcap_dev->ctrl_handler, 0);
+-	if (ret) {
+-		v4l2_err(&bcap_dev->v4l2_dev,
+-				"Unable to init control handler\n");
+-		goto err_unreg_v4l2;
 -	}
 -
+-	spin_lock_init(&bcap_dev->lock);
+-	/* initialize queue */
+-	q = &bcap_dev->buffer_queue;
+-	q->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+-	q->io_modes = VB2_MMAP | VB2_DMABUF;
+-	q->drv_priv = bcap_dev;
+-	q->buf_struct_size = sizeof(struct bcap_buffer);
+-	q->ops = &bcap_video_qops;
+-	q->mem_ops = &vb2_dma_contig_memops;
+-	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
+-	q->lock = &bcap_dev->mutex;
+-	q->min_buffers_needed = 1;
+-	q->dev = &pdev->dev;
+-
+-	ret = vb2_queue_init(q);
+-	if (ret)
+-		goto err_free_handler;
+-
+-	mutex_init(&bcap_dev->mutex);
+-	init_completion(&bcap_dev->comp);
+-
+-	/* init video dma queues */
+-	INIT_LIST_HEAD(&bcap_dev->dma_queue);
+-
+-	vfd->lock = &bcap_dev->mutex;
+-	vfd->queue = q;
+-
+-	/* register video device */
+-	ret = video_register_device(&bcap_dev->video_dev, VFL_TYPE_GRABBER, -1);
+-	if (ret) {
+-		v4l2_err(&bcap_dev->v4l2_dev,
+-				"Unable to register video device\n");
+-		goto err_free_handler;
+-	}
+-	video_set_drvdata(&bcap_dev->video_dev, bcap_dev);
+-	v4l2_info(&bcap_dev->v4l2_dev, "video device registered as: %s\n",
+-			video_device_node_name(vfd));
+-
+-	/* load up the subdevice */
+-	i2c_adap = i2c_get_adapter(config->i2c_adapter_id);
+-	if (!i2c_adap) {
+-		v4l2_err(&bcap_dev->v4l2_dev,
+-				"Unable to find i2c adapter\n");
+-		ret = -ENODEV;
+-		goto err_unreg_vdev;
+-
+-	}
+-	bcap_dev->sd = v4l2_i2c_new_subdev_board(&bcap_dev->v4l2_dev,
+-						 i2c_adap,
+-						 &config->board_info,
+-						 NULL);
+-	if (bcap_dev->sd) {
+-		int i;
+-
+-		/* update tvnorms from the sub devices */
+-		for (i = 0; i < config->num_inputs; i++)
+-			vfd->tvnorms |= config->inputs[i].std;
+-	} else {
+-		v4l2_err(&bcap_dev->v4l2_dev,
+-				"Unable to register sub device\n");
+-		ret = -ENODEV;
+-		goto err_unreg_vdev;
+-	}
+-
+-	v4l2_info(&bcap_dev->v4l2_dev, "v4l2 sub device registered\n");
 -
 -	/*
--	 * Is it valid? (Did bootloader initialize it?)
--	 * Grab the MAC from the board somehow
--	 * this is done in the arch/blackfin/mach-bfxxx/boards/eth_mac.c
+-	 * explicitly set input, otherwise some boards
+-	 * may not work at the state as we expected
 -	 */
--	if (!is_valid_ether_addr(ndev->dev_addr)) {
--		if (bfin_get_ether_addr(ndev->dev_addr) ||
--		     !is_valid_ether_addr(ndev->dev_addr)) {
--			/* Still not valid, get a random one */
--			netdev_warn(ndev, "Setting Ethernet MAC to a random one\n");
--			eth_hw_addr_random(ndev);
+-	route = &config->routes[0];
+-	ret = v4l2_subdev_call(bcap_dev->sd, video, s_routing,
+-				route->input, route->output, 0);
+-	if ((ret < 0) && (ret != -ENOIOCTLCMD)) {
+-		v4l2_err(&bcap_dev->v4l2_dev, "Failed to set input\n");
+-		goto err_unreg_vdev;
+-	}
+-	bcap_dev->cur_input = 0;
+-	/* if this route has specific config, update ppi control */
+-	if (route->ppi_control)
+-		config->ppi_control = route->ppi_control;
+-
+-	/* now we can probe the default state */
+-	if (config->inputs[0].capabilities & V4L2_IN_CAP_STD) {
+-		v4l2_std_id std;
+-		ret = v4l2_subdev_call(bcap_dev->sd, video, g_std, &std);
+-		if (ret) {
+-			v4l2_err(&bcap_dev->v4l2_dev,
+-					"Unable to get std\n");
+-			goto err_unreg_vdev;
+-		}
+-		bcap_dev->std = std;
+-	}
+-	if (config->inputs[0].capabilities & V4L2_IN_CAP_DV_TIMINGS) {
+-		struct v4l2_dv_timings dv_timings;
+-		ret = v4l2_subdev_call(bcap_dev->sd, video,
+-				g_dv_timings, &dv_timings);
+-		if (ret) {
+-			v4l2_err(&bcap_dev->v4l2_dev,
+-					"Unable to get dv timings\n");
+-			goto err_unreg_vdev;
+-		}
+-		bcap_dev->dv_timings = dv_timings;
+-	}
+-	ret = bcap_init_sensor_formats(bcap_dev);
+-	if (ret) {
+-		v4l2_err(&bcap_dev->v4l2_dev,
+-				"Unable to create sensor formats table\n");
+-		goto err_unreg_vdev;
+-	}
+-	return 0;
+-err_unreg_vdev:
+-	video_unregister_device(&bcap_dev->video_dev);
+-err_free_handler:
+-	v4l2_ctrl_handler_free(&bcap_dev->ctrl_handler);
+-err_unreg_v4l2:
+-	v4l2_device_unregister(&bcap_dev->v4l2_dev);
+-err_free_ppi:
+-	ppi_delete_instance(bcap_dev->ppi);
+-err_free_dev:
+-	kfree(bcap_dev);
+-	return ret;
+-}
+-
+-static int bcap_remove(struct platform_device *pdev)
+-{
+-	struct v4l2_device *v4l2_dev = platform_get_drvdata(pdev);
+-	struct bcap_device *bcap_dev = container_of(v4l2_dev,
+-						struct bcap_device, v4l2_dev);
+-
+-	bcap_free_sensor_formats(bcap_dev);
+-	video_unregister_device(&bcap_dev->video_dev);
+-	v4l2_ctrl_handler_free(&bcap_dev->ctrl_handler);
+-	v4l2_device_unregister(v4l2_dev);
+-	ppi_delete_instance(bcap_dev->ppi);
+-	kfree(bcap_dev);
+-	return 0;
+-}
+-
+-static struct platform_driver bcap_driver = {
+-	.driver = {
+-		.name  = CAPTURE_DRV_NAME,
+-	},
+-	.probe = bcap_probe,
+-	.remove = bcap_remove,
+-};
+-module_platform_driver(bcap_driver);
+-
+-MODULE_DESCRIPTION("Analog Devices blackfin video capture driver");
+-MODULE_AUTHOR("Scott Jiang <Scott.Jiang.Linux@gmail.com>");
+-MODULE_LICENSE("GPL v2");
+diff --git a/drivers/media/platform/blackfin/ppi.c b/drivers/media/platform/blackfin/ppi.c
+deleted file mode 100644
+index d3dc765..0000000
+--- a/drivers/media/platform/blackfin/ppi.c
++++ /dev/null
+@@ -1,361 +0,0 @@
+-/*
+- * ppi.c Analog Devices Parallel Peripheral Interface driver
+- *
+- * Copyright (c) 2011 Analog Devices Inc.
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- */
+-
+-#include <linux/module.h>
+-#include <linux/slab.h>
+-#include <linux/platform_device.h>
+-
+-#include <asm/bfin_ppi.h>
+-#include <asm/blackfin.h>
+-#include <asm/cacheflush.h>
+-#include <asm/dma.h>
+-#include <asm/portmux.h>
+-
+-#include <media/blackfin/ppi.h>
+-
+-static int ppi_attach_irq(struct ppi_if *ppi, irq_handler_t handler);
+-static void ppi_detach_irq(struct ppi_if *ppi);
+-static int ppi_start(struct ppi_if *ppi);
+-static int ppi_stop(struct ppi_if *ppi);
+-static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params);
+-static void ppi_update_addr(struct ppi_if *ppi, unsigned long addr);
+-
+-static const struct ppi_ops ppi_ops = {
+-	.attach_irq = ppi_attach_irq,
+-	.detach_irq = ppi_detach_irq,
+-	.start = ppi_start,
+-	.stop = ppi_stop,
+-	.set_params = ppi_set_params,
+-	.update_addr = ppi_update_addr,
+-};
+-
+-static irqreturn_t ppi_irq_err(int irq, void *dev_id)
+-{
+-	struct ppi_if *ppi = dev_id;
+-	const struct ppi_info *info = ppi->info;
+-
+-	switch (info->type) {
+-	case PPI_TYPE_PPI:
+-	{
+-		struct bfin_ppi_regs *reg = info->base;
+-		unsigned short status;
+-
+-		/* register on bf561 is cleared when read
+-		 * others are W1C
+-		 */
+-		status = bfin_read16(&reg->status);
+-		if (status & 0x3000)
+-			ppi->err = true;
+-		bfin_write16(&reg->status, 0xff00);
+-		break;
+-	}
+-	case PPI_TYPE_EPPI:
+-	{
+-		struct bfin_eppi_regs *reg = info->base;
+-		unsigned short status;
+-
+-		status = bfin_read16(&reg->status);
+-		if (status & 0x2)
+-			ppi->err = true;
+-		bfin_write16(&reg->status, 0xffff);
+-		break;
+-	}
+-	case PPI_TYPE_EPPI3:
+-	{
+-		struct bfin_eppi3_regs *reg = info->base;
+-		unsigned long stat;
+-
+-		stat = bfin_read32(&reg->stat);
+-		if (stat & 0x2)
+-			ppi->err = true;
+-		bfin_write32(&reg->stat, 0xc0ff);
+-		break;
+-	}
+-	default:
+-		break;
+-	}
+-
+-	return IRQ_HANDLED;
+-}
+-
+-static int ppi_attach_irq(struct ppi_if *ppi, irq_handler_t handler)
+-{
+-	const struct ppi_info *info = ppi->info;
+-	int ret;
+-
+-	ret = request_dma(info->dma_ch, "PPI_DMA");
+-
+-	if (ret) {
+-		pr_err("Unable to allocate DMA channel for PPI\n");
+-		return ret;
+-	}
+-	set_dma_callback(info->dma_ch, handler, ppi);
+-
+-	if (ppi->err_int) {
+-		ret = request_irq(info->irq_err, ppi_irq_err, 0, "PPI ERROR", ppi);
+-		if (ret) {
+-			pr_err("Unable to allocate IRQ for PPI\n");
+-			free_dma(info->dma_ch);
 -		}
 -	}
--
--	setup_mac_addr(ndev->dev_addr);
--
--	if (!dev_get_platdata(&pdev->dev)) {
--		dev_err(&pdev->dev, "Cannot get platform device bfin_mii_bus!\n");
--		rc = -ENODEV;
--		goto out_err_probe_mac;
--	}
--	pd = dev_get_platdata(&pdev->dev);
--	lp->mii_bus = platform_get_drvdata(pd);
--	if (!lp->mii_bus) {
--		dev_err(&pdev->dev, "Cannot get mii_bus!\n");
--		rc = -ENODEV;
--		goto out_err_probe_mac;
--	}
--	lp->mii_bus->priv = ndev;
--	mii_bus_data = dev_get_platdata(&pd->dev);
--
--	rc = mii_probe(ndev, mii_bus_data->phy_mode);
--	if (rc) {
--		dev_err(&pdev->dev, "MII Probe failed!\n");
--		goto out_err_mii_probe;
--	}
--
--	lp->vlan1_mask = ETH_P_8021Q | mii_bus_data->vlan1_mask;
--	lp->vlan2_mask = ETH_P_8021Q | mii_bus_data->vlan2_mask;
--
--	ndev->netdev_ops = &bfin_mac_netdev_ops;
--	ndev->ethtool_ops = &bfin_mac_ethtool_ops;
--
--	timer_setup(&lp->tx_reclaim_timer, tx_reclaim_skb_timeout, 0);
--
--	lp->flags = 0;
--	netif_napi_add(ndev, &lp->napi, bfin_mac_poll, CONFIG_BFIN_RX_DESC_NUM);
--
--	spin_lock_init(&lp->lock);
--
--	/* now, enable interrupts */
--	/* register irq handler */
--	rc = request_irq(IRQ_MAC_RX, bfin_mac_interrupt,
--			0, "EMAC_RX", ndev);
--	if (rc) {
--		dev_err(&pdev->dev, "Cannot request Blackfin MAC RX IRQ!\n");
--		rc = -EBUSY;
--		goto out_err_request_irq;
--	}
--
--	rc = register_netdev(ndev);
--	if (rc) {
--		dev_err(&pdev->dev, "Cannot register net device!\n");
--		goto out_err_reg_ndev;
--	}
--
--	bfin_mac_hwtstamp_init(ndev);
--	rc = bfin_phc_init(ndev, &pdev->dev);
--	if (rc) {
--		dev_err(&pdev->dev, "Cannot register PHC device!\n");
--		goto out_err_phc;
--	}
--
--	/* now, print out the card info, in a short format.. */
--	netdev_info(ndev, "%s, Version %s\n", DRV_DESC, DRV_VERSION);
--
--	return 0;
--
--out_err_phc:
--out_err_reg_ndev:
--	free_irq(IRQ_MAC_RX, ndev);
--out_err_request_irq:
--	netif_napi_del(&lp->napi);
--out_err_mii_probe:
--	mdiobus_unregister(lp->mii_bus);
--	mdiobus_free(lp->mii_bus);
--out_err_probe_mac:
--	free_netdev(ndev);
--
--	return rc;
+-	return ret;
 -}
 -
--static int bfin_mac_remove(struct platform_device *pdev)
+-static void ppi_detach_irq(struct ppi_if *ppi)
 -{
--	struct net_device *ndev = platform_get_drvdata(pdev);
--	struct bfin_mac_local *lp = netdev_priv(ndev);
+-	const struct ppi_info *info = ppi->info;
 -
--	bfin_phc_release(lp);
--
--	lp->mii_bus->priv = NULL;
--
--	unregister_netdev(ndev);
--
--	netif_napi_del(&lp->napi);
--
--	free_irq(IRQ_MAC_RX, ndev);
--
--	free_netdev(ndev);
--
--	return 0;
+-	if (ppi->err_int)
+-		free_irq(info->irq_err, ppi);
+-	free_dma(info->dma_ch);
 -}
 -
--#ifdef CONFIG_PM
--static int bfin_mac_suspend(struct platform_device *pdev, pm_message_t mesg)
+-static int ppi_start(struct ppi_if *ppi)
 -{
--	struct net_device *net_dev = platform_get_drvdata(pdev);
--	struct bfin_mac_local *lp = netdev_priv(net_dev);
+-	const struct ppi_info *info = ppi->info;
 -
--	if (lp->wol) {
--		bfin_write_EMAC_OPMODE((bfin_read_EMAC_OPMODE() & ~TE) | RE);
--		bfin_write_EMAC_WKUP_CTL(MPKE);
--		enable_irq_wake(IRQ_MAC_WAKEDET);
--	} else {
--		if (netif_running(net_dev))
--			bfin_mac_close(net_dev);
+-	/* enable DMA */
+-	enable_dma(info->dma_ch);
+-
+-	/* enable PPI */
+-	ppi->ppi_control |= PORT_EN;
+-	switch (info->type) {
+-	case PPI_TYPE_PPI:
+-	{
+-		struct bfin_ppi_regs *reg = info->base;
+-		bfin_write16(&reg->control, ppi->ppi_control);
+-		break;
 -	}
--
--	return 0;
--}
--
--static int bfin_mac_resume(struct platform_device *pdev)
--{
--	struct net_device *net_dev = platform_get_drvdata(pdev);
--	struct bfin_mac_local *lp = netdev_priv(net_dev);
--
--	if (lp->wol) {
--		bfin_write_EMAC_OPMODE(bfin_read_EMAC_OPMODE() | TE);
--		bfin_write_EMAC_WKUP_CTL(0);
--		disable_irq_wake(IRQ_MAC_WAKEDET);
--	} else {
--		if (netif_running(net_dev))
--			bfin_mac_open(net_dev);
+-	case PPI_TYPE_EPPI:
+-	{
+-		struct bfin_eppi_regs *reg = info->base;
+-		bfin_write32(&reg->control, ppi->ppi_control);
+-		break;
 -	}
--
--	return 0;
--}
--#else
--#define bfin_mac_suspend NULL
--#define bfin_mac_resume NULL
--#endif	/* CONFIG_PM */
--
--static int bfin_mii_bus_probe(struct platform_device *pdev)
--{
--	struct mii_bus *miibus;
--	struct bfin_mii_bus_platform_data *mii_bus_pd;
--	const unsigned short *pin_req;
--	int rc, i;
--
--	mii_bus_pd = dev_get_platdata(&pdev->dev);
--	if (!mii_bus_pd) {
--		dev_err(&pdev->dev, "No peripherals in platform data!\n");
+-	case PPI_TYPE_EPPI3:
+-	{
+-		struct bfin_eppi3_regs *reg = info->base;
+-		bfin_write32(&reg->ctl, ppi->ppi_control);
+-		break;
+-	}
+-	default:
 -		return -EINVAL;
 -	}
 -
--	/*
--	 * We are setting up a network card,
--	 * so set the GPIO pins to Ethernet mode
--	 */
--	pin_req = mii_bus_pd->mac_peripherals;
--	rc = peripheral_request_list(pin_req, KBUILD_MODNAME);
--	if (rc) {
--		dev_err(&pdev->dev, "Requesting peripherals failed!\n");
--		return rc;
--	}
--
--	rc = -ENOMEM;
--	miibus = mdiobus_alloc();
--	if (miibus == NULL)
--		goto out_err_alloc;
--	miibus->read = bfin_mdiobus_read;
--	miibus->write = bfin_mdiobus_write;
--
--	miibus->parent = &pdev->dev;
--	miibus->name = "bfin_mii_bus";
--	miibus->phy_mask = mii_bus_pd->phy_mask;
--
--	snprintf(miibus->id, MII_BUS_ID_SIZE, "%s-%x",
--		pdev->name, pdev->id);
--
--	rc = clamp(mii_bus_pd->phydev_number, 0, PHY_MAX_ADDR);
--	if (rc != mii_bus_pd->phydev_number)
--		dev_err(&pdev->dev, "Invalid number (%i) of phydevs\n",
--			mii_bus_pd->phydev_number);
--	for (i = 0; i < rc; ++i) {
--		unsigned short phyaddr = mii_bus_pd->phydev_data[i].addr;
--		if (phyaddr < PHY_MAX_ADDR)
--			miibus->irq[phyaddr] = mii_bus_pd->phydev_data[i].irq;
--		else
--			dev_err(&pdev->dev,
--				"Invalid PHY address %i for phydev %i\n",
--				phyaddr, i);
--	}
--
--	rc = mdiobus_register(miibus);
--	if (rc) {
--		dev_err(&pdev->dev, "Cannot register MDIO bus!\n");
--		goto out_err_irq_alloc;
--	}
--
--	platform_set_drvdata(pdev, miibus);
--	return 0;
--
--out_err_irq_alloc:
--	mdiobus_free(miibus);
--out_err_alloc:
--	peripheral_free_list(pin_req);
--
--	return rc;
--}
--
--static int bfin_mii_bus_remove(struct platform_device *pdev)
--{
--	struct mii_bus *miibus = platform_get_drvdata(pdev);
--	struct bfin_mii_bus_platform_data *mii_bus_pd =
--		dev_get_platdata(&pdev->dev);
--
--	mdiobus_unregister(miibus);
--	mdiobus_free(miibus);
--	peripheral_free_list(mii_bus_pd->mac_peripherals);
--
+-	SSYNC();
 -	return 0;
 -}
 -
--static struct platform_driver bfin_mii_bus_driver = {
--	.probe = bfin_mii_bus_probe,
--	.remove = bfin_mii_bus_remove,
--	.driver = {
--		.name = "bfin_mii_bus",
--	},
--};
--
--static struct platform_driver bfin_mac_driver = {
--	.probe = bfin_mac_probe,
--	.remove = bfin_mac_remove,
--	.resume = bfin_mac_resume,
--	.suspend = bfin_mac_suspend,
--	.driver = {
--		.name = KBUILD_MODNAME,
--	},
--};
--
--static struct platform_driver * const drivers[] = {
--	&bfin_mii_bus_driver,
--	&bfin_mac_driver,
--};
--
--static int __init bfin_mac_init(void)
+-static int ppi_stop(struct ppi_if *ppi)
 -{
--	return platform_register_drivers(drivers, ARRAY_SIZE(drivers));
+-	const struct ppi_info *info = ppi->info;
+-
+-	/* disable PPI */
+-	ppi->ppi_control &= ~PORT_EN;
+-	switch (info->type) {
+-	case PPI_TYPE_PPI:
+-	{
+-		struct bfin_ppi_regs *reg = info->base;
+-		bfin_write16(&reg->control, ppi->ppi_control);
+-		break;
+-	}
+-	case PPI_TYPE_EPPI:
+-	{
+-		struct bfin_eppi_regs *reg = info->base;
+-		bfin_write32(&reg->control, ppi->ppi_control);
+-		break;
+-	}
+-	case PPI_TYPE_EPPI3:
+-	{
+-		struct bfin_eppi3_regs *reg = info->base;
+-		bfin_write32(&reg->ctl, ppi->ppi_control);
+-		break;
+-	}
+-	default:
+-		return -EINVAL;
+-	}
+-
+-	/* disable DMA */
+-	clear_dma_irqstat(info->dma_ch);
+-	disable_dma(info->dma_ch);
+-
+-	SSYNC();
+-	return 0;
 -}
 -
--module_init(bfin_mac_init);
--
--static void __exit bfin_mac_cleanup(void)
+-static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
 -{
--	platform_unregister_drivers(drivers, ARRAY_SIZE(drivers));
+-	const struct ppi_info *info = ppi->info;
+-	int dma32 = 0;
+-	int dma_config, bytes_per_line;
+-	int hcount, hdelay, samples_per_line;
+-
+-#ifdef CONFIG_PINCTRL
+-	static const char * const pin_state[] = {"8bit", "16bit", "24bit"};
+-	struct pinctrl *pctrl;
+-	struct pinctrl_state *pstate;
+-
+-	if (params->dlen > 24 || params->dlen <= 0)
+-		return -EINVAL;
+-	pctrl = devm_pinctrl_get(ppi->dev);
+-	if (IS_ERR(pctrl))
+-		return PTR_ERR(pctrl);
+-	pstate = pinctrl_lookup_state(pctrl,
+-				      pin_state[(params->dlen + 7) / 8 - 1]);
+-	if (pinctrl_select_state(pctrl, pstate))
+-		return -EINVAL;
+-#endif
+-
+-	bytes_per_line = params->width * params->bpp / 8;
+-	/* convert parameters unit from pixels to samples */
+-	hcount = params->width * params->bpp / params->dlen;
+-	hdelay = params->hdelay * params->bpp / params->dlen;
+-	samples_per_line = params->line * params->bpp / params->dlen;
+-	if (params->int_mask == 0xFFFFFFFF)
+-		ppi->err_int = false;
+-	else
+-		ppi->err_int = true;
+-
+-	dma_config = (DMA_FLOW_STOP | RESTART | DMA2D | DI_EN_Y);
+-	ppi->ppi_control = params->ppi_control & ~PORT_EN;
+-	if (!(ppi->ppi_control & PORT_DIR))
+-		dma_config |= WNR;
+-	switch (info->type) {
+-	case PPI_TYPE_PPI:
+-	{
+-		struct bfin_ppi_regs *reg = info->base;
+-
+-		if (params->ppi_control & DMA32)
+-			dma32 = 1;
+-
+-		bfin_write16(&reg->control, ppi->ppi_control);
+-		bfin_write16(&reg->count, samples_per_line - 1);
+-		bfin_write16(&reg->frame, params->frame);
+-		break;
+-	}
+-	case PPI_TYPE_EPPI:
+-	{
+-		struct bfin_eppi_regs *reg = info->base;
+-
+-		if ((params->ppi_control & PACK_EN)
+-			|| (params->ppi_control & 0x38000) > DLEN_16)
+-			dma32 = 1;
+-
+-		bfin_write32(&reg->control, ppi->ppi_control);
+-		bfin_write16(&reg->line, samples_per_line);
+-		bfin_write16(&reg->frame, params->frame);
+-		bfin_write16(&reg->hdelay, hdelay);
+-		bfin_write16(&reg->vdelay, params->vdelay);
+-		bfin_write16(&reg->hcount, hcount);
+-		bfin_write16(&reg->vcount, params->height);
+-		break;
+-	}
+-	case PPI_TYPE_EPPI3:
+-	{
+-		struct bfin_eppi3_regs *reg = info->base;
+-
+-		if ((params->ppi_control & PACK_EN)
+-			|| (params->ppi_control & 0x70000) > DLEN_16)
+-			dma32 = 1;
+-
+-		bfin_write32(&reg->ctl, ppi->ppi_control);
+-		bfin_write32(&reg->line, samples_per_line);
+-		bfin_write32(&reg->frame, params->frame);
+-		bfin_write32(&reg->hdly, hdelay);
+-		bfin_write32(&reg->vdly, params->vdelay);
+-		bfin_write32(&reg->hcnt, hcount);
+-		bfin_write32(&reg->vcnt, params->height);
+-		if (params->int_mask)
+-			bfin_write32(&reg->imsk, params->int_mask & 0xFF);
+-		if (ppi->ppi_control & PORT_DIR) {
+-			u32 hsync_width, vsync_width, vsync_period;
+-
+-			hsync_width = params->hsync
+-					* params->bpp / params->dlen;
+-			vsync_width = params->vsync * samples_per_line;
+-			vsync_period = samples_per_line * params->frame;
+-			bfin_write32(&reg->fs1_wlhb, hsync_width);
+-			bfin_write32(&reg->fs1_paspl, samples_per_line);
+-			bfin_write32(&reg->fs2_wlvb, vsync_width);
+-			bfin_write32(&reg->fs2_palpf, vsync_period);
+-		}
+-		break;
+-	}
+-	default:
+-		return -EINVAL;
+-	}
+-
+-	if (dma32) {
+-		dma_config |= WDSIZE_32 | PSIZE_32;
+-		set_dma_x_count(info->dma_ch, bytes_per_line >> 2);
+-		set_dma_x_modify(info->dma_ch, 4);
+-		set_dma_y_modify(info->dma_ch, 4);
+-	} else {
+-		dma_config |= WDSIZE_16 | PSIZE_16;
+-		set_dma_x_count(info->dma_ch, bytes_per_line >> 1);
+-		set_dma_x_modify(info->dma_ch, 2);
+-		set_dma_y_modify(info->dma_ch, 2);
+-	}
+-	set_dma_y_count(info->dma_ch, params->height);
+-	set_dma_config(info->dma_ch, dma_config);
+-
+-	SSYNC();
+-	return 0;
 -}
 -
--module_exit(bfin_mac_cleanup);
+-static void ppi_update_addr(struct ppi_if *ppi, unsigned long addr)
+-{
+-	set_dma_start_addr(ppi->info->dma_ch, addr);
+-}
 -
-diff --git a/drivers/net/ethernet/adi/bfin_mac.h b/drivers/net/ethernet/adi/bfin_mac.h
+-struct ppi_if *ppi_create_instance(struct platform_device *pdev,
+-			const struct ppi_info *info)
+-{
+-	struct ppi_if *ppi;
+-
+-	if (!info || !info->pin_req)
+-		return NULL;
+-
+-#ifndef CONFIG_PINCTRL
+-	if (peripheral_request_list(info->pin_req, KBUILD_MODNAME)) {
+-		dev_err(&pdev->dev, "request peripheral failed\n");
+-		return NULL;
+-	}
+-#endif
+-
+-	ppi = kzalloc(sizeof(*ppi), GFP_KERNEL);
+-	if (!ppi) {
+-		peripheral_free_list(info->pin_req);
+-		return NULL;
+-	}
+-	ppi->ops = &ppi_ops;
+-	ppi->info = info;
+-	ppi->dev = &pdev->dev;
+-
+-	pr_info("ppi probe success\n");
+-	return ppi;
+-}
+-EXPORT_SYMBOL(ppi_create_instance);
+-
+-void ppi_delete_instance(struct ppi_if *ppi)
+-{
+-	peripheral_free_list(ppi->info->pin_req);
+-	kfree(ppi);
+-}
+-EXPORT_SYMBOL(ppi_delete_instance);
+-
+-MODULE_DESCRIPTION("Analog Devices PPI driver");
+-MODULE_AUTHOR("Scott Jiang <Scott.Jiang.Linux@gmail.com>");
+-MODULE_LICENSE("GPL v2");
+diff --git a/include/media/blackfin/bfin_capture.h b/include/media/blackfin/bfin_capture.h
 deleted file mode 100644
-index 4ad5b9b..0000000
---- a/drivers/net/ethernet/adi/bfin_mac.h
+index a999a397..0000000
+--- a/include/media/blackfin/bfin_capture.h
 +++ /dev/null
-@@ -1,104 +0,0 @@
--/*
-- * Blackfin On-Chip MAC Driver
-- *
-- * Copyright 2004-2007 Analog Devices Inc.
-- *
-- * Enter bugs at http://blackfin.uclinux.org/
-- *
-- * Licensed under the GPL-2 or later.
-- */
--#ifndef _BFIN_MAC_H_
--#define _BFIN_MAC_H_
+@@ -1,39 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0 */
+-#ifndef _BFIN_CAPTURE_H_
+-#define _BFIN_CAPTURE_H_
 -
--#include <linux/net_tstamp.h>
--#include <linux/ptp_clock_kernel.h>
--#include <linux/timer.h>
--#include <linux/etherdevice.h>
--#include <linux/bfin_mac.h>
+-#include <linux/i2c.h>
 -
--/*
-- * Disable hardware checksum for bug #5600 if writeback cache is
-- * enabled. Otherwize, corrupted RX packet will be sent up stack
-- * without error mark.
-- */
--#ifndef CONFIG_BFIN_EXTMEM_WRITEBACK
--#define BFIN_MAC_CSUM_OFFLOAD
--#endif
+-struct v4l2_input;
+-struct ppi_info;
 -
--#define TX_RECLAIM_JIFFIES (HZ / 5)
--#define BFIN_MAC_RX_IRQ_DISABLED	1
--
--struct dma_descriptor {
--	struct dma_descriptor *next_dma_desc;
--	unsigned long start_addr;
--	unsigned short config;
--	unsigned short x_count;
+-struct bcap_route {
+-	u32 input;
+-	u32 output;
+-	u32 ppi_control;
 -};
 -
--struct status_area_rx {
--#if defined(BFIN_MAC_CSUM_OFFLOAD)
--	unsigned short ip_hdr_csum;	/* ip header checksum */
--	/* ip payload(udp or tcp or others) checksum */
--	unsigned short ip_payload_csum;
--#endif
--	unsigned long status_word;	/* the frame status word */
+-struct bfin_capture_config {
+-	/* card name */
+-	char *card_name;
+-	/* inputs available at the sub device */
+-	struct v4l2_input *inputs;
+-	/* number of inputs supported */
+-	int num_inputs;
+-	/* routing information for each input */
+-	struct bcap_route *routes;
+-	/* i2c bus adapter no */
+-	int i2c_adapter_id;
+-	/* i2c subdevice board info */
+-	struct i2c_board_info board_info;
+-	/* ppi board info */
+-	const struct ppi_info *ppi_info;
+-	/* ppi control */
+-	unsigned long ppi_control;
+-	/* ppi interrupt mask */
+-	u32 int_mask;
+-	/* horizontal blanking pixels */
+-	int blank_pixels;
 -};
--
--struct status_area_tx {
--	unsigned long status_word;	/* the frame status word */
--};
--
--/* use two descriptors for a packet */
--struct net_dma_desc_rx {
--	struct net_dma_desc_rx *next;
--	struct sk_buff *skb;
--	struct dma_descriptor desc_a;
--	struct dma_descriptor desc_b;
--	struct status_area_rx status;
--};
--
--/* use two descriptors for a packet */
--struct net_dma_desc_tx {
--	struct net_dma_desc_tx *next;
--	struct sk_buff *skb;
--	struct dma_descriptor desc_a;
--	struct dma_descriptor desc_b;
--	unsigned char packet[1560];
--	struct status_area_tx status;
--};
--
--struct bfin_mac_local {
--	spinlock_t lock;
--
--	int wol;		/* Wake On Lan */
--	int irq_wake_requested;
--	struct timer_list tx_reclaim_timer;
--	struct net_device *ndev;
--	struct napi_struct napi;
--	unsigned long flags;
--
--	/* Data for EMAC_VLAN1 regs */
--	u16 vlan1_mask, vlan2_mask;
--
--	/* MII and PHY stuffs */
--	int old_link;          /* used by bf537_adjust_link */
--	int old_speed;
--	int old_duplex;
--
--	struct mii_bus *mii_bus;
--
--#if defined(CONFIG_BFIN_MAC_USE_HWSTAMP)
--	u32 addend;
--	unsigned int shift;
--	s32 max_ppb;
--	struct hwtstamp_config stamp_cfg;
--	struct ptp_clock_info caps;
--	struct ptp_clock *clock;
--	int phc_index;
--	spinlock_t phc_lock; /* protects time lo/hi registers */
--#endif
--};
--
--int bfin_get_ether_addr(char *addr);
 -
 -#endif
-diff --git a/drivers/net/ethernet/davicom/Kconfig b/drivers/net/ethernet/davicom/Kconfig
-index 7ec2d74..680a6d9 100644
---- a/drivers/net/ethernet/davicom/Kconfig
-+++ b/drivers/net/ethernet/davicom/Kconfig
-@@ -4,7 +4,7 @@
- 
- config DM9000
- 	tristate "DM9000 support"
--	depends on ARM || BLACKFIN || MIPS || COLDFIRE || NIOS2
-+	depends on ARM || MIPS || COLDFIRE || NIOS2
- 	select CRC32
- 	select MII
- 	---help---
-diff --git a/drivers/net/ethernet/smsc/Kconfig b/drivers/net/ethernet/smsc/Kconfig
-index 4c2f612e..aefa001 100644
---- a/drivers/net/ethernet/smsc/Kconfig
-+++ b/drivers/net/ethernet/smsc/Kconfig
-@@ -5,7 +5,7 @@
- config NET_VENDOR_SMSC
- 	bool "SMC (SMSC)/Western Digital devices"
- 	default y
--	depends on ARM || ARM64 || ATARI_ETHERNAT || BLACKFIN || COLDFIRE || \
-+	depends on ARM || ARM64 || ATARI_ETHERNAT || COLDFIRE || \
- 		   ISA || M32R || MAC || MIPS || MN10300 || NIOS2 || PCI || \
- 		   PCMCIA || SUPERH || XTENSA || H8300
- 	---help---
-@@ -37,7 +37,7 @@ config SMC91X
- 	select CRC32
- 	select MII
- 	depends on !OF || GPIOLIB
--	depends on ARM || ARM64 || ATARI_ETHERNAT || BLACKFIN || COLDFIRE || \
-+	depends on ARM || ARM64 || ATARI_ETHERNAT || COLDFIRE || \
- 		   M32R || MIPS || MN10300 || NIOS2 || SUPERH || XTENSA || H8300
- 	---help---
- 	  This is a driver for SMC's 91x series of Ethernet chipsets,
-diff --git a/include/linux/bfin_mac.h b/include/linux/bfin_mac.h
+diff --git a/include/media/blackfin/ppi.h b/include/media/blackfin/ppi.h
 deleted file mode 100644
-index a69554e..0000000
---- a/include/linux/bfin_mac.h
+index 987e49e..0000000
+--- a/include/media/blackfin/ppi.h
 +++ /dev/null
-@@ -1,30 +0,0 @@
+@@ -1,94 +0,0 @@
 -/*
-- * Blackfin On-Chip MAC Driver
+- * Analog Devices PPI header file
 - *
-- * Copyright 2004-2010 Analog Devices Inc.
+- * Copyright (c) 2011 Analog Devices Inc.
 - *
-- * Enter bugs at http://blackfin.uclinux.org/
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
 - *
-- * Licensed under the GPL-2 or later.
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
 - */
 -
--#ifndef _LINUX_BFIN_MAC_H_
--#define _LINUX_BFIN_MAC_H_
+-#ifndef _PPI_H_
+-#define _PPI_H_
 -
--#include <linux/phy.h>
+-#include <linux/interrupt.h>
+-#include <asm/blackfin.h>
+-#include <asm/bfin_ppi.h>
 -
--struct bfin_phydev_platform_data {
--	unsigned short addr;
--	int irq;
+-/* EPPI */
+-#ifdef EPPI_EN
+-#define PORT_EN EPPI_EN
+-#define PORT_DIR EPPI_DIR
+-#define DMA32 0
+-#define PACK_EN PACKEN
+-#endif
+-
+-/* EPPI3 */
+-#ifdef EPPI0_CTL2
+-#define PORT_EN EPPI_CTL_EN
+-#define PORT_DIR EPPI_CTL_DIR
+-#define PACK_EN EPPI_CTL_PACKEN
+-#define DMA32 0
+-#define DLEN_8 EPPI_CTL_DLEN08
+-#define DLEN_16 EPPI_CTL_DLEN16
+-#endif
+-
+-struct ppi_if;
+-
+-struct ppi_params {
+-	u32 width;              /* width in pixels */
+-	u32 height;             /* height in lines */
+-	u32 hdelay;             /* delay after the HSYNC in pixels */
+-	u32 vdelay;             /* delay after the VSYNC in lines */
+-	u32 line;               /* total pixels per line */
+-	u32 frame;              /* total lines per frame */
+-	u32 hsync;              /* HSYNC length in pixels */
+-	u32 vsync;              /* VSYNC length in lines */
+-	int bpp;                /* bits per pixel */
+-	int dlen;               /* data length for ppi in bits */
+-	u32 ppi_control;        /* ppi configuration */
+-	u32 int_mask;           /* interrupt mask */
 -};
 -
--struct bfin_mii_bus_platform_data {
--	int phydev_number;
--	struct bfin_phydev_platform_data *phydev_data;
--	const unsigned short *mac_peripherals;
--	int phy_mode;
--	unsigned int phy_mask;
--	unsigned short vlan1_mask, vlan2_mask;
+-struct ppi_ops {
+-	int (*attach_irq)(struct ppi_if *ppi, irq_handler_t handler);
+-	void (*detach_irq)(struct ppi_if *ppi);
+-	int (*start)(struct ppi_if *ppi);
+-	int (*stop)(struct ppi_if *ppi);
+-	int (*set_params)(struct ppi_if *ppi, struct ppi_params *params);
+-	void (*update_addr)(struct ppi_if *ppi, unsigned long addr);
 -};
 -
+-enum ppi_type {
+-	PPI_TYPE_PPI,
+-	PPI_TYPE_EPPI,
+-	PPI_TYPE_EPPI3,
+-};
+-
+-struct ppi_info {
+-	enum ppi_type type;
+-	int dma_ch;
+-	int irq_err;
+-	void __iomem *base;
+-	const unsigned short *pin_req;
+-};
+-
+-struct ppi_if {
+-	struct device *dev;
+-	unsigned long ppi_control;
+-	const struct ppi_ops *ops;
+-	const struct ppi_info *info;
+-	bool err_int; /* if we need request error interrupt */
+-	bool err; /* if ppi has fifo error */
+-	void *priv;
+-};
+-
+-struct ppi_if *ppi_create_instance(struct platform_device *pdev,
+-			const struct ppi_info *info);
+-void ppi_delete_instance(struct ppi_if *ppi);
 -#endif
 -- 
 2.7.4
