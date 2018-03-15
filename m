@@ -1,1135 +1,1880 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:31084 "EHLO mga06.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932341AbeCOWEt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 18:04:49 -0400
-Date: Fri, 16 Mar 2018 06:18:13 +0800
-From: kbuild test robot <fengguang.wu@intel.com>
-Subject: [asm-generic:master 55/64] drivers/usb/musb/musb_host.c:577:10:
- error: 'struct musb' has no member named 'double_buffer_not_ok'
-Message-ID: <201803160607.y4PM8mqs%fengguang.wu@intel.com>
+Received: from mail-ua0-f194.google.com ([209.85.217.194]:39707 "EHLO
+        mail-ua0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752565AbeCOWY0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 18:24:26 -0400
 MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="OXfL5xGRrasGEqWY"
-Content-Disposition: inline
+In-Reply-To: <20180314143656.1495602-5-arnd@arndb.de>
+References: <20180314143529.1456168-1-arnd@arndb.de> <20180314143656.1495602-1-arnd@arndb.de>
+ <20180314143656.1495602-5-arnd@arndb.de>
+From: Bryan Wu <cooloney@gmail.com>
+Date: Fri, 16 Mar 2018 06:24:03 +0800
+Message-ID: <CAK5ve-LejdY97pmD3DKz5EudeOX=E-HzYBhXEyvFXBGWMAQyOw@mail.gmail.com>
+Subject: Re: [PATCH 05/16] arch: remove blackfin port
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: kbuild-all@01.org, linux-arch@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, lkml <linux-kernel@vger.kernel.org>, Steven Miao <realmz6@gmail.com>, Mike Frysinger <vapier@chromium.org>
+Message-ID: <20180315222403.A3nmpVSUmlgVWqnfIC3SSHV3zIouWK7SvQ2kbj29UFc@z>
 
+Personally Blackfin Linux is my most special memory. Thanks a lot for
+the folks from community and contributors from all over the world.
 
---OXfL5xGRrasGEqWY
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Acked-by: Bryan Wu <cooloney@gmail.com>
 
-tree:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git master
-head:   f153efce6212224d2448cd6661626ace885c42c0
-commit: 8312c0cad7923a82d27c305c3fda1e05014fdf40 [55/64] usb: musb: remove blackfin port
-config: sparc64-allyesconfig (attached as .config)
-compiler: sparc64-linux-gnu-gcc (Debian 7.2.0-11) 7.2.0
-reproduce:
-        wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
-        chmod +x ~/bin/make.cross
-        git checkout 8312c0cad7923a82d27c305c3fda1e05014fdf40
-        # save the attached .config to linux build tree
-        make.cross ARCH=sparc64 
-
-All errors (new ones prefixed by >>):
-
-   drivers/usb/musb/musb_host.c: In function 'musb_rx_reinit':
->> drivers/usb/musb/musb_host.c:577:10: error: 'struct musb' has no member named 'double_buffer_not_ok'
-     if (musb->double_buffer_not_ok)
-             ^~
-   drivers/usb/musb/musb_host.c: In function 'musb_ep_program':
-   drivers/usb/musb/musb_host.c:807:12: error: 'struct musb' has no member named 'double_buffer_not_ok'
-       if (musb->double_buffer_not_ok) {
-               ^~
---
-   drivers/usb/musb/musb_gadget.c: In function 'musb_gadget_enable':
->> drivers/usb/musb/musb_gadget.c:998:11: error: 'struct musb' has no member named 'double_buffer_not_ok'
-      if (musb->double_buffer_not_ok) {
-              ^~
-   drivers/usb/musb/musb_gadget.c:1041:11: error: 'struct musb' has no member named 'double_buffer_not_ok'
-      if (musb->double_buffer_not_ok)
-              ^~
-
-vim +577 drivers/usb/musb/musb_host.c
-
-550a7375f Felipe Balbi     2008-07-24  515  
-550a7375f Felipe Balbi     2008-07-24  516  /* we don't always need to reinit a given side of an endpoint...
-550a7375f Felipe Balbi     2008-07-24  517   * when we do, use tx/rx reinit routine and then construct a new CSR
-550a7375f Felipe Balbi     2008-07-24  518   * to address data toggle, NYET, and DMA or PIO.
-550a7375f Felipe Balbi     2008-07-24  519   *
-550a7375f Felipe Balbi     2008-07-24  520   * it's possible that driver bugs (especially for DMA) or aborting a
-550a7375f Felipe Balbi     2008-07-24  521   * transfer might have left the endpoint busier than it should be.
-550a7375f Felipe Balbi     2008-07-24  522   * the busy/not-empty tests are basically paranoia.
-550a7375f Felipe Balbi     2008-07-24  523   */
-550a7375f Felipe Balbi     2008-07-24  524  static void
-0cb74b3dc Hans de Goede    2015-03-20  525  musb_rx_reinit(struct musb *musb, struct musb_qh *qh, u8 epnum)
-550a7375f Felipe Balbi     2008-07-24  526  {
-0cb74b3dc Hans de Goede    2015-03-20  527  	struct musb_hw_ep *ep = musb->endpoints + epnum;
-550a7375f Felipe Balbi     2008-07-24  528  	u16	csr;
-550a7375f Felipe Balbi     2008-07-24  529  
-550a7375f Felipe Balbi     2008-07-24  530  	/* NOTE:  we know the "rx" fifo reinit never triggers for ep0.
-550a7375f Felipe Balbi     2008-07-24  531  	 * That always uses tx_reinit since ep0 repurposes TX register
-550a7375f Felipe Balbi     2008-07-24  532  	 * offsets; the initial SETUP packet is also a kind of OUT.
-550a7375f Felipe Balbi     2008-07-24  533  	 */
-550a7375f Felipe Balbi     2008-07-24  534  
-550a7375f Felipe Balbi     2008-07-24  535  	/* if programmed for Tx, put it in RX mode */
-550a7375f Felipe Balbi     2008-07-24  536  	if (ep->is_shared_fifo) {
-550a7375f Felipe Balbi     2008-07-24  537  		csr = musb_readw(ep->regs, MUSB_TXCSR);
-550a7375f Felipe Balbi     2008-07-24  538  		if (csr & MUSB_TXCSR_MODE) {
-550a7375f Felipe Balbi     2008-07-24  539  			musb_h_tx_flush_fifo(ep);
-b6e434a54 Sergei Shtylyov  2009-03-26  540  			csr = musb_readw(ep->regs, MUSB_TXCSR);
-550a7375f Felipe Balbi     2008-07-24  541  			musb_writew(ep->regs, MUSB_TXCSR,
-b6e434a54 Sergei Shtylyov  2009-03-26  542  				    csr | MUSB_TXCSR_FRCDATATOG);
-550a7375f Felipe Balbi     2008-07-24  543  		}
-b6e434a54 Sergei Shtylyov  2009-03-26  544  
-b6e434a54 Sergei Shtylyov  2009-03-26  545  		/*
-b6e434a54 Sergei Shtylyov  2009-03-26  546  		 * Clear the MODE bit (and everything else) to enable Rx.
-b6e434a54 Sergei Shtylyov  2009-03-26  547  		 * NOTE: we mustn't clear the DMAMODE bit before DMAENAB.
-b6e434a54 Sergei Shtylyov  2009-03-26  548  		 */
-b6e434a54 Sergei Shtylyov  2009-03-26  549  		if (csr & MUSB_TXCSR_DMAMODE)
-b6e434a54 Sergei Shtylyov  2009-03-26  550  			musb_writew(ep->regs, MUSB_TXCSR, MUSB_TXCSR_DMAMODE);
-550a7375f Felipe Balbi     2008-07-24  551  		musb_writew(ep->regs, MUSB_TXCSR, 0);
-550a7375f Felipe Balbi     2008-07-24  552  
-550a7375f Felipe Balbi     2008-07-24  553  	/* scrub all previous state, clearing toggle */
-f3eec0cf7 Andrew Goodbody  2016-05-31  554  	}
-550a7375f Felipe Balbi     2008-07-24  555  	csr = musb_readw(ep->regs, MUSB_RXCSR);
-550a7375f Felipe Balbi     2008-07-24  556  	if (csr & MUSB_RXCSR_RXPKTRDY)
-550a7375f Felipe Balbi     2008-07-24  557  		WARNING("rx%d, packet/%d ready?\n", ep->epnum,
-550a7375f Felipe Balbi     2008-07-24  558  			musb_readw(ep->regs, MUSB_RXCOUNT));
-550a7375f Felipe Balbi     2008-07-24  559  
-550a7375f Felipe Balbi     2008-07-24  560  	musb_h_flush_rxfifo(ep, MUSB_RXCSR_CLRDATATOG);
-550a7375f Felipe Balbi     2008-07-24  561  
-550a7375f Felipe Balbi     2008-07-24  562  	/* target addr and (for multipoint) hub addr/port */
-550a7375f Felipe Balbi     2008-07-24  563  	if (musb->is_multipoint) {
-6cc2af6d5 Hans de Goede    2015-03-20  564  		musb_write_rxfunaddr(musb, epnum, qh->addr_reg);
-6cc2af6d5 Hans de Goede    2015-03-20  565  		musb_write_rxhubaddr(musb, epnum, qh->h_addr_reg);
-6cc2af6d5 Hans de Goede    2015-03-20  566  		musb_write_rxhubport(musb, epnum, qh->h_port_reg);
-550a7375f Felipe Balbi     2008-07-24  567  	} else
-550a7375f Felipe Balbi     2008-07-24  568  		musb_writeb(musb->mregs, MUSB_FADDR, qh->addr_reg);
-550a7375f Felipe Balbi     2008-07-24  569  
-550a7375f Felipe Balbi     2008-07-24  570  	/* protocol/endpoint, interval/NAKlimit, i/o size */
-550a7375f Felipe Balbi     2008-07-24  571  	musb_writeb(ep->regs, MUSB_RXTYPE, qh->type_reg);
-550a7375f Felipe Balbi     2008-07-24  572  	musb_writeb(ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
-550a7375f Felipe Balbi     2008-07-24  573  	/* NOTE: bulk combining rewrites high bits of maxpacket */
-9f445cb29 Cliff Cai        2010-01-28  574  	/* Set RXMAXP with the FIFO size of the endpoint
-9f445cb29 Cliff Cai        2010-01-28  575  	 * to disable double buffer mode.
-9f445cb29 Cliff Cai        2010-01-28  576  	 */
-066248185 Felipe Balbi     2011-01-21 @577  	if (musb->double_buffer_not_ok)
-9f445cb29 Cliff Cai        2010-01-28  578  		musb_writew(ep->regs, MUSB_RXMAXP, ep->max_packet_sz_rx);
-9f445cb29 Cliff Cai        2010-01-28  579  	else
-a483d7068 Ajay Kumar Gupta 2009-04-03  580  		musb_writew(ep->regs, MUSB_RXMAXP,
-a483d7068 Ajay Kumar Gupta 2009-04-03  581  				qh->maxpacket | ((qh->hb_mult - 1) << 11));
-550a7375f Felipe Balbi     2008-07-24  582  
-550a7375f Felipe Balbi     2008-07-24  583  	ep->rx_reinit = 0;
-550a7375f Felipe Balbi     2008-07-24  584  }
-550a7375f Felipe Balbi     2008-07-24  585  
-
-:::::: The code at line 577 was first introduced by commit
-:::::: 0662481855c389b75a0a54c32870cc90563d80a9 usb: musb: disable double buffering when it's broken
-
-:::::: TO: Felipe Balbi <balbi@ti.com>
-:::::: CC: Felipe Balbi <balbi@ti.com>
-
----
-0-DAY kernel test infrastructure                Open Source Technology Center
-https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
-
---OXfL5xGRrasGEqWY
-Content-Type: application/gzip
-Content-Disposition: attachment; filename=".config.gz"
-Content-Transfer-Encoding: base64
-
-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
-768HelORDiVITuFa6FwO2fj4f45IP0MeWwMA
-
---OXfL5xGRrasGEqWY--
+On Wed, Mar 14, 2018 at 10:36 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> The Analog Devices Blackfin port was added in 2007 and was rather
+> active for a while, but all work on it has come to a standstill
+> over time, as Analog have changed their product line-up.
+>
+> Aaron Wu confirmed that the architecture port is no longer relevant,
+> and multiple people suggested removing blackfin independently because
+> of some of its oddities like a non-working SMP port, and the amount of
+> duplication between the chip variants, which cause extra work when
+> doing cross-architecture changes.
+>
+> Link: https://docs.blackfin.uclinux.org/
+> Acked-by: Wu, Aaron <Aaron.Wu@analog.com>
+> Cc: Bryan Wu <cooloney@gmail.com>
+> Cc: Steven Miao <realmz6@gmail.com>
+> Cc: Mike Frysinger <vapier@chromium.org>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  Documentation/00-INDEX                             |    2 -
+>  Documentation/admin-guide/kernel-parameters.rst    |    1 -
+>  Documentation/admin-guide/kernel-parameters.txt    |    2 +-
+>  Documentation/blackfin/00-INDEX                    |    6 -
+>  Documentation/blackfin/bfin-gpio-notes.txt         |   71 -
+>  Documentation/blackfin/bfin-spi-notes.txt          |   16 -
+>  MAINTAINERS                                        |   45 -
+>  arch/blackfin/Clear_BSD.txt                        |   33 -
+>  arch/blackfin/Kconfig                              | 1463 --------
+>  arch/blackfin/Kconfig.debug                        |  258 --
+>  arch/blackfin/Makefile                             |  168 -
+>  arch/blackfin/boot/.gitignore                      |    3 -
+>  arch/blackfin/boot/Makefile                        |   71 -
+>  arch/blackfin/boot/install.sh                      |   57 -
+>  arch/blackfin/configs/BF518F-EZBRD_defconfig       |  121 -
+>  arch/blackfin/configs/BF526-EZBRD_defconfig        |  158 -
+>  arch/blackfin/configs/BF527-AD7160-EVAL_defconfig  |  104 -
+>  arch/blackfin/configs/BF527-EZKIT-V2_defconfig     |  188 -
+>  arch/blackfin/configs/BF527-EZKIT_defconfig        |  181 -
+>  arch/blackfin/configs/BF527-TLL6527M_defconfig     |  178 -
+>  arch/blackfin/configs/BF533-EZKIT_defconfig        |  114 -
+>  arch/blackfin/configs/BF533-STAMP_defconfig        |  124 -
+>  arch/blackfin/configs/BF537-STAMP_defconfig        |  136 -
+>  arch/blackfin/configs/BF538-EZKIT_defconfig        |  133 -
+>  arch/blackfin/configs/BF548-EZKIT_defconfig        |  207 --
+>  arch/blackfin/configs/BF561-ACVILON_defconfig      |  149 -
+>  arch/blackfin/configs/BF561-EZKIT-SMP_defconfig    |  112 -
+>  arch/blackfin/configs/BF561-EZKIT_defconfig        |  114 -
+>  arch/blackfin/configs/BF609-EZKIT_defconfig        |  154 -
+>  arch/blackfin/configs/BlackStamp_defconfig         |  108 -
+>  arch/blackfin/configs/CM-BF527_defconfig           |  129 -
+>  arch/blackfin/configs/CM-BF533_defconfig           |   76 -
+>  arch/blackfin/configs/CM-BF537E_defconfig          |  107 -
+>  arch/blackfin/configs/CM-BF537U_defconfig          |   96 -
+>  arch/blackfin/configs/CM-BF548_defconfig           |  170 -
+>  arch/blackfin/configs/CM-BF561_defconfig           |  104 -
+>  arch/blackfin/configs/DNP5370_defconfig            |  118 -
+>  arch/blackfin/configs/H8606_defconfig              |   87 -
+>  arch/blackfin/configs/IP0X_defconfig               |   91 -
+>  arch/blackfin/configs/PNAV-10_defconfig            |  111 -
+>  arch/blackfin/configs/SRV1_defconfig               |   88 -
+>  arch/blackfin/configs/TCM-BF518_defconfig          |  131 -
+>  arch/blackfin/configs/TCM-BF537_defconfig          |   95 -
+>  arch/blackfin/include/asm/Kbuild                   |   28 -
+>  arch/blackfin/include/asm/asm-offsets.h            |    1 -
+>  arch/blackfin/include/asm/atomic.h                 |   47 -
+>  arch/blackfin/include/asm/barrier.h                |   86 -
+>  arch/blackfin/include/asm/bfin-global.h            |   95 -
+>  arch/blackfin/include/asm/bfin-lq035q1.h           |   40 -
+>  arch/blackfin/include/asm/bfin5xx_spi.h            |   86 -
+>  arch/blackfin/include/asm/bfin_can.h               |  728 ----
+>  arch/blackfin/include/asm/bfin_dma.h               |  165 -
+>  arch/blackfin/include/asm/bfin_pfmon.h             |   44 -
+>  arch/blackfin/include/asm/bfin_ppi.h               |  181 -
+>  arch/blackfin/include/asm/bfin_sdh.h               |  161 -
+>  arch/blackfin/include/asm/bfin_serial.h            |  429 ---
+>  arch/blackfin/include/asm/bfin_simple_timer.h      |   27 -
+>  arch/blackfin/include/asm/bfin_sport.h             |   71 -
+>  arch/blackfin/include/asm/bfin_sport3.h            |  107 -
+>  arch/blackfin/include/asm/bfin_twi.h               |  214 --
+>  arch/blackfin/include/asm/bfin_watchdog.h          |   30 -
+>  arch/blackfin/include/asm/bfrom.h                  |   90 -
+>  arch/blackfin/include/asm/bitops.h                 |  140 -
+>  arch/blackfin/include/asm/blackfin.h               |   88 -
+>  arch/blackfin/include/asm/bug.h                    |   73 -
+>  arch/blackfin/include/asm/cache.h                  |   70 -
+>  arch/blackfin/include/asm/cacheflush.h             |  118 -
+>  arch/blackfin/include/asm/cdef_LPBlackfin.h        |  309 --
+>  arch/blackfin/include/asm/checksum.h               |   44 -
+>  arch/blackfin/include/asm/clocks.h                 |   74 -
+>  arch/blackfin/include/asm/cmpxchg.h                |  132 -
+>  arch/blackfin/include/asm/context.S                |  407 ---
+>  arch/blackfin/include/asm/cplb.h                   |  153 -
+>  arch/blackfin/include/asm/cplbinit.h               |   66 -
+>  arch/blackfin/include/asm/cpu.h                    |   24 -
+>  arch/blackfin/include/asm/def_LPBlackfin.h         |  697 ----
+>  arch/blackfin/include/asm/delay.h                  |   51 -
+>  arch/blackfin/include/asm/dma-mapping.h            |   46 -
+>  arch/blackfin/include/asm/dma.h                    |  349 --
+>  arch/blackfin/include/asm/dpmc.h                   |  794 -----
+>  arch/blackfin/include/asm/early_printk.h           |   36 -
+>  arch/blackfin/include/asm/elf.h                    |  135 -
+>  arch/blackfin/include/asm/entry.h                  |  178 -
+>  arch/blackfin/include/asm/exec.h                   |    1 -
+>  arch/blackfin/include/asm/fixed_code.h             |   30 -
+>  arch/blackfin/include/asm/flat.h                   |   62 -
+>  arch/blackfin/include/asm/ftrace.h                 |   73 -
+>  arch/blackfin/include/asm/gpio.h                   |  234 --
+>  arch/blackfin/include/asm/gptimers.h               |  337 --
+>  arch/blackfin/include/asm/hardirq.h                |   17 -
+>  arch/blackfin/include/asm/io.h                     |   49 -
+>  arch/blackfin/include/asm/ipipe.h                  |  209 --
+>  arch/blackfin/include/asm/ipipe_base.h             |   75 -
+>  arch/blackfin/include/asm/irq.h                    |   41 -
+>  arch/blackfin/include/asm/irq_handler.h            |   66 -
+>  arch/blackfin/include/asm/irqflags.h               |  289 --
+>  arch/blackfin/include/asm/kgdb.h                   |  169 -
+>  arch/blackfin/include/asm/l1layout.h               |   37 -
+>  arch/blackfin/include/asm/linkage.h                |   13 -
+>  arch/blackfin/include/asm/mem_init.h               |  500 ---
+>  arch/blackfin/include/asm/mem_map.h                |   84 -
+>  arch/blackfin/include/asm/mmu.h                    |   36 -
+>  arch/blackfin/include/asm/mmu_context.h            |  218 --
+>  arch/blackfin/include/asm/module.h                 |   22 -
+>  arch/blackfin/include/asm/nand.h                   |   40 -
+>  arch/blackfin/include/asm/nmi.h                    |   14 -
+>  arch/blackfin/include/asm/page.h                   |   22 -
+>  arch/blackfin/include/asm/page_offset.h            |   11 -
+>  arch/blackfin/include/asm/pci.h                    |   13 -
+>  arch/blackfin/include/asm/pda.h                    |   73 -
+>  arch/blackfin/include/asm/perf_event.h             |    1 -
+>  arch/blackfin/include/asm/pgtable.h                |  104 -
+>  arch/blackfin/include/asm/pm.h                     |   31 -
+>  arch/blackfin/include/asm/portmux.h                | 1204 -------
+>  arch/blackfin/include/asm/processor.h              |  145 -
+>  arch/blackfin/include/asm/pseudo_instructions.h    |   18 -
+>  arch/blackfin/include/asm/ptrace.h                 |   42 -
+>  arch/blackfin/include/asm/reboot.h                 |   20 -
+>  arch/blackfin/include/asm/rwlock.h                 |    7 -
+>  arch/blackfin/include/asm/scb.h                    |   21 -
+>  arch/blackfin/include/asm/sections.h               |   67 -
+>  arch/blackfin/include/asm/segment.h                |   13 -
+>  arch/blackfin/include/asm/smp.h                    |   54 -
+>  arch/blackfin/include/asm/spinlock.h               |   81 -
+>  arch/blackfin/include/asm/spinlock_types.h         |   28 -
+>  arch/blackfin/include/asm/string.h                 |   38 -
+>  arch/blackfin/include/asm/switch_to.h              |   39 -
+>  arch/blackfin/include/asm/syscall.h                |   96 -
+>  arch/blackfin/include/asm/thread_info.h            |   98 -
+>  arch/blackfin/include/asm/time.h                   |   46 -
+>  arch/blackfin/include/asm/timex.h                  |   23 -
+>  arch/blackfin/include/asm/tlb.h                    |   22 -
+>  arch/blackfin/include/asm/tlbflush.h               |    2 -
+>  arch/blackfin/include/asm/trace.h                  |  106 -
+>  arch/blackfin/include/asm/traps.h                  |  131 -
+>  arch/blackfin/include/asm/uaccess.h                |  234 --
+>  arch/blackfin/include/asm/unistd.h                 |   22 -
+>  arch/blackfin/include/asm/vga.h                    |    1 -
+>  arch/blackfin/include/mach-common/irq.h            |   58 -
+>  arch/blackfin/include/mach-common/pll.h            |   86 -
+>  arch/blackfin/include/mach-common/ports-a.h        |   26 -
+>  arch/blackfin/include/mach-common/ports-b.h        |   26 -
+>  arch/blackfin/include/mach-common/ports-c.h        |   26 -
+>  arch/blackfin/include/mach-common/ports-d.h        |   26 -
+>  arch/blackfin/include/mach-common/ports-e.h        |   26 -
+>  arch/blackfin/include/mach-common/ports-f.h        |   26 -
+>  arch/blackfin/include/mach-common/ports-g.h        |   26 -
+>  arch/blackfin/include/mach-common/ports-h.h        |   26 -
+>  arch/blackfin/include/mach-common/ports-i.h        |   26 -
+>  arch/blackfin/include/mach-common/ports-j.h        |   26 -
+>  arch/blackfin/include/uapi/asm/Kbuild              |   25 -
+>  arch/blackfin/include/uapi/asm/bfin_sport.h        |  137 -
+>  arch/blackfin/include/uapi/asm/byteorder.h         |    7 -
+>  arch/blackfin/include/uapi/asm/cachectl.h          |   21 -
+>  arch/blackfin/include/uapi/asm/fcntl.h             |   18 -
+>  arch/blackfin/include/uapi/asm/fixed_code.h        |   39 -
+>  arch/blackfin/include/uapi/asm/ioctls.h            |    8 -
+>  arch/blackfin/include/uapi/asm/poll.h              |   17 -
+>  arch/blackfin/include/uapi/asm/posix_types.h       |   31 -
+>  arch/blackfin/include/uapi/asm/ptrace.h            |  171 -
+>  arch/blackfin/include/uapi/asm/sigcontext.h        |   62 -
+>  arch/blackfin/include/uapi/asm/siginfo.h           |   16 -
+>  arch/blackfin/include/uapi/asm/signal.h            |    8 -
+>  arch/blackfin/include/uapi/asm/stat.h              |   70 -
+>  arch/blackfin/include/uapi/asm/swab.h              |   51 -
+>  arch/blackfin/include/uapi/asm/unistd.h            |  448 ---
+>  arch/blackfin/kernel/.gitignore                    |    1 -
+>  arch/blackfin/kernel/Makefile                      |   44 -
+>  arch/blackfin/kernel/asm-offsets.c                 |  164 -
+>  arch/blackfin/kernel/bfin_dma.c                    |  612 ----
+>  arch/blackfin/kernel/bfin_gpio.c                   | 1208 -------
+>  arch/blackfin/kernel/bfin_ksyms.c                  |  126 -
+>  arch/blackfin/kernel/cplb-mpu/Makefile             |   10 -
+>  arch/blackfin/kernel/cplb-mpu/cplbinit.c           |  102 -
+>  arch/blackfin/kernel/cplb-mpu/cplbmgr.c            |  379 ---
+>  arch/blackfin/kernel/cplb-nompu/Makefile           |   11 -
+>  arch/blackfin/kernel/cplb-nompu/cplbinit.c         |  212 --
+>  arch/blackfin/kernel/cplb-nompu/cplbmgr.c          |  227 --
+>  arch/blackfin/kernel/cplbinfo.c                    |  180 -
+>  arch/blackfin/kernel/debug-mmrs.c                  | 1891 ----------
+>  arch/blackfin/kernel/dma-mapping.c                 |  172 -
+>  arch/blackfin/kernel/dumpstack.c                   |  177 -
+>  arch/blackfin/kernel/early_printk.c                |  271 --
+>  arch/blackfin/kernel/entry.S                       |   59 -
+>  arch/blackfin/kernel/exception.c                   |   45 -
+>  arch/blackfin/kernel/fixed_code.S                  |  155 -
+>  arch/blackfin/kernel/flat.c                        |   84 -
+>  arch/blackfin/kernel/ftrace-entry.S                |  207 --
+>  arch/blackfin/kernel/ftrace.c                      |  125 -
+>  arch/blackfin/kernel/gptimers.c                    |  383 ---
+>  arch/blackfin/kernel/ipipe.c                       |  397 ---
+>  arch/blackfin/kernel/irqchip.c                     |  132 -
+>  arch/blackfin/kernel/kgdb.c                        |  473 ---
+>  arch/blackfin/kernel/kgdb_test.c                   |  114 -
+>  arch/blackfin/kernel/module.c                      |  292 --
+>  arch/blackfin/kernel/nmi.c                         |  287 --
+>  arch/blackfin/kernel/perf_event.c                  |  482 ---
+>  arch/blackfin/kernel/process.c                     |  438 ---
+>  arch/blackfin/kernel/pseudodbg.c                   |  191 --
+>  arch/blackfin/kernel/ptrace.c                      |  413 ---
+>  arch/blackfin/kernel/reboot.c                      |  115 -
+>  arch/blackfin/kernel/setup.c                       | 1468 --------
+>  arch/blackfin/kernel/shadow_console.c              |  111 -
+>  arch/blackfin/kernel/signal.c                      |  287 --
+>  arch/blackfin/kernel/stacktrace.c                  |   54 -
+>  arch/blackfin/kernel/sys_bfin.c                    |   88 -
+>  arch/blackfin/kernel/time-ts.c                     |  400 ---
+>  arch/blackfin/kernel/time.c                        |  160 -
+>  arch/blackfin/kernel/trace.c                       |  988 ------
+>  arch/blackfin/kernel/traps.c                       |  585 ----
+>  arch/blackfin/kernel/vmlinux.lds.S                 |  271 --
+>  arch/blackfin/lib/Makefile                         |   12 -
+>  arch/blackfin/lib/ashldi3.c                        |   35 -
+>  arch/blackfin/lib/ashrdi3.c                        |   36 -
+>  arch/blackfin/lib/divsi3.S                         |  199 --
+>  arch/blackfin/lib/gcclib.h                         |   24 -
+>  arch/blackfin/lib/ins.S                            |  118 -
+>  arch/blackfin/lib/lshrdi3.c                        |   35 -
+>  arch/blackfin/lib/memchr.S                         |   47 -
+>  arch/blackfin/lib/memcmp.S                         |   92 -
+>  arch/blackfin/lib/memcpy.S                         |  124 -
+>  arch/blackfin/lib/memmove.S                        |   93 -
+>  arch/blackfin/lib/memset.S                         |   87 -
+>  arch/blackfin/lib/modsi3.S                         |   57 -
+>  arch/blackfin/lib/muldi3.S                         |   74 -
+>  arch/blackfin/lib/outs.S                           |   68 -
+>  arch/blackfin/lib/smulsi3_highpart.S               |   38 -
+>  arch/blackfin/lib/strcmp.S                         |   43 -
+>  arch/blackfin/lib/strcpy.S                         |   35 -
+>  arch/blackfin/lib/strncmp.S                        |   52 -
+>  arch/blackfin/lib/strncpy.S                        |   85 -
+>  arch/blackfin/lib/udivsi3.S                        |  277 --
+>  arch/blackfin/lib/umodsi3.S                        |   49 -
+>  arch/blackfin/lib/umulsi3_highpart.S               |   31 -
+>  arch/blackfin/mach-bf518/Kconfig                   |  320 --
+> ...
+>   arch/blackfin/mach-bf609/scb.c                     |  363 --
+>  arch/blackfin/mach-common/Makefile                 |   17 -
+>  arch/blackfin/mach-common/arch_checks.c            |   66 -
+>  arch/blackfin/mach-common/cache-c.c                |   85 -
+>  arch/blackfin/mach-common/cache.S                  |  124 -
+>  arch/blackfin/mach-common/clock.h                  |   28 -
+>  arch/blackfin/mach-common/clocks-init.c            |  121 -
+>  arch/blackfin/mach-common/dpmc.c                   |  164 -
+>  arch/blackfin/mach-common/dpmc_modes.S             |  320 --
+>  arch/blackfin/mach-common/entry.S                  | 1711 ----------
+>  arch/blackfin/mach-common/head.S                   |  229 --
+>  arch/blackfin/mach-common/interrupt.S              |  326 --
+>  arch/blackfin/mach-common/ints-priority.c          | 1366 --------
+>  arch/blackfin/mach-common/pm.c                     |  301 --
+>  arch/blackfin/mach-common/scb-init.c               |   52 -
+>  arch/blackfin/mach-common/smp.c                    |  432 ---
+>  arch/blackfin/mm/Makefile                          |    5 -
+>  arch/blackfin/mm/blackfin_sram.h                   |   14 -
+>  arch/blackfin/mm/init.c                            |  122 -
+>  arch/blackfin/mm/isram-driver.c                    |  411 ---
+>  arch/blackfin/mm/maccess.c                         |   97 -
+>  arch/blackfin/mm/sram-alloc.c                      |  899 -----
+>  arch/blackfin/oprofile/Makefile                    |   14 -
+>  arch/blackfin/oprofile/bfin_oprofile.c             |   18 -
+>  samples/Kconfig                                    |    6 -
+>  samples/Makefile                                   |    2 +-
+>  samples/blackfin/Makefile                          |    1 -
+>  samples/blackfin/gptimers-example.c                |   91 -
+>  scripts/checkpatch.pl                              |   26 -
+>  474 files changed, 2 insertions(+), 123906 deletions(-)
+>
+>  diff --git a/Documentation/00-INDEX b/Documentation/00-INDEX
+> index b56b88e20196..ee2808415f64 100644
+> --- a/Documentation/00-INDEX
+> +++ b/Documentation/00-INDEX
+> @@ -66,8 +66,6 @@ backlight/
+>         - directory with info on controlling backlights in flat panel displays
+>  bcache.txt
+>         - Block-layer cache on fast SSDs to improve slow (raid) I/O performance.
+> -blackfin/
+> -       - directory with documentation for the Blackfin arch.
+>  block/
+>         - info on the Block I/O (BIO) layer.
+>  blockdev/
+> diff --git a/Documentation/admin-guide/kernel-parameters.rst b/Documentation/admin-guide/kernel-parameters.rst
+> index 7242cbda15dd..b8d0bc07ed0a 100644
+> --- a/Documentation/admin-guide/kernel-parameters.rst
+> +++ b/Documentation/admin-guide/kernel-parameters.rst
+> @@ -89,7 +89,6 @@ parameter is applicable::
+>         APM     Advanced Power Management support is enabled.
+>         ARM     ARM architecture is enabled.
+>         AX25    Appropriate AX.25 support is enabled.
+> -       BLACKFIN Blackfin architecture is enabled.
+>         CLK     Common clock infrastructure is enabled.
+>         CMA     Contiguous Memory Area support is enabled.
+>         DRM     Direct Rendering Management support is enabled.
+> diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+> index 30a8d0635898..c272ea194ff3 100644
+> --- a/Documentation/admin-guide/kernel-parameters.txt
+> +++ b/Documentation/admin-guide/kernel-parameters.txt
+> @@ -1025,7 +1025,7 @@
+>                         address. The serial port must already be setup
+>                         and configured. Options are not yet supported.
+>
+> -       earlyprintk=    [X86,SH,BLACKFIN,ARM,M68k,S390]
+> +       earlyprintk=    [X86,SH,ARM,M68k,S390]
+>                         earlyprintk=vga
+>                         earlyprintk=efi
+>                         earlyprintk=sclp
+> diff --git a/Documentation/blackfin/00-INDEX b/Documentation/blackfin/00-INDEX
+> deleted file mode 100644
+> index 265a1effebde..000000000000
+> diff --git a/Documentation/blackfin/bfin-gpio-notes.txt b/Documentation/blackfin/bfin-gpio-notes.txt
+> deleted file mode 100644
+> index d245f39c3d01..000000000000
+> diff --git a/Documentation/blackfin/bfin-spi-notes.txt b/Documentation/blackfin/bfin-spi-notes.txt
+> deleted file mode 100644
+> index eae6eaf2a09d..000000000000
+> diff --git a/MAINTAINERS b/MAINTAINERS
+> index 2281937d9432..9e0c097824f5 100644
+> --- a/MAINTAINERS
+> +++ b/MAINTAINERS
+> @@ -2629,51 +2629,6 @@ F:       Documentation/filesystems/bfs.txt
+>  F:     fs/bfs/
+>  F:     include/uapi/linux/bfs_fs.h
+>
+> -BLACKFIN ARCHITECTURE
+> -L:     adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+> -T:     git git://git.code.sf.net/p/adi-linux/code
+> -W:     http://blackfin.uclinux.org
+> -S:     Orphan
+> -F:     arch/blackfin/
+> -
+> -BLACKFIN EMAC DRIVER
+> -L:     adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+> -W:     http://blackfin.uclinux.org
+> -S:     Orphan
+> -F:     drivers/net/ethernet/adi/
+> -
+> -BLACKFIN MEDIA DRIVER
+> -L:     adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+> -W:     http://blackfin.uclinux.org/
+> -S:     Orphan
+> -F:     drivers/media/platform/blackfin/
+> -F:     drivers/media/i2c/adv7183*
+> -F:     drivers/media/i2c/vs6624*
+> -
+> -BLACKFIN RTC DRIVER
+> -L:     adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+> -W:     http://blackfin.uclinux.org
+> -S:     Orphan
+> -F:     drivers/rtc/rtc-bfin.c
+> -
+> -BLACKFIN SDH DRIVER
+> -L:     adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+> -W:     http://blackfin.uclinux.org
+> -S:     Orphan
+> -F:     drivers/mmc/host/bfin_sdh.c
+> -
+> -BLACKFIN SERIAL DRIVER
+> -L:     adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+> -W:     http://blackfin.uclinux.org
+> -S:     Orphan
+> -F:     drivers/tty/serial/bfin_uart.c
+> -
+> -BLACKFIN WATCHDOG DRIVER
+> -L:     adi-buildroot-devel@lists.sourceforge.net (moderated for non-subscribers)
+> -W:     http://blackfin.uclinux.org
+> -S:     Orphan
+> -F:     drivers/watchdog/bfin_wdt.c
+> -
+>  BLINKM RGB LED DRIVER
+>  M:     Jan-Simon Moeller <jansimon.moeller@gmx.de>
+>  S:     Maintained
+> diff --git a/arch/blackfin/Clear_BSD.txt b/arch/blackfin/Clear_BSD.txt
+> deleted file mode 100644
+> index bfa4b378a368..000000000000
+> diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
+> deleted file mode 100644
+> index d9c2866ba618..000000000000
+> diff --git a/arch/blackfin/Kconfig.debug b/arch/blackfin/Kconfig.debug
+> deleted file mode 100644
+> index c8d957274cc2..000000000000
+> diff --git a/arch/blackfin/Makefile b/arch/blackfin/Makefile
+> deleted file mode 100644
+> index 1fce08632ad7..000000000000
+> diff --git a/arch/blackfin/boot/.gitignore b/arch/blackfin/boot/.gitignore
+> deleted file mode 100644
+> index 1287a5487e7d..000000000000
+> diff --git a/arch/blackfin/boot/Makefile b/arch/blackfin/boot/Makefile
+> deleted file mode 100644
+> index 3efaa094fb90..000000000000
+> diff --git a/arch/blackfin/boot/install.sh b/arch/blackfin/boot/install.sh
+> deleted file mode 100644
+> index e2c6e40902b7..000000000000
+> diff --git a/arch/blackfin/configs/BF518F-EZBRD_defconfig b/arch/blackfin/configs/BF518F-EZBRD_defconfig
+> deleted file mode 100644
+> index 99c00d835f47..000000000000
+> diff --git a/arch/blackfin/configs/BF526-EZBRD_defconfig b/arch/blackfin/configs/BF526-EZBRD_defconfig
+> deleted file mode 100644
+> index e66ba31ef84d..000000000000
+> diff --git a/arch/blackfin/configs/BF527-AD7160-EVAL_defconfig b/arch/blackfin/configs/BF527-AD7160-EVAL_defconfig
+> deleted file mode 100644
+> index d95658fc3127..000000000000
+> diff --git a/arch/blackfin/configs/BF527-EZKIT-V2_defconfig b/arch/blackfin/configs/BF527-EZKIT-V2_defconfig
+> deleted file mode 100644
+> index 0207c588c19f..000000000000
+> diff --git a/arch/blackfin/configs/BF527-EZKIT_defconfig b/arch/blackfin/configs/BF527-EZKIT_defconfig
+> deleted file mode 100644
+> index 99c131ba7d90..000000000000
+> diff --git a/arch/blackfin/configs/BF527-TLL6527M_defconfig b/arch/blackfin/configs/BF527-TLL6527M_defconfig
+> deleted file mode 100644
+> index cdeb51856f26..000000000000
+> diff --git a/arch/blackfin/configs/BF533-EZKIT_defconfig b/arch/blackfin/configs/BF533-EZKIT_defconfig
+> deleted file mode 100644
+> index ed7d2c096739..000000000000
+> diff --git a/arch/blackfin/configs/BF533-STAMP_defconfig b/arch/blackfin/configs/BF533-STAMP_defconfig
+> deleted file mode 100644
+> index 0c241f4d28d7..000000000000
+> diff --git a/arch/blackfin/configs/BF537-STAMP_defconfig b/arch/blackfin/configs/BF537-STAMP_defconfig
+> deleted file mode 100644
+> index e5360b30e39a..000000000000
+> diff --git a/arch/blackfin/configs/BF538-EZKIT_defconfig b/arch/blackfin/configs/BF538-EZKIT_defconfig
+> deleted file mode 100644
+> index 60f6fb86125c..000000000000
+> diff --git a/arch/blackfin/configs/BF548-EZKIT_defconfig b/arch/blackfin/configs/BF548-EZKIT_defconfig
+> deleted file mode 100644
+> index 38cb17d218d4..000000000000
+> diff --git a/arch/blackfin/configs/BF561-ACVILON_defconfig b/arch/blackfin/configs/BF561-ACVILON_defconfig
+> deleted file mode 100644
+> index 78f6bc79f910..000000000000
+> diff --git a/arch/blackfin/configs/BF561-EZKIT-SMP_defconfig b/arch/blackfin/configs/BF561-EZKIT-SMP_defconfig
+> deleted file mode 100644
+> index fac8bb578249..000000000000
+> diff --git a/arch/blackfin/configs/BF561-EZKIT_defconfig b/arch/blackfin/configs/BF561-EZKIT_defconfig
+> deleted file mode 100644
+> index 2a2e4d0cebc1..000000000000
+> diff --git a/arch/blackfin/configs/BF609-EZKIT_defconfig b/arch/blackfin/configs/BF609-EZKIT_defconfig
+> deleted file mode 100644
+> index 3ce77f07208a..000000000000
+> diff --git a/arch/blackfin/configs/BlackStamp_defconfig b/arch/blackfin/configs/BlackStamp_defconfig
+> deleted file mode 100644
+> index f4a9200e1ab1..000000000000
+> diff --git a/arch/blackfin/configs/CM-BF527_defconfig b/arch/blackfin/configs/CM-BF527_defconfig
+> deleted file mode 100644
+> index 1902bb05d086..000000000000
+> diff --git a/arch/blackfin/configs/CM-BF533_defconfig b/arch/blackfin/configs/CM-BF533_defconfig
+> deleted file mode 100644
+> index 9a5716d57ebc..000000000000
+> diff --git a/arch/blackfin/configs/CM-BF537E_defconfig b/arch/blackfin/configs/CM-BF537E_defconfig
+> deleted file mode 100644
+> index 684592884349..000000000000
+> diff --git a/arch/blackfin/configs/CM-BF537U_defconfig b/arch/blackfin/configs/CM-BF537U_defconfig
+> deleted file mode 100644
+> index d9915e984787..000000000000
+> diff --git a/arch/blackfin/configs/CM-BF548_defconfig b/arch/blackfin/configs/CM-BF548_defconfig
+> deleted file mode 100644
+> index 92d8130cdb51..000000000000
+> diff --git a/arch/blackfin/configs/CM-BF561_defconfig b/arch/blackfin/configs/CM-BF561_defconfig
+> deleted file mode 100644
+> index fa8d91132a57..000000000000
+> diff --git a/arch/blackfin/configs/DNP5370_defconfig b/arch/blackfin/configs/DNP5370_defconfig
+> deleted file mode 100644
+> index 88600593c731..000000000000
+> diff --git a/arch/blackfin/configs/H8606_defconfig b/arch/blackfin/configs/H8606_defconfig
+> deleted file mode 100644
+> index 0ff97d8d047a..000000000000
+> diff --git a/arch/blackfin/configs/IP0X_defconfig b/arch/blackfin/configs/IP0X_defconfig
+> deleted file mode 100644
+> index 9e3ae4b36d20..000000000000
+> diff --git a/arch/blackfin/configs/PNAV-10_defconfig b/arch/blackfin/configs/PNAV-10_defconfig
+> deleted file mode 100644
+> index c7926812971c..000000000000
+> diff --git a/arch/blackfin/configs/SRV1_defconfig b/arch/blackfin/configs/SRV1_defconfig
+> deleted file mode 100644
+> index 23fdc57d657a..000000000000
+> diff --git a/arch/blackfin/configs/TCM-BF518_defconfig b/arch/blackfin/configs/TCM-BF518_defconfig
+> deleted file mode 100644
+> index e28959479fe0..000000000000
+> diff --git a/arch/blackfin/configs/TCM-BF537_defconfig b/arch/blackfin/configs/TCM-BF537_defconfig
+> deleted file mode 100644
+> index 39e85cce95d7..000000000000
+> diff --git a/arch/blackfin/include/asm/Kbuild b/arch/blackfin/include/asm/Kbuild
+> deleted file mode 100644
+> index fe736973630f..000000000000
+> diff --git a/arch/blackfin/include/asm/asm-offsets.h b/arch/blackfin/include/asm/asm-offsets.h
+> deleted file mode 100644
+> index d370ee36a182..000000000000
+> diff --git a/arch/blackfin/include/asm/atomic.h b/arch/blackfin/include/asm/atomic.h
+> deleted file mode 100644
+> index 63c7deceeeb6..000000000000
+> diff --git a/arch/blackfin/include/asm/barrier.h b/arch/blackfin/include/asm/barrier.h
+> deleted file mode 100644
+> index 7cca51cae5ff..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin-global.h b/arch/blackfin/include/asm/bfin-global.h
+> deleted file mode 100644
+> index dc47d79287f9..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin-lq035q1.h b/arch/blackfin/include/asm/bfin-lq035q1.h
+> deleted file mode 100644
+> index 836895156b5b..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin5xx_spi.h b/arch/blackfin/include/asm/bfin5xx_spi.h
+> deleted file mode 100644
+> index fb95c853bb1e..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin_can.h b/arch/blackfin/include/asm/bfin_can.h
+> deleted file mode 100644
+> index b1492e0bcabb..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin_dma.h b/arch/blackfin/include/asm/bfin_dma.h
+> deleted file mode 100644
+> index 6319f4e49083..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin_pfmon.h b/arch/blackfin/include/asm/bfin_pfmon.h
+> deleted file mode 100644
+> index bf52e1f32257..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin_ppi.h b/arch/blackfin/include/asm/bfin_ppi.h
+> deleted file mode 100644
+> index a4e872e16e75..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin_sdh.h b/arch/blackfin/include/asm/bfin_sdh.h
+> deleted file mode 100644
+> index a99957ea9e9b..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin_serial.h b/arch/blackfin/include/asm/bfin_serial.h
+> deleted file mode 100644
+> index b550ada7321b..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin_simple_timer.h b/arch/blackfin/include/asm/bfin_simple_timer.h
+> deleted file mode 100644
+> index b2d5e733079e..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin_sport.h b/arch/blackfin/include/asm/bfin_sport.h
+> deleted file mode 100644
+> index 50b9dfd4839f..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin_sport3.h b/arch/blackfin/include/asm/bfin_sport3.h
+> deleted file mode 100644
+> index d82f5fa0ad9f..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin_twi.h b/arch/blackfin/include/asm/bfin_twi.h
+> deleted file mode 100644
+> index 211e9c78f6fb..000000000000
+> diff --git a/arch/blackfin/include/asm/bfin_watchdog.h b/arch/blackfin/include/asm/bfin_watchdog.h
+> deleted file mode 100644
+> index dce09829a095..000000000000
+> diff --git a/arch/blackfin/include/asm/bfrom.h b/arch/blackfin/include/asm/bfrom.h
+> deleted file mode 100644
+> index 9e4be5e5e767..000000000000
+> diff --git a/arch/blackfin/include/asm/bitops.h b/arch/blackfin/include/asm/bitops.h
+> deleted file mode 100644
+> index b298b654a26f..000000000000
+> diff --git a/arch/blackfin/include/asm/blackfin.h b/arch/blackfin/include/asm/blackfin.h
+> deleted file mode 100644
+> index f111f366d758..000000000000
+> diff --git a/arch/blackfin/include/asm/bug.h b/arch/blackfin/include/asm/bug.h
+> deleted file mode 100644
+> index 76b2e82ee730..000000000000
+> diff --git a/arch/blackfin/include/asm/cache.h b/arch/blackfin/include/asm/cache.h
+> deleted file mode 100644
+> index 568885a2c286..000000000000
+> diff --git a/arch/blackfin/include/asm/cacheflush.h b/arch/blackfin/include/asm/cacheflush.h
+> deleted file mode 100644
+> index 9a5b2c572ebf..000000000000
+> diff --git a/arch/blackfin/include/asm/cdef_LPBlackfin.h b/arch/blackfin/include/asm/cdef_LPBlackfin.h
+> deleted file mode 100644
+> index 59af63c0c2be..000000000000
+> diff --git a/arch/blackfin/include/asm/checksum.h b/arch/blackfin/include/asm/checksum.h
+> deleted file mode 100644
+> index e7134bf94e3c..000000000000
+> diff --git a/arch/blackfin/include/asm/clocks.h b/arch/blackfin/include/asm/clocks.h
+> deleted file mode 100644
+> index 9b3c85b3c288..000000000000
+> diff --git a/arch/blackfin/include/asm/cmpxchg.h b/arch/blackfin/include/asm/cmpxchg.h
+> deleted file mode 100644
+> index 253928854299..000000000000
+> diff --git a/arch/blackfin/include/asm/context.S b/arch/blackfin/include/asm/context.S
+> deleted file mode 100644
+> index 507e7aa6a561..000000000000
+> diff --git a/arch/blackfin/include/asm/cplb.h b/arch/blackfin/include/asm/cplb.h
+> deleted file mode 100644
+> index 5c37f620c4b3..000000000000
+> diff --git a/arch/blackfin/include/asm/cplbinit.h b/arch/blackfin/include/asm/cplbinit.h
+> deleted file mode 100644
+> index f315c83a015d..000000000000
+> diff --git a/arch/blackfin/include/asm/cpu.h b/arch/blackfin/include/asm/cpu.h
+> deleted file mode 100644
+> index e349631c8299..000000000000
+> diff --git a/arch/blackfin/include/asm/def_LPBlackfin.h b/arch/blackfin/include/asm/def_LPBlackfin.h
+> deleted file mode 100644
+> index c5c8d8a3a5fa..000000000000
+> diff --git a/arch/blackfin/include/asm/delay.h b/arch/blackfin/include/asm/delay.h
+> deleted file mode 100644
+> index 171d8deb04a5..000000000000
+> diff --git a/arch/blackfin/include/asm/dma-mapping.h b/arch/blackfin/include/asm/dma-mapping.h
+> deleted file mode 100644
+> index 04254ac36bed..000000000000
+> diff --git a/arch/blackfin/include/asm/dma.h b/arch/blackfin/include/asm/dma.h
+> deleted file mode 100644
+> index 40e9c2bbc6e3..000000000000
+> diff --git a/arch/blackfin/include/asm/dpmc.h b/arch/blackfin/include/asm/dpmc.h
+> deleted file mode 100644
+> index 2673b11376f4..000000000000
+> diff --git a/arch/blackfin/include/asm/early_printk.h b/arch/blackfin/include/asm/early_printk.h
+> deleted file mode 100644
+> index 68a910db8864..000000000000
+> diff --git a/arch/blackfin/include/asm/elf.h b/arch/blackfin/include/asm/elf.h
+> deleted file mode 100644
+> index d15cb9b5d52c..000000000000
+> diff --git a/arch/blackfin/include/asm/entry.h b/arch/blackfin/include/asm/entry.h
+> deleted file mode 100644
+> index 4104d5783e2c..000000000000
+> diff --git a/arch/blackfin/include/asm/exec.h b/arch/blackfin/include/asm/exec.h
+> deleted file mode 100644
+> index 54c2e1db274a..000000000000
+> diff --git a/arch/blackfin/include/asm/fixed_code.h b/arch/blackfin/include/asm/fixed_code.h
+> deleted file mode 100644
+> index bc330f06207b..000000000000
+> diff --git a/arch/blackfin/include/asm/flat.h b/arch/blackfin/include/asm/flat.h
+> deleted file mode 100644
+> index f1d6ba7afbf2..000000000000
+> diff --git a/arch/blackfin/include/asm/ftrace.h b/arch/blackfin/include/asm/ftrace.h
+> deleted file mode 100644
+> index 2f1c3c2657ad..000000000000
+> diff --git a/arch/blackfin/include/asm/gpio.h b/arch/blackfin/include/asm/gpio.h
+> deleted file mode 100644
+> index a2579321c7f1..000000000000
+> diff --git a/arch/blackfin/include/asm/gptimers.h b/arch/blackfin/include/asm/gptimers.h
+> deleted file mode 100644
+> index 381e3d621a4c..000000000000
+> diff --git a/arch/blackfin/include/asm/hardirq.h b/arch/blackfin/include/asm/hardirq.h
+> deleted file mode 100644
+> index 58b54a6d5a16..000000000000
+> diff --git a/arch/blackfin/include/asm/io.h b/arch/blackfin/include/asm/io.h
+> deleted file mode 100644
+> index 6abebe82d4e9..000000000000
+> diff --git a/arch/blackfin/include/asm/ipipe.h b/arch/blackfin/include/asm/ipipe.h
+> deleted file mode 100644
+> index fe1160fbff91..000000000000
+> diff --git a/arch/blackfin/include/asm/ipipe_base.h b/arch/blackfin/include/asm/ipipe_base.h
+> deleted file mode 100644
+> index 84a4ffd36747..000000000000
+> diff --git a/arch/blackfin/include/asm/irq.h b/arch/blackfin/include/asm/irq.h
+> deleted file mode 100644
+> index 89de539ed010..000000000000
+> diff --git a/arch/blackfin/include/asm/irq_handler.h b/arch/blackfin/include/asm/irq_handler.h
+> deleted file mode 100644
+> index d2f90c72378e..000000000000
+> diff --git a/arch/blackfin/include/asm/irqflags.h b/arch/blackfin/include/asm/irqflags.h
+> deleted file mode 100644
+> index 07aff230a812..000000000000
+> diff --git a/arch/blackfin/include/asm/kgdb.h b/arch/blackfin/include/asm/kgdb.h
+> deleted file mode 100644
+> index 2703ddeeb5db..000000000000
+> diff --git a/arch/blackfin/include/asm/l1layout.h b/arch/blackfin/include/asm/l1layout.h
+> deleted file mode 100644
+> index c87e68647a2b..000000000000
+> diff --git a/arch/blackfin/include/asm/linkage.h b/arch/blackfin/include/asm/linkage.h
+> deleted file mode 100644
+> index f7d6d47a048d..000000000000
+> diff --git a/arch/blackfin/include/asm/mem_init.h b/arch/blackfin/include/asm/mem_init.h
+> deleted file mode 100644
+> index c865b33eeb68..000000000000
+> diff --git a/arch/blackfin/include/asm/mem_map.h b/arch/blackfin/include/asm/mem_map.h
+> deleted file mode 100644
+> index 5e21627c9ba2..000000000000
+> diff --git a/arch/blackfin/include/asm/mmu.h b/arch/blackfin/include/asm/mmu.h
+> deleted file mode 100644
+> index 26f6b70b11e2..000000000000
+> diff --git a/arch/blackfin/include/asm/mmu_context.h b/arch/blackfin/include/asm/mmu_context.h
+> deleted file mode 100644
+> index 0ce6de873b27..000000000000
+> diff --git a/arch/blackfin/include/asm/module.h b/arch/blackfin/include/asm/module.h
+> deleted file mode 100644
+> index 231a149b3f77..000000000000
+> diff --git a/arch/blackfin/include/asm/nand.h b/arch/blackfin/include/asm/nand.h
+> deleted file mode 100644
+> index 256c50d8d465..000000000000
+> diff --git a/arch/blackfin/include/asm/nmi.h b/arch/blackfin/include/asm/nmi.h
+> deleted file mode 100644
+> index 107d23705f46..000000000000
+> diff --git a/arch/blackfin/include/asm/page.h b/arch/blackfin/include/asm/page.h
+> deleted file mode 100644
+> index b93474d5be75..000000000000
+> diff --git a/arch/blackfin/include/asm/page_offset.h b/arch/blackfin/include/asm/page_offset.h
+> deleted file mode 100644
+> index d06a89b89d20..000000000000
+> diff --git a/arch/blackfin/include/asm/pci.h b/arch/blackfin/include/asm/pci.h
+> deleted file mode 100644
+> index e6458ddbaf7e..000000000000
+> diff --git a/arch/blackfin/include/asm/pda.h b/arch/blackfin/include/asm/pda.h
+> deleted file mode 100644
+> index 68d6f6618f2a..000000000000
+> diff --git a/arch/blackfin/include/asm/perf_event.h b/arch/blackfin/include/asm/perf_event.h
+> deleted file mode 100644
+> index 3d2b1716322f..000000000000
+> diff --git a/arch/blackfin/include/asm/pgtable.h b/arch/blackfin/include/asm/pgtable.h
+> deleted file mode 100644
+> index c1ee3d6533fb..000000000000
+> diff --git a/arch/blackfin/include/asm/pm.h b/arch/blackfin/include/asm/pm.h
+> deleted file mode 100644
+> index f72239bf3638..000000000000
+> diff --git a/arch/blackfin/include/asm/portmux.h b/arch/blackfin/include/asm/portmux.h
+> deleted file mode 100644
+> index c8f0939419be..000000000000
+> diff --git a/arch/blackfin/include/asm/processor.h b/arch/blackfin/include/asm/processor.h
+> deleted file mode 100644
+> index dbdbb8a558df..000000000000
+> diff --git a/arch/blackfin/include/asm/pseudo_instructions.h b/arch/blackfin/include/asm/pseudo_instructions.h
+> deleted file mode 100644
+> index b00adfa08169..000000000000
+> diff --git a/arch/blackfin/include/asm/ptrace.h b/arch/blackfin/include/asm/ptrace.h
+> deleted file mode 100644
+> index c00491594b46..000000000000
+> diff --git a/arch/blackfin/include/asm/reboot.h b/arch/blackfin/include/asm/reboot.h
+> deleted file mode 100644
+> index ae1e36329bec..000000000000
+> diff --git a/arch/blackfin/include/asm/rwlock.h b/arch/blackfin/include/asm/rwlock.h
+> deleted file mode 100644
+> index 98ebc07cb283..000000000000
+> diff --git a/arch/blackfin/include/asm/scb.h b/arch/blackfin/include/asm/scb.h
+> deleted file mode 100644
+> index a294cc0d1a4a..000000000000
+> diff --git a/arch/blackfin/include/asm/sections.h b/arch/blackfin/include/asm/sections.h
+> deleted file mode 100644
+> index fbd408475725..000000000000
+> diff --git a/arch/blackfin/include/asm/segment.h b/arch/blackfin/include/asm/segment.h
+> deleted file mode 100644
+> index f8e1984ffc7e..000000000000
+> diff --git a/arch/blackfin/include/asm/smp.h b/arch/blackfin/include/asm/smp.h
+> deleted file mode 100644
+> index 9631598dcc5d..000000000000
+> diff --git a/arch/blackfin/include/asm/spinlock.h b/arch/blackfin/include/asm/spinlock.h
+> deleted file mode 100644
+> index 839d1441af3a..000000000000
+> diff --git a/arch/blackfin/include/asm/spinlock_types.h b/arch/blackfin/include/asm/spinlock_types.h
+> deleted file mode 100644
+> index 1a33608c958b..000000000000
+> diff --git a/arch/blackfin/include/asm/string.h b/arch/blackfin/include/asm/string.h
+> deleted file mode 100644
+> index 423c099aa988..000000000000
+> diff --git a/arch/blackfin/include/asm/switch_to.h b/arch/blackfin/include/asm/switch_to.h
+> deleted file mode 100644
+> index aaf671be9242..000000000000
+> diff --git a/arch/blackfin/include/asm/syscall.h b/arch/blackfin/include/asm/syscall.h
+> deleted file mode 100644
+> index 4921a4815cce..000000000000
+> diff --git a/arch/blackfin/include/asm/thread_info.h b/arch/blackfin/include/asm/thread_info.h
+> deleted file mode 100644
+> index a5aeab4e5f2d..000000000000
+> diff --git a/arch/blackfin/include/asm/time.h b/arch/blackfin/include/asm/time.h
+> deleted file mode 100644
+> index 9ca7db844d10..000000000000
+> diff --git a/arch/blackfin/include/asm/timex.h b/arch/blackfin/include/asm/timex.h
+> deleted file mode 100644
+> index 248aeb066805..000000000000
+> diff --git a/arch/blackfin/include/asm/tlb.h b/arch/blackfin/include/asm/tlb.h
+> deleted file mode 100644
+> index a74ae08af1a7..000000000000
+> diff --git a/arch/blackfin/include/asm/tlbflush.h b/arch/blackfin/include/asm/tlbflush.h
+> deleted file mode 100644
+> index 7c368682c0a3..000000000000
+> diff --git a/arch/blackfin/include/asm/trace.h b/arch/blackfin/include/asm/trace.h
+> deleted file mode 100644
+> index 33589a29b8d8..000000000000
+> diff --git a/arch/blackfin/include/asm/traps.h b/arch/blackfin/include/asm/traps.h
+> deleted file mode 100644
+> index cec771b8100c..000000000000
+> diff --git a/arch/blackfin/include/asm/uaccess.h b/arch/blackfin/include/asm/uaccess.h
+> deleted file mode 100644
+> index 45da4bcb050e..000000000000
+> diff --git a/arch/blackfin/include/asm/unistd.h b/arch/blackfin/include/asm/unistd.h
+> deleted file mode 100644
+> index c8c8ff9eff61..000000000000
+> diff --git a/arch/blackfin/include/asm/vga.h b/arch/blackfin/include/asm/vga.h
+> deleted file mode 100644
+> index 89d82fd8fcf1..000000000000
+> diff --git a/arch/blackfin/include/mach-common/irq.h b/arch/blackfin/include/mach-common/irq.h
+> deleted file mode 100644
+> index af9fc8171ebc..000000000000
+> diff --git a/arch/blackfin/include/mach-common/pll.h b/arch/blackfin/include/mach-common/pll.h
+> deleted file mode 100644
+> index 382178b361af..000000000000
+> diff --git a/arch/blackfin/include/mach-common/ports-a.h b/arch/blackfin/include/mach-common/ports-a.h
+> deleted file mode 100644
+> index 71bcd74f83fd..000000000000
+> diff --git a/arch/blackfin/include/mach-common/ports-b.h b/arch/blackfin/include/mach-common/ports-b.h
+> deleted file mode 100644
+> index 8013cc8e839b..000000000000
+> diff --git a/arch/blackfin/include/mach-common/ports-c.h b/arch/blackfin/include/mach-common/ports-c.h
+> deleted file mode 100644
+> index 94e71010ffe9..000000000000
+> diff --git a/arch/blackfin/include/mach-common/ports-d.h b/arch/blackfin/include/mach-common/ports-d.h
+> deleted file mode 100644
+> index ba84a9fb3450..000000000000
+> diff --git a/arch/blackfin/include/mach-common/ports-e.h b/arch/blackfin/include/mach-common/ports-e.h
+> deleted file mode 100644
+> index 2264fb58bc2b..000000000000
+> diff --git a/arch/blackfin/include/mach-common/ports-f.h b/arch/blackfin/include/mach-common/ports-f.h
+> deleted file mode 100644
+> index 2b8ca3ae2a8e..000000000000
+> diff --git a/arch/blackfin/include/mach-common/ports-g.h b/arch/blackfin/include/mach-common/ports-g.h
+> deleted file mode 100644
+> index 11ad917fcf91..000000000000
+> diff --git a/arch/blackfin/include/mach-common/ports-h.h b/arch/blackfin/include/mach-common/ports-h.h
+> deleted file mode 100644
+> index 511d088b8094..000000000000
+> diff --git a/arch/blackfin/include/mach-common/ports-i.h b/arch/blackfin/include/mach-common/ports-i.h
+> deleted file mode 100644
+> index 21bbab166ae8..000000000000
+> diff --git a/arch/blackfin/include/mach-common/ports-j.h b/arch/blackfin/include/mach-common/ports-j.h
+> deleted file mode 100644
+> index 96a252b0b0bd..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/Kbuild b/arch/blackfin/include/uapi/asm/Kbuild
+> deleted file mode 100644
+> index 2240b38c2915..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/bfin_sport.h b/arch/blackfin/include/uapi/asm/bfin_sport.h
+> deleted file mode 100644
+> index 86c36a208dc5..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/byteorder.h b/arch/blackfin/include/uapi/asm/byteorder.h
+> deleted file mode 100644
+> index bcab6670c7fe..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/cachectl.h b/arch/blackfin/include/uapi/asm/cachectl.h
+> deleted file mode 100644
+> index b5c86fbbca94..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/fcntl.h b/arch/blackfin/include/uapi/asm/fcntl.h
+> deleted file mode 100644
+> index 0b02954f06c3..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/fixed_code.h b/arch/blackfin/include/uapi/asm/fixed_code.h
+> deleted file mode 100644
+> index 707b9214bb26..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/ioctls.h b/arch/blackfin/include/uapi/asm/ioctls.h
+> deleted file mode 100644
+> index 422fee3e4776..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/poll.h b/arch/blackfin/include/uapi/asm/poll.h
+> deleted file mode 100644
+> index cd2f1a78aba5..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/posix_types.h b/arch/blackfin/include/uapi/asm/posix_types.h
+> deleted file mode 100644
+> index 8947c75cf638..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/ptrace.h b/arch/blackfin/include/uapi/asm/ptrace.h
+> deleted file mode 100644
+> index e4423d5560da..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/sigcontext.h b/arch/blackfin/include/uapi/asm/sigcontext.h
+> deleted file mode 100644
+> index 66b4d32af89c..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/siginfo.h b/arch/blackfin/include/uapi/asm/siginfo.h
+> deleted file mode 100644
+> index 2dd8c9c39248..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/signal.h b/arch/blackfin/include/uapi/asm/signal.h
+> deleted file mode 100644
+> index f8e3b99ba0a2..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/stat.h b/arch/blackfin/include/uapi/asm/stat.h
+> deleted file mode 100644
+> index 458959d1a5ec..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/swab.h b/arch/blackfin/include/uapi/asm/swab.h
+> deleted file mode 100644
+> index d3437933b95f..000000000000
+> diff --git a/arch/blackfin/include/uapi/asm/unistd.h b/arch/blackfin/include/uapi/asm/unistd.h
+> deleted file mode 100644
+> index 2d392c09323c..000000000000
+> diff --git a/arch/blackfin/kernel/.gitignore b/arch/blackfin/kernel/.gitignore
+> deleted file mode 100644
+> index c5f676c3c224..000000000000
+> diff --git a/arch/blackfin/kernel/Makefile b/arch/blackfin/kernel/Makefile
+> deleted file mode 100644
+> index 1580791f0e3a..000000000000
+> diff --git a/arch/blackfin/kernel/asm-offsets.c b/arch/blackfin/kernel/asm-offsets.c
+> deleted file mode 100644
+> index 486560aea050..000000000000
+> diff --git a/arch/blackfin/kernel/bfin_dma.c b/arch/blackfin/kernel/bfin_dma.c
+> deleted file mode 100644
+> index 9d3eb0cf8ccc..000000000000
+> diff --git a/arch/blackfin/kernel/bfin_gpio.c b/arch/blackfin/kernel/bfin_gpio.c
+> deleted file mode 100644
+> index 63da80bbadf6..000000000000
+> diff --git a/arch/blackfin/kernel/bfin_ksyms.c b/arch/blackfin/kernel/bfin_ksyms.c
+> deleted file mode 100644
+> index 68096e8f787f..000000000000
+> diff --git a/arch/blackfin/kernel/cplb-mpu/Makefile b/arch/blackfin/kernel/cplb-mpu/Makefile
+> deleted file mode 100644
+> index 394d0b1b28fe..000000000000
+> diff --git a/arch/blackfin/kernel/cplb-mpu/cplbinit.c b/arch/blackfin/kernel/cplb-mpu/cplbinit.c
+> deleted file mode 100644
+> index c15fd05f0b09..000000000000
+> diff --git a/arch/blackfin/kernel/cplb-mpu/cplbmgr.c b/arch/blackfin/kernel/cplb-mpu/cplbmgr.c
+> deleted file mode 100644
+> index b56bd8514b7c..000000000000
+> diff --git a/arch/blackfin/kernel/cplb-nompu/Makefile b/arch/blackfin/kernel/cplb-nompu/Makefile
+> deleted file mode 100644
+> index 81baa27bc389..000000000000
+> diff --git a/arch/blackfin/kernel/cplb-nompu/cplbinit.c b/arch/blackfin/kernel/cplb-nompu/cplbinit.c
+> deleted file mode 100644
+> index b49a53b583d5..000000000000
+> diff --git a/arch/blackfin/kernel/cplb-nompu/cplbmgr.c b/arch/blackfin/kernel/cplb-nompu/cplbmgr.c
+> deleted file mode 100644
+> index 79cc0f6dcdd5..000000000000
+> diff --git a/arch/blackfin/kernel/cplbinfo.c b/arch/blackfin/kernel/cplbinfo.c
+> deleted file mode 100644
+> index 5b80d59e66e5..000000000000
+> diff --git a/arch/blackfin/kernel/debug-mmrs.c b/arch/blackfin/kernel/debug-mmrs.c
+> deleted file mode 100644
+> index 194773ce109e..000000000000
+> diff --git a/arch/blackfin/kernel/dma-mapping.c b/arch/blackfin/kernel/dma-mapping.c
+> deleted file mode 100644
+> index 477bb29a7987..000000000000
+> diff --git a/arch/blackfin/kernel/dumpstack.c b/arch/blackfin/kernel/dumpstack.c
+> deleted file mode 100644
+> index 3c992c1f8ef2..000000000000
+> diff --git a/arch/blackfin/kernel/early_printk.c b/arch/blackfin/kernel/early_printk.c
+> deleted file mode 100644
+> index 4b89af9243d3..000000000000
+> diff --git a/arch/blackfin/kernel/entry.S b/arch/blackfin/kernel/entry.S
+> deleted file mode 100644
+> index 4071265fc4fe..000000000000
+> diff --git a/arch/blackfin/kernel/exception.c b/arch/blackfin/kernel/exception.c
+> deleted file mode 100644
+> index 9208b5fd5186..000000000000
+> diff --git a/arch/blackfin/kernel/fixed_code.S b/arch/blackfin/kernel/fixed_code.S
+> deleted file mode 100644
+> index 0565917f23ba..000000000000
+> diff --git a/arch/blackfin/kernel/flat.c b/arch/blackfin/kernel/flat.c
+> deleted file mode 100644
+> index 8ebc54daaa8e..000000000000
+> diff --git a/arch/blackfin/kernel/ftrace-entry.S b/arch/blackfin/kernel/ftrace-entry.S
+> deleted file mode 100644
+> index 3b8bdcbb7da3..000000000000
+> diff --git a/arch/blackfin/kernel/ftrace.c b/arch/blackfin/kernel/ftrace.c
+> deleted file mode 100644
+> index 8dad7589b843..000000000000
+> diff --git a/arch/blackfin/kernel/gptimers.c b/arch/blackfin/kernel/gptimers.c
+> deleted file mode 100644
+> index d776773d3869..000000000000
+> diff --git a/arch/blackfin/kernel/ipipe.c b/arch/blackfin/kernel/ipipe.c
+> deleted file mode 100644
+> index f657b38163e3..000000000000
+> diff --git a/arch/blackfin/kernel/irqchip.c b/arch/blackfin/kernel/irqchip.c
+> deleted file mode 100644
+> index 052cde5ed2e4..000000000000
+> diff --git a/arch/blackfin/kernel/kgdb.c b/arch/blackfin/kernel/kgdb.c
+> deleted file mode 100644
+> index cf773f0f1f30..000000000000
+> diff --git a/arch/blackfin/kernel/kgdb_test.c b/arch/blackfin/kernel/kgdb_test.c
+> deleted file mode 100644
+> index b8b785dc4e3b..000000000000
+> diff --git a/arch/blackfin/kernel/module.c b/arch/blackfin/kernel/module.c
+> deleted file mode 100644
+> index 15af5768c403..000000000000
+> diff --git a/arch/blackfin/kernel/nmi.c b/arch/blackfin/kernel/nmi.c
+> deleted file mode 100644
+> index 8a211d95821f..000000000000
+> diff --git a/arch/blackfin/kernel/perf_event.c b/arch/blackfin/kernel/perf_event.c
+> deleted file mode 100644
+> index 6a9524ad04a5..000000000000
+> diff --git a/arch/blackfin/kernel/process.c b/arch/blackfin/kernel/process.c
+> deleted file mode 100644
+> index 89814850b08b..000000000000
+> diff --git a/arch/blackfin/kernel/pseudodbg.c b/arch/blackfin/kernel/pseudodbg.c
+> deleted file mode 100644
+> index db85bc94334e..000000000000
+> diff --git a/arch/blackfin/kernel/ptrace.c b/arch/blackfin/kernel/ptrace.c
+> deleted file mode 100644
+> index a6827095b99a..000000000000
+> diff --git a/arch/blackfin/kernel/reboot.c b/arch/blackfin/kernel/reboot.c
+> deleted file mode 100644
+> index c4f50a328501..000000000000
+> diff --git a/arch/blackfin/kernel/setup.c b/arch/blackfin/kernel/setup.c
+> deleted file mode 100644
+> index ad82468bd94d..000000000000
+> diff --git a/arch/blackfin/kernel/shadow_console.c b/arch/blackfin/kernel/shadow_console.c
+> deleted file mode 100644
+> index aeb8343eeb03..000000000000
+> diff --git a/arch/blackfin/kernel/signal.c b/arch/blackfin/kernel/signal.c
+> deleted file mode 100644
+> index 5f5172779204..000000000000
+> diff --git a/arch/blackfin/kernel/stacktrace.c b/arch/blackfin/kernel/stacktrace.c
+> deleted file mode 100644
+> index 17198f3650b6..000000000000
+> diff --git a/arch/blackfin/kernel/sys_bfin.c b/arch/blackfin/kernel/sys_bfin.c
+> deleted file mode 100644
+> index d998383cb956..000000000000
+> diff --git a/arch/blackfin/kernel/time-ts.c b/arch/blackfin/kernel/time-ts.c
+> deleted file mode 100644
+> index 01350557fbd7..000000000000
+> diff --git a/arch/blackfin/kernel/time.c b/arch/blackfin/kernel/time.c
+> deleted file mode 100644
+> index 3126b920a4a5..000000000000
+> diff --git a/arch/blackfin/kernel/trace.c b/arch/blackfin/kernel/trace.c
+> deleted file mode 100644
+> index 151f22196ab6..000000000000
+> diff --git a/arch/blackfin/kernel/traps.c b/arch/blackfin/kernel/traps.c
+> deleted file mode 100644
+> index a323a40a46e9..000000000000
+> diff --git a/arch/blackfin/kernel/vmlinux.lds.S b/arch/blackfin/kernel/vmlinux.lds.S
+> deleted file mode 100644
+> index 334ef8139b35..000000000000
+> diff --git a/arch/blackfin/lib/Makefile b/arch/blackfin/lib/Makefile
+> deleted file mode 100644
+> index 74ddde0eb2e7..000000000000
+> diff --git a/arch/blackfin/lib/ashldi3.c b/arch/blackfin/lib/ashldi3.c
+> deleted file mode 100644
+> index ab69d8768afc..000000000000
+> diff --git a/arch/blackfin/lib/ashrdi3.c b/arch/blackfin/lib/ashrdi3.c
+> deleted file mode 100644
+> index b5b351e82e10..000000000000
+> diff --git a/arch/blackfin/lib/divsi3.S b/arch/blackfin/lib/divsi3.S
+> deleted file mode 100644
+> index ef2cd99efb89..000000000000
+> diff --git a/arch/blackfin/lib/gcclib.h b/arch/blackfin/lib/gcclib.h
+> deleted file mode 100644
+> index 724f07f14f8d..000000000000
+> diff --git a/arch/blackfin/lib/ins.S b/arch/blackfin/lib/ins.S
+> deleted file mode 100644
+> index d59608deccc1..000000000000
+> diff --git a/arch/blackfin/lib/lshrdi3.c b/arch/blackfin/lib/lshrdi3.c
+> deleted file mode 100644
+> index 53f1741047e5..000000000000
+> diff --git a/arch/blackfin/lib/memchr.S b/arch/blackfin/lib/memchr.S
+> deleted file mode 100644
+> index bcfc8a14c3f2..000000000000
+> diff --git a/arch/blackfin/lib/memcmp.S b/arch/blackfin/lib/memcmp.S
+> deleted file mode 100644
+> index 2e1c9477f2f7..000000000000
+> diff --git a/arch/blackfin/lib/memcpy.S b/arch/blackfin/lib/memcpy.S
+> deleted file mode 100644
+> index 53cb3698ab33..000000000000
+> diff --git a/arch/blackfin/lib/memmove.S b/arch/blackfin/lib/memmove.S
+> deleted file mode 100644
+> index e0b78208f1d6..000000000000
+> diff --git a/arch/blackfin/lib/memset.S b/arch/blackfin/lib/memset.S
+> deleted file mode 100644
+> index cdcf9148ea20..000000000000
+> diff --git a/arch/blackfin/lib/modsi3.S b/arch/blackfin/lib/modsi3.S
+> deleted file mode 100644
+> index f7026ce1fa0e..000000000000
+> diff --git a/arch/blackfin/lib/muldi3.S b/arch/blackfin/lib/muldi3.S
+> deleted file mode 100644
+> index abf9b2a515b2..000000000000
+> diff --git a/arch/blackfin/lib/outs.S b/arch/blackfin/lib/outs.S
+> deleted file mode 100644
+> index 06a5e674401f..000000000000
+> diff --git a/arch/blackfin/lib/smulsi3_highpart.S b/arch/blackfin/lib/smulsi3_highpart.S
+> deleted file mode 100644
+> index e50d6c4ac2a5..000000000000
+> diff --git a/arch/blackfin/lib/strcmp.S b/arch/blackfin/lib/strcmp.S
+> deleted file mode 100644
+> index 9c8b9863713e..000000000000
+> diff --git a/arch/blackfin/lib/strcpy.S b/arch/blackfin/lib/strcpy.S
+> deleted file mode 100644
+> index 9495aa77cc40..000000000000
+> diff --git a/arch/blackfin/lib/strncmp.S b/arch/blackfin/lib/strncmp.S
+> deleted file mode 100644
+> index 3bfaedce893e..000000000000
+> diff --git a/arch/blackfin/lib/strncpy.S b/arch/blackfin/lib/strncpy.S
+> deleted file mode 100644
+> index 92fd1823bbee..000000000000
+> diff --git a/arch/blackfin/lib/udivsi3.S b/arch/blackfin/lib/udivsi3.S
+> deleted file mode 100644
+> index 90bfa809b392..000000000000
+> diff --git a/arch/blackfin/lib/umodsi3.S b/arch/blackfin/lib/umodsi3.S
+> deleted file mode 100644
+> index 3794c00d859d..000000000000
+> diff --git a/arch/blackfin/lib/umulsi3_highpart.S b/arch/blackfin/lib/umulsi3_highpart.S
+> deleted file mode 100644
+> index 0dcace96e4e7..000000000000
+> diff --git a/arch/blackfin/mach-bf518/Kconfig b/arch/blackfin/mach-bf518/Kconfig
+> deleted file mode 100644
+> index 4731f6b27e47..000000000000
+> diff --git a/arch/blackfin/mach-bf518/Makefile b/arch/blackfin/mach-bf518/Makefile
+> deleted file mode 100644
+> index 168a193f9f9a..000000000000
+> diff --git a/arch/blackfin/mach-bf518/boards/Kconfig b/arch/blackfin/mach-bf518/boards/Kconfig
+> deleted file mode 100644
+> index f7b93b950ef4..000000000000
+> diff --git a/arch/blackfin/mach-bf518/boards/Makefile b/arch/blackfin/mach-bf518/boards/Makefile
+> deleted file mode 100644
+> index a9ef25c6b302..000000000000
+> diff --git a/arch/blackfin/mach-bf518/boards/ezbrd.c b/arch/blackfin/mach-bf518/boards/ezbrd.c
+> deleted file mode 100644
+> index c51d1b810ac3..000000000000
+> diff --git a/arch/blackfin/mach-bf518/boards/tcm-bf518.c b/arch/blackfin/mach-bf518/boards/tcm-bf518.c
+> deleted file mode 100644
+> index 37d868085f6a..000000000000
+> diff --git a/arch/blackfin/mach-bf518/dma.c b/arch/blackfin/mach-bf518/dma.c
+> deleted file mode 100644
+> index bcd1fbc8c543..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/anomaly.h b/arch/blackfin/mach-bf518/include/mach/anomaly.h
+> deleted file mode 100644
+> index 46cb88231d66..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/bf518.h b/arch/blackfin/mach-bf518/include/mach/bf518.h
+> deleted file mode 100644
+> index 6906dee4f4cc..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/bfin_serial.h b/arch/blackfin/mach-bf518/include/mach/bfin_serial.h
+> deleted file mode 100644
+> index 00c603fe8218..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/blackfin.h b/arch/blackfin/mach-bf518/include/mach/blackfin.h
+> deleted file mode 100644
+> index a8828863226e..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/cdefBF512.h b/arch/blackfin/mach-bf518/include/mach/cdefBF512.h
+> deleted file mode 100644
+> index 1c03ad4bcb72..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/cdefBF514.h b/arch/blackfin/mach-bf518/include/mach/cdefBF514.h
+> deleted file mode 100644
+> index 861221d1dcc9..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/cdefBF516.h b/arch/blackfin/mach-bf518/include/mach/cdefBF516.h
+> deleted file mode 100644
+> index cc9bf0d378c3..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/cdefBF518.h b/arch/blackfin/mach-bf518/include/mach/cdefBF518.h
+> deleted file mode 100644
+> index 96a82fd62ef1..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/defBF512.h b/arch/blackfin/mach-bf518/include/mach/defBF512.h
+> deleted file mode 100644
+> index e6a017faad01..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/defBF514.h b/arch/blackfin/mach-bf518/include/mach/defBF514.h
+> deleted file mode 100644
+> index 97feaa629ed7..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/defBF516.h b/arch/blackfin/mach-bf518/include/mach/defBF516.h
+> deleted file mode 100644
+> index 7c79cb6a03b1..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/defBF518.h b/arch/blackfin/mach-bf518/include/mach/defBF518.h
+> deleted file mode 100644
+> index 12042ff13601..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/dma.h b/arch/blackfin/mach-bf518/include/mach/dma.h
+> deleted file mode 100644
+> index bbd33c1706e2..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/gpio.h b/arch/blackfin/mach-bf518/include/mach/gpio.h
+> deleted file mode 100644
+> index b480705bfc2e..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/irq.h b/arch/blackfin/mach-bf518/include/mach/irq.h
+> deleted file mode 100644
+> index edf8efd457dc..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/mem_map.h b/arch/blackfin/mach-bf518/include/mach/mem_map.h
+> deleted file mode 100644
+> index 073b5d73d391..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/pll.h b/arch/blackfin/mach-bf518/include/mach/pll.h
+> deleted file mode 100644
+> index 94cca674d835..000000000000
+> diff --git a/arch/blackfin/mach-bf518/include/mach/portmux.h b/arch/blackfin/mach-bf518/include/mach/portmux.h
+> deleted file mode 100644
+> index b3b806f468da..000000000000
+> diff --git a/arch/blackfin/mach-bf518/ints-priority.c b/arch/blackfin/mach-bf518/ints-priority.c
+> deleted file mode 100644
+> index bb05bef34ec0..000000000000
+> diff --git a/arch/blackfin/mach-bf527/Kconfig b/arch/blackfin/mach-bf527/Kconfig
+> deleted file mode 100644
+> index 6df20f9c7bd4..000000000000
+> diff --git a/arch/blackfin/mach-bf527/Makefile b/arch/blackfin/mach-bf527/Makefile
+> deleted file mode 100644
+> index 4a6cdafab8ce..000000000000
+> diff --git a/arch/blackfin/mach-bf527/boards/Kconfig b/arch/blackfin/mach-bf527/boards/Kconfig
+> deleted file mode 100644
+> index a76f02fae11c..000000000000
+> diff --git a/arch/blackfin/mach-bf527/boards/Makefile b/arch/blackfin/mach-bf527/boards/Makefile
+> deleted file mode 100644
+> index 6ada1537e20a..000000000000
+> diff --git a/arch/blackfin/mach-bf527/boards/ad7160eval.c b/arch/blackfin/mach-bf527/boards/ad7160eval.c
+> deleted file mode 100644
+> index 68f2a8a806ea..000000000000
+> diff --git a/arch/blackfin/mach-bf527/boards/cm_bf527.c b/arch/blackfin/mach-bf527/boards/cm_bf527.c
+> deleted file mode 100644
+> index b1004b35db36..000000000000
+> diff --git a/arch/blackfin/mach-bf527/boards/ezbrd.c b/arch/blackfin/mach-bf527/boards/ezbrd.c
+> deleted file mode 100644
+> index 80bcfd1d023e..000000000000
+> diff --git a/arch/blackfin/mach-bf527/boards/ezkit.c b/arch/blackfin/mach-bf527/boards/ezkit.c
+> deleted file mode 100644
+> index 571edfd2ecf3..000000000000
+> diff --git a/arch/blackfin/mach-bf527/boards/tll6527m.c b/arch/blackfin/mach-bf527/boards/tll6527m.c
+> deleted file mode 100644
+> index ce5488e8226b..000000000000
+> diff --git a/arch/blackfin/mach-bf527/dma.c b/arch/blackfin/mach-bf527/dma.c
+> deleted file mode 100644
+> index 1fabdefea73a..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/anomaly.h b/arch/blackfin/mach-bf527/include/mach/anomaly.h
+> deleted file mode 100644
+> index 2f9cc33deec4..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/bf527.h b/arch/blackfin/mach-bf527/include/mach/bf527.h
+> deleted file mode 100644
+> index 8ff155b34f64..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/bfin_serial.h b/arch/blackfin/mach-bf527/include/mach/bfin_serial.h
+> deleted file mode 100644
+> index 00c603fe8218..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/blackfin.h b/arch/blackfin/mach-bf527/include/mach/blackfin.h
+> deleted file mode 100644
+> index e1d279274487..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/cdefBF522.h b/arch/blackfin/mach-bf527/include/mach/cdefBF522.h
+> deleted file mode 100644
+> index 2c12e879aa4e..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/cdefBF525.h b/arch/blackfin/mach-bf527/include/mach/cdefBF525.h
+> deleted file mode 100644
+> index bd045318a250..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/cdefBF527.h b/arch/blackfin/mach-bf527/include/mach/cdefBF527.h
+> deleted file mode 100644
+> index eb22f5866105..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/defBF522.h b/arch/blackfin/mach-bf527/include/mach/defBF522.h
+> deleted file mode 100644
+> index e007017cf958..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/defBF525.h b/arch/blackfin/mach-bf527/include/mach/defBF525.h
+> deleted file mode 100644
+> index 591e00ff620a..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/defBF527.h b/arch/blackfin/mach-bf527/include/mach/defBF527.h
+> deleted file mode 100644
+> index aeb84795b35e..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/dma.h b/arch/blackfin/mach-bf527/include/mach/dma.h
+> deleted file mode 100644
+> index eb287da101a2..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/gpio.h b/arch/blackfin/mach-bf527/include/mach/gpio.h
+> deleted file mode 100644
+> index fba606b699c3..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/irq.h b/arch/blackfin/mach-bf527/include/mach/irq.h
+> deleted file mode 100644
+> index ed7310ff819b..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/mem_map.h b/arch/blackfin/mach-bf527/include/mach/mem_map.h
+> deleted file mode 100644
+> index d96e894afd2c..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/pll.h b/arch/blackfin/mach-bf527/include/mach/pll.h
+> deleted file mode 100644
+> index 94cca674d835..000000000000
+> diff --git a/arch/blackfin/mach-bf527/include/mach/portmux.h b/arch/blackfin/mach-bf527/include/mach/portmux.h
+> deleted file mode 100644
+> index 08bae421f5c9..000000000000
+> diff --git a/arch/blackfin/mach-bf527/ints-priority.c b/arch/blackfin/mach-bf527/ints-priority.c
+> deleted file mode 100644
+> index 44ca215bf164..000000000000
+> diff --git a/arch/blackfin/mach-bf533/Kconfig b/arch/blackfin/mach-bf533/Kconfig
+> deleted file mode 100644
+> index 4e1a05be7137..000000000000
+> diff --git a/arch/blackfin/mach-bf533/Makefile b/arch/blackfin/mach-bf533/Makefile
+> deleted file mode 100644
+> index 874840f76028..000000000000
+> diff --git a/arch/blackfin/mach-bf533/boards/H8606.c b/arch/blackfin/mach-bf533/boards/H8606.c
+> deleted file mode 100644
+> index 01300f40db15..000000000000
+> diff --git a/arch/blackfin/mach-bf533/boards/Kconfig b/arch/blackfin/mach-bf533/boards/Kconfig
+> deleted file mode 100644
+> index 3fde0df1b5f2..000000000000
+> diff --git a/arch/blackfin/mach-bf533/boards/Makefile b/arch/blackfin/mach-bf533/boards/Makefile
+> deleted file mode 100644
+> index 35256d2fc040..000000000000
+> diff --git a/arch/blackfin/mach-bf533/boards/blackstamp.c b/arch/blackfin/mach-bf533/boards/blackstamp.c
+> deleted file mode 100644
+> index fab69c736515..000000000000
+> diff --git a/arch/blackfin/mach-bf533/boards/cm_bf533.c b/arch/blackfin/mach-bf533/boards/cm_bf533.c
+> deleted file mode 100644
+> index 4ef2fb0e48d5..000000000000
+> diff --git a/arch/blackfin/mach-bf533/boards/ezkit.c b/arch/blackfin/mach-bf533/boards/ezkit.c
+> deleted file mode 100644
+> index d64d270e9e62..000000000000
+> diff --git a/arch/blackfin/mach-bf533/boards/ip0x.c b/arch/blackfin/mach-bf533/boards/ip0x.c
+> deleted file mode 100644
+> index 39c8e8547b82..000000000000
+> diff --git a/arch/blackfin/mach-bf533/boards/stamp.c b/arch/blackfin/mach-bf533/boards/stamp.c
+> deleted file mode 100644
+> index 27cbf2fa2c62..000000000000
+> diff --git a/arch/blackfin/mach-bf533/dma.c b/arch/blackfin/mach-bf533/dma.c
+> deleted file mode 100644
+> index 1f5988d43139..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/anomaly.h b/arch/blackfin/mach-bf533/include/mach/anomaly.h
+> deleted file mode 100644
+> index 0e754efc3cf6..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/bf533.h b/arch/blackfin/mach-bf533/include/mach/bf533.h
+> deleted file mode 100644
+> index e3e05f8f7af9..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/bfin_serial.h b/arch/blackfin/mach-bf533/include/mach/bfin_serial.h
+> deleted file mode 100644
+> index 08072c86d5dc..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/blackfin.h b/arch/blackfin/mach-bf533/include/mach/blackfin.h
+> deleted file mode 100644
+> index e366207fbf12..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/cdefBF532.h b/arch/blackfin/mach-bf533/include/mach/cdefBF532.h
+> deleted file mode 100644
+> index fd0cbe4df21a..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/defBF532.h b/arch/blackfin/mach-bf533/include/mach/defBF532.h
+> deleted file mode 100644
+> index d438150b1025..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/dma.h b/arch/blackfin/mach-bf533/include/mach/dma.h
+> deleted file mode 100644
+> index fb34934c5ba8..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/gpio.h b/arch/blackfin/mach-bf533/include/mach/gpio.h
+> deleted file mode 100644
+> index cce4f8fb3785..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/irq.h b/arch/blackfin/mach-bf533/include/mach/irq.h
+> deleted file mode 100644
+> index 709733754142..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/mem_map.h b/arch/blackfin/mach-bf533/include/mach/mem_map.h
+> deleted file mode 100644
+> index 197af1a398ac..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/pll.h b/arch/blackfin/mach-bf533/include/mach/pll.h
+> deleted file mode 100644
+> index 94cca674d835..000000000000
+> diff --git a/arch/blackfin/mach-bf533/include/mach/portmux.h b/arch/blackfin/mach-bf533/include/mach/portmux.h
+> deleted file mode 100644
+> index 96f5d9129f20..000000000000
+> diff --git a/arch/blackfin/mach-bf533/ints-priority.c b/arch/blackfin/mach-bf533/ints-priority.c
+> deleted file mode 100644
+> index 8f714cf8135b..000000000000
+> diff --git a/arch/blackfin/mach-bf537/Kconfig b/arch/blackfin/mach-bf537/Kconfig
+> deleted file mode 100644
+> index 1d69b043afd4..000000000000
+> diff --git a/arch/blackfin/mach-bf537/Makefile b/arch/blackfin/mach-bf537/Makefile
+> deleted file mode 100644
+> index 56994b675f9c..000000000000
+> diff --git a/arch/blackfin/mach-bf537/boards/Kconfig b/arch/blackfin/mach-bf537/boards/Kconfig
+> deleted file mode 100644
+> index 60b7b29e512e..000000000000
+> diff --git a/arch/blackfin/mach-bf537/boards/Makefile b/arch/blackfin/mach-bf537/boards/Makefile
+> deleted file mode 100644
+> index 47a1acc5f389..000000000000
+> diff --git a/arch/blackfin/mach-bf537/boards/cm_bf537e.c b/arch/blackfin/mach-bf537/boards/cm_bf537e.c
+> deleted file mode 100644
+> index 1e1014df5e9e..000000000000
+> diff --git a/arch/blackfin/mach-bf537/boards/cm_bf537u.c b/arch/blackfin/mach-bf537/boards/cm_bf537u.c
+> deleted file mode 100644
+> index d056db9e5592..000000000000
+> diff --git a/arch/blackfin/mach-bf537/boards/dnp5370.c b/arch/blackfin/mach-bf537/boards/dnp5370.c
+> deleted file mode 100644
+> index c4a8ffb15417..000000000000
+> diff --git a/arch/blackfin/mach-bf537/boards/minotaur.c b/arch/blackfin/mach-bf537/boards/minotaur.c
+> deleted file mode 100644
+> index dd7bda07bf90..000000000000
+> diff --git a/arch/blackfin/mach-bf537/boards/pnav10.c b/arch/blackfin/mach-bf537/boards/pnav10.c
+> deleted file mode 100644
+> index 06a50ddb54c0..000000000000
+> diff --git a/arch/blackfin/mach-bf537/boards/stamp.c b/arch/blackfin/mach-bf537/boards/stamp.c
+> deleted file mode 100644
+> index 400e6693643e..000000000000
+> diff --git a/arch/blackfin/mach-bf537/boards/tcm_bf537.c b/arch/blackfin/mach-bf537/boards/tcm_bf537.c
+> deleted file mode 100644
+> index ed309c9a62b6..000000000000
+> diff --git a/arch/blackfin/mach-bf537/dma.c b/arch/blackfin/mach-bf537/dma.c
+> deleted file mode 100644
+> index 5c62e99c9fac..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/anomaly.h b/arch/blackfin/mach-bf537/include/mach/anomaly.h
+> deleted file mode 100644
+> index 2bc70c5b9415..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/bf537.h b/arch/blackfin/mach-bf537/include/mach/bf537.h
+> deleted file mode 100644
+> index 8b291418ca32..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/bfin_serial.h b/arch/blackfin/mach-bf537/include/mach/bfin_serial.h
+> deleted file mode 100644
+> index 00c603fe8218..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/blackfin.h b/arch/blackfin/mach-bf537/include/mach/blackfin.h
+> deleted file mode 100644
+> index baa096fc724a..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/cdefBF534.h b/arch/blackfin/mach-bf537/include/mach/cdefBF534.h
+> deleted file mode 100644
+> index 563ede907336..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/cdefBF537.h b/arch/blackfin/mach-bf537/include/mach/cdefBF537.h
+> deleted file mode 100644
+> index 19ec21ea150a..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/defBF534.h b/arch/blackfin/mach-bf537/include/mach/defBF534.h
+> deleted file mode 100644
+> index ef6a98cdfd44..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/defBF537.h b/arch/blackfin/mach-bf537/include/mach/defBF537.h
+> deleted file mode 100644
+> index e10332c9f660..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/dma.h b/arch/blackfin/mach-bf537/include/mach/dma.h
+> deleted file mode 100644
+> index 5ae83b1183a1..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/gpio.h b/arch/blackfin/mach-bf537/include/mach/gpio.h
+> deleted file mode 100644
+> index fba606b699c3..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/irq.h b/arch/blackfin/mach-bf537/include/mach/irq.h
+> deleted file mode 100644
+> index b6ed8235bda4..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/mem_map.h b/arch/blackfin/mach-bf537/include/mach/mem_map.h
+> deleted file mode 100644
+> index 942f08de306b..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/pll.h b/arch/blackfin/mach-bf537/include/mach/pll.h
+> deleted file mode 100644
+> index 94cca674d835..000000000000
+> diff --git a/arch/blackfin/mach-bf537/include/mach/portmux.h b/arch/blackfin/mach-bf537/include/mach/portmux.h
+> deleted file mode 100644
+> index 71d9eaeb579e..000000000000
+> diff --git a/arch/blackfin/mach-bf537/ints-priority.c b/arch/blackfin/mach-bf537/ints-priority.c
+> deleted file mode 100644
+> index a48baae4384d..000000000000
+> diff --git a/arch/blackfin/mach-bf538/Kconfig b/arch/blackfin/mach-bf538/Kconfig
+> deleted file mode 100644
+> index 4aea85e4e5cf..000000000000
+> diff --git a/arch/blackfin/mach-bf538/Makefile b/arch/blackfin/mach-bf538/Makefile
+> deleted file mode 100644
+> index c0be54f2cd2b..000000000000
+> diff --git a/arch/blackfin/mach-bf538/boards/Kconfig b/arch/blackfin/mach-bf538/boards/Kconfig
+> deleted file mode 100644
+> index 114cff440d43..000000000000
+> diff --git a/arch/blackfin/mach-bf538/boards/Makefile b/arch/blackfin/mach-bf538/boards/Makefile
+> deleted file mode 100644
+> index 6143b320d585..000000000000
+> diff --git a/arch/blackfin/mach-bf538/boards/ezkit.c b/arch/blackfin/mach-bf538/boards/ezkit.c
+> deleted file mode 100644
+> index 1b6a52ad8a0e..000000000000
+> diff --git a/arch/blackfin/mach-bf538/dma.c b/arch/blackfin/mach-bf538/dma.c
+> deleted file mode 100644
+> index cce8ef5a5cec..000000000000
+> diff --git a/arch/blackfin/mach-bf538/ext-gpio.c b/arch/blackfin/mach-bf538/ext-gpio.c
+> deleted file mode 100644
+> index 48c100228f2d..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/anomaly.h b/arch/blackfin/mach-bf538/include/mach/anomaly.h
+> deleted file mode 100644
+> index eaac26973f6a..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/bf538.h b/arch/blackfin/mach-bf538/include/mach/bf538.h
+> deleted file mode 100644
+> index 0cf5bf8dab84..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/bfin_serial.h b/arch/blackfin/mach-bf538/include/mach/bfin_serial.h
+> deleted file mode 100644
+> index c66e2760aad3..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/blackfin.h b/arch/blackfin/mach-bf538/include/mach/blackfin.h
+> deleted file mode 100644
+> index 791d08400cf0..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/cdefBF538.h b/arch/blackfin/mach-bf538/include/mach/cdefBF538.h
+> deleted file mode 100644
+> index f6a56792180b..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/cdefBF539.h b/arch/blackfin/mach-bf538/include/mach/cdefBF539.h
+> deleted file mode 100644
+> index acc15f3aba38..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/defBF538.h b/arch/blackfin/mach-bf538/include/mach/defBF538.h
+> deleted file mode 100644
+> index 876a77028001..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/defBF539.h b/arch/blackfin/mach-bf538/include/mach/defBF539.h
+> deleted file mode 100644
+> index 199e871634b4..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/dma.h b/arch/blackfin/mach-bf538/include/mach/dma.h
+> deleted file mode 100644
+> index eb05cacbf4d3..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/gpio.h b/arch/blackfin/mach-bf538/include/mach/gpio.h
+> deleted file mode 100644
+> index 3561c7d8935b..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/irq.h b/arch/blackfin/mach-bf538/include/mach/irq.h
+> deleted file mode 100644
+> index 07ca069d37cd..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/mem_map.h b/arch/blackfin/mach-bf538/include/mach/mem_map.h
+> deleted file mode 100644
+> index aff00f453e9e..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/pll.h b/arch/blackfin/mach-bf538/include/mach/pll.h
+> deleted file mode 100644
+> index 94cca674d835..000000000000
+> diff --git a/arch/blackfin/mach-bf538/include/mach/portmux.h b/arch/blackfin/mach-bf538/include/mach/portmux.h
+> deleted file mode 100644
+> index b773c5fdbc72..000000000000
+> diff --git a/arch/blackfin/mach-bf538/ints-priority.c b/arch/blackfin/mach-bf538/ints-priority.c
+> deleted file mode 100644
+> index 1fa793ced347..000000000000
+> diff --git a/arch/blackfin/mach-bf548/Kconfig b/arch/blackfin/mach-bf548/Kconfig
+> deleted file mode 100644
+> index 71c2a765af1d..000000000000
+> diff --git a/arch/blackfin/mach-bf548/Makefile b/arch/blackfin/mach-bf548/Makefile
+> deleted file mode 100644
+> index 56994b675f9c..000000000000
+> diff --git a/arch/blackfin/mach-bf548/boards/Kconfig b/arch/blackfin/mach-bf548/boards/Kconfig
+> deleted file mode 100644
+> index e8ce579ae8f0..000000000000
+> diff --git a/arch/blackfin/mach-bf548/boards/Makefile b/arch/blackfin/mach-bf548/boards/Makefile
+> deleted file mode 100644
+> index 319ef54c4221..000000000000
+> diff --git a/arch/blackfin/mach-bf548/boards/cm_bf548.c b/arch/blackfin/mach-bf548/boards/cm_bf548.c
+> deleted file mode 100644
+> index 120c9941c242..000000000000
+> diff --git a/arch/blackfin/mach-bf548/boards/ezkit.c b/arch/blackfin/mach-bf548/boards/ezkit.c
+> deleted file mode 100644
+> index 3cdd4835a9f7..000000000000
+> diff --git a/arch/blackfin/mach-bf548/dma.c b/arch/blackfin/mach-bf548/dma.c
+> deleted file mode 100644
+> index 69ead33cbf91..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/anomaly.h b/arch/blackfin/mach-bf548/include/mach/anomaly.h
+> deleted file mode 100644
+> index 098fad63e03b..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/bf548.h b/arch/blackfin/mach-bf548/include/mach/bf548.h
+> deleted file mode 100644
+> index 751e5e11ecf8..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/bf54x-lq043.h b/arch/blackfin/mach-bf548/include/mach/bf54x-lq043.h
+> deleted file mode 100644
+> index 8821efe57fbc..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/bf54x_keys.h b/arch/blackfin/mach-bf548/include/mach/bf54x_keys.h
+> deleted file mode 100644
+> index 49338ae299ab..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/bfin_serial.h b/arch/blackfin/mach-bf548/include/mach/bfin_serial.h
+> deleted file mode 100644
+> index a77109f99720..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/blackfin.h b/arch/blackfin/mach-bf548/include/mach/blackfin.h
+> deleted file mode 100644
+> index 72da721a77f5..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF542.h b/arch/blackfin/mach-bf548/include/mach/cdefBF542.h
+> deleted file mode 100644
+> index 916347901d5a..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF544.h b/arch/blackfin/mach-bf548/include/mach/cdefBF544.h
+> deleted file mode 100644
+> index 33ec8102ceda..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF547.h b/arch/blackfin/mach-bf548/include/mach/cdefBF547.h
+> deleted file mode 100644
+> index be83f645bba8..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF548.h b/arch/blackfin/mach-bf548/include/mach/cdefBF548.h
+> deleted file mode 100644
+> index bae67a65633e..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF549.h b/arch/blackfin/mach-bf548/include/mach/cdefBF549.h
+> deleted file mode 100644
+> index 002136ad5a44..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF54x_base.h b/arch/blackfin/mach-bf548/include/mach/cdefBF54x_base.h
+> deleted file mode 100644
+> index 50c89c8052f3..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/defBF542.h b/arch/blackfin/mach-bf548/include/mach/defBF542.h
+> deleted file mode 100644
+> index ae4b889e3606..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/defBF544.h b/arch/blackfin/mach-bf548/include/mach/defBF544.h
+> deleted file mode 100644
+> index 018ebfc27f5a..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/defBF547.h b/arch/blackfin/mach-bf548/include/mach/defBF547.h
+> deleted file mode 100644
+> index 7cc7928a3c73..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/defBF548.h b/arch/blackfin/mach-bf548/include/mach/defBF548.h
+> deleted file mode 100644
+> index 27f29481e283..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/defBF549.h b/arch/blackfin/mach-bf548/include/mach/defBF549.h
+> deleted file mode 100644
+> index ac569fc12972..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/defBF54x_base.h b/arch/blackfin/mach-bf548/include/mach/defBF54x_base.h
+> deleted file mode 100644
+> index 8f6e1925779d..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/dma.h b/arch/blackfin/mach-bf548/include/mach/dma.h
+> deleted file mode 100644
+> index 1a1091b071fd..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/gpio.h b/arch/blackfin/mach-bf548/include/mach/gpio.h
+> deleted file mode 100644
+> index 006da1edcf84..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/irq.h b/arch/blackfin/mach-bf548/include/mach/irq.h
+> deleted file mode 100644
+> index cf7cb725cfa2..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/mem_map.h b/arch/blackfin/mach-bf548/include/mach/mem_map.h
+> deleted file mode 100644
+> index caac2dfb41eb..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/pll.h b/arch/blackfin/mach-bf548/include/mach/pll.h
+> deleted file mode 100644
+> index 94cca674d835..000000000000
+> diff --git a/arch/blackfin/mach-bf548/include/mach/portmux.h b/arch/blackfin/mach-bf548/include/mach/portmux.h
+> deleted file mode 100644
+> index d9f8632d7d09..000000000000
+> diff --git a/arch/blackfin/mach-bf548/ints-priority.c b/arch/blackfin/mach-bf548/ints-priority.c
+> deleted file mode 100644
+> index 48dd3a4bc4a5..000000000000
+> diff --git a/arch/blackfin/mach-bf561/Kconfig b/arch/blackfin/mach-bf561/Kconfig
+> deleted file mode 100644
+> index 059c3cbdb5ec..000000000000
+> diff --git a/arch/blackfin/mach-bf561/Makefile b/arch/blackfin/mach-bf561/Makefile
+> deleted file mode 100644
+> index b34029718318..000000000000
+> diff --git a/arch/blackfin/mach-bf561/atomic.S b/arch/blackfin/mach-bf561/atomic.S
+> deleted file mode 100644
+> index 1e2989c5d6b2..000000000000
+> diff --git a/arch/blackfin/mach-bf561/boards/Kconfig b/arch/blackfin/mach-bf561/boards/Kconfig
+> deleted file mode 100644
+> index 10e977b56710..000000000000
+> diff --git a/arch/blackfin/mach-bf561/boards/Makefile b/arch/blackfin/mach-bf561/boards/Makefile
+> deleted file mode 100644
+> index a5879f7857ad..000000000000
+> diff --git a/arch/blackfin/mach-bf561/boards/acvilon.c b/arch/blackfin/mach-bf561/boards/acvilon.c
+> deleted file mode 100644
+> index 696cc9d7820a..000000000000
+> diff --git a/arch/blackfin/mach-bf561/boards/cm_bf561.c b/arch/blackfin/mach-bf561/boards/cm_bf561.c
+> deleted file mode 100644
+> index 10c57771822d..000000000000
+> diff --git a/arch/blackfin/mach-bf561/boards/ezkit.c b/arch/blackfin/mach-bf561/boards/ezkit.c
+> deleted file mode 100644
+> index acc5363f60c6..000000000000
+> diff --git a/arch/blackfin/mach-bf561/boards/tepla.c b/arch/blackfin/mach-bf561/boards/tepla.c
+> deleted file mode 100644
+> index f87b8cc0cd4c..000000000000
+> diff --git a/arch/blackfin/mach-bf561/coreb.c b/arch/blackfin/mach-bf561/coreb.c
+> deleted file mode 100644
+> index cf27554e76bf..000000000000
+> diff --git a/arch/blackfin/mach-bf561/dma.c b/arch/blackfin/mach-bf561/dma.c
+> deleted file mode 100644
+> index 8ffdd6b4a242..000000000000
+> diff --git a/arch/blackfin/mach-bf561/hotplug.c b/arch/blackfin/mach-bf561/hotplug.c
+> deleted file mode 100644
+> index 0123117b8ff2..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/anomaly.h b/arch/blackfin/mach-bf561/include/mach/anomaly.h
+> deleted file mode 100644
+> index 038249c1d0d4..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/bf561.h b/arch/blackfin/mach-bf561/include/mach/bf561.h
+> deleted file mode 100644
+> index 9f9a367e6a24..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/bfin_serial.h b/arch/blackfin/mach-bf561/include/mach/bfin_serial.h
+> deleted file mode 100644
+> index 08072c86d5dc..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/blackfin.h b/arch/blackfin/mach-bf561/include/mach/blackfin.h
+> deleted file mode 100644
+> index dc470534c085..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/cdefBF561.h b/arch/blackfin/mach-bf561/include/mach/cdefBF561.h
+> deleted file mode 100644
+> index 753331597207..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/defBF561.h b/arch/blackfin/mach-bf561/include/mach/defBF561.h
+> deleted file mode 100644
+> index 9f21f768c63a..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/dma.h b/arch/blackfin/mach-bf561/include/mach/dma.h
+> deleted file mode 100644
+> index 13647c71f1c7..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/gpio.h b/arch/blackfin/mach-bf561/include/mach/gpio.h
+> deleted file mode 100644
+> index f9f8b2adf4ba..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/irq.h b/arch/blackfin/mach-bf561/include/mach/irq.h
+> deleted file mode 100644
+> index d6998520f70f..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/mem_map.h b/arch/blackfin/mach-bf561/include/mach/mem_map.h
+> deleted file mode 100644
+> index 4cc91995f781..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/pll.h b/arch/blackfin/mach-bf561/include/mach/pll.h
+> deleted file mode 100644
+> index 00bdacee9cc2..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/portmux.h b/arch/blackfin/mach-bf561/include/mach/portmux.h
+> deleted file mode 100644
+> index 2339ffd0dde8..000000000000
+> diff --git a/arch/blackfin/mach-bf561/include/mach/smp.h b/arch/blackfin/mach-bf561/include/mach/smp.h
+> deleted file mode 100644
+> index 346c60589be6..000000000000
+> diff --git a/arch/blackfin/mach-bf561/ints-priority.c b/arch/blackfin/mach-bf561/ints-priority.c
+> deleted file mode 100644
+> index 7ee9262fe132..000000000000
+> diff --git a/arch/blackfin/mach-bf561/secondary.S b/arch/blackfin/mach-bf561/secondary.S
+> deleted file mode 100644
+> index 01e5408620ac..000000000000
+> diff --git a/arch/blackfin/mach-bf561/smp.c b/arch/blackfin/mach-bf561/smp.c
+> deleted file mode 100644
+> index 8c0c80fd1a45..000000000000
+> diff --git a/arch/blackfin/mach-bf609/Kconfig b/arch/blackfin/mach-bf609/Kconfig
+> deleted file mode 100644
+> index 7d6a8b8926ba..000000000000
+> diff --git a/arch/blackfin/mach-bf609/Makefile b/arch/blackfin/mach-bf609/Makefile
+> deleted file mode 100644
+> index 60ffaf85d303..000000000000
+> diff --git a/arch/blackfin/mach-bf609/boards/Kconfig b/arch/blackfin/mach-bf609/boards/Kconfig
+> deleted file mode 100644
+> index 350154b2a3ee..000000000000
+> diff --git a/arch/blackfin/mach-bf609/boards/Makefile b/arch/blackfin/mach-bf609/boards/Makefile
+> deleted file mode 100644
+> index 11f98b0882ea..000000000000
+> diff --git a/arch/blackfin/mach-bf609/boards/ezkit.c b/arch/blackfin/mach-bf609/boards/ezkit.c
+> deleted file mode 100644
+> index 51157a255824..000000000000
+> diff --git a/arch/blackfin/mach-bf609/clock.c b/arch/blackfin/mach-bf609/clock.c
+> deleted file mode 100644
+> index 16e0b09e2197..000000000000
+> diff --git a/arch/blackfin/mach-bf609/dma.c b/arch/blackfin/mach-bf609/dma.c
+> deleted file mode 100644
+> index 1da4b38ac22c..000000000000
+> diff --git a/arch/blackfin/mach-bf609/dpm.S b/arch/blackfin/mach-bf609/dpm.S
+> deleted file mode 100644
+> index fcb8f688a8b2..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/anomaly.h b/arch/blackfin/mach-bf609/include/mach/anomaly.h
+> deleted file mode 100644
+> index 696786e9a531..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/bf609.h b/arch/blackfin/mach-bf609/include/mach/bf609.h
+> deleted file mode 100644
+> index c897c2a2fbfa..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/bfin_serial.h b/arch/blackfin/mach-bf609/include/mach/bfin_serial.h
+> deleted file mode 100644
+> index 1fd398147fd9..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/blackfin.h b/arch/blackfin/mach-bf609/include/mach/blackfin.h
+> deleted file mode 100644
+> index b1a48c410711..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/cdefBF609.h b/arch/blackfin/mach-bf609/include/mach/cdefBF609.h
+> deleted file mode 100644
+> index c4f3fe19acda..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/cdefBF60x_base.h b/arch/blackfin/mach-bf609/include/mach/cdefBF60x_base.h
+> deleted file mode 100644
+> index 102ee4025ac9..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/defBF609.h b/arch/blackfin/mach-bf609/include/mach/defBF609.h
+> deleted file mode 100644
+> index 8045ade34370..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/defBF60x_base.h b/arch/blackfin/mach-bf609/include/mach/defBF60x_base.h
+> deleted file mode 100644
+> index 3933e912cacd..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/dma.h b/arch/blackfin/mach-bf609/include/mach/dma.h
+> deleted file mode 100644
+> index 872d141ca119..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/gpio.h b/arch/blackfin/mach-bf609/include/mach/gpio.h
+> deleted file mode 100644
+> index 07182513e794..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/irq.h b/arch/blackfin/mach-bf609/include/mach/irq.h
+> deleted file mode 100644
+> index d1cb6a86f80a..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/mem_map.h b/arch/blackfin/mach-bf609/include/mach/mem_map.h
+> deleted file mode 100644
+> index 20b65bfc5311..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/pll.h b/arch/blackfin/mach-bf609/include/mach/pll.h
+> deleted file mode 100644
+> index 1857a4a0f262..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/pm.h b/arch/blackfin/mach-bf609/include/mach/pm.h
+> deleted file mode 100644
+> index a1efd936dd30..000000000000
+> diff --git a/arch/blackfin/mach-bf609/include/mach/portmux.h b/arch/blackfin/mach-bf609/include/mach/portmux.h
+> deleted file mode 100644
+> index c48bb71a55ce..000000000000
+> diff --git a/arch/blackfin/mach-bf609/ints-priority.c b/arch/blackfin/mach-bf609/ints-priority.c
+> deleted file mode 100644
+> index f68abb9aa79e..000000000000
+> diff --git a/arch/blackfin/mach-bf609/pm.c b/arch/blackfin/mach-bf609/pm.c
+> deleted file mode 100644
+> index b1bfcf434d16..000000000000
+> diff --git a/arch/blackfin/mach-bf609/scb.c b/arch/blackfin/mach-bf609/scb.c
+> deleted file mode 100644
+> index ac1f07c33594..000000000000
+> diff --git a/arch/blackfin/mach-common/Makefile b/arch/blackfin/mach-common/Makefile
+> deleted file mode 100644
+> index fcef1c8e117f..000000000000
+> diff --git a/arch/blackfin/mach-common/arch_checks.c b/arch/blackfin/mach-common/arch_checks.c
+> deleted file mode 100644
+> index d8643fdd0fcf..000000000000
+> diff --git a/arch/blackfin/mach-common/cache-c.c b/arch/blackfin/mach-common/cache-c.c
+> deleted file mode 100644
+> index f4adedc92895..000000000000
+> diff --git a/arch/blackfin/mach-common/cache.S b/arch/blackfin/mach-common/cache.S
+> deleted file mode 100644
+> index 9f4dd35bfd74..000000000000
+> diff --git a/arch/blackfin/mach-common/clock.h b/arch/blackfin/mach-common/clock.h
+> deleted file mode 100644
+> index fed851a51aaf..000000000000
+> diff --git a/arch/blackfin/mach-common/clocks-init.c b/arch/blackfin/mach-common/clocks-init.c
+> deleted file mode 100644
+> index d436bd907fc8..000000000000
+> diff --git a/arch/blackfin/mach-common/dpmc.c b/arch/blackfin/mach-common/dpmc.c
+> deleted file mode 100644
+> index 724a8c5f5578..000000000000
+> diff --git a/arch/blackfin/mach-common/dpmc_modes.S b/arch/blackfin/mach-common/dpmc_modes.S
+> deleted file mode 100644
+> index de99f3aac2c5..000000000000
+> diff --git a/arch/blackfin/mach-common/entry.S b/arch/blackfin/mach-common/entry.S
+> deleted file mode 100644
+> index 8d9431e22e8c..000000000000
+> diff --git a/arch/blackfin/mach-common/head.S b/arch/blackfin/mach-common/head.S
+> deleted file mode 100644
+> index 31515f0146f9..000000000000
+> diff --git a/arch/blackfin/mach-common/interrupt.S b/arch/blackfin/mach-common/interrupt.S
+> deleted file mode 100644
+> index 469ce7282dc8..000000000000
+> diff --git a/arch/blackfin/mach-common/ints-priority.c b/arch/blackfin/mach-common/ints-priority.c
+> deleted file mode 100644
+> index e81a5b7dabdc..000000000000
+> diff --git a/arch/blackfin/mach-common/pm.c b/arch/blackfin/mach-common/pm.c
+> deleted file mode 100644
+> index f57b5fe5355e..000000000000
+> diff --git a/arch/blackfin/mach-common/scb-init.c b/arch/blackfin/mach-common/scb-init.c
+> deleted file mode 100644
+> index 8923398db66f..000000000000
+> diff --git a/arch/blackfin/mach-common/smp.c b/arch/blackfin/mach-common/smp.c
+> deleted file mode 100644
+> index b32ddab7966c..000000000000
+> diff --git a/arch/blackfin/mm/Makefile b/arch/blackfin/mm/Makefile
+> deleted file mode 100644
+> index 4c011b1f661f..000000000000
+> diff --git a/arch/blackfin/mm/blackfin_sram.h b/arch/blackfin/mm/blackfin_sram.h
+> deleted file mode 100644
+> index fb0b1599cfb7..000000000000
+> diff --git a/arch/blackfin/mm/init.c b/arch/blackfin/mm/init.c
+> deleted file mode 100644
+> index b59cd7c3261a..000000000000
+> diff --git a/arch/blackfin/mm/isram-driver.c b/arch/blackfin/mm/isram-driver.c
+> deleted file mode 100644
+> index aaa1e64b753b..000000000000
+> diff --git a/arch/blackfin/mm/maccess.c b/arch/blackfin/mm/maccess.c
+> deleted file mode 100644
+> index e2532114c5fd..000000000000
+> diff --git a/arch/blackfin/mm/sram-alloc.c b/arch/blackfin/mm/sram-alloc.c
+> deleted file mode 100644
+> index d2a96c2c02a3..000000000000
+> diff --git a/arch/blackfin/oprofile/Makefile b/arch/blackfin/oprofile/Makefile
+> deleted file mode 100644
+> index e89e1c9f3496..000000000000
+> diff --git a/arch/blackfin/oprofile/bfin_oprofile.c b/arch/blackfin/oprofile/bfin_oprofile.c
+> deleted file mode 100644
+> index c3b9713b23f8..000000000000
+> diff --git a/samples/Kconfig b/samples/Kconfig
+> index c332a3b9de05..f524f551718e 100644
+> --- a/samples/Kconfig
+> +++ b/samples/Kconfig
+> @@ -98,12 +98,6 @@ config SAMPLE_SECCOMP
+>           Build samples of seccomp filters using various methods of
+>           BPF filter construction.
+>
+> -config SAMPLE_BLACKFIN_GPTIMERS
+> -       tristate "Build blackfin gptimers sample code -- loadable modules only"
+> -       depends on BLACKFIN && BFIN_GPTIMERS && m
+> -       help
+> -         Build samples of blackfin gptimers sample module.
+> -
+>  config SAMPLE_VFIO_MDEV_MTTY
+>         tristate "Build VFIO mtty example mediated device sample code -- loadable modules only"
+>         depends on VFIO_MDEV_DEVICE && m
+> diff --git a/samples/Makefile b/samples/Makefile
+> index db54e766ddb1..70cf3758dcf2 100644
+> --- a/samples/Makefile
+> +++ b/samples/Makefile
+> @@ -2,5 +2,5 @@
+>
+>  obj-$(CONFIG_SAMPLES)  += kobject/ kprobes/ trace_events/ livepatch/ \
+>                            hw_breakpoint/ kfifo/ kdb/ hidraw/ rpmsg/ seccomp/ \
+> -                          configfs/ connector/ v4l/ trace_printk/ blackfin/ \
+> +                          configfs/ connector/ v4l/ trace_printk/ \
+>                            vfio-mdev/ statx/
+> diff --git a/samples/blackfin/Makefile b/samples/blackfin/Makefile
+> deleted file mode 100644
+> index 89b86cfd83a2..000000000000
+> diff --git a/samples/blackfin/gptimers-example.c b/samples/blackfin/gptimers-example.c
+> deleted file mode 100644
+> index 283eba993d9d..000000000000
+> diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
+> index 3d4040322ae1..949842e8c97e 100755
+> --- a/scripts/checkpatch.pl
+> +++ b/scripts/checkpatch.pl
+> @@ -2969,20 +2969,6 @@ sub process {
+>                              "adding a line without newline at end of file\n" . $herecurr);
+>                 }
+>
+> -# Blackfin: use hi/lo macros
+> -               if ($realfile =~ m@arch/blackfin/.*\.S$@) {
+> -                       if ($line =~ /\.[lL][[:space:]]*=.*&[[:space:]]*0x[fF][fF][fF][fF]/) {
+> -                               my $herevet = "$here\n" . cat_vet($line) . "\n";
+> -                               ERROR("LO_MACRO",
+> -                                     "use the LO() macro, not (... & 0xFFFF)\n" . $herevet);
+> -                       }
+> -                       if ($line =~ /\.[hH][[:space:]]*=.*>>[[:space:]]*16/) {
+> -                               my $herevet = "$here\n" . cat_vet($line) . "\n";
+> -                               ERROR("HI_MACRO",
+> -                                     "use the HI() macro, not (... >> 16)\n" . $herevet);
+> -                       }
+> -               }
+> -
+>  # check we are in a valid source file C or perl if not then ignore this hunk
+>                 next if ($realfile !~ /\.(h|c|pl|dtsi|dts)$/);
+>
+> @@ -3269,18 +3255,6 @@ sub process {
+>                              "CVS style keyword markers, these will _not_ be updated\n". $herecurr);
+>                 }
+>
+> -# Blackfin: don't use __builtin_bfin_[cs]sync
+> -               if ($line =~ /__builtin_bfin_csync/) {
+> -                       my $herevet = "$here\n" . cat_vet($line) . "\n";
+> -                       ERROR("CSYNC",
+> -                             "use the CSYNC() macro in asm/blackfin.h\n" . $herevet);
+> -               }
+> -               if ($line =~ /__builtin_bfin_ssync/) {
+> -                       my $herevet = "$here\n" . cat_vet($line) . "\n";
+> -                       ERROR("SSYNC",
+> -                             "use the SSYNC() macro in asm/blackfin.h\n" . $herevet);
+> -               }
+> -
+>  # check for old HOTPLUG __dev<foo> section markings
+>                 if ($line =~ /\b(__dev(init|exit)(data|const|))\b/) {
+>                         WARN("HOTPLUG_SECTION",
+> --
+> 2.9.0
+>
