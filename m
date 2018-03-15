@@ -1,92 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:52928 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751314AbeCOJqf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 05:46:35 -0400
-Date: Thu, 15 Mar 2018 10:46:05 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v3] x86: treat pkey-0 special
-In-Reply-To: <1521061214-22385-1-git-send-email-linuxram@us.ibm.com>
-Message-ID: <alpine.DEB.2.21.1803151039430.1525@nanos.tec.linutronix.de>
-References: <1521061214-22385-1-git-send-email-linuxram@us.ibm.com>
+Received: from mail-qk0-f195.google.com ([209.85.220.195]:43330 "EHLO
+        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751414AbeCOJsh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 05:48:37 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+In-Reply-To: <2929.1521106970@warthog.procyon.org.uk>
+References: <20180314143529.1456168-1-arnd@arndb.de> <2929.1521106970@warthog.procyon.org.uk>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Thu, 15 Mar 2018 10:48:35 +0100
+Message-ID: <CAMuHMdXcxuzCOnFCNm4NXDv-wfYJDO5GQpB_ECu7j=2BjMhNpA@mail.gmail.com>
+Subject: Re: [PATCH 00/16] remove eight obsolete architectures
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ram Pai <linuxram@us.ibm.com>
-Cc: mingo@redhat.com, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com, Ulrich.Weigand@de.ibm.com
-Message-ID: <20180315094605.Uym-iCY1ZpkMuP9Ivq2I97XEMXxlGzzJYOrjH7U2ixM@z>
+To: David Howells <dhowells@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-input@vger.kernel.org, netdev <netdev@vger.kernel.org>, linux-wireless <linux-wireless@vger.kernel.org>, Linux PWM List <linux-pwm@vger.kernel.org>, linux-rtc@vger.kernel.org, linux-spi <linux-spi@vger.kernel.org>, USB list <linux-usb@vger.kernel.org>, DRI Development <dri-devel@lists.freedesktop.org>, Linux Fbdev development list <linux-fbdev@vger.kernel.org>, Linux Watchdog Mailing List <linux-watchdog@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>
+Message-ID: <20180315094835.XthrzYN7FSBET8x8Z2C5YhXqHuBLZWYpRvI5Ys1S_PI@z>
 
-On Wed, 14 Mar 2018, Ram Pai wrote:
-> Applications need the ability to associate an address-range with some
-> key and latter revert to its initial default key. Pkey-0 comes close to
-> providing this function but falls short, because the current
-> implementation disallows applications to explicitly associate pkey-0 to
-> the address range.
-> 
-> This patch clarifies the semantics of pkey-0 and provides the
+Hi David,
 
-grep 'This patch' Documentation/process
+On Thu, Mar 15, 2018 at 10:42 AM, David Howells <dhowells@redhat.com> wrote:
+> Do we have anything left that still implements NOMMU?
 
-> corresponding implementation on powerpc.
-> 
-> Pkey-0 is special with the following semantics.
-> (a) it is implicitly allocated and can never be freed. It always exists.
-> (b) it is the default key assigned to any address-range.
-> (c) it can be explicitly associated with any address-range.
-> 
-> Tested on x86_64.
+Sure: arm, c6x, m68k, microblaze, and  sh.
 
-I'm curious how the corresponding implementation on powerpc can be tested
-on x86_64. Copy and paste is not enough ...
+Gr{oetje,eeting}s,
 
-> 
-> History:
->     v3 : added clarification of the semantics of pkey0.
->     		-- suggested by Dave Hansen
->     v2 : split the patch into two, one for x86 and one for powerpc
->     		-- suggested by Michael Ellermen
+                        Geert
 
-Please put the history below the --- seperator. It's not part of the
-changelog. That way the tools can discard it when picking up the patch.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-> 
-> cc: Dave Hansen <dave.hansen@intel.com>
-> cc: Michael Ellermen <mpe@ellerman.id.au>
-> cc: Ingo Molnar <mingo@kernel.org>
-> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> ---
->  arch/x86/include/asm/pkeys.h | 5 +++--
->  1 file changed, 3 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/x86/include/asm/pkeys.h b/arch/x86/include/asm/pkeys.h
-> index a0ba1ff..6ea7486 100644
-> --- a/arch/x86/include/asm/pkeys.h
-> +++ b/arch/x86/include/asm/pkeys.h
-> @@ -52,7 +52,7 @@ bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
->  	 * from pkey_alloc().  pkey 0 is special, and never
->  	 * returned from pkey_alloc().
->  	 */
-> -	if (pkey <= 0)
-> +	if (pkey < 0)
->  		return false;
->  	if (pkey >= arch_max_pkey())
->  		return false;
-> @@ -92,7 +92,8 @@ int mm_pkey_alloc(struct mm_struct *mm)
->  static inline
->  int mm_pkey_free(struct mm_struct *mm, int pkey)
->  {
-> -	if (!mm_pkey_is_allocated(mm, pkey))
-> +	/* pkey 0 is special and can never be freed */
-
-This comment is pretty useless. How should anyone figure out whats special
-about pkey 0?
-
-> +	if (!pkey || !mm_pkey_is_allocated(mm, pkey))
-
-Why this extra check? mm_pkey_is_allocated(mm, 0) should not return true
-ever. If it does, then this wants to be fixed.
-
-Thanks,
-
-	tglx
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
