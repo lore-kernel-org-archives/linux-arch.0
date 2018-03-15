@@ -1,36 +1,84 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 00/16] remove eight obsolete architectures
-Date: Thu, 15 Mar 2018 11:42:25 +0100
-Message-ID: <CAK8P3a01pfvsdM1mR8raU9dA7p4H-jRJz2Y8-+KEY76W_Mukpg@mail.gmail.com>
-References: <20180314143529.1456168-1-arnd@arndb.de>
- <2929.1521106970@warthog.procyon.org.uk>
- <6c9d075c-d7a8-72a5-9b2d-af1feaa06c6c@suse.de>
+Subject: Re: [PATCH 12/16] asm-generic: siginfo: remove obsolete #ifdefs
+Date: Thu, 15 Mar 2018 11:48:12 +0100
+Message-ID: <CAK8P3a1GL2N=emTbSgNGHxOrXtG6BxqRGMg00-tZqKg6-0O5=w@mail.gmail.com>
+References: <20180314143529.1456168-1-arnd@arndb.de> <20180314144614.1632190-1-arnd@arndb.de>
+ <20180314144614.1632190-2-arnd@arndb.de> <87po45hcuy.fsf@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <dri-devel-bounces@lists.freedesktop.org>
-In-Reply-To: <6c9d075c-d7a8-72a5-9b2d-af1feaa06c6c@suse.de>
-List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <https://lists.freedesktop.org/archives/dri-devel>
-List-Post: <mailto:dri-devel@lists.freedesktop.org>
-List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: dri-devel-bounces@lists.freedesktop.org
-Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
-To: Hannes Reinecke <hare@suse.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-block <linux-block@vger.kernel.org>, linux-fbdev@vger.kernel.org, linux-watchdog@vger.kernel.org, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, Networking <netdev@vger.kernel.org>, linux-usb@vger.kernel.org, linux-wireless <linux-wireless@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-pwm@vger.kernel.org, linux-spi <linux-spi@vger.kernel.org>, David Howells <dhowells@redhat.com>, IDE-ML <linux-ide@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "open list:HID CORE LAYER" <linux-input@vger.kernel.org>, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, linux-rtc@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <87po45hcuy.fsf@xmission.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCBNYXIgMTUsIDIwMTggYXQgMTA6NTkgQU0sIEhhbm5lcyBSZWluZWNrZSA8aGFyZUBz
-dXNlLmRlPiB3cm90ZToKPiBPbiAwMy8xNS8yMDE4IDEwOjQyIEFNLCBEYXZpZCBIb3dlbGxzIHdy
-b3RlOgo+PiBEbyB3ZSBoYXZlIGFueXRoaW5nIGxlZnQgdGhhdCBzdGlsbCBpbXBsZW1lbnRzIE5P
-TU1VPwo+Pgo+IFJJU0MtViA/Cj4gKGV2aWwgZ3JpbiA6LSkKCklzIGFueW9uZSBwcm9kdWNpbmcg
-YSBjaGlwIHRoYXQgaW5jbHVkZXMgZW5vdWdoIG9mIHRoZSBQcml2aWxlZ2VkIElTQSBzcGVjCnRv
-IGhhdmUgdGhpbmdzIGxpa2Ugc3lzdGVtIGNhbGxzLCBidXQgbm90IHRoZSBNTVUgcGFydHM/CgpJ
-IHRob3VnaHQgYXQgbGVhc3QgaW5pdGlhbGx5IHRoZSBrZXJuZWwgb25seSBzdXBwb3J0cyBoYXJk
-d2FyZSB0aGF0IGhhcyBhIHJhdGhlcgpjb21wbGV0ZSBmZWF0dXJlIHNldC4KCiAgICAgICBBcm5k
-Cl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmRyaS1kZXZl
-bCBtYWlsaW5nIGxpc3QKZHJpLWRldmVsQGxpc3RzLmZyZWVkZXNrdG9wLm9yZwpodHRwczovL2xp
-c3RzLmZyZWVkZXNrdG9wLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2RyaS1kZXZlbAo=
+On Thu, Mar 15, 2018 at 11:06 AM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
+> Arnd Bergmann <arnd@arndb.de> writes:
+>
+>> The frv, tile and blackfin architectures are being removed, so
+>> we can clean up this header by removing all the special cases
+>> except those for ia64.
+>>
+>> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+>> ---
+>>  include/uapi/asm-generic/siginfo.h | 36 ++----------------------------------
+>>  1 file changed, 2 insertions(+), 34 deletions(-)
+>>
+>
+> If I am reading siginfo.h correctly after this cleanup patch
+> we can perform another cleanup and unconditionally define
+> all of the ia64 si_codes except for __SEGV_PSTKOVF which
+> aliases SEGV_PKUERR.
+>
+> Which has the advantage that no one is tempted to define any further
+> aliased si_codes.
+
+Do you mean like this:
+
+diff --git a/include/uapi/asm-generic/siginfo.h
+b/include/uapi/asm-generic/siginfo.h
+index b2ebf16c391a..ff13ed50dde8 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -186,11 +186,9 @@ typedef struct siginfo {
+ #define ILL_PRVREG     6       /* privileged register */
+ #define ILL_COPROC     7       /* coprocessor error */
+ #define ILL_BADSTK     8       /* internal stack error */
+-#ifdef __ia64__
+-# define ILL_BADIADDR  9       /* unimplemented instruction address */
+-# define __ILL_BREAK   10      /* illegal break */
+-# define __ILL_BNDMOD  11      /* bundle-update (modification) in progress */
+-#endif
++#define ILL_BADIADDR   9       /* unimplemented instruction address */
++#define __ILL_BREAK    10      /* illegal break */
++#define __ILL_BNDMOD   11      /* bundle-update (modification) in progress */
+ #define NSIGILL                11
+
+ /*
+@@ -204,13 +202,11 @@ typedef struct siginfo {
+ #define FPE_FLTRES     6       /* floating point inexact result */
+ #define FPE_FLTINV     7       /* floating point invalid operation */
+ #define FPE_FLTSUB     8       /* subscript out of range */
+-#ifdef __ia64__
+-# define __FPE_DECOVF  9       /* decimal overflow */
+-# define __FPE_DECDIV  10      /* decimal division by zero */
+-# define __FPE_DECERR  11      /* packed decimal error */
+-# define __FPE_INVASC  12      /* invalid ASCII digit */
+-# define __FPE_INVDEC  13      /* invalid decimal digit */
+-#endif
++#define __FPE_DECOVF   9       /* decimal overflow */
++#define __FPE_DECDIV   10      /* decimal division by zero */
++#define __FPE_DECERR   11      /* packed decimal error */
++#define __FPE_INVASC   12      /* invalid ASCII digit */
++#define __FPE_INVDEC   13      /* invalid decimal digit */
+ #define NSIGFPE                13
+
+ /*
+
+That seems reasonable. If you send me a patch with a proper
+changelog (I don't think I could explain this well enough), I'll
+add it to the series.
+
+      Arnd
