@@ -1,62 +1,28 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: Do we need to disable preemption in flush_tlb_range()?
-Date: Thu, 15 Mar 2018 09:39:31 +0000
-Message-ID: <1521106770.11552.70.camel@synopsys.com>
-References: <1519917189.13866.6.camel@synopsys.com>
-         <5a5c67c1-9f45-f908-2c8d-0914cd616a18@synopsys.com>
-         <20180315082720.GT4064@hirez.programming.kicks-ass.net>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 00/16] remove eight obsolete architectures
+Date: Thu, 15 Mar 2018 09:42:50 +0000
+Message-ID: <2929.1521106970@warthog.procyon.org.uk>
+References: <20180314143529.1456168-1-arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: base64
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180315082720.GT4064@hirez.programming.kicks-ass.net>
-Content-Language: en-US
-Content-ID: <4B6D4518BFFBD64793F3FEC19A670248@internal.synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "peterz@infradead.org" <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+In-Reply-To: <20180314143529.1456168-1-arnd@arndb.de>
+Content-ID: <2928.1521106970.1@warthog.procyon.org.uk>
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-block@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-watchdog@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-usb@vger.kernel.org, linux-wireless@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pwm@vger.kernel.org, linux-spi@vger.kernel.org, dhowells@redhat.com, linux-ide@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-input@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-rtc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-SGkgUGV0ZXIsDQoNCk9uIFRodSwgMjAxOC0wMy0xNSBhdCAwOToyNyArMDEwMCwgUGV0ZXIgWmlq
-bHN0cmEgd3JvdGU6DQo+IE9uIFdlZCwgTWFyIDE0LCAyMDE4IGF0IDAxOjE5OjAxUE0gLTA3MDAs
-IFZpbmVldCBHdXB0YSB3cm90ZToNCj4gPiArQ0MgUGV0ZXIgc2luY2Ugd2UgaGF2ZSBoaXMgYXR0
-ZW50aW9uIDstKQ0KPiANCj4gWWVhaCwgdGltZXpvbmUgY29sbGlzaW9uIHRoZXJlLCBJIHR5cGlj
-YWxseSBzbGVlcCBhdCAxYW0gOy0pDQo+IA0KPiA+IE9uIDAzLzAxLzIwMTggMDc6MTMgQU0sIEFs
-ZXhleSBCcm9ka2luIHdyb3RlOg0KPiA+ID4gSGkgVmluZWV0LA0KPiA+ID4gDQo+ID4gPiBKdXN0
-IG5vdGljZWQgdGhhdCBpbiBjb21tZW50cyBmb3Igc21wX2NhbGxfZnVuY3Rpb25fbWFueSgpIGl0
-IGlzIHNhaWQgdGhhdA0KPiA+ID4gcHJlZW1wdGlvbiBtdXN0IGJlIGRpc2FibGVkIGR1cmluZyBp
-dHMgZXhlY3V0aW9uLiBBbmQgdGhhdCBmdW5jdGlvbiBnZXRzIGV4ZWN1dGVkDQo+ID4gPiBhbW9u
-ZyBvdGhlciB3YXlzIGxpa2UgdGhhdDoNCj4gPiA+IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-PjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KPiA+ID4gICAgZmx1c2hfdGxiX3JhbmdlKCkNCj4g
-PiA+ICAgICAgLT4gb25fZWFjaF9jcHVfbWFzaygpDQo+ID4gPiAgICAgICAgICAgLT4gc21wX2Nh
-bGxfZnVuY3Rpb25fbWFueSgpDQo+ID4gPiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0NCj4gPiANCj4gPiBJbiBnZW5lcmFsIEkgcHJlZmVyIG5vdCB0
-byAtIFBldGVyIHdoYXQgc2F5IHlvdSA/DQo+IA0KPiBUaGUgY29tbWVudCB3aXRoIHNtcF9jYWxs
-X2Z1bmN0aW9uX21hbnkoKSBpcyBjb3JyZWN0LCBpdCByZWxpZXMgb24NCj4gcHJlZW1wdGlvbiBi
-ZWluZyBkaXNhYmxlZCBpbiBhIG51bWJlciBvZiB3YXlzLiBJIHdvdWxkIGV4cGVjdA0KPiB0aGlz
-X2NwdV9wdHIoKSBmb3IgZXhhbXBsZSB0byBjb21wbGFpbiB3aGVuIHVzZWQgd2l0aCBwcmVlbXB0
-aW9uDQo+IGVuYWJsZWQgKENPTkZJR19ERUJVR19QUkVFTVBUKS4NCg0KSSBqdXN0IHRyaWVkIENP
-TkZJR19ERUJVR19QUkVFTVBUIGFuZCB0aGUgb25seSB0aGluZyBJIGdvdCB3YXMgdGhhdDoNCi0t
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KQVJDIHBl
-cmYgICAgICAgIDogOCBjb3VudGVycyAoMzIgYml0cyksIDMyIGNvbmRpdGlvbnMsIFtvdmVyZmxv
-dyBJUlEgc3VwcG9ydF0NCkJVRzogdXNpbmcgc21wX3Byb2Nlc3Nvcl9pZCgpIGluIHByZWVtcHRp
-YmxlIFswMDAwMDAwMF0gY29kZTogc3dhcHBlci8wLzENCmNhbGxlciBpcyBhcmNfcG11X2Rldmlj
-ZV9wcm9iZSsweDI0ZS8weDI5Yw0KQ1BVOiAwIFBJRDogMSBDb21tOiBzd2FwcGVyLzAgTm90IHRh
-aW50ZWQgNC4xNC4xNCsgIzY3DQoNClN0YWNrIFRyYWNlOg0KICBhcmNfdW53aW5kX2NvcmUuY29u
-c3Rwcm9wLjErMHhkMC8weGY0DQogIGR1bXBfc3RhY2srMHg2NC8weDdjDQogIGRlYnVnX3NtcF9w
-cm9jZXNzb3JfaWQrMHhiOC8weGJjDQogIGFyY19wbXVfZGV2aWNlX3Byb2JlKzB4MjRlLzB4Mjlj
-DQogIHBsYXRmb3JtX2Rydl9wcm9iZSsweDI2LzB4NWMNCiAgcmVhbGx5X3Byb2JlKzB4Mjg4LzB4
-MzM4DQogIF9fZHJpdmVyX2F0dGFjaCsweGM0LzB4YzgNCiAgYnVzX2Zvcl9lYWNoX2RldisweDM4
-LzB4NzANCiAgYnVzX2FkZF9kcml2ZXIrMHgxMmEvMHgxOGMNCiAgZHJpdmVyX3JlZ2lzdGVyKzB4
-NTAvMHhlYw0KICBkb19vbmVfaW5pdGNhbGwrMHgzMi8weDEwOA0KICBrZXJuZWxfaW5pdF9mcmVl
-YWJsZSsweGZlLzB4MTg4DQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0NCg0KVGhhdCBoYXBwZW5zIGJlY2F1c2UgaW4gUE1VIHByb2JlIHJvdXRpbmUg
-d2Ugd2FudCB0bw0KY29uZmlndXJlIElSUSBoYW5kbGVycyBvbiBhbGwgb3RoZXIgY29yZXM6DQot
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCiAgYXJj
-X3BtdV9kZXZpY2VfcHJvYmUoKSAtPg0KICAgIG9uX2VhY2hfY3B1KGFyY19jcHVfcG11X2lycV9p
-bml0LCAmaXJxLCAxKTogcHJlZW1wdF9kaXNhYmxlKCkgLT4NCiAgICAgIGVuYWJsZV9wZXJjcHVf
-aXJxKGlycSwgSVJRX1RZUEVfTk9ORSkgLT4NCiAgICAgICAgc21wX3Byb2Nlc3Nvcl9pZCgpIHdp
-dGggZGlzYWJsZWQgcHJlZW1wdGlvbi4NCi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgtLS0t
-LS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQpXaGljaCBwb3NlcyBhbm90aGVyIHByZWVtcHRpb24gcmVs
-YXRlZCBxdWVzdGlvbiAtIGhvdyBkbyBJUlEgc2V0dXAgb24NCmFsbCBjb3JlcyBwcm9wZXJseT8g
-OikNCg0KLUFsZXhleQ==
+RG8gd2UgaGF2ZSBhbnl0aGluZyBsZWZ0IHRoYXQgc3RpbGwgaW1wbGVtZW50cyBOT01NVT8KCkRh
+dmlkCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmRyaS1k
+ZXZlbCBtYWlsaW5nIGxpc3QKZHJpLWRldmVsQGxpc3RzLmZyZWVkZXNrdG9wLm9yZwpodHRwczov
+L2xpc3RzLmZyZWVkZXNrdG9wLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2RyaS1kZXZlbAo=
