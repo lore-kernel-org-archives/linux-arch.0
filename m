@@ -1,18 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02hn0230.outbound.protection.outlook.com ([104.47.37.230]:36928
+Received: from mail-cys01nam02on0040.outbound.protection.outlook.com ([104.47.37.40]:36537
         "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751698AbeCOLBJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 07:01:09 -0400
+        id S1751951AbeCOLBN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Mar 2018 07:01:13 -0400
 From: Aaron Wu <aaron.wu@analog.com>
-Subject: [Blackfin removal] [PATCH 14/28] mtd: Remove Blackfin MTD support
-Date: Thu, 15 Mar 2018 18:50:14 +0800
-Message-ID: <1521111028-19856-14-git-send-email-aaron.wu@analog.com>
+Subject: [Blackfin removal] [PATCH 16/28] irda: Remove Blackfin IRDA support
+Date: Thu, 15 Mar 2018 18:50:16 +0800
+Message-ID: <1521111028-19856-16-git-send-email-aaron.wu@analog.com>
 In-Reply-To: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, f.fainelli@gmail.com, linux-arch@vger.kernel.org, kernel@vger.kernel.org, linux-hexagon@vger.kernel.org, liqin.linux@gmail.com, lennox.wu@gmail.com, gxt@mprc.pku.edu.cn, linux@roeck-us.net
@@ -20,1175 +19,1007 @@ Cc: viro@zeniv.linux.org.uk, jhogan@kernel.org, linux-metag@vger.kernel.org, jon
 
 Signed-off-by: Aaron Wu <aaron.wu@analog.com>
 
-Remove Blackfin MTD support
+Remove Blackfin IRDA support
 ---
- drivers/mtd/maps/Kconfig            |  10 -
- drivers/mtd/maps/Makefile           |   1 -
- drivers/mtd/maps/bfin-async-flash.c | 196 --------
- drivers/mtd/nand/Kconfig            |  32 --
- drivers/mtd/nand/Makefile           |   1 -
- drivers/mtd/nand/bf5xx_nand.c       | 862 ------------------------------------
- 6 files changed, 1102 deletions(-)
- delete mode 100644 drivers/mtd/maps/bfin-async-flash.c
- delete mode 100644 drivers/mtd/nand/bf5xx_nand.c
+ drivers/staging/irda/drivers/Kconfig    |  45 --
+ drivers/staging/irda/drivers/Makefile   |   1 -
+ drivers/staging/irda/drivers/bfin_sir.c | 819 --------------------------------
+ drivers/staging/irda/drivers/bfin_sir.h |  93 ----
+ 4 files changed, 958 deletions(-)
+ delete mode 100644 drivers/staging/irda/drivers/bfin_sir.c
+ delete mode 100644 drivers/staging/irda/drivers/bfin_sir.h
 
-diff --git a/drivers/mtd/maps/Kconfig b/drivers/mtd/maps/Kconfig
-index 542fdf8..bdc1283 100644
---- a/drivers/mtd/maps/Kconfig
-+++ b/drivers/mtd/maps/Kconfig
-@@ -334,16 +334,6 @@ config MTD_PCMCIA_ANONYMOUS
+diff --git a/drivers/staging/irda/drivers/Kconfig b/drivers/staging/irda/drivers/Kconfig
+index e070e12..71ac76c 100644
+--- a/drivers/staging/irda/drivers/Kconfig
++++ b/drivers/staging/irda/drivers/Kconfig
+@@ -17,51 +17,6 @@ config IRTTY_SIR
  
- 	  If unsure, say N.
+ 	  If unsure, say Y.
  
--config MTD_BFIN_ASYNC
--	tristate "Blackfin BF533-STAMP Flash Chip Support"
--	depends on BFIN533_STAMP && MTD_CFI && MTD_COMPLEX_MAPPINGS
--	default y
+-config BFIN_SIR
+-	tristate "Blackfin SIR on UART"
+-	depends on BLACKFIN && IRDA
+-	default n
 -	help
--	  Map driver which allows for simultaneous utilization of
--	  ethernet and CFI parallel flash.
+-	  Say Y here if your want to enable SIR function on Blackfin UART
+-	  devices.
 -
--	  If compiled as a module, it will be called bfin-async-flash.
+-	  To activate this driver you can start irattach like:
+-	  "irattach irda0 -s"
 -
- config MTD_GPIO_ADDR
- 	tristate "GPIO-assisted Flash Chip Support"
- 	depends on GPIOLIB || COMPILE_TEST
-diff --git a/drivers/mtd/maps/Makefile b/drivers/mtd/maps/Makefile
-index b849aaf..51acf1f 100644
---- a/drivers/mtd/maps/Makefile
-+++ b/drivers/mtd/maps/Makefile
-@@ -42,7 +42,6 @@ obj-$(CONFIG_MTD_SCB2_FLASH)	+= scb2_flash.o
- obj-$(CONFIG_MTD_IXP4XX)	+= ixp4xx.o
- obj-$(CONFIG_MTD_PLATRAM)	+= plat-ram.o
- obj-$(CONFIG_MTD_INTEL_VR_NOR)	+= intel_vr_nor.o
--obj-$(CONFIG_MTD_BFIN_ASYNC)	+= bfin-async-flash.o
- obj-$(CONFIG_MTD_RBTX4939)	+= rbtx4939-flash.o
- obj-$(CONFIG_MTD_VMU)		+= vmu-flash.o
- obj-$(CONFIG_MTD_GPIO_ADDR)	+= gpio-addr-flash.o
-diff --git a/drivers/mtd/maps/bfin-async-flash.c b/drivers/mtd/maps/bfin-async-flash.c
+-	  Saying M, it will be built as a module named bfin_sir.
+-
+-	  Note that you need to turn off one of the serial drivers for SIR
+-	  to use that UART.
+-
+-config BFIN_SIR0
+-	bool "Blackfin SIR on UART0"
+-	depends on BFIN_SIR && !SERIAL_BFIN_UART0
+-
+-config BFIN_SIR1
+-	bool "Blackfin SIR on UART1"
+-	depends on BFIN_SIR && !SERIAL_BFIN_UART1 && (!BF531 && !BF532 && !BF533 && !BF561)
+-
+-config BFIN_SIR2
+-	bool "Blackfin SIR on UART2"
+-	depends on BFIN_SIR && !SERIAL_BFIN_UART2 && (BF54x || BF538 || BF539)
+-
+-config BFIN_SIR3
+-	bool "Blackfin SIR on UART3"
+-	depends on BFIN_SIR && !SERIAL_BFIN_UART3 && (BF54x)
+-
+-choice
+-	prompt "SIR Mode"
+-	depends on BFIN_SIR
+-	default SIR_BFIN_DMA
+-
+-config SIR_BFIN_DMA
+-	bool "DMA mode"
+-	depends on !DMA_UNCACHED_NONE
+-
+-config SIR_BFIN_PIO
+-	bool "PIO mode"
+-endchoice
+-
+ config SH_SIR
+ 	tristate "SuperH SIR on UART"
+ 	depends on IRDA && SUPERH && \
+diff --git a/drivers/staging/irda/drivers/Makefile b/drivers/staging/irda/drivers/Makefile
+index e2901b1..d5307ed 100644
+--- a/drivers/staging/irda/drivers/Makefile
++++ b/drivers/staging/irda/drivers/Makefile
+@@ -23,7 +23,6 @@ obj-$(CONFIG_MCS_FIR)	        += mcs7780.o
+ obj-$(CONFIG_AU1000_FIR)	+= au1k_ir.o
+ # SIR drivers
+ obj-$(CONFIG_IRTTY_SIR)		+= irtty-sir.o	sir-dev.o
+-obj-$(CONFIG_BFIN_SIR)		+= bfin_sir.o
+ obj-$(CONFIG_SH_SIR)		+= sh_sir.o
+ # dongle drivers for SIR drivers
+ obj-$(CONFIG_ESI_DONGLE)	+= esi-sir.o
+diff --git a/drivers/staging/irda/drivers/bfin_sir.c b/drivers/staging/irda/drivers/bfin_sir.c
 deleted file mode 100644
-index 41730fe..0000000
---- a/drivers/mtd/maps/bfin-async-flash.c
+index 59e409b..0000000
+--- a/drivers/staging/irda/drivers/bfin_sir.c
 +++ /dev/null
-@@ -1,196 +0,0 @@
+@@ -1,819 +0,0 @@
 -/*
-- * drivers/mtd/maps/bfin-async-flash.c
+- * Blackfin Infra-red Driver
 - *
-- * Handle the case where flash memory and ethernet mac/phy are
-- * mapped onto the same async bank.  The BF533-STAMP does this
-- * for example.  All board-specific configuration goes in your
-- * board resources file.
-- *
-- * Copyright 2000 Nicolas Pitre <nico@fluxnic.net>
-- * Copyright 2005-2008 Analog Devices Inc.
+- * Copyright 2006-2009 Analog Devices Inc.
 - *
 - * Enter bugs at http://blackfin.uclinux.org/
 - *
 - * Licensed under the GPL-2 or later.
+- *
 - */
+-#include "bfin_sir.h"
 -
--#include <linux/kernel.h>
--#include <linux/module.h>
--#include <linux/mtd/mtd.h>
--#include <linux/mtd/map.h>
--#include <linux/mtd/partitions.h>
--#include <linux/mtd/physmap.h>
--#include <linux/platform_device.h>
--#include <linux/slab.h>
--#include <linux/types.h>
+-#ifdef CONFIG_SIR_BFIN_DMA
+-#define DMA_SIR_RX_XCNT        10
+-#define DMA_SIR_RX_YCNT        (PAGE_SIZE / DMA_SIR_RX_XCNT)
+-#define DMA_SIR_RX_FLUSH_JIFS  (HZ * 4 / 250)
+-#endif
 -
--#include <asm/blackfin.h>
--#include <linux/gpio.h>
--#include <linux/io.h>
--#include <asm/unaligned.h>
--
--#define pr_devinit(fmt, args...) \
--		({ static const char __fmt[] = fmt; printk(__fmt, ## args); })
--
--#define DRIVER_NAME "bfin-async-flash"
--
--struct async_state {
--	struct mtd_info *mtd;
--	struct map_info map;
--	int enet_flash_pin;
--	uint32_t flash_ambctl0, flash_ambctl1;
--	uint32_t save_ambctl0, save_ambctl1;
--	unsigned long irq_flags;
--};
--
--static void switch_to_flash(struct async_state *state)
--{
--	local_irq_save(state->irq_flags);
--
--	gpio_set_value(state->enet_flash_pin, 0);
--
--	state->save_ambctl0 = bfin_read_EBIU_AMBCTL0();
--	state->save_ambctl1 = bfin_read_EBIU_AMBCTL1();
--	bfin_write_EBIU_AMBCTL0(state->flash_ambctl0);
--	bfin_write_EBIU_AMBCTL1(state->flash_ambctl1);
--	SSYNC();
--}
--
--static void switch_back(struct async_state *state)
--{
--	bfin_write_EBIU_AMBCTL0(state->save_ambctl0);
--	bfin_write_EBIU_AMBCTL1(state->save_ambctl1);
--	SSYNC();
--
--	gpio_set_value(state->enet_flash_pin, 1);
--
--	local_irq_restore(state->irq_flags);
--}
--
--static map_word bfin_flash_read(struct map_info *map, unsigned long ofs)
--{
--	struct async_state *state = (struct async_state *)map->map_priv_1;
--	uint16_t word;
--	map_word test;
--
--	switch_to_flash(state);
--
--	word = readw(map->virt + ofs);
--
--	switch_back(state);
--
--	test.x[0] = word;
--	return test;
--}
--
--static void bfin_flash_copy_from(struct map_info *map, void *to, unsigned long from, ssize_t len)
--{
--	struct async_state *state = (struct async_state *)map->map_priv_1;
--
--	switch_to_flash(state);
--
--	memcpy(to, map->virt + from, len);
--
--	switch_back(state);
--}
--
--static void bfin_flash_write(struct map_info *map, map_word d1, unsigned long ofs)
--{
--	struct async_state *state = (struct async_state *)map->map_priv_1;
--	uint16_t d;
--
--	d = d1.x[0];
--
--	switch_to_flash(state);
--
--	writew(d, map->virt + ofs);
--	SSYNC();
--
--	switch_back(state);
--}
--
--static void bfin_flash_copy_to(struct map_info *map, unsigned long to, const void *from, ssize_t len)
--{
--	struct async_state *state = (struct async_state *)map->map_priv_1;
--
--	switch_to_flash(state);
--
--	memcpy(map->virt + to, from, len);
--	SSYNC();
--
--	switch_back(state);
--}
--
--static const char * const part_probe_types[] = {
--	"cmdlinepart", "RedBoot", NULL };
--
--static int bfin_flash_probe(struct platform_device *pdev)
--{
--	struct physmap_flash_data *pdata = dev_get_platdata(&pdev->dev);
--	struct resource *memory = platform_get_resource(pdev, IORESOURCE_MEM, 0);
--	struct resource *flash_ambctl = platform_get_resource(pdev, IORESOURCE_MEM, 1);
--	struct async_state *state;
--
--	state = kzalloc(sizeof(*state), GFP_KERNEL);
--	if (!state)
--		return -ENOMEM;
--
--	state->map.name       = DRIVER_NAME;
--	state->map.read       = bfin_flash_read;
--	state->map.copy_from  = bfin_flash_copy_from;
--	state->map.write      = bfin_flash_write;
--	state->map.copy_to    = bfin_flash_copy_to;
--	state->map.bankwidth  = pdata->width;
--	state->map.size       = resource_size(memory);
--	state->map.virt       = (void __iomem *)memory->start;
--	state->map.phys       = memory->start;
--	state->map.map_priv_1 = (unsigned long)state;
--	state->enet_flash_pin = platform_get_irq(pdev, 0);
--	state->flash_ambctl0  = flash_ambctl->start;
--	state->flash_ambctl1  = flash_ambctl->end;
--
--	if (gpio_request(state->enet_flash_pin, DRIVER_NAME)) {
--		pr_devinit(KERN_ERR DRIVER_NAME ": Failed to request gpio %d\n", state->enet_flash_pin);
--		kfree(state);
--		return -EBUSY;
--	}
--	gpio_direction_output(state->enet_flash_pin, 1);
--
--	pr_devinit(KERN_NOTICE DRIVER_NAME ": probing %d-bit flash bus\n", state->map.bankwidth * 8);
--	state->mtd = do_map_probe(memory->name, &state->map);
--	if (!state->mtd) {
--		gpio_free(state->enet_flash_pin);
--		kfree(state);
--		return -ENXIO;
--	}
--
--	mtd_device_parse_register(state->mtd, part_probe_types, NULL,
--				  pdata->parts, pdata->nr_parts);
--
--	platform_set_drvdata(pdev, state);
--
--	return 0;
--}
--
--static int bfin_flash_remove(struct platform_device *pdev)
--{
--	struct async_state *state = platform_get_drvdata(pdev);
--	gpio_free(state->enet_flash_pin);
--	mtd_device_unregister(state->mtd);
--	map_destroy(state->mtd);
--	kfree(state);
--	return 0;
--}
--
--static struct platform_driver bfin_flash_driver = {
--	.probe		= bfin_flash_probe,
--	.remove		= bfin_flash_remove,
--	.driver		= {
--		.name	= DRIVER_NAME,
--	},
--};
--
--module_platform_driver(bfin_flash_driver);
--
--MODULE_LICENSE("GPL");
--MODULE_DESCRIPTION("MTD map driver for Blackfins with flash/ethernet on same async bank");
-diff --git a/drivers/mtd/nand/Kconfig b/drivers/mtd/nand/Kconfig
-index 736ac88..c0bee1f0 100644
---- a/drivers/mtd/nand/Kconfig
-+++ b/drivers/mtd/nand/Kconfig
-@@ -116,38 +116,6 @@ config MTD_NAND_AU1550
- 	  This enables the driver for the NAND flash controller on the
- 	  AMD/Alchemy 1550 SOC.
- 
--config MTD_NAND_BF5XX
--	tristate "Blackfin on-chip NAND Flash Controller driver"
--	depends on BF54x || BF52x
--	help
--	  This enables the Blackfin on-chip NAND flash controller
--
--	  No board specific support is done by this driver, each board
--	  must advertise a platform_device for the driver to attach.
--
--	  This driver can also be built as a module. If so, the module
--	  will be called bf5xx-nand.
--
--config MTD_NAND_BF5XX_HWECC
--	bool "BF5XX NAND Hardware ECC"
--	default y
--	depends on MTD_NAND_BF5XX
--	help
--	  Enable the use of the BF5XX's internal ECC generator when
--	  using NAND.
--
--config MTD_NAND_BF5XX_BOOTROM_ECC
--	bool "Use Blackfin BootROM ECC Layout"
--	default n
--	depends on MTD_NAND_BF5XX_HWECC
--	help
--	  If you wish to modify NAND pages and allow the Blackfin on-chip
--	  BootROM to boot from them, say Y here.  This is only necessary
--	  if you are booting U-Boot out of NAND and you wish to update
--	  U-Boot from Linux' userspace.  Otherwise, you should say N here.
--
--	  If unsure, say N.
--
- config MTD_NAND_S3C2410
- 	tristate "NAND Flash support for Samsung S3C SoCs"
- 	depends on ARCH_S3C24XX || ARCH_S3C64XX
-diff --git a/drivers/mtd/nand/Makefile b/drivers/mtd/nand/Makefile
-index 921634b..08fc018 100644
---- a/drivers/mtd/nand/Makefile
-+++ b/drivers/mtd/nand/Makefile
-@@ -14,7 +14,6 @@ obj-$(CONFIG_MTD_NAND_DENALI)		+= denali.o
- obj-$(CONFIG_MTD_NAND_DENALI_PCI)	+= denali_pci.o
- obj-$(CONFIG_MTD_NAND_DENALI_DT)	+= denali_dt.o
- obj-$(CONFIG_MTD_NAND_AU1550)		+= au1550nd.o
--obj-$(CONFIG_MTD_NAND_BF5XX)		+= bf5xx_nand.o
- obj-$(CONFIG_MTD_NAND_S3C2410)		+= s3c2410.o
- obj-$(CONFIG_MTD_NAND_TANGO)		+= tango_nand.o
- obj-$(CONFIG_MTD_NAND_DAVINCI)		+= davinci_nand.o
-diff --git a/drivers/mtd/nand/bf5xx_nand.c b/drivers/mtd/nand/bf5xx_nand.c
-deleted file mode 100644
-index 87bbd17..0000000
---- a/drivers/mtd/nand/bf5xx_nand.c
-+++ /dev/null
-@@ -1,862 +0,0 @@
--/* linux/drivers/mtd/nand/bf5xx_nand.c
-- *
-- * Copyright 2006-2008 Analog Devices Inc.
-- *	http://blackfin.uclinux.org/
-- *	Bryan Wu <bryan.wu@analog.com>
-- *
-- * Blackfin BF5xx on-chip NAND flash controller driver
-- *
-- * Derived from drivers/mtd/nand/s3c2410.c
-- * Copyright (c) 2007 Ben Dooks <ben@simtec.co.uk>
-- *
-- * Derived from drivers/mtd/nand/cafe.c
-- * Copyright © 2006 Red Hat, Inc.
-- * Copyright © 2006 David Woodhouse <dwmw2@infradead.org>
-- *
-- * Changelog:
-- *	12-Jun-2007  Bryan Wu:  Initial version
-- *	18-Jul-2007  Bryan Wu:
-- *		- ECC_HW and ECC_SW supported
-- *		- DMA supported in ECC_HW
-- *		- YAFFS tested as rootfs in both ECC_HW and ECC_SW
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License as published by
-- * the Free Software Foundation; either version 2 of the License, or
-- * (at your option) any later version.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, write to the Free Software
-- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
--*/
--
--#include <linux/module.h>
--#include <linux/types.h>
--#include <linux/kernel.h>
--#include <linux/string.h>
--#include <linux/ioport.h>
--#include <linux/platform_device.h>
--#include <linux/delay.h>
--#include <linux/dma-mapping.h>
--#include <linux/err.h>
--#include <linux/slab.h>
--#include <linux/io.h>
--#include <linux/bitops.h>
--
--#include <linux/mtd/mtd.h>
--#include <linux/mtd/rawnand.h>
--#include <linux/mtd/nand_ecc.h>
--#include <linux/mtd/partitions.h>
--
--#include <asm/blackfin.h>
--#include <asm/dma.h>
--#include <asm/cacheflush.h>
--#include <asm/nand.h>
--#include <asm/portmux.h>
--
--#define DRV_NAME	"bf5xx-nand"
--#define DRV_VERSION	"1.2"
--#define DRV_AUTHOR	"Bryan Wu <bryan.wu@analog.com>"
--#define DRV_DESC	"BF5xx on-chip NAND FLash Controller Driver"
--
--/* NFC_STAT Masks */
--#define NBUSY       0x01  /* Not Busy */
--#define WB_FULL     0x02  /* Write Buffer Full */
--#define PG_WR_STAT  0x04  /* Page Write Pending */
--#define PG_RD_STAT  0x08  /* Page Read Pending */
--#define WB_EMPTY    0x10  /* Write Buffer Empty */
--
--/* NFC_IRQSTAT Masks */
--#define NBUSYIRQ    0x01  /* Not Busy IRQ */
--#define WB_OVF      0x02  /* Write Buffer Overflow */
--#define WB_EDGE     0x04  /* Write Buffer Edge Detect */
--#define RD_RDY      0x08  /* Read Data Ready */
--#define WR_DONE     0x10  /* Page Write Done */
--
--/* NFC_RST Masks */
--#define ECC_RST     0x01  /* ECC (and NFC counters) Reset */
--
--/* NFC_PGCTL Masks */
--#define PG_RD_START 0x01  /* Page Read Start */
--#define PG_WR_START 0x02  /* Page Write Start */
--
--#ifdef CONFIG_MTD_NAND_BF5XX_HWECC
--static int hardware_ecc = 1;
+-#if ANOMALY_05000447
+-static int max_rate = 57600;
 -#else
--static int hardware_ecc;
+-static int max_rate = 115200;
 -#endif
 -
--static const unsigned short bfin_nfc_pin_req[] =
--	{P_NAND_CE,
--	 P_NAND_RB,
--	 P_NAND_D0,
--	 P_NAND_D1,
--	 P_NAND_D2,
--	 P_NAND_D3,
--	 P_NAND_D4,
--	 P_NAND_D5,
--	 P_NAND_D6,
--	 P_NAND_D7,
--	 P_NAND_WE,
--	 P_NAND_RE,
--	 P_NAND_CLE,
--	 P_NAND_ALE,
--	 0};
+-static void bfin_sir_rx_dma_timeout(struct timer_list *t);
 -
--#ifdef CONFIG_MTD_NAND_BF5XX_BOOTROM_ECC
--static int bootrom_ooblayout_ecc(struct mtd_info *mtd, int section,
--				 struct mtd_oob_region *oobregion)
+-static void turnaround_delay(int mtt)
 -{
--	if (section > 7)
--		return -ERANGE;
+-	long ticks;
 -
--	oobregion->offset = section * 8;
--	oobregion->length = 3;
--
--	return 0;
+-	mtt = mtt < 10000 ? 10000 : mtt;
+-	ticks = 1 + mtt / (USEC_PER_SEC / HZ);
+-	schedule_timeout_uninterruptible(ticks);
 -}
 -
--static int bootrom_ooblayout_free(struct mtd_info *mtd, int section,
--				  struct mtd_oob_region *oobregion)
+-static void bfin_sir_init_ports(struct bfin_sir_port *sp, struct platform_device *pdev)
 -{
--	if (section > 7)
--		return -ERANGE;
+-	int i;
+-	struct resource *res;
 -
--	oobregion->offset = (section * 8) + 3;
--	oobregion->length = 5;
+-	for (i = 0; i < pdev->num_resources; i++) {
+-		res = &pdev->resource[i];
+-		switch (res->flags) {
+-		case IORESOURCE_MEM:
+-			sp->membase   = (void __iomem *)res->start;
+-			break;
+-		case IORESOURCE_IRQ:
+-			sp->irq = res->start;
+-			break;
+-		case IORESOURCE_DMA:
+-			sp->rx_dma_channel = res->start;
+-			sp->tx_dma_channel = res->end;
+-			break;
+-		default:
+-			break;
+-		}
+-	}
 -
--	return 0;
+-	sp->clk = get_sclk();
+-#ifdef CONFIG_SIR_BFIN_DMA
+-	sp->tx_done        = 1;
+-	timer_setup(&sp->rx_dma_timer, bfin_sir_rx_dma_timeout, 0);
+-#endif
 -}
 -
--static const struct mtd_ooblayout_ops bootrom_ooblayout_ops = {
--	.ecc = bootrom_ooblayout_ecc,
--	.free = bootrom_ooblayout_free,
--};
+-static void bfin_sir_stop_tx(struct bfin_sir_port *port)
+-{
+-#ifdef CONFIG_SIR_BFIN_DMA
+-	disable_dma(port->tx_dma_channel);
 -#endif
 -
--/*
-- * Data structures for bf5xx nand flash controller driver
-- */
--
--/* bf5xx nand info */
--struct bf5xx_nand_info {
--	/* mtd info */
--	struct nand_hw_control		controller;
--	struct nand_chip		chip;
--
--	/* platform info */
--	struct bf5xx_nand_platform	*platform;
--
--	/* device info */
--	struct device			*device;
--
--	/* DMA stuff */
--	struct completion		dma_completion;
--};
--
--/*
-- * Conversion functions
-- */
--static struct bf5xx_nand_info *mtd_to_nand_info(struct mtd_info *mtd)
--{
--	return container_of(mtd_to_nand(mtd), struct bf5xx_nand_info,
--			    chip);
--}
--
--static struct bf5xx_nand_info *to_nand_info(struct platform_device *pdev)
--{
--	return platform_get_drvdata(pdev);
--}
--
--static struct bf5xx_nand_platform *to_nand_plat(struct platform_device *pdev)
--{
--	return dev_get_platdata(&pdev->dev);
--}
--
--/*
-- * struct nand_chip interface function pointers
-- */
--
--/*
-- * bf5xx_nand_hwcontrol
-- *
-- * Issue command and address cycles to the chip
-- */
--static void bf5xx_nand_hwcontrol(struct mtd_info *mtd, int cmd,
--				   unsigned int ctrl)
--{
--	if (cmd == NAND_CMD_NONE)
--		return;
--
--	while (bfin_read_NFC_STAT() & WB_FULL)
+-	while (!(UART_GET_LSR(port) & THRE)) {
 -		cpu_relax();
--
--	if (ctrl & NAND_CLE)
--		bfin_write_NFC_CMD(cmd);
--	else if (ctrl & NAND_ALE)
--		bfin_write_NFC_ADDR(cmd);
--	SSYNC();
--}
--
--/*
-- * bf5xx_nand_devready()
-- *
-- * returns 0 if the nand is busy, 1 if it is ready
-- */
--static int bf5xx_nand_devready(struct mtd_info *mtd)
--{
--	unsigned short val = bfin_read_NFC_STAT();
--
--	if ((val & NBUSY) == NBUSY)
--		return 1;
--	else
--		return 0;
--}
--
--/*
-- * ECC functions
-- * These allow the bf5xx to use the controller's ECC
-- * generator block to ECC the data as it passes through
-- */
--
--/*
-- * ECC error correction function
-- */
--static int bf5xx_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
--					u_char *read_ecc, u_char *calc_ecc)
--{
--	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
--	u32 syndrome[5];
--	u32 calced, stored;
--	int i;
--	unsigned short failing_bit, failing_byte;
--	u_char data;
--
--	calced = calc_ecc[0] | (calc_ecc[1] << 8) | (calc_ecc[2] << 16);
--	stored = read_ecc[0] | (read_ecc[1] << 8) | (read_ecc[2] << 16);
--
--	syndrome[0] = (calced ^ stored);
--
--	/*
--	 * syndrome 0: all zero
--	 * No error in data
--	 * No action
--	 */
--	if (!syndrome[0] || !calced || !stored)
--		return 0;
--
--	/*
--	 * sysdrome 0: only one bit is one
--	 * ECC data was incorrect
--	 * No action
--	 */
--	if (hweight32(syndrome[0]) == 1) {
--		dev_err(info->device, "ECC data was incorrect!\n");
--		return -EBADMSG;
+-		continue;
 -	}
 -
--	syndrome[1] = (calced & 0x7FF) ^ (stored & 0x7FF);
--	syndrome[2] = (calced & 0x7FF) ^ ((calced >> 11) & 0x7FF);
--	syndrome[3] = (stored & 0x7FF) ^ ((stored >> 11) & 0x7FF);
--	syndrome[4] = syndrome[2] ^ syndrome[3];
--
--	for (i = 0; i < 5; i++)
--		dev_info(info->device, "syndrome[%d] 0x%08x\n", i, syndrome[i]);
--
--	dev_info(info->device,
--		"calced[0x%08x], stored[0x%08x]\n",
--		calced, stored);
--
--	/*
--	 * sysdrome 0: exactly 11 bits are one, each parity
--	 * and parity' pair is 1 & 0 or 0 & 1.
--	 * 1-bit correctable error
--	 * Correct the error
--	 */
--	if (hweight32(syndrome[0]) == 11 && syndrome[4] == 0x7FF) {
--		dev_info(info->device,
--			"1-bit correctable error, correct it.\n");
--		dev_info(info->device,
--			"syndrome[1] 0x%08x\n", syndrome[1]);
--
--		failing_bit = syndrome[1] & 0x7;
--		failing_byte = syndrome[1] >> 0x3;
--		data = *(dat + failing_byte);
--		data = data ^ (0x1 << failing_bit);
--		*(dat + failing_byte) = data;
--
--		return 1;
--	}
--
--	/*
--	 * sysdrome 0: random data
--	 * More than 1-bit error, non-correctable error
--	 * Discard data, mark bad block
--	 */
--	dev_err(info->device,
--		"More than 1-bit error, non-correctable error.\n");
--	dev_err(info->device,
--		"Please discard data, mark bad block\n");
--
--	return -EBADMSG;
+-	UART_CLEAR_IER(port, ETBEI);
 -}
 -
--static int bf5xx_nand_correct_data(struct mtd_info *mtd, u_char *dat,
--					u_char *read_ecc, u_char *calc_ecc)
+-static void bfin_sir_enable_tx(struct bfin_sir_port *port)
 -{
--	struct nand_chip *chip = mtd_to_nand(mtd);
--	int ret, bitflips = 0;
--
--	ret = bf5xx_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
--	if (ret < 0)
--		return ret;
--
--	bitflips = ret;
--
--	/* If ecc size is 512, correct second 256 bytes */
--	if (chip->ecc.size == 512) {
--		dat += 256;
--		read_ecc += 3;
--		calc_ecc += 3;
--		ret = bf5xx_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
--		if (ret < 0)
--			return ret;
--
--		bitflips += ret;
--	}
--
--	return bitflips;
+-	UART_SET_IER(port, ETBEI);
 -}
 -
--static void bf5xx_nand_enable_hwecc(struct mtd_info *mtd, int mode)
+-static void bfin_sir_stop_rx(struct bfin_sir_port *port)
 -{
--	return;
+-	UART_CLEAR_IER(port, ERBFI);
 -}
 -
--static int bf5xx_nand_calculate_ecc(struct mtd_info *mtd,
--		const u_char *dat, u_char *ecc_code)
+-static void bfin_sir_enable_rx(struct bfin_sir_port *port)
 -{
--	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
--	struct nand_chip *chip = mtd_to_nand(mtd);
--	u16 ecc0, ecc1;
--	u32 code[2];
--	u8 *p;
+-	UART_SET_IER(port, ERBFI);
+-}
 -
--	/* first 3 bytes ECC code for 256 page size */
--	ecc0 = bfin_read_NFC_ECC0();
--	ecc1 = bfin_read_NFC_ECC1();
+-static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
+-{
+-	int ret = -EINVAL;
+-	unsigned int quot;
+-	unsigned short val, lsr, lcr;
+-	static int utime;
+-	int count = 10;
 -
--	code[0] = (ecc0 & 0x7ff) | ((ecc1 & 0x7ff) << 11);
+-	lcr = WLS(8);
 -
--	dev_dbg(info->device, "returning ecc 0x%08x\n", code[0]);
+-	switch (speed) {
+-	case 9600:
+-	case 19200:
+-	case 38400:
+-	case 57600:
+-	case 115200:
 -
--	p = (u8 *) code;
--	memcpy(ecc_code, p, 3);
--
--	/* second 3 bytes ECC code for 512 ecc size */
--	if (chip->ecc.size == 512) {
--		ecc0 = bfin_read_NFC_ECC2();
--		ecc1 = bfin_read_NFC_ECC3();
--		code[1] = (ecc0 & 0x7ff) | ((ecc1 & 0x7ff) << 11);
--
--		/* second 3 bytes in ecc_code for second 256
--		 * bytes of 512 page size
+-		/*
+-		 * IRDA is not affected by anomaly 05000230, so there is no
+-		 * need to tweak the divisor like he UART driver (which will
+-		 * slightly speed up the baud rate on us).
 -		 */
--		p = (u8 *) (code + 1);
--		memcpy((ecc_code + 3), p, 3);
--		dev_dbg(info->device, "returning ecc 0x%08x\n", code[1]);
+-		quot = (port->clk + (8 * speed)) / (16 * speed);
+-
+-		do {
+-			udelay(utime);
+-			lsr = UART_GET_LSR(port);
+-		} while (!(lsr & TEMT) && count--);
+-
+-		/* The useconds for 1 bits to transmit */
+-		utime = 1000000 / speed + 1;
+-
+-		/* Clear UCEN bit to reset the UART state machine
+-		 * and control registers
+-		 */
+-		val = UART_GET_GCTL(port);
+-		val &= ~UCEN;
+-		UART_PUT_GCTL(port, val);
+-
+-		/* Set DLAB in LCR to Access THR RBR IER */
+-		UART_SET_DLAB(port);
+-		SSYNC();
+-
+-		UART_PUT_DLL(port, quot & 0xFF);
+-		UART_PUT_DLH(port, (quot >> 8) & 0xFF);
+-		SSYNC();
+-
+-		/* Clear DLAB in LCR */
+-		UART_CLEAR_DLAB(port);
+-		SSYNC();
+-
+-		UART_PUT_LCR(port, lcr);
+-
+-		val = UART_GET_GCTL(port);
+-		val |= UCEN;
+-		UART_PUT_GCTL(port, val);
+-
+-		ret = 0;
+-		break;
+-	default:
+-		printk(KERN_WARNING "bfin_sir: Invalid speed %d\n", speed);
+-		break;
 -	}
 -
--	return 0;
--}
--
--/*
-- * PIO mode for buffer writing and reading
-- */
--static void bf5xx_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
--{
--	int i;
--	unsigned short val;
--
--	/*
--	 * Data reads are requested by first writing to NFC_DATA_RD
--	 * and then reading back from NFC_READ.
+-	val = UART_GET_GCTL(port);
+-	/* If not add the 'RPOLC', we can't catch the receive interrupt.
+-	 * It's related with the HW layout and the IR transiver.
 -	 */
--	for (i = 0; i < len; i++) {
--		while (bfin_read_NFC_STAT() & WB_FULL)
--			cpu_relax();
+-	val |= UMOD_IRDA | RPOLC;
+-	UART_PUT_GCTL(port, val);
+-	return ret;
+-}
 -
--		/* Contents do not matter */
--		bfin_write_NFC_DATA_RD(0x0000);
--		SSYNC();
+-static int bfin_sir_is_receiving(struct net_device *dev)
+-{
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	struct bfin_sir_port *port = self->sir_port;
 -
--		while ((bfin_read_NFC_IRQSTAT() & RD_RDY) != RD_RDY)
--			cpu_relax();
+-	if (!(UART_GET_IER(port) & ERBFI))
+-		return 0;
+-	return self->rx_buff.state != OUTSIDE_FRAME;
+-}
 -
--		buf[i] = bfin_read_NFC_READ();
+-#ifdef CONFIG_SIR_BFIN_PIO
+-static void bfin_sir_tx_chars(struct net_device *dev)
+-{
+-	unsigned int chr;
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	struct bfin_sir_port *port = self->sir_port;
 -
--		val = bfin_read_NFC_IRQSTAT();
--		val |= RD_RDY;
--		bfin_write_NFC_IRQSTAT(val);
--		SSYNC();
+-	if (self->tx_buff.len != 0) {
+-		chr = *(self->tx_buff.data);
+-		UART_PUT_CHAR(port, chr);
+-		self->tx_buff.data++;
+-		self->tx_buff.len--;
+-	} else {
+-		self->stats.tx_packets++;
+-		self->stats.tx_bytes += self->tx_buff.data - self->tx_buff.head;
+-		if (self->newspeed) {
+-			bfin_sir_set_speed(port, self->newspeed);
+-			self->speed = self->newspeed;
+-			self->newspeed = 0;
+-		}
+-		bfin_sir_stop_tx(port);
+-		bfin_sir_enable_rx(port);
+-		/* I'm hungry! */
+-		netif_wake_queue(dev);
 -	}
 -}
 -
--static uint8_t bf5xx_nand_read_byte(struct mtd_info *mtd)
+-static void bfin_sir_rx_chars(struct net_device *dev)
 -{
--	uint8_t val;
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	struct bfin_sir_port *port = self->sir_port;
+-	unsigned char ch;
 -
--	bf5xx_nand_read_buf(mtd, &val, 1);
--
--	return val;
+-	UART_CLEAR_LSR(port);
+-	ch = UART_GET_CHAR(port);
+-	async_unwrap_char(dev, &self->stats, &self->rx_buff, ch);
 -}
 -
--static void bf5xx_nand_write_buf(struct mtd_info *mtd,
--				const uint8_t *buf, int len)
+-static irqreturn_t bfin_sir_rx_int(int irq, void *dev_id)
 -{
--	int i;
+-	struct net_device *dev = dev_id;
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	struct bfin_sir_port *port = self->sir_port;
 -
--	for (i = 0; i < len; i++) {
--		while (bfin_read_NFC_STAT() & WB_FULL)
--			cpu_relax();
--
--		bfin_write_NFC_DATA_WR(buf[i]);
--		SSYNC();
--	}
--}
--
--static void bf5xx_nand_read_buf16(struct mtd_info *mtd, uint8_t *buf, int len)
--{
--	int i;
--	u16 *p = (u16 *) buf;
--	len >>= 1;
--
--	/*
--	 * Data reads are requested by first writing to NFC_DATA_RD
--	 * and then reading back from NFC_READ.
--	 */
--	bfin_write_NFC_DATA_RD(0x5555);
--
--	SSYNC();
--
--	for (i = 0; i < len; i++)
--		p[i] = bfin_read_NFC_READ();
--}
--
--static void bf5xx_nand_write_buf16(struct mtd_info *mtd,
--				const uint8_t *buf, int len)
--{
--	int i;
--	u16 *p = (u16 *) buf;
--	len >>= 1;
--
--	for (i = 0; i < len; i++)
--		bfin_write_NFC_DATA_WR(p[i]);
--
--	SSYNC();
--}
--
--/*
-- * DMA functions for buffer writing and reading
-- */
--static irqreturn_t bf5xx_nand_dma_irq(int irq, void *dev_id)
--{
--	struct bf5xx_nand_info *info = dev_id;
--
--	clear_dma_irqstat(CH_NFC);
--	disable_dma(CH_NFC);
--	complete(&info->dma_completion);
+-	spin_lock(&self->lock);
+-	while ((UART_GET_LSR(port) & DR))
+-		bfin_sir_rx_chars(dev);
+-	spin_unlock(&self->lock);
 -
 -	return IRQ_HANDLED;
 -}
 -
--static void bf5xx_nand_dma_rw(struct mtd_info *mtd,
--				uint8_t *buf, int is_read)
+-static irqreturn_t bfin_sir_tx_int(int irq, void *dev_id)
 -{
--	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
--	struct nand_chip *chip = mtd_to_nand(mtd);
--	unsigned short val;
+-	struct net_device *dev = dev_id;
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	struct bfin_sir_port *port = self->sir_port;
 -
--	dev_dbg(info->device, " mtd->%p, buf->%p, is_read %d\n",
--			mtd, buf, is_read);
+-	spin_lock(&self->lock);
+-	if (UART_GET_LSR(port) & THRE)
+-		bfin_sir_tx_chars(dev);
+-	spin_unlock(&self->lock);
 -
--	/*
--	 * Before starting a dma transfer, be sure to invalidate/flush
--	 * the cache over the address range of your DMA buffer to
--	 * prevent cache coherency problems. Otherwise very subtle bugs
--	 * can be introduced to your driver.
--	 */
--	if (is_read)
--		invalidate_dcache_range((unsigned int)buf,
--				(unsigned int)(buf + chip->ecc.size));
--	else
--		flush_dcache_range((unsigned int)buf,
--				(unsigned int)(buf + chip->ecc.size));
+-	return IRQ_HANDLED;
+-}
+-#endif /* CONFIG_SIR_BFIN_PIO */
 -
--	/*
--	 * This register must be written before each page is
--	 * transferred to generate the correct ECC register
--	 * values.
--	 */
--	bfin_write_NFC_RST(ECC_RST);
--	SSYNC();
--	while (bfin_read_NFC_RST() & ECC_RST)
--		cpu_relax();
+-#ifdef CONFIG_SIR_BFIN_DMA
+-static void bfin_sir_dma_tx_chars(struct net_device *dev)
+-{
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	struct bfin_sir_port *port = self->sir_port;
 -
--	disable_dma(CH_NFC);
--	clear_dma_irqstat(CH_NFC);
+-	if (!port->tx_done)
+-		return;
+-	port->tx_done = 0;
 -
--	/* setup DMA register with Blackfin DMA API */
--	set_dma_config(CH_NFC, 0x0);
--	set_dma_start_addr(CH_NFC, (unsigned long) buf);
+-	if (self->tx_buff.len == 0) {
+-		self->stats.tx_packets++;
+-		if (self->newspeed) {
+-			bfin_sir_set_speed(port, self->newspeed);
+-			self->speed = self->newspeed;
+-			self->newspeed = 0;
+-		}
+-		bfin_sir_enable_rx(port);
+-		port->tx_done = 1;
+-		netif_wake_queue(dev);
+-		return;
+-	}
 -
--	/* The DMAs have different size on BF52x and BF54x */
--#ifdef CONFIG_BF52x
--	set_dma_x_count(CH_NFC, (chip->ecc.size >> 1));
--	set_dma_x_modify(CH_NFC, 2);
--	val = DI_EN | WDSIZE_16;
+-	blackfin_dcache_flush_range((unsigned long)(self->tx_buff.data),
+-		(unsigned long)(self->tx_buff.data+self->tx_buff.len));
+-	set_dma_config(port->tx_dma_channel,
+-		set_bfin_dma_config(DIR_READ, DMA_FLOW_STOP,
+-			INTR_ON_BUF, DIMENSION_LINEAR, DATA_SIZE_8,
+-			DMA_SYNC_RESTART));
+-	set_dma_start_addr(port->tx_dma_channel,
+-		(unsigned long)(self->tx_buff.data));
+-	set_dma_x_count(port->tx_dma_channel, self->tx_buff.len);
+-	set_dma_x_modify(port->tx_dma_channel, 1);
+-	enable_dma(port->tx_dma_channel);
+-}
+-
+-static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
+-{
+-	struct net_device *dev = dev_id;
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	struct bfin_sir_port *port = self->sir_port;
+-
+-	spin_lock(&self->lock);
+-	if (!(get_dma_curr_irqstat(port->tx_dma_channel) & DMA_RUN)) {
+-		clear_dma_irqstat(port->tx_dma_channel);
+-		bfin_sir_stop_tx(port);
+-
+-		self->stats.tx_packets++;
+-		self->stats.tx_bytes += self->tx_buff.len;
+-		self->tx_buff.len = 0;
+-		if (self->newspeed) {
+-			bfin_sir_set_speed(port, self->newspeed);
+-			self->speed = self->newspeed;
+-			self->newspeed = 0;
+-		}
+-		bfin_sir_enable_rx(port);
+-		/* I'm hungry! */
+-		netif_wake_queue(dev);
+-		port->tx_done = 1;
+-	}
+-	spin_unlock(&self->lock);
+-
+-	return IRQ_HANDLED;
+-}
+-
+-static void bfin_sir_dma_rx_chars(struct net_device *dev)
+-{
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	struct bfin_sir_port *port = self->sir_port;
+-	int i;
+-
+-	UART_CLEAR_LSR(port);
+-
+-	for (i = port->rx_dma_buf.head; i < port->rx_dma_buf.tail; i++)
+-		async_unwrap_char(dev, &self->stats, &self->rx_buff, port->rx_dma_buf.buf[i]);
+-}
+-
+-static void bfin_sir_rx_dma_timeout(struct timer_list *t)
+-{
+-	struct bfin_sir_port *port = from_timer(port, t, rx_dma_timer);
+-	struct net_device *dev = port->dev;
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-
+-	int x_pos, pos;
+-	unsigned long flags;
+-
+-	spin_lock_irqsave(&self->lock, flags);
+-	x_pos = DMA_SIR_RX_XCNT - get_dma_curr_xcount(port->rx_dma_channel);
+-	if (x_pos == DMA_SIR_RX_XCNT)
+-		x_pos = 0;
+-
+-	pos = port->rx_dma_nrows * DMA_SIR_RX_XCNT + x_pos;
+-
+-	if (pos > port->rx_dma_buf.tail) {
+-		port->rx_dma_buf.tail = pos;
+-		bfin_sir_dma_rx_chars(dev);
+-		port->rx_dma_buf.head = port->rx_dma_buf.tail;
+-	}
+-	spin_unlock_irqrestore(&self->lock, flags);
+-}
+-
+-static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
+-{
+-	struct net_device *dev = dev_id;
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	struct bfin_sir_port *port = self->sir_port;
+-	unsigned short irqstat;
+-
+-	spin_lock(&self->lock);
+-
+-	port->rx_dma_nrows++;
+-	port->rx_dma_buf.tail = DMA_SIR_RX_XCNT * port->rx_dma_nrows;
+-	bfin_sir_dma_rx_chars(dev);
+-	if (port->rx_dma_nrows >= DMA_SIR_RX_YCNT) {
+-		port->rx_dma_nrows = 0;
+-		port->rx_dma_buf.tail = 0;
+-	}
+-	port->rx_dma_buf.head = port->rx_dma_buf.tail;
+-
+-	irqstat = get_dma_curr_irqstat(port->rx_dma_channel);
+-	clear_dma_irqstat(port->rx_dma_channel);
+-	spin_unlock(&self->lock);
+-
+-	mod_timer(&port->rx_dma_timer, jiffies + DMA_SIR_RX_FLUSH_JIFS);
+-	return IRQ_HANDLED;
+-}
+-#endif /* CONFIG_SIR_BFIN_DMA */
+-
+-static int bfin_sir_startup(struct bfin_sir_port *port, struct net_device *dev)
+-{
+-#ifdef CONFIG_SIR_BFIN_DMA
+-	dma_addr_t dma_handle;
+-#endif /* CONFIG_SIR_BFIN_DMA */
+-
+-	if (request_dma(port->rx_dma_channel, "BFIN_UART_RX") < 0) {
+-		dev_warn(&dev->dev, "Unable to attach SIR RX DMA channel\n");
+-		return -EBUSY;
+-	}
+-
+-	if (request_dma(port->tx_dma_channel, "BFIN_UART_TX") < 0) {
+-		dev_warn(&dev->dev, "Unable to attach SIR TX DMA channel\n");
+-		free_dma(port->rx_dma_channel);
+-		return -EBUSY;
+-	}
+-
+-#ifdef CONFIG_SIR_BFIN_DMA
+-
+-	set_dma_callback(port->rx_dma_channel, bfin_sir_dma_rx_int, dev);
+-	set_dma_callback(port->tx_dma_channel, bfin_sir_dma_tx_int, dev);
+-
+-	port->rx_dma_buf.buf = dma_alloc_coherent(NULL, PAGE_SIZE,
+-						  &dma_handle, GFP_DMA);
+-	port->rx_dma_buf.head = 0;
+-	port->rx_dma_buf.tail = 0;
+-	port->rx_dma_nrows = 0;
+-
+-	set_dma_config(port->rx_dma_channel,
+-				set_bfin_dma_config(DIR_WRITE, DMA_FLOW_AUTO,
+-									INTR_ON_ROW, DIMENSION_2D,
+-									DATA_SIZE_8, DMA_SYNC_RESTART));
+-	set_dma_x_count(port->rx_dma_channel, DMA_SIR_RX_XCNT);
+-	set_dma_x_modify(port->rx_dma_channel, 1);
+-	set_dma_y_count(port->rx_dma_channel, DMA_SIR_RX_YCNT);
+-	set_dma_y_modify(port->rx_dma_channel, 1);
+-	set_dma_start_addr(port->rx_dma_channel, (unsigned long)port->rx_dma_buf.buf);
+-	enable_dma(port->rx_dma_channel);
+-
+-
+-#else
+-
+-	if (request_irq(port->irq, bfin_sir_rx_int, 0, "BFIN_SIR_RX", dev)) {
+-		dev_warn(&dev->dev, "Unable to attach SIR RX interrupt\n");
+-		return -EBUSY;
+-	}
+-
+-	if (request_irq(port->irq+1, bfin_sir_tx_int, 0, "BFIN_SIR_TX", dev)) {
+-		dev_warn(&dev->dev, "Unable to attach SIR TX interrupt\n");
+-		free_irq(port->irq, dev);
+-		return -EBUSY;
+-	}
 -#endif
--
--#ifdef CONFIG_BF54x
--	set_dma_x_count(CH_NFC, (chip->ecc.size >> 2));
--	set_dma_x_modify(CH_NFC, 4);
--	val = DI_EN | WDSIZE_32;
--#endif
--	/* setup write or read operation */
--	if (is_read)
--		val |= WNR;
--	set_dma_config(CH_NFC, val);
--	enable_dma(CH_NFC);
--
--	/* Start PAGE read/write operation */
--	if (is_read)
--		bfin_write_NFC_PGCTL(PG_RD_START);
--	else
--		bfin_write_NFC_PGCTL(PG_WR_START);
--	wait_for_completion(&info->dma_completion);
--}
--
--static void bf5xx_nand_dma_read_buf(struct mtd_info *mtd,
--					uint8_t *buf, int len)
--{
--	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
--	struct nand_chip *chip = mtd_to_nand(mtd);
--
--	dev_dbg(info->device, "mtd->%p, buf->%p, int %d\n", mtd, buf, len);
--
--	if (len == chip->ecc.size)
--		bf5xx_nand_dma_rw(mtd, buf, 1);
--	else
--		bf5xx_nand_read_buf(mtd, buf, len);
--}
--
--static void bf5xx_nand_dma_write_buf(struct mtd_info *mtd,
--				const uint8_t *buf, int len)
--{
--	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
--	struct nand_chip *chip = mtd_to_nand(mtd);
--
--	dev_dbg(info->device, "mtd->%p, buf->%p, len %d\n", mtd, buf, len);
--
--	if (len == chip->ecc.size)
--		bf5xx_nand_dma_rw(mtd, (uint8_t *)buf, 0);
--	else
--		bf5xx_nand_write_buf(mtd, buf, len);
--}
--
--static int bf5xx_nand_read_page_raw(struct mtd_info *mtd, struct nand_chip *chip,
--		uint8_t *buf, int oob_required, int page)
--{
--	nand_read_page_op(chip, page, 0, NULL, 0);
--
--	bf5xx_nand_read_buf(mtd, buf, mtd->writesize);
--	bf5xx_nand_read_buf(mtd, chip->oob_poi, mtd->oobsize);
 -
 -	return 0;
 -}
 -
--static int bf5xx_nand_write_page_raw(struct mtd_info *mtd,
--		struct nand_chip *chip,	const uint8_t *buf, int oob_required,
--		int page)
+-static void bfin_sir_shutdown(struct bfin_sir_port *port, struct net_device *dev)
 -{
--	nand_prog_page_begin_op(chip, page, 0, buf, mtd->writesize);
--	bf5xx_nand_write_buf(mtd, chip->oob_poi, mtd->oobsize);
+-	unsigned short val;
 -
--	return nand_prog_page_end_op(chip);
+-	bfin_sir_stop_rx(port);
+-
+-	val = UART_GET_GCTL(port);
+-	val &= ~(UCEN | UMOD_MASK | RPOLC);
+-	UART_PUT_GCTL(port, val);
+-
+-#ifdef CONFIG_SIR_BFIN_DMA
+-	disable_dma(port->tx_dma_channel);
+-	disable_dma(port->rx_dma_channel);
+-	del_timer(&(port->rx_dma_timer));
+-	dma_free_coherent(NULL, PAGE_SIZE, port->rx_dma_buf.buf, 0);
+-#else
+-	free_irq(port->irq+1, dev);
+-	free_irq(port->irq, dev);
+-#endif
+-	free_dma(port->tx_dma_channel);
+-	free_dma(port->rx_dma_channel);
 -}
 -
--/*
-- * System initialization functions
-- */
--static int bf5xx_nand_dma_init(struct bf5xx_nand_info *info)
+-#ifdef CONFIG_PM
+-static int bfin_sir_suspend(struct platform_device *pdev, pm_message_t state)
 -{
--	int ret;
+-	struct bfin_sir_port *sir_port;
+-	struct net_device *dev;
+-	struct bfin_sir_self *self;
 -
--	/* Do not use dma */
--	if (!hardware_ecc)
+-	sir_port = platform_get_drvdata(pdev);
+-	if (!sir_port)
 -		return 0;
 -
--	init_completion(&info->dma_completion);
--
--	/* Request NFC DMA channel */
--	ret = request_dma(CH_NFC, "BF5XX NFC driver");
--	if (ret < 0) {
--		dev_err(info->device, " unable to get DMA channel\n");
--		return ret;
+-	dev = sir_port->dev;
+-	self = netdev_priv(dev);
+-	if (self->open) {
+-		flush_work(&self->work);
+-		bfin_sir_shutdown(self->sir_port, dev);
+-		netif_device_detach(dev);
 -	}
 -
--#ifdef CONFIG_BF54x
--	/* Setup DMAC1 channel mux for NFC which shared with SDH */
--	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() & ~1);
--	SSYNC();
--#endif
--
--	set_dma_callback(CH_NFC, bf5xx_nand_dma_irq, info);
--
--	/* Turn off the DMA channel first */
--	disable_dma(CH_NFC);
 -	return 0;
 -}
--
--static void bf5xx_nand_dma_remove(struct bf5xx_nand_info *info)
+-static int bfin_sir_resume(struct platform_device *pdev)
 -{
--	/* Free NFC DMA channel */
--	if (hardware_ecc)
--		free_dma(CH_NFC);
--}
+-	struct bfin_sir_port *sir_port;
+-	struct net_device *dev;
+-	struct bfin_sir_self *self;
+-	struct bfin_sir_port *port;
 -
--/*
-- * BF5XX NFC hardware initialization
-- *  - pin mux setup
-- *  - clear interrupt status
-- */
--static int bf5xx_nand_hw_init(struct bf5xx_nand_info *info)
--{
--	int err = 0;
--	unsigned short val;
--	struct bf5xx_nand_platform *plat = info->platform;
+-	sir_port = platform_get_drvdata(pdev);
+-	if (!sir_port)
+-		return 0;
 -
--	/* setup NFC_CTL register */
--	dev_info(info->device,
--		"data_width=%d, wr_dly=%d, rd_dly=%d\n",
--		(plat->data_width ? 16 : 8),
--		plat->wr_dly, plat->rd_dly);
--
--	val = (1 << NFC_PG_SIZE_OFFSET) |
--		(plat->data_width << NFC_NWIDTH_OFFSET) |
--		(plat->rd_dly << NFC_RDDLY_OFFSET) |
--		(plat->wr_dly << NFC_WRDLY_OFFSET);
--	dev_dbg(info->device, "NFC_CTL is 0x%04x\n", val);
--
--	bfin_write_NFC_CTL(val);
--	SSYNC();
--
--	/* clear interrupt status */
--	bfin_write_NFC_IRQMASK(0x0);
--	SSYNC();
--	val = bfin_read_NFC_IRQSTAT();
--	bfin_write_NFC_IRQSTAT(val);
--	SSYNC();
--
--	/* DMA initialization  */
--	if (bf5xx_nand_dma_init(info))
--		err = -ENXIO;
--
--	return err;
--}
--
--/*
-- * Device management interface
-- */
--static int bf5xx_nand_add_partition(struct bf5xx_nand_info *info)
--{
--	struct mtd_info *mtd = nand_to_mtd(&info->chip);
--	struct mtd_partition *parts = info->platform->partitions;
--	int nr = info->platform->nr_partitions;
--
--	return mtd_device_register(mtd, parts, nr);
--}
--
--static int bf5xx_nand_remove(struct platform_device *pdev)
--{
--	struct bf5xx_nand_info *info = to_nand_info(pdev);
--
--	/* first thing we need to do is release all our mtds
--	 * and their partitions, then go through freeing the
--	 * resources used
--	 */
--	nand_release(nand_to_mtd(&info->chip));
--
--	peripheral_free_list(bfin_nfc_pin_req);
--	bf5xx_nand_dma_remove(info);
--
--	return 0;
--}
--
--static int bf5xx_nand_scan(struct mtd_info *mtd)
--{
--	struct nand_chip *chip = mtd_to_nand(mtd);
--	int ret;
--
--	ret = nand_scan_ident(mtd, 1, NULL);
--	if (ret)
--		return ret;
--
--	if (hardware_ecc) {
--		/*
--		 * for nand with page size > 512B, think it as several sections with 512B
--		 */
--		if (likely(mtd->writesize >= 512)) {
--			chip->ecc.size = 512;
--			chip->ecc.bytes = 6;
--			chip->ecc.strength = 2;
--		} else {
--			chip->ecc.size = 256;
--			chip->ecc.bytes = 3;
--			chip->ecc.strength = 1;
--			bfin_write_NFC_CTL(bfin_read_NFC_CTL() & ~(1 << NFC_PG_SIZE_OFFSET));
--			SSYNC();
+-	dev = sir_port->dev;
+-	self = netdev_priv(dev);
+-	port = self->sir_port;
+-	if (self->open) {
+-		if (self->newspeed) {
+-			self->speed = self->newspeed;
+-			self->newspeed = 0;
 -		}
+-		bfin_sir_startup(port, dev);
+-		bfin_sir_set_speed(port, 9600);
+-		bfin_sir_enable_rx(port);
+-		netif_device_attach(dev);
 -	}
+-	return 0;
+-}
+-#else
+-#define bfin_sir_suspend   NULL
+-#define bfin_sir_resume    NULL
+-#endif
 -
--	return	nand_scan_tail(mtd);
+-static void bfin_sir_send_work(struct work_struct *work)
+-{
+-	struct bfin_sir_self  *self = container_of(work, struct bfin_sir_self, work);
+-	struct net_device *dev = self->sir_port->dev;
+-	struct bfin_sir_port *port = self->sir_port;
+-	unsigned short val;
+-	int tx_cnt = 10;
+-
+-	while (bfin_sir_is_receiving(dev) && --tx_cnt)
+-		turnaround_delay(self->mtt);
+-
+-	bfin_sir_stop_rx(port);
+-
+-	/* To avoid losting RX interrupt, we reset IR function before
+-	 * sending data. We also can set the speed, which will
+-	 * reset all the UART.
+-	 */
+-	val = UART_GET_GCTL(port);
+-	val &= ~(UMOD_MASK | RPOLC);
+-	UART_PUT_GCTL(port, val);
+-	SSYNC();
+-	val |= UMOD_IRDA | RPOLC;
+-	UART_PUT_GCTL(port, val);
+-	SSYNC();
+-	/* bfin_sir_set_speed(port, self->speed); */
+-
+-#ifdef CONFIG_SIR_BFIN_DMA
+-	bfin_sir_dma_tx_chars(dev);
+-#endif
+-	bfin_sir_enable_tx(port);
+-	netif_trans_update(dev);
 -}
 -
--/*
-- * bf5xx_nand_probe
-- *
-- * called by device layer when it finds a device matching
-- * one our driver can handled. This code checks to see if
-- * it can allocate all necessary resources then calls the
-- * nand layer to look for devices
-- */
--static int bf5xx_nand_probe(struct platform_device *pdev)
+-static int bfin_sir_hard_xmit(struct sk_buff *skb, struct net_device *dev)
 -{
--	struct bf5xx_nand_platform *plat = to_nand_plat(pdev);
--	struct bf5xx_nand_info *info = NULL;
--	struct nand_chip *chip = NULL;
--	struct mtd_info *mtd = NULL;
--	int err = 0;
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	int speed = irda_get_next_speed(skb);
 -
--	dev_dbg(&pdev->dev, "(%p)\n", pdev);
+-	netif_stop_queue(dev);
 -
--	if (!plat) {
--		dev_err(&pdev->dev, "no platform specific information\n");
--		return -EINVAL;
+-	self->mtt = irda_get_mtt(skb);
+-
+-	if (speed != self->speed && speed != -1)
+-		self->newspeed = speed;
+-
+-	self->tx_buff.data = self->tx_buff.head;
+-	if (skb->len == 0)
+-		self->tx_buff.len = 0;
+-	else
+-		self->tx_buff.len = async_wrap_skb(skb, self->tx_buff.data, self->tx_buff.truesize);
+-
+-	schedule_work(&self->work);
+-	dev_kfree_skb(skb);
+-
+-	return 0;
+-}
+-
+-static int bfin_sir_ioctl(struct net_device *dev, struct ifreq *ifreq, int cmd)
+-{
+-	struct if_irda_req *rq = (struct if_irda_req *)ifreq;
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	struct bfin_sir_port *port = self->sir_port;
+-	int ret = 0;
+-
+-	switch (cmd) {
+-	case SIOCSBANDWIDTH:
+-		if (capable(CAP_NET_ADMIN)) {
+-			if (self->open) {
+-				ret = bfin_sir_set_speed(port, rq->ifr_baudrate);
+-				bfin_sir_enable_rx(port);
+-			} else {
+-				dev_warn(&dev->dev, "SIOCSBANDWIDTH: !netif_running\n");
+-				ret = 0;
+-			}
+-		}
+-		break;
+-
+-	case SIOCSMEDIABUSY:
+-		ret = -EPERM;
+-		if (capable(CAP_NET_ADMIN)) {
+-			irda_device_set_media_busy(dev, TRUE);
+-			ret = 0;
+-		}
+-		break;
+-
+-	case SIOCGRECEIVING:
+-		rq->ifr_receiving = bfin_sir_is_receiving(dev);
+-		break;
+-
+-	default:
+-		ret = -EOPNOTSUPP;
+-		break;
 -	}
 -
--	if (peripheral_request_list(bfin_nfc_pin_req, DRV_NAME)) {
--		dev_err(&pdev->dev, "requesting Peripherals failed\n");
--		return -EFAULT;
--	}
+-	return ret;
+-}
 -
--	info = devm_kzalloc(&pdev->dev, sizeof(*info), GFP_KERNEL);
--	if (info == NULL) {
--		err = -ENOMEM;
--		goto out_err;
--	}
+-static struct net_device_stats *bfin_sir_stats(struct net_device *dev)
+-{
+-	struct bfin_sir_self *self = netdev_priv(dev);
 -
--	platform_set_drvdata(pdev, info);
+-	return &self->stats;
+-}
 -
--	nand_hw_control_init(&info->controller);
+-static int bfin_sir_open(struct net_device *dev)
+-{
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-	struct bfin_sir_port *port = self->sir_port;
+-	int err;
 -
--	info->device     = &pdev->dev;
--	info->platform   = plat;
+-	self->newspeed = 0;
+-	self->speed = 9600;
 -
--	/* initialise chip data struct */
--	chip = &info->chip;
--	mtd = nand_to_mtd(&info->chip);
+-	spin_lock_init(&self->lock);
 -
--	if (plat->data_width)
--		chip->options |= NAND_BUSWIDTH_16;
--
--	chip->options |= NAND_CACHEPRG | NAND_SKIP_BBTSCAN;
--
--	chip->read_buf = (plat->data_width) ?
--		bf5xx_nand_read_buf16 : bf5xx_nand_read_buf;
--	chip->write_buf = (plat->data_width) ?
--		bf5xx_nand_write_buf16 : bf5xx_nand_write_buf;
--
--	chip->read_byte    = bf5xx_nand_read_byte;
--
--	chip->cmd_ctrl     = bf5xx_nand_hwcontrol;
--	chip->dev_ready    = bf5xx_nand_devready;
--
--	nand_set_controller_data(chip, mtd);
--	chip->controller   = &info->controller;
--
--	chip->IO_ADDR_R    = (void __iomem *) NFC_READ;
--	chip->IO_ADDR_W    = (void __iomem *) NFC_DATA_WR;
--
--	chip->chip_delay   = 0;
--
--	/* initialise mtd info data struct */
--	mtd->dev.parent = &pdev->dev;
--
--	/* initialise the hardware */
--	err = bf5xx_nand_hw_init(info);
+-	err = bfin_sir_startup(port, dev);
 -	if (err)
--		goto out_err;
+-		goto err_startup;
 -
--	/* setup hardware ECC data struct */
--	if (hardware_ecc) {
--#ifdef CONFIG_MTD_NAND_BF5XX_BOOTROM_ECC
--		mtd_set_ooblayout(mtd, &bootrom_ooblayout_ops);
--#endif
--		chip->read_buf      = bf5xx_nand_dma_read_buf;
--		chip->write_buf     = bf5xx_nand_dma_write_buf;
--		chip->ecc.calculate = bf5xx_nand_calculate_ecc;
--		chip->ecc.correct   = bf5xx_nand_correct_data;
--		chip->ecc.mode	    = NAND_ECC_HW;
--		chip->ecc.hwctl	    = bf5xx_nand_enable_hwecc;
--		chip->ecc.read_page_raw = bf5xx_nand_read_page_raw;
--		chip->ecc.write_page_raw = bf5xx_nand_write_page_raw;
--	} else {
--		chip->ecc.mode	    = NAND_ECC_SOFT;
--		chip->ecc.algo	= NAND_ECC_HAMMING;
+-	bfin_sir_set_speed(port, 9600);
+-
+-	self->irlap = irlap_open(dev, &self->qos, DRIVER_NAME);
+-	if (!self->irlap) {
+-		err = -ENOMEM;
+-		goto err_irlap;
 -	}
 -
--	/* scan hardware nand chip and setup mtd info data struct */
--	if (bf5xx_nand_scan(mtd)) {
--		err = -ENXIO;
--		goto out_err_nand_scan;
--	}
+-	INIT_WORK(&self->work, bfin_sir_send_work);
 -
--#ifdef CONFIG_MTD_NAND_BF5XX_BOOTROM_ECC
--	chip->badblockpos = 63;
--#endif
+-	/*
+-	 * Now enable the interrupt then start the queue
+-	 */
+-	self->open = 1;
+-	bfin_sir_enable_rx(port);
 -
--	/* add NAND partition */
--	bf5xx_nand_add_partition(info);
+-	netif_start_queue(dev);
 -
--	dev_dbg(&pdev->dev, "initialised ok\n");
 -	return 0;
 -
--out_err_nand_scan:
--	bf5xx_nand_dma_remove(info);
--out_err:
--	peripheral_free_list(bfin_nfc_pin_req);
+-err_irlap:
+-	self->open = 0;
+-	bfin_sir_shutdown(port, dev);
+-err_startup:
+-	return err;
+-}
+-
+-static int bfin_sir_stop(struct net_device *dev)
+-{
+-	struct bfin_sir_self *self = netdev_priv(dev);
+-
+-	flush_work(&self->work);
+-	bfin_sir_shutdown(self->sir_port, dev);
+-
+-	if (self->rxskb) {
+-		dev_kfree_skb(self->rxskb);
+-		self->rxskb = NULL;
+-	}
+-
+-	/* Stop IrLAP */
+-	if (self->irlap) {
+-		irlap_close(self->irlap);
+-		self->irlap = NULL;
+-	}
+-
+-	netif_stop_queue(dev);
+-	self->open = 0;
+-
+-	return 0;
+-}
+-
+-static int bfin_sir_init_iobuf(iobuff_t *io, int size)
+-{
+-	io->head = kmalloc(size, GFP_KERNEL);
+-	if (!io->head)
+-		return -ENOMEM;
+-	io->truesize = size;
+-	io->in_frame = FALSE;
+-	io->state    = OUTSIDE_FRAME;
+-	io->data     = io->head;
+-	return 0;
+-}
+-
+-static const struct net_device_ops bfin_sir_ndo = {
+-	.ndo_open		= bfin_sir_open,
+-	.ndo_stop		= bfin_sir_stop,
+-	.ndo_start_xmit		= bfin_sir_hard_xmit,
+-	.ndo_do_ioctl		= bfin_sir_ioctl,
+-	.ndo_get_stats		= bfin_sir_stats,
+-};
+-
+-static int bfin_sir_probe(struct platform_device *pdev)
+-{
+-	struct net_device *dev;
+-	struct bfin_sir_self *self;
+-	unsigned int baudrate_mask;
+-	struct bfin_sir_port *sir_port;
+-	int err;
+-
+-	if (pdev->id >= 0 && pdev->id < ARRAY_SIZE(per) && \
+-				per[pdev->id][3] == pdev->id) {
+-		err = peripheral_request_list(per[pdev->id], DRIVER_NAME);
+-		if (err)
+-			return err;
+-	} else {
+-		dev_err(&pdev->dev, "Invalid pdev id, please check board file\n");
+-		return -ENODEV;
+-	}
+-
+-	err = -ENOMEM;
+-	sir_port = kmalloc(sizeof(*sir_port), GFP_KERNEL);
+-	if (!sir_port)
+-		goto err_mem_0;
+-
+-	bfin_sir_init_ports(sir_port, pdev);
+-
+-	dev = alloc_irdadev(sizeof(*self));
+-	if (!dev)
+-		goto err_mem_1;
+-
+-	self = netdev_priv(dev);
+-	self->dev = &pdev->dev;
+-	self->sir_port = sir_port;
+-	sir_port->dev = dev;
+-
+-	err = bfin_sir_init_iobuf(&self->rx_buff, IRDA_SKB_MAX_MTU);
+-	if (err)
+-		goto err_mem_2;
+-	err = bfin_sir_init_iobuf(&self->tx_buff, IRDA_SIR_MAX_FRAME);
+-	if (err)
+-		goto err_mem_3;
+-
+-	dev->netdev_ops = &bfin_sir_ndo;
+-	dev->irq = sir_port->irq;
+-
+-	irda_init_max_qos_capabilies(&self->qos);
+-
+-	baudrate_mask = IR_9600;
+-
+-	switch (max_rate) {
+-	case 115200:
+-		baudrate_mask |= IR_115200;
+-	case 57600:
+-		baudrate_mask |= IR_57600;
+-	case 38400:
+-		baudrate_mask |= IR_38400;
+-	case 19200:
+-		baudrate_mask |= IR_19200;
+-	case 9600:
+-		break;
+-	default:
+-		dev_warn(&pdev->dev, "Invalid maximum baud rate, using 9600\n");
+-	}
+-
+-	self->qos.baud_rate.bits &= baudrate_mask;
+-
+-	self->qos.min_turn_time.bits = 1; /* 10 ms or more */
+-
+-	irda_qos_bits_to_value(&self->qos);
+-
+-	err = register_netdev(dev);
+-
+-	if (err) {
+-		kfree(self->tx_buff.head);
+-err_mem_3:
+-		kfree(self->rx_buff.head);
+-err_mem_2:
+-		free_netdev(dev);
+-err_mem_1:
+-		kfree(sir_port);
+-err_mem_0:
+-		peripheral_free_list(per[pdev->id]);
+-	} else
+-		platform_set_drvdata(pdev, sir_port);
 -
 -	return err;
 -}
 -
--/* driver device registration */
--static struct platform_driver bf5xx_nand_driver = {
--	.probe		= bf5xx_nand_probe,
--	.remove		= bf5xx_nand_remove,
--	.driver		= {
--		.name	= DRV_NAME,
+-static int bfin_sir_remove(struct platform_device *pdev)
+-{
+-	struct bfin_sir_port *sir_port;
+-	struct net_device *dev = NULL;
+-	struct bfin_sir_self *self;
+-
+-	sir_port = platform_get_drvdata(pdev);
+-	if (!sir_port)
+-		return 0;
+-	dev = sir_port->dev;
+-	self = netdev_priv(dev);
+-	unregister_netdev(dev);
+-	kfree(self->tx_buff.head);
+-	kfree(self->rx_buff.head);
+-	free_netdev(dev);
+-	kfree(sir_port);
+-
+-	return 0;
+-}
+-
+-static struct platform_driver bfin_ir_driver = {
+-	.probe   = bfin_sir_probe,
+-	.remove  = bfin_sir_remove,
+-	.suspend = bfin_sir_suspend,
+-	.resume  = bfin_sir_resume,
+-	.driver  = {
+-		.name = DRIVER_NAME,
 -	},
 -};
 -
--module_platform_driver(bf5xx_nand_driver);
+-module_platform_driver(bfin_ir_driver);
 -
+-module_param(max_rate, int, 0);
+-MODULE_PARM_DESC(max_rate, "Maximum baud rate (115200, 57600, 38400, 19200, 9600)");
+-
+-MODULE_AUTHOR("Graf Yang <graf.yang@analog.com>");
+-MODULE_DESCRIPTION("Blackfin IrDA driver");
 -MODULE_LICENSE("GPL");
--MODULE_AUTHOR(DRV_AUTHOR);
--MODULE_DESCRIPTION(DRV_DESC);
--MODULE_ALIAS("platform:" DRV_NAME);
+diff --git a/drivers/staging/irda/drivers/bfin_sir.h b/drivers/staging/irda/drivers/bfin_sir.h
+deleted file mode 100644
+index d47cf14..0000000
+--- a/drivers/staging/irda/drivers/bfin_sir.h
++++ /dev/null
+@@ -1,93 +0,0 @@
+-/*
+- * Blackfin Infra-red Driver
+- *
+- * Copyright 2006-2009 Analog Devices Inc.
+- *
+- * Enter bugs at http://blackfin.uclinux.org/
+- *
+- * Licensed under the GPL-2 or later.
+- *
+- */
+-
+-#include <linux/serial.h>
+-#include <linux/module.h>
+-#include <linux/netdevice.h>
+-#include <linux/interrupt.h>
+-#include <linux/delay.h>
+-#include <linux/platform_device.h>
+-#include <linux/dma-mapping.h>
+-#include <linux/slab.h>
+-
+-#include <net/irda/irda.h>
+-#include <net/irda/wrapper.h>
+-#include <net/irda/irda_device.h>
+-
+-#include <asm/irq.h>
+-#include <asm/cacheflush.h>
+-#include <asm/dma.h>
+-#include <asm/portmux.h>
+-#undef DRIVER_NAME
+-
+-#ifdef CONFIG_SIR_BFIN_DMA
+-struct dma_rx_buf {
+-	char *buf;
+-	int head;
+-	int tail;
+-};
+-#endif
+-
+-struct bfin_sir_port {
+-	unsigned char __iomem   *membase;
+-	unsigned int            irq;
+-	unsigned int            lsr;
+-	unsigned long           clk;
+-	struct net_device       *dev;
+-#ifdef CONFIG_SIR_BFIN_DMA
+-	int                     tx_done;
+-	struct dma_rx_buf       rx_dma_buf;
+-	struct timer_list       rx_dma_timer;
+-	int                     rx_dma_nrows;
+-#endif
+-	unsigned int            tx_dma_channel;
+-	unsigned int            rx_dma_channel;
+-};
+-
+-struct bfin_sir_port_res {
+-	unsigned long   base_addr;
+-	int             irq;
+-	unsigned int    rx_dma_channel;
+-	unsigned int    tx_dma_channel;
+-};
+-
+-struct bfin_sir_self {
+-	struct bfin_sir_port    *sir_port;
+-	spinlock_t              lock;
+-	unsigned int            open;
+-	int                     speed;
+-	int                     newspeed;
+-
+-	struct sk_buff          *txskb;
+-	struct sk_buff          *rxskb;
+-	struct net_device_stats stats;
+-	struct device           *dev;
+-	struct irlap_cb         *irlap;
+-	struct qos_info         qos;
+-
+-	iobuff_t                tx_buff;
+-	iobuff_t                rx_buff;
+-
+-	struct work_struct      work;
+-	int                     mtt;
+-};
+-
+-#define DRIVER_NAME "bfin_sir"
+-
+-#include <asm/bfin_serial.h>
+-
+-static const unsigned short per[][4] = {
+-	/* rx pin      tx pin     NULL  uart_number */
+-	{P_UART0_RX, P_UART0_TX,    0,    0},
+-	{P_UART1_RX, P_UART1_TX,    0,    1},
+-	{P_UART2_RX, P_UART2_TX,    0,    2},
+-	{P_UART3_RX, P_UART3_TX,    0,    3},
+-};
 -- 
 2.7.4
