@@ -1,66 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:56287 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751694AbeCOMui (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 08:50:38 -0400
+Received: from smtp.codeaurora.org ([198.145.29.96]:38962 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752084AbeCOMyQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 08:54:16 -0400
+From: Kalle Valo <kvalo@codeaurora.org>
+Subject: Re: [PATCH 11/16] treewide: simplify Kconfig dependencies for removed archs
+References: <20180314143529.1456168-1-arnd@arndb.de>
+        <20180314144614.1632190-1-arnd@arndb.de>
+Date: Thu, 15 Mar 2018 14:54:07 +0200
+In-Reply-To: <20180314144614.1632190-1-arnd@arndb.de> (Arnd Bergmann's message
+        of "Wed, 14 Mar 2018 15:43:46 +0100")
+Message-ID: <873711zehc.fsf@purkki.adurom.net>
 MIME-Version: 1.0
-In-Reply-To: <87o9jpbmcy.fsf@xmission.com>
-References: <20180314143529.1456168-1-arnd@arndb.de> <20180314144614.1632190-1-arnd@arndb.de>
- <20180314144614.1632190-2-arnd@arndb.de> <87po45hcuy.fsf@xmission.com>
- <CAK8P3a1GL2N=emTbSgNGHxOrXtG6BxqRGMg00-tZqKg6-0O5=w@mail.gmail.com> <87o9jpbmcy.fsf@xmission.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 15 Mar 2018 13:50:36 +0100
-Message-ID: <CAK8P3a2ii0aQ6sSB_B_KeMWw51Y8mbX0eL6EPj5fQ8b8bJqmUQ@mail.gmail.com>
-Subject: Re: [PATCH 12/16] asm-generic: siginfo: remove obsolete #ifdefs
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20180315125036.jDHmnzSYhf4nrkhtJUWLUpeK-mYYO-_45RXL3idTZHM@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-block@vger.kernel.org, linux-ide@vger.kernel.org, linux-input@vger.kernel.org, netdev@vger.kernel.org, linux-wireless@vger.kernel.org, linux-pwm@vger.kernel.org, linux-rtc@vger.kernel.org, linux-spi@vger.kernel.org, linux-usb@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-fbdev@vger.kernel.org, linux-watchdog@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20180315125407.rM0EE_8z8Y5qLx7Jl_u5F82ow3nYYBsVAp9I3Nu7bN8@z>
 
-On Thu, Mar 15, 2018 at 12:37 PM, Eric W. Biederman
-<ebiederm@xmission.com> wrote:
->> On Thu, Mar 15, 2018 at 11:06 AM, Eric W. Biederman
+Arnd Bergmann <arnd@arndb.de> writes:
 
->> That seems reasonable. If you send me a patch with a proper
->> changelog (I don't think I could explain this well enough), I'll
->> add it to the series.
+> A lot of Kconfig symbols have architecture specific dependencies.
+> In those cases that depend on architectures we have already removed,
+> they can be omitted.
 >
-> I just realized you can also remove the #ifdefs for BUS_MCEERR_AR,
-> BUS_MCEERR_AO, and SEGV_BNDERR.  As those si_codes are now always
-> defined.  That description I expect you can handle.
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-My existing patch already does this, and I've added a note to the changelog
-as well now.
+[...]
 
-> For a description of the above change how does this sound?
->
-> Unlike system call numbers the assignment of si_codes has never had a
-> reason to be made per architecture.  Some architectures have had unique
-> conditions to report and reporting those conditions needed new si_codes.
-> Nothing has ever needed si_codes to have different values on different
-> architectures.  The si_code space is vast so even with defining all
-> si_codes on all architectures there is no danger in running out of
-> si_code values.
->
-> The history of the si_codes BUS_MCEERR_AR, BUS_MCEER_AO, SEGV_BNDERR,
-> and SEGV_PKUERR show that a need of one architecture frequently becomes
-> a need of another architecture which makes sharing si_codes between
-> architectures a positive benefit and something to be encouraged.
->
-> Where there are no conflicts with the historical ia64 arch specific
-> si_codes and any other si_codes make them generic si_codes.  We might
-> need them on another architecture someday.
->
-> This leaves only the good example of arch generic si_codes in the kernel
-> for future architectures and architecture enhancments to follow.
-> Without bad examples to follow it should be easy to avoid the mistakes
-> of the past.
+>  drivers/net/wireless/cisco/Kconfig   |  2 +-
 
-Ok, done. I've listed you as 'Suggested-by' for that patch. Since the
-changelog is way more work than the actual change, I would have
-made you the author of that patch, but I don't have a Signed-off-by
-from you for it.
+Acked-by: Kalle Valo <kvalo@codeaurora.org>
 
-      Arnd
+-- 
+Kalle Valo
