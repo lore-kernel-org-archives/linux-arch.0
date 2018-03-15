@@ -1,77 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:56074 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:54636 "EHLO
         smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751357AbeCOMpv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 08:45:51 -0400
+        with ESMTP id S1751603AbeCOMp3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 08:45:29 -0400
 From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: [PATCH v2 3/4] arm64: Implement page table free interfaces
-Date: Thu, 15 Mar 2018 18:15:05 +0530
-Message-ID: <1521117906-20107-4-git-send-email-cpandya@codeaurora.org>
+Subject: [PATCH v2 1/4] asm/tlbflush: Add flush_tlb_pgtable() for ARM64
+Date: Thu, 15 Mar 2018 18:15:03 +0530
+Message-ID: <1521117906-20107-2-git-send-email-cpandya@codeaurora.org>
 In-Reply-To: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
 References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de
 Cc: mark.rutland@arm.com, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com, Chintan Pandya <cpandya@codeaurora.org>
-Message-ID: <20180315124505.rmlJMU_jFkUuE4EY2fKJ0XW4dOGKKZdl3Ot5AdJb0Oc@z>
+Message-ID: <20180315124503.ldBkJb-kNx2Kcb_3zBWCXDht1kuVmFY81-2ElFUowV0@z>
 
-Implement pud_free_pmd_page() and pmd_free_pte_page().
-
-Make sure, that they are indeed a page table before
-taking them to free.
+ARM64 MMU implements invalidation of TLB for
+intermediate page tables for perticular VA. This
+may or may not be available for other arch. So,
+provide this API hook only for ARM64, for now.
 
 Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
 ---
- arch/arm64/mm/mmu.c | 20 ++++++++++++++++++--
- 1 file changed, 18 insertions(+), 2 deletions(-)
+ arch/arm64/include/asm/tlbflush.h | 5 +++++
+ include/asm-generic/tlb.h         | 6 ++++++
+ 2 files changed, 11 insertions(+)
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index 2dbb2c9..6f21a65 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -32,6 +32,7 @@
- #include <linux/io.h>
- #include <linux/mm.h>
- #include <linux/vmalloc.h>
-+#include <linux/hugetlb.h>
- 
- #include <asm/barrier.h>
- #include <asm/cputype.h>
-@@ -45,6 +46,7 @@
- #include <asm/memblock.h>
- #include <asm/mmu_context.h>
- #include <asm/ptdump.h>
-+#include <asm/page.h>
- 
- #define NO_BLOCK_MAPPINGS	BIT(0)
- #define NO_CONT_MAPPINGS	BIT(1)
-@@ -975,10 +977,24 @@ int pmd_clear_huge(pmd_t *pmdp)
- 
- int pud_free_pmd_page(pud_t *pud)
- {
--	return pud_none(*pud);
-+	pmd_t *pmd;
-+	int i;
-+
-+	pmd = __va(pud_val(*pud));
-+	if (pud_val(*pud) && !pud_huge(*pud)) {
-+		for (i = 0; i < PTRS_PER_PMD; i++)
-+			pmd_free_pte_page(&pmd[i]);
-+
-+		free_page((unsigned long)pmd);
-+	}
-+
-+	return 1;
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+index 9e82dd7..5f656f0 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -209,6 +209,11 @@ static inline void __flush_tlb_pgtable(struct mm_struct *mm,
+ 	dsb(ish);
  }
  
- int pmd_free_pte_page(pmd_t *pmd)
- {
--	return pmd_none(*pmd);
-+	if (pmd_val(*pmd) && !pmd_huge(*pmd))
-+		free_page((unsigned long)__va(pmd_val(*pmd)));
-+
-+	return 1;
- }
++static inline void flush_tlb_pgtable(struct mm_struct *mm,
++				       unsigned long uaddr)
++{
++	__flush_tlb_pgtable(mm, uaddr);
++}
+ #endif
+ 
+ #endif
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index faddde4..7832c0a 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -295,4 +295,10 @@ static inline void tlb_remove_check_page_size_change(struct mmu_gather *tlb,
+ 
+ #define tlb_migrate_finish(mm) do {} while (0)
+ 
++#ifndef CONFIG_ARM64
++static inline void flush_tlb_pgtable(struct mm_struct *mm,
++					unsigned long uaddr)
++{
++}
++#endif
+ #endif /* _ASM_GENERIC__TLB_H */
 -- 
 Qualcomm India Private Limited, on behalf of Qualcomm Innovation
 Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
