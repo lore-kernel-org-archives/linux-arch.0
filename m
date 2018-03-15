@@ -1,36 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f195.google.com ([209.85.220.195]:35326 "EHLO
-        mail-qk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752685AbeCOPyO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 11:54:14 -0400
-Received: by mail-qk0-f195.google.com with SMTP id s188so7822248qkb.2
-        for <linux-arch@vger.kernel.org>; Thu, 15 Mar 2018 08:54:14 -0700 (PDT)
+Received: from mga14.intel.com ([192.55.52.115]:33190 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932653AbeCOPzg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Mar 2018 11:55:36 -0400
+Subject: Re: [PATCH v3] x86: treat pkey-0 special
+References: <1521061214-22385-1-git-send-email-linuxram@us.ibm.com>
+ <alpine.DEB.2.21.1803151039430.1525@nanos.tec.linutronix.de>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <f5ef79ef-122a-e0a3-9b8e-d49c33f4a417@intel.com>
+Date: Thu, 15 Mar 2018 08:55:31 -0700
 MIME-Version: 1.0
-In-Reply-To: <1521111028-19856-11-git-send-email-aaron.wu@analog.com>
-References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com> <1521111028-19856-11-git-send-email-aaron.wu@analog.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 15 Mar 2018 16:54:11 +0100
-Message-ID: <CAK8P3a2MKK4gNfP6jN8+ZXpUgS56UBqwdM5aPnbe3e--0BWr5w@mail.gmail.com>
-Subject: Re: [Blackfin removal] [PATCH 11/28] misc: Remove Blackfin DSP echo support
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <alpine.DEB.2.21.1803151039430.1525@nanos.tec.linutronix.de>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aaron Wu <aaron.wu@analog.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Steve Underwood <steveu@coppice.org>, David Rowe <david@rowetel.com>, gregkh <gregkh@linuxfoundation.org>
+To: Thomas Gleixner <tglx@linutronix.de>, Ram Pai <linuxram@us.ibm.com>
+Cc: mingo@redhat.com, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com, Ulrich.Weigand@de.ibm.com
+Message-ID: <20180315155531.jmH_wk9c3YTc-cgEgaMybkl5luyxbJKYAX4uT5C3YW4@z>
 
-On Thu, Mar 15, 2018 at 11:50 AM, Aaron Wu <aaron.wu@analog.com> wrote:
-> Signed-off-by: Aaron Wu <aaron.wu@analog.com>
->
-> Remove Blackfin DSP echo support
-> ---
->  drivers/misc/echo/echo.c | 73 ------------------------------------------------
->  drivers/misc/echo/fir.h  | 50 ---------------------------------
->  2 files changed, 123 deletions(-)
+On 03/15/2018 02:46 AM, Thomas Gleixner wrote:
+>> +	if (!pkey || !mm_pkey_is_allocated(mm, pkey))
+> Why this extra check? mm_pkey_is_allocated(mm, 0) should not return true
+> ever. If it does, then this wants to be fixed.
 
-I had picked up this patch at first, but now took a closer look and found no
-users of this module. It sounds to me like we should remove the entire
-directory rather than just the blackfin portion.
-
-Adding the original authors to Cc for clarification.
-
-      Arnd
+I was thinking that we _do_ actually want it to seem allocated.  It just
+get "allocated" implicitly when an mm is created.  I think that will
+simplify the code if we avoid treating it specially in as many places as
+possible.
