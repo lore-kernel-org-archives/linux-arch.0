@@ -1,66 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from orcrist.hmeau.com ([104.223.48.154]:57582 "EHLO
-        deadmen.hmeau.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752708AbeCOOzz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 10:55:55 -0400
-Date: Thu, 15 Mar 2018 22:55:38 +0800
-From: Herbert Xu <herbert@gondor.apana.org.au>
-Subject: Re: [Blackfin removal] [PATCH 18/28] crypto: Remove Blackfin crypto
- support
-Message-ID: <20180315145538.GD31069@gondor.apana.org.au>
-References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
- <1521111028-19856-18-git-send-email-aaron.wu@analog.com>
- <CAK8P3a3qT-s5vp317tZYYZHBmbumdwhWrw-tDpw1bP2_Bpiv5g@mail.gmail.com>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:41014 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751903AbeCOPQy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Mar 2018 11:16:54 -0400
+Date: Thu, 15 Mar 2018 15:16:45 +0000
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v2 2/4] ioremap: Implement TLB_INV before huge mapping
+Message-ID: <20180315151645.fsgcywyawvtiwx52@lakrids.cambridge.arm.com>
+References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
+ <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
+ <20180315131316.fd5ftqwgdb5bf5we@lakrids.cambridge.arm.com>
+ <839387ee-e1c2-cc71-c06a-7bc2d0eda73d@codeaurora.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a3qT-s5vp317tZYYZHBmbumdwhWrw-tDpw1bP2_Bpiv5g@mail.gmail.com>
+In-Reply-To: <839387ee-e1c2-cc71-c06a-7bc2d0eda73d@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Aaron Wu <aaron.wu@analog.com>, linux-arch <linux-arch@vger.kernel.org>, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Fabien Dessenne <fabien.dessenne@st.com>
+To: Chintan Pandya <cpandya@codeaurora.org>
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com
+Message-ID: <20180315151645.pES5LINOQ1fkKTPOh8GG2qNdars5wlwF0STkWNnd3Gc@z>
 
-On Thu, Mar 15, 2018 at 03:49:33PM +0100, Arnd Bergmann wrote:
-> On Thu, Mar 15, 2018 at 11:50 AM, Aaron Wu <aaron.wu@analog.com> wrote:
-> > Signed-off-by: Aaron Wu <aaron.wu@analog.com>
-> >
-> > Remove Blackfin crypto support
-> > ---
-> >  crypto/testmgr.c          |   6 -
-> >  crypto/testmgr.h          |  88 ------
+On Thu, Mar 15, 2018 at 06:55:32PM +0530, Chintan Pandya wrote:
+> On 3/15/2018 6:43 PM, Mark Rutland wrote:
+> > On Thu, Mar 15, 2018 at 06:15:04PM +0530, Chintan Pandya wrote:
+> > > Huge mapping changes PMD/PUD which could have
+> > > valid previous entries. This requires proper
+> > > TLB maintanance on some architectures, like
+> > > ARM64.
+> > 
+> > Just to check, I take it that you mean we could have a valid table
+> > entry, but all the entries in that next level table must be invalid,
+> > right?
 > 
-> I'm not sure about this one: while the function name indicates that this is
-> blackfin specific, my reading of the code is that it would also apply to
-> any other crc32 accelerator like drivers/crypto/stm32/stm32_crc32.c
-> 
-> Should I include this removal in my series or not?
+> That was my assumption but my assumption can be wrong if any VA gets
+> block mapping for 1G directly (instead of the 2M cases we discussed
+> so far), then this would go for a toss.
 
-Please send all these bfin_crc patches through the crypto tree.
-
-> > diff --git a/crypto/testmgr.c b/crypto/testmgr.c
-> > index d5e23a1..8dacd69 100644
-> > --- a/crypto/testmgr.c
-> > +++ b/crypto/testmgr.c
-> > @@ -3070,12 +3070,6 @@ static const struct alg_test_desc alg_test_descs[] = {
-> >                         .hash = __VECS(ghash_tv_template)
-> >                 }
-> >         }, {
-> > -               .alg = "hmac(crc32)",
-> > -               .test = alg_test_hash,
-> > -               .suite = {
-> > -                       .hash = __VECS(bfin_crc_tv_template)
-> > -               }
-> > -       }, {
-
-Yes this should be removed.  While we do still have other crc32
-implementations and you could apply the hmac template on them,
-it makes no sense to do so and nobody provides a direct hmac(crc32)
-implementation.
-
-So there is no point for this test vector to exist.
+Ok. Just considering the 4K -> 2M case, is that an assumption, or a
+guarantee?
 
 Thanks,
--- 
-Email: Herbert Xu <herbert@gondor.apana.org.au>
-Home Page: http://gondor.apana.org.au/~herbert/
-PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
+Mark.
