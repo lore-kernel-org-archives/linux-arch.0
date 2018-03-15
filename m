@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0069.outbound.protection.outlook.com ([104.47.36.69]:58267
+Received: from mail-sn1nam02on0052.outbound.protection.outlook.com ([104.47.36.52]:29926
         "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751771AbeCOK7x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 06:59:53 -0400
+        id S1752071AbeCOLAI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Mar 2018 07:00:08 -0400
 From: Aaron Wu <aaron.wu@analog.com>
-Subject: [Blackfin removal] [PATCH 03/28] media: Remove Blackfin media support
-Date: Thu, 15 Mar 2018 18:50:03 +0800
-Message-ID: <1521111028-19856-3-git-send-email-aaron.wu@analog.com>
+Subject: [Blackfin removal] [PATCH 05/28] rtc: Remove Blackfin RTC support
+Date: Thu, 15 Mar 2018 18:50:05 +0800
+Message-ID: <1521111028-19856-5-git-send-email-aaron.wu@analog.com>
 In-Reply-To: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 MIME-Version: 1.0
@@ -19,1586 +19,500 @@ Cc: viro@zeniv.linux.org.uk, jhogan@kernel.org, linux-metag@vger.kernel.org, jon
 
 Signed-off-by: Aaron Wu <aaron.wu@analog.com>
 
-Remove Blackfin media support
+Remove Blackfin RTC support
 ---
- drivers/media/platform/Kconfig                 |   2 -
- drivers/media/platform/Makefile                |   2 -
- drivers/media/platform/blackfin/Kconfig        |  16 -
- drivers/media/platform/blackfin/Makefile       |   2 -
- drivers/media/platform/blackfin/bfin_capture.c | 989 -------------------------
- drivers/media/platform/blackfin/ppi.c          | 361 ---------
- include/media/blackfin/bfin_capture.h          |  39 -
- include/media/blackfin/ppi.h                   |  94 ---
- 8 files changed, 1505 deletions(-)
- delete mode 100644 drivers/media/platform/blackfin/Kconfig
- delete mode 100644 drivers/media/platform/blackfin/Makefile
- delete mode 100644 drivers/media/platform/blackfin/bfin_capture.c
- delete mode 100644 drivers/media/platform/blackfin/ppi.c
- delete mode 100644 include/media/blackfin/bfin_capture.h
- delete mode 100644 include/media/blackfin/ppi.h
+ drivers/rtc/Kconfig    |  10 --
+ drivers/rtc/Makefile   |   1 -
+ drivers/rtc/rtc-bfin.c | 448 -------------------------------------------------
+ 3 files changed, 459 deletions(-)
+ delete mode 100644 drivers/rtc/rtc-bfin.c
 
-diff --git a/drivers/media/platform/Kconfig b/drivers/media/platform/Kconfig
-index 614fbef..00158b3 100644
---- a/drivers/media/platform/Kconfig
-+++ b/drivers/media/platform/Kconfig
-@@ -31,8 +31,6 @@ source "drivers/media/platform/davinci/Kconfig"
+diff --git a/drivers/rtc/Kconfig b/drivers/rtc/Kconfig
+index 8ab5f0a5..622d0ed2 100644
+--- a/drivers/rtc/Kconfig
++++ b/drivers/rtc/Kconfig
+@@ -1434,16 +1434,6 @@ config RTC_DRV_AU1XXX
+ 	  This driver can also be built as a module. If so, the module
+ 	  will be called rtc-au1xxx.
  
- source "drivers/media/platform/omap/Kconfig"
- 
--source "drivers/media/platform/blackfin/Kconfig"
--
- config VIDEO_SH_VOU
- 	tristate "SuperH VOU video output driver"
- 	depends on MEDIA_CAMERA_SUPPORT
-diff --git a/drivers/media/platform/Makefile b/drivers/media/platform/Makefile
-index 7f30804..e2b5cb3 100644
---- a/drivers/media/platform/Makefile
-+++ b/drivers/media/platform/Makefile
-@@ -53,8 +53,6 @@ obj-$(CONFIG_VIDEO_TEGRA_HDMI_CEC)	+= tegra-cec/
- 
- obj-y					+= stm32/
- 
--obj-y                                   += blackfin/
--
- obj-y					+= davinci/
- 
- obj-$(CONFIG_VIDEO_SH_VOU)		+= sh_vou.o
-diff --git a/drivers/media/platform/blackfin/Kconfig b/drivers/media/platform/blackfin/Kconfig
-deleted file mode 100644
-index 68fa901..0000000
---- a/drivers/media/platform/blackfin/Kconfig
-+++ /dev/null
-@@ -1,16 +0,0 @@
--config VIDEO_BLACKFIN_CAPTURE
--	tristate "Blackfin Video Capture Driver"
--	depends on VIDEO_V4L2 && BLACKFIN && I2C
--	depends on HAS_DMA
--	select VIDEOBUF2_DMA_CONTIG
+-config RTC_DRV_BFIN
+-	tristate "Blackfin On-Chip RTC"
+-	depends on BLACKFIN && !BF561
 -	help
--	  V4L2 bridge driver for Blackfin video capture device.
--	  Choose PPI or EPPI as its interface.
+-	  If you say yes here you will get support for the
+-	  Blackfin On-Chip Real Time Clock.
 -
--	  To compile this driver as a module, choose M here: the
--	  module will be called bfin_capture.
+-	  This driver can also be built as a module. If so, the module
+-	  will be called rtc-bfin.
 -
--config VIDEO_BLACKFIN_PPI
--	tristate
--	depends on VIDEO_BLACKFIN_CAPTURE
--	default VIDEO_BLACKFIN_CAPTURE
-diff --git a/drivers/media/platform/blackfin/Makefile b/drivers/media/platform/blackfin/Makefile
+ config RTC_DRV_RS5C313
+ 	tristate "Ricoh RS5C313"
+ 	depends on SH_LANDISK
+diff --git a/drivers/rtc/Makefile b/drivers/rtc/Makefile
+index 4fbf87e4..014c8a8 100644
+--- a/drivers/rtc/Makefile
++++ b/drivers/rtc/Makefile
+@@ -36,7 +36,6 @@ obj-$(CONFIG_RTC_DRV_ASM9260)	+= rtc-asm9260.o
+ obj-$(CONFIG_RTC_DRV_AT91RM9200)+= rtc-at91rm9200.o
+ obj-$(CONFIG_RTC_DRV_AT91SAM9)	+= rtc-at91sam9.o
+ obj-$(CONFIG_RTC_DRV_AU1XXX)	+= rtc-au1xxx.o
+-obj-$(CONFIG_RTC_DRV_BFIN)	+= rtc-bfin.o
+ obj-$(CONFIG_RTC_DRV_BRCMSTB)	+= rtc-brcmstb-waketimer.o
+ obj-$(CONFIG_RTC_DRV_BQ32K)	+= rtc-bq32k.o
+ obj-$(CONFIG_RTC_DRV_BQ4802)	+= rtc-bq4802.o
+diff --git a/drivers/rtc/rtc-bfin.c b/drivers/rtc/rtc-bfin.c
 deleted file mode 100644
-index 30421bc..0000000
---- a/drivers/media/platform/blackfin/Makefile
+index 15344b7..0000000
+--- a/drivers/rtc/rtc-bfin.c
 +++ /dev/null
-@@ -1,2 +0,0 @@
--obj-$(CONFIG_VIDEO_BLACKFIN_CAPTURE) += bfin_capture.o
--obj-$(CONFIG_VIDEO_BLACKFIN_PPI)     += ppi.o
-diff --git a/drivers/media/platform/blackfin/bfin_capture.c b/drivers/media/platform/blackfin/bfin_capture.c
-deleted file mode 100644
-index 41f1791..0000000
---- a/drivers/media/platform/blackfin/bfin_capture.c
-+++ /dev/null
-@@ -1,989 +0,0 @@
+@@ -1,448 +0,0 @@
 -/*
-- * Analog Devices video capture driver
+- * Blackfin On-Chip Real Time Clock Driver
+- *  Supports BF51x/BF52x/BF53[123]/BF53[467]/BF54x
 - *
-- * Copyright (c) 2011 Analog Devices Inc.
+- * Copyright 2004-2010 Analog Devices Inc.
 - *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
+- * Enter bugs at http://blackfin.uclinux.org/
 - *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
+- * Licensed under the GPL-2 or later.
 - */
 -
+-/* The biggest issue we deal with in this driver is that register writes are
+- * synced to the RTC frequency of 1Hz.  So if you write to a register and
+- * attempt to write again before the first write has completed, the new write
+- * is simply discarded.  This can easily be troublesome if userspace disables
+- * one event (say periodic) and then right after enables an event (say alarm).
+- * Since all events are maintained in the same interrupt mask register, if
+- * we wrote to it to disable the first event and then wrote to it again to
+- * enable the second event, that second event would not be enabled as the
+- * write would be discarded and things quickly fall apart.
+- *
+- * To keep this delay from significantly degrading performance (we, in theory,
+- * would have to sleep for up to 1 second every time we wanted to write a
+- * register), we only check the write pending status before we start to issue
+- * a new write.  We bank on the idea that it doesn't matter when the sync
+- * happens so long as we don't attempt another write before it does.  The only
+- * time userspace would take this penalty is when they try and do multiple
+- * operations right after another ... but in this case, they need to take the
+- * sync penalty, so we should be OK.
+- *
+- * Also note that the RTC_ISTAT register does not suffer this penalty; its
+- * writes to clear status registers complete immediately.
+- */
+-
+-/* It may seem odd that there is no SWCNT code in here (which would be exposed
+- * via the periodic interrupt event, or PIE).  Since the Blackfin RTC peripheral
+- * runs in units of seconds (N/HZ) but the Linux framework runs in units of HZ
+- * (2^N HZ), there is no point in keeping code that only provides 1 HZ PIEs.
+- * The same exact behavior can be accomplished by using the update interrupt
+- * event (UIE).  Maybe down the line the RTC peripheral will suck less in which
+- * case we can re-introduce PIE support.
+- */
+-
+-#include <linux/bcd.h>
 -#include <linux/completion.h>
 -#include <linux/delay.h>
--#include <linux/errno.h>
--#include <linux/fs.h>
--#include <linux/i2c.h>
 -#include <linux/init.h>
 -#include <linux/interrupt.h>
--#include <linux/io.h>
--#include <linux/mm.h>
+-#include <linux/kernel.h>
 -#include <linux/module.h>
 -#include <linux/platform_device.h>
+-#include <linux/rtc.h>
+-#include <linux/seq_file.h>
 -#include <linux/slab.h>
--#include <linux/time.h>
--#include <linux/types.h>
 -
--#include <media/v4l2-common.h>
--#include <media/v4l2-ctrls.h>
--#include <media/v4l2-device.h>
--#include <media/v4l2-ioctl.h>
--#include <media/videobuf2-dma-contig.h>
+-#include <asm/blackfin.h>
 -
--#include <asm/dma.h>
+-#define dev_dbg_stamp(dev) dev_dbg(dev, "%s:%i: here i am\n", __func__, __LINE__)
 -
--#include <media/blackfin/bfin_capture.h>
--#include <media/blackfin/ppi.h>
--
--#define CAPTURE_DRV_NAME        "bfin_capture"
--
--struct bcap_format {
--	char *desc;
--	u32 pixelformat;
--	u32 mbus_code;
--	int bpp; /* bits per pixel */
--	int dlen; /* data length for ppi in bits */
+-struct bfin_rtc {
+-	struct rtc_device *rtc_dev;
+-	struct rtc_time rtc_alarm;
+-	u16 rtc_wrote_regs;
 -};
 -
--struct bcap_buffer {
--	struct vb2_v4l2_buffer vb;
--	struct list_head list;
--};
+-/* Bit values for the ISTAT / ICTL registers */
+-#define RTC_ISTAT_WRITE_COMPLETE  0x8000
+-#define RTC_ISTAT_WRITE_PENDING   0x4000
+-#define RTC_ISTAT_ALARM_DAY       0x0040
+-#define RTC_ISTAT_24HR            0x0020
+-#define RTC_ISTAT_HOUR            0x0010
+-#define RTC_ISTAT_MIN             0x0008
+-#define RTC_ISTAT_SEC             0x0004
+-#define RTC_ISTAT_ALARM           0x0002
+-#define RTC_ISTAT_STOPWATCH       0x0001
 -
--struct bcap_device {
--	/* capture device instance */
--	struct v4l2_device v4l2_dev;
--	/* v4l2 control handler */
--	struct v4l2_ctrl_handler ctrl_handler;
--	/* device node data */
--	struct video_device video_dev;
--	/* sub device instance */
--	struct v4l2_subdev *sd;
--	/* capture config */
--	struct bfin_capture_config *cfg;
--	/* ppi interface */
--	struct ppi_if *ppi;
--	/* current input */
--	unsigned int cur_input;
--	/* current selected standard */
--	v4l2_std_id std;
--	/* current selected dv_timings */
--	struct v4l2_dv_timings dv_timings;
--	/* used to store pixel format */
--	struct v4l2_pix_format fmt;
--	/* bits per pixel*/
--	int bpp;
--	/* data length for ppi in bits */
--	int dlen;
--	/* used to store sensor supported format */
--	struct bcap_format *sensor_formats;
--	/* number of sensor formats array */
--	int num_sensor_formats;
--	/* pointing to current video buffer */
--	struct bcap_buffer *cur_frm;
--	/* buffer queue used in videobuf2 */
--	struct vb2_queue buffer_queue;
--	/* queue of filled frames */
--	struct list_head dma_queue;
--	/* used in videobuf2 callback */
--	spinlock_t lock;
--	/* used to access capture device */
--	struct mutex mutex;
--	/* used to wait ppi to complete one transfer */
--	struct completion comp;
--	/* prepare to stop */
--	bool stop;
--	/* vb2 buffer sequence counter */
--	unsigned sequence;
--};
+-/* Shift values for RTC_STAT register */
+-#define DAY_BITS_OFF    17
+-#define HOUR_BITS_OFF   12
+-#define MIN_BITS_OFF    6
+-#define SEC_BITS_OFF    0
 -
--static const struct bcap_format bcap_formats[] = {
--	{
--		.desc        = "YCbCr 4:2:2 Interleaved UYVY",
--		.pixelformat = V4L2_PIX_FMT_UYVY,
--		.mbus_code   = MEDIA_BUS_FMT_UYVY8_2X8,
--		.bpp         = 16,
--		.dlen        = 8,
--	},
--	{
--		.desc        = "YCbCr 4:2:2 Interleaved YUYV",
--		.pixelformat = V4L2_PIX_FMT_YUYV,
--		.mbus_code   = MEDIA_BUS_FMT_YUYV8_2X8,
--		.bpp         = 16,
--		.dlen        = 8,
--	},
--	{
--		.desc        = "YCbCr 4:2:2 Interleaved UYVY",
--		.pixelformat = V4L2_PIX_FMT_UYVY,
--		.mbus_code   = MEDIA_BUS_FMT_UYVY8_1X16,
--		.bpp         = 16,
--		.dlen        = 16,
--	},
--	{
--		.desc        = "RGB 565",
--		.pixelformat = V4L2_PIX_FMT_RGB565,
--		.mbus_code   = MEDIA_BUS_FMT_RGB565_2X8_LE,
--		.bpp         = 16,
--		.dlen        = 8,
--	},
--	{
--		.desc        = "RGB 444",
--		.pixelformat = V4L2_PIX_FMT_RGB444,
--		.mbus_code   = MEDIA_BUS_FMT_RGB444_2X8_PADHI_LE,
--		.bpp         = 16,
--		.dlen        = 8,
--	},
--
--};
--#define BCAP_MAX_FMTS ARRAY_SIZE(bcap_formats)
--
--static irqreturn_t bcap_isr(int irq, void *dev_id);
--
--static struct bcap_buffer *to_bcap_vb(struct vb2_v4l2_buffer *vb)
+-/* Some helper functions to convert between the common RTC notion of time
+- * and the internal Blackfin notion that is encoded in 32bits.
+- */
+-static inline u32 rtc_time_to_bfin(unsigned long now)
 -{
--	return container_of(vb, struct bcap_buffer, vb);
+-	u32 sec  = (now % 60);
+-	u32 min  = (now % (60 * 60)) / 60;
+-	u32 hour = (now % (60 * 60 * 24)) / (60 * 60);
+-	u32 days = (now / (60 * 60 * 24));
+-	return (sec  << SEC_BITS_OFF) +
+-	       (min  << MIN_BITS_OFF) +
+-	       (hour << HOUR_BITS_OFF) +
+-	       (days << DAY_BITS_OFF);
+-}
+-static inline unsigned long rtc_bfin_to_time(u32 rtc_bfin)
+-{
+-	return (((rtc_bfin >> SEC_BITS_OFF)  & 0x003F)) +
+-	       (((rtc_bfin >> MIN_BITS_OFF)  & 0x003F) * 60) +
+-	       (((rtc_bfin >> HOUR_BITS_OFF) & 0x001F) * 60 * 60) +
+-	       (((rtc_bfin >> DAY_BITS_OFF)  & 0x7FFF) * 60 * 60 * 24);
+-}
+-static inline void rtc_bfin_to_tm(u32 rtc_bfin, struct rtc_time *tm)
+-{
+-	rtc_time_to_tm(rtc_bfin_to_time(rtc_bfin), tm);
 -}
 -
--static int bcap_init_sensor_formats(struct bcap_device *bcap_dev)
+-/**
+- *	bfin_rtc_sync_pending - make sure pending writes have complete
+- *
+- * Wait for the previous write to a RTC register to complete.
+- * Unfortunately, we can't sleep here as that introduces a race condition when
+- * turning on interrupt events.  Consider this:
+- *  - process sets alarm
+- *  - process enables alarm
+- *  - process sleeps while waiting for rtc write to sync
+- *  - interrupt fires while process is sleeping
+- *  - interrupt acks the event by writing to ISTAT
+- *  - interrupt sets the WRITE PENDING bit
+- *  - interrupt handler finishes
+- *  - process wakes up, sees WRITE PENDING bit set, goes to sleep
+- *  - interrupt fires while process is sleeping
+- * If anyone can point out the obvious solution here, i'm listening :).  This
+- * shouldn't be an issue on an SMP or preempt system as this function should
+- * only be called with the rtc lock held.
+- *
+- * Other options:
+- *  - disable PREN so the sync happens at 32.768kHZ ... but this changes the
+- *    inc rate for all RTC registers from 1HZ to 32.768kHZ ...
+- *  - use the write complete IRQ
+- */
+-/*
+-static void bfin_rtc_sync_pending_polled(void)
 -{
--	struct v4l2_subdev_mbus_code_enum code = {
--		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
--	};
--	struct bcap_format *sf;
--	unsigned int num_formats = 0;
--	int i, j;
+-	while (!(bfin_read_RTC_ISTAT() & RTC_ISTAT_WRITE_COMPLETE))
+-		if (!(bfin_read_RTC_ISTAT() & RTC_ISTAT_WRITE_PENDING))
+-			break;
+-	bfin_write_RTC_ISTAT(RTC_ISTAT_WRITE_COMPLETE);
+-}
+-*/
+-static DECLARE_COMPLETION(bfin_write_complete);
+-static void bfin_rtc_sync_pending(struct device *dev)
+-{
+-	dev_dbg_stamp(dev);
+-	while (bfin_read_RTC_ISTAT() & RTC_ISTAT_WRITE_PENDING)
+-		wait_for_completion_timeout(&bfin_write_complete, HZ * 5);
+-	dev_dbg_stamp(dev);
+-}
 -
--	while (!v4l2_subdev_call(bcap_dev->sd, pad,
--				enum_mbus_code, NULL, &code)) {
--		num_formats++;
--		code.index++;
+-/**
+- *	bfin_rtc_reset - set RTC to sane/known state
+- *
+- * Initialize the RTC.  Enable pre-scaler to scale RTC clock
+- * to 1Hz and clear interrupt/status registers.
+- */
+-static void bfin_rtc_reset(struct device *dev, u16 rtc_ictl)
+-{
+-	struct bfin_rtc *rtc = dev_get_drvdata(dev);
+-	dev_dbg_stamp(dev);
+-	bfin_rtc_sync_pending(dev);
+-	bfin_write_RTC_PREN(0x1);
+-	bfin_write_RTC_ICTL(rtc_ictl);
+-	bfin_write_RTC_ALARM(0);
+-	bfin_write_RTC_ISTAT(0xFFFF);
+-	rtc->rtc_wrote_regs = 0;
+-}
+-
+-/**
+- *	bfin_rtc_interrupt - handle interrupt from RTC
+- *
+- * Since we handle all RTC events here, we have to make sure the requested
+- * interrupt is enabled (in RTC_ICTL) as the event status register (RTC_ISTAT)
+- * always gets updated regardless of the interrupt being enabled.  So when one
+- * even we care about (e.g. stopwatch) goes off, we don't want to turn around
+- * and say that other events have happened as well (e.g. second).  We do not
+- * have to worry about pending writes to the RTC_ICTL register as interrupts
+- * only fire if they are enabled in the RTC_ICTL register.
+- */
+-static irqreturn_t bfin_rtc_interrupt(int irq, void *dev_id)
+-{
+-	struct device *dev = dev_id;
+-	struct bfin_rtc *rtc = dev_get_drvdata(dev);
+-	unsigned long events = 0;
+-	bool write_complete = false;
+-	u16 rtc_istat, rtc_istat_clear, rtc_ictl, bits;
+-
+-	dev_dbg_stamp(dev);
+-
+-	rtc_istat = bfin_read_RTC_ISTAT();
+-	rtc_ictl = bfin_read_RTC_ICTL();
+-	rtc_istat_clear = 0;
+-
+-	bits = RTC_ISTAT_WRITE_COMPLETE;
+-	if (rtc_istat & bits) {
+-		rtc_istat_clear |= bits;
+-		write_complete = true;
+-		complete(&bfin_write_complete);
 -	}
--	if (!num_formats)
--		return -ENXIO;
 -
--	sf = kcalloc(num_formats, sizeof(*sf), GFP_KERNEL);
--	if (!sf)
--		return -ENOMEM;
--
--	for (i = 0; i < num_formats; i++) {
--		code.index = i;
--		v4l2_subdev_call(bcap_dev->sd, pad,
--				enum_mbus_code, NULL, &code);
--		for (j = 0; j < BCAP_MAX_FMTS; j++)
--			if (code.code == bcap_formats[j].mbus_code)
--				break;
--		if (j == BCAP_MAX_FMTS) {
--			/* we don't allow this sensor working with our bridge */
--			kfree(sf);
--			return -EINVAL;
+-	bits = (RTC_ISTAT_ALARM | RTC_ISTAT_ALARM_DAY);
+-	if (rtc_ictl & bits) {
+-		if (rtc_istat & bits) {
+-			rtc_istat_clear |= bits;
+-			events |= RTC_AF | RTC_IRQF;
 -		}
--		sf[i] = bcap_formats[j];
 -	}
--	bcap_dev->sensor_formats = sf;
--	bcap_dev->num_sensor_formats = num_formats;
--	return 0;
--}
 -
--static void bcap_free_sensor_formats(struct bcap_device *bcap_dev)
--{
--	bcap_dev->num_sensor_formats = 0;
--	kfree(bcap_dev->sensor_formats);
--	bcap_dev->sensor_formats = NULL;
--}
--
--static int bcap_queue_setup(struct vb2_queue *vq,
--				unsigned int *nbuffers, unsigned int *nplanes,
--				unsigned int sizes[], struct device *alloc_devs[])
--{
--	struct bcap_device *bcap_dev = vb2_get_drv_priv(vq);
--
--	if (vq->num_buffers + *nbuffers < 2)
--		*nbuffers = 2;
--
--	if (*nplanes)
--		return sizes[0] < bcap_dev->fmt.sizeimage ? -EINVAL : 0;
--
--	*nplanes = 1;
--	sizes[0] = bcap_dev->fmt.sizeimage;
--
--	return 0;
--}
--
--static int bcap_buffer_prepare(struct vb2_buffer *vb)
--{
--	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
--	struct bcap_device *bcap_dev = vb2_get_drv_priv(vb->vb2_queue);
--	unsigned long size = bcap_dev->fmt.sizeimage;
--
--	if (vb2_plane_size(vb, 0) < size) {
--		v4l2_err(&bcap_dev->v4l2_dev, "buffer too small (%lu < %lu)\n",
--				vb2_plane_size(vb, 0), size);
--		return -EINVAL;
+-	bits = RTC_ISTAT_SEC;
+-	if (rtc_ictl & bits) {
+-		if (rtc_istat & bits) {
+-			rtc_istat_clear |= bits;
+-			events |= RTC_UF | RTC_IRQF;
+-		}
 -	}
--	vb2_set_plane_payload(vb, 0, size);
 -
--	vbuf->field = bcap_dev->fmt.field;
+-	if (events)
+-		rtc_update_irq(rtc->rtc_dev, 1, events);
+-
+-	if (write_complete || events) {
+-		bfin_write_RTC_ISTAT(rtc_istat_clear);
+-		return IRQ_HANDLED;
+-	} else
+-		return IRQ_NONE;
+-}
+-
+-static void bfin_rtc_int_set(u16 rtc_int)
+-{
+-	bfin_write_RTC_ISTAT(rtc_int);
+-	bfin_write_RTC_ICTL(bfin_read_RTC_ICTL() | rtc_int);
+-}
+-static void bfin_rtc_int_clear(u16 rtc_int)
+-{
+-	bfin_write_RTC_ICTL(bfin_read_RTC_ICTL() & rtc_int);
+-}
+-static void bfin_rtc_int_set_alarm(struct bfin_rtc *rtc)
+-{
+-	/* Blackfin has different bits for whether the alarm is
+-	 * more than 24 hours away.
+-	 */
+-	bfin_rtc_int_set(rtc->rtc_alarm.tm_yday == -1 ? RTC_ISTAT_ALARM : RTC_ISTAT_ALARM_DAY);
+-}
+-
+-static int bfin_rtc_alarm_irq_enable(struct device *dev, unsigned int enabled)
+-{
+-	struct bfin_rtc *rtc = dev_get_drvdata(dev);
+-
+-	dev_dbg_stamp(dev);
+-	if (enabled)
+-		bfin_rtc_int_set_alarm(rtc);
+-	else
+-		bfin_rtc_int_clear(~(RTC_ISTAT_ALARM | RTC_ISTAT_ALARM_DAY));
 -
 -	return 0;
 -}
 -
--static void bcap_buffer_queue(struct vb2_buffer *vb)
+-static int bfin_rtc_read_time(struct device *dev, struct rtc_time *tm)
 -{
--	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
--	struct bcap_device *bcap_dev = vb2_get_drv_priv(vb->vb2_queue);
--	struct bcap_buffer *buf = to_bcap_vb(vbuf);
--	unsigned long flags;
+-	struct bfin_rtc *rtc = dev_get_drvdata(dev);
 -
--	spin_lock_irqsave(&bcap_dev->lock, flags);
--	list_add_tail(&buf->list, &bcap_dev->dma_queue);
--	spin_unlock_irqrestore(&bcap_dev->lock, flags);
+-	dev_dbg_stamp(dev);
+-
+-	if (rtc->rtc_wrote_regs & 0x1)
+-		bfin_rtc_sync_pending(dev);
+-
+-	rtc_bfin_to_tm(bfin_read_RTC_STAT(), tm);
+-
+-	return 0;
 -}
 -
--static void bcap_buffer_cleanup(struct vb2_buffer *vb)
+-static int bfin_rtc_set_time(struct device *dev, struct rtc_time *tm)
 -{
--	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
--	struct bcap_device *bcap_dev = vb2_get_drv_priv(vb->vb2_queue);
--	struct bcap_buffer *buf = to_bcap_vb(vbuf);
--	unsigned long flags;
--
--	spin_lock_irqsave(&bcap_dev->lock, flags);
--	list_del_init(&buf->list);
--	spin_unlock_irqrestore(&bcap_dev->lock, flags);
--}
--
--static int bcap_start_streaming(struct vb2_queue *vq, unsigned int count)
--{
--	struct bcap_device *bcap_dev = vb2_get_drv_priv(vq);
--	struct ppi_if *ppi = bcap_dev->ppi;
--	struct bcap_buffer *buf, *tmp;
--	struct ppi_params params;
--	dma_addr_t addr;
+-	struct bfin_rtc *rtc = dev_get_drvdata(dev);
 -	int ret;
+-	unsigned long now;
 -
--	/* enable streamon on the sub device */
--	ret = v4l2_subdev_call(bcap_dev->sd, video, s_stream, 1);
--	if (ret && (ret != -ENOIOCTLCMD)) {
--		v4l2_err(&bcap_dev->v4l2_dev, "stream on failed in subdev\n");
--		goto err;
--	}
+-	dev_dbg_stamp(dev);
 -
--	/* set ppi params */
--	params.width = bcap_dev->fmt.width;
--	params.height = bcap_dev->fmt.height;
--	params.bpp = bcap_dev->bpp;
--	params.dlen = bcap_dev->dlen;
--	params.ppi_control = bcap_dev->cfg->ppi_control;
--	params.int_mask = bcap_dev->cfg->int_mask;
--	if (bcap_dev->cfg->inputs[bcap_dev->cur_input].capabilities
--			& V4L2_IN_CAP_DV_TIMINGS) {
--		struct v4l2_bt_timings *bt = &bcap_dev->dv_timings.bt;
--
--		params.hdelay = bt->hsync + bt->hbackporch;
--		params.vdelay = bt->vsync + bt->vbackporch;
--		params.line = V4L2_DV_BT_FRAME_WIDTH(bt);
--		params.frame = V4L2_DV_BT_FRAME_HEIGHT(bt);
--	} else if (bcap_dev->cfg->inputs[bcap_dev->cur_input].capabilities
--			& V4L2_IN_CAP_STD) {
--		params.hdelay = 0;
--		params.vdelay = 0;
--		if (bcap_dev->std & V4L2_STD_525_60) {
--			params.line = 858;
--			params.frame = 525;
--		} else {
--			params.line = 864;
--			params.frame = 625;
--		}
--	} else {
--		params.hdelay = 0;
--		params.vdelay = 0;
--		params.line = params.width + bcap_dev->cfg->blank_pixels;
--		params.frame = params.height;
--	}
--	ret = ppi->ops->set_params(ppi, &params);
--	if (ret < 0) {
--		v4l2_err(&bcap_dev->v4l2_dev,
--				"Error in setting ppi params\n");
--		goto err;
--	}
--
--	/* attach ppi DMA irq handler */
--	ret = ppi->ops->attach_irq(ppi, bcap_isr);
--	if (ret < 0) {
--		v4l2_err(&bcap_dev->v4l2_dev,
--				"Error in attaching interrupt handler\n");
--		goto err;
--	}
--
--	bcap_dev->sequence = 0;
--
--	reinit_completion(&bcap_dev->comp);
--	bcap_dev->stop = false;
--
--	/* get the next frame from the dma queue */
--	bcap_dev->cur_frm = list_entry(bcap_dev->dma_queue.next,
--					struct bcap_buffer, list);
--	/* remove buffer from the dma queue */
--	list_del_init(&bcap_dev->cur_frm->list);
--	addr = vb2_dma_contig_plane_dma_addr(&bcap_dev->cur_frm->vb.vb2_buf,
--						0);
--	/* update DMA address */
--	ppi->ops->update_addr(ppi, (unsigned long)addr);
--	/* enable ppi */
--	ppi->ops->start(ppi);
--
--	return 0;
--
--err:
--	list_for_each_entry_safe(buf, tmp, &bcap_dev->dma_queue, list) {
--		list_del(&buf->list);
--		vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_QUEUED);
+-	ret = rtc_tm_to_time(tm, &now);
+-	if (ret == 0) {
+-		if (rtc->rtc_wrote_regs & 0x1)
+-			bfin_rtc_sync_pending(dev);
+-		bfin_write_RTC_STAT(rtc_time_to_bfin(now));
+-		rtc->rtc_wrote_regs = 0x1;
 -	}
 -
 -	return ret;
 -}
 -
--static void bcap_stop_streaming(struct vb2_queue *vq)
+-static int bfin_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 -{
--	struct bcap_device *bcap_dev = vb2_get_drv_priv(vq);
--	struct ppi_if *ppi = bcap_dev->ppi;
--	int ret;
--
--	bcap_dev->stop = true;
--	wait_for_completion(&bcap_dev->comp);
--	ppi->ops->stop(ppi);
--	ppi->ops->detach_irq(ppi);
--	ret = v4l2_subdev_call(bcap_dev->sd, video, s_stream, 0);
--	if (ret && (ret != -ENOIOCTLCMD))
--		v4l2_err(&bcap_dev->v4l2_dev,
--				"stream off failed in subdev\n");
--
--	/* release all active buffers */
--	if (bcap_dev->cur_frm)
--		vb2_buffer_done(&bcap_dev->cur_frm->vb.vb2_buf,
--				VB2_BUF_STATE_ERROR);
--
--	while (!list_empty(&bcap_dev->dma_queue)) {
--		bcap_dev->cur_frm = list_entry(bcap_dev->dma_queue.next,
--						struct bcap_buffer, list);
--		list_del_init(&bcap_dev->cur_frm->list);
--		vb2_buffer_done(&bcap_dev->cur_frm->vb.vb2_buf,
--				VB2_BUF_STATE_ERROR);
--	}
+-	struct bfin_rtc *rtc = dev_get_drvdata(dev);
+-	dev_dbg_stamp(dev);
+-	alrm->time = rtc->rtc_alarm;
+-	bfin_rtc_sync_pending(dev);
+-	alrm->enabled = !!(bfin_read_RTC_ICTL() & (RTC_ISTAT_ALARM | RTC_ISTAT_ALARM_DAY));
+-	return 0;
 -}
 -
--static const struct vb2_ops bcap_video_qops = {
--	.queue_setup            = bcap_queue_setup,
--	.buf_prepare            = bcap_buffer_prepare,
--	.buf_cleanup            = bcap_buffer_cleanup,
--	.buf_queue              = bcap_buffer_queue,
--	.wait_prepare           = vb2_ops_wait_prepare,
--	.wait_finish            = vb2_ops_wait_finish,
--	.start_streaming        = bcap_start_streaming,
--	.stop_streaming         = bcap_stop_streaming,
+-static int bfin_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
+-{
+-	struct bfin_rtc *rtc = dev_get_drvdata(dev);
+-	unsigned long rtc_alarm;
+-
+-	dev_dbg_stamp(dev);
+-
+-	if (rtc_tm_to_time(&alrm->time, &rtc_alarm))
+-		return -EINVAL;
+-
+-	rtc->rtc_alarm = alrm->time;
+-
+-	bfin_rtc_sync_pending(dev);
+-	bfin_write_RTC_ALARM(rtc_time_to_bfin(rtc_alarm));
+-	if (alrm->enabled)
+-		bfin_rtc_int_set_alarm(rtc);
+-
+-	return 0;
+-}
+-
+-static int bfin_rtc_proc(struct device *dev, struct seq_file *seq)
+-{
+-#define yesno(x) ((x) ? "yes" : "no")
+-	u16 ictl = bfin_read_RTC_ICTL();
+-	dev_dbg_stamp(dev);
+-	seq_printf(seq,
+-		"alarm_IRQ\t: %s\n"
+-		"wkalarm_IRQ\t: %s\n"
+-		"seconds_IRQ\t: %s\n",
+-		yesno(ictl & RTC_ISTAT_ALARM),
+-		yesno(ictl & RTC_ISTAT_ALARM_DAY),
+-		yesno(ictl & RTC_ISTAT_SEC));
+-	return 0;
+-#undef yesno
+-}
+-
+-static const struct rtc_class_ops bfin_rtc_ops = {
+-	.read_time     = bfin_rtc_read_time,
+-	.set_time      = bfin_rtc_set_time,
+-	.read_alarm    = bfin_rtc_read_alarm,
+-	.set_alarm     = bfin_rtc_set_alarm,
+-	.proc          = bfin_rtc_proc,
+-	.alarm_irq_enable = bfin_rtc_alarm_irq_enable,
 -};
 -
--static irqreturn_t bcap_isr(int irq, void *dev_id)
+-static int bfin_rtc_probe(struct platform_device *pdev)
 -{
--	struct ppi_if *ppi = dev_id;
--	struct bcap_device *bcap_dev = ppi->priv;
--	struct vb2_v4l2_buffer *vbuf = &bcap_dev->cur_frm->vb;
--	struct vb2_buffer *vb = &vbuf->vb2_buf;
--	dma_addr_t addr;
--
--	spin_lock(&bcap_dev->lock);
--
--	if (!list_empty(&bcap_dev->dma_queue)) {
--		vb->timestamp = ktime_get_ns();
--		if (ppi->err) {
--			vb2_buffer_done(vb, VB2_BUF_STATE_ERROR);
--			ppi->err = false;
--		} else {
--			vbuf->sequence = bcap_dev->sequence++;
--			vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
--		}
--		bcap_dev->cur_frm = list_entry(bcap_dev->dma_queue.next,
--				struct bcap_buffer, list);
--		list_del_init(&bcap_dev->cur_frm->list);
--	} else {
--		/* clear error flag, we will get a new frame */
--		if (ppi->err)
--			ppi->err = false;
--	}
--
--	ppi->ops->stop(ppi);
--
--	if (bcap_dev->stop) {
--		complete(&bcap_dev->comp);
--	} else {
--		addr = vb2_dma_contig_plane_dma_addr(
--				&bcap_dev->cur_frm->vb.vb2_buf, 0);
--		ppi->ops->update_addr(ppi, (unsigned long)addr);
--		ppi->ops->start(ppi);
--	}
--
--	spin_unlock(&bcap_dev->lock);
--
--	return IRQ_HANDLED;
--}
--
--static int bcap_querystd(struct file *file, void *priv, v4l2_std_id *std)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct v4l2_input input;
--
--	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
--	if (!(input.capabilities & V4L2_IN_CAP_STD))
--		return -ENODATA;
--
--	return v4l2_subdev_call(bcap_dev->sd, video, querystd, std);
--}
--
--static int bcap_g_std(struct file *file, void *priv, v4l2_std_id *std)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct v4l2_input input;
--
--	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
--	if (!(input.capabilities & V4L2_IN_CAP_STD))
--		return -ENODATA;
--
--	*std = bcap_dev->std;
--	return 0;
--}
--
--static int bcap_s_std(struct file *file, void *priv, v4l2_std_id std)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct v4l2_input input;
+-	struct bfin_rtc *rtc;
+-	struct device *dev = &pdev->dev;
 -	int ret;
+-	unsigned long timeout = jiffies + HZ;
 -
--	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
--	if (!(input.capabilities & V4L2_IN_CAP_STD))
--		return -ENODATA;
+-	dev_dbg_stamp(dev);
 -
--	if (vb2_is_busy(&bcap_dev->buffer_queue))
--		return -EBUSY;
--
--	ret = v4l2_subdev_call(bcap_dev->sd, video, s_std, std);
--	if (ret < 0)
--		return ret;
--
--	bcap_dev->std = std;
--	return 0;
--}
--
--static int bcap_enum_dv_timings(struct file *file, void *priv,
--				struct v4l2_enum_dv_timings *timings)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct v4l2_input input;
--
--	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
--	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
--		return -ENODATA;
--
--	timings->pad = 0;
--
--	return v4l2_subdev_call(bcap_dev->sd, pad,
--			enum_dv_timings, timings);
--}
--
--static int bcap_query_dv_timings(struct file *file, void *priv,
--				struct v4l2_dv_timings *timings)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct v4l2_input input;
--
--	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
--	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
--		return -ENODATA;
--
--	return v4l2_subdev_call(bcap_dev->sd, video,
--				query_dv_timings, timings);
--}
--
--static int bcap_g_dv_timings(struct file *file, void *priv,
--				struct v4l2_dv_timings *timings)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct v4l2_input input;
--
--	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
--	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
--		return -ENODATA;
--
--	*timings = bcap_dev->dv_timings;
--	return 0;
--}
--
--static int bcap_s_dv_timings(struct file *file, void *priv,
--				struct v4l2_dv_timings *timings)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct v4l2_input input;
--	int ret;
--
--	input = bcap_dev->cfg->inputs[bcap_dev->cur_input];
--	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
--		return -ENODATA;
--
--	if (vb2_is_busy(&bcap_dev->buffer_queue))
--		return -EBUSY;
--
--	ret = v4l2_subdev_call(bcap_dev->sd, video, s_dv_timings, timings);
--	if (ret < 0)
--		return ret;
--
--	bcap_dev->dv_timings = *timings;
--	return 0;
--}
--
--static int bcap_enum_input(struct file *file, void *priv,
--				struct v4l2_input *input)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct bfin_capture_config *config = bcap_dev->cfg;
--	int ret;
--	u32 status;
--
--	if (input->index >= config->num_inputs)
--		return -EINVAL;
--
--	*input = config->inputs[input->index];
--	/* get input status */
--	ret = v4l2_subdev_call(bcap_dev->sd, video, g_input_status, &status);
--	if (!ret)
--		input->status = status;
--	return 0;
--}
--
--static int bcap_g_input(struct file *file, void *priv, unsigned int *index)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--
--	*index = bcap_dev->cur_input;
--	return 0;
--}
--
--static int bcap_s_input(struct file *file, void *priv, unsigned int index)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct bfin_capture_config *config = bcap_dev->cfg;
--	struct bcap_route *route;
--	int ret;
--
--	if (vb2_is_busy(&bcap_dev->buffer_queue))
--		return -EBUSY;
--
--	if (index >= config->num_inputs)
--		return -EINVAL;
--
--	route = &config->routes[index];
--	ret = v4l2_subdev_call(bcap_dev->sd, video, s_routing,
--				route->input, route->output, 0);
--	if ((ret < 0) && (ret != -ENOIOCTLCMD)) {
--		v4l2_err(&bcap_dev->v4l2_dev, "Failed to set input\n");
--		return ret;
--	}
--	bcap_dev->cur_input = index;
--	/* if this route has specific config, update ppi control */
--	if (route->ppi_control)
--		config->ppi_control = route->ppi_control;
--	return 0;
--}
--
--static int bcap_try_format(struct bcap_device *bcap,
--				struct v4l2_pix_format *pixfmt,
--				struct bcap_format *bcap_fmt)
--{
--	struct bcap_format *sf = bcap->sensor_formats;
--	struct bcap_format *fmt = NULL;
--	struct v4l2_subdev_pad_config pad_cfg;
--	struct v4l2_subdev_format format = {
--		.which = V4L2_SUBDEV_FORMAT_TRY,
--	};
--	int ret, i;
--
--	for (i = 0; i < bcap->num_sensor_formats; i++) {
--		fmt = &sf[i];
--		if (pixfmt->pixelformat == fmt->pixelformat)
--			break;
--	}
--	if (i == bcap->num_sensor_formats)
--		fmt = &sf[0];
--
--	v4l2_fill_mbus_format(&format.format, pixfmt, fmt->mbus_code);
--	ret = v4l2_subdev_call(bcap->sd, pad, set_fmt, &pad_cfg,
--				&format);
--	if (ret < 0)
--		return ret;
--	v4l2_fill_pix_format(pixfmt, &format.format);
--	if (bcap_fmt) {
--		for (i = 0; i < bcap->num_sensor_formats; i++) {
--			fmt = &sf[i];
--			if (format.format.code == fmt->mbus_code)
--				break;
--		}
--		*bcap_fmt = *fmt;
--	}
--	pixfmt->bytesperline = pixfmt->width * fmt->bpp / 8;
--	pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
--	return 0;
--}
--
--static int bcap_enum_fmt_vid_cap(struct file *file, void  *priv,
--					struct v4l2_fmtdesc *fmt)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct bcap_format *sf = bcap_dev->sensor_formats;
--
--	if (fmt->index >= bcap_dev->num_sensor_formats)
--		return -EINVAL;
--
--	fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
--	strlcpy(fmt->description,
--		sf[fmt->index].desc,
--		sizeof(fmt->description));
--	fmt->pixelformat = sf[fmt->index].pixelformat;
--	return 0;
--}
--
--static int bcap_try_fmt_vid_cap(struct file *file, void *priv,
--					struct v4l2_format *fmt)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct v4l2_pix_format *pixfmt = &fmt->fmt.pix;
--
--	return bcap_try_format(bcap_dev, pixfmt, NULL);
--}
--
--static int bcap_g_fmt_vid_cap(struct file *file, void *priv,
--				struct v4l2_format *fmt)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--
--	fmt->fmt.pix = bcap_dev->fmt;
--	return 0;
--}
--
--static int bcap_s_fmt_vid_cap(struct file *file, void *priv,
--				struct v4l2_format *fmt)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	struct v4l2_subdev_format format = {
--		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
--	};
--	struct bcap_format bcap_fmt;
--	struct v4l2_pix_format *pixfmt = &fmt->fmt.pix;
--	int ret;
--
--	if (vb2_is_busy(&bcap_dev->buffer_queue))
--		return -EBUSY;
--
--	/* see if format works */
--	ret = bcap_try_format(bcap_dev, pixfmt, &bcap_fmt);
--	if (ret < 0)
--		return ret;
--
--	v4l2_fill_mbus_format(&format.format, pixfmt, bcap_fmt.mbus_code);
--	ret = v4l2_subdev_call(bcap_dev->sd, pad, set_fmt, NULL, &format);
--	if (ret < 0)
--		return ret;
--	bcap_dev->fmt = *pixfmt;
--	bcap_dev->bpp = bcap_fmt.bpp;
--	bcap_dev->dlen = bcap_fmt.dlen;
--	return 0;
--}
--
--static int bcap_querycap(struct file *file, void  *priv,
--				struct v4l2_capability *cap)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--
--	cap->device_caps = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
--	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
--	strlcpy(cap->driver, CAPTURE_DRV_NAME, sizeof(cap->driver));
--	strlcpy(cap->bus_info, "Blackfin Platform", sizeof(cap->bus_info));
--	strlcpy(cap->card, bcap_dev->cfg->card_name, sizeof(cap->card));
--	return 0;
--}
--
--static int bcap_g_parm(struct file *file, void *fh,
--				struct v4l2_streamparm *a)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--
--	if (a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
--		return -EINVAL;
--	return v4l2_subdev_call(bcap_dev->sd, video, g_parm, a);
--}
--
--static int bcap_s_parm(struct file *file, void *fh,
--				struct v4l2_streamparm *a)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--
--	if (a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
--		return -EINVAL;
--	return v4l2_subdev_call(bcap_dev->sd, video, s_parm, a);
--}
--
--static int bcap_log_status(struct file *file, void *priv)
--{
--	struct bcap_device *bcap_dev = video_drvdata(file);
--	/* status for sub devices */
--	v4l2_device_call_all(&bcap_dev->v4l2_dev, 0, core, log_status);
--	return 0;
--}
--
--static const struct v4l2_ioctl_ops bcap_ioctl_ops = {
--	.vidioc_querycap         = bcap_querycap,
--	.vidioc_g_fmt_vid_cap    = bcap_g_fmt_vid_cap,
--	.vidioc_enum_fmt_vid_cap = bcap_enum_fmt_vid_cap,
--	.vidioc_s_fmt_vid_cap    = bcap_s_fmt_vid_cap,
--	.vidioc_try_fmt_vid_cap  = bcap_try_fmt_vid_cap,
--	.vidioc_enum_input       = bcap_enum_input,
--	.vidioc_g_input          = bcap_g_input,
--	.vidioc_s_input          = bcap_s_input,
--	.vidioc_querystd         = bcap_querystd,
--	.vidioc_s_std            = bcap_s_std,
--	.vidioc_g_std            = bcap_g_std,
--	.vidioc_s_dv_timings     = bcap_s_dv_timings,
--	.vidioc_g_dv_timings     = bcap_g_dv_timings,
--	.vidioc_query_dv_timings = bcap_query_dv_timings,
--	.vidioc_enum_dv_timings  = bcap_enum_dv_timings,
--	.vidioc_reqbufs          = vb2_ioctl_reqbufs,
--	.vidioc_create_bufs      = vb2_ioctl_create_bufs,
--	.vidioc_querybuf         = vb2_ioctl_querybuf,
--	.vidioc_qbuf             = vb2_ioctl_qbuf,
--	.vidioc_dqbuf            = vb2_ioctl_dqbuf,
--	.vidioc_expbuf           = vb2_ioctl_expbuf,
--	.vidioc_streamon         = vb2_ioctl_streamon,
--	.vidioc_streamoff        = vb2_ioctl_streamoff,
--	.vidioc_g_parm           = bcap_g_parm,
--	.vidioc_s_parm           = bcap_s_parm,
--	.vidioc_log_status       = bcap_log_status,
--};
--
--static const struct v4l2_file_operations bcap_fops = {
--	.owner = THIS_MODULE,
--	.open = v4l2_fh_open,
--	.release = vb2_fop_release,
--	.unlocked_ioctl = video_ioctl2,
--	.mmap = vb2_fop_mmap,
--#ifndef CONFIG_MMU
--	.get_unmapped_area = vb2_fop_get_unmapped_area,
--#endif
--	.poll = vb2_fop_poll
--};
--
--static int bcap_probe(struct platform_device *pdev)
--{
--	struct bcap_device *bcap_dev;
--	struct video_device *vfd;
--	struct i2c_adapter *i2c_adap;
--	struct bfin_capture_config *config;
--	struct vb2_queue *q;
--	struct bcap_route *route;
--	int ret;
--
--	config = pdev->dev.platform_data;
--	if (!config || !config->num_inputs) {
--		v4l2_err(pdev->dev.driver, "Unable to get board config\n");
--		return -ENODEV;
--	}
--
--	bcap_dev = kzalloc(sizeof(*bcap_dev), GFP_KERNEL);
--	if (!bcap_dev)
+-	/* Allocate memory for our RTC struct */
+-	rtc = devm_kzalloc(dev, sizeof(*rtc), GFP_KERNEL);
+-	if (unlikely(!rtc))
 -		return -ENOMEM;
+-	platform_set_drvdata(pdev, rtc);
+-	device_init_wakeup(dev, 1);
 -
--	bcap_dev->cfg = config;
+-	/* Register our RTC with the RTC framework */
+-	rtc->rtc_dev = devm_rtc_device_register(dev, pdev->name, &bfin_rtc_ops,
+-						THIS_MODULE);
+-	if (IS_ERR(rtc->rtc_dev))
+-		return PTR_ERR(rtc->rtc_dev);
 -
--	bcap_dev->ppi = ppi_create_instance(pdev, config->ppi_info);
--	if (!bcap_dev->ppi) {
--		v4l2_err(pdev->dev.driver, "Unable to create ppi\n");
--		ret = -ENODEV;
--		goto err_free_dev;
--	}
--	bcap_dev->ppi->priv = bcap_dev;
+-	/* Grab the IRQ and init the hardware */
+-	ret = devm_request_irq(dev, IRQ_RTC, bfin_rtc_interrupt, 0,
+-				pdev->name, dev);
+-	if (unlikely(ret))
+-		dev_err(&pdev->dev,
+-			"unable to request IRQ; alarm won't work, "
+-			"and writes will be delayed\n");
 -
--	vfd = &bcap_dev->video_dev;
--	/* initialize field of video device */
--	vfd->release            = video_device_release_empty;
--	vfd->fops               = &bcap_fops;
--	vfd->ioctl_ops          = &bcap_ioctl_ops;
--	vfd->tvnorms            = 0;
--	vfd->v4l2_dev           = &bcap_dev->v4l2_dev;
--	strncpy(vfd->name, CAPTURE_DRV_NAME, sizeof(vfd->name));
+-	/* sometimes the bootloader touched things, but the write complete was not
+-	 * enabled, so let's just do a quick timeout here since the IRQ will not fire ...
+-	 */
+-	while (bfin_read_RTC_ISTAT() & RTC_ISTAT_WRITE_PENDING)
+-		if (time_after(jiffies, timeout))
+-			break;
+-	bfin_rtc_reset(dev, RTC_ISTAT_WRITE_COMPLETE);
+-	bfin_write_RTC_SWCNT(0);
 -
--	ret = v4l2_device_register(&pdev->dev, &bcap_dev->v4l2_dev);
--	if (ret) {
--		v4l2_err(pdev->dev.driver,
--				"Unable to register v4l2 device\n");
--		goto err_free_ppi;
--	}
--	v4l2_info(&bcap_dev->v4l2_dev, "v4l2 device registered\n");
+-	return 0;
+-}
 -
--	bcap_dev->v4l2_dev.ctrl_handler = &bcap_dev->ctrl_handler;
--	ret = v4l2_ctrl_handler_init(&bcap_dev->ctrl_handler, 0);
--	if (ret) {
--		v4l2_err(&bcap_dev->v4l2_dev,
--				"Unable to init control handler\n");
--		goto err_unreg_v4l2;
--	}
+-static int bfin_rtc_remove(struct platform_device *pdev)
+-{
+-	struct device *dev = &pdev->dev;
 -
--	spin_lock_init(&bcap_dev->lock);
--	/* initialize queue */
--	q = &bcap_dev->buffer_queue;
--	q->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
--	q->io_modes = VB2_MMAP | VB2_DMABUF;
--	q->drv_priv = bcap_dev;
--	q->buf_struct_size = sizeof(struct bcap_buffer);
--	q->ops = &bcap_video_qops;
--	q->mem_ops = &vb2_dma_contig_memops;
--	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
--	q->lock = &bcap_dev->mutex;
--	q->min_buffers_needed = 1;
--	q->dev = &pdev->dev;
+-	bfin_rtc_reset(dev, 0);
 -
--	ret = vb2_queue_init(q);
--	if (ret)
--		goto err_free_handler;
+-	return 0;
+-}
 -
--	mutex_init(&bcap_dev->mutex);
--	init_completion(&bcap_dev->comp);
+-#ifdef CONFIG_PM_SLEEP
+-static int bfin_rtc_suspend(struct device *dev)
+-{
+-	dev_dbg_stamp(dev);
 -
--	/* init video dma queues */
--	INIT_LIST_HEAD(&bcap_dev->dma_queue);
+-	if (device_may_wakeup(dev)) {
+-		enable_irq_wake(IRQ_RTC);
+-		bfin_rtc_sync_pending(dev);
+-	} else
+-		bfin_rtc_int_clear(0);
 -
--	vfd->lock = &bcap_dev->mutex;
--	vfd->queue = q;
+-	return 0;
+-}
 -
--	/* register video device */
--	ret = video_register_device(&bcap_dev->video_dev, VFL_TYPE_GRABBER, -1);
--	if (ret) {
--		v4l2_err(&bcap_dev->v4l2_dev,
--				"Unable to register video device\n");
--		goto err_free_handler;
--	}
--	video_set_drvdata(&bcap_dev->video_dev, bcap_dev);
--	v4l2_info(&bcap_dev->v4l2_dev, "video device registered as: %s\n",
--			video_device_node_name(vfd));
+-static int bfin_rtc_resume(struct device *dev)
+-{
+-	dev_dbg_stamp(dev);
 -
--	/* load up the subdevice */
--	i2c_adap = i2c_get_adapter(config->i2c_adapter_id);
--	if (!i2c_adap) {
--		v4l2_err(&bcap_dev->v4l2_dev,
--				"Unable to find i2c adapter\n");
--		ret = -ENODEV;
--		goto err_unreg_vdev;
--
--	}
--	bcap_dev->sd = v4l2_i2c_new_subdev_board(&bcap_dev->v4l2_dev,
--						 i2c_adap,
--						 &config->board_info,
--						 NULL);
--	if (bcap_dev->sd) {
--		int i;
--
--		/* update tvnorms from the sub devices */
--		for (i = 0; i < config->num_inputs; i++)
--			vfd->tvnorms |= config->inputs[i].std;
--	} else {
--		v4l2_err(&bcap_dev->v4l2_dev,
--				"Unable to register sub device\n");
--		ret = -ENODEV;
--		goto err_unreg_vdev;
--	}
--
--	v4l2_info(&bcap_dev->v4l2_dev, "v4l2 sub device registered\n");
+-	if (device_may_wakeup(dev))
+-		disable_irq_wake(IRQ_RTC);
 -
 -	/*
--	 * explicitly set input, otherwise some boards
--	 * may not work at the state as we expected
+-	 * Since only some of the RTC bits are maintained externally in the
+-	 * Vbat domain, we need to wait for the RTC MMRs to be synced into
+-	 * the core after waking up.  This happens every RTC 1HZ.  Once that
+-	 * has happened, we can go ahead and re-enable the important write
+-	 * complete interrupt event.
 -	 */
--	route = &config->routes[0];
--	ret = v4l2_subdev_call(bcap_dev->sd, video, s_routing,
--				route->input, route->output, 0);
--	if ((ret < 0) && (ret != -ENOIOCTLCMD)) {
--		v4l2_err(&bcap_dev->v4l2_dev, "Failed to set input\n");
--		goto err_unreg_vdev;
--	}
--	bcap_dev->cur_input = 0;
--	/* if this route has specific config, update ppi control */
--	if (route->ppi_control)
--		config->ppi_control = route->ppi_control;
+-	while (!(bfin_read_RTC_ISTAT() & RTC_ISTAT_SEC))
+-		continue;
+-	bfin_rtc_int_set(RTC_ISTAT_WRITE_COMPLETE);
 -
--	/* now we can probe the default state */
--	if (config->inputs[0].capabilities & V4L2_IN_CAP_STD) {
--		v4l2_std_id std;
--		ret = v4l2_subdev_call(bcap_dev->sd, video, g_std, &std);
--		if (ret) {
--			v4l2_err(&bcap_dev->v4l2_dev,
--					"Unable to get std\n");
--			goto err_unreg_vdev;
--		}
--		bcap_dev->std = std;
--	}
--	if (config->inputs[0].capabilities & V4L2_IN_CAP_DV_TIMINGS) {
--		struct v4l2_dv_timings dv_timings;
--		ret = v4l2_subdev_call(bcap_dev->sd, video,
--				g_dv_timings, &dv_timings);
--		if (ret) {
--			v4l2_err(&bcap_dev->v4l2_dev,
--					"Unable to get dv timings\n");
--			goto err_unreg_vdev;
--		}
--		bcap_dev->dv_timings = dv_timings;
--	}
--	ret = bcap_init_sensor_formats(bcap_dev);
--	if (ret) {
--		v4l2_err(&bcap_dev->v4l2_dev,
--				"Unable to create sensor formats table\n");
--		goto err_unreg_vdev;
--	}
--	return 0;
--err_unreg_vdev:
--	video_unregister_device(&bcap_dev->video_dev);
--err_free_handler:
--	v4l2_ctrl_handler_free(&bcap_dev->ctrl_handler);
--err_unreg_v4l2:
--	v4l2_device_unregister(&bcap_dev->v4l2_dev);
--err_free_ppi:
--	ppi_delete_instance(bcap_dev->ppi);
--err_free_dev:
--	kfree(bcap_dev);
--	return ret;
--}
--
--static int bcap_remove(struct platform_device *pdev)
--{
--	struct v4l2_device *v4l2_dev = platform_get_drvdata(pdev);
--	struct bcap_device *bcap_dev = container_of(v4l2_dev,
--						struct bcap_device, v4l2_dev);
--
--	bcap_free_sensor_formats(bcap_dev);
--	video_unregister_device(&bcap_dev->video_dev);
--	v4l2_ctrl_handler_free(&bcap_dev->ctrl_handler);
--	v4l2_device_unregister(v4l2_dev);
--	ppi_delete_instance(bcap_dev->ppi);
--	kfree(bcap_dev);
 -	return 0;
 -}
+-#endif
 -
--static struct platform_driver bcap_driver = {
--	.driver = {
--		.name  = CAPTURE_DRV_NAME,
+-static SIMPLE_DEV_PM_OPS(bfin_rtc_pm_ops, bfin_rtc_suspend, bfin_rtc_resume);
+-
+-static struct platform_driver bfin_rtc_driver = {
+-	.driver		= {
+-		.name	= "rtc-bfin",
+-		.pm	= &bfin_rtc_pm_ops,
 -	},
--	.probe = bcap_probe,
--	.remove = bcap_remove,
--};
--module_platform_driver(bcap_driver);
--
--MODULE_DESCRIPTION("Analog Devices blackfin video capture driver");
--MODULE_AUTHOR("Scott Jiang <Scott.Jiang.Linux@gmail.com>");
--MODULE_LICENSE("GPL v2");
-diff --git a/drivers/media/platform/blackfin/ppi.c b/drivers/media/platform/blackfin/ppi.c
-deleted file mode 100644
-index d3dc765..0000000
---- a/drivers/media/platform/blackfin/ppi.c
-+++ /dev/null
-@@ -1,361 +0,0 @@
--/*
-- * ppi.c Analog Devices Parallel Peripheral Interface driver
-- *
-- * Copyright (c) 2011 Analog Devices Inc.
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- */
--
--#include <linux/module.h>
--#include <linux/slab.h>
--#include <linux/platform_device.h>
--
--#include <asm/bfin_ppi.h>
--#include <asm/blackfin.h>
--#include <asm/cacheflush.h>
--#include <asm/dma.h>
--#include <asm/portmux.h>
--
--#include <media/blackfin/ppi.h>
--
--static int ppi_attach_irq(struct ppi_if *ppi, irq_handler_t handler);
--static void ppi_detach_irq(struct ppi_if *ppi);
--static int ppi_start(struct ppi_if *ppi);
--static int ppi_stop(struct ppi_if *ppi);
--static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params);
--static void ppi_update_addr(struct ppi_if *ppi, unsigned long addr);
--
--static const struct ppi_ops ppi_ops = {
--	.attach_irq = ppi_attach_irq,
--	.detach_irq = ppi_detach_irq,
--	.start = ppi_start,
--	.stop = ppi_stop,
--	.set_params = ppi_set_params,
--	.update_addr = ppi_update_addr,
+-	.probe		= bfin_rtc_probe,
+-	.remove		= bfin_rtc_remove,
 -};
 -
--static irqreturn_t ppi_irq_err(int irq, void *dev_id)
--{
--	struct ppi_if *ppi = dev_id;
--	const struct ppi_info *info = ppi->info;
+-module_platform_driver(bfin_rtc_driver);
 -
--	switch (info->type) {
--	case PPI_TYPE_PPI:
--	{
--		struct bfin_ppi_regs *reg = info->base;
--		unsigned short status;
--
--		/* register on bf561 is cleared when read
--		 * others are W1C
--		 */
--		status = bfin_read16(&reg->status);
--		if (status & 0x3000)
--			ppi->err = true;
--		bfin_write16(&reg->status, 0xff00);
--		break;
--	}
--	case PPI_TYPE_EPPI:
--	{
--		struct bfin_eppi_regs *reg = info->base;
--		unsigned short status;
--
--		status = bfin_read16(&reg->status);
--		if (status & 0x2)
--			ppi->err = true;
--		bfin_write16(&reg->status, 0xffff);
--		break;
--	}
--	case PPI_TYPE_EPPI3:
--	{
--		struct bfin_eppi3_regs *reg = info->base;
--		unsigned long stat;
--
--		stat = bfin_read32(&reg->stat);
--		if (stat & 0x2)
--			ppi->err = true;
--		bfin_write32(&reg->stat, 0xc0ff);
--		break;
--	}
--	default:
--		break;
--	}
--
--	return IRQ_HANDLED;
--}
--
--static int ppi_attach_irq(struct ppi_if *ppi, irq_handler_t handler)
--{
--	const struct ppi_info *info = ppi->info;
--	int ret;
--
--	ret = request_dma(info->dma_ch, "PPI_DMA");
--
--	if (ret) {
--		pr_err("Unable to allocate DMA channel for PPI\n");
--		return ret;
--	}
--	set_dma_callback(info->dma_ch, handler, ppi);
--
--	if (ppi->err_int) {
--		ret = request_irq(info->irq_err, ppi_irq_err, 0, "PPI ERROR", ppi);
--		if (ret) {
--			pr_err("Unable to allocate IRQ for PPI\n");
--			free_dma(info->dma_ch);
--		}
--	}
--	return ret;
--}
--
--static void ppi_detach_irq(struct ppi_if *ppi)
--{
--	const struct ppi_info *info = ppi->info;
--
--	if (ppi->err_int)
--		free_irq(info->irq_err, ppi);
--	free_dma(info->dma_ch);
--}
--
--static int ppi_start(struct ppi_if *ppi)
--{
--	const struct ppi_info *info = ppi->info;
--
--	/* enable DMA */
--	enable_dma(info->dma_ch);
--
--	/* enable PPI */
--	ppi->ppi_control |= PORT_EN;
--	switch (info->type) {
--	case PPI_TYPE_PPI:
--	{
--		struct bfin_ppi_regs *reg = info->base;
--		bfin_write16(&reg->control, ppi->ppi_control);
--		break;
--	}
--	case PPI_TYPE_EPPI:
--	{
--		struct bfin_eppi_regs *reg = info->base;
--		bfin_write32(&reg->control, ppi->ppi_control);
--		break;
--	}
--	case PPI_TYPE_EPPI3:
--	{
--		struct bfin_eppi3_regs *reg = info->base;
--		bfin_write32(&reg->ctl, ppi->ppi_control);
--		break;
--	}
--	default:
--		return -EINVAL;
--	}
--
--	SSYNC();
--	return 0;
--}
--
--static int ppi_stop(struct ppi_if *ppi)
--{
--	const struct ppi_info *info = ppi->info;
--
--	/* disable PPI */
--	ppi->ppi_control &= ~PORT_EN;
--	switch (info->type) {
--	case PPI_TYPE_PPI:
--	{
--		struct bfin_ppi_regs *reg = info->base;
--		bfin_write16(&reg->control, ppi->ppi_control);
--		break;
--	}
--	case PPI_TYPE_EPPI:
--	{
--		struct bfin_eppi_regs *reg = info->base;
--		bfin_write32(&reg->control, ppi->ppi_control);
--		break;
--	}
--	case PPI_TYPE_EPPI3:
--	{
--		struct bfin_eppi3_regs *reg = info->base;
--		bfin_write32(&reg->ctl, ppi->ppi_control);
--		break;
--	}
--	default:
--		return -EINVAL;
--	}
--
--	/* disable DMA */
--	clear_dma_irqstat(info->dma_ch);
--	disable_dma(info->dma_ch);
--
--	SSYNC();
--	return 0;
--}
--
--static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
--{
--	const struct ppi_info *info = ppi->info;
--	int dma32 = 0;
--	int dma_config, bytes_per_line;
--	int hcount, hdelay, samples_per_line;
--
--#ifdef CONFIG_PINCTRL
--	static const char * const pin_state[] = {"8bit", "16bit", "24bit"};
--	struct pinctrl *pctrl;
--	struct pinctrl_state *pstate;
--
--	if (params->dlen > 24 || params->dlen <= 0)
--		return -EINVAL;
--	pctrl = devm_pinctrl_get(ppi->dev);
--	if (IS_ERR(pctrl))
--		return PTR_ERR(pctrl);
--	pstate = pinctrl_lookup_state(pctrl,
--				      pin_state[(params->dlen + 7) / 8 - 1]);
--	if (pinctrl_select_state(pctrl, pstate))
--		return -EINVAL;
--#endif
--
--	bytes_per_line = params->width * params->bpp / 8;
--	/* convert parameters unit from pixels to samples */
--	hcount = params->width * params->bpp / params->dlen;
--	hdelay = params->hdelay * params->bpp / params->dlen;
--	samples_per_line = params->line * params->bpp / params->dlen;
--	if (params->int_mask == 0xFFFFFFFF)
--		ppi->err_int = false;
--	else
--		ppi->err_int = true;
--
--	dma_config = (DMA_FLOW_STOP | RESTART | DMA2D | DI_EN_Y);
--	ppi->ppi_control = params->ppi_control & ~PORT_EN;
--	if (!(ppi->ppi_control & PORT_DIR))
--		dma_config |= WNR;
--	switch (info->type) {
--	case PPI_TYPE_PPI:
--	{
--		struct bfin_ppi_regs *reg = info->base;
--
--		if (params->ppi_control & DMA32)
--			dma32 = 1;
--
--		bfin_write16(&reg->control, ppi->ppi_control);
--		bfin_write16(&reg->count, samples_per_line - 1);
--		bfin_write16(&reg->frame, params->frame);
--		break;
--	}
--	case PPI_TYPE_EPPI:
--	{
--		struct bfin_eppi_regs *reg = info->base;
--
--		if ((params->ppi_control & PACK_EN)
--			|| (params->ppi_control & 0x38000) > DLEN_16)
--			dma32 = 1;
--
--		bfin_write32(&reg->control, ppi->ppi_control);
--		bfin_write16(&reg->line, samples_per_line);
--		bfin_write16(&reg->frame, params->frame);
--		bfin_write16(&reg->hdelay, hdelay);
--		bfin_write16(&reg->vdelay, params->vdelay);
--		bfin_write16(&reg->hcount, hcount);
--		bfin_write16(&reg->vcount, params->height);
--		break;
--	}
--	case PPI_TYPE_EPPI3:
--	{
--		struct bfin_eppi3_regs *reg = info->base;
--
--		if ((params->ppi_control & PACK_EN)
--			|| (params->ppi_control & 0x70000) > DLEN_16)
--			dma32 = 1;
--
--		bfin_write32(&reg->ctl, ppi->ppi_control);
--		bfin_write32(&reg->line, samples_per_line);
--		bfin_write32(&reg->frame, params->frame);
--		bfin_write32(&reg->hdly, hdelay);
--		bfin_write32(&reg->vdly, params->vdelay);
--		bfin_write32(&reg->hcnt, hcount);
--		bfin_write32(&reg->vcnt, params->height);
--		if (params->int_mask)
--			bfin_write32(&reg->imsk, params->int_mask & 0xFF);
--		if (ppi->ppi_control & PORT_DIR) {
--			u32 hsync_width, vsync_width, vsync_period;
--
--			hsync_width = params->hsync
--					* params->bpp / params->dlen;
--			vsync_width = params->vsync * samples_per_line;
--			vsync_period = samples_per_line * params->frame;
--			bfin_write32(&reg->fs1_wlhb, hsync_width);
--			bfin_write32(&reg->fs1_paspl, samples_per_line);
--			bfin_write32(&reg->fs2_wlvb, vsync_width);
--			bfin_write32(&reg->fs2_palpf, vsync_period);
--		}
--		break;
--	}
--	default:
--		return -EINVAL;
--	}
--
--	if (dma32) {
--		dma_config |= WDSIZE_32 | PSIZE_32;
--		set_dma_x_count(info->dma_ch, bytes_per_line >> 2);
--		set_dma_x_modify(info->dma_ch, 4);
--		set_dma_y_modify(info->dma_ch, 4);
--	} else {
--		dma_config |= WDSIZE_16 | PSIZE_16;
--		set_dma_x_count(info->dma_ch, bytes_per_line >> 1);
--		set_dma_x_modify(info->dma_ch, 2);
--		set_dma_y_modify(info->dma_ch, 2);
--	}
--	set_dma_y_count(info->dma_ch, params->height);
--	set_dma_config(info->dma_ch, dma_config);
--
--	SSYNC();
--	return 0;
--}
--
--static void ppi_update_addr(struct ppi_if *ppi, unsigned long addr)
--{
--	set_dma_start_addr(ppi->info->dma_ch, addr);
--}
--
--struct ppi_if *ppi_create_instance(struct platform_device *pdev,
--			const struct ppi_info *info)
--{
--	struct ppi_if *ppi;
--
--	if (!info || !info->pin_req)
--		return NULL;
--
--#ifndef CONFIG_PINCTRL
--	if (peripheral_request_list(info->pin_req, KBUILD_MODNAME)) {
--		dev_err(&pdev->dev, "request peripheral failed\n");
--		return NULL;
--	}
--#endif
--
--	ppi = kzalloc(sizeof(*ppi), GFP_KERNEL);
--	if (!ppi) {
--		peripheral_free_list(info->pin_req);
--		return NULL;
--	}
--	ppi->ops = &ppi_ops;
--	ppi->info = info;
--	ppi->dev = &pdev->dev;
--
--	pr_info("ppi probe success\n");
--	return ppi;
--}
--EXPORT_SYMBOL(ppi_create_instance);
--
--void ppi_delete_instance(struct ppi_if *ppi)
--{
--	peripheral_free_list(ppi->info->pin_req);
--	kfree(ppi);
--}
--EXPORT_SYMBOL(ppi_delete_instance);
--
--MODULE_DESCRIPTION("Analog Devices PPI driver");
--MODULE_AUTHOR("Scott Jiang <Scott.Jiang.Linux@gmail.com>");
--MODULE_LICENSE("GPL v2");
-diff --git a/include/media/blackfin/bfin_capture.h b/include/media/blackfin/bfin_capture.h
-deleted file mode 100644
-index a999a397..0000000
---- a/include/media/blackfin/bfin_capture.h
-+++ /dev/null
-@@ -1,39 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef _BFIN_CAPTURE_H_
--#define _BFIN_CAPTURE_H_
--
--#include <linux/i2c.h>
--
--struct v4l2_input;
--struct ppi_info;
--
--struct bcap_route {
--	u32 input;
--	u32 output;
--	u32 ppi_control;
--};
--
--struct bfin_capture_config {
--	/* card name */
--	char *card_name;
--	/* inputs available at the sub device */
--	struct v4l2_input *inputs;
--	/* number of inputs supported */
--	int num_inputs;
--	/* routing information for each input */
--	struct bcap_route *routes;
--	/* i2c bus adapter no */
--	int i2c_adapter_id;
--	/* i2c subdevice board info */
--	struct i2c_board_info board_info;
--	/* ppi board info */
--	const struct ppi_info *ppi_info;
--	/* ppi control */
--	unsigned long ppi_control;
--	/* ppi interrupt mask */
--	u32 int_mask;
--	/* horizontal blanking pixels */
--	int blank_pixels;
--};
--
--#endif
-diff --git a/include/media/blackfin/ppi.h b/include/media/blackfin/ppi.h
-deleted file mode 100644
-index 987e49e..0000000
---- a/include/media/blackfin/ppi.h
-+++ /dev/null
-@@ -1,94 +0,0 @@
--/*
-- * Analog Devices PPI header file
-- *
-- * Copyright (c) 2011 Analog Devices Inc.
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- */
--
--#ifndef _PPI_H_
--#define _PPI_H_
--
--#include <linux/interrupt.h>
--#include <asm/blackfin.h>
--#include <asm/bfin_ppi.h>
--
--/* EPPI */
--#ifdef EPPI_EN
--#define PORT_EN EPPI_EN
--#define PORT_DIR EPPI_DIR
--#define DMA32 0
--#define PACK_EN PACKEN
--#endif
--
--/* EPPI3 */
--#ifdef EPPI0_CTL2
--#define PORT_EN EPPI_CTL_EN
--#define PORT_DIR EPPI_CTL_DIR
--#define PACK_EN EPPI_CTL_PACKEN
--#define DMA32 0
--#define DLEN_8 EPPI_CTL_DLEN08
--#define DLEN_16 EPPI_CTL_DLEN16
--#endif
--
--struct ppi_if;
--
--struct ppi_params {
--	u32 width;              /* width in pixels */
--	u32 height;             /* height in lines */
--	u32 hdelay;             /* delay after the HSYNC in pixels */
--	u32 vdelay;             /* delay after the VSYNC in lines */
--	u32 line;               /* total pixels per line */
--	u32 frame;              /* total lines per frame */
--	u32 hsync;              /* HSYNC length in pixels */
--	u32 vsync;              /* VSYNC length in lines */
--	int bpp;                /* bits per pixel */
--	int dlen;               /* data length for ppi in bits */
--	u32 ppi_control;        /* ppi configuration */
--	u32 int_mask;           /* interrupt mask */
--};
--
--struct ppi_ops {
--	int (*attach_irq)(struct ppi_if *ppi, irq_handler_t handler);
--	void (*detach_irq)(struct ppi_if *ppi);
--	int (*start)(struct ppi_if *ppi);
--	int (*stop)(struct ppi_if *ppi);
--	int (*set_params)(struct ppi_if *ppi, struct ppi_params *params);
--	void (*update_addr)(struct ppi_if *ppi, unsigned long addr);
--};
--
--enum ppi_type {
--	PPI_TYPE_PPI,
--	PPI_TYPE_EPPI,
--	PPI_TYPE_EPPI3,
--};
--
--struct ppi_info {
--	enum ppi_type type;
--	int dma_ch;
--	int irq_err;
--	void __iomem *base;
--	const unsigned short *pin_req;
--};
--
--struct ppi_if {
--	struct device *dev;
--	unsigned long ppi_control;
--	const struct ppi_ops *ops;
--	const struct ppi_info *info;
--	bool err_int; /* if we need request error interrupt */
--	bool err; /* if ppi has fifo error */
--	void *priv;
--};
--
--struct ppi_if *ppi_create_instance(struct platform_device *pdev,
--			const struct ppi_info *info);
--void ppi_delete_instance(struct ppi_if *ppi);
--#endif
+-MODULE_DESCRIPTION("Blackfin On-Chip Real Time Clock Driver");
+-MODULE_AUTHOR("Mike Frysinger <vapier@gentoo.org>");
+-MODULE_LICENSE("GPL");
+-MODULE_ALIAS("platform:rtc-bfin");
 -- 
 2.7.4
