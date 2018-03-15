@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0040.outbound.protection.outlook.com ([104.47.37.40]:36537
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-co1nam03on0068.outbound.protection.outlook.com ([104.47.40.68]:45869
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751951AbeCOLBN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 07:01:13 -0400
+        id S1751691AbeCOLBL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Mar 2018 07:01:11 -0400
 From: Aaron Wu <aaron.wu@analog.com>
-Subject: [Blackfin removal] [PATCH 16/28] irda: Remove Blackfin IRDA support
-Date: Thu, 15 Mar 2018 18:50:16 +0800
-Message-ID: <1521111028-19856-16-git-send-email-aaron.wu@analog.com>
+Subject: [Blackfin removal] [PATCH 15/28] spi: Remove Blackfin SPI bus support
+Date: Thu, 15 Mar 2018 18:50:15 +0800
+Message-ID: <1521111028-19856-15-git-send-email-aaron.wu@analog.com>
 In-Reply-To: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 MIME-Version: 1.0
@@ -19,1007 +19,3444 @@ Cc: viro@zeniv.linux.org.uk, jhogan@kernel.org, linux-metag@vger.kernel.org, jon
 
 Signed-off-by: Aaron Wu <aaron.wu@analog.com>
 
-Remove Blackfin IRDA support
+Remove Blackfin SPI bus support
 ---
- drivers/staging/irda/drivers/Kconfig    |  45 --
- drivers/staging/irda/drivers/Makefile   |   1 -
- drivers/staging/irda/drivers/bfin_sir.c | 819 --------------------------------
- drivers/staging/irda/drivers/bfin_sir.h |  93 ----
- 4 files changed, 958 deletions(-)
- delete mode 100644 drivers/staging/irda/drivers/bfin_sir.c
- delete mode 100644 drivers/staging/irda/drivers/bfin_sir.h
+ drivers/spi/Kconfig          |   19 -
+ drivers/spi/Makefile         |    2 -
+ drivers/spi/spi-adi-v3.c     |  984 ----------------------------
+ drivers/spi/spi-bfin-sport.c |  919 --------------------------
+ drivers/spi/spi-bfin5xx.c    | 1462 ------------------------------------------
+ 5 files changed, 3386 deletions(-)
+ delete mode 100644 drivers/spi/spi-adi-v3.c
+ delete mode 100644 drivers/spi/spi-bfin-sport.c
+ delete mode 100644 drivers/spi/spi-bfin5xx.c
 
-diff --git a/drivers/staging/irda/drivers/Kconfig b/drivers/staging/irda/drivers/Kconfig
-index e070e12..71ac76c 100644
---- a/drivers/staging/irda/drivers/Kconfig
-+++ b/drivers/staging/irda/drivers/Kconfig
-@@ -17,51 +17,6 @@ config IRTTY_SIR
+diff --git a/drivers/spi/Kconfig b/drivers/spi/Kconfig
+index 6037839..1263014 100644
+--- a/drivers/spi/Kconfig
++++ b/drivers/spi/Kconfig
+@@ -115,25 +115,6 @@ config SPI_BCM2835AUX
+ 	  "universal SPI master", and the regular SPI controller.
+ 	  This driver is for the universal/auxiliary SPI controller.
  
- 	  If unsure, say Y.
- 
--config BFIN_SIR
--	tristate "Blackfin SIR on UART"
--	depends on BLACKFIN && IRDA
--	default n
+-config SPI_BFIN5XX
+-	tristate "SPI controller driver for ADI Blackfin5xx"
+-	depends on BLACKFIN && !BF60x
 -	help
--	  Say Y here if your want to enable SIR function on Blackfin UART
--	  devices.
+-	  This is the SPI controller master driver for Blackfin 5xx processor.
 -
--	  To activate this driver you can start irattach like:
--	  "irattach irda0 -s"
+-config SPI_ADI_V3
+-	tristate "SPI controller v3 for ADI"
+-	depends on BF60x
+-	help
+-	  This is the SPI controller v3 master driver
+-	  found on Blackfin 60x processor.
 -
--	  Saying M, it will be built as a module named bfin_sir.
+-config SPI_BFIN_SPORT
+-	tristate "SPI bus via Blackfin SPORT"
+-	depends on BLACKFIN
+-	help
+-	  Enable support for a SPI bus via the Blackfin SPORT peripheral.
 -
--	  Note that you need to turn off one of the serial drivers for SIR
--	  to use that UART.
--
--config BFIN_SIR0
--	bool "Blackfin SIR on UART0"
--	depends on BFIN_SIR && !SERIAL_BFIN_UART0
--
--config BFIN_SIR1
--	bool "Blackfin SIR on UART1"
--	depends on BFIN_SIR && !SERIAL_BFIN_UART1 && (!BF531 && !BF532 && !BF533 && !BF561)
--
--config BFIN_SIR2
--	bool "Blackfin SIR on UART2"
--	depends on BFIN_SIR && !SERIAL_BFIN_UART2 && (BF54x || BF538 || BF539)
--
--config BFIN_SIR3
--	bool "Blackfin SIR on UART3"
--	depends on BFIN_SIR && !SERIAL_BFIN_UART3 && (BF54x)
--
--choice
--	prompt "SIR Mode"
--	depends on BFIN_SIR
--	default SIR_BFIN_DMA
--
--config SIR_BFIN_DMA
--	bool "DMA mode"
--	depends on !DMA_UNCACHED_NONE
--
--config SIR_BFIN_PIO
--	bool "PIO mode"
--endchoice
--
- config SH_SIR
- 	tristate "SuperH SIR on UART"
- 	depends on IRDA && SUPERH && \
-diff --git a/drivers/staging/irda/drivers/Makefile b/drivers/staging/irda/drivers/Makefile
-index e2901b1..d5307ed 100644
---- a/drivers/staging/irda/drivers/Makefile
-+++ b/drivers/staging/irda/drivers/Makefile
-@@ -23,7 +23,6 @@ obj-$(CONFIG_MCS_FIR)	        += mcs7780.o
- obj-$(CONFIG_AU1000_FIR)	+= au1k_ir.o
- # SIR drivers
- obj-$(CONFIG_IRTTY_SIR)		+= irtty-sir.o	sir-dev.o
--obj-$(CONFIG_BFIN_SIR)		+= bfin_sir.o
- obj-$(CONFIG_SH_SIR)		+= sh_sir.o
- # dongle drivers for SIR drivers
- obj-$(CONFIG_ESI_DONGLE)	+= esi-sir.o
-diff --git a/drivers/staging/irda/drivers/bfin_sir.c b/drivers/staging/irda/drivers/bfin_sir.c
+ config SPI_BCM53XX
+ 	tristate "Broadcom BCM53xx SPI controller"
+ 	depends on ARCH_BCM_5301X
+diff --git a/drivers/spi/Makefile b/drivers/spi/Makefile
+index 34c5f28..31ee30d 100644
+--- a/drivers/spi/Makefile
++++ b/drivers/spi/Makefile
+@@ -24,9 +24,7 @@ obj-$(CONFIG_SPI_BCM53XX)		+= spi-bcm53xx.o
+ obj-$(CONFIG_SPI_BCM63XX)		+= spi-bcm63xx.o
+ obj-$(CONFIG_SPI_BCM63XX_HSSPI)		+= spi-bcm63xx-hsspi.o
+ obj-$(CONFIG_SPI_BCM_QSPI)		+= spi-iproc-qspi.o spi-brcmstb-qspi.o spi-bcm-qspi.o
+-obj-$(CONFIG_SPI_BFIN5XX)		+= spi-bfin5xx.o
+ obj-$(CONFIG_SPI_ADI_V3)                += spi-adi-v3.o
+-obj-$(CONFIG_SPI_BFIN_SPORT)		+= spi-bfin-sport.o
+ obj-$(CONFIG_SPI_BITBANG)		+= spi-bitbang.o
+ obj-$(CONFIG_SPI_BUTTERFLY)		+= spi-butterfly.o
+ obj-$(CONFIG_SPI_CADENCE)		+= spi-cadence.o
+diff --git a/drivers/spi/spi-adi-v3.c b/drivers/spi/spi-adi-v3.c
 deleted file mode 100644
-index 59e409b..0000000
---- a/drivers/staging/irda/drivers/bfin_sir.c
+index a16b25d..0000000
+--- a/drivers/spi/spi-adi-v3.c
 +++ /dev/null
-@@ -1,819 +0,0 @@
+@@ -1,984 +0,0 @@
 -/*
-- * Blackfin Infra-red Driver
+- * Analog Devices SPI3 controller driver
 - *
-- * Copyright 2006-2009 Analog Devices Inc.
+- * Copyright (c) 2014 Analog Devices Inc.
 - *
-- * Enter bugs at http://blackfin.uclinux.org/
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
 - *
-- * Licensed under the GPL-2 or later.
-- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
 - */
--#include "bfin_sir.h"
 -
--#ifdef CONFIG_SIR_BFIN_DMA
--#define DMA_SIR_RX_XCNT        10
--#define DMA_SIR_RX_YCNT        (PAGE_SIZE / DMA_SIR_RX_XCNT)
--#define DMA_SIR_RX_FLUSH_JIFS  (HZ * 4 / 250)
--#endif
--
--#if ANOMALY_05000447
--static int max_rate = 57600;
--#else
--static int max_rate = 115200;
--#endif
--
--static void bfin_sir_rx_dma_timeout(struct timer_list *t);
--
--static void turnaround_delay(int mtt)
--{
--	long ticks;
--
--	mtt = mtt < 10000 ? 10000 : mtt;
--	ticks = 1 + mtt / (USEC_PER_SEC / HZ);
--	schedule_timeout_uninterruptible(ticks);
--}
--
--static void bfin_sir_init_ports(struct bfin_sir_port *sp, struct platform_device *pdev)
--{
--	int i;
--	struct resource *res;
--
--	for (i = 0; i < pdev->num_resources; i++) {
--		res = &pdev->resource[i];
--		switch (res->flags) {
--		case IORESOURCE_MEM:
--			sp->membase   = (void __iomem *)res->start;
--			break;
--		case IORESOURCE_IRQ:
--			sp->irq = res->start;
--			break;
--		case IORESOURCE_DMA:
--			sp->rx_dma_channel = res->start;
--			sp->tx_dma_channel = res->end;
--			break;
--		default:
--			break;
--		}
--	}
--
--	sp->clk = get_sclk();
--#ifdef CONFIG_SIR_BFIN_DMA
--	sp->tx_done        = 1;
--	timer_setup(&sp->rx_dma_timer, bfin_sir_rx_dma_timeout, 0);
--#endif
--}
--
--static void bfin_sir_stop_tx(struct bfin_sir_port *port)
--{
--#ifdef CONFIG_SIR_BFIN_DMA
--	disable_dma(port->tx_dma_channel);
--#endif
--
--	while (!(UART_GET_LSR(port) & THRE)) {
--		cpu_relax();
--		continue;
--	}
--
--	UART_CLEAR_IER(port, ETBEI);
--}
--
--static void bfin_sir_enable_tx(struct bfin_sir_port *port)
--{
--	UART_SET_IER(port, ETBEI);
--}
--
--static void bfin_sir_stop_rx(struct bfin_sir_port *port)
--{
--	UART_CLEAR_IER(port, ERBFI);
--}
--
--static void bfin_sir_enable_rx(struct bfin_sir_port *port)
--{
--	UART_SET_IER(port, ERBFI);
--}
--
--static int bfin_sir_set_speed(struct bfin_sir_port *port, int speed)
--{
--	int ret = -EINVAL;
--	unsigned int quot;
--	unsigned short val, lsr, lcr;
--	static int utime;
--	int count = 10;
--
--	lcr = WLS(8);
--
--	switch (speed) {
--	case 9600:
--	case 19200:
--	case 38400:
--	case 57600:
--	case 115200:
--
--		/*
--		 * IRDA is not affected by anomaly 05000230, so there is no
--		 * need to tweak the divisor like he UART driver (which will
--		 * slightly speed up the baud rate on us).
--		 */
--		quot = (port->clk + (8 * speed)) / (16 * speed);
--
--		do {
--			udelay(utime);
--			lsr = UART_GET_LSR(port);
--		} while (!(lsr & TEMT) && count--);
--
--		/* The useconds for 1 bits to transmit */
--		utime = 1000000 / speed + 1;
--
--		/* Clear UCEN bit to reset the UART state machine
--		 * and control registers
--		 */
--		val = UART_GET_GCTL(port);
--		val &= ~UCEN;
--		UART_PUT_GCTL(port, val);
--
--		/* Set DLAB in LCR to Access THR RBR IER */
--		UART_SET_DLAB(port);
--		SSYNC();
--
--		UART_PUT_DLL(port, quot & 0xFF);
--		UART_PUT_DLH(port, (quot >> 8) & 0xFF);
--		SSYNC();
--
--		/* Clear DLAB in LCR */
--		UART_CLEAR_DLAB(port);
--		SSYNC();
--
--		UART_PUT_LCR(port, lcr);
--
--		val = UART_GET_GCTL(port);
--		val |= UCEN;
--		UART_PUT_GCTL(port, val);
--
--		ret = 0;
--		break;
--	default:
--		printk(KERN_WARNING "bfin_sir: Invalid speed %d\n", speed);
--		break;
--	}
--
--	val = UART_GET_GCTL(port);
--	/* If not add the 'RPOLC', we can't catch the receive interrupt.
--	 * It's related with the HW layout and the IR transiver.
--	 */
--	val |= UMOD_IRDA | RPOLC;
--	UART_PUT_GCTL(port, val);
--	return ret;
--}
--
--static int bfin_sir_is_receiving(struct net_device *dev)
--{
--	struct bfin_sir_self *self = netdev_priv(dev);
--	struct bfin_sir_port *port = self->sir_port;
--
--	if (!(UART_GET_IER(port) & ERBFI))
--		return 0;
--	return self->rx_buff.state != OUTSIDE_FRAME;
--}
--
--#ifdef CONFIG_SIR_BFIN_PIO
--static void bfin_sir_tx_chars(struct net_device *dev)
--{
--	unsigned int chr;
--	struct bfin_sir_self *self = netdev_priv(dev);
--	struct bfin_sir_port *port = self->sir_port;
--
--	if (self->tx_buff.len != 0) {
--		chr = *(self->tx_buff.data);
--		UART_PUT_CHAR(port, chr);
--		self->tx_buff.data++;
--		self->tx_buff.len--;
--	} else {
--		self->stats.tx_packets++;
--		self->stats.tx_bytes += self->tx_buff.data - self->tx_buff.head;
--		if (self->newspeed) {
--			bfin_sir_set_speed(port, self->newspeed);
--			self->speed = self->newspeed;
--			self->newspeed = 0;
--		}
--		bfin_sir_stop_tx(port);
--		bfin_sir_enable_rx(port);
--		/* I'm hungry! */
--		netif_wake_queue(dev);
--	}
--}
--
--static void bfin_sir_rx_chars(struct net_device *dev)
--{
--	struct bfin_sir_self *self = netdev_priv(dev);
--	struct bfin_sir_port *port = self->sir_port;
--	unsigned char ch;
--
--	UART_CLEAR_LSR(port);
--	ch = UART_GET_CHAR(port);
--	async_unwrap_char(dev, &self->stats, &self->rx_buff, ch);
--}
--
--static irqreturn_t bfin_sir_rx_int(int irq, void *dev_id)
--{
--	struct net_device *dev = dev_id;
--	struct bfin_sir_self *self = netdev_priv(dev);
--	struct bfin_sir_port *port = self->sir_port;
--
--	spin_lock(&self->lock);
--	while ((UART_GET_LSR(port) & DR))
--		bfin_sir_rx_chars(dev);
--	spin_unlock(&self->lock);
--
--	return IRQ_HANDLED;
--}
--
--static irqreturn_t bfin_sir_tx_int(int irq, void *dev_id)
--{
--	struct net_device *dev = dev_id;
--	struct bfin_sir_self *self = netdev_priv(dev);
--	struct bfin_sir_port *port = self->sir_port;
--
--	spin_lock(&self->lock);
--	if (UART_GET_LSR(port) & THRE)
--		bfin_sir_tx_chars(dev);
--	spin_unlock(&self->lock);
--
--	return IRQ_HANDLED;
--}
--#endif /* CONFIG_SIR_BFIN_PIO */
--
--#ifdef CONFIG_SIR_BFIN_DMA
--static void bfin_sir_dma_tx_chars(struct net_device *dev)
--{
--	struct bfin_sir_self *self = netdev_priv(dev);
--	struct bfin_sir_port *port = self->sir_port;
--
--	if (!port->tx_done)
--		return;
--	port->tx_done = 0;
--
--	if (self->tx_buff.len == 0) {
--		self->stats.tx_packets++;
--		if (self->newspeed) {
--			bfin_sir_set_speed(port, self->newspeed);
--			self->speed = self->newspeed;
--			self->newspeed = 0;
--		}
--		bfin_sir_enable_rx(port);
--		port->tx_done = 1;
--		netif_wake_queue(dev);
--		return;
--	}
--
--	blackfin_dcache_flush_range((unsigned long)(self->tx_buff.data),
--		(unsigned long)(self->tx_buff.data+self->tx_buff.len));
--	set_dma_config(port->tx_dma_channel,
--		set_bfin_dma_config(DIR_READ, DMA_FLOW_STOP,
--			INTR_ON_BUF, DIMENSION_LINEAR, DATA_SIZE_8,
--			DMA_SYNC_RESTART));
--	set_dma_start_addr(port->tx_dma_channel,
--		(unsigned long)(self->tx_buff.data));
--	set_dma_x_count(port->tx_dma_channel, self->tx_buff.len);
--	set_dma_x_modify(port->tx_dma_channel, 1);
--	enable_dma(port->tx_dma_channel);
--}
--
--static irqreturn_t bfin_sir_dma_tx_int(int irq, void *dev_id)
--{
--	struct net_device *dev = dev_id;
--	struct bfin_sir_self *self = netdev_priv(dev);
--	struct bfin_sir_port *port = self->sir_port;
--
--	spin_lock(&self->lock);
--	if (!(get_dma_curr_irqstat(port->tx_dma_channel) & DMA_RUN)) {
--		clear_dma_irqstat(port->tx_dma_channel);
--		bfin_sir_stop_tx(port);
--
--		self->stats.tx_packets++;
--		self->stats.tx_bytes += self->tx_buff.len;
--		self->tx_buff.len = 0;
--		if (self->newspeed) {
--			bfin_sir_set_speed(port, self->newspeed);
--			self->speed = self->newspeed;
--			self->newspeed = 0;
--		}
--		bfin_sir_enable_rx(port);
--		/* I'm hungry! */
--		netif_wake_queue(dev);
--		port->tx_done = 1;
--	}
--	spin_unlock(&self->lock);
--
--	return IRQ_HANDLED;
--}
--
--static void bfin_sir_dma_rx_chars(struct net_device *dev)
--{
--	struct bfin_sir_self *self = netdev_priv(dev);
--	struct bfin_sir_port *port = self->sir_port;
--	int i;
--
--	UART_CLEAR_LSR(port);
--
--	for (i = port->rx_dma_buf.head; i < port->rx_dma_buf.tail; i++)
--		async_unwrap_char(dev, &self->stats, &self->rx_buff, port->rx_dma_buf.buf[i]);
--}
--
--static void bfin_sir_rx_dma_timeout(struct timer_list *t)
--{
--	struct bfin_sir_port *port = from_timer(port, t, rx_dma_timer);
--	struct net_device *dev = port->dev;
--	struct bfin_sir_self *self = netdev_priv(dev);
--
--	int x_pos, pos;
--	unsigned long flags;
--
--	spin_lock_irqsave(&self->lock, flags);
--	x_pos = DMA_SIR_RX_XCNT - get_dma_curr_xcount(port->rx_dma_channel);
--	if (x_pos == DMA_SIR_RX_XCNT)
--		x_pos = 0;
--
--	pos = port->rx_dma_nrows * DMA_SIR_RX_XCNT + x_pos;
--
--	if (pos > port->rx_dma_buf.tail) {
--		port->rx_dma_buf.tail = pos;
--		bfin_sir_dma_rx_chars(dev);
--		port->rx_dma_buf.head = port->rx_dma_buf.tail;
--	}
--	spin_unlock_irqrestore(&self->lock, flags);
--}
--
--static irqreturn_t bfin_sir_dma_rx_int(int irq, void *dev_id)
--{
--	struct net_device *dev = dev_id;
--	struct bfin_sir_self *self = netdev_priv(dev);
--	struct bfin_sir_port *port = self->sir_port;
--	unsigned short irqstat;
--
--	spin_lock(&self->lock);
--
--	port->rx_dma_nrows++;
--	port->rx_dma_buf.tail = DMA_SIR_RX_XCNT * port->rx_dma_nrows;
--	bfin_sir_dma_rx_chars(dev);
--	if (port->rx_dma_nrows >= DMA_SIR_RX_YCNT) {
--		port->rx_dma_nrows = 0;
--		port->rx_dma_buf.tail = 0;
--	}
--	port->rx_dma_buf.head = port->rx_dma_buf.tail;
--
--	irqstat = get_dma_curr_irqstat(port->rx_dma_channel);
--	clear_dma_irqstat(port->rx_dma_channel);
--	spin_unlock(&self->lock);
--
--	mod_timer(&port->rx_dma_timer, jiffies + DMA_SIR_RX_FLUSH_JIFS);
--	return IRQ_HANDLED;
--}
--#endif /* CONFIG_SIR_BFIN_DMA */
--
--static int bfin_sir_startup(struct bfin_sir_port *port, struct net_device *dev)
--{
--#ifdef CONFIG_SIR_BFIN_DMA
--	dma_addr_t dma_handle;
--#endif /* CONFIG_SIR_BFIN_DMA */
--
--	if (request_dma(port->rx_dma_channel, "BFIN_UART_RX") < 0) {
--		dev_warn(&dev->dev, "Unable to attach SIR RX DMA channel\n");
--		return -EBUSY;
--	}
--
--	if (request_dma(port->tx_dma_channel, "BFIN_UART_TX") < 0) {
--		dev_warn(&dev->dev, "Unable to attach SIR TX DMA channel\n");
--		free_dma(port->rx_dma_channel);
--		return -EBUSY;
--	}
--
--#ifdef CONFIG_SIR_BFIN_DMA
--
--	set_dma_callback(port->rx_dma_channel, bfin_sir_dma_rx_int, dev);
--	set_dma_callback(port->tx_dma_channel, bfin_sir_dma_tx_int, dev);
--
--	port->rx_dma_buf.buf = dma_alloc_coherent(NULL, PAGE_SIZE,
--						  &dma_handle, GFP_DMA);
--	port->rx_dma_buf.head = 0;
--	port->rx_dma_buf.tail = 0;
--	port->rx_dma_nrows = 0;
--
--	set_dma_config(port->rx_dma_channel,
--				set_bfin_dma_config(DIR_WRITE, DMA_FLOW_AUTO,
--									INTR_ON_ROW, DIMENSION_2D,
--									DATA_SIZE_8, DMA_SYNC_RESTART));
--	set_dma_x_count(port->rx_dma_channel, DMA_SIR_RX_XCNT);
--	set_dma_x_modify(port->rx_dma_channel, 1);
--	set_dma_y_count(port->rx_dma_channel, DMA_SIR_RX_YCNT);
--	set_dma_y_modify(port->rx_dma_channel, 1);
--	set_dma_start_addr(port->rx_dma_channel, (unsigned long)port->rx_dma_buf.buf);
--	enable_dma(port->rx_dma_channel);
--
--
--#else
--
--	if (request_irq(port->irq, bfin_sir_rx_int, 0, "BFIN_SIR_RX", dev)) {
--		dev_warn(&dev->dev, "Unable to attach SIR RX interrupt\n");
--		return -EBUSY;
--	}
--
--	if (request_irq(port->irq+1, bfin_sir_tx_int, 0, "BFIN_SIR_TX", dev)) {
--		dev_warn(&dev->dev, "Unable to attach SIR TX interrupt\n");
--		free_irq(port->irq, dev);
--		return -EBUSY;
--	}
--#endif
--
--	return 0;
--}
--
--static void bfin_sir_shutdown(struct bfin_sir_port *port, struct net_device *dev)
--{
--	unsigned short val;
--
--	bfin_sir_stop_rx(port);
--
--	val = UART_GET_GCTL(port);
--	val &= ~(UCEN | UMOD_MASK | RPOLC);
--	UART_PUT_GCTL(port, val);
--
--#ifdef CONFIG_SIR_BFIN_DMA
--	disable_dma(port->tx_dma_channel);
--	disable_dma(port->rx_dma_channel);
--	del_timer(&(port->rx_dma_timer));
--	dma_free_coherent(NULL, PAGE_SIZE, port->rx_dma_buf.buf, 0);
--#else
--	free_irq(port->irq+1, dev);
--	free_irq(port->irq, dev);
--#endif
--	free_dma(port->tx_dma_channel);
--	free_dma(port->rx_dma_channel);
--}
--
--#ifdef CONFIG_PM
--static int bfin_sir_suspend(struct platform_device *pdev, pm_message_t state)
--{
--	struct bfin_sir_port *sir_port;
--	struct net_device *dev;
--	struct bfin_sir_self *self;
--
--	sir_port = platform_get_drvdata(pdev);
--	if (!sir_port)
--		return 0;
--
--	dev = sir_port->dev;
--	self = netdev_priv(dev);
--	if (self->open) {
--		flush_work(&self->work);
--		bfin_sir_shutdown(self->sir_port, dev);
--		netif_device_detach(dev);
--	}
--
--	return 0;
--}
--static int bfin_sir_resume(struct platform_device *pdev)
--{
--	struct bfin_sir_port *sir_port;
--	struct net_device *dev;
--	struct bfin_sir_self *self;
--	struct bfin_sir_port *port;
--
--	sir_port = platform_get_drvdata(pdev);
--	if (!sir_port)
--		return 0;
--
--	dev = sir_port->dev;
--	self = netdev_priv(dev);
--	port = self->sir_port;
--	if (self->open) {
--		if (self->newspeed) {
--			self->speed = self->newspeed;
--			self->newspeed = 0;
--		}
--		bfin_sir_startup(port, dev);
--		bfin_sir_set_speed(port, 9600);
--		bfin_sir_enable_rx(port);
--		netif_device_attach(dev);
--	}
--	return 0;
--}
--#else
--#define bfin_sir_suspend   NULL
--#define bfin_sir_resume    NULL
--#endif
--
--static void bfin_sir_send_work(struct work_struct *work)
--{
--	struct bfin_sir_self  *self = container_of(work, struct bfin_sir_self, work);
--	struct net_device *dev = self->sir_port->dev;
--	struct bfin_sir_port *port = self->sir_port;
--	unsigned short val;
--	int tx_cnt = 10;
--
--	while (bfin_sir_is_receiving(dev) && --tx_cnt)
--		turnaround_delay(self->mtt);
--
--	bfin_sir_stop_rx(port);
--
--	/* To avoid losting RX interrupt, we reset IR function before
--	 * sending data. We also can set the speed, which will
--	 * reset all the UART.
--	 */
--	val = UART_GET_GCTL(port);
--	val &= ~(UMOD_MASK | RPOLC);
--	UART_PUT_GCTL(port, val);
--	SSYNC();
--	val |= UMOD_IRDA | RPOLC;
--	UART_PUT_GCTL(port, val);
--	SSYNC();
--	/* bfin_sir_set_speed(port, self->speed); */
--
--#ifdef CONFIG_SIR_BFIN_DMA
--	bfin_sir_dma_tx_chars(dev);
--#endif
--	bfin_sir_enable_tx(port);
--	netif_trans_update(dev);
--}
--
--static int bfin_sir_hard_xmit(struct sk_buff *skb, struct net_device *dev)
--{
--	struct bfin_sir_self *self = netdev_priv(dev);
--	int speed = irda_get_next_speed(skb);
--
--	netif_stop_queue(dev);
--
--	self->mtt = irda_get_mtt(skb);
--
--	if (speed != self->speed && speed != -1)
--		self->newspeed = speed;
--
--	self->tx_buff.data = self->tx_buff.head;
--	if (skb->len == 0)
--		self->tx_buff.len = 0;
--	else
--		self->tx_buff.len = async_wrap_skb(skb, self->tx_buff.data, self->tx_buff.truesize);
--
--	schedule_work(&self->work);
--	dev_kfree_skb(skb);
--
--	return 0;
--}
--
--static int bfin_sir_ioctl(struct net_device *dev, struct ifreq *ifreq, int cmd)
--{
--	struct if_irda_req *rq = (struct if_irda_req *)ifreq;
--	struct bfin_sir_self *self = netdev_priv(dev);
--	struct bfin_sir_port *port = self->sir_port;
--	int ret = 0;
--
--	switch (cmd) {
--	case SIOCSBANDWIDTH:
--		if (capable(CAP_NET_ADMIN)) {
--			if (self->open) {
--				ret = bfin_sir_set_speed(port, rq->ifr_baudrate);
--				bfin_sir_enable_rx(port);
--			} else {
--				dev_warn(&dev->dev, "SIOCSBANDWIDTH: !netif_running\n");
--				ret = 0;
--			}
--		}
--		break;
--
--	case SIOCSMEDIABUSY:
--		ret = -EPERM;
--		if (capable(CAP_NET_ADMIN)) {
--			irda_device_set_media_busy(dev, TRUE);
--			ret = 0;
--		}
--		break;
--
--	case SIOCGRECEIVING:
--		rq->ifr_receiving = bfin_sir_is_receiving(dev);
--		break;
--
--	default:
--		ret = -EOPNOTSUPP;
--		break;
--	}
--
--	return ret;
--}
--
--static struct net_device_stats *bfin_sir_stats(struct net_device *dev)
--{
--	struct bfin_sir_self *self = netdev_priv(dev);
--
--	return &self->stats;
--}
--
--static int bfin_sir_open(struct net_device *dev)
--{
--	struct bfin_sir_self *self = netdev_priv(dev);
--	struct bfin_sir_port *port = self->sir_port;
--	int err;
--
--	self->newspeed = 0;
--	self->speed = 9600;
--
--	spin_lock_init(&self->lock);
--
--	err = bfin_sir_startup(port, dev);
--	if (err)
--		goto err_startup;
--
--	bfin_sir_set_speed(port, 9600);
--
--	self->irlap = irlap_open(dev, &self->qos, DRIVER_NAME);
--	if (!self->irlap) {
--		err = -ENOMEM;
--		goto err_irlap;
--	}
--
--	INIT_WORK(&self->work, bfin_sir_send_work);
--
--	/*
--	 * Now enable the interrupt then start the queue
--	 */
--	self->open = 1;
--	bfin_sir_enable_rx(port);
--
--	netif_start_queue(dev);
--
--	return 0;
--
--err_irlap:
--	self->open = 0;
--	bfin_sir_shutdown(port, dev);
--err_startup:
--	return err;
--}
--
--static int bfin_sir_stop(struct net_device *dev)
--{
--	struct bfin_sir_self *self = netdev_priv(dev);
--
--	flush_work(&self->work);
--	bfin_sir_shutdown(self->sir_port, dev);
--
--	if (self->rxskb) {
--		dev_kfree_skb(self->rxskb);
--		self->rxskb = NULL;
--	}
--
--	/* Stop IrLAP */
--	if (self->irlap) {
--		irlap_close(self->irlap);
--		self->irlap = NULL;
--	}
--
--	netif_stop_queue(dev);
--	self->open = 0;
--
--	return 0;
--}
--
--static int bfin_sir_init_iobuf(iobuff_t *io, int size)
--{
--	io->head = kmalloc(size, GFP_KERNEL);
--	if (!io->head)
--		return -ENOMEM;
--	io->truesize = size;
--	io->in_frame = FALSE;
--	io->state    = OUTSIDE_FRAME;
--	io->data     = io->head;
--	return 0;
--}
--
--static const struct net_device_ops bfin_sir_ndo = {
--	.ndo_open		= bfin_sir_open,
--	.ndo_stop		= bfin_sir_stop,
--	.ndo_start_xmit		= bfin_sir_hard_xmit,
--	.ndo_do_ioctl		= bfin_sir_ioctl,
--	.ndo_get_stats		= bfin_sir_stats,
+-#include <linux/clk.h>
+-#include <linux/delay.h>
+-#include <linux/device.h>
+-#include <linux/dma-mapping.h>
+-#include <linux/errno.h>
+-#include <linux/gpio.h>
+-#include <linux/init.h>
+-#include <linux/interrupt.h>
+-#include <linux/io.h>
+-#include <linux/ioport.h>
+-#include <linux/module.h>
+-#include <linux/platform_device.h>
+-#include <linux/slab.h>
+-#include <linux/spi/spi.h>
+-#include <linux/spi/adi_spi3.h>
+-#include <linux/types.h>
+-
+-#include <asm/dma.h>
+-#include <asm/portmux.h>
+-
+-enum adi_spi_state {
+-	START_STATE,
+-	RUNNING_STATE,
+-	DONE_STATE,
+-	ERROR_STATE
 -};
 -
--static int bfin_sir_probe(struct platform_device *pdev)
--{
--	struct net_device *dev;
--	struct bfin_sir_self *self;
--	unsigned int baudrate_mask;
--	struct bfin_sir_port *sir_port;
--	int err;
+-struct adi_spi_master;
 -
--	if (pdev->id >= 0 && pdev->id < ARRAY_SIZE(per) && \
--				per[pdev->id][3] == pdev->id) {
--		err = peripheral_request_list(per[pdev->id], DRIVER_NAME);
--		if (err)
--			return err;
+-struct adi_spi_transfer_ops {
+-	void (*write) (struct adi_spi_master *);
+-	void (*read) (struct adi_spi_master *);
+-	void (*duplex) (struct adi_spi_master *);
+-};
+-
+-/* runtime info for spi master */
+-struct adi_spi_master {
+-	/* SPI framework hookup */
+-	struct spi_master *master;
+-
+-	/* Regs base of SPI controller */
+-	struct adi_spi_regs __iomem *regs;
+-
+-	/* Pin request list */
+-	u16 *pin_req;
+-
+-	/* Message Transfer pump */
+-	struct tasklet_struct pump_transfers;
+-
+-	/* Current message transfer state info */
+-	struct spi_message *cur_msg;
+-	struct spi_transfer *cur_transfer;
+-	struct adi_spi_device *cur_chip;
+-	unsigned transfer_len;
+-
+-	/* transfer buffer */
+-	void *tx;
+-	void *tx_end;
+-	void *rx;
+-	void *rx_end;
+-
+-	/* dma info */
+-	unsigned int tx_dma;
+-	unsigned int rx_dma;
+-	dma_addr_t tx_dma_addr;
+-	dma_addr_t rx_dma_addr;
+-	unsigned long dummy_buffer; /* used in unidirectional transfer */
+-	unsigned long tx_dma_size;
+-	unsigned long rx_dma_size;
+-	int tx_num;
+-	int rx_num;
+-
+-	/* store register value for suspend/resume */
+-	u32 control;
+-	u32 ssel;
+-
+-	unsigned long sclk;
+-	enum adi_spi_state state;
+-
+-	const struct adi_spi_transfer_ops *ops;
+-};
+-
+-struct adi_spi_device {
+-	u32 control;
+-	u32 clock;
+-	u32 ssel;
+-
+-	u8 cs;
+-	u16 cs_chg_udelay; /* Some devices require > 255usec delay */
+-	u32 cs_gpio;
+-	u32 tx_dummy_val; /* tx value for rx only transfer */
+-	bool enable_dma;
+-	const struct adi_spi_transfer_ops *ops;
+-};
+-
+-static void adi_spi_enable(struct adi_spi_master *drv_data)
+-{
+-	u32 ctl;
+-
+-	ctl = ioread32(&drv_data->regs->control);
+-	ctl |= SPI_CTL_EN;
+-	iowrite32(ctl, &drv_data->regs->control);
+-}
+-
+-static void adi_spi_disable(struct adi_spi_master *drv_data)
+-{
+-	u32 ctl;
+-
+-	ctl = ioread32(&drv_data->regs->control);
+-	ctl &= ~SPI_CTL_EN;
+-	iowrite32(ctl, &drv_data->regs->control);
+-}
+-
+-/* Caculate the SPI_CLOCK register value based on input HZ */
+-static u32 hz_to_spi_clock(u32 sclk, u32 speed_hz)
+-{
+-	u32 spi_clock = sclk / speed_hz;
+-
+-	if (spi_clock)
+-		spi_clock--;
+-	return spi_clock;
+-}
+-
+-static int adi_spi_flush(struct adi_spi_master *drv_data)
+-{
+-	unsigned long limit = loops_per_jiffy << 1;
+-
+-	/* wait for stop and clear stat */
+-	while (!(ioread32(&drv_data->regs->status) & SPI_STAT_SPIF) && --limit)
+-		cpu_relax();
+-
+-	iowrite32(0xFFFFFFFF, &drv_data->regs->status);
+-
+-	return limit;
+-}
+-
+-/* Chip select operation functions for cs_change flag */
+-static void adi_spi_cs_active(struct adi_spi_master *drv_data, struct adi_spi_device *chip)
+-{
+-	if (likely(chip->cs < MAX_CTRL_CS)) {
+-		u32 reg;
+-		reg = ioread32(&drv_data->regs->ssel);
+-		reg &= ~chip->ssel;
+-		iowrite32(reg, &drv_data->regs->ssel);
 -	} else {
--		dev_err(&pdev->dev, "Invalid pdev id, please check board file\n");
+-		gpio_set_value(chip->cs_gpio, 0);
+-	}
+-}
+-
+-static void adi_spi_cs_deactive(struct adi_spi_master *drv_data,
+-				struct adi_spi_device *chip)
+-{
+-	if (likely(chip->cs < MAX_CTRL_CS)) {
+-		u32 reg;
+-		reg = ioread32(&drv_data->regs->ssel);
+-		reg |= chip->ssel;
+-		iowrite32(reg, &drv_data->regs->ssel);
+-	} else {
+-		gpio_set_value(chip->cs_gpio, 1);
+-	}
+-
+-	/* Move delay here for consistency */
+-	if (chip->cs_chg_udelay)
+-		udelay(chip->cs_chg_udelay);
+-}
+-
+-/* enable or disable the pin muxed by GPIO and SPI CS to work as SPI CS */
+-static inline void adi_spi_cs_enable(struct adi_spi_master *drv_data,
+-					struct adi_spi_device *chip)
+-{
+-	if (chip->cs < MAX_CTRL_CS) {
+-		u32 reg;
+-		reg = ioread32(&drv_data->regs->ssel);
+-		reg |= chip->ssel >> 8;
+-		iowrite32(reg, &drv_data->regs->ssel);
+-	}
+-}
+-
+-static inline void adi_spi_cs_disable(struct adi_spi_master *drv_data,
+-					struct adi_spi_device *chip)
+-{
+-	if (chip->cs < MAX_CTRL_CS) {
+-		u32 reg;
+-		reg = ioread32(&drv_data->regs->ssel);
+-		reg &= ~(chip->ssel >> 8);
+-		iowrite32(reg, &drv_data->regs->ssel);
+-	}
+-}
+-
+-/* stop controller and re-config current chip*/
+-static void adi_spi_restore_state(struct adi_spi_master *drv_data)
+-{
+-	struct adi_spi_device *chip = drv_data->cur_chip;
+-
+-	/* Clear status and disable clock */
+-	iowrite32(0xFFFFFFFF, &drv_data->regs->status);
+-	iowrite32(0x0, &drv_data->regs->rx_control);
+-	iowrite32(0x0, &drv_data->regs->tx_control);
+-	adi_spi_disable(drv_data);
+-
+-	/* Load the registers */
+-	iowrite32(chip->control, &drv_data->regs->control);
+-	iowrite32(chip->clock, &drv_data->regs->clock);
+-
+-	adi_spi_enable(drv_data);
+-	drv_data->tx_num = drv_data->rx_num = 0;
+-	/* we always choose tx transfer initiate */
+-	iowrite32(SPI_RXCTL_REN, &drv_data->regs->rx_control);
+-	iowrite32(SPI_TXCTL_TEN | SPI_TXCTL_TTI, &drv_data->regs->tx_control);
+-	adi_spi_cs_active(drv_data, chip);
+-}
+-
+-/* discard invalid rx data and empty rfifo */
+-static inline void dummy_read(struct adi_spi_master *drv_data)
+-{
+-	while (!(ioread32(&drv_data->regs->status) & SPI_STAT_RFE))
+-		ioread32(&drv_data->regs->rfifo);
+-}
+-
+-static void adi_spi_u8_write(struct adi_spi_master *drv_data)
+-{
+-	dummy_read(drv_data);
+-	while (drv_data->tx < drv_data->tx_end) {
+-		iowrite32(*(u8 *)(drv_data->tx++), &drv_data->regs->tfifo);
+-		while (ioread32(&drv_data->regs->status) & SPI_STAT_RFE)
+-			cpu_relax();
+-		ioread32(&drv_data->regs->rfifo);
+-	}
+-}
+-
+-static void adi_spi_u8_read(struct adi_spi_master *drv_data)
+-{
+-	u32 tx_val = drv_data->cur_chip->tx_dummy_val;
+-
+-	dummy_read(drv_data);
+-	while (drv_data->rx < drv_data->rx_end) {
+-		iowrite32(tx_val, &drv_data->regs->tfifo);
+-		while (ioread32(&drv_data->regs->status) & SPI_STAT_RFE)
+-			cpu_relax();
+-		*(u8 *)(drv_data->rx++) = ioread32(&drv_data->regs->rfifo);
+-	}
+-}
+-
+-static void adi_spi_u8_duplex(struct adi_spi_master *drv_data)
+-{
+-	dummy_read(drv_data);
+-	while (drv_data->rx < drv_data->rx_end) {
+-		iowrite32(*(u8 *)(drv_data->tx++), &drv_data->regs->tfifo);
+-		while (ioread32(&drv_data->regs->status) & SPI_STAT_RFE)
+-			cpu_relax();
+-		*(u8 *)(drv_data->rx++) = ioread32(&drv_data->regs->rfifo);
+-	}
+-}
+-
+-static const struct adi_spi_transfer_ops adi_spi_transfer_ops_u8 = {
+-	.write  = adi_spi_u8_write,
+-	.read   = adi_spi_u8_read,
+-	.duplex = adi_spi_u8_duplex,
+-};
+-
+-static void adi_spi_u16_write(struct adi_spi_master *drv_data)
+-{
+-	dummy_read(drv_data);
+-	while (drv_data->tx < drv_data->tx_end) {
+-		iowrite32(*(u16 *)drv_data->tx, &drv_data->regs->tfifo);
+-		drv_data->tx += 2;
+-		while (ioread32(&drv_data->regs->status) & SPI_STAT_RFE)
+-			cpu_relax();
+-		ioread32(&drv_data->regs->rfifo);
+-	}
+-}
+-
+-static void adi_spi_u16_read(struct adi_spi_master *drv_data)
+-{
+-	u32 tx_val = drv_data->cur_chip->tx_dummy_val;
+-
+-	dummy_read(drv_data);
+-	while (drv_data->rx < drv_data->rx_end) {
+-		iowrite32(tx_val, &drv_data->regs->tfifo);
+-		while (ioread32(&drv_data->regs->status) & SPI_STAT_RFE)
+-			cpu_relax();
+-		*(u16 *)drv_data->rx = ioread32(&drv_data->regs->rfifo);
+-		drv_data->rx += 2;
+-	}
+-}
+-
+-static void adi_spi_u16_duplex(struct adi_spi_master *drv_data)
+-{
+-	dummy_read(drv_data);
+-	while (drv_data->rx < drv_data->rx_end) {
+-		iowrite32(*(u16 *)drv_data->tx, &drv_data->regs->tfifo);
+-		drv_data->tx += 2;
+-		while (ioread32(&drv_data->regs->status) & SPI_STAT_RFE)
+-			cpu_relax();
+-		*(u16 *)drv_data->rx = ioread32(&drv_data->regs->rfifo);
+-		drv_data->rx += 2;
+-	}
+-}
+-
+-static const struct adi_spi_transfer_ops adi_spi_transfer_ops_u16 = {
+-	.write  = adi_spi_u16_write,
+-	.read   = adi_spi_u16_read,
+-	.duplex = adi_spi_u16_duplex,
+-};
+-
+-static void adi_spi_u32_write(struct adi_spi_master *drv_data)
+-{
+-	dummy_read(drv_data);
+-	while (drv_data->tx < drv_data->tx_end) {
+-		iowrite32(*(u32 *)drv_data->tx, &drv_data->regs->tfifo);
+-		drv_data->tx += 4;
+-		while (ioread32(&drv_data->regs->status) & SPI_STAT_RFE)
+-			cpu_relax();
+-		ioread32(&drv_data->regs->rfifo);
+-	}
+-}
+-
+-static void adi_spi_u32_read(struct adi_spi_master *drv_data)
+-{
+-	u32 tx_val = drv_data->cur_chip->tx_dummy_val;
+-
+-	dummy_read(drv_data);
+-	while (drv_data->rx < drv_data->rx_end) {
+-		iowrite32(tx_val, &drv_data->regs->tfifo);
+-		while (ioread32(&drv_data->regs->status) & SPI_STAT_RFE)
+-			cpu_relax();
+-		*(u32 *)drv_data->rx = ioread32(&drv_data->regs->rfifo);
+-		drv_data->rx += 4;
+-	}
+-}
+-
+-static void adi_spi_u32_duplex(struct adi_spi_master *drv_data)
+-{
+-	dummy_read(drv_data);
+-	while (drv_data->rx < drv_data->rx_end) {
+-		iowrite32(*(u32 *)drv_data->tx, &drv_data->regs->tfifo);
+-		drv_data->tx += 4;
+-		while (ioread32(&drv_data->regs->status) & SPI_STAT_RFE)
+-			cpu_relax();
+-		*(u32 *)drv_data->rx = ioread32(&drv_data->regs->rfifo);
+-		drv_data->rx += 4;
+-	}
+-}
+-
+-static const struct adi_spi_transfer_ops adi_spi_transfer_ops_u32 = {
+-	.write  = adi_spi_u32_write,
+-	.read   = adi_spi_u32_read,
+-	.duplex = adi_spi_u32_duplex,
+-};
+-
+-
+-/* test if there is more transfer to be done */
+-static void adi_spi_next_transfer(struct adi_spi_master *drv)
+-{
+-	struct spi_message *msg = drv->cur_msg;
+-	struct spi_transfer *t = drv->cur_transfer;
+-
+-	/* Move to next transfer */
+-	if (t->transfer_list.next != &msg->transfers) {
+-		drv->cur_transfer = list_entry(t->transfer_list.next,
+-			       struct spi_transfer, transfer_list);
+-		drv->state = RUNNING_STATE;
+-	} else {
+-		drv->state = DONE_STATE;
+-		drv->cur_transfer = NULL;
+-	}
+-}
+-
+-static void adi_spi_giveback(struct adi_spi_master *drv_data)
+-{
+-	struct adi_spi_device *chip = drv_data->cur_chip;
+-
+-	adi_spi_cs_deactive(drv_data, chip);
+-	spi_finalize_current_message(drv_data->master);
+-}
+-
+-static int adi_spi_setup_transfer(struct adi_spi_master *drv)
+-{
+-	struct spi_transfer *t = drv->cur_transfer;
+-	u32 cr, cr_width;
+-
+-	if (t->tx_buf) {
+-		drv->tx = (void *)t->tx_buf;
+-		drv->tx_end = drv->tx + t->len;
+-	} else {
+-		drv->tx = NULL;
+-	}
+-
+-	if (t->rx_buf) {
+-		drv->rx = t->rx_buf;
+-		drv->rx_end = drv->rx + t->len;
+-	} else {
+-		drv->rx = NULL;
+-	}
+-
+-	drv->transfer_len = t->len;
+-
+-	/* bits per word setup */
+-	switch (t->bits_per_word) {
+-	case 8:
+-		cr_width = SPI_CTL_SIZE08;
+-		drv->ops = &adi_spi_transfer_ops_u8;
+-		break;
+-	case 16:
+-		cr_width = SPI_CTL_SIZE16;
+-		drv->ops = &adi_spi_transfer_ops_u16;
+-		break;
+-	case 32:
+-		cr_width = SPI_CTL_SIZE32;
+-		drv->ops = &adi_spi_transfer_ops_u32;
+-		break;
+-	default:
+-		return -EINVAL;
+-	}
+-	cr = ioread32(&drv->regs->control) & ~SPI_CTL_SIZE;
+-	cr |= cr_width;
+-	iowrite32(cr, &drv->regs->control);
+-
+-	/* speed setup */
+-	iowrite32(hz_to_spi_clock(drv->sclk, t->speed_hz), &drv->regs->clock);
+-	return 0;
+-}
+-
+-static int adi_spi_dma_xfer(struct adi_spi_master *drv_data)
+-{
+-	struct spi_transfer *t = drv_data->cur_transfer;
+-	struct spi_message *msg = drv_data->cur_msg;
+-	struct adi_spi_device *chip = drv_data->cur_chip;
+-	u32 dma_config;
+-	unsigned long word_count, word_size;
+-	void *tx_buf, *rx_buf;
+-
+-	switch (t->bits_per_word) {
+-	case 8:
+-		dma_config = WDSIZE_8 | PSIZE_8;
+-		word_count = drv_data->transfer_len;
+-		word_size = 1;
+-		break;
+-	case 16:
+-		dma_config = WDSIZE_16 | PSIZE_16;
+-		word_count = drv_data->transfer_len / 2;
+-		word_size = 2;
+-		break;
+-	default:
+-		dma_config = WDSIZE_32 | PSIZE_32;
+-		word_count = drv_data->transfer_len / 4;
+-		word_size = 4;
+-		break;
+-	}
+-
+-	if (!drv_data->rx) {
+-		tx_buf = drv_data->tx;
+-		rx_buf = &drv_data->dummy_buffer;
+-		drv_data->tx_dma_size = drv_data->transfer_len;
+-		drv_data->rx_dma_size = sizeof(drv_data->dummy_buffer);
+-		set_dma_x_modify(drv_data->tx_dma, word_size);
+-		set_dma_x_modify(drv_data->rx_dma, 0);
+-	} else if (!drv_data->tx) {
+-		drv_data->dummy_buffer = chip->tx_dummy_val;
+-		tx_buf = &drv_data->dummy_buffer;
+-		rx_buf = drv_data->rx;
+-		drv_data->tx_dma_size = sizeof(drv_data->dummy_buffer);
+-		drv_data->rx_dma_size = drv_data->transfer_len;
+-		set_dma_x_modify(drv_data->tx_dma, 0);
+-		set_dma_x_modify(drv_data->rx_dma, word_size);
+-	} else {
+-		tx_buf = drv_data->tx;
+-		rx_buf = drv_data->rx;
+-		drv_data->tx_dma_size = drv_data->rx_dma_size
+-					= drv_data->transfer_len;
+-		set_dma_x_modify(drv_data->tx_dma, word_size);
+-		set_dma_x_modify(drv_data->rx_dma, word_size);
+-	}
+-
+-	drv_data->tx_dma_addr = dma_map_single(&msg->spi->dev,
+-				(void *)tx_buf,
+-				drv_data->tx_dma_size,
+-				DMA_TO_DEVICE);
+-	if (dma_mapping_error(&msg->spi->dev,
+-				drv_data->tx_dma_addr))
+-		return -ENOMEM;
+-
+-	drv_data->rx_dma_addr = dma_map_single(&msg->spi->dev,
+-				(void *)rx_buf,
+-				drv_data->rx_dma_size,
+-				DMA_FROM_DEVICE);
+-	if (dma_mapping_error(&msg->spi->dev,
+-				drv_data->rx_dma_addr)) {
+-		dma_unmap_single(&msg->spi->dev,
+-				drv_data->tx_dma_addr,
+-				drv_data->tx_dma_size,
+-				DMA_TO_DEVICE);
+-		return -ENOMEM;
+-	}
+-
+-	dummy_read(drv_data);
+-	set_dma_x_count(drv_data->tx_dma, word_count);
+-	set_dma_x_count(drv_data->rx_dma, word_count);
+-	set_dma_start_addr(drv_data->tx_dma, drv_data->tx_dma_addr);
+-	set_dma_start_addr(drv_data->rx_dma, drv_data->rx_dma_addr);
+-	dma_config |= DMAFLOW_STOP | RESTART | DI_EN;
+-	set_dma_config(drv_data->tx_dma, dma_config);
+-	set_dma_config(drv_data->rx_dma, dma_config | WNR);
+-	enable_dma(drv_data->tx_dma);
+-	enable_dma(drv_data->rx_dma);
+-
+-	iowrite32(SPI_RXCTL_REN | SPI_RXCTL_RDR_NE,
+-			&drv_data->regs->rx_control);
+-	iowrite32(SPI_TXCTL_TEN | SPI_TXCTL_TTI | SPI_TXCTL_TDR_NF,
+-			&drv_data->regs->tx_control);
+-
+-	return 0;
+-}
+-
+-static int adi_spi_pio_xfer(struct adi_spi_master *drv_data)
+-{
+-	struct spi_message *msg = drv_data->cur_msg;
+-
+-	if (!drv_data->rx) {
+-		/* write only half duplex */
+-		drv_data->ops->write(drv_data);
+-		if (drv_data->tx != drv_data->tx_end)
+-			return -EIO;
+-	} else if (!drv_data->tx) {
+-		/* read only half duplex */
+-		drv_data->ops->read(drv_data);
+-		if (drv_data->rx != drv_data->rx_end)
+-			return -EIO;
+-	} else {
+-		/* full duplex mode */
+-		drv_data->ops->duplex(drv_data);
+-		if (drv_data->tx != drv_data->tx_end)
+-			return -EIO;
+-	}
+-
+-	if (!adi_spi_flush(drv_data))
+-		return -EIO;
+-	msg->actual_length += drv_data->transfer_len;
+-	tasklet_schedule(&drv_data->pump_transfers);
+-	return 0;
+-}
+-
+-static void adi_spi_pump_transfers(unsigned long data)
+-{
+-	struct adi_spi_master *drv_data = (struct adi_spi_master *)data;
+-	struct spi_message *msg = NULL;
+-	struct spi_transfer *t = NULL;
+-	struct adi_spi_device *chip = NULL;
+-	int ret;
+-
+-	/* Get current state information */
+-	msg = drv_data->cur_msg;
+-	t = drv_data->cur_transfer;
+-	chip = drv_data->cur_chip;
+-
+-	/* Handle for abort */
+-	if (drv_data->state == ERROR_STATE) {
+-		msg->status = -EIO;
+-		adi_spi_giveback(drv_data);
+-		return;
+-	}
+-
+-	if (drv_data->state == RUNNING_STATE) {
+-		if (t->delay_usecs)
+-			udelay(t->delay_usecs);
+-		if (t->cs_change)
+-			adi_spi_cs_deactive(drv_data, chip);
+-		adi_spi_next_transfer(drv_data);
+-		t = drv_data->cur_transfer;
+-	}
+-	/* Handle end of message */
+-	if (drv_data->state == DONE_STATE) {
+-		msg->status = 0;
+-		adi_spi_giveback(drv_data);
+-		return;
+-	}
+-
+-	if ((t->len == 0) || (t->tx_buf == NULL && t->rx_buf == NULL)) {
+-		/* Schedule next transfer tasklet */
+-		tasklet_schedule(&drv_data->pump_transfers);
+-		return;
+-	}
+-
+-	ret = adi_spi_setup_transfer(drv_data);
+-	if (ret) {
+-		msg->status = ret;
+-		adi_spi_giveback(drv_data);
+-	}
+-
+-	iowrite32(0xFFFFFFFF, &drv_data->regs->status);
+-	adi_spi_cs_active(drv_data, chip);
+-	drv_data->state = RUNNING_STATE;
+-
+-	if (chip->enable_dma)
+-		ret = adi_spi_dma_xfer(drv_data);
+-	else
+-		ret = adi_spi_pio_xfer(drv_data);
+-	if (ret) {
+-		msg->status = ret;
+-		adi_spi_giveback(drv_data);
+-	}
+-}
+-
+-static int adi_spi_transfer_one_message(struct spi_master *master,
+-					struct spi_message *m)
+-{
+-	struct adi_spi_master *drv_data = spi_master_get_devdata(master);
+-
+-	drv_data->cur_msg = m;
+-	drv_data->cur_chip = spi_get_ctldata(drv_data->cur_msg->spi);
+-	adi_spi_restore_state(drv_data);
+-
+-	drv_data->state = START_STATE;
+-	drv_data->cur_transfer = list_entry(drv_data->cur_msg->transfers.next,
+-					    struct spi_transfer, transfer_list);
+-
+-	tasklet_schedule(&drv_data->pump_transfers);
+-	return 0;
+-}
+-
+-#define MAX_SPI_SSEL	7
+-
+-static const u16 ssel[][MAX_SPI_SSEL] = {
+-	{P_SPI0_SSEL1, P_SPI0_SSEL2, P_SPI0_SSEL3,
+-	P_SPI0_SSEL4, P_SPI0_SSEL5,
+-	P_SPI0_SSEL6, P_SPI0_SSEL7},
+-
+-	{P_SPI1_SSEL1, P_SPI1_SSEL2, P_SPI1_SSEL3,
+-	P_SPI1_SSEL4, P_SPI1_SSEL5,
+-	P_SPI1_SSEL6, P_SPI1_SSEL7},
+-
+-	{P_SPI2_SSEL1, P_SPI2_SSEL2, P_SPI2_SSEL3,
+-	P_SPI2_SSEL4, P_SPI2_SSEL5,
+-	P_SPI2_SSEL6, P_SPI2_SSEL7},
+-};
+-
+-static int adi_spi_setup(struct spi_device *spi)
+-{
+-	struct adi_spi_master *drv_data = spi_master_get_devdata(spi->master);
+-	struct adi_spi_device *chip = spi_get_ctldata(spi);
+-	u32 ctl_reg = SPI_CTL_ODM | SPI_CTL_PSSE;
+-	int ret = -EINVAL;
+-
+-	if (!chip) {
+-		struct adi_spi3_chip *chip_info = spi->controller_data;
+-
+-		chip = kzalloc(sizeof(*chip), GFP_KERNEL);
+-		if (!chip)
+-			return -ENOMEM;
+-
+-		if (chip_info) {
+-			if (chip_info->control & ~ctl_reg) {
+-				dev_err(&spi->dev,
+-					"do not set bits that the SPI framework manages\n");
+-				goto error;
+-			}
+-			chip->control = chip_info->control;
+-			chip->cs_chg_udelay = chip_info->cs_chg_udelay;
+-			chip->tx_dummy_val = chip_info->tx_dummy_val;
+-			chip->enable_dma = chip_info->enable_dma;
+-		}
+-		chip->cs = spi->chip_select;
+-
+-		if (chip->cs < MAX_CTRL_CS) {
+-			chip->ssel = (1 << chip->cs) << 8;
+-			ret = peripheral_request(ssel[spi->master->bus_num]
+-					[chip->cs-1], dev_name(&spi->dev));
+-			if (ret) {
+-				dev_err(&spi->dev, "peripheral_request() error\n");
+-				goto error;
+-			}
+-		} else {
+-			chip->cs_gpio = chip->cs - MAX_CTRL_CS;
+-			ret = gpio_request_one(chip->cs_gpio, GPIOF_OUT_INIT_HIGH,
+-						dev_name(&spi->dev));
+-			if (ret) {
+-				dev_err(&spi->dev, "gpio_request_one() error\n");
+-				goto error;
+-			}
+-		}
+-		spi_set_ctldata(spi, chip);
+-	}
+-
+-	/* force a default base state */
+-	chip->control &= ctl_reg;
+-
+-	if (spi->mode & SPI_CPOL)
+-		chip->control |= SPI_CTL_CPOL;
+-	if (spi->mode & SPI_CPHA)
+-		chip->control |= SPI_CTL_CPHA;
+-	if (spi->mode & SPI_LSB_FIRST)
+-		chip->control |= SPI_CTL_LSBF;
+-	chip->control |= SPI_CTL_MSTR;
+-	/* we choose software to controll cs */
+-	chip->control &= ~SPI_CTL_ASSEL;
+-
+-	chip->clock = hz_to_spi_clock(drv_data->sclk, spi->max_speed_hz);
+-
+-	adi_spi_cs_enable(drv_data, chip);
+-	adi_spi_cs_deactive(drv_data, chip);
+-
+-	return 0;
+-error:
+-	if (chip) {
+-		kfree(chip);
+-		spi_set_ctldata(spi, NULL);
+-	}
+-
+-	return ret;
+-}
+-
+-static void adi_spi_cleanup(struct spi_device *spi)
+-{
+-	struct adi_spi_device *chip = spi_get_ctldata(spi);
+-	struct adi_spi_master *drv_data = spi_master_get_devdata(spi->master);
+-
+-	if (!chip)
+-		return;
+-
+-	if (chip->cs < MAX_CTRL_CS) {
+-		peripheral_free(ssel[spi->master->bus_num]
+-					[chip->cs-1]);
+-		adi_spi_cs_disable(drv_data, chip);
+-	} else {
+-		gpio_free(chip->cs_gpio);
+-	}
+-
+-	kfree(chip);
+-	spi_set_ctldata(spi, NULL);
+-}
+-
+-static irqreturn_t adi_spi_tx_dma_isr(int irq, void *dev_id)
+-{
+-	struct adi_spi_master *drv_data = dev_id;
+-	u32 dma_stat = get_dma_curr_irqstat(drv_data->tx_dma);
+-	u32 tx_ctl;
+-
+-	clear_dma_irqstat(drv_data->tx_dma);
+-	if (dma_stat & DMA_DONE) {
+-		drv_data->tx_num++;
+-	} else {
+-		dev_err(&drv_data->master->dev,
+-				"spi tx dma error: %d\n", dma_stat);
+-		if (drv_data->tx)
+-			drv_data->state = ERROR_STATE;
+-	}
+-	tx_ctl = ioread32(&drv_data->regs->tx_control);
+-	tx_ctl &= ~SPI_TXCTL_TDR_NF;
+-	iowrite32(tx_ctl, &drv_data->regs->tx_control);
+-	return IRQ_HANDLED;
+-}
+-
+-static irqreturn_t adi_spi_rx_dma_isr(int irq, void *dev_id)
+-{
+-	struct adi_spi_master *drv_data = dev_id;
+-	struct spi_message *msg = drv_data->cur_msg;
+-	u32 dma_stat = get_dma_curr_irqstat(drv_data->rx_dma);
+-
+-	clear_dma_irqstat(drv_data->rx_dma);
+-	if (dma_stat & DMA_DONE) {
+-		drv_data->rx_num++;
+-		/* we may fail on tx dma */
+-		if (drv_data->state != ERROR_STATE)
+-			msg->actual_length += drv_data->transfer_len;
+-	} else {
+-		drv_data->state = ERROR_STATE;
+-		dev_err(&drv_data->master->dev,
+-				"spi rx dma error: %d\n", dma_stat);
+-	}
+-	iowrite32(0, &drv_data->regs->tx_control);
+-	iowrite32(0, &drv_data->regs->rx_control);
+-	if (drv_data->rx_num != drv_data->tx_num)
+-		dev_dbg(&drv_data->master->dev,
+-				"dma interrupt missing: tx=%d,rx=%d\n",
+-				drv_data->tx_num, drv_data->rx_num);
+-	tasklet_schedule(&drv_data->pump_transfers);
+-	return IRQ_HANDLED;
+-}
+-
+-static int adi_spi_probe(struct platform_device *pdev)
+-{
+-	struct device *dev = &pdev->dev;
+-	struct adi_spi3_master *info = dev_get_platdata(dev);
+-	struct spi_master *master;
+-	struct adi_spi_master *drv_data;
+-	struct resource *mem, *res;
+-	unsigned int tx_dma, rx_dma;
+-	struct clk *sclk;
+-	int ret;
+-
+-	if (!info) {
+-		dev_err(dev, "platform data missing!\n");
 -		return -ENODEV;
 -	}
 -
--	err = -ENOMEM;
--	sir_port = kmalloc(sizeof(*sir_port), GFP_KERNEL);
--	if (!sir_port)
--		goto err_mem_0;
--
--	bfin_sir_init_ports(sir_port, pdev);
--
--	dev = alloc_irdadev(sizeof(*self));
--	if (!dev)
--		goto err_mem_1;
--
--	self = netdev_priv(dev);
--	self->dev = &pdev->dev;
--	self->sir_port = sir_port;
--	sir_port->dev = dev;
--
--	err = bfin_sir_init_iobuf(&self->rx_buff, IRDA_SKB_MAX_MTU);
--	if (err)
--		goto err_mem_2;
--	err = bfin_sir_init_iobuf(&self->tx_buff, IRDA_SIR_MAX_FRAME);
--	if (err)
--		goto err_mem_3;
--
--	dev->netdev_ops = &bfin_sir_ndo;
--	dev->irq = sir_port->irq;
--
--	irda_init_max_qos_capabilies(&self->qos);
--
--	baudrate_mask = IR_9600;
--
--	switch (max_rate) {
--	case 115200:
--		baudrate_mask |= IR_115200;
--	case 57600:
--		baudrate_mask |= IR_57600;
--	case 38400:
--		baudrate_mask |= IR_38400;
--	case 19200:
--		baudrate_mask |= IR_19200;
--	case 9600:
--		break;
--	default:
--		dev_warn(&pdev->dev, "Invalid maximum baud rate, using 9600\n");
+-	sclk = devm_clk_get(dev, "spi");
+-	if (IS_ERR(sclk)) {
+-		dev_err(dev, "can not get spi clock\n");
+-		return PTR_ERR(sclk);
 -	}
 -
--	self->qos.baud_rate.bits &= baudrate_mask;
+-	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
+-	if (!res) {
+-		dev_err(dev, "can not get tx dma resource\n");
+-		return -ENXIO;
+-	}
+-	tx_dma = res->start;
 -
--	self->qos.min_turn_time.bits = 1; /* 10 ms or more */
+-	res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
+-	if (!res) {
+-		dev_err(dev, "can not get rx dma resource\n");
+-		return -ENXIO;
+-	}
+-	rx_dma = res->start;
 -
--	irda_qos_bits_to_value(&self->qos);
+-	/* allocate master with space for drv_data */
+-	master = spi_alloc_master(dev, sizeof(*drv_data));
+-	if (!master) {
+-		dev_err(dev, "can not alloc spi_master\n");
+-		return -ENOMEM;
+-	}
+-	platform_set_drvdata(pdev, master);
 -
--	err = register_netdev(dev);
+-	/* the mode bits supported by this driver */
+-	master->mode_bits = SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST;
 -
--	if (err) {
--		kfree(self->tx_buff.head);
--err_mem_3:
--		kfree(self->rx_buff.head);
--err_mem_2:
--		free_netdev(dev);
--err_mem_1:
--		kfree(sir_port);
--err_mem_0:
--		peripheral_free_list(per[pdev->id]);
--	} else
--		platform_set_drvdata(pdev, sir_port);
+-	master->bus_num = pdev->id;
+-	master->num_chipselect = info->num_chipselect;
+-	master->cleanup = adi_spi_cleanup;
+-	master->setup = adi_spi_setup;
+-	master->transfer_one_message = adi_spi_transfer_one_message;
+-	master->bits_per_word_mask = SPI_BPW_MASK(32) | SPI_BPW_MASK(16) |
+-				     SPI_BPW_MASK(8);
 -
--	return err;
+-	drv_data = spi_master_get_devdata(master);
+-	drv_data->master = master;
+-	drv_data->tx_dma = tx_dma;
+-	drv_data->rx_dma = rx_dma;
+-	drv_data->pin_req = info->pin_req;
+-	drv_data->sclk = clk_get_rate(sclk);
+-
+-	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	drv_data->regs = devm_ioremap_resource(dev, mem);
+-	if (IS_ERR(drv_data->regs)) {
+-		ret = PTR_ERR(drv_data->regs);
+-		goto err_put_master;
+-	}
+-
+-	/* request tx and rx dma */
+-	ret = request_dma(tx_dma, "SPI_TX_DMA");
+-	if (ret) {
+-		dev_err(dev, "can not request SPI TX DMA channel\n");
+-		goto err_put_master;
+-	}
+-	set_dma_callback(tx_dma, adi_spi_tx_dma_isr, drv_data);
+-
+-	ret = request_dma(rx_dma, "SPI_RX_DMA");
+-	if (ret) {
+-		dev_err(dev, "can not request SPI RX DMA channel\n");
+-		goto err_free_tx_dma;
+-	}
+-	set_dma_callback(drv_data->rx_dma, adi_spi_rx_dma_isr, drv_data);
+-
+-	/* request CLK, MOSI and MISO */
+-	ret = peripheral_request_list(drv_data->pin_req, "adi-spi3");
+-	if (ret < 0) {
+-		dev_err(dev, "can not request spi pins\n");
+-		goto err_free_rx_dma;
+-	}
+-
+-	iowrite32(SPI_CTL_MSTR | SPI_CTL_CPHA, &drv_data->regs->control);
+-	iowrite32(0x0000FE00, &drv_data->regs->ssel);
+-	iowrite32(0x0, &drv_data->regs->delay);
+-
+-	tasklet_init(&drv_data->pump_transfers,
+-			adi_spi_pump_transfers, (unsigned long)drv_data);
+-	/* register with the SPI framework */
+-	ret = devm_spi_register_master(dev, master);
+-	if (ret) {
+-		dev_err(dev, "can not  register spi master\n");
+-		goto err_free_peripheral;
+-	}
+-
+-	return ret;
+-
+-err_free_peripheral:
+-	peripheral_free_list(drv_data->pin_req);
+-err_free_rx_dma:
+-	free_dma(rx_dma);
+-err_free_tx_dma:
+-	free_dma(tx_dma);
+-err_put_master:
+-	spi_master_put(master);
+-
+-	return ret;
 -}
 -
--static int bfin_sir_remove(struct platform_device *pdev)
+-static int adi_spi_remove(struct platform_device *pdev)
 -{
--	struct bfin_sir_port *sir_port;
--	struct net_device *dev = NULL;
--	struct bfin_sir_self *self;
+-	struct spi_master *master = platform_get_drvdata(pdev);
+-	struct adi_spi_master *drv_data = spi_master_get_devdata(master);
 -
--	sir_port = platform_get_drvdata(pdev);
--	if (!sir_port)
--		return 0;
--	dev = sir_port->dev;
--	self = netdev_priv(dev);
--	unregister_netdev(dev);
--	kfree(self->tx_buff.head);
--	kfree(self->rx_buff.head);
--	free_netdev(dev);
--	kfree(sir_port);
+-	adi_spi_disable(drv_data);
+-	peripheral_free_list(drv_data->pin_req);
+-	free_dma(drv_data->rx_dma);
+-	free_dma(drv_data->tx_dma);
+-	return 0;
+-}
+-
+-#ifdef CONFIG_PM
+-static int adi_spi_suspend(struct device *dev)
+-{
+-	struct spi_master *master = dev_get_drvdata(dev);
+-	struct adi_spi_master *drv_data = spi_master_get_devdata(master);
+-
+-	spi_master_suspend(master);
+-
+-	drv_data->control = ioread32(&drv_data->regs->control);
+-	drv_data->ssel = ioread32(&drv_data->regs->ssel);
+-
+-	iowrite32(SPI_CTL_MSTR | SPI_CTL_CPHA, &drv_data->regs->control);
+-	iowrite32(0x0000FE00, &drv_data->regs->ssel);
+-	dma_disable_irq(drv_data->rx_dma);
+-	dma_disable_irq(drv_data->tx_dma);
 -
 -	return 0;
 -}
 -
--static struct platform_driver bfin_ir_driver = {
--	.probe   = bfin_sir_probe,
--	.remove  = bfin_sir_remove,
--	.suspend = bfin_sir_suspend,
--	.resume  = bfin_sir_resume,
--	.driver  = {
--		.name = DRIVER_NAME,
--	},
+-static int adi_spi_resume(struct device *dev)
+-{
+-	struct spi_master *master = dev_get_drvdata(dev);
+-	struct adi_spi_master *drv_data = spi_master_get_devdata(master);
+-	int ret = 0;
+-
+-	/* bootrom may modify spi and dma status when resume in spi boot mode */
+-	disable_dma(drv_data->rx_dma);
+-
+-	dma_enable_irq(drv_data->rx_dma);
+-	dma_enable_irq(drv_data->tx_dma);
+-	iowrite32(drv_data->control, &drv_data->regs->control);
+-	iowrite32(drv_data->ssel, &drv_data->regs->ssel);
+-
+-	ret = spi_master_resume(master);
+-	if (ret) {
+-		free_dma(drv_data->rx_dma);
+-		free_dma(drv_data->tx_dma);
+-	}
+-
+-	return ret;
+-}
+-#endif
+-static const struct dev_pm_ops adi_spi_pm_ops = {
+-	SET_SYSTEM_SLEEP_PM_OPS(adi_spi_suspend, adi_spi_resume)
 -};
 -
--module_platform_driver(bfin_ir_driver);
+-MODULE_ALIAS("platform:adi-spi3");
+-static struct platform_driver adi_spi_driver = {
+-	.driver	= {
+-		.name	= "adi-spi3",
+-		.pm     = &adi_spi_pm_ops,
+-	},
+-	.remove		= adi_spi_remove,
+-};
 -
--module_param(max_rate, int, 0);
--MODULE_PARM_DESC(max_rate, "Maximum baud rate (115200, 57600, 38400, 19200, 9600)");
+-module_platform_driver_probe(adi_spi_driver, adi_spi_probe);
 -
--MODULE_AUTHOR("Graf Yang <graf.yang@analog.com>");
--MODULE_DESCRIPTION("Blackfin IrDA driver");
--MODULE_LICENSE("GPL");
-diff --git a/drivers/staging/irda/drivers/bfin_sir.h b/drivers/staging/irda/drivers/bfin_sir.h
+-MODULE_DESCRIPTION("Analog Devices SPI3 controller driver");
+-MODULE_AUTHOR("Scott Jiang <Scott.Jiang.Linux@gmail.com>");
+-MODULE_LICENSE("GPL v2");
+diff --git a/drivers/spi/spi-bfin-sport.c b/drivers/spi/spi-bfin-sport.c
 deleted file mode 100644
-index d47cf14..0000000
---- a/drivers/staging/irda/drivers/bfin_sir.h
+index 01d0ba9..0000000
+--- a/drivers/spi/spi-bfin-sport.c
 +++ /dev/null
-@@ -1,93 +0,0 @@
+@@ -1,919 +0,0 @@
 -/*
-- * Blackfin Infra-red Driver
+- * SPI bus via the Blackfin SPORT peripheral
 - *
-- * Copyright 2006-2009 Analog Devices Inc.
+- * Enter bugs at http://blackfin.uclinux.org/
+- *
+- * Copyright 2009-2011 Analog Devices Inc.
+- *
+- * Licensed under the GPL-2 or later.
+- */
+-
+-#include <linux/module.h>
+-#include <linux/delay.h>
+-#include <linux/device.h>
+-#include <linux/gpio.h>
+-#include <linux/io.h>
+-#include <linux/ioport.h>
+-#include <linux/irq.h>
+-#include <linux/errno.h>
+-#include <linux/interrupt.h>
+-#include <linux/platform_device.h>
+-#include <linux/spi/spi.h>
+-#include <linux/workqueue.h>
+-
+-#include <asm/portmux.h>
+-#include <asm/bfin5xx_spi.h>
+-#include <asm/blackfin.h>
+-#include <asm/bfin_sport.h>
+-#include <asm/cacheflush.h>
+-
+-#define DRV_NAME	"bfin-sport-spi"
+-#define DRV_DESC	"SPI bus via the Blackfin SPORT"
+-
+-MODULE_AUTHOR("Cliff Cai");
+-MODULE_DESCRIPTION(DRV_DESC);
+-MODULE_LICENSE("GPL");
+-MODULE_ALIAS("platform:bfin-sport-spi");
+-
+-enum bfin_sport_spi_state {
+-	START_STATE,
+-	RUNNING_STATE,
+-	DONE_STATE,
+-	ERROR_STATE,
+-};
+-
+-struct bfin_sport_spi_master_data;
+-
+-struct bfin_sport_transfer_ops {
+-	void (*write) (struct bfin_sport_spi_master_data *);
+-	void (*read) (struct bfin_sport_spi_master_data *);
+-	void (*duplex) (struct bfin_sport_spi_master_data *);
+-};
+-
+-struct bfin_sport_spi_master_data {
+-	/* Driver model hookup */
+-	struct device *dev;
+-
+-	/* SPI framework hookup */
+-	struct spi_master *master;
+-
+-	/* Regs base of SPI controller */
+-	struct sport_register __iomem *regs;
+-	int err_irq;
+-
+-	/* Pin request list */
+-	u16 *pin_req;
+-
+-	struct work_struct pump_messages;
+-	spinlock_t lock;
+-	struct list_head queue;
+-	int busy;
+-	bool run;
+-
+-	/* Message Transfer pump */
+-	struct tasklet_struct pump_transfers;
+-
+-	/* Current message transfer state info */
+-	enum bfin_sport_spi_state state;
+-	struct spi_message *cur_msg;
+-	struct spi_transfer *cur_transfer;
+-	struct bfin_sport_spi_slave_data *cur_chip;
+-	union {
+-		void *tx;
+-		u8 *tx8;
+-		u16 *tx16;
+-	};
+-	void *tx_end;
+-	union {
+-		void *rx;
+-		u8 *rx8;
+-		u16 *rx16;
+-	};
+-	void *rx_end;
+-
+-	int cs_change;
+-	struct bfin_sport_transfer_ops *ops;
+-};
+-
+-struct bfin_sport_spi_slave_data {
+-	u16 ctl_reg;
+-	u16 baud;
+-	u16 cs_chg_udelay;	/* Some devices require > 255usec delay */
+-	u32 cs_gpio;
+-	u16 idle_tx_val;
+-	struct bfin_sport_transfer_ops *ops;
+-};
+-
+-static void
+-bfin_sport_spi_enable(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	bfin_write_or(&drv_data->regs->tcr1, TSPEN);
+-	bfin_write_or(&drv_data->regs->rcr1, TSPEN);
+-	SSYNC();
+-}
+-
+-static void
+-bfin_sport_spi_disable(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	bfin_write_and(&drv_data->regs->tcr1, ~TSPEN);
+-	bfin_write_and(&drv_data->regs->rcr1, ~TSPEN);
+-	SSYNC();
+-}
+-
+-/* Caculate the SPI_BAUD register value based on input HZ */
+-static u16
+-bfin_sport_hz_to_spi_baud(u32 speed_hz)
+-{
+-	u_long clk, sclk = get_sclk();
+-	int div = (sclk / (2 * speed_hz)) - 1;
+-
+-	if (div < 0)
+-		div = 0;
+-
+-	clk = sclk / (2 * (div + 1));
+-
+-	if (clk > speed_hz)
+-		div++;
+-
+-	return div;
+-}
+-
+-/* Chip select operation functions for cs_change flag */
+-static void
+-bfin_sport_spi_cs_active(struct bfin_sport_spi_slave_data *chip)
+-{
+-	gpio_direction_output(chip->cs_gpio, 0);
+-}
+-
+-static void
+-bfin_sport_spi_cs_deactive(struct bfin_sport_spi_slave_data *chip)
+-{
+-	gpio_direction_output(chip->cs_gpio, 1);
+-	/* Move delay here for consistency */
+-	if (chip->cs_chg_udelay)
+-		udelay(chip->cs_chg_udelay);
+-}
+-
+-static void
+-bfin_sport_spi_stat_poll_complete(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	unsigned long timeout = jiffies + HZ;
+-	while (!(bfin_read(&drv_data->regs->stat) & RXNE)) {
+-		if (!time_before(jiffies, timeout))
+-			break;
+-	}
+-}
+-
+-static void
+-bfin_sport_spi_u8_writer(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	u16 dummy;
+-
+-	while (drv_data->tx < drv_data->tx_end) {
+-		bfin_write(&drv_data->regs->tx16, *drv_data->tx8++);
+-		bfin_sport_spi_stat_poll_complete(drv_data);
+-		dummy = bfin_read(&drv_data->regs->rx16);
+-	}
+-}
+-
+-static void
+-bfin_sport_spi_u8_reader(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	u16 tx_val = drv_data->cur_chip->idle_tx_val;
+-
+-	while (drv_data->rx < drv_data->rx_end) {
+-		bfin_write(&drv_data->regs->tx16, tx_val);
+-		bfin_sport_spi_stat_poll_complete(drv_data);
+-		*drv_data->rx8++ = bfin_read(&drv_data->regs->rx16);
+-	}
+-}
+-
+-static void
+-bfin_sport_spi_u8_duplex(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	while (drv_data->rx < drv_data->rx_end) {
+-		bfin_write(&drv_data->regs->tx16, *drv_data->tx8++);
+-		bfin_sport_spi_stat_poll_complete(drv_data);
+-		*drv_data->rx8++ = bfin_read(&drv_data->regs->rx16);
+-	}
+-}
+-
+-static struct bfin_sport_transfer_ops bfin_sport_transfer_ops_u8 = {
+-	.write  = bfin_sport_spi_u8_writer,
+-	.read   = bfin_sport_spi_u8_reader,
+-	.duplex = bfin_sport_spi_u8_duplex,
+-};
+-
+-static void
+-bfin_sport_spi_u16_writer(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	u16 dummy;
+-
+-	while (drv_data->tx < drv_data->tx_end) {
+-		bfin_write(&drv_data->regs->tx16, *drv_data->tx16++);
+-		bfin_sport_spi_stat_poll_complete(drv_data);
+-		dummy = bfin_read(&drv_data->regs->rx16);
+-	}
+-}
+-
+-static void
+-bfin_sport_spi_u16_reader(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	u16 tx_val = drv_data->cur_chip->idle_tx_val;
+-
+-	while (drv_data->rx < drv_data->rx_end) {
+-		bfin_write(&drv_data->regs->tx16, tx_val);
+-		bfin_sport_spi_stat_poll_complete(drv_data);
+-		*drv_data->rx16++ = bfin_read(&drv_data->regs->rx16);
+-	}
+-}
+-
+-static void
+-bfin_sport_spi_u16_duplex(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	while (drv_data->rx < drv_data->rx_end) {
+-		bfin_write(&drv_data->regs->tx16, *drv_data->tx16++);
+-		bfin_sport_spi_stat_poll_complete(drv_data);
+-		*drv_data->rx16++ = bfin_read(&drv_data->regs->rx16);
+-	}
+-}
+-
+-static struct bfin_sport_transfer_ops bfin_sport_transfer_ops_u16 = {
+-	.write  = bfin_sport_spi_u16_writer,
+-	.read   = bfin_sport_spi_u16_reader,
+-	.duplex = bfin_sport_spi_u16_duplex,
+-};
+-
+-/* stop controller and re-config current chip */
+-static void
+-bfin_sport_spi_restore_state(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	struct bfin_sport_spi_slave_data *chip = drv_data->cur_chip;
+-
+-	bfin_sport_spi_disable(drv_data);
+-	dev_dbg(drv_data->dev, "restoring spi ctl state\n");
+-
+-	bfin_write(&drv_data->regs->tcr1, chip->ctl_reg);
+-	bfin_write(&drv_data->regs->tclkdiv, chip->baud);
+-	SSYNC();
+-
+-	bfin_write(&drv_data->regs->rcr1, chip->ctl_reg & ~(ITCLK | ITFS));
+-	SSYNC();
+-
+-	bfin_sport_spi_cs_active(chip);
+-}
+-
+-/* test if there is more transfer to be done */
+-static enum bfin_sport_spi_state
+-bfin_sport_spi_next_transfer(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	struct spi_message *msg = drv_data->cur_msg;
+-	struct spi_transfer *trans = drv_data->cur_transfer;
+-
+-	/* Move to next transfer */
+-	if (trans->transfer_list.next != &msg->transfers) {
+-		drv_data->cur_transfer =
+-		    list_entry(trans->transfer_list.next,
+-			       struct spi_transfer, transfer_list);
+-		return RUNNING_STATE;
+-	}
+-
+-	return DONE_STATE;
+-}
+-
+-/*
+- * caller already set message->status;
+- * dma and pio irqs are blocked give finished message back
+- */
+-static void
+-bfin_sport_spi_giveback(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	struct bfin_sport_spi_slave_data *chip = drv_data->cur_chip;
+-	unsigned long flags;
+-	struct spi_message *msg;
+-
+-	spin_lock_irqsave(&drv_data->lock, flags);
+-	msg = drv_data->cur_msg;
+-	drv_data->state = START_STATE;
+-	drv_data->cur_msg = NULL;
+-	drv_data->cur_transfer = NULL;
+-	drv_data->cur_chip = NULL;
+-	schedule_work(&drv_data->pump_messages);
+-	spin_unlock_irqrestore(&drv_data->lock, flags);
+-
+-	if (!drv_data->cs_change)
+-		bfin_sport_spi_cs_deactive(chip);
+-
+-	if (msg->complete)
+-		msg->complete(msg->context);
+-}
+-
+-static irqreturn_t
+-sport_err_handler(int irq, void *dev_id)
+-{
+-	struct bfin_sport_spi_master_data *drv_data = dev_id;
+-	u16 status;
+-
+-	dev_dbg(drv_data->dev, "%s enter\n", __func__);
+-	status = bfin_read(&drv_data->regs->stat) & (TOVF | TUVF | ROVF | RUVF);
+-
+-	if (status) {
+-		bfin_write(&drv_data->regs->stat, status);
+-		SSYNC();
+-
+-		bfin_sport_spi_disable(drv_data);
+-		dev_err(drv_data->dev, "status error:%s%s%s%s\n",
+-			status & TOVF ? " TOVF" : "",
+-			status & TUVF ? " TUVF" : "",
+-			status & ROVF ? " ROVF" : "",
+-			status & RUVF ? " RUVF" : "");
+-	}
+-
+-	return IRQ_HANDLED;
+-}
+-
+-static void
+-bfin_sport_spi_pump_transfers(unsigned long data)
+-{
+-	struct bfin_sport_spi_master_data *drv_data = (void *)data;
+-	struct spi_message *message = NULL;
+-	struct spi_transfer *transfer = NULL;
+-	struct spi_transfer *previous = NULL;
+-	struct bfin_sport_spi_slave_data *chip = NULL;
+-	unsigned int bits_per_word;
+-	u32 tranf_success = 1;
+-	u32 transfer_speed;
+-	u8 full_duplex = 0;
+-
+-	/* Get current state information */
+-	message = drv_data->cur_msg;
+-	transfer = drv_data->cur_transfer;
+-	chip = drv_data->cur_chip;
+-
+-	transfer_speed = bfin_sport_hz_to_spi_baud(transfer->speed_hz);
+-	bfin_write(&drv_data->regs->tclkdiv, transfer_speed);
+-	SSYNC();
+-
+-	/*
+-	 * if msg is error or done, report it back using complete() callback
+-	 */
+-
+-	 /* Handle for abort */
+-	if (drv_data->state == ERROR_STATE) {
+-		dev_dbg(drv_data->dev, "transfer: we've hit an error\n");
+-		message->status = -EIO;
+-		bfin_sport_spi_giveback(drv_data);
+-		return;
+-	}
+-
+-	/* Handle end of message */
+-	if (drv_data->state == DONE_STATE) {
+-		dev_dbg(drv_data->dev, "transfer: all done!\n");
+-		message->status = 0;
+-		bfin_sport_spi_giveback(drv_data);
+-		return;
+-	}
+-
+-	/* Delay if requested at end of transfer */
+-	if (drv_data->state == RUNNING_STATE) {
+-		dev_dbg(drv_data->dev, "transfer: still running ...\n");
+-		previous = list_entry(transfer->transfer_list.prev,
+-				      struct spi_transfer, transfer_list);
+-		if (previous->delay_usecs)
+-			udelay(previous->delay_usecs);
+-	}
+-
+-	if (transfer->len == 0) {
+-		/* Move to next transfer of this msg */
+-		drv_data->state = bfin_sport_spi_next_transfer(drv_data);
+-		/* Schedule next transfer tasklet */
+-		tasklet_schedule(&drv_data->pump_transfers);
+-	}
+-
+-	if (transfer->tx_buf != NULL) {
+-		drv_data->tx = (void *)transfer->tx_buf;
+-		drv_data->tx_end = drv_data->tx + transfer->len;
+-		dev_dbg(drv_data->dev, "tx_buf is %p, tx_end is %p\n",
+-			transfer->tx_buf, drv_data->tx_end);
+-	} else
+-		drv_data->tx = NULL;
+-
+-	if (transfer->rx_buf != NULL) {
+-		full_duplex = transfer->tx_buf != NULL;
+-		drv_data->rx = transfer->rx_buf;
+-		drv_data->rx_end = drv_data->rx + transfer->len;
+-		dev_dbg(drv_data->dev, "rx_buf is %p, rx_end is %p\n",
+-			transfer->rx_buf, drv_data->rx_end);
+-	} else
+-		drv_data->rx = NULL;
+-
+-	drv_data->cs_change = transfer->cs_change;
+-
+-	/* Bits per word setup */
+-	bits_per_word = transfer->bits_per_word;
+-	if (bits_per_word == 16)
+-		drv_data->ops = &bfin_sport_transfer_ops_u16;
+-	else
+-		drv_data->ops = &bfin_sport_transfer_ops_u8;
+-	bfin_write(&drv_data->regs->tcr2, bits_per_word - 1);
+-	bfin_write(&drv_data->regs->tfsdiv, bits_per_word - 1);
+-	bfin_write(&drv_data->regs->rcr2, bits_per_word - 1);
+-
+-	drv_data->state = RUNNING_STATE;
+-
+-	if (drv_data->cs_change)
+-		bfin_sport_spi_cs_active(chip);
+-
+-	dev_dbg(drv_data->dev,
+-		"now pumping a transfer: width is %d, len is %d\n",
+-		bits_per_word, transfer->len);
+-
+-	/* PIO mode write then read */
+-	dev_dbg(drv_data->dev, "doing IO transfer\n");
+-
+-	bfin_sport_spi_enable(drv_data);
+-	if (full_duplex) {
+-		/* full duplex mode */
+-		BUG_ON((drv_data->tx_end - drv_data->tx) !=
+-		       (drv_data->rx_end - drv_data->rx));
+-		drv_data->ops->duplex(drv_data);
+-
+-		if (drv_data->tx != drv_data->tx_end)
+-			tranf_success = 0;
+-	} else if (drv_data->tx != NULL) {
+-		/* write only half duplex */
+-
+-		drv_data->ops->write(drv_data);
+-
+-		if (drv_data->tx != drv_data->tx_end)
+-			tranf_success = 0;
+-	} else if (drv_data->rx != NULL) {
+-		/* read only half duplex */
+-
+-		drv_data->ops->read(drv_data);
+-		if (drv_data->rx != drv_data->rx_end)
+-			tranf_success = 0;
+-	}
+-	bfin_sport_spi_disable(drv_data);
+-
+-	if (!tranf_success) {
+-		dev_dbg(drv_data->dev, "IO write error!\n");
+-		drv_data->state = ERROR_STATE;
+-	} else {
+-		/* Update total byte transferred */
+-		message->actual_length += transfer->len;
+-		/* Move to next transfer of this msg */
+-		drv_data->state = bfin_sport_spi_next_transfer(drv_data);
+-		if (drv_data->cs_change)
+-			bfin_sport_spi_cs_deactive(chip);
+-	}
+-
+-	/* Schedule next transfer tasklet */
+-	tasklet_schedule(&drv_data->pump_transfers);
+-}
+-
+-/* pop a msg from queue and kick off real transfer */
+-static void
+-bfin_sport_spi_pump_messages(struct work_struct *work)
+-{
+-	struct bfin_sport_spi_master_data *drv_data;
+-	unsigned long flags;
+-	struct spi_message *next_msg;
+-
+-	drv_data = container_of(work, struct bfin_sport_spi_master_data, pump_messages);
+-
+-	/* Lock queue and check for queue work */
+-	spin_lock_irqsave(&drv_data->lock, flags);
+-	if (list_empty(&drv_data->queue) || !drv_data->run) {
+-		/* pumper kicked off but no work to do */
+-		drv_data->busy = 0;
+-		spin_unlock_irqrestore(&drv_data->lock, flags);
+-		return;
+-	}
+-
+-	/* Make sure we are not already running a message */
+-	if (drv_data->cur_msg) {
+-		spin_unlock_irqrestore(&drv_data->lock, flags);
+-		return;
+-	}
+-
+-	/* Extract head of queue */
+-	next_msg = list_entry(drv_data->queue.next,
+-		struct spi_message, queue);
+-
+-	drv_data->cur_msg = next_msg;
+-
+-	/* Setup the SSP using the per chip configuration */
+-	drv_data->cur_chip = spi_get_ctldata(drv_data->cur_msg->spi);
+-
+-	list_del_init(&drv_data->cur_msg->queue);
+-
+-	/* Initialize message state */
+-	drv_data->cur_msg->state = START_STATE;
+-	drv_data->cur_transfer = list_entry(drv_data->cur_msg->transfers.next,
+-					    struct spi_transfer, transfer_list);
+-	bfin_sport_spi_restore_state(drv_data);
+-	dev_dbg(drv_data->dev, "got a message to pump, "
+-		"state is set to: baud %d, cs_gpio %i, ctl 0x%x\n",
+-		drv_data->cur_chip->baud, drv_data->cur_chip->cs_gpio,
+-		drv_data->cur_chip->ctl_reg);
+-
+-	dev_dbg(drv_data->dev,
+-		"the first transfer len is %d\n",
+-		drv_data->cur_transfer->len);
+-
+-	/* Mark as busy and launch transfers */
+-	tasklet_schedule(&drv_data->pump_transfers);
+-
+-	drv_data->busy = 1;
+-	spin_unlock_irqrestore(&drv_data->lock, flags);
+-}
+-
+-/*
+- * got a msg to transfer, queue it in drv_data->queue.
+- * And kick off message pumper
+- */
+-static int
+-bfin_sport_spi_transfer(struct spi_device *spi, struct spi_message *msg)
+-{
+-	struct bfin_sport_spi_master_data *drv_data = spi_master_get_devdata(spi->master);
+-	unsigned long flags;
+-
+-	spin_lock_irqsave(&drv_data->lock, flags);
+-
+-	if (!drv_data->run) {
+-		spin_unlock_irqrestore(&drv_data->lock, flags);
+-		return -ESHUTDOWN;
+-	}
+-
+-	msg->actual_length = 0;
+-	msg->status = -EINPROGRESS;
+-	msg->state = START_STATE;
+-
+-	dev_dbg(&spi->dev, "adding an msg in transfer()\n");
+-	list_add_tail(&msg->queue, &drv_data->queue);
+-
+-	if (drv_data->run && !drv_data->busy)
+-		schedule_work(&drv_data->pump_messages);
+-
+-	spin_unlock_irqrestore(&drv_data->lock, flags);
+-
+-	return 0;
+-}
+-
+-/* Called every time common spi devices change state */
+-static int
+-bfin_sport_spi_setup(struct spi_device *spi)
+-{
+-	struct bfin_sport_spi_slave_data *chip, *first = NULL;
+-	int ret;
+-
+-	/* Only alloc (or use chip_info) on first setup */
+-	chip = spi_get_ctldata(spi);
+-	if (chip == NULL) {
+-		struct bfin5xx_spi_chip *chip_info;
+-
+-		chip = first = kzalloc(sizeof(*chip), GFP_KERNEL);
+-		if (!chip)
+-			return -ENOMEM;
+-
+-		/* platform chip_info isn't required */
+-		chip_info = spi->controller_data;
+-		if (chip_info) {
+-			/*
+-			 * DITFS and TDTYPE are only thing we don't set, but
+-			 * they probably shouldn't be changed by people.
+-			 */
+-			if (chip_info->ctl_reg || chip_info->enable_dma) {
+-				ret = -EINVAL;
+-				dev_err(&spi->dev, "don't set ctl_reg/enable_dma fields\n");
+-				goto error;
+-			}
+-			chip->cs_chg_udelay = chip_info->cs_chg_udelay;
+-			chip->idle_tx_val = chip_info->idle_tx_val;
+-		}
+-	}
+-
+-	/* translate common spi framework into our register
+-	 * following configure contents are same for tx and rx.
+-	 */
+-
+-	if (spi->mode & SPI_CPHA)
+-		chip->ctl_reg &= ~TCKFE;
+-	else
+-		chip->ctl_reg |= TCKFE;
+-
+-	if (spi->mode & SPI_LSB_FIRST)
+-		chip->ctl_reg |= TLSBIT;
+-	else
+-		chip->ctl_reg &= ~TLSBIT;
+-
+-	/* Sport in master mode */
+-	chip->ctl_reg |= ITCLK | ITFS | TFSR | LATFS | LTFS;
+-
+-	chip->baud = bfin_sport_hz_to_spi_baud(spi->max_speed_hz);
+-
+-	chip->cs_gpio = spi->chip_select;
+-	ret = gpio_request(chip->cs_gpio, spi->modalias);
+-	if (ret)
+-		goto error;
+-
+-	dev_dbg(&spi->dev, "setup spi chip %s, width is %d\n",
+-			spi->modalias, spi->bits_per_word);
+-	dev_dbg(&spi->dev, "ctl_reg is 0x%x, GPIO is %i\n",
+-			chip->ctl_reg, spi->chip_select);
+-
+-	spi_set_ctldata(spi, chip);
+-
+-	bfin_sport_spi_cs_deactive(chip);
+-
+-	return ret;
+-
+- error:
+-	kfree(first);
+-	return ret;
+-}
+-
+-/*
+- * callback for spi framework.
+- * clean driver specific data
+- */
+-static void
+-bfin_sport_spi_cleanup(struct spi_device *spi)
+-{
+-	struct bfin_sport_spi_slave_data *chip = spi_get_ctldata(spi);
+-
+-	if (!chip)
+-		return;
+-
+-	gpio_free(chip->cs_gpio);
+-
+-	kfree(chip);
+-}
+-
+-static int
+-bfin_sport_spi_init_queue(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	INIT_LIST_HEAD(&drv_data->queue);
+-	spin_lock_init(&drv_data->lock);
+-
+-	drv_data->run = false;
+-	drv_data->busy = 0;
+-
+-	/* init transfer tasklet */
+-	tasklet_init(&drv_data->pump_transfers,
+-		     bfin_sport_spi_pump_transfers, (unsigned long)drv_data);
+-
+-	INIT_WORK(&drv_data->pump_messages, bfin_sport_spi_pump_messages);
+-
+-	return 0;
+-}
+-
+-static int
+-bfin_sport_spi_start_queue(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	unsigned long flags;
+-
+-	spin_lock_irqsave(&drv_data->lock, flags);
+-
+-	if (drv_data->run || drv_data->busy) {
+-		spin_unlock_irqrestore(&drv_data->lock, flags);
+-		return -EBUSY;
+-	}
+-
+-	drv_data->run = true;
+-	drv_data->cur_msg = NULL;
+-	drv_data->cur_transfer = NULL;
+-	drv_data->cur_chip = NULL;
+-	spin_unlock_irqrestore(&drv_data->lock, flags);
+-
+-	schedule_work(&drv_data->pump_messages);
+-
+-	return 0;
+-}
+-
+-static inline int
+-bfin_sport_spi_stop_queue(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	unsigned long flags;
+-	unsigned limit = 500;
+-	int status = 0;
+-
+-	spin_lock_irqsave(&drv_data->lock, flags);
+-
+-	/*
+-	 * This is a bit lame, but is optimized for the common execution path.
+-	 * A wait_queue on the drv_data->busy could be used, but then the common
+-	 * execution path (pump_messages) would be required to call wake_up or
+-	 * friends on every SPI message. Do this instead
+-	 */
+-	drv_data->run = false;
+-	while (!list_empty(&drv_data->queue) && drv_data->busy && limit--) {
+-		spin_unlock_irqrestore(&drv_data->lock, flags);
+-		msleep(10);
+-		spin_lock_irqsave(&drv_data->lock, flags);
+-	}
+-
+-	if (!list_empty(&drv_data->queue) || drv_data->busy)
+-		status = -EBUSY;
+-
+-	spin_unlock_irqrestore(&drv_data->lock, flags);
+-
+-	return status;
+-}
+-
+-static inline int
+-bfin_sport_spi_destroy_queue(struct bfin_sport_spi_master_data *drv_data)
+-{
+-	int status;
+-
+-	status = bfin_sport_spi_stop_queue(drv_data);
+-	if (status)
+-		return status;
+-
+-	flush_work(&drv_data->pump_messages);
+-
+-	return 0;
+-}
+-
+-static int bfin_sport_spi_probe(struct platform_device *pdev)
+-{
+-	struct device *dev = &pdev->dev;
+-	struct bfin5xx_spi_master *platform_info;
+-	struct spi_master *master;
+-	struct resource *res, *ires;
+-	struct bfin_sport_spi_master_data *drv_data;
+-	int status;
+-
+-	platform_info = dev_get_platdata(dev);
+-
+-	/* Allocate master with space for drv_data */
+-	master = spi_alloc_master(dev, sizeof(*master) + 16);
+-	if (!master) {
+-		dev_err(dev, "cannot alloc spi_master\n");
+-		return -ENOMEM;
+-	}
+-
+-	drv_data = spi_master_get_devdata(master);
+-	drv_data->master = master;
+-	drv_data->dev = dev;
+-	drv_data->pin_req = platform_info->pin_req;
+-
+-	master->mode_bits = SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST;
+-	master->bits_per_word_mask = SPI_BPW_MASK(8) | SPI_BPW_MASK(16);
+-	master->bus_num = pdev->id;
+-	master->num_chipselect = platform_info->num_chipselect;
+-	master->cleanup = bfin_sport_spi_cleanup;
+-	master->setup = bfin_sport_spi_setup;
+-	master->transfer = bfin_sport_spi_transfer;
+-
+-	/* Find and map our resources */
+-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	if (res == NULL) {
+-		dev_err(dev, "cannot get IORESOURCE_MEM\n");
+-		status = -ENOENT;
+-		goto out_error_get_res;
+-	}
+-
+-	drv_data->regs = ioremap(res->start, resource_size(res));
+-	if (drv_data->regs == NULL) {
+-		dev_err(dev, "cannot map registers\n");
+-		status = -ENXIO;
+-		goto out_error_ioremap;
+-	}
+-
+-	ires = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+-	if (!ires) {
+-		dev_err(dev, "cannot get IORESOURCE_IRQ\n");
+-		status = -ENODEV;
+-		goto out_error_get_ires;
+-	}
+-	drv_data->err_irq = ires->start;
+-
+-	/* Initial and start queue */
+-	status = bfin_sport_spi_init_queue(drv_data);
+-	if (status) {
+-		dev_err(dev, "problem initializing queue\n");
+-		goto out_error_queue_alloc;
+-	}
+-
+-	status = bfin_sport_spi_start_queue(drv_data);
+-	if (status) {
+-		dev_err(dev, "problem starting queue\n");
+-		goto out_error_queue_alloc;
+-	}
+-
+-	status = request_irq(drv_data->err_irq, sport_err_handler,
+-		0, "sport_spi_err", drv_data);
+-	if (status) {
+-		dev_err(dev, "unable to request sport err irq\n");
+-		goto out_error_irq;
+-	}
+-
+-	status = peripheral_request_list(drv_data->pin_req, DRV_NAME);
+-	if (status) {
+-		dev_err(dev, "requesting peripherals failed\n");
+-		goto out_error_peripheral;
+-	}
+-
+-	/* Register with the SPI framework */
+-	platform_set_drvdata(pdev, drv_data);
+-	status = spi_register_master(master);
+-	if (status) {
+-		dev_err(dev, "problem registering spi master\n");
+-		goto out_error_master;
+-	}
+-
+-	dev_info(dev, "%s, regs_base@%p\n", DRV_DESC, drv_data->regs);
+-	return 0;
+-
+- out_error_master:
+-	peripheral_free_list(drv_data->pin_req);
+- out_error_peripheral:
+-	free_irq(drv_data->err_irq, drv_data);
+- out_error_irq:
+- out_error_queue_alloc:
+-	bfin_sport_spi_destroy_queue(drv_data);
+- out_error_get_ires:
+-	iounmap(drv_data->regs);
+- out_error_ioremap:
+- out_error_get_res:
+-	spi_master_put(master);
+-
+-	return status;
+-}
+-
+-/* stop hardware and remove the driver */
+-static int bfin_sport_spi_remove(struct platform_device *pdev)
+-{
+-	struct bfin_sport_spi_master_data *drv_data = platform_get_drvdata(pdev);
+-	int status = 0;
+-
+-	if (!drv_data)
+-		return 0;
+-
+-	/* Remove the queue */
+-	status = bfin_sport_spi_destroy_queue(drv_data);
+-	if (status)
+-		return status;
+-
+-	/* Disable the SSP at the peripheral and SOC level */
+-	bfin_sport_spi_disable(drv_data);
+-
+-	/* Disconnect from the SPI framework */
+-	spi_unregister_master(drv_data->master);
+-
+-	peripheral_free_list(drv_data->pin_req);
+-
+-	return 0;
+-}
+-
+-#ifdef CONFIG_PM_SLEEP
+-static int bfin_sport_spi_suspend(struct device *dev)
+-{
+-	struct bfin_sport_spi_master_data *drv_data = dev_get_drvdata(dev);
+-	int status;
+-
+-	status = bfin_sport_spi_stop_queue(drv_data);
+-	if (status)
+-		return status;
+-
+-	/* stop hardware */
+-	bfin_sport_spi_disable(drv_data);
+-
+-	return status;
+-}
+-
+-static int bfin_sport_spi_resume(struct device *dev)
+-{
+-	struct bfin_sport_spi_master_data *drv_data = dev_get_drvdata(dev);
+-	int status;
+-
+-	/* Enable the SPI interface */
+-	bfin_sport_spi_enable(drv_data);
+-
+-	/* Start the queue running */
+-	status = bfin_sport_spi_start_queue(drv_data);
+-	if (status)
+-		dev_err(drv_data->dev, "problem resuming queue\n");
+-
+-	return status;
+-}
+-
+-static SIMPLE_DEV_PM_OPS(bfin_sport_spi_pm_ops, bfin_sport_spi_suspend,
+-			bfin_sport_spi_resume);
+-
+-#define BFIN_SPORT_SPI_PM_OPS		(&bfin_sport_spi_pm_ops)
+-#else
+-#define BFIN_SPORT_SPI_PM_OPS		NULL
+-#endif
+-
+-static struct platform_driver bfin_sport_spi_driver = {
+-	.driver	= {
+-		.name	= DRV_NAME,
+-		.pm	= BFIN_SPORT_SPI_PM_OPS,
+-	},
+-	.probe   = bfin_sport_spi_probe,
+-	.remove  = bfin_sport_spi_remove,
+-};
+-module_platform_driver(bfin_sport_spi_driver);
+diff --git a/drivers/spi/spi-bfin5xx.c b/drivers/spi/spi-bfin5xx.c
+deleted file mode 100644
+index 249c7a3..0000000
+--- a/drivers/spi/spi-bfin5xx.c
++++ /dev/null
+@@ -1,1462 +0,0 @@
+-/*
+- * Blackfin On-Chip SPI Driver
+- *
+- * Copyright 2004-2010 Analog Devices Inc.
 - *
 - * Enter bugs at http://blackfin.uclinux.org/
 - *
 - * Licensed under the GPL-2 or later.
-- *
 - */
 -
--#include <linux/serial.h>
+-#include <linux/init.h>
 -#include <linux/module.h>
--#include <linux/netdevice.h>
--#include <linux/interrupt.h>
 -#include <linux/delay.h>
+-#include <linux/device.h>
+-#include <linux/gpio.h>
+-#include <linux/slab.h>
+-#include <linux/io.h>
+-#include <linux/ioport.h>
+-#include <linux/irq.h>
+-#include <linux/errno.h>
+-#include <linux/interrupt.h>
 -#include <linux/platform_device.h>
 -#include <linux/dma-mapping.h>
--#include <linux/slab.h>
+-#include <linux/spi/spi.h>
+-#include <linux/workqueue.h>
 -
--#include <net/irda/irda.h>
--#include <net/irda/wrapper.h>
--#include <net/irda/irda_device.h>
--
--#include <asm/irq.h>
--#include <asm/cacheflush.h>
 -#include <asm/dma.h>
 -#include <asm/portmux.h>
--#undef DRIVER_NAME
+-#include <asm/bfin5xx_spi.h>
+-#include <asm/cacheflush.h>
 -
--#ifdef CONFIG_SIR_BFIN_DMA
--struct dma_rx_buf {
--	char *buf;
--	int head;
--	int tail;
+-#define DRV_NAME	"bfin-spi"
+-#define DRV_AUTHOR	"Bryan Wu, Luke Yang"
+-#define DRV_DESC	"Blackfin on-chip SPI Controller Driver"
+-#define DRV_VERSION	"1.0"
+-
+-MODULE_AUTHOR(DRV_AUTHOR);
+-MODULE_DESCRIPTION(DRV_DESC);
+-MODULE_LICENSE("GPL");
+-
+-#define START_STATE	((void *)0)
+-#define RUNNING_STATE	((void *)1)
+-#define DONE_STATE	((void *)2)
+-#define ERROR_STATE	((void *)-1)
+-
+-struct bfin_spi_master_data;
+-
+-struct bfin_spi_transfer_ops {
+-	void (*write) (struct bfin_spi_master_data *);
+-	void (*read) (struct bfin_spi_master_data *);
+-	void (*duplex) (struct bfin_spi_master_data *);
 -};
+-
+-struct bfin_spi_master_data {
+-	/* Driver model hookup */
+-	struct platform_device *pdev;
+-
+-	/* SPI framework hookup */
+-	struct spi_master *master;
+-
+-	/* Regs base of SPI controller */
+-	struct bfin_spi_regs __iomem *regs;
+-
+-	/* Pin request list */
+-	u16 *pin_req;
+-
+-	/* BFIN hookup */
+-	struct bfin5xx_spi_master *master_info;
+-
+-	struct work_struct pump_messages;
+-	spinlock_t lock;
+-	struct list_head queue;
+-	int busy;
+-	bool running;
+-
+-	/* Message Transfer pump */
+-	struct tasklet_struct pump_transfers;
+-
+-	/* Current message transfer state info */
+-	struct spi_message *cur_msg;
+-	struct spi_transfer *cur_transfer;
+-	struct bfin_spi_slave_data *cur_chip;
+-	size_t len_in_bytes;
+-	size_t len;
+-	void *tx;
+-	void *tx_end;
+-	void *rx;
+-	void *rx_end;
+-
+-	/* DMA stuffs */
+-	int dma_channel;
+-	int dma_mapped;
+-	int dma_requested;
+-	dma_addr_t rx_dma;
+-	dma_addr_t tx_dma;
+-
+-	int irq_requested;
+-	int spi_irq;
+-
+-	size_t rx_map_len;
+-	size_t tx_map_len;
+-	u8 n_bytes;
+-	u16 ctrl_reg;
+-	u16 flag_reg;
+-
+-	int cs_change;
+-	const struct bfin_spi_transfer_ops *ops;
+-};
+-
+-struct bfin_spi_slave_data {
+-	u16 ctl_reg;
+-	u16 baud;
+-	u16 flag;
+-
+-	u8 chip_select_num;
+-	u8 enable_dma;
+-	u16 cs_chg_udelay;	/* Some devices require > 255usec delay */
+-	u32 cs_gpio;
+-	u16 idle_tx_val;
+-	u8 pio_interrupt;	/* use spi data irq */
+-	const struct bfin_spi_transfer_ops *ops;
+-};
+-
+-static void bfin_spi_enable(struct bfin_spi_master_data *drv_data)
+-{
+-	bfin_write_or(&drv_data->regs->ctl, BIT_CTL_ENABLE);
+-}
+-
+-static void bfin_spi_disable(struct bfin_spi_master_data *drv_data)
+-{
+-	bfin_write_and(&drv_data->regs->ctl, ~BIT_CTL_ENABLE);
+-}
+-
+-/* Caculate the SPI_BAUD register value based on input HZ */
+-static u16 hz_to_spi_baud(u32 speed_hz)
+-{
+-	u_long sclk = get_sclk();
+-	u16 spi_baud = (sclk / (2 * speed_hz));
+-
+-	if ((sclk % (2 * speed_hz)) > 0)
+-		spi_baud++;
+-
+-	if (spi_baud < MIN_SPI_BAUD_VAL)
+-		spi_baud = MIN_SPI_BAUD_VAL;
+-
+-	return spi_baud;
+-}
+-
+-static int bfin_spi_flush(struct bfin_spi_master_data *drv_data)
+-{
+-	unsigned long limit = loops_per_jiffy << 1;
+-
+-	/* wait for stop and clear stat */
+-	while (!(bfin_read(&drv_data->regs->stat) & BIT_STAT_SPIF) && --limit)
+-		cpu_relax();
+-
+-	bfin_write(&drv_data->regs->stat, BIT_STAT_CLR);
+-
+-	return limit;
+-}
+-
+-/* Chip select operation functions for cs_change flag */
+-static void bfin_spi_cs_active(struct bfin_spi_master_data *drv_data, struct bfin_spi_slave_data *chip)
+-{
+-	if (likely(chip->chip_select_num < MAX_CTRL_CS))
+-		bfin_write_and(&drv_data->regs->flg, ~chip->flag);
+-	else
+-		gpio_set_value(chip->cs_gpio, 0);
+-}
+-
+-static void bfin_spi_cs_deactive(struct bfin_spi_master_data *drv_data,
+-                                 struct bfin_spi_slave_data *chip)
+-{
+-	if (likely(chip->chip_select_num < MAX_CTRL_CS))
+-		bfin_write_or(&drv_data->regs->flg, chip->flag);
+-	else
+-		gpio_set_value(chip->cs_gpio, 1);
+-
+-	/* Move delay here for consistency */
+-	if (chip->cs_chg_udelay)
+-		udelay(chip->cs_chg_udelay);
+-}
+-
+-/* enable or disable the pin muxed by GPIO and SPI CS to work as SPI CS */
+-static inline void bfin_spi_cs_enable(struct bfin_spi_master_data *drv_data,
+-                                      struct bfin_spi_slave_data *chip)
+-{
+-	if (chip->chip_select_num < MAX_CTRL_CS)
+-		bfin_write_or(&drv_data->regs->flg, chip->flag >> 8);
+-}
+-
+-static inline void bfin_spi_cs_disable(struct bfin_spi_master_data *drv_data,
+-                                       struct bfin_spi_slave_data *chip)
+-{
+-	if (chip->chip_select_num < MAX_CTRL_CS)
+-		bfin_write_and(&drv_data->regs->flg, ~(chip->flag >> 8));
+-}
+-
+-/* stop controller and re-config current chip*/
+-static void bfin_spi_restore_state(struct bfin_spi_master_data *drv_data)
+-{
+-	struct bfin_spi_slave_data *chip = drv_data->cur_chip;
+-
+-	/* Clear status and disable clock */
+-	bfin_write(&drv_data->regs->stat, BIT_STAT_CLR);
+-	bfin_spi_disable(drv_data);
+-	dev_dbg(&drv_data->pdev->dev, "restoring spi ctl state\n");
+-
+-	SSYNC();
+-
+-	/* Load the registers */
+-	bfin_write(&drv_data->regs->ctl, chip->ctl_reg);
+-	bfin_write(&drv_data->regs->baud, chip->baud);
+-
+-	bfin_spi_enable(drv_data);
+-	bfin_spi_cs_active(drv_data, chip);
+-}
+-
+-/* used to kick off transfer in rx mode and read unwanted RX data */
+-static inline void bfin_spi_dummy_read(struct bfin_spi_master_data *drv_data)
+-{
+-	(void) bfin_read(&drv_data->regs->rdbr);
+-}
+-
+-static void bfin_spi_u8_writer(struct bfin_spi_master_data *drv_data)
+-{
+-	/* clear RXS (we check for RXS inside the loop) */
+-	bfin_spi_dummy_read(drv_data);
+-
+-	while (drv_data->tx < drv_data->tx_end) {
+-		bfin_write(&drv_data->regs->tdbr, (*(u8 *) (drv_data->tx++)));
+-		/* wait until transfer finished.
+-		   checking SPIF or TXS may not guarantee transfer completion */
+-		while (!(bfin_read(&drv_data->regs->stat) & BIT_STAT_RXS))
+-			cpu_relax();
+-		/* discard RX data and clear RXS */
+-		bfin_spi_dummy_read(drv_data);
+-	}
+-}
+-
+-static void bfin_spi_u8_reader(struct bfin_spi_master_data *drv_data)
+-{
+-	u16 tx_val = drv_data->cur_chip->idle_tx_val;
+-
+-	/* discard old RX data and clear RXS */
+-	bfin_spi_dummy_read(drv_data);
+-
+-	while (drv_data->rx < drv_data->rx_end) {
+-		bfin_write(&drv_data->regs->tdbr, tx_val);
+-		while (!(bfin_read(&drv_data->regs->stat) & BIT_STAT_RXS))
+-			cpu_relax();
+-		*(u8 *) (drv_data->rx++) = bfin_read(&drv_data->regs->rdbr);
+-	}
+-}
+-
+-static void bfin_spi_u8_duplex(struct bfin_spi_master_data *drv_data)
+-{
+-	/* discard old RX data and clear RXS */
+-	bfin_spi_dummy_read(drv_data);
+-
+-	while (drv_data->rx < drv_data->rx_end) {
+-		bfin_write(&drv_data->regs->tdbr, (*(u8 *) (drv_data->tx++)));
+-		while (!(bfin_read(&drv_data->regs->stat) & BIT_STAT_RXS))
+-			cpu_relax();
+-		*(u8 *) (drv_data->rx++) = bfin_read(&drv_data->regs->rdbr);
+-	}
+-}
+-
+-static const struct bfin_spi_transfer_ops bfin_bfin_spi_transfer_ops_u8 = {
+-	.write  = bfin_spi_u8_writer,
+-	.read   = bfin_spi_u8_reader,
+-	.duplex = bfin_spi_u8_duplex,
+-};
+-
+-static void bfin_spi_u16_writer(struct bfin_spi_master_data *drv_data)
+-{
+-	/* clear RXS (we check for RXS inside the loop) */
+-	bfin_spi_dummy_read(drv_data);
+-
+-	while (drv_data->tx < drv_data->tx_end) {
+-		bfin_write(&drv_data->regs->tdbr, (*(u16 *) (drv_data->tx)));
+-		drv_data->tx += 2;
+-		/* wait until transfer finished.
+-		   checking SPIF or TXS may not guarantee transfer completion */
+-		while (!(bfin_read(&drv_data->regs->stat) & BIT_STAT_RXS))
+-			cpu_relax();
+-		/* discard RX data and clear RXS */
+-		bfin_spi_dummy_read(drv_data);
+-	}
+-}
+-
+-static void bfin_spi_u16_reader(struct bfin_spi_master_data *drv_data)
+-{
+-	u16 tx_val = drv_data->cur_chip->idle_tx_val;
+-
+-	/* discard old RX data and clear RXS */
+-	bfin_spi_dummy_read(drv_data);
+-
+-	while (drv_data->rx < drv_data->rx_end) {
+-		bfin_write(&drv_data->regs->tdbr, tx_val);
+-		while (!(bfin_read(&drv_data->regs->stat) & BIT_STAT_RXS))
+-			cpu_relax();
+-		*(u16 *) (drv_data->rx) = bfin_read(&drv_data->regs->rdbr);
+-		drv_data->rx += 2;
+-	}
+-}
+-
+-static void bfin_spi_u16_duplex(struct bfin_spi_master_data *drv_data)
+-{
+-	/* discard old RX data and clear RXS */
+-	bfin_spi_dummy_read(drv_data);
+-
+-	while (drv_data->rx < drv_data->rx_end) {
+-		bfin_write(&drv_data->regs->tdbr, (*(u16 *) (drv_data->tx)));
+-		drv_data->tx += 2;
+-		while (!(bfin_read(&drv_data->regs->stat) & BIT_STAT_RXS))
+-			cpu_relax();
+-		*(u16 *) (drv_data->rx) = bfin_read(&drv_data->regs->rdbr);
+-		drv_data->rx += 2;
+-	}
+-}
+-
+-static const struct bfin_spi_transfer_ops bfin_bfin_spi_transfer_ops_u16 = {
+-	.write  = bfin_spi_u16_writer,
+-	.read   = bfin_spi_u16_reader,
+-	.duplex = bfin_spi_u16_duplex,
+-};
+-
+-/* test if there is more transfer to be done */
+-static void *bfin_spi_next_transfer(struct bfin_spi_master_data *drv_data)
+-{
+-	struct spi_message *msg = drv_data->cur_msg;
+-	struct spi_transfer *trans = drv_data->cur_transfer;
+-
+-	/* Move to next transfer */
+-	if (trans->transfer_list.next != &msg->transfers) {
+-		drv_data->cur_transfer =
+-		    list_entry(trans->transfer_list.next,
+-			       struct spi_transfer, transfer_list);
+-		return RUNNING_STATE;
+-	} else
+-		return DONE_STATE;
+-}
+-
+-/*
+- * caller already set message->status;
+- * dma and pio irqs are blocked give finished message back
+- */
+-static void bfin_spi_giveback(struct bfin_spi_master_data *drv_data)
+-{
+-	struct bfin_spi_slave_data *chip = drv_data->cur_chip;
+-	unsigned long flags;
+-	struct spi_message *msg;
+-
+-	spin_lock_irqsave(&drv_data->lock, flags);
+-	msg = drv_data->cur_msg;
+-	drv_data->cur_msg = NULL;
+-	drv_data->cur_transfer = NULL;
+-	drv_data->cur_chip = NULL;
+-	schedule_work(&drv_data->pump_messages);
+-	spin_unlock_irqrestore(&drv_data->lock, flags);
+-
+-	msg->state = NULL;
+-
+-	if (!drv_data->cs_change)
+-		bfin_spi_cs_deactive(drv_data, chip);
+-
+-	/* Not stop spi in autobuffer mode */
+-	if (drv_data->tx_dma != 0xFFFF)
+-		bfin_spi_disable(drv_data);
+-
+-	if (msg->complete)
+-		msg->complete(msg->context);
+-}
+-
+-/* spi data irq handler */
+-static irqreturn_t bfin_spi_pio_irq_handler(int irq, void *dev_id)
+-{
+-	struct bfin_spi_master_data *drv_data = dev_id;
+-	struct bfin_spi_slave_data *chip = drv_data->cur_chip;
+-	struct spi_message *msg = drv_data->cur_msg;
+-	int n_bytes = drv_data->n_bytes;
+-	int loop = 0;
+-
+-	/* wait until transfer finished. */
+-	while (!(bfin_read(&drv_data->regs->stat) & BIT_STAT_RXS))
+-		cpu_relax();
+-
+-	if ((drv_data->tx && drv_data->tx >= drv_data->tx_end) ||
+-		(drv_data->rx && drv_data->rx >= (drv_data->rx_end - n_bytes))) {
+-		/* last read */
+-		if (drv_data->rx) {
+-			dev_dbg(&drv_data->pdev->dev, "last read\n");
+-			if (!(n_bytes % 2)) {
+-				u16 *buf = (u16 *)drv_data->rx;
+-				for (loop = 0; loop < n_bytes / 2; loop++)
+-					*buf++ = bfin_read(&drv_data->regs->rdbr);
+-			} else {
+-				u8 *buf = (u8 *)drv_data->rx;
+-				for (loop = 0; loop < n_bytes; loop++)
+-					*buf++ = bfin_read(&drv_data->regs->rdbr);
+-			}
+-			drv_data->rx += n_bytes;
+-		}
+-
+-		msg->actual_length += drv_data->len_in_bytes;
+-		if (drv_data->cs_change)
+-			bfin_spi_cs_deactive(drv_data, chip);
+-		/* Move to next transfer */
+-		msg->state = bfin_spi_next_transfer(drv_data);
+-
+-		disable_irq_nosync(drv_data->spi_irq);
+-
+-		/* Schedule transfer tasklet */
+-		tasklet_schedule(&drv_data->pump_transfers);
+-		return IRQ_HANDLED;
+-	}
+-
+-	if (drv_data->rx && drv_data->tx) {
+-		/* duplex */
+-		dev_dbg(&drv_data->pdev->dev, "duplex: write_TDBR\n");
+-		if (!(n_bytes % 2)) {
+-			u16 *buf = (u16 *)drv_data->rx;
+-			u16 *buf2 = (u16 *)drv_data->tx;
+-			for (loop = 0; loop < n_bytes / 2; loop++) {
+-				*buf++ = bfin_read(&drv_data->regs->rdbr);
+-				bfin_write(&drv_data->regs->tdbr, *buf2++);
+-			}
+-		} else {
+-			u8 *buf = (u8 *)drv_data->rx;
+-			u8 *buf2 = (u8 *)drv_data->tx;
+-			for (loop = 0; loop < n_bytes; loop++) {
+-				*buf++ = bfin_read(&drv_data->regs->rdbr);
+-				bfin_write(&drv_data->regs->tdbr, *buf2++);
+-			}
+-		}
+-	} else if (drv_data->rx) {
+-		/* read */
+-		dev_dbg(&drv_data->pdev->dev, "read: write_TDBR\n");
+-		if (!(n_bytes % 2)) {
+-			u16 *buf = (u16 *)drv_data->rx;
+-			for (loop = 0; loop < n_bytes / 2; loop++) {
+-				*buf++ = bfin_read(&drv_data->regs->rdbr);
+-				bfin_write(&drv_data->regs->tdbr, chip->idle_tx_val);
+-			}
+-		} else {
+-			u8 *buf = (u8 *)drv_data->rx;
+-			for (loop = 0; loop < n_bytes; loop++) {
+-				*buf++ = bfin_read(&drv_data->regs->rdbr);
+-				bfin_write(&drv_data->regs->tdbr, chip->idle_tx_val);
+-			}
+-		}
+-	} else if (drv_data->tx) {
+-		/* write */
+-		dev_dbg(&drv_data->pdev->dev, "write: write_TDBR\n");
+-		if (!(n_bytes % 2)) {
+-			u16 *buf = (u16 *)drv_data->tx;
+-			for (loop = 0; loop < n_bytes / 2; loop++) {
+-				bfin_read(&drv_data->regs->rdbr);
+-				bfin_write(&drv_data->regs->tdbr, *buf++);
+-			}
+-		} else {
+-			u8 *buf = (u8 *)drv_data->tx;
+-			for (loop = 0; loop < n_bytes; loop++) {
+-				bfin_read(&drv_data->regs->rdbr);
+-				bfin_write(&drv_data->regs->tdbr, *buf++);
+-			}
+-		}
+-	}
+-
+-	if (drv_data->tx)
+-		drv_data->tx += n_bytes;
+-	if (drv_data->rx)
+-		drv_data->rx += n_bytes;
+-
+-	return IRQ_HANDLED;
+-}
+-
+-static irqreturn_t bfin_spi_dma_irq_handler(int irq, void *dev_id)
+-{
+-	struct bfin_spi_master_data *drv_data = dev_id;
+-	struct bfin_spi_slave_data *chip = drv_data->cur_chip;
+-	struct spi_message *msg = drv_data->cur_msg;
+-	unsigned long timeout;
+-	unsigned short dmastat = get_dma_curr_irqstat(drv_data->dma_channel);
+-	u16 spistat = bfin_read(&drv_data->regs->stat);
+-
+-	dev_dbg(&drv_data->pdev->dev,
+-		"in dma_irq_handler dmastat:0x%x spistat:0x%x\n",
+-		dmastat, spistat);
+-
+-	if (drv_data->rx != NULL) {
+-		u16 cr = bfin_read(&drv_data->regs->ctl);
+-		/* discard old RX data and clear RXS */
+-		bfin_spi_dummy_read(drv_data);
+-		bfin_write(&drv_data->regs->ctl, cr & ~BIT_CTL_ENABLE); /* Disable SPI */
+-		bfin_write(&drv_data->regs->ctl, cr & ~BIT_CTL_TIMOD); /* Restore State */
+-		bfin_write(&drv_data->regs->stat, BIT_STAT_CLR); /* Clear Status */
+-	}
+-
+-	clear_dma_irqstat(drv_data->dma_channel);
+-
+-	/*
+-	 * wait for the last transaction shifted out.  HRM states:
+-	 * at this point there may still be data in the SPI DMA FIFO waiting
+-	 * to be transmitted ... software needs to poll TXS in the SPI_STAT
+-	 * register until it goes low for 2 successive reads
+-	 */
+-	if (drv_data->tx != NULL) {
+-		while ((bfin_read(&drv_data->regs->stat) & BIT_STAT_TXS) ||
+-		       (bfin_read(&drv_data->regs->stat) & BIT_STAT_TXS))
+-			cpu_relax();
+-	}
+-
+-	dev_dbg(&drv_data->pdev->dev,
+-		"in dma_irq_handler dmastat:0x%x spistat:0x%x\n",
+-		dmastat, bfin_read(&drv_data->regs->stat));
+-
+-	timeout = jiffies + HZ;
+-	while (!(bfin_read(&drv_data->regs->stat) & BIT_STAT_SPIF))
+-		if (!time_before(jiffies, timeout)) {
+-			dev_warn(&drv_data->pdev->dev, "timeout waiting for SPIF\n");
+-			break;
+-		} else
+-			cpu_relax();
+-
+-	if ((dmastat & DMA_ERR) && (spistat & BIT_STAT_RBSY)) {
+-		msg->state = ERROR_STATE;
+-		dev_err(&drv_data->pdev->dev, "dma receive: fifo/buffer overflow\n");
+-	} else {
+-		msg->actual_length += drv_data->len_in_bytes;
+-
+-		if (drv_data->cs_change)
+-			bfin_spi_cs_deactive(drv_data, chip);
+-
+-		/* Move to next transfer */
+-		msg->state = bfin_spi_next_transfer(drv_data);
+-	}
+-
+-	/* Schedule transfer tasklet */
+-	tasklet_schedule(&drv_data->pump_transfers);
+-
+-	/* free the irq handler before next transfer */
+-	dev_dbg(&drv_data->pdev->dev,
+-		"disable dma channel irq%d\n",
+-		drv_data->dma_channel);
+-	dma_disable_irq_nosync(drv_data->dma_channel);
+-
+-	return IRQ_HANDLED;
+-}
+-
+-static void bfin_spi_pump_transfers(unsigned long data)
+-{
+-	struct bfin_spi_master_data *drv_data = (struct bfin_spi_master_data *)data;
+-	struct spi_message *message = NULL;
+-	struct spi_transfer *transfer = NULL;
+-	struct spi_transfer *previous = NULL;
+-	struct bfin_spi_slave_data *chip = NULL;
+-	unsigned int bits_per_word;
+-	u16 cr, cr_width = 0, dma_width, dma_config;
+-	u32 tranf_success = 1;
+-	u8 full_duplex = 0;
+-
+-	/* Get current state information */
+-	message = drv_data->cur_msg;
+-	transfer = drv_data->cur_transfer;
+-	chip = drv_data->cur_chip;
+-
+-	/*
+-	 * if msg is error or done, report it back using complete() callback
+-	 */
+-
+-	 /* Handle for abort */
+-	if (message->state == ERROR_STATE) {
+-		dev_dbg(&drv_data->pdev->dev, "transfer: we've hit an error\n");
+-		message->status = -EIO;
+-		bfin_spi_giveback(drv_data);
+-		return;
+-	}
+-
+-	/* Handle end of message */
+-	if (message->state == DONE_STATE) {
+-		dev_dbg(&drv_data->pdev->dev, "transfer: all done!\n");
+-		message->status = 0;
+-		bfin_spi_flush(drv_data);
+-		bfin_spi_giveback(drv_data);
+-		return;
+-	}
+-
+-	/* Delay if requested at end of transfer */
+-	if (message->state == RUNNING_STATE) {
+-		dev_dbg(&drv_data->pdev->dev, "transfer: still running ...\n");
+-		previous = list_entry(transfer->transfer_list.prev,
+-				      struct spi_transfer, transfer_list);
+-		if (previous->delay_usecs)
+-			udelay(previous->delay_usecs);
+-	}
+-
+-	/* Flush any existing transfers that may be sitting in the hardware */
+-	if (bfin_spi_flush(drv_data) == 0) {
+-		dev_err(&drv_data->pdev->dev, "pump_transfers: flush failed\n");
+-		message->status = -EIO;
+-		bfin_spi_giveback(drv_data);
+-		return;
+-	}
+-
+-	if (transfer->len == 0) {
+-		/* Move to next transfer of this msg */
+-		message->state = bfin_spi_next_transfer(drv_data);
+-		/* Schedule next transfer tasklet */
+-		tasklet_schedule(&drv_data->pump_transfers);
+-		return;
+-	}
+-
+-	if (transfer->tx_buf != NULL) {
+-		drv_data->tx = (void *)transfer->tx_buf;
+-		drv_data->tx_end = drv_data->tx + transfer->len;
+-		dev_dbg(&drv_data->pdev->dev, "tx_buf is %p, tx_end is %p\n",
+-			transfer->tx_buf, drv_data->tx_end);
+-	} else {
+-		drv_data->tx = NULL;
+-	}
+-
+-	if (transfer->rx_buf != NULL) {
+-		full_duplex = transfer->tx_buf != NULL;
+-		drv_data->rx = transfer->rx_buf;
+-		drv_data->rx_end = drv_data->rx + transfer->len;
+-		dev_dbg(&drv_data->pdev->dev, "rx_buf is %p, rx_end is %p\n",
+-			transfer->rx_buf, drv_data->rx_end);
+-	} else {
+-		drv_data->rx = NULL;
+-	}
+-
+-	drv_data->rx_dma = transfer->rx_dma;
+-	drv_data->tx_dma = transfer->tx_dma;
+-	drv_data->len_in_bytes = transfer->len;
+-	drv_data->cs_change = transfer->cs_change;
+-
+-	/* Bits per word setup */
+-	bits_per_word = transfer->bits_per_word;
+-	if (bits_per_word == 16) {
+-		drv_data->n_bytes = bits_per_word/8;
+-		drv_data->len = (transfer->len) >> 1;
+-		cr_width = BIT_CTL_WORDSIZE;
+-		drv_data->ops = &bfin_bfin_spi_transfer_ops_u16;
+-	} else if (bits_per_word == 8) {
+-		drv_data->n_bytes = bits_per_word/8;
+-		drv_data->len = transfer->len;
+-		drv_data->ops = &bfin_bfin_spi_transfer_ops_u8;
+-	}
+-	cr = bfin_read(&drv_data->regs->ctl) & ~(BIT_CTL_TIMOD | BIT_CTL_WORDSIZE);
+-	cr |= cr_width;
+-	bfin_write(&drv_data->regs->ctl, cr);
+-
+-	dev_dbg(&drv_data->pdev->dev,
+-		"transfer: drv_data->ops is %p, chip->ops is %p, u8_ops is %p\n",
+-		drv_data->ops, chip->ops, &bfin_bfin_spi_transfer_ops_u8);
+-
+-	message->state = RUNNING_STATE;
+-	dma_config = 0;
+-
+-	bfin_write(&drv_data->regs->baud, hz_to_spi_baud(transfer->speed_hz));
+-
+-	bfin_write(&drv_data->regs->stat, BIT_STAT_CLR);
+-	bfin_spi_cs_active(drv_data, chip);
+-
+-	dev_dbg(&drv_data->pdev->dev,
+-		"now pumping a transfer: width is %d, len is %d\n",
+-		cr_width, transfer->len);
+-
+-	/*
+-	 * Try to map dma buffer and do a dma transfer.  If successful use,
+-	 * different way to r/w according to the enable_dma settings and if
+-	 * we are not doing a full duplex transfer (since the hardware does
+-	 * not support full duplex DMA transfers).
+-	 */
+-	if (!full_duplex && drv_data->cur_chip->enable_dma
+-				&& drv_data->len > 6) {
+-
+-		unsigned long dma_start_addr, flags;
+-
+-		disable_dma(drv_data->dma_channel);
+-		clear_dma_irqstat(drv_data->dma_channel);
+-
+-		/* config dma channel */
+-		dev_dbg(&drv_data->pdev->dev, "doing dma transfer\n");
+-		set_dma_x_count(drv_data->dma_channel, drv_data->len);
+-		if (cr_width == BIT_CTL_WORDSIZE) {
+-			set_dma_x_modify(drv_data->dma_channel, 2);
+-			dma_width = WDSIZE_16;
+-		} else {
+-			set_dma_x_modify(drv_data->dma_channel, 1);
+-			dma_width = WDSIZE_8;
+-		}
+-
+-		/* poll for SPI completion before start */
+-		while (!(bfin_read(&drv_data->regs->stat) & BIT_STAT_SPIF))
+-			cpu_relax();
+-
+-		/* dirty hack for autobuffer DMA mode */
+-		if (drv_data->tx_dma == 0xFFFF) {
+-			dev_dbg(&drv_data->pdev->dev,
+-				"doing autobuffer DMA out.\n");
+-
+-			/* no irq in autobuffer mode */
+-			dma_config =
+-			    (DMAFLOW_AUTO | RESTART | dma_width | DI_EN);
+-			set_dma_config(drv_data->dma_channel, dma_config);
+-			set_dma_start_addr(drv_data->dma_channel,
+-					(unsigned long)drv_data->tx);
+-			enable_dma(drv_data->dma_channel);
+-
+-			/* start SPI transfer */
+-			bfin_write(&drv_data->regs->ctl, cr | BIT_CTL_TIMOD_DMA_TX);
+-
+-			/* just return here, there can only be one transfer
+-			 * in this mode
+-			 */
+-			message->status = 0;
+-			bfin_spi_giveback(drv_data);
+-			return;
+-		}
+-
+-		/* In dma mode, rx or tx must be NULL in one transfer */
+-		dma_config = (RESTART | dma_width | DI_EN);
+-		if (drv_data->rx != NULL) {
+-			/* set transfer mode, and enable SPI */
+-			dev_dbg(&drv_data->pdev->dev, "doing DMA in to %p (size %zx)\n",
+-				drv_data->rx, drv_data->len_in_bytes);
+-
+-			/* invalidate caches, if needed */
+-			if (bfin_addr_dcacheable((unsigned long) drv_data->rx))
+-				invalidate_dcache_range((unsigned long) drv_data->rx,
+-							(unsigned long) (drv_data->rx +
+-							drv_data->len_in_bytes));
+-
+-			dma_config |= WNR;
+-			dma_start_addr = (unsigned long)drv_data->rx;
+-			cr |= BIT_CTL_TIMOD_DMA_RX | BIT_CTL_SENDOPT;
+-
+-		} else if (drv_data->tx != NULL) {
+-			dev_dbg(&drv_data->pdev->dev, "doing DMA out.\n");
+-
+-			/* flush caches, if needed */
+-			if (bfin_addr_dcacheable((unsigned long) drv_data->tx))
+-				flush_dcache_range((unsigned long) drv_data->tx,
+-						(unsigned long) (drv_data->tx +
+-						drv_data->len_in_bytes));
+-
+-			dma_start_addr = (unsigned long)drv_data->tx;
+-			cr |= BIT_CTL_TIMOD_DMA_TX;
+-
+-		} else
+-			BUG();
+-
+-		/* oh man, here there be monsters ... and i dont mean the
+-		 * fluffy cute ones from pixar, i mean the kind that'll eat
+-		 * your data, kick your dog, and love it all.  do *not* try
+-		 * and change these lines unless you (1) heavily test DMA
+-		 * with SPI flashes on a loaded system (e.g. ping floods),
+-		 * (2) know just how broken the DMA engine interaction with
+-		 * the SPI peripheral is, and (3) have someone else to blame
+-		 * when you screw it all up anyways.
+-		 */
+-		set_dma_start_addr(drv_data->dma_channel, dma_start_addr);
+-		set_dma_config(drv_data->dma_channel, dma_config);
+-		local_irq_save(flags);
+-		SSYNC();
+-		bfin_write(&drv_data->regs->ctl, cr);
+-		enable_dma(drv_data->dma_channel);
+-		dma_enable_irq(drv_data->dma_channel);
+-		local_irq_restore(flags);
+-
+-		return;
+-	}
+-
+-	/*
+-	 * We always use SPI_WRITE mode (transfer starts with TDBR write).
+-	 * SPI_READ mode (transfer starts with RDBR read) seems to have
+-	 * problems with setting up the output value in TDBR prior to the
+-	 * start of the transfer.
+-	 */
+-	bfin_write(&drv_data->regs->ctl, cr | BIT_CTL_TXMOD);
+-
+-	if (chip->pio_interrupt) {
+-		/* SPI irq should have been disabled by now */
+-
+-		/* discard old RX data and clear RXS */
+-		bfin_spi_dummy_read(drv_data);
+-
+-		/* start transfer */
+-		if (drv_data->tx == NULL)
+-			bfin_write(&drv_data->regs->tdbr, chip->idle_tx_val);
+-		else {
+-			int loop;
+-			if (bits_per_word == 16) {
+-				u16 *buf = (u16 *)drv_data->tx;
+-				for (loop = 0; loop < bits_per_word / 16;
+-						loop++) {
+-					bfin_write(&drv_data->regs->tdbr, *buf++);
+-				}
+-			} else if (bits_per_word == 8) {
+-				u8 *buf = (u8 *)drv_data->tx;
+-				for (loop = 0; loop < bits_per_word / 8; loop++)
+-					bfin_write(&drv_data->regs->tdbr, *buf++);
+-			}
+-
+-			drv_data->tx += drv_data->n_bytes;
+-		}
+-
+-		/* once TDBR is empty, interrupt is triggered */
+-		enable_irq(drv_data->spi_irq);
+-		return;
+-	}
+-
+-	/* IO mode */
+-	dev_dbg(&drv_data->pdev->dev, "doing IO transfer\n");
+-
+-	if (full_duplex) {
+-		/* full duplex mode */
+-		BUG_ON((drv_data->tx_end - drv_data->tx) !=
+-		       (drv_data->rx_end - drv_data->rx));
+-		dev_dbg(&drv_data->pdev->dev,
+-			"IO duplex: cr is 0x%x\n", cr);
+-
+-		drv_data->ops->duplex(drv_data);
+-
+-		if (drv_data->tx != drv_data->tx_end)
+-			tranf_success = 0;
+-	} else if (drv_data->tx != NULL) {
+-		/* write only half duplex */
+-		dev_dbg(&drv_data->pdev->dev,
+-			"IO write: cr is 0x%x\n", cr);
+-
+-		drv_data->ops->write(drv_data);
+-
+-		if (drv_data->tx != drv_data->tx_end)
+-			tranf_success = 0;
+-	} else if (drv_data->rx != NULL) {
+-		/* read only half duplex */
+-		dev_dbg(&drv_data->pdev->dev,
+-			"IO read: cr is 0x%x\n", cr);
+-
+-		drv_data->ops->read(drv_data);
+-		if (drv_data->rx != drv_data->rx_end)
+-			tranf_success = 0;
+-	}
+-
+-	if (!tranf_success) {
+-		dev_dbg(&drv_data->pdev->dev,
+-			"IO write error!\n");
+-		message->state = ERROR_STATE;
+-	} else {
+-		/* Update total byte transferred */
+-		message->actual_length += drv_data->len_in_bytes;
+-		/* Move to next transfer of this msg */
+-		message->state = bfin_spi_next_transfer(drv_data);
+-		if (drv_data->cs_change && message->state != DONE_STATE) {
+-			bfin_spi_flush(drv_data);
+-			bfin_spi_cs_deactive(drv_data, chip);
+-		}
+-	}
+-
+-	/* Schedule next transfer tasklet */
+-	tasklet_schedule(&drv_data->pump_transfers);
+-}
+-
+-/* pop a msg from queue and kick off real transfer */
+-static void bfin_spi_pump_messages(struct work_struct *work)
+-{
+-	struct bfin_spi_master_data *drv_data;
+-	unsigned long flags;
+-
+-	drv_data = container_of(work, struct bfin_spi_master_data, pump_messages);
+-
+-	/* Lock queue and check for queue work */
+-	spin_lock_irqsave(&drv_data->lock, flags);
+-	if (list_empty(&drv_data->queue) || !drv_data->running) {
+-		/* pumper kicked off but no work to do */
+-		drv_data->busy = 0;
+-		spin_unlock_irqrestore(&drv_data->lock, flags);
+-		return;
+-	}
+-
+-	/* Make sure we are not already running a message */
+-	if (drv_data->cur_msg) {
+-		spin_unlock_irqrestore(&drv_data->lock, flags);
+-		return;
+-	}
+-
+-	/* Extract head of queue */
+-	drv_data->cur_msg = list_entry(drv_data->queue.next,
+-				       struct spi_message, queue);
+-
+-	/* Setup the SSP using the per chip configuration */
+-	drv_data->cur_chip = spi_get_ctldata(drv_data->cur_msg->spi);
+-	bfin_spi_restore_state(drv_data);
+-
+-	list_del_init(&drv_data->cur_msg->queue);
+-
+-	/* Initial message state */
+-	drv_data->cur_msg->state = START_STATE;
+-	drv_data->cur_transfer = list_entry(drv_data->cur_msg->transfers.next,
+-					    struct spi_transfer, transfer_list);
+-
+-	dev_dbg(&drv_data->pdev->dev,
+-		"got a message to pump, state is set to: baud "
+-		"%d, flag 0x%x, ctl 0x%x\n",
+-		drv_data->cur_chip->baud, drv_data->cur_chip->flag,
+-		drv_data->cur_chip->ctl_reg);
+-
+-	dev_dbg(&drv_data->pdev->dev,
+-		"the first transfer len is %d\n",
+-		drv_data->cur_transfer->len);
+-
+-	/* Mark as busy and launch transfers */
+-	tasklet_schedule(&drv_data->pump_transfers);
+-
+-	drv_data->busy = 1;
+-	spin_unlock_irqrestore(&drv_data->lock, flags);
+-}
+-
+-/*
+- * got a msg to transfer, queue it in drv_data->queue.
+- * And kick off message pumper
+- */
+-static int bfin_spi_transfer(struct spi_device *spi, struct spi_message *msg)
+-{
+-	struct bfin_spi_master_data *drv_data = spi_master_get_devdata(spi->master);
+-	unsigned long flags;
+-
+-	spin_lock_irqsave(&drv_data->lock, flags);
+-
+-	if (!drv_data->running) {
+-		spin_unlock_irqrestore(&drv_data->lock, flags);
+-		return -ESHUTDOWN;
+-	}
+-
+-	msg->actual_length = 0;
+-	msg->status = -EINPROGRESS;
+-	msg->state = START_STATE;
+-
+-	dev_dbg(&spi->dev, "adding an msg in transfer() \n");
+-	list_add_tail(&msg->queue, &drv_data->queue);
+-
+-	if (drv_data->running && !drv_data->busy)
+-		schedule_work(&drv_data->pump_messages);
+-
+-	spin_unlock_irqrestore(&drv_data->lock, flags);
+-
+-	return 0;
+-}
+-
+-#define MAX_SPI_SSEL	7
+-
+-static const u16 ssel[][MAX_SPI_SSEL] = {
+-	{P_SPI0_SSEL1, P_SPI0_SSEL2, P_SPI0_SSEL3,
+-	P_SPI0_SSEL4, P_SPI0_SSEL5,
+-	P_SPI0_SSEL6, P_SPI0_SSEL7},
+-
+-	{P_SPI1_SSEL1, P_SPI1_SSEL2, P_SPI1_SSEL3,
+-	P_SPI1_SSEL4, P_SPI1_SSEL5,
+-	P_SPI1_SSEL6, P_SPI1_SSEL7},
+-
+-	{P_SPI2_SSEL1, P_SPI2_SSEL2, P_SPI2_SSEL3,
+-	P_SPI2_SSEL4, P_SPI2_SSEL5,
+-	P_SPI2_SSEL6, P_SPI2_SSEL7},
+-};
+-
+-/* setup for devices (may be called multiple times -- not just first setup) */
+-static int bfin_spi_setup(struct spi_device *spi)
+-{
+-	struct bfin5xx_spi_chip *chip_info;
+-	struct bfin_spi_slave_data *chip = NULL;
+-	struct bfin_spi_master_data *drv_data = spi_master_get_devdata(spi->master);
+-	u16 bfin_ctl_reg;
+-	int ret = -EINVAL;
+-
+-	/* Only alloc (or use chip_info) on first setup */
+-	chip_info = NULL;
+-	chip = spi_get_ctldata(spi);
+-	if (chip == NULL) {
+-		chip = kzalloc(sizeof(*chip), GFP_KERNEL);
+-		if (!chip) {
+-			dev_err(&spi->dev, "cannot allocate chip data\n");
+-			ret = -ENOMEM;
+-			goto error;
+-		}
+-
+-		chip->enable_dma = 0;
+-		chip_info = spi->controller_data;
+-	}
+-
+-	/* Let people set non-standard bits directly */
+-	bfin_ctl_reg = BIT_CTL_OPENDRAIN | BIT_CTL_EMISO |
+-		BIT_CTL_PSSE | BIT_CTL_GM | BIT_CTL_SZ;
+-
+-	/* chip_info isn't always needed */
+-	if (chip_info) {
+-		/* Make sure people stop trying to set fields via ctl_reg
+-		 * when they should actually be using common SPI framework.
+-		 * Currently we let through: WOM EMISO PSSE GM SZ.
+-		 * Not sure if a user actually needs/uses any of these,
+-		 * but let's assume (for now) they do.
+-		 */
+-		if (chip_info->ctl_reg & ~bfin_ctl_reg) {
+-			dev_err(&spi->dev,
+-				"do not set bits in ctl_reg that the SPI framework manages\n");
+-			goto error;
+-		}
+-		chip->enable_dma = chip_info->enable_dma != 0
+-		    && drv_data->master_info->enable_dma;
+-		chip->ctl_reg = chip_info->ctl_reg;
+-		chip->cs_chg_udelay = chip_info->cs_chg_udelay;
+-		chip->idle_tx_val = chip_info->idle_tx_val;
+-		chip->pio_interrupt = chip_info->pio_interrupt;
+-	} else {
+-		/* force a default base state */
+-		chip->ctl_reg &= bfin_ctl_reg;
+-	}
+-
+-	/* translate common spi framework into our register */
+-	if (spi->mode & SPI_CPOL)
+-		chip->ctl_reg |= BIT_CTL_CPOL;
+-	if (spi->mode & SPI_CPHA)
+-		chip->ctl_reg |= BIT_CTL_CPHA;
+-	if (spi->mode & SPI_LSB_FIRST)
+-		chip->ctl_reg |= BIT_CTL_LSBF;
+-	/* we dont support running in slave mode (yet?) */
+-	chip->ctl_reg |= BIT_CTL_MASTER;
+-
+-	/*
+-	 * Notice: for blackfin, the speed_hz is the value of register
+-	 * SPI_BAUD, not the real baudrate
+-	 */
+-	chip->baud = hz_to_spi_baud(spi->max_speed_hz);
+-	chip->chip_select_num = spi->chip_select;
+-	if (chip->chip_select_num < MAX_CTRL_CS) {
+-		if (!(spi->mode & SPI_CPHA))
+-			dev_warn(&spi->dev,
+-				"Warning: SPI CPHA not set: Slave Select not under software control!\n"
+-				"See Documentation/blackfin/bfin-spi-notes.txt\n");
+-
+-		chip->flag = (1 << spi->chip_select) << 8;
+-	} else
+-		chip->cs_gpio = chip->chip_select_num - MAX_CTRL_CS;
+-
+-	if (chip->enable_dma && chip->pio_interrupt) {
+-		dev_err(&spi->dev,
+-			"enable_dma is set, do not set pio_interrupt\n");
+-		goto error;
+-	}
+-	/*
+-	 * if any one SPI chip is registered and wants DMA, request the
+-	 * DMA channel for it
+-	 */
+-	if (chip->enable_dma && !drv_data->dma_requested) {
+-		/* register dma irq handler */
+-		ret = request_dma(drv_data->dma_channel, "BFIN_SPI_DMA");
+-		if (ret) {
+-			dev_err(&spi->dev,
+-				"Unable to request BlackFin SPI DMA channel\n");
+-			goto error;
+-		}
+-		drv_data->dma_requested = 1;
+-
+-		ret = set_dma_callback(drv_data->dma_channel,
+-			bfin_spi_dma_irq_handler, drv_data);
+-		if (ret) {
+-			dev_err(&spi->dev, "Unable to set dma callback\n");
+-			goto error;
+-		}
+-		dma_disable_irq(drv_data->dma_channel);
+-	}
+-
+-	if (chip->pio_interrupt && !drv_data->irq_requested) {
+-		ret = request_irq(drv_data->spi_irq, bfin_spi_pio_irq_handler,
+-			0, "BFIN_SPI", drv_data);
+-		if (ret) {
+-			dev_err(&spi->dev, "Unable to register spi IRQ\n");
+-			goto error;
+-		}
+-		drv_data->irq_requested = 1;
+-		/* we use write mode, spi irq has to be disabled here */
+-		disable_irq(drv_data->spi_irq);
+-	}
+-
+-	if (chip->chip_select_num >= MAX_CTRL_CS) {
+-		/* Only request on first setup */
+-		if (spi_get_ctldata(spi) == NULL) {
+-			ret = gpio_request(chip->cs_gpio, spi->modalias);
+-			if (ret) {
+-				dev_err(&spi->dev, "gpio_request() error\n");
+-				goto pin_error;
+-			}
+-			gpio_direction_output(chip->cs_gpio, 1);
+-		}
+-	}
+-
+-	dev_dbg(&spi->dev, "setup spi chip %s, width is %d, dma is %d\n",
+-			spi->modalias, spi->bits_per_word, chip->enable_dma);
+-	dev_dbg(&spi->dev, "ctl_reg is 0x%x, flag_reg is 0x%x\n",
+-			chip->ctl_reg, chip->flag);
+-
+-	spi_set_ctldata(spi, chip);
+-
+-	dev_dbg(&spi->dev, "chip select number is %d\n", chip->chip_select_num);
+-	if (chip->chip_select_num < MAX_CTRL_CS) {
+-		ret = peripheral_request(ssel[spi->master->bus_num]
+-		                         [chip->chip_select_num-1], spi->modalias);
+-		if (ret) {
+-			dev_err(&spi->dev, "peripheral_request() error\n");
+-			goto pin_error;
+-		}
+-	}
+-
+-	bfin_spi_cs_enable(drv_data, chip);
+-	bfin_spi_cs_deactive(drv_data, chip);
+-
+-	return 0;
+-
+- pin_error:
+-	if (chip->chip_select_num >= MAX_CTRL_CS)
+-		gpio_free(chip->cs_gpio);
+-	else
+-		peripheral_free(ssel[spi->master->bus_num]
+-			[chip->chip_select_num - 1]);
+- error:
+-	if (chip) {
+-		if (drv_data->dma_requested)
+-			free_dma(drv_data->dma_channel);
+-		drv_data->dma_requested = 0;
+-
+-		kfree(chip);
+-		/* prevent free 'chip' twice */
+-		spi_set_ctldata(spi, NULL);
+-	}
+-
+-	return ret;
+-}
+-
+-/*
+- * callback for spi framework.
+- * clean driver specific data
+- */
+-static void bfin_spi_cleanup(struct spi_device *spi)
+-{
+-	struct bfin_spi_slave_data *chip = spi_get_ctldata(spi);
+-	struct bfin_spi_master_data *drv_data = spi_master_get_devdata(spi->master);
+-
+-	if (!chip)
+-		return;
+-
+-	if (chip->chip_select_num < MAX_CTRL_CS) {
+-		peripheral_free(ssel[spi->master->bus_num]
+-					[chip->chip_select_num-1]);
+-		bfin_spi_cs_disable(drv_data, chip);
+-	} else
+-		gpio_free(chip->cs_gpio);
+-
+-	kfree(chip);
+-	/* prevent free 'chip' twice */
+-	spi_set_ctldata(spi, NULL);
+-}
+-
+-static int bfin_spi_init_queue(struct bfin_spi_master_data *drv_data)
+-{
+-	INIT_LIST_HEAD(&drv_data->queue);
+-	spin_lock_init(&drv_data->lock);
+-
+-	drv_data->running = false;
+-	drv_data->busy = 0;
+-
+-	/* init transfer tasklet */
+-	tasklet_init(&drv_data->pump_transfers,
+-		     bfin_spi_pump_transfers, (unsigned long)drv_data);
+-
+-	INIT_WORK(&drv_data->pump_messages, bfin_spi_pump_messages);
+-
+-	return 0;
+-}
+-
+-static int bfin_spi_start_queue(struct bfin_spi_master_data *drv_data)
+-{
+-	unsigned long flags;
+-
+-	spin_lock_irqsave(&drv_data->lock, flags);
+-
+-	if (drv_data->running || drv_data->busy) {
+-		spin_unlock_irqrestore(&drv_data->lock, flags);
+-		return -EBUSY;
+-	}
+-
+-	drv_data->running = true;
+-	drv_data->cur_msg = NULL;
+-	drv_data->cur_transfer = NULL;
+-	drv_data->cur_chip = NULL;
+-	spin_unlock_irqrestore(&drv_data->lock, flags);
+-
+-	schedule_work(&drv_data->pump_messages);
+-
+-	return 0;
+-}
+-
+-static int bfin_spi_stop_queue(struct bfin_spi_master_data *drv_data)
+-{
+-	unsigned long flags;
+-	unsigned limit = 500;
+-	int status = 0;
+-
+-	spin_lock_irqsave(&drv_data->lock, flags);
+-
+-	/*
+-	 * This is a bit lame, but is optimized for the common execution path.
+-	 * A wait_queue on the drv_data->busy could be used, but then the common
+-	 * execution path (pump_messages) would be required to call wake_up or
+-	 * friends on every SPI message. Do this instead
+-	 */
+-	drv_data->running = false;
+-	while ((!list_empty(&drv_data->queue) || drv_data->busy) && limit--) {
+-		spin_unlock_irqrestore(&drv_data->lock, flags);
+-		msleep(10);
+-		spin_lock_irqsave(&drv_data->lock, flags);
+-	}
+-
+-	if (!list_empty(&drv_data->queue) || drv_data->busy)
+-		status = -EBUSY;
+-
+-	spin_unlock_irqrestore(&drv_data->lock, flags);
+-
+-	return status;
+-}
+-
+-static int bfin_spi_destroy_queue(struct bfin_spi_master_data *drv_data)
+-{
+-	int status;
+-
+-	status = bfin_spi_stop_queue(drv_data);
+-	if (status != 0)
+-		return status;
+-
+-	flush_work(&drv_data->pump_messages);
+-
+-	return 0;
+-}
+-
+-static int bfin_spi_probe(struct platform_device *pdev)
+-{
+-	struct device *dev = &pdev->dev;
+-	struct bfin5xx_spi_master *platform_info;
+-	struct spi_master *master;
+-	struct bfin_spi_master_data *drv_data;
+-	struct resource *res;
+-	int status = 0;
+-
+-	platform_info = dev_get_platdata(dev);
+-
+-	/* Allocate master with space for drv_data */
+-	master = spi_alloc_master(dev, sizeof(*drv_data));
+-	if (!master) {
+-		dev_err(&pdev->dev, "can not alloc spi_master\n");
+-		return -ENOMEM;
+-	}
+-
+-	drv_data = spi_master_get_devdata(master);
+-	drv_data->master = master;
+-	drv_data->master_info = platform_info;
+-	drv_data->pdev = pdev;
+-	drv_data->pin_req = platform_info->pin_req;
+-
+-	/* the spi->mode bits supported by this driver: */
+-	master->mode_bits = SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST;
+-	master->bits_per_word_mask = SPI_BPW_MASK(8) | SPI_BPW_MASK(16);
+-	master->bus_num = pdev->id;
+-	master->num_chipselect = platform_info->num_chipselect;
+-	master->cleanup = bfin_spi_cleanup;
+-	master->setup = bfin_spi_setup;
+-	master->transfer = bfin_spi_transfer;
+-
+-	/* Find and map our resources */
+-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	if (res == NULL) {
+-		dev_err(dev, "Cannot get IORESOURCE_MEM\n");
+-		status = -ENOENT;
+-		goto out_error_get_res;
+-	}
+-
+-	drv_data->regs = ioremap(res->start, resource_size(res));
+-	if (drv_data->regs == NULL) {
+-		dev_err(dev, "Cannot map IO\n");
+-		status = -ENXIO;
+-		goto out_error_ioremap;
+-	}
+-
+-	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
+-	if (res == NULL) {
+-		dev_err(dev, "No DMA channel specified\n");
+-		status = -ENOENT;
+-		goto out_error_free_io;
+-	}
+-	drv_data->dma_channel = res->start;
+-
+-	drv_data->spi_irq = platform_get_irq(pdev, 0);
+-	if (drv_data->spi_irq < 0) {
+-		dev_err(dev, "No spi pio irq specified\n");
+-		status = -ENOENT;
+-		goto out_error_free_io;
+-	}
+-
+-	/* Initial and start queue */
+-	status = bfin_spi_init_queue(drv_data);
+-	if (status != 0) {
+-		dev_err(dev, "problem initializing queue\n");
+-		goto out_error_queue_alloc;
+-	}
+-
+-	status = bfin_spi_start_queue(drv_data);
+-	if (status != 0) {
+-		dev_err(dev, "problem starting queue\n");
+-		goto out_error_queue_alloc;
+-	}
+-
+-	status = peripheral_request_list(drv_data->pin_req, DRV_NAME);
+-	if (status != 0) {
+-		dev_err(&pdev->dev, ": Requesting Peripherals failed\n");
+-		goto out_error_queue_alloc;
+-	}
+-
+-	/* Reset SPI registers. If these registers were used by the boot loader,
+-	 * the sky may fall on your head if you enable the dma controller.
+-	 */
+-	bfin_write(&drv_data->regs->ctl, BIT_CTL_CPHA | BIT_CTL_MASTER);
+-	bfin_write(&drv_data->regs->flg, 0xFF00);
+-
+-	/* Register with the SPI framework */
+-	platform_set_drvdata(pdev, drv_data);
+-	status = spi_register_master(master);
+-	if (status != 0) {
+-		dev_err(dev, "problem registering spi master\n");
+-		goto out_error_queue_alloc;
+-	}
+-
+-	dev_info(dev, "%s, Version %s, regs@%p, dma channel@%d\n",
+-		DRV_DESC, DRV_VERSION, drv_data->regs,
+-		drv_data->dma_channel);
+-	return status;
+-
+-out_error_queue_alloc:
+-	bfin_spi_destroy_queue(drv_data);
+-out_error_free_io:
+-	iounmap(drv_data->regs);
+-out_error_ioremap:
+-out_error_get_res:
+-	spi_master_put(master);
+-
+-	return status;
+-}
+-
+-/* stop hardware and remove the driver */
+-static int bfin_spi_remove(struct platform_device *pdev)
+-{
+-	struct bfin_spi_master_data *drv_data = platform_get_drvdata(pdev);
+-	int status = 0;
+-
+-	if (!drv_data)
+-		return 0;
+-
+-	/* Remove the queue */
+-	status = bfin_spi_destroy_queue(drv_data);
+-	if (status != 0)
+-		return status;
+-
+-	/* Disable the SSP at the peripheral and SOC level */
+-	bfin_spi_disable(drv_data);
+-
+-	/* Release DMA */
+-	if (drv_data->master_info->enable_dma) {
+-		if (dma_channel_active(drv_data->dma_channel))
+-			free_dma(drv_data->dma_channel);
+-	}
+-
+-	if (drv_data->irq_requested) {
+-		free_irq(drv_data->spi_irq, drv_data);
+-		drv_data->irq_requested = 0;
+-	}
+-
+-	/* Disconnect from the SPI framework */
+-	spi_unregister_master(drv_data->master);
+-
+-	peripheral_free_list(drv_data->pin_req);
+-
+-	return 0;
+-}
+-
+-#ifdef CONFIG_PM_SLEEP
+-static int bfin_spi_suspend(struct device *dev)
+-{
+-	struct bfin_spi_master_data *drv_data = dev_get_drvdata(dev);
+-	int status = 0;
+-
+-	status = bfin_spi_stop_queue(drv_data);
+-	if (status != 0)
+-		return status;
+-
+-	drv_data->ctrl_reg = bfin_read(&drv_data->regs->ctl);
+-	drv_data->flag_reg = bfin_read(&drv_data->regs->flg);
+-
+-	/*
+-	 * reset SPI_CTL and SPI_FLG registers
+-	 */
+-	bfin_write(&drv_data->regs->ctl, BIT_CTL_CPHA | BIT_CTL_MASTER);
+-	bfin_write(&drv_data->regs->flg, 0xFF00);
+-
+-	return 0;
+-}
+-
+-static int bfin_spi_resume(struct device *dev)
+-{
+-	struct bfin_spi_master_data *drv_data = dev_get_drvdata(dev);
+-	int status = 0;
+-
+-	bfin_write(&drv_data->regs->ctl, drv_data->ctrl_reg);
+-	bfin_write(&drv_data->regs->flg, drv_data->flag_reg);
+-
+-	/* Start the queue running */
+-	status = bfin_spi_start_queue(drv_data);
+-	if (status != 0) {
+-		dev_err(dev, "problem starting queue (%d)\n", status);
+-		return status;
+-	}
+-
+-	return 0;
+-}
+-
+-static SIMPLE_DEV_PM_OPS(bfin_spi_pm_ops, bfin_spi_suspend, bfin_spi_resume);
+-
+-#define BFIN_SPI_PM_OPS		(&bfin_spi_pm_ops)
+-#else
+-#define BFIN_SPI_PM_OPS		NULL
 -#endif
 -
--struct bfin_sir_port {
--	unsigned char __iomem   *membase;
--	unsigned int            irq;
--	unsigned int            lsr;
--	unsigned long           clk;
--	struct net_device       *dev;
--#ifdef CONFIG_SIR_BFIN_DMA
--	int                     tx_done;
--	struct dma_rx_buf       rx_dma_buf;
--	struct timer_list       rx_dma_timer;
--	int                     rx_dma_nrows;
--#endif
--	unsigned int            tx_dma_channel;
--	unsigned int            rx_dma_channel;
+-MODULE_ALIAS("platform:bfin-spi");
+-static struct platform_driver bfin_spi_driver = {
+-	.driver	= {
+-		.name	= DRV_NAME,
+-		.pm	= BFIN_SPI_PM_OPS,
+-	},
+-	.probe		= bfin_spi_probe,
+-	.remove		= bfin_spi_remove,
 -};
 -
--struct bfin_sir_port_res {
--	unsigned long   base_addr;
--	int             irq;
--	unsigned int    rx_dma_channel;
--	unsigned int    tx_dma_channel;
--};
+-static int __init bfin_spi_init(void)
+-{
+-	return platform_driver_register(&bfin_spi_driver);
+-}
+-subsys_initcall(bfin_spi_init);
 -
--struct bfin_sir_self {
--	struct bfin_sir_port    *sir_port;
--	spinlock_t              lock;
--	unsigned int            open;
--	int                     speed;
--	int                     newspeed;
--
--	struct sk_buff          *txskb;
--	struct sk_buff          *rxskb;
--	struct net_device_stats stats;
--	struct device           *dev;
--	struct irlap_cb         *irlap;
--	struct qos_info         qos;
--
--	iobuff_t                tx_buff;
--	iobuff_t                rx_buff;
--
--	struct work_struct      work;
--	int                     mtt;
--};
--
--#define DRIVER_NAME "bfin_sir"
--
--#include <asm/bfin_serial.h>
--
--static const unsigned short per[][4] = {
--	/* rx pin      tx pin     NULL  uart_number */
--	{P_UART0_RX, P_UART0_TX,    0,    0},
--	{P_UART1_RX, P_UART1_TX,    0,    1},
--	{P_UART2_RX, P_UART2_TX,    0,    2},
--	{P_UART3_RX, P_UART3_TX,    0,    3},
--};
+-static void __exit bfin_spi_exit(void)
+-{
+-	platform_driver_unregister(&bfin_spi_driver);
+-}
+-module_exit(bfin_spi_exit);
 -- 
 2.7.4
