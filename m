@@ -1,49 +1,155 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f193.google.com ([209.85.223.193]:40684 "EHLO
-        mail-io0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751170AbeCNVW4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 17:22:56 -0400
-Received: by mail-io0-f193.google.com with SMTP id v6so6056112iog.7
-        for <linux-arch@vger.kernel.org>; Wed, 14 Mar 2018 14:22:55 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <201803150509.5NWRa9LX%fengguang.wu@intel.com>
-References: <201803150509.5NWRa9LX%fengguang.wu@intel.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 14 Mar 2018 22:22:54 +0100
-Message-ID: <CAK8P3a3d5WxquftmwYYR8LAbXGahyLEGW3Wy3QHxPK2MyCDgTQ@mail.gmail.com>
-Subject: Re: [asm-generic:master 12/63] warning: (FAULT_INJECTION_STACKTRACE_FILTER
- && ..) selects FRAME_POINTER which has unmet direct dependencies
- (DEBUG_KERNEL && ..) || ..)
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-ot0-f195.google.com ([74.125.82.195]:37527 "EHLO
+        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751410AbeCOBsV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2018 21:48:21 -0400
+Received: by mail-ot0-f195.google.com with SMTP id t2-v6so5327328otj.4
+        for <linux-arch@vger.kernel.org>; Wed, 14 Mar 2018 18:48:20 -0700 (PDT)
+From: Daniel Kurtz <djkurtz@chromium.org>
+Subject: [PATCH v2] earlycon: Fix __earlycon_table stride... again
+Date: Wed, 14 Mar 2018 19:48:16 -0600
+Message-ID: <20180315014817.142930-1-djkurtz@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kbuild test robot <fengguang.wu@intel.com>
-Cc: kbuild-all@01.org, linux-arch <linux-arch@vger.kernel.org>
+To: Peter Hurley <peter@hurleysoftware.com>, Rob Herring <robh@kernel.org>
+Cc: adurbin@chromium.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, Grant Likely <grant.likely@linaro.org>, Daniel Kurtz <djkurtz@chromium.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, "open list:OPEN FIRMWARE AND FLATTENED
+        DEVICE TREE" <devicetree@vger.kernel.org>, "open list:SERIAL DRIVERS" <linux-serial@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Message-ID: <20180315014816.sTh97eTuFwSpHYFS-UARrtFCyVqo_Abdqozofz4epuY@z>
 
-On Wed, Mar 14, 2018 at 10:09 PM, kbuild test robot
-<fengguang.wu@intel.com> wrote:
-> tree:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git master
-> head:   6f0b419290171f99f5d4d52d47920d24010b7744
-> commit: 588020dcb92abfbea8163664220955b19beb3393 [12/63] treewide: simplify Kconfig dependencies for removed archs
-> config: ia64-allmodconfig (attached as .config)
-> compiler: ia64-linux-gcc (GCC) 7.2.0
-> reproduce:
->         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
->         chmod +x ~/bin/make.cross
->         git checkout 588020dcb92abfbea8163664220955b19beb3393
->         # save the attached .config to linux build tree
->         make.cross ARCH=ia64
->
-> All warnings (new ones prefixed by >>):
->
-> warning: (FAULT_INJECTION_STACKTRACE_FILTER && LATENCYTOP && LOCKDEP) selects FRAME_POINTER which has unmet direct dependencies (DEBUG_KERNEL && (M68K || UML || SUPERH) || ARCH_WANT_FRAME_POINTERS)
+Commit 470ca0de69fe ("serial: earlycon: Enable earlycon without command
+line param") added EARLYCON_TABLE().
 
-Just checked this: the warning was preexisting, but my patch changed
-the exact text. In mainline, the output is
+Commit 99492c39f39f ("earlycon: Fix __earlycon_table stride") referenced
+commit 07fca0e57fca92 ("tracing: Properly align linker defined symbols")
+and tried to fix EARLYCON_TABLE() using __aligned(32).
 
-warning: (FAULT_INJECTION_STACKTRACE_FILTER && LATENCYTOP && LOCKDEP)
-selects FRAME_POINTER which has unmet direct dependencies
-(DEBUG_KERNEL && (CRIS || M68K || FRV || UML || SUPERH || BLACKFIN) ||
-ARCH_WANT_FRAME_POINTERS)
+However, the fix copied just works around compiler behavior.  In fact, it
+was subsequently re-implemented for tracing using a table of pointers in
+commit 3d56e331b653 ("tracing: Replace syscall_meta_data struct array with
+pointer array"), commit 654986462939 ("tracepoints: Fix section alignment
+using pointer array") and commit e4a9ea5ee7c8 ("tracing: Replace
+trace_event struct array with pointer array").
 
-       Arnd
+Let's do the same "array of pointers to structs" approach for
+EARLYCON_TABLE.
+
+Signed-off-by: Daniel Kurtz <djkurtz@chromium.org>
+---
+Changes since v1:
+ * Change __earlycon_table to an array of pointers.
+
+Note: I do not have a convenient system to test the of/fdt.c part of this
+patch, so would apreciate help verifying it.  Thanks!
+
+ drivers/of/fdt.c                  |  7 +++++--
+ drivers/tty/serial/earlycon.c     |  6 ++++--
+ include/asm-generic/vmlinux.lds.h |  2 +-
+ include/linux/serial_core.h       | 21 ++++++++++++++-------
+ 4 files changed, 24 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+index 84aa9d676375..6da20b9688f7 100644
+--- a/drivers/of/fdt.c
++++ b/drivers/of/fdt.c
+@@ -942,7 +942,7 @@ int __init early_init_dt_scan_chosen_stdout(void)
+ 	int offset;
+ 	const char *p, *q, *options = NULL;
+ 	int l;
+-	const struct earlycon_id *match;
++	const struct earlycon_id **p_match;
+ 	const void *fdt = initial_boot_params;
+ 
+ 	offset = fdt_path_offset(fdt, "/chosen");
+@@ -969,7 +969,10 @@ int __init early_init_dt_scan_chosen_stdout(void)
+ 		return 0;
+ 	}
+ 
+-	for (match = __earlycon_table; match < __earlycon_table_end; match++) {
++	for (p_match = __earlycon_table; p_match < __earlycon_table_end;
++	     p_match++) {
++		const struct earlycon_id *match = *p_match;
++
+ 		if (!match->compatible[0])
+ 			continue;
+ 
+diff --git a/drivers/tty/serial/earlycon.c b/drivers/tty/serial/earlycon.c
+index a24278380fec..22683393a0f2 100644
+--- a/drivers/tty/serial/earlycon.c
++++ b/drivers/tty/serial/earlycon.c
+@@ -169,7 +169,7 @@ static int __init register_earlycon(char *buf, const struct earlycon_id *match)
+  */
+ int __init setup_earlycon(char *buf)
+ {
+-	const struct earlycon_id *match;
++	const struct earlycon_id **p_match;
+ 
+ 	if (!buf || !buf[0])
+ 		return -EINVAL;
+@@ -177,7 +177,9 @@ int __init setup_earlycon(char *buf)
+ 	if (early_con.flags & CON_ENABLED)
+ 		return -EALREADY;
+ 
+-	for (match = __earlycon_table; match < __earlycon_table_end; match++) {
++	for (p_match = __earlycon_table; p_match < __earlycon_table_end;
++	     p_match++) {
++		const struct earlycon_id *match = *p_match;
+ 		size_t len = strlen(match->name);
+ 
+ 		if (strncmp(buf, match->name, len))
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 1ab0e520d6fc..e17de55c2542 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -179,7 +179,7 @@
+ #endif
+ 
+ #ifdef CONFIG_SERIAL_EARLYCON
+-#define EARLYCON_TABLE() STRUCT_ALIGN();			\
++#define EARLYCON_TABLE() . = ALIGN(8);				\
+ 			 VMLINUX_SYMBOL(__earlycon_table) = .;	\
+ 			 KEEP(*(__earlycon_table))		\
+ 			 VMLINUX_SYMBOL(__earlycon_table_end) = .;
+diff --git a/include/linux/serial_core.h b/include/linux/serial_core.h
+index b32df49a3bd5..93b7add47087 100644
+--- a/include/linux/serial_core.h
++++ b/include/linux/serial_core.h
+@@ -351,10 +351,10 @@ struct earlycon_id {
+ 	char	name[16];
+ 	char	compatible[128];
+ 	int	(*setup)(struct earlycon_device *, const char *options);
+-} __aligned(32);
++};
+ 
+-extern const struct earlycon_id __earlycon_table[];
+-extern const struct earlycon_id __earlycon_table_end[];
++extern const struct earlycon_id *__earlycon_table[];
++extern const struct earlycon_id *__earlycon_table_end[];
+ 
+ #if defined(CONFIG_SERIAL_EARLYCON) && !defined(MODULE)
+ #define EARLYCON_USED_OR_UNUSED	__used
+@@ -362,12 +362,19 @@ extern const struct earlycon_id __earlycon_table_end[];
+ #define EARLYCON_USED_OR_UNUSED	__maybe_unused
+ #endif
+ 
+-#define OF_EARLYCON_DECLARE(_name, compat, fn)				\
+-	static const struct earlycon_id __UNIQUE_ID(__earlycon_##_name)	\
+-	     EARLYCON_USED_OR_UNUSED __section(__earlycon_table)	\
++#define _OF_EARLYCON_DECLARE(_name, compat, fn, unique_id)		\
++	static const struct earlycon_id unique_id			\
++	     EARLYCON_USED_OR_UNUSED __initdata				\
+ 		= { .name = __stringify(_name),				\
+ 		    .compatible = compat,				\
+-		    .setup = fn  }
++		    .setup = fn  };					\
++	static const struct earlycon_id EARLYCON_USED_OR_UNUSED		\
++		__section(__earlycon_table)				\
++		* const __PASTE(__p, unique_id) = &unique_id
++
++#define OF_EARLYCON_DECLARE(_name, compat, fn)				\
++	_OF_EARLYCON_DECLARE(_name, compat, fn,				\
++			     __UNIQUE_ID(__earlycon_##_name))
+ 
+ #define EARLYCON_DECLARE(_name, fn)	OF_EARLYCON_DECLARE(_name, "", fn)
+ 
+-- 
+2.16.2.804.g6dcf76e118-goog
