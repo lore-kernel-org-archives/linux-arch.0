@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0060.outbound.protection.outlook.com ([104.47.36.60]:17888
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-cys01nam02on0078.outbound.protection.outlook.com ([104.47.37.78]:6976
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751854AbeCOLAL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 07:00:11 -0400
+        id S1751854AbeCOLAU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Mar 2018 07:00:20 -0400
 From: Aaron Wu <aaron.wu@analog.com>
-Subject: [Blackfin removal] [PATCH 06/28] mmc: Remove Blackfin SD host support
-Date: Thu, 15 Mar 2018 18:50:06 +0800
-Message-ID: <1521111028-19856-6-git-send-email-aaron.wu@analog.com>
+Subject: [Blackfin removal] [PATCH 07/28] watchdog: Remove Blackfin watchdog support
+Date: Thu, 15 Mar 2018 18:50:07 +0800
+Message-ID: <1521111028-19856-7-git-send-email-aaron.wu@analog.com>
 In-Reply-To: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 MIME-Version: 1.0
@@ -19,740 +19,533 @@ Cc: viro@zeniv.linux.org.uk, jhogan@kernel.org, linux-metag@vger.kernel.org, jon
 
 Signed-off-by: Aaron Wu <aaron.wu@analog.com>
 
-Remove Blackfin SD host support
+Remove Blackfin watchdog support
 ---
- drivers/mmc/host/Kconfig    |  19 --
- drivers/mmc/host/Makefile   |   1 -
- drivers/mmc/host/bfin_sdh.c | 679 --------------------------------------------
- 3 files changed, 699 deletions(-)
- delete mode 100644 drivers/mmc/host/bfin_sdh.c
+ drivers/watchdog/Kconfig    |  13 --
+ drivers/watchdog/Makefile   |   3 -
+ drivers/watchdog/bfin_wdt.c | 476 --------------------------------------------
+ 3 files changed, 492 deletions(-)
+ delete mode 100644 drivers/watchdog/bfin_wdt.c
 
-diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index 620c2d9..b4fd5d4 100644
---- a/drivers/mmc/host/Kconfig
-+++ b/drivers/mmc/host/Kconfig
-@@ -646,25 +646,6 @@ config MMC_VIA_SDMMC
+diff --git a/drivers/watchdog/Kconfig b/drivers/watchdog/Kconfig
+index 37460cd..6174e99 100644
+--- a/drivers/watchdog/Kconfig
++++ b/drivers/watchdog/Kconfig
+@@ -815,19 +815,6 @@ config SPRD_WATCHDOG
+ 	  Say Y here to include watchdog timer supported
+ 	  by Spreadtrum system.
  
- 	  If unsure, say N.
- 
--config SDH_BFIN
--	tristate "Blackfin Secure Digital Host support"
--	depends on (BF54x && !BF544) || (BF51x && !BF512)
--	help
--	  If you say yes here you will get support for the Blackfin on-chip
--	  Secure Digital Host interface.  This includes support for MMC and
--	  SD cards.
+-# BLACKFIN Architecture
+-
+-config BFIN_WDT
+-	tristate "Blackfin On-Chip Watchdog Timer"
+-	depends on BLACKFIN
+-	---help---
+-	  If you say yes here you will get support for the Blackfin On-Chip
+-	  Watchdog Timer. If you have one of these processors and wish to
+-	  have watchdog support enabled, say Y, otherwise say N.
 -
 -	  To compile this driver as a module, choose M here: the
--	  module will be called bfin_sdh.
+-	  module will be called bfin_wdt.
 -
--	  If unsure, say N.
+ # CRIS Architecture
+ 
+ # FRV Architecture
+diff --git a/drivers/watchdog/Makefile b/drivers/watchdog/Makefile
+index 0474d38..1971f86 100644
+--- a/drivers/watchdog/Makefile
++++ b/drivers/watchdog/Makefile
+@@ -91,9 +91,6 @@ obj-$(CONFIG_UNIPHIER_WATCHDOG) += uniphier_wdt.o
+ obj-$(CONFIG_RTD119X_WATCHDOG) += rtd119x_wdt.o
+ obj-$(CONFIG_SPRD_WATCHDOG) += sprd_wdt.o
+ 
+-# BLACKFIN Architecture
+-obj-$(CONFIG_BFIN_WDT) += bfin_wdt.o
 -
--config SDH_BFIN_MISSING_CMD_PULLUP_WORKAROUND
--	bool "Blackfin EZkit Missing SDH_CMD Pull Up Resistor Workaround"
--	depends on SDH_BFIN
--	help
--	  If you say yes here SD-Cards may work on the EZkit.
--
- config MMC_CAVIUM_OCTEON
- 	tristate "Cavium OCTEON SD/MMC Card Interface support"
- 	depends on CAVIUM_OCTEON_SOC
-diff --git a/drivers/mmc/host/Makefile b/drivers/mmc/host/Makefile
-index 84cd138..f563cc0 100644
---- a/drivers/mmc/host/Makefile
-+++ b/drivers/mmc/host/Makefile
-@@ -43,7 +43,6 @@ obj-$(CONFIG_MMC_SDHI_SYS_DMAC)		+= renesas_sdhi_sys_dmac.o
- obj-$(CONFIG_MMC_SDHI_INTERNAL_DMAC)	+= renesas_sdhi_internal_dmac.o
- obj-$(CONFIG_MMC_CB710)		+= cb710-mmc.o
- obj-$(CONFIG_MMC_VIA_SDMMC)	+= via-sdmmc.o
--obj-$(CONFIG_SDH_BFIN)		+= bfin_sdh.o
- octeon-mmc-objs := cavium.o cavium-octeon.o
- obj-$(CONFIG_MMC_CAVIUM_OCTEON) += octeon-mmc.o
- thunderx-mmc-objs := cavium.o cavium-thunderx.o
-diff --git a/drivers/mmc/host/bfin_sdh.c b/drivers/mmc/host/bfin_sdh.c
+ # CRIS Architecture
+ 
+ # FRV Architecture
+diff --git a/drivers/watchdog/bfin_wdt.c b/drivers/watchdog/bfin_wdt.c
 deleted file mode 100644
-index 526231e..0000000
---- a/drivers/mmc/host/bfin_sdh.c
+index aa4d2e8..0000000
+--- a/drivers/watchdog/bfin_wdt.c
 +++ /dev/null
-@@ -1,679 +0,0 @@
+@@ -1,476 +0,0 @@
 -/*
-- * bfin_sdh.c - Analog Devices Blackfin SDH Controller
+- * Blackfin On-Chip Watchdog Driver
 - *
-- * Copyright (C) 2007-2009 Analog Device Inc.
+- * Originally based on softdog.c
+- * Copyright 2006-2010 Analog Devices Inc.
+- * Copyright 2006-2007 Michele d'Amico
+- * Copyright 1996 Alan Cox <alan@lxorguk.ukuu.org.uk>
+- *
+- * Enter bugs at http://blackfin.uclinux.org/
 - *
 - * Licensed under the GPL-2 or later.
 - */
 -
--#define DRIVER_NAME	"bfin-sdh"
+-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 -
--#include <linux/module.h>
--#include <linux/init.h>
--#include <linux/ioport.h>
 -#include <linux/platform_device.h>
--#include <linux/delay.h>
+-#include <linux/module.h>
+-#include <linux/moduleparam.h>
+-#include <linux/types.h>
+-#include <linux/timer.h>
+-#include <linux/miscdevice.h>
+-#include <linux/watchdog.h>
+-#include <linux/fs.h>
+-#include <linux/init.h>
 -#include <linux/interrupt.h>
--#include <linux/dma-mapping.h>
--#include <linux/mmc/host.h>
--#include <linux/proc_fs.h>
--#include <linux/gfp.h>
+-#include <linux/uaccess.h>
+-#include <asm/blackfin.h>
+-#include <asm/bfin_watchdog.h>
 -
--#include <asm/cacheflush.h>
--#include <asm/dma.h>
--#include <asm/portmux.h>
--#include <asm/bfin_sdh.h>
+-#define stamp(fmt, args...) \
+-	pr_debug("%s:%i: " fmt "\n", __func__, __LINE__, ## args)
+-#define stampit() stamp("here i am")
 -
--#if defined(CONFIG_BF51x) || defined(__ADSPBF60x__)
--#define bfin_read_SDH_CLK_CTL		bfin_read_RSI_CLK_CTL
--#define bfin_write_SDH_CLK_CTL		bfin_write_RSI_CLK_CTL
--#define bfin_write_SDH_ARGUMENT		bfin_write_RSI_ARGUMENT
--#define bfin_write_SDH_COMMAND		bfin_write_RSI_COMMAND
--#define bfin_write_SDH_DATA_TIMER	bfin_write_RSI_DATA_TIMER
--#define bfin_read_SDH_RESPONSE0		bfin_read_RSI_RESPONSE0
--#define bfin_read_SDH_RESPONSE1		bfin_read_RSI_RESPONSE1
--#define bfin_read_SDH_RESPONSE2		bfin_read_RSI_RESPONSE2
--#define bfin_read_SDH_RESPONSE3		bfin_read_RSI_RESPONSE3
--#define bfin_write_SDH_DATA_LGTH	bfin_write_RSI_DATA_LGTH
--#define bfin_read_SDH_DATA_CTL		bfin_read_RSI_DATA_CTL
--#define bfin_write_SDH_DATA_CTL		bfin_write_RSI_DATA_CTL
--#define bfin_read_SDH_DATA_CNT		bfin_read_RSI_DATA_CNT
--#define bfin_write_SDH_STATUS_CLR	bfin_write_RSI_STATUS_CLR
--#define bfin_read_SDH_E_STATUS		bfin_read_RSI_E_STATUS
--#define bfin_write_SDH_E_STATUS		bfin_write_RSI_E_STATUS
--#define bfin_read_SDH_STATUS		bfin_read_RSI_STATUS
--#define bfin_write_SDH_MASK0		bfin_write_RSI_MASK0
--#define bfin_write_SDH_E_MASK		bfin_write_RSI_E_MASK
--#define bfin_read_SDH_CFG		bfin_read_RSI_CFG
--#define bfin_write_SDH_CFG		bfin_write_RSI_CFG
--# if defined(__ADSPBF60x__)
--#  define bfin_read_SDH_BLK_SIZE	bfin_read_RSI_BLKSZ
--#  define bfin_write_SDH_BLK_SIZE	bfin_write_RSI_BLKSZ
--# else
--#  define bfin_read_SDH_PWR_CTL		bfin_read_RSI_PWR_CTL
--#  define bfin_write_SDH_PWR_CTL	bfin_write_RSI_PWR_CTL
--# endif
+-#define WATCHDOG_NAME "bfin-wdt"
+-
+-/* The BF561 has two watchdogs (one per core), but since Linux
+- * only runs on core A, we'll just work with that one.
+- */
+-#ifdef BF561_FAMILY
+-# define bfin_read_WDOG_CTL()    bfin_read_WDOGA_CTL()
+-# define bfin_read_WDOG_CNT()    bfin_read_WDOGA_CNT()
+-# define bfin_read_WDOG_STAT()   bfin_read_WDOGA_STAT()
+-# define bfin_write_WDOG_CTL(x)  bfin_write_WDOGA_CTL(x)
+-# define bfin_write_WDOG_CNT(x)  bfin_write_WDOGA_CNT(x)
+-# define bfin_write_WDOG_STAT(x) bfin_write_WDOGA_STAT(x)
 -#endif
 -
--struct sdh_host {
--	struct mmc_host		*mmc;
--	spinlock_t		lock;
--	struct resource		*res;
--	void __iomem		*base;
--	int			irq;
--	int			stat_irq;
--	int			dma_ch;
--	int			dma_dir;
--	struct dma_desc_array	*sg_cpu;
--	dma_addr_t		sg_dma;
--	int			dma_len;
+-/* some defaults */
+-#define WATCHDOG_TIMEOUT 20
 -
--	unsigned long		sclk;
--	unsigned int		imask;
--	unsigned int		power_mode;
--	unsigned int		clk_div;
+-static unsigned int timeout = WATCHDOG_TIMEOUT;
+-static bool nowayout = WATCHDOG_NOWAYOUT;
+-static const struct watchdog_info bfin_wdt_info;
+-static unsigned long open_check;
+-static char expect_close;
+-static DEFINE_SPINLOCK(bfin_wdt_spinlock);
 -
--	struct mmc_request	*mrq;
--	struct mmc_command	*cmd;
--	struct mmc_data		*data;
--};
--
--static struct bfin_sd_host *get_sdh_data(struct platform_device *pdev)
+-/**
+- *	bfin_wdt_keepalive - Keep the Userspace Watchdog Alive
+- *
+- *	The Userspace watchdog got a KeepAlive: schedule the next timeout.
+- */
+-static int bfin_wdt_keepalive(void)
 -{
--	return pdev->dev.platform_data;
+-	stampit();
+-	bfin_write_WDOG_STAT(0);
+-	return 0;
 -}
 -
--static void sdh_stop_clock(struct sdh_host *host)
+-/**
+- *	bfin_wdt_stop - Stop the Watchdog
+- *
+- *	Stops the on-chip watchdog.
+- */
+-static int bfin_wdt_stop(void)
 -{
--	bfin_write_SDH_CLK_CTL(bfin_read_SDH_CLK_CTL() & ~CLK_E);
--	SSYNC();
+-	stampit();
+-	bfin_write_WDOG_CTL(WDEN_DISABLE);
+-	return 0;
 -}
 -
--static void sdh_enable_stat_irq(struct sdh_host *host, unsigned int mask)
+-/**
+- *	bfin_wdt_start - Start the Watchdog
+- *
+- *	Starts the on-chip watchdog.  Automatically loads WDOG_CNT
+- *	into WDOG_STAT for us.
+- */
+-static int bfin_wdt_start(void)
 -{
+-	stampit();
+-	bfin_write_WDOG_CTL(WDEN_ENABLE | ICTL_RESET);
+-	return 0;
+-}
+-
+-/**
+- *	bfin_wdt_running - Check Watchdog status
+- *
+- *	See if the watchdog is running.
+- */
+-static int bfin_wdt_running(void)
+-{
+-	stampit();
+-	return ((bfin_read_WDOG_CTL() & WDEN_MASK) != WDEN_DISABLE);
+-}
+-
+-/**
+- *	bfin_wdt_set_timeout - Set the Userspace Watchdog timeout
+- *	@t: new timeout value (in seconds)
+- *
+- *	Translate the specified timeout in seconds into System Clock
+- *	terms which is what the on-chip Watchdog requires.
+- */
+-static int bfin_wdt_set_timeout(unsigned long t)
+-{
+-	u32 cnt, max_t, sclk;
 -	unsigned long flags;
 -
--	spin_lock_irqsave(&host->lock, flags);
--	host->imask |= mask;
--	bfin_write_SDH_MASK0(mask);
--	SSYNC();
--	spin_unlock_irqrestore(&host->lock, flags);
--}
+-	sclk = get_sclk();
+-	max_t = -1 / sclk;
+-	cnt = t * sclk;
+-	stamp("maxtimeout=%us newtimeout=%lus (cnt=%#x)", max_t, t, cnt);
 -
--static void sdh_disable_stat_irq(struct sdh_host *host, unsigned int mask)
--{
--	unsigned long flags;
--
--	spin_lock_irqsave(&host->lock, flags);
--	host->imask &= ~mask;
--	bfin_write_SDH_MASK0(host->imask);
--	SSYNC();
--	spin_unlock_irqrestore(&host->lock, flags);
--}
--
--static int sdh_setup_data(struct sdh_host *host, struct mmc_data *data)
--{
--	unsigned int length;
--	unsigned int data_ctl;
--	unsigned int dma_cfg;
--	unsigned int cycle_ns, timeout;
--
--	dev_dbg(mmc_dev(host->mmc), "%s enter flags: 0x%x\n", __func__, data->flags);
--	host->data = data;
--	data_ctl = 0;
--	dma_cfg = 0;
--
--	length = data->blksz * data->blocks;
--	bfin_write_SDH_DATA_LGTH(length);
--
--	if (data->flags & MMC_DATA_READ)
--		data_ctl |= DTX_DIR;
--	/* Only supports power-of-2 block size */
--	if (data->blksz & (data->blksz - 1))
+-	if (t > max_t) {
+-		pr_warn("timeout value is too large\n");
 -		return -EINVAL;
--#ifndef RSI_BLKSZ
--	data_ctl |= ((ffs(data->blksz) - 1) << 4);
--#else
--        bfin_write_SDH_BLK_SIZE(data->blksz);
--#endif
+-	}
 -
--	bfin_write_SDH_DATA_CTL(data_ctl);
--	/* the time of a host clock period in ns */
--	cycle_ns = 1000000000 / (host->sclk / (2 * (host->clk_div + 1)));
--	timeout = data->timeout_ns / cycle_ns;
--	timeout += data->timeout_clks;
--	bfin_write_SDH_DATA_TIMER(timeout);
--	SSYNC();
--
--	if (data->flags & MMC_DATA_READ) {
--		host->dma_dir = DMA_FROM_DEVICE;
--		dma_cfg |= WNR;
--	} else
--		host->dma_dir = DMA_TO_DEVICE;
--
--	sdh_enable_stat_irq(host, (DAT_CRC_FAIL | DAT_TIME_OUT | DAT_END));
--	host->dma_len = dma_map_sg(mmc_dev(host->mmc), data->sg, data->sg_len, host->dma_dir);
--#if defined(CONFIG_BF54x) || defined(CONFIG_BF60x)
--	dma_cfg |= DMAFLOW_ARRAY | RESTART | WDSIZE_32 | DMAEN;
--# ifdef RSI_BLKSZ
--	dma_cfg |= PSIZE_32 | NDSIZE_3;
--# else
--	dma_cfg |= NDSIZE_5;
--# endif
+-	spin_lock_irqsave(&bfin_wdt_spinlock, flags);
 -	{
--		struct scatterlist *sg;
--		int i;
--		for_each_sg(data->sg, sg, host->dma_len, i) {
--			host->sg_cpu[i].start_addr = sg_dma_address(sg);
--			host->sg_cpu[i].cfg = dma_cfg;
--			host->sg_cpu[i].x_count = sg_dma_len(sg) / 4;
--			host->sg_cpu[i].x_modify = 4;
--			dev_dbg(mmc_dev(host->mmc), "%d: start_addr:0x%lx, "
--				"cfg:0x%lx, x_count:0x%lx, x_modify:0x%lx\n",
--				i, host->sg_cpu[i].start_addr,
--				host->sg_cpu[i].cfg, host->sg_cpu[i].x_count,
--				host->sg_cpu[i].x_modify);
--		}
+-		int run = bfin_wdt_running();
+-		bfin_wdt_stop();
+-		bfin_write_WDOG_CNT(cnt);
+-		if (run)
+-			bfin_wdt_start();
 -	}
--	flush_dcache_range((unsigned int)host->sg_cpu,
--		(unsigned int)host->sg_cpu +
--			host->dma_len * sizeof(struct dma_desc_array));
--	/* Set the last descriptor to stop mode */
--	host->sg_cpu[host->dma_len - 1].cfg &= ~(DMAFLOW | NDSIZE);
--	host->sg_cpu[host->dma_len - 1].cfg |= DI_EN;
+-	spin_unlock_irqrestore(&bfin_wdt_spinlock, flags);
 -
--	set_dma_curr_desc_addr(host->dma_ch, (unsigned long *)host->sg_dma);
--	set_dma_x_count(host->dma_ch, 0);
--	set_dma_x_modify(host->dma_ch, 0);
--	SSYNC();
--	set_dma_config(host->dma_ch, dma_cfg);
--#elif defined(CONFIG_BF51x)
--	/* RSI DMA doesn't work in array mode */
--	dma_cfg |= WDSIZE_32 | DMAEN;
--	set_dma_start_addr(host->dma_ch, sg_dma_address(&data->sg[0]));
--	set_dma_x_count(host->dma_ch, length / 4);
--	set_dma_x_modify(host->dma_ch, 4);
--	SSYNC();
--	set_dma_config(host->dma_ch, dma_cfg);
--#endif
--	bfin_write_SDH_DATA_CTL(bfin_read_SDH_DATA_CTL() | DTX_DMA_E | DTX_E);
+-	timeout = t;
 -
--	SSYNC();
--
--	dev_dbg(mmc_dev(host->mmc), "%s exit\n", __func__);
 -	return 0;
 -}
 -
--static void sdh_start_cmd(struct sdh_host *host, struct mmc_command *cmd)
+-/**
+- *	bfin_wdt_open - Open the Device
+- *	@inode: inode of device
+- *	@file: file handle of device
+- *
+- *	Watchdog device is opened and started.
+- */
+-static int bfin_wdt_open(struct inode *inode, struct file *file)
 -{
--	unsigned int sdh_cmd;
--	unsigned int stat_mask;
+-	stampit();
 -
--	dev_dbg(mmc_dev(host->mmc), "%s enter cmd: 0x%p\n", __func__, cmd);
--	WARN_ON(host->cmd != NULL);
--	host->cmd = cmd;
+-	if (test_and_set_bit(0, &open_check))
+-		return -EBUSY;
 -
--	sdh_cmd = 0;
--	stat_mask = 0;
+-	if (nowayout)
+-		__module_get(THIS_MODULE);
 -
--	sdh_cmd |= cmd->opcode;
+-	bfin_wdt_keepalive();
+-	bfin_wdt_start();
 -
--	if (cmd->flags & MMC_RSP_PRESENT) {
--		sdh_cmd |= CMD_RSP;
--		stat_mask |= CMD_RESP_END;
--	} else {
--		stat_mask |= CMD_SENT;
+-	return nonseekable_open(inode, file);
+-}
+-
+-/**
+- *	bfin_wdt_close - Close the Device
+- *	@inode: inode of device
+- *	@file: file handle of device
+- *
+- *	Watchdog device is closed and stopped.
+- */
+-static int bfin_wdt_release(struct inode *inode, struct file *file)
+-{
+-	stampit();
+-
+-	if (expect_close == 42)
+-		bfin_wdt_stop();
+-	else {
+-		pr_crit("Unexpected close, not stopping watchdog!\n");
+-		bfin_wdt_keepalive();
 -	}
--
--	if (cmd->flags & MMC_RSP_136)
--		sdh_cmd |= CMD_L_RSP;
--
--	stat_mask |= CMD_CRC_FAIL | CMD_TIME_OUT;
--
--	sdh_enable_stat_irq(host, stat_mask);
--
--	bfin_write_SDH_ARGUMENT(cmd->arg);
--	bfin_write_SDH_COMMAND(sdh_cmd | CMD_E);
--	bfin_write_SDH_CLK_CTL(bfin_read_SDH_CLK_CTL() | CLK_E);
--	SSYNC();
+-	expect_close = 0;
+-	clear_bit(0, &open_check);
+-	return 0;
 -}
 -
--static void sdh_finish_request(struct sdh_host *host, struct mmc_request *mrq)
+-/**
+- *	bfin_wdt_write - Write to Device
+- *	@file: file handle of device
+- *	@buf: buffer to write
+- *	@count: length of buffer
+- *	@ppos: offset
+- *
+- *	Pings the watchdog on write.
+- */
+-static ssize_t bfin_wdt_write(struct file *file, const char __user *data,
+-						size_t len, loff_t *ppos)
 -{
--	dev_dbg(mmc_dev(host->mmc), "%s enter\n", __func__);
--	host->mrq = NULL;
--	host->cmd = NULL;
--	host->data = NULL;
--	mmc_request_done(host->mmc, mrq);
--}
+-	stampit();
 -
--static int sdh_cmd_done(struct sdh_host *host, unsigned int stat)
--{
--	struct mmc_command *cmd = host->cmd;
--	int ret = 0;
+-	if (len) {
+-		if (!nowayout) {
+-			size_t i;
 -
--	dev_dbg(mmc_dev(host->mmc), "%s enter cmd: %p\n", __func__, cmd);
--	if (!cmd)
--		return 0;
+-			/* In case it was set long ago */
+-			expect_close = 0;
 -
--	host->cmd = NULL;
--
--	if (cmd->flags & MMC_RSP_PRESENT) {
--		cmd->resp[0] = bfin_read_SDH_RESPONSE0();
--		if (cmd->flags & MMC_RSP_136) {
--			cmd->resp[1] = bfin_read_SDH_RESPONSE1();
--			cmd->resp[2] = bfin_read_SDH_RESPONSE2();
--			cmd->resp[3] = bfin_read_SDH_RESPONSE3();
+-			for (i = 0; i != len; i++) {
+-				char c;
+-				if (get_user(c, data + i))
+-					return -EFAULT;
+-				if (c == 'V')
+-					expect_close = 42;
+-			}
 -		}
+-		bfin_wdt_keepalive();
 -	}
--	if (stat & CMD_TIME_OUT)
--		cmd->error = -ETIMEDOUT;
--	else if (stat & CMD_CRC_FAIL && cmd->flags & MMC_RSP_CRC)
--		cmd->error = -EILSEQ;
 -
--	sdh_disable_stat_irq(host, (CMD_SENT | CMD_RESP_END | CMD_TIME_OUT | CMD_CRC_FAIL));
+-	return len;
+-}
 -
--	if (host->data && !cmd->error) {
--		if (host->data->flags & MMC_DATA_WRITE) {
--			ret = sdh_setup_data(host, host->data);
--			if (ret)
--				return 0;
+-/**
+- *	bfin_wdt_ioctl - Query Device
+- *	@file: file handle of device
+- *	@cmd: watchdog command
+- *	@arg: argument
+- *
+- *	Query basic information from the device or ping it, as outlined by the
+- *	watchdog API.
+- */
+-static long bfin_wdt_ioctl(struct file *file,
+-				unsigned int cmd, unsigned long arg)
+-{
+-	void __user *argp = (void __user *)arg;
+-	int __user *p = argp;
+-
+-	stampit();
+-
+-	switch (cmd) {
+-	case WDIOC_GETSUPPORT:
+-		if (copy_to_user(argp, &bfin_wdt_info, sizeof(bfin_wdt_info)))
+-			return -EFAULT;
+-		else
+-			return 0;
+-	case WDIOC_GETSTATUS:
+-	case WDIOC_GETBOOTSTATUS:
+-		return put_user(!!(_bfin_swrst & SWRST_RESET_WDOG), p);
+-	case WDIOC_SETOPTIONS: {
+-		unsigned long flags;
+-		int options, ret = -EINVAL;
+-
+-		if (get_user(options, p))
+-			return -EFAULT;
+-
+-		spin_lock_irqsave(&bfin_wdt_spinlock, flags);
+-		if (options & WDIOS_DISABLECARD) {
+-			bfin_wdt_stop();
+-			ret = 0;
 -		}
--
--		sdh_enable_stat_irq(host, DAT_END | RX_OVERRUN | TX_UNDERRUN | DAT_TIME_OUT);
--	} else
--		sdh_finish_request(host, host->mrq);
--
--	return 1;
--}
--
--static int sdh_data_done(struct sdh_host *host, unsigned int stat)
--{
--	struct mmc_data *data = host->data;
--
--	dev_dbg(mmc_dev(host->mmc), "%s enter stat: 0x%x\n", __func__, stat);
--	if (!data)
+-		if (options & WDIOS_ENABLECARD) {
+-			bfin_wdt_start();
+-			ret = 0;
+-		}
+-		spin_unlock_irqrestore(&bfin_wdt_spinlock, flags);
+-		return ret;
+-	}
+-	case WDIOC_KEEPALIVE:
+-		bfin_wdt_keepalive();
 -		return 0;
+-	case WDIOC_SETTIMEOUT: {
+-		int new_timeout;
 -
--	disable_dma(host->dma_ch);
--	dma_unmap_sg(mmc_dev(host->mmc), data->sg, data->sg_len,
--		     host->dma_dir);
--
--	if (stat & DAT_TIME_OUT)
--		data->error = -ETIMEDOUT;
--	else if (stat & DAT_CRC_FAIL)
--		data->error = -EILSEQ;
--	else if (stat & (RX_OVERRUN | TX_UNDERRUN))
--		data->error = -EIO;
--
--	if (!data->error)
--		data->bytes_xfered = data->blocks * data->blksz;
--	else
--		data->bytes_xfered = 0;
--
--	bfin_write_SDH_STATUS_CLR(DAT_END_STAT | DAT_TIMEOUT_STAT | \
--			DAT_CRC_FAIL_STAT | DAT_BLK_END_STAT | RX_OVERRUN | TX_UNDERRUN);
--	bfin_write_SDH_DATA_CTL(0);
--	SSYNC();
--
--	host->data = NULL;
--	if (host->mrq->stop) {
--		sdh_stop_clock(host);
--		sdh_start_cmd(host, host->mrq->stop);
--	} else {
--		sdh_finish_request(host, host->mrq);
+-		if (get_user(new_timeout, p))
+-			return -EFAULT;
+-		if (bfin_wdt_set_timeout(new_timeout))
+-			return -EINVAL;
 -	}
--
--	return 1;
--}
--
--static void sdh_request(struct mmc_host *mmc, struct mmc_request *mrq)
--{
--	struct sdh_host *host = mmc_priv(mmc);
--	int ret = 0;
--
--	dev_dbg(mmc_dev(host->mmc), "%s enter, mrp:%p, cmd:%p\n", __func__, mrq, mrq->cmd);
--	WARN_ON(host->mrq != NULL);
--
--	spin_lock(&host->lock);
--	host->mrq = mrq;
--	host->data = mrq->data;
--
--	if (mrq->data && mrq->data->flags & MMC_DATA_READ) {
--		ret = sdh_setup_data(host, mrq->data);
--		if (ret)
--			goto data_err;
--	}
--
--	sdh_start_cmd(host, mrq->cmd);
--data_err:
--	spin_unlock(&host->lock);
--}
--
--static void sdh_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
--{
--	struct sdh_host *host;
--	u16 clk_ctl = 0;
--#ifndef RSI_BLKSZ
--	u16 pwr_ctl = 0;
--#endif
--	u16 cfg;
--	host = mmc_priv(mmc);
--
--	spin_lock(&host->lock);
--
--	cfg = bfin_read_SDH_CFG();
--	cfg |= MWE;
--	switch (ios->bus_width) {
--	case MMC_BUS_WIDTH_4:
--#ifndef RSI_BLKSZ
--		cfg &= ~PD_SDDAT3;
--#endif
--		cfg |= PUP_SDDAT3;
--		/* Enable 4 bit SDIO */
--		cfg |= SD4E;
--		clk_ctl |= WIDE_BUS_4;
--		break;
--	case MMC_BUS_WIDTH_8:
--#ifndef RSI_BLKSZ
--		cfg &= ~PD_SDDAT3;
--#endif
--		cfg |= PUP_SDDAT3;
--		/* Disable 4 bit SDIO */
--		cfg &= ~SD4E;
--		clk_ctl |= BYTE_BUS_8;
--		break;
+-	/* Fall */
+-	case WDIOC_GETTIMEOUT:
+-		return put_user(timeout, p);
 -	default:
--		cfg &= ~PUP_SDDAT3;
--		/* Disable 4 bit SDIO */
--		cfg &= ~SD4E;
+-		return -ENOTTY;
 -	}
--	bfin_write_SDH_CFG(cfg);
--
--	host->power_mode = ios->power_mode;
--#ifndef RSI_BLKSZ
--	if (ios->bus_mode == MMC_BUSMODE_OPENDRAIN) {
--		pwr_ctl |= ROD_CTL;
--# ifndef CONFIG_SDH_BFIN_MISSING_CMD_PULLUP_WORKAROUND
--		pwr_ctl |= SD_CMD_OD;
--# endif
--	}
--
--	if (ios->power_mode != MMC_POWER_OFF)
--		pwr_ctl |= PWR_ON;
--	else
--		pwr_ctl &= ~PWR_ON;
--
--	bfin_write_SDH_PWR_CTL(pwr_ctl);
--#else
--# ifndef CONFIG_SDH_BFIN_MISSING_CMD_PULLUP_WORKAROUND
--	if (ios->bus_mode == MMC_BUSMODE_OPENDRAIN)
--		cfg |= SD_CMD_OD;
--	else
--		cfg &= ~SD_CMD_OD;
--# endif
--
--	if (ios->power_mode != MMC_POWER_OFF)
--		cfg |= PWR_ON;
--	else
--		cfg &= ~PWR_ON;
--
--	bfin_write_SDH_CFG(cfg);
--#endif
--	SSYNC();
--
--	if (ios->power_mode == MMC_POWER_ON && ios->clock) {
--		unsigned char clk_div;
--		clk_div = (get_sclk() / ios->clock - 1) / 2;
--		clk_div = min_t(unsigned char, clk_div, 0xFF);
--		clk_ctl |= clk_div;
--		clk_ctl |= CLK_E;
--		host->clk_div = clk_div;
--		bfin_write_SDH_CLK_CTL(clk_ctl);
--	} else
--		sdh_stop_clock(host);
--
--	/* set up sdh interrupt mask*/
--	if (ios->power_mode == MMC_POWER_ON)
--		bfin_write_SDH_MASK0(DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL |
--			RX_OVERRUN | TX_UNDERRUN | CMD_SENT | CMD_RESP_END |
--			CMD_TIME_OUT | CMD_CRC_FAIL);
--	else
--		bfin_write_SDH_MASK0(0);
--	SSYNC();
--
--	spin_unlock(&host->lock);
--
--	dev_dbg(mmc_dev(host->mmc), "SDH: clk_div = 0x%x actual clock:%ld expected clock:%d\n",
--		host->clk_div,
--		host->clk_div ? get_sclk() / (2 * (host->clk_div + 1)) : 0,
--		ios->clock);
--}
--
--static const struct mmc_host_ops sdh_ops = {
--	.request	= sdh_request,
--	.set_ios	= sdh_set_ios,
--};
--
--static irqreturn_t sdh_dma_irq(int irq, void *devid)
--{
--	struct sdh_host *host = devid;
--
--	dev_dbg(mmc_dev(host->mmc), "%s enter, irq_stat: 0x%04lx\n", __func__,
--		get_dma_curr_irqstat(host->dma_ch));
--	clear_dma_irqstat(host->dma_ch);
--	SSYNC();
--
--	return IRQ_HANDLED;
--}
--
--static irqreturn_t sdh_stat_irq(int irq, void *devid)
--{
--	struct sdh_host *host = devid;
--	unsigned int status;
--	int handled = 0;
--
--	dev_dbg(mmc_dev(host->mmc), "%s enter\n", __func__);
--
--	spin_lock(&host->lock);
--
--	status = bfin_read_SDH_E_STATUS();
--	if (status & SD_CARD_DET) {
--		mmc_detect_change(host->mmc, 0);
--		bfin_write_SDH_E_STATUS(SD_CARD_DET);
--	}
--	status = bfin_read_SDH_STATUS();
--	if (status & (CMD_SENT | CMD_RESP_END | CMD_TIME_OUT | CMD_CRC_FAIL)) {
--		handled |= sdh_cmd_done(host, status);
--		bfin_write_SDH_STATUS_CLR(CMD_SENT_STAT | CMD_RESP_END_STAT | \
--				CMD_TIMEOUT_STAT | CMD_CRC_FAIL_STAT);
--		SSYNC();
--	}
--
--	status = bfin_read_SDH_STATUS();
--	if (status & (DAT_END | DAT_TIME_OUT | DAT_CRC_FAIL | RX_OVERRUN | TX_UNDERRUN))
--		handled |= sdh_data_done(host, status);
--
--	spin_unlock(&host->lock);
--
--	dev_dbg(mmc_dev(host->mmc), "%s exit\n\n", __func__);
--
--	return IRQ_RETVAL(handled);
--}
--
--static void sdh_reset(void)
--{
--#if defined(CONFIG_BF54x)
--	/* Secure Digital Host shares DMA with Nand controller */
--	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() | 0x1);
--#endif
--
--	bfin_write_SDH_CFG(bfin_read_SDH_CFG() | CLKS_EN);
--	SSYNC();
--
--	/* Disable card inserting detection pin. set MMC_CAP_NEEDS_POLL, and
--	 * mmc stack will do the detection.
--	 */
--	bfin_write_SDH_CFG((bfin_read_SDH_CFG() & 0x1F) | (PUP_SDDAT | PUP_SDDAT3));
--	SSYNC();
--}
--
--static int sdh_probe(struct platform_device *pdev)
--{
--	struct mmc_host *mmc;
--	struct sdh_host *host;
--	struct bfin_sd_host *drv_data = get_sdh_data(pdev);
--	int ret;
--
--	if (!drv_data) {
--		dev_err(&pdev->dev, "missing platform driver data\n");
--		ret = -EINVAL;
--		goto out;
--	}
--
--	mmc = mmc_alloc_host(sizeof(struct sdh_host), &pdev->dev);
--	if (!mmc) {
--		ret = -ENOMEM;
--		goto out;
--	}
--
--	mmc->ops = &sdh_ops;
--#if defined(CONFIG_BF51x)
--	mmc->max_segs = 1;
--#else
--	mmc->max_segs = PAGE_SIZE / sizeof(struct dma_desc_array);
--#endif
--#ifdef RSI_BLKSZ
--	mmc->max_seg_size = -1;
--#else
--	mmc->max_seg_size = 1 << 16;
--#endif
--	mmc->max_blk_size = 1 << 11;
--	mmc->max_blk_count = 1 << 11;
--	mmc->max_req_size = PAGE_SIZE;
--	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
--	mmc->f_max = get_sclk();
--	mmc->f_min = mmc->f_max >> 9;
--	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_NEEDS_POLL;
--	host = mmc_priv(mmc);
--	host->mmc = mmc;
--	host->sclk = get_sclk();
--
--	spin_lock_init(&host->lock);
--	host->irq = drv_data->irq_int0;
--	host->dma_ch = drv_data->dma_chan;
--
--	ret = request_dma(host->dma_ch, DRIVER_NAME "DMA");
--	if (ret) {
--		dev_err(&pdev->dev, "unable to request DMA channel\n");
--		goto out1;
--	}
--
--	ret = set_dma_callback(host->dma_ch, sdh_dma_irq, host);
--	if (ret) {
--		dev_err(&pdev->dev, "unable to request DMA irq\n");
--		goto out2;
--	}
--
--	host->sg_cpu = dma_alloc_coherent(&pdev->dev, PAGE_SIZE, &host->sg_dma, GFP_KERNEL);
--	if (host->sg_cpu == NULL) {
--		ret = -ENOMEM;
--		goto out2;
--	}
--
--	platform_set_drvdata(pdev, mmc);
--
--	ret = request_irq(host->irq, sdh_stat_irq, 0, "SDH Status IRQ", host);
--	if (ret) {
--		dev_err(&pdev->dev, "unable to request status irq\n");
--		goto out3;
--	}
--
--	ret = peripheral_request_list(drv_data->pin_req, DRIVER_NAME);
--	if (ret) {
--		dev_err(&pdev->dev, "unable to request peripheral pins\n");
--		goto out4;
--	}
--
--	sdh_reset();
--
--	mmc_add_host(mmc);
--	return 0;
--
--out4:
--	free_irq(host->irq, host);
--out3:
--	mmc_remove_host(mmc);
--	dma_free_coherent(&pdev->dev, PAGE_SIZE, host->sg_cpu, host->sg_dma);
--out2:
--	free_dma(host->dma_ch);
--out1:
--	mmc_free_host(mmc);
-- out:
--	return ret;
--}
--
--static int sdh_remove(struct platform_device *pdev)
--{
--	struct mmc_host *mmc = platform_get_drvdata(pdev);
--
--	if (mmc) {
--		struct sdh_host *host = mmc_priv(mmc);
--
--		mmc_remove_host(mmc);
--
--		sdh_stop_clock(host);
--		free_irq(host->irq, host);
--		free_dma(host->dma_ch);
--		dma_free_coherent(&pdev->dev, PAGE_SIZE, host->sg_cpu, host->sg_dma);
--
--		mmc_free_host(mmc);
--	}
--
--	return 0;
 -}
 -
 -#ifdef CONFIG_PM
--static int sdh_suspend(struct platform_device *dev, pm_message_t state)
--{
--	struct bfin_sd_host *drv_data = get_sdh_data(dev);
+-static int state_before_suspend;
 -
--	peripheral_free_list(drv_data->pin_req);
+-/**
+- *	bfin_wdt_suspend - suspend the watchdog
+- *	@pdev: device being suspended
+- *	@state: requested suspend state
+- *
+- *	Remember if the watchdog was running and stop it.
+- *	TODO: is this even right?  Doesn't seem to be any
+- *	      standard in the watchdog world ...
+- */
+-static int bfin_wdt_suspend(struct platform_device *pdev, pm_message_t state)
+-{
+-	stampit();
+-
+-	state_before_suspend = bfin_wdt_running();
+-	bfin_wdt_stop();
 -
 -	return 0;
 -}
 -
--static int sdh_resume(struct platform_device *dev)
+-/**
+- *	bfin_wdt_resume - resume the watchdog
+- *	@pdev: device being resumed
+- *
+- *	If the watchdog was running, turn it back on.
+- */
+-static int bfin_wdt_resume(struct platform_device *pdev)
 -{
--	struct bfin_sd_host *drv_data = get_sdh_data(dev);
--	int ret = 0;
+-	stampit();
 -
--	ret = peripheral_request_list(drv_data->pin_req, DRIVER_NAME);
+-	if (state_before_suspend) {
+-		bfin_wdt_set_timeout(timeout);
+-		bfin_wdt_start();
+-	}
+-
+-	return 0;
+-}
+-#else
+-# define bfin_wdt_suspend NULL
+-# define bfin_wdt_resume NULL
+-#endif
+-
+-static const struct file_operations bfin_wdt_fops = {
+-	.owner		= THIS_MODULE,
+-	.llseek		= no_llseek,
+-	.write		= bfin_wdt_write,
+-	.unlocked_ioctl	= bfin_wdt_ioctl,
+-	.open		= bfin_wdt_open,
+-	.release	= bfin_wdt_release,
+-};
+-
+-static struct miscdevice bfin_wdt_miscdev = {
+-	.minor    = WATCHDOG_MINOR,
+-	.name     = "watchdog",
+-	.fops     = &bfin_wdt_fops,
+-};
+-
+-static const struct watchdog_info bfin_wdt_info = {
+-	.identity = "Blackfin Watchdog",
+-	.options  = WDIOF_SETTIMEOUT |
+-		    WDIOF_KEEPALIVEPING |
+-		    WDIOF_MAGICCLOSE,
+-};
+-
+-/**
+- *	bfin_wdt_probe - Initialize module
+- *
+- *	Registers the misc device.  Actual device
+- *	initialization is handled by bfin_wdt_open().
+- */
+-static int bfin_wdt_probe(struct platform_device *pdev)
+-{
+-	int ret;
+-
+-	ret = misc_register(&bfin_wdt_miscdev);
 -	if (ret) {
--		dev_err(&dev->dev, "unable to request peripheral pins\n");
+-		pr_err("cannot register miscdev on minor=%d (err=%d)\n",
+-		       WATCHDOG_MINOR, ret);
 -		return ret;
 -	}
 -
--	sdh_reset();
--	return ret;
--}
--#else
--# define sdh_suspend NULL
--# define sdh_resume  NULL
--#endif
+-	pr_info("initialized: timeout=%d sec (nowayout=%d)\n",
+-		timeout, nowayout);
 -
--static struct platform_driver sdh_driver = {
--	.probe   = sdh_probe,
--	.remove  = sdh_remove,
--	.suspend = sdh_suspend,
--	.resume  = sdh_resume,
--	.driver  = {
--		.name = DRIVER_NAME,
+-	return 0;
+-}
+-
+-/**
+- *	bfin_wdt_remove - Initialize module
+- *
+- *	Unregisters the misc device.  Actual device
+- *	deinitialization is handled by bfin_wdt_close().
+- */
+-static int bfin_wdt_remove(struct platform_device *pdev)
+-{
+-	misc_deregister(&bfin_wdt_miscdev);
+-	return 0;
+-}
+-
+-/**
+- *	bfin_wdt_shutdown - Soft Shutdown Handler
+- *
+- *	Handles the soft shutdown event.
+- */
+-static void bfin_wdt_shutdown(struct platform_device *pdev)
+-{
+-	stampit();
+-
+-	bfin_wdt_stop();
+-}
+-
+-static struct platform_device *bfin_wdt_device;
+-
+-static struct platform_driver bfin_wdt_driver = {
+-	.probe     = bfin_wdt_probe,
+-	.remove    = bfin_wdt_remove,
+-	.shutdown  = bfin_wdt_shutdown,
+-	.suspend   = bfin_wdt_suspend,
+-	.resume    = bfin_wdt_resume,
+-	.driver    = {
+-		.name  = WATCHDOG_NAME,
 -	},
 -};
 -
--module_platform_driver(sdh_driver);
+-/**
+- *	bfin_wdt_init - Initialize module
+- *
+- *	Checks the module params and registers the platform device & driver.
+- *	Real work is in the platform probe function.
+- */
+-static int __init bfin_wdt_init(void)
+-{
+-	int ret;
 -
--MODULE_DESCRIPTION("Blackfin Secure Digital Host Driver");
--MODULE_AUTHOR("Cliff Cai, Roy Huang");
+-	stampit();
+-
+-	/* Check that the timeout value is within range */
+-	if (bfin_wdt_set_timeout(timeout))
+-		return -EINVAL;
+-
+-	/* Since this is an on-chip device and needs no board-specific
+-	 * resources, we'll handle all the platform device stuff here.
+-	 */
+-	ret = platform_driver_register(&bfin_wdt_driver);
+-	if (ret) {
+-		pr_err("unable to register driver\n");
+-		return ret;
+-	}
+-
+-	bfin_wdt_device = platform_device_register_simple(WATCHDOG_NAME,
+-								-1, NULL, 0);
+-	if (IS_ERR(bfin_wdt_device)) {
+-		pr_err("unable to register device\n");
+-		platform_driver_unregister(&bfin_wdt_driver);
+-		return PTR_ERR(bfin_wdt_device);
+-	}
+-
+-	return 0;
+-}
+-
+-/**
+- *	bfin_wdt_exit - Deinitialize module
+- *
+- *	Back out the platform device & driver steps.  Real work is in the
+- *	platform remove function.
+- */
+-static void __exit bfin_wdt_exit(void)
+-{
+-	platform_device_unregister(bfin_wdt_device);
+-	platform_driver_unregister(&bfin_wdt_driver);
+-}
+-
+-module_init(bfin_wdt_init);
+-module_exit(bfin_wdt_exit);
+-
+-MODULE_AUTHOR("Michele d'Amico, Mike Frysinger <vapier@gentoo.org>");
+-MODULE_DESCRIPTION("Blackfin Watchdog Device Driver");
 -MODULE_LICENSE("GPL");
+-
+-module_param(timeout, uint, 0);
+-MODULE_PARM_DESC(timeout,
+-	"Watchdog timeout in seconds. (1<=timeout<=((2^32)/SCLK), default="
+-		__MODULE_STRING(WATCHDOG_TIMEOUT) ")");
+-
+-module_param(nowayout, bool, 0);
+-MODULE_PARM_DESC(nowayout,
+-	"Watchdog cannot be stopped once started (default="
+-		__MODULE_STRING(WATCHDOG_NOWAYOUT) ")");
 -- 
 2.7.4
