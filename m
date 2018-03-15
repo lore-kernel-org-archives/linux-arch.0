@@ -1,32 +1,38 @@
-From: Hannes Reinecke <hare-l3A5Bk7waGM@public.gmane.org>
-Subject: Re: [PATCH 00/16] remove eight obsolete architectures
-Date: Thu, 15 Mar 2018 10:59:58 +0100
-Message-ID: <6c9d075c-d7a8-72a5-9b2d-af1feaa06c6c@suse.de>
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [PATCH 12/16] asm-generic: siginfo: remove obsolete #ifdefs
+Date: Thu, 15 Mar 2018 05:06:29 -0500
+Message-ID: <87po45hcuy.fsf@xmission.com>
 References: <20180314143529.1456168-1-arnd@arndb.de>
- <2929.1521106970@warthog.procyon.org.uk>
+        <20180314144614.1632190-1-arnd@arndb.de>
+        <20180314144614.1632190-2-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-wireless-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <2929.1521106970-S6HVgzuS8uM4Awkfq6JHfwNdhmdF6hFW@public.gmane.org>
-Content-Language: en-US
-Sender: linux-wireless-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-block-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ide-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-input-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-wireless-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pwm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rtc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-spi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linux-fbdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-watchdog-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180314144614.1632190-2-arnd@arndb.de> (Arnd Bergmann's message
+        of "Wed, 14 Mar 2018 15:43:47 +0100")
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/15/2018 10:42 AM, David Howells wrote:
-> Do we have anything left that still implements NOMMU?
-> 
-RISC-V ?
-(evil grin :-)
+Arnd Bergmann <arnd@arndb.de> writes:
 
-Cheers,
+> The frv, tile and blackfin architectures are being removed, so
+> we can clean up this header by removing all the special cases
+> except those for ia64.
+>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  include/uapi/asm-generic/siginfo.h | 36 ++----------------------------------
+>  1 file changed, 2 insertions(+), 34 deletions(-)
+>
 
-Hannes
--- 
-Dr. Hannes Reinecke		   Teamlead Storage & Networking
-hare-l3A5Bk7waGM@public.gmane.org			               +49 911 74053 688
-SUSE LINUX GmbH, Maxfeldstr. 5, 90409 Nürnberg
-GF: F. Imendörffer, J. Smithard, J. Guild, D. Upmanyu, G. Norton
-HRB 21284 (AG Nürnberg)
+If I am reading siginfo.h correctly after this cleanup patch
+we can perform another cleanup and unconditionally define
+all of the ia64 si_codes except for __SEGV_PSTKOVF which
+aliases SEGV_PKUERR.
+
+Which has the advantage that no one is tempted to define any further
+aliased si_codes.
+
+Eric
