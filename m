@@ -1,59 +1,562 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t1613g.houston.hpe.com ([15.241.32.99]:40549 "EHLO
-        g9t1613g.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751806AbeCOOic (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 10:38:32 -0400
-Received: from g2t2354.austin.hpe.com (g2t2354.austin.hpe.com [15.233.44.27])
-        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
-        (No client certificate requested)
-        by g9t1613g.houston.hpe.com (Postfix) with ESMTPS id 92D0A60913
-        for <linux-arch@vger.kernel.org>; Thu, 15 Mar 2018 14:38:31 +0000 (UTC)
-From: "Kani, Toshi" <toshi.kani@hpe.com>
-Subject: Re: [PATCH v1 0/4] Fix issues with huge mapping in ioremap
-Date: Thu, 15 Mar 2018 14:38:27 +0000
-Message-ID: <1521124702.2693.145.camel@hpe.com>
-References: <1521017305-28518-1-git-send-email-cpandya@codeaurora.org>
-         <1521038277.2693.131.camel@hpe.com>
-         <9954bd28-0457-b80e-8af7-6259b63533f2@codeaurora.org>
-In-Reply-To: <9954bd28-0457-b80e-8af7-6259b63533f2@codeaurora.org>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <891312FA6E232C4A9E87CA5353C923DE@NAMPRD84.PROD.OUTLOOK.COM>
-Content-Transfer-Encoding: base64
+Received: from mail-pl0-f68.google.com ([209.85.160.68]:46752 "EHLO
+        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932354AbeCOOn3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 10:43:29 -0400
+Date: Thu, 15 Mar 2018 07:43:26 -0700
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [Blackfin removal] [PATCH 07/28] watchdog: Remove Blackfin
+ watchdog support
+Message-ID: <20180315144326.GA14166@roeck-us.net>
+References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
+ <1521111028-19856-7-git-send-email-aaron.wu@analog.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1521111028-19856-7-git-send-email-aaron.wu@analog.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "cpandya@codeaurora.org" <cpandya@codeaurora.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "arnd@arndb.de" <arnd@arndb.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "takahiro.akashi@linaro.org" <takahiro.akashi@linaro.org>, "james.morse@arm.com" <james.morse@arm.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20180315143827.fKrV5TYQPlEuJoKH06Bsr5kyMGReJoo9vTYoErLSySo@z>
+To: Aaron Wu <aaron.wu@analog.com>
+Cc: arnd@arndb.de, f.fainelli@gmail.com, linux-arch@vger.kernel.org, kernel@vger.kernel.org, linux-hexagon@vger.kernel.org, liqin.linux@gmail.com, lennox.wu@gmail.com, gxt@mprc.pku.edu.cn, viro@zeniv.linux.org.uk, jhogan@kernel.org, linux-metag@vger.kernel.org, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com, openrisc@lists.librecores.org, dhowells@redhat.com, peterz@infradead.org
 
-T24gVGh1LCAyMDE4LTAzLTE1IGF0IDEyOjQ3ICswNTMwLCBDaGludGFuIFBhbmR5YSB3cm90ZToN
-Cj4gDQo+IE9uIDMvMTQvMjAxOCA4OjA4IFBNLCBLYW5pLCBUb3NoaSB3cm90ZToNCj4gPiBPbiBX
-ZWQsIDIwMTgtMDMtMTQgYXQgMTQ6MTggKzA1MzAsIENoaW50YW4gUGFuZHlhIHdyb3RlOg0KPiA+
-ID4gTm90ZTogSSB3YXMgd29ya2luZyBvbiB0aGVzZSBwYXRjaGVzIGZvciBxdWl0ZSBzb21ldGlt
-ZQ0KPiA+ID4gYW5kIHJlYWxpemVkIHRoYXQgVG9zaGkgS2FuaSBoYXMgc2hhcmVkIHNvbWUgcGF0
-Y2hlcw0KPiA+ID4gYWRkcmVzc2luZyB0aGUgc2FtZSBpc3NzdWUgd2l0aCBzdWJqZWN0DQo+ID4g
-PiAiW1BBVENIIDAvMl0gZml4IG1lbW9yeSBsZWFrIC8gcGFuaWMgaW4gaW9yZW1hcCBodWdlIHBh
-Z2VzIi4NCj4gPiA+IEkndmUgdGFrZW4gc2xpZ2h0bHkgZGlmZmVyZW50IGFwcHJvYWNoIGhlcmUs
-IHNvIHNlbmRpbmcNCj4gPiA+IHRvIHRoZSBsaXN0LCBmaW5hbGx5Lg0KPiA+IA0KPiA+IEhpIENo
-aW50YW4sDQo+IA0KPiBIaSBUb3NoaQ0KPiA+IA0KPiA+IERvIHlvdSBoYXZlIGFueSBpc3N1ZSBp
-biBteSBwYXRjaHNldD8gIElmIHNvLCBjYW4geW91IHBsZWFzZSBjb21tZW50IG9uDQo+IA0KPiBO
-b3QgZnVuY3Rpb25hbCBpc3N1ZXMuIEJ1dCBJIGRpZG4ndCBzZWUgaXNzdWVzIHlvdSBtZW50aW9u
-ZWQgaW4geW91cg0KPiBjb21taXQgdGV4dCBiZWluZyBzb2x2ZWQgZm9yIEFSTTY0IGluIHlvdXIg
-cGF0Y2hlcy4gSXQgaXMganVzdCBiZWluZw0KPiBtYXNrZWQgd2hpY2ggdGhleSB3ZXJlIGFscmVh
-ZHkgYnkgV2lsbCdzIHBhdGNoLiBJbiBteSBhcHByb2FjaCwgZW5kDQo+IGdvYWwgd2FzIHRvIGdl
-dCBiZW5lZml0cyBvZiBodWdlIG1hcHBpbmcgYmFjayBmb3IgQVJNNjQuDQoNClJpZ2h0LCBteSBw
-YXRjaHNldCBkb2VzIG5vdCBpbXBsZW1lbnQgdGhlIGZpeCBmb3IgYXJtNjQuICBUaGUgc3R1Yg0K
-dmVyc2lvbiBpcyBvbmx5IGEgd29ya2Fyb3VuZCBhbmQgaXMgbWVhbnQgdG8gYmUgcmVwbGFjZWQg
-YnkgdGhlIGZpeC4NCg0KPiA+IHRoZW0/ICBJdCBjb21wbGljYXRlcyB0aGUgdGhpbmcgd2hlbiB5
-b3Ugc2VuZCBhIGRpZmZlcmVudCBhcHByb2FjaA0KPiA+IHdpdGhvdXQgdGVsbGluZyB3aHkgYSBk
-aWZmZXJlbnQgYXBwcm9hY2ggaXMgbmVlZGVkLiAgWW91ciBhcHByb2FjaA0KPiANCj4gU2VlIG15
-IHJlcGx5IGFib3ZlLiBJIGp1c3QgaGFkIG15IG9yaWdpbmFsIHBhdGNoZXMgYW5kIEkgc2VudCBp
-dC4NCj4gDQo+ID4gcHVyZ2VzIFRMQiBhZnRlciB1cGRhdGluZyBwbWQvcHVkLCB3aGljaCBJIHRo
-aW5rIGlzIGJyb2tlbi4gIENhbiB5b3UNCj4gDQo+IFllcywgdGhleSBhcmUgYnJva2VuLiBJIHVu
-ZGVyc3Rvb2QgdGhlIGlzc3VlcyBhZnRlciBNYXJrIGFuZCBNYXJjJ3MNCj4gcmV2aWV3IGNvbW1l
-bnRzLg0KPiANCj4gPiB3b3JrIG9uIHRvcCBvZiBteSBwYXRjaHNldCBhbmQgcHJvcGVybHkgaW1w
-bGVtZW50IHBYZF9mcmVlX3B0ZV9wYWdlKCkNCj4gDQo+IEkgaGF2ZSByZWFsaXplZCB0aGF0IGlm
-IEkgYWRkcmVzcyBNYXJrJ3MgY29tbWVudHMsIG15IG5ldyBwYXRjaCB3aWxsDQo+IGxvb2sgc2lt
-aWxhciB0byB3aGF0IHlvdSBoYXZlIGRvbmUuIFNvLCBJIHdpbGwgd29yayBvbiB0b3Agb2YgeW91
-cg0KPiBwYXRjaGVzLg0KDQpTb3VuZHMgZ3JlYXQuDQoNClRoYW5rcywNCi1Ub3NoaQ0K
+On Thu, Mar 15, 2018 at 06:50:07PM +0800, Aaron Wu wrote:
+> Signed-off-by: Aaron Wu <aaron.wu@analog.com>
+> 
+> Remove Blackfin watchdog support
+
+Signed-off statement comes last.
+
+Anyway, wasn't this already submitted by Arnd ?
+
+Guenter
+
+> ---
+>  drivers/watchdog/Kconfig    |  13 --
+>  drivers/watchdog/Makefile   |   3 -
+>  drivers/watchdog/bfin_wdt.c | 476 --------------------------------------------
+>  3 files changed, 492 deletions(-)
+>  delete mode 100644 drivers/watchdog/bfin_wdt.c
+> 
+> diff --git a/drivers/watchdog/Kconfig b/drivers/watchdog/Kconfig
+> index 37460cd..6174e99 100644
+> --- a/drivers/watchdog/Kconfig
+> +++ b/drivers/watchdog/Kconfig
+> @@ -815,19 +815,6 @@ config SPRD_WATCHDOG
+>  	  Say Y here to include watchdog timer supported
+>  	  by Spreadtrum system.
+>  
+> -# BLACKFIN Architecture
+> -
+> -config BFIN_WDT
+> -	tristate "Blackfin On-Chip Watchdog Timer"
+> -	depends on BLACKFIN
+> -	---help---
+> -	  If you say yes here you will get support for the Blackfin On-Chip
+> -	  Watchdog Timer. If you have one of these processors and wish to
+> -	  have watchdog support enabled, say Y, otherwise say N.
+> -
+> -	  To compile this driver as a module, choose M here: the
+> -	  module will be called bfin_wdt.
+> -
+>  # CRIS Architecture
+>  
+>  # FRV Architecture
+> diff --git a/drivers/watchdog/Makefile b/drivers/watchdog/Makefile
+> index 0474d38..1971f86 100644
+> --- a/drivers/watchdog/Makefile
+> +++ b/drivers/watchdog/Makefile
+> @@ -91,9 +91,6 @@ obj-$(CONFIG_UNIPHIER_WATCHDOG) += uniphier_wdt.o
+>  obj-$(CONFIG_RTD119X_WATCHDOG) += rtd119x_wdt.o
+>  obj-$(CONFIG_SPRD_WATCHDOG) += sprd_wdt.o
+>  
+> -# BLACKFIN Architecture
+> -obj-$(CONFIG_BFIN_WDT) += bfin_wdt.o
+> -
+>  # CRIS Architecture
+>  
+>  # FRV Architecture
+> diff --git a/drivers/watchdog/bfin_wdt.c b/drivers/watchdog/bfin_wdt.c
+> deleted file mode 100644
+> index aa4d2e8..0000000
+> --- a/drivers/watchdog/bfin_wdt.c
+> +++ /dev/null
+> @@ -1,476 +0,0 @@
+> -/*
+> - * Blackfin On-Chip Watchdog Driver
+> - *
+> - * Originally based on softdog.c
+> - * Copyright 2006-2010 Analog Devices Inc.
+> - * Copyright 2006-2007 Michele d'Amico
+> - * Copyright 1996 Alan Cox <alan@lxorguk.ukuu.org.uk>
+> - *
+> - * Enter bugs at http://blackfin.uclinux.org/
+> - *
+> - * Licensed under the GPL-2 or later.
+> - */
+> -
+> -#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+> -
+> -#include <linux/platform_device.h>
+> -#include <linux/module.h>
+> -#include <linux/moduleparam.h>
+> -#include <linux/types.h>
+> -#include <linux/timer.h>
+> -#include <linux/miscdevice.h>
+> -#include <linux/watchdog.h>
+> -#include <linux/fs.h>
+> -#include <linux/init.h>
+> -#include <linux/interrupt.h>
+> -#include <linux/uaccess.h>
+> -#include <asm/blackfin.h>
+> -#include <asm/bfin_watchdog.h>
+> -
+> -#define stamp(fmt, args...) \
+> -	pr_debug("%s:%i: " fmt "\n", __func__, __LINE__, ## args)
+> -#define stampit() stamp("here i am")
+> -
+> -#define WATCHDOG_NAME "bfin-wdt"
+> -
+> -/* The BF561 has two watchdogs (one per core), but since Linux
+> - * only runs on core A, we'll just work with that one.
+> - */
+> -#ifdef BF561_FAMILY
+> -# define bfin_read_WDOG_CTL()    bfin_read_WDOGA_CTL()
+> -# define bfin_read_WDOG_CNT()    bfin_read_WDOGA_CNT()
+> -# define bfin_read_WDOG_STAT()   bfin_read_WDOGA_STAT()
+> -# define bfin_write_WDOG_CTL(x)  bfin_write_WDOGA_CTL(x)
+> -# define bfin_write_WDOG_CNT(x)  bfin_write_WDOGA_CNT(x)
+> -# define bfin_write_WDOG_STAT(x) bfin_write_WDOGA_STAT(x)
+> -#endif
+> -
+> -/* some defaults */
+> -#define WATCHDOG_TIMEOUT 20
+> -
+> -static unsigned int timeout = WATCHDOG_TIMEOUT;
+> -static bool nowayout = WATCHDOG_NOWAYOUT;
+> -static const struct watchdog_info bfin_wdt_info;
+> -static unsigned long open_check;
+> -static char expect_close;
+> -static DEFINE_SPINLOCK(bfin_wdt_spinlock);
+> -
+> -/**
+> - *	bfin_wdt_keepalive - Keep the Userspace Watchdog Alive
+> - *
+> - *	The Userspace watchdog got a KeepAlive: schedule the next timeout.
+> - */
+> -static int bfin_wdt_keepalive(void)
+> -{
+> -	stampit();
+> -	bfin_write_WDOG_STAT(0);
+> -	return 0;
+> -}
+> -
+> -/**
+> - *	bfin_wdt_stop - Stop the Watchdog
+> - *
+> - *	Stops the on-chip watchdog.
+> - */
+> -static int bfin_wdt_stop(void)
+> -{
+> -	stampit();
+> -	bfin_write_WDOG_CTL(WDEN_DISABLE);
+> -	return 0;
+> -}
+> -
+> -/**
+> - *	bfin_wdt_start - Start the Watchdog
+> - *
+> - *	Starts the on-chip watchdog.  Automatically loads WDOG_CNT
+> - *	into WDOG_STAT for us.
+> - */
+> -static int bfin_wdt_start(void)
+> -{
+> -	stampit();
+> -	bfin_write_WDOG_CTL(WDEN_ENABLE | ICTL_RESET);
+> -	return 0;
+> -}
+> -
+> -/**
+> - *	bfin_wdt_running - Check Watchdog status
+> - *
+> - *	See if the watchdog is running.
+> - */
+> -static int bfin_wdt_running(void)
+> -{
+> -	stampit();
+> -	return ((bfin_read_WDOG_CTL() & WDEN_MASK) != WDEN_DISABLE);
+> -}
+> -
+> -/**
+> - *	bfin_wdt_set_timeout - Set the Userspace Watchdog timeout
+> - *	@t: new timeout value (in seconds)
+> - *
+> - *	Translate the specified timeout in seconds into System Clock
+> - *	terms which is what the on-chip Watchdog requires.
+> - */
+> -static int bfin_wdt_set_timeout(unsigned long t)
+> -{
+> -	u32 cnt, max_t, sclk;
+> -	unsigned long flags;
+> -
+> -	sclk = get_sclk();
+> -	max_t = -1 / sclk;
+> -	cnt = t * sclk;
+> -	stamp("maxtimeout=%us newtimeout=%lus (cnt=%#x)", max_t, t, cnt);
+> -
+> -	if (t > max_t) {
+> -		pr_warn("timeout value is too large\n");
+> -		return -EINVAL;
+> -	}
+> -
+> -	spin_lock_irqsave(&bfin_wdt_spinlock, flags);
+> -	{
+> -		int run = bfin_wdt_running();
+> -		bfin_wdt_stop();
+> -		bfin_write_WDOG_CNT(cnt);
+> -		if (run)
+> -			bfin_wdt_start();
+> -	}
+> -	spin_unlock_irqrestore(&bfin_wdt_spinlock, flags);
+> -
+> -	timeout = t;
+> -
+> -	return 0;
+> -}
+> -
+> -/**
+> - *	bfin_wdt_open - Open the Device
+> - *	@inode: inode of device
+> - *	@file: file handle of device
+> - *
+> - *	Watchdog device is opened and started.
+> - */
+> -static int bfin_wdt_open(struct inode *inode, struct file *file)
+> -{
+> -	stampit();
+> -
+> -	if (test_and_set_bit(0, &open_check))
+> -		return -EBUSY;
+> -
+> -	if (nowayout)
+> -		__module_get(THIS_MODULE);
+> -
+> -	bfin_wdt_keepalive();
+> -	bfin_wdt_start();
+> -
+> -	return nonseekable_open(inode, file);
+> -}
+> -
+> -/**
+> - *	bfin_wdt_close - Close the Device
+> - *	@inode: inode of device
+> - *	@file: file handle of device
+> - *
+> - *	Watchdog device is closed and stopped.
+> - */
+> -static int bfin_wdt_release(struct inode *inode, struct file *file)
+> -{
+> -	stampit();
+> -
+> -	if (expect_close == 42)
+> -		bfin_wdt_stop();
+> -	else {
+> -		pr_crit("Unexpected close, not stopping watchdog!\n");
+> -		bfin_wdt_keepalive();
+> -	}
+> -	expect_close = 0;
+> -	clear_bit(0, &open_check);
+> -	return 0;
+> -}
+> -
+> -/**
+> - *	bfin_wdt_write - Write to Device
+> - *	@file: file handle of device
+> - *	@buf: buffer to write
+> - *	@count: length of buffer
+> - *	@ppos: offset
+> - *
+> - *	Pings the watchdog on write.
+> - */
+> -static ssize_t bfin_wdt_write(struct file *file, const char __user *data,
+> -						size_t len, loff_t *ppos)
+> -{
+> -	stampit();
+> -
+> -	if (len) {
+> -		if (!nowayout) {
+> -			size_t i;
+> -
+> -			/* In case it was set long ago */
+> -			expect_close = 0;
+> -
+> -			for (i = 0; i != len; i++) {
+> -				char c;
+> -				if (get_user(c, data + i))
+> -					return -EFAULT;
+> -				if (c == 'V')
+> -					expect_close = 42;
+> -			}
+> -		}
+> -		bfin_wdt_keepalive();
+> -	}
+> -
+> -	return len;
+> -}
+> -
+> -/**
+> - *	bfin_wdt_ioctl - Query Device
+> - *	@file: file handle of device
+> - *	@cmd: watchdog command
+> - *	@arg: argument
+> - *
+> - *	Query basic information from the device or ping it, as outlined by the
+> - *	watchdog API.
+> - */
+> -static long bfin_wdt_ioctl(struct file *file,
+> -				unsigned int cmd, unsigned long arg)
+> -{
+> -	void __user *argp = (void __user *)arg;
+> -	int __user *p = argp;
+> -
+> -	stampit();
+> -
+> -	switch (cmd) {
+> -	case WDIOC_GETSUPPORT:
+> -		if (copy_to_user(argp, &bfin_wdt_info, sizeof(bfin_wdt_info)))
+> -			return -EFAULT;
+> -		else
+> -			return 0;
+> -	case WDIOC_GETSTATUS:
+> -	case WDIOC_GETBOOTSTATUS:
+> -		return put_user(!!(_bfin_swrst & SWRST_RESET_WDOG), p);
+> -	case WDIOC_SETOPTIONS: {
+> -		unsigned long flags;
+> -		int options, ret = -EINVAL;
+> -
+> -		if (get_user(options, p))
+> -			return -EFAULT;
+> -
+> -		spin_lock_irqsave(&bfin_wdt_spinlock, flags);
+> -		if (options & WDIOS_DISABLECARD) {
+> -			bfin_wdt_stop();
+> -			ret = 0;
+> -		}
+> -		if (options & WDIOS_ENABLECARD) {
+> -			bfin_wdt_start();
+> -			ret = 0;
+> -		}
+> -		spin_unlock_irqrestore(&bfin_wdt_spinlock, flags);
+> -		return ret;
+> -	}
+> -	case WDIOC_KEEPALIVE:
+> -		bfin_wdt_keepalive();
+> -		return 0;
+> -	case WDIOC_SETTIMEOUT: {
+> -		int new_timeout;
+> -
+> -		if (get_user(new_timeout, p))
+> -			return -EFAULT;
+> -		if (bfin_wdt_set_timeout(new_timeout))
+> -			return -EINVAL;
+> -	}
+> -	/* Fall */
+> -	case WDIOC_GETTIMEOUT:
+> -		return put_user(timeout, p);
+> -	default:
+> -		return -ENOTTY;
+> -	}
+> -}
+> -
+> -#ifdef CONFIG_PM
+> -static int state_before_suspend;
+> -
+> -/**
+> - *	bfin_wdt_suspend - suspend the watchdog
+> - *	@pdev: device being suspended
+> - *	@state: requested suspend state
+> - *
+> - *	Remember if the watchdog was running and stop it.
+> - *	TODO: is this even right?  Doesn't seem to be any
+> - *	      standard in the watchdog world ...
+> - */
+> -static int bfin_wdt_suspend(struct platform_device *pdev, pm_message_t state)
+> -{
+> -	stampit();
+> -
+> -	state_before_suspend = bfin_wdt_running();
+> -	bfin_wdt_stop();
+> -
+> -	return 0;
+> -}
+> -
+> -/**
+> - *	bfin_wdt_resume - resume the watchdog
+> - *	@pdev: device being resumed
+> - *
+> - *	If the watchdog was running, turn it back on.
+> - */
+> -static int bfin_wdt_resume(struct platform_device *pdev)
+> -{
+> -	stampit();
+> -
+> -	if (state_before_suspend) {
+> -		bfin_wdt_set_timeout(timeout);
+> -		bfin_wdt_start();
+> -	}
+> -
+> -	return 0;
+> -}
+> -#else
+> -# define bfin_wdt_suspend NULL
+> -# define bfin_wdt_resume NULL
+> -#endif
+> -
+> -static const struct file_operations bfin_wdt_fops = {
+> -	.owner		= THIS_MODULE,
+> -	.llseek		= no_llseek,
+> -	.write		= bfin_wdt_write,
+> -	.unlocked_ioctl	= bfin_wdt_ioctl,
+> -	.open		= bfin_wdt_open,
+> -	.release	= bfin_wdt_release,
+> -};
+> -
+> -static struct miscdevice bfin_wdt_miscdev = {
+> -	.minor    = WATCHDOG_MINOR,
+> -	.name     = "watchdog",
+> -	.fops     = &bfin_wdt_fops,
+> -};
+> -
+> -static const struct watchdog_info bfin_wdt_info = {
+> -	.identity = "Blackfin Watchdog",
+> -	.options  = WDIOF_SETTIMEOUT |
+> -		    WDIOF_KEEPALIVEPING |
+> -		    WDIOF_MAGICCLOSE,
+> -};
+> -
+> -/**
+> - *	bfin_wdt_probe - Initialize module
+> - *
+> - *	Registers the misc device.  Actual device
+> - *	initialization is handled by bfin_wdt_open().
+> - */
+> -static int bfin_wdt_probe(struct platform_device *pdev)
+> -{
+> -	int ret;
+> -
+> -	ret = misc_register(&bfin_wdt_miscdev);
+> -	if (ret) {
+> -		pr_err("cannot register miscdev on minor=%d (err=%d)\n",
+> -		       WATCHDOG_MINOR, ret);
+> -		return ret;
+> -	}
+> -
+> -	pr_info("initialized: timeout=%d sec (nowayout=%d)\n",
+> -		timeout, nowayout);
+> -
+> -	return 0;
+> -}
+> -
+> -/**
+> - *	bfin_wdt_remove - Initialize module
+> - *
+> - *	Unregisters the misc device.  Actual device
+> - *	deinitialization is handled by bfin_wdt_close().
+> - */
+> -static int bfin_wdt_remove(struct platform_device *pdev)
+> -{
+> -	misc_deregister(&bfin_wdt_miscdev);
+> -	return 0;
+> -}
+> -
+> -/**
+> - *	bfin_wdt_shutdown - Soft Shutdown Handler
+> - *
+> - *	Handles the soft shutdown event.
+> - */
+> -static void bfin_wdt_shutdown(struct platform_device *pdev)
+> -{
+> -	stampit();
+> -
+> -	bfin_wdt_stop();
+> -}
+> -
+> -static struct platform_device *bfin_wdt_device;
+> -
+> -static struct platform_driver bfin_wdt_driver = {
+> -	.probe     = bfin_wdt_probe,
+> -	.remove    = bfin_wdt_remove,
+> -	.shutdown  = bfin_wdt_shutdown,
+> -	.suspend   = bfin_wdt_suspend,
+> -	.resume    = bfin_wdt_resume,
+> -	.driver    = {
+> -		.name  = WATCHDOG_NAME,
+> -	},
+> -};
+> -
+> -/**
+> - *	bfin_wdt_init - Initialize module
+> - *
+> - *	Checks the module params and registers the platform device & driver.
+> - *	Real work is in the platform probe function.
+> - */
+> -static int __init bfin_wdt_init(void)
+> -{
+> -	int ret;
+> -
+> -	stampit();
+> -
+> -	/* Check that the timeout value is within range */
+> -	if (bfin_wdt_set_timeout(timeout))
+> -		return -EINVAL;
+> -
+> -	/* Since this is an on-chip device and needs no board-specific
+> -	 * resources, we'll handle all the platform device stuff here.
+> -	 */
+> -	ret = platform_driver_register(&bfin_wdt_driver);
+> -	if (ret) {
+> -		pr_err("unable to register driver\n");
+> -		return ret;
+> -	}
+> -
+> -	bfin_wdt_device = platform_device_register_simple(WATCHDOG_NAME,
+> -								-1, NULL, 0);
+> -	if (IS_ERR(bfin_wdt_device)) {
+> -		pr_err("unable to register device\n");
+> -		platform_driver_unregister(&bfin_wdt_driver);
+> -		return PTR_ERR(bfin_wdt_device);
+> -	}
+> -
+> -	return 0;
+> -}
+> -
+> -/**
+> - *	bfin_wdt_exit - Deinitialize module
+> - *
+> - *	Back out the platform device & driver steps.  Real work is in the
+> - *	platform remove function.
+> - */
+> -static void __exit bfin_wdt_exit(void)
+> -{
+> -	platform_device_unregister(bfin_wdt_device);
+> -	platform_driver_unregister(&bfin_wdt_driver);
+> -}
+> -
+> -module_init(bfin_wdt_init);
+> -module_exit(bfin_wdt_exit);
+> -
+> -MODULE_AUTHOR("Michele d'Amico, Mike Frysinger <vapier@gentoo.org>");
+> -MODULE_DESCRIPTION("Blackfin Watchdog Device Driver");
+> -MODULE_LICENSE("GPL");
+> -
+> -module_param(timeout, uint, 0);
+> -MODULE_PARM_DESC(timeout,
+> -	"Watchdog timeout in seconds. (1<=timeout<=((2^32)/SCLK), default="
+> -		__MODULE_STRING(WATCHDOG_TIMEOUT) ")");
+> -
+> -module_param(nowayout, bool, 0);
+> -MODULE_PARM_DESC(nowayout,
+> -	"Watchdog cannot be stopped once started (default="
+> -		__MODULE_STRING(WATCHDOG_NOWAYOUT) ")");
+> -- 
+> 2.7.4
+> 
