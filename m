@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0078.outbound.protection.outlook.com ([104.47.37.78]:6976
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0057.outbound.protection.outlook.com ([104.47.34.57]:47616
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751854AbeCOLAU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 07:00:20 -0400
+        id S1752130AbeCOLAa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Mar 2018 07:00:30 -0400
 From: Aaron Wu <aaron.wu@analog.com>
-Subject: [Blackfin removal] [PATCH 07/28] watchdog: Remove Blackfin watchdog support
-Date: Thu, 15 Mar 2018 18:50:07 +0800
-Message-ID: <1521111028-19856-7-git-send-email-aaron.wu@analog.com>
+Subject: [Blackfin removal] [PATCH 09/28] input: Remove Blackfin input support
+Date: Thu, 15 Mar 2018 18:50:09 +0800
+Message-ID: <1521111028-19856-9-git-send-email-aaron.wu@analog.com>
 In-Reply-To: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 MIME-Version: 1.0
@@ -19,533 +19,908 @@ Cc: viro@zeniv.linux.org.uk, jhogan@kernel.org, linux-metag@vger.kernel.org, jon
 
 Signed-off-by: Aaron Wu <aaron.wu@analog.com>
 
-Remove Blackfin watchdog support
+Remove Blackfin input support
 ---
- drivers/watchdog/Kconfig    |  13 --
- drivers/watchdog/Makefile   |   3 -
- drivers/watchdog/bfin_wdt.c | 476 --------------------------------------------
- 3 files changed, 492 deletions(-)
- delete mode 100644 drivers/watchdog/bfin_wdt.c
+ drivers/input/keyboard/Kconfig            |   9 -
+ drivers/input/keyboard/Makefile           |   1 -
+ drivers/input/keyboard/bf54x-keys.c       | 396 ------------------------------
+ drivers/input/misc/Kconfig                |   9 -
+ drivers/input/misc/Makefile               |   1 -
+ drivers/input/misc/bfin_rotary.c          | 294 ----------------------
+ include/linux/platform_data/bfin_rotary.h | 117 ---------
+ 7 files changed, 827 deletions(-)
+ delete mode 100644 drivers/input/keyboard/bf54x-keys.c
+ delete mode 100644 drivers/input/misc/bfin_rotary.c
+ delete mode 100644 include/linux/platform_data/bfin_rotary.h
 
-diff --git a/drivers/watchdog/Kconfig b/drivers/watchdog/Kconfig
-index 37460cd..6174e99 100644
---- a/drivers/watchdog/Kconfig
-+++ b/drivers/watchdog/Kconfig
-@@ -815,19 +815,6 @@ config SPRD_WATCHDOG
- 	  Say Y here to include watchdog timer supported
- 	  by Spreadtrum system.
+diff --git a/drivers/input/keyboard/Kconfig b/drivers/input/keyboard/Kconfig
+index 4c4ab1c..2b469cc 100644
+--- a/drivers/input/keyboard/Kconfig
++++ b/drivers/input/keyboard/Kconfig
+@@ -157,15 +157,6 @@ config KEYBOARD_QT2160
+ 	  This driver can also be built as a module. If so, the module
+ 	  will be called qt2160.
  
--# BLACKFIN Architecture
--
--config BFIN_WDT
--	tristate "Blackfin On-Chip Watchdog Timer"
--	depends on BLACKFIN
--	---help---
--	  If you say yes here you will get support for the Blackfin On-Chip
--	  Watchdog Timer. If you have one of these processors and wish to
--	  have watchdog support enabled, say Y, otherwise say N.
+-config KEYBOARD_BFIN
+-	tristate "Blackfin BF54x keypad support"
+-	depends on (BF54x && !BF544)
+-	help
+-	  Say Y here if you want to use the BF54x keypad.
 -
 -	  To compile this driver as a module, choose M here: the
--	  module will be called bfin_wdt.
+-	  module will be called bf54x-keys.
 -
- # CRIS Architecture
- 
- # FRV Architecture
-diff --git a/drivers/watchdog/Makefile b/drivers/watchdog/Makefile
-index 0474d38..1971f86 100644
---- a/drivers/watchdog/Makefile
-+++ b/drivers/watchdog/Makefile
-@@ -91,9 +91,6 @@ obj-$(CONFIG_UNIPHIER_WATCHDOG) += uniphier_wdt.o
- obj-$(CONFIG_RTD119X_WATCHDOG) += rtd119x_wdt.o
- obj-$(CONFIG_SPRD_WATCHDOG) += sprd_wdt.o
- 
--# BLACKFIN Architecture
--obj-$(CONFIG_BFIN_WDT) += bfin_wdt.o
--
- # CRIS Architecture
- 
- # FRV Architecture
-diff --git a/drivers/watchdog/bfin_wdt.c b/drivers/watchdog/bfin_wdt.c
+ config KEYBOARD_CLPS711X
+ 	tristate "CLPS711X Keypad support"
+ 	depends on OF_GPIO && (ARCH_CLPS711X || COMPILE_TEST)
+diff --git a/drivers/input/keyboard/Makefile b/drivers/input/keyboard/Makefile
+index 526e682..8fab920 100644
+--- a/drivers/input/keyboard/Makefile
++++ b/drivers/input/keyboard/Makefile
+@@ -13,7 +13,6 @@ obj-$(CONFIG_KEYBOARD_AMIGA)		+= amikbd.o
+ obj-$(CONFIG_KEYBOARD_ATARI)		+= atakbd.o
+ obj-$(CONFIG_KEYBOARD_ATKBD)		+= atkbd.o
+ obj-$(CONFIG_KEYBOARD_BCM)		+= bcm-keypad.o
+-obj-$(CONFIG_KEYBOARD_BFIN)		+= bf54x-keys.o
+ obj-$(CONFIG_KEYBOARD_CAP11XX)		+= cap11xx.o
+ obj-$(CONFIG_KEYBOARD_CLPS711X)		+= clps711x-keypad.o
+ obj-$(CONFIG_KEYBOARD_CROS_EC)		+= cros_ec_keyb.o
+diff --git a/drivers/input/keyboard/bf54x-keys.c b/drivers/input/keyboard/bf54x-keys.c
 deleted file mode 100644
-index aa4d2e8..0000000
---- a/drivers/watchdog/bfin_wdt.c
+index 8a07a42..0000000
+--- a/drivers/input/keyboard/bf54x-keys.c
 +++ /dev/null
-@@ -1,476 +0,0 @@
+@@ -1,396 +0,0 @@
 -/*
-- * Blackfin On-Chip Watchdog Driver
+- * File:         drivers/input/keyboard/bf54x-keys.c
+- * Based on:
+- * Author:       Michael Hennerich <hennerich@blackfin.uclinux.org>
 - *
-- * Originally based on softdog.c
-- * Copyright 2006-2010 Analog Devices Inc.
-- * Copyright 2006-2007 Michele d'Amico
-- * Copyright 1996 Alan Cox <alan@lxorguk.ukuu.org.uk>
+- * Created:
+- * Description:  keypad driver for Analog Devices Blackfin BF54x Processors
 - *
-- * Enter bugs at http://blackfin.uclinux.org/
 - *
-- * Licensed under the GPL-2 or later.
+- * Modified:
+- *               Copyright 2007-2008 Analog Devices Inc.
+- *
+- * Bugs:         Enter bugs at http://blackfin.uclinux.org/
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, see the file COPYING, or write
+- * to the Free Software Foundation, Inc.,
+- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 - */
 -
--#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
--
--#include <linux/platform_device.h>
 -#include <linux/module.h>
--#include <linux/moduleparam.h>
--#include <linux/types.h>
--#include <linux/timer.h>
--#include <linux/miscdevice.h>
--#include <linux/watchdog.h>
+-
 -#include <linux/fs.h>
--#include <linux/init.h>
 -#include <linux/interrupt.h>
--#include <linux/uaccess.h>
--#include <asm/blackfin.h>
--#include <asm/bfin_watchdog.h>
+-#include <linux/irq.h>
+-#include <linux/slab.h>
+-#include <linux/sched.h>
+-#include <linux/pm.h>
+-#include <linux/sysctl.h>
+-#include <linux/proc_fs.h>
+-#include <linux/delay.h>
+-#include <linux/platform_device.h>
+-#include <linux/input.h>
 -
--#define stamp(fmt, args...) \
--	pr_debug("%s:%i: " fmt "\n", __func__, __LINE__, ## args)
--#define stampit() stamp("here i am")
+-#include <asm/portmux.h>
+-#include <mach/bf54x_keys.h>
 -
--#define WATCHDOG_NAME "bfin-wdt"
+-#define DRV_NAME	"bf54x-keys"
+-#define TIME_SCALE	100	/* 100 ns */
+-#define	MAX_MULT	(0xFF * TIME_SCALE)
+-#define MAX_RC		8	/* Max Row/Col */
 -
--/* The BF561 has two watchdogs (one per core), but since Linux
-- * only runs on core A, we'll just work with that one.
-- */
--#ifdef BF561_FAMILY
--# define bfin_read_WDOG_CTL()    bfin_read_WDOGA_CTL()
--# define bfin_read_WDOG_CNT()    bfin_read_WDOGA_CNT()
--# define bfin_read_WDOG_STAT()   bfin_read_WDOGA_STAT()
--# define bfin_write_WDOG_CTL(x)  bfin_write_WDOGA_CTL(x)
--# define bfin_write_WDOG_CNT(x)  bfin_write_WDOGA_CNT(x)
--# define bfin_write_WDOG_STAT(x) bfin_write_WDOGA_STAT(x)
--#endif
+-static const u16 per_rows[] = {
+-	P_KEY_ROW7,
+-	P_KEY_ROW6,
+-	P_KEY_ROW5,
+-	P_KEY_ROW4,
+-	P_KEY_ROW3,
+-	P_KEY_ROW2,
+-	P_KEY_ROW1,
+-	P_KEY_ROW0,
+-	0
+-};
 -
--/* some defaults */
--#define WATCHDOG_TIMEOUT 20
+-static const u16 per_cols[] = {
+-	P_KEY_COL7,
+-	P_KEY_COL6,
+-	P_KEY_COL5,
+-	P_KEY_COL4,
+-	P_KEY_COL3,
+-	P_KEY_COL2,
+-	P_KEY_COL1,
+-	P_KEY_COL0,
+-	0
+-};
 -
--static unsigned int timeout = WATCHDOG_TIMEOUT;
--static bool nowayout = WATCHDOG_NOWAYOUT;
--static const struct watchdog_info bfin_wdt_info;
--static unsigned long open_check;
--static char expect_close;
--static DEFINE_SPINLOCK(bfin_wdt_spinlock);
+-struct bf54x_kpad {
+-	struct input_dev *input;
+-	int irq;
+-	unsigned short lastkey;
+-	unsigned short *keycode;
+-	struct timer_list timer;
+-	unsigned int keyup_test_jiffies;
+-	unsigned short kpad_msel;
+-	unsigned short kpad_prescale;
+-	unsigned short kpad_ctl;
+-};
 -
--/**
-- *	bfin_wdt_keepalive - Keep the Userspace Watchdog Alive
-- *
-- *	The Userspace watchdog got a KeepAlive: schedule the next timeout.
-- */
--static int bfin_wdt_keepalive(void)
+-static inline int bfin_kpad_find_key(struct bf54x_kpad *bf54x_kpad,
+-			struct input_dev *input, u16 keyident)
 -{
--	stampit();
--	bfin_write_WDOG_STAT(0);
--	return 0;
+-	u16 i;
+-
+-	for (i = 0; i < input->keycodemax; i++)
+-		if (bf54x_kpad->keycode[i + input->keycodemax] == keyident)
+-			return bf54x_kpad->keycode[i];
+-	return -1;
 -}
 -
--/**
-- *	bfin_wdt_stop - Stop the Watchdog
-- *
-- *	Stops the on-chip watchdog.
-- */
--static int bfin_wdt_stop(void)
+-static inline void bfin_keycodecpy(unsigned short *keycode,
+-			const unsigned int *pdata_kc,
+-			unsigned short keymapsize)
 -{
--	stampit();
--	bfin_write_WDOG_CTL(WDEN_DISABLE);
--	return 0;
+-	unsigned int i;
+-
+-	for (i = 0; i < keymapsize; i++) {
+-		keycode[i] = pdata_kc[i] & 0xffff;
+-		keycode[i + keymapsize] = pdata_kc[i] >> 16;
+-	}
 -}
 -
--/**
-- *	bfin_wdt_start - Start the Watchdog
-- *
-- *	Starts the on-chip watchdog.  Automatically loads WDOG_CNT
-- *	into WDOG_STAT for us.
-- */
--static int bfin_wdt_start(void)
+-static inline u16 bfin_kpad_get_prescale(u32 timescale)
 -{
--	stampit();
--	bfin_write_WDOG_CTL(WDEN_ENABLE | ICTL_RESET);
--	return 0;
+-	u32 sclk = get_sclk();
+-
+-	return ((((sclk / 1000) * timescale) / 1024) - 1);
 -}
 -
--/**
-- *	bfin_wdt_running - Check Watchdog status
-- *
-- *	See if the watchdog is running.
-- */
--static int bfin_wdt_running(void)
+-static inline u16 bfin_kpad_get_keypressed(struct bf54x_kpad *bf54x_kpad)
 -{
--	stampit();
--	return ((bfin_read_WDOG_CTL() & WDEN_MASK) != WDEN_DISABLE);
+-	return (bfin_read_KPAD_STAT() & KPAD_PRESSED);
 -}
 -
--/**
-- *	bfin_wdt_set_timeout - Set the Userspace Watchdog timeout
-- *	@t: new timeout value (in seconds)
-- *
-- *	Translate the specified timeout in seconds into System Clock
-- *	terms which is what the on-chip Watchdog requires.
-- */
--static int bfin_wdt_set_timeout(unsigned long t)
+-static inline void bfin_kpad_clear_irq(void)
 -{
--	u32 cnt, max_t, sclk;
--	unsigned long flags;
+-	bfin_write_KPAD_STAT(0xFFFF);
+-	bfin_write_KPAD_ROWCOL(0xFFFF);
+-}
 -
--	sclk = get_sclk();
--	max_t = -1 / sclk;
--	cnt = t * sclk;
--	stamp("maxtimeout=%us newtimeout=%lus (cnt=%#x)", max_t, t, cnt);
+-static void bfin_kpad_timer(struct timer_list *t)
+-{
+-	struct bf54x_kpad *bf54x_kpad = from_timer(bf54x_kpad, t, timer);
 -
--	if (t > max_t) {
--		pr_warn("timeout value is too large\n");
+-	if (bfin_kpad_get_keypressed(bf54x_kpad)) {
+-		/* Try again later */
+-		mod_timer(&bf54x_kpad->timer,
+-			  jiffies + bf54x_kpad->keyup_test_jiffies);
+-		return;
+-	}
+-
+-	input_report_key(bf54x_kpad->input, bf54x_kpad->lastkey, 0);
+-	input_sync(bf54x_kpad->input);
+-
+-	/* Clear IRQ Status */
+-
+-	bfin_kpad_clear_irq();
+-	enable_irq(bf54x_kpad->irq);
+-}
+-
+-static irqreturn_t bfin_kpad_isr(int irq, void *dev_id)
+-{
+-	struct platform_device *pdev = dev_id;
+-	struct bf54x_kpad *bf54x_kpad = platform_get_drvdata(pdev);
+-	struct input_dev *input = bf54x_kpad->input;
+-	int key;
+-	u16 rowcol = bfin_read_KPAD_ROWCOL();
+-
+-	key = bfin_kpad_find_key(bf54x_kpad, input, rowcol);
+-
+-	input_report_key(input, key, 1);
+-	input_sync(input);
+-
+-	if (bfin_kpad_get_keypressed(bf54x_kpad)) {
+-		disable_irq_nosync(bf54x_kpad->irq);
+-		bf54x_kpad->lastkey = key;
+-		mod_timer(&bf54x_kpad->timer,
+-			  jiffies + bf54x_kpad->keyup_test_jiffies);
+-	} else {
+-		input_report_key(input, key, 0);
+-		input_sync(input);
+-
+-		bfin_kpad_clear_irq();
+-	}
+-
+-	return IRQ_HANDLED;
+-}
+-
+-static int bfin_kpad_probe(struct platform_device *pdev)
+-{
+-	struct bf54x_kpad *bf54x_kpad;
+-	struct bfin_kpad_platform_data *pdata = dev_get_platdata(&pdev->dev);
+-	struct input_dev *input;
+-	int i, error;
+-
+-	if (!pdata->rows || !pdata->cols || !pdata->keymap) {
+-		dev_err(&pdev->dev, "no rows, cols or keymap from pdata\n");
 -		return -EINVAL;
 -	}
 -
--	spin_lock_irqsave(&bfin_wdt_spinlock, flags);
--	{
--		int run = bfin_wdt_running();
--		bfin_wdt_stop();
--		bfin_write_WDOG_CNT(cnt);
--		if (run)
--			bfin_wdt_start();
+-	if (!pdata->keymapsize ||
+-	    pdata->keymapsize > (pdata->rows * pdata->cols)) {
+-		dev_err(&pdev->dev, "invalid keymapsize\n");
+-		return -EINVAL;
 -	}
--	spin_unlock_irqrestore(&bfin_wdt_spinlock, flags);
 -
--	timeout = t;
+-	bf54x_kpad = kzalloc(sizeof(struct bf54x_kpad), GFP_KERNEL);
+-	if (!bf54x_kpad)
+-		return -ENOMEM;
+-
+-	platform_set_drvdata(pdev, bf54x_kpad);
+-
+-	/* Allocate memory for keymap followed by private LUT */
+-	bf54x_kpad->keycode = kmalloc(pdata->keymapsize *
+-					sizeof(unsigned short) * 2, GFP_KERNEL);
+-	if (!bf54x_kpad->keycode) {
+-		error = -ENOMEM;
+-		goto out;
+-	}
+-
+-	if (!pdata->debounce_time || pdata->debounce_time > MAX_MULT ||
+-	    !pdata->coldrive_time || pdata->coldrive_time > MAX_MULT) {
+-		dev_warn(&pdev->dev,
+-			"invalid platform debounce/columndrive time\n");
+-		bfin_write_KPAD_MSEL(0xFF0);	/* Default MSEL	*/
+-	} else {
+-		bfin_write_KPAD_MSEL(
+-			((pdata->debounce_time / TIME_SCALE)
+-						& DBON_SCALE) |
+-			(((pdata->coldrive_time / TIME_SCALE) << 8)
+-						& COLDRV_SCALE));
+-
+-	}
+-
+-	if (!pdata->keyup_test_interval)
+-		bf54x_kpad->keyup_test_jiffies = msecs_to_jiffies(50);
+-	else
+-		bf54x_kpad->keyup_test_jiffies =
+-			msecs_to_jiffies(pdata->keyup_test_interval);
+-
+-	if (peripheral_request_list((u16 *)&per_rows[MAX_RC - pdata->rows],
+-				    DRV_NAME)) {
+-		dev_err(&pdev->dev, "requesting peripherals failed\n");
+-		error = -EFAULT;
+-		goto out0;
+-	}
+-
+-	if (peripheral_request_list((u16 *)&per_cols[MAX_RC - pdata->cols],
+-				    DRV_NAME)) {
+-		dev_err(&pdev->dev, "requesting peripherals failed\n");
+-		error = -EFAULT;
+-		goto out1;
+-	}
+-
+-	bf54x_kpad->irq = platform_get_irq(pdev, 0);
+-	if (bf54x_kpad->irq < 0) {
+-		error = -ENODEV;
+-		goto out2;
+-	}
+-
+-	error = request_irq(bf54x_kpad->irq, bfin_kpad_isr,
+-				0, DRV_NAME, pdev);
+-	if (error) {
+-		dev_err(&pdev->dev, "unable to claim irq %d\n",
+-			bf54x_kpad->irq);
+-		goto out2;
+-	}
+-
+-	input = input_allocate_device();
+-	if (!input) {
+-		error = -ENOMEM;
+-		goto out3;
+-	}
+-
+-	bf54x_kpad->input = input;
+-
+-	input->name = pdev->name;
+-	input->phys = "bf54x-keys/input0";
+-	input->dev.parent = &pdev->dev;
+-
+-	input->id.bustype = BUS_HOST;
+-	input->id.vendor = 0x0001;
+-	input->id.product = 0x0001;
+-	input->id.version = 0x0100;
+-
+-	input->keycodesize = sizeof(unsigned short);
+-	input->keycodemax = pdata->keymapsize;
+-	input->keycode = bf54x_kpad->keycode;
+-
+-	bfin_keycodecpy(bf54x_kpad->keycode, pdata->keymap, pdata->keymapsize);
+-
+-	/* setup input device */
+-	__set_bit(EV_KEY, input->evbit);
+-
+-	if (pdata->repeat)
+-		__set_bit(EV_REP, input->evbit);
+-
+-	for (i = 0; i < input->keycodemax; i++)
+-		if (bf54x_kpad->keycode[i] <= KEY_MAX)
+-			__set_bit(bf54x_kpad->keycode[i], input->keybit);
+-	__clear_bit(KEY_RESERVED, input->keybit);
+-
+-	error = input_register_device(input);
+-	if (error) {
+-		dev_err(&pdev->dev, "unable to register input device\n");
+-		goto out4;
+-	}
+-
+-	/* Init Keypad Key Up/Release test timer */
+-
+-	timer_setup(&bf54x_kpad->timer, bfin_kpad_timer, 0);
+-
+-	bfin_write_KPAD_PRESCALE(bfin_kpad_get_prescale(TIME_SCALE));
+-
+-	bfin_write_KPAD_CTL((((pdata->cols - 1) << 13) & KPAD_COLEN) |
+-				(((pdata->rows - 1) << 10) & KPAD_ROWEN) |
+-				(2 & KPAD_IRQMODE));
+-
+-	bfin_write_KPAD_CTL(bfin_read_KPAD_CTL() | KPAD_EN);
+-
+-	device_init_wakeup(&pdev->dev, 1);
 -
 -	return 0;
+-
+-out4:
+-	input_free_device(input);
+-out3:
+-	free_irq(bf54x_kpad->irq, pdev);
+-out2:
+-	peripheral_free_list((u16 *)&per_cols[MAX_RC - pdata->cols]);
+-out1:
+-	peripheral_free_list((u16 *)&per_rows[MAX_RC - pdata->rows]);
+-out0:
+-	kfree(bf54x_kpad->keycode);
+-out:
+-	kfree(bf54x_kpad);
+-
+-	return error;
 -}
 -
--/**
-- *	bfin_wdt_open - Open the Device
-- *	@inode: inode of device
-- *	@file: file handle of device
-- *
-- *	Watchdog device is opened and started.
-- */
--static int bfin_wdt_open(struct inode *inode, struct file *file)
+-static int bfin_kpad_remove(struct platform_device *pdev)
 -{
--	stampit();
+-	struct bfin_kpad_platform_data *pdata = dev_get_platdata(&pdev->dev);
+-	struct bf54x_kpad *bf54x_kpad = platform_get_drvdata(pdev);
 -
--	if (test_and_set_bit(0, &open_check))
--		return -EBUSY;
+-	del_timer_sync(&bf54x_kpad->timer);
+-	free_irq(bf54x_kpad->irq, pdev);
 -
--	if (nowayout)
--		__module_get(THIS_MODULE);
+-	input_unregister_device(bf54x_kpad->input);
 -
--	bfin_wdt_keepalive();
--	bfin_wdt_start();
+-	peripheral_free_list((u16 *)&per_rows[MAX_RC - pdata->rows]);
+-	peripheral_free_list((u16 *)&per_cols[MAX_RC - pdata->cols]);
 -
--	return nonseekable_open(inode, file);
--}
+-	kfree(bf54x_kpad->keycode);
+-	kfree(bf54x_kpad);
 -
--/**
-- *	bfin_wdt_close - Close the Device
-- *	@inode: inode of device
-- *	@file: file handle of device
-- *
-- *	Watchdog device is closed and stopped.
-- */
--static int bfin_wdt_release(struct inode *inode, struct file *file)
--{
--	stampit();
--
--	if (expect_close == 42)
--		bfin_wdt_stop();
--	else {
--		pr_crit("Unexpected close, not stopping watchdog!\n");
--		bfin_wdt_keepalive();
--	}
--	expect_close = 0;
--	clear_bit(0, &open_check);
 -	return 0;
--}
--
--/**
-- *	bfin_wdt_write - Write to Device
-- *	@file: file handle of device
-- *	@buf: buffer to write
-- *	@count: length of buffer
-- *	@ppos: offset
-- *
-- *	Pings the watchdog on write.
-- */
--static ssize_t bfin_wdt_write(struct file *file, const char __user *data,
--						size_t len, loff_t *ppos)
--{
--	stampit();
--
--	if (len) {
--		if (!nowayout) {
--			size_t i;
--
--			/* In case it was set long ago */
--			expect_close = 0;
--
--			for (i = 0; i != len; i++) {
--				char c;
--				if (get_user(c, data + i))
--					return -EFAULT;
--				if (c == 'V')
--					expect_close = 42;
--			}
--		}
--		bfin_wdt_keepalive();
--	}
--
--	return len;
--}
--
--/**
-- *	bfin_wdt_ioctl - Query Device
-- *	@file: file handle of device
-- *	@cmd: watchdog command
-- *	@arg: argument
-- *
-- *	Query basic information from the device or ping it, as outlined by the
-- *	watchdog API.
-- */
--static long bfin_wdt_ioctl(struct file *file,
--				unsigned int cmd, unsigned long arg)
--{
--	void __user *argp = (void __user *)arg;
--	int __user *p = argp;
--
--	stampit();
--
--	switch (cmd) {
--	case WDIOC_GETSUPPORT:
--		if (copy_to_user(argp, &bfin_wdt_info, sizeof(bfin_wdt_info)))
--			return -EFAULT;
--		else
--			return 0;
--	case WDIOC_GETSTATUS:
--	case WDIOC_GETBOOTSTATUS:
--		return put_user(!!(_bfin_swrst & SWRST_RESET_WDOG), p);
--	case WDIOC_SETOPTIONS: {
--		unsigned long flags;
--		int options, ret = -EINVAL;
--
--		if (get_user(options, p))
--			return -EFAULT;
--
--		spin_lock_irqsave(&bfin_wdt_spinlock, flags);
--		if (options & WDIOS_DISABLECARD) {
--			bfin_wdt_stop();
--			ret = 0;
--		}
--		if (options & WDIOS_ENABLECARD) {
--			bfin_wdt_start();
--			ret = 0;
--		}
--		spin_unlock_irqrestore(&bfin_wdt_spinlock, flags);
--		return ret;
--	}
--	case WDIOC_KEEPALIVE:
--		bfin_wdt_keepalive();
--		return 0;
--	case WDIOC_SETTIMEOUT: {
--		int new_timeout;
--
--		if (get_user(new_timeout, p))
--			return -EFAULT;
--		if (bfin_wdt_set_timeout(new_timeout))
--			return -EINVAL;
--	}
--	/* Fall */
--	case WDIOC_GETTIMEOUT:
--		return put_user(timeout, p);
--	default:
--		return -ENOTTY;
--	}
 -}
 -
 -#ifdef CONFIG_PM
--static int state_before_suspend;
--
--/**
-- *	bfin_wdt_suspend - suspend the watchdog
-- *	@pdev: device being suspended
-- *	@state: requested suspend state
-- *
-- *	Remember if the watchdog was running and stop it.
-- *	TODO: is this even right?  Doesn't seem to be any
-- *	      standard in the watchdog world ...
-- */
--static int bfin_wdt_suspend(struct platform_device *pdev, pm_message_t state)
+-static int bfin_kpad_suspend(struct platform_device *pdev, pm_message_t state)
 -{
--	stampit();
+-	struct bf54x_kpad *bf54x_kpad = platform_get_drvdata(pdev);
 -
--	state_before_suspend = bfin_wdt_running();
--	bfin_wdt_stop();
+-	bf54x_kpad->kpad_msel = bfin_read_KPAD_MSEL();
+-	bf54x_kpad->kpad_prescale = bfin_read_KPAD_PRESCALE();
+-	bf54x_kpad->kpad_ctl = bfin_read_KPAD_CTL();
+-
+-	if (device_may_wakeup(&pdev->dev))
+-		enable_irq_wake(bf54x_kpad->irq);
 -
 -	return 0;
 -}
 -
--/**
-- *	bfin_wdt_resume - resume the watchdog
-- *	@pdev: device being resumed
-- *
-- *	If the watchdog was running, turn it back on.
-- */
--static int bfin_wdt_resume(struct platform_device *pdev)
+-static int bfin_kpad_resume(struct platform_device *pdev)
 -{
--	stampit();
+-	struct bf54x_kpad *bf54x_kpad = platform_get_drvdata(pdev);
 -
--	if (state_before_suspend) {
--		bfin_wdt_set_timeout(timeout);
--		bfin_wdt_start();
--	}
+-	bfin_write_KPAD_MSEL(bf54x_kpad->kpad_msel);
+-	bfin_write_KPAD_PRESCALE(bf54x_kpad->kpad_prescale);
+-	bfin_write_KPAD_CTL(bf54x_kpad->kpad_ctl);
+-
+-	if (device_may_wakeup(&pdev->dev))
+-		disable_irq_wake(bf54x_kpad->irq);
 -
 -	return 0;
 -}
 -#else
--# define bfin_wdt_suspend NULL
--# define bfin_wdt_resume NULL
+-# define bfin_kpad_suspend NULL
+-# define bfin_kpad_resume  NULL
 -#endif
 -
--static const struct file_operations bfin_wdt_fops = {
--	.owner		= THIS_MODULE,
--	.llseek		= no_llseek,
--	.write		= bfin_wdt_write,
--	.unlocked_ioctl	= bfin_wdt_ioctl,
--	.open		= bfin_wdt_open,
--	.release	= bfin_wdt_release,
+-static struct platform_driver bfin_kpad_device_driver = {
+-	.driver		= {
+-		.name	= DRV_NAME,
+-	},
+-	.probe		= bfin_kpad_probe,
+-	.remove		= bfin_kpad_remove,
+-	.suspend	= bfin_kpad_suspend,
+-	.resume		= bfin_kpad_resume,
 -};
+-module_platform_driver(bfin_kpad_device_driver);
 -
--static struct miscdevice bfin_wdt_miscdev = {
--	.minor    = WATCHDOG_MINOR,
--	.name     = "watchdog",
--	.fops     = &bfin_wdt_fops,
--};
+-MODULE_LICENSE("GPL");
+-MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
+-MODULE_DESCRIPTION("Keypad driver for BF54x Processors");
+-MODULE_ALIAS("platform:bf54x-keys");
+diff --git a/drivers/input/misc/Kconfig b/drivers/input/misc/Kconfig
+index 62a1312..e9770f5 100644
+--- a/drivers/input/misc/Kconfig
++++ b/drivers/input/misc/Kconfig
+@@ -655,15 +655,6 @@ config INPUT_DM355EVM
+ 	  To compile this driver as a module, choose M here: the
+ 	  module will be called dm355evm_keys.
+ 
+-config INPUT_BFIN_ROTARY
+-	tristate "Blackfin Rotary support"
+-	depends on BF54x || BF52x
+-	help
+-	  Say Y here if you want to use the Blackfin Rotary.
 -
--static const struct watchdog_info bfin_wdt_info = {
--	.identity = "Blackfin Watchdog",
--	.options  = WDIOF_SETTIMEOUT |
--		    WDIOF_KEEPALIVEPING |
--		    WDIOF_MAGICCLOSE,
--};
+-	  To compile this driver as a module, choose M here: the
+-	  module will be called bfin-rotary.
 -
--/**
-- *	bfin_wdt_probe - Initialize module
+ config INPUT_WM831X_ON
+ 	tristate "WM831X ON pin"
+ 	depends on MFD_WM831X
+diff --git a/drivers/input/misc/Makefile b/drivers/input/misc/Makefile
+index a8f61af..eb9c6c3 100644
+--- a/drivers/input/misc/Makefile
++++ b/drivers/input/misc/Makefile
+@@ -19,7 +19,6 @@ obj-$(CONFIG_INPUT_ARIZONA_HAPTICS)	+= arizona-haptics.o
+ obj-$(CONFIG_INPUT_ATI_REMOTE2)		+= ati_remote2.o
+ obj-$(CONFIG_INPUT_ATLAS_BTNS)		+= atlas_btns.o
+ obj-$(CONFIG_INPUT_ATMEL_CAPTOUCH)	+= atmel_captouch.o
+-obj-$(CONFIG_INPUT_BFIN_ROTARY)		+= bfin_rotary.o
+ obj-$(CONFIG_INPUT_BMA150)		+= bma150.o
+ obj-$(CONFIG_INPUT_CM109)		+= cm109.o
+ obj-$(CONFIG_INPUT_CMA3000)		+= cma3000_d0x.o
+diff --git a/drivers/input/misc/bfin_rotary.c b/drivers/input/misc/bfin_rotary.c
+deleted file mode 100644
+index 799ce3d..0000000
+--- a/drivers/input/misc/bfin_rotary.c
++++ /dev/null
+@@ -1,294 +0,0 @@
+-/*
+- * Rotary counter driver for Analog Devices Blackfin Processors
 - *
-- *	Registers the misc device.  Actual device
-- *	initialization is handled by bfin_wdt_open().
+- * Copyright 2008-2009 Analog Devices Inc.
+- * Licensed under the GPL-2 or later.
 - */
--static int bfin_wdt_probe(struct platform_device *pdev)
--{
--	int ret;
 -
--	ret = misc_register(&bfin_wdt_miscdev);
--	if (ret) {
--		pr_err("cannot register miscdev on minor=%d (err=%d)\n",
--		       WATCHDOG_MINOR, ret);
--		return ret;
+-#include <linux/module.h>
+-#include <linux/interrupt.h>
+-#include <linux/io.h>
+-#include <linux/irq.h>
+-#include <linux/pm.h>
+-#include <linux/platform_device.h>
+-#include <linux/input.h>
+-#include <linux/slab.h>
+-#include <linux/platform_data/bfin_rotary.h>
+-
+-#include <asm/portmux.h>
+-
+-#define CNT_CONFIG_OFF		0	/* CNT Config Offset */
+-#define CNT_IMASK_OFF		4	/* CNT Interrupt Mask Offset */
+-#define CNT_STATUS_OFF		8	/* CNT Status Offset */
+-#define CNT_COMMAND_OFF		12	/* CNT Command Offset */
+-#define CNT_DEBOUNCE_OFF	16	/* CNT Debounce Offset */
+-#define CNT_COUNTER_OFF		20	/* CNT Counter Offset */
+-#define CNT_MAX_OFF		24	/* CNT Maximum Count Offset */
+-#define CNT_MIN_OFF		28	/* CNT Minimum Count Offset */
+-
+-struct bfin_rot {
+-	struct input_dev *input;
+-	void __iomem *base;
+-	int irq;
+-	unsigned int up_key;
+-	unsigned int down_key;
+-	unsigned int button_key;
+-	unsigned int rel_code;
+-
+-	unsigned short mode;
+-	unsigned short debounce;
+-
+-	unsigned short cnt_config;
+-	unsigned short cnt_imask;
+-	unsigned short cnt_debounce;
+-};
+-
+-static void report_key_event(struct input_dev *input, int keycode)
+-{
+-	/* simulate a press-n-release */
+-	input_report_key(input, keycode, 1);
+-	input_sync(input);
+-	input_report_key(input, keycode, 0);
+-	input_sync(input);
+-}
+-
+-static void report_rotary_event(struct bfin_rot *rotary, int delta)
+-{
+-	struct input_dev *input = rotary->input;
+-
+-	if (rotary->up_key) {
+-		report_key_event(input,
+-				 delta > 0 ? rotary->up_key : rotary->down_key);
+-	} else {
+-		input_report_rel(input, rotary->rel_code, delta);
+-		input_sync(input);
+-	}
+-}
+-
+-static irqreturn_t bfin_rotary_isr(int irq, void *dev_id)
+-{
+-	struct bfin_rot *rotary = dev_id;
+-	int delta;
+-
+-	switch (readw(rotary->base + CNT_STATUS_OFF)) {
+-
+-	case ICII:
+-		break;
+-
+-	case UCII:
+-	case DCII:
+-		delta = readl(rotary->base + CNT_COUNTER_OFF);
+-		if (delta)
+-			report_rotary_event(rotary, delta);
+-		break;
+-
+-	case CZMII:
+-		report_key_event(rotary->input, rotary->button_key);
+-		break;
+-
+-	default:
+-		break;
 -	}
 -
--	pr_info("initialized: timeout=%d sec (nowayout=%d)\n",
--		timeout, nowayout);
+-	writew(W1LCNT_ZERO, rotary->base + CNT_COMMAND_OFF); /* Clear COUNTER */
+-	writew(-1, rotary->base + CNT_STATUS_OFF); /* Clear STATUS */
+-
+-	return IRQ_HANDLED;
+-}
+-
+-static int bfin_rotary_open(struct input_dev *input)
+-{
+-	struct bfin_rot *rotary = input_get_drvdata(input);
+-	unsigned short val;
+-
+-	if (rotary->mode & ROT_DEBE)
+-		writew(rotary->debounce & DPRESCALE,
+-			rotary->base + CNT_DEBOUNCE_OFF);
+-
+-	writew(rotary->mode & ~CNTE, rotary->base + CNT_CONFIG_OFF);
+-
+-	val = UCIE | DCIE;
+-	if (rotary->button_key)
+-		val |= CZMIE;
+-	writew(val, rotary->base + CNT_IMASK_OFF);
+-
+-	writew(rotary->mode | CNTE, rotary->base + CNT_CONFIG_OFF);
 -
 -	return 0;
 -}
 -
--/**
-- *	bfin_wdt_remove - Initialize module
-- *
-- *	Unregisters the misc device.  Actual device
-- *	deinitialization is handled by bfin_wdt_close().
-- */
--static int bfin_wdt_remove(struct platform_device *pdev)
+-static void bfin_rotary_close(struct input_dev *input)
 -{
--	misc_deregister(&bfin_wdt_miscdev);
+-	struct bfin_rot *rotary = input_get_drvdata(input);
+-
+-	writew(0, rotary->base + CNT_CONFIG_OFF);
+-	writew(0, rotary->base + CNT_IMASK_OFF);
+-}
+-
+-static void bfin_rotary_free_action(void *data)
+-{
+-	peripheral_free_list(data);
+-}
+-
+-static int bfin_rotary_probe(struct platform_device *pdev)
+-{
+-	struct device *dev = &pdev->dev;
+-	const struct bfin_rotary_platform_data *pdata = dev_get_platdata(dev);
+-	struct bfin_rot *rotary;
+-	struct resource *res;
+-	struct input_dev *input;
+-	int error;
+-
+-	/* Basic validation */
+-	if ((pdata->rotary_up_key && !pdata->rotary_down_key) ||
+-	    (!pdata->rotary_up_key && pdata->rotary_down_key)) {
+-		return -EINVAL;
+-	}
+-
+-	if (pdata->pin_list) {
+-		error = peripheral_request_list(pdata->pin_list,
+-						dev_name(dev));
+-		if (error) {
+-			dev_err(dev, "requesting peripherals failed: %d\n",
+-				error);
+-			return error;
+-		}
+-
+-		error = devm_add_action_or_reset(dev, bfin_rotary_free_action,
+-						 pdata->pin_list);
+-		if (error) {
+-			dev_err(dev, "setting cleanup action failed: %d\n",
+-				error);
+-			return error;
+-		}
+-	}
+-
+-	rotary = devm_kzalloc(dev, sizeof(struct bfin_rot), GFP_KERNEL);
+-	if (!rotary)
+-		return -ENOMEM;
+-
+-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	rotary->base = devm_ioremap_resource(dev, res);
+-	if (IS_ERR(rotary->base))
+-		return PTR_ERR(rotary->base);
+-
+-	input = devm_input_allocate_device(dev);
+-	if (!input)
+-		return -ENOMEM;
+-
+-	rotary->input = input;
+-
+-	rotary->up_key = pdata->rotary_up_key;
+-	rotary->down_key = pdata->rotary_down_key;
+-	rotary->button_key = pdata->rotary_button_key;
+-	rotary->rel_code = pdata->rotary_rel_code;
+-
+-	rotary->mode = pdata->mode;
+-	rotary->debounce = pdata->debounce;
+-
+-	input->name = pdev->name;
+-	input->phys = "bfin-rotary/input0";
+-	input->dev.parent = dev;
+-
+-	input_set_drvdata(input, rotary);
+-
+-	input->id.bustype = BUS_HOST;
+-	input->id.vendor = 0x0001;
+-	input->id.product = 0x0001;
+-	input->id.version = 0x0100;
+-
+-	input->open = bfin_rotary_open;
+-	input->close = bfin_rotary_close;
+-
+-	if (rotary->up_key) {
+-		__set_bit(EV_KEY, input->evbit);
+-		__set_bit(rotary->up_key, input->keybit);
+-		__set_bit(rotary->down_key, input->keybit);
+-	} else {
+-		__set_bit(EV_REL, input->evbit);
+-		__set_bit(rotary->rel_code, input->relbit);
+-	}
+-
+-	if (rotary->button_key) {
+-		__set_bit(EV_KEY, input->evbit);
+-		__set_bit(rotary->button_key, input->keybit);
+-	}
+-
+-	/* Quiesce the device before requesting irq */
+-	bfin_rotary_close(input);
+-
+-	rotary->irq = platform_get_irq(pdev, 0);
+-	if (rotary->irq < 0) {
+-		dev_err(dev, "No rotary IRQ specified\n");
+-		return -ENOENT;
+-	}
+-
+-	error = devm_request_irq(dev, rotary->irq, bfin_rotary_isr,
+-				 0, dev_name(dev), rotary);
+-	if (error) {
+-		dev_err(dev, "unable to claim irq %d; error %d\n",
+-			rotary->irq, error);
+-		return error;
+-	}
+-
+-	error = input_register_device(input);
+-	if (error) {
+-		dev_err(dev, "unable to register input device (%d)\n", error);
+-		return error;
+-	}
+-
+-	platform_set_drvdata(pdev, rotary);
+-	device_init_wakeup(dev, 1);
+-
 -	return 0;
 -}
 -
--/**
-- *	bfin_wdt_shutdown - Soft Shutdown Handler
-- *
-- *	Handles the soft shutdown event.
-- */
--static void bfin_wdt_shutdown(struct platform_device *pdev)
+-static int __maybe_unused bfin_rotary_suspend(struct device *dev)
 -{
--	stampit();
+-	struct platform_device *pdev = to_platform_device(dev);
+-	struct bfin_rot *rotary = platform_get_drvdata(pdev);
 -
--	bfin_wdt_stop();
+-	rotary->cnt_config = readw(rotary->base + CNT_CONFIG_OFF);
+-	rotary->cnt_imask = readw(rotary->base + CNT_IMASK_OFF);
+-	rotary->cnt_debounce = readw(rotary->base + CNT_DEBOUNCE_OFF);
+-
+-	if (device_may_wakeup(&pdev->dev))
+-		enable_irq_wake(rotary->irq);
+-
+-	return 0;
 -}
 -
--static struct platform_device *bfin_wdt_device;
+-static int __maybe_unused bfin_rotary_resume(struct device *dev)
+-{
+-	struct platform_device *pdev = to_platform_device(dev);
+-	struct bfin_rot *rotary = platform_get_drvdata(pdev);
 -
--static struct platform_driver bfin_wdt_driver = {
--	.probe     = bfin_wdt_probe,
--	.remove    = bfin_wdt_remove,
--	.shutdown  = bfin_wdt_shutdown,
--	.suspend   = bfin_wdt_suspend,
--	.resume    = bfin_wdt_resume,
--	.driver    = {
--		.name  = WATCHDOG_NAME,
+-	writew(rotary->cnt_debounce, rotary->base + CNT_DEBOUNCE_OFF);
+-	writew(rotary->cnt_imask, rotary->base + CNT_IMASK_OFF);
+-	writew(rotary->cnt_config & ~CNTE, rotary->base + CNT_CONFIG_OFF);
+-
+-	if (device_may_wakeup(&pdev->dev))
+-		disable_irq_wake(rotary->irq);
+-
+-	if (rotary->cnt_config & CNTE)
+-		writew(rotary->cnt_config, rotary->base + CNT_CONFIG_OFF);
+-
+-	return 0;
+-}
+-
+-static SIMPLE_DEV_PM_OPS(bfin_rotary_pm_ops,
+-			 bfin_rotary_suspend, bfin_rotary_resume);
+-
+-static struct platform_driver bfin_rotary_device_driver = {
+-	.probe		= bfin_rotary_probe,
+-	.driver		= {
+-		.name	= "bfin-rotary",
+-		.pm	= &bfin_rotary_pm_ops,
 -	},
 -};
+-module_platform_driver(bfin_rotary_device_driver);
 -
--/**
-- *	bfin_wdt_init - Initialize module
-- *
-- *	Checks the module params and registers the platform device & driver.
-- *	Real work is in the platform probe function.
-- */
--static int __init bfin_wdt_init(void)
--{
--	int ret;
--
--	stampit();
--
--	/* Check that the timeout value is within range */
--	if (bfin_wdt_set_timeout(timeout))
--		return -EINVAL;
--
--	/* Since this is an on-chip device and needs no board-specific
--	 * resources, we'll handle all the platform device stuff here.
--	 */
--	ret = platform_driver_register(&bfin_wdt_driver);
--	if (ret) {
--		pr_err("unable to register driver\n");
--		return ret;
--	}
--
--	bfin_wdt_device = platform_device_register_simple(WATCHDOG_NAME,
--								-1, NULL, 0);
--	if (IS_ERR(bfin_wdt_device)) {
--		pr_err("unable to register device\n");
--		platform_driver_unregister(&bfin_wdt_driver);
--		return PTR_ERR(bfin_wdt_device);
--	}
--
--	return 0;
--}
--
--/**
-- *	bfin_wdt_exit - Deinitialize module
-- *
-- *	Back out the platform device & driver steps.  Real work is in the
-- *	platform remove function.
-- */
--static void __exit bfin_wdt_exit(void)
--{
--	platform_device_unregister(bfin_wdt_device);
--	platform_driver_unregister(&bfin_wdt_driver);
--}
--
--module_init(bfin_wdt_init);
--module_exit(bfin_wdt_exit);
--
--MODULE_AUTHOR("Michele d'Amico, Mike Frysinger <vapier@gentoo.org>");
--MODULE_DESCRIPTION("Blackfin Watchdog Device Driver");
 -MODULE_LICENSE("GPL");
+-MODULE_AUTHOR("Michael Hennerich <hennerich@blackfin.uclinux.org>");
+-MODULE_DESCRIPTION("Rotary Counter driver for Blackfin Processors");
+-MODULE_ALIAS("platform:bfin-rotary");
+diff --git a/include/linux/platform_data/bfin_rotary.h b/include/linux/platform_data/bfin_rotary.h
+deleted file mode 100644
+index 9882937..0000000
+--- a/include/linux/platform_data/bfin_rotary.h
++++ /dev/null
+@@ -1,117 +0,0 @@
+-/*
+- * board initialization should put one of these structures into platform_data
+- * and place the bfin-rotary onto platform_bus named "bfin-rotary".
+- *
+- * Copyright 2008-2010 Analog Devices Inc.
+- *
+- * Licensed under the GPL-2 or later.
+- */
 -
--module_param(timeout, uint, 0);
--MODULE_PARM_DESC(timeout,
--	"Watchdog timeout in seconds. (1<=timeout<=((2^32)/SCLK), default="
--		__MODULE_STRING(WATCHDOG_TIMEOUT) ")");
+-#ifndef _BFIN_ROTARY_H
+-#define _BFIN_ROTARY_H
 -
--module_param(nowayout, bool, 0);
--MODULE_PARM_DESC(nowayout,
--	"Watchdog cannot be stopped once started (default="
--		__MODULE_STRING(WATCHDOG_NOWAYOUT) ")");
+-/* mode bitmasks */
+-#define ROT_QUAD_ENC	CNTMODE_QUADENC	/* quadrature/grey code encoder mode */
+-#define ROT_BIN_ENC	CNTMODE_BINENC	/* binary encoder mode */
+-#define ROT_UD_CNT	CNTMODE_UDCNT	/* rotary counter mode */
+-#define ROT_DIR_CNT	CNTMODE_DIRCNT	/* direction counter mode */
+-
+-#define ROT_DEBE	DEBE		/* Debounce Enable */
+-
+-#define ROT_CDGINV	CDGINV		/* CDG Pin Polarity Invert */
+-#define ROT_CUDINV	CUDINV		/* CUD Pin Polarity Invert */
+-#define ROT_CZMINV	CZMINV		/* CZM Pin Polarity Invert */
+-
+-struct bfin_rotary_platform_data {
+-	/* set rotary UP KEY_### or BTN_### in case you prefer
+-	 * bfin-rotary to send EV_KEY otherwise set 0
+-	 */
+-	unsigned int rotary_up_key;
+-	/* set rotary DOWN KEY_### or BTN_### in case you prefer
+-	 * bfin-rotary to send EV_KEY otherwise set 0
+-	 */
+-	unsigned int rotary_down_key;
+-	/* set rotary BUTTON KEY_### or BTN_### */
+-	unsigned int rotary_button_key;
+-	/* set rotary Relative Axis REL_### in case you prefer
+-	 * bfin-rotary to send EV_REL otherwise set 0
+-	 */
+-	unsigned int rotary_rel_code;
+-	unsigned short debounce;	/* 0..17 */
+-	unsigned short mode;
+-	unsigned short pm_wakeup;
+-	unsigned short *pin_list;
+-};
+-
+-/* CNT_CONFIG bitmasks */
+-#define CNTE		(1 << 0)	/* Counter Enable */
+-#define DEBE		(1 << 1)	/* Debounce Enable */
+-#define CDGINV		(1 << 4)	/* CDG Pin Polarity Invert */
+-#define CUDINV		(1 << 5)	/* CUD Pin Polarity Invert */
+-#define CZMINV		(1 << 6)	/* CZM Pin Polarity Invert */
+-#define CNTMODE_SHIFT	8
+-#define CNTMODE		(0x7 << CNTMODE_SHIFT)	/* Counter Operating Mode */
+-#define ZMZC		(1 << 1)	/* CZM Zeroes Counter Enable */
+-#define BNDMODE_SHIFT	12
+-#define BNDMODE		(0x3 << BNDMODE_SHIFT)	/* Boundary register Mode */
+-#define INPDIS		(1 << 15)	/* CUG and CDG Input Disable */
+-
+-#define CNTMODE_QUADENC	(0 << CNTMODE_SHIFT)	/* quadrature encoder mode */
+-#define CNTMODE_BINENC	(1 << CNTMODE_SHIFT)	/* binary encoder mode */
+-#define CNTMODE_UDCNT	(2 << CNTMODE_SHIFT)	/* up/down counter mode */
+-#define CNTMODE_DIRCNT	(4 << CNTMODE_SHIFT)	/* direction counter mode */
+-#define CNTMODE_DIRTMR	(5 << CNTMODE_SHIFT)	/* direction timer mode */
+-
+-#define BNDMODE_COMP	(0 << BNDMODE_SHIFT)	/* boundary compare mode */
+-#define BNDMODE_ZERO	(1 << BNDMODE_SHIFT)	/* boundary compare and zero mode */
+-#define BNDMODE_CAPT	(2 << BNDMODE_SHIFT)	/* boundary capture mode */
+-#define BNDMODE_AEXT	(3 << BNDMODE_SHIFT)	/* boundary auto-extend mode */
+-
+-/* CNT_IMASK bitmasks */
+-#define ICIE		(1 << 0)	/* Illegal Gray/Binary Code Interrupt Enable */
+-#define UCIE		(1 << 1)	/* Up count Interrupt Enable */
+-#define DCIE		(1 << 2)	/* Down count Interrupt Enable */
+-#define MINCIE		(1 << 3)	/* Min Count Interrupt Enable */
+-#define MAXCIE		(1 << 4)	/* Max Count Interrupt Enable */
+-#define COV31IE		(1 << 5)	/* Bit 31 Overflow Interrupt Enable */
+-#define COV15IE		(1 << 6)	/* Bit 15 Overflow Interrupt Enable */
+-#define CZEROIE		(1 << 7)	/* Count to Zero Interrupt Enable */
+-#define CZMIE		(1 << 8)	/* CZM Pin Interrupt Enable */
+-#define CZMEIE		(1 << 9)	/* CZM Error Interrupt Enable */
+-#define CZMZIE		(1 << 10)	/* CZM Zeroes Counter Interrupt Enable */
+-
+-/* CNT_STATUS bitmasks */
+-#define ICII		(1 << 0)	/* Illegal Gray/Binary Code Interrupt Identifier */
+-#define UCII		(1 << 1)	/* Up count Interrupt Identifier */
+-#define DCII		(1 << 2)	/* Down count Interrupt Identifier */
+-#define MINCII		(1 << 3)	/* Min Count Interrupt Identifier */
+-#define MAXCII		(1 << 4)	/* Max Count Interrupt Identifier */
+-#define COV31II		(1 << 5)	/* Bit 31 Overflow Interrupt Identifier */
+-#define COV15II		(1 << 6)	/* Bit 15 Overflow Interrupt Identifier */
+-#define CZEROII		(1 << 7)	/* Count to Zero Interrupt Identifier */
+-#define CZMII		(1 << 8)	/* CZM Pin Interrupt Identifier */
+-#define CZMEII		(1 << 9)	/* CZM Error Interrupt Identifier */
+-#define CZMZII		(1 << 10)	/* CZM Zeroes Counter Interrupt Identifier */
+-
+-/* CNT_COMMAND bitmasks */
+-#define W1LCNT		0xf		/* Load Counter Register */
+-#define W1LMIN		0xf0		/* Load Min Register */
+-#define W1LMAX		0xf00		/* Load Max Register */
+-#define W1ZMONCE	(1 << 12)	/* Enable CZM Clear Counter Once */
+-
+-#define W1LCNT_ZERO	(1 << 0)	/* write 1 to load CNT_COUNTER with zero */
+-#define W1LCNT_MIN	(1 << 2)	/* write 1 to load CNT_COUNTER from CNT_MIN */
+-#define W1LCNT_MAX	(1 << 3)	/* write 1 to load CNT_COUNTER from CNT_MAX */
+-
+-#define W1LMIN_ZERO	(1 << 4)	/* write 1 to load CNT_MIN with zero */
+-#define W1LMIN_CNT	(1 << 5)	/* write 1 to load CNT_MIN from CNT_COUNTER */
+-#define W1LMIN_MAX	(1 << 7)	/* write 1 to load CNT_MIN from CNT_MAX */
+-
+-#define W1LMAX_ZERO	(1 << 8)	/* write 1 to load CNT_MAX with zero */
+-#define W1LMAX_CNT	(1 << 9)	/* write 1 to load CNT_MAX from CNT_COUNTER */
+-#define W1LMAX_MIN	(1 << 10)	/* write 1 to load CNT_MAX from CNT_MIN */
+-
+-/* CNT_DEBOUNCE bitmasks */
+-#define DPRESCALE	0xf		/* Load Counter Register */
+-
+-#endif
 -- 
 2.7.4
