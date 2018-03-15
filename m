@@ -1,53 +1,61 @@
-From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: [PATCH v2 4/4] Revert "arm64: Enforce BBM for huge IO/VMAP mappings"
-Date: Thu, 15 Mar 2018 18:15:06 +0530
-Message-ID: <1521117906-20107-5-git-send-email-cpandya@codeaurora.org>
-References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 12/16] asm-generic: siginfo: remove obsolete #ifdefs
+Date: Thu, 15 Mar 2018 13:50:36 +0100
+Message-ID: <CAK8P3a2ii0aQ6sSB_B_KeMWw51Y8mbX0eL6EPj5fQ8b8bJqmUQ@mail.gmail.com>
+References: <20180314143529.1456168-1-arnd@arndb.de> <20180314144614.1632190-1-arnd@arndb.de>
+ <20180314144614.1632190-2-arnd@arndb.de> <87po45hcuy.fsf@xmission.com>
+ <CAK8P3a1GL2N=emTbSgNGHxOrXtG6BxqRGMg00-tZqKg6-0O5=w@mail.gmail.com> <87o9jpbmcy.fsf@xmission.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
+In-Reply-To: <87o9jpbmcy.fsf@xmission.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de
-Cc: mark.rutland@arm.com, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com, Chintan Pandya <cpandya@codeaurora.org>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-This commit 15122ee2c515a ("arm64: Enforce BBM for huge
-IO/VMAP mappings") is a temporary work-around until the
-issues with CONFIG_HAVE_ARCH_HUGE_VMAP gets fixed.
+On Thu, Mar 15, 2018 at 12:37 PM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
+>> On Thu, Mar 15, 2018 at 11:06 AM, Eric W. Biederman
 
-Revert this change as we have fixes for the issue.
+>> That seems reasonable. If you send me a patch with a proper
+>> changelog (I don't think I could explain this well enough), I'll
+>> add it to the series.
+>
+> I just realized you can also remove the #ifdefs for BUS_MCEERR_AR,
+> BUS_MCEERR_AO, and SEGV_BNDERR.  As those si_codes are now always
+> defined.  That description I expect you can handle.
 
-Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
----
- arch/arm64/mm/mmu.c | 8 --------
- 1 file changed, 8 deletions(-)
+My existing patch already does this, and I've added a note to the changelog
+as well now.
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index 6f21a65..a1b8073 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -936,10 +936,6 @@ int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
- 	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
- 					pgprot_val(mk_sect_prot(prot)));
- 
--	/* ioremap_page_range doesn't honour BBM */
--	if (pud_present(READ_ONCE(*pudp)))
--		return 0;
--
- 	BUG_ON(phys & ~PUD_MASK);
- 	set_pud(pudp, pfn_pud(__phys_to_pfn(phys), sect_prot));
- 	return 1;
-@@ -950,10 +946,6 @@ int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
- 	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
- 					pgprot_val(mk_sect_prot(prot)));
- 
--	/* ioremap_page_range doesn't honour BBM */
--	if (pmd_present(READ_ONCE(*pmdp)))
--		return 0;
--
- 	BUG_ON(phys & ~PMD_MASK);
- 	set_pmd(pmdp, pfn_pmd(__phys_to_pfn(phys), sect_prot));
- 	return 1;
--- 
-Qualcomm India Private Limited, on behalf of Qualcomm Innovation
-Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
-Collaborative Project
+> For a description of the above change how does this sound?
+>
+> Unlike system call numbers the assignment of si_codes has never had a
+> reason to be made per architecture.  Some architectures have had unique
+> conditions to report and reporting those conditions needed new si_codes.
+> Nothing has ever needed si_codes to have different values on different
+> architectures.  The si_code space is vast so even with defining all
+> si_codes on all architectures there is no danger in running out of
+> si_code values.
+>
+> The history of the si_codes BUS_MCEERR_AR, BUS_MCEER_AO, SEGV_BNDERR,
+> and SEGV_PKUERR show that a need of one architecture frequently becomes
+> a need of another architecture which makes sharing si_codes between
+> architectures a positive benefit and something to be encouraged.
+>
+> Where there are no conflicts with the historical ia64 arch specific
+> si_codes and any other si_codes make them generic si_codes.  We might
+> need them on another architecture someday.
+>
+> This leaves only the good example of arch generic si_codes in the kernel
+> for future architectures and architecture enhancments to follow.
+> Without bad examples to follow it should be easy to avoid the mistakes
+> of the past.
+
+Ok, done. I've listed you as 'Suggested-by' for that patch. Since the
+changelog is way more work than the actual change, I would have
+made you the author of that patch, but I don't have a Signed-off-by
+from you for it.
+
+      Arnd
