@@ -1,562 +1,377 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pl0-f68.google.com ([209.85.160.68]:46752 "EHLO
-        mail-pl0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932354AbeCOOn3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 10:43:29 -0400
-Date: Thu, 15 Mar 2018 07:43:26 -0700
-From: Guenter Roeck <linux@roeck-us.net>
-Subject: Re: [Blackfin removal] [PATCH 07/28] watchdog: Remove Blackfin
- watchdog support
-Message-ID: <20180315144326.GA14166@roeck-us.net>
-References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
- <1521111028-19856-7-git-send-email-aaron.wu@analog.com>
+Received: from mail-qt0-f194.google.com ([209.85.216.194]:34063 "EHLO
+        mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752451AbeCOOqI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 10:46:08 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1521111028-19856-7-git-send-email-aaron.wu@analog.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 15 Mar 2018 15:46:06 +0100
+Message-ID: <CAK8P3a2PFSJa5UKHrB14zz8siRCpUzkL5hffTM8ku5ep3pUjCw@mail.gmail.com>
+Subject: Re: [Blackfin removal] [PATCH 01/28] Blackfin arch: Remove Blackfin
+ CPU arch general support
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aaron Wu <aaron.wu@analog.com>
-Cc: arnd@arndb.de, f.fainelli@gmail.com, linux-arch@vger.kernel.org, kernel@vger.kernel.org, linux-hexagon@vger.kernel.org, liqin.linux@gmail.com, lennox.wu@gmail.com, gxt@mprc.pku.edu.cn, viro@zeniv.linux.org.uk, jhogan@kernel.org, linux-metag@vger.kernel.org, jonas@southpole.se, stefan.kristiansson@saunalahti.fi, shorne@gmail.com, openrisc@lists.librecores.org, dhowells@redhat.com, peterz@infradead.org
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Lennox Wu <lennox.wu@gmail.com>, Guenter Roeck <linux@roeck-us.net>, Al Viro <viro@zeniv.linux.org.uk>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "Wu, Aaron" <aaron.wu@analog.com>
+Message-ID: <20180315144606.kNh_AlDUYVDTNDIm326c3H4tSkPK1wIcFjWqz-xqeNY@z>
 
-On Thu, Mar 15, 2018 at 06:50:07PM +0800, Aaron Wu wrote:
 > Signed-off-by: Aaron Wu <aaron.wu@analog.com>
-> 
-> Remove Blackfin watchdog support
+>
+> Remove Blackfin CPU arch general support
 
-Signed-off statement comes last.
+Hi Aaron,
 
-Anyway, wasn't this already submitted by Arnd ?
+thanks a lot for your series. As you know, I've had almost the
+same patches in my tree already, but now I've cross-checked the
+two versions, and found small omissions or bugs in both. I
+ended up staying with my version, as that was already reviewed
+by a number of people, and it had the conflicts with the other
+arch removal resolved, but I've folded in everything that your
+version had that I was missing, see below for the diff between
+my original version and the new one.
 
-Guenter
+I've also added an 'Acked-by: Aaron Wu <aaron.wu@analog.com>'
+to each patch that we both had.
 
-> ---
->  drivers/watchdog/Kconfig    |  13 --
->  drivers/watchdog/Makefile   |   3 -
->  drivers/watchdog/bfin_wdt.c | 476 --------------------------------------------
->  3 files changed, 492 deletions(-)
->  delete mode 100644 drivers/watchdog/bfin_wdt.c
-> 
-> diff --git a/drivers/watchdog/Kconfig b/drivers/watchdog/Kconfig
-> index 37460cd..6174e99 100644
-> --- a/drivers/watchdog/Kconfig
-> +++ b/drivers/watchdog/Kconfig
-> @@ -815,19 +815,6 @@ config SPRD_WATCHDOG
->  	  Say Y here to include watchdog timer supported
->  	  by Spreadtrum system.
->  
-> -# BLACKFIN Architecture
-> -
-> -config BFIN_WDT
-> -	tristate "Blackfin On-Chip Watchdog Timer"
-> -	depends on BLACKFIN
-> -	---help---
-> -	  If you say yes here you will get support for the Blackfin On-Chip
-> -	  Watchdog Timer. If you have one of these processors and wish to
-> -	  have watchdog support enabled, say Y, otherwise say N.
-> -
-> -	  To compile this driver as a module, choose M here: the
-> -	  module will be called bfin_wdt.
-> -
->  # CRIS Architecture
->  
->  # FRV Architecture
-> diff --git a/drivers/watchdog/Makefile b/drivers/watchdog/Makefile
-> index 0474d38..1971f86 100644
-> --- a/drivers/watchdog/Makefile
-> +++ b/drivers/watchdog/Makefile
-> @@ -91,9 +91,6 @@ obj-$(CONFIG_UNIPHIER_WATCHDOG) += uniphier_wdt.o
->  obj-$(CONFIG_RTD119X_WATCHDOG) += rtd119x_wdt.o
->  obj-$(CONFIG_SPRD_WATCHDOG) += sprd_wdt.o
->  
-> -# BLACKFIN Architecture
-> -obj-$(CONFIG_BFIN_WDT) += bfin_wdt.o
-> -
->  # CRIS Architecture
->  
->  # FRV Architecture
-> diff --git a/drivers/watchdog/bfin_wdt.c b/drivers/watchdog/bfin_wdt.c
-> deleted file mode 100644
-> index aa4d2e8..0000000
-> --- a/drivers/watchdog/bfin_wdt.c
-> +++ /dev/null
-> @@ -1,476 +0,0 @@
-> -/*
-> - * Blackfin On-Chip Watchdog Driver
-> - *
-> - * Originally based on softdog.c
-> - * Copyright 2006-2010 Analog Devices Inc.
-> - * Copyright 2006-2007 Michele d'Amico
-> - * Copyright 1996 Alan Cox <alan@lxorguk.ukuu.org.uk>
-> - *
-> - * Enter bugs at http://blackfin.uclinux.org/
-> - *
-> - * Licensed under the GPL-2 or later.
-> - */
-> -
-> -#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-> -
-> -#include <linux/platform_device.h>
-> -#include <linux/module.h>
-> -#include <linux/moduleparam.h>
-> -#include <linux/types.h>
-> -#include <linux/timer.h>
-> -#include <linux/miscdevice.h>
-> -#include <linux/watchdog.h>
-> -#include <linux/fs.h>
-> -#include <linux/init.h>
-> -#include <linux/interrupt.h>
-> -#include <linux/uaccess.h>
-> -#include <asm/blackfin.h>
-> -#include <asm/bfin_watchdog.h>
-> -
-> -#define stamp(fmt, args...) \
-> -	pr_debug("%s:%i: " fmt "\n", __func__, __LINE__, ## args)
-> -#define stampit() stamp("here i am")
-> -
-> -#define WATCHDOG_NAME "bfin-wdt"
-> -
-> -/* The BF561 has two watchdogs (one per core), but since Linux
-> - * only runs on core A, we'll just work with that one.
-> - */
-> -#ifdef BF561_FAMILY
-> -# define bfin_read_WDOG_CTL()    bfin_read_WDOGA_CTL()
-> -# define bfin_read_WDOG_CNT()    bfin_read_WDOGA_CNT()
-> -# define bfin_read_WDOG_STAT()   bfin_read_WDOGA_STAT()
-> -# define bfin_write_WDOG_CTL(x)  bfin_write_WDOGA_CTL(x)
-> -# define bfin_write_WDOG_CNT(x)  bfin_write_WDOGA_CNT(x)
-> -# define bfin_write_WDOG_STAT(x) bfin_write_WDOGA_STAT(x)
-> -#endif
-> -
-> -/* some defaults */
-> -#define WATCHDOG_TIMEOUT 20
-> -
-> -static unsigned int timeout = WATCHDOG_TIMEOUT;
-> -static bool nowayout = WATCHDOG_NOWAYOUT;
-> -static const struct watchdog_info bfin_wdt_info;
-> -static unsigned long open_check;
-> -static char expect_close;
-> -static DEFINE_SPINLOCK(bfin_wdt_spinlock);
-> -
-> -/**
-> - *	bfin_wdt_keepalive - Keep the Userspace Watchdog Alive
-> - *
-> - *	The Userspace watchdog got a KeepAlive: schedule the next timeout.
-> - */
-> -static int bfin_wdt_keepalive(void)
-> -{
-> -	stampit();
-> -	bfin_write_WDOG_STAT(0);
-> -	return 0;
-> -}
-> -
-> -/**
-> - *	bfin_wdt_stop - Stop the Watchdog
-> - *
-> - *	Stops the on-chip watchdog.
-> - */
-> -static int bfin_wdt_stop(void)
-> -{
-> -	stampit();
-> -	bfin_write_WDOG_CTL(WDEN_DISABLE);
-> -	return 0;
-> -}
-> -
-> -/**
-> - *	bfin_wdt_start - Start the Watchdog
-> - *
-> - *	Starts the on-chip watchdog.  Automatically loads WDOG_CNT
-> - *	into WDOG_STAT for us.
-> - */
-> -static int bfin_wdt_start(void)
-> -{
-> -	stampit();
-> -	bfin_write_WDOG_CTL(WDEN_ENABLE | ICTL_RESET);
-> -	return 0;
-> -}
-> -
-> -/**
-> - *	bfin_wdt_running - Check Watchdog status
-> - *
-> - *	See if the watchdog is running.
-> - */
-> -static int bfin_wdt_running(void)
-> -{
-> -	stampit();
-> -	return ((bfin_read_WDOG_CTL() & WDEN_MASK) != WDEN_DISABLE);
-> -}
-> -
-> -/**
-> - *	bfin_wdt_set_timeout - Set the Userspace Watchdog timeout
-> - *	@t: new timeout value (in seconds)
-> - *
-> - *	Translate the specified timeout in seconds into System Clock
-> - *	terms which is what the on-chip Watchdog requires.
-> - */
-> -static int bfin_wdt_set_timeout(unsigned long t)
-> -{
-> -	u32 cnt, max_t, sclk;
-> -	unsigned long flags;
-> -
-> -	sclk = get_sclk();
-> -	max_t = -1 / sclk;
-> -	cnt = t * sclk;
-> -	stamp("maxtimeout=%us newtimeout=%lus (cnt=%#x)", max_t, t, cnt);
-> -
-> -	if (t > max_t) {
-> -		pr_warn("timeout value is too large\n");
-> -		return -EINVAL;
-> -	}
-> -
-> -	spin_lock_irqsave(&bfin_wdt_spinlock, flags);
-> -	{
-> -		int run = bfin_wdt_running();
-> -		bfin_wdt_stop();
-> -		bfin_write_WDOG_CNT(cnt);
-> -		if (run)
-> -			bfin_wdt_start();
-> -	}
-> -	spin_unlock_irqrestore(&bfin_wdt_spinlock, flags);
-> -
-> -	timeout = t;
-> -
-> -	return 0;
-> -}
-> -
-> -/**
-> - *	bfin_wdt_open - Open the Device
-> - *	@inode: inode of device
-> - *	@file: file handle of device
-> - *
-> - *	Watchdog device is opened and started.
-> - */
-> -static int bfin_wdt_open(struct inode *inode, struct file *file)
-> -{
-> -	stampit();
-> -
-> -	if (test_and_set_bit(0, &open_check))
-> -		return -EBUSY;
-> -
-> -	if (nowayout)
-> -		__module_get(THIS_MODULE);
-> -
-> -	bfin_wdt_keepalive();
-> -	bfin_wdt_start();
-> -
-> -	return nonseekable_open(inode, file);
-> -}
-> -
-> -/**
-> - *	bfin_wdt_close - Close the Device
-> - *	@inode: inode of device
-> - *	@file: file handle of device
-> - *
-> - *	Watchdog device is closed and stopped.
-> - */
-> -static int bfin_wdt_release(struct inode *inode, struct file *file)
-> -{
-> -	stampit();
-> -
-> -	if (expect_close == 42)
-> -		bfin_wdt_stop();
-> -	else {
-> -		pr_crit("Unexpected close, not stopping watchdog!\n");
-> -		bfin_wdt_keepalive();
-> -	}
-> -	expect_close = 0;
-> -	clear_bit(0, &open_check);
-> -	return 0;
-> -}
-> -
-> -/**
-> - *	bfin_wdt_write - Write to Device
-> - *	@file: file handle of device
-> - *	@buf: buffer to write
-> - *	@count: length of buffer
-> - *	@ppos: offset
-> - *
-> - *	Pings the watchdog on write.
-> - */
-> -static ssize_t bfin_wdt_write(struct file *file, const char __user *data,
-> -						size_t len, loff_t *ppos)
-> -{
-> -	stampit();
-> -
-> -	if (len) {
-> -		if (!nowayout) {
-> -			size_t i;
-> -
-> -			/* In case it was set long ago */
-> -			expect_close = 0;
-> -
-> -			for (i = 0; i != len; i++) {
-> -				char c;
-> -				if (get_user(c, data + i))
-> -					return -EFAULT;
-> -				if (c == 'V')
-> -					expect_close = 42;
-> -			}
-> -		}
-> -		bfin_wdt_keepalive();
-> -	}
-> -
-> -	return len;
-> -}
-> -
-> -/**
-> - *	bfin_wdt_ioctl - Query Device
-> - *	@file: file handle of device
-> - *	@cmd: watchdog command
-> - *	@arg: argument
-> - *
-> - *	Query basic information from the device or ping it, as outlined by the
-> - *	watchdog API.
-> - */
-> -static long bfin_wdt_ioctl(struct file *file,
-> -				unsigned int cmd, unsigned long arg)
-> -{
-> -	void __user *argp = (void __user *)arg;
-> -	int __user *p = argp;
-> -
-> -	stampit();
-> -
-> -	switch (cmd) {
-> -	case WDIOC_GETSUPPORT:
-> -		if (copy_to_user(argp, &bfin_wdt_info, sizeof(bfin_wdt_info)))
-> -			return -EFAULT;
-> -		else
-> -			return 0;
-> -	case WDIOC_GETSTATUS:
-> -	case WDIOC_GETBOOTSTATUS:
-> -		return put_user(!!(_bfin_swrst & SWRST_RESET_WDOG), p);
-> -	case WDIOC_SETOPTIONS: {
-> -		unsigned long flags;
-> -		int options, ret = -EINVAL;
-> -
-> -		if (get_user(options, p))
-> -			return -EFAULT;
-> -
-> -		spin_lock_irqsave(&bfin_wdt_spinlock, flags);
-> -		if (options & WDIOS_DISABLECARD) {
-> -			bfin_wdt_stop();
-> -			ret = 0;
-> -		}
-> -		if (options & WDIOS_ENABLECARD) {
-> -			bfin_wdt_start();
-> -			ret = 0;
-> -		}
-> -		spin_unlock_irqrestore(&bfin_wdt_spinlock, flags);
-> -		return ret;
-> -	}
-> -	case WDIOC_KEEPALIVE:
-> -		bfin_wdt_keepalive();
-> -		return 0;
-> -	case WDIOC_SETTIMEOUT: {
-> -		int new_timeout;
-> -
-> -		if (get_user(new_timeout, p))
-> -			return -EFAULT;
-> -		if (bfin_wdt_set_timeout(new_timeout))
-> -			return -EINVAL;
-> -	}
-> -	/* Fall */
-> -	case WDIOC_GETTIMEOUT:
-> -		return put_user(timeout, p);
-> -	default:
-> -		return -ENOTTY;
-> -	}
-> -}
-> -
-> -#ifdef CONFIG_PM
-> -static int state_before_suspend;
-> -
-> -/**
-> - *	bfin_wdt_suspend - suspend the watchdog
-> - *	@pdev: device being suspended
-> - *	@state: requested suspend state
-> - *
-> - *	Remember if the watchdog was running and stop it.
-> - *	TODO: is this even right?  Doesn't seem to be any
-> - *	      standard in the watchdog world ...
-> - */
-> -static int bfin_wdt_suspend(struct platform_device *pdev, pm_message_t state)
-> -{
-> -	stampit();
-> -
-> -	state_before_suspend = bfin_wdt_running();
-> -	bfin_wdt_stop();
-> -
-> -	return 0;
-> -}
-> -
-> -/**
-> - *	bfin_wdt_resume - resume the watchdog
-> - *	@pdev: device being resumed
-> - *
-> - *	If the watchdog was running, turn it back on.
-> - */
-> -static int bfin_wdt_resume(struct platform_device *pdev)
-> -{
-> -	stampit();
-> -
-> -	if (state_before_suspend) {
-> -		bfin_wdt_set_timeout(timeout);
-> -		bfin_wdt_start();
-> -	}
-> -
-> -	return 0;
-> -}
-> -#else
-> -# define bfin_wdt_suspend NULL
-> -# define bfin_wdt_resume NULL
-> -#endif
-> -
-> -static const struct file_operations bfin_wdt_fops = {
-> -	.owner		= THIS_MODULE,
-> -	.llseek		= no_llseek,
-> -	.write		= bfin_wdt_write,
-> -	.unlocked_ioctl	= bfin_wdt_ioctl,
-> -	.open		= bfin_wdt_open,
-> -	.release	= bfin_wdt_release,
-> -};
-> -
-> -static struct miscdevice bfin_wdt_miscdev = {
-> -	.minor    = WATCHDOG_MINOR,
-> -	.name     = "watchdog",
-> -	.fops     = &bfin_wdt_fops,
-> -};
-> -
-> -static const struct watchdog_info bfin_wdt_info = {
-> -	.identity = "Blackfin Watchdog",
-> -	.options  = WDIOF_SETTIMEOUT |
-> -		    WDIOF_KEEPALIVEPING |
-> -		    WDIOF_MAGICCLOSE,
-> -};
-> -
-> -/**
-> - *	bfin_wdt_probe - Initialize module
-> - *
-> - *	Registers the misc device.  Actual device
-> - *	initialization is handled by bfin_wdt_open().
-> - */
-> -static int bfin_wdt_probe(struct platform_device *pdev)
-> -{
-> -	int ret;
-> -
-> -	ret = misc_register(&bfin_wdt_miscdev);
-> -	if (ret) {
-> -		pr_err("cannot register miscdev on minor=%d (err=%d)\n",
-> -		       WATCHDOG_MINOR, ret);
-> -		return ret;
-> -	}
-> -
-> -	pr_info("initialized: timeout=%d sec (nowayout=%d)\n",
-> -		timeout, nowayout);
-> -
-> -	return 0;
-> -}
-> -
-> -/**
-> - *	bfin_wdt_remove - Initialize module
-> - *
-> - *	Unregisters the misc device.  Actual device
-> - *	deinitialization is handled by bfin_wdt_close().
-> - */
-> -static int bfin_wdt_remove(struct platform_device *pdev)
-> -{
-> -	misc_deregister(&bfin_wdt_miscdev);
-> -	return 0;
-> -}
-> -
-> -/**
-> - *	bfin_wdt_shutdown - Soft Shutdown Handler
-> - *
-> - *	Handles the soft shutdown event.
-> - */
-> -static void bfin_wdt_shutdown(struct platform_device *pdev)
-> -{
-> -	stampit();
-> -
-> -	bfin_wdt_stop();
-> -}
-> -
-> -static struct platform_device *bfin_wdt_device;
-> -
-> -static struct platform_driver bfin_wdt_driver = {
-> -	.probe     = bfin_wdt_probe,
-> -	.remove    = bfin_wdt_remove,
-> -	.shutdown  = bfin_wdt_shutdown,
-> -	.suspend   = bfin_wdt_suspend,
-> -	.resume    = bfin_wdt_resume,
-> -	.driver    = {
-> -		.name  = WATCHDOG_NAME,
-> -	},
-> -};
-> -
-> -/**
-> - *	bfin_wdt_init - Initialize module
-> - *
-> - *	Checks the module params and registers the platform device & driver.
-> - *	Real work is in the platform probe function.
-> - */
-> -static int __init bfin_wdt_init(void)
-> -{
-> -	int ret;
-> -
-> -	stampit();
-> -
-> -	/* Check that the timeout value is within range */
-> -	if (bfin_wdt_set_timeout(timeout))
-> -		return -EINVAL;
-> -
-> -	/* Since this is an on-chip device and needs no board-specific
-> -	 * resources, we'll handle all the platform device stuff here.
-> -	 */
-> -	ret = platform_driver_register(&bfin_wdt_driver);
-> -	if (ret) {
-> -		pr_err("unable to register driver\n");
-> -		return ret;
-> -	}
-> -
-> -	bfin_wdt_device = platform_device_register_simple(WATCHDOG_NAME,
-> -								-1, NULL, 0);
-> -	if (IS_ERR(bfin_wdt_device)) {
-> -		pr_err("unable to register device\n");
-> -		platform_driver_unregister(&bfin_wdt_driver);
-> -		return PTR_ERR(bfin_wdt_device);
-> -	}
-> -
-> -	return 0;
-> -}
-> -
-> -/**
-> - *	bfin_wdt_exit - Deinitialize module
-> - *
-> - *	Back out the platform device & driver steps.  Real work is in the
-> - *	platform remove function.
-> - */
-> -static void __exit bfin_wdt_exit(void)
-> -{
-> -	platform_device_unregister(bfin_wdt_device);
-> -	platform_driver_unregister(&bfin_wdt_driver);
-> -}
-> -
-> -module_init(bfin_wdt_init);
-> -module_exit(bfin_wdt_exit);
-> -
-> -MODULE_AUTHOR("Michele d'Amico, Mike Frysinger <vapier@gentoo.org>");
-> -MODULE_DESCRIPTION("Blackfin Watchdog Device Driver");
-> -MODULE_LICENSE("GPL");
-> -
-> -module_param(timeout, uint, 0);
-> -MODULE_PARM_DESC(timeout,
-> -	"Watchdog timeout in seconds. (1<=timeout<=((2^32)/SCLK), default="
-> -		__MODULE_STRING(WATCHDOG_TIMEOUT) ")");
-> -
-> -module_param(nowayout, bool, 0);
-> -MODULE_PARM_DESC(nowayout,
-> -	"Watchdog cannot be stopped once started (default="
-> -		__MODULE_STRING(WATCHDOG_NOWAYOUT) ")");
-> -- 
-> 2.7.4
-> 
+I hope that all works for you.
+
+       Arnd
+
+---
+ Documentation/driver-api/usb/writing_musb_glue_layer.rst |    3
+ drivers/misc/echo/echo.c                                 |   73 ------------
+ drivers/misc/echo/fir.h                                  |   50 --------
+ drivers/usb/gadget/function/f_uac1_legacy.c              |    2
+ drivers/usb/gadget/function/u_uac1_legacy.c              |    2
+ drivers/usb/gadget/function/u_uac1_legacy.h              |    2
+ drivers/usb/gadget/legacy/audio.c                        |    2
+ drivers/usb/host/isp1362.h                               |    4
+ drivers/usb/musb/musb_core.c                             |    2
+ drivers/usb/musb/musb_core.h                             |   13 --
+ include/linux/cpuhotplug.h                               |    1
+ include/linux/fb.h                                       |    3
+ 14 files changed, 3 insertions(+), 248 deletions(-)
+
+diff --git a/drivers/misc/echo/echo.c b/drivers/misc/echo/echo.c
+index 9597e9523cac..8a5adc0d2e88 100644
+--- a/drivers/misc/echo/echo.c
++++ b/drivers/misc/echo/echo.c
+@@ -115,78 +115,6 @@
+
+ /* adapting coeffs using the traditional stochastic descent (N)LMS algorithm */
+
+-#ifdef __bfin__
+-static inline void lms_adapt_bg(struct oslec_state *ec, int clean, int shift)
+-{
+- int i;
+- int offset1;
+- int offset2;
+- int factor;
+- int exp;
+- int16_t *phist;
+- int n;
+-
+- if (shift > 0)
+- factor = clean << shift;
+- else
+- factor = clean >> -shift;
+-
+- /* Update the FIR taps */
+-
+- offset2 = ec->curr_pos;
+- offset1 = ec->taps - offset2;
+- phist = &ec->fir_state_bg.history[offset2];
+-
+- /* st: and en: help us locate the assembler in echo.s */
+-
+- /* asm("st:"); */
+- n = ec->taps;
+- for (i = 0; i < n; i++) {
+- exp = *phist++ * factor;
+- ec->fir_taps16[1][i] += (int16_t) ((exp + (1 << 14)) >> 15);
+- }
+- /* asm("en:"); */
+-
+- /* Note the asm for the inner loop above generated by Blackfin gcc
+-    4.1.1 is pretty good (note even parallel instructions used):
+-
+-    R0 = W [P0++] (X);
+-    R0 *= R2;
+-    R0 = R0 + R3 (NS) ||
+-    R1 = W [P1] (X) ||
+-    nop;
+-    R0 >>>= 15;
+-    R0 = R0 + R1;
+-    W [P1++] = R0;
+-
+-    A block based update algorithm would be much faster but the
+-    above can't be improved on much.  Every instruction saved in
+-    the loop above is 2 MIPs/ch!  The for loop above is where the
+-    Blackfin spends most of it's time - about 17 MIPs/ch measured
+-    with speedtest.c with 256 taps (32ms).  Write-back and
+-    Write-through cache gave about the same performance.
+- */
+-}
+-
+-/*
+-   IDEAS for further optimisation of lms_adapt_bg():
+-
+-   1/ The rounding is quite costly.  Could we keep as 32 bit coeffs
+-   then make filter pluck the MS 16-bits of the coeffs when filtering?
+-   However this would lower potential optimisation of filter, as I
+-   think the dual-MAC architecture requires packed 16 bit coeffs.
+-
+-   2/ Block based update would be more efficient, as per comments above,
+-   could use dual MAC architecture.
+-
+-   3/ Look for same sample Blackfin LMS code, see if we can get dual-MAC
+-   packing.
+-
+-   4/ Execute the whole e/c in a block of say 20ms rather than sample
+-   by sample.  Processing a few samples every ms is inefficient.
+-*/
+-
+-#else
+ static inline void lms_adapt_bg(struct oslec_state *ec, int clean, int shift)
+ {
+  int i;
+@@ -215,7 +143,6 @@ static inline void lms_adapt_bg(struct oslec_state
+*ec, int clean, int shift)
+  ec->fir_taps16[1][i] += (int16_t) ((exp + (1 << 14)) >> 15);
+  }
+ }
+-#endif
+
+ static inline int top_bit(unsigned int bits)
+ {
+diff --git a/drivers/misc/echo/fir.h b/drivers/misc/echo/fir.h
+index 7b9fabf1fea5..4e0f365f0577 100644
+--- a/drivers/misc/echo/fir.h
++++ b/drivers/misc/echo/fir.h
+@@ -27,14 +27,6 @@
+ #define _FIR_H_
+
+ /*
+-   Blackfin NOTES & IDEAS:
+-
+-   A simple dot product function is used to implement the filter.
+This performs
+-   just one MAC/cycle which is inefficient but was easy to implement as a first
+-   pass.  The current Blackfin code also uses an unrolled form of the filter
+-   history to avoid 0 length hardware loop issues.  This is wasteful of
+-   memory.
+-
+    Ideas for improvement:
+
+    1/ Rewrite filter for dual MAC inner loop.  The issue here is handling
+@@ -94,21 +86,13 @@ static inline const int16_t *fir16_create(struct
+fir16_state_t *fir,
+  fir->taps = taps;
+  fir->curr_pos = taps - 1;
+  fir->coeffs = coeffs;
+-#if defined(__bfin__)
+- fir->history = kcalloc(2 * taps, sizeof(int16_t), GFP_KERNEL);
+-#else
+  fir->history = kcalloc(taps, sizeof(int16_t), GFP_KERNEL);
+-#endif
+  return fir->history;
+ }
+
+ static inline void fir16_flush(struct fir16_state_t *fir)
+ {
+-#if defined(__bfin__)
+- memset(fir->history, 0, 2 * fir->taps * sizeof(int16_t));
+-#else
+  memset(fir->history, 0, fir->taps * sizeof(int16_t));
+-#endif
+ }
+
+ static inline void fir16_free(struct fir16_state_t *fir)
+@@ -116,42 +100,9 @@ static inline void fir16_free(struct fir16_state_t *fir)
+  kfree(fir->history);
+ }
+
+-#ifdef __bfin__
+-static inline int32_t dot_asm(short *x, short *y, int len)
+-{
+- int dot;
+-
+- len--;
+-
+- __asm__("I0 = %1;\n\t"
+- "I1 = %2;\n\t"
+- "A0 = 0;\n\t"
+- "R0.L = W[I0++] || R1.L = W[I1++];\n\t"
+- "LOOP dot%= LC0 = %3;\n\t"
+- "LOOP_BEGIN dot%=;\n\t"
+- "A0 += R0.L * R1.L (IS) || R0.L = W[I0++] || R1.L = W[I1++];\n\t"
+- "LOOP_END dot%=;\n\t"
+- "A0 += R0.L*R1.L (IS);\n\t"
+- "R0 = A0;\n\t"
+- "%0 = R0;\n\t"
+- : "=&d"(dot)
+- : "a"(x), "a"(y), "a"(len)
+- : "I0", "I1", "A1", "A0", "R0", "R1"
+- );
+-
+- return dot;
+-}
+-#endif
+-
+ static inline int16_t fir16(struct fir16_state_t *fir, int16_t sample)
+ {
+  int32_t y;
+-#if defined(__bfin__)
+- fir->history[fir->curr_pos] = sample;
+- fir->history[fir->curr_pos + fir->taps] = sample;
+- y = dot_asm((int16_t *) fir->coeffs, &fir->history[fir->curr_pos],
+-     fir->taps);
+-#else
+  int i;
+  int offset1;
+  int offset2;
+@@ -165,7 +116,6 @@ static inline int16_t fir16(struct fir16_state_t
+*fir, int16_t sample)
+  y += fir->coeffs[i] * fir->history[i - offset1];
+  for (; i >= 0; i--)
+  y += fir->coeffs[i] * fir->history[i + offset2];
+-#endif
+  if (fir->curr_pos <= 0)
+  fir->curr_pos = fir->taps;
+  fir->curr_pos--;
+diff --git a/drivers/usb/gadget/function/f_uac1_legacy.c
+b/drivers/usb/gadget/function/f_uac1_legacy.c
+index 04f4b2862256..24c086bcdeaa 100644
+--- a/drivers/usb/gadget/function/f_uac1_legacy.c
++++ b/drivers/usb/gadget/function/f_uac1_legacy.c
+@@ -4,8 +4,6 @@
+   *
+  * Copyright (C) 2008 Bryan Wu <cooloney@kernel.org>
+  * Copyright (C) 2008 Analog Devices, Inc
+- *
+- * Enter bugs at http://blackfin.uclinux.org/
+  */
+
+ #include <linux/slab.h>
+diff --git a/drivers/usb/gadget/function/u_uac1_legacy.c
+b/drivers/usb/gadget/function/u_uac1_legacy.c
+index cbc868d117af..5393e5c37a4b 100644
+--- a/drivers/usb/gadget/function/u_uac1_legacy.c
++++ b/drivers/usb/gadget/function/u_uac1_legacy.c
+@@ -4,8 +4,6 @@
+  *
+  * Copyright (C) 2008 Bryan Wu <cooloney@kernel.org>
+  * Copyright (C) 2008 Analog Devices, Inc
+- *
+- * Enter bugs at http://blackfin.uclinux.org/
+  */
+
+ #include <linux/kernel.h>
+diff --git a/drivers/usb/gadget/function/u_uac1_legacy.h
+b/drivers/usb/gadget/function/u_uac1_legacy.h
+index dd69e408a3d9..5c1bdf46fe32 100644
+--- a/drivers/usb/gadget/function/u_uac1_legacy.h
++++ b/drivers/usb/gadget/function/u_uac1_legacy.h
+@@ -4,8 +4,6 @@
+  *
+  * Copyright (C) 2008 Bryan Wu <cooloney@kernel.org>
+  * Copyright (C) 2008 Analog Devices, Inc
+- *
+- * Enter bugs at http://blackfin.uclinux.org/
+  */
+
+ #ifndef __U_UAC1_LEGACY_H
+diff --git a/drivers/usb/gadget/legacy/audio.c
+b/drivers/usb/gadget/legacy/audio.c
+index 7b11dce98b94..dd81fd538cb8 100644
+--- a/drivers/usb/gadget/legacy/audio.c
++++ b/drivers/usb/gadget/legacy/audio.c
+@@ -4,8 +4,6 @@
+  *
+  * Copyright (C) 2008 Bryan Wu <cooloney@kernel.org>
+  * Copyright (C) 2008 Analog Devices, Inc
+- *
+- * Enter bugs at http://blackfin.uclinux.org/
+  */
+
+ /* #define VERBOSE_DEBUG */
+diff --git a/drivers/usb/host/isp1362.h b/drivers/usb/host/isp1362.h
+index 87c1ac97e538..650240846ee2 100644
+--- a/drivers/usb/host/isp1362.h
++++ b/drivers/usb/host/isp1362.h
+@@ -6,9 +6,7 @@
+  */
+
+ /* ------------------------------------------------------------------------- */
+-/*
+- * Platform specific compile time options
+- */
++
+ #define MAX_ROOT_PORTS 2
+
+ #define USE_32BIT 0
+diff --git a/drivers/usb/musb/musb_core.c b/drivers/usb/musb/musb_core.c
+index 011c8ca7de42..13486588e561 100644
+--- a/drivers/usb/musb/musb_core.c
++++ b/drivers/usb/musb/musb_core.c
+@@ -2166,7 +2166,7 @@ musb_init_controller(struct device *dev, int
+nIrq, void __iomem *ctrl)
+  *   - initializes musb->xceiv, usually by otg_get_phy()
+  *   - stops powering VBUS
+  *
+- * There are various transceiver configurations.  Blackfin,
++ * There are various transceiver configurations.
+  * DaVinci, TUSB60x0, and others integrate them.  OMAP3 uses
+  * external/discrete ones in various flavors (twl4030 family,
+  * isp1504, non-OTG, etc) mostly hooking up through ULPI.
+diff --git a/drivers/usb/musb/musb_core.h b/drivers/usb/musb/musb_core.h
+index ac675b1a34c4..8a74cb2907f8 100644
+--- a/drivers/usb/musb/musb_core.h
++++ b/drivers/usb/musb/musb_core.h
+@@ -414,19 +414,6 @@ struct musb {
+  struct usb_gadget_driver *gadget_driver; /* its driver */
+  struct usb_hcd *hcd; /* the usb hcd */
+
+- /*
+- * FIXME: Remove this flag.
+- *
+- * This is only added to allow Blackfin to work
+- * with current driver. For some unknown reason
+- * Blackfin doesn't work with double buffering
+- * and that's enabled by default.
+- *
+- * We added this flag to forcefully disable double
+- * buffering until we get it working.
+- */
+- unsigned                double_buffer_not_ok:1;
+-
+  const struct musb_hdrc_config *config;
+
+  int xceiv_old_state;
+diff --git a/include/linux/cpuhotplug.h b/include/linux/cpuhotplug.h
+index 5b211fe295f0..8796ba387152 100644
+--- a/include/linux/cpuhotplug.h
++++ b/include/linux/cpuhotplug.h
+@@ -29,7 +29,6 @@ enum cpuhp_state {
+  CPUHP_PERF_PREPARE,
+  CPUHP_PERF_X86_PREPARE,
+  CPUHP_PERF_X86_AMD_UNCORE_PREP,
+- CPUHP_PERF_BFIN,
+  CPUHP_PERF_POWER,
+  CPUHP_PERF_SUPERH,
+  CPUHP_X86_HPET_DEAD,
+diff --git a/include/linux/fb.h b/include/linux/fb.h
+index f577d3c89618..0c20da7ab35f 100644
+--- a/include/linux/fb.h
++++ b/include/linux/fb.h
+@@ -571,8 +571,7 @@ static inline struct apertures_struct
+*alloc_apertures(unsigned int max_num) {
+
+ #elif defined(__i386__) || defined(__alpha__) || defined(__x86_64__) || \
+  defined(__hppa__) || defined(__sh__) || defined(__powerpc__) || \
+- defined(__avr32__) || defined(__bfin__) || defined(__arm__) || \
+- defined(__aarch64__)
++ defined(__avr32__) || defined(__arm__) || defined(__aarch64__)
+
+ #define fb_readb __raw_readb
+ #define fb_readw __raw_readw
