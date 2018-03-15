@@ -1,106 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:54918 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751357AbeCOMpj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 08:45:39 -0400
-From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: [PATCH v2 2/4] ioremap: Implement TLB_INV before huge mapping
-Date: Thu, 15 Mar 2018 18:15:04 +0530
-Message-ID: <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
-In-Reply-To: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
-References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
+Received: from mail-it0-f65.google.com ([209.85.214.65]:56287 "EHLO
+        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751694AbeCOMui (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 08:50:38 -0400
+MIME-Version: 1.0
+In-Reply-To: <87o9jpbmcy.fsf@xmission.com>
+References: <20180314143529.1456168-1-arnd@arndb.de> <20180314144614.1632190-1-arnd@arndb.de>
+ <20180314144614.1632190-2-arnd@arndb.de> <87po45hcuy.fsf@xmission.com>
+ <CAK8P3a1GL2N=emTbSgNGHxOrXtG6BxqRGMg00-tZqKg6-0O5=w@mail.gmail.com> <87o9jpbmcy.fsf@xmission.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 15 Mar 2018 13:50:36 +0100
+Message-ID: <CAK8P3a2ii0aQ6sSB_B_KeMWw51Y8mbX0eL6EPj5fQ8b8bJqmUQ@mail.gmail.com>
+Subject: Re: [PATCH 12/16] asm-generic: siginfo: remove obsolete #ifdefs
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de
-Cc: mark.rutland@arm.com, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com, Chintan Pandya <cpandya@codeaurora.org>
-Message-ID: <20180315124504.8XCHLqD82You2dLDtj1GQ67nmob0sRdX-7HflIIrIoE@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20180315125036.jDHmnzSYhf4nrkhtJUWLUpeK-mYYO-_45RXL3idTZHM@z>
 
-Huge mapping changes PMD/PUD which could have
-valid previous entries. This requires proper
-TLB maintanance on some architectures, like
-ARM64.
+On Thu, Mar 15, 2018 at 12:37 PM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
+>> On Thu, Mar 15, 2018 at 11:06 AM, Eric W. Biederman
 
-Implent BBM (break-before-make) safe TLB
-invalidation.
+>> That seems reasonable. If you send me a patch with a proper
+>> changelog (I don't think I could explain this well enough), I'll
+>> add it to the series.
+>
+> I just realized you can also remove the #ifdefs for BUS_MCEERR_AR,
+> BUS_MCEERR_AO, and SEGV_BNDERR.  As those si_codes are now always
+> defined.  That description I expect you can handle.
 
-Here, I've used flush_tlb_pgtable() instead
-of flush_kernel_range() because invalidating
-intermediate page_table entries could have
-been optimized for specific arch. That's the
-case with ARM64 at least.
+My existing patch already does this, and I've added a note to the changelog
+as well now.
 
-Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
----
- lib/ioremap.c | 25 +++++++++++++++++++------
- 1 file changed, 19 insertions(+), 6 deletions(-)
+> For a description of the above change how does this sound?
+>
+> Unlike system call numbers the assignment of si_codes has never had a
+> reason to be made per architecture.  Some architectures have had unique
+> conditions to report and reporting those conditions needed new si_codes.
+> Nothing has ever needed si_codes to have different values on different
+> architectures.  The si_code space is vast so even with defining all
+> si_codes on all architectures there is no danger in running out of
+> si_code values.
+>
+> The history of the si_codes BUS_MCEERR_AR, BUS_MCEER_AO, SEGV_BNDERR,
+> and SEGV_PKUERR show that a need of one architecture frequently becomes
+> a need of another architecture which makes sharing si_codes between
+> architectures a positive benefit and something to be encouraged.
+>
+> Where there are no conflicts with the historical ia64 arch specific
+> si_codes and any other si_codes make them generic si_codes.  We might
+> need them on another architecture someday.
+>
+> This leaves only the good example of arch generic si_codes in the kernel
+> for future architectures and architecture enhancments to follow.
+> Without bad examples to follow it should be easy to avoid the mistakes
+> of the past.
 
-diff --git a/lib/ioremap.c b/lib/ioremap.c
-index 54e5bba..55f8648 100644
---- a/lib/ioremap.c
-+++ b/lib/ioremap.c
-@@ -13,6 +13,7 @@
- #include <linux/export.h>
- #include <asm/cacheflush.h>
- #include <asm/pgtable.h>
-+#include <asm-generic/tlb.h>
- 
- #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
- static int __read_mostly ioremap_p4d_capable;
-@@ -80,6 +81,7 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
- 		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
- {
- 	pmd_t *pmd;
-+	pmd_t old_pmd;
- 	unsigned long next;
- 
- 	phys_addr -= addr;
-@@ -91,10 +93,15 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
- 
- 		if (ioremap_pmd_enabled() &&
- 		    ((next - addr) == PMD_SIZE) &&
--		    IS_ALIGNED(phys_addr + addr, PMD_SIZE) &&
--		    pmd_free_pte_page(pmd)) {
--			if (pmd_set_huge(pmd, phys_addr + addr, prot))
-+		    IS_ALIGNED(phys_addr + addr, PMD_SIZE)) {
-+			old_pmd = *pmd;
-+			pmd_clear(pmd);
-+			flush_tlb_pgtable(&init_mm, addr);
-+			if (pmd_set_huge(pmd, phys_addr + addr, prot)) {
-+				pmd_free_pte_page(&old_pmd);
- 				continue;
-+			} else
-+				set_pmd(pmd, old_pmd);
- 		}
- 
- 		if (ioremap_pte_range(pmd, addr, next, phys_addr + addr, prot))
-@@ -107,6 +114,7 @@ static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
- 		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
- {
- 	pud_t *pud;
-+	pud_t old_pud;
- 	unsigned long next;
- 
- 	phys_addr -= addr;
-@@ -118,10 +126,15 @@ static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
- 
- 		if (ioremap_pud_enabled() &&
- 		    ((next - addr) == PUD_SIZE) &&
--		    IS_ALIGNED(phys_addr + addr, PUD_SIZE) &&
--		    pud_free_pmd_page(pud)) {
--			if (pud_set_huge(pud, phys_addr + addr, prot))
-+		    IS_ALIGNED(phys_addr + addr, PUD_SIZE)) {
-+			old_pud = *pud;
-+			pud_clear(pud);
-+			flush_tlb_pgtable(&init_mm, addr);
-+			if (pud_set_huge(pud, phys_addr + addr, prot)) {
-+				pud_free_pmd_page(&old_pud);
- 				continue;
-+			} else
-+				set_pud(pud, old_pud);
- 		}
- 
- 		if (ioremap_pmd_range(pud, addr, next, phys_addr + addr, prot))
--- 
-Qualcomm India Private Limited, on behalf of Qualcomm Innovation
-Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
-Collaborative Project
+Ok, done. I've listed you as 'Suggested-by' for that patch. Since the
+changelog is way more work than the actual change, I would have
+made you the author of that patch, but I don't have a Signed-off-by
+from you for it.
+
+      Arnd
