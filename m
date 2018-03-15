@@ -1,26 +1,61 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH v3] x86: treat pkey-0 special
-Date: Thu, 15 Mar 2018 08:55:31 -0700
-Message-ID: <f5ef79ef-122a-e0a3-9b8e-d49c33f4a417@intel.com>
-References: <1521061214-22385-1-git-send-email-linuxram@us.ibm.com>
- <alpine.DEB.2.21.1803151039430.1525@nanos.tec.linutronix.de>
+From: "Kani, Toshi" <toshi.kani@hpe.com>
+Subject: Re: [PATCH v2 2/4] ioremap: Implement TLB_INV before huge mapping
+Date: Thu, 15 Mar 2018 16:12:52 +0000
+Message-ID: <1521130368.2693.177.camel@hpe.com>
+References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
+         <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.21.1803151039430.1525@nanos.tec.linutronix.de>
+In-Reply-To: <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
 Content-Language: en-US
+Content-ID: <9168F7EEE5567C4387AEFF4307500D03@NAMPRD84.PROD.OUTLOOK.COM>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ram Pai <linuxram@us.ibm.com>
-Cc: mingo@redhat.com, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com, Ulrich.Weigand@de.ibm.com
+To: "cpandya@codeaurora.org" <cpandya@codeaurora.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "arnd@arndb.de" <arnd@arndb.de>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "takahiro.akashi@linaro.org" <takahiro.akashi@linaro.org>, "james.morse@arm.com" <james.morse@arm.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/15/2018 02:46 AM, Thomas Gleixner wrote:
->> +	if (!pkey || !mm_pkey_is_allocated(mm, pkey))
-> Why this extra check? mm_pkey_is_allocated(mm, 0) should not return true
-> ever. If it does, then this wants to be fixed.
-
-I was thinking that we _do_ actually want it to seem allocated.  It just
-get "allocated" implicitly when an mm is created.  I think that will
-simplify the code if we avoid treating it specially in as many places as
-possible.
+T24gVGh1LCAyMDE4LTAzLTE1IGF0IDE4OjE1ICswNTMwLCBDaGludGFuIFBhbmR5YSB3cm90ZToN
+Cj4gSHVnZSBtYXBwaW5nIGNoYW5nZXMgUE1EL1BVRCB3aGljaCBjb3VsZCBoYXZlDQo+IHZhbGlk
+IHByZXZpb3VzIGVudHJpZXMuIFRoaXMgcmVxdWlyZXMgcHJvcGVyDQo+IFRMQiBtYWludGFuYW5j
+ZSBvbiBzb21lIGFyY2hpdGVjdHVyZXMsIGxpa2UNCj4gQVJNNjQuDQo+IA0KPiBJbXBsZW50IEJC
+TSAoYnJlYWstYmVmb3JlLW1ha2UpIHNhZmUgVExCDQo+IGludmFsaWRhdGlvbi4NCj4gDQo+IEhl
+cmUsIEkndmUgdXNlZCBmbHVzaF90bGJfcGd0YWJsZSgpIGluc3RlYWQNCj4gb2YgZmx1c2hfa2Vy
+bmVsX3JhbmdlKCkgYmVjYXVzZSBpbnZhbGlkYXRpbmcNCj4gaW50ZXJtZWRpYXRlIHBhZ2VfdGFi
+bGUgZW50cmllcyBjb3VsZCBoYXZlDQo+IGJlZW4gb3B0aW1pemVkIGZvciBzcGVjaWZpYyBhcmNo
+LiBUaGF0J3MgdGhlDQo+IGNhc2Ugd2l0aCBBUk02NCBhdCBsZWFzdC4NCj4gDQo+IFNpZ25lZC1v
+ZmYtYnk6IENoaW50YW4gUGFuZHlhIDxjcGFuZHlhQGNvZGVhdXJvcmEub3JnPg0KPiAtLS0NCj4g
+IGxpYi9pb3JlbWFwLmMgfCAyNSArKysrKysrKysrKysrKysrKysrLS0tLS0tDQo+ICAxIGZpbGUg
+Y2hhbmdlZCwgMTkgaW5zZXJ0aW9ucygrKSwgNiBkZWxldGlvbnMoLSkNCj4gDQo+IGRpZmYgLS1n
+aXQgYS9saWIvaW9yZW1hcC5jIGIvbGliL2lvcmVtYXAuYw0KPiBpbmRleCA1NGU1YmJhLi41NWY4
+NjQ4IDEwMDY0NA0KPiAtLS0gYS9saWIvaW9yZW1hcC5jDQo+ICsrKyBiL2xpYi9pb3JlbWFwLmMN
+Cj4gQEAgLTEzLDYgKzEzLDcgQEANCj4gICNpbmNsdWRlIDxsaW51eC9leHBvcnQuaD4NCj4gICNp
+bmNsdWRlIDxhc20vY2FjaGVmbHVzaC5oPg0KPiAgI2luY2x1ZGUgPGFzbS9wZ3RhYmxlLmg+DQo+
+ICsjaW5jbHVkZSA8YXNtLWdlbmVyaWMvdGxiLmg+DQo+ICANCj4gICNpZmRlZiBDT05GSUdfSEFW
+RV9BUkNIX0hVR0VfVk1BUA0KPiAgc3RhdGljIGludCBfX3JlYWRfbW9zdGx5IGlvcmVtYXBfcDRk
+X2NhcGFibGU7DQo+IEBAIC04MCw2ICs4MSw3IEBAIHN0YXRpYyBpbmxpbmUgaW50IGlvcmVtYXBf
+cG1kX3JhbmdlKHB1ZF90ICpwdWQsIHVuc2lnbmVkIGxvbmcgYWRkciwNCj4gIAkJdW5zaWduZWQg
+bG9uZyBlbmQsIHBoeXNfYWRkcl90IHBoeXNfYWRkciwgcGdwcm90X3QgcHJvdCkNCj4gIHsNCj4g
+IAlwbWRfdCAqcG1kOw0KPiArCXBtZF90IG9sZF9wbWQ7DQo+ICAJdW5zaWduZWQgbG9uZyBuZXh0
+Ow0KPiAgDQo+ICAJcGh5c19hZGRyIC09IGFkZHI7DQo+IEBAIC05MSwxMCArOTMsMTUgQEAgc3Rh
+dGljIGlubGluZSBpbnQgaW9yZW1hcF9wbWRfcmFuZ2UocHVkX3QgKnB1ZCwgdW5zaWduZWQgbG9u
+ZyBhZGRyLA0KPiAgDQo+ICAJCWlmIChpb3JlbWFwX3BtZF9lbmFibGVkKCkgJiYNCj4gIAkJICAg
+ICgobmV4dCAtIGFkZHIpID09IFBNRF9TSVpFKSAmJg0KPiAtCQkgICAgSVNfQUxJR05FRChwaHlz
+X2FkZHIgKyBhZGRyLCBQTURfU0laRSkgJiYNCj4gLQkJICAgIHBtZF9mcmVlX3B0ZV9wYWdlKHBt
+ZCkpIHsNCj4gLQkJCWlmIChwbWRfc2V0X2h1Z2UocG1kLCBwaHlzX2FkZHIgKyBhZGRyLCBwcm90
+KSkNCj4gKwkJICAgIElTX0FMSUdORUQocGh5c19hZGRyICsgYWRkciwgUE1EX1NJWkUpKSB7DQo+
+ICsJCQlvbGRfcG1kID0gKnBtZDsNCj4gKwkJCXBtZF9jbGVhcihwbWQpOw0KDQpwbWRfY2xlYXIo
+KSBpcyBvbmUgb2YgdGhlIG9wZXJhdGlvbnMgcG1kX2ZyZWVfcHRlX3BhZ2UoKSBuZWVkcyB0byBk
+by4NClNlZSB0aGUgeDg2IHZlcnNpb24uDQoNCj4gKwkJCWZsdXNoX3RsYl9wZ3RhYmxlKCZpbml0
+X21tLCBhZGRyKTsNCg0KWW91IGNhbiBjYWxsIGl0IGluIHBtZF9mcmVlX3B0ZV9wYWdlKCkgb24g
+YXJtNjQgYXMgd2VsbC4gDQoNCj4gKwkJCWlmIChwbWRfc2V0X2h1Z2UocG1kLCBwaHlzX2FkZHIg
+KyBhZGRyLCBwcm90KSkgew0KPiArCQkJCXBtZF9mcmVlX3B0ZV9wYWdlKCZvbGRfcG1kKTsNCj4g
+IAkJCQljb250aW51ZTsNCj4gKwkJCX0gZWxzZQ0KPiArCQkJCXNldF9wbWQocG1kLCBvbGRfcG1k
+KTsNCg0KSSBkbyBub3QgdW5kZXJzdGFuZCB3aHkgeW91IG5lZWRlZCB0byBtYWtlIHRoaXMgY2hh
+bmdlLiANCnBtZF9mcmVlX3B0ZV9wYWdlKCkgaXMgZGVmaW5lZCBhcyBhbiBhcmNoLXNwZWNpZmlj
+IGZ1bmN0aW9uIHNvIHRoYXQgeW91DQpjYW4gYWRkaXRpb25hbGx5IHBlcmZvcm0gVExCIHB1cmdl
+cyBvbiBhcm02NC4gIFBsZWFzZSB0cnkgdG8gbWFrZSBwcm9wZXINCmFybTY0IGltcGxlbWVudGF0
+aW9uIG9mIHRoaXMgaW50ZXJmYWNlLiAgQW5kIGlmIHlvdSBmaW5kIGFueSBpc3N1ZSBpbg0KdGhp
+cyBpbnRlcmZhY2UsIHBsZWFzZSBsZXQgbWUga25vdy4NCg0KU2FtZSBmb3IgcHVkLg0KDQpUaGFu
+a3MsDQotVG9zaGkNCg==
