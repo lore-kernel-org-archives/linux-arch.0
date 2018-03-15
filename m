@@ -1,17 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0081.outbound.protection.outlook.com ([104.47.33.81]:50720
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+Received: from mail-cys01nam02hn0230.outbound.protection.outlook.com ([104.47.37.230]:36928
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752063AbeCOLAf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 07:00:35 -0400
+        id S1751698AbeCOLBJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Mar 2018 07:01:09 -0400
 From: Aaron Wu <aaron.wu@analog.com>
-Subject: [Blackfin removal] [PATCH 10/28] i2c: Remove Blackfin I2C bus support
-Date: Thu, 15 Mar 2018 18:50:10 +0800
-Message-ID: <1521111028-19856-10-git-send-email-aaron.wu@analog.com>
+Subject: [Blackfin removal] [PATCH 14/28] mtd: Remove Blackfin MTD support
+Date: Thu, 15 Mar 2018 18:50:14 +0800
+Message-ID: <1521111028-19856-14-git-send-email-aaron.wu@analog.com>
 In-Reply-To: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, f.fainelli@gmail.com, linux-arch@vger.kernel.org, kernel@vger.kernel.org, linux-hexagon@vger.kernel.org, liqin.linux@gmail.com, lennox.wu@gmail.com, gxt@mprc.pku.edu.cn, linux@roeck-us.net
@@ -19,797 +20,1175 @@ Cc: viro@zeniv.linux.org.uk, jhogan@kernel.org, linux-metag@vger.kernel.org, jon
 
 Signed-off-by: Aaron Wu <aaron.wu@analog.com>
 
-Remove Blackfin I2C bus support
+Remove Blackfin MTD support
 ---
- drivers/i2c/busses/Kconfig        |  18 -
- drivers/i2c/busses/Makefile       |   1 -
- drivers/i2c/busses/i2c-bfin-twi.c | 737 --------------------------------------
- 3 files changed, 756 deletions(-)
- delete mode 100644 drivers/i2c/busses/i2c-bfin-twi.c
+ drivers/mtd/maps/Kconfig            |  10 -
+ drivers/mtd/maps/Makefile           |   1 -
+ drivers/mtd/maps/bfin-async-flash.c | 196 --------
+ drivers/mtd/nand/Kconfig            |  32 --
+ drivers/mtd/nand/Makefile           |   1 -
+ drivers/mtd/nand/bf5xx_nand.c       | 862 ------------------------------------
+ 6 files changed, 1102 deletions(-)
+ delete mode 100644 drivers/mtd/maps/bfin-async-flash.c
+ delete mode 100644 drivers/mtd/nand/bf5xx_nand.c
 
-diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
-index e2954fb..8ffe2bc 100644
---- a/drivers/i2c/busses/Kconfig
-+++ b/drivers/i2c/busses/Kconfig
-@@ -445,24 +445,6 @@ config I2C_BRCMSTB
+diff --git a/drivers/mtd/maps/Kconfig b/drivers/mtd/maps/Kconfig
+index 542fdf8..bdc1283 100644
+--- a/drivers/mtd/maps/Kconfig
++++ b/drivers/mtd/maps/Kconfig
+@@ -334,16 +334,6 @@ config MTD_PCMCIA_ANONYMOUS
  
- 	  If you do not need I2C interface, say N.
+ 	  If unsure, say N.
  
--config I2C_BLACKFIN_TWI
--	tristate "Blackfin TWI I2C support"
--	depends on BLACKFIN
--	depends on !BF561 && !BF531 && !BF532 && !BF533
+-config MTD_BFIN_ASYNC
+-	tristate "Blackfin BF533-STAMP Flash Chip Support"
+-	depends on BFIN533_STAMP && MTD_CFI && MTD_COMPLEX_MAPPINGS
+-	default y
 -	help
--	  This is the I2C bus driver for Blackfin on-chip TWI interface.
+-	  Map driver which allows for simultaneous utilization of
+-	  ethernet and CFI parallel flash.
 -
--	  This driver can also be built as a module.  If so, the module
--	  will be called i2c-bfin-twi.
+-	  If compiled as a module, it will be called bfin-async-flash.
 -
--config I2C_BLACKFIN_TWI_CLK_KHZ
--	int "Blackfin TWI I2C clock (kHz)"
--	depends on I2C_BLACKFIN_TWI
--	range 21 400
--	default 50
--	help
--	  The unit of the TWI clock is kHz.
--
- config I2C_CADENCE
- 	tristate "Cadence I2C Controller"
- 	depends on ARCH_ZYNQ || ARM64 || XTENSA
-diff --git a/drivers/i2c/busses/Makefile b/drivers/i2c/busses/Makefile
-index 2ce8576..9e475a5 100644
---- a/drivers/i2c/busses/Makefile
-+++ b/drivers/i2c/busses/Makefile
-@@ -38,7 +38,6 @@ obj-$(CONFIG_I2C_AU1550)	+= i2c-au1550.o
- obj-$(CONFIG_I2C_AXXIA)		+= i2c-axxia.o
- obj-$(CONFIG_I2C_BCM2835)	+= i2c-bcm2835.o
- obj-$(CONFIG_I2C_BCM_IPROC)	+= i2c-bcm-iproc.o
--obj-$(CONFIG_I2C_BLACKFIN_TWI)	+= i2c-bfin-twi.o
- obj-$(CONFIG_I2C_CADENCE)	+= i2c-cadence.o
- obj-$(CONFIG_I2C_CBUS_GPIO)	+= i2c-cbus-gpio.o
- obj-$(CONFIG_I2C_CPM)		+= i2c-cpm.o
-diff --git a/drivers/i2c/busses/i2c-bfin-twi.c b/drivers/i2c/busses/i2c-bfin-twi.c
+ config MTD_GPIO_ADDR
+ 	tristate "GPIO-assisted Flash Chip Support"
+ 	depends on GPIOLIB || COMPILE_TEST
+diff --git a/drivers/mtd/maps/Makefile b/drivers/mtd/maps/Makefile
+index b849aaf..51acf1f 100644
+--- a/drivers/mtd/maps/Makefile
++++ b/drivers/mtd/maps/Makefile
+@@ -42,7 +42,6 @@ obj-$(CONFIG_MTD_SCB2_FLASH)	+= scb2_flash.o
+ obj-$(CONFIG_MTD_IXP4XX)	+= ixp4xx.o
+ obj-$(CONFIG_MTD_PLATRAM)	+= plat-ram.o
+ obj-$(CONFIG_MTD_INTEL_VR_NOR)	+= intel_vr_nor.o
+-obj-$(CONFIG_MTD_BFIN_ASYNC)	+= bfin-async-flash.o
+ obj-$(CONFIG_MTD_RBTX4939)	+= rbtx4939-flash.o
+ obj-$(CONFIG_MTD_VMU)		+= vmu-flash.o
+ obj-$(CONFIG_MTD_GPIO_ADDR)	+= gpio-addr-flash.o
+diff --git a/drivers/mtd/maps/bfin-async-flash.c b/drivers/mtd/maps/bfin-async-flash.c
 deleted file mode 100644
-index ff33431..0000000
---- a/drivers/i2c/busses/i2c-bfin-twi.c
+index 41730fe..0000000
+--- a/drivers/mtd/maps/bfin-async-flash.c
 +++ /dev/null
-@@ -1,737 +0,0 @@
+@@ -1,196 +0,0 @@
 -/*
-- * Blackfin On-Chip Two Wire Interface Driver
+- * drivers/mtd/maps/bfin-async-flash.c
 - *
-- * Copyright 2005-2007 Analog Devices Inc.
+- * Handle the case where flash memory and ethernet mac/phy are
+- * mapped onto the same async bank.  The BF533-STAMP does this
+- * for example.  All board-specific configuration goes in your
+- * board resources file.
+- *
+- * Copyright 2000 Nicolas Pitre <nico@fluxnic.net>
+- * Copyright 2005-2008 Analog Devices Inc.
 - *
 - * Enter bugs at http://blackfin.uclinux.org/
 - *
 - * Licensed under the GPL-2 or later.
 - */
 -
--#include <linux/module.h>
 -#include <linux/kernel.h>
--#include <linux/init.h>
--#include <linux/i2c.h>
--#include <linux/slab.h>
--#include <linux/io.h>
--#include <linux/mm.h>
--#include <linux/timer.h>
--#include <linux/spinlock.h>
--#include <linux/completion.h>
--#include <linux/interrupt.h>
+-#include <linux/module.h>
+-#include <linux/mtd/mtd.h>
+-#include <linux/mtd/map.h>
+-#include <linux/mtd/partitions.h>
+-#include <linux/mtd/physmap.h>
 -#include <linux/platform_device.h>
--#include <linux/delay.h>
+-#include <linux/slab.h>
+-#include <linux/types.h>
 -
--#include <asm/irq.h>
--#include <asm/portmux.h>
--#include <asm/bfin_twi.h>
+-#include <asm/blackfin.h>
+-#include <linux/gpio.h>
+-#include <linux/io.h>
+-#include <asm/unaligned.h>
 -
--/* SMBus mode*/
--#define TWI_I2C_MODE_STANDARD		1
--#define TWI_I2C_MODE_STANDARDSUB	2
--#define TWI_I2C_MODE_COMBINED		3
--#define TWI_I2C_MODE_REPEAT		4
+-#define pr_devinit(fmt, args...) \
+-		({ static const char __fmt[] = fmt; printk(__fmt, ## args); })
 -
--static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface,
--					unsigned short twi_int_status)
--{
--	unsigned short mast_stat = read_MASTER_STAT(iface);
+-#define DRIVER_NAME "bfin-async-flash"
 -
--	if (twi_int_status & XMTSERV) {
--		if (iface->writeNum <= 0) {
--			/* start receive immediately after complete sending in
--			 * combine mode.
--			 */
--			if (iface->cur_mode == TWI_I2C_MODE_COMBINED)
--				write_MASTER_CTL(iface,
--					read_MASTER_CTL(iface) | MDIR);
--			else if (iface->manual_stop)
--				write_MASTER_CTL(iface,
--					read_MASTER_CTL(iface) | STOP);
--			else if (iface->cur_mode == TWI_I2C_MODE_REPEAT &&
--				iface->cur_msg + 1 < iface->msg_num) {
--				if (iface->pmsg[iface->cur_msg + 1].flags &
--					I2C_M_RD)
--					write_MASTER_CTL(iface,
--						read_MASTER_CTL(iface) |
--						MDIR);
--				else
--					write_MASTER_CTL(iface,
--						read_MASTER_CTL(iface) &
--						~MDIR);
--			}
--		}
--		/* Transmit next data */
--		while (iface->writeNum > 0 &&
--			(read_FIFO_STAT(iface) & XMTSTAT) != XMT_FULL) {
--			write_XMT_DATA8(iface, *(iface->transPtr++));
--			iface->writeNum--;
--		}
--	}
--	if (twi_int_status & RCVSERV) {
--		while (iface->readNum > 0 &&
--			(read_FIFO_STAT(iface) & RCVSTAT)) {
--			/* Receive next data */
--			*(iface->transPtr) = read_RCV_DATA8(iface);
--			if (iface->cur_mode == TWI_I2C_MODE_COMBINED) {
--				/* Change combine mode into sub mode after
--				 * read first data.
--				 */
--				iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
--				/* Get read number from first byte in block
--				 * combine mode.
--				 */
--				if (iface->readNum == 1 && iface->manual_stop)
--					iface->readNum = *iface->transPtr + 1;
--			}
--			iface->transPtr++;
--			iface->readNum--;
--		}
--
--		if (iface->readNum == 0) {
--			if (iface->manual_stop) {
--				/* Temporary workaround to avoid possible bus stall -
--				 * Flush FIFO before issuing the STOP condition
--				 */
--				read_RCV_DATA16(iface);
--				write_MASTER_CTL(iface,
--					read_MASTER_CTL(iface) | STOP);
--			} else if (iface->cur_mode == TWI_I2C_MODE_REPEAT &&
--					iface->cur_msg + 1 < iface->msg_num) {
--				if (iface->pmsg[iface->cur_msg + 1].flags & I2C_M_RD)
--					write_MASTER_CTL(iface,
--						read_MASTER_CTL(iface) | MDIR);
--				else
--					write_MASTER_CTL(iface,
--						read_MASTER_CTL(iface) & ~MDIR);
--			}
--		}
--	}
--	if (twi_int_status & MERR) {
--		write_INT_MASK(iface, 0);
--		write_MASTER_STAT(iface, 0x3e);
--		write_MASTER_CTL(iface, 0);
--		iface->result = -EIO;
--
--		if (mast_stat & LOSTARB)
--			dev_dbg(&iface->adap.dev, "Lost Arbitration\n");
--		if (mast_stat & ANAK)
--			dev_dbg(&iface->adap.dev, "Address Not Acknowledged\n");
--		if (mast_stat & DNAK)
--			dev_dbg(&iface->adap.dev, "Data Not Acknowledged\n");
--		if (mast_stat & BUFRDERR)
--			dev_dbg(&iface->adap.dev, "Buffer Read Error\n");
--		if (mast_stat & BUFWRERR)
--			dev_dbg(&iface->adap.dev, "Buffer Write Error\n");
--
--		/* Faulty slave devices, may drive SDA low after a transfer
--		 * finishes. To release the bus this code generates up to 9
--		 * extra clocks until SDA is released.
--		 */
--
--		if (read_MASTER_STAT(iface) & SDASEN) {
--			int cnt = 9;
--			do {
--				write_MASTER_CTL(iface, SCLOVR);
--				udelay(6);
--				write_MASTER_CTL(iface, 0);
--				udelay(6);
--			} while ((read_MASTER_STAT(iface) & SDASEN) && cnt--);
--
--			write_MASTER_CTL(iface, SDAOVR | SCLOVR);
--			udelay(6);
--			write_MASTER_CTL(iface, SDAOVR);
--			udelay(6);
--			write_MASTER_CTL(iface, 0);
--		}
--
--		/* If it is a quick transfer, only address without data,
--		 * not an err, return 1.
--		 */
--		if (iface->cur_mode == TWI_I2C_MODE_STANDARD &&
--			iface->transPtr == NULL &&
--			(twi_int_status & MCOMP) && (mast_stat & DNAK))
--			iface->result = 1;
--
--		complete(&iface->complete);
--		return;
--	}
--	if (twi_int_status & MCOMP) {
--		if (twi_int_status & (XMTSERV | RCVSERV) &&
--			(read_MASTER_CTL(iface) & MEN) == 0 &&
--			(iface->cur_mode == TWI_I2C_MODE_REPEAT ||
--			iface->cur_mode == TWI_I2C_MODE_COMBINED)) {
--			iface->result = -1;
--			write_INT_MASK(iface, 0);
--			write_MASTER_CTL(iface, 0);
--		} else if (iface->cur_mode == TWI_I2C_MODE_COMBINED) {
--			if (iface->readNum == 0) {
--				/* set the read number to 1 and ask for manual
--				 * stop in block combine mode
--				 */
--				iface->readNum = 1;
--				iface->manual_stop = 1;
--				write_MASTER_CTL(iface,
--					read_MASTER_CTL(iface) | (0xff << 6));
--			} else {
--				/* set the readd number in other
--				 * combine mode.
--				 */
--				write_MASTER_CTL(iface,
--					(read_MASTER_CTL(iface) &
--					(~(0xff << 6))) |
--					(iface->readNum << 6));
--			}
--			/* remove restart bit and enable master receive */
--			write_MASTER_CTL(iface,
--				read_MASTER_CTL(iface) & ~RSTART);
--		} else if (iface->cur_mode == TWI_I2C_MODE_REPEAT &&
--				iface->cur_msg + 1 < iface->msg_num) {
--			iface->cur_msg++;
--			iface->transPtr = iface->pmsg[iface->cur_msg].buf;
--			iface->writeNum = iface->readNum =
--				iface->pmsg[iface->cur_msg].len;
--			/* Set Transmit device address */
--			write_MASTER_ADDR(iface,
--				iface->pmsg[iface->cur_msg].addr);
--			if (iface->pmsg[iface->cur_msg].flags & I2C_M_RD)
--				iface->read_write = I2C_SMBUS_READ;
--			else {
--				iface->read_write = I2C_SMBUS_WRITE;
--				/* Transmit first data */
--				if (iface->writeNum > 0) {
--					write_XMT_DATA8(iface,
--						*(iface->transPtr++));
--					iface->writeNum--;
--				}
--			}
--
--			if (iface->pmsg[iface->cur_msg].len <= 255) {
--				write_MASTER_CTL(iface,
--					(read_MASTER_CTL(iface) &
--					(~(0xff << 6))) |
--					(iface->pmsg[iface->cur_msg].len << 6));
--				iface->manual_stop = 0;
--			} else {
--				write_MASTER_CTL(iface,
--					(read_MASTER_CTL(iface) |
--					(0xff << 6)));
--				iface->manual_stop = 1;
--			}
--			/* remove restart bit before last message */
--			if (iface->cur_msg + 1 == iface->msg_num)
--				write_MASTER_CTL(iface,
--					read_MASTER_CTL(iface) & ~RSTART);
--		} else {
--			iface->result = 1;
--			write_INT_MASK(iface, 0);
--			write_MASTER_CTL(iface, 0);
--		}
--		complete(&iface->complete);
--	}
--}
--
--/* Interrupt handler */
--static irqreturn_t bfin_twi_interrupt_entry(int irq, void *dev_id)
--{
--	struct bfin_twi_iface *iface = dev_id;
--	unsigned long flags;
--	unsigned short twi_int_status;
--
--	spin_lock_irqsave(&iface->lock, flags);
--	while (1) {
--		twi_int_status = read_INT_STAT(iface);
--		if (!twi_int_status)
--			break;
--		/* Clear interrupt status */
--		write_INT_STAT(iface, twi_int_status);
--		bfin_twi_handle_interrupt(iface, twi_int_status);
--	}
--	spin_unlock_irqrestore(&iface->lock, flags);
--	return IRQ_HANDLED;
--}
--
--/*
-- * One i2c master transfer
-- */
--static int bfin_twi_do_master_xfer(struct i2c_adapter *adap,
--				struct i2c_msg *msgs, int num)
--{
--	struct bfin_twi_iface *iface = adap->algo_data;
--	struct i2c_msg *pmsg;
--	int rc = 0;
--
--	if (!(read_CONTROL(iface) & TWI_ENA))
--		return -ENXIO;
--
--	if (read_MASTER_STAT(iface) & BUSBUSY)
--		return -EAGAIN;
--
--	iface->pmsg = msgs;
--	iface->msg_num = num;
--	iface->cur_msg = 0;
--
--	pmsg = &msgs[0];
--	if (pmsg->flags & I2C_M_TEN) {
--		dev_err(&adap->dev, "10 bits addr not supported!\n");
--		return -EINVAL;
--	}
--
--	if (iface->msg_num > 1)
--		iface->cur_mode = TWI_I2C_MODE_REPEAT;
--	iface->manual_stop = 0;
--	iface->transPtr = pmsg->buf;
--	iface->writeNum = iface->readNum = pmsg->len;
--	iface->result = 0;
--	init_completion(&(iface->complete));
--	/* Set Transmit device address */
--	write_MASTER_ADDR(iface, pmsg->addr);
--
--	/* FIFO Initiation. Data in FIFO should be
--	 *  discarded before start a new operation.
--	 */
--	write_FIFO_CTL(iface, 0x3);
--	write_FIFO_CTL(iface, 0);
--
--	if (pmsg->flags & I2C_M_RD)
--		iface->read_write = I2C_SMBUS_READ;
--	else {
--		iface->read_write = I2C_SMBUS_WRITE;
--		/* Transmit first data */
--		if (iface->writeNum > 0) {
--			write_XMT_DATA8(iface, *(iface->transPtr++));
--			iface->writeNum--;
--		}
--	}
--
--	/* clear int stat */
--	write_INT_STAT(iface, MERR | MCOMP | XMTSERV | RCVSERV);
--
--	/* Interrupt mask . Enable XMT, RCV interrupt */
--	write_INT_MASK(iface, MCOMP | MERR | RCVSERV | XMTSERV);
--
--	if (pmsg->len <= 255)
--		write_MASTER_CTL(iface, pmsg->len << 6);
--	else {
--		write_MASTER_CTL(iface, 0xff << 6);
--		iface->manual_stop = 1;
--	}
--
--	/* Master enable */
--	write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN |
--		(iface->msg_num > 1 ? RSTART : 0) |
--		((iface->read_write == I2C_SMBUS_READ) ? MDIR : 0) |
--		((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ > 100) ? FAST : 0));
--
--	while (!iface->result) {
--		if (!wait_for_completion_timeout(&iface->complete,
--			adap->timeout)) {
--			iface->result = -1;
--			dev_err(&adap->dev, "master transfer timeout\n");
--		}
--	}
--
--	if (iface->result == 1)
--		rc = iface->cur_msg + 1;
--	else
--		rc = iface->result;
--
--	return rc;
--}
--
--/*
-- * Generic i2c master transfer entrypoint
-- */
--static int bfin_twi_master_xfer(struct i2c_adapter *adap,
--				struct i2c_msg *msgs, int num)
--{
--	return bfin_twi_do_master_xfer(adap, msgs, num);
--}
--
--/*
-- * One I2C SMBus transfer
-- */
--int bfin_twi_do_smbus_xfer(struct i2c_adapter *adap, u16 addr,
--			unsigned short flags, char read_write,
--			u8 command, int size, union i2c_smbus_data *data)
--{
--	struct bfin_twi_iface *iface = adap->algo_data;
--	int rc = 0;
--
--	if (!(read_CONTROL(iface) & TWI_ENA))
--		return -ENXIO;
--
--	if (read_MASTER_STAT(iface) & BUSBUSY)
--		return -EAGAIN;
--
--	iface->writeNum = 0;
--	iface->readNum = 0;
--
--	/* Prepare datas & select mode */
--	switch (size) {
--	case I2C_SMBUS_QUICK:
--		iface->transPtr = NULL;
--		iface->cur_mode = TWI_I2C_MODE_STANDARD;
--		break;
--	case I2C_SMBUS_BYTE:
--		if (data == NULL)
--			iface->transPtr = NULL;
--		else {
--			if (read_write == I2C_SMBUS_READ)
--				iface->readNum = 1;
--			else
--				iface->writeNum = 1;
--			iface->transPtr = &data->byte;
--		}
--		iface->cur_mode = TWI_I2C_MODE_STANDARD;
--		break;
--	case I2C_SMBUS_BYTE_DATA:
--		if (read_write == I2C_SMBUS_READ) {
--			iface->readNum = 1;
--			iface->cur_mode = TWI_I2C_MODE_COMBINED;
--		} else {
--			iface->writeNum = 1;
--			iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
--		}
--		iface->transPtr = &data->byte;
--		break;
--	case I2C_SMBUS_WORD_DATA:
--		if (read_write == I2C_SMBUS_READ) {
--			iface->readNum = 2;
--			iface->cur_mode = TWI_I2C_MODE_COMBINED;
--		} else {
--			iface->writeNum = 2;
--			iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
--		}
--		iface->transPtr = (u8 *)&data->word;
--		break;
--	case I2C_SMBUS_PROC_CALL:
--		iface->writeNum = 2;
--		iface->readNum = 2;
--		iface->cur_mode = TWI_I2C_MODE_COMBINED;
--		iface->transPtr = (u8 *)&data->word;
--		break;
--	case I2C_SMBUS_BLOCK_DATA:
--		if (read_write == I2C_SMBUS_READ) {
--			iface->readNum = 0;
--			iface->cur_mode = TWI_I2C_MODE_COMBINED;
--		} else {
--			iface->writeNum = data->block[0] + 1;
--			iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
--		}
--		iface->transPtr = data->block;
--		break;
--	case I2C_SMBUS_I2C_BLOCK_DATA:
--		if (read_write == I2C_SMBUS_READ) {
--			iface->readNum = data->block[0];
--			iface->cur_mode = TWI_I2C_MODE_COMBINED;
--		} else {
--			iface->writeNum = data->block[0];
--			iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
--		}
--		iface->transPtr = (u8 *)&data->block[1];
--		break;
--	default:
--		return -1;
--	}
--
--	iface->result = 0;
--	iface->manual_stop = 0;
--	iface->read_write = read_write;
--	iface->command = command;
--	init_completion(&(iface->complete));
--
--	/* FIFO Initiation. Data in FIFO should be discarded before
--	 * start a new operation.
--	 */
--	write_FIFO_CTL(iface, 0x3);
--	write_FIFO_CTL(iface, 0);
--
--	/* clear int stat */
--	write_INT_STAT(iface, MERR | MCOMP | XMTSERV | RCVSERV);
--
--	/* Set Transmit device address */
--	write_MASTER_ADDR(iface, addr);
--
--	switch (iface->cur_mode) {
--	case TWI_I2C_MODE_STANDARDSUB:
--		write_XMT_DATA8(iface, iface->command);
--		write_INT_MASK(iface, MCOMP | MERR |
--			((iface->read_write == I2C_SMBUS_READ) ?
--			RCVSERV : XMTSERV));
--
--		if (iface->writeNum + 1 <= 255)
--			write_MASTER_CTL(iface, (iface->writeNum + 1) << 6);
--		else {
--			write_MASTER_CTL(iface, 0xff << 6);
--			iface->manual_stop = 1;
--		}
--		/* Master enable */
--		write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN |
--			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ>100) ? FAST : 0));
--		break;
--	case TWI_I2C_MODE_COMBINED:
--		write_XMT_DATA8(iface, iface->command);
--		write_INT_MASK(iface, MCOMP | MERR | RCVSERV | XMTSERV);
--
--		if (iface->writeNum > 0)
--			write_MASTER_CTL(iface, (iface->writeNum + 1) << 6);
--		else
--			write_MASTER_CTL(iface, 0x1 << 6);
--		/* Master enable */
--		write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN | RSTART |
--			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ>100) ? FAST : 0));
--		break;
--	default:
--		write_MASTER_CTL(iface, 0);
--		if (size != I2C_SMBUS_QUICK) {
--			/* Don't access xmit data register when this is a
--			 * read operation.
--			 */
--			if (iface->read_write != I2C_SMBUS_READ) {
--				if (iface->writeNum > 0) {
--					write_XMT_DATA8(iface,
--						*(iface->transPtr++));
--					if (iface->writeNum <= 255)
--						write_MASTER_CTL(iface,
--							iface->writeNum << 6);
--					else {
--						write_MASTER_CTL(iface,
--							0xff << 6);
--						iface->manual_stop = 1;
--					}
--					iface->writeNum--;
--				} else {
--					write_XMT_DATA8(iface, iface->command);
--					write_MASTER_CTL(iface, 1 << 6);
--				}
--			} else {
--				if (iface->readNum > 0 && iface->readNum <= 255)
--					write_MASTER_CTL(iface,
--						iface->readNum << 6);
--				else if (iface->readNum > 255) {
--					write_MASTER_CTL(iface, 0xff << 6);
--					iface->manual_stop = 1;
--				} else
--					break;
--			}
--		}
--		write_INT_MASK(iface, MCOMP | MERR |
--			((iface->read_write == I2C_SMBUS_READ) ?
--			RCVSERV : XMTSERV));
--
--		/* Master enable */
--		write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN |
--			((iface->read_write == I2C_SMBUS_READ) ? MDIR : 0) |
--			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ > 100) ? FAST : 0));
--		break;
--	}
--
--	while (!iface->result) {
--		if (!wait_for_completion_timeout(&iface->complete,
--			adap->timeout)) {
--			iface->result = -1;
--			dev_err(&adap->dev, "smbus transfer timeout\n");
--		}
--	}
--
--	rc = (iface->result >= 0) ? 0 : -1;
--
--	return rc;
--}
--
--/*
-- * Generic I2C SMBus transfer entrypoint
-- */
--int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
--			unsigned short flags, char read_write,
--			u8 command, int size, union i2c_smbus_data *data)
--{
--	return bfin_twi_do_smbus_xfer(adap, addr, flags,
--			read_write, command, size, data);
--}
--
--/*
-- * Return what the adapter supports
-- */
--static u32 bfin_twi_functionality(struct i2c_adapter *adap)
--{
--	return I2C_FUNC_SMBUS_QUICK | I2C_FUNC_SMBUS_BYTE |
--	       I2C_FUNC_SMBUS_BYTE_DATA | I2C_FUNC_SMBUS_WORD_DATA |
--	       I2C_FUNC_SMBUS_BLOCK_DATA | I2C_FUNC_SMBUS_PROC_CALL |
--	       I2C_FUNC_I2C | I2C_FUNC_SMBUS_I2C_BLOCK;
--}
--
--static const struct i2c_algorithm bfin_twi_algorithm = {
--	.master_xfer   = bfin_twi_master_xfer,
--	.smbus_xfer    = bfin_twi_smbus_xfer,
--	.functionality = bfin_twi_functionality,
+-struct async_state {
+-	struct mtd_info *mtd;
+-	struct map_info map;
+-	int enet_flash_pin;
+-	uint32_t flash_ambctl0, flash_ambctl1;
+-	uint32_t save_ambctl0, save_ambctl1;
+-	unsigned long irq_flags;
 -};
 -
--#ifdef CONFIG_PM_SLEEP
--static int i2c_bfin_twi_suspend(struct device *dev)
+-static void switch_to_flash(struct async_state *state)
 -{
--	struct bfin_twi_iface *iface = dev_get_drvdata(dev);
+-	local_irq_save(state->irq_flags);
 -
--	iface->saved_clkdiv = read_CLKDIV(iface);
--	iface->saved_control = read_CONTROL(iface);
+-	gpio_set_value(state->enet_flash_pin, 0);
 -
--	free_irq(iface->irq, iface);
--
--	/* Disable TWI */
--	write_CONTROL(iface, iface->saved_control & ~TWI_ENA);
--
--	return 0;
+-	state->save_ambctl0 = bfin_read_EBIU_AMBCTL0();
+-	state->save_ambctl1 = bfin_read_EBIU_AMBCTL1();
+-	bfin_write_EBIU_AMBCTL0(state->flash_ambctl0);
+-	bfin_write_EBIU_AMBCTL1(state->flash_ambctl1);
+-	SSYNC();
 -}
 -
--static int i2c_bfin_twi_resume(struct device *dev)
+-static void switch_back(struct async_state *state)
 -{
--	struct bfin_twi_iface *iface = dev_get_drvdata(dev);
+-	bfin_write_EBIU_AMBCTL0(state->save_ambctl0);
+-	bfin_write_EBIU_AMBCTL1(state->save_ambctl1);
+-	SSYNC();
 -
--	int rc = request_irq(iface->irq, bfin_twi_interrupt_entry,
--		0, to_platform_device(dev)->name, iface);
--	if (rc) {
--		dev_err(dev, "Can't get IRQ %d !\n", iface->irq);
--		return -ENODEV;
--	}
+-	gpio_set_value(state->enet_flash_pin, 1);
 -
--	/* Resume TWI interface clock as specified */
--	write_CLKDIV(iface, iface->saved_clkdiv);
--
--	/* Resume TWI */
--	write_CONTROL(iface, iface->saved_control);
--
--	return 0;
+-	local_irq_restore(state->irq_flags);
 -}
 -
--static SIMPLE_DEV_PM_OPS(i2c_bfin_twi_pm,
--			 i2c_bfin_twi_suspend, i2c_bfin_twi_resume);
--#define I2C_BFIN_TWI_PM_OPS	(&i2c_bfin_twi_pm)
--#else
--#define I2C_BFIN_TWI_PM_OPS	NULL
--#endif
--
--static int i2c_bfin_twi_probe(struct platform_device *pdev)
+-static map_word bfin_flash_read(struct map_info *map, unsigned long ofs)
 -{
--	struct bfin_twi_iface *iface;
--	struct i2c_adapter *p_adap;
--	struct resource *res;
--	int rc;
--	unsigned int clkhilow;
+-	struct async_state *state = (struct async_state *)map->map_priv_1;
+-	uint16_t word;
+-	map_word test;
 -
--	iface = devm_kzalloc(&pdev->dev, sizeof(struct bfin_twi_iface),
--			GFP_KERNEL);
--	if (!iface) {
--		dev_err(&pdev->dev, "Cannot allocate memory\n");
+-	switch_to_flash(state);
+-
+-	word = readw(map->virt + ofs);
+-
+-	switch_back(state);
+-
+-	test.x[0] = word;
+-	return test;
+-}
+-
+-static void bfin_flash_copy_from(struct map_info *map, void *to, unsigned long from, ssize_t len)
+-{
+-	struct async_state *state = (struct async_state *)map->map_priv_1;
+-
+-	switch_to_flash(state);
+-
+-	memcpy(to, map->virt + from, len);
+-
+-	switch_back(state);
+-}
+-
+-static void bfin_flash_write(struct map_info *map, map_word d1, unsigned long ofs)
+-{
+-	struct async_state *state = (struct async_state *)map->map_priv_1;
+-	uint16_t d;
+-
+-	d = d1.x[0];
+-
+-	switch_to_flash(state);
+-
+-	writew(d, map->virt + ofs);
+-	SSYNC();
+-
+-	switch_back(state);
+-}
+-
+-static void bfin_flash_copy_to(struct map_info *map, unsigned long to, const void *from, ssize_t len)
+-{
+-	struct async_state *state = (struct async_state *)map->map_priv_1;
+-
+-	switch_to_flash(state);
+-
+-	memcpy(map->virt + to, from, len);
+-	SSYNC();
+-
+-	switch_back(state);
+-}
+-
+-static const char * const part_probe_types[] = {
+-	"cmdlinepart", "RedBoot", NULL };
+-
+-static int bfin_flash_probe(struct platform_device *pdev)
+-{
+-	struct physmap_flash_data *pdata = dev_get_platdata(&pdev->dev);
+-	struct resource *memory = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	struct resource *flash_ambctl = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+-	struct async_state *state;
+-
+-	state = kzalloc(sizeof(*state), GFP_KERNEL);
+-	if (!state)
 -		return -ENOMEM;
--	}
 -
--	spin_lock_init(&(iface->lock));
+-	state->map.name       = DRIVER_NAME;
+-	state->map.read       = bfin_flash_read;
+-	state->map.copy_from  = bfin_flash_copy_from;
+-	state->map.write      = bfin_flash_write;
+-	state->map.copy_to    = bfin_flash_copy_to;
+-	state->map.bankwidth  = pdata->width;
+-	state->map.size       = resource_size(memory);
+-	state->map.virt       = (void __iomem *)memory->start;
+-	state->map.phys       = memory->start;
+-	state->map.map_priv_1 = (unsigned long)state;
+-	state->enet_flash_pin = platform_get_irq(pdev, 0);
+-	state->flash_ambctl0  = flash_ambctl->start;
+-	state->flash_ambctl1  = flash_ambctl->end;
 -
--	/* Find and map our resources */
--	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
--	iface->regs_base = devm_ioremap_resource(&pdev->dev, res);
--	if (IS_ERR(iface->regs_base)) {
--		dev_err(&pdev->dev, "Cannot map IO\n");
--		return PTR_ERR(iface->regs_base);
--	}
--
--	iface->irq = platform_get_irq(pdev, 0);
--	if (iface->irq < 0) {
--		dev_err(&pdev->dev, "No IRQ specified\n");
--		return -ENOENT;
--	}
--
--	p_adap = &iface->adap;
--	p_adap->nr = pdev->id;
--	strlcpy(p_adap->name, pdev->name, sizeof(p_adap->name));
--	p_adap->algo = &bfin_twi_algorithm;
--	p_adap->algo_data = iface;
--	p_adap->class = I2C_CLASS_DEPRECATED;
--	p_adap->dev.parent = &pdev->dev;
--	p_adap->timeout = 5 * HZ;
--	p_adap->retries = 3;
--
--	rc = peripheral_request_list(
--			dev_get_platdata(&pdev->dev),
--			"i2c-bfin-twi");
--	if (rc) {
--		dev_err(&pdev->dev, "Can't setup pin mux!\n");
+-	if (gpio_request(state->enet_flash_pin, DRIVER_NAME)) {
+-		pr_devinit(KERN_ERR DRIVER_NAME ": Failed to request gpio %d\n", state->enet_flash_pin);
+-		kfree(state);
 -		return -EBUSY;
 -	}
+-	gpio_direction_output(state->enet_flash_pin, 1);
 -
--	rc = devm_request_irq(&pdev->dev, iface->irq, bfin_twi_interrupt_entry,
--		0, pdev->name, iface);
--	if (rc) {
--		dev_err(&pdev->dev, "Can't get IRQ %d !\n", iface->irq);
--		rc = -ENODEV;
--		goto out_error;
+-	pr_devinit(KERN_NOTICE DRIVER_NAME ": probing %d-bit flash bus\n", state->map.bankwidth * 8);
+-	state->mtd = do_map_probe(memory->name, &state->map);
+-	if (!state->mtd) {
+-		gpio_free(state->enet_flash_pin);
+-		kfree(state);
+-		return -ENXIO;
 -	}
 -
--	/* Set TWI internal clock as 10MHz */
--	write_CONTROL(iface, ((get_sclk() / 1000 / 1000 + 5) / 10) & 0x7F);
+-	mtd_device_parse_register(state->mtd, part_probe_types, NULL,
+-				  pdata->parts, pdata->nr_parts);
 -
--	/*
--	 * We will not end up with a CLKDIV=0 because no one will specify
--	 * 20kHz SCL or less in Kconfig now. (5 * 1000 / 20 = 250)
--	 */
--	clkhilow = ((10 * 1000 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ) + 1) / 2;
--
--	/* Set Twi interface clock as specified */
--	write_CLKDIV(iface, (clkhilow << 8) | clkhilow);
--
--	/* Enable TWI */
--	write_CONTROL(iface, read_CONTROL(iface) | TWI_ENA);
--
--	rc = i2c_add_numbered_adapter(p_adap);
--	if (rc < 0)
--		goto out_error;
--
--	platform_set_drvdata(pdev, iface);
--
--	dev_info(&pdev->dev, "Blackfin BF5xx on-chip I2C TWI Controller, "
--		"regs_base@%p\n", iface->regs_base);
+-	platform_set_drvdata(pdev, state);
 -
 -	return 0;
--
--out_error:
--	peripheral_free_list(dev_get_platdata(&pdev->dev));
--	return rc;
 -}
 -
--static int i2c_bfin_twi_remove(struct platform_device *pdev)
+-static int bfin_flash_remove(struct platform_device *pdev)
 -{
--	struct bfin_twi_iface *iface = platform_get_drvdata(pdev);
--
--	i2c_del_adapter(&(iface->adap));
--	peripheral_free_list(dev_get_platdata(&pdev->dev));
--
+-	struct async_state *state = platform_get_drvdata(pdev);
+-	gpio_free(state->enet_flash_pin);
+-	mtd_device_unregister(state->mtd);
+-	map_destroy(state->mtd);
+-	kfree(state);
 -	return 0;
 -}
 -
--static struct platform_driver i2c_bfin_twi_driver = {
--	.probe		= i2c_bfin_twi_probe,
--	.remove		= i2c_bfin_twi_remove,
+-static struct platform_driver bfin_flash_driver = {
+-	.probe		= bfin_flash_probe,
+-	.remove		= bfin_flash_remove,
 -	.driver		= {
--		.name	= "i2c-bfin-twi",
--		.pm	= I2C_BFIN_TWI_PM_OPS,
+-		.name	= DRIVER_NAME,
 -	},
 -};
 -
--static int __init i2c_bfin_twi_init(void)
--{
--	return platform_driver_register(&i2c_bfin_twi_driver);
--}
+-module_platform_driver(bfin_flash_driver);
 -
--static void __exit i2c_bfin_twi_exit(void)
--{
--	platform_driver_unregister(&i2c_bfin_twi_driver);
--}
--
--subsys_initcall(i2c_bfin_twi_init);
--module_exit(i2c_bfin_twi_exit);
--
--MODULE_AUTHOR("Bryan Wu, Sonic Zhang");
--MODULE_DESCRIPTION("Blackfin BF5xx on-chip I2C TWI Controller Driver");
 -MODULE_LICENSE("GPL");
--MODULE_ALIAS("platform:i2c-bfin-twi");
+-MODULE_DESCRIPTION("MTD map driver for Blackfins with flash/ethernet on same async bank");
+diff --git a/drivers/mtd/nand/Kconfig b/drivers/mtd/nand/Kconfig
+index 736ac88..c0bee1f0 100644
+--- a/drivers/mtd/nand/Kconfig
++++ b/drivers/mtd/nand/Kconfig
+@@ -116,38 +116,6 @@ config MTD_NAND_AU1550
+ 	  This enables the driver for the NAND flash controller on the
+ 	  AMD/Alchemy 1550 SOC.
+ 
+-config MTD_NAND_BF5XX
+-	tristate "Blackfin on-chip NAND Flash Controller driver"
+-	depends on BF54x || BF52x
+-	help
+-	  This enables the Blackfin on-chip NAND flash controller
+-
+-	  No board specific support is done by this driver, each board
+-	  must advertise a platform_device for the driver to attach.
+-
+-	  This driver can also be built as a module. If so, the module
+-	  will be called bf5xx-nand.
+-
+-config MTD_NAND_BF5XX_HWECC
+-	bool "BF5XX NAND Hardware ECC"
+-	default y
+-	depends on MTD_NAND_BF5XX
+-	help
+-	  Enable the use of the BF5XX's internal ECC generator when
+-	  using NAND.
+-
+-config MTD_NAND_BF5XX_BOOTROM_ECC
+-	bool "Use Blackfin BootROM ECC Layout"
+-	default n
+-	depends on MTD_NAND_BF5XX_HWECC
+-	help
+-	  If you wish to modify NAND pages and allow the Blackfin on-chip
+-	  BootROM to boot from them, say Y here.  This is only necessary
+-	  if you are booting U-Boot out of NAND and you wish to update
+-	  U-Boot from Linux' userspace.  Otherwise, you should say N here.
+-
+-	  If unsure, say N.
+-
+ config MTD_NAND_S3C2410
+ 	tristate "NAND Flash support for Samsung S3C SoCs"
+ 	depends on ARCH_S3C24XX || ARCH_S3C64XX
+diff --git a/drivers/mtd/nand/Makefile b/drivers/mtd/nand/Makefile
+index 921634b..08fc018 100644
+--- a/drivers/mtd/nand/Makefile
++++ b/drivers/mtd/nand/Makefile
+@@ -14,7 +14,6 @@ obj-$(CONFIG_MTD_NAND_DENALI)		+= denali.o
+ obj-$(CONFIG_MTD_NAND_DENALI_PCI)	+= denali_pci.o
+ obj-$(CONFIG_MTD_NAND_DENALI_DT)	+= denali_dt.o
+ obj-$(CONFIG_MTD_NAND_AU1550)		+= au1550nd.o
+-obj-$(CONFIG_MTD_NAND_BF5XX)		+= bf5xx_nand.o
+ obj-$(CONFIG_MTD_NAND_S3C2410)		+= s3c2410.o
+ obj-$(CONFIG_MTD_NAND_TANGO)		+= tango_nand.o
+ obj-$(CONFIG_MTD_NAND_DAVINCI)		+= davinci_nand.o
+diff --git a/drivers/mtd/nand/bf5xx_nand.c b/drivers/mtd/nand/bf5xx_nand.c
+deleted file mode 100644
+index 87bbd17..0000000
+--- a/drivers/mtd/nand/bf5xx_nand.c
++++ /dev/null
+@@ -1,862 +0,0 @@
+-/* linux/drivers/mtd/nand/bf5xx_nand.c
+- *
+- * Copyright 2006-2008 Analog Devices Inc.
+- *	http://blackfin.uclinux.org/
+- *	Bryan Wu <bryan.wu@analog.com>
+- *
+- * Blackfin BF5xx on-chip NAND flash controller driver
+- *
+- * Derived from drivers/mtd/nand/s3c2410.c
+- * Copyright (c) 2007 Ben Dooks <ben@simtec.co.uk>
+- *
+- * Derived from drivers/mtd/nand/cafe.c
+- * Copyright © 2006 Red Hat, Inc.
+- * Copyright © 2006 David Woodhouse <dwmw2@infradead.org>
+- *
+- * Changelog:
+- *	12-Jun-2007  Bryan Wu:  Initial version
+- *	18-Jul-2007  Bryan Wu:
+- *		- ECC_HW and ECC_SW supported
+- *		- DMA supported in ECC_HW
+- *		- YAFFS tested as rootfs in both ECC_HW and ECC_SW
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+-*/
+-
+-#include <linux/module.h>
+-#include <linux/types.h>
+-#include <linux/kernel.h>
+-#include <linux/string.h>
+-#include <linux/ioport.h>
+-#include <linux/platform_device.h>
+-#include <linux/delay.h>
+-#include <linux/dma-mapping.h>
+-#include <linux/err.h>
+-#include <linux/slab.h>
+-#include <linux/io.h>
+-#include <linux/bitops.h>
+-
+-#include <linux/mtd/mtd.h>
+-#include <linux/mtd/rawnand.h>
+-#include <linux/mtd/nand_ecc.h>
+-#include <linux/mtd/partitions.h>
+-
+-#include <asm/blackfin.h>
+-#include <asm/dma.h>
+-#include <asm/cacheflush.h>
+-#include <asm/nand.h>
+-#include <asm/portmux.h>
+-
+-#define DRV_NAME	"bf5xx-nand"
+-#define DRV_VERSION	"1.2"
+-#define DRV_AUTHOR	"Bryan Wu <bryan.wu@analog.com>"
+-#define DRV_DESC	"BF5xx on-chip NAND FLash Controller Driver"
+-
+-/* NFC_STAT Masks */
+-#define NBUSY       0x01  /* Not Busy */
+-#define WB_FULL     0x02  /* Write Buffer Full */
+-#define PG_WR_STAT  0x04  /* Page Write Pending */
+-#define PG_RD_STAT  0x08  /* Page Read Pending */
+-#define WB_EMPTY    0x10  /* Write Buffer Empty */
+-
+-/* NFC_IRQSTAT Masks */
+-#define NBUSYIRQ    0x01  /* Not Busy IRQ */
+-#define WB_OVF      0x02  /* Write Buffer Overflow */
+-#define WB_EDGE     0x04  /* Write Buffer Edge Detect */
+-#define RD_RDY      0x08  /* Read Data Ready */
+-#define WR_DONE     0x10  /* Page Write Done */
+-
+-/* NFC_RST Masks */
+-#define ECC_RST     0x01  /* ECC (and NFC counters) Reset */
+-
+-/* NFC_PGCTL Masks */
+-#define PG_RD_START 0x01  /* Page Read Start */
+-#define PG_WR_START 0x02  /* Page Write Start */
+-
+-#ifdef CONFIG_MTD_NAND_BF5XX_HWECC
+-static int hardware_ecc = 1;
+-#else
+-static int hardware_ecc;
+-#endif
+-
+-static const unsigned short bfin_nfc_pin_req[] =
+-	{P_NAND_CE,
+-	 P_NAND_RB,
+-	 P_NAND_D0,
+-	 P_NAND_D1,
+-	 P_NAND_D2,
+-	 P_NAND_D3,
+-	 P_NAND_D4,
+-	 P_NAND_D5,
+-	 P_NAND_D6,
+-	 P_NAND_D7,
+-	 P_NAND_WE,
+-	 P_NAND_RE,
+-	 P_NAND_CLE,
+-	 P_NAND_ALE,
+-	 0};
+-
+-#ifdef CONFIG_MTD_NAND_BF5XX_BOOTROM_ECC
+-static int bootrom_ooblayout_ecc(struct mtd_info *mtd, int section,
+-				 struct mtd_oob_region *oobregion)
+-{
+-	if (section > 7)
+-		return -ERANGE;
+-
+-	oobregion->offset = section * 8;
+-	oobregion->length = 3;
+-
+-	return 0;
+-}
+-
+-static int bootrom_ooblayout_free(struct mtd_info *mtd, int section,
+-				  struct mtd_oob_region *oobregion)
+-{
+-	if (section > 7)
+-		return -ERANGE;
+-
+-	oobregion->offset = (section * 8) + 3;
+-	oobregion->length = 5;
+-
+-	return 0;
+-}
+-
+-static const struct mtd_ooblayout_ops bootrom_ooblayout_ops = {
+-	.ecc = bootrom_ooblayout_ecc,
+-	.free = bootrom_ooblayout_free,
+-};
+-#endif
+-
+-/*
+- * Data structures for bf5xx nand flash controller driver
+- */
+-
+-/* bf5xx nand info */
+-struct bf5xx_nand_info {
+-	/* mtd info */
+-	struct nand_hw_control		controller;
+-	struct nand_chip		chip;
+-
+-	/* platform info */
+-	struct bf5xx_nand_platform	*platform;
+-
+-	/* device info */
+-	struct device			*device;
+-
+-	/* DMA stuff */
+-	struct completion		dma_completion;
+-};
+-
+-/*
+- * Conversion functions
+- */
+-static struct bf5xx_nand_info *mtd_to_nand_info(struct mtd_info *mtd)
+-{
+-	return container_of(mtd_to_nand(mtd), struct bf5xx_nand_info,
+-			    chip);
+-}
+-
+-static struct bf5xx_nand_info *to_nand_info(struct platform_device *pdev)
+-{
+-	return platform_get_drvdata(pdev);
+-}
+-
+-static struct bf5xx_nand_platform *to_nand_plat(struct platform_device *pdev)
+-{
+-	return dev_get_platdata(&pdev->dev);
+-}
+-
+-/*
+- * struct nand_chip interface function pointers
+- */
+-
+-/*
+- * bf5xx_nand_hwcontrol
+- *
+- * Issue command and address cycles to the chip
+- */
+-static void bf5xx_nand_hwcontrol(struct mtd_info *mtd, int cmd,
+-				   unsigned int ctrl)
+-{
+-	if (cmd == NAND_CMD_NONE)
+-		return;
+-
+-	while (bfin_read_NFC_STAT() & WB_FULL)
+-		cpu_relax();
+-
+-	if (ctrl & NAND_CLE)
+-		bfin_write_NFC_CMD(cmd);
+-	else if (ctrl & NAND_ALE)
+-		bfin_write_NFC_ADDR(cmd);
+-	SSYNC();
+-}
+-
+-/*
+- * bf5xx_nand_devready()
+- *
+- * returns 0 if the nand is busy, 1 if it is ready
+- */
+-static int bf5xx_nand_devready(struct mtd_info *mtd)
+-{
+-	unsigned short val = bfin_read_NFC_STAT();
+-
+-	if ((val & NBUSY) == NBUSY)
+-		return 1;
+-	else
+-		return 0;
+-}
+-
+-/*
+- * ECC functions
+- * These allow the bf5xx to use the controller's ECC
+- * generator block to ECC the data as it passes through
+- */
+-
+-/*
+- * ECC error correction function
+- */
+-static int bf5xx_nand_correct_data_256(struct mtd_info *mtd, u_char *dat,
+-					u_char *read_ecc, u_char *calc_ecc)
+-{
+-	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
+-	u32 syndrome[5];
+-	u32 calced, stored;
+-	int i;
+-	unsigned short failing_bit, failing_byte;
+-	u_char data;
+-
+-	calced = calc_ecc[0] | (calc_ecc[1] << 8) | (calc_ecc[2] << 16);
+-	stored = read_ecc[0] | (read_ecc[1] << 8) | (read_ecc[2] << 16);
+-
+-	syndrome[0] = (calced ^ stored);
+-
+-	/*
+-	 * syndrome 0: all zero
+-	 * No error in data
+-	 * No action
+-	 */
+-	if (!syndrome[0] || !calced || !stored)
+-		return 0;
+-
+-	/*
+-	 * sysdrome 0: only one bit is one
+-	 * ECC data was incorrect
+-	 * No action
+-	 */
+-	if (hweight32(syndrome[0]) == 1) {
+-		dev_err(info->device, "ECC data was incorrect!\n");
+-		return -EBADMSG;
+-	}
+-
+-	syndrome[1] = (calced & 0x7FF) ^ (stored & 0x7FF);
+-	syndrome[2] = (calced & 0x7FF) ^ ((calced >> 11) & 0x7FF);
+-	syndrome[3] = (stored & 0x7FF) ^ ((stored >> 11) & 0x7FF);
+-	syndrome[4] = syndrome[2] ^ syndrome[3];
+-
+-	for (i = 0; i < 5; i++)
+-		dev_info(info->device, "syndrome[%d] 0x%08x\n", i, syndrome[i]);
+-
+-	dev_info(info->device,
+-		"calced[0x%08x], stored[0x%08x]\n",
+-		calced, stored);
+-
+-	/*
+-	 * sysdrome 0: exactly 11 bits are one, each parity
+-	 * and parity' pair is 1 & 0 or 0 & 1.
+-	 * 1-bit correctable error
+-	 * Correct the error
+-	 */
+-	if (hweight32(syndrome[0]) == 11 && syndrome[4] == 0x7FF) {
+-		dev_info(info->device,
+-			"1-bit correctable error, correct it.\n");
+-		dev_info(info->device,
+-			"syndrome[1] 0x%08x\n", syndrome[1]);
+-
+-		failing_bit = syndrome[1] & 0x7;
+-		failing_byte = syndrome[1] >> 0x3;
+-		data = *(dat + failing_byte);
+-		data = data ^ (0x1 << failing_bit);
+-		*(dat + failing_byte) = data;
+-
+-		return 1;
+-	}
+-
+-	/*
+-	 * sysdrome 0: random data
+-	 * More than 1-bit error, non-correctable error
+-	 * Discard data, mark bad block
+-	 */
+-	dev_err(info->device,
+-		"More than 1-bit error, non-correctable error.\n");
+-	dev_err(info->device,
+-		"Please discard data, mark bad block\n");
+-
+-	return -EBADMSG;
+-}
+-
+-static int bf5xx_nand_correct_data(struct mtd_info *mtd, u_char *dat,
+-					u_char *read_ecc, u_char *calc_ecc)
+-{
+-	struct nand_chip *chip = mtd_to_nand(mtd);
+-	int ret, bitflips = 0;
+-
+-	ret = bf5xx_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
+-	if (ret < 0)
+-		return ret;
+-
+-	bitflips = ret;
+-
+-	/* If ecc size is 512, correct second 256 bytes */
+-	if (chip->ecc.size == 512) {
+-		dat += 256;
+-		read_ecc += 3;
+-		calc_ecc += 3;
+-		ret = bf5xx_nand_correct_data_256(mtd, dat, read_ecc, calc_ecc);
+-		if (ret < 0)
+-			return ret;
+-
+-		bitflips += ret;
+-	}
+-
+-	return bitflips;
+-}
+-
+-static void bf5xx_nand_enable_hwecc(struct mtd_info *mtd, int mode)
+-{
+-	return;
+-}
+-
+-static int bf5xx_nand_calculate_ecc(struct mtd_info *mtd,
+-		const u_char *dat, u_char *ecc_code)
+-{
+-	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
+-	struct nand_chip *chip = mtd_to_nand(mtd);
+-	u16 ecc0, ecc1;
+-	u32 code[2];
+-	u8 *p;
+-
+-	/* first 3 bytes ECC code for 256 page size */
+-	ecc0 = bfin_read_NFC_ECC0();
+-	ecc1 = bfin_read_NFC_ECC1();
+-
+-	code[0] = (ecc0 & 0x7ff) | ((ecc1 & 0x7ff) << 11);
+-
+-	dev_dbg(info->device, "returning ecc 0x%08x\n", code[0]);
+-
+-	p = (u8 *) code;
+-	memcpy(ecc_code, p, 3);
+-
+-	/* second 3 bytes ECC code for 512 ecc size */
+-	if (chip->ecc.size == 512) {
+-		ecc0 = bfin_read_NFC_ECC2();
+-		ecc1 = bfin_read_NFC_ECC3();
+-		code[1] = (ecc0 & 0x7ff) | ((ecc1 & 0x7ff) << 11);
+-
+-		/* second 3 bytes in ecc_code for second 256
+-		 * bytes of 512 page size
+-		 */
+-		p = (u8 *) (code + 1);
+-		memcpy((ecc_code + 3), p, 3);
+-		dev_dbg(info->device, "returning ecc 0x%08x\n", code[1]);
+-	}
+-
+-	return 0;
+-}
+-
+-/*
+- * PIO mode for buffer writing and reading
+- */
+-static void bf5xx_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
+-{
+-	int i;
+-	unsigned short val;
+-
+-	/*
+-	 * Data reads are requested by first writing to NFC_DATA_RD
+-	 * and then reading back from NFC_READ.
+-	 */
+-	for (i = 0; i < len; i++) {
+-		while (bfin_read_NFC_STAT() & WB_FULL)
+-			cpu_relax();
+-
+-		/* Contents do not matter */
+-		bfin_write_NFC_DATA_RD(0x0000);
+-		SSYNC();
+-
+-		while ((bfin_read_NFC_IRQSTAT() & RD_RDY) != RD_RDY)
+-			cpu_relax();
+-
+-		buf[i] = bfin_read_NFC_READ();
+-
+-		val = bfin_read_NFC_IRQSTAT();
+-		val |= RD_RDY;
+-		bfin_write_NFC_IRQSTAT(val);
+-		SSYNC();
+-	}
+-}
+-
+-static uint8_t bf5xx_nand_read_byte(struct mtd_info *mtd)
+-{
+-	uint8_t val;
+-
+-	bf5xx_nand_read_buf(mtd, &val, 1);
+-
+-	return val;
+-}
+-
+-static void bf5xx_nand_write_buf(struct mtd_info *mtd,
+-				const uint8_t *buf, int len)
+-{
+-	int i;
+-
+-	for (i = 0; i < len; i++) {
+-		while (bfin_read_NFC_STAT() & WB_FULL)
+-			cpu_relax();
+-
+-		bfin_write_NFC_DATA_WR(buf[i]);
+-		SSYNC();
+-	}
+-}
+-
+-static void bf5xx_nand_read_buf16(struct mtd_info *mtd, uint8_t *buf, int len)
+-{
+-	int i;
+-	u16 *p = (u16 *) buf;
+-	len >>= 1;
+-
+-	/*
+-	 * Data reads are requested by first writing to NFC_DATA_RD
+-	 * and then reading back from NFC_READ.
+-	 */
+-	bfin_write_NFC_DATA_RD(0x5555);
+-
+-	SSYNC();
+-
+-	for (i = 0; i < len; i++)
+-		p[i] = bfin_read_NFC_READ();
+-}
+-
+-static void bf5xx_nand_write_buf16(struct mtd_info *mtd,
+-				const uint8_t *buf, int len)
+-{
+-	int i;
+-	u16 *p = (u16 *) buf;
+-	len >>= 1;
+-
+-	for (i = 0; i < len; i++)
+-		bfin_write_NFC_DATA_WR(p[i]);
+-
+-	SSYNC();
+-}
+-
+-/*
+- * DMA functions for buffer writing and reading
+- */
+-static irqreturn_t bf5xx_nand_dma_irq(int irq, void *dev_id)
+-{
+-	struct bf5xx_nand_info *info = dev_id;
+-
+-	clear_dma_irqstat(CH_NFC);
+-	disable_dma(CH_NFC);
+-	complete(&info->dma_completion);
+-
+-	return IRQ_HANDLED;
+-}
+-
+-static void bf5xx_nand_dma_rw(struct mtd_info *mtd,
+-				uint8_t *buf, int is_read)
+-{
+-	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
+-	struct nand_chip *chip = mtd_to_nand(mtd);
+-	unsigned short val;
+-
+-	dev_dbg(info->device, " mtd->%p, buf->%p, is_read %d\n",
+-			mtd, buf, is_read);
+-
+-	/*
+-	 * Before starting a dma transfer, be sure to invalidate/flush
+-	 * the cache over the address range of your DMA buffer to
+-	 * prevent cache coherency problems. Otherwise very subtle bugs
+-	 * can be introduced to your driver.
+-	 */
+-	if (is_read)
+-		invalidate_dcache_range((unsigned int)buf,
+-				(unsigned int)(buf + chip->ecc.size));
+-	else
+-		flush_dcache_range((unsigned int)buf,
+-				(unsigned int)(buf + chip->ecc.size));
+-
+-	/*
+-	 * This register must be written before each page is
+-	 * transferred to generate the correct ECC register
+-	 * values.
+-	 */
+-	bfin_write_NFC_RST(ECC_RST);
+-	SSYNC();
+-	while (bfin_read_NFC_RST() & ECC_RST)
+-		cpu_relax();
+-
+-	disable_dma(CH_NFC);
+-	clear_dma_irqstat(CH_NFC);
+-
+-	/* setup DMA register with Blackfin DMA API */
+-	set_dma_config(CH_NFC, 0x0);
+-	set_dma_start_addr(CH_NFC, (unsigned long) buf);
+-
+-	/* The DMAs have different size on BF52x and BF54x */
+-#ifdef CONFIG_BF52x
+-	set_dma_x_count(CH_NFC, (chip->ecc.size >> 1));
+-	set_dma_x_modify(CH_NFC, 2);
+-	val = DI_EN | WDSIZE_16;
+-#endif
+-
+-#ifdef CONFIG_BF54x
+-	set_dma_x_count(CH_NFC, (chip->ecc.size >> 2));
+-	set_dma_x_modify(CH_NFC, 4);
+-	val = DI_EN | WDSIZE_32;
+-#endif
+-	/* setup write or read operation */
+-	if (is_read)
+-		val |= WNR;
+-	set_dma_config(CH_NFC, val);
+-	enable_dma(CH_NFC);
+-
+-	/* Start PAGE read/write operation */
+-	if (is_read)
+-		bfin_write_NFC_PGCTL(PG_RD_START);
+-	else
+-		bfin_write_NFC_PGCTL(PG_WR_START);
+-	wait_for_completion(&info->dma_completion);
+-}
+-
+-static void bf5xx_nand_dma_read_buf(struct mtd_info *mtd,
+-					uint8_t *buf, int len)
+-{
+-	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
+-	struct nand_chip *chip = mtd_to_nand(mtd);
+-
+-	dev_dbg(info->device, "mtd->%p, buf->%p, int %d\n", mtd, buf, len);
+-
+-	if (len == chip->ecc.size)
+-		bf5xx_nand_dma_rw(mtd, buf, 1);
+-	else
+-		bf5xx_nand_read_buf(mtd, buf, len);
+-}
+-
+-static void bf5xx_nand_dma_write_buf(struct mtd_info *mtd,
+-				const uint8_t *buf, int len)
+-{
+-	struct bf5xx_nand_info *info = mtd_to_nand_info(mtd);
+-	struct nand_chip *chip = mtd_to_nand(mtd);
+-
+-	dev_dbg(info->device, "mtd->%p, buf->%p, len %d\n", mtd, buf, len);
+-
+-	if (len == chip->ecc.size)
+-		bf5xx_nand_dma_rw(mtd, (uint8_t *)buf, 0);
+-	else
+-		bf5xx_nand_write_buf(mtd, buf, len);
+-}
+-
+-static int bf5xx_nand_read_page_raw(struct mtd_info *mtd, struct nand_chip *chip,
+-		uint8_t *buf, int oob_required, int page)
+-{
+-	nand_read_page_op(chip, page, 0, NULL, 0);
+-
+-	bf5xx_nand_read_buf(mtd, buf, mtd->writesize);
+-	bf5xx_nand_read_buf(mtd, chip->oob_poi, mtd->oobsize);
+-
+-	return 0;
+-}
+-
+-static int bf5xx_nand_write_page_raw(struct mtd_info *mtd,
+-		struct nand_chip *chip,	const uint8_t *buf, int oob_required,
+-		int page)
+-{
+-	nand_prog_page_begin_op(chip, page, 0, buf, mtd->writesize);
+-	bf5xx_nand_write_buf(mtd, chip->oob_poi, mtd->oobsize);
+-
+-	return nand_prog_page_end_op(chip);
+-}
+-
+-/*
+- * System initialization functions
+- */
+-static int bf5xx_nand_dma_init(struct bf5xx_nand_info *info)
+-{
+-	int ret;
+-
+-	/* Do not use dma */
+-	if (!hardware_ecc)
+-		return 0;
+-
+-	init_completion(&info->dma_completion);
+-
+-	/* Request NFC DMA channel */
+-	ret = request_dma(CH_NFC, "BF5XX NFC driver");
+-	if (ret < 0) {
+-		dev_err(info->device, " unable to get DMA channel\n");
+-		return ret;
+-	}
+-
+-#ifdef CONFIG_BF54x
+-	/* Setup DMAC1 channel mux for NFC which shared with SDH */
+-	bfin_write_DMAC1_PERIMUX(bfin_read_DMAC1_PERIMUX() & ~1);
+-	SSYNC();
+-#endif
+-
+-	set_dma_callback(CH_NFC, bf5xx_nand_dma_irq, info);
+-
+-	/* Turn off the DMA channel first */
+-	disable_dma(CH_NFC);
+-	return 0;
+-}
+-
+-static void bf5xx_nand_dma_remove(struct bf5xx_nand_info *info)
+-{
+-	/* Free NFC DMA channel */
+-	if (hardware_ecc)
+-		free_dma(CH_NFC);
+-}
+-
+-/*
+- * BF5XX NFC hardware initialization
+- *  - pin mux setup
+- *  - clear interrupt status
+- */
+-static int bf5xx_nand_hw_init(struct bf5xx_nand_info *info)
+-{
+-	int err = 0;
+-	unsigned short val;
+-	struct bf5xx_nand_platform *plat = info->platform;
+-
+-	/* setup NFC_CTL register */
+-	dev_info(info->device,
+-		"data_width=%d, wr_dly=%d, rd_dly=%d\n",
+-		(plat->data_width ? 16 : 8),
+-		plat->wr_dly, plat->rd_dly);
+-
+-	val = (1 << NFC_PG_SIZE_OFFSET) |
+-		(plat->data_width << NFC_NWIDTH_OFFSET) |
+-		(plat->rd_dly << NFC_RDDLY_OFFSET) |
+-		(plat->wr_dly << NFC_WRDLY_OFFSET);
+-	dev_dbg(info->device, "NFC_CTL is 0x%04x\n", val);
+-
+-	bfin_write_NFC_CTL(val);
+-	SSYNC();
+-
+-	/* clear interrupt status */
+-	bfin_write_NFC_IRQMASK(0x0);
+-	SSYNC();
+-	val = bfin_read_NFC_IRQSTAT();
+-	bfin_write_NFC_IRQSTAT(val);
+-	SSYNC();
+-
+-	/* DMA initialization  */
+-	if (bf5xx_nand_dma_init(info))
+-		err = -ENXIO;
+-
+-	return err;
+-}
+-
+-/*
+- * Device management interface
+- */
+-static int bf5xx_nand_add_partition(struct bf5xx_nand_info *info)
+-{
+-	struct mtd_info *mtd = nand_to_mtd(&info->chip);
+-	struct mtd_partition *parts = info->platform->partitions;
+-	int nr = info->platform->nr_partitions;
+-
+-	return mtd_device_register(mtd, parts, nr);
+-}
+-
+-static int bf5xx_nand_remove(struct platform_device *pdev)
+-{
+-	struct bf5xx_nand_info *info = to_nand_info(pdev);
+-
+-	/* first thing we need to do is release all our mtds
+-	 * and their partitions, then go through freeing the
+-	 * resources used
+-	 */
+-	nand_release(nand_to_mtd(&info->chip));
+-
+-	peripheral_free_list(bfin_nfc_pin_req);
+-	bf5xx_nand_dma_remove(info);
+-
+-	return 0;
+-}
+-
+-static int bf5xx_nand_scan(struct mtd_info *mtd)
+-{
+-	struct nand_chip *chip = mtd_to_nand(mtd);
+-	int ret;
+-
+-	ret = nand_scan_ident(mtd, 1, NULL);
+-	if (ret)
+-		return ret;
+-
+-	if (hardware_ecc) {
+-		/*
+-		 * for nand with page size > 512B, think it as several sections with 512B
+-		 */
+-		if (likely(mtd->writesize >= 512)) {
+-			chip->ecc.size = 512;
+-			chip->ecc.bytes = 6;
+-			chip->ecc.strength = 2;
+-		} else {
+-			chip->ecc.size = 256;
+-			chip->ecc.bytes = 3;
+-			chip->ecc.strength = 1;
+-			bfin_write_NFC_CTL(bfin_read_NFC_CTL() & ~(1 << NFC_PG_SIZE_OFFSET));
+-			SSYNC();
+-		}
+-	}
+-
+-	return	nand_scan_tail(mtd);
+-}
+-
+-/*
+- * bf5xx_nand_probe
+- *
+- * called by device layer when it finds a device matching
+- * one our driver can handled. This code checks to see if
+- * it can allocate all necessary resources then calls the
+- * nand layer to look for devices
+- */
+-static int bf5xx_nand_probe(struct platform_device *pdev)
+-{
+-	struct bf5xx_nand_platform *plat = to_nand_plat(pdev);
+-	struct bf5xx_nand_info *info = NULL;
+-	struct nand_chip *chip = NULL;
+-	struct mtd_info *mtd = NULL;
+-	int err = 0;
+-
+-	dev_dbg(&pdev->dev, "(%p)\n", pdev);
+-
+-	if (!plat) {
+-		dev_err(&pdev->dev, "no platform specific information\n");
+-		return -EINVAL;
+-	}
+-
+-	if (peripheral_request_list(bfin_nfc_pin_req, DRV_NAME)) {
+-		dev_err(&pdev->dev, "requesting Peripherals failed\n");
+-		return -EFAULT;
+-	}
+-
+-	info = devm_kzalloc(&pdev->dev, sizeof(*info), GFP_KERNEL);
+-	if (info == NULL) {
+-		err = -ENOMEM;
+-		goto out_err;
+-	}
+-
+-	platform_set_drvdata(pdev, info);
+-
+-	nand_hw_control_init(&info->controller);
+-
+-	info->device     = &pdev->dev;
+-	info->platform   = plat;
+-
+-	/* initialise chip data struct */
+-	chip = &info->chip;
+-	mtd = nand_to_mtd(&info->chip);
+-
+-	if (plat->data_width)
+-		chip->options |= NAND_BUSWIDTH_16;
+-
+-	chip->options |= NAND_CACHEPRG | NAND_SKIP_BBTSCAN;
+-
+-	chip->read_buf = (plat->data_width) ?
+-		bf5xx_nand_read_buf16 : bf5xx_nand_read_buf;
+-	chip->write_buf = (plat->data_width) ?
+-		bf5xx_nand_write_buf16 : bf5xx_nand_write_buf;
+-
+-	chip->read_byte    = bf5xx_nand_read_byte;
+-
+-	chip->cmd_ctrl     = bf5xx_nand_hwcontrol;
+-	chip->dev_ready    = bf5xx_nand_devready;
+-
+-	nand_set_controller_data(chip, mtd);
+-	chip->controller   = &info->controller;
+-
+-	chip->IO_ADDR_R    = (void __iomem *) NFC_READ;
+-	chip->IO_ADDR_W    = (void __iomem *) NFC_DATA_WR;
+-
+-	chip->chip_delay   = 0;
+-
+-	/* initialise mtd info data struct */
+-	mtd->dev.parent = &pdev->dev;
+-
+-	/* initialise the hardware */
+-	err = bf5xx_nand_hw_init(info);
+-	if (err)
+-		goto out_err;
+-
+-	/* setup hardware ECC data struct */
+-	if (hardware_ecc) {
+-#ifdef CONFIG_MTD_NAND_BF5XX_BOOTROM_ECC
+-		mtd_set_ooblayout(mtd, &bootrom_ooblayout_ops);
+-#endif
+-		chip->read_buf      = bf5xx_nand_dma_read_buf;
+-		chip->write_buf     = bf5xx_nand_dma_write_buf;
+-		chip->ecc.calculate = bf5xx_nand_calculate_ecc;
+-		chip->ecc.correct   = bf5xx_nand_correct_data;
+-		chip->ecc.mode	    = NAND_ECC_HW;
+-		chip->ecc.hwctl	    = bf5xx_nand_enable_hwecc;
+-		chip->ecc.read_page_raw = bf5xx_nand_read_page_raw;
+-		chip->ecc.write_page_raw = bf5xx_nand_write_page_raw;
+-	} else {
+-		chip->ecc.mode	    = NAND_ECC_SOFT;
+-		chip->ecc.algo	= NAND_ECC_HAMMING;
+-	}
+-
+-	/* scan hardware nand chip and setup mtd info data struct */
+-	if (bf5xx_nand_scan(mtd)) {
+-		err = -ENXIO;
+-		goto out_err_nand_scan;
+-	}
+-
+-#ifdef CONFIG_MTD_NAND_BF5XX_BOOTROM_ECC
+-	chip->badblockpos = 63;
+-#endif
+-
+-	/* add NAND partition */
+-	bf5xx_nand_add_partition(info);
+-
+-	dev_dbg(&pdev->dev, "initialised ok\n");
+-	return 0;
+-
+-out_err_nand_scan:
+-	bf5xx_nand_dma_remove(info);
+-out_err:
+-	peripheral_free_list(bfin_nfc_pin_req);
+-
+-	return err;
+-}
+-
+-/* driver device registration */
+-static struct platform_driver bf5xx_nand_driver = {
+-	.probe		= bf5xx_nand_probe,
+-	.remove		= bf5xx_nand_remove,
+-	.driver		= {
+-		.name	= DRV_NAME,
+-	},
+-};
+-
+-module_platform_driver(bf5xx_nand_driver);
+-
+-MODULE_LICENSE("GPL");
+-MODULE_AUTHOR(DRV_AUTHOR);
+-MODULE_DESCRIPTION(DRV_DESC);
+-MODULE_ALIAS("platform:" DRV_NAME);
 -- 
 2.7.4
