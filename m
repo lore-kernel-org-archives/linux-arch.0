@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0050.outbound.protection.outlook.com ([104.47.32.50]:31520
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-bn3nam01on0081.outbound.protection.outlook.com ([104.47.33.81]:50720
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752168AbeCOLCD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 15 Mar 2018 07:02:03 -0400
+        id S1752063AbeCOLAf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 15 Mar 2018 07:00:35 -0400
 From: Aaron Wu <aaron.wu@analog.com>
-Subject: [Blackfin removal] [PATCH 22/28] can: Remove Blackfin CAN bus support
-Date: Thu, 15 Mar 2018 18:50:22 +0800
-Message-ID: <1521111028-19856-22-git-send-email-aaron.wu@analog.com>
+Subject: [Blackfin removal] [PATCH 10/28] i2c: Remove Blackfin I2C bus support
+Date: Thu, 15 Mar 2018 18:50:10 +0800
+Message-ID: <1521111028-19856-10-git-send-email-aaron.wu@analog.com>
 In-Reply-To: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 References: <1521111028-19856-1-git-send-email-aaron.wu@analog.com>
 MIME-Version: 1.0
@@ -19,56 +19,65 @@ Cc: viro@zeniv.linux.org.uk, jhogan@kernel.org, linux-metag@vger.kernel.org, jon
 
 Signed-off-by: Aaron Wu <aaron.wu@analog.com>
 
-Remove Blackfin CAN bus support
+Remove Blackfin I2C bus support
 ---
- drivers/net/can/Kconfig    |   9 -
- drivers/net/can/Makefile   |   1 -
- drivers/net/can/bfin_can.c | 784 ---------------------------------------------
- 3 files changed, 794 deletions(-)
- delete mode 100644 drivers/net/can/bfin_can.c
+ drivers/i2c/busses/Kconfig        |  18 -
+ drivers/i2c/busses/Makefile       |   1 -
+ drivers/i2c/busses/i2c-bfin-twi.c | 737 --------------------------------------
+ 3 files changed, 756 deletions(-)
+ delete mode 100644 drivers/i2c/busses/i2c-bfin-twi.c
 
-diff --git a/drivers/net/can/Kconfig b/drivers/net/can/Kconfig
-index ac4ff39..2cb7598 100644
---- a/drivers/net/can/Kconfig
-+++ b/drivers/net/can/Kconfig
-@@ -88,15 +88,6 @@ config CAN_AT91
- 	  This is a driver for the SoC CAN controller in Atmel's AT91SAM9263
- 	  and AT91SAM9X5 processors.
+diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
+index e2954fb..8ffe2bc 100644
+--- a/drivers/i2c/busses/Kconfig
++++ b/drivers/i2c/busses/Kconfig
+@@ -445,24 +445,6 @@ config I2C_BRCMSTB
  
--config CAN_BFIN
--	depends on BF534 || BF536 || BF537 || BF538 || BF539 || BF54x
--	tristate "Analog Devices Blackfin on-chip CAN"
--	---help---
--	  Driver for the Analog Devices Blackfin on-chip CAN controllers
--
--	  To compile this driver as a module, choose M here: the
--	  module will be called bfin_can.
--
- config CAN_FLEXCAN
- 	tristate "Support for Freescale FLEXCAN based chips"
- 	depends on ARM || PPC
-diff --git a/drivers/net/can/Makefile b/drivers/net/can/Makefile
-index 02b8ed7..44922bf 100644
---- a/drivers/net/can/Makefile
-+++ b/drivers/net/can/Makefile
-@@ -19,7 +19,6 @@ obj-y				+= usb/
- obj-y				+= softing/
+ 	  If you do not need I2C interface, say N.
  
- obj-$(CONFIG_CAN_AT91)		+= at91_can.o
--obj-$(CONFIG_CAN_BFIN)		+= bfin_can.o
- obj-$(CONFIG_CAN_CC770)		+= cc770/
- obj-$(CONFIG_CAN_C_CAN)		+= c_can/
- obj-$(CONFIG_CAN_FLEXCAN)	+= flexcan.o
-diff --git a/drivers/net/can/bfin_can.c b/drivers/net/can/bfin_can.c
+-config I2C_BLACKFIN_TWI
+-	tristate "Blackfin TWI I2C support"
+-	depends on BLACKFIN
+-	depends on !BF561 && !BF531 && !BF532 && !BF533
+-	help
+-	  This is the I2C bus driver for Blackfin on-chip TWI interface.
+-
+-	  This driver can also be built as a module.  If so, the module
+-	  will be called i2c-bfin-twi.
+-
+-config I2C_BLACKFIN_TWI_CLK_KHZ
+-	int "Blackfin TWI I2C clock (kHz)"
+-	depends on I2C_BLACKFIN_TWI
+-	range 21 400
+-	default 50
+-	help
+-	  The unit of the TWI clock is kHz.
+-
+ config I2C_CADENCE
+ 	tristate "Cadence I2C Controller"
+ 	depends on ARCH_ZYNQ || ARM64 || XTENSA
+diff --git a/drivers/i2c/busses/Makefile b/drivers/i2c/busses/Makefile
+index 2ce8576..9e475a5 100644
+--- a/drivers/i2c/busses/Makefile
++++ b/drivers/i2c/busses/Makefile
+@@ -38,7 +38,6 @@ obj-$(CONFIG_I2C_AU1550)	+= i2c-au1550.o
+ obj-$(CONFIG_I2C_AXXIA)		+= i2c-axxia.o
+ obj-$(CONFIG_I2C_BCM2835)	+= i2c-bcm2835.o
+ obj-$(CONFIG_I2C_BCM_IPROC)	+= i2c-bcm-iproc.o
+-obj-$(CONFIG_I2C_BLACKFIN_TWI)	+= i2c-bfin-twi.o
+ obj-$(CONFIG_I2C_CADENCE)	+= i2c-cadence.o
+ obj-$(CONFIG_I2C_CBUS_GPIO)	+= i2c-cbus-gpio.o
+ obj-$(CONFIG_I2C_CPM)		+= i2c-cpm.o
+diff --git a/drivers/i2c/busses/i2c-bfin-twi.c b/drivers/i2c/busses/i2c-bfin-twi.c
 deleted file mode 100644
-index 1deb8ff9..0000000
---- a/drivers/net/can/bfin_can.c
+index ff33431..0000000
+--- a/drivers/i2c/busses/i2c-bfin-twi.c
 +++ /dev/null
-@@ -1,784 +0,0 @@
+@@ -1,737 +0,0 @@
 -/*
-- * Blackfin On-Chip CAN Driver
+- * Blackfin On-Chip Two Wire Interface Driver
 - *
-- * Copyright 2004-2009 Analog Devices Inc.
+- * Copyright 2005-2007 Analog Devices Inc.
 - *
 - * Enter bugs at http://blackfin.uclinux.org/
 - *
@@ -77,777 +86,730 @@ index 1deb8ff9..0000000
 -
 -#include <linux/module.h>
 -#include <linux/kernel.h>
--#include <linux/bitops.h>
+-#include <linux/init.h>
+-#include <linux/i2c.h>
+-#include <linux/slab.h>
+-#include <linux/io.h>
+-#include <linux/mm.h>
+-#include <linux/timer.h>
+-#include <linux/spinlock.h>
+-#include <linux/completion.h>
 -#include <linux/interrupt.h>
--#include <linux/errno.h>
--#include <linux/netdevice.h>
--#include <linux/skbuff.h>
 -#include <linux/platform_device.h>
+-#include <linux/delay.h>
 -
--#include <linux/can/dev.h>
--#include <linux/can/error.h>
--
+-#include <asm/irq.h>
 -#include <asm/portmux.h>
+-#include <asm/bfin_twi.h>
 -
--#define DRV_NAME "bfin_can"
--#define BFIN_CAN_TIMEOUT 100
--#define TX_ECHO_SKB_MAX  1
+-/* SMBus mode*/
+-#define TWI_I2C_MODE_STANDARD		1
+-#define TWI_I2C_MODE_STANDARDSUB	2
+-#define TWI_I2C_MODE_COMBINED		3
+-#define TWI_I2C_MODE_REPEAT		4
 -
--/* transmit and receive channels */
--#define TRANSMIT_CHL 24
--#define RECEIVE_STD_CHL 0
--#define RECEIVE_EXT_CHL 4
--#define RECEIVE_RTR_CHL 8
--#define RECEIVE_EXT_RTR_CHL 12
--#define MAX_CHL_NUMBER 32
--
--/* All Blackfin system MMRs are padded to 32bits even if the register
-- * itself is only 16bits.  So use a helper macro to streamline this
-- */
--#define __BFP(m) u16 m; u16 __pad_##m
--
--/* bfin can registers layout */
--struct bfin_can_mask_regs {
--	__BFP(aml);
--	__BFP(amh);
--};
--
--struct bfin_can_channel_regs {
--	/* data[0,2,4,6] -> data{0,1,2,3} while data[1,3,5,7] is padding */
--	u16 data[8];
--	__BFP(dlc);
--	__BFP(tsv);
--	__BFP(id0);
--	__BFP(id1);
--};
--
--struct bfin_can_regs {
--	/* global control and status registers */
--	__BFP(mc1);		/* offset 0x00 */
--	__BFP(md1);		/* offset 0x04 */
--	__BFP(trs1);		/* offset 0x08 */
--	__BFP(trr1);		/* offset 0x0c */
--	__BFP(ta1);		/* offset 0x10 */
--	__BFP(aa1);		/* offset 0x14 */
--	__BFP(rmp1);		/* offset 0x18 */
--	__BFP(rml1);		/* offset 0x1c */
--	__BFP(mbtif1);		/* offset 0x20 */
--	__BFP(mbrif1);		/* offset 0x24 */
--	__BFP(mbim1);		/* offset 0x28 */
--	__BFP(rfh1);		/* offset 0x2c */
--	__BFP(opss1);		/* offset 0x30 */
--	u32 __pad1[3];
--	__BFP(mc2);		/* offset 0x40 */
--	__BFP(md2);		/* offset 0x44 */
--	__BFP(trs2);		/* offset 0x48 */
--	__BFP(trr2);		/* offset 0x4c */
--	__BFP(ta2);		/* offset 0x50 */
--	__BFP(aa2);		/* offset 0x54 */
--	__BFP(rmp2);		/* offset 0x58 */
--	__BFP(rml2);		/* offset 0x5c */
--	__BFP(mbtif2);		/* offset 0x60 */
--	__BFP(mbrif2);		/* offset 0x64 */
--	__BFP(mbim2);		/* offset 0x68 */
--	__BFP(rfh2);		/* offset 0x6c */
--	__BFP(opss2);		/* offset 0x70 */
--	u32 __pad2[3];
--	__BFP(clock);		/* offset 0x80 */
--	__BFP(timing);		/* offset 0x84 */
--	__BFP(debug);		/* offset 0x88 */
--	__BFP(status);		/* offset 0x8c */
--	__BFP(cec);		/* offset 0x90 */
--	__BFP(gis);		/* offset 0x94 */
--	__BFP(gim);		/* offset 0x98 */
--	__BFP(gif);		/* offset 0x9c */
--	__BFP(control);		/* offset 0xa0 */
--	__BFP(intr);		/* offset 0xa4 */
--	__BFP(version);		/* offset 0xa8 */
--	__BFP(mbtd);		/* offset 0xac */
--	__BFP(ewr);		/* offset 0xb0 */
--	__BFP(esr);		/* offset 0xb4 */
--	u32 __pad3[2];
--	__BFP(ucreg);		/* offset 0xc0 */
--	__BFP(uccnt);		/* offset 0xc4 */
--	__BFP(ucrc);		/* offset 0xc8 */
--	__BFP(uccnf);		/* offset 0xcc */
--	u32 __pad4[1];
--	__BFP(version2);	/* offset 0xd4 */
--	u32 __pad5[10];
--
--	/* channel(mailbox) mask and message registers */
--	struct bfin_can_mask_regs msk[MAX_CHL_NUMBER];		/* offset 0x100 */
--	struct bfin_can_channel_regs chl[MAX_CHL_NUMBER];	/* offset 0x200 */
--};
--
--#undef __BFP
--
--#define SRS 0x0001		/* Software Reset */
--#define SER 0x0008		/* Stuff Error */
--#define BOIM 0x0008		/* Enable Bus Off Interrupt */
--#define CCR 0x0080		/* CAN Configuration Mode Request */
--#define CCA 0x0080		/* Configuration Mode Acknowledge */
--#define SAM 0x0080		/* Sampling */
--#define AME 0x8000		/* Acceptance Mask Enable */
--#define RMLIM 0x0080		/* Enable RX Message Lost Interrupt */
--#define RMLIS 0x0080		/* RX Message Lost IRQ Status */
--#define RTR 0x4000		/* Remote Frame Transmission Request */
--#define BOIS 0x0008		/* Bus Off IRQ Status */
--#define IDE 0x2000		/* Identifier Extension */
--#define EPIS 0x0004		/* Error-Passive Mode IRQ Status */
--#define EPIM 0x0004		/* Enable Error-Passive Mode Interrupt */
--#define EWTIS 0x0001		/* TX Error Count IRQ Status */
--#define EWRIS 0x0002		/* RX Error Count IRQ Status */
--#define BEF 0x0040		/* Bit Error Flag */
--#define FER 0x0080		/* Form Error Flag */
--#define SMR 0x0020		/* Sleep Mode Request */
--#define SMACK 0x0008		/* Sleep Mode Acknowledge */
--
--/*
-- * bfin can private data
-- */
--struct bfin_can_priv {
--	struct can_priv can;	/* must be the first member */
--	struct net_device *dev;
--	void __iomem *membase;
--	int rx_irq;
--	int tx_irq;
--	int err_irq;
--	unsigned short *pin_list;
--};
--
--/*
-- * bfin can timing parameters
-- */
--static const struct can_bittiming_const bfin_can_bittiming_const = {
--	.name = DRV_NAME,
--	.tseg1_min = 1,
--	.tseg1_max = 16,
--	.tseg2_min = 1,
--	.tseg2_max = 8,
--	.sjw_max = 4,
--	/*
--	 * Although the BRP field can be set to any value, it is recommended
--	 * that the value be greater than or equal to 4, as restrictions
--	 * apply to the bit timing configuration when BRP is less than 4.
--	 */
--	.brp_min = 4,
--	.brp_max = 1024,
--	.brp_inc = 1,
--};
--
--static int bfin_can_set_bittiming(struct net_device *dev)
+-static void bfin_twi_handle_interrupt(struct bfin_twi_iface *iface,
+-					unsigned short twi_int_status)
 -{
--	struct bfin_can_priv *priv = netdev_priv(dev);
--	struct bfin_can_regs __iomem *reg = priv->membase;
--	struct can_bittiming *bt = &priv->can.bittiming;
--	u16 clk, timing;
+-	unsigned short mast_stat = read_MASTER_STAT(iface);
 -
--	clk = bt->brp - 1;
--	timing = ((bt->sjw - 1) << 8) | (bt->prop_seg + bt->phase_seg1 - 1) |
--		((bt->phase_seg2 - 1) << 4);
--
--	/*
--	 * If the SAM bit is set, the input signal is oversampled three times
--	 * at the SCLK rate.
--	 */
--	if (priv->can.ctrlmode & CAN_CTRLMODE_3_SAMPLES)
--		timing |= SAM;
--
--	writew(clk, &reg->clock);
--	writew(timing, &reg->timing);
--
--	netdev_info(dev, "setting CLOCK=0x%04x TIMING=0x%04x\n", clk, timing);
--
--	return 0;
--}
--
--static void bfin_can_set_reset_mode(struct net_device *dev)
--{
--	struct bfin_can_priv *priv = netdev_priv(dev);
--	struct bfin_can_regs __iomem *reg = priv->membase;
--	int timeout = BFIN_CAN_TIMEOUT;
--	int i;
--
--	/* disable interrupts */
--	writew(0, &reg->mbim1);
--	writew(0, &reg->mbim2);
--	writew(0, &reg->gim);
--
--	/* reset can and enter configuration mode */
--	writew(SRS | CCR, &reg->control);
--	writew(CCR, &reg->control);
--	while (!(readw(&reg->control) & CCA)) {
--		udelay(10);
--		if (--timeout == 0) {
--			netdev_err(dev, "fail to enter configuration mode\n");
--			BUG();
+-	if (twi_int_status & XMTSERV) {
+-		if (iface->writeNum <= 0) {
+-			/* start receive immediately after complete sending in
+-			 * combine mode.
+-			 */
+-			if (iface->cur_mode == TWI_I2C_MODE_COMBINED)
+-				write_MASTER_CTL(iface,
+-					read_MASTER_CTL(iface) | MDIR);
+-			else if (iface->manual_stop)
+-				write_MASTER_CTL(iface,
+-					read_MASTER_CTL(iface) | STOP);
+-			else if (iface->cur_mode == TWI_I2C_MODE_REPEAT &&
+-				iface->cur_msg + 1 < iface->msg_num) {
+-				if (iface->pmsg[iface->cur_msg + 1].flags &
+-					I2C_M_RD)
+-					write_MASTER_CTL(iface,
+-						read_MASTER_CTL(iface) |
+-						MDIR);
+-				else
+-					write_MASTER_CTL(iface,
+-						read_MASTER_CTL(iface) &
+-						~MDIR);
+-			}
+-		}
+-		/* Transmit next data */
+-		while (iface->writeNum > 0 &&
+-			(read_FIFO_STAT(iface) & XMTSTAT) != XMT_FULL) {
+-			write_XMT_DATA8(iface, *(iface->transPtr++));
+-			iface->writeNum--;
 -		}
 -	}
--
--	/*
--	 * All mailbox configurations are marked as inactive
--	 * by writing to CAN Mailbox Configuration Registers 1 and 2
--	 * For all bits: 0 - Mailbox disabled, 1 - Mailbox enabled
--	 */
--	writew(0, &reg->mc1);
--	writew(0, &reg->mc2);
--
--	/* Set Mailbox Direction */
--	writew(0xFFFF, &reg->md1);   /* mailbox 1-16 are RX */
--	writew(0, &reg->md2);   /* mailbox 17-32 are TX */
--
--	/* RECEIVE_STD_CHL */
--	for (i = 0; i < 2; i++) {
--		writew(0, &reg->chl[RECEIVE_STD_CHL + i].id0);
--		writew(AME, &reg->chl[RECEIVE_STD_CHL + i].id1);
--		writew(0, &reg->chl[RECEIVE_STD_CHL + i].dlc);
--		writew(0x1FFF, &reg->msk[RECEIVE_STD_CHL + i].amh);
--		writew(0xFFFF, &reg->msk[RECEIVE_STD_CHL + i].aml);
--	}
--
--	/* RECEIVE_EXT_CHL */
--	for (i = 0; i < 2; i++) {
--		writew(0, &reg->chl[RECEIVE_EXT_CHL + i].id0);
--		writew(AME | IDE, &reg->chl[RECEIVE_EXT_CHL + i].id1);
--		writew(0, &reg->chl[RECEIVE_EXT_CHL + i].dlc);
--		writew(0x1FFF, &reg->msk[RECEIVE_EXT_CHL + i].amh);
--		writew(0xFFFF, &reg->msk[RECEIVE_EXT_CHL + i].aml);
--	}
--
--	writew(BIT(TRANSMIT_CHL - 16), &reg->mc2);
--	writew(BIT(RECEIVE_STD_CHL) + BIT(RECEIVE_EXT_CHL), &reg->mc1);
--
--	priv->can.state = CAN_STATE_STOPPED;
--}
--
--static void bfin_can_set_normal_mode(struct net_device *dev)
--{
--	struct bfin_can_priv *priv = netdev_priv(dev);
--	struct bfin_can_regs __iomem *reg = priv->membase;
--	int timeout = BFIN_CAN_TIMEOUT;
--
--	/*
--	 * leave configuration mode
--	 */
--	writew(readw(&reg->control) & ~CCR, &reg->control);
--
--	while (readw(&reg->status) & CCA) {
--		udelay(10);
--		if (--timeout == 0) {
--			netdev_err(dev, "fail to leave configuration mode\n");
--			BUG();
+-	if (twi_int_status & RCVSERV) {
+-		while (iface->readNum > 0 &&
+-			(read_FIFO_STAT(iface) & RCVSTAT)) {
+-			/* Receive next data */
+-			*(iface->transPtr) = read_RCV_DATA8(iface);
+-			if (iface->cur_mode == TWI_I2C_MODE_COMBINED) {
+-				/* Change combine mode into sub mode after
+-				 * read first data.
+-				 */
+-				iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
+-				/* Get read number from first byte in block
+-				 * combine mode.
+-				 */
+-				if (iface->readNum == 1 && iface->manual_stop)
+-					iface->readNum = *iface->transPtr + 1;
+-			}
+-			iface->transPtr++;
+-			iface->readNum--;
 -		}
--	}
 -
--	/*
--	 * clear _All_  tx and rx interrupts
--	 */
--	writew(0xFFFF, &reg->mbtif1);
--	writew(0xFFFF, &reg->mbtif2);
--	writew(0xFFFF, &reg->mbrif1);
--	writew(0xFFFF, &reg->mbrif2);
--
--	/*
--	 * clear global interrupt status register
--	 */
--	writew(0x7FF, &reg->gis); /* overwrites with '1' */
--
--	/*
--	 * Initialize Interrupts
--	 * - set bits in the mailbox interrupt mask register
--	 * - global interrupt mask
--	 */
--	writew(BIT(RECEIVE_STD_CHL) + BIT(RECEIVE_EXT_CHL), &reg->mbim1);
--	writew(BIT(TRANSMIT_CHL - 16), &reg->mbim2);
--
--	writew(EPIM | BOIM | RMLIM, &reg->gim);
--}
--
--static void bfin_can_start(struct net_device *dev)
--{
--	struct bfin_can_priv *priv = netdev_priv(dev);
--
--	/* enter reset mode */
--	if (priv->can.state != CAN_STATE_STOPPED)
--		bfin_can_set_reset_mode(dev);
--
--	/* leave reset mode */
--	bfin_can_set_normal_mode(dev);
--}
--
--static int bfin_can_set_mode(struct net_device *dev, enum can_mode mode)
--{
--	switch (mode) {
--	case CAN_MODE_START:
--		bfin_can_start(dev);
--		if (netif_queue_stopped(dev))
--			netif_wake_queue(dev);
--		break;
--
--	default:
--		return -EOPNOTSUPP;
--	}
--
--	return 0;
--}
--
--static int bfin_can_get_berr_counter(const struct net_device *dev,
--				     struct can_berr_counter *bec)
--{
--	struct bfin_can_priv *priv = netdev_priv(dev);
--	struct bfin_can_regs __iomem *reg = priv->membase;
--
--	u16 cec = readw(&reg->cec);
--
--	bec->txerr = cec >> 8;
--	bec->rxerr = cec;
--
--	return 0;
--}
--
--static int bfin_can_start_xmit(struct sk_buff *skb, struct net_device *dev)
--{
--	struct bfin_can_priv *priv = netdev_priv(dev);
--	struct bfin_can_regs __iomem *reg = priv->membase;
--	struct can_frame *cf = (struct can_frame *)skb->data;
--	u8 dlc = cf->can_dlc;
--	canid_t id = cf->can_id;
--	u8 *data = cf->data;
--	u16 val;
--	int i;
--
--	if (can_dropped_invalid_skb(dev, skb))
--		return NETDEV_TX_OK;
--
--	netif_stop_queue(dev);
--
--	/* fill id */
--	if (id & CAN_EFF_FLAG) {
--		writew(id, &reg->chl[TRANSMIT_CHL].id0);
--		val = ((id & 0x1FFF0000) >> 16) | IDE;
--	} else
--		val = (id << 2);
--	if (id & CAN_RTR_FLAG)
--		val |= RTR;
--	writew(val | AME, &reg->chl[TRANSMIT_CHL].id1);
--
--	/* fill payload */
--	for (i = 0; i < 8; i += 2) {
--		val = ((7 - i) < dlc ? (data[7 - i]) : 0) +
--			((6 - i) < dlc ? (data[6 - i] << 8) : 0);
--		writew(val, &reg->chl[TRANSMIT_CHL].data[i]);
--	}
--
--	/* fill data length code */
--	writew(dlc, &reg->chl[TRANSMIT_CHL].dlc);
--
--	can_put_echo_skb(skb, dev, 0);
--
--	/* set transmit request */
--	writew(BIT(TRANSMIT_CHL - 16), &reg->trs2);
--
--	return 0;
--}
--
--static void bfin_can_rx(struct net_device *dev, u16 isrc)
--{
--	struct bfin_can_priv *priv = netdev_priv(dev);
--	struct net_device_stats *stats = &dev->stats;
--	struct bfin_can_regs __iomem *reg = priv->membase;
--	struct can_frame *cf;
--	struct sk_buff *skb;
--	int obj;
--	int i;
--	u16 val;
--
--	skb = alloc_can_skb(dev, &cf);
--	if (skb == NULL)
--		return;
--
--	/* get id */
--	if (isrc & BIT(RECEIVE_EXT_CHL)) {
--		/* extended frame format (EFF) */
--		cf->can_id = ((readw(&reg->chl[RECEIVE_EXT_CHL].id1)
--			     & 0x1FFF) << 16)
--			     + readw(&reg->chl[RECEIVE_EXT_CHL].id0);
--		cf->can_id |= CAN_EFF_FLAG;
--		obj = RECEIVE_EXT_CHL;
--	} else {
--		/* standard frame format (SFF) */
--		cf->can_id = (readw(&reg->chl[RECEIVE_STD_CHL].id1)
--			     & 0x1ffc) >> 2;
--		obj = RECEIVE_STD_CHL;
--	}
--	if (readw(&reg->chl[obj].id1) & RTR)
--		cf->can_id |= CAN_RTR_FLAG;
--
--	/* get data length code */
--	cf->can_dlc = get_can_dlc(readw(&reg->chl[obj].dlc) & 0xF);
--
--	/* get payload */
--	for (i = 0; i < 8; i += 2) {
--		val = readw(&reg->chl[obj].data[i]);
--		cf->data[7 - i] = (7 - i) < cf->can_dlc ? val : 0;
--		cf->data[6 - i] = (6 - i) < cf->can_dlc ? (val >> 8) : 0;
--	}
--
--	stats->rx_packets++;
--	stats->rx_bytes += cf->can_dlc;
--	netif_rx(skb);
--}
--
--static int bfin_can_err(struct net_device *dev, u16 isrc, u16 status)
--{
--	struct bfin_can_priv *priv = netdev_priv(dev);
--	struct bfin_can_regs __iomem *reg = priv->membase;
--	struct net_device_stats *stats = &dev->stats;
--	struct can_frame *cf;
--	struct sk_buff *skb;
--	enum can_state state = priv->can.state;
--
--	skb = alloc_can_err_skb(dev, &cf);
--	if (skb == NULL)
--		return -ENOMEM;
--
--	if (isrc & RMLIS) {
--		/* data overrun interrupt */
--		netdev_dbg(dev, "data overrun interrupt\n");
--		cf->can_id |= CAN_ERR_CRTL;
--		cf->data[1] = CAN_ERR_CRTL_RX_OVERFLOW;
--		stats->rx_over_errors++;
--		stats->rx_errors++;
--	}
--
--	if (isrc & BOIS) {
--		netdev_dbg(dev, "bus-off mode interrupt\n");
--		state = CAN_STATE_BUS_OFF;
--		cf->can_id |= CAN_ERR_BUSOFF;
--		priv->can.can_stats.bus_off++;
--		can_bus_off(dev);
--	}
--
--	if (isrc & EPIS) {
--		/* error passive interrupt */
--		netdev_dbg(dev, "error passive interrupt\n");
--		state = CAN_STATE_ERROR_PASSIVE;
--	}
--
--	if ((isrc & EWTIS) || (isrc & EWRIS)) {
--		netdev_dbg(dev, "Error Warning Transmit/Receive Interrupt\n");
--		state = CAN_STATE_ERROR_WARNING;
--	}
--
--	if (state != priv->can.state && (state == CAN_STATE_ERROR_WARNING ||
--				state == CAN_STATE_ERROR_PASSIVE)) {
--		u16 cec = readw(&reg->cec);
--		u8 rxerr = cec;
--		u8 txerr = cec >> 8;
--
--		cf->can_id |= CAN_ERR_CRTL;
--		if (state == CAN_STATE_ERROR_WARNING) {
--			priv->can.can_stats.error_warning++;
--			cf->data[1] = (txerr > rxerr) ?
--				CAN_ERR_CRTL_TX_WARNING :
--				CAN_ERR_CRTL_RX_WARNING;
--		} else {
--			priv->can.can_stats.error_passive++;
--			cf->data[1] = (txerr > rxerr) ?
--				CAN_ERR_CRTL_TX_PASSIVE :
--				CAN_ERR_CRTL_RX_PASSIVE;
--		}
--	}
--
--	if (status) {
--		priv->can.can_stats.bus_error++;
--
--		cf->can_id |= CAN_ERR_PROT | CAN_ERR_BUSERROR;
--
--		if (status & BEF)
--			cf->data[2] |= CAN_ERR_PROT_BIT;
--		else if (status & FER)
--			cf->data[2] |= CAN_ERR_PROT_FORM;
--		else if (status & SER)
--			cf->data[2] |= CAN_ERR_PROT_STUFF;
--	}
--
--	priv->can.state = state;
--
--	stats->rx_packets++;
--	stats->rx_bytes += cf->can_dlc;
--	netif_rx(skb);
--
--	return 0;
--}
--
--static irqreturn_t bfin_can_interrupt(int irq, void *dev_id)
--{
--	struct net_device *dev = dev_id;
--	struct bfin_can_priv *priv = netdev_priv(dev);
--	struct bfin_can_regs __iomem *reg = priv->membase;
--	struct net_device_stats *stats = &dev->stats;
--	u16 status, isrc;
--
--	if ((irq == priv->tx_irq) && readw(&reg->mbtif2)) {
--		/* transmission complete interrupt */
--		writew(0xFFFF, &reg->mbtif2);
--		stats->tx_packets++;
--		stats->tx_bytes += readw(&reg->chl[TRANSMIT_CHL].dlc);
--		can_get_echo_skb(dev, 0);
--		netif_wake_queue(dev);
--	} else if ((irq == priv->rx_irq) && readw(&reg->mbrif1)) {
--		/* receive interrupt */
--		isrc = readw(&reg->mbrif1);
--		writew(0xFFFF, &reg->mbrif1);
--		bfin_can_rx(dev, isrc);
--	} else if ((irq == priv->err_irq) && readw(&reg->gis)) {
--		/* error interrupt */
--		isrc = readw(&reg->gis);
--		status = readw(&reg->esr);
--		writew(0x7FF, &reg->gis);
--		bfin_can_err(dev, isrc, status);
--	} else {
--		return IRQ_NONE;
--	}
--
--	return IRQ_HANDLED;
--}
--
--static int bfin_can_open(struct net_device *dev)
--{
--	struct bfin_can_priv *priv = netdev_priv(dev);
--	int err;
--
--	/* set chip into reset mode */
--	bfin_can_set_reset_mode(dev);
--
--	/* common open */
--	err = open_candev(dev);
--	if (err)
--		goto exit_open;
--
--	/* register interrupt handler */
--	err = request_irq(priv->rx_irq, &bfin_can_interrupt, 0,
--			"bfin-can-rx", dev);
--	if (err)
--		goto exit_rx_irq;
--	err = request_irq(priv->tx_irq, &bfin_can_interrupt, 0,
--			"bfin-can-tx", dev);
--	if (err)
--		goto exit_tx_irq;
--	err = request_irq(priv->err_irq, &bfin_can_interrupt, 0,
--			"bfin-can-err", dev);
--	if (err)
--		goto exit_err_irq;
--
--	bfin_can_start(dev);
--
--	netif_start_queue(dev);
--
--	return 0;
--
--exit_err_irq:
--	free_irq(priv->tx_irq, dev);
--exit_tx_irq:
--	free_irq(priv->rx_irq, dev);
--exit_rx_irq:
--	close_candev(dev);
--exit_open:
--	return err;
--}
--
--static int bfin_can_close(struct net_device *dev)
--{
--	struct bfin_can_priv *priv = netdev_priv(dev);
--
--	netif_stop_queue(dev);
--	bfin_can_set_reset_mode(dev);
--
--	close_candev(dev);
--
--	free_irq(priv->rx_irq, dev);
--	free_irq(priv->tx_irq, dev);
--	free_irq(priv->err_irq, dev);
--
--	return 0;
--}
--
--static struct net_device *alloc_bfin_candev(void)
--{
--	struct net_device *dev;
--	struct bfin_can_priv *priv;
--
--	dev = alloc_candev(sizeof(*priv), TX_ECHO_SKB_MAX);
--	if (!dev)
--		return NULL;
--
--	priv = netdev_priv(dev);
--
--	priv->dev = dev;
--	priv->can.bittiming_const = &bfin_can_bittiming_const;
--	priv->can.do_set_bittiming = bfin_can_set_bittiming;
--	priv->can.do_set_mode = bfin_can_set_mode;
--	priv->can.do_get_berr_counter = bfin_can_get_berr_counter;
--	priv->can.ctrlmode_supported = CAN_CTRLMODE_3_SAMPLES;
--
--	return dev;
--}
--
--static const struct net_device_ops bfin_can_netdev_ops = {
--	.ndo_open               = bfin_can_open,
--	.ndo_stop               = bfin_can_close,
--	.ndo_start_xmit         = bfin_can_start_xmit,
--	.ndo_change_mtu         = can_change_mtu,
--};
--
--static int bfin_can_probe(struct platform_device *pdev)
--{
--	int err;
--	struct net_device *dev;
--	struct bfin_can_priv *priv;
--	struct resource *res_mem, *rx_irq, *tx_irq, *err_irq;
--	unsigned short *pdata;
--
--	pdata = dev_get_platdata(&pdev->dev);
--	if (!pdata) {
--		dev_err(&pdev->dev, "No platform data provided!\n");
--		err = -EINVAL;
--		goto exit;
--	}
--
--	res_mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
--	rx_irq = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
--	tx_irq = platform_get_resource(pdev, IORESOURCE_IRQ, 1);
--	err_irq = platform_get_resource(pdev, IORESOURCE_IRQ, 2);
--	if (!res_mem || !rx_irq || !tx_irq || !err_irq) {
--		err = -EINVAL;
--		goto exit;
--	}
--
--	/* request peripheral pins */
--	err = peripheral_request_list(pdata, dev_name(&pdev->dev));
--	if (err)
--		goto exit;
--
--	dev = alloc_bfin_candev();
--	if (!dev) {
--		err = -ENOMEM;
--		goto exit_peri_pin_free;
--	}
--
--	priv = netdev_priv(dev);
--
--	priv->membase = devm_ioremap_resource(&pdev->dev, res_mem);
--	if (IS_ERR(priv->membase)) {
--		err = PTR_ERR(priv->membase);
--		goto exit_peri_pin_free;
--	}
--
--	priv->rx_irq = rx_irq->start;
--	priv->tx_irq = tx_irq->start;
--	priv->err_irq = err_irq->start;
--	priv->pin_list = pdata;
--	priv->can.clock.freq = get_sclk();
--
--	platform_set_drvdata(pdev, dev);
--	SET_NETDEV_DEV(dev, &pdev->dev);
--
--	dev->flags |= IFF_ECHO;	/* we support local echo */
--	dev->netdev_ops = &bfin_can_netdev_ops;
--
--	bfin_can_set_reset_mode(dev);
--
--	err = register_candev(dev);
--	if (err) {
--		dev_err(&pdev->dev, "registering failed (err=%d)\n", err);
--		goto exit_candev_free;
--	}
--
--	dev_info(&pdev->dev,
--		"%s device registered"
--		"(&reg_base=%p, rx_irq=%d, tx_irq=%d, err_irq=%d, sclk=%d)\n",
--		DRV_NAME, priv->membase, priv->rx_irq,
--		priv->tx_irq, priv->err_irq, priv->can.clock.freq);
--	return 0;
--
--exit_candev_free:
--	free_candev(dev);
--exit_peri_pin_free:
--	peripheral_free_list(pdata);
--exit:
--	return err;
--}
--
--static int bfin_can_remove(struct platform_device *pdev)
--{
--	struct net_device *dev = platform_get_drvdata(pdev);
--	struct bfin_can_priv *priv = netdev_priv(dev);
--
--	bfin_can_set_reset_mode(dev);
--
--	unregister_candev(dev);
--
--	peripheral_free_list(priv->pin_list);
--
--	free_candev(dev);
--	return 0;
--}
--
--#ifdef CONFIG_PM
--static int bfin_can_suspend(struct platform_device *pdev, pm_message_t mesg)
--{
--	struct net_device *dev = platform_get_drvdata(pdev);
--	struct bfin_can_priv *priv = netdev_priv(dev);
--	struct bfin_can_regs __iomem *reg = priv->membase;
--	int timeout = BFIN_CAN_TIMEOUT;
--
--	if (netif_running(dev)) {
--		/* enter sleep mode */
--		writew(readw(&reg->control) | SMR, &reg->control);
--		while (!(readw(&reg->intr) & SMACK)) {
--			udelay(10);
--			if (--timeout == 0) {
--				netdev_err(dev, "fail to enter sleep mode\n");
--				BUG();
+-		if (iface->readNum == 0) {
+-			if (iface->manual_stop) {
+-				/* Temporary workaround to avoid possible bus stall -
+-				 * Flush FIFO before issuing the STOP condition
+-				 */
+-				read_RCV_DATA16(iface);
+-				write_MASTER_CTL(iface,
+-					read_MASTER_CTL(iface) | STOP);
+-			} else if (iface->cur_mode == TWI_I2C_MODE_REPEAT &&
+-					iface->cur_msg + 1 < iface->msg_num) {
+-				if (iface->pmsg[iface->cur_msg + 1].flags & I2C_M_RD)
+-					write_MASTER_CTL(iface,
+-						read_MASTER_CTL(iface) | MDIR);
+-				else
+-					write_MASTER_CTL(iface,
+-						read_MASTER_CTL(iface) & ~MDIR);
 -			}
 -		}
 -	}
+-	if (twi_int_status & MERR) {
+-		write_INT_MASK(iface, 0);
+-		write_MASTER_STAT(iface, 0x3e);
+-		write_MASTER_CTL(iface, 0);
+-		iface->result = -EIO;
 -
--	return 0;
+-		if (mast_stat & LOSTARB)
+-			dev_dbg(&iface->adap.dev, "Lost Arbitration\n");
+-		if (mast_stat & ANAK)
+-			dev_dbg(&iface->adap.dev, "Address Not Acknowledged\n");
+-		if (mast_stat & DNAK)
+-			dev_dbg(&iface->adap.dev, "Data Not Acknowledged\n");
+-		if (mast_stat & BUFRDERR)
+-			dev_dbg(&iface->adap.dev, "Buffer Read Error\n");
+-		if (mast_stat & BUFWRERR)
+-			dev_dbg(&iface->adap.dev, "Buffer Write Error\n");
+-
+-		/* Faulty slave devices, may drive SDA low after a transfer
+-		 * finishes. To release the bus this code generates up to 9
+-		 * extra clocks until SDA is released.
+-		 */
+-
+-		if (read_MASTER_STAT(iface) & SDASEN) {
+-			int cnt = 9;
+-			do {
+-				write_MASTER_CTL(iface, SCLOVR);
+-				udelay(6);
+-				write_MASTER_CTL(iface, 0);
+-				udelay(6);
+-			} while ((read_MASTER_STAT(iface) & SDASEN) && cnt--);
+-
+-			write_MASTER_CTL(iface, SDAOVR | SCLOVR);
+-			udelay(6);
+-			write_MASTER_CTL(iface, SDAOVR);
+-			udelay(6);
+-			write_MASTER_CTL(iface, 0);
+-		}
+-
+-		/* If it is a quick transfer, only address without data,
+-		 * not an err, return 1.
+-		 */
+-		if (iface->cur_mode == TWI_I2C_MODE_STANDARD &&
+-			iface->transPtr == NULL &&
+-			(twi_int_status & MCOMP) && (mast_stat & DNAK))
+-			iface->result = 1;
+-
+-		complete(&iface->complete);
+-		return;
+-	}
+-	if (twi_int_status & MCOMP) {
+-		if (twi_int_status & (XMTSERV | RCVSERV) &&
+-			(read_MASTER_CTL(iface) & MEN) == 0 &&
+-			(iface->cur_mode == TWI_I2C_MODE_REPEAT ||
+-			iface->cur_mode == TWI_I2C_MODE_COMBINED)) {
+-			iface->result = -1;
+-			write_INT_MASK(iface, 0);
+-			write_MASTER_CTL(iface, 0);
+-		} else if (iface->cur_mode == TWI_I2C_MODE_COMBINED) {
+-			if (iface->readNum == 0) {
+-				/* set the read number to 1 and ask for manual
+-				 * stop in block combine mode
+-				 */
+-				iface->readNum = 1;
+-				iface->manual_stop = 1;
+-				write_MASTER_CTL(iface,
+-					read_MASTER_CTL(iface) | (0xff << 6));
+-			} else {
+-				/* set the readd number in other
+-				 * combine mode.
+-				 */
+-				write_MASTER_CTL(iface,
+-					(read_MASTER_CTL(iface) &
+-					(~(0xff << 6))) |
+-					(iface->readNum << 6));
+-			}
+-			/* remove restart bit and enable master receive */
+-			write_MASTER_CTL(iface,
+-				read_MASTER_CTL(iface) & ~RSTART);
+-		} else if (iface->cur_mode == TWI_I2C_MODE_REPEAT &&
+-				iface->cur_msg + 1 < iface->msg_num) {
+-			iface->cur_msg++;
+-			iface->transPtr = iface->pmsg[iface->cur_msg].buf;
+-			iface->writeNum = iface->readNum =
+-				iface->pmsg[iface->cur_msg].len;
+-			/* Set Transmit device address */
+-			write_MASTER_ADDR(iface,
+-				iface->pmsg[iface->cur_msg].addr);
+-			if (iface->pmsg[iface->cur_msg].flags & I2C_M_RD)
+-				iface->read_write = I2C_SMBUS_READ;
+-			else {
+-				iface->read_write = I2C_SMBUS_WRITE;
+-				/* Transmit first data */
+-				if (iface->writeNum > 0) {
+-					write_XMT_DATA8(iface,
+-						*(iface->transPtr++));
+-					iface->writeNum--;
+-				}
+-			}
+-
+-			if (iface->pmsg[iface->cur_msg].len <= 255) {
+-				write_MASTER_CTL(iface,
+-					(read_MASTER_CTL(iface) &
+-					(~(0xff << 6))) |
+-					(iface->pmsg[iface->cur_msg].len << 6));
+-				iface->manual_stop = 0;
+-			} else {
+-				write_MASTER_CTL(iface,
+-					(read_MASTER_CTL(iface) |
+-					(0xff << 6)));
+-				iface->manual_stop = 1;
+-			}
+-			/* remove restart bit before last message */
+-			if (iface->cur_msg + 1 == iface->msg_num)
+-				write_MASTER_CTL(iface,
+-					read_MASTER_CTL(iface) & ~RSTART);
+-		} else {
+-			iface->result = 1;
+-			write_INT_MASK(iface, 0);
+-			write_MASTER_CTL(iface, 0);
+-		}
+-		complete(&iface->complete);
+-	}
 -}
 -
--static int bfin_can_resume(struct platform_device *pdev)
+-/* Interrupt handler */
+-static irqreturn_t bfin_twi_interrupt_entry(int irq, void *dev_id)
 -{
--	struct net_device *dev = platform_get_drvdata(pdev);
--	struct bfin_can_priv *priv = netdev_priv(dev);
--	struct bfin_can_regs __iomem *reg = priv->membase;
+-	struct bfin_twi_iface *iface = dev_id;
+-	unsigned long flags;
+-	unsigned short twi_int_status;
 -
--	if (netif_running(dev)) {
--		/* leave sleep mode */
--		writew(0, &reg->intr);
+-	spin_lock_irqsave(&iface->lock, flags);
+-	while (1) {
+-		twi_int_status = read_INT_STAT(iface);
+-		if (!twi_int_status)
+-			break;
+-		/* Clear interrupt status */
+-		write_INT_STAT(iface, twi_int_status);
+-		bfin_twi_handle_interrupt(iface, twi_int_status);
+-	}
+-	spin_unlock_irqrestore(&iface->lock, flags);
+-	return IRQ_HANDLED;
+-}
+-
+-/*
+- * One i2c master transfer
+- */
+-static int bfin_twi_do_master_xfer(struct i2c_adapter *adap,
+-				struct i2c_msg *msgs, int num)
+-{
+-	struct bfin_twi_iface *iface = adap->algo_data;
+-	struct i2c_msg *pmsg;
+-	int rc = 0;
+-
+-	if (!(read_CONTROL(iface) & TWI_ENA))
+-		return -ENXIO;
+-
+-	if (read_MASTER_STAT(iface) & BUSBUSY)
+-		return -EAGAIN;
+-
+-	iface->pmsg = msgs;
+-	iface->msg_num = num;
+-	iface->cur_msg = 0;
+-
+-	pmsg = &msgs[0];
+-	if (pmsg->flags & I2C_M_TEN) {
+-		dev_err(&adap->dev, "10 bits addr not supported!\n");
+-		return -EINVAL;
 -	}
 -
+-	if (iface->msg_num > 1)
+-		iface->cur_mode = TWI_I2C_MODE_REPEAT;
+-	iface->manual_stop = 0;
+-	iface->transPtr = pmsg->buf;
+-	iface->writeNum = iface->readNum = pmsg->len;
+-	iface->result = 0;
+-	init_completion(&(iface->complete));
+-	/* Set Transmit device address */
+-	write_MASTER_ADDR(iface, pmsg->addr);
+-
+-	/* FIFO Initiation. Data in FIFO should be
+-	 *  discarded before start a new operation.
+-	 */
+-	write_FIFO_CTL(iface, 0x3);
+-	write_FIFO_CTL(iface, 0);
+-
+-	if (pmsg->flags & I2C_M_RD)
+-		iface->read_write = I2C_SMBUS_READ;
+-	else {
+-		iface->read_write = I2C_SMBUS_WRITE;
+-		/* Transmit first data */
+-		if (iface->writeNum > 0) {
+-			write_XMT_DATA8(iface, *(iface->transPtr++));
+-			iface->writeNum--;
+-		}
+-	}
+-
+-	/* clear int stat */
+-	write_INT_STAT(iface, MERR | MCOMP | XMTSERV | RCVSERV);
+-
+-	/* Interrupt mask . Enable XMT, RCV interrupt */
+-	write_INT_MASK(iface, MCOMP | MERR | RCVSERV | XMTSERV);
+-
+-	if (pmsg->len <= 255)
+-		write_MASTER_CTL(iface, pmsg->len << 6);
+-	else {
+-		write_MASTER_CTL(iface, 0xff << 6);
+-		iface->manual_stop = 1;
+-	}
+-
+-	/* Master enable */
+-	write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN |
+-		(iface->msg_num > 1 ? RSTART : 0) |
+-		((iface->read_write == I2C_SMBUS_READ) ? MDIR : 0) |
+-		((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ > 100) ? FAST : 0));
+-
+-	while (!iface->result) {
+-		if (!wait_for_completion_timeout(&iface->complete,
+-			adap->timeout)) {
+-			iface->result = -1;
+-			dev_err(&adap->dev, "master transfer timeout\n");
+-		}
+-	}
+-
+-	if (iface->result == 1)
+-		rc = iface->cur_msg + 1;
+-	else
+-		rc = iface->result;
+-
+-	return rc;
+-}
+-
+-/*
+- * Generic i2c master transfer entrypoint
+- */
+-static int bfin_twi_master_xfer(struct i2c_adapter *adap,
+-				struct i2c_msg *msgs, int num)
+-{
+-	return bfin_twi_do_master_xfer(adap, msgs, num);
+-}
+-
+-/*
+- * One I2C SMBus transfer
+- */
+-int bfin_twi_do_smbus_xfer(struct i2c_adapter *adap, u16 addr,
+-			unsigned short flags, char read_write,
+-			u8 command, int size, union i2c_smbus_data *data)
+-{
+-	struct bfin_twi_iface *iface = adap->algo_data;
+-	int rc = 0;
+-
+-	if (!(read_CONTROL(iface) & TWI_ENA))
+-		return -ENXIO;
+-
+-	if (read_MASTER_STAT(iface) & BUSBUSY)
+-		return -EAGAIN;
+-
+-	iface->writeNum = 0;
+-	iface->readNum = 0;
+-
+-	/* Prepare datas & select mode */
+-	switch (size) {
+-	case I2C_SMBUS_QUICK:
+-		iface->transPtr = NULL;
+-		iface->cur_mode = TWI_I2C_MODE_STANDARD;
+-		break;
+-	case I2C_SMBUS_BYTE:
+-		if (data == NULL)
+-			iface->transPtr = NULL;
+-		else {
+-			if (read_write == I2C_SMBUS_READ)
+-				iface->readNum = 1;
+-			else
+-				iface->writeNum = 1;
+-			iface->transPtr = &data->byte;
+-		}
+-		iface->cur_mode = TWI_I2C_MODE_STANDARD;
+-		break;
+-	case I2C_SMBUS_BYTE_DATA:
+-		if (read_write == I2C_SMBUS_READ) {
+-			iface->readNum = 1;
+-			iface->cur_mode = TWI_I2C_MODE_COMBINED;
+-		} else {
+-			iface->writeNum = 1;
+-			iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
+-		}
+-		iface->transPtr = &data->byte;
+-		break;
+-	case I2C_SMBUS_WORD_DATA:
+-		if (read_write == I2C_SMBUS_READ) {
+-			iface->readNum = 2;
+-			iface->cur_mode = TWI_I2C_MODE_COMBINED;
+-		} else {
+-			iface->writeNum = 2;
+-			iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
+-		}
+-		iface->transPtr = (u8 *)&data->word;
+-		break;
+-	case I2C_SMBUS_PROC_CALL:
+-		iface->writeNum = 2;
+-		iface->readNum = 2;
+-		iface->cur_mode = TWI_I2C_MODE_COMBINED;
+-		iface->transPtr = (u8 *)&data->word;
+-		break;
+-	case I2C_SMBUS_BLOCK_DATA:
+-		if (read_write == I2C_SMBUS_READ) {
+-			iface->readNum = 0;
+-			iface->cur_mode = TWI_I2C_MODE_COMBINED;
+-		} else {
+-			iface->writeNum = data->block[0] + 1;
+-			iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
+-		}
+-		iface->transPtr = data->block;
+-		break;
+-	case I2C_SMBUS_I2C_BLOCK_DATA:
+-		if (read_write == I2C_SMBUS_READ) {
+-			iface->readNum = data->block[0];
+-			iface->cur_mode = TWI_I2C_MODE_COMBINED;
+-		} else {
+-			iface->writeNum = data->block[0];
+-			iface->cur_mode = TWI_I2C_MODE_STANDARDSUB;
+-		}
+-		iface->transPtr = (u8 *)&data->block[1];
+-		break;
+-	default:
+-		return -1;
+-	}
+-
+-	iface->result = 0;
+-	iface->manual_stop = 0;
+-	iface->read_write = read_write;
+-	iface->command = command;
+-	init_completion(&(iface->complete));
+-
+-	/* FIFO Initiation. Data in FIFO should be discarded before
+-	 * start a new operation.
+-	 */
+-	write_FIFO_CTL(iface, 0x3);
+-	write_FIFO_CTL(iface, 0);
+-
+-	/* clear int stat */
+-	write_INT_STAT(iface, MERR | MCOMP | XMTSERV | RCVSERV);
+-
+-	/* Set Transmit device address */
+-	write_MASTER_ADDR(iface, addr);
+-
+-	switch (iface->cur_mode) {
+-	case TWI_I2C_MODE_STANDARDSUB:
+-		write_XMT_DATA8(iface, iface->command);
+-		write_INT_MASK(iface, MCOMP | MERR |
+-			((iface->read_write == I2C_SMBUS_READ) ?
+-			RCVSERV : XMTSERV));
+-
+-		if (iface->writeNum + 1 <= 255)
+-			write_MASTER_CTL(iface, (iface->writeNum + 1) << 6);
+-		else {
+-			write_MASTER_CTL(iface, 0xff << 6);
+-			iface->manual_stop = 1;
+-		}
+-		/* Master enable */
+-		write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN |
+-			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ>100) ? FAST : 0));
+-		break;
+-	case TWI_I2C_MODE_COMBINED:
+-		write_XMT_DATA8(iface, iface->command);
+-		write_INT_MASK(iface, MCOMP | MERR | RCVSERV | XMTSERV);
+-
+-		if (iface->writeNum > 0)
+-			write_MASTER_CTL(iface, (iface->writeNum + 1) << 6);
+-		else
+-			write_MASTER_CTL(iface, 0x1 << 6);
+-		/* Master enable */
+-		write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN | RSTART |
+-			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ>100) ? FAST : 0));
+-		break;
+-	default:
+-		write_MASTER_CTL(iface, 0);
+-		if (size != I2C_SMBUS_QUICK) {
+-			/* Don't access xmit data register when this is a
+-			 * read operation.
+-			 */
+-			if (iface->read_write != I2C_SMBUS_READ) {
+-				if (iface->writeNum > 0) {
+-					write_XMT_DATA8(iface,
+-						*(iface->transPtr++));
+-					if (iface->writeNum <= 255)
+-						write_MASTER_CTL(iface,
+-							iface->writeNum << 6);
+-					else {
+-						write_MASTER_CTL(iface,
+-							0xff << 6);
+-						iface->manual_stop = 1;
+-					}
+-					iface->writeNum--;
+-				} else {
+-					write_XMT_DATA8(iface, iface->command);
+-					write_MASTER_CTL(iface, 1 << 6);
+-				}
+-			} else {
+-				if (iface->readNum > 0 && iface->readNum <= 255)
+-					write_MASTER_CTL(iface,
+-						iface->readNum << 6);
+-				else if (iface->readNum > 255) {
+-					write_MASTER_CTL(iface, 0xff << 6);
+-					iface->manual_stop = 1;
+-				} else
+-					break;
+-			}
+-		}
+-		write_INT_MASK(iface, MCOMP | MERR |
+-			((iface->read_write == I2C_SMBUS_READ) ?
+-			RCVSERV : XMTSERV));
+-
+-		/* Master enable */
+-		write_MASTER_CTL(iface, read_MASTER_CTL(iface) | MEN |
+-			((iface->read_write == I2C_SMBUS_READ) ? MDIR : 0) |
+-			((CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ > 100) ? FAST : 0));
+-		break;
+-	}
+-
+-	while (!iface->result) {
+-		if (!wait_for_completion_timeout(&iface->complete,
+-			adap->timeout)) {
+-			iface->result = -1;
+-			dev_err(&adap->dev, "smbus transfer timeout\n");
+-		}
+-	}
+-
+-	rc = (iface->result >= 0) ? 0 : -1;
+-
+-	return rc;
+-}
+-
+-/*
+- * Generic I2C SMBus transfer entrypoint
+- */
+-int bfin_twi_smbus_xfer(struct i2c_adapter *adap, u16 addr,
+-			unsigned short flags, char read_write,
+-			u8 command, int size, union i2c_smbus_data *data)
+-{
+-	return bfin_twi_do_smbus_xfer(adap, addr, flags,
+-			read_write, command, size, data);
+-}
+-
+-/*
+- * Return what the adapter supports
+- */
+-static u32 bfin_twi_functionality(struct i2c_adapter *adap)
+-{
+-	return I2C_FUNC_SMBUS_QUICK | I2C_FUNC_SMBUS_BYTE |
+-	       I2C_FUNC_SMBUS_BYTE_DATA | I2C_FUNC_SMBUS_WORD_DATA |
+-	       I2C_FUNC_SMBUS_BLOCK_DATA | I2C_FUNC_SMBUS_PROC_CALL |
+-	       I2C_FUNC_I2C | I2C_FUNC_SMBUS_I2C_BLOCK;
+-}
+-
+-static const struct i2c_algorithm bfin_twi_algorithm = {
+-	.master_xfer   = bfin_twi_master_xfer,
+-	.smbus_xfer    = bfin_twi_smbus_xfer,
+-	.functionality = bfin_twi_functionality,
+-};
+-
+-#ifdef CONFIG_PM_SLEEP
+-static int i2c_bfin_twi_suspend(struct device *dev)
+-{
+-	struct bfin_twi_iface *iface = dev_get_drvdata(dev);
+-
+-	iface->saved_clkdiv = read_CLKDIV(iface);
+-	iface->saved_control = read_CONTROL(iface);
+-
+-	free_irq(iface->irq, iface);
+-
+-	/* Disable TWI */
+-	write_CONTROL(iface, iface->saved_control & ~TWI_ENA);
+-
 -	return 0;
 -}
--#else
--#define bfin_can_suspend NULL
--#define bfin_can_resume NULL
--#endif	/* CONFIG_PM */
 -
--static struct platform_driver bfin_can_driver = {
--	.probe = bfin_can_probe,
--	.remove = bfin_can_remove,
--	.suspend = bfin_can_suspend,
--	.resume = bfin_can_resume,
--	.driver = {
--		.name = DRV_NAME,
+-static int i2c_bfin_twi_resume(struct device *dev)
+-{
+-	struct bfin_twi_iface *iface = dev_get_drvdata(dev);
+-
+-	int rc = request_irq(iface->irq, bfin_twi_interrupt_entry,
+-		0, to_platform_device(dev)->name, iface);
+-	if (rc) {
+-		dev_err(dev, "Can't get IRQ %d !\n", iface->irq);
+-		return -ENODEV;
+-	}
+-
+-	/* Resume TWI interface clock as specified */
+-	write_CLKDIV(iface, iface->saved_clkdiv);
+-
+-	/* Resume TWI */
+-	write_CONTROL(iface, iface->saved_control);
+-
+-	return 0;
+-}
+-
+-static SIMPLE_DEV_PM_OPS(i2c_bfin_twi_pm,
+-			 i2c_bfin_twi_suspend, i2c_bfin_twi_resume);
+-#define I2C_BFIN_TWI_PM_OPS	(&i2c_bfin_twi_pm)
+-#else
+-#define I2C_BFIN_TWI_PM_OPS	NULL
+-#endif
+-
+-static int i2c_bfin_twi_probe(struct platform_device *pdev)
+-{
+-	struct bfin_twi_iface *iface;
+-	struct i2c_adapter *p_adap;
+-	struct resource *res;
+-	int rc;
+-	unsigned int clkhilow;
+-
+-	iface = devm_kzalloc(&pdev->dev, sizeof(struct bfin_twi_iface),
+-			GFP_KERNEL);
+-	if (!iface) {
+-		dev_err(&pdev->dev, "Cannot allocate memory\n");
+-		return -ENOMEM;
+-	}
+-
+-	spin_lock_init(&(iface->lock));
+-
+-	/* Find and map our resources */
+-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	iface->regs_base = devm_ioremap_resource(&pdev->dev, res);
+-	if (IS_ERR(iface->regs_base)) {
+-		dev_err(&pdev->dev, "Cannot map IO\n");
+-		return PTR_ERR(iface->regs_base);
+-	}
+-
+-	iface->irq = platform_get_irq(pdev, 0);
+-	if (iface->irq < 0) {
+-		dev_err(&pdev->dev, "No IRQ specified\n");
+-		return -ENOENT;
+-	}
+-
+-	p_adap = &iface->adap;
+-	p_adap->nr = pdev->id;
+-	strlcpy(p_adap->name, pdev->name, sizeof(p_adap->name));
+-	p_adap->algo = &bfin_twi_algorithm;
+-	p_adap->algo_data = iface;
+-	p_adap->class = I2C_CLASS_DEPRECATED;
+-	p_adap->dev.parent = &pdev->dev;
+-	p_adap->timeout = 5 * HZ;
+-	p_adap->retries = 3;
+-
+-	rc = peripheral_request_list(
+-			dev_get_platdata(&pdev->dev),
+-			"i2c-bfin-twi");
+-	if (rc) {
+-		dev_err(&pdev->dev, "Can't setup pin mux!\n");
+-		return -EBUSY;
+-	}
+-
+-	rc = devm_request_irq(&pdev->dev, iface->irq, bfin_twi_interrupt_entry,
+-		0, pdev->name, iface);
+-	if (rc) {
+-		dev_err(&pdev->dev, "Can't get IRQ %d !\n", iface->irq);
+-		rc = -ENODEV;
+-		goto out_error;
+-	}
+-
+-	/* Set TWI internal clock as 10MHz */
+-	write_CONTROL(iface, ((get_sclk() / 1000 / 1000 + 5) / 10) & 0x7F);
+-
+-	/*
+-	 * We will not end up with a CLKDIV=0 because no one will specify
+-	 * 20kHz SCL or less in Kconfig now. (5 * 1000 / 20 = 250)
+-	 */
+-	clkhilow = ((10 * 1000 / CONFIG_I2C_BLACKFIN_TWI_CLK_KHZ) + 1) / 2;
+-
+-	/* Set Twi interface clock as specified */
+-	write_CLKDIV(iface, (clkhilow << 8) | clkhilow);
+-
+-	/* Enable TWI */
+-	write_CONTROL(iface, read_CONTROL(iface) | TWI_ENA);
+-
+-	rc = i2c_add_numbered_adapter(p_adap);
+-	if (rc < 0)
+-		goto out_error;
+-
+-	platform_set_drvdata(pdev, iface);
+-
+-	dev_info(&pdev->dev, "Blackfin BF5xx on-chip I2C TWI Controller, "
+-		"regs_base@%p\n", iface->regs_base);
+-
+-	return 0;
+-
+-out_error:
+-	peripheral_free_list(dev_get_platdata(&pdev->dev));
+-	return rc;
+-}
+-
+-static int i2c_bfin_twi_remove(struct platform_device *pdev)
+-{
+-	struct bfin_twi_iface *iface = platform_get_drvdata(pdev);
+-
+-	i2c_del_adapter(&(iface->adap));
+-	peripheral_free_list(dev_get_platdata(&pdev->dev));
+-
+-	return 0;
+-}
+-
+-static struct platform_driver i2c_bfin_twi_driver = {
+-	.probe		= i2c_bfin_twi_probe,
+-	.remove		= i2c_bfin_twi_remove,
+-	.driver		= {
+-		.name	= "i2c-bfin-twi",
+-		.pm	= I2C_BFIN_TWI_PM_OPS,
 -	},
 -};
 -
--module_platform_driver(bfin_can_driver);
+-static int __init i2c_bfin_twi_init(void)
+-{
+-	return platform_driver_register(&i2c_bfin_twi_driver);
+-}
 -
--MODULE_AUTHOR("Barry Song <21cnbao@gmail.com>");
+-static void __exit i2c_bfin_twi_exit(void)
+-{
+-	platform_driver_unregister(&i2c_bfin_twi_driver);
+-}
+-
+-subsys_initcall(i2c_bfin_twi_init);
+-module_exit(i2c_bfin_twi_exit);
+-
+-MODULE_AUTHOR("Bryan Wu, Sonic Zhang");
+-MODULE_DESCRIPTION("Blackfin BF5xx on-chip I2C TWI Controller Driver");
 -MODULE_LICENSE("GPL");
--MODULE_DESCRIPTION("Blackfin on-chip CAN netdevice driver");
--MODULE_ALIAS("platform:" DRV_NAME);
+-MODULE_ALIAS("platform:i2c-bfin-twi");
 -- 
 2.7.4
