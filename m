@@ -1,199 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f67.google.com ([209.85.213.67]:35734 "EHLO
-        mail-vk0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751466AbeCOQPv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 12:15:51 -0400
-Received: by mail-vk0-f67.google.com with SMTP id r197so3784416vke.2
-        for <linux-arch@vger.kernel.org>; Thu, 15 Mar 2018 09:15:50 -0700 (PDT)
+Received: from g9t5009.houston.hpe.com ([15.241.48.73]:54408 "EHLO
+        g9t5009.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751667AbeCOQMz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2018 12:12:55 -0400
+From: "Kani, Toshi" <toshi.kani@hpe.com>
+Subject: Re: [PATCH v2 2/4] ioremap: Implement TLB_INV before huge mapping
+Date: Thu, 15 Mar 2018 16:12:52 +0000
+Message-ID: <1521130368.2693.177.camel@hpe.com>
+References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
+         <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
+In-Reply-To: <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <9168F7EEE5567C4387AEFF4307500D03@NAMPRD84.PROD.OUTLOOK.COM>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-References: <20180315014817.142930-1-djkurtz@chromium.org> <398eebd9-9ec9-50ef-88ea-c3d5ae9f5d90@infradead.org>
-In-Reply-To: <398eebd9-9ec9-50ef-88ea-c3d5ae9f5d90@infradead.org>
-From: Daniel Kurtz <djkurtz@chromium.org>
-Date: Thu, 15 Mar 2018 16:15:38 +0000
-Message-ID: <CAGS+omDTVWoLGiOrMUFDOtjPDfK4gs+OiPAB6TJGoM+en7NtNw@mail.gmail.com>
-Subject: Re: [PATCH v2] earlycon: Fix __earlycon_table stride... again
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <rdunlap@infradead.org>
-Cc: peter@hurleysoftware.com, Rob Herring <robh@kernel.org>, adurbin@chromium.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, Grant Likely <grant.likely@linaro.org>, Rob Herring <robh+dt@kernel.org>, frowand.list@gmail.com, jslaby@suse.com, Arnd Bergmann <arnd@arndb.de>, "open list:OPEN FIRMWARE AND..." <devicetree@vger.kernel.org>, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20180315161538.Wrf6rmULC4C3yxQuCijpF0aLYW-J56Ru93CW3cnsmMw@z>
+To: "cpandya@codeaurora.org" <cpandya@codeaurora.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "arnd@arndb.de" <arnd@arndb.de>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "takahiro.akashi@linaro.org" <takahiro.akashi@linaro.org>, "james.morse@arm.com" <james.morse@arm.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20180315161252.IwJEnR72aP4GMNkRCPna_dSoziBNu5blsAISBufKfO4@z>
 
-On Wed, Mar 14, 2018 at 8:33 PM Randy Dunlap <rdunlap@infradead.org> wrote:
-
-> On 03/14/2018 06:48 PM, Daniel Kurtz wrote:
-> > Commit 470ca0de69fe ("serial: earlycon: Enable earlycon without command
-> > line param") added EARLYCON_TABLE().
-> >
-> > Commit 99492c39f39f ("earlycon: Fix __earlycon_table stride") reference=
-d
-> > commit 07fca0e57fca92 ("tracing: Properly align linker defined symbols"=
-)
-> > and tried to fix EARLYCON_TABLE() using __aligned(32).
-> >
-> > However, the fix copied just works around compiler behavior.  In fact,
-it
-> > was subsequently re-implemented for tracing using a table of pointers i=
-n
-> > commit 3d56e331b653 ("tracing: Replace syscall_meta_data struct array
-with
-> > pointer array"), commit 654986462939 ("tracepoints: Fix section
-alignment
-> > using pointer array") and commit e4a9ea5ee7c8 ("tracing: Replace
-> > trace_event struct array with pointer array").
-> >
-> > Let's do the same "array of pointers to structs" approach for
-> > EARLYCON_TABLE.
-
-> Please describe what the problem is instead of just what the fix is.
-> Thanks.
-
-The problem is the same as in 99492c39f39f; the __earlycon_table stride may
-be wrong depending on how the compiler decides to align the contents of
-__earlycon_table.
-See the other referenced patches for a detailed description of the problem
-and its solution.
-
--Dan
-
-
-> > Signed-off-by: Daniel Kurtz <djkurtz@chromium.org>
-> > ---
-> > Changes since v1:
-> >  * Change __earlycon_table to an array of pointers.
-> >
-> > Note: I do not have a convenient system to test the of/fdt.c part of
-this
-> > patch, so would apreciate help verifying it.  Thanks!
-> >
-> >  drivers/of/fdt.c                  |  7 +++++--
-> >  drivers/tty/serial/earlycon.c     |  6 ++++--
-> >  include/asm-generic/vmlinux.lds.h |  2 +-
-> >  include/linux/serial_core.h       | 21 ++++++++++++++-------
-> >  4 files changed, 24 insertions(+), 12 deletions(-)
-> >
-> > diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
-> > index 84aa9d676375..6da20b9688f7 100644=EF=BF=BC
-> > --- a/drivers/of/fdt.c
-> > +++ b/drivers/of/fdt.c
-> > @@ -942,7 +942,7 @@ int __init early_init_dt_scan_chosen_stdout(void)
-> >       int offset;
-> >       const char *p, *q, *options =3D NULL;
-> >       int l;
-> > -     const struct earlycon_id *match;
-> > +     const struct earlycon_id **p_match;
-> >       const void *fdt =3D initial_boot_params;
-> >
-> >       offset =3D fdt_path_offset(fdt, "/chosen");
-> > @@ -969,7 +969,10 @@ int __init early_init_dt_scan_chosen_stdout(void)
-> >               return 0;
-> >       }
-> >
-> > -     for (match =3D __earlycon_table; match < __earlycon_table_end;
-match++) {
-> > +     for (p_match =3D __earlycon_table; p_match < __earlycon_table_end=
-;
-> > +          p_match++) {
-> > +             const struct earlycon_id *match =3D *p_match;
-> > +
-> >               if (!match->compatible[0])
-> >                       continue;
-> >
-> > diff --git a/drivers/tty/serial/earlycon.c
-b/drivers/tty/serial/earlycon.c
-> > index a24278380fec..22683393a0f2 100644
-> > --- a/drivers/tty/serial/earlycon.c
-> > +++ b/drivers/tty/serial/earlycon.c
-> > @@ -169,7 +169,7 @@ static int __init register_earlycon(char *buf,
-const struct earlycon_id *match)
-> >   */
-> >  int __init setup_earlycon(char *buf)
-> >  {
-> > -     const struct earlycon_id *match;
-> > +     const struct earlycon_id **p_match;
-> >
-> >       if (!buf || !buf[0])
-> >               return -EINVAL;
-> > @@ -177,7 +177,9 @@ int __init setup_earlycon(char *buf)
-> >       if (early_con.flags & CON_ENABLED)
-> >               return -EALREADY;
-> >
-> > -     for (match =3D __earlycon_table; match < __earlycon_table_end;
-match++) {
-> > +     for (p_match =3D __earlycon_table; p_match < __earlycon_table_end=
-;
-> > +          p_match++) {
-> > +             const struct earlycon_id *match =3D *p_match;
-> >               size_t len =3D strlen(match->name);
-> >
-> >               if (strncmp(buf, match->name, len))
-> > diff --git a/include/asm-generic/vmlinux.lds.h
-b/include/asm-generic/vmlinux.lds.h
-> > index 1ab0e520d6fc..e17de55c2542 100644
-> > --- a/include/asm-generic/vmlinux.lds.h
-> > +++ b/include/asm-generic/vmlinux.lds.h
-> > @@ -179,7 +179,7 @@
-> >  #endif
-> >
-> >  #ifdef CONFIG_SERIAL_EARLYCON
-> > -#define EARLYCON_TABLE() STRUCT_ALIGN();                     \
-> > +#define EARLYCON_TABLE() . =3D ALIGN(8);                              =
- \
-> >                        VMLINUX_SYMBOL(__earlycon_table) =3D .;  \
-> >                        KEEP(*(__earlycon_table))              \
-> >                        VMLINUX_SYMBOL(__earlycon_table_end) =3D .;
-> > diff --git a/include/linux/serial_core.h b/include/linux/serial_core.h
-> > index b32df49a3bd5..93b7add47087 100644
-> > --- a/include/linux/serial_core.h
-> > +++ b/include/linux/serial_core.h
-> > @@ -351,10 +351,10 @@ struct earlycon_id {
-> >       char    name[16];
-> >       char    compatible[128];
-> >       int     (*setup)(struct earlycon_device *, const char *options);
-> > -} __aligned(32);
-> > +};
-> >
-> > -extern const struct earlycon_id __earlycon_table[];
-> > -extern const struct earlycon_id __earlycon_table_end[];
-> > +extern const struct earlycon_id *__earlycon_table[];
-> > +extern const struct earlycon_id *__earlycon_table_end[];
-> >
-> >  #if defined(CONFIG_SERIAL_EARLYCON) && !defined(MODULE)
-> >  #define EARLYCON_USED_OR_UNUSED      __used
-> > @@ -362,12 +362,19 @@ extern const struct earlycon_id
-__earlycon_table_end[];
-> >  #define EARLYCON_USED_OR_UNUSED      __maybe_unused
-> >  #endif
-> >
-> > -#define OF_EARLYCON_DECLARE(_name, compat, fn)
-       \
-> > -     static const struct earlycon_id __UNIQUE_ID(__earlycon_##_name) \
-> > -          EARLYCON_USED_OR_UNUSED __section(__earlycon_table)        \
-> > +#define _OF_EARLYCON_DECLARE(_name, compat, fn, unique_id)           \
-> > +     static const struct earlycon_id unique_id                       \
-> > +          EARLYCON_USED_OR_UNUSED __initdata                         \
-> >               =3D { .name =3D __stringify(_name),                      =
-   \
-> >                   .compatible =3D compat,                              =
- \
-> > -                 .setup =3D fn  }
-> > +                 .setup =3D fn  };                                    =
- \
-> > +     static const struct earlycon_id EARLYCON_USED_OR_UNUSED         \
-> > +             __section(__earlycon_table)                             \
-> > +             * const __PASTE(__p, unique_id) =3D &unique_id
-> > +
-> > +#define OF_EARLYCON_DECLARE(_name, compat, fn)
-       \
-> > +     _OF_EARLYCON_DECLARE(_name, compat, fn,                         \
-> > +                          __UNIQUE_ID(__earlycon_##_name))
-> >
-> >  #define EARLYCON_DECLARE(_name, fn)  OF_EARLYCON_DECLARE(_name, "", fn=
-)
-> >
-> >
-
-
-> --
-> ~Randy
+T24gVGh1LCAyMDE4LTAzLTE1IGF0IDE4OjE1ICswNTMwLCBDaGludGFuIFBhbmR5YSB3cm90ZToN
+Cj4gSHVnZSBtYXBwaW5nIGNoYW5nZXMgUE1EL1BVRCB3aGljaCBjb3VsZCBoYXZlDQo+IHZhbGlk
+IHByZXZpb3VzIGVudHJpZXMuIFRoaXMgcmVxdWlyZXMgcHJvcGVyDQo+IFRMQiBtYWludGFuYW5j
+ZSBvbiBzb21lIGFyY2hpdGVjdHVyZXMsIGxpa2UNCj4gQVJNNjQuDQo+IA0KPiBJbXBsZW50IEJC
+TSAoYnJlYWstYmVmb3JlLW1ha2UpIHNhZmUgVExCDQo+IGludmFsaWRhdGlvbi4NCj4gDQo+IEhl
+cmUsIEkndmUgdXNlZCBmbHVzaF90bGJfcGd0YWJsZSgpIGluc3RlYWQNCj4gb2YgZmx1c2hfa2Vy
+bmVsX3JhbmdlKCkgYmVjYXVzZSBpbnZhbGlkYXRpbmcNCj4gaW50ZXJtZWRpYXRlIHBhZ2VfdGFi
+bGUgZW50cmllcyBjb3VsZCBoYXZlDQo+IGJlZW4gb3B0aW1pemVkIGZvciBzcGVjaWZpYyBhcmNo
+LiBUaGF0J3MgdGhlDQo+IGNhc2Ugd2l0aCBBUk02NCBhdCBsZWFzdC4NCj4gDQo+IFNpZ25lZC1v
+ZmYtYnk6IENoaW50YW4gUGFuZHlhIDxjcGFuZHlhQGNvZGVhdXJvcmEub3JnPg0KPiAtLS0NCj4g
+IGxpYi9pb3JlbWFwLmMgfCAyNSArKysrKysrKysrKysrKysrKysrLS0tLS0tDQo+ICAxIGZpbGUg
+Y2hhbmdlZCwgMTkgaW5zZXJ0aW9ucygrKSwgNiBkZWxldGlvbnMoLSkNCj4gDQo+IGRpZmYgLS1n
+aXQgYS9saWIvaW9yZW1hcC5jIGIvbGliL2lvcmVtYXAuYw0KPiBpbmRleCA1NGU1YmJhLi41NWY4
+NjQ4IDEwMDY0NA0KPiAtLS0gYS9saWIvaW9yZW1hcC5jDQo+ICsrKyBiL2xpYi9pb3JlbWFwLmMN
+Cj4gQEAgLTEzLDYgKzEzLDcgQEANCj4gICNpbmNsdWRlIDxsaW51eC9leHBvcnQuaD4NCj4gICNp
+bmNsdWRlIDxhc20vY2FjaGVmbHVzaC5oPg0KPiAgI2luY2x1ZGUgPGFzbS9wZ3RhYmxlLmg+DQo+
+ICsjaW5jbHVkZSA8YXNtLWdlbmVyaWMvdGxiLmg+DQo+ICANCj4gICNpZmRlZiBDT05GSUdfSEFW
+RV9BUkNIX0hVR0VfVk1BUA0KPiAgc3RhdGljIGludCBfX3JlYWRfbW9zdGx5IGlvcmVtYXBfcDRk
+X2NhcGFibGU7DQo+IEBAIC04MCw2ICs4MSw3IEBAIHN0YXRpYyBpbmxpbmUgaW50IGlvcmVtYXBf
+cG1kX3JhbmdlKHB1ZF90ICpwdWQsIHVuc2lnbmVkIGxvbmcgYWRkciwNCj4gIAkJdW5zaWduZWQg
+bG9uZyBlbmQsIHBoeXNfYWRkcl90IHBoeXNfYWRkciwgcGdwcm90X3QgcHJvdCkNCj4gIHsNCj4g
+IAlwbWRfdCAqcG1kOw0KPiArCXBtZF90IG9sZF9wbWQ7DQo+ICAJdW5zaWduZWQgbG9uZyBuZXh0
+Ow0KPiAgDQo+ICAJcGh5c19hZGRyIC09IGFkZHI7DQo+IEBAIC05MSwxMCArOTMsMTUgQEAgc3Rh
+dGljIGlubGluZSBpbnQgaW9yZW1hcF9wbWRfcmFuZ2UocHVkX3QgKnB1ZCwgdW5zaWduZWQgbG9u
+ZyBhZGRyLA0KPiAgDQo+ICAJCWlmIChpb3JlbWFwX3BtZF9lbmFibGVkKCkgJiYNCj4gIAkJICAg
+ICgobmV4dCAtIGFkZHIpID09IFBNRF9TSVpFKSAmJg0KPiAtCQkgICAgSVNfQUxJR05FRChwaHlz
+X2FkZHIgKyBhZGRyLCBQTURfU0laRSkgJiYNCj4gLQkJICAgIHBtZF9mcmVlX3B0ZV9wYWdlKHBt
+ZCkpIHsNCj4gLQkJCWlmIChwbWRfc2V0X2h1Z2UocG1kLCBwaHlzX2FkZHIgKyBhZGRyLCBwcm90
+KSkNCj4gKwkJICAgIElTX0FMSUdORUQocGh5c19hZGRyICsgYWRkciwgUE1EX1NJWkUpKSB7DQo+
+ICsJCQlvbGRfcG1kID0gKnBtZDsNCj4gKwkJCXBtZF9jbGVhcihwbWQpOw0KDQpwbWRfY2xlYXIo
+KSBpcyBvbmUgb2YgdGhlIG9wZXJhdGlvbnMgcG1kX2ZyZWVfcHRlX3BhZ2UoKSBuZWVkcyB0byBk
+by4NClNlZSB0aGUgeDg2IHZlcnNpb24uDQoNCj4gKwkJCWZsdXNoX3RsYl9wZ3RhYmxlKCZpbml0
+X21tLCBhZGRyKTsNCg0KWW91IGNhbiBjYWxsIGl0IGluIHBtZF9mcmVlX3B0ZV9wYWdlKCkgb24g
+YXJtNjQgYXMgd2VsbC4gDQoNCj4gKwkJCWlmIChwbWRfc2V0X2h1Z2UocG1kLCBwaHlzX2FkZHIg
+KyBhZGRyLCBwcm90KSkgew0KPiArCQkJCXBtZF9mcmVlX3B0ZV9wYWdlKCZvbGRfcG1kKTsNCj4g
+IAkJCQljb250aW51ZTsNCj4gKwkJCX0gZWxzZQ0KPiArCQkJCXNldF9wbWQocG1kLCBvbGRfcG1k
+KTsNCg0KSSBkbyBub3QgdW5kZXJzdGFuZCB3aHkgeW91IG5lZWRlZCB0byBtYWtlIHRoaXMgY2hh
+bmdlLiANCnBtZF9mcmVlX3B0ZV9wYWdlKCkgaXMgZGVmaW5lZCBhcyBhbiBhcmNoLXNwZWNpZmlj
+IGZ1bmN0aW9uIHNvIHRoYXQgeW91DQpjYW4gYWRkaXRpb25hbGx5IHBlcmZvcm0gVExCIHB1cmdl
+cyBvbiBhcm02NC4gIFBsZWFzZSB0cnkgdG8gbWFrZSBwcm9wZXINCmFybTY0IGltcGxlbWVudGF0
+aW9uIG9mIHRoaXMgaW50ZXJmYWNlLiAgQW5kIGlmIHlvdSBmaW5kIGFueSBpc3N1ZSBpbg0KdGhp
+cyBpbnRlcmZhY2UsIHBsZWFzZSBsZXQgbWUga25vdy4NCg0KU2FtZSBmb3IgcHVkLg0KDQpUaGFu
+a3MsDQotVG9zaGkNCg==
