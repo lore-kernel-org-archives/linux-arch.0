@@ -1,57 +1,118 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: Do we need to disable preemption in flush_tlb_range()?
-Date: Fri, 16 Mar 2018 11:11:24 +0100
-Message-ID: <20180316101124.GB4064@hirez.programming.kicks-ass.net>
-References: <1519917189.13866.6.camel@synopsys.com>
- <5a5c67c1-9f45-f908-2c8d-0914cd616a18@synopsys.com>
- <20180315082720.GT4064@hirez.programming.kicks-ass.net>
- <1521106770.11552.70.camel@synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <1521106770.11552.70.camel@synopsys.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH v4] mm, pkey: treat pkey-0 special
+Date: Fri, 16 Mar 2018 03:33:36 -0700
+Message-ID: <1521196416-18157-1-git-send-email-linuxram@us.ibm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com, tglx@linutronix.de, Ulrich.Weigand@de.ibm.com, ram.n.pai@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 15, 2018 at 09:39:31AM +0000, Alexey Brodkin wrote:
-> Hi Peter,
-> 
-> On Thu, 2018-03-15 at 09:27 +0100, Peter Zijlstra wrote:
-> > On Wed, Mar 14, 2018 at 01:19:01PM -0700, Vineet Gupta wrote:
-> > > +CC Peter since we have his attention ;-)
-> > 
-> > Yeah, timezone collision there, I typically sleep at 1am ;-)
-> > 
-> > > On 03/01/2018 07:13 AM, Alexey Brodkin wrote:
-> > > > Hi Vineet,
-> > > > 
-> > > > Just noticed that in comments for smp_call_function_many() it is said that
-> > > > preemption must be disabled during its execution. And that function gets executed
-> > > > among other ways like that:
-> > > > -------------------------->8-----------------------
-> > > >    flush_tlb_range()
-> > > >      -> on_each_cpu_mask()
-> > > >           -> smp_call_function_many()
-> > > > -------------------------->8-----------------------
-> > > 
-> > > In general I prefer not to - Peter what say you ?
-> > 
-> > The comment with smp_call_function_many() is correct, it relies on
-> > preemption being disabled in a number of ways. I would expect
-> > this_cpu_ptr() for example to complain when used with preemption
-> > enabled (CONFIG_DEBUG_PREEMPT).
+Applications need the ability to associate an address-range with some
+key and latter revert to its initial default key. Pkey-0 comes close to
+providing this function but falls short, because the current
+implementation disallows applications to explicitly associate pkey-0 to
+the address range.
 
-So on_each_cpu_mask() already disables preemption around calling
-smp_call_function_many().
+Clarify the semantics of pkey-0 and provide the corresponding
+implementation.
+
+Pkey-0 is special with the following semantics.
+(a) it is implicitly allocated and can never be freed. It always exists.
+(b) it is the default key assigned to any address-range.
+(c) it can be explicitly associated with any address-range.
+
+Tested on powerpc only. Could not test on x86.
+
+cc: Thomas Gleixner <tglx@linutronix.de>
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Michael Ellermen <mpe@ellerman.id.au>
+cc: Ingo Molnar <mingo@kernel.org>
+cc: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+---
+ History:
+     v4 : (1) moved the code entirely in arch-independent location.
+     	  (2) fixed comments -- suggested by Thomas Gliexner
+     v3 : added clarification of the semantics of pkey0.
+               -- suggested by Dave Hansen
+     v2 : split the patch into two, one for x86 and one for powerpc
+               -- suggested by Michael Ellermen
+
+ Documentation/x86/protection-keys.txt |    8 ++++++++
+ mm/mprotect.c                         |   25 ++++++++++++++++++++++---
+ 2 files changed, 30 insertions(+), 3 deletions(-)
+
+diff --git a/Documentation/x86/protection-keys.txt b/Documentation/x86/protection-keys.txt
+index ecb0d2d..92802c4 100644
+--- a/Documentation/x86/protection-keys.txt
++++ b/Documentation/x86/protection-keys.txt
+@@ -88,3 +88,11 @@ with a read():
+ The kernel will send a SIGSEGV in both cases, but si_code will be set
+ to SEGV_PKERR when violating protection keys versus SEGV_ACCERR when
+ the plain mprotect() permissions are violated.
++
++====================== pkey 0 ==================================
++
++Pkey-0 is special. It is implicitly allocated. Applications cannot allocate or
++free that key. This key is the default key that gets associated with a
++addres-space. It can be explicitly associated with any address-space.
++
++================================================================
+diff --git a/mm/mprotect.c b/mm/mprotect.c
+index e3309fc..2c779fa 100644
+--- a/mm/mprotect.c
++++ b/mm/mprotect.c
+@@ -430,7 +430,13 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
+ 	 * them use it here.
+ 	 */
+ 	error = -EINVAL;
+-	if ((pkey != -1) && !mm_pkey_is_allocated(current->mm, pkey))
++
++	/*
++	 * pkey-0 is special. It always exists. No need to check if it is
++	 * allocated. Check allocation status of all other keys. pkey=-1
++	 * is not realy a key, it means; use any available key.
++	 */
++	if (pkey && pkey != -1 && !mm_pkey_is_allocated(current->mm, pkey))
+ 		goto out;
+ 
+ 	vma = find_vma(current->mm, start);
+@@ -549,6 +555,12 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
+ 	if (pkey == -1)
+ 		goto out;
+ 
++	if (!pkey) {
++		mm_pkey_free(current->mm, pkey);
++		printk("Internal error, cannot explicitly allocate key-0");
++		goto out;
++	}
++
+ 	ret = arch_set_user_pkey_access(current, pkey, init_val);
+ 	if (ret) {
+ 		mm_pkey_free(current->mm, pkey);
+@@ -564,13 +576,20 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
+ {
+ 	int ret;
+ 
++	/*
++	 * pkey-0 is special. Userspace can never allocate or free it. It is
++	 * allocated by default. It always exists.
++	 */
++	if (!pkey)
++		return -EINVAL;
++
+ 	down_write(&current->mm->mmap_sem);
+ 	ret = mm_pkey_free(current->mm, pkey);
+ 	up_write(&current->mm->mmap_sem);
+ 
+ 	/*
+-	 * We could provie warnings or errors if any VMA still
+-	 * has the pkey set here.
++	 * We could provide warnings or errors if any VMA still has the pkey
++	 * set here.
+ 	 */
+ 	return ret;
+ }
+-- 
+1.7.1
