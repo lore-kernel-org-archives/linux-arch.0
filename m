@@ -1,18 +1,18 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 26/63] nospec: Include <asm/barrier.h> dependency
-Date: Fri, 16 Mar 2018 16:22:58 +0100
-Message-ID: <20180316152302.923159611@linuxfoundation.org>
-References: <20180316152259.964532775@linuxfoundation.org>
+Subject: [PATCH 4.9 39/86] nospec: Include <asm/barrier.h> dependency
+Date: Fri, 16 Mar 2018 16:23:02 +0100
+Message-ID: <20180316152320.039234992@linuxfoundation.org>
+References: <20180316152317.167709497@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180316152259.964532775@linuxfoundation.org>
+In-Reply-To: <20180316152317.167709497@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>, Dan Williams <dan.j.williams@intel.com>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-4.4-stable review patch.  If anyone has any objections, please let me know.
+4.9-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
