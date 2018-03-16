@@ -1,83 +1,96 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: [PATCH v12 9/9] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
-Date: Fri, 16 Mar 2018 09:48:52 -0600
-Message-ID: <20180316154852.13206-10-logang@deltatee.com>
-References: <20180316154852.13206-1-logang@deltatee.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.9 38/86] nospec: Kill array_index_nospec_mask_check()
+Date: Fri, 16 Mar 2018 16:23:01 +0100
+Message-ID: <20180316152319.963285633@linuxfoundation.org>
+References: <20180316152317.167709497@linuxfoundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180316154852.13206-1-logang@deltatee.com>
+In-Reply-To: <20180316152317.167709497@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Jon Mason <jdmason@kudzu.us>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Clean up the ifdefs which conditionally defined the io{read|write}64
-functions in favour of the new common io-64-nonatomic-lo-hi header.
+4.9-stable review patch.  If anyone has any objections, please let me know.
 
-Per a nit from Andy Shevchenko, the include list is also made
-alphabetical.
+------------------
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Cc: Jon Mason <jdmason@kudzu.us>
+From: Dan Williams <dan.j.williams@intel.com>
+
+commit 1d91c1d2c80cb70e2e553845e278b87a960c04da upstream.
+
+There are multiple problems with the dynamic sanity checking in
+array_index_nospec_mask_check():
+
+* It causes unnecessary overhead in the 32-bit case since integer sized
+  @index values will no longer cause the check to be compiled away like
+  in the 64-bit case.
+
+* In the 32-bit case it may trigger with user controllable input when
+  the expectation is that should only trigger during development of new
+  kernel enabling.
+
+* The macro reuses the input parameter in multiple locations which is
+  broken if someone passes an expression like 'index++' to
+  array_index_nospec().
+
+Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arjan van de Ven <arjan@linux.intel.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Woodhouse <dwmw2@infradead.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org
+Link: http://lkml.kernel.org/r/151881604278.17395.6605847763178076520.stgit@dwillia2-desk3.amr.corp.intel.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
 ---
- drivers/ntb/hw/mscc/ntb_hw_switchtec.c | 36 ++++------------------------------
- 1 file changed, 4 insertions(+), 32 deletions(-)
+ include/linux/nospec.h |   22 +---------------------
+ 1 file changed, 1 insertion(+), 21 deletions(-)
 
-diff --git a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-index f624ae27eabe..f403da24b833 100644
---- a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-+++ b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
-@@ -13,12 +13,13 @@
+--- a/include/linux/nospec.h
++++ b/include/linux/nospec.h
+@@ -30,26 +30,6 @@ static inline unsigned long array_index_
+ #endif
+ 
+ /*
+- * Warn developers about inappropriate array_index_nospec() usage.
+- *
+- * Even if the CPU speculates past the WARN_ONCE branch, the
+- * sign bit of @index is taken into account when generating the
+- * mask.
+- *
+- * This warning is compiled out when the compiler can infer that
+- * @index and @size are less than LONG_MAX.
+- */
+-#define array_index_mask_nospec_check(index, size)				\
+-({										\
+-	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,			\
+-	    "array_index_nospec() limited to range of [0, LONG_MAX]\n"))	\
+-		_mask = 0;							\
+-	else									\
+-		_mask = array_index_mask_nospec(index, size);			\
+-	_mask;									\
+-})
+-
+-/*
+  * array_index_nospec - sanitize an array index after a bounds check
   *
-  */
- 
--#include <linux/switchtec.h>
--#include <linux/module.h>
-+#include <linux/interrupt.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- #include <linux/delay.h>
- #include <linux/kthread.h>
--#include <linux/interrupt.h>
-+#include <linux/module.h>
- #include <linux/ntb.h>
-+#include <linux/switchtec.h>
- 
- MODULE_DESCRIPTION("Microsemi Switchtec(tm) NTB Driver");
- MODULE_VERSION("0.1");
-@@ -35,35 +36,6 @@ module_param(use_lut_mws, bool, 0644);
- MODULE_PARM_DESC(use_lut_mws,
- 		 "Enable the use of the LUT based memory windows");
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- #define SWITCHTEC_NTB_MAGIC 0x45CC0001
- #define MAX_MWS     128
- 
--- 
-2.11.0
+  * For a code sequence like:
+@@ -67,7 +47,7 @@ static inline unsigned long array_index_
+ ({									\
+ 	typeof(index) _i = (index);					\
+ 	typeof(size) _s = (size);					\
+-	unsigned long _mask = array_index_mask_nospec_check(_i, _s);	\
++	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
+ 									\
+ 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
+ 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
