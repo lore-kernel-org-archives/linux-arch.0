@@ -1,96 +1,63 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.9 38/86] nospec: Kill array_index_nospec_mask_check()
-Date: Fri, 16 Mar 2018 16:23:01 +0100
-Message-ID: <20180316152319.963285633@linuxfoundation.org>
-References: <20180316152317.167709497@linuxfoundation.org>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: arc_usr_cmpxchg and preemption
+Date: Fri, 16 Mar 2018 17:33:27 +0000
+Message-ID: <1521221606.4805.16.camel@synopsys.com>
+References: <1521045375.11552.27.camel@synopsys.com>
+         <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
+         <20180314175352.GP4064@hirez.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180316152317.167709497@linuxfoundation.org>
+In-Reply-To: <20180314175352.GP4064@hirez.programming.kicks-ass.net>
+Content-Language: en-US
+Content-ID: <D9D0AE192006194686F339D488803AF7@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
+To: "peterz@infradead.org" <peterz@infradead.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-4.9-stable review patch.  If anyone has any objections, please let me know.
-
-------------------
-
-From: Dan Williams <dan.j.williams@intel.com>
-
-commit 1d91c1d2c80cb70e2e553845e278b87a960c04da upstream.
-
-There are multiple problems with the dynamic sanity checking in
-array_index_nospec_mask_check():
-
-* It causes unnecessary overhead in the 32-bit case since integer sized
-  @index values will no longer cause the check to be compiled away like
-  in the 64-bit case.
-
-* In the 32-bit case it may trigger with user controllable input when
-  the expectation is that should only trigger during development of new
-  kernel enabling.
-
-* The macro reuses the input parameter in multiple locations which is
-  broken if someone passes an expression like 'index++' to
-  array_index_nospec().
-
-Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Arjan van de Ven <arjan@linux.intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org
-Link: http://lkml.kernel.org/r/151881604278.17395.6605847763178076520.stgit@dwillia2-desk3.amr.corp.intel.com
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
----
- include/linux/nospec.h |   22 +---------------------
- 1 file changed, 1 insertion(+), 21 deletions(-)
-
---- a/include/linux/nospec.h
-+++ b/include/linux/nospec.h
-@@ -30,26 +30,6 @@ static inline unsigned long array_index_
- #endif
- 
- /*
-- * Warn developers about inappropriate array_index_nospec() usage.
-- *
-- * Even if the CPU speculates past the WARN_ONCE branch, the
-- * sign bit of @index is taken into account when generating the
-- * mask.
-- *
-- * This warning is compiled out when the compiler can infer that
-- * @index and @size are less than LONG_MAX.
-- */
--#define array_index_mask_nospec_check(index, size)				\
--({										\
--	if (WARN_ONCE(index > LONG_MAX || size > LONG_MAX,			\
--	    "array_index_nospec() limited to range of [0, LONG_MAX]\n"))	\
--		_mask = 0;							\
--	else									\
--		_mask = array_index_mask_nospec(index, size);			\
--	_mask;									\
--})
--
--/*
-  * array_index_nospec - sanitize an array index after a bounds check
-  *
-  * For a code sequence like:
-@@ -67,7 +47,7 @@ static inline unsigned long array_index_
- ({									\
- 	typeof(index) _i = (index);					\
- 	typeof(size) _s = (size);					\
--	unsigned long _mask = array_index_mask_nospec_check(_i, _s);	\
-+	unsigned long _mask = array_index_mask_nospec(_i, _s);		\
- 									\
- 	BUILD_BUG_ON(sizeof(_i) > sizeof(long));			\
- 	BUILD_BUG_ON(sizeof(_s) > sizeof(long));			\
+SGkgUGV0ZXIsIFZpbmVldCwNCg0KT24gV2VkLCAyMDE4LTAzLTE0IGF0IDE4OjUzICswMTAwLCBQ
+ZXRlciBaaWpsc3RyYSB3cm90ZToNCj4gT24gV2VkLCBNYXIgMTQsIDIwMTggYXQgMDk6NTg6MTlB
+TSAtMDcwMCwgVmluZWV0IEd1cHRhIHdyb3RlOg0KPiANCj4gPiBXZWxsIGl0IGlzIGJyb2tlbiB3
+cnQgdGhlIHNlbWFudGljcyB0aGUgc3lzY2FsbCBpcyBzdXBwb3NlZCB0byBwcm92aWRlLg0KPiA+
+IFByZWVtcHRpb24gZGlzYWJsaW5nIGlzIHdoYXQgcHJldmVudHMgYSBjb25jdXJyZW50IHRocmVh
+ZCBmcm9tIGNvbWluZyBpbiBhbmQNCj4gPiBtb2RpZnlpbmcgdGhlIHNhbWUgbG9jYXRpb24gKElt
+YWdpbmUgYSB2YXJpYWJsZSB3aGljaCBpcyBiZWluZyBjbXB4Y2hnDQo+ID4gY29uY3VycmVudGx5
+IGJ5IDIgdGhyZWFkcykuDQo+ID4gDQo+ID4gT25lIGFwcHJvYWNoIGlzIHRvIGRvIGl0IHRoZSBN
+SVBTIHdheSwgZW11bGF0ZSB0aGUgbGxzYyBmbGFnIC0gc2V0IGl0IHVuZGVyDQo+ID4gcHJlZW1w
+dGlvbiBkaXNhYmxlZCBzZWN0aW9uIGFuZCBjbGVhciBpdCBpbiBzd2l0Y2hfdG8NCj4gDQo+ICpz
+aHVkZGVyKi4uLiBqdXN0IGNhdGNoIHRoZSAtRUZBVUxULCBmb3JjZSB0aGUgd3JpdGUgZmF1bHQg
+YW5kIHJldHJ5Lg0KDQpNb3JlIEkgbG9vayBhdCB0aGlzIGluaXRpYWxseSBxdWl0ZSBzaW1wbGUg
+dGhpbmcgbW9yZSBpdCBsb29rcyBsaWtlDQphIGNhbiBvZiB3b3Jtcy4uLg0KDQo+IFNvbWV0aGlu
+ZyBsaWtlOg0KPiANCj4gaW50IHN5c19jbXB4Y2hnKHUzMiBfX3VzZXIgKnVzZXJfcHRyLCB1MzIg
+b2xkLCB1MzIgbmV3KQ0KPiB7DQoNClRoYXQgZnVuY3Rpb25zIGlzIHN1cHBvc2VkIHRvIHJldHVy
+biBvbGQgdmFsdWUgc3RvcmVkIGluIG1lbW9yeS4NCkF0IGxlYXN0IHRoYXQncyBob3cgaXQgaXMg
+dXNlZCBpbiBjYXNlIG9mIEFSQyBhbmQgTTY4Sy4NCg0KUmVtZW1iZXIgdGhlcmUncyBhbHJlYWR5
+IGxpYmMgdGhhdCByZWxpZXMgb24gdGhhdCBlc3RhYmxpc2hlZCBBUEkNCmFuZCB3ZSBjYW5ub3Qg
+anVzdCBjaGFuZ2UgaXQuLi4gZXZlbiB0aG91Z2ggaXQgbWlnaHQgYmUgYSBnb29kIGlkZWEuDQpG
+b3IgZXhhbXBsZSByZXR1cm4gImVycm5vIiBhbmQgcGFzcyBvbGQgdmFsdWUgdmlhIHBvaW50ZXIg
+aW4gYW4gYXJndW1lbnQuDQpCdXQgbm93IEkgZ3Vlc3MgaXQncyBiZXR0ZXIgdG8gdXNlIHdoYXQg
+d2UgaGF2ZSBub3cuDQoNCj4gCXUzMiB2YWw7DQo+IAlpbnQgcmV0Ow0KPiANCj4gYWdhaW46DQo+
+IAlyZXQgPSAwOw0KPiANCj4gCXByZWVtcHRfZGlzYWJsZSgpOw0KPiAJdmFsID0gZ2V0X3VzZXIo
+dXNlcl9wdHIpOw0KDQpXaGF0IGlmIGdldF91c2VyKCkgZmFpbHM/DQpJbiBQZXRlcidzIGltcGxl
+bWVudGF0aW9uIHdlIHdpbGwgcmV0dXJuIDAsIGluIFZpbmVldCdzDQp3ZSB3aWxsIHJldHVybiAt
+RUZBVUxULi4uIGFuZCB3aG8ga25vd3Mgd2hhdCBraW5kIG9mIHVuZXhwZWN0ZWQgYmVoYXZpb3Ig
+aGFwcGVucw0KZnVydGhlciBkb3duIHRoZSBsaW5lIGluIHVzZXItc3BhY2UuLi4gc28gSSB0aGlu
+ayBpdCB3b3VsZCBiZSBzYWZlciB0byBraWxsDQp0aGUgcHJvY2VzcyB0aGVuLg0KDQpBbmQgdGhh
+dCdzIG15IHRha2U6DQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tDQppbnQgc3lzX2NtcHhjaGcodTMyIF9fdXNlciAqdXNlcl9wdHIsIHUzMiBvbGQs
+IHUzMiBuZXcpDQp7DQoJdTMyIHZhbDsNCglpbnQgcmV0Ow0KDQphZ2FpbjoNCglyZXQgPSAwOw0K
+DQoJcHJlZW1wdF9kaXNhYmxlKCk7DQoNCglyZXQgPSBnZXRfdXNlcih2YWwsIHVzZXJfcHRyKTsN
+CglpZihyZXQgPT0gLUVGQVVMVCkgew0KCQlzdHJ1Y3QgcGFnZSAqcGFnZTsNCg0KCQlwcmVlbXB0
+X2VuYWJsZSgpOw0KCQlyZXQgPSBnZXRfdXNlcl9wYWdlc19mYXN0KCh1bnNpZ25lZCBsb25nKXVz
+ZXJfcHRyLCAxLCAxLCAmcGFnZSk7DQoJCWlmIChyZXQgPCAwKSB7DQoJCQlmb3JjZV9zaWcoU0lH
+U0VHViwgY3VycmVudCk7DQoJCQlyZXR1cm4gcmV0Ow0KCQl9DQoNCgkJcHV0X3BhZ2UocGFnZSk7
+DQoJCWdvdG8gYWdhaW47DQoJfQ0KDQoJaWYgKHZhbCA9PSBvbGQpDQoJCXJldCA9IHB1dF91c2Vy
+KG5ldywgdXNlcl9wdHIpOw0KDQoJcHJlZW1wdF9lbmFibGUoKTsNCg0KCWlmIChyZXQgPT0gLUVG
+QVVMVCkgew0KCQlzdHJ1Y3QgcGFnZSAqcGFnZTsNCg0KCQlyZXQgPSBnZXRfdXNlcl9wYWdlc19m
+YXN0KCh1bnNpZ25lZCBsb25nKXVzZXJfcHRyLCAxLCAxLCAmcGFnZSk7DQoJCWlmIChyZXQgPCAw
+KSB7DQoJCQlmb3JjZV9zaWcoU0lHU0VHViwgY3VycmVudCk7DQoJCQlyZXR1cm4gcmV0Ow0KCQl9
+DQoNCgkJcHV0X3BhZ2UocGFnZSk7DQoJCWdvdG8gYWdhaW47DQoJfQ0KDQoJcmV0dXJuIHJldDsN
+Cn0NCi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0N
+Cg0KLUFsZXhleQ==
