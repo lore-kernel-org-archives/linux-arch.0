@@ -1,118 +1,45 @@
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v4] mm, pkey: treat pkey-0 special
-Date: Fri, 16 Mar 2018 03:33:36 -0700
-Message-ID: <1521196416-18157-1-git-send-email-linuxram@us.ibm.com>
+From: Balbir Singh <bsingharora@gmail.com>
+Subject: Re: [PATCH v4] mm, pkey: treat pkey-0 special
+Date: Fri, 16 Mar 2018 22:02:22 +1100
+Message-ID: <CAKTCnzmSCT+VecdSRpyY2Rb_AW2ngCi3UTZfLE3VOLNSQn6vsA@mail.gmail.com>
+References: <1521196416-18157-1-git-send-email-linuxram@us.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1521196416-18157-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
-Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de, fweimer@redhat.com, msuchanek@suse.com, tglx@linutronix.de, Ulrich.Weigand@de.ibm.com, ram.n.pai@gmail.com
+To: Ram Pai <linuxram@us.ibm.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "open list:LINUX FOR POWERPC (32-BIT AND 64-BIT)" <linuxppc-dev@lists.ozlabs.org>, linux-mm <linux-mm@kvack.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Anshuman Khandual <khandual@linux.vnet.ibm.com>, Aneesh Kumar KV <aneesh.kumar@linux.vnet.ibm.com>, Haren Myneni/Beaverton/IBM <hbabu@us.ibm.com>, Michal Hocko <mhocko@kernel.org>, Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Applications need the ability to associate an address-range with some
-key and latter revert to its initial default key. Pkey-0 comes close to
-providing this function but falls short, because the current
-implementation disallows applications to explicitly associate pkey-0 to
-the address range.
+On Fri, Mar 16, 2018 at 9:33 PM, Ram Pai <linuxram@us.ibm.com> wrote:
+> Applications need the ability to associate an address-range with some
+> key and latter revert to its initial default key. Pkey-0 comes close to
+> providing this function but falls short, because the current
+> implementation disallows applications to explicitly associate pkey-0 to
+> the address range.
+>
+> Clarify the semantics of pkey-0 and provide the corresponding
+> implementation.
+>
+> Pkey-0 is special with the following semantics.
+> (a) it is implicitly allocated and can never be freed. It always exists.
+> (b) it is the default key assigned to any address-range.
+> (c) it can be explicitly associated with any address-range.
+>
+> Tested on powerpc only. Could not test on x86.
 
-Clarify the semantics of pkey-0 and provide the corresponding
-implementation.
 
-Pkey-0 is special with the following semantics.
-(a) it is implicitly allocated and can never be freed. It always exists.
-(b) it is the default key assigned to any address-range.
-(c) it can be explicitly associated with any address-range.
+Ram,
 
-Tested on powerpc only. Could not test on x86.
+I was wondering if we should check the AMOR values on the ppc side to make sure
+that pkey0 is indeed available for use as default. I am still of the
+opinion that we
+should consider non-0 default pkey in the long run. I'm OK with the patches for
+now, but really 0 is not special except for it being the default bit
+values present
+in the PTE.
 
-cc: Thomas Gleixner <tglx@linutronix.de>
-cc: Dave Hansen <dave.hansen@intel.com>
-cc: Michael Ellermen <mpe@ellerman.id.au>
-cc: Ingo Molnar <mingo@kernel.org>
-cc: Andrew Morton <akpm@linux-foundation.org>
-Signed-off-by: Ram Pai <linuxram@us.ibm.com>
----
- History:
-     v4 : (1) moved the code entirely in arch-independent location.
-     	  (2) fixed comments -- suggested by Thomas Gliexner
-     v3 : added clarification of the semantics of pkey0.
-               -- suggested by Dave Hansen
-     v2 : split the patch into two, one for x86 and one for powerpc
-               -- suggested by Michael Ellermen
+The patches themselves look OK to me
 
- Documentation/x86/protection-keys.txt |    8 ++++++++
- mm/mprotect.c                         |   25 ++++++++++++++++++++++---
- 2 files changed, 30 insertions(+), 3 deletions(-)
-
-diff --git a/Documentation/x86/protection-keys.txt b/Documentation/x86/protection-keys.txt
-index ecb0d2d..92802c4 100644
---- a/Documentation/x86/protection-keys.txt
-+++ b/Documentation/x86/protection-keys.txt
-@@ -88,3 +88,11 @@ with a read():
- The kernel will send a SIGSEGV in both cases, but si_code will be set
- to SEGV_PKERR when violating protection keys versus SEGV_ACCERR when
- the plain mprotect() permissions are violated.
-+
-+====================== pkey 0 ==================================
-+
-+Pkey-0 is special. It is implicitly allocated. Applications cannot allocate or
-+free that key. This key is the default key that gets associated with a
-+addres-space. It can be explicitly associated with any address-space.
-+
-+================================================================
-diff --git a/mm/mprotect.c b/mm/mprotect.c
-index e3309fc..2c779fa 100644
---- a/mm/mprotect.c
-+++ b/mm/mprotect.c
-@@ -430,7 +430,13 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
- 	 * them use it here.
- 	 */
- 	error = -EINVAL;
--	if ((pkey != -1) && !mm_pkey_is_allocated(current->mm, pkey))
-+
-+	/*
-+	 * pkey-0 is special. It always exists. No need to check if it is
-+	 * allocated. Check allocation status of all other keys. pkey=-1
-+	 * is not realy a key, it means; use any available key.
-+	 */
-+	if (pkey && pkey != -1 && !mm_pkey_is_allocated(current->mm, pkey))
- 		goto out;
- 
- 	vma = find_vma(current->mm, start);
-@@ -549,6 +555,12 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
- 	if (pkey == -1)
- 		goto out;
- 
-+	if (!pkey) {
-+		mm_pkey_free(current->mm, pkey);
-+		printk("Internal error, cannot explicitly allocate key-0");
-+		goto out;
-+	}
-+
- 	ret = arch_set_user_pkey_access(current, pkey, init_val);
- 	if (ret) {
- 		mm_pkey_free(current->mm, pkey);
-@@ -564,13 +576,20 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
- {
- 	int ret;
- 
-+	/*
-+	 * pkey-0 is special. Userspace can never allocate or free it. It is
-+	 * allocated by default. It always exists.
-+	 */
-+	if (!pkey)
-+		return -EINVAL;
-+
- 	down_write(&current->mm->mmap_sem);
- 	ret = mm_pkey_free(current->mm, pkey);
- 	up_write(&current->mm->mmap_sem);
- 
- 	/*
--	 * We could provie warnings or errors if any VMA still
--	 * has the pkey set here.
-+	 * We could provide warnings or errors if any VMA still has the pkey
-+	 * set here.
- 	 */
- 	return ret;
- }
--- 
-1.7.1
+Balbir Singh.
