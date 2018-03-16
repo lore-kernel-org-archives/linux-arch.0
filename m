@@ -1,62 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.133]:60286 "EHLO
-        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751310AbeCPHzL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Mar 2018 03:55:11 -0400
-Date: Fri, 16 Mar 2018 08:55:08 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: arc_usr_cmpxchg and preemption
-Message-ID: <20180316075508.GY4043@hirez.programming.kicks-ass.net>
-References: <1521045375.11552.27.camel@synopsys.com>
- <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
- <20180314175352.GP4064@hirez.programming.kicks-ass.net>
- <1521059931.11552.51.camel@synopsys.com>
- <20180315081845.GS4064@hirez.programming.kicks-ass.net>
- <1521105128.11552.64.camel@synopsys.com>
- <20180315112829.GW4064@hirez.programming.kicks-ass.net>
- <1521140611.6358.29.camel@synopsys.com>
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:32889 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750847AbeCPIMZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Mar 2018 04:12:25 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1521140611.6358.29.camel@synopsys.com>
+In-Reply-To: <2f2e0cd4-02ca-0e01-7003-e519a7706ee4@alum.mit.edu>
+References: <20180314143529.1456168-1-arnd@arndb.de> <20180314143656.1495602-1-arnd@arndb.de>
+ <20180314143656.1495602-6-arnd@arndb.de> <2f2e0cd4-02ca-0e01-7003-e519a7706ee4@alum.mit.edu>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Fri, 16 Mar 2018 09:12:24 +0100
+Message-ID: <CAK8P3a3GNHBbQpB23p1+b8L=Cg2gDkOz9h_EaWA22B+E+1ropA@mail.gmail.com>
+Subject: Re: [PATCH 06/16] arch: remove tile port
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Message-ID: <20180316075508.d7XCoFqLNRW25WwRI3xSSBITAImQonymV8SUfAdGo1c@z>
+To: Chris Metcalf <metcalf@alum.mit.edu>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Message-ID: <20180316081224.GBSdsvCdhxdMHRqDWBVOfvsK3x1I8kJkLbu1kIleIOk@z>
 
-On Thu, Mar 15, 2018 at 07:03:32PM +0000, Alexey Brodkin wrote:
-> > I think there's a bunch of architectures that are in the same boat.
-> > m68k, arm, mips was mentioned. Sure, the moment an arch has hardware
-> > support you don't need the syscall anymore.
-> 
-> Here's a brief analysis:
-> ARM:  Looks like they got rid of that stuff in v4.4, see
->       commit db695c0509d6 ("ARM: remove user cmpxchg syscall").
+On Fri, Mar 16, 2018 at 2:23 AM, Chris Metcalf <metcalf@alum.mit.edu> wrote:
+> On 3/14/2018 10:36 AM, Arnd Bergmann wrote:
+>>
+>> The Tile architecture port was added by Chris Metcalf in 2010, and
+>> maintained until early 2018 when he orphaned it due to his departure
+>> from Mellanox, and nobody else stepped up to maintain it. The product
+>> line is still around in the form of the BlueField SoC, but no longer
+>> uses the Tile architecture.
+>>
+>> There are also still products for sale with Tile-GX SoCs, notably the
+>> Mikrotik CCR router family. The products all use old (linux-3.3) kernels
+>> with lots of patches and won't be upgraded by their manufacturers. There
+>> have been efforts to port both OpenWRT and Debian to these, but both
+>> projects have stalled and are very unlikely to be continued in the future.
+>>
+>> Given that we are reasonably sure that nobody is still using the port
+>> with an upstream kernel any more, it seems better to remove it now while
+>> the port is in a good shape than to let it bitrot for a few years first.
+>
+>
+> Arnd, thanks for dealing with this.
+>
+> There are a number of tile-specific driver files that are mostly called out
+> in the MAINTAINERS file.  I would expect you should also delete those.
+>
+>
+> -F:    drivers/char/tile-srom.c
+> -F:    drivers/edac/tile_edac.c
+> -F:    drivers/net/ethernet/tile/
+> -F:    drivers/rtc/rtc-tile.c
+> -F:    drivers/tty/hvc/hvc_tile.c
+> -F:    drivers/tty/serial/tilegx.c
+> -F:    drivers/usb/host/*-tilegx.c
+> -F:    include/linux/usb/tilegx.h
 
-Oh shiny, that's why I couldn't find it. I had distinct memories of them
-having one though.
+Right. I covered all of those in my follow-up driver series, see
+https://lkml.org/lkml/2018/3/14/579
 
-> M68K: That's even uglier implementation which is really asking for
->       a facelift, look at sys_atomic_cmpxchg_32() here:
->       https://elixir.bootlin.com/linux/latest/source/arch/m68k/kernel/sys_m68k.c#L461
+It's all in linux-next as of yesterday, but thanks for paying attention here.
 
-Yes, I found that code, it's something special allright.
-
-> MIPS: They do it via special sysmips syscall which among other things
->       might handle MIPS_ATOMIC_SET with mips_atomic_set()
-> 
-> I don't immediately see if there're others but really I'm not sure if it even worth trying to
-> clean-up all that since efforts might be spent pointlessly.
-> 
-> > I was just thinking it would be good to have a common implementation (if
-> > possible) rather than 4-5 different copies of basically the same thing.
-> 
-> From above I would conclude that only M68K might benefit from new
-> library implementation. BTW M68K uses a bit different ABI compared to
-> ARC for that syscall so it will be really atomic_cmpxchg_32()
-> libfunction called from those syscalls, but now I think that's exactly
-> what you meant initially, correct?
-
-Right. In any case, I won't insist, but if it's very little effort, it
-might well be worth getting rid of that m68k magic.
+       Arnd
