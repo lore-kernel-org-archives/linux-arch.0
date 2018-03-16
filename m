@@ -1,15 +1,15 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.99]:48468 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.99]:48858 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751079AbeCPOkc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 16 Mar 2018 10:40:32 -0400
-Date: Fri, 16 Mar 2018 10:40:30 -0400
+        id S1752052AbeCPOmv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Mar 2018 10:42:51 -0400
+Date: Fri, 16 Mar 2018 10:42:48 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFC PATCH 1/2] ftrace: Allow arches to opt-out of static
- ftrace
-Message-ID: <20180316104030.0df39af7@gandalf.local.home>
-In-Reply-To: <20180316134633.10584-1-mpe@ellerman.id.au>
+Subject: Re: [RFC PATCH 2/2] powerpc: Only support DYNAMIC_FTRACE not static
+Message-ID: <20180316104248.6aa11792@gandalf.local.home>
+In-Reply-To: <20180316134633.10584-2-mpe@ellerman.id.au>
 References: <20180316134633.10584-1-mpe@ellerman.id.au>
+        <20180316134633.10584-2-mpe@ellerman.id.au>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
@@ -17,39 +17,55 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michael Ellerman <mpe@ellerman.id.au>
 Cc: linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, naveen.n.rao@linux.vnet.ibm.com
-Message-ID: <20180316144030.qt2WCpdR43b52YWx1jxIgkj27GYty_F-LUmrLch5tn8@z>
+Message-ID: <20180316144248.S1sZg6MbwzvYOzkktP4cTgFCT-IOZL80RSQE8z-W5T4@z>
 
-On Sat, 17 Mar 2018 00:46:32 +1100
+On Sat, 17 Mar 2018 00:46:33 +1100
 Michael Ellerman <mpe@ellerman.id.au> wrote:
 
-> There is a small but non-zero amount of code required by arches to
-> suppory non-dynamic (static) ftrace, and more importantly there is the
-> added work of testing both configurations.
-> 
-> There are also almost no down sides to dynamic ftrace once it's well
-> tested, other than a small increase in code/data size.
-> 
-> So give arches the option to opt-out of supporting static ftrace.
-> 
-> This is implemented as a DYNAMIC_FTRACE_CHOICE option, which controls
-> whether DYNAMIC_FTRACE is presented as a user-selectable option or if
-> it is just enabled based on its dependencies being enabled (because
-> it's already default y).
-> 
-> Then the CHOICE option depends on an arch *not* selecting
-> HAVE_DYNAMIC_FTRACE_ONLY. This would be more natural in reverse, as a
-> HAVE_STATIC_FTRACE option, but that would require updating every arch.
+> We've had dynamic ftrace support for over 9 years since Steve first
+> wrote it, all the distros use dynamic, and static is basically
+> untested these days, so drop support for static ftrace.
 > 
 > Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
+> ---
+>  arch/powerpc/Kconfig                           |  1 +
+>  arch/powerpc/include/asm/ftrace.h              |  4 +---
+>  arch/powerpc/include/asm/module.h              |  5 -----
+>  arch/powerpc/kernel/trace/ftrace.c             |  2 --
+>  arch/powerpc/kernel/trace/ftrace_32.S          | 20 ------------------
+>  arch/powerpc/kernel/trace/ftrace_64.S          | 29 --------------------------
+>  arch/powerpc/kernel/trace/ftrace_64_mprofile.S |  3 ---
+>  arch/powerpc/kernel/trace/ftrace_64_pg.S       |  2 --
+>  8 files changed, 2 insertions(+), 64 deletions(-)
+> 
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index 73ce5dd07642..23a325df784a 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -189,6 +189,7 @@ config PPC
+>  	select HAVE_DEBUG_STACKOVERFLOW
+>  	select HAVE_DMA_API_DEBUG
+>  	select HAVE_DYNAMIC_FTRACE
+> +	select HAVE_DYNAMIC_FTRACE_ONLY
 
-Why not just add in arch/powerpc/Kconfig:
+I still think adding:
 
-config PPC
-	[..]
 	select DYNAMIC_FTRACE			if FUNCTION_TRACER
 
-?
+is the better approach.
 
-It seems to work for me.
+But I'm all for this patch. I've debated doing the same thing for x86,
+but the only reason I have not, was because it's the only way I test
+the !DYNAMIC_FTRACE code. I've broken the static function tracing
+several times and only find out during my test suite that still tests
+that case. But yeah, it would be nice to just nuke static function
+tracing for all archs. Perhaps after we finish removing unused archs,
+that may be the way to go forward.
 
 -- Steve
+
+
+
+>  	select HAVE_DYNAMIC_FTRACE_WITH_REGS	if MPROFILE_KERNEL
+>  	select HAVE_EBPF_JIT			if PPC64
+>  	select HAVE_EFFICIENT_UNALIGNED_ACCESS	if !(CPU_LITTLE_ENDIAN && POWER7_CPU)
