@@ -1,104 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:54520 "EHLO ale.deltatee.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934261AbeCPPtB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 16 Mar 2018 11:49:01 -0400
-From: Logan Gunthorpe <logang@deltatee.com>
-Date: Fri, 16 Mar 2018 09:48:51 -0600
-Message-ID: <20180316154852.13206-9-logang@deltatee.com>
-In-Reply-To: <20180316154852.13206-1-logang@deltatee.com>
-References: <20180316154852.13206-1-logang@deltatee.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:37490 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933348AbeCPPb0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Mar 2018 11:31:26 -0400
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.9 39/86] nospec: Include <asm/barrier.h> dependency
+Date: Fri, 16 Mar 2018 16:23:02 +0100
+Message-ID: <20180316152320.039234992@linuxfoundation.org>
+In-Reply-To: <20180316152317.167709497@linuxfoundation.org>
+References: <20180316152317.167709497@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Subject: [PATCH v12 8/9] crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Dan Douglass <dan.douglass@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20180316154851.Q5iYWUUjliW0m8eEWO7iArLrs_pPy2ivWNXO06pouec@z>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>, Dan Williams <dan.j.williams@intel.com>, Andy Lutomirski <luto@kernel.org>, Arjan van de Ven <arjan@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20180316152302.ekDNuWHQIH4LWtxg84geS9G6XKNS0WpyKVEW2JBZOl0@z>
 
-Clean up the extra ifdefs which defined the wr_reg64 and rd_reg64
-functions in non-64bit cases in favour of the new common
-io-64-nonatomic-lo-hi header.
+4.9-stable review patch.  If anyone has any objections, please let me know.
 
-To be consistent with CAAM engine HW spec: in case of 64-bit registers,
-irrespective of device endianness, the lower address should be read from
-/ written to first, followed by the upper address. Indeed the I/O
-accessors in CAAM driver currently don't follow the spec, however this
-is a good opportunity to fix the code.
+------------------
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Reviewed-by: Horia Geantă <horia.geanta@nxp.com>
-Cc: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: Dan Douglass <dan.douglass@nxp.com>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: "David S. Miller" <davem@davemloft.net>
+From: Dan Williams <dan.j.williams@intel.com>
+
+commit eb6174f6d1be16b19cfa43dac296bfed003ce1a6 upstream.
+
+The nospec.h header expects the per-architecture header file
+<asm/barrier.h> to optionally define array_index_mask_nospec(). Include
+that dependency to prevent inadvertent fallback to the default
+array_index_mask_nospec() implementation.
+
+The default implementation may not provide a full mitigation
+on architectures that perform data value speculation.
+
+Reported-by: Christian Borntraeger <borntraeger@de.ibm.com>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Arjan van de Ven <arjan@linux.intel.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: David Woodhouse <dwmw2@infradead.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org
+Link: http://lkml.kernel.org/r/151881605404.17395.1341935530792574707.stgit@dwillia2-desk3.amr.corp.intel.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
 ---
- drivers/crypto/caam/regs.h | 30 +++---------------------------
- 1 file changed, 3 insertions(+), 27 deletions(-)
+ include/linux/nospec.h |    1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/drivers/crypto/caam/regs.h b/drivers/crypto/caam/regs.h
-index fee363865d88..f887b371040f 100644
---- a/drivers/crypto/caam/regs.h
-+++ b/drivers/crypto/caam/regs.h
-@@ -10,7 +10,7 @@
+--- a/include/linux/nospec.h
++++ b/include/linux/nospec.h
+@@ -5,6 +5,7 @@
  
- #include <linux/types.h>
- #include <linux/bitops.h>
--#include <linux/io.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
+ #ifndef _LINUX_NOSPEC_H
+ #define _LINUX_NOSPEC_H
++#include <asm/barrier.h>
  
- /*
-  * Architecture-specific register access methods
-@@ -136,10 +136,9 @@ static inline void clrsetbits_32(void __iomem *reg, u32 clear, u32 set)
-  *    base + 0x0000 : least-significant 32 bits
-  *    base + 0x0004 : most-significant 32 bits
-  */
--#ifdef CONFIG_64BIT
- static inline void wr_reg64(void __iomem *reg, u64 data)
- {
--	if (caam_little_end)
-+	if (!caam_imx && caam_little_end)
- 		iowrite64(data, reg);
- 	else
- 		iowrite64be(data, reg);
-@@ -147,35 +146,12 @@ static inline void wr_reg64(void __iomem *reg, u64 data)
- 
- static inline u64 rd_reg64(void __iomem *reg)
- {
--	if (caam_little_end)
-+	if (!caam_imx && caam_little_end)
- 		return ioread64(reg);
- 	else
- 		return ioread64be(reg);
- }
- 
--#else /* CONFIG_64BIT */
--static inline void wr_reg64(void __iomem *reg, u64 data)
--{
--	if (!caam_imx && caam_little_end) {
--		wr_reg32((u32 __iomem *)(reg) + 1, data >> 32);
--		wr_reg32((u32 __iomem *)(reg), data);
--	} else {
--		wr_reg32((u32 __iomem *)(reg), data >> 32);
--		wr_reg32((u32 __iomem *)(reg) + 1, data);
--	}
--}
--
--static inline u64 rd_reg64(void __iomem *reg)
--{
--	if (!caam_imx && caam_little_end)
--		return ((u64)rd_reg32((u32 __iomem *)(reg) + 1) << 32 |
--			(u64)rd_reg32((u32 __iomem *)(reg)));
--
--	return ((u64)rd_reg32((u32 __iomem *)(reg)) << 32 |
--		(u64)rd_reg32((u32 __iomem *)(reg) + 1));
--}
--#endif /* CONFIG_64BIT  */
--
- static inline u64 cpu_to_caam_dma64(dma_addr_t value)
- {
- 	if (caam_imx)
--- 
-2.11.0
+ /**
+  * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
