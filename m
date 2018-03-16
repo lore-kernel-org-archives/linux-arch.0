@@ -1,52 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out03.mta.xmission.com ([166.70.13.233]:44039 "EHLO
-        out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751983AbeCPVJn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Mar 2018 17:09:43 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <87k1wimybi.fsf_-_@xmission.com>
-        <20180116004009.31036-13-ebiederm@xmission.com>
-        <29eb3438-0891-36ee-e5f6-36e26ccf2b89@intel.com>
-        <818f8945-f990-a770-476e-f82bdc77dbda@intel.com>
-        <87efkjeqe8.fsf@xmission.com>
-        <ccd9afa6-15d1-3e41-c1a4-3352d09c37a4@intel.com>
-Date: Fri, 16 Mar 2018 16:08:49 -0500
-In-Reply-To: <ccd9afa6-15d1-3e41-c1a4-3352d09c37a4@intel.com> (Dave Hansen's
-        message of "Fri, 16 Mar 2018 13:33:16 -0700")
-Message-ID: <87k1ubbue6.fsf@xmission.com>
+Received: from mga03.intel.com ([134.134.136.65]:25658 "EHLO mga03.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750826AbeCPVzf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 16 Mar 2018 17:55:35 -0400
+Subject: Re: [PATCH v12 02/22] selftests/vm: rename all references to pkru to
+ a generic name
+References: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
+ <1519264541-7621-3-git-send-email-linuxram@us.ibm.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <61350ceb-974f-6039-ae1e-f2626c405676@intel.com>
+Date: Fri, 16 Mar 2018 14:55:26 -0700
 MIME-Version: 1.0
-Content-Type: text/plain
-Subject: Re: [PATCH 13/22] signal: Move addr_lsb into the _sigfault union for clarity
+In-Reply-To: <1519264541-7621-3-git-send-email-linuxram@us.ibm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Ram Pai <linuxram@us.ibm.com>
-Message-ID: <20180316210849.7QbmKWLKYvbMrgahIR9Mn-vCRaCAZjR-SL74mATfLFc@z>
+To: Ram Pai <linuxram@us.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
+Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, arnd@arndb.de
+Message-ID: <20180316215526.__BFt5wFj7z5ztqp1cexoPYyvXUJNeiQ78n8zzZAjI0@z>
 
-Dave Hansen <dave.hansen@intel.com> writes:
+On 02/21/2018 05:55 PM, Ram Pai wrote:
+>  int pkey_set(int pkey, unsigned long rights, unsigned long flags)
+>  {
+>  	u32 mask = (PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE);
+> -	u32 old_pkru = __rdpkru();
+> -	u32 new_pkru;
+> +	u32 old_pkey_reg = __rdpkey_reg();
+> +	u32 new_pkey_reg;
 
-> On 03/16/2018 01:06 PM, Eric W. Biederman wrote:
->>> It does not revert cleanly so I reverted it manually.  Patch doing that
->>> is attached.  Should we do this, or is there a better option?
->> Please see:
->> 859d880cf544 ("signal: Correct the offset of si_pkey in struct siginfo")
->
-> It would be really nice to actually cc the folks that wrote and maintain
-> the code when you both break their stuff and fix it.  I don't see myself
-> or the x86 maintainers cc'd on any of this: the patch that caused the
-> breakage *or* the fix.
+If we're not using the _actual_ instruction names ("rdpkru"), I think
+I'd rather this be something more readable, like: __read_pkey_reg().
 
-What I touched was in no way x86 or pkey specific code. The email alias
-for all of the arch maintainers in the kernel is called linux-arch.  It
-is hard to find who cares bits of essentially unmaintained code in the
-kernel.
+But, it's OK-ish the way it is.
 
-The fix was merged via the usual process and is available to everyone,
-and is not hard to find.  It was labeled with an appropriate fixes tag.
-
-I was also very careful to ensure that I fixed the regression I
-accidentally introduced and did not introduce another ABI regression
-with any other field:
- f6a015498dca ("signal/x86: Include the field offsets in the build time checks")
-
-Eric
+Reviewed-by: Dave Hansen <dave.hansen@intel.com>
