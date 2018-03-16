@@ -1,125 +1,72 @@
-From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: Re: [PATCH v2 2/4] ioremap: Implement TLB_INV before huge mapping
-Date: Fri, 16 Mar 2018 13:10:15 +0530
-Message-ID: <0cec2b79-1668-68d1-32db-531f5a8a9db2@codeaurora.org>
-References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
- <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
- <1521130368.2693.177.camel@hpe.com>
+From: Greentime Hu <green.hu@gmail.com>
+Subject: Re: [PATCH] cris: add ioremap_nocache declaration before include asm-generic/io.h.
+Date: Fri, 16 Mar 2018 15:44:35 +0800
+Message-ID: <CAEbi=3dTwumbFkvQQekqpqh8v5j1=hJp3iK+-TN5iZwj9y=Ctg@mail.gmail.com>
+References: <20180301163838.10818-1-greentime@andestech.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521130368.2693.177.camel@hpe.com>
-Content-Language: en-US
+In-Reply-To: <20180301163838.10818-1-greentime@andestech.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Kani, Toshi" <toshi.kani@hpe.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "arnd@arndb.de" <arnd@arndb.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "takahiro.akashi@linaro.org" <takahiro.akashi@linaro.org>, "james.morse@arm.com" <james.morse@arm.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: linux-cris-kernel@axis.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Greentime <greentime@andestech.com>, Green Hu <green.hu@gmail.com>, jesper.nilsson@axis.com, starvik@axis.com
 List-Id: linux-arch.vger.kernel.org
 
+2018-03-02 0:38 GMT+08:00 Greentime Hu <green.hu@gmail.com>:
+> A future commit for the nds32 architecture bootstrap("asm-generic/io.h:
+> move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef
+> CONFIG_MMU") will move the ioremap_nocache out of the CONFIG_MMU ifdef.
+> This means that in order to suppress re-definition errors we need to
+> setup #define's before importing asm-generic/io.h.
+>
+> Signed-off-by: Greentime Hu <greentime@andestech.com>
+> ---
+>  arch/cris/include/asm/io.h | 1 +
+>  1 file changed, 1 insertion(+)
+>
+> diff --git a/arch/cris/include/asm/io.h b/arch/cris/include/asm/io.h
+> index c92712d30f54..3867db75c314 100644
+> --- a/arch/cris/include/asm/io.h
+> +++ b/arch/cris/include/asm/io.h
+> @@ -20,6 +20,7 @@ static inline void __iomem * ioremap (unsigned long offset, unsigned long size)
+>  extern void iounmap(volatile void * __iomem addr);
+>
+>  extern void __iomem * ioremap_nocache(unsigned long offset, unsigned long size);
+> +#define ioremap_nocache ioremap_nocache
+>
+>  #include <asm-generic/io.h>
+>
+> --
+> I am picking up the patch in the nds32 tree that caused the regression.
+> Subject: [linux-next:master 3188/3885] include/asm-generic/io.h:864:15: error: conflicting types for 'ioremap'
+>
+> tree:   https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git master
+> head:   eced78aae9cba83072d5335fbc9b2282a9270469
+> commit: b3ada9d0ce8d286c8bbbb02fdbddec5036242b42 [3188/3885] asm-generic/io.h: move ioremap_nocache/ioremap_uc/ioremap_wc/ioremap_wt out of ifndef CONFIG_MMU
+> config: cris-etrax-100lx_v2_defconfig (attached as .config)
+> compiler: cris-linux-gcc (GCC) 7.2.0
+> reproduce:
+>         wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
+>         chmod +x ~/bin/make.cross
+>         git checkout b3ada9d0ce8d286c8bbbb02fdbddec5036242b42
+>         # save the attached .config to linux build tree
+>         make.cross ARCH=cris
+>
+> All errors (new ones prefixed by >>):
+>
+>    In file included from arch/cris/include/asm/io.h:24:0,
+>                     from include/linux/io.h:25,
+>                     from include/linux/irq.h:25,
+>                     from include/asm-generic/hardirq.h:13,
+>                     from ./arch/cris/include/generated/asm/hardirq.h:1,
+>                     from include/linux/hardirq.h:9,
+>                     from include/linux/trace_events.h:9,
+>                     from include/trace/syscall.h:7,
+>                     from include/linux/syscalls.h:82,
+>                     from init/main.c:20:
+>>> include/asm-generic/io.h:864:15: error: conflicting types for 'ioremap'
+>     void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
+>                   ^~~~~~~
+>
 
-
-On 3/15/2018 9:42 PM, Kani, Toshi wrote:
-> On Thu, 2018-03-15 at 18:15 +0530, Chintan Pandya wrote:
->> Huge mapping changes PMD/PUD which could have
->> valid previous entries. This requires proper
->> TLB maintanance on some architectures, like
->> ARM64.
->>
->> Implent BBM (break-before-make) safe TLB
->> invalidation.
->>
->> Here, I've used flush_tlb_pgtable() instead
->> of flush_kernel_range() because invalidating
->> intermediate page_table entries could have
->> been optimized for specific arch. That's the
->> case with ARM64 at least.
->>
->> Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
->> ---
->>   lib/ioremap.c | 25 +++++++++++++++++++------
->>   1 file changed, 19 insertions(+), 6 deletions(-)
->>
->> diff --git a/lib/ioremap.c b/lib/ioremap.c
->> index 54e5bba..55f8648 100644
->> --- a/lib/ioremap.c
->> +++ b/lib/ioremap.c
->> @@ -13,6 +13,7 @@
->>   #include <linux/export.h>
->>   #include <asm/cacheflush.h>
->>   #include <asm/pgtable.h>
->> +#include <asm-generic/tlb.h>
->>   
->>   #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
->>   static int __read_mostly ioremap_p4d_capable;
->> @@ -80,6 +81,7 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
->>   		unsigned long end, phys_addr_t phys_addr, pgprot_t prot)
->>   {
->>   	pmd_t *pmd;
->> +	pmd_t old_pmd;
->>   	unsigned long next;
->>   
->>   	phys_addr -= addr;
->> @@ -91,10 +93,15 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
->>   
->>   		if (ioremap_pmd_enabled() &&
->>   		    ((next - addr) == PMD_SIZE) &&
->> -		    IS_ALIGNED(phys_addr + addr, PMD_SIZE) &&
->> -		    pmd_free_pte_page(pmd)) {
->> -			if (pmd_set_huge(pmd, phys_addr + addr, prot))
->> +		    IS_ALIGNED(phys_addr + addr, PMD_SIZE)) {
->> +			old_pmd = *pmd;
->> +			pmd_clear(pmd);
-> 
-> pmd_clear() is one of the operations pmd_free_pte_page() needs to do.
-> See the x86 version.
-> 
->> +			flush_tlb_pgtable(&init_mm, addr);
-> 
-> You can call it in pmd_free_pte_page() on arm64 as well.
-> 
->> +			if (pmd_set_huge(pmd, phys_addr + addr, prot)) {
->> +				pmd_free_pte_page(&old_pmd);
->>   				continue;
->> +			} else
->> +				set_pmd(pmd, old_pmd);
-> 
-> I do not understand why you needed to make this change.
-> pmd_free_pte_page() is defined as an arch-specific function so that you
-> can additionally perform TLB purges on arm64.  Please try to make proper
-> arm64 implementation of this interface.  And if you find any issue in
-> this interface, please let me know.
-TLB ops require VA at least. And this interface passes just the PMD/PUD.
-
-Second is, if we clear the previous table entry inside the arch specific
-code and then we fail in pmd/pud_set_huge, we can't fallback (x86 case).
-
-So, we can do something like this (following Mark's suggestion),
-
-	if (ioremap_pmd_enabled() &&
-         	((next - addr) == PMD_SIZE) &&
-		IS_ALIGNED(phys_addr + addr, PMD_SIZE) &&
-		pmd_can_set_huge(pmd, phys_addr + addr, prot)) {
-			/*
-			 * Clear existing table entry,
-			 * Invalidate,
-			 * Free the page table
-			 * inside this code
-			 */
-			pmd_free_pte_page(pmd, addr, addr + PMD_SIZE);
-			pmd_set_huge(...) //without fail
-			continue;
-	}
-
-
-> 
-> Same for pud.
-> 
-> Thanks,
-> -Toshi
-> 
-
-Chintan
--- 
-Qualcomm India Private Limited, on behalf of Qualcomm Innovation Center,
-Inc. is a member of the Code Aurora Forum, a Linux Foundation
-Collaborative Project
+Drop this patch due to not supporting cris port.
+https://lkml.org/lkml/2018/3/13/200
