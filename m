@@ -1,66 +1,87 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFC PATCH 2/2] powerpc: Only support DYNAMIC_FTRACE not static
-Date: Fri, 16 Mar 2018 10:42:48 -0400
-Message-ID: <20180316104248.6aa11792@gandalf.local.home>
-References: <20180316134633.10584-1-mpe@ellerman.id.au>
-        <20180316134633.10584-2-mpe@ellerman.id.au>
+From: "Kani, Toshi" <toshi.kani@hpe.com>
+Subject: Re: [PATCH v2 2/4] ioremap: Implement TLB_INV before huge mapping
+Date: Fri, 16 Mar 2018 14:50:42 +0000
+Message-ID: <1521211837.2693.187.camel@hpe.com>
+References: <1521117906-20107-1-git-send-email-cpandya@codeaurora.org>
+         <1521117906-20107-3-git-send-email-cpandya@codeaurora.org>
+         <1521130368.2693.177.camel@hpe.com>
+         <0cec2b79-1668-68d1-32db-531f5a8a9db2@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180316134633.10584-2-mpe@ellerman.id.au>
+In-Reply-To: <0cec2b79-1668-68d1-32db-531f5a8a9db2@codeaurora.org>
+Content-Language: en-US
+Content-ID: <E5223E06372499429F6515DDC7FDBEC5@NAMPRD84.PROD.OUTLOOK.COM>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, naveen.n.rao@linux.vnet.ibm.com
+To: "cpandya@codeaurora.org" <cpandya@codeaurora.org>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "arnd@arndb.de" <arnd@arndb.de>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "takahiro.akashi@linaro.org" <takahiro.akashi@linaro.org>, "james.morse@arm.com" <james.morse@arm.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, 17 Mar 2018 00:46:33 +1100
-Michael Ellerman <mpe@ellerman.id.au> wrote:
-
-> We've had dynamic ftrace support for over 9 years since Steve first
-> wrote it, all the distros use dynamic, and static is basically
-> untested these days, so drop support for static ftrace.
-> 
-> Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
-> ---
->  arch/powerpc/Kconfig                           |  1 +
->  arch/powerpc/include/asm/ftrace.h              |  4 +---
->  arch/powerpc/include/asm/module.h              |  5 -----
->  arch/powerpc/kernel/trace/ftrace.c             |  2 --
->  arch/powerpc/kernel/trace/ftrace_32.S          | 20 ------------------
->  arch/powerpc/kernel/trace/ftrace_64.S          | 29 --------------------------
->  arch/powerpc/kernel/trace/ftrace_64_mprofile.S |  3 ---
->  arch/powerpc/kernel/trace/ftrace_64_pg.S       |  2 --
->  8 files changed, 2 insertions(+), 64 deletions(-)
-> 
-> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-> index 73ce5dd07642..23a325df784a 100644
-> --- a/arch/powerpc/Kconfig
-> +++ b/arch/powerpc/Kconfig
-> @@ -189,6 +189,7 @@ config PPC
->  	select HAVE_DEBUG_STACKOVERFLOW
->  	select HAVE_DMA_API_DEBUG
->  	select HAVE_DYNAMIC_FTRACE
-> +	select HAVE_DYNAMIC_FTRACE_ONLY
-
-I still think adding:
-
-	select DYNAMIC_FTRACE			if FUNCTION_TRACER
-
-is the better approach.
-
-But I'm all for this patch. I've debated doing the same thing for x86,
-but the only reason I have not, was because it's the only way I test
-the !DYNAMIC_FTRACE code. I've broken the static function tracing
-several times and only find out during my test suite that still tests
-that case. But yeah, it would be nice to just nuke static function
-tracing for all archs. Perhaps after we finish removing unused archs,
-that may be the way to go forward.
-
--- Steve
-
-
-
->  	select HAVE_DYNAMIC_FTRACE_WITH_REGS	if MPROFILE_KERNEL
->  	select HAVE_EBPF_JIT			if PPC64
->  	select HAVE_EFFICIENT_UNALIGNED_ACCESS	if !(CPU_LITTLE_ENDIAN && POWER7_CPU)
+T24gRnJpLCAyMDE4LTAzLTE2IGF0IDEzOjEwICswNTMwLCBDaGludGFuIFBhbmR5YSB3cm90ZToN
+Cj4gDQo+IE9uIDMvMTUvMjAxOCA5OjQyIFBNLCBLYW5pLCBUb3NoaSB3cm90ZToNCj4gPiBPbiBU
+aHUsIDIwMTgtMDMtMTUgYXQgMTg6MTUgKzA1MzAsIENoaW50YW4gUGFuZHlhIHdyb3RlOg0KPiA+
+ID4gSHVnZSBtYXBwaW5nIGNoYW5nZXMgUE1EL1BVRCB3aGljaCBjb3VsZCBoYXZlDQo+ID4gPiB2
+YWxpZCBwcmV2aW91cyBlbnRyaWVzLiBUaGlzIHJlcXVpcmVzIHByb3Blcg0KPiA+ID4gVExCIG1h
+aW50YW5hbmNlIG9uIHNvbWUgYXJjaGl0ZWN0dXJlcywgbGlrZQ0KPiA+ID4gQVJNNjQuDQo+ID4g
+PiANCj4gPiA+IEltcGxlbnQgQkJNIChicmVhay1iZWZvcmUtbWFrZSkgc2FmZSBUTEINCj4gPiA+
+IGludmFsaWRhdGlvbi4NCj4gPiA+IA0KPiA+ID4gSGVyZSwgSSd2ZSB1c2VkIGZsdXNoX3RsYl9w
+Z3RhYmxlKCkgaW5zdGVhZA0KPiA+ID4gb2YgZmx1c2hfa2VybmVsX3JhbmdlKCkgYmVjYXVzZSBp
+bnZhbGlkYXRpbmcNCj4gPiA+IGludGVybWVkaWF0ZSBwYWdlX3RhYmxlIGVudHJpZXMgY291bGQg
+aGF2ZQ0KPiA+ID4gYmVlbiBvcHRpbWl6ZWQgZm9yIHNwZWNpZmljIGFyY2guIFRoYXQncyB0aGUN
+Cj4gPiA+IGNhc2Ugd2l0aCBBUk02NCBhdCBsZWFzdC4NCj4gPiA+IA0KPiA+ID4gU2lnbmVkLW9m
+Zi1ieTogQ2hpbnRhbiBQYW5keWEgPGNwYW5keWFAY29kZWF1cm9yYS5vcmc+DQo+ID4gPiAtLS0N
+Cj4gPiA+ICAgbGliL2lvcmVtYXAuYyB8IDI1ICsrKysrKysrKysrKysrKysrKystLS0tLS0NCj4g
+PiA+ICAgMSBmaWxlIGNoYW5nZWQsIDE5IGluc2VydGlvbnMoKyksIDYgZGVsZXRpb25zKC0pDQo+
+ID4gPiANCj4gPiA+IGRpZmYgLS1naXQgYS9saWIvaW9yZW1hcC5jIGIvbGliL2lvcmVtYXAuYw0K
+PiA+ID4gaW5kZXggNTRlNWJiYS4uNTVmODY0OCAxMDA2NDQNCj4gPiA+IC0tLSBhL2xpYi9pb3Jl
+bWFwLmMNCj4gPiA+ICsrKyBiL2xpYi9pb3JlbWFwLmMNCj4gPiA+IEBAIC0xMyw2ICsxMyw3IEBA
+DQo+ID4gPiAgICNpbmNsdWRlIDxsaW51eC9leHBvcnQuaD4NCj4gPiA+ICAgI2luY2x1ZGUgPGFz
+bS9jYWNoZWZsdXNoLmg+DQo+ID4gPiAgICNpbmNsdWRlIDxhc20vcGd0YWJsZS5oPg0KPiA+ID4g
+KyNpbmNsdWRlIDxhc20tZ2VuZXJpYy90bGIuaD4NCj4gPiA+ICAgDQo+ID4gPiAgICNpZmRlZiBD
+T05GSUdfSEFWRV9BUkNIX0hVR0VfVk1BUA0KPiA+ID4gICBzdGF0aWMgaW50IF9fcmVhZF9tb3N0
+bHkgaW9yZW1hcF9wNGRfY2FwYWJsZTsNCj4gPiA+IEBAIC04MCw2ICs4MSw3IEBAIHN0YXRpYyBp
+bmxpbmUgaW50IGlvcmVtYXBfcG1kX3JhbmdlKHB1ZF90ICpwdWQsIHVuc2lnbmVkIGxvbmcgYWRk
+ciwNCj4gPiA+ICAgCQl1bnNpZ25lZCBsb25nIGVuZCwgcGh5c19hZGRyX3QgcGh5c19hZGRyLCBw
+Z3Byb3RfdCBwcm90KQ0KPiA+ID4gICB7DQo+ID4gPiAgIAlwbWRfdCAqcG1kOw0KPiA+ID4gKwlw
+bWRfdCBvbGRfcG1kOw0KPiA+ID4gICAJdW5zaWduZWQgbG9uZyBuZXh0Ow0KPiA+ID4gICANCj4g
+PiA+ICAgCXBoeXNfYWRkciAtPSBhZGRyOw0KPiA+ID4gQEAgLTkxLDEwICs5MywxNSBAQCBzdGF0
+aWMgaW5saW5lIGludCBpb3JlbWFwX3BtZF9yYW5nZShwdWRfdCAqcHVkLCB1bnNpZ25lZCBsb25n
+IGFkZHIsDQo+ID4gPiAgIA0KPiA+ID4gICAJCWlmIChpb3JlbWFwX3BtZF9lbmFibGVkKCkgJiYN
+Cj4gPiA+ICAgCQkgICAgKChuZXh0IC0gYWRkcikgPT0gUE1EX1NJWkUpICYmDQo+ID4gPiAtCQkg
+ICAgSVNfQUxJR05FRChwaHlzX2FkZHIgKyBhZGRyLCBQTURfU0laRSkgJiYNCj4gPiA+IC0JCSAg
+ICBwbWRfZnJlZV9wdGVfcGFnZShwbWQpKSB7DQo+ID4gPiAtCQkJaWYgKHBtZF9zZXRfaHVnZShw
+bWQsIHBoeXNfYWRkciArIGFkZHIsIHByb3QpKQ0KPiA+ID4gKwkJICAgIElTX0FMSUdORUQocGh5
+c19hZGRyICsgYWRkciwgUE1EX1NJWkUpKSB7DQo+ID4gPiArCQkJb2xkX3BtZCA9ICpwbWQ7DQo+
+ID4gPiArCQkJcG1kX2NsZWFyKHBtZCk7DQo+ID4gDQo+ID4gcG1kX2NsZWFyKCkgaXMgb25lIG9m
+IHRoZSBvcGVyYXRpb25zIHBtZF9mcmVlX3B0ZV9wYWdlKCkgbmVlZHMgdG8gZG8uDQo+ID4gU2Vl
+IHRoZSB4ODYgdmVyc2lvbi4NCj4gPiANCj4gPiA+ICsJCQlmbHVzaF90bGJfcGd0YWJsZSgmaW5p
+dF9tbSwgYWRkcik7DQo+ID4gDQo+ID4gWW91IGNhbiBjYWxsIGl0IGluIHBtZF9mcmVlX3B0ZV9w
+YWdlKCkgb24gYXJtNjQgYXMgd2VsbC4NCj4gPiANCj4gPiA+ICsJCQlpZiAocG1kX3NldF9odWdl
+KHBtZCwgcGh5c19hZGRyICsgYWRkciwgcHJvdCkpIHsNCj4gPiA+ICsJCQkJcG1kX2ZyZWVfcHRl
+X3BhZ2UoJm9sZF9wbWQpOw0KPiA+ID4gICAJCQkJY29udGludWU7DQo+ID4gPiArCQkJfSBlbHNl
+DQo+ID4gPiArCQkJCXNldF9wbWQocG1kLCBvbGRfcG1kKTsNCj4gPiANCj4gPiBJIGRvIG5vdCB1
+bmRlcnN0YW5kIHdoeSB5b3UgbmVlZGVkIHRvIG1ha2UgdGhpcyBjaGFuZ2UuDQo+ID4gcG1kX2Zy
+ZWVfcHRlX3BhZ2UoKSBpcyBkZWZpbmVkIGFzIGFuIGFyY2gtc3BlY2lmaWMgZnVuY3Rpb24gc28g
+dGhhdCB5b3UNCj4gPiBjYW4gYWRkaXRpb25hbGx5IHBlcmZvcm0gVExCIHB1cmdlcyBvbiBhcm02
+NC4gIFBsZWFzZSB0cnkgdG8gbWFrZSBwcm9wZXINCj4gPiBhcm02NCBpbXBsZW1lbnRhdGlvbiBv
+ZiB0aGlzIGludGVyZmFjZS4gIEFuZCBpZiB5b3UgZmluZCBhbnkgaXNzdWUgaW4NCj4gPiB0aGlz
+IGludGVyZmFjZSwgcGxlYXNlIGxldCBtZSBrbm93Lg0KPiANCj4gVExCIG9wcyByZXF1aXJlIFZB
+IGF0IGxlYXN0LiBBbmQgdGhpcyBpbnRlcmZhY2UgcGFzc2VzIGp1c3QgdGhlIFBNRC9QVUQuDQoN
+CllvdSBjYW4gYWRkICdhZGRyJyBhcyB0aGUgMm5kIGFyZy4gIFN1Y2ggbWlub3IgdHdlYWsgaXMg
+ZXhwZWN0ZWQgd2hlbg0KaW1wbGVtZW50aW5nIG9uIG11bHRpcGxlIGFyY2hlcy4NCg0KPiBTZWNv
+bmQgaXMsIGlmIHdlIGNsZWFyIHRoZSBwcmV2aW91cyB0YWJsZSBlbnRyeSBpbnNpZGUgdGhlIGFy
+Y2ggc3BlY2lmaWMNCj4gY29kZSBhbmQgdGhlbiB3ZSBmYWlsIGluIHBtZC9wdWRfc2V0X2h1Z2Us
+IHdlIGNhbid0IGZhbGxiYWNrICh4ODYgY2FzZSkuDQo+IA0KPiBTbywgd2UgY2FuIGRvIHNvbWV0
+aGluZyBsaWtlIHRoaXMgKGZvbGxvd2luZyBNYXJrJ3Mgc3VnZ2VzdGlvbiksDQo+IA0KPiAJaWYg
+KGlvcmVtYXBfcG1kX2VuYWJsZWQoKSAmJg0KPiAgICAgICAgICAJKChuZXh0IC0gYWRkcikgPT0g
+UE1EX1NJWkUpICYmDQo+IAkJSVNfQUxJR05FRChwaHlzX2FkZHIgKyBhZGRyLCBQTURfU0laRSkg
+JiYNCj4gCQlwbWRfY2FuX3NldF9odWdlKHBtZCwgcGh5c19hZGRyICsgYWRkciwgcHJvdCkpIHsN
+Cj4gCQkJLyoNCj4gCQkJICogQ2xlYXIgZXhpc3RpbmcgdGFibGUgZW50cnksDQo+IAkJCSAqIElu
+dmFsaWRhdGUsDQo+IAkJCSAqIEZyZWUgdGhlIHBhZ2UgdGFibGUNCj4gCQkJICogaW5zaWRlIHRo
+aXMgY29kZQ0KPiAJCQkgKi8NCj4gCQkJcG1kX2ZyZWVfcHRlX3BhZ2UocG1kLCBhZGRyLCBhZGRy
+ICsgUE1EX1NJWkUpOw0KPiAJCQlwbWRfc2V0X2h1Z2UoLi4uKSAvL3dpdGhvdXQgZmFpbA0KPiAJ
+CQljb250aW51ZTsNCj4gCX0NCg0KVGhhdCdzIG5vdCBuZWNlc3NhcnkuICBwbWQgYmVpbmcgbm9u
+ZSBpcyBhIGxlZ2l0aW1hdGUgc3RhdGUuICBJbiBmYWN0LA0KaXQgaXMgdGhlIGNhc2Ugd2hlbiBw
+bWRfYWxsb2MoKSBhbGxvY2F0ZWQgYW5kIHBvcHVsYXRlZCBhIG5ldyBwbWQuDQoNClRoYW5rcywN
+Ci1Ub3NoaQ0K
