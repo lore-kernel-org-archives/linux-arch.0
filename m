@@ -1,63 +1,40 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 Subject: Re: arc_usr_cmpxchg and preemption
-Date: Fri, 16 Mar 2018 17:33:27 +0000
-Message-ID: <1521221606.4805.16.camel@synopsys.com>
+Date: Fri, 16 Mar 2018 10:54:52 -0700
+Message-ID: <b0283507-5ab7-e40b-74a7-3ddebafb076d@synopsys.com>
 References: <1521045375.11552.27.camel@synopsys.com>
-         <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
-         <20180314175352.GP4064@hirez.programming.kicks-ass.net>
+ <fdf30e76-f75d-9dda-26ca-ac011c41ee64@synopsys.com>
+ <20180314175352.GP4064@hirez.programming.kicks-ass.net>
+ <1521221606.4805.16.camel@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180314175352.GP4064@hirez.programming.kicks-ass.net>
+In-Reply-To: <1521221606.4805.16.camel@synopsys.com>
 Content-Language: en-US
-Content-ID: <D9D0AE192006194686F339D488803AF7@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "peterz@infradead.org" <peterz@infradead.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "peterz@infradead.org" <peterz@infradead.org>
 Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgUGV0ZXIsIFZpbmVldCwNCg0KT24gV2VkLCAyMDE4LTAzLTE0IGF0IDE4OjUzICswMTAwLCBQ
-ZXRlciBaaWpsc3RyYSB3cm90ZToNCj4gT24gV2VkLCBNYXIgMTQsIDIwMTggYXQgMDk6NTg6MTlB
-TSAtMDcwMCwgVmluZWV0IEd1cHRhIHdyb3RlOg0KPiANCj4gPiBXZWxsIGl0IGlzIGJyb2tlbiB3
-cnQgdGhlIHNlbWFudGljcyB0aGUgc3lzY2FsbCBpcyBzdXBwb3NlZCB0byBwcm92aWRlLg0KPiA+
-IFByZWVtcHRpb24gZGlzYWJsaW5nIGlzIHdoYXQgcHJldmVudHMgYSBjb25jdXJyZW50IHRocmVh
-ZCBmcm9tIGNvbWluZyBpbiBhbmQNCj4gPiBtb2RpZnlpbmcgdGhlIHNhbWUgbG9jYXRpb24gKElt
-YWdpbmUgYSB2YXJpYWJsZSB3aGljaCBpcyBiZWluZyBjbXB4Y2hnDQo+ID4gY29uY3VycmVudGx5
-IGJ5IDIgdGhyZWFkcykuDQo+ID4gDQo+ID4gT25lIGFwcHJvYWNoIGlzIHRvIGRvIGl0IHRoZSBN
-SVBTIHdheSwgZW11bGF0ZSB0aGUgbGxzYyBmbGFnIC0gc2V0IGl0IHVuZGVyDQo+ID4gcHJlZW1w
-dGlvbiBkaXNhYmxlZCBzZWN0aW9uIGFuZCBjbGVhciBpdCBpbiBzd2l0Y2hfdG8NCj4gDQo+ICpz
-aHVkZGVyKi4uLiBqdXN0IGNhdGNoIHRoZSAtRUZBVUxULCBmb3JjZSB0aGUgd3JpdGUgZmF1bHQg
-YW5kIHJldHJ5Lg0KDQpNb3JlIEkgbG9vayBhdCB0aGlzIGluaXRpYWxseSBxdWl0ZSBzaW1wbGUg
-dGhpbmcgbW9yZSBpdCBsb29rcyBsaWtlDQphIGNhbiBvZiB3b3Jtcy4uLg0KDQo+IFNvbWV0aGlu
-ZyBsaWtlOg0KPiANCj4gaW50IHN5c19jbXB4Y2hnKHUzMiBfX3VzZXIgKnVzZXJfcHRyLCB1MzIg
-b2xkLCB1MzIgbmV3KQ0KPiB7DQoNClRoYXQgZnVuY3Rpb25zIGlzIHN1cHBvc2VkIHRvIHJldHVy
-biBvbGQgdmFsdWUgc3RvcmVkIGluIG1lbW9yeS4NCkF0IGxlYXN0IHRoYXQncyBob3cgaXQgaXMg
-dXNlZCBpbiBjYXNlIG9mIEFSQyBhbmQgTTY4Sy4NCg0KUmVtZW1iZXIgdGhlcmUncyBhbHJlYWR5
-IGxpYmMgdGhhdCByZWxpZXMgb24gdGhhdCBlc3RhYmxpc2hlZCBBUEkNCmFuZCB3ZSBjYW5ub3Qg
-anVzdCBjaGFuZ2UgaXQuLi4gZXZlbiB0aG91Z2ggaXQgbWlnaHQgYmUgYSBnb29kIGlkZWEuDQpG
-b3IgZXhhbXBsZSByZXR1cm4gImVycm5vIiBhbmQgcGFzcyBvbGQgdmFsdWUgdmlhIHBvaW50ZXIg
-aW4gYW4gYXJndW1lbnQuDQpCdXQgbm93IEkgZ3Vlc3MgaXQncyBiZXR0ZXIgdG8gdXNlIHdoYXQg
-d2UgaGF2ZSBub3cuDQoNCj4gCXUzMiB2YWw7DQo+IAlpbnQgcmV0Ow0KPiANCj4gYWdhaW46DQo+
-IAlyZXQgPSAwOw0KPiANCj4gCXByZWVtcHRfZGlzYWJsZSgpOw0KPiAJdmFsID0gZ2V0X3VzZXIo
-dXNlcl9wdHIpOw0KDQpXaGF0IGlmIGdldF91c2VyKCkgZmFpbHM/DQpJbiBQZXRlcidzIGltcGxl
-bWVudGF0aW9uIHdlIHdpbGwgcmV0dXJuIDAsIGluIFZpbmVldCdzDQp3ZSB3aWxsIHJldHVybiAt
-RUZBVUxULi4uIGFuZCB3aG8ga25vd3Mgd2hhdCBraW5kIG9mIHVuZXhwZWN0ZWQgYmVoYXZpb3Ig
-aGFwcGVucw0KZnVydGhlciBkb3duIHRoZSBsaW5lIGluIHVzZXItc3BhY2UuLi4gc28gSSB0aGlu
-ayBpdCB3b3VsZCBiZSBzYWZlciB0byBraWxsDQp0aGUgcHJvY2VzcyB0aGVuLg0KDQpBbmQgdGhh
-dCdzIG15IHRha2U6DQotLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tDQppbnQgc3lzX2NtcHhjaGcodTMyIF9fdXNlciAqdXNlcl9wdHIsIHUzMiBvbGQs
-IHUzMiBuZXcpDQp7DQoJdTMyIHZhbDsNCglpbnQgcmV0Ow0KDQphZ2FpbjoNCglyZXQgPSAwOw0K
-DQoJcHJlZW1wdF9kaXNhYmxlKCk7DQoNCglyZXQgPSBnZXRfdXNlcih2YWwsIHVzZXJfcHRyKTsN
-CglpZihyZXQgPT0gLUVGQVVMVCkgew0KCQlzdHJ1Y3QgcGFnZSAqcGFnZTsNCg0KCQlwcmVlbXB0
-X2VuYWJsZSgpOw0KCQlyZXQgPSBnZXRfdXNlcl9wYWdlc19mYXN0KCh1bnNpZ25lZCBsb25nKXVz
-ZXJfcHRyLCAxLCAxLCAmcGFnZSk7DQoJCWlmIChyZXQgPCAwKSB7DQoJCQlmb3JjZV9zaWcoU0lH
-U0VHViwgY3VycmVudCk7DQoJCQlyZXR1cm4gcmV0Ow0KCQl9DQoNCgkJcHV0X3BhZ2UocGFnZSk7
-DQoJCWdvdG8gYWdhaW47DQoJfQ0KDQoJaWYgKHZhbCA9PSBvbGQpDQoJCXJldCA9IHB1dF91c2Vy
-KG5ldywgdXNlcl9wdHIpOw0KDQoJcHJlZW1wdF9lbmFibGUoKTsNCg0KCWlmIChyZXQgPT0gLUVG
-QVVMVCkgew0KCQlzdHJ1Y3QgcGFnZSAqcGFnZTsNCg0KCQlyZXQgPSBnZXRfdXNlcl9wYWdlc19m
-YXN0KCh1bnNpZ25lZCBsb25nKXVzZXJfcHRyLCAxLCAxLCAmcGFnZSk7DQoJCWlmIChyZXQgPCAw
-KSB7DQoJCQlmb3JjZV9zaWcoU0lHU0VHViwgY3VycmVudCk7DQoJCQlyZXR1cm4gcmV0Ow0KCQl9
-DQoNCgkJcHV0X3BhZ2UocGFnZSk7DQoJCWdvdG8gYWdhaW47DQoJfQ0KDQoJcmV0dXJuIHJldDsN
-Cn0NCi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tPjgtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0N
-Cg0KLUFsZXhleQ==
+On 03/16/2018 10:33 AM, Alexey Brodkin wrote:
+> Hi Peter, Vineet,
+>
+> On Wed, 2018-03-14 at 18:53 +0100, Peter Zijlstra wrote:
+>> On Wed, Mar 14, 2018 at 09:58:19AM -0700, Vineet Gupta wrote:
+>>
+>>> Well it is broken wrt the semantics the syscall is supposed to provide.
+>>> Preemption disabling is what prevents a concurrent thread from coming in and
+>>> modifying the same location (Imagine a variable which is being cmpxchg
+>>> concurrently by 2 threads).
+>>>
+>>> One approach is to do it the MIPS way, emulate the llsc flag - set it under
+>>> preemption disabled section and clear it in switch_to
+>> *shudder*... just catch the -EFAULT, force the write fault and retry.
+> More I look at this initially quite simple thing more it looks like
+> a can of worms...
+>
+
+I'd say just bite the bullet, write the patch and we can refine it there !
+
+-Vineet
