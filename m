@@ -1,98 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ale.deltatee.com ([207.54.116.67]:54490 "EHLO ale.deltatee.com"
+Received: from ale.deltatee.com ([207.54.116.67]:54472 "EHLO ale.deltatee.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933817AbeCPPtA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S933496AbeCPPtA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 16 Mar 2018 11:49:00 -0400
 From: Logan Gunthorpe <logang@deltatee.com>
-Date: Fri, 16 Mar 2018 09:48:50 -0600
-Message-ID: <20180316154852.13206-8-logang@deltatee.com>
-In-Reply-To: <20180316154852.13206-1-logang@deltatee.com>
-References: <20180316154852.13206-1-logang@deltatee.com>
-Subject: [PATCH v12 7/9] ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+Date: Fri, 16 Mar 2018 09:48:43 -0600
+Message-ID: <20180316154852.13206-1-logang@deltatee.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Subject: [PATCH v12 0/9] Add io{read|write}64 to io-64-atomic headers
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>
-Message-ID: <20180316154850.jYsflYiw9O7TBACx862qcmJmE443ZMPgIFsazTXxqCs@z>
+Message-ID: <20180316154843.CTBdKcOAXUaeWM6vVluGsnelGsB7yu5qWjm_wtYhuus@z>
 
-Now that ioread64 and iowrite64 are available in io-64-nonatomic,
-we can remove the hack at the top of ntb_hw_intel.c and replace it
-with an include.
+This is v12 of my cleanup series to push a number of instances of people
+defining their own io{read|write}64 functions into common headers seing
+they don't exist in non-64bit systems. This series adds inline functions to the
+io-64-nonatomic headers and then cleans up the drivers that defined their
+own copies.
 
-Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
-Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-Acked-by: Dave Jiang <dave.jiang@intel.com>
-Acked-by: Allen Hubbe <Allen.Hubbe@dell.com>
-Acked-by: Jon Mason <jdmason@kudzu.us>
+This cleanup was originally requested by Greg after he reviewed my
+Switchtec NTB code. And I hope someone can pick it up or at least give
+feedback on it soon as it's been around relatively unchanged for a few
+cycles now and I'm getting a bit tired of resubmitting it with little to
+no interest.
 
-# Please enter the commit message for your changes. Lines starting
-# with '#' will be ignored, and an empty message aborts the commit.
-#
-# Date:      Mon Jun 19 12:18:31 2017 -0600
-#
-# interactive rebase in progress; onto ae64f9bd1d36
-# Last commands done (6 commands done):
-#    pick cf3e4dab2173 io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
-#    r 79b4c4b8490c ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
-# Next commands to do (2 remaining commands):
-#    r 19b6c1f3b15d crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
-#    r f3c8723446ef ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
-# You are currently editing a commit while rebasing branch 'io64_v9' on 'ae64f9bd1d36'.
-#
-# Changes to be committed:
-#	modified:   drivers/ntb/hw/intel/ntb_hw_intel.c
-#
----
- drivers/ntb/hw/intel/ntb_hw_intel.c | 30 +-----------------------------
- 1 file changed, 1 insertion(+), 29 deletions(-)
+Thanks,
 
-diff --git a/drivers/ntb/hw/intel/ntb_hw_intel.c b/drivers/ntb/hw/intel/ntb_hw_intel.c
-index 156b45cd4a19..5cf40ab21366 100644
---- a/drivers/ntb/hw/intel/ntb_hw_intel.c
-+++ b/drivers/ntb/hw/intel/ntb_hw_intel.c
-@@ -59,6 +59,7 @@
- #include <linux/random.h>
- #include <linux/slab.h>
- #include <linux/ntb.h>
-+#include <linux/io-64-nonatomic-lo-hi.h>
- 
- #include "ntb_hw_intel.h"
- 
-@@ -149,35 +150,6 @@ MODULE_PARM_DESC(xeon_b2b_dsd_bar5_addr32,
- static inline enum ntb_topo xeon_ppd_topo(struct intel_ntb_dev *ndev, u8 ppd);
- static int xeon_init_isr(struct intel_ntb_dev *ndev);
- 
--#ifndef ioread64
--#ifdef readq
--#define ioread64 readq
--#else
--#define ioread64 _ioread64
--static inline u64 _ioread64(void __iomem *mmio)
--{
--	u64 low, high;
--
--	low = ioread32(mmio);
--	high = ioread32(mmio + sizeof(u32));
--	return low | (high << 32);
--}
--#endif
--#endif
--
--#ifndef iowrite64
--#ifdef writeq
--#define iowrite64 writeq
--#else
--#define iowrite64 _iowrite64
--static inline void _iowrite64(u64 val, void __iomem *mmio)
--{
--	iowrite32(val, mmio);
--	iowrite32(val >> 32, mmio + sizeof(u32));
--}
--#endif
--#endif
--
- static inline int pdev_is_xeon(struct pci_dev *pdev)
- {
- 	switch (pdev->device) {
--- 
+Logan
+
+--
+
+Changes since v11:
+- Rebased onto v4.16-rc5
+- Added a patch (0001) to fix some old and new sparse warnings
+  that the kbuild robot warned about this cycle. The latest version
+  of sparse was required to reproduce these.
+- Added a patch (0002) to add io{read|write}64 to parisc which the kbuild
+  robot also found errors for this cycle
+
+Changes since v10:
+- Rebased onto v4.16-rc4, this droped the drm/tilcdc patch which was
+  picked up by that tree and is already in 4.16.
+
+Changes since v9:
+- Rebased onto v4.15-rc6
+- Fixed a couple of issues in the new version of the CAAM patch as
+  pointed out by Horia
+
+Changes since v8:
+- Rebased onto v4.15-rc2, as a result rewrote patch 7 seeing someone did
+  some similar cleanup in that area.
+- Added a patch to clean up the Switchtec NTB driver which landed in
+  v4.15-rc1
+
+Changes since v7:
+- Fix minor nits from Andy Shevchenko
+- Rebased onto v4.14-rc1
+
+Changes since v6:
+ ** none **
+
+Changes since v5:
+- Added a fix to the tilcdc driver to ensure it doesn't use the
+  non-atomic operation. (This includes adding io{read|write}64[be]_is_nonatomic
+  defines).
+
+Changes since v4:
+- Add functions so the powerpc implementation of iomap.c compiles. (As
+  noticed by Horia)
+
+Changes since v3:
+
+- I noticed powerpc didn't use the appropriate functions seeing
+  readq/writeq were not defined when iomap.h was included. Thus I've
+  included a patch to adjust this
+- Fixed some mistakes with a couple of the defines in io-64-nonatomic*
+  headers
+- Fixed a typo noticed by Horia.
+
+(earlier versions were drastically different)
+
+--
+
+Logan Gunthorpe (9):
+  iomap: Fix sparse endian check warnings
+  parisc: iomap: introduce io{read|write}64
+  powerpc: io.h: move iomap.h include so that it can use readq/writeq
+    defs
+  powerpc: iomap.c: introduce io{read|write}64_{lo_hi|hi_lo}
+  iomap: introduce io{read|write}64_{lo_hi|hi_lo}
+  io-64-nonatomic: add io{read|write}64[be]{_lo_hi|_hi_lo} macros
+  ntb: ntb_hw_intel: use io-64-nonatomic instead of in-driver hacks
+  crypto: caam: cleanup CONFIG_64BIT ifdefs when using io{read|write}64
+  ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common
+    header
+
+ arch/parisc/include/asm/io.h           |   9 +++
+ arch/parisc/lib/iomap.c                |  64 +++++++++++++++
+ arch/powerpc/include/asm/io.h          |   6 +-
+ arch/powerpc/kernel/iomap.c            |  40 +++++++++
+ drivers/crypto/caam/regs.h             |  30 +------
+ drivers/ntb/hw/intel/ntb_hw_intel.c    |  30 +------
+ drivers/ntb/hw/mscc/ntb_hw_switchtec.c |  36 +--------
+ include/asm-generic/iomap.h            |  26 ++++--
+ include/linux/io-64-nonatomic-hi-lo.h  |  64 +++++++++++++++
+ include/linux/io-64-nonatomic-lo-hi.h  |  64 +++++++++++++++
+ lib/iomap.c                            | 143 ++++++++++++++++++++++++++++++++-
+ 11 files changed, 412 insertions(+), 100 deletions(-)
+
+--
 2.11.0
