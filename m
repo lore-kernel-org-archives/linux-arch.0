@@ -1,15 +1,15 @@
 From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH v12 18/22] selftests/vm: associate key on a mapped page
- and detect write violation
-Date: Fri, 16 Mar 2018 15:30:50 -0700
-Message-ID: <cf9ccf32-724c-e25c-4226-3c9c670bc4aa@intel.com>
+Subject: Re: [PATCH v12 19/22] selftests/vm: detect write violation on a
+ mapped access-denied-key page
+Date: Fri, 16 Mar 2018 15:31:28 -0700
+Message-ID: <f0468b51-6c2a-0317-2c5e-d48d8a12c374@intel.com>
 References: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
- <1519264541-7621-19-git-send-email-linuxram@us.ibm.com>
+ <1519264541-7621-20-git-send-email-linuxram@us.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1519264541-7621-19-git-send-email-linuxram@us.ibm.com>
+In-Reply-To: <1519264541-7621-20-git-send-email-linuxram@us.ibm.com>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Ram Pai <linuxram@us.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
@@ -17,9 +17,7 @@ Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@k
 List-Id: linux-arch.vger.kernel.org
 
 On 02/21/2018 05:55 PM, Ram Pai wrote:
-> detect write-violation on a page to which write-disabled
+> detect write-violation on a page to which access-disabled
 > key is associated much after the page is mapped.
-
-The more tests the merrier.
 
 Acked-by: Dave Hansen <dave.hansen@intel.com>
