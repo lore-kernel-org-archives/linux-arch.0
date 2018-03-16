@@ -1,50 +1,47 @@
-From: Chris Metcalf <metcalf@alum.mit.edu>
-Subject: Re: [PATCH 06/16] arch: remove tile port
-Date: Thu, 15 Mar 2018 21:23:46 -0400
-Message-ID: <2f2e0cd4-02ca-0e01-7003-e519a7706ee4@alum.mit.edu>
+From: afzal mohammed <afzal.mohd.ma@gmail.com>
+Subject: Re: [PATCH 00/16] remove eight obsolete architectures
+Date: Fri, 16 Mar 2018 10:20:16 +0530
+Message-ID: <20180316045016.GA7697@afzalpc>
 References: <20180314143529.1456168-1-arnd@arndb.de>
- <20180314143656.1495602-1-arnd@arndb.de>
- <20180314143656.1495602-6-arnd@arndb.de>
+ <2929.1521106970@warthog.procyon.org.uk>
+ <CAK8P3a10hBz7QYk5v5MfhVMPOwFnWYTn95WZp1HtHrd7-GQpRg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180314143656.1495602-6-arnd@arndb.de>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a10hBz7QYk5v5MfhVMPOwFnWYTn95WZp1HtHrd7-GQpRg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: David Howells <dhowells@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>, linux-block <linux-block@vger.kernel.org>, IDE-ML <linux-ide@vger.kernel.org>, "open list:HID CORE LAYER" <linux-input@vger.kernel.org>, Networking <netdev@vger.kernel.org>, linux-wireless <linux-wireless@vger.kernel.org>, linux-pwm@vger.kernel.org, linux-rtc@vger.kernel.org, linux-spi <linux-spi@vger.kernel.org>, linux-usb@vger.kernel.org, dri-devel <dri-devel@lists.freedesktop.org>, linux-fbdev@vger.kernel.org, linux-watchdog@vger.kernel.org, Linux FS-devel Mailing List <linux-fsdevel@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 3/14/2018 10:36 AM, Arnd Bergmann wrote:
-> The Tile architecture port was added by Chris Metcalf in 2010, and
-> maintained until early 2018 when he orphaned it due to his departure
-> from Mellanox, and nobody else stepped up to maintain it. The product
-> line is still around in the form of the BlueField SoC, but no longer
-> uses the Tile architecture.
->
-> There are also still products for sale with Tile-GX SoCs, notably the
-> Mikrotik CCR router family. The products all use old (linux-3.3) kernels
-> with lots of patches and won't be upgraded by their manufacturers. There
-> have been efforts to port both OpenWRT and Debian to these, but both
-> projects have stalled and are very unlikely to be continued in the future.
->
-> Given that we are reasonably sure that nobody is still using the port
-> with an upstream kernel any more, it seems better to remove it now while
-> the port is in a good shape than to let it bitrot for a few years first.
+Hi,
 
-Arnd, thanks for dealing with this.
+On Thu, Mar 15, 2018 at 10:56:48AM +0100, Arnd Bergmann wrote:
+> On Thu, Mar 15, 2018 at 10:42 AM, David Howells <dhowells@redhat.com> wrote:
 
-There are a number of tile-specific driver files that are mostly called out
-in the MAINTAINERS file.  I would expect you should also delete those.
+> > Do we have anything left that still implements NOMMU?
 
--F:    drivers/char/tile-srom.c
--F:    drivers/edac/tile_edac.c
--F:    drivers/net/ethernet/tile/
--F:    drivers/rtc/rtc-tile.c
--F:    drivers/tty/hvc/hvc_tile.c
--F:    drivers/tty/serial/tilegx.c
--F:    drivers/usb/host/*-tilegx.c
--F:    include/linux/usb/tilegx.h
+Please don't kill !MMU.
 
-Chris
+> Yes, plenty.
+
+> I've made an overview of the remaining architectures for my own reference[1].
+> The remaining NOMMU architectures are:
+> 
+> - arch/arm has ARMv7-M (Cortex-M microcontroller), which is actually
+> gaining traction
+
+ARMv7-R as well, also seems ARM is coming up with more !MMU's - v8-M,
+v8-R. In addition, though only of academic interest, ARM MMU capable
+platform's can run !MMU Linux.
+
+afzal
+
+> - arch/sh has an open-source J2 core that was added not that long ago,
+> it seems to
+>   be the only SH compatible core that anyone is working on.
+> - arch/microblaze supports both MMU/NOMMU modes (most use an MMU)
+> - arch/m68k supports several NOMMU targets, both the coldfire SoCs and the
+>   classic processors
+> - c6x has no MMU
