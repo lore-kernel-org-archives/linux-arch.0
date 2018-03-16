@@ -1,15 +1,15 @@
 From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH v12 06/22] selftests/vm: fix the wrong assert in
- pkey_disable_set()
-Date: Fri, 16 Mar 2018 15:06:44 -0700
-Message-ID: <efe141d5-b609-c21e-8860-c0184e167770@intel.com>
+Subject: Re: [PATCH v12 07/22] selftests/vm: fixed bugs in
+ pkey_disable_clear()
+Date: Fri, 16 Mar 2018 15:08:20 -0700
+Message-ID: <dc5ee0c8-afe3-78aa-001d-7b49b398337b@intel.com>
 References: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com>
- <1519264541-7621-7-git-send-email-linuxram@us.ibm.com>
+ <1519264541-7621-8-git-send-email-linuxram@us.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1519264541-7621-7-git-send-email-linuxram@us.ibm.com>
+In-Reply-To: <1519264541-7621-8-git-send-email-linuxram@us.ibm.com>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: Ram Pai <linuxram@us.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org
@@ -17,31 +17,26 @@ Cc: mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@k
 List-Id: linux-arch.vger.kernel.org
 
 On 02/21/2018 05:55 PM, Ram Pai wrote:
-> If the flag is 0, no bits will be set. Hence we cant expect
-> the resulting bitmap to have a higher value than what it
-> was earlier.
-> 
-> cc: Dave Hansen <dave.hansen@intel.com>
-> cc: Florian Weimer <fweimer@redhat.com>
-> Signed-off-by: Ram Pai <linuxram@us.ibm.com>
-> ---
->  tools/testing/selftests/vm/protection_keys.c |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
-> 
-> diff --git a/tools/testing/selftests/vm/protection_keys.c b/tools/testing/selftests/vm/protection_keys.c
-> index 83216c5..0109388 100644
 > --- a/tools/testing/selftests/vm/protection_keys.c
 > +++ b/tools/testing/selftests/vm/protection_keys.c
-> @@ -443,7 +443,7 @@ void pkey_disable_set(int pkey, int flags)
->  	dprintf1("%s(%d) pkey_reg: 0x%lx\n",
->  		__func__, pkey, rdpkey_reg());
+> @@ -461,7 +461,7 @@ void pkey_disable_clear(int pkey, int flags)
+>  			pkey, pkey, pkey_rights);
+>  	pkey_assert(pkey_rights >= 0);
+>  
+> -	pkey_rights |= flags;
+> +	pkey_rights &= ~flags;
+>  
+>  	ret = pkey_set(pkey, pkey_rights, 0);
+>  	/* pkey_reg and flags have the same format */
+> @@ -475,7 +475,7 @@ void pkey_disable_clear(int pkey, int flags)
+>  	dprintf1("%s(%d) pkey_reg: 0x%016lx\n", __func__,
+>  			pkey, rdpkey_reg());
 >  	if (flags)
-> -		pkey_assert(rdpkey_reg() > orig_pkey_reg);
-> +		pkey_assert(rdpkey_reg() >= orig_pkey_reg);
->  	dprintf1("END<---%s(%d, 0x%x)\n", __func__,
->  		pkey, flags);
+> -		assert(rdpkey_reg() > orig_pkey_reg);
+> +		assert(rdpkey_reg() < orig_pkey_reg);
 >  }
+>  
+>  void pkey_write_allow(int pkey)
 
-I'm not sure about this one.  Did this cause a problem for you?
-
-Why would you call this and ask no bits to be set?
+This seems so horribly wrong that I wonder how it worked in the first
+place.  Any idea?
