@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH 18/19] clocksource: add timer-nationalchip.c
-Date: Mon, 19 Mar 2018 03:51:40 +0800
-Message-ID: <04f5a0702fc14e934e6f5a456cad8682d0b15aa2.1521399976.git.ren_guo@c-sky.com>
+Subject: [PATCH 16/19] csky: Device tree
+Date: Mon, 19 Mar 2018 03:51:38 +0800
+Message-ID: <b86f173b8333cb6cc1c7e32ec2ab1e38fae4ecf8.1521399976.git.ren_guo@c-sky.com>
 References: <cover.1521399976.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1521399976.git.ren_guo@c-sky.com>
@@ -14,174 +14,279 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- drivers/clocksource/Makefile             |   1 +
- drivers/clocksource/timer-nationalchip.c | 149 +++++++++++++++++++++++++++++++
- 2 files changed, 150 insertions(+)
- create mode 100644 drivers/clocksource/timer-nationalchip.c
+ arch/csky/boot/dts/gx6605s.dts         | 159 +++++++++++++++++++++++++++++++++
+ arch/csky/boot/dts/include/dt-bindings |   1 +
+ arch/csky/boot/dts/qemu.dts            |  87 ++++++++++++++++++
+ 3 files changed, 247 insertions(+)
+ create mode 100644 arch/csky/boot/dts/gx6605s.dts
+ create mode 120000 arch/csky/boot/dts/include/dt-bindings
+ create mode 100644 arch/csky/boot/dts/qemu.dts
 
-diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
-index d6dec44..d091712 100644
---- a/drivers/clocksource/Makefile
-+++ b/drivers/clocksource/Makefile
-@@ -76,3 +76,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
- obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
- obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
- obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
-+obj-$(CONFIG_CSKY)			+= timer-nationalchip.o
-diff --git a/drivers/clocksource/timer-nationalchip.c b/drivers/clocksource/timer-nationalchip.c
+diff --git a/arch/csky/boot/dts/gx6605s.dts b/arch/csky/boot/dts/gx6605s.dts
 new file mode 100644
-index 0000000..1279d64
+index 0000000..0d34d22
 --- /dev/null
-+++ b/drivers/clocksource/timer-nationalchip.c
-@@ -0,0 +1,149 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou NationalChip Science & Technology Co.,Ltd.
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/param.h>
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/profile.h>
-+#include <linux/irq.h>
-+#include <linux/rtc.h>
-+#include <linux/sizes.h>
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <asm/irq.h>
-+#include <asm/io.h>
-+#include <asm/delay.h>
-+#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/of_irq.h>
-+#include <linux/sched_clock.h>
++++ b/arch/csky/boot/dts/gx6605s.dts
+@@ -0,0 +1,159 @@
++/dts-v1/;
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
 +
-+#define NC_VA_COUNTER_1_STATUS		(void *)(timer_reg + 0x00)
-+#define NC_VA_COUNTER_1_VALUE		(void *)(timer_reg + 0x04)
-+#define NC_VA_COUNTER_1_CONTROL		(void *)(timer_reg + 0x10)
-+#define NC_VA_COUNTER_1_CONFIG		(void *)(timer_reg + 0x20)
-+#define NC_VA_COUNTER_1_PRE		(void *)(timer_reg + 0x24)
-+#define NC_VA_COUNTER_1_INI		(void *)(timer_reg + 0x28)
-+#define NC_VA_COUNTER_2_STATUS		(void *)(timer_reg + 0x40)
-+#define NC_VA_COUNTER_2_VALUE		(void *)(timer_reg + 0x44)
-+#define NC_VA_COUNTER_2_CONTROL		(void *)(timer_reg + 0x50)
-+#define NC_VA_COUNTER_2_CONFIG		(void *)(timer_reg + 0x60)
-+#define NC_VA_COUNTER_2_PRE		(void *)(timer_reg + 0x64)
-+#define NC_VA_COUNTER_2_INI		(void *)(timer_reg + 0x68)
-+#define NC_VA_COUNTER_3_STATUS		(void *)(timer_reg + 0x80)
-+#define NC_VA_COUNTER_3_VALUE		(void *)(timer_reg + 0x84)
-+#define NC_VA_COUNTER_3_CONTROL		(void *)(timer_reg + 0x90)
-+#define NC_VA_COUNTER_3_CONFIG		(void *)(timer_reg + 0xa0)
-+#define NC_VA_COUNTER_3_PRE		(void *)(timer_reg + 0xa4)
-+#define NC_VA_COUNTER_3_INI		(void *)(timer_reg + 0xa8)
++/ {
++	model = "Nationalchip gx6605s ck610";
++	compatible = "nationalchip,gx6605s,ck610";
++	#address-cells = <1>;
++	#size-cells = <1>;
 +
-+static unsigned int timer_reg;
++	memory {
++		device_type = "memory";
++		reg = <0x10000000 0x04000000>;
++	};
 +
-+static inline void timer_reset(void)
-+{
-+	__raw_writel(0x1,	NC_VA_COUNTER_1_CONTROL);
-+	__raw_writel(0x0,	NC_VA_COUNTER_1_CONTROL);
-+	__raw_writel(0x3,	NC_VA_COUNTER_1_CONFIG);
-+	__raw_writel(26,	NC_VA_COUNTER_1_PRE);
-+}
++	cpus {
++		#address-cells = <0>;
++		#size-cells = <0>;
 +
-+static irqreturn_t timer_interrupt(int irq, void *dev_id)
-+{
-+	struct clock_event_device *dev = (struct clock_event_device *) dev_id;
++		cpu {
++			device_type = "cpu";
++			ccr	= <0x7d>;
++			hint	= <0x1c>;
++		};
++	};
 +
-+	__raw_writel(1, NC_VA_COUNTER_1_STATUS);
++	soc {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "simple-bus";
++		ranges;
 +
-+	dev->event_handler(dev);
++		intc: interrupt-controller {
++			compatible = "nationalchip,intc-v1,ave";
++			reg = <0x00500000 0x400>;
++			interrupt-controller;
++			#interrupt-cells = <1>;
++		};
 +
-+	return IRQ_HANDLED;
-+}
++		timer0 {
++			compatible = "nationalchip,timer-v1";
++			reg = <0x0020a000 0x400>;
++			clock-frequency = <1000000>;
++			interrupts = <10>;
++			interrupt-parent = <&intc>;
++		};
 +
-+static int nc_timer_set_periodic(struct clock_event_device *dev)
-+{
-+	timer_reset();
++		ehci: ehci-hcd {
++			compatible = "generic-ehci";
++			reg = <0x00900000 0x400>;
++			interrupt-parent = <&intc>;
++			interrupts = <59>;
++		};
 +
-+	__raw_writel(0xFFFFD8EF, NC_VA_COUNTER_1_INI);
-+	__raw_writel(0x2, NC_VA_COUNTER_1_CONTROL);
++		ohci0: ohci-hcd0 {
++			compatible = "generic-ohci";
++			reg = <0x00a00000 0x400>;
++			interrupt-parent = <&intc>;
++			interrupts = <58>;
++		};
 +
-+	return 0;
-+}
++		ohci1: ohci-hcd1 {
++			compatible = "generic-ohci";
++			reg = <0x00b00000 0x400>;
++			interrupt-parent = <&intc>;
++			interrupts = <57>;
++		};
 +
-+static int nc_timer_set_next_event(unsigned long delta, struct clock_event_device *evt)
-+{
-+	__raw_writel(0x1,		NC_VA_COUNTER_1_CONTROL);
-+	__raw_writel(ULONG_MAX - delta, NC_VA_COUNTER_1_INI);
-+	__raw_writel(0x2,		NC_VA_COUNTER_1_CONTROL);
-+	return 0;
-+}
++		uart0: serial {
++			compatible = "ns16550a";
++			reg = <0x00403000 0x400>;
++			interrupt-parent = <&intc>;
++			interrupts = <15>;
++			clock-frequency = <29491200>;
++			baud = <115200>;
++			reg-shift = <2>;
++			reg-io-width = <1>;
++		};
 +
-+static int nc_timer_shutdown(struct clock_event_device *dev)
-+{
-+	__raw_writel(0x0, NC_VA_COUNTER_1_CONTROL);
-+	__raw_writel(0x0, NC_VA_COUNTER_1_CONFIG);
++		gpio0: gpio {
++			compatible = "wd,mbl-gpio";
++			reg-names = "dirout", "dat", "set", "clr";
++			reg = <0x305000 4>, <0x305004 4>, <0x305008 4>, <0x30500c 4>;
++			bgpio-base = <0>;
++			#gpio-cells = <2>;
++			gpio-controller;
++		};
 +
-+	return 0;
-+}
++		gpio_buttons {
++			compatible = "gpio-keys-polled";
++			#address-cells = <1>;
++			#size-cells = <0>;
++			poll-interval = <100>;
++			autorepeat;
 +
-+static struct clock_event_device nc_ced = {
-+	.name			= "nationalchip-clkevent",
-+	.features		= CLOCK_EVT_FEAT_PERIODIC
-+				| CLOCK_EVT_FEAT_ONESHOT,
-+	.rating			= 200,
-+	.set_state_shutdown	= nc_timer_shutdown,
-+	.set_state_periodic	= nc_timer_set_periodic,
-+	.set_next_event		= nc_timer_set_next_event,
++			button0 {
++				label = "button8";
++				linux,code = <KEY_LEFT>;
++				gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
++			};
++
++			button1 {
++				label = "button6";
++				linux,code = <KEY_RIGHT>;
++				gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
++			};
++
++			button2 {
++				label = "button5";
++				linux,code = <KEY_UP>;
++				gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
++			};
++
++			button3 {
++				label = "button9";
++				linux,code = <KEY_DOWN>;
++				gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
++			};
++
++			button4 {
++				label = "button7";
++				linux,code = <KEY_ENTER>;
++				gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
++			};
++		};
++
++		gpio_leds {
++			compatible = "gpio-leds";
++
++			led0 {
++				label = "led10";
++				gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
++				linux,default-trigger = "heartbeat";
++			};
++
++			led1 {
++				label = "led11";
++				gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
++				linux,default-trigger = "timer";
++			};
++
++			led2 {
++				label = "led12";
++				gpios = <&gpio0 12 GPIO_ACTIVE_LOW>;
++				linux,default-trigger = "default-on";
++			};
++
++			led3 {
++				label = "led13";
++				gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
++				linux,default-trigger = "default-on";
++			};
++		};
++	};
++
++	chosen {
++		bootargs = "console=ttyS0,115200 init=/sbin/init root=/dev/sda2 rw rootwait";
++	};
 +};
+diff --git a/arch/csky/boot/dts/include/dt-bindings b/arch/csky/boot/dts/include/dt-bindings
+new file mode 120000
+index 0000000..08c00e4
+--- /dev/null
++++ b/arch/csky/boot/dts/include/dt-bindings
+@@ -0,0 +1 @@
++../../../../../include/dt-bindings
+\ No newline at end of file
+diff --git a/arch/csky/boot/dts/qemu.dts b/arch/csky/boot/dts/qemu.dts
+new file mode 100644
+index 0000000..59e1c83
+--- /dev/null
++++ b/arch/csky/boot/dts/qemu.dts
+@@ -0,0 +1,87 @@
++/dts-v1/;
 +
-+static u64 notrace nc_sched_clock_read(void)
-+{
-+	return (u64) __raw_readl(NC_VA_COUNTER_2_VALUE);
-+}
++/ {
++	model = "qemu.csky";
++	compatible = "csky";
++	#address-cells = <1>;
++	#size-cells = <1>;
 +
-+static void nc_csd_enable(void)
-+{
-+	__raw_writel(0x1, NC_VA_COUNTER_2_CONTROL);
-+	__raw_writel(0x0, NC_VA_COUNTER_2_CONTROL);
-+	__raw_writel(0x1, NC_VA_COUNTER_2_CONFIG);
++	memory {
++		device_type = "memory";
++		reg = <0x0 0x40000000>;
++	};
 +
-+	__raw_writel(26,NC_VA_COUNTER_2_PRE);
-+	__raw_writel(0, NC_VA_COUNTER_2_INI);
-+	__raw_writel(0x2, NC_VA_COUNTER_2_CONTROL);
-+}
++	soc {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "simple-bus";
++		ranges;
 +
-+static int __init nc_timer_init(struct device_node *np)
-+{
-+	unsigned int irq;
-+	unsigned int freq;
++		intc: interrupt-controller {
++			compatible = "csky,intc-v1";
++			reg = <0xfffff000 0x1000>;
++			interrupt-controller;
++			#interrupt-cells = <1>;
++		};
 +
-+	/* parse from devicetree */
-+	timer_reg = (unsigned int) of_iomap(np, 0);
-+	if (!timer_reg)
-+		panic("%s, of_iomap err.\n", __func__);
++		/* clockevent */
++		timer0 {
++			compatible = "snps,dw-apb-timer";
++			reg = <0xffffd000 0x1000>;
++			clocks = <&dummy_apb>;
++			clock-names = "timer";
++			interrupts = <1>;
++			interrupt-parent = <&intc>;
++		};
 +
-+	irq = irq_of_parse_and_map(np, 0);
-+	if (!irq)
-+		panic("%s, irq_parse err.\n", __func__);
++		/* clocksource */
++		timer1 {
++			compatible = "snps,dw-apb-timer";
++			reg = <0xffffd014 0x800>;
++			clocks = <&dummy_apb>;
++			clock-names = "timer";
++			interrupts = <2>;
++			interrupt-parent = <&intc>;
++		};
 +
-+	if (of_property_read_u32(np, "clock-frequency", &freq))
-+		panic("%s, clock-frequency error.\n", __func__);
++		serial0 {
++			compatible = "ns16550a";
++			reg = <0xffffe000 0x1000>;
++			interrupt-parent = <&intc>;
++			interrupts = <3>;
++			clocks = <&dummy_apb>;
++			baud = <115200>;
++			reg-shift = <2>;
++			reg-io-width = <1>;
++		};
 +
-+	pr_info("Nationalchip Timer Init, reg: %x, irq: %d, freq: %d.\n",
-+		timer_reg, irq, freq);
++		dummy_apb: apb-clock {
++			compatible = "fixed-clock";
++			clock-frequency = <40000000>;
++			clock-output-names = "dummy_apb";
++			#clock-cells = <0>;
++		};
 +
-+	/* setup irq */
-+	if (request_irq(irq, timer_interrupt, IRQF_TIMER, np->name, &nc_ced))
-+		panic("%s timer_interrupt error.\n", __func__);
++		gmac: ethernet {
++			compatible = "snps,dwmac";
++			reg = <0xffffa000 0x2000>;
++			interrupt-parent = <&intc>;
++			interrupts = <4>;
++			interrupt-names = "macirq";
++			clocks = <&dummy_apb>;
++			clock-names = "stmmaceth";
++			phy-mode = "mii";
++			snps,pbl = <32>;
++			snps,fixed-burst;
++		};
 +
-+	/* register */
-+	clockevents_config_and_register(&nc_ced, freq, 1, ULONG_MAX);
++		qemu-exit {
++			compatible = "csky,qemu-exit";
++			reg = <0xffffc000 0x1000>;
++		};
++	};
 +
-+	nc_csd_enable();
-+	clocksource_mmio_init(NC_VA_COUNTER_2_VALUE, "nationalchip-clksource", freq, 200, 32, clocksource_mmio_readl_up);
-+
-+	sched_clock_register(nc_sched_clock_read, 32, freq);
-+
-+	return 0;
-+}
-+CLOCKSOURCE_OF_DECLARE(nc_timer, "nationalchip,timer-v1", nc_timer_init);
-+
++	chosen {
++		bootargs = "console=ttyS0,115200 rdinit=/sbin/init root=/dev/ram0";
++	};
++};
 -- 
 2.7.4
