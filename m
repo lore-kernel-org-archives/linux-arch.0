@@ -1,41 +1,72 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v12 00/11] Application Data Integrity feature
- introduced by SPARC M7
-Date: Sun, 18 Mar 2018 11:08:57 -0400 (EDT)
-Message-ID: <20180318.110857.1660518649370410007.davem@davemloft.net>
-References: <cover.1519227112.git.khalid.aziz@oracle.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: [RFC PATCH 0/6] remove in-kernel syscall invocations (part 3 == compat cruft)
+Date: Sun, 18 Mar 2018 17:10:50 +0100
+Message-ID: <20180318161056.5377-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1519227112.git.khalid.aziz@oracle.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: khalid.aziz@oracle.com
-Cc: dave.hansen@linux.intel.com, aarcange@redhat.com, akpm@linux-foundation.org, allen.pais@oracle.com, aneesh.kumar@linux.vnet.ibm.com, anthony.yznaga@oracle.com, arnd@arndb.de, benh@kernel.crashing.org, bob.picco@oracle.com, bsingharora@gmail.com, corbet@lwn.net, dan.j.williams@intel.com, dave.jiang@intel.com, david.j.aldridge@oracle.com, dwindsor@gmail.com, ebiederm@xmission.com, elena.reshetova@intel.com, gregkh@linuxfoundation.org, hannes@cmpxchg.org, henry.willard@oracle.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jag.raman@oracle.com, jane.chu@oracle.com, jglisse@redhat.com, jroedel@suse.de, khalid@gonehiking.org, khandual@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, kstewart@linuxfoundation.org, ktkhai@virtuozzo.com, liam.mer
+To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, arnd@arndb.de, viro@ZenIV.linux.org.uk
+Cc: linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Date: Wed, 21 Feb 2018 10:15:42 -0700
+Here is a third series of patches which reduce the number of syscall
+invocations from within the kernel. Once this long-term goal is achieved,
+the syscall entry path can be streamlined.
 
-> V12 changes:
-> This series is same as v10 and v11 and was simply rebased on 4.16-rc2
-> kernel and patch 11 was added to update signal delivery code to use the
-> new helper functions added by Eric Biederman. Can mm maintainers please
-> review patches 2, 7, 8 and 9 which are arch independent, and
-> include/linux/mm.h and mm/ksm.c changes in patch 10 and ack these if
-> everything looks good? 
+This series focuses on a few compat syscall definitions in arch/ which
+have no other in-kernel users. In particular, it introduces generic compat
+syscalls for a handful of mm- and fs-related functions. Their calling
+convention depends on whether the architecture sets
+	__ARCH_WANT_LE_COMPAT_SYS (little-endian calling convention)
+and/or	__ARCH_WANT_COMPAT_SYS_WITH_PADDING.
 
-Khalid I've applied this series to sparc-next, thank you!
+As I am not used to non-x86 architectures, please bear with me in case I
+broke something or missed some peculiarities. In particular, I was
+surprised that a couple of compat syscall definitions used "u64" or
+"unsigned long" as parameter definitions -- though the code makes it clear
+that they expected an "u32" or an "unsigned int" instead. CVE-2009-0029
+seems to be handled already by the compat_sys_*() compat_SyS_*() /
+C_SYSC_*() indirection provided for by include/linux/compat.h. Or do I
+miss something here?
 
-But one thing has to be fixed up.
+I did not bother addressing metag and tile, as they are going away.
+Parisc and sh (sys_sh32.c in particular) provide similar wrappers for
+"native" (non-compat) use, so they are left as-is as well.
 
-In uapi/asm/auxvec.h you conditionalize the ADI aux vectors on
-CONFIG_SPARC64.
+Patches 5 and 6 in this series are x86-only.
 
-That's not correct, you should never control user facing definitions
-based upon kernel configuration.
+Thanks,
+	Dominik
 
-Also, both 32-bit and 64-bit applications running on ADI capable
-machines want to compile against and use this informaiton.
+Dominik Brodowski (6):
+  fs: provide a generic compat_sys_fallocate() implementation
+  fs: provide a generic compat_sys_truncate64() implementation
+  fs: provide generic compat_sys_p{read,write}64() implementations
+  mm: provide generic compat_sys_readahead() implementation
+  x86: use _do_fork() in compat_sys_x86_clone()
+  x86: remove compat_sys_x86_waitpid()
 
-So please remove these CPP checks.
+ arch/mips/include/asm/unistd.h         |  8 ++++
+ arch/mips/kernel/linux32.c             | 35 ---------------
+ arch/mips/kernel/scall64-o32.S         | 10 ++---
+ arch/powerpc/include/asm/unistd.h      |  5 +++
+ arch/powerpc/kernel/sys_ppc32.c        | 30 -------------
+ arch/s390/include/asm/unistd.h         |  4 ++
+ arch/s390/kernel/compat_linux.c        | 33 --------------
+ arch/s390/kernel/compat_linux.h        |  5 ---
+ arch/s390/kernel/syscalls/syscall.tbl  | 10 ++---
+ arch/sparc/include/asm/unistd.h        |  4 ++
+ arch/sparc/kernel/sys_sparc32.c        | 41 -----------------
+ arch/sparc/kernel/systbls.h            | 19 --------
+ arch/sparc/kernel/systbls_64.S         |  4 +-
+ arch/x86/entry/syscalls/syscall_32.tbl | 12 ++---
+ arch/x86/ia32/sys_ia32.c               | 46 +------------------
+ arch/x86/include/asm/sys_ia32.h        | 14 ------
+ arch/x86/include/asm/unistd.h          |  5 +++
+ fs/open.c                              | 52 +++++++++++++++++++++-
+ fs/read_write.c                        | 74 +++++++++++++++++++++++++++++--
+ include/linux/compat.h                 | 42 ++++++++++++++++++
+ mm/readahead.c                         | 81 ++++++++++++++++++++++++----------
+ 21 files changed, 266 insertions(+), 268 deletions(-)
+
+-- 
+2.16.2
