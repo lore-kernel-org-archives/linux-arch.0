@@ -1,46 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([184.105.139.130]:56614 "EHLO
-        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751062AbeCRPJE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 18 Mar 2018 11:09:04 -0400
-Date: Sun, 18 Mar 2018 11:08:57 -0400 (EDT)
-Message-ID: <20180318.110857.1660518649370410007.davem@davemloft.net>
-Subject: Re: [PATCH v12 00/11] Application Data Integrity feature
- introduced by SPARC M7
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <cover.1519227112.git.khalid.aziz@oracle.com>
-References: <cover.1519227112.git.khalid.aziz@oracle.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from isilmar-4.linta.de ([136.243.71.142]:46512 "EHLO
+        isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754132AbeCRQL7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 18 Mar 2018 12:11:59 -0400
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: [RFC PATCH 6/6] x86: remove compat_sys_x86_waitpid()
+Date: Sun, 18 Mar 2018 17:10:56 +0100
+Message-ID: <20180318161056.5377-7-linux@dominikbrodowski.net>
+In-Reply-To: <20180318161056.5377-1-linux@dominikbrodowski.net>
+References: <20180318161056.5377-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: khalid.aziz@oracle.com
-Cc: dave.hansen@linux.intel.com, aarcange@redhat.com, akpm@linux-foundation.org, allen.pais@oracle.com, aneesh.kumar@linux.vnet.ibm.com, anthony.yznaga@oracle.com, arnd@arndb.de, benh@kernel.crashing.org, bob.picco@oracle.com, bsingharora@gmail.com, corbet@lwn.net, dan.j.williams@intel.com, dave.jiang@intel.com, david.j.aldridge@oracle.com, dwindsor@gmail.com, ebiederm@xmission.com, elena.reshetova@intel.com, gregkh@linuxfoundation.org, hannes@cmpxchg.org, henry.willard@oracle.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jag.raman@oracle.com, jane.chu@oracle.com, jglisse@redhat.com, jroedel@suse.de, khalid@gonehiking.org, khandual@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, kstewart@linuxfoundation.org, ktkhai@virtuozzo.com, liam.merwick@oracle.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linuxram@us.ibm.com, linux@roeck-us.net, me@tobin.cc, mgorman@suse.de, mgorman@techsingularity.net, mhocko@suse.com, mike.kravetz@oracle.com, minchan@kernel.org, mingo@kernel.org
-Message-ID: <20180318150857.VrIGeNPUGz8VAMV1MP5gFPc2Yb8RVHg-53v67Dl0gFY@z>
+To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, arnd@arndb.de, viro@ZenIV.linux.org.uk
+Cc: linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org
+Message-ID: <20180318161056.vfzkxZ5ml2y7jHUEbbrrF9aZmZCsGMxseASIXJ7LezI@z>
 
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Date: Wed, 21 Feb 2018 10:15:42 -0700
+compat_sys_x86_waitpid() is not needed, as it takes the same parameters
+(int, *int, int) as the native syscall.
 
-> V12 changes:
-> This series is same as v10 and v11 and was simply rebased on 4.16-rc2
-> kernel and patch 11 was added to update signal delivery code to use the
-> new helper functions added by Eric Biederman. Can mm maintainers please
-> review patches 2, 7, 8 and 9 which are arch independent, and
-> include/linux/mm.h and mm/ksm.c changes in patch 10 and ack these if
-> everything looks good? 
+Suggested-by: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Jiri Slaby <jslaby@suse.com>
+Cc: x86@kernel.org
+Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
+---
+ arch/x86/entry/syscalls/syscall_32.tbl | 2 +-
+ arch/x86/ia32/sys_ia32.c               | 6 ------
+ arch/x86/include/asm/sys_ia32.h        | 3 ---
+ 3 files changed, 1 insertion(+), 10 deletions(-)
 
-Khalid I've applied this series to sparc-next, thank you!
-
-But one thing has to be fixed up.
-
-In uapi/asm/auxvec.h you conditionalize the ADI aux vectors on
-CONFIG_SPARC64.
-
-That's not correct, you should never control user facing definitions
-based upon kernel configuration.
-
-Also, both 32-bit and 64-bit applications running on ADI capable
-machines want to compile against and use this informaiton.
-
-So please remove these CPP checks.
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index 17b8dc7130f5..6eddf8ba8348 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -13,7 +13,7 @@
+ 4	i386	write			sys_write
+ 5	i386	open			sys_open			compat_sys_open
+ 6	i386	close			sys_close
+-7	i386	waitpid			sys_waitpid			compat_sys_x86_waitpid
++7	i386	waitpid			sys_waitpid
+ 8	i386	creat			sys_creat
+ 9	i386	link			sys_link
+ 10	i386	unlink			sys_unlink
+diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
+index 31d50d11239b..4710a0cc969b 100644
+--- a/arch/x86/ia32/sys_ia32.c
++++ b/arch/x86/ia32/sys_ia32.c
+@@ -162,12 +162,6 @@ COMPAT_SYSCALL_DEFINE1(x86_mmap, struct mmap_arg_struct32 __user *, arg)
+ 			       a.offset>>PAGE_SHIFT);
+ }
+ 
+-COMPAT_SYSCALL_DEFINE3(x86_waitpid, compat_pid_t, pid, unsigned int __user *,
+-		       stat_addr, int, options)
+-{
+-	return compat_sys_wait4(pid, stat_addr, options, NULL);
+-}
+-
+ /*
+  * Some system calls that need sign extended arguments. This could be
+  * done by a generic wrapper.
+diff --git a/arch/x86/include/asm/sys_ia32.h b/arch/x86/include/asm/sys_ia32.h
+index 6a78bee5a314..b407c00d62fa 100644
+--- a/arch/x86/include/asm/sys_ia32.h
++++ b/arch/x86/include/asm/sys_ia32.h
+@@ -33,9 +33,6 @@ asmlinkage long compat_sys_x86_fstatat(unsigned int, const char __user *,
+ struct mmap_arg_struct32;
+ asmlinkage long compat_sys_x86_mmap(struct mmap_arg_struct32 __user *);
+ 
+-asmlinkage long compat_sys_x86_waitpid(compat_pid_t, unsigned int __user *,
+-				       int);
+-
+ asmlinkage long compat_sys_x86_fadvise64_64(int, __u32, __u32, __u32, __u32,
+ 					    int);
+ 
+-- 
+2.16.2
