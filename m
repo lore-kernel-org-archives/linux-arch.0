@@ -1,77 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:46484 "EHLO
-        isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754157AbeCRQL7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 18 Mar 2018 12:11:59 -0400
-From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [RFC PATCH 0/6] remove in-kernel syscall invocations (part 3 == compat cruft)
-Date: Sun, 18 Mar 2018 17:10:50 +0100
-Message-ID: <20180318161056.5377-1-linux@dominikbrodowski.net>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:40682 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754051AbeCRRk0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 18 Mar 2018 13:40:26 -0400
+Date: Sun, 18 Mar 2018 17:40:14 +0000
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [RFC PATCH 4/6] mm: provide generic compat_sys_readahead()
+ implementation
+Message-ID: <20180318174014.GR30522@ZenIV.linux.org.uk>
+References: <20180318161056.5377-1-linux@dominikbrodowski.net>
+ <20180318161056.5377-5-linux@dominikbrodowski.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180318161056.5377-5-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, arnd@arndb.de, viro@ZenIV.linux.org.uk
-Cc: linux-arch@vger.kernel.org
-Message-ID: <20180318161050.UfshCF6PwrIyszSrEPeSSVYXGAPdqY6EqkoUmrU_J7E@z>
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org
+Message-ID: <20180318174014.Q0af05pYkn36mefbzjIvCKw0qT6kYpV5og4o65IgYs8@z>
 
-Here is a third series of patches which reduce the number of syscall
-invocations from within the kernel. Once this long-term goal is achieved,
-the syscall entry path can be streamlined.
+On Sun, Mar 18, 2018 at 05:10:54PM +0100, Dominik Brodowski wrote:
 
-This series focuses on a few compat syscall definitions in arch/ which
-have no other in-kernel users. In particular, it introduces generic compat
-syscalls for a handful of mm- and fs-related functions. Their calling
-convention depends on whether the architecture sets
-	__ARCH_WANT_LE_COMPAT_SYS (little-endian calling convention)
-and/or	__ARCH_WANT_COMPAT_SYS_WITH_PADDING.
+> +#ifdef __ARCH_WANT_COMPAT_SYS_READAHEAD
+> +#if defined(__ARCH_WANT_COMPAT_SYS_WITH_PADDING) && \
+> +	defined(__ARCH_WANT_LE_COMPAT_SYS)
+> +COMPAT_SYSCALL_DEFINE5(readahead, int, fd, unsigned int, padding,
+> +		       unsigned int, off_lo, unsigned int, off_hi,
+> +		       size_t, count)
+> +#elif defined(__ARCH_WANT_COMPAT_SYS_WITH_PADDING) && \
+> +	!defined(__ARCH_WANT_LE_COMPAT_SYS)
+> +COMPAT_SYSCALL_DEFINE5(readahead, int, fd, unsigned int, padding,
+> +		       unsigned int, off_hi, unsigned int, off_lo,
+> +		       size_t, count)
+> +#elif !defined(__ARCH_WANT_COMPAT_SYS_WITH_PADDING) && \
+> +	defined(__ARCH_WANT_LE_COMPAT_SYS)
+> +COMPAT_SYSCALL_DEFINE4(readahead, int, fd,
+> +		       unsigned int, off_lo, unsigned int, off_hi,
+> +		       size_t, count)
+> +#else /* no padding, big endian */
+> +COMPAT_SYSCALL_DEFINE4(readahead, int, fd,
+> +		       unsigned int, off_hi, unsigned int, off_lo,
+> +		       size_t, count)
+> +#endif
+> +{
+> +	return do_readahead(fd, ((u64) off_hi << 32) | off_lo, count);
+>  }
 
-As I am not used to non-x86 architectures, please bear with me in case I
-broke something or missed some peculiarities. In particular, I was
-surprised that a couple of compat syscall definitions used "u64" or
-"unsigned long" as parameter definitions -- though the code makes it clear
-that they expected an "u32" or an "unsigned int" instead. CVE-2009-0029
-seems to be handled already by the compat_sys_*() compat_SyS_*() /
-C_SYSC_*() indirection provided for by include/linux/compat.h. Or do I
-miss something here?
+*UGH*
 
-I did not bother addressing metag and tile, as they are going away.
-Parisc and sh (sys_sh32.c in particular) provide similar wrappers for
-"native" (non-compat) use, so they are left as-is as well.
+static inline compat_to_u64(u32 w0, u32 w1)
+{
+#ifdef __BIG_ENDIAN
+	return ((u64)w0 << 32) | w1;
+#else
+	return ((u64)w1 << 32) | w0;
+#endif
+}
 
-Patches 5 and 6 in this series are x86-only.
+in compat.h, then this turns into
 
-Thanks,
-	Dominik
-
-Dominik Brodowski (6):
-  fs: provide a generic compat_sys_fallocate() implementation
-  fs: provide a generic compat_sys_truncate64() implementation
-  fs: provide generic compat_sys_p{read,write}64() implementations
-  mm: provide generic compat_sys_readahead() implementation
-  x86: use _do_fork() in compat_sys_x86_clone()
-  x86: remove compat_sys_x86_waitpid()
-
- arch/mips/include/asm/unistd.h         |  8 ++++
- arch/mips/kernel/linux32.c             | 35 ---------------
- arch/mips/kernel/scall64-o32.S         | 10 ++---
- arch/powerpc/include/asm/unistd.h      |  5 +++
- arch/powerpc/kernel/sys_ppc32.c        | 30 -------------
- arch/s390/include/asm/unistd.h         |  4 ++
- arch/s390/kernel/compat_linux.c        | 33 --------------
- arch/s390/kernel/compat_linux.h        |  5 ---
- arch/s390/kernel/syscalls/syscall.tbl  | 10 ++---
- arch/sparc/include/asm/unistd.h        |  4 ++
- arch/sparc/kernel/sys_sparc32.c        | 41 -----------------
- arch/sparc/kernel/systbls.h            | 19 --------
- arch/sparc/kernel/systbls_64.S         |  4 +-
- arch/x86/entry/syscalls/syscall_32.tbl | 12 ++---
- arch/x86/ia32/sys_ia32.c               | 46 +------------------
- arch/x86/include/asm/sys_ia32.h        | 14 ------
- arch/x86/include/asm/unistd.h          |  5 +++
- fs/open.c                              | 52 +++++++++++++++++++++-
- fs/read_write.c                        | 74 +++++++++++++++++++++++++++++--
- include/linux/compat.h                 | 42 ++++++++++++++++++
- mm/readahead.c                         | 81 ++++++++++++++++++++++++----------
- 21 files changed, 266 insertions(+), 268 deletions(-)
-
--- 
-2.16.2
+#ifdef __ARCH_WANT_COMPAT_SYS_WITH_PADDING
+COMPAT_SYSCALL_DEFINE5(readahead, int, fd, unsigned int, padding,
+		       u32, off0, u32 off1,
+		       compat_size_t, count)
+#else
+COMPAT_SYSCALL_DEFINE4(readahead, int, fd,
+		       u32, off0, u32 off1,
+		       compat_size_t, count)
+#endif
+{
+	return do_readahead(fd, compat_to_u64(off0, off1), count);
+}
