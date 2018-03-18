@@ -1,1126 +1,305 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH 17/19] csky: defconfig
-Date: Mon, 19 Mar 2018 03:51:39 +0800
-Message-ID: <8a9c9b588cdfdf8b25ca9d449bf5c862d329c1d8.1521399976.git.ren_guo@c-sky.com>
-References: <cover.1521399976.git.ren_guo@c-sky.com>
+Subject: [PATCH 00/19] C-SKY(csky) Linux Kernel Port
+Date: Mon, 19 Mar 2018 03:51:22 +0800
+Message-ID: <cover.1521399976.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1521399976.git.ren_guo@c-sky.com>
-In-Reply-To: <cover.1521399976.git.ren_guo@c-sky.com>
-References: <cover.1521399976.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de
 Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, Guo Ren <ren_guo@c-sky.com>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Guo Ren <ren_guo@c-sky.com>
----
- arch/csky/configs/gx66xx_defconfig     | 549 +++++++++++++++++++++++++++++++++
- arch/csky/configs/qemu_ck807_defconfig | 541 ++++++++++++++++++++++++++++++++
- 2 files changed, 1090 insertions(+)
+This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
+CPU cores and the patches are based on linux-4.16-rc5.
+
+There are two ABI versions with several CPU cores in this patchset:
+  ABIv1: ck610 (16-bit instruction, 32-bit data path, VIPT Cache ...)
+  ABIv2: ck807 ck810 (16/32-bit variable length instruction, PIPT Cache ...)
+
+More information: http://en.c-sky.com
+
+I'm from Hangzhou,China C-SKY Microsystems and responsible for C-SKY Linux
+port. My development repo is github.com/c-sky/csky-linux and use buildroot
+as our CI-test enviornment. "LTP, Lmbench, uclibc-ng-test ..." will be tested
+for every commit. See here for more details:
+  https://gitlab.com/c-sky/buildroot/pipelines
+
+You can try C-SKY linux in a few steps:
+  $ git clone https://github.com/c-sky/buildroot.git
+  $ cd buildroot
+  $ make qemu_csky_ck807_uclibc_bt_defconfig
+  $ make
+It will download "linux uclibc-ng gcc binutils qemu busybox" source code and build
+them into one image. How to run, See:
+  https://github.com/c-sky/buildroot/blob/master/board/qemu/csky/readme.txt
+
+I've finished uClibc-ng.org upstream and "gcc glibc binutils qemu ..." upstream is
+on going and the source code is here:
+  https://github.com/c-sky
+
+It's my first patchset to linux and any feedback is welcome :)
+
+Guo Ren (19):
+  csky: Kernel booting
+  csky: Exception handling and syscall
+  csky: Cache and TLB routines
+  csky: MMU and page talbe management
+  csky: Process management
+  csky: IRQ handling
+  csky: Atomic operations
+  csky: ELF and module probe
+  csky: VDSO and rt_sigreturn
+  csky: Signal handling
+  csky: Library functions
+  csky: Debug and Ptrace GDB
+  csky: User access
+  csky: Misc headers
+  csky: Build infrastructure
+  csky: Device tree
+  csky: defconfig
+  clocksource: add timer-nationalchip.c
+  irqchip: add irq-nationalchip.c and irq-csky.c
+
+ arch/csky/Kconfig                        | 203 ++++++++++++
+ arch/csky/Kconfig.debug                  |  22 ++
+ arch/csky/Makefile                       |  92 ++++++
+ arch/csky/abiv1/Makefile                 |   8 +
+ arch/csky/abiv1/inc/abi/cacheflush.h     |  40 +++
+ arch/csky/abiv1/inc/abi/ckmmu.h          | 140 ++++++++
+ arch/csky/abiv1/inc/abi/entry.h          | 171 ++++++++++
+ arch/csky/abiv1/inc/abi/page.h           |  26 ++
+ arch/csky/abiv1/inc/abi/pgtable-bits.h   |  36 ++
+ arch/csky/abiv1/inc/abi/reg_ops.h        |  79 +++++
+ arch/csky/abiv1/inc/abi/regdef.h         |  27 ++
+ arch/csky/abiv1/inc/abi/vdso.h           |  19 ++
+ arch/csky/abiv1/src/alignment.c          | 513 +++++++++++++++++++++++++++++
+ arch/csky/abiv1/src/bswapdi.c            |  18 +
+ arch/csky/abiv1/src/bswapsi.c            |  15 +
+ arch/csky/abiv1/src/cacheflush.c         |  32 ++
+ arch/csky/abiv1/src/memcpy.S             | 344 +++++++++++++++++++
+ arch/csky/abiv1/src/mmap.c               |  65 ++++
+ arch/csky/abiv2/Makefile                 |   3 +
+ arch/csky/abiv2/inc/abi/cacheflush.h     |   9 +
+ arch/csky/abiv2/inc/abi/ckmmu.h          | 126 +++++++
+ arch/csky/abiv2/inc/abi/entry.h          | 154 +++++++++
+ arch/csky/abiv2/inc/abi/fpu.h            | 296 +++++++++++++++++
+ arch/csky/abiv2/inc/abi/page.h           |  20 ++
+ arch/csky/abiv2/inc/abi/pgtable-bits.h   |  36 ++
+ arch/csky/abiv2/inc/abi/reg_ops.h        |  86 +++++
+ arch/csky/abiv2/inc/abi/regdef.h         |  28 ++
+ arch/csky/abiv2/inc/abi/vdso.h           |  18 +
+ arch/csky/abiv2/src/fpu.c                | 312 ++++++++++++++++++
+ arch/csky/abiv2/src/memcpy.c             |  43 +++
+ arch/csky/boot/Makefile                  |  25 ++
+ arch/csky/boot/dts/Makefile              |  14 +
+ arch/csky/boot/dts/gx6605s.dts           | 159 +++++++++
+ arch/csky/boot/dts/include/dt-bindings   |   1 +
+ arch/csky/boot/dts/qemu.dts              |  87 +++++
+ arch/csky/configs/gx66xx_defconfig       | 549 +++++++++++++++++++++++++++++++
+ arch/csky/configs/qemu_ck807_defconfig   | 541 ++++++++++++++++++++++++++++++
+ arch/csky/include/asm/Kbuild             |  71 ++++
+ arch/csky/include/asm/addrspace.h        |  10 +
+ arch/csky/include/asm/barrier.h          |  14 +
+ arch/csky/include/asm/bitops.h           |  83 +++++
+ arch/csky/include/asm/cache.h            |  32 ++
+ arch/csky/include/asm/cacheflush.h       |   9 +
+ arch/csky/include/asm/checksum.h         |  77 +++++
+ arch/csky/include/asm/dma-mapping.h      |  17 +
+ arch/csky/include/asm/elf.h              | 151 +++++++++
+ arch/csky/include/asm/fixmap.h           |  65 ++++
+ arch/csky/include/asm/highmem.h          |  50 +++
+ arch/csky/include/asm/io.h               |  23 ++
+ arch/csky/include/asm/irq.h              |  12 +
+ arch/csky/include/asm/irqflags.h         |  55 ++++
+ arch/csky/include/asm/mmu.h              |  11 +
+ arch/csky/include/asm/mmu_context.h      | 140 ++++++++
+ arch/csky/include/asm/page.h             | 108 ++++++
+ arch/csky/include/asm/pgalloc.h          | 113 +++++++
+ arch/csky/include/asm/pgtable.h          | 309 +++++++++++++++++
+ arch/csky/include/asm/processor.h        | 140 ++++++++
+ arch/csky/include/asm/segment.h          |  18 +
+ arch/csky/include/asm/shmparam.h         |  10 +
+ arch/csky/include/asm/string.h           |  19 ++
+ arch/csky/include/asm/syscalls.h         |  14 +
+ arch/csky/include/asm/thread_info.h      |  77 +++++
+ arch/csky/include/asm/tlb.h              |  24 ++
+ arch/csky/include/asm/tlbflush.h         |  22 ++
+ arch/csky/include/asm/traps.h            |  39 +++
+ arch/csky/include/asm/uaccess.h          | 408 +++++++++++++++++++++++
+ arch/csky/include/asm/unistd.h           |   4 +
+ arch/csky/include/asm/user.h             | 102 ++++++
+ arch/csky/include/asm/vdso.h             |  12 +
+ arch/csky/include/uapi/asm/Kbuild        |  30 ++
+ arch/csky/include/uapi/asm/byteorder.h   |  14 +
+ arch/csky/include/uapi/asm/cachectl.h    |  13 +
+ arch/csky/include/uapi/asm/fcntl.h       |  13 +
+ arch/csky/include/uapi/asm/ptrace.h      |  97 ++++++
+ arch/csky/include/uapi/asm/sigcontext.h  |  33 ++
+ arch/csky/include/uapi/asm/signal.h      | 164 +++++++++
+ arch/csky/include/uapi/asm/stat.h        |  86 +++++
+ arch/csky/include/uapi/asm/unistd.h      | 100 ++++++
+ arch/csky/kernel/Makefile                |   8 +
+ arch/csky/kernel/asm-offsets.c           |  86 +++++
+ arch/csky/kernel/atomic.S                |  55 ++++
+ arch/csky/kernel/cpu-probe.c             |  63 ++++
+ arch/csky/kernel/cskyksyms.c             |  31 ++
+ arch/csky/kernel/dumpstack.c             |  65 ++++
+ arch/csky/kernel/entry.S                 | 408 +++++++++++++++++++++++
+ arch/csky/kernel/head.S                  |  20 ++
+ arch/csky/kernel/irq.c                   |  41 +++
+ arch/csky/kernel/module.c                | 130 ++++++++
+ arch/csky/kernel/platform.c              |  18 +
+ arch/csky/kernel/power.c                 |  31 ++
+ arch/csky/kernel/process.c               | 147 +++++++++
+ arch/csky/kernel/ptrace.c                | 339 +++++++++++++++++++
+ arch/csky/kernel/setup.c                 | 157 +++++++++
+ arch/csky/kernel/signal.c                | 379 +++++++++++++++++++++
+ arch/csky/kernel/syscall.c               |  65 ++++
+ arch/csky/kernel/syscall_table.c         |  12 +
+ arch/csky/kernel/time.c                  |  15 +
+ arch/csky/kernel/traps.c                 | 152 +++++++++
+ arch/csky/kernel/vdso.c                  |  89 +++++
+ arch/csky/kernel/vmlinux.lds.S           |  67 ++++
+ arch/csky/lib/Makefile                   |   1 +
+ arch/csky/lib/delay.c                    |  40 +++
+ arch/csky/lib/memset.c                   |  38 +++
+ arch/csky/lib/usercopy.c                 | 271 +++++++++++++++
+ arch/csky/mm/Makefile                    |  13 +
+ arch/csky/mm/cachev1.c                   | 146 ++++++++
+ arch/csky/mm/cachev2.c                   |  90 +++++
+ arch/csky/mm/dma-mapping.c               | 250 ++++++++++++++
+ arch/csky/mm/fault.c                     | 246 ++++++++++++++
+ arch/csky/mm/highmem.c                   | 210 ++++++++++++
+ arch/csky/mm/init.c                      | 101 ++++++
+ arch/csky/mm/ioremap.c                   |  49 +++
+ arch/csky/mm/syscache.c                  |  50 +++
+ arch/csky/mm/tlb.c                       | 207 ++++++++++++
+ arch/csky/oprofile/Makefile              |  13 +
+ arch/csky/oprofile/init.c                |  16 +
+ drivers/clocksource/Makefile             |   1 +
+ drivers/clocksource/timer-nationalchip.c | 149 +++++++++
+ drivers/irqchip/Makefile                 |   1 +
+ drivers/irqchip/irq-csky.c               | 151 +++++++++
+ drivers/irqchip/irq-nationalchip.c       | 196 +++++++++++
+ 121 files changed, 11763 insertions(+)
+ create mode 100644 arch/csky/Kconfig
+ create mode 100644 arch/csky/Kconfig.debug
+ create mode 100644 arch/csky/Makefile
+ create mode 100644 arch/csky/abiv1/Makefile
+ create mode 100644 arch/csky/abiv1/inc/abi/cacheflush.h
+ create mode 100644 arch/csky/abiv1/inc/abi/ckmmu.h
+ create mode 100644 arch/csky/abiv1/inc/abi/entry.h
+ create mode 100644 arch/csky/abiv1/inc/abi/page.h
+ create mode 100644 arch/csky/abiv1/inc/abi/pgtable-bits.h
+ create mode 100644 arch/csky/abiv1/inc/abi/reg_ops.h
+ create mode 100644 arch/csky/abiv1/inc/abi/regdef.h
+ create mode 100644 arch/csky/abiv1/inc/abi/vdso.h
+ create mode 100644 arch/csky/abiv1/src/alignment.c
+ create mode 100644 arch/csky/abiv1/src/bswapdi.c
+ create mode 100644 arch/csky/abiv1/src/bswapsi.c
+ create mode 100644 arch/csky/abiv1/src/cacheflush.c
+ create mode 100644 arch/csky/abiv1/src/memcpy.S
+ create mode 100644 arch/csky/abiv1/src/mmap.c
+ create mode 100644 arch/csky/abiv2/Makefile
+ create mode 100644 arch/csky/abiv2/inc/abi/cacheflush.h
+ create mode 100644 arch/csky/abiv2/inc/abi/ckmmu.h
+ create mode 100644 arch/csky/abiv2/inc/abi/entry.h
+ create mode 100644 arch/csky/abiv2/inc/abi/fpu.h
+ create mode 100644 arch/csky/abiv2/inc/abi/page.h
+ create mode 100644 arch/csky/abiv2/inc/abi/pgtable-bits.h
+ create mode 100644 arch/csky/abiv2/inc/abi/reg_ops.h
+ create mode 100644 arch/csky/abiv2/inc/abi/regdef.h
+ create mode 100644 arch/csky/abiv2/inc/abi/vdso.h
+ create mode 100644 arch/csky/abiv2/src/fpu.c
+ create mode 100644 arch/csky/abiv2/src/memcpy.c
+ create mode 100644 arch/csky/boot/Makefile
+ create mode 100644 arch/csky/boot/dts/Makefile
+ create mode 100644 arch/csky/boot/dts/gx6605s.dts
+ create mode 120000 arch/csky/boot/dts/include/dt-bindings
+ create mode 100644 arch/csky/boot/dts/qemu.dts
  create mode 100644 arch/csky/configs/gx66xx_defconfig
  create mode 100644 arch/csky/configs/qemu_ck807_defconfig
+ create mode 100644 arch/csky/include/asm/Kbuild
+ create mode 100644 arch/csky/include/asm/addrspace.h
+ create mode 100644 arch/csky/include/asm/barrier.h
+ create mode 100644 arch/csky/include/asm/bitops.h
+ create mode 100644 arch/csky/include/asm/cache.h
+ create mode 100644 arch/csky/include/asm/cacheflush.h
+ create mode 100644 arch/csky/include/asm/checksum.h
+ create mode 100644 arch/csky/include/asm/dma-mapping.h
+ create mode 100644 arch/csky/include/asm/elf.h
+ create mode 100644 arch/csky/include/asm/fixmap.h
+ create mode 100644 arch/csky/include/asm/highmem.h
+ create mode 100644 arch/csky/include/asm/io.h
+ create mode 100644 arch/csky/include/asm/irq.h
+ create mode 100644 arch/csky/include/asm/irqflags.h
+ create mode 100644 arch/csky/include/asm/mmu.h
+ create mode 100644 arch/csky/include/asm/mmu_context.h
+ create mode 100644 arch/csky/include/asm/page.h
+ create mode 100644 arch/csky/include/asm/pgalloc.h
+ create mode 100644 arch/csky/include/asm/pgtable.h
+ create mode 100644 arch/csky/include/asm/processor.h
+ create mode 100644 arch/csky/include/asm/segment.h
+ create mode 100644 arch/csky/include/asm/shmparam.h
+ create mode 100644 arch/csky/include/asm/string.h
+ create mode 100644 arch/csky/include/asm/syscalls.h
+ create mode 100644 arch/csky/include/asm/thread_info.h
+ create mode 100644 arch/csky/include/asm/tlb.h
+ create mode 100644 arch/csky/include/asm/tlbflush.h
+ create mode 100644 arch/csky/include/asm/traps.h
+ create mode 100644 arch/csky/include/asm/uaccess.h
+ create mode 100644 arch/csky/include/asm/unistd.h
+ create mode 100644 arch/csky/include/asm/user.h
+ create mode 100644 arch/csky/include/asm/vdso.h
+ create mode 100644 arch/csky/include/uapi/asm/Kbuild
+ create mode 100644 arch/csky/include/uapi/asm/byteorder.h
+ create mode 100644 arch/csky/include/uapi/asm/cachectl.h
+ create mode 100644 arch/csky/include/uapi/asm/fcntl.h
+ create mode 100644 arch/csky/include/uapi/asm/ptrace.h
+ create mode 100644 arch/csky/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/csky/include/uapi/asm/signal.h
+ create mode 100644 arch/csky/include/uapi/asm/stat.h
+ create mode 100644 arch/csky/include/uapi/asm/unistd.h
+ create mode 100644 arch/csky/kernel/Makefile
+ create mode 100644 arch/csky/kernel/asm-offsets.c
+ create mode 100644 arch/csky/kernel/atomic.S
+ create mode 100644 arch/csky/kernel/cpu-probe.c
+ create mode 100644 arch/csky/kernel/cskyksyms.c
+ create mode 100644 arch/csky/kernel/dumpstack.c
+ create mode 100644 arch/csky/kernel/entry.S
+ create mode 100644 arch/csky/kernel/head.S
+ create mode 100644 arch/csky/kernel/irq.c
+ create mode 100644 arch/csky/kernel/module.c
+ create mode 100644 arch/csky/kernel/platform.c
+ create mode 100644 arch/csky/kernel/power.c
+ create mode 100644 arch/csky/kernel/process.c
+ create mode 100644 arch/csky/kernel/ptrace.c
+ create mode 100644 arch/csky/kernel/setup.c
+ create mode 100644 arch/csky/kernel/signal.c
+ create mode 100644 arch/csky/kernel/syscall.c
+ create mode 100644 arch/csky/kernel/syscall_table.c
+ create mode 100644 arch/csky/kernel/time.c
+ create mode 100644 arch/csky/kernel/traps.c
+ create mode 100644 arch/csky/kernel/vdso.c
+ create mode 100644 arch/csky/kernel/vmlinux.lds.S
+ create mode 100644 arch/csky/lib/Makefile
+ create mode 100644 arch/csky/lib/delay.c
+ create mode 100644 arch/csky/lib/memset.c
+ create mode 100644 arch/csky/lib/usercopy.c
+ create mode 100644 arch/csky/mm/Makefile
+ create mode 100644 arch/csky/mm/cachev1.c
+ create mode 100644 arch/csky/mm/cachev2.c
+ create mode 100644 arch/csky/mm/dma-mapping.c
+ create mode 100644 arch/csky/mm/fault.c
+ create mode 100644 arch/csky/mm/highmem.c
+ create mode 100644 arch/csky/mm/init.c
+ create mode 100644 arch/csky/mm/ioremap.c
+ create mode 100644 arch/csky/mm/syscache.c
+ create mode 100644 arch/csky/mm/tlb.c
+ create mode 100644 arch/csky/oprofile/Makefile
+ create mode 100644 arch/csky/oprofile/init.c
+ create mode 100644 drivers/clocksource/timer-nationalchip.c
+ create mode 100644 drivers/irqchip/irq-csky.c
+ create mode 100644 drivers/irqchip/irq-nationalchip.c
 
-diff --git a/arch/csky/configs/gx66xx_defconfig b/arch/csky/configs/gx66xx_defconfig
-new file mode 100644
-index 0000000..7f2a987
---- /dev/null
-+++ b/arch/csky/configs/gx66xx_defconfig
-@@ -0,0 +1,549 @@
-+# CONFIG_LOCALVERSION_AUTO is not set
-+CONFIG_DEFAULT_HOSTNAME="github.com/c-sky"
-+# CONFIG_SWAP is not set
-+CONFIG_SYSVIPC=y
-+CONFIG_POSIX_MQUEUE=y
-+# CONFIG_FHANDLE is not set
-+CONFIG_USELIB=y
-+CONFIG_AUDIT=y
-+CONFIG_IRQ_DOMAIN_DEBUG=y
-+CONFIG_NO_HZ_IDLE=y
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_BSD_PROCESS_ACCT=y
-+CONFIG_BSD_PROCESS_ACCT_V3=y
-+CONFIG_RELAY=y
-+CONFIG_SYSCTL_SYSCALL=y
-+CONFIG_KALLSYMS_ALL=y
-+# CONFIG_AIO is not set
-+CONFIG_USERFAULTFD=y
-+CONFIG_EMBEDDED=y
-+# CONFIG_PERF_EVENTS is not set
-+# CONFIG_SLUB_DEBUG is not set
-+# CONFIG_COMPAT_BRK is not set
-+CONFIG_PROFILING=y
-+CONFIG_OPROFILE=y
-+CONFIG_MODULES=y
-+CONFIG_MODULE_UNLOAD=y
-+CONFIG_BLK_DEV_BSGLIB=y
-+CONFIG_BLK_DEV_INTEGRITY=y
-+CONFIG_PARTITION_ADVANCED=y
-+CONFIG_ACORN_PARTITION=y
-+CONFIG_ACORN_PARTITION_ICS=y
-+CONFIG_ACORN_PARTITION_RISCIX=y
-+CONFIG_AIX_PARTITION=y
-+CONFIG_OSF_PARTITION=y
-+CONFIG_AMIGA_PARTITION=y
-+CONFIG_ATARI_PARTITION=y
-+CONFIG_MAC_PARTITION=y
-+CONFIG_BSD_DISKLABEL=y
-+CONFIG_MINIX_SUBPARTITION=y
-+CONFIG_SOLARIS_X86_PARTITION=y
-+CONFIG_UNIXWARE_DISKLABEL=y
-+CONFIG_LDM_PARTITION=y
-+CONFIG_SGI_PARTITION=y
-+CONFIG_ULTRIX_PARTITION=y
-+CONFIG_SUN_PARTITION=y
-+CONFIG_KARMA_PARTITION=y
-+CONFIG_SYSV68_PARTITION=y
-+CONFIG_CMDLINE_PARTITION=y
-+CONFIG_DEFAULT_DEADLINE=y
-+CONFIG_FB_NATIONALCHIP=y
-+CONFIG_RAM_BASE=0x10000000
-+# CONFIG_SUSPEND is not set
-+# CONFIG_COMPACTION is not set
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_INET=y
-+CONFIG_IP_MULTICAST=y
-+CONFIG_IP_PNP=y
-+CONFIG_IP_PNP_DHCP=y
-+CONFIG_IP_PNP_BOOTP=y
-+CONFIG_IP_PNP_RARP=y
-+# CONFIG_IPV6 is not set
-+CONFIG_CFG80211=y
-+CONFIG_CFG80211_DEBUGFS=y
-+CONFIG_CFG80211_WEXT=y
-+CONFIG_MAC80211=y
-+CONFIG_MAC80211_DEBUGFS=y
-+CONFIG_RFKILL=y
-+CONFIG_RFKILL_INPUT=y
-+CONFIG_RFKILL_GPIO=y
-+CONFIG_DEVTMPFS=y
-+CONFIG_DEVTMPFS_MOUNT=y
-+# CONFIG_STANDALONE is not set
-+CONFIG_BLK_DEV_LOOP=y
-+CONFIG_BLK_DEV_RAM=y
-+CONFIG_BLK_DEV_RAM_SIZE=65536
-+CONFIG_VIRTIO_BLK=y
-+CONFIG_AD525X_DPOT=m
-+CONFIG_AD525X_DPOT_I2C=m
-+CONFIG_DUMMY_IRQ=m
-+CONFIG_ICS932S401=m
-+CONFIG_ENCLOSURE_SERVICES=m
-+CONFIG_APDS9802ALS=m
-+CONFIG_ISL29003=m
-+CONFIG_ISL29020=m
-+CONFIG_SENSORS_TSL2550=m
-+CONFIG_SENSORS_BH1770=m
-+CONFIG_SENSORS_APDS990X=m
-+CONFIG_HMC6352=m
-+CONFIG_DS1682=m
-+CONFIG_USB_SWITCH_FSA9480=m
-+CONFIG_SRAM=y
-+CONFIG_C2PORT=m
-+CONFIG_EEPROM_AT24=m
-+CONFIG_EEPROM_LEGACY=m
-+CONFIG_EEPROM_MAX6875=m
-+CONFIG_SENSORS_LIS3_I2C=m
-+CONFIG_ALTERA_STAPL=m
-+CONFIG_ECHO=m
-+CONFIG_SCSI=y
-+# CONFIG_SCSI_PROC_FS is not set
-+CONFIG_BLK_DEV_SD=y
-+CONFIG_SCSI_SPI_ATTRS=y
-+CONFIG_SCSI_SAS_LIBSAS=m
-+CONFIG_SCSI_SRP_ATTRS=m
-+# CONFIG_SCSI_LOWLEVEL is not set
-+CONFIG_NETDEVICES=y
-+CONFIG_USB_RTL8150=y
-+CONFIG_USB_RTL8152=y
-+CONFIG_USB_USBNET=y
-+# CONFIG_WLAN_VENDOR_ADMTEK is not set
-+# CONFIG_WLAN_VENDOR_ATH is not set
-+# CONFIG_WLAN_VENDOR_ATMEL is not set
-+# CONFIG_WLAN_VENDOR_BROADCOM is not set
-+# CONFIG_WLAN_VENDOR_CISCO is not set
-+# CONFIG_WLAN_VENDOR_INTEL is not set
-+# CONFIG_WLAN_VENDOR_INTERSIL is not set
-+# CONFIG_WLAN_VENDOR_MARVELL is not set
-+CONFIG_MT7601U=m
-+# CONFIG_WLAN_VENDOR_RALINK is not set
-+CONFIG_RTL8187=y
-+CONFIG_RTL8XXXU=y
-+CONFIG_RTL8XXXU_UNTESTED=y
-+# CONFIG_WLAN_VENDOR_RSI is not set
-+# CONFIG_WLAN_VENDOR_ST is not set
-+# CONFIG_WLAN_VENDOR_TI is not set
-+# CONFIG_WLAN_VENDOR_ZYDAS is not set
-+CONFIG_INPUT_SPARSEKMAP=m
-+CONFIG_INPUT_EVDEV=y
-+CONFIG_KEYBOARD_ADP5588=m
-+CONFIG_KEYBOARD_ADP5589=m
-+CONFIG_KEYBOARD_QT1070=m
-+CONFIG_KEYBOARD_QT2160=m
-+CONFIG_KEYBOARD_LKKBD=m
-+CONFIG_KEYBOARD_GPIO_POLLED=m
-+CONFIG_KEYBOARD_TCA6416=m
-+CONFIG_KEYBOARD_TCA8418=m
-+CONFIG_KEYBOARD_LM8323=m
-+CONFIG_KEYBOARD_LM8333=m
-+CONFIG_KEYBOARD_MAX7359=m
-+CONFIG_KEYBOARD_MCS=m
-+CONFIG_KEYBOARD_MPR121=m
-+CONFIG_KEYBOARD_NEWTON=m
-+CONFIG_KEYBOARD_OPENCORES=m
-+CONFIG_KEYBOARD_STOWAWAY=m
-+CONFIG_KEYBOARD_SUNKBD=m
-+CONFIG_KEYBOARD_XTKBD=m
-+CONFIG_MOUSE_PS2=m
-+CONFIG_MOUSE_PS2_ELANTECH=y
-+CONFIG_MOUSE_PS2_SENTELIC=y
-+CONFIG_MOUSE_PS2_TOUCHKIT=y
-+CONFIG_MOUSE_SERIAL=m
-+CONFIG_MOUSE_CYAPA=m
-+CONFIG_MOUSE_VSXXXAA=m
-+CONFIG_MOUSE_SYNAPTICS_I2C=m
-+CONFIG_INPUT_JOYSTICK=y
-+CONFIG_JOYSTICK_ANALOG=m
-+CONFIG_JOYSTICK_A3D=m
-+CONFIG_JOYSTICK_ADI=m
-+CONFIG_JOYSTICK_COBRA=m
-+CONFIG_JOYSTICK_GF2K=m
-+CONFIG_JOYSTICK_GRIP=m
-+CONFIG_JOYSTICK_GRIP_MP=m
-+CONFIG_JOYSTICK_GUILLEMOT=m
-+CONFIG_JOYSTICK_INTERACT=m
-+CONFIG_JOYSTICK_SIDEWINDER=m
-+CONFIG_JOYSTICK_TMDC=m
-+CONFIG_JOYSTICK_IFORCE=m
-+CONFIG_JOYSTICK_IFORCE_232=y
-+CONFIG_JOYSTICK_WARRIOR=m
-+CONFIG_JOYSTICK_MAGELLAN=m
-+CONFIG_JOYSTICK_SPACEORB=m
-+CONFIG_JOYSTICK_SPACEBALL=m
-+CONFIG_JOYSTICK_STINGER=m
-+CONFIG_JOYSTICK_TWIDJOY=m
-+CONFIG_JOYSTICK_ZHENHUA=m
-+CONFIG_JOYSTICK_AS5011=m
-+CONFIG_JOYSTICK_JOYDUMP=m
-+CONFIG_INPUT_TABLET=y
-+CONFIG_INPUT_TOUCHSCREEN=y
-+CONFIG_TOUCHSCREEN_AD7879=m
-+CONFIG_TOUCHSCREEN_AD7879_I2C=m
-+CONFIG_TOUCHSCREEN_ATMEL_MXT=m
-+CONFIG_TOUCHSCREEN_BU21013=m
-+CONFIG_TOUCHSCREEN_CYTTSP_CORE=m
-+CONFIG_TOUCHSCREEN_CYTTSP_I2C=m
-+CONFIG_TOUCHSCREEN_CYTTSP4_CORE=m
-+CONFIG_TOUCHSCREEN_CYTTSP4_I2C=m
-+CONFIG_TOUCHSCREEN_DYNAPRO=m
-+CONFIG_TOUCHSCREEN_HAMPSHIRE=m
-+CONFIG_TOUCHSCREEN_EETI=m
-+CONFIG_TOUCHSCREEN_FUJITSU=m
-+CONFIG_TOUCHSCREEN_ILI210X=m
-+CONFIG_TOUCHSCREEN_GUNZE=m
-+CONFIG_TOUCHSCREEN_ELO=m
-+CONFIG_TOUCHSCREEN_WACOM_W8001=m
-+CONFIG_TOUCHSCREEN_WACOM_I2C=m
-+CONFIG_TOUCHSCREEN_MAX11801=m
-+CONFIG_TOUCHSCREEN_MCS5000=m
-+CONFIG_TOUCHSCREEN_MMS114=m
-+CONFIG_TOUCHSCREEN_MTOUCH=m
-+CONFIG_TOUCHSCREEN_INEXIO=m
-+CONFIG_TOUCHSCREEN_MK712=m
-+CONFIG_TOUCHSCREEN_PENMOUNT=m
-+CONFIG_TOUCHSCREEN_EDT_FT5X06=m
-+CONFIG_TOUCHSCREEN_TOUCHRIGHT=m
-+CONFIG_TOUCHSCREEN_TOUCHWIN=m
-+CONFIG_TOUCHSCREEN_PIXCIR=m
-+CONFIG_TOUCHSCREEN_TOUCHIT213=m
-+CONFIG_TOUCHSCREEN_TSC_SERIO=m
-+CONFIG_TOUCHSCREEN_TSC2007=m
-+CONFIG_TOUCHSCREEN_ST1232=m
-+CONFIG_TOUCHSCREEN_TPS6507X=m
-+CONFIG_INPUT_MISC=y
-+CONFIG_INPUT_AD714X=m
-+CONFIG_INPUT_BMA150=m
-+CONFIG_INPUT_MMA8450=m
-+CONFIG_INPUT_MPU3050=m
-+CONFIG_INPUT_KXTJ9=m
-+CONFIG_INPUT_UINPUT=y
-+CONFIG_INPUT_PCF8574=m
-+CONFIG_INPUT_ADXL34X=m
-+CONFIG_INPUT_CMA3000=m
-+CONFIG_INPUT_CMA3000_I2C=m
-+CONFIG_SERIO_SERPORT=m
-+CONFIG_SERIO_RAW=m
-+CONFIG_SERIO_ALTERA_PS2=m
-+CONFIG_SERIO_PS2MULT=m
-+CONFIG_SERIO_ARC_PS2=m
-+CONFIG_GAMEPORT_NS558=m
-+CONFIG_GAMEPORT_L4=m
-+CONFIG_SERIAL_NONSTANDARD=y
-+# CONFIG_DEVKMEM is not set
-+CONFIG_SERIAL_8250=y
-+# CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
-+CONFIG_SERIAL_8250_CONSOLE=y
-+CONFIG_SERIAL_8250_NR_UARTS=2
-+CONFIG_SERIAL_8250_RUNTIME_UARTS=2
-+CONFIG_SERIAL_8250_DW=y
-+CONFIG_SERIAL_OF_PLATFORM=y
-+CONFIG_TTY_PRINTK=y
-+CONFIG_VIRTIO_CONSOLE=y
-+CONFIG_IPMI_HANDLER=y
-+CONFIG_IPMI_DEVICE_INTERFACE=m
-+CONFIG_IPMI_SI=m
-+CONFIG_IPMI_WATCHDOG=m
-+CONFIG_IPMI_POWEROFF=m
-+CONFIG_HW_RANDOM=y
-+CONFIG_HW_RANDOM_TIMERIOMEM=m
-+CONFIG_HW_RANDOM_VIRTIO=m
-+CONFIG_HW_RANDOM_TPM=m
-+CONFIG_TCG_TIS_I2C_ATMEL=m
-+CONFIG_TCG_TIS_I2C_INFINEON=m
-+CONFIG_TCG_TIS_I2C_NUVOTON=m
-+CONFIG_TCG_ATMEL=m
-+CONFIG_I2C_CHARDEV=m
-+CONFIG_I2C_MUX_PCA9541=m
-+CONFIG_I2C_DESIGNWARE_PLATFORM=m
-+CONFIG_I2C_OCORES=m
-+CONFIG_I2C_PCA_PLATFORM=m
-+CONFIG_I2C_SIMTEC=m
-+CONFIG_I2C_XILINX=m
-+CONFIG_I2C_PARPORT_LIGHT=m
-+CONFIG_I2C_TAOS_EVM=m
-+CONFIG_I2C_STUB=m
-+CONFIG_PPS=m
-+CONFIG_PPS_CLIENT_LDISC=m
-+CONFIG_PPS_CLIENT_GPIO=m
-+CONFIG_GPIOLIB=y
-+CONFIG_DEBUG_GPIO=y
-+CONFIG_GPIO_SYSFS=y
-+CONFIG_GPIO_GENERIC_PLATFORM=y
-+CONFIG_POWER_RESET=y
-+# CONFIG_HWMON is not set
-+CONFIG_SSB=m
-+CONFIG_BCMA=m
-+CONFIG_BCMA_HOST_SOC=y
-+CONFIG_BCMA_DRIVER_GMAC_CMN=y
-+CONFIG_MEDIA_SUPPORT=y
-+CONFIG_MEDIA_CAMERA_SUPPORT=y
-+CONFIG_MEDIA_USB_SUPPORT=y
-+CONFIG_USB_VIDEO_CLASS=y
-+# CONFIG_USB_GSPCA is not set
-+CONFIG_FB=y
-+CONFIG_FB_TILEBLITTING=y
-+CONFIG_FB_SIMPLE=y
-+CONFIG_BACKLIGHT_LCD_SUPPORT=y
-+# CONFIG_LCD_CLASS_DEVICE is not set
-+# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
-+# CONFIG_VGA_CONSOLE is not set
-+CONFIG_FRAMEBUFFER_CONSOLE=y
-+CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
-+CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
-+CONFIG_LOGO=y
-+# CONFIG_LOGO_LINUX_MONO is not set
-+# CONFIG_LOGO_LINUX_VGA16 is not set
-+CONFIG_HID_A4TECH=m
-+CONFIG_HID_ACRUX=m
-+CONFIG_HID_ACRUX_FF=y
-+CONFIG_HID_APPLE=m
-+CONFIG_HID_AUREAL=m
-+CONFIG_HID_BELKIN=m
-+CONFIG_HID_CHERRY=m
-+CONFIG_HID_CHICONY=m
-+CONFIG_HID_CYPRESS=m
-+CONFIG_HID_DRAGONRISE=m
-+CONFIG_DRAGONRISE_FF=y
-+CONFIG_HID_EMS_FF=m
-+CONFIG_HID_ELECOM=m
-+CONFIG_HID_EZKEY=m
-+CONFIG_HID_KEYTOUCH=m
-+CONFIG_HID_KYE=m
-+CONFIG_HID_WALTOP=m
-+CONFIG_HID_GYRATION=m
-+CONFIG_HID_ICADE=m
-+CONFIG_HID_TWINHAN=m
-+CONFIG_HID_KENSINGTON=m
-+CONFIG_HID_LCPOWER=m
-+CONFIG_HID_LOGITECH=m
-+CONFIG_HID_LOGITECH_HIDPP=m
-+CONFIG_LOGITECH_FF=y
-+CONFIG_LOGIRUMBLEPAD2_FF=y
-+CONFIG_LOGIG940_FF=y
-+CONFIG_HID_MAGICMOUSE=m
-+CONFIG_HID_MICROSOFT=m
-+CONFIG_HID_MONTEREY=m
-+CONFIG_HID_MULTITOUCH=m
-+CONFIG_HID_ORTEK=m
-+CONFIG_HID_PANTHERLORD=m
-+CONFIG_PANTHERLORD_FF=y
-+CONFIG_HID_PETALYNX=m
-+CONFIG_HID_PICOLCD=m
-+CONFIG_HID_PICOLCD_LEDS=y
-+CONFIG_HID_PRIMAX=m
-+CONFIG_HID_SAITEK=m
-+CONFIG_HID_SAMSUNG=m
-+CONFIG_HID_SPEEDLINK=m
-+CONFIG_HID_STEELSERIES=m
-+CONFIG_HID_SUNPLUS=m
-+CONFIG_HID_RMI=m
-+CONFIG_HID_GREENASIA=m
-+CONFIG_GREENASIA_FF=y
-+CONFIG_HID_SMARTJOYPLUS=m
-+CONFIG_SMARTJOYPLUS_FF=y
-+CONFIG_HID_TIVO=m
-+CONFIG_HID_TOPSEED=m
-+CONFIG_HID_THINGM=m
-+CONFIG_HID_THRUSTMASTER=m
-+CONFIG_THRUSTMASTER_FF=y
-+CONFIG_HID_WACOM=m
-+CONFIG_HID_WIIMOTE=m
-+CONFIG_HID_XINMO=m
-+CONFIG_HID_ZEROPLUS=m
-+CONFIG_ZEROPLUS_FF=y
-+CONFIG_HID_ZYDACRON=m
-+CONFIG_HID_SENSOR_HUB=m
-+CONFIG_HID_PID=y
-+CONFIG_I2C_HID=m
-+CONFIG_USB=y
-+CONFIG_USB_EHCI_HCD=y
-+CONFIG_USB_EHCI_HCD_PLATFORM=y
-+CONFIG_USB_OHCI_HCD=y
-+CONFIG_USB_OHCI_HCD_PLATFORM=y
-+CONFIG_USB_STORAGE=y
-+CONFIG_LEDS_CLASS=y
-+CONFIG_LEDS_LM3530=m
-+CONFIG_LEDS_LM3642=m
-+CONFIG_LEDS_PCA9532=m
-+CONFIG_LEDS_GPIO=m
-+CONFIG_LEDS_LP3944=m
-+CONFIG_LEDS_LP5521=m
-+CONFIG_LEDS_LP5523=m
-+CONFIG_LEDS_LP5562=m
-+CONFIG_LEDS_LP8501=m
-+CONFIG_LEDS_PCA955X=m
-+CONFIG_LEDS_PCA963X=m
-+CONFIG_LEDS_BD2802=m
-+CONFIG_LEDS_TCA6507=m
-+CONFIG_LEDS_LM355x=m
-+CONFIG_LEDS_BLINKM=m
-+CONFIG_LEDS_TRIGGER_TIMER=y
-+CONFIG_LEDS_TRIGGER_ONESHOT=y
-+CONFIG_LEDS_TRIGGER_HEARTBEAT=y
-+CONFIG_LEDS_TRIGGER_BACKLIGHT=y
-+CONFIG_LEDS_TRIGGER_CPU=y
-+CONFIG_LEDS_TRIGGER_GPIO=y
-+CONFIG_LEDS_TRIGGER_DEFAULT_ON=y
-+CONFIG_LEDS_TRIGGER_TRANSIENT=y
-+CONFIG_LEDS_TRIGGER_CAMERA=y
-+CONFIG_LEDS_TRIGGER_PANIC=y
-+CONFIG_VIRTIO_BALLOON=y
-+CONFIG_VIRTIO_MMIO=y
-+CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES=y
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_STE_MODEM_RPROC=m
-+CONFIG_PM_DEVFREQ=y
-+CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
-+CONFIG_DEVFREQ_GOV_PERFORMANCE=y
-+CONFIG_DEVFREQ_GOV_POWERSAVE=y
-+CONFIG_DEVFREQ_GOV_USERSPACE=y
-+CONFIG_EXT2_FS=y
-+CONFIG_EXT2_FS_XATTR=y
-+CONFIG_EXT2_FS_POSIX_ACL=y
-+CONFIG_EXT2_FS_SECURITY=y
-+CONFIG_EXT3_FS=y
-+CONFIG_EXT3_FS_POSIX_ACL=y
-+CONFIG_EXT3_FS_SECURITY=y
-+CONFIG_FANOTIFY=y
-+CONFIG_FANOTIFY_ACCESS_PERMISSIONS=y
-+CONFIG_QUOTA=y
-+# CONFIG_PRINT_QUOTA_WARNING is not set
-+CONFIG_FSCACHE=m
-+CONFIG_FSCACHE_STATS=y
-+CONFIG_CACHEFILES=m
-+CONFIG_MSDOS_FS=y
-+CONFIG_VFAT_FS=y
-+CONFIG_FAT_DEFAULT_UTF8=y
-+CONFIG_NTFS_FS=y
-+CONFIG_PROC_KCORE=y
-+CONFIG_PROC_CHILDREN=y
-+CONFIG_TMPFS=y
-+CONFIG_TMPFS_POSIX_ACL=y
-+CONFIG_CONFIGFS_FS=y
-+CONFIG_CRAMFS=y
-+CONFIG_ROMFS_FS=y
-+CONFIG_NFS_FS=y
-+CONFIG_ROOT_NFS=y
-+CONFIG_NLS_DEFAULT="utf8"
-+CONFIG_NLS_CODEPAGE_437=y
-+CONFIG_NLS_CODEPAGE_737=y
-+CONFIG_NLS_CODEPAGE_775=y
-+CONFIG_NLS_CODEPAGE_850=y
-+CONFIG_NLS_CODEPAGE_852=y
-+CONFIG_NLS_CODEPAGE_855=y
-+CONFIG_NLS_CODEPAGE_857=y
-+CONFIG_NLS_CODEPAGE_860=y
-+CONFIG_NLS_CODEPAGE_861=y
-+CONFIG_NLS_CODEPAGE_863=y
-+CONFIG_NLS_CODEPAGE_864=y
-+CONFIG_NLS_CODEPAGE_865=y
-+CONFIG_NLS_CODEPAGE_866=y
-+CONFIG_NLS_CODEPAGE_869=y
-+CONFIG_NLS_CODEPAGE_936=y
-+CONFIG_NLS_CODEPAGE_950=y
-+CONFIG_NLS_CODEPAGE_932=y
-+CONFIG_NLS_CODEPAGE_949=m
-+CONFIG_NLS_CODEPAGE_874=m
-+CONFIG_NLS_ISO8859_8=m
-+CONFIG_NLS_CODEPAGE_1250=y
-+CONFIG_NLS_CODEPAGE_1251=y
-+CONFIG_NLS_ASCII=m
-+CONFIG_NLS_ISO8859_1=y
-+CONFIG_NLS_ISO8859_2=m
-+CONFIG_NLS_ISO8859_3=m
-+CONFIG_NLS_ISO8859_4=m
-+CONFIG_NLS_ISO8859_5=m
-+CONFIG_NLS_ISO8859_6=m
-+CONFIG_NLS_ISO8859_7=m
-+CONFIG_NLS_ISO8859_9=m
-+CONFIG_NLS_ISO8859_13=m
-+CONFIG_NLS_ISO8859_14=m
-+CONFIG_NLS_ISO8859_15=m
-+CONFIG_NLS_KOI8_R=m
-+CONFIG_NLS_KOI8_U=m
-+CONFIG_NLS_MAC_ROMAN=m
-+CONFIG_NLS_MAC_CELTIC=m
-+CONFIG_NLS_MAC_CENTEURO=m
-+CONFIG_NLS_MAC_CROATIAN=m
-+CONFIG_NLS_MAC_CYRILLIC=m
-+CONFIG_NLS_MAC_GAELIC=m
-+CONFIG_NLS_MAC_GREEK=m
-+CONFIG_NLS_MAC_ICELAND=m
-+CONFIG_NLS_MAC_INUIT=m
-+CONFIG_NLS_MAC_ROMANIAN=m
-+CONFIG_NLS_MAC_TURKISH=m
-+CONFIG_NLS_UTF8=y
-+CONFIG_PRINTK_TIME=y
-+CONFIG_DEBUG_INFO=y
-+# CONFIG_ENABLE_WARN_DEPRECATED is not set
-+# CONFIG_ENABLE_MUST_CHECK is not set
-+CONFIG_UNUSED_SYMBOLS=y
-+CONFIG_DEBUG_FS=y
-+CONFIG_MAGIC_SYSRQ=y
-+CONFIG_LOCKUP_DETECTOR=y
-+# CONFIG_SCHED_DEBUG is not set
-+CONFIG_RBTREE_TEST=m
-+CONFIG_INTERVAL_TREE_TEST=m
-+CONFIG_PERCPU_TEST=m
-+CONFIG_TEST_STRING_HELPERS=m
-+CONFIG_TEST_KSTRTOX=m
-+CONFIG_PERSISTENT_KEYRINGS=y
-+CONFIG_TRUSTED_KEYS=y
-+CONFIG_SECURITY=y
-+CONFIG_SECURITY_NETWORK=y
-+CONFIG_SECURITY_PATH=y
-+CONFIG_SECURITY_YAMA=y
-+CONFIG_INTEGRITY_SIGNATURE=y
-+CONFIG_INTEGRITY_ASYMMETRIC_KEYS=y
-+CONFIG_IMA=y
-+CONFIG_IMA_APPRAISE=y
-+CONFIG_EVM=y
-+CONFIG_CRYPTO_CRYPTD=m
-+CONFIG_CRYPTO_AUTHENC=m
-+CONFIG_CRYPTO_TEST=m
-+CONFIG_CRYPTO_CTS=m
-+CONFIG_CRYPTO_ECB=y
-+CONFIG_CRYPTO_LRW=m
-+CONFIG_CRYPTO_PCBC=m
-+CONFIG_CRYPTO_XTS=m
-+CONFIG_CRYPTO_CMAC=m
-+CONFIG_CRYPTO_XCBC=m
-+CONFIG_CRYPTO_VMAC=m
-+CONFIG_CRYPTO_CRC32=m
-+CONFIG_CRYPTO_MD4=m
-+CONFIG_CRYPTO_MICHAEL_MIC=m
-+CONFIG_CRYPTO_RMD128=m
-+CONFIG_CRYPTO_RMD160=m
-+CONFIG_CRYPTO_RMD256=m
-+CONFIG_CRYPTO_RMD320=m
-+CONFIG_CRYPTO_SHA512=y
-+CONFIG_CRYPTO_TGR192=m
-+CONFIG_CRYPTO_WP512=m
-+CONFIG_CRYPTO_ANUBIS=m
-+CONFIG_CRYPTO_BLOWFISH=m
-+CONFIG_CRYPTO_CAMELLIA=m
-+CONFIG_CRYPTO_CAST5=m
-+CONFIG_CRYPTO_CAST6=m
-+CONFIG_CRYPTO_DES=m
-+CONFIG_CRYPTO_FCRYPT=m
-+CONFIG_CRYPTO_KHAZAD=m
-+CONFIG_CRYPTO_SALSA20=m
-+CONFIG_CRYPTO_SEED=m
-+CONFIG_CRYPTO_SERPENT=m
-+CONFIG_CRYPTO_TEA=m
-+CONFIG_CRYPTO_TWOFISH=m
-+CONFIG_CRYPTO_DEFLATE=m
-+CONFIG_CRYPTO_LZO=y
-+CONFIG_CRYPTO_LZ4=m
-+CONFIG_CRYPTO_LZ4HC=m
-+CONFIG_CRYPTO_ANSI_CPRNG=m
-+CONFIG_CRC_CCITT=m
-+CONFIG_CRC7=m
-+CONFIG_LIBCRC32C=m
-+CONFIG_CRC8=m
-+CONFIG_XZ_DEC=y
-+CONFIG_XZ_DEC_TEST=m
-+CONFIG_CORDIC=m
-+CONFIG_DDR=y
-diff --git a/arch/csky/configs/qemu_ck807_defconfig b/arch/csky/configs/qemu_ck807_defconfig
-new file mode 100644
-index 0000000..0591cbc
---- /dev/null
-+++ b/arch/csky/configs/qemu_ck807_defconfig
-@@ -0,0 +1,541 @@
-+# CONFIG_LOCALVERSION_AUTO is not set
-+CONFIG_DEFAULT_HOSTNAME="github.com/c-sky"
-+# CONFIG_SWAP is not set
-+CONFIG_SYSVIPC=y
-+CONFIG_POSIX_MQUEUE=y
-+# CONFIG_FHANDLE is not set
-+CONFIG_USELIB=y
-+CONFIG_AUDIT=y
-+CONFIG_IRQ_DOMAIN_DEBUG=y
-+CONFIG_NO_HZ_IDLE=y
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_BSD_PROCESS_ACCT=y
-+CONFIG_BSD_PROCESS_ACCT_V3=y
-+CONFIG_RELAY=y
-+CONFIG_SYSCTL_SYSCALL=y
-+CONFIG_KALLSYMS_ALL=y
-+# CONFIG_AIO is not set
-+CONFIG_USERFAULTFD=y
-+CONFIG_EMBEDDED=y
-+# CONFIG_PERF_EVENTS is not set
-+# CONFIG_SLUB_DEBUG is not set
-+# CONFIG_COMPAT_BRK is not set
-+CONFIG_PROFILING=y
-+CONFIG_OPROFILE=y
-+CONFIG_MODULES=y
-+CONFIG_MODULE_UNLOAD=y
-+CONFIG_BLK_DEV_BSGLIB=y
-+CONFIG_BLK_DEV_INTEGRITY=y
-+CONFIG_PARTITION_ADVANCED=y
-+CONFIG_ACORN_PARTITION=y
-+CONFIG_ACORN_PARTITION_ICS=y
-+CONFIG_ACORN_PARTITION_RISCIX=y
-+CONFIG_AIX_PARTITION=y
-+CONFIG_OSF_PARTITION=y
-+CONFIG_AMIGA_PARTITION=y
-+CONFIG_ATARI_PARTITION=y
-+CONFIG_MAC_PARTITION=y
-+CONFIG_BSD_DISKLABEL=y
-+CONFIG_MINIX_SUBPARTITION=y
-+CONFIG_SOLARIS_X86_PARTITION=y
-+CONFIG_UNIXWARE_DISKLABEL=y
-+CONFIG_LDM_PARTITION=y
-+CONFIG_SGI_PARTITION=y
-+CONFIG_ULTRIX_PARTITION=y
-+CONFIG_SUN_PARTITION=y
-+CONFIG_KARMA_PARTITION=y
-+CONFIG_SYSV68_PARTITION=y
-+CONFIG_CMDLINE_PARTITION=y
-+CONFIG_DEFAULT_DEADLINE=y
-+CONFIG_NATIONALCHIP_TIMER=y
-+CONFIG_NATIONALCHIP_IRQ=y
-+CONFIG_CSKY_IRQ=y
-+CONFIG_CSKYMAC=y
-+CONFIG_CPU_CK807=y
-+CONFIG_CPU_HAS_FPU=y
-+CONFIG_RAM_BASE=0x0
-+# CONFIG_SUSPEND is not set
-+# CONFIG_COMPACTION is not set
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_INET=y
-+CONFIG_IP_MULTICAST=y
-+CONFIG_IP_PNP=y
-+CONFIG_IP_PNP_DHCP=y
-+CONFIG_IP_PNP_BOOTP=y
-+CONFIG_IP_PNP_RARP=y
-+# CONFIG_IPV6 is not set
-+# CONFIG_WIRELESS is not set
-+CONFIG_DEVTMPFS=y
-+CONFIG_DEVTMPFS_MOUNT=y
-+# CONFIG_STANDALONE is not set
-+CONFIG_BLK_DEV_LOOP=y
-+CONFIG_BLK_DEV_RAM=y
-+CONFIG_BLK_DEV_RAM_SIZE=65536
-+CONFIG_VIRTIO_BLK=y
-+CONFIG_AD525X_DPOT=m
-+CONFIG_AD525X_DPOT_I2C=m
-+CONFIG_DUMMY_IRQ=m
-+CONFIG_ICS932S401=m
-+CONFIG_ENCLOSURE_SERVICES=m
-+CONFIG_APDS9802ALS=m
-+CONFIG_ISL29003=m
-+CONFIG_ISL29020=m
-+CONFIG_SENSORS_TSL2550=m
-+CONFIG_SENSORS_BH1770=m
-+CONFIG_SENSORS_APDS990X=m
-+CONFIG_HMC6352=m
-+CONFIG_DS1682=m
-+CONFIG_USB_SWITCH_FSA9480=m
-+CONFIG_SRAM=y
-+CONFIG_C2PORT=m
-+CONFIG_EEPROM_AT24=m
-+CONFIG_EEPROM_LEGACY=m
-+CONFIG_EEPROM_MAX6875=m
-+CONFIG_EEPROM_93CX6=m
-+CONFIG_SENSORS_LIS3_I2C=m
-+CONFIG_ALTERA_STAPL=m
-+CONFIG_ECHO=m
-+CONFIG_SCSI=y
-+# CONFIG_SCSI_PROC_FS is not set
-+CONFIG_BLK_DEV_SD=y
-+CONFIG_SCSI_SPI_ATTRS=y
-+CONFIG_SCSI_SAS_LIBSAS=m
-+CONFIG_SCSI_SRP_ATTRS=m
-+# CONFIG_SCSI_LOWLEVEL is not set
-+CONFIG_NETDEVICES=y
-+# CONFIG_NET_VENDOR_ARC is not set
-+# CONFIG_NET_CADENCE is not set
-+# CONFIG_NET_VENDOR_BROADCOM is not set
-+# CONFIG_NET_VENDOR_EZCHIP is not set
-+# CONFIG_NET_VENDOR_INTEL is not set
-+# CONFIG_NET_VENDOR_MARVELL is not set
-+# CONFIG_NET_VENDOR_MICREL is not set
-+# CONFIG_NET_VENDOR_NATSEMI is not set
-+# CONFIG_NET_VENDOR_NETRONOME is not set
-+# CONFIG_NET_VENDOR_QUALCOMM is not set
-+# CONFIG_NET_VENDOR_RENESAS is not set
-+# CONFIG_NET_VENDOR_ROCKER is not set
-+# CONFIG_NET_VENDOR_SAMSUNG is not set
-+# CONFIG_NET_VENDOR_SEEQ is not set
-+CONFIG_STMMAC_ETH=y
-+# CONFIG_NET_VENDOR_SYNOPSYS is not set
-+# CONFIG_NET_VENDOR_VIA is not set
-+# CONFIG_NET_VENDOR_WIZNET is not set
-+# CONFIG_USB_NET_DRIVERS is not set
-+# CONFIG_WLAN is not set
-+CONFIG_INPUT_SPARSEKMAP=m
-+CONFIG_INPUT_JOYDEV=m
-+CONFIG_INPUT_EVDEV=y
-+CONFIG_INPUT_EVBUG=m
-+CONFIG_KEYBOARD_ADP5588=m
-+CONFIG_KEYBOARD_ADP5589=m
-+CONFIG_KEYBOARD_QT1070=m
-+CONFIG_KEYBOARD_QT2160=m
-+CONFIG_KEYBOARD_LKKBD=m
-+CONFIG_KEYBOARD_TCA6416=m
-+CONFIG_KEYBOARD_TCA8418=m
-+CONFIG_KEYBOARD_LM8323=m
-+CONFIG_KEYBOARD_LM8333=m
-+CONFIG_KEYBOARD_MAX7359=m
-+CONFIG_KEYBOARD_MCS=m
-+CONFIG_KEYBOARD_MPR121=m
-+CONFIG_KEYBOARD_NEWTON=m
-+CONFIG_KEYBOARD_OPENCORES=m
-+CONFIG_KEYBOARD_STOWAWAY=m
-+CONFIG_KEYBOARD_SUNKBD=m
-+CONFIG_KEYBOARD_XTKBD=m
-+CONFIG_MOUSE_PS2=m
-+CONFIG_MOUSE_PS2_ELANTECH=y
-+CONFIG_MOUSE_PS2_SENTELIC=y
-+CONFIG_MOUSE_PS2_TOUCHKIT=y
-+CONFIG_MOUSE_SERIAL=m
-+CONFIG_MOUSE_CYAPA=m
-+CONFIG_MOUSE_VSXXXAA=m
-+CONFIG_MOUSE_SYNAPTICS_I2C=m
-+CONFIG_INPUT_JOYSTICK=y
-+CONFIG_JOYSTICK_ANALOG=m
-+CONFIG_JOYSTICK_A3D=m
-+CONFIG_JOYSTICK_ADI=m
-+CONFIG_JOYSTICK_COBRA=m
-+CONFIG_JOYSTICK_GF2K=m
-+CONFIG_JOYSTICK_GRIP=m
-+CONFIG_JOYSTICK_GRIP_MP=m
-+CONFIG_JOYSTICK_GUILLEMOT=m
-+CONFIG_JOYSTICK_INTERACT=m
-+CONFIG_JOYSTICK_SIDEWINDER=m
-+CONFIG_JOYSTICK_TMDC=m
-+CONFIG_JOYSTICK_IFORCE=m
-+CONFIG_JOYSTICK_IFORCE_232=y
-+CONFIG_JOYSTICK_WARRIOR=m
-+CONFIG_JOYSTICK_MAGELLAN=m
-+CONFIG_JOYSTICK_SPACEORB=m
-+CONFIG_JOYSTICK_SPACEBALL=m
-+CONFIG_JOYSTICK_STINGER=m
-+CONFIG_JOYSTICK_TWIDJOY=m
-+CONFIG_JOYSTICK_ZHENHUA=m
-+CONFIG_JOYSTICK_AS5011=m
-+CONFIG_JOYSTICK_JOYDUMP=m
-+CONFIG_INPUT_TABLET=y
-+CONFIG_INPUT_TOUCHSCREEN=y
-+CONFIG_TOUCHSCREEN_AD7879=m
-+CONFIG_TOUCHSCREEN_AD7879_I2C=m
-+CONFIG_TOUCHSCREEN_ATMEL_MXT=m
-+CONFIG_TOUCHSCREEN_BU21013=m
-+CONFIG_TOUCHSCREEN_CYTTSP_CORE=m
-+CONFIG_TOUCHSCREEN_CYTTSP_I2C=m
-+CONFIG_TOUCHSCREEN_CYTTSP4_CORE=m
-+CONFIG_TOUCHSCREEN_CYTTSP4_I2C=m
-+CONFIG_TOUCHSCREEN_DYNAPRO=m
-+CONFIG_TOUCHSCREEN_HAMPSHIRE=m
-+CONFIG_TOUCHSCREEN_EETI=m
-+CONFIG_TOUCHSCREEN_FUJITSU=m
-+CONFIG_TOUCHSCREEN_ILI210X=m
-+CONFIG_TOUCHSCREEN_GUNZE=m
-+CONFIG_TOUCHSCREEN_ELO=m
-+CONFIG_TOUCHSCREEN_WACOM_W8001=m
-+CONFIG_TOUCHSCREEN_WACOM_I2C=m
-+CONFIG_TOUCHSCREEN_MAX11801=m
-+CONFIG_TOUCHSCREEN_MCS5000=m
-+CONFIG_TOUCHSCREEN_MMS114=m
-+CONFIG_TOUCHSCREEN_MTOUCH=m
-+CONFIG_TOUCHSCREEN_INEXIO=m
-+CONFIG_TOUCHSCREEN_MK712=m
-+CONFIG_TOUCHSCREEN_PENMOUNT=m
-+CONFIG_TOUCHSCREEN_EDT_FT5X06=m
-+CONFIG_TOUCHSCREEN_TOUCHRIGHT=m
-+CONFIG_TOUCHSCREEN_TOUCHWIN=m
-+CONFIG_TOUCHSCREEN_PIXCIR=m
-+CONFIG_TOUCHSCREEN_TOUCHIT213=m
-+CONFIG_TOUCHSCREEN_TSC_SERIO=m
-+CONFIG_TOUCHSCREEN_TSC2007=m
-+CONFIG_TOUCHSCREEN_ST1232=m
-+CONFIG_TOUCHSCREEN_TPS6507X=m
-+CONFIG_INPUT_MISC=y
-+CONFIG_INPUT_AD714X=m
-+CONFIG_INPUT_BMA150=m
-+CONFIG_INPUT_MMA8450=m
-+CONFIG_INPUT_MPU3050=m
-+CONFIG_INPUT_KXTJ9=m
-+CONFIG_INPUT_UINPUT=y
-+CONFIG_INPUT_PCF8574=m
-+CONFIG_INPUT_ADXL34X=m
-+CONFIG_INPUT_CMA3000=m
-+CONFIG_INPUT_CMA3000_I2C=m
-+CONFIG_SERIO_SERPORT=m
-+CONFIG_SERIO_RAW=m
-+CONFIG_SERIO_ALTERA_PS2=m
-+CONFIG_SERIO_PS2MULT=m
-+CONFIG_SERIO_ARC_PS2=m
-+CONFIG_GAMEPORT_NS558=m
-+CONFIG_GAMEPORT_L4=m
-+CONFIG_VT_HW_CONSOLE_BINDING=y
-+CONFIG_SERIAL_NONSTANDARD=y
-+# CONFIG_DEVKMEM is not set
-+CONFIG_SERIAL_8250=y
-+# CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
-+CONFIG_SERIAL_8250_CONSOLE=y
-+CONFIG_SERIAL_OF_PLATFORM=y
-+CONFIG_TTY_PRINTK=y
-+CONFIG_VIRTIO_CONSOLE=y
-+CONFIG_IPMI_HANDLER=y
-+CONFIG_IPMI_DEVICE_INTERFACE=m
-+CONFIG_IPMI_SI=m
-+CONFIG_IPMI_WATCHDOG=m
-+CONFIG_IPMI_POWEROFF=m
-+CONFIG_HW_RANDOM=y
-+CONFIG_HW_RANDOM_TIMERIOMEM=m
-+CONFIG_HW_RANDOM_VIRTIO=m
-+CONFIG_HW_RANDOM_TPM=m
-+CONFIG_TCG_TIS_I2C_ATMEL=m
-+CONFIG_TCG_TIS_I2C_INFINEON=m
-+CONFIG_TCG_TIS_I2C_NUVOTON=m
-+CONFIG_TCG_ATMEL=m
-+CONFIG_I2C_CHARDEV=m
-+CONFIG_I2C_MUX_PCA9541=m
-+CONFIG_I2C_DESIGNWARE_PLATFORM=m
-+CONFIG_I2C_OCORES=m
-+CONFIG_I2C_PCA_PLATFORM=m
-+CONFIG_I2C_SIMTEC=m
-+CONFIG_I2C_XILINX=m
-+CONFIG_I2C_PARPORT_LIGHT=m
-+CONFIG_I2C_TAOS_EVM=m
-+CONFIG_I2C_STUB=m
-+CONFIG_PPS_CLIENT_LDISC=m
-+CONFIG_PPS_CLIENT_GPIO=m
-+CONFIG_POWER_RESET=y
-+# CONFIG_HWMON is not set
-+CONFIG_SSB=m
-+CONFIG_BCMA=m
-+CONFIG_BCMA_HOST_SOC=y
-+CONFIG_BCMA_DRIVER_GMAC_CMN=y
-+CONFIG_MEDIA_SUPPORT=y
-+CONFIG_MEDIA_CAMERA_SUPPORT=y
-+CONFIG_MEDIA_USB_SUPPORT=y
-+CONFIG_USB_VIDEO_CLASS=y
-+# CONFIG_USB_GSPCA is not set
-+CONFIG_BACKLIGHT_LCD_SUPPORT=y
-+CONFIG_LCD_PLATFORM=m
-+CONFIG_BACKLIGHT_CLASS_DEVICE=y
-+CONFIG_BACKLIGHT_GENERIC=m
-+CONFIG_BACKLIGHT_ADP8860=m
-+CONFIG_BACKLIGHT_ADP8870=m
-+CONFIG_BACKLIGHT_LM3639=m
-+CONFIG_BACKLIGHT_LV5207LP=m
-+CONFIG_BACKLIGHT_BD6107=m
-+# CONFIG_VGA_CONSOLE is not set
-+# CONFIG_HID_GENERIC is not set
-+CONFIG_HID_A4TECH=m
-+CONFIG_HID_ACRUX=m
-+CONFIG_HID_ACRUX_FF=y
-+CONFIG_HID_APPLE=m
-+CONFIG_HID_AUREAL=m
-+CONFIG_HID_BELKIN=m
-+CONFIG_HID_CHERRY=m
-+CONFIG_HID_CHICONY=m
-+CONFIG_HID_CYPRESS=m
-+CONFIG_HID_DRAGONRISE=m
-+CONFIG_DRAGONRISE_FF=y
-+CONFIG_HID_EMS_FF=m
-+CONFIG_HID_ELECOM=m
-+CONFIG_HID_EZKEY=m
-+CONFIG_HID_KEYTOUCH=m
-+CONFIG_HID_KYE=m
-+CONFIG_HID_WALTOP=m
-+CONFIG_HID_GYRATION=m
-+CONFIG_HID_ICADE=m
-+CONFIG_HID_TWINHAN=m
-+CONFIG_HID_KENSINGTON=m
-+CONFIG_HID_LCPOWER=m
-+CONFIG_HID_LOGITECH=m
-+CONFIG_HID_LOGITECH_HIDPP=m
-+CONFIG_LOGITECH_FF=y
-+CONFIG_LOGIRUMBLEPAD2_FF=y
-+CONFIG_LOGIG940_FF=y
-+CONFIG_HID_MAGICMOUSE=m
-+CONFIG_HID_MICROSOFT=m
-+CONFIG_HID_MONTEREY=m
-+CONFIG_HID_MULTITOUCH=m
-+CONFIG_HID_ORTEK=m
-+CONFIG_HID_PANTHERLORD=m
-+CONFIG_PANTHERLORD_FF=y
-+CONFIG_HID_PETALYNX=m
-+CONFIG_HID_PICOLCD=m
-+CONFIG_HID_PICOLCD_BACKLIGHT=y
-+CONFIG_HID_PICOLCD_LCD=y
-+CONFIG_HID_PICOLCD_LEDS=y
-+CONFIG_HID_PRIMAX=m
-+CONFIG_HID_SAITEK=m
-+CONFIG_HID_SAMSUNG=m
-+CONFIG_HID_SPEEDLINK=m
-+CONFIG_HID_STEELSERIES=m
-+CONFIG_HID_SUNPLUS=m
-+CONFIG_HID_RMI=m
-+CONFIG_HID_GREENASIA=m
-+CONFIG_GREENASIA_FF=y
-+CONFIG_HID_SMARTJOYPLUS=m
-+CONFIG_SMARTJOYPLUS_FF=y
-+CONFIG_HID_TIVO=m
-+CONFIG_HID_TOPSEED=m
-+CONFIG_HID_THINGM=m
-+CONFIG_HID_THRUSTMASTER=m
-+CONFIG_THRUSTMASTER_FF=y
-+CONFIG_HID_WACOM=m
-+CONFIG_HID_WIIMOTE=m
-+CONFIG_HID_XINMO=m
-+CONFIG_HID_ZEROPLUS=m
-+CONFIG_ZEROPLUS_FF=y
-+CONFIG_HID_ZYDACRON=m
-+CONFIG_HID_SENSOR_HUB=m
-+CONFIG_I2C_HID=m
-+CONFIG_USB=y
-+CONFIG_USB_EHCI_HCD=y
-+CONFIG_USB_EHCI_HCD_PLATFORM=y
-+CONFIG_USB_OHCI_HCD=y
-+CONFIG_USB_STORAGE=y
-+CONFIG_LEDS_CLASS=y
-+CONFIG_LEDS_LM3530=m
-+CONFIG_LEDS_LM3642=m
-+CONFIG_LEDS_PCA9532=m
-+CONFIG_LEDS_LP3944=m
-+CONFIG_LEDS_LP5521=m
-+CONFIG_LEDS_LP5523=m
-+CONFIG_LEDS_LP5562=m
-+CONFIG_LEDS_LP8501=m
-+CONFIG_LEDS_PCA955X=m
-+CONFIG_LEDS_PCA963X=m
-+CONFIG_LEDS_BD2802=m
-+CONFIG_LEDS_TCA6507=m
-+CONFIG_LEDS_LM355x=m
-+CONFIG_LEDS_BLINKM=m
-+CONFIG_LEDS_TRIGGER_TIMER=m
-+CONFIG_LEDS_TRIGGER_ONESHOT=m
-+CONFIG_LEDS_TRIGGER_HEARTBEAT=m
-+CONFIG_LEDS_TRIGGER_BACKLIGHT=m
-+CONFIG_LEDS_TRIGGER_CPU=y
-+CONFIG_LEDS_TRIGGER_DEFAULT_ON=m
-+CONFIG_LEDS_TRIGGER_TRANSIENT=m
-+CONFIG_LEDS_TRIGGER_CAMERA=m
-+CONFIG_VIRTIO_BALLOON=y
-+CONFIG_VIRTIO_MMIO=y
-+CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES=y
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_STE_MODEM_RPROC=m
-+CONFIG_PM_DEVFREQ=y
-+CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
-+CONFIG_DEVFREQ_GOV_PERFORMANCE=y
-+CONFIG_DEVFREQ_GOV_POWERSAVE=y
-+CONFIG_DEVFREQ_GOV_USERSPACE=y
-+CONFIG_GENERIC_PHY=y
-+CONFIG_EXT2_FS=y
-+CONFIG_EXT2_FS_XATTR=y
-+CONFIG_EXT2_FS_POSIX_ACL=y
-+CONFIG_EXT2_FS_SECURITY=y
-+CONFIG_EXT3_FS=y
-+CONFIG_EXT3_FS_POSIX_ACL=y
-+CONFIG_EXT3_FS_SECURITY=y
-+CONFIG_FANOTIFY=y
-+CONFIG_FANOTIFY_ACCESS_PERMISSIONS=y
-+CONFIG_QUOTA=y
-+# CONFIG_PRINT_QUOTA_WARNING is not set
-+CONFIG_FSCACHE=m
-+CONFIG_FSCACHE_STATS=y
-+CONFIG_CACHEFILES=m
-+CONFIG_MSDOS_FS=y
-+CONFIG_VFAT_FS=y
-+CONFIG_FAT_DEFAULT_UTF8=y
-+CONFIG_NTFS_FS=y
-+CONFIG_PROC_KCORE=y
-+CONFIG_PROC_CHILDREN=y
-+CONFIG_TMPFS=y
-+CONFIG_TMPFS_POSIX_ACL=y
-+CONFIG_CONFIGFS_FS=y
-+CONFIG_CRAMFS=y
-+CONFIG_ROMFS_FS=y
-+CONFIG_NFS_FS=y
-+CONFIG_ROOT_NFS=y
-+CONFIG_NLS_DEFAULT="utf8"
-+CONFIG_NLS_CODEPAGE_437=y
-+CONFIG_NLS_CODEPAGE_737=y
-+CONFIG_NLS_CODEPAGE_775=y
-+CONFIG_NLS_CODEPAGE_850=y
-+CONFIG_NLS_CODEPAGE_852=y
-+CONFIG_NLS_CODEPAGE_855=y
-+CONFIG_NLS_CODEPAGE_857=y
-+CONFIG_NLS_CODEPAGE_860=y
-+CONFIG_NLS_CODEPAGE_861=y
-+CONFIG_NLS_CODEPAGE_863=y
-+CONFIG_NLS_CODEPAGE_864=y
-+CONFIG_NLS_CODEPAGE_865=y
-+CONFIG_NLS_CODEPAGE_866=y
-+CONFIG_NLS_CODEPAGE_869=y
-+CONFIG_NLS_CODEPAGE_936=y
-+CONFIG_NLS_CODEPAGE_950=y
-+CONFIG_NLS_CODEPAGE_932=y
-+CONFIG_NLS_CODEPAGE_949=m
-+CONFIG_NLS_CODEPAGE_874=m
-+CONFIG_NLS_ISO8859_8=m
-+CONFIG_NLS_CODEPAGE_1250=y
-+CONFIG_NLS_CODEPAGE_1251=y
-+CONFIG_NLS_ASCII=m
-+CONFIG_NLS_ISO8859_1=y
-+CONFIG_NLS_ISO8859_2=m
-+CONFIG_NLS_ISO8859_3=m
-+CONFIG_NLS_ISO8859_4=m
-+CONFIG_NLS_ISO8859_5=m
-+CONFIG_NLS_ISO8859_6=m
-+CONFIG_NLS_ISO8859_7=m
-+CONFIG_NLS_ISO8859_9=m
-+CONFIG_NLS_ISO8859_13=m
-+CONFIG_NLS_ISO8859_14=m
-+CONFIG_NLS_ISO8859_15=m
-+CONFIG_NLS_KOI8_R=m
-+CONFIG_NLS_KOI8_U=m
-+CONFIG_NLS_MAC_ROMAN=m
-+CONFIG_NLS_MAC_CELTIC=m
-+CONFIG_NLS_MAC_CENTEURO=m
-+CONFIG_NLS_MAC_CROATIAN=m
-+CONFIG_NLS_MAC_CYRILLIC=m
-+CONFIG_NLS_MAC_GAELIC=m
-+CONFIG_NLS_MAC_GREEK=m
-+CONFIG_NLS_MAC_ICELAND=m
-+CONFIG_NLS_MAC_INUIT=m
-+CONFIG_NLS_MAC_ROMANIAN=m
-+CONFIG_NLS_MAC_TURKISH=m
-+CONFIG_NLS_UTF8=y
-+CONFIG_PRINTK_TIME=y
-+CONFIG_DEBUG_INFO=y
-+# CONFIG_ENABLE_WARN_DEPRECATED is not set
-+# CONFIG_ENABLE_MUST_CHECK is not set
-+CONFIG_UNUSED_SYMBOLS=y
-+CONFIG_DEBUG_FS=y
-+CONFIG_MAGIC_SYSRQ=y
-+CONFIG_LOCKUP_DETECTOR=y
-+# CONFIG_SCHED_DEBUG is not set
-+CONFIG_RBTREE_TEST=m
-+CONFIG_INTERVAL_TREE_TEST=m
-+CONFIG_PERCPU_TEST=m
-+CONFIG_TEST_STRING_HELPERS=m
-+CONFIG_TEST_KSTRTOX=m
-+CONFIG_PERSISTENT_KEYRINGS=y
-+CONFIG_TRUSTED_KEYS=y
-+CONFIG_SECURITY=y
-+CONFIG_SECURITY_NETWORK=y
-+CONFIG_SECURITY_PATH=y
-+CONFIG_SECURITY_YAMA=y
-+CONFIG_INTEGRITY_SIGNATURE=y
-+CONFIG_INTEGRITY_ASYMMETRIC_KEYS=y
-+CONFIG_IMA=y
-+CONFIG_IMA_APPRAISE=y
-+CONFIG_EVM=y
-+CONFIG_CRYPTO_CRYPTD=m
-+CONFIG_CRYPTO_AUTHENC=m
-+CONFIG_CRYPTO_TEST=m
-+CONFIG_CRYPTO_CCM=m
-+CONFIG_CRYPTO_GCM=m
-+CONFIG_CRYPTO_CTS=m
-+CONFIG_CRYPTO_ECB=y
-+CONFIG_CRYPTO_LRW=m
-+CONFIG_CRYPTO_PCBC=m
-+CONFIG_CRYPTO_XTS=m
-+CONFIG_CRYPTO_CMAC=m
-+CONFIG_CRYPTO_XCBC=m
-+CONFIG_CRYPTO_VMAC=m
-+CONFIG_CRYPTO_CRC32=m
-+CONFIG_CRYPTO_MD4=m
-+CONFIG_CRYPTO_MICHAEL_MIC=m
-+CONFIG_CRYPTO_RMD128=m
-+CONFIG_CRYPTO_RMD160=m
-+CONFIG_CRYPTO_RMD256=m
-+CONFIG_CRYPTO_RMD320=m
-+CONFIG_CRYPTO_SHA512=y
-+CONFIG_CRYPTO_TGR192=m
-+CONFIG_CRYPTO_WP512=m
-+CONFIG_CRYPTO_ANUBIS=m
-+CONFIG_CRYPTO_ARC4=m
-+CONFIG_CRYPTO_BLOWFISH=m
-+CONFIG_CRYPTO_CAMELLIA=m
-+CONFIG_CRYPTO_CAST5=m
-+CONFIG_CRYPTO_CAST6=m
-+CONFIG_CRYPTO_DES=m
-+CONFIG_CRYPTO_FCRYPT=m
-+CONFIG_CRYPTO_KHAZAD=m
-+CONFIG_CRYPTO_SALSA20=m
-+CONFIG_CRYPTO_SEED=m
-+CONFIG_CRYPTO_SERPENT=m
-+CONFIG_CRYPTO_TEA=m
-+CONFIG_CRYPTO_TWOFISH=m
-+CONFIG_CRYPTO_DEFLATE=m
-+CONFIG_CRYPTO_LZO=y
-+CONFIG_CRYPTO_LZ4=m
-+CONFIG_CRYPTO_LZ4HC=m
-+CONFIG_CRYPTO_ANSI_CPRNG=m
-+CONFIG_CRC_CCITT=m
-+CONFIG_CRC7=m
-+CONFIG_LIBCRC32C=m
-+CONFIG_CRC8=m
-+CONFIG_XZ_DEC=y
-+CONFIG_XZ_DEC_TEST=m
-+CONFIG_CORDIC=m
-+CONFIG_DDR=y
 -- 
 2.7.4
