@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH 01/19] csky: Kernel booting
-Date: Mon, 19 Mar 2018 03:51:23 +0800
-Message-ID: <1cde8ee5cb31fc0bbe366434aeee489b2e16eed3.1521399976.git.ren_guo@c-sky.com>
+Subject: [PATCH 18/19] clocksource: add timer-nationalchip.c
+Date: Mon, 19 Mar 2018 03:51:40 +0800
+Message-ID: <04f5a0702fc14e934e6f5a456cad8682d0b15aa2.1521399976.git.ren_guo@c-sky.com>
 References: <cover.1521399976.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1521399976.git.ren_guo@c-sky.com>
@@ -14,200 +14,174 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/kernel/head.S  |  20 ++++++
- arch/csky/kernel/setup.c | 157 +++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 177 insertions(+)
- create mode 100644 arch/csky/kernel/head.S
- create mode 100644 arch/csky/kernel/setup.c
+ drivers/clocksource/Makefile             |   1 +
+ drivers/clocksource/timer-nationalchip.c | 149 +++++++++++++++++++++++++++++++
+ 2 files changed, 150 insertions(+)
+ create mode 100644 drivers/clocksource/timer-nationalchip.c
 
-diff --git a/arch/csky/kernel/head.S b/arch/csky/kernel/head.S
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index d6dec44..d091712 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -76,3 +76,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
+ obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
+ obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
+ obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
++obj-$(CONFIG_CSKY)			+= timer-nationalchip.o
+diff --git a/drivers/clocksource/timer-nationalchip.c b/drivers/clocksource/timer-nationalchip.c
 new file mode 100644
-index 0000000..a746caf
+index 0000000..1279d64
 --- /dev/null
-+++ b/arch/csky/kernel/head.S
-@@ -0,0 +1,20 @@
++++ b/drivers/clocksource/timer-nationalchip.c
+@@ -0,0 +1,149 @@
 +// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/linkage.h>
++// Copyright (C) 2018 Hangzhou NationalChip Science & Technology Co.,Ltd.
++#include <linux/kernel.h>
++#include <linux/sched.h>
++#include <linux/param.h>
 +#include <linux/init.h>
-+#include <asm/page.h>
-+#include <abi/regdef.h>
-+
-+ENTRY(_start)
-+	/* set super user mode */
-+	lrw	a3, DEFAULT_PSR_VALUE
-+	mtcr    a3, psr
-+	psrset  ee
-+
-+	/* set stack point */
-+	lrw     a3, init_thread_union + THREAD_SIZE
-+	mov	sp, a3
-+
-+	jmpi	csky_start
-+END(_start)
-+
-diff --git a/arch/csky/kernel/setup.c b/arch/csky/kernel/setup.c
-new file mode 100644
-index 0000000..04c9fbd
---- /dev/null
-+++ b/arch/csky/kernel/setup.c
-@@ -0,0 +1,157 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/console.h>
-+#include <linux/memblock.h>
-+#include <linux/bootmem.h>
-+#include <linux/initrd.h>
++#include <linux/interrupt.h>
++#include <linux/profile.h>
++#include <linux/irq.h>
++#include <linux/rtc.h>
++#include <linux/sizes.h>
++#include <linux/clocksource.h>
++#include <linux/clockchips.h>
++#include <asm/irq.h>
++#include <asm/io.h>
++#include <asm/delay.h>
 +#include <linux/of.h>
-+#include <linux/of_fdt.h>
-+#include <linux/start_kernel.h>
-+#include <asm/sections.h>
-+#include <asm/mmu_context.h>
-+#include <asm/pgalloc.h>
++#include <linux/of_address.h>
++#include <linux/of_irq.h>
++#include <linux/sched_clock.h>
 +
-+phys_addr_t __init_memblock memblock_end_of_REG0(void)
++#define NC_VA_COUNTER_1_STATUS		(void *)(timer_reg + 0x00)
++#define NC_VA_COUNTER_1_VALUE		(void *)(timer_reg + 0x04)
++#define NC_VA_COUNTER_1_CONTROL		(void *)(timer_reg + 0x10)
++#define NC_VA_COUNTER_1_CONFIG		(void *)(timer_reg + 0x20)
++#define NC_VA_COUNTER_1_PRE		(void *)(timer_reg + 0x24)
++#define NC_VA_COUNTER_1_INI		(void *)(timer_reg + 0x28)
++#define NC_VA_COUNTER_2_STATUS		(void *)(timer_reg + 0x40)
++#define NC_VA_COUNTER_2_VALUE		(void *)(timer_reg + 0x44)
++#define NC_VA_COUNTER_2_CONTROL		(void *)(timer_reg + 0x50)
++#define NC_VA_COUNTER_2_CONFIG		(void *)(timer_reg + 0x60)
++#define NC_VA_COUNTER_2_PRE		(void *)(timer_reg + 0x64)
++#define NC_VA_COUNTER_2_INI		(void *)(timer_reg + 0x68)
++#define NC_VA_COUNTER_3_STATUS		(void *)(timer_reg + 0x80)
++#define NC_VA_COUNTER_3_VALUE		(void *)(timer_reg + 0x84)
++#define NC_VA_COUNTER_3_CONTROL		(void *)(timer_reg + 0x90)
++#define NC_VA_COUNTER_3_CONFIG		(void *)(timer_reg + 0xa0)
++#define NC_VA_COUNTER_3_PRE		(void *)(timer_reg + 0xa4)
++#define NC_VA_COUNTER_3_INI		(void *)(timer_reg + 0xa8)
++
++static unsigned int timer_reg;
++
++static inline void timer_reset(void)
 +{
-+	return (memblock.memory.regions[0].base + memblock.memory.regions[0].size);
++	__raw_writel(0x1,	NC_VA_COUNTER_1_CONTROL);
++	__raw_writel(0x0,	NC_VA_COUNTER_1_CONTROL);
++	__raw_writel(0x3,	NC_VA_COUNTER_1_CONFIG);
++	__raw_writel(26,	NC_VA_COUNTER_1_PRE);
 +}
 +
-+phys_addr_t __init_memblock memblock_start_of_REG1(void)
++static irqreturn_t timer_interrupt(int irq, void *dev_id)
 +{
-+	return memblock.memory.regions[1].base;
++	struct clock_event_device *dev = (struct clock_event_device *) dev_id;
++
++	__raw_writel(1, NC_VA_COUNTER_1_STATUS);
++
++	dev->event_handler(dev);
++
++	return IRQ_HANDLED;
 +}
 +
-+size_t __init_memblock memblock_size_of_REG1(void)
++static int nc_timer_set_periodic(struct clock_event_device *dev)
 +{
-+	return memblock.memory.regions[1].size;
++	timer_reset();
++
++	__raw_writel(0xFFFFD8EF, NC_VA_COUNTER_1_INI);
++	__raw_writel(0x2, NC_VA_COUNTER_1_CONTROL);
++
++	return 0;
 +}
 +
-+static void __init csky_memblock_init(void)
++static int nc_timer_set_next_event(unsigned long delta, struct clock_event_device *evt)
 +{
-+	unsigned long zone_size[MAX_NR_ZONES];
-+	unsigned long zhole_size[MAX_NR_ZONES];
-+	signed long size;
-+
-+	memblock_reserve(__pa(_stext), _end - _stext);
-+#ifdef CONFIG_BLK_DEV_INITRD
-+	memblock_reserve(__pa(initrd_start), initrd_end - initrd_start);
-+#endif
-+
-+	early_init_fdt_reserve_self();
-+	early_init_fdt_scan_reserved_mem();
-+
-+	memblock_dump_all();
-+
-+	memset(zone_size, 0, sizeof(zone_size));
-+	memset(zhole_size, 0, sizeof(zhole_size));
-+
-+	min_low_pfn = PFN_UP(memblock_start_of_DRAM());
-+	max_low_pfn = PFN_UP(memblock_end_of_REG0());
-+	max_pfn = PFN_DOWN(memblock_end_of_DRAM());
-+
-+	size = max_pfn - min_low_pfn;
-+
-+	if (memblock.memory.cnt > 1) {
-+		zone_size[ZONE_NORMAL]  = PFN_DOWN(memblock_start_of_REG1()) - min_low_pfn;
-+		zhole_size[ZONE_NORMAL] = PFN_DOWN(memblock_start_of_REG1()) - max_low_pfn;
-+	} else {
-+		if (size <= PFN_DOWN(LOWMEM_LIMIT - CONFIG_RAM_BASE))
-+			zone_size[ZONE_NORMAL] = max_pfn - min_low_pfn;
-+		else {
-+			zone_size[ZONE_NORMAL] = PFN_DOWN(LOWMEM_LIMIT - CONFIG_RAM_BASE);
-+			max_low_pfn = min_low_pfn + zone_size[ZONE_NORMAL];
-+		}
-+	}
-+
-+#ifdef CONFIG_HIGHMEM
-+	size = 0;
-+	if(memblock.memory.cnt > 1) {
-+		size = PFN_DOWN(memblock_size_of_REG1());
-+		highstart_pfn = PFN_DOWN(memblock_start_of_REG1());
-+	} else {
-+		size = max_pfn - min_low_pfn - PFN_DOWN(LOWMEM_LIMIT - CONFIG_RAM_BASE);
-+		highstart_pfn =  min_low_pfn + PFN_DOWN(LOWMEM_LIMIT - CONFIG_RAM_BASE);
-+	}
-+
-+	if (size > 0)
-+		zone_size[ZONE_HIGHMEM] = size;
-+
-+	highend_pfn = max_pfn;
-+#endif
-+	memblock_set_current_limit(PFN_PHYS(max_low_pfn));
-+
-+	free_area_init_node(0, zone_size, min_low_pfn, zhole_size);
++	__raw_writel(0x1,		NC_VA_COUNTER_1_CONTROL);
++	__raw_writel(ULONG_MAX - delta, NC_VA_COUNTER_1_INI);
++	__raw_writel(0x2,		NC_VA_COUNTER_1_CONTROL);
++	return 0;
 +}
 +
-+extern void cpu_dt_probe(void);
-+void __init setup_arch(char **cmdline_p)
++static int nc_timer_shutdown(struct clock_event_device *dev)
 +{
-+	*cmdline_p = boot_command_line;
++	__raw_writel(0x0, NC_VA_COUNTER_1_CONTROL);
++	__raw_writel(0x0, NC_VA_COUNTER_1_CONFIG);
 +
-+	console_verbose();
-+
-+	printk("C-SKY: https://c-sky.github.io\n");
-+
-+	init_mm.start_code = (unsigned long) _stext;
-+	init_mm.end_code = (unsigned long) _etext;
-+	init_mm.end_data = (unsigned long) _edata;
-+	init_mm.brk = (unsigned long) _end;
-+
-+	parse_early_param();
-+
-+	csky_memblock_init();
-+
-+	unflatten_and_copy_device_tree();
-+
-+	cpu_dt_probe();
-+
-+	sparse_init();
-+
-+#ifdef CONFIG_HIGHMEM
-+	kmap_init();
-+#endif
-+	cache_wbinv_all();
-+
-+#if defined(CONFIG_VT) && defined(CONFIG_DUMMY_CONSOLE)
-+	conswitchp = &dummy_con;
-+#endif
++	return 0;
 +}
 +
-+extern void pre_trap_init(void);
-+asmlinkage __visible void __init csky_start(
-+	unsigned int	unused,
-+	void *		param
-+	)
++static struct clock_event_device nc_ced = {
++	.name			= "nationalchip-clkevent",
++	.features		= CLOCK_EVT_FEAT_PERIODIC
++				| CLOCK_EVT_FEAT_ONESHOT,
++	.rating			= 200,
++	.set_state_shutdown	= nc_timer_shutdown,
++	.set_state_periodic	= nc_timer_set_periodic,
++	.set_next_event		= nc_timer_set_next_event,
++};
++
++static u64 notrace nc_sched_clock_read(void)
 +{
-+	/* Clean up bss section */
-+	memset(__bss_start, 0, __bss_stop - __bss_start);
-+
-+	pre_trap_init();
-+
-+	/* Setup mmu as coprocessor */
-+	select_mmu_cp();
-+
-+	/*
-+	 * Setup page-table and enable TLB-hardrefill
-+	 */
-+	flush_tlb_all();
-+	pgd_init((unsigned long *)swapper_pg_dir);
-+	TLBMISS_HANDLER_SETUP_PGD(swapper_pg_dir);
-+
-+	asid_cache(smp_processor_id()) = ASID_FIRST_VERSION;
-+
-+	/* Setup page mask to 4k */
-+	write_mmu_pagemask(0);
-+
-+#ifdef CONFIG_CSKY_BUILTIN_DTB
-+	printk("Use builtin dtb\n");
-+	early_init_dt_scan(__dtb_start);
-+#else
-+	early_init_dt_scan(param);
-+#endif
-+	printk("Phys. mem: %ldMB\n", (unsigned long) memblock_phys_mem_size()/1024/1024);
-+	start_kernel();
-+
-+	while(1);
++	return (u64) __raw_readl(NC_VA_COUNTER_2_VALUE);
 +}
++
++static void nc_csd_enable(void)
++{
++	__raw_writel(0x1, NC_VA_COUNTER_2_CONTROL);
++	__raw_writel(0x0, NC_VA_COUNTER_2_CONTROL);
++	__raw_writel(0x1, NC_VA_COUNTER_2_CONFIG);
++
++	__raw_writel(26,NC_VA_COUNTER_2_PRE);
++	__raw_writel(0, NC_VA_COUNTER_2_INI);
++	__raw_writel(0x2, NC_VA_COUNTER_2_CONTROL);
++}
++
++static int __init nc_timer_init(struct device_node *np)
++{
++	unsigned int irq;
++	unsigned int freq;
++
++	/* parse from devicetree */
++	timer_reg = (unsigned int) of_iomap(np, 0);
++	if (!timer_reg)
++		panic("%s, of_iomap err.\n", __func__);
++
++	irq = irq_of_parse_and_map(np, 0);
++	if (!irq)
++		panic("%s, irq_parse err.\n", __func__);
++
++	if (of_property_read_u32(np, "clock-frequency", &freq))
++		panic("%s, clock-frequency error.\n", __func__);
++
++	pr_info("Nationalchip Timer Init, reg: %x, irq: %d, freq: %d.\n",
++		timer_reg, irq, freq);
++
++	/* setup irq */
++	if (request_irq(irq, timer_interrupt, IRQF_TIMER, np->name, &nc_ced))
++		panic("%s timer_interrupt error.\n", __func__);
++
++	/* register */
++	clockevents_config_and_register(&nc_ced, freq, 1, ULONG_MAX);
++
++	nc_csd_enable();
++	clocksource_mmio_init(NC_VA_COUNTER_2_VALUE, "nationalchip-clksource", freq, 200, 32, clocksource_mmio_readl_up);
++
++	sched_clock_register(nc_sched_clock_read, 32, freq);
++
++	return 0;
++}
++CLOCKSOURCE_OF_DECLARE(nc_timer, "nationalchip,timer-v1", nc_timer_init);
 +
 -- 
 2.7.4
