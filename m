@@ -1,74 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:40682 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754051AbeCRRk0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 18 Mar 2018 13:40:26 -0400
-Date: Sun, 18 Mar 2018 17:40:14 +0000
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC PATCH 4/6] mm: provide generic compat_sys_readahead()
- implementation
-Message-ID: <20180318174014.GR30522@ZenIV.linux.org.uk>
-References: <20180318161056.5377-1-linux@dominikbrodowski.net>
- <20180318161056.5377-5-linux@dominikbrodowski.net>
+Received: from mail-io0-f194.google.com ([209.85.223.194]:44713 "EHLO
+        mail-io0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751750AbeCRRkX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 18 Mar 2018 13:40:23 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180318161056.5377-5-linux@dominikbrodowski.net>
+In-Reply-To: <20180318161056.5377-4-linux@dominikbrodowski.net>
+References: <20180318161056.5377-1-linux@dominikbrodowski.net> <20180318161056.5377-4-linux@dominikbrodowski.net>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sun, 18 Mar 2018 10:40:22 -0700
+Message-ID: <CA+55aFy3THY_nw7NNeUZYoGcszSDkGW-DFK0K063uFMUEO9w=g@mail.gmail.com>
+Subject: Re: [RFC PATCH 3/6] fs: provide generic compat_sys_p{read,write}64() implementations
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Dominik Brodowski <linux@dominikbrodowski.net>
-Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org
-Message-ID: <20180318174014.Q0af05pYkn36mefbzjIvCKw0qT6kYpV5og4o65IgYs8@z>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, the arch/x86 maintainers <x86@kernel.org>
+Message-ID: <20180318174022.hLwV_XntnGxToo6hJX7fOrP_czZnIp5_-EkKSS_8jvM@z>
 
-On Sun, Mar 18, 2018 at 05:10:54PM +0100, Dominik Brodowski wrote:
+Honestly, I think the patches like this are disgusting:
 
-> +#ifdef __ARCH_WANT_COMPAT_SYS_READAHEAD
+On Sun, Mar 18, 2018 at 9:10 AM, Dominik Brodowski
+<linux@dominikbrodowski.net> wrote:
+> +#ifdef __ARCH_WANT_COMPAT_SYS_PREADWRITE64
 > +#if defined(__ARCH_WANT_COMPAT_SYS_WITH_PADDING) && \
-> +	defined(__ARCH_WANT_LE_COMPAT_SYS)
-> +COMPAT_SYSCALL_DEFINE5(readahead, int, fd, unsigned int, padding,
-> +		       unsigned int, off_lo, unsigned int, off_hi,
-> +		       size_t, count)
+> +       defined(__ARCH_WANT_LE_COMPAT_SYS)
+> +COMPAT_SYSCALL_DEFINE6(pread64, unsigned int, fd, char __user *, ubuf,
+> +                      u32, count, u32, padding, u32, poslo, u32, poshi)
 > +#elif defined(__ARCH_WANT_COMPAT_SYS_WITH_PADDING) && \
-> +	!defined(__ARCH_WANT_LE_COMPAT_SYS)
-> +COMPAT_SYSCALL_DEFINE5(readahead, int, fd, unsigned int, padding,
-> +		       unsigned int, off_hi, unsigned int, off_lo,
-> +		       size_t, count)
+> +       !defined(__ARCH_WANT_LE_COMPAT_SYS)
+> +COMPAT_SYSCALL_DEFINE6(pread64, unsigned int, fd, char __user *, ubuf,
+> +                      u32, count, u32, padding, u32, poshi, u32, poslo)
 > +#elif !defined(__ARCH_WANT_COMPAT_SYS_WITH_PADDING) && \
-> +	defined(__ARCH_WANT_LE_COMPAT_SYS)
-> +COMPAT_SYSCALL_DEFINE4(readahead, int, fd,
-> +		       unsigned int, off_lo, unsigned int, off_hi,
-> +		       size_t, count)
+> +       defined(__ARCH_WANT_LE_COMPAT_SYS)
+> +COMPAT_SYSCALL_DEFINE5(pread64, unsigned int, fd, char __user *, ubuf,
+> +                      u32, count, u32, poslo, u32, poshi)
 > +#else /* no padding, big endian */
-> +COMPAT_SYSCALL_DEFINE4(readahead, int, fd,
-> +		       unsigned int, off_hi, unsigned int, off_lo,
-> +		       size_t, count)
+> +COMPAT_SYSCALL_DEFINE5(pread64, unsigned int, fd, char __user *, ubuf,
+> +                      u32, count, u32, poshi, u32, poslo)
 > +#endif
 > +{
-> +	return do_readahead(fd, ((u64) off_hi << 32) | off_lo, count);
->  }
+> +#ifdef CONFIG_S390
+> +       if ((compat_ssize_t) count < 0)
+> +               return -EINVAL;
+> +#endif /* CONFIG_S390 */
 
-*UGH*
+and we should just keep code like this entirely architecture-dependent.
 
-static inline compat_to_u64(u32 w0, u32 w1)
-{
-#ifdef __BIG_ENDIAN
-	return ((u64)w0 << 32) | w1;
-#else
-	return ((u64)w1 << 32) | w0;
-#endif
-}
+It doesn't save all that many lines:
 
-in compat.h, then this turns into
+ 19 files changed, 97 insertions(+), 106 deletions(-)
 
-#ifdef __ARCH_WANT_COMPAT_SYS_WITH_PADDING
-COMPAT_SYSCALL_DEFINE5(readahead, int, fd, unsigned int, padding,
-		       u32, off0, u32 off1,
-		       compat_size_t, count)
-#else
-COMPAT_SYSCALL_DEFINE4(readahead, int, fd,
-		       u32, off0, u32 off1,
-		       compat_size_t, count)
-#endif
-{
-	return do_readahead(fd, compat_to_u64(off0, off1), count);
-}
+and the lines it adds are an unreadable mess compared to the lines it removes.
+
+So please keep the high/low/padding stuff in the arch wrapper, and
+just make them use "do_pwrite64()" and friends instead (or
+"kern_pwrite64()", or whatever we ended up using as the kernel naming
+for in-kernel system call wrappers).
+
+                Linus
