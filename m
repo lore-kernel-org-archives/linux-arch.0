@@ -1,7 +1,7 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH 11/19] csky: Library functions
-Date: Mon, 19 Mar 2018 03:51:33 +0800
-Message-ID: <919c62d7963a32f33262aae09f1afbb8271e367c.1521399976.git.ren_guo@c-sky.com>
+Subject: [PATCH 17/19] csky: defconfig
+Date: Mon, 19 Mar 2018 03:51:39 +0800
+Message-ID: <8a9c9b588cdfdf8b25ca9d449bf5c862d329c1d8.1521399976.git.ren_guo@c-sky.com>
 References: <cover.1521399976.git.ren_guo@c-sky.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1521399976.git.ren_guo@c-sky.com>
@@ -14,1577 +14,1113 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- arch/csky/abiv1/src/bswapdi.c    |  18 ++
- arch/csky/abiv1/src/bswapsi.c    |  15 ++
- arch/csky/abiv1/src/memcpy.S     | 344 +++++++++++++++++++++++++++++++++++++++
- arch/csky/abiv2/src/fpu.c        | 312 +++++++++++++++++++++++++++++++++++
- arch/csky/abiv2/src/memcpy.c     |  43 +++++
- arch/csky/include/asm/bitops.h   |  83 ++++++++++
- arch/csky/include/asm/checksum.h |  77 +++++++++
- arch/csky/include/asm/string.h   |  19 +++
- arch/csky/kernel/asm-offsets.c   |  86 ++++++++++
- arch/csky/kernel/cskyksyms.c     |  31 ++++
- arch/csky/kernel/platform.c      |  18 ++
- arch/csky/kernel/power.c         |  31 ++++
- arch/csky/lib/delay.c            |  40 +++++
- arch/csky/lib/memset.c           |  38 +++++
- arch/csky/lib/usercopy.c         | 271 ++++++++++++++++++++++++++++++
- arch/csky/oprofile/init.c        |  16 ++
- 16 files changed, 1442 insertions(+)
- create mode 100644 arch/csky/abiv1/src/bswapdi.c
- create mode 100644 arch/csky/abiv1/src/bswapsi.c
- create mode 100644 arch/csky/abiv1/src/memcpy.S
- create mode 100644 arch/csky/abiv2/src/fpu.c
- create mode 100644 arch/csky/abiv2/src/memcpy.c
- create mode 100644 arch/csky/include/asm/bitops.h
- create mode 100644 arch/csky/include/asm/checksum.h
- create mode 100644 arch/csky/include/asm/string.h
- create mode 100644 arch/csky/kernel/asm-offsets.c
- create mode 100644 arch/csky/kernel/cskyksyms.c
- create mode 100644 arch/csky/kernel/platform.c
- create mode 100644 arch/csky/kernel/power.c
- create mode 100644 arch/csky/lib/delay.c
- create mode 100644 arch/csky/lib/memset.c
- create mode 100644 arch/csky/lib/usercopy.c
- create mode 100644 arch/csky/oprofile/init.c
+ arch/csky/configs/gx66xx_defconfig     | 549 +++++++++++++++++++++++++++++++++
+ arch/csky/configs/qemu_ck807_defconfig | 541 ++++++++++++++++++++++++++++++++
+ 2 files changed, 1090 insertions(+)
+ create mode 100644 arch/csky/configs/gx66xx_defconfig
+ create mode 100644 arch/csky/configs/qemu_ck807_defconfig
 
-diff --git a/arch/csky/abiv1/src/bswapdi.c b/arch/csky/abiv1/src/bswapdi.c
+diff --git a/arch/csky/configs/gx66xx_defconfig b/arch/csky/configs/gx66xx_defconfig
 new file mode 100644
-index 0000000..7346252
+index 0000000..7f2a987
 --- /dev/null
-+++ b/arch/csky/abiv1/src/bswapdi.c
-@@ -0,0 +1,18 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/export.h>
-+#include <linux/compiler.h>
-+
-+unsigned long long notrace __bswapdi2(unsigned long long u)
-+{
-+	return (((u) & 0xff00000000000000ull) >> 56) |
-+	       (((u) & 0x00ff000000000000ull) >> 40) |
-+	       (((u) & 0x0000ff0000000000ull) >> 24) |
-+	       (((u) & 0x000000ff00000000ull) >>  8) |
-+	       (((u) & 0x00000000ff000000ull) <<  8) |
-+	       (((u) & 0x0000000000ff0000ull) << 24) |
-+	       (((u) & 0x000000000000ff00ull) << 40) |
-+	       (((u) & 0x00000000000000ffull) << 56);
-+}
-+
-+EXPORT_SYMBOL(__bswapdi2);
-diff --git a/arch/csky/abiv1/src/bswapsi.c b/arch/csky/abiv1/src/bswapsi.c
++++ b/arch/csky/configs/gx66xx_defconfig
+@@ -0,0 +1,549 @@
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_DEFAULT_HOSTNAME="github.com/c-sky"
++# CONFIG_SWAP is not set
++CONFIG_SYSVIPC=y
++CONFIG_POSIX_MQUEUE=y
++# CONFIG_FHANDLE is not set
++CONFIG_USELIB=y
++CONFIG_AUDIT=y
++CONFIG_IRQ_DOMAIN_DEBUG=y
++CONFIG_NO_HZ_IDLE=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_BSD_PROCESS_ACCT=y
++CONFIG_BSD_PROCESS_ACCT_V3=y
++CONFIG_RELAY=y
++CONFIG_SYSCTL_SYSCALL=y
++CONFIG_KALLSYMS_ALL=y
++# CONFIG_AIO is not set
++CONFIG_USERFAULTFD=y
++CONFIG_EMBEDDED=y
++# CONFIG_PERF_EVENTS is not set
++# CONFIG_SLUB_DEBUG is not set
++# CONFIG_COMPAT_BRK is not set
++CONFIG_PROFILING=y
++CONFIG_OPROFILE=y
++CONFIG_MODULES=y
++CONFIG_MODULE_UNLOAD=y
++CONFIG_BLK_DEV_BSGLIB=y
++CONFIG_BLK_DEV_INTEGRITY=y
++CONFIG_PARTITION_ADVANCED=y
++CONFIG_ACORN_PARTITION=y
++CONFIG_ACORN_PARTITION_ICS=y
++CONFIG_ACORN_PARTITION_RISCIX=y
++CONFIG_AIX_PARTITION=y
++CONFIG_OSF_PARTITION=y
++CONFIG_AMIGA_PARTITION=y
++CONFIG_ATARI_PARTITION=y
++CONFIG_MAC_PARTITION=y
++CONFIG_BSD_DISKLABEL=y
++CONFIG_MINIX_SUBPARTITION=y
++CONFIG_SOLARIS_X86_PARTITION=y
++CONFIG_UNIXWARE_DISKLABEL=y
++CONFIG_LDM_PARTITION=y
++CONFIG_SGI_PARTITION=y
++CONFIG_ULTRIX_PARTITION=y
++CONFIG_SUN_PARTITION=y
++CONFIG_KARMA_PARTITION=y
++CONFIG_SYSV68_PARTITION=y
++CONFIG_CMDLINE_PARTITION=y
++CONFIG_DEFAULT_DEADLINE=y
++CONFIG_FB_NATIONALCHIP=y
++CONFIG_RAM_BASE=0x10000000
++# CONFIG_SUSPEND is not set
++# CONFIG_COMPACTION is not set
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++CONFIG_IP_MULTICAST=y
++CONFIG_IP_PNP=y
++CONFIG_IP_PNP_DHCP=y
++CONFIG_IP_PNP_BOOTP=y
++CONFIG_IP_PNP_RARP=y
++# CONFIG_IPV6 is not set
++CONFIG_CFG80211=y
++CONFIG_CFG80211_DEBUGFS=y
++CONFIG_CFG80211_WEXT=y
++CONFIG_MAC80211=y
++CONFIG_MAC80211_DEBUGFS=y
++CONFIG_RFKILL=y
++CONFIG_RFKILL_INPUT=y
++CONFIG_RFKILL_GPIO=y
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++# CONFIG_STANDALONE is not set
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_SIZE=65536
++CONFIG_VIRTIO_BLK=y
++CONFIG_AD525X_DPOT=m
++CONFIG_AD525X_DPOT_I2C=m
++CONFIG_DUMMY_IRQ=m
++CONFIG_ICS932S401=m
++CONFIG_ENCLOSURE_SERVICES=m
++CONFIG_APDS9802ALS=m
++CONFIG_ISL29003=m
++CONFIG_ISL29020=m
++CONFIG_SENSORS_TSL2550=m
++CONFIG_SENSORS_BH1770=m
++CONFIG_SENSORS_APDS990X=m
++CONFIG_HMC6352=m
++CONFIG_DS1682=m
++CONFIG_USB_SWITCH_FSA9480=m
++CONFIG_SRAM=y
++CONFIG_C2PORT=m
++CONFIG_EEPROM_AT24=m
++CONFIG_EEPROM_LEGACY=m
++CONFIG_EEPROM_MAX6875=m
++CONFIG_SENSORS_LIS3_I2C=m
++CONFIG_ALTERA_STAPL=m
++CONFIG_ECHO=m
++CONFIG_SCSI=y
++# CONFIG_SCSI_PROC_FS is not set
++CONFIG_BLK_DEV_SD=y
++CONFIG_SCSI_SPI_ATTRS=y
++CONFIG_SCSI_SAS_LIBSAS=m
++CONFIG_SCSI_SRP_ATTRS=m
++# CONFIG_SCSI_LOWLEVEL is not set
++CONFIG_NETDEVICES=y
++CONFIG_USB_RTL8150=y
++CONFIG_USB_RTL8152=y
++CONFIG_USB_USBNET=y
++# CONFIG_WLAN_VENDOR_ADMTEK is not set
++# CONFIG_WLAN_VENDOR_ATH is not set
++# CONFIG_WLAN_VENDOR_ATMEL is not set
++# CONFIG_WLAN_VENDOR_BROADCOM is not set
++# CONFIG_WLAN_VENDOR_CISCO is not set
++# CONFIG_WLAN_VENDOR_INTEL is not set
++# CONFIG_WLAN_VENDOR_INTERSIL is not set
++# CONFIG_WLAN_VENDOR_MARVELL is not set
++CONFIG_MT7601U=m
++# CONFIG_WLAN_VENDOR_RALINK is not set
++CONFIG_RTL8187=y
++CONFIG_RTL8XXXU=y
++CONFIG_RTL8XXXU_UNTESTED=y
++# CONFIG_WLAN_VENDOR_RSI is not set
++# CONFIG_WLAN_VENDOR_ST is not set
++# CONFIG_WLAN_VENDOR_TI is not set
++# CONFIG_WLAN_VENDOR_ZYDAS is not set
++CONFIG_INPUT_SPARSEKMAP=m
++CONFIG_INPUT_EVDEV=y
++CONFIG_KEYBOARD_ADP5588=m
++CONFIG_KEYBOARD_ADP5589=m
++CONFIG_KEYBOARD_QT1070=m
++CONFIG_KEYBOARD_QT2160=m
++CONFIG_KEYBOARD_LKKBD=m
++CONFIG_KEYBOARD_GPIO_POLLED=m
++CONFIG_KEYBOARD_TCA6416=m
++CONFIG_KEYBOARD_TCA8418=m
++CONFIG_KEYBOARD_LM8323=m
++CONFIG_KEYBOARD_LM8333=m
++CONFIG_KEYBOARD_MAX7359=m
++CONFIG_KEYBOARD_MCS=m
++CONFIG_KEYBOARD_MPR121=m
++CONFIG_KEYBOARD_NEWTON=m
++CONFIG_KEYBOARD_OPENCORES=m
++CONFIG_KEYBOARD_STOWAWAY=m
++CONFIG_KEYBOARD_SUNKBD=m
++CONFIG_KEYBOARD_XTKBD=m
++CONFIG_MOUSE_PS2=m
++CONFIG_MOUSE_PS2_ELANTECH=y
++CONFIG_MOUSE_PS2_SENTELIC=y
++CONFIG_MOUSE_PS2_TOUCHKIT=y
++CONFIG_MOUSE_SERIAL=m
++CONFIG_MOUSE_CYAPA=m
++CONFIG_MOUSE_VSXXXAA=m
++CONFIG_MOUSE_SYNAPTICS_I2C=m
++CONFIG_INPUT_JOYSTICK=y
++CONFIG_JOYSTICK_ANALOG=m
++CONFIG_JOYSTICK_A3D=m
++CONFIG_JOYSTICK_ADI=m
++CONFIG_JOYSTICK_COBRA=m
++CONFIG_JOYSTICK_GF2K=m
++CONFIG_JOYSTICK_GRIP=m
++CONFIG_JOYSTICK_GRIP_MP=m
++CONFIG_JOYSTICK_GUILLEMOT=m
++CONFIG_JOYSTICK_INTERACT=m
++CONFIG_JOYSTICK_SIDEWINDER=m
++CONFIG_JOYSTICK_TMDC=m
++CONFIG_JOYSTICK_IFORCE=m
++CONFIG_JOYSTICK_IFORCE_232=y
++CONFIG_JOYSTICK_WARRIOR=m
++CONFIG_JOYSTICK_MAGELLAN=m
++CONFIG_JOYSTICK_SPACEORB=m
++CONFIG_JOYSTICK_SPACEBALL=m
++CONFIG_JOYSTICK_STINGER=m
++CONFIG_JOYSTICK_TWIDJOY=m
++CONFIG_JOYSTICK_ZHENHUA=m
++CONFIG_JOYSTICK_AS5011=m
++CONFIG_JOYSTICK_JOYDUMP=m
++CONFIG_INPUT_TABLET=y
++CONFIG_INPUT_TOUCHSCREEN=y
++CONFIG_TOUCHSCREEN_AD7879=m
++CONFIG_TOUCHSCREEN_AD7879_I2C=m
++CONFIG_TOUCHSCREEN_ATMEL_MXT=m
++CONFIG_TOUCHSCREEN_BU21013=m
++CONFIG_TOUCHSCREEN_CYTTSP_CORE=m
++CONFIG_TOUCHSCREEN_CYTTSP_I2C=m
++CONFIG_TOUCHSCREEN_CYTTSP4_CORE=m
++CONFIG_TOUCHSCREEN_CYTTSP4_I2C=m
++CONFIG_TOUCHSCREEN_DYNAPRO=m
++CONFIG_TOUCHSCREEN_HAMPSHIRE=m
++CONFIG_TOUCHSCREEN_EETI=m
++CONFIG_TOUCHSCREEN_FUJITSU=m
++CONFIG_TOUCHSCREEN_ILI210X=m
++CONFIG_TOUCHSCREEN_GUNZE=m
++CONFIG_TOUCHSCREEN_ELO=m
++CONFIG_TOUCHSCREEN_WACOM_W8001=m
++CONFIG_TOUCHSCREEN_WACOM_I2C=m
++CONFIG_TOUCHSCREEN_MAX11801=m
++CONFIG_TOUCHSCREEN_MCS5000=m
++CONFIG_TOUCHSCREEN_MMS114=m
++CONFIG_TOUCHSCREEN_MTOUCH=m
++CONFIG_TOUCHSCREEN_INEXIO=m
++CONFIG_TOUCHSCREEN_MK712=m
++CONFIG_TOUCHSCREEN_PENMOUNT=m
++CONFIG_TOUCHSCREEN_EDT_FT5X06=m
++CONFIG_TOUCHSCREEN_TOUCHRIGHT=m
++CONFIG_TOUCHSCREEN_TOUCHWIN=m
++CONFIG_TOUCHSCREEN_PIXCIR=m
++CONFIG_TOUCHSCREEN_TOUCHIT213=m
++CONFIG_TOUCHSCREEN_TSC_SERIO=m
++CONFIG_TOUCHSCREEN_TSC2007=m
++CONFIG_TOUCHSCREEN_ST1232=m
++CONFIG_TOUCHSCREEN_TPS6507X=m
++CONFIG_INPUT_MISC=y
++CONFIG_INPUT_AD714X=m
++CONFIG_INPUT_BMA150=m
++CONFIG_INPUT_MMA8450=m
++CONFIG_INPUT_MPU3050=m
++CONFIG_INPUT_KXTJ9=m
++CONFIG_INPUT_UINPUT=y
++CONFIG_INPUT_PCF8574=m
++CONFIG_INPUT_ADXL34X=m
++CONFIG_INPUT_CMA3000=m
++CONFIG_INPUT_CMA3000_I2C=m
++CONFIG_SERIO_SERPORT=m
++CONFIG_SERIO_RAW=m
++CONFIG_SERIO_ALTERA_PS2=m
++CONFIG_SERIO_PS2MULT=m
++CONFIG_SERIO_ARC_PS2=m
++CONFIG_GAMEPORT_NS558=m
++CONFIG_GAMEPORT_L4=m
++CONFIG_SERIAL_NONSTANDARD=y
++# CONFIG_DEVKMEM is not set
++CONFIG_SERIAL_8250=y
++# CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
++CONFIG_SERIAL_8250_CONSOLE=y
++CONFIG_SERIAL_8250_NR_UARTS=2
++CONFIG_SERIAL_8250_RUNTIME_UARTS=2
++CONFIG_SERIAL_8250_DW=y
++CONFIG_SERIAL_OF_PLATFORM=y
++CONFIG_TTY_PRINTK=y
++CONFIG_VIRTIO_CONSOLE=y
++CONFIG_IPMI_HANDLER=y
++CONFIG_IPMI_DEVICE_INTERFACE=m
++CONFIG_IPMI_SI=m
++CONFIG_IPMI_WATCHDOG=m
++CONFIG_IPMI_POWEROFF=m
++CONFIG_HW_RANDOM=y
++CONFIG_HW_RANDOM_TIMERIOMEM=m
++CONFIG_HW_RANDOM_VIRTIO=m
++CONFIG_HW_RANDOM_TPM=m
++CONFIG_TCG_TIS_I2C_ATMEL=m
++CONFIG_TCG_TIS_I2C_INFINEON=m
++CONFIG_TCG_TIS_I2C_NUVOTON=m
++CONFIG_TCG_ATMEL=m
++CONFIG_I2C_CHARDEV=m
++CONFIG_I2C_MUX_PCA9541=m
++CONFIG_I2C_DESIGNWARE_PLATFORM=m
++CONFIG_I2C_OCORES=m
++CONFIG_I2C_PCA_PLATFORM=m
++CONFIG_I2C_SIMTEC=m
++CONFIG_I2C_XILINX=m
++CONFIG_I2C_PARPORT_LIGHT=m
++CONFIG_I2C_TAOS_EVM=m
++CONFIG_I2C_STUB=m
++CONFIG_PPS=m
++CONFIG_PPS_CLIENT_LDISC=m
++CONFIG_PPS_CLIENT_GPIO=m
++CONFIG_GPIOLIB=y
++CONFIG_DEBUG_GPIO=y
++CONFIG_GPIO_SYSFS=y
++CONFIG_GPIO_GENERIC_PLATFORM=y
++CONFIG_POWER_RESET=y
++# CONFIG_HWMON is not set
++CONFIG_SSB=m
++CONFIG_BCMA=m
++CONFIG_BCMA_HOST_SOC=y
++CONFIG_BCMA_DRIVER_GMAC_CMN=y
++CONFIG_MEDIA_SUPPORT=y
++CONFIG_MEDIA_CAMERA_SUPPORT=y
++CONFIG_MEDIA_USB_SUPPORT=y
++CONFIG_USB_VIDEO_CLASS=y
++# CONFIG_USB_GSPCA is not set
++CONFIG_FB=y
++CONFIG_FB_TILEBLITTING=y
++CONFIG_FB_SIMPLE=y
++CONFIG_BACKLIGHT_LCD_SUPPORT=y
++# CONFIG_LCD_CLASS_DEVICE is not set
++# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
++# CONFIG_VGA_CONSOLE is not set
++CONFIG_FRAMEBUFFER_CONSOLE=y
++CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
++CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
++CONFIG_LOGO=y
++# CONFIG_LOGO_LINUX_MONO is not set
++# CONFIG_LOGO_LINUX_VGA16 is not set
++CONFIG_HID_A4TECH=m
++CONFIG_HID_ACRUX=m
++CONFIG_HID_ACRUX_FF=y
++CONFIG_HID_APPLE=m
++CONFIG_HID_AUREAL=m
++CONFIG_HID_BELKIN=m
++CONFIG_HID_CHERRY=m
++CONFIG_HID_CHICONY=m
++CONFIG_HID_CYPRESS=m
++CONFIG_HID_DRAGONRISE=m
++CONFIG_DRAGONRISE_FF=y
++CONFIG_HID_EMS_FF=m
++CONFIG_HID_ELECOM=m
++CONFIG_HID_EZKEY=m
++CONFIG_HID_KEYTOUCH=m
++CONFIG_HID_KYE=m
++CONFIG_HID_WALTOP=m
++CONFIG_HID_GYRATION=m
++CONFIG_HID_ICADE=m
++CONFIG_HID_TWINHAN=m
++CONFIG_HID_KENSINGTON=m
++CONFIG_HID_LCPOWER=m
++CONFIG_HID_LOGITECH=m
++CONFIG_HID_LOGITECH_HIDPP=m
++CONFIG_LOGITECH_FF=y
++CONFIG_LOGIRUMBLEPAD2_FF=y
++CONFIG_LOGIG940_FF=y
++CONFIG_HID_MAGICMOUSE=m
++CONFIG_HID_MICROSOFT=m
++CONFIG_HID_MONTEREY=m
++CONFIG_HID_MULTITOUCH=m
++CONFIG_HID_ORTEK=m
++CONFIG_HID_PANTHERLORD=m
++CONFIG_PANTHERLORD_FF=y
++CONFIG_HID_PETALYNX=m
++CONFIG_HID_PICOLCD=m
++CONFIG_HID_PICOLCD_LEDS=y
++CONFIG_HID_PRIMAX=m
++CONFIG_HID_SAITEK=m
++CONFIG_HID_SAMSUNG=m
++CONFIG_HID_SPEEDLINK=m
++CONFIG_HID_STEELSERIES=m
++CONFIG_HID_SUNPLUS=m
++CONFIG_HID_RMI=m
++CONFIG_HID_GREENASIA=m
++CONFIG_GREENASIA_FF=y
++CONFIG_HID_SMARTJOYPLUS=m
++CONFIG_SMARTJOYPLUS_FF=y
++CONFIG_HID_TIVO=m
++CONFIG_HID_TOPSEED=m
++CONFIG_HID_THINGM=m
++CONFIG_HID_THRUSTMASTER=m
++CONFIG_THRUSTMASTER_FF=y
++CONFIG_HID_WACOM=m
++CONFIG_HID_WIIMOTE=m
++CONFIG_HID_XINMO=m
++CONFIG_HID_ZEROPLUS=m
++CONFIG_ZEROPLUS_FF=y
++CONFIG_HID_ZYDACRON=m
++CONFIG_HID_SENSOR_HUB=m
++CONFIG_HID_PID=y
++CONFIG_I2C_HID=m
++CONFIG_USB=y
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_EHCI_HCD_PLATFORM=y
++CONFIG_USB_OHCI_HCD=y
++CONFIG_USB_OHCI_HCD_PLATFORM=y
++CONFIG_USB_STORAGE=y
++CONFIG_LEDS_CLASS=y
++CONFIG_LEDS_LM3530=m
++CONFIG_LEDS_LM3642=m
++CONFIG_LEDS_PCA9532=m
++CONFIG_LEDS_GPIO=m
++CONFIG_LEDS_LP3944=m
++CONFIG_LEDS_LP5521=m
++CONFIG_LEDS_LP5523=m
++CONFIG_LEDS_LP5562=m
++CONFIG_LEDS_LP8501=m
++CONFIG_LEDS_PCA955X=m
++CONFIG_LEDS_PCA963X=m
++CONFIG_LEDS_BD2802=m
++CONFIG_LEDS_TCA6507=m
++CONFIG_LEDS_LM355x=m
++CONFIG_LEDS_BLINKM=m
++CONFIG_LEDS_TRIGGER_TIMER=y
++CONFIG_LEDS_TRIGGER_ONESHOT=y
++CONFIG_LEDS_TRIGGER_HEARTBEAT=y
++CONFIG_LEDS_TRIGGER_BACKLIGHT=y
++CONFIG_LEDS_TRIGGER_CPU=y
++CONFIG_LEDS_TRIGGER_GPIO=y
++CONFIG_LEDS_TRIGGER_DEFAULT_ON=y
++CONFIG_LEDS_TRIGGER_TRANSIENT=y
++CONFIG_LEDS_TRIGGER_CAMERA=y
++CONFIG_LEDS_TRIGGER_PANIC=y
++CONFIG_VIRTIO_BALLOON=y
++CONFIG_VIRTIO_MMIO=y
++CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES=y
++# CONFIG_IOMMU_SUPPORT is not set
++CONFIG_STE_MODEM_RPROC=m
++CONFIG_PM_DEVFREQ=y
++CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
++CONFIG_DEVFREQ_GOV_PERFORMANCE=y
++CONFIG_DEVFREQ_GOV_POWERSAVE=y
++CONFIG_DEVFREQ_GOV_USERSPACE=y
++CONFIG_EXT2_FS=y
++CONFIG_EXT2_FS_XATTR=y
++CONFIG_EXT2_FS_POSIX_ACL=y
++CONFIG_EXT2_FS_SECURITY=y
++CONFIG_EXT3_FS=y
++CONFIG_EXT3_FS_POSIX_ACL=y
++CONFIG_EXT3_FS_SECURITY=y
++CONFIG_FANOTIFY=y
++CONFIG_FANOTIFY_ACCESS_PERMISSIONS=y
++CONFIG_QUOTA=y
++# CONFIG_PRINT_QUOTA_WARNING is not set
++CONFIG_FSCACHE=m
++CONFIG_FSCACHE_STATS=y
++CONFIG_CACHEFILES=m
++CONFIG_MSDOS_FS=y
++CONFIG_VFAT_FS=y
++CONFIG_FAT_DEFAULT_UTF8=y
++CONFIG_NTFS_FS=y
++CONFIG_PROC_KCORE=y
++CONFIG_PROC_CHILDREN=y
++CONFIG_TMPFS=y
++CONFIG_TMPFS_POSIX_ACL=y
++CONFIG_CONFIGFS_FS=y
++CONFIG_CRAMFS=y
++CONFIG_ROMFS_FS=y
++CONFIG_NFS_FS=y
++CONFIG_ROOT_NFS=y
++CONFIG_NLS_DEFAULT="utf8"
++CONFIG_NLS_CODEPAGE_437=y
++CONFIG_NLS_CODEPAGE_737=y
++CONFIG_NLS_CODEPAGE_775=y
++CONFIG_NLS_CODEPAGE_850=y
++CONFIG_NLS_CODEPAGE_852=y
++CONFIG_NLS_CODEPAGE_855=y
++CONFIG_NLS_CODEPAGE_857=y
++CONFIG_NLS_CODEPAGE_860=y
++CONFIG_NLS_CODEPAGE_861=y
++CONFIG_NLS_CODEPAGE_863=y
++CONFIG_NLS_CODEPAGE_864=y
++CONFIG_NLS_CODEPAGE_865=y
++CONFIG_NLS_CODEPAGE_866=y
++CONFIG_NLS_CODEPAGE_869=y
++CONFIG_NLS_CODEPAGE_936=y
++CONFIG_NLS_CODEPAGE_950=y
++CONFIG_NLS_CODEPAGE_932=y
++CONFIG_NLS_CODEPAGE_949=m
++CONFIG_NLS_CODEPAGE_874=m
++CONFIG_NLS_ISO8859_8=m
++CONFIG_NLS_CODEPAGE_1250=y
++CONFIG_NLS_CODEPAGE_1251=y
++CONFIG_NLS_ASCII=m
++CONFIG_NLS_ISO8859_1=y
++CONFIG_NLS_ISO8859_2=m
++CONFIG_NLS_ISO8859_3=m
++CONFIG_NLS_ISO8859_4=m
++CONFIG_NLS_ISO8859_5=m
++CONFIG_NLS_ISO8859_6=m
++CONFIG_NLS_ISO8859_7=m
++CONFIG_NLS_ISO8859_9=m
++CONFIG_NLS_ISO8859_13=m
++CONFIG_NLS_ISO8859_14=m
++CONFIG_NLS_ISO8859_15=m
++CONFIG_NLS_KOI8_R=m
++CONFIG_NLS_KOI8_U=m
++CONFIG_NLS_MAC_ROMAN=m
++CONFIG_NLS_MAC_CELTIC=m
++CONFIG_NLS_MAC_CENTEURO=m
++CONFIG_NLS_MAC_CROATIAN=m
++CONFIG_NLS_MAC_CYRILLIC=m
++CONFIG_NLS_MAC_GAELIC=m
++CONFIG_NLS_MAC_GREEK=m
++CONFIG_NLS_MAC_ICELAND=m
++CONFIG_NLS_MAC_INUIT=m
++CONFIG_NLS_MAC_ROMANIAN=m
++CONFIG_NLS_MAC_TURKISH=m
++CONFIG_NLS_UTF8=y
++CONFIG_PRINTK_TIME=y
++CONFIG_DEBUG_INFO=y
++# CONFIG_ENABLE_WARN_DEPRECATED is not set
++# CONFIG_ENABLE_MUST_CHECK is not set
++CONFIG_UNUSED_SYMBOLS=y
++CONFIG_DEBUG_FS=y
++CONFIG_MAGIC_SYSRQ=y
++CONFIG_LOCKUP_DETECTOR=y
++# CONFIG_SCHED_DEBUG is not set
++CONFIG_RBTREE_TEST=m
++CONFIG_INTERVAL_TREE_TEST=m
++CONFIG_PERCPU_TEST=m
++CONFIG_TEST_STRING_HELPERS=m
++CONFIG_TEST_KSTRTOX=m
++CONFIG_PERSISTENT_KEYRINGS=y
++CONFIG_TRUSTED_KEYS=y
++CONFIG_SECURITY=y
++CONFIG_SECURITY_NETWORK=y
++CONFIG_SECURITY_PATH=y
++CONFIG_SECURITY_YAMA=y
++CONFIG_INTEGRITY_SIGNATURE=y
++CONFIG_INTEGRITY_ASYMMETRIC_KEYS=y
++CONFIG_IMA=y
++CONFIG_IMA_APPRAISE=y
++CONFIG_EVM=y
++CONFIG_CRYPTO_CRYPTD=m
++CONFIG_CRYPTO_AUTHENC=m
++CONFIG_CRYPTO_TEST=m
++CONFIG_CRYPTO_CTS=m
++CONFIG_CRYPTO_ECB=y
++CONFIG_CRYPTO_LRW=m
++CONFIG_CRYPTO_PCBC=m
++CONFIG_CRYPTO_XTS=m
++CONFIG_CRYPTO_CMAC=m
++CONFIG_CRYPTO_XCBC=m
++CONFIG_CRYPTO_VMAC=m
++CONFIG_CRYPTO_CRC32=m
++CONFIG_CRYPTO_MD4=m
++CONFIG_CRYPTO_MICHAEL_MIC=m
++CONFIG_CRYPTO_RMD128=m
++CONFIG_CRYPTO_RMD160=m
++CONFIG_CRYPTO_RMD256=m
++CONFIG_CRYPTO_RMD320=m
++CONFIG_CRYPTO_SHA512=y
++CONFIG_CRYPTO_TGR192=m
++CONFIG_CRYPTO_WP512=m
++CONFIG_CRYPTO_ANUBIS=m
++CONFIG_CRYPTO_BLOWFISH=m
++CONFIG_CRYPTO_CAMELLIA=m
++CONFIG_CRYPTO_CAST5=m
++CONFIG_CRYPTO_CAST6=m
++CONFIG_CRYPTO_DES=m
++CONFIG_CRYPTO_FCRYPT=m
++CONFIG_CRYPTO_KHAZAD=m
++CONFIG_CRYPTO_SALSA20=m
++CONFIG_CRYPTO_SEED=m
++CONFIG_CRYPTO_SERPENT=m
++CONFIG_CRYPTO_TEA=m
++CONFIG_CRYPTO_TWOFISH=m
++CONFIG_CRYPTO_DEFLATE=m
++CONFIG_CRYPTO_LZO=y
++CONFIG_CRYPTO_LZ4=m
++CONFIG_CRYPTO_LZ4HC=m
++CONFIG_CRYPTO_ANSI_CPRNG=m
++CONFIG_CRC_CCITT=m
++CONFIG_CRC7=m
++CONFIG_LIBCRC32C=m
++CONFIG_CRC8=m
++CONFIG_XZ_DEC=y
++CONFIG_XZ_DEC_TEST=m
++CONFIG_CORDIC=m
++CONFIG_DDR=y
+diff --git a/arch/csky/configs/qemu_ck807_defconfig b/arch/csky/configs/qemu_ck807_defconfig
 new file mode 100644
-index 0000000..21958ca
+index 0000000..0591cbc
 --- /dev/null
-+++ b/arch/csky/abiv1/src/bswapsi.c
-@@ -0,0 +1,15 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/export.h>
-+#include <linux/compiler.h>
-+
-+unsigned int notrace __bswapsi2(unsigned int u)
-+{
-+	return (((u) & 0xff000000) >> 24) |
-+	       (((u) & 0x00ff0000) >>  8) |
-+	       (((u) & 0x0000ff00) <<  8) |
-+	       (((u) & 0x000000ff) << 24);
-+}
-+
-+EXPORT_SYMBOL(__bswapsi2);
-+
-diff --git a/arch/csky/abiv1/src/memcpy.S b/arch/csky/abiv1/src/memcpy.S
-new file mode 100644
-index 0000000..f86ad75
---- /dev/null
-+++ b/arch/csky/abiv1/src/memcpy.S
-@@ -0,0 +1,344 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/linkage.h>
-+
-+.macro	GET_FRONT_BITS rx y
-+#ifdef	__cskyLE__
-+	lsri	\rx, \y
-+#else
-+	lsli	\rx, \y
-+#endif
-+.endm
-+
-+.macro	GET_AFTER_BITS rx y
-+#ifdef	__cskyLE__
-+	lsli	\rx, \y
-+#else
-+	lsri	\rx, \y
-+#endif
-+.endm
-+
-+/* void *memcpy(void *dest, const void *src, size_t n); */
-+ENTRY(memcpy)
-+	mov	r7, r2
-+	cmplti	r4, 4                                   /* If len less than 4 bytes */
-+	bt	.L_copy_by_byte
-+	mov	r6, r2
-+	andi	r6, 3
-+	cmpnei	r6, 0
-+	jbt	.L_dest_not_aligned                     /* If dest is not 4 bytes aligned */
-+	mov	r6, r3
-+	andi	r6, 3
-+	cmpnei	r6, 0
-+	jbt	.L_dest_aligned_but_src_not_aligned     /* If dest is aligned, but src is not aligned */
-+.L0:
-+	cmplti	r4, 16
-+	jbt	.L_aligned_and_len_less_16bytes         /* If len less than 16 bytes */
-+	subi	sp, 8
-+	stw	r8, (sp, 0)
-+.L_aligned_and_len_larger_16bytes:                      /* src and dst are all aligned, and len > 16 bytes */
-+	ldw	r1, (r3, 0)
-+	ldw	r5, (r3, 4)
-+	ldw	r8, (r3, 8)
-+	stw	r1, (r7, 0)
-+	ldw	r1, (r3, 12)
-+	stw	r5, (r7, 4)
-+	stw	r8, (r7, 8)
-+	stw	r1, (r7, 12)
-+	subi	r4, 16
-+	addi	r3, 16
-+	addi	r7, 16
-+	cmplti	r4, 16
-+	jbf	.L_aligned_and_len_larger_16bytes
-+	ldw	r8, (sp, 0)
-+	addi	sp, 8
-+	cmpnei	r4, 0                    /* If len == 0, return, else goto .L_aligned_and_len_less_16bytes  */
-+	jbf	.L_return
-+
-+.L_aligned_and_len_less_16bytes:
-+	cmplti	r4, 4
-+	bt	.L_copy_by_byte
-+.L1:
-+	ldw	r1, (r3, 0)
-+	stw	r1, (r7, 0)
-+	subi	r4, 4
-+	addi	r3, 4
-+	addi	r7, 4
-+	cmplti	r4, 4
-+	jbf	.L1
-+	br	.L_copy_by_byte
-+
-+.L_return:
-+	rts
-+
-+.L_copy_by_byte:                      /* len less than 4 bytes */
-+	cmpnei	r4, 0
-+	jbf	.L_return
-+.L4:
-+	ldb	r1, (r3, 0)
-+	stb	r1, (r7, 0)
-+	addi	r3, 1
-+	addi	r7, 1
-+	decne	r4
-+	jbt	.L4
-+	rts
-+
-+/* If dest is not aligned, just copying some bytes makes the dest align.
-+   Afther that, we judge whether the src is aligned. */
-+.L_dest_not_aligned:
-+	mov	r5, r3
-+	rsub	r5, r5, r7
-+	abs	r5, r5
-+	cmplt	r5, r4
-+	bt	.L_copy_by_byte
-+	mov	r5, r7
-+	sub	r5, r3
-+	cmphs	r5, r4
-+	bf	.L_copy_by_byte
-+	mov	r5, r6
-+.L5:
-+	ldb	r1, (r3, 0)              /* makes the dest align. */
-+	stb	r1, (r7, 0)
-+	addi	r5, 1
-+	subi	r4, 1
-+	addi	r3, 1
-+	addi	r7, 1
-+	cmpnei	r5, 4
-+	jbt	.L5
-+	cmplti	r4, 4
-+	jbt	.L_copy_by_byte
-+	mov	r6, r3                   /* judge whether the src is aligned. */
-+	andi	r6, 3
-+	cmpnei	r6, 0
-+	jbf	.L0
-+
-+/* Judge the number of misaligned, 1, 2, 3? */
-+.L_dest_aligned_but_src_not_aligned:
-+	mov	r5, r3
-+	rsub	r5, r5, r7
-+	abs	r5, r5
-+	cmplt	r5, r4
-+	bt	.L_copy_by_byte
-+	bclri	r3, 0
-+	bclri	r3, 1
-+	ldw	r1, (r3, 0)
-+	addi	r3, 4
-+	cmpnei	r6, 2
-+	bf	.L_dest_aligned_but_src_not_aligned_2bytes
-+	cmpnei	r6, 3
-+	bf	.L_dest_aligned_but_src_not_aligned_3bytes
-+
-+.L_dest_aligned_but_src_not_aligned_1byte:
-+	mov	r5, r7
-+	sub	r5, r3
-+	cmphs	r5, r4
-+	bf	.L_copy_by_byte
-+	cmplti	r4, 16
-+	bf	.L11
-+.L10:                                     /* If the len is less than 16 bytes */
-+	GET_FRONT_BITS r1 8
-+	mov	r5, r1
-+	ldw	r6, (r3, 0)
-+	mov	r1, r6
-+	GET_AFTER_BITS r6 24
-+	or	r5, r6
-+	stw	r5, (r7, 0)
-+	subi	r4, 4
-+	addi	r3, 4
-+	addi	r7, 4
-+	cmplti	r4, 4
-+	bf	.L10
-+	subi	r3, 3
-+	br	.L_copy_by_byte
-+.L11:
-+	subi	sp, 16
-+	stw	r8, (sp, 0)
-+	stw	r9, (sp, 4)
-+	stw	r10, (sp, 8)
-+	stw	r11, (sp, 12)
-+.L12:
-+	ldw	r5, (r3, 0)
-+	ldw	r11, (r3, 4)
-+	ldw	r8, (r3, 8)
-+	ldw	r9, (r3, 12)
-+
-+	GET_FRONT_BITS r1 8               /* little or big endian? */
-+	mov	r10, r5
-+	GET_AFTER_BITS r5 24
-+	or	r5, r1
-+
-+	GET_FRONT_BITS r10 8
-+	mov	r1, r11
-+	GET_AFTER_BITS r11 24
-+	or	r11, r10
-+
-+	GET_FRONT_BITS r1 8
-+	mov	r10, r8
-+	GET_AFTER_BITS r8 24
-+	or	r8, r1
-+
-+	GET_FRONT_BITS r10 8
-+	mov	r1, r9
-+	GET_AFTER_BITS r9 24
-+	or	r9, r10
-+
-+	stw	r5, (r7, 0)
-+	stw	r11, (r7, 4)
-+	stw	r8, (r7, 8)
-+	stw	r9, (r7, 12)
-+	subi	r4, 16
-+	addi	r3, 16
-+	addi	r7, 16
-+	cmplti	r4, 16
-+	jbf	.L12
-+	ldw	r8, (sp, 0)
-+	ldw	r9, (sp, 4)
-+	ldw	r10, (sp, 8)
-+	ldw	r11, (sp, 12)
-+	addi	sp , 16
-+	cmplti	r4, 4
-+	bf	.L10
-+	subi	r3, 3
-+	br	.L_copy_by_byte
-+
-+.L_dest_aligned_but_src_not_aligned_2bytes:
-+	cmplti	r4, 16
-+	bf	.L21
-+.L20:
-+	GET_FRONT_BITS r1 16
-+	mov	r5, r1
-+	ldw	r6, (r3, 0)
-+	mov	r1, r6
-+	GET_AFTER_BITS r6 16
-+	or	r5, r6
-+	stw	r5, (r7, 0)
-+	subi	r4, 4
-+	addi	r3, 4
-+	addi	r7, 4
-+	cmplti	r4, 4
-+	bf	.L20
-+	subi	r3, 2
-+	br	.L_copy_by_byte
-+	rts
-+
-+.L21:	/* n > 16 */
-+	subi 	sp, 16
-+	stw	r8, (sp, 0)
-+	stw	r9, (sp, 4)
-+	stw	r10, (sp, 8)
-+	stw	r11, (sp, 12)
-+
-+.L22:
-+	ldw	r5, (r3, 0)
-+	ldw	r11, (r3, 4)
-+	ldw	r8, (r3, 8)
-+	ldw	r9, (r3, 12)
-+
-+	GET_FRONT_BITS r1 16
-+	mov	r10, r5
-+	GET_AFTER_BITS r5 16
-+	or	r5, r1
-+
-+	GET_FRONT_BITS r10 16
-+	mov	r1, r11
-+	GET_AFTER_BITS r11 16
-+	or	r11, r10
-+
-+	GET_FRONT_BITS r1 16
-+	mov	r10, r8
-+	GET_AFTER_BITS r8 16
-+	or	r8, r1
-+
-+	GET_FRONT_BITS r10 16
-+	mov	r1, r9
-+	GET_AFTER_BITS r9 16
-+	or	r9, r10
-+
-+	stw	r5, (r7, 0)
-+	stw	r11, (r7, 4)
-+	stw	r8, (r7, 8)
-+	stw	r9, (r7, 12)
-+	subi	r4, 16
-+	addi	r3, 16
-+	addi	r7, 16
-+	cmplti	r4, 16
-+	jbf	.L22
-+	ldw	r8, (sp, 0)
-+	ldw	r9, (sp, 4)
-+	ldw	r10, (sp, 8)
-+	ldw	r11, (sp, 12)
-+	addi	sp, 16
-+	cmplti	r4, 4
-+	bf	.L20
-+	subi	r3, 2
-+	br	.L_copy_by_byte
-+
-+
-+.L_dest_aligned_but_src_not_aligned_3bytes:
-+	cmplti	r4, 16
-+	bf	.L31
-+.L30:
-+	GET_FRONT_BITS r1 24
-+	mov	r5, r1
-+	ldw	r6, (r3, 0)
-+	mov	r1, r6
-+	GET_AFTER_BITS r6 8
-+	or	r5, r6
-+	stw	r5, (r7, 0)
-+	subi	r4, 4
-+	addi	r3, 4
-+	addi	r7, 4
-+	cmplti	r4, 4
-+	bf	.L30
-+	subi	r3, 1
-+	br	.L_copy_by_byte
-+.L31:
-+	subi	sp, 16
-+	stw	r8, (sp, 0)
-+	stw	r9, (sp, 4)
-+	stw	r10, (sp, 8)
-+	stw	r11, (sp, 12)
-+.L32:
-+	ldw	r5, (r3, 0)
-+	ldw	r11, (r3, 4)
-+	ldw	r8, (r3, 8)
-+	ldw	r9, (r3, 12)
-+
-+	GET_FRONT_BITS r1 24
-+	mov	r10, r5
-+	GET_AFTER_BITS r5 8
-+	or	r5, r1
-+
-+	GET_FRONT_BITS r10 24
-+	mov	r1, r11
-+	GET_AFTER_BITS r11 8
-+	or	r11, r10
-+
-+	GET_FRONT_BITS r1 24
-+	mov	r10, r8
-+	GET_AFTER_BITS r8 8
-+	or	r8, r1
-+
-+	GET_FRONT_BITS r10 24
-+	mov	r1, r9
-+	GET_AFTER_BITS r9 8
-+	or	r9, r10
-+
-+	stw	r5, (r7, 0)
-+	stw	r11, (r7, 4)
-+	stw	r8, (r7, 8)
-+	stw	r9, (r7, 12)
-+	subi	r4, 16
-+	addi	r3, 16
-+	addi	r7, 16
-+	cmplti	r4, 16
-+	jbf	.L32
-+	ldw	r8, (sp, 0)
-+	ldw	r9, (sp, 4)
-+	ldw	r10, (sp, 8)
-+	ldw	r11, (sp, 12)
-+	addi	sp, 16
-+	cmplti	r4, 4
-+	bf	.L30
-+	subi	r3, 1
-+	br	.L_copy_by_byte
-diff --git a/arch/csky/abiv2/src/fpu.c b/arch/csky/abiv2/src/fpu.c
-new file mode 100644
-index 0000000..2d5d2da
---- /dev/null
-+++ b/arch/csky/abiv2/src/fpu.c
-@@ -0,0 +1,312 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/ptrace.h>
-+#include <linux/uaccess.h>
-+
-+#if 0 /* FIXME: to support fpu exceptions */
-+#define CONFIG_FCR (IDE_STAT | IXE_STAT | UFE_STAT |\
-+		    OFE_STAT | DZE_STAT | IOE_STAT)
-+#else
-+#define CONFIG_FCR 0
-+#endif
-+
-+inline unsigned int
-+read_pt_regs(unsigned int rx, struct pt_regs *regs)
-+{
-+	unsigned int value;
-+
-+	if(rx < 14)
-+		value  = *((int *)regs + rx + 3);
-+	else if(rx == 14)
-+		if(user_mode(regs))
-+			asm volatile("mfcr %0, cr<14, 1>\n":"=r"(value));
-+		else
-+			value = sizeof(struct pt_regs) + ((unsigned int)regs);
-+	else
-+		value = *((int *)regs + rx + 2);
-+
-+	return value;
-+}
-+
-+inline void
-+write_pt_regs(unsigned int value, unsigned int rx, struct pt_regs *regs)
-+{
-+	if(rx < 14)
-+		*((int *)regs + rx + 3) = value;
-+	else if(rx == 14)
-+		if(user_mode(regs))
-+			asm volatile("mtcr %0, cr<14, 1>\n"::"r"(value));
-+		else
-+			printk("math emulate trying to write sp.\n");
-+	else
-+		*((int *)regs + rx + 2) = value;
-+}
-+
-+void __init init_fpu(void)
-+{
-+	unsigned long fcr;
-+
-+	fcr = CONFIG_FCR;
-+	asm volatile("mtcr %0, cr<1, 2>\n"::"r"(fcr));
-+}
-+
-+inline unsigned int read_fpcr(void)
-+{
-+	unsigned int result = 0;
-+	asm volatile("mfcr %0, cr<1, 2>\n":"=r"(result));
-+	return result;
-+}
-+
-+inline void write_fpcr(unsigned int val)
-+{
-+	unsigned int result = val | CONFIG_FCR;
-+	asm volatile("mtcr %0, cr<1, 2>\n"::"r"(result));
-+}
-+
-+inline unsigned int read_fpesr(void)
-+{
-+	unsigned int result = 0;
-+	asm volatile("mfcr %0, cr<2, 2>\n":"=r"(result));
-+	return result;
-+}
-+
-+inline void write_fpesr(unsigned int val)
-+{
-+	unsigned int result = val;
-+	asm volatile("mtcr %0, cr<2, 2>\n"::"r"(result));
-+}
-+
-+/* use as fpc control reg read/write in glibc. */
-+int fpu_libc_helper(struct pt_regs * regs)
-+{
-+	mm_segment_t fs;
-+	unsigned long instrptr, regx = 0;
-+	unsigned int fault;
-+
-+	u16 instr_hi, instr_low;
-+	unsigned long index_regx = 0, index_fpregx_prev = 0, index_fpregx_next = 0;
-+	unsigned long tinstr = 0;
-+
-+	instrptr = instruction_pointer(regs);
-+
-+	/* CSKYV2's 32 bit instruction may not align 4 words */
-+	fs = get_fs();
-+	set_fs(KERNEL_DS);
-+	fault = __get_user(instr_low, (u16 *)(instrptr & ~1));
-+	set_fs(fs);
-+	if (fault) {
-+		goto bad_or_fault;
-+	}
-+
-+	fs = get_fs();
-+	set_fs(KERNEL_DS);
-+	fault = __get_user(instr_hi, (u16 *)((instrptr + 2) & ~1));
-+	set_fs(fs);
-+	if (fault) {
-+		goto bad_or_fault;
-+	}
-+
-+	tinstr = instr_hi | ((unsigned long)instr_low << 16);
-+
-+	index_fpregx_next = ((tinstr >> 21) & 0x1F);
-+
-+	/* just want to handle instruction which opration cr<1, 2> or cr<2, 2> */
-+	if(index_fpregx_next != 2){
-+		goto bad_or_fault;
-+	}
-+
-+	/*
-+	 * define four macro to distinguish the instruction is mfcr or mtcr.
-+	 */
-+#define MTCR_MASK 0xFC00FFE0
-+#define MFCR_MASK 0xFC00FFE0
-+#define MTCR_DISTI 0xC0006420
-+#define MFCR_DISTI 0xC0006020
-+
-+	if ((tinstr & MTCR_MASK) == MTCR_DISTI)
-+	{
-+		index_regx = (tinstr >> 16) & 0x1F;
-+		index_fpregx_prev = tinstr & 0x1F;
-+
-+		regx = read_pt_regs(index_regx, regs);
-+
-+		if(index_fpregx_prev == 1) {
-+			write_fpcr(regx);
-+		} else if (index_fpregx_prev == 2) {
-+			write_fpesr(regx);
-+		} else {
-+			goto bad_or_fault;
-+		}
-+
-+		regs->pc +=4;
-+		return 1;
-+	} else if ((tinstr & MFCR_MASK) == MFCR_DISTI) {
-+		index_regx = tinstr & 0x1F;
-+		index_fpregx_prev = ((tinstr >> 16) & 0x1F);
-+
-+		if (index_fpregx_prev == 1) {
-+			regx = read_fpcr();
-+		} else if (index_fpregx_prev == 2) {
-+			regx = read_fpesr();
-+		} else {
-+			goto bad_or_fault;
-+		}
-+
-+		write_pt_regs(regx, index_regx, regs);
-+
-+		regs->pc +=4;
-+		return 1;
-+	}
-+
-+bad_or_fault:
-+	return 0;
-+}
-+
-+void fpu_fpe(struct pt_regs * regs)
-+{
-+	int sig;
-+	unsigned int fesr;
-+	siginfo_t info;
-+	asm volatile("mfcr %0, cr<2, 2>":"=r"(fesr));
-+
-+	if(fesr & FPE_ILLE){
-+		info.si_code = ILL_ILLOPC;
-+		sig = SIGILL;
-+	}
-+	else if(fesr & FPE_IDC){
-+		info.si_code = ILL_ILLOPN;
-+		sig = SIGILL;
-+	}
-+	else if(fesr & FPE_FEC){
-+		sig = SIGFPE;
-+		if(fesr & FPE_IOC){
-+			info.si_code = FPE_FLTINV;
-+		}
-+		else if(fesr & FPE_DZC){
-+			info.si_code = FPE_FLTDIV;
-+		}
-+		else if(fesr & FPE_UFC){
-+			info.si_code = FPE_FLTUND;
-+		}
-+		else if(fesr & FPE_OFC){
-+			info.si_code = FPE_FLTOVF;
-+		}
-+		else if(fesr & FPE_IXC){
-+			info.si_code = FPE_FLTRES;
-+		}
-+		else {
-+			info.si_code = NSIGFPE;
-+		}
-+	}
-+	else {
-+		info.si_code = NSIGFPE;
-+		sig = SIGFPE;
-+	}
-+	info.si_signo = SIGFPE;
-+	info.si_errno = 0;
-+	info.si_addr = (void *)regs->pc;
-+	force_sig_info(sig, &info, current);
-+}
-+
-+typedef struct fpregset {
-+	int f_fcr;
-+	int f_fsr;		/* Nothing in CPU_CSKYV2 */
-+	int f_fesr;
-+	int f_feinst1;		/* Nothing in CPU_CSKYV2 */
-+	int f_feinst2;		/* Nothing in CPU_CSKYV2 */
-+	int f_fpregs[32];
-+} fpregset_t;
-+
-+int save_fpu_state(struct sigcontext *sc, struct pt_regs *regs)
-+{
-+	int err = 0;
-+	fpregset_t fpregs;
-+	unsigned long flg;
-+	unsigned long tmp1, tmp2, tmp3, tmp4;
-+	int * fpgr;
-+
-+	local_irq_save(flg);
-+	fpgr = &(fpregs.f_fpregs[0]);
-+	asm volatile(
-+		"mfcr    %0, cr<1, 2>\n"
-+		"mfcr    %1, cr<2, 2>\n"
-+		:"=r"(fpregs.f_fcr),"=r"(fpregs.f_fesr));
-+
-+	asm volatile(
-+		FMFVR_FPU_REGS(vr0, vr1)
-+		STW_FPU_REGS(0, 4, 8, 12)
-+		FMFVR_FPU_REGS(vr2, vr3)
-+		STW_FPU_REGS(16, 20, 24, 28)
-+		FMFVR_FPU_REGS(vr4, vr5)
-+		STW_FPU_REGS(32, 36, 40, 44)
-+		FMFVR_FPU_REGS(vr6, vr7)
-+		STW_FPU_REGS(48, 52, 56, 60)
-+		"addi    %4, 32\n"
-+		"addi    %4, 32\n"
-+		FMFVR_FPU_REGS(vr8, vr9)
-+		STW_FPU_REGS(0, 4, 8, 12)
-+		FMFVR_FPU_REGS(vr10, vr11)
-+		STW_FPU_REGS(16, 20, 24, 28)
-+		FMFVR_FPU_REGS(vr12, vr13)
-+		STW_FPU_REGS(32, 36, 40, 44)
-+		FMFVR_FPU_REGS(vr14, vr15)
-+		STW_FPU_REGS(48, 52, 56, 60)
-+		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
-+		"=a"(tmp4),"+a"(fpgr));
-+	local_irq_restore(flg);
-+
-+	err |= copy_to_user(&sc->sc_fcr, &fpregs, sizeof(fpregs));
-+	return err;
-+}
-+
-+int restore_fpu_state(struct sigcontext *sc)
-+{
-+	int err = 0;
-+	fpregset_t fpregs;
-+	unsigned long flg;
-+	unsigned long tmp1, tmp2, tmp3, tmp4;
-+	unsigned long fctl0, fctl1, fctl2;
-+	int * fpgr;
-+
-+	if (__copy_from_user(&fpregs, &sc->sc_fcr, sizeof(fpregs)))
-+	{
-+		err = 1;
-+		goto out;
-+	}
-+
-+	local_irq_save(flg);
-+	fctl0 = fpregs.f_fcr;
-+	fctl1 = fpregs.f_fsr;
-+	fctl2 = fpregs.f_fesr;
-+	fpgr = &(fpregs.f_fpregs[0]);
-+	asm volatile(
-+		"mtcr   %0, cr<1, 2>\n"
-+		"mtcr   %1, cr<2, 2>\n"
-+		::"r"(fctl0), "r"(fctl2));
-+
-+	asm volatile(
-+		LDW_FPU_REGS(0, 4, 8, 12)
-+		FMTVR_FPU_REGS(vr0, vr1)
-+		LDW_FPU_REGS(16, 20, 24, 28)
-+		FMTVR_FPU_REGS(vr2, vr3)
-+		LDW_FPU_REGS(32, 36, 40, 44)
-+		FMTVR_FPU_REGS(vr4, vr5)
-+		LDW_FPU_REGS(48, 52, 56, 60)
-+		FMTVR_FPU_REGS(vr6, vr7)
-+		"addi   %4, 32\n"
-+		"addi   %4, 32\n"
-+		LDW_FPU_REGS(0, 4, 8, 12)
-+		FMTVR_FPU_REGS(vr8, vr9)
-+		LDW_FPU_REGS(16, 20, 24, 28)
-+		FMTVR_FPU_REGS(vr10, vr11)
-+		LDW_FPU_REGS(32, 36, 40, 44)
-+		FMTVR_FPU_REGS(vr12, vr13)
-+		LDW_FPU_REGS(48, 52, 56, 60)
-+		FMTVR_FPU_REGS(vr14, vr15)
-+		:"=a"(tmp1),"=a"(tmp2),"=a"(tmp3),
-+		"=a"(tmp4),"+a"(fpgr));
-+	local_irq_restore(flg);
-+out:
-+	return err;
-+}
-+
-diff --git a/arch/csky/abiv2/src/memcpy.c b/arch/csky/abiv2/src/memcpy.c
-new file mode 100644
-index 0000000..67d8d01
---- /dev/null
-+++ b/arch/csky/abiv2/src/memcpy.c
-@@ -0,0 +1,43 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/types.h>
-+
-+/*
-+ * memory copy function.
-+ */
-+void *memcpy (void *to, const void *from, size_t l)
-+{
-+	char *d = to;
-+	const char *s = from;
-+
-+	if (((long)d | (long)s) & 0x3)
-+	{
-+		while (l--) *d++ = *s++;
-+	}
-+	else
-+	{
-+        	while (l >= 16)
-+		{
-+			*(((long *)d)) = *(((long *)s));
-+			*(((long *)d)+1) = *(((long *)s)+1);
-+			*(((long *)d)+2) = *(((long *)s)+2);
-+			*(((long *)d)+3) = *(((long *)s)+3);
-+			l -= 16;
-+			d += 16;
-+			s += 16;
-+		}
-+		while (l > 3)
-+		{
-+			*(((long *)d)) = *(((long *)s));
-+			d = d +4;
-+			s = s +4;
-+			l -= 4;
-+		}
-+		while (l)
-+		{
-+			*d++ = *s++;
-+			l--;	
-+		}
-+	}
-+	return to;
-+}
-diff --git a/arch/csky/include/asm/bitops.h b/arch/csky/include/asm/bitops.h
-new file mode 100644
-index 0000000..0688786
---- /dev/null
-+++ b/arch/csky/include/asm/bitops.h
-@@ -0,0 +1,83 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_BITOPS_H
-+#define __ASM_CSKY_BITOPS_H
-+
-+#include <linux/irqflags.h>
-+#include <linux/compiler.h>
-+#include <asm/barrier.h>
-+
-+/*
-+ * asm-generic/bitops/ffs.h
-+ */
-+static inline int ffs(int x)
-+{
-+	if(!x) return 0;
-+
-+	asm volatile (
-+		"brev %0\n"
-+		"ff1  %0\n"
-+		"addi %0, 1\n"
-+		:"=r"(x)
-+		:"0"(x));
-+	return x;
-+}
-+
-+/*
-+ * asm-generic/bitops/__ffs.h
-+ */
-+static __always_inline unsigned long __ffs(unsigned long x)
-+{
-+	asm volatile (
-+		"brev %0\n"
-+		"ff1  %0\n"
-+		:"=r"(x)
-+		:"0"(x));
-+	return x;
-+}
-+
-+/*
-+ * asm-generic/bitops/fls.h
-+ */
-+static __always_inline int fls(int x)
-+{
-+	asm volatile(
-+		"ff1 %0\n"
-+		:"=r"(x)
-+		:"0"(x));
-+
-+	return (32 - x);
-+}
-+
-+/*
-+ * asm-generic/bitops/__fls.h
-+ */
-+static __always_inline unsigned long __fls(unsigned long x)
-+{
-+	return fls(x) - 1;
-+}
-+
-+#include <asm-generic/bitops/ffz.h>
-+#include <asm-generic/bitops/fls64.h>
-+#include <asm-generic/bitops/find.h>
-+
-+#ifndef _LINUX_BITOPS_H
-+#error only <linux/bitops.h> can be included directly
-+#endif
-+
-+#include <asm-generic/bitops/sched.h>
-+#include <asm-generic/bitops/hweight.h>
-+#include <asm-generic/bitops/lock.h>
-+
-+#include <asm-generic/bitops/atomic.h>
-+
-+/*
-+ * bug fix, why only could use atomic!!!!
-+ */
-+#include <asm-generic/bitops/non-atomic.h>
-+#define __clear_bit(nr,vaddr) clear_bit(nr,vaddr)
-+
-+#include <asm-generic/bitops/le.h>
-+#include <asm-generic/bitops/ext2-atomic.h>
-+#endif /* __ASM_CSKY_BITOPS_H */
-+
-diff --git a/arch/csky/include/asm/checksum.h b/arch/csky/include/asm/checksum.h
-new file mode 100644
-index 0000000..3f7d255
---- /dev/null
-+++ b/arch/csky/include/asm/checksum.h
-@@ -0,0 +1,77 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef __ASM_CSKY_CHECKSUM_H
-+#define __ASM_CSKY_CHECKSUM_H
-+
-+#include <linux/in6.h>
-+#include <asm/byteorder.h>
-+
-+static inline __sum16 csum_fold(__wsum csum)
-+{
-+	u32 tmp;
-+	asm volatile(
-+		"mov	%1, %0\n"
-+		"rori	%0, 16\n"
-+		"addu	%0, %1\n"
-+		"lsri	%0, 16\n"
-+		:"=r"(csum), "=r"(tmp)
-+		:"0"(csum));
-+	return (__force __sum16)~csum;
-+}
-+#define csum_fold csum_fold
-+
-+static inline __wsum
-+csum_tcpudp_nofold(
-+	__be32 saddr,
-+	__be32 daddr,
-+	unsigned short len,
-+	unsigned short proto,
-+	__wsum sum
-+	)
-+{
-+	asm volatile(
-+		"clrc\n"
-+		"addc    %0, %1\n"
-+		"addc    %0, %2\n"
-+		"addc    %0, %3\n"
-+		"inct    %0\n"
-+		:"=r"(sum)
-+		:"r"((__force u32)saddr),
-+		"r"((__force u32)daddr),
-+#ifdef __BIG_ENDIAN
-+		"r"(proto + len),
-+#else
-+		"r"((proto + len) << 8),
-+#endif
-+		"0" ((__force unsigned long)sum)
-+		:"cc");
-+	return sum;
-+}
-+#define csum_tcpudp_nofold csum_tcpudp_nofold
-+
-+static __inline__ __sum16
-+csum_ipv6_magic(
-+	const struct in6_addr *saddr,
-+	const struct in6_addr *daddr,
-+	__u32 len,
-+	unsigned short proto,
-+	__wsum sum
-+	)
-+{
-+	sum += saddr->in6_u.u6_addr32[0];
-+	sum += saddr->in6_u.u6_addr32[1];
-+	sum += saddr->in6_u.u6_addr32[2];
-+	sum += saddr->in6_u.u6_addr32[3];
-+	sum += daddr->in6_u.u6_addr32[0];
-+	sum += daddr->in6_u.u6_addr32[1];
-+	sum += daddr->in6_u.u6_addr32[2];
-+	sum += daddr->in6_u.u6_addr32[3];
-+	sum += (len + proto);
-+
-+	return csum_fold(sum);
-+}
-+#define _HAVE_ARCH_IPV6_CSUM
-+
-+#include <asm-generic/checksum.h>
-+
-+#endif /* __ASM_CSKY_CHECKSUM_H */
-diff --git a/arch/csky/include/asm/string.h b/arch/csky/include/asm/string.h
-new file mode 100644
-index 0000000..2c4878b
---- /dev/null
-+++ b/arch/csky/include/asm/string.h
-@@ -0,0 +1,19 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#ifndef _CSKY_STRING_MM_H_
-+#define _CSKY_STRING_MM_H_
-+
-+#ifndef __ASSEMBLY__
-+#include <linux/types.h>
-+#include <linux/compiler.h>
-+
-+#define __HAVE_ARCH_MEMCPY
-+extern void * memcpy(void *to, const void *from, size_t l);
-+
-+/* New and improved.  In arch/csky/lib/memset.c */
-+#define __HAVE_ARCH_MEMSET
-+extern void * memset(void *dest, int c, size_t l);
-+
-+#endif
-+
-+#endif /* _CSKY_STRING_MM_H_ */
-diff --git a/arch/csky/kernel/asm-offsets.c b/arch/csky/kernel/asm-offsets.c
-new file mode 100644
-index 0000000..767fa9c
---- /dev/null
-+++ b/arch/csky/kernel/asm-offsets.c
-@@ -0,0 +1,86 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/sched.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/kbuild.h>
-+#include <abi/regdef.h>
-+
-+int main(void)
-+{
-+	/* offsets into the task struct */
-+	DEFINE(TASK_STATE,        offsetof(struct task_struct, state));
-+	DEFINE(TASK_THREAD_INFO,  offsetof(struct task_struct, stack));
-+	DEFINE(TASK_FLAGS,        offsetof(struct task_struct, flags));
-+	DEFINE(TASK_PTRACE,       offsetof(struct task_struct, ptrace));
-+	DEFINE(TASK_THREAD,       offsetof(struct task_struct, thread));
-+	DEFINE(TASK_MM,           offsetof(struct task_struct, mm));
-+	DEFINE(TASK_ACTIVE_MM,    offsetof(struct task_struct, active_mm));
-+
-+	/* offsets into the thread struct */
-+	DEFINE(THREAD_KSP,        offsetof(struct thread_struct, ksp));
-+	DEFINE(THREAD_USP,        offsetof(struct thread_struct, usp));
-+	DEFINE(THREAD_SR,         offsetof(struct thread_struct, sr));
-+	DEFINE(THREAD_ESP0,       offsetof(struct thread_struct, esp0));
-+	DEFINE(THREAD_FESR,       offsetof(struct thread_struct, fesr));
-+	DEFINE(THREAD_FSR,        offsetof(struct thread_struct, fsr));
-+	DEFINE(THREAD_FCR,        offsetof(struct thread_struct, fcr));
-+	DEFINE(THREAD_FPREG,      offsetof(struct thread_struct, fp));
-+	DEFINE(THREAD_DSPHI,      offsetof(struct thread_struct, hi));
-+	DEFINE(THREAD_DSPLO,      offsetof(struct thread_struct, lo));
-+
-+	/* offsets into the thread_info struct */
-+	DEFINE(TINFO_FLAGS,       offsetof(struct thread_info, flags));
-+	DEFINE(TINFO_PREEMPT,     offsetof(struct thread_info, preempt_count));
-+	DEFINE(TINFO_ADDR_LIMIT,  offsetof(struct thread_info, addr_limit));
-+	DEFINE(TINFO_TP_VALUE,   offsetof(struct thread_info, tp_value));
-+	DEFINE(TINFO_TASK,        offsetof(struct thread_info, task));
-+
-+	/* offsets into the pt_regs */
-+	DEFINE(PT_PC,             offsetof(struct pt_regs, pc));
-+	DEFINE(PT_ORIG_AO,        offsetof(struct pt_regs, orig_a0));
-+	DEFINE(PT_SR,             offsetof(struct pt_regs, sr));
-+
-+	DEFINE(PT_A0,             offsetof(struct pt_regs, a0));
-+	DEFINE(PT_A1,             offsetof(struct pt_regs, a1));
-+	DEFINE(PT_A2,             offsetof(struct pt_regs, a2));
-+	DEFINE(PT_A3,             offsetof(struct pt_regs, a3));
-+	DEFINE(PT_REGS0,          offsetof(struct pt_regs, regs[0]));
-+	DEFINE(PT_REGS1,          offsetof(struct pt_regs, regs[1]));
-+	DEFINE(PT_REGS2,          offsetof(struct pt_regs, regs[2]));
-+	DEFINE(PT_REGS3,          offsetof(struct pt_regs, regs[3]));
-+	DEFINE(PT_REGS4,          offsetof(struct pt_regs, regs[4]));
-+	DEFINE(PT_REGS5,          offsetof(struct pt_regs, regs[5]));
-+	DEFINE(PT_REGS6,          offsetof(struct pt_regs, regs[6]));
-+	DEFINE(PT_REGS7,          offsetof(struct pt_regs, regs[7]));
-+	DEFINE(PT_REGS8,          offsetof(struct pt_regs, regs[8]));
-+	DEFINE(PT_REGS9,          offsetof(struct pt_regs, regs[9]));
-+	DEFINE(PT_R15,            offsetof(struct pt_regs, r15));
-+#if defined(__CSKYABIV2__)
-+	DEFINE(PT_R16,            offsetof(struct pt_regs, exregs[0]));
-+	DEFINE(PT_R17,            offsetof(struct pt_regs, exregs[1]));
-+	DEFINE(PT_R18,            offsetof(struct pt_regs, exregs[2]));
-+	DEFINE(PT_R19,            offsetof(struct pt_regs, exregs[3]));
-+	DEFINE(PT_R20,            offsetof(struct pt_regs, exregs[4]));
-+	DEFINE(PT_R21,            offsetof(struct pt_regs, exregs[5]));
-+	DEFINE(PT_R22,            offsetof(struct pt_regs, exregs[6]));
-+	DEFINE(PT_R23,            offsetof(struct pt_regs, exregs[7]));
-+	DEFINE(PT_R24,            offsetof(struct pt_regs, exregs[8]));
-+	DEFINE(PT_R25,            offsetof(struct pt_regs, exregs[9]));
-+	DEFINE(PT_R26,            offsetof(struct pt_regs, exregs[10]));
-+	DEFINE(PT_R27,            offsetof(struct pt_regs, exregs[11]));
-+	DEFINE(PT_R28,            offsetof(struct pt_regs, exregs[12]));
-+	DEFINE(PT_R29,            offsetof(struct pt_regs, exregs[13]));
-+	DEFINE(PT_R30,            offsetof(struct pt_regs, exregs[14]));
-+	DEFINE(PT_R31,            offsetof(struct pt_regs, exregs[15]));
-+	DEFINE(PT_RHI,            offsetof(struct pt_regs, rhi));
-+	DEFINE(PT_RLO,            offsetof(struct pt_regs, rlo));
-+#endif
-+	/* offsets into the irq_cpustat_t struct */
-+	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t, __softirq_pending));
-+
-+	/* signal defines */
-+	DEFINE(SIGSEGV, SIGSEGV);
-+	DEFINE(SIGTRAP, SIGTRAP);
-+
-+	return 0;
-+}
-diff --git a/arch/csky/kernel/cskyksyms.c b/arch/csky/kernel/cskyksyms.c
-new file mode 100644
-index 0000000..3f13594
---- /dev/null
-+++ b/arch/csky/kernel/cskyksyms.c
-@@ -0,0 +1,31 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
-+#include <asm/cacheflush.h>
-+
-+/*
-+ * Defined in libgcc
-+ *
-+ * See arch/csky/Makefile:
-+ *	-print-libgcc-file-name
-+ */
-+extern void __ashldi3 (void);
-+extern void __ashrdi3 (void);
-+extern void __lshrdi3 (void);
-+extern void __muldi3 (void);
-+extern void __ucmpdi2 (void);
-+EXPORT_SYMBOL(__ashldi3);
-+EXPORT_SYMBOL(__ashrdi3);
-+EXPORT_SYMBOL(__lshrdi3);
-+EXPORT_SYMBOL(__muldi3);
-+EXPORT_SYMBOL(__ucmpdi2);
-+
-+/*
-+ * Defined in abiv1/src/memcpy.S
-+ * and abiv2/src/memcpy.c
-+ */
-+EXPORT_SYMBOL(memcpy);
-+
-+/* Defined in lib/memset.c */
-+EXPORT_SYMBOL(memset);
-diff --git a/arch/csky/kernel/platform.c b/arch/csky/kernel/platform.c
-new file mode 100644
-index 0000000..f51654f
---- /dev/null
-+++ b/arch/csky/kernel/platform.c
-@@ -0,0 +1,18 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/init.h>
-+#include <linux/of_platform.h>
-+#include <linux/of_address.h>
-+#include <linux/of_fdt.h>
-+#include <linux/err.h>
-+#include <linux/slab.h>
-+#include <linux/sys_soc.h>
-+#include <linux/io.h>
-+
-+static int __init csky_platform_init(void)
-+{
-+	return of_platform_default_populate(NULL, NULL, NULL);
-+}
-+device_initcall(csky_platform_init);
-+
-+
-diff --git a/arch/csky/kernel/power.c b/arch/csky/kernel/power.c
-new file mode 100644
-index 0000000..d35e882
---- /dev/null
-+++ b/arch/csky/kernel/power.c
-@@ -0,0 +1,31 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/reboot.h>
-+
-+void (*pm_power_off)(void);
-+EXPORT_SYMBOL(pm_power_off);
-+
-+void machine_power_off(void)
-+{
-+	local_irq_disable();
-+	if (pm_power_off)
-+		pm_power_off();
-+	asm volatile ("bkpt");
-+}
-+
-+void machine_halt(void)
-+{
-+	local_irq_disable();
-+	if (pm_power_off)
-+		pm_power_off();
-+	asm volatile ("bkpt");
-+}
-+
-+void machine_restart(char *cmd)
-+{
-+	local_irq_disable();
-+	do_kernel_restart(cmd);
-+	asm volatile ("bkpt");
-+}
-+
-+
-diff --git a/arch/csky/lib/delay.c b/arch/csky/lib/delay.c
-new file mode 100644
-index 0000000..34766a4
---- /dev/null
-+++ b/arch/csky/lib/delay.c
-@@ -0,0 +1,40 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/kernel.h>
-+#include <linux/module.h>
-+#include <linux/init.h>
-+
-+void __delay(unsigned long loops)
-+{
-+       asm volatile (
-+		"mov r0, r0\n"
-+		"1:declt %0\n"
-+		"bf	1b"
-+                :"=r"(loops)
-+	        :"0"(loops));
-+}
-+EXPORT_SYMBOL(__delay);
-+
-+extern unsigned long loops_per_jiffy;
-+
-+void __const_udelay(unsigned long xloops)
-+{
-+	unsigned long long loops;
-+
-+	loops = (unsigned long long)xloops * loops_per_jiffy * HZ;
-+
-+	__delay(loops >> 32);
-+}
-+EXPORT_SYMBOL(__const_udelay);
-+
-+void __udelay(unsigned long usecs)
-+{
-+	__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
-+}
-+EXPORT_SYMBOL(__udelay);
-+
-+void __ndelay(unsigned long nsecs)
-+{
-+	__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
-+}
-+EXPORT_SYMBOL(__ndelay);
-diff --git a/arch/csky/lib/memset.c b/arch/csky/lib/memset.c
-new file mode 100644
-index 0000000..b7897af
---- /dev/null
-+++ b/arch/csky/lib/memset.c
-@@ -0,0 +1,38 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/types.h>
-+
-+void *memset(void *dest, int c, size_t l)
-+{
-+	char *d = dest;
-+	int ch = c;
-+	int tmp;
-+
-+	if ((long)d & 0x3)
-+		while (l--) *d++ = ch;
-+	else {
-+		ch &= 0xff;
-+		tmp = (ch | ch << 8 | ch << 16 | ch << 24);
-+
-+		while (l >= 16) {
-+			*(((long *)d)) = tmp;
-+			*(((long *)d)+1) = tmp;
-+			*(((long *)d)+2) = tmp;
-+			*(((long *)d)+3) = tmp;
-+			l -= 16;
-+			d += 16;
-+		}
-+
-+		while (l > 3) {
-+			*(((long *)d)) = tmp;
-+			d = d + 4;
-+			l -= 4;
-+		}
-+
-+		while (l) {
-+			*d++ = ch;
-+			l--;
-+		}
-+	}
-+	return dest;
-+}
-diff --git a/arch/csky/lib/usercopy.c b/arch/csky/lib/usercopy.c
-new file mode 100644
-index 0000000..ace4190
---- /dev/null
-+++ b/arch/csky/lib/usercopy.c
-@@ -0,0 +1,271 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/uaccess.h>
-+#include <linux/types.h>
-+
-+unsigned long
-+raw_copy_from_user(
-+		void *to,
-+		const void *from,
-+		unsigned long n)
-+{
-+	if (access_ok(VERIFY_READ, from, n))
-+		__copy_user_zeroing(to,from,n); 
-+	else
-+		memset(to,0, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(raw_copy_from_user);
-+
-+unsigned long
-+raw_copy_to_user(
-+		void *to,
-+		const void *from,
-+		unsigned long n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n))
-+		__copy_user(to,from,n);
-+	return n;
-+}
-+EXPORT_SYMBOL(raw_copy_to_user);
-+
-+
-+/*
-+ * copy a null terminated string from userspace.	
-+ */
-+#define __do_strncpy_from_user(dst,src,count,res)       \
-+do{                                                     \
-+        int tmp;                                        \
-+        long faultres;                                  \
-+        asm volatile(                           \
-+        "       cmpnei  %3, 0           \n"             \
-+        "       bf      4f              \n"             \
-+        "1:     cmpnei  %1, 0          	\n"             \
-+        "       bf      5f              \n"             \
-+        "2:     ldb     %4, (%3, 0)     \n"             \
-+        "       stb     %4, (%2, 0)     \n"             \
-+        "       cmpnei  %4, 0           \n"             \
-+        "       bf      3f              \n"             \
-+        "       addi    %3,  1          \n"             \
-+        "       addi    %2,  1          \n"             \
-+        "       subi    %1,  1          \n"             \
-+        "       br      1b              \n"             \
-+        "3:     subu	%0, %1          \n"             \
-+        "       br      5f              \n"             \
-+        "4:     mov     %0, %5          \n"             \
-+        "       br      5f              \n"             \
-+        ".section __ex_table, \"a\"     \n"             \
-+        ".align   2                     \n"             \
-+        ".long    2b, 4b                \n"             \
-+        ".previous                      \n"             \
-+        "5:                             \n"             \
-+          :"=r"(res),"=r"(count),"=r"(dst),"=r"(src), "=r"(tmp),"=r"(faultres) \
-+          : "5"(-EFAULT),"0"(count), "1"(count), "2"(dst),"3"(src)     	       \
-+          : "memory" );	                                \
-+} while(0)		
-+
-+/*
-+ * __strncpy_from_user: - Copy a NUL terminated string from userspace, with less checking.
-+ * @dst:   Destination address, in kernel space.  This buffer must be at
-+ *         least @count bytes long.
-+ * @src:   Source address, in user space.
-+ * @count: Maximum number of bytes to copy, including the trailing NUL.
-+ * 
-+ * Copies a NUL-terminated string from userspace to kernel space.
-+ * Caller must check the specified block with access_ok() before calling
-+ * this function.
-+ *
-+ * On success, returns the length of the string (not including the trailing
-+ * NUL).
-+ *
-+ * If access to userspace fails, returns -EFAULT (some data may have been
-+ * copied).
-+ *
-+ * If @count is smaller than the length of the string, copies @count bytes
-+ * and returns @count.
-+ */
-+long
-+__strncpy_from_user(
-+	char *dst,
-+	const char *src,
-+	long count)
-+{
-+	long res;
-+	__do_strncpy_from_user(dst, src, count, res);
-+	return res;
-+}
-+EXPORT_SYMBOL(__strncpy_from_user);
-+
-+/*
-+ * strncpy_from_user: - Copy a NUL terminated string from userspace.
-+ * @dst:   Destination address, in kernel space.  This buffer must be at
-+ *         least @count bytes long.
-+ * @src:   Source address, in user space.
-+ * @count: Maximum number of bytes to copy, including the trailing NUL.
-+ * 
-+ * Copies a NUL-terminated string from userspace to kernel space.
-+ *
-+ * On success, returns the length of the string (not including the trailing
-+ * NUL).
-+ *
-+ * If access to userspace fails, returns -EFAULT (some data may have been
-+ * copied).
-+ *
-+ * If @count is smaller than the length of the string, copies @count bytes
-+ * and returns @count.
-+ */
-+long
-+strncpy_from_user(
-+	char *dst,
-+	const char *src,
-+	long count)
-+{
-+	long res = -EFAULT;
-+	if (access_ok(VERIFY_READ, src, 1))
-+		__do_strncpy_from_user(dst, src, count, res);
-+	return res;
-+}
-+EXPORT_SYMBOL(strncpy_from_user);
-+
-+/*
-+ * strlen_user: - Get the size of a string in user space.
-+ * @str: The string to measure.
-+ * @n:   The maximum valid length
-+ *
-+ * Get the size of a NUL-terminated string in user space.
-+ *
-+ * Returns the size of the string INCLUDING the terminating NUL.
-+ * On exception, returns 0.
-+ * If the string is too long, returns a value greater than @n.
-+ */
-+long strnlen_user(const char *s, long n)
-+{
-+
-+	unsigned long res,tmp;
-+	if(s){
-+	asm volatile(
-+        "       cmpnei  %1, 0           \n"
-+        "       bf      3f              \n"
-+        "1:     cmpnei  %0, 0           \n"              
-+        "       bf      3f              \n"
-+        "2:     ldb     %3, (%1, 0)     \n"             
-+        "       cmpnei  %3, 0           \n"             
-+        "       bf      3f              \n"             
-+        "       subi    %0,  1          \n"             
-+        "       addi    %1,  1          \n"             
-+        "       br      1b              \n"
-+        "3:     subu    %2, %0          \n"
-+        "       addi    %2,  1          \n"             
-+        "       br      5f              \n"             
-+        "4:     movi    %0, 0           \n"             
-+        "       br      5f              \n"             
-+        ".section __ex_table, \"a\"     \n"             
-+        ".align   2                     \n"
-+        ".long    2b, 4b                \n"             
-+        ".previous                      \n"             
-+        "5:                             \n"             
-+        :"=r"(n),"=r"(s), "=r"(res), "=r"(tmp)   
-+        : "0"(n), "1"(s), "2"(n)      
-+        : "cc" );
-+		return res;     
-+	}
-+	return 0;     
-+}
-+EXPORT_SYMBOL(strnlen_user);
-+
-+#define __do_clear_user(addr, size)                             \
-+do {                                                            \
-+	int __d0;                                               \
-+	int zvalue;                                             \
-+	int tmp;                                                \
-+	asm volatile(						\
-+		"0:     cmpnei  %1, 0           \n"             \
-+		"       bf      7f              \n"             \
-+		"       mov     %3, %1          \n"             \
-+		"       andi    %3, 3           \n"             \
-+		"       cmpnei  %3, 0           \n"             \
-+		"       bf      1f              \n"             \
-+		"       br      5f              \n"             \
-+		"1:     cmplti  %0, 32          \n"   /* 4W */  \
-+		"       bt      3f              \n"             \
-+		"8:     stw     %2, (%1, 0)     \n"             \
-+		"10:    stw     %2, (%1, 4)     \n"             \
-+		"11:    stw     %2, (%1, 8)     \n"             \
-+		"12:    stw     %2, (%1, 12)    \n"             \
-+		"13:    stw     %2, (%1, 16)    \n"             \
-+		"14:    stw     %2, (%1, 20)    \n"             \
-+		"15:    stw     %2, (%1, 24)    \n"             \
-+		"16:    stw     %2, (%1, 28)    \n"             \
-+		"       addi    %1, 32          \n"             \
-+		"       subi    %0, 32          \n"             \
-+		"       br      1b              \n"             \
-+		"3:     cmplti  %0, 4           \n"  /* 1W */   \
-+		"       bt      5f              \n"             \
-+		"4:     stw     %2, (%1, 0)     \n"             \
-+		"       addi    %1, 4           \n"             \
-+		"       subi    %0, 4           \n"             \
-+		"       br      3b              \n"             \
-+		"5:     cmpnei  %0, 0           \n"  /* 1B */   \
-+		"9:     bf      7f              \n"             \
-+		"6:     stb     %2, (%1, 0)     \n"             \
-+		"       addi    %1,  1          \n"             \
-+		"       subi    %0,  1          \n"             \
-+		"       br      5b              \n"             \
-+		".section __ex_table,\"a\"      \n"             \
-+		".align   2                     \n"             \
-+		".long    8b, 9b                \n"             \
-+		".long    10b, 9b               \n"             \
-+		".long    11b, 9b               \n"             \
-+		".long    12b, 9b               \n"             \
-+		".long    13b, 9b               \n"             \
-+		".long    14b, 9b               \n"             \
-+		".long    15b, 9b               \n"             \
-+		".long    16b, 9b               \n"             \
-+		".long    4b, 9b                \n"             \
-+		".long    6b, 9b                \n"             \
-+		".previous                      \n"             \
-+		"7:                             \n"             \
-+		: "=r"(size), "=r" (__d0), "=r"(zvalue), "=r"(tmp) \
-+		: "0"(size), "1"(addr), "2"(0)                  \
-+		: "memory"                                      \
-+	);                                                      \
-+} while (0)
-+
-+/*
-+ * clear_user: - Zero a block of memory in user space.
-+ * @to:   Destination address, in user space.
-+ * @n:    Number of bytes to zero.
-+ *
-+ * Zero a block of memory in user space.
-+ *
-+ * Returns number of bytes that could not be cleared.
-+ * On success, this will be zero.
-+ */	
-+unsigned long 
-+clear_user(void __user *to, unsigned long n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n))
-+		__do_clear_user(to, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(clear_user);
-+
-+/*
-+ * __clear_user: - Zero a block of memory in user space, with less checking.
-+ * @to:   Destination address, in user space.
-+ * @n:    Number of bytes to zero.
-+ *
-+ * Zero a block of memory in user space.  Caller must check
-+ * the specified block with access_ok() before calling this function.
-+ *
-+ * Returns number of bytes that could not be cleared.
-+ * On success, this will be zero.
-+ */
-+unsigned long
-+__clear_user(void __user *to, unsigned long n)
-+{
-+	__do_clear_user(to, n);
-+	return n;
-+}
-+EXPORT_SYMBOL(__clear_user);
-+
-diff --git a/arch/csky/oprofile/init.c b/arch/csky/oprofile/init.c
-new file mode 100644
-index 0000000..413ad18
---- /dev/null
-+++ b/arch/csky/oprofile/init.c
-@@ -0,0 +1,16 @@
-+// SPDX-License-Identifier: GPL-2.0
-+// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
-+#include <linux/kernel.h>
-+#include <linux/oprofile.h>
-+#include <linux/errno.h>
-+#include <linux/init.h>
-+
-+int __init oprofile_arch_init(struct oprofile_operations *ops)
-+{
-+	return oprofile_perf_init(ops);
-+}
-+
-+void oprofile_arch_exit(void)
-+{
-+	oprofile_perf_exit();
-+}
++++ b/arch/csky/configs/qemu_ck807_defconfig
+@@ -0,0 +1,541 @@
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_DEFAULT_HOSTNAME="github.com/c-sky"
++# CONFIG_SWAP is not set
++CONFIG_SYSVIPC=y
++CONFIG_POSIX_MQUEUE=y
++# CONFIG_FHANDLE is not set
++CONFIG_USELIB=y
++CONFIG_AUDIT=y
++CONFIG_IRQ_DOMAIN_DEBUG=y
++CONFIG_NO_HZ_IDLE=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_BSD_PROCESS_ACCT=y
++CONFIG_BSD_PROCESS_ACCT_V3=y
++CONFIG_RELAY=y
++CONFIG_SYSCTL_SYSCALL=y
++CONFIG_KALLSYMS_ALL=y
++# CONFIG_AIO is not set
++CONFIG_USERFAULTFD=y
++CONFIG_EMBEDDED=y
++# CONFIG_PERF_EVENTS is not set
++# CONFIG_SLUB_DEBUG is not set
++# CONFIG_COMPAT_BRK is not set
++CONFIG_PROFILING=y
++CONFIG_OPROFILE=y
++CONFIG_MODULES=y
++CONFIG_MODULE_UNLOAD=y
++CONFIG_BLK_DEV_BSGLIB=y
++CONFIG_BLK_DEV_INTEGRITY=y
++CONFIG_PARTITION_ADVANCED=y
++CONFIG_ACORN_PARTITION=y
++CONFIG_ACORN_PARTITION_ICS=y
++CONFIG_ACORN_PARTITION_RISCIX=y
++CONFIG_AIX_PARTITION=y
++CONFIG_OSF_PARTITION=y
++CONFIG_AMIGA_PARTITION=y
++CONFIG_ATARI_PARTITION=y
++CONFIG_MAC_PARTITION=y
++CONFIG_BSD_DISKLABEL=y
++CONFIG_MINIX_SUBPARTITION=y
++CONFIG_SOLARIS_X86_PARTITION=y
++CONFIG_UNIXWARE_DISKLABEL=y
++CONFIG_LDM_PARTITION=y
++CONFIG_SGI_PARTITION=y
++CONFIG_ULTRIX_PARTITION=y
++CONFIG_SUN_PARTITION=y
++CONFIG_KARMA_PARTITION=y
++CONFIG_SYSV68_PARTITION=y
++CONFIG_CMDLINE_PARTITION=y
++CONFIG_DEFAULT_DEADLINE=y
++CONFIG_NATIONALCHIP_TIMER=y
++CONFIG_NATIONALCHIP_IRQ=y
++CONFIG_CSKY_IRQ=y
++CONFIG_CSKYMAC=y
++CONFIG_CPU_CK807=y
++CONFIG_CPU_HAS_FPU=y
++CONFIG_RAM_BASE=0x0
++# CONFIG_SUSPEND is not set
++# CONFIG_COMPACTION is not set
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++CONFIG_IP_MULTICAST=y
++CONFIG_IP_PNP=y
++CONFIG_IP_PNP_DHCP=y
++CONFIG_IP_PNP_BOOTP=y
++CONFIG_IP_PNP_RARP=y
++# CONFIG_IPV6 is not set
++# CONFIG_WIRELESS is not set
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++# CONFIG_STANDALONE is not set
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_SIZE=65536
++CONFIG_VIRTIO_BLK=y
++CONFIG_AD525X_DPOT=m
++CONFIG_AD525X_DPOT_I2C=m
++CONFIG_DUMMY_IRQ=m
++CONFIG_ICS932S401=m
++CONFIG_ENCLOSURE_SERVICES=m
++CONFIG_APDS9802ALS=m
++CONFIG_ISL29003=m
++CONFIG_ISL29020=m
++CONFIG_SENSORS_TSL2550=m
++CONFIG_SENSORS_BH1770=m
++CONFIG_SENSORS_APDS990X=m
++CONFIG_HMC6352=m
++CONFIG_DS1682=m
++CONFIG_USB_SWITCH_FSA9480=m
++CONFIG_SRAM=y
++CONFIG_C2PORT=m
++CONFIG_EEPROM_AT24=m
++CONFIG_EEPROM_LEGACY=m
++CONFIG_EEPROM_MAX6875=m
++CONFIG_EEPROM_93CX6=m
++CONFIG_SENSORS_LIS3_I2C=m
++CONFIG_ALTERA_STAPL=m
++CONFIG_ECHO=m
++CONFIG_SCSI=y
++# CONFIG_SCSI_PROC_FS is not set
++CONFIG_BLK_DEV_SD=y
++CONFIG_SCSI_SPI_ATTRS=y
++CONFIG_SCSI_SAS_LIBSAS=m
++CONFIG_SCSI_SRP_ATTRS=m
++# CONFIG_SCSI_LOWLEVEL is not set
++CONFIG_NETDEVICES=y
++# CONFIG_NET_VENDOR_ARC is not set
++# CONFIG_NET_CADENCE is not set
++# CONFIG_NET_VENDOR_BROADCOM is not set
++# CONFIG_NET_VENDOR_EZCHIP is not set
++# CONFIG_NET_VENDOR_INTEL is not set
++# CONFIG_NET_VENDOR_MARVELL is not set
++# CONFIG_NET_VENDOR_MICREL is not set
++# CONFIG_NET_VENDOR_NATSEMI is not set
++# CONFIG_NET_VENDOR_NETRONOME is not set
++# CONFIG_NET_VENDOR_QUALCOMM is not set
++# CONFIG_NET_VENDOR_RENESAS is not set
++# CONFIG_NET_VENDOR_ROCKER is not set
++# CONFIG_NET_VENDOR_SAMSUNG is not set
++# CONFIG_NET_VENDOR_SEEQ is not set
++CONFIG_STMMAC_ETH=y
++# CONFIG_NET_VENDOR_SYNOPSYS is not set
++# CONFIG_NET_VENDOR_VIA is not set
++# CONFIG_NET_VENDOR_WIZNET is not set
++# CONFIG_USB_NET_DRIVERS is not set
++# CONFIG_WLAN is not set
++CONFIG_INPUT_SPARSEKMAP=m
++CONFIG_INPUT_JOYDEV=m
++CONFIG_INPUT_EVDEV=y
++CONFIG_INPUT_EVBUG=m
++CONFIG_KEYBOARD_ADP5588=m
++CONFIG_KEYBOARD_ADP5589=m
++CONFIG_KEYBOARD_QT1070=m
++CONFIG_KEYBOARD_QT2160=m
++CONFIG_KEYBOARD_LKKBD=m
++CONFIG_KEYBOARD_TCA6416=m
++CONFIG_KEYBOARD_TCA8418=m
++CONFIG_KEYBOARD_LM8323=m
++CONFIG_KEYBOARD_LM8333=m
++CONFIG_KEYBOARD_MAX7359=m
++CONFIG_KEYBOARD_MCS=m
++CONFIG_KEYBOARD_MPR121=m
++CONFIG_KEYBOARD_NEWTON=m
++CONFIG_KEYBOARD_OPENCORES=m
++CONFIG_KEYBOARD_STOWAWAY=m
++CONFIG_KEYBOARD_SUNKBD=m
++CONFIG_KEYBOARD_XTKBD=m
++CONFIG_MOUSE_PS2=m
++CONFIG_MOUSE_PS2_ELANTECH=y
++CONFIG_MOUSE_PS2_SENTELIC=y
++CONFIG_MOUSE_PS2_TOUCHKIT=y
++CONFIG_MOUSE_SERIAL=m
++CONFIG_MOUSE_CYAPA=m
++CONFIG_MOUSE_VSXXXAA=m
++CONFIG_MOUSE_SYNAPTICS_I2C=m
++CONFIG_INPUT_JOYSTICK=y
++CONFIG_JOYSTICK_ANALOG=m
++CONFIG_JOYSTICK_A3D=m
++CONFIG_JOYSTICK_ADI=m
++CONFIG_JOYSTICK_COBRA=m
++CONFIG_JOYSTICK_GF2K=m
++CONFIG_JOYSTICK_GRIP=m
++CONFIG_JOYSTICK_GRIP_MP=m
++CONFIG_JOYSTICK_GUILLEMOT=m
++CONFIG_JOYSTICK_INTERACT=m
++CONFIG_JOYSTICK_SIDEWINDER=m
++CONFIG_JOYSTICK_TMDC=m
++CONFIG_JOYSTICK_IFORCE=m
++CONFIG_JOYSTICK_IFORCE_232=y
++CONFIG_JOYSTICK_WARRIOR=m
++CONFIG_JOYSTICK_MAGELLAN=m
++CONFIG_JOYSTICK_SPACEORB=m
++CONFIG_JOYSTICK_SPACEBALL=m
++CONFIG_JOYSTICK_STINGER=m
++CONFIG_JOYSTICK_TWIDJOY=m
++CONFIG_JOYSTICK_ZHENHUA=m
++CONFIG_JOYSTICK_AS5011=m
++CONFIG_JOYSTICK_JOYDUMP=m
++CONFIG_INPUT_TABLET=y
++CONFIG_INPUT_TOUCHSCREEN=y
++CONFIG_TOUCHSCREEN_AD7879=m
++CONFIG_TOUCHSCREEN_AD7879_I2C=m
++CONFIG_TOUCHSCREEN_ATMEL_MXT=m
++CONFIG_TOUCHSCREEN_BU21013=m
++CONFIG_TOUCHSCREEN_CYTTSP_CORE=m
++CONFIG_TOUCHSCREEN_CYTTSP_I2C=m
++CONFIG_TOUCHSCREEN_CYTTSP4_CORE=m
++CONFIG_TOUCHSCREEN_CYTTSP4_I2C=m
++CONFIG_TOUCHSCREEN_DYNAPRO=m
++CONFIG_TOUCHSCREEN_HAMPSHIRE=m
++CONFIG_TOUCHSCREEN_EETI=m
++CONFIG_TOUCHSCREEN_FUJITSU=m
++CONFIG_TOUCHSCREEN_ILI210X=m
++CONFIG_TOUCHSCREEN_GUNZE=m
++CONFIG_TOUCHSCREEN_ELO=m
++CONFIG_TOUCHSCREEN_WACOM_W8001=m
++CONFIG_TOUCHSCREEN_WACOM_I2C=m
++CONFIG_TOUCHSCREEN_MAX11801=m
++CONFIG_TOUCHSCREEN_MCS5000=m
++CONFIG_TOUCHSCREEN_MMS114=m
++CONFIG_TOUCHSCREEN_MTOUCH=m
++CONFIG_TOUCHSCREEN_INEXIO=m
++CONFIG_TOUCHSCREEN_MK712=m
++CONFIG_TOUCHSCREEN_PENMOUNT=m
++CONFIG_TOUCHSCREEN_EDT_FT5X06=m
++CONFIG_TOUCHSCREEN_TOUCHRIGHT=m
++CONFIG_TOUCHSCREEN_TOUCHWIN=m
++CONFIG_TOUCHSCREEN_PIXCIR=m
++CONFIG_TOUCHSCREEN_TOUCHIT213=m
++CONFIG_TOUCHSCREEN_TSC_SERIO=m
++CONFIG_TOUCHSCREEN_TSC2007=m
++CONFIG_TOUCHSCREEN_ST1232=m
++CONFIG_TOUCHSCREEN_TPS6507X=m
++CONFIG_INPUT_MISC=y
++CONFIG_INPUT_AD714X=m
++CONFIG_INPUT_BMA150=m
++CONFIG_INPUT_MMA8450=m
++CONFIG_INPUT_MPU3050=m
++CONFIG_INPUT_KXTJ9=m
++CONFIG_INPUT_UINPUT=y
++CONFIG_INPUT_PCF8574=m
++CONFIG_INPUT_ADXL34X=m
++CONFIG_INPUT_CMA3000=m
++CONFIG_INPUT_CMA3000_I2C=m
++CONFIG_SERIO_SERPORT=m
++CONFIG_SERIO_RAW=m
++CONFIG_SERIO_ALTERA_PS2=m
++CONFIG_SERIO_PS2MULT=m
++CONFIG_SERIO_ARC_PS2=m
++CONFIG_GAMEPORT_NS558=m
++CONFIG_GAMEPORT_L4=m
++CONFIG_VT_HW_CONSOLE_BINDING=y
++CONFIG_SERIAL_NONSTANDARD=y
++# CONFIG_DEVKMEM is not set
++CONFIG_SERIAL_8250=y
++# CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
++CONFIG_SERIAL_8250_CONSOLE=y
++CONFIG_SERIAL_OF_PLATFORM=y
++CONFIG_TTY_PRINTK=y
++CONFIG_VIRTIO_CONSOLE=y
++CONFIG_IPMI_HANDLER=y
++CONFIG_IPMI_DEVICE_INTERFACE=m
++CONFIG_IPMI_SI=m
++CONFIG_IPMI_WATCHDOG=m
++CONFIG_IPMI_POWEROFF=m
++CONFIG_HW_RANDOM=y
++CONFIG_HW_RANDOM_TIMERIOMEM=m
++CONFIG_HW_RANDOM_VIRTIO=m
++CONFIG_HW_RANDOM_TPM=m
++CONFIG_TCG_TIS_I2C_ATMEL=m
++CONFIG_TCG_TIS_I2C_INFINEON=m
++CONFIG_TCG_TIS_I2C_NUVOTON=m
++CONFIG_TCG_ATMEL=m
++CONFIG_I2C_CHARDEV=m
++CONFIG_I2C_MUX_PCA9541=m
++CONFIG_I2C_DESIGNWARE_PLATFORM=m
++CONFIG_I2C_OCORES=m
++CONFIG_I2C_PCA_PLATFORM=m
++CONFIG_I2C_SIMTEC=m
++CONFIG_I2C_XILINX=m
++CONFIG_I2C_PARPORT_LIGHT=m
++CONFIG_I2C_TAOS_EVM=m
++CONFIG_I2C_STUB=m
++CONFIG_PPS_CLIENT_LDISC=m
++CONFIG_PPS_CLIENT_GPIO=m
++CONFIG_POWER_RESET=y
++# CONFIG_HWMON is not set
++CONFIG_SSB=m
++CONFIG_BCMA=m
++CONFIG_BCMA_HOST_SOC=y
++CONFIG_BCMA_DRIVER_GMAC_CMN=y
++CONFIG_MEDIA_SUPPORT=y
++CONFIG_MEDIA_CAMERA_SUPPORT=y
++CONFIG_MEDIA_USB_SUPPORT=y
++CONFIG_USB_VIDEO_CLASS=y
++# CONFIG_USB_GSPCA is not set
++CONFIG_BACKLIGHT_LCD_SUPPORT=y
++CONFIG_LCD_PLATFORM=m
++CONFIG_BACKLIGHT_CLASS_DEVICE=y
++CONFIG_BACKLIGHT_GENERIC=m
++CONFIG_BACKLIGHT_ADP8860=m
++CONFIG_BACKLIGHT_ADP8870=m
++CONFIG_BACKLIGHT_LM3639=m
++CONFIG_BACKLIGHT_LV5207LP=m
++CONFIG_BACKLIGHT_BD6107=m
++# CONFIG_VGA_CONSOLE is not set
++# CONFIG_HID_GENERIC is not set
++CONFIG_HID_A4TECH=m
++CONFIG_HID_ACRUX=m
++CONFIG_HID_ACRUX_FF=y
++CONFIG_HID_APPLE=m
++CONFIG_HID_AUREAL=m
++CONFIG_HID_BELKIN=m
++CONFIG_HID_CHERRY=m
++CONFIG_HID_CHICONY=m
++CONFIG_HID_CYPRESS=m
++CONFIG_HID_DRAGONRISE=m
++CONFIG_DRAGONRISE_FF=y
++CONFIG_HID_EMS_FF=m
++CONFIG_HID_ELECOM=m
++CONFIG_HID_EZKEY=m
++CONFIG_HID_KEYTOUCH=m
++CONFIG_HID_KYE=m
++CONFIG_HID_WALTOP=m
++CONFIG_HID_GYRATION=m
++CONFIG_HID_ICADE=m
++CONFIG_HID_TWINHAN=m
++CONFIG_HID_KENSINGTON=m
++CONFIG_HID_LCPOWER=m
++CONFIG_HID_LOGITECH=m
++CONFIG_HID_LOGITECH_HIDPP=m
++CONFIG_LOGITECH_FF=y
++CONFIG_LOGIRUMBLEPAD2_FF=y
++CONFIG_LOGIG940_FF=y
++CONFIG_HID_MAGICMOUSE=m
++CONFIG_HID_MICROSOFT=m
++CONFIG_HID_MONTEREY=m
++CONFIG_HID_MULTITOUCH=m
++CONFIG_HID_ORTEK=m
++CONFIG_HID_PANTHERLORD=m
++CONFIG_PANTHERLORD_FF=y
++CONFIG_HID_PETALYNX=m
++CONFIG_HID_PICOLCD=m
++CONFIG_HID_PICOLCD_BACKLIGHT=y
++CONFIG_HID_PICOLCD_LCD=y
++CONFIG_HID_PICOLCD_LEDS=y
++CONFIG_HID_PRIMAX=m
++CONFIG_HID_SAITEK=m
++CONFIG_HID_SAMSUNG=m
++CONFIG_HID_SPEEDLINK=m
++CONFIG_HID_STEELSERIES=m
++CONFIG_HID_SUNPLUS=m
++CONFIG_HID_RMI=m
++CONFIG_HID_GREENASIA=m
++CONFIG_GREENASIA_FF=y
++CONFIG_HID_SMARTJOYPLUS=m
++CONFIG_SMARTJOYPLUS_FF=y
++CONFIG_HID_TIVO=m
++CONFIG_HID_TOPSEED=m
++CONFIG_HID_THINGM=m
++CONFIG_HID_THRUSTMASTER=m
++CONFIG_THRUSTMASTER_FF=y
++CONFIG_HID_WACOM=m
++CONFIG_HID_WIIMOTE=m
++CONFIG_HID_XINMO=m
++CONFIG_HID_ZEROPLUS=m
++CONFIG_ZEROPLUS_FF=y
++CONFIG_HID_ZYDACRON=m
++CONFIG_HID_SENSOR_HUB=m
++CONFIG_I2C_HID=m
++CONFIG_USB=y
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_EHCI_HCD_PLATFORM=y
++CONFIG_USB_OHCI_HCD=y
++CONFIG_USB_STORAGE=y
++CONFIG_LEDS_CLASS=y
++CONFIG_LEDS_LM3530=m
++CONFIG_LEDS_LM3642=m
++CONFIG_LEDS_PCA9532=m
++CONFIG_LEDS_LP3944=m
++CONFIG_LEDS_LP5521=m
++CONFIG_LEDS_LP5523=m
++CONFIG_LEDS_LP5562=m
++CONFIG_LEDS_LP8501=m
++CONFIG_LEDS_PCA955X=m
++CONFIG_LEDS_PCA963X=m
++CONFIG_LEDS_BD2802=m
++CONFIG_LEDS_TCA6507=m
++CONFIG_LEDS_LM355x=m
++CONFIG_LEDS_BLINKM=m
++CONFIG_LEDS_TRIGGER_TIMER=m
++CONFIG_LEDS_TRIGGER_ONESHOT=m
++CONFIG_LEDS_TRIGGER_HEARTBEAT=m
++CONFIG_LEDS_TRIGGER_BACKLIGHT=m
++CONFIG_LEDS_TRIGGER_CPU=y
++CONFIG_LEDS_TRIGGER_DEFAULT_ON=m
++CONFIG_LEDS_TRIGGER_TRANSIENT=m
++CONFIG_LEDS_TRIGGER_CAMERA=m
++CONFIG_VIRTIO_BALLOON=y
++CONFIG_VIRTIO_MMIO=y
++CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES=y
++# CONFIG_IOMMU_SUPPORT is not set
++CONFIG_STE_MODEM_RPROC=m
++CONFIG_PM_DEVFREQ=y
++CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
++CONFIG_DEVFREQ_GOV_PERFORMANCE=y
++CONFIG_DEVFREQ_GOV_POWERSAVE=y
++CONFIG_DEVFREQ_GOV_USERSPACE=y
++CONFIG_GENERIC_PHY=y
++CONFIG_EXT2_FS=y
++CONFIG_EXT2_FS_XATTR=y
++CONFIG_EXT2_FS_POSIX_ACL=y
++CONFIG_EXT2_FS_SECURITY=y
++CONFIG_EXT3_FS=y
++CONFIG_EXT3_FS_POSIX_ACL=y
++CONFIG_EXT3_FS_SECURITY=y
++CONFIG_FANOTIFY=y
++CONFIG_FANOTIFY_ACCESS_PERMISSIONS=y
++CONFIG_QUOTA=y
++# CONFIG_PRINT_QUOTA_WARNING is not set
++CONFIG_FSCACHE=m
++CONFIG_FSCACHE_STATS=y
++CONFIG_CACHEFILES=m
++CONFIG_MSDOS_FS=y
++CONFIG_VFAT_FS=y
++CONFIG_FAT_DEFAULT_UTF8=y
++CONFIG_NTFS_FS=y
++CONFIG_PROC_KCORE=y
++CONFIG_PROC_CHILDREN=y
++CONFIG_TMPFS=y
++CONFIG_TMPFS_POSIX_ACL=y
++CONFIG_CONFIGFS_FS=y
++CONFIG_CRAMFS=y
++CONFIG_ROMFS_FS=y
++CONFIG_NFS_FS=y
++CONFIG_ROOT_NFS=y
++CONFIG_NLS_DEFAULT="utf8"
++CONFIG_NLS_CODEPAGE_437=y
++CONFIG_NLS_CODEPAGE_737=y
++CONFIG_NLS_CODEPAGE_775=y
++CONFIG_NLS_CODEPAGE_850=y
++CONFIG_NLS_CODEPAGE_852=y
++CONFIG_NLS_CODEPAGE_855=y
++CONFIG_NLS_CODEPAGE_857=y
++CONFIG_NLS_CODEPAGE_860=y
++CONFIG_NLS_CODEPAGE_861=y
++CONFIG_NLS_CODEPAGE_863=y
++CONFIG_NLS_CODEPAGE_864=y
++CONFIG_NLS_CODEPAGE_865=y
++CONFIG_NLS_CODEPAGE_866=y
++CONFIG_NLS_CODEPAGE_869=y
++CONFIG_NLS_CODEPAGE_936=y
++CONFIG_NLS_CODEPAGE_950=y
++CONFIG_NLS_CODEPAGE_932=y
++CONFIG_NLS_CODEPAGE_949=m
++CONFIG_NLS_CODEPAGE_874=m
++CONFIG_NLS_ISO8859_8=m
++CONFIG_NLS_CODEPAGE_1250=y
++CONFIG_NLS_CODEPAGE_1251=y
++CONFIG_NLS_ASCII=m
++CONFIG_NLS_ISO8859_1=y
++CONFIG_NLS_ISO8859_2=m
++CONFIG_NLS_ISO8859_3=m
++CONFIG_NLS_ISO8859_4=m
++CONFIG_NLS_ISO8859_5=m
++CONFIG_NLS_ISO8859_6=m
++CONFIG_NLS_ISO8859_7=m
++CONFIG_NLS_ISO8859_9=m
++CONFIG_NLS_ISO8859_13=m
++CONFIG_NLS_ISO8859_14=m
++CONFIG_NLS_ISO8859_15=m
++CONFIG_NLS_KOI8_R=m
++CONFIG_NLS_KOI8_U=m
++CONFIG_NLS_MAC_ROMAN=m
++CONFIG_NLS_MAC_CELTIC=m
++CONFIG_NLS_MAC_CENTEURO=m
++CONFIG_NLS_MAC_CROATIAN=m
++CONFIG_NLS_MAC_CYRILLIC=m
++CONFIG_NLS_MAC_GAELIC=m
++CONFIG_NLS_MAC_GREEK=m
++CONFIG_NLS_MAC_ICELAND=m
++CONFIG_NLS_MAC_INUIT=m
++CONFIG_NLS_MAC_ROMANIAN=m
++CONFIG_NLS_MAC_TURKISH=m
++CONFIG_NLS_UTF8=y
++CONFIG_PRINTK_TIME=y
++CONFIG_DEBUG_INFO=y
++# CONFIG_ENABLE_WARN_DEPRECATED is not set
++# CONFIG_ENABLE_MUST_CHECK is not set
++CONFIG_UNUSED_SYMBOLS=y
++CONFIG_DEBUG_FS=y
++CONFIG_MAGIC_SYSRQ=y
++CONFIG_LOCKUP_DETECTOR=y
++# CONFIG_SCHED_DEBUG is not set
++CONFIG_RBTREE_TEST=m
++CONFIG_INTERVAL_TREE_TEST=m
++CONFIG_PERCPU_TEST=m
++CONFIG_TEST_STRING_HELPERS=m
++CONFIG_TEST_KSTRTOX=m
++CONFIG_PERSISTENT_KEYRINGS=y
++CONFIG_TRUSTED_KEYS=y
++CONFIG_SECURITY=y
++CONFIG_SECURITY_NETWORK=y
++CONFIG_SECURITY_PATH=y
++CONFIG_SECURITY_YAMA=y
++CONFIG_INTEGRITY_SIGNATURE=y
++CONFIG_INTEGRITY_ASYMMETRIC_KEYS=y
++CONFIG_IMA=y
++CONFIG_IMA_APPRAISE=y
++CONFIG_EVM=y
++CONFIG_CRYPTO_CRYPTD=m
++CONFIG_CRYPTO_AUTHENC=m
++CONFIG_CRYPTO_TEST=m
++CONFIG_CRYPTO_CCM=m
++CONFIG_CRYPTO_GCM=m
++CONFIG_CRYPTO_CTS=m
++CONFIG_CRYPTO_ECB=y
++CONFIG_CRYPTO_LRW=m
++CONFIG_CRYPTO_PCBC=m
++CONFIG_CRYPTO_XTS=m
++CONFIG_CRYPTO_CMAC=m
++CONFIG_CRYPTO_XCBC=m
++CONFIG_CRYPTO_VMAC=m
++CONFIG_CRYPTO_CRC32=m
++CONFIG_CRYPTO_MD4=m
++CONFIG_CRYPTO_MICHAEL_MIC=m
++CONFIG_CRYPTO_RMD128=m
++CONFIG_CRYPTO_RMD160=m
++CONFIG_CRYPTO_RMD256=m
++CONFIG_CRYPTO_RMD320=m
++CONFIG_CRYPTO_SHA512=y
++CONFIG_CRYPTO_TGR192=m
++CONFIG_CRYPTO_WP512=m
++CONFIG_CRYPTO_ANUBIS=m
++CONFIG_CRYPTO_ARC4=m
++CONFIG_CRYPTO_BLOWFISH=m
++CONFIG_CRYPTO_CAMELLIA=m
++CONFIG_CRYPTO_CAST5=m
++CONFIG_CRYPTO_CAST6=m
++CONFIG_CRYPTO_DES=m
++CONFIG_CRYPTO_FCRYPT=m
++CONFIG_CRYPTO_KHAZAD=m
++CONFIG_CRYPTO_SALSA20=m
++CONFIG_CRYPTO_SEED=m
++CONFIG_CRYPTO_SERPENT=m
++CONFIG_CRYPTO_TEA=m
++CONFIG_CRYPTO_TWOFISH=m
++CONFIG_CRYPTO_DEFLATE=m
++CONFIG_CRYPTO_LZO=y
++CONFIG_CRYPTO_LZ4=m
++CONFIG_CRYPTO_LZ4HC=m
++CONFIG_CRYPTO_ANSI_CPRNG=m
++CONFIG_CRC_CCITT=m
++CONFIG_CRC7=m
++CONFIG_LIBCRC32C=m
++CONFIG_CRC8=m
++CONFIG_XZ_DEC=y
++CONFIG_XZ_DEC_TEST=m
++CONFIG_CORDIC=m
++CONFIG_DDR=y
 -- 
 2.7.4
