@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:32878 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:34152 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1754141AbeCRTww (ORCPT
+        by vger.kernel.org with ESMTP id S1754549AbeCRTwx (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 18 Mar 2018 15:52:52 -0400
+        Sun, 18 Mar 2018 15:52:53 -0400
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: [PATCH 18/19] clocksource: add timer-nationalchip.c
-Date: Mon, 19 Mar 2018 03:51:40 +0800
-Message-ID: <04f5a0702fc14e934e6f5a456cad8682d0b15aa2.1521399976.git.ren_guo@c-sky.com>
+Subject: [PATCH 19/19] irqchip: add irq-nationalchip.c and irq-csky.c
+Date: Mon, 19 Mar 2018 03:51:41 +0800
+Message-ID: <62e687d3eb67505aa6f4d4d01ce268fd432bf58e.1521399976.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1521399976.git.ren_guo@c-sky.com>
 References: <cover.1521399976.git.ren_guo@c-sky.com>
 In-Reply-To: <cover.1521399976.git.ren_guo@c-sky.com>
@@ -16,178 +16,384 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de
 Cc: c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org, Guo Ren <ren_guo@c-sky.com>
-Message-ID: <20180318195140.WAdjr2R04UaSvCXJylzr2yQ8jF6v-RoYHziZrkgLmLM@z>
+Message-ID: <20180318195141.z5tUbKbv1h2fW4c4iaAIn95kqxnfOM5epHx25yLg4z0@z>
 
 Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 ---
- drivers/clocksource/Makefile             |   1 +
- drivers/clocksource/timer-nationalchip.c | 149 +++++++++++++++++++++++++++++++
- 2 files changed, 150 insertions(+)
- create mode 100644 drivers/clocksource/timer-nationalchip.c
+ drivers/irqchip/Makefile           |   1 +
+ drivers/irqchip/irq-csky.c         | 151 ++++++++++++++++++++++++++++
+ drivers/irqchip/irq-nationalchip.c | 196 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 348 insertions(+)
+ create mode 100644 drivers/irqchip/irq-csky.c
+ create mode 100644 drivers/irqchip/irq-nationalchip.c
 
-diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
-index d6dec44..d091712 100644
---- a/drivers/clocksource/Makefile
-+++ b/drivers/clocksource/Makefile
-@@ -76,3 +76,4 @@ obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
- obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
- obj-$(CONFIG_CLKSRC_ST_LPC)		+= clksrc_st_lpc.o
- obj-$(CONFIG_X86_NUMACHIP)		+= numachip.o
-+obj-$(CONFIG_CSKY)			+= timer-nationalchip.o
-diff --git a/drivers/clocksource/timer-nationalchip.c b/drivers/clocksource/timer-nationalchip.c
+diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
+index d27e3e3..7b98917 100644
+--- a/drivers/irqchip/Makefile
++++ b/drivers/irqchip/Makefile
+@@ -85,3 +85,4 @@ obj-$(CONFIG_IRQ_UNIPHIER_AIDET)	+= irq-uniphier-aidet.o
+ obj-$(CONFIG_ARCH_SYNQUACER)		+= irq-sni-exiu.o
+ obj-$(CONFIG_MESON_IRQ_GPIO)		+= irq-meson-gpio.o
+ obj-$(CONFIG_GOLDFISH_PIC) 		+= irq-goldfish-pic.o
++obj-$(CONFIG_CSKY)			+= irq-csky.o irq-nationalchip.o
+diff --git a/drivers/irqchip/irq-csky.c b/drivers/irqchip/irq-csky.c
 new file mode 100644
-index 0000000..1279d64
+index 0000000..77041e3
 --- /dev/null
-+++ b/drivers/clocksource/timer-nationalchip.c
-@@ -0,0 +1,149 @@
++++ b/drivers/irqchip/irq-csky.c
+@@ -0,0 +1,151 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (C) 2018 Hangzhou C-SKY Microsystems co.,ltd.
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/module.h>
++#include <linux/irqdomain.h>
++#include <linux/irqchip.h>
++#include <linux/irq.h>
++#include <linux/interrupt.h>
++#include <asm/irq.h>
++#include <asm/io.h>
++
++static unsigned int intc_reg;
++
++#define CK_VA_INTC_ICR		(void *)(intc_reg + 0x00)	/* Interrupt control register(High 16bits) */
++#define CK_VA_INTC_ISR		(void *)(intc_reg + 0x00)	/* Interrupt status register(Low 16bits) */
++#define CK_VA_INTC_NEN31_00	(void *)(intc_reg + 0x10)	/* Normal interrupt enable register Low */
++#define	CK_VA_INTC_NEN63_32	(void *)(intc_reg + 0x28)	/* Normal interrupt enable register High */
++#define CK_VA_INTC_IFR31_00	(void *)(intc_reg + 0x08)	/* Normal interrupt force register Low */
++#define CK_VA_INTC_IFR63_32	(void *)(intc_reg + 0x20)	/* Normal interrupt force register High */
++#define	CK_VA_INTC_SOURCE	(void *)(intc_reg + 0x40)	/* Proiority Level Select Registers 0 */
++
++static void ck_irq_mask(struct irq_data *d)
++{
++	unsigned int temp, irq;
++
++	irq = d->irq;
++
++	if (irq < 32) {
++		temp = __raw_readl(CK_VA_INTC_NEN31_00);
++		temp &= ~(1 << irq);
++		__raw_writel(temp, CK_VA_INTC_NEN31_00);
++	} else {
++		temp = __raw_readl(CK_VA_INTC_NEN63_32);
++		temp &= ~(1 << (irq -32));
++		__raw_writel(temp, CK_VA_INTC_NEN63_32);
++	}
++}
++
++static void ck_irq_unmask(struct irq_data *d)
++{
++	unsigned int temp, irq;
++
++	irq = d->irq;
++
++	/* set IFR to support rising edge triggering */
++	if (irq < 32) {
++		temp = __raw_readl(CK_VA_INTC_IFR31_00);
++		temp &= ~(1 << irq);
++		__raw_writel(temp, CK_VA_INTC_IFR31_00);
++	} else {
++		temp = __raw_readl(CK_VA_INTC_IFR63_32);
++		temp &= ~(1 << (irq -32));
++		__raw_writel(temp, CK_VA_INTC_IFR63_32);
++	}
++
++	if (irq < 32) {
++		temp = __raw_readl(CK_VA_INTC_NEN31_00);
++		temp |= 1 << irq;
++		__raw_writel(temp, CK_VA_INTC_NEN31_00);
++	} else {
++		temp = __raw_readl(CK_VA_INTC_NEN63_32);
++		temp |= 1 << (irq -32);
++		__raw_writel(temp, CK_VA_INTC_NEN63_32);
++	}
++}
++
++static struct irq_chip ck_irq_chip = {
++	.name		= "csky_intc_v1",
++	.irq_mask	= ck_irq_mask,
++	.irq_unmask	= ck_irq_unmask,
++};
++
++static int ck_irq_map(struct irq_domain *h, unsigned int virq,
++				irq_hw_number_t hw_irq_num)
++{
++	irq_set_chip_and_handler(virq, &ck_irq_chip, handle_level_irq);
++	return 0;
++}
++
++static const struct irq_domain_ops ck_irq_ops = {
++	.map	= ck_irq_map,
++	.xlate	= irq_domain_xlate_onecell,
++};
++
++static unsigned int ck_get_irqno(void)
++{
++	unsigned int temp;
++	temp = __raw_readl(CK_VA_INTC_ISR);
++	return temp & 0x3f;
++};
++
++static int __init
++__intc_init(struct device_node *np, struct device_node *parent, bool ave)
++{
++	struct irq_domain *root_domain;
++	int i;
++
++	csky_get_auto_irqno = ck_get_irqno;
++
++	if (parent)
++		panic("pic not a root intc\n");
++
++	intc_reg = (unsigned int)of_iomap(np, 0);
++	if (!intc_reg)
++		panic("%s, of_iomap err.\n", __func__);
++
++	__raw_writel(0, CK_VA_INTC_NEN31_00);
++	__raw_writel(0,	CK_VA_INTC_NEN63_32);
++
++	if (ave == true)
++		__raw_writel( 0xc0000000, CK_VA_INTC_ICR);
++	else
++		__raw_writel( 0x0, CK_VA_INTC_ICR);
++	/*
++	 * csky irq ctrl has 64 sources.
++	 */
++	#define INTC_IRQS 64
++	for (i=0; i<INTC_IRQS; i=i+4)
++		__raw_writel((i+3)|((i+2)<<8)|((i+1)<<16)|(i<<24),
++				CK_VA_INTC_SOURCE + i);
++
++	root_domain = irq_domain_add_legacy(np, INTC_IRQS, 0, 0, &ck_irq_ops, NULL);
++	if (!root_domain)
++		panic("root irq domain not available\n");
++
++	irq_set_default_host(root_domain);
++
++	return 0;
++}
++
++static int __init
++intc_init(struct device_node *np, struct device_node *parent)
++{
++
++	return __intc_init(np, parent, false);
++}
++IRQCHIP_DECLARE(csky_intc_v1, "csky,intc-v1", intc_init);
++
++/*
++ * use auto vector exceptions 10 for interrupt.
++ */
++static int __init
++intc_init_ave(struct device_node *np, struct device_node *parent)
++{
++	return __intc_init(np, parent, true);
++}
++IRQCHIP_DECLARE(csky_intc_v1_ave, "csky,intc-v1,ave", intc_init_ave);
++
+diff --git a/drivers/irqchip/irq-nationalchip.c b/drivers/irqchip/irq-nationalchip.c
+new file mode 100644
+index 0000000..8c09ebd
+--- /dev/null
++++ b/drivers/irqchip/irq-nationalchip.c
+@@ -0,0 +1,196 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (C) 2018 Hangzhou NationalChip Science & Technology Co.,Ltd.
 +#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/param.h>
 +#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/profile.h>
-+#include <linux/irq.h>
-+#include <linux/rtc.h>
-+#include <linux/sizes.h>
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <asm/irq.h>
-+#include <asm/io.h>
-+#include <asm/delay.h>
 +#include <linux/of.h>
 +#include <linux/of_address.h>
-+#include <linux/of_irq.h>
-+#include <linux/sched_clock.h>
++#include <linux/module.h>
++#include <linux/irqdomain.h>
++#include <linux/irqchip.h>
++#include <linux/irq.h>
++#include <linux/interrupt.h>
++#include <asm/irq.h>
++#include <asm/io.h>
 +
-+#define NC_VA_COUNTER_1_STATUS		(void *)(timer_reg + 0x00)
-+#define NC_VA_COUNTER_1_VALUE		(void *)(timer_reg + 0x04)
-+#define NC_VA_COUNTER_1_CONTROL		(void *)(timer_reg + 0x10)
-+#define NC_VA_COUNTER_1_CONFIG		(void *)(timer_reg + 0x20)
-+#define NC_VA_COUNTER_1_PRE		(void *)(timer_reg + 0x24)
-+#define NC_VA_COUNTER_1_INI		(void *)(timer_reg + 0x28)
-+#define NC_VA_COUNTER_2_STATUS		(void *)(timer_reg + 0x40)
-+#define NC_VA_COUNTER_2_VALUE		(void *)(timer_reg + 0x44)
-+#define NC_VA_COUNTER_2_CONTROL		(void *)(timer_reg + 0x50)
-+#define NC_VA_COUNTER_2_CONFIG		(void *)(timer_reg + 0x60)
-+#define NC_VA_COUNTER_2_PRE		(void *)(timer_reg + 0x64)
-+#define NC_VA_COUNTER_2_INI		(void *)(timer_reg + 0x68)
-+#define NC_VA_COUNTER_3_STATUS		(void *)(timer_reg + 0x80)
-+#define NC_VA_COUNTER_3_VALUE		(void *)(timer_reg + 0x84)
-+#define NC_VA_COUNTER_3_CONTROL		(void *)(timer_reg + 0x90)
-+#define NC_VA_COUNTER_3_CONFIG		(void *)(timer_reg + 0xa0)
-+#define NC_VA_COUNTER_3_PRE		(void *)(timer_reg + 0xa4)
-+#define NC_VA_COUNTER_3_INI		(void *)(timer_reg + 0xa8)
++#define NC_VA_INTC_NINT31_00		(void *)(intc_reg + 0x00)
++#define NC_VA_INTC_NINT63_32		(void *)(intc_reg + 0x04)
++#define NC_VA_INTC_NPEND31_00		(void *)(intc_reg + 0x10)
++#define NC_VA_INTC_NPEND63_32		(void *)(intc_reg + 0x14)
++#define NC_VA_INTC_NENSET31_00		(void *)(intc_reg + 0x20)
++#define NC_VA_INTC_NENSET63_32		(void *)(intc_reg + 0x24)
++#define NC_VA_INTC_NENCLR31_00		(void *)(intc_reg + 0x30)
++#define NC_VA_INTC_NENCLR63_32		(void *)(intc_reg + 0x34)
++#define NC_VA_INTC_NEN31_00		(void *)(intc_reg + 0x40)
++#define NC_VA_INTC_NEN63_32		(void *)(intc_reg + 0x44)
++#define NC_VA_INTC_NMASK31_00		(void *)(intc_reg + 0x50)
++#define NC_VA_INTC_NMASK63_32		(void *)(intc_reg + 0x54)
++#define NC_VA_INTC_SOURCE		(void *)(intc_reg + 0x60)
 +
-+static unsigned int timer_reg;
++static unsigned int intc_reg;
 +
-+static inline void timer_reset(void)
++static void nc_irq_mask(struct irq_data *d)
 +{
-+	__raw_writel(0x1,	NC_VA_COUNTER_1_CONTROL);
-+	__raw_writel(0x0,	NC_VA_COUNTER_1_CONTROL);
-+	__raw_writel(0x3,	NC_VA_COUNTER_1_CONFIG);
-+	__raw_writel(26,	NC_VA_COUNTER_1_PRE);
++	unsigned int mask, irq;
++
++	irq = d->irq;
++
++	if (irq < 32) {
++		mask = __raw_readl(NC_VA_INTC_NMASK31_00);
++		mask |= 1 << irq;
++		__raw_writel(mask, NC_VA_INTC_NMASK31_00);
++	} else {
++		mask = __raw_readl(NC_VA_INTC_NMASK63_32);
++		mask |= 1 << (irq - 32);
++		__raw_writel(mask, NC_VA_INTC_NMASK63_32);
++	}
 +}
 +
-+static irqreturn_t timer_interrupt(int irq, void *dev_id)
++static void nc_irq_unmask(struct irq_data *d)
 +{
-+	struct clock_event_device *dev = (struct clock_event_device *) dev_id;
++	unsigned int mask, irq;
 +
-+	__raw_writel(1, NC_VA_COUNTER_1_STATUS);
++	irq = d->irq;
 +
-+	dev->event_handler(dev);
-+
-+	return IRQ_HANDLED;
++	if (irq < 32) {
++		mask = __raw_readl(NC_VA_INTC_NMASK31_00);
++		mask &= ~( 1 << irq);
++		__raw_writel(mask, NC_VA_INTC_NMASK31_00);
++	} else {
++		mask = __raw_readl( NC_VA_INTC_NMASK63_32);
++		mask &= ~(1 << (irq - 32));
++		__raw_writel(mask, NC_VA_INTC_NMASK63_32);
++	}
 +}
 +
-+static int nc_timer_set_periodic(struct clock_event_device *dev)
++static void nc_irq_en(struct irq_data *d)
 +{
-+	timer_reset();
++	unsigned int mask, irq;
 +
-+	__raw_writel(0xFFFFD8EF, NC_VA_COUNTER_1_INI);
-+	__raw_writel(0x2, NC_VA_COUNTER_1_CONTROL);
++	irq = d->irq;
 +
-+	return 0;
++	if (irq < 32) {
++		mask = 1 << irq;
++		__raw_writel(mask, NC_VA_INTC_NENSET31_00);
++	} else {
++		mask = 1 << (irq - 32);
++		__raw_writel(mask, NC_VA_INTC_NENSET63_32);
++	}
++
++	nc_irq_unmask(d);
 +}
 +
-+static int nc_timer_set_next_event(unsigned long delta, struct clock_event_device *evt)
++static void nc_irq_dis(struct irq_data *d)
 +{
-+	__raw_writel(0x1,		NC_VA_COUNTER_1_CONTROL);
-+	__raw_writel(ULONG_MAX - delta, NC_VA_COUNTER_1_INI);
-+	__raw_writel(0x2,		NC_VA_COUNTER_1_CONTROL);
-+	return 0;
++	unsigned int mask, irq;
++
++	irq = d->irq;
++
++	if (irq < 32) {
++		mask = 1 << irq;
++		__raw_writel(mask, NC_VA_INTC_NENCLR31_00);
++	} else {
++		mask = 1 << (irq - 32);
++		__raw_writel(mask, NC_VA_INTC_NENCLR63_32);
++	}
++
++	nc_irq_mask(d);
 +}
 +
-+static int nc_timer_shutdown(struct clock_event_device *dev)
-+{
-+	__raw_writel(0x0, NC_VA_COUNTER_1_CONTROL);
-+	__raw_writel(0x0, NC_VA_COUNTER_1_CONFIG);
-+
-+	return 0;
-+}
-+
-+static struct clock_event_device nc_ced = {
-+	.name			= "nationalchip-clkevent",
-+	.features		= CLOCK_EVT_FEAT_PERIODIC
-+				| CLOCK_EVT_FEAT_ONESHOT,
-+	.rating			= 200,
-+	.set_state_shutdown	= nc_timer_shutdown,
-+	.set_state_periodic	= nc_timer_set_periodic,
-+	.set_next_event		= nc_timer_set_next_event,
++struct irq_chip nc_irq_chip = {
++	.name =		"nationalchip_intc_v1",
++	.irq_mask =	nc_irq_mask,
++	.irq_unmask =	nc_irq_unmask,
++	.irq_enable =	nc_irq_en,
++	.irq_disable =	nc_irq_dis,
 +};
 +
-+static u64 notrace nc_sched_clock_read(void)
++inline int ff1_64(unsigned int hi, unsigned int lo)
 +{
-+	return (u64) __raw_readl(NC_VA_COUNTER_2_VALUE);
++	int result;
++	asm volatile(
++		"ff1 %0\n"
++		:"=r"(hi)
++		:"r"(hi)
++		:
++	);
++
++	asm volatile(
++		"ff1 %0\n"
++		:"=r"(lo)
++		:"r"(lo)
++		:
++	);
++	if( lo != 32 )
++		result = 31-lo;
++	else if( hi != 32 ) result = 31-hi + 32;
++	else {
++		printk("nc_get_irqno error hi:%x, lo:%x.\n", hi, lo);
++		result = NR_IRQS;
++	}
++	return result;
 +}
 +
-+static void nc_csd_enable(void)
++unsigned int nc_get_irqno(void)
 +{
-+	__raw_writel(0x1, NC_VA_COUNTER_2_CONTROL);
-+	__raw_writel(0x0, NC_VA_COUNTER_2_CONTROL);
-+	__raw_writel(0x1, NC_VA_COUNTER_2_CONFIG);
++	unsigned int nint64hi, nint64lo, irq_no;
 +
-+	__raw_writel(26,NC_VA_COUNTER_2_PRE);
-+	__raw_writel(0, NC_VA_COUNTER_2_INI);
-+	__raw_writel(0x2, NC_VA_COUNTER_2_CONTROL);
++	nint64lo = __raw_readl(NC_VA_INTC_NINT31_00);
++	nint64hi = __raw_readl(NC_VA_INTC_NINT63_32);
++	irq_no = ff1_64(nint64hi, nint64lo);
++
++	return irq_no;
 +}
 +
-+static int __init nc_timer_init(struct device_node *np)
++static int irq_map(struct irq_domain *h, unsigned int virq,
++				irq_hw_number_t hw_irq_num)
 +{
-+	unsigned int irq;
-+	unsigned int freq;
-+
-+	/* parse from devicetree */
-+	timer_reg = (unsigned int) of_iomap(np, 0);
-+	if (!timer_reg)
-+		panic("%s, of_iomap err.\n", __func__);
-+
-+	irq = irq_of_parse_and_map(np, 0);
-+	if (!irq)
-+		panic("%s, irq_parse err.\n", __func__);
-+
-+	if (of_property_read_u32(np, "clock-frequency", &freq))
-+		panic("%s, clock-frequency error.\n", __func__);
-+
-+	pr_info("Nationalchip Timer Init, reg: %x, irq: %d, freq: %d.\n",
-+		timer_reg, irq, freq);
-+
-+	/* setup irq */
-+	if (request_irq(irq, timer_interrupt, IRQF_TIMER, np->name, &nc_ced))
-+		panic("%s timer_interrupt error.\n", __func__);
-+
-+	/* register */
-+	clockevents_config_and_register(&nc_ced, freq, 1, ULONG_MAX);
-+
-+	nc_csd_enable();
-+	clocksource_mmio_init(NC_VA_COUNTER_2_VALUE, "nationalchip-clksource", freq, 200, 32, clocksource_mmio_readl_up);
-+
-+	sched_clock_register(nc_sched_clock_read, 32, freq);
++	irq_set_chip_and_handler(virq, &nc_irq_chip, handle_level_irq);
 +
 +	return 0;
 +}
-+CLOCKSOURCE_OF_DECLARE(nc_timer, "nationalchip,timer-v1", nc_timer_init);
++
++static const struct irq_domain_ops nc_irq_ops = {
++	.map	= irq_map,
++	.xlate	= irq_domain_xlate_onecell,
++};
++
++static int __init
++intc_init(struct device_node *intc, struct device_node *parent)
++{
++	struct irq_domain *root_domain;
++	unsigned int i;
++
++	if (parent)
++		panic("DeviceTree incore intc not a root irq controller\n");
++
++	csky_get_auto_irqno = nc_get_irqno;
++
++	intc_reg = (unsigned int) of_iomap(intc, 0);
++	if (!intc_reg)
++		panic("Nationalchip Intc Reg: %x.\n", intc_reg);
++
++	__raw_writel(0xffffffff, NC_VA_INTC_NENCLR31_00);
++	__raw_writel(0xffffffff, NC_VA_INTC_NENCLR63_32);
++	__raw_writel(0xffffffff, NC_VA_INTC_NMASK31_00);
++	__raw_writel(0xffffffff, NC_VA_INTC_NMASK63_32);
++
++	/*
++	 * nationalchip irq ctrl has 64 sources.
++	 */
++	#define INTC_IRQS 64
++	for (i=0; i<INTC_IRQS; i=i+4)
++		__raw_writel(i|((i+1)<<8)|((i+2)<<16)|((i+3)<<24),
++				NC_VA_INTC_SOURCE + i);
++
++	root_domain = irq_domain_add_legacy(intc, INTC_IRQS, 0, 0,
++			&nc_irq_ops, NULL);
++	if (!root_domain)
++		panic("root irq domain not avail\n");
++
++	irq_set_default_host(root_domain);
++
++	return 0;
++}
++
++IRQCHIP_DECLARE(nationalchip_intc_v1_ave, "nationalchip,intc-v1,ave", intc_init);
 +
 -- 
 2.7.4
