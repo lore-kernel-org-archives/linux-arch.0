@@ -1,58 +1,55 @@
-From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Subject: Re: [PATCH v12 1/9] iomap: Fix sparse endian check warnings
-Date: Sun, 18 Mar 2018 17:13:27 +0100
-Message-ID: <20180317190311.tdmx2vlcjttsjs5j@ltop.local>
-References: <20180316154852.13206-1-logang@deltatee.com>
- <20180316154852.13206-2-logang@deltatee.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC PATCH 3/6] fs: provide generic compat_sys_p{read,write}64() implementations
+Date: Sun, 18 Mar 2018 10:40:22 -0700
+Message-ID: <CA+55aFy3THY_nw7NNeUZYoGcszSDkGW-DFK0K063uFMUEO9w=g@mail.gmail.com>
+References: <20180318161056.5377-1-linux@dominikbrodowski.net> <20180318161056.5377-4-linux@dominikbrodowski.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180316154852.13206-2-logang@deltatee.com>
+In-Reply-To: <20180318161056.5377-4-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Logan Gunthorpe <logang@deltatee.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, Horia =?utf-8?Q?Geant=C4=83?= <horia.geanta@nxp.com>, Thomas Gleixner <tglx@linutronix.de>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, the arch/x86 maintainers <x86@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 16, 2018 at 09:48:44AM -0600, Logan Gunthorpe wrote:
-> Warnings of the form:
-> 
-> lib/iomap.c:84:9: warning: cast to restricted __be16
-> 
-> Are found when running sparse checker with:
-> 
-> make C=2 CF=-D__CHECK_ENDIAN__
-> 
-> This patch casts them with __force to suppress the warnings.
- 
-Hi,
+Honestly, I think the patches like this are disgusting:
 
-it looks correct but if you should explain why the warning
-is not a valid one. Once done, you can then explain what problem
-you have fixed instead of saying you suppressed a warning.
+On Sun, Mar 18, 2018 at 9:10 AM, Dominik Brodowski
+<linux@dominikbrodowski.net> wrote:
+> +#ifdef __ARCH_WANT_COMPAT_SYS_PREADWRITE64
+> +#if defined(__ARCH_WANT_COMPAT_SYS_WITH_PADDING) && \
+> +       defined(__ARCH_WANT_LE_COMPAT_SYS)
+> +COMPAT_SYSCALL_DEFINE6(pread64, unsigned int, fd, char __user *, ubuf,
+> +                      u32, count, u32, padding, u32, poslo, u32, poshi)
+> +#elif defined(__ARCH_WANT_COMPAT_SYS_WITH_PADDING) && \
+> +       !defined(__ARCH_WANT_LE_COMPAT_SYS)
+> +COMPAT_SYSCALL_DEFINE6(pread64, unsigned int, fd, char __user *, ubuf,
+> +                      u32, count, u32, padding, u32, poshi, u32, poslo)
+> +#elif !defined(__ARCH_WANT_COMPAT_SYS_WITH_PADDING) && \
+> +       defined(__ARCH_WANT_LE_COMPAT_SYS)
+> +COMPAT_SYSCALL_DEFINE5(pread64, unsigned int, fd, char __user *, ubuf,
+> +                      u32, count, u32, poslo, u32, poshi)
+> +#else /* no padding, big endian */
+> +COMPAT_SYSCALL_DEFINE5(pread64, unsigned int, fd, char __user *, ubuf,
+> +                      u32, count, u32, poshi, u32, poslo)
+> +#endif
+> +{
+> +#ifdef CONFIG_S390
+> +       if ((compat_ssize_t) count < 0)
+> +               return -EINVAL;
+> +#endif /* CONFIG_S390 */
 
-> Also, it looks like the wrong conversion function was used in
+and we should just keep code like this entirely architecture-dependent.
 
-I would suggest to split the patch in two since it does two
-different things which should have their own explanation.
+It doesn't save all that many lines:
 
-> diff --git a/lib/iomap.c b/lib/iomap.c
-> index 541d926da95e..a05d9fa21794 100644
-> --- a/lib/iomap.c
-> +++ b/lib/iomap.c
-> @@ -106,8 +106,10 @@ EXPORT_SYMBOL(ioread32be);
->  #endif
->  
->  #ifndef mmio_write16be
-> -#define mmio_write16be(val,port) __raw_writew(be16_to_cpu(val),port)
-> -#define mmio_write32be(val,port) __raw_writel(be32_to_cpu(val),port)
-> +#define mmio_write16be(val, port) \
-> +	__raw_writew((u16 __force)cpu_to_be16(val), port)
-> +#define mmio_write32be(val, port) \
-> +	__raw_writel((u32 __force)cpu_to_be32(val), port)
->  #endif
+ 19 files changed, 97 insertions(+), 106 deletions(-)
 
-I think that in this sort of replacement, it's better to not split
-the lines (even if larger than 80, that's it).
+and the lines it adds are an unreadable mess compared to the lines it removes.
 
--- Luc Van Oostenryck
+So please keep the high/low/padding stuff in the arch wrapper, and
+just make them use "do_pwrite64()" and friends instead (or
+"kern_pwrite64()", or whatever we ended up using as the kernel naming
+for in-kernel system call wrappers).
+
+                Linus
