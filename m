@@ -1,42 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp2120.oracle.com ([141.146.126.78]:60064 "EHLO
-        aserp2120.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933034AbeCSPVJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2018 11:21:09 -0400
-Subject: Re: [PATCH v12 00/11] Application Data Integrity feature introduced
- by SPARC M7
-References: <cover.1519227112.git.khalid.aziz@oracle.com>
- <20180318.110857.1660518649370410007.davem@davemloft.net>
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Message-ID: <b9507686-6c3f-7fb1-b305-c1817f86a884@oracle.com>
-Date: Mon, 19 Mar 2018 09:19:21 -0600
+Received: from mail-it0-f66.google.com ([209.85.214.66]:40502 "EHLO
+        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755773AbeCSP2F (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2018 11:28:05 -0400
 MIME-Version: 1.0
-In-Reply-To: <20180318.110857.1660518649370410007.davem@davemloft.net>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <b86f173b8333cb6cc1c7e32ec2ab1e38fae4ecf8.1521399976.git.ren_guo@c-sky.com>
+References: <cover.1521399976.git.ren_guo@c-sky.com> <b86f173b8333cb6cc1c7e32ec2ab1e38fae4ecf8.1521399976.git.ren_guo@c-sky.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Mon, 19 Mar 2018 23:28:03 +0800
+Message-ID: <CAK8P3a3uoiXRk0azD=LU033M3-FGr8e=HgUErDXuVMwvLWa6Gw@mail.gmail.com>
+Subject: Re: [PATCH 16/19] csky: Device tree
+Content-Type: text/plain; charset="UTF-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: dave.hansen@linux.intel.com, aarcange@redhat.com, akpm@linux-foundation.org, allen.pais@oracle.com, aneesh.kumar@linux.vnet.ibm.com, anthony.yznaga@oracle.com, arnd@arndb.de, benh@kernel.crashing.org, bob.picco@oracle.com, bsingharora@gmail.com, corbet@lwn.net, dan.j.williams@intel.com, dave.jiang@intel.com, david.j.aldridge@oracle.com, dwindsor@gmail.com, ebiederm@xmission.com, elena.reshetova@intel.com, gregkh@linuxfoundation.org, hannes@cmpxchg.org, henry.willard@oracle.com, hpa@zytor.com, hughd@google.com, imbrenda@linux.vnet.ibm.com, jack@suse.cz, jag.raman@oracle.com, jane.chu@oracle.com, jglisse@redhat.com, jroedel@suse.de, khalid@gonehiking.org, khandual@linux.vnet.ibm.com, kirill.shutemov@linux.intel.com, kstewart@linuxfoundation.org, ktkhai@virtuozzo.com, liam.merwick@oracle.com, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linuxppc-dev@lists.ozlabs.org, linuxram@us.ibm.com, linux@roeck-us.net, me@tobin.cc, mgorman@suse.de, mgorman@techsingularity.net, mhocko@suse.com, mike.kravetz@oracle.com, minchan@kernel.org, mingo@kernel.org
-Message-ID: <20180319151921.0MuWR_AiQOsDLMaToa7trDajrZJYMse7Qp8D4LAoY_I@z>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
+Message-ID: <20180319152803.djlrRiXwGajxRtdA0a4xDik74iIy7FvnvSzyAjS0fxI@z>
 
-On 03/18/2018 09:08 AM, David Miller wrote:
-> In uapi/asm/auxvec.h you conditionalize the ADI aux vectors on
-> CONFIG_SPARC64.
-> 
-> That's not correct, you should never control user facing definitions
-> based upon kernel configuration.
-> 
-> Also, both 32-bit and 64-bit applications running on ADI capable
-> machines want to compile against and use this informaiton.
-> 
-> So please remove these CPP checks.
-> 
+On Mon, Mar 19, 2018 at 3:51 AM, Guo Ren <ren_guo@c-sky.com> wrote:
+> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
 
-Hi Dave,
+Please add a changelog text to each patch, and send patches that add
+.dts files or
+binding documents to the devicetree mailing list.
 
-That makes sense. I will send a patch to remove these.
+> ---
+>  arch/csky/boot/dts/gx6605s.dts         | 159 +++++++++++++++++++++++++++++++++
+>  arch/csky/boot/dts/include/dt-bindings |   1 +
+>  arch/csky/boot/dts/qemu.dts            |  87 ++++++++++++++++++
+>  3 files changed, 247 insertions(+)
+>  create mode 100644 arch/csky/boot/dts/gx6605s.dts
+>  create mode 120000 arch/csky/boot/dts/include/dt-bindings
+>  create mode 100644 arch/csky/boot/dts/qemu.dts
+>
+> diff --git a/arch/csky/boot/dts/gx6605s.dts b/arch/csky/boot/dts/gx6605s.dts
+> new file mode 100644
+> index 0000000..0d34d22
+> --- /dev/null
+> +++ b/arch/csky/boot/dts/gx6605s.dts
+> @@ -0,0 +1,159 @@
+> +/dts-v1/;
+> +#include <dt-bindings/gpio/gpio.h>
+> +#include <dt-bindings/input/input.h>
 
-Thanks,
-Khalid
+It is usually better for an SoC based board to split the SoC specific into a
+separate .dtsi file that gets included by the board .dts file.
+
+> +/ {
+> +       model = "Nationalchip gx6605s ck610";
+> +       compatible = "nationalchip,gx6605s,ck610";
+
+Is ck610 the name of the CPU core? The general convention is to have the
+top-level "compatible" property list first the name of the board, then the
+name of the soc, but not the name of the CPU core.
+
+> +       #address-cells = <1>;
+> +       #size-cells = <1>;
+> +
+> +       memory {
+> +               device_type = "memory";
+> +               reg = <0x10000000 0x04000000>;
+> +       };
+> +
+> +       cpus {
+> +               #address-cells = <0>;
+> +               #size-cells = <0>;
+> +
+> +               cpu {
+> +                       device_type = "cpu";
+> +                       ccr     = <0x7d>;
+> +                       hint    = <0x1c>;
+
+Here you should list the specific type of CPU in the compatible property and
+document the binding for that string in the Documentations/devicetree/bindings
+hierarchy. Without a binding, the 'ccr' and 'hint' properties make no sense.
+
+If there is any chance that you could have SMP systems in the future, it
+would be better to start with #address-cells=<1>, with appropriate reg
+properties.
+
+> +       soc {
+> +               #address-cells = <1>;
+> +               #size-cells = <1>;
+> +               compatible = "simple-bus";
+> +               ranges;
+> +
+> +               intc: interrupt-controller {
+> +                       compatible = "nationalchip,intc-v1,ave";
+> +                       reg = <0x00500000 0x400>;
+
+Each node with a register property also needs the address in the
+node name, e.g. "interrupt-controller@500000"
+
+Try building the dtb file with 'make W=1' to get warnings about
+when you got that wrong.
+
+> +                       interrupt-controller;
+> +                       #interrupt-cells = <1>;
+> +               };
+> +
+> +               timer0 {
+> +                       compatible = "nationalchip,timer-v1";
+
+This should be "timer@400"
+
+Also, each device node should have a binding documentation
+to explain the binding associated with that "compatible"
+string.
+
+> +                       reg = <0x0020a000 0x400>;
+> +                       clock-frequency = <1000000>;
+> +                       interrupts = <10>;
+> +                       interrupt-parent = <&intc>;
+> +               };
+> +
+> +               ehci: ehci-hcd {
+> +                       compatible = "generic-ehci";
+> +                       reg = <0x00900000 0x400>;
+> +                       interrupt-parent = <&intc>;
+> +                       interrupts = <59>;
+> +               };
+> +
+> +               ohci0: ohci-hcd0 {
+
+
+The names here should be "usb@...", not "ehci-hcd"
+
+> +       chosen {
+> +               bootargs = "console=ttyS0,115200 rdinit=/sbin/init root=/dev/ram0";
+> +       };
+
+The bootargs should not be in the dts file normally, they should come from the
+boot loader. For the console, use the "stdout-path" property.
+
+         Arnd
