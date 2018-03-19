@@ -1,150 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:47051 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S935537AbeCSS3e (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2018 14:29:34 -0400
-Subject: Re: [PATCH] ARC: Improve cmpxchng syscall implementation
-References: <20180319110002.27419-1-abrodkin@synopsys.com>
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <5bc39838-b1c5-ef65-f97d-8777ed33bda0@synopsys.com>
-Date: Mon, 19 Mar 2018 11:29:24 -0700
-MIME-Version: 1.0
-In-Reply-To: <20180319110002.27419-1-abrodkin@synopsys.com>
-Content-Type: text/plain; charset="utf-8"; format=flowed
+Received: from g9t1613g.houston.hpe.com ([15.241.32.99]:44048 "EHLO
+        g9t1613g.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S970806AbeCSTCU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2018 15:02:20 -0400
+Received: from g2t2354.austin.hpe.com (g2t2354.austin.hpe.com [15.233.44.27])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+        (No client certificate requested)
+        by g9t1613g.houston.hpe.com (Postfix) with ESMTPS id 9510060BF1
+        for <linux-arch@vger.kernel.org>; Mon, 19 Mar 2018 19:02:19 +0000 (UTC)
+From: "Kani, Toshi" <toshi.kani@hpe.com>
+Subject: Re: [PATCH v3 1/3] ioremap: Update pgtable free interfaces with addr
+Date: Mon, 19 Mar 2018 19:01:45 +0000
+Message-ID: <1521486096.2693.202.camel@hpe.com>
+References: <1521463256-19858-1-git-send-email-cpandya@codeaurora.org>
+         <1521463256-19858-2-git-send-email-cpandya@codeaurora.org>
+In-Reply-To: <1521463256-19858-2-git-send-email-cpandya@codeaurora.org>
 Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <E918B9CB35AE6047A33C70C73CA038E8@NAMPRD84.PROD.OUTLOOK.COM>
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, linux-snps-arc@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20180319182924.cpNRhAp3KdKpXFTcQM0jxpP6fiuc61zMzSXnejanX4M@z>
+To: "cpandya@codeaurora.org" <cpandya@codeaurora.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "takahiro.akashi@linaro.org" <takahiro.akashi@linaro.org>, "james.morse@arm.com" <james.morse@arm.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20180319190145.Sl43TRvvabKU2vPLhB2hJBAx8k8vkqsDpdcNwdw8ySw@z>
 
-On 03/19/2018 04:00 AM, Alexey Brodkin wrote:
-> arc_usr_cmpxchg syscall is supposed to be used on platforms
-> that lack support of Load-Locked/Store-Conditional instructions
-> in hardware. And in that case we mimic missing hardware features
-> with help of kernel's sycall that "atomically" checks current
-> value in memory and then if it matches caller expectation new
-> value is written to that same location.
-> 
-...
-...
-
-> 
-> 2. What's worse if we're dealing with data from not yet allocated
->     page (think of pre-copy-on-write state) we'll successfully
->     read data but on write we'll silently return to user-space
->     with correct result 
-
-This is technically incorrect, even for reading, you need a page, which could be 
-common zero page in certain cases.
-
-(which we really read just before). That leads
->     to very strange problems in user-space app further down the line
->     because new value was never written to the destination.
-> 
-> 3. Regardless of what went wrong we'll return from syscall
->     and user-space application will continue to execute.
->     Even if user's pointer was completely bogus.
-
-Again we are exaggerating (from technical correctness POV) - if user pointer was 
-bogs, the read would not have worked in first place etc. So lets tone down the 
-rhetoric.
-
-
->     In case of hardware LL/SC that app would have been killed
->     by the kernel.
-> 
-> With that change we attempt to imrove on all 3 items above:
-> 
-> 1. We still disable preemption around read-and-write of
->     user's data but if we happen to fail with either of them
->     we're enabling preemption and try to force page fault so
->     that we have a correct mapping in the TLB. Then re-try
->     again in "atomic" context.
-> 
-> 2. If real page fault fails or even access_ok() returns false
->     we send SIGSEGV to the user-space process so if something goes
->     seriously wrong we'll know about it much earlier.
-> 
-
-
->   
->   	/*
->   	 * This is only for old cores lacking LLOCK/SCOND, which by defintion
-> @@ -60,23 +62,48 @@ SYSCALL_DEFINE3(arc_usr_cmpxchg, int *, uaddr, int, expected, int, new)
->   	/* Z indicates to userspace if operation succeded */
->   	regs->status32 &= ~STATUS_Z_MASK;
->   
-> -	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
-> -		return -EFAULT;
-> +	ret = access_ok(VERIFY_WRITE, uaddr, sizeof(*uaddr));
-> +	if (!ret)
-> +		goto fail;
->   
-> +again:
->   	preempt_disable();
->   
-> -	if (__get_user(uval, uaddr))
-> -		goto done;
-> -
-> -	if (uval == expected) {
-> -		if (!__put_user(new, uaddr))
-> +	ret = __get_user(val, uaddr);
-> +	if (ret == -EFAULT) {
-
-
-Lets see if this warrants adding complexity ! This implies that TLB entry with 
-Read permissions didn't exist for reading the var and page fault handler could not 
-wire up even a zero page due to preempt_disable, meaning it was something not 
-touched by userspace already - sort of uninitialized variable in user code. 
-Otherwise it is extremely unlikely to start with a TLB entry with Read 
-permissions, followed by syscall Trap only to find the entry missing, unless a 
-global TLB flush came from other cores, right in the middle. But this syscall is 
-not guaranteed to work with SMP anyways, so lets ignore any SMP misdoings here.
-
-Now in case it was *an* uninitialized var, do we have to guarantee any well 
-defined semantics for the kernel emulation of cmpxchg ? IMO it should be fine to 
-return 0 or -EFAULT etc. Infact -EFAULT is better as it will force a retry loop on 
-user side, given the typical cmpxchg usage pattern.
-
-
-> +		preempt_enable();
-> +		ret = get_user_pages_fast((unsigned long)uaddr, 1, 1, &page);
-> +		if (ret < 0)
-> +			goto fail;
-> +
-> +		put_page(page);
-> +		goto again;
-> +	} else if (ret)
-> +		goto fail;
-> +
-> +	if (val == expected) {
-> +		ret = __put_user(new, uaddr);
-> +		if (!ret)
->   			regs->status32 |= STATUS_Z_MASK;
->   	}
->   
-> -done:
->   	preempt_enable();
->   
-> -	return uval;
-> +	if (ret == -EFAULT) {
-> +		ret = get_user_pages_fast((unsigned long)uaddr, 1, 1, &page);
-> +		if (ret < 0)
-> +			goto fail;
-> +
-> +		put_page(page);
-> +		goto again;
-> +	} else if (ret)
-> +		goto fail;
-> +
-> +	return val;
-> +
-> +fail:
-> +	force_sig(SIGSEGV, current);
-> +	return ret;
->   }
->   
->   #ifdef CONFIG_ISA_ARCV2
-> 
+T24gTW9uLCAyMDE4LTAzLTE5IGF0IDE4OjEwICswNTMwLCBDaGludGFuIFBhbmR5YSB3cm90ZToN
+Cj4gVGhpcyBwYXRjaCAoIm1tL3ZtYWxsb2M6IEFkZCBpbnRlcmZhY2VzIHRvIGZyZWUgdW5tYXBw
+ZWQNCj4gcGFnZSB0YWJsZSIpIGFkZHMgZm9sbG93aW5nIDIgaW50ZXJmYWNlcyB0byBmcmVlIHRo
+ZSBwYWdlDQo+IHRhYmxlIGluIGNhc2Ugd2UgaW1wbGVtZW50IGh1Z2UgbWFwcGluZy4NCj4gDQo+
+IHB1ZF9mcmVlX3BtZF9wYWdlKCkgYW5kIHBtZF9mcmVlX3B0ZV9wYWdlKCkNCj4gDQo+IFNvbWUg
+YXJjaGl0ZWN0dXJlcyAobGlrZSBhcm02NCkgbmVlZHMgdG8gZG8gcHJvcGVyIFRMQg0KPiBtYWlu
+dGFuYW5jZSBhZnRlciB1cGRhdGluZyBwYWdldGFibGUgZW50cnkgZXZlbiBpbiBtYXAuDQo+IFdo
+eSA/IFJlYWQgdGhpcywNCj4gaHR0cHM6Ly9wYXRjaHdvcmsua2VybmVsLm9yZy9wYXRjaC8xMDEz
+NDU4MS8NCj4gDQo+IFBhc3MgJ2FkZHInIGluIHRoZXNlIGludGVyZmFjZXMgc28gdGhhdCBwcm9w
+ZXIgVExCIG9wcw0KPiBjYW4gYmUgcGVyZm9ybWVkLg0KPiANCj4gU2lnbmVkLW9mZi1ieTogQ2hp
+bnRhbiBQYW5keWEgPGNwYW5keWFAY29kZWF1cm9yYS5vcmc+DQogOg0KPiBkaWZmIC0tZ2l0IGEv
+YXJjaC94ODYvbW0vcGd0YWJsZS5jIGIvYXJjaC94ODYvbW0vcGd0YWJsZS5jDQo+IGluZGV4IDM0
+Y2RhN2UuLjIwYjAzMjIgMTAwNjQ0DQo+IC0tLSBhL2FyY2gveDg2L21tL3BndGFibGUuYw0KPiAr
+KysgYi9hcmNoL3g4Ni9tbS9wZ3RhYmxlLmMNCj4gQEAgLTcxMCw3ICs3MTAsNyBAQCBpbnQgcG1k
+X2NsZWFyX2h1Z2UocG1kX3QgKnBtZCkNCj4gICAqIENvbnRleHQ6IFRoZSBwdWQgcmFuZ2UgaGFz
+IGJlZW4gdW5tYXBlZCBhbmQgVExCIHB1cmdlZC4NCj4gICAqIFJldHVybjogMSBpZiBjbGVhcmlu
+ZyB0aGUgZW50cnkgc3VjY2VlZGVkLiAwIG90aGVyd2lzZS4NCj4gICAqLw0KPiAtaW50IHB1ZF9m
+cmVlX3BtZF9wYWdlKHB1ZF90ICpwdWQpDQo+ICtpbnQgcHVkX2ZyZWVfcG1kX3BhZ2UocHVkX3Qg
+KnB1ZCwgdW5zaWduZWQgbG9uZyBhZGRyKQ0KDQpQbGVhc2UgdXBkYXRlIHRoZSBmdW5jdGlvbiBo
+ZWFkZXIgYXMgd2VsbC4gIFNhbWUgZm9yIHBtZC4NCg0KKyAqIEBhZGRyOiBWaXJ0dWFsIGFkZHJl
+c3MgYXNzb2NpYXRlZCB3aXRoIHB1ZC4NCg0KLS0tIGEvaW5jbHVkZS9hc20tZ2VuZXJpYy9wZ3Rh
+YmxlLmgNCj4gKysrIGIvaW5jbHVkZS9hc20tZ2VuZXJpYy9wZ3RhYmxlLmgNCj4gQEAgLTk4Myw4
+ICs5ODMsOCBAQCBzdGF0aWMgaW5saW5lIGludCBwNGRfY2xlYXJfaHVnZShwNGRfdCAqcDRkKQ0K
+PiAgaW50IHBtZF9zZXRfaHVnZShwbWRfdCAqcG1kLCBwaHlzX2FkZHJfdCBhZGRyLCBwZ3Byb3Rf
+dCBwcm90KTsNCj4gIGludCBwdWRfY2xlYXJfaHVnZShwdWRfdCAqcHVkKTsNCj4gIGludCBwbWRf
+Y2xlYXJfaHVnZShwbWRfdCAqcG1kKTsNCj4gLWludCBwdWRfZnJlZV9wbWRfcGFnZShwdWRfdCAq
+cHVkKTsNCj4gLWludCBwbWRfZnJlZV9wdGVfcGFnZShwbWRfdCAqcG1kKTsNCj4gK2ludCBwdWRf
+ZnJlZV9wbWRfcGFnZShwdWRfdCAqcHVkLCB1bnNpZ25lZCBsb25nIGFkZHIpOw0KPiAraW50IHBt
+ZF9mcmVlX3B0ZV9wYWdlKHBtZF90ICpwbWQsIHVuc2lnbmVkIGxvbmcgYWRkcik7DQo+ICAjZWxz
+ZQkvKiAhQ09ORklHX0hBVkVfQVJDSF9IVUdFX1ZNQVAgKi8NCj4gIHN0YXRpYyBpbmxpbmUgaW50
+IHA0ZF9zZXRfaHVnZShwNGRfdCAqcDRkLCBwaHlzX2FkZHJfdCBhZGRyLCBwZ3Byb3RfdA0KcHJv
+dCkNCj4gIHsNCj4gQEAgLTEwMTAsMTEgKzEwMTAsMTEgQEAgc3RhdGljIGlubGluZSBpbnQgcG1k
+X2NsZWFyX2h1Z2UocG1kX3QgKnBtZCkNCj4gIHsNCj4gIAlyZXR1cm4gMDsNCj4gIH0NCj4gLXN0
+YXRpYyBpbmxpbmUgaW50IHB1ZF9mcmVlX3BtZF9wYWdlKHB1ZF90ICpwdWQpDQo+ICtzdGF0aWMg
+aW5saW5lIGludCBwdWRfZnJlZV9wbWRfcGFnZShwdWRfdCAqcHVkLCB1bnNpZ25lZCBsb25nIGFk
+ZHIpDQo+ICB7DQo+ICAJcmV0dXJuIDA7DQo+ICB9DQo+IC1zdGF0aWMgaW5saW5lIGludCBwbWRf
+ZnJlZV9wdGVfcGFnZShwdWRfdCAqcG1kKQ0KPiArc3RhdGljIGlubGluZSBpbnQgcG1kX2ZyZWVf
+cHRlX3BhZ2UocHVkX3QgKnBtZCwgdW5zaWduZWQgbG9uZyBhZGRyKQ0KDQpQbGVhc2UgYmFzZSB5
+b3VyIHBhdGNoZXMgb24gdG9wIG9mIHRoZSBtbSB0cmVlIG9yIGF0IGxlYXN0IHBpY2sgdXANCjhj
+YWI5M2RlOTk0ZjYgaW4gdGhlIG1tIHRyZWUuICBBbmRyZXcgZml4ZWQgdGhlIHR5cG87IHRoZSAn
+cHVkX3QnIGFib3ZlDQpzaG91bGQgaGF2ZSBiZWVuICdwbWRfdCcuDQoNClRoYW5rcywNCi1Ub3No
+aQ0K
