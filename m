@@ -1,113 +1,87 @@
 From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Subject: Re: [PATCH v17 07/10] ACPI / scan: rename acpi_is_serial_bus_slave() to widen use
-Date: Mon, 19 Mar 2018 11:27:25 +0100
-Message-ID: <2268663.His4AzxF9G@aspire.rjw.lan>
-References: <1521051359-34473-1-git-send-email-john.garry@huawei.com> <1521051359-34473-8-git-send-email-john.garry@huawei.com>
+Subject: Re: [PATCH v17 08/10] ACPI / scan: do not enumerate Indirect IO host children
+Date: Mon, 19 Mar 2018 11:30:11 +0100
+Message-ID: <2309217.pWfZsU88YQ@aspire.rjw.lan>
+References: <1521051359-34473-1-git-send-email-john.garry@huawei.com> <1521051359-34473-9-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521051359-34473-8-git-send-email-john.garry@huawei.com>
+In-Reply-To: <1521051359-34473-9-git-send-email-john.garry@huawei.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: John Garry <john.garry@huawei.com>
 Cc: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com, joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-On Wednesday, March 14, 2018 7:15:56 PM CET John Garry wrote:
-> Currently the ACPI scan has special handling for serial bus
-> slaves, in that it makes it the responsibility of the the slave
-> device's parent to enumerate the device.
+On Wednesday, March 14, 2018 7:15:57 PM CET John Garry wrote:
+> Through the logical PIO framework systems which otherwise have
+> no IO space access to legacy ISA/LPC devices may access these
+> devices through so-called "indirect IO" method. In this, IO
+> space accesses for non-PCI hosts are redirected to a host
+> LLDD to manually generate the IO space (bus) accesses. Hosts
+> are able to register a region in logical PIO space to map to
+> its bus address range.
 > 
-> To support in future other types of slave devices which require
-> the same special handling, but where the bus is not strictly a
-> serial bus - such as devices on the HiSilicon LPC controller bus -
-> rename acpi_is_serial_bus_slave() to
-> acpi_device_enumeration_by_parent(), so that the name can fit the
-> wider purpose.
+> Indirect IO child devices have an associated host-specific bus
+> address. Special translation is required to map between
+> a logical PIO address for a device and it's host bus address.
 > 
-> Associated device flag acpi_device_flags.serial_bus_slave is also
-> renamed to .enumeration_by_parent.
+> Since in the ACPI tables the child device IO resources would
+> be the host-specific values, it is required the ACPI scan code
+> should not enumerate these devices, and that this should be
+> the responsibility of the host driver so that it can "fixup"
+> the resources so that they map to the appropriate logical PIO
+> addresses.
+> 
+> To avoid enumerating these child devices, we add a check from
+> acpi_device_enumeration_by_parent() as to whether the parent
+> for a device is a member of a known list of "indirect IO" hosts.
+> For now, the HiSilicon LPC host controller ID is added.
 > 
 > Signed-off-by: John Garry <john.garry@huawei.com>
+> Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 
-Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+You have my ACK here already.
 
+Since I've ACKed the [7/10] too, I don't think there's anything more I can do
+about this series and I'm assuming that it will be routed through other trees.
+
+Thanks!
+
+> Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+> Tested-by: dann frazier <dann.frazier@canonical.com>
 > ---
->  drivers/acpi/scan.c     | 19 ++++++++++---------
->  include/acpi/acpi_bus.h |  2 +-
->  2 files changed, 11 insertions(+), 10 deletions(-)
+>  drivers/acpi/scan.c | 14 ++++++++++++++
+>  1 file changed, 14 insertions(+)
 > 
 > diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
-> index 8e63d93..f9e7904 100644
+> index f9e7904..a4cbf3e 100644
 > --- a/drivers/acpi/scan.c
 > +++ b/drivers/acpi/scan.c
-> @@ -1524,7 +1524,7 @@ static int acpi_check_serial_bus_slave(struct acpi_resource *ares, void *data)
+> @@ -1524,11 +1524,25 @@ static int acpi_check_serial_bus_slave(struct acpi_resource *ares, void *data)
 >  	return -1;
 >  }
 >  
-> -static bool acpi_is_serial_bus_slave(struct acpi_device *device)
-> +static bool acpi_device_enumeration_by_parent(struct acpi_device *device)
+> +static bool acpi_is_indirect_io_slave(struct acpi_device *device)
+> +{
+> +	struct acpi_device *parent = device->parent;
+> +	const struct acpi_device_id indirect_io_hosts[] = {
+> +		{"HISI0191", 0},
+> +		{}
+> +	};
+> +
+> +	return parent && !acpi_match_device_ids(parent, indirect_io_hosts);
+> +}
+> +
+>  static bool acpi_device_enumeration_by_parent(struct acpi_device *device)
 >  {
 >  	struct list_head resource_list;
 >  	bool is_serial_bus_slave = false;
-> @@ -1560,7 +1560,8 @@ void acpi_init_device_object(struct acpi_device *device, acpi_handle handle,
->  	acpi_bus_get_flags(device);
->  	device->flags.match_driver = false;
->  	device->flags.initialized = true;
-> -	device->flags.serial_bus_slave = acpi_is_serial_bus_slave(device);
-> +	device->flags.enumeration_by_parent =
-> +		acpi_device_enumeration_by_parent(device);
->  	acpi_device_clear_enumerated(device);
->  	device_initialize(&device->dev);
->  	dev_set_uevent_suppress(&device->dev, true);
-> @@ -1858,10 +1859,10 @@ static acpi_status acpi_bus_check_add(acpi_handle handle, u32 lvl_not_used,
->  static void acpi_default_enumeration(struct acpi_device *device)
->  {
->  	/*
-> -	 * Do not enumerate SPI/I2C/UART slaves as they will be enumerated by
-> -	 * their respective parents.
-> +	 * Do not enumerate devices with enumeration_by_parent flag set as
-> +	 * they will be enumerated by their respective parents.
->  	 */
-> -	if (!device->flags.serial_bus_slave) {
-> +	if (!device->flags.enumeration_by_parent) {
->  		acpi_create_platform_device(device, NULL);
->  		acpi_device_set_enumerated(device);
->  	} else {
-> @@ -1958,7 +1959,7 @@ static void acpi_bus_attach(struct acpi_device *device)
->  		return;
 >  
->  	device->flags.match_driver = true;
-> -	if (ret > 0 && !device->flags.serial_bus_slave) {
-> +	if (ret > 0 && !device->flags.enumeration_by_parent) {
->  		acpi_device_set_enumerated(device);
->  		goto ok;
->  	}
-> @@ -1967,10 +1968,10 @@ static void acpi_bus_attach(struct acpi_device *device)
->  	if (ret < 0)
->  		return;
->  
-> -	if (!device->pnp.type.platform_id && !device->flags.serial_bus_slave)
-> -		acpi_device_set_enumerated(device);
-> -	else
-> +	if (device->pnp.type.platform_id || device->flags.enumeration_by_parent)
->  		acpi_default_enumeration(device);
-> +	else
-> +		acpi_device_set_enumerated(device);
->  
->   ok:
->  	list_for_each_entry(child, &device->children, node)
-> diff --git a/include/acpi/acpi_bus.h b/include/acpi/acpi_bus.h
-> index c9608b0..ba4dd54 100644
-> --- a/include/acpi/acpi_bus.h
-> +++ b/include/acpi/acpi_bus.h
-> @@ -215,7 +215,7 @@ struct acpi_device_flags {
->  	u32 of_compatible_ok:1;
->  	u32 coherent_dma:1;
->  	u32 cca_seen:1;
-> -	u32 serial_bus_slave:1;
-> +	u32 enumeration_by_parent:1;
->  	u32 reserved:19;
->  };
->  
+> +	if (acpi_is_indirect_io_slave(device))
+> +		return true;
+> +
+>  	/* Macs use device properties in lieu of _CRS resources */
+>  	if (x86_apple_machine &&
+>  	    (fwnode_property_present(&device->fwnode, "spiSclkPeriod") ||
 > 
