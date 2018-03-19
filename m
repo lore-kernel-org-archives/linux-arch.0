@@ -1,51 +1,56 @@
-From: "Kani, Toshi" <toshi.kani@hpe.com>
-Subject: Re: [PATCH v3 2/3] arm64: Implement page table free interfaces
-Date: Mon, 19 Mar 2018 19:29:27 +0000
-Message-ID: <1521487759.2693.224.camel@hpe.com>
-References: <1521463256-19858-1-git-send-email-cpandya@codeaurora.org>
-         <1521463256-19858-3-git-send-email-cpandya@codeaurora.org>
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: Re: [PATCH v12 1/9] iomap: Fix sparse endian check warnings
+Date: Mon, 19 Mar 2018 14:38:04 -0600
+Message-ID: <9a55914e-142c-2a1b-2eef-66d7922a58b8@deltatee.com>
+References: <20180316154852.13206-1-logang@deltatee.com>
+ <20180316154852.13206-2-logang@deltatee.com>
+ <20180317190311.tdmx2vlcjttsjs5j@ltop.local>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521463256-19858-3-git-send-email-cpandya@codeaurora.org>
+In-Reply-To: <20180317190311.tdmx2vlcjttsjs5j@ltop.local>
 Content-Language: en-US
-Content-ID: <343C81ABBCE43E429C438C0119AB3BC0@NAMPRD84.PROD.OUTLOOK.COM>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "cpandya@codeaurora.org" <cpandya@codeaurora.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "takahiro.akashi@linaro.org" <takahiro.akashi@linaro.org>, "james.morse@arm.com" <james.morse@arm.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Thomas Gleixner <tglx@linutronix.de>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-T24gTW9uLCAyMDE4LTAzLTE5IGF0IDE4OjEwICswNTMwLCBDaGludGFuIFBhbmR5YSB3cm90ZToN
-Cj4gSW1wbGVtZW50IHB1ZF9mcmVlX3BtZF9wYWdlKCkgYW5kIHBtZF9mcmVlX3B0ZV9wYWdlKCku
-DQo+IA0KPiBJbXBsZW1lbnRhdGlvbiByZXF1aXJlcywNCj4gIDEpIEZyZWVpbmcgb2YgdGhlIHVu
-LXVzZWQgbmV4dCBsZXZlbCBwYWdlIHRhYmxlcw0KPiAgMikgQ2xlYXJpbmcgb2ZmIHRoZSBjdXJy
-ZW50IHB1ZC9wbWQgZW50cnkNCj4gIDMpIEludmFsaWRhdGUgVExCIHdoaWNoIGNvdWxkIGhhdmUg
-cHJldmlvdXNseQ0KPiAgICAgdmFsaWQgYnV0IG5vdCBzdGFsZSBlbnRyeQ0KPiANCj4gU2lnbmVk
-LW9mZi1ieTogQ2hpbnRhbiBQYW5keWEgPGNwYW5keWFAY29kZWF1cm9yYS5vcmc+DQo+IC0tLQ0K
-PiAgYXJjaC9hcm02NC9tbS9tbXUuYyB8IDMwICsrKysrKysrKysrKysrKysrKysrKysrKysrKyst
-LQ0KPiAgMSBmaWxlIGNoYW5nZWQsIDI4IGluc2VydGlvbnMoKyksIDIgZGVsZXRpb25zKC0pDQo+
-IA0KPiBkaWZmIC0tZ2l0IGEvYXJjaC9hcm02NC9tbS9tbXUuYyBiL2FyY2gvYXJtNjQvbW0vbW11
-LmMNCj4gaW5kZXggZGE5ODgyOC4uYzcwZjEzOSAxMDA2NDQNCj4gLS0tIGEvYXJjaC9hcm02NC9t
-bS9tbXUuYw0KPiArKysgYi9hcmNoL2FybTY0L21tL21tdS5jDQo+IEBAIC00NSw2ICs0NSw3IEBA
-DQo+ICAjaW5jbHVkZSA8YXNtL21lbWJsb2NrLmg+DQo+ICAjaW5jbHVkZSA8YXNtL21tdV9jb250
-ZXh0Lmg+DQo+ICAjaW5jbHVkZSA8YXNtL3B0ZHVtcC5oPg0KPiArI2luY2x1ZGUgPGFzbS90bGJm
-bHVzaC5oPg0KPiAgDQo+ICAjZGVmaW5lIE5PX0JMT0NLX01BUFBJTkdTCUJJVCgwKQ0KPiAgI2Rl
-ZmluZSBOT19DT05UX01BUFBJTkdTCUJJVCgxKQ0KPiBAQCAtOTc1LDEwICs5NzYsMzUgQEAgaW50
-IHBtZF9jbGVhcl9odWdlKHBtZF90ICpwbWRwKQ0KPiAgDQo+ICBpbnQgcHVkX2ZyZWVfcG1kX3Bh
-Z2UocHVkX3QgKnB1ZCwgdW5zaWduZWQgbG9uZyBhZGRyKQ0KPiAgew0KPiAtCXJldHVybiBwdWRf
-bm9uZSgqcHVkKTsNCj4gKwlwbWRfdCAqcG1kOw0KPiArCWludCBpOw0KPiArDQo+ICsJcG1kID0g
-X192YShwdWRfdmFsKCpwdWQpKTsNCj4gKwlpZiAocHVkX3ZhbCgqcHVkKSkgew0KPiArCQlmb3Ig
-KGkgPSAwOyBpIDwgUFRSU19QRVJfUE1EOyBpKyspDQo+ICsJCQlwbWRfZnJlZV9wdGVfcGFnZSgm
-cG1kW2ldLCBhZGRyICsgKGkgKiBQTURfU0laRSkpOw0KPiArDQo+ICsJCWZyZWVfcGFnZSgodW5z
-aWduZWQgbG9uZykgcG1kKTsNCg0KV2h5IGRvIHlvdSB3YW50IHRvIGZyZWUgdGhpcyBwbWQgcGFn
-ZSBiZWZvcmUgY2xlYXJpbmcgdGhlIHB1ZCBlbnRyeSBvbg0KdGhpcyBhcm02NCB2ZXJzaW9uIChh
-cyBpdCBzZWVtcyB5b3UgaW50ZW50aW9uYWxseSBjaGFuZ2VkIGl0IGZyb20gdGhlDQp4ODYgdmVy
-c2lvbik/ICBJdCBjYW4gYmUgcmV1c2VkIHdoaWxlIGJlaW5nIHBvaW50ZWQgYnkgdGhlIHB1ZC4g
-IFNhbWUNCmZvciBwbWQuDQoNCj4gKwkJcHVkX2NsZWFyKHB1ZCk7DQo+ICsJCWZsdXNoX3RsYl9r
-ZXJuZWxfcmFuZ2UoYWRkciwgYWRkciArIFBVRF9TSVpFKTsNCg0KU2luY2UgeW91IHB1cmdlIHRo
-ZSBlbnRpcmUgcHVkIHJhbmdlIGhlcmUsIGRvIHlvdSBzdGlsbCBuZWVkIHRvIGNhbGwgDQpwbWRf
-ZnJlZV9wdGVfcGFnZSgpIHRvIHB1cmdlIGVhY2ggcG1kIHJhbmdlPyAgVGhpcyBsb29rcyB2ZXJ5
-IGV4cGVuc2l2ZS4NCllvdSBtYXkgd2FudCB0byBjb25zaWRlciBpZiBjYWxsaW5nIGludGVybmFs
-IF9fcG1kX2ZyZWVfcHRlX3BhZ2UoKQ0Kd2l0aG91dCB0aGUgcHVyZ2Ugb3BlcmF0aW9uIHdvcmtz
-Lg0KDQotVG9zaGk=
+Hi Luc,
+
+Thanks for the feedback. I'll try to address your points in a v13 shortly.
+
+Logan
+
+
+On 18/03/18 10:13 AM, Luc Van Oostenryck wrote:
+> it looks correct but if you should explain why the warning
+> is not a valid one. Once done, you can then explain what problem
+> you have fixed instead of saying you suppressed a warning.
+> 
+>> Also, it looks like the wrong conversion function was used in
+> 
+> I would suggest to split the patch in two since it does two
+> different things which should have their own explanation.
+> 
+>> diff --git a/lib/iomap.c b/lib/iomap.c
+>> index 541d926da95e..a05d9fa21794 100644
+>> --- a/lib/iomap.c
+>> +++ b/lib/iomap.c
+>> @@ -106,8 +106,10 @@ EXPORT_SYMBOL(ioread32be);
+>>  #endif
+>>  
+>>  #ifndef mmio_write16be
+>> -#define mmio_write16be(val,port) __raw_writew(be16_to_cpu(val),port)
+>> -#define mmio_write32be(val,port) __raw_writel(be32_to_cpu(val),port)
+>> +#define mmio_write16be(val, port) \
+>> +	__raw_writew((u16 __force)cpu_to_be16(val), port)
+>> +#define mmio_write32be(val, port) \
+>> +	__raw_writel((u32 __force)cpu_to_be32(val), port)
+>>  #endif
+> 
+> I think that in this sort of replacement, it's better to not split
+> the lines (even if larger than 80, that's it).
+> 
+> -- Luc Van Oostenryck
+> 
