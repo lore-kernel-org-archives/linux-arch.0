@@ -1,265 +1,181 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC PATCH 4/6] mm: provide generic compat_sys_readahead()
- implementation
-Date: Mon, 19 Mar 2018 04:23:00 +0000
-Message-ID: <20180319042300.GW30522@ZenIV.linux.org.uk>
-References: <20180318161056.5377-1-linux@dominikbrodowski.net>
- <20180318161056.5377-5-linux@dominikbrodowski.net>
- <20180318174014.GR30522@ZenIV.linux.org.uk>
- <CA+55aFwuZCpAZRpsTGiUmG065ZHHpj+03_NeWiy-OGkMGw7e3g@mail.gmail.com>
- <20180318181848.GU30522@ZenIV.linux.org.uk>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 19/19] irqchip: add irq-nationalchip.c and irq-csky.c
+Date: Mon, 19 Mar 2018 04:26:00 +0000
+Message-ID: <20180319042535.fzssdiu4ot7nyhwe@salmiak>
+References: <cover.1521399976.git.ren_guo@c-sky.com>
+ <62e687d3eb67505aa6f4d4d01ce268fd432bf58e.1521399976.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180318181848.GU30522@ZenIV.linux.org.uk>
+In-Reply-To: <62e687d3eb67505aa6f4d4d01ce268fd432bf58e.1521399976.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, the arch/x86 maintainers <x86@kernel.org>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Mar 18, 2018 at 06:18:48PM +0000, Al Viro wrote:
+On Mon, Mar 19, 2018 at 03:51:41AM +0800, Guo Ren wrote:
+> +static unsigned int intc_reg;
 
-> I'd done some digging in that area, will find the notes and post.
+This should be a void __iomem *ptr;
 
-OK, found:
+> +
+> +#define CK_VA_INTC_ICR		(void *)(intc_reg + 0x00)	/* Interrupt control register(High 16bits) */
+> +#define CK_VA_INTC_ISR		(void *)(intc_reg + 0x00)	/* Interrupt status register(Low 16bits) */
+> +#define CK_VA_INTC_NEN31_00	(void *)(intc_reg + 0x10)	/* Normal interrupt enable register Low */
+> +#define	CK_VA_INTC_NEN63_32	(void *)(intc_reg + 0x28)	/* Normal interrupt enable register High */
+> +#define CK_VA_INTC_IFR31_00	(void *)(intc_reg + 0x08)	/* Normal interrupt force register Low */
+> +#define CK_VA_INTC_IFR63_32	(void *)(intc_reg + 0x20)	/* Normal interrupt force register High */
+> +#define	CK_VA_INTC_SOURCE	(void *)(intc_reg + 0x40)	/* Proiority Level Select Registers 0 */
 
-We have two ABIs in the game - syscall and normal C.  The latter
-(for all targets we support) can be described in the following
-terms:
-	* there is a series of word-sized objects used to pass
-arguments, some in registers, some on stack.  Arguments are
-mapped on that sequence.  Anything up to word size simply takes
-the next available word, so on 64bit it's all there is - nth
-argument goes into the nth object, types simply do not matter.
-On 32bit it's not that simple - there 64bit arguments occupy
-two objects.  They are still picked from the same sequence;
-on little-endian the lower half goes first, on big-endian -
-the higher one.  For some architectures that's all there is to it.
-However, on quite a few there's an extra complication - not every
-pair can be used for 64bit value.  Rules for those are arch-dependent.
-One variety is "pairs should be aligned", i.e. "if we'd consumed
-an odd number of slots, add a dummy one before eating a pair".
-Another is "don't let a pair span the registers/stack boundary";
-surprisingly enough, that's not universal.
+Please use mnemonics for the offsets, and add the base address in the IO
+accessors.
 
-The syscall ABI can considerably differ from C one.  First of all,
-we really do *not* want to pass anything on stack - it's a major
-headache at syscall entry.  See mips/o32 for the scale of that headache.
-Not fun.  OTOH, the registers that can be used are a limited resource.
-i386 can't pass more than 6 words and that has served as an upper
-limit.  If we encode the argument sizes (W - word, D - 64bit) we
-have the following variants among the syscalls:
-	* no arguments at all (SYSCALL_DEFINE0)
-	* W (SYSCALL_DEFINE1)
-	* WW (SYSCALL_DEFINE2)
-	* WWW (SYSCALL_DEFINE3)
-	* WWWW (SYSCALL_DEFINE4)
-	* WWWWW (SYSCALL_DEFINE5)
-	* WWWWWW (SYSCALL_DEFINE6)
-	* WD (SYSCALL_DEFINE2, truncate64, ftruncate64)
-	* DWW (SYSCALL_DEFINE3, lookup_dcookie)
-	* WDW (SYSCALL_DEFINE3, readahead)
-	* WWWD (SYSCALL_DEFINE4, pread64, pwrite64)
-	* WWDD (SYSCALL_DEFINE4, fallocate, sync_file_range2)
-	* WDDW (SYSCALL_DEFINE4, sync_file_range, fadvise64_64)
-	* WDWW (SYSCALL_DEFINE4, fadvise64)
-	* WWDWW (SYSCALL_DEFINE5, fanotify_mark)
+[...]
 
-The list for each long long-passing variant might be incomplete, but
-they really are rare.  And a source of headache; not just for biarch
-architectures - e.g. c6x and metag are not biarch and these syscalls
-are exactly what stinks them up.
+> +		temp = __raw_readl(CK_VA_INTC_NEN31_00);
 
-One thing we *really* don't want is syscall-dependent mapping from
-syscall ABI registers to C ABI sequence.  Inside a syscall (or in
-per-syscall glue) - sure, we can do it (if not happily).  In the
-syscall dispatcher - fuck no, too much PITA.  mips/o32 used to be
-a horrible example of why not, then they went for "copy from userland
-stack whether we need it or not"...
+Please use readl_relaxed() rather than __raw_readl().
 
-For simple syscalls (first 7 classes in the above, each argument fits
-into word) we simply map registers to the first 6 slots of the sequence
-and we are done.  It's bloody tempting to use the same mapping for
-the rest - use the same code that calls simple syscalls and have it
-call sys_readahead() instead of sys_mkdir(), etc.  For something like
-x86 or sparc that works perfectly - these guys have no padding for 64bit
-arguments, so we are good (provided that userland sets those registers
-sanely, that is).
+> +		__raw_writel(temp, CK_VA_INTC_NEN31_00);
 
-OTOH, consider arm.  There we have
-	* r0, r1, r2, r3, [sp,#8], [sp,#12], [sp,#16]... is the sequence
-of objects used to pass arguments
-	* 32bit and less - pick the next available slot
-	* 64bit - skip a slot if we'd already taken an odd number, then use
-the next two slots for lower and upper 32 bits of the argument.
+Likewise, please use writel_relaxed() rather than __raw_writel().
 
-So our classes take
-simple n-argument:	0 to 6 slots
-WD			4 slots
-DWW			4 slots
-WDW			5 slots
-WWDD			6 slots
-WDWW			5 slots
-WWWD			6 slots
-WWDWW			6 slots
-WDDW			7 slots (!)  Also ****, !!!!, !@#!@#!@#!# and other nice
-and well-deserved comments from arch maintainers, some of them even printable:
-/* It would be nice if people remember that not all the world's an i386
-   when they introduce new system calls */
-SYSCALL_DEFINE4(sync_file_range2, int, fd, unsigned int, flags,
-                                 loff_t, offset, loff_t, nbytes)
+[...]
 
-No idea why that hadn't been done to fadvise64_64() - that got
-/*
- * Since loff_t is a 64 bit type we avoid a lot of ABI hassle
- * with a different argument ordering.
- */
-asmlinkage long sys_arm_fadvise64_64(int fd, int advice,
-                                     loff_t offset, loff_t len)
-{
-        return sys_fadvise64_64(fd, offset, len, advice);
-}
-long ppc_fadvise64_64(int fd, int advice, u32 offset_high, u32 offset_low,
-                      u32 len_high, u32 len_low)
-{
-        return sys_fadvise64(fd, (u64)offset_high << 32 | offset_low,
-                             (u64)len_high << 32 | len_low, advice);
-}
-and
-asmlinkage long parisc_fadvise64_64(int fd,
-                        unsigned int high_off, unsigned int low_off,
-                        unsigned int high_len, unsigned int low_len, int advice)
-{
-        return sys_fadvise64_64(fd, (loff_t)high_off << 32 | low_off,
-                        (loff_t)high_len << 32 | low_len, advice);
-}
-consistency, shmonsistency...  And yes, glibc has
-#ifdef __ASSUME_FADVISE64_64_6ARG
-  int ret = INTERNAL_SYSCALL_CALL (fadvise64_64, err, fd, advise,
-                                   SYSCALL_LL64 (offset), SYSCALL_LL64 (len));
-#else
-  int ret = INTERNAL_SYSCALL_CALL (fadvise64_64, err, fd,
-                                   __ALIGNMENT_ARG SYSCALL_LL64 (offset),
-                                   SYSCALL_LL64 (len), advise);
-#endif
-with __ASSUME_FADVISE64_64_6ARG defined for arm and ppc...
-xtensa, BTW, has
-asmlinkage long xtensa_fadvise64_64(int fd, int advice,
-                unsigned long long offset, unsigned long long len)
-{
-        return sys_fadvise64_64(fd, offset, len, advice);
-}
-In other words, same solution as arm and ppc.  No xtensa support in
-glibc, AFAICS...
+> +static int __init
+> +__intc_init(struct device_node *np, struct device_node *parent, bool ave)
+> +{
+> +	struct irq_domain *root_domain;
+> +	int i;
+> +
+> +	csky_get_auto_irqno = ck_get_irqno;
+> +
+> +	if (parent)
+> +		panic("pic not a root intc\n");
+> +
+> +	intc_reg = (unsigned int)of_iomap(np, 0);
+> +	if (!intc_reg)
+> +		panic("%s, of_iomap err.\n", __func__);
+> +
+> +	__raw_writel(0, CK_VA_INTC_NEN31_00);
+> +	__raw_writel(0,	CK_VA_INTC_NEN63_32);
+> +
+> +	if (ave == true)
+> +		__raw_writel( 0xc0000000, CK_VA_INTC_ICR);
+> +	else
+> +		__raw_writel( 0x0, CK_VA_INTC_ICR);
+> +	/*
+> +	 * csky irq ctrl has 64 sources.
+> +	 */
+> +	#define INTC_IRQS 64
+> +	for (i=0; i<INTC_IRQS; i=i+4)
+> +		__raw_writel((i+3)|((i+2)<<8)|((i+1)<<16)|(i<<24),
+> +				CK_VA_INTC_SOURCE + i);
+> +
+> +	root_domain = irq_domain_add_legacy(np, INTC_IRQS, 0, 0, &ck_irq_ops, NULL);
+> +	if (!root_domain)
+> +		panic("root irq domain not available\n");
+> +
+> +	irq_set_default_host(root_domain);
+> +
+> +	return 0;
+> +}
+> +
+> +static int __init
+> +intc_init(struct device_node *np, struct device_node *parent)
+> +{
+> +
+> +	return __intc_init(np, parent, false);
+> +}
+> +IRQCHIP_DECLARE(csky_intc_v1, "csky,intc-v1", intc_init);
+> +
+> +/*
+> + * use auto vector exceptions 10 for interrupt.
+> + */
+> +static int __init
+> +intc_init_ave(struct device_node *np, struct device_node *parent)
+> +{
+> +	return __intc_init(np, parent, true);
+> +}
+> +IRQCHIP_DECLARE(csky_intc_v1_ave, "csky,intc-v1,ave", intc_init_ave);
 
-Anyway, padding rules for 32bit ones, with not too many arguments:
+These need devicetree bindings. Please see
+Documentation/devicetree/bindings/submitting-patches.txt.
 
-* arc cris frv h8300 i386 m32r m68k microblaze mn10300 nios2 openrisc
-riscv sparc - no padding.
-Note that e.g. frv *does* have a "don't let it cross regs/stack
-boundary" rule, but it has 6 register slots, so for syscalls it
-doesn't matter.  OTOH, sparc (and m32r, and...) really won't
-care about regs/stack boundary.
+[...]
 
-* arm mips parisc ppc xtensa - pad to even number of words consumed;
-since the number of registers in the sequence is even for all those,
-there is nothing special going on at the edge.  WDDW is a bitch for
-that group; mips goes for "fuck it, we copy userland stack anyway",
-the rest try to cope in various ways.
+> +inline int ff1_64(unsigned int hi, unsigned int lo)
+> +{
+> +	int result;
+> +	asm volatile(
+> +		"ff1 %0\n"
+> +		:"=r"(hi)
+> +		:"r"(hi)
+> +		:
+> +	);
+> +
+> +	asm volatile(
+> +		"ff1 %0\n"
+> +		:"=r"(lo)
+> +		:"r"(lo)
+> +		:
+> +	);
+> +	if( lo != 32 )
+> +		result = 31-lo;
+> +	else if( hi != 32 ) result = 31-hi + 32;
+> +	else {
+> +		printk("nc_get_irqno error hi:%x, lo:%x.\n", hi, lo);
+> +		result = NR_IRQS;
+> +	}
+> +	return result;
+> +}
 
-* s390 - 5 register slots, padding on the crossing the regs/stack
-boundary and nowhere else (i.e. pad if exactly 4 words had been
-consumed).  WWDD runs afoul of that one.
+Please avoid assembly in generic driver code. Here you cna use __ffs64() after
+combining the two halves into a 64-bit quantity, or you could use ffs() on each
+half.
 
-* bfin - similar, except that we pad on exactly 2 words.  Same
-story as with s390, only we have 3 register slots.  Headache
-on: WWDWW and WWDD.
+> +static int __init
+> +intc_init(struct device_node *intc, struct device_node *parent)
+> +{
+> +	struct irq_domain *root_domain;
+> +	unsigned int i;
+> +
+> +	if (parent)
+> +		panic("DeviceTree incore intc not a root irq controller\n");
+> +
+> +	csky_get_auto_irqno = nc_get_irqno;
+> +
+> +	intc_reg = (unsigned int) of_iomap(intc, 0);
+> +	if (!intc_reg)
+> +		panic("Nationalchip Intc Reg: %x.\n", intc_reg);
+> +
+> +	__raw_writel(0xffffffff, NC_VA_INTC_NENCLR31_00);
+> +	__raw_writel(0xffffffff, NC_VA_INTC_NENCLR63_32);
+> +	__raw_writel(0xffffffff, NC_VA_INTC_NMASK31_00);
+> +	__raw_writel(0xffffffff, NC_VA_INTC_NMASK63_32);
+> +
+> +	/*
+> +	 * nationalchip irq ctrl has 64 sources.
+> +	 */
+> +	#define INTC_IRQS 64
+> +	for (i=0; i<INTC_IRQS; i=i+4)
+> +		__raw_writel(i|((i+1)<<8)|((i+2)<<16)|((i+3)<<24),
+> +				NC_VA_INTC_SOURCE + i);
+> +
+> +	root_domain = irq_domain_add_legacy(intc, INTC_IRQS, 0, 0,
+> +			&nc_irq_ops, NULL);
+> +	if (!root_domain)
+> +		panic("root irq domain not avail\n");
+> +
+> +	irq_set_default_host(root_domain);
+> +
+> +	return 0;
+> +}
+> +
+> +IRQCHIP_DECLARE(nationalchip_intc_v1_ave, "nationalchip,intc-v1,ave", intc_init);
 
-* c6x - strange beast, that; registers are 32bit, but for the
-argument passing purposes it's using 64bit register pairs, filling
-only the lower half when passing a 32bit argument.
+This needs a devicetree binding document.
 
-* sh - really weird.  If 64bit would span the registers/stack
-boundary (4 register slots there), it's done on stack... and
-the first 32bit argument after that will eat the remaining
-register.  Out of our classes it affects WWWD (as if there
-had been a padding) and WDDW (as if the last two arguments had
-switched places).
-
-FWIW, it looks like we have several different issues mixed here
-
-1) teaching COMPAT_SYSCALL_DEFINE to do the right thing in case
-when 64bit arguments are present.  It's not terribly hard (sh
-is not biarch, thankfully), but we'd better watch out carefully
-when unifying - "fucker eats 7 slots" cases are irregular by
-definition and solutions used for those differ between the
-architectures.  It won't be pretty, though - we can get something
-like
-asmlinkage long compat_sys_truncate64(long a0, long a1, long a2, long a3, long a4, long a5)
-{
-	CS_truncate64((const char __user *)a0, ((u64)a2<<32)|(u64)a3);
-}
-static inline long CS_truncate64(const char __user *path, loff_t length)
-{
-	return sys_truncate64(path, length);
-}
-out of
-COMPAT_SYSCALL_DEFINE2(trucate64, const char __user *, path, loff_t, length)
-{
-	return sys_truncate(path, length);
-}
-but the damn thing will be 6-argument and expressions for arguments will
-expand to something equal to the forms above, but they'll be choke-full
-of conditional expressions with constant 0 or 1 for selectors.  What we can't
-do is evaluation of "is it long long" at macro expansion time - we can't tell
-int, loff_t from int, pid_t until typedefs had been handled, at which point
-the parse tree is cast in stone.  It will have to be 6-argument.
-Alternatively, we could do COMPAT_SYSCALL_DEFINE_WD et.al. so that preprocessor
-would get that information directly from us.
-
-[snip the preprocessor horrors - the sketches I've got there are downright obscene]
-
-2) s390 compat wrappers ;-/  I still wonder if we would be better
-off with SYSCALL_DEFINE on s390 defining a wrapper with COMPAT_SYSCALL_DEFINE
-(if present) redefining it, throwing the original away.  That could be done
-with some amount of linker trickery.
-
-3) sparc wrappers in sys32.S.  Most of those got killed off back in 2012,
-what remained was
-SIGN1(sys32_getrusage, compat_sys_getrusage, %o0)
-SIGN1(sys32_readahead, compat_sys_readahead, %o0)
-SIGN2(sys32_fadvise64, compat_sys_fadvise64, %o0, %o4)
-SIGN2(sys32_fadvise64_64, compat_sys_fadvise64_64, %o0, %o5)
-SIGN1(sys32_clock_nanosleep, compat_sys_clock_nanosleep, %o1)
-SIGN1(sys32_timer_settime, compat_sys_timer_settime, %o1)
-SIGN1(sys32_io_submit, compat_sys_io_submit, %o1)
-SIGN1(sys32_mq_open, compat_sys_mq_open, %o1)
-SIGN1(sys32_select, compat_sys_select, %o0)
-SIGN3(sys32_futex, compat_sys_futex, %o1, %o2, %o5)
-SIGN2(sys32_sendfile, compat_sys_sendfile, %o0, %o1)
-SIGN1(sys32_recvfrom, compat_sys_recvfrom, %o0)
-SIGN1(sys32_recvmsg, compat_sys_recvmsg, %o0)
-SIGN1(sys32_sendmsg, compat_sys_sendmsg, %o0)
-SIGN2(sys32_sync_file_range, compat_sync_file_range, %o0, %o5)
-SIGN1(sys32_vmsplice, compat_sys_vmsplice, %o0)
-with some of those killed off later and (completely pointless)
-SIGN2(sys32_renameat2, sys_renameat2, %o0, %o2)
-added.
-
-Since then clock_nanosleep(), timer_settime(), io_submit(), mq_open(),
-select(), recvfrom(), recvmsg(), sendmsg(), getrusage(), sync_file_range(),
-futex() and vmsplice() got switched to COMPAT_SYSCALL_DEFINE, making those
-SIGN... wrappers pointless.  That leaves
-SIGN1(sys32_readahead, compat_sys_readahead, %o0)
-SIGN2(sys32_fadvise64, compat_sys_fadvise64, %o0, %o4)
-SIGN2(sys32_fadvise64_64, compat_sys_fadvise64_64, %o0, %o5)
-all of which are right there in arch/sparc/kernel/sys_sparc32.c and
-trivially converted to COMPAT_SYSCALL_DEFINE.  Which would kill all the
-SIGN... bunch off, leaving there sys_mmap() and sys_socketcall()
-
-4) stuff in arch really needs a good look.  And not just biarch -
-I could've easily missed some "takes a 64bit argument" cases in
-that area.  Moreover, it might be a good idea to have all syscall
-tables generated a-la x86 and s390 ones are, ideally with the same
-format of input data for all of them...
+Thanks,
+Mark.
