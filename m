@@ -1,69 +1,47 @@
 From: Guo Ren <ren_guo@c-sky.com>
 Subject: Re: [PATCH 18/19] clocksource: add timer-nationalchip.c
-Date: Mon, 19 Mar 2018 14:59:52 +0800
-Message-ID: <20180319065951.GA21923@guoren>
+Date: Mon, 19 Mar 2018 15:03:52 +0800
+Message-ID: <20180319070351.GB21923@guoren>
 References: <cover.1521399976.git.ren_guo@c-sky.com>
  <04f5a0702fc14e934e6f5a456cad8682d0b15aa2.1521399976.git.ren_guo@c-sky.com>
- <17200f94-9684-2600-a36e-a42a2d53ed70@linaro.org>
+ <20180319041522.zyjdjrxtd2va3m2a@salmiak>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <17200f94-9684-2600-a36e-a42a2d53ed70@linaro.org>
+In-Reply-To: <20180319041522.zyjdjrxtd2va3m2a@salmiak>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Daniel,
+Hi Mark,
 
-On Sun, Mar 18, 2018 at 11:07:12PM +0100, Daniel Lezcano wrote:
-> 
-> This patch is a new driver. Please add the hardware details of this
-> timer and optionally a link to the documentation. No need to write a
-> book, just a quick summary of it.
->
-OK
-
-> > +#include <linux/kernel.h>
-> > +#include <linux/sched.h>
-> > +#include <linux/param.h>
-> 
-> sched ? param ?
->
-I'll cleanup the headers.
-
-> > +#include <linux/init.h>
-> > +#include <linux/interrupt.h>
-> > +#include <linux/profile.h>
-> 
-> profile ?
-> 
-I'll cleanup the headers.
-
-> > +#include <linux/irq.h>
-> > +#include <linux/rtc.h>
-> > +#include <linux/sizes.h>
-> 
-> rtc ? sizes ?
-> 
-I'll cleanup the headers.
-
-> > +#include <linux/clocksource.h>
-> > +#include <linux/clockchips.h>
-> > +#include <asm/irq.h>
-> > +#include <asm/io.h>
-> > +#include <asm/delay.h>
-> 
-> Is the delay API defined for this architecture ? I don't see it used below.
-> 
-I'll cleanup the headers.
-
+On Mon, Mar 19, 2018 at 04:15:35AM +0000, Mark Rutland wrote:
+> > +#define NC_VA_COUNTER_3_CONTROL		(void *)(timer_reg + 0x90)
 > > +#define NC_VA_COUNTER_3_CONFIG		(void *)(timer_reg + 0xa0)
 > > +#define NC_VA_COUNTER_3_PRE		(void *)(timer_reg + 0xa4)
 > > +#define NC_VA_COUNTER_3_INI		(void *)(timer_reg + 0xa8)
-> > +
+> 
+> Please define the offsets alone, e.g.
+> 
+> #define NC_VA_COUNTER_1_STATUS	0x00
+> #define NC_VA_COUNTER_1_VALUE	0x04
+> 
+> ... the base address should be added when calling the io accessor. Please see
+> below.
+> 
 > > +static unsigned int timer_reg;
+> 
+> This should be a void __iomem *, e.g.
+> 
+> static void __iomem *timer_base;
+> 
+> ... though it would be better for this to be associated with the instance of
+> the clock_event_device, so that there can be multiple instances in a system.
+>
+OK
+
 > > +
 > > +static inline void timer_reset(void)
 > > +{
@@ -72,68 +50,28 @@ I'll cleanup the headers.
 > > +	__raw_writel(0x3,	NC_VA_COUNTER_1_CONFIG);
 > > +	__raw_writel(26,	NC_VA_COUNTER_1_PRE);
 > 
-> Why are you using the __raw_writel instead of writel ?
+> Should this be 26 or 0x26?
+No
+
 > 
-> No values, explicit macros please.
+> It would be nice to have mnemonics for these magic numbers.
+>
+Yes, you are right.
+
+> Please use writel_relaxed() rather than __raw_writel(). e.g.
+> 
+> 	writel_relaxed(0x1, timer_base + NC_VA_COUNTER_1_CONTROL);
+> 	writel_relaxed(0x0, timer_base + NC_VA_COUNTER_1_CONTROL);
+> 	writel_relaxed(0x3, timer_base + NC_VA_COUNTER_1_CONTROL);
+> 	writel_relaxed(26, timer_base + NC_VA_COUNTER_1_PRE);
 >
 OK
 
-> > +}
-> > +
-> > +static irqreturn_t timer_interrupt(int irq, void *dev_id)
-> 
-> timer_interrupt is a too generic name, at least nc_timer_interrupt would
-> be more accurate.
->
-OK
-
-> > +static u64 notrace nc_sched_clock_read(void)
-> > +{
-> > +	return (u64) __raw_readl(NC_VA_COUNTER_2_VALUE);
-> > +}
-> > +
-> > +static void nc_csd_enable(void)
-> 
-> Can you choose a more explicit name than 'csd'?
->
-OK, change to nc_clocksource_dev_enable
-
-> > +	/* setup irq */
-> > +	if (request_irq(irq, timer_interrupt, IRQF_TIMER, np->name, &nc_ced))
-> > +		panic("%s timer_interrupt error.\n", __func__);
-> 
-> Replace the "clock-frequency" property to a clock phandle and use the
-> timer-of API.
-> 
-> That will result on something like that:
-> 
-> https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/clocksource/timer-sprd.c#n124
-> 
-> No panic in init function.
->
-OK
-
-> > +	/* register */
-> > +	clockevents_config_and_register(&nc_ced, freq, 1, ULONG_MAX);
-> > +
-> > +	nc_csd_enable();
-> > +	clocksource_mmio_init(NC_VA_COUNTER_2_VALUE, "nationalchip-clksource", freq, 200, 32, clocksource_mmio_readl_up);
-> 
-> s/nationalchip-clksource/nationalchip/
-> 
-> line wrap
->
-OK
-
-> > +	sched_clock_register(nc_sched_clock_read, 32, freq);
-> > +
-> > +	return 0;
-> > +}
 > > +CLOCKSOURCE_OF_DECLARE(nc_timer, "nationalchip,timer-v1", nc_timer_init);
 > 
-> s/CLOCKSOURCE_OF_DECLARE/TIMER_OF_DECLARE/
+> This needs a devicetree binding document. Please see Documentation/devicetree/bindings/submitting-patches.txt.
 >
 OK
 
 Best Regards
- Guo Ren
+  Guo Ren
