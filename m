@@ -1,87 +1,64 @@
-From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Subject: Re: [PATCH v17 08/10] ACPI / scan: do not enumerate Indirect IO host children
-Date: Mon, 19 Mar 2018 11:30:11 +0100
-Message-ID: <2309217.pWfZsU88YQ@aspire.rjw.lan>
-References: <1521051359-34473-1-git-send-email-john.garry@huawei.com> <1521051359-34473-9-git-send-email-john.garry@huawei.com>
+From: John Garry <john.garry@huawei.com>
+Subject: Re: [PATCH v17 08/10] ACPI / scan: do not enumerate Indirect IO host
+ children
+Date: Mon, 19 Mar 2018 10:48:34 +0000
+Message-ID: <906b3868-39a5-3807-23a4-dfc52c2e82c4@huawei.com>
+References: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
+ <1521051359-34473-9-git-send-email-john.garry@huawei.com>
+ <2309217.pWfZsU88YQ@aspire.rjw.lan>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521051359-34473-9-git-send-email-john.garry@huawei.com>
+In-Reply-To: <2309217.pWfZsU88YQ@aspire.rjw.lan>
 Sender: linux-kernel-owner@vger.kernel.org
-To: John Garry <john.garry@huawei.com>
+To: "Rafael J. Wysocki" <rjw@rjwysocki.net>
 Cc: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com, joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-On Wednesday, March 14, 2018 7:15:57 PM CET John Garry wrote:
-> Through the logical PIO framework systems which otherwise have
-> no IO space access to legacy ISA/LPC devices may access these
-> devices through so-called "indirect IO" method. In this, IO
-> space accesses for non-PCI hosts are redirected to a host
-> LLDD to manually generate the IO space (bus) accesses. Hosts
-> are able to register a region in logical PIO space to map to
-> its bus address range.
-> 
-> Indirect IO child devices have an associated host-specific bus
-> address. Special translation is required to map between
-> a logical PIO address for a device and it's host bus address.
-> 
-> Since in the ACPI tables the child device IO resources would
-> be the host-specific values, it is required the ACPI scan code
-> should not enumerate these devices, and that this should be
-> the responsibility of the host driver so that it can "fixup"
-> the resources so that they map to the appropriate logical PIO
-> addresses.
-> 
-> To avoid enumerating these child devices, we add a check from
-> acpi_device_enumeration_by_parent() as to whether the parent
-> for a device is a member of a known list of "indirect IO" hosts.
-> For now, the HiSilicon LPC host controller ID is added.
-> 
-> Signed-off-by: John Garry <john.garry@huawei.com>
-> Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+On 19/03/2018 10:30, Rafael J. Wysocki wrote:
+> On Wednesday, March 14, 2018 7:15:57 PM CET John Garry wrote:
+>> > Through the logical PIO framework systems which otherwise have
+>> > no IO space access to legacy ISA/LPC devices may access these
+>> > devices through so-called "indirect IO" method. In this, IO
+>> > space accesses for non-PCI hosts are redirected to a host
+>> > LLDD to manually generate the IO space (bus) accesses. Hosts
+>> > are able to register a region in logical PIO space to map to
+>> > its bus address range.
+>> >
+>> > Indirect IO child devices have an associated host-specific bus
+>> > address. Special translation is required to map between
+>> > a logical PIO address for a device and it's host bus address.
+>> >
+>> > Since in the ACPI tables the child device IO resources would
+>> > be the host-specific values, it is required the ACPI scan code
+>> > should not enumerate these devices, and that this should be
+>> > the responsibility of the host driver so that it can "fixup"
+>> > the resources so that they map to the appropriate logical PIO
+>> > addresses.
+>> >
+>> > To avoid enumerating these child devices, we add a check from
+>> > acpi_device_enumeration_by_parent() as to whether the parent
+>> > for a device is a member of a known list of "indirect IO" hosts.
+>> > For now, the HiSilicon LPC host controller ID is added.
+>> >
+>> > Signed-off-by: John Garry <john.garry@huawei.com>
+>> > Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+> You have my ACK here already.
+>
+> Since I've ACKed the [7/10] too, I don't think there's anything more I can do
+> about this series and I'm assuming that it will be routed through other trees.
+>
+> Thanks!
+>
 
-You have my ACK here already.
+Hi Rafael,
 
-Since I've ACKed the [7/10] too, I don't think there's anything more I can do
-about this series and I'm assuming that it will be routed through other trees.
+Thanks for this.
 
-Thanks!
+Yes, I am working on getting this whole series routed through another 
+tree. Actually I think 7+8 could go separately since there is no build 
+dependency, but I will try to keep the series together.
 
-> Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
-> Tested-by: dann frazier <dann.frazier@canonical.com>
-> ---
->  drivers/acpi/scan.c | 14 ++++++++++++++
->  1 file changed, 14 insertions(+)
-> 
-> diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
-> index f9e7904..a4cbf3e 100644
-> --- a/drivers/acpi/scan.c
-> +++ b/drivers/acpi/scan.c
-> @@ -1524,11 +1524,25 @@ static int acpi_check_serial_bus_slave(struct acpi_resource *ares, void *data)
->  	return -1;
->  }
->  
-> +static bool acpi_is_indirect_io_slave(struct acpi_device *device)
-> +{
-> +	struct acpi_device *parent = device->parent;
-> +	const struct acpi_device_id indirect_io_hosts[] = {
-> +		{"HISI0191", 0},
-> +		{}
-> +	};
-> +
-> +	return parent && !acpi_match_device_ids(parent, indirect_io_hosts);
-> +}
-> +
->  static bool acpi_device_enumeration_by_parent(struct acpi_device *device)
->  {
->  	struct list_head resource_list;
->  	bool is_serial_bus_slave = false;
->  
-> +	if (acpi_is_indirect_io_slave(device))
-> +		return true;
-> +
->  	/* Macs use device properties in lieu of _CRS resources */
->  	if (x86_apple_machine &&
->  	    (fwnode_property_present(&device->fwnode, "spiSclkPeriod") ||
-> 
+All the best, And thanks again,
+John
