@@ -1,90 +1,51 @@
 From: "Kani, Toshi" <toshi.kani@hpe.com>
-Subject: Re: [PATCH v3 1/3] ioremap: Update pgtable free interfaces with addr
-Date: Mon, 19 Mar 2018 19:01:45 +0000
-Message-ID: <1521486096.2693.202.camel@hpe.com>
+Subject: Re: [PATCH v3 2/3] arm64: Implement page table free interfaces
+Date: Mon, 19 Mar 2018 19:29:27 +0000
+Message-ID: <1521487759.2693.224.camel@hpe.com>
 References: <1521463256-19858-1-git-send-email-cpandya@codeaurora.org>
- <1521463256-19858-2-git-send-email-cpandya@codeaurora.org>
+         <1521463256-19858-3-git-send-email-cpandya@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1521463256-19858-2-git-send-email-cpandya@codeaurora.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1521463256-19858-3-git-send-email-cpandya@codeaurora.org>
 Content-Language: en-US
-Content-ID: <E918B9CB35AE6047A33C70C73CA038E8@NAMPRD84.PROD.OUTLOOK.COM>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Content-ID: <343C81ABBCE43E429C438C0119AB3BC0@NAMPRD84.PROD.OUTLOOK.COM>
+Sender: linux-kernel-owner@vger.kernel.org
 To: "cpandya@codeaurora.org" <cpandya@codeaurora.org>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "takahiro.akashi@linaro.org" <takahiro.akashi@linaro.org>, "james.morse@arm.com" <james.morse@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "takahiro.akashi@linaro.org" <takahiro.akashi@linaro.org>, "james.morse@arm.com" <james.morse@arm.com>, "kristina.martsenko@arm.com" <kristina.martsenko@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "marc.zyngier@arm.com" <marc.zyngier@arm.com>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2018-03-19 at 18:10 +0530, Chintan Pandya wrote:
-> This patch ("mm/vmalloc: Add interfaces to free unmapped
-> page table") adds following 2 interfaces to free the page
-> table in case we implement huge mapping.
-> 
-> pud_free_pmd_page() and pmd_free_pte_page()
-> 
-> Some architectures (like arm64) needs to do proper TLB
-> maintanance after updating pagetable entry even in map.
-> Why ? Read this,
-> https://patchwork.kernel.org/patch/10134581/
-> 
-> Pass 'addr' in these interfaces so that proper TLB ops
-> can be performed.
-> 
-> Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
- :
-> diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-> index 34cda7e..20b0322 100644
-> --- a/arch/x86/mm/pgtable.c
-> +++ b/arch/x86/mm/pgtable.c
-> @@ -710,7 +710,7 @@ int pmd_clear_huge(pmd_t *pmd)
->   * Context: The pud range has been unmaped and TLB purged.
->   * Return: 1 if clearing the entry succeeded. 0 otherwise.
->   */
-> -int pud_free_pmd_page(pud_t *pud)
-> +int pud_free_pmd_page(pud_t *pud, unsigned long addr)
-
-Please update the function header as well.  Same for pmd.
-
-+ * @addr: Virtual address associated with pud.
-
---- a/include/asm-generic/pgtable.h
-> +++ b/include/asm-generic/pgtable.h
-> @@ -983,8 +983,8 @@ static inline int p4d_clear_huge(p4d_t *p4d)
->  int pmd_set_huge(pmd_t *pmd, phys_addr_t addr, pgprot_t prot);
->  int pud_clear_huge(pud_t *pud);
->  int pmd_clear_huge(pmd_t *pmd);
-> -int pud_free_pmd_page(pud_t *pud);
-> -int pmd_free_pte_page(pmd_t *pmd);
-> +int pud_free_pmd_page(pud_t *pud, unsigned long addr);
-> +int pmd_free_pte_page(pmd_t *pmd, unsigned long addr);
->  #else	/* !CONFIG_HAVE_ARCH_HUGE_VMAP */
->  static inline int p4d_set_huge(p4d_t *p4d, phys_addr_t addr, pgprot_t
-prot)
->  {
-> @@ -1010,11 +1010,11 @@ static inline int pmd_clear_huge(pmd_t *pmd)
->  {
->  	return 0;
->  }
-> -static inline int pud_free_pmd_page(pud_t *pud)
-> +static inline int pud_free_pmd_page(pud_t *pud, unsigned long addr)
->  {
->  	return 0;
->  }
-> -static inline int pmd_free_pte_page(pud_t *pmd)
-> +static inline int pmd_free_pte_page(pud_t *pmd, unsigned long addr)
-
-Please base your patches on top of the mm tree or at least pick up
-8cab93de994f6 in the mm tree.  Andrew fixed the typo; the 'pud_t' above
-should have been 'pmd_t'.
-
-Thanks,
--Toshi
+T24gTW9uLCAyMDE4LTAzLTE5IGF0IDE4OjEwICswNTMwLCBDaGludGFuIFBhbmR5YSB3cm90ZToN
+Cj4gSW1wbGVtZW50IHB1ZF9mcmVlX3BtZF9wYWdlKCkgYW5kIHBtZF9mcmVlX3B0ZV9wYWdlKCku
+DQo+IA0KPiBJbXBsZW1lbnRhdGlvbiByZXF1aXJlcywNCj4gIDEpIEZyZWVpbmcgb2YgdGhlIHVu
+LXVzZWQgbmV4dCBsZXZlbCBwYWdlIHRhYmxlcw0KPiAgMikgQ2xlYXJpbmcgb2ZmIHRoZSBjdXJy
+ZW50IHB1ZC9wbWQgZW50cnkNCj4gIDMpIEludmFsaWRhdGUgVExCIHdoaWNoIGNvdWxkIGhhdmUg
+cHJldmlvdXNseQ0KPiAgICAgdmFsaWQgYnV0IG5vdCBzdGFsZSBlbnRyeQ0KPiANCj4gU2lnbmVk
+LW9mZi1ieTogQ2hpbnRhbiBQYW5keWEgPGNwYW5keWFAY29kZWF1cm9yYS5vcmc+DQo+IC0tLQ0K
+PiAgYXJjaC9hcm02NC9tbS9tbXUuYyB8IDMwICsrKysrKysrKysrKysrKysrKysrKysrKysrKyst
+LQ0KPiAgMSBmaWxlIGNoYW5nZWQsIDI4IGluc2VydGlvbnMoKyksIDIgZGVsZXRpb25zKC0pDQo+
+IA0KPiBkaWZmIC0tZ2l0IGEvYXJjaC9hcm02NC9tbS9tbXUuYyBiL2FyY2gvYXJtNjQvbW0vbW11
+LmMNCj4gaW5kZXggZGE5ODgyOC4uYzcwZjEzOSAxMDA2NDQNCj4gLS0tIGEvYXJjaC9hcm02NC9t
+bS9tbXUuYw0KPiArKysgYi9hcmNoL2FybTY0L21tL21tdS5jDQo+IEBAIC00NSw2ICs0NSw3IEBA
+DQo+ICAjaW5jbHVkZSA8YXNtL21lbWJsb2NrLmg+DQo+ICAjaW5jbHVkZSA8YXNtL21tdV9jb250
+ZXh0Lmg+DQo+ICAjaW5jbHVkZSA8YXNtL3B0ZHVtcC5oPg0KPiArI2luY2x1ZGUgPGFzbS90bGJm
+bHVzaC5oPg0KPiAgDQo+ICAjZGVmaW5lIE5PX0JMT0NLX01BUFBJTkdTCUJJVCgwKQ0KPiAgI2Rl
+ZmluZSBOT19DT05UX01BUFBJTkdTCUJJVCgxKQ0KPiBAQCAtOTc1LDEwICs5NzYsMzUgQEAgaW50
+IHBtZF9jbGVhcl9odWdlKHBtZF90ICpwbWRwKQ0KPiAgDQo+ICBpbnQgcHVkX2ZyZWVfcG1kX3Bh
+Z2UocHVkX3QgKnB1ZCwgdW5zaWduZWQgbG9uZyBhZGRyKQ0KPiAgew0KPiAtCXJldHVybiBwdWRf
+bm9uZSgqcHVkKTsNCj4gKwlwbWRfdCAqcG1kOw0KPiArCWludCBpOw0KPiArDQo+ICsJcG1kID0g
+X192YShwdWRfdmFsKCpwdWQpKTsNCj4gKwlpZiAocHVkX3ZhbCgqcHVkKSkgew0KPiArCQlmb3Ig
+KGkgPSAwOyBpIDwgUFRSU19QRVJfUE1EOyBpKyspDQo+ICsJCQlwbWRfZnJlZV9wdGVfcGFnZSgm
+cG1kW2ldLCBhZGRyICsgKGkgKiBQTURfU0laRSkpOw0KPiArDQo+ICsJCWZyZWVfcGFnZSgodW5z
+aWduZWQgbG9uZykgcG1kKTsNCg0KV2h5IGRvIHlvdSB3YW50IHRvIGZyZWUgdGhpcyBwbWQgcGFn
+ZSBiZWZvcmUgY2xlYXJpbmcgdGhlIHB1ZCBlbnRyeSBvbg0KdGhpcyBhcm02NCB2ZXJzaW9uIChh
+cyBpdCBzZWVtcyB5b3UgaW50ZW50aW9uYWxseSBjaGFuZ2VkIGl0IGZyb20gdGhlDQp4ODYgdmVy
+c2lvbik/ICBJdCBjYW4gYmUgcmV1c2VkIHdoaWxlIGJlaW5nIHBvaW50ZWQgYnkgdGhlIHB1ZC4g
+IFNhbWUNCmZvciBwbWQuDQoNCj4gKwkJcHVkX2NsZWFyKHB1ZCk7DQo+ICsJCWZsdXNoX3RsYl9r
+ZXJuZWxfcmFuZ2UoYWRkciwgYWRkciArIFBVRF9TSVpFKTsNCg0KU2luY2UgeW91IHB1cmdlIHRo
+ZSBlbnRpcmUgcHVkIHJhbmdlIGhlcmUsIGRvIHlvdSBzdGlsbCBuZWVkIHRvIGNhbGwgDQpwbWRf
+ZnJlZV9wdGVfcGFnZSgpIHRvIHB1cmdlIGVhY2ggcG1kIHJhbmdlPyAgVGhpcyBsb29rcyB2ZXJ5
+IGV4cGVuc2l2ZS4NCllvdSBtYXkgd2FudCB0byBjb25zaWRlciBpZiBjYWxsaW5nIGludGVybmFs
+IF9fcG1kX2ZyZWVfcHRlX3BhZ2UoKQ0Kd2l0aG91dCB0aGUgcHVyZ2Ugb3BlcmF0aW9uIHdvcmtz
+Lg0KDQotVG9zaGk=
