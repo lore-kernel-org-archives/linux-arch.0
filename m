@@ -1,68 +1,69 @@
-From: Ben Hutchings <ben@decadent.org.uk>
-Subject: Re: [PATCH 3.16 56/76] x86/syscall: Sanitize syscall table
- de-references under speculation
-Date: Mon, 19 Mar 2018 00:59:20 +0000
-Message-ID: <1521421160.2495.188.camel@decadent.org.uk>
-References: <lsq.1520823972.93871245@decadent.org.uk>
-	 <2a1d3a0f-6227-39c6-0ed9-a07c22424d67@suse.cz>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [RFC PATCH 1/2] ftrace: Allow arches to opt-out of static ftrace
+Date: Mon, 19 Mar 2018 12:02:54 +1100
+Message-ID: <87h8pcho75.fsf@concordia.ellerman.id.au>
+References: <20180316134633.10584-1-mpe@ellerman.id.au> <20180316104030.0df39af7@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="pgp-sha512";
-	protocol="application/pgp-signature"; boundary="=-mI2R8bO8LtGKrB4ZLhsb"
-Return-path: <kernel-hardening-return-12697-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <2a1d3a0f-6227-39c6-0ed9-a07c22424d67@suse.cz>
-To: Jiri Slaby <jslaby@suse.cz>, linux-kernel@vger.kernel.org, stable@vger.kernel.org
-Cc: akpm@linux-foundation.org, Jinpu Wang <jinpu.wang@profitbricks.com>, kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jan Beulich <JBeulich@suse.com>, alan@linux.intel.com, Thomas Gleixner <tglx@linutronix.de>, Dan Williams <dan.j.williams@intel.com>, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180316104030.0df39af7@gandalf.local.home>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linuxppc-dev@ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, naveen.n.rao@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
+Steven Rostedt <rostedt@goodmis.org> writes:
 
---=-mI2R8bO8LtGKrB4ZLhsb
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+> On Sat, 17 Mar 2018 00:46:32 +1100
+> Michael Ellerman <mpe@ellerman.id.au> wrote:
+>
+>> There is a small but non-zero amount of code required by arches to
+>> suppory non-dynamic (static) ftrace, and more importantly there is the
+>> added work of testing both configurations.
+>> 
+>> There are also almost no down sides to dynamic ftrace once it's well
+>> tested, other than a small increase in code/data size.
+>> 
+>> So give arches the option to opt-out of supporting static ftrace.
+>> 
+>> This is implemented as a DYNAMIC_FTRACE_CHOICE option, which controls
+>> whether DYNAMIC_FTRACE is presented as a user-selectable option or if
+>> it is just enabled based on its dependencies being enabled (because
+>> it's already default y).
+>> 
+>> Then the CHOICE option depends on an arch *not* selecting
+>> HAVE_DYNAMIC_FTRACE_ONLY. This would be more natural in reverse, as a
+>> HAVE_STATIC_FTRACE option, but that would require updating every arch.
+>> 
+>> Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
+>
+> Why not just add in arch/powerpc/Kconfig:
+>
+> config PPC
+> 	[..]
+> 	select DYNAMIC_FTRACE			if FUNCTION_TRACER
+>
+> ?
+>
+> It seems to work for me.
 
-On Mon, 2018-03-12 at 08:32 +0100, Jiri Slaby wrote:
-> On 03/12/2018, 04:06 AM, Ben Hutchings wrote:
-> > In 3.16 the x86_32 syscall table lookup is also written in assembly.
-> > So I've taken Jiri's version and added similar masking in entry_32.S,
-> > using edx as the temporary.  edx is clobbered by SAVE_REGS and seems
-> > to be free at this point.
->=20
-> I don't know the state in 3.16, but in 3.12, I had to fix the 32bit
-> entry on 64bit in arch/x86/ia32/ia32entry.S (ia32_sysenter_target &
-> others) too.
+It does work, but it's a bit fragile. It requires duplicating the
+dependencies of DYNAMIC_FTRACE in the 'if' condition.
 
-Thank you, yes I need to fix them in 3.16 too.  I also failed to use
-retpolines there.
+Currently that's:
 
-Ben.
+config DYNAMIC_FTRACE
+	depends on FUNCTION_TRACER
+	depends on HAVE_DYNAMIC_FTRACE
 
---=20
-Ben Hutchings
-The first rule of tautology club is the first rule of tautology club.
+So technically we should use:
 
+ 	select DYNAMIC_FTRACE			if FUNCTION_TRACER and HAVE_DYNAMIC_FTRACE
 
---=-mI2R8bO8LtGKrB4ZLhsb
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
+Though we happen to know we just selected HAVE_DYNAMIC_FTRACE so we can
+leave that out.
 
------BEGIN PGP SIGNATURE-----
+As long as the dependencies of DYNAMIC_FTRACE don't change, or the 'if'
+clause is updated when they do, then it's OK and it is certainly simpler.
 
-iQIzBAABCgAdFiEErCspvTSmr92z9o8157/I7JWGEQkFAlqvC2gACgkQ57/I7JWG
-EQmXpRAAwMMnb5IZ7NDeYxMrSAYDFY4c7Bf/qHchP6Sj4WB8pR58u6Ptt0pQR5nJ
-d3gt2EKjANaXJQfp6JKX9SOFyY1HEL0hz1tf/E99Qib4hHPJ4PnD8srug4MQW3q2
-1Rcl2LE+pqHRP6N3ge4/QEV+xRcs2+k+RMHVOrMco+9s1RfPfQJKTE7Bh1VkYX1R
-iTkcc+r+eA53pkorBOovZ48Ih74SWuV3CdJ2jypZBcVbep4dPrw/dzrsLTKa9DL1
-d64KEiZLCWOcZs1exeDAzvFFk0QKiB61znapD3MHlkor6lFp2DgNIU7rizYdW2G5
-Ig/XNpKZnhFaPLB56xAZ/dZU5RgFwo0wpOvDH97OOdf6cYu9dM0f5m5eK7W/Ozaz
-JrJEEbWPcL5WEgEtTIY7B890sgacwlJdxBqeVmeurBU7nE2DcGCgqTisF7DbJIMv
-BPBrQct92RpS9xM3HQxMbOsqP91w1GHL+TrDr65ehSZzG7pE9E03rzE2k/LBn8yn
-9cE55uVVU84u13+jR9A63us7c3j+pJkMiUoLZVHZasFoZjlrysuxyiR/NAo4gNJA
-Ue6X7VW/nAdIQkgzA3Nrgnx5HOHkjJK3DdweQkzR4+5zuWXq98TTOetVuC/Pcrhk
-DrLIPKiUdkuIC4z6n9tk1RpKWITpeIVq+hScPnnZ6NuG0fQJOOw=
-=nHXF
------END PGP SIGNATURE-----
-
---=-mI2R8bO8LtGKrB4ZLhsb--
+cheers
