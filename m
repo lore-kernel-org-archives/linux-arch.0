@@ -1,163 +1,113 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [RFC PATCH 4/6] mm: provide generic compat_sys_readahead()
- implementation
-Date: Mon, 19 Mar 2018 10:29:20 +0100
-Message-ID: <20180319092920.tbh2xwkruegshzqe@gmail.com>
-References: <20180318161056.5377-1-linux@dominikbrodowski.net>
- <20180318161056.5377-5-linux@dominikbrodowski.net>
- <20180318174014.GR30522@ZenIV.linux.org.uk>
- <CA+55aFwuZCpAZRpsTGiUmG065ZHHpj+03_NeWiy-OGkMGw7e3g@mail.gmail.com>
- <20180318181848.GU30522@ZenIV.linux.org.uk>
- <20180319042300.GW30522@ZenIV.linux.org.uk>
+From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Subject: Re: [PATCH v17 07/10] ACPI / scan: rename acpi_is_serial_bus_slave() to widen use
+Date: Mon, 19 Mar 2018 11:27:25 +0100
+Message-ID: <2268663.His4AzxF9G@aspire.rjw.lan>
+References: <1521051359-34473-1-git-send-email-john.garry@huawei.com> <1521051359-34473-8-git-send-email-john.garry@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180319042300.GW30522@ZenIV.linux.org.uk>
+In-Reply-To: <1521051359-34473-8-git-send-email-john.garry@huawei.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>
+To: John Garry <john.garry@huawei.com>
+Cc: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com, joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-
-* Al Viro <viro@ZenIV.linux.org.uk> wrote:
-
-> On Sun, Mar 18, 2018 at 06:18:48PM +0000, Al Viro wrote:
+On Wednesday, March 14, 2018 7:15:56 PM CET John Garry wrote:
+> Currently the ACPI scan has special handling for serial bus
+> slaves, in that it makes it the responsibility of the the slave
+> device's parent to enumerate the device.
 > 
-> > I'd done some digging in that area, will find the notes and post.
+> To support in future other types of slave devices which require
+> the same special handling, but where the bus is not strictly a
+> serial bus - such as devices on the HiSilicon LPC controller bus -
+> rename acpi_is_serial_bus_slave() to
+> acpi_device_enumeration_by_parent(), so that the name can fit the
+> wider purpose.
 > 
-> OK, found:
-
-Very nice writeup - IMHO this should go into Documentation/!
-
-> OTOH, consider arm.  There we have
-> 	* r0, r1, r2, r3, [sp,#8], [sp,#12], [sp,#16]... is the sequence
-> of objects used to pass arguments
-> 	* 32bit and less - pick the next available slot
-> 	* 64bit - skip a slot if we'd already taken an odd number, then use
-> the next two slots for lower and upper 32 bits of the argument.
+> Associated device flag acpi_device_flags.serial_bus_slave is also
+> renamed to .enumeration_by_parent.
 > 
-> So our classes take
-> simple n-argument:	0 to 6 slots
-> WD			4 slots
-> DWW			4 slots
-> WDW			5 slots
-> WWDD			6 slots
-> WDWW			5 slots
-> WWWD			6 slots
-> WWDWW			6 slots
-> WDDW			7 slots (!)  Also ****, !!!!, !@#!@#!@#!# and other nice
-> and well-deserved comments from arch maintainers, some of them even printable:
-> /* It would be nice if people remember that not all the world's an i386
->    when they introduce new system calls */
-> SYSCALL_DEFINE4(sync_file_range2, int, fd, unsigned int, flags,
->                                  loff_t, offset, loff_t, nbytes)
+> Signed-off-by: John Garry <john.garry@huawei.com>
 
-Such idiosyncratic platform quirks that have an impact on generic code should be 
-as self-maintaining as possible: i.e. there should be a build time warning even on 
-x86 if someone introduces a new, suboptimally packed system call.
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 
-Otherwise we'll have such incidents again and again as new system calls get added.
-
-> [snip the preprocessor horrors - the sketches I've got there are downright obscene]
-
-I still think we should consider creating a generic facility and a tool: which 
-would immediately and automatically add new system calls to *every* architecture - 
-or which would initially at least check these syscall ABI constraints.
-
-I.e. this would start with a new generic kernel facility that warns about 
-suboptimal new system call argument layouts on every architecture, not just on the 
-affected ones.
-
-That's a significant undertaking but should be possible to do.
-
-Once such a facility is in place all the existing old mess is still a PITA, but 
-should be manageable eventually - as no new mess is added to it.
-
-IMHO that's the only thing that could break the somewhat deadly current dynamic of 
-system call mappings mess. Complaining about people not knowing about quirks won't 
-help.
-
-One way to implement this would be to put the argument chain types (string) and 
-sizes (int) into a special debug section which isn't included in the final kernel 
-image but which can be checked at link time.
-
-For example this attempt at creating a new system call:
-
-  SYSCALL_DEFINE3(moron, int, fd, loff_t, offset, size_t, count)
-
-... would translate into something like:
-
-	.name = "moron", .pattern = "WWW", .type = "int",    .size = 4,
-	.name = NULL,                      .type = "loff_t", .size = 8,
-	.name = NULL,                      .type = "size_t", .size = 4,
-	.name = NULL,                      .type = NULL,     .size = 0,     /* end of parameter list */
-
-i.e. "WDW". The build-time constraint checker could then warn about:
-
-  # error: System call "moron" uses invalid 'WWW' argument mapping for a 'WDW' sequence
-  #        please avoid long-long arguments or use 'SYSCALL_DEFINE3_WDW()' instead
-
-Each architecture can provide its own syscall parameter checking logic. Both 
-'stack boundary' and parameter packing rules would be straightforward to express 
-if we had such a data structure.
-
-Also note that this tool could also check for optimum packing, i.e. if the new 
-system call is defined as:
-
-  SYSCALL_DEFINE3_WDW(moron, int, fd, loff_t, offset, size_t, count)
-
-... would translate to something like:
-
-	.name = "moron", .pattern = "WDW", .type = "int",    .size = 4,
-	.name = NULL,                      .type = "loff_t", .size = 8,
-	.name = NULL,                      .type = "size_t", .size = 4,
-	.name = NULL,                      .type = NULL,     .size = 0,     /* end of parameter list */
-
-where the tool would print out this error:
-
-  # error: System call "moron" uses suboptimal 'WDW' argument mapping instead of 'WWD'
-
-there would be a whitelist of existing system calls that are already using an 
-suboptimal argument order - but the warnings/errors would trigger for all new 
-system calls.
-
-But adding non-straight-mapped system calls would be the exception in any case.
-
-Such tooling could also do other things, such as limit the C types used for system 
-call defines to a well-chosen set of ABI-safe types, such as:
-
-      3  key_t
-      3  uint32_t
-      4  aio_context_t
-      4  mqd_t
-      4  timer_t
-     10  clockid_t
-     10  gid_t
-     10  loff_t
-     10  long
-     10  old_gid_t
-     10  old_uid_t
-     10  umode_t
-     11  uid_t
-     31  pid_t
-     34  size_t
-     69  unsigned int
-    130  unsigned long
-    226  int
-
-This would also allow us some cleanups as well, such as dropping the pointless 
-'const' from arithmetic types in syscall definitions for example.
-
-etc.
-
-Basically this tool would be a secondary parser of the syscall arguments, with 
-most of the parsing and type sizing difficulties solved by the C parser already.
-
-I think this problem could be much more sanely solved via annotations and a bit of 
-tooling, than trying to trick CPP into doing this for us (which won't really work 
-in any case).
-
-Thanks,
-
-	Ingo
+> ---
+>  drivers/acpi/scan.c     | 19 ++++++++++---------
+>  include/acpi/acpi_bus.h |  2 +-
+>  2 files changed, 11 insertions(+), 10 deletions(-)
+> 
+> diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
+> index 8e63d93..f9e7904 100644
+> --- a/drivers/acpi/scan.c
+> +++ b/drivers/acpi/scan.c
+> @@ -1524,7 +1524,7 @@ static int acpi_check_serial_bus_slave(struct acpi_resource *ares, void *data)
+>  	return -1;
+>  }
+>  
+> -static bool acpi_is_serial_bus_slave(struct acpi_device *device)
+> +static bool acpi_device_enumeration_by_parent(struct acpi_device *device)
+>  {
+>  	struct list_head resource_list;
+>  	bool is_serial_bus_slave = false;
+> @@ -1560,7 +1560,8 @@ void acpi_init_device_object(struct acpi_device *device, acpi_handle handle,
+>  	acpi_bus_get_flags(device);
+>  	device->flags.match_driver = false;
+>  	device->flags.initialized = true;
+> -	device->flags.serial_bus_slave = acpi_is_serial_bus_slave(device);
+> +	device->flags.enumeration_by_parent =
+> +		acpi_device_enumeration_by_parent(device);
+>  	acpi_device_clear_enumerated(device);
+>  	device_initialize(&device->dev);
+>  	dev_set_uevent_suppress(&device->dev, true);
+> @@ -1858,10 +1859,10 @@ static acpi_status acpi_bus_check_add(acpi_handle handle, u32 lvl_not_used,
+>  static void acpi_default_enumeration(struct acpi_device *device)
+>  {
+>  	/*
+> -	 * Do not enumerate SPI/I2C/UART slaves as they will be enumerated by
+> -	 * their respective parents.
+> +	 * Do not enumerate devices with enumeration_by_parent flag set as
+> +	 * they will be enumerated by their respective parents.
+>  	 */
+> -	if (!device->flags.serial_bus_slave) {
+> +	if (!device->flags.enumeration_by_parent) {
+>  		acpi_create_platform_device(device, NULL);
+>  		acpi_device_set_enumerated(device);
+>  	} else {
+> @@ -1958,7 +1959,7 @@ static void acpi_bus_attach(struct acpi_device *device)
+>  		return;
+>  
+>  	device->flags.match_driver = true;
+> -	if (ret > 0 && !device->flags.serial_bus_slave) {
+> +	if (ret > 0 && !device->flags.enumeration_by_parent) {
+>  		acpi_device_set_enumerated(device);
+>  		goto ok;
+>  	}
+> @@ -1967,10 +1968,10 @@ static void acpi_bus_attach(struct acpi_device *device)
+>  	if (ret < 0)
+>  		return;
+>  
+> -	if (!device->pnp.type.platform_id && !device->flags.serial_bus_slave)
+> -		acpi_device_set_enumerated(device);
+> -	else
+> +	if (device->pnp.type.platform_id || device->flags.enumeration_by_parent)
+>  		acpi_default_enumeration(device);
+> +	else
+> +		acpi_device_set_enumerated(device);
+>  
+>   ok:
+>  	list_for_each_entry(child, &device->children, node)
+> diff --git a/include/acpi/acpi_bus.h b/include/acpi/acpi_bus.h
+> index c9608b0..ba4dd54 100644
+> --- a/include/acpi/acpi_bus.h
+> +++ b/include/acpi/acpi_bus.h
+> @@ -215,7 +215,7 @@ struct acpi_device_flags {
+>  	u32 of_compatible_ok:1;
+>  	u32 coherent_dma:1;
+>  	u32 cca_seen:1;
+> -	u32 serial_bus_slave:1;
+> +	u32 enumeration_by_parent:1;
+>  	u32 reserved:19;
+>  };
+>  
+> 
