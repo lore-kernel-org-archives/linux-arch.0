@@ -1,141 +1,36 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: [PATCH] ARC: Improve cmpxchng syscall implementation
-Date: Mon, 19 Mar 2018 14:00:02 +0300
-Message-ID: <20180319110002.27419-1-abrodkin@synopsys.com>
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH 02/19] csky: Exception handling and syscall
+Date: Mon, 19 Mar 2018 19:03:02 +0800
+Message-ID: <20180319110302.GA15454@guoren>
+References: <cover.1521399976.git.ren_guo@c-sky.com>
+ <fe603a94a7755528ff6f5ac288a017e2a20071c4.1521399976.git.ren_guo@c-sky.com>
+ <20180319085009.GA32603@isilmar-4.linta.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20180319085009.GA32603@isilmar-4.linta.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-snps-arc@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch@vger.kernel.org
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
 List-Id: linux-arch.vger.kernel.org
 
-arc_usr_cmpxchg syscall is supposed to be used on platforms
-that lack support of Load-Locked/Store-Conditional instructions
-in hardware. And in that case we mimic missing hardware features
-with help of kernel's sycall that "atomically" checks current
-value in memory and then if it matches caller expectation new
-value is written to that same location.
+Hi Dominik,
 
-What's important in the description above:
- - Check-and-exchange must be "atomical" which means
-   preemption must be disabled during entire "transaction"
- - Data accessed is from user-space, i.e. we're dealing
-   with virtual addresses
+On Mon, Mar 19, 2018 at 09:50:09AM +0100, Dominik Brodowski wrote:
+> > +#define __ARCH_WANT_SYSCALL_DEPRECATED
+> > +#define __ARCH_WANT_SYSCALL_OFF_T
+> > +#define __ARCH_WANT_SYSCALL_NO_AT
+> > +#define __ARCH_WANT_SYSCALL_NO_FLAGS
+> 
+> Does this arch *really* want these deprecated and obsolete syscalls? See the
+> commend in include/uapi/asm-generic/unistd.h
+> 
+>  * All syscalls below here should go away really,
+>  * these are provided for both review and as a porting
+>  * help for the C library version.
+> 
+OK, I will cleanup them next and check the unistd.h again.
 
-And in current implementation we have a couple of problems:
-
-1. We do disable preemprion around __get_user() & __put_user()
-   but that in its turn disables page fault handler.
-   That means if a pointer to user's data has no mapping in
-   the TLB we won't be able to access required data.
-   Instead software "exception handling" code from __get_user_fn()
-   will return -EFAULT.
-
-2. What's worse if we're dealing with data from not yet allocated
-   page (think of pre-copy-on-write state) we'll successfully
-   read data but on write we'll silently return to user-space
-   with correct result (which we really read just before). That leads
-   to very strange problems in user-space app further down the line
-   because new value was never written to the destination.
-
-3. Regardless of what went wrong we'll return from syscall
-   and user-space application will continue to execute.
-   Even if user's pointer was completely bogus.
-   In case of hardware LL/SC that app would have been killed
-   by the kernel.
-
-With that change we attempt to imrove on all 3 items above:
-
-1. We still disable preemption around read-and-write of
-   user's data but if we happen to fail with either of them
-   we're enabling preemption and try to force page fault so
-   that we have a correct mapping in the TLB. Then re-try
-   again in "atomic" context.
-
-2. If real page fault fails or even access_ok() returns false
-   we send SIGSEGV to the user-space process so if something goes
-   seriously wrong we'll know about it much earlier.
-
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Vineet Gupta <vgupta@synopsys.com>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
-Cc: linux-arch@vger.kernel.org
----
- arch/arc/kernel/process.c | 47 +++++++++++++++++++++++++++++++++++++----------
- 1 file changed, 37 insertions(+), 10 deletions(-)
-
-diff --git a/arch/arc/kernel/process.c b/arch/arc/kernel/process.c
-index 5ac3b547453f..d7d3e16133d6 100644
---- a/arch/arc/kernel/process.c
-+++ b/arch/arc/kernel/process.c
-@@ -47,7 +47,9 @@ SYSCALL_DEFINE0(arc_gettls)
- SYSCALL_DEFINE3(arc_usr_cmpxchg, int *, uaddr, int, expected, int, new)
- {
- 	struct pt_regs *regs = current_pt_regs();
--	int uval = -EFAULT;
-+	struct page *page;
-+	u32 val;
-+	int ret;
- 
- 	/*
- 	 * This is only for old cores lacking LLOCK/SCOND, which by defintion
-@@ -60,23 +62,48 @@ SYSCALL_DEFINE3(arc_usr_cmpxchg, int *, uaddr, int, expected, int, new)
- 	/* Z indicates to userspace if operation succeded */
- 	regs->status32 &= ~STATUS_Z_MASK;
- 
--	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
--		return -EFAULT;
-+	ret = access_ok(VERIFY_WRITE, uaddr, sizeof(*uaddr));
-+	if (!ret)
-+		goto fail;
- 
-+again:
- 	preempt_disable();
- 
--	if (__get_user(uval, uaddr))
--		goto done;
--
--	if (uval == expected) {
--		if (!__put_user(new, uaddr))
-+	ret = __get_user(val, uaddr);
-+	if (ret == -EFAULT) {
-+		preempt_enable();
-+		ret = get_user_pages_fast((unsigned long)uaddr, 1, 1, &page);
-+		if (ret < 0)
-+			goto fail;
-+
-+		put_page(page);
-+		goto again;
-+	} else if (ret)
-+		goto fail;
-+
-+	if (val == expected) {
-+		ret = __put_user(new, uaddr);
-+		if (!ret)
- 			regs->status32 |= STATUS_Z_MASK;
- 	}
- 
--done:
- 	preempt_enable();
- 
--	return uval;
-+	if (ret == -EFAULT) {
-+		ret = get_user_pages_fast((unsigned long)uaddr, 1, 1, &page);
-+		if (ret < 0)
-+			goto fail;
-+
-+		put_page(page);
-+		goto again;
-+	} else if (ret)
-+		goto fail;
-+
-+	return val;
-+
-+fail:
-+	force_sig(SIGSEGV, current);
-+	return ret;
- }
- 
- #ifdef CONFIG_ISA_ARCV2
--- 
-2.11.0
+Best Regards
+  Guo Ren
