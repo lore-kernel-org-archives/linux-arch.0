@@ -1,73 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:43714 "EHLO
+Received: from smtp2200-217.mail.aliyun.com ([121.197.200.217]:34286 "EHLO
         smtp2200-217.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1754531AbeCSHJH (ORCPT
+        by vger.kernel.org with ESMTP id S1754531AbeCSHL1 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Mar 2018 03:09:07 -0400
-Date: Mon, 19 Mar 2018 15:08:59 +0800
+        Mon, 19 Mar 2018 03:11:27 -0400
+Date: Mon, 19 Mar 2018 15:11:08 +0800
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH 19/19] irqchip: add irq-nationalchip.c and irq-csky.c
-Message-ID: <20180319070859.GC21923@guoren>
+Subject: Re: [PATCH 00/19] C-SKY(csky) Linux Kernel Port
+Message-ID: <20180319071107.GD21923@guoren>
 References: <cover.1521399976.git.ren_guo@c-sky.com>
- <62e687d3eb67505aa6f4d4d01ce268fd432bf58e.1521399976.git.ren_guo@c-sky.com>
- <20180319042535.fzssdiu4ot7nyhwe@salmiak>
+ <1521404757.27411.46.camel@perches.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180319042535.fzssdiu4ot7nyhwe@salmiak>
+In-Reply-To: <1521404757.27411.46.camel@perches.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
+To: Joe Perches <joe@perches.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, daniel.lezcano@linaro.org, jason@lakedaemon.net, arnd@arndb.de, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
-Message-ID: <20180319070859.Fn4Gi_7RCnnqDmoP90oZ0EfT6TW6v3zKIYdvx_e6Fyg@z>
+Message-ID: <20180319071108.kUraJtYTIA97OCHiQ1cdg8HWWTj9H8tSFdDmnq77jEo@z>
 
-On Mon, Mar 19, 2018 at 04:26:00AM +0000, Mark Rutland wrote:
-> On Mon, Mar 19, 2018 at 03:51:41AM +0800, Guo Ren wrote:
-> > +static unsigned int intc_reg;
-> 
-> This should be a void __iomem *ptr;
->
-OK
+Thx Joe,
 
-> > +#define CK_VA_INTC_ICR		(void *)(intc_reg + 0x00)	/* Interrupt control register(High 16bits) */
-> > +#define CK_VA_INTC_ISR		(void *)(intc_reg + 0x00)	/* Interrupt status register(Low 16bits) */
-> > +#define CK_VA_INTC_NEN31_00	(void *)(intc_reg + 0x10)	/* Normal interrupt enable register Low */
-> > +#define	CK_VA_INTC_NEN63_32	(void *)(intc_reg + 0x28)	/* Normal interrupt enable register High */
-> > +#define CK_VA_INTC_IFR31_00	(void *)(intc_reg + 0x08)	/* Normal interrupt force register Low */
-> > +#define CK_VA_INTC_IFR63_32	(void *)(intc_reg + 0x20)	/* Normal interrupt force register High */
-> > +#define	CK_VA_INTC_SOURCE	(void *)(intc_reg + 0x40)	/* Proiority Level Select Registers 0 */
+On Sun, Mar 18, 2018 at 01:25:57PM -0700, Joe Perches wrote:
+> On Mon, 2018-03-19 at 03:51 +0800, Guo Ren wrote:
+> > This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
+> > CPU cores and the patches are based on linux-4.16-rc5.
+> > 
+> > There are two ABI versions with several CPU cores in this patchset:
+> >   ABIv1: ck610 (16-bit instruction, 32-bit data path, VIPT Cache ...)
+> >   ABIv2: ck807 ck810 (16/32-bit variable length instruction, PIPT Cache ...)
 > 
-> Please use mnemonics for the offsets, and add the base address in the IO
-> accessors.
+> []
 > 
-OK
+> > It's my first patchset to linux and any feedback is welcome :)
+> 
+> Hello.  You might try to do a git am <series>
+> on a new branch and correct the various
+> git whitespace messages that are produced.
+> 
+> It's also possible to run checkpatch and correct
+> some of the linux-kernel code style conformance
+> nits it lists.
+> 
+> Perhaps something like:
+> 
+> $ git ls-files arch/csky/ | \
+>   while read file ; do \
+>     ./scripts/checkpatch.pl --strict --terse --no-summary $file ; \
+>   done
+> 
+> add --fix-inplace to the checkpatch line if desired.
 
-> > +		temp = __raw_readl(CK_VA_INTC_NEN31_00);
-> 
-> Please use readl_relaxed() rather than __raw_readl().
->
-OK
-
-> > +		__raw_writel(temp, CK_VA_INTC_NEN31_00);
-> 
-> Likewise, please use writel_relaxed() rather than __raw_writel().
->
-OK
- 
-> These need devicetree bindings. Please see
-> Documentation/devicetree/bindings/submitting-patches.txt.
->
 OK
 
-> Please avoid assembly in generic driver code. Here you cna use __ffs64() after
-> combining the two halves into a 64-bit quantity, or you could use ffs() on each
-> half.
->
-OK
-
-> > +IRQCHIP_DECLARE(nationalchip_intc_v1_ave, "nationalchip,intc-v1,ave", intc_init);
-> 
-> This needs a devicetree binding document.
-OK
 Best Regards
  Guo Ren
