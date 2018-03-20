@@ -1,48 +1,156 @@
-From: Palmer Dabbelt <palmer-SpMDHPYPyPbQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH 00/16] remove eight obsolete architectures
-Date: Tue, 20 Mar 2018 10:11:47 -0700 (PDT)
-Message-ID: <mhng-f6731cb9-8394-419d-b14b-c6fcd6c0930d@palmer-si-x1c4>
-References: <CAK8P3a01pfvsdM1mR8raU9dA7p4H-jRJz2Y8-+KEY76W_Mukpg@mail.gmail.com>
-Mime-Version: 1.0 (MHng)
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-wireless-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CAK8P3a01pfvsdM1mR8raU9dA7p4H-jRJz2Y8-+KEY76W_Mukpg-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: linux-wireless-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: hare-l3A5Bk7waGM@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-block-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ide-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-input-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-wireless-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pwm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-rtc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-spi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dri-devel-PD4FTy7X32lNgt0PjOBp9y5qC8QIuHrW@public.gmane.org, linux-fbdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-watchdog-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org
+From: Daniel Kurtz <djkurtz@chromium.org>
+Subject: [PATCH v2 2/2] earlycon: Use a pointer table to fix __earlycon_table stride
+Date: Tue, 20 Mar 2018 11:57:12 -0600
+Message-ID: <20180320175712.201572-3-djkurtz@chromium.org>
+References: <20180320175712.201572-1-djkurtz@chromium.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20180320175712.201572-1-djkurtz@chromium.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matthias Kaehlcke <mka@chromium.org>, Guenter Roeck <groeck@chromium.org>
+Cc: adurbin@chromium.org, linux-kernel@vger.kernel.org, Daniel Kurtz <djkurtz@chromium.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, "open list:OPEN FIRMWARE AND FLATTENED
+        DEVICE TREE" <devicetree@vger.kernel.org>, "open list:SERIAL DRIVERS" <linux-serial@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 15 Mar 2018 03:42:25 PDT (-0700), Arnd Bergmann wrote:
-> On Thu, Mar 15, 2018 at 10:59 AM, Hannes Reinecke <hare-l3A5Bk7waGM@public.gmane.org> wrote:
->> On 03/15/2018 10:42 AM, David Howells wrote:
->>> Do we have anything left that still implements NOMMU?
->>>
->> RISC-V ?
->> (evil grin :-)
->
-> Is anyone producing a chip that includes enough of the Privileged ISA spec
-> to have things like system calls, but not the MMU parts?
->
-> I thought at least initially the kernel only supports hardware that has a rather
-> complete feature set.
+Commit 99492c39f39f ("earlycon: Fix __earlycon_table stride") tried to fix
+__earlycon_table stride by forcing the earlycon_id struct alignment to 32
+and asking the linker to 32-byte align the __earlycon_table symbol.  This
+fix was based on commit 07fca0e57fca92 ("tracing: Properly align linker
+defined symbols") which tried a similar fix for the tracing subsystem.
 
-We currently do not have a NOMMU port.  As far as I know, everyone who's
-currently producing RISC-V hardware with enough memory to run Linux has S mode
-with paging support.  The ISA allows for S mode without paging but there's no
-hardware for that -- if you're going to put a DRAM controller on there then
-paging seems pretty cheap.  You could run a NOMMU port on a system with S-mode
-and paging, but With all the superpage stuff I don't think you'll get an
-appreciable performance win for any workload running without an MMU so there's
-nothing to justify the work (and incompatibility) of a NOMMU port there.
+However, this fix doesn't quite work because there is no guarantee that
+gcc will place structures packed into an array format.  In fact, gcc 4.9
+chooses to 64-byte align these structs by inserting additional padding
+between the entries because it has no clue that they are supposed to be in
+an array.  If we are unlucky, the linker will assign symbol
+"__earlycon_table" to a 32-byte aligned address which does not correpsond
+to the 64-byte alignbed contents of section "__earlycon_table".
 
-While I think you could implement a NOMMU port on a machine with only M and U
-modes (and therefor no address translation at all), I don't know of any MU-only
-machines that have enough memory to run Linux (ours have less than 32KiB).  A
-SBI-free Linux would be a prerequisite for this, but there's some interest in
-that outside of a NOMMU port so it might materialize anyway.
+To address this same problem, the fix to the tracing system was
+subsequently re-implemented using a more robust table of pointers approach
+by commits:
+ 3d56e331b653 ("tracing: Replace syscall_meta_data struct array with pointer array")
+ 654986462939 ("tracepoints: Fix section alignment using pointer array")
+ e4a9ea5ee7c8 ("tracing: Replace trace_event struct array with pointer array")
 
-Of course, QEMU could probably be tricked into emulating one of these machines
-with little to no effort :)...  That said, I doubt we'll see a NOMMU port
-materialize without some real hardware as it's a lot of work for a QEMU-only
-target.
+Let's use this same "array of pointers to structs" approach for
+EARLYCON_TABLE.
+
+Fixes: 99492c39f39f ("earlycon: Fix __earlycon_table stride")
+Signed-off-by: Daniel Kurtz <djkurtz@chromium.org>
+Suggested-by: Aaron Durbin <adurbin@chromium.org>
+---
+Changes since v1:
+ * added Suggested-by and Fixes, and reworded the commit message per Randy. 
+
+ drivers/of/fdt.c                  |  7 +++++--
+ drivers/tty/serial/earlycon.c     |  6 ++++--
+ include/asm-generic/vmlinux.lds.h |  2 +-
+ include/linux/serial_core.h       | 21 ++++++++++++++-------
+ 4 files changed, 24 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+index 84aa9d676375..6da20b9688f7 100644
+--- a/drivers/of/fdt.c
++++ b/drivers/of/fdt.c
+@@ -942,7 +942,7 @@ int __init early_init_dt_scan_chosen_stdout(void)
+ 	int offset;
+ 	const char *p, *q, *options = NULL;
+ 	int l;
+-	const struct earlycon_id *match;
++	const struct earlycon_id **p_match;
+ 	const void *fdt = initial_boot_params;
+ 
+ 	offset = fdt_path_offset(fdt, "/chosen");
+@@ -969,7 +969,10 @@ int __init early_init_dt_scan_chosen_stdout(void)
+ 		return 0;
+ 	}
+ 
+-	for (match = __earlycon_table; match < __earlycon_table_end; match++) {
++	for (p_match = __earlycon_table; p_match < __earlycon_table_end;
++	     p_match++) {
++		const struct earlycon_id *match = *p_match;
++
+ 		if (!match->compatible[0])
+ 			continue;
+ 
+diff --git a/drivers/tty/serial/earlycon.c b/drivers/tty/serial/earlycon.c
+index a24278380fec..22683393a0f2 100644
+--- a/drivers/tty/serial/earlycon.c
++++ b/drivers/tty/serial/earlycon.c
+@@ -169,7 +169,7 @@ static int __init register_earlycon(char *buf, const struct earlycon_id *match)
+  */
+ int __init setup_earlycon(char *buf)
+ {
+-	const struct earlycon_id *match;
++	const struct earlycon_id **p_match;
+ 
+ 	if (!buf || !buf[0])
+ 		return -EINVAL;
+@@ -177,7 +177,9 @@ int __init setup_earlycon(char *buf)
+ 	if (early_con.flags & CON_ENABLED)
+ 		return -EALREADY;
+ 
+-	for (match = __earlycon_table; match < __earlycon_table_end; match++) {
++	for (p_match = __earlycon_table; p_match < __earlycon_table_end;
++	     p_match++) {
++		const struct earlycon_id *match = *p_match;
+ 		size_t len = strlen(match->name);
+ 
+ 		if (strncmp(buf, match->name, len))
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 1ab0e520d6fc..e17de55c2542 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -179,7 +179,7 @@
+ #endif
+ 
+ #ifdef CONFIG_SERIAL_EARLYCON
+-#define EARLYCON_TABLE() STRUCT_ALIGN();			\
++#define EARLYCON_TABLE() . = ALIGN(8);				\
+ 			 VMLINUX_SYMBOL(__earlycon_table) = .;	\
+ 			 KEEP(*(__earlycon_table))		\
+ 			 VMLINUX_SYMBOL(__earlycon_table_end) = .;
+diff --git a/include/linux/serial_core.h b/include/linux/serial_core.h
+index b32df49a3bd5..93b7add47087 100644
+--- a/include/linux/serial_core.h
++++ b/include/linux/serial_core.h
+@@ -351,10 +351,10 @@ struct earlycon_id {
+ 	char	name[16];
+ 	char	compatible[128];
+ 	int	(*setup)(struct earlycon_device *, const char *options);
+-} __aligned(32);
++};
+ 
+-extern const struct earlycon_id __earlycon_table[];
+-extern const struct earlycon_id __earlycon_table_end[];
++extern const struct earlycon_id *__earlycon_table[];
++extern const struct earlycon_id *__earlycon_table_end[];
+ 
+ #if defined(CONFIG_SERIAL_EARLYCON) && !defined(MODULE)
+ #define EARLYCON_USED_OR_UNUSED	__used
+@@ -362,12 +362,19 @@ extern const struct earlycon_id __earlycon_table_end[];
+ #define EARLYCON_USED_OR_UNUSED	__maybe_unused
+ #endif
+ 
+-#define OF_EARLYCON_DECLARE(_name, compat, fn)				\
+-	static const struct earlycon_id __UNIQUE_ID(__earlycon_##_name)	\
+-	     EARLYCON_USED_OR_UNUSED __section(__earlycon_table)	\
++#define _OF_EARLYCON_DECLARE(_name, compat, fn, unique_id)		\
++	static const struct earlycon_id unique_id			\
++	     EARLYCON_USED_OR_UNUSED __initdata				\
+ 		= { .name = __stringify(_name),				\
+ 		    .compatible = compat,				\
+-		    .setup = fn  }
++		    .setup = fn  };					\
++	static const struct earlycon_id EARLYCON_USED_OR_UNUSED		\
++		__section(__earlycon_table)				\
++		* const __PASTE(__p, unique_id) = &unique_id
++
++#define OF_EARLYCON_DECLARE(_name, compat, fn)				\
++	_OF_EARLYCON_DECLARE(_name, compat, fn,				\
++			     __UNIQUE_ID(__earlycon_##_name))
+ 
+ #define EARLYCON_DECLARE(_name, fn)	OF_EARLYCON_DECLARE(_name, "", fn)
+ 
+-- 
+2.16.2.804.g6dcf76e118-goog
