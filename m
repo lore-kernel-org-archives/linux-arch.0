@@ -1,15 +1,15 @@
 From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: Re: [PATCH v3 1/3] ioremap: Update pgtable free interfaces with addr
-Date: Tue, 20 Mar 2018 12:34:20 +0530
-Message-ID: <472bb600-9387-7fc7-3a2e-26579d785ce6@codeaurora.org>
+Subject: Re: [PATCH v3 2/3] arm64: Implement page table free interfaces
+Date: Tue, 20 Mar 2018 12:36:10 +0530
+Message-ID: <be70a3da-be35-cdee-97a4-ca4e867ca7fb@codeaurora.org>
 References: <1521463256-19858-1-git-send-email-cpandya@codeaurora.org>
- <1521463256-19858-2-git-send-email-cpandya@codeaurora.org>
- <1521486096.2693.202.camel@hpe.com>
+ <1521463256-19858-3-git-send-email-cpandya@codeaurora.org>
+ <1521487759.2693.224.camel@hpe.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521486096.2693.202.camel@hpe.com>
+In-Reply-To: <1521487759.2693.224.camel@hpe.com>
 Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
 To: "Kani, Toshi" <toshi.kani@hpe.com>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "will.deacon@arm.com" <will.deacon@arm.com>
@@ -18,74 +18,65 @@ List-Id: linux-arch.vger.kernel.org
 
 
 
-On 3/20/2018 12:31 AM, Kani, Toshi wrote:
+On 3/20/2018 12:59 AM, Kani, Toshi wrote:
 > On Mon, 2018-03-19 at 18:10 +0530, Chintan Pandya wrote:
->> This patch ("mm/vmalloc: Add interfaces to free unmapped
->> page table") adds following 2 interfaces to free the page
->> table in case we implement huge mapping.
+>> Implement pud_free_pmd_page() and pmd_free_pte_page().
 >>
->> pud_free_pmd_page() and pmd_free_pte_page()
->>
->> Some architectures (like arm64) needs to do proper TLB
->> maintanance after updating pagetable entry even in map.
->> Why ? Read this,
->> https://patchwork.kernel.org/patch/10134581/
->>
->> Pass 'addr' in these interfaces so that proper TLB ops
->> can be performed.
+>> Implementation requires,
+>>   1) Freeing of the un-used next level page tables
+>>   2) Clearing off the current pud/pmd entry
+>>   3) Invalidate TLB which could have previously
+>>      valid but not stale entry
 >>
 >> Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
->   :
->> diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
->> index 34cda7e..20b0322 100644
->> --- a/arch/x86/mm/pgtable.c
->> +++ b/arch/x86/mm/pgtable.c
->> @@ -710,7 +710,7 @@ int pmd_clear_huge(pmd_t *pmd)
->>    * Context: The pud range has been unmaped and TLB purged.
->>    * Return: 1 if clearing the entry succeeded. 0 otherwise.
->>    */
->> -int pud_free_pmd_page(pud_t *pud)
->> +int pud_free_pmd_page(pud_t *pud, unsigned long addr)
+>> ---
+>>   arch/arm64/mm/mmu.c | 30 ++++++++++++++++++++++++++++--
+>>   1 file changed, 28 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+>> index da98828..c70f139 100644
+>> --- a/arch/arm64/mm/mmu.c
+>> +++ b/arch/arm64/mm/mmu.c
+>> @@ -45,6 +45,7 @@
+>>   #include <asm/memblock.h>
+>>   #include <asm/mmu_context.h>
+>>   #include <asm/ptdump.h>
+>> +#include <asm/tlbflush.h>
+>>   
+>>   #define NO_BLOCK_MAPPINGS	BIT(0)
+>>   #define NO_CONT_MAPPINGS	BIT(1)
+>> @@ -975,10 +976,35 @@ int pmd_clear_huge(pmd_t *pmdp)
+>>   
+>>   int pud_free_pmd_page(pud_t *pud, unsigned long addr)
+>>   {
+>> -	return pud_none(*pud);
+>> +	pmd_t *pmd;
+>> +	int i;
+>> +
+>> +	pmd = __va(pud_val(*pud));
+>> +	if (pud_val(*pud)) {
+>> +		for (i = 0; i < PTRS_PER_PMD; i++)
+>> +			pmd_free_pte_page(&pmd[i], addr + (i * PMD_SIZE));
+>> +
+>> +		free_page((unsigned long) pmd);
 > 
-> Please update the function header as well.  Same for pmd.
-> 
-> + * @addr: Virtual address associated with pud.
+> Why do you want to free this pmd page before clearing the pud entry on
+> this arm64 version (as it seems you intentionally changed it from the
+> x86 version)?  It can be reused while being pointed by the pud.  Same
+> for pmd.
 Noted.
 > 
-> --- a/include/asm-generic/pgtable.h
->> +++ b/include/asm-generic/pgtable.h
->> @@ -983,8 +983,8 @@ static inline int p4d_clear_huge(p4d_t *p4d)
->>   int pmd_set_huge(pmd_t *pmd, phys_addr_t addr, pgprot_t prot);
->>   int pud_clear_huge(pud_t *pud);
->>   int pmd_clear_huge(pmd_t *pmd);
->> -int pud_free_pmd_page(pud_t *pud);
->> -int pmd_free_pte_page(pmd_t *pmd);
->> +int pud_free_pmd_page(pud_t *pud, unsigned long addr);
->> +int pmd_free_pte_page(pmd_t *pmd, unsigned long addr);
->>   #else	/* !CONFIG_HAVE_ARCH_HUGE_VMAP */
->>   static inline int p4d_set_huge(p4d_t *p4d, phys_addr_t addr, pgprot_t
-> prot)
->>   {
->> @@ -1010,11 +1010,11 @@ static inline int pmd_clear_huge(pmd_t *pmd)
->>   {
->>   	return 0;
->>   }
->> -static inline int pud_free_pmd_page(pud_t *pud)
->> +static inline int pud_free_pmd_page(pud_t *pud, unsigned long addr)
->>   {
->>   	return 0;
->>   }
->> -static inline int pmd_free_pte_page(pud_t *pmd)
->> +static inline int pmd_free_pte_page(pud_t *pmd, unsigned long addr)
+>> +		pud_clear(pud);
+>> +		flush_tlb_kernel_range(addr, addr + PUD_SIZE);
 > 
-> Please base your patches on top of the mm tree or at least pick up
-> 8cab93de994f6 in the mm tree.  Andrew fixed the typo; the 'pud_t' above
-> should have been 'pmd_t'.
+> Since you purge the entire pud range here, do you still need to call
+> pmd_free_pte_page() to purge each pmd range?  This looks very expensive.
+> You may want to consider if calling internal __pmd_free_pte_page()
+> without the purge operation works.
+I completely missed that. Sure, will fix this.
 
-Right. Noted.
-
+I will upload v4 fixing all 4 comments.
 > 
-> Thanks,
 > -Toshi
 > 
 
