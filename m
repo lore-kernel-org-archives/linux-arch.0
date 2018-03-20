@@ -1,64 +1,46 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 2/3] arm64: fpsimd: Fix bad si_code for undiagnosed
- SIGFPE
-Date: Tue, 20 Mar 2018 10:04:38 +0000
-Message-ID: <20180320100437.GB24986@arm.com>
-References: <1519926248-12591-1-git-send-email-Dave.Martin@arm.com>
- <1519926248-12591-3-git-send-email-Dave.Martin@arm.com>
- <20180308171153.GD14918@arm.com> <87o9jymbsj.fsf@xmission.com>
- <20180309131017.GB20370@arm.com>
- <20180309142557.GT32331@e103592.cambridge.arm.com>
- <87vadxyrdt.fsf@xmission.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <87vadxyrdt.fsf@xmission.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, James Morse <james.morse@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org
+From: Chintan Pandya <cpandya@codeaurora.org>
+Subject: [PATCH v4 0/3] Fix issues with huge mapping in ioremap for ARM64
+Date: Tue, 20 Mar 2018 17:15:11 +0530
+Message-ID: <1521546314-31753-1-git-send-email-cpandya@codeaurora.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com
+Cc: arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com, Chintan Pandya <cpandya@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 15, 2018 at 04:13:02PM -0500, Eric W. Biederman wrote:
-> Dave Martin <Dave.Martin@arm.com> writes:
-> 
-> > On Fri, Mar 09, 2018 at 01:10:18PM +0000, Will Deacon wrote:
-> >> Hi Eric,
-> >> 
-> >> On Thu, Mar 08, 2018 at 04:40:12PM -0600, Eric W. Biederman wrote:
-> >> > Will Deacon <will.deacon@arm.com> writes:
-> >> > > Happy to take this patch once the dependency on FPE_FLTUNK in core code is
-> >> > > resolved.
-> >> > 
-> >> > Would it help for me to take the FPE_FLTUNK patch into my siginfo-next
-> >> > branch?   So that there is a common branch with the code so we don't
-> >> > need to worry about conflicts.  If so I will look at that on Monday.
-> >> 
-> >> Yes please, that would be helpful actually. I can then pull that into
-> >> arm64 if you give me a stable branch or tag. Alternatively, I can define
-> >> FPE_FLTUNK locally and remove it at -rc1.
-> >
-> > OK Eric, let me know if you need me to rebase anything for the first 2
-> > patches.
-> 
-> The first patch is now in my siginfo-next tree and avialable at:
-> 
-> git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git siginfo-next
-> HEAD: 266da65e9156d93e1126e185259a4aae68188d0e signal: Add FPE_FLTUNK si_code for undiagnosable fp exceptions
-> 
-> I will not rebase this branch, so please fee free to merge it into other
-> trees.
+This series of patches are follow up work (and depends on)
+Toshi Kani <toshi.kani@hpe.com>'s patches "fix memory leak/
+panic in ioremap huge pages".
 
-Thanks, Eric. I've pulled this into the arm64 for-next/core branch and I'll
-push it out later on.
+This series of patches are tested on 4.9 kernel with Cortex-A75
+based SoC.
 
-Will
+Chintan Pandya (3):
+  ioremap: Update pgtable free interfaces with addr
+  arm64: Implement page table free interfaces
+  Revert "arm64: Enforce BBM for huge IO/VMAP mappings"
+
+From V3->V4:
+ - Add header for 'addr' in x86 implementation
+ - Re-order pmd/pud clear and table free
+ - Avoid redundant TLB invalidatation in one perticular case
+
+From V2->V3:
+ - Use the exisiting page table free interface to do arm64
+   specific things
+
+From V1->V2:
+ - Rebased my patches on top of "[PATCH v2 1/2] mm/vmalloc:
+   Add interfaces to free unmapped page table"
+ - Honored BBM for ARM64
+
+ arch/arm64/mm/mmu.c           | 51 +++++++++++++++++++++++++++++++++----------
+ arch/x86/mm/pgtable.c         |  6 +++--
+ include/asm-generic/pgtable.h |  8 +++----
+ lib/ioremap.c                 |  4 ++--
+ 4 files changed, 49 insertions(+), 20 deletions(-)
+
+-- 
+Qualcomm India Private Limited, on behalf of Qualcomm Innovation
+Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
+Collaborative Project
