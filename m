@@ -1,79 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:52095 "EHLO
-        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752138AbeCTI7g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Mar 2018 04:59:36 -0400
-Date: Tue, 20 Mar 2018 09:59:32 +0100
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [RFC PATCH 4/6] mm: provide generic compat_sys_readahead()
- implementation
-Message-ID: <20180320085932.xnwkpiz5gpegnw5d@gmail.com>
-References: <20180318161056.5377-1-linux@dominikbrodowski.net>
- <20180318161056.5377-5-linux@dominikbrodowski.net>
- <20180318174014.GR30522@ZenIV.linux.org.uk>
- <CA+55aFwuZCpAZRpsTGiUmG065ZHHpj+03_NeWiy-OGkMGw7e3g@mail.gmail.com>
- <20180318181848.GU30522@ZenIV.linux.org.uk>
- <20180319042300.GW30522@ZenIV.linux.org.uk>
- <20180319092920.tbh2xwkruegshzqe@gmail.com>
- <20180319232342.GX30522@ZenIV.linux.org.uk>
+Received: from usa-sjc-mx-foss1.foss.arm.com ([217.140.101.70]:38218 "EHLO
+        foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752554AbeCTKEa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 20 Mar 2018 06:04:30 -0400
+Date: Tue, 20 Mar 2018 10:04:38 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 2/3] arm64: fpsimd: Fix bad si_code for undiagnosed
+ SIGFPE
+Message-ID: <20180320100437.GB24986@arm.com>
+References: <1519926248-12591-1-git-send-email-Dave.Martin@arm.com>
+ <1519926248-12591-3-git-send-email-Dave.Martin@arm.com>
+ <20180308171153.GD14918@arm.com>
+ <87o9jymbsj.fsf@xmission.com>
+ <20180309131017.GB20370@arm.com>
+ <20180309142557.GT32331@e103592.cambridge.arm.com>
+ <87vadxyrdt.fsf@xmission.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20180319232342.GX30522@ZenIV.linux.org.uk>
+In-Reply-To: <87vadxyrdt.fsf@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20180320085932.BHCZvVt-ZGa1Apq_bLDI37syewGB__T5cxH5TzjMK0c@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Dave Martin <Dave.Martin@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, James Morse <james.morse@arm.com>
+Message-ID: <20180320100438.Zdf-Ct1vF94dab6B0UDhtT2ZdisXpfVu1sdaTRv1fJI@z>
 
-
-* Al Viro <viro@ZenIV.linux.org.uk> wrote:
-
-> > For example this attempt at creating a new system call:
-> > 
-> >   SYSCALL_DEFINE3(moron, int, fd, loff_t, offset, size_t, count)
-> > 
-> > ... would translate into something like:
-> > 
-> > 	.name = "moron", .pattern = "WWW", .type = "int",    .size = 4,
-> > 	.name = NULL,                      .type = "loff_t", .size = 8,
-> > 	.name = NULL,                      .type = "size_t", .size = 4,
-> > 	.name = NULL,                      .type = NULL,     .size = 0,     /* end of parameter list */
-> > 
-> > i.e. "WDW". The build-time constraint checker could then warn about:
-> > 
-> >   # error: System call "moron" uses invalid 'WWW' argument mapping for a 'WDW' sequence
-> >   #        please avoid long-long arguments or use 'SYSCALL_DEFINE3_WDW()' instead
+On Thu, Mar 15, 2018 at 04:13:02PM -0500, Eric W. Biederman wrote:
+> Dave Martin <Dave.Martin@arm.com> writes:
 > 
-> ... if you do 32bit build.
+> > On Fri, Mar 09, 2018 at 01:10:18PM +0000, Will Deacon wrote:
+> >> Hi Eric,
+> >> 
+> >> On Thu, Mar 08, 2018 at 04:40:12PM -0600, Eric W. Biederman wrote:
+> >> > Will Deacon <will.deacon@arm.com> writes:
+> >> > > Happy to take this patch once the dependency on FPE_FLTUNK in core code is
+> >> > > resolved.
+> >> > 
+> >> > Would it help for me to take the FPE_FLTUNK patch into my siginfo-next
+> >> > branch?   So that there is a common branch with the code so we don't
+> >> > need to worry about conflicts.  If so I will look at that on Monday.
+> >> 
+> >> Yes please, that would be helpful actually. I can then pull that into
+> >> arm64 if you give me a stable branch or tag. Alternatively, I can define
+> >> FPE_FLTUNK locally and remove it at -rc1.
+> >
+> > OK Eric, let me know if you need me to rebase anything for the first 2
+> > patches.
+> 
+> The first patch is now in my siginfo-next tree and avialable at:
+> 
+> git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git siginfo-next
+> HEAD: 266da65e9156d93e1126e185259a4aae68188d0e signal: Add FPE_FLTUNK si_code for undiagnosable fp exceptions
+> 
+> I will not rebase this branch, so please fee free to merge it into other
+> trees.
 
-Yeah - but the checking tool could do a 32-bit sizing of the types and thus the 
-checks would work on all arches and on all bitness settings.
+Thanks, Eric. I've pulled this into the arm64 for-next/core branch and I'll
+push it out later on.
 
-I don't think doing part of this in CPP is a good idea:
-
- - It won't be able to do the full range of checks
-
- - Wrappers should IMHO be trivial and open coded as much as possible - not hidden
-   inside several layers of macros.
-
- - There should be a penalty for newly introduced, badly designed system call
-   ABIs, while most CPP variants I can think of will just make bad but solvable 
-   decisions palatable, AFAICS.
-
-I.e. I think the way out of this would be two steps:
-
- 1) for new system calls: hard-enforce the highest quality at the development
-    stage and hard-reject crap. No new 6-parameter system calls or badly ordered
-    arguments. The tool would also check new extensions to existing system calls, 
-    i.e. no more "add a crappy 4th argument to an existing system call that works 
-    on x86 but hurts MIPS".
-
- 2) for old legacies: cleanly open code all our existing legacies and weird
-    wrappers. No new muck will be added to it so the line count does not matter.
-
-... is there anything I'm missing?
-
-Thanks,
-
-	Ingo
+Will
