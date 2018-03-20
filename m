@@ -1,7 +1,7 @@
 From: Daniel Kurtz <djkurtz@chromium.org>
-Subject: [PATCH v3] earlycon: Use a pointer table to fix __earlycon_table stride
-Date: Tue, 20 Mar 2018 16:02:02 -0600
-Message-ID: <20180320220202.18464-1-djkurtz@chromium.org>
+Subject: [PATCH v4] earlycon: Use a pointer table to fix __earlycon_table stride
+Date: Tue, 20 Mar 2018 16:04:09 -0600
+Message-ID: <20180320220409.19740-1-djkurtz@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Guenter Roeck <groeck@chromium.org>
@@ -20,8 +20,8 @@ gcc will place structures packed into an array format.  In fact, gcc 4.9
 chooses to 64-byte align these structs by inserting additional padding
 between the entries because it has no clue that they are supposed to be in
 an array.  If we are unlucky, the linker will assign symbol
-"__earlycon_table" to a 32-byte aligned address which does not correpsond
-to the 64-byte alignbed contents of section "__earlycon_table".
+"__earlycon_table" to a 32-byte aligned address which does not correspond
+to the 64-byte aligned contents of section "__earlycon_table".
 
 To address this same problem, the fix to the tracing system was
 subsequently re-implemented using a more robust table of pointers approach
@@ -33,13 +33,11 @@ by commits:
 Let's use this same "array of pointers to structs" approach for
 EARLYCON_TABLE.
 
+Change-Id: Ic42c4db0c8b034fa6aa2bf02eef0fdc159478ac4
 Fixes: 99492c39f39f ("earlycon: Fix __earlycon_table stride")
 Signed-off-by: Daniel Kurtz <djkurtz@chromium.org>
 Suggested-by: Aaron Durbin <adurbin@chromium.org>
 ---
-Changes since v2:
- * Use __initconst instead of __initdata to avoid h8300 and alpha kbuild errors
-
  drivers/of/fdt.c                  |  7 +++++--
  drivers/tty/serial/earlycon.c     |  6 ++++--
  include/asm-generic/vmlinux.lds.h |  2 +-
