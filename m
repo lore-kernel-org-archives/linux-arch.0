@@ -1,20 +1,20 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f196.google.com ([74.125.82.196]:34566 "EHLO
-        mail-ot0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751372AbeCTWCI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Mar 2018 18:02:08 -0400
-Received: by mail-ot0-f196.google.com with SMTP id m7-v6so3519966otd.1
-        for <linux-arch@vger.kernel.org>; Tue, 20 Mar 2018 15:02:08 -0700 (PDT)
+Received: from mail-ot0-f195.google.com ([74.125.82.195]:37422 "EHLO
+        mail-ot0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751508AbeCTWEN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Mar 2018 18:04:13 -0400
+Received: by mail-ot0-f195.google.com with SMTP id t2-v6so3523378otj.4
+        for <linux-arch@vger.kernel.org>; Tue, 20 Mar 2018 15:04:12 -0700 (PDT)
 From: Daniel Kurtz <djkurtz@chromium.org>
-Subject: [PATCH v3] earlycon: Use a pointer table to fix __earlycon_table stride
-Date: Tue, 20 Mar 2018 16:02:02 -0600
-Message-ID: <20180320220202.18464-1-djkurtz@chromium.org>
+Subject: [PATCH v4] earlycon: Use a pointer table to fix __earlycon_table stride
+Date: Tue, 20 Mar 2018 16:04:09 -0600
+Message-ID: <20180320220409.19740-1-djkurtz@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Guenter Roeck <groeck@chromium.org>
 Cc: adurbin@chromium.org, linux-kernel@vger.kernel.org, Daniel Kurtz <djkurtz@chromium.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, "open list:OPEN FIRMWARE AND FLATTENED
         DEVICE TREE" <devicetree@vger.kernel.org>, "open list:SERIAL DRIVERS" <linux-serial@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
-Message-ID: <20180320220202.CA0KewVgbHPfxw6hMvSQmzJFtwg3B6-YPgTBboYJ8t8@z>
+Message-ID: <20180320220409.OaxZgYBPHHnMmpj3jkcT5IlnkplJG4xvo85i2VF3BsU@z>
 
 Commit 99492c39f39f ("earlycon: Fix __earlycon_table stride") tried to fix
 __earlycon_table stride by forcing the earlycon_id struct alignment to 32
@@ -27,8 +27,8 @@ gcc will place structures packed into an array format.  In fact, gcc 4.9
 chooses to 64-byte align these structs by inserting additional padding
 between the entries because it has no clue that they are supposed to be in
 an array.  If we are unlucky, the linker will assign symbol
-"__earlycon_table" to a 32-byte aligned address which does not correpsond
-to the 64-byte alignbed contents of section "__earlycon_table".
+"__earlycon_table" to a 32-byte aligned address which does not correspond
+to the 64-byte aligned contents of section "__earlycon_table".
 
 To address this same problem, the fix to the tracing system was
 subsequently re-implemented using a more robust table of pointers approach
@@ -40,13 +40,11 @@ by commits:
 Let's use this same "array of pointers to structs" approach for
 EARLYCON_TABLE.
 
+Change-Id: Ic42c4db0c8b034fa6aa2bf02eef0fdc159478ac4
 Fixes: 99492c39f39f ("earlycon: Fix __earlycon_table stride")
 Signed-off-by: Daniel Kurtz <djkurtz@chromium.org>
 Suggested-by: Aaron Durbin <adurbin@chromium.org>
 ---
-Changes since v2:
- * Use __initconst instead of __initdata to avoid h8300 and alpha kbuild errors
-
  drivers/of/fdt.c                  |  7 +++++--
  drivers/tty/serial/earlycon.c     |  6 ++++--
  include/asm-generic/vmlinux.lds.h |  2 +-
