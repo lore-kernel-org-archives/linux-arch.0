@@ -1,174 +1,116 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 15/19] csky: Build infrastructure
-Date: Wed, 21 Mar 2018 15:36:43 +0800
-Message-ID: <CAK8P3a3pat6wQ+9gbf_wtp6+dur_h=Zp1896rogZHnehVnqVNA@mail.gmail.com>
-References: <cover.1521399976.git.ren_guo@c-sky.com> <c15b1fce07d0a19616026dfb927bfcbd88102b12.1521399976.git.ren_guo@c-sky.com>
- <CAK8P3a1rzS+MmubYqTE-8H89QnULcGbKth=eWTA5mJ5VLRNL0Q@mail.gmail.com> <20180320131342.GA31542@guoren>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: [PATCH] ARC: Improve cmpxchng syscall implementation
+Date: Wed, 21 Mar 2018 11:54:35 +0000
+Message-ID: <1521633274.9805.30.camel@synopsys.com>
+References: <20180319110002.27419-1-abrodkin@synopsys.com>
+         <5bc39838-b1c5-ef65-f97d-8777ed33bda0@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180320131342.GA31542@guoren>
+In-Reply-To: <5bc39838-b1c5-ef65-f97d-8777ed33bda0@synopsys.com>
+Content-Language: en-US
+Content-ID: <F144678AFD9E2E4EB151407D91816C26@internal.synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "wbx@uclibc-ng.org" <wbx@uclibc-ng.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 20, 2018 at 9:13 PM, Guo Ren <ren_guo@c-sky.com> wrote:
-> Hi arnd,
->
-> On Mon, Mar 19, 2018 at 11:45:23PM +0800, Arnd Bergmann wrote:
->> Does your architecture provide a reliable high-reslution clocksource?
->> If yes, you
->> could use that for the delay, rather than a calibrated loop.
-> Currently, all boards have clocksource drivers and the reslution is depend on SOC.
-> I'll try to remove it.
-
-If the clocksource depends on a driver rather than a feature of the
-architecture,
-this may not be worth optimizing though, so maybe leave it as it is for now.
-
->> Usually the kernel should allow multiple CPU types to be selected
->> together, or ask for a "minimum architecture" level to be selected
->> by allow newer cores to be used as a superset.
-> No, I need keep them seperate.
-
-Can you explain? What is it that makes them all incompatible?
-
->> > +config CPU_TLB_SIZE
->> > +       int
->> > +       default "128"   if(CPU_CK610 || CPU_CK807 || CPU_CK810)
->> > +       default "1024"  if(CPU_CK860)
->> > +
->> > +config L1_CACHE_SHIFT
->> > +       int
->> > +       default "4"     if(CPU_CK610)
->> > +       default "5"     if(CPU_CK807 || CPU_CK810)
->> > +       default "6"     if(CPU_CK860)
->>
->> I think you then need to reverse the order of the list here: When e.g. CK860
->> and CK810 are both enabled, L1_CACHE_SHIFT should be the largest
->> possible size.
-> No, I use L1_CACHE_SHIFT to determine the size of cache_line.
-> When I flush cache for a range of memory, I need the size to loop flush cache line.
-
-This is still relatively easy to fix, you just need a cpu specific loop
-that uses the actual line size rather than the maximum size.
-
->> > +config SSEG0_BASE
->> > +       hex "Direct mapping physical address"
->> > +       default 0x0
->> > +       help
->> > +         There are MSAx regs can be used to change the base physical address
->> > +         of direct mapping. The default base physical address is 0x0.
->> > +
->> > +config RAM_BASE
->> > +       hex "DRAM base address offset from SSEG0_BASE, it must be the same with dts memory."
->> > +       default 0x08000000
->>
->> To allow one kernel to run on multiple boards, it's better to detect
->> these two at runtime.
-> CK-CPUs have a mips-like direct-mapping, and I use the macros to calculate the virtual-addr
-> in headers.
-
-On many architectures, we detect the offsets at boot time and pass
-them as variables. On
-ARM, we go as far as patching the kernel at boot time to have constant
-offsets, but usually
-it's not worth the effort.
-
->> > +config CSKY_NR_IRQS
->> > +       int "NR_IRQS to max virtual interrupt numbers of the whole system"
->> > +       range 64 8192
->> > +       default "128"
->> > +endmenu
->>
->> This should no longer be needed, with the IRQ domain code, any number
->> of interrupts
->> can be used without noticeable overhead.
-> Not I use it, some of our users need it to expand the GPIO irqs. Because
-> they don't use irq domain code properly. I move it to Kconfig.debug, OK?
-
-It sounds like your GPIO driver should get fixed to use irq domains right,
-it should not be too hard. The number of GPIOs is typically a compile
-time constant today, but we also try to turn it into a dynamic allocation
-that we have for IRQs on most targets.
-
->> > +config CSKY_BUILTIN_DTB
->> > +       bool "Use kernel builtin dtb"
->> > +       default n
->> > +
->> > +config CSKY_BUILTIN_DTB_NAME
->> > +       string "kernel builtin dtb name"
->> > +       depends on CSKY_BUILTIN_DTB
->>
->> It's generally better not to use a builtin dtb, but use the bootloader
->> to pass a dtb.
->>
->> If you need to support existing bootloaders, the best way is to allow
->> appending the dtb to the kernel.
-> Most of our boards use bootloader to pass the dtb, but Hangzhou
-> Nationalchip want dtb compiled in the vmlinux. So I keep it in
-> Kconfig.debug.
-
-What I meant here is that you can get the same behavior by
-appending the dtb to the kernel rather than linking it into the
-kernel. The reason for preferring the appended one is that you
-can more easily use the same kernel binary across boards with
-different bootloaders.
-
->> > +ifeq ($(VERSION)_$(PATCHLEVEL), 4_9)
->> > +COMPAT_KERNEL_4_9 = -DCOMPAT_KERNEL_4_9
->> > +endif
->>
->> Should not be needed
-> May I keep it? It's a very internal macro for arch/csky and I can
-> maintain the linux-4.9 together.
-
-I'd say it's better to get rid of it for the upstream port, more importantly
-getting rid of the code that checks for this symbol. Usually what happens
-with version checks like this one is that they get out of sync quickly
-as a new kernel version does things differently and diverges more
-from the old release you were comparing against. In device drivers,
-we tend to remove all those checks.
-
->> -fno-tree-dse?
-> This is from "gcc-4.5 compile linux-4.7" and it will cause wrong code without
-> -fno-tree-dse for list.h. Now we use gcc-6.3, so I will try to remove it.
-
-You can also use the cc-ifversion Makefile macro to apply it on
-the old compiler. That way you can still use gcc-4.5 as long as
-that remains relevant but don't get worse code generation on
-modern versions.
-
->> > +++ b/arch/csky/abiv1/Makefile
->> > @@ -0,0 +1,8 @@
->> > +obj-y +=       src/bswapdi.o
->> > +obj-y +=       src/bswapsi.o
->> > +obj-y +=       src/cacheflush.o
->> > +obj-y +=       src/memcpy.o
->> > +obj-y +=       src/mmap.o
->> > +
->> > +obj-$(CONFIG_CPU_NEED_SOFTALIGN) +=    src/alignment.o
->>
->> Better not use subdirectories like that.
-> Ok, I will change them like this:
->   obj-y +=      bswapdi.o
->   obj-y +=      bswapsi.o
->   ...
->
->> Can you explain why you need the alignement fixups?
-> For abiv1 ck610 couldn't handle the unalignment address access, so we
-> need soft-alignment exception to fixup. There is no problem in abiv2 cpus.
-
-Ok. Generally speaking, architectures that don't allow unaligned access
-should have all code built in a way that uses aligned access (gcc normally
-falls back to byte access when it encounters an unaligned pointer at
-compile time), but if this is just for old CPUs that are not used in future
-products, having the fixup does sound simpler, as it allows you to still
-run new binaries on the old machines. I haven't looked at the implementation
-for the fixup here, but I remember the same thing from the nds32 port.
-In that case, we ended up keeping the fixup as an option for old
-user space, but disabled to softalign fixups for kernel code. Can you do
-the same thing here?
-
-         Arnd
+SGkgVmluZWV0LA0KDQpPbiBNb24sIDIwMTgtMDMtMTkgYXQgMTE6MjkgLTA3MDAsIFZpbmVldCBH
+dXB0YSB3cm90ZToNCj4gT24gMDMvMTkvMjAxOCAwNDowMCBBTSwgQWxleGV5IEJyb2RraW4gd3Jv
+dGU6DQo+ID4gYXJjX3Vzcl9jbXB4Y2hnIHN5c2NhbGwgaXMgc3VwcG9zZWQgdG8gYmUgdXNlZCBv
+biBwbGF0Zm9ybXMNCj4gPiB0aGF0IGxhY2sgc3VwcG9ydCBvZiBMb2FkLUxvY2tlZC9TdG9yZS1D
+b25kaXRpb25hbCBpbnN0cnVjdGlvbnMNCj4gPiBpbiBoYXJkd2FyZS4gQW5kIGluIHRoYXQgY2Fz
+ZSB3ZSBtaW1pYyBtaXNzaW5nIGhhcmR3YXJlIGZlYXR1cmVzDQo+ID4gd2l0aCBoZWxwIG9mIGtl
+cm5lbCdzIHN5Y2FsbCB0aGF0ICJhdG9taWNhbGx5IiBjaGVja3MgY3VycmVudA0KPiA+IHZhbHVl
+IGluIG1lbW9yeSBhbmQgdGhlbiBpZiBpdCBtYXRjaGVzIGNhbGxlciBleHBlY3RhdGlvbiBuZXcN
+Cj4gPiB2YWx1ZSBpcyB3cml0dGVuIHRvIHRoYXQgc2FtZSBsb2NhdGlvbi4NCj4gPiANCj4gDQo+
+IC4uLg0KPiAuLi4NCj4gDQo+ID4gDQo+ID4gMi4gV2hhdCdzIHdvcnNlIGlmIHdlJ3JlIGRlYWxp
+bmcgd2l0aCBkYXRhIGZyb20gbm90IHlldCBhbGxvY2F0ZWQNCj4gPiAgICAgcGFnZSAodGhpbmsg
+b2YgcHJlLWNvcHktb24td3JpdGUgc3RhdGUpIHdlJ2xsIHN1Y2Nlc3NmdWxseQ0KPiA+ICAgICBy
+ZWFkIGRhdGEgYnV0IG9uIHdyaXRlIHdlJ2xsIHNpbGVudGx5IHJldHVybiB0byB1c2VyLXNwYWNl
+DQo+ID4gICAgIHdpdGggY29ycmVjdCByZXN1bHQgDQo+IA0KPiBUaGlzIGlzIHRlY2huaWNhbGx5
+IGluY29ycmVjdCwgZXZlbiBmb3IgcmVhZGluZywgeW91IG5lZWQgYSBwYWdlLCB3aGljaCBjb3Vs
+ZCBiZSANCj4gY29tbW9uIHplcm8gcGFnZSBpbiBjZXJ0YWluIGNhc2VzLg0KDQpPayBJJ2xsIHJl
+d29yZCBpdCBsaWtlLg0KDQo+IA0KPiAod2hpY2ggd2UgcmVhbGx5IHJlYWQganVzdCBiZWZvcmUp
+LiBUaGF0IGxlYWRzDQo+ID4gICAgIHRvIHZlcnkgc3RyYW5nZSBwcm9ibGVtcyBpbiB1c2VyLXNw
+YWNlIGFwcCBmdXJ0aGVyIGRvd24gdGhlIGxpbmUNCj4gPiAgICAgYmVjYXVzZSBuZXcgdmFsdWUg
+d2FzIG5ldmVyIHdyaXR0ZW4gdG8gdGhlIGRlc3RpbmF0aW9uLg0KPiA+IA0KPiA+IDMuIFJlZ2Fy
+ZGxlc3Mgb2Ygd2hhdCB3ZW50IHdyb25nIHdlJ2xsIHJldHVybiBmcm9tIHN5c2NhbGwNCj4gPiAg
+ICAgYW5kIHVzZXItc3BhY2UgYXBwbGljYXRpb24gd2lsbCBjb250aW51ZSB0byBleGVjdXRlLg0K
+PiA+ICAgICBFdmVuIGlmIHVzZXIncyBwb2ludGVyIHdhcyBjb21wbGV0ZWx5IGJvZ3VzLg0KPiAN
+Cj4gQWdhaW4gd2UgYXJlIGV4YWdnZXJhdGluZyAoZnJvbSB0ZWNobmljYWwgY29ycmVjdG5lc3Mg
+UE9WKSAtIGlmIHVzZXIgcG9pbnRlciB3YXMgDQo+IGJvZ3MsIHRoZSByZWFkIHdvdWxkIG5vdCBo
+YXZlIHdvcmtlZCBpbiBmaXJzdCBwbGFjZSBldGMuIFNvIGxldHMgdG9uZSBkb3duIHRoZSANCj4g
+cmhldG9yaWMuDQoNCk9rIGhlcmUgSSBtYXkgcmVwaHJhc2UgaXQgbGlrZSB0aGF0Og0KLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLT44LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0N
+CjMuIFJlZ2FyZGxlc3Mgb2Ygd2hhdCB3ZW50IHdyb25nIHdlJ2xsIHJldHVybiBmcm9tIHN5c2Nh
+bGwNCiAgIGFuZCB1c2VyLXNwYWNlIGFwcGxpY2F0aW9uIHdpbGwgY29udGludWUgdG8gZXhlY3V0
+ZS4NCi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0+OC0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tDQoNCj4gDQo+ID4gICAgIEluIGNhc2Ugb2YgaGFyZHdhcmUgTEwvU0MgdGhhdCBh
+cHAgd291bGQgaGF2ZSBiZWVuIGtpbGxlZA0KPiA+ICAgICBieSB0aGUga2VybmVsLg0KPiA+IA0K
+PiA+IFdpdGggdGhhdCBjaGFuZ2Ugd2UgYXR0ZW1wdCB0byBpbXJvdmUgb24gYWxsIDMgaXRlbXMg
+YWJvdmU6DQo+ID4gDQo+ID4gMS4gV2Ugc3RpbGwgZGlzYWJsZSBwcmVlbXB0aW9uIGFyb3VuZCBy
+ZWFkLWFuZC13cml0ZSBvZg0KPiA+ICAgICB1c2VyJ3MgZGF0YSBidXQgaWYgd2UgaGFwcGVuIHRv
+IGZhaWwgd2l0aCBlaXRoZXIgb2YgdGhlbQ0KPiA+ICAgICB3ZSdyZSBlbmFibGluZyBwcmVlbXB0
+aW9uIGFuZCB0cnkgdG8gZm9yY2UgcGFnZSBmYXVsdCBzbw0KPiA+ICAgICB0aGF0IHdlIGhhdmUg
+YSBjb3JyZWN0IG1hcHBpbmcgaW4gdGhlIFRMQi4gVGhlbiByZS10cnkNCj4gPiAgICAgYWdhaW4g
+aW4gImF0b21pYyIgY29udGV4dC4NCj4gPiANCj4gPiAyLiBJZiByZWFsIHBhZ2UgZmF1bHQgZmFp
+bHMgb3IgZXZlbiBhY2Nlc3Nfb2soKSByZXR1cm5zIGZhbHNlDQo+ID4gICAgIHdlIHNlbmQgU0lH
+U0VHViB0byB0aGUgdXNlci1zcGFjZSBwcm9jZXNzIHNvIGlmIHNvbWV0aGluZyBnb2VzDQo+ID4g
+ICAgIHNlcmlvdXNseSB3cm9uZyB3ZSdsbCBrbm93IGFib3V0IGl0IG11Y2ggZWFybGllci4NCj4g
+PiANCj4gDQo+IA0KPiA+ICAgDQo+ID4gICAJLyoNCj4gPiAgIAkgKiBUaGlzIGlzIG9ubHkgZm9y
+IG9sZCBjb3JlcyBsYWNraW5nIExMT0NLL1NDT05ELCB3aGljaCBieSBkZWZpbnRpb24NCj4gPiBA
+QCAtNjAsMjMgKzYyLDQ4IEBAIFNZU0NBTExfREVGSU5FMyhhcmNfdXNyX2NtcHhjaGcsIGludCAq
+LCB1YWRkciwgaW50LCBleHBlY3RlZCwgaW50LCBuZXcpDQo+ID4gICAJLyogWiBpbmRpY2F0ZXMg
+dG8gdXNlcnNwYWNlIGlmIG9wZXJhdGlvbiBzdWNjZWRlZCAqLw0KPiA+ICAgCXJlZ3MtPnN0YXR1
+czMyICY9IH5TVEFUVVNfWl9NQVNLOw0KPiA+ICAgDQo+ID4gLQlpZiAoIWFjY2Vzc19vayhWRVJJ
+RllfV1JJVEUsIHVhZGRyLCBzaXplb2YoaW50KSkpDQo+ID4gLQkJcmV0dXJuIC1FRkFVTFQ7DQo+
+ID4gKwlyZXQgPSBhY2Nlc3Nfb2soVkVSSUZZX1dSSVRFLCB1YWRkciwgc2l6ZW9mKCp1YWRkcikp
+Ow0KPiA+ICsJaWYgKCFyZXQpDQo+ID4gKwkJZ290byBmYWlsOw0KPiA+ICAgDQo+ID4gK2FnYWlu
+Og0KPiA+ICAgCXByZWVtcHRfZGlzYWJsZSgpOw0KPiA+ICAgDQo+ID4gLQlpZiAoX19nZXRfdXNl
+cih1dmFsLCB1YWRkcikpDQo+ID4gLQkJZ290byBkb25lOw0KPiA+IC0NCj4gPiAtCWlmICh1dmFs
+ID09IGV4cGVjdGVkKSB7DQo+ID4gLQkJaWYgKCFfX3B1dF91c2VyKG5ldywgdWFkZHIpKQ0KPiA+
+ICsJcmV0ID0gX19nZXRfdXNlcih2YWwsIHVhZGRyKTsNCj4gPiArCWlmIChyZXQgPT0gLUVGQVVM
+VCkgew0KPiANCj4gDQo+IExldHMgc2VlIGlmIHRoaXMgd2FycmFudHMgYWRkaW5nIGNvbXBsZXhp
+dHkgISBUaGlzIGltcGxpZXMgdGhhdCBUTEIgZW50cnkgd2l0aCANCj4gUmVhZCBwZXJtaXNzaW9u
+cyBkaWRuJ3QgZXhpc3QgZm9yIHJlYWRpbmcgdGhlIHZhciBhbmQgcGFnZSBmYXVsdCBoYW5kbGVy
+IGNvdWxkIG5vdCANCj4gd2lyZSB1cCBldmVuIGEgemVybyBwYWdlIGR1ZSB0byBwcmVlbXB0X2Rp
+c2FibGUsIG1lYW5pbmcgaXQgd2FzIHNvbWV0aGluZyBub3QgDQo+IHRvdWNoZWQgYnkgdXNlcnNw
+YWNlIGFscmVhZHkgLSBzb3J0IG9mIHVuaW5pdGlhbGl6ZWQgdmFyaWFibGUgaW4gdXNlciBjb2Rl
+Lg0KDQpPayBJIGNvbXBsZXRlbHkgbWlzc2VkIHRoZSBmYWN0IHRoYXQgZmFzdCBwYXRoIFRMQiBt
+aXNzIGhhbmRsZXIgaXMgYmVpbmcNCmV4ZWN1dGVkIGV2ZW4gaWYgd2UgaGF2ZSBwcmVlbXB0aW9u
+IGRpc2FibGVkLiBTbyBnaXZlbiB0aGUgbWFwcGluZyBleGlzdA0Kd2UgZG8gbm90IG5lZWQgdG8g
+cmV0cnkgd2l0aCBlbmFibGVkIHByZWVtcHRpb24uDQoNClN0aWxsIG1heWJlIEknbSBhIGJpdCBw
+YXJhbm9pZCBoZXJlIGJ1dCBJTUhPIGl0J3MgZ29vZCB0byBiZSByZWFkeSBmb3IgYSBjb3JuZXIt
+Y2FzZQ0Kd2hlbiB0aGUgcG9pbnRlciBpcyBjb21wbGV0ZWx5IGJvZ3VzIGFuZCB0aGVyZSdzIG5v
+IG1hcHBpbmcgZm9yIGhpbS4NCkkgdW5kZXJzdGFuZCB0aGF0IHRvZGF5IHdlIG9ubHkgZXhwZWN0
+IHRoaXMgc3lzY2FsbCB0byBiZSB1c2VkIGZyb20gbGliYydzDQppbnRlcm5hbHMgYnV0IGFzIGxv
+bmcgYXMgc3lzY2FsbCBleGlzdHMgbm9ib2R5IHN0b3BzIGFueWJvZHkgZnJvbSB1c2luZyBpdA0K
+ZGlyZWN0bHkgd2l0aG91dCBsaWJjLiBTbyBtYXliZSBpbnN0ZWFkIG9mIGRvaW5nIGdldF91c2Vy
+X3BhZ2VzX2Zhc3QoKSBqdXN0DQpzZW5kIGEgU0lHU0VHViB0byB0aGUgcHJvY2Vzcz8gQXQgbGVh
+c3QgdXNlciB3aWxsIHJlYWxpemUgdGhlcmUncyBzb21lIHByb2JsZW0NCmF0IGVhcmxpZXIgc3Rh
+Z2UuDQoNCj4gT3RoZXJ3aXNlIGl0IGlzIGV4dHJlbWVseSB1bmxpa2VseSB0byBzdGFydCB3aXRo
+IGEgVExCIGVudHJ5IHdpdGggUmVhZCANCj4gcGVybWlzc2lvbnMsIGZvbGxvd2VkIGJ5IHN5c2Nh
+bGwgVHJhcCBvbmx5IHRvIGZpbmQgdGhlIGVudHJ5IG1pc3NpbmcsIHVubGVzcyBhIA0KPiBnbG9i
+YWwgVExCIGZsdXNoIGNhbWUgZnJvbSBvdGhlciBjb3JlcywgcmlnaHQgaW4gdGhlIG1pZGRsZS4g
+QnV0IHRoaXMgc3lzY2FsbCBpcyANCj4gbm90IGd1YXJhbnRlZWQgdG8gd29yayB3aXRoIFNNUCBh
+bnl3YXlzLCBzbyBsZXRzIGlnbm9yZSBhbnkgU01QIG1pc2RvaW5ncyBoZXJlLg0KDQpXZWxsIGJ1
+dCB0aGF0J3MgZXhhY3RseSB0aGUgc2l0dWF0aW9uIEkgd2FzIGRlYnVnZ2luZzogd2Ugc3RhcnQg
+ZnJvbSBkYXRhIGZyb20gcmVhZC1vbmx5DQpwYWdlIGFuZCBvbiBhdHRlbXB0IHRvIHdyaXRlIGJh
+Y2sgbW9kaWZpZWQgdmFsdWUgQ09XIG1hY2hpbmVyeSBnZXRzIGludm9sdmVkLg0KDQpUaGF0IHdh
+cyBvbiBVUCBwbGF0Zm9ybS4NCg0KPiBOb3cgaW4gY2FzZSBpdCB3YXMgKmFuKiB1bmluaXRpYWxp
+emVkIHZhciwgZG8gd2UgaGF2ZSB0byBndWFyYW50ZWUgYW55IHdlbGwgDQo+IGRlZmluZWQgc2Vt
+YW50aWNzIGZvciB0aGUga2VybmVsIGVtdWxhdGlvbiBvZiBjbXB4Y2hnID8gSU1PIGl0IHNob3Vs
+ZCBiZSBmaW5lIHRvIA0KPiByZXR1cm4gMCBvciAtRUZBVUxUIGV0Yy4gSW5mYWN0IC1FRkFVTFQg
+aXMgYmV0dGVyIGFzIGl0IHdpbGwgZm9yY2UgYSByZXRyeSBsb29wIG9uIA0KPiB1c2VyIHNpZGUs
+IGdpdmVuIHRoZSB0eXBpY2FsIGNtcHhjaGcgdXNhZ2UgcGF0dGVybi4NCg0KVGhlIHByb2JsZW0g
+aXMgbGliYyBvbmx5IGV4cGVjdHMgdG8gZ2V0IGEgdmFsdWUgcmVhZCBmcm9tIG1lbW9yeS4NCkFu
+ZCBpbiB0aGVvcnkgZXhwZWN0ZWQgdmFsdWUgbWlnaHQgYmUgLTE0IHdoaWNoIGlzIGJhc2ljYWxs
+eSAtRUZBVUxULg0KSSdtIG5vdCB0YWxraW5nIGFib3V0IDAgYXQgYWxsIGJlY2F1c2UgaW4gc29t
+ZSBjYXNlcyB0aGF0J3MgZXhhY3RseSB3aGF0DQp1c2VyLXNwYWNlIGV4cGVjdHMuDQoNClNvIGlm
+IHdlIHJlYWQgdW5leHBlY3RlZCB2YWx1ZSB0aGVuIHdlJ2xsIGp1c3QgcmV0dXJuIGl0IHdpdGhv
+dXQgZXZlbiBhdHRlbXB0aW5nDQp0byB3cml0ZS4NCg0KSWYgd2UgcmVhZCBleHBlY3RlZCBkYXRh
+IGJ1dCBmYWlsIHRvIHdyaXRlIHRoZW4gd2UnbGwgc2VuZCBhIFNJR1NFR1YgYW5kDQpyZXR1cm4g
+d2hhdGV2ZXIuLi4gbGV0IGl0IGJlIC1FRkFVTFQgLSBhbnl3YXlzIHRoZSBhcHAgd2lsbCBiZSBr
+aWxsZWQgb24gZXhpdCBmcm9tDQp0aGlzIHN5c2NhbGwuDQoNCi1BbGV4ZXk=
