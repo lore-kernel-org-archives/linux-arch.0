@@ -1,57 +1,44 @@
 From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 23/45] sched: add do_sched_yield() helper; remove
- in-kernel call to sched_yield()
-Date: Thu, 22 Mar 2018 10:44:54 -0700
-Message-ID: <CA+55aFwM8mMyZZ9wH2ExAkTKg9Mwie1hOtXz87ivi0nhsZ49Ug@mail.gmail.com>
+Subject: Re: Any chance that kernel/uid6.c can go? [Was: [PATCH 22/45] kernel:
+ provide ksys_*() wrappers for syscalls called by kernel/uid16.c]
+Date: Thu, 22 Mar 2018 10:57:27 -0700
+Message-ID: <CA+55aFx-Rn2F=yRftzdmu=zSzo5giNCEF7WP_=VNx8-d+OOBsQ@mail.gmail.com>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
- <20180322090059.19361-24-linux@dominikbrodowski.net> <20180322172959.GX4043@hirez.programming.kicks-ass.net>
+ <20180322090059.19361-23-linux@dominikbrodowski.net> <20180322102140.GA14294@light.dominikbrodowski.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180322172959.GX4043@hirez.programming.kicks-ass.net>
+In-Reply-To: <20180322102140.GA14294@light.dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, "Eric W . Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 22, 2018 at 10:29 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+On Thu, Mar 22, 2018 at 3:21 AM, Dominik Brodowski
+<linux@dominikbrodowski.net> wrote:
 >
-> But why !? Either Cc me on more of the series such that the whole makes
-> sense, or better yet, write a proper Changelog.
+> In its header, kernel/uid16.c says, since 2.3.39 was released in January
+> 2000:
+>
+>  *      Wrapper functions for 16bit uid back compatibility. All nicely tied
+>  *      together in the faint hope we can take the out in five years time.
+>
+> Are we any closer to removing these wrappers?
 
-This is a common issue. We should encourage people to always send at
-least the cover-page to everybody who gets cc'd, even if they don't
-get the whole series.
+Honestly, I don't see any real upside to getting rid of them.
 
-Anyway, to repeat: the calling convention for x86-64 system call
-wrappers will be to just pass in "struct pt_regs", and the system call
-wrapper itself will take the arguments from there.
+We used to still run some of the _original_ binaries from the old
+floppy disk distributions just a few years ago. I honestly hope we
+still do. And those old uid system calls would be very much part of
+it.
 
-That means that we won't have random user space contents in registers
-that can leak deep down the call chain. The registers are cleared at
-system call entry, and only the actual real arguments are reloaded.
+Sadly, I don't know where those old binaries are. Anybody know where
+the bash binary from 1991 is? There was a "bash.Z" as part of the 0.01
+release.
 
-(It also makes do_syscall_64() generate better code, natch).
+(Ok, that one is almost certainly broken, but Alan Cox reported
+running some really old binaries from the early times long ago before
+he turned to even *older* retrocomputing and started concentrating on
+the old 8-bit machines ;)
 
-Anyway, that means that you *CANNOT* call "sys_xyz() from kernel code.
-Not that you really should have anyway, but there are tons of
-historical reasons why we do. But now it fundamentally won't work,
-because you'd need to literally do
-
-    { struct pt_regs regs;
-       regs.rdi = (unsigned long) firstarg;
-       regs.rsi = (unsigned long) second;
-      ...
-      sys_xyz(&regs); }
-
-to do it on x86-64.
-
-Anyway, there's a longer discussion about why this is the case
-elsewhere, and why we want to do it, but just take it as granted: you
-will not be able to call sys_xyz() directly, and that's just a fact.
-
-Making people able to do it would make real system calls (that are a
-hell of a lot more important) slower. So it's simply not going to be
-allowed.
-
-               Linus
+              Linus
