@@ -1,151 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37724 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37742 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753160AbeCVJCC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:02:02 -0400
+        with ESMTP id S1753064AbeCVJBy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:54 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 25/45] mm: add kernel_migrate_pages() helper, move compat syscall to mm/mempolicy.c
-Date: Thu, 22 Mar 2018 10:00:39 +0100
-Message-ID: <20180322090059.19361-26-linux@dominikbrodowski.net>
+Subject: [PATCH 19/45] fs/quota: use COMPAT_SYSCALL_DEFINE for sys32_quotactl()
+Date: Thu, 22 Mar 2018 10:00:33 +0100
+Message-ID: <20180322090059.19361-20-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180322090039.OzkKv3L91RIq5RI-aE9cCw-63iS8-R99yFBFyqILkIY@z>
+Cc: Jan Kara <jack@suse.com>, Christoph Hellwig <hch@infradead.org>
+Message-ID: <20180322090033.ekhDpAFhp8oAeVReHMKwmCC69cmZ-dIILYTOpOwDrUk@z>
 
-Move compat_sys_migrate_pages() to mm/mempolicy.c and make it call a newly
-introduced helper -- kernel_migrate_pages() -- instead of the syscall.
+While sys32_quotactl() is only needed on x86, it can use the recommended
+COMPAT_SYSCALL_DEFINEx() machinery for its setup.
 
-This patch is part of a series which tries to remove in-kernel calls to
-syscalls. On this basis, the syscall entry path can be streamlined.
-
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jan Kara <jack@suse.com>
+Cc: Christoph Hellwig <hch@infradead.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- kernel/compat.c | 33 ---------------------------------
- mm/mempolicy.c  | 48 ++++++++++++++++++++++++++++++++++++++++++++----
- 2 files changed, 44 insertions(+), 37 deletions(-)
+ arch/x86/entry/syscalls/syscall_32.tbl | 2 +-
+ fs/quota/compat.c                      | 5 +++--
+ include/linux/compat.h                 | 3 +++
+ include/linux/syscalls.h               | 4 +---
+ kernel/sys_ni.c                        | 2 +-
+ 5 files changed, 9 insertions(+), 7 deletions(-)
 
-diff --git a/kernel/compat.c b/kernel/compat.c
-index 3f5fa8902e7d..51bdf1808943 100644
---- a/kernel/compat.c
-+++ b/kernel/compat.c
-@@ -508,39 +508,6 @@ COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
- 	}
- 	return sys_move_pages(pid, nr_pages, pages, nodes, status, flags);
- }
--
--COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
--		       compat_ulong_t, maxnode,
--		       const compat_ulong_t __user *, old_nodes,
--		       const compat_ulong_t __user *, new_nodes)
--{
--	unsigned long __user *old = NULL;
--	unsigned long __user *new = NULL;
--	nodemask_t tmp_mask;
--	unsigned long nr_bits;
--	unsigned long size;
--
--	nr_bits = min_t(unsigned long, maxnode - 1, MAX_NUMNODES);
--	size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
--	if (old_nodes) {
--		if (compat_get_bitmap(nodes_addr(tmp_mask), old_nodes, nr_bits))
--			return -EFAULT;
--		old = compat_alloc_user_space(new_nodes ? size * 2 : size);
--		if (new_nodes)
--			new = old + size / sizeof(unsigned long);
--		if (copy_to_user(old, nodes_addr(tmp_mask), size))
--			return -EFAULT;
--	}
--	if (new_nodes) {
--		if (compat_get_bitmap(nodes_addr(tmp_mask), new_nodes, nr_bits))
--			return -EFAULT;
--		if (new == NULL)
--			new = compat_alloc_user_space(size);
--		if (copy_to_user(new, nodes_addr(tmp_mask), size))
--			return -EFAULT;
--	}
--	return sys_migrate_pages(pid, nr_bits + 1, old, new);
--}
- #endif
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index 2a5e99cff859..09338dd2bd94 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -137,7 +137,7 @@
+ 128	i386	init_module		sys_init_module
+ 129	i386	delete_module		sys_delete_module
+ 130	i386	get_kernel_syms
+-131	i386	quotactl		sys_quotactl			sys32_quotactl
++131	i386	quotactl		sys_quotactl			compat_sys_quotactl32
+ 132	i386	getpgid			sys_getpgid
+ 133	i386	fchdir			sys_fchdir
+ 134	i386	bdflush			sys_bdflush
+diff --git a/fs/quota/compat.c b/fs/quota/compat.c
+index 1577a2fd51f4..c30572857619 100644
+--- a/fs/quota/compat.c
++++ b/fs/quota/compat.c
+@@ -41,8 +41,9 @@ struct compat_fs_quota_stat {
+ 	__u16		qs_iwarnlimit;
+ };
  
- /*
-diff --git a/mm/mempolicy.c b/mm/mempolicy.c
-index d879f1d8a44a..7399ede02b5f 100644
---- a/mm/mempolicy.c
-+++ b/mm/mempolicy.c
-@@ -1377,9 +1377,9 @@ SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
- 	return do_set_mempolicy(mode, flags, &nodes);
- }
- 
--SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
--		const unsigned long __user *, old_nodes,
--		const unsigned long __user *, new_nodes)
-+static int kernel_migrate_pages(pid_t pid, unsigned long maxnode,
-+				const unsigned long __user *old_nodes,
-+				const unsigned long __user *new_nodes)
+-asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
+-						qid_t id, void __user *addr)
++COMPAT_SYSCALL_DEFINE4(quotactl32, unsigned int, cmd,
++		       const char __user *, special, qid_t, id,
++		       void __user *, addr)
  {
- 	struct mm_struct *mm = NULL;
- 	struct task_struct *task;
-@@ -1469,6 +1469,13 @@ SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
+ 	unsigned int cmds;
+ 	struct if_dqblk __user *dqblk;
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 16c3027074a2..f1649a5e6716 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -461,6 +461,9 @@ asmlinkage ssize_t compat_sys_pwritev2(compat_ulong_t fd,
+ 		const struct compat_iovec __user *vec,
+ 		compat_ulong_t vlen, u32 pos_low, u32 pos_high, rwf_t flags);
  
++asmlinkage long compat_sys_quotactl32(unsigned int cmd,
++		const char __user *special, qid_t id, void __user *addr);
++
+ #ifdef __ARCH_WANT_COMPAT_SYS_PREADV64
+ asmlinkage long compat_sys_preadv64(unsigned long fd,
+ 		const struct compat_iovec __user *vec,
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index f30083190ae4..a3f42f5f3b08 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -241,8 +241,6 @@ static inline void addr_limit_user_check(void)
+ #endif
  }
  
-+SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
-+		const unsigned long __user *, old_nodes,
-+		const unsigned long __user *, new_nodes)
-+{
-+	return kernel_migrate_pages(pid, maxnode, old_nodes, new_nodes);
-+}
-+
- 
- /* Retrieve NUMA policy */
- SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
-@@ -1571,7 +1578,40 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
- 	return sys_mbind(start, len, mode, nm, nr_bits+1, flags);
+-asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
+-			       qid_t id, void __user *addr);
+ asmlinkage long sys_time(time_t __user *tloc);
+ asmlinkage long sys_stime(time_t __user *tptr);
+ asmlinkage long sys_gettimeofday(struct timeval __user *tv,
+@@ -625,7 +623,7 @@ asmlinkage long sys_chdir(const char __user *filename);
+ asmlinkage long sys_fchdir(unsigned int fd);
+ asmlinkage long sys_rmdir(const char __user *pathname);
+ asmlinkage long sys_lookup_dcookie(u64 cookie64, char __user *buf, size_t len);
+-asmlinkage long sys_quotactl(unsigned int cmd, const char __user *special,
++asmlinkage long sys_quotactl32(unsigned int cmd, const char __user *special,
+ 				qid_t id, void __user *addr);
+ asmlinkage long sys_getdents(unsigned int fd,
+ 				struct linux_dirent __user *dirent,
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index b5189762d275..951dbda5c2b4 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -18,7 +18,7 @@ asmlinkage long sys_ni_syscall(void)
  }
  
--#endif
-+COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
-+		       compat_ulong_t, maxnode,
-+		       const compat_ulong_t __user *, old_nodes,
-+		       const compat_ulong_t __user *, new_nodes)
-+{
-+	unsigned long __user *old = NULL;
-+	unsigned long __user *new = NULL;
-+	nodemask_t tmp_mask;
-+	unsigned long nr_bits;
-+	unsigned long size;
-+
-+	nr_bits = min_t(unsigned long, maxnode - 1, MAX_NUMNODES);
-+	size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
-+	if (old_nodes) {
-+		if (compat_get_bitmap(nodes_addr(tmp_mask), old_nodes, nr_bits))
-+			return -EFAULT;
-+		old = compat_alloc_user_space(new_nodes ? size * 2 : size);
-+		if (new_nodes)
-+			new = old + size / sizeof(unsigned long);
-+		if (copy_to_user(old, nodes_addr(tmp_mask), size))
-+			return -EFAULT;
-+	}
-+	if (new_nodes) {
-+		if (compat_get_bitmap(nodes_addr(tmp_mask), new_nodes, nr_bits))
-+			return -EFAULT;
-+		if (new == NULL)
-+			new = compat_alloc_user_space(size);
-+		if (copy_to_user(new, nodes_addr(tmp_mask), size))
-+			return -EFAULT;
-+	}
-+	return kernel_migrate_pages(pid, nr_bits + 1, old, new);
-+}
-+
-+#endif /* CONFIG_COMPAT */
- 
- struct mempolicy *__get_vma_policy(struct vm_area_struct *vma,
- 						unsigned long addr)
+ cond_syscall(sys_quotactl);
+-cond_syscall(sys32_quotactl);
++cond_syscall(compat_sys_quotactl32);
+ cond_syscall(sys_acct);
+ cond_syscall(sys_lookup_dcookie);
+ cond_syscall(compat_sys_lookup_dcookie);
 -- 
 2.16.2
