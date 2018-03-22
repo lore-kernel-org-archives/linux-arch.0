@@ -1,36 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:38945 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752592AbeCVJ15 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:27:57 -0400
-Date: Thu, 22 Mar 2018 10:27:54 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 43/45] x86/sigreturn: use SYSCALL_DEFINE0
-In-Reply-To: <20180322090059.19361-44-linux@dominikbrodowski.net>
-Message-ID: <alpine.DEB.2.21.1803221027410.1579@nanos.tec.linutronix.de>
-References: <20180322090059.19361-1-linux@dominikbrodowski.net> <20180322090059.19361-44-linux@dominikbrodowski.net>
+Received: from isilmar-4.linta.de ([136.243.71.142]:42112 "EHLO
+        isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753793AbeCVKXe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 06:23:34 -0400
+Date: Thu, 22 Mar 2018 11:21:40 +0100
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: Any chance that kernel/uid6.c can go? [Was: [PATCH 22/45] kernel:
+ provide ksys_*() wrappers for syscalls called by kernel/uid16.c]
+Message-ID: <20180322102140.GA14294@light.dominikbrodowski.net>
+References: <20180322090059.19361-1-linux@dominikbrodowski.net>
+ <20180322090059.19361-23-linux@dominikbrodowski.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180322090059.19361-23-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dominik Brodowski <linux@dominikbrodowski.net>
-Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org, "Tautschnig, Michael" <tautschn@amazon.co.uk>, Michael Tautschnig <tautschn@amazon.com>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Jaswinder Singh <jaswinder@infradead.org>, Andi Kleen <ak@linux.intel.com>, x86@kernel.org
-Message-ID: <20180322092754.0Z-kKStD8Rbgm7mgBTxaU46ntaD12XrR7UZIekvoD3I@z>
+To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
+Cc: "Eric W . Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180322102140._2cOo5ktv2CAosUbSrzBf7u0ZkCFa3-odRUFyI2bE7w@z>
 
-On Thu, 22 Mar 2018, Dominik Brodowski wrote:
-
-> From: "Tautschnig, Michael" <tautschn@amazon.co.uk>
+On Thu, Mar 22, 2018 at 10:00:36AM +0100, Dominik Brodowski wrote:
+> Using these helpers allows us to avoid the in-kernel calls to these
+> syscalls: sys_setregid(), sys_setgid(), sys_setreuid(), sys_setuid(),
+> sys_setresuid(), sys_setresgid(), sys_setfsuid(), and sys_setfsgid().
 > 
-> All definitions of syscalls in x86 except for those patched here have
-> already been using the appropriate SYSCALL_DEFINE*.
+> The ksys_ prefix denotes that these function are meant as a drop-in
+> replacement for the syscall. In particular, they use the same calling
+> convention.
 > 
-> Signed-off-by: Michael Tautschnig <tautschn@amazon.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: H. Peter Anvin <hpa@zytor.com>
-> Cc: Jaswinder Singh <jaswinder@infradead.org>
-> Cc: Andi Kleen <ak@linux.intel.com>
-> Cc: x86@kernel.org
+> This patch is part of a series which tries to remove in-kernel calls to
+> syscalls. On this basis, the syscall entry path can be streamlined.
+> 
+> Cc: Al Viro <viro@ZenIV.linux.org.uk>
+> Cc: Eric W. Biederman <ebiederm@xmission.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
 > Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
+> ---
+>  kernel/sys.c   | 58 ++++++++++++++++++++++++++++++++++++++++++++++++++--------
+>  kernel/uid16.c | 19 ++++++++++---------
 
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+In its header, kernel/uid16.c says, since 2.3.39 was released in January
+2000:
+
+ *      Wrapper functions for 16bit uid back compatibility. All nicely tied
+ *      together in the faint hope we can take the out in five years time.
+
+Are we any closer to removing these wrappers?
+
+Thanks,
+	Dominik
