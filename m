@@ -1,131 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37682 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37680 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752854AbeCVJBn (ORCPT
+        with ESMTP id S1752851AbeCVJBn (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:43 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 26/45] mm: add kernel_move_pages() helper, move compat syscall to mm/migrate.c
-Date: Thu, 22 Mar 2018 10:00:40 +0100
-Message-ID: <20180322090059.19361-27-linux@dominikbrodowski.net>
+Subject: [PATCH 05/45] fs: add ksys_sync() helper; remove in-kernel calls to sys_sync()
+Date: Thu, 22 Mar 2018 10:00:19 +0100
+Message-ID: <20180322090059.19361-6-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180322090040.I4of6vK4qJOchXUzuj5PbkADNfIFHD203CL_LMe8E2g@z>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20180322090019.DHV6EGJcF1yzl8J5Zi2przPEslqJgJflWqmeV1u2hAs@z>
 
-Move compat_sys_move_pages() to mm/migrate.c and make it call a newly
-introduced helper -- kernel_move_pages() -- instead of the syscall.
+Using this helper allows us to avoid the in-kernel calls to the
+sys_sync() syscall. The ksys_ prefix denotes that this function
+is meant as a drop-in replacement for the syscall. In particular, it
+uses the same calling convention as sys_sync().
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- kernel/compat.c | 22 ----------------------
- mm/migrate.c    | 39 +++++++++++++++++++++++++++++++++++----
- 2 files changed, 35 insertions(+), 26 deletions(-)
+ arch/sparc/kernel/setup_32.c | 2 +-
+ drivers/tty/sysrq.c          | 2 +-
+ fs/sync.c                    | 7 ++++++-
+ include/linux/syscalls.h     | 1 +
+ kernel/power/hibernate.c     | 2 +-
+ kernel/power/suspend.c       | 2 +-
+ kernel/power/user.c          | 2 +-
+ 7 files changed, 12 insertions(+), 6 deletions(-)
 
-diff --git a/kernel/compat.c b/kernel/compat.c
-index 51bdf1808943..6d21894806b4 100644
---- a/kernel/compat.c
-+++ b/kernel/compat.c
-@@ -488,28 +488,6 @@ get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat)
- }
- EXPORT_SYMBOL_GPL(get_compat_sigset);
+diff --git a/arch/sparc/kernel/setup_32.c b/arch/sparc/kernel/setup_32.c
+index 2e3a3e203061..13664c377196 100644
+--- a/arch/sparc/kernel/setup_32.c
++++ b/arch/sparc/kernel/setup_32.c
+@@ -86,7 +86,7 @@ static void prom_sync_me(void)
+ 	show_free_areas(0, NULL);
+ 	if (!is_idle_task(current)) {
+ 		local_irq_enable();
+-		sys_sync();
++		ksys_sync();
+ 		local_irq_disable();
+ 	}
+ 	prom_printf("Returning to prom\n");
+diff --git a/drivers/tty/sysrq.c b/drivers/tty/sysrq.c
+index b674793be478..6364890575ec 100644
+--- a/drivers/tty/sysrq.c
++++ b/drivers/tty/sysrq.c
+@@ -660,7 +660,7 @@ static void sysrq_do_reset(struct timer_list *t)
  
--#ifdef CONFIG_NUMA
--COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
--		       compat_uptr_t __user *, pages32,
--		       const int __user *, nodes,
--		       int __user *, status,
--		       int, flags)
--{
--	const void __user * __user *pages;
--	int i;
--
--	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
--	for (i = 0; i < nr_pages; i++) {
--		compat_uptr_t p;
--
--		if (get_user(p, pages32 + i) ||
--			put_user(compat_ptr(p), pages + i))
--			return -EFAULT;
--	}
--	return sys_move_pages(pid, nr_pages, pages, nodes, status, flags);
--}
--#endif
--
- /*
-  * Allocate user-space memory for the duration of a single system call,
-  * in order to marshall parameters inside a compat thunk.
-diff --git a/mm/migrate.c b/mm/migrate.c
-index 1e5525a25691..003886606a22 100644
---- a/mm/migrate.c
-+++ b/mm/migrate.c
-@@ -34,6 +34,7 @@
- #include <linux/backing-dev.h>
- #include <linux/compaction.h>
- #include <linux/syscalls.h>
-+#include <linux/compat.h>
- #include <linux/hugetlb.h>
- #include <linux/hugetlb_cgroup.h>
- #include <linux/gfp.h>
-@@ -1745,10 +1746,10 @@ static int do_pages_stat(struct mm_struct *mm, unsigned long nr_pages,
-  * Move a list of pages in the address space of the currently executing
-  * process.
+ 	state->reset_requested = true;
+ 
+-	sys_sync();
++	ksys_sync();
+ 	kernel_restart(NULL);
+ }
+ 
+diff --git a/fs/sync.c b/fs/sync.c
+index ff947c30a6c0..9908a114d506 100644
+--- a/fs/sync.c
++++ b/fs/sync.c
+@@ -105,7 +105,7 @@ static void fdatawait_one_bdev(struct block_device *bdev, void *arg)
+  * just write metadata (such as inodes or bitmaps) to block device page cache
+  * and do not sync it on their own in ->sync_fs().
   */
--SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
--		const void __user * __user *, pages,
--		const int __user *, nodes,
--		int __user *, status, int, flags)
-+static int kernel_move_pages(pid_t pid, unsigned long nr_pages,
-+			     const void __user * __user *pages,
-+			     const int __user *nodes,
-+			     int __user *status, int flags)
+-SYSCALL_DEFINE0(sync)
++void ksys_sync(void)
  {
- 	struct task_struct *task;
- 	struct mm_struct *mm;
-@@ -1807,6 +1808,36 @@ SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
- 	return err;
+ 	int nowait = 0, wait = 1;
+ 
+@@ -117,6 +117,11 @@ SYSCALL_DEFINE0(sync)
+ 	iterate_bdevs(fdatawait_one_bdev, NULL);
+ 	if (unlikely(laptop_mode))
+ 		laptop_sync_completion();
++}
++
++SYSCALL_DEFINE0(sync)
++{
++	ksys_sync();
+ 	return 0;
  }
  
-+SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
-+		const void __user * __user *, pages,
-+		const int __user *, nodes,
-+		int __user *, status, int, flags)
-+{
-+	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
-+}
-+
-+#ifdef CONFIG_COMPAT
-+COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
-+		       compat_uptr_t __user *, pages32,
-+		       const int __user *, nodes,
-+		       int __user *, status,
-+		       int, flags)
-+{
-+	const void __user * __user *pages;
-+	int i;
-+
-+	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
-+	for (i = 0; i < nr_pages; i++) {
-+		compat_uptr_t p;
-+
-+		if (get_user(p, pages32 + i) ||
-+			put_user(compat_ptr(p), pages + i))
-+			return -EFAULT;
-+	}
-+	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
-+}
-+#endif /* CONFIG_COMPAT */
-+
- #ifdef CONFIG_NUMA_BALANCING
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index e3a52c0bbf52..1970c6817289 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -977,6 +977,7 @@ int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
+ int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
+ off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence);
+ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count);
++void ksys_sync(void);
+ 
  /*
-  * Returns true if this is a safe migration target node for misplaced NUMA
+  * The following kernel syscall equivalents are just wrappers to fs-internal
+diff --git a/kernel/power/hibernate.c b/kernel/power/hibernate.c
+index a5c36e9c56a6..4710f1b142fc 100644
+--- a/kernel/power/hibernate.c
++++ b/kernel/power/hibernate.c
+@@ -701,7 +701,7 @@ int hibernate(void)
+ 	}
+ 
+ 	pr_info("Syncing filesystems ... \n");
+-	sys_sync();
++	ksys_sync();
+ 	pr_info("done.\n");
+ 
+ 	error = freeze_processes();
+diff --git a/kernel/power/suspend.c b/kernel/power/suspend.c
+index 0685c4499431..4c10be0f4843 100644
+--- a/kernel/power/suspend.c
++++ b/kernel/power/suspend.c
+@@ -560,7 +560,7 @@ static int enter_state(suspend_state_t state)
+ #ifndef CONFIG_SUSPEND_SKIP_SYNC
+ 	trace_suspend_resume(TPS("sync_filesystems"), 0, true);
+ 	pr_info("Syncing filesystems ... ");
+-	sys_sync();
++	ksys_sync();
+ 	pr_cont("done.\n");
+ 	trace_suspend_resume(TPS("sync_filesystems"), 0, false);
+ #endif
+diff --git a/kernel/power/user.c b/kernel/power/user.c
+index 22df9f7ff672..75c959de4b29 100644
+--- a/kernel/power/user.c
++++ b/kernel/power/user.c
+@@ -224,7 +224,7 @@ static long snapshot_ioctl(struct file *filp, unsigned int cmd,
+ 			break;
+ 
+ 		printk("Syncing filesystems ... ");
+-		sys_sync();
++		ksys_sync();
+ 		printk("done.\n");
+ 
+ 		error = freeze_processes();
 -- 
 2.16.2
