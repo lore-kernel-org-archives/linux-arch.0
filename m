@@ -1,7 +1,7 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 06/45] fs: add do_lookup_dcookie() helper; remove in-kernel call to syscall
-Date: Thu, 22 Mar 2018 10:00:20 +0100
-Message-ID: <20180322090059.19361-7-linux@dominikbrodowski.net>
+Subject: [PATCH 13/45] fs: add do_compat_select() helper; remove in-kernel call to comapt syscall
+Date: Thu, 22 Mar 2018 10:00:27 +0100
+Message-ID: <20180322090059.19361-14-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
@@ -10,8 +10,8 @@ To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linu
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using the fs-internal do_lookup_dcookie() helper allows us to get rid of
-fs-internal calls to the sys_lookup_dcookie() syscall.
+Using the fs-internal do_compat_select() helper allows us to get rid of
+the fs-internal call to the compat_sys_select() syscall.
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
@@ -20,42 +20,50 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/dcookies.c | 11 ++++++++---
- 1 file changed, 8 insertions(+), 3 deletions(-)
+ fs/select.c | 17 ++++++++++++-----
+ 1 file changed, 12 insertions(+), 5 deletions(-)
 
-diff --git a/fs/dcookies.c b/fs/dcookies.c
-index 0d0461cf2431..57bc96435feb 100644
---- a/fs/dcookies.c
-+++ b/fs/dcookies.c
-@@ -146,7 +146,7 @@ int get_dcookie(const struct path *path, unsigned long *cookie)
- /* And here is where the userspace process can look up the cookie value
-  * to retrieve the path.
-  */
--SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
-+static int do_lookup_dcookie(u64 cookie64, char __user *buf, size_t len)
- {
- 	unsigned long cookie = (unsigned long)cookie64;
- 	int err = -EINVAL;
-@@ -203,13 +203,18 @@ SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
- 	return err;
+diff --git a/fs/select.c b/fs/select.c
+index b5df01c4587d..ba879c51288f 100644
+--- a/fs/select.c
++++ b/fs/select.c
+@@ -1265,9 +1265,9 @@ static int compat_core_sys_select(int n, compat_ulong_t __user *inp,
+ 	return ret;
  }
  
-+SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
+-COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
+-	compat_ulong_t __user *, outp, compat_ulong_t __user *, exp,
+-	struct compat_timeval __user *, tvp)
++static int do_compat_select(int n, compat_ulong_t __user *inp,
++	compat_ulong_t __user *outp, compat_ulong_t __user *exp,
++	struct compat_timeval __user *tvp)
+ {
+ 	struct timespec64 end_time, *to = NULL;
+ 	struct compat_timeval tv;
+@@ -1290,6 +1290,13 @@ COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
+ 	return ret;
+ }
+ 
++COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
++	compat_ulong_t __user *, outp, compat_ulong_t __user *, exp,
++	struct compat_timeval __user *, tvp)
 +{
-+	return do_lookup_dcookie(cookie64, buf, len);
++	return do_compat_select(n, inp, outp, exp, tvp);
 +}
 +
- #ifdef CONFIG_COMPAT
- COMPAT_SYSCALL_DEFINE4(lookup_dcookie, u32, w0, u32, w1, char __user *, buf, compat_size_t, len)
- {
- #ifdef __BIG_ENDIAN
--	return sys_lookup_dcookie(((u64)w0 << 32) | w1, buf, len);
-+	return do_lookup_dcookie(((u64)w0 << 32) | w1, buf, len);
- #else
--	return sys_lookup_dcookie(((u64)w1 << 32) | w0, buf, len);
-+	return do_lookup_dcookie(((u64)w1 << 32) | w0, buf, len);
- #endif
+ struct compat_sel_arg_struct {
+ 	compat_ulong_t n;
+ 	compat_uptr_t inp;
+@@ -1304,8 +1311,8 @@ COMPAT_SYSCALL_DEFINE1(old_select, struct compat_sel_arg_struct __user *, arg)
+ 
+ 	if (copy_from_user(&a, arg, sizeof(a)))
+ 		return -EFAULT;
+-	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
+-				 compat_ptr(a.exp), compat_ptr(a.tvp));
++	return do_compat_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
++				compat_ptr(a.exp), compat_ptr(a.tvp));
  }
- #endif
+ 
+ static long do_compat_pselect(int n, compat_ulong_t __user *inp,
 -- 
 2.16.2
