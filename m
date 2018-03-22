@@ -1,77 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37720 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37640 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752929AbeCVJBr (ORCPT
+        with ESMTP id S1752925AbeCVJBr (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:47 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 41/45] x86: remove compat_sys_x86_waitpid()
-Date: Thu, 22 Mar 2018 10:00:55 +0100
-Message-ID: <20180322090059.19361-42-linux@dominikbrodowski.net>
+Subject: [PATCH 38/45] ipc: add msgrcv syscall/compat_syscall wrappers
+Date: Thu, 22 Mar 2018 10:00:52 +0100
+Message-ID: <20180322090059.19361-39-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org
-Message-ID: <20180322090055.QgqCJwRod-WJDorQzzPLH5xiQiIM36JgPvWuOEkjLt4@z>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180322090052.likbZHcLzbvXDD4d-Yo9Z_EWV6oZE-tJO93DZyNBFy8@z>
 
-compat_sys_x86_waitpid() is not needed, as it takes the same parameters
-(int, *int, int) as the native syscall.
+Provide ksys_msgrcv() and compat_ksys_msgrcv() wrappers to avoid in-kernel
+calls to these syscalls. The ksys_ prefix denotes that these functions are
+meant as a drop-in replacement for the syscalls. In particular, they use
+the same calling convention as sys_msgrcv() and compat_sys_msgrcv().
 
-Suggested-by: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Jiri Slaby <jslaby@suse.com>
-Cc: x86@kernel.org
+This patch is part of a series which tries to remove in-kernel calls to
+syscalls. On this basis, the syscall entry path can be streamlined.
+
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/x86/entry/syscalls/syscall_32.tbl | 2 +-
- arch/x86/ia32/sys_ia32.c               | 6 ------
- arch/x86/include/asm/sys_ia32.h        | 3 ---
- 3 files changed, 1 insertion(+), 10 deletions(-)
+ ipc/msg.c     | 19 ++++++++++++++++---
+ ipc/syscall.c |  8 ++++----
+ ipc/util.h    |  4 ++++
+ 3 files changed, 24 insertions(+), 7 deletions(-)
 
-diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index 09338dd2bd94..c58f75b088c5 100644
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -13,7 +13,7 @@
- 4	i386	write			sys_write
- 5	i386	open			sys_open			compat_sys_open
- 6	i386	close			sys_close
--7	i386	waitpid			sys_waitpid			compat_sys_x86_waitpid
-+7	i386	waitpid			sys_waitpid
- 8	i386	creat			sys_creat
- 9	i386	link			sys_link
- 10	i386	unlink			sys_unlink
-diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
-index b9d4d8abc3f7..bd8a7020b9a7 100644
---- a/arch/x86/ia32/sys_ia32.c
-+++ b/arch/x86/ia32/sys_ia32.c
-@@ -170,12 +170,6 @@ COMPAT_SYSCALL_DEFINE1(x86_mmap, struct mmap_arg_struct32 __user *, arg)
- 			       a.offset>>PAGE_SHIFT);
+diff --git a/ipc/msg.c b/ipc/msg.c
+index 5b026868df07..abc5826270a6 100644
+--- a/ipc/msg.c
++++ b/ipc/msg.c
+@@ -1150,10 +1150,16 @@ static long do_msgrcv(int msqid, void __user *buf, size_t bufsz, long msgtyp, in
+ 	return bufsz;
  }
  
--COMPAT_SYSCALL_DEFINE3(x86_waitpid, compat_pid_t, pid, unsigned int __user *,
--		       stat_addr, int, options)
--{
--	return compat_sys_wait4(pid, stat_addr, options, NULL);
--}
--
- /* warning: next two assume little endian */
- COMPAT_SYSCALL_DEFINE5(x86_pread, unsigned int, fd, char __user *, ubuf,
- 		       u32, count, u32, poslo, u32, poshi)
-diff --git a/arch/x86/include/asm/sys_ia32.h b/arch/x86/include/asm/sys_ia32.h
-index 906794aa034e..2ee6e3b96656 100644
---- a/arch/x86/include/asm/sys_ia32.h
-+++ b/arch/x86/include/asm/sys_ia32.h
-@@ -35,9 +35,6 @@ asmlinkage long compat_sys_x86_fstatat(unsigned int, const char __user *,
- struct mmap_arg_struct32;
- asmlinkage long compat_sys_x86_mmap(struct mmap_arg_struct32 __user *);
++long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 long msgtyp, int msgflg)
++{
++	return do_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg, do_msg_fill);
++}
++
+ SYSCALL_DEFINE5(msgrcv, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
+ 		long, msgtyp, int, msgflg)
+ {
+-	return do_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg, do_msg_fill);
++	return ksys_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg);
+ }
  
--asmlinkage long compat_sys_x86_waitpid(compat_pid_t, unsigned int __user *,
--				       int);
--
- asmlinkage long compat_sys_x86_pread(unsigned int, char __user *, u32, u32,
- 				     u32);
- asmlinkage long compat_sys_x86_pwrite(unsigned int, const char __user *, u32,
+ #ifdef CONFIG_COMPAT
+@@ -1171,12 +1177,19 @@ static long compat_do_msg_fill(void __user *dest, struct msg_msg *msg, size_t bu
+ 	return msgsz;
+ }
+ 
+-COMPAT_SYSCALL_DEFINE5(msgrcv, int, msqid, compat_uptr_t, msgp,
+-		       compat_ssize_t, msgsz, compat_long_t, msgtyp, int, msgflg)
++long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
++			compat_long_t msgtyp, int msgflg)
+ {
+ 	return do_msgrcv(msqid, compat_ptr(msgp), (ssize_t)msgsz, (long)msgtyp,
+ 			 msgflg, compat_do_msg_fill);
+ }
++
++COMPAT_SYSCALL_DEFINE5(msgrcv, int, msqid, compat_uptr_t, msgp,
++		       compat_ssize_t, msgsz, compat_long_t, msgtyp,
++		       int, msgflg)
++{
++	return compat_ksys_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg);
++}
+ #endif
+ 
+ int msg_init_ns(struct ipc_namespace *ns)
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index aa29b0802e26..0228c7afd882 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -59,11 +59,11 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 					   (struct ipc_kludge __user *) ptr,
+ 					   sizeof(tmp)))
+ 				return -EFAULT;
+-			return sys_msgrcv(first, tmp.msgp, second,
++			return ksys_msgrcv(first, tmp.msgp, second,
+ 					   tmp.msgtyp, third);
+ 		}
+ 		default:
+-			return sys_msgrcv(first,
++			return ksys_msgrcv(first,
+ 					   (struct msgbuf __user *) ptr,
+ 					   second, fifth, third);
+ 		}
+@@ -156,10 +156,10 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 				return -EINVAL;
+ 			if (copy_from_user(&ipck, uptr, sizeof(ipck)))
+ 				return -EFAULT;
+-			return compat_sys_msgrcv(first, ipck.msgp, second,
++			return compat_ksys_msgrcv(first, ipck.msgp, second,
+ 						 ipck.msgtyp, third);
+ 		}
+-		return compat_sys_msgrcv(first, ptr, second, fifth, third);
++		return compat_ksys_msgrcv(first, ptr, second, fifth, third);
+ 	}
+ 	case MSGGET:
+ 		return ksys_msgget(first, second);
+diff --git a/ipc/util.h b/ipc/util.h
+index 47837b4af3f2..c16aceb1bdec 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -244,6 +244,8 @@ long ksys_semget(key_t key, int nsems, int semflg);
+ long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+ long ksys_msgget(key_t key, int msgflg);
+ long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
++long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 long msgtyp, int msgflg);
+ long ksys_shmget(key_t key, size_t size, int shmflg);
+ long ksys_shmdt(char __user *shmaddr);
+ long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+@@ -255,6 +257,8 @@ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
+ 			    const struct compat_timespec __user *timeout);
+ long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
+ long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
++long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
++			compat_long_t msgtyp, int msgflg);
+ long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
+ #endif /* CONFIG_COMPAT */
+ 
 -- 
 2.16.2
