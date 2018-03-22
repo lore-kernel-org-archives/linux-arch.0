@@ -1,104 +1,169 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37176 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37640 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752832AbeCVJBi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:38 -0400
+        with ESMTP id S1752844AbeCVJBl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:41 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 45/45] bpf: whitelist all syscalls for error injection
-Date: Thu, 22 Mar 2018 10:00:59 +0100
-Message-ID: <20180322090059.19361-46-linux@dominikbrodowski.net>
+Subject: [PATCH 09/45] fs: add ksys_truncate() wrapper; remove in-kernel calls to sys_truncate()
+Date: Thu, 22 Mar 2018 10:00:23 +0100
+Message-ID: <20180322090059.19361-10-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Howard McLauchlan <hmclauchlan@fb.com>
-Message-ID: <20180322090059.J91ELXWsBR77rqj1jB8ADmjedz9E_0E1-MIJk53Enao@z>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180322090023.wLwj5c6hqlduhMsAo9BLdYM6mEbDG0Ty6tOVYEqA_Lw@z>
 
-From: Howard McLauchlan <hmclauchlan@fb.com>
+Using the ksys_truncate() wrapper allows us to get rid of in-kernel
+calls to the sys_truncate() syscall. The ksys_ prefix denotes that this
+function is meant as a drop-in replacement for the syscall. In
+particular, it uses the same calling convention as sys_truncate().
 
-Error injection is a useful mechanism to fail arbitrary kernel
-functions. However, it is often hard to guarantee an error propagates
-appropriately to user space programs. By injecting into syscalls, we can
-return arbitrary values to user space directly; this increases
-flexibility and robustness in testing, allowing us to test user space
-error paths effectively.
+This patch is part of a series which tries to remove in-kernel calls to
+syscalls. On this basis, the syscall entry path can be streamlined.
 
-The following script, for example, fails calls to sys_open() from a
-given pid:
-
-from bcc import BPF
-from sys import argv
-
-pid = argv[1]
-
-prog = r"""
-
-int kprobe__SyS_open(struct pt_regs *ctx, const char *pathname, int flags)
-{
-    u32 pid = bpf_get_current_pid_tgid();
-    if (pid == %s)
-        bpf_override_return(ctx, -ENOMEM);
-    return 0;
-}
-""" % pid
-
-b = BPF(text=prog)
-while 1:
-    b.perf_buffer_poll()
-
-This patch whitelists all syscalls defined with SYSCALL_DEFINE and
-COMPAT_SYSCALL_DEFINE for error injection. These changes are not
-intended to be considered stable, and would normally be configured off.
-
-Signed-off-by: Howard McLauchlan <hmclauchlan@fb.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/compat.h   | 3 +++
- include/linux/syscalls.h | 3 +++
- 2 files changed, 6 insertions(+)
+ arch/mips/kernel/linux32.c      | 2 +-
+ arch/parisc/kernel/sys_parisc.c | 6 +++---
+ arch/powerpc/kernel/sys_ppc32.c | 2 +-
+ arch/s390/kernel/compat_linux.c | 2 +-
+ arch/sparc/kernel/sys_sparc32.c | 2 +-
+ arch/x86/ia32/sys_ia32.c        | 3 ++-
+ fs/open.c                       | 2 +-
+ include/linux/syscalls.h        | 7 +++++++
+ 8 files changed, 17 insertions(+), 9 deletions(-)
 
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index f1649a5e6716..57eb263a3bc9 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -33,6 +33,8 @@
- #endif
+diff --git a/arch/mips/kernel/linux32.c b/arch/mips/kernel/linux32.c
+index 740eee40c668..12421ba4318a 100644
+--- a/arch/mips/kernel/linux32.c
++++ b/arch/mips/kernel/linux32.c
+@@ -82,7 +82,7 @@ struct rlimit32 {
+ SYSCALL_DEFINE4(32_truncate64, const char __user *, path,
+ 	unsigned long, __dummy, unsigned long, a2, unsigned long, a3)
+ {
+-	return sys_truncate(path, merge_64(a2, a3));
++	return ksys_truncate(path, merge_64(a2, a3));
+ }
  
- #define COMPAT_SYSCALL_DEFINE0(name) \
-+	asmlinkage long compat_sys_##name(void); \
-+	ALLOW_ERROR_INJECTION(compat_sys_##name, ERRNO); \
- 	asmlinkage long compat_sys_##name(void)
+ SYSCALL_DEFINE4(32_ftruncate64, unsigned long, fd, unsigned long, __dummy,
+diff --git a/arch/parisc/kernel/sys_parisc.c b/arch/parisc/kernel/sys_parisc.c
+index 59b315d6d194..3c1d788ab3ed 100644
+--- a/arch/parisc/kernel/sys_parisc.c
++++ b/arch/parisc/kernel/sys_parisc.c
+@@ -292,7 +292,7 @@ asmlinkage unsigned long sys_mmap(unsigned long addr, unsigned long len,
+ asmlinkage long parisc_truncate64(const char __user * path,
+ 					unsigned int high, unsigned int low)
+ {
+-	return sys_truncate(path, (long)high << 32 | low);
++	return ksys_truncate(path, (long)high << 32 | low);
+ }
  
- #define COMPAT_SYSCALL_DEFINE1(name, ...) \
-@@ -51,6 +53,7 @@
- #define COMPAT_SYSCALL_DEFINEx(x, name, ...)				\
- 	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))\
- 		__attribute__((alias(__stringify(compat_SyS##name))));  \
-+	ALLOW_ERROR_INJECTION(compat_sys##name, ERRNO);	\
- 	static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
- 	asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__));\
- 	asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__))\
+ asmlinkage long parisc_ftruncate64(unsigned int fd,
+@@ -305,7 +305,7 @@ asmlinkage long parisc_ftruncate64(unsigned int fd,
+  * are identical on LP64 */
+ asmlinkage long sys_truncate64(const char __user * path, unsigned long length)
+ {
+-	return sys_truncate(path, length);
++	return ksys_truncate(path, length);
+ }
+ asmlinkage long sys_ftruncate64(unsigned int fd, unsigned long length)
+ {
+@@ -320,7 +320,7 @@ asmlinkage long sys_fcntl64(unsigned int fd, unsigned int cmd, unsigned long arg
+ asmlinkage long parisc_truncate64(const char __user * path,
+ 					unsigned int high, unsigned int low)
+ {
+-	return sys_truncate64(path, (loff_t)high << 32 | low);
++	return ksys_truncate(path, (loff_t)high << 32 | low);
+ }
+ 
+ asmlinkage long parisc_ftruncate64(unsigned int fd,
+diff --git a/arch/powerpc/kernel/sys_ppc32.c b/arch/powerpc/kernel/sys_ppc32.c
+index f41cb34c84c8..eb79138bd44d 100644
+--- a/arch/powerpc/kernel/sys_ppc32.c
++++ b/arch/powerpc/kernel/sys_ppc32.c
+@@ -94,7 +94,7 @@ compat_ssize_t compat_sys_readahead(int fd, u32 r4, u32 offhi, u32 offlo, u32 co
+ asmlinkage int compat_sys_truncate64(const char __user * path, u32 reg4,
+ 				unsigned long high, unsigned long low)
+ {
+-	return sys_truncate(path, (high << 32) | low);
++	return ksys_truncate(path, (high << 32) | low);
+ }
+ 
+ asmlinkage long compat_sys_fallocate(int fd, int mode, u32 offhi, u32 offlo,
+diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
+index fb902b591bb4..0788df0443ba 100644
+--- a/arch/s390/kernel/compat_linux.c
++++ b/arch/s390/kernel/compat_linux.c
+@@ -302,7 +302,7 @@ COMPAT_SYSCALL_DEFINE5(s390_ipc, uint, call, int, first, compat_ulong_t, second,
+ 
+ COMPAT_SYSCALL_DEFINE3(s390_truncate64, const char __user *, path, u32, high, u32, low)
+ {
+-	return sys_truncate(path, (unsigned long)high << 32 | low);
++	return ksys_truncate(path, (unsigned long)high << 32 | low);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE3(s390_ftruncate64, unsigned int, fd, u32, high, u32, low)
+diff --git a/arch/sparc/kernel/sys_sparc32.c b/arch/sparc/kernel/sys_sparc32.c
+index f8d357540748..4ceb2e591688 100644
+--- a/arch/sparc/kernel/sys_sparc32.c
++++ b/arch/sparc/kernel/sys_sparc32.c
+@@ -57,7 +57,7 @@ asmlinkage long sys32_truncate64(const char __user * path, unsigned long high, u
+ 	if ((int)high < 0)
+ 		return -EINVAL;
+ 	else
+-		return sys_truncate(path, (high << 32) | low);
++		return ksys_truncate(path, (high << 32) | low);
+ }
+ 
+ asmlinkage long sys32_ftruncate64(unsigned int fd, unsigned long high, unsigned long low)
+diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
+index 9f5c25093e7a..91ed2c256dac 100644
+--- a/arch/x86/ia32/sys_ia32.c
++++ b/arch/x86/ia32/sys_ia32.c
+@@ -54,7 +54,8 @@
+ COMPAT_SYSCALL_DEFINE3(x86_truncate64, const char __user *, filename,
+ 		       unsigned long, offset_low, unsigned long, offset_high)
+ {
+-       return sys_truncate(filename, ((loff_t) offset_high << 32) | offset_low);
++	return ksys_truncate(filename,
++			    ((loff_t) offset_high << 32) | offset_low);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE3(x86_ftruncate64, unsigned int, fd,
+diff --git a/fs/open.c b/fs/open.c
+index 8a42a2961130..2e816fc7bd56 100644
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -128,7 +128,7 @@ long vfs_truncate(const struct path *path, loff_t length)
+ }
+ EXPORT_SYMBOL_GPL(vfs_truncate);
+ 
+-static long do_sys_truncate(const char __user *pathname, loff_t length)
++long do_sys_truncate(const char __user *pathname, loff_t length)
+ {
+ 	unsigned int lookup_flags = LOOKUP_FOLLOW;
+ 	struct path path;
 diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 3591c4af33d8..cc6fcd7d5b3c 100644
+index 1970c6817289..535cc3cf516a 100644
 --- a/include/linux/syscalls.h
 +++ b/include/linux/syscalls.h
-@@ -191,6 +191,8 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
+@@ -1045,6 +1045,13 @@ static inline long ksys_access(const char __user *filename, int mode)
+ 	return do_faccessat(AT_FDCWD, filename, mode);
+ }
  
- #define SYSCALL_DEFINE0(sname)					\
- 	SYSCALL_METADATA(_##sname, 0);				\
-+	asmlinkage long sys_##sname(void);			\
-+	ALLOW_ERROR_INJECTION(sys_##sname, ERRNO);		\
- 	asmlinkage long sys_##sname(void)
++extern long do_sys_truncate(const char __user *pathname, loff_t length);
++
++static inline long ksys_truncate(const char __user *pathname, loff_t length)
++{
++	return do_sys_truncate(pathname, length);
++}
++
+ extern long do_sys_ftruncate(unsigned int fd, loff_t length, int small);
  
- #define SYSCALL_DEFINE1(name, ...) SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
-@@ -210,6 +212,7 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
- #define __SYSCALL_DEFINEx(x, name, ...)					\
- 	asmlinkage long sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))	\
- 		__attribute__((alias(__stringify(SyS##name))));		\
-+	ALLOW_ERROR_INJECTION(sys##name, ERRNO);			\
- 	static inline long SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));	\
- 	asmlinkage long SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__));	\
- 	asmlinkage long SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__))	\
+ static inline long ksys_ftruncate(unsigned int fd, unsigned long length)
 -- 
 2.16.2
