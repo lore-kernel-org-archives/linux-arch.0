@@ -1,123 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37684 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37706 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753163AbeCVJCE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:02:04 -0400
+        with ESMTP id S1753136AbeCVJB4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:56 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 32/45] ipc: add semctl syscall/compat_syscall wrappers
-Date: Thu, 22 Mar 2018 10:00:46 +0100
-Message-ID: <20180322090059.19361-33-linux@dominikbrodowski.net>
+Subject: [PATCH 21/45] kernel: add ksys_setsid() helper; remove in-kernel call to sys_setsid()
+Date: Thu, 22 Mar 2018 10:00:35 +0100
+Message-ID: <20180322090059.19361-22-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180322090046.yWm9idbV0iyuBk3qU22WY6HMLZ7TNDz3c5iasiitm8E@z>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20180322090035.aaG63c4qcCsCFcncXDPDzaKAUol5_m-M3w8f7xfeZpI@z>
 
-Provide ksys_semctl() and compat_ksys_semctl() wrappers to avoid in-kernel
-calls to these syscalls. The ksys_ prefix denotes that these functions are
-meant as a drop-in replacement for the syscalls. In particular, they use
-the same calling convention as sys_semctl() and compat_sys_semctl().
+Using this helper allows us to avoid the in-kernel call to the
+sys_setsid() syscall. The ksys_ prefix denotes that this function
+is meant as a drop-in replacement for the syscall. In particular, it
+uses the same calling convention as sys_setsid().
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
 Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- ipc/sem.c     | 14 ++++++++++++--
- ipc/syscall.c |  4 ++--
- ipc/util.h    |  2 ++
- 3 files changed, 16 insertions(+), 4 deletions(-)
+ include/linux/syscalls.h | 1 +
+ init/do_mounts_initrd.c  | 2 +-
+ kernel/sys.c             | 7 ++++++-
+ 3 files changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/ipc/sem.c b/ipc/sem.c
-index 2e5f7ec7a7db..1cf56279a84c 100644
---- a/ipc/sem.c
-+++ b/ipc/sem.c
-@@ -1581,7 +1581,7 @@ static int semctl_down(struct ipc_namespace *ns, int semid,
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index a3f42f5f3b08..c509459ce9d5 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -981,6 +981,7 @@ ssize_t ksys_pread64(unsigned int fd, char __user *buf, size_t count,
+ ssize_t ksys_pwrite64(unsigned int fd, const char __user *buf,
+ 		      size_t count, loff_t pos);
+ int ksys_fallocate(int fd, int mode, loff_t offset, loff_t len);
++int ksys_setsid(void);
+ 
+ /*
+  * The following kernel syscall equivalents are just wrappers to fs-internal
+diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
+index d1d3e53bdeef..5a91aefa7305 100644
+--- a/init/do_mounts_initrd.c
++++ b/init/do_mounts_initrd.c
+@@ -45,7 +45,7 @@ static int init_linuxrc(struct subprocess_info *info, struct cred *new)
+ 	ksys_chdir("/root");
+ 	ksys_mount(".", "/", NULL, MS_MOVE, NULL);
+ 	ksys_chroot(".");
+-	sys_setsid();
++	ksys_setsid();
+ 	return 0;
+ }
+ 
+diff --git a/kernel/sys.c b/kernel/sys.c
+index ebb138b841c8..8eda25dcbbd4 100644
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -1108,7 +1108,7 @@ static void set_special_pids(struct pid *pid)
+ 		change_pid(curr, PIDTYPE_PGID, pid);
+ }
+ 
+-SYSCALL_DEFINE0(setsid)
++int ksys_setsid(void)
+ {
+ 	struct task_struct *group_leader = current->group_leader;
+ 	struct pid *sid = task_pid(group_leader);
+@@ -1141,6 +1141,11 @@ SYSCALL_DEFINE0(setsid)
  	return err;
  }
  
--SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
-+long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg)
- {
- 	int version;
- 	struct ipc_namespace *ns;
-@@ -1635,6 +1635,11 @@ SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
- 	}
- }
- 
-+SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
++SYSCALL_DEFINE0(setsid)
 +{
-+	return ksys_semctl(semid, semnum, cmd, arg);
++	return ksys_setsid();
 +}
 +
- #ifdef CONFIG_COMPAT
+ DECLARE_RWSEM(uts_sem);
  
- struct compat_semid_ds {
-@@ -1683,7 +1688,7 @@ static int copy_compat_semid_to_user(void __user *buf, struct semid64_ds *in,
- 	}
- }
- 
--COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
-+long compat_ksys_semctl(int semid, int semnum, int cmd, int arg)
- {
- 	void __user *p = compat_ptr(arg);
- 	struct ipc_namespace *ns;
-@@ -1727,6 +1732,11 @@ COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
- 		return -EINVAL;
- 	}
- }
-+
-+COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
-+{
-+	return compat_ksys_semctl(semid, semnum, cmd, arg);
-+}
- #endif
- 
- /* If the task doesn't already have a undo_list, then allocate one
-diff --git a/ipc/syscall.c b/ipc/syscall.c
-index 21fcdf0b4836..a536cca37661 100644
---- a/ipc/syscall.c
-+++ b/ipc/syscall.c
-@@ -42,7 +42,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
- 			return -EINVAL;
- 		if (get_user(arg, (unsigned long __user *) ptr))
- 			return -EFAULT;
--		return sys_semctl(first, second, third, arg);
-+		return ksys_semctl(first, second, third, arg);
- 	}
- 
- 	case MSGSND:
-@@ -138,7 +138,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
- 			return -EINVAL;
- 		if (get_user(pad, (u32 __user *) compat_ptr(ptr)))
- 			return -EFAULT;
--		return compat_sys_semctl(first, second, third, pad);
-+		return compat_ksys_semctl(first, second, third, pad);
- 
- 	case MSGSND:
- 		return compat_sys_msgsnd(first, ptr, second, third);
-diff --git a/ipc/util.h b/ipc/util.h
-index 0f07056e5a73..1f1109b83437 100644
---- a/ipc/util.h
-+++ b/ipc/util.h
-@@ -241,12 +241,14 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
- 		     unsigned int nsops,
- 		     const struct timespec __user *timeout);
- long ksys_semget(key_t key, int nsems, int semflg);
-+long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
- 
- /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
- #ifdef CONFIG_COMPAT
- long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
- 			    unsigned int nsops,
- 			    const struct compat_timespec __user *timeout);
-+long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
- #endif /* CONFIG_COMPAT */
- 
- #endif
+ #ifdef COMPAT_UTS_MACHINE
 -- 
 2.16.2
