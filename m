@@ -1,201 +1,151 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37638 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37724 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753116AbeCVJB4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:56 -0400
+        with ESMTP id S1753160AbeCVJCC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:02:02 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 02/45] fs: add ksys_ioctl() helper; remove in-kernel calls to sys_ioctl()
-Date: Thu, 22 Mar 2018 10:00:16 +0100
-Message-ID: <20180322090059.19361-3-linux@dominikbrodowski.net>
+Subject: [PATCH 25/45] mm: add kernel_migrate_pages() helper, move compat syscall to mm/mempolicy.c
+Date: Thu, 22 Mar 2018 10:00:39 +0100
+Message-ID: <20180322090059.19361-26-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20180322090016.twgFfk-2rsE4tErpw9aIJpIcP-qWUgDCMUih-l7Nj-w@z>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180322090039.OzkKv3L91RIq5RI-aE9cCw-63iS8-R99yFBFyqILkIY@z>
 
-Using this helper allows us to avoid the in-kernel calls to the
-sys_ioctl() syscall. The ksys_ prefix denotes that this function
-is meant as a drop-in replacement for the syscall. In particular, it
-uses the same calling convention as sys_ioctl().
-
-After careful review, at least some of these calls could be converted
-to do_vfs_ioctl() in future.
+Move compat_sys_migrate_pages() to mm/mempolicy.c and make it call a newly
+introduced helper -- kernel_migrate_pages() -- instead of the syscall.
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/ioctl.c               |  7 ++++++-
- include/linux/syscalls.h |  1 +
- init/do_mounts.c         |  8 ++++----
- init/do_mounts_initrd.c  |  2 +-
- init/do_mounts_md.c      | 15 ++++++++-------
- init/do_mounts_rd.c      |  4 ++--
- 6 files changed, 22 insertions(+), 15 deletions(-)
+ kernel/compat.c | 33 ---------------------------------
+ mm/mempolicy.c  | 48 ++++++++++++++++++++++++++++++++++++++++++++----
+ 2 files changed, 44 insertions(+), 37 deletions(-)
 
-diff --git a/fs/ioctl.c b/fs/ioctl.c
-index 5ace7efb0d04..4823431d1c9d 100644
---- a/fs/ioctl.c
-+++ b/fs/ioctl.c
-@@ -689,7 +689,7 @@ int do_vfs_ioctl(struct file *filp, unsigned int fd, unsigned int cmd,
- 	return error;
+diff --git a/kernel/compat.c b/kernel/compat.c
+index 3f5fa8902e7d..51bdf1808943 100644
+--- a/kernel/compat.c
++++ b/kernel/compat.c
+@@ -508,39 +508,6 @@ COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
+ 	}
+ 	return sys_move_pages(pid, nr_pages, pages, nodes, status, flags);
  }
- 
--SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
-+int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg)
- {
- 	int error;
- 	struct fd f = fdget(fd);
-@@ -702,3 +702,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
- 	fdput(f);
- 	return error;
- }
-+
-+SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
-+{
-+	return ksys_ioctl(fd, cmd, arg);
-+}
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 3f834dc0b456..f1d341d0972f 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -974,6 +974,7 @@ int ksys_fchmod(unsigned int fd, umode_t mode);
- int ksys_fchown(unsigned int fd, uid_t user, gid_t group);
- int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
- 		    unsigned int count);
-+int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
+-
+-COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
+-		       compat_ulong_t, maxnode,
+-		       const compat_ulong_t __user *, old_nodes,
+-		       const compat_ulong_t __user *, new_nodes)
+-{
+-	unsigned long __user *old = NULL;
+-	unsigned long __user *new = NULL;
+-	nodemask_t tmp_mask;
+-	unsigned long nr_bits;
+-	unsigned long size;
+-
+-	nr_bits = min_t(unsigned long, maxnode - 1, MAX_NUMNODES);
+-	size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
+-	if (old_nodes) {
+-		if (compat_get_bitmap(nodes_addr(tmp_mask), old_nodes, nr_bits))
+-			return -EFAULT;
+-		old = compat_alloc_user_space(new_nodes ? size * 2 : size);
+-		if (new_nodes)
+-			new = old + size / sizeof(unsigned long);
+-		if (copy_to_user(old, nodes_addr(tmp_mask), size))
+-			return -EFAULT;
+-	}
+-	if (new_nodes) {
+-		if (compat_get_bitmap(nodes_addr(tmp_mask), new_nodes, nr_bits))
+-			return -EFAULT;
+-		if (new == NULL)
+-			new = compat_alloc_user_space(size);
+-		if (copy_to_user(new, nodes_addr(tmp_mask), size))
+-			return -EFAULT;
+-	}
+-	return sys_migrate_pages(pid, nr_bits + 1, old, new);
+-}
+ #endif
  
  /*
-  * The following kernel syscall equivalents are just wrappers to fs-internal
-diff --git a/init/do_mounts.c b/init/do_mounts.c
-index cc1103477071..b17e0095eb4e 100644
---- a/init/do_mounts.c
-+++ b/init/do_mounts.c
-@@ -491,18 +491,18 @@ void __init change_floppy(char *fmt, ...)
- 	va_end(args);
- 	fd = ksys_open("/dev/root", O_RDWR | O_NDELAY, 0);
- 	if (fd >= 0) {
--		sys_ioctl(fd, FDEJECT, 0);
-+		ksys_ioctl(fd, FDEJECT, 0);
- 		ksys_close(fd);
- 	}
- 	printk(KERN_NOTICE "VFS: Insert %s and press ENTER\n", buf);
- 	fd = ksys_open("/dev/console", O_RDWR, 0);
- 	if (fd >= 0) {
--		sys_ioctl(fd, TCGETS, (long)&termios);
-+		ksys_ioctl(fd, TCGETS, (long)&termios);
- 		termios.c_lflag &= ~ICANON;
--		sys_ioctl(fd, TCSETSF, (long)&termios);
-+		ksys_ioctl(fd, TCSETSF, (long)&termios);
- 		sys_read(fd, &c, 1);
- 		termios.c_lflag |= ICANON;
--		sys_ioctl(fd, TCSETSF, (long)&termios);
-+		ksys_ioctl(fd, TCSETSF, (long)&termios);
- 		ksys_close(fd);
- 	}
+diff --git a/mm/mempolicy.c b/mm/mempolicy.c
+index d879f1d8a44a..7399ede02b5f 100644
+--- a/mm/mempolicy.c
++++ b/mm/mempolicy.c
+@@ -1377,9 +1377,9 @@ SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
+ 	return do_set_mempolicy(mode, flags, &nodes);
  }
-diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
-index 1e3b469fb54b..d1d3e53bdeef 100644
---- a/init/do_mounts_initrd.c
-+++ b/init/do_mounts_initrd.c
-@@ -110,7 +110,7 @@ static void __init handle_initrd(void)
- 		if (fd < 0) {
- 			error = fd;
- 		} else {
--			error = sys_ioctl(fd, BLKFLSBUF, 0);
-+			error = ksys_ioctl(fd, BLKFLSBUF, 0);
- 			ksys_close(fd);
- 		}
- 		printk(!error ? "okay\n" : "failed\n");
-diff --git a/init/do_mounts_md.c b/init/do_mounts_md.c
-index 76dcfaada3ed..7d85d172bc7e 100644
---- a/init/do_mounts_md.c
-+++ b/init/do_mounts_md.c
-@@ -187,7 +187,7 @@ static void __init md_setup_drive(void)
- 					"array %s\n", name);
- 			continue;
- 		}
--		if (sys_ioctl(fd, SET_ARRAY_INFO, 0) == -EBUSY) {
-+		if (ksys_ioctl(fd, SET_ARRAY_INFO, 0) == -EBUSY) {
- 			printk(KERN_WARNING
- 			       "md: Ignoring md=%d, already autodetected. (Use raid=noautodetect)\n",
- 			       minor);
-@@ -210,7 +210,7 @@ static void __init md_setup_drive(void)
- 			ainfo.state = (1 << MD_SB_CLEAN);
- 			ainfo.layout = 0;
- 			ainfo.chunk_size = md_setup_args[ent].chunk;
--			err = sys_ioctl(fd, SET_ARRAY_INFO, (long)&ainfo);
-+			err = ksys_ioctl(fd, SET_ARRAY_INFO, (long)&ainfo);
- 			for (i = 0; !err && i <= MD_SB_DISKS; i++) {
- 				dev = devices[i];
- 				if (!dev)
-@@ -220,7 +220,8 @@ static void __init md_setup_drive(void)
- 				dinfo.state = (1<<MD_DISK_ACTIVE)|(1<<MD_DISK_SYNC);
- 				dinfo.major = MAJOR(dev);
- 				dinfo.minor = MINOR(dev);
--				err = sys_ioctl(fd, ADD_NEW_DISK, (long)&dinfo);
-+				err = ksys_ioctl(fd, ADD_NEW_DISK,
-+						 (long)&dinfo);
- 			}
- 		} else {
- 			/* persistent */
-@@ -230,11 +231,11 @@ static void __init md_setup_drive(void)
- 					break;
- 				dinfo.major = MAJOR(dev);
- 				dinfo.minor = MINOR(dev);
--				sys_ioctl(fd, ADD_NEW_DISK, (long)&dinfo);
-+				ksys_ioctl(fd, ADD_NEW_DISK, (long)&dinfo);
- 			}
- 		}
- 		if (!err)
--			err = sys_ioctl(fd, RUN_ARRAY, 0);
-+			err = ksys_ioctl(fd, RUN_ARRAY, 0);
- 		if (err)
- 			printk(KERN_WARNING "md: starting md%d failed\n", minor);
- 		else {
-@@ -245,7 +246,7 @@ static void __init md_setup_drive(void)
- 			 */
- 			ksys_close(fd);
- 			fd = ksys_open(name, 0, 0);
--			sys_ioctl(fd, BLKRRPART, 0);
-+			ksys_ioctl(fd, BLKRRPART, 0);
- 		}
- 		ksys_close(fd);
- 	}
-@@ -296,7 +297,7 @@ static void __init autodetect_raid(void)
  
- 	fd = ksys_open("/dev/md0", 0, 0);
- 	if (fd >= 0) {
--		sys_ioctl(fd, RAID_AUTORUN, raid_autopart);
-+		ksys_ioctl(fd, RAID_AUTORUN, raid_autopart);
- 		ksys_close(fd);
- 	}
+-SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
+-		const unsigned long __user *, old_nodes,
+-		const unsigned long __user *, new_nodes)
++static int kernel_migrate_pages(pid_t pid, unsigned long maxnode,
++				const unsigned long __user *old_nodes,
++				const unsigned long __user *new_nodes)
+ {
+ 	struct mm_struct *mm = NULL;
+ 	struct task_struct *task;
+@@ -1469,6 +1469,13 @@ SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
+ 
  }
-diff --git a/init/do_mounts_rd.c b/init/do_mounts_rd.c
-index a6706314baa7..4dafaed5736f 100644
---- a/init/do_mounts_rd.c
-+++ b/init/do_mounts_rd.c
-@@ -218,7 +218,7 @@ int __init rd_load_image(char *from)
- 	 * NOTE NOTE: nblocks is not actually blocks but
- 	 * the number of kibibytes of data to load into a ramdisk.
- 	 */
--	if (sys_ioctl(out_fd, BLKGETSIZE, (unsigned long)&rd_blocks) < 0)
-+	if (ksys_ioctl(out_fd, BLKGETSIZE, (unsigned long)&rd_blocks) < 0)
- 		rd_blocks = 0;
- 	else
- 		rd_blocks >>= 1;
-@@ -232,7 +232,7 @@ int __init rd_load_image(char *from)
- 	/*
- 	 * OK, time to copy in the data
- 	 */
--	if (sys_ioctl(in_fd, BLKGETSIZE, (unsigned long)&devblocks) < 0)
-+	if (ksys_ioctl(in_fd, BLKGETSIZE, (unsigned long)&devblocks) < 0)
- 		devblocks = 0;
- 	else
- 		devblocks >>= 1;
+ 
++SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
++		const unsigned long __user *, old_nodes,
++		const unsigned long __user *, new_nodes)
++{
++	return kernel_migrate_pages(pid, maxnode, old_nodes, new_nodes);
++}
++
+ 
+ /* Retrieve NUMA policy */
+ SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
+@@ -1571,7 +1578,40 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
+ 	return sys_mbind(start, len, mode, nm, nr_bits+1, flags);
+ }
+ 
+-#endif
++COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
++		       compat_ulong_t, maxnode,
++		       const compat_ulong_t __user *, old_nodes,
++		       const compat_ulong_t __user *, new_nodes)
++{
++	unsigned long __user *old = NULL;
++	unsigned long __user *new = NULL;
++	nodemask_t tmp_mask;
++	unsigned long nr_bits;
++	unsigned long size;
++
++	nr_bits = min_t(unsigned long, maxnode - 1, MAX_NUMNODES);
++	size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
++	if (old_nodes) {
++		if (compat_get_bitmap(nodes_addr(tmp_mask), old_nodes, nr_bits))
++			return -EFAULT;
++		old = compat_alloc_user_space(new_nodes ? size * 2 : size);
++		if (new_nodes)
++			new = old + size / sizeof(unsigned long);
++		if (copy_to_user(old, nodes_addr(tmp_mask), size))
++			return -EFAULT;
++	}
++	if (new_nodes) {
++		if (compat_get_bitmap(nodes_addr(tmp_mask), new_nodes, nr_bits))
++			return -EFAULT;
++		if (new == NULL)
++			new = compat_alloc_user_space(size);
++		if (copy_to_user(new, nodes_addr(tmp_mask), size))
++			return -EFAULT;
++	}
++	return kernel_migrate_pages(pid, nr_bits + 1, old, new);
++}
++
++#endif /* CONFIG_COMPAT */
+ 
+ struct mempolicy *__get_vma_policy(struct vm_area_struct *vma,
+ 						unsigned long addr)
 -- 
 2.16.2
