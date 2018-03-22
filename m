@@ -1,103 +1,125 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 28/45] mm: add kernel_[sg]et_mempolicy() helpers; remove in-kernel calls to syscalls
-Date: Thu, 22 Mar 2018 10:00:42 +0100
-Message-ID: <20180322090059.19361-29-linux@dominikbrodowski.net>
+Subject: [PATCH 24/45] kexec: call do_kexec_load() in compat syscall directly
+Date: Thu, 22 Mar 2018 10:00:38 +0100
+Message-ID: <20180322090059.19361-25-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Eric Biederman <ebiederm@xmission.com>, kexec@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Using the mm-internal kernel_[sg]et_mempolicy() helper allows us to get
-rid of the mm-internal calls to the sys_[sg]et_mempolicy() syscalls.
+do_kexec_load() can be called directly by compat_sys_kexec() as long as
+the same parameters checks are completed which are currently handled
+(also) by sys_kexec(). Therefore, move those to kexec_load_check(),
+call that newly introduced helper function from both sys_kexec() and
+compat_sys_kexec(), and duplicate the remaining code from sys_kexec()
+in compat_sys_kexec().
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Eric Biederman <ebiederm@xmission.com>
+Cc: kexec@lists.infradead.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- mm/mempolicy.c | 29 ++++++++++++++++++++++-------
- 1 file changed, 22 insertions(+), 7 deletions(-)
+ kernel/kexec.c | 50 +++++++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 37 insertions(+), 13 deletions(-)
 
-diff --git a/mm/mempolicy.c b/mm/mempolicy.c
-index e4d7d4c0b253..ca817e768d0e 100644
---- a/mm/mempolicy.c
-+++ b/mm/mempolicy.c
-@@ -1365,8 +1365,8 @@ SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
- }
+diff --git a/kernel/kexec.c b/kernel/kexec.c
+index e62ec4dc6620..d959dc2c5587 100644
+--- a/kernel/kexec.c
++++ b/kernel/kexec.c
+@@ -192,11 +192,9 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
+  * that to happen you need to do that yourself.
+  */
  
- /* Set the process memory policy */
--SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
--		unsigned long, maxnode)
-+static long kernel_set_mempolicy(int mode, const unsigned long __user *nmask,
-+				 unsigned long maxnode)
+-SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+-		struct kexec_segment __user *, segments, unsigned long, flags)
++static inline int kexec_load_check(unsigned long nr_segments,
++				   unsigned long flags)
  {
- 	int err;
- 	nodemask_t nodes;
-@@ -1384,6 +1384,12 @@ SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
- 	return do_set_mempolicy(mode, flags, &nodes);
- }
+-	int result;
+-
+ 	/* We only trust the superuser with rebooting the system. */
+ 	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
+ 		return -EPERM;
+@@ -208,17 +206,29 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+ 	if ((flags & KEXEC_FLAGS) != (flags & ~KEXEC_ARCH_MASK))
+ 		return -EINVAL;
  
-+SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
-+		unsigned long, maxnode)
-+{
-+	return kernel_set_mempolicy(mode, nmask, maxnode);
+-	/* Verify we are on the appropriate architecture */
+-	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
+-		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
+-		return -EINVAL;
+-
+ 	/* Put an artificial cap on the number
+ 	 * of segments passed to kexec_load.
+ 	 */
+ 	if (nr_segments > KEXEC_SEGMENT_MAX)
+ 		return -EINVAL;
+ 
++	return 0;
 +}
 +
- static int kernel_migrate_pages(pid_t pid, unsigned long maxnode,
- 				const unsigned long __user *old_nodes,
- 				const unsigned long __user *new_nodes)
-@@ -1485,9 +1491,11 @@ SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
- 
- 
- /* Retrieve NUMA policy */
--SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
--		unsigned long __user *, nmask, unsigned long, maxnode,
--		unsigned long, addr, unsigned long, flags)
-+static int kernel_get_mempolicy(int __user *policy,
-+				unsigned long __user *nmask,
-+				unsigned long maxnode,
-+				unsigned long addr,
-+				unsigned long flags)
- {
- 	int err;
- 	int uninitialized_var(pval);
-@@ -1510,6 +1518,13 @@ SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
- 	return err;
- }
- 
-+SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
-+		unsigned long __user *, nmask, unsigned long, maxnode,
-+		unsigned long, addr, unsigned long, flags)
++SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
++		struct kexec_segment __user *, segments, unsigned long, flags)
 +{
-+	return kernel_get_mempolicy(policy, nmask, maxnode, addr, flags);
-+}
++	int result;
 +
- #ifdef CONFIG_COMPAT
++	result = kexec_load_check(nr_segments, flags);
++	if (result)
++		return result;
++
++	/* Verify we are on the appropriate architecture */
++	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
++		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
++		return -EINVAL;
++
+ 	/* Because we write directly to the reserved memory
+ 	 * region when loading crash kernels we need a mutex here to
+ 	 * prevent multiple crash  kernels from attempting to load
+@@ -247,15 +257,16 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+ 	struct kexec_segment out, __user *ksegments;
+ 	unsigned long i, result;
  
- COMPAT_SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
-@@ -1528,7 +1543,7 @@ COMPAT_SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
- 	if (nmask)
- 		nm = compat_alloc_user_space(alloc_size);
++	result = kexec_load_check(nr_segments, flags);
++	if (result)
++		return result;
++
+ 	/* Don't allow clients that don't understand the native
+ 	 * architecture to do anything.
+ 	 */
+ 	if ((flags & KEXEC_ARCH_MASK) == KEXEC_ARCH_DEFAULT)
+ 		return -EINVAL;
  
--	err = sys_get_mempolicy(policy, nm, nr_bits+1, addr, flags);
-+	err = kernel_get_mempolicy(policy, nm, nr_bits+1, addr, flags);
- 
- 	if (!err && nmask) {
- 		unsigned long copy_size;
-@@ -1560,7 +1575,7 @@ COMPAT_SYSCALL_DEFINE3(set_mempolicy, int, mode, compat_ulong_t __user *, nmask,
+-	if (nr_segments > KEXEC_SEGMENT_MAX)
+-		return -EINVAL;
+-
+ 	ksegments = compat_alloc_user_space(nr_segments * sizeof(out));
+ 	for (i = 0; i < nr_segments; i++) {
+ 		result = copy_from_user(&in, &segments[i], sizeof(in));
+@@ -272,6 +283,19 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
  			return -EFAULT;
  	}
  
--	return sys_set_mempolicy(mode, nm, nr_bits+1);
-+	return kernel_set_mempolicy(mode, nm, nr_bits+1);
+-	return sys_kexec_load(entry, nr_segments, ksegments, flags);
++	/* Because we write directly to the reserved memory
++	 * region when loading crash kernels we need a mutex here to
++	 * prevent multiple crash  kernels from attempting to load
++	 * simultaneously, and to prevent a crash kernel from loading
++	 * over the top of a in use crash kernel.
++	 *
++	 * KISS: always take the mutex.
++	 */
++	if (!mutex_trylock(&kexec_mutex))
++		return -EBUSY;
++
++	result = do_kexec_load(entry, nr_segments, ksegments, flags);
++
++	mutex_unlock(&kexec_mutex);
  }
- 
- COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
+ #endif
 -- 
 2.16.2
