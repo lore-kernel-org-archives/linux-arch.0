@@ -1,33 +1,26 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: Re: [PATCH v14 02/10] iomap: Add big endian sparse annotations to
- mmio_{read|write}XXbe()
-Date: Thu, 22 Mar 2018 11:28:44 -0600
-Message-ID: <e183ca6b-8148-1210-8f00-3415fbad7e77@deltatee.com>
-References: <20180322171703.4300-1-logang@deltatee.com>
- <20180322171703.4300-3-logang@deltatee.com>
- <20180322172747.4rjped3gojfuhuh2@ltop.local>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 23/45] sched: add do_sched_yield() helper; remove
+ in-kernel call to sched_yield()
+Date: Thu, 22 Mar 2018 18:29:59 +0100
+Message-ID: <20180322172959.GX4043@hirez.programming.kicks-ass.net>
+References: <20180322090059.19361-1-linux@dominikbrodowski.net>
+ <20180322090059.19361-24-linux@dominikbrodowski.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180322172747.4rjped3gojfuhuh2@ltop.local>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <20180322090059.19361-24-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Thomas Gleixner <tglx@linutronix.de>, Philippe Ombredanne <pombredanne@nexb.com>, Kate Stewart <kstewart@linuxfoundation.org>
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 3/22/2018 11:27 AM, Luc Van Oostenryck wrote:
-> On Thu, Mar 22, 2018 at 11:16:55AM -0600, Logan Gunthorpe wrote:
->> Sparse produces a few warnings of the form:
->>
->> lib/iomap.c:84:9: warning: cast to restricted __be16
->>
->> (The kbuild robot has recently started running such checks)
+On Thu, Mar 22, 2018 at 10:00:37AM +0100, Dominik Brodowski wrote:
+> Using the sched-internal do_sched_yield() helper allows us to get rid of
+> the sched-internal call to the sys_sched_yield() syscall.
 > 
-> Reviewed-by: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-> 
+> This patch is part of a series which tries to remove in-kernel calls to
+> syscalls. On this basis, the syscall entry path can be streamlined.
 
-Thanks Luc!
-
-Logan
+But why !? Either Cc me on more of the series such that the whole makes
+sense, or better yet, write a proper Changelog.
