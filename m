@@ -1,125 +1,90 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 24/45] kexec: call do_kexec_load() in compat syscall directly
-Date: Thu, 22 Mar 2018 10:00:38 +0100
-Message-ID: <20180322090059.19361-25-linux@dominikbrodowski.net>
+Subject: [PATCH 31/45] ipc: add semget syscall wrapper
+Date: Thu, 22 Mar 2018 10:00:45 +0100
+Message-ID: <20180322090059.19361-32-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Eric Biederman <ebiederm@xmission.com>, kexec@lists.infradead.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-do_kexec_load() can be called directly by compat_sys_kexec() as long as
-the same parameters checks are completed which are currently handled
-(also) by sys_kexec(). Therefore, move those to kexec_load_check(),
-call that newly introduced helper function from both sys_kexec() and
-compat_sys_kexec(), and duplicate the remaining code from sys_kexec()
-in compat_sys_kexec().
+Provide ksys_semget() wrapper to avoid in-kernel calls to this syscall.
+The ksys_ prefix denotes that this function is meant as a drop-in
+replacement for the syscall. In particular, it uses the same calling
+convention as sys_semget().
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
-Cc: Eric Biederman <ebiederm@xmission.com>
-Cc: kexec@lists.infradead.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- kernel/kexec.c | 50 +++++++++++++++++++++++++++++++++++++-------------
- 1 file changed, 37 insertions(+), 13 deletions(-)
+ ipc/sem.c     | 7 ++++++-
+ ipc/syscall.c | 4 ++--
+ ipc/util.h    | 1 +
+ 3 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/kernel/kexec.c b/kernel/kexec.c
-index e62ec4dc6620..d959dc2c5587 100644
---- a/kernel/kexec.c
-+++ b/kernel/kexec.c
-@@ -192,11 +192,9 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
-  * that to happen you need to do that yourself.
-  */
+diff --git a/ipc/sem.c b/ipc/sem.c
+index e21ceb8b4af1..2e5f7ec7a7db 100644
+--- a/ipc/sem.c
++++ b/ipc/sem.c
+@@ -556,7 +556,7 @@ static inline int sem_more_checks(struct kern_ipc_perm *ipcp,
+ 	return 0;
+ }
  
--SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
--		struct kexec_segment __user *, segments, unsigned long, flags)
-+static inline int kexec_load_check(unsigned long nr_segments,
-+				   unsigned long flags)
+-SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
++long ksys_semget(key_t key, int nsems, int semflg)
  {
--	int result;
--
- 	/* We only trust the superuser with rebooting the system. */
- 	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
- 		return -EPERM;
-@@ -208,17 +206,29 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
- 	if ((flags & KEXEC_FLAGS) != (flags & ~KEXEC_ARCH_MASK))
- 		return -EINVAL;
+ 	struct ipc_namespace *ns;
+ 	static const struct ipc_ops sem_ops = {
+@@ -578,6 +578,11 @@ SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
+ 	return ipcget(ns, &sem_ids(ns), &sem_ops, &sem_params);
+ }
  
--	/* Verify we are on the appropriate architecture */
--	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
--		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
--		return -EINVAL;
--
- 	/* Put an artificial cap on the number
- 	 * of segments passed to kexec_load.
- 	 */
- 	if (nr_segments > KEXEC_SEGMENT_MAX)
- 		return -EINVAL;
- 
-+	return 0;
++SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
++{
++	return ksys_semget(key, nsems, semflg);
 +}
 +
-+SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
-+		struct kexec_segment __user *, segments, unsigned long, flags)
-+{
-+	int result;
-+
-+	result = kexec_load_check(nr_segments, flags);
-+	if (result)
-+		return result;
-+
-+	/* Verify we are on the appropriate architecture */
-+	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
-+		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
-+		return -EINVAL;
-+
- 	/* Because we write directly to the reserved memory
- 	 * region when loading crash kernels we need a mutex here to
- 	 * prevent multiple crash  kernels from attempting to load
-@@ -247,15 +257,16 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
- 	struct kexec_segment out, __user *ksegments;
- 	unsigned long i, result;
+ /**
+  * perform_atomic_semop[_slow] - Attempt to perform semaphore
+  *                               operations on a given array.
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 84d6a7691baa..21fcdf0b4836 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -35,7 +35,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 				       (const struct timespec __user *)fifth);
  
-+	result = kexec_load_check(nr_segments, flags);
-+	if (result)
-+		return result;
-+
- 	/* Don't allow clients that don't understand the native
- 	 * architecture to do anything.
- 	 */
- 	if ((flags & KEXEC_ARCH_MASK) == KEXEC_ARCH_DEFAULT)
- 		return -EINVAL;
+ 	case SEMGET:
+-		return sys_semget(first, second, third);
++		return ksys_semget(first, second, third);
+ 	case SEMCTL: {
+ 		unsigned long arg;
+ 		if (!ptr)
+@@ -132,7 +132,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 		return compat_ksys_semtimedop(first, compat_ptr(ptr), second,
+ 						compat_ptr(fifth));
+ 	case SEMGET:
+-		return sys_semget(first, second, third);
++		return ksys_semget(first, second, third);
+ 	case SEMCTL:
+ 		if (!ptr)
+ 			return -EINVAL;
+diff --git a/ipc/util.h b/ipc/util.h
+index 6deadf77547e..0f07056e5a73 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -240,6 +240,7 @@ static inline int compat_ipc_parse_version(int *cmd)
+ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+ 		     unsigned int nsops,
+ 		     const struct timespec __user *timeout);
++long ksys_semget(key_t key, int nsems, int semflg);
  
--	if (nr_segments > KEXEC_SEGMENT_MAX)
--		return -EINVAL;
--
- 	ksegments = compat_alloc_user_space(nr_segments * sizeof(out));
- 	for (i = 0; i < nr_segments; i++) {
- 		result = copy_from_user(&in, &segments[i], sizeof(in));
-@@ -272,6 +283,19 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
- 			return -EFAULT;
- 	}
- 
--	return sys_kexec_load(entry, nr_segments, ksegments, flags);
-+	/* Because we write directly to the reserved memory
-+	 * region when loading crash kernels we need a mutex here to
-+	 * prevent multiple crash  kernels from attempting to load
-+	 * simultaneously, and to prevent a crash kernel from loading
-+	 * over the top of a in use crash kernel.
-+	 *
-+	 * KISS: always take the mutex.
-+	 */
-+	if (!mutex_trylock(&kexec_mutex))
-+		return -EBUSY;
-+
-+	result = do_kexec_load(entry, nr_segments, ksegments, flags);
-+
-+	mutex_unlock(&kexec_mutex);
- }
- #endif
+ /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+ #ifdef CONFIG_COMPAT
 -- 
 2.16.2
