@@ -1,24 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37688 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37678 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752863AbeCVJBn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:43 -0400
+        with ESMTP id S1752939AbeCVJBs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:48 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 37/45] ipc: add msgctl syscall/compat_syscall wrappers
-Date: Thu, 22 Mar 2018 10:00:51 +0100
-Message-ID: <20180322090059.19361-38-linux@dominikbrodowski.net>
+Subject: [PATCH 36/45] ipc: add shmctl syscall/compat_syscall wrappers
+Date: Thu, 22 Mar 2018 10:00:50 +0100
+Message-ID: <20180322090059.19361-37-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180322090051.fxIuq2Prkkpa8vRCicJ_azFL-mtyaK5BURzvMzVbrI8@z>
+Message-ID: <20180322090050.nNTS5vft5nT7SFxII4qt3rdjQUl-JbP00G-lBbTkdYw@z>
 
-Provide ksys_msgctl() and compat_ksys_msgctl() wrappers to avoid in-kernel
+Provide ksys_shmctl() and compat_ksys_shmctl() wrappers to avoid in-kernel
 calls to these syscalls. The ksys_ prefix denotes that these functions are
 meant as a drop-in replacement for the syscalls. In particular, they use
-the same calling convention as sys_msgctl() and compat_sys_msgctl().
+the same calling convention as sys_shmctl() and compat_sys_shmctl().
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
@@ -27,99 +27,98 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- ipc/msg.c     | 14 ++++++++++++--
- ipc/syscall.c |  5 +++--
+ ipc/shm.c     | 14 ++++++++++++--
+ ipc/syscall.c |  4 ++--
  ipc/util.h    |  2 ++
- 3 files changed, 17 insertions(+), 4 deletions(-)
+ 3 files changed, 16 insertions(+), 4 deletions(-)
 
-diff --git a/ipc/msg.c b/ipc/msg.c
-index 64e8276be164..5b026868df07 100644
---- a/ipc/msg.c
-+++ b/ipc/msg.c
-@@ -538,7 +538,7 @@ static int msgctl_stat(struct ipc_namespace *ns, int msqid,
+diff --git a/ipc/shm.c b/ipc/shm.c
+index e5838e3328dc..0aae3e55bc56 100644
+--- a/ipc/shm.c
++++ b/ipc/shm.c
+@@ -1045,7 +1045,7 @@ static int shmctl_do_lock(struct ipc_namespace *ns, int shmid, int cmd)
  	return err;
  }
  
--SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
-+long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf)
+-SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
++long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf)
  {
- 	int version;
+ 	int err, version;
  	struct ipc_namespace *ns;
-@@ -581,6 +581,11 @@ SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
+@@ -1099,6 +1099,11 @@ SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
  	}
  }
  
-+SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
++SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
 +{
-+	return ksys_msgctl(msqid, cmd, buf);
++	return ksys_shmctl(shmid, cmd, buf);
 +}
 +
  #ifdef CONFIG_COMPAT
  
- struct compat_msqid_ds {
-@@ -651,7 +656,7 @@ static int copy_compat_msqid_to_user(void __user *buf, struct msqid64_ds *in,
+ struct compat_shmid_ds {
+@@ -1218,7 +1223,7 @@ static int copy_compat_shmid_from_user(struct shmid64_ds *out, void __user *buf,
  	}
  }
  
--COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
-+long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr)
+-COMPAT_SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, void __user *, uptr)
++long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr)
  {
  	struct ipc_namespace *ns;
- 	int err;
-@@ -692,6 +697,11 @@ COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
- 		return -EINVAL;
+ 	struct shmid64_ds sem64;
+@@ -1273,6 +1278,11 @@ COMPAT_SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, void __user *, uptr)
  	}
+ 	return err;
  }
 +
-+COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
++COMPAT_SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, void __user *, uptr)
 +{
-+	return compat_ksys_msgctl(msqid, cmd, uptr);
++	return compat_ksys_shmctl(shmid, cmd, uptr);
 +}
  #endif
  
- static int testmsg(struct msg_msg *msg, long type, int mode)
+ /*
 diff --git a/ipc/syscall.c b/ipc/syscall.c
-index 34bbabc9e672..aa29b0802e26 100644
+index b3aa71564815..34bbabc9e672 100644
 --- a/ipc/syscall.c
 +++ b/ipc/syscall.c
-@@ -70,7 +70,8 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
- 	case MSGGET:
- 		return ksys_msgget((key_t) first, second);
- 	case MSGCTL:
--		return sys_msgctl(first, second, (struct msqid_ds __user *)ptr);
-+		return ksys_msgctl(first, second,
-+				   (struct msqid_ds __user *)ptr);
+@@ -94,7 +94,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 	case SHMGET:
+ 		return ksys_shmget(first, second, third);
+ 	case SHMCTL:
+-		return sys_shmctl(first, second,
++		return ksys_shmctl(first, second,
+ 				   (struct shmid_ds __user *) ptr);
+ 	default:
+ 		return -ENOSYS;
+@@ -182,7 +182,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 	case SHMGET:
+ 		return ksys_shmget(first, (unsigned int)second, third);
+ 	case SHMCTL:
+-		return compat_sys_shmctl(first, second, compat_ptr(ptr));
++		return compat_ksys_shmctl(first, second, compat_ptr(ptr));
+ 	}
  
- 	case SHMAT:
- 		switch (version) {
-@@ -163,7 +164,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
- 	case MSGGET:
- 		return ksys_msgget(first, second);
- 	case MSGCTL:
--		return compat_sys_msgctl(first, second, compat_ptr(ptr));
-+		return compat_ksys_msgctl(first, second, compat_ptr(ptr));
- 
- 	case SHMAT: {
- 		int err;
+ 	return -ENOSYS;
 diff --git a/ipc/util.h b/ipc/util.h
-index 16e8b5b8c416..47837b4af3f2 100644
+index 7770bcad1168..16e8b5b8c416 100644
 --- a/ipc/util.h
 +++ b/ipc/util.h
-@@ -243,6 +243,7 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
- long ksys_semget(key_t key, int nsems, int semflg);
- long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+@@ -245,6 +245,7 @@ long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
  long ksys_msgget(key_t key, int msgflg);
-+long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
  long ksys_shmget(key_t key, size_t size, int shmflg);
  long ksys_shmdt(char __user *shmaddr);
- long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
-@@ -253,6 +254,7 @@ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
++long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+ 
+ /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+ #ifdef CONFIG_COMPAT
+@@ -252,6 +253,7 @@ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
  			    unsigned int nsops,
  			    const struct compat_timespec __user *timeout);
  long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
-+long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
- long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
++long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
  #endif /* CONFIG_COMPAT */
  
+ #endif
 -- 
 2.16.2
