@@ -1,108 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37678 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37728 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752848AbeCVJBn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:43 -0400
+        with ESMTP id S1753008AbeCVJBv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:51 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 28/45] mm: add kernel_[sg]et_mempolicy() helpers; remove in-kernel calls to syscalls
-Date: Thu, 22 Mar 2018 10:00:42 +0100
-Message-ID: <20180322090059.19361-29-linux@dominikbrodowski.net>
+Subject: [PATCH 23/45] sched: add do_sched_yield() helper; remove in-kernel call to sched_yield()
+Date: Thu, 22 Mar 2018 10:00:37 +0100
+Message-ID: <20180322090059.19361-24-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180322090042.OT6EWOBUun1tEBJ8g-LxvVmX_yFUuyPAwbGpc3JNuto@z>
+Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20180322090037.fBX5yn7euh-j07JZgJ_HDgiLUSMH2GEc7HmfyOfAprk@z>
 
-Using the mm-internal kernel_[sg]et_mempolicy() helper allows us to get
-rid of the mm-internal calls to the sys_[sg]et_mempolicy() syscalls.
+Using the sched-internal do_sched_yield() helper allows us to get rid of
+the sched-internal call to the sys_sched_yield() syscall.
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- mm/mempolicy.c | 29 ++++++++++++++++++++++-------
- 1 file changed, 22 insertions(+), 7 deletions(-)
+ kernel/sched/core.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/mm/mempolicy.c b/mm/mempolicy.c
-index e4d7d4c0b253..ca817e768d0e 100644
---- a/mm/mempolicy.c
-+++ b/mm/mempolicy.c
-@@ -1365,8 +1365,8 @@ SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
- }
- 
- /* Set the process memory policy */
--SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
--		unsigned long, maxnode)
-+static long kernel_set_mempolicy(int mode, const unsigned long __user *nmask,
-+				 unsigned long maxnode)
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index e7c535eee0a6..8de4919c889a 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -4892,7 +4892,7 @@ SYSCALL_DEFINE3(sched_getaffinity, pid_t, pid, unsigned int, len,
+  *
+  * Return: 0.
+  */
+-SYSCALL_DEFINE0(sched_yield)
++static void do_sched_yield(void)
  {
- 	int err;
- 	nodemask_t nodes;
-@@ -1384,6 +1384,12 @@ SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
- 	return do_set_mempolicy(mode, flags, &nodes);
+ 	struct rq_flags rf;
+ 	struct rq *rq;
+@@ -4913,7 +4913,11 @@ SYSCALL_DEFINE0(sched_yield)
+ 	sched_preempt_enable_no_resched();
+ 
+ 	schedule();
++}
+ 
++SYSCALL_DEFINE0(sched_yield)
++{
++	do_sched_yield();
+ 	return 0;
  }
  
-+SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
-+		unsigned long, maxnode)
-+{
-+	return kernel_set_mempolicy(mode, nmask, maxnode);
-+}
-+
- static int kernel_migrate_pages(pid_t pid, unsigned long maxnode,
- 				const unsigned long __user *old_nodes,
- 				const unsigned long __user *new_nodes)
-@@ -1485,9 +1491,11 @@ SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
- 
- 
- /* Retrieve NUMA policy */
--SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
--		unsigned long __user *, nmask, unsigned long, maxnode,
--		unsigned long, addr, unsigned long, flags)
-+static int kernel_get_mempolicy(int __user *policy,
-+				unsigned long __user *nmask,
-+				unsigned long maxnode,
-+				unsigned long addr,
-+				unsigned long flags)
+@@ -4997,7 +5001,7 @@ EXPORT_SYMBOL(__cond_resched_softirq);
+ void __sched yield(void)
  {
- 	int err;
- 	int uninitialized_var(pval);
-@@ -1510,6 +1518,13 @@ SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
- 	return err;
+ 	set_current_state(TASK_RUNNING);
+-	sys_sched_yield();
++	do_sched_yield();
  }
+ EXPORT_SYMBOL(yield);
  
-+SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
-+		unsigned long __user *, nmask, unsigned long, maxnode,
-+		unsigned long, addr, unsigned long, flags)
-+{
-+	return kernel_get_mempolicy(policy, nmask, maxnode, addr, flags);
-+}
-+
- #ifdef CONFIG_COMPAT
- 
- COMPAT_SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
-@@ -1528,7 +1543,7 @@ COMPAT_SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
- 	if (nmask)
- 		nm = compat_alloc_user_space(alloc_size);
- 
--	err = sys_get_mempolicy(policy, nm, nr_bits+1, addr, flags);
-+	err = kernel_get_mempolicy(policy, nm, nr_bits+1, addr, flags);
- 
- 	if (!err && nmask) {
- 		unsigned long copy_size;
-@@ -1560,7 +1575,7 @@ COMPAT_SYSCALL_DEFINE3(set_mempolicy, int, mode, compat_ulong_t __user *, nmask,
- 			return -EFAULT;
- 	}
- 
--	return sys_set_mempolicy(mode, nm, nr_bits+1);
-+	return kernel_set_mempolicy(mode, nm, nr_bits+1);
- }
- 
- COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
 -- 
 2.16.2
