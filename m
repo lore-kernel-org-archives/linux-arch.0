@@ -1,132 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37722 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37684 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753150AbeCVJCC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:02:02 -0400
+        with ESMTP id S1752852AbeCVJBn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:43 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 39/45] ipc: add msgsnd syscall/compat_syscall wrappers
-Date: Thu, 22 Mar 2018 10:00:53 +0100
-Message-ID: <20180322090059.19361-40-linux@dominikbrodowski.net>
+Subject: [PATCH 24/45] kexec: call do_kexec_load() in compat syscall directly
+Date: Thu, 22 Mar 2018 10:00:38 +0100
+Message-ID: <20180322090059.19361-25-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180322090053.XaFBnnQwzXJJ30o63Ztw8tBygGFhHLGE6kMwa2emYO8@z>
+Cc: Eric Biederman <ebiederm@xmission.com>, kexec@lists.infradead.org
+Message-ID: <20180322090038.SEunJj2atrXk-HH80AEi1U4KQwfhMjsjAbJAw4wSNFs@z>
 
-Provide ksys_msgsnd() and compat_ksys_msgsnd() wrappers to avoid in-kernel
-calls to these syscalls. The ksys_ prefix denotes that these functions are
-meant as a drop-in replacement for the syscalls. In particular, they use
-the same calling convention as sys_msgsnd() and compat_sys_msgsnd().
+do_kexec_load() can be called directly by compat_sys_kexec() as long as
+the same parameters checks are completed which are currently handled
+(also) by sys_kexec(). Therefore, move those to kexec_load_check(),
+call that newly introduced helper function from both sys_kexec() and
+compat_sys_kexec(), and duplicate the remaining code from sys_kexec()
+in compat_sys_kexec().
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Eric Biederman <ebiederm@xmission.com>
+Cc: kexec@lists.infradead.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- ipc/msg.c     | 20 ++++++++++++++++----
- ipc/syscall.c |  4 ++--
- ipc/util.h    |  4 ++++
- 3 files changed, 22 insertions(+), 6 deletions(-)
+ kernel/kexec.c | 50 +++++++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 37 insertions(+), 13 deletions(-)
 
-diff --git a/ipc/msg.c b/ipc/msg.c
-index abc5826270a6..9de48065c1ac 100644
---- a/ipc/msg.c
-+++ b/ipc/msg.c
-@@ -867,8 +867,8 @@ static long do_msgsnd(int msqid, long mtype, void __user *mtext,
- 	return err;
- }
+diff --git a/kernel/kexec.c b/kernel/kexec.c
+index e62ec4dc6620..d959dc2c5587 100644
+--- a/kernel/kexec.c
++++ b/kernel/kexec.c
+@@ -192,11 +192,9 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
+  * that to happen you need to do that yourself.
+  */
  
--SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
--		int, msgflg)
-+long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
-+		 int msgflg)
+-SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+-		struct kexec_segment __user *, segments, unsigned long, flags)
++static inline int kexec_load_check(unsigned long nr_segments,
++				   unsigned long flags)
  {
- 	long mtype;
+-	int result;
+-
+ 	/* We only trust the superuser with rebooting the system. */
+ 	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
+ 		return -EPERM;
+@@ -208,17 +206,29 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+ 	if ((flags & KEXEC_FLAGS) != (flags & ~KEXEC_ARCH_MASK))
+ 		return -EINVAL;
  
-@@ -877,6 +877,12 @@ SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
- 	return do_msgsnd(msqid, mtype, msgp->mtext, msgsz, msgflg);
- }
+-	/* Verify we are on the appropriate architecture */
+-	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
+-		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
+-		return -EINVAL;
+-
+ 	/* Put an artificial cap on the number
+ 	 * of segments passed to kexec_load.
+ 	 */
+ 	if (nr_segments > KEXEC_SEGMENT_MAX)
+ 		return -EINVAL;
  
-+SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
-+		int, msgflg)
-+{
-+	return ksys_msgsnd(msqid, msgp, msgsz, msgflg);
++	return 0;
 +}
 +
- #ifdef CONFIG_COMPAT
- 
- struct compat_msgbuf {
-@@ -884,8 +890,8 @@ struct compat_msgbuf {
- 	char mtext[1];
- };
- 
--COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
--		       compat_ssize_t, msgsz, int, msgflg)
-+long compat_ksys_msgsnd(int msqid, compat_uptr_t msgp,
-+		       compat_ssize_t msgsz, int msgflg)
- {
- 	struct compat_msgbuf __user *up = compat_ptr(msgp);
- 	compat_long_t mtype;
-@@ -894,6 +900,12 @@ COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
- 		return -EFAULT;
- 	return do_msgsnd(msqid, mtype, up->mtext, (ssize_t)msgsz, msgflg);
- }
-+
-+COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
-+		       compat_ssize_t, msgsz, int, msgflg)
++SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
++		struct kexec_segment __user *, segments, unsigned long, flags)
 +{
-+	return compat_ksys_msgsnd(msqid, msgp, msgsz, msgflg);
-+}
- #endif
++	int result;
++
++	result = kexec_load_check(nr_segments, flags);
++	if (result)
++		return result;
++
++	/* Verify we are on the appropriate architecture */
++	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
++		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
++		return -EINVAL;
++
+ 	/* Because we write directly to the reserved memory
+ 	 * region when loading crash kernels we need a mutex here to
+ 	 * prevent multiple crash  kernels from attempting to load
+@@ -247,15 +257,16 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+ 	struct kexec_segment out, __user *ksegments;
+ 	unsigned long i, result;
  
- static inline int convert_mode(long *msgtyp, int msgflg)
-diff --git a/ipc/syscall.c b/ipc/syscall.c
-index 0228c7afd882..77a883ef2eca 100644
---- a/ipc/syscall.c
-+++ b/ipc/syscall.c
-@@ -46,7 +46,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
++	result = kexec_load_check(nr_segments, flags);
++	if (result)
++		return result;
++
+ 	/* Don't allow clients that don't understand the native
+ 	 * architecture to do anything.
+ 	 */
+ 	if ((flags & KEXEC_ARCH_MASK) == KEXEC_ARCH_DEFAULT)
+ 		return -EINVAL;
+ 
+-	if (nr_segments > KEXEC_SEGMENT_MAX)
+-		return -EINVAL;
+-
+ 	ksegments = compat_alloc_user_space(nr_segments * sizeof(out));
+ 	for (i = 0; i < nr_segments; i++) {
+ 		result = copy_from_user(&in, &segments[i], sizeof(in));
+@@ -272,6 +283,19 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+ 			return -EFAULT;
  	}
  
- 	case MSGSND:
--		return sys_msgsnd(first, (struct msgbuf __user *) ptr,
-+		return ksys_msgsnd(first, (struct msgbuf __user *) ptr,
- 				  second, third);
- 	case MSGRCV:
- 		switch (version) {
-@@ -142,7 +142,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
- 		return compat_ksys_semctl(first, second, third, pad);
- 
- 	case MSGSND:
--		return compat_sys_msgsnd(first, ptr, second, third);
-+		return compat_ksys_msgsnd(first, ptr, second, third);
- 
- 	case MSGRCV: {
- 		void __user *uptr = compat_ptr(ptr);
-diff --git a/ipc/util.h b/ipc/util.h
-index c16aceb1bdec..51853dc2f340 100644
---- a/ipc/util.h
-+++ b/ipc/util.h
-@@ -246,6 +246,8 @@ long ksys_msgget(key_t key, int msgflg);
- long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
- long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
- 		 long msgtyp, int msgflg);
-+long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
-+		 int msgflg);
- long ksys_shmget(key_t key, size_t size, int shmflg);
- long ksys_shmdt(char __user *shmaddr);
- long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
-@@ -259,6 +261,8 @@ long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
- long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
- long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
- 			compat_long_t msgtyp, int msgflg);
-+long compat_ksys_msgsnd(int msqid, compat_uptr_t msgp,
-+		       compat_ssize_t msgsz, int msgflg);
- long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
- #endif /* CONFIG_COMPAT */
- 
+-	return sys_kexec_load(entry, nr_segments, ksegments, flags);
++	/* Because we write directly to the reserved memory
++	 * region when loading crash kernels we need a mutex here to
++	 * prevent multiple crash  kernels from attempting to load
++	 * simultaneously, and to prevent a crash kernel from loading
++	 * over the top of a in use crash kernel.
++	 *
++	 * KISS: always take the mutex.
++	 */
++	if (!mutex_trylock(&kexec_mutex))
++		return -EBUSY;
++
++	result = do_kexec_load(entry, nr_segments, ksegments, flags);
++
++	mutex_unlock(&kexec_mutex);
+ }
+ #endif
 -- 
 2.16.2
