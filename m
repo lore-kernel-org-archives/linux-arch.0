@@ -1,53 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37680 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37678 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753154AbeCVJCC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:02:02 -0400
+        with ESMTP id S1753148AbeCVJB7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:59 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 40/45] x86: use _do_fork() in compat_sys_x86_clone()
-Date: Thu, 22 Mar 2018 10:00:54 +0100
-Message-ID: <20180322090059.19361-41-linux@dominikbrodowski.net>
+Subject: [PATCH 43/45] x86/sigreturn: use SYSCALL_DEFINE0
+Date: Thu, 22 Mar 2018 10:00:57 +0100
+Message-ID: <20180322090059.19361-44-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org
-Message-ID: <20180322090054.MvuK0sXhYCTCpPzt8WZng6ibNFBUvcif_fR3v35xm9Y@z>
+Cc: "Tautschnig, Michael" <tautschn@amazon.co.uk>, Michael Tautschnig <tautschn@amazon.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Jaswinder Singh <jaswinder@infradead.org>, Andi Kleen <ak@linux.intel.com>, x86@kernel.org
+Message-ID: <20180322090057.paV7ISLXnKUQ_nmhLj5Xc9ITCP-O1othAgUYCCc2wuw@z>
 
-It is trivial to directly call _do_fork() instead of the sys_clone()
-syscall in compat_sys_x86_clone().
+From: "Tautschnig, Michael" <tautschn@amazon.co.uk>
 
-This patch is part of a series which tries to remove in-kernel calls to
-syscalls. On this basis, the syscall entry path can be streamlined.
+All definitions of syscalls in x86 except for those patched here have
+already been using the appropriate SYSCALL_DEFINE*.
 
+Signed-off-by: Michael Tautschnig <tautschn@amazon.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Jiri Slaby <jslaby@suse.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Jaswinder Singh <jaswinder@infradead.org>
+Cc: Andi Kleen <ak@linux.intel.com>
 Cc: x86@kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/x86/ia32/sys_ia32.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ arch/x86/kernel/signal.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
-index 064b76598a2e..b9d4d8abc3f7 100644
---- a/arch/x86/ia32/sys_ia32.c
-+++ b/arch/x86/ia32/sys_ia32.c
-@@ -41,6 +41,7 @@
- #include <linux/highuid.h>
- #include <linux/sysctl.h>
- #include <linux/slab.h>
-+#include <linux/sched/task.h>
- #include <asm/mman.h>
- #include <asm/types.h>
- #include <linux/uaccess.h>
-@@ -242,6 +243,6 @@ COMPAT_SYSCALL_DEFINE5(x86_clone, unsigned long, clone_flags,
- 		       unsigned long, newsp, int __user *, parent_tidptr,
- 		       unsigned long, tls_val, int __user *, child_tidptr)
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 83a26726b689..da270b95fe4d 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -25,6 +25,7 @@
+ #include <linux/user-return-notifier.h>
+ #include <linux/uprobes.h>
+ #include <linux/context_tracking.h>
++#include <linux/syscalls.h>
+ 
+ #include <asm/processor.h>
+ #include <asm/ucontext.h>
+@@ -601,7 +602,7 @@ static int x32_setup_rt_frame(struct ksignal *ksig,
+  * Do a signal return; undo the signal stack.
+  */
+ #ifdef CONFIG_X86_32
+-asmlinkage long sys_sigreturn(void)
++SYSCALL_DEFINE0(sigreturn)
  {
--	return sys_clone(clone_flags, newsp, parent_tidptr, child_tidptr,
-+	return _do_fork(clone_flags, newsp, 0, parent_tidptr, child_tidptr,
- 			tls_val);
+ 	struct pt_regs *regs = current_pt_regs();
+ 	struct sigframe __user *frame;
+@@ -633,7 +634,7 @@ asmlinkage long sys_sigreturn(void)
  }
+ #endif /* CONFIG_X86_32 */
+ 
+-asmlinkage long sys_rt_sigreturn(void)
++SYSCALL_DEFINE0(rt_sigreturn)
+ {
+ 	struct pt_regs *regs = current_pt_regs();
+ 	struct rt_sigframe __user *frame;
 -- 
 2.16.2
