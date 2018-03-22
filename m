@@ -1,95 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37128 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37686 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752828AbeCVJBi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:38 -0400
+        with ESMTP id S1752861AbeCVJBn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:43 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 33/45] ipc: add msgget syscall wrapper
-Date: Thu, 22 Mar 2018 10:00:47 +0100
-Message-ID: <20180322090059.19361-34-linux@dominikbrodowski.net>
+Subject: [PATCH 42/45] x86: fix sys_sigreturn() return type to be long, not unsigned long
+Date: Thu, 22 Mar 2018 10:00:56 +0100
+Message-ID: <20180322090059.19361-43-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180322090047.-xdjztgJ4hj_ot-pfttwlNpY79eJdZUkS8okhakWBUQ@z>
+Cc: Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org, Michael Tautschnig <tautschn@amazon.co.uk>
+Message-ID: <20180322090056.yuqPQL5xkQtEegVN_LS30kFa9S1ZPrhGHaTQTIC-mg0@z>
 
-Provide ksys_msgget() wrapper to avoid in-kernel calls to this syscall.
-The ksys_ prefix denotes that this function is meant as a drop-in
-replacement for the syscall. In particular, it uses the same calling
-convention as sys_msgget().
+Same as with other system calls, sys_sigreturn() should return a value
+of type long, not unsigned long. This also matches the behaviour for
+IA32_EMULATION, see sys32_sigreturn() in arch/x86/ia32/ia32_signal.c .
 
-This patch is part of a series which tries to remove in-kernel calls to
-syscalls. On this basis, the syscall entry path can be streamlined.
-
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andi Kleen <ak@linux.intel.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Jiri Slaby <jslaby@suse.com>
+Cc: x86@kernel.org
+Cc: Michael Tautschnig <tautschn@amazon.co.uk>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- ipc/msg.c     | 7 ++++++-
- ipc/syscall.c | 4 ++--
- ipc/util.h    | 1 +
- 3 files changed, 9 insertions(+), 3 deletions(-)
+ arch/x86/include/asm/syscalls.h | 2 +-
+ arch/x86/kernel/signal.c        | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/ipc/msg.c b/ipc/msg.c
-index 0dcc6699dc53..64e8276be164 100644
---- a/ipc/msg.c
-+++ b/ipc/msg.c
-@@ -263,7 +263,7 @@ static inline int msg_security(struct kern_ipc_perm *ipcp, int msgflg)
- 	return security_msg_queue_associate(msq, msgflg);
- }
+diff --git a/arch/x86/include/asm/syscalls.h b/arch/x86/include/asm/syscalls.h
+index 1c0bebbd039e..ae6e05fdc24b 100644
+--- a/arch/x86/include/asm/syscalls.h
++++ b/arch/x86/include/asm/syscalls.h
+@@ -35,7 +35,7 @@ asmlinkage long sys_get_thread_area(struct user_desc __user *);
+ #ifdef CONFIG_X86_32
  
--SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
-+long ksys_msgget(key_t key, int msgflg)
+ /* kernel/signal.c */
+-asmlinkage unsigned long sys_sigreturn(void);
++asmlinkage long sys_sigreturn(void);
+ 
+ /* kernel/vm86_32.c */
+ struct vm86_struct;
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 4cdc0b27ec82..83a26726b689 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -601,7 +601,7 @@ static int x32_setup_rt_frame(struct ksignal *ksig,
+  * Do a signal return; undo the signal stack.
+  */
+ #ifdef CONFIG_X86_32
+-asmlinkage unsigned long sys_sigreturn(void)
++asmlinkage long sys_sigreturn(void)
  {
- 	struct ipc_namespace *ns;
- 	static const struct ipc_ops msg_ops = {
-@@ -280,6 +280,11 @@ SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
- 	return ipcget(ns, &msg_ids(ns), &msg_ops, &msg_params);
- }
- 
-+SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
-+{
-+	return ksys_msgget(key, msgflg);
-+}
-+
- static inline unsigned long
- copy_msqid_to_user(void __user *buf, struct msqid64_ds *in, int version)
- {
-diff --git a/ipc/syscall.c b/ipc/syscall.c
-index a536cca37661..355c4a644bbf 100644
---- a/ipc/syscall.c
-+++ b/ipc/syscall.c
-@@ -68,7 +68,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
- 					   second, fifth, third);
- 		}
- 	case MSGGET:
--		return sys_msgget((key_t) first, second);
-+		return ksys_msgget((key_t) first, second);
- 	case MSGCTL:
- 		return sys_msgctl(first, second, (struct msqid_ds __user *)ptr);
- 
-@@ -161,7 +161,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
- 		return compat_sys_msgrcv(first, ptr, second, fifth, third);
- 	}
- 	case MSGGET:
--		return sys_msgget(first, second);
-+		return ksys_msgget(first, second);
- 	case MSGCTL:
- 		return compat_sys_msgctl(first, second, compat_ptr(ptr));
- 
-diff --git a/ipc/util.h b/ipc/util.h
-index 1f1109b83437..b35c0dfe3bc3 100644
---- a/ipc/util.h
-+++ b/ipc/util.h
-@@ -242,6 +242,7 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
- 		     const struct timespec __user *timeout);
- long ksys_semget(key_t key, int nsems, int semflg);
- long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
-+long ksys_msgget(key_t key, int msgflg);
- 
- /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
- #ifdef CONFIG_COMPAT
+ 	struct pt_regs *regs = current_pt_regs();
+ 	struct sigframe __user *frame;
 -- 
 2.16.2
