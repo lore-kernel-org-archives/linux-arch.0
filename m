@@ -1,65 +1,103 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 17/45] fanotify: add do_fanotify_mark() helper; remove in-kernel call to syscall
-Date: Thu, 22 Mar 2018 10:00:31 +0100
-Message-ID: <20180322090059.19361-18-linux@dominikbrodowski.net>
+Subject: [PATCH 28/45] mm: add kernel_[sg]et_mempolicy() helpers; remove in-kernel calls to syscalls
+Date: Thu, 22 Mar 2018 10:00:42 +0100
+Message-ID: <20180322090059.19361-29-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Jan Kara <jack@suse.cz>, Amir Goldstein <amir73il@gmail.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using the fs-internal do_fanotify_mark() helper allows us to get rid of
-the fs-internal call to the sys_fanotify_mark() syscall.
+Using the mm-internal kernel_[sg]et_mempolicy() helper allows us to get
+rid of the mm-internal calls to the sys_[sg]et_mempolicy() syscalls.
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
-Cc: Jan Kara <jack@suse.cz>
-Cc: Amir Goldstein <amir73il@gmail.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/notify/fanotify/fanotify_user.c | 14 ++++++++++----
- 1 file changed, 10 insertions(+), 4 deletions(-)
+ mm/mempolicy.c | 29 ++++++++++++++++++++++-------
+ 1 file changed, 22 insertions(+), 7 deletions(-)
 
-diff --git a/fs/notify/fanotify/fanotify_user.c b/fs/notify/fanotify/fanotify_user.c
-index c07eb3d655ea..fa803a58a605 100644
---- a/fs/notify/fanotify/fanotify_user.c
-+++ b/fs/notify/fanotify/fanotify_user.c
-@@ -820,9 +820,8 @@ SYSCALL_DEFINE2(fanotify_init, unsigned int, flags, unsigned int, event_f_flags)
- 	return fd;
+diff --git a/mm/mempolicy.c b/mm/mempolicy.c
+index e4d7d4c0b253..ca817e768d0e 100644
+--- a/mm/mempolicy.c
++++ b/mm/mempolicy.c
+@@ -1365,8 +1365,8 @@ SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
  }
  
--SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
--			      __u64, mask, int, dfd,
--			      const char  __user *, pathname)
-+static int do_fanotify_mark(int fanotify_fd, unsigned int flags, __u64 mask,
-+			    int dfd, const char  __user *pathname)
+ /* Set the process memory policy */
+-SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
+-		unsigned long, maxnode)
++static long kernel_set_mempolicy(int mode, const unsigned long __user *nmask,
++				 unsigned long maxnode)
  {
- 	struct inode *inode = NULL;
- 	struct vfsmount *mnt = NULL;
-@@ -928,13 +927,20 @@ SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
- 	return ret;
+ 	int err;
+ 	nodemask_t nodes;
+@@ -1384,6 +1384,12 @@ SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
+ 	return do_set_mempolicy(mode, flags, &nodes);
  }
  
-+SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
-+			      __u64, mask, int, dfd,
-+			      const char  __user *, pathname)
++SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
++		unsigned long, maxnode)
 +{
-+	return do_fanotify_mark(fanotify_fd, flags, mask, dfd, pathname);
++	return kernel_set_mempolicy(mode, nmask, maxnode);
++}
++
+ static int kernel_migrate_pages(pid_t pid, unsigned long maxnode,
+ 				const unsigned long __user *old_nodes,
+ 				const unsigned long __user *new_nodes)
+@@ -1485,9 +1491,11 @@ SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
+ 
+ 
+ /* Retrieve NUMA policy */
+-SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
+-		unsigned long __user *, nmask, unsigned long, maxnode,
+-		unsigned long, addr, unsigned long, flags)
++static int kernel_get_mempolicy(int __user *policy,
++				unsigned long __user *nmask,
++				unsigned long maxnode,
++				unsigned long addr,
++				unsigned long flags)
+ {
+ 	int err;
+ 	int uninitialized_var(pval);
+@@ -1510,6 +1518,13 @@ SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
+ 	return err;
+ }
+ 
++SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
++		unsigned long __user *, nmask, unsigned long, maxnode,
++		unsigned long, addr, unsigned long, flags)
++{
++	return kernel_get_mempolicy(policy, nmask, maxnode, addr, flags);
 +}
 +
  #ifdef CONFIG_COMPAT
- COMPAT_SYSCALL_DEFINE6(fanotify_mark,
- 				int, fanotify_fd, unsigned int, flags,
- 				__u32, mask0, __u32, mask1, int, dfd,
- 				const char  __user *, pathname)
- {
--	return sys_fanotify_mark(fanotify_fd, flags,
-+	return do_fanotify_mark(fanotify_fd, flags,
- #ifdef __BIG_ENDIAN
- 				((__u64)mask0 << 32) | mask1,
- #else
+ 
+ COMPAT_SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
+@@ -1528,7 +1543,7 @@ COMPAT_SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
+ 	if (nmask)
+ 		nm = compat_alloc_user_space(alloc_size);
+ 
+-	err = sys_get_mempolicy(policy, nm, nr_bits+1, addr, flags);
++	err = kernel_get_mempolicy(policy, nm, nr_bits+1, addr, flags);
+ 
+ 	if (!err && nmask) {
+ 		unsigned long copy_size;
+@@ -1560,7 +1575,7 @@ COMPAT_SYSCALL_DEFINE3(set_mempolicy, int, mode, compat_ulong_t __user *, nmask,
+ 			return -EFAULT;
+ 	}
+ 
+-	return sys_set_mempolicy(mode, nm, nr_bits+1);
++	return kernel_set_mempolicy(mode, nm, nr_bits+1);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
 -- 
 2.16.2
