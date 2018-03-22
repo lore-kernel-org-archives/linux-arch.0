@@ -1,22 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37726 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37736 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752972AbeCVJBv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:51 -0400
+        with ESMTP id S1753040AbeCVJBx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:53 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 12/45] fs: add do_compat_fcntl64() helper; remove in-kernel call to comapt syscall
-Date: Thu, 22 Mar 2018 10:00:26 +0100
-Message-ID: <20180322090059.19361-13-linux@dominikbrodowski.net>
+Subject: [PATCH 31/45] ipc: add semget syscall wrapper
+Date: Thu, 22 Mar 2018 10:00:45 +0100
+Message-ID: <20180322090059.19361-32-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180322090026._m3j1kwBUH9dJjYIKpk7ypANQTue5pSh70d2r2A8Cdw@z>
+Message-ID: <20180322090045.rK8O8oY6vvLKS9DeUYcVEU8DEkehLA5LQJaUPWQpFbg@z>
 
-Using the fs-internal do_compat_fcntl64() helper allows us to get rid of
-the fs-internal call to the compat_sys_fcntl64() syscall.
+Provide ksys_semget() wrapper to avoid in-kernel calls to this syscall.
+The ksys_ prefix denotes that this function is meant as a drop-in
+replacement for the syscall. In particular, it uses the same calling
+convention as sys_semget().
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
@@ -25,45 +27,69 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/fcntl.c | 12 +++++++++---
- 1 file changed, 9 insertions(+), 3 deletions(-)
+ ipc/sem.c     | 7 ++++++-
+ ipc/syscall.c | 4 ++--
+ ipc/util.h    | 1 +
+ 3 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/fs/fcntl.c b/fs/fcntl.c
-index 1e97f1fda90c..d737ff082472 100644
---- a/fs/fcntl.c
-+++ b/fs/fcntl.c
-@@ -607,8 +607,8 @@ static int fixup_compat_flock(struct flock *flock)
+diff --git a/ipc/sem.c b/ipc/sem.c
+index e21ceb8b4af1..2e5f7ec7a7db 100644
+--- a/ipc/sem.c
++++ b/ipc/sem.c
+@@ -556,7 +556,7 @@ static inline int sem_more_checks(struct kern_ipc_perm *ipcp,
  	return 0;
  }
  
--COMPAT_SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
--		       compat_ulong_t, arg)
-+static long do_compat_fcntl64(unsigned int fd, unsigned int cmd,
-+			     compat_ulong_t arg)
+-SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
++long ksys_semget(key_t key, int nsems, int semflg)
  {
- 	struct fd f = fdget_raw(fd);
- 	struct flock flock;
-@@ -672,6 +672,12 @@ COMPAT_SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
- 	return err;
+ 	struct ipc_namespace *ns;
+ 	static const struct ipc_ops sem_ops = {
+@@ -578,6 +578,11 @@ SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
+ 	return ipcget(ns, &sem_ids(ns), &sem_ops, &sem_params);
  }
  
-+COMPAT_SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
-+		       compat_ulong_t, arg)
++SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
 +{
-+	return do_compat_fcntl64(fd, cmd, arg);
++	return ksys_semget(key, nsems, semflg);
 +}
 +
- COMPAT_SYSCALL_DEFINE3(fcntl, unsigned int, fd, unsigned int, cmd,
- 		       compat_ulong_t, arg)
- {
-@@ -684,7 +690,7 @@ COMPAT_SYSCALL_DEFINE3(fcntl, unsigned int, fd, unsigned int, cmd,
- 	case F_OFD_SETLKW:
- 		return -EINVAL;
- 	}
--	return compat_sys_fcntl64(fd, cmd, arg);
-+	return do_compat_fcntl64(fd, cmd, arg);
- }
- #endif
+ /**
+  * perform_atomic_semop[_slow] - Attempt to perform semaphore
+  *                               operations on a given array.
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 84d6a7691baa..21fcdf0b4836 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -35,7 +35,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 				       (const struct timespec __user *)fifth);
  
+ 	case SEMGET:
+-		return sys_semget(first, second, third);
++		return ksys_semget(first, second, third);
+ 	case SEMCTL: {
+ 		unsigned long arg;
+ 		if (!ptr)
+@@ -132,7 +132,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 		return compat_ksys_semtimedop(first, compat_ptr(ptr), second,
+ 						compat_ptr(fifth));
+ 	case SEMGET:
+-		return sys_semget(first, second, third);
++		return ksys_semget(first, second, third);
+ 	case SEMCTL:
+ 		if (!ptr)
+ 			return -EINVAL;
+diff --git a/ipc/util.h b/ipc/util.h
+index 6deadf77547e..0f07056e5a73 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -240,6 +240,7 @@ static inline int compat_ipc_parse_version(int *cmd)
+ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+ 		     unsigned int nsops,
+ 		     const struct timespec __user *timeout);
++long ksys_semget(key_t key, int nsems, int semflg);
+ 
+ /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+ #ifdef CONFIG_COMPAT
 -- 
 2.16.2
