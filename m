@@ -1,22 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37680 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37740 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752952AbeCVJBt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:49 -0400
+        with ESMTP id S1753062AbeCVJBy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:54 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 07/45] fs: add do_vmsplice() helper; remove in-kernel call to syscall
-Date: Thu, 22 Mar 2018 10:00:21 +0100
-Message-ID: <20180322090059.19361-8-linux@dominikbrodowski.net>
+Subject: [PATCH 35/45] ipc: add shmdt syscall wrapper
+Date: Thu, 22 Mar 2018 10:00:49 +0100
+Message-ID: <20180322090059.19361-36-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180322090021.tjhHKy-3lNb_IdliMpuGxhbYKGLelq-hX-0uoH_1yf8@z>
+Message-ID: <20180322090049.mEHDKdJv24OnT6B59LHq8U18ZYTEEtVgx8qM15Abm-Y@z>
 
-Using the fs-internal do_vmsplice() helper allows us to get rid of the
-fs-internal call to the sys_vmsplice() syscall.
+Provide ksys_shmdt() wrapper to avoid in-kernel calls to this syscall.
+The ksys_ prefix denotes that this function is meant as a drop-in
+replacement for the syscall. In particular, it uses the same calling
+convention as sys_shmdt().
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
@@ -25,45 +27,69 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/splice.c | 12 +++++++++---
- 1 file changed, 9 insertions(+), 3 deletions(-)
+ ipc/shm.c     | 7 ++++++-
+ ipc/syscall.c | 4 ++--
+ ipc/util.h    | 1 +
+ 3 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/fs/splice.c b/fs/splice.c
-index 39e2dc01ac12..005d09cf3fa8 100644
---- a/fs/splice.c
-+++ b/fs/splice.c
-@@ -1331,8 +1331,8 @@ static long vmsplice_to_pipe(struct file *file, const struct iovec __user *uiov,
-  * Currently we punt and implement it as a normal copy, see pipe_to_user().
-  *
+diff --git a/ipc/shm.c b/ipc/shm.c
+index 9f3cdb259a51..e5838e3328dc 100644
+--- a/ipc/shm.c
++++ b/ipc/shm.c
+@@ -1481,7 +1481,7 @@ COMPAT_SYSCALL_DEFINE3(shmat, int, shmid, compat_uptr_t, shmaddr, int, shmflg)
+  * detach and kill segment if marked destroyed.
+  * The work is done in shm_close.
   */
--SYSCALL_DEFINE4(vmsplice, int, fd, const struct iovec __user *, iov,
--		unsigned long, nr_segs, unsigned int, flags)
-+static long do_vmsplice(int fd, const struct iovec __user *iov,
-+			unsigned long nr_segs, unsigned int flags)
+-SYSCALL_DEFINE1(shmdt, char __user *, shmaddr)
++long ksys_shmdt(char __user *shmaddr)
  {
- 	struct fd f;
- 	long error;
-@@ -1358,6 +1358,12 @@ SYSCALL_DEFINE4(vmsplice, int, fd, const struct iovec __user *, iov,
- 	return error;
+ 	struct mm_struct *mm = current->mm;
+ 	struct vm_area_struct *vma;
+@@ -1588,6 +1588,11 @@ SYSCALL_DEFINE1(shmdt, char __user *, shmaddr)
+ 	return retval;
  }
  
-+SYSCALL_DEFINE4(vmsplice, int, fd, const struct iovec __user *, iov,
-+		unsigned long, nr_segs, unsigned int, flags)
++SYSCALL_DEFINE1(shmdt, char __user *, shmaddr)
 +{
-+	return do_vmsplice(fd, iov, nr_segs, flags);
++	return ksys_shmdt(shmaddr);
 +}
 +
- #ifdef CONFIG_COMPAT
- COMPAT_SYSCALL_DEFINE4(vmsplice, int, fd, const struct compat_iovec __user *, iov32,
- 		    unsigned int, nr_segs, unsigned int, flags)
-@@ -1375,7 +1381,7 @@ COMPAT_SYSCALL_DEFINE4(vmsplice, int, fd, const struct compat_iovec __user *, io
- 		    put_user(v.iov_len, &iov[i].iov_len))
- 			return -EFAULT;
+ #ifdef CONFIG_PROC_FS
+ static int sysvipc_shm_proc_show(struct seq_file *s, void *it)
+ {
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 60bceb19b6f0..b3aa71564815 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -90,7 +90,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 			return -EINVAL;
+ 		}
+ 	case SHMDT:
+-		return sys_shmdt((char __user *)ptr);
++		return ksys_shmdt((char __user *)ptr);
+ 	case SHMGET:
+ 		return ksys_shmget(first, second, third);
+ 	case SHMCTL:
+@@ -178,7 +178,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 		return put_user(raddr, (compat_ulong_t __user *)compat_ptr(third));
  	}
--	return sys_vmsplice(fd, iov, nr_segs, flags);
-+	return do_vmsplice(fd, iov, nr_segs, flags);
- }
- #endif
+ 	case SHMDT:
+-		return sys_shmdt(compat_ptr(ptr));
++		return ksys_shmdt(compat_ptr(ptr));
+ 	case SHMGET:
+ 		return ksys_shmget(first, (unsigned int)second, third);
+ 	case SHMCTL:
+diff --git a/ipc/util.h b/ipc/util.h
+index 51002c0b2a21..7770bcad1168 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -244,6 +244,7 @@ long ksys_semget(key_t key, int nsems, int semflg);
+ long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+ long ksys_msgget(key_t key, int msgflg);
+ long ksys_shmget(key_t key, size_t size, int shmflg);
++long ksys_shmdt(char __user *shmaddr);
  
+ /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+ #ifdef CONFIG_COMPAT
 -- 
 2.16.2
