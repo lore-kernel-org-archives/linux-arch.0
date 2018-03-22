@@ -1,126 +1,104 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 26/45] mm: add kernel_move_pages() helper, move compat syscall to mm/migrate.c
-Date: Thu, 22 Mar 2018 10:00:40 +0100
-Message-ID: <20180322090059.19361-27-linux@dominikbrodowski.net>
+Subject: [PATCH 18/45] fs/quota: add kernel_quotactl() helper; remove in-kernel call to syscall
+Date: Thu, 22 Mar 2018 10:00:32 +0100
+Message-ID: <20180322090059.19361-19-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Jan Kara <jack@suse.com>
 List-Id: linux-arch.vger.kernel.org
 
-Move compat_sys_move_pages() to mm/migrate.c and make it call a newly
-introduced helper -- kernel_move_pages() -- instead of the syscall.
+Using the fs-internal kernel_quotactl() helper allows us to get rid of
+the fs-internal call to the sys_quotactl() syscall.
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jan Kara <jack@suse.com>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- kernel/compat.c | 22 ----------------------
- mm/migrate.c    | 39 +++++++++++++++++++++++++++++++++++----
- 2 files changed, 35 insertions(+), 26 deletions(-)
+ fs/quota/compat.c        |  8 ++++----
+ fs/quota/quota.c         | 10 ++++++++--
+ include/linux/quotaops.h |  3 +++
+ 3 files changed, 15 insertions(+), 6 deletions(-)
 
-diff --git a/kernel/compat.c b/kernel/compat.c
-index 51bdf1808943..6d21894806b4 100644
---- a/kernel/compat.c
-+++ b/kernel/compat.c
-@@ -488,28 +488,6 @@ get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat)
+diff --git a/fs/quota/compat.c b/fs/quota/compat.c
+index 779caed4f078..1577a2fd51f4 100644
+--- a/fs/quota/compat.c
++++ b/fs/quota/compat.c
+@@ -59,7 +59,7 @@ asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
+ 	case Q_GETQUOTA:
+ 		dqblk = compat_alloc_user_space(sizeof(struct if_dqblk));
+ 		compat_dqblk = addr;
+-		ret = sys_quotactl(cmd, special, id, dqblk);
++		ret = kernel_quotactl(cmd, special, id, dqblk);
+ 		if (ret)
+ 			break;
+ 		if (copy_in_user(compat_dqblk, dqblk, sizeof(*compat_dqblk)) ||
+@@ -75,12 +75,12 @@ asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
+ 			get_user(data, &compat_dqblk->dqb_valid) ||
+ 			put_user(data, &dqblk->dqb_valid))
+ 			break;
+-		ret = sys_quotactl(cmd, special, id, dqblk);
++		ret = kernel_quotactl(cmd, special, id, dqblk);
+ 		break;
+ 	case Q_XGETQSTAT:
+ 		fsqstat = compat_alloc_user_space(sizeof(struct fs_quota_stat));
+ 		compat_fsqstat = addr;
+-		ret = sys_quotactl(cmd, special, id, fsqstat);
++		ret = kernel_quotactl(cmd, special, id, fsqstat);
+ 		if (ret)
+ 			break;
+ 		ret = -EFAULT;
+@@ -113,7 +113,7 @@ asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
+ 		ret = 0;
+ 		break;
+ 	default:
+-		ret = sys_quotactl(cmd, special, id, addr);
++		ret = kernel_quotactl(cmd, special, id, addr);
+ 	}
+ 	return ret;
  }
- EXPORT_SYMBOL_GPL(get_compat_sigset);
- 
--#ifdef CONFIG_NUMA
--COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
--		       compat_uptr_t __user *, pages32,
--		       const int __user *, nodes,
--		       int __user *, status,
--		       int, flags)
--{
--	const void __user * __user *pages;
--	int i;
--
--	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
--	for (i = 0; i < nr_pages; i++) {
--		compat_uptr_t p;
--
--		if (get_user(p, pages32 + i) ||
--			put_user(compat_ptr(p), pages + i))
--			return -EFAULT;
--	}
--	return sys_move_pages(pid, nr_pages, pages, nodes, status, flags);
--}
--#endif
--
- /*
-  * Allocate user-space memory for the duration of a single system call,
-  * in order to marshall parameters inside a compat thunk.
-diff --git a/mm/migrate.c b/mm/migrate.c
-index 1e5525a25691..003886606a22 100644
---- a/mm/migrate.c
-+++ b/mm/migrate.c
-@@ -34,6 +34,7 @@
- #include <linux/backing-dev.h>
- #include <linux/compaction.h>
- #include <linux/syscalls.h>
-+#include <linux/compat.h>
- #include <linux/hugetlb.h>
- #include <linux/hugetlb_cgroup.h>
- #include <linux/gfp.h>
-@@ -1745,10 +1746,10 @@ static int do_pages_stat(struct mm_struct *mm, unsigned long nr_pages,
-  * Move a list of pages in the address space of the currently executing
-  * process.
+diff --git a/fs/quota/quota.c b/fs/quota/quota.c
+index 43612e2a73af..860bfbe7a07a 100644
+--- a/fs/quota/quota.c
++++ b/fs/quota/quota.c
+@@ -833,8 +833,8 @@ static struct super_block *quotactl_block(const char __user *special, int cmd)
+  * calls. Maybe we need to add the process quotas etc. in the future,
+  * but we probably should use rlimits for that.
   */
--SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
--		const void __user * __user *, pages,
--		const int __user *, nodes,
--		int __user *, status, int, flags)
-+static int kernel_move_pages(pid_t pid, unsigned long nr_pages,
-+			     const void __user * __user *pages,
-+			     const int __user *nodes,
-+			     int __user *status, int flags)
+-SYSCALL_DEFINE4(quotactl, unsigned int, cmd, const char __user *, special,
+-		qid_t, id, void __user *, addr)
++int kernel_quotactl(unsigned int cmd, const char __user *special,
++		    qid_t id, void __user *addr)
  {
- 	struct task_struct *task;
- 	struct mm_struct *mm;
-@@ -1807,6 +1808,36 @@ SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
- 	return err;
+ 	uint cmds, type;
+ 	struct super_block *sb = NULL;
+@@ -885,3 +885,9 @@ SYSCALL_DEFINE4(quotactl, unsigned int, cmd, const char __user *, special,
+ 		path_put(pathp);
+ 	return ret;
  }
++
++SYSCALL_DEFINE4(quotactl, unsigned int, cmd, const char __user *, special,
++		qid_t, id, void __user *, addr)
++{
++	return kernel_quotactl(cmd, special, id, addr);
++}
+diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
+index 2fb6fb11132e..ff63eac16a79 100644
+--- a/include/linux/quotaops.h
++++ b/include/linux/quotaops.h
+@@ -105,6 +105,9 @@ int dquot_set_dqblk(struct super_block *sb, struct kqid id,
+ int __dquot_transfer(struct inode *inode, struct dquot **transfer_to);
+ int dquot_transfer(struct inode *inode, struct iattr *iattr);
  
-+SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
-+		const void __user * __user *, pages,
-+		const int __user *, nodes,
-+		int __user *, status, int, flags)
-+{
-+	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
-+}
++int kernel_quotactl(unsigned int cmd, const char __user *special,
++		    qid_t id, void __user *addr);
 +
-+#ifdef CONFIG_COMPAT
-+COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
-+		       compat_uptr_t __user *, pages32,
-+		       const int __user *, nodes,
-+		       int __user *, status,
-+		       int, flags)
-+{
-+	const void __user * __user *pages;
-+	int i;
-+
-+	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
-+	for (i = 0; i < nr_pages; i++) {
-+		compat_uptr_t p;
-+
-+		if (get_user(p, pages32 + i) ||
-+			put_user(compat_ptr(p), pages + i))
-+			return -EFAULT;
-+	}
-+	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
-+}
-+#endif /* CONFIG_COMPAT */
-+
- #ifdef CONFIG_NUMA_BALANCING
- /*
-  * Returns true if this is a safe migration target node for misplaced NUMA
+ static inline struct mem_dqinfo *sb_dqinfo(struct super_block *sb, int type)
+ {
+ 	return sb_dqopt(sb)->info + type;
 -- 
 2.16.2
