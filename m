@@ -1,106 +1,118 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 19/45] fs/quota: use COMPAT_SYSCALL_DEFINE for sys32_quotactl()
-Date: Thu, 22 Mar 2018 10:00:33 +0100
-Message-ID: <20180322090059.19361-20-linux@dominikbrodowski.net>
+Subject: [PATCH 32/45] ipc: add semctl syscall/compat_syscall wrappers
+Date: Thu, 22 Mar 2018 10:00:46 +0100
+Message-ID: <20180322090059.19361-33-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Jan Kara <jack@suse.com>, Christoph Hellwig <hch@infradead.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-While sys32_quotactl() is only needed on x86, it can use the recommended
-COMPAT_SYSCALL_DEFINEx() machinery for its setup.
+Provide ksys_semctl() and compat_ksys_semctl() wrappers to avoid in-kernel
+calls to these syscalls. The ksys_ prefix denotes that these functions are
+meant as a drop-in replacement for the syscalls. In particular, they use
+the same calling convention as sys_semctl() and compat_sys_semctl().
 
-Cc: Jan Kara <jack@suse.com>
-Cc: Christoph Hellwig <hch@infradead.org>
+This patch is part of a series which tries to remove in-kernel calls to
+syscalls. On this basis, the syscall entry path can be streamlined.
+
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/x86/entry/syscalls/syscall_32.tbl | 2 +-
- fs/quota/compat.c                      | 5 +++--
- include/linux/compat.h                 | 3 +++
- include/linux/syscalls.h               | 4 +---
- kernel/sys_ni.c                        | 2 +-
- 5 files changed, 9 insertions(+), 7 deletions(-)
+ ipc/sem.c     | 14 ++++++++++++--
+ ipc/syscall.c |  4 ++--
+ ipc/util.h    |  2 ++
+ 3 files changed, 16 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index 2a5e99cff859..09338dd2bd94 100644
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -137,7 +137,7 @@
- 128	i386	init_module		sys_init_module
- 129	i386	delete_module		sys_delete_module
- 130	i386	get_kernel_syms
--131	i386	quotactl		sys_quotactl			sys32_quotactl
-+131	i386	quotactl		sys_quotactl			compat_sys_quotactl32
- 132	i386	getpgid			sys_getpgid
- 133	i386	fchdir			sys_fchdir
- 134	i386	bdflush			sys_bdflush
-diff --git a/fs/quota/compat.c b/fs/quota/compat.c
-index 1577a2fd51f4..c30572857619 100644
---- a/fs/quota/compat.c
-+++ b/fs/quota/compat.c
-@@ -41,8 +41,9 @@ struct compat_fs_quota_stat {
- 	__u16		qs_iwarnlimit;
- };
+diff --git a/ipc/sem.c b/ipc/sem.c
+index 2e5f7ec7a7db..1cf56279a84c 100644
+--- a/ipc/sem.c
++++ b/ipc/sem.c
+@@ -1581,7 +1581,7 @@ static int semctl_down(struct ipc_namespace *ns, int semid,
+ 	return err;
+ }
  
--asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
--						qid_t id, void __user *addr)
-+COMPAT_SYSCALL_DEFINE4(quotactl32, unsigned int, cmd,
-+		       const char __user *, special, qid_t, id,
-+		       void __user *, addr)
+-SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
++long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg)
  {
- 	unsigned int cmds;
- 	struct if_dqblk __user *dqblk;
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index 16c3027074a2..f1649a5e6716 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -461,6 +461,9 @@ asmlinkage ssize_t compat_sys_pwritev2(compat_ulong_t fd,
- 		const struct compat_iovec __user *vec,
- 		compat_ulong_t vlen, u32 pos_low, u32 pos_high, rwf_t flags);
+ 	int version;
+ 	struct ipc_namespace *ns;
+@@ -1635,6 +1635,11 @@ SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
+ 	}
+ }
  
-+asmlinkage long compat_sys_quotactl32(unsigned int cmd,
-+		const char __user *special, qid_t id, void __user *addr);
++SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
++{
++	return ksys_semctl(semid, semnum, cmd, arg);
++}
 +
- #ifdef __ARCH_WANT_COMPAT_SYS_PREADV64
- asmlinkage long compat_sys_preadv64(unsigned long fd,
- 		const struct compat_iovec __user *vec,
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index f30083190ae4..a3f42f5f3b08 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -241,8 +241,6 @@ static inline void addr_limit_user_check(void)
+ #ifdef CONFIG_COMPAT
+ 
+ struct compat_semid_ds {
+@@ -1683,7 +1688,7 @@ static int copy_compat_semid_to_user(void __user *buf, struct semid64_ds *in,
+ 	}
+ }
+ 
+-COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
++long compat_ksys_semctl(int semid, int semnum, int cmd, int arg)
+ {
+ 	void __user *p = compat_ptr(arg);
+ 	struct ipc_namespace *ns;
+@@ -1727,6 +1732,11 @@ COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
+ 		return -EINVAL;
+ 	}
+ }
++
++COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
++{
++	return compat_ksys_semctl(semid, semnum, cmd, arg);
++}
  #endif
- }
  
--asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
--			       qid_t id, void __user *addr);
- asmlinkage long sys_time(time_t __user *tloc);
- asmlinkage long sys_stime(time_t __user *tptr);
- asmlinkage long sys_gettimeofday(struct timeval __user *tv,
-@@ -625,7 +623,7 @@ asmlinkage long sys_chdir(const char __user *filename);
- asmlinkage long sys_fchdir(unsigned int fd);
- asmlinkage long sys_rmdir(const char __user *pathname);
- asmlinkage long sys_lookup_dcookie(u64 cookie64, char __user *buf, size_t len);
--asmlinkage long sys_quotactl(unsigned int cmd, const char __user *special,
-+asmlinkage long sys_quotactl32(unsigned int cmd, const char __user *special,
- 				qid_t id, void __user *addr);
- asmlinkage long sys_getdents(unsigned int fd,
- 				struct linux_dirent __user *dirent,
-diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
-index b5189762d275..951dbda5c2b4 100644
---- a/kernel/sys_ni.c
-+++ b/kernel/sys_ni.c
-@@ -18,7 +18,7 @@ asmlinkage long sys_ni_syscall(void)
- }
+ /* If the task doesn't already have a undo_list, then allocate one
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 21fcdf0b4836..a536cca37661 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -42,7 +42,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 			return -EINVAL;
+ 		if (get_user(arg, (unsigned long __user *) ptr))
+ 			return -EFAULT;
+-		return sys_semctl(first, second, third, arg);
++		return ksys_semctl(first, second, third, arg);
+ 	}
  
- cond_syscall(sys_quotactl);
--cond_syscall(sys32_quotactl);
-+cond_syscall(compat_sys_quotactl32);
- cond_syscall(sys_acct);
- cond_syscall(sys_lookup_dcookie);
- cond_syscall(compat_sys_lookup_dcookie);
+ 	case MSGSND:
+@@ -138,7 +138,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 			return -EINVAL;
+ 		if (get_user(pad, (u32 __user *) compat_ptr(ptr)))
+ 			return -EFAULT;
+-		return compat_sys_semctl(first, second, third, pad);
++		return compat_ksys_semctl(first, second, third, pad);
+ 
+ 	case MSGSND:
+ 		return compat_sys_msgsnd(first, ptr, second, third);
+diff --git a/ipc/util.h b/ipc/util.h
+index 0f07056e5a73..1f1109b83437 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -241,12 +241,14 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+ 		     unsigned int nsops,
+ 		     const struct timespec __user *timeout);
+ long ksys_semget(key_t key, int nsems, int semflg);
++long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+ 
+ /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+ #ifdef CONFIG_COMPAT
+ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
+ 			    unsigned int nsops,
+ 			    const struct compat_timespec __user *timeout);
++long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
+ #endif /* CONFIG_COMPAT */
+ 
+ #endif
 -- 
 2.16.2
