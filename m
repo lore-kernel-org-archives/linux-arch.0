@@ -1,48 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga05-in.huawei.com ([45.249.212.191]:6257 "EHLO huawei.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932272AbeCVOSt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Mar 2018 10:18:49 -0400
-Subject: Re: [PATCH v17 00/10] LPC: legacy ISA I/O support
-References: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
- <20180321233940.GI38649@bhelgaas-glaptop.roam.corp.google.com>
- <334da3b2-5233-5ad3-728e-7ae95231bf01@huawei.com>
- <20180322133544.GA236400@bhelgaas-glaptop.roam.corp.google.com>
-From: John Garry <john.garry@huawei.com>
-Message-ID: <8cc028fa-e4b5-514f-b2f6-a6bbd2ea57a6@huawei.com>
-Date: Thu, 22 Mar 2018 14:18:10 +0000
-MIME-Version: 1.0
-In-Reply-To: <20180322133544.GA236400@bhelgaas-glaptop.roam.corp.google.com>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from ale.deltatee.com ([207.54.116.67]:35190 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751875AbeCVRRO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Mar 2018 13:17:14 -0400
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Thu, 22 Mar 2018 11:16:54 -0600
+Message-ID: <20180322171703.4300-2-logang@deltatee.com>
+In-Reply-To: <20180322171703.4300-1-logang@deltatee.com>
+References: <20180322171703.4300-1-logang@deltatee.com>
+Subject: [PATCH v14 01/10] iomap: Use correct endian conversion function in mmio_writeXXbe
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <helgaas@kernel.org>
-Cc: "mika.westerberg@linux.intel.com" <mika.westerberg@linux.intel.com>, "rafael@kernel.org" <rafael@kernel.org>, "lorenzo.pieralisi@arm.com" <lorenzo.pieralisi@arm.com>, "rjw@rjwysocki.net" <rjw@rjwysocki.net>, "hanjun.guo@linaro.org" <hanjun.guo@linaro.org>, "robh+dt@kernel.org" <robh+dt@kernel.org>, "bhelgaas@google.com" <bhelgaas@google.com>, "arnd@arndb.de" <arnd@arndb.de>, "mark.rutland@arm.com" <mark.rutland@arm.com>, "olof@lixom.net" <olof@lixom.net>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, "andy.shevchenko@gmail.com" <andy.shevchenko@gmail.com>, "robh@kernel.org" <robh@kernel.org>, "andriy.shevchenko@linux.intel.com" <andriy.shevchenko@linux.intel.com>, "joe@perches.com" <joe@perches.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>, Linuxarm <linuxarm@huawei.com>, "minyard@acm.org" <minyard@acm.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "frowand.list@gmail.com" <frowand.list@gmail.com>, "agraf@suse.de" <agraf@suse.de>
-Message-ID: <20180322141810.6sVQF6LvWnS09FlpiysC-mJvC9CVmLlvejcPpb0rCWA@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>
+Message-ID: <20180322171654.h2ADztm5WjFTOm6TqKXb7uXx15-YbhAuGtQlqzI6LII@z>
 
->>>
->>> I applied this whole series to pci/lpc for v4.17.
->>>
->>> I made the following whitespace and other trivial corrections.
->>> Hopefully I didn't break anything.
->>>
->>
->> Hi Bjorn,
->>
->> Super thanks for doing this. In general the changes look ok. However a build
->> issue has appeared, below.
->
-> It didn't just "appear"; I added it myself!  I fixed it and repushed the
-> branch.
->
+The semantics of the iowriteXXbe() functions are to write a
+value in CPU endianess to an IO register that is known by the
+caller to be in Big Endian. The mmio_writeXXbe() macro, which
+is called by iowriteXXbe(), should therefore use cpu_to_beXX()
+instead of beXX_to_cpu().
 
-Hi Bjorn,
+Seeing both beXX_to_cpu() and cpu_to_beXX() are both functionally
+implemented as either null operations or swabXX operations there
+was no noticable bug here. But it is confusing for both developers
+and code analysis tools alike.
 
-I repulled and tested, and it looks ok.
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Reviewed-by: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Philippe Ombredanne <pombredanne@nexb.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Kate Stewart <kstewart@linuxfoundation.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ lib/iomap.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Thanks,
-John
-
-> .
->
+diff --git a/lib/iomap.c b/lib/iomap.c
+index 541d926da95e..be120c13d6cc 100644
+--- a/lib/iomap.c
++++ b/lib/iomap.c
+@@ -106,8 +106,8 @@ EXPORT_SYMBOL(ioread32be);
+ #endif
+ 
+ #ifndef mmio_write16be
+-#define mmio_write16be(val,port) __raw_writew(be16_to_cpu(val),port)
+-#define mmio_write32be(val,port) __raw_writel(be32_to_cpu(val),port)
++#define mmio_write16be(val,port) __raw_writew(cpu_to_be16(val),port)
++#define mmio_write32be(val,port) __raw_writel(cpu_to_be32(val),port)
+ #endif
+ 
+ void iowrite8(u8 val, void __iomem *addr)
+-- 
+2.11.0
