@@ -1,7 +1,7 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 32/45] ipc: add semctl syscall/compat_syscall wrappers
-Date: Thu, 22 Mar 2018 10:00:46 +0100
-Message-ID: <20180322090059.19361-33-linux@dominikbrodowski.net>
+Subject: [PATCH 08/45] fs: add kern_select() helper; remove in-kernel call to sys_select()
+Date: Thu, 22 Mar 2018 10:00:22 +0100
+Message-ID: <20180322090059.19361-9-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
@@ -10,10 +10,8 @@ To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linu
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Provide ksys_semctl() and compat_ksys_semctl() wrappers to avoid in-kernel
-calls to these syscalls. The ksys_ prefix denotes that these functions are
-meant as a drop-in replacement for the syscalls. In particular, they use
-the same calling convention as sys_semctl() and compat_sys_semctl().
+Using this helper allows us to avoid the in-kernel call to the sys_umount()
+syscall.
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
@@ -22,97 +20,45 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- ipc/sem.c     | 14 ++++++++++++--
- ipc/syscall.c |  4 ++--
- ipc/util.h    |  2 ++
- 3 files changed, 16 insertions(+), 4 deletions(-)
+ fs/select.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/ipc/sem.c b/ipc/sem.c
-index 2e5f7ec7a7db..1cf56279a84c 100644
---- a/ipc/sem.c
-+++ b/ipc/sem.c
-@@ -1581,7 +1581,7 @@ static int semctl_down(struct ipc_namespace *ns, int semid,
- 	return err;
+diff --git a/fs/select.c b/fs/select.c
+index b6c36254028a..b5df01c4587d 100644
+--- a/fs/select.c
++++ b/fs/select.c
+@@ -675,8 +675,8 @@ int core_sys_select(int n, fd_set __user *inp, fd_set __user *outp,
+ 	return ret;
  }
  
--SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
-+long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg)
+-SYSCALL_DEFINE5(select, int, n, fd_set __user *, inp, fd_set __user *, outp,
+-		fd_set __user *, exp, struct timeval __user *, tvp)
++static int kern_select(int n, fd_set __user *inp, fd_set __user *outp,
++		       fd_set __user *exp, struct timeval __user *tvp)
  {
- 	int version;
- 	struct ipc_namespace *ns;
-@@ -1635,6 +1635,11 @@ SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
- 	}
+ 	struct timespec64 end_time, *to = NULL;
+ 	struct timeval tv;
+@@ -699,6 +699,12 @@ SYSCALL_DEFINE5(select, int, n, fd_set __user *, inp, fd_set __user *, outp,
+ 	return ret;
  }
  
-+SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
++SYSCALL_DEFINE5(select, int, n, fd_set __user *, inp, fd_set __user *, outp,
++		fd_set __user *, exp, struct timeval __user *, tvp)
 +{
-+	return ksys_semctl(semid, semnum, cmd, arg);
++	return kern_select(n, inp, outp, exp, tvp);
 +}
 +
- #ifdef CONFIG_COMPAT
+ static long do_pselect(int n, fd_set __user *inp, fd_set __user *outp,
+ 		       fd_set __user *exp, struct timespec __user *tsp,
+ 		       const sigset_t __user *sigmask, size_t sigsetsize)
+@@ -784,7 +790,7 @@ SYSCALL_DEFINE1(old_select, struct sel_arg_struct __user *, arg)
  
- struct compat_semid_ds {
-@@ -1683,7 +1688,7 @@ static int copy_compat_semid_to_user(void __user *buf, struct semid64_ds *in,
- 	}
+ 	if (copy_from_user(&a, arg, sizeof(a)))
+ 		return -EFAULT;
+-	return sys_select(a.n, a.inp, a.outp, a.exp, a.tvp);
++	return kern_select(a.n, a.inp, a.outp, a.exp, a.tvp);
  }
- 
--COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
-+long compat_ksys_semctl(int semid, int semnum, int cmd, int arg)
- {
- 	void __user *p = compat_ptr(arg);
- 	struct ipc_namespace *ns;
-@@ -1727,6 +1732,11 @@ COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
- 		return -EINVAL;
- 	}
- }
-+
-+COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
-+{
-+	return compat_ksys_semctl(semid, semnum, cmd, arg);
-+}
  #endif
  
- /* If the task doesn't already have a undo_list, then allocate one
-diff --git a/ipc/syscall.c b/ipc/syscall.c
-index 21fcdf0b4836..a536cca37661 100644
---- a/ipc/syscall.c
-+++ b/ipc/syscall.c
-@@ -42,7 +42,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
- 			return -EINVAL;
- 		if (get_user(arg, (unsigned long __user *) ptr))
- 			return -EFAULT;
--		return sys_semctl(first, second, third, arg);
-+		return ksys_semctl(first, second, third, arg);
- 	}
- 
- 	case MSGSND:
-@@ -138,7 +138,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
- 			return -EINVAL;
- 		if (get_user(pad, (u32 __user *) compat_ptr(ptr)))
- 			return -EFAULT;
--		return compat_sys_semctl(first, second, third, pad);
-+		return compat_ksys_semctl(first, second, third, pad);
- 
- 	case MSGSND:
- 		return compat_sys_msgsnd(first, ptr, second, third);
-diff --git a/ipc/util.h b/ipc/util.h
-index 0f07056e5a73..1f1109b83437 100644
---- a/ipc/util.h
-+++ b/ipc/util.h
-@@ -241,12 +241,14 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
- 		     unsigned int nsops,
- 		     const struct timespec __user *timeout);
- long ksys_semget(key_t key, int nsems, int semflg);
-+long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
- 
- /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
- #ifdef CONFIG_COMPAT
- long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
- 			    unsigned int nsops,
- 			    const struct compat_timespec __user *timeout);
-+long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
- #endif /* CONFIG_COMPAT */
- 
- #endif
 -- 
 2.16.2
