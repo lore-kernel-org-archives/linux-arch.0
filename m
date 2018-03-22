@@ -1,22 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37142 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37128 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752629AbeCVJBi (ORCPT
+        with ESMTP id S1752828AbeCVJBi (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:38 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 13/45] fs: add do_compat_select() helper; remove in-kernel call to comapt syscall
-Date: Thu, 22 Mar 2018 10:00:27 +0100
-Message-ID: <20180322090059.19361-14-linux@dominikbrodowski.net>
+Subject: [PATCH 33/45] ipc: add msgget syscall wrapper
+Date: Thu, 22 Mar 2018 10:00:47 +0100
+Message-ID: <20180322090059.19361-34-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180322090027.G2xeKI4HuCT3ca7aHaIn43RrwCTdVZzq_nFgkaBT7bU@z>
+Message-ID: <20180322090047.-xdjztgJ4hj_ot-pfttwlNpY79eJdZUkS8okhakWBUQ@z>
 
-Using the fs-internal do_compat_select() helper allows us to get rid of
-the fs-internal call to the compat_sys_select() syscall.
+Provide ksys_msgget() wrapper to avoid in-kernel calls to this syscall.
+The ksys_ prefix denotes that this function is meant as a drop-in
+replacement for the syscall. In particular, it uses the same calling
+convention as sys_msgget().
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
@@ -25,50 +27,69 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/select.c | 17 ++++++++++++-----
- 1 file changed, 12 insertions(+), 5 deletions(-)
+ ipc/msg.c     | 7 ++++++-
+ ipc/syscall.c | 4 ++--
+ ipc/util.h    | 1 +
+ 3 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/fs/select.c b/fs/select.c
-index b5df01c4587d..ba879c51288f 100644
---- a/fs/select.c
-+++ b/fs/select.c
-@@ -1265,9 +1265,9 @@ static int compat_core_sys_select(int n, compat_ulong_t __user *inp,
- 	return ret;
+diff --git a/ipc/msg.c b/ipc/msg.c
+index 0dcc6699dc53..64e8276be164 100644
+--- a/ipc/msg.c
++++ b/ipc/msg.c
+@@ -263,7 +263,7 @@ static inline int msg_security(struct kern_ipc_perm *ipcp, int msgflg)
+ 	return security_msg_queue_associate(msq, msgflg);
  }
  
--COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
--	compat_ulong_t __user *, outp, compat_ulong_t __user *, exp,
--	struct compat_timeval __user *, tvp)
-+static int do_compat_select(int n, compat_ulong_t __user *inp,
-+	compat_ulong_t __user *outp, compat_ulong_t __user *exp,
-+	struct compat_timeval __user *tvp)
+-SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
++long ksys_msgget(key_t key, int msgflg)
  {
- 	struct timespec64 end_time, *to = NULL;
- 	struct compat_timeval tv;
-@@ -1290,6 +1290,13 @@ COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
- 	return ret;
+ 	struct ipc_namespace *ns;
+ 	static const struct ipc_ops msg_ops = {
+@@ -280,6 +280,11 @@ SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
+ 	return ipcget(ns, &msg_ids(ns), &msg_ops, &msg_params);
  }
  
-+COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
-+	compat_ulong_t __user *, outp, compat_ulong_t __user *, exp,
-+	struct compat_timeval __user *, tvp)
++SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
 +{
-+	return do_compat_select(n, inp, outp, exp, tvp);
++	return ksys_msgget(key, msgflg);
 +}
 +
- struct compat_sel_arg_struct {
- 	compat_ulong_t n;
- 	compat_uptr_t inp;
-@@ -1304,8 +1311,8 @@ COMPAT_SYSCALL_DEFINE1(old_select, struct compat_sel_arg_struct __user *, arg)
+ static inline unsigned long
+ copy_msqid_to_user(void __user *buf, struct msqid64_ds *in, int version)
+ {
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index a536cca37661..355c4a644bbf 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -68,7 +68,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 					   second, fifth, third);
+ 		}
+ 	case MSGGET:
+-		return sys_msgget((key_t) first, second);
++		return ksys_msgget((key_t) first, second);
+ 	case MSGCTL:
+ 		return sys_msgctl(first, second, (struct msqid_ds __user *)ptr);
  
- 	if (copy_from_user(&a, arg, sizeof(a)))
- 		return -EFAULT;
--	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
--				 compat_ptr(a.exp), compat_ptr(a.tvp));
-+	return do_compat_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
-+				compat_ptr(a.exp), compat_ptr(a.tvp));
- }
+@@ -161,7 +161,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 		return compat_sys_msgrcv(first, ptr, second, fifth, third);
+ 	}
+ 	case MSGGET:
+-		return sys_msgget(first, second);
++		return ksys_msgget(first, second);
+ 	case MSGCTL:
+ 		return compat_sys_msgctl(first, second, compat_ptr(ptr));
  
- static long do_compat_pselect(int n, compat_ulong_t __user *inp,
+diff --git a/ipc/util.h b/ipc/util.h
+index 1f1109b83437..b35c0dfe3bc3 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -242,6 +242,7 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+ 		     const struct timespec __user *timeout);
+ long ksys_semget(key_t key, int nsems, int semflg);
+ long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
++long ksys_msgget(key_t key, int msgflg);
+ 
+ /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+ #ifdef CONFIG_COMPAT
 -- 
 2.16.2
