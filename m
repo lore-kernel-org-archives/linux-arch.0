@@ -1,99 +1,90 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 45/45] bpf: whitelist all syscalls for error injection
-Date: Thu, 22 Mar 2018 10:00:59 +0100
-Message-ID: <20180322090059.19361-46-linux@dominikbrodowski.net>
+Subject: [PATCH 33/45] ipc: add msgget syscall wrapper
+Date: Thu, 22 Mar 2018 10:00:47 +0100
+Message-ID: <20180322090059.19361-34-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Howard McLauchlan <hmclauchlan@fb.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Howard McLauchlan <hmclauchlan@fb.com>
+Provide ksys_msgget() wrapper to avoid in-kernel calls to this syscall.
+The ksys_ prefix denotes that this function is meant as a drop-in
+replacement for the syscall. In particular, it uses the same calling
+convention as sys_msgget().
 
-Error injection is a useful mechanism to fail arbitrary kernel
-functions. However, it is often hard to guarantee an error propagates
-appropriately to user space programs. By injecting into syscalls, we can
-return arbitrary values to user space directly; this increases
-flexibility and robustness in testing, allowing us to test user space
-error paths effectively.
+This patch is part of a series which tries to remove in-kernel calls to
+syscalls. On this basis, the syscall entry path can be streamlined.
 
-The following script, for example, fails calls to sys_open() from a
-given pid:
-
-from bcc import BPF
-from sys import argv
-
-pid = argv[1]
-
-prog = r"""
-
-int kprobe__SyS_open(struct pt_regs *ctx, const char *pathname, int flags)
-{
-    u32 pid = bpf_get_current_pid_tgid();
-    if (pid == %s)
-        bpf_override_return(ctx, -ENOMEM);
-    return 0;
-}
-""" % pid
-
-b = BPF(text=prog)
-while 1:
-    b.perf_buffer_poll()
-
-This patch whitelists all syscalls defined with SYSCALL_DEFINE and
-COMPAT_SYSCALL_DEFINE for error injection. These changes are not
-intended to be considered stable, and would normally be configured off.
-
-Signed-off-by: Howard McLauchlan <hmclauchlan@fb.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/compat.h   | 3 +++
- include/linux/syscalls.h | 3 +++
- 2 files changed, 6 insertions(+)
+ ipc/msg.c     | 7 ++++++-
+ ipc/syscall.c | 4 ++--
+ ipc/util.h    | 1 +
+ 3 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index f1649a5e6716..57eb263a3bc9 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -33,6 +33,8 @@
- #endif
+diff --git a/ipc/msg.c b/ipc/msg.c
+index 0dcc6699dc53..64e8276be164 100644
+--- a/ipc/msg.c
++++ b/ipc/msg.c
+@@ -263,7 +263,7 @@ static inline int msg_security(struct kern_ipc_perm *ipcp, int msgflg)
+ 	return security_msg_queue_associate(msq, msgflg);
+ }
  
- #define COMPAT_SYSCALL_DEFINE0(name) \
-+	asmlinkage long compat_sys_##name(void); \
-+	ALLOW_ERROR_INJECTION(compat_sys_##name, ERRNO); \
- 	asmlinkage long compat_sys_##name(void)
+-SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
++long ksys_msgget(key_t key, int msgflg)
+ {
+ 	struct ipc_namespace *ns;
+ 	static const struct ipc_ops msg_ops = {
+@@ -280,6 +280,11 @@ SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
+ 	return ipcget(ns, &msg_ids(ns), &msg_ops, &msg_params);
+ }
  
- #define COMPAT_SYSCALL_DEFINE1(name, ...) \
-@@ -51,6 +53,7 @@
- #define COMPAT_SYSCALL_DEFINEx(x, name, ...)				\
- 	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))\
- 		__attribute__((alias(__stringify(compat_SyS##name))));  \
-+	ALLOW_ERROR_INJECTION(compat_sys##name, ERRNO);	\
- 	static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
- 	asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__));\
- 	asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__))\
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 3591c4af33d8..cc6fcd7d5b3c 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -191,6 +191,8 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
++SYSCALL_DEFINE2(msgget, key_t, key, int, msgflg)
++{
++	return ksys_msgget(key, msgflg);
++}
++
+ static inline unsigned long
+ copy_msqid_to_user(void __user *buf, struct msqid64_ds *in, int version)
+ {
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index a536cca37661..355c4a644bbf 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -68,7 +68,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 					   second, fifth, third);
+ 		}
+ 	case MSGGET:
+-		return sys_msgget((key_t) first, second);
++		return ksys_msgget((key_t) first, second);
+ 	case MSGCTL:
+ 		return sys_msgctl(first, second, (struct msqid_ds __user *)ptr);
  
- #define SYSCALL_DEFINE0(sname)					\
- 	SYSCALL_METADATA(_##sname, 0);				\
-+	asmlinkage long sys_##sname(void);			\
-+	ALLOW_ERROR_INJECTION(sys_##sname, ERRNO);		\
- 	asmlinkage long sys_##sname(void)
+@@ -161,7 +161,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 		return compat_sys_msgrcv(first, ptr, second, fifth, third);
+ 	}
+ 	case MSGGET:
+-		return sys_msgget(first, second);
++		return ksys_msgget(first, second);
+ 	case MSGCTL:
+ 		return compat_sys_msgctl(first, second, compat_ptr(ptr));
  
- #define SYSCALL_DEFINE1(name, ...) SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
-@@ -210,6 +212,7 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
- #define __SYSCALL_DEFINEx(x, name, ...)					\
- 	asmlinkage long sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))	\
- 		__attribute__((alias(__stringify(SyS##name))));		\
-+	ALLOW_ERROR_INJECTION(sys##name, ERRNO);			\
- 	static inline long SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));	\
- 	asmlinkage long SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__));	\
- 	asmlinkage long SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__))	\
+diff --git a/ipc/util.h b/ipc/util.h
+index 1f1109b83437..b35c0dfe3bc3 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -242,6 +242,7 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+ 		     const struct timespec __user *timeout);
+ long ksys_semget(key_t key, int nsems, int semflg);
+ long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
++long ksys_msgget(key_t key, int msgflg);
+ 
+ /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+ #ifdef CONFIG_COMPAT
 -- 
 2.16.2
