@@ -1,64 +1,61 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 12/45] fs: add do_compat_fcntl64() helper; remove in-kernel call to comapt syscall
-Date: Thu, 22 Mar 2018 10:00:26 +0100
-Message-ID: <20180322090059.19361-13-linux@dominikbrodowski.net>
+Subject: [PATCH 23/45] sched: add do_sched_yield() helper; remove in-kernel call to sched_yield()
+Date: Thu, 22 Mar 2018 10:00:37 +0100
+Message-ID: <20180322090059.19361-24-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using the fs-internal do_compat_fcntl64() helper allows us to get rid of
-the fs-internal call to the compat_sys_fcntl64() syscall.
+Using the sched-internal do_sched_yield() helper allows us to get rid of
+the sched-internal call to the sys_sched_yield() syscall.
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/fcntl.c | 12 +++++++++---
- 1 file changed, 9 insertions(+), 3 deletions(-)
+ kernel/sched/core.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/fs/fcntl.c b/fs/fcntl.c
-index 1e97f1fda90c..d737ff082472 100644
---- a/fs/fcntl.c
-+++ b/fs/fcntl.c
-@@ -607,8 +607,8 @@ static int fixup_compat_flock(struct flock *flock)
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index e7c535eee0a6..8de4919c889a 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -4892,7 +4892,7 @@ SYSCALL_DEFINE3(sched_getaffinity, pid_t, pid, unsigned int, len,
+  *
+  * Return: 0.
+  */
+-SYSCALL_DEFINE0(sched_yield)
++static void do_sched_yield(void)
+ {
+ 	struct rq_flags rf;
+ 	struct rq *rq;
+@@ -4913,7 +4913,11 @@ SYSCALL_DEFINE0(sched_yield)
+ 	sched_preempt_enable_no_resched();
+ 
+ 	schedule();
++}
+ 
++SYSCALL_DEFINE0(sched_yield)
++{
++	do_sched_yield();
  	return 0;
  }
  
--COMPAT_SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
--		       compat_ulong_t, arg)
-+static long do_compat_fcntl64(unsigned int fd, unsigned int cmd,
-+			     compat_ulong_t arg)
+@@ -4997,7 +5001,7 @@ EXPORT_SYMBOL(__cond_resched_softirq);
+ void __sched yield(void)
  {
- 	struct fd f = fdget_raw(fd);
- 	struct flock flock;
-@@ -672,6 +672,12 @@ COMPAT_SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
- 	return err;
+ 	set_current_state(TASK_RUNNING);
+-	sys_sched_yield();
++	do_sched_yield();
  }
- 
-+COMPAT_SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
-+		       compat_ulong_t, arg)
-+{
-+	return do_compat_fcntl64(fd, cmd, arg);
-+}
-+
- COMPAT_SYSCALL_DEFINE3(fcntl, unsigned int, fd, unsigned int, cmd,
- 		       compat_ulong_t, arg)
- {
-@@ -684,7 +690,7 @@ COMPAT_SYSCALL_DEFINE3(fcntl, unsigned int, fd, unsigned int, cmd,
- 	case F_OFD_SETLKW:
- 		return -EINVAL;
- 	}
--	return compat_sys_fcntl64(fd, cmd, arg);
-+	return do_compat_fcntl64(fd, cmd, arg);
- }
- #endif
+ EXPORT_SYMBOL(yield);
  
 -- 
 2.16.2
