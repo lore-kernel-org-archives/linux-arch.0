@@ -1,153 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37720 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37684 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753145AbeCVJB6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:58 -0400
+        with ESMTP id S1753163AbeCVJCE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:02:04 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 29/45] mm: add ksys_readahead() helper; remove in-kernel calls to sys_readahead()
-Date: Thu, 22 Mar 2018 10:00:43 +0100
-Message-ID: <20180322090059.19361-30-linux@dominikbrodowski.net>
+Subject: [PATCH 32/45] ipc: add semctl syscall/compat_syscall wrappers
+Date: Thu, 22 Mar 2018 10:00:46 +0100
+Message-ID: <20180322090059.19361-33-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org
-Message-ID: <20180322090043.EiSXgo6h_KaKkddMi8eQ5r8W_x6CEHBFBc-Aw4rbxuQ@z>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180322090046.yWm9idbV0iyuBk3qU22WY6HMLZ7TNDz3c5iasiitm8E@z>
 
-Using this helper allows us to avoid the in-kernel calls to the
-sys_readahead() syscall. The ksys_ prefix denotes that this function is
-meant as a drop-in replacement for the syscall. In particular, it uses the
-same calling convention as sys_readahead().
+Provide ksys_semctl() and compat_ksys_semctl() wrappers to avoid in-kernel
+calls to these syscalls. The ksys_ prefix denotes that these functions are
+meant as a drop-in replacement for the syscalls. In particular, they use
+the same calling convention as sys_semctl() and compat_sys_semctl().
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
+Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/mips/kernel/linux32.c      | 2 +-
- arch/parisc/kernel/sys_parisc.c | 2 +-
- arch/powerpc/kernel/sys_ppc32.c | 2 +-
- arch/s390/kernel/compat_linux.c | 2 +-
- arch/sparc/kernel/sys_sparc32.c | 2 +-
- arch/x86/ia32/sys_ia32.c        | 2 +-
- include/linux/syscalls.h        | 1 +
- mm/readahead.c                  | 7 ++++++-
- 8 files changed, 13 insertions(+), 7 deletions(-)
+ ipc/sem.c     | 14 ++++++++++++--
+ ipc/syscall.c |  4 ++--
+ ipc/util.h    |  2 ++
+ 3 files changed, 16 insertions(+), 4 deletions(-)
 
-diff --git a/arch/mips/kernel/linux32.c b/arch/mips/kernel/linux32.c
-index 0571ab7b68b0..318f1c05c5b3 100644
---- a/arch/mips/kernel/linux32.c
-+++ b/arch/mips/kernel/linux32.c
-@@ -131,7 +131,7 @@ SYSCALL_DEFINE1(32_personality, unsigned long, personality)
- asmlinkage ssize_t sys32_readahead(int fd, u32 pad0, u64 a2, u64 a3,
- 				   size_t count)
- {
--	return sys_readahead(fd, merge_64(a2, a3), count);
-+	return ksys_readahead(fd, merge_64(a2, a3), count);
+diff --git a/ipc/sem.c b/ipc/sem.c
+index 2e5f7ec7a7db..1cf56279a84c 100644
+--- a/ipc/sem.c
++++ b/ipc/sem.c
+@@ -1581,7 +1581,7 @@ static int semctl_down(struct ipc_namespace *ns, int semid,
+ 	return err;
  }
  
- asmlinkage long sys32_sync_file_range(int fd, int __pad,
-diff --git a/arch/parisc/kernel/sys_parisc.c b/arch/parisc/kernel/sys_parisc.c
-index 080d566654ea..8c99ebbe2bac 100644
---- a/arch/parisc/kernel/sys_parisc.c
-+++ b/arch/parisc/kernel/sys_parisc.c
-@@ -345,7 +345,7 @@ asmlinkage ssize_t parisc_pwrite64(unsigned int fd, const char __user *buf,
- asmlinkage ssize_t parisc_readahead(int fd, unsigned int high, unsigned int low,
- 		                    size_t count)
+-SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
++long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg)
  {
--	return sys_readahead(fd, (loff_t)high << 32 | low, count);
-+	return ksys_readahead(fd, (loff_t)high << 32 | low, count);
- }
- 
- asmlinkage long parisc_fadvise64_64(int fd,
-diff --git a/arch/powerpc/kernel/sys_ppc32.c b/arch/powerpc/kernel/sys_ppc32.c
-index 0b95fa13307f..c11c73373691 100644
---- a/arch/powerpc/kernel/sys_ppc32.c
-+++ b/arch/powerpc/kernel/sys_ppc32.c
-@@ -88,7 +88,7 @@ compat_ssize_t compat_sys_pwrite64(unsigned int fd, const char __user *ubuf, com
- 
- compat_ssize_t compat_sys_readahead(int fd, u32 r4, u32 offhi, u32 offlo, u32 count)
- {
--	return sys_readahead(fd, ((loff_t)offhi << 32) | offlo, count);
-+	return ksys_readahead(fd, ((loff_t)offhi << 32) | offlo, count);
- }
- 
- asmlinkage int compat_sys_truncate64(const char __user * path, u32 reg4,
-diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
-index da5ef7718254..8ac38d51ed7d 100644
---- a/arch/s390/kernel/compat_linux.c
-+++ b/arch/s390/kernel/compat_linux.c
-@@ -328,7 +328,7 @@ COMPAT_SYSCALL_DEFINE5(s390_pwrite64, unsigned int, fd, const char __user *, ubu
- 
- COMPAT_SYSCALL_DEFINE4(s390_readahead, int, fd, u32, high, u32, low, s32, count)
- {
--	return sys_readahead(fd, (unsigned long)high << 32 | low, count);
-+	return ksys_readahead(fd, (unsigned long)high << 32 | low, count);
- }
- 
- struct stat64_emu31 {
-diff --git a/arch/sparc/kernel/sys_sparc32.c b/arch/sparc/kernel/sys_sparc32.c
-index 4da66aed50b4..f166e5bbf506 100644
---- a/arch/sparc/kernel/sys_sparc32.c
-+++ b/arch/sparc/kernel/sys_sparc32.c
-@@ -217,7 +217,7 @@ asmlinkage long compat_sys_readahead(int fd,
- 				     unsigned long offlo,
- 				     compat_size_t count)
- {
--	return sys_readahead(fd, (offhi << 32) | offlo, count);
-+	return ksys_readahead(fd, (offhi << 32) | offlo, count);
- }
- 
- long compat_sys_fadvise64(int fd,
-diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
-index bf4e8dbd65e7..064b76598a2e 100644
---- a/arch/x86/ia32/sys_ia32.c
-+++ b/arch/x86/ia32/sys_ia32.c
-@@ -208,7 +208,7 @@ COMPAT_SYSCALL_DEFINE6(x86_fadvise64_64, int, fd, __u32, offset_low,
- COMPAT_SYSCALL_DEFINE4(x86_readahead, int, fd, unsigned int, off_lo,
- 		       unsigned int, off_hi, size_t, count)
- {
--	return sys_readahead(fd, ((u64)off_hi << 32) | off_lo, count);
-+	return ksys_readahead(fd, ((u64)off_hi << 32) | off_lo, count);
- }
- 
- COMPAT_SYSCALL_DEFINE6(x86_sync_file_range, int, fd, unsigned int, off_low,
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index c509459ce9d5..3591c4af33d8 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -982,6 +982,7 @@ ssize_t ksys_pwrite64(unsigned int fd, const char __user *buf,
- 		      size_t count, loff_t pos);
- int ksys_fallocate(int fd, int mode, loff_t offset, loff_t len);
- int ksys_setsid(void);
-+ssize_t ksys_readahead(int fd, loff_t offset, size_t count);
- 
- /*
-  * The following kernel syscall equivalents are just wrappers to fs-internal
-diff --git a/mm/readahead.c b/mm/readahead.c
-index c4ca70239233..4d57b4644f98 100644
---- a/mm/readahead.c
-+++ b/mm/readahead.c
-@@ -573,7 +573,7 @@ do_readahead(struct address_space *mapping, struct file *filp,
- 	return force_page_cache_readahead(mapping, filp, index, nr);
- }
- 
--SYSCALL_DEFINE3(readahead, int, fd, loff_t, offset, size_t, count)
-+ssize_t ksys_readahead(int fd, loff_t offset, size_t count)
- {
- 	ssize_t ret;
- 	struct fd f;
-@@ -592,3 +592,8 @@ SYSCALL_DEFINE3(readahead, int, fd, loff_t, offset, size_t, count)
+ 	int version;
+ 	struct ipc_namespace *ns;
+@@ -1635,6 +1635,11 @@ SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
  	}
- 	return ret;
+ }
+ 
++SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
++{
++	return ksys_semctl(semid, semnum, cmd, arg);
++}
++
+ #ifdef CONFIG_COMPAT
+ 
+ struct compat_semid_ds {
+@@ -1683,7 +1688,7 @@ static int copy_compat_semid_to_user(void __user *buf, struct semid64_ds *in,
+ 	}
+ }
+ 
+-COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
++long compat_ksys_semctl(int semid, int semnum, int cmd, int arg)
+ {
+ 	void __user *p = compat_ptr(arg);
+ 	struct ipc_namespace *ns;
+@@ -1727,6 +1732,11 @@ COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
+ 		return -EINVAL;
+ 	}
  }
 +
-+SYSCALL_DEFINE3(readahead, int, fd, loff_t, offset, size_t, count)
++COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
 +{
-+	return ksys_readahead(fd, offset, count);
++	return compat_ksys_semctl(semid, semnum, cmd, arg);
 +}
+ #endif
+ 
+ /* If the task doesn't already have a undo_list, then allocate one
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 21fcdf0b4836..a536cca37661 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -42,7 +42,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 			return -EINVAL;
+ 		if (get_user(arg, (unsigned long __user *) ptr))
+ 			return -EFAULT;
+-		return sys_semctl(first, second, third, arg);
++		return ksys_semctl(first, second, third, arg);
+ 	}
+ 
+ 	case MSGSND:
+@@ -138,7 +138,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 			return -EINVAL;
+ 		if (get_user(pad, (u32 __user *) compat_ptr(ptr)))
+ 			return -EFAULT;
+-		return compat_sys_semctl(first, second, third, pad);
++		return compat_ksys_semctl(first, second, third, pad);
+ 
+ 	case MSGSND:
+ 		return compat_sys_msgsnd(first, ptr, second, third);
+diff --git a/ipc/util.h b/ipc/util.h
+index 0f07056e5a73..1f1109b83437 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -241,12 +241,14 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+ 		     unsigned int nsops,
+ 		     const struct timespec __user *timeout);
+ long ksys_semget(key_t key, int nsems, int semflg);
++long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+ 
+ /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+ #ifdef CONFIG_COMPAT
+ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
+ 			    unsigned int nsops,
+ 			    const struct compat_timespec __user *timeout);
++long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
+ #endif /* CONFIG_COMPAT */
+ 
+ #endif
 -- 
 2.16.2
