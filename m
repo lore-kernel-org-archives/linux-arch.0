@@ -1,189 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37638 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37702 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752918AbeCVJBq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:46 -0400
+        with ESMTP id S1752910AbeCVJBp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:45 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 00/45] remove in-kernel syscall invocations (part 3 == remainder outside arch/)
-Date: Thu, 22 Mar 2018 10:00:14 +0100
-Message-ID: <20180322090059.19361-1-linux@dominikbrodowski.net>
+Subject: [PATCH 01/45] fs: add ksys_getdents64() helper; remove in-kernel calls to sys_getdents64()
+Date: Thu, 22 Mar 2018 10:00:15 +0100
+Message-ID: <20180322090059.19361-2-linux@dominikbrodowski.net>
+In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
+References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Message-ID: <20180322090014.nlQocBrMBlY0wPEjROd8cevkd22vcxPtBZHB-UQ7UGc@z>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20180322090015.asY7SfardKZ9_lp0xPJwy30MMJ4lQyjxl9afOhSDHq0@z>
 
-Here is a third series of patches which reduce the number of syscall
-invocations from within the kernel. Once this long-term goal is achieved,
-the syscall entry path can be streamlined.
+Using this helper allows us to avoid the in-kernel calls to the
+sys_getdents64() syscall. The ksys_ prefix denotes that this function
+is meant as a drop-in replacement for the syscall. In particular, it
+uses the same calling convention as sys_getdents64().
 
-This series builds on top of
+This patch is part of a series which tries to remove in-kernel calls to
+syscalls. On this basis, the syscall entry path can be streamlined.
 
-- part1 (random bits and pieces) 
-  http://lkml.kernel.org/r/20180315190529.20943-1-linux@dominikbrodowski.net
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
+---
+ fs/readdir.c             | 11 +++++++++--
+ include/linux/syscalls.h |  2 ++
+ init/initramfs.c         |  4 ++--
+ 3 files changed, 13 insertions(+), 4 deletions(-)
 
-- part2 (net)
-  http://lkml.kernel.org/r/20180316170614.5392-1-linux@dominikbrodowski.net
-
-and replaces the RFC of a subset of this series. Most of the patches are
-just "mindless" conversions and helpers. If wrappers or helpers are limited
-to one subsystem, I have named them do_*(), kern_*() or __sys_*(), depending
-on what was used by the subsystem and/or what was still available. Otherwise,
-I have used ksys_*() to reflect that this is meant as a drop-in replacement
-for sys_*() within the kernel.
-
-With this third series, *all* in-kernel callers of sys_*() and compat_sys_*()
-outside of arch/ are converted.[*] On top of this, three things may be
-attempted now:
-
-- ptregs system call conversion for x86-64.
-
-- re-work initramfs etc. code to not use in-kernel equivalents of
-   syscalls, but operate on the VFS level instead.
-
-- re-work SYSCALL_DEFINEx() / COMPAT_SYSCALL_DEFINEx() to do the right
-  thing depending on arch-specific requirements on padding, long long handling,
-  etc. (Al Viro). 
-
-Also thrown in are a patch by Michael Tautschnig to use proper
-SYSCALL_DEFINE0() macros on x86 and a patch by Howard McLauchlan to whitelist
-all syscalls for error injection.
-
-The whole series, including part 1 and part 2, can be found at
-
-        https://git.kernel.org/pub/scm/linux/kernel/git/brodo/linux.git syscalls-next
-
-Thanks,
-	Dominik
-
-[*] Within arch, only x86 is fully covered by these series.
-
-Dominik Brodowski (43):
-  fs: add ksys_getdents64() helper; remove in-kernel calls to
-    sys_getdents64()
-  fs: add ksys_ioctl() helper; remove in-kernel calls to sys_ioctl()
-  fs: add ksys_lseek() helper; remove in-kernel calls to sys_lseek()
-  fs: add ksys_read() helper; remove in-kernel calls to sys_read()
-  fs: add ksys_sync() helper; remove in-kernel calls to sys_sync()
-  fs: add do_lookup_dcookie() helper; remove in-kernel call to syscall
-  fs: add do_vmsplice() helper; remove in-kernel call to syscall
-  fs: add kern_select() helper; remove in-kernel call to sys_select()
-  fs: add ksys_truncate() wrapper; remove in-kernel calls to
-    sys_truncate()
-  fs: add ksys_p{read,write}64() helpers; remove in-kernel calls to
-    syscalls
-  fs: add ksys_fallocate() wrapper; remove in-kernel calls to
-    sys_fallocate()
-  fs: add do_compat_fcntl64() helper; remove in-kernel call to comapt
-    syscall
-  fs: add do_compat_select() helper; remove in-kernel call to comapt
-    syscall
-  fs: add do_compat_signalfd4() helper; remove in-kernel call to comapt
-    syscall
-  fs: add do_compat_futimesat() helper; remove in-kernel call to comapt
-    syscall
-  inotify: add do_inotify_init() helper; remove in-kernel call to
-    syscall
-  fanotify: add do_fanotify_mark() helper; remove in-kernel call to
-    syscall
-  fs/quota: add kernel_quotactl() helper; remove in-kernel call to
-    syscall
-  fs/quota: use COMPAT_SYSCALL_DEFINE for sys32_quotactl()
-  kernel: add do_compat_sigaltstack() helper; remove in-kernel call to
-    compat syscall
-  kernel: add ksys_setsid() helper; remove in-kernel call to
-    sys_setsid()
-  kernel: provide ksys_*() wrappers for syscalls called by
-    kernel/uid16.c
-  sched: add do_sched_yield() helper; remove in-kernel call to
-    sched_yield()
-  kexec: call do_kexec_load() in compat syscall directly
-  mm: add kernel_migrate_pages() helper, move compat syscall to
-    mm/mempolicy.c
-  mm: add kernel_move_pages() helper, move compat syscall to
-    mm/migrate.c
-  mm: add kernel_mbind() helper; remove in-kernel call to syscall
-  mm: add kernel_[sg]et_mempolicy() helpers; remove in-kernel calls to
-    syscalls
-  mm: add ksys_readahead() helper; remove in-kernel calls to
-    sys_readahead()
-  ipc: add semtimedop syscall/compat_syscall wrappers
-  ipc: add semget syscall wrapper
-  ipc: add semctl syscall/compat_syscall wrappers
-  ipc: add msgget syscall wrapper
-  ipc: add shmget syscall wrapper
-  ipc: add shmdt syscall wrapper
-  ipc: add shmctl syscall/compat_syscall wrappers
-  ipc: add msgctl syscall/compat_syscall wrappers
-  ipc: add msgrcv syscall/compat_syscall wrappers
-  ipc: add msgsnd syscall/compat_syscall wrappers
-  x86: use _do_fork() in compat_sys_x86_clone()
-  x86: remove compat_sys_x86_waitpid()
-  x86: fix sys_sigreturn() return type to be long, not unsigned long
-  kernel/sys_ni: sort cond_syscall() entries
-
-Howard McLauchlan (1):
-  bpf: whitelist all syscalls for error injection
-
-Tautschnig, Michael (1):
-  x86/sigreturn: use SYSCALL_DEFINE0
-
- arch/mips/kernel/linux32.c             |  12 +-
- arch/parisc/kernel/sys_parisc.c        |  16 +-
- arch/powerpc/kernel/sys_ppc32.c        |  10 +-
- arch/s390/kernel/compat_linux.c        |  14 +-
- arch/sh/kernel/sys_sh32.c              |   4 +-
- arch/sparc/kernel/setup_32.c           |   2 +-
- arch/sparc/kernel/sys_sparc32.c        |  12 +-
- arch/x86/entry/syscalls/syscall_32.tbl |   4 +-
- arch/x86/ia32/sys_ia32.c               |  26 +-
- arch/x86/include/asm/sys_ia32.h        |   3 -
- arch/x86/include/asm/syscalls.h        |   2 +-
- arch/x86/kernel/signal.c               |   5 +-
- drivers/tty/sysrq.c                    |   2 +-
- fs/dcookies.c                          |  11 +-
- fs/fcntl.c                             |  12 +-
- fs/ioctl.c                             |   7 +-
- fs/notify/fanotify/fanotify_user.c     |  14 +-
- fs/notify/inotify/inotify_user.c       |   9 +-
- fs/open.c                              |   9 +-
- fs/quota/compat.c                      |  13 +-
- fs/quota/quota.c                       |  10 +-
- fs/read_write.c                        |  36 ++-
- fs/readdir.c                           |  11 +-
- fs/select.c                            |  29 +-
- fs/signalfd.c                          |  17 +-
- fs/splice.c                            |  12 +-
- fs/sync.c                              |   7 +-
- fs/utimes.c                            |  12 +-
- include/linux/compat.h                 |   6 +
- include/linux/quotaops.h               |   3 +
- include/linux/syscalls.h               |  27 +-
- init/do_mounts.c                       |  10 +-
- init/do_mounts_initrd.c                |   4 +-
- init/do_mounts_md.c                    |  15 +-
- init/do_mounts_rd.c                    |  22 +-
- init/initramfs.c                       |   4 +-
- ipc/msg.c                              |  60 +++-
- ipc/sem.c                              |  44 ++-
- ipc/shm.c                              |  28 +-
- ipc/syscall.c                          |  58 ++--
- ipc/util.h                             |  31 ++
- kernel/compat.c                        |  55 ----
- kernel/kexec.c                         |  50 +++-
- kernel/power/hibernate.c               |   2 +-
- kernel/power/suspend.c                 |   2 +-
- kernel/power/user.c                    |   2 +-
- kernel/sched/core.c                    |   8 +-
- kernel/signal.c                        |  14 +-
- kernel/sys.c                           |  65 ++++-
- kernel/sys_ni.c                        | 506 +++++++++++++++++++++------------
- kernel/uid16.c                         |  19 +-
- kernel/uid16.h                         |  14 +
- mm/mempolicy.c                         |  92 +++++-
- mm/migrate.c                           |  39 ++-
- mm/readahead.c                         |   7 +-
- 55 files changed, 1030 insertions(+), 478 deletions(-)
- create mode 100644 kernel/uid16.h
-
+diff --git a/fs/readdir.c b/fs/readdir.c
+index 1b83b0ad183b..d97f548e6323 100644
+--- a/fs/readdir.c
++++ b/fs/readdir.c
+@@ -292,8 +292,8 @@ static int filldir64(struct dir_context *ctx, const char *name, int namlen,
+ 	return -EFAULT;
+ }
+ 
+-SYSCALL_DEFINE3(getdents64, unsigned int, fd,
+-		struct linux_dirent64 __user *, dirent, unsigned int, count)
++int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
++		    unsigned int count)
+ {
+ 	struct fd f;
+ 	struct linux_dirent64 __user * lastdirent;
+@@ -326,6 +326,13 @@ SYSCALL_DEFINE3(getdents64, unsigned int, fd,
+ 	return error;
+ }
+ 
++
++SYSCALL_DEFINE3(getdents64, unsigned int, fd,
++		struct linux_dirent64 __user *, dirent, unsigned int, count)
++{
++	return ksys_getdents64(fd, dirent, count);
++}
++
+ #ifdef CONFIG_COMPAT
+ struct compat_old_linux_dirent {
+ 	compat_ulong_t	d_ino;
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 6976c9e140db..3f834dc0b456 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -972,6 +972,8 @@ int ksys_sync_file_range(int fd, loff_t offset, loff_t nbytes,
+ 			 unsigned int flags);
+ int ksys_fchmod(unsigned int fd, umode_t mode);
+ int ksys_fchown(unsigned int fd, uid_t user, gid_t group);
++int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
++		    unsigned int count);
+ 
+ /*
+  * The following kernel syscall equivalents are just wrappers to fs-internal
+diff --git a/init/initramfs.c b/init/initramfs.c
+index 5f2ff1d2370e..13643c46ebab 100644
+--- a/init/initramfs.c
++++ b/init/initramfs.c
+@@ -579,7 +579,7 @@ static void __init clean_rootfs(void)
+ 	}
+ 
+ 	dirp = buf;
+-	num = sys_getdents64(fd, dirp, BUF_SIZE);
++	num = ksys_getdents64(fd, dirp, BUF_SIZE);
+ 	while (num > 0) {
+ 		while (num > 0) {
+ 			struct kstat st;
+@@ -599,7 +599,7 @@ static void __init clean_rootfs(void)
+ 		}
+ 		dirp = buf;
+ 		memset(buf, 0, BUF_SIZE);
+-		num = sys_getdents64(fd, dirp, BUF_SIZE);
++		num = ksys_getdents64(fd, dirp, BUF_SIZE);
+ 	}
+ 
+ 	ksys_close(fd);
 -- 
 2.16.2
