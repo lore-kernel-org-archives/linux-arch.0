@@ -1,60 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37686 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37638 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752861AbeCVJBn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:43 -0400
+        with ESMTP id S1752838AbeCVJBl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:41 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 42/45] x86: fix sys_sigreturn() return type to be long, not unsigned long
-Date: Thu, 22 Mar 2018 10:00:56 +0100
-Message-ID: <20180322090059.19361-43-linux@dominikbrodowski.net>
+Subject: [PATCH 18/45] fs/quota: add kernel_quotactl() helper; remove in-kernel call to syscall
+Date: Thu, 22 Mar 2018 10:00:32 +0100
+Message-ID: <20180322090059.19361-19-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org, Michael Tautschnig <tautschn@amazon.co.uk>
-Message-ID: <20180322090056.yuqPQL5xkQtEegVN_LS30kFa9S1ZPrhGHaTQTIC-mg0@z>
+Cc: Jan Kara <jack@suse.com>
+Message-ID: <20180322090032.BSUyLI0OB4SzFNWCvNnB5RQSC1aGqXqVe6abU4jnmsU@z>
 
-Same as with other system calls, sys_sigreturn() should return a value
-of type long, not unsigned long. This also matches the behaviour for
-IA32_EMULATION, see sys32_sigreturn() in arch/x86/ia32/ia32_signal.c .
+Using the fs-internal kernel_quotactl() helper allows us to get rid of
+the fs-internal call to the sys_quotactl() syscall.
 
-Cc: Andi Kleen <ak@linux.intel.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Jiri Slaby <jslaby@suse.com>
-Cc: x86@kernel.org
-Cc: Michael Tautschnig <tautschn@amazon.co.uk>
+This patch is part of a series which tries to remove in-kernel calls to
+syscalls. On this basis, the syscall entry path can be streamlined.
+
+Cc: Jan Kara <jack@suse.com>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/x86/include/asm/syscalls.h | 2 +-
- arch/x86/kernel/signal.c        | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ fs/quota/compat.c        |  8 ++++----
+ fs/quota/quota.c         | 10 ++++++++--
+ include/linux/quotaops.h |  3 +++
+ 3 files changed, 15 insertions(+), 6 deletions(-)
 
-diff --git a/arch/x86/include/asm/syscalls.h b/arch/x86/include/asm/syscalls.h
-index 1c0bebbd039e..ae6e05fdc24b 100644
---- a/arch/x86/include/asm/syscalls.h
-+++ b/arch/x86/include/asm/syscalls.h
-@@ -35,7 +35,7 @@ asmlinkage long sys_get_thread_area(struct user_desc __user *);
- #ifdef CONFIG_X86_32
- 
- /* kernel/signal.c */
--asmlinkage unsigned long sys_sigreturn(void);
-+asmlinkage long sys_sigreturn(void);
- 
- /* kernel/vm86_32.c */
- struct vm86_struct;
-diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-index 4cdc0b27ec82..83a26726b689 100644
---- a/arch/x86/kernel/signal.c
-+++ b/arch/x86/kernel/signal.c
-@@ -601,7 +601,7 @@ static int x32_setup_rt_frame(struct ksignal *ksig,
-  * Do a signal return; undo the signal stack.
+diff --git a/fs/quota/compat.c b/fs/quota/compat.c
+index 779caed4f078..1577a2fd51f4 100644
+--- a/fs/quota/compat.c
++++ b/fs/quota/compat.c
+@@ -59,7 +59,7 @@ asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
+ 	case Q_GETQUOTA:
+ 		dqblk = compat_alloc_user_space(sizeof(struct if_dqblk));
+ 		compat_dqblk = addr;
+-		ret = sys_quotactl(cmd, special, id, dqblk);
++		ret = kernel_quotactl(cmd, special, id, dqblk);
+ 		if (ret)
+ 			break;
+ 		if (copy_in_user(compat_dqblk, dqblk, sizeof(*compat_dqblk)) ||
+@@ -75,12 +75,12 @@ asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
+ 			get_user(data, &compat_dqblk->dqb_valid) ||
+ 			put_user(data, &dqblk->dqb_valid))
+ 			break;
+-		ret = sys_quotactl(cmd, special, id, dqblk);
++		ret = kernel_quotactl(cmd, special, id, dqblk);
+ 		break;
+ 	case Q_XGETQSTAT:
+ 		fsqstat = compat_alloc_user_space(sizeof(struct fs_quota_stat));
+ 		compat_fsqstat = addr;
+-		ret = sys_quotactl(cmd, special, id, fsqstat);
++		ret = kernel_quotactl(cmd, special, id, fsqstat);
+ 		if (ret)
+ 			break;
+ 		ret = -EFAULT;
+@@ -113,7 +113,7 @@ asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
+ 		ret = 0;
+ 		break;
+ 	default:
+-		ret = sys_quotactl(cmd, special, id, addr);
++		ret = kernel_quotactl(cmd, special, id, addr);
+ 	}
+ 	return ret;
+ }
+diff --git a/fs/quota/quota.c b/fs/quota/quota.c
+index 43612e2a73af..860bfbe7a07a 100644
+--- a/fs/quota/quota.c
++++ b/fs/quota/quota.c
+@@ -833,8 +833,8 @@ static struct super_block *quotactl_block(const char __user *special, int cmd)
+  * calls. Maybe we need to add the process quotas etc. in the future,
+  * but we probably should use rlimits for that.
   */
- #ifdef CONFIG_X86_32
--asmlinkage unsigned long sys_sigreturn(void)
-+asmlinkage long sys_sigreturn(void)
+-SYSCALL_DEFINE4(quotactl, unsigned int, cmd, const char __user *, special,
+-		qid_t, id, void __user *, addr)
++int kernel_quotactl(unsigned int cmd, const char __user *special,
++		    qid_t id, void __user *addr)
  {
- 	struct pt_regs *regs = current_pt_regs();
- 	struct sigframe __user *frame;
+ 	uint cmds, type;
+ 	struct super_block *sb = NULL;
+@@ -885,3 +885,9 @@ SYSCALL_DEFINE4(quotactl, unsigned int, cmd, const char __user *, special,
+ 		path_put(pathp);
+ 	return ret;
+ }
++
++SYSCALL_DEFINE4(quotactl, unsigned int, cmd, const char __user *, special,
++		qid_t, id, void __user *, addr)
++{
++	return kernel_quotactl(cmd, special, id, addr);
++}
+diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
+index 2fb6fb11132e..ff63eac16a79 100644
+--- a/include/linux/quotaops.h
++++ b/include/linux/quotaops.h
+@@ -105,6 +105,9 @@ int dquot_set_dqblk(struct super_block *sb, struct kqid id,
+ int __dquot_transfer(struct inode *inode, struct dquot **transfer_to);
+ int dquot_transfer(struct inode *inode, struct iattr *iattr);
+ 
++int kernel_quotactl(unsigned int cmd, const char __user *special,
++		    qid_t id, void __user *addr);
++
+ static inline struct mem_dqinfo *sb_dqinfo(struct super_block *sb, int type)
+ {
+ 	return sb_dqopt(sb)->info + type;
 -- 
 2.16.2
