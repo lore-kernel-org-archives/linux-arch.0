@@ -1,22 +1,22 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:37706 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:37682 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752921AbeCVJBq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:46 -0400
+        with ESMTP id S1752854AbeCVJBn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2018 05:01:43 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 27/45] mm: add kernel_mbind() helper; remove in-kernel call to syscall
-Date: Thu, 22 Mar 2018 10:00:41 +0100
-Message-ID: <20180322090059.19361-28-linux@dominikbrodowski.net>
+Subject: [PATCH 26/45] mm: add kernel_move_pages() helper, move compat syscall to mm/migrate.c
+Date: Thu, 22 Mar 2018 10:00:40 +0100
+Message-ID: <20180322090059.19361-27-linux@dominikbrodowski.net>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
 Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180322090041.OlwSrVi-8prAb137mlPCGe6pjO_8WzgwzXqvtcRzV_o@z>
+Message-ID: <20180322090040.I4of6vK4qJOchXUzuj5PbkADNfIFHD203CL_LMe8E2g@z>
 
-Using the mm-internal kernel_mbind() helper allows us to get rid of the
-mm-internal call to the sys_mbind() syscall.
+Move compat_sys_move_pages() to mm/migrate.c and make it call a newly
+introduced helper -- kernel_move_pages() -- instead of the syscall.
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
@@ -26,48 +26,106 @@ Cc: linux-mm@kvack.org
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- mm/mempolicy.c | 15 +++++++++++----
- 1 file changed, 11 insertions(+), 4 deletions(-)
+ kernel/compat.c | 22 ----------------------
+ mm/migrate.c    | 39 +++++++++++++++++++++++++++++++++++----
+ 2 files changed, 35 insertions(+), 26 deletions(-)
 
-diff --git a/mm/mempolicy.c b/mm/mempolicy.c
-index 7399ede02b5f..e4d7d4c0b253 100644
---- a/mm/mempolicy.c
-+++ b/mm/mempolicy.c
-@@ -1336,9 +1336,9 @@ static int copy_nodes_to_user(unsigned long __user *mask, unsigned long maxnode,
- 	return copy_to_user(mask, nodes_addr(*nodes), copy) ? -EFAULT : 0;
+diff --git a/kernel/compat.c b/kernel/compat.c
+index 51bdf1808943..6d21894806b4 100644
+--- a/kernel/compat.c
++++ b/kernel/compat.c
+@@ -488,28 +488,6 @@ get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat)
  }
+ EXPORT_SYMBOL_GPL(get_compat_sigset);
  
--SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
--		unsigned long, mode, const unsigned long __user *, nmask,
--		unsigned long, maxnode, unsigned, flags)
-+static long kernel_mbind(unsigned long start, unsigned long len,
-+			 unsigned long mode, const unsigned long __user *nmask,
-+			 unsigned long maxnode, unsigned int flags)
+-#ifdef CONFIG_NUMA
+-COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
+-		       compat_uptr_t __user *, pages32,
+-		       const int __user *, nodes,
+-		       int __user *, status,
+-		       int, flags)
+-{
+-	const void __user * __user *pages;
+-	int i;
+-
+-	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
+-	for (i = 0; i < nr_pages; i++) {
+-		compat_uptr_t p;
+-
+-		if (get_user(p, pages32 + i) ||
+-			put_user(compat_ptr(p), pages + i))
+-			return -EFAULT;
+-	}
+-	return sys_move_pages(pid, nr_pages, pages, nodes, status, flags);
+-}
+-#endif
+-
+ /*
+  * Allocate user-space memory for the duration of a single system call,
+  * in order to marshall parameters inside a compat thunk.
+diff --git a/mm/migrate.c b/mm/migrate.c
+index 1e5525a25691..003886606a22 100644
+--- a/mm/migrate.c
++++ b/mm/migrate.c
+@@ -34,6 +34,7 @@
+ #include <linux/backing-dev.h>
+ #include <linux/compaction.h>
+ #include <linux/syscalls.h>
++#include <linux/compat.h>
+ #include <linux/hugetlb.h>
+ #include <linux/hugetlb_cgroup.h>
+ #include <linux/gfp.h>
+@@ -1745,10 +1746,10 @@ static int do_pages_stat(struct mm_struct *mm, unsigned long nr_pages,
+  * Move a list of pages in the address space of the currently executing
+  * process.
+  */
+-SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
+-		const void __user * __user *, pages,
+-		const int __user *, nodes,
+-		int __user *, status, int, flags)
++static int kernel_move_pages(pid_t pid, unsigned long nr_pages,
++			     const void __user * __user *pages,
++			     const int __user *nodes,
++			     int __user *status, int flags)
  {
- 	nodemask_t nodes;
- 	int err;
-@@ -1357,6 +1357,13 @@ SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
- 	return do_mbind(start, len, mode, mode_flags, &nodes, flags);
+ 	struct task_struct *task;
+ 	struct mm_struct *mm;
+@@ -1807,6 +1808,36 @@ SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
+ 	return err;
  }
  
-+SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
-+		unsigned long, mode, const unsigned long __user *, nmask,
-+		unsigned long, maxnode, unsigned int, flags)
++SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
++		const void __user * __user *, pages,
++		const int __user *, nodes,
++		int __user *, status, int, flags)
 +{
-+	return kernel_mbind(start, len, mode, nmask, maxnode, flags);
++	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
 +}
 +
- /* Set the process memory policy */
- SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
- 		unsigned long, maxnode)
-@@ -1575,7 +1582,7 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
- 			return -EFAULT;
- 	}
- 
--	return sys_mbind(start, len, mode, nm, nr_bits+1, flags);
-+	return kernel_mbind(start, len, mode, nm, nr_bits+1, flags);
- }
- 
- COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
++#ifdef CONFIG_COMPAT
++COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
++		       compat_uptr_t __user *, pages32,
++		       const int __user *, nodes,
++		       int __user *, status,
++		       int, flags)
++{
++	const void __user * __user *pages;
++	int i;
++
++	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
++	for (i = 0; i < nr_pages; i++) {
++		compat_uptr_t p;
++
++		if (get_user(p, pages32 + i) ||
++			put_user(compat_ptr(p), pages + i))
++			return -EFAULT;
++	}
++	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
++}
++#endif /* CONFIG_COMPAT */
++
+ #ifdef CONFIG_NUMA_BALANCING
+ /*
+  * Returns true if this is a safe migration target node for misplaced NUMA
 -- 
 2.16.2
