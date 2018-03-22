@@ -1,68 +1,120 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 27/45] mm: add kernel_mbind() helper; remove in-kernel call to syscall
-Date: Thu, 22 Mar 2018 10:00:41 +0100
-Message-ID: <20180322090059.19361-28-linux@dominikbrodowski.net>
+Subject: [PATCH 37/45] ipc: add msgctl syscall/compat_syscall wrappers
+Date: Thu, 22 Mar 2018 10:00:51 +0100
+Message-ID: <20180322090059.19361-38-linux@dominikbrodowski.net>
 References: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180322090059.19361-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using the mm-internal kernel_mbind() helper allows us to get rid of the
-mm-internal call to the sys_mbind() syscall.
+Provide ksys_msgctl() and compat_ksys_msgctl() wrappers to avoid in-kernel
+calls to these syscalls. The ksys_ prefix denotes that these functions are
+meant as a drop-in replacement for the syscalls. In particular, they use
+the same calling convention as sys_msgctl() and compat_sys_msgctl().
 
 This patch is part of a series which tries to remove in-kernel calls to
 syscalls. On this basis, the syscall entry path can be streamlined.
 
 Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-mm@kvack.org
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- mm/mempolicy.c | 15 +++++++++++----
- 1 file changed, 11 insertions(+), 4 deletions(-)
+ ipc/msg.c     | 14 ++++++++++++--
+ ipc/syscall.c |  5 +++--
+ ipc/util.h    |  2 ++
+ 3 files changed, 17 insertions(+), 4 deletions(-)
 
-diff --git a/mm/mempolicy.c b/mm/mempolicy.c
-index 7399ede02b5f..e4d7d4c0b253 100644
---- a/mm/mempolicy.c
-+++ b/mm/mempolicy.c
-@@ -1336,9 +1336,9 @@ static int copy_nodes_to_user(unsigned long __user *mask, unsigned long maxnode,
- 	return copy_to_user(mask, nodes_addr(*nodes), copy) ? -EFAULT : 0;
+diff --git a/ipc/msg.c b/ipc/msg.c
+index 64e8276be164..5b026868df07 100644
+--- a/ipc/msg.c
++++ b/ipc/msg.c
+@@ -538,7 +538,7 @@ static int msgctl_stat(struct ipc_namespace *ns, int msqid,
+ 	return err;
  }
  
--SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
--		unsigned long, mode, const unsigned long __user *, nmask,
--		unsigned long, maxnode, unsigned, flags)
-+static long kernel_mbind(unsigned long start, unsigned long len,
-+			 unsigned long mode, const unsigned long __user *nmask,
-+			 unsigned long maxnode, unsigned int flags)
+-SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
++long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf)
  {
- 	nodemask_t nodes;
- 	int err;
-@@ -1357,6 +1357,13 @@ SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
- 	return do_mbind(start, len, mode, mode_flags, &nodes, flags);
+ 	int version;
+ 	struct ipc_namespace *ns;
+@@ -581,6 +581,11 @@ SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
+ 	}
  }
  
-+SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
-+		unsigned long, mode, const unsigned long __user *, nmask,
-+		unsigned long, maxnode, unsigned int, flags)
++SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
 +{
-+	return kernel_mbind(start, len, mode, nmask, maxnode, flags);
++	return ksys_msgctl(msqid, cmd, buf);
 +}
 +
- /* Set the process memory policy */
- SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
- 		unsigned long, maxnode)
-@@ -1575,7 +1582,7 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
- 			return -EFAULT;
- 	}
+ #ifdef CONFIG_COMPAT
  
--	return sys_mbind(start, len, mode, nm, nr_bits+1, flags);
-+	return kernel_mbind(start, len, mode, nm, nr_bits+1, flags);
+ struct compat_msqid_ds {
+@@ -651,7 +656,7 @@ static int copy_compat_msqid_to_user(void __user *buf, struct msqid64_ds *in,
+ 	}
  }
  
- COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
+-COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
++long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr)
+ {
+ 	struct ipc_namespace *ns;
+ 	int err;
+@@ -692,6 +697,11 @@ COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
+ 		return -EINVAL;
+ 	}
+ }
++
++COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
++{
++	return compat_ksys_msgctl(msqid, cmd, uptr);
++}
+ #endif
+ 
+ static int testmsg(struct msg_msg *msg, long type, int mode)
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 34bbabc9e672..aa29b0802e26 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -70,7 +70,8 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 	case MSGGET:
+ 		return ksys_msgget((key_t) first, second);
+ 	case MSGCTL:
+-		return sys_msgctl(first, second, (struct msqid_ds __user *)ptr);
++		return ksys_msgctl(first, second,
++				   (struct msqid_ds __user *)ptr);
+ 
+ 	case SHMAT:
+ 		switch (version) {
+@@ -163,7 +164,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 	case MSGGET:
+ 		return ksys_msgget(first, second);
+ 	case MSGCTL:
+-		return compat_sys_msgctl(first, second, compat_ptr(ptr));
++		return compat_ksys_msgctl(first, second, compat_ptr(ptr));
+ 
+ 	case SHMAT: {
+ 		int err;
+diff --git a/ipc/util.h b/ipc/util.h
+index 16e8b5b8c416..47837b4af3f2 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -243,6 +243,7 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+ long ksys_semget(key_t key, int nsems, int semflg);
+ long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+ long ksys_msgget(key_t key, int msgflg);
++long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
+ long ksys_shmget(key_t key, size_t size, int shmflg);
+ long ksys_shmdt(char __user *shmaddr);
+ long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+@@ -253,6 +254,7 @@ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
+ 			    unsigned int nsops,
+ 			    const struct compat_timespec __user *timeout);
+ long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
++long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
+ long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
+ #endif /* CONFIG_COMPAT */
+ 
 -- 
 2.16.2
