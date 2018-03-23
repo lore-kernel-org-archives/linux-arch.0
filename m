@@ -1,11 +1,10 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH tools/lkmm 2/2] tools/memory-model: Redefine rb in terms of rcu-fence
-Date: Fri, 23 Mar 2018 08:50:09 -0700
-Message-ID: <1521820209-29444-2-git-send-email-paulmck@linux.vnet.ibm.com>
+Subject: [PATCH tools/lkmm 1/2] tools/memory-model: Rename link and rcu-path to rcu-link and rb
+Date: Fri, 23 Mar 2018 08:50:08 -0700
+Message-ID: <1521820209-29444-1-git-send-email-paulmck@linux.vnet.ibm.com>
 References: <20180323154651.GA28363@linux.vnet.ibm.com>
- <1521820209-29444-1-git-send-email-paulmck@linux.vnet.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1521820209-29444-1-git-send-email-paulmck@linux.vnet.ibm.com>
+In-Reply-To: <20180323154651.GA28363@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: mingo@kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
@@ -13,40 +12,35 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Alan Stern <stern@rowland.harvard.edu>
 
-This patch reorganizes the definition of rb in the Linux Kernel Memory
-Consistency Model.  The relation is now expressed in terms of
-rcu-fence, which consists of a sequence of gp and rscs links separated
-by rcu-link links, in which the number of occurrences of gp is >= the
-number of occurrences of rscs.
+This patch makes a simple non-functional change to the RCU portion of
+the Linux Kernel Memory Consistency Model by renaming the "link" and
+"rcu-path" relations to "rcu-link" and "rb", respectively.
 
-Arguments similar to those published in
-http://diy.inria.fr/linux/long.pdf show that rcu-fence behaves like an
-inter-CPU strong fence.  Furthermore, the definition of rb in terms of
-rcu-fence is highly analogous to the definition of pb in terms of
-strong-fence, which can help explain why rcu-path expresses a form of
-temporal ordering.
-
-This change should not affect the semantics of the memory model, just
-its internal organization.
+The name "link" was an unfortunate choice, because it was too generic
+and subject to confusion with other meanings of the same word, which
+occur quite often in LKMM documentation.  The name "rcu-path" is not
+very appropriate, because the relation is analogous to the
+happens-before (hb) and propagates-before (pb) relations -- although
+that fact won't become apparent until the second patch in this series.
 
 Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-Reviewed-by: Andrea Parri <parri.andrea@gmail.com>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
 Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- tools/memory-model/Documentation/explanation.txt | 168 +++++++++++++++--------
- tools/memory-model/linux-kernel.cat              |  33 +++--
- 2 files changed, 129 insertions(+), 72 deletions(-)
+ tools/memory-model/Documentation/explanation.txt | 93 ++++++++++++------------
+ tools/memory-model/linux-kernel.cat              | 16 ++--
+ 2 files changed, 55 insertions(+), 54 deletions(-)
 
 diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
-index 1a387d703212..1b09f3175a1f 100644
+index a727c82bd434..1a387d703212 100644
 --- a/tools/memory-model/Documentation/explanation.txt
 +++ b/tools/memory-model/Documentation/explanation.txt
 @@ -27,7 +27,7 @@ Explanation of the Linux-Kernel Memory Consistency Model
    19. AND THEN THERE WAS ALPHA
    20. THE HAPPENS-BEFORE RELATION: hb
    21. THE PROPAGATES-BEFORE RELATION: pb
--  22. RCU RELATIONS: rcu-link, gp-link, rscs-link, and rb
-+  22. RCU RELATIONS: rcu-link, gp, rscs, rcu-fence, and rb
+-  22. RCU RELATIONS: link, gp-link, rscs-link, and rcu-path
++  22. RCU RELATIONS: rcu-link, gp-link, rscs-link, and rb
    23. ODDS AND ENDS
  
  
@@ -54,257 +48,191 @@ index 1a387d703212..1b09f3175a1f 100644
  the content of the LKMM's "propagation" axiom.
  
  
--RCU RELATIONS: rcu-link, gp-link, rscs-link, and rb
-----------------------------------------------------
-+RCU RELATIONS: rcu-link, gp, rscs, rcu-fence, and rb
-+----------------------------------------------------
+-RCU RELATIONS: link, gp-link, rscs-link, and rcu-path
+------------------------------------------------------
++RCU RELATIONS: rcu-link, gp-link, rscs-link, and rb
++---------------------------------------------------
  
  RCU (Read-Copy-Update) is a powerful synchronization mechanism.  It
  rests on two concepts: grace periods and read-side critical sections.
-@@ -1537,49 +1537,100 @@ relation, and the details don't matter unless you want to comb through
+@@ -1509,8 +1509,8 @@ y, which occurs before the end of the critical section, did not
+ propagate to P1 before the end of the grace period, violating the
+ Guarantee.
+ 
+-In the kernel's implementations of RCU, the business about stores
+-propagating to every CPU is realized by placing strong fences at
++In the kernel's implementations of RCU, the requirements for stores
++to propagate to every CPU are fulfilled by placing strong fences at
+ suitable places in the RCU-related code.  Thus, if a critical section
+ starts before a grace period does then the critical section's CPU will
+ execute an smp_mb() fence after the end of the critical section and
+@@ -1523,19 +1523,19 @@ executes.
+ What exactly do we mean by saying that a critical section "starts
+ before" or "ends after" a grace period?  Some aspects of the meaning
+ are pretty obvious, as in the example above, but the details aren't
+-entirely clear.  The LKMM formalizes this notion by means of a
+-relation with the unfortunately generic name "link".  It is a very
+-general relation; among other things, X ->link Z includes cases where
+-X happens-before or is equal to some event Y which is equal to or
+-comes before Z in the coherence order.  Taking Y = Z, this says that
+-X ->rfe Z implies X ->link Z, and taking Y = X, it says that X ->fr Z
+-and X ->co Z each imply X ->link Z.
+-
+-The formal definition of the link relation is more than a little
++entirely clear.  The LKMM formalizes this notion by means of the
++rcu-link relation.  rcu-link encompasses a very general notion of
++"before": Among other things, X ->rcu-link Z includes cases where X
++happens-before or is equal to some event Y which is equal to or comes
++before Z in the coherence order.  When Y = Z this says that X ->rfe Z
++implies X ->rcu-link Z.  In addition, when Y = X it says that X ->fr Z
++and X ->co Z each imply X ->rcu-link Z.
++
++The formal definition of the rcu-link relation is more than a little
+ obscure, and we won't give it here.  It is closely related to the pb
+ relation, and the details don't matter unless you want to comb through
  a somewhat lengthy formal proof.  Pretty much all you need to know
- about rcu-link is the information in the preceding paragraph.
+-about link is the information in the preceding paragraph.
++about rcu-link is the information in the preceding paragraph.
  
--The LKMM goes on to define the gp-link and rscs-link relations.  They
--bring grace periods and read-side critical sections into the picture,
--in the following way:
-+The LKMM also defines the gp and rscs relations.  They bring grace
-+periods and read-side critical sections into the picture, in the
-+following way:
+ The LKMM goes on to define the gp-link and rscs-link relations.  They
+ bring grace periods and read-side critical sections into the picture,
+@@ -1543,32 +1543,33 @@ in the following way:
  
--	E ->gp-link F means there is a synchronize_rcu() fence event S
--	and an event X such that E ->po S, either S ->po X or S = X,
--	and X ->rcu-link F.  In other words, E and F are linked by a
--	grace period followed by an instance of rcu-link.
-+	E ->gp F means there is a synchronize_rcu() fence event S such
-+	that E ->po S and either S ->po F or S = F.  In simple terms,
-+	there is a grace period po-between E and F.
+ 	E ->gp-link F means there is a synchronize_rcu() fence event S
+ 	and an event X such that E ->po S, either S ->po X or S = X,
+-	and X ->link F.  In other words, E and F are connected by a
+-	grace period followed by an instance of link.
++	and X ->rcu-link F.  In other words, E and F are linked by a
++	grace period followed by an instance of rcu-link.
  
--	E ->rscs-link F means there is a critical section delimited by
--	an rcu_read_lock() fence L and an rcu_read_unlock() fence U,
--	and an event X such that E ->po U, either L ->po X or L = X,
--	and X ->rcu-link F.  Roughly speaking, this says that some
--	event in the same critical section as E is linked by rcu-link
--	to F.
-+	E ->rscs F means there is a critical section delimited by an
-+	rcu_read_lock() fence L and an rcu_read_unlock() fence U, such
-+	that E ->po U and either L ->po F or L = F.  You can think of
-+	this as saying that E and F are in the same critical section
-+	(in fact, it also allows E to be po-before the start of the
-+	critical section and F to be po-after the end).
- 
- If we think of the rcu-link relation as standing for an extended
--"before", then E ->gp-link F says that E executes before a grace
--period which ends before F executes.  (In fact it covers more than
--this, because it also includes cases where E executes before a grace
--period and some store propagates to F's CPU before F executes and
--doesn't propagate to some other CPU until after the grace period
--ends.)  Similarly, E ->rscs-link F says that E is part of (or before
--the start of) a critical section which starts before F executes.
-+"before", then X ->gp Y ->rcu-link Z says that X executes before a
-+grace period which ends before Z executes.  (In fact it covers more
-+than this, because it also includes cases where X executes before a
-+grace period and some store propagates to Z's CPU before Z executes
-+but doesn't propagate to some other CPU until after the grace period
-+ends.)  Similarly, X ->rscs Y ->rcu-link Z says that X is part of (or
-+before the start of) a critical section which starts before Z
-+executes.
+ 	E ->rscs-link F means there is a critical section delimited by
+ 	an rcu_read_lock() fence L and an rcu_read_unlock() fence U,
+ 	and an event X such that E ->po U, either L ->po X or L = X,
+-	and X ->link F.  Roughly speaking, this says that some event
+-	in the same critical section as E is connected by link to F.
+-
+-If we think of the link relation as standing for an extended "before",
+-then E ->gp-link F says that E executes before a grace period which
+-ends before F executes.  (In fact it says more than this, because it
+-includes cases where E executes before a grace period and some store
+-propagates to F's CPU before F executes and doesn't propagate to some
+-other CPU until after the grace period ends.)  Similarly,
+-E ->rscs-link F says that E is part of (or before the start of) a
+-critical section which starts before F executes.
++	and X ->rcu-link F.  Roughly speaking, this says that some
++	event in the same critical section as E is linked by rcu-link
++	to F.
 +
-+The LKMM goes on to define the rcu-fence relation as a sequence of gp
-+and rscs links separated by rcu-link links, in which the number of gp
-+links is >= the number of rscs links.  For example:
-+
-+	X ->gp Y ->rcu-link Z ->rscs T ->rcu-link U ->gp V
-+
-+would imply that X ->rcu-fence V, because this sequence contains two
-+gp links and only one rscs link.  (It also implies that X ->rcu-fence T
-+and Z ->rcu-fence V.)  On the other hand:
-+
-+	X ->rscs Y ->rcu-link Z ->rscs T ->rcu-link U ->gp V
-+
-+does not imply X ->rcu-fence V, because the sequence contains only
-+one gp link but two rscs links.
-+
-+The rcu-fence relation is important because the Grace Period Guarantee
-+means that rcu-fence acts kind of like a strong fence.  In particular,
-+if W is a write and we have W ->rcu-fence Z, the Guarantee says that W
-+will propagate to every CPU before Z executes.
-+
-+To prove this in full generality requires some intellectual effort.
-+We'll consider just a very simple case:
-+
-+	W ->gp X ->rcu-link Y ->rscs Z.
-+
-+This formula means that there is a grace period G and a critical
-+section C such that:
-+
-+	1. W is po-before G;
-+
-+	2. X is equal to or po-after G;
-+
-+	3. X comes "before" Y in some sense;
-+
-+	4. Y is po-before the end of C;
-+
-+	5. Z is equal to or po-after the start of C.
-+
-+From 2 - 4 we deduce that the grace period G ends before the critical
-+section C.  Then the second part of the Grace Period Guarantee says
-+not only that G starts before C does, but also that W (which executes
-+on G's CPU before G starts) must propagate to every CPU before C
-+starts.  In particular, W propagates to every CPU before Z executes
-+(or finishes executing, in the case where Z is equal to the
-+rcu_read_lock() fence event which starts C.)  This sort of reasoning
-+can be expanded to handle all the situations covered by rcu-fence.
-+
-+Finally, the LKMM defines the RCU-before (rb) relation in terms of
-+rcu-fence.  This is done in essentially the same way as the pb
-+relation was defined in terms of strong-fence.  We will omit the
-+details; the end result is that E ->rb F implies E must execute before
-+F, just as E ->pb F does (and for much the same reasons).
++If we think of the rcu-link relation as standing for an extended
++"before", then E ->gp-link F says that E executes before a grace
++period which ends before F executes.  (In fact it covers more than
++this, because it also includes cases where E executes before a grace
++period and some store propagates to F's CPU before F executes and
++doesn't propagate to some other CPU until after the grace period
++ends.)  Similarly, E ->rscs-link F says that E is part of (or before
++the start of) a critical section which starts before F executes.
  
  Putting this all together, the LKMM expresses the Grace Period
--Guarantee by requiring that there are no cycles consisting of gp-link
--and rscs-link links in which the number of gp-link instances is >= the
--number of rscs-link instances.  It does this by defining the rb
--relation to link events E and F whenever it is possible to pass from E
--to F by a sequence of gp-link and rscs-link links with at least as
--many of the former as the latter.  The LKMM's "rcu" axiom then says
--that there are no events E with E ->rb E.
--
--Justifying this axiom takes some intellectual effort, but it is in
--fact a valid formalization of the Grace Period Guarantee.  We won't
--attempt to go through the detailed argument, but the following
--analysis gives a taste of what is involved.  Suppose we have a
--violation of the first part of the Guarantee: A critical section
--starts before a grace period, and some store propagates to the
--critical section's CPU before the end of the critical section but
--doesn't propagate to some other CPU until after the end of the grace
--period.
-+Guarantee by requiring that the rb relation does not contain a cycle.
-+Equivalently, this "rcu" axiom requires that there are no events E and
-+F with E ->rcu-link F ->rcu-fence E.  Or to put it a third way, the
-+axiom requires that there are no cycles consisting of gp and rscs
-+alternating with rcu-link, where the number of gp links is >= the
-+number of rscs links.
-+
-+Justifying the axiom isn't easy, but it is in fact a valid
-+formalization of the Grace Period Guarantee.  We won't attempt to go
-+through the detailed argument, but the following analysis gives a
-+taste of what is involved.  Suppose we have a violation of the first
-+part of the Guarantee: A critical section starts before a grace
-+period, and some store propagates to the critical section's CPU before
-+the end of the critical section but doesn't propagate to some other
-+CPU until after the end of the grace period.
+ Guarantee by requiring that there are no cycles consisting of gp-link
+-and rscs-link connections in which the number of gp-link instances is
+->= the number of rscs-link instances.  It does this by defining the
+-rcu-path relation to link events E and F whenever it is possible to
+-pass from E to F by a sequence of gp-link and rscs-link connections
+-with at least as many of the former as the latter.  The LKMM's "rcu"
+-axiom then says that there are no events E such that E ->rcu-path E.
++and rscs-link links in which the number of gp-link instances is >= the
++number of rscs-link instances.  It does this by defining the rb
++relation to link events E and F whenever it is possible to pass from E
++to F by a sequence of gp-link and rscs-link links with at least as
++many of the former as the latter.  The LKMM's "rcu" axiom then says
++that there are no events E with E ->rb E.
  
- Putting symbols to these ideas, let L and U be the rcu_read_lock() and
- rcu_read_unlock() fence events delimiting the critical section in
-@@ -1606,11 +1657,14 @@ by rcu-link, yielding:
+ Justifying this axiom takes some intellectual effort, but it is in
+ fact a valid formalization of the Grace Period Guarantee.  We won't
+@@ -1585,10 +1586,10 @@ rcu_read_unlock() fence events delimiting the critical section in
+ question, and let S be the synchronize_rcu() fence event for the grace
+ period.  Saying that the critical section starts before S means there
+ are events E and F where E is po-after L (which marks the start of the
+-critical section), E is "before" F in the sense of the link relation,
+-and F is po-before the grace period S:
++critical section), E is "before" F in the sense of the rcu-link
++relation, and F is po-before the grace period S:
  
- 	S ->po X ->rcu-link Z ->po U.
+-	L ->po E ->link F ->po S.
++	L ->po E ->rcu-link F ->po S.
  
--The formulas say that S is po-between F and X, hence F ->gp-link Z
--via X.  They also say that Z comes before the end of the critical
--section and E comes after its start, hence Z ->rscs-link F via E.  But
--now we have a forbidden cycle: F ->gp-link Z ->rscs-link F.  Thus the
--"rcu" axiom rules out this violation of the Grace Period Guarantee.
-+The formulas say that S is po-between F and X, hence F ->gp X.  They
-+also say that Z comes before the end of the critical section and E
-+comes after its start, hence Z ->rscs E.  From all this we obtain:
-+
-+	F ->gp X ->rcu-link Z ->rscs E ->rcu-link F,
-+
-+a forbidden cycle.  Thus the "rcu" axiom rules out this violation of
-+the Grace Period Guarantee.
+ Let W be the store mentioned above, let Z come before the end of the
+ critical section and witness that W propagates to the critical
+@@ -1600,12 +1601,12 @@ some event X which is po-after S.  Symbolically, this amounts to:
  
- For something a little more down-to-earth, let's see how the axiom
- works out in practice.  Consider the RCU code example from above, this
-@@ -1639,15 +1693,15 @@ time with statement labels added to the memory access instructions:
- If r2 = 0 at the end then P0's store at X overwrites the value that
- P1's load at Z reads from, so we have Z ->fre X and thus Z ->rcu-link X.
- In addition, there is a synchronize_rcu() between Y and Z, so therefore
--we have Y ->gp-link X.
-+we have Y ->gp Z.
+ The fr link from Y to W indicates that W has not propagated to Y's CPU
+ at the time that Y executes.  From this, it can be shown (see the
+-discussion of the link relation earlier) that X and Z are connected by
+-link, yielding:
++discussion of the rcu-link relation earlier) that X and Z are related
++by rcu-link, yielding:
  
- If r1 = 1 at the end then P1's load at Y reads from P0's store at W,
- so we have W ->rcu-link Y.  In addition, W and X are in the same critical
--section, so therefore we have X ->rscs-link Y.
-+section, so therefore we have X ->rscs W.
+-	S ->po X ->link Z ->po U.
++	S ->po X ->rcu-link Z ->po U.
  
--This gives us a cycle, Y ->gp-link X ->rscs-link Y, with one gp-link
--and one rscs-link, violating the "rcu" axiom.  Hence the outcome is
--not allowed by the LKMM, as we would expect.
-+Then X ->rscs W ->rcu-link Y ->gp Z ->rcu-link X is a forbidden cycle,
-+violating the "rcu" axiom.  Hence the outcome is not allowed by the
-+LKMM, as we would expect.
- 
- For contrast, let's see what can happen in a more complicated example:
- 
-@@ -1683,15 +1737,11 @@ For contrast, let's see what can happen in a more complicated example:
+-These formulas say that S is po-between F and X, hence F ->gp-link Z
++The formulas say that S is po-between F and X, hence F ->gp-link Z
+ via X.  They also say that Z comes before the end of the critical
+ section and E comes after its start, hence Z ->rscs-link F via E.  But
+ now we have a forbidden cycle: F ->gp-link Z ->rscs-link F.  Thus the
+@@ -1635,13 +1636,13 @@ time with statement labels added to the memory access instructions:
  	}
  
- If r0 = r1 = r2 = 1 at the end, then similar reasoning to before shows
--that W ->rscs-link Y via X, Y ->gp-link U via Z, and U ->rscs-link W
--via V.  And just as before, this gives a cycle:
--
--	W ->rscs-link Y ->gp-link U ->rscs-link W.
--
--However, this cycle has fewer gp-link instances than rscs-link
--instances, and consequently the outcome is not forbidden by the LKMM.
--The following instruction timing diagram shows how it might actually
--occur:
-+that W ->rscs X ->rcu-link Y ->gp Z ->rcu-link U ->rscs V ->rcu-link W.
-+However this cycle is not forbidden, because the sequence of relations
-+contains fewer instances of gp (one) than of rscs (two).  Consequently
-+the outcome is allowed by the LKMM.  The following instruction timing
-+diagram shows how it might actually occur:
  
- P0			P1			P2
- --------------------	--------------------	--------------------
+-If r2 = 0 at the end then P0's store at X overwrites the value
+-that P1's load at Z reads from, so we have Z ->fre X and thus
+-Z ->link X.  In addition, there is a synchronize_rcu() between Y and
+-Z, so therefore we have Y ->gp-link X.
++If r2 = 0 at the end then P0's store at X overwrites the value that
++P1's load at Z reads from, so we have Z ->fre X and thus Z ->rcu-link X.
++In addition, there is a synchronize_rcu() between Y and Z, so therefore
++we have Y ->gp-link X.
+ 
+ If r1 = 1 at the end then P1's load at Y reads from P0's store at W,
+-so we have W ->link Y.  In addition, W and X are in the same critical
++so we have W ->rcu-link Y.  In addition, W and X are in the same critical
+ section, so therefore we have X ->rscs-link Y.
+ 
+ This gives us a cycle, Y ->gp-link X ->rscs-link Y, with one gp-link
 diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
-index cdf682859d4e..1e5c4653dd12 100644
+index df97db03b6c2..cdf682859d4e 100644
 --- a/tools/memory-model/linux-kernel.cat
 +++ b/tools/memory-model/linux-kernel.cat
-@@ -102,20 +102,27 @@ let rscs = po ; crit^-1 ; po?
+@@ -100,22 +100,22 @@ let rscs = po ; crit^-1 ; po?
+  * one but two non-rf relations, but only in conjunction with an RCU
+  * read-side critical section.
   *)
- let rcu-link = hb* ; pb* ; prop
+-let link = hb* ; pb* ; prop
++let rcu-link = hb* ; pb* ; prop
  
--(* Chains that affect the RCU grace-period guarantee *)
--let gp-link = gp ; rcu-link
--let rscs-link = rscs ; rcu-link
--
+ (* Chains that affect the RCU grace-period guarantee *)
+-let gp-link = gp ; link
+-let rscs-link = rscs ; link
++let gp-link = gp ; rcu-link
++let rscs-link = rscs ; rcu-link
+ 
  (*
-- * A cycle containing at least as many grace periods as RCU read-side
-- * critical sections is forbidden.
-+ * Any sequence containing at least as many grace periods as RCU read-side
-+ * critical sections (joined by rcu-link) acts as a generalized strong fence.
+  * A cycle containing at least as many grace periods as RCU read-side
+  * critical sections is forbidden.
   *)
--let rec rb =
--	gp-link |
--	(gp-link ; rscs-link) |
--	(rscs-link ; gp-link) |
--	(rb ; rb) |
--	(gp-link ; rb ; rscs-link) |
--	(rscs-link ; rb ; gp-link)
-+let rec rcu-fence = gp |
-+	(gp ; rcu-link ; rscs) |
-+	(rscs ; rcu-link ; gp) |
-+	(gp ; rcu-link ; rcu-fence ; rcu-link ; rscs) |
-+	(rscs ; rcu-link ; rcu-fence ; rcu-link ; gp) |
-+	(rcu-fence ; rcu-link ; rcu-fence)
-+
-+(* rb orders instructions just as pb does *)
-+let rb = prop ; rcu-fence ; hb* ; pb*
+-let rec rcu-path =
++let rec rb =
+ 	gp-link |
+ 	(gp-link ; rscs-link) |
+ 	(rscs-link ; gp-link) |
+-	(rcu-path ; rcu-path) |
+-	(gp-link ; rcu-path ; rscs-link) |
+-	(rscs-link ; rcu-path ; gp-link)
++	(rb ; rb) |
++	(gp-link ; rb ; rscs-link) |
++	(rscs-link ; rb ; gp-link)
  
- irreflexive rb as rcu
-+
-+(*
-+ * The happens-before, propagation, and rcu constraints are all
-+ * expressions of temporal ordering.  They could be replaced by
-+ * a single constraint on an "executes-before" relation, xb:
-+ *
-+ * let xb = hb | pb | rb
-+ * acyclic xb as executes-before
-+ *)
+-irreflexive rcu-path as rcu
++irreflexive rb as rcu
 -- 
 2.5.2
