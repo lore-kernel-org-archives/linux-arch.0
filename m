@@ -1,54 +1,49 @@
-From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Subject: Re: [RFC] new SYSCALL_DEFINE/COMPAT_SYSCALL_DEFINE wrappers
-Date: Mon, 26 Mar 2018 15:44:18 +0900
-Message-ID: <428751c8-6920-096b-8694-a3f1b8990bdf@physik.fu-berlin.de>
-References: <20180318161056.5377-1-linux@dominikbrodowski.net>
- <20180318161056.5377-5-linux@dominikbrodowski.net>
- <20180318174014.GR30522@ZenIV.linux.org.uk>
- <CA+55aFwuZCpAZRpsTGiUmG065ZHHpj+03_NeWiy-OGkMGw7e3g@mail.gmail.com>
- <20180318181848.GU30522@ZenIV.linux.org.uk>
- <20180319042300.GW30522@ZenIV.linux.org.uk>
- <20180319092920.tbh2xwkruegshzqe@gmail.com>
- <20180319232342.GX30522@ZenIV.linux.org.uk>
- <20180322001532.GA18399@ZenIV.linux.org.uk>
- <20180326004017.GA2211@ZenIV.linux.org.uk>
- <20180326034750.GN30522@ZenIV.linux.org.uk>
- <CA+55aFw8VGnVgaWHVFP-LChMNaoANOwT18jJEWzSCRLFeRGcmA@mail.gmail.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v4 2/3] arm64: Implement page table free interfaces
+Date: Mon, 26 Mar 2018 10:55:41 +0100
+Message-ID: <20180326095541.izogc4iak6d7nerm@lakrids.cambridge.arm.com>
+References: <1521546314-31753-1-git-send-email-cpandya@codeaurora.org>
+ <1521546314-31753-3-git-send-email-cpandya@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFw8VGnVgaWHVFP-LChMNaoANOwT18jJEWzSCRLFeRGcmA@mail.gmail.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <1521546314-31753-3-git-send-email-cpandya@codeaurora.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>
-Cc: Ingo Molnar <mingo@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, the
+To: Chintan Pandya <cpandya@codeaurora.org>
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi Linus!
+On Tue, Mar 20, 2018 at 05:15:13PM +0530, Chintan Pandya wrote:
+> +static int __pmd_free_pte_page(pmd_t *pmd, unsigned long addr, bool tlb_inv)
+> +{
+> +	pmd_t *table;
+> +
+> +	if (pmd_val(*pmd)) {
+> +		table = __va(pmd_val(*pmd));
+> +		pmd_clear(pmd);
+> +		/*
+> +		 * FIXME: __flush_tlb_pgtable(&init_mm, addr) is
+> +		 *        ideal candidate here, which exactly
+> +		 *        flushes intermediate pgtables. But,
+> +		 *        this is broken (evident from tests).
+> +		 *        So, use safe TLB op unless that is fixed.
+> +		 */
+> +		if (tlb_inv)
+> +			flush_tlb_kernel_range(addr, addr + PMD_SIZE);
 
-On 03/26/2018 03:15 PM, Linus Torvalds wrote:
-> Secretly, I was hoping to kill x32, because it's not being used afaik.
-FWIW, we are maintaining an x32 port in Debian and there are some people
-actually using it [1]. There is one build instance running on VMWare that
-I am hosting [2] and around 10800 out of 12900 source packages build fine
-on x32 (12900 being the number for x86_64).
+I don't think that __flush_tlb_pgtable() is broken. It's only valid to
+call it for user page tables, since it doesn't affect all ASIDs.
 
-The port is mostly stable but the fact that it's a 32-bit target with a
-64-bit kernel API often blows up in people's faces because they don't
-expect things like a 64-bit time_t on a 32-bit system.
+We can add a simlar helper for kernel mappings, which affects all ASIDs,
+e.g.
 
-The port also has some issues with software unaware of the x32 and builds
-fail when they just test for __x86_64__ but not for __ILP32__, but overall
-it's usable and stable and has some performance advantages over x86_64.
+static inline void __flush_tlb_kernel_pgtable(unsigned long addr)
+{
+	addr >>= 12;
+	__tlbi(vaae1is, addr);
+	dsb(ish);
+}
 
-Adrian
-
-> [1] http://debian-x32.org/
-> [2] https://buildd.debian.org/status/architecture.php?a=x32&suite=sid
-
--- 
- .''`.  John Paul Adrian Glaubitz
-: :' :  Debian Developer - glaubitz@debian.org
-`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
-  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
+Thanks,
+Mark.
