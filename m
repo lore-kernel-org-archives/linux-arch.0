@@ -1,41 +1,51 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [gnu-csky] [PATCH 00/19] C-SKY(csky) Linux Kernel Port
-Date: Mon, 26 Mar 2018 17:11:45 +0200
-Message-ID: <CAK8P3a23ZXCUyWab8VtfB=Cctw=6WwOyNv0ASQXtGPapL43T8w@mail.gmail.com>
-References: <cover.1521399976.git.ren_guo@c-sky.com> <CAK8P3a3KwvNpYUXG-CqfF7V0GQ3sv_CoPmajq_+06aqkLiUFXw@mail.gmail.com>
- <8f76538a-27a4-745e-3d28-db3be06e9715@codesourcery.com>
+From: Logan Gunthorpe <logang@deltatee.com>
+Subject: Re: [PATCH v13 01/10] iomap: Use correct endian conversion function
+ in mmio_writeXXbe
+Date: Mon, 26 Mar 2018 10:21:43 -0600
+Message-ID: <726eb143-2cca-b221-b569-e193a962e357@deltatee.com>
+References: <20180321163745.12286-1-logang@deltatee.com>
+ <20180321163745.12286-2-logang@deltatee.com>
+ <CAK8P3a25zQDxyaY3iVv+JmSSzs7F6ssGc+HdBkGs54ZfViX+Fg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <8f76538a-27a4-745e-3d28-db3be06e9715@codesourcery.com>
+In-Reply-To: <CAK8P3a25zQDxyaY3iVv+JmSSzs7F6ssGc+HdBkGs54ZfViX+Fg@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Sandra Loosemore <sandra@codesourcery.com>
-Cc: Guo Ren <ren_guo@c-sky.com>, linux-arch <linux-arch@vger.kernel.org>, Jason Cooper <jason@lakedaemon.net>, Daniel Lezcano <daniel.lezcano@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, c-sky_gcc_upstream@c-sky.com, wbx@uclibc-ng.org, thomas.petazzoni@bootlin.com, gnu-csky@mentor.com, Thomas Gleixner <tglx@linutronix.de>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 26, 2018 at 5:06 PM, Sandra Loosemore
-<sandra@codesourcery.com> wrote:
-> On 03/26/2018 07:30 AM, Arnd Bergmann wrote:
->>
->>
->> Another interesting question is the status of your toolchain support. I
->> see your
->> github account contains binutils and gcc repositories, but they are not
->> upstream
->> yet. Are you working on getting those included in the respective upstream
->> projects already?
->
->
-> We at Mentor Graphics are working on preparing the abiv2 binutils and gcc
-> support for upstream submission.  The existing gcc back end for abiv1 is
-> actually completely separate from the abiv2 back end and probably eventually
-> needs to be merged with it, but first things first.
 
-Ok, very good. Being able to build abiv2 is probably sufficient for testing
-the kernel in a meaningful way, and if you are working on getting that
-upstream, I trust that it will happen quick enough. I can always provide
-toolchain binaries on kernel.org based a prerelease version like I did
-for openrisc, which makes it accessible to other kernel developers doing
-cross-arch changes.
 
-      Arnd
+On 26/03/18 04:53 AM, Arnd Bergmann wrote:
+> On most architectures, this is not important:
+> - For x86, the stores are aways atomic and no additional barriers
+>   are needed, so the two are the same
+> - For ARM (both 32 and 64-bit), powerpc and many others, we don't
+>   use the generic iowrite() and just fall back to writel() or
+>   writel(swab32()).
+> 
+> However, shouldn't we just use the writel(swab32()) logic here as well
+> for the common case rather than risking missing barriers?
+
+Hmm, I don't know... it's complicated?
+
+Doing a bit of digging shows that the existing code was written during a
+time when writel() did not include extra barriers over __raw_writel() in
+any of the common arches.
+
+The commit logs don't seem to provide any guidance as to why this it was
+done this way, but I'd assume it was done to avoid a double swab() call
+on BE arches. Seeing writel() is typically implemented as:
+
+__raw_writel(__cpu_to_le32(value), addr);
+
+Then on BE arches, writel(swab32()) would become:
+
+__raw_writel(swab32(swab32(value)), addr)
+
+Which seems undesirable.
+
+Logan
