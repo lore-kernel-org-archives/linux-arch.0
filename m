@@ -1,36 +1,65 @@
-From: Logan Gunthorpe <logang@deltatee.com>
-Subject: Re: [PATCH v13 01/10] iomap: Use correct endian conversion function
- in mmio_writeXXbe
-Date: Mon, 26 Mar 2018 14:33:13 -0600
-Message-ID: <6a063b65-668a-ef9c-696e-8c378e6b2640@deltatee.com>
-References: <20180321163745.12286-1-logang@deltatee.com>
- <20180321163745.12286-2-logang@deltatee.com>
- <CAK8P3a25zQDxyaY3iVv+JmSSzs7F6ssGc+HdBkGs54ZfViX+Fg@mail.gmail.com>
- <726eb143-2cca-b221-b569-e193a962e357@deltatee.com>
- <CAK8P3a2HGW=PWBtFL_96rztqa7KUAhuYBHTL3cGKY2VE=Ag1rA@mail.gmail.com>
+From: Rob Herring <robh@kernel.org>
+Subject: Re: [PATCH v5] earlycon: Use a pointer table to fix __earlycon_table
+ stride
+Date: Mon, 26 Mar 2018 17:24:21 -0500
+Message-ID: <20180326222421.bwkdakaofoixp562@rob-hp-laptop>
+References: <20180320220536.20245-1-djkurtz@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK8P3a2HGW=PWBtFL_96rztqa7KUAhuYBHTL3cGKY2VE=Ag1rA@mail.gmail.com>
-Content-Language: en-US
+Content-Disposition: inline
+In-Reply-To: <20180320220536.20245-1-djkurtz@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+To: Daniel Kurtz <djkurtz@chromium.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Guenter Roeck <groeck@chromium.org>, adurbin@chromium.org, linux-kernel@vger.kernel.org, Frank Rowand <frowand.list@gmail.com>, Jiri Slaby <jslaby@suse.com>, Arnd Bergmann <arnd@arndb.de>, "open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE" <devicetree@vger.kernel.org>, "open list:SERIAL DRIVERS" <linux-serial@vger.kernel.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Tue, Mar 20, 2018 at 04:05:36PM -0600, Daniel Kurtz wrote:
+> Commit 99492c39f39f ("earlycon: Fix __earlycon_table stride") tried to fix
+> __earlycon_table stride by forcing the earlycon_id struct alignment to 32
+> and asking the linker to 32-byte align the __earlycon_table symbol.  This
+> fix was based on commit 07fca0e57fca92 ("tracing: Properly align linker
+> defined symbols") which tried a similar fix for the tracing subsystem.
+> 
+> However, this fix doesn't quite work because there is no guarantee that
+> gcc will place structures packed into an array format.  In fact, gcc 4.9
+> chooses to 64-byte align these structs by inserting additional padding
+> between the entries because it has no clue that they are supposed to be in
+> an array.  If we are unlucky, the linker will assign symbol
+> "__earlycon_table" to a 32-byte aligned address which does not correspond
+> to the 64-byte aligned contents of section "__earlycon_table".
+> 
+> To address this same problem, the fix to the tracing system was
+> subsequently re-implemented using a more robust table of pointers approach
+> by commits:
+>  3d56e331b653 ("tracing: Replace syscall_meta_data struct array with pointer array")
+>  654986462939 ("tracepoints: Fix section alignment using pointer array")
+>  e4a9ea5ee7c8 ("tracing: Replace trace_event struct array with pointer array")
+> 
+> Let's use this same "array of pointers to structs" approach for
+> EARLYCON_TABLE.
 
+Wouldn't every use of linker sections with structs have this problem? We 
+use them for clocks, irqs, timers unless those have been fixed.
 
-On 26/03/18 01:50 PM, Arnd Bergmann wrote:
-> I wouldn't expect it to matter: the byte swap is almost always much
-> cheaper compared to the actual bus access for the MMIO, and I
-> would also guess that modern compilers can eliminate the double
-> byte swap on architectures where writel() is an inline function. Most of
-> the important architectures use ARCH_USE_BUILTIN_BSWAP, which
-> guarantees that.
+> 
+> Fixes: 99492c39f39f ("earlycon: Fix __earlycon_table stride")
+> Signed-off-by: Daniel Kurtz <djkurtz@chromium.org>
+> Suggested-by: Aaron Durbin <adurbin@chromium.org>
+> ---
+> Changes since v2:
+>  * Use __initconst instead of __initdata to avoid h8300 and alpha kbuild errors
+> 
+> Changes since v3:
+>  * Fixed typos in commit message
+> 
+> Changes since v4:
+>  * removed Change-Id: from commit message
+> 
+>  drivers/of/fdt.c                  |  7 +++++--
+>  drivers/tty/serial/earlycon.c     |  6 ++++--
+>  include/asm-generic/vmlinux.lds.h |  2 +-
+>  include/linux/serial_core.h       | 21 ++++++++++++++-------
+>  4 files changed, 24 insertions(+), 12 deletions(-)
 
-Fair enough. Sometime this week I'll update my patch set to change that.
-
-Thanks,
-
-Logan
+Reviewed-by: Rob Herring <robh@kernel.org>
