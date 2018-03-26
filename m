@@ -1,65 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f194.google.com ([209.85.220.194]:33336 "EHLO
-        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750989AbeCZKxG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Mar 2018 06:53:06 -0400
+Received: from mx2.suse.de ([195.135.220.15]:49032 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751141AbeCZMZs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Mar 2018 08:25:48 -0400
+Date: Mon, 26 Mar 2018 14:25:47 +0200
+From: Jan Kara <jack@suse.cz>
+Subject: Re: [PATCH 17/45] fanotify: add do_fanotify_mark() helper; remove
+ in-kernel call to syscall
+Message-ID: <20180326122547.cok6ao75inmouk2x@quack2.suse.cz>
+References: <20180322090059.19361-1-linux@dominikbrodowski.net>
+ <20180322090059.19361-18-linux@dominikbrodowski.net>
 MIME-Version: 1.0
-In-Reply-To: <20180321163745.12286-2-logang@deltatee.com>
-References: <20180321163745.12286-1-logang@deltatee.com> <20180321163745.12286-2-logang@deltatee.com>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Mon, 26 Mar 2018 12:53:04 +0200
-Message-ID: <CAK8P3a25zQDxyaY3iVv+JmSSzs7F6ssGc+HdBkGs54ZfViX+Fg@mail.gmail.com>
-Subject: Re: [PATCH v13 01/10] iomap: Use correct endian conversion function
- in mmio_writeXXbe
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180322090059.19361-18-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Logan Gunthorpe <logang@deltatee.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
-Message-ID: <20180326105304.44TEK9lQ3Jh_NslzOW-v0dtPSRO_1UuXNiv8glMPriI@z>
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org, Jan Kara <jack@suse.cz>, Amir Goldstein <amir73il@gmail.com>
+Message-ID: <20180326122547.-uv6Mt63L8Ne8s4QvZRpj5AEheo6OYrhTsQK3S2TjuA@z>
 
-On Wed, Mar 21, 2018 at 5:37 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
-> The semantics of the iowriteXXbe() functions are to write a
-> value in CPU endianess to an IO register that is known by the
-> caller to be in Big Endian. The mmio_writeXXbe() macro, which
-> is called by iowriteXXbe(), should therefore use cpu_to_beXX()
-> instead of beXX_to_cpu().
->
-> Seeing both beXX_to_cpu() and cpu_to_beXX() are both functionally
-> implemented as either null operations or swabXX operations there
-> was no noticable bug here. But it is confusing for both developers
-> and code analysis tools alike.
->
-> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+On Thu 22-03-18 10:00:31, Dominik Brodowski wrote:
+> Using the fs-internal do_fanotify_mark() helper allows us to get rid of
+> the fs-internal call to the sys_fanotify_mark() syscall.
+> 
+> This patch is part of a series which tries to remove in-kernel calls to
+> syscalls. On this basis, the syscall entry path can be streamlined.
+> 
+> Cc: Jan Kara <jack@suse.cz>
+> Cc: Amir Goldstein <amir73il@gmail.com>
+> Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 
-Your patch is a clear improvement of what we had before, but I notice
-that we have a weird asymmetry between big-endian and little-endian
-accessors before and after this patch:
+Looks good. Feel free to add:
 
-void iowrite32(u32 val, void __iomem *addr)
-{
-        IO_COND(addr, outl(val,port), writel(val, addr));
-}
-void iowrite32be(u32 val, void __iomem *addr)
-{
-        IO_COND(addr, pio_write32be(val,port), mmio_write32be(val, addr));
-}
+Acked-by: Jan Kara <jack@suse.cz>
 
-The little-endian iowrite32() when applied to mmio registers uses
-a 32-bit wide atomic store to a little-endian register with barriers to
-order against both spinlocks and DMA.
-
-The big-endian iowrite32be() on the same pointer uses a nonatomic
-store with no barriers whatsoever and the opposite endianess.
-
-On most architectures, this is not important:
-- For x86, the stores are aways atomic and no additional barriers
-  are needed, so the two are the same
-- For ARM (both 32 and 64-bit), powerpc and many others, we don't
-  use the generic iowrite() and just fall back to writel() or
-  writel(swab32()).
-
-However, shouldn't we just use the writel(swab32()) logic here as well
-for the common case rather than risking missing barriers?
-
-       Arnd
+								Honza
+> ---
+>  fs/notify/fanotify/fanotify_user.c | 14 ++++++++++----
+>  1 file changed, 10 insertions(+), 4 deletions(-)
+> 
+> diff --git a/fs/notify/fanotify/fanotify_user.c b/fs/notify/fanotify/fanotify_user.c
+> index c07eb3d655ea..fa803a58a605 100644
+> --- a/fs/notify/fanotify/fanotify_user.c
+> +++ b/fs/notify/fanotify/fanotify_user.c
+> @@ -820,9 +820,8 @@ SYSCALL_DEFINE2(fanotify_init, unsigned int, flags, unsigned int, event_f_flags)
+>  	return fd;
+>  }
+>  
+> -SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
+> -			      __u64, mask, int, dfd,
+> -			      const char  __user *, pathname)
+> +static int do_fanotify_mark(int fanotify_fd, unsigned int flags, __u64 mask,
+> +			    int dfd, const char  __user *pathname)
+>  {
+>  	struct inode *inode = NULL;
+>  	struct vfsmount *mnt = NULL;
+> @@ -928,13 +927,20 @@ SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
+>  	return ret;
+>  }
+>  
+> +SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
+> +			      __u64, mask, int, dfd,
+> +			      const char  __user *, pathname)
+> +{
+> +	return do_fanotify_mark(fanotify_fd, flags, mask, dfd, pathname);
+> +}
+> +
+>  #ifdef CONFIG_COMPAT
+>  COMPAT_SYSCALL_DEFINE6(fanotify_mark,
+>  				int, fanotify_fd, unsigned int, flags,
+>  				__u32, mask0, __u32, mask1, int, dfd,
+>  				const char  __user *, pathname)
+>  {
+> -	return sys_fanotify_mark(fanotify_fd, flags,
+> +	return do_fanotify_mark(fanotify_fd, flags,
+>  #ifdef __BIG_ENDIAN
+>  				((__u64)mask0 << 32) | mask1,
+>  #else
+> -- 
+> 2.16.2
+> 
+-- 
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
