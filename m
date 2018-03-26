@@ -1,60 +1,74 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v13 01/10] iomap: Use correct endian conversion function
- in mmio_writeXXbe
-Date: Mon, 26 Mar 2018 12:53:04 +0200
-Message-ID: <CAK8P3a25zQDxyaY3iVv+JmSSzs7F6ssGc+HdBkGs54ZfViX+Fg@mail.gmail.com>
-References: <20180321163745.12286-1-logang@deltatee.com> <20180321163745.12286-2-logang@deltatee.com>
+From: Jan Kara <jack@suse.cz>
+Subject: Re: [PATCH 16/45] inotify: add do_inotify_init() helper; remove
+ in-kernel call to syscall
+Date: Mon, 26 Mar 2018 14:25:29 +0200
+Message-ID: <20180326122529.we33jshyregw37go@quack2.suse.cz>
+References: <20180322090059.19361-1-linux@dominikbrodowski.net>
+ <20180322090059.19361-17-linux@dominikbrodowski.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180321163745.12286-2-logang@deltatee.com>
+Content-Disposition: inline
+In-Reply-To: <20180322090059.19361-17-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Logan Gunthorpe <logang@deltatee.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org, Jan Kara <jack@suse.cz>, Amir Goldstein <amir73il@gmail.com>, linux-fsdevel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 21, 2018 at 5:37 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
-> The semantics of the iowriteXXbe() functions are to write a
-> value in CPU endianess to an IO register that is known by the
-> caller to be in Big Endian. The mmio_writeXXbe() macro, which
-> is called by iowriteXXbe(), should therefore use cpu_to_beXX()
-> instead of beXX_to_cpu().
->
-> Seeing both beXX_to_cpu() and cpu_to_beXX() are both functionally
-> implemented as either null operations or swabXX operations there
-> was no noticable bug here. But it is confusing for both developers
-> and code analysis tools alike.
->
-> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+On Thu 22-03-18 10:00:30, Dominik Brodowski wrote:
+> Using the inotify-internal do_inotify_init() helper allows us to get rid
+> of the in-kernel call to sys_inotify_init1() syscall.
+> 
+> This patch is part of a series which tries to remove in-kernel calls to
+> syscalls. On this basis, the syscall entry path can be streamlined.
+> 
+> Cc: Jan Kara <jack@suse.cz>
+> Cc: Amir Goldstein <amir73il@gmail.com>
+> Cc: linux-fsdevel@vger.kernel.org
+> Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 
-Your patch is a clear improvement of what we had before, but I notice
-that we have a weird asymmetry between big-endian and little-endian
-accessors before and after this patch:
+Looks good. Feel free to add:
 
-void iowrite32(u32 val, void __iomem *addr)
-{
-        IO_COND(addr, outl(val,port), writel(val, addr));
-}
-void iowrite32be(u32 val, void __iomem *addr)
-{
-        IO_COND(addr, pio_write32be(val,port), mmio_write32be(val, addr));
-}
+Acked-by: Jan Kara <jack@suse.cz>
 
-The little-endian iowrite32() when applied to mmio registers uses
-a 32-bit wide atomic store to a little-endian register with barriers to
-order against both spinlocks and DMA.
+								Honza
 
-The big-endian iowrite32be() on the same pointer uses a nonatomic
-store with no barriers whatsoever and the opposite endianess.
-
-On most architectures, this is not important:
-- For x86, the stores are aways atomic and no additional barriers
-  are needed, so the two are the same
-- For ARM (both 32 and 64-bit), powerpc and many others, we don't
-  use the generic iowrite() and just fall back to writel() or
-  writel(swab32()).
-
-However, shouldn't we just use the writel(swab32()) logic here as well
-for the common case rather than risking missing barriers?
-
-       Arnd
+> ---
+>  fs/notify/inotify/inotify_user.c | 9 +++++++--
+>  1 file changed, 7 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/notify/inotify/inotify_user.c b/fs/notify/inotify/inotify_user.c
+> index 2c908b31d6c9..43c23653ce2e 100644
+> --- a/fs/notify/inotify/inotify_user.c
+> +++ b/fs/notify/inotify/inotify_user.c
+> @@ -635,7 +635,7 @@ static struct fsnotify_group *inotify_new_group(unsigned int max_events)
+>  
+>  
+>  /* inotify syscalls */
+> -SYSCALL_DEFINE1(inotify_init1, int, flags)
+> +static int do_inotify_init(int flags)
+>  {
+>  	struct fsnotify_group *group;
+>  	int ret;
+> @@ -660,9 +660,14 @@ SYSCALL_DEFINE1(inotify_init1, int, flags)
+>  	return ret;
+>  }
+>  
+> +SYSCALL_DEFINE1(inotify_init1, int, flags)
+> +{
+> +	return do_inotify_init(flags);
+> +}
+> +
+>  SYSCALL_DEFINE0(inotify_init)
+>  {
+> -	return sys_inotify_init1(0);
+> +	return do_inotify_init(0);
+>  }
+>  
+>  SYSCALL_DEFINE3(inotify_add_watch, int, fd, const char __user *, pathname,
+> -- 
+> 2.16.2
+> 
+-- 
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
