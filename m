@@ -1,12 +1,12 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 12/19] csky: Debug and Ptrace GDB
-Date: Mon, 26 Mar 2018 15:06:21 +0200
-Message-ID: <CAK8P3a276dfzFE8kxYFx_RgJWx31px6M24tf+h7eRowma69Fhg@mail.gmail.com>
-References: <cover.1521399976.git.ren_guo@c-sky.com> <31d854396de0d279cdd3bc621806362e79cca60e.1521399976.git.ren_guo@c-sky.com>
+Subject: Re: [PATCH 17/19] csky: defconfig
+Date: Mon, 26 Mar 2018 15:16:31 +0200
+Message-ID: <CAK8P3a3L-zO3K5qcmBPChhSqh+E6WtNRFV1cJRbksGZ74uaEAQ@mail.gmail.com>
+References: <cover.1521399976.git.ren_guo@c-sky.com> <8a9c9b588cdfdf8b25ca9d449bf5c862d329c1d8.1521399976.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <31d854396de0d279cdd3bc621806362e79cca60e.1521399976.git.ren_guo@c-sky.com>
+In-Reply-To: <8a9c9b588cdfdf8b25ca9d449bf5c862d329c1d8.1521399976.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Guo Ren <ren_guo@c-sky.com>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
@@ -14,29 +14,171 @@ List-Id: linux-arch.vger.kernel.org
 
 On Sun, Mar 18, 2018 at 8:51 PM, Guo Ren <ren_guo@c-sky.com> wrote:
 > Signed-off-by: Guo Ren <ren_guo@c-sky.com>
+> ---
+>  arch/csky/configs/gx66xx_defconfig     | 549 +++++++++++++++++++++++++++++++++
+>  arch/csky/configs/qemu_ck807_defconfig | 541 ++++++++++++++++++++++++++++++++
+>  2 files changed, 1090 insertions(+)
+>  create mode 100644 arch/csky/configs/gx66xx_defconfig
+>  create mode 100644 arch/csky/configs/qemu_ck807_defconfig
 
-> + */
-> +long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-> +               unsigned long data)
-> +{
-> +       unsigned long tmp = 0, ret = 0;
-> +       int i;
-> +
-> +       switch (request) {
-> +               /* read the word at location addr in the USER area. */
-> +       case PTRACE_PEEKUSR:
+These look a lot longer than they should be, they contain many symbols
+that I suspenc
+are not needed or useful for you.
 
-> +
-> +       case PTRACE_POKEUSR:  /* write the word at location addr in the USER area */
+> diff --git a/arch/csky/configs/gx66xx_defconfig b/arch/csky/configs/gx66xx_defconfig
+> new file mode 100644
+> index 0000000..7f2a987
+> --- /dev/null
+> +++ b/arch/csky/configs/gx66xx_defconfig
+> @@ -0,0 +1,549 @@
+> +# CONFIG_LOCALVERSION_AUTO is not set
+> +CONFIG_DEFAULT_HOSTNAME="github.com/c-sky"
 
-> +       case PTRACE_GETREGS:    /* Get all gp regs from the child. */
+This is not a well-formed hostname
 
-> +       case PTRACE_SETREGS:    /* Set all gp regs in the child. */
-> +               for (i = 0; i <= CSKY_GREG_NUM; i++) {
-> +                       ret = get_user(tmp, (unsigned long *)data);
+> +# CONFIG_SWAP is not set
+> +CONFIG_SYSVIPC=y
+> +CONFIG_POSIX_MQUEUE=y
+> +# CONFIG_FHANDLE is not set
+> +CONFIG_USELIB=y
+> +CONFIG_AUDIT=y
+> +CONFIG_IRQ_DOMAIN_DEBUG=y
+> +CONFIG_NO_HZ_IDLE=y
+> +CONFIG_HIGH_RES_TIMERS=y
+> +CONFIG_BSD_PROCESS_ACCT=y
+> +CONFIG_BSD_PROCESS_ACCT_V3=y
+> +CONFIG_RELAY=y
+> +CONFIG_SYSCTL_SYSCALL=y
+> +CONFIG_KALLSYMS_ALL=y
+> +# CONFIG_AIO is not set
 
+Disabling swap, fhandle or AIO seems odd, those are commonly
+used symbols.
 
-I think all of these should use the regset code like arch/riscv/kernel/ptrace.c
-does.
+> +CONFIG_USERFAULTFD=y
+> +CONFIG_EMBEDDED=y
 
-       Arnd
+CONFIG_EMBEDDED should generally not be selected, it's only for
+very unusual configurations that need to disable symbols that are
+normally required.
+
+> +# CONFIG_PERF_EVENTS is not set
+> +# CONFIG_SLUB_DEBUG is not set
+> +# CONFIG_COMPAT_BRK is not set
+> +CONFIG_PROFILING=y
+> +CONFIG_OPROFILE=y
+
+oprofile can go now, since you said you'd remove the code.
+
+> +CONFIG_MODULES=y
+> +CONFIG_MODULE_UNLOAD=y
+
+> +CONFIG_BLK_DEV_BSGLIB=y
+> +CONFIG_BLK_DEV_INTEGRITY=y
+> +CONFIG_PARTITION_ADVANCED=y
+> +CONFIG_ACORN_PARTITION=y
+> +CONFIG_ACORN_PARTITION_ICS=y
+> +CONFIG_ACORN_PARTITION_RISCIX=y
+> +CONFIG_AIX_PARTITION=y
+> +CONFIG_OSF_PARTITION=y
+> +CONFIG_AMIGA_PARTITION=y
+> +CONFIG_ATARI_PARTITION=y
+> +CONFIG_MAC_PARTITION=y
+> +CONFIG_BSD_DISKLABEL=y
+> +CONFIG_MINIX_SUBPARTITION=y
+> +CONFIG_SOLARIS_X86_PARTITION=y
+> +CONFIG_UNIXWARE_DISKLABEL=y
+> +CONFIG_LDM_PARTITION=y
+> +CONFIG_SGI_PARTITION=y
+> +CONFIG_ULTRIX_PARTITION=y
+> +CONFIG_SUN_PARTITION=y
+> +CONFIG_KARMA_PARTITION=y
+> +CONFIG_SYSV68_PARTITION=y
+
+These block device configuration options all seem misplaced
+here, it's extremely unlikely that you need them.
+
+> +CONFIG_CMDLINE_PARTITION=y
+> +CONFIG_DEFAULT_DEADLINE=y
+> +CONFIG_FB_NATIONALCHIP=y
+> +CONFIG_RAM_BASE=0x10000000
+> +# CONFIG_SUSPEND is not set
+> +# CONFIG_COMPACTION is not set
+> +CONFIG_NET=y
+> +CONFIG_PACKET=y
+> +CONFIG_UNIX=y
+> +CONFIG_INET=y
+> +CONFIG_IP_MULTICAST=y
+> +CONFIG_IP_PNP=y
+> +CONFIG_IP_PNP_DHCP=y
+> +CONFIG_IP_PNP_BOOTP=y
+> +CONFIG_IP_PNP_RARP=y
+> +# CONFIG_IPV6 is not set
+> +CONFIG_CFG80211=y
+> +CONFIG_CFG80211_DEBUGFS=y
+> +CONFIG_CFG80211_WEXT=y
+
+I would guess you want IPV6 but not WEXT here.
+
+> +CONFIG_MAC80211=y
+> +CONFIG_MAC80211_DEBUGFS=y
+> +CONFIG_RFKILL=y
+> +CONFIG_RFKILL_INPUT=y
+> +CONFIG_RFKILL_GPIO=y
+> +CONFIG_DEVTMPFS=y
+> +CONFIG_DEVTMPFS_MOUNT=y
+> +# CONFIG_STANDALONE is not set
+
+No need to turn this off, it might just get in the way of build
+testing.
+
+> +CONFIG_KEYBOARD_ADP5588=m
+> +CONFIG_KEYBOARD_ADP5589=m
+> +CONFIG_KEYBOARD_QT1070=m
+> +CONFIG_KEYBOARD_QT2160=m
+> +CONFIG_KEYBOARD_LKKBD=m
+
+There are many input devices listed here, most of which you almost
+certainly won't need.
+
+> +CONFIG_IPMI_HANDLER=y
+> +CONFIG_IPMI_DEVICE_INTERFACE=m
+> +CONFIG_IPMI_SI=m
+> +CONFIG_IPMI_WATCHDOG=m
+> +CONFIG_IPMI_POWEROFF=m
+
+Are you sure you have IPMI hardware?
+
+> +CONFIG_FB=y
+> +CONFIG_FB_TILEBLITTING=y
+> +CONFIG_FB_SIMPLE=y
+> +CONFIG_BACKLIGHT_LCD_SUPPORT=y
+> +# CONFIG_LCD_CLASS_DEVICE is not set
+> +# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
+> +# CONFIG_VGA_CONSOLE is not set
+> +CONFIG_FRAMEBUFFER_CONSOLE=y
+> +CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
+> +CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
+> +CONFIG_LOGO=y
+> +# CONFIG_LOGO_LINUX_MONO is not set
+> +# CONFIG_LOGO_LINUX_VGA16 is not set
+
+For new platforms, using the DRM subsystem is the recommend
+way to do graphics, it mostly replaces the framebuffer subsystem
+here.
+
+> +CONFIG_STE_MODEM_RPROC=m
+
+I think this is no longer there.
+
+> +CONFIG_EXT2_FS=y
+> +CONFIG_EXT2_FS_XATTR=y
+> +CONFIG_EXT2_FS_POSIX_ACL=y
+> +CONFIG_EXT2_FS_SECURITY=y
+> +CONFIG_EXT3_FS=y
+> +CONFIG_EXT3_FS_POSIX_ACL=y
+> +CONFIG_EXT3_FS_SECURITY=y
+
+Better use EXT4 for the defconfig instead.
+
+        Arnd
