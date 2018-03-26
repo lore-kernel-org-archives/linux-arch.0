@@ -1,125 +1,131 @@
-From: Jan Kara <jack@suse.cz>
-Subject: Re: [PATCH 19/45] fs/quota: use COMPAT_SYSCALL_DEFINE for
- sys32_quotactl()
-Date: Mon, 26 Mar 2018 14:33:24 +0200
-Message-ID: <20180326123324.rmjtr5fkdodojvb3@quack2.suse.cz>
-References: <20180322090059.19361-1-linux@dominikbrodowski.net>
- <20180322090059.19361-20-linux@dominikbrodowski.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 15/19] csky: Build infrastructure
+Date: Mon, 26 Mar 2018 15:00:00 +0200
+Message-ID: <CAK8P3a06MVAT35ZbG=gRkR1EDVdWPoT3bhwL+9fZSkmTHaDVBw@mail.gmail.com>
+References: <cover.1521399976.git.ren_guo@c-sky.com> <c15b1fce07d0a19616026dfb927bfcbd88102b12.1521399976.git.ren_guo@c-sky.com>
+ <CAK8P3a1rzS+MmubYqTE-8H89QnULcGbKth=eWTA5mJ5VLRNL0Q@mail.gmail.com>
+ <20180320131342.GA31542@guoren> <CAK8P3a3pat6wQ+9gbf_wtp6+dur_h=Zp1896rogZHnehVnqVNA@mail.gmail.com>
+ <20180321124137.GA21320@guoren>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180322090059.19361-20-linux@dominikbrodowski.net>
+In-Reply-To: <20180321124137.GA21320@guoren>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dominik Brodowski <linux@dominikbrodowski.net>
-Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, viro@ZenIV.linux.org.uk, arnd@arndb.de, linux-arch@vger.kernel.org, Jan Kara <jack@suse.com>, Christoph Hellwig <hch@infradead.org>
+To: Guo Ren <ren_guo@c-sky.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu 22-03-18 10:00:33, Dominik Brodowski wrote:
-> While sys32_quotactl() is only needed on x86, it can use the recommended
-> COMPAT_SYSCALL_DEFINEx() machinery for its setup.
-> 
-> Cc: Jan Kara <jack@suse.com>
-> Cc: Christoph Hellwig <hch@infradead.org>
-> Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
+On Wed, Mar 21, 2018 at 1:41 PM, Guo Ren <ren_guo@c-sky.com> wrote:
+> Hi arnd,
+>
+> On Wed, Mar 21, 2018 at 03:36:43PM +0800, Arnd Bergmann wrote:
+>> If the clocksource depends on a driver rather than a feature of the
+>> architecture,
+>> this may not be worth optimizing though, so maybe leave it as it is for now.
+>>
+> Ok, I'll keep it.
+>
+>> >> Usually the kernel should allow multiple CPU types to be selected
+>> >> together, or ask for a "minimum architecture" level to be selected
+>> >> by allow newer cores to be used as a superset.
+>> > No, I need keep them seperate.
+>>
+>> Can you explain? What is it that makes them all incompatible?
+> ck610 is abiv1 and its gcc is different from abiv2, they are:
+>  - csky-linux-abiv1-gcc
+>  - csky-linux-abiv2-gcc
+>
+> ck807/810/860 use the same csky-linux-abiv2-gcc, but their instruction-sets
+> and pipeline schedule are different. So our gcc must&only use '-mcpu=' to
+> determine which cpu series is. They are different cpu series.
+>
+>     ck610 only  have: ck610
+>     ck807 could have: ck807 ck807f ck807vf ck807ef
+>     ck810 could have: ck810 ck810f ck810vf ck810ef
+>     ck860 could have: ck860 ck860f ck860vf
+>   f: means FPU co-processor
+>   v: means VDSP co-processor just like "ARM-NEON"
+>   e: is our old DSP co-processor which use HI-LO regs for operation. In
+>   current ck807/ck810 they default have HI-LO regs, so ck807&ck807e is
+>   the same for me.
+>
+> For this patch-set, we support:
+>    ck610
+>   (ck807/ck807f/ck807ef)
+>   (ck810/ck810e/ck810ef)
 
-Looks good AFAICT. You can add:
+Ok, I understand the part about ck610 being incompatible, but I'm
+still not sure about the 8xx ones: Do you mean it's impossible to
+have one kernel that runs across all of them for some other reason,
+or is it something you haven't allowed because you see no use for it?
 
-Acked-by: Jan Kara <jack@suse.cz>
+>> >> > +config CPU_TLB_SIZE
+>> >> > +       int
+>> >> > +       default "128"   if(CPU_CK610 || CPU_CK807 || CPU_CK810)
+>> >> > +       default "1024"  if(CPU_CK860)
+>> >> > +
+>> >> > +config L1_CACHE_SHIFT
+>> >> > +       int
+>> >> > +       default "4"     if(CPU_CK610)
+>> >> > +       default "5"     if(CPU_CK807 || CPU_CK810)
+>> >> > +       default "6"     if(CPU_CK860)
+>> >>
+>> >> I think you then need to reverse the order of the list here: When e.g. CK860
+>> >> and CK810 are both enabled, L1_CACHE_SHIFT should be the largest
+>> >> possible size.
+>> > No, I use L1_CACHE_SHIFT to determine the size of cache_line.
+>> > When I flush cache for a range of memory, I need the size to loop flush cache line.
+>>
+>> This is still relatively easy to fix, you just need a cpu specific loop
+>> that uses the actual line size rather than the maximum size.
+> Here is my cacheflush code in mm/cachev2.c:
+>         #define L1_CACHE_BYTES (1<<L1_CACHE_SHIFT)
+>         for(i=start; i<end; i+=L1_CACHE_BYTES)
+>                 asm volatile("dcache.cval1 %0\n"::"r"(i));
+>         asm volatile("sync.is\n");
+>
+> I use L1_CACHE_BYTES as the loop element to increase. So it must be the
+> current CPU cache line size for "correct&performance". Each of our CPU-series
+> has a fixed cache line size:
+> ck610 is 16Bytes
+> ck807/ck810 is 32Bytes
+> ck860 is 64Bytes
+> So I don't need determine them in .dts or detect on boot, just define them in Kconfig.
 
-								Honza
+This is basically the same question as above: For c610, using the fixed
+value is sufficient, because it's incompatible with the others. But if you want
+to run the same kernel on both ck810 and ck860, then it needs some form
+of runtime detection.
 
+On other architectures, the L1_CACHE_BYTES constant is the maximum
+possible cache line size, and the cache flush function uses the actual size
 
-> ---
->  arch/x86/entry/syscalls/syscall_32.tbl | 2 +-
->  fs/quota/compat.c                      | 5 +++--
->  include/linux/compat.h                 | 3 +++
->  include/linux/syscalls.h               | 4 +---
->  kernel/sys_ni.c                        | 2 +-
->  5 files changed, 9 insertions(+), 7 deletions(-)
-> 
-> diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-> index 2a5e99cff859..09338dd2bd94 100644
-> --- a/arch/x86/entry/syscalls/syscall_32.tbl
-> +++ b/arch/x86/entry/syscalls/syscall_32.tbl
-> @@ -137,7 +137,7 @@
->  128	i386	init_module		sys_init_module
->  129	i386	delete_module		sys_delete_module
->  130	i386	get_kernel_syms
-> -131	i386	quotactl		sys_quotactl			sys32_quotactl
-> +131	i386	quotactl		sys_quotactl			compat_sys_quotactl32
->  132	i386	getpgid			sys_getpgid
->  133	i386	fchdir			sys_fchdir
->  134	i386	bdflush			sys_bdflush
-> diff --git a/fs/quota/compat.c b/fs/quota/compat.c
-> index 1577a2fd51f4..c30572857619 100644
-> --- a/fs/quota/compat.c
-> +++ b/fs/quota/compat.c
-> @@ -41,8 +41,9 @@ struct compat_fs_quota_stat {
->  	__u16		qs_iwarnlimit;
->  };
->  
-> -asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
-> -						qid_t id, void __user *addr)
-> +COMPAT_SYSCALL_DEFINE4(quotactl32, unsigned int, cmd,
-> +		       const char __user *, special, qid_t, id,
-> +		       void __user *, addr)
->  {
->  	unsigned int cmds;
->  	struct if_dqblk __user *dqblk;
-> diff --git a/include/linux/compat.h b/include/linux/compat.h
-> index 16c3027074a2..f1649a5e6716 100644
-> --- a/include/linux/compat.h
-> +++ b/include/linux/compat.h
-> @@ -461,6 +461,9 @@ asmlinkage ssize_t compat_sys_pwritev2(compat_ulong_t fd,
->  		const struct compat_iovec __user *vec,
->  		compat_ulong_t vlen, u32 pos_low, u32 pos_high, rwf_t flags);
->  
-> +asmlinkage long compat_sys_quotactl32(unsigned int cmd,
-> +		const char __user *special, qid_t id, void __user *addr);
-> +
->  #ifdef __ARCH_WANT_COMPAT_SYS_PREADV64
->  asmlinkage long compat_sys_preadv64(unsigned long fd,
->  		const struct compat_iovec __user *vec,
-> diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-> index f30083190ae4..a3f42f5f3b08 100644
-> --- a/include/linux/syscalls.h
-> +++ b/include/linux/syscalls.h
-> @@ -241,8 +241,6 @@ static inline void addr_limit_user_check(void)
->  #endif
->  }
->  
-> -asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
-> -			       qid_t id, void __user *addr);
->  asmlinkage long sys_time(time_t __user *tloc);
->  asmlinkage long sys_stime(time_t __user *tptr);
->  asmlinkage long sys_gettimeofday(struct timeval __user *tv,
-> @@ -625,7 +623,7 @@ asmlinkage long sys_chdir(const char __user *filename);
->  asmlinkage long sys_fchdir(unsigned int fd);
->  asmlinkage long sys_rmdir(const char __user *pathname);
->  asmlinkage long sys_lookup_dcookie(u64 cookie64, char __user *buf, size_t len);
-> -asmlinkage long sys_quotactl(unsigned int cmd, const char __user *special,
-> +asmlinkage long sys_quotactl32(unsigned int cmd, const char __user *special,
->  				qid_t id, void __user *addr);
->  asmlinkage long sys_getdents(unsigned int fd,
->  				struct linux_dirent __user *dirent,
-> diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
-> index b5189762d275..951dbda5c2b4 100644
-> --- a/kernel/sys_ni.c
-> +++ b/kernel/sys_ni.c
-> @@ -18,7 +18,7 @@ asmlinkage long sys_ni_syscall(void)
->  }
->  
->  cond_syscall(sys_quotactl);
-> -cond_syscall(sys32_quotactl);
-> +cond_syscall(compat_sys_quotactl32);
->  cond_syscall(sys_acct);
->  cond_syscall(sys_lookup_dcookie);
->  cond_syscall(compat_sys_lookup_dcookie);
-> -- 
-> 2.16.2
-> 
-> 
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+>> >> > +config SSEG0_BASE
+>> >> > +       hex "Direct mapping physical address"
+>> >> > +       default 0x0
+>> >> > +       help
+>> >> > +         There are MSAx regs can be used to change the base physical address
+>> >> > +         of direct mapping. The default base physical address is 0x0.
+>> >> > +
+>> >> > +config RAM_BASE
+>> >> > +       hex "DRAM base address offset from SSEG0_BASE, it must be the same with dts memory."
+>> >> > +       default 0x08000000
+>> >>
+>> >> To allow one kernel to run on multiple boards, it's better to detect
+>> >> these two at runtime.
+>> > CK-CPUs have a mips-like direct-mapping, and I use the macros to calculate the virtual-addr
+>> > in headers.
+>>
+>> On many architectures, we detect the offsets at boot time and pass
+>> them as variables. On
+>> ARM, we go as far as patching the kernel at boot time to have constant
+>> offsets, but usually
+>> it's not worth the effort.
+> I know it's duplicate setting with dts for users. But now, I still want
+> to keep them. I'll consider your advices in future.
+
+Ok. Just make sure that the DT always has this information as well,
+so this can be changed in the future when desired, without having to
+make incompatible changes to the devicetree binary files.
+
+       Arnd
