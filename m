@@ -1,184 +1,65 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 17/19] csky: defconfig
-Date: Mon, 26 Mar 2018 15:16:31 +0200
-Message-ID: <CAK8P3a3L-zO3K5qcmBPChhSqh+E6WtNRFV1cJRbksGZ74uaEAQ@mail.gmail.com>
-References: <cover.1521399976.git.ren_guo@c-sky.com> <8a9c9b588cdfdf8b25ca9d449bf5c862d329c1d8.1521399976.git.ren_guo@c-sky.com>
+Subject: Re: [PATCH 00/19] C-SKY(csky) Linux Kernel Port
+Date: Mon, 26 Mar 2018 15:30:34 +0200
+Message-ID: <CAK8P3a3KwvNpYUXG-CqfF7V0GQ3sv_CoPmajq_+06aqkLiUFXw@mail.gmail.com>
+References: <cover.1521399976.git.ren_guo@c-sky.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <8a9c9b588cdfdf8b25ca9d449bf5c862d329c1d8.1521399976.git.ren_guo@c-sky.com>
+In-Reply-To: <cover.1521399976.git.ren_guo@c-sky.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Guo Ren <ren_guo@c-sky.com>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
 List-Id: linux-arch.vger.kernel.org
 
 On Sun, Mar 18, 2018 at 8:51 PM, Guo Ren <ren_guo@c-sky.com> wrote:
-> Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> ---
->  arch/csky/configs/gx66xx_defconfig     | 549 +++++++++++++++++++++++++++++++++
->  arch/csky/configs/qemu_ck807_defconfig | 541 ++++++++++++++++++++++++++++++++
->  2 files changed, 1090 insertions(+)
->  create mode 100644 arch/csky/configs/gx66xx_defconfig
->  create mode 100644 arch/csky/configs/qemu_ck807_defconfig
+> This patchset adds architecture support to Linux for C-SKY's 32-bit embedded
+> CPU cores and the patches are based on linux-4.16-rc5.
+>
+> There are two ABI versions with several CPU cores in this patchset:
+>   ABIv1: ck610 (16-bit instruction, 32-bit data path, VIPT Cache ...)
+>   ABIv2: ck807 ck810 (16/32-bit variable length instruction, PIPT Cache ...)
+>
+> More information: http://en.c-sky.com
+>
+> I'm from Hangzhou,China C-SKY Microsystems and responsible for C-SKY Linux
+> port. My development repo is github.com/c-sky/csky-linux and use buildroot
+> as our CI-test enviornment. "LTP, Lmbench, uclibc-ng-test ..." will be tested
+> for every commit. See here for more details:
+>   https://gitlab.com/c-sky/buildroot/pipelines
+>
+> You can try C-SKY linux in a few steps:
+>   $ git clone https://github.com/c-sky/buildroot.git
+>   $ cd buildroot
+>   $ make qemu_csky_ck807_uclibc_bt_defconfig
+>   $ make
+> It will download "linux uclibc-ng gcc binutils qemu busybox" source code and build
+> them into one image. How to run, See:
+>   https://github.com/c-sky/buildroot/blob/master/board/qemu/csky/readme.txt
+>
+> I've finished uClibc-ng.org upstream and "gcc glibc binutils qemu ..." upstream is
+> on going and the source code is here:
+>   https://github.com/c-sky
+>
+> It's my first patchset to linux and any feedback is welcome :)
 
-These look a lot longer than they should be, they contain many symbols
-that I suspenc
-are not needed or useful for you.
+Thanks for your submission. I had started reviewing it over a week
+ago, but never
+completed since I was travelling in the meantime. I've completed my first pass
+now and will wait for a new version before I take a more detailed look.
 
-> diff --git a/arch/csky/configs/gx66xx_defconfig b/arch/csky/configs/gx66xx_defconfig
-> new file mode 100644
-> index 0000000..7f2a987
-> --- /dev/null
-> +++ b/arch/csky/configs/gx66xx_defconfig
-> @@ -0,0 +1,549 @@
-> +# CONFIG_LOCALVERSION_AUTO is not set
-> +CONFIG_DEFAULT_HOSTNAME="github.com/c-sky"
+Overall, it looks nice, but changing the rest of the system call interface will
+take a while, this includes several points I've mentioned already, but
+to clarify,
+every file in arch/csky/include/uapi/asm/ needs to be carefully reviewed to
+contain only the minimum required additions to the asm-generic version.
 
-This is not a well-formed hostname
+Changing the ABI will obviously get in the way of testing, but this should
+be over as soon as the port is merged.
 
-> +# CONFIG_SWAP is not set
-> +CONFIG_SYSVIPC=y
-> +CONFIG_POSIX_MQUEUE=y
-> +# CONFIG_FHANDLE is not set
-> +CONFIG_USELIB=y
-> +CONFIG_AUDIT=y
-> +CONFIG_IRQ_DOMAIN_DEBUG=y
-> +CONFIG_NO_HZ_IDLE=y
-> +CONFIG_HIGH_RES_TIMERS=y
-> +CONFIG_BSD_PROCESS_ACCT=y
-> +CONFIG_BSD_PROCESS_ACCT_V3=y
-> +CONFIG_RELAY=y
-> +CONFIG_SYSCTL_SYSCALL=y
-> +CONFIG_KALLSYMS_ALL=y
-> +# CONFIG_AIO is not set
+Another interesting question is the status of your toolchain support. I see your
+github account contains binutils and gcc repositories, but they are not upstream
+yet. Are you working on getting those included in the respective upstream
+projects already?
 
-Disabling swap, fhandle or AIO seems odd, those are commonly
-used symbols.
-
-> +CONFIG_USERFAULTFD=y
-> +CONFIG_EMBEDDED=y
-
-CONFIG_EMBEDDED should generally not be selected, it's only for
-very unusual configurations that need to disable symbols that are
-normally required.
-
-> +# CONFIG_PERF_EVENTS is not set
-> +# CONFIG_SLUB_DEBUG is not set
-> +# CONFIG_COMPAT_BRK is not set
-> +CONFIG_PROFILING=y
-> +CONFIG_OPROFILE=y
-
-oprofile can go now, since you said you'd remove the code.
-
-> +CONFIG_MODULES=y
-> +CONFIG_MODULE_UNLOAD=y
-
-> +CONFIG_BLK_DEV_BSGLIB=y
-> +CONFIG_BLK_DEV_INTEGRITY=y
-> +CONFIG_PARTITION_ADVANCED=y
-> +CONFIG_ACORN_PARTITION=y
-> +CONFIG_ACORN_PARTITION_ICS=y
-> +CONFIG_ACORN_PARTITION_RISCIX=y
-> +CONFIG_AIX_PARTITION=y
-> +CONFIG_OSF_PARTITION=y
-> +CONFIG_AMIGA_PARTITION=y
-> +CONFIG_ATARI_PARTITION=y
-> +CONFIG_MAC_PARTITION=y
-> +CONFIG_BSD_DISKLABEL=y
-> +CONFIG_MINIX_SUBPARTITION=y
-> +CONFIG_SOLARIS_X86_PARTITION=y
-> +CONFIG_UNIXWARE_DISKLABEL=y
-> +CONFIG_LDM_PARTITION=y
-> +CONFIG_SGI_PARTITION=y
-> +CONFIG_ULTRIX_PARTITION=y
-> +CONFIG_SUN_PARTITION=y
-> +CONFIG_KARMA_PARTITION=y
-> +CONFIG_SYSV68_PARTITION=y
-
-These block device configuration options all seem misplaced
-here, it's extremely unlikely that you need them.
-
-> +CONFIG_CMDLINE_PARTITION=y
-> +CONFIG_DEFAULT_DEADLINE=y
-> +CONFIG_FB_NATIONALCHIP=y
-> +CONFIG_RAM_BASE=0x10000000
-> +# CONFIG_SUSPEND is not set
-> +# CONFIG_COMPACTION is not set
-> +CONFIG_NET=y
-> +CONFIG_PACKET=y
-> +CONFIG_UNIX=y
-> +CONFIG_INET=y
-> +CONFIG_IP_MULTICAST=y
-> +CONFIG_IP_PNP=y
-> +CONFIG_IP_PNP_DHCP=y
-> +CONFIG_IP_PNP_BOOTP=y
-> +CONFIG_IP_PNP_RARP=y
-> +# CONFIG_IPV6 is not set
-> +CONFIG_CFG80211=y
-> +CONFIG_CFG80211_DEBUGFS=y
-> +CONFIG_CFG80211_WEXT=y
-
-I would guess you want IPV6 but not WEXT here.
-
-> +CONFIG_MAC80211=y
-> +CONFIG_MAC80211_DEBUGFS=y
-> +CONFIG_RFKILL=y
-> +CONFIG_RFKILL_INPUT=y
-> +CONFIG_RFKILL_GPIO=y
-> +CONFIG_DEVTMPFS=y
-> +CONFIG_DEVTMPFS_MOUNT=y
-> +# CONFIG_STANDALONE is not set
-
-No need to turn this off, it might just get in the way of build
-testing.
-
-> +CONFIG_KEYBOARD_ADP5588=m
-> +CONFIG_KEYBOARD_ADP5589=m
-> +CONFIG_KEYBOARD_QT1070=m
-> +CONFIG_KEYBOARD_QT2160=m
-> +CONFIG_KEYBOARD_LKKBD=m
-
-There are many input devices listed here, most of which you almost
-certainly won't need.
-
-> +CONFIG_IPMI_HANDLER=y
-> +CONFIG_IPMI_DEVICE_INTERFACE=m
-> +CONFIG_IPMI_SI=m
-> +CONFIG_IPMI_WATCHDOG=m
-> +CONFIG_IPMI_POWEROFF=m
-
-Are you sure you have IPMI hardware?
-
-> +CONFIG_FB=y
-> +CONFIG_FB_TILEBLITTING=y
-> +CONFIG_FB_SIMPLE=y
-> +CONFIG_BACKLIGHT_LCD_SUPPORT=y
-> +# CONFIG_LCD_CLASS_DEVICE is not set
-> +# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
-> +# CONFIG_VGA_CONSOLE is not set
-> +CONFIG_FRAMEBUFFER_CONSOLE=y
-> +CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
-> +CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
-> +CONFIG_LOGO=y
-> +# CONFIG_LOGO_LINUX_MONO is not set
-> +# CONFIG_LOGO_LINUX_VGA16 is not set
-
-For new platforms, using the DRM subsystem is the recommend
-way to do graphics, it mostly replaces the framebuffer subsystem
-here.
-
-> +CONFIG_STE_MODEM_RPROC=m
-
-I think this is no longer there.
-
-> +CONFIG_EXT2_FS=y
-> +CONFIG_EXT2_FS_XATTR=y
-> +CONFIG_EXT2_FS_POSIX_ACL=y
-> +CONFIG_EXT2_FS_SECURITY=y
-> +CONFIG_EXT3_FS=y
-> +CONFIG_EXT3_FS_POSIX_ACL=y
-> +CONFIG_EXT3_FS_SECURITY=y
-
-Better use EXT4 for the defconfig instead.
-
-        Arnd
+      Arnd
