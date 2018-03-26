@@ -1,49 +1,60 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH v4 2/3] arm64: Implement page table free interfaces
-Date: Mon, 26 Mar 2018 10:55:41 +0100
-Message-ID: <20180326095541.izogc4iak6d7nerm@lakrids.cambridge.arm.com>
-References: <1521546314-31753-1-git-send-email-cpandya@codeaurora.org>
- <1521546314-31753-3-git-send-email-cpandya@codeaurora.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v13 01/10] iomap: Use correct endian conversion function
+ in mmio_writeXXbe
+Date: Mon, 26 Mar 2018 12:53:04 +0200
+Message-ID: <CAK8P3a25zQDxyaY3iVv+JmSSzs7F6ssGc+HdBkGs54ZfViX+Fg@mail.gmail.com>
+References: <20180321163745.12286-1-logang@deltatee.com> <20180321163745.12286-2-logang@deltatee.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1521546314-31753-3-git-send-email-cpandya@codeaurora.org>
+In-Reply-To: <20180321163745.12286-2-logang@deltatee.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Chintan Pandya <cpandya@codeaurora.org>
-Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com
+To: Logan Gunthorpe <logang@deltatee.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-ntb@googlegroups.com, "open list:HARDWARE RANDOM NUMBER GENERATOR CORE" <linux-crypto@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Horia_Geant=C4=83?= <horia.geanta@nxp.com>, Philippe Ombredanne <pombredanne@nexb.com>, Thomas Gleixner <tglx@linutronix.de>, Kate Stewart <kstewart@linuxfoundation.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 20, 2018 at 05:15:13PM +0530, Chintan Pandya wrote:
-> +static int __pmd_free_pte_page(pmd_t *pmd, unsigned long addr, bool tlb_inv)
-> +{
-> +	pmd_t *table;
-> +
-> +	if (pmd_val(*pmd)) {
-> +		table = __va(pmd_val(*pmd));
-> +		pmd_clear(pmd);
-> +		/*
-> +		 * FIXME: __flush_tlb_pgtable(&init_mm, addr) is
-> +		 *        ideal candidate here, which exactly
-> +		 *        flushes intermediate pgtables. But,
-> +		 *        this is broken (evident from tests).
-> +		 *        So, use safe TLB op unless that is fixed.
-> +		 */
-> +		if (tlb_inv)
-> +			flush_tlb_kernel_range(addr, addr + PMD_SIZE);
+On Wed, Mar 21, 2018 at 5:37 PM, Logan Gunthorpe <logang@deltatee.com> wrote:
+> The semantics of the iowriteXXbe() functions are to write a
+> value in CPU endianess to an IO register that is known by the
+> caller to be in Big Endian. The mmio_writeXXbe() macro, which
+> is called by iowriteXXbe(), should therefore use cpu_to_beXX()
+> instead of beXX_to_cpu().
+>
+> Seeing both beXX_to_cpu() and cpu_to_beXX() are both functionally
+> implemented as either null operations or swabXX operations there
+> was no noticable bug here. But it is confusing for both developers
+> and code analysis tools alike.
+>
+> Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
 
-I don't think that __flush_tlb_pgtable() is broken. It's only valid to
-call it for user page tables, since it doesn't affect all ASIDs.
+Your patch is a clear improvement of what we had before, but I notice
+that we have a weird asymmetry between big-endian and little-endian
+accessors before and after this patch:
 
-We can add a simlar helper for kernel mappings, which affects all ASIDs,
-e.g.
-
-static inline void __flush_tlb_kernel_pgtable(unsigned long addr)
+void iowrite32(u32 val, void __iomem *addr)
 {
-	addr >>= 12;
-	__tlbi(vaae1is, addr);
-	dsb(ish);
+        IO_COND(addr, outl(val,port), writel(val, addr));
+}
+void iowrite32be(u32 val, void __iomem *addr)
+{
+        IO_COND(addr, pio_write32be(val,port), mmio_write32be(val, addr));
 }
 
-Thanks,
-Mark.
+The little-endian iowrite32() when applied to mmio registers uses
+a 32-bit wide atomic store to a little-endian register with barriers to
+order against both spinlocks and DMA.
+
+The big-endian iowrite32be() on the same pointer uses a nonatomic
+store with no barriers whatsoever and the opposite endianess.
+
+On most architectures, this is not important:
+- For x86, the stores are aways atomic and no additional barriers
+  are needed, so the two are the same
+- For ARM (both 32 and 64-bit), powerpc and many others, we don't
+  use the generic iowrite() and just fall back to writel() or
+  writel(swab32()).
+
+However, shouldn't we just use the writel(swab32()) logic here as well
+for the common case rather than risking missing barriers?
+
+       Arnd
