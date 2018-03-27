@@ -1,53 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:40389 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751202AbeC0SZB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Mar 2018 14:25:01 -0400
-Subject: Re: dma-mapping: clearing GFP_ZERO flag caused crashes of Ethernet on
- arc/hsdk board.
-References: <1522170774.2593.9.camel@synopsys.com>
- <CAHp75VeZSsdR1=ZhOM6jseYCP3m0GyE=8EjJUxWosze9BBw9rQ@mail.gmail.com>
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <a4bc637f-9464-c585-c6d2-663e2e38f18f@synopsys.com>
-Date: Tue, 27 Mar 2018 11:24:51 -0700
-MIME-Version: 1.0
-In-Reply-To: <CAHp75VeZSsdR1=ZhOM6jseYCP3m0GyE=8EjJUxWosze9BBw9rQ@mail.gmail.com>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
-Content-Language: en-US
+Received: from ale.deltatee.com ([207.54.116.67]:35470 "EHLO ale.deltatee.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752173AbeC0XIo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 27 Mar 2018 19:08:44 -0400
+From: Logan Gunthorpe <logang@deltatee.com>
+Date: Tue, 27 Mar 2018 17:08:34 -0600
+Message-ID: <20180327230834.5931-10-logang@deltatee.com>
+In-Reply-To: <20180327230834.5931-1-logang@deltatee.com>
+References: <20180327230834.5931-1-logang@deltatee.com>
+Subject: [PATCH v15 9/9] ntb: ntb_hw_switchtec: Cleanup 64bit IO defines to use the common header
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andy.shevchenko@gmail.com>, hch@lst.de
-Cc: Evgeniy Didin <Evgeniy.Didin@synopsys.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-Message-ID: <20180327182451.haMGEZZQAvB-7zSNMDxCjlUDZXmbYMoBz8o7QTVXKiU@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-ntb@googlegroups.com, linux-crypto@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>, Logan Gunthorpe <logang@deltatee.com>, Jon Mason <jdmason@kudzu.us>
+Message-ID: <20180327230834.lF2e0pHODFQbXKqpjhPFJ4UbusSpbsY9c90fh6WhqLk@z>
 
-Hi Christoph, Andy
+Clean up the ifdefs which conditionally defined the io{read|write}64
+functions in favour of the new common io-64-nonatomic-lo-hi header.
 
-On 03/27/2018 11:11 AM, Andy Shevchenko wrote:
-> On Tue, Mar 27, 2018 at 8:12 PM, Evgeniy Didin
-> <Evgeniy.Didin@synopsys.com> wrote:
->> Hello,
->>
->> After commit  57bf5a8963f8 ("dma-mapping: clear harmful GFP_* flags in common code")  we noticed problems with Ethernet controller on one of our platforms (namely ARC HSDK).
->> I
->> n particular we see that removal of __GFP_ZERO flag in function dma_alloc_attrs() was the culprit because in our implementation of arc_dma_alloc() we only allocate zeroed pages if
->> that flag is explicitly set by the caller. Now with unconditional removal of that flag in dma_alloc_attrs() we allocate non-zeroed pages and that seem to cause problems.
->>
->> From
->> mentioned commit message I may conclude that architectural code is supposed to always allocate zeroed pages but I cannot find any requirement of that in kernel's documentation.
->> Coul
->> d you please point me to that requirement if that exists at all, then we'll implement a fix in our arch code like that:
+Per a nit from Andy Shevchenko, the include list is also made
+alphabetical.
 
-[snip]
+Signed-off-by: Logan Gunthorpe <logang@deltatee.com>
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Jon Mason <jdmason@kudzu.us>
+---
+ drivers/ntb/hw/mscc/ntb_hw_switchtec.c | 36 ++++------------------------------
+ 1 file changed, 4 insertions(+), 32 deletions(-)
 
-> Another question why caller can't ask for zero pages explicitly?
-
-Question to whom ? The caller can ask for it - but the problem here is generic dma 
-API code is clearing out GFP_ZERO and expecting arch code to memst unconditionally 
-- is that expected of arch code - and is documented ?
-
-That is broken to begin with - arch dma_alloc* simply passes thru gfp flags to 
-page allocator and doesn't muck around with them. We could in theory but doesn't 
-seem like the right thing to do IMO.
-
--Vineet
+diff --git a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
+index f624ae27eabe..f403da24b833 100644
+--- a/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
++++ b/drivers/ntb/hw/mscc/ntb_hw_switchtec.c
+@@ -13,12 +13,13 @@
+  *
+  */
+ 
+-#include <linux/switchtec.h>
+-#include <linux/module.h>
++#include <linux/interrupt.h>
++#include <linux/io-64-nonatomic-lo-hi.h>
+ #include <linux/delay.h>
+ #include <linux/kthread.h>
+-#include <linux/interrupt.h>
++#include <linux/module.h>
+ #include <linux/ntb.h>
++#include <linux/switchtec.h>
+ 
+ MODULE_DESCRIPTION("Microsemi Switchtec(tm) NTB Driver");
+ MODULE_VERSION("0.1");
+@@ -35,35 +36,6 @@ module_param(use_lut_mws, bool, 0644);
+ MODULE_PARM_DESC(use_lut_mws,
+ 		 "Enable the use of the LUT based memory windows");
+ 
+-#ifndef ioread64
+-#ifdef readq
+-#define ioread64 readq
+-#else
+-#define ioread64 _ioread64
+-static inline u64 _ioread64(void __iomem *mmio)
+-{
+-	u64 low, high;
+-
+-	low = ioread32(mmio);
+-	high = ioread32(mmio + sizeof(u32));
+-	return low | (high << 32);
+-}
+-#endif
+-#endif
+-
+-#ifndef iowrite64
+-#ifdef writeq
+-#define iowrite64 writeq
+-#else
+-#define iowrite64 _iowrite64
+-static inline void _iowrite64(u64 val, void __iomem *mmio)
+-{
+-	iowrite32(val, mmio);
+-	iowrite32(val >> 32, mmio + sizeof(u32));
+-}
+-#endif
+-#endif
+-
+ #define SWITCHTEC_NTB_MAGIC 0x45CC0001
+ #define MAX_MWS     128
+ 
+-- 
+2.11.0
