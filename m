@@ -1,36 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f52.google.com ([209.85.214.52]:50277 "EHLO
-        mail-it0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751824AbeC0DkM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Mar 2018 23:40:12 -0400
+Received: from ozlabs.org ([103.22.144.67]:33499 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751765AbeC0Ds1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Mar 2018 23:48:27 -0400
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v4] mm, pkey: treat pkey-0 special
+In-Reply-To: <20180316193152.GG1060@ram.oc3035372033.ibm.com>
+References: <1521196416-18157-1-git-send-email-linuxram@us.ibm.com> <CAKTCnzmSCT+VecdSRpyY2Rb_AW2ngCi3UTZfLE3VOLNSQn6vsA@mail.gmail.com> <20180316193152.GG1060@ram.oc3035372033.ibm.com>
+Date: Tue, 27 Mar 2018 14:48:21 +1100
+Message-ID: <87o9jaji0q.fsf@concordia.ellerman.id.au>
 MIME-Version: 1.0
-In-Reply-To: <8a8ee344-fb19-3ed9-f7dc-db63f703e6d3@physik.fu-berlin.de>
-References: <20180318161056.5377-1-linux@dominikbrodowski.net>
- <20180318161056.5377-5-linux@dominikbrodowski.net> <20180318174014.GR30522@ZenIV.linux.org.uk>
- <CA+55aFwuZCpAZRpsTGiUmG065ZHHpj+03_NeWiy-OGkMGw7e3g@mail.gmail.com>
- <20180318181848.GU30522@ZenIV.linux.org.uk> <20180319042300.GW30522@ZenIV.linux.org.uk>
- <20180319092920.tbh2xwkruegshzqe@gmail.com> <20180319232342.GX30522@ZenIV.linux.org.uk>
- <20180322001532.GA18399@ZenIV.linux.org.uk> <20180326004017.GA2211@ZenIV.linux.org.uk>
- <20180326034750.GN30522@ZenIV.linux.org.uk> <CA+55aFw8VGnVgaWHVFP-LChMNaoANOwT18jJEWzSCRLFeRGcmA@mail.gmail.com>
- <428751c8-6920-096b-8694-a3f1b8990bdf@physik.fu-berlin.de>
- <CA+55aFwp-T-WFN95j7u5nn2BExxviJCx1-RgD3Mnu1AN_GYD3w@mail.gmail.com> <8a8ee344-fb19-3ed9-f7dc-db63f703e6d3@physik.fu-berlin.de>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 26 Mar 2018 17:40:10 -1000
-Message-ID: <CA+55aFzHL1L_SEt_xqmJBfRRngTm4qbQGwxFvqSXw-MD2BiAOQ@mail.gmail.com>
-Subject: Re: [RFC] new SYSCALL_DEFINE/COMPAT_SYSCALL_DEFINE wrappers
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, the arch/x86 maintainers <x86@kernel.org>
-Message-ID: <20180327034010.nWGAjy-fqburDc8lXqaerlGpOJpfRaD0YdCrMJMa5Vg@z>
+To: Ram Pai <linuxram@us.ibm.com>, Balbir Singh <bsingharora@gmail.com>
+Cc: Ingo Molnar <mingo@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "open list:LINUX FOR POWERPC (32-BIT AND 64-BIT)" <linuxppc-dev@lists.ozlabs.org>, linux-mm <linux-mm@kvack.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Anshuman Khandual <khandual@linux.vnet.ibm.com>, Aneesh Kumar KV <aneesh.kumar@linux.vnet.ibm.com>, Haren Myneni/Beaverton/IBM <hbabu@us.ibm.com>, Michal Hocko <mhocko@kernel.org>, Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Jonathan Corbet <corbet@lwn.net>, Arnd Bergmann <arnd@arndb.de>, fweimer@redhat.com, msuchanek@suse.com, Thomas Gleixner <tglx@linutronix.de>, Ulrich.Weigand@de.ibm.com, Ram Pai <ram.n.pai@gmail.com>
+Message-ID: <20180327034821.TU5Nc1F_d0RzvIYMj6Rmzs5Ph7azgqie7I49Xvu1Z1w@z>
 
-On Mon, Mar 26, 2018 at 4:37 PM, John Paul Adrian Glaubitz
-<glaubitz@physik.fu-berlin.de> wrote:
+Ram Pai <linuxram@us.ibm.com> writes:
+
+> On Fri, Mar 16, 2018 at 10:02:22PM +1100, Balbir Singh wrote:
+>> On Fri, Mar 16, 2018 at 9:33 PM, Ram Pai <linuxram@us.ibm.com> wrote:
+>> > Applications need the ability to associate an address-range with some
+>> > key and latter revert to its initial default key. Pkey-0 comes close to
+>> > providing this function but falls short, because the current
+>> > implementation disallows applications to explicitly associate pkey-0 to
+>> > the address range.
+>> >
+>> > Clarify the semantics of pkey-0 and provide the corresponding
+>> > implementation.
+>> >
+>> > Pkey-0 is special with the following semantics.
+>> > (a) it is implicitly allocated and can never be freed. It always exists.
+>> > (b) it is the default key assigned to any address-range.
+>> > (c) it can be explicitly associated with any address-range.
+>> >
+>> > Tested on powerpc only. Could not test on x86.
+>> 
+>> Ram,
+>> 
+>> I was wondering if we should check the AMOR values on the ppc side to make sure
+>> that pkey0 is indeed available for use as default. I am still of the
+>> opinion that we
 >
-> What about a tarball with a minimal Debian x32 chroot? Then you can
-> install interesting packages you would like to test yourself.
+> AMOR cannot be read/written by the OS in priviledge-non-hypervisor-mode.
+> We could try testing if key-0 is available to the OS by temproarily
+> changing the bits key-0 bits of AMR or IAMR register. But will be
+> dangeorous to do, for you might disable read,execute of all the pages,
+> since all pages are asscoiated with key-0 bydefault.
 
-That probably works fine.
+No we should do what firmware tells us. If it says key 0 is available we
+use it, otherwise we don't.
 
-          Linus
+Now if you notice the way the firmware API (device tree property) is
+defined, it tells us how many keys are available, counting from 0.
+
+So for pkey 0 to be reserved there must be 0 keys available.
+
+End of story.
+
+cheers
