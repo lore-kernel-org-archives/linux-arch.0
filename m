@@ -1,184 +1,50 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH 17/19] csky: defconfig
-Date: Tue, 27 Mar 2018 10:21:31 +0800
-Message-ID: <20180327022128.GB10185@guoren>
-References: <cover.1521399976.git.ren_guo@c-sky.com>
- <8a9c9b588cdfdf8b25ca9d449bf5c862d329c1d8.1521399976.git.ren_guo@c-sky.com>
- <CAK8P3a3L-zO3K5qcmBPChhSqh+E6WtNRFV1cJRbksGZ74uaEAQ@mail.gmail.com>
+From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Subject: Re: [RFC] new SYSCALL_DEFINE/COMPAT_SYSCALL_DEFINE wrappers
+Date: Tue, 27 Mar 2018 11:37:26 +0900
+Message-ID: <8a8ee344-fb19-3ed9-f7dc-db63f703e6d3@physik.fu-berlin.de>
+References: <20180318161056.5377-1-linux@dominikbrodowski.net>
+ <20180318161056.5377-5-linux@dominikbrodowski.net>
+ <20180318174014.GR30522@ZenIV.linux.org.uk>
+ <CA+55aFwuZCpAZRpsTGiUmG065ZHHpj+03_NeWiy-OGkMGw7e3g@mail.gmail.com>
+ <20180318181848.GU30522@ZenIV.linux.org.uk>
+ <20180319042300.GW30522@ZenIV.linux.org.uk>
+ <20180319092920.tbh2xwkruegshzqe@gmail.com>
+ <20180319232342.GX30522@ZenIV.linux.org.uk>
+ <20180322001532.GA18399@ZenIV.linux.org.uk>
+ <20180326004017.GA2211@ZenIV.linux.org.uk>
+ <20180326034750.GN30522@ZenIV.linux.org.uk>
+ <CA+55aFw8VGnVgaWHVFP-LChMNaoANOwT18jJEWzSCRLFeRGcmA@mail.gmail.com>
+ <428751c8-6920-096b-8694-a3f1b8990bdf@physik.fu-berlin.de>
+ <CA+55aFwp-T-WFN95j7u5nn2BExxviJCx1-RgD3Mnu1AN_GYD3w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a3L-zO3K5qcmBPChhSqh+E6WtNRFV1cJRbksGZ74uaEAQ@mail.gmail.com>
+In-Reply-To: <CA+55aFwp-T-WFN95j7u5nn2BExxviJCx1-RgD3Mnu1AN_GYD3w@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 26, 2018 at 03:16:31PM +0200, Arnd Bergmann wrote:
-> >  arch/csky/configs/gx66xx_defconfig     | 549 +++++++++++++++++++++++++++++++++
-> >  arch/csky/configs/qemu_ck807_defconfig | 541 ++++++++++++++++++++++++++++++++
-> >  2 files changed, 1090 insertions(+)
-> >  create mode 100644 arch/csky/configs/gx66xx_defconfig
-> >  create mode 100644 arch/csky/configs/qemu_ck807_defconfig
+On 03/27/2018 10:03 AM, Linus Torvalds wrote:
+> Hmm. Do you have a few statically built binaries that could be tested
+> without installing a whole distribution? Something real and meaningful
+> enough that it actually exercised a few real system calls, but not
+> something that needs to bring in 50 different shared libraries?
 > 
-> These look a lot longer than they should be, they contain many symbols
-> that I suspenc
-> are not needed or useful for you.
-I'll cleanup the defconfig again.
+> Something in /sbin, perhaps, that is still runnable by a regular user
+> and doesn't require some distro-specific /etc layout etc, so that it
+> would work even if you don't run Debian at all? Maybe some shell
+> binary or something?
 
-> 
-> > diff --git a/arch/csky/configs/gx66xx_defconfig b/arch/csky/configs/gx66xx_defconfig
-> > new file mode 100644
-> > index 0000000..7f2a987
-> > --- /dev/null
-> > +++ b/arch/csky/configs/gx66xx_defconfig
-> > @@ -0,0 +1,549 @@
-> > +# CONFIG_LOCALVERSION_AUTO is not set
-> > +CONFIG_DEFAULT_HOSTNAME="github.com/c-sky"
-> 
-> This is not a well-formed hostname
-I'll remove it.
+What about a tarball with a minimal Debian x32 chroot? Then you can
+install interesting packages you would like to test yourself.
 
-> 
-> > +# CONFIG_SWAP is not set
-> > +CONFIG_SYSVIPC=y
-> > +CONFIG_POSIX_MQUEUE=y
-> > +# CONFIG_FHANDLE is not set
-> > +CONFIG_USELIB=y
-> > +CONFIG_AUDIT=y
-> > +CONFIG_IRQ_DOMAIN_DEBUG=y
-> > +CONFIG_NO_HZ_IDLE=y
-> > +CONFIG_HIGH_RES_TIMERS=y
-> > +CONFIG_BSD_PROCESS_ACCT=y
-> > +CONFIG_BSD_PROCESS_ACCT_V3=y
-> > +CONFIG_RELAY=y
-> > +CONFIG_SYSCTL_SYSCALL=y
-> > +CONFIG_KALLSYMS_ALL=y
-> > +# CONFIG_AIO is not set
-> 
-> Disabling swap, fhandle or AIO seems odd, those are commonly
-> used symbols.
-I'll try to enable them.
+Adrian
 
-> > +CONFIG_USERFAULTFD=y
-> > +CONFIG_EMBEDDED=y
-> 
-> CONFIG_EMBEDDED should generally not be selected, it's only for
-> very unusual configurations that need to disable symbols that are
-> normally required.
-I'll try to enable EMBEDDED.
-
-> 
-> > +# CONFIG_PERF_EVENTS is not set
-> > +# CONFIG_SLUB_DEBUG is not set
-> > +# CONFIG_COMPAT_BRK is not set
-> > +CONFIG_PROFILING=y
-> > +CONFIG_OPROFILE=y
-> 
-> oprofile can go now, since you said you'd remove the code.
-Yes, remove it.
-
-> > +CONFIG_BLK_DEV_BSGLIB=y
-> > +CONFIG_BLK_DEV_INTEGRITY=y
-> > +CONFIG_PARTITION_ADVANCED=y
-> > +CONFIG_ACORN_PARTITION=y
-> > +CONFIG_ACORN_PARTITION_ICS=y
-> > +CONFIG_ACORN_PARTITION_RISCIX=y
-> > +CONFIG_AIX_PARTITION=y
-> > +CONFIG_OSF_PARTITION=y
-> > +CONFIG_AMIGA_PARTITION=y
-> > +CONFIG_ATARI_PARTITION=y
-> > +CONFIG_MAC_PARTITION=y
-> > +CONFIG_BSD_DISKLABEL=y
-> > +CONFIG_MINIX_SUBPARTITION=y
-> > +CONFIG_SOLARIS_X86_PARTITION=y
-> > +CONFIG_UNIXWARE_DISKLABEL=y
-> > +CONFIG_LDM_PARTITION=y
-> > +CONFIG_SGI_PARTITION=y
-> > +CONFIG_ULTRIX_PARTITION=y
-> > +CONFIG_SUN_PARTITION=y
-> > +CONFIG_KARMA_PARTITION=y
-> > +CONFIG_SYSV68_PARTITION=y
-> 
-> These block device configuration options all seem misplaced
-> here, it's extremely unlikely that you need them.
-I'll try to remove it.
-
-> > +# CONFIG_IPV6 is not set
-I'll enable IPV6.
-
-> > +CONFIG_CFG80211=y
-> > +CONFIG_CFG80211_DEBUGFS=y
-> > +CONFIG_CFG80211_WEXT=y
-> 
-> I would guess you want IPV6 but not WEXT here.
-Gx6605s devlepment board support usb-wifi.
-Perhaps WEXT is needed by iwconfig or iwlist? So I just enable it.
-However, I'll consider to remove it.
-
-> > +# CONFIG_STANDALONE is not set
-> 
-> No need to turn this off, it might just get in the way of build
-> testing.
-Ok, I'll try to enable it.
-
-> > +CONFIG_KEYBOARD_ADP5588=m
-> > +CONFIG_KEYBOARD_ADP5589=m
-> > +CONFIG_KEYBOARD_QT1070=m
-> > +CONFIG_KEYBOARD_QT2160=m
-> > +CONFIG_KEYBOARD_LKKBD=m
-> 
-> There are many input devices listed here, most of which you almost
-> certainly won't need.
-Yes, remove them.
-
-> > +CONFIG_IPMI_HANDLER=y
-> > +CONFIG_IPMI_DEVICE_INTERFACE=m
-> > +CONFIG_IPMI_SI=m
-> > +CONFIG_IPMI_WATCHDOG=m
-> > +CONFIG_IPMI_POWEROFF=m
-> 
-> Are you sure you have IPMI hardware?
-No IPMI hardware, remove them.
-
-> > +CONFIG_FB=y
-> > +CONFIG_FB_TILEBLITTING=y
-> > +CONFIG_FB_SIMPLE=y
-> > +CONFIG_BACKLIGHT_LCD_SUPPORT=y
-> > +# CONFIG_LCD_CLASS_DEVICE is not set
-> > +# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
-> > +# CONFIG_VGA_CONSOLE is not set
-> > +CONFIG_FRAMEBUFFER_CONSOLE=y
-> > +CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
-> > +CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
-> > +CONFIG_LOGO=y
-> > +# CONFIG_LOGO_LINUX_MONO is not set
-> > +# CONFIG_LOGO_LINUX_VGA16 is not set
-> 
-> For new platforms, using the DRM subsystem is the recommend
-> way to do graphics, it mostly replaces the framebuffer subsystem
-> here.
-These used by:
-https://github.com/c-sky/addons-linux/tree/master/addons/drivers/video/fbdev/nationalchip
-
-I'll consider the DRM subsystem.
-
-> > +CONFIG_STE_MODEM_RPROC=m
-> 
-> I think this is no longer there.
-Yes, remove it.
-
-> > +CONFIG_EXT2_FS=y
-> > +CONFIG_EXT2_FS_XATTR=y
-> > +CONFIG_EXT2_FS_POSIX_ACL=y
-> > +CONFIG_EXT2_FS_SECURITY=y
-> > +CONFIG_EXT3_FS=y
-> > +CONFIG_EXT3_FS_POSIX_ACL=y
-> > +CONFIG_EXT3_FS_SECURITY=y
-> 
-> Better use EXT4 for the defconfig instead.
-OK.
-
-Best Regards
- Guo Ren
+-- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
