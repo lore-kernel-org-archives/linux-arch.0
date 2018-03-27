@@ -1,60 +1,59 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 17/19] csky: defconfig
-Date: Tue, 27 Mar 2018 09:48:23 +0200
-Message-ID: <CAK8P3a2CD4nEDzMZxtn1QQJA3oQeX=-4v17AxhpTuUqk8boVhg@mail.gmail.com>
-References: <cover.1521399976.git.ren_guo@c-sky.com> <8a9c9b588cdfdf8b25ca9d449bf5c862d329c1d8.1521399976.git.ren_guo@c-sky.com>
- <CAK8P3a3L-zO3K5qcmBPChhSqh+E6WtNRFV1cJRbksGZ74uaEAQ@mail.gmail.com> <20180327022128.GB10185@guoren>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH v13 0/3] mm, x86, powerpc: Enhancements to Memory Protection Keys.
+Date: Tue, 27 Mar 2018 02:09:25 -0700
+Message-ID: <1522141768-25485-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180327022128.GB10185@guoren>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
+To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 27, 2018 at 4:21 AM, Guo Ren <ren_guo@c-sky.com> wrote:
-> On Mon, Mar 26, 2018 at 03:16:31PM +0200, Arnd Bergmann wrote:
+This patch series provides arch-neutral enhancements to
+enable memory-keys on new architecutes, and the corresponding
+changes in x86 and powerpc specific code to support that.
 
->> > +CONFIG_CFG80211=y
->> > +CONFIG_CFG80211_DEBUGFS=y
->> > +CONFIG_CFG80211_WEXT=y
->>
->> I would guess you want IPV6 but not WEXT here.
-> Gx6605s devlepment board support usb-wifi.
-> Perhaps WEXT is needed by iwconfig or iwlist? So I just enable it.
-> However, I'll consider to remove it.
+a) Provides ability to support upto 32 keys.  PowerPC
+	can handle 32 keys and hence needs this.
 
-I think it's only for backwards compatibility with old versions of
-those tools. There are some older drivers that use WEXT as the
-native interface, but CFG80211 based drivers have a netlink
-interface.
+b) Arch-neutral code; and not the arch-specific code,
+   determines the format of the string, that displays the key
+   for each vma in smaps.
 
->> > +CONFIG_FB=y
->> > +CONFIG_FB_TILEBLITTING=y
->> > +CONFIG_FB_SIMPLE=y
->> > +CONFIG_BACKLIGHT_LCD_SUPPORT=y
->> > +# CONFIG_LCD_CLASS_DEVICE is not set
->> > +# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
->> > +# CONFIG_VGA_CONSOLE is not set
->> > +CONFIG_FRAMEBUFFER_CONSOLE=y
->> > +CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
->> > +CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
->> > +CONFIG_LOGO=y
->> > +# CONFIG_LOGO_LINUX_MONO is not set
->> > +# CONFIG_LOGO_LINUX_VGA16 is not set
->>
->> For new platforms, using the DRM subsystem is the recommend
->> way to do graphics, it mostly replaces the framebuffer subsystem
->> here.
-> These used by:
-> https://github.com/c-sky/addons-linux/tree/master/addons/drivers/video/fbdev/nationalchip
->
-> I'll consider the DRM subsystem.
+History:
+-------
+version v13:
+	(1) fixed a git bisect error. :(
 
-It used to be rather hard to write a new DRM driver, but that has
-improved a lot recently. You might be able to fit your driver into
-drivers/gpu/drm/tinydrm/, or maybe do something a bit more complex
-like drivers/gpu/drm/pl111/ or drivers/gpu/drm/stm/.
+version v12:
+	(1) fixed compilation errors seen with various x86
+		configs.
+version v11:
+	(1) code that displays key in smaps is not any more
+		defined under CONFIG_ARCH_HAS_PKEYS.
+       	    - Comment by Eric W. Biederman and Michal Hocko
+	(2) merged two patches that implemented (1).
+		- comment by Michal Hocko
 
-       Arnd
+version prior to v11:
+	(1) used one additional bit from VM_HIGH_ARCH_*
+       		to support 32 keys.
+	    - Suggestion by Dave Hansen.
+	(2) powerpc specific changes to support memory keys.
+
+
+Ram Pai (3):
+  mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS
+    is enabled
+  mm, powerpc, x86: introduce an additional vma bit for powerpc pkey
+  mm, x86, powerpc: display pkey in smaps only if arch supports pkeys
+
+ arch/powerpc/include/asm/mmu_context.h |    5 -----
+ arch/powerpc/include/asm/pkeys.h       |    2 ++
+ arch/x86/include/asm/mmu_context.h     |    5 -----
+ arch/x86/include/asm/pkeys.h           |    1 +
+ arch/x86/kernel/fpu/xstate.c           |    5 +++++
+ arch/x86/kernel/setup.c                |    8 --------
+ fs/proc/task_mmu.c                     |   15 ++++++++-------
+ include/linux/mm.h                     |   12 +++++++-----
+ include/linux/pkeys.h                  |    7 ++++++-
+ 9 files changed, 29 insertions(+), 31 deletions(-)
