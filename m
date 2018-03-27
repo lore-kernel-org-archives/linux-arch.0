@@ -1,64 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f196.google.com ([209.85.216.196]:44433 "EHLO
-        mail-qt0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752218AbeC0JJm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Mar 2018 05:09:42 -0400
-From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v13 0/3] mm, x86, powerpc: Enhancements to Memory Protection Keys.
-Date: Tue, 27 Mar 2018 02:09:25 -0700
-Message-ID: <1522141768-25485-1-git-send-email-linuxram@us.ibm.com>
+Received: from smtp.codeaurora.org ([198.145.29.96]:34202 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753021AbeC0NZr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Mar 2018 09:25:47 -0400
+From: Chintan Pandya <cpandya@codeaurora.org>
+Subject: [PATCH v5 4/4] Revert "arm64: Enforce BBM for huge IO/VMAP mappings"
+Date: Tue, 27 Mar 2018 18:55:00 +0530
+Message-ID: <1522157100-16879-5-git-send-email-cpandya@codeaurora.org>
+In-Reply-To: <1522157100-16879-1-git-send-email-cpandya@codeaurora.org>
+References: <1522157100-16879-1-git-send-email-cpandya@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
-Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de
-Message-ID: <20180327090925.oPeLRsSHYZZKvHjpWZ15VcCRI6-eZQidLEVdzUhuEPs@z>
+To: catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com
+Cc: arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, Chintan Pandya <cpandya@codeaurora.org>
+Message-ID: <20180327132500.oi3YQkXFtOdACmzXv84r1-C_6u3E_5AUIqRmSvvvmUc@z>
 
-This patch series provides arch-neutral enhancements to
-enable memory-keys on new architecutes, and the corresponding
-changes in x86 and powerpc specific code to support that.
+This commit 15122ee2c515a ("arm64: Enforce BBM for huge
+IO/VMAP mappings") is a temporary work-around until the
+issues with CONFIG_HAVE_ARCH_HUGE_VMAP gets fixed.
 
-a) Provides ability to support upto 32 keys.  PowerPC
-	can handle 32 keys and hence needs this.
+Revert this change as we have fixes for the issue.
 
-b) Arch-neutral code; and not the arch-specific code,
-   determines the format of the string, that displays the key
-   for each vma in smaps.
+Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
+---
+No change in v5
 
-History:
--------
-version v13:
-	(1) fixed a git bisect error. :(
+ arch/arm64/mm/mmu.c | 8 --------
+ 1 file changed, 8 deletions(-)
 
-version v12:
-	(1) fixed compilation errors seen with various x86
-		configs.
-version v11:
-	(1) code that displays key in smaps is not any more
-		defined under CONFIG_ARCH_HAS_PKEYS.
-       	    - Comment by Eric W. Biederman and Michal Hocko
-	(2) merged two patches that implemented (1).
-		- comment by Michal Hocko
-
-version prior to v11:
-	(1) used one additional bit from VM_HIGH_ARCH_*
-       		to support 32 keys.
-	    - Suggestion by Dave Hansen.
-	(2) powerpc specific changes to support memory keys.
-
-
-Ram Pai (3):
-  mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS
-    is enabled
-  mm, powerpc, x86: introduce an additional vma bit for powerpc pkey
-  mm, x86, powerpc: display pkey in smaps only if arch supports pkeys
-
- arch/powerpc/include/asm/mmu_context.h |    5 -----
- arch/powerpc/include/asm/pkeys.h       |    2 ++
- arch/x86/include/asm/mmu_context.h     |    5 -----
- arch/x86/include/asm/pkeys.h           |    1 +
- arch/x86/kernel/fpu/xstate.c           |    5 +++++
- arch/x86/kernel/setup.c                |    8 --------
- fs/proc/task_mmu.c                     |   15 ++++++++-------
- include/linux/mm.h                     |   12 +++++++-----
- include/linux/pkeys.h                  |    7 ++++++-
- 9 files changed, 29 insertions(+), 31 deletions(-)
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index 3552c7a..11a24a1 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -935,10 +935,6 @@ int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
+ 	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
+ 					pgprot_val(mk_sect_prot(prot)));
+ 
+-	/* ioremap_page_range doesn't honour BBM */
+-	if (pud_present(READ_ONCE(*pudp)))
+-		return 0;
+-
+ 	BUG_ON(phys & ~PUD_MASK);
+ 	set_pud(pudp, pfn_pud(__phys_to_pfn(phys), sect_prot));
+ 	return 1;
+@@ -949,10 +945,6 @@ int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
+ 	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
+ 					pgprot_val(mk_sect_prot(prot)));
+ 
+-	/* ioremap_page_range doesn't honour BBM */
+-	if (pmd_present(READ_ONCE(*pmdp)))
+-		return 0;
+-
+ 	BUG_ON(phys & ~PMD_MASK);
+ 	set_pmd(pmdp, pfn_pmd(__phys_to_pfn(phys), sect_prot));
+ 	return 1;
+-- 
+Qualcomm India Private Limited, on behalf of Qualcomm Innovation
+Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
+Collaborative Project
