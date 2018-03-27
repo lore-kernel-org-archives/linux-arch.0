@@ -1,40 +1,35 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC] new SYSCALL_DEFINE/COMPAT_SYSCALL_DEFINE wrappers
-Date: Mon, 26 Mar 2018 15:03:54 -1000
-Message-ID: <CA+55aFwp-T-WFN95j7u5nn2BExxviJCx1-RgD3Mnu1AN_GYD3w@mail.gmail.com>
-References: <20180318161056.5377-1-linux@dominikbrodowski.net>
- <20180318161056.5377-5-linux@dominikbrodowski.net> <20180318174014.GR30522@ZenIV.linux.org.uk>
- <CA+55aFwuZCpAZRpsTGiUmG065ZHHpj+03_NeWiy-OGkMGw7e3g@mail.gmail.com>
- <20180318181848.GU30522@ZenIV.linux.org.uk> <20180319042300.GW30522@ZenIV.linux.org.uk>
- <20180319092920.tbh2xwkruegshzqe@gmail.com> <20180319232342.GX30522@ZenIV.linux.org.uk>
- <20180322001532.GA18399@ZenIV.linux.org.uk> <20180326004017.GA2211@ZenIV.linux.org.uk>
- <20180326034750.GN30522@ZenIV.linux.org.uk> <CA+55aFw8VGnVgaWHVFP-LChMNaoANOwT18jJEWzSCRLFeRGcmA@mail.gmail.com>
- <428751c8-6920-096b-8694-a3f1b8990bdf@physik.fu-berlin.de>
+From: Guo Ren <ren_guo@c-sky.com>
+Subject: Re: [PATCH 00/19] C-SKY(csky) Linux Kernel Port
+Date: Tue, 27 Mar 2018 09:58:36 +0800
+Message-ID: <20180327015835.GA10185@guoren>
+References: <cover.1521399976.git.ren_guo@c-sky.com>
+ <CAK8P3a3KwvNpYUXG-CqfF7V0GQ3sv_CoPmajq_+06aqkLiUFXw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <428751c8-6920-096b-8694-a3f1b8990bdf@physik.fu-berlin.de>
+Content-Disposition: inline
+In-Reply-To: <CAK8P3a3KwvNpYUXG-CqfF7V0GQ3sv_CoPmajq_+06aqkLiUFXw@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Mar 25, 2018 at 8:44 PM, John Paul Adrian Glaubitz
-<glaubitz@physik.fu-berlin.de> wrote:
-<
-> FWIW, we are maintaining an x32 port in Debian and there are some people
-> actually using it [1]. There is one build instance running on VMWare that
-> I am hosting [2] and around 10800 out of 12900 source packages build fine
-> on x32 (12900 being the number for x86_64).
+On Mon, Mar 26, 2018 at 03:30:34PM +0200, Arnd Bergmann wrote:
+> Thanks for your submission. I had started reviewing it over a week
+> ago, but never
+> completed since I was travelling in the meantime. I've completed my first pass
+> now and will wait for a new version before I take a more detailed look.
+> 
+> Overall, it looks nice, but changing the rest of the system call interface will
+> take a while, this includes several points I've mentioned already, but
+> to clarify,
+> every file in arch/csky/include/uapi/asm/ needs to be carefully reviewed to
+> contain only the minimum required additions to the asm-generic version.
+> 
+> Changing the ABI will obviously get in the way of testing, but this should
+> be over as soon as the port is merged.
+I entirely agree with you. After modify the unistd.h, we found a lot of
+ltp-cases failed. We are dealing with them.
 
-Hmm. Do you have a few statically built binaries that could be tested
-without installing a whole distribution? Something real and meaningful
-enough that it actually exercised a few real system calls, but not
-something that needs to bring in 50 different shared libraries?
-
-Something in /sbin, perhaps, that is still runnable by a regular user
-and doesn't require some distro-specific /etc layout etc, so that it
-would work even if you don't run Debian at all? Maybe some shell
-binary or something?
-
-      Linus
+Best Regards
+ Guo Ren
