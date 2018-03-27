@@ -1,69 +1,63 @@
-From: Balbir Singh <bsingharora@gmail.com>
-Subject: Re: [PATCH v4] mm, pkey: treat pkey-0 special
-Date: Tue, 27 Mar 2018 15:15:53 +1100
-Message-ID: <CAKTCnzmhGqLZG+WVf+8MS4wYeY8PkiGS0G5NpCStGd4mi=w5pA@mail.gmail.com>
-References: <1521196416-18157-1-git-send-email-linuxram@us.ibm.com>
- <CAKTCnzmSCT+VecdSRpyY2Rb_AW2ngCi3UTZfLE3VOLNSQn6vsA@mail.gmail.com>
- <20180316193152.GG1060@ram.oc3035372033.ibm.com> <87o9jaji0q.fsf@concordia.ellerman.id.au>
+From: Chintan Pandya <cpandya@codeaurora.org>
+Subject: Re: [PATCH v4 2/3] arm64: Implement page table free interfaces
+Date: Tue, 27 Mar 2018 10:08:02 +0530
+Message-ID: <b5427cbd-28f8-e561-cfca-751006e60da1@codeaurora.org>
+References: <1521546314-31753-1-git-send-email-cpandya@codeaurora.org>
+ <1521546314-31753-3-git-send-email-cpandya@codeaurora.org>
+ <20180326095541.izogc4iak6d7nerm@lakrids.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87o9jaji0q.fsf@concordia.ellerman.id.au>
+In-Reply-To: <20180326095541.izogc4iak6d7nerm@lakrids.cambridge.arm.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Ram Pai <linuxram@us.ibm.com>, Ingo Molnar <mingo@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "open list:LINUX FOR POWERPC (32-BIT AND 64-BIT)" <linuxppc-dev@lists.ozlabs.org>, linux-mm <linux-mm@kvack.org>, "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Anshuman Khandual <khandual@linux.vnet.ibm.com>, Aneesh Kumar KV <aneesh.kumar@linux.vnet.ibm.com>, Haren Myneni/Beaverton/IBM <hbabu@us.ibm.com>, Michal Hocko <mhocko@kernel.org>, Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>, Eric W. B
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, toshi.kani@hpe.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 27, 2018 at 2:48 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
-> Ram Pai <linuxram@us.ibm.com> writes:
->
->> On Fri, Mar 16, 2018 at 10:02:22PM +1100, Balbir Singh wrote:
->>> On Fri, Mar 16, 2018 at 9:33 PM, Ram Pai <linuxram@us.ibm.com> wrote:
->>> > Applications need the ability to associate an address-range with some
->>> > key and latter revert to its initial default key. Pkey-0 comes close to
->>> > providing this function but falls short, because the current
->>> > implementation disallows applications to explicitly associate pkey-0 to
->>> > the address range.
->>> >
->>> > Clarify the semantics of pkey-0 and provide the corresponding
->>> > implementation.
->>> >
->>> > Pkey-0 is special with the following semantics.
->>> > (a) it is implicitly allocated and can never be freed. It always exists.
->>> > (b) it is the default key assigned to any address-range.
->>> > (c) it can be explicitly associated with any address-range.
->>> >
->>> > Tested on powerpc only. Could not test on x86.
->>>
->>> Ram,
->>>
->>> I was wondering if we should check the AMOR values on the ppc side to make sure
->>> that pkey0 is indeed available for use as default. I am still of the
->>> opinion that we
->>
->> AMOR cannot be read/written by the OS in priviledge-non-hypervisor-mode.
->> We could try testing if key-0 is available to the OS by temproarily
->> changing the bits key-0 bits of AMR or IAMR register. But will be
->> dangeorous to do, for you might disable read,execute of all the pages,
->> since all pages are asscoiated with key-0 bydefault.
->
-> No we should do what firmware tells us. If it says key 0 is available we
-> use it, otherwise we don't.
->
-> Now if you notice the way the firmware API (device tree property) is
-> defined, it tells us how many keys are available, counting from 0.
->
 
-I could not find counting from 0 anywhere, are we expected to look
-at the AMOR and figure out what we have access to? Why do we
-assume they'll be contiguous, it makes our life easy, but I really
-could not find any documentation on it
 
-> So for pkey 0 to be reserved there must be 0 keys available.
->
-> End of story.
->
-> cheers
+On 3/26/2018 3:25 PM, Mark Rutland wrote:
+> On Tue, Mar 20, 2018 at 05:15:13PM +0530, Chintan Pandya wrote:
+>> +static int __pmd_free_pte_page(pmd_t *pmd, unsigned long addr, bool tlb_inv)
+>> +{
+>> +	pmd_t *table;
+>> +
+>> +	if (pmd_val(*pmd)) {
+>> +		table = __va(pmd_val(*pmd));
+>> +		pmd_clear(pmd);
+>> +		/*
+>> +		 * FIXME: __flush_tlb_pgtable(&init_mm, addr) is
+>> +		 *        ideal candidate here, which exactly
+>> +		 *        flushes intermediate pgtables. But,
+>> +		 *        this is broken (evident from tests).
+>> +		 *        So, use safe TLB op unless that is fixed.
+>> +		 */
+>> +		if (tlb_inv)
+>> +			flush_tlb_kernel_range(addr, addr + PMD_SIZE);
+> 
+> I don't think that __flush_tlb_pgtable() is broken. It's only valid to
+> call it for user page tables, since it doesn't affect all ASIDs.
+> 
+> We can add a simlar helper for kernel mappings, which affects all ASIDs,
+> e.g.
+> 
+Okay. I will test it and update v5.
 
-Cheers,
-Balbir Singh.
+> static inline void __flush_tlb_kernel_pgtable(unsigned long addr)
+> {
+> 	addr >>= 12;
+> 	__tlbi(vaae1is, addr);
+> 	dsb(ish);
+> }
+> 
+> Thanks,
+> Mark.
+> 
+
+Chintan
+-- 
+Qualcomm India Private Limited, on behalf of Qualcomm Innovation Center,
+Inc. is a member of the Code Aurora Forum, a Linux Foundation
+Collaborative Project
