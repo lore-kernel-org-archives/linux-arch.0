@@ -1,60 +1,31 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH 10/19] csky: Signal handling
-Date: Tue, 27 Mar 2018 10:41:11 +0800
-Message-ID: <20180327024111.GB11454@guoren>
-References: <cover.1521399976.git.ren_guo@c-sky.com>
- <f482eb9ffcebaf12595d5d6043953de221fda024.1521399976.git.ren_guo@c-sky.com>
- <CAK8P3a3p2nbBG-NM9X-DHc6U61s65M8-3XDyx0CRsADSZ+prqw@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC] new SYSCALL_DEFINE/COMPAT_SYSCALL_DEFINE wrappers
+Date: Mon, 26 Mar 2018 17:40:10 -1000
+Message-ID: <CA+55aFzHL1L_SEt_xqmJBfRRngTm4qbQGwxFvqSXw-MD2BiAOQ@mail.gmail.com>
+References: <20180318161056.5377-1-linux@dominikbrodowski.net>
+ <20180318161056.5377-5-linux@dominikbrodowski.net> <20180318174014.GR30522@ZenIV.linux.org.uk>
+ <CA+55aFwuZCpAZRpsTGiUmG065ZHHpj+03_NeWiy-OGkMGw7e3g@mail.gmail.com>
+ <20180318181848.GU30522@ZenIV.linux.org.uk> <20180319042300.GW30522@ZenIV.linux.org.uk>
+ <20180319092920.tbh2xwkruegshzqe@gmail.com> <20180319232342.GX30522@ZenIV.linux.org.uk>
+ <20180322001532.GA18399@ZenIV.linux.org.uk> <20180326004017.GA2211@ZenIV.linux.org.uk>
+ <20180326034750.GN30522@ZenIV.linux.org.uk> <CA+55aFw8VGnVgaWHVFP-LChMNaoANOwT18jJEWzSCRLFeRGcmA@mail.gmail.com>
+ <428751c8-6920-096b-8694-a3f1b8990bdf@physik.fu-berlin.de>
+ <CA+55aFwp-T-WFN95j7u5nn2BExxviJCx1-RgD3Mnu1AN_GYD3w@mail.gmail.com> <8a8ee344-fb19-3ed9-f7dc-db63f703e6d3@physik.fu-berlin.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a3p2nbBG-NM9X-DHc6U61s65M8-3XDyx0CRsADSZ+prqw@mail.gmail.com>
+In-Reply-To: <8a8ee344-fb19-3ed9-f7dc-db63f703e6d3@physik.fu-berlin.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
+To: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, James Hogan <jhogan@kernel.org>, linux-mips <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, "David S . Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 26, 2018 at 03:04:01PM +0200, Arnd Bergmann wrote:
-> On Sun, Mar 18, 2018 at 8:51 PM, Guo Ren <ren_guo@c-sky.com> wrote:
-> > Signed-off-by: Guo Ren <ren_guo@c-sky.com>
-> > ---
-> >  arch/csky/include/uapi/asm/sigcontext.h |  33 +++
-> >  arch/csky/include/uapi/asm/signal.h     | 164 ++++++++++++++
-> >  arch/csky/kernel/signal.c               | 379 ++++++++++++++++++++++++++++++++
-> >  3 files changed, 576 insertions(+)
-> 
-> Please have a look at arch/riscv and arch/nds32 for this, I think it can be
-> simplified. This is an incompatible change of course, but when we change
-> the system call ABI anyway, that is the right time to do it.
-Ok.
+On Mon, Mar 26, 2018 at 4:37 PM, John Paul Adrian Glaubitz
+<glaubitz@physik.fu-berlin.de> wrote:
+>
+> What about a tarball with a minimal Debian x32 chroot? Then you can
+> install interesting packages you would like to test yourself.
 
-> 
-> 
-> > +#define NSIG           32
-> > +typedef unsigned long sigset_t;
-> > +
-> > +#endif /* __KERNEL__ */
-> > +
-> > +#define SIGHUP          1
-> > +#define SIGINT          2
-> > +#define SIGQUIT                 3
-> > +#define SIGILL          4
-> > +#define SIGTRAP                 5
-> > +#define SIGABRT                 6
-> > +#define SIGIOT          6
-> > +#define SIGBUS          7
-> > +#define SIGFPE          8
-> > +#define SIGKILL                 9
-> > +#define SIGUSR1                10
-> > +#define SIGSEGV                11
-> > +#define SIGUSR2                12
-> > +#define SIGPIPE                13
-> 
-> In particular the constants should come from the asm-generic headers
-> rather than being duplicated. If you need anything special, it may be
-> better to modify the generic headers.
-Ok, use asm-generic.
+That probably works fine.
 
-Best Regards
- Guo Ren
+          Linus
