@@ -1,101 +1,56 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v5 3/4] arm64: Implement page table free interfaces
-Date: Tue, 27 Mar 2018 19:00:48 +0100
-Message-ID: <20180327180048.GJ18435@arm.com>
-References: <1522157100-16879-1-git-send-email-cpandya@codeaurora.org>
- <1522157100-16879-4-git-send-email-cpandya@codeaurora.org>
+From: Vineet Gupta <Vineet.Gupta1-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
+Subject: Re: dma-mapping: clearing GFP_ZERO flag caused crashes of Ethernet on
+	arc/hsdk board.
+Date: Tue, 27 Mar 2018 11:24:51 -0700
+Message-ID: <a4bc637f-9464-c585-c6d2-663e2e38f18f@synopsys.com>
+References: <1522170774.2593.9.camel@synopsys.com>
+	<CAHp75VeZSsdR1=ZhOM6jseYCP3m0GyE=8EjJUxWosze9BBw9rQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1522157100-16879-4-git-send-email-cpandya@codeaurora.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Chintan Pandya <cpandya@codeaurora.org>
-Cc: catalin.marinas@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com, arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <CAHp75VeZSsdR1=ZhOM6jseYCP3m0GyE=8EjJUxWosze9BBw9rQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Content-Language: en-US
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Andy Shevchenko <andy.shevchenko-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, hch-jcswGhMUV9g@public.gmane.org
+Cc: "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "jesper.nilsson-VrBV9hrLPhE@public.gmane.org" <jesper.nilsson-VrBV9hrLPhE@public.gmane.org>, Alexey Brodkin <Alexey.Brodkin-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Evgeniy Didin <Evgeniy.Didin-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>, "linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org" <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, "iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org" <iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>, "geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org" <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, "dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, Eugeniy Paltsev <Eugeniy.Paltsev-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Chintan,
+Hi Christoph, Andy
 
-On Tue, Mar 27, 2018 at 06:54:59PM +0530, Chintan Pandya wrote:
-> Implement pud_free_pmd_page() and pmd_free_pte_page().
-> 
-> Implementation requires,
->  1) Freeing of the un-used next level page tables
->  2) Clearing off the current pud/pmd entry
->  3) Invalidate TLB which could have previously
->     valid but not stale entry
-> 
-> Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
-> ---
-> V4->V5:
->  - Using __flush_tlb_kernel_pgtable instead of
->    flush_tlb_kernel_range
-> 
-> 
->  arch/arm64/mm/mmu.c | 33 +++++++++++++++++++++++++++++++--
->  1 file changed, 31 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-> index da98828..3552c7a 100644
-> --- a/arch/arm64/mm/mmu.c
-> +++ b/arch/arm64/mm/mmu.c
-> @@ -45,6 +45,7 @@
->  #include <asm/memblock.h>
->  #include <asm/mmu_context.h>
->  #include <asm/ptdump.h>
-> +#include <asm/tlbflush.h>
->  
->  #define NO_BLOCK_MAPPINGS	BIT(0)
->  #define NO_CONT_MAPPINGS	BIT(1)
-> @@ -973,12 +974,40 @@ int pmd_clear_huge(pmd_t *pmdp)
->  	return 1;
->  }
->  
-> +static int __pmd_free_pte_page(pmd_t *pmd, unsigned long addr, bool tlb_inv)
-> +{
-> +	pmd_t *table;
-> +
-> +	if (pmd_val(*pmd)) {
+On 03/27/2018 11:11 AM, Andy Shevchenko wrote:
+> On Tue, Mar 27, 2018 at 8:12 PM, Evgeniy Didin
+> <Evgeniy.Didin-HKixBCOQz3hWk0Htik3J/w@public.gmane.org> wrote:
+>> Hello,
+>>
+>> After commit  57bf5a8963f8 ("dma-mapping: clear harmful GFP_* flags in common code")  we noticed problems with Ethernet controller on one of our platforms (namely ARC HSDK).
+>> I
+>> n particular we see that removal of __GFP_ZERO flag in function dma_alloc_attrs() was the culprit because in our implementation of arc_dma_alloc() we only allocate zeroed pages if
+>> that flag is explicitly set by the caller. Now with unconditional removal of that flag in dma_alloc_attrs() we allocate non-zeroed pages and that seem to cause problems.
+>>
+>> From
+>> mentioned commit message I may conclude that architectural code is supposed to always allocate zeroed pages but I cannot find any requirement of that in kernel's documentation.
+>> Coul
+>> d you please point me to that requirement if that exists at all, then we'll implement a fix in our arch code like that:
 
-Please can you follow what I did in 20a004e7b017 ("arm64: mm: Use
-READ_ONCE/WRITE_ONCE when accessing page tables") and:
+[snip]
 
-  1. Use consistent naming, so pmd_t * pmdp.
-  2. Use READ_ONCE to dereference the entry once into a local.
+> Another question why caller can't ask for zero pages explicitly?
 
-Similarly for the pud code below.
+Question to whom ? The caller can ask for it - but the problem here is generic dma 
+API code is clearing out GFP_ZERO and expecting arch code to memst unconditionally 
+- is that expected of arch code - and is documented ?
 
-> +		table = __va(pmd_val(*pmd));
-> +		pmd_clear(pmd);
-> +		if (tlb_inv)
-> +			__flush_tlb_kernel_pgtable(addr);
-> +
-> +		free_page((unsigned long) table);
+That is broken to begin with - arch dma_alloc* simply passes thru gfp flags to 
+page allocator and doesn't muck around with them. We could in theory but doesn't 
+seem like the right thing to do IMO.
 
-Hmm. Surely it's only safe to call free_page if !tlb_inv in situations when
-the page table is already disconnected at a higher level? That doesn't
-appear to be the case with the function below, which still has the pud
-installed. What am I missing?
-
-> +	}
-> +	return 1;
-> +}
-> +
->  int pud_free_pmd_page(pud_t *pud, unsigned long addr)
->  {
-> -	return pud_none(*pud);
-> +	pmd_t *table;
-> +	int i;
-> +
-> +	if (pud_val(*pud)) {
-> +		table = __va(pud_val(*pud));
-> +		for (i = 0; i < PTRS_PER_PMD; i++)
-> +			__pmd_free_pte_page(&table[i], addr + (i * PMD_SIZE),
-> +						false);
-> +
-> +		pud_clear(pud);
-> +		flush_tlb_kernel_range(addr, addr + PUD_SIZE);
-
-Why aren't you using __flush_tlb_kernel_pgtable here?
-
-Will
+-Vineet
