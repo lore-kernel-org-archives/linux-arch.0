@@ -1,59 +1,58 @@
 From: Ram Pai <linuxram@us.ibm.com>
-Subject: [PATCH v13 0/3] mm, x86, powerpc: Enhancements to Memory Protection Keys.
-Date: Tue, 27 Mar 2018 02:09:25 -0700
-Message-ID: <1522141768-25485-1-git-send-email-linuxram@us.ibm.com>
+Subject: [PATCH v13 2/3] mm, powerpc, x86: introduce an additional vma bit for powerpc pkey
+Date: Tue, 27 Mar 2018 02:09:27 -0700
+Message-ID: <1522141768-25485-3-git-send-email-linuxram@us.ibm.com>
+References: <1522141768-25485-1-git-send-email-linuxram@us.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1522141768-25485-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
 Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-This patch series provides arch-neutral enhancements to
-enable memory-keys on new architecutes, and the corresponding
-changes in x86 and powerpc specific code to support that.
+Currently only 4bits are allocated in the vma flags to hold 16
+keys. This is sufficient for x86. PowerPC  supports  32  keys,
+which needs 5bits. This patch allocates an  additional bit.
 
-a) Provides ability to support upto 32 keys.  PowerPC
-	can handle 32 keys and hence needs this.
+cc: Dave Hansen <dave.hansen@intel.com>
+cc: Michael Ellermen <mpe@ellerman.id.au>
+cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+cc: Andrew Morton <akpm@linux-foundation.org>
+Reviewed-by: Ingo Molnar <mingo@kernel.org>
+Acked-by: Balbir Singh <bsingharora@gmail.com>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+---
+ fs/proc/task_mmu.c |    1 +
+ include/linux/mm.h |    3 ++-
+ 2 files changed, 3 insertions(+), 1 deletions(-)
 
-b) Arch-neutral code; and not the arch-specific code,
-   determines the format of the string, that displays the key
-   for each vma in smaps.
-
-History:
--------
-version v13:
-	(1) fixed a git bisect error. :(
-
-version v12:
-	(1) fixed compilation errors seen with various x86
-		configs.
-version v11:
-	(1) code that displays key in smaps is not any more
-		defined under CONFIG_ARCH_HAS_PKEYS.
-       	    - Comment by Eric W. Biederman and Michal Hocko
-	(2) merged two patches that implemented (1).
-		- comment by Michal Hocko
-
-version prior to v11:
-	(1) used one additional bit from VM_HIGH_ARCH_*
-       		to support 32 keys.
-	    - Suggestion by Dave Hansen.
-	(2) powerpc specific changes to support memory keys.
-
-
-Ram Pai (3):
-  mm, powerpc, x86: define VM_PKEY_BITx bits if CONFIG_ARCH_HAS_PKEYS
-    is enabled
-  mm, powerpc, x86: introduce an additional vma bit for powerpc pkey
-  mm, x86, powerpc: display pkey in smaps only if arch supports pkeys
-
- arch/powerpc/include/asm/mmu_context.h |    5 -----
- arch/powerpc/include/asm/pkeys.h       |    2 ++
- arch/x86/include/asm/mmu_context.h     |    5 -----
- arch/x86/include/asm/pkeys.h           |    1 +
- arch/x86/kernel/fpu/xstate.c           |    5 +++++
- arch/x86/kernel/setup.c                |    8 --------
- fs/proc/task_mmu.c                     |   15 ++++++++-------
- include/linux/mm.h                     |   12 +++++++-----
- include/linux/pkeys.h                  |    7 ++++++-
- 9 files changed, 29 insertions(+), 31 deletions(-)
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index 6b996d0..6d83bb7 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -685,6 +685,7 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+ 		[ilog2(VM_PKEY_BIT1)]	= "",
+ 		[ilog2(VM_PKEY_BIT2)]	= "",
+ 		[ilog2(VM_PKEY_BIT3)]	= "",
++		[ilog2(VM_PKEY_BIT4)]	= "",
+ #endif /* CONFIG_ARCH_HAS_PKEYS */
+ 	};
+ 	size_t i;
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index ad207ad..d534f46 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -231,9 +231,10 @@ extern int overcommit_kbytes_handler(struct ctl_table *, int, void __user *,
+ #ifdef CONFIG_ARCH_HAS_PKEYS
+ # define VM_PKEY_SHIFT	VM_HIGH_ARCH_BIT_0
+ # define VM_PKEY_BIT0	VM_HIGH_ARCH_0	/* A protection key is a 4-bit value */
+-# define VM_PKEY_BIT1	VM_HIGH_ARCH_1
++# define VM_PKEY_BIT1	VM_HIGH_ARCH_1	/* on x86 and 5-bit value on ppc64   */
+ # define VM_PKEY_BIT2	VM_HIGH_ARCH_2
+ # define VM_PKEY_BIT3	VM_HIGH_ARCH_3
++# define VM_PKEY_BIT4	VM_HIGH_ARCH_4
+ #endif /* CONFIG_ARCH_HAS_PKEYS */
+ 
+ #if defined(CONFIG_X86)
+-- 
+1.7.1
