@@ -1,65 +1,200 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f195.google.com ([209.85.216.195]:41420 "EHLO
-        mail-qt0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751106AbeC0HsY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Mar 2018 03:48:24 -0400
-MIME-Version: 1.0
-In-Reply-To: <20180327022128.GB10185@guoren>
-References: <cover.1521399976.git.ren_guo@c-sky.com> <8a9c9b588cdfdf8b25ca9d449bf5c862d329c1d8.1521399976.git.ren_guo@c-sky.com>
- <CAK8P3a3L-zO3K5qcmBPChhSqh+E6WtNRFV1cJRbksGZ74uaEAQ@mail.gmail.com> <20180327022128.GB10185@guoren>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Tue, 27 Mar 2018 09:48:23 +0200
-Message-ID: <CAK8P3a2CD4nEDzMZxtn1QQJA3oQeX=-4v17AxhpTuUqk8boVhg@mail.gmail.com>
-Subject: Re: [PATCH 17/19] csky: defconfig
-Content-Type: text/plain; charset="UTF-8"
+Received: from mail-qt0-f193.google.com ([209.85.216.193]:43808 "EHLO
+        mail-qt0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751205AbeC0JJz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Mar 2018 05:09:55 -0400
+From: Ram Pai <linuxram@us.ibm.com>
+Subject: [PATCH v13 3/3] mm, x86, powerpc: display pkey in smaps only if arch supports pkeys
+Date: Tue, 27 Mar 2018 02:09:28 -0700
+Message-ID: <1522141768-25485-4-git-send-email-linuxram@us.ibm.com>
+In-Reply-To: <1522141768-25485-1-git-send-email-linuxram@us.ibm.com>
+References: <1522141768-25485-1-git-send-email-linuxram@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guo Ren <ren_guo@c-sky.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
-Message-ID: <20180327074823.jzQMKtYP6nF5uMl8C2kOs9KtKOAHvRBSazzDFG3Q55s@z>
+To: mpe@ellerman.id.au, mingo@redhat.com, akpm@linux-foundation.org
+Cc: linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org, dave.hansen@intel.com, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, bauerman@linux.vnet.ibm.com, ebiederm@xmission.com, linuxram@us.ibm.com, corbet@lwn.net, arnd@arndb.de
+Message-ID: <20180327090928.PGUrPwOAYPqJiSGjUeAfAj3Yd3i-lXLpY7C4jlH621U@z>
 
-On Tue, Mar 27, 2018 at 4:21 AM, Guo Ren <ren_guo@c-sky.com> wrote:
-> On Mon, Mar 26, 2018 at 03:16:31PM +0200, Arnd Bergmann wrote:
+Currently the  architecture  specific code is expected to
+display  the  protection  keys  in  smap  for a given vma.
+This can lead to redundant code and possibly to divergent
+formats in which the key gets displayed.
 
->> > +CONFIG_CFG80211=y
->> > +CONFIG_CFG80211_DEBUGFS=y
->> > +CONFIG_CFG80211_WEXT=y
->>
->> I would guess you want IPV6 but not WEXT here.
-> Gx6605s devlepment board support usb-wifi.
-> Perhaps WEXT is needed by iwconfig or iwlist? So I just enable it.
-> However, I'll consider to remove it.
+This  patch  changes  the implementation. It displays the
+pkey only if the architecture support pkeys, i.e
+arch_pkeys_enabled() returns true.  This patch
+provides x86 implementation for arch_pkeys_enabled().
 
-I think it's only for backwards compatibility with old versions of
-those tools. There are some older drivers that use WEXT as the
-native interface, but CFG80211 based drivers have a netlink
-interface.
+x86 arch_show_smap() function is not needed anymore.
+Deleting it.
 
->> > +CONFIG_FB=y
->> > +CONFIG_FB_TILEBLITTING=y
->> > +CONFIG_FB_SIMPLE=y
->> > +CONFIG_BACKLIGHT_LCD_SUPPORT=y
->> > +# CONFIG_LCD_CLASS_DEVICE is not set
->> > +# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
->> > +# CONFIG_VGA_CONSOLE is not set
->> > +CONFIG_FRAMEBUFFER_CONSOLE=y
->> > +CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
->> > +CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
->> > +CONFIG_LOGO=y
->> > +# CONFIG_LOGO_LINUX_MONO is not set
->> > +# CONFIG_LOGO_LINUX_VGA16 is not set
->>
->> For new platforms, using the DRM subsystem is the recommend
->> way to do graphics, it mostly replaces the framebuffer subsystem
->> here.
-> These used by:
-> https://github.com/c-sky/addons-linux/tree/master/addons/drivers/video/fbdev/nationalchip
->
-> I'll consider the DRM subsystem.
+cc: Michael Ellermen <mpe@ellerman.id.au>
+cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+cc: Andrew Morton <akpm@linux-foundation.org>
+Reviewed-by: Dave Hansen <dave.hansen@intel.com>
+Signed-off-by: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
+(fixed compilation errors for x86 configs)
+Acked-by: Michal Hocko <mhocko@suse.com>
+Reviewed-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Ram Pai <linuxram@us.ibm.com>
+---
+ arch/powerpc/include/asm/mmu_context.h |    5 -----
+ arch/x86/include/asm/mmu_context.h     |    5 -----
+ arch/x86/include/asm/pkeys.h           |    1 +
+ arch/x86/kernel/fpu/xstate.c           |    5 +++++
+ arch/x86/kernel/setup.c                |    8 --------
+ fs/proc/task_mmu.c                     |   10 +++++-----
+ include/linux/pkeys.h                  |    7 ++++++-
+ 7 files changed, 17 insertions(+), 24 deletions(-)
 
-It used to be rather hard to write a new DRM driver, but that has
-improved a lot recently. You might be able to fit your driver into
-drivers/gpu/drm/tinydrm/, or maybe do something a bit more complex
-like drivers/gpu/drm/pl111/ or drivers/gpu/drm/stm/.
-
-       Arnd
+diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
+index 051b3d6..566b3c2 100644
+--- a/arch/powerpc/include/asm/mmu_context.h
++++ b/arch/powerpc/include/asm/mmu_context.h
+@@ -203,11 +203,6 @@ static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+ #define thread_pkey_regs_restore(new_thread, old_thread)
+ #define thread_pkey_regs_init(thread)
+ 
+-static inline int vma_pkey(struct vm_area_struct *vma)
+-{
+-	return 0;
+-}
+-
+ static inline u64 pte_to_hpte_pkey_bits(u64 pteflags)
+ {
+ 	return 0x0UL;
+diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+index 1de72ce..e597d09 100644
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@ -295,11 +295,6 @@ static inline int vma_pkey(struct vm_area_struct *vma)
+ 
+ 	return (vma->vm_flags & vma_pkey_mask) >> VM_PKEY_SHIFT;
+ }
+-#else
+-static inline int vma_pkey(struct vm_area_struct *vma)
+-{
+-	return 0;
+-}
+ #endif
+ 
+ /*
+diff --git a/arch/x86/include/asm/pkeys.h b/arch/x86/include/asm/pkeys.h
+index a0ba1ff..f6c287b 100644
+--- a/arch/x86/include/asm/pkeys.h
++++ b/arch/x86/include/asm/pkeys.h
+@@ -6,6 +6,7 @@
+ 
+ extern int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 		unsigned long init_val);
++extern bool arch_pkeys_enabled(void);
+ 
+ /*
+  * Try to dedicate one of the protection keys to be used as an
+diff --git a/arch/x86/kernel/fpu/xstate.c b/arch/x86/kernel/fpu/xstate.c
+index 87a57b7..4f566e9 100644
+--- a/arch/x86/kernel/fpu/xstate.c
++++ b/arch/x86/kernel/fpu/xstate.c
+@@ -945,6 +945,11 @@ int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 
+ 	return 0;
+ }
++
++bool arch_pkeys_enabled(void)
++{
++	return boot_cpu_has(X86_FEATURE_OSPKE);
++}
+ #endif /* ! CONFIG_ARCH_HAS_PKEYS */
+ 
+ /*
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 4c616be..117ed01 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -1307,11 +1307,3 @@ static int __init register_kernel_offset_dumper(void)
+ 	return 0;
+ }
+ __initcall(register_kernel_offset_dumper);
+-
+-void arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
+-{
+-	if (!boot_cpu_has(X86_FEATURE_OSPKE))
+-		return;
+-
+-	seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
+-}
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index 6d83bb7..70aa912 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -18,10 +18,12 @@
+ #include <linux/page_idle.h>
+ #include <linux/shmem_fs.h>
+ #include <linux/uaccess.h>
++#include <linux/pkeys.h>
+ 
+ #include <asm/elf.h>
+ #include <asm/tlb.h>
+ #include <asm/tlbflush.h>
++#include <asm/mmu_context.h>
+ #include "internal.h"
+ 
+ void task_mem(struct seq_file *m, struct mm_struct *mm)
+@@ -733,10 +735,6 @@ static int smaps_hugetlb_range(pte_t *pte, unsigned long hmask,
+ }
+ #endif /* HUGETLB_PAGE */
+ 
+-void __weak arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
+-{
+-}
+-
+ static int show_smap(struct seq_file *m, void *v, int is_pid)
+ {
+ 	struct proc_maps_private *priv = m->private;
+@@ -856,9 +854,11 @@ static int show_smap(struct seq_file *m, void *v, int is_pid)
+ 			   (unsigned long)(mss->pss >> (10 + PSS_SHIFT)));
+ 
+ 	if (!rollup_mode) {
+-		arch_show_smap(m, vma);
++		if (arch_pkeys_enabled())
++			seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
+ 		show_smap_vma_flags(m, vma);
+ 	}
++
+ 	m_cache_vma(m, vma);
+ 	return ret;
+ }
+diff --git a/include/linux/pkeys.h b/include/linux/pkeys.h
+index 0794ca7..49dff15 100644
+--- a/include/linux/pkeys.h
++++ b/include/linux/pkeys.h
+@@ -3,7 +3,6 @@
+ #define _LINUX_PKEYS_H
+ 
+ #include <linux/mm_types.h>
+-#include <asm/mmu_context.h>
+ 
+ #ifdef CONFIG_ARCH_HAS_PKEYS
+ #include <asm/pkeys.h>
+@@ -13,6 +12,7 @@
+ #define arch_override_mprotect_pkey(vma, prot, pkey) (0)
+ #define PKEY_DEDICATED_EXECUTE_ONLY 0
+ #define ARCH_VM_PKEY_FLAGS 0
++#define vma_pkey(vma) 0
+ 
+ static inline bool mm_pkey_is_allocated(struct mm_struct *mm, int pkey)
+ {
+@@ -35,6 +35,11 @@ static inline int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 	return 0;
+ }
+ 
++static inline bool arch_pkeys_enabled(void)
++{
++	return false;
++}
++
+ static inline void copy_init_pkru_to_fpregs(void)
+ {
+ }
+-- 
+1.7.1
