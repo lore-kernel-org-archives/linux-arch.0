@@ -1,60 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:35896 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:34764 "EHLO
         smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751903AbeC1K7g (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Mar 2018 06:59:36 -0400
+        with ESMTP id S1751903AbeC1K7T (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Mar 2018 06:59:19 -0400
 From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: [PATCH v6 4/4] Revert "arm64: Enforce BBM for huge IO/VMAP mappings"
-Date: Wed, 28 Mar 2018 16:28:51 +0530
-Message-ID: <1522234731-27397-5-git-send-email-cpandya@codeaurora.org>
+Subject: [PATCH v6 2/4] arm64: tlbflush: Introduce __flush_tlb_kernel_pgtable
+Date: Wed, 28 Mar 2018 16:28:49 +0530
+Message-ID: <1522234731-27397-3-git-send-email-cpandya@codeaurora.org>
 In-Reply-To: <1522234731-27397-1-git-send-email-cpandya@codeaurora.org>
 References: <1522234731-27397-1-git-send-email-cpandya@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com
 Cc: arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, Chintan Pandya <cpandya@codeaurora.org>
-Message-ID: <20180328105851.yOqIwwnl4EtP_exD3OtxGeWKhiqyGX53MpISv9fh5vU@z>
+Message-ID: <20180328105849.xj5EI3D3YufcnRjOkUgqnKxrEl5tZRx5S9LGVWoOYNg@z>
 
-This commit 15122ee2c515a ("arm64: Enforce BBM for huge
-IO/VMAP mappings") is a temporary work-around until the
-issues with CONFIG_HAVE_ARCH_HUGE_VMAP gets fixed.
-
-Revert this change as we have fixes for the issue.
+Add an interface to invalidate intermediate page tables
+from TLB for kernel.
 
 Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
 ---
-From: V1-> V6:
+From: V5->V6:
  - No change
 
- arch/arm64/mm/mmu.c | 8 --------
- 1 file changed, 8 deletions(-)
+ arch/arm64/include/asm/tlbflush.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index f84b747..601f22f 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -935,10 +935,6 @@ int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
- 	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
- 					pgprot_val(mk_sect_prot(prot)));
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+index 9e82dd7..6a4816d 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -209,6 +209,12 @@ static inline void __flush_tlb_pgtable(struct mm_struct *mm,
+ 	dsb(ish);
+ }
  
--	/* ioremap_page_range doesn't honour BBM */
--	if (pud_present(READ_ONCE(*pudp)))
--		return 0;
--
- 	BUG_ON(phys & ~PUD_MASK);
- 	set_pud(pudp, pfn_pud(__phys_to_pfn(phys), sect_prot));
- 	return 1;
-@@ -949,10 +945,6 @@ int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
- 	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
- 					pgprot_val(mk_sect_prot(prot)));
++static inline void __flush_tlb_kernel_pgtable(unsigned long addr)
++{
++	addr >>= 12;
++	__tlbi(vaae1is, addr);
++	dsb(ish);
++}
+ #endif
  
--	/* ioremap_page_range doesn't honour BBM */
--	if (pmd_present(READ_ONCE(*pmdp)))
--		return 0;
--
- 	BUG_ON(phys & ~PMD_MASK);
- 	set_pmd(pmdp, pfn_pmd(__phys_to_pfn(phys), sect_prot));
- 	return 1;
+ #endif
 -- 
 Qualcomm India Private Limited, on behalf of Qualcomm Innovation
 Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
