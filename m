@@ -1,72 +1,127 @@
-From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: Re: [PATCH v6 0/4] Fix issues with huge mapping in ioremap for ARM64
-Date: Wed, 28 Mar 2018 17:40:26 +0530
-Message-ID: <f0b3057e-dc8c-d0ef-cffb-87b0f01c80aa@codeaurora.org>
-References: <1522234731-27397-1-git-send-email-cpandya@codeaurora.org>
+From: Andrea Parri <andrea.parri@amarulasolutions.com>
+Subject: [Question] Documentation/features: More automation/scripting help?
+Date: Wed, 28 Mar 2018 14:22:11 +0200
+Message-ID: <20180328122211.GA25420@andrea>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1522234731-27397-1-git-send-email-cpandya@codeaurora.org>
-Content-Language: en-US
+Content-Disposition: inline
 Sender: linux-kernel-owner@vger.kernel.org
-To: catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com
-Cc: arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Jonathan Corbet <corbet@lwn.net>, Ingo Molnar <mingo@kernel.org>, Andy Whitcroft <apw@canonical.com>, Joe Perches <joe@perches.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-I goofed up in making a patch file so enumeration is wrong.
-I'll upload v7
+Hi all,
 
-On 3/28/2018 4:28 PM, Chintan Pandya wrote:
-> This series of patches are follow up work (and depends on)
-> Toshi Kani <toshi.kani@hpe.com>'s patches "fix memory leak/
-> panic in ioremap huge pages".
-> 
-> This series of patches are tested on 4.9 kernel with Cortex-A75
-> based SoC.
-> 
-> These patches can also go into '-stable' branch (if accepted)
-> for 4.6 onwards.
-> 
->  From V5->V6:
->   - Use __flush_tlb_kernel_pgtable() for both PUD and PMD. Remove
->     "bool tlb_inv" based variance as it is not need now
->   - Re-naming for consistency
-> 
->  From V4->V5:
->   - Add new API __flush_tlb_kernel_pgtable(unsigned long addr)
->     for kernel addresses
-> 
->  From V3->V4:
->   - Add header for 'addr' in x86 implementation
->   - Re-order pmd/pud clear and table free
->   - Avoid redundant TLB invalidatation in one perticular case
-> 
->  From V2->V3:
->   - Use the exisiting page table free interface to do arm64
->     specific things
-> 
->  From V1->V2:
->   - Rebased my patches on top of "[PATCH v2 1/2] mm/vmalloc:
->     Add interfaces to free unmapped page table"
->   - Honored BBM for ARM64
-> 
-> Chintan Pandya (4):
->    ioremap: Update pgtable free interfaces with addr
->    arm64: tlbflush: Introduce __flush_tlb_kernel_pgtable
->    arm64: Implement page table free interfaces
->    Revert "arm64: Enforce BBM for huge IO/VMAP mappings"
-> 
->   arch/arm64/include/asm/tlbflush.h |  6 ++++++
->   arch/arm64/mm/mmu.c               | 37 +++++++++++++++++++++++++------------
->   arch/x86/mm/pgtable.c             |  6 ++++--
->   include/asm-generic/pgtable.h     |  8 ++++----
->   lib/ioremap.c                     |  4 ++--
->   5 files changed, 41 insertions(+), 20 deletions(-)
-> 
+The directory (not yet three years old although, I freely admit, I've
+only recently become aware of it) provides arch. support matrices for
+more than 40 generic kernel features that need per-arch. support:
 
-Chintan
--- 
-Qualcomm India Private Limited, on behalf of Qualcomm Innovation Center,
-Inc. is a member of the Code Aurora Forum, a Linux Foundation
-Collaborative Project
+This is a superb project! ;-)  and not a simple one given that, to be
+effective, this requires the prompt collaboration between (the intere-
+sted) features maintainers/developers, every architecture maintainers,
+and documentation maintainers.
+
+There currently appear to be some mismatches between such doc and the
+the actual state of the code (e.g., missing architecture, feature not
+existing anymore, status flags out-of-date). Realized this, I started
+to patch the doc, but this process became soon tedious (consider also
+that I barely know what some of these features are about...).
+
+Hence this post. I am wondering if it would make sense to script some
+of these matrices.  So, rather than (or together with) using the cur-
+rently hard-coded matrices, try to (automatically) generate them from
+the sources/configs. Consider the sketch below (sorry for the raw sh).
+
+diff --git a/Documentation/features/list-arch.sh b/Documentation/features/list-arch.sh
+index c16b5b5956889..cdec0c1db9db2 100755
+--- a/Documentation/features/list-arch.sh
++++ b/Documentation/features/list-arch.sh
+@@ -18,7 +18,13 @@ for F in */*/arch-support.txt; do
+   C=$(grep -h "^#         Kconfig:"     $F | cut -c25-)
+   D=$(grep -h "^#         description:" $F | cut -c25-)
+   S=$(grep -hw $ARCH $F | cut -d\| -f3)
++  myS=$(grep -h $C ../../arch/$ARCH/Kconfig)
++  if [ -z "$myS" ]; then
++	  myS=" -- "
++  else
++	  myS=" ok "
++  fi
+ 
+-  printf "%10s/%-22s:%s| %35s # %s\n" "$SUBSYS" "$N" "$S" "$C" "$D"
++  printf "%10s/%-22s:%s VS. %s| %35s # %s\n" "$SUBSYS" "$N" "$S" "$myS" "$C" "$D"
+ done
+ 
+
+With this diff.,
+
+andrea@andrea:~$ ./Documentation/features/list-arch.sh riscv > /tmp/riscv.txt
+grep: asm/rwsem.h: No such file or directory
+andrea@andrea:~$ cat /tmp/riscv.txt
+#
+# Kernel feature support matrix of the 'riscv' architecture:
+#
+      core/ BPF-JIT              : VS.  -- |                        HAVE_BPF_JIT #  arch supports BPF JIT optimizations
+      core/ generic-idle-thread  : VS.  ok |             GENERIC_SMP_IDLE_THREAD #  arch makes use of the generic SMP idle thread facility
+      core/ jump-labels          : VS.  -- |                HAVE_ARCH_JUMP_LABEL #  arch supports live patched, high efficiency branches
+      core/ tracehook            : VS.  ok |                 HAVE_ARCH_TRACEHOOK #  arch supports tracehook (ptrace) register handling APIs
+     debug/ gcov-profile-all     : VS.  -- |           ARCH_HAS_GCOV_PROFILE_ALL #  arch supports whole-kernel GCOV code coverage profiling
+     debug/ KASAN                : VS.  -- |                     HAVE_ARCH_KASAN #  arch supports the KASAN runtime memory checker
+     debug/ kgdb                 : VS.  -- |                      HAVE_ARCH_KGDB #  arch supports the kGDB kernel debugger
+     debug/ kprobes              : VS.  ok |                        HAVE_KPROBES #  arch supports live patched kernel probe
+     debug/ kprobes-on-ftrace    : VS.  -- |              HAVE_KPROBES_ON_FTRACE #  arch supports combined kprobes and ftrace live patching
+     debug/ kretprobes           : VS.  -- |                     HAVE_KRETPROBES #  arch supports kernel function-return probes
+     debug/ optprobes            : VS.  -- |                      HAVE_OPTPROBES #  arch supports live patched optprobes
+     debug/ stackprotector       : VS.  -- |              HAVE_CC_STACKPROTECTOR #  arch supports compiler driven stack overflow protection
+     debug/ uprobes              : VS.  -- |               ARCH_SUPPORTS_UPROBES #  arch supports live patched user probes
+     debug/ user-ret-profiler    : VS.  -- |           HAVE_USER_RETURN_NOTIFIER #  arch supports user-space return from system call profiler
+        io/ dma-api-debug        : VS.  ok |                  HAVE_DMA_API_DEBUG #  arch supports DMA debug facilities
+        io/ dma-contiguous       : VS.  ok |                 HAVE_DMA_CONTIGUOUS #  arch supports the DMA CMA (continuous memory allocator)
+        io/ sg-chain             : VS.  -- |                   ARCH_HAS_SG_CHAIN #  arch supports chained scatter-gather lists
+       lib/ strncasecmp          : VS.  -- |             __HAVE_ARCH_STRNCASECMP #  arch provides an optimized strncasecmp() function
+   locking/ cmpxchg-local        : VS.  -- |                  HAVE_CMPXCHG_LOCAL #  arch supports the this_cpu_cmpxchg() API
+   locking/ lockdep              : VS.  -- |                     LOCKDEP_SUPPORT #  arch supports the runtime locking correctness debug facility
+   locking/ queued-rwlocks       : VS.  -- |             ARCH_USE_QUEUED_RWLOCKS #  arch supports queued rwlocks
+   locking/ queued-spinlocks     : VS.  -- |           ARCH_USE_QUEUED_SPINLOCKS #  arch supports queued spinlocks
+   locking/ rwsem-optimized      : VS.  -- |               Optimized asm/rwsem.h #  arch provides optimized rwsem APIs
+      perf/ kprobes-event        : VS.  -- |      HAVE_REGS_AND_STACK_ACCESS_API #  arch supports kprobes with perf events
+      perf/ perf-regs            : VS.  -- |                      HAVE_PERF_REGS #  arch supports perf events register access
+      perf/ perf-stackdump       : VS.  -- |           HAVE_PERF_USER_STACK_DUMP #  arch supports perf events stack dumps
+     sched/ membarrier-sync-core : VS.  -- |       ARCH_HAS_MEMBARRIER_SYNC_CORE #  arch supports core serializing membarrier
+     sched/ numa-balancing       : VS.  -- |        ARCH_SUPPORTS_NUMA_BALANCING #  arch supports NUMA balancing
+   seccomp/ seccomp-filter       : VS.  -- |            HAVE_ARCH_SECCOMP_FILTER #  arch supports seccomp filters
+      time/ arch-tick-broadcast  : VS.  -- |             ARCH_HAS_TICK_BROADCAST #  arch provides tick_broadcast()
+      time/ clockevents          : VS.  ok |                 GENERIC_CLOCKEVENTS #  arch support generic clock events
+      time/ context-tracking     : VS.  -- |               HAVE_CONTEXT_TRACKING #  arch supports context tracking for NO_HZ_FULL
+      time/ irq-time-acct        : VS.  -- |            HAVE_IRQ_TIME_ACCOUNTING #  arch supports precise IRQ time accounting
+      time/ modern-timekeeping   : VS.  -- |            !ARCH_USES_GETTIMEOFFSET #  arch does not use arch_gettimeoffset() anymore
+      time/ virt-cpuacct         : VS.  -- |            HAVE_VIRT_CPU_ACCOUNTING #  arch supports precise virtual CPU time accounting
+        vm/ ELF-ASLR             : VS.  -- |              ARCH_HAS_ELF_RANDOMIZE #  arch randomizes the stack, heap and binary images of ELF binaries
+        vm/ huge-vmap            : VS.  -- |                 HAVE_ARCH_HUGE_VMAP #  arch supports the ioremap_pud_enabled() and ioremap_pmd_enabled() VM APIs
+        vm/ ioremap_prot         : VS.  -- |                   HAVE_IOREMAP_PROT #  arch has ioremap_prot()
+        vm/ numa-memblock        : VS.  ok |              HAVE_MEMBLOCK_NODE_MAP #  arch supports NUMA aware memblocks
+        vm/ PG_uncached          : VS.  -- |               ARCH_USES_PG_UNCACHED #  arch supports the PG_uncached page flag
+        vm/ pte_special          : VS.  -- |             __HAVE_ARCH_PTE_SPECIAL #  arch supports the pte_special()/pte_mkspecial() VM APIs
+        vm/ THP                  : VS.  -- |      HAVE_ARCH_TRANSPARENT_HUGEPAGE #  arch supports transparent hugepages
+        vm/ batch-unmap-tlb-flush: VS.  -- |   ARCH_WANT_BATCHED_UNMAP_TLB_FLUSH #  arch supports deferral of TLB flush until multiple pages are unmapped
+
+
+Suggesting that riscv is not included within the hard-coded matrices.
+This also shows a first limitation of the proposed approach, i.e., it
+doesn't parse "Optimized asm/rwsem.h" (wants "true" configs). It also
+won't find "__HAVE_ARCH_PTE_SPECIAL" (reads Kconfig files) but things
+like "!ARCH_USES_GETTIMEOFFSET" could still be handled...
+
+We could try switching to another architectures: none of these should
+result in "core/ BPF-JIT" set: the "HAVE_BPF_JIT" config was splitted
+into cBPF and eBPF variants more recently. The comparison of the hard
+coded status flags with the new/generated flags should also highlight
+out-of-date values.
+
+Alternative/Additional help could probably be provided by checkpatch,
+say, warn when a patch touches/adds to Kconfig without updating such
+documentation...
+
+Thoughts?
+
+  Andrea
