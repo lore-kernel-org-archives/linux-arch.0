@@ -1,72 +1,136 @@
-From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH 17/19] csky: defconfig
-Date: Wed, 28 Mar 2018 11:59:42 +0800
-Message-ID: <20180328035942.GA23588@guoren>
-References: <cover.1521399976.git.ren_guo@c-sky.com>
- <8a9c9b588cdfdf8b25ca9d449bf5c862d329c1d8.1521399976.git.ren_guo@c-sky.com>
- <CAK8P3a3L-zO3K5qcmBPChhSqh+E6WtNRFV1cJRbksGZ74uaEAQ@mail.gmail.com>
- <20180327022128.GB10185@guoren>
- <CAK8P3a2CD4nEDzMZxtn1QQJA3oQeX=-4v17AxhpTuUqk8boVhg@mail.gmail.com>
+From: Chintan Pandya <cpandya@codeaurora.org>
+Subject: Re: [PATCH v5 3/4] arm64: Implement page table free interfaces
+Date: Wed, 28 Mar 2018 12:29:25 +0530
+Message-ID: <3a9610af-c35d-2624-87a6-71f893740fa4@codeaurora.org>
+References: <1522157100-16879-1-git-send-email-cpandya@codeaurora.org>
+ <1522157100-16879-4-git-send-email-cpandya@codeaurora.org>
+ <20180327180048.GJ18435@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a2CD4nEDzMZxtn1QQJA3oQeX=-4v17AxhpTuUqk8boVhg@mail.gmail.com>
+In-Reply-To: <20180327180048.GJ18435@arm.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: catalin.marinas@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com, arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 27, 2018 at 09:48:23AM +0200, Arnd Bergmann wrote:
-> On Tue, Mar 27, 2018 at 4:21 AM, Guo Ren <ren_guo@c-sky.com> wrote:
-> > On Mon, Mar 26, 2018 at 03:16:31PM +0200, Arnd Bergmann wrote:
-> 
-> >> > +CONFIG_CFG80211=y
-> >> > +CONFIG_CFG80211_DEBUGFS=y
-> >> > +CONFIG_CFG80211_WEXT=y
-> >>
-> >> I would guess you want IPV6 but not WEXT here.
-> > Gx6605s devlepment board support usb-wifi.
-> > Perhaps WEXT is needed by iwconfig or iwlist? So I just enable it.
-> > However, I'll consider to remove it.
-> 
-> I think it's only for backwards compatibility with old versions of
-> those tools. There are some older drivers that use WEXT as the
-> native interface, but CFG80211 based drivers have a netlink
-> interface.
-Thx for remind. I'll check.
+
+
+On 3/27/2018 11:30 PM, Will Deacon wrote:
+> Hi Chintan,
+Hi Will,
 
 > 
-> >> > +CONFIG_FB=y
-> >> > +CONFIG_FB_TILEBLITTING=y
-> >> > +CONFIG_FB_SIMPLE=y
-> >> > +CONFIG_BACKLIGHT_LCD_SUPPORT=y
-> >> > +# CONFIG_LCD_CLASS_DEVICE is not set
-> >> > +# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
-> >> > +# CONFIG_VGA_CONSOLE is not set
-> >> > +CONFIG_FRAMEBUFFER_CONSOLE=y
-> >> > +CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
-> >> > +CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
-> >> > +CONFIG_LOGO=y
-> >> > +# CONFIG_LOGO_LINUX_MONO is not set
-> >> > +# CONFIG_LOGO_LINUX_VGA16 is not set
-> >>
-> >> For new platforms, using the DRM subsystem is the recommend
-> >> way to do graphics, it mostly replaces the framebuffer subsystem
-> >> here.
-> > These used by:
-> > https://github.com/c-sky/addons-linux/tree/master/addons/drivers/video/fbdev/nationalchip
-> >
-> > I'll consider the DRM subsystem.
+> On Tue, Mar 27, 2018 at 06:54:59PM +0530, Chintan Pandya wrote:
+>> Implement pud_free_pmd_page() and pmd_free_pte_page().
+>>
+>> Implementation requires,
+>>   1) Freeing of the un-used next level page tables
+>>   2) Clearing off the current pud/pmd entry
+>>   3) Invalidate TLB which could have previously
+>>      valid but not stale entry
+>>
+>> Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
+>> ---
+>> V4->V5:
+>>   - Using __flush_tlb_kernel_pgtable instead of
+>>     flush_tlb_kernel_range
+>>
+>>
+>>   arch/arm64/mm/mmu.c | 33 +++++++++++++++++++++++++++++++--
+>>   1 file changed, 31 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+>> index da98828..3552c7a 100644
+>> --- a/arch/arm64/mm/mmu.c
+>> +++ b/arch/arm64/mm/mmu.c
+>> @@ -45,6 +45,7 @@
+>>   #include <asm/memblock.h>
+>>   #include <asm/mmu_context.h>
+>>   #include <asm/ptdump.h>
+>> +#include <asm/tlbflush.h>
+>>   
+>>   #define NO_BLOCK_MAPPINGS	BIT(0)
+>>   #define NO_CONT_MAPPINGS	BIT(1)
+>> @@ -973,12 +974,40 @@ int pmd_clear_huge(pmd_t *pmdp)
+>>   	return 1;
+>>   }
+>>   
+>> +static int __pmd_free_pte_page(pmd_t *pmd, unsigned long addr, bool tlb_inv)
+>> +{
+>> +	pmd_t *table;
+>> +
+>> +	if (pmd_val(*pmd)) {
 > 
-> It used to be rather hard to write a new DRM driver, but that has
-> improved a lot recently. You might be able to fit your driver into
-> drivers/gpu/drm/tinydrm/, or maybe do something a bit more complex
-> like drivers/gpu/drm/pl111/ or drivers/gpu/drm/stm/.
-For this patchset, I won't upstream the fbdev driver. I'll remove the
-CONFIG_FB in defconfig first.
+> Please can you follow what I did in 20a004e7b017 ("arm64: mm: Use
+> READ_ONCE/WRITE_ONCE when accessing page tables") and:
+> 
+>    1. Use consistent naming, so pmd_t * pmdp.
+>    2. Use READ_ONCE to dereference the entry once into a local.
+> 
+> Similarly for the pud code below.
 
-Thx for remind about the develop-tips, and it's very helpful.
+Sure. I'll fix this in v6.
 
-Best Regards
- Guo Ren
+> 
+>> +		table = __va(pmd_val(*pmd));
+>> +		pmd_clear(pmd);
+>> +		if (tlb_inv)
+>> +			__flush_tlb_kernel_pgtable(addr);
+>> +
+>> +		free_page((unsigned long) table);
+> 
+> Hmm. Surely it's only safe to call free_page if !tlb_inv in situations when
+> the page table is already disconnected at a higher level? That doesn't
+> appear to be the case with the function below, which still has the pud
+> installed. What am I missing?
+> 
+
+Point ! Without the invalidation, free'ing a page is not safe. Better, I
+do __flush_tlb_kernel_pgtable() every time. This might not be as costly
+as flush_tlb_kernel_range().
+
+>> +	}
+>> +	return 1;
+>> +}
+>> +
+>>   int pud_free_pmd_page(pud_t *pud, unsigned long addr)
+>>   {
+>> -	return pud_none(*pud);
+>> +	pmd_t *table;
+>> +	int i;
+>> +
+>> +	if (pud_val(*pud)) {
+>> +		table = __va(pud_val(*pud));
+>> +		for (i = 0; i < PTRS_PER_PMD; i++)
+>> +			__pmd_free_pte_page(&table[i], addr + (i * PMD_SIZE),
+>> +						false);
+>> +
+>> +		pud_clear(pud);
+>> +		flush_tlb_kernel_range(addr, addr + PUD_SIZE);
+> 
+> Why aren't you using __flush_tlb_kernel_pgtable here?
+> 
+
+Now that I will call __flush_tlb_kernel_pgtable() for every  PMD, I can
+use __flush_tlb_kernel_pgtable() here as well.
+
+Previously, the thought was, while invalidating PUD by VA would not work
+always because PUD may have next level of valid mapping still present in
+the table (valid next PMD but invalid next-to-next PTE). In this case
+doing just __flush_tlb_kernel_pgtable() for PUD might not be enough. We
+need to invalidate subsequent tables as well which I was skipping for 
+optimization. So, I used flush_tlb_kernel_range().
+
+I will upload v6.
+
+> Will
+> 
+
+Chintan
+-- 
+Qualcomm India Private Limited, on behalf of Qualcomm Innovation Center,
+Inc. is a member of the Code Aurora Forum, a Linux Foundation
+Collaborative Project
