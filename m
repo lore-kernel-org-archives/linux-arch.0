@@ -1,28 +1,73 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Alan Stern <stern@rowland.harvard.edu>
 Subject: Re: [PATCH RFC tools/memory-model] Add s390.{cfg,cat}
-Date: Wed, 28 Mar 2018 19:51:36 +0200
-Message-ID: <20180328175136.GL4082@hirez.programming.kicks-ass.net>
-References: <20180328134232.GA29274@linux.vnet.ibm.com>
- <Pine.LNX.4.44L0.1803281057280.1375-100000@iolanthe.rowland.org>
+Date: Wed, 28 Mar 2018 14:04:07 -0400 (EDT)
+Message-ID: <Pine.LNX.4.44L0.1803281350370.1375-100000@iolanthe.rowland.org>
+References: <20180328163344.GT3675@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1803281057280.1375-100000@iolanthe.rowland.org>
+In-Reply-To: <20180328163344.GT3675@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, parri.andrea@gmail.com, will.deacon@arm.com, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: schwidefsky@de.ibm.com, borntraeger@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 28, 2018 at 11:01:25AM -0400, Alan Stern wrote:
-> I don't quite see the point of this.  You're not suggesting that we
-> have one Linux Kernel Memory Consistency Model for s390 and another
-> one for all the other architectures, are you?
-> 
-> If the idea is merely to provide a herd model for s390 then it should 
-> go into the DIY repository, not into the LKMM repository.
+On Wed, 28 Mar 2018, Paul E. McKenney wrote:
 
-I suspect the use-case was validating s390 arch code which might not
-have followed all the regular linux rules because they know its TSO. But
-yes, I'm tempted to agree that even arch specific code ought to follow
-the regular rules, just to avoid completely messing up the reader.
+> On Wed, Mar 28, 2018 at 11:01:25AM -0400, Alan Stern wrote:
+> > On Wed, 28 Mar 2018, Paul E. McKenney wrote:
+> > 
+> > > Hello!
+> > > 
+> > > The prototype patch shown below provides files required to allow herd7 to
+> > > evaluate C-language litmus tests for the multicopy-atomic TSO ordering
+> > > provided by s390.  This patch should be viewed with great suspicion.
+> > > It does what I expect it to do on SB (with and without barriers),
+> > > IRIW without barriers, and Alan's SB with read-of-write added, but my
+> > > expectations are quite likely faulty, and my test cases are very few
+> > > in number.
+> > > 
+> > > Either way, this is the easy part.  The hard part (which I am happy
+> > > to leave to others) is making litmus7 and klitmus7 able to do tests
+> > > on actual hardware, as well as enabling herd to handle litmus tests
+> > > containing BAL.  ;-)
+> > > 
+> > > Note that CPU architectures already supported by herd might well need
+> > > only a .cfg file that refers to herd's pre-existing support.
+> > > 
+> > > Thoughts?
+> > 
+> > I don't quite see the point of this.  You're not suggesting that we
+> > have one Linux Kernel Memory Consistency Model for s390 and another
+> > one for all the other architectures, are you?
+> 
+> Certainly not for common code!
+> 
+> > If the idea is merely to provide a herd model for s390 then it should 
+> > go into the DIY repository, not into the LKMM repository.
+> 
+> Makes sense.
+> 
+> In the meantime, does the cat file look to you like it correctly
+> models the combination of TSO and multicopy atomicity?  Do the
+> fences really work, or did I just get lucky with my choice of
+> litmus tests?
+
+You got lucky.  Try creating an SB litmus test where, instead of an
+smp_mb() fence between the write and the read, each thread executes
+some other kind of fence.
+
+The acyclicity condition should have been written more like this:
+
+let po_ghb = ([R] ; po ; [M]) | ([M] ; po ; [W])
+
+acyclic mfence | po_ghb | rf | fr | co as tso-mca
+
+I don't know what the fence instruction is on s390; change the "mfence"
+above accordingly.  The main difference between this and the
+corresponding expression in x86tso.cat is that I replaced rfe with rf.
+
+This doesn't account for atomic operations properly; see the "implied" 
+term in x86tso.cat.
+
+Alan
