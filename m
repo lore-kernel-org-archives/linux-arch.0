@@ -1,59 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:34262 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1752899AbeC1OTW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Mar 2018 10:19:22 -0400
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w2SEGuBN106611
-        for <linux-arch@vger.kernel.org>; Wed, 28 Mar 2018 10:19:22 -0400
-Received: from e11.ny.us.ibm.com (e11.ny.us.ibm.com [129.33.205.201])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 2h0bpnke45-1
-        (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Wed, 28 Mar 2018 10:19:21 -0400
-Received: from localhost
-        by e11.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Wed, 28 Mar 2018 10:19:18 -0400
-Date: Wed, 28 Mar 2018 07:20:04 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Received: from iolanthe.rowland.org ([192.131.102.54]:52116 "HELO
+        iolanthe.rowland.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with SMTP id S1753039AbeC1PB0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Mar 2018 11:01:26 -0400
+Date: Wed, 28 Mar 2018 11:01:25 -0400 (EDT)
+From: Alan Stern <stern@rowland.harvard.edu>
 Subject: Re: [PATCH RFC tools/memory-model] Add s390.{cfg,cat}
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20180328134232.GA29274@linux.vnet.ibm.com>
- <20180328134813.GF4082@hirez.programming.kicks-ass.net>
+In-Reply-To: <20180328134232.GA29274@linux.vnet.ibm.com>
+Message-ID: <Pine.LNX.4.44L0.1803281057280.1375-100000@iolanthe.rowland.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20180328134813.GF4082@hirez.programming.kicks-ass.net>
-Message-ID: <20180328142004.GR3675@linux.vnet.ibm.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: schwidefsky@de.ibm.com, borntraeger@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, stern@rowland.harvard.edu, parri.andrea@gmail.com, will.deacon@arm.com, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
-Message-ID: <20180328142004.hUKnr1AgvUjvL72xea-TwqSJnDqf9l2rG2XBnryQTi0@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: schwidefsky@de.ibm.com, borntraeger@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+Message-ID: <20180328150125.9MLFRb-EcilKs9KJsatWDBkNVXhFLTI-xun-5wvdXzE@z>
 
-On Wed, Mar 28, 2018 at 03:48:13PM +0200, Peter Zijlstra wrote:
-> On Wed, Mar 28, 2018 at 06:42:32AM -0700, Paul E. McKenney wrote:
-> > Hello!
-> > 
-> > The prototype patch shown below provides files required to allow herd7 to
-> > evaluate C-language litmus tests for the multicopy-atomic TSO ordering
-> > provided by s390.  
+On Wed, 28 Mar 2018, Paul E. McKenney wrote:
+
+> Hello!
 > 
-> There really isn't anything s390 specific here is there? That is, would
-> this not equally work for x86 and sparc, both of which are similarly TSO
-> ?
+> The prototype patch shown below provides files required to allow herd7 to
+> evaluate C-language litmus tests for the multicopy-atomic TSO ordering
+> provided by s390.  This patch should be viewed with great suspicion.
+> It does what I expect it to do on SB (with and without barriers),
+> IRIW without barriers, and Alan's SB with read-of-write added, but my
+> expectations are quite likely faulty, and my test cases are very few
+> in number.
+> 
+> Either way, this is the easy part.  The hard part (which I am happy
+> to leave to others) is making litmus7 and klitmus7 able to do tests
+> on actual hardware, as well as enabling herd to handle litmus tests
+> containing BAL.  ;-)
+> 
+> Note that CPU architectures already supported by herd might well need
+> only a .cfg file that refers to herd's pre-existing support.
+> 
+> Thoughts?
 
-As I understand it, there is a difference.  The difference from TSO
-systems such as x86 is that s390 is multicopy atomic as well as TSO.
-In contrast, x86 is TSO as well as other-multicopy-atomic.  I must defer
-to Martin and Christian for details -- this should be interpreted as a
-feeble first attempt on my part, not any sort of IBM-approved definition
-of s390.  ;-)
+I don't quite see the point of this.  You're not suggesting that we
+have one Linux Kernel Memory Consistency Model for s390 and another
+one for all the other architectures, are you?
 
-> Given that, should this not be called TSO instead of s390 ?
+If the idea is merely to provide a herd model for s390 then it should 
+go into the DIY repository, not into the LKMM repository.
 
-I agree completely with a single tso.cfg, TSO.cfg, or whatever name,
-as opposed to a bunch of identical files for x86, SPARC, ...
-
-							Thanx, Paul
+Alan
