@@ -1,57 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:60198 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:58650 "EHLO
         smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751219AbeC1McH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Mar 2018 08:32:07 -0400
+        with ESMTP id S1751207AbeC1Mbr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Mar 2018 08:31:47 -0400
 From: Chintan Pandya <cpandya@codeaurora.org>
-Subject: [PATCH v7 4/4] Revert "arm64: Enforce BBM for huge IO/VMAP mappings"
-Date: Wed, 28 Mar 2018 18:01:22 +0530
-Message-ID: <1522240282-12104-5-git-send-email-cpandya@codeaurora.org>
+Subject: [PATCH v7 1/4] ioremap: Update pgtable free interfaces with addr
+Date: Wed, 28 Mar 2018 18:01:19 +0530
+Message-ID: <1522240282-12104-2-git-send-email-cpandya@codeaurora.org>
 In-Reply-To: <1522240282-12104-1-git-send-email-cpandya@codeaurora.org>
 References: <1522240282-12104-1-git-send-email-cpandya@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com
 Cc: arnd@arndb.de, ard.biesheuvel@linaro.org, marc.zyngier@arm.com, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, Chintan Pandya <cpandya@codeaurora.org>
-Message-ID: <20180328123122.O-tQCTVevNwe1kJ2RBR4ByeahjNHFoANRD3MpWCmFxE@z>
+Message-ID: <20180328123119.Nsf-f2wvQDQptDhXVLX1okHs_Nmxr4vvPO1zMo1Zl5c@z>
 
-This commit 15122ee2c515a ("arm64: Enforce BBM for huge
-IO/VMAP mappings") is a temporary work-around until the
-issues with CONFIG_HAVE_ARCH_HUGE_VMAP gets fixed.
+This patch ("mm/vmalloc: Add interfaces to free unmapped
+page table") adds following 2 interfaces to free the page
+table in case we implement huge mapping.
 
-Revert this change as we have fixes for the issue.
+pud_free_pmd_page() and pmd_free_pte_page()
+
+Some architectures (like arm64) needs to do proper TLB
+maintanance after updating pagetable entry even in map.
+Why ? Read this,
+https://patchwork.kernel.org/patch/10134581/
+
+Pass 'addr' in these interfaces so that proper TLB ops
+can be performed.
 
 Signed-off-by: Chintan Pandya <cpandya@codeaurora.org>
 ---
- arch/arm64/mm/mmu.c | 8 --------
- 1 file changed, 8 deletions(-)
+ arch/arm64/mm/mmu.c           | 4 ++--
+ arch/x86/mm/pgtable.c         | 8 +++++---
+ include/asm-generic/pgtable.h | 8 ++++----
+ lib/ioremap.c                 | 4 ++--
+ 4 files changed, 13 insertions(+), 11 deletions(-)
 
 diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index 0f651db..170009b 100644
+index 2dbb2c9..da98828 100644
 --- a/arch/arm64/mm/mmu.c
 +++ b/arch/arm64/mm/mmu.c
-@@ -935,10 +935,6 @@ int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
- 	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
- 					pgprot_val(mk_sect_prot(prot)));
- 
--	/* ioremap_page_range doesn't honour BBM */
--	if (pud_present(READ_ONCE(*pudp)))
--		return 0;
--
- 	BUG_ON(phys & ~PUD_MASK);
- 	set_pud(pudp, pfn_pud(__phys_to_pfn(phys), sect_prot));
+@@ -973,12 +973,12 @@ int pmd_clear_huge(pmd_t *pmdp)
  	return 1;
-@@ -949,10 +945,6 @@ int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
- 	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
- 					pgprot_val(mk_sect_prot(prot)));
+ }
  
--	/* ioremap_page_range doesn't honour BBM */
--	if (pmd_present(READ_ONCE(*pmdp)))
--		return 0;
--
- 	BUG_ON(phys & ~PMD_MASK);
- 	set_pmd(pmdp, pfn_pmd(__phys_to_pfn(phys), sect_prot));
- 	return 1;
+-int pud_free_pmd_page(pud_t *pud)
++int pud_free_pmd_page(pud_t *pud, unsigned long addr)
+ {
+ 	return pud_none(*pud);
+ }
+ 
+-int pmd_free_pte_page(pmd_t *pmd)
++int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+ {
+ 	return pmd_none(*pmd);
+ }
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index 34cda7e..aa67de9 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -706,11 +706,12 @@ int pmd_clear_huge(pmd_t *pmd)
+ /**
+  * pud_free_pmd_page - Clear pud entry and free pmd page.
+  * @pud: Pointer to a PUD.
++ * @addr: Virtual address associated with pud.
+  *
+  * Context: The pud range has been unmaped and TLB purged.
+  * Return: 1 if clearing the entry succeeded. 0 otherwise.
+  */
+-int pud_free_pmd_page(pud_t *pud)
++int pud_free_pmd_page(pud_t *pud, unsigned long addr)
+ {
+ 	pmd_t *pmd;
+ 	int i;
+@@ -721,7 +722,7 @@ int pud_free_pmd_page(pud_t *pud)
+ 	pmd = (pmd_t *)pud_page_vaddr(*pud);
+ 
+ 	for (i = 0; i < PTRS_PER_PMD; i++)
+-		if (!pmd_free_pte_page(&pmd[i]))
++		if (!pmd_free_pte_page(&pmd[i]), addr + (i * PMD_SIZE))
+ 			return 0;
+ 
+ 	pud_clear(pud);
+@@ -733,11 +734,12 @@ int pud_free_pmd_page(pud_t *pud)
+ /**
+  * pmd_free_pte_page - Clear pmd entry and free pte page.
+  * @pmd: Pointer to a PMD.
++ * @addr: Virtual address associated with pmd.
+  *
+  * Context: The pmd range has been unmaped and TLB purged.
+  * Return: 1 if clearing the entry succeeded. 0 otherwise.
+  */
+-int pmd_free_pte_page(pmd_t *pmd)
++int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+ {
+ 	pte_t *pte;
+ 
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index bfbb44a..e6310f4 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -983,8 +983,8 @@ static inline int p4d_clear_huge(p4d_t *p4d)
+ int pmd_set_huge(pmd_t *pmd, phys_addr_t addr, pgprot_t prot);
+ int pud_clear_huge(pud_t *pud);
+ int pmd_clear_huge(pmd_t *pmd);
+-int pud_free_pmd_page(pud_t *pud);
+-int pmd_free_pte_page(pmd_t *pmd);
++int pud_free_pmd_page(pud_t *pud, unsigned long addr);
++int pmd_free_pte_page(pmd_t *pmd, unsigned long addr);
+ #else	/* !CONFIG_HAVE_ARCH_HUGE_VMAP */
+ static inline int p4d_set_huge(p4d_t *p4d, phys_addr_t addr, pgprot_t prot)
+ {
+@@ -1010,11 +1010,11 @@ static inline int pmd_clear_huge(pmd_t *pmd)
+ {
+ 	return 0;
+ }
+-static inline int pud_free_pmd_page(pud_t *pud)
++static inline int pud_free_pmd_page(pud_t *pud, unsigned long addr)
+ {
+ 	return 0;
+ }
+-static inline int pmd_free_pte_page(pmd_t *pmd)
++static inline int pmd_free_pte_page(pmd_t *pmd, unsigned long addr)
+ {
+ 	return 0;
+ }
+diff --git a/lib/ioremap.c b/lib/ioremap.c
+index 54e5bba..517f585 100644
+--- a/lib/ioremap.c
++++ b/lib/ioremap.c
+@@ -92,7 +92,7 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
+ 		if (ioremap_pmd_enabled() &&
+ 		    ((next - addr) == PMD_SIZE) &&
+ 		    IS_ALIGNED(phys_addr + addr, PMD_SIZE) &&
+-		    pmd_free_pte_page(pmd)) {
++		    pmd_free_pte_page(pmd, addr)) {
+ 			if (pmd_set_huge(pmd, phys_addr + addr, prot))
+ 				continue;
+ 		}
+@@ -119,7 +119,7 @@ static inline int ioremap_pud_range(p4d_t *p4d, unsigned long addr,
+ 		if (ioremap_pud_enabled() &&
+ 		    ((next - addr) == PUD_SIZE) &&
+ 		    IS_ALIGNED(phys_addr + addr, PUD_SIZE) &&
+-		    pud_free_pmd_page(pud)) {
++		    pud_free_pmd_page(pud, addr)) {
+ 			if (pud_set_huge(pud, phys_addr + addr, prot))
+ 				continue;
+ 		}
 -- 
 Qualcomm India Private Limited, on behalf of Qualcomm Innovation
 Center, Inc., is a member of Code Aurora Forum, a Linux Foundation
