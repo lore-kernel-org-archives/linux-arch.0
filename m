@@ -1,42 +1,72 @@
 From: Guo Ren <ren_guo@c-sky.com>
-Subject: Re: [PATCH 15/19] csky: Build infrastructure
-Date: Wed, 28 Mar 2018 11:49:59 +0800
-Message-ID: <20180328034957.GA4482@guoren>
+Subject: Re: [PATCH 17/19] csky: defconfig
+Date: Wed, 28 Mar 2018 11:59:42 +0800
+Message-ID: <20180328035942.GA23588@guoren>
 References: <cover.1521399976.git.ren_guo@c-sky.com>
- <c15b1fce07d0a19616026dfb927bfcbd88102b12.1521399976.git.ren_guo@c-sky.com>
- <CAK8P3a1rzS+MmubYqTE-8H89QnULcGbKth=eWTA5mJ5VLRNL0Q@mail.gmail.com>
- <20180320131342.GA31542@guoren>
- <CAK8P3a3pat6wQ+9gbf_wtp6+dur_h=Zp1896rogZHnehVnqVNA@mail.gmail.com>
- <20180321124137.GA21320@guoren>
- <CAK8P3a06MVAT35ZbG=gRkR1EDVdWPoT3bhwL+9fZSkmTHaDVBw@mail.gmail.com>
- <20180327023927.GA11454@guoren>
- <CAK8P3a3A+BEmBnGCSiRdoaiqSJjhC5zaZebcq2GPVaLJatBk8Q@mail.gmail.com>
+ <8a9c9b588cdfdf8b25ca9d449bf5c862d329c1d8.1521399976.git.ren_guo@c-sky.com>
+ <CAK8P3a3L-zO3K5qcmBPChhSqh+E6WtNRFV1cJRbksGZ74uaEAQ@mail.gmail.com>
+ <20180327022128.GB10185@guoren>
+ <CAK8P3a2CD4nEDzMZxtn1QQJA3oQeX=-4v17AxhpTuUqk8boVhg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAK8P3a3A+BEmBnGCSiRdoaiqSJjhC5zaZebcq2GPVaLJatBk8Q@mail.gmail.com>
+In-Reply-To: <CAK8P3a2CD4nEDzMZxtn1QQJA3oQeX=-4v17AxhpTuUqk8boVhg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jason Cooper <jason@lakedaemon.net>, c-sky_gcc_upstream@c-sky.com, gnu-csky@mentor.com, thomas.petazzoni@bootlin.com, wbx@uclibc-ng.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
+On Tue, Mar 27, 2018 at 09:48:23AM +0200, Arnd Bergmann wrote:
+> On Tue, Mar 27, 2018 at 4:21 AM, Guo Ren <ren_guo@c-sky.com> wrote:
+> > On Mon, Mar 26, 2018 at 03:16:31PM +0200, Arnd Bergmann wrote:
+> 
+> >> > +CONFIG_CFG80211=y
+> >> > +CONFIG_CFG80211_DEBUGFS=y
+> >> > +CONFIG_CFG80211_WEXT=y
+> >>
+> >> I would guess you want IPV6 but not WEXT here.
+> > Gx6605s devlepment board support usb-wifi.
+> > Perhaps WEXT is needed by iwconfig or iwlist? So I just enable it.
+> > However, I'll consider to remove it.
+> 
+> I think it's only for backwards compatibility with old versions of
+> those tools. There are some older drivers that use WEXT as the
+> native interface, but CFG80211 based drivers have a netlink
+> interface.
+Thx for remind. I'll check.
 
-On Tue, Mar 27, 2018 at 09:38:56AM +0200, Arnd Bergmann wrote:
-> Usually the way gcc handles this, either each CPU is a strict superset
-> of another
-> one, so you just need to specify the one with the smallest instruction set,
-> or you have an option like -mcpu=generic that produces the common subset.
->
-ck807 ck810 ck860 are diffrent architecture, so they can not be strict
-superset and there is no option like '-mcpu=generic' in our gcc and
-binutils.
+> 
+> >> > +CONFIG_FB=y
+> >> > +CONFIG_FB_TILEBLITTING=y
+> >> > +CONFIG_FB_SIMPLE=y
+> >> > +CONFIG_BACKLIGHT_LCD_SUPPORT=y
+> >> > +# CONFIG_LCD_CLASS_DEVICE is not set
+> >> > +# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
+> >> > +# CONFIG_VGA_CONSOLE is not set
+> >> > +CONFIG_FRAMEBUFFER_CONSOLE=y
+> >> > +CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
+> >> > +CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
+> >> > +CONFIG_LOGO=y
+> >> > +# CONFIG_LOGO_LINUX_MONO is not set
+> >> > +# CONFIG_LOGO_LINUX_VGA16 is not set
+> >>
+> >> For new platforms, using the DRM subsystem is the recommend
+> >> way to do graphics, it mostly replaces the framebuffer subsystem
+> >> here.
+> > These used by:
+> > https://github.com/c-sky/addons-linux/tree/master/addons/drivers/video/fbdev/nationalchip
+> >
+> > I'll consider the DRM subsystem.
+> 
+> It used to be rather hard to write a new DRM driver, but that has
+> improved a lot recently. You might be able to fit your driver into
+> drivers/gpu/drm/tinydrm/, or maybe do something a bit more complex
+> like drivers/gpu/drm/pl111/ or drivers/gpu/drm/stm/.
+For this patchset, I won't upstream the fbdev driver. I'll remove the
+CONFIG_FB in defconfig first.
 
-I know you want one vmlinux which could run on all ck807 ck810 ck860 with
-different dts-setting. But now, may I keep current design for abiv1&abiv2?
-
-In abiv3, we will take your advice seriously.
+Thx for remind about the develop-tips, and it's very helpful.
 
 Best Regards
  Guo Ren
