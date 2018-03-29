@@ -1,74 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59320 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59218 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752743AbeC2L0J (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:09 -0400
+        with ESMTP id S1752718AbeC2L0I (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:08 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 046/109] mm: add kernel_mbind() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:23:23 +0200
-Message-ID: <20180329112426.23043-47-linux@dominikbrodowski.net>
+Subject: [PATCH 085/109] fs: add ksys_getdents64() helper; remove in-kernel calls to sys_getdents64()
+Date: Thu, 29 Mar 2018 13:24:02 +0200
+Message-ID: <20180329112426.23043-86-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112323.FA2IlGBlFFkusj91i4WJdV7HYotiD-5QVH0wAbxEcnc@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20180329112402.19AW2jAaDOpAw24T8Pupd09jW7pBMUMscFKXkN4yHmo@z>
 
-Using the mm-internal kernel_mbind() helper allows us to get rid of the
-mm-internal call to the sys_mbind() syscall.
+Using this helper allows us to avoid the in-kernel calls to the
+sys_getdents64() syscall. The ksys_ prefix denotes that this function
+is meant as a drop-in replacement for the syscall. In particular, it
+uses the same calling convention as sys_getdents64().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- mm/mempolicy.c | 15 +++++++++++----
- 1 file changed, 11 insertions(+), 4 deletions(-)
+ fs/readdir.c             | 11 +++++++++--
+ include/linux/syscalls.h |  2 ++
+ init/initramfs.c         |  4 ++--
+ 3 files changed, 13 insertions(+), 4 deletions(-)
 
-diff --git a/mm/mempolicy.c b/mm/mempolicy.c
-index 7399ede02b5f..e4d7d4c0b253 100644
---- a/mm/mempolicy.c
-+++ b/mm/mempolicy.c
-@@ -1336,9 +1336,9 @@ static int copy_nodes_to_user(unsigned long __user *mask, unsigned long maxnode,
- 	return copy_to_user(mask, nodes_addr(*nodes), copy) ? -EFAULT : 0;
+diff --git a/fs/readdir.c b/fs/readdir.c
+index 1b83b0ad183b..d97f548e6323 100644
+--- a/fs/readdir.c
++++ b/fs/readdir.c
+@@ -292,8 +292,8 @@ static int filldir64(struct dir_context *ctx, const char *name, int namlen,
+ 	return -EFAULT;
  }
  
--SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
--		unsigned long, mode, const unsigned long __user *, nmask,
--		unsigned long, maxnode, unsigned, flags)
-+static long kernel_mbind(unsigned long start, unsigned long len,
-+			 unsigned long mode, const unsigned long __user *nmask,
-+			 unsigned long maxnode, unsigned int flags)
+-SYSCALL_DEFINE3(getdents64, unsigned int, fd,
+-		struct linux_dirent64 __user *, dirent, unsigned int, count)
++int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
++		    unsigned int count)
  {
- 	nodemask_t nodes;
- 	int err;
-@@ -1357,6 +1357,13 @@ SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
- 	return do_mbind(start, len, mode, mode_flags, &nodes, flags);
+ 	struct fd f;
+ 	struct linux_dirent64 __user * lastdirent;
+@@ -326,6 +326,13 @@ SYSCALL_DEFINE3(getdents64, unsigned int, fd,
+ 	return error;
  }
  
-+SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
-+		unsigned long, mode, const unsigned long __user *, nmask,
-+		unsigned long, maxnode, unsigned int, flags)
++
++SYSCALL_DEFINE3(getdents64, unsigned int, fd,
++		struct linux_dirent64 __user *, dirent, unsigned int, count)
 +{
-+	return kernel_mbind(start, len, mode, nmask, maxnode, flags);
++	return ksys_getdents64(fd, dirent, count);
 +}
 +
- /* Set the process memory policy */
- SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
- 		unsigned long, maxnode)
-@@ -1575,7 +1582,7 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
- 			return -EFAULT;
+ #ifdef CONFIG_COMPAT
+ struct compat_old_linux_dirent {
+ 	compat_ulong_t	d_ino;
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index f9df17dcec1c..c056aff6d7ad 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -955,6 +955,8 @@ ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count);
+ int ksys_chdir(const char __user *filename);
+ int ksys_fchmod(unsigned int fd, umode_t mode);
+ int ksys_fchown(unsigned int fd, uid_t user, gid_t group);
++int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
++		    unsigned int count);
+ 
+ /*
+  * The following kernel syscall equivalents are just wrappers to fs-internal
+diff --git a/init/initramfs.c b/init/initramfs.c
+index 5f2ff1d2370e..13643c46ebab 100644
+--- a/init/initramfs.c
++++ b/init/initramfs.c
+@@ -579,7 +579,7 @@ static void __init clean_rootfs(void)
  	}
  
--	return sys_mbind(start, len, mode, nm, nr_bits+1, flags);
-+	return kernel_mbind(start, len, mode, nm, nr_bits+1, flags);
- }
+ 	dirp = buf;
+-	num = sys_getdents64(fd, dirp, BUF_SIZE);
++	num = ksys_getdents64(fd, dirp, BUF_SIZE);
+ 	while (num > 0) {
+ 		while (num > 0) {
+ 			struct kstat st;
+@@ -599,7 +599,7 @@ static void __init clean_rootfs(void)
+ 		}
+ 		dirp = buf;
+ 		memset(buf, 0, BUF_SIZE);
+-		num = sys_getdents64(fd, dirp, BUF_SIZE);
++		num = ksys_getdents64(fd, dirp, BUF_SIZE);
+ 	}
  
- COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
+ 	ksys_close(fd);
 -- 
 2.16.3
