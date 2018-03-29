@@ -1,62 +1,28 @@
-From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 101/109] x86/sigreturn: use SYSCALL_DEFINE0
-Date: Thu, 29 Mar 2018 13:24:18 +0200
-Message-ID: <20180329112426.23043-102-linux@dominikbrodowski.net>
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [PATCH 000/109] remove in-kernel calls to syscalls
+Date: Thu, 29 Mar 2018 07:20:27 -0700
+Message-ID: <20180329142027.GA24860@bombadil.infradead.org>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "Tautschnig, Michael" <tautschn@amazon.co.uk>, Michael Tautschnig <tautschn@amazon.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Jaswinder Singh <jaswinder@infradead.org>, Andi Kleen <ak@linux.intel.com>, x86@kernel.org
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: linux-kernel@vger.kernel.org, viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, hmclauchlan@fb.com, tautschn@amazon.co.uk, Amir Goldstein <amir73il@gmail.com>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Darren Hart <dvhart@infradead.org>, "David S . Miller" <davem@davemloft.net>, "Eric W . Biederman" <ebiederm@xmission.com>, "H . Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Jaswinder Singh <jaswinder@infradead.org>, Jeff Dike <jdike@addtoit.com>, Jiri Slaby <jslaby@suse.com>, kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-s390@vger.kernel.org, "Luis R . Rodriguez" <mcgrof@kernel.org>, netdev@vg
 List-Id: linux-arch.vger.kernel.org
 
-From: "Tautschnig, Michael" <tautschn@amazon.co.uk>
+On Thu, Mar 29, 2018 at 01:22:37PM +0200, Dominik Brodowski wrote:
+> At least on 64-bit x86, it will likely be a hard requirement from v4.17
+> onwards to not call system call functions in the kernel: It is better to
+> use use a different calling convention for system calls there, where 
+> struct pt_regs is decoded on-the-fly in a syscall wrapper which then hands
+> processing over to the actual syscall function. This means that only those
+> parameters which are actually needed for a specific syscall are passed on
+> during syscall entry, instead of filling in six CPU registers with random
+> user space content all the time (which may cause serious trouble down the
+> call chain).[*]
 
-All definitions of syscalls in x86 except for those patched here have
-already been using the appropriate SYSCALL_DEFINE*.
-
-Signed-off-by: Michael Tautschnig <tautschn@amazon.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Jaswinder Singh <jaswinder@infradead.org>
-Cc: Andi Kleen <ak@linux.intel.com>
-Cc: x86@kernel.org
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
----
- arch/x86/kernel/signal.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
-
-diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-index 83a26726b689..da270b95fe4d 100644
---- a/arch/x86/kernel/signal.c
-+++ b/arch/x86/kernel/signal.c
-@@ -25,6 +25,7 @@
- #include <linux/user-return-notifier.h>
- #include <linux/uprobes.h>
- #include <linux/context_tracking.h>
-+#include <linux/syscalls.h>
- 
- #include <asm/processor.h>
- #include <asm/ucontext.h>
-@@ -601,7 +602,7 @@ static int x32_setup_rt_frame(struct ksignal *ksig,
-  * Do a signal return; undo the signal stack.
-  */
- #ifdef CONFIG_X86_32
--asmlinkage long sys_sigreturn(void)
-+SYSCALL_DEFINE0(sigreturn)
- {
- 	struct pt_regs *regs = current_pt_regs();
- 	struct sigframe __user *frame;
-@@ -633,7 +634,7 @@ asmlinkage long sys_sigreturn(void)
- }
- #endif /* CONFIG_X86_32 */
- 
--asmlinkage long sys_rt_sigreturn(void)
-+SYSCALL_DEFINE0(rt_sigreturn)
- {
- 	struct pt_regs *regs = current_pt_regs();
- 	struct rt_sigframe __user *frame;
--- 
-2.16.3
+How do we stop new ones from springing up?  Some kind of linker trick
+like was used to, er, "dissuade" people from using gets()?
