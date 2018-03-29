@@ -1,65 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59050 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59628 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752858AbeC2L0U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:20 -0400
+        with ESMTP id S1752855AbeC2L0T (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:19 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 048/109] fs: add do_readlinkat() helper; remove internal call to sys_readlinkat()
-Date: Thu, 29 Mar 2018 13:23:25 +0200
-Message-ID: <20180329112426.23043-49-linux@dominikbrodowski.net>
+Subject: [PATCH 011/109] net: socket: add __sys_socket() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:22:48 +0200
+Message-ID: <20180329112426.23043-12-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20180329112325.BgmMbWWvkVO4_qIU9ZJfkMWg1kBfiaSQYwYGTC9S3JY@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
+Message-ID: <20180329112248.MWZpb2zlVnoEcmXH2NGpk0Vzzk8puILmskLm_sjpROw@z>
 
-Using the do_readlinkat() helper removes an in-kernel call to the
-sys_readlinkat() syscall.
+Using the net-internal helper __sys_socket() allows us to avoid the
+internal calls to the sys_socket() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/stat.c | 12 +++++++++---
- 1 file changed, 9 insertions(+), 3 deletions(-)
+ include/linux/socket.h | 1 +
+ net/compat.c           | 2 +-
+ net/socket.c           | 9 +++++++--
+ 3 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/fs/stat.c b/fs/stat.c
-index 873785dae022..f8e6fb2c3657 100644
---- a/fs/stat.c
-+++ b/fs/stat.c
-@@ -379,8 +379,8 @@ SYSCALL_DEFINE2(newfstat, unsigned int, fd, struct stat __user *, statbuf)
- 	return error;
- }
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index 6a9840271676..f8d040434a13 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -363,5 +363,6 @@ extern int __sys_sendto(int fd, void __user *buff, size_t len,
+ 			int addr_len);
+ extern int __sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
+ 			 int __user *upeer_addrlen, int flags);
++extern int __sys_socket(int family, int type, int protocol);
  
--SYSCALL_DEFINE4(readlinkat, int, dfd, const char __user *, pathname,
--		char __user *, buf, int, bufsiz)
-+static int do_readlinkat(int dfd, const char __user *pathname,
-+			 char __user *buf, int bufsiz)
+ #endif /* _LINUX_SOCKET_H */
+diff --git a/net/compat.c b/net/compat.c
+index 0ff9f7451b6f..5b3b74c5812e 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -811,7 +811,7 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
+ 
+ 	switch (call) {
+ 	case SYS_SOCKET:
+-		ret = sys_socket(a0, a1, a[2]);
++		ret = __sys_socket(a0, a1, a[2]);
+ 		break;
+ 	case SYS_BIND:
+ 		ret = sys_bind(a0, compat_ptr(a1), a[2]);
+diff --git a/net/socket.c b/net/socket.c
+index 45f6ea0d57a5..07f379e50def 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1332,7 +1332,7 @@ int sock_create_kern(struct net *net, int family, int type, int protocol, struct
+ }
+ EXPORT_SYMBOL(sock_create_kern);
+ 
+-SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
++int __sys_socket(int family, int type, int protocol)
  {
- 	struct path path;
- 	int error;
-@@ -415,10 +415,16 @@ SYSCALL_DEFINE4(readlinkat, int, dfd, const char __user *, pathname,
- 	return error;
+ 	int retval;
+ 	struct socket *sock;
+@@ -1359,6 +1359,11 @@ SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
+ 	return sock_map_fd(sock, flags & (O_CLOEXEC | O_NONBLOCK));
  }
  
-+SYSCALL_DEFINE4(readlinkat, int, dfd, const char __user *, pathname,
-+		char __user *, buf, int, bufsiz)
++SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
 +{
-+	return do_readlinkat(dfd, pathname, buf, bufsiz);
++	return __sys_socket(family, type, protocol);
 +}
 +
- SYSCALL_DEFINE3(readlink, const char __user *, path, char __user *, buf,
- 		int, bufsiz)
- {
--	return sys_readlinkat(AT_FDCWD, path, buf, bufsiz);
-+	return do_readlinkat(AT_FDCWD, path, buf, bufsiz);
- }
+ /*
+  *	Create a pair of connected sockets.
+  */
+@@ -2463,7 +2468,7 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
  
- 
+ 	switch (call) {
+ 	case SYS_SOCKET:
+-		err = sys_socket(a0, a1, a[2]);
++		err = __sys_socket(a0, a1, a[2]);
+ 		break;
+ 	case SYS_BIND:
+ 		err = sys_bind(a0, (struct sockaddr __user *)a1, a[2]);
 -- 
 2.16.3
