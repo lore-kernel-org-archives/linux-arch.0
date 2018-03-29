@@ -1,22 +1,22 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59894 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59050 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752943AbeC2L01 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:27 -0400
+        with ESMTP id S1752954AbeC2L02 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:28 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 061/109] fs: add do_compat_futimesat() helper; remove in-kernel call to compat syscall
-Date: Thu, 29 Mar 2018 13:23:38 +0200
-Message-ID: <20180329112426.23043-62-linux@dominikbrodowski.net>
+Subject: [PATCH 055/109] fs: add do_lookup_dcookie() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:23:32 +0200
+Message-ID: <20180329112426.23043-56-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112338.INTe4riyI3zQdX7Nme1GrFMmwNZ29KbqZ3lrJMcxI4w@z>
+Message-ID: <20180329112332.9CYRFgIz9TeRZVDLv9Dl726v7yFOOtkC-s0MJUowt7g@z>
 
-Using the fs-internal do_compat_futimesat() helper allows us to get rid of
-the fs-internal call to the compat_sys_futimesat() syscall.
+Using the fs-internal do_lookup_dcookie() helper allows us to get rid of
+fs-internal calls to the sys_lookup_dcookie() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -26,38 +26,41 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/utimes.c | 12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ fs/dcookies.c | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
 
-diff --git a/fs/utimes.c b/fs/utimes.c
-index 5be035ed26c0..69d4b6ba1bfb 100644
---- a/fs/utimes.c
-+++ b/fs/utimes.c
-@@ -260,7 +260,8 @@ COMPAT_SYSCALL_DEFINE4(utimensat, unsigned int, dfd, const char __user *, filena
- 	return do_utimes(dfd, filename, t ? tv : NULL, flags);
- }
- 
--COMPAT_SYSCALL_DEFINE3(futimesat, unsigned int, dfd, const char __user *, filename, struct compat_timeval __user *, t)
-+static long do_compat_futimesat(unsigned int dfd, const char __user *filename,
-+				struct compat_timeval __user *t)
+diff --git a/fs/dcookies.c b/fs/dcookies.c
+index 0d0461cf2431..57bc96435feb 100644
+--- a/fs/dcookies.c
++++ b/fs/dcookies.c
+@@ -146,7 +146,7 @@ int get_dcookie(const struct path *path, unsigned long *cookie)
+ /* And here is where the userspace process can look up the cookie value
+  * to retrieve the path.
+  */
+-SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
++static int do_lookup_dcookie(u64 cookie64, char __user *buf, size_t len)
  {
- 	struct timespec64 tv[2];
- 
-@@ -279,8 +280,15 @@ COMPAT_SYSCALL_DEFINE3(futimesat, unsigned int, dfd, const char __user *, filena
- 	return do_utimes(dfd, filename, t ? tv : NULL, 0);
+ 	unsigned long cookie = (unsigned long)cookie64;
+ 	int err = -EINVAL;
+@@ -203,13 +203,18 @@ SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
+ 	return err;
  }
  
-+COMPAT_SYSCALL_DEFINE3(futimesat, unsigned int, dfd,
-+		       const char __user *, filename,
-+		       struct compat_timeval __user *, t)
++SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
 +{
-+	return do_compat_futimesat(dfd, filename, t);
++	return do_lookup_dcookie(cookie64, buf, len);
 +}
 +
- COMPAT_SYSCALL_DEFINE2(utimes, const char __user *, filename, struct compat_timeval __user *, t)
+ #ifdef CONFIG_COMPAT
+ COMPAT_SYSCALL_DEFINE4(lookup_dcookie, u32, w0, u32, w1, char __user *, buf, compat_size_t, len)
  {
--	return compat_sys_futimesat(AT_FDCWD, filename, t);
-+	return do_compat_futimesat(AT_FDCWD, filename, t);
+ #ifdef __BIG_ENDIAN
+-	return sys_lookup_dcookie(((u64)w0 << 32) | w1, buf, len);
++	return do_lookup_dcookie(((u64)w0 << 32) | w1, buf, len);
+ #else
+-	return sys_lookup_dcookie(((u64)w1 << 32) | w0, buf, len);
++	return do_lookup_dcookie(((u64)w1 << 32) | w0, buf, len);
+ #endif
  }
  #endif
 -- 
