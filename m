@@ -1,142 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59894 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:58984 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752753AbeC2L0K (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:10 -0400
+        with ESMTP id S1752756AbeC2L0L (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:11 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 089/109] fs: add ksys_sync() helper; remove in-kernel calls to sys_sync()
-Date: Thu, 29 Mar 2018 13:24:06 +0200
-Message-ID: <20180329112426.23043-90-linux@dominikbrodowski.net>
+Subject: [PATCH 006/109] x86: use _do_fork() in compat_sys_x86_clone()
+Date: Thu, 29 Mar 2018 13:22:43 +0200
+Message-ID: <20180329112426.23043-7-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20180329112406.VF97-OgKyL1XEueBK7JfLbiHPZrzWiL-5O0o4MDK7ds@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org
+Message-ID: <20180329112243.jkODaYVv3F0N7nvBeyNjXVykYKW35zerWbbvTr0ErBc@z>
 
-Using this helper allows us to avoid the in-kernel calls to the
-sys_sync() syscall. The ksys_ prefix denotes that this function
-is meant as a drop-in replacement for the syscall. In particular, it
-uses the same calling convention as sys_sync().
+It is trivial to directly call _do_fork() instead of the sys_clone()
+syscall in compat_sys_x86_clone().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Jiri Slaby <jslaby@suse.com>
+Cc: x86@kernel.org
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/sparc/kernel/setup_32.c | 2 +-
- drivers/tty/sysrq.c          | 2 +-
- fs/sync.c                    | 7 ++++++-
- include/linux/syscalls.h     | 1 +
- kernel/power/hibernate.c     | 2 +-
- kernel/power/suspend.c       | 2 +-
- kernel/power/user.c          | 2 +-
- 7 files changed, 12 insertions(+), 6 deletions(-)
+ arch/x86/ia32/sys_ia32.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/sparc/kernel/setup_32.c b/arch/sparc/kernel/setup_32.c
-index 2e3a3e203061..13664c377196 100644
---- a/arch/sparc/kernel/setup_32.c
-+++ b/arch/sparc/kernel/setup_32.c
-@@ -86,7 +86,7 @@ static void prom_sync_me(void)
- 	show_free_areas(0, NULL);
- 	if (!is_idle_task(current)) {
- 		local_irq_enable();
--		sys_sync();
-+		ksys_sync();
- 		local_irq_disable();
- 	}
- 	prom_printf("Returning to prom\n");
-diff --git a/drivers/tty/sysrq.c b/drivers/tty/sysrq.c
-index b674793be478..6364890575ec 100644
---- a/drivers/tty/sysrq.c
-+++ b/drivers/tty/sysrq.c
-@@ -660,7 +660,7 @@ static void sysrq_do_reset(struct timer_list *t)
- 
- 	state->reset_requested = true;
- 
--	sys_sync();
-+	ksys_sync();
- 	kernel_restart(NULL);
- }
- 
-diff --git a/fs/sync.c b/fs/sync.c
-index 6e0a2cbaf6de..602ae94bb67e 100644
---- a/fs/sync.c
-+++ b/fs/sync.c
-@@ -105,7 +105,7 @@ static void fdatawait_one_bdev(struct block_device *bdev, void *arg)
-  * just write metadata (such as inodes or bitmaps) to block device page cache
-  * and do not sync it on their own in ->sync_fs().
-  */
--SYSCALL_DEFINE0(sync)
-+void ksys_sync(void)
+diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
+index 6512498bbef6..aa024a2dd34f 100644
+--- a/arch/x86/ia32/sys_ia32.c
++++ b/arch/x86/ia32/sys_ia32.c
+@@ -41,6 +41,7 @@
+ #include <linux/highuid.h>
+ #include <linux/sysctl.h>
+ #include <linux/slab.h>
++#include <linux/sched/task.h>
+ #include <asm/mman.h>
+ #include <asm/types.h>
+ #include <linux/uaccess.h>
+@@ -241,6 +242,6 @@ COMPAT_SYSCALL_DEFINE5(x86_clone, unsigned long, clone_flags,
+ 		       unsigned long, newsp, int __user *, parent_tidptr,
+ 		       unsigned long, tls_val, int __user *, child_tidptr)
  {
- 	int nowait = 0, wait = 1;
- 
-@@ -117,6 +117,11 @@ SYSCALL_DEFINE0(sync)
- 	iterate_bdevs(fdatawait_one_bdev, NULL);
- 	if (unlikely(laptop_mode))
- 		laptop_sync_completion();
-+}
-+
-+SYSCALL_DEFINE0(sync)
-+{
-+	ksys_sync();
- 	return 0;
+-	return sys_clone(clone_flags, newsp, parent_tidptr, child_tidptr,
++	return _do_fork(clone_flags, newsp, 0, parent_tidptr, child_tidptr,
+ 			tls_val);
  }
- 
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 3a2e90842ff8..0a9942b3e718 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -960,6 +960,7 @@ int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
- int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
- off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence);
- ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count);
-+void ksys_sync(void);
- 
- /*
-  * The following kernel syscall equivalents are just wrappers to fs-internal
-diff --git a/kernel/power/hibernate.c b/kernel/power/hibernate.c
-index a5c36e9c56a6..4710f1b142fc 100644
---- a/kernel/power/hibernate.c
-+++ b/kernel/power/hibernate.c
-@@ -701,7 +701,7 @@ int hibernate(void)
- 	}
- 
- 	pr_info("Syncing filesystems ... \n");
--	sys_sync();
-+	ksys_sync();
- 	pr_info("done.\n");
- 
- 	error = freeze_processes();
-diff --git a/kernel/power/suspend.c b/kernel/power/suspend.c
-index 0685c4499431..4c10be0f4843 100644
---- a/kernel/power/suspend.c
-+++ b/kernel/power/suspend.c
-@@ -560,7 +560,7 @@ static int enter_state(suspend_state_t state)
- #ifndef CONFIG_SUSPEND_SKIP_SYNC
- 	trace_suspend_resume(TPS("sync_filesystems"), 0, true);
- 	pr_info("Syncing filesystems ... ");
--	sys_sync();
-+	ksys_sync();
- 	pr_cont("done.\n");
- 	trace_suspend_resume(TPS("sync_filesystems"), 0, false);
- #endif
-diff --git a/kernel/power/user.c b/kernel/power/user.c
-index 22df9f7ff672..75c959de4b29 100644
---- a/kernel/power/user.c
-+++ b/kernel/power/user.c
-@@ -224,7 +224,7 @@ static long snapshot_ioctl(struct file *filp, unsigned int cmd,
- 			break;
- 
- 		printk("Syncing filesystems ... ");
--		sys_sync();
-+		ksys_sync();
- 		printk("done.\n");
- 
- 		error = freeze_processes();
 -- 
 2.16.3
