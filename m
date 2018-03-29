@@ -1,93 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59894 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59862 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752803AbeC2L0Q (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:16 -0400
+        with ESMTP id S1752791AbeC2L0P (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:15 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 012/109] net: socket: add __sys_bind() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:22:49 +0200
-Message-ID: <20180329112426.23043-13-linux@dominikbrodowski.net>
+Subject: [PATCH 045/109] mm: add kernel_move_pages() helper, move compat syscall to mm/migrate.c
+Date: Thu, 29 Mar 2018 13:23:22 +0200
+Message-ID: <20180329112426.23043-46-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
-Message-ID: <20180329112249.rh9eaPgx_fvrk00DfDNXmC0-d1pgL3r7OhmMYxGY99k@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112322.LJz4krZuspr4SMs5LzRLEEpgRlgxpAyICvkavPOgWFU@z>
 
-Using the net-internal helper __sys_bind() allows us to avoid the
-internal calls to the sys_bind() syscall.
+Move compat_sys_move_pages() to mm/migrate.c and make it call a newly
+introduced helper -- kernel_move_pages() -- instead of the syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/socket.h | 1 +
- net/compat.c           | 2 +-
- net/socket.c           | 9 +++++++--
- 3 files changed, 9 insertions(+), 3 deletions(-)
+ kernel/compat.c | 22 ----------------------
+ mm/migrate.c    | 39 +++++++++++++++++++++++++++++++++++----
+ 2 files changed, 35 insertions(+), 26 deletions(-)
 
-diff --git a/include/linux/socket.h b/include/linux/socket.h
-index f8d040434a13..e9cee272da13 100644
---- a/include/linux/socket.h
-+++ b/include/linux/socket.h
-@@ -364,5 +364,6 @@ extern int __sys_sendto(int fd, void __user *buff, size_t len,
- extern int __sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
- 			 int __user *upeer_addrlen, int flags);
- extern int __sys_socket(int family, int type, int protocol);
-+extern int __sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen);
+diff --git a/kernel/compat.c b/kernel/compat.c
+index 51bdf1808943..6d21894806b4 100644
+--- a/kernel/compat.c
++++ b/kernel/compat.c
+@@ -488,28 +488,6 @@ get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat)
+ }
+ EXPORT_SYMBOL_GPL(get_compat_sigset);
  
- #endif /* _LINUX_SOCKET_H */
-diff --git a/net/compat.c b/net/compat.c
-index 5b3b74c5812e..bba555b1d863 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -814,7 +814,7 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 		ret = __sys_socket(a0, a1, a[2]);
- 		break;
- 	case SYS_BIND:
--		ret = sys_bind(a0, compat_ptr(a1), a[2]);
-+		ret = __sys_bind(a0, compat_ptr(a1), a[2]);
- 		break;
- 	case SYS_CONNECT:
- 		ret = sys_connect(a0, compat_ptr(a1), a[2]);
-diff --git a/net/socket.c b/net/socket.c
-index 07f379e50def..291cdae97341 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -1462,7 +1462,7 @@ SYSCALL_DEFINE4(socketpair, int, family, int, type, int, protocol,
-  *	the protocol layer (having also checked the address is ok).
+-#ifdef CONFIG_NUMA
+-COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
+-		       compat_uptr_t __user *, pages32,
+-		       const int __user *, nodes,
+-		       int __user *, status,
+-		       int, flags)
+-{
+-	const void __user * __user *pages;
+-	int i;
+-
+-	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
+-	for (i = 0; i < nr_pages; i++) {
+-		compat_uptr_t p;
+-
+-		if (get_user(p, pages32 + i) ||
+-			put_user(compat_ptr(p), pages + i))
+-			return -EFAULT;
+-	}
+-	return sys_move_pages(pid, nr_pages, pages, nodes, status, flags);
+-}
+-#endif
+-
+ /*
+  * Allocate user-space memory for the duration of a single system call,
+  * in order to marshall parameters inside a compat thunk.
+diff --git a/mm/migrate.c b/mm/migrate.c
+index 1e5525a25691..003886606a22 100644
+--- a/mm/migrate.c
++++ b/mm/migrate.c
+@@ -34,6 +34,7 @@
+ #include <linux/backing-dev.h>
+ #include <linux/compaction.h>
+ #include <linux/syscalls.h>
++#include <linux/compat.h>
+ #include <linux/hugetlb.h>
+ #include <linux/hugetlb_cgroup.h>
+ #include <linux/gfp.h>
+@@ -1745,10 +1746,10 @@ static int do_pages_stat(struct mm_struct *mm, unsigned long nr_pages,
+  * Move a list of pages in the address space of the currently executing
+  * process.
   */
- 
--SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
-+int __sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen)
+-SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
+-		const void __user * __user *, pages,
+-		const int __user *, nodes,
+-		int __user *, status, int, flags)
++static int kernel_move_pages(pid_t pid, unsigned long nr_pages,
++			     const void __user * __user *pages,
++			     const int __user *nodes,
++			     int __user *status, int flags)
  {
- 	struct socket *sock;
- 	struct sockaddr_storage address;
-@@ -1485,6 +1485,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
+ 	struct task_struct *task;
+ 	struct mm_struct *mm;
+@@ -1807,6 +1808,36 @@ SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
  	return err;
  }
  
-+SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
++SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
++		const void __user * __user *, pages,
++		const int __user *, nodes,
++		int __user *, status, int, flags)
 +{
-+	return __sys_bind(fd, umyaddr, addrlen);
++	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
 +}
 +
++#ifdef CONFIG_COMPAT
++COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
++		       compat_uptr_t __user *, pages32,
++		       const int __user *, nodes,
++		       int __user *, status,
++		       int, flags)
++{
++	const void __user * __user *pages;
++	int i;
++
++	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
++	for (i = 0; i < nr_pages; i++) {
++		compat_uptr_t p;
++
++		if (get_user(p, pages32 + i) ||
++			put_user(compat_ptr(p), pages + i))
++			return -EFAULT;
++	}
++	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
++}
++#endif /* CONFIG_COMPAT */
++
+ #ifdef CONFIG_NUMA_BALANCING
  /*
-  *	Perform a listen. Basically, we allow the protocol to do anything
-  *	necessary for a listen, and if that works, we mark the socket as
-@@ -2471,7 +2476,7 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 		err = __sys_socket(a0, a1, a[2]);
- 		break;
- 	case SYS_BIND:
--		err = sys_bind(a0, (struct sockaddr __user *)a1, a[2]);
-+		err = __sys_bind(a0, (struct sockaddr __user *)a1, a[2]);
- 		break;
- 	case SYS_CONNECT:
- 		err = sys_connect(a0, (struct sockaddr __user *)a1, a[2]);
+  * Returns true if this is a safe migration target node for misplaced NUMA
 -- 
 2.16.3
