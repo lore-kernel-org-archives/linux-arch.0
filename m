@@ -1,70 +1,312 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:58700 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59218 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750753AbeC2L0B (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:01 -0400
+        with ESMTP id S1751896AbeC2L0U (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:20 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 050/109] fs: add do_renameat2() helper; remove internal call to sys_renameat2()
-Date: Thu, 29 Mar 2018 13:23:27 +0200
-Message-ID: <20180329112426.23043-51-linux@dominikbrodowski.net>
+Subject: [PATCH 042/109] kernel: provide ksys_*() wrappers for syscalls called by kernel/uid16.c
+Date: Thu, 29 Mar 2018 13:23:19 +0200
+Message-ID: <20180329112426.23043-43-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20180329112327.iT5OzWsegwgNRFUh7FmR1UdJBR0XiCR3lLZ85aCEvG0@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "Eric W . Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112319.36-udTBWHAiD6O7wRSw_HHIqi2g2vT6CmQXNdksXi54@z>
 
-Using this helper removes in-kernel calls to the sys_renameat2() syscall.
+Using these helpers allows us to avoid the in-kernel calls to these
+syscalls: sys_setregid(), sys_setgid(), sys_setreuid(), sys_setuid(),
+sys_setresuid(), sys_setresgid(), sys_setfsuid(), and sys_setfsgid().
+
+The ksys_ prefix denotes that these function are meant as a drop-in
+replacement for the syscall. In particular, they use the same calling
+convention.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Eric W. Biederman <ebiederm@xmission.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/namei.c | 14 ++++++++++----
- 1 file changed, 10 insertions(+), 4 deletions(-)
+ kernel/sys.c   | 58 ++++++++++++++++++++++++++++++++++++++++++++++++++--------
+ kernel/uid16.c | 19 ++++++++++---------
+ kernel/uid16.h | 14 ++++++++++++++
+ 3 files changed, 74 insertions(+), 17 deletions(-)
+ create mode 100644 kernel/uid16.h
 
-diff --git a/fs/namei.c b/fs/namei.c
-index 921ae32dbc80..524e829ffc7d 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -4478,8 +4478,8 @@ int vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
- }
- EXPORT_SYMBOL(vfs_rename);
+diff --git a/kernel/sys.c b/kernel/sys.c
+index ebb138b841c8..550f47788ae4 100644
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -69,6 +69,8 @@
+ #include <asm/io.h>
+ #include <asm/unistd.h>
  
--SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
--		int, newdfd, const char __user *, newname, unsigned int, flags)
-+static int do_renameat2(int olddfd, const char __user *oldname, int newdfd,
-+			const char __user *newname, unsigned int flags)
++#include "uid16.h"
++
+ #ifndef SET_UNALIGN_CTL
+ # define SET_UNALIGN_CTL(a, b)	(-EINVAL)
+ #endif
+@@ -340,7 +342,7 @@ SYSCALL_DEFINE2(getpriority, int, which, int, who)
+  *      operations (as far as semantic preservation is concerned).
+  */
+ #ifdef CONFIG_MULTIUSER
+-SYSCALL_DEFINE2(setregid, gid_t, rgid, gid_t, egid)
++long __sys_setregid(gid_t rgid, gid_t egid)
  {
- 	struct dentry *old_dentry, *new_dentry;
- 	struct dentry *trap;
-@@ -4621,15 +4621,21 @@ SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
- 	return error;
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -392,12 +394,17 @@ SYSCALL_DEFINE2(setregid, gid_t, rgid, gid_t, egid)
+ 	return retval;
  }
  
-+SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
-+		int, newdfd, const char __user *, newname, unsigned int, flags)
++SYSCALL_DEFINE2(setregid, gid_t, rgid, gid_t, egid)
 +{
-+	return do_renameat2(olddfd, oldname, newdfd, newname, flags);
++	return __sys_setregid(rgid, egid);
 +}
 +
- SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
- 		int, newdfd, const char __user *, newname)
+ /*
+  * setgid() is implemented like SysV w/ SAVED_IDS
+  *
+  * SMP: Same implicit races as above.
+  */
+-SYSCALL_DEFINE1(setgid, gid_t, gid)
++long __sys_setgid(gid_t gid)
  {
--	return sys_renameat2(olddfd, oldname, newdfd, newname, 0);
-+	return do_renameat2(olddfd, oldname, newdfd, newname, 0);
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -429,6 +436,11 @@ SYSCALL_DEFINE1(setgid, gid_t, gid)
+ 	return retval;
  }
  
- SYSCALL_DEFINE2(rename, const char __user *, oldname, const char __user *, newname)
++SYSCALL_DEFINE1(setgid, gid_t, gid)
++{
++	return __sys_setgid(gid);
++}
++
+ /*
+  * change the user struct in a credentials set to match the new UID
+  */
+@@ -473,7 +485,7 @@ static int set_user(struct cred *new)
+  * 100% compatible with BSD.  A program which uses just setuid() will be
+  * 100% compatible with POSIX with saved IDs.
+  */
+-SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
++long __sys_setreuid(uid_t ruid, uid_t euid)
  {
--	return sys_renameat2(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
-+	return do_renameat2(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -533,6 +545,11 @@ SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
+ 	return retval;
  }
  
- int vfs_whiteout(struct inode *dir, struct dentry *dentry)
++SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
++{
++	return __sys_setreuid(ruid, euid);
++}
++
+ /*
+  * setuid() is implemented like SysV with SAVED_IDS
+  *
+@@ -544,7 +561,7 @@ SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
+  * will allow a root program to temporarily drop privileges and be able to
+  * regain them by swapping the real and effective uid.
+  */
+-SYSCALL_DEFINE1(setuid, uid_t, uid)
++long __sys_setuid(uid_t uid)
+ {
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -586,12 +603,17 @@ SYSCALL_DEFINE1(setuid, uid_t, uid)
+ 	return retval;
+ }
+ 
++SYSCALL_DEFINE1(setuid, uid_t, uid)
++{
++	return __sys_setuid(uid);
++}
++
+ 
+ /*
+  * This function implements a generic ability to update ruid, euid,
+  * and suid.  This allows you to implement the 4.4 compatible seteuid().
+  */
+-SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
++long __sys_setresuid(uid_t ruid, uid_t euid, uid_t suid)
+ {
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -656,6 +678,11 @@ SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
+ 	return retval;
+ }
+ 
++SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
++{
++	return __sys_setresuid(ruid, euid, suid);
++}
++
+ SYSCALL_DEFINE3(getresuid, uid_t __user *, ruidp, uid_t __user *, euidp, uid_t __user *, suidp)
+ {
+ 	const struct cred *cred = current_cred();
+@@ -678,7 +705,7 @@ SYSCALL_DEFINE3(getresuid, uid_t __user *, ruidp, uid_t __user *, euidp, uid_t _
+ /*
+  * Same as above, but for rgid, egid, sgid.
+  */
+-SYSCALL_DEFINE3(setresgid, gid_t, rgid, gid_t, egid, gid_t, sgid)
++long __sys_setresgid(gid_t rgid, gid_t egid, gid_t sgid)
+ {
+ 	struct user_namespace *ns = current_user_ns();
+ 	const struct cred *old;
+@@ -730,6 +757,11 @@ SYSCALL_DEFINE3(setresgid, gid_t, rgid, gid_t, egid, gid_t, sgid)
+ 	return retval;
+ }
+ 
++SYSCALL_DEFINE3(setresgid, gid_t, rgid, gid_t, egid, gid_t, sgid)
++{
++	return __sys_setresgid(rgid, egid, sgid);
++}
++
+ SYSCALL_DEFINE3(getresgid, gid_t __user *, rgidp, gid_t __user *, egidp, gid_t __user *, sgidp)
+ {
+ 	const struct cred *cred = current_cred();
+@@ -757,7 +789,7 @@ SYSCALL_DEFINE3(getresgid, gid_t __user *, rgidp, gid_t __user *, egidp, gid_t _
+  * whatever uid it wants to). It normally shadows "euid", except when
+  * explicitly set by setfsuid() or for access..
+  */
+-SYSCALL_DEFINE1(setfsuid, uid_t, uid)
++long __sys_setfsuid(uid_t uid)
+ {
+ 	const struct cred *old;
+ 	struct cred *new;
+@@ -793,10 +825,15 @@ SYSCALL_DEFINE1(setfsuid, uid_t, uid)
+ 	return old_fsuid;
+ }
+ 
++SYSCALL_DEFINE1(setfsuid, uid_t, uid)
++{
++	return __sys_setfsuid(uid);
++}
++
+ /*
+  * Samma på svenska..
+  */
+-SYSCALL_DEFINE1(setfsgid, gid_t, gid)
++long __sys_setfsgid(gid_t gid)
+ {
+ 	const struct cred *old;
+ 	struct cred *new;
+@@ -830,6 +867,11 @@ SYSCALL_DEFINE1(setfsgid, gid_t, gid)
+ 	commit_creds(new);
+ 	return old_fsgid;
+ }
++
++SYSCALL_DEFINE1(setfsgid, gid_t, gid)
++{
++	return __sys_setfsgid(gid);
++}
+ #endif /* CONFIG_MULTIUSER */
+ 
+ /**
+diff --git a/kernel/uid16.c b/kernel/uid16.c
+index ef1da2a5f9bd..7b930edfe461 100644
+--- a/kernel/uid16.c
++++ b/kernel/uid16.c
+@@ -18,6 +18,8 @@
+ 
+ #include <linux/uaccess.h>
+ 
++#include "uid16.h"
++
+ SYSCALL_DEFINE3(chown16, const char __user *, filename, old_uid_t, user, old_gid_t, group)
+ {
+ 	return sys_chown(filename, low2highuid(user), low2highgid(group));
+@@ -35,27 +37,27 @@ SYSCALL_DEFINE3(fchown16, unsigned int, fd, old_uid_t, user, old_gid_t, group)
+ 
+ SYSCALL_DEFINE2(setregid16, old_gid_t, rgid, old_gid_t, egid)
+ {
+-	return sys_setregid(low2highgid(rgid), low2highgid(egid));
++	return __sys_setregid(low2highgid(rgid), low2highgid(egid));
+ }
+ 
+ SYSCALL_DEFINE1(setgid16, old_gid_t, gid)
+ {
+-	return sys_setgid(low2highgid(gid));
++	return __sys_setgid(low2highgid(gid));
+ }
+ 
+ SYSCALL_DEFINE2(setreuid16, old_uid_t, ruid, old_uid_t, euid)
+ {
+-	return sys_setreuid(low2highuid(ruid), low2highuid(euid));
++	return __sys_setreuid(low2highuid(ruid), low2highuid(euid));
+ }
+ 
+ SYSCALL_DEFINE1(setuid16, old_uid_t, uid)
+ {
+-	return sys_setuid(low2highuid(uid));
++	return __sys_setuid(low2highuid(uid));
+ }
+ 
+ SYSCALL_DEFINE3(setresuid16, old_uid_t, ruid, old_uid_t, euid, old_uid_t, suid)
+ {
+-	return sys_setresuid(low2highuid(ruid), low2highuid(euid),
++	return __sys_setresuid(low2highuid(ruid), low2highuid(euid),
+ 				 low2highuid(suid));
+ }
+ 
+@@ -78,11 +80,10 @@ SYSCALL_DEFINE3(getresuid16, old_uid_t __user *, ruidp, old_uid_t __user *, euid
+ 
+ SYSCALL_DEFINE3(setresgid16, old_gid_t, rgid, old_gid_t, egid, old_gid_t, sgid)
+ {
+-	return sys_setresgid(low2highgid(rgid), low2highgid(egid),
++	return __sys_setresgid(low2highgid(rgid), low2highgid(egid),
+ 				 low2highgid(sgid));
+ }
+ 
+-
+ SYSCALL_DEFINE3(getresgid16, old_gid_t __user *, rgidp, old_gid_t __user *, egidp, old_gid_t __user *, sgidp)
+ {
+ 	const struct cred *cred = current_cred();
+@@ -102,12 +103,12 @@ SYSCALL_DEFINE3(getresgid16, old_gid_t __user *, rgidp, old_gid_t __user *, egid
+ 
+ SYSCALL_DEFINE1(setfsuid16, old_uid_t, uid)
+ {
+-	return sys_setfsuid(low2highuid(uid));
++	return __sys_setfsuid(low2highuid(uid));
+ }
+ 
+ SYSCALL_DEFINE1(setfsgid16, old_gid_t, gid)
+ {
+-	return sys_setfsgid(low2highgid(gid));
++	return __sys_setfsgid(low2highgid(gid));
+ }
+ 
+ static int groups16_to_user(old_gid_t __user *grouplist,
+diff --git a/kernel/uid16.h b/kernel/uid16.h
+new file mode 100644
+index 000000000000..cdca040f7602
+--- /dev/null
++++ b/kernel/uid16.h
+@@ -0,0 +1,14 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef LINUX_UID16_H
++#define LINUX_UID16_H
++
++long __sys_setuid(uid_t uid);
++long __sys_setgid(gid_t gid);
++long __sys_setreuid(uid_t ruid, uid_t euid);
++long __sys_setregid(gid_t rgid, gid_t egid);
++long __sys_setresuid(uid_t ruid, uid_t euid, uid_t suid);
++long __sys_setresgid(gid_t rgid, gid_t egid, gid_t sgid);
++long __sys_setfsuid(uid_t uid);
++long __sys_setfsgid(gid_t gid);
++
++#endif /* LINUX_UID16_H */
 -- 
 2.16.3
