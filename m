@@ -1,152 +1,91 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 066/109] fs: add ksys_mount() helper; remove in-kernel calls to sys_mount()
-Date: Thu, 29 Mar 2018 13:23:43 +0200
-Message-ID: <20180329112426.23043-67-linux@dominikbrodowski.net>
+Subject: [PATCH 031/109] ipc: add semget syscall wrapper
+Date: Thu, 29 Mar 2018 13:23:08 +0200
+Message-ID: <20180329112426.23043-32-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using this helper allows us to avoid the in-kernel calls to the sys_mount()
-syscall. The ksys_ prefix denotes that this function is meant as a drop-in
+Provide ksys_semget() wrapper to avoid in-kernel calls to this syscall.
+The ksys_ prefix denotes that this function is meant as a drop-in
 replacement for the syscall. In particular, it uses the same calling
-convention as sys_mount().
-
-In the near future, all callers of ksys_mount() should be converted to call
-do_mount() directly.
+convention as sys_semget().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- drivers/base/devtmpfs.c  |  5 +++--
- fs/namespace.c           | 10 ++++++++--
- include/linux/syscalls.h |  3 +++
- init/do_mounts.c         |  4 ++--
- init/do_mounts_initrd.c  |  6 +++---
- 5 files changed, 19 insertions(+), 9 deletions(-)
+ ipc/sem.c     | 7 ++++++-
+ ipc/syscall.c | 4 ++--
+ ipc/util.h    | 1 +
+ 3 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/base/devtmpfs.c b/drivers/base/devtmpfs.c
-index 50025d7959cb..4afb04686c8e 100644
---- a/drivers/base/devtmpfs.c
-+++ b/drivers/base/devtmpfs.c
-@@ -356,7 +356,8 @@ int devtmpfs_mount(const char *mntdir)
- 	if (!thread)
- 		return 0;
- 
--	err = sys_mount("devtmpfs", (char *)mntdir, "devtmpfs", MS_SILENT, NULL);
-+	err = ksys_mount("devtmpfs", (char *)mntdir, "devtmpfs", MS_SILENT,
-+			 NULL);
- 	if (err)
- 		printk(KERN_INFO "devtmpfs: error mounting %i\n", err);
- 	else
-@@ -382,7 +383,7 @@ static int devtmpfsd(void *p)
- 	*err = sys_unshare(CLONE_NEWNS);
- 	if (*err)
- 		goto out;
--	*err = sys_mount("devtmpfs", "/", "devtmpfs", MS_SILENT, options);
-+	*err = ksys_mount("devtmpfs", "/", "devtmpfs", MS_SILENT, options);
- 	if (*err)
- 		goto out;
- 	sys_chdir("/.."); /* will traverse into overmounted root */
-diff --git a/fs/namespace.c b/fs/namespace.c
-index 9d1374ab6e06..642b8b229944 100644
---- a/fs/namespace.c
-+++ b/fs/namespace.c
-@@ -3032,8 +3032,8 @@ struct dentry *mount_subtree(struct vfsmount *mnt, const char *name)
+diff --git a/ipc/sem.c b/ipc/sem.c
+index e21ceb8b4af1..2e5f7ec7a7db 100644
+--- a/ipc/sem.c
++++ b/ipc/sem.c
+@@ -556,7 +556,7 @@ static inline int sem_more_checks(struct kern_ipc_perm *ipcp,
+ 	return 0;
  }
- EXPORT_SYMBOL(mount_subtree);
  
--SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
--		char __user *, type, unsigned long, flags, void __user *, data)
-+int ksys_mount(char __user *dev_name, char __user *dir_name, char __user *type,
-+	       unsigned long flags, void __user *data)
+-SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
++long ksys_semget(key_t key, int nsems, int semflg)
  {
- 	int ret;
- 	char *kernel_type;
-@@ -3066,6 +3066,12 @@ SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
- 	return ret;
+ 	struct ipc_namespace *ns;
+ 	static const struct ipc_ops sem_ops = {
+@@ -578,6 +578,11 @@ SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
+ 	return ipcget(ns, &sem_ids(ns), &sem_ops, &sem_params);
  }
  
-+SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
-+		char __user *, type, unsigned long, flags, void __user *, data)
++SYSCALL_DEFINE3(semget, key_t, key, int, nsems, int, semflg)
 +{
-+	return ksys_mount(dev_name, dir_name, type, flags, data);
++	return ksys_semget(key, nsems, semflg);
 +}
 +
- /*
-  * Return true if path is reachable from root
-  *
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 6ab7ed71a8b6..3a9f9c534624 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -946,4 +946,7 @@ asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
-  * the ksys_xyzyyz() functions prototyped below.
-  */
+ /**
+  * perform_atomic_semop[_slow] - Attempt to perform semaphore
+  *                               operations on a given array.
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 84d6a7691baa..21fcdf0b4836 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -35,7 +35,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 				       (const struct timespec __user *)fifth);
  
-+int ksys_mount(char __user *dev_name, char __user *dir_name, char __user *type,
-+	       unsigned long flags, void __user *data);
-+
- #endif
-diff --git a/init/do_mounts.c b/init/do_mounts.c
-index 7cf4f6dafd5f..eb768de43d84 100644
---- a/init/do_mounts.c
-+++ b/init/do_mounts.c
-@@ -363,7 +363,7 @@ static void __init get_fs_names(char *page)
- static int __init do_mount_root(char *name, char *fs, int flags, void *data)
- {
- 	struct super_block *s;
--	int err = sys_mount(name, "/root", fs, flags, data);
-+	int err = ksys_mount(name, "/root", fs, flags, data);
- 	if (err)
- 		return err;
+ 	case SEMGET:
+-		return sys_semget(first, second, third);
++		return ksys_semget(first, second, third);
+ 	case SEMCTL: {
+ 		unsigned long arg;
+ 		if (!ptr)
+@@ -132,7 +132,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 		return compat_ksys_semtimedop(first, compat_ptr(ptr), second,
+ 						compat_ptr(fifth));
+ 	case SEMGET:
+-		return sys_semget(first, second, third);
++		return ksys_semget(first, second, third);
+ 	case SEMCTL:
+ 		if (!ptr)
+ 			return -EINVAL;
+diff --git a/ipc/util.h b/ipc/util.h
+index 6deadf77547e..0f07056e5a73 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -240,6 +240,7 @@ static inline int compat_ipc_parse_version(int *cmd)
+ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+ 		     unsigned int nsops,
+ 		     const struct timespec __user *timeout);
++long ksys_semget(key_t key, int nsems, int semflg);
  
-@@ -599,7 +599,7 @@ void __init prepare_namespace(void)
- 	mount_root();
- out:
- 	devtmpfs_mount("dev");
--	sys_mount(".", "/", NULL, MS_MOVE, NULL);
-+	ksys_mount(".", "/", NULL, MS_MOVE, NULL);
- 	sys_chroot(".");
- }
- 
-diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
-index 53d4f0f326e7..7868a6039fb4 100644
---- a/init/do_mounts_initrd.c
-+++ b/init/do_mounts_initrd.c
-@@ -43,7 +43,7 @@ static int init_linuxrc(struct subprocess_info *info, struct cred *new)
- 	sys_dup(0);
- 	/* move initrd over / and chdir/chroot in initrd root */
- 	sys_chdir("/root");
--	sys_mount(".", "/", NULL, MS_MOVE, NULL);
-+	ksys_mount(".", "/", NULL, MS_MOVE, NULL);
- 	sys_chroot(".");
- 	sys_setsid();
- 	return 0;
-@@ -81,7 +81,7 @@ static void __init handle_initrd(void)
- 	current->flags &= ~PF_FREEZER_SKIP;
- 
- 	/* move initrd to rootfs' /old */
--	sys_mount("..", ".", NULL, MS_MOVE, NULL);
-+	ksys_mount("..", ".", NULL, MS_MOVE, NULL);
- 	/* switch root and cwd back to / of rootfs */
- 	sys_chroot("..");
- 
-@@ -95,7 +95,7 @@ static void __init handle_initrd(void)
- 	mount_root();
- 
- 	printk(KERN_NOTICE "Trying to move old root to /initrd ... ");
--	error = sys_mount("/old", "/root/initrd", NULL, MS_MOVE, NULL);
-+	error = ksys_mount("/old", "/root/initrd", NULL, MS_MOVE, NULL);
- 	if (!error)
- 		printk("okay\n");
- 	else {
+ /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+ #ifdef CONFIG_COMPAT
 -- 
 2.16.3
