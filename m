@@ -1,86 +1,127 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 001/109] syscalls: define and explain goal to not call syscalls in the kernel
-Date: Thu, 29 Mar 2018 13:22:38 +0200
-Message-ID: <20180329112426.23043-2-linux@dominikbrodowski.net>
+Subject: [PATCH 045/109] mm: add kernel_move_pages() helper, move compat syscall to mm/migrate.c
+Date: Thu, 29 Mar 2018 13:23:22 +0200
+Message-ID: <20180329112426.23043-46-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-The syscall entry points to the kernel defined by SYSCALL_DEFINEx()
-and COMPAT_SYSCALL_DEFINEx() should only be called from userspace
-through kernel entry points, but not from the kernel itself. This
-will allow cleanups and optimizations to the entry paths *and* to
-the parts of the kernel code which currently need to pretend to be
-userspace in order to make use of syscalls.
+Move compat_sys_move_pages() to mm/migrate.c and make it call a newly
+introduced helper -- kernel_move_pages() -- instead of the syscall.
 
+This patch is part of a series which removes in-kernel calls to syscalls.
+On this basis, the syscall entry path can be streamlined. For details, see
+http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
+
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- Documentation/process/adding-syscalls.rst | 32 +++++++++++++++++++++++++++++++
- include/linux/syscalls.h                  |  7 +++++++
- 2 files changed, 39 insertions(+)
+ kernel/compat.c | 22 ----------------------
+ mm/migrate.c    | 39 +++++++++++++++++++++++++++++++++++----
+ 2 files changed, 35 insertions(+), 26 deletions(-)
 
-diff --git a/Documentation/process/adding-syscalls.rst b/Documentation/process/adding-syscalls.rst
-index 8cc25a06f353..556613744556 100644
---- a/Documentation/process/adding-syscalls.rst
-+++ b/Documentation/process/adding-syscalls.rst
-@@ -487,6 +487,38 @@ patchset, for the convenience of reviewers.
- The man page should be cc'ed to linux-man@vger.kernel.org
- For more details, see https://www.kernel.org/doc/man-pages/patches.html
+diff --git a/kernel/compat.c b/kernel/compat.c
+index 51bdf1808943..6d21894806b4 100644
+--- a/kernel/compat.c
++++ b/kernel/compat.c
+@@ -488,28 +488,6 @@ get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat)
+ }
+ EXPORT_SYMBOL_GPL(get_compat_sigset);
  
-+
-+Do not call System Calls in the Kernel
-+--------------------------------------
-+
-+System calls are, as stated above, interaction points between userspace and
-+the kernel.  Therefore, system call functions such as ``sys_xyzzy()`` or
-+``compat_sys_xyzzy()`` should only be called from userspace via the syscall
-+table, but not from elsewhere in the kernel.  If the syscall functionality is
-+useful to be used within the kernel, needs to be shared between an old and a
-+new syscall, or needs to be shared between a syscall and its compatibility
-+variant, it should be implemented by means of a "helper" function (such as
-+``kern_xyzzy()``).  This kernel function may then be called within the
-+syscall stub (``sys_xyzzy()``), the compatibility syscall stub
-+(``compat_sys_xyzzy()``), and/or other kernel code.
-+
-+At least on 64-bit x86, it will be a hard requirement from v4.17 onwards to not
-+call system call functions in the kernel.  It uses a different calling
-+convention for system calls where ``struct pt_regs`` is decoded on-the-fly in a
-+syscall wrapper which then hands processing over to the actual syscall function.
-+This means that only those parameters which are actually needed for a specific
-+syscall are passed on during syscall entry, instead of filling in six CPU
-+registers with random user space content all the time (which may cause serious
-+trouble down the call chain).
-+
-+Moreover, rules on how data may be accessed may differ between kernel data and
-+user data.  This is another reason why calling ``sys_xyzzy()`` is generally a
-+bad idea.
-+
-+Exceptions to this rule are only allowed in architecture-specific overrides,
-+architecture-specific compatibility wrappers, or other code in arch/.
-+
-+
- References and Sources
- ----------------------
+-#ifdef CONFIG_NUMA
+-COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
+-		       compat_uptr_t __user *, pages32,
+-		       const int __user *, nodes,
+-		       int __user *, status,
+-		       int, flags)
+-{
+-	const void __user * __user *pages;
+-	int i;
+-
+-	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
+-	for (i = 0; i < nr_pages; i++) {
+-		compat_uptr_t p;
+-
+-		if (get_user(p, pages32 + i) ||
+-			put_user(compat_ptr(p), pages + i))
+-			return -EFAULT;
+-	}
+-	return sys_move_pages(pid, nr_pages, pages, nodes, status, flags);
+-}
+-#endif
+-
+ /*
+  * Allocate user-space memory for the duration of a single system call,
+  * in order to marshall parameters inside a compat thunk.
+diff --git a/mm/migrate.c b/mm/migrate.c
+index 1e5525a25691..003886606a22 100644
+--- a/mm/migrate.c
++++ b/mm/migrate.c
+@@ -34,6 +34,7 @@
+ #include <linux/backing-dev.h>
+ #include <linux/compaction.h>
+ #include <linux/syscalls.h>
++#include <linux/compat.h>
+ #include <linux/hugetlb.h>
+ #include <linux/hugetlb_cgroup.h>
+ #include <linux/gfp.h>
+@@ -1745,10 +1746,10 @@ static int do_pages_stat(struct mm_struct *mm, unsigned long nr_pages,
+  * Move a list of pages in the address space of the currently executing
+  * process.
+  */
+-SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
+-		const void __user * __user *, pages,
+-		const int __user *, nodes,
+-		int __user *, status, int, flags)
++static int kernel_move_pages(pid_t pid, unsigned long nr_pages,
++			     const void __user * __user *pages,
++			     const int __user *nodes,
++			     int __user *status, int flags)
+ {
+ 	struct task_struct *task;
+ 	struct mm_struct *mm;
+@@ -1807,6 +1808,36 @@ SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
+ 	return err;
+ }
  
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index a78186d826d7..0526286a0314 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -941,4 +941,11 @@ asmlinkage long sys_pkey_free(int pkey);
- asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
- 			  unsigned mask, struct statx __user *buffer);
- 
++SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
++		const void __user * __user *, pages,
++		const int __user *, nodes,
++		int __user *, status, int, flags)
++{
++	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
++}
 +
-+/*
-+ * Kernel code should not call syscalls (i.e., sys_xyzyyz()) directly.
-+ * Instead, use one of the functions which work equivalently, such as
-+ * the ksys_xyzyyz() functions prototyped below.
-+ */
++#ifdef CONFIG_COMPAT
++COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
++		       compat_uptr_t __user *, pages32,
++		       const int __user *, nodes,
++		       int __user *, status,
++		       int, flags)
++{
++	const void __user * __user *pages;
++	int i;
 +
- #endif
++	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
++	for (i = 0; i < nr_pages; i++) {
++		compat_uptr_t p;
++
++		if (get_user(p, pages32 + i) ||
++			put_user(compat_ptr(p), pages + i))
++			return -EFAULT;
++	}
++	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
++}
++#endif /* CONFIG_COMPAT */
++
+ #ifdef CONFIG_NUMA_BALANCING
+ /*
+  * Returns true if this is a safe migration target node for misplaced NUMA
 -- 
 2.16.3
