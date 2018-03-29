@@ -1,100 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59218 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59050 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752718AbeC2L0I (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:08 -0400
+        with ESMTP id S1752710AbeC2L0H (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:07 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 085/109] fs: add ksys_getdents64() helper; remove in-kernel calls to sys_getdents64()
-Date: Thu, 29 Mar 2018 13:24:02 +0200
-Message-ID: <20180329112426.23043-86-linux@dominikbrodowski.net>
+Subject: [PATCH 019/109] net: socket: add __sys_setsockopt() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:22:56 +0200
+Message-ID: <20180329112426.23043-20-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20180329112402.19AW2jAaDOpAw24T8Pupd09jW7pBMUMscFKXkN4yHmo@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
+Message-ID: <20180329112256.hWc0fGoCN0ZtqKxYeT2ApfW96j7pU42AGYxHWarLMus@z>
 
-Using this helper allows us to avoid the in-kernel calls to the
-sys_getdents64() syscall. The ksys_ prefix denotes that this function
-is meant as a drop-in replacement for the syscall. In particular, it
-uses the same calling convention as sys_getdents64().
+Using the net-internal helper __sys_setsockopt() allows us to avoid the
+internal calls to the sys_setsockopt() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/readdir.c             | 11 +++++++++--
- include/linux/syscalls.h |  2 ++
- init/initramfs.c         |  4 ++--
- 3 files changed, 13 insertions(+), 4 deletions(-)
+ include/linux/socket.h |  1 +
+ net/socket.c           | 13 ++++++++++---
+ 2 files changed, 11 insertions(+), 3 deletions(-)
 
-diff --git a/fs/readdir.c b/fs/readdir.c
-index 1b83b0ad183b..d97f548e6323 100644
---- a/fs/readdir.c
-+++ b/fs/readdir.c
-@@ -292,8 +292,8 @@ static int filldir64(struct dir_context *ctx, const char *name, int namlen,
- 	return -EFAULT;
- }
- 
--SYSCALL_DEFINE3(getdents64, unsigned int, fd,
--		struct linux_dirent64 __user *, dirent, unsigned int, count)
-+int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
-+		    unsigned int count)
- {
- 	struct fd f;
- 	struct linux_dirent64 __user * lastdirent;
-@@ -326,6 +326,13 @@ SYSCALL_DEFINE3(getdents64, unsigned int, fd,
- 	return error;
- }
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index b205138b69f1..cad120e4ed4b 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -376,4 +376,5 @@ extern int __sys_socketpair(int family, int type, int protocol,
+ 			    int __user *usockvec);
+ extern int __sys_shutdown(int fd, int how);
  
 +
-+SYSCALL_DEFINE3(getdents64, unsigned int, fd,
-+		struct linux_dirent64 __user *, dirent, unsigned int, count)
+ #endif /* _LINUX_SOCKET_H */
+diff --git a/net/socket.c b/net/socket.c
+index ad5dfd6a1d59..5dd2e39a6cd4 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1878,8 +1878,8 @@ SYSCALL_DEFINE4(recv, int, fd, void __user *, ubuf, size_t, size,
+  *	to pass the user mode parameter for the protocols to sort out.
+  */
+ 
+-SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
+-		char __user *, optval, int, optlen)
++static int __sys_setsockopt(int fd, int level, int optname,
++			    char __user *optval, int optlen)
+ {
+ 	int err, fput_needed;
+ 	struct socket *sock;
+@@ -1907,6 +1907,12 @@ SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
+ 	return err;
+ }
+ 
++SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
++		char __user *, optval, int, optlen)
 +{
-+	return ksys_getdents64(fd, dirent, count);
++	return __sys_setsockopt(fd, level, optname, optval, optlen);
 +}
 +
- #ifdef CONFIG_COMPAT
- struct compat_old_linux_dirent {
- 	compat_ulong_t	d_ino;
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index f9df17dcec1c..c056aff6d7ad 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -955,6 +955,8 @@ ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count);
- int ksys_chdir(const char __user *filename);
- int ksys_fchmod(unsigned int fd, umode_t mode);
- int ksys_fchown(unsigned int fd, uid_t user, gid_t group);
-+int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
-+		    unsigned int count);
- 
  /*
-  * The following kernel syscall equivalents are just wrappers to fs-internal
-diff --git a/init/initramfs.c b/init/initramfs.c
-index 5f2ff1d2370e..13643c46ebab 100644
---- a/init/initramfs.c
-+++ b/init/initramfs.c
-@@ -579,7 +579,7 @@ static void __init clean_rootfs(void)
- 	}
- 
- 	dirp = buf;
--	num = sys_getdents64(fd, dirp, BUF_SIZE);
-+	num = ksys_getdents64(fd, dirp, BUF_SIZE);
- 	while (num > 0) {
- 		while (num > 0) {
- 			struct kstat st;
-@@ -599,7 +599,7 @@ static void __init clean_rootfs(void)
- 		}
- 		dirp = buf;
- 		memset(buf, 0, BUF_SIZE);
--		num = sys_getdents64(fd, dirp, BUF_SIZE);
-+		num = ksys_getdents64(fd, dirp, BUF_SIZE);
- 	}
- 
- 	ksys_close(fd);
+  *	Get a socket option. Because we don't know the option lengths we have
+  *	to pass a user mode parameter for the protocols to sort out.
+@@ -2552,7 +2558,8 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
+ 		err = __sys_shutdown(a0, a1);
+ 		break;
+ 	case SYS_SETSOCKOPT:
+-		err = sys_setsockopt(a0, a1, a[2], (char __user *)a[3], a[4]);
++		err = __sys_setsockopt(a0, a1, a[2], (char __user *)a[3],
++				       a[4]);
+ 		break;
+ 	case SYS_GETSOCKOPT:
+ 		err =
 -- 
 2.16.3
