@@ -1,127 +1,79 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 045/109] mm: add kernel_move_pages() helper, move compat syscall to mm/migrate.c
-Date: Thu, 29 Mar 2018 13:23:22 +0200
-Message-ID: <20180329112426.23043-46-linux@dominikbrodowski.net>
+Subject: [PATCH 025/109] net: socket: add __compat_sys_recvfrom() helper; remove in-kernel call to compat syscall
+Date: Thu, 29 Mar 2018 13:23:02 +0200
+Message-ID: <20180329112426.23043-26-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Move compat_sys_move_pages() to mm/migrate.c and make it call a newly
-introduced helper -- kernel_move_pages() -- instead of the syscall.
+Using the net-internal helper __compat_sys_recvfrom() allows us to avoid
+the internal calls to the compat_sys_recvfrom() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- kernel/compat.c | 22 ----------------------
- mm/migrate.c    | 39 +++++++++++++++++++++++++++++++++++----
- 2 files changed, 35 insertions(+), 26 deletions(-)
+ net/compat.c | 23 ++++++++++++++++-------
+ 1 file changed, 16 insertions(+), 7 deletions(-)
 
-diff --git a/kernel/compat.c b/kernel/compat.c
-index 51bdf1808943..6d21894806b4 100644
---- a/kernel/compat.c
-+++ b/kernel/compat.c
-@@ -488,28 +488,6 @@ get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat)
+diff --git a/net/compat.c b/net/compat.c
+index 9e0d030063ad..513adc8d0e0f 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -753,18 +753,25 @@ COMPAT_SYSCALL_DEFINE3(recvmsg, int, fd, struct compat_msghdr __user *, msg, uns
+ 			     flags | MSG_CMSG_COMPAT, false);
  }
- EXPORT_SYMBOL_GPL(get_compat_sigset);
  
--#ifdef CONFIG_NUMA
--COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
--		       compat_uptr_t __user *, pages32,
--		       const int __user *, nodes,
--		       int __user *, status,
--		       int, flags)
--{
--	const void __user * __user *pages;
--	int i;
--
--	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
--	for (i = 0; i < nr_pages; i++) {
--		compat_uptr_t p;
--
--		if (get_user(p, pages32 + i) ||
--			put_user(compat_ptr(p), pages + i))
--			return -EFAULT;
--	}
--	return sys_move_pages(pid, nr_pages, pages, nodes, status, flags);
--}
--#endif
--
- /*
-  * Allocate user-space memory for the duration of a single system call,
-  * in order to marshall parameters inside a compat thunk.
-diff --git a/mm/migrate.c b/mm/migrate.c
-index 1e5525a25691..003886606a22 100644
---- a/mm/migrate.c
-+++ b/mm/migrate.c
-@@ -34,6 +34,7 @@
- #include <linux/backing-dev.h>
- #include <linux/compaction.h>
- #include <linux/syscalls.h>
-+#include <linux/compat.h>
- #include <linux/hugetlb.h>
- #include <linux/hugetlb_cgroup.h>
- #include <linux/gfp.h>
-@@ -1745,10 +1746,10 @@ static int do_pages_stat(struct mm_struct *mm, unsigned long nr_pages,
-  * Move a list of pages in the address space of the currently executing
-  * process.
-  */
--SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
--		const void __user * __user *, pages,
--		const int __user *, nodes,
--		int __user *, status, int, flags)
-+static int kernel_move_pages(pid_t pid, unsigned long nr_pages,
-+			     const void __user * __user *pages,
-+			     const int __user *nodes,
-+			     int __user *status, int flags)
++static inline long __compat_sys_recvfrom(int fd, void __user *buf,
++					 compat_size_t len, unsigned int flags,
++					 struct sockaddr __user *addr,
++					 int __user *addrlen)
++{
++	return __sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, addr,
++			      addrlen);
++}
++
+ COMPAT_SYSCALL_DEFINE4(recv, int, fd, void __user *, buf, compat_size_t, len, unsigned int, flags)
  {
- 	struct task_struct *task;
- 	struct mm_struct *mm;
-@@ -1807,6 +1808,36 @@ SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
- 	return err;
+-	return __sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, NULL,
+-			      NULL);
++	return __compat_sys_recvfrom(fd, buf, len, flags, NULL, NULL);
  }
  
-+SYSCALL_DEFINE6(move_pages, pid_t, pid, unsigned long, nr_pages,
-+		const void __user * __user *, pages,
-+		const int __user *, nodes,
-+		int __user *, status, int, flags)
-+{
-+	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
-+}
-+
-+#ifdef CONFIG_COMPAT
-+COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
-+		       compat_uptr_t __user *, pages32,
-+		       const int __user *, nodes,
-+		       int __user *, status,
-+		       int, flags)
-+{
-+	const void __user * __user *pages;
-+	int i;
-+
-+	pages = compat_alloc_user_space(nr_pages * sizeof(void *));
-+	for (i = 0; i < nr_pages; i++) {
-+		compat_uptr_t p;
-+
-+		if (get_user(p, pages32 + i) ||
-+			put_user(compat_ptr(p), pages + i))
-+			return -EFAULT;
-+	}
-+	return kernel_move_pages(pid, nr_pages, pages, nodes, status, flags);
-+}
-+#endif /* CONFIG_COMPAT */
-+
- #ifdef CONFIG_NUMA_BALANCING
- /*
-  * Returns true if this is a safe migration target node for misplaced NUMA
+ COMPAT_SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, buf, compat_size_t, len,
+ 		       unsigned int, flags, struct sockaddr __user *, addr,
+ 		       int __user *, addrlen)
+ {
+-	return __sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, addr,
+-			      addrlen);
++	return __compat_sys_recvfrom(fd, buf, len, flags, addr, addrlen);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
+@@ -845,11 +852,13 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
+ 				   compat_ptr(a[4]), a[5]);
+ 		break;
+ 	case SYS_RECV:
+-		ret = compat_sys_recv(a0, compat_ptr(a1), a[2], a[3]);
++		ret = __compat_sys_recvfrom(a0, compat_ptr(a1), a[2], a[3],
++					    NULL, NULL);
+ 		break;
+ 	case SYS_RECVFROM:
+-		ret = compat_sys_recvfrom(a0, compat_ptr(a1), a[2], a[3],
+-					  compat_ptr(a[4]), compat_ptr(a[5]));
++		ret = __compat_sys_recvfrom(a0, compat_ptr(a1), a[2], a[3],
++					    compat_ptr(a[4]),
++					    compat_ptr(a[5]));
+ 		break;
+ 	case SYS_SHUTDOWN:
+ 		ret = __sys_shutdown(a0, a1);
 -- 
 2.16.3
