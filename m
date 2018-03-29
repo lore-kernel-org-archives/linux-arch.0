@@ -1,7 +1,7 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 016/109] net: socket: add __sys_getpeername() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:22:53 +0200
-Message-ID: <20180329112426.23043-17-linux@dominikbrodowski.net>
+Subject: [PATCH 009/109] net: socket: add __sys_sendto() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:22:46 +0200
+Message-ID: <20180329112426.23043-10-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
@@ -10,8 +10,8 @@ To: linux-kernel@vger.kernel.org
 Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Using the net-internal helper __sys_getpeername() allows us to avoid the
-internal calls to the sys_getpeername() syscall.
+Using the net-internal helper __sys_sendto() allows us to avoid the
+internal calls to the sys_sendto() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -21,74 +21,88 @@ Cc: David S. Miller <davem@davemloft.net>
 Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/socket.h |  2 ++
- net/compat.c           |  2 +-
- net/socket.c           | 14 ++++++++++----
- 3 files changed, 13 insertions(+), 5 deletions(-)
+ include/linux/socket.h |  3 +++
+ net/compat.c           |  3 ++-
+ net/socket.c           | 19 ++++++++++++-------
+ 3 files changed, 17 insertions(+), 8 deletions(-)
 
 diff --git a/include/linux/socket.h b/include/linux/socket.h
-index ef0226a61b03..9ba003e92fea 100644
+index 40cc93b91628..54b85abc7265 100644
 --- a/include/linux/socket.h
 +++ b/include/linux/socket.h
-@@ -370,5 +370,7 @@ extern int __sys_connect(int fd, struct sockaddr __user *uservaddr,
- extern int __sys_listen(int fd, int backlog);
- extern int __sys_getsockname(int fd, struct sockaddr __user *usockaddr,
- 			     int __user *usockaddr_len);
-+extern int __sys_getpeername(int fd, struct sockaddr __user *usockaddr,
-+			     int __user *usockaddr_len);
+@@ -358,5 +358,8 @@ extern int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg,
+ extern int __sys_recvfrom(int fd, void __user *ubuf, size_t size,
+ 			  unsigned int flags, struct sockaddr __user *addr,
+ 			  int __user *addr_len);
++extern int __sys_sendto(int fd, void __user *buff, size_t len,
++			unsigned int flags, struct sockaddr __user *addr,
++			int addr_len);
  
  #endif /* _LINUX_SOCKET_H */
 diff --git a/net/compat.c b/net/compat.c
-index efd28d02608c..74017f618eb1 100644
+index 2d8186c277b2..fc82982d9b84 100644
 --- a/net/compat.c
 +++ b/net/compat.c
-@@ -829,7 +829,7 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 		ret = __sys_getsockname(a0, compat_ptr(a1), compat_ptr(a[2]));
+@@ -838,7 +838,8 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
+ 		ret = sys_send(a0, compat_ptr(a1), a[2], a[3]);
  		break;
- 	case SYS_GETPEERNAME:
--		ret = sys_getpeername(a0, compat_ptr(a1), compat_ptr(a[2]));
-+		ret = __sys_getpeername(a0, compat_ptr(a1), compat_ptr(a[2]));
+ 	case SYS_SENDTO:
+-		ret = sys_sendto(a0, compat_ptr(a1), a[2], a[3], compat_ptr(a[4]), a[5]);
++		ret = __sys_sendto(a0, compat_ptr(a1), a[2], a[3],
++				   compat_ptr(a[4]), a[5]);
  		break;
- 	case SYS_SOCKETPAIR:
- 		ret = sys_socketpair(a0, a1, a[2], compat_ptr(a[3]));
+ 	case SYS_RECV:
+ 		ret = compat_sys_recv(a0, compat_ptr(a1), a[2], a[3]);
 diff --git a/net/socket.c b/net/socket.c
-index b61e0d20f37b..007fb9483279 100644
+index 712d99d8680f..3f037a21ba5e 100644
 --- a/net/socket.c
 +++ b/net/socket.c
-@@ -1712,8 +1712,8 @@ SYSCALL_DEFINE3(getsockname, int, fd, struct sockaddr __user *, usockaddr,
-  *	name to user space.
+@@ -1711,10 +1711,8 @@ SYSCALL_DEFINE3(getpeername, int, fd, struct sockaddr __user *, usockaddr,
+  *	space and check the user space data area is readable before invoking
+  *	the protocol.
   */
- 
--SYSCALL_DEFINE3(getpeername, int, fd, struct sockaddr __user *, usockaddr,
--		int __user *, usockaddr_len)
-+int __sys_getpeername(int fd, struct sockaddr __user *usockaddr,
-+		      int __user *usockaddr_len)
+-
+-SYSCALL_DEFINE6(sendto, int, fd, void __user *, buff, size_t, len,
+-		unsigned int, flags, struct sockaddr __user *, addr,
+-		int, addr_len)
++int __sys_sendto(int fd, void __user *buff, size_t len, unsigned int flags,
++		 struct sockaddr __user *addr,  int addr_len)
  {
  	struct socket *sock;
  	struct sockaddr_storage address;
-@@ -1738,6 +1738,12 @@ SYSCALL_DEFINE3(getpeername, int, fd, struct sockaddr __user *, usockaddr,
+@@ -1752,6 +1750,13 @@ SYSCALL_DEFINE6(sendto, int, fd, void __user *, buff, size_t, len,
  	return err;
  }
  
-+SYSCALL_DEFINE3(getpeername, int, fd, struct sockaddr __user *, usockaddr,
-+		int __user *, usockaddr_len)
++SYSCALL_DEFINE6(sendto, int, fd, void __user *, buff, size_t, len,
++		unsigned int, flags, struct sockaddr __user *, addr,
++		int, addr_len)
 +{
-+	return __sys_getpeername(fd, usockaddr, usockaddr_len);
++	return __sys_sendto(fd, buff, len, flags, addr, addr_len);
 +}
 +
  /*
-  *	Send a datagram to a given address. We move the address into kernel
-  *	space and check the user space data area is readable before invoking
-@@ -2511,8 +2517,8 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
+  *	Send a datagram down a socket.
+  */
+@@ -1759,7 +1764,7 @@ SYSCALL_DEFINE6(sendto, int, fd, void __user *, buff, size_t, len,
+ SYSCALL_DEFINE4(send, int, fd, void __user *, buff, size_t, len,
+ 		unsigned int, flags)
+ {
+-	return sys_sendto(fd, buff, len, flags, NULL, 0);
++	return __sys_sendto(fd, buff, len, flags, NULL, 0);
+ }
+ 
+ /*
+@@ -2484,8 +2489,8 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
+ 		err = sys_send(a0, (void __user *)a1, a[2], a[3]);
  		break;
- 	case SYS_GETPEERNAME:
- 		err =
--		    sys_getpeername(a0, (struct sockaddr __user *)a1,
--				    (int __user *)a[2]);
-+		    __sys_getpeername(a0, (struct sockaddr __user *)a1,
-+				      (int __user *)a[2]);
+ 	case SYS_SENDTO:
+-		err = sys_sendto(a0, (void __user *)a1, a[2], a[3],
+-				 (struct sockaddr __user *)a[4], a[5]);
++		err = __sys_sendto(a0, (void __user *)a1, a[2], a[3],
++				   (struct sockaddr __user *)a[4], a[5]);
  		break;
- 	case SYS_SOCKETPAIR:
- 		err = sys_socketpair(a0, a1, a[2], (int __user *)a[3]);
+ 	case SYS_RECV:
+ 		err = sys_recv(a0, (void __user *)a1, a[2], a[3]);
 -- 
 2.16.3
