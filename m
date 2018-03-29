@@ -1,126 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59008 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59050 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751207AbeC2L0J (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:09 -0400
+        with ESMTP id S1752858AbeC2L0U (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:20 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 037/109] ipc: add msgctl syscall/compat_syscall wrappers
-Date: Thu, 29 Mar 2018 13:23:14 +0200
-Message-ID: <20180329112426.23043-38-linux@dominikbrodowski.net>
+Subject: [PATCH 048/109] fs: add do_readlinkat() helper; remove internal call to sys_readlinkat()
+Date: Thu, 29 Mar 2018 13:23:25 +0200
+Message-ID: <20180329112426.23043-49-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112314.hVlDN8N_8aFBPRPkiVISXLcFBipbo-TXYINfUnPNnj4@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20180329112325.BgmMbWWvkVO4_qIU9ZJfkMWg1kBfiaSQYwYGTC9S3JY@z>
 
-Provide ksys_msgctl() and compat_ksys_msgctl() wrappers to avoid in-kernel
-calls to these syscalls. The ksys_ prefix denotes that these functions are
-meant as a drop-in replacement for the syscalls. In particular, they use
-the same calling convention as sys_msgctl() and compat_sys_msgctl().
+Using the do_readlinkat() helper removes an in-kernel call to the
+sys_readlinkat() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- ipc/msg.c     | 14 ++++++++++++--
- ipc/syscall.c |  5 +++--
- ipc/util.h    |  2 ++
- 3 files changed, 17 insertions(+), 4 deletions(-)
+ fs/stat.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/ipc/msg.c b/ipc/msg.c
-index 64e8276be164..5b026868df07 100644
---- a/ipc/msg.c
-+++ b/ipc/msg.c
-@@ -538,7 +538,7 @@ static int msgctl_stat(struct ipc_namespace *ns, int msqid,
- 	return err;
+diff --git a/fs/stat.c b/fs/stat.c
+index 873785dae022..f8e6fb2c3657 100644
+--- a/fs/stat.c
++++ b/fs/stat.c
+@@ -379,8 +379,8 @@ SYSCALL_DEFINE2(newfstat, unsigned int, fd, struct stat __user *, statbuf)
+ 	return error;
  }
  
--SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
-+long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf)
+-SYSCALL_DEFINE4(readlinkat, int, dfd, const char __user *, pathname,
+-		char __user *, buf, int, bufsiz)
++static int do_readlinkat(int dfd, const char __user *pathname,
++			 char __user *buf, int bufsiz)
  {
- 	int version;
- 	struct ipc_namespace *ns;
-@@ -581,6 +581,11 @@ SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
- 	}
+ 	struct path path;
+ 	int error;
+@@ -415,10 +415,16 @@ SYSCALL_DEFINE4(readlinkat, int, dfd, const char __user *, pathname,
+ 	return error;
  }
  
-+SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
++SYSCALL_DEFINE4(readlinkat, int, dfd, const char __user *, pathname,
++		char __user *, buf, int, bufsiz)
 +{
-+	return ksys_msgctl(msqid, cmd, buf);
++	return do_readlinkat(dfd, pathname, buf, bufsiz);
 +}
 +
- #ifdef CONFIG_COMPAT
- 
- struct compat_msqid_ds {
-@@ -651,7 +656,7 @@ static int copy_compat_msqid_to_user(void __user *buf, struct msqid64_ds *in,
- 	}
- }
- 
--COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
-+long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr)
+ SYSCALL_DEFINE3(readlink, const char __user *, path, char __user *, buf,
+ 		int, bufsiz)
  {
- 	struct ipc_namespace *ns;
- 	int err;
-@@ -692,6 +697,11 @@ COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
- 		return -EINVAL;
- 	}
+-	return sys_readlinkat(AT_FDCWD, path, buf, bufsiz);
++	return do_readlinkat(AT_FDCWD, path, buf, bufsiz);
  }
-+
-+COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
-+{
-+	return compat_ksys_msgctl(msqid, cmd, uptr);
-+}
- #endif
  
- static int testmsg(struct msg_msg *msg, long type, int mode)
-diff --git a/ipc/syscall.c b/ipc/syscall.c
-index 34bbabc9e672..aa29b0802e26 100644
---- a/ipc/syscall.c
-+++ b/ipc/syscall.c
-@@ -70,7 +70,8 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
- 	case MSGGET:
- 		return ksys_msgget((key_t) first, second);
- 	case MSGCTL:
--		return sys_msgctl(first, second, (struct msqid_ds __user *)ptr);
-+		return ksys_msgctl(first, second,
-+				   (struct msqid_ds __user *)ptr);
- 
- 	case SHMAT:
- 		switch (version) {
-@@ -163,7 +164,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
- 	case MSGGET:
- 		return ksys_msgget(first, second);
- 	case MSGCTL:
--		return compat_sys_msgctl(first, second, compat_ptr(ptr));
-+		return compat_ksys_msgctl(first, second, compat_ptr(ptr));
- 
- 	case SHMAT: {
- 		int err;
-diff --git a/ipc/util.h b/ipc/util.h
-index 16e8b5b8c416..47837b4af3f2 100644
---- a/ipc/util.h
-+++ b/ipc/util.h
-@@ -243,6 +243,7 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
- long ksys_semget(key_t key, int nsems, int semflg);
- long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
- long ksys_msgget(key_t key, int msgflg);
-+long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
- long ksys_shmget(key_t key, size_t size, int shmflg);
- long ksys_shmdt(char __user *shmaddr);
- long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
-@@ -253,6 +254,7 @@ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
- 			    unsigned int nsops,
- 			    const struct compat_timespec __user *timeout);
- long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
-+long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
- long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
- #endif /* CONFIG_COMPAT */
  
 -- 
 2.16.3
