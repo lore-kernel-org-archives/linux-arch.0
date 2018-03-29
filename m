@@ -1,22 +1,22 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59398 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59322 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752653AbeC2L0F (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:05 -0400
+        with ESMTP id S1752632AbeC2L0E (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:04 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 008/109] net: socket: add __sys_recvfrom() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:22:45 +0200
-Message-ID: <20180329112426.23043-9-linux@dominikbrodowski.net>
+Subject: [PATCH 020/109] net: socket: add __sys_getsockopt() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:22:57 +0200
+Message-ID: <20180329112426.23043-21-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
-Message-ID: <20180329112245.8hsnUO6yacyImwiDLCBiHpr9Iae87R3XaPYp0oRjwnI@z>
+Message-ID: <20180329112257.tSTn9NXrQp5t11pqgGjvG5o5N4GKtZsOdO3x8S_1e44@z>
 
-Using the net-internal helper __sys_recvfrom() allows us to avoid the
-internal calls to the sys_recvfrom() syscall.
+Using the net-internal helper __sys_getsockopt() allows us to avoid the
+internal calls to the sys_getsockopt() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -26,92 +26,47 @@ Cc: David S. Miller <davem@davemloft.net>
 Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/socket.h |  6 ++++++
- net/compat.c           |  3 ++-
- net/socket.c           | 21 +++++++++++++--------
- 3 files changed, 21 insertions(+), 9 deletions(-)
+ net/socket.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/socket.h b/include/linux/socket.h
-index 9286a5a8c60c..40cc93b91628 100644
---- a/include/linux/socket.h
-+++ b/include/linux/socket.h
-@@ -353,4 +353,10 @@ extern int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen
- 			  unsigned int flags, struct timespec *timeout);
- extern int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg,
- 			  unsigned int vlen, unsigned int flags);
-+
-+/* helpers which do the actual work for syscalls */
-+extern int __sys_recvfrom(int fd, void __user *ubuf, size_t size,
-+			  unsigned int flags, struct sockaddr __user *addr,
-+			  int __user *addr_len);
-+
- #endif /* _LINUX_SOCKET_H */
-diff --git a/net/compat.c b/net/compat.c
-index 22381719718c..2d8186c277b2 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -760,7 +760,8 @@ COMPAT_SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, buf, compat_size_t, len
- 		       unsigned int, flags, struct sockaddr __user *, addr,
- 		       int __user *, addrlen)
- {
--	return sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, addr, addrlen);
-+	return __sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, addr,
-+			      addrlen);
- }
- 
- COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
 diff --git a/net/socket.c b/net/socket.c
-index a93c99b518ca..712d99d8680f 100644
+index 5dd2e39a6cd4..a05289b1f863 100644
 --- a/net/socket.c
 +++ b/net/socket.c
-@@ -1767,10 +1767,8 @@ SYSCALL_DEFINE4(send, int, fd, void __user *, buff, size_t, len,
-  *	sender. We verify the buffers are writable and if needed move the
-  *	sender address from kernel to user space.
+@@ -1918,8 +1918,8 @@ SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
+  *	to pass a user mode parameter for the protocols to sort out.
   */
--
--SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
--		unsigned int, flags, struct sockaddr __user *, addr,
--		int __user *, addr_len)
-+int __sys_recvfrom(int fd, void __user *ubuf, size_t size, unsigned int flags,
-+		   struct sockaddr __user *addr, int __user *addr_len)
+ 
+-SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
+-		char __user *, optval, int __user *, optlen)
++static int __sys_getsockopt(int fd, int level, int optname,
++			    char __user *optval, int __user *optlen)
  {
+ 	int err, fput_needed;
  	struct socket *sock;
- 	struct iovec iov;
-@@ -1810,6 +1808,13 @@ SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
+@@ -1944,6 +1944,12 @@ SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
  	return err;
  }
  
-+SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
-+		unsigned int, flags, struct sockaddr __user *, addr,
-+		int __user *, addr_len)
++SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
++		char __user *, optval, int __user *, optlen)
 +{
-+	return __sys_recvfrom(fd, ubuf, size, flags, addr, addr_len);
++	return __sys_getsockopt(fd, level, optname, optval, optlen);
 +}
 +
  /*
-  *	Receive a datagram from a socket.
+  *	Shutdown a socket.
   */
-@@ -1817,7 +1822,7 @@ SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
- SYSCALL_DEFINE4(recv, int, fd, void __user *, ubuf, size_t, size,
- 		unsigned int, flags)
- {
--	return sys_recvfrom(fd, ubuf, size, flags, NULL, NULL);
-+	return __sys_recvfrom(fd, ubuf, size, flags, NULL, NULL);
- }
- 
- /*
-@@ -2486,9 +2491,9 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 		err = sys_recv(a0, (void __user *)a1, a[2], a[3]);
+@@ -2563,8 +2569,8 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
  		break;
- 	case SYS_RECVFROM:
--		err = sys_recvfrom(a0, (void __user *)a1, a[2], a[3],
--				   (struct sockaddr __user *)a[4],
--				   (int __user *)a[5]);
-+		err = __sys_recvfrom(a0, (void __user *)a1, a[2], a[3],
-+				     (struct sockaddr __user *)a[4],
-+				     (int __user *)a[5]);
+ 	case SYS_GETSOCKOPT:
+ 		err =
+-		    sys_getsockopt(a0, a1, a[2], (char __user *)a[3],
+-				   (int __user *)a[4]);
++		    __sys_getsockopt(a0, a1, a[2], (char __user *)a[3],
++				     (int __user *)a[4]);
  		break;
- 	case SYS_SHUTDOWN:
- 		err = sys_shutdown(a0, a1);
+ 	case SYS_SENDMSG:
+ 		err = sys_sendmsg(a0, (struct user_msghdr __user *)a1, a[2]);
 -- 
 2.16.3
