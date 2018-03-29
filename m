@@ -1,75 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59716 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59320 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752732AbeC2L0J (ORCPT
+        with ESMTP id S1752743AbeC2L0J (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:09 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 021/109] net: socket: add do_sys_recvmmsg() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:22:58 +0200
-Message-ID: <20180329112426.23043-22-linux@dominikbrodowski.net>
+Subject: [PATCH 046/109] mm: add kernel_mbind() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:23:23 +0200
+Message-ID: <20180329112426.23043-47-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
-Message-ID: <20180329112258.li-tp5HEshpGx9cmJCUP1fxTXRBvZpXZa05aSBtmjNc@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112323.FA2IlGBlFFkusj91i4WJdV7HYotiD-5QVH0wAbxEcnc@z>
 
-Using the net-internal helper do_sys_recvmmsg() allows us to avoid the
-internal calls to the sys_getsockopt() syscall.
+Using the mm-internal kernel_mbind() helper allows us to get rid of the
+mm-internal call to the sys_mbind() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- net/socket.c | 17 ++++++++++++-----
- 1 file changed, 12 insertions(+), 5 deletions(-)
+ mm/mempolicy.c | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/net/socket.c b/net/socket.c
-index a05289b1f863..54d19b0edab1 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -2445,9 +2445,9 @@ int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
- 	return datagrams;
+diff --git a/mm/mempolicy.c b/mm/mempolicy.c
+index 7399ede02b5f..e4d7d4c0b253 100644
+--- a/mm/mempolicy.c
++++ b/mm/mempolicy.c
+@@ -1336,9 +1336,9 @@ static int copy_nodes_to_user(unsigned long __user *mask, unsigned long maxnode,
+ 	return copy_to_user(mask, nodes_addr(*nodes), copy) ? -EFAULT : 0;
  }
  
--SYSCALL_DEFINE5(recvmmsg, int, fd, struct mmsghdr __user *, mmsg,
--		unsigned int, vlen, unsigned int, flags,
--		struct timespec __user *, timeout)
-+static int do_sys_recvmmsg(int fd, struct mmsghdr __user *mmsg,
-+			   unsigned int vlen, unsigned int flags,
-+			   struct timespec __user *timeout)
+-SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
+-		unsigned long, mode, const unsigned long __user *, nmask,
+-		unsigned long, maxnode, unsigned, flags)
++static long kernel_mbind(unsigned long start, unsigned long len,
++			 unsigned long mode, const unsigned long __user *nmask,
++			 unsigned long maxnode, unsigned int flags)
  {
- 	int datagrams;
- 	struct timespec timeout_sys;
-@@ -2470,6 +2470,13 @@ SYSCALL_DEFINE5(recvmmsg, int, fd, struct mmsghdr __user *, mmsg,
- 	return datagrams;
+ 	nodemask_t nodes;
+ 	int err;
+@@ -1357,6 +1357,13 @@ SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
+ 	return do_mbind(start, len, mode, mode_flags, &nodes, flags);
  }
  
-+SYSCALL_DEFINE5(recvmmsg, int, fd, struct mmsghdr __user *, mmsg,
-+		unsigned int, vlen, unsigned int, flags,
-+		struct timespec __user *, timeout)
++SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
++		unsigned long, mode, const unsigned long __user *, nmask,
++		unsigned long, maxnode, unsigned int, flags)
 +{
-+	return do_sys_recvmmsg(fd, mmsg, vlen, flags, timeout);
++	return kernel_mbind(start, len, mode, nmask, maxnode, flags);
 +}
 +
- #ifdef __ARCH_WANT_SYS_SOCKETCALL
- /* Argument list sizes for sys_socketcall */
- #define AL(x) ((x) * sizeof(unsigned long))
-@@ -2582,8 +2589,8 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 		err = sys_recvmsg(a0, (struct user_msghdr __user *)a1, a[2]);
- 		break;
- 	case SYS_RECVMMSG:
--		err = sys_recvmmsg(a0, (struct mmsghdr __user *)a1, a[2], a[3],
--				   (struct timespec __user *)a[4]);
-+		err = do_sys_recvmmsg(a0, (struct mmsghdr __user *)a1, a[2],
-+				      a[3], (struct timespec __user *)a[4]);
- 		break;
- 	case SYS_ACCEPT4:
- 		err = __sys_accept4(a0, (struct sockaddr __user *)a1,
+ /* Set the process memory policy */
+ SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
+ 		unsigned long, maxnode)
+@@ -1575,7 +1582,7 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
+ 			return -EFAULT;
+ 	}
+ 
+-	return sys_mbind(start, len, mode, nm, nr_bits+1, flags);
++	return kernel_mbind(start, len, mode, nm, nr_bits+1, flags);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
 -- 
 2.16.3
