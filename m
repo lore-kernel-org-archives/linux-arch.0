@@ -1,149 +1,203 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 098/109] mm: add ksys_readahead() helper; remove in-kernel calls to sys_readahead()
-Date: Thu, 29 Mar 2018 13:24:15 +0200
-Message-ID: <20180329112426.23043-99-linux@dominikbrodowski.net>
+Subject: [PATCH 022/109] net: socket: move check for forbid_cmsg_compat to __sys_...msg()
+Date: Thu, 29 Mar 2018 13:22:59 +0200
+Message-ID: <20180329112426.23043-23-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Using this helper allows us to avoid the in-kernel calls to the
-sys_readahead() syscall. The ksys_ prefix denotes that this function is
-meant as a drop-in replacement for the syscall. In particular, it uses the
-same calling convention as sys_readahead().
+The non-compat codepaths for sys_...msg() verify that MSG_CMSG_COMPAT
+is not set. By moving this check to the __sys_...msg() functions
+(and making it dependent on a static flag passed to this function), we
+can call the __sys...msg() functions instead of the syscall functions
+in all cases. __sys_recvmmsg() does not need this trickery, as the
+check is handled within the do_sys_recvmmsg() function internal to
+net/socket.c.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org
+Cc: David S. Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/mips/kernel/linux32.c      | 2 +-
- arch/parisc/kernel/sys_parisc.c | 2 +-
- arch/powerpc/kernel/sys_ppc32.c | 2 +-
- arch/s390/kernel/compat_linux.c | 2 +-
- arch/sparc/kernel/sys_sparc32.c | 2 +-
- arch/x86/ia32/sys_ia32.c        | 2 +-
- include/linux/syscalls.h        | 1 +
- mm/readahead.c                  | 7 ++++++-
- 8 files changed, 13 insertions(+), 7 deletions(-)
+ include/linux/socket.h | 13 +++++++++----
+ net/compat.c           |  8 +++++---
+ net/socket.c           | 38 +++++++++++++++++++++++---------------
+ 3 files changed, 37 insertions(+), 22 deletions(-)
 
-diff --git a/arch/mips/kernel/linux32.c b/arch/mips/kernel/linux32.c
-index 0571ab7b68b0..318f1c05c5b3 100644
---- a/arch/mips/kernel/linux32.c
-+++ b/arch/mips/kernel/linux32.c
-@@ -131,7 +131,7 @@ SYSCALL_DEFINE1(32_personality, unsigned long, personality)
- asmlinkage ssize_t sys32_readahead(int fd, u32 pad0, u64 a2, u64 a3,
- 				   size_t count)
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index cad120e4ed4b..e2b6bd4fe977 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -346,13 +346,18 @@ extern int put_cmsg(struct msghdr*, int level, int type, int len, void *data);
+ 
+ struct timespec;
+ 
+-/* The __sys_...msg variants allow MSG_CMSG_COMPAT */
+-extern long __sys_recvmsg(int fd, struct user_msghdr __user *msg, unsigned flags);
+-extern long __sys_sendmsg(int fd, struct user_msghdr __user *msg, unsigned flags);
++/* The __sys_...msg variants allow MSG_CMSG_COMPAT iff
++ * forbid_cmsg_compat==false
++ */
++extern long __sys_recvmsg(int fd, struct user_msghdr __user *msg,
++			  unsigned int flags, bool forbid_cmsg_compat);
++extern long __sys_sendmsg(int fd, struct user_msghdr __user *msg,
++			  unsigned int flags, bool forbid_cmsg_compat);
+ extern int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
+ 			  unsigned int flags, struct timespec *timeout);
+ extern int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg,
+-			  unsigned int vlen, unsigned int flags);
++			  unsigned int vlen, unsigned int flags,
++			  bool forbid_cmsg_compat);
+ 
+ /* helpers which do the actual work for syscalls */
+ extern int __sys_recvfrom(int fd, void __user *ubuf, size_t size,
+diff --git a/net/compat.c b/net/compat.c
+index f1ec23e9dfce..5caa48987bb2 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -736,19 +736,21 @@ static unsigned char nas[21] = {
+ 
+ COMPAT_SYSCALL_DEFINE3(sendmsg, int, fd, struct compat_msghdr __user *, msg, unsigned int, flags)
  {
--	return sys_readahead(fd, merge_64(a2, a3), count);
-+	return ksys_readahead(fd, merge_64(a2, a3), count);
+-	return __sys_sendmsg(fd, (struct user_msghdr __user *)msg, flags | MSG_CMSG_COMPAT);
++	return __sys_sendmsg(fd, (struct user_msghdr __user *)msg,
++			     flags | MSG_CMSG_COMPAT, false);
  }
  
- asmlinkage long sys32_sync_file_range(int fd, int __pad,
-diff --git a/arch/parisc/kernel/sys_parisc.c b/arch/parisc/kernel/sys_parisc.c
-index 080d566654ea..8c99ebbe2bac 100644
---- a/arch/parisc/kernel/sys_parisc.c
-+++ b/arch/parisc/kernel/sys_parisc.c
-@@ -345,7 +345,7 @@ asmlinkage ssize_t parisc_pwrite64(unsigned int fd, const char __user *buf,
- asmlinkage ssize_t parisc_readahead(int fd, unsigned int high, unsigned int low,
- 		                    size_t count)
+ COMPAT_SYSCALL_DEFINE4(sendmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
+ 		       unsigned int, vlen, unsigned int, flags)
  {
--	return sys_readahead(fd, (loff_t)high << 32 | low, count);
-+	return ksys_readahead(fd, (loff_t)high << 32 | low, count);
+ 	return __sys_sendmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
+-			      flags | MSG_CMSG_COMPAT);
++			      flags | MSG_CMSG_COMPAT, false);
  }
  
- asmlinkage long parisc_fadvise64_64(int fd,
-diff --git a/arch/powerpc/kernel/sys_ppc32.c b/arch/powerpc/kernel/sys_ppc32.c
-index 0b95fa13307f..c11c73373691 100644
---- a/arch/powerpc/kernel/sys_ppc32.c
-+++ b/arch/powerpc/kernel/sys_ppc32.c
-@@ -88,7 +88,7 @@ compat_ssize_t compat_sys_pwrite64(unsigned int fd, const char __user *ubuf, com
- 
- compat_ssize_t compat_sys_readahead(int fd, u32 r4, u32 offhi, u32 offlo, u32 count)
+ COMPAT_SYSCALL_DEFINE3(recvmsg, int, fd, struct compat_msghdr __user *, msg, unsigned int, flags)
  {
--	return sys_readahead(fd, ((loff_t)offhi << 32) | offlo, count);
-+	return ksys_readahead(fd, ((loff_t)offhi << 32) | offlo, count);
+-	return __sys_recvmsg(fd, (struct user_msghdr __user *)msg, flags | MSG_CMSG_COMPAT);
++	return __sys_recvmsg(fd, (struct user_msghdr __user *)msg,
++			     flags | MSG_CMSG_COMPAT, false);
  }
  
- asmlinkage int compat_sys_truncate64(const char __user * path, u32 reg4,
-diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
-index da5ef7718254..8ac38d51ed7d 100644
---- a/arch/s390/kernel/compat_linux.c
-+++ b/arch/s390/kernel/compat_linux.c
-@@ -328,7 +328,7 @@ COMPAT_SYSCALL_DEFINE5(s390_pwrite64, unsigned int, fd, const char __user *, ubu
+ COMPAT_SYSCALL_DEFINE4(recv, int, fd, void __user *, buf, compat_size_t, len, unsigned int, flags)
+diff --git a/net/socket.c b/net/socket.c
+index 54d19b0edab1..a70793a7ce78 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -2137,12 +2137,16 @@ static int ___sys_sendmsg(struct socket *sock, struct user_msghdr __user *msg,
+  *	BSD sendmsg interface
+  */
  
- COMPAT_SYSCALL_DEFINE4(s390_readahead, int, fd, u32, high, u32, low, s32, count)
+-long __sys_sendmsg(int fd, struct user_msghdr __user *msg, unsigned flags)
++long __sys_sendmsg(int fd, struct user_msghdr __user *msg, unsigned int flags,
++		   bool forbid_cmsg_compat)
  {
--	return sys_readahead(fd, (unsigned long)high << 32 | low, count);
-+	return ksys_readahead(fd, (unsigned long)high << 32 | low, count);
- }
+ 	int fput_needed, err;
+ 	struct msghdr msg_sys;
+ 	struct socket *sock;
  
- struct stat64_emu31 {
-diff --git a/arch/sparc/kernel/sys_sparc32.c b/arch/sparc/kernel/sys_sparc32.c
-index 4da66aed50b4..f166e5bbf506 100644
---- a/arch/sparc/kernel/sys_sparc32.c
-+++ b/arch/sparc/kernel/sys_sparc32.c
-@@ -217,7 +217,7 @@ asmlinkage long compat_sys_readahead(int fd,
- 				     unsigned long offlo,
- 				     compat_size_t count)
++	if (forbid_cmsg_compat && (flags & MSG_CMSG_COMPAT))
++		return -EINVAL;
++
+ 	sock = sockfd_lookup_light(fd, &err, &fput_needed);
+ 	if (!sock)
+ 		goto out;
+@@ -2156,9 +2160,7 @@ long __sys_sendmsg(int fd, struct user_msghdr __user *msg, unsigned flags)
+ 
+ SYSCALL_DEFINE3(sendmsg, int, fd, struct user_msghdr __user *, msg, unsigned int, flags)
  {
--	return sys_readahead(fd, (offhi << 32) | offlo, count);
-+	return ksys_readahead(fd, (offhi << 32) | offlo, count);
+-	if (flags & MSG_CMSG_COMPAT)
+-		return -EINVAL;
+-	return __sys_sendmsg(fd, msg, flags);
++	return __sys_sendmsg(fd, msg, flags, true);
  }
- 
- long compat_sys_fadvise64(int fd,
-diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
-index bff71b9ae3f5..bd8a7020b9a7 100644
---- a/arch/x86/ia32/sys_ia32.c
-+++ b/arch/x86/ia32/sys_ia32.c
-@@ -203,7 +203,7 @@ COMPAT_SYSCALL_DEFINE6(x86_fadvise64_64, int, fd, __u32, offset_low,
- COMPAT_SYSCALL_DEFINE4(x86_readahead, int, fd, unsigned int, off_lo,
- 		       unsigned int, off_hi, size_t, count)
- {
--	return sys_readahead(fd, ((u64)off_hi << 32) | off_lo, count);
-+	return ksys_readahead(fd, ((u64)off_hi << 32) | off_lo, count);
- }
- 
- COMPAT_SYSCALL_DEFINE6(x86_sync_file_range, int, fd, unsigned int, off_low,
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index ec866c959e7d..815fbdd9cca1 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -982,6 +982,7 @@ static inline int ksys_fadvise64_64(int fd, loff_t offset, loff_t len,
- unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
- 			      unsigned long prot, unsigned long flags,
- 			      unsigned long fd, unsigned long pgoff);
-+ssize_t ksys_readahead(int fd, loff_t offset, size_t count);
  
  /*
-  * The following kernel syscall equivalents are just wrappers to fs-internal
-diff --git a/mm/readahead.c b/mm/readahead.c
-index c4ca70239233..4d57b4644f98 100644
---- a/mm/readahead.c
-+++ b/mm/readahead.c
-@@ -573,7 +573,7 @@ do_readahead(struct address_space *mapping, struct file *filp,
- 	return force_page_cache_readahead(mapping, filp, index, nr);
+@@ -2166,7 +2168,7 @@ SYSCALL_DEFINE3(sendmsg, int, fd, struct user_msghdr __user *, msg, unsigned int
+  */
+ 
+ int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
+-		   unsigned int flags)
++		   unsigned int flags, bool forbid_cmsg_compat)
+ {
+ 	int fput_needed, err, datagrams;
+ 	struct socket *sock;
+@@ -2176,6 +2178,9 @@ int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
+ 	struct used_address used_address;
+ 	unsigned int oflags = flags;
+ 
++	if (forbid_cmsg_compat && (flags & MSG_CMSG_COMPAT))
++		return -EINVAL;
++
+ 	if (vlen > UIO_MAXIOV)
+ 		vlen = UIO_MAXIOV;
+ 
+@@ -2232,9 +2237,7 @@ int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen,
+ SYSCALL_DEFINE4(sendmmsg, int, fd, struct mmsghdr __user *, mmsg,
+ 		unsigned int, vlen, unsigned int, flags)
+ {
+-	if (flags & MSG_CMSG_COMPAT)
+-		return -EINVAL;
+-	return __sys_sendmmsg(fd, mmsg, vlen, flags);
++	return __sys_sendmmsg(fd, mmsg, vlen, flags, true);
  }
  
--SYSCALL_DEFINE3(readahead, int, fd, loff_t, offset, size_t, count)
-+ssize_t ksys_readahead(int fd, loff_t offset, size_t count)
+ static int ___sys_recvmsg(struct socket *sock, struct user_msghdr __user *msg,
+@@ -2307,12 +2310,16 @@ static int ___sys_recvmsg(struct socket *sock, struct user_msghdr __user *msg,
+  *	BSD recvmsg interface
+  */
+ 
+-long __sys_recvmsg(int fd, struct user_msghdr __user *msg, unsigned flags)
++long __sys_recvmsg(int fd, struct user_msghdr __user *msg, unsigned int flags,
++		   bool forbid_cmsg_compat)
  {
- 	ssize_t ret;
- 	struct fd f;
-@@ -592,3 +592,8 @@ SYSCALL_DEFINE3(readahead, int, fd, loff_t, offset, size_t, count)
- 	}
- 	return ret;
- }
+ 	int fput_needed, err;
+ 	struct msghdr msg_sys;
+ 	struct socket *sock;
+ 
++	if (forbid_cmsg_compat && (flags & MSG_CMSG_COMPAT))
++		return -EINVAL;
 +
-+SYSCALL_DEFINE3(readahead, int, fd, loff_t, offset, size_t, count)
-+{
-+	return ksys_readahead(fd, offset, count);
-+}
+ 	sock = sockfd_lookup_light(fd, &err, &fput_needed);
+ 	if (!sock)
+ 		goto out;
+@@ -2327,9 +2334,7 @@ long __sys_recvmsg(int fd, struct user_msghdr __user *msg, unsigned flags)
+ SYSCALL_DEFINE3(recvmsg, int, fd, struct user_msghdr __user *, msg,
+ 		unsigned int, flags)
+ {
+-	if (flags & MSG_CMSG_COMPAT)
+-		return -EINVAL;
+-	return __sys_recvmsg(fd, msg, flags);
++	return __sys_recvmsg(fd, msg, flags, true);
+ }
+ 
+ /*
+@@ -2580,13 +2585,16 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
+ 				     (int __user *)a[4]);
+ 		break;
+ 	case SYS_SENDMSG:
+-		err = sys_sendmsg(a0, (struct user_msghdr __user *)a1, a[2]);
++		err = __sys_sendmsg(a0, (struct user_msghdr __user *)a1,
++				    a[2], true);
+ 		break;
+ 	case SYS_SENDMMSG:
+-		err = sys_sendmmsg(a0, (struct mmsghdr __user *)a1, a[2], a[3]);
++		err = __sys_sendmmsg(a0, (struct mmsghdr __user *)a1, a[2],
++				     a[3], true);
+ 		break;
+ 	case SYS_RECVMSG:
+-		err = sys_recvmsg(a0, (struct user_msghdr __user *)a1, a[2]);
++		err = __sys_recvmsg(a0, (struct user_msghdr __user *)a1,
++				    a[2], true);
+ 		break;
+ 	case SYS_RECVMMSG:
+ 		err = do_sys_recvmmsg(a0, (struct mmsghdr __user *)a1, a[2],
 -- 
 2.16.3
