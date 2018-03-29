@@ -1,112 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59096 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59098 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752919AbeC2L00 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:26 -0400
+        with ESMTP id S1752957AbeC2L03 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:29 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 080/109] fs: add do_faccessat() helper and ksys_access() wrapper; remove in-kernel calls to syscall
-Date: Thu, 29 Mar 2018 13:23:57 +0200
-Message-ID: <20180329112426.23043-81-linux@dominikbrodowski.net>
+Subject: [PATCH 028/109] net: socket: add __compat_sys_recvmmsg() helper; remove in-kernel call to compat syscall
+Date: Thu, 29 Mar 2018 13:23:05 +0200
+Message-ID: <20180329112426.23043-29-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112357.5BNE3By52tMV1-jlRKdcqt_98wzlDvaxsuE5pgTKaHw@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
+Message-ID: <20180329112305.416g-dLviIickcm9BetfvFgmqTcUsk3lFCOzI7KXF-0@z>
 
-Using the fs-internal do_faccessat() helper allows us to get rid of
-fs-internal calls to the sys_faccessat() syscall.
-
-Introducing the ksys_access() wrapper allows us to avoid the in-kernel
-calls to the sys_access() syscall. The ksys_ prefix denotes that this
-function is meant as a drop-in replacement for the syscall. In
-particular, it uses the same calling convention as sys_access().
+Using the net-internal helper __compat_sys_recvmmsg() allows us to avoid
+the internal calls to the compat_sys_recvmmsg() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/internal.h            | 1 +
- fs/open.c                | 9 +++++++--
- include/linux/syscalls.h | 7 +++++++
- init/main.c              | 3 ++-
- 4 files changed, 17 insertions(+), 3 deletions(-)
+ net/compat.c | 17 ++++++++++++-----
+ 1 file changed, 12 insertions(+), 5 deletions(-)
 
-diff --git a/fs/internal.h b/fs/internal.h
-index 2474bf460f96..26f4f05b52ef 100644
---- a/fs/internal.h
-+++ b/fs/internal.h
-@@ -119,6 +119,7 @@ extern struct file *do_filp_open(int dfd, struct filename *pathname,
- extern struct file *do_file_open_root(struct dentry *, struct vfsmount *,
- 		const char *, const struct open_flags *);
- 
-+long do_faccessat(int dfd, const char __user *filename, int mode);
- int do_fchmodat(int dfd, const char __user *filename, umode_t mode);
- 
- extern int open_check_o_direct(struct file *f);
-diff --git a/fs/open.c b/fs/open.c
-index 6037f2bf418c..0fc8188be31a 100644
---- a/fs/open.c
-+++ b/fs/open.c
-@@ -350,7 +350,7 @@ SYSCALL_DEFINE4(fallocate, int, fd, int, mode, loff_t, offset, loff_t, len)
-  * We do this by temporarily clearing all FS-related capabilities and
-  * switching the fsuid/fsgid around to the real ones.
-  */
--SYSCALL_DEFINE3(faccessat, int, dfd, const char __user *, filename, int, mode)
-+long do_faccessat(int dfd, const char __user *filename, int mode)
- {
- 	const struct cred *old_cred;
- 	struct cred *override_cred;
-@@ -426,9 +426,14 @@ SYSCALL_DEFINE3(faccessat, int, dfd, const char __user *, filename, int, mode)
- 	return res;
+diff --git a/net/compat.c b/net/compat.c
+index cdf5b0c1b962..7b2ae42a1598 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -787,9 +787,9 @@ COMPAT_SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, buf, compat_size_t, len
+ 	return __compat_sys_recvfrom(fd, buf, len, flags, addr, addrlen);
  }
  
-+SYSCALL_DEFINE3(faccessat, int, dfd, const char __user *, filename, int, mode)
+-COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
+-		       unsigned int, vlen, unsigned int, flags,
+-		       struct compat_timespec __user *, timeout)
++static int __compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
++				 unsigned int vlen, unsigned int flags,
++				 struct compat_timespec __user *timeout)
+ {
+ 	int datagrams;
+ 	struct timespec ktspec;
+@@ -809,6 +809,13 @@ COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
+ 	return datagrams;
+ }
+ 
++COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
++		       unsigned int, vlen, unsigned int, flags,
++		       struct compat_timespec __user *, timeout)
 +{
-+	return do_faccessat(dfd, filename, mode);
++	return __compat_sys_recvmmsg(fd, mmsg, vlen, flags, timeout);
 +}
 +
- SYSCALL_DEFINE2(access, const char __user *, filename, int, mode)
+ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
  {
--	return sys_faccessat(AT_FDCWD, filename, mode);
-+	return do_faccessat(AT_FDCWD, filename, mode);
- }
- 
- int ksys_chdir(const char __user *filename)
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index dd6c306f4f00..33f06de090ea 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -1014,4 +1014,11 @@ static inline int ksys_chmod(const char __user *filename, umode_t mode)
- 	return do_fchmodat(AT_FDCWD, filename, mode);
- }
- 
-+extern long do_faccessat(int dfd, const char __user *filename, int mode);
-+
-+static inline long ksys_access(const char __user *filename, int mode)
-+{
-+	return do_faccessat(AT_FDCWD, filename, mode);
-+}
-+
- #endif
-diff --git a/init/main.c b/init/main.c
-index b8649d1466e1..d0ded4322c6b 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -1087,7 +1087,8 @@ static noinline void __init kernel_init_freeable(void)
- 	if (!ramdisk_execute_command)
- 		ramdisk_execute_command = "/init";
- 
--	if (sys_access((const char __user *) ramdisk_execute_command, 0) != 0) {
-+	if (ksys_access((const char __user *)
-+			ramdisk_execute_command, 0) != 0) {
- 		ramdisk_execute_command = NULL;
- 		prepare_namespace();
- 	}
+ 	u32 a[AUDITSC_ARGS];
+@@ -895,8 +902,8 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
+ 		ret = compat_sys_recvmsg(a0, compat_ptr(a1), a[2]);
+ 		break;
+ 	case SYS_RECVMMSG:
+-		ret = compat_sys_recvmmsg(a0, compat_ptr(a1), a[2], a[3],
+-					  compat_ptr(a[4]));
++		ret = __compat_sys_recvmmsg(a0, compat_ptr(a1), a[2], a[3],
++					    compat_ptr(a[4]));
+ 		break;
+ 	case SYS_ACCEPT4:
+ 		ret = __sys_accept4(a0, compat_ptr(a1), compat_ptr(a[2]), a[3]);
 -- 
 2.16.3
