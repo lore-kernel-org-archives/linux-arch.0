@@ -1,38 +1,36 @@
-From: Thiago Jung Bauermann <bauerman@linux.vnet.ibm.com>
-Subject: Re: [PATCH v12 07/22] selftests/vm: fixed bugs in pkey_disable_clear()
-Date: Wed, 28 Mar 2018 20:51:42 -0300
-Message-ID: <878tabvjw1.fsf@morokweng.localdomain>
-References: <1519264541-7621-1-git-send-email-linuxram@us.ibm.com> <1519264541-7621-8-git-send-email-linuxram@us.ibm.com> <dc5ee0c8-afe3-78aa-001d-7b49b398337b@intel.com> <87muys3p2v.fsf@morokweng.localdomain> <34fd1ae9-9697-ac6c-d6bc-7c25b4515a25@intel.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC tools/memory-model] Add s390.{cfg,cat}
+Date: Wed, 28 Mar 2018 18:33:16 -0700
+Message-ID: <20180329013316.GU3675@linux.vnet.ibm.com>
+References: <20180328134232.GA29274@linux.vnet.ibm.com>
+ <Pine.LNX.4.44L0.1803281057280.1375-100000@iolanthe.rowland.org>
+ <20180328175136.GL4082@hirez.programming.kicks-ass.net>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-reply-to: <34fd1ae9-9697-ac6c-d6bc-7c25b4515a25@intel.com>
+Content-Disposition: inline
+In-Reply-To: <20180328175136.GL4082@hirez.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Ram Pai <linuxram@us.ibm.com>, shuahkh@osg.samsung.com, linux-kselftest@vger.kernel.org, mpe@ellerman.id.au, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, akpm@linux-foundation.org, benh@kernel.crashing.org, paulus@samba.org, khandual@linux.vnet.ibm.com, aneesh.kumar@linux.vnet.ibm.com, bsingharora@gmail.com, hbabu@us.ibm.com, mhocko@kernel.org, ebiederm@xmission.com, arnd@arndb.de
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Alan Stern <stern@rowland.harvard.edu>, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, parri.andrea@gmail.com, will.deacon@arm.com, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
+On Wed, Mar 28, 2018 at 07:51:36PM +0200, Peter Zijlstra wrote:
+> On Wed, Mar 28, 2018 at 11:01:25AM -0400, Alan Stern wrote:
+> > I don't quite see the point of this.  You're not suggesting that we
+> > have one Linux Kernel Memory Consistency Model for s390 and another
+> > one for all the other architectures, are you?
+> > 
+> > If the idea is merely to provide a herd model for s390 then it should 
+> > go into the DIY repository, not into the LKMM repository.
+> 
+> I suspect the use-case was validating s390 arch code which might not
+> have followed all the regular linux rules because they know its TSO. But
+> yes, I'm tempted to agree that even arch specific code ought to follow
+> the regular rules, just to avoid completely messing up the reader.
 
-Dave Hansen <dave.hansen@intel.com> writes:
+Another use case is testing an s390 .cat file without having to teach
+herd about s390 assembly.  ;-)
 
-> On 03/28/2018 01:47 PM, Thiago Jung Bauermann wrote:
->>>>  	if (flags)
->>>> -		assert(rdpkey_reg() > orig_pkey_reg);
->>>> +		assert(rdpkey_reg() < orig_pkey_reg);
->>>>  }
->>>>
->>>>  void pkey_write_allow(int pkey)
->>> This seems so horribly wrong that I wonder how it worked in the first
->>> place.  Any idea?
->> The code simply wasn't used. pkey_disable_clear() is called by
->> pkey_write_allow() and pkey_access_allow(), but before this patch series
->> nothing called either of these functions.
->> 
->
-> Ahh, that explains it.  Can that get stuck in the changelog, please?
-
-Yes, will be in the next version.
-
--- 
-Thiago Jung Bauermann
-IBM Linux Technology Center
+							Thanx, Paul
