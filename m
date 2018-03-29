@@ -1,106 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59628 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59398 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752699AbeC2L0G (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:06 -0400
+        with ESMTP id S1752653AbeC2L0F (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:05 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 052/109] fs: add do_epoll_*() helpers; remove internal calls to sys_epoll_*()
-Date: Thu, 29 Mar 2018 13:23:29 +0200
-Message-ID: <20180329112426.23043-53-linux@dominikbrodowski.net>
+Subject: [PATCH 008/109] net: socket: add __sys_recvfrom() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:22:45 +0200
+Message-ID: <20180329112426.23043-9-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20180329112329.PDY1WyHbjPj7HPkrbnCLw9J-t8DUd8U8qOIBFTmO-vQ@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
+Message-ID: <20180329112245.8hsnUO6yacyImwiDLCBiHpr9Iae87R3XaPYp0oRjwnI@z>
 
-Using the helper functions do_epoll_create() and do_epoll_wait() allows us
-to remove in-kernel calls to the related syscall functions.
+Using the net-internal helper __sys_recvfrom() allows us to avoid the
+internal calls to the sys_recvfrom() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/eventpoll.c | 23 +++++++++++++++++------
- 1 file changed, 17 insertions(+), 6 deletions(-)
+ include/linux/socket.h |  6 ++++++
+ net/compat.c           |  3 ++-
+ net/socket.c           | 21 +++++++++++++--------
+ 3 files changed, 21 insertions(+), 9 deletions(-)
 
-diff --git a/fs/eventpoll.c b/fs/eventpoll.c
-index 0f3494ed3ed0..602ca4285b2e 100644
---- a/fs/eventpoll.c
-+++ b/fs/eventpoll.c
-@@ -1936,7 +1936,7 @@ static void clear_tfile_check_list(void)
- /*
-  * Open an eventpoll file descriptor.
-  */
--SYSCALL_DEFINE1(epoll_create1, int, flags)
-+static int do_epoll_create(int flags)
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index 9286a5a8c60c..40cc93b91628 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -353,4 +353,10 @@ extern int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen
+ 			  unsigned int flags, struct timespec *timeout);
+ extern int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg,
+ 			  unsigned int vlen, unsigned int flags);
++
++/* helpers which do the actual work for syscalls */
++extern int __sys_recvfrom(int fd, void __user *ubuf, size_t size,
++			  unsigned int flags, struct sockaddr __user *addr,
++			  int __user *addr_len);
++
+ #endif /* _LINUX_SOCKET_H */
+diff --git a/net/compat.c b/net/compat.c
+index 22381719718c..2d8186c277b2 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -760,7 +760,8 @@ COMPAT_SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, buf, compat_size_t, len
+ 		       unsigned int, flags, struct sockaddr __user *, addr,
+ 		       int __user *, addrlen)
  {
- 	int error, fd;
- 	struct eventpoll *ep = NULL;
-@@ -1979,12 +1979,17 @@ SYSCALL_DEFINE1(epoll_create1, int, flags)
- 	return error;
+-	return sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, addr, addrlen);
++	return __sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, addr,
++			      addrlen);
  }
  
-+SYSCALL_DEFINE1(epoll_create1, int, flags)
+ COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
+diff --git a/net/socket.c b/net/socket.c
+index a93c99b518ca..712d99d8680f 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1767,10 +1767,8 @@ SYSCALL_DEFINE4(send, int, fd, void __user *, buff, size_t, len,
+  *	sender. We verify the buffers are writable and if needed move the
+  *	sender address from kernel to user space.
+  */
+-
+-SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
+-		unsigned int, flags, struct sockaddr __user *, addr,
+-		int __user *, addr_len)
++int __sys_recvfrom(int fd, void __user *ubuf, size_t size, unsigned int flags,
++		   struct sockaddr __user *addr, int __user *addr_len)
+ {
+ 	struct socket *sock;
+ 	struct iovec iov;
+@@ -1810,6 +1808,13 @@ SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
+ 	return err;
+ }
+ 
++SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
++		unsigned int, flags, struct sockaddr __user *, addr,
++		int __user *, addr_len)
 +{
-+	return do_epoll_create(flags);
++	return __sys_recvfrom(fd, ubuf, size, flags, addr, addr_len);
 +}
 +
- SYSCALL_DEFINE1(epoll_create, int, size)
- {
- 	if (size <= 0)
- 		return -EINVAL;
- 
--	return sys_epoll_create1(0);
-+	return do_epoll_create(0);
- }
- 
  /*
-@@ -2148,8 +2153,8 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
-  * Implement the event wait interface for the eventpoll file. It is the kernel
-  * part of the user space epoll_wait(2).
+  *	Receive a datagram from a socket.
   */
--SYSCALL_DEFINE4(epoll_wait, int, epfd, struct epoll_event __user *, events,
--		int, maxevents, int, timeout)
-+static int do_epoll_wait(int epfd, struct epoll_event __user *events,
-+			 int maxevents, int timeout)
+@@ -1817,7 +1822,7 @@ SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
+ SYSCALL_DEFINE4(recv, int, fd, void __user *, ubuf, size_t, size,
+ 		unsigned int, flags)
  {
- 	int error;
- 	struct fd f;
-@@ -2190,6 +2195,12 @@ SYSCALL_DEFINE4(epoll_wait, int, epfd, struct epoll_event __user *, events,
- 	return error;
+-	return sys_recvfrom(fd, ubuf, size, flags, NULL, NULL);
++	return __sys_recvfrom(fd, ubuf, size, flags, NULL, NULL);
  }
  
-+SYSCALL_DEFINE4(epoll_wait, int, epfd, struct epoll_event __user *, events,
-+		int, maxevents, int, timeout)
-+{
-+	return do_epoll_wait(epfd, events, maxevents, timeout);
-+}
-+
  /*
-  * Implement the event wait interface for the eventpoll file. It is the kernel
-  * part of the user space epoll_pwait(2).
-@@ -2214,7 +2225,7 @@ SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
- 		set_current_blocked(&ksigmask);
- 	}
- 
--	error = sys_epoll_wait(epfd, events, maxevents, timeout);
-+	error = do_epoll_wait(epfd, events, maxevents, timeout);
- 
- 	/*
- 	 * If we changed the signal mask, we need to restore the original one.
-@@ -2257,7 +2268,7 @@ COMPAT_SYSCALL_DEFINE6(epoll_pwait, int, epfd,
- 		set_current_blocked(&ksigmask);
- 	}
- 
--	err = sys_epoll_wait(epfd, events, maxevents, timeout);
-+	err = do_epoll_wait(epfd, events, maxevents, timeout);
- 
- 	/*
- 	 * If we changed the signal mask, we need to restore the original one.
+@@ -2486,9 +2491,9 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
+ 		err = sys_recv(a0, (void __user *)a1, a[2], a[3]);
+ 		break;
+ 	case SYS_RECVFROM:
+-		err = sys_recvfrom(a0, (void __user *)a1, a[2], a[3],
+-				   (struct sockaddr __user *)a[4],
+-				   (int __user *)a[5]);
++		err = __sys_recvfrom(a0, (void __user *)a1, a[2], a[3],
++				     (struct sockaddr __user *)a[4],
++				     (int __user *)a[5]);
+ 		break;
+ 	case SYS_SHUTDOWN:
+ 		err = sys_shutdown(a0, a1);
 -- 
 2.16.3
