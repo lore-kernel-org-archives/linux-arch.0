@@ -1,60 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59534 "EHLO
-        isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752740AbeC2L0R (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:17 -0400
-From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 049/109] fs: add do_pipe2() helper; remove internal call to sys_pipe2()
-Date: Thu, 29 Mar 2018 13:23:26 +0200
-Message-ID: <20180329112426.23043-50-linux@dominikbrodowski.net>
-In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
+Received: from bombadil.infradead.org ([198.137.202.133]:40652 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750708AbeC2OUc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 10:20:32 -0400
+Date: Thu, 29 Mar 2018 07:20:27 -0700
+From: Matthew Wilcox <willy@infradead.org>
+Subject: Re: [PATCH 000/109] remove in-kernel calls to syscalls
+Message-ID: <20180329142027.GA24860@bombadil.infradead.org>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20180329112326.wAY4J2q3DYr2lUnL0oyPRwbyL-Sl4qJ13ZXpJCSz0cI@z>
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: linux-kernel@vger.kernel.org, viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, hmclauchlan@fb.com, tautschn@amazon.co.uk, Amir Goldstein <amir73il@gmail.com>, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Darren Hart <dvhart@infradead.org>, "David S . Miller" <davem@davemloft.net>, "Eric W . Biederman" <ebiederm@xmission.com>, "H . Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Jaswinder Singh <jaswinder@infradead.org>, Jeff Dike <jdike@addtoit.com>, Jiri Slaby <jslaby@suse.com>, kexec@lists.infradead.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-s390@vger.kernel.org, "Luis R . Rodriguez" <mcgrof@kernel.org>, netdev@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, user-mode-linux-devel@lists.sourceforge.net, x86@kernel.org
+Message-ID: <20180329142027.KUYkXs9Ew01AHlGxRy8kBTEvkOpThvIY6uMs4B_TEGE@z>
 
-Using this helper removes an in-kernel call to the sys_pipe2() syscall.
+On Thu, Mar 29, 2018 at 01:22:37PM +0200, Dominik Brodowski wrote:
+> At least on 64-bit x86, it will likely be a hard requirement from v4.17
+> onwards to not call system call functions in the kernel: It is better to
+> use use a different calling convention for system calls there, where 
+> struct pt_regs is decoded on-the-fly in a syscall wrapper which then hands
+> processing over to the actual syscall function. This means that only those
+> parameters which are actually needed for a specific syscall are passed on
+> during syscall entry, instead of filling in six CPU registers with random
+> user space content all the time (which may cause serious trouble down the
+> call chain).[*]
 
-This patch is part of a series which removes in-kernel calls to syscalls.
-On this basis, the syscall entry path can be streamlined. For details, see
-http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
-
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
----
- fs/pipe.c | 9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
-
-diff --git a/fs/pipe.c b/fs/pipe.c
-index 7b1954caf388..39d6f431da83 100644
---- a/fs/pipe.c
-+++ b/fs/pipe.c
-@@ -841,7 +841,7 @@ int do_pipe_flags(int *fd, int flags)
-  * sys_pipe() is the normal C calling standard for creating
-  * a pipe. It's not the way Unix traditionally does this, though.
-  */
--SYSCALL_DEFINE2(pipe2, int __user *, fildes, int, flags)
-+static int do_pipe2(int __user *fildes, int flags)
- {
- 	struct file *files[2];
- 	int fd[2];
-@@ -863,9 +863,14 @@ SYSCALL_DEFINE2(pipe2, int __user *, fildes, int, flags)
- 	return error;
- }
- 
-+SYSCALL_DEFINE2(pipe2, int __user *, fildes, int, flags)
-+{
-+	return do_pipe2(fildes, flags);
-+}
-+
- SYSCALL_DEFINE1(pipe, int __user *, fildes)
- {
--	return sys_pipe2(fildes, 0);
-+	return do_pipe2(fildes, 0);
- }
- 
- static int wait_for_partner(struct pipe_inode_info *pipe, unsigned int *cnt)
--- 
-2.16.3
+How do we stop new ones from springing up?  Some kind of linker trick
+like was used to, er, "dissuade" people from using gets()?
