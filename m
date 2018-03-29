@@ -1,145 +1,103 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 088/109] fs: add ksys_read() helper; remove in-kernel calls to sys_read()
-Date: Thu, 29 Mar 2018 13:24:05 +0200
-Message-ID: <20180329112426.23043-89-linux@dominikbrodowski.net>
+Subject: [PATCH 029/109] net: socket: add __compat_sys_...msg() helpers; remove in-kernel calls to compat syscalls
+Date: Thu, 29 Mar 2018 13:23:06 +0200
+Message-ID: <20180329112426.23043-30-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Using this helper allows us to avoid the in-kernel calls to the
-sys_read() syscall. The ksys_ prefix denotes that this function
-is meant as a drop-in replacement for the syscall. In particular, it
-uses the same calling convention as sys_read().
+Using the net-internal helpers __compat_sys_...msg() allows us to avoid
+the internal calls to the compat_sys_...msg() syscalls.
+compat_sys_recvmmsg() is handled in a different patch.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/s390/kernel/compat_linux.c |  2 +-
- fs/read_write.c                 |  7 ++++++-
- include/linux/syscalls.h        |  1 +
- init/do_mounts.c                |  2 +-
- init/do_mounts_rd.c             | 10 +++++-----
- 5 files changed, 14 insertions(+), 8 deletions(-)
+ net/compat.c | 37 ++++++++++++++++++++++++++++++-------
+ 1 file changed, 30 insertions(+), 7 deletions(-)
 
-diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
-index 9c5e975f71a6..af0469f204fd 100644
---- a/arch/s390/kernel/compat_linux.c
-+++ b/arch/s390/kernel/compat_linux.c
-@@ -460,7 +460,7 @@ COMPAT_SYSCALL_DEFINE3(s390_read, unsigned int, fd, char __user *, buf, compat_s
- 	if ((compat_ssize_t) count < 0)
- 		return -EINVAL; 
+diff --git a/net/compat.c b/net/compat.c
+index 7b2ae42a1598..5ae7437d3853 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -747,25 +747,48 @@ static unsigned char nas[21] = {
+ };
+ #undef AL
  
--	return sys_read(fd, buf, count);
-+	return ksys_read(fd, buf, count);
- }
- 
- COMPAT_SYSCALL_DEFINE3(s390_write, unsigned int, fd, const char __user *, buf, compat_size_t, count)
-diff --git a/fs/read_write.c b/fs/read_write.c
-index b38b008a078e..fc441e1ac683 100644
---- a/fs/read_write.c
-+++ b/fs/read_write.c
-@@ -568,7 +568,7 @@ static inline void file_pos_write(struct file *file, loff_t pos)
- 	file->f_pos = pos;
- }
- 
--SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
-+ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count)
+-COMPAT_SYSCALL_DEFINE3(sendmsg, int, fd, struct compat_msghdr __user *, msg, unsigned int, flags)
++static inline long __compat_sys_sendmsg(int fd,
++					struct compat_msghdr __user *msg,
++					unsigned int flags)
  {
- 	struct fd f = fdget_pos(fd);
- 	ssize_t ret = -EBADF;
-@@ -583,6 +583,11 @@ SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
- 	return ret;
+ 	return __sys_sendmsg(fd, (struct user_msghdr __user *)msg,
+ 			     flags | MSG_CMSG_COMPAT, false);
  }
  
-+SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
+-COMPAT_SYSCALL_DEFINE4(sendmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
+-		       unsigned int, vlen, unsigned int, flags)
++COMPAT_SYSCALL_DEFINE3(sendmsg, int, fd, struct compat_msghdr __user *, msg,
++		       unsigned int, flags)
 +{
-+	return ksys_read(fd, buf, count);
++	return __compat_sys_sendmsg(fd, msg, flags);
 +}
 +
- ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count)
++static inline long __compat_sys_sendmmsg(int fd,
++					 struct compat_mmsghdr __user *mmsg,
++					 unsigned int vlen, unsigned int flags)
  {
- 	struct fd f = fdget_pos(fd);
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 0f24e5334569..3a2e90842ff8 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -959,6 +959,7 @@ int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
- 		    unsigned int count);
- int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
- off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence);
-+ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count);
+ 	return __sys_sendmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
+ 			      flags | MSG_CMSG_COMPAT, false);
+ }
  
- /*
-  * The following kernel syscall equivalents are just wrappers to fs-internal
-diff --git a/init/do_mounts.c b/init/do_mounts.c
-index b17e0095eb4e..2c71dabe5626 100644
---- a/init/do_mounts.c
-+++ b/init/do_mounts.c
-@@ -500,7 +500,7 @@ void __init change_floppy(char *fmt, ...)
- 		ksys_ioctl(fd, TCGETS, (long)&termios);
- 		termios.c_lflag &= ~ICANON;
- 		ksys_ioctl(fd, TCSETSF, (long)&termios);
--		sys_read(fd, &c, 1);
-+		ksys_read(fd, &c, 1);
- 		termios.c_lflag |= ICANON;
- 		ksys_ioctl(fd, TCSETSF, (long)&termios);
- 		ksys_close(fd);
-diff --git a/init/do_mounts_rd.c b/init/do_mounts_rd.c
-index 13e54148c0e0..12c159824c7b 100644
---- a/init/do_mounts_rd.c
-+++ b/init/do_mounts_rd.c
-@@ -91,7 +91,7 @@ identify_ramdisk_image(int fd, int start_block, decompress_fn *decompressor)
- 	 * Read block 0 to test for compressed kernel
- 	 */
- 	ksys_lseek(fd, start_block * BLOCK_SIZE, 0);
--	sys_read(fd, buf, size);
-+	ksys_read(fd, buf, size);
- 
- 	*decompressor = decompress_method(buf, size, &compress_name);
- 	if (compress_name) {
-@@ -137,7 +137,7 @@ identify_ramdisk_image(int fd, int start_block, decompress_fn *decompressor)
- 	 * Read 512 bytes further to check if cramfs is padded
- 	 */
- 	ksys_lseek(fd, start_block * BLOCK_SIZE + 0x200, 0);
--	sys_read(fd, buf, size);
-+	ksys_read(fd, buf, size);
- 
- 	if (cramfsb->magic == CRAMFS_MAGIC) {
- 		printk(KERN_NOTICE
-@@ -151,7 +151,7 @@ identify_ramdisk_image(int fd, int start_block, decompress_fn *decompressor)
- 	 * Read block 1 to test for minix and ext2 superblock
- 	 */
- 	ksys_lseek(fd, (start_block+1) * BLOCK_SIZE, 0);
--	sys_read(fd, buf, size);
-+	ksys_read(fd, buf, size);
- 
- 	/* Try minix */
- 	if (minixsb->s_magic == MINIX_SUPER_MAGIC ||
-@@ -269,7 +269,7 @@ int __init rd_load_image(char *from)
- 			}
- 			printk("Loading disk #%d... ", disk);
- 		}
--		sys_read(in_fd, buf, BLOCK_SIZE);
-+		ksys_read(in_fd, buf, BLOCK_SIZE);
- 		ksys_write(out_fd, buf, BLOCK_SIZE);
- #if !defined(CONFIG_S390)
- 		if (!(i % 16)) {
-@@ -307,7 +307,7 @@ static int crd_infd, crd_outfd;
- 
- static long __init compr_fill(void *buf, unsigned long len)
+-COMPAT_SYSCALL_DEFINE3(recvmsg, int, fd, struct compat_msghdr __user *, msg, unsigned int, flags)
++COMPAT_SYSCALL_DEFINE4(sendmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
++		       unsigned int, vlen, unsigned int, flags)
++{
++	return __compat_sys_sendmmsg(fd, mmsg, vlen, flags);
++}
++
++static inline long __compat_sys_recvmsg(int fd,
++					struct compat_msghdr __user *msg,
++					unsigned int flags)
  {
--	long r = sys_read(crd_infd, buf, len);
-+	long r = ksys_read(crd_infd, buf, len);
- 	if (r < 0)
- 		printk(KERN_ERR "RAMDISK: error while reading compressed data");
- 	else if (r == 0)
+ 	return __sys_recvmsg(fd, (struct user_msghdr __user *)msg,
+ 			     flags | MSG_CMSG_COMPAT, false);
+ }
+ 
++COMPAT_SYSCALL_DEFINE3(recvmsg, int, fd, struct compat_msghdr __user *, msg,
++		       unsigned int, flags)
++{
++	return __compat_sys_recvmsg(fd, msg, flags);
++}
++
+ static inline long __compat_sys_recvfrom(int fd, void __user *buf,
+ 					 compat_size_t len, unsigned int flags,
+ 					 struct sockaddr __user *addr,
+@@ -893,13 +916,13 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
+ 					      compat_ptr(a[4]));
+ 		break;
+ 	case SYS_SENDMSG:
+-		ret = compat_sys_sendmsg(a0, compat_ptr(a1), a[2]);
++		ret = __compat_sys_sendmsg(a0, compat_ptr(a1), a[2]);
+ 		break;
+ 	case SYS_SENDMMSG:
+-		ret = compat_sys_sendmmsg(a0, compat_ptr(a1), a[2], a[3]);
++		ret = __compat_sys_sendmmsg(a0, compat_ptr(a1), a[2], a[3]);
+ 		break;
+ 	case SYS_RECVMSG:
+-		ret = compat_sys_recvmsg(a0, compat_ptr(a1), a[2]);
++		ret = __compat_sys_recvmsg(a0, compat_ptr(a1), a[2]);
+ 		break;
+ 	case SYS_RECVMMSG:
+ 		ret = __compat_sys_recvmmsg(a0, compat_ptr(a1), a[2], a[3],
 -- 
 2.16.3
