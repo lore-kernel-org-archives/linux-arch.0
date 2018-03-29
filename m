@@ -1,117 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59862 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59048 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752942AbeC2L01 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:27 -0400
+        with ESMTP id S1752950AbeC2L02 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:28 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 076/109] fs: add do_symlinkat() helper and ksys_symlink() wrapper; remove in-kernel calls to syscall
-Date: Thu, 29 Mar 2018 13:23:53 +0200
-Message-ID: <20180329112426.23043-77-linux@dominikbrodowski.net>
+Subject: [PATCH 041/109] kernel: add do_compat_sigaltstack() helper; remove in-kernel call to compat syscall
+Date: Thu, 29 Mar 2018 13:23:18 +0200
+Message-ID: <20180329112426.23043-42-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112353.Mgfcb2VvwRyjPtNvV7U_08dchtvN8979FqAcQPz7Y8E@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112318.YbALa_kL3TGi5XYMqb5849zmI-YTgcSAvwM8vhFNRxM@z>
 
-Using the fs-internal do_symlinkat() helper allows us to get rid of
-fs-internal calls to the sys_symlinkat() syscall.
-
-Introducing the ksys_symlink() wrapper allows us to avoid the in-kernel
-calls to the sys_symlink() syscall. The ksys_ prefix denotes that this
-function is meant as a drop-in replacement for the syscall. In particular,
-it uses the same calling convention as sys_symlink().
+Using this helper allows us to avoid the in-kernel call to the
+compat_sys_sigaltstack() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>
 Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/internal.h            |  2 ++
- fs/namei.c               | 12 +++++++++---
- include/linux/syscalls.h |  9 +++++++++
- init/initramfs.c         |  2 +-
- 4 files changed, 21 insertions(+), 4 deletions(-)
+ kernel/signal.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
 
-diff --git a/fs/internal.h b/fs/internal.h
-index 53846bd4d9d7..a3f04ca2a08b 100644
---- a/fs/internal.h
-+++ b/fs/internal.h
-@@ -58,6 +58,8 @@ extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
- long do_mkdirat(int dfd, const char __user *pathname, umode_t mode);
- long do_rmdir(int dfd, const char __user *pathname);
- long do_unlinkat(int dfd, struct filename *name);
-+long do_symlinkat(const char __user *oldname, int newdfd,
-+		  const char __user *newname);
- 
- /*
-  * namespace.c
-diff --git a/fs/namei.c b/fs/namei.c
-index dcf506227509..e15da92209d5 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -4113,8 +4113,8 @@ int vfs_symlink(struct inode *dir, struct dentry *dentry, const char *oldname)
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 985c61749bcf..f04466655238 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -3573,9 +3573,8 @@ int __save_altstack(stack_t __user *uss, unsigned long sp)
  }
- EXPORT_SYMBOL(vfs_symlink);
  
--SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
--		int, newdfd, const char __user *, newname)
-+long do_symlinkat(const char __user *oldname, int newdfd,
-+		  const char __user *newname)
+ #ifdef CONFIG_COMPAT
+-COMPAT_SYSCALL_DEFINE2(sigaltstack,
+-			const compat_stack_t __user *, uss_ptr,
+-			compat_stack_t __user *, uoss_ptr)
++static int do_compat_sigaltstack(const compat_stack_t __user *uss_ptr,
++				 compat_stack_t __user *uoss_ptr)
  {
- 	int error;
- 	struct filename *from;
-@@ -4144,9 +4144,15 @@ SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
- 	return error;
+ 	stack_t uss, uoss;
+ 	int ret;
+@@ -3602,9 +3601,16 @@ COMPAT_SYSCALL_DEFINE2(sigaltstack,
+ 	return ret;
  }
  
-+SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
-+		int, newdfd, const char __user *, newname)
++COMPAT_SYSCALL_DEFINE2(sigaltstack,
++			const compat_stack_t __user *, uss_ptr,
++			compat_stack_t __user *, uoss_ptr)
 +{
-+	return do_symlinkat(oldname, newdfd, newname);
++	return do_compat_sigaltstack(uss_ptr, uoss_ptr);
 +}
 +
- SYSCALL_DEFINE2(symlink, const char __user *, oldname, const char __user *, newname)
+ int compat_restore_altstack(const compat_stack_t __user *uss)
  {
--	return sys_symlinkat(oldname, AT_FDCWD, newname);
-+	return do_symlinkat(oldname, AT_FDCWD, newname);
+-	int err = compat_sys_sigaltstack(uss, NULL);
++	int err = do_compat_sigaltstack(uss, NULL);
+ 	/* squash all but -EFAULT for now */
+ 	return err == -EFAULT ? err : 0;
  }
- 
- /**
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index c982cb5f4e50..39c5cef86a10 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -979,4 +979,13 @@ static inline long ksys_mkdir(const char __user *pathname, umode_t mode)
- 	return do_mkdirat(AT_FDCWD, pathname, mode);
- }
- 
-+extern long do_symlinkat(const char __user *oldname, int newdfd,
-+			 const char __user *newname);
-+
-+static inline long ksys_symlink(const char __user *oldname,
-+				const char __user *newname)
-+{
-+	return do_symlinkat(oldname, AT_FDCWD, newname);
-+}
-+
- #endif
-diff --git a/init/initramfs.c b/init/initramfs.c
-index ca538a5f9fa9..cd9571a113b6 100644
---- a/init/initramfs.c
-+++ b/init/initramfs.c
-@@ -392,7 +392,7 @@ static int __init do_symlink(void)
- {
- 	collected[N_ALIGN(name_len) + body_len] = '\0';
- 	clean_path(collected, 0);
--	sys_symlink(collected + N_ALIGN(name_len), collected);
-+	ksys_symlink(collected + N_ALIGN(name_len), collected);
- 	sys_lchown(collected, uid, gid);
- 	do_utime(collected, mtime);
- 	state = SkipIt;
 -- 
 2.16.3
