@@ -1,177 +1,277 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 106/109] syscalls/x86: auto-create compat_sys_*() prototypes
-Date: Thu, 29 Mar 2018 13:24:23 +0200
-Message-ID: <20180329112426.23043-107-linux@dominikbrodowski.net>
+Subject: [PATCH 096/109] mm: add ksys_fadvise64_64() helper; remove in-kernel call to sys_fadvise64_64()
+Date: Thu, 29 Mar 2018 13:24:13 +0200
+Message-ID: <20180329112426.23043-97-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, x86@kernel.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-compat_sys_*() functions are no longer called from within the kernel on
-x86 except from the system call table. Linking the system call does not
-require compat_sys_*() function prototypes at least on x86. Therefore,
-generate compat_sys_*() prototypes on-the-fly within the
-COMPAT_SYSCALL_DEFINEx() macro, and remove x86-specific prototypes from
-various header files.
+Using the ksys_fadvise64_64() helper allows us to avoid the in-kernel
+calls to the sys_fadvise64_64() syscall. The ksys_ prefix denotes that
+this function is meant as a drop-in replacement for the syscall. In
+particular, it uses the same calling convention as ksys_fadvise64_64().
 
-Suggested-by: Andy Lutomirski <luto@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andi Kleen <ak@linux.intel.com>
-Cc: Ingo Molnar <mingo@redhat.com>
+Some compat stubs called sys_fadvise64(), which then just passed through
+the arguments to sys_fadvise64_64(). Get rid of this indirection, and call
+ksys_fadvise64_64() directly.
+
+This patch is part of a series which removes in-kernel calls to syscalls.
+On this basis, the syscall entry path can be streamlined. For details, see
+http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
+
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: x86@kernel.org
+Cc: linux-mm@kvack.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/x86/ia32/ia32_signal.c     |  1 -
- arch/x86/ia32/sys_ia32.c        |  2 +-
- arch/x86/include/asm/sys_ia32.h | 64 -----------------------------------------
- include/linux/compat.h          | 17 ++---------
- 4 files changed, 4 insertions(+), 80 deletions(-)
- delete mode 100644 arch/x86/include/asm/sys_ia32.h
+ arch/arm/kernel/sys_arm.c       |  2 +-
+ arch/mips/kernel/linux32.c      |  2 +-
+ arch/parisc/kernel/sys_parisc.c |  2 +-
+ arch/powerpc/kernel/sys_ppc32.c |  4 ++--
+ arch/powerpc/kernel/syscalls.c  |  4 ++--
+ arch/s390/kernel/compat_linux.c |  5 +++--
+ arch/sh/kernel/sys_sh32.c       |  8 ++++----
+ arch/sparc/kernel/sys_sparc32.c | 10 +++++-----
+ arch/x86/ia32/sys_ia32.c        | 12 ++++++------
+ arch/xtensa/kernel/syscall.c    |  2 +-
+ include/linux/syscalls.h        |  9 +++++++++
+ mm/fadvise.c                    | 10 ++++++++--
+ 12 files changed, 43 insertions(+), 27 deletions(-)
 
-diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
-index 41c671854642..86b1341cba9a 100644
---- a/arch/x86/ia32/ia32_signal.c
-+++ b/arch/x86/ia32/ia32_signal.c
-@@ -33,7 +33,6 @@
- #include <asm/vdso.h>
- #include <asm/sigframe.h>
- #include <asm/sighandling.h>
--#include <asm/sys_ia32.h>
- #include <asm/smap.h>
+diff --git a/arch/arm/kernel/sys_arm.c b/arch/arm/kernel/sys_arm.c
+index 3151f5623d0e..bdf7514204ab 100644
+--- a/arch/arm/kernel/sys_arm.c
++++ b/arch/arm/kernel/sys_arm.c
+@@ -35,5 +35,5 @@
+ asmlinkage long sys_arm_fadvise64_64(int fd, int advice,
+ 				     loff_t offset, loff_t len)
+ {
+-	return sys_fadvise64_64(fd, offset, len, advice);
++	return ksys_fadvise64_64(fd, offset, len, advice);
+ }
+diff --git a/arch/mips/kernel/linux32.c b/arch/mips/kernel/linux32.c
+index 0779d474c8ad..1c5785e72db4 100644
+--- a/arch/mips/kernel/linux32.c
++++ b/arch/mips/kernel/linux32.c
+@@ -149,7 +149,7 @@ asmlinkage long sys32_fadvise64_64(int fd, int __pad,
+ 	unsigned long a4, unsigned long a5,
+ 	int flags)
+ {
+-	return sys_fadvise64_64(fd,
++	return ksys_fadvise64_64(fd,
+ 			merge_64(a2, a3), merge_64(a4, a5),
+ 			flags);
+ }
+diff --git a/arch/parisc/kernel/sys_parisc.c b/arch/parisc/kernel/sys_parisc.c
+index 588fab336ddd..f36ab1f09595 100644
+--- a/arch/parisc/kernel/sys_parisc.c
++++ b/arch/parisc/kernel/sys_parisc.c
+@@ -352,7 +352,7 @@ asmlinkage long parisc_fadvise64_64(int fd,
+ 			unsigned int high_off, unsigned int low_off,
+ 			unsigned int high_len, unsigned int low_len, int advice)
+ {
+-	return sys_fadvise64_64(fd, (loff_t)high_off << 32 | low_off,
++	return ksys_fadvise64_64(fd, (loff_t)high_off << 32 | low_off,
+ 			(loff_t)high_len << 32 | low_len, advice);
+ }
  
- /*
+diff --git a/arch/powerpc/kernel/sys_ppc32.c b/arch/powerpc/kernel/sys_ppc32.c
+index 68f11e1065f8..0b95fa13307f 100644
+--- a/arch/powerpc/kernel/sys_ppc32.c
++++ b/arch/powerpc/kernel/sys_ppc32.c
+@@ -113,8 +113,8 @@ asmlinkage int compat_sys_ftruncate64(unsigned int fd, u32 reg4, unsigned long h
+ long ppc32_fadvise64(int fd, u32 unused, u32 offset_high, u32 offset_low,
+ 		     size_t len, int advice)
+ {
+-	return sys_fadvise64(fd, (u64)offset_high << 32 | offset_low, len,
+-			     advice);
++	return ksys_fadvise64_64(fd, (u64)offset_high << 32 | offset_low, len,
++				 advice);
+ }
+ 
+ asmlinkage long compat_sys_sync_file_range2(int fd, unsigned int flags,
+diff --git a/arch/powerpc/kernel/syscalls.c b/arch/powerpc/kernel/syscalls.c
+index a877bf8269fe..ecb981eea74b 100644
+--- a/arch/powerpc/kernel/syscalls.c
++++ b/arch/powerpc/kernel/syscalls.c
+@@ -119,8 +119,8 @@ long ppc64_personality(unsigned long personality)
+ long ppc_fadvise64_64(int fd, int advice, u32 offset_high, u32 offset_low,
+ 		      u32 len_high, u32 len_low)
+ {
+-	return sys_fadvise64(fd, (u64)offset_high << 32 | offset_low,
+-			     (u64)len_high << 32 | len_low, advice);
++	return ksys_fadvise64_64(fd, (u64)offset_high << 32 | offset_low,
++				 (u64)len_high << 32 | len_low, advice);
+ }
+ 
+ long sys_switch_endian(void)
+diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
+index 039858f9f128..9bb897e443a6 100644
+--- a/arch/s390/kernel/compat_linux.c
++++ b/arch/s390/kernel/compat_linux.c
+@@ -483,7 +483,8 @@ COMPAT_SYSCALL_DEFINE5(s390_fadvise64, int, fd, u32, high, u32, low, compat_size
+ 		advise = POSIX_FADV_DONTNEED;
+ 	else if (advise == 5)
+ 		advise = POSIX_FADV_NOREUSE;
+-	return sys_fadvise64(fd, (unsigned long)high << 32 | low, len, advise);
++	return ksys_fadvise64_64(fd, (unsigned long)high << 32 | low, len,
++				 advise);
+ }
+ 
+ struct fadvise64_64_args {
+@@ -503,7 +504,7 @@ COMPAT_SYSCALL_DEFINE1(s390_fadvise64_64, struct fadvise64_64_args __user *, arg
+ 		a.advice = POSIX_FADV_DONTNEED;
+ 	else if (a.advice == 5)
+ 		a.advice = POSIX_FADV_NOREUSE;
+-	return sys_fadvise64_64(a.fd, a.offset, a.len, a.advice);
++	return ksys_fadvise64_64(a.fd, a.offset, a.len, a.advice);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE6(s390_sync_file_range, int, fd, u32, offhigh, u32, offlow,
+diff --git a/arch/sh/kernel/sys_sh32.c b/arch/sh/kernel/sys_sh32.c
+index c37ee3d0c803..9dca568509a5 100644
+--- a/arch/sh/kernel/sys_sh32.c
++++ b/arch/sh/kernel/sys_sh32.c
+@@ -52,10 +52,10 @@ asmlinkage int sys_fadvise64_64_wrapper(int fd, u32 offset0, u32 offset1,
+ 				u32 len0, u32 len1, int advice)
+ {
+ #ifdef  __LITTLE_ENDIAN__
+-	return sys_fadvise64_64(fd, (u64)offset1 << 32 | offset0,
+-				(u64)len1 << 32 | len0,	advice);
++	return ksys_fadvise64_64(fd, (u64)offset1 << 32 | offset0,
++				 (u64)len1 << 32 | len0, advice);
+ #else
+-	return sys_fadvise64_64(fd, (u64)offset0 << 32 | offset1,
+-				(u64)len0 << 32 | len1,	advice);
++	return ksys_fadvise64_64(fd, (u64)offset0 << 32 | offset1,
++				 (u64)len0 << 32 | len1, advice);
+ #endif
+ }
+diff --git a/arch/sparc/kernel/sys_sparc32.c b/arch/sparc/kernel/sys_sparc32.c
+index 4ba62d676632..4da66aed50b4 100644
+--- a/arch/sparc/kernel/sys_sparc32.c
++++ b/arch/sparc/kernel/sys_sparc32.c
+@@ -225,7 +225,7 @@ long compat_sys_fadvise64(int fd,
+ 			  unsigned long offlo,
+ 			  compat_size_t len, int advice)
+ {
+-	return sys_fadvise64_64(fd, (offhi << 32) | offlo, len, advice);
++	return ksys_fadvise64_64(fd, (offhi << 32) | offlo, len, advice);
+ }
+ 
+ long compat_sys_fadvise64_64(int fd,
+@@ -233,10 +233,10 @@ long compat_sys_fadvise64_64(int fd,
+ 			     unsigned long lenhi, unsigned long lenlo,
+ 			     int advice)
+ {
+-	return sys_fadvise64_64(fd,
+-				(offhi << 32) | offlo,
+-				(lenhi << 32) | lenlo,
+-				advice);
++	return ksys_fadvise64_64(fd,
++				 (offhi << 32) | offlo,
++				 (lenhi << 32) | lenlo,
++				 advice);
+ }
+ 
+ long sys32_sync_file_range(unsigned int fd, unsigned long off_high, unsigned long off_low, unsigned long nb_high, unsigned long nb_low, unsigned int flags)
 diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
-index bd8a7020b9a7..11ef7b7c9cc8 100644
+index df2acb13623f..401bd8ec9cf0 100644
 --- a/arch/x86/ia32/sys_ia32.c
 +++ b/arch/x86/ia32/sys_ia32.c
-@@ -47,7 +47,7 @@
- #include <linux/uaccess.h>
- #include <linux/atomic.h>
- #include <asm/vgtod.h>
--#include <asm/sys_ia32.h>
-+#include <asm/ia32.h>
+@@ -194,10 +194,10 @@ COMPAT_SYSCALL_DEFINE6(x86_fadvise64_64, int, fd, __u32, offset_low,
+ 		       __u32, offset_high, __u32, len_low, __u32, len_high,
+ 		       int, advice)
+ {
+-	return sys_fadvise64_64(fd,
+-			       (((u64)offset_high)<<32) | offset_low,
+-			       (((u64)len_high)<<32) | len_low,
+-				advice);
++	return ksys_fadvise64_64(fd,
++				 (((u64)offset_high)<<32) | offset_low,
++				 (((u64)len_high)<<32) | len_low,
++				 advice);
+ }
  
- #define AA(__x)		((unsigned long)(__x))
+ COMPAT_SYSCALL_DEFINE4(x86_readahead, int, fd, unsigned int, off_lo,
+@@ -218,8 +218,8 @@ COMPAT_SYSCALL_DEFINE6(x86_sync_file_range, int, fd, unsigned int, off_low,
+ COMPAT_SYSCALL_DEFINE5(x86_fadvise64, int, fd, unsigned int, offset_lo,
+ 		       unsigned int, offset_hi, size_t, len, int, advice)
+ {
+-	return sys_fadvise64_64(fd, ((u64)offset_hi << 32) | offset_lo,
+-				len, advice);
++	return ksys_fadvise64_64(fd, ((u64)offset_hi << 32) | offset_lo,
++				 len, advice);
+ }
  
-diff --git a/arch/x86/include/asm/sys_ia32.h b/arch/x86/include/asm/sys_ia32.h
-deleted file mode 100644
-index 2ee6e3b96656..000000000000
---- a/arch/x86/include/asm/sys_ia32.h
-+++ /dev/null
-@@ -1,64 +0,0 @@
--/*
-- * sys_ia32.h - Linux ia32 syscall interfaces
-- *
-- * Copyright (c) 2008 Jaswinder Singh Rajput
-- *
-- * This file is released under the GPLv2.
-- * See the file COPYING for more details.
-- */
--
--#ifndef _ASM_X86_SYS_IA32_H
--#define _ASM_X86_SYS_IA32_H
--
--#ifdef CONFIG_COMPAT
--
--#include <linux/compiler.h>
--#include <linux/linkage.h>
--#include <linux/types.h>
--#include <linux/signal.h>
--#include <asm/compat.h>
--#include <asm/ia32.h>
--
--/* ia32/sys_ia32.c */
--asmlinkage long compat_sys_x86_truncate64(const char __user *, unsigned long,
--					  unsigned long);
--asmlinkage long compat_sys_x86_ftruncate64(unsigned int, unsigned long,
--					   unsigned long);
--
--asmlinkage long compat_sys_x86_stat64(const char __user *,
--				      struct stat64 __user *);
--asmlinkage long compat_sys_x86_lstat64(const char __user *,
--				       struct stat64 __user *);
--asmlinkage long compat_sys_x86_fstat64(unsigned int, struct stat64 __user *);
--asmlinkage long compat_sys_x86_fstatat(unsigned int, const char __user *,
--			      struct stat64 __user *, int);
--struct mmap_arg_struct32;
--asmlinkage long compat_sys_x86_mmap(struct mmap_arg_struct32 __user *);
--
--asmlinkage long compat_sys_x86_pread(unsigned int, char __user *, u32, u32,
--				     u32);
--asmlinkage long compat_sys_x86_pwrite(unsigned int, const char __user *, u32,
--				      u32, u32);
--
--asmlinkage long compat_sys_x86_fadvise64_64(int, __u32, __u32, __u32, __u32,
--					    int);
--
--asmlinkage ssize_t compat_sys_x86_readahead(int, unsigned int, unsigned int,
--					    size_t);
--asmlinkage long compat_sys_x86_sync_file_range(int, unsigned int, unsigned int,
--					       unsigned int, unsigned int,
--					       int);
--asmlinkage long compat_sys_x86_fadvise64(int, unsigned int, unsigned int,
--					 size_t, int);
--asmlinkage long compat_sys_x86_fallocate(int, int, unsigned int, unsigned int,
--					 unsigned int, unsigned int);
--asmlinkage long compat_sys_x86_clone(unsigned long, unsigned long, int __user *,
--				     unsigned long, int __user *);
--
--/* ia32/ia32_signal.c */
--asmlinkage long sys32_sigreturn(void);
--asmlinkage long sys32_rt_sigreturn(void);
--
--#endif /* CONFIG_COMPAT */
--
--#endif /* _ASM_X86_SYS_IA32_H */
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index f881cce627f6..8cb8710db0ab 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -49,6 +49,7 @@
- 	COMPAT_SYSCALL_DEFINEx(6, _##name, __VA_ARGS__)
+ COMPAT_SYSCALL_DEFINE6(x86_fallocate, int, fd, int, mode,
+diff --git a/arch/xtensa/kernel/syscall.c b/arch/xtensa/kernel/syscall.c
+index 74afbf02d07e..8201748da05b 100644
+--- a/arch/xtensa/kernel/syscall.c
++++ b/arch/xtensa/kernel/syscall.c
+@@ -55,7 +55,7 @@ asmlinkage long xtensa_shmat(int shmid, char __user *shmaddr, int shmflg)
+ asmlinkage long xtensa_fadvise64_64(int fd, int advice,
+ 		unsigned long long offset, unsigned long long len)
+ {
+-	return sys_fadvise64_64(fd, offset, len, advice);
++	return ksys_fadvise64_64(fd, offset, len, advice);
+ }
  
- #define COMPAT_SYSCALL_DEFINEx(x, name, ...)				\
-+	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
- 	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))\
- 		__attribute__((alias(__stringify(compat_SyS##name))));  \
- 	static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-@@ -507,8 +508,8 @@ int __compat_save_altstack(compat_stack_t __user *, unsigned long);
+ #ifdef CONFIG_MMU
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 613b8127834d..466d408deefd 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -970,6 +970,15 @@ ssize_t ksys_pread64(unsigned int fd, char __user *buf, size_t count,
+ ssize_t ksys_pwrite64(unsigned int fd, const char __user *buf,
+ 		      size_t count, loff_t pos);
+ int ksys_fallocate(int fd, int mode, loff_t offset, loff_t len);
++#ifdef CONFIG_ADVISE_SYSCALLS
++int ksys_fadvise64_64(int fd, loff_t offset, loff_t len, int advice);
++#else
++static inline int ksys_fadvise64_64(int fd, loff_t offset, loff_t len,
++				    int advice)
++{
++	return -EINVAL;
++}
++#endif
  
  /*
-  * These syscall function prototypes are kept in the same order as
-- * include/uapi/asm-generic/unistd.h. Architecture specific entries go below,
-- * followed by deprecated or obsolete system calls.
-+ * include/uapi/asm-generic/unistd.h. Deprecated or obsolete system calls
-+ * go below.
-  *
-  * Please note that these prototypes here are only provided for information
-  * purposes, for static analysis, and for linking from the syscall table.
-@@ -882,18 +883,6 @@ asmlinkage long compat_sys_pwritev64v2(unsigned long fd,
+  * The following kernel syscall equivalents are just wrappers to fs-internal
+diff --git a/mm/fadvise.c b/mm/fadvise.c
+index 767887f5f3bf..afa41491d324 100644
+--- a/mm/fadvise.c
++++ b/mm/fadvise.c
+@@ -26,7 +26,8 @@
+  * POSIX_FADV_WILLNEED could set PG_Referenced, and POSIX_FADV_NOREUSE could
+  * deactivate the pages and clear PG_Referenced.
+  */
+-SYSCALL_DEFINE4(fadvise64_64, int, fd, loff_t, offset, loff_t, len, int, advice)
++
++int ksys_fadvise64_64(int fd, loff_t offset, loff_t len, int advice)
+ {
+ 	struct fd f = fdget(fd);
+ 	struct inode *inode;
+@@ -185,11 +186,16 @@ SYSCALL_DEFINE4(fadvise64_64, int, fd, loff_t, offset, loff_t, len, int, advice)
+ 	return ret;
+ }
+ 
++SYSCALL_DEFINE4(fadvise64_64, int, fd, loff_t, offset, loff_t, len, int, advice)
++{
++	return ksys_fadvise64_64(fd, offset, len, advice);
++}
++
+ #ifdef __ARCH_WANT_SYS_FADVISE64
+ 
+ SYSCALL_DEFINE4(fadvise64, int, fd, loff_t, offset, size_t, len, int, advice)
+ {
+-	return sys_fadvise64_64(fd, offset, len, advice);
++	return ksys_fadvise64_64(fd, offset, len, advice);
+ }
+ 
  #endif
- 
- 
--/*
-- * Architecture-specific system calls
-- */
--
--/* fs/quota/compat.c -- x86 only */
--asmlinkage long compat_sys_quotactl32(unsigned int cmd,
--		const char __user *special, qid_t id, void __user *addr);
--
--/* arch_prctl -- x86 */
--asmlinkage long compat_sys_arch_prctl(int option, unsigned long arg2);
--
--
- /*
-  * Deprecated system calls which are still defined in
-  * include/uapi/asm-generic/unistd.h and wanted by >= 1 arch
 -- 
 2.16.3
