@@ -1,69 +1,70 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 046/109] mm: add kernel_mbind() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:23:23 +0200
-Message-ID: <20180329112426.23043-47-linux@dominikbrodowski.net>
+Subject: [PATCH 059/109] fs: add do_compat_select() helper; remove in-kernel call to compat syscall
+Date: Thu, 29 Mar 2018 13:23:36 +0200
+Message-ID: <20180329112426.23043-60-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using the mm-internal kernel_mbind() helper allows us to get rid of the
-mm-internal call to the sys_mbind() syscall.
+Using the fs-internal do_compat_select() helper allows us to get rid of
+the fs-internal call to the compat_sys_select() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
 Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-mm@kvack.org
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- mm/mempolicy.c | 15 +++++++++++----
- 1 file changed, 11 insertions(+), 4 deletions(-)
+ fs/select.c | 17 ++++++++++++-----
+ 1 file changed, 12 insertions(+), 5 deletions(-)
 
-diff --git a/mm/mempolicy.c b/mm/mempolicy.c
-index 7399ede02b5f..e4d7d4c0b253 100644
---- a/mm/mempolicy.c
-+++ b/mm/mempolicy.c
-@@ -1336,9 +1336,9 @@ static int copy_nodes_to_user(unsigned long __user *mask, unsigned long maxnode,
- 	return copy_to_user(mask, nodes_addr(*nodes), copy) ? -EFAULT : 0;
+diff --git a/fs/select.c b/fs/select.c
+index b5df01c4587d..ba879c51288f 100644
+--- a/fs/select.c
++++ b/fs/select.c
+@@ -1265,9 +1265,9 @@ static int compat_core_sys_select(int n, compat_ulong_t __user *inp,
+ 	return ret;
  }
  
--SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
--		unsigned long, mode, const unsigned long __user *, nmask,
--		unsigned long, maxnode, unsigned, flags)
-+static long kernel_mbind(unsigned long start, unsigned long len,
-+			 unsigned long mode, const unsigned long __user *nmask,
-+			 unsigned long maxnode, unsigned int flags)
+-COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
+-	compat_ulong_t __user *, outp, compat_ulong_t __user *, exp,
+-	struct compat_timeval __user *, tvp)
++static int do_compat_select(int n, compat_ulong_t __user *inp,
++	compat_ulong_t __user *outp, compat_ulong_t __user *exp,
++	struct compat_timeval __user *tvp)
  {
- 	nodemask_t nodes;
- 	int err;
-@@ -1357,6 +1357,13 @@ SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
- 	return do_mbind(start, len, mode, mode_flags, &nodes, flags);
+ 	struct timespec64 end_time, *to = NULL;
+ 	struct compat_timeval tv;
+@@ -1290,6 +1290,13 @@ COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
+ 	return ret;
  }
  
-+SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
-+		unsigned long, mode, const unsigned long __user *, nmask,
-+		unsigned long, maxnode, unsigned int, flags)
++COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
++	compat_ulong_t __user *, outp, compat_ulong_t __user *, exp,
++	struct compat_timeval __user *, tvp)
 +{
-+	return kernel_mbind(start, len, mode, nmask, maxnode, flags);
++	return do_compat_select(n, inp, outp, exp, tvp);
 +}
 +
- /* Set the process memory policy */
- SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
- 		unsigned long, maxnode)
-@@ -1575,7 +1582,7 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
- 			return -EFAULT;
- 	}
+ struct compat_sel_arg_struct {
+ 	compat_ulong_t n;
+ 	compat_uptr_t inp;
+@@ -1304,8 +1311,8 @@ COMPAT_SYSCALL_DEFINE1(old_select, struct compat_sel_arg_struct __user *, arg)
  
--	return sys_mbind(start, len, mode, nm, nr_bits+1, flags);
-+	return kernel_mbind(start, len, mode, nm, nr_bits+1, flags);
+ 	if (copy_from_user(&a, arg, sizeof(a)))
+ 		return -EFAULT;
+-	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
+-				 compat_ptr(a.exp), compat_ptr(a.tvp));
++	return do_compat_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
++				compat_ptr(a.exp), compat_ptr(a.tvp));
  }
  
- COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
+ static long do_compat_pselect(int n, compat_ulong_t __user *inp,
 -- 
 2.16.3
