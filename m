@@ -1,22 +1,22 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59096 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:58722 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752770AbeC2L0O (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:14 -0400
+        with ESMTP id S1751207AbeC2L0B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:01 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 025/109] net: socket: add __compat_sys_recvfrom() helper; remove in-kernel call to compat syscall
-Date: Thu, 29 Mar 2018 13:23:02 +0200
-Message-ID: <20180329112426.23043-26-linux@dominikbrodowski.net>
+Subject: [PATCH 013/109] net: socket: add __sys_connect() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:22:50 +0200
+Message-ID: <20180329112426.23043-14-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
-Message-ID: <20180329112302.4MuVv5v_GK-IEybzDkWoWsbAmPHG0_opKHnVVW9ijYs@z>
+Message-ID: <20180329112250.E3ZvTaox8cMJ-5dPUaKKuVCveIuJByI5cpY5an7Sn0A@z>
 
-Using the net-internal helper __compat_sys_recvfrom() allows us to avoid
-the internal calls to the compat_sys_recvfrom() syscall.
+Using the net-internal helper __sys_connect() allows us to avoid the
+internal calls to the sys_connect() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -26,59 +26,71 @@ Cc: David S. Miller <davem@davemloft.net>
 Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- net/compat.c | 23 ++++++++++++++++-------
- 1 file changed, 16 insertions(+), 7 deletions(-)
+ include/linux/socket.h |  2 ++
+ net/compat.c           |  2 +-
+ net/socket.c           | 11 ++++++++---
+ 3 files changed, 11 insertions(+), 4 deletions(-)
 
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index e9cee272da13..7daa344d7320 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -365,5 +365,7 @@ extern int __sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
+ 			 int __user *upeer_addrlen, int flags);
+ extern int __sys_socket(int family, int type, int protocol);
+ extern int __sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen);
++extern int __sys_connect(int fd, struct sockaddr __user *uservaddr,
++			 int addrlen);
+ 
+ #endif /* _LINUX_SOCKET_H */
 diff --git a/net/compat.c b/net/compat.c
-index 9e0d030063ad..513adc8d0e0f 100644
+index bba555b1d863..7ab6352268f3 100644
 --- a/net/compat.c
 +++ b/net/compat.c
-@@ -753,18 +753,25 @@ COMPAT_SYSCALL_DEFINE3(recvmsg, int, fd, struct compat_msghdr __user *, msg, uns
- 			     flags | MSG_CMSG_COMPAT, false);
+@@ -817,7 +817,7 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
+ 		ret = __sys_bind(a0, compat_ptr(a1), a[2]);
+ 		break;
+ 	case SYS_CONNECT:
+-		ret = sys_connect(a0, compat_ptr(a1), a[2]);
++		ret = __sys_connect(a0, compat_ptr(a1), a[2]);
+ 		break;
+ 	case SYS_LISTEN:
+ 		ret = sys_listen(a0, a1);
+diff --git a/net/socket.c b/net/socket.c
+index 291cdae97341..64bdfdf6c6e7 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1633,8 +1633,7 @@ SYSCALL_DEFINE3(accept, int, fd, struct sockaddr __user *, upeer_sockaddr,
+  *	include the -EINPROGRESS status for such sockets.
+  */
+ 
+-SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
+-		int, addrlen)
++int __sys_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
+ {
+ 	struct socket *sock;
+ 	struct sockaddr_storage address;
+@@ -1660,6 +1659,12 @@ SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
+ 	return err;
  }
  
-+static inline long __compat_sys_recvfrom(int fd, void __user *buf,
-+					 compat_size_t len, unsigned int flags,
-+					 struct sockaddr __user *addr,
-+					 int __user *addrlen)
++SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
++		int, addrlen)
 +{
-+	return __sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, addr,
-+			      addrlen);
++	return __sys_connect(fd, uservaddr, addrlen);
 +}
 +
- COMPAT_SYSCALL_DEFINE4(recv, int, fd, void __user *, buf, compat_size_t, len, unsigned int, flags)
- {
--	return __sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, NULL,
--			      NULL);
-+	return __compat_sys_recvfrom(fd, buf, len, flags, NULL, NULL);
- }
- 
- COMPAT_SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, buf, compat_size_t, len,
- 		       unsigned int, flags, struct sockaddr __user *, addr,
- 		       int __user *, addrlen)
- {
--	return __sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, addr,
--			      addrlen);
-+	return __compat_sys_recvfrom(fd, buf, len, flags, addr, addrlen);
- }
- 
- COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
-@@ -845,11 +852,13 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 				   compat_ptr(a[4]), a[5]);
+ /*
+  *	Get the local address ('name') of a socket object. Move the obtained
+  *	name to user space.
+@@ -2479,7 +2484,7 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
+ 		err = __sys_bind(a0, (struct sockaddr __user *)a1, a[2]);
  		break;
- 	case SYS_RECV:
--		ret = compat_sys_recv(a0, compat_ptr(a1), a[2], a[3]);
-+		ret = __compat_sys_recvfrom(a0, compat_ptr(a1), a[2], a[3],
-+					    NULL, NULL);
+ 	case SYS_CONNECT:
+-		err = sys_connect(a0, (struct sockaddr __user *)a1, a[2]);
++		err = __sys_connect(a0, (struct sockaddr __user *)a1, a[2]);
  		break;
- 	case SYS_RECVFROM:
--		ret = compat_sys_recvfrom(a0, compat_ptr(a1), a[2], a[3],
--					  compat_ptr(a[4]), compat_ptr(a[5]));
-+		ret = __compat_sys_recvfrom(a0, compat_ptr(a1), a[2], a[3],
-+					    compat_ptr(a[4]),
-+					    compat_ptr(a[5]));
- 		break;
- 	case SYS_SHUTDOWN:
- 		ret = __sys_shutdown(a0, a1);
+ 	case SYS_LISTEN:
+ 		err = sys_listen(a0, a1);
 -- 
 2.16.3
