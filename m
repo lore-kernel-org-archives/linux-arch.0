@@ -1,104 +1,128 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 047/109] mm: add kernel_[sg]et_mempolicy() helpers; remove in-kernel calls to syscalls
-Date: Thu, 29 Mar 2018 13:23:24 +0200
-Message-ID: <20180329112426.23043-48-linux@dominikbrodowski.net>
+Subject: [PATCH 039/109] ipc: add msgsnd syscall/compat_syscall wrappers
+Date: Thu, 29 Mar 2018 13:23:16 +0200
+Message-ID: <20180329112426.23043-40-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using the mm-internal kernel_[sg]et_mempolicy() helper allows us to get
-rid of the mm-internal calls to the sys_[sg]et_mempolicy() syscalls.
+Provide ksys_msgsnd() and compat_ksys_msgsnd() wrappers to avoid in-kernel
+calls to these syscalls. The ksys_ prefix denotes that these functions are
+meant as a drop-in replacement for the syscalls. In particular, they use
+the same calling convention as sys_msgsnd() and compat_sys_msgsnd().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
 Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-mm@kvack.org
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- mm/mempolicy.c | 29 ++++++++++++++++++++++-------
- 1 file changed, 22 insertions(+), 7 deletions(-)
+ ipc/msg.c     | 20 ++++++++++++++++----
+ ipc/syscall.c |  4 ++--
+ ipc/util.h    |  4 ++++
+ 3 files changed, 22 insertions(+), 6 deletions(-)
 
-diff --git a/mm/mempolicy.c b/mm/mempolicy.c
-index e4d7d4c0b253..ca817e768d0e 100644
---- a/mm/mempolicy.c
-+++ b/mm/mempolicy.c
-@@ -1365,8 +1365,8 @@ SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
- }
- 
- /* Set the process memory policy */
--SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
--		unsigned long, maxnode)
-+static long kernel_set_mempolicy(int mode, const unsigned long __user *nmask,
-+				 unsigned long maxnode)
- {
- 	int err;
- 	nodemask_t nodes;
-@@ -1384,6 +1384,12 @@ SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
- 	return do_set_mempolicy(mode, flags, &nodes);
- }
- 
-+SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
-+		unsigned long, maxnode)
-+{
-+	return kernel_set_mempolicy(mode, nmask, maxnode);
-+}
-+
- static int kernel_migrate_pages(pid_t pid, unsigned long maxnode,
- 				const unsigned long __user *old_nodes,
- 				const unsigned long __user *new_nodes)
-@@ -1485,9 +1491,11 @@ SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
- 
- 
- /* Retrieve NUMA policy */
--SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
--		unsigned long __user *, nmask, unsigned long, maxnode,
--		unsigned long, addr, unsigned long, flags)
-+static int kernel_get_mempolicy(int __user *policy,
-+				unsigned long __user *nmask,
-+				unsigned long maxnode,
-+				unsigned long addr,
-+				unsigned long flags)
- {
- 	int err;
- 	int uninitialized_var(pval);
-@@ -1510,6 +1518,13 @@ SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
+diff --git a/ipc/msg.c b/ipc/msg.c
+index abc5826270a6..9de48065c1ac 100644
+--- a/ipc/msg.c
++++ b/ipc/msg.c
+@@ -867,8 +867,8 @@ static long do_msgsnd(int msqid, long mtype, void __user *mtext,
  	return err;
  }
  
-+SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
-+		unsigned long __user *, nmask, unsigned long, maxnode,
-+		unsigned long, addr, unsigned long, flags)
+-SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
+-		int, msgflg)
++long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 int msgflg)
+ {
+ 	long mtype;
+ 
+@@ -877,6 +877,12 @@ SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
+ 	return do_msgsnd(msqid, mtype, msgp->mtext, msgsz, msgflg);
+ }
+ 
++SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
++		int, msgflg)
 +{
-+	return kernel_get_mempolicy(policy, nmask, maxnode, addr, flags);
++	return ksys_msgsnd(msqid, msgp, msgsz, msgflg);
 +}
 +
  #ifdef CONFIG_COMPAT
  
- COMPAT_SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
-@@ -1528,7 +1543,7 @@ COMPAT_SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
- 	if (nmask)
- 		nm = compat_alloc_user_space(alloc_size);
+ struct compat_msgbuf {
+@@ -884,8 +890,8 @@ struct compat_msgbuf {
+ 	char mtext[1];
+ };
  
--	err = sys_get_mempolicy(policy, nm, nr_bits+1, addr, flags);
-+	err = kernel_get_mempolicy(policy, nm, nr_bits+1, addr, flags);
+-COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
+-		       compat_ssize_t, msgsz, int, msgflg)
++long compat_ksys_msgsnd(int msqid, compat_uptr_t msgp,
++		       compat_ssize_t msgsz, int msgflg)
+ {
+ 	struct compat_msgbuf __user *up = compat_ptr(msgp);
+ 	compat_long_t mtype;
+@@ -894,6 +900,12 @@ COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
+ 		return -EFAULT;
+ 	return do_msgsnd(msqid, mtype, up->mtext, (ssize_t)msgsz, msgflg);
+ }
++
++COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
++		       compat_ssize_t, msgsz, int, msgflg)
++{
++	return compat_ksys_msgsnd(msqid, msgp, msgsz, msgflg);
++}
+ #endif
  
- 	if (!err && nmask) {
- 		unsigned long copy_size;
-@@ -1560,7 +1575,7 @@ COMPAT_SYSCALL_DEFINE3(set_mempolicy, int, mode, compat_ulong_t __user *, nmask,
- 			return -EFAULT;
+ static inline int convert_mode(long *msgtyp, int msgflg)
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 0228c7afd882..77a883ef2eca 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -46,7 +46,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
  	}
  
--	return sys_set_mempolicy(mode, nm, nr_bits+1);
-+	return kernel_set_mempolicy(mode, nm, nr_bits+1);
- }
+ 	case MSGSND:
+-		return sys_msgsnd(first, (struct msgbuf __user *) ptr,
++		return ksys_msgsnd(first, (struct msgbuf __user *) ptr,
+ 				  second, third);
+ 	case MSGRCV:
+ 		switch (version) {
+@@ -142,7 +142,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 		return compat_ksys_semctl(first, second, third, pad);
  
- COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
+ 	case MSGSND:
+-		return compat_sys_msgsnd(first, ptr, second, third);
++		return compat_ksys_msgsnd(first, ptr, second, third);
+ 
+ 	case MSGRCV: {
+ 		void __user *uptr = compat_ptr(ptr);
+diff --git a/ipc/util.h b/ipc/util.h
+index c16aceb1bdec..51853dc2f340 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -246,6 +246,8 @@ long ksys_msgget(key_t key, int msgflg);
+ long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
+ long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
+ 		 long msgtyp, int msgflg);
++long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 int msgflg);
+ long ksys_shmget(key_t key, size_t size, int shmflg);
+ long ksys_shmdt(char __user *shmaddr);
+ long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+@@ -259,6 +261,8 @@ long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
+ long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
+ long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
+ 			compat_long_t msgtyp, int msgflg);
++long compat_ksys_msgsnd(int msqid, compat_uptr_t msgp,
++		       compat_ssize_t msgsz, int msgflg);
+ long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
+ #endif /* CONFIG_COMPAT */
+ 
 -- 
 2.16.3
