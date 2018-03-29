@@ -1,67 +1,95 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 063/109] fanotify: add do_fanotify_mark() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:23:40 +0200
-Message-ID: <20180329112426.23043-64-linux@dominikbrodowski.net>
+Subject: [PATCH 085/109] fs: add ksys_getdents64() helper; remove in-kernel calls to sys_getdents64()
+Date: Thu, 29 Mar 2018 13:24:02 +0200
+Message-ID: <20180329112426.23043-86-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Amir Goldstein <amir73il@gmail.com>, linux-fsdevel@vger.kernel.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-Using the fs-internal do_fanotify_mark() helper allows us to get rid of
-the fs-internal call to the sys_fanotify_mark() syscall.
+Using this helper allows us to avoid the in-kernel calls to the
+sys_getdents64() syscall. The ksys_ prefix denotes that this function
+is meant as a drop-in replacement for the syscall. In particular, it
+uses the same calling convention as sys_getdents64().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Acked-by: Jan Kara <jack@suse.cz>
-Cc: Amir Goldstein <amir73il@gmail.com>
-Cc: linux-fsdevel@vger.kernel.org
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/notify/fanotify/fanotify_user.c | 14 ++++++++++----
- 1 file changed, 10 insertions(+), 4 deletions(-)
+ fs/readdir.c             | 11 +++++++++--
+ include/linux/syscalls.h |  2 ++
+ init/initramfs.c         |  4 ++--
+ 3 files changed, 13 insertions(+), 4 deletions(-)
 
-diff --git a/fs/notify/fanotify/fanotify_user.c b/fs/notify/fanotify/fanotify_user.c
-index c07eb3d655ea..fa803a58a605 100644
---- a/fs/notify/fanotify/fanotify_user.c
-+++ b/fs/notify/fanotify/fanotify_user.c
-@@ -820,9 +820,8 @@ SYSCALL_DEFINE2(fanotify_init, unsigned int, flags, unsigned int, event_f_flags)
- 	return fd;
+diff --git a/fs/readdir.c b/fs/readdir.c
+index 1b83b0ad183b..d97f548e6323 100644
+--- a/fs/readdir.c
++++ b/fs/readdir.c
+@@ -292,8 +292,8 @@ static int filldir64(struct dir_context *ctx, const char *name, int namlen,
+ 	return -EFAULT;
  }
  
--SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
--			      __u64, mask, int, dfd,
--			      const char  __user *, pathname)
-+static int do_fanotify_mark(int fanotify_fd, unsigned int flags, __u64 mask,
-+			    int dfd, const char  __user *pathname)
+-SYSCALL_DEFINE3(getdents64, unsigned int, fd,
+-		struct linux_dirent64 __user *, dirent, unsigned int, count)
++int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
++		    unsigned int count)
  {
- 	struct inode *inode = NULL;
- 	struct vfsmount *mnt = NULL;
-@@ -928,13 +927,20 @@ SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
- 	return ret;
+ 	struct fd f;
+ 	struct linux_dirent64 __user * lastdirent;
+@@ -326,6 +326,13 @@ SYSCALL_DEFINE3(getdents64, unsigned int, fd,
+ 	return error;
  }
  
-+SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
-+			      __u64, mask, int, dfd,
-+			      const char  __user *, pathname)
++
++SYSCALL_DEFINE3(getdents64, unsigned int, fd,
++		struct linux_dirent64 __user *, dirent, unsigned int, count)
 +{
-+	return do_fanotify_mark(fanotify_fd, flags, mask, dfd, pathname);
++	return ksys_getdents64(fd, dirent, count);
 +}
 +
  #ifdef CONFIG_COMPAT
- COMPAT_SYSCALL_DEFINE6(fanotify_mark,
- 				int, fanotify_fd, unsigned int, flags,
- 				__u32, mask0, __u32, mask1, int, dfd,
- 				const char  __user *, pathname)
- {
--	return sys_fanotify_mark(fanotify_fd, flags,
-+	return do_fanotify_mark(fanotify_fd, flags,
- #ifdef __BIG_ENDIAN
- 				((__u64)mask0 << 32) | mask1,
- #else
+ struct compat_old_linux_dirent {
+ 	compat_ulong_t	d_ino;
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index f9df17dcec1c..c056aff6d7ad 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -955,6 +955,8 @@ ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count);
+ int ksys_chdir(const char __user *filename);
+ int ksys_fchmod(unsigned int fd, umode_t mode);
+ int ksys_fchown(unsigned int fd, uid_t user, gid_t group);
++int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
++		    unsigned int count);
+ 
+ /*
+  * The following kernel syscall equivalents are just wrappers to fs-internal
+diff --git a/init/initramfs.c b/init/initramfs.c
+index 5f2ff1d2370e..13643c46ebab 100644
+--- a/init/initramfs.c
++++ b/init/initramfs.c
+@@ -579,7 +579,7 @@ static void __init clean_rootfs(void)
+ 	}
+ 
+ 	dirp = buf;
+-	num = sys_getdents64(fd, dirp, BUF_SIZE);
++	num = ksys_getdents64(fd, dirp, BUF_SIZE);
+ 	while (num > 0) {
+ 		while (num > 0) {
+ 			struct kstat st;
+@@ -599,7 +599,7 @@ static void __init clean_rootfs(void)
+ 		}
+ 		dirp = buf;
+ 		memset(buf, 0, BUF_SIZE);
+-		num = sys_getdents64(fd, dirp, BUF_SIZE);
++		num = ksys_getdents64(fd, dirp, BUF_SIZE);
+ 	}
+ 
+ 	ksys_close(fd);
 -- 
 2.16.3
