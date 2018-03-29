@@ -1,98 +1,145 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59720 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59628 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752769AbeC2L0N (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:13 -0400
+        with ESMTP id S1752221AbeC2L0M (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:12 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 067/109] fs: add ksys_umount() helper; remove in-kernel call to sys_umount()
-Date: Thu, 29 Mar 2018 13:23:44 +0200
-Message-ID: <20180329112426.23043-68-linux@dominikbrodowski.net>
+Subject: [PATCH 077/109] fs: add do_mknodat() helper and ksys_mknod() wrapper; remove in-kernel calls to syscall
+Date: Thu, 29 Mar 2018 13:23:54 +0200
+Message-ID: <20180329112426.23043-78-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20180329112344.Ss2ciDrXCCoFteuIw9hYPjcuwhgw5V6lIye4xdi6-Lw@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112354.rq6Si7f0W8RBC4qCmBarzos-W5nci5wglzayxCZN27s@z>
 
-Using this helper allows us to avoid the in-kernel call to the sys_umount()
-syscall. The ksys_ prefix denotes that this function is meant as a drop-in
-replacement for the syscall. In particular, it uses the same calling
-convention as ksys_umount().
+Using the fs-internal do_mknodat() helper allows us to get rid of
+fs-internal calls to the sys_mknodat() syscall.
 
-In the near future, the only fs-external caller of ksys_umount() should be
-converted to call do_umount() directly. Then, ksys_umount() can be moved
-within sys_umount() again.
+Introducing the ksys_mknod() wrapper allows us to avoid the in-kernel
+calls to sys_mknod() syscall. The ksys_ prefix denotes that this function
+is meant as a drop-in replacement for the syscall. In particular, it uses
+the same calling convention as sys_mknod().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/namespace.c           | 9 +++++++--
- include/linux/syscalls.h | 1 +
- init/do_mounts_initrd.c  | 2 +-
- 3 files changed, 9 insertions(+), 3 deletions(-)
+ fs/internal.h            |  2 ++
+ fs/namei.c               | 12 +++++++++---
+ include/linux/syscalls.h |  9 +++++++++
+ init/do_mounts.h         |  2 +-
+ init/initramfs.c         |  2 +-
+ init/noinitramfs.c       |  2 +-
+ 6 files changed, 23 insertions(+), 6 deletions(-)
 
-diff --git a/fs/namespace.c b/fs/namespace.c
-index 642b8b229944..e398f32d7541 100644
---- a/fs/namespace.c
-+++ b/fs/namespace.c
-@@ -1680,7 +1680,7 @@ static inline bool may_mandlock(void)
-  * unixes. Our API is identical to OSF/1 to avoid making a mess of AMD
-  */
- 
--SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
-+int ksys_umount(char __user *name, int flags)
- {
- 	struct path path;
- 	struct mount *mnt;
-@@ -1720,6 +1720,11 @@ SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
- 	return retval;
+diff --git a/fs/internal.h b/fs/internal.h
+index a3f04ca2a08b..4f0b67054c54 100644
+--- a/fs/internal.h
++++ b/fs/internal.h
+@@ -55,6 +55,8 @@ extern void __init chrdev_init(void);
+ extern int user_path_mountpoint_at(int, const char __user *, unsigned int, struct path *);
+ extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
+ 			   const char *, unsigned int, struct path *);
++long do_mknodat(int dfd, const char __user *filename, umode_t mode,
++		unsigned int dev);
+ long do_mkdirat(int dfd, const char __user *pathname, umode_t mode);
+ long do_rmdir(int dfd, const char __user *pathname);
+ long do_unlinkat(int dfd, struct filename *name);
+diff --git a/fs/namei.c b/fs/namei.c
+index e15da92209d5..8459a18cdd18 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -3728,8 +3728,8 @@ static int may_mknod(umode_t mode)
+ 	}
  }
  
-+SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
+-SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
+-		unsigned, dev)
++long do_mknodat(int dfd, const char __user *filename, umode_t mode,
++		unsigned int dev)
+ {
+ 	struct dentry *dentry;
+ 	struct path path;
+@@ -3772,9 +3772,15 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
++		unsigned int, dev)
 +{
-+	return ksys_umount(name, flags);
++	return do_mknodat(dfd, filename, mode, dev);
 +}
 +
- #ifdef __ARCH_WANT_SYS_OLDUMOUNT
- 
- /*
-@@ -1727,7 +1732,7 @@ SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
-  */
- SYSCALL_DEFINE1(oldumount, char __user *, name)
+ SYSCALL_DEFINE3(mknod, const char __user *, filename, umode_t, mode, unsigned, dev)
  {
--	return sys_umount(name, 0);
-+	return ksys_umount(name, 0);
+-	return sys_mknodat(AT_FDCWD, filename, mode, dev);
++	return do_mknodat(AT_FDCWD, filename, mode, dev);
  }
  
- #endif
+ int vfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 3a9f9c534624..48964c408c7b 100644
+index 39c5cef86a10..0b4fd684f0f1 100644
 --- a/include/linux/syscalls.h
 +++ b/include/linux/syscalls.h
-@@ -948,5 +948,6 @@ asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
+@@ -988,4 +988,13 @@ static inline long ksys_symlink(const char __user *oldname,
+ 	return do_symlinkat(oldname, AT_FDCWD, newname);
+ }
  
- int ksys_mount(char __user *dev_name, char __user *dir_name, char __user *type,
- 	       unsigned long flags, void __user *data);
-+int ksys_umount(char __user *name, int flags);
- 
++extern long do_mknodat(int dfd, const char __user *filename, umode_t mode,
++		       unsigned int dev);
++
++static inline long ksys_mknod(const char __user *filename, umode_t mode,
++			      unsigned int dev)
++{
++	return do_mknodat(AT_FDCWD, filename, mode, dev);
++}
++
  #endif
-diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
-index 7868a6039fb4..1c4da8353332 100644
---- a/init/do_mounts_initrd.c
-+++ b/init/do_mounts_initrd.c
-@@ -105,7 +105,7 @@ static void __init handle_initrd(void)
- 		else
- 			printk("failed\n");
- 		printk(KERN_NOTICE "Unmounting old root\n");
--		sys_umount("/old", MNT_DETACH);
-+		ksys_umount("/old", MNT_DETACH);
- 		printk(KERN_NOTICE "Trying to free ramdisk memory ... ");
- 		if (fd < 0) {
- 			error = fd;
+diff --git a/init/do_mounts.h b/init/do_mounts.h
+index 401f90ee1eeb..0bb0806de4ce 100644
+--- a/init/do_mounts.h
++++ b/init/do_mounts.h
+@@ -17,7 +17,7 @@ extern int root_mountflags;
+ static inline int create_dev(char *name, dev_t dev)
+ {
+ 	ksys_unlink(name);
+-	return sys_mknod(name, S_IFBLK|0600, new_encode_dev(dev));
++	return ksys_mknod(name, S_IFBLK|0600, new_encode_dev(dev));
+ }
+ 
+ static inline u32 bstat(char *name)
+diff --git a/init/initramfs.c b/init/initramfs.c
+index cd9571a113b6..2972ed0ab399 100644
+--- a/init/initramfs.c
++++ b/init/initramfs.c
+@@ -359,7 +359,7 @@ static int __init do_name(void)
+ 	} else if (S_ISBLK(mode) || S_ISCHR(mode) ||
+ 		   S_ISFIFO(mode) || S_ISSOCK(mode)) {
+ 		if (maybe_link() == 0) {
+-			sys_mknod(collected, mode, rdev);
++			ksys_mknod(collected, mode, rdev);
+ 			sys_chown(collected, uid, gid);
+ 			sys_chmod(collected, mode);
+ 			do_utime(collected, mtime);
+diff --git a/init/noinitramfs.c b/init/noinitramfs.c
+index a08a9d937e60..f4bad8436c93 100644
+--- a/init/noinitramfs.c
++++ b/init/noinitramfs.c
+@@ -33,7 +33,7 @@ static int __init default_rootfs(void)
+ 	if (err < 0)
+ 		goto out;
+ 
+-	err = sys_mknod((const char __user __force *) "/dev/console",
++	err = ksys_mknod((const char __user __force *) "/dev/console",
+ 			S_IFCHR | S_IRUSR | S_IWUSR,
+ 			new_encode_dev(MKDEV(5, 1)));
+ 	if (err < 0)
 -- 
 2.16.3
