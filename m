@@ -1,22 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59050 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59572 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752954AbeC2L02 (ORCPT
+        with ESMTP id S1752945AbeC2L02 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:28 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 055/109] fs: add do_lookup_dcookie() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:23:32 +0200
-Message-ID: <20180329112426.23043-56-linux@dominikbrodowski.net>
+Subject: [PATCH 032/109] ipc: add semctl syscall/compat_syscall wrappers
+Date: Thu, 29 Mar 2018 13:23:09 +0200
+Message-ID: <20180329112426.23043-33-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112332.9CYRFgIz9TeRZVDLv9Dl726v7yFOOtkC-s0MJUowt7g@z>
+Message-ID: <20180329112309.jbtIUkHt0QmDLHzgogI3wLrasjaNUrKMuKhaw8tVZAA@z>
 
-Using the fs-internal do_lookup_dcookie() helper allows us to get rid of
-fs-internal calls to the sys_lookup_dcookie() syscall.
+Provide ksys_semctl() and compat_ksys_semctl() wrappers to avoid in-kernel
+calls to these syscalls. The ksys_ prefix denotes that these functions are
+meant as a drop-in replacement for the syscalls. In particular, they use
+the same calling convention as sys_semctl() and compat_sys_semctl().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -26,42 +28,97 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/dcookies.c | 11 ++++++++---
- 1 file changed, 8 insertions(+), 3 deletions(-)
+ ipc/sem.c     | 14 ++++++++++++--
+ ipc/syscall.c |  4 ++--
+ ipc/util.h    |  2 ++
+ 3 files changed, 16 insertions(+), 4 deletions(-)
 
-diff --git a/fs/dcookies.c b/fs/dcookies.c
-index 0d0461cf2431..57bc96435feb 100644
---- a/fs/dcookies.c
-+++ b/fs/dcookies.c
-@@ -146,7 +146,7 @@ int get_dcookie(const struct path *path, unsigned long *cookie)
- /* And here is where the userspace process can look up the cookie value
-  * to retrieve the path.
-  */
--SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
-+static int do_lookup_dcookie(u64 cookie64, char __user *buf, size_t len)
- {
- 	unsigned long cookie = (unsigned long)cookie64;
- 	int err = -EINVAL;
-@@ -203,13 +203,18 @@ SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
+diff --git a/ipc/sem.c b/ipc/sem.c
+index 2e5f7ec7a7db..1cf56279a84c 100644
+--- a/ipc/sem.c
++++ b/ipc/sem.c
+@@ -1581,7 +1581,7 @@ static int semctl_down(struct ipc_namespace *ns, int semid,
  	return err;
  }
  
-+SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
+-SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
++long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg)
+ {
+ 	int version;
+ 	struct ipc_namespace *ns;
+@@ -1635,6 +1635,11 @@ SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
+ 	}
+ }
+ 
++SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, unsigned long, arg)
 +{
-+	return do_lookup_dcookie(cookie64, buf, len);
++	return ksys_semctl(semid, semnum, cmd, arg);
 +}
 +
  #ifdef CONFIG_COMPAT
- COMPAT_SYSCALL_DEFINE4(lookup_dcookie, u32, w0, u32, w1, char __user *, buf, compat_size_t, len)
- {
- #ifdef __BIG_ENDIAN
--	return sys_lookup_dcookie(((u64)w0 << 32) | w1, buf, len);
-+	return do_lookup_dcookie(((u64)w0 << 32) | w1, buf, len);
- #else
--	return sys_lookup_dcookie(((u64)w1 << 32) | w0, buf, len);
-+	return do_lookup_dcookie(((u64)w1 << 32) | w0, buf, len);
- #endif
+ 
+ struct compat_semid_ds {
+@@ -1683,7 +1688,7 @@ static int copy_compat_semid_to_user(void __user *buf, struct semid64_ds *in,
+ 	}
  }
+ 
+-COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
++long compat_ksys_semctl(int semid, int semnum, int cmd, int arg)
+ {
+ 	void __user *p = compat_ptr(arg);
+ 	struct ipc_namespace *ns;
+@@ -1727,6 +1732,11 @@ COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
+ 		return -EINVAL;
+ 	}
+ }
++
++COMPAT_SYSCALL_DEFINE4(semctl, int, semid, int, semnum, int, cmd, int, arg)
++{
++	return compat_ksys_semctl(semid, semnum, cmd, arg);
++}
+ #endif
+ 
+ /* If the task doesn't already have a undo_list, then allocate one
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 21fcdf0b4836..a536cca37661 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -42,7 +42,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 			return -EINVAL;
+ 		if (get_user(arg, (unsigned long __user *) ptr))
+ 			return -EFAULT;
+-		return sys_semctl(first, second, third, arg);
++		return ksys_semctl(first, second, third, arg);
+ 	}
+ 
+ 	case MSGSND:
+@@ -138,7 +138,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 			return -EINVAL;
+ 		if (get_user(pad, (u32 __user *) compat_ptr(ptr)))
+ 			return -EFAULT;
+-		return compat_sys_semctl(first, second, third, pad);
++		return compat_ksys_semctl(first, second, third, pad);
+ 
+ 	case MSGSND:
+ 		return compat_sys_msgsnd(first, ptr, second, third);
+diff --git a/ipc/util.h b/ipc/util.h
+index 0f07056e5a73..1f1109b83437 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -241,12 +241,14 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+ 		     unsigned int nsops,
+ 		     const struct timespec __user *timeout);
+ long ksys_semget(key_t key, int nsems, int semflg);
++long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+ 
+ /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+ #ifdef CONFIG_COMPAT
+ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
+ 			    unsigned int nsops,
+ 			    const struct compat_timespec __user *timeout);
++long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
+ #endif /* CONFIG_COMPAT */
+ 
  #endif
 -- 
 2.16.3
