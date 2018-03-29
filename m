@@ -1,124 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59862 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59098 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752744AbeC2L0K (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:10 -0400
+        with ESMTP id S1752677AbeC2L0H (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:07 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 010/109] net: socket: add __sys_accept4() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:22:47 +0200
-Message-ID: <20180329112426.23043-11-linux@dominikbrodowski.net>
+Subject: [PATCH 070/109] fs: add ksys_write() helper; remove in-kernel calls to sys_write()
+Date: Thu, 29 Mar 2018 13:23:47 +0200
+Message-ID: <20180329112426.23043-71-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
-Message-ID: <20180329112247.PASG_ambfOYvTP_Eu1Chpcb5SshYw_YYBHgxgw3u-p8@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-s390@vger.kernel.org
+Message-ID: <20180329112347.9BCuH9Lbf1sjQdFrOyIZEUWO19b0q3k-5UkgEKvtVXQ@z>
 
-Using the net-internal helper __sys_accept4() allows us to avoid the
-internal calls to the sys_accept4() syscall.
+Using this helper allows us to avoid the in-kernel calls to the sys_write()
+syscall. The ksys_ prefix denotes that this function is meant as a drop-in
+replacement for the syscall. In particular, it uses the same calling
+convention as sys_write().
+
+In the near future, the do_mounts / initramfs callers of ksys_write()
+should be converted to use filp_open() and vfs_write() instead.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: linux-s390@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/socket.h |  2 ++
- net/compat.c           |  4 ++--
- net/socket.c           | 20 +++++++++++++-------
- 3 files changed, 17 insertions(+), 9 deletions(-)
+ arch/s390/kernel/compat_linux.c | 2 +-
+ fs/read_write.c                 | 9 +++++++--
+ include/linux/syscalls.h        | 1 +
+ init/do_mounts_rd.c             | 4 ++--
+ init/initramfs.c                | 2 +-
+ 5 files changed, 12 insertions(+), 6 deletions(-)
 
-diff --git a/include/linux/socket.h b/include/linux/socket.h
-index 54b85abc7265..6a9840271676 100644
---- a/include/linux/socket.h
-+++ b/include/linux/socket.h
-@@ -361,5 +361,7 @@ extern int __sys_recvfrom(int fd, void __user *ubuf, size_t size,
- extern int __sys_sendto(int fd, void __user *buff, size_t len,
- 			unsigned int flags, struct sockaddr __user *addr,
- 			int addr_len);
-+extern int __sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
-+			 int __user *upeer_addrlen, int flags);
+diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
+index 79b7a3438d54..5a9cfde5fc28 100644
+--- a/arch/s390/kernel/compat_linux.c
++++ b/arch/s390/kernel/compat_linux.c
+@@ -468,7 +468,7 @@ COMPAT_SYSCALL_DEFINE3(s390_write, unsigned int, fd, const char __user *, buf, c
+ 	if ((compat_ssize_t) count < 0)
+ 		return -EINVAL; 
  
- #endif /* _LINUX_SOCKET_H */
-diff --git a/net/compat.c b/net/compat.c
-index fc82982d9b84..0ff9f7451b6f 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -823,7 +823,7 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 		ret = sys_listen(a0, a1);
- 		break;
- 	case SYS_ACCEPT:
--		ret = sys_accept4(a0, compat_ptr(a1), compat_ptr(a[2]), 0);
-+		ret = __sys_accept4(a0, compat_ptr(a1), compat_ptr(a[2]), 0);
- 		break;
- 	case SYS_GETSOCKNAME:
- 		ret = sys_getsockname(a0, compat_ptr(a1), compat_ptr(a[2]));
-@@ -873,7 +873,7 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 					  compat_ptr(a[4]));
- 		break;
- 	case SYS_ACCEPT4:
--		ret = sys_accept4(a0, compat_ptr(a1), compat_ptr(a[2]), a[3]);
-+		ret = __sys_accept4(a0, compat_ptr(a1), compat_ptr(a[2]), a[3]);
- 		break;
- 	default:
- 		ret = -EINVAL;
-diff --git a/net/socket.c b/net/socket.c
-index 3f037a21ba5e..45f6ea0d57a5 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -1519,8 +1519,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, backlog)
-  *	clean when we restucture accept also.
-  */
- 
--SYSCALL_DEFINE4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr,
--		int __user *, upeer_addrlen, int, flags)
-+int __sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
-+		  int __user *upeer_addrlen, int flags)
- {
- 	struct socket *sock, *newsock;
- 	struct file *newfile;
-@@ -1599,10 +1599,16 @@ SYSCALL_DEFINE4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr,
- 	goto out_put;
- }
- 
-+SYSCALL_DEFINE4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr,
-+		int __user *, upeer_addrlen, int, flags)
-+{
-+	return __sys_accept4(fd, upeer_sockaddr, upeer_addrlen, flags);
-+}
-+
- SYSCALL_DEFINE3(accept, int, fd, struct sockaddr __user *, upeer_sockaddr,
- 		int __user *, upeer_addrlen)
- {
--	return sys_accept4(fd, upeer_sockaddr, upeer_addrlen, 0);
-+	return __sys_accept4(fd, upeer_sockaddr, upeer_addrlen, 0);
+-	return sys_write(fd, buf, count);
++	return ksys_write(fd, buf, count);
  }
  
  /*
-@@ -2469,8 +2475,8 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 		err = sys_listen(a0, a1);
- 		break;
- 	case SYS_ACCEPT:
--		err = sys_accept4(a0, (struct sockaddr __user *)a1,
--				  (int __user *)a[2], 0);
-+		err = __sys_accept4(a0, (struct sockaddr __user *)a1,
-+				    (int __user *)a[2], 0);
- 		break;
- 	case SYS_GETSOCKNAME:
- 		err =
-@@ -2525,8 +2531,8 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 				   (struct timespec __user *)a[4]);
- 		break;
- 	case SYS_ACCEPT4:
--		err = sys_accept4(a0, (struct sockaddr __user *)a1,
--				  (int __user *)a[2], a[3]);
-+		err = __sys_accept4(a0, (struct sockaddr __user *)a1,
-+				    (int __user *)a[2], a[3]);
- 		break;
- 	default:
- 		err = -EINVAL;
+diff --git a/fs/read_write.c b/fs/read_write.c
+index f8547b82dfb3..8e8f0b4f52e2 100644
+--- a/fs/read_write.c
++++ b/fs/read_write.c
+@@ -578,8 +578,7 @@ SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
+ 	return ret;
+ }
+ 
+-SYSCALL_DEFINE3(write, unsigned int, fd, const char __user *, buf,
+-		size_t, count)
++ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count)
+ {
+ 	struct fd f = fdget_pos(fd);
+ 	ssize_t ret = -EBADF;
+@@ -595,6 +594,12 @@ SYSCALL_DEFINE3(write, unsigned int, fd, const char __user *, buf,
+ 	return ret;
+ }
+ 
++SYSCALL_DEFINE3(write, unsigned int, fd, const char __user *, buf,
++		size_t, count)
++{
++	return ksys_write(fd, buf, count);
++}
++
+ SYSCALL_DEFINE4(pread64, unsigned int, fd, char __user *, buf,
+ 			size_t, count, loff_t, pos)
+ {
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 920a0db1871d..80524faa9664 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -951,5 +951,6 @@ int ksys_mount(char __user *dev_name, char __user *dir_name, char __user *type,
+ int ksys_umount(char __user *name, int flags);
+ int ksys_dup(unsigned int fildes);
+ int ksys_chroot(const char __user *filename);
++ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count);
+ 
+ #endif
+diff --git a/init/do_mounts_rd.c b/init/do_mounts_rd.c
+index 99e0b649fc0e..2d365c398ccc 100644
+--- a/init/do_mounts_rd.c
++++ b/init/do_mounts_rd.c
+@@ -270,7 +270,7 @@ int __init rd_load_image(char *from)
+ 			printk("Loading disk #%d... ", disk);
+ 		}
+ 		sys_read(in_fd, buf, BLOCK_SIZE);
+-		sys_write(out_fd, buf, BLOCK_SIZE);
++		ksys_write(out_fd, buf, BLOCK_SIZE);
+ #if !defined(CONFIG_S390)
+ 		if (!(i % 16)) {
+ 			pr_cont("%c\b", rotator[rotate & 0x3]);
+@@ -317,7 +317,7 @@ static long __init compr_fill(void *buf, unsigned long len)
+ 
+ static long __init compr_flush(void *window, unsigned long outcnt)
+ {
+-	long written = sys_write(crd_outfd, window, outcnt);
++	long written = ksys_write(crd_outfd, window, outcnt);
+ 	if (written != outcnt) {
+ 		if (decompress_error == 0)
+ 			printk(KERN_ERR
+diff --git a/init/initramfs.c b/init/initramfs.c
+index 7e99a0038942..6f972df15bf2 100644
+--- a/init/initramfs.c
++++ b/init/initramfs.c
+@@ -27,7 +27,7 @@ static ssize_t __init xwrite(int fd, const char *p, size_t count)
+ 
+ 	/* sys_write only can write MAX_RW_COUNT aka 2G-4K bytes at most */
+ 	while (count) {
+-		ssize_t rv = sys_write(fd, p, count);
++		ssize_t rv = ksys_write(fd, p, count);
+ 
+ 		if (rv < 0) {
+ 			if (rv == -EINTR || rv == -EAGAIN)
 -- 
 2.16.3
