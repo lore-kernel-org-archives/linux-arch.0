@@ -1,124 +1,112 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 072/109] fs: add ksys_unlink() wrapper; remove in-kernel calls to sys_unlink()
-Date: Thu, 29 Mar 2018 13:23:49 +0200
-Message-ID: <20180329112426.23043-73-linux@dominikbrodowski.net>
+Subject: [PATCH 008/109] net: socket: add __sys_recvfrom() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:22:45 +0200
+Message-ID: <20180329112426.23043-9-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: netdev-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Using this wrapper allows us to avoid the in-kernel calls to the
-sys_unlink() syscall. The ksys_ prefix denotes that this function is meant
-s a drop-in replacement for the syscall. In particular, it uses the same
-calling convention as sys_unlink().
-
-In the near future, all callers of ksys_unlink() should be converted to
-call do_unlinkat() directly or, at least, to operate on regular kernel
-pointers.
+Using the net-internal helper __sys_recvfrom() allows us to avoid the
+internal calls to the sys_recvfrom() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/syscalls.h | 11 +++++++++++
- init/do_mounts.h         |  2 +-
- init/do_mounts_initrd.c  |  4 ++--
- init/do_mounts_rd.c      |  2 +-
- init/initramfs.c         |  4 ++--
- 5 files changed, 17 insertions(+), 6 deletions(-)
+ include/linux/socket.h |  6 ++++++
+ net/compat.c           |  3 ++-
+ net/socket.c           | 21 +++++++++++++--------
+ 3 files changed, 21 insertions(+), 9 deletions(-)
 
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 090645b48447..7cbfb41e666b 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -954,4 +954,15 @@ int ksys_chroot(const char __user *filename);
- ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count);
- int ksys_chdir(const char __user *filename);
- 
-+/*
-+ * The following kernel syscall equivalents are just wrappers to fs-internal
-+ * functions. Therefore, provide stubs to be inlined at the callsites.
-+ */
-+extern long do_unlinkat(int dfd, struct filename *name);
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index 9286a5a8c60c..40cc93b91628 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -353,4 +353,10 @@ extern int __sys_recvmmsg(int fd, struct mmsghdr __user *mmsg, unsigned int vlen
+ 			  unsigned int flags, struct timespec *timeout);
+ extern int __sys_sendmmsg(int fd, struct mmsghdr __user *mmsg,
+ 			  unsigned int vlen, unsigned int flags);
 +
-+static inline long ksys_unlink(const char __user *pathname)
++/* helpers which do the actual work for syscalls */
++extern int __sys_recvfrom(int fd, void __user *ubuf, size_t size,
++			  unsigned int flags, struct sockaddr __user *addr,
++			  int __user *addr_len);
++
+ #endif /* _LINUX_SOCKET_H */
+diff --git a/net/compat.c b/net/compat.c
+index 22381719718c..2d8186c277b2 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -760,7 +760,8 @@ COMPAT_SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, buf, compat_size_t, len
+ 		       unsigned int, flags, struct sockaddr __user *, addr,
+ 		       int __user *, addrlen)
+ {
+-	return sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, addr, addrlen);
++	return __sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, addr,
++			      addrlen);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
+diff --git a/net/socket.c b/net/socket.c
+index a93c99b518ca..712d99d8680f 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1767,10 +1767,8 @@ SYSCALL_DEFINE4(send, int, fd, void __user *, buff, size_t, len,
+  *	sender. We verify the buffers are writable and if needed move the
+  *	sender address from kernel to user space.
+  */
+-
+-SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
+-		unsigned int, flags, struct sockaddr __user *, addr,
+-		int __user *, addr_len)
++int __sys_recvfrom(int fd, void __user *ubuf, size_t size, unsigned int flags,
++		   struct sockaddr __user *addr, int __user *addr_len)
+ {
+ 	struct socket *sock;
+ 	struct iovec iov;
+@@ -1810,6 +1808,13 @@ SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
+ 	return err;
+ }
+ 
++SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
++		unsigned int, flags, struct sockaddr __user *, addr,
++		int __user *, addr_len)
 +{
-+	return do_unlinkat(AT_FDCWD, getname(pathname));
++	return __sys_recvfrom(fd, ubuf, size, flags, addr, addr_len);
 +}
 +
- #endif
-diff --git a/init/do_mounts.h b/init/do_mounts.h
-index 5b05c8f93f47..401f90ee1eeb 100644
---- a/init/do_mounts.h
-+++ b/init/do_mounts.h
-@@ -16,7 +16,7 @@ extern int root_mountflags;
- 
- static inline int create_dev(char *name, dev_t dev)
+ /*
+  *	Receive a datagram from a socket.
+  */
+@@ -1817,7 +1822,7 @@ SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, ubuf, size_t, size,
+ SYSCALL_DEFINE4(recv, int, fd, void __user *, ubuf, size_t, size,
+ 		unsigned int, flags)
  {
--	sys_unlink(name);
-+	ksys_unlink(name);
- 	return sys_mknod(name, S_IFBLK|0600, new_encode_dev(dev));
+-	return sys_recvfrom(fd, ubuf, size, flags, NULL, NULL);
++	return __sys_recvfrom(fd, ubuf, size, flags, NULL, NULL);
  }
  
-diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
-index 83f396d30b9a..e9e9e1c67d31 100644
---- a/init/do_mounts_initrd.c
-+++ b/init/do_mounts_initrd.c
-@@ -128,11 +128,11 @@ bool __init initrd_load(void)
- 		 * mounted in the normal path.
- 		 */
- 		if (rd_load_image("/initrd.image") && ROOT_DEV != Root_RAM0) {
--			sys_unlink("/initrd.image");
-+			ksys_unlink("/initrd.image");
- 			handle_initrd();
- 			return true;
- 		}
- 	}
--	sys_unlink("/initrd.image");
-+	ksys_unlink("/initrd.image");
- 	return false;
- }
-diff --git a/init/do_mounts_rd.c b/init/do_mounts_rd.c
-index 2d365c398ccc..5b69056f610a 100644
---- a/init/do_mounts_rd.c
-+++ b/init/do_mounts_rd.c
-@@ -288,7 +288,7 @@ int __init rd_load_image(char *from)
- 	sys_close(out_fd);
- out:
- 	kfree(buf);
--	sys_unlink("/dev/ram");
-+	ksys_unlink("/dev/ram");
- 	return res;
- }
- 
-diff --git a/init/initramfs.c b/init/initramfs.c
-index 6f972df15bf2..08eb551168a8 100644
---- a/init/initramfs.c
-+++ b/init/initramfs.c
-@@ -319,7 +319,7 @@ static void __init clean_path(char *path, umode_t fmode)
- 		if (S_ISDIR(st.mode))
- 			sys_rmdir(path);
- 		else
--			sys_unlink(path);
-+			ksys_unlink(path);
- 	}
- }
- 
-@@ -591,7 +591,7 @@ static void __init clean_rootfs(void)
- 				if (S_ISDIR(st.mode))
- 					sys_rmdir(dirp->d_name);
- 				else
--					sys_unlink(dirp->d_name);
-+					ksys_unlink(dirp->d_name);
- 			}
- 
- 			num -= dirp->d_reclen;
+ /*
+@@ -2486,9 +2491,9 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
+ 		err = sys_recv(a0, (void __user *)a1, a[2], a[3]);
+ 		break;
+ 	case SYS_RECVFROM:
+-		err = sys_recvfrom(a0, (void __user *)a1, a[2], a[3],
+-				   (struct sockaddr __user *)a[4],
+-				   (int __user *)a[5]);
++		err = __sys_recvfrom(a0, (void __user *)a1, a[2], a[3],
++				     (struct sockaddr __user *)a[4],
++				     (int __user *)a[5]);
+ 		break;
+ 	case SYS_SHUTDOWN:
+ 		err = sys_shutdown(a0, a1);
 -- 
 2.16.3
