@@ -1,7 +1,7 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 055/109] fs: add do_lookup_dcookie() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:23:32 +0200
-Message-ID: <20180329112426.23043-56-linux@dominikbrodowski.net>
+Subject: [PATCH 038/109] ipc: add msgrcv syscall/compat_syscall wrappers
+Date: Thu, 29 Mar 2018 13:23:15 +0200
+Message-ID: <20180329112426.23043-39-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
@@ -10,8 +10,10 @@ To: linux-kernel@vger.kernel.org
 Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using the fs-internal do_lookup_dcookie() helper allows us to get rid of
-fs-internal calls to the sys_lookup_dcookie() syscall.
+Provide ksys_msgrcv() and compat_ksys_msgrcv() wrappers to avoid in-kernel
+calls to these syscalls. The ksys_ prefix denotes that these functions are
+meant as a drop-in replacement for the syscalls. In particular, they use
+the same calling convention as sys_msgrcv() and compat_sys_msgrcv().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -21,42 +23,107 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/dcookies.c | 11 ++++++++---
- 1 file changed, 8 insertions(+), 3 deletions(-)
+ ipc/msg.c     | 19 ++++++++++++++++---
+ ipc/syscall.c |  8 ++++----
+ ipc/util.h    |  4 ++++
+ 3 files changed, 24 insertions(+), 7 deletions(-)
 
-diff --git a/fs/dcookies.c b/fs/dcookies.c
-index 0d0461cf2431..57bc96435feb 100644
---- a/fs/dcookies.c
-+++ b/fs/dcookies.c
-@@ -146,7 +146,7 @@ int get_dcookie(const struct path *path, unsigned long *cookie)
- /* And here is where the userspace process can look up the cookie value
-  * to retrieve the path.
-  */
--SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
-+static int do_lookup_dcookie(u64 cookie64, char __user *buf, size_t len)
- {
- 	unsigned long cookie = (unsigned long)cookie64;
- 	int err = -EINVAL;
-@@ -203,13 +203,18 @@ SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
- 	return err;
+diff --git a/ipc/msg.c b/ipc/msg.c
+index 5b026868df07..abc5826270a6 100644
+--- a/ipc/msg.c
++++ b/ipc/msg.c
+@@ -1150,10 +1150,16 @@ static long do_msgrcv(int msqid, void __user *buf, size_t bufsz, long msgtyp, in
+ 	return bufsz;
  }
  
-+SYSCALL_DEFINE3(lookup_dcookie, u64, cookie64, char __user *, buf, size_t, len)
++long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 long msgtyp, int msgflg)
 +{
-+	return do_lookup_dcookie(cookie64, buf, len);
++	return do_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg, do_msg_fill);
 +}
 +
- #ifdef CONFIG_COMPAT
- COMPAT_SYSCALL_DEFINE4(lookup_dcookie, u32, w0, u32, w1, char __user *, buf, compat_size_t, len)
+ SYSCALL_DEFINE5(msgrcv, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
+ 		long, msgtyp, int, msgflg)
  {
- #ifdef __BIG_ENDIAN
--	return sys_lookup_dcookie(((u64)w0 << 32) | w1, buf, len);
-+	return do_lookup_dcookie(((u64)w0 << 32) | w1, buf, len);
- #else
--	return sys_lookup_dcookie(((u64)w1 << 32) | w0, buf, len);
-+	return do_lookup_dcookie(((u64)w1 << 32) | w0, buf, len);
- #endif
+-	return do_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg, do_msg_fill);
++	return ksys_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg);
  }
+ 
+ #ifdef CONFIG_COMPAT
+@@ -1171,12 +1177,19 @@ static long compat_do_msg_fill(void __user *dest, struct msg_msg *msg, size_t bu
+ 	return msgsz;
+ }
+ 
+-COMPAT_SYSCALL_DEFINE5(msgrcv, int, msqid, compat_uptr_t, msgp,
+-		       compat_ssize_t, msgsz, compat_long_t, msgtyp, int, msgflg)
++long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
++			compat_long_t msgtyp, int msgflg)
+ {
+ 	return do_msgrcv(msqid, compat_ptr(msgp), (ssize_t)msgsz, (long)msgtyp,
+ 			 msgflg, compat_do_msg_fill);
+ }
++
++COMPAT_SYSCALL_DEFINE5(msgrcv, int, msqid, compat_uptr_t, msgp,
++		       compat_ssize_t, msgsz, compat_long_t, msgtyp,
++		       int, msgflg)
++{
++	return compat_ksys_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg);
++}
  #endif
+ 
+ int msg_init_ns(struct ipc_namespace *ns)
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index aa29b0802e26..0228c7afd882 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -59,11 +59,11 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 					   (struct ipc_kludge __user *) ptr,
+ 					   sizeof(tmp)))
+ 				return -EFAULT;
+-			return sys_msgrcv(first, tmp.msgp, second,
++			return ksys_msgrcv(first, tmp.msgp, second,
+ 					   tmp.msgtyp, third);
+ 		}
+ 		default:
+-			return sys_msgrcv(first,
++			return ksys_msgrcv(first,
+ 					   (struct msgbuf __user *) ptr,
+ 					   second, fifth, third);
+ 		}
+@@ -156,10 +156,10 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 				return -EINVAL;
+ 			if (copy_from_user(&ipck, uptr, sizeof(ipck)))
+ 				return -EFAULT;
+-			return compat_sys_msgrcv(first, ipck.msgp, second,
++			return compat_ksys_msgrcv(first, ipck.msgp, second,
+ 						 ipck.msgtyp, third);
+ 		}
+-		return compat_sys_msgrcv(first, ptr, second, fifth, third);
++		return compat_ksys_msgrcv(first, ptr, second, fifth, third);
+ 	}
+ 	case MSGGET:
+ 		return ksys_msgget(first, second);
+diff --git a/ipc/util.h b/ipc/util.h
+index 47837b4af3f2..c16aceb1bdec 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -244,6 +244,8 @@ long ksys_semget(key_t key, int nsems, int semflg);
+ long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+ long ksys_msgget(key_t key, int msgflg);
+ long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
++long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 long msgtyp, int msgflg);
+ long ksys_shmget(key_t key, size_t size, int shmflg);
+ long ksys_shmdt(char __user *shmaddr);
+ long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+@@ -255,6 +257,8 @@ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
+ 			    const struct compat_timespec __user *timeout);
+ long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
+ long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
++long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
++			compat_long_t msgtyp, int msgflg);
+ long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
+ #endif /* CONFIG_COMPAT */
+ 
 -- 
 2.16.3
