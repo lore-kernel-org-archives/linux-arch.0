@@ -1,72 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59322 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59008 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752632AbeC2L0E (ORCPT
+        with ESMTP id S1752639AbeC2L0E (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:04 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 020/109] net: socket: add __sys_getsockopt() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:22:57 +0200
-Message-ID: <20180329112426.23043-21-linux@dominikbrodowski.net>
+Subject: [PATCH 053/109] fs: add do_signalfd4() helper; remove internal calls to sys_signalfd4()
+Date: Thu, 29 Mar 2018 13:23:30 +0200
+Message-ID: <20180329112426.23043-54-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
-Message-ID: <20180329112257.tSTn9NXrQp5t11pqgGjvG5o5N4GKtZsOdO3x8S_1e44@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20180329112330.iKbo1nS95tWkI_5XROrH7F47MYyPK_wTuds5J2YCFyE@z>
 
-Using the net-internal helper __sys_getsockopt() allows us to avoid the
-internal calls to the sys_getsockopt() syscall.
+Using this helper removes in-kernel calls to the sys_signalfd4() syscall
+function.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- net/socket.c | 14 ++++++++++----
+ fs/signalfd.c | 14 ++++++++++----
  1 file changed, 10 insertions(+), 4 deletions(-)
 
-diff --git a/net/socket.c b/net/socket.c
-index 5dd2e39a6cd4..a05289b1f863 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -1918,8 +1918,8 @@ SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
-  *	to pass a user mode parameter for the protocols to sort out.
-  */
+diff --git a/fs/signalfd.c b/fs/signalfd.c
+index 76bf9cc62074..501c41f3351f 100644
+--- a/fs/signalfd.c
++++ b/fs/signalfd.c
+@@ -256,8 +256,8 @@ static const struct file_operations signalfd_fops = {
+ 	.llseek		= noop_llseek,
+ };
  
--SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
--		char __user *, optval, int __user *, optlen)
-+static int __sys_getsockopt(int fd, int level, int optname,
-+			    char __user *optval, int __user *optlen)
+-SYSCALL_DEFINE4(signalfd4, int, ufd, sigset_t __user *, user_mask,
+-		size_t, sizemask, int, flags)
++static int do_signalfd4(int ufd, sigset_t __user *user_mask, size_t sizemask,
++			int flags)
  {
- 	int err, fput_needed;
- 	struct socket *sock;
-@@ -1944,6 +1944,12 @@ SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
- 	return err;
+ 	sigset_t sigmask;
+ 	struct signalfd_ctx *ctx;
+@@ -310,10 +310,16 @@ SYSCALL_DEFINE4(signalfd4, int, ufd, sigset_t __user *, user_mask,
+ 	return ufd;
  }
  
-+SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
-+		char __user *, optval, int __user *, optlen)
++SYSCALL_DEFINE4(signalfd4, int, ufd, sigset_t __user *, user_mask,
++		size_t, sizemask, int, flags)
 +{
-+	return __sys_getsockopt(fd, level, optname, optval, optlen);
++	return do_signalfd4(ufd, user_mask, sizemask, flags);
 +}
 +
- /*
-  *	Shutdown a socket.
-  */
-@@ -2563,8 +2569,8 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 		break;
- 	case SYS_GETSOCKOPT:
- 		err =
--		    sys_getsockopt(a0, a1, a[2], (char __user *)a[3],
--				   (int __user *)a[4]);
-+		    __sys_getsockopt(a0, a1, a[2], (char __user *)a[3],
-+				     (int __user *)a[4]);
- 		break;
- 	case SYS_SENDMSG:
- 		err = sys_sendmsg(a0, (struct user_msghdr __user *)a1, a[2]);
+ SYSCALL_DEFINE3(signalfd, int, ufd, sigset_t __user *, user_mask,
+ 		size_t, sizemask)
+ {
+-	return sys_signalfd4(ufd, user_mask, sizemask, 0);
++	return do_signalfd4(ufd, user_mask, sizemask, 0);
+ }
+ 
+ #ifdef CONFIG_COMPAT
+@@ -333,7 +339,7 @@ COMPAT_SYSCALL_DEFINE4(signalfd4, int, ufd,
+ 	if (copy_to_user(ksigmask, &tmp, sizeof(sigset_t)))
+ 		return -EFAULT;
+ 
+-	return sys_signalfd4(ufd, ksigmask, sizeof(sigset_t), flags);
++	return do_signalfd4(ufd, ksigmask, sizeof(sigset_t), flags);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE3(signalfd, int, ufd,
 -- 
 2.16.3
