@@ -1,108 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59320 "EHLO
-        isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752868AbeC2L0V (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:21 -0400
-From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 029/109] net: socket: add __compat_sys_...msg() helpers; remove in-kernel calls to compat syscalls
-Date: Thu, 29 Mar 2018 13:23:06 +0200
-Message-ID: <20180329112426.23043-30-linux@dominikbrodowski.net>
-In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
+Received: from merlin.infradead.org ([205.233.59.134]:33992 "EHLO
+        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753017AbeC2LlZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:41:25 -0400
+Date: Thu, 29 Mar 2018 13:41:14 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 043/109] sched: add do_sched_yield() helper; remove
+ in-kernel call to sched_yield()
+Message-ID: <20180329114114.GQ4082@hirez.programming.kicks-ass.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
+ <20180329112426.23043-44-linux@dominikbrodowski.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180329112426.23043-44-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
-Message-ID: <20180329112306.ZrGzHM5QnGpE17pFfAxjQ0Cc-I3NcLNAPI9-z3k66xs@z>
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: linux-kernel@vger.kernel.org, viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20180329114114.7YqKSIPbGIZjShZB174TPDBOIYZAy2SqDS9dRIMwEMY@z>
 
-Using the net-internal helpers __compat_sys_...msg() allows us to avoid
-the internal calls to the compat_sys_...msg() syscalls.
-compat_sys_recvmmsg() is handled in a different patch.
+On Thu, Mar 29, 2018 at 01:23:20PM +0200, Dominik Brodowski wrote:
+> Using the sched-internal do_sched_yield() helper allows us to get rid of
+> the sched-internal call to the sys_sched_yield() syscall.
+> 
+> This patch is part of a series which removes in-kernel calls to syscalls.
+> On this basis, the syscall entry path can be streamlined. For details, see
+> http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
+> 
+> Cc: Ingo Molnar <mingo@redhat.com>
 
-This patch is part of a series which removes in-kernel calls to syscalls.
-On this basis, the syscall entry path can be streamlined. For details, see
-http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
-Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
----
- net/compat.c | 37 ++++++++++++++++++++++++++++++-------
- 1 file changed, 30 insertions(+), 7 deletions(-)
-
-diff --git a/net/compat.c b/net/compat.c
-index 7b2ae42a1598..5ae7437d3853 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -747,25 +747,48 @@ static unsigned char nas[21] = {
- };
- #undef AL
- 
--COMPAT_SYSCALL_DEFINE3(sendmsg, int, fd, struct compat_msghdr __user *, msg, unsigned int, flags)
-+static inline long __compat_sys_sendmsg(int fd,
-+					struct compat_msghdr __user *msg,
-+					unsigned int flags)
- {
- 	return __sys_sendmsg(fd, (struct user_msghdr __user *)msg,
- 			     flags | MSG_CMSG_COMPAT, false);
- }
- 
--COMPAT_SYSCALL_DEFINE4(sendmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
--		       unsigned int, vlen, unsigned int, flags)
-+COMPAT_SYSCALL_DEFINE3(sendmsg, int, fd, struct compat_msghdr __user *, msg,
-+		       unsigned int, flags)
-+{
-+	return __compat_sys_sendmsg(fd, msg, flags);
-+}
-+
-+static inline long __compat_sys_sendmmsg(int fd,
-+					 struct compat_mmsghdr __user *mmsg,
-+					 unsigned int vlen, unsigned int flags)
- {
- 	return __sys_sendmmsg(fd, (struct mmsghdr __user *)mmsg, vlen,
- 			      flags | MSG_CMSG_COMPAT, false);
- }
- 
--COMPAT_SYSCALL_DEFINE3(recvmsg, int, fd, struct compat_msghdr __user *, msg, unsigned int, flags)
-+COMPAT_SYSCALL_DEFINE4(sendmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
-+		       unsigned int, vlen, unsigned int, flags)
-+{
-+	return __compat_sys_sendmmsg(fd, mmsg, vlen, flags);
-+}
-+
-+static inline long __compat_sys_recvmsg(int fd,
-+					struct compat_msghdr __user *msg,
-+					unsigned int flags)
- {
- 	return __sys_recvmsg(fd, (struct user_msghdr __user *)msg,
- 			     flags | MSG_CMSG_COMPAT, false);
- }
- 
-+COMPAT_SYSCALL_DEFINE3(recvmsg, int, fd, struct compat_msghdr __user *, msg,
-+		       unsigned int, flags)
-+{
-+	return __compat_sys_recvmsg(fd, msg, flags);
-+}
-+
- static inline long __compat_sys_recvfrom(int fd, void __user *buf,
- 					 compat_size_t len, unsigned int flags,
- 					 struct sockaddr __user *addr,
-@@ -893,13 +916,13 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 					      compat_ptr(a[4]));
- 		break;
- 	case SYS_SENDMSG:
--		ret = compat_sys_sendmsg(a0, compat_ptr(a1), a[2]);
-+		ret = __compat_sys_sendmsg(a0, compat_ptr(a1), a[2]);
- 		break;
- 	case SYS_SENDMMSG:
--		ret = compat_sys_sendmmsg(a0, compat_ptr(a1), a[2], a[3]);
-+		ret = __compat_sys_sendmmsg(a0, compat_ptr(a1), a[2], a[3]);
- 		break;
- 	case SYS_RECVMSG:
--		ret = compat_sys_recvmsg(a0, compat_ptr(a1), a[2]);
-+		ret = __compat_sys_recvmsg(a0, compat_ptr(a1), a[2]);
- 		break;
- 	case SYS_RECVMMSG:
- 		ret = __compat_sys_recvmmsg(a0, compat_ptr(a1), a[2], a[3],
--- 
-2.16.3
+> Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
+> ---
+>  kernel/sched/core.c | 8 ++++++--
+>  1 file changed, 6 insertions(+), 2 deletions(-)
+> 
+> diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+> index e7c535eee0a6..8de4919c889a 100644
+> --- a/kernel/sched/core.c
+> +++ b/kernel/sched/core.c
+> @@ -4892,7 +4892,7 @@ SYSCALL_DEFINE3(sched_getaffinity, pid_t, pid, unsigned int, len,
+>   *
+>   * Return: 0.
+>   */
+> -SYSCALL_DEFINE0(sched_yield)
+> +static void do_sched_yield(void)
+>  {
+>  	struct rq_flags rf;
+>  	struct rq *rq;
+> @@ -4913,7 +4913,11 @@ SYSCALL_DEFINE0(sched_yield)
+>  	sched_preempt_enable_no_resched();
+>  
+>  	schedule();
+> +}
+>  
+> +SYSCALL_DEFINE0(sched_yield)
+> +{
+> +	do_sched_yield();
+>  	return 0;
+>  }
+>  
+> @@ -4997,7 +5001,7 @@ EXPORT_SYMBOL(__cond_resched_softirq);
+>  void __sched yield(void)
+>  {
+>  	set_current_state(TASK_RUNNING);
+> -	sys_sched_yield();
+> +	do_sched_yield();
+>  }
+>  EXPORT_SYMBOL(yield);
+>  
+> -- 
+> 2.16.3
+> 
