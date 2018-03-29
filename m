@@ -1,71 +1,56 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 043/109] sched: add do_sched_yield() helper; remove
- in-kernel call to sched_yield()
-Date: Thu, 29 Mar 2018 13:41:14 +0200
-Message-ID: <20180329114114.GQ4082@hirez.programming.kicks-ass.net>
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: [PATCH 100/109] x86: fix sys_sigreturn() return type to be long, not unsigned long
+Date: Thu, 29 Mar 2018 13:24:17 +0200
+Message-ID: <20180329112426.23043-101-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
- <20180329112426.23043-44-linux@dominikbrodowski.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180329112426.23043-44-linux@dominikbrodowski.net>
+In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dominik Brodowski <linux@dominikbrodowski.net>
-Cc: linux-kernel@vger.kernel.org, viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>
+To: linux-kernel@vger.kernel.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org, Michael Tautschnig <tautschn@amazon.co.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 29, 2018 at 01:23:20PM +0200, Dominik Brodowski wrote:
-> Using the sched-internal do_sched_yield() helper allows us to get rid of
-> the sched-internal call to the sys_sched_yield() syscall.
-> 
-> This patch is part of a series which removes in-kernel calls to syscalls.
-> On this basis, the syscall entry path can be streamlined. For details, see
-> http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
-> 
-> Cc: Ingo Molnar <mingo@redhat.com>
+Same as with other system calls, sys_sigreturn() should return a value
+of type long, not unsigned long. This also matches the behaviour for
+IA32_EMULATION, see sys32_sigreturn() in arch/x86/ia32/ia32_signal.c .
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: Andi Kleen <ak@linux.intel.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Jiri Slaby <jslaby@suse.com>
+Cc: x86@kernel.org
+Cc: Michael Tautschnig <tautschn@amazon.co.uk>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
+---
+ arch/x86/include/asm/syscalls.h | 2 +-
+ arch/x86/kernel/signal.c        | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-> Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
-> ---
->  kernel/sched/core.c | 8 ++++++--
->  1 file changed, 6 insertions(+), 2 deletions(-)
-> 
-> diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-> index e7c535eee0a6..8de4919c889a 100644
-> --- a/kernel/sched/core.c
-> +++ b/kernel/sched/core.c
-> @@ -4892,7 +4892,7 @@ SYSCALL_DEFINE3(sched_getaffinity, pid_t, pid, unsigned int, len,
->   *
->   * Return: 0.
->   */
-> -SYSCALL_DEFINE0(sched_yield)
-> +static void do_sched_yield(void)
->  {
->  	struct rq_flags rf;
->  	struct rq *rq;
-> @@ -4913,7 +4913,11 @@ SYSCALL_DEFINE0(sched_yield)
->  	sched_preempt_enable_no_resched();
->  
->  	schedule();
-> +}
->  
-> +SYSCALL_DEFINE0(sched_yield)
-> +{
-> +	do_sched_yield();
->  	return 0;
->  }
->  
-> @@ -4997,7 +5001,7 @@ EXPORT_SYMBOL(__cond_resched_softirq);
->  void __sched yield(void)
->  {
->  	set_current_state(TASK_RUNNING);
-> -	sys_sched_yield();
-> +	do_sched_yield();
->  }
->  EXPORT_SYMBOL(yield);
->  
-> -- 
-> 2.16.3
-> 
+diff --git a/arch/x86/include/asm/syscalls.h b/arch/x86/include/asm/syscalls.h
+index 1c0bebbd039e..ae6e05fdc24b 100644
+--- a/arch/x86/include/asm/syscalls.h
++++ b/arch/x86/include/asm/syscalls.h
+@@ -35,7 +35,7 @@ asmlinkage long sys_get_thread_area(struct user_desc __user *);
+ #ifdef CONFIG_X86_32
+ 
+ /* kernel/signal.c */
+-asmlinkage unsigned long sys_sigreturn(void);
++asmlinkage long sys_sigreturn(void);
+ 
+ /* kernel/vm86_32.c */
+ struct vm86_struct;
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 4cdc0b27ec82..83a26726b689 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -601,7 +601,7 @@ static int x32_setup_rt_frame(struct ksignal *ksig,
+  * Do a signal return; undo the signal stack.
+  */
+ #ifdef CONFIG_X86_32
+-asmlinkage unsigned long sys_sigreturn(void)
++asmlinkage long sys_sigreturn(void)
+ {
+ 	struct pt_regs *regs = current_pt_regs();
+ 	struct sigframe __user *frame;
+-- 
+2.16.3
