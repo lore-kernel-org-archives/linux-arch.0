@@ -1,98 +1,65 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC tools/memory-model] Add s390.{cfg,cat}
-Date: Wed, 28 Mar 2018 19:18:12 -0700
-Message-ID: <20180329021812.GV3675@linux.vnet.ibm.com>
-References: <20180328163344.GT3675@linux.vnet.ibm.com>
- <Pine.LNX.4.44L0.1803281350370.1375-100000@iolanthe.rowland.org>
-Reply-To: paulmck@linux.vnet.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: [PATCH 050/109] fs: add do_renameat2() helper; remove internal call to sys_renameat2()
+Date: Thu, 29 Mar 2018 13:23:27 +0200
+Message-ID: <20180329112426.23043-51-linux@dominikbrodowski.net>
+References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1803281350370.1375-100000@iolanthe.rowland.org>
+In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: schwidefsky@de.ibm.com, borntraeger@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
+To: linux-kernel@vger.kernel.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 28, 2018 at 02:04:07PM -0400, Alan Stern wrote:
-> On Wed, 28 Mar 2018, Paul E. McKenney wrote:
-> 
-> > On Wed, Mar 28, 2018 at 11:01:25AM -0400, Alan Stern wrote:
-> > > On Wed, 28 Mar 2018, Paul E. McKenney wrote:
-> > > 
-> > > > Hello!
-> > > > 
-> > > > The prototype patch shown below provides files required to allow herd7 to
-> > > > evaluate C-language litmus tests for the multicopy-atomic TSO ordering
-> > > > provided by s390.  This patch should be viewed with great suspicion.
-> > > > It does what I expect it to do on SB (with and without barriers),
-> > > > IRIW without barriers, and Alan's SB with read-of-write added, but my
-> > > > expectations are quite likely faulty, and my test cases are very few
-> > > > in number.
-> > > > 
-> > > > Either way, this is the easy part.  The hard part (which I am happy
-> > > > to leave to others) is making litmus7 and klitmus7 able to do tests
-> > > > on actual hardware, as well as enabling herd to handle litmus tests
-> > > > containing BAL.  ;-)
-> > > > 
-> > > > Note that CPU architectures already supported by herd might well need
-> > > > only a .cfg file that refers to herd's pre-existing support.
-> > > > 
-> > > > Thoughts?
-> > > 
-> > > I don't quite see the point of this.  You're not suggesting that we
-> > > have one Linux Kernel Memory Consistency Model for s390 and another
-> > > one for all the other architectures, are you?
-> > 
-> > Certainly not for common code!
-> > 
-> > > If the idea is merely to provide a herd model for s390 then it should 
-> > > go into the DIY repository, not into the LKMM repository.
-> > 
-> > Makes sense.
-> > 
-> > In the meantime, does the cat file look to you like it correctly
-> > models the combination of TSO and multicopy atomicity?  Do the
-> > fences really work, or did I just get lucky with my choice of
-> > litmus tests?
-> 
-> You got lucky.  Try creating an SB litmus test where, instead of an
-> smp_mb() fence between the write and the read, each thread executes
-> some other kind of fence.
+Using this helper removes in-kernel calls to the sys_renameat2() syscall.
 
-Ah, it does indeed get "Never" in that case, which I do not believe
-to e correct.
+This patch is part of a series which removes in-kernel calls to syscalls.
+On this basis, the syscall entry path can be streamlined. For details, see
+http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-> The acyclicity condition should have been written more like this:
-> 
-> let po_ghb = ([R] ; po ; [M]) | ([M] ; po ; [W])
-> 
-> acyclic mfence | po_ghb | rf | fr | co as tso-mca
-> 
-> I don't know what the fence instruction is on s390; change the "mfence"
-> above accordingly.  The main difference between this and the
-> corresponding expression in x86tso.cat is that I replaced rfe with rf.
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
+---
+ fs/namei.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
 
-The s390 fence instruction is "bcr 14,0" or "bcr 15,0", depending on
-how recent of hardware you are running.  The latter works everywhere,
-if I recall correctly.  But I do not believe that herd knows about either
-instruction yet.  Ah, and I need to lose the "empty rmw & (fre;coe)".
-That appears to be where my spurious ordering was coming from, strange
-though that seems to me.
-
-And your use of "rf" instead of "rfe" makes sense, as that is what makes
-the read-from-write provide ordering, correct?  And that should also cover
-the "Uniproc check" that would otherwise be required, right?
-
-Except that I get "Sometimes" on CoWR+poonceonce+Once.litmus...
-Which I can fix by unioning po-loc into po-ghb.  Or is there some
-better way to do this?
-
-> This doesn't account for atomic operations properly; see the "implied" 
-> term in x86tso.cat.
-
-I will look at this more later, reaching end of both battery and useful
-attention span...
-
-							Thanx, Paul
+diff --git a/fs/namei.c b/fs/namei.c
+index 921ae32dbc80..524e829ffc7d 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -4478,8 +4478,8 @@ int vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
+ }
+ EXPORT_SYMBOL(vfs_rename);
+ 
+-SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
+-		int, newdfd, const char __user *, newname, unsigned int, flags)
++static int do_renameat2(int olddfd, const char __user *oldname, int newdfd,
++			const char __user *newname, unsigned int flags)
+ {
+ 	struct dentry *old_dentry, *new_dentry;
+ 	struct dentry *trap;
+@@ -4621,15 +4621,21 @@ SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
++		int, newdfd, const char __user *, newname, unsigned int, flags)
++{
++	return do_renameat2(olddfd, oldname, newdfd, newname, flags);
++}
++
+ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
+ 		int, newdfd, const char __user *, newname)
+ {
+-	return sys_renameat2(olddfd, oldname, newdfd, newname, 0);
++	return do_renameat2(olddfd, oldname, newdfd, newname, 0);
+ }
+ 
+ SYSCALL_DEFINE2(rename, const char __user *, oldname, const char __user *, newname)
+ {
+-	return sys_renameat2(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
++	return do_renameat2(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
+ }
+ 
+ int vfs_whiteout(struct inode *dir, struct dentry *dentry)
+-- 
+2.16.3
