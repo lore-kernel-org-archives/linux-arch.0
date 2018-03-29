@@ -1,457 +1,152 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 097/109] mm: add ksys_mmap_pgoff() helper; remove in-kernel calls to sys_mmap_pgoff()
-Date: Thu, 29 Mar 2018 13:24:14 +0200
-Message-ID: <20180329112426.23043-98-linux@dominikbrodowski.net>
+Subject: [PATCH 066/109] fs: add ksys_mount() helper; remove in-kernel calls to sys_mount()
+Date: Thu, 29 Mar 2018 13:23:43 +0200
+Message-ID: <20180329112426.23043-67-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-Using this helper allows us to avoid the in-kernel calls to the
-sys_mmap_pgoff() syscall. The ksys_ prefix denotes that this function is
-meant as a drop-in replacement for the syscall. In particular, it uses the
-same calling convention as sys_mmap_pgoff().
+Using this helper allows us to avoid the in-kernel calls to the sys_mount()
+syscall. The ksys_ prefix denotes that this function is meant as a drop-in
+replacement for the syscall. In particular, it uses the same calling
+convention as sys_mount().
+
+In the near future, all callers of ksys_mount() should be converted to call
+do_mount() directly.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/alpha/kernel/osf_sys.c             |  2 +-
- arch/arm64/kernel/sys.c                 |  2 +-
- arch/ia64/kernel/sys_ia64.c             |  4 ++--
- arch/m68k/kernel/sys_m68k.c             |  2 +-
- arch/microblaze/kernel/sys_microblaze.c |  6 +++---
- arch/mips/kernel/linux32.c              |  4 ++--
- arch/mips/kernel/syscall.c              |  6 ++++--
- arch/parisc/kernel/sys_parisc.c         |  6 +++---
- arch/powerpc/kernel/syscalls.c          |  2 +-
- arch/riscv/kernel/sys_riscv.c           |  4 ++--
- arch/s390/kernel/compat_linux.c         |  6 +++---
- arch/s390/kernel/sys_s390.c             |  2 +-
- arch/sh/kernel/sys_sh.c                 |  4 ++--
- arch/sparc/kernel/sys_sparc_32.c        |  6 +++---
- arch/sparc/kernel/sys_sparc_64.c        |  2 +-
- arch/um/kernel/syscall.c                |  2 +-
- arch/x86/ia32/sys_ia32.c                |  2 +-
- arch/x86/kernel/sys_x86_64.c            |  2 +-
- include/linux/syscalls.h                |  3 +++
- mm/mmap.c                               | 17 ++++++++++++-----
- mm/nommu.c                              | 17 ++++++++++++-----
- 21 files changed, 60 insertions(+), 41 deletions(-)
+ drivers/base/devtmpfs.c  |  5 +++--
+ fs/namespace.c           | 10 ++++++++--
+ include/linux/syscalls.h |  3 +++
+ init/do_mounts.c         |  4 ++--
+ init/do_mounts_initrd.c  |  6 +++---
+ 5 files changed, 19 insertions(+), 9 deletions(-)
 
-diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
-index fa1a392ca9a2..89faa6f4de47 100644
---- a/arch/alpha/kernel/osf_sys.c
-+++ b/arch/alpha/kernel/osf_sys.c
-@@ -189,7 +189,7 @@ SYSCALL_DEFINE6(osf_mmap, unsigned long, addr, unsigned long, len,
+diff --git a/drivers/base/devtmpfs.c b/drivers/base/devtmpfs.c
+index 50025d7959cb..4afb04686c8e 100644
+--- a/drivers/base/devtmpfs.c
++++ b/drivers/base/devtmpfs.c
+@@ -356,7 +356,8 @@ int devtmpfs_mount(const char *mntdir)
+ 	if (!thread)
+ 		return 0;
+ 
+-	err = sys_mount("devtmpfs", (char *)mntdir, "devtmpfs", MS_SILENT, NULL);
++	err = ksys_mount("devtmpfs", (char *)mntdir, "devtmpfs", MS_SILENT,
++			 NULL);
+ 	if (err)
+ 		printk(KERN_INFO "devtmpfs: error mounting %i\n", err);
+ 	else
+@@ -382,7 +383,7 @@ static int devtmpfsd(void *p)
+ 	*err = sys_unshare(CLONE_NEWNS);
+ 	if (*err)
  		goto out;
- 	if (off & ~PAGE_MASK)
+-	*err = sys_mount("devtmpfs", "/", "devtmpfs", MS_SILENT, options);
++	*err = ksys_mount("devtmpfs", "/", "devtmpfs", MS_SILENT, options);
+ 	if (*err)
  		goto out;
--	ret = sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
-+	ret = ksys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
-  out:
+ 	sys_chdir("/.."); /* will traverse into overmounted root */
+diff --git a/fs/namespace.c b/fs/namespace.c
+index 9d1374ab6e06..642b8b229944 100644
+--- a/fs/namespace.c
++++ b/fs/namespace.c
+@@ -3032,8 +3032,8 @@ struct dentry *mount_subtree(struct vfsmount *mnt, const char *name)
+ }
+ EXPORT_SYMBOL(mount_subtree);
+ 
+-SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
+-		char __user *, type, unsigned long, flags, void __user *, data)
++int ksys_mount(char __user *dev_name, char __user *dir_name, char __user *type,
++	       unsigned long flags, void __user *data)
+ {
+ 	int ret;
+ 	char *kernel_type;
+@@ -3066,6 +3066,12 @@ SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
  	return ret;
  }
-diff --git a/arch/arm64/kernel/sys.c b/arch/arm64/kernel/sys.c
-index 26fe8ea93ea2..72981bae10eb 100644
---- a/arch/arm64/kernel/sys.c
-+++ b/arch/arm64/kernel/sys.c
-@@ -34,7 +34,7 @@ asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
- 	if (offset_in_page(off) != 0)
- 		return -EINVAL;
  
--	return sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
- }
- 
- SYSCALL_DEFINE1(arm64_personality, unsigned int, personality)
-diff --git a/arch/ia64/kernel/sys_ia64.c b/arch/ia64/kernel/sys_ia64.c
-index 085adfcc74a4..9ebe1d633abc 100644
---- a/arch/ia64/kernel/sys_ia64.c
-+++ b/arch/ia64/kernel/sys_ia64.c
-@@ -139,7 +139,7 @@ int ia64_mmap_check(unsigned long addr, unsigned long len,
- asmlinkage unsigned long
- sys_mmap2 (unsigned long addr, unsigned long len, int prot, int flags, int fd, long pgoff)
- {
--	addr = sys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
-+	addr = ksys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
- 	if (!IS_ERR((void *) addr))
- 		force_successful_syscall_return();
- 	return addr;
-@@ -151,7 +151,7 @@ sys_mmap (unsigned long addr, unsigned long len, int prot, int flags, int fd, lo
- 	if (offset_in_page(off) != 0)
- 		return -EINVAL;
- 
--	addr = sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
-+	addr = ksys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
- 	if (!IS_ERR((void *) addr))
- 		force_successful_syscall_return();
- 	return addr;
-diff --git a/arch/m68k/kernel/sys_m68k.c b/arch/m68k/kernel/sys_m68k.c
-index 27e10af5153a..6363ec83a290 100644
---- a/arch/m68k/kernel/sys_m68k.c
-+++ b/arch/m68k/kernel/sys_m68k.c
-@@ -46,7 +46,7 @@ asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
- 	 * so we need to shift the argument down by 1; m68k mmap64(3)
- 	 * (in libc) expects the last argument of mmap2 in 4Kb units.
- 	 */
--	return sys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
- }
- 
- /* Convert virtual (user) address VADDR to physical address PADDR */
-diff --git a/arch/microblaze/kernel/sys_microblaze.c b/arch/microblaze/kernel/sys_microblaze.c
-index f1e1f666ddde..ed9f34da1a2a 100644
---- a/arch/microblaze/kernel/sys_microblaze.c
-+++ b/arch/microblaze/kernel/sys_microblaze.c
-@@ -40,7 +40,7 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
- 	if (pgoff & ~PAGE_MASK)
- 		return -EINVAL;
- 
--	return sys_mmap_pgoff(addr, len, prot, flags, fd, pgoff >> PAGE_SHIFT);
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, pgoff >> PAGE_SHIFT);
- }
- 
- SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
-@@ -50,6 +50,6 @@ SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
- 	if (pgoff & (~PAGE_MASK >> 12))
- 		return -EINVAL;
- 
--	return sys_mmap_pgoff(addr, len, prot, flags, fd,
--			      pgoff >> (PAGE_SHIFT - 12));
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd,
-+			       pgoff >> (PAGE_SHIFT - 12));
- }
-diff --git a/arch/mips/kernel/linux32.c b/arch/mips/kernel/linux32.c
-index 1c5785e72db4..0571ab7b68b0 100644
---- a/arch/mips/kernel/linux32.c
-+++ b/arch/mips/kernel/linux32.c
-@@ -67,8 +67,8 @@ SYSCALL_DEFINE6(32_mmap2, unsigned long, addr, unsigned long, len,
- {
- 	if (pgoff & (~PAGE_MASK >> 12))
- 		return -EINVAL;
--	return sys_mmap_pgoff(addr, len, prot, flags, fd,
--			      pgoff >> (PAGE_SHIFT-12));
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd,
-+			       pgoff >> (PAGE_SHIFT-12));
- }
- 
- #define RLIM_INFINITY32 0x7fffffff
-diff --git a/arch/mips/kernel/syscall.c b/arch/mips/kernel/syscall.c
-index 58c6f634b550..69c17b549fd3 100644
---- a/arch/mips/kernel/syscall.c
-+++ b/arch/mips/kernel/syscall.c
-@@ -63,7 +63,8 @@ SYSCALL_DEFINE6(mips_mmap, unsigned long, addr, unsigned long, len,
- {
- 	if (offset & ~PAGE_MASK)
- 		return -EINVAL;
--	return sys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd,
-+			       offset >> PAGE_SHIFT);
- }
- 
- SYSCALL_DEFINE6(mips_mmap2, unsigned long, addr, unsigned long, len,
-@@ -73,7 +74,8 @@ SYSCALL_DEFINE6(mips_mmap2, unsigned long, addr, unsigned long, len,
- 	if (pgoff & (~PAGE_MASK >> 12))
- 		return -EINVAL;
- 
--	return sys_mmap_pgoff(addr, len, prot, flags, fd, pgoff >> (PAGE_SHIFT-12));
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd,
-+			       pgoff >> (PAGE_SHIFT - 12));
- }
- 
- save_static_function(sys_fork);
-diff --git a/arch/parisc/kernel/sys_parisc.c b/arch/parisc/kernel/sys_parisc.c
-index f36ab1f09595..080d566654ea 100644
---- a/arch/parisc/kernel/sys_parisc.c
-+++ b/arch/parisc/kernel/sys_parisc.c
-@@ -270,8 +270,8 @@ asmlinkage unsigned long sys_mmap2(unsigned long addr, unsigned long len,
- {
- 	/* Make sure the shift for mmap2 is constant (12), no matter what PAGE_SIZE
- 	   we have. */
--	return sys_mmap_pgoff(addr, len, prot, flags, fd,
--			      pgoff >> (PAGE_SHIFT - 12));
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd,
-+			       pgoff >> (PAGE_SHIFT - 12));
- }
- 
- asmlinkage unsigned long sys_mmap(unsigned long addr, unsigned long len,
-@@ -279,7 +279,7 @@ asmlinkage unsigned long sys_mmap(unsigned long addr, unsigned long len,
- 		unsigned long offset)
- {
- 	if (!(offset & ~PAGE_MASK)) {
--		return sys_mmap_pgoff(addr, len, prot, flags, fd,
-+		return ksys_mmap_pgoff(addr, len, prot, flags, fd,
- 					offset >> PAGE_SHIFT);
- 	} else {
- 		return -EINVAL;
-diff --git a/arch/powerpc/kernel/syscalls.c b/arch/powerpc/kernel/syscalls.c
-index ecb981eea74b..1ef3b80b62a6 100644
---- a/arch/powerpc/kernel/syscalls.c
-+++ b/arch/powerpc/kernel/syscalls.c
-@@ -57,7 +57,7 @@ static inline long do_mmap2(unsigned long addr, size_t len,
- 		off >>= shift;
- 	}
- 
--	ret = sys_mmap_pgoff(addr, len, prot, flags, fd, off);
-+	ret = ksys_mmap_pgoff(addr, len, prot, flags, fd, off);
- out:
- 	return ret;
- }
-diff --git a/arch/riscv/kernel/sys_riscv.c b/arch/riscv/kernel/sys_riscv.c
-index 79c78668258e..f7181ed8aafc 100644
---- a/arch/riscv/kernel/sys_riscv.c
-+++ b/arch/riscv/kernel/sys_riscv.c
-@@ -24,8 +24,8 @@ static long riscv_sys_mmap(unsigned long addr, unsigned long len,
- {
- 	if (unlikely(offset & (~PAGE_MASK >> page_shift_offset)))
- 		return -EINVAL;
--	return sys_mmap_pgoff(addr, len, prot, flags, fd,
--			      offset >> (PAGE_SHIFT - page_shift_offset));
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd,
-+			       offset >> (PAGE_SHIFT - page_shift_offset));
- }
- 
- #ifdef CONFIG_64BIT
-diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
-index 9bb897e443a6..da5ef7718254 100644
---- a/arch/s390/kernel/compat_linux.c
-+++ b/arch/s390/kernel/compat_linux.c
-@@ -442,8 +442,8 @@ COMPAT_SYSCALL_DEFINE1(s390_old_mmap, struct mmap_arg_struct_emu31 __user *, arg
- 		return -EFAULT;
- 	if (a.offset & ~PAGE_MASK)
- 		return -EINVAL;
--	return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
--			      a.offset >> PAGE_SHIFT);
-+	return ksys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
-+			       a.offset >> PAGE_SHIFT);
- }
- 
- COMPAT_SYSCALL_DEFINE1(s390_mmap2, struct mmap_arg_struct_emu31 __user *, arg)
-@@ -452,7 +452,7 @@ COMPAT_SYSCALL_DEFINE1(s390_mmap2, struct mmap_arg_struct_emu31 __user *, arg)
- 
- 	if (copy_from_user(&a, arg, sizeof(a)))
- 		return -EFAULT;
--	return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd, a.offset);
-+	return ksys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd, a.offset);
- }
- 
- COMPAT_SYSCALL_DEFINE3(s390_read, unsigned int, fd, char __user *, buf, compat_size_t, count)
-diff --git a/arch/s390/kernel/sys_s390.c b/arch/s390/kernel/sys_s390.c
-index 0090037ab148..31cefe0c28c0 100644
---- a/arch/s390/kernel/sys_s390.c
-+++ b/arch/s390/kernel/sys_s390.c
-@@ -53,7 +53,7 @@ SYSCALL_DEFINE1(mmap2, struct s390_mmap_arg_struct __user *, arg)
- 
- 	if (copy_from_user(&a, arg, sizeof(a)))
- 		goto out;
--	error = sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd, a.offset);
-+	error = ksys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd, a.offset);
- out:
- 	return error;
- }
-diff --git a/arch/sh/kernel/sys_sh.c b/arch/sh/kernel/sys_sh.c
-index 724911c59e7d..f8afc014e084 100644
---- a/arch/sh/kernel/sys_sh.c
-+++ b/arch/sh/kernel/sys_sh.c
-@@ -35,7 +35,7 @@ asmlinkage int old_mmap(unsigned long addr, unsigned long len,
- {
- 	if (off & ~PAGE_MASK)
- 		return -EINVAL;
--	return sys_mmap_pgoff(addr, len, prot, flags, fd, off>>PAGE_SHIFT);
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, off>>PAGE_SHIFT);
- }
- 
- asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
-@@ -51,7 +51,7 @@ asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
- 
- 	pgoff >>= PAGE_SHIFT - 12;
- 
--	return sys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
- }
- 
- /* sys_cacheflush -- flush (part of) the processor cache.  */
-diff --git a/arch/sparc/kernel/sys_sparc_32.c b/arch/sparc/kernel/sys_sparc_32.c
-index 990703b7cf4d..d980da4ffd7b 100644
---- a/arch/sparc/kernel/sys_sparc_32.c
-+++ b/arch/sparc/kernel/sys_sparc_32.c
-@@ -104,8 +104,8 @@ asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
- {
- 	/* Make sure the shift for mmap2 is constant (12), no matter what PAGE_SIZE
- 	   we have. */
--	return sys_mmap_pgoff(addr, len, prot, flags, fd,
--			      pgoff >> (PAGE_SHIFT - 12));
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd,
-+			       pgoff >> (PAGE_SHIFT - 12));
- }
- 
- asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
-@@ -113,7 +113,7 @@ asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
- 	unsigned long off)
- {
- 	/* no alignment check? */
--	return sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
- }
- 
- long sparc_remap_file_pages(unsigned long start, unsigned long size,
-diff --git a/arch/sparc/kernel/sys_sparc_64.c b/arch/sparc/kernel/sys_sparc_64.c
-index 55416db482ad..ebb84dc8a5a7 100644
---- a/arch/sparc/kernel/sys_sparc_64.c
-+++ b/arch/sparc/kernel/sys_sparc_64.c
-@@ -458,7 +458,7 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
- 		goto out;
- 	if (off & ~PAGE_MASK)
- 		goto out;
--	retval = sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
-+	retval = ksys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
- out:
- 	return retval;
- }
-diff --git a/arch/um/kernel/syscall.c b/arch/um/kernel/syscall.c
-index 6258676bed85..35f7047bdebc 100644
---- a/arch/um/kernel/syscall.c
-+++ b/arch/um/kernel/syscall.c
-@@ -22,7 +22,7 @@ long old_mmap(unsigned long addr, unsigned long len,
- 	if (offset & ~PAGE_MASK)
- 		goto out;
- 
--	err = sys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
-+	err = ksys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
-  out:
- 	return err;
- }
-diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
-index 401bd8ec9cf0..bff71b9ae3f5 100644
---- a/arch/x86/ia32/sys_ia32.c
-+++ b/arch/x86/ia32/sys_ia32.c
-@@ -166,7 +166,7 @@ COMPAT_SYSCALL_DEFINE1(x86_mmap, struct mmap_arg_struct32 __user *, arg)
- 	if (a.offset & ~PAGE_MASK)
- 		return -EINVAL;
- 
--	return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
-+	return ksys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
- 			       a.offset>>PAGE_SHIFT);
- }
- 
-diff --git a/arch/x86/kernel/sys_x86_64.c b/arch/x86/kernel/sys_x86_64.c
-index 676774b9bb8d..a3f15ed545b5 100644
---- a/arch/x86/kernel/sys_x86_64.c
-+++ b/arch/x86/kernel/sys_x86_64.c
-@@ -97,7 +97,7 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
- 	if (off & ~PAGE_MASK)
- 		goto out;
- 
--	error = sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
-+	error = ksys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
- out:
- 	return error;
- }
++SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
++		char __user *, type, unsigned long, flags, void __user *, data)
++{
++	return ksys_mount(dev_name, dir_name, type, flags, data);
++}
++
+ /*
+  * Return true if path is reachable from root
+  *
 diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 466d408deefd..ec866c959e7d 100644
+index 6ab7ed71a8b6..3a9f9c534624 100644
 --- a/include/linux/syscalls.h
 +++ b/include/linux/syscalls.h
-@@ -979,6 +979,9 @@ static inline int ksys_fadvise64_64(int fd, loff_t offset, loff_t len,
- 	return -EINVAL;
- }
+@@ -946,4 +946,7 @@ asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
+  * the ksys_xyzyyz() functions prototyped below.
+  */
+ 
++int ksys_mount(char __user *dev_name, char __user *dir_name, char __user *type,
++	       unsigned long flags, void __user *data);
++
  #endif
-+unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
-+			      unsigned long prot, unsigned long flags,
-+			      unsigned long fd, unsigned long pgoff);
- 
- /*
-  * The following kernel syscall equivalents are just wrappers to fs-internal
-diff --git a/mm/mmap.c b/mm/mmap.c
-index 9efdc021ad22..aa0dc8231c0d 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -1488,9 +1488,9 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
- 	return addr;
- }
- 
--SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
--		unsigned long, prot, unsigned long, flags,
--		unsigned long, fd, unsigned long, pgoff)
-+unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
-+			      unsigned long prot, unsigned long flags,
-+			      unsigned long fd, unsigned long pgoff)
+diff --git a/init/do_mounts.c b/init/do_mounts.c
+index 7cf4f6dafd5f..eb768de43d84 100644
+--- a/init/do_mounts.c
++++ b/init/do_mounts.c
+@@ -363,7 +363,7 @@ static void __init get_fs_names(char *page)
+ static int __init do_mount_root(char *name, char *fs, int flags, void *data)
  {
- 	struct file *file = NULL;
- 	unsigned long retval;
-@@ -1537,6 +1537,13 @@ SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
- 	return retval;
+ 	struct super_block *s;
+-	int err = sys_mount(name, "/root", fs, flags, data);
++	int err = ksys_mount(name, "/root", fs, flags, data);
+ 	if (err)
+ 		return err;
+ 
+@@ -599,7 +599,7 @@ void __init prepare_namespace(void)
+ 	mount_root();
+ out:
+ 	devtmpfs_mount("dev");
+-	sys_mount(".", "/", NULL, MS_MOVE, NULL);
++	ksys_mount(".", "/", NULL, MS_MOVE, NULL);
+ 	sys_chroot(".");
  }
  
-+SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
-+		unsigned long, prot, unsigned long, flags,
-+		unsigned long, fd, unsigned long, pgoff)
-+{
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
-+}
-+
- #ifdef __ARCH_WANT_SYS_OLD_MMAP
- struct mmap_arg_struct {
- 	unsigned long addr;
-@@ -1556,8 +1563,8 @@ SYSCALL_DEFINE1(old_mmap, struct mmap_arg_struct __user *, arg)
- 	if (offset_in_page(a.offset))
- 		return -EINVAL;
+diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
+index 53d4f0f326e7..7868a6039fb4 100644
+--- a/init/do_mounts_initrd.c
++++ b/init/do_mounts_initrd.c
+@@ -43,7 +43,7 @@ static int init_linuxrc(struct subprocess_info *info, struct cred *new)
+ 	sys_dup(0);
+ 	/* move initrd over / and chdir/chroot in initrd root */
+ 	sys_chdir("/root");
+-	sys_mount(".", "/", NULL, MS_MOVE, NULL);
++	ksys_mount(".", "/", NULL, MS_MOVE, NULL);
+ 	sys_chroot(".");
+ 	sys_setsid();
+ 	return 0;
+@@ -81,7 +81,7 @@ static void __init handle_initrd(void)
+ 	current->flags &= ~PF_FREEZER_SKIP;
  
--	return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
--			      a.offset >> PAGE_SHIFT);
-+	return ksys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
-+			       a.offset >> PAGE_SHIFT);
- }
- #endif /* __ARCH_WANT_SYS_OLD_MMAP */
+ 	/* move initrd to rootfs' /old */
+-	sys_mount("..", ".", NULL, MS_MOVE, NULL);
++	ksys_mount("..", ".", NULL, MS_MOVE, NULL);
+ 	/* switch root and cwd back to / of rootfs */
+ 	sys_chroot("..");
  
-diff --git a/mm/nommu.c b/mm/nommu.c
-index ebb6e618dade..cad329629530 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -1423,9 +1423,9 @@ unsigned long do_mmap(struct file *file,
- 	return -ENOMEM;
- }
+@@ -95,7 +95,7 @@ static void __init handle_initrd(void)
+ 	mount_root();
  
--SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
--		unsigned long, prot, unsigned long, flags,
--		unsigned long, fd, unsigned long, pgoff)
-+unsigned long ksys_mmap_pgoff(unsigned long addr, unsigned long len,
-+			      unsigned long prot, unsigned long flags,
-+			      unsigned long fd, unsigned long pgoff)
- {
- 	struct file *file = NULL;
- 	unsigned long retval = -EBADF;
-@@ -1447,6 +1447,13 @@ SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
- 	return retval;
- }
- 
-+SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
-+		unsigned long, prot, unsigned long, flags,
-+		unsigned long, fd, unsigned long, pgoff)
-+{
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
-+}
-+
- #ifdef __ARCH_WANT_SYS_OLD_MMAP
- struct mmap_arg_struct {
- 	unsigned long addr;
-@@ -1466,8 +1473,8 @@ SYSCALL_DEFINE1(old_mmap, struct mmap_arg_struct __user *, arg)
- 	if (offset_in_page(a.offset))
- 		return -EINVAL;
- 
--	return sys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
--			      a.offset >> PAGE_SHIFT);
-+	return ksys_mmap_pgoff(a.addr, a.len, a.prot, a.flags, a.fd,
-+			       a.offset >> PAGE_SHIFT);
- }
- #endif /* __ARCH_WANT_SYS_OLD_MMAP */
- 
+ 	printk(KERN_NOTICE "Trying to move old root to /initrd ... ");
+-	error = sys_mount("/old", "/root/initrd", NULL, MS_MOVE, NULL);
++	error = ksys_mount("/old", "/root/initrd", NULL, MS_MOVE, NULL);
+ 	if (!error)
+ 		printk("okay\n");
+ 	else {
 -- 
 2.16.3
