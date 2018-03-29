@@ -1,92 +1,140 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 005/109] mm: use do_futex() instead of sys_futex() in mm_release()
-Date: Thu, 29 Mar 2018 13:22:42 +0200
-Message-ID: <20180329112426.23043-6-linux@dominikbrodowski.net>
+Subject: [PATCH 077/109] fs: add do_mknodat() helper and ksys_mknod() wrapper; remove in-kernel calls to syscall
+Date: Thu, 29 Mar 2018 13:23:54 +0200
+Message-ID: <20180329112426.23043-78-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-sys_futex() is a wrapper to do_futex() which does not modify any
-values here:
+Using the fs-internal do_mknodat() helper allows us to get rid of
+fs-internal calls to the sys_mknodat() syscall.
 
-- uaddr, val and val3 are kept the same
-
-- op is masked with FUTEX_CMD_MASK, but is always set to FUTEX_WAKE.
-  Therefore, val2 is always 0.
-
-- as utime is set to NULL, *timeout is NULL
+Introducing the ksys_mknod() wrapper allows us to avoid the in-kernel
+calls to sys_mknod() syscall. The ksys_ prefix denotes that this function
+is meant as a drop-in replacement for the syscall. In particular, it uses
+the same calling convention as sys_mknod().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Darren Hart <dvhart@infradead.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/futex.h | 13 ++++++++++---
- kernel/fork.c         |  4 ++--
- 2 files changed, 12 insertions(+), 5 deletions(-)
+ fs/internal.h            |  2 ++
+ fs/namei.c               | 12 +++++++++---
+ include/linux/syscalls.h |  9 +++++++++
+ init/do_mounts.h         |  2 +-
+ init/initramfs.c         |  2 +-
+ init/noinitramfs.c       |  2 +-
+ 6 files changed, 23 insertions(+), 6 deletions(-)
 
-diff --git a/include/linux/futex.h b/include/linux/futex.h
-index c0fb9a24bbd2..821ae502d3d8 100644
---- a/include/linux/futex.h
-+++ b/include/linux/futex.h
-@@ -9,9 +9,6 @@ struct inode;
- struct mm_struct;
- struct task_struct;
- 
--long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
--	      u32 __user *uaddr2, u32 val2, u32 val3);
--
- extern int
- handle_futex_death(u32 __user *uaddr, struct task_struct *curr, int pi);
- 
-@@ -55,6 +52,9 @@ union futex_key {
- 
- #ifdef CONFIG_FUTEX
- extern void exit_robust_list(struct task_struct *curr);
-+
-+long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
-+	      u32 __user *uaddr2, u32 val2, u32 val3);
- #ifdef CONFIG_HAVE_FUTEX_CMPXCHG
- #define futex_cmpxchg_enabled 1
- #else
-@@ -64,6 +64,13 @@ extern int futex_cmpxchg_enabled;
- static inline void exit_robust_list(struct task_struct *curr)
- {
- }
-+
-+static inline long do_futex(u32 __user *uaddr, int op, u32 val,
-+			    ktime_t *timeout, u32 __user *uaddr2,
-+			    u32 val2, u32 val3)
-+{
-+	return -EINVAL;
-+}
- #endif
- 
- #ifdef CONFIG_FUTEX_PI
-diff --git a/kernel/fork.c b/kernel/fork.c
-index e5d9d405ae4e..b1e031aac9db 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -1198,8 +1198,8 @@ void mm_release(struct task_struct *tsk, struct mm_struct *mm)
- 			 * not set up a proper pointer then tough luck.
- 			 */
- 			put_user(0, tsk->clear_child_tid);
--			sys_futex(tsk->clear_child_tid, FUTEX_WAKE,
--					1, NULL, NULL, 0);
-+			do_futex(tsk->clear_child_tid, FUTEX_WAKE,
-+					1, NULL, NULL, 0, 0);
- 		}
- 		tsk->clear_child_tid = NULL;
+diff --git a/fs/internal.h b/fs/internal.h
+index a3f04ca2a08b..4f0b67054c54 100644
+--- a/fs/internal.h
++++ b/fs/internal.h
+@@ -55,6 +55,8 @@ extern void __init chrdev_init(void);
+ extern int user_path_mountpoint_at(int, const char __user *, unsigned int, struct path *);
+ extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
+ 			   const char *, unsigned int, struct path *);
++long do_mknodat(int dfd, const char __user *filename, umode_t mode,
++		unsigned int dev);
+ long do_mkdirat(int dfd, const char __user *pathname, umode_t mode);
+ long do_rmdir(int dfd, const char __user *pathname);
+ long do_unlinkat(int dfd, struct filename *name);
+diff --git a/fs/namei.c b/fs/namei.c
+index e15da92209d5..8459a18cdd18 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -3728,8 +3728,8 @@ static int may_mknod(umode_t mode)
  	}
+ }
+ 
+-SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
+-		unsigned, dev)
++long do_mknodat(int dfd, const char __user *filename, umode_t mode,
++		unsigned int dev)
+ {
+ 	struct dentry *dentry;
+ 	struct path path;
+@@ -3772,9 +3772,15 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
++		unsigned int, dev)
++{
++	return do_mknodat(dfd, filename, mode, dev);
++}
++
+ SYSCALL_DEFINE3(mknod, const char __user *, filename, umode_t, mode, unsigned, dev)
+ {
+-	return sys_mknodat(AT_FDCWD, filename, mode, dev);
++	return do_mknodat(AT_FDCWD, filename, mode, dev);
+ }
+ 
+ int vfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 39c5cef86a10..0b4fd684f0f1 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -988,4 +988,13 @@ static inline long ksys_symlink(const char __user *oldname,
+ 	return do_symlinkat(oldname, AT_FDCWD, newname);
+ }
+ 
++extern long do_mknodat(int dfd, const char __user *filename, umode_t mode,
++		       unsigned int dev);
++
++static inline long ksys_mknod(const char __user *filename, umode_t mode,
++			      unsigned int dev)
++{
++	return do_mknodat(AT_FDCWD, filename, mode, dev);
++}
++
+ #endif
+diff --git a/init/do_mounts.h b/init/do_mounts.h
+index 401f90ee1eeb..0bb0806de4ce 100644
+--- a/init/do_mounts.h
++++ b/init/do_mounts.h
+@@ -17,7 +17,7 @@ extern int root_mountflags;
+ static inline int create_dev(char *name, dev_t dev)
+ {
+ 	ksys_unlink(name);
+-	return sys_mknod(name, S_IFBLK|0600, new_encode_dev(dev));
++	return ksys_mknod(name, S_IFBLK|0600, new_encode_dev(dev));
+ }
+ 
+ static inline u32 bstat(char *name)
+diff --git a/init/initramfs.c b/init/initramfs.c
+index cd9571a113b6..2972ed0ab399 100644
+--- a/init/initramfs.c
++++ b/init/initramfs.c
+@@ -359,7 +359,7 @@ static int __init do_name(void)
+ 	} else if (S_ISBLK(mode) || S_ISCHR(mode) ||
+ 		   S_ISFIFO(mode) || S_ISSOCK(mode)) {
+ 		if (maybe_link() == 0) {
+-			sys_mknod(collected, mode, rdev);
++			ksys_mknod(collected, mode, rdev);
+ 			sys_chown(collected, uid, gid);
+ 			sys_chmod(collected, mode);
+ 			do_utime(collected, mtime);
+diff --git a/init/noinitramfs.c b/init/noinitramfs.c
+index a08a9d937e60..f4bad8436c93 100644
+--- a/init/noinitramfs.c
++++ b/init/noinitramfs.c
+@@ -33,7 +33,7 @@ static int __init default_rootfs(void)
+ 	if (err < 0)
+ 		goto out;
+ 
+-	err = sys_mknod((const char __user __force *) "/dev/console",
++	err = ksys_mknod((const char __user __force *) "/dev/console",
+ 			S_IFCHR | S_IRUSR | S_IWUSR,
+ 			new_encode_dev(MKDEV(5, 1)));
+ 	if (err < 0)
 -- 
 2.16.3
