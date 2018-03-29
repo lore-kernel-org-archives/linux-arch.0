@@ -1,145 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59628 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59894 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752221AbeC2L0M (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:12 -0400
+        with ESMTP id S1752753AbeC2L0K (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:10 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 077/109] fs: add do_mknodat() helper and ksys_mknod() wrapper; remove in-kernel calls to syscall
-Date: Thu, 29 Mar 2018 13:23:54 +0200
-Message-ID: <20180329112426.23043-78-linux@dominikbrodowski.net>
+Subject: [PATCH 089/109] fs: add ksys_sync() helper; remove in-kernel calls to sys_sync()
+Date: Thu, 29 Mar 2018 13:24:06 +0200
+Message-ID: <20180329112426.23043-90-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112354.rq6Si7f0W8RBC4qCmBarzos-W5nci5wglzayxCZN27s@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20180329112406.VF97-OgKyL1XEueBK7JfLbiHPZrzWiL-5O0o4MDK7ds@z>
 
-Using the fs-internal do_mknodat() helper allows us to get rid of
-fs-internal calls to the sys_mknodat() syscall.
-
-Introducing the ksys_mknod() wrapper allows us to avoid the in-kernel
-calls to sys_mknod() syscall. The ksys_ prefix denotes that this function
-is meant as a drop-in replacement for the syscall. In particular, it uses
-the same calling convention as sys_mknod().
+Using this helper allows us to avoid the in-kernel calls to the
+sys_sync() syscall. The ksys_ prefix denotes that this function
+is meant as a drop-in replacement for the syscall. In particular, it
+uses the same calling convention as sys_sync().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/internal.h            |  2 ++
- fs/namei.c               | 12 +++++++++---
- include/linux/syscalls.h |  9 +++++++++
- init/do_mounts.h         |  2 +-
- init/initramfs.c         |  2 +-
- init/noinitramfs.c       |  2 +-
- 6 files changed, 23 insertions(+), 6 deletions(-)
+ arch/sparc/kernel/setup_32.c | 2 +-
+ drivers/tty/sysrq.c          | 2 +-
+ fs/sync.c                    | 7 ++++++-
+ include/linux/syscalls.h     | 1 +
+ kernel/power/hibernate.c     | 2 +-
+ kernel/power/suspend.c       | 2 +-
+ kernel/power/user.c          | 2 +-
+ 7 files changed, 12 insertions(+), 6 deletions(-)
 
-diff --git a/fs/internal.h b/fs/internal.h
-index a3f04ca2a08b..4f0b67054c54 100644
---- a/fs/internal.h
-+++ b/fs/internal.h
-@@ -55,6 +55,8 @@ extern void __init chrdev_init(void);
- extern int user_path_mountpoint_at(int, const char __user *, unsigned int, struct path *);
- extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
- 			   const char *, unsigned int, struct path *);
-+long do_mknodat(int dfd, const char __user *filename, umode_t mode,
-+		unsigned int dev);
- long do_mkdirat(int dfd, const char __user *pathname, umode_t mode);
- long do_rmdir(int dfd, const char __user *pathname);
- long do_unlinkat(int dfd, struct filename *name);
-diff --git a/fs/namei.c b/fs/namei.c
-index e15da92209d5..8459a18cdd18 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -3728,8 +3728,8 @@ static int may_mknod(umode_t mode)
+diff --git a/arch/sparc/kernel/setup_32.c b/arch/sparc/kernel/setup_32.c
+index 2e3a3e203061..13664c377196 100644
+--- a/arch/sparc/kernel/setup_32.c
++++ b/arch/sparc/kernel/setup_32.c
+@@ -86,7 +86,7 @@ static void prom_sync_me(void)
+ 	show_free_areas(0, NULL);
+ 	if (!is_idle_task(current)) {
+ 		local_irq_enable();
+-		sys_sync();
++		ksys_sync();
+ 		local_irq_disable();
  	}
+ 	prom_printf("Returning to prom\n");
+diff --git a/drivers/tty/sysrq.c b/drivers/tty/sysrq.c
+index b674793be478..6364890575ec 100644
+--- a/drivers/tty/sysrq.c
++++ b/drivers/tty/sysrq.c
+@@ -660,7 +660,7 @@ static void sysrq_do_reset(struct timer_list *t)
+ 
+ 	state->reset_requested = true;
+ 
+-	sys_sync();
++	ksys_sync();
+ 	kernel_restart(NULL);
  }
  
--SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
--		unsigned, dev)
-+long do_mknodat(int dfd, const char __user *filename, umode_t mode,
-+		unsigned int dev)
+diff --git a/fs/sync.c b/fs/sync.c
+index 6e0a2cbaf6de..602ae94bb67e 100644
+--- a/fs/sync.c
++++ b/fs/sync.c
+@@ -105,7 +105,7 @@ static void fdatawait_one_bdev(struct block_device *bdev, void *arg)
+  * just write metadata (such as inodes or bitmaps) to block device page cache
+  * and do not sync it on their own in ->sync_fs().
+  */
+-SYSCALL_DEFINE0(sync)
++void ksys_sync(void)
  {
- 	struct dentry *dentry;
- 	struct path path;
-@@ -3772,9 +3772,15 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
- 	return error;
- }
+ 	int nowait = 0, wait = 1;
  
-+SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
-+		unsigned int, dev)
-+{
-+	return do_mknodat(dfd, filename, mode, dev);
+@@ -117,6 +117,11 @@ SYSCALL_DEFINE0(sync)
+ 	iterate_bdevs(fdatawait_one_bdev, NULL);
+ 	if (unlikely(laptop_mode))
+ 		laptop_sync_completion();
 +}
 +
- SYSCALL_DEFINE3(mknod, const char __user *, filename, umode_t, mode, unsigned, dev)
- {
--	return sys_mknodat(AT_FDCWD, filename, mode, dev);
-+	return do_mknodat(AT_FDCWD, filename, mode, dev);
++SYSCALL_DEFINE0(sync)
++{
++	ksys_sync();
+ 	return 0;
  }
  
- int vfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 39c5cef86a10..0b4fd684f0f1 100644
+index 3a2e90842ff8..0a9942b3e718 100644
 --- a/include/linux/syscalls.h
 +++ b/include/linux/syscalls.h
-@@ -988,4 +988,13 @@ static inline long ksys_symlink(const char __user *oldname,
- 	return do_symlinkat(oldname, AT_FDCWD, newname);
- }
+@@ -960,6 +960,7 @@ int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
+ int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
+ off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence);
+ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count);
++void ksys_sync(void);
  
-+extern long do_mknodat(int dfd, const char __user *filename, umode_t mode,
-+		       unsigned int dev);
-+
-+static inline long ksys_mknod(const char __user *filename, umode_t mode,
-+			      unsigned int dev)
-+{
-+	return do_mknodat(AT_FDCWD, filename, mode, dev);
-+}
-+
+ /*
+  * The following kernel syscall equivalents are just wrappers to fs-internal
+diff --git a/kernel/power/hibernate.c b/kernel/power/hibernate.c
+index a5c36e9c56a6..4710f1b142fc 100644
+--- a/kernel/power/hibernate.c
++++ b/kernel/power/hibernate.c
+@@ -701,7 +701,7 @@ int hibernate(void)
+ 	}
+ 
+ 	pr_info("Syncing filesystems ... \n");
+-	sys_sync();
++	ksys_sync();
+ 	pr_info("done.\n");
+ 
+ 	error = freeze_processes();
+diff --git a/kernel/power/suspend.c b/kernel/power/suspend.c
+index 0685c4499431..4c10be0f4843 100644
+--- a/kernel/power/suspend.c
++++ b/kernel/power/suspend.c
+@@ -560,7 +560,7 @@ static int enter_state(suspend_state_t state)
+ #ifndef CONFIG_SUSPEND_SKIP_SYNC
+ 	trace_suspend_resume(TPS("sync_filesystems"), 0, true);
+ 	pr_info("Syncing filesystems ... ");
+-	sys_sync();
++	ksys_sync();
+ 	pr_cont("done.\n");
+ 	trace_suspend_resume(TPS("sync_filesystems"), 0, false);
  #endif
-diff --git a/init/do_mounts.h b/init/do_mounts.h
-index 401f90ee1eeb..0bb0806de4ce 100644
---- a/init/do_mounts.h
-+++ b/init/do_mounts.h
-@@ -17,7 +17,7 @@ extern int root_mountflags;
- static inline int create_dev(char *name, dev_t dev)
- {
- 	ksys_unlink(name);
--	return sys_mknod(name, S_IFBLK|0600, new_encode_dev(dev));
-+	return ksys_mknod(name, S_IFBLK|0600, new_encode_dev(dev));
- }
+diff --git a/kernel/power/user.c b/kernel/power/user.c
+index 22df9f7ff672..75c959de4b29 100644
+--- a/kernel/power/user.c
++++ b/kernel/power/user.c
+@@ -224,7 +224,7 @@ static long snapshot_ioctl(struct file *filp, unsigned int cmd,
+ 			break;
  
- static inline u32 bstat(char *name)
-diff --git a/init/initramfs.c b/init/initramfs.c
-index cd9571a113b6..2972ed0ab399 100644
---- a/init/initramfs.c
-+++ b/init/initramfs.c
-@@ -359,7 +359,7 @@ static int __init do_name(void)
- 	} else if (S_ISBLK(mode) || S_ISCHR(mode) ||
- 		   S_ISFIFO(mode) || S_ISSOCK(mode)) {
- 		if (maybe_link() == 0) {
--			sys_mknod(collected, mode, rdev);
-+			ksys_mknod(collected, mode, rdev);
- 			sys_chown(collected, uid, gid);
- 			sys_chmod(collected, mode);
- 			do_utime(collected, mtime);
-diff --git a/init/noinitramfs.c b/init/noinitramfs.c
-index a08a9d937e60..f4bad8436c93 100644
---- a/init/noinitramfs.c
-+++ b/init/noinitramfs.c
-@@ -33,7 +33,7 @@ static int __init default_rootfs(void)
- 	if (err < 0)
- 		goto out;
+ 		printk("Syncing filesystems ... ");
+-		sys_sync();
++		ksys_sync();
+ 		printk("done.\n");
  
--	err = sys_mknod((const char __user __force *) "/dev/console",
-+	err = ksys_mknod((const char __user __force *) "/dev/console",
- 			S_IFCHR | S_IRUSR | S_IWUSR,
- 			new_encode_dev(MKDEV(5, 1)));
- 	if (err < 0)
+ 		error = freeze_processes();
 -- 
 2.16.3
