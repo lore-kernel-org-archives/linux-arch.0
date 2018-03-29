@@ -1,110 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59716 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59218 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752764AbeC2L0N (ORCPT
+        with ESMTP id S1752762AbeC2L0N (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:13 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 064/109] fs/quota: add kernel_quotactl() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:23:41 +0200
-Message-ID: <20180329112426.23043-65-linux@dominikbrodowski.net>
+Subject: [PATCH 004/109] kexec: call do_kexec_load() in compat syscall directly
+Date: Thu, 29 Mar 2018 13:22:41 +0200
+Message-ID: <20180329112426.23043-5-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org
-Message-ID: <20180329112341.A8-oPdpDpjn70L9M4rYsMTIma-pYKvyBi0T6gb8QZZ4@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Eric Biederman <ebiederm@xmission.com>, kexec@lists.infradead.org
+Message-ID: <20180329112241.zOVet28LD8ZsyapN7z1n3aCVW8eWKvSc-mUgdnlpW2M@z>
 
-Using the fs-internal kernel_quotactl() helper allows us to get rid of
-the fs-internal call to the sys_quotactl() syscall.
+do_kexec_load() can be called directly by compat_sys_kexec() as long as
+the same parameters checks are completed which are currently handled
+(also) by sys_kexec(). Therefore, move those to kexec_load_check(),
+call that newly introduced helper function from both sys_kexec() and
+compat_sys_kexec(), and duplicate the remaining code from sys_kexec()
+in compat_sys_kexec().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Acked-by: Jan Kara <jack@suse.cz>
+Cc: Eric Biederman <ebiederm@xmission.com>
+Cc: kexec@lists.infradead.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/quota/compat.c        |  8 ++++----
- fs/quota/quota.c         | 10 ++++++++--
- include/linux/quotaops.h |  3 +++
- 3 files changed, 15 insertions(+), 6 deletions(-)
+ kernel/kexec.c | 52 +++++++++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 39 insertions(+), 13 deletions(-)
 
-diff --git a/fs/quota/compat.c b/fs/quota/compat.c
-index 779caed4f078..1577a2fd51f4 100644
---- a/fs/quota/compat.c
-+++ b/fs/quota/compat.c
-@@ -59,7 +59,7 @@ asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
- 	case Q_GETQUOTA:
- 		dqblk = compat_alloc_user_space(sizeof(struct if_dqblk));
- 		compat_dqblk = addr;
--		ret = sys_quotactl(cmd, special, id, dqblk);
-+		ret = kernel_quotactl(cmd, special, id, dqblk);
- 		if (ret)
- 			break;
- 		if (copy_in_user(compat_dqblk, dqblk, sizeof(*compat_dqblk)) ||
-@@ -75,12 +75,12 @@ asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
- 			get_user(data, &compat_dqblk->dqb_valid) ||
- 			put_user(data, &dqblk->dqb_valid))
- 			break;
--		ret = sys_quotactl(cmd, special, id, dqblk);
-+		ret = kernel_quotactl(cmd, special, id, dqblk);
- 		break;
- 	case Q_XGETQSTAT:
- 		fsqstat = compat_alloc_user_space(sizeof(struct fs_quota_stat));
- 		compat_fsqstat = addr;
--		ret = sys_quotactl(cmd, special, id, fsqstat);
-+		ret = kernel_quotactl(cmd, special, id, fsqstat);
- 		if (ret)
- 			break;
- 		ret = -EFAULT;
-@@ -113,7 +113,7 @@ asmlinkage long sys32_quotactl(unsigned int cmd, const char __user *special,
- 		ret = 0;
- 		break;
- 	default:
--		ret = sys_quotactl(cmd, special, id, addr);
-+		ret = kernel_quotactl(cmd, special, id, addr);
- 	}
- 	return ret;
- }
-diff --git a/fs/quota/quota.c b/fs/quota/quota.c
-index 43612e2a73af..860bfbe7a07a 100644
---- a/fs/quota/quota.c
-+++ b/fs/quota/quota.c
-@@ -833,8 +833,8 @@ static struct super_block *quotactl_block(const char __user *special, int cmd)
-  * calls. Maybe we need to add the process quotas etc. in the future,
-  * but we probably should use rlimits for that.
+diff --git a/kernel/kexec.c b/kernel/kexec.c
+index e62ec4dc6620..aed8fb2564b3 100644
+--- a/kernel/kexec.c
++++ b/kernel/kexec.c
+@@ -192,11 +192,9 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
+  * that to happen you need to do that yourself.
   */
--SYSCALL_DEFINE4(quotactl, unsigned int, cmd, const char __user *, special,
--		qid_t, id, void __user *, addr)
-+int kernel_quotactl(unsigned int cmd, const char __user *special,
-+		    qid_t id, void __user *addr)
+ 
+-SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+-		struct kexec_segment __user *, segments, unsigned long, flags)
++static inline int kexec_load_check(unsigned long nr_segments,
++				   unsigned long flags)
  {
- 	uint cmds, type;
- 	struct super_block *sb = NULL;
-@@ -885,3 +885,9 @@ SYSCALL_DEFINE4(quotactl, unsigned int, cmd, const char __user *, special,
- 		path_put(pathp);
- 	return ret;
- }
-+
-+SYSCALL_DEFINE4(quotactl, unsigned int, cmd, const char __user *, special,
-+		qid_t, id, void __user *, addr)
-+{
-+	return kernel_quotactl(cmd, special, id, addr);
+-	int result;
+-
+ 	/* We only trust the superuser with rebooting the system. */
+ 	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
+ 		return -EPERM;
+@@ -208,17 +206,29 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+ 	if ((flags & KEXEC_FLAGS) != (flags & ~KEXEC_ARCH_MASK))
+ 		return -EINVAL;
+ 
+-	/* Verify we are on the appropriate architecture */
+-	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
+-		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
+-		return -EINVAL;
+-
+ 	/* Put an artificial cap on the number
+ 	 * of segments passed to kexec_load.
+ 	 */
+ 	if (nr_segments > KEXEC_SEGMENT_MAX)
+ 		return -EINVAL;
+ 
++	return 0;
 +}
-diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
-index 2fb6fb11132e..dc905a4ff8d7 100644
---- a/include/linux/quotaops.h
-+++ b/include/linux/quotaops.h
-@@ -27,6 +27,9 @@ static inline bool is_quota_modification(struct inode *inode, struct iattr *ia)
- 		(ia->ia_valid & ATTR_GID && !gid_eq(ia->ia_gid, inode->i_gid));
- }
- 
-+int kernel_quotactl(unsigned int cmd, const char __user *special,
-+		    qid_t id, void __user *addr);
 +
- #if defined(CONFIG_QUOTA)
++SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
++		struct kexec_segment __user *, segments, unsigned long, flags)
++{
++	int result;
++
++	result = kexec_load_check(nr_segments, flags);
++	if (result)
++		return result;
++
++	/* Verify we are on the appropriate architecture */
++	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
++		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
++		return -EINVAL;
++
+ 	/* Because we write directly to the reserved memory
+ 	 * region when loading crash kernels we need a mutex here to
+ 	 * prevent multiple crash  kernels from attempting to load
+@@ -247,15 +257,16 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+ 	struct kexec_segment out, __user *ksegments;
+ 	unsigned long i, result;
  
- #define quota_error(sb, fmt, args...) \
++	result = kexec_load_check(nr_segments, flags);
++	if (result)
++		return result;
++
+ 	/* Don't allow clients that don't understand the native
+ 	 * architecture to do anything.
+ 	 */
+ 	if ((flags & KEXEC_ARCH_MASK) == KEXEC_ARCH_DEFAULT)
+ 		return -EINVAL;
+ 
+-	if (nr_segments > KEXEC_SEGMENT_MAX)
+-		return -EINVAL;
+-
+ 	ksegments = compat_alloc_user_space(nr_segments * sizeof(out));
+ 	for (i = 0; i < nr_segments; i++) {
+ 		result = copy_from_user(&in, &segments[i], sizeof(in));
+@@ -272,6 +283,21 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+ 			return -EFAULT;
+ 	}
+ 
+-	return sys_kexec_load(entry, nr_segments, ksegments, flags);
++	/* Because we write directly to the reserved memory
++	 * region when loading crash kernels we need a mutex here to
++	 * prevent multiple crash  kernels from attempting to load
++	 * simultaneously, and to prevent a crash kernel from loading
++	 * over the top of a in use crash kernel.
++	 *
++	 * KISS: always take the mutex.
++	 */
++	if (!mutex_trylock(&kexec_mutex))
++		return -EBUSY;
++
++	result = do_kexec_load(entry, nr_segments, ksegments, flags);
++
++	mutex_unlock(&kexec_mutex);
++
++	return result;
+ }
+ #endif
 -- 
 2.16.3
