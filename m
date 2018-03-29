@@ -1,96 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:58722 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59008 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751207AbeC2L0B (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:01 -0400
+        with ESMTP id S1752489AbeC2L0D (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:03 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 013/109] net: socket: add __sys_connect() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:22:50 +0200
-Message-ID: <20180329112426.23043-14-linux@dominikbrodowski.net>
+Subject: [PATCH 074/109] fs: add ksys_rmdir() wrapper; remove in-kernel calls to sys_rmdir()
+Date: Thu, 29 Mar 2018 13:23:51 +0200
+Message-ID: <20180329112426.23043-75-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
-Message-ID: <20180329112250.E3ZvTaox8cMJ-5dPUaKKuVCveIuJByI5cpY5an7Sn0A@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112351.PKoHmooe-bbBesAeio2HxGhrYzhIhTlFWEKAjs0ItaI@z>
 
-Using the net-internal helper __sys_connect() allows us to avoid the
-internal calls to the sys_connect() syscall.
+Using this wrapper allows us to avoid the in-kernel calls to the
+sys_rmdir() syscall. The ksys_ prefix denotes that this function is meant
+as a drop-in replacement for the syscall. In particular, it uses the same
+calling convention as sys_rmdir().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/socket.h |  2 ++
- net/compat.c           |  2 +-
- net/socket.c           | 11 ++++++++---
- 3 files changed, 11 insertions(+), 4 deletions(-)
+ fs/internal.h            | 1 +
+ fs/namei.c               | 2 +-
+ include/linux/syscalls.h | 7 +++++++
+ init/initramfs.c         | 4 ++--
+ 4 files changed, 11 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/socket.h b/include/linux/socket.h
-index e9cee272da13..7daa344d7320 100644
---- a/include/linux/socket.h
-+++ b/include/linux/socket.h
-@@ -365,5 +365,7 @@ extern int __sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
- 			 int __user *upeer_addrlen, int flags);
- extern int __sys_socket(int family, int type, int protocol);
- extern int __sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen);
-+extern int __sys_connect(int fd, struct sockaddr __user *uservaddr,
-+			 int addrlen);
+diff --git a/fs/internal.h b/fs/internal.h
+index df262f41a0ef..0eda35fa1743 100644
+--- a/fs/internal.h
++++ b/fs/internal.h
+@@ -55,6 +55,7 @@ extern void __init chrdev_init(void);
+ extern int user_path_mountpoint_at(int, const char __user *, unsigned int, struct path *);
+ extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
+ 			   const char *, unsigned int, struct path *);
++long do_rmdir(int dfd, const char __user *pathname);
+ long do_unlinkat(int dfd, struct filename *name);
  
- #endif /* _LINUX_SOCKET_H */
-diff --git a/net/compat.c b/net/compat.c
-index bba555b1d863..7ab6352268f3 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -817,7 +817,7 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 		ret = __sys_bind(a0, compat_ptr(a1), a[2]);
- 		break;
- 	case SYS_CONNECT:
--		ret = sys_connect(a0, compat_ptr(a1), a[2]);
-+		ret = __sys_connect(a0, compat_ptr(a1), a[2]);
- 		break;
- 	case SYS_LISTEN:
- 		ret = sys_listen(a0, a1);
-diff --git a/net/socket.c b/net/socket.c
-index 291cdae97341..64bdfdf6c6e7 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -1633,8 +1633,7 @@ SYSCALL_DEFINE3(accept, int, fd, struct sockaddr __user *, upeer_sockaddr,
-  *	include the -EINPROGRESS status for such sockets.
-  */
+ /*
+diff --git a/fs/namei.c b/fs/namei.c
+index 524e829ffc7d..8545151f74e9 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -3872,7 +3872,7 @@ int vfs_rmdir(struct inode *dir, struct dentry *dentry)
+ }
+ EXPORT_SYMBOL(vfs_rmdir);
  
--SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
--		int, addrlen)
-+int __sys_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
+-static long do_rmdir(int dfd, const char __user *pathname)
++long do_rmdir(int dfd, const char __user *pathname)
  {
- 	struct socket *sock;
- 	struct sockaddr_storage address;
-@@ -1660,6 +1659,12 @@ SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
- 	return err;
+ 	int error = 0;
+ 	struct filename *name;
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 7cbfb41e666b..746043a05884 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -965,4 +965,11 @@ static inline long ksys_unlink(const char __user *pathname)
+ 	return do_unlinkat(AT_FDCWD, getname(pathname));
  }
  
-+SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
-+		int, addrlen)
++extern long do_rmdir(int dfd, const char __user *pathname);
++
++static inline long ksys_rmdir(const char __user *pathname)
 +{
-+	return __sys_connect(fd, uservaddr, addrlen);
++	return do_rmdir(AT_FDCWD, pathname);
 +}
 +
- /*
-  *	Get the local address ('name') of a socket object. Move the obtained
-  *	name to user space.
-@@ -2479,7 +2484,7 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 		err = __sys_bind(a0, (struct sockaddr __user *)a1, a[2]);
- 		break;
- 	case SYS_CONNECT:
--		err = sys_connect(a0, (struct sockaddr __user *)a1, a[2]);
-+		err = __sys_connect(a0, (struct sockaddr __user *)a1, a[2]);
- 		break;
- 	case SYS_LISTEN:
- 		err = sys_listen(a0, a1);
+ #endif
+diff --git a/init/initramfs.c b/init/initramfs.c
+index 08eb551168a8..73bbb227f868 100644
+--- a/init/initramfs.c
++++ b/init/initramfs.c
+@@ -317,7 +317,7 @@ static void __init clean_path(char *path, umode_t fmode)
+ 
+ 	if (!vfs_lstat(path, &st) && (st.mode ^ fmode) & S_IFMT) {
+ 		if (S_ISDIR(st.mode))
+-			sys_rmdir(path);
++			ksys_rmdir(path);
+ 		else
+ 			ksys_unlink(path);
+ 	}
+@@ -589,7 +589,7 @@ static void __init clean_rootfs(void)
+ 			WARN_ON_ONCE(ret);
+ 			if (!ret) {
+ 				if (S_ISDIR(st.mode))
+-					sys_rmdir(dirp->d_name);
++					ksys_rmdir(dirp->d_name);
+ 				else
+ 					ksys_unlink(dirp->d_name);
+ 			}
 -- 
 2.16.3
