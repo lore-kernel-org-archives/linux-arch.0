@@ -1,61 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59716 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:58700 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752865AbeC2L0U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:20 -0400
+        with ESMTP id S1750753AbeC2L0B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:01 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 100/109] x86: fix sys_sigreturn() return type to be long, not unsigned long
-Date: Thu, 29 Mar 2018 13:24:17 +0200
-Message-ID: <20180329112426.23043-101-linux@dominikbrodowski.net>
+Subject: [PATCH 050/109] fs: add do_renameat2() helper; remove internal call to sys_renameat2()
+Date: Thu, 29 Mar 2018 13:23:27 +0200
+Message-ID: <20180329112426.23043-51-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org, Michael Tautschnig <tautschn@amazon.co.uk>
-Message-ID: <20180329112417.-72FhHRoozgRGbk9t2YgkVvqBSC4mcb4YQFCGCvZnLk@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20180329112327.iT5OzWsegwgNRFUh7FmR1UdJBR0XiCR3lLZ85aCEvG0@z>
 
-Same as with other system calls, sys_sigreturn() should return a value
-of type long, not unsigned long. This also matches the behaviour for
-IA32_EMULATION, see sys32_sigreturn() in arch/x86/ia32/ia32_signal.c .
+Using this helper removes in-kernel calls to the sys_renameat2() syscall.
 
-Cc: Andi Kleen <ak@linux.intel.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Jiri Slaby <jslaby@suse.com>
-Cc: x86@kernel.org
-Cc: Michael Tautschnig <tautschn@amazon.co.uk>
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+This patch is part of a series which removes in-kernel calls to syscalls.
+On this basis, the syscall entry path can be streamlined. For details, see
+http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
+
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/x86/include/asm/syscalls.h | 2 +-
- arch/x86/kernel/signal.c        | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ fs/namei.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/syscalls.h b/arch/x86/include/asm/syscalls.h
-index 1c0bebbd039e..ae6e05fdc24b 100644
---- a/arch/x86/include/asm/syscalls.h
-+++ b/arch/x86/include/asm/syscalls.h
-@@ -35,7 +35,7 @@ asmlinkage long sys_get_thread_area(struct user_desc __user *);
- #ifdef CONFIG_X86_32
+diff --git a/fs/namei.c b/fs/namei.c
+index 921ae32dbc80..524e829ffc7d 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -4478,8 +4478,8 @@ int vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
+ }
+ EXPORT_SYMBOL(vfs_rename);
  
- /* kernel/signal.c */
--asmlinkage unsigned long sys_sigreturn(void);
-+asmlinkage long sys_sigreturn(void);
- 
- /* kernel/vm86_32.c */
- struct vm86_struct;
-diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-index 4cdc0b27ec82..83a26726b689 100644
---- a/arch/x86/kernel/signal.c
-+++ b/arch/x86/kernel/signal.c
-@@ -601,7 +601,7 @@ static int x32_setup_rt_frame(struct ksignal *ksig,
-  * Do a signal return; undo the signal stack.
-  */
- #ifdef CONFIG_X86_32
--asmlinkage unsigned long sys_sigreturn(void)
-+asmlinkage long sys_sigreturn(void)
+-SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
+-		int, newdfd, const char __user *, newname, unsigned int, flags)
++static int do_renameat2(int olddfd, const char __user *oldname, int newdfd,
++			const char __user *newname, unsigned int flags)
  {
- 	struct pt_regs *regs = current_pt_regs();
- 	struct sigframe __user *frame;
+ 	struct dentry *old_dentry, *new_dentry;
+ 	struct dentry *trap;
+@@ -4621,15 +4621,21 @@ SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
++		int, newdfd, const char __user *, newname, unsigned int, flags)
++{
++	return do_renameat2(olddfd, oldname, newdfd, newname, flags);
++}
++
+ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
+ 		int, newdfd, const char __user *, newname)
+ {
+-	return sys_renameat2(olddfd, oldname, newdfd, newname, 0);
++	return do_renameat2(olddfd, oldname, newdfd, newname, 0);
+ }
+ 
+ SYSCALL_DEFINE2(rename, const char __user *, oldname, const char __user *, newname)
+ {
+-	return sys_renameat2(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
++	return do_renameat2(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
+ }
+ 
+ int vfs_whiteout(struct inode *dir, struct dentry *dentry)
 -- 
 2.16.3
