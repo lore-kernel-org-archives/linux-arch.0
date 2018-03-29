@@ -1,606 +1,91 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 107/109] kernel/sys_ni: sort cond_syscall() entries
-Date: Thu, 29 Mar 2018 13:24:24 +0200
-Message-ID: <20180329112426.23043-108-linux@dominikbrodowski.net>
+Subject: [PATCH 017/109] net: socket: add __sys_socketpair() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:22:54 +0200
+Message-ID: <20180329112426.23043-18-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Shuffle the cond_syscall() entries in kernel/sys_ni.c around so that they
-are kept in the same order as in include/uapi/asm-generic/unistd.h. For
-better structuring, add the same comments as in that file, but keep a few
-additional comments and extend the commentary where it seems useful.
+Using the net-internal helper __sys_socketpair() allows us to avoid the
+internal calls to the sys_socketpair() syscall.
 
+This patch is part of a series which removes in-kernel calls to syscalls.
+On this basis, the syscall entry path can be streamlined. For details, see
+http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
+
+Cc: David S. Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- kernel/sys_ni.c | 506 +++++++++++++++++++++++++++++++++++++-------------------
- 1 file changed, 332 insertions(+), 174 deletions(-)
+ include/linux/socket.h |  2 ++
+ net/compat.c           |  2 +-
+ net/socket.c           | 11 ++++++++---
+ 3 files changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
-index 951dbda5c2b4..0c1538f5a559 100644
---- a/kernel/sys_ni.c
-+++ b/kernel/sys_ni.c
-@@ -17,245 +17,403 @@ asmlinkage long sys_ni_syscall(void)
- 	return -ENOSYS;
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index 9ba003e92fea..dbdddf0d079e 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -372,5 +372,7 @@ extern int __sys_getsockname(int fd, struct sockaddr __user *usockaddr,
+ 			     int __user *usockaddr_len);
+ extern int __sys_getpeername(int fd, struct sockaddr __user *usockaddr,
+ 			     int __user *usockaddr_len);
++extern int __sys_socketpair(int family, int type, int protocol,
++			    int __user *usockvec);
+ 
+ #endif /* _LINUX_SOCKET_H */
+diff --git a/net/compat.c b/net/compat.c
+index 74017f618eb1..04db26316438 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -832,7 +832,7 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
+ 		ret = __sys_getpeername(a0, compat_ptr(a1), compat_ptr(a[2]));
+ 		break;
+ 	case SYS_SOCKETPAIR:
+-		ret = sys_socketpair(a0, a1, a[2], compat_ptr(a[3]));
++		ret = __sys_socketpair(a0, a1, a[2], compat_ptr(a[3]));
+ 		break;
+ 	case SYS_SEND:
+ 		ret = sys_send(a0, compat_ptr(a1), a[2], a[3]);
+diff --git a/net/socket.c b/net/socket.c
+index 007fb9483279..5861821f46f5 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1368,8 +1368,7 @@ SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)
+  *	Create a pair of connected sockets.
+  */
+ 
+-SYSCALL_DEFINE4(socketpair, int, family, int, type, int, protocol,
+-		int __user *, usockvec)
++int __sys_socketpair(int family, int type, int protocol, int __user *usockvec)
+ {
+ 	struct socket *sock1, *sock2;
+ 	int fd1, fd2, err;
+@@ -1454,6 +1453,12 @@ SYSCALL_DEFINE4(socketpair, int, family, int, type, int, protocol,
+ 	return err;
  }
  
--cond_syscall(sys_quotactl);
--cond_syscall(compat_sys_quotactl32);
--cond_syscall(sys_acct);
-+/*
-+ * This list is kept in the same order as include/uapi/asm-generic/unistd.h.
-+ * Architecture specific entries go below, followed by deprecated or obsolete
-+ * system calls.
-+ */
-+
-+cond_syscall(sys_io_setup);
-+cond_syscall(compat_sys_io_setup);
-+cond_syscall(sys_io_destroy);
-+cond_syscall(sys_io_submit);
-+cond_syscall(compat_sys_io_submit);
-+cond_syscall(sys_io_cancel);
-+cond_syscall(sys_io_getevents);
-+cond_syscall(compat_sys_io_getevents);
-+
-+/* fs/xattr.c */
-+
-+/* fs/dcache.c */
-+
-+/* fs/cookies.c */
- cond_syscall(sys_lookup_dcookie);
- cond_syscall(compat_sys_lookup_dcookie);
--cond_syscall(sys_swapon);
--cond_syscall(sys_swapoff);
-+
-+/* fs/eventfd.c */
-+cond_syscall(sys_eventfd2);
-+
-+/* fs/eventfd.c */
-+cond_syscall(sys_epoll_create1);
-+cond_syscall(sys_epoll_ctl);
-+cond_syscall(sys_epoll_pwait);
-+cond_syscall(compat_sys_epoll_pwait);
-+
-+/* fs/fcntl.c */
-+
-+/* fs/inotify_user.c */
-+cond_syscall(sys_inotify_init1);
-+cond_syscall(sys_inotify_add_watch);
-+cond_syscall(sys_inotify_rm_watch);
-+
-+/* fs/ioctl.c */
-+
-+/* fs/ioprio.c */
-+cond_syscall(sys_ioprio_set);
-+cond_syscall(sys_ioprio_get);
-+
-+/* fs/locks.c */
-+cond_syscall(sys_flock);
-+
-+/* fs/namei.c */
-+
-+/* fs/namespace.c */
-+
-+/* fs/nfsctl.c */
-+
-+/* fs/open.c */
-+
-+/* fs/pipe.c */
-+
-+/* fs/quota.c */
-+cond_syscall(sys_quotactl);
-+
-+/* fs/readdir.c */
-+
-+/* fs/read_write.c */
-+
-+/* fs/sendfile.c */
-+
-+/* fs/select.c */
-+
-+/* fs/signalfd.c */
-+cond_syscall(sys_signalfd4);
-+cond_syscall(compat_sys_signalfd4);
-+
-+/* fs/splice.c */
-+
-+/* fs/stat.c */
-+
-+/* fs/sync.c */
-+
-+/* fs/timerfd.c */
-+cond_syscall(sys_timerfd_create);
-+cond_syscall(sys_timerfd_settime);
-+cond_syscall(compat_sys_timerfd_settime);
-+cond_syscall(sys_timerfd_gettime);
-+cond_syscall(compat_sys_timerfd_gettime);
-+
-+/* fs/utimes.c */
-+
-+/* kernel/acct.c */
-+cond_syscall(sys_acct);
-+
-+/* kernel/capability.c */
-+cond_syscall(sys_capget);
-+cond_syscall(sys_capset);
-+
-+/* kernel/exec_domain.c */
-+
-+/* kernel/exit.c */
-+
-+/* kernel/fork.c */
-+
-+/* kernel/futex.c */
-+cond_syscall(sys_futex);
-+cond_syscall(compat_sys_futex);
-+cond_syscall(sys_set_robust_list);
-+cond_syscall(compat_sys_set_robust_list);
-+cond_syscall(sys_get_robust_list);
-+cond_syscall(compat_sys_get_robust_list);
-+
-+/* kernel/hrtimer.c */
-+
-+/* kernel/itimer.c */
-+
-+/* kernel/kexec.c */
- cond_syscall(sys_kexec_load);
- cond_syscall(compat_sys_kexec_load);
--cond_syscall(sys_kexec_file_load);
-+
-+/* kernel/module.c */
- cond_syscall(sys_init_module);
--cond_syscall(sys_finit_module);
- cond_syscall(sys_delete_module);
-+
-+/* kernel/posix-timers.c */
-+
-+/* kernel/printk.c */
-+cond_syscall(sys_syslog);
-+
-+/* kernel/ptrace.c */
-+
-+/* kernel/sched/core.c */
-+
-+/* kernel/signal.c */
-+
-+/* kernel/sys.c */
-+cond_syscall(sys_setregid);
-+cond_syscall(sys_setgid);
-+cond_syscall(sys_setreuid);
-+cond_syscall(sys_setuid);
-+cond_syscall(sys_setresuid);
-+cond_syscall(sys_getresuid);
-+cond_syscall(sys_setresgid);
-+cond_syscall(sys_getresgid);
-+cond_syscall(sys_setfsuid);
-+cond_syscall(sys_setfsgid);
-+cond_syscall(sys_setgroups);
-+cond_syscall(sys_getgroups);
-+
-+/* kernel/time.c */
-+
-+/* kernel/timer.c */
-+
-+/* ipc/mqueue.c */
-+cond_syscall(sys_mq_open);
-+cond_syscall(compat_sys_mq_open);
-+cond_syscall(sys_mq_unlink);
-+cond_syscall(sys_mq_timedsend);
-+cond_syscall(compat_sys_mq_timedsend);
-+cond_syscall(sys_mq_timedreceive);
-+cond_syscall(compat_sys_mq_timedreceive);
-+cond_syscall(sys_mq_notify);
-+cond_syscall(compat_sys_mq_notify);
-+cond_syscall(sys_mq_getsetattr);
-+cond_syscall(compat_sys_mq_getsetattr);
-+
-+/* ipc/msg.c */
-+cond_syscall(sys_msgget);
-+cond_syscall(sys_msgctl);
-+cond_syscall(compat_sys_msgctl);
-+cond_syscall(sys_msgrcv);
-+cond_syscall(compat_sys_msgrcv);
-+cond_syscall(sys_msgsnd);
-+cond_syscall(compat_sys_msgsnd);
-+
-+/* ipc/sem.c */
-+cond_syscall(sys_semget);
-+cond_syscall(sys_semctl);
-+cond_syscall(compat_sys_semctl);
-+cond_syscall(sys_semtimedop);
-+cond_syscall(compat_sys_semtimedop);
-+cond_syscall(sys_semop);
-+
-+/* ipc/shm.c */
-+cond_syscall(sys_shmget);
-+cond_syscall(sys_shmctl);
-+cond_syscall(compat_sys_shmctl);
-+cond_syscall(sys_shmat);
-+cond_syscall(compat_sys_shmat);
-+cond_syscall(sys_shmdt);
-+
-+/* net/socket.c */
-+cond_syscall(sys_socket);
- cond_syscall(sys_socketpair);
- cond_syscall(sys_bind);
- cond_syscall(sys_listen);
- cond_syscall(sys_accept);
--cond_syscall(sys_accept4);
- cond_syscall(sys_connect);
- cond_syscall(sys_getsockname);
- cond_syscall(sys_getpeername);
--cond_syscall(sys_sendto);
--cond_syscall(sys_send);
--cond_syscall(sys_recvfrom);
--cond_syscall(sys_recv);
--cond_syscall(sys_socket);
- cond_syscall(sys_setsockopt);
- cond_syscall(compat_sys_setsockopt);
- cond_syscall(sys_getsockopt);
- cond_syscall(compat_sys_getsockopt);
-+cond_syscall(sys_sendto);
- cond_syscall(sys_shutdown);
-+cond_syscall(sys_recvfrom);
-+cond_syscall(compat_sys_recvfrom);
- cond_syscall(sys_sendmsg);
--cond_syscall(sys_sendmmsg);
- cond_syscall(compat_sys_sendmsg);
--cond_syscall(compat_sys_sendmmsg);
- cond_syscall(sys_recvmsg);
--cond_syscall(sys_recvmmsg);
- cond_syscall(compat_sys_recvmsg);
--cond_syscall(compat_sys_recv);
--cond_syscall(compat_sys_recvfrom);
--cond_syscall(compat_sys_recvmmsg);
--cond_syscall(sys_socketcall);
--cond_syscall(sys_futex);
--cond_syscall(compat_sys_futex);
--cond_syscall(sys_set_robust_list);
--cond_syscall(compat_sys_set_robust_list);
--cond_syscall(sys_get_robust_list);
--cond_syscall(compat_sys_get_robust_list);
--cond_syscall(sys_epoll_create);
--cond_syscall(sys_epoll_create1);
--cond_syscall(sys_epoll_ctl);
--cond_syscall(sys_epoll_wait);
--cond_syscall(sys_epoll_pwait);
--cond_syscall(compat_sys_epoll_pwait);
--cond_syscall(sys_semget);
--cond_syscall(sys_semop);
--cond_syscall(sys_semtimedop);
--cond_syscall(compat_sys_semtimedop);
--cond_syscall(sys_semctl);
--cond_syscall(compat_sys_semctl);
--cond_syscall(sys_msgget);
--cond_syscall(sys_msgsnd);
--cond_syscall(compat_sys_msgsnd);
--cond_syscall(sys_msgrcv);
--cond_syscall(compat_sys_msgrcv);
--cond_syscall(sys_msgctl);
--cond_syscall(compat_sys_msgctl);
--cond_syscall(sys_shmget);
--cond_syscall(sys_shmat);
--cond_syscall(compat_sys_shmat);
--cond_syscall(sys_shmdt);
--cond_syscall(sys_shmctl);
--cond_syscall(compat_sys_shmctl);
--cond_syscall(sys_mq_open);
--cond_syscall(sys_mq_unlink);
--cond_syscall(sys_mq_timedsend);
--cond_syscall(sys_mq_timedreceive);
--cond_syscall(sys_mq_notify);
--cond_syscall(sys_mq_getsetattr);
--cond_syscall(compat_sys_mq_open);
--cond_syscall(compat_sys_mq_timedsend);
--cond_syscall(compat_sys_mq_timedreceive);
--cond_syscall(compat_sys_mq_notify);
--cond_syscall(compat_sys_mq_getsetattr);
--cond_syscall(sys_mbind);
--cond_syscall(sys_get_mempolicy);
--cond_syscall(sys_set_mempolicy);
--cond_syscall(compat_sys_mbind);
--cond_syscall(compat_sys_get_mempolicy);
--cond_syscall(compat_sys_set_mempolicy);
-+
-+/* mm/filemap.c */
-+
-+/* mm/nommu.c, also with MMU */
-+cond_syscall(sys_mremap);
-+
-+/* security/keys/keyctl.c */
- cond_syscall(sys_add_key);
- cond_syscall(sys_request_key);
- cond_syscall(sys_keyctl);
- cond_syscall(compat_sys_keyctl);
--cond_syscall(compat_sys_socketcall);
--cond_syscall(sys_inotify_init);
--cond_syscall(sys_inotify_init1);
--cond_syscall(sys_inotify_add_watch);
--cond_syscall(sys_inotify_rm_watch);
--cond_syscall(sys_migrate_pages);
--cond_syscall(sys_move_pages);
--cond_syscall(sys_chown16);
--cond_syscall(sys_fchown16);
--cond_syscall(sys_getegid16);
--cond_syscall(sys_geteuid16);
--cond_syscall(sys_getgid16);
--cond_syscall(sys_getgroups16);
--cond_syscall(sys_getresgid16);
--cond_syscall(sys_getresuid16);
--cond_syscall(sys_getuid16);
--cond_syscall(sys_lchown16);
--cond_syscall(sys_setfsgid16);
--cond_syscall(sys_setfsuid16);
--cond_syscall(sys_setgid16);
--cond_syscall(sys_setgroups16);
--cond_syscall(sys_setregid16);
--cond_syscall(sys_setresgid16);
--cond_syscall(sys_setresuid16);
--cond_syscall(sys_setreuid16);
--cond_syscall(sys_setuid16);
--cond_syscall(sys_sgetmask);
--cond_syscall(sys_ssetmask);
--cond_syscall(sys_vm86old);
--cond_syscall(sys_vm86);
--cond_syscall(sys_modify_ldt);
--cond_syscall(sys_ipc);
--cond_syscall(compat_sys_ipc);
--cond_syscall(compat_sys_sysctl);
--cond_syscall(sys_flock);
--cond_syscall(sys_io_setup);
--cond_syscall(sys_io_destroy);
--cond_syscall(sys_io_submit);
--cond_syscall(sys_io_cancel);
--cond_syscall(sys_io_getevents);
--cond_syscall(compat_sys_io_setup);
--cond_syscall(compat_sys_io_submit);
--cond_syscall(compat_sys_io_getevents);
--cond_syscall(sys_sysfs);
--cond_syscall(sys_syslog);
--cond_syscall(sys_process_vm_readv);
--cond_syscall(sys_process_vm_writev);
--cond_syscall(compat_sys_process_vm_readv);
--cond_syscall(compat_sys_process_vm_writev);
--cond_syscall(sys_uselib);
--cond_syscall(sys_fadvise64);
--cond_syscall(sys_fadvise64_64);
--cond_syscall(sys_madvise);
--cond_syscall(sys_setuid);
--cond_syscall(sys_setregid);
--cond_syscall(sys_setgid);
--cond_syscall(sys_setreuid);
--cond_syscall(sys_setresuid);
--cond_syscall(sys_getresuid);
--cond_syscall(sys_setresgid);
--cond_syscall(sys_getresgid);
--cond_syscall(sys_setgroups);
--cond_syscall(sys_getgroups);
--cond_syscall(sys_setfsuid);
--cond_syscall(sys_setfsgid);
--cond_syscall(sys_capget);
--cond_syscall(sys_capset);
--cond_syscall(sys_copy_file_range);
- 
--/* arch-specific weak syscall entries */
--cond_syscall(sys_pciconfig_read);
--cond_syscall(sys_pciconfig_write);
--cond_syscall(sys_pciconfig_iobase);
--cond_syscall(compat_sys_s390_ipc);
--cond_syscall(ppc_rtas);
--cond_syscall(sys_spu_run);
--cond_syscall(sys_spu_create);
--cond_syscall(sys_subpage_prot);
--cond_syscall(sys_s390_pci_mmio_read);
--cond_syscall(sys_s390_pci_mmio_write);
-+/* arch/example/kernel/sys_example.c */
- 
--/* mmu depending weak syscall entries */
-+/* mm/fadvise.c */
-+cond_syscall(sys_fadvise64_64);
-+
-+/* mm/, CONFIG_MMU only */
-+cond_syscall(sys_swapon);
-+cond_syscall(sys_swapoff);
- cond_syscall(sys_mprotect);
- cond_syscall(sys_msync);
- cond_syscall(sys_mlock);
- cond_syscall(sys_munlock);
- cond_syscall(sys_mlockall);
- cond_syscall(sys_munlockall);
--cond_syscall(sys_mlock2);
- cond_syscall(sys_mincore);
- cond_syscall(sys_madvise);
--cond_syscall(sys_mremap);
- cond_syscall(sys_remap_file_pages);
--cond_syscall(compat_sys_move_pages);
-+cond_syscall(sys_mbind);
-+cond_syscall(compat_sys_mbind);
-+cond_syscall(sys_get_mempolicy);
-+cond_syscall(compat_sys_get_mempolicy);
-+cond_syscall(sys_set_mempolicy);
-+cond_syscall(compat_sys_set_mempolicy);
-+cond_syscall(sys_migrate_pages);
- cond_syscall(compat_sys_migrate_pages);
-+cond_syscall(sys_move_pages);
-+cond_syscall(compat_sys_move_pages);
- 
--/* block-layer dependent */
--cond_syscall(sys_bdflush);
--cond_syscall(sys_ioprio_set);
--cond_syscall(sys_ioprio_get);
--
--/* New file descriptors */
--cond_syscall(sys_signalfd);
--cond_syscall(sys_signalfd4);
--cond_syscall(compat_sys_signalfd);
--cond_syscall(compat_sys_signalfd4);
--cond_syscall(sys_timerfd_create);
--cond_syscall(sys_timerfd_settime);
--cond_syscall(sys_timerfd_gettime);
--cond_syscall(compat_sys_timerfd_settime);
--cond_syscall(compat_sys_timerfd_gettime);
--cond_syscall(sys_eventfd);
--cond_syscall(sys_eventfd2);
--cond_syscall(sys_memfd_create);
--cond_syscall(sys_userfaultfd);
--
--/* performance counters: */
- cond_syscall(sys_perf_event_open);
-+cond_syscall(sys_accept4);
-+cond_syscall(sys_recvmmsg);
-+cond_syscall(compat_sys_recvmmsg);
-+
-+/*
-+ * Architecture specific syscalls: see further below
-+ */
- 
--/* fanotify! */
-+/* fanotify */
- cond_syscall(sys_fanotify_init);
- cond_syscall(sys_fanotify_mark);
--cond_syscall(compat_sys_fanotify_mark);
- 
- /* open by handle */
- cond_syscall(sys_name_to_handle_at);
- cond_syscall(sys_open_by_handle_at);
- cond_syscall(compat_sys_open_by_handle_at);
- 
-+cond_syscall(sys_sendmmsg);
-+cond_syscall(compat_sys_sendmmsg);
-+cond_syscall(sys_process_vm_readv);
-+cond_syscall(compat_sys_process_vm_readv);
-+cond_syscall(sys_process_vm_writev);
-+cond_syscall(compat_sys_process_vm_writev);
-+
- /* compare kernel pointers */
- cond_syscall(sys_kcmp);
- 
-+cond_syscall(sys_finit_module);
-+
- /* operate on Secure Computing state */
- cond_syscall(sys_seccomp);
- 
-+cond_syscall(sys_memfd_create);
-+
- /* access BPF programs and maps */
- cond_syscall(sys_bpf);
- 
- /* execveat */
- cond_syscall(sys_execveat);
- 
-+cond_syscall(sys_userfaultfd);
-+
- /* membarrier */
- cond_syscall(sys_membarrier);
- 
-+cond_syscall(sys_mlock2);
-+
-+cond_syscall(sys_copy_file_range);
-+
- /* memory protection keys */
- cond_syscall(sys_pkey_mprotect);
- cond_syscall(sys_pkey_alloc);
- cond_syscall(sys_pkey_free);
-+
-+
-+/*
-+ * Architecture specific weak syscall entries.
-+ */
-+
-+/* pciconfig: alpha, arm, arm64, ia64, sparc */
-+cond_syscall(sys_pciconfig_read);
-+cond_syscall(sys_pciconfig_write);
-+cond_syscall(sys_pciconfig_iobase);
-+
-+/* sys_socketcall: arm, mips, x86, ... */
-+cond_syscall(sys_socketcall);
-+cond_syscall(compat_sys_socketcall);
-+
-+/* compat syscalls for arm64, x86, ... */
-+cond_syscall(compat_sys_sysctl);
-+cond_syscall(compat_sys_fanotify_mark);
-+
-+/* x86 */
-+cond_syscall(sys_vm86old);
-+cond_syscall(sys_modify_ldt);
-+cond_syscall(compat_sys_quotactl32);
-+cond_syscall(sys_vm86);
-+cond_syscall(sys_kexec_file_load);
-+
-+/* s390 */
-+cond_syscall(sys_s390_pci_mmio_read);
-+cond_syscall(sys_s390_pci_mmio_write);
-+cond_syscall(compat_sys_s390_ipc);
-+
-+/* powerpc */
-+cond_syscall(ppc_rtas);
-+cond_syscall(sys_spu_run);
-+cond_syscall(sys_spu_create);
-+cond_syscall(sys_subpage_prot);
-+
-+
-+/*
-+ * Deprecated system calls which are still defined in
-+ * include/uapi/asm-generic/unistd.h and wanted by >= 1 arch
-+ */
-+
-+/* __ARCH_WANT_SYSCALL_NO_FLAGS */
-+cond_syscall(sys_epoll_create);
-+cond_syscall(sys_inotify_init);
-+cond_syscall(sys_eventfd);
-+cond_syscall(sys_signalfd);
-+cond_syscall(compat_sys_signalfd);
-+
-+/* __ARCH_WANT_SYSCALL_OFF_T */
-+cond_syscall(sys_fadvise64);
-+
-+/* __ARCH_WANT_SYSCALL_DEPRECATED */
-+cond_syscall(sys_epoll_wait);
-+cond_syscall(sys_recv);
-+cond_syscall(compat_sys_recv);
-+cond_syscall(sys_send);
-+cond_syscall(sys_bdflush);
-+cond_syscall(sys_uselib);
-+
-+
-+/*
-+ * The syscalls below are not found in include/uapi/asm-generic/unistd.h
-+ */
-+
-+/* obsolete: SGETMASK_SYSCALL */
-+cond_syscall(sys_sgetmask);
-+cond_syscall(sys_ssetmask);
-+
-+/* obsolete: SYSFS_SYSCALL */
-+cond_syscall(sys_sysfs);
-+
-+/* obsolete: __ARCH_WANT_SYS_IPC */
-+cond_syscall(sys_ipc);
-+cond_syscall(compat_sys_ipc);
-+
-+/* obsolete: UID16 */
-+cond_syscall(sys_chown16);
-+cond_syscall(sys_fchown16);
-+cond_syscall(sys_getegid16);
-+cond_syscall(sys_geteuid16);
-+cond_syscall(sys_getgid16);
-+cond_syscall(sys_getgroups16);
-+cond_syscall(sys_getresgid16);
-+cond_syscall(sys_getresuid16);
-+cond_syscall(sys_getuid16);
-+cond_syscall(sys_lchown16);
-+cond_syscall(sys_setfsgid16);
-+cond_syscall(sys_setfsuid16);
-+cond_syscall(sys_setgid16);
-+cond_syscall(sys_setgroups16);
-+cond_syscall(sys_setregid16);
-+cond_syscall(sys_setresgid16);
-+cond_syscall(sys_setresuid16);
-+cond_syscall(sys_setreuid16);
-+cond_syscall(sys_setuid16);
++SYSCALL_DEFINE4(socketpair, int, family, int, type, int, protocol,
++		int __user *, usockvec)
++{
++	return __sys_socketpair(family, type, protocol, usockvec);
++}
++
+ /*
+  *	Bind a name to a socket. Nothing much to do here since it's
+  *	the protocol's responsibility to handle the local address.
+@@ -2521,7 +2526,7 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
+ 				      (int __user *)a[2]);
+ 		break;
+ 	case SYS_SOCKETPAIR:
+-		err = sys_socketpair(a0, a1, a[2], (int __user *)a[3]);
++		err = __sys_socketpair(a0, a1, a[2], (int __user *)a[3]);
+ 		break;
+ 	case SYS_SEND:
+ 		err = sys_send(a0, (void __user *)a1, a[2], a[3]);
 -- 
 2.16.3
