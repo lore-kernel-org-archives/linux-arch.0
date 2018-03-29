@@ -1,7 +1,7 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 039/109] ipc: add msgsnd syscall/compat_syscall wrappers
-Date: Thu, 29 Mar 2018 13:23:16 +0200
-Message-ID: <20180329112426.23043-40-linux@dominikbrodowski.net>
+Subject: [PATCH 095/109] fs: add ksys_fallocate() wrapper; remove in-kernel calls to sys_fallocate()
+Date: Thu, 29 Mar 2018 13:24:12 +0200
+Message-ID: <20180329112426.23043-96-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
@@ -10,10 +10,10 @@ To: linux-kernel@vger.kernel.org
 Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Provide ksys_msgsnd() and compat_ksys_msgsnd() wrappers to avoid in-kernel
-calls to these syscalls. The ksys_ prefix denotes that these functions are
-meant as a drop-in replacement for the syscalls. In particular, they use
-the same calling convention as sys_msgsnd() and compat_sys_msgsnd().
+Using the ksys_fallocate() wrapper allows us to get rid of in-kernel
+calls to the sys_fallocate() syscall. The ksys_ prefix denotes that this
+function is meant as a drop-in replacement for the syscall. In
+particular, it uses the same calling convention as sys_fallocate().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -23,106 +23,134 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- ipc/msg.c     | 20 ++++++++++++++++----
- ipc/syscall.c |  4 ++--
- ipc/util.h    |  4 ++++
- 3 files changed, 22 insertions(+), 6 deletions(-)
+ arch/mips/kernel/linux32.c      | 4 ++--
+ arch/parisc/kernel/sys_parisc.c | 4 ++--
+ arch/powerpc/kernel/sys_ppc32.c | 2 +-
+ arch/s390/kernel/compat_linux.c | 4 ++--
+ arch/sparc/kernel/sys_sparc32.c | 4 ++--
+ arch/x86/ia32/sys_ia32.c        | 4 ++--
+ fs/open.c                       | 7 ++++++-
+ include/linux/syscalls.h        | 1 +
+ 8 files changed, 18 insertions(+), 12 deletions(-)
 
-diff --git a/ipc/msg.c b/ipc/msg.c
-index abc5826270a6..9de48065c1ac 100644
---- a/ipc/msg.c
-+++ b/ipc/msg.c
-@@ -867,8 +867,8 @@ static long do_msgsnd(int msqid, long mtype, void __user *mtext,
- 	return err;
- }
- 
--SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
--		int, msgflg)
-+long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
-+		 int msgflg)
+diff --git a/arch/mips/kernel/linux32.c b/arch/mips/kernel/linux32.c
+index 91e85e2f8aa5..0779d474c8ad 100644
+--- a/arch/mips/kernel/linux32.c
++++ b/arch/mips/kernel/linux32.c
+@@ -157,6 +157,6 @@ asmlinkage long sys32_fadvise64_64(int fd, int __pad,
+ asmlinkage long sys32_fallocate(int fd, int mode, unsigned offset_a2,
+ 	unsigned offset_a3, unsigned len_a4, unsigned len_a5)
  {
- 	long mtype;
- 
-@@ -877,6 +877,12 @@ SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
- 	return do_msgsnd(msqid, mtype, msgp->mtext, msgsz, msgflg);
+-	return sys_fallocate(fd, mode, merge_64(offset_a2, offset_a3),
+-			     merge_64(len_a4, len_a5));
++	return ksys_fallocate(fd, mode, merge_64(offset_a2, offset_a3),
++			      merge_64(len_a4, len_a5));
+ }
+diff --git a/arch/parisc/kernel/sys_parisc.c b/arch/parisc/kernel/sys_parisc.c
+index 4f47e8379854..588fab336ddd 100644
+--- a/arch/parisc/kernel/sys_parisc.c
++++ b/arch/parisc/kernel/sys_parisc.c
+@@ -367,8 +367,8 @@ asmlinkage long parisc_sync_file_range(int fd,
+ asmlinkage long parisc_fallocate(int fd, int mode, u32 offhi, u32 offlo,
+ 				u32 lenhi, u32 lenlo)
+ {
+-        return sys_fallocate(fd, mode, ((u64)offhi << 32) | offlo,
+-                             ((u64)lenhi << 32) | lenlo);
++	return ksys_fallocate(fd, mode, ((u64)offhi << 32) | offlo,
++			      ((u64)lenhi << 32) | lenlo);
  }
  
-+SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
-+		int, msgflg)
+ long parisc_personality(unsigned long personality)
+diff --git a/arch/powerpc/kernel/sys_ppc32.c b/arch/powerpc/kernel/sys_ppc32.c
+index 36a651e6e033..68f11e1065f8 100644
+--- a/arch/powerpc/kernel/sys_ppc32.c
++++ b/arch/powerpc/kernel/sys_ppc32.c
+@@ -100,7 +100,7 @@ asmlinkage int compat_sys_truncate64(const char __user * path, u32 reg4,
+ asmlinkage long compat_sys_fallocate(int fd, int mode, u32 offhi, u32 offlo,
+ 				     u32 lenhi, u32 lenlo)
+ {
+-	return sys_fallocate(fd, mode, ((loff_t)offhi << 32) | offlo,
++	return ksys_fallocate(fd, mode, ((loff_t)offhi << 32) | offlo,
+ 			     ((loff_t)lenhi << 32) | lenlo);
+ }
+ 
+diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
+index 71e2c5bc4926..039858f9f128 100644
+--- a/arch/s390/kernel/compat_linux.c
++++ b/arch/s390/kernel/compat_linux.c
+@@ -516,6 +516,6 @@ COMPAT_SYSCALL_DEFINE6(s390_sync_file_range, int, fd, u32, offhigh, u32, offlow,
+ COMPAT_SYSCALL_DEFINE6(s390_fallocate, int, fd, int, mode, u32, offhigh, u32, offlow,
+ 		       u32, lenhigh, u32, lenlow)
+ {
+-	return sys_fallocate(fd, mode, ((loff_t)offhigh << 32) + offlow,
+-			     ((u64)lenhigh << 32) + lenlow);
++	return ksys_fallocate(fd, mode, ((loff_t)offhigh << 32) + offlow,
++			      ((u64)lenhigh << 32) + lenlow);
+ }
+diff --git a/arch/sparc/kernel/sys_sparc32.c b/arch/sparc/kernel/sys_sparc32.c
+index 40c0d2e1db1d..4ba62d676632 100644
+--- a/arch/sparc/kernel/sys_sparc32.c
++++ b/arch/sparc/kernel/sys_sparc32.c
+@@ -250,6 +250,6 @@ long sys32_sync_file_range(unsigned int fd, unsigned long off_high, unsigned lon
+ asmlinkage long compat_sys_fallocate(int fd, int mode, u32 offhi, u32 offlo,
+ 				     u32 lenhi, u32 lenlo)
+ {
+-	return sys_fallocate(fd, mode, ((loff_t)offhi << 32) | offlo,
+-			     ((loff_t)lenhi << 32) | lenlo);
++	return ksys_fallocate(fd, mode, ((loff_t)offhi << 32) | offlo,
++			      ((loff_t)lenhi << 32) | lenlo);
+ }
+diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
+index c08c25f73d79..df2acb13623f 100644
+--- a/arch/x86/ia32/sys_ia32.c
++++ b/arch/x86/ia32/sys_ia32.c
+@@ -226,8 +226,8 @@ COMPAT_SYSCALL_DEFINE6(x86_fallocate, int, fd, int, mode,
+ 		       unsigned int, offset_lo, unsigned int, offset_hi,
+ 		       unsigned int, len_lo, unsigned int, len_hi)
+ {
+-	return sys_fallocate(fd, mode, ((u64)offset_hi << 32) | offset_lo,
+-			     ((u64)len_hi << 32) | len_lo);
++	return ksys_fallocate(fd, mode, ((u64)offset_hi << 32) | offset_lo,
++			      ((u64)len_hi << 32) | len_lo);
+ }
+ 
+ /*
+diff --git a/fs/open.c b/fs/open.c
+index 2e816fc7bd56..d0e955b558ad 100644
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -333,7 +333,7 @@ int vfs_fallocate(struct file *file, int mode, loff_t offset, loff_t len)
+ }
+ EXPORT_SYMBOL_GPL(vfs_fallocate);
+ 
+-SYSCALL_DEFINE4(fallocate, int, fd, int, mode, loff_t, offset, loff_t, len)
++int ksys_fallocate(int fd, int mode, loff_t offset, loff_t len)
+ {
+ 	struct fd f = fdget(fd);
+ 	int error = -EBADF;
+@@ -345,6 +345,11 @@ SYSCALL_DEFINE4(fallocate, int, fd, int, mode, loff_t, offset, loff_t, len)
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE4(fallocate, int, fd, int, mode, loff_t, offset, loff_t, len)
 +{
-+	return ksys_msgsnd(msqid, msgp, msgsz, msgflg);
++	return ksys_fallocate(fd, mode, offset, len);
 +}
 +
- #ifdef CONFIG_COMPAT
+ /*
+  * access() needs to use the real uid/gid, not the effective uid/gid.
+  * We do this by temporarily clearing all FS-related capabilities and
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index a30e4c2d0c27..613b8127834d 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -969,6 +969,7 @@ ssize_t ksys_pread64(unsigned int fd, char __user *buf, size_t count,
+ 		     loff_t pos);
+ ssize_t ksys_pwrite64(unsigned int fd, const char __user *buf,
+ 		      size_t count, loff_t pos);
++int ksys_fallocate(int fd, int mode, loff_t offset, loff_t len);
  
- struct compat_msgbuf {
-@@ -884,8 +890,8 @@ struct compat_msgbuf {
- 	char mtext[1];
- };
- 
--COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
--		       compat_ssize_t, msgsz, int, msgflg)
-+long compat_ksys_msgsnd(int msqid, compat_uptr_t msgp,
-+		       compat_ssize_t msgsz, int msgflg)
- {
- 	struct compat_msgbuf __user *up = compat_ptr(msgp);
- 	compat_long_t mtype;
-@@ -894,6 +900,12 @@ COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
- 		return -EFAULT;
- 	return do_msgsnd(msqid, mtype, up->mtext, (ssize_t)msgsz, msgflg);
- }
-+
-+COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
-+		       compat_ssize_t, msgsz, int, msgflg)
-+{
-+	return compat_ksys_msgsnd(msqid, msgp, msgsz, msgflg);
-+}
- #endif
- 
- static inline int convert_mode(long *msgtyp, int msgflg)
-diff --git a/ipc/syscall.c b/ipc/syscall.c
-index 0228c7afd882..77a883ef2eca 100644
---- a/ipc/syscall.c
-+++ b/ipc/syscall.c
-@@ -46,7 +46,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
- 	}
- 
- 	case MSGSND:
--		return sys_msgsnd(first, (struct msgbuf __user *) ptr,
-+		return ksys_msgsnd(first, (struct msgbuf __user *) ptr,
- 				  second, third);
- 	case MSGRCV:
- 		switch (version) {
-@@ -142,7 +142,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
- 		return compat_ksys_semctl(first, second, third, pad);
- 
- 	case MSGSND:
--		return compat_sys_msgsnd(first, ptr, second, third);
-+		return compat_ksys_msgsnd(first, ptr, second, third);
- 
- 	case MSGRCV: {
- 		void __user *uptr = compat_ptr(ptr);
-diff --git a/ipc/util.h b/ipc/util.h
-index c16aceb1bdec..51853dc2f340 100644
---- a/ipc/util.h
-+++ b/ipc/util.h
-@@ -246,6 +246,8 @@ long ksys_msgget(key_t key, int msgflg);
- long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
- long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
- 		 long msgtyp, int msgflg);
-+long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
-+		 int msgflg);
- long ksys_shmget(key_t key, size_t size, int shmflg);
- long ksys_shmdt(char __user *shmaddr);
- long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
-@@ -259,6 +261,8 @@ long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
- long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
- long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
- 			compat_long_t msgtyp, int msgflg);
-+long compat_ksys_msgsnd(int msqid, compat_uptr_t msgp,
-+		       compat_ssize_t msgsz, int msgflg);
- long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
- #endif /* CONFIG_COMPAT */
- 
+ /*
+  * The following kernel syscall equivalents are just wrappers to fs-internal
 -- 
 2.16.3
