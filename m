@@ -1,307 +1,650 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 042/109] kernel: provide ksys_*() wrappers for syscalls called by kernel/uid16.c
-Date: Thu, 29 Mar 2018 13:23:19 +0200
-Message-ID: <20180329112426.23043-43-linux@dominikbrodowski.net>
+Subject: [PATCH 108/109] kernel/sys_ni: remove {sys_,sys_compat} from cond_syscall definitions
+Date: Thu, 29 Mar 2018 13:24:25 +0200
+Message-ID: <20180329112426.23043-109-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "Eric W . Biederman" <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Using these helpers allows us to avoid the in-kernel calls to these
-syscalls: sys_setregid(), sys_setgid(), sys_setreuid(), sys_setuid(),
-sys_setresuid(), sys_setresgid(), sys_setfsuid(), and sys_setfsgid().
+This keeps it in line with the SYSCALL_DEFINEx() / COMPAT_SYSCALL_DEFINEx()
+calling convention.
 
-The ksys_ prefix denotes that these function are meant as a drop-in
-replacement for the syscall. In particular, they use the same calling
-convention.
-
-This patch is part of a series which removes in-kernel calls to syscalls.
-On this basis, the syscall entry path can be streamlined. For details, see
-http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
-
-Cc: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Eric W. Biederman <ebiederm@xmission.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- kernel/sys.c   | 58 ++++++++++++++++++++++++++++++++++++++++++++++++++--------
- kernel/uid16.c | 19 ++++++++++---------
- kernel/uid16.h | 14 ++++++++++++++
- 3 files changed, 74 insertions(+), 17 deletions(-)
- create mode 100644 kernel/uid16.h
+ Documentation/process/adding-syscalls.rst |   2 +-
+ kernel/sys_ni.c                           | 433 +++++++++++++++---------------
+ 2 files changed, 219 insertions(+), 216 deletions(-)
 
-diff --git a/kernel/sys.c b/kernel/sys.c
-index ebb138b841c8..550f47788ae4 100644
---- a/kernel/sys.c
-+++ b/kernel/sys.c
-@@ -69,6 +69,8 @@
- #include <asm/io.h>
- #include <asm/unistd.h>
+diff --git a/Documentation/process/adding-syscalls.rst b/Documentation/process/adding-syscalls.rst
+index 556613744556..314c8bf6f2a2 100644
+--- a/Documentation/process/adding-syscalls.rst
++++ b/Documentation/process/adding-syscalls.rst
+@@ -222,7 +222,7 @@ your new syscall number may get adjusted to resolve conflicts.
+ The file ``kernel/sys_ni.c`` provides a fallback stub implementation of each
+ system call, returning ``-ENOSYS``.  Add your new system call here too::
  
-+#include "uid16.h"
-+
- #ifndef SET_UNALIGN_CTL
- # define SET_UNALIGN_CTL(a, b)	(-EINVAL)
- #endif
-@@ -340,7 +342,7 @@ SYSCALL_DEFINE2(getpriority, int, which, int, who)
-  *      operations (as far as semantic preservation is concerned).
-  */
- #ifdef CONFIG_MULTIUSER
--SYSCALL_DEFINE2(setregid, gid_t, rgid, gid_t, egid)
-+long __sys_setregid(gid_t rgid, gid_t egid)
- {
- 	struct user_namespace *ns = current_user_ns();
- 	const struct cred *old;
-@@ -392,12 +394,17 @@ SYSCALL_DEFINE2(setregid, gid_t, rgid, gid_t, egid)
- 	return retval;
+-    cond_syscall(sys_xyzzy);
++    COND_SYSCALL(xyzzy);
+ 
+ Your new kernel functionality, and the system call that controls it, should
+ normally be optional, so add a ``CONFIG`` option (typically to
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index 0c1538f5a559..6cafc008f6db 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -17,53 +17,56 @@ asmlinkage long sys_ni_syscall(void)
+ 	return -ENOSYS;
  }
  
-+SYSCALL_DEFINE2(setregid, gid_t, rgid, gid_t, egid)
-+{
-+	return __sys_setregid(rgid, egid);
-+}
++#define COND_SYSCALL(name) cond_syscall(sys_##name)
++#define COND_SYSCALL_COMPAT(name) cond_syscall(compat_sys_##name)
 +
  /*
-  * setgid() is implemented like SysV w/ SAVED_IDS
-  *
-  * SMP: Same implicit races as above.
+  * This list is kept in the same order as include/uapi/asm-generic/unistd.h.
+  * Architecture specific entries go below, followed by deprecated or obsolete
+  * system calls.
   */
--SYSCALL_DEFINE1(setgid, gid_t, gid)
-+long __sys_setgid(gid_t gid)
- {
- 	struct user_namespace *ns = current_user_ns();
- 	const struct cred *old;
-@@ -429,6 +436,11 @@ SYSCALL_DEFINE1(setgid, gid_t, gid)
- 	return retval;
- }
  
-+SYSCALL_DEFINE1(setgid, gid_t, gid)
-+{
-+	return __sys_setgid(gid);
-+}
-+
- /*
-  * change the user struct in a credentials set to match the new UID
-  */
-@@ -473,7 +485,7 @@ static int set_user(struct cred *new)
-  * 100% compatible with BSD.  A program which uses just setuid() will be
-  * 100% compatible with POSIX with saved IDs.
-  */
--SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
-+long __sys_setreuid(uid_t ruid, uid_t euid)
- {
- 	struct user_namespace *ns = current_user_ns();
- 	const struct cred *old;
-@@ -533,6 +545,11 @@ SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
- 	return retval;
- }
+-cond_syscall(sys_io_setup);
+-cond_syscall(compat_sys_io_setup);
+-cond_syscall(sys_io_destroy);
+-cond_syscall(sys_io_submit);
+-cond_syscall(compat_sys_io_submit);
+-cond_syscall(sys_io_cancel);
+-cond_syscall(sys_io_getevents);
+-cond_syscall(compat_sys_io_getevents);
++COND_SYSCALL(io_setup);
++COND_SYSCALL_COMPAT(io_setup);
++COND_SYSCALL(io_destroy);
++COND_SYSCALL(io_submit);
++COND_SYSCALL_COMPAT(io_submit);
++COND_SYSCALL(io_cancel);
++COND_SYSCALL(io_getevents);
++COND_SYSCALL_COMPAT(io_getevents);
  
-+SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
-+{
-+	return __sys_setreuid(ruid, euid);
-+}
-+
- /*
-  * setuid() is implemented like SysV with SAVED_IDS
-  *
-@@ -544,7 +561,7 @@ SYSCALL_DEFINE2(setreuid, uid_t, ruid, uid_t, euid)
-  * will allow a root program to temporarily drop privileges and be able to
-  * regain them by swapping the real and effective uid.
-  */
--SYSCALL_DEFINE1(setuid, uid_t, uid)
-+long __sys_setuid(uid_t uid)
- {
- 	struct user_namespace *ns = current_user_ns();
- 	const struct cred *old;
-@@ -586,12 +603,17 @@ SYSCALL_DEFINE1(setuid, uid_t, uid)
- 	return retval;
- }
+ /* fs/xattr.c */
  
-+SYSCALL_DEFINE1(setuid, uid_t, uid)
-+{
-+	return __sys_setuid(uid);
-+}
-+
+ /* fs/dcache.c */
  
- /*
-  * This function implements a generic ability to update ruid, euid,
-  * and suid.  This allows you to implement the 4.4 compatible seteuid().
-  */
--SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
-+long __sys_setresuid(uid_t ruid, uid_t euid, uid_t suid)
- {
- 	struct user_namespace *ns = current_user_ns();
- 	const struct cred *old;
-@@ -656,6 +678,11 @@ SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
- 	return retval;
- }
+ /* fs/cookies.c */
+-cond_syscall(sys_lookup_dcookie);
+-cond_syscall(compat_sys_lookup_dcookie);
++COND_SYSCALL(lookup_dcookie);
++COND_SYSCALL_COMPAT(lookup_dcookie);
  
-+SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
-+{
-+	return __sys_setresuid(ruid, euid, suid);
-+}
-+
- SYSCALL_DEFINE3(getresuid, uid_t __user *, ruidp, uid_t __user *, euidp, uid_t __user *, suidp)
- {
- 	const struct cred *cred = current_cred();
-@@ -678,7 +705,7 @@ SYSCALL_DEFINE3(getresuid, uid_t __user *, ruidp, uid_t __user *, euidp, uid_t _
- /*
-  * Same as above, but for rgid, egid, sgid.
-  */
--SYSCALL_DEFINE3(setresgid, gid_t, rgid, gid_t, egid, gid_t, sgid)
-+long __sys_setresgid(gid_t rgid, gid_t egid, gid_t sgid)
- {
- 	struct user_namespace *ns = current_user_ns();
- 	const struct cred *old;
-@@ -730,6 +757,11 @@ SYSCALL_DEFINE3(setresgid, gid_t, rgid, gid_t, egid, gid_t, sgid)
- 	return retval;
- }
+ /* fs/eventfd.c */
+-cond_syscall(sys_eventfd2);
++COND_SYSCALL(eventfd2);
  
-+SYSCALL_DEFINE3(setresgid, gid_t, rgid, gid_t, egid, gid_t, sgid)
-+{
-+	return __sys_setresgid(rgid, egid, sgid);
-+}
-+
- SYSCALL_DEFINE3(getresgid, gid_t __user *, rgidp, gid_t __user *, egidp, gid_t __user *, sgidp)
- {
- 	const struct cred *cred = current_cred();
-@@ -757,7 +789,7 @@ SYSCALL_DEFINE3(getresgid, gid_t __user *, rgidp, gid_t __user *, egidp, gid_t _
-  * whatever uid it wants to). It normally shadows "euid", except when
-  * explicitly set by setfsuid() or for access..
-  */
--SYSCALL_DEFINE1(setfsuid, uid_t, uid)
-+long __sys_setfsuid(uid_t uid)
- {
- 	const struct cred *old;
- 	struct cred *new;
-@@ -793,10 +825,15 @@ SYSCALL_DEFINE1(setfsuid, uid_t, uid)
- 	return old_fsuid;
- }
+ /* fs/eventfd.c */
+-cond_syscall(sys_epoll_create1);
+-cond_syscall(sys_epoll_ctl);
+-cond_syscall(sys_epoll_pwait);
+-cond_syscall(compat_sys_epoll_pwait);
++COND_SYSCALL(epoll_create1);
++COND_SYSCALL(epoll_ctl);
++COND_SYSCALL(epoll_pwait);
++COND_SYSCALL_COMPAT(epoll_pwait);
  
-+SYSCALL_DEFINE1(setfsuid, uid_t, uid)
-+{
-+	return __sys_setfsuid(uid);
-+}
-+
- /*
-  * Samma på svenska..
-  */
--SYSCALL_DEFINE1(setfsgid, gid_t, gid)
-+long __sys_setfsgid(gid_t gid)
- {
- 	const struct cred *old;
- 	struct cred *new;
-@@ -830,6 +867,11 @@ SYSCALL_DEFINE1(setfsgid, gid_t, gid)
- 	commit_creds(new);
- 	return old_fsgid;
- }
-+
-+SYSCALL_DEFINE1(setfsgid, gid_t, gid)
-+{
-+	return __sys_setfsgid(gid);
-+}
- #endif /* CONFIG_MULTIUSER */
+ /* fs/fcntl.c */
  
- /**
-diff --git a/kernel/uid16.c b/kernel/uid16.c
-index ef1da2a5f9bd..7b930edfe461 100644
---- a/kernel/uid16.c
-+++ b/kernel/uid16.c
-@@ -18,6 +18,8 @@
+ /* fs/inotify_user.c */
+-cond_syscall(sys_inotify_init1);
+-cond_syscall(sys_inotify_add_watch);
+-cond_syscall(sys_inotify_rm_watch);
++COND_SYSCALL(inotify_init1);
++COND_SYSCALL(inotify_add_watch);
++COND_SYSCALL(inotify_rm_watch);
  
- #include <linux/uaccess.h>
+ /* fs/ioctl.c */
  
-+#include "uid16.h"
-+
- SYSCALL_DEFINE3(chown16, const char __user *, filename, old_uid_t, user, old_gid_t, group)
- {
- 	return sys_chown(filename, low2highuid(user), low2highgid(group));
-@@ -35,27 +37,27 @@ SYSCALL_DEFINE3(fchown16, unsigned int, fd, old_uid_t, user, old_gid_t, group)
+ /* fs/ioprio.c */
+-cond_syscall(sys_ioprio_set);
+-cond_syscall(sys_ioprio_get);
++COND_SYSCALL(ioprio_set);
++COND_SYSCALL(ioprio_get);
  
- SYSCALL_DEFINE2(setregid16, old_gid_t, rgid, old_gid_t, egid)
- {
--	return sys_setregid(low2highgid(rgid), low2highgid(egid));
-+	return __sys_setregid(low2highgid(rgid), low2highgid(egid));
- }
+ /* fs/locks.c */
+-cond_syscall(sys_flock);
++COND_SYSCALL(flock);
  
- SYSCALL_DEFINE1(setgid16, old_gid_t, gid)
- {
--	return sys_setgid(low2highgid(gid));
-+	return __sys_setgid(low2highgid(gid));
- }
+ /* fs/namei.c */
  
- SYSCALL_DEFINE2(setreuid16, old_uid_t, ruid, old_uid_t, euid)
- {
--	return sys_setreuid(low2highuid(ruid), low2highuid(euid));
-+	return __sys_setreuid(low2highuid(ruid), low2highuid(euid));
- }
+@@ -76,7 +79,7 @@ cond_syscall(sys_flock);
+ /* fs/pipe.c */
  
- SYSCALL_DEFINE1(setuid16, old_uid_t, uid)
- {
--	return sys_setuid(low2highuid(uid));
-+	return __sys_setuid(low2highuid(uid));
- }
+ /* fs/quota.c */
+-cond_syscall(sys_quotactl);
++COND_SYSCALL(quotactl);
  
- SYSCALL_DEFINE3(setresuid16, old_uid_t, ruid, old_uid_t, euid, old_uid_t, suid)
- {
--	return sys_setresuid(low2highuid(ruid), low2highuid(euid),
-+	return __sys_setresuid(low2highuid(ruid), low2highuid(euid),
- 				 low2highuid(suid));
- }
+ /* fs/readdir.c */
  
-@@ -78,11 +80,10 @@ SYSCALL_DEFINE3(getresuid16, old_uid_t __user *, ruidp, old_uid_t __user *, euid
+@@ -87,8 +90,8 @@ cond_syscall(sys_quotactl);
+ /* fs/select.c */
  
- SYSCALL_DEFINE3(setresgid16, old_gid_t, rgid, old_gid_t, egid, old_gid_t, sgid)
- {
--	return sys_setresgid(low2highgid(rgid), low2highgid(egid),
-+	return __sys_setresgid(low2highgid(rgid), low2highgid(egid),
- 				 low2highgid(sgid));
- }
+ /* fs/signalfd.c */
+-cond_syscall(sys_signalfd4);
+-cond_syscall(compat_sys_signalfd4);
++COND_SYSCALL(signalfd4);
++COND_SYSCALL_COMPAT(signalfd4);
  
+ /* fs/splice.c */
+ 
+@@ -97,20 +100,20 @@ cond_syscall(compat_sys_signalfd4);
+ /* fs/sync.c */
+ 
+ /* fs/timerfd.c */
+-cond_syscall(sys_timerfd_create);
+-cond_syscall(sys_timerfd_settime);
+-cond_syscall(compat_sys_timerfd_settime);
+-cond_syscall(sys_timerfd_gettime);
+-cond_syscall(compat_sys_timerfd_gettime);
++COND_SYSCALL(timerfd_create);
++COND_SYSCALL(timerfd_settime);
++COND_SYSCALL_COMPAT(timerfd_settime);
++COND_SYSCALL(timerfd_gettime);
++COND_SYSCALL_COMPAT(timerfd_gettime);
+ 
+ /* fs/utimes.c */
+ 
+ /* kernel/acct.c */
+-cond_syscall(sys_acct);
++COND_SYSCALL(acct);
+ 
+ /* kernel/capability.c */
+-cond_syscall(sys_capget);
+-cond_syscall(sys_capset);
++COND_SYSCALL(capget);
++COND_SYSCALL(capset);
+ 
+ /* kernel/exec_domain.c */
+ 
+@@ -119,29 +122,29 @@ cond_syscall(sys_capset);
+ /* kernel/fork.c */
+ 
+ /* kernel/futex.c */
+-cond_syscall(sys_futex);
+-cond_syscall(compat_sys_futex);
+-cond_syscall(sys_set_robust_list);
+-cond_syscall(compat_sys_set_robust_list);
+-cond_syscall(sys_get_robust_list);
+-cond_syscall(compat_sys_get_robust_list);
++COND_SYSCALL(futex);
++COND_SYSCALL_COMPAT(futex);
++COND_SYSCALL(set_robust_list);
++COND_SYSCALL_COMPAT(set_robust_list);
++COND_SYSCALL(get_robust_list);
++COND_SYSCALL_COMPAT(get_robust_list);
+ 
+ /* kernel/hrtimer.c */
+ 
+ /* kernel/itimer.c */
+ 
+ /* kernel/kexec.c */
+-cond_syscall(sys_kexec_load);
+-cond_syscall(compat_sys_kexec_load);
++COND_SYSCALL(kexec_load);
++COND_SYSCALL_COMPAT(kexec_load);
+ 
+ /* kernel/module.c */
+-cond_syscall(sys_init_module);
+-cond_syscall(sys_delete_module);
++COND_SYSCALL(init_module);
++COND_SYSCALL(delete_module);
+ 
+ /* kernel/posix-timers.c */
+ 
+ /* kernel/printk.c */
+-cond_syscall(sys_syslog);
++COND_SYSCALL(syslog);
+ 
+ /* kernel/ptrace.c */
+ 
+@@ -150,176 +153,176 @@ cond_syscall(sys_syslog);
+ /* kernel/signal.c */
+ 
+ /* kernel/sys.c */
+-cond_syscall(sys_setregid);
+-cond_syscall(sys_setgid);
+-cond_syscall(sys_setreuid);
+-cond_syscall(sys_setuid);
+-cond_syscall(sys_setresuid);
+-cond_syscall(sys_getresuid);
+-cond_syscall(sys_setresgid);
+-cond_syscall(sys_getresgid);
+-cond_syscall(sys_setfsuid);
+-cond_syscall(sys_setfsgid);
+-cond_syscall(sys_setgroups);
+-cond_syscall(sys_getgroups);
++COND_SYSCALL(setregid);
++COND_SYSCALL(setgid);
++COND_SYSCALL(setreuid);
++COND_SYSCALL(setuid);
++COND_SYSCALL(setresuid);
++COND_SYSCALL(getresuid);
++COND_SYSCALL(setresgid);
++COND_SYSCALL(getresgid);
++COND_SYSCALL(setfsuid);
++COND_SYSCALL(setfsgid);
++COND_SYSCALL(setgroups);
++COND_SYSCALL(getgroups);
+ 
+ /* kernel/time.c */
+ 
+ /* kernel/timer.c */
+ 
+ /* ipc/mqueue.c */
+-cond_syscall(sys_mq_open);
+-cond_syscall(compat_sys_mq_open);
+-cond_syscall(sys_mq_unlink);
+-cond_syscall(sys_mq_timedsend);
+-cond_syscall(compat_sys_mq_timedsend);
+-cond_syscall(sys_mq_timedreceive);
+-cond_syscall(compat_sys_mq_timedreceive);
+-cond_syscall(sys_mq_notify);
+-cond_syscall(compat_sys_mq_notify);
+-cond_syscall(sys_mq_getsetattr);
+-cond_syscall(compat_sys_mq_getsetattr);
++COND_SYSCALL(mq_open);
++COND_SYSCALL_COMPAT(mq_open);
++COND_SYSCALL(mq_unlink);
++COND_SYSCALL(mq_timedsend);
++COND_SYSCALL_COMPAT(mq_timedsend);
++COND_SYSCALL(mq_timedreceive);
++COND_SYSCALL_COMPAT(mq_timedreceive);
++COND_SYSCALL(mq_notify);
++COND_SYSCALL_COMPAT(mq_notify);
++COND_SYSCALL(mq_getsetattr);
++COND_SYSCALL_COMPAT(mq_getsetattr);
+ 
+ /* ipc/msg.c */
+-cond_syscall(sys_msgget);
+-cond_syscall(sys_msgctl);
+-cond_syscall(compat_sys_msgctl);
+-cond_syscall(sys_msgrcv);
+-cond_syscall(compat_sys_msgrcv);
+-cond_syscall(sys_msgsnd);
+-cond_syscall(compat_sys_msgsnd);
++COND_SYSCALL(msgget);
++COND_SYSCALL(msgctl);
++COND_SYSCALL_COMPAT(msgctl);
++COND_SYSCALL(msgrcv);
++COND_SYSCALL_COMPAT(msgrcv);
++COND_SYSCALL(msgsnd);
++COND_SYSCALL_COMPAT(msgsnd);
+ 
+ /* ipc/sem.c */
+-cond_syscall(sys_semget);
+-cond_syscall(sys_semctl);
+-cond_syscall(compat_sys_semctl);
+-cond_syscall(sys_semtimedop);
+-cond_syscall(compat_sys_semtimedop);
+-cond_syscall(sys_semop);
++COND_SYSCALL(semget);
++COND_SYSCALL(semctl);
++COND_SYSCALL_COMPAT(semctl);
++COND_SYSCALL(semtimedop);
++COND_SYSCALL_COMPAT(semtimedop);
++COND_SYSCALL(semop);
+ 
+ /* ipc/shm.c */
+-cond_syscall(sys_shmget);
+-cond_syscall(sys_shmctl);
+-cond_syscall(compat_sys_shmctl);
+-cond_syscall(sys_shmat);
+-cond_syscall(compat_sys_shmat);
+-cond_syscall(sys_shmdt);
++COND_SYSCALL(shmget);
++COND_SYSCALL(shmctl);
++COND_SYSCALL_COMPAT(shmctl);
++COND_SYSCALL(shmat);
++COND_SYSCALL_COMPAT(shmat);
++COND_SYSCALL(shmdt);
+ 
+ /* net/socket.c */
+-cond_syscall(sys_socket);
+-cond_syscall(sys_socketpair);
+-cond_syscall(sys_bind);
+-cond_syscall(sys_listen);
+-cond_syscall(sys_accept);
+-cond_syscall(sys_connect);
+-cond_syscall(sys_getsockname);
+-cond_syscall(sys_getpeername);
+-cond_syscall(sys_setsockopt);
+-cond_syscall(compat_sys_setsockopt);
+-cond_syscall(sys_getsockopt);
+-cond_syscall(compat_sys_getsockopt);
+-cond_syscall(sys_sendto);
+-cond_syscall(sys_shutdown);
+-cond_syscall(sys_recvfrom);
+-cond_syscall(compat_sys_recvfrom);
+-cond_syscall(sys_sendmsg);
+-cond_syscall(compat_sys_sendmsg);
+-cond_syscall(sys_recvmsg);
+-cond_syscall(compat_sys_recvmsg);
++COND_SYSCALL(socket);
++COND_SYSCALL(socketpair);
++COND_SYSCALL(bind);
++COND_SYSCALL(listen);
++COND_SYSCALL(accept);
++COND_SYSCALL(connect);
++COND_SYSCALL(getsockname);
++COND_SYSCALL(getpeername);
++COND_SYSCALL(setsockopt);
++COND_SYSCALL_COMPAT(setsockopt);
++COND_SYSCALL(getsockopt);
++COND_SYSCALL_COMPAT(getsockopt);
++COND_SYSCALL(sendto);
++COND_SYSCALL(shutdown);
++COND_SYSCALL(recvfrom);
++COND_SYSCALL_COMPAT(recvfrom);
++COND_SYSCALL(sendmsg);
++COND_SYSCALL_COMPAT(sendmsg);
++COND_SYSCALL(recvmsg);
++COND_SYSCALL_COMPAT(recvmsg);
+ 
+ /* mm/filemap.c */
+ 
+ /* mm/nommu.c, also with MMU */
+-cond_syscall(sys_mremap);
++COND_SYSCALL(mremap);
+ 
+ /* security/keys/keyctl.c */
+-cond_syscall(sys_add_key);
+-cond_syscall(sys_request_key);
+-cond_syscall(sys_keyctl);
+-cond_syscall(compat_sys_keyctl);
++COND_SYSCALL(add_key);
++COND_SYSCALL(request_key);
++COND_SYSCALL(keyctl);
++COND_SYSCALL_COMPAT(keyctl);
+ 
+ /* arch/example/kernel/sys_example.c */
+ 
+ /* mm/fadvise.c */
+-cond_syscall(sys_fadvise64_64);
++COND_SYSCALL(fadvise64_64);
+ 
+ /* mm/, CONFIG_MMU only */
+-cond_syscall(sys_swapon);
+-cond_syscall(sys_swapoff);
+-cond_syscall(sys_mprotect);
+-cond_syscall(sys_msync);
+-cond_syscall(sys_mlock);
+-cond_syscall(sys_munlock);
+-cond_syscall(sys_mlockall);
+-cond_syscall(sys_munlockall);
+-cond_syscall(sys_mincore);
+-cond_syscall(sys_madvise);
+-cond_syscall(sys_remap_file_pages);
+-cond_syscall(sys_mbind);
+-cond_syscall(compat_sys_mbind);
+-cond_syscall(sys_get_mempolicy);
+-cond_syscall(compat_sys_get_mempolicy);
+-cond_syscall(sys_set_mempolicy);
+-cond_syscall(compat_sys_set_mempolicy);
+-cond_syscall(sys_migrate_pages);
+-cond_syscall(compat_sys_migrate_pages);
+-cond_syscall(sys_move_pages);
+-cond_syscall(compat_sys_move_pages);
 -
- SYSCALL_DEFINE3(getresgid16, old_gid_t __user *, rgidp, old_gid_t __user *, egidp, old_gid_t __user *, sgidp)
- {
- 	const struct cred *cred = current_cred();
-@@ -102,12 +103,12 @@ SYSCALL_DEFINE3(getresgid16, old_gid_t __user *, rgidp, old_gid_t __user *, egid
- 
- SYSCALL_DEFINE1(setfsuid16, old_uid_t, uid)
- {
--	return sys_setfsuid(low2highuid(uid));
-+	return __sys_setfsuid(low2highuid(uid));
- }
- 
- SYSCALL_DEFINE1(setfsgid16, old_gid_t, gid)
- {
--	return sys_setfsgid(low2highgid(gid));
-+	return __sys_setfsgid(low2highgid(gid));
- }
- 
- static int groups16_to_user(old_gid_t __user *grouplist,
-diff --git a/kernel/uid16.h b/kernel/uid16.h
-new file mode 100644
-index 000000000000..cdca040f7602
---- /dev/null
-+++ b/kernel/uid16.h
-@@ -0,0 +1,14 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef LINUX_UID16_H
-+#define LINUX_UID16_H
+-cond_syscall(sys_perf_event_open);
+-cond_syscall(sys_accept4);
+-cond_syscall(sys_recvmmsg);
+-cond_syscall(compat_sys_recvmmsg);
++COND_SYSCALL(swapon);
++COND_SYSCALL(swapoff);
++COND_SYSCALL(mprotect);
++COND_SYSCALL(msync);
++COND_SYSCALL(mlock);
++COND_SYSCALL(munlock);
++COND_SYSCALL(mlockall);
++COND_SYSCALL(munlockall);
++COND_SYSCALL(mincore);
++COND_SYSCALL(madvise);
++COND_SYSCALL(remap_file_pages);
++COND_SYSCALL(mbind);
++COND_SYSCALL_COMPAT(mbind);
++COND_SYSCALL(get_mempolicy);
++COND_SYSCALL_COMPAT(get_mempolicy);
++COND_SYSCALL(set_mempolicy);
++COND_SYSCALL_COMPAT(set_mempolicy);
++COND_SYSCALL(migrate_pages);
++COND_SYSCALL_COMPAT(migrate_pages);
++COND_SYSCALL(move_pages);
++COND_SYSCALL_COMPAT(move_pages);
 +
-+long __sys_setuid(uid_t uid);
-+long __sys_setgid(gid_t gid);
-+long __sys_setreuid(uid_t ruid, uid_t euid);
-+long __sys_setregid(gid_t rgid, gid_t egid);
-+long __sys_setresuid(uid_t ruid, uid_t euid, uid_t suid);
-+long __sys_setresgid(gid_t rgid, gid_t egid, gid_t sgid);
-+long __sys_setfsuid(uid_t uid);
-+long __sys_setfsgid(gid_t gid);
-+
-+#endif /* LINUX_UID16_H */
++COND_SYSCALL(perf_event_open);
++COND_SYSCALL(accept4);
++COND_SYSCALL(recvmmsg);
++COND_SYSCALL_COMPAT(recvmmsg);
+ 
+ /*
+  * Architecture specific syscalls: see further below
+  */
+ 
+ /* fanotify */
+-cond_syscall(sys_fanotify_init);
+-cond_syscall(sys_fanotify_mark);
++COND_SYSCALL(fanotify_init);
++COND_SYSCALL(fanotify_mark);
+ 
+ /* open by handle */
+-cond_syscall(sys_name_to_handle_at);
+-cond_syscall(sys_open_by_handle_at);
+-cond_syscall(compat_sys_open_by_handle_at);
++COND_SYSCALL(name_to_handle_at);
++COND_SYSCALL(open_by_handle_at);
++COND_SYSCALL_COMPAT(open_by_handle_at);
+ 
+-cond_syscall(sys_sendmmsg);
+-cond_syscall(compat_sys_sendmmsg);
+-cond_syscall(sys_process_vm_readv);
+-cond_syscall(compat_sys_process_vm_readv);
+-cond_syscall(sys_process_vm_writev);
+-cond_syscall(compat_sys_process_vm_writev);
++COND_SYSCALL(sendmmsg);
++COND_SYSCALL_COMPAT(sendmmsg);
++COND_SYSCALL(process_vm_readv);
++COND_SYSCALL_COMPAT(process_vm_readv);
++COND_SYSCALL(process_vm_writev);
++COND_SYSCALL_COMPAT(process_vm_writev);
+ 
+ /* compare kernel pointers */
+-cond_syscall(sys_kcmp);
++COND_SYSCALL(kcmp);
+ 
+-cond_syscall(sys_finit_module);
++COND_SYSCALL(finit_module);
+ 
+ /* operate on Secure Computing state */
+-cond_syscall(sys_seccomp);
++COND_SYSCALL(seccomp);
+ 
+-cond_syscall(sys_memfd_create);
++COND_SYSCALL(memfd_create);
+ 
+ /* access BPF programs and maps */
+-cond_syscall(sys_bpf);
++COND_SYSCALL(bpf);
+ 
+ /* execveat */
+-cond_syscall(sys_execveat);
++COND_SYSCALL(execveat);
+ 
+-cond_syscall(sys_userfaultfd);
++COND_SYSCALL(userfaultfd);
+ 
+ /* membarrier */
+-cond_syscall(sys_membarrier);
++COND_SYSCALL(membarrier);
+ 
+-cond_syscall(sys_mlock2);
++COND_SYSCALL(mlock2);
+ 
+-cond_syscall(sys_copy_file_range);
++COND_SYSCALL(copy_file_range);
+ 
+ /* memory protection keys */
+-cond_syscall(sys_pkey_mprotect);
+-cond_syscall(sys_pkey_alloc);
+-cond_syscall(sys_pkey_free);
++COND_SYSCALL(pkey_mprotect);
++COND_SYSCALL(pkey_alloc);
++COND_SYSCALL(pkey_free);
+ 
+ 
+ /*
+@@ -327,35 +330,35 @@ cond_syscall(sys_pkey_free);
+  */
+ 
+ /* pciconfig: alpha, arm, arm64, ia64, sparc */
+-cond_syscall(sys_pciconfig_read);
+-cond_syscall(sys_pciconfig_write);
+-cond_syscall(sys_pciconfig_iobase);
++COND_SYSCALL(pciconfig_read);
++COND_SYSCALL(pciconfig_write);
++COND_SYSCALL(pciconfig_iobase);
+ 
+ /* sys_socketcall: arm, mips, x86, ... */
+-cond_syscall(sys_socketcall);
+-cond_syscall(compat_sys_socketcall);
++COND_SYSCALL(socketcall);
++COND_SYSCALL_COMPAT(socketcall);
+ 
+ /* compat syscalls for arm64, x86, ... */
+-cond_syscall(compat_sys_sysctl);
+-cond_syscall(compat_sys_fanotify_mark);
++COND_SYSCALL_COMPAT(sysctl);
++COND_SYSCALL_COMPAT(fanotify_mark);
+ 
+ /* x86 */
+-cond_syscall(sys_vm86old);
+-cond_syscall(sys_modify_ldt);
+-cond_syscall(compat_sys_quotactl32);
+-cond_syscall(sys_vm86);
+-cond_syscall(sys_kexec_file_load);
++COND_SYSCALL(vm86old);
++COND_SYSCALL(modify_ldt);
++COND_SYSCALL_COMPAT(quotactl32);
++COND_SYSCALL(vm86);
++COND_SYSCALL(kexec_file_load);
+ 
+ /* s390 */
+-cond_syscall(sys_s390_pci_mmio_read);
+-cond_syscall(sys_s390_pci_mmio_write);
+-cond_syscall(compat_sys_s390_ipc);
++COND_SYSCALL(s390_pci_mmio_read);
++COND_SYSCALL(s390_pci_mmio_write);
++COND_SYSCALL_COMPAT(s390_ipc);
+ 
+ /* powerpc */
+ cond_syscall(ppc_rtas);
+-cond_syscall(sys_spu_run);
+-cond_syscall(sys_spu_create);
+-cond_syscall(sys_subpage_prot);
++COND_SYSCALL(spu_run);
++COND_SYSCALL(spu_create);
++COND_SYSCALL(subpage_prot);
+ 
+ 
+ /*
+@@ -364,22 +367,22 @@ cond_syscall(sys_subpage_prot);
+  */
+ 
+ /* __ARCH_WANT_SYSCALL_NO_FLAGS */
+-cond_syscall(sys_epoll_create);
+-cond_syscall(sys_inotify_init);
+-cond_syscall(sys_eventfd);
+-cond_syscall(sys_signalfd);
+-cond_syscall(compat_sys_signalfd);
++COND_SYSCALL(epoll_create);
++COND_SYSCALL(inotify_init);
++COND_SYSCALL(eventfd);
++COND_SYSCALL(signalfd);
++COND_SYSCALL_COMPAT(signalfd);
+ 
+ /* __ARCH_WANT_SYSCALL_OFF_T */
+-cond_syscall(sys_fadvise64);
++COND_SYSCALL(fadvise64);
+ 
+ /* __ARCH_WANT_SYSCALL_DEPRECATED */
+-cond_syscall(sys_epoll_wait);
+-cond_syscall(sys_recv);
+-cond_syscall(compat_sys_recv);
+-cond_syscall(sys_send);
+-cond_syscall(sys_bdflush);
+-cond_syscall(sys_uselib);
++COND_SYSCALL(epoll_wait);
++COND_SYSCALL(recv);
++COND_SYSCALL_COMPAT(recv);
++COND_SYSCALL(send);
++COND_SYSCALL(bdflush);
++COND_SYSCALL(uselib);
+ 
+ 
+ /*
+@@ -387,33 +390,33 @@ cond_syscall(sys_uselib);
+  */
+ 
+ /* obsolete: SGETMASK_SYSCALL */
+-cond_syscall(sys_sgetmask);
+-cond_syscall(sys_ssetmask);
++COND_SYSCALL(sgetmask);
++COND_SYSCALL(ssetmask);
+ 
+ /* obsolete: SYSFS_SYSCALL */
+-cond_syscall(sys_sysfs);
++COND_SYSCALL(sysfs);
+ 
+ /* obsolete: __ARCH_WANT_SYS_IPC */
+-cond_syscall(sys_ipc);
+-cond_syscall(compat_sys_ipc);
++COND_SYSCALL(ipc);
++COND_SYSCALL_COMPAT(ipc);
+ 
+ /* obsolete: UID16 */
+-cond_syscall(sys_chown16);
+-cond_syscall(sys_fchown16);
+-cond_syscall(sys_getegid16);
+-cond_syscall(sys_geteuid16);
+-cond_syscall(sys_getgid16);
+-cond_syscall(sys_getgroups16);
+-cond_syscall(sys_getresgid16);
+-cond_syscall(sys_getresuid16);
+-cond_syscall(sys_getuid16);
+-cond_syscall(sys_lchown16);
+-cond_syscall(sys_setfsgid16);
+-cond_syscall(sys_setfsuid16);
+-cond_syscall(sys_setgid16);
+-cond_syscall(sys_setgroups16);
+-cond_syscall(sys_setregid16);
+-cond_syscall(sys_setresgid16);
+-cond_syscall(sys_setresuid16);
+-cond_syscall(sys_setreuid16);
+-cond_syscall(sys_setuid16);
++COND_SYSCALL(chown16);
++COND_SYSCALL(fchown16);
++COND_SYSCALL(getegid16);
++COND_SYSCALL(geteuid16);
++COND_SYSCALL(getgid16);
++COND_SYSCALL(getgroups16);
++COND_SYSCALL(getresgid16);
++COND_SYSCALL(getresuid16);
++COND_SYSCALL(getuid16);
++COND_SYSCALL(lchown16);
++COND_SYSCALL(setfsgid16);
++COND_SYSCALL(setfsuid16);
++COND_SYSCALL(setgid16);
++COND_SYSCALL(setgroups16);
++COND_SYSCALL(setregid16);
++COND_SYSCALL(setresgid16);
++COND_SYSCALL(setresuid16);
++COND_SYSCALL(setreuid16);
++COND_SYSCALL(setuid16);
 -- 
 2.16.3
