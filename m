@@ -1,29 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59720 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59572 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752863AbeC2L0U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:20 -0400
+        with ESMTP id S1752851AbeC2L0T (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:19 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 083/109] fs: add ksys_close() wrapper; remove in-kernel calls to sys_close()
-Date: Thu, 29 Mar 2018 13:24:00 +0200
-Message-ID: <20180329112426.23043-84-linux@dominikbrodowski.net>
+Subject: [PATCH 079/109] fs: add ksys_fchmod() and do_fchmodat() helpers and ksys_chmod() wrapper; remove in-kernel calls to syscall
+Date: Thu, 29 Mar 2018 13:23:56 +0200
+Message-ID: <20180329112426.23043-80-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112400.NH5xBSSifArnHU1Y0fZWEDAnAe1Hd7rMfRKPmB-b47E@z>
+Message-ID: <20180329112356.fL-0-gBHOQNK7hQ12FFi2Dda2arEZvBpEfG8mRAZMpE@z>
 
-Using the ksys_close() wrapper allows us to get rid of in-kernel calls
-to the sys_close() syscall. The ksys_ prefix denotes that this function
-is meant as a drop-in replacement for the syscall. In particular, it
-uses the same calling convention as sys_close(), with one subtle
-difference:
+Using the fs-internal do_fchmodat() helper allows us to get rid of
+fs-internal calls to the sys_fchmodat() syscall.
 
-The few places which checked the return value did not care about the return
-value re-writing in sys_close(), so simply use a wrapper around
-__close_fd().
+Introducing the ksys_fchmod() helper and the ksys_chmod() wrapper allows
+us to avoid the in-kernel calls to the sys_fchmod() and sys_chmod()
+syscalls. The ksys_ prefix denotes that these functions are meant as a
+drop-in replacement for the syscalls. In particular, they use the same
+calling convention as sys_fchmod() and sys_chmod().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -33,224 +32,122 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/autofs4/dev-ioctl.c   |  2 +-
- fs/binfmt_misc.c         |  2 +-
- fs/file.c                |  1 +
- fs/open.c                |  1 -
- include/linux/syscalls.h | 12 ++++++++++++
- init/do_mounts.c         |  4 ++--
- init/do_mounts_initrd.c  |  2 +-
- init/do_mounts_md.c      |  8 ++++----
- init/do_mounts_rd.c      |  6 +++---
- init/initramfs.c         |  8 ++++----
- 10 files changed, 29 insertions(+), 17 deletions(-)
+ fs/internal.h            |  2 ++
+ fs/open.c                | 17 ++++++++++++++---
+ include/linux/syscalls.h |  8 ++++++++
+ init/initramfs.c         |  6 +++---
+ 4 files changed, 27 insertions(+), 6 deletions(-)
 
-diff --git a/fs/autofs4/dev-ioctl.c b/fs/autofs4/dev-ioctl.c
-index b7c816f39404..26f6b4f41ce6 100644
---- a/fs/autofs4/dev-ioctl.c
-+++ b/fs/autofs4/dev-ioctl.c
-@@ -310,7 +310,7 @@ static int autofs_dev_ioctl_closemount(struct file *fp,
- 				       struct autofs_sb_info *sbi,
- 				       struct autofs_dev_ioctl *param)
- {
--	return sys_close(param->ioctlfd);
-+	return ksys_close(param->ioctlfd);
- }
+diff --git a/fs/internal.h b/fs/internal.h
+index 91e6fc93fcb5..2474bf460f96 100644
+--- a/fs/internal.h
++++ b/fs/internal.h
+@@ -119,6 +119,8 @@ extern struct file *do_filp_open(int dfd, struct filename *pathname,
+ extern struct file *do_file_open_root(struct dentry *, struct vfsmount *,
+ 		const char *, const struct open_flags *);
  
- /*
-diff --git a/fs/binfmt_misc.c b/fs/binfmt_misc.c
-index a7c5a9861bef..a41b48f82a70 100644
---- a/fs/binfmt_misc.c
-+++ b/fs/binfmt_misc.c
-@@ -241,7 +241,7 @@ static int load_misc_binary(struct linux_binprm *bprm)
- 	return retval;
- error:
- 	if (fd_binary > 0)
--		sys_close(fd_binary);
-+		ksys_close(fd_binary);
- 	bprm->interp_flags = 0;
- 	bprm->interp_data = 0;
- 	goto ret;
-diff --git a/fs/file.c b/fs/file.c
-index d304004f0b65..7ffd6e9d103d 100644
---- a/fs/file.c
-+++ b/fs/file.c
-@@ -638,6 +638,7 @@ int __close_fd(struct files_struct *files, unsigned fd)
- 	spin_unlock(&files->file_lock);
- 	return -EBADF;
- }
-+EXPORT_SYMBOL(__close_fd); /* for ksys_close() */
- 
- void do_close_on_exec(struct files_struct *files)
- {
++int do_fchmodat(int dfd, const char __user *filename, umode_t mode);
++
+ extern int open_check_o_direct(struct file *f);
+ extern int vfs_open(const struct path *, struct file *, const struct cred *);
+ extern struct file *filp_clone_open(struct file *);
 diff --git a/fs/open.c b/fs/open.c
-index b3f3b2cd9f19..710102fc262b 100644
+index a19b8277c439..6037f2bf418c 100644
 --- a/fs/open.c
 +++ b/fs/open.c
-@@ -1200,7 +1200,6 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
- 
- 	return retval;
+@@ -551,7 +551,7 @@ static int chmod_common(const struct path *path, umode_t mode)
+ 	return error;
  }
--EXPORT_SYMBOL(sys_close);
  
- /*
-  * This routine simulates a hangup on the tty, to arrange that users
+-SYSCALL_DEFINE2(fchmod, unsigned int, fd, umode_t, mode)
++int ksys_fchmod(unsigned int fd, umode_t mode)
+ {
+ 	struct fd f = fdget(fd);
+ 	int err = -EBADF;
+@@ -564,7 +564,12 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd, umode_t, mode)
+ 	return err;
+ }
+ 
+-SYSCALL_DEFINE3(fchmodat, int, dfd, const char __user *, filename, umode_t, mode)
++SYSCALL_DEFINE2(fchmod, unsigned int, fd, umode_t, mode)
++{
++	return ksys_fchmod(fd, mode);
++}
++
++int do_fchmodat(int dfd, const char __user *filename, umode_t mode)
+ {
+ 	struct path path;
+ 	int error;
+@@ -582,9 +587,15 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, const char __user *, filename, umode_t, mode
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE3(fchmodat, int, dfd, const char __user *, filename,
++		umode_t, mode)
++{
++	return do_fchmodat(dfd, filename, mode);
++}
++
+ SYSCALL_DEFINE2(chmod, const char __user *, filename, umode_t, mode)
+ {
+-	return sys_fchmodat(AT_FDCWD, filename, mode);
++	return do_fchmodat(AT_FDCWD, filename, mode);
+ }
+ 
+ static int chown_common(const struct path *path, uid_t user, gid_t group)
 diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 41023177c8ec..38805f3447ea 100644
+index 827ed917630c..dd6c306f4f00 100644
 --- a/include/linux/syscalls.h
 +++ b/include/linux/syscalls.h
-@@ -1045,4 +1045,16 @@ static inline long ksys_ftruncate(unsigned int fd, unsigned long length)
- 	return do_sys_ftruncate(fd, length, 1);
+@@ -953,6 +953,7 @@ int ksys_dup(unsigned int fildes);
+ int ksys_chroot(const char __user *filename);
+ ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count);
+ int ksys_chdir(const char __user *filename);
++int ksys_fchmod(unsigned int fd, umode_t mode);
+ 
+ /*
+  * The following kernel syscall equivalents are just wrappers to fs-internal
+@@ -1006,4 +1007,11 @@ static inline long ksys_link(const char __user *oldname,
+ 	return do_linkat(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
  }
  
-+extern int __close_fd(struct files_struct *files, unsigned int fd);
++extern int do_fchmodat(int dfd, const char __user *filename, umode_t mode);
 +
-+/*
-+ * In contrast to sys_close(), this stub does not check whether the syscall
-+ * should or should not be restarted, but returns the raw error codes from
-+ * __close_fd().
-+ */
-+static inline int ksys_close(unsigned int fd)
++static inline int ksys_chmod(const char __user *filename, umode_t mode)
 +{
-+	return __close_fd(current->files, fd);
++	return do_fchmodat(AT_FDCWD, filename, mode);
 +}
 +
  #endif
-diff --git a/init/do_mounts.c b/init/do_mounts.c
-index 89f18985fa90..a28dd42d1f84 100644
---- a/init/do_mounts.c
-+++ b/init/do_mounts.c
-@@ -492,7 +492,7 @@ void __init change_floppy(char *fmt, ...)
- 	fd = sys_open("/dev/root", O_RDWR | O_NDELAY, 0);
- 	if (fd >= 0) {
- 		sys_ioctl(fd, FDEJECT, 0);
--		sys_close(fd);
-+		ksys_close(fd);
- 	}
- 	printk(KERN_NOTICE "VFS: Insert %s and press ENTER\n", buf);
- 	fd = sys_open("/dev/console", O_RDWR, 0);
-@@ -503,7 +503,7 @@ void __init change_floppy(char *fmt, ...)
- 		sys_read(fd, &c, 1);
- 		termios.c_lflag |= ICANON;
- 		sys_ioctl(fd, TCSETSF, (long)&termios);
--		sys_close(fd);
-+		ksys_close(fd);
- 	}
- }
- #endif
-diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
-index 99922d1ebfe6..6907c6dbc443 100644
---- a/init/do_mounts_initrd.c
-+++ b/init/do_mounts_initrd.c
-@@ -111,7 +111,7 @@ static void __init handle_initrd(void)
- 			error = fd;
- 		} else {
- 			error = sys_ioctl(fd, BLKFLSBUF, 0);
--			sys_close(fd);
-+			ksys_close(fd);
- 		}
- 		printk(!error ? "okay\n" : "failed\n");
- 	}
-diff --git a/init/do_mounts_md.c b/init/do_mounts_md.c
-index 3f733c760a8c..ebd4013d589e 100644
---- a/init/do_mounts_md.c
-+++ b/init/do_mounts_md.c
-@@ -191,7 +191,7 @@ static void __init md_setup_drive(void)
- 			printk(KERN_WARNING
- 			       "md: Ignoring md=%d, already autodetected. (Use raid=noautodetect)\n",
- 			       minor);
--			sys_close(fd);
-+			ksys_close(fd);
- 			continue;
- 		}
- 
-@@ -243,11 +243,11 @@ static void __init md_setup_drive(void)
- 			 * boot a kernel with devfs compiled in from partitioned md
- 			 * array without it
- 			 */
--			sys_close(fd);
-+			ksys_close(fd);
- 			fd = sys_open(name, 0, 0);
- 			sys_ioctl(fd, BLKRRPART, 0);
- 		}
--		sys_close(fd);
-+		ksys_close(fd);
- 	}
- }
- 
-@@ -297,7 +297,7 @@ static void __init autodetect_raid(void)
- 	fd = sys_open("/dev/md0", 0, 0);
- 	if (fd >= 0) {
- 		sys_ioctl(fd, RAID_AUTORUN, raid_autopart);
--		sys_close(fd);
-+		ksys_close(fd);
- 	}
- }
- 
-diff --git a/init/do_mounts_rd.c b/init/do_mounts_rd.c
-index 5b69056f610a..f1aa341862d3 100644
---- a/init/do_mounts_rd.c
-+++ b/init/do_mounts_rd.c
-@@ -257,7 +257,7 @@ int __init rd_load_image(char *from)
- 		if (i && (i % devblocks == 0)) {
- 			printk("done disk #%d.\n", disk++);
- 			rotate = 0;
--			if (sys_close(in_fd)) {
-+			if (ksys_close(in_fd)) {
- 				printk("Error closing the disk.\n");
- 				goto noclose_input;
- 			}
-@@ -283,9 +283,9 @@ int __init rd_load_image(char *from)
- successful_load:
- 	res = 1;
- done:
--	sys_close(in_fd);
-+	ksys_close(in_fd);
- noclose_input:
--	sys_close(out_fd);
-+	ksys_close(out_fd);
- out:
- 	kfree(buf);
- 	ksys_unlink("/dev/ram");
 diff --git a/init/initramfs.c b/init/initramfs.c
-index 0d3b001b0dc5..ce2bcad97cdf 100644
+index 5855ab632b4e..16c3c23076e2 100644
 --- a/init/initramfs.c
 +++ b/init/initramfs.c
-@@ -373,7 +373,7 @@ static int __init do_copy(void)
- 	if (byte_count >= body_len) {
- 		if (xwrite(wfd, victim, body_len) != body_len)
- 			error("write error");
--		sys_close(wfd);
-+		ksys_close(wfd);
- 		do_utime(vcollected, mtime);
- 		kfree(vcollected);
- 		eat(body_len);
-@@ -574,7 +574,7 @@ static void __init clean_rootfs(void)
- 	buf = kzalloc(BUF_SIZE, GFP_KERNEL);
- 	WARN_ON(!buf);
- 	if (!buf) {
--		sys_close(fd);
-+		ksys_close(fd);
- 		return;
- 	}
+@@ -344,7 +344,7 @@ static int __init do_name(void)
  
-@@ -602,7 +602,7 @@ static void __init clean_rootfs(void)
- 		num = sys_getdents64(fd, dirp, BUF_SIZE);
- 	}
- 
--	sys_close(fd);
-+	ksys_close(fd);
- 	kfree(buf);
- }
- #endif
-@@ -639,7 +639,7 @@ static int __init populate_rootfs(void)
- 				pr_err("/initrd.image: incomplete write (%zd != %ld)\n",
- 				       written, initrd_end - initrd_start);
- 
--			sys_close(fd);
-+			ksys_close(fd);
- 			free_initrd();
+ 			if (wfd >= 0) {
+ 				sys_fchown(wfd, uid, gid);
+-				sys_fchmod(wfd, mode);
++				ksys_fchmod(wfd, mode);
+ 				if (body_len)
+ 					sys_ftruncate(wfd, body_len);
+ 				vcollected = kstrdup(collected, GFP_KERNEL);
+@@ -354,14 +354,14 @@ static int __init do_name(void)
+ 	} else if (S_ISDIR(mode)) {
+ 		ksys_mkdir(collected, mode);
+ 		sys_chown(collected, uid, gid);
+-		sys_chmod(collected, mode);
++		ksys_chmod(collected, mode);
+ 		dir_add(collected, mtime);
+ 	} else if (S_ISBLK(mode) || S_ISCHR(mode) ||
+ 		   S_ISFIFO(mode) || S_ISSOCK(mode)) {
+ 		if (maybe_link() == 0) {
+ 			ksys_mknod(collected, mode, rdev);
+ 			sys_chown(collected, uid, gid);
+-			sys_chmod(collected, mode);
++			ksys_chmod(collected, mode);
+ 			do_utime(collected, mtime);
  		}
- 	done:
+ 	}
 -- 
 2.16.3
