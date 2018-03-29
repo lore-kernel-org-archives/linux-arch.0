@@ -1,88 +1,86 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 012/109] net: socket: add __sys_bind() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:22:49 +0200
-Message-ID: <20180329112426.23043-13-linux@dominikbrodowski.net>
+Subject: [PATCH 001/109] syscalls: define and explain goal to not call syscalls in the kernel
+Date: Thu, 29 Mar 2018 13:22:38 +0200
+Message-ID: <20180329112426.23043-2-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Using the net-internal helper __sys_bind() allows us to avoid the
-internal calls to the sys_bind() syscall.
+The syscall entry points to the kernel defined by SYSCALL_DEFINEx()
+and COMPAT_SYSCALL_DEFINEx() should only be called from userspace
+through kernel entry points, but not from the kernel itself. This
+will allow cleanups and optimizations to the entry paths *and* to
+the parts of the kernel code which currently need to pretend to be
+userspace in order to make use of syscalls.
 
-This patch is part of a series which removes in-kernel calls to syscalls.
-On this basis, the syscall entry path can be streamlined. For details, see
-http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
-
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/socket.h | 1 +
- net/compat.c           | 2 +-
- net/socket.c           | 9 +++++++--
- 3 files changed, 9 insertions(+), 3 deletions(-)
+ Documentation/process/adding-syscalls.rst | 32 +++++++++++++++++++++++++++++++
+ include/linux/syscalls.h                  |  7 +++++++
+ 2 files changed, 39 insertions(+)
 
-diff --git a/include/linux/socket.h b/include/linux/socket.h
-index f8d040434a13..e9cee272da13 100644
---- a/include/linux/socket.h
-+++ b/include/linux/socket.h
-@@ -364,5 +364,6 @@ extern int __sys_sendto(int fd, void __user *buff, size_t len,
- extern int __sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
- 			 int __user *upeer_addrlen, int flags);
- extern int __sys_socket(int family, int type, int protocol);
-+extern int __sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen);
+diff --git a/Documentation/process/adding-syscalls.rst b/Documentation/process/adding-syscalls.rst
+index 8cc25a06f353..556613744556 100644
+--- a/Documentation/process/adding-syscalls.rst
++++ b/Documentation/process/adding-syscalls.rst
+@@ -487,6 +487,38 @@ patchset, for the convenience of reviewers.
+ The man page should be cc'ed to linux-man@vger.kernel.org
+ For more details, see https://www.kernel.org/doc/man-pages/patches.html
  
- #endif /* _LINUX_SOCKET_H */
-diff --git a/net/compat.c b/net/compat.c
-index 5b3b74c5812e..bba555b1d863 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -814,7 +814,7 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 		ret = __sys_socket(a0, a1, a[2]);
- 		break;
- 	case SYS_BIND:
--		ret = sys_bind(a0, compat_ptr(a1), a[2]);
-+		ret = __sys_bind(a0, compat_ptr(a1), a[2]);
- 		break;
- 	case SYS_CONNECT:
- 		ret = sys_connect(a0, compat_ptr(a1), a[2]);
-diff --git a/net/socket.c b/net/socket.c
-index 07f379e50def..291cdae97341 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -1462,7 +1462,7 @@ SYSCALL_DEFINE4(socketpair, int, family, int, type, int, protocol,
-  *	the protocol layer (having also checked the address is ok).
-  */
- 
--SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
-+int __sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen)
- {
- 	struct socket *sock;
- 	struct sockaddr_storage address;
-@@ -1485,6 +1485,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
- 	return err;
- }
- 
-+SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
-+{
-+	return __sys_bind(fd, umyaddr, addrlen);
-+}
 +
- /*
-  *	Perform a listen. Basically, we allow the protocol to do anything
-  *	necessary for a listen, and if that works, we mark the socket as
-@@ -2471,7 +2476,7 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 		err = __sys_socket(a0, a1, a[2]);
- 		break;
- 	case SYS_BIND:
--		err = sys_bind(a0, (struct sockaddr __user *)a1, a[2]);
-+		err = __sys_bind(a0, (struct sockaddr __user *)a1, a[2]);
- 		break;
- 	case SYS_CONNECT:
- 		err = sys_connect(a0, (struct sockaddr __user *)a1, a[2]);
++Do not call System Calls in the Kernel
++--------------------------------------
++
++System calls are, as stated above, interaction points between userspace and
++the kernel.  Therefore, system call functions such as ``sys_xyzzy()`` or
++``compat_sys_xyzzy()`` should only be called from userspace via the syscall
++table, but not from elsewhere in the kernel.  If the syscall functionality is
++useful to be used within the kernel, needs to be shared between an old and a
++new syscall, or needs to be shared between a syscall and its compatibility
++variant, it should be implemented by means of a "helper" function (such as
++``kern_xyzzy()``).  This kernel function may then be called within the
++syscall stub (``sys_xyzzy()``), the compatibility syscall stub
++(``compat_sys_xyzzy()``), and/or other kernel code.
++
++At least on 64-bit x86, it will be a hard requirement from v4.17 onwards to not
++call system call functions in the kernel.  It uses a different calling
++convention for system calls where ``struct pt_regs`` is decoded on-the-fly in a
++syscall wrapper which then hands processing over to the actual syscall function.
++This means that only those parameters which are actually needed for a specific
++syscall are passed on during syscall entry, instead of filling in six CPU
++registers with random user space content all the time (which may cause serious
++trouble down the call chain).
++
++Moreover, rules on how data may be accessed may differ between kernel data and
++user data.  This is another reason why calling ``sys_xyzzy()`` is generally a
++bad idea.
++
++Exceptions to this rule are only allowed in architecture-specific overrides,
++architecture-specific compatibility wrappers, or other code in arch/.
++
++
+ References and Sources
+ ----------------------
+ 
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index a78186d826d7..0526286a0314 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -941,4 +941,11 @@ asmlinkage long sys_pkey_free(int pkey);
+ asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
+ 			  unsigned mask, struct statx __user *buffer);
+ 
++
++/*
++ * Kernel code should not call syscalls (i.e., sys_xyzyyz()) directly.
++ * Instead, use one of the functions which work equivalently, such as
++ * the ksys_xyzyyz() functions prototyped below.
++ */
++
+ #endif
 -- 
 2.16.3
