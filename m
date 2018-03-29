@@ -1,75 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59868 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59216 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752747AbeC2L0K (ORCPT
+        with ESMTP id S1752749AbeC2L0K (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:10 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 059/109] fs: add do_compat_select() helper; remove in-kernel call to compat syscall
-Date: Thu, 29 Mar 2018 13:23:36 +0200
-Message-ID: <20180329112426.23043-60-linux@dominikbrodowski.net>
+Subject: [PATCH 063/109] fanotify: add do_fanotify_mark() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:23:40 +0200
+Message-ID: <20180329112426.23043-64-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112336.MK5SC-ON7ZEJ7dJWGK0WweyOEq9l7UGl1TDyYlTFwv0@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Amir Goldstein <amir73il@gmail.com>, linux-fsdevel@vger.kernel.org
+Message-ID: <20180329112340.xinmj8JAW7zwq8aauZp6kaxjqQf7yR7UgQHBZrcvkyY@z>
 
-Using the fs-internal do_compat_select() helper allows us to get rid of
-the fs-internal call to the compat_sys_select() syscall.
+Using the fs-internal do_fanotify_mark() helper allows us to get rid of
+the fs-internal call to the sys_fanotify_mark() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Acked-by: Jan Kara <jack@suse.cz>
+Cc: Amir Goldstein <amir73il@gmail.com>
+Cc: linux-fsdevel@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/select.c | 17 ++++++++++++-----
- 1 file changed, 12 insertions(+), 5 deletions(-)
+ fs/notify/fanotify/fanotify_user.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
 
-diff --git a/fs/select.c b/fs/select.c
-index b5df01c4587d..ba879c51288f 100644
---- a/fs/select.c
-+++ b/fs/select.c
-@@ -1265,9 +1265,9 @@ static int compat_core_sys_select(int n, compat_ulong_t __user *inp,
- 	return ret;
+diff --git a/fs/notify/fanotify/fanotify_user.c b/fs/notify/fanotify/fanotify_user.c
+index c07eb3d655ea..fa803a58a605 100644
+--- a/fs/notify/fanotify/fanotify_user.c
++++ b/fs/notify/fanotify/fanotify_user.c
+@@ -820,9 +820,8 @@ SYSCALL_DEFINE2(fanotify_init, unsigned int, flags, unsigned int, event_f_flags)
+ 	return fd;
  }
  
--COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
--	compat_ulong_t __user *, outp, compat_ulong_t __user *, exp,
--	struct compat_timeval __user *, tvp)
-+static int do_compat_select(int n, compat_ulong_t __user *inp,
-+	compat_ulong_t __user *outp, compat_ulong_t __user *exp,
-+	struct compat_timeval __user *tvp)
+-SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
+-			      __u64, mask, int, dfd,
+-			      const char  __user *, pathname)
++static int do_fanotify_mark(int fanotify_fd, unsigned int flags, __u64 mask,
++			    int dfd, const char  __user *pathname)
  {
- 	struct timespec64 end_time, *to = NULL;
- 	struct compat_timeval tv;
-@@ -1290,6 +1290,13 @@ COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
+ 	struct inode *inode = NULL;
+ 	struct vfsmount *mnt = NULL;
+@@ -928,13 +927,20 @@ SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
  	return ret;
  }
  
-+COMPAT_SYSCALL_DEFINE5(select, int, n, compat_ulong_t __user *, inp,
-+	compat_ulong_t __user *, outp, compat_ulong_t __user *, exp,
-+	struct compat_timeval __user *, tvp)
++SYSCALL_DEFINE5(fanotify_mark, int, fanotify_fd, unsigned int, flags,
++			      __u64, mask, int, dfd,
++			      const char  __user *, pathname)
 +{
-+	return do_compat_select(n, inp, outp, exp, tvp);
++	return do_fanotify_mark(fanotify_fd, flags, mask, dfd, pathname);
 +}
 +
- struct compat_sel_arg_struct {
- 	compat_ulong_t n;
- 	compat_uptr_t inp;
-@@ -1304,8 +1311,8 @@ COMPAT_SYSCALL_DEFINE1(old_select, struct compat_sel_arg_struct __user *, arg)
- 
- 	if (copy_from_user(&a, arg, sizeof(a)))
- 		return -EFAULT;
--	return compat_sys_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
--				 compat_ptr(a.exp), compat_ptr(a.tvp));
-+	return do_compat_select(a.n, compat_ptr(a.inp), compat_ptr(a.outp),
-+				compat_ptr(a.exp), compat_ptr(a.tvp));
- }
- 
- static long do_compat_pselect(int n, compat_ulong_t __user *inp,
+ #ifdef CONFIG_COMPAT
+ COMPAT_SYSCALL_DEFINE6(fanotify_mark,
+ 				int, fanotify_fd, unsigned int, flags,
+ 				__u32, mask0, __u32, mask1, int, dfd,
+ 				const char  __user *, pathname)
+ {
+-	return sys_fanotify_mark(fanotify_fd, flags,
++	return do_fanotify_mark(fanotify_fd, flags,
+ #ifdef __BIG_ENDIAN
+ 				((__u64)mask0 << 32) | mask1,
+ #else
 -- 
 2.16.3
