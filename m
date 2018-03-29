@@ -1,75 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59098 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59534 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752957AbeC2L03 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:29 -0400
+        with ESMTP id S1752951AbeC2L02 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:28 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 028/109] net: socket: add __compat_sys_recvmmsg() helper; remove in-kernel call to compat syscall
-Date: Thu, 29 Mar 2018 13:23:05 +0200
-Message-ID: <20180329112426.23043-29-linux@dominikbrodowski.net>
+Subject: [PATCH 030/109] ipc: add semtimedop syscall/compat_syscall wrappers
+Date: Thu, 29 Mar 2018 13:23:07 +0200
+Message-ID: <20180329112426.23043-31-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
-Message-ID: <20180329112305.416g-dLviIickcm9BetfvFgmqTcUsk3lFCOzI7KXF-0@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112307.1XhsBjSjhTZ0J68PW9ErGELjsjeZLDzU77XeJEkqb0U@z>
 
-Using the net-internal helper __compat_sys_recvmmsg() allows us to avoid
-the internal calls to the compat_sys_recvmmsg() syscall.
+Provide ksys_semtimedop() and compat_ksys_semtimedop() wrappers to avoid
+in-kernel calls to these syscalls. The ksys_ prefix denotes that these
+functions are meant as a drop-in replacement for the syscalls. In
+particular, they use the same calling convention as sys_semtimedop() and
+compat_sys_semtimedop().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- net/compat.c | 17 ++++++++++++-----
- 1 file changed, 12 insertions(+), 5 deletions(-)
+ ipc/sem.c     | 23 ++++++++++++++++++-----
+ ipc/syscall.c | 17 ++++++++++-------
+ ipc/util.h    | 13 +++++++++++++
+ 3 files changed, 41 insertions(+), 12 deletions(-)
 
-diff --git a/net/compat.c b/net/compat.c
-index cdf5b0c1b962..7b2ae42a1598 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -787,9 +787,9 @@ COMPAT_SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, buf, compat_size_t, len
- 	return __compat_sys_recvfrom(fd, buf, len, flags, addr, addrlen);
+diff --git a/ipc/sem.c b/ipc/sem.c
+index a4af04979fd2..e21ceb8b4af1 100644
+--- a/ipc/sem.c
++++ b/ipc/sem.c
+@@ -2120,8 +2120,8 @@ static long do_semtimedop(int semid, struct sembuf __user *tsops,
+ 	return error;
  }
  
--COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
--		       unsigned int, vlen, unsigned int, flags,
--		       struct compat_timespec __user *, timeout)
-+static int __compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
-+				 unsigned int vlen, unsigned int flags,
-+				 struct compat_timespec __user *timeout)
+-SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsops,
+-		unsigned, nsops, const struct timespec __user *, timeout)
++long ksys_semtimedop(int semid, struct sembuf __user *tsops,
++		     unsigned int nsops, const struct timespec __user *timeout)
  {
- 	int datagrams;
- 	struct timespec ktspec;
-@@ -809,6 +809,13 @@ COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
- 	return datagrams;
+ 	if (timeout) {
+ 		struct timespec64 ts;
+@@ -2132,10 +2132,16 @@ SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsops,
+ 	return do_semtimedop(semid, tsops, nsops, NULL);
  }
  
-+COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
-+		       unsigned int, vlen, unsigned int, flags,
-+		       struct compat_timespec __user *, timeout)
++SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsops,
++		unsigned int, nsops, const struct timespec __user *, timeout)
 +{
-+	return __compat_sys_recvmmsg(fd, mmsg, vlen, flags, timeout);
++	return ksys_semtimedop(semid, tsops, nsops, timeout);
 +}
 +
- COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
+ #ifdef CONFIG_COMPAT
+-COMPAT_SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsems,
+-		       unsigned, nsops,
+-		       const struct compat_timespec __user *, timeout)
++long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
++			    unsigned int nsops,
++			    const struct compat_timespec __user *timeout)
  {
- 	u32 a[AUDITSC_ARGS];
-@@ -895,8 +902,8 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 		ret = compat_sys_recvmsg(a0, compat_ptr(a1), a[2]);
- 		break;
- 	case SYS_RECVMMSG:
--		ret = compat_sys_recvmmsg(a0, compat_ptr(a1), a[2], a[3],
--					  compat_ptr(a[4]));
-+		ret = __compat_sys_recvmmsg(a0, compat_ptr(a1), a[2], a[3],
-+					    compat_ptr(a[4]));
- 		break;
- 	case SYS_ACCEPT4:
- 		ret = __sys_accept4(a0, compat_ptr(a1), compat_ptr(a[2]), a[3]);
+ 	if (timeout) {
+ 		struct timespec64 ts;
+@@ -2145,6 +2151,13 @@ COMPAT_SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsems,
+ 	}
+ 	return do_semtimedop(semid, tsems, nsops, NULL);
+ }
++
++COMPAT_SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsems,
++		       unsigned int, nsops,
++		       const struct compat_timespec __user *, timeout)
++{
++	return compat_ksys_semtimedop(semid, tsems, nsops, timeout);
++}
+ #endif
+ 
+ SYSCALL_DEFINE3(semop, int, semid, struct sembuf __user *, tsops,
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 3763b4293b74..84d6a7691baa 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -7,6 +7,9 @@
+  */
+ #include <linux/unistd.h>
+ #include <linux/syscalls.h>
++#include <linux/security.h>
++#include <linux/ipc_namespace.h>
++#include "util.h"
+ 
+ #ifdef __ARCH_WANT_SYS_IPC
+ #include <linux/errno.h>
+@@ -24,12 +27,12 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 
+ 	switch (call) {
+ 	case SEMOP:
+-		return sys_semtimedop(first, (struct sembuf __user *)ptr,
+-				      second, NULL);
++		return ksys_semtimedop(first, (struct sembuf __user *)ptr,
++				       second, NULL);
+ 	case SEMTIMEDOP:
+-		return sys_semtimedop(first, (struct sembuf __user *)ptr,
+-				      second,
+-				      (const struct timespec __user *)fifth);
++		return ksys_semtimedop(first, (struct sembuf __user *)ptr,
++				       second,
++				       (const struct timespec __user *)fifth);
+ 
+ 	case SEMGET:
+ 		return sys_semget(first, second, third);
+@@ -124,9 +127,9 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 	switch (call) {
+ 	case SEMOP:
+ 		/* struct sembuf is the same on 32 and 64bit :)) */
+-		return sys_semtimedop(first, compat_ptr(ptr), second, NULL);
++		return ksys_semtimedop(first, compat_ptr(ptr), second, NULL);
+ 	case SEMTIMEDOP:
+-		return compat_sys_semtimedop(first, compat_ptr(ptr), second,
++		return compat_ksys_semtimedop(first, compat_ptr(ptr), second,
+ 						compat_ptr(fifth));
+ 	case SEMGET:
+ 		return sys_semget(first, second, third);
+diff --git a/ipc/util.h b/ipc/util.h
+index 89b8ec176fc4..6deadf77547e 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -235,4 +235,17 @@ static inline int compat_ipc_parse_version(int *cmd)
+ #endif
+ }
+ #endif
++
++/* for __ARCH_WANT_SYS_IPC */
++long ksys_semtimedop(int semid, struct sembuf __user *tsops,
++		     unsigned int nsops,
++		     const struct timespec __user *timeout);
++
++/* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
++#ifdef CONFIG_COMPAT
++long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
++			    unsigned int nsops,
++			    const struct compat_timespec __user *timeout);
++#endif /* CONFIG_COMPAT */
++
+ #endif
 -- 
 2.16.3
