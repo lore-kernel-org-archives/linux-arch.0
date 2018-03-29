@@ -1,91 +1,88 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 034/109] ipc: add shmget syscall wrapper
-Date: Thu, 29 Mar 2018 13:23:11 +0200
-Message-ID: <20180329112426.23043-35-linux@dominikbrodowski.net>
+Subject: [PATCH 012/109] net: socket: add __sys_bind() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:22:49 +0200
+Message-ID: <20180329112426.23043-13-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Provide ksys_shmget() wrapper to avoid in-kernel calls to this syscall.
-The ksys_ prefix denotes that this function is meant as a drop-in
-replacement for the syscall. In particular, it uses the same calling
-convention as sys_shmget().
+Using the net-internal helper __sys_bind() allows us to avoid the
+internal calls to the sys_bind() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- ipc/shm.c     | 7 ++++++-
- ipc/syscall.c | 4 ++--
- ipc/util.h    | 1 +
+ include/linux/socket.h | 1 +
+ net/compat.c           | 2 +-
+ net/socket.c           | 9 +++++++--
  3 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/ipc/shm.c b/ipc/shm.c
-index 4643865e9171..9f3cdb259a51 100644
---- a/ipc/shm.c
-+++ b/ipc/shm.c
-@@ -656,7 +656,7 @@ static inline int shm_more_checks(struct kern_ipc_perm *ipcp,
- 	return 0;
- }
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index f8d040434a13..e9cee272da13 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -364,5 +364,6 @@ extern int __sys_sendto(int fd, void __user *buff, size_t len,
+ extern int __sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
+ 			 int __user *upeer_addrlen, int flags);
+ extern int __sys_socket(int family, int type, int protocol);
++extern int __sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen);
  
--SYSCALL_DEFINE3(shmget, key_t, key, size_t, size, int, shmflg)
-+long ksys_shmget(key_t key, size_t size, int shmflg)
+ #endif /* _LINUX_SOCKET_H */
+diff --git a/net/compat.c b/net/compat.c
+index 5b3b74c5812e..bba555b1d863 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -814,7 +814,7 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
+ 		ret = __sys_socket(a0, a1, a[2]);
+ 		break;
+ 	case SYS_BIND:
+-		ret = sys_bind(a0, compat_ptr(a1), a[2]);
++		ret = __sys_bind(a0, compat_ptr(a1), a[2]);
+ 		break;
+ 	case SYS_CONNECT:
+ 		ret = sys_connect(a0, compat_ptr(a1), a[2]);
+diff --git a/net/socket.c b/net/socket.c
+index 07f379e50def..291cdae97341 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1462,7 +1462,7 @@ SYSCALL_DEFINE4(socketpair, int, family, int, type, int, protocol,
+  *	the protocol layer (having also checked the address is ok).
+  */
+ 
+-SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
++int __sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen)
  {
- 	struct ipc_namespace *ns;
- 	static const struct ipc_ops shm_ops = {
-@@ -675,6 +675,11 @@ SYSCALL_DEFINE3(shmget, key_t, key, size_t, size, int, shmflg)
- 	return ipcget(ns, &shm_ids(ns), &shm_ops, &shm_params);
+ 	struct socket *sock;
+ 	struct sockaddr_storage address;
+@@ -1485,6 +1485,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
+ 	return err;
  }
  
-+SYSCALL_DEFINE3(shmget, key_t, key, size_t, size, int, shmflg)
++SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
 +{
-+	return ksys_shmget(key, size, shmflg);
++	return __sys_bind(fd, umyaddr, addrlen);
 +}
 +
- static inline unsigned long copy_shmid_to_user(void __user *buf, struct shmid64_ds *in, int version)
- {
- 	switch (version) {
-diff --git a/ipc/syscall.c b/ipc/syscall.c
-index 355c4a644bbf..60bceb19b6f0 100644
---- a/ipc/syscall.c
-+++ b/ipc/syscall.c
-@@ -92,7 +92,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
- 	case SHMDT:
- 		return sys_shmdt((char __user *)ptr);
- 	case SHMGET:
--		return sys_shmget(first, second, third);
-+		return ksys_shmget(first, second, third);
- 	case SHMCTL:
- 		return sys_shmctl(first, second,
- 				   (struct shmid_ds __user *) ptr);
-@@ -180,7 +180,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
- 	case SHMDT:
- 		return sys_shmdt(compat_ptr(ptr));
- 	case SHMGET:
--		return sys_shmget(first, (unsigned)second, third);
-+		return ksys_shmget(first, (unsigned int)second, third);
- 	case SHMCTL:
- 		return compat_sys_shmctl(first, second, compat_ptr(ptr));
- 	}
-diff --git a/ipc/util.h b/ipc/util.h
-index b35c0dfe3bc3..51002c0b2a21 100644
---- a/ipc/util.h
-+++ b/ipc/util.h
-@@ -243,6 +243,7 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
- long ksys_semget(key_t key, int nsems, int semflg);
- long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
- long ksys_msgget(key_t key, int msgflg);
-+long ksys_shmget(key_t key, size_t size, int shmflg);
- 
- /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
- #ifdef CONFIG_COMPAT
+ /*
+  *	Perform a listen. Basically, we allow the protocol to do anything
+  *	necessary for a listen, and if that works, we mark the socket as
+@@ -2471,7 +2476,7 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
+ 		err = __sys_socket(a0, a1, a[2]);
+ 		break;
+ 	case SYS_BIND:
+-		err = sys_bind(a0, (struct sockaddr __user *)a1, a[2]);
++		err = __sys_bind(a0, (struct sockaddr __user *)a1, a[2]);
+ 		break;
+ 	case SYS_CONNECT:
+ 		err = sys_connect(a0, (struct sockaddr __user *)a1, a[2]);
 -- 
 2.16.3
