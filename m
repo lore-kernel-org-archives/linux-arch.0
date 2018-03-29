@@ -1,23 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59322 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:58984 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752858AbeC2L01 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:27 -0400
+        with ESMTP id S1752944AbeC2L02 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:28 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 003/109] kernel: open-code sys_rt_sigpending() in sys_sigpending()
-Date: Thu, 29 Mar 2018 13:22:40 +0200
-Message-ID: <20180329112426.23043-4-linux@dominikbrodowski.net>
+Subject: [PATCH 038/109] ipc: add msgrcv syscall/compat_syscall wrappers
+Date: Thu, 29 Mar 2018 13:23:15 +0200
+Message-ID: <20180329112426.23043-39-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112240.3y1Xl9S1niCI-FQfzCN19xiKVi41jE_B3fjVb95C2pI@z>
+Message-ID: <20180329112315.i6Q4FI_kPvZVJVgK0p10I5HhUUhfR-i_nYDirvLj2RU@z>
 
-A similar but not fully equivalent code path is already open-coded
-three times (in sys_rt_sigpending and in the two compat stubs), so
-do it a fourth time here.
+Provide ksys_msgrcv() and compat_ksys_msgrcv() wrappers to avoid in-kernel
+calls to these syscalls. The ksys_ prefix denotes that these functions are
+meant as a drop-in replacement for the syscalls. In particular, they use
+the same calling convention as sys_msgrcv() and compat_sys_msgrcv().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -27,50 +28,107 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/syscalls.h |  2 +-
- kernel/signal.c          | 15 ++++++++++++---
- 2 files changed, 13 insertions(+), 4 deletions(-)
+ ipc/msg.c     | 19 ++++++++++++++++---
+ ipc/syscall.c |  8 ++++----
+ ipc/util.h    |  4 ++++
+ 3 files changed, 24 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 0526286a0314..a63e21e7a3af 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -288,7 +288,7 @@ asmlinkage long sys_capset(cap_user_header_t header,
- 				const cap_user_data_t data);
- asmlinkage long sys_personality(unsigned int personality);
+diff --git a/ipc/msg.c b/ipc/msg.c
+index 5b026868df07..abc5826270a6 100644
+--- a/ipc/msg.c
++++ b/ipc/msg.c
+@@ -1150,10 +1150,16 @@ static long do_msgrcv(int msqid, void __user *buf, size_t bufsz, long msgtyp, in
+ 	return bufsz;
+ }
  
--asmlinkage long sys_sigpending(old_sigset_t __user *set);
-+asmlinkage long sys_sigpending(old_sigset_t __user *uset);
- asmlinkage long sys_sigprocmask(int how, old_sigset_t __user *set,
- 				old_sigset_t __user *oset);
- asmlinkage long sys_sigaltstack(const struct sigaltstack __user *uss,
-diff --git a/kernel/signal.c b/kernel/signal.c
-index c6e4c83dc090..985c61749bcf 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -3629,11 +3629,20 @@ int __compat_save_altstack(compat_stack_t __user *uss, unsigned long sp)
- 
- /**
-  *  sys_sigpending - examine pending signals
-- *  @set: where mask of pending signal is returned
-+ *  @uset: where mask of pending signal is returned
-  */
--SYSCALL_DEFINE1(sigpending, old_sigset_t __user *, set)
-+SYSCALL_DEFINE1(sigpending, old_sigset_t __user *, uset)
++long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 long msgtyp, int msgflg)
++{
++	return do_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg, do_msg_fill);
++}
++
+ SYSCALL_DEFINE5(msgrcv, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
+ 		long, msgtyp, int, msgflg)
  {
--	return sys_rt_sigpending((sigset_t __user *)set, sizeof(old_sigset_t)); 
-+	sigset_t set;
-+	int err;
-+
-+	if (sizeof(old_sigset_t) > sizeof(*uset))
-+		return -EINVAL;
-+
-+	err = do_sigpending(&set);
-+	if (!err && copy_to_user(uset, &set, sizeof(old_sigset_t)))
-+		err = -EFAULT;
-+	return err;
+-	return do_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg, do_msg_fill);
++	return ksys_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg);
  }
  
  #ifdef CONFIG_COMPAT
+@@ -1171,12 +1177,19 @@ static long compat_do_msg_fill(void __user *dest, struct msg_msg *msg, size_t bu
+ 	return msgsz;
+ }
+ 
+-COMPAT_SYSCALL_DEFINE5(msgrcv, int, msqid, compat_uptr_t, msgp,
+-		       compat_ssize_t, msgsz, compat_long_t, msgtyp, int, msgflg)
++long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
++			compat_long_t msgtyp, int msgflg)
+ {
+ 	return do_msgrcv(msqid, compat_ptr(msgp), (ssize_t)msgsz, (long)msgtyp,
+ 			 msgflg, compat_do_msg_fill);
+ }
++
++COMPAT_SYSCALL_DEFINE5(msgrcv, int, msqid, compat_uptr_t, msgp,
++		       compat_ssize_t, msgsz, compat_long_t, msgtyp,
++		       int, msgflg)
++{
++	return compat_ksys_msgrcv(msqid, msgp, msgsz, msgtyp, msgflg);
++}
+ #endif
+ 
+ int msg_init_ns(struct ipc_namespace *ns)
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index aa29b0802e26..0228c7afd882 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -59,11 +59,11 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 					   (struct ipc_kludge __user *) ptr,
+ 					   sizeof(tmp)))
+ 				return -EFAULT;
+-			return sys_msgrcv(first, tmp.msgp, second,
++			return ksys_msgrcv(first, tmp.msgp, second,
+ 					   tmp.msgtyp, third);
+ 		}
+ 		default:
+-			return sys_msgrcv(first,
++			return ksys_msgrcv(first,
+ 					   (struct msgbuf __user *) ptr,
+ 					   second, fifth, third);
+ 		}
+@@ -156,10 +156,10 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 				return -EINVAL;
+ 			if (copy_from_user(&ipck, uptr, sizeof(ipck)))
+ 				return -EFAULT;
+-			return compat_sys_msgrcv(first, ipck.msgp, second,
++			return compat_ksys_msgrcv(first, ipck.msgp, second,
+ 						 ipck.msgtyp, third);
+ 		}
+-		return compat_sys_msgrcv(first, ptr, second, fifth, third);
++		return compat_ksys_msgrcv(first, ptr, second, fifth, third);
+ 	}
+ 	case MSGGET:
+ 		return ksys_msgget(first, second);
+diff --git a/ipc/util.h b/ipc/util.h
+index 47837b4af3f2..c16aceb1bdec 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -244,6 +244,8 @@ long ksys_semget(key_t key, int nsems, int semflg);
+ long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+ long ksys_msgget(key_t key, int msgflg);
+ long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
++long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 long msgtyp, int msgflg);
+ long ksys_shmget(key_t key, size_t size, int shmflg);
+ long ksys_shmdt(char __user *shmaddr);
+ long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+@@ -255,6 +257,8 @@ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
+ 			    const struct compat_timespec __user *timeout);
+ long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
+ long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
++long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
++			compat_long_t msgtyp, int msgflg);
+ long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
+ #endif /* CONFIG_COMPAT */
+ 
 -- 
 2.16.3
