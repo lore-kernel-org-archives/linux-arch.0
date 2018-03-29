@@ -1,24 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59716 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59096 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752956AbeC2L03 (ORCPT
+        with ESMTP id S1752959AbeC2L03 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:29 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 036/109] ipc: add shmctl syscall/compat_syscall wrappers
-Date: Thu, 29 Mar 2018 13:23:13 +0200
-Message-ID: <20180329112426.23043-37-linux@dominikbrodowski.net>
+Subject: [PATCH 090/109] kernel: add ksys_unshare() helper; remove in-kernel calls to sys_unshare()
+Date: Thu, 29 Mar 2018 13:24:07 +0200
+Message-ID: <20180329112426.23043-91-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112313.vatwvCCbuzBaEP6ia620elTFQUhQrpoWqAPLZ2pR7o4@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20180329112407.hU0FtKhLWARST3Iza-ROLyq503SbFFECmw_Wjnfxl7U@z>
 
-Provide ksys_shmctl() and compat_ksys_shmctl() wrappers to avoid in-kernel
-calls to these syscalls. The ksys_ prefix denotes that these functions are
-meant as a drop-in replacement for the syscalls. In particular, they use
-the same calling convention as sys_shmctl() and compat_sys_shmctl().
+Using this helper allows us to avoid the in-kernel calls to the
+sys_unshare() syscall. The ksys_ prefix denotes that this function is meant
+as a drop-in replacement for the syscall. In particular, it uses the same
+calling convention as sys_unshare().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -26,100 +26,77 @@ http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
 Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- ipc/shm.c     | 14 ++++++++++++--
- ipc/syscall.c |  4 ++--
- ipc/util.h    |  2 ++
- 3 files changed, 16 insertions(+), 4 deletions(-)
+ drivers/base/devtmpfs.c  | 2 +-
+ include/linux/syscalls.h | 1 +
+ init/do_mounts_initrd.c  | 2 +-
+ kernel/fork.c            | 7 ++++++-
+ 4 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/ipc/shm.c b/ipc/shm.c
-index e5838e3328dc..0aae3e55bc56 100644
---- a/ipc/shm.c
-+++ b/ipc/shm.c
-@@ -1045,7 +1045,7 @@ static int shmctl_do_lock(struct ipc_namespace *ns, int shmid, int cmd)
- 	return err;
- }
- 
--SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
-+long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf)
+diff --git a/drivers/base/devtmpfs.c b/drivers/base/devtmpfs.c
+index 3f7ee954fd2c..f7768077e817 100644
+--- a/drivers/base/devtmpfs.c
++++ b/drivers/base/devtmpfs.c
+@@ -380,7 +380,7 @@ static int devtmpfsd(void *p)
  {
- 	int err, version;
- 	struct ipc_namespace *ns;
-@@ -1099,6 +1099,11 @@ SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
- 	}
- }
- 
-+SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, struct shmid_ds __user *, buf)
-+{
-+	return ksys_shmctl(shmid, cmd, buf);
-+}
-+
- #ifdef CONFIG_COMPAT
- 
- struct compat_shmid_ds {
-@@ -1218,7 +1223,7 @@ static int copy_compat_shmid_from_user(struct shmid64_ds *out, void __user *buf,
- 	}
- }
- 
--COMPAT_SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, void __user *, uptr)
-+long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr)
- {
- 	struct ipc_namespace *ns;
- 	struct shmid64_ds sem64;
-@@ -1273,6 +1278,11 @@ COMPAT_SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, void __user *, uptr)
- 	}
- 	return err;
- }
-+
-+COMPAT_SYSCALL_DEFINE3(shmctl, int, shmid, int, cmd, void __user *, uptr)
-+{
-+	return compat_ksys_shmctl(shmid, cmd, uptr);
-+}
- #endif
+ 	char options[] = "mode=0755";
+ 	int *err = p;
+-	*err = sys_unshare(CLONE_NEWNS);
++	*err = ksys_unshare(CLONE_NEWNS);
+ 	if (*err)
+ 		goto out;
+ 	*err = ksys_mount("devtmpfs", "/", "devtmpfs", MS_SILENT, options);
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 0a9942b3e718..e724dda509e0 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -961,6 +961,7 @@ int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
+ off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence);
+ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count);
+ void ksys_sync(void);
++int ksys_unshare(unsigned long unshare_flags);
  
  /*
-diff --git a/ipc/syscall.c b/ipc/syscall.c
-index b3aa71564815..34bbabc9e672 100644
---- a/ipc/syscall.c
-+++ b/ipc/syscall.c
-@@ -94,7 +94,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
- 	case SHMGET:
- 		return ksys_shmget(first, second, third);
- 	case SHMCTL:
--		return sys_shmctl(first, second,
-+		return ksys_shmctl(first, second,
- 				   (struct shmid_ds __user *) ptr);
- 	default:
- 		return -ENOSYS;
-@@ -182,7 +182,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
- 	case SHMGET:
- 		return ksys_shmget(first, (unsigned int)second, third);
- 	case SHMCTL:
--		return compat_sys_shmctl(first, second, compat_ptr(ptr));
-+		return compat_ksys_shmctl(first, second, compat_ptr(ptr));
- 	}
+  * The following kernel syscall equivalents are just wrappers to fs-internal
+diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
+index 03ec0c1b7553..d1d3e53bdeef 100644
+--- a/init/do_mounts_initrd.c
++++ b/init/do_mounts_initrd.c
+@@ -36,7 +36,7 @@ __setup("noinitrd", no_initrd);
  
- 	return -ENOSYS;
-diff --git a/ipc/util.h b/ipc/util.h
-index 7770bcad1168..16e8b5b8c416 100644
---- a/ipc/util.h
-+++ b/ipc/util.h
-@@ -245,6 +245,7 @@ long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
- long ksys_msgget(key_t key, int msgflg);
- long ksys_shmget(key_t key, size_t size, int shmflg);
- long ksys_shmdt(char __user *shmaddr);
-+long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+ static int init_linuxrc(struct subprocess_info *info, struct cred *new)
+ {
+-	sys_unshare(CLONE_FS | CLONE_FILES);
++	ksys_unshare(CLONE_FS | CLONE_FILES);
+ 	/* stdin/stdout/stderr for /linuxrc */
+ 	ksys_open("/dev/console", O_RDWR, 0);
+ 	ksys_dup(0);
+diff --git a/kernel/fork.c b/kernel/fork.c
+index b1e031aac9db..f71b67dc156d 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -2354,7 +2354,7 @@ static int unshare_fd(unsigned long unshare_flags, struct files_struct **new_fdp
+  * constructed. Here we are modifying the current, active,
+  * task_struct.
+  */
+-SYSCALL_DEFINE1(unshare, unsigned long, unshare_flags)
++int ksys_unshare(unsigned long unshare_flags)
+ {
+ 	struct fs_struct *fs, *new_fs = NULL;
+ 	struct files_struct *fd, *new_fd = NULL;
+@@ -2470,6 +2470,11 @@ SYSCALL_DEFINE1(unshare, unsigned long, unshare_flags)
+ 	return err;
+ }
  
- /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
- #ifdef CONFIG_COMPAT
-@@ -252,6 +253,7 @@ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
- 			    unsigned int nsops,
- 			    const struct compat_timespec __user *timeout);
- long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
-+long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
- #endif /* CONFIG_COMPAT */
- 
- #endif
++SYSCALL_DEFINE1(unshare, unsigned long, unshare_flags)
++{
++	return ksys_unshare(unshare_flags);
++}
++
+ /*
+  *	Helper to unshare the files of the current task.
+  *	We don't want to expose copy_files internals to
 -- 
 2.16.3
