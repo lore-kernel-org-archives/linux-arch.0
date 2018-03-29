@@ -1,97 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59572 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59048 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751908AbeC2L0M (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:12 -0400
+        with ESMTP id S1752758AbeC2L0L (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:11 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 005/109] mm: use do_futex() instead of sys_futex() in mm_release()
-Date: Thu, 29 Mar 2018 13:22:42 +0200
-Message-ID: <20180329112426.23043-6-linux@dominikbrodowski.net>
+Subject: [PATCH 039/109] ipc: add msgsnd syscall/compat_syscall wrappers
+Date: Thu, 29 Mar 2018 13:23:16 +0200
+Message-ID: <20180329112426.23043-40-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112242.mOVZLdXgHAAmGBV3jUIyBsTu1VW3h0mG610jeHPgaHw@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112316.rgNzXE7icrClXLJRL03k3k5wAQ4HSGE0TRdhOcW2lfg@z>
 
-sys_futex() is a wrapper to do_futex() which does not modify any
-values here:
-
-- uaddr, val and val3 are kept the same
-
-- op is masked with FUTEX_CMD_MASK, but is always set to FUTEX_WAKE.
-  Therefore, val2 is always 0.
-
-- as utime is set to NULL, *timeout is NULL
+Provide ksys_msgsnd() and compat_ksys_msgsnd() wrappers to avoid in-kernel
+calls to these syscalls. The ksys_ prefix denotes that these functions are
+meant as a drop-in replacement for the syscalls. In particular, they use
+the same calling convention as sys_msgsnd() and compat_sys_msgsnd().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Darren Hart <dvhart@infradead.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/futex.h | 13 ++++++++++---
- kernel/fork.c         |  4 ++--
- 2 files changed, 12 insertions(+), 5 deletions(-)
+ ipc/msg.c     | 20 ++++++++++++++++----
+ ipc/syscall.c |  4 ++--
+ ipc/util.h    |  4 ++++
+ 3 files changed, 22 insertions(+), 6 deletions(-)
 
-diff --git a/include/linux/futex.h b/include/linux/futex.h
-index c0fb9a24bbd2..821ae502d3d8 100644
---- a/include/linux/futex.h
-+++ b/include/linux/futex.h
-@@ -9,9 +9,6 @@ struct inode;
- struct mm_struct;
- struct task_struct;
+diff --git a/ipc/msg.c b/ipc/msg.c
+index abc5826270a6..9de48065c1ac 100644
+--- a/ipc/msg.c
++++ b/ipc/msg.c
+@@ -867,8 +867,8 @@ static long do_msgsnd(int msqid, long mtype, void __user *mtext,
+ 	return err;
+ }
  
--long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
--	      u32 __user *uaddr2, u32 val2, u32 val3);
--
- extern int
- handle_futex_death(u32 __user *uaddr, struct task_struct *curr, int pi);
- 
-@@ -55,6 +52,9 @@ union futex_key {
- 
- #ifdef CONFIG_FUTEX
- extern void exit_robust_list(struct task_struct *curr);
-+
-+long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
-+	      u32 __user *uaddr2, u32 val2, u32 val3);
- #ifdef CONFIG_HAVE_FUTEX_CMPXCHG
- #define futex_cmpxchg_enabled 1
- #else
-@@ -64,6 +64,13 @@ extern int futex_cmpxchg_enabled;
- static inline void exit_robust_list(struct task_struct *curr)
+-SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
+-		int, msgflg)
++long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 int msgflg)
  {
+ 	long mtype;
+ 
+@@ -877,6 +877,12 @@ SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
+ 	return do_msgsnd(msqid, mtype, msgp->mtext, msgsz, msgflg);
+ }
+ 
++SYSCALL_DEFINE4(msgsnd, int, msqid, struct msgbuf __user *, msgp, size_t, msgsz,
++		int, msgflg)
++{
++	return ksys_msgsnd(msqid, msgp, msgsz, msgflg);
++}
++
+ #ifdef CONFIG_COMPAT
+ 
+ struct compat_msgbuf {
+@@ -884,8 +890,8 @@ struct compat_msgbuf {
+ 	char mtext[1];
+ };
+ 
+-COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
+-		       compat_ssize_t, msgsz, int, msgflg)
++long compat_ksys_msgsnd(int msqid, compat_uptr_t msgp,
++		       compat_ssize_t msgsz, int msgflg)
+ {
+ 	struct compat_msgbuf __user *up = compat_ptr(msgp);
+ 	compat_long_t mtype;
+@@ -894,6 +900,12 @@ COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
+ 		return -EFAULT;
+ 	return do_msgsnd(msqid, mtype, up->mtext, (ssize_t)msgsz, msgflg);
  }
 +
-+static inline long do_futex(u32 __user *uaddr, int op, u32 val,
-+			    ktime_t *timeout, u32 __user *uaddr2,
-+			    u32 val2, u32 val3)
++COMPAT_SYSCALL_DEFINE4(msgsnd, int, msqid, compat_uptr_t, msgp,
++		       compat_ssize_t, msgsz, int, msgflg)
 +{
-+	return -EINVAL;
++	return compat_ksys_msgsnd(msqid, msgp, msgsz, msgflg);
 +}
  #endif
  
- #ifdef CONFIG_FUTEX_PI
-diff --git a/kernel/fork.c b/kernel/fork.c
-index e5d9d405ae4e..b1e031aac9db 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -1198,8 +1198,8 @@ void mm_release(struct task_struct *tsk, struct mm_struct *mm)
- 			 * not set up a proper pointer then tough luck.
- 			 */
- 			put_user(0, tsk->clear_child_tid);
--			sys_futex(tsk->clear_child_tid, FUTEX_WAKE,
--					1, NULL, NULL, 0);
-+			do_futex(tsk->clear_child_tid, FUTEX_WAKE,
-+					1, NULL, NULL, 0, 0);
- 		}
- 		tsk->clear_child_tid = NULL;
+ static inline int convert_mode(long *msgtyp, int msgflg)
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 0228c7afd882..77a883ef2eca 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -46,7 +46,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
  	}
+ 
+ 	case MSGSND:
+-		return sys_msgsnd(first, (struct msgbuf __user *) ptr,
++		return ksys_msgsnd(first, (struct msgbuf __user *) ptr,
+ 				  second, third);
+ 	case MSGRCV:
+ 		switch (version) {
+@@ -142,7 +142,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 		return compat_ksys_semctl(first, second, third, pad);
+ 
+ 	case MSGSND:
+-		return compat_sys_msgsnd(first, ptr, second, third);
++		return compat_ksys_msgsnd(first, ptr, second, third);
+ 
+ 	case MSGRCV: {
+ 		void __user *uptr = compat_ptr(ptr);
+diff --git a/ipc/util.h b/ipc/util.h
+index c16aceb1bdec..51853dc2f340 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -246,6 +246,8 @@ long ksys_msgget(key_t key, int msgflg);
+ long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
+ long ksys_msgrcv(int msqid, struct msgbuf __user *msgp, size_t msgsz,
+ 		 long msgtyp, int msgflg);
++long ksys_msgsnd(int msqid, struct msgbuf __user *msgp, size_t msgsz,
++		 int msgflg);
+ long ksys_shmget(key_t key, size_t size, int shmflg);
+ long ksys_shmdt(char __user *shmaddr);
+ long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+@@ -259,6 +261,8 @@ long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
+ long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
+ long compat_ksys_msgrcv(int msqid, compat_uptr_t msgp, compat_ssize_t msgsz,
+ 			compat_long_t msgtyp, int msgflg);
++long compat_ksys_msgsnd(int msqid, compat_uptr_t msgp,
++		       compat_ssize_t msgsz, int msgflg);
+ long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
+ #endif /* CONFIG_COMPAT */
+ 
 -- 
 2.16.3
