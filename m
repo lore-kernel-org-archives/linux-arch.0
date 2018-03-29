@@ -1,7 +1,7 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 083/109] fs: add ksys_close() wrapper; remove in-kernel calls to sys_close()
-Date: Thu, 29 Mar 2018 13:24:00 +0200
-Message-ID: <20180329112426.23043-84-linux@dominikbrodowski.net>
+Subject: [PATCH 093/109] fs: add ksys_truncate() wrapper; remove in-kernel calls to sys_truncate()
+Date: Thu, 29 Mar 2018 13:24:10 +0200
+Message-ID: <20180329112426.23043-94-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
@@ -10,15 +10,10 @@ To: linux-kernel@vger.kernel.org
 Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using the ksys_close() wrapper allows us to get rid of in-kernel calls
-to the sys_close() syscall. The ksys_ prefix denotes that this function
-is meant as a drop-in replacement for the syscall. In particular, it
-uses the same calling convention as sys_close(), with one subtle
-difference:
-
-The few places which checked the return value did not care about the return
-value re-writing in sys_close(), so simply use a wrapper around
-__close_fd().
+Using the ksys_truncate() wrapper allows us to get rid of in-kernel
+calls to the sys_truncate() syscall. The ksys_ prefix denotes that this
+function is meant as a drop-in replacement for the syscall. In
+particular, it uses the same calling convention as sys_truncate().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -28,224 +23,141 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/autofs4/dev-ioctl.c   |  2 +-
- fs/binfmt_misc.c         |  2 +-
- fs/file.c                |  1 +
- fs/open.c                |  1 -
- include/linux/syscalls.h | 12 ++++++++++++
- init/do_mounts.c         |  4 ++--
- init/do_mounts_initrd.c  |  2 +-
- init/do_mounts_md.c      |  8 ++++----
- init/do_mounts_rd.c      |  6 +++---
- init/initramfs.c         |  8 ++++----
- 10 files changed, 29 insertions(+), 17 deletions(-)
+ arch/mips/kernel/linux32.c      | 2 +-
+ arch/parisc/kernel/sys_parisc.c | 6 +++---
+ arch/powerpc/kernel/sys_ppc32.c | 2 +-
+ arch/s390/kernel/compat_linux.c | 2 +-
+ arch/sparc/kernel/sys_sparc32.c | 2 +-
+ arch/x86/ia32/sys_ia32.c        | 3 ++-
+ fs/open.c                       | 2 +-
+ include/linux/syscalls.h        | 7 +++++++
+ 8 files changed, 17 insertions(+), 9 deletions(-)
 
-diff --git a/fs/autofs4/dev-ioctl.c b/fs/autofs4/dev-ioctl.c
-index b7c816f39404..26f6b4f41ce6 100644
---- a/fs/autofs4/dev-ioctl.c
-+++ b/fs/autofs4/dev-ioctl.c
-@@ -310,7 +310,7 @@ static int autofs_dev_ioctl_closemount(struct file *fp,
- 				       struct autofs_sb_info *sbi,
- 				       struct autofs_dev_ioctl *param)
+diff --git a/arch/mips/kernel/linux32.c b/arch/mips/kernel/linux32.c
+index 57b3310873f0..58e7dd27f106 100644
+--- a/arch/mips/kernel/linux32.c
++++ b/arch/mips/kernel/linux32.c
+@@ -82,7 +82,7 @@ struct rlimit32 {
+ SYSCALL_DEFINE4(32_truncate64, const char __user *, path,
+ 	unsigned long, __dummy, unsigned long, a2, unsigned long, a3)
  {
--	return sys_close(param->ioctlfd);
-+	return ksys_close(param->ioctlfd);
+-	return sys_truncate(path, merge_64(a2, a3));
++	return ksys_truncate(path, merge_64(a2, a3));
  }
  
- /*
-diff --git a/fs/binfmt_misc.c b/fs/binfmt_misc.c
-index a7c5a9861bef..a41b48f82a70 100644
---- a/fs/binfmt_misc.c
-+++ b/fs/binfmt_misc.c
-@@ -241,7 +241,7 @@ static int load_misc_binary(struct linux_binprm *bprm)
- 	return retval;
- error:
- 	if (fd_binary > 0)
--		sys_close(fd_binary);
-+		ksys_close(fd_binary);
- 	bprm->interp_flags = 0;
- 	bprm->interp_data = 0;
- 	goto ret;
-diff --git a/fs/file.c b/fs/file.c
-index d304004f0b65..7ffd6e9d103d 100644
---- a/fs/file.c
-+++ b/fs/file.c
-@@ -638,6 +638,7 @@ int __close_fd(struct files_struct *files, unsigned fd)
- 	spin_unlock(&files->file_lock);
- 	return -EBADF;
- }
-+EXPORT_SYMBOL(__close_fd); /* for ksys_close() */
- 
- void do_close_on_exec(struct files_struct *files)
+ SYSCALL_DEFINE4(32_ftruncate64, unsigned long, fd, unsigned long, __dummy,
+diff --git a/arch/parisc/kernel/sys_parisc.c b/arch/parisc/kernel/sys_parisc.c
+index ef995b5d97ef..3377a00163c3 100644
+--- a/arch/parisc/kernel/sys_parisc.c
++++ b/arch/parisc/kernel/sys_parisc.c
+@@ -292,7 +292,7 @@ asmlinkage unsigned long sys_mmap(unsigned long addr, unsigned long len,
+ asmlinkage long parisc_truncate64(const char __user * path,
+ 					unsigned int high, unsigned int low)
  {
+-	return sys_truncate(path, (long)high << 32 | low);
++	return ksys_truncate(path, (long)high << 32 | low);
+ }
+ 
+ asmlinkage long parisc_ftruncate64(unsigned int fd,
+@@ -305,7 +305,7 @@ asmlinkage long parisc_ftruncate64(unsigned int fd,
+  * are identical on LP64 */
+ asmlinkage long sys_truncate64(const char __user * path, unsigned long length)
+ {
+-	return sys_truncate(path, length);
++	return ksys_truncate(path, length);
+ }
+ asmlinkage long sys_ftruncate64(unsigned int fd, unsigned long length)
+ {
+@@ -320,7 +320,7 @@ asmlinkage long sys_fcntl64(unsigned int fd, unsigned int cmd, unsigned long arg
+ asmlinkage long parisc_truncate64(const char __user * path,
+ 					unsigned int high, unsigned int low)
+ {
+-	return sys_truncate64(path, (loff_t)high << 32 | low);
++	return ksys_truncate(path, (loff_t)high << 32 | low);
+ }
+ 
+ asmlinkage long parisc_ftruncate64(unsigned int fd,
+diff --git a/arch/powerpc/kernel/sys_ppc32.c b/arch/powerpc/kernel/sys_ppc32.c
+index 664e4c5b5855..a0a251d7c9c5 100644
+--- a/arch/powerpc/kernel/sys_ppc32.c
++++ b/arch/powerpc/kernel/sys_ppc32.c
+@@ -94,7 +94,7 @@ compat_ssize_t compat_sys_readahead(int fd, u32 r4, u32 offhi, u32 offlo, u32 co
+ asmlinkage int compat_sys_truncate64(const char __user * path, u32 reg4,
+ 				unsigned long high, unsigned long low)
+ {
+-	return sys_truncate(path, (high << 32) | low);
++	return ksys_truncate(path, (high << 32) | low);
+ }
+ 
+ asmlinkage long compat_sys_fallocate(int fd, int mode, u32 offhi, u32 offlo,
+diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
+index 605f6f026e44..e4092ec17ea5 100644
+--- a/arch/s390/kernel/compat_linux.c
++++ b/arch/s390/kernel/compat_linux.c
+@@ -302,7 +302,7 @@ COMPAT_SYSCALL_DEFINE5(s390_ipc, uint, call, int, first, compat_ulong_t, second,
+ 
+ COMPAT_SYSCALL_DEFINE3(s390_truncate64, const char __user *, path, u32, high, u32, low)
+ {
+-	return sys_truncate(path, (unsigned long)high << 32 | low);
++	return ksys_truncate(path, (unsigned long)high << 32 | low);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE3(s390_ftruncate64, unsigned int, fd, u32, high, u32, low)
+diff --git a/arch/sparc/kernel/sys_sparc32.c b/arch/sparc/kernel/sys_sparc32.c
+index af18b9ff86be..aab2428b17b5 100644
+--- a/arch/sparc/kernel/sys_sparc32.c
++++ b/arch/sparc/kernel/sys_sparc32.c
+@@ -57,7 +57,7 @@ asmlinkage long sys32_truncate64(const char __user * path, unsigned long high, u
+ 	if ((int)high < 0)
+ 		return -EINVAL;
+ 	else
+-		return sys_truncate(path, (high << 32) | low);
++		return ksys_truncate(path, (high << 32) | low);
+ }
+ 
+ asmlinkage long sys32_ftruncate64(unsigned int fd, unsigned long high, unsigned long low)
+diff --git a/arch/x86/ia32/sys_ia32.c b/arch/x86/ia32/sys_ia32.c
+index 0c5f8932c136..90e7a2b3dc5b 100644
+--- a/arch/x86/ia32/sys_ia32.c
++++ b/arch/x86/ia32/sys_ia32.c
+@@ -55,7 +55,8 @@
+ COMPAT_SYSCALL_DEFINE3(x86_truncate64, const char __user *, filename,
+ 		       unsigned long, offset_low, unsigned long, offset_high)
+ {
+-       return sys_truncate(filename, ((loff_t) offset_high << 32) | offset_low);
++	return ksys_truncate(filename,
++			    ((loff_t) offset_high << 32) | offset_low);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE3(x86_ftruncate64, unsigned int, fd,
 diff --git a/fs/open.c b/fs/open.c
-index b3f3b2cd9f19..710102fc262b 100644
+index 8a42a2961130..2e816fc7bd56 100644
 --- a/fs/open.c
 +++ b/fs/open.c
-@@ -1200,7 +1200,6 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
- 
- 	return retval;
+@@ -128,7 +128,7 @@ long vfs_truncate(const struct path *path, loff_t length)
  }
--EXPORT_SYMBOL(sys_close);
+ EXPORT_SYMBOL_GPL(vfs_truncate);
  
- /*
-  * This routine simulates a hangup on the tty, to arrange that users
+-static long do_sys_truncate(const char __user *pathname, loff_t length)
++long do_sys_truncate(const char __user *pathname, loff_t length)
+ {
+ 	unsigned int lookup_flags = LOOKUP_FOLLOW;
+ 	struct path path;
 diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 41023177c8ec..38805f3447ea 100644
+index 331da76f66e2..78b79e3a1279 100644
 --- a/include/linux/syscalls.h
 +++ b/include/linux/syscalls.h
-@@ -1045,4 +1045,16 @@ static inline long ksys_ftruncate(unsigned int fd, unsigned long length)
- 	return do_sys_ftruncate(fd, length, 1);
+@@ -1078,4 +1078,11 @@ static inline long ksys_open(const char __user *filename, int flags,
+ 	return do_sys_open(AT_FDCWD, filename, flags, mode);
  }
  
-+extern int __close_fd(struct files_struct *files, unsigned int fd);
++extern long do_sys_truncate(const char __user *pathname, loff_t length);
 +
-+/*
-+ * In contrast to sys_close(), this stub does not check whether the syscall
-+ * should or should not be restarted, but returns the raw error codes from
-+ * __close_fd().
-+ */
-+static inline int ksys_close(unsigned int fd)
++static inline long ksys_truncate(const char __user *pathname, loff_t length)
 +{
-+	return __close_fd(current->files, fd);
++	return do_sys_truncate(pathname, length);
 +}
 +
  #endif
-diff --git a/init/do_mounts.c b/init/do_mounts.c
-index 89f18985fa90..a28dd42d1f84 100644
---- a/init/do_mounts.c
-+++ b/init/do_mounts.c
-@@ -492,7 +492,7 @@ void __init change_floppy(char *fmt, ...)
- 	fd = sys_open("/dev/root", O_RDWR | O_NDELAY, 0);
- 	if (fd >= 0) {
- 		sys_ioctl(fd, FDEJECT, 0);
--		sys_close(fd);
-+		ksys_close(fd);
- 	}
- 	printk(KERN_NOTICE "VFS: Insert %s and press ENTER\n", buf);
- 	fd = sys_open("/dev/console", O_RDWR, 0);
-@@ -503,7 +503,7 @@ void __init change_floppy(char *fmt, ...)
- 		sys_read(fd, &c, 1);
- 		termios.c_lflag |= ICANON;
- 		sys_ioctl(fd, TCSETSF, (long)&termios);
--		sys_close(fd);
-+		ksys_close(fd);
- 	}
- }
- #endif
-diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
-index 99922d1ebfe6..6907c6dbc443 100644
---- a/init/do_mounts_initrd.c
-+++ b/init/do_mounts_initrd.c
-@@ -111,7 +111,7 @@ static void __init handle_initrd(void)
- 			error = fd;
- 		} else {
- 			error = sys_ioctl(fd, BLKFLSBUF, 0);
--			sys_close(fd);
-+			ksys_close(fd);
- 		}
- 		printk(!error ? "okay\n" : "failed\n");
- 	}
-diff --git a/init/do_mounts_md.c b/init/do_mounts_md.c
-index 3f733c760a8c..ebd4013d589e 100644
---- a/init/do_mounts_md.c
-+++ b/init/do_mounts_md.c
-@@ -191,7 +191,7 @@ static void __init md_setup_drive(void)
- 			printk(KERN_WARNING
- 			       "md: Ignoring md=%d, already autodetected. (Use raid=noautodetect)\n",
- 			       minor);
--			sys_close(fd);
-+			ksys_close(fd);
- 			continue;
- 		}
- 
-@@ -243,11 +243,11 @@ static void __init md_setup_drive(void)
- 			 * boot a kernel with devfs compiled in from partitioned md
- 			 * array without it
- 			 */
--			sys_close(fd);
-+			ksys_close(fd);
- 			fd = sys_open(name, 0, 0);
- 			sys_ioctl(fd, BLKRRPART, 0);
- 		}
--		sys_close(fd);
-+		ksys_close(fd);
- 	}
- }
- 
-@@ -297,7 +297,7 @@ static void __init autodetect_raid(void)
- 	fd = sys_open("/dev/md0", 0, 0);
- 	if (fd >= 0) {
- 		sys_ioctl(fd, RAID_AUTORUN, raid_autopart);
--		sys_close(fd);
-+		ksys_close(fd);
- 	}
- }
- 
-diff --git a/init/do_mounts_rd.c b/init/do_mounts_rd.c
-index 5b69056f610a..f1aa341862d3 100644
---- a/init/do_mounts_rd.c
-+++ b/init/do_mounts_rd.c
-@@ -257,7 +257,7 @@ int __init rd_load_image(char *from)
- 		if (i && (i % devblocks == 0)) {
- 			printk("done disk #%d.\n", disk++);
- 			rotate = 0;
--			if (sys_close(in_fd)) {
-+			if (ksys_close(in_fd)) {
- 				printk("Error closing the disk.\n");
- 				goto noclose_input;
- 			}
-@@ -283,9 +283,9 @@ int __init rd_load_image(char *from)
- successful_load:
- 	res = 1;
- done:
--	sys_close(in_fd);
-+	ksys_close(in_fd);
- noclose_input:
--	sys_close(out_fd);
-+	ksys_close(out_fd);
- out:
- 	kfree(buf);
- 	ksys_unlink("/dev/ram");
-diff --git a/init/initramfs.c b/init/initramfs.c
-index 0d3b001b0dc5..ce2bcad97cdf 100644
---- a/init/initramfs.c
-+++ b/init/initramfs.c
-@@ -373,7 +373,7 @@ static int __init do_copy(void)
- 	if (byte_count >= body_len) {
- 		if (xwrite(wfd, victim, body_len) != body_len)
- 			error("write error");
--		sys_close(wfd);
-+		ksys_close(wfd);
- 		do_utime(vcollected, mtime);
- 		kfree(vcollected);
- 		eat(body_len);
-@@ -574,7 +574,7 @@ static void __init clean_rootfs(void)
- 	buf = kzalloc(BUF_SIZE, GFP_KERNEL);
- 	WARN_ON(!buf);
- 	if (!buf) {
--		sys_close(fd);
-+		ksys_close(fd);
- 		return;
- 	}
- 
-@@ -602,7 +602,7 @@ static void __init clean_rootfs(void)
- 		num = sys_getdents64(fd, dirp, BUF_SIZE);
- 	}
- 
--	sys_close(fd);
-+	ksys_close(fd);
- 	kfree(buf);
- }
- #endif
-@@ -639,7 +639,7 @@ static int __init populate_rootfs(void)
- 				pr_err("/initrd.image: incomplete write (%zd != %ld)\n",
- 				       written, initrd_end - initrd_start);
- 
--			sys_close(fd);
-+			ksys_close(fd);
- 			free_initrd();
- 		}
- 	done:
 -- 
 2.16.3
