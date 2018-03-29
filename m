@@ -1,69 +1,92 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 027/109] net: socket: add __compat_sys_getsockopt() helper; remove in-kernel call to compat syscall
-Date: Thu, 29 Mar 2018 13:23:04 +0200
-Message-ID: <20180329112426.23043-28-linux@dominikbrodowski.net>
+Subject: [PATCH 005/109] mm: use do_futex() instead of sys_futex() in mm_release()
+Date: Thu, 29 Mar 2018 13:22:42 +0200
+Message-ID: <20180329112426.23043-6-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using the net-internal helper __compat_sys_getsockopt() allows us to avoid
-the internal calls to the compat_sys_getsockopt() syscall.
+sys_futex() is a wrapper to do_futex() which does not modify any
+values here:
+
+- uaddr, val and val3 are kept the same
+
+- op is masked with FUTEX_CMD_MASK, but is always set to FUTEX_WAKE.
+  Therefore, val2 is always 0.
+
+- as utime is set to NULL, *timeout is NULL
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Darren Hart <dvhart@infradead.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- net/compat.c | 16 ++++++++++++----
- 1 file changed, 12 insertions(+), 4 deletions(-)
+ include/linux/futex.h | 13 ++++++++++---
+ kernel/fork.c         |  4 ++--
+ 2 files changed, 12 insertions(+), 5 deletions(-)
 
-diff --git a/net/compat.c b/net/compat.c
-index 75bfcbbb2e3e..cdf5b0c1b962 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -509,8 +509,9 @@ int compat_sock_get_timestampns(struct sock *sk, struct timespec __user *usersta
- }
- EXPORT_SYMBOL(compat_sock_get_timestampns);
+diff --git a/include/linux/futex.h b/include/linux/futex.h
+index c0fb9a24bbd2..821ae502d3d8 100644
+--- a/include/linux/futex.h
++++ b/include/linux/futex.h
+@@ -9,9 +9,6 @@ struct inode;
+ struct mm_struct;
+ struct task_struct;
  
--COMPAT_SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
--		       char __user *, optval, int __user *, optlen)
-+static int __compat_sys_getsockopt(int fd, int level, int optname,
-+				   char __user *optval,
-+				   int __user *optlen)
- {
- 	int err;
- 	struct socket *sock = sockfd_lookup(fd, &err);
-@@ -536,6 +537,12 @@ COMPAT_SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
- 	return err;
- }
+-long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
+-	      u32 __user *uaddr2, u32 val2, u32 val3);
+-
+ extern int
+ handle_futex_death(u32 __user *uaddr, struct task_struct *curr, int pi);
  
-+COMPAT_SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
-+		       char __user *, optval, int __user *, optlen)
-+{
-+	return __compat_sys_getsockopt(fd, level, optname, optval, optlen);
-+}
+@@ -55,6 +52,9 @@ union futex_key {
+ 
+ #ifdef CONFIG_FUTEX
+ extern void exit_robust_list(struct task_struct *curr);
 +
- struct compat_group_req {
- 	__u32				 gr_interface;
- 	struct __kernel_sockaddr_storage gr_group
-@@ -874,8 +881,9 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 					      compat_ptr(a[3]), a[4]);
- 		break;
- 	case SYS_GETSOCKOPT:
--		ret = compat_sys_getsockopt(a0, a1, a[2],
--				compat_ptr(a[3]), compat_ptr(a[4]));
-+		ret = __compat_sys_getsockopt(a0, a1, a[2],
-+					      compat_ptr(a[3]),
-+					      compat_ptr(a[4]));
- 		break;
- 	case SYS_SENDMSG:
- 		ret = compat_sys_sendmsg(a0, compat_ptr(a1), a[2]);
++long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
++	      u32 __user *uaddr2, u32 val2, u32 val3);
+ #ifdef CONFIG_HAVE_FUTEX_CMPXCHG
+ #define futex_cmpxchg_enabled 1
+ #else
+@@ -64,6 +64,13 @@ extern int futex_cmpxchg_enabled;
+ static inline void exit_robust_list(struct task_struct *curr)
+ {
+ }
++
++static inline long do_futex(u32 __user *uaddr, int op, u32 val,
++			    ktime_t *timeout, u32 __user *uaddr2,
++			    u32 val2, u32 val3)
++{
++	return -EINVAL;
++}
+ #endif
+ 
+ #ifdef CONFIG_FUTEX_PI
+diff --git a/kernel/fork.c b/kernel/fork.c
+index e5d9d405ae4e..b1e031aac9db 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -1198,8 +1198,8 @@ void mm_release(struct task_struct *tsk, struct mm_struct *mm)
+ 			 * not set up a proper pointer then tough luck.
+ 			 */
+ 			put_user(0, tsk->clear_child_tid);
+-			sys_futex(tsk->clear_child_tid, FUTEX_WAKE,
+-					1, NULL, NULL, 0);
++			do_futex(tsk->clear_child_tid, FUTEX_WAKE,
++					1, NULL, NULL, 0, 0);
+ 		}
+ 		tsk->clear_child_tid = NULL;
+ 	}
 -- 
 2.16.3
