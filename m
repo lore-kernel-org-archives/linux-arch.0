@@ -1,72 +1,152 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59218 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59810 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752955AbeC2L03 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:29 -0400
+        with ESMTP id S1752928AbeC2L00 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:26 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 026/109] net: socket: add __compat_sys_setsockopt() helper; remove in-kernel call to compat syscall
-Date: Thu, 29 Mar 2018 13:23:03 +0200
-Message-ID: <20180329112426.23043-27-linux@dominikbrodowski.net>
+Subject: [PATCH 044/109] mm: add kernel_migrate_pages() helper, move compat syscall to mm/mempolicy.c
+Date: Thu, 29 Mar 2018 13:23:21 +0200
+Message-ID: <20180329112426.23043-45-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
-Message-ID: <20180329112303.z83rKUdEYu1zhYvSmN96b51LxOvGzbPigaaMByGG6r8@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112321.2sZ8HdmmXFHclX9g38gUwP63N3FM3bmkyAr1stFrLCo@z>
 
-Using the net-internal helper __compat_sys_setsockopt() allows us to avoid
-the internal calls to the compat_sys_setsockopt() syscall.
+Move compat_sys_migrate_pages() to mm/mempolicy.c and make it call a newly
+introduced helper -- kernel_migrate_pages() -- instead of the syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- net/compat.c | 14 ++++++++++----
- 1 file changed, 10 insertions(+), 4 deletions(-)
+ kernel/compat.c | 33 ---------------------------------
+ mm/mempolicy.c  | 48 ++++++++++++++++++++++++++++++++++++++++++++----
+ 2 files changed, 44 insertions(+), 37 deletions(-)
 
-diff --git a/net/compat.c b/net/compat.c
-index 513adc8d0e0f..75bfcbbb2e3e 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -383,8 +383,8 @@ static int compat_sock_setsockopt(struct socket *sock, int level, int optname,
- 	return sock_setsockopt(sock, level, optname, optval, optlen);
+diff --git a/kernel/compat.c b/kernel/compat.c
+index 3f5fa8902e7d..51bdf1808943 100644
+--- a/kernel/compat.c
++++ b/kernel/compat.c
+@@ -508,39 +508,6 @@ COMPAT_SYSCALL_DEFINE6(move_pages, pid_t, pid, compat_ulong_t, nr_pages,
+ 	}
+ 	return sys_move_pages(pid, nr_pages, pages, nodes, status, flags);
+ }
+-
+-COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
+-		       compat_ulong_t, maxnode,
+-		       const compat_ulong_t __user *, old_nodes,
+-		       const compat_ulong_t __user *, new_nodes)
+-{
+-	unsigned long __user *old = NULL;
+-	unsigned long __user *new = NULL;
+-	nodemask_t tmp_mask;
+-	unsigned long nr_bits;
+-	unsigned long size;
+-
+-	nr_bits = min_t(unsigned long, maxnode - 1, MAX_NUMNODES);
+-	size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
+-	if (old_nodes) {
+-		if (compat_get_bitmap(nodes_addr(tmp_mask), old_nodes, nr_bits))
+-			return -EFAULT;
+-		old = compat_alloc_user_space(new_nodes ? size * 2 : size);
+-		if (new_nodes)
+-			new = old + size / sizeof(unsigned long);
+-		if (copy_to_user(old, nodes_addr(tmp_mask), size))
+-			return -EFAULT;
+-	}
+-	if (new_nodes) {
+-		if (compat_get_bitmap(nodes_addr(tmp_mask), new_nodes, nr_bits))
+-			return -EFAULT;
+-		if (new == NULL)
+-			new = compat_alloc_user_space(size);
+-		if (copy_to_user(new, nodes_addr(tmp_mask), size))
+-			return -EFAULT;
+-	}
+-	return sys_migrate_pages(pid, nr_bits + 1, old, new);
+-}
+ #endif
+ 
+ /*
+diff --git a/mm/mempolicy.c b/mm/mempolicy.c
+index d879f1d8a44a..7399ede02b5f 100644
+--- a/mm/mempolicy.c
++++ b/mm/mempolicy.c
+@@ -1377,9 +1377,9 @@ SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
+ 	return do_set_mempolicy(mode, flags, &nodes);
  }
  
--COMPAT_SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
--		       char __user *, optval, unsigned int, optlen)
-+static int __compat_sys_setsockopt(int fd, int level, int optname,
-+				   char __user *optval, unsigned int optlen)
+-SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
+-		const unsigned long __user *, old_nodes,
+-		const unsigned long __user *, new_nodes)
++static int kernel_migrate_pages(pid_t pid, unsigned long maxnode,
++				const unsigned long __user *old_nodes,
++				const unsigned long __user *new_nodes)
  {
- 	int err;
- 	struct socket *sock = sockfd_lookup(fd, &err);
-@@ -410,6 +410,12 @@ COMPAT_SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
- 	return err;
+ 	struct mm_struct *mm = NULL;
+ 	struct task_struct *task;
+@@ -1469,6 +1469,13 @@ SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
+ 
  }
  
-+COMPAT_SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
-+		       char __user *, optval, unsigned int, optlen)
++SYSCALL_DEFINE4(migrate_pages, pid_t, pid, unsigned long, maxnode,
++		const unsigned long __user *, old_nodes,
++		const unsigned long __user *, new_nodes)
 +{
-+	return __compat_sys_setsockopt(fd, level, optname, optval, optlen);
++	return kernel_migrate_pages(pid, maxnode, old_nodes, new_nodes);
 +}
 +
- static int do_get_sock_timeout(struct socket *sock, int level, int optname,
- 		char __user *optval, int __user *optlen)
- {
-@@ -864,8 +870,8 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 		ret = __sys_shutdown(a0, a1);
- 		break;
- 	case SYS_SETSOCKOPT:
--		ret = compat_sys_setsockopt(a0, a1, a[2],
--				compat_ptr(a[3]), a[4]);
-+		ret = __compat_sys_setsockopt(a0, a1, a[2],
-+					      compat_ptr(a[3]), a[4]);
- 		break;
- 	case SYS_GETSOCKOPT:
- 		ret = compat_sys_getsockopt(a0, a1, a[2],
+ 
+ /* Retrieve NUMA policy */
+ SYSCALL_DEFINE5(get_mempolicy, int __user *, policy,
+@@ -1571,7 +1578,40 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
+ 	return sys_mbind(start, len, mode, nm, nr_bits+1, flags);
+ }
+ 
+-#endif
++COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
++		       compat_ulong_t, maxnode,
++		       const compat_ulong_t __user *, old_nodes,
++		       const compat_ulong_t __user *, new_nodes)
++{
++	unsigned long __user *old = NULL;
++	unsigned long __user *new = NULL;
++	nodemask_t tmp_mask;
++	unsigned long nr_bits;
++	unsigned long size;
++
++	nr_bits = min_t(unsigned long, maxnode - 1, MAX_NUMNODES);
++	size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
++	if (old_nodes) {
++		if (compat_get_bitmap(nodes_addr(tmp_mask), old_nodes, nr_bits))
++			return -EFAULT;
++		old = compat_alloc_user_space(new_nodes ? size * 2 : size);
++		if (new_nodes)
++			new = old + size / sizeof(unsigned long);
++		if (copy_to_user(old, nodes_addr(tmp_mask), size))
++			return -EFAULT;
++	}
++	if (new_nodes) {
++		if (compat_get_bitmap(nodes_addr(tmp_mask), new_nodes, nr_bits))
++			return -EFAULT;
++		if (new == NULL)
++			new = compat_alloc_user_space(size);
++		if (copy_to_user(new, nodes_addr(tmp_mask), size))
++			return -EFAULT;
++	}
++	return kernel_migrate_pages(pid, nr_bits + 1, old, new);
++}
++
++#endif /* CONFIG_COMPAT */
+ 
+ struct mempolicy *__get_vma_policy(struct vm_area_struct *vma,
+ 						unsigned long addr)
 -- 
 2.16.3
