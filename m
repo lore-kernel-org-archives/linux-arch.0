@@ -1,105 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:58710 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59894 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751008AbeC2L0B (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:01 -0400
+        with ESMTP id S1752943AbeC2L01 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:27 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 099/109] x86/ioport: add ksys_ioperm() helper; remove in-kernel calls to sys_ioperm()
-Date: Thu, 29 Mar 2018 13:24:16 +0200
-Message-ID: <20180329112426.23043-100-linux@dominikbrodowski.net>
+Subject: [PATCH 061/109] fs: add do_compat_futimesat() helper; remove in-kernel call to compat syscall
+Date: Thu, 29 Mar 2018 13:23:38 +0200
+Message-ID: <20180329112426.23043-62-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org
-Message-ID: <20180329112416.2SNOYFF-feek1np6td_s_7QN_rcH9zsmxTooJsstvO8@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112338.INTe4riyI3zQdX7Nme1GrFMmwNZ29KbqZ3lrJMcxI4w@z>
 
-Using this helper allows us to avoid the in-kernel calls to the
-sys_ioperm() syscall. The ksys_ prefix denotes that this function is meant
-as a drop-in replacement for the syscall. In particular, it uses the same
-calling convention as sys_ioperm().
+Using the fs-internal do_compat_futimesat() helper allows us to get rid of
+the fs-internal call to the compat_sys_futimesat() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Jiri Slaby <jslaby@suse.com>
-Cc: x86@kernel.org
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/x86/include/asm/syscalls.h | 1 +
- arch/x86/kernel/ioport.c        | 7 ++++++-
- drivers/tty/vt/vt_ioctl.c       | 6 +++---
- 3 files changed, 10 insertions(+), 4 deletions(-)
+ fs/utimes.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/syscalls.h b/arch/x86/include/asm/syscalls.h
-index bad25bb80679..1c0bebbd039e 100644
---- a/arch/x86/include/asm/syscalls.h
-+++ b/arch/x86/include/asm/syscalls.h
-@@ -17,6 +17,7 @@
- 
- /* Common in X86_32 and X86_64 */
- /* kernel/ioport.c */
-+long ksys_ioperm(unsigned long from, unsigned long num, int turn_on);
- asmlinkage long sys_ioperm(unsigned long, unsigned long, int);
- asmlinkage long sys_iopl(unsigned int);
- 
-diff --git a/arch/x86/kernel/ioport.c b/arch/x86/kernel/ioport.c
-index 38deafebb21b..0fe1c8782208 100644
---- a/arch/x86/kernel/ioport.c
-+++ b/arch/x86/kernel/ioport.c
-@@ -23,7 +23,7 @@
- /*
-  * this changes the io permissions bitmap in the current task.
-  */
--SYSCALL_DEFINE3(ioperm, unsigned long, from, unsigned long, num, int, turn_on)
-+long ksys_ioperm(unsigned long from, unsigned long num, int turn_on)
- {
- 	struct thread_struct *t = &current->thread;
- 	struct tss_struct *tss;
-@@ -96,6 +96,11 @@ SYSCALL_DEFINE3(ioperm, unsigned long, from, unsigned long, num, int, turn_on)
- 	return 0;
+diff --git a/fs/utimes.c b/fs/utimes.c
+index 5be035ed26c0..69d4b6ba1bfb 100644
+--- a/fs/utimes.c
++++ b/fs/utimes.c
+@@ -260,7 +260,8 @@ COMPAT_SYSCALL_DEFINE4(utimensat, unsigned int, dfd, const char __user *, filena
+ 	return do_utimes(dfd, filename, t ? tv : NULL, flags);
  }
  
-+SYSCALL_DEFINE3(ioperm, unsigned long, from, unsigned long, num, int, turn_on)
+-COMPAT_SYSCALL_DEFINE3(futimesat, unsigned int, dfd, const char __user *, filename, struct compat_timeval __user *, t)
++static long do_compat_futimesat(unsigned int dfd, const char __user *filename,
++				struct compat_timeval __user *t)
+ {
+ 	struct timespec64 tv[2];
+ 
+@@ -279,8 +280,15 @@ COMPAT_SYSCALL_DEFINE3(futimesat, unsigned int, dfd, const char __user *, filena
+ 	return do_utimes(dfd, filename, t ? tv : NULL, 0);
+ }
+ 
++COMPAT_SYSCALL_DEFINE3(futimesat, unsigned int, dfd,
++		       const char __user *, filename,
++		       struct compat_timeval __user *, t)
 +{
-+	return ksys_ioperm(from, num, turn_on);
++	return do_compat_futimesat(dfd, filename, t);
 +}
 +
- /*
-  * sys_iopl has to be used when you want to access the IO ports
-  * beyond the 0x3ff range: to get the full 65536 ports bitmapped
-diff --git a/drivers/tty/vt/vt_ioctl.c b/drivers/tty/vt/vt_ioctl.c
-index d61be307256a..a78ad10a119b 100644
---- a/drivers/tty/vt/vt_ioctl.c
-+++ b/drivers/tty/vt/vt_ioctl.c
-@@ -57,7 +57,7 @@ extern struct tty_driver *console_driver;
-  */
- 
- #ifdef CONFIG_X86
--#include <linux/syscalls.h>
-+#include <asm/syscalls.h>
- #endif
- 
- static void complete_change_console(struct vc_data *vc);
-@@ -420,12 +420,12 @@ int vt_ioctl(struct tty_struct *tty,
- 			ret = -EINVAL;
- 			break;
- 		}
--		ret = sys_ioperm(arg, 1, (cmd == KDADDIO)) ? -ENXIO : 0;
-+		ret = ksys_ioperm(arg, 1, (cmd == KDADDIO)) ? -ENXIO : 0;
- 		break;
- 
- 	case KDENABIO:
- 	case KDDISABIO:
--		ret = sys_ioperm(GPFIRST, GPNUM,
-+		ret = ksys_ioperm(GPFIRST, GPNUM,
- 				  (cmd == KDENABIO)) ? -ENXIO : 0;
- 		break;
+ COMPAT_SYSCALL_DEFINE2(utimes, const char __user *, filename, struct compat_timeval __user *, t)
+ {
+-	return compat_sys_futimesat(AT_FDCWD, filename, t);
++	return do_compat_futimesat(AT_FDCWD, filename, t);
+ }
  #endif
 -- 
 2.16.3
