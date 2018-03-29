@@ -1,70 +1,97 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 028/109] net: socket: add __compat_sys_recvmmsg() helper; remove in-kernel call to compat syscall
-Date: Thu, 29 Mar 2018 13:23:05 +0200
-Message-ID: <20180329112426.23043-29-linux@dominikbrodowski.net>
+Subject: [PATCH 090/109] kernel: add ksys_unshare() helper; remove in-kernel calls to sys_unshare()
+Date: Thu, 29 Mar 2018 13:24:07 +0200
+Message-ID: <20180329112426.23043-91-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using the net-internal helper __compat_sys_recvmmsg() allows us to avoid
-the internal calls to the compat_sys_recvmmsg() syscall.
+Using this helper allows us to avoid the in-kernel calls to the
+sys_unshare() syscall. The ksys_ prefix denotes that this function is meant
+as a drop-in replacement for the syscall. In particular, it uses the same
+calling convention as sys_unshare().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- net/compat.c | 17 ++++++++++++-----
- 1 file changed, 12 insertions(+), 5 deletions(-)
+ drivers/base/devtmpfs.c  | 2 +-
+ include/linux/syscalls.h | 1 +
+ init/do_mounts_initrd.c  | 2 +-
+ kernel/fork.c            | 7 ++++++-
+ 4 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/net/compat.c b/net/compat.c
-index cdf5b0c1b962..7b2ae42a1598 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -787,9 +787,9 @@ COMPAT_SYSCALL_DEFINE6(recvfrom, int, fd, void __user *, buf, compat_size_t, len
- 	return __compat_sys_recvfrom(fd, buf, len, flags, addr, addrlen);
- }
- 
--COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
--		       unsigned int, vlen, unsigned int, flags,
--		       struct compat_timespec __user *, timeout)
-+static int __compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
-+				 unsigned int vlen, unsigned int flags,
-+				 struct compat_timespec __user *timeout)
+diff --git a/drivers/base/devtmpfs.c b/drivers/base/devtmpfs.c
+index 3f7ee954fd2c..f7768077e817 100644
+--- a/drivers/base/devtmpfs.c
++++ b/drivers/base/devtmpfs.c
+@@ -380,7 +380,7 @@ static int devtmpfsd(void *p)
  {
- 	int datagrams;
- 	struct timespec ktspec;
-@@ -809,6 +809,13 @@ COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
- 	return datagrams;
+ 	char options[] = "mode=0755";
+ 	int *err = p;
+-	*err = sys_unshare(CLONE_NEWNS);
++	*err = ksys_unshare(CLONE_NEWNS);
+ 	if (*err)
+ 		goto out;
+ 	*err = ksys_mount("devtmpfs", "/", "devtmpfs", MS_SILENT, options);
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 0a9942b3e718..e724dda509e0 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -961,6 +961,7 @@ int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
+ off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence);
+ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count);
+ void ksys_sync(void);
++int ksys_unshare(unsigned long unshare_flags);
+ 
+ /*
+  * The following kernel syscall equivalents are just wrappers to fs-internal
+diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
+index 03ec0c1b7553..d1d3e53bdeef 100644
+--- a/init/do_mounts_initrd.c
++++ b/init/do_mounts_initrd.c
+@@ -36,7 +36,7 @@ __setup("noinitrd", no_initrd);
+ 
+ static int init_linuxrc(struct subprocess_info *info, struct cred *new)
+ {
+-	sys_unshare(CLONE_FS | CLONE_FILES);
++	ksys_unshare(CLONE_FS | CLONE_FILES);
+ 	/* stdin/stdout/stderr for /linuxrc */
+ 	ksys_open("/dev/console", O_RDWR, 0);
+ 	ksys_dup(0);
+diff --git a/kernel/fork.c b/kernel/fork.c
+index b1e031aac9db..f71b67dc156d 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -2354,7 +2354,7 @@ static int unshare_fd(unsigned long unshare_flags, struct files_struct **new_fdp
+  * constructed. Here we are modifying the current, active,
+  * task_struct.
+  */
+-SYSCALL_DEFINE1(unshare, unsigned long, unshare_flags)
++int ksys_unshare(unsigned long unshare_flags)
+ {
+ 	struct fs_struct *fs, *new_fs = NULL;
+ 	struct files_struct *fd, *new_fd = NULL;
+@@ -2470,6 +2470,11 @@ SYSCALL_DEFINE1(unshare, unsigned long, unshare_flags)
+ 	return err;
  }
  
-+COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
-+		       unsigned int, vlen, unsigned int, flags,
-+		       struct compat_timespec __user *, timeout)
++SYSCALL_DEFINE1(unshare, unsigned long, unshare_flags)
 +{
-+	return __compat_sys_recvmmsg(fd, mmsg, vlen, flags, timeout);
++	return ksys_unshare(unshare_flags);
 +}
 +
- COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- {
- 	u32 a[AUDITSC_ARGS];
-@@ -895,8 +902,8 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 		ret = compat_sys_recvmsg(a0, compat_ptr(a1), a[2]);
- 		break;
- 	case SYS_RECVMMSG:
--		ret = compat_sys_recvmmsg(a0, compat_ptr(a1), a[2], a[3],
--					  compat_ptr(a[4]));
-+		ret = __compat_sys_recvmmsg(a0, compat_ptr(a1), a[2], a[3],
-+					    compat_ptr(a[4]));
- 		break;
- 	case SYS_ACCEPT4:
- 		ret = __sys_accept4(a0, compat_ptr(a1), compat_ptr(a[2]), a[3]);
+ /*
+  *	Helper to unshare the files of the current task.
+  *	We don't want to expose copy_files internals to
 -- 
 2.16.3
