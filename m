@@ -1,121 +1,139 @@
-From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 037/109] ipc: add msgctl syscall/compat_syscall wrappers
-Date: Thu, 29 Mar 2018 13:23:14 +0200
-Message-ID: <20180329112426.23043-38-linux@dominikbrodowski.net>
+From: Dominik Brodowski <linux-X3ehHDuj6sIIGcDfoQAp7OTW4wlIGRCZ@public.gmane.org>
+Subject: [PATCH 004/109] kexec: call do_kexec_load() in compat syscall directly
+Date: Thu, 29 Mar 2018 13:22:41 +0200
+Message-ID: <20180329112426.23043-5-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <kexec-bounces+glkk-kexec=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+In-Reply-To: <20180329112426.23043-1-linux-X3ehHDuj6sIIGcDfoQAp7OTW4wlIGRCZ@public.gmane.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/kexec>,
+ <mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/kexec/>
+List-Post: <mailto:kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+List-Help: <mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/kexec>,
+ <mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=subscribe>
+Sender: "kexec" <kexec-bounces-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+Errors-To: kexec-bounces+glkk-kexec=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, viro-3bDd1+5oDREiFSDQTTA3OLVCufUGDwFn@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Eric Biederman <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-Provide ksys_msgctl() and compat_ksys_msgctl() wrappers to avoid in-kernel
-calls to these syscalls. The ksys_ prefix denotes that these functions are
-meant as a drop-in replacement for the syscalls. In particular, they use
-the same calling convention as sys_msgctl() and compat_sys_msgctl().
+do_kexec_load() can be called directly by compat_sys_kexec() as long as
+the same parameters checks are completed which are currently handled
+(also) by sys_kexec(). Therefore, move those to kexec_load_check(),
+call that newly introduced helper function from both sys_kexec() and
+compat_sys_kexec(), and duplicate the remaining code from sys_kexec()
+in compat_sys_kexec().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
-http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
+http://lkml.kernel.org/r/20180325162527.GA17492-SGhQLRGLuNwb6pqDj42GsMgv3T4z79SOrE5yTffgRl4@public.gmane.org
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: Eric Biederman <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
+Cc: kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Signed-off-by: Dominik Brodowski <linux-X3ehHDuj6sIIGcDfoQAp7OTW4wlIGRCZ@public.gmane.org>
 ---
- ipc/msg.c     | 14 ++++++++++++--
- ipc/syscall.c |  5 +++--
- ipc/util.h    |  2 ++
- 3 files changed, 17 insertions(+), 4 deletions(-)
+ kernel/kexec.c | 52 +++++++++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 39 insertions(+), 13 deletions(-)
 
-diff --git a/ipc/msg.c b/ipc/msg.c
-index 64e8276be164..5b026868df07 100644
---- a/ipc/msg.c
-+++ b/ipc/msg.c
-@@ -538,7 +538,7 @@ static int msgctl_stat(struct ipc_namespace *ns, int msqid,
- 	return err;
- }
+diff --git a/kernel/kexec.c b/kernel/kexec.c
+index e62ec4dc6620..aed8fb2564b3 100644
+--- a/kernel/kexec.c
++++ b/kernel/kexec.c
+@@ -192,11 +192,9 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
+  * that to happen you need to do that yourself.
+  */
  
--SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
-+long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf)
+-SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+-		struct kexec_segment __user *, segments, unsigned long, flags)
++static inline int kexec_load_check(unsigned long nr_segments,
++				   unsigned long flags)
  {
- 	int version;
- 	struct ipc_namespace *ns;
-@@ -581,6 +581,11 @@ SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
- 	}
- }
- 
-+SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
-+{
-+	return ksys_msgctl(msqid, cmd, buf);
-+}
-+
- #ifdef CONFIG_COMPAT
- 
- struct compat_msqid_ds {
-@@ -651,7 +656,7 @@ static int copy_compat_msqid_to_user(void __user *buf, struct msqid64_ds *in,
- 	}
- }
- 
--COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
-+long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr)
- {
- 	struct ipc_namespace *ns;
- 	int err;
-@@ -692,6 +697,11 @@ COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
+-	int result;
+-
+ 	/* We only trust the superuser with rebooting the system. */
+ 	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
+ 		return -EPERM;
+@@ -208,17 +206,29 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+ 	if ((flags & KEXEC_FLAGS) != (flags & ~KEXEC_ARCH_MASK))
  		return -EINVAL;
- 	}
- }
-+
-+COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
-+{
-+	return compat_ksys_msgctl(msqid, cmd, uptr);
+ 
+-	/* Verify we are on the appropriate architecture */
+-	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
+-		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
+-		return -EINVAL;
+-
+ 	/* Put an artificial cap on the number
+ 	 * of segments passed to kexec_load.
+ 	 */
+ 	if (nr_segments > KEXEC_SEGMENT_MAX)
+ 		return -EINVAL;
+ 
++	return 0;
 +}
++
++SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
++		struct kexec_segment __user *, segments, unsigned long, flags)
++{
++	int result;
++
++	result = kexec_load_check(nr_segments, flags);
++	if (result)
++		return result;
++
++	/* Verify we are on the appropriate architecture */
++	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
++		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
++		return -EINVAL;
++
+ 	/* Because we write directly to the reserved memory
+ 	 * region when loading crash kernels we need a mutex here to
+ 	 * prevent multiple crash  kernels from attempting to load
+@@ -247,15 +257,16 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+ 	struct kexec_segment out, __user *ksegments;
+ 	unsigned long i, result;
+ 
++	result = kexec_load_check(nr_segments, flags);
++	if (result)
++		return result;
++
+ 	/* Don't allow clients that don't understand the native
+ 	 * architecture to do anything.
+ 	 */
+ 	if ((flags & KEXEC_ARCH_MASK) == KEXEC_ARCH_DEFAULT)
+ 		return -EINVAL;
+ 
+-	if (nr_segments > KEXEC_SEGMENT_MAX)
+-		return -EINVAL;
+-
+ 	ksegments = compat_alloc_user_space(nr_segments * sizeof(out));
+ 	for (i = 0; i < nr_segments; i++) {
+ 		result = copy_from_user(&in, &segments[i], sizeof(in));
+@@ -272,6 +283,21 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
+ 			return -EFAULT;
+ 	}
+ 
+-	return sys_kexec_load(entry, nr_segments, ksegments, flags);
++	/* Because we write directly to the reserved memory
++	 * region when loading crash kernels we need a mutex here to
++	 * prevent multiple crash  kernels from attempting to load
++	 * simultaneously, and to prevent a crash kernel from loading
++	 * over the top of a in use crash kernel.
++	 *
++	 * KISS: always take the mutex.
++	 */
++	if (!mutex_trylock(&kexec_mutex))
++		return -EBUSY;
++
++	result = do_kexec_load(entry, nr_segments, ksegments, flags);
++
++	mutex_unlock(&kexec_mutex);
++
++	return result;
+ }
  #endif
- 
- static int testmsg(struct msg_msg *msg, long type, int mode)
-diff --git a/ipc/syscall.c b/ipc/syscall.c
-index 34bbabc9e672..aa29b0802e26 100644
---- a/ipc/syscall.c
-+++ b/ipc/syscall.c
-@@ -70,7 +70,8 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
- 	case MSGGET:
- 		return ksys_msgget((key_t) first, second);
- 	case MSGCTL:
--		return sys_msgctl(first, second, (struct msqid_ds __user *)ptr);
-+		return ksys_msgctl(first, second,
-+				   (struct msqid_ds __user *)ptr);
- 
- 	case SHMAT:
- 		switch (version) {
-@@ -163,7 +164,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
- 	case MSGGET:
- 		return ksys_msgget(first, second);
- 	case MSGCTL:
--		return compat_sys_msgctl(first, second, compat_ptr(ptr));
-+		return compat_ksys_msgctl(first, second, compat_ptr(ptr));
- 
- 	case SHMAT: {
- 		int err;
-diff --git a/ipc/util.h b/ipc/util.h
-index 16e8b5b8c416..47837b4af3f2 100644
---- a/ipc/util.h
-+++ b/ipc/util.h
-@@ -243,6 +243,7 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
- long ksys_semget(key_t key, int nsems, int semflg);
- long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
- long ksys_msgget(key_t key, int msgflg);
-+long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
- long ksys_shmget(key_t key, size_t size, int shmflg);
- long ksys_shmdt(char __user *shmaddr);
- long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
-@@ -253,6 +254,7 @@ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
- 			    unsigned int nsops,
- 			    const struct compat_timespec __user *timeout);
- long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
-+long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
- long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
- #endif /* CONFIG_COMPAT */
- 
 -- 
 2.16.3
