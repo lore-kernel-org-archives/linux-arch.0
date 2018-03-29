@@ -1,126 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59862 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59398 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752446AbeC2L0V (ORCPT
+        with ESMTP id S1752872AbeC2L0V (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:21 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 069/109] fs: add ksys_chroot() helper; remove-in kernel calls to sys_chroot()
-Date: Thu, 29 Mar 2018 13:23:46 +0200
-Message-ID: <20180329112426.23043-70-linux@dominikbrodowski.net>
+Subject: [PATCH 060/109] fs: add do_compat_signalfd4() helper; remove in-kernel call to compat syscall
+Date: Thu, 29 Mar 2018 13:23:37 +0200
+Message-ID: <20180329112426.23043-61-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20180329112346.N-N-ftjrxBxgKL5r57iWotBReRF4jzi1MpswUPKbBKs@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112337.YWqpOeQPj1UlGKlucueB4N_95PC4uZFFfBAG-qvoYEw@z>
 
-Using this helper allows us to avoid the in-kernel calls to the
-sys_chroot() syscall. The ksys_ prefix denotes that this function is
-meant as a drop-in replacement for the syscall. In particular, it uses the
-same calling convention as sys_chroot().
-
-In the near future, the fs-external callers of ksys_chroot() should be
-converted to use kern_path()/set_fs_root() directly. Then ksys_chroot()
-can be moved within sys_chroot() again.
+Using the fs-internal do_compat_signalfd4() helper allows us to get rid of
+the fs-internal call to the compat_sys_signalfd4() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- drivers/base/devtmpfs.c  | 2 +-
- fs/open.c                | 7 ++++++-
- include/linux/syscalls.h | 1 +
- init/do_mounts.c         | 2 +-
- init/do_mounts_initrd.c  | 4 ++--
- 5 files changed, 11 insertions(+), 5 deletions(-)
+ fs/signalfd.c | 17 ++++++++++++-----
+ 1 file changed, 12 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/base/devtmpfs.c b/drivers/base/devtmpfs.c
-index 4afb04686c8e..5743f04014ca 100644
---- a/drivers/base/devtmpfs.c
-+++ b/drivers/base/devtmpfs.c
-@@ -387,7 +387,7 @@ static int devtmpfsd(void *p)
- 	if (*err)
- 		goto out;
- 	sys_chdir("/.."); /* will traverse into overmounted root */
--	sys_chroot(".");
-+	ksys_chroot(".");
- 	complete(&setup_done);
- 	while (1) {
- 		spin_lock(&req_lock);
-diff --git a/fs/open.c b/fs/open.c
-index 7ea118471dce..7a475e8a2e41 100644
---- a/fs/open.c
-+++ b/fs/open.c
-@@ -479,7 +479,7 @@ SYSCALL_DEFINE1(fchdir, unsigned int, fd)
- 	return error;
+diff --git a/fs/signalfd.c b/fs/signalfd.c
+index 501c41f3351f..d2187a813376 100644
+--- a/fs/signalfd.c
++++ b/fs/signalfd.c
+@@ -323,10 +323,9 @@ SYSCALL_DEFINE3(signalfd, int, ufd, sigset_t __user *, user_mask,
  }
  
--SYSCALL_DEFINE1(chroot, const char __user *, filename)
-+int ksys_chroot(const char __user *filename)
+ #ifdef CONFIG_COMPAT
+-COMPAT_SYSCALL_DEFINE4(signalfd4, int, ufd,
+-		     const compat_sigset_t __user *,sigmask,
+-		     compat_size_t, sigsetsize,
+-		     int, flags)
++static long do_compat_signalfd4(int ufd,
++			const compat_sigset_t __user *sigmask,
++			compat_size_t sigsetsize, int flags)
  {
- 	struct path path;
- 	int error;
-@@ -512,6 +512,11 @@ SYSCALL_DEFINE1(chroot, const char __user *, filename)
- 	return error;
+ 	sigset_t tmp;
+ 	sigset_t __user *ksigmask;
+@@ -342,10 +341,18 @@ COMPAT_SYSCALL_DEFINE4(signalfd4, int, ufd,
+ 	return do_signalfd4(ufd, ksigmask, sizeof(sigset_t), flags);
  }
  
-+SYSCALL_DEFINE1(chroot, const char __user *, filename)
++COMPAT_SYSCALL_DEFINE4(signalfd4, int, ufd,
++		     const compat_sigset_t __user *, sigmask,
++		     compat_size_t, sigsetsize,
++		     int, flags)
 +{
-+	return ksys_chroot(filename);
++	return do_compat_signalfd4(ufd, sigmask, sigsetsize, flags);
 +}
 +
- static int chmod_common(const struct path *path, umode_t mode)
+ COMPAT_SYSCALL_DEFINE3(signalfd, int, ufd,
+ 		     const compat_sigset_t __user *,sigmask,
+ 		     compat_size_t, sigsetsize)
  {
- 	struct inode *inode = path->dentry->d_inode;
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 50876ae1d17b..920a0db1871d 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -950,5 +950,6 @@ int ksys_mount(char __user *dev_name, char __user *dir_name, char __user *type,
- 	       unsigned long flags, void __user *data);
- int ksys_umount(char __user *name, int flags);
- int ksys_dup(unsigned int fildes);
-+int ksys_chroot(const char __user *filename);
- 
+-	return compat_sys_signalfd4(ufd, sigmask, sigsetsize, 0);
++	return do_compat_signalfd4(ufd, sigmask, sigsetsize, 0);
+ }
  #endif
-diff --git a/init/do_mounts.c b/init/do_mounts.c
-index eb768de43d84..2f06f7827b0c 100644
---- a/init/do_mounts.c
-+++ b/init/do_mounts.c
-@@ -600,7 +600,7 @@ void __init prepare_namespace(void)
- out:
- 	devtmpfs_mount("dev");
- 	ksys_mount(".", "/", NULL, MS_MOVE, NULL);
--	sys_chroot(".");
-+	ksys_chroot(".");
- }
- 
- static bool is_tmpfs;
-diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
-index e8573e1776f6..71293265ac4b 100644
---- a/init/do_mounts_initrd.c
-+++ b/init/do_mounts_initrd.c
-@@ -44,7 +44,7 @@ static int init_linuxrc(struct subprocess_info *info, struct cred *new)
- 	/* move initrd over / and chdir/chroot in initrd root */
- 	sys_chdir("/root");
- 	ksys_mount(".", "/", NULL, MS_MOVE, NULL);
--	sys_chroot(".");
-+	ksys_chroot(".");
- 	sys_setsid();
- 	return 0;
- }
-@@ -83,7 +83,7 @@ static void __init handle_initrd(void)
- 	/* move initrd to rootfs' /old */
- 	ksys_mount("..", ".", NULL, MS_MOVE, NULL);
- 	/* switch root and cwd back to / of rootfs */
--	sys_chroot("..");
-+	ksys_chroot("..");
- 
- 	if (new_decode_dev(real_root_dev) == Root_RAM0) {
- 		sys_chdir("/old");
 -- 
 2.16.3
