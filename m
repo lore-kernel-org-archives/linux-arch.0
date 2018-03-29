@@ -1,94 +1,69 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 015/109] net: socket: add __sys_getsockname() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:22:52 +0200
-Message-ID: <20180329112426.23043-16-linux@dominikbrodowski.net>
+Subject: [PATCH 046/109] mm: add kernel_mbind() helper; remove in-kernel call to syscall
+Date: Thu, 29 Mar 2018 13:23:23 +0200
+Message-ID: <20180329112426.23043-47-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using the net-internal helper __sys_getsockname() allows us to avoid the
-internal calls to the sys_getsockname() syscall.
+Using the mm-internal kernel_mbind() helper allows us to get rid of the
+mm-internal call to the sys_mbind() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/socket.h |  2 ++
- net/compat.c           |  2 +-
- net/socket.c           | 14 ++++++++++----
- 3 files changed, 13 insertions(+), 5 deletions(-)
+ mm/mempolicy.c | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/socket.h b/include/linux/socket.h
-index 7e37af25509d..ef0226a61b03 100644
---- a/include/linux/socket.h
-+++ b/include/linux/socket.h
-@@ -368,5 +368,7 @@ extern int __sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen);
- extern int __sys_connect(int fd, struct sockaddr __user *uservaddr,
- 			 int addrlen);
- extern int __sys_listen(int fd, int backlog);
-+extern int __sys_getsockname(int fd, struct sockaddr __user *usockaddr,
-+			     int __user *usockaddr_len);
- 
- #endif /* _LINUX_SOCKET_H */
-diff --git a/net/compat.c b/net/compat.c
-index c80cb973f383..efd28d02608c 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -826,7 +826,7 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
- 		ret = __sys_accept4(a0, compat_ptr(a1), compat_ptr(a[2]), 0);
- 		break;
- 	case SYS_GETSOCKNAME:
--		ret = sys_getsockname(a0, compat_ptr(a1), compat_ptr(a[2]));
-+		ret = __sys_getsockname(a0, compat_ptr(a1), compat_ptr(a[2]));
- 		break;
- 	case SYS_GETPEERNAME:
- 		ret = sys_getpeername(a0, compat_ptr(a1), compat_ptr(a[2]));
-diff --git a/net/socket.c b/net/socket.c
-index 67d9d70a4734..b61e0d20f37b 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -1675,8 +1675,8 @@ SYSCALL_DEFINE3(connect, int, fd, struct sockaddr __user *, uservaddr,
-  *	name to user space.
-  */
- 
--SYSCALL_DEFINE3(getsockname, int, fd, struct sockaddr __user *, usockaddr,
--		int __user *, usockaddr_len)
-+int __sys_getsockname(int fd, struct sockaddr __user *usockaddr,
-+		      int __user *usockaddr_len)
- {
- 	struct socket *sock;
- 	struct sockaddr_storage address;
-@@ -1701,6 +1701,12 @@ SYSCALL_DEFINE3(getsockname, int, fd, struct sockaddr __user *, usockaddr,
- 	return err;
+diff --git a/mm/mempolicy.c b/mm/mempolicy.c
+index 7399ede02b5f..e4d7d4c0b253 100644
+--- a/mm/mempolicy.c
++++ b/mm/mempolicy.c
+@@ -1336,9 +1336,9 @@ static int copy_nodes_to_user(unsigned long __user *mask, unsigned long maxnode,
+ 	return copy_to_user(mask, nodes_addr(*nodes), copy) ? -EFAULT : 0;
  }
  
-+SYSCALL_DEFINE3(getsockname, int, fd, struct sockaddr __user *, usockaddr,
-+		int __user *, usockaddr_len)
+-SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
+-		unsigned long, mode, const unsigned long __user *, nmask,
+-		unsigned long, maxnode, unsigned, flags)
++static long kernel_mbind(unsigned long start, unsigned long len,
++			 unsigned long mode, const unsigned long __user *nmask,
++			 unsigned long maxnode, unsigned int flags)
+ {
+ 	nodemask_t nodes;
+ 	int err;
+@@ -1357,6 +1357,13 @@ SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
+ 	return do_mbind(start, len, mode, mode_flags, &nodes, flags);
+ }
+ 
++SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
++		unsigned long, mode, const unsigned long __user *, nmask,
++		unsigned long, maxnode, unsigned int, flags)
 +{
-+	return __sys_getsockname(fd, usockaddr, usockaddr_len);
++	return kernel_mbind(start, len, mode, nmask, maxnode, flags);
 +}
 +
- /*
-  *	Get the remote address ('name') of a socket object. Move the obtained
-  *	name to user space.
-@@ -2500,8 +2506,8 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 		break;
- 	case SYS_GETSOCKNAME:
- 		err =
--		    sys_getsockname(a0, (struct sockaddr __user *)a1,
--				    (int __user *)a[2]);
-+		    __sys_getsockname(a0, (struct sockaddr __user *)a1,
-+				      (int __user *)a[2]);
- 		break;
- 	case SYS_GETPEERNAME:
- 		err =
+ /* Set the process memory policy */
+ SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
+ 		unsigned long, maxnode)
+@@ -1575,7 +1582,7 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
+ 			return -EFAULT;
+ 	}
+ 
+-	return sys_mbind(start, len, mode, nm, nr_bits+1, flags);
++	return kernel_mbind(start, len, mode, nm, nr_bits+1, flags);
+ }
+ 
+ COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
 -- 
 2.16.3
