@@ -1,24 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from isilmar-4.linta.de ([136.243.71.142]:59008 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752489AbeC2L0D (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:03 -0400
+        with ESMTP id S1751207AbeC2L0J (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:09 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 074/109] fs: add ksys_rmdir() wrapper; remove in-kernel calls to sys_rmdir()
-Date: Thu, 29 Mar 2018 13:23:51 +0200
-Message-ID: <20180329112426.23043-75-linux@dominikbrodowski.net>
+Subject: [PATCH 037/109] ipc: add msgctl syscall/compat_syscall wrappers
+Date: Thu, 29 Mar 2018 13:23:14 +0200
+Message-ID: <20180329112426.23043-38-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20180329112351.PKoHmooe-bbBesAeio2HxGhrYzhIhTlFWEKAjs0ItaI@z>
+Message-ID: <20180329112314.hVlDN8N_8aFBPRPkiVISXLcFBipbo-TXYINfUnPNnj4@z>
 
-Using this wrapper allows us to avoid the in-kernel calls to the
-sys_rmdir() syscall. The ksys_ prefix denotes that this function is meant
-as a drop-in replacement for the syscall. In particular, it uses the same
-calling convention as sys_rmdir().
+Provide ksys_msgctl() and compat_ksys_msgctl() wrappers to avoid in-kernel
+calls to these syscalls. The ksys_ prefix denotes that these functions are
+meant as a drop-in replacement for the syscalls. In particular, they use
+the same calling convention as sys_msgctl() and compat_sys_msgctl().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
@@ -28,74 +28,99 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/internal.h            | 1 +
- fs/namei.c               | 2 +-
- include/linux/syscalls.h | 7 +++++++
- init/initramfs.c         | 4 ++--
- 4 files changed, 11 insertions(+), 3 deletions(-)
+ ipc/msg.c     | 14 ++++++++++++--
+ ipc/syscall.c |  5 +++--
+ ipc/util.h    |  2 ++
+ 3 files changed, 17 insertions(+), 4 deletions(-)
 
-diff --git a/fs/internal.h b/fs/internal.h
-index df262f41a0ef..0eda35fa1743 100644
---- a/fs/internal.h
-+++ b/fs/internal.h
-@@ -55,6 +55,7 @@ extern void __init chrdev_init(void);
- extern int user_path_mountpoint_at(int, const char __user *, unsigned int, struct path *);
- extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
- 			   const char *, unsigned int, struct path *);
-+long do_rmdir(int dfd, const char __user *pathname);
- long do_unlinkat(int dfd, struct filename *name);
- 
- /*
-diff --git a/fs/namei.c b/fs/namei.c
-index 524e829ffc7d..8545151f74e9 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -3872,7 +3872,7 @@ int vfs_rmdir(struct inode *dir, struct dentry *dentry)
+diff --git a/ipc/msg.c b/ipc/msg.c
+index 64e8276be164..5b026868df07 100644
+--- a/ipc/msg.c
++++ b/ipc/msg.c
+@@ -538,7 +538,7 @@ static int msgctl_stat(struct ipc_namespace *ns, int msqid,
+ 	return err;
  }
- EXPORT_SYMBOL(vfs_rmdir);
  
--static long do_rmdir(int dfd, const char __user *pathname)
-+long do_rmdir(int dfd, const char __user *pathname)
+-SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
++long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf)
  {
- 	int error = 0;
- 	struct filename *name;
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 7cbfb41e666b..746043a05884 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -965,4 +965,11 @@ static inline long ksys_unlink(const char __user *pathname)
- 	return do_unlinkat(AT_FDCWD, getname(pathname));
+ 	int version;
+ 	struct ipc_namespace *ns;
+@@ -581,6 +581,11 @@ SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
+ 	}
  }
  
-+extern long do_rmdir(int dfd, const char __user *pathname);
-+
-+static inline long ksys_rmdir(const char __user *pathname)
++SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, struct msqid_ds __user *, buf)
 +{
-+	return do_rmdir(AT_FDCWD, pathname);
++	return ksys_msgctl(msqid, cmd, buf);
 +}
 +
- #endif
-diff --git a/init/initramfs.c b/init/initramfs.c
-index 08eb551168a8..73bbb227f868 100644
---- a/init/initramfs.c
-+++ b/init/initramfs.c
-@@ -317,7 +317,7 @@ static void __init clean_path(char *path, umode_t fmode)
+ #ifdef CONFIG_COMPAT
  
- 	if (!vfs_lstat(path, &st) && (st.mode ^ fmode) & S_IFMT) {
- 		if (S_ISDIR(st.mode))
--			sys_rmdir(path);
-+			ksys_rmdir(path);
- 		else
- 			ksys_unlink(path);
+ struct compat_msqid_ds {
+@@ -651,7 +656,7 @@ static int copy_compat_msqid_to_user(void __user *buf, struct msqid64_ds *in,
  	}
-@@ -589,7 +589,7 @@ static void __init clean_rootfs(void)
- 			WARN_ON_ONCE(ret);
- 			if (!ret) {
- 				if (S_ISDIR(st.mode))
--					sys_rmdir(dirp->d_name);
-+					ksys_rmdir(dirp->d_name);
- 				else
- 					ksys_unlink(dirp->d_name);
- 			}
+ }
+ 
+-COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
++long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr)
+ {
+ 	struct ipc_namespace *ns;
+ 	int err;
+@@ -692,6 +697,11 @@ COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
+ 		return -EINVAL;
+ 	}
+ }
++
++COMPAT_SYSCALL_DEFINE3(msgctl, int, msqid, int, cmd, void __user *, uptr)
++{
++	return compat_ksys_msgctl(msqid, cmd, uptr);
++}
+ #endif
+ 
+ static int testmsg(struct msg_msg *msg, long type, int mode)
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 34bbabc9e672..aa29b0802e26 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -70,7 +70,8 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 	case MSGGET:
+ 		return ksys_msgget((key_t) first, second);
+ 	case MSGCTL:
+-		return sys_msgctl(first, second, (struct msqid_ds __user *)ptr);
++		return ksys_msgctl(first, second,
++				   (struct msqid_ds __user *)ptr);
+ 
+ 	case SHMAT:
+ 		switch (version) {
+@@ -163,7 +164,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 	case MSGGET:
+ 		return ksys_msgget(first, second);
+ 	case MSGCTL:
+-		return compat_sys_msgctl(first, second, compat_ptr(ptr));
++		return compat_ksys_msgctl(first, second, compat_ptr(ptr));
+ 
+ 	case SHMAT: {
+ 		int err;
+diff --git a/ipc/util.h b/ipc/util.h
+index 16e8b5b8c416..47837b4af3f2 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -243,6 +243,7 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+ long ksys_semget(key_t key, int nsems, int semflg);
+ long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+ long ksys_msgget(key_t key, int msgflg);
++long ksys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
+ long ksys_shmget(key_t key, size_t size, int shmflg);
+ long ksys_shmdt(char __user *shmaddr);
+ long ksys_shmctl(int shmid, int cmd, struct shmid_ds __user *buf);
+@@ -253,6 +254,7 @@ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
+ 			    unsigned int nsops,
+ 			    const struct compat_timespec __user *timeout);
+ long compat_ksys_semctl(int semid, int semnum, int cmd, int arg);
++long compat_ksys_msgctl(int msqid, int cmd, void __user *uptr);
+ long compat_ksys_shmctl(int shmid, int cmd, void __user *uptr);
+ #endif /* CONFIG_COMPAT */
+ 
 -- 
 2.16.3
