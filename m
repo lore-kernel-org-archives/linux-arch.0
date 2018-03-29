@@ -1,137 +1,65 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 089/109] fs: add ksys_sync() helper; remove in-kernel calls to sys_sync()
-Date: Thu, 29 Mar 2018 13:24:06 +0200
-Message-ID: <20180329112426.23043-90-linux@dominikbrodowski.net>
+Subject: [PATCH 058/109] fs: add do_compat_fcntl64() helper; remove in-kernel call to compat syscall
+Date: Thu, 29 Mar 2018 13:23:35 +0200
+Message-ID: <20180329112426.23043-59-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Using this helper allows us to avoid the in-kernel calls to the
-sys_sync() syscall. The ksys_ prefix denotes that this function
-is meant as a drop-in replacement for the syscall. In particular, it
-uses the same calling convention as sys_sync().
+Using the fs-internal do_compat_fcntl64() helper allows us to get rid of
+the fs-internal call to the compat_sys_fcntl64() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- arch/sparc/kernel/setup_32.c | 2 +-
- drivers/tty/sysrq.c          | 2 +-
- fs/sync.c                    | 7 ++++++-
- include/linux/syscalls.h     | 1 +
- kernel/power/hibernate.c     | 2 +-
- kernel/power/suspend.c       | 2 +-
- kernel/power/user.c          | 2 +-
- 7 files changed, 12 insertions(+), 6 deletions(-)
+ fs/fcntl.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/arch/sparc/kernel/setup_32.c b/arch/sparc/kernel/setup_32.c
-index 2e3a3e203061..13664c377196 100644
---- a/arch/sparc/kernel/setup_32.c
-+++ b/arch/sparc/kernel/setup_32.c
-@@ -86,7 +86,7 @@ static void prom_sync_me(void)
- 	show_free_areas(0, NULL);
- 	if (!is_idle_task(current)) {
- 		local_irq_enable();
--		sys_sync();
-+		ksys_sync();
- 		local_irq_disable();
- 	}
- 	prom_printf("Returning to prom\n");
-diff --git a/drivers/tty/sysrq.c b/drivers/tty/sysrq.c
-index b674793be478..6364890575ec 100644
---- a/drivers/tty/sysrq.c
-+++ b/drivers/tty/sysrq.c
-@@ -660,7 +660,7 @@ static void sysrq_do_reset(struct timer_list *t)
- 
- 	state->reset_requested = true;
- 
--	sys_sync();
-+	ksys_sync();
- 	kernel_restart(NULL);
- }
- 
-diff --git a/fs/sync.c b/fs/sync.c
-index 6e0a2cbaf6de..602ae94bb67e 100644
---- a/fs/sync.c
-+++ b/fs/sync.c
-@@ -105,7 +105,7 @@ static void fdatawait_one_bdev(struct block_device *bdev, void *arg)
-  * just write metadata (such as inodes or bitmaps) to block device page cache
-  * and do not sync it on their own in ->sync_fs().
-  */
--SYSCALL_DEFINE0(sync)
-+void ksys_sync(void)
- {
- 	int nowait = 0, wait = 1;
- 
-@@ -117,6 +117,11 @@ SYSCALL_DEFINE0(sync)
- 	iterate_bdevs(fdatawait_one_bdev, NULL);
- 	if (unlikely(laptop_mode))
- 		laptop_sync_completion();
-+}
-+
-+SYSCALL_DEFINE0(sync)
-+{
-+	ksys_sync();
+diff --git a/fs/fcntl.c b/fs/fcntl.c
+index 1e97f1fda90c..d737ff082472 100644
+--- a/fs/fcntl.c
++++ b/fs/fcntl.c
+@@ -607,8 +607,8 @@ static int fixup_compat_flock(struct flock *flock)
  	return 0;
  }
  
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 3a2e90842ff8..0a9942b3e718 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -960,6 +960,7 @@ int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
- int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
- off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence);
- ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count);
-+void ksys_sync(void);
+-COMPAT_SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
+-		       compat_ulong_t, arg)
++static long do_compat_fcntl64(unsigned int fd, unsigned int cmd,
++			     compat_ulong_t arg)
+ {
+ 	struct fd f = fdget_raw(fd);
+ 	struct flock flock;
+@@ -672,6 +672,12 @@ COMPAT_SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
+ 	return err;
+ }
  
- /*
-  * The following kernel syscall equivalents are just wrappers to fs-internal
-diff --git a/kernel/power/hibernate.c b/kernel/power/hibernate.c
-index a5c36e9c56a6..4710f1b142fc 100644
---- a/kernel/power/hibernate.c
-+++ b/kernel/power/hibernate.c
-@@ -701,7 +701,7 @@ int hibernate(void)
++COMPAT_SYSCALL_DEFINE3(fcntl64, unsigned int, fd, unsigned int, cmd,
++		       compat_ulong_t, arg)
++{
++	return do_compat_fcntl64(fd, cmd, arg);
++}
++
+ COMPAT_SYSCALL_DEFINE3(fcntl, unsigned int, fd, unsigned int, cmd,
+ 		       compat_ulong_t, arg)
+ {
+@@ -684,7 +690,7 @@ COMPAT_SYSCALL_DEFINE3(fcntl, unsigned int, fd, unsigned int, cmd,
+ 	case F_OFD_SETLKW:
+ 		return -EINVAL;
  	}
- 
- 	pr_info("Syncing filesystems ... \n");
--	sys_sync();
-+	ksys_sync();
- 	pr_info("done.\n");
- 
- 	error = freeze_processes();
-diff --git a/kernel/power/suspend.c b/kernel/power/suspend.c
-index 0685c4499431..4c10be0f4843 100644
---- a/kernel/power/suspend.c
-+++ b/kernel/power/suspend.c
-@@ -560,7 +560,7 @@ static int enter_state(suspend_state_t state)
- #ifndef CONFIG_SUSPEND_SKIP_SYNC
- 	trace_suspend_resume(TPS("sync_filesystems"), 0, true);
- 	pr_info("Syncing filesystems ... ");
--	sys_sync();
-+	ksys_sync();
- 	pr_cont("done.\n");
- 	trace_suspend_resume(TPS("sync_filesystems"), 0, false);
+-	return compat_sys_fcntl64(fd, cmd, arg);
++	return do_compat_fcntl64(fd, cmd, arg);
+ }
  #endif
-diff --git a/kernel/power/user.c b/kernel/power/user.c
-index 22df9f7ff672..75c959de4b29 100644
---- a/kernel/power/user.c
-+++ b/kernel/power/user.c
-@@ -224,7 +224,7 @@ static long snapshot_ioctl(struct file *filp, unsigned int cmd,
- 			break;
  
- 		printk("Syncing filesystems ... ");
--		sys_sync();
-+		ksys_sync();
- 		printk("done.\n");
- 
- 		error = freeze_processes();
 -- 
 2.16.3
