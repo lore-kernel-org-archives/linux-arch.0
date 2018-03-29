@@ -1,104 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59218 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:58770 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752608AbeC2L0E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:04 -0400
+        with ESMTP id S1752144AbeC2L0B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:01 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 109/109] bpf: whitelist all syscalls for error injection
-Date: Thu, 29 Mar 2018 13:24:26 +0200
-Message-ID: <20180329112426.23043-110-linux@dominikbrodowski.net>
+Subject: [PATCH 101/109] x86/sigreturn: use SYSCALL_DEFINE0
+Date: Thu, 29 Mar 2018 13:24:18 +0200
+Message-ID: <20180329112426.23043-102-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Howard McLauchlan <hmclauchlan@fb.com>
-Message-ID: <20180329112426.TF6zGr76Bvu772P0-eOsGfS-VxApdaAM5LJ4i6pm1y4@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "Tautschnig, Michael" <tautschn@amazon.co.uk>, Michael Tautschnig <tautschn@amazon.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Jaswinder Singh <jaswinder@infradead.org>, Andi Kleen <ak@linux.intel.com>, x86@kernel.org
+Message-ID: <20180329112418.auRKjRomq4NOIkoFD6_NwcHOuhRkY2si5LWN3jsN9sI@z>
 
-From: Howard McLauchlan <hmclauchlan@fb.com>
+From: "Tautschnig, Michael" <tautschn@amazon.co.uk>
 
-Error injection is a useful mechanism to fail arbitrary kernel
-functions. However, it is often hard to guarantee an error propagates
-appropriately to user space programs. By injecting into syscalls, we can
-return arbitrary values to user space directly; this increases
-flexibility and robustness in testing, allowing us to test user space
-error paths effectively.
+All definitions of syscalls in x86 except for those patched here have
+already been using the appropriate SYSCALL_DEFINE*.
 
-The following script, for example, fails calls to sys_open() from a
-given pid:
-
-from bcc import BPF
-from sys import argv
-
-pid = argv[1]
-
-prog = r"""
-
-int kprobe__SyS_open(struct pt_regs *ctx, const char *pathname, int flags)
-{
-    u32 pid = bpf_get_current_pid_tgid();
-    if (pid == %s)
-        bpf_override_return(ctx, -ENOMEM);
-    return 0;
-}
-""" % pid
-
-b = BPF(text=prog)
-while 1:
-    b.perf_buffer_poll()
-
-This patch whitelists all syscalls defined with SYSCALL_DEFINE and
-COMPAT_SYSCALL_DEFINE for error injection. These changes are not
-intended to be considered stable, and would normally be configured off.
-
-Signed-off-by: Howard McLauchlan <hmclauchlan@fb.com>
+Signed-off-by: Michael Tautschnig <tautschn@amazon.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Jaswinder Singh <jaswinder@infradead.org>
+Cc: Andi Kleen <ak@linux.intel.com>
+Cc: x86@kernel.org
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/compat.h   | 3 +++
- include/linux/syscalls.h | 3 +++
- 2 files changed, 6 insertions(+)
+ arch/x86/kernel/signal.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index 8cb8710db0ab..9847c5a013c3 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -33,6 +33,8 @@
- #endif
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 83a26726b689..da270b95fe4d 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -25,6 +25,7 @@
+ #include <linux/user-return-notifier.h>
+ #include <linux/uprobes.h>
+ #include <linux/context_tracking.h>
++#include <linux/syscalls.h>
  
- #define COMPAT_SYSCALL_DEFINE0(name) \
-+	asmlinkage long compat_sys_##name(void); \
-+	ALLOW_ERROR_INJECTION(compat_sys_##name, ERRNO); \
- 	asmlinkage long compat_sys_##name(void)
+ #include <asm/processor.h>
+ #include <asm/ucontext.h>
+@@ -601,7 +602,7 @@ static int x32_setup_rt_frame(struct ksignal *ksig,
+  * Do a signal return; undo the signal stack.
+  */
+ #ifdef CONFIG_X86_32
+-asmlinkage long sys_sigreturn(void)
++SYSCALL_DEFINE0(sigreturn)
+ {
+ 	struct pt_regs *regs = current_pt_regs();
+ 	struct sigframe __user *frame;
+@@ -633,7 +634,7 @@ asmlinkage long sys_sigreturn(void)
+ }
+ #endif /* CONFIG_X86_32 */
  
- #define COMPAT_SYSCALL_DEFINE1(name, ...) \
-@@ -52,6 +54,7 @@
- 	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
- 	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))\
- 		__attribute__((alias(__stringify(compat_SyS##name))));  \
-+	ALLOW_ERROR_INJECTION(compat_sys##name, ERRNO);	\
- 	static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
- 	asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__));\
- 	asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__))\
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 1f223b7cf16d..b961184f597a 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -191,6 +191,8 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
- 
- #define SYSCALL_DEFINE0(sname)					\
- 	SYSCALL_METADATA(_##sname, 0);				\
-+	asmlinkage long sys_##sname(void);			\
-+	ALLOW_ERROR_INJECTION(sys_##sname, ERRNO);		\
- 	asmlinkage long sys_##sname(void)
- 
- #define SYSCALL_DEFINE1(name, ...) SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
-@@ -210,6 +212,7 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
- #define __SYSCALL_DEFINEx(x, name, ...)					\
- 	asmlinkage long sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))	\
- 		__attribute__((alias(__stringify(SyS##name))));		\
-+	ALLOW_ERROR_INJECTION(sys##name, ERRNO);			\
- 	static inline long SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));	\
- 	asmlinkage long SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__));	\
- 	asmlinkage long SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__))	\
+-asmlinkage long sys_rt_sigreturn(void)
++SYSCALL_DEFINE0(rt_sigreturn)
+ {
+ 	struct pt_regs *regs = current_pt_regs();
+ 	struct rt_sigframe __user *frame;
 -- 
 2.16.3
