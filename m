@@ -1,82 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59050 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59048 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752710AbeC2L0H (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:07 -0400
+        with ESMTP id S1752672AbeC2L0G (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:06 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 019/109] net: socket: add __sys_setsockopt() helper; remove in-kernel call to syscall
-Date: Thu, 29 Mar 2018 13:22:56 +0200
-Message-ID: <20180329112426.23043-20-linux@dominikbrodowski.net>
+Subject: [PATCH 071/109] fs: add ksys_chdir() helper; remove in-kernel calls to sys_chdir()
+Date: Thu, 29 Mar 2018 13:23:48 +0200
+Message-ID: <20180329112426.23043-72-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
-Message-ID: <20180329112256.hWc0fGoCN0ZtqKxYeT2ApfW96j7pU42AGYxHWarLMus@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112348.Yxlce_7VT9Uw2Nr1SAXHQY6_Di7os9iLrQHssYdvYvE@z>
 
-Using the net-internal helper __sys_setsockopt() allows us to avoid the
-internal calls to the sys_setsockopt() syscall.
+Using this helper allows us to avoid the in-kernel calls to the sys_chdir()
+syscall. The ksys_ prefix denotes that this function is meant as a drop-in
+replacement for the syscall. In particular, it uses the same calling
+convention as sys_chdir().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: David S. Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/socket.h |  1 +
- net/socket.c           | 13 ++++++++++---
- 2 files changed, 11 insertions(+), 3 deletions(-)
+ drivers/base/devtmpfs.c  | 2 +-
+ fs/open.c                | 7 ++++++-
+ include/linux/syscalls.h | 1 +
+ init/do_mounts.c         | 2 +-
+ init/do_mounts_initrd.c  | 8 ++++----
+ 5 files changed, 13 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/socket.h b/include/linux/socket.h
-index b205138b69f1..cad120e4ed4b 100644
---- a/include/linux/socket.h
-+++ b/include/linux/socket.h
-@@ -376,4 +376,5 @@ extern int __sys_socketpair(int family, int type, int protocol,
- 			    int __user *usockvec);
- extern int __sys_shutdown(int fd, int how);
- 
-+
- #endif /* _LINUX_SOCKET_H */
-diff --git a/net/socket.c b/net/socket.c
-index ad5dfd6a1d59..5dd2e39a6cd4 100644
---- a/net/socket.c
-+++ b/net/socket.c
-@@ -1878,8 +1878,8 @@ SYSCALL_DEFINE4(recv, int, fd, void __user *, ubuf, size_t, size,
-  *	to pass the user mode parameter for the protocols to sort out.
-  */
- 
--SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
--		char __user *, optval, int, optlen)
-+static int __sys_setsockopt(int fd, int level, int optname,
-+			    char __user *optval, int optlen)
- {
- 	int err, fput_needed;
- 	struct socket *sock;
-@@ -1907,6 +1907,12 @@ SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
- 	return err;
+diff --git a/drivers/base/devtmpfs.c b/drivers/base/devtmpfs.c
+index 5743f04014ca..3f7ee954fd2c 100644
+--- a/drivers/base/devtmpfs.c
++++ b/drivers/base/devtmpfs.c
+@@ -386,7 +386,7 @@ static int devtmpfsd(void *p)
+ 	*err = ksys_mount("devtmpfs", "/", "devtmpfs", MS_SILENT, options);
+ 	if (*err)
+ 		goto out;
+-	sys_chdir("/.."); /* will traverse into overmounted root */
++	ksys_chdir("/.."); /* will traverse into overmounted root */
+ 	ksys_chroot(".");
+ 	complete(&setup_done);
+ 	while (1) {
+diff --git a/fs/open.c b/fs/open.c
+index 7a475e8a2e41..a19b8277c439 100644
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -431,7 +431,7 @@ SYSCALL_DEFINE2(access, const char __user *, filename, int, mode)
+ 	return sys_faccessat(AT_FDCWD, filename, mode);
  }
  
-+SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
-+		char __user *, optval, int, optlen)
+-SYSCALL_DEFINE1(chdir, const char __user *, filename)
++int ksys_chdir(const char __user *filename)
+ {
+ 	struct path path;
+ 	int error;
+@@ -457,6 +457,11 @@ SYSCALL_DEFINE1(chdir, const char __user *, filename)
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE1(chdir, const char __user *, filename)
 +{
-+	return __sys_setsockopt(fd, level, optname, optval, optlen);
++	return ksys_chdir(filename);
 +}
 +
- /*
-  *	Get a socket option. Because we don't know the option lengths we have
-  *	to pass a user mode parameter for the protocols to sort out.
-@@ -2552,7 +2558,8 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
- 		err = __sys_shutdown(a0, a1);
- 		break;
- 	case SYS_SETSOCKOPT:
--		err = sys_setsockopt(a0, a1, a[2], (char __user *)a[3], a[4]);
-+		err = __sys_setsockopt(a0, a1, a[2], (char __user *)a[3],
-+				       a[4]);
- 		break;
- 	case SYS_GETSOCKOPT:
- 		err =
+ SYSCALL_DEFINE1(fchdir, unsigned int, fd)
+ {
+ 	struct fd f = fdget_raw(fd);
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 80524faa9664..090645b48447 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -952,5 +952,6 @@ int ksys_umount(char __user *name, int flags);
+ int ksys_dup(unsigned int fildes);
+ int ksys_chroot(const char __user *filename);
+ ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count);
++int ksys_chdir(const char __user *filename);
+ 
+ #endif
+diff --git a/init/do_mounts.c b/init/do_mounts.c
+index 2f06f7827b0c..89f18985fa90 100644
+--- a/init/do_mounts.c
++++ b/init/do_mounts.c
+@@ -367,7 +367,7 @@ static int __init do_mount_root(char *name, char *fs, int flags, void *data)
+ 	if (err)
+ 		return err;
+ 
+-	sys_chdir("/root");
++	ksys_chdir("/root");
+ 	s = current->fs->pwd.dentry->d_sb;
+ 	ROOT_DEV = s->s_dev;
+ 	printk(KERN_INFO
+diff --git a/init/do_mounts_initrd.c b/init/do_mounts_initrd.c
+index 71293265ac4b..83f396d30b9a 100644
+--- a/init/do_mounts_initrd.c
++++ b/init/do_mounts_initrd.c
+@@ -42,7 +42,7 @@ static int init_linuxrc(struct subprocess_info *info, struct cred *new)
+ 	ksys_dup(0);
+ 	ksys_dup(0);
+ 	/* move initrd over / and chdir/chroot in initrd root */
+-	sys_chdir("/root");
++	ksys_chdir("/root");
+ 	ksys_mount(".", "/", NULL, MS_MOVE, NULL);
+ 	ksys_chroot(".");
+ 	sys_setsid();
+@@ -61,7 +61,7 @@ static void __init handle_initrd(void)
+ 	/* mount initrd on rootfs' /root */
+ 	mount_block_root("/dev/root.old", root_mountflags & ~MS_RDONLY);
+ 	sys_mkdir("/old", 0700);
+-	sys_chdir("/old");
++	ksys_chdir("/old");
+ 
+ 	/* try loading default modules from initrd */
+ 	load_default_modules();
+@@ -86,11 +86,11 @@ static void __init handle_initrd(void)
+ 	ksys_chroot("..");
+ 
+ 	if (new_decode_dev(real_root_dev) == Root_RAM0) {
+-		sys_chdir("/old");
++		ksys_chdir("/old");
+ 		return;
+ 	}
+ 
+-	sys_chdir("/");
++	ksys_chdir("/");
+ 	ROOT_DEV = new_decode_dev(real_root_dev);
+ 	mount_root();
+ 
 -- 
 2.16.3
