@@ -1,118 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59322 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59398 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752820AbeC2L0R (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:17 -0400
+        with ESMTP id S1752811AbeC2L0Q (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:16 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 087/109] fs: add ksys_lseek() helper; remove in-kernel calls to sys_lseek()
-Date: Thu, 29 Mar 2018 13:24:04 +0200
-Message-ID: <20180329112426.23043-88-linux@dominikbrodowski.net>
+Subject: [PATCH 034/109] ipc: add shmget syscall wrapper
+Date: Thu, 29 Mar 2018 13:23:11 +0200
+Message-ID: <20180329112426.23043-35-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20180329112404.Uibp8ZTbbSEFrlQvZ6_nPzwgXLZftputSscyeV7GmoU@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20180329112311.3FIJB44BubOYmjz87gkNaW9BRQz6ww_w3phEc1bwxu4@z>
 
-Using this helper allows us to avoid the in-kernel calls to the
-sys_lseek() syscall. The ksys_ prefix denotes that this function
-is meant as a drop-in replacement for the syscall. In particular, it
-uses the same calling convention as sys_lseek().
+Provide ksys_shmget() wrapper to avoid in-kernel calls to this syscall.
+The ksys_ prefix denotes that this function is meant as a drop-in
+replacement for the syscall. In particular, it uses the same calling
+convention as sys_shmget().
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- fs/read_write.c          | 9 +++++++--
- include/linux/syscalls.h | 1 +
- init/do_mounts_rd.c      | 8 ++++----
- 3 files changed, 12 insertions(+), 6 deletions(-)
+ ipc/shm.c     | 7 ++++++-
+ ipc/syscall.c | 4 ++--
+ ipc/util.h    | 1 +
+ 3 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/fs/read_write.c b/fs/read_write.c
-index 8e8f0b4f52e2..b38b008a078e 100644
---- a/fs/read_write.c
-+++ b/fs/read_write.c
-@@ -301,7 +301,7 @@ loff_t vfs_llseek(struct file *file, loff_t offset, int whence)
+diff --git a/ipc/shm.c b/ipc/shm.c
+index 4643865e9171..9f3cdb259a51 100644
+--- a/ipc/shm.c
++++ b/ipc/shm.c
+@@ -656,7 +656,7 @@ static inline int shm_more_checks(struct kern_ipc_perm *ipcp,
+ 	return 0;
  }
- EXPORT_SYMBOL(vfs_llseek);
  
--SYSCALL_DEFINE3(lseek, unsigned int, fd, off_t, offset, unsigned int, whence)
-+off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence)
+-SYSCALL_DEFINE3(shmget, key_t, key, size_t, size, int, shmflg)
++long ksys_shmget(key_t key, size_t size, int shmflg)
  {
- 	off_t retval;
- 	struct fd f = fdget_pos(fd);
-@@ -319,10 +319,15 @@ SYSCALL_DEFINE3(lseek, unsigned int, fd, off_t, offset, unsigned int, whence)
- 	return retval;
+ 	struct ipc_namespace *ns;
+ 	static const struct ipc_ops shm_ops = {
+@@ -675,6 +675,11 @@ SYSCALL_DEFINE3(shmget, key_t, key, size_t, size, int, shmflg)
+ 	return ipcget(ns, &shm_ids(ns), &shm_ops, &shm_params);
  }
  
-+SYSCALL_DEFINE3(lseek, unsigned int, fd, off_t, offset, unsigned int, whence)
++SYSCALL_DEFINE3(shmget, key_t, key, size_t, size, int, shmflg)
 +{
-+	return ksys_lseek(fd, offset, whence);
++	return ksys_shmget(key, size, shmflg);
 +}
 +
- #ifdef CONFIG_COMPAT
- COMPAT_SYSCALL_DEFINE3(lseek, unsigned int, fd, compat_off_t, offset, unsigned int, whence)
+ static inline unsigned long copy_shmid_to_user(void __user *buf, struct shmid64_ds *in, int version)
  {
--	return sys_lseek(fd, offset, whence);
-+	return ksys_lseek(fd, offset, whence);
- }
- #endif
+ 	switch (version) {
+diff --git a/ipc/syscall.c b/ipc/syscall.c
+index 355c4a644bbf..60bceb19b6f0 100644
+--- a/ipc/syscall.c
++++ b/ipc/syscall.c
+@@ -92,7 +92,7 @@ SYSCALL_DEFINE6(ipc, unsigned int, call, int, first, unsigned long, second,
+ 	case SHMDT:
+ 		return sys_shmdt((char __user *)ptr);
+ 	case SHMGET:
+-		return sys_shmget(first, second, third);
++		return ksys_shmget(first, second, third);
+ 	case SHMCTL:
+ 		return sys_shmctl(first, second,
+ 				   (struct shmid_ds __user *) ptr);
+@@ -180,7 +180,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
+ 	case SHMDT:
+ 		return sys_shmdt(compat_ptr(ptr));
+ 	case SHMGET:
+-		return sys_shmget(first, (unsigned)second, third);
++		return ksys_shmget(first, (unsigned int)second, third);
+ 	case SHMCTL:
+ 		return compat_sys_shmctl(first, second, compat_ptr(ptr));
+ 	}
+diff --git a/ipc/util.h b/ipc/util.h
+index b35c0dfe3bc3..51002c0b2a21 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -243,6 +243,7 @@ long ksys_semtimedop(int semid, struct sembuf __user *tsops,
+ long ksys_semget(key_t key, int nsems, int semflg);
+ long ksys_semctl(int semid, int semnum, int cmd, unsigned long arg);
+ long ksys_msgget(key_t key, int msgflg);
++long ksys_shmget(key_t key, size_t size, int shmflg);
  
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 5a959efd8fb7..0f24e5334569 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -958,6 +958,7 @@ int ksys_fchown(unsigned int fd, uid_t user, gid_t group);
- int ksys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent,
- 		    unsigned int count);
- int ksys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
-+off_t ksys_lseek(unsigned int fd, off_t offset, unsigned int whence);
- 
- /*
-  * The following kernel syscall equivalents are just wrappers to fs-internal
-diff --git a/init/do_mounts_rd.c b/init/do_mounts_rd.c
-index 4dafaed5736f..13e54148c0e0 100644
---- a/init/do_mounts_rd.c
-+++ b/init/do_mounts_rd.c
-@@ -90,7 +90,7 @@ identify_ramdisk_image(int fd, int start_block, decompress_fn *decompressor)
- 	/*
- 	 * Read block 0 to test for compressed kernel
- 	 */
--	sys_lseek(fd, start_block * BLOCK_SIZE, 0);
-+	ksys_lseek(fd, start_block * BLOCK_SIZE, 0);
- 	sys_read(fd, buf, size);
- 
- 	*decompressor = decompress_method(buf, size, &compress_name);
-@@ -136,7 +136,7 @@ identify_ramdisk_image(int fd, int start_block, decompress_fn *decompressor)
- 	/*
- 	 * Read 512 bytes further to check if cramfs is padded
- 	 */
--	sys_lseek(fd, start_block * BLOCK_SIZE + 0x200, 0);
-+	ksys_lseek(fd, start_block * BLOCK_SIZE + 0x200, 0);
- 	sys_read(fd, buf, size);
- 
- 	if (cramfsb->magic == CRAMFS_MAGIC) {
-@@ -150,7 +150,7 @@ identify_ramdisk_image(int fd, int start_block, decompress_fn *decompressor)
- 	/*
- 	 * Read block 1 to test for minix and ext2 superblock
- 	 */
--	sys_lseek(fd, (start_block+1) * BLOCK_SIZE, 0);
-+	ksys_lseek(fd, (start_block+1) * BLOCK_SIZE, 0);
- 	sys_read(fd, buf, size);
- 
- 	/* Try minix */
-@@ -178,7 +178,7 @@ identify_ramdisk_image(int fd, int start_block, decompress_fn *decompressor)
- 	       start_block);
- 
- done:
--	sys_lseek(fd, start_block * BLOCK_SIZE, 0);
-+	ksys_lseek(fd, start_block * BLOCK_SIZE, 0);
- 	kfree(buf);
- 	return nblocks;
- }
+ /* for CONFIG_ARCH_WANT_OLD_COMPAT_IPC */
+ #ifdef CONFIG_COMPAT
 -- 
 2.16.3
