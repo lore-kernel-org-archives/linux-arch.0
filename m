@@ -1,115 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:51782 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751146AbeC2EyR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 29 Mar 2018 00:54:17 -0400
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.22/8.16.0.22) with SMTP id w2T4ndwk052247
-        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2018 00:54:16 -0400
-Received: from e16.ny.us.ibm.com (e16.ny.us.ibm.com [129.33.205.206])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2h0qqub7b3-1
-        (version=TLSv1.2 cipher=AES256-SHA256 bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2018 00:54:16 -0400
-Received: from localhost
-        by e16.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-        Thu, 29 Mar 2018 00:54:15 -0400
-Date: Wed, 28 Mar 2018 19:18:12 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH RFC tools/memory-model] Add s390.{cfg,cat}
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20180328163344.GT3675@linux.vnet.ibm.com>
- <Pine.LNX.4.44L0.1803281350370.1375-100000@iolanthe.rowland.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.44L0.1803281350370.1375-100000@iolanthe.rowland.org>
-Message-ID: <20180329021812.GV3675@linux.vnet.ibm.com>
+Received: from isilmar-4.linta.de ([136.243.71.142]:58710 "EHLO
+        isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751008AbeC2L0B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:01 -0400
+From: Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: [PATCH 099/109] x86/ioport: add ksys_ioperm() helper; remove in-kernel calls to sys_ioperm()
+Date: Thu, 29 Mar 2018 13:24:16 +0200
+Message-ID: <20180329112426.23043-100-linux@dominikbrodowski.net>
+In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
+References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Stern <stern@rowland.harvard.edu>
-Cc: schwidefsky@de.ibm.com, borntraeger@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, parri.andrea@gmail.com, will.deacon@arm.com, peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com, dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr, akiyks@gmail.com
-Message-ID: <20180329021812.RqhJk3DRwutE5vb_42HsMMB5oTEdk3rUdsGobkCXaEU@z>
+To: linux-kernel@vger.kernel.org
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Jiri Slaby <jslaby@suse.com>, x86@kernel.org
+Message-ID: <20180329112416.2SNOYFF-feek1np6td_s_7QN_rcH9zsmxTooJsstvO8@z>
 
-On Wed, Mar 28, 2018 at 02:04:07PM -0400, Alan Stern wrote:
-> On Wed, 28 Mar 2018, Paul E. McKenney wrote:
-> 
-> > On Wed, Mar 28, 2018 at 11:01:25AM -0400, Alan Stern wrote:
-> > > On Wed, 28 Mar 2018, Paul E. McKenney wrote:
-> > > 
-> > > > Hello!
-> > > > 
-> > > > The prototype patch shown below provides files required to allow herd7 to
-> > > > evaluate C-language litmus tests for the multicopy-atomic TSO ordering
-> > > > provided by s390.  This patch should be viewed with great suspicion.
-> > > > It does what I expect it to do on SB (with and without barriers),
-> > > > IRIW without barriers, and Alan's SB with read-of-write added, but my
-> > > > expectations are quite likely faulty, and my test cases are very few
-> > > > in number.
-> > > > 
-> > > > Either way, this is the easy part.  The hard part (which I am happy
-> > > > to leave to others) is making litmus7 and klitmus7 able to do tests
-> > > > on actual hardware, as well as enabling herd to handle litmus tests
-> > > > containing BAL.  ;-)
-> > > > 
-> > > > Note that CPU architectures already supported by herd might well need
-> > > > only a .cfg file that refers to herd's pre-existing support.
-> > > > 
-> > > > Thoughts?
-> > > 
-> > > I don't quite see the point of this.  You're not suggesting that we
-> > > have one Linux Kernel Memory Consistency Model for s390 and another
-> > > one for all the other architectures, are you?
-> > 
-> > Certainly not for common code!
-> > 
-> > > If the idea is merely to provide a herd model for s390 then it should 
-> > > go into the DIY repository, not into the LKMM repository.
-> > 
-> > Makes sense.
-> > 
-> > In the meantime, does the cat file look to you like it correctly
-> > models the combination of TSO and multicopy atomicity?  Do the
-> > fences really work, or did I just get lucky with my choice of
-> > litmus tests?
-> 
-> You got lucky.  Try creating an SB litmus test where, instead of an
-> smp_mb() fence between the write and the read, each thread executes
-> some other kind of fence.
+Using this helper allows us to avoid the in-kernel calls to the
+sys_ioperm() syscall. The ksys_ prefix denotes that this function is meant
+as a drop-in replacement for the syscall. In particular, it uses the same
+calling convention as sys_ioperm().
 
-Ah, it does indeed get "Never" in that case, which I do not believe
-to e correct.
+This patch is part of a series which removes in-kernel calls to syscalls.
+On this basis, the syscall entry path can be streamlined. For details, see
+http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-> The acyclicity condition should have been written more like this:
-> 
-> let po_ghb = ([R] ; po ; [M]) | ([M] ; po ; [W])
-> 
-> acyclic mfence | po_ghb | rf | fr | co as tso-mca
-> 
-> I don't know what the fence instruction is on s390; change the "mfence"
-> above accordingly.  The main difference between this and the
-> corresponding expression in x86tso.cat is that I replaced rfe with rf.
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Jiri Slaby <jslaby@suse.com>
+Cc: x86@kernel.org
+Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
+---
+ arch/x86/include/asm/syscalls.h | 1 +
+ arch/x86/kernel/ioport.c        | 7 ++++++-
+ drivers/tty/vt/vt_ioctl.c       | 6 +++---
+ 3 files changed, 10 insertions(+), 4 deletions(-)
 
-The s390 fence instruction is "bcr 14,0" or "bcr 15,0", depending on
-how recent of hardware you are running.  The latter works everywhere,
-if I recall correctly.  But I do not believe that herd knows about either
-instruction yet.  Ah, and I need to lose the "empty rmw & (fre;coe)".
-That appears to be where my spurious ordering was coming from, strange
-though that seems to me.
-
-And your use of "rf" instead of "rfe" makes sense, as that is what makes
-the read-from-write provide ordering, correct?  And that should also cover
-the "Uniproc check" that would otherwise be required, right?
-
-Except that I get "Sometimes" on CoWR+poonceonce+Once.litmus...
-Which I can fix by unioning po-loc into po-ghb.  Or is there some
-better way to do this?
-
-> This doesn't account for atomic operations properly; see the "implied" 
-> term in x86tso.cat.
-
-I will look at this more later, reaching end of both battery and useful
-attention span...
-
-							Thanx, Paul
+diff --git a/arch/x86/include/asm/syscalls.h b/arch/x86/include/asm/syscalls.h
+index bad25bb80679..1c0bebbd039e 100644
+--- a/arch/x86/include/asm/syscalls.h
++++ b/arch/x86/include/asm/syscalls.h
+@@ -17,6 +17,7 @@
+ 
+ /* Common in X86_32 and X86_64 */
+ /* kernel/ioport.c */
++long ksys_ioperm(unsigned long from, unsigned long num, int turn_on);
+ asmlinkage long sys_ioperm(unsigned long, unsigned long, int);
+ asmlinkage long sys_iopl(unsigned int);
+ 
+diff --git a/arch/x86/kernel/ioport.c b/arch/x86/kernel/ioport.c
+index 38deafebb21b..0fe1c8782208 100644
+--- a/arch/x86/kernel/ioport.c
++++ b/arch/x86/kernel/ioport.c
+@@ -23,7 +23,7 @@
+ /*
+  * this changes the io permissions bitmap in the current task.
+  */
+-SYSCALL_DEFINE3(ioperm, unsigned long, from, unsigned long, num, int, turn_on)
++long ksys_ioperm(unsigned long from, unsigned long num, int turn_on)
+ {
+ 	struct thread_struct *t = &current->thread;
+ 	struct tss_struct *tss;
+@@ -96,6 +96,11 @@ SYSCALL_DEFINE3(ioperm, unsigned long, from, unsigned long, num, int, turn_on)
+ 	return 0;
+ }
+ 
++SYSCALL_DEFINE3(ioperm, unsigned long, from, unsigned long, num, int, turn_on)
++{
++	return ksys_ioperm(from, num, turn_on);
++}
++
+ /*
+  * sys_iopl has to be used when you want to access the IO ports
+  * beyond the 0x3ff range: to get the full 65536 ports bitmapped
+diff --git a/drivers/tty/vt/vt_ioctl.c b/drivers/tty/vt/vt_ioctl.c
+index d61be307256a..a78ad10a119b 100644
+--- a/drivers/tty/vt/vt_ioctl.c
++++ b/drivers/tty/vt/vt_ioctl.c
+@@ -57,7 +57,7 @@ extern struct tty_driver *console_driver;
+  */
+ 
+ #ifdef CONFIG_X86
+-#include <linux/syscalls.h>
++#include <asm/syscalls.h>
+ #endif
+ 
+ static void complete_change_console(struct vc_data *vc);
+@@ -420,12 +420,12 @@ int vt_ioctl(struct tty_struct *tty,
+ 			ret = -EINVAL;
+ 			break;
+ 		}
+-		ret = sys_ioperm(arg, 1, (cmd == KDADDIO)) ? -ENXIO : 0;
++		ret = ksys_ioperm(arg, 1, (cmd == KDADDIO)) ? -ENXIO : 0;
+ 		break;
+ 
+ 	case KDENABIO:
+ 	case KDDISABIO:
+-		ret = sys_ioperm(GPFIRST, GPNUM,
++		ret = ksys_ioperm(GPFIRST, GPNUM,
+ 				  (cmd == KDENABIO)) ? -ENXIO : 0;
+ 		break;
+ #endif
+-- 
+2.16.3
