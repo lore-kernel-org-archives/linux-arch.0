@@ -1,133 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:59218 "EHLO
+Received: from isilmar-4.linta.de ([136.243.71.142]:59050 "EHLO
         isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752762AbeC2L0N (ORCPT
+        with ESMTP id S1752760AbeC2L0N (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2018 07:26:13 -0400
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 004/109] kexec: call do_kexec_load() in compat syscall directly
-Date: Thu, 29 Mar 2018 13:22:41 +0200
-Message-ID: <20180329112426.23043-5-linux@dominikbrodowski.net>
+Subject: [PATCH 027/109] net: socket: add __compat_sys_getsockopt() helper; remove in-kernel call to compat syscall
+Date: Thu, 29 Mar 2018 13:23:04 +0200
+Message-ID: <20180329112426.23043-28-linux@dominikbrodowski.net>
 In-Reply-To: <20180329112426.23043-1-linux@dominikbrodowski.net>
 References: <20180329112426.23043-1-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Eric Biederman <ebiederm@xmission.com>, kexec@lists.infradead.org
-Message-ID: <20180329112241.zOVet28LD8ZsyapN7z1n3aCVW8eWKvSc-mUgdnlpW2M@z>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "David S . Miller" <davem@davemloft.net>, netdev@vger.kernel.org
+Message-ID: <20180329112304.vKzFwIfZEGGzyR0IjI0EdwaroexIIRZ74SM9PAJD7g4@z>
 
-do_kexec_load() can be called directly by compat_sys_kexec() as long as
-the same parameters checks are completed which are currently handled
-(also) by sys_kexec(). Therefore, move those to kexec_load_check(),
-call that newly introduced helper function from both sys_kexec() and
-compat_sys_kexec(), and duplicate the remaining code from sys_kexec()
-in compat_sys_kexec().
+Using the net-internal helper __compat_sys_getsockopt() allows us to avoid
+the internal calls to the compat_sys_getsockopt() syscall.
 
 This patch is part of a series which removes in-kernel calls to syscalls.
 On this basis, the syscall entry path can be streamlined. For details, see
 http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
 
-Cc: Eric Biederman <ebiederm@xmission.com>
-Cc: kexec@lists.infradead.org
+Cc: David S. Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- kernel/kexec.c | 52 +++++++++++++++++++++++++++++++++++++++-------------
- 1 file changed, 39 insertions(+), 13 deletions(-)
+ net/compat.c | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
 
-diff --git a/kernel/kexec.c b/kernel/kexec.c
-index e62ec4dc6620..aed8fb2564b3 100644
---- a/kernel/kexec.c
-+++ b/kernel/kexec.c
-@@ -192,11 +192,9 @@ static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
-  * that to happen you need to do that yourself.
-  */
+diff --git a/net/compat.c b/net/compat.c
+index 75bfcbbb2e3e..cdf5b0c1b962 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -509,8 +509,9 @@ int compat_sock_get_timestampns(struct sock *sk, struct timespec __user *usersta
+ }
+ EXPORT_SYMBOL(compat_sock_get_timestampns);
  
--SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
--		struct kexec_segment __user *, segments, unsigned long, flags)
-+static inline int kexec_load_check(unsigned long nr_segments,
-+				   unsigned long flags)
+-COMPAT_SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
+-		       char __user *, optval, int __user *, optlen)
++static int __compat_sys_getsockopt(int fd, int level, int optname,
++				   char __user *optval,
++				   int __user *optlen)
  {
--	int result;
--
- 	/* We only trust the superuser with rebooting the system. */
- 	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
- 		return -EPERM;
-@@ -208,17 +206,29 @@ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
- 	if ((flags & KEXEC_FLAGS) != (flags & ~KEXEC_ARCH_MASK))
- 		return -EINVAL;
+ 	int err;
+ 	struct socket *sock = sockfd_lookup(fd, &err);
+@@ -536,6 +537,12 @@ COMPAT_SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
+ 	return err;
+ }
  
--	/* Verify we are on the appropriate architecture */
--	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
--		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
--		return -EINVAL;
--
- 	/* Put an artificial cap on the number
- 	 * of segments passed to kexec_load.
- 	 */
- 	if (nr_segments > KEXEC_SEGMENT_MAX)
- 		return -EINVAL;
- 
-+	return 0;
++COMPAT_SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
++		       char __user *, optval, int __user *, optlen)
++{
++	return __compat_sys_getsockopt(fd, level, optname, optval, optlen);
 +}
 +
-+SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
-+		struct kexec_segment __user *, segments, unsigned long, flags)
-+{
-+	int result;
-+
-+	result = kexec_load_check(nr_segments, flags);
-+	if (result)
-+		return result;
-+
-+	/* Verify we are on the appropriate architecture */
-+	if (((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH) &&
-+		((flags & KEXEC_ARCH_MASK) != KEXEC_ARCH_DEFAULT))
-+		return -EINVAL;
-+
- 	/* Because we write directly to the reserved memory
- 	 * region when loading crash kernels we need a mutex here to
- 	 * prevent multiple crash  kernels from attempting to load
-@@ -247,15 +257,16 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
- 	struct kexec_segment out, __user *ksegments;
- 	unsigned long i, result;
- 
-+	result = kexec_load_check(nr_segments, flags);
-+	if (result)
-+		return result;
-+
- 	/* Don't allow clients that don't understand the native
- 	 * architecture to do anything.
- 	 */
- 	if ((flags & KEXEC_ARCH_MASK) == KEXEC_ARCH_DEFAULT)
- 		return -EINVAL;
- 
--	if (nr_segments > KEXEC_SEGMENT_MAX)
--		return -EINVAL;
--
- 	ksegments = compat_alloc_user_space(nr_segments * sizeof(out));
- 	for (i = 0; i < nr_segments; i++) {
- 		result = copy_from_user(&in, &segments[i], sizeof(in));
-@@ -272,6 +283,21 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
- 			return -EFAULT;
- 	}
- 
--	return sys_kexec_load(entry, nr_segments, ksegments, flags);
-+	/* Because we write directly to the reserved memory
-+	 * region when loading crash kernels we need a mutex here to
-+	 * prevent multiple crash  kernels from attempting to load
-+	 * simultaneously, and to prevent a crash kernel from loading
-+	 * over the top of a in use crash kernel.
-+	 *
-+	 * KISS: always take the mutex.
-+	 */
-+	if (!mutex_trylock(&kexec_mutex))
-+		return -EBUSY;
-+
-+	result = do_kexec_load(entry, nr_segments, ksegments, flags);
-+
-+	mutex_unlock(&kexec_mutex);
-+
-+	return result;
- }
- #endif
+ struct compat_group_req {
+ 	__u32				 gr_interface;
+ 	struct __kernel_sockaddr_storage gr_group
+@@ -874,8 +881,9 @@ COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
+ 					      compat_ptr(a[3]), a[4]);
+ 		break;
+ 	case SYS_GETSOCKOPT:
+-		ret = compat_sys_getsockopt(a0, a1, a[2],
+-				compat_ptr(a[3]), compat_ptr(a[4]));
++		ret = __compat_sys_getsockopt(a0, a1, a[2],
++					      compat_ptr(a[3]),
++					      compat_ptr(a[4]));
+ 		break;
+ 	case SYS_SENDMSG:
+ 		ret = compat_sys_sendmsg(a0, compat_ptr(a1), a[2]);
 -- 
 2.16.3
