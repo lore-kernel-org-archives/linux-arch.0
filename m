@@ -1,62 +1,65 @@
 From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 7/7] x86/entry/64: extend register clearing on syscall
- entry to lower registers
-Date: Fri, 30 Mar 2018 12:10:20 +0200
-Message-ID: <20180330101020.6g2pib3xaftawl5h@gmail.com>
+Subject: Re: [PATCH 0/7] use struct pt_regs based syscall calling for x86-64
+Date: Fri, 30 Mar 2018 12:16:02 +0200
+Message-ID: <20180330101602.ongosnigfmdmgayb@gmail.com>
 References: <20180330093720.6780-1-linux@dominikbrodowski.net>
- <20180330093720.6780-8-linux@dominikbrodowski.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20180330093720.6780-8-linux@dominikbrodowski.net>
+In-Reply-To: <20180330093720.6780-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Dominik Brodowski <linux@dominikbrodowski.net>
-Cc: linux-kernel@vger.kernel.org, viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Denys Vlasenko <dvlasenk@redhat.com>, Brian Gerst <brgerst@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>, Denys Vlasenko <dvlasenk@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 
 * Dominik Brodowski <linux@dominikbrodowski.net> wrote:
 
->  	.endif
->  	pushq	\rdx		/* pt_regs->dx */
-> +	xorl	%edx, %edx	/* nosepc   dx */
->  	pushq   %rcx		/* pt_regs->cx */
-> +	xorl	%ecx, %ecx	/* nosepc   cx */
->  	pushq   \rax		/* pt_regs->ax */
->  	pushq   %r8		/* pt_regs->r8 */
->  	xorl	%r8d, %r8d	/* nospec   r8 */
-> diff --git a/arch/x86/entry/entry_64_compat.S b/arch/x86/entry/entry_64_compat.S
-> index 08425c42f8b7..23e0945959e5 100644
-> --- a/arch/x86/entry/entry_64_compat.S
-> +++ b/arch/x86/entry/entry_64_compat.S
-> @@ -220,8 +220,11 @@ GLOBAL(entry_SYSCALL_compat_after_hwframe)
->  	pushq	%rax			/* pt_regs->orig_ax */
->  	pushq	%rdi			/* pt_regs->di */
->  	pushq	%rsi			/* pt_regs->si */
-> +	xorl	%esi, %esi		/* nosepc   si */
->  	pushq	%rdx			/* pt_regs->dx */
-> +	xorl	%edx, %edx		/* nosepc   dx */
->  	pushq	%rbp			/* pt_regs->cx (stashed in bp) */
-> +	xorl	%ecx, %ecx		/* nosepc   cx */
->  	pushq	$-ENOSYS		/* pt_regs->ax */
->  	pushq   $0			/* pt_regs->r8  = 0 */
->  	xorl	%r8d, %r8d		/* nospec   r8 */
-> @@ -365,8 +368,11 @@ ENTRY(entry_INT80_compat)
->  
->  	pushq	(%rdi)			/* pt_regs->di */
->  	pushq	%rsi			/* pt_regs->si */
-> +	xorl	%esi, %esi		/* nosepc   si */
->  	pushq	%rdx			/* pt_regs->dx */
-> +	xorl	%edx, %edx		/* nosepc   dx */
->  	pushq	%rcx			/* pt_regs->cx */
-> +	xorl	%ecx, %ecx		/* nosepc   cx */
->  	pushq	$-ENOSYS		/* pt_regs->ax */
->  	pushq   $0			/* pt_regs->r8  = 0 */
->  	xorl	%r8d, %r8d		/* nospec   r8 */
+> A few questions remain, from important stuff to bikeshedding:
+> 
+> 1) Is it acceptable to pass the existing struct pt_regs to the sys_*()
+>    kernel functions in emulate_vsyscall(), or should it use a hand-crafted
+>    struct pt_regs instead?
 
-s/nosepc
- /nospec
+I think so: we already have task_pt_regs() which gives access to the real return 
+registers on the kernel stack.
+
+I think as long as we constify the pointer, we should pass in the real thing.
+
+> 2) Is it the right approach to generate the __sys32_ia32_*() names to
+>    include in the syscall table on-the-fly, or should they all be listed
+>    in arch/x86/entry/syscalls/syscall_32.tbl ?
+
+I think as a general principle all system call tables should point to the 
+first-hop wrapper symbol name (i.e. __sys32_ia32_*() in this case), not to the 
+generic symbol name - even though we could generate the former from the latter.
+
+The more indirection in these tables, the harder to read they become I think.
+
+> 3) I have chosen to name the default 64-bit syscall stub sys_*(), same as
+>    the "normal" syscall, and the IA32_EMULATION compat syscall stub
+>    compat_sys_*(), same as the "normal" compat syscall. Though this
+>    might cause some confusion, as the "same" function uses a different
+>    calling convention and different parameters on x86, it has the
+>    advantages that
+>         - the kernel *has* a function sys_*() implementing the syscall,
+>           so those curious in stack traces etc. will find it in plain
+>           sight,
+>         - it is easier to handle in the syscall table generation, and
+>         - error injection works the same.
+
+I don't think there should be a symbol space overlap, that will only lead to 
+confusion. The symbols can be _similar_, with a prefix, underscores or so, but 
+they shouldn't match I think.
+
+> The whole series is available at
+> 
+>         https://git.kernel.org/pub/scm/linux/kernel/git/brodo/linux.git syscalls-WIP
+
+BTW., I'd like all these bits to go through the x86 tree.
+
+What is the expected merge route of the generic preparatory bits?
 
 Thanks,
 
