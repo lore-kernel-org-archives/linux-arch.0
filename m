@@ -1,85 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from isilmar-4.linta.de ([136.243.71.142]:55190 "EHLO
-        isilmar-4.linta.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751129AbeC3Jhh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Mar 2018 05:37:37 -0400
-From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 1/7] x86: don't pointlessly reload the system call number
-Date: Fri, 30 Mar 2018 11:37:14 +0200
-Message-ID: <20180330093720.6780-2-linux@dominikbrodowski.net>
-In-Reply-To: <20180330093720.6780-1-linux@dominikbrodowski.net>
+Received: from mail-wr0-f194.google.com ([209.85.128.194]:34076 "EHLO
+        mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751119AbeC3KKY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Mar 2018 06:10:24 -0400
+Date: Fri, 30 Mar 2018 12:10:20 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 7/7] x86/entry/64: extend register clearing on syscall
+ entry to lower registers
+Message-ID: <20180330101020.6g2pib3xaftawl5h@gmail.com>
 References: <20180330093720.6780-1-linux@dominikbrodowski.net>
+ <20180330093720.6780-8-linux@dominikbrodowski.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20180330093720.6780-8-linux@dominikbrodowski.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, x86@kernel.org
-Message-ID: <20180330093714.3i1UgqUzavnzOnwBqU8SD7zQJyFcuSqn8IenD293ngo@z>
+To: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: linux-kernel@vger.kernel.org, viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Denys Vlasenko <dvlasenk@redhat.com>, Brian Gerst <brgerst@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Message-ID: <20180330101020.Yt6hGhMEfVAFR2OxvtfsRgVxrJg7xdQZr9cP4AbIMAM@z>
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
 
-We have it in a register in the low-level asm, just pass it in as an
-argument rather than have do_syscall_64() load it back in from the
-ptregs pointer.
+* Dominik Brodowski <linux@dominikbrodowski.net> wrote:
 
-Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>
-Cc: x86@kernel.org
-Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
----
- arch/x86/entry/common.c   | 12 ++++++------
- arch/x86/entry/entry_64.S |  3 ++-
- 2 files changed, 8 insertions(+), 7 deletions(-)
+>  	.endif
+>  	pushq	\rdx		/* pt_regs->dx */
+> +	xorl	%edx, %edx	/* nosepc   dx */
+>  	pushq   %rcx		/* pt_regs->cx */
+> +	xorl	%ecx, %ecx	/* nosepc   cx */
+>  	pushq   \rax		/* pt_regs->ax */
+>  	pushq   %r8		/* pt_regs->r8 */
+>  	xorl	%r8d, %r8d	/* nospec   r8 */
+> diff --git a/arch/x86/entry/entry_64_compat.S b/arch/x86/entry/entry_64_compat.S
+> index 08425c42f8b7..23e0945959e5 100644
+> --- a/arch/x86/entry/entry_64_compat.S
+> +++ b/arch/x86/entry/entry_64_compat.S
+> @@ -220,8 +220,11 @@ GLOBAL(entry_SYSCALL_compat_after_hwframe)
+>  	pushq	%rax			/* pt_regs->orig_ax */
+>  	pushq	%rdi			/* pt_regs->di */
+>  	pushq	%rsi			/* pt_regs->si */
+> +	xorl	%esi, %esi		/* nosepc   si */
+>  	pushq	%rdx			/* pt_regs->dx */
+> +	xorl	%edx, %edx		/* nosepc   dx */
+>  	pushq	%rbp			/* pt_regs->cx (stashed in bp) */
+> +	xorl	%ecx, %ecx		/* nosepc   cx */
+>  	pushq	$-ENOSYS		/* pt_regs->ax */
+>  	pushq   $0			/* pt_regs->r8  = 0 */
+>  	xorl	%r8d, %r8d		/* nospec   r8 */
+> @@ -365,8 +368,11 @@ ENTRY(entry_INT80_compat)
+>  
+>  	pushq	(%rdi)			/* pt_regs->di */
+>  	pushq	%rsi			/* pt_regs->si */
+> +	xorl	%esi, %esi		/* nosepc   si */
+>  	pushq	%rdx			/* pt_regs->dx */
+> +	xorl	%edx, %edx		/* nosepc   dx */
+>  	pushq	%rcx			/* pt_regs->cx */
+> +	xorl	%ecx, %ecx		/* nosepc   cx */
+>  	pushq	$-ENOSYS		/* pt_regs->ax */
+>  	pushq   $0			/* pt_regs->r8  = 0 */
+>  	xorl	%r8d, %r8d		/* nospec   r8 */
 
-diff --git a/arch/x86/entry/common.c b/arch/x86/entry/common.c
-index 74f6eee15179..a8b066dbbf48 100644
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -266,14 +266,13 @@ __visible inline void syscall_return_slowpath(struct pt_regs *regs)
- }
- 
- #ifdef CONFIG_X86_64
--__visible void do_syscall_64(struct pt_regs *regs)
-+__visible void do_syscall_64(unsigned long nr, struct pt_regs *regs)
- {
--	struct thread_info *ti = current_thread_info();
--	unsigned long nr = regs->orig_ax;
-+	struct thread_info *ti;
- 
- 	enter_from_user_mode();
- 	local_irq_enable();
--
-+	ti = current_thread_info();
- 	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY)
- 		nr = syscall_trace_enter(regs);
- 
-@@ -282,8 +281,9 @@ __visible void do_syscall_64(struct pt_regs *regs)
- 	 * table.  The only functional difference is the x32 bit in
- 	 * regs->orig_ax, which changes the behavior of some syscalls.
- 	 */
--	if (likely((nr & __SYSCALL_MASK) < NR_syscalls)) {
--		nr = array_index_nospec(nr & __SYSCALL_MASK, NR_syscalls);
-+	nr &= __SYSCALL_MASK;
-+	if (likely(nr < NR_syscalls)) {
-+		nr = array_index_nospec(nr, NR_syscalls);
- 		regs->ax = sys_call_table[nr](
- 			regs->di, regs->si, regs->dx,
- 			regs->r10, regs->r8, regs->r9);
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 805f52703ee3..c843b3d69048 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -233,7 +233,8 @@ GLOBAL(entry_SYSCALL_64_after_hwframe)
- 	TRACE_IRQS_OFF
- 
- 	/* IRQs are off. */
--	movq	%rsp, %rdi
-+	movq	%rax, %rdi
-+	movq	%rsp, %rsi
- 	call	do_syscall_64		/* returns with IRQs disabled */
- 
- 	TRACE_IRQS_IRETQ		/* we're about to change IF */
--- 
-2.16.3
+s/nosepc
+ /nospec
+
+Thanks,
+
+	Ingo
