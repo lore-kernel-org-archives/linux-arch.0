@@ -1,127 +1,80 @@
 From: Dominik Brodowski <linux@dominikbrodowski.net>
-Subject: [PATCH 2/7] syscalls: introduce CONFIG_ARCH_HAS_SYSCALL_WRAPPER
-Date: Fri, 30 Mar 2018 11:37:15 +0200
-Message-ID: <20180330093720.6780-3-linux@dominikbrodowski.net>
+Subject: [PATCH 1/7] x86: don't pointlessly reload the system call number
+Date: Fri, 30 Mar 2018 11:37:14 +0200
+Message-ID: <20180330093720.6780-2-linux@dominikbrodowski.net>
 References: <20180330093720.6780-1-linux@dominikbrodowski.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20180330093720.6780-1-linux@dominikbrodowski.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-It may be useful for an architecture to override the definitions of the
-SYSCALL_DEFINE0() and __SYSCALL_DEFINEx() macros in <linux/syscalls.h>,
-in particular to use a different calling convention for syscalls.
+From: Linus Torvalds <torvalds@linux-foundation.org>
 
-This patch provides a mechanism to do so: It introduces
-CONFIG_ARCH_HAS_SYSCALL_WRAPPER. If it is enabled, <asm/sycall_wrapper.h>
-is included in <linux/syscalls.h> and may be used to define the macros
-mentioned above. Moreover, as the syscall calling convention may be
-different if CONFIG_ARCH_HAS_SYSCALL_WRAPPER is set, the syscall function
-prototypes in <linux/syscalls.h> are #ifndef'd out in that case.
+We have it in a register in the low-level asm, just pass it in as an
+argument rather than have do_syscall_64() load it back in from the
+ptregs pointer.
 
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: x86@kernel.org
 Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
 ---
- include/linux/syscalls.h | 23 +++++++++++++++++++++++
- init/Kconfig             |  7 +++++++
- 2 files changed, 30 insertions(+)
+ arch/x86/entry/common.c   | 12 ++++++------
+ arch/x86/entry/entry_64.S |  3 ++-
+ 2 files changed, 8 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index b961184f597a..503ab245d4ce 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -81,6 +81,17 @@ union bpf_attr;
- #include <linux/key.h>
- #include <trace/syscall.h>
- 
-+#ifdef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
-+/*
-+ * It may be useful for an architecture to override the definitions of the
-+ * SYSCALL_DEFINE0() and __SYSCALL_DEFINEx() macros, in particular to use a
-+ * different calling convention for syscalls. To allow for that, the prototypes
-+ * for the sys_*() functions below will *not* be included if
-+ * CONFIG_ARCH_HAS_SYSCALL_WRAPPER is enabled.
-+ */
-+#include <asm/syscall_wrapper.h>
-+#endif /* CONFIG_ARCH_HAS_SYSCALL_WRAPPER */
-+
- /*
-  * __MAP - apply a macro to syscall arguments
-  * __MAP(n, m, t1, a1, t2, a2, ..., tn, an) will expand to
-@@ -189,11 +200,13 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
+diff --git a/arch/x86/entry/common.c b/arch/x86/entry/common.c
+index 74f6eee15179..a8b066dbbf48 100644
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -266,14 +266,13 @@ __visible inline void syscall_return_slowpath(struct pt_regs *regs)
  }
- #endif
  
-+#ifndef SYSCALL_DEFINE0
- #define SYSCALL_DEFINE0(sname)					\
- 	SYSCALL_METADATA(_##sname, 0);				\
- 	asmlinkage long sys_##sname(void);			\
- 	ALLOW_ERROR_INJECTION(sys_##sname, ERRNO);		\
- 	asmlinkage long sys_##sname(void)
-+#endif /* SYSCALL_DEFINE0 */
+ #ifdef CONFIG_X86_64
+-__visible void do_syscall_64(struct pt_regs *regs)
++__visible void do_syscall_64(unsigned long nr, struct pt_regs *regs)
+ {
+-	struct thread_info *ti = current_thread_info();
+-	unsigned long nr = regs->orig_ax;
++	struct thread_info *ti;
  
- #define SYSCALL_DEFINE1(name, ...) SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
- #define SYSCALL_DEFINE2(name, ...) SYSCALL_DEFINEx(2, _##name, __VA_ARGS__)
-@@ -209,6 +222,8 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
- 	__SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
+ 	enter_from_user_mode();
+ 	local_irq_enable();
+-
++	ti = current_thread_info();
+ 	if (READ_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY)
+ 		nr = syscall_trace_enter(regs);
  
- #define __PROTECT(...) asmlinkage_protect(__VA_ARGS__)
-+
-+#ifndef __SYSCALL_DEFINEx
- #define __SYSCALL_DEFINEx(x, name, ...)					\
- 	asmlinkage long sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))	\
- 		__attribute__((alias(__stringify(SyS##name))));		\
-@@ -223,6 +238,7 @@ static inline int is_syscall_trace_event(struct trace_event_call *tp_event)
- 		return ret;						\
- 	}								\
- 	static inline long SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__))
-+#endif /* __SYSCALL_DEFINEx */
+@@ -282,8 +281,9 @@ __visible void do_syscall_64(struct pt_regs *regs)
+ 	 * table.  The only functional difference is the x32 bit in
+ 	 * regs->orig_ax, which changes the behavior of some syscalls.
+ 	 */
+-	if (likely((nr & __SYSCALL_MASK) < NR_syscalls)) {
+-		nr = array_index_nospec(nr & __SYSCALL_MASK, NR_syscalls);
++	nr &= __SYSCALL_MASK;
++	if (likely(nr < NR_syscalls)) {
++		nr = array_index_nospec(nr, NR_syscalls);
+ 		regs->ax = sys_call_table[nr](
+ 			regs->di, regs->si, regs->dx,
+ 			regs->r10, regs->r8, regs->r9);
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index 805f52703ee3..c843b3d69048 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -233,7 +233,8 @@ GLOBAL(entry_SYSCALL_64_after_hwframe)
+ 	TRACE_IRQS_OFF
  
- /*
-  * Called before coming back to user-mode. Returning to user-mode with an
-@@ -252,7 +268,12 @@ static inline void addr_limit_user_check(void)
-  * Please note that these prototypes here are only provided for information
-  * purposes, for static analysis, and for linking from the syscall table.
-  * These functions should not be called elsewhere from kernel code.
-+ *
-+ * As the syscall calling convention may be different from the default
-+ * for architectures overriding the syscall calling convention, do not
-+ * include the prototypes if CONFIG_ARCH_HAS_SYSCALL_WRAPPER is enabled.
-  */
-+#ifndef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
- asmlinkage long sys_io_setup(unsigned nr_reqs, aio_context_t __user *ctx);
- asmlinkage long sys_io_destroy(aio_context_t ctx);
- asmlinkage long sys_io_submit(aio_context_t, long,
-@@ -1076,6 +1097,8 @@ asmlinkage long sys_old_mmap(struct mmap_arg_struct __user *arg);
-  */
- asmlinkage long sys_ni_syscall(void);
+ 	/* IRQs are off. */
+-	movq	%rsp, %rdi
++	movq	%rax, %rdi
++	movq	%rsp, %rsi
+ 	call	do_syscall_64		/* returns with IRQs disabled */
  
-+#endif /* CONFIG_ARCH_HAS_SYSCALL_WRAPPER */
-+
- 
- /*
-  * Kernel code should not call syscalls (i.e., sys_xyzyyz()) directly.
-diff --git a/init/Kconfig b/init/Kconfig
-index e37f4b2a6445..6079629be211 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1924,3 +1924,10 @@ source "kernel/Kconfig.locks"
- 
- config ARCH_HAS_SYNC_CORE_BEFORE_USERMODE
- 	bool
-+
-+# It may be useful for an architecture to override the definitions of the
-+# SYSCALL_DEFINE() and __SYSCALL_DEFINEx() macros in <linux/syscalls.h>,
-+# in particular to use a different calling convention for syscalls.
-+config ARCH_HAS_SYSCALL_WRAPPER
-+	def_bool n
-+	depends on !COMPAT
+ 	TRACE_IRQS_IRETQ		/* we're about to change IF */
 -- 
 2.16.3
