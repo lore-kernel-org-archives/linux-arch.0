@@ -1,89 +1,38 @@
-From: Sinan Kaya <okaya@codeaurora.org>
-Subject: [PATCH v2 2/2] io: prevent compiler reordering on the default readX() implementation
-Date: Fri, 30 Mar 2018 11:58:13 -0400
-Message-ID: <1522425494-2916-2-git-send-email-okaya@codeaurora.org>
-References: <1522425494-2916-1-git-send-email-okaya@codeaurora.org>
+From: "Kani, Toshi" <toshi.kani@hpe.com>
+Subject: Re: [RFC PATCH] lib/ioremap: Avoid triggering BUG_ON when end is not
+ PAGE_ALIGN
+Date: Fri, 30 Mar 2018 17:41:50 +0000
+Message-ID: <1522431689.2693.290.camel@hpe.com>
+References: <1522385385-7074-1-git-send-email-xieyisheng1@huawei.com>
 Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1522425494-2916-1-git-send-email-okaya@codeaurora.org>
+In-Reply-To: <1522385385-7074-1-git-send-email-xieyisheng1@huawei.com>
+Content-Language: en-US
+Content-ID: <09CC2BC754EAF0498E344AEAAC336A7F@NAMPRD84.PROD.OUTLOOK.COM>
 Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de, timur@codeaurora.org, sulrich@codeaurora.org
-Cc: linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Sinan Kaya <okaya@codeaurora.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: "xieyisheng1@huawei.com" <xieyisheng1@huawei.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "guohanjun@huawei.com" <guohanjun@huawei.com>, "tanxiaojun@huawei.com" <tanxiaojun@huawei.com>, "wangzhou1@hisilicon.com" <wangzhou1@hisilicon.com>, "kstewart@linuxfoundation.org" <kstewart@linuxfoundation.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "jcm@redhat.com" <jcm@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-The default implementation of mapping readX() to __raw_readX() is wrong.
-readX() has stronger ordering semantics. Compiler is allowed to reorder
-__raw_readX().
-
-In the abscence of a read barrier or when using a strongly ordered
-architecture, readX() should at least have a compiler barrier in
-it to prevent commpiler from clobbering the execution order.
-
-Signed-off-by: Sinan Kaya <okaya@codeaurora.org>
----
- include/asm-generic/io.h | 28 ++++++++++++++++++++++++----
- 1 file changed, 24 insertions(+), 4 deletions(-)
-
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index e8c2078..2554f15 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -110,7 +110,12 @@ static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
- #define readb readb
- static inline u8 readb(const volatile void __iomem *addr)
- {
--	return __raw_readb(addr);
-+	u8 val;
-+
-+	val = __raw_readb(addr);
-+	barrier();
-+
-+	return val;
- }
- #endif
- 
-@@ -118,7 +123,12 @@ static inline u8 readb(const volatile void __iomem *addr)
- #define readw readw
- static inline u16 readw(const volatile void __iomem *addr)
- {
--	return __le16_to_cpu(__raw_readw(addr));
-+	u16 val;
-+
-+	val = __le16_to_cpu(__raw_readw(addr));
-+	barrier();
-+
-+	return val;
- }
- #endif
- 
-@@ -126,7 +136,12 @@ static inline u16 readw(const volatile void __iomem *addr)
- #define readl readl
- static inline u32 readl(const volatile void __iomem *addr)
- {
--	return __le32_to_cpu(__raw_readl(addr));
-+	u32 val;
-+
-+	val = __le32_to_cpu(__raw_readl(addr));
-+	barrier();
-+
-+	return val;
- }
- #endif
- 
-@@ -135,7 +150,12 @@ static inline u32 readl(const volatile void __iomem *addr)
- #define readq readq
- static inline u64 readq(const volatile void __iomem *addr)
- {
--	return __le64_to_cpu(__raw_readq(addr));
-+	u64 val;
-+
-+	val = __le64_to_cpu(__raw_readq(addr));
-+	barrier();
-+
-+	return val;
- }
- #endif
- #endif /* CONFIG_64BIT */
--- 
-2.7.4
+T24gRnJpLCAyMDE4LTAzLTMwIGF0IDEyOjQ5ICswODAwLCBZaXNoZW5nIFhpZSB3cm90ZToNCj4g
+WmhvdSByZXBvcnRlZCBhIGJ1ZyBvbiBIaXNpbGljb24gYXJtNjQgRDA2IHBsYXRmb3JtIHdpdGgg
+NjRLQiBwYWdlIHNpemU6DQogOg0KPiBUaGUgY2F1c2UgaXMgdGhlIHNpemUgb2YgUENJIElPIHJl
+c291cmNlIGlzIDMyS0IsIHdoaWNoIGlzIDRLIGFsaWduZWQgYnV0DQo+IG5vdCA2NEtCIGFsaWdu
+ZWQsIHNvIHdoZW4gZG8gaW9yZW1hcF9wdGVfcmFuZ2UoKSwgaXRzIGluY29taW5nIGVuZCBpcyBu
+b3QNCj4gUEFHRV9BTElHTiBvbiA2NEtCIHBhZ2Ugc2l6ZSBzeXN0ZW0sIGJ1dCBpb3JlbWFwX3B0
+ZV9yYW5nZSBpbmNyZWFzZSB0aGUNCj4gYWRkciBieSBQQUdFX1NJWkUsIHdoaWNoIG1ha2VzIGFk
+ZHIgIT0gZW5kIHVudGlsIHRyaWdnZXIgQlVHX09OLg0KPiANCj4gVGhpcyBwYXRjaCBpbnRyb2R1
+Y2VzIHB0ZV9hZGRyX2VuZChhZGRyLCBlbmQpIHRvIHJlc29sdmUgdGhpcyBwcm9ibGVtLCBqdXN0
+DQo+IGFzIHdoYXQgcG1kX2FkZHJfZW5kIGRvLiBXaGVuIGVuZCBpcyBub3QgUEFHRV9BTElHTiwg
+aXQgd2lsbCByZXR1cm4gZW5kDQo+IGluc3RlYWQgb2YgYWRkciArIFBBR0VfU0laRSwgdGhlcmVm
+b3JlIGlvcmVtYXBfcHRlX3JhbmdlKCkgY2FuIGJyZWFrIG91dA0KPiB3aGVuIHJlYWwgZW5kIGlz
+IGNvbWluZy4NCg0KaW9yZW1hcF9wdGVfcmFuZ2UoKSBhc3N1bWVzIHRoYXQgYWRkciBhbmQgZW5k
+IGFyZSBhbGlnbmVkIGJ5IFBBR0VfU0laRS4gDQpXaGlsZSBzb21lIGltcHJvdmVtZW50IGNhbiBi
+ZSBtYWRlIGluIHRoZSByYW5nZSBjaGVjayBhbmQgZG9jdW1lbnRhdGlvbiwNCiBJIGRvIG5vdCB0
+aGluayBpdCBpcyBzYWZlIGZvciBsZXR0aW5nIHRoaXMgbGlicmFyeSBmdW5jdGlvbiB0byBtYXAN
+Cm91dHNpZGUgb2YgYSByZXF1ZXN0ZWQgcmFuZ2UgYmxpbmRseS4NCg0KQ2FuIHlvdSBjaGFuZ2Ug
+dGhlIGNhbGxlciBvZiBpb3JlbWFwX3BhZ2VfcmFuZ2UoKSB0byBhbGlnbiB0aGUgcmVxdWVzdA0K
+YnkgUEFHRV9TSVpFIHNvIHRoYXQgdGhlIGNhbGxlciBpcyBhd2FyZSBvZiB3aGF0IGl0J3MgYXNr
+aW5nIGZvcj8gDQoNClRoYW5rcywNCi1Ub3NoaQ0K
