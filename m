@@ -1,48 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t1613g.houston.hpe.com ([15.241.32.99]:22514 "EHLO
-        g9t1613g.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751264AbeC3Rmb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 30 Mar 2018 13:42:31 -0400
-Received: from g4t3425.houston.hpe.com (g4t3425.houston.hpe.com [15.241.140.78])
-        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
-        (No client certificate requested)
-        by g9t1613g.houston.hpe.com (Postfix) with ESMTPS id 86C0B60526
-        for <linux-arch@vger.kernel.org>; Fri, 30 Mar 2018 17:42:30 +0000 (UTC)
-From: "Kani, Toshi" <toshi.kani@hpe.com>
+Received: from szxga04-in.huawei.com ([45.249.212.190]:7139 "EHLO huawei.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1752603AbeCaB1t (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 30 Mar 2018 21:27:49 -0400
 Subject: Re: [RFC PATCH] lib/ioremap: Avoid triggering BUG_ON when end is not
  PAGE_ALIGN
-Date: Fri, 30 Mar 2018 17:41:50 +0000
-Message-ID: <1522431689.2693.290.camel@hpe.com>
 References: <1522385385-7074-1-git-send-email-xieyisheng1@huawei.com>
-In-Reply-To: <1522385385-7074-1-git-send-email-xieyisheng1@huawei.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <09CC2BC754EAF0498E344AEAAC336A7F@NAMPRD84.PROD.OUTLOOK.COM>
-Content-Transfer-Encoding: base64
+ <1522431689.2693.290.camel@hpe.com>
+From: Yisheng Xie <xieyisheng1@huawei.com>
+Message-ID: <9c186ae8-6350-e1ab-001a-23ae87ce030d@huawei.com>
+Date: Sat, 31 Mar 2018 09:27:24 +0800
 MIME-Version: 1.0
+In-Reply-To: <1522431689.2693.290.camel@hpe.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "xieyisheng1@huawei.com" <xieyisheng1@huawei.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+To: "Kani, Toshi" <toshi.kani@hpe.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
 Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "guohanjun@huawei.com" <guohanjun@huawei.com>, "tanxiaojun@huawei.com" <tanxiaojun@huawei.com>, "wangzhou1@hisilicon.com" <wangzhou1@hisilicon.com>, "kstewart@linuxfoundation.org" <kstewart@linuxfoundation.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "jcm@redhat.com" <jcm@redhat.com>
-Message-ID: <20180330174150.g9qfD0XLUvznZyDxpe5tkslKNmgxnSgSxXwSO8QncAM@z>
+Message-ID: <20180331012724.b_DPaiAhikI9kPAdV-M5nC5NbXLsiLWKzX3byj0Aj_w@z>
 
-T24gRnJpLCAyMDE4LTAzLTMwIGF0IDEyOjQ5ICswODAwLCBZaXNoZW5nIFhpZSB3cm90ZToNCj4g
-WmhvdSByZXBvcnRlZCBhIGJ1ZyBvbiBIaXNpbGljb24gYXJtNjQgRDA2IHBsYXRmb3JtIHdpdGgg
-NjRLQiBwYWdlIHNpemU6DQogOg0KPiBUaGUgY2F1c2UgaXMgdGhlIHNpemUgb2YgUENJIElPIHJl
-c291cmNlIGlzIDMyS0IsIHdoaWNoIGlzIDRLIGFsaWduZWQgYnV0DQo+IG5vdCA2NEtCIGFsaWdu
-ZWQsIHNvIHdoZW4gZG8gaW9yZW1hcF9wdGVfcmFuZ2UoKSwgaXRzIGluY29taW5nIGVuZCBpcyBu
-b3QNCj4gUEFHRV9BTElHTiBvbiA2NEtCIHBhZ2Ugc2l6ZSBzeXN0ZW0sIGJ1dCBpb3JlbWFwX3B0
-ZV9yYW5nZSBpbmNyZWFzZSB0aGUNCj4gYWRkciBieSBQQUdFX1NJWkUsIHdoaWNoIG1ha2VzIGFk
-ZHIgIT0gZW5kIHVudGlsIHRyaWdnZXIgQlVHX09OLg0KPiANCj4gVGhpcyBwYXRjaCBpbnRyb2R1
-Y2VzIHB0ZV9hZGRyX2VuZChhZGRyLCBlbmQpIHRvIHJlc29sdmUgdGhpcyBwcm9ibGVtLCBqdXN0
-DQo+IGFzIHdoYXQgcG1kX2FkZHJfZW5kIGRvLiBXaGVuIGVuZCBpcyBub3QgUEFHRV9BTElHTiwg
-aXQgd2lsbCByZXR1cm4gZW5kDQo+IGluc3RlYWQgb2YgYWRkciArIFBBR0VfU0laRSwgdGhlcmVm
-b3JlIGlvcmVtYXBfcHRlX3JhbmdlKCkgY2FuIGJyZWFrIG91dA0KPiB3aGVuIHJlYWwgZW5kIGlz
-IGNvbWluZy4NCg0KaW9yZW1hcF9wdGVfcmFuZ2UoKSBhc3N1bWVzIHRoYXQgYWRkciBhbmQgZW5k
-IGFyZSBhbGlnbmVkIGJ5IFBBR0VfU0laRS4gDQpXaGlsZSBzb21lIGltcHJvdmVtZW50IGNhbiBi
-ZSBtYWRlIGluIHRoZSByYW5nZSBjaGVjayBhbmQgZG9jdW1lbnRhdGlvbiwNCiBJIGRvIG5vdCB0
-aGluayBpdCBpcyBzYWZlIGZvciBsZXR0aW5nIHRoaXMgbGlicmFyeSBmdW5jdGlvbiB0byBtYXAN
-Cm91dHNpZGUgb2YgYSByZXF1ZXN0ZWQgcmFuZ2UgYmxpbmRseS4NCg0KQ2FuIHlvdSBjaGFuZ2Ug
-dGhlIGNhbGxlciBvZiBpb3JlbWFwX3BhZ2VfcmFuZ2UoKSB0byBhbGlnbiB0aGUgcmVxdWVzdA0K
-YnkgUEFHRV9TSVpFIHNvIHRoYXQgdGhlIGNhbGxlciBpcyBhd2FyZSBvZiB3aGF0IGl0J3MgYXNr
-aW5nIGZvcj8gDQoNClRoYW5rcywNCi1Ub3NoaQ0K
+Hi Toshi,
+
+On 2018/3/31 1:41, Kani, Toshi wrote:
+> On Fri, 2018-03-30 at 12:49 +0800, Yisheng Xie wrote:
+>> Zhou reported a bug on Hisilicon arm64 D06 platform with 64KB page size:
+>  :
+>> The cause is the size of PCI IO resource is 32KB, which is 4K aligned but
+>> not 64KB aligned, so when do ioremap_pte_range(), its incoming end is not
+>> PAGE_ALIGN on 64KB page size system, but ioremap_pte_range increase the
+>> addr by PAGE_SIZE, which makes addr != end until trigger BUG_ON.
+>>
+>> This patch introduces pte_addr_end(addr, end) to resolve this problem, just
+>> as what pmd_addr_end do. When end is not PAGE_ALIGN, it will return end
+>> instead of addr + PAGE_SIZE, therefore ioremap_pte_range() can break out
+>> when real end is coming.
+> 
+> ioremap_pte_range() assumes that addr and end are aligned by PAGE_SIZE. 
+> While some improvement can be made in the range check and documentation,
+>  I do not think it is safe for letting this library function to map
+> outside of a requested range blindly.
+> 
+> Can you change the caller of ioremap_page_range() to align the request
+> by PAGE_SIZE so that the caller is aware of what it's asking for? 
+
+Sure, as the name of ioremap_*page*_range(), the caller should make sure align
+the request by PAGE_SIZE.
+
+Thanks
+Yisheng
+> 
+> Thanks,
+> -Toshi
+> 
