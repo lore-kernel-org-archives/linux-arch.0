@@ -1,33 +1,29 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH 002/109] kernel: use kernel_wait4() instead of sys_wait4()
-Date: Mon, 2 Apr 2018 16:14:29 +0000
-Message-ID: <20180402161429.GS30543@wotan.suse.de>
-References: <20180329112426.23043-1-linux@dominikbrodowski.net>
- <20180329112426.23043-3-linux@dominikbrodowski.net>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [GIT PULL] arch: remove obsolete architecture ports
+Date: Mon, 2 Apr 2018 11:57:05 -0700
+Message-ID: <CA+55aFzmQ9specaytsjEb=iNm-NHE5kxMSy_H_jKvqZa4-Fomw@mail.gmail.com>
+References: <CAK8P3a0q70FYtBaCcsBPejVULgsbJPwUG7QmrkU9NJpr7oTzpQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20180329112426.23043-3-linux@dominikbrodowski.net>
+In-Reply-To: <CAK8P3a0q70FYtBaCcsBPejVULgsbJPwUG7QmrkU9NJpr7oTzpQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dominik Brodowski <linux@dominikbrodowski.net>
-Cc: linux-kernel@vger.kernel.org, viro@ZenIV.linux.org.uk, torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, "Luis R . Rodriguez" <mcgrof@kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, James Hogan <jhogan@kernel.org>, David Howells <dhowells@redhat.com>, linux-am33-list@redhat.com, Hirokazu Takata <takata@linux-m32r.org>, Lennox Wu <lennox.wu@gmail.com>, Aaron Wu <Aaron.Wu@analog.com>, Bryan Wu <cooloney@gmail.com>, Chris Metcalf <chris.d.metcalf@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 29, 2018 at 01:22:39PM +0200, Dominik Brodowski wrote:
-> All call sites of sys_wait4() set *rusage to NULL. Therefore, there is
-> no need for the copy_to_user() handling of *rusage, and we can use
-> kernel_wait4() directly.
-> 
-> This patch is part of a series which removes in-kernel calls to syscalls.
-> On this basis, the syscall entry path can be streamlined. For details, see
-> http://lkml.kernel.org/r/20180325162527.GA17492@light.dominikbrodowski.net
-> 
-> Cc: Luis R. Rodriguez <mcgrof@kernel.org>
-> Cc: Al Viro <viro@zeniv.linux.org.uk>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Signed-off-by: Dominik Brodowski <linux@dominikbrodowski.net>
+On Mon, Apr 2, 2018 at 12:17 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> (dirstat only for brevity)
 
-Acked-by: Luis R. Rodriguez <mcgrof@kernel.org>
+Shortlog?
 
-  Luis
+I'd like to see that each architecture removal is independent of the
+others, so that if somebody wants to resurrect any particular
+architecture, he/she can do so with a revert.
+
+Can I just fetch things and see? Sure. But there's no excuse not to
+have a shortlog in the pull request, even if the full diffstat itself
+might be prohibitive.
+
+                Linus
