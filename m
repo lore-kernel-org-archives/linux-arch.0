@@ -1,47 +1,54 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 2/2] io: prevent compiler reordering on the default
- readX() implementation
-Date: Tue, 3 Apr 2018 13:13:30 +0200
-Message-ID: <CAK8P3a3fZx42sQY41Pf+Q3fMNrP2FgXvvntnrLkQXbAezOQjEw@mail.gmail.com>
-References: <1522425494-2916-1-git-send-email-okaya@codeaurora.org>
- <1522425494-2916-2-git-send-email-okaya@codeaurora.org> <20180403104925.fuyajja6tyanlna4@lakrids.cambridge.arm.com>
+From: Chintan Pandya <cpandya@codeaurora.org>
+Subject: Re: [PATCH v8 0/4] Fix issues with huge mapping in ioremap for ARM64
+Date: Tue, 3 Apr 2018 17:25:29 +0530
+Message-ID: <0229cecc-18fc-c3ef-a5cb-be3f9829cad4@codeaurora.org>
+References: <1522742446-5084-1-git-send-email-cpandya@codeaurora.org>
+ <a613f834-f356-a826-526f-aef532f62951@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20180403104925.fuyajja6tyanlna4@lakrids.cambridge.arm.com>
+In-Reply-To: <a613f834-f356-a826-526f-aef532f62951@arm.com>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Sinan Kaya <okaya@codeaurora.org>, Timur Tabi <timur@codeaurora.org>, sulrich@codeaurora.org, linux-arm-msm@vger.kernel.org, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Marc Zyngier <marc.zyngier@arm.com>, catalin.marinas@arm.com, will.deacon@arm.com, mark.rutland@arm.com, toshi.kani@hpe.com
+Cc: arnd@arndb.de, ard.biesheuvel@linaro.org, james.morse@arm.com, kristina.martsenko@arm.com, takahiro.akashi@linaro.org, gregkh@linuxfoundation.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 3, 2018 at 12:49 PM, Mark Rutland <mark.rutland@arm.com> wrote:
-> Hi,
->
-> On Fri, Mar 30, 2018 at 11:58:13AM -0400, Sinan Kaya wrote:
->> The default implementation of mapping readX() to __raw_readX() is wrong.
->> readX() has stronger ordering semantics. Compiler is allowed to reorder
->> __raw_readX().
->
-> Could you please specify what the compiler is potentially reordering
-> __raw_readX() against, and why this would be wrong?
->
-> e.g. do we care about prior normal memory accesses, subsequent normal
-> memory accesses, and/or other IO accesses?
->
-> I assume that the asm-generic __raw_{read,write}X() implementations are
-> all ordered w.r.t. each other (at least for a specific device).
 
-I think that is correct: the compiler won't reorder those because of the
-'volatile' pointer dereference, but it can reorder access to a normal
-pointer against a __raw_readl()/__raw_writel(), which breaks the scenario
-of using writel to trigger a DMA, or using a readl to see if a DMA has
-completed.
 
-The question is whether we should use a stronger barrier such
-as rmb() amd wmb() here rather than a simple compiler barrier.
+On 4/3/2018 2:13 PM, Marc Zyngier wrote:
+> Hi Chintan,
+Hi Marc,
+> 
+> On 03/04/18 09:00, Chintan Pandya wrote:
+>> This series of patches are follow up work (and depends on)
+>> Toshi Kani <toshi.kani@hpe.com>'s patches "fix memory leak/
+>> panic in ioremap huge pages".
+>>
+>> This series of patches are tested on 4.9 kernel with Cortex-A75
+>> based SoC.
+> 
+> Given that this is targeting mainline, can you please test with 4.16?
+> Basing your patches on something that is over 15 months old is not
+> exactly reassuring.
 
-I would assume that on complex architectures with write buffers and
-out-of-order prefetching, those are required, while on architectures
-without those features, the barriers are cheap.
+We have 4.14 ported with the devices (remotely) accessible to me. If
+that's sufficient, I will post test report by tomorrow.
 
-      Arnd
+If we really require these patches to be tested with 4.16, I would need
+some help here.
+
+Thanks,
+
+> 
+> Thanks,
+> 
+> 	M.
+> 
+
+Chintan
+-- 
+Qualcomm India Private Limited, on behalf of Qualcomm Innovation Center,
+Inc. is a member of the Code Aurora Forum, a Linux Foundation
+Collaborative Project
