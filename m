@@ -1,7 +1,7 @@
 From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: [PATCH 1/3] Documentation/features: Add script that refreshes the arch support status files in place
-Date: Tue,  3 Apr 2018 18:55:49 +0200
-Message-ID: <1522774551-9503-2-git-send-email-andrea.parri@amarulasolutions.com>
+Subject: [PATCH 2/3] Documentation/features/core: Add arch support status files for 'cBPF-JIT' and 'eBPF-JIT'
+Date: Tue,  3 Apr 2018 18:55:50 +0200
+Message-ID: <1522774551-9503-3-git-send-email-andrea.parri@amarulasolutions.com>
 References: <1522774551-9503-1-git-send-email-andrea.parri@amarulasolutions.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1522774551-9503-1-git-send-email-andrea.parri@amarulasolutions.com>
@@ -10,73 +10,74 @@ To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
 Cc: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andrea Parri <andrea.parri@amarulasolutions.com>
 List-Id: linux-arch.vger.kernel.org
 
-Suggested-by: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
 ---
- Documentation/features/scripts/features-refresh.sh | 55 ++++++++++++++++++++++
- 1 file changed, 55 insertions(+)
- create mode 100755 Documentation/features/scripts/features-refresh.sh
+ .../features/core/BPF-JIT/arch-support.txt         | 31 ----------------------
+ .../features/core/cBPF-JIT/arch-support.txt        |  5 ++++
+ .../features/core/eBPF-JIT/arch-support.txt        |  5 ++++
+ 3 files changed, 10 insertions(+), 31 deletions(-)
+ delete mode 100644 Documentation/features/core/BPF-JIT/arch-support.txt
+ create mode 100644 Documentation/features/core/cBPF-JIT/arch-support.txt
+ create mode 100644 Documentation/features/core/eBPF-JIT/arch-support.txt
 
-diff --git a/Documentation/features/scripts/features-refresh.sh b/Documentation/features/scripts/features-refresh.sh
-new file mode 100755
-index 0000000000000..ae3e9d5d3f262
+diff --git a/Documentation/features/core/BPF-JIT/arch-support.txt b/Documentation/features/core/BPF-JIT/arch-support.txt
+deleted file mode 100644
+index 0b96b4e1e7d4a..0000000000000
+--- a/Documentation/features/core/BPF-JIT/arch-support.txt
++++ /dev/null
+@@ -1,31 +0,0 @@
+-#
+-# Feature name:          BPF-JIT
+-#         Kconfig:       HAVE_BPF_JIT
+-#         description:   arch supports BPF JIT optimizations
+-#
+-    -----------------------
+-    |         arch |status|
+-    -----------------------
+-    |       alpha: | TODO |
+-    |         arc: | TODO |
+-    |         arm: |  ok  |
+-    |       arm64: |  ok  |
+-    |         c6x: | TODO |
+-    |       h8300: | TODO |
+-    |     hexagon: | TODO |
+-    |        ia64: | TODO |
+-    |        m68k: | TODO |
+-    |  microblaze: | TODO |
+-    |        mips: |  ok  |
+-    |       nios2: | TODO |
+-    |    openrisc: | TODO |
+-    |      parisc: | TODO |
+-    |     powerpc: |  ok  |
+-    |        s390: |  ok  |
+-    |          sh: | TODO |
+-    |       sparc: |  ok  |
+-    |          um: | TODO |
+-    |   unicore32: | TODO |
+-    |         x86: |  ok  |
+-    |      xtensa: | TODO |
+-    -----------------------
+diff --git a/Documentation/features/core/cBPF-JIT/arch-support.txt b/Documentation/features/core/cBPF-JIT/arch-support.txt
+new file mode 100644
+index 0000000000000..2ae2a7106e67d
 --- /dev/null
-+++ b/Documentation/features/scripts/features-refresh.sh
-@@ -0,0 +1,55 @@
++++ b/Documentation/features/core/cBPF-JIT/arch-support.txt
+@@ -0,0 +1,5 @@
 +#
-+# Small script that refreshes the kernel feature support status in place.
++# Feature name:          cBPF-JIT
++#         Kconfig:       HAVE_CBPF_JIT
++#         description:   arch supports cBPF JIT optimizations
 +#
-+
-+for F_FILE in Documentation/features/*/*/arch-support.txt; do
-+	K=$(grep "^#         Kconfig:" "$F_FILE" | cut -c26-)
-+	K_VALID="false" # K is 'valid' iff there exists a Kconfig file
-+			# (for some arch) containing K.
-+
-+	for ARCH_DIR in arch/*/; do
-+		K_FILES=$(find $ARCH_DIR -name "Kconfig*")
-+
-+		K_GREP=$(grep "$K" $K_FILES)
-+		if [ ! -z "$K_GREP" ]; then
-+			K_VALID="true"
-+			break
-+		fi
-+	done
-+
-+	if [ "$K_VALID" = "false" ]; then
-+		printf "WARNING: '%s' is not a valid Kconfig\n" "$K"
-+	fi
-+
-+	T_FILE="$F_FILE.tmp"
-+
-+	grep "^#" $F_FILE > $T_FILE
-+	echo "    -----------------------" >> $T_FILE
-+	echo "    |         arch |status|" >> $T_FILE
-+	echo "    -----------------------" >> $T_FILE
-+
-+	for ARCH_DIR in arch/*/; do
-+		ARCH=$(echo $ARCH_DIR | sed -e 's/arch//g' | sed -e 's/\///g')
-+		K_FILES=$(find $ARCH_DIR -name "Kconfig*")
-+
-+		K_GREP=$(grep "$K" $K_FILES)
-+		if [ ! -z "$K_GREP" ]; then
-+			# K is 'supported by a given arch', if there exists
-+			# a Kconfig file for this arch containing K.
-+			printf "    |%12s: |  ok  |\n" "$ARCH" >> $T_FILE
-+		else
-+			# ... Otherwise: Keep the original status (if any);
-+			# default to "not yet supported".
-+			S=$(grep -v "^#" "$F_FILE" | grep " $ARCH:")
-+			if [ ! -z "$S" ]; then
-+				echo "$S" >> $T_FILE
-+			else
-+				printf "    |%12s: | TODO |\n" "$ARCH" \
-+					>> $T_FILE
-+			fi
-+		fi
-+	done
-+
-+	echo "    -----------------------" >> $T_FILE
-+	mv $T_FILE $F_FILE
-+done
+diff --git a/Documentation/features/core/eBPF-JIT/arch-support.txt b/Documentation/features/core/eBPF-JIT/arch-support.txt
+new file mode 100644
+index 0000000000000..c8b0b458b9cec
+--- /dev/null
++++ b/Documentation/features/core/eBPF-JIT/arch-support.txt
+@@ -0,0 +1,5 @@
++#
++# Feature name:          eBPF-JIT
++#         Kconfig:       HAVE_EBPF_JIT
++#         description:   arch supports eBPF JIT optimizations
++#
 -- 
 2.7.4
