@@ -1,785 +1,146 @@
-From: Andrea Parri <andrea.parri@amarulasolutions.com>
-Subject: [PATCH 3/3] Documentation/features: Refresh and auto-generate the arch support status files in place
-Date: Tue,  3 Apr 2018 18:55:51 +0200
-Message-ID: <1522774551-9503-4-git-send-email-andrea.parri@amarulasolutions.com>
-References: <1522774551-9503-1-git-send-email-andrea.parri@amarulasolutions.com>
+From: John Garry <john.garry@huawei.com>
+Subject: Re: [PATCH v17 01/10] LIB: Introduce a generic PIO mapping method
+Date: Tue, 3 Apr 2018 18:02:43 +0100
+Message-ID: <19c46196-304a-1574-89c9-01c71d123539@huawei.com>
+References: <1521051359-34473-1-git-send-email-john.garry@huawei.com>
+ <1521051359-34473-2-git-send-email-john.garry@huawei.com>
+ <20180403140410.GE27789@ulmo> <20180403143909.GA21171@ulmo>
+ <ab748c97-2b55-d090-606f-5491551feff6@huawei.com>
+ <20180403163700.GA10059@ulmo>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1522774551-9503-1-git-send-email-andrea.parri@amarulasolutions.com>
+In-Reply-To: <20180403163700.GA10059@ulmo>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>, Jonathan Corbet <corbet@lwn.net>
-Cc: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andrea Parri <andrea.parri@amarulasolutions.com>
+To: Thierry Reding <thierry.reding@gmail.com>
+Cc: mika.westerberg@linux.intel.com, rafael@kernel.org, lorenzo.pieralisi@arm.com, rjw@rjwysocki.net, hanjun.guo@linaro.org, robh+dt@kernel.org, bhelgaas@google.com, arnd@arndb.de, mark.rutland@arm.com, olof@lixom.net, dann.frazier@canonical.com, andy.shevchenko@gmail.com, robh@kernel.org, andriy.shevchenko@linux.intel.com, joe@perches.com, benh@kernel.crashing.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linuxarm@huawei.com, minyard@acm.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org, rdunlap@infradead.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, frowand.list@gmail.com, agraf@suse.de, linux-tegra@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Andrea Parri <andrea.parri@amarulasolutions.com>
----
- .../features/core/cBPF-JIT/arch-support.txt        | 27 ++++++++++++++++++++++
- .../features/core/eBPF-JIT/arch-support.txt        | 27 ++++++++++++++++++++++
- .../core/generic-idle-thread/arch-support.txt      |  3 ++-
- .../features/core/jump-labels/arch-support.txt     |  1 +
- .../features/core/tracehook/arch-support.txt       |  1 +
- .../features/debug/KASAN/arch-support.txt          |  3 ++-
- .../debug/gcov-profile-all/arch-support.txt        |  1 +
- Documentation/features/debug/kgdb/arch-support.txt |  3 ++-
- .../debug/kprobes-on-ftrace/arch-support.txt       |  1 +
- .../features/debug/kprobes/arch-support.txt        |  3 ++-
- .../features/debug/kretprobes/arch-support.txt     |  3 ++-
- .../features/debug/optprobes/arch-support.txt      |  3 ++-
- .../features/debug/stackprotector/arch-support.txt |  1 +
- .../features/debug/uprobes/arch-support.txt        |  5 ++--
- .../debug/user-ret-profiler/arch-support.txt       |  1 +
- .../features/io/dma-api-debug/arch-support.txt     |  1 +
- .../features/io/dma-contiguous/arch-support.txt    |  3 ++-
- .../features/io/sg-chain/arch-support.txt          |  1 +
- .../features/lib/strncasecmp/arch-support.txt      |  1 +
- .../locking/cmpxchg-local/arch-support.txt         |  3 ++-
- .../features/locking/lockdep/arch-support.txt      |  3 ++-
- .../locking/queued-rwlocks/arch-support.txt        |  9 ++++----
- .../locking/queued-spinlocks/arch-support.txt      |  7 +++---
- .../locking/rwsem-optimized/arch-support.txt       |  1 +
- .../features/perf/kprobes-event/arch-support.txt   |  5 ++--
- .../features/perf/perf-regs/arch-support.txt       |  3 ++-
- .../features/perf/perf-stackdump/arch-support.txt  |  3 ++-
- .../sched/membarrier-sync-core/arch-support.txt    |  1 +
- .../features/sched/numa-balancing/arch-support.txt |  5 ++--
- .../seccomp/seccomp-filter/arch-support.txt        |  5 ++--
- .../time/arch-tick-broadcast/arch-support.txt      |  3 ++-
- .../features/time/clockevents/arch-support.txt     |  3 ++-
- .../time/context-tracking/arch-support.txt         |  1 +
- .../features/time/irq-time-acct/arch-support.txt   |  3 ++-
- .../time/modern-timekeeping/arch-support.txt       |  1 +
- .../features/time/virt-cpuacct/arch-support.txt    |  1 +
- .../features/vm/ELF-ASLR/arch-support.txt          |  3 ++-
- .../features/vm/PG_uncached/arch-support.txt       |  1 +
- Documentation/features/vm/THP/arch-support.txt     |  1 +
- Documentation/features/vm/TLB/arch-support.txt     |  1 +
- .../features/vm/huge-vmap/arch-support.txt         |  1 +
- .../features/vm/ioremap_prot/arch-support.txt      |  1 +
- .../features/vm/numa-memblock/arch-support.txt     |  3 ++-
- .../features/vm/pte_special/arch-support.txt       |  1 +
- 44 files changed, 127 insertions(+), 31 deletions(-)
+On 03/04/2018 17:37, Thierry Reding wrote:
+> On Tue, Apr 03, 2018 at 05:01:37PM +0100, John Garry wrote:
+>>>>> +int logic_pio_register_range(struct logic_pio_hwaddr *new_range)
+>>>>> +{
+>>>>> +	struct logic_pio_hwaddr *range;
+>>>>> +	resource_size_t start = new_range->hw_start;
+>>>>> +	resource_size_t end = new_range->hw_start + new_range->size;
+>>>>> +	resource_size_t mmio_sz = 0;
+>>>>> +	resource_size_t iio_sz = MMIO_UPPER_LIMIT;
+>>>>> +	int ret = 0;
+>>>>> +
+>>>>> +	if (!new_range || !new_range->fwnode || !new_range->size)
+>>>>> +		return -EINVAL;
+>>>>> +
+>>>>> +	mutex_lock(&io_range_mutex);
+>>>>> +	list_for_each_entry_rcu(range, &io_range_list, list) {
+>>>>> +		if (range->fwnode == new_range->fwnode) {
+>>>>> +			/* range already there */
+>>>>> +			ret = -EFAULT;
+>>>>> +			goto end_register;
+>>>>> +		}
+>>>>
+>>
+>> Hi Thierry,
+>>
+>>>> This is the -EFAULT that propagates to pci-tegra.c's ->probe() and fails
+>>>> to bind the driver.
+>>>>
+>>>> I'm not exactly sure what's causing the duplicate here because it's
+>>>> rather difficult to get at something useful from just the ->fwnode, but
+>>>> I'm fairly sure that the reason this breaks is because the Tegra driver
+>>>> will defer probe due to some regulators that aren't available on the
+>>>> first try. Given the above code and the rest of this file, I can't see a
+>>>> way to "fix" the driver and remove the I/O range on failure.
+>>>>
+>>>> This is doubly bad because this doesn't only leak the ranges on probe
+>>>> deferral, but also on driver unload, and we just added support for
+>>>> building the Tegra driver as a loadable module, so these are actually
+>>>> cases that can happen in regular uses of the driver.
+>>>>
+>>>> I have no idea on how to fix this. Anyone know of a quick fix to restore
+>>>> PCI for Tegra other than reverting all of these changes?
+>>>>
+>>>> I suppose an API could be added to unregister the range, but the calling
+>>>> sequence is rather obfuscated, so removing the range will look totally
+>>>> asymmetric, I'm afraid.
+>>>>
+>>>> Here's the call stack:
+>>>>
+>>>> 	tegra_pcie_probe()
+>>>> 	tegra_pcie_parse_dt()
+>>>> 	of_pci_range_to_resource()
+>>>> 	pci_register_io_range()
+>>>> 	logic_pio_register_range()
+>>>>
+>>>> So the range here is registered as part of a resource parsing function,
+>>>> which is supposed to not have any side-effects. There's no equivalent of
+>>>> that parsing routine (i.e. no "unparse" function that would undo the
+>>>> effects of parsing).
+>>>>
+>>>> Perhaps a cleaner way would be to decouple the parsing from the actual
+>>>> request step that has the side-effect.
+>>
+>> This could be added if we agreed that it would be useful.
+>
+> I guess in most cases these ranges will be static at least during one
+> boot. But it still feels like this should be removed when the driver
+> goes away. While this may not depend on data by the driver, and hence
+> won't cause a crash or anything, it just seems wrong to leave it
+> around when the driver no longer isn't.
 
-diff --git a/Documentation/features/core/cBPF-JIT/arch-support.txt b/Documentation/features/core/cBPF-JIT/arch-support.txt
-index 2ae2a7106e67d..6b829e27c268a 100644
---- a/Documentation/features/core/cBPF-JIT/arch-support.txt
-+++ b/Documentation/features/core/cBPF-JIT/arch-support.txt
-@@ -3,3 +3,30 @@
- #         Kconfig:       HAVE_CBPF_JIT
- #         description:   arch supports cBPF JIT optimizations
- #
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |         c6x: | TODO |
-+    |       h8300: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m68k: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-+    |        s390: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: | TODO |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/core/eBPF-JIT/arch-support.txt b/Documentation/features/core/eBPF-JIT/arch-support.txt
-index c8b0b458b9cec..4a4ab34ee293a 100644
---- a/Documentation/features/core/eBPF-JIT/arch-support.txt
-+++ b/Documentation/features/core/eBPF-JIT/arch-support.txt
-@@ -3,3 +3,30 @@
- #         Kconfig:       HAVE_EBPF_JIT
- #         description:   arch supports eBPF JIT optimizations
- #
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |         c6x: | TODO |
-+    |       h8300: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m68k: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-+    |        s390: |  ok  |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/core/generic-idle-thread/arch-support.txt b/Documentation/features/core/generic-idle-thread/arch-support.txt
-index 372a2b18a6172..261073013df90 100644
---- a/Documentation/features/core/generic-idle-thread/arch-support.txt
-+++ b/Documentation/features/core/generic-idle-thread/arch-support.txt
-@@ -18,9 +18,10 @@
-     |  microblaze: | TODO |
-     |        mips: |  ok  |
-     |       nios2: | TODO |
--    |    openrisc: | TODO |
-+    |    openrisc: |  ok  |
-     |      parisc: |  ok  |
-     |     powerpc: |  ok  |
-+    |       riscv: |  ok  |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/core/jump-labels/arch-support.txt b/Documentation/features/core/jump-labels/arch-support.txt
-index ad97217b003ba..33c032ccccf5e 100644
---- a/Documentation/features/core/jump-labels/arch-support.txt
-+++ b/Documentation/features/core/jump-labels/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: | TODO |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/core/tracehook/arch-support.txt b/Documentation/features/core/tracehook/arch-support.txt
-index 36ee7bef5d189..7e91aaec8025a 100644
---- a/Documentation/features/core/tracehook/arch-support.txt
-+++ b/Documentation/features/core/tracehook/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: |  ok  |
-     |      parisc: |  ok  |
-     |     powerpc: |  ok  |
-+    |       riscv: |  ok  |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/debug/KASAN/arch-support.txt b/Documentation/features/debug/KASAN/arch-support.txt
-index f5c99fa576d33..f1192fc5c47eb 100644
---- a/Documentation/features/debug/KASAN/arch-support.txt
-+++ b/Documentation/features/debug/KASAN/arch-support.txt
-@@ -21,11 +21,12 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-     |          um: | TODO |
-     |   unicore32: | TODO |
--    |         x86: |  ok  | 64-bit only
-+    |         x86: |  ok  |
-     |      xtensa: |  ok  |
-     -----------------------
-diff --git a/Documentation/features/debug/gcov-profile-all/arch-support.txt b/Documentation/features/debug/gcov-profile-all/arch-support.txt
-index 5170a9934843e..40847b7b8b12a 100644
---- a/Documentation/features/debug/gcov-profile-all/arch-support.txt
-+++ b/Documentation/features/debug/gcov-profile-all/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/debug/kgdb/arch-support.txt b/Documentation/features/debug/kgdb/arch-support.txt
-index 13b6e994ae1fc..b99e64d513ec0 100644
---- a/Documentation/features/debug/kgdb/arch-support.txt
-+++ b/Documentation/features/debug/kgdb/arch-support.txt
-@@ -11,7 +11,7 @@
-     |         arm: |  ok  |
-     |       arm64: |  ok  |
-     |         c6x: | TODO |
--    |       h8300: | TODO |
-+    |       h8300: |  ok  |
-     |     hexagon: |  ok  |
-     |        ia64: | TODO |
-     |        m68k: | TODO |
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/debug/kprobes-on-ftrace/arch-support.txt b/Documentation/features/debug/kprobes-on-ftrace/arch-support.txt
-index 419bb38820e7c..266ea31c6fcdf 100644
---- a/Documentation/features/debug/kprobes-on-ftrace/arch-support.txt
-+++ b/Documentation/features/debug/kprobes-on-ftrace/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/debug/kprobes/arch-support.txt b/Documentation/features/debug/kprobes/arch-support.txt
-index 52b3ace0a030a..e60b0d0d25cf6 100644
---- a/Documentation/features/debug/kprobes/arch-support.txt
-+++ b/Documentation/features/debug/kprobes/arch-support.txt
-@@ -9,7 +9,7 @@
-     |       alpha: | TODO |
-     |         arc: |  ok  |
-     |         arm: |  ok  |
--    |       arm64: | TODO |
-+    |       arm64: |  ok  |
-     |         c6x: | TODO |
-     |       h8300: | TODO |
-     |     hexagon: | TODO |
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: |  ok  |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/debug/kretprobes/arch-support.txt b/Documentation/features/debug/kretprobes/arch-support.txt
-index 180d244195185..1f326a1769cb9 100644
---- a/Documentation/features/debug/kretprobes/arch-support.txt
-+++ b/Documentation/features/debug/kretprobes/arch-support.txt
-@@ -9,7 +9,7 @@
-     |       alpha: | TODO |
-     |         arc: |  ok  |
-     |         arm: |  ok  |
--    |       arm64: | TODO |
-+    |       arm64: |  ok  |
-     |         c6x: | TODO |
-     |       h8300: | TODO |
-     |     hexagon: | TODO |
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/debug/optprobes/arch-support.txt b/Documentation/features/debug/optprobes/arch-support.txt
-index 0a1241f45e41d..a844637b957ce 100644
---- a/Documentation/features/debug/optprobes/arch-support.txt
-+++ b/Documentation/features/debug/optprobes/arch-support.txt
-@@ -20,7 +20,8 @@
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
--    |     powerpc: | TODO |
-+    |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/debug/stackprotector/arch-support.txt b/Documentation/features/debug/stackprotector/arch-support.txt
-index 5700195723834..ca3bd7dd4e7f0 100644
---- a/Documentation/features/debug/stackprotector/arch-support.txt
-+++ b/Documentation/features/debug/stackprotector/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: |  ok  |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/debug/uprobes/arch-support.txt b/Documentation/features/debug/uprobes/arch-support.txt
-index 0b8d922eb799e..ac47048fcb95e 100644
---- a/Documentation/features/debug/uprobes/arch-support.txt
-+++ b/Documentation/features/debug/uprobes/arch-support.txt
-@@ -9,7 +9,7 @@
-     |       alpha: | TODO |
-     |         arc: | TODO |
-     |         arm: |  ok  |
--    |       arm64: | TODO |
-+    |       arm64: |  ok  |
-     |         c6x: | TODO |
-     |       h8300: | TODO |
-     |     hexagon: | TODO |
-@@ -21,9 +21,10 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: | TODO |
--    |       sparc: | TODO |
-+    |       sparc: |  ok  |
-     |          um: | TODO |
-     |   unicore32: | TODO |
-     |         x86: |  ok  |
-diff --git a/Documentation/features/debug/user-ret-profiler/arch-support.txt b/Documentation/features/debug/user-ret-profiler/arch-support.txt
-index 13852ae62e9e1..6c0f85b2a8a6e 100644
---- a/Documentation/features/debug/user-ret-profiler/arch-support.txt
-+++ b/Documentation/features/debug/user-ret-profiler/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/io/dma-api-debug/arch-support.txt b/Documentation/features/io/dma-api-debug/arch-support.txt
-index e438ed675623b..7e4510d7d4893 100644
---- a/Documentation/features/io/dma-api-debug/arch-support.txt
-+++ b/Documentation/features/io/dma-api-debug/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: |  ok  |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/io/dma-contiguous/arch-support.txt b/Documentation/features/io/dma-contiguous/arch-support.txt
-index 47f64a433df00..f6bbced1c8f78 100644
---- a/Documentation/features/io/dma-contiguous/arch-support.txt
-+++ b/Documentation/features/io/dma-contiguous/arch-support.txt
-@@ -21,7 +21,8 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
--    |        s390: | TODO |
-+    |       riscv: |  ok  |
-+    |        s390: |  ok  |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-     |          um: | TODO |
-diff --git a/Documentation/features/io/sg-chain/arch-support.txt b/Documentation/features/io/sg-chain/arch-support.txt
-index 07f357fadbff6..d2732887e0ad3 100644
---- a/Documentation/features/io/sg-chain/arch-support.txt
-+++ b/Documentation/features/io/sg-chain/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: | TODO |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/lib/strncasecmp/arch-support.txt b/Documentation/features/lib/strncasecmp/arch-support.txt
-index 4f3a6a0e4e683..d7a1dd8072514 100644
---- a/Documentation/features/lib/strncasecmp/arch-support.txt
-+++ b/Documentation/features/lib/strncasecmp/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/locking/cmpxchg-local/arch-support.txt b/Documentation/features/locking/cmpxchg-local/arch-support.txt
-index 482a0b09d1f89..c2e9979292a80 100644
---- a/Documentation/features/locking/cmpxchg-local/arch-support.txt
-+++ b/Documentation/features/locking/cmpxchg-local/arch-support.txt
-@@ -9,7 +9,7 @@
-     |       alpha: | TODO |
-     |         arc: | TODO |
-     |         arm: | TODO |
--    |       arm64: | TODO |
-+    |       arm64: |  ok  |
-     |         c6x: | TODO |
-     |       h8300: | TODO |
-     |     hexagon: | TODO |
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/locking/lockdep/arch-support.txt b/Documentation/features/locking/lockdep/arch-support.txt
-index bb35c5ba62866..23f772a875aa5 100644
---- a/Documentation/features/locking/lockdep/arch-support.txt
-+++ b/Documentation/features/locking/lockdep/arch-support.txt
-@@ -18,9 +18,10 @@
-     |  microblaze: |  ok  |
-     |        mips: |  ok  |
-     |       nios2: | TODO |
--    |    openrisc: | TODO |
-+    |    openrisc: |  ok  |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/locking/queued-rwlocks/arch-support.txt b/Documentation/features/locking/queued-rwlocks/arch-support.txt
-index 627e9a6b2db98..2f0a42570f83f 100644
---- a/Documentation/features/locking/queued-rwlocks/arch-support.txt
-+++ b/Documentation/features/locking/queued-rwlocks/arch-support.txt
-@@ -9,21 +9,22 @@
-     |       alpha: | TODO |
-     |         arc: | TODO |
-     |         arm: | TODO |
--    |       arm64: | TODO |
-+    |       arm64: |  ok  |
-     |         c6x: | TODO |
-     |       h8300: | TODO |
-     |     hexagon: | TODO |
-     |        ia64: | TODO |
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
--    |        mips: | TODO |
-+    |        mips: |  ok  |
-     |       nios2: | TODO |
--    |    openrisc: | TODO |
-+    |    openrisc: |  ok  |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
--    |       sparc: | TODO |
-+    |       sparc: |  ok  |
-     |          um: | TODO |
-     |   unicore32: | TODO |
-     |         x86: |  ok  |
-diff --git a/Documentation/features/locking/queued-spinlocks/arch-support.txt b/Documentation/features/locking/queued-spinlocks/arch-support.txt
-index 9edda216cdfbf..10794bd0e331a 100644
---- a/Documentation/features/locking/queued-spinlocks/arch-support.txt
-+++ b/Documentation/features/locking/queued-spinlocks/arch-support.txt
-@@ -16,14 +16,15 @@
-     |        ia64: | TODO |
-     |        m68k: | TODO |
-     |  microblaze: | TODO |
--    |        mips: | TODO |
-+    |        mips: |  ok  |
-     |       nios2: | TODO |
--    |    openrisc: | TODO |
-+    |    openrisc: |  ok  |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
--    |       sparc: | TODO |
-+    |       sparc: |  ok  |
-     |          um: | TODO |
-     |   unicore32: | TODO |
-     |         x86: |  ok  |
-diff --git a/Documentation/features/locking/rwsem-optimized/arch-support.txt b/Documentation/features/locking/rwsem-optimized/arch-support.txt
-index 8d9afb10b16e7..c1e98011a653f 100644
---- a/Documentation/features/locking/rwsem-optimized/arch-support.txt
-+++ b/Documentation/features/locking/rwsem-optimized/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/perf/kprobes-event/arch-support.txt b/Documentation/features/perf/kprobes-event/arch-support.txt
-index d01239ee34b34..c327af0f5c992 100644
---- a/Documentation/features/perf/kprobes-event/arch-support.txt
-+++ b/Documentation/features/perf/kprobes-event/arch-support.txt
-@@ -9,7 +9,7 @@
-     |       alpha: | TODO |
-     |         arc: | TODO |
-     |         arm: |  ok  |
--    |       arm64: | TODO |
-+    |       arm64: |  ok  |
-     |         c6x: | TODO |
-     |       h8300: | TODO |
-     |     hexagon: |  ok  |
-@@ -21,9 +21,10 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
--    |       sparc: | TODO |
-+    |       sparc: |  ok  |
-     |          um: | TODO |
-     |   unicore32: | TODO |
-     |         x86: |  ok  |
-diff --git a/Documentation/features/perf/perf-regs/arch-support.txt b/Documentation/features/perf/perf-regs/arch-support.txt
-index 458faba5311ab..122445ba72974 100644
---- a/Documentation/features/perf/perf-regs/arch-support.txt
-+++ b/Documentation/features/perf/perf-regs/arch-support.txt
-@@ -21,7 +21,8 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
--    |        s390: | TODO |
-+    |       riscv: | TODO |
-+    |        s390: |  ok  |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-     |          um: | TODO |
-diff --git a/Documentation/features/perf/perf-stackdump/arch-support.txt b/Documentation/features/perf/perf-stackdump/arch-support.txt
-index 545d01c69c88f..4c16b01b13003 100644
---- a/Documentation/features/perf/perf-stackdump/arch-support.txt
-+++ b/Documentation/features/perf/perf-stackdump/arch-support.txt
-@@ -21,7 +21,8 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
--    |        s390: | TODO |
-+    |       riscv: | TODO |
-+    |        s390: |  ok  |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-     |          um: | TODO |
-diff --git a/Documentation/features/sched/membarrier-sync-core/arch-support.txt b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
-index 85a6c9d4571ce..4cf907ce2329b 100644
---- a/Documentation/features/sched/membarrier-sync-core/arch-support.txt
-+++ b/Documentation/features/sched/membarrier-sync-core/arch-support.txt
-@@ -44,6 +44,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/sched/numa-balancing/arch-support.txt b/Documentation/features/sched/numa-balancing/arch-support.txt
-index 3475088638726..f5a2472bc577f 100644
---- a/Documentation/features/sched/numa-balancing/arch-support.txt
-+++ b/Documentation/features/sched/numa-balancing/arch-support.txt
-@@ -9,7 +9,7 @@
-     |       alpha: | TODO |
-     |         arc: |  ..  |
-     |         arm: |  ..  |
--    |       arm64: |  ..  |
-+    |       arm64: |  ok  |
-     |         c6x: |  ..  |
-     |       h8300: |  ..  |
-     |     hexagon: |  ..  |
-@@ -21,7 +21,8 @@
-     |    openrisc: |  ..  |
-     |      parisc: |  ..  |
-     |     powerpc: |  ok  |
--    |        s390: |  ..  |
-+    |       riscv: | TODO |
-+    |        s390: |  ok  |
-     |          sh: |  ..  |
-     |       sparc: | TODO |
-     |          um: |  ..  |
-diff --git a/Documentation/features/seccomp/seccomp-filter/arch-support.txt b/Documentation/features/seccomp/seccomp-filter/arch-support.txt
-index e4fad58a05e51..732d66f68c36a 100644
---- a/Documentation/features/seccomp/seccomp-filter/arch-support.txt
-+++ b/Documentation/features/seccomp/seccomp-filter/arch-support.txt
-@@ -19,8 +19,9 @@
-     |        mips: |  ok  |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
--    |      parisc: | TODO |
--    |     powerpc: | TODO |
-+    |      parisc: |  ok  |
-+    |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/time/arch-tick-broadcast/arch-support.txt b/Documentation/features/time/arch-tick-broadcast/arch-support.txt
-index 8052904b25fc7..fd5deea32759b 100644
---- a/Documentation/features/time/arch-tick-broadcast/arch-support.txt
-+++ b/Documentation/features/time/arch-tick-broadcast/arch-support.txt
-@@ -21,8 +21,9 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
--    |          sh: | TODO |
-+    |          sh: |  ok  |
-     |       sparc: | TODO |
-     |          um: | TODO |
-     |   unicore32: | TODO |
-diff --git a/Documentation/features/time/clockevents/arch-support.txt b/Documentation/features/time/clockevents/arch-support.txt
-index 7c76b946297e9..96d773c42077a 100644
---- a/Documentation/features/time/clockevents/arch-support.txt
-+++ b/Documentation/features/time/clockevents/arch-support.txt
-@@ -19,8 +19,9 @@
-     |        mips: |  ok  |
-     |       nios2: |  ok  |
-     |    openrisc: |  ok  |
--    |      parisc: | TODO |
-+    |      parisc: |  ok  |
-     |     powerpc: |  ok  |
-+    |       riscv: |  ok  |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/time/context-tracking/arch-support.txt b/Documentation/features/time/context-tracking/arch-support.txt
-index 9433b3e523b39..28aa805d61c19 100644
---- a/Documentation/features/time/context-tracking/arch-support.txt
-+++ b/Documentation/features/time/context-tracking/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/time/irq-time-acct/arch-support.txt b/Documentation/features/time/irq-time-acct/arch-support.txt
-index 212dde0b578c8..a12dc62a63ac4 100644
---- a/Documentation/features/time/irq-time-acct/arch-support.txt
-+++ b/Documentation/features/time/irq-time-acct/arch-support.txt
-@@ -20,7 +20,8 @@
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: |  ..  |
--    |     powerpc: |  ..  |
-+    |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ..  |
-     |          sh: | TODO |
-     |       sparc: |  ..  |
-diff --git a/Documentation/features/time/modern-timekeeping/arch-support.txt b/Documentation/features/time/modern-timekeeping/arch-support.txt
-index 4074028f72f72..4e5e48cc6c1cd 100644
---- a/Documentation/features/time/modern-timekeeping/arch-support.txt
-+++ b/Documentation/features/time/modern-timekeeping/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: |  ok  |
-     |      parisc: |  ok  |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/time/virt-cpuacct/arch-support.txt b/Documentation/features/time/virt-cpuacct/arch-support.txt
-index a394d8820517b..b82e517295d55 100644
---- a/Documentation/features/time/virt-cpuacct/arch-support.txt
-+++ b/Documentation/features/time/virt-cpuacct/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: |  ok  |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: | TODO |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/vm/ELF-ASLR/arch-support.txt b/Documentation/features/vm/ELF-ASLR/arch-support.txt
-index 082f93d5b40ed..413229bedf398 100644
---- a/Documentation/features/vm/ELF-ASLR/arch-support.txt
-+++ b/Documentation/features/vm/ELF-ASLR/arch-support.txt
-@@ -19,8 +19,9 @@
-     |        mips: |  ok  |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
--    |      parisc: | TODO |
-+    |      parisc: |  ok  |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/vm/PG_uncached/arch-support.txt b/Documentation/features/vm/PG_uncached/arch-support.txt
-index 605e0abb756d8..137064e8815e6 100644
---- a/Documentation/features/vm/PG_uncached/arch-support.txt
-+++ b/Documentation/features/vm/PG_uncached/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/vm/THP/arch-support.txt b/Documentation/features/vm/THP/arch-support.txt
-index 7a8eb0bd5ca84..9f3d4ce8fe820 100644
---- a/Documentation/features/vm/THP/arch-support.txt
-+++ b/Documentation/features/vm/THP/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: |  ..  |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: |  ..  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/vm/TLB/arch-support.txt b/Documentation/features/vm/TLB/arch-support.txt
-index 35fb99b2b3ea1..d5fd9c773e6c8 100644
---- a/Documentation/features/vm/TLB/arch-support.txt
-+++ b/Documentation/features/vm/TLB/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: |  ..  |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/vm/huge-vmap/arch-support.txt b/Documentation/features/vm/huge-vmap/arch-support.txt
-index ed8b943ad8fc8..bc7ff7b2169d4 100644
---- a/Documentation/features/vm/huge-vmap/arch-support.txt
-+++ b/Documentation/features/vm/huge-vmap/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: | TODO |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/vm/ioremap_prot/arch-support.txt b/Documentation/features/vm/ioremap_prot/arch-support.txt
-index 589947bdf0a8a..7ceb532c7ae51 100644
---- a/Documentation/features/vm/ioremap_prot/arch-support.txt
-+++ b/Documentation/features/vm/ioremap_prot/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: | TODO |
-     |          sh: |  ok  |
-     |       sparc: | TODO |
-diff --git a/Documentation/features/vm/numa-memblock/arch-support.txt b/Documentation/features/vm/numa-memblock/arch-support.txt
-index 8b8bea0318a0d..c9f9ad44540a8 100644
---- a/Documentation/features/vm/numa-memblock/arch-support.txt
-+++ b/Documentation/features/vm/numa-memblock/arch-support.txt
-@@ -9,7 +9,7 @@
-     |       alpha: | TODO |
-     |         arc: |  ..  |
-     |         arm: |  ..  |
--    |       arm64: |  ..  |
-+    |       arm64: |  ok  |
-     |         c6x: |  ..  |
-     |       h8300: |  ..  |
-     |     hexagon: |  ..  |
-@@ -21,6 +21,7 @@
-     |    openrisc: |  ..  |
-     |      parisc: |  ..  |
-     |     powerpc: |  ok  |
-+    |       riscv: |  ok  |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
-diff --git a/Documentation/features/vm/pte_special/arch-support.txt b/Documentation/features/vm/pte_special/arch-support.txt
-index 055004f467d2c..6e7a00f5bc0ee 100644
---- a/Documentation/features/vm/pte_special/arch-support.txt
-+++ b/Documentation/features/vm/pte_special/arch-support.txt
-@@ -21,6 +21,7 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: |  ok  |
-+    |       riscv: | TODO |
-     |        s390: |  ok  |
-     |          sh: |  ok  |
-     |       sparc: |  ok  |
--- 
-2.7.4
+That sounds reasonable, considering we do unmap the iospace when we 
+release - so it looks like currently we're leaving some IO range 
+reserved which does not have a mapping.
+
+However this change seems non-trivial, considering we're now even 
+coupling the PIO range registration into DT parsing.
+
+>
+>>>> Going back in history a little, it looks like even before this commit
+>>>> the I/O range registration was triggered by the parsing code and even
+>>>> the range leak was there, except that it caused pci_register_io_range()
+>>>> to return 0 rather than -EFAULT. Perhaps the quickest fix for this would
+>>>> be to do the same in the new code and restore drivers that accidentally
+>>>> depend on this behaviour.
+>>>
+>>> I can confirm that the following fixes the issue for me, though I don't
+>>> think it's a very clean fix given that the range will remain requested
+>>> forever, even if the driver is gone. But since that's already been the
+>>> case for quite a while, probably something that can be fixed separately.
+>>>
+>>
+>> Right, there was no way to deregister the range previously.  From looking at
+>> the history here I see no reason to not support it.
+>>
+>> As for this patch, as you said, the only difference is that we fault on
+>> trying to register the same range again. So this solution seems reasonable.
+>
+> Okay, I can turn this into a proper patch to fix this up. I suspect that
+> other drivers may be subject to the same regression. For the longer term
+> I think it'd be better to properly undo the registration on failure and
+> removal, but I suspect that it'd be quite a bit of work and not suitable
+> for v4.17 anymore.
+
+Thanks, I had started to put the patch together but if you're happy to 
+continue then that's fine. Please let me know.
+
+>
+>> On another point, for the tegra driver, is it possible to defer earlier in
+>> the probe, before these currently irreversible steps are taken?
+>
+> I'm sure it'd be possible. But it would be quite involved, I think. The
+> reason the code is the way it is is because parsing the DT didn't use to
+> have side-effects.
+>
+> Also, I don't think it would buy us much because the probe can still
+> defer (or at least fail) as late as pci_scan_root_bus_bridge(). Even if
+> we work around the probe deferral by moving the DT parsing to a later
+> point we could easily run into a situation where the entry remains in
+> place and a subsequent attempt to reload the driver would then fail in
+> the same way as if we were deferring probe.
+>
+> Thierry
+>
+
+Thanks,
+John
